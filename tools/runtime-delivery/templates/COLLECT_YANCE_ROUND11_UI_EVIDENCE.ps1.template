@@ -1,0 +1,159 @@
+[CmdletBinding()]
+param(
+  [ValidateRange(1024, 65535)]
+  [int]$Port = 27632,
+  [switch]$StartupDiagnosticsOnly
+)
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+Set-Location -LiteralPath $PSScriptRoot
+$shortCommit = '__SHORT_COMMIT__'
+$candidateRoot = Join-Path $env:LOCALAPPDATA (Join-Path 'Yance-UAT-Candidates' $shortCommit)
+$sourceRoot = Join-Path $candidateRoot 'source'
+$installerLogRoot = Join-Path $candidateRoot 'installer-logs'
+$uatDataRootBase = Join-Path $env:LOCALAPPDATA (Join-Path 'Yance-UAT-Data' $shortCommit)
+$toolPath = Join-Path $sourceRoot 'tools\uat\exportPlatformProductionEvidence.js'
+$sanitizerPath = Join-Path $sourceRoot 'tools\runtime-delivery\sanitize-windows-ui-uat-diagnostic.js'
+$nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
+$nodePath = if ($nodeCommand) { [string]$nodeCommand.Source } else { '' }
+if (-not $nodePath) {
+  $portableNode = Join-Path (Split-Path -Parent $PSScriptRoot) '.runtime\node-v22.16.0-win-x64\node.exe'
+  if (Test-Path -LiteralPath $portableNode -PathType Leaf) { $nodePath = $portableNode }
+}
+$downloadRoot = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads'
+if (-not (Test-Path -LiteralPath $downloadRoot -PathType Container)) { $downloadRoot = $env:USERPROFILE }
+$stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ')
+$outputRoot = Join-Path $downloadRoot "YANCE_ROUND11_UI_EVIDENCE_$stamp"
+$zipPath = "$outputRoot.zip"
+New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
+$diagnosticRoot = Join-Path $outputRoot 'startup-diagnostics'
+New-Item -ItemType Directory -Path $diagnosticRoot -Force | Out-Null
+$diagnosticFileCount = 0
+$diagnosticSanitizationFailures = 0
+$diagnosticSanitizerAvailable = [bool]($nodePath -and (Test-Path -LiteralPath $sanitizerPath -PathType Leaf))
+
+function Sanitize-DiagnosticFile([string]$Source, [string]$DestinationDirectory) {
+  if (-not (Test-Path -LiteralPath $Source -PathType Leaf)) { return $false }
+  if (-not $diagnosticSanitizerAvailable) {
+    $script:diagnosticSanitizationFailures += 1
+    return $false
+  }
+  New-Item -ItemType Directory -Path $DestinationDirectory -Force | Out-Null
+  $destination = Join-Path $DestinationDirectory (Split-Path -Leaf $Source)
+  & $nodePath $sanitizerPath "--input=$Source" "--output=$destination" *> $null
+  if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $destination -PathType Leaf)) {
+    $script:diagnosticSanitizationFailures += 1
+    return $false
+  }
+  return $true
+}
+
+function Sanitize-DiagnosticTree([string]$SourceRoot, [string]$DestinationRoot) {
+  if (-not (Test-Path -LiteralPath $SourceRoot -PathType Container)) { return 0 }
+  $count = 0
+  foreach ($file in @(Get-ChildItem -LiteralPath $SourceRoot -File -Recurse -ErrorAction SilentlyContinue)) {
+    if ($file.Extension -notin @('.json', '.jsonl', '.log', '.txt')) { continue }
+    $relativeDirectory = [IO.Path]::GetDirectoryName($file.FullName.Substring($SourceRoot.Length).TrimStart('\\'))
+    $destination = if ($relativeDirectory) { Join-Path $DestinationRoot $relativeDirectory } else { $DestinationRoot }
+    if (Sanitize-DiagnosticFile -Source $file.FullName -DestinationDirectory $destination) { $count += 1 }
+  }
+  return $count
+}
+
+function Collect-ApprovedRuntimeLogs([string]$DataRoot, [string]$DestinationDirectory) {
+  if (-not (Test-Path -LiteralPath $DataRoot -PathType Container)) { return 0 }
+  $count = 0
+  $logRoot = Join-Path $DataRoot 'logs'
+  foreach ($name in @('desktop-bootstrap.jsonl', 'desktop.jsonl', 'server.jsonl')) {
+    if (Sanitize-DiagnosticFile -Source (Join-Path $logRoot $name) -DestinationDirectory $DestinationDirectory) { $count += 1 }
+  }
+  foreach ($name in @('YANCE_SOURCE_UAT_DATA_CLONE_RECEIPT.json', '.yance-source-uat-clone.json')) {
+    if (Sanitize-DiagnosticFile -Source (Join-Path $DataRoot $name) -DestinationDirectory $DestinationDirectory) { $count += 1 }
+  }
+  return $count
+}
+
+$diagnosticFileCount += Sanitize-DiagnosticTree -SourceRoot $installerLogRoot -DestinationRoot (Join-Path $diagnosticRoot 'installer-logs')
+
+if (Test-Path -LiteralPath $uatDataRootBase -PathType Container) {
+  $runDestination = Join-Path $diagnosticRoot 'data-runs'
+  foreach ($run in @(Get-ChildItem -LiteralPath $uatDataRootBase -Directory -ErrorAction SilentlyContinue)) {
+    $diagnosticFileCount += Collect-ApprovedRuntimeLogs -DataRoot $run.FullName -DestinationDirectory (Join-Path $runDestination $run.Name)
+  }
+}
+
+$installedDataRoot = Join-Path $env:APPDATA 'Yance'
+$diagnosticFileCount += Collect-ApprovedRuntimeLogs -DataRoot $installedDataRoot -DestinationDirectory (Join-Path $diagnosticRoot 'installed-data-logs')
+
+$sourceUatReportRoot = Join-Path $sourceRoot '.tmp\source-uat-resources'
+foreach ($name in @('source-uat-launch.json', 'source-uat-preparation.json')) {
+  if (Sanitize-DiagnosticFile -Source (Join-Path $sourceUatReportRoot $name) -DestinationDirectory (Join-Path $diagnosticRoot 'source-uat-reports')) { $diagnosticFileCount += 1 }
+}
+
+$prelaunchRoot = Join-Path $sourceRoot '.tmp\round11-prelaunch-gates'
+$diagnosticFileCount += Sanitize-DiagnosticTree -SourceRoot $prelaunchRoot -DestinationRoot (Join-Path $outputRoot 'round11-prelaunch-gates')
+
+$runtimeLog = Join-Path $outputRoot 'RUNTIME_EXPORT.log'
+$runtimeExitCode = -1
+$runtimeStatus = 'STARTUP_DIAGNOSTICS_ONLY'
+$runtimeMessage = 'Runtime export was not attempted because the authenticated Electron runtime was unavailable.'
+if ($StartupDiagnosticsOnly) {
+  [IO.File]::WriteAllText($runtimeLog, "Startup diagnostics mode; runtime export intentionally skipped.`r`n", (New-Object Text.UTF8Encoding($false)))
+} elseif ($nodePath -and (Test-Path -LiteralPath $toolPath -PathType Leaf)) {
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = 'Continue'
+    & $nodePath $toolPath --base-url "http://127.0.0.1:$Port" --output (Join-Path $outputRoot 'runtime') 2>&1 |
+      Tee-Object -FilePath $runtimeLog
+    $runtimeExitCode = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
+  if ($runtimeExitCode -eq 0) {
+    $runtimeStatus = 'COMPLETE'
+    $runtimeMessage = 'Authenticated runtime evidence export completed.'
+  } else {
+    $runtimeStatus = 'BLOCKED_AUTHENTICATED_ELECTRON_SESSION_REQUIRED'
+    $runtimeMessage = 'Runtime export was blocked because the standalone collector does not own the authenticated Electron application session. Startup diagnostics were still collected.'
+  }
+} else {
+  [IO.File]::WriteAllText($runtimeLog, "Node or runtime exporter unavailable; startup diagnostics only.`r`n", (New-Object Text.UTF8Encoding($false)))
+}
+
+[ordered]@{
+  schemaVersion = 3
+  collectedAtUtc = [DateTime]::UtcNow.ToString('o')
+  status = $runtimeStatus
+  exitCode = $runtimeExitCode
+  message = $runtimeMessage
+  logFile = 'RUNTIME_EXPORT.log'
+  startupDiagnosticFileCount = $diagnosticFileCount
+  diagnosticSanitizerAvailable = $diagnosticSanitizerAvailable
+  diagnosticSanitizationFailures = $diagnosticSanitizationFailures
+  databasesCopied = 0
+  credentialStoresCopied = 0
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $outputRoot 'RUNTIME_EXPORT_STATUS.json') -Encoding UTF8
+
+@'
+AUTOMATIC SCREENSHOT CAPTURE IS DISABLED.
+Reason: full-desktop capture can include unrelated windows, private messages, credentials, QR codes, or other secrets.
+Only add screenshots manually after:
+1. Hiding every unrelated application and notification.
+2. Capturing the Yance application window only.
+3. Reviewing the image before adding it to the evidence package.
+4. Confirming no token, cookie, password, QR code, personal conversation, or unrelated desktop content is visible.
+'@ | Set-Content -LiteralPath (Join-Path $outputRoot 'SCREENSHOT_CAPTURE_POLICY.txt') -Encoding UTF8
+@'
+ROUND 11 UI CHECKLIST
+1. Five product areas are visible: Conversation, AI Reply Brain, Contacts and Relationships, Accounts and Platforms, System and Settings.
+2. Conversation center shows a quick-reply dock between messages and composer.
+3. Quick-reply dock shows 3 candidates and can expand to 5.
+4. Clicking a candidate fills the composer and never sends automatically.
+5. AI panel opens in daily mode and advanced mode reveals Understanding, Director, Candidates, Profile, Media, Timeline and Learning.
+6. Composer shows the real outbound translation route.
+7. Validate normal, narrow, 125 percent and 150 percent Windows scaling separately.
+'@ | Set-Content -LiteralPath (Join-Path $outputRoot 'ROUND11_UI_CHECKLIST.txt') -Encoding ASCII
+if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
+Compress-Archive -LiteralPath (Join-Path $outputRoot '*') -DestinationPath $zipPath -Force
+Write-Host "Evidence ZIP: $zipPath" -ForegroundColor Green
+exit 0

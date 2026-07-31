@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 3,
+  "documentType": "YANCE_EVIDENCE_MANIFEST",
+  "artifactId": "yance-f25fe2e-repair-batch37",
+  "promotionState": "BLOCKED",
+  "windowsUatState": "WINDOWS_UAT_BLOCKED",
+  "evidenceCompleteness": {
+    "batch35WindowsSelectedMatrix": "PASS_4_OF_4_WITH_SHORT_PATH_6_OF_6",
+    "protocolV3": "PASS_2_TESTS",
+    "sourceUatDelivery": "PASS_33_TESTS",
+    "round12PlatformCore": "PASS_79_TESTS",
+    "round13AiQuality": "PASS_24_TESTS",
+    "uatDiagnostics": "PASS_142_TESTS",
+    "wp5BaseSuite": "PASS_58_TESTS",
+    "wp5SourceClosure": "PASS_11_CHECKS",
+    "fullBackendRecursive": "PASS_176_FILES_1099_TESTS",
+    "wp4EvidenceSemantics": "PASS_3_TESTS",
+    "wp3FullWindows": "PENDING_BATCH37_REVALIDATION",
+    "wp4FullWindows": "PENDING_BATCH37_REVALIDATION",
+    "wp5FullWindowsContinuous": "PENDING_BATCH37_REVALIDATION",
+    "completeDependencyGate": "PENDING_BATCH37_WINDOWS_REVALIDATION",
+    "artifactReverseVerification": "PENDING_POST_PACKAGE",
+    "independentReview": "REQUIRED_EXTERNAL_ROLE",
+    "realWindowsElectronPlatformAiUat": "PENDING",
+    "facebookUat": "PENDING",
+    "whatsappUat": "PENDING",
+    "telegramUat": "PENDING",
+    "openRouterQualification": "PENDING",
+    "batch36WindowsFullAttempt": "REVIEWED_FAIL_SHA256_E6D80F847C129BE0D922E9174B809653CB109EBB732BF049FBB0E1648B1B189E",
+    "batch37EvidenceToolchainDirectTests": "PASS_8_TESTS",
+    "batch37Wp3IsolatedSingleton": "PASS_9_CHECKS"
+  },
+  "evidenceArtifacts": {
+    "automatedReceipt": {
+      "file": "YANCE_BATCH37_AUTOMATED_TEST_RECEIPT.json",
+      "sha256": "TRACKED_IN_PACKAGE"
+    },
+    "rootCauseMatrix": {
+      "file": "YANCE_BATCH37_ROOT_CAUSE_ISSUE_MATRIX.json",
+      "sha256": "TRACKED_IN_PACKAGE"
+    },
+    "repairReport": {
+      "file": "YANCE_BATCH37_WINDOWS_FIX_REPORT_ZH.md",
+      "sha256": "TRACKED_IN_PACKAGE"
+    },
+    "windowsChecklist": {
+      "file": "YANCE_BATCH37_REAL_WINDOWS_UAT_CHECKLIST_ZH.md",
+      "sha256": "TRACKED_IN_PACKAGE"
+    },
+    "batch36WindowsEvidence": {
+      "file": "YANCE_BATCH36_WINDOWS_FULL_EVIDENCE_20260729-191217.zip",
+      "sha256": "e6d80f847c129be0d922e9174b809653cb109ebb732bf049fbb0e1648b1b189e",
+      "external": true
+    },
+    "externalLogBundle": {
+      "file": "YANCE_BATCH37_LINUX_TARGETED_EVIDENCE.zip",
+      "sha256": "PENDING_EXTERNAL_HANDOFF"
+    }
+  },
+  "evidenceSeparation": {
+    "productSourceFix": "Batch37 ImplementationCommit",
+    "targetedAutomatedTests": "Evidence toolchain deterministic tests and isolated singleton execution",
+    "batch37WindowsFull": "PENDING_EXTERNAL_EXECUTION",
+    "uatInfrastructure": "Runner and evidence generators; not accepted as real platform closure"
+  },
+  "acceptancePolicy": {
+    "realWindowsEvidenceRequired": true,
+    "runtimeIdentityMustMatchArtifact": true,
+    "truncated": false,
+    "allPagesExported": true,
+    "executorSelfApprovalForbidden": true
+  },
+  "promotionBlockers": [
+    {
+      "code": "BATCH37_CLEAN_NPM_CI_WINDOWS_PENDING",
+      "scope": "external-evidence",
+      "releaseBlocking": true
+    },
+    {
+      "code": "BATCH37_FULL_WP3_WP4_WP5_PENDING",
+      "scope": "external-evidence",
+      "releaseBlocking": true
+    },
+    {
+      "code": "BATCH37_FULL_BACKEND_WINDOWS_PENDING",
+      "scope": "external-evidence",
+      "releaseBlocking": true
+    },
+    {
+      "code": "BATCH37_REAL_WINDOWS_ELECTRON_PENDING",
+      "scope": "external-evidence",
+      "releaseBlocking": true
+    },
+    {
+      "code": "REAL_PLATFORM_OPERATION_MATRIX_LATE_ACK_PENDING",
+      "scope": "external-evidence",
+      "releaseBlocking": true
+    },
+    {
+      "code": "REAL_OPENROUTER_PHYSICAL_TERMINATION_PENDING",
+      "scope": "external-evidence",
+      "releaseBlocking": true
+    },
+    {
+      "code": "INDEPENDENT_REVIEW_REQUIRED",
+      "scope": "governance",
+      "releaseBlocking": true
+    }
+  ]
+}

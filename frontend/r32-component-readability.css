@@ -1,0 +1,247 @@
+/*
+ * Root Cause Closure: shared readable action controls.
+ *
+ * This layer is intentionally loaded after the frozen theme authority. It does
+ * not define a new palette; it owns the minimum readable geometry and semantic
+ * foreground/background contract for user-facing controls that were previously
+ * styled independently by legacy workspaces.
+ */
+:root{
+  --rc-action-surface:var(--theme-control-bg,var(--surface-control,var(--panel2)));
+  --rc-action-surface-hover:var(--theme-control-hover,var(--surface-control-hover,var(--card2)));
+  --rc-action-border:var(--theme-border,var(--border-default,var(--line)));
+  --rc-action-border-active:var(--theme-border-strong,var(--border-active,var(--line2)));
+  --rc-action-text:var(--text-primary,var(--text));
+  --rc-action-text-muted:var(--text-secondary,var(--muted));
+  --rc-action-on-accent:var(--theme-on-accent,var(--avatar-text,var(--bg)));
+  --rc-action-focus:var(--focus-ring,0 0 0 3px color-mix(in srgb,var(--accent-primary) 25%,transparent));
+}
+
+/* Registered legacy control owners. Every selector here previously carried its
+ * own foreground/background rules; this authoritative layer prevents same-color
+ * text, fixed-height clipping and page-specific theme drift. */
+:is(
+  .tools button,
+  .candidate-actions button,
+  .profile-actions button,
+  .contact-detail-actions button,
+  .detail26-actions button,
+  .profile27-detail-actions button,
+  .inline-actions button,
+  .timeline27-detail-actions button,
+  .timeline27-ranges button,
+  .next27-actions button,
+  .display-options button,
+  .load-earlier,
+  .insight29-filters button,
+  .insight29-period button,
+  .insight29-decision-actions button,
+  .insight29-inline-actions button,
+  .insight29-jumps button,
+  .aiw30-sidebar-foot button,
+  .aiw30-content-actions button,
+  .aiw30-template button,
+  .aiw30-rule-actions button,
+  .aiw30-contact-empty button,
+  .aiw30-chips button,
+  .aiw30-material-actions button,
+  .aiw30-service footer button,
+  .aiw30-actions button,
+  #testNotificationBtn,
+  #testSoundBtn
+){
+  box-sizing:border-box!important;
+  min-height:34px!important;
+  height:auto!important;
+  padding:7px 11px!important;
+  border:1px solid var(--rc-action-border)!important;
+  border-radius:9px;
+  background:var(--rc-action-surface)!important;
+  color:var(--rc-action-text)!important;
+  font-size:max(11px,var(--ws-button,11px))!important;
+  font-weight:650;
+  line-height:1.35!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  overflow-wrap:anywhere;
+  text-align:center;
+  cursor:pointer;
+}
+
+:is(
+  .tools button,
+  .candidate-actions button,
+  .profile-actions button,
+  .contact-detail-actions button,
+  .detail26-actions button,
+  .profile27-detail-actions button,
+  .inline-actions button,
+  .timeline27-detail-actions button,
+  .timeline27-ranges button,
+  .next27-actions button,
+  .display-options button,
+  .load-earlier,
+  .insight29-filters button,
+  .insight29-period button,
+  .insight29-decision-actions button,
+  .insight29-inline-actions button,
+  .insight29-jumps button,
+  .aiw30-sidebar-foot button,
+  .aiw30-content-actions button,
+  .aiw30-template button,
+  .aiw30-rule-actions button,
+  .aiw30-contact-empty button,
+  .aiw30-chips button,
+  .aiw30-material-actions button,
+  .aiw30-service footer button,
+  .aiw30-actions button,
+  #testNotificationBtn,
+  #testSoundBtn
+):hover:not(:disabled):not([aria-disabled="true"]){
+  border-color:var(--rc-action-border-active)!important;
+  background:var(--rc-action-surface-hover)!important;
+  color:var(--rc-action-text)!important;
+}
+
+:is(
+  .tools button,
+  .candidate-actions button,
+  .profile-actions button,
+  .contact-detail-actions button,
+  .detail26-actions button,
+  .profile27-detail-actions button,
+  .inline-actions button,
+  .timeline27-detail-actions button,
+  .timeline27-ranges button,
+  .next27-actions button,
+  .display-options button,
+  .load-earlier,
+  .insight29-filters button,
+  .insight29-period button,
+  .insight29-decision-actions button,
+  .insight29-inline-actions button,
+  .insight29-jumps button,
+  .aiw30-sidebar-foot button,
+  .aiw30-content-actions button,
+  .aiw30-template button,
+  .aiw30-rule-actions button,
+  .aiw30-contact-empty button,
+  .aiw30-chips button,
+  .aiw30-material-actions button,
+  .aiw30-service footer button,
+  .aiw30-actions button,
+  #testNotificationBtn,
+  #testSoundBtn
+):focus-visible{
+  outline:0!important;
+  box-shadow:var(--rc-action-focus)!important;
+}
+
+:is(
+  .candidate-actions button.primary,
+  .profile-actions button.primary,
+  .contact-detail-actions button.primary,
+  .detail26-actions button.primary,
+  .profile27-detail-actions button.primary,
+  .inline-actions button.primary,
+  .next27-actions button.primary,
+  .insight29-decision-actions button.primary,
+  .insight29-inline-actions button.primary,
+  .aiw30-actions button.primary
+){
+  border-color:transparent!important;
+  background:linear-gradient(135deg,var(--theme-accent,var(--accent-primary)),color-mix(in srgb,var(--theme-accent-2,var(--accent-secondary)) 62%,var(--theme-accent,var(--accent-primary))))!important;
+  color:var(--rc-action-on-accent)!important;
+}
+
+:is(#forgetReplyLearning,#clearReplyLearning,[data-act="reject"],.delete,.danger){
+  border-color:color-mix(in srgb,var(--status-danger) 58%,var(--rc-action-border))!important;
+  color:var(--status-danger)!important;
+}
+
+:is(button:disabled,button[aria-disabled="true"]){
+  opacity:.62!important;
+  cursor:not-allowed!important;
+}
+
+/* Candidate actions remain identifiable at the actual right-panel width. */
+.candidate-actions{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit,minmax(104px,1fr))!important;
+  gap:8px!important;
+  align-items:stretch;
+}
+.candidate-actions button{width:100%;min-width:0}
+
+/* The same action group is used by notes, customer profile and reply learning. */
+.profile-actions{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:stretch!important;
+  gap:8px!important;
+}
+.profile-actions button{
+  flex:1 1 132px;
+  max-width:100%;
+}
+
+/* Micro-tune chips are text controls, not decorative 7px badges. */
+.micro-tune{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit,minmax(88px,1fr))!important;
+  gap:7px!important;
+}
+.micro-tune button{
+  min-height:31px!important;
+  height:auto!important;
+  padding:6px 9px!important;
+  border:1px solid var(--rc-action-border)!important;
+  background:var(--rc-action-surface)!important;
+  color:var(--rc-action-text)!important;
+  font-size:11px!important;
+  font-weight:600;
+  line-height:1.35!important;
+  white-space:normal!important;
+  overflow:visible!important;
+}
+.micro-tune button:hover{
+  border-color:var(--rc-action-border-active)!important;
+  background:var(--rc-action-surface-hover)!important;
+}
+.micro-tune button:focus-visible{outline:0;box-shadow:var(--rc-action-focus)!important}
+
+/* Do not squeeze long source metadata against a confirmation badge. */
+.candidate-trust{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  justify-content:initial!important;
+  align-items:start!important;
+  gap:6px!important;
+  color:var(--rc-action-text-muted)!important;
+  font-size:11px!important;
+  line-height:1.55!important;
+}
+.candidate-trust>span{
+  display:block;
+  min-width:0;
+  max-width:100%;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  writing-mode:horizontal-tb!important;
+}
+.candidate-trust>span:last-child{
+  justify-self:start;
+  padding:3px 7px;
+  border:1px solid var(--rc-action-border);
+  border-radius:999px;
+  background:var(--rc-action-surface);
+  color:var(--rc-action-text)!important;
+}
+.candidate-trust>span.repaired{color:var(--status-warning)!important}
+
+@media(max-width:760px){
+  .candidate-actions,.micro-tune{grid-template-columns:1fr 1fr!important}
+  .profile-actions{display:grid!important;grid-template-columns:1fr!important}
+  .profile-actions button{width:100%;flex:none}
+}

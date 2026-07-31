@@ -1,0 +1,340 @@
+[CmdletBinding()]
+param(
+  [switch]$UseIsolatedData,
+  [string]$CustomDataRoot = '',
+  [ValidateRange(1024, 65535)]
+  [int]$Port = 27632
+)
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+Set-Location -LiteralPath $PSScriptRoot
+
+$expectedCommit = '__EXPECTED_COMMIT__'
+$expectedTree = '__EXPECTED_TREE__'
+$expectedBranch = '__EXPECTED_BRANCH__'
+$payloadName = '__PAYLOAD_NAME__'
+$payloadSha256 = '__PAYLOAD_SHA256__'
+$shortCommit = $expectedCommit.Substring(0, 7)
+$payloadPath = Join-Path $PSScriptRoot (Join-Path 'payload' $payloadName)
+$installRoot = Join-Path $env:LOCALAPPDATA (Join-Path 'Yance-UAT-Candidates' $shortCommit)
+$sourceRoot = Join-Path $installRoot 'source'
+$logRoot = Join-Path $installRoot 'installer-logs'
+$restoreRoot = Join-Path $env:LOCALAPPDATA (Join-Path 'Yance-UAT-RestorePoints' $shortCommit)
+$uatDataRootBase = Join-Path $env:LOCALAPPDATA (Join-Path 'Yance-UAT-Data' $shortCommit)
+
+function Write-Step([string]$Text) {
+  Write-Host "[Yance Round 11 UAT] $Text" -ForegroundColor Cyan
+}
+
+function Get-LowerSha256([string]$Path) {
+  return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()
+}
+
+function Stop-YanceProcesses {
+  foreach ($name in @('Yance', 'Yance29')) {
+    Get-Process -Name $name -ErrorAction SilentlyContinue | ForEach-Object {
+      Write-Step "Stopping old process: $($_.ProcessName) PID=$($_.Id)"
+      Stop-Process -Id $_.Id -Force -ErrorAction Stop
+    }
+  }
+
+  try {
+    foreach ($owner in @(Get-NetTCPConnection -LocalPort $Port -ErrorAction Stop)) {
+      $process = Get-Process -Id $owner.OwningProcess -ErrorAction SilentlyContinue
+      if (-not $process) { continue }
+      $path = ''
+      try { $path = [string]$process.Path } catch {}
+      if ($process.ProcessName -in @('node', 'electron') -and $path -match '(?i)Yance-UAT-Candidates|Yance-UAT-Data|Yance|node') {
+        Write-Step "Stopping stale port owner: $($process.ProcessName) PID=$($process.Id)"
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+      }
+    }
+  } catch {}
+}
+
+function Assert-NodeVersion {
+  $node = Get-Command node.exe -ErrorAction SilentlyContinue
+  if (-not $node) { throw 'Node.js was not found. Node.js 22.5.0 or newer is required.' }
+  $raw = (& $node.Source --version 2>$null | Out-String).Trim().TrimStart('v')
+  $version = [Version]$raw
+  if ($version -lt [Version]'22.5.0') { throw "Node.js version is too old: $raw; required >=22.5.0." }
+  return $node.Source
+}
+
+function Get-ExistingDataRoot([string]$NodePath) {
+  if ($CustomDataRoot) { return [IO.Path]::GetFullPath($CustomDataRoot) }
+  $script = @'
+const delivery = require('./tools/runtime-delivery/source-uat-delivery');
+const rows = delivery.discoverExistingDataRoots()
+  .filter(item => item && item.databaseExists)
+  .sort((a, b) => Number(b.databaseSizeBytes || 0) - Number(a.databaseSizeBytes || 0));
+process.stdout.write(rows[0] ? String(rows[0].dataRoot || '') : '');
+'@
+  return (& $NodePath -e $script 2>$null | Out-String).Trim()
+}
+
+function New-RunDataRoot([string]$Mode, [string]$Stamp) {
+  New-Item -ItemType Directory -Path $uatDataRootBase -Force | Out-Null
+  $target = Join-Path $uatDataRootBase "$Mode-$Stamp"
+  if (Test-Path -LiteralPath $target) { throw "UAT data target already exists: $target" }
+  return $target
+}
+
+function New-DatabaseRecoveryPoint([string]$DataRoot) {
+  if (-not $DataRoot) { return $null }
+  $store = Join-Path $DataRoot 'store'
+  $database = Join-Path $store 'yance-r32.db'
+  if (-not (Test-Path -LiteralPath $database -PathType Leaf)) { return $null }
+  $timestamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ')
+  $destination = Join-Path $restoreRoot $timestamp
+  New-Item -ItemType Directory -Path $destination -Force | Out-Null
+  $records = @()
+  foreach ($suffix in @('', '-wal', '-shm')) {
+    $source = "$database$suffix"
+    if (Test-Path -LiteralPath $source -PathType Leaf) {
+      $target = Join-Path $destination (Split-Path -Leaf $source)
+      Copy-Item -LiteralPath $source -Destination $target -Force
+      $sourceHash = Get-LowerSha256 $source
+      $targetHash = Get-LowerSha256 $target
+      if ($sourceHash -ne $targetHash) { throw "Recovery point verification failed for $(Split-Path -Leaf $source)." }
+      $records += [ordered]@{
+        name = Split-Path -Leaf $target
+        sizeBytes = (Get-Item -LiteralPath $target).Length
+        sha256 = $targetHash
+      }
+    }
+  }
+  if (@($records).Count -eq 0) { throw 'Recovery point did not contain any database files.' }
+  $record = [ordered]@{
+    schemaVersion = 4
+    createdAtUtc = [DateTime]::UtcNow.ToString('o')
+    sourceDataRoot = $DataRoot
+    expectedCommit = $expectedCommit
+    expectedTree = $expectedTree
+    files = $records
+    verified = $true
+  }
+  $record | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $destination 'RECOVERY_POINT.json') -Encoding UTF8
+  return $destination
+}
+
+function New-VerifiedDataClone(
+  [string]$NodePath,
+  [string]$SourceDataRoot,
+  [string]$TargetDataRoot,
+  [string]$Stamp
+) {
+  $cloneTool = Join-Path $sourceRoot 'tools\runtime-delivery\prepare-windows-uat-data-clone.js'
+  if (-not (Test-Path -LiteralPath $cloneTool -PathType Leaf)) { throw "Missing data clone tool: $cloneTool" }
+  $cloneStdout = Join-Path $logRoot "data-clone-$Stamp.stdout.log"
+  $cloneStderr = Join-Path $logRoot "data-clone-$Stamp.stderr.log"
+  $receiptPath = Join-Path $TargetDataRoot 'YANCE_SOURCE_UAT_DATA_CLONE_RECEIPT.json'
+
+  & $NodePath $cloneTool "--source=$SourceDataRoot" "--target=$TargetDataRoot" "--report=$receiptPath" 1> $cloneStdout 2> $cloneStderr
+  $cloneExit = $LASTEXITCODE
+  if ($cloneExit -ne 0) {
+    throw "Verified UAT data clone failed. ExitCode=$cloneExit Stdout=$cloneStdout Stderr=$cloneStderr"
+  }
+  if (-not (Test-Path -LiteralPath $receiptPath -PathType Leaf)) { throw "Data clone receipt is missing: $receiptPath" }
+  $receipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
+  $targetResolved = [IO.Path]::GetFullPath($TargetDataRoot)
+  $receiptTarget = [IO.Path]::GetFullPath([string]$receipt.targetDataRoot)
+  if ($receipt.status -ne 'PASS' -or $receipt.sourceUntouched -ne $true -or $receipt.baseTreeMatch -ne $true -or $receipt.criticalFilesMatch -ne $true -or $receiptTarget -ne $targetResolved) {
+    throw 'Data clone receipt verification failed.'
+  }
+  $markerPath = [string]$receipt.markerPath
+  if (-not (Test-Path -LiteralPath $markerPath -PathType Leaf)) { throw "Data clone marker is missing: $markerPath" }
+  return [pscustomobject]@{
+    dataRoot = $targetResolved
+    markerPath = $markerPath
+    receiptPath = $receiptPath
+    sourceUntouched = $true
+  }
+}
+
+function Invoke-StartupDiagnosticCollector {
+  $collector = Join-Path $PSScriptRoot 'COLLECT_YANCE_ROUND11_UI_EVIDENCE.ps1'
+  if (-not (Test-Path -LiteralPath $collector -PathType Leaf)) {
+    Write-Host "Startup diagnostic collector is missing: $collector" -ForegroundColor Yellow
+    return
+  }
+  try {
+    Write-Step 'Collecting sanitized startup diagnostics...'
+    & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $collector -Port $Port -StartupDiagnosticsOnly
+    $collectorExitCode = $LASTEXITCODE
+    if ($collectorExitCode -ne 0) {
+      Write-Host "Startup diagnostic collection failed with exit code $collectorExitCode." -ForegroundColor Yellow
+    }
+  } catch {
+    Write-Host "Startup diagnostic collection failed: $($_.Exception.Message)" -ForegroundColor Yellow
+  }
+}
+
+function Invoke-NodeEntry(
+  [string]$NodePath,
+  [string]$DataRoot,
+  [string]$ScriptRelativePath,
+  [string]$ArgumentsSuffix,
+  [string]$StdoutPath,
+  [string]$StderrPath,
+  [bool]$IsDataClone = $false,
+  [string]$CloneMarkerPath = ''
+) {
+  $scriptPath = Join-Path $sourceRoot $ScriptRelativePath
+  if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) { throw "Missing Node entry: $scriptPath" }
+
+  $oldDataRoot = [Environment]::GetEnvironmentVariable('YANCE_UAT_SELECTED_DATA_ROOT', 'Process')
+  $oldPort = [Environment]::GetEnvironmentVariable('YANCE_PORT', 'Process')
+  $oldClone = [Environment]::GetEnvironmentVariable('YANCE_SOURCE_UAT_DATA_CLONE', 'Process')
+  $oldCloneMarker = [Environment]::GetEnvironmentVariable('YANCE_SOURCE_UAT_DATA_CLONE_MARKER', 'Process')
+  $oldReset = [Environment]::GetEnvironmentVariable('YANCE_SOURCE_UAT_RESET_SAFE_MODE', 'Process')
+  try {
+    if ($DataRoot) { $env:YANCE_UAT_SELECTED_DATA_ROOT = $DataRoot }
+    else { Remove-Item Env:YANCE_UAT_SELECTED_DATA_ROOT -ErrorAction SilentlyContinue }
+    $env:YANCE_PORT = [string]$Port
+    if ($IsDataClone) {
+      $env:YANCE_SOURCE_UAT_DATA_CLONE = '1'
+      $env:YANCE_SOURCE_UAT_DATA_CLONE_MARKER = $CloneMarkerPath
+      $env:YANCE_SOURCE_UAT_RESET_SAFE_MODE = '1'
+    } else {
+      Remove-Item Env:YANCE_SOURCE_UAT_DATA_CLONE -ErrorAction SilentlyContinue
+      Remove-Item Env:YANCE_SOURCE_UAT_DATA_CLONE_MARKER -ErrorAction SilentlyContinue
+      Remove-Item Env:YANCE_SOURCE_UAT_RESET_SAFE_MODE -ErrorAction SilentlyContinue
+    }
+
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $NodePath
+    $startInfo.WorkingDirectory = $sourceRoot
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $false
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $escapedScript = $scriptPath.Replace('"', '\"')
+    $startInfo.Arguments = '"' + $escapedScript + '"' + $ArgumentsSuffix
+
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $startInfo
+    if (-not $process.Start()) { throw 'Node.js process did not start.' }
+    $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+    $stderrTask = $process.StandardError.ReadToEndAsync()
+    $process.WaitForExit()
+    $stdout = $stdoutTask.Result
+    $stderr = $stderrTask.Result
+    [IO.File]::WriteAllText($StdoutPath, [string]$stdout, (New-Object Text.UTF8Encoding($false)))
+    [IO.File]::WriteAllText($StderrPath, [string]$stderr, (New-Object Text.UTF8Encoding($false)))
+    if ($stdout) { Write-Host $stdout.TrimEnd() }
+    if ($stderr) { Write-Host $stderr.TrimEnd() -ForegroundColor Yellow }
+    return [int]$process.ExitCode
+  } finally {
+    if ($null -eq $oldDataRoot) { Remove-Item Env:YANCE_UAT_SELECTED_DATA_ROOT -ErrorAction SilentlyContinue }
+    else { $env:YANCE_UAT_SELECTED_DATA_ROOT = $oldDataRoot }
+    if ($null -eq $oldPort) { Remove-Item Env:YANCE_PORT -ErrorAction SilentlyContinue }
+    else { $env:YANCE_PORT = $oldPort }
+    if ($null -eq $oldClone) { Remove-Item Env:YANCE_SOURCE_UAT_DATA_CLONE -ErrorAction SilentlyContinue }
+    else { $env:YANCE_SOURCE_UAT_DATA_CLONE = $oldClone }
+    if ($null -eq $oldCloneMarker) { Remove-Item Env:YANCE_SOURCE_UAT_DATA_CLONE_MARKER -ErrorAction SilentlyContinue }
+    else { $env:YANCE_SOURCE_UAT_DATA_CLONE_MARKER = $oldCloneMarker }
+    if ($null -eq $oldReset) { Remove-Item Env:YANCE_SOURCE_UAT_RESET_SAFE_MODE -ErrorAction SilentlyContinue }
+    else { $env:YANCE_SOURCE_UAT_RESET_SAFE_MODE = $oldReset }
+  }
+}
+
+try {
+  if (-not [Environment]::Is64BitOperatingSystem) { throw '64-bit Windows is required.' }
+  if (-not (Test-Path -LiteralPath $payloadPath -PathType Leaf)) { throw "Missing source payload: $payloadPath" }
+  $actualPayloadSha256 = Get-LowerSha256 $payloadPath
+  if ($actualPayloadSha256 -ne $payloadSha256) {
+    throw "Source payload SHA256 mismatch. Expected=$payloadSha256 Actual=$actualPayloadSha256"
+  }
+
+  $node = Assert-NodeVersion
+  Stop-YanceProcesses
+  New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
+
+  if (Test-Path -LiteralPath $sourceRoot) { Remove-Item -LiteralPath $sourceRoot -Recurse -Force }
+  New-Item -ItemType Directory -Path $sourceRoot -Force | Out-Null
+  Write-Step 'Extracting the verified Round 11 UAT source payload...'
+  Expand-Archive -LiteralPath $payloadPath -DestinationPath $sourceRoot -Force
+
+  $checkpointPath = Join-Path $sourceRoot 'YANCE_SOURCE_CHECKPOINT.json'
+  if (-not (Test-Path -LiteralPath $checkpointPath -PathType Leaf)) { throw 'The source payload is missing YANCE_SOURCE_CHECKPOINT.json.' }
+  $checkpoint = Get-Content -LiteralPath $checkpointPath -Raw | ConvertFrom-Json
+  if ($checkpoint.commit -ne $expectedCommit -or $checkpoint.tree -ne $expectedTree -or $checkpoint.branch -ne $expectedBranch) {
+    throw 'The extracted source identity does not match the installation candidate.'
+  }
+
+  Set-Location -LiteralPath $sourceRoot
+  $stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ')
+  $dataRoot = ''
+  $cloneMarkerPath = ''
+  $isDataClone = $false
+  $sourceDataRoot = ''
+  $recoveryPoint = $null
+
+  if ($UseIsolatedData) {
+    $dataRoot = New-RunDataRoot -Mode 'isolated' -Stamp $stamp
+    New-Item -ItemType Directory -Path $dataRoot -Force | Out-Null
+    Write-Step "Using a fresh isolated UAT data directory: $dataRoot"
+  } else {
+    $sourceDataRoot = Get-ExistingDataRoot -NodePath $node
+    if ($sourceDataRoot) {
+      $recoveryPoint = New-DatabaseRecoveryPoint -DataRoot $sourceDataRoot
+      if ($recoveryPoint) { Write-Step "Verified database recovery point: $recoveryPoint" }
+      $cloneTarget = New-RunDataRoot -Mode 'normal-clone' -Stamp $stamp
+      $clone = New-VerifiedDataClone -NodePath $node -SourceDataRoot $sourceDataRoot -TargetDataRoot $cloneTarget -Stamp $stamp
+      $dataRoot = $clone.dataRoot
+      $cloneMarkerPath = $clone.markerPath
+      $isDataClone = $true
+      Write-Step "Verified normal-data clone: $dataRoot"
+      Write-Step 'The real data directory is never used as the runtime data root.'
+    } else {
+      $dataRoot = New-RunDataRoot -Mode 'normal-empty' -Stamp $stamp
+      New-Item -ItemType Directory -Path $dataRoot -Force | Out-Null
+      Write-Step "No existing SQLite database was selected; using a fresh UAT data directory: $dataRoot"
+    }
+  }
+
+  [ordered]@{
+    schemaVersion = 1
+    createdAtUtc = [DateTime]::UtcNow.ToString('o')
+    mode = if ($UseIsolatedData) { 'isolated-fresh' } elseif ($isDataClone) { 'normal-verified-clone' } else { 'normal-fresh' }
+    sourceDataRoot = $sourceDataRoot
+    runtimeDataRoot = $dataRoot
+    cloneMarkerPath = $cloneMarkerPath
+    sourceUntouched = if ($isDataClone) { $true } else { $null }
+    realDataMutationAllowed = $false
+  } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $logRoot "data-selection-$stamp.json") -Encoding UTF8
+
+  $prepareStdout = Join-Path $logRoot "dependency-prepare-$stamp.stdout.log"
+  $prepareStderr = Join-Path $logRoot "dependency-prepare-$stamp.stderr.log"
+  Write-Step 'Installing and verifying complete dependencies before any product launch...'
+  $prepareExit = Invoke-NodeEntry -NodePath $node -DataRoot $dataRoot -ScriptRelativePath 'tools\runtime-delivery\start-source-uat.js' -ArgumentsSuffix ' --install --prepare-only --allow-dirty' -StdoutPath $prepareStdout -StderrPath $prepareStderr -IsDataClone $isDataClone -CloneMarkerPath $cloneMarkerPath
+  if ($prepareExit -ne 0) {
+    throw "Dependency installation or integrity verification failed. ExitCode=$prepareExit Stdout=$prepareStdout Stderr=$prepareStderr"
+  }
+
+  $gateStdout = Join-Path $logRoot "prelaunch-gates-$stamp.stdout.log"
+  $gateStderr = Join-Path $logRoot "prelaunch-gates-$stamp.stderr.log"
+  Write-Step 'Running Round 11 production UI, candidate binding, platform and theme gates...'
+  $gateExit = Invoke-NodeEntry -NodePath $node -DataRoot $dataRoot -ScriptRelativePath 'tools\runtime-delivery\run-round11-prelaunch-gates.js' -ArgumentsSuffix '' -StdoutPath $gateStdout -StderrPath $gateStderr -IsDataClone $isDataClone -CloneMarkerPath $cloneMarkerPath
+  if ($gateExit -ne 0) {
+    throw "Round 11 prelaunch gates failed. The application was not started. ExitCode=$gateExit Stdout=$gateStdout Stderr=$gateStderr"
+  }
+
+  $stdoutPath = Join-Path $logRoot "launch-$stamp.stdout.log"
+  $stderrPath = Join-Path $logRoot "launch-$stamp.stderr.log"
+  Write-Step "Starting source identity: $expectedCommit / $expectedTree"
+  Write-Step 'Enter OpenRouter and platform credentials only inside the running Yance application.'
+  $exitCode = Invoke-NodeEntry -NodePath $node -DataRoot $dataRoot -ScriptRelativePath 'tools\runtime-delivery\start-source-uat.js' -ArgumentsSuffix '' -StdoutPath $stdoutPath -StderrPath $stderrPath -IsDataClone $isDataClone -CloneMarkerPath $cloneMarkerPath
+  if ($exitCode -ne 0) {
+    throw "Startup failed. ExitCode=$exitCode Stdout=$stdoutPath Stderr=$stderrPath"
+  }
+  exit 0
+} catch {
+  Write-Host "[Yance Round 11 UAT] FAILED: $($_.Exception.Message)" -ForegroundColor Red
+  Write-Host 'No real data directory was deleted or used as the runtime data root.' -ForegroundColor Yellow
+  Invoke-StartupDiagnosticCollector
+  Write-Host 'Upload the generated YANCE_ROUND11_UI_EVIDENCE_*.zip for root-cause review.' -ForegroundColor Yellow
+  exit 1
+}

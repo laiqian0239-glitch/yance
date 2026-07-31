@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP4",
+  "recordType": "FINAL_ARCHITECTURE_CLOSURE_CANDIDATE_INDEPENDENT_REVIEW_REJECTION",
+  "reviewStatus": "REJECTED",
+  "decision": "CREDENTIAL_AUTHORITY_LIFECYCLE_CLOSURE_REQUIRED",
+  "wp5ActivationAllowed": false,
+  "decidedAtUtc": "2026-07-03T14:20:56Z",
+  "reviewedCandidate": {
+    "finalCodeImplementationCommit": "022a623efabb33ab5a34dfc270734165904d66ee",
+    "finalCodeSourceTree": "1eda57ed777ac545940e6aee64e95f2f87a85d2f",
+    "candidateBindingCommit": "21ed8c6fe8cdc59e872ceb480437063940c6263b",
+    "finalDeliveryHead": "39de8bb3632fffef9c28f73fe2d603ab27cd00ab",
+    "finalSourceTree": "63e7bdba718a93f9a1649a770d59de946cf1dc29"
+  },
+  "blockingThemes": [
+    "Credential Authority Lifecycle is not modeled above the transaction state machine",
+    "WP3-to-WP4 one-time migration is not crash-safe and resumable",
+    "new-installation genesis is not a recoverable lifecycle transaction",
+    "FD6 transactions are not durably bound to a non-reusable backend owner session",
+    "real backend child exit does not gate restart on authority owner-exit recovery",
+    "F16 backend-exit evidence is synthetic rather than a real child-exit production chain"
+  ],
+  "requiredClosureLayers": [
+    "CREDENTIAL_AUTHORITY_LIFECYCLE",
+    "CREDENTIAL_TRANSACTION_LIFECYCLE",
+    "WP3_TO_WP4_MIGRATION_LIFECYCLE",
+    "BACKEND_OWNER_SESSION_LIFECYCLE"
+  ],
+  "requiredStateAfterRejection": {
+    "WP4": {
+      "status": "ACTIVE",
+      "active": true,
+      "reviewStatus": "PENDING_INDEPENDENT_REVIEW"
+    },
+    "WP5": {
+      "status": "BLOCKED_BY_WP4",
+      "active": false,
+      "activationAllowed": false
+    }
+  },
+  "supersedingRepairPolicy": "AUTHORITY_LIFECYCLE_ARCHITECTURE_CLOSURE_ONLY_NO_LOCAL_PATCH_CANDIDATE"
+}

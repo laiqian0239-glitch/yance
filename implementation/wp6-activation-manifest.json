@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP6_ACTIVATION_MANIFEST",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP6",
+  "generatedAtUtc": "2026-07-05T06:16:00Z",
+  "activationStatus": "CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+  "requiredAcceptanceToken": "WP6_ACTIVATION_ACCEPTED",
+  "parentBaseline": {
+    "commit": "c4d5a641e93c600c0199e9960fe8f570faa07808",
+    "sourceTree": "b6ece87673d804686bd231858097f6561ff1b200",
+    "workPackage": "WP5",
+    "acceptanceToken": "WP5_ACCEPTED"
+  },
+  "wp5AcceptedIdentity": {
+    "implementationCommit": "2d42a7424b1bac0dafa2b4c3bee3378266e1a92f",
+    "implementationSourceTree": "1b7594dcc35e77a09e3e31473fbec74847a5e3c1",
+    "candidateBindingCommit": "ba3728dcf267c338af19d78297309aa306ee8018",
+    "candidateBindingSourceTree": "6e6a9c27a18bce011da06863aa7ea4c2015db386",
+    "acceptedFinalDeliveryHead": "c4d5a641e93c600c0199e9960fe8f570faa07808",
+    "acceptedFinalSourceTree": "b6ece87673d804686bd231858097f6561ff1b200"
+  },
+  "readinessRebind": {
+    "status": "WP6_READY_FOR_ACTIVATION",
+    "from": "PROVISIONAL_PENDING_WP5_ACCEPTANCE",
+    "to": "BOUND_TO_WP5_ACCEPTED_FINAL_DELIVERY",
+    "remainingProvisionalMarkers": 0,
+    "machineReadAuthority": [
+      "WP5 final independent audit decision",
+      "Accepted Final Delivery HEAD",
+      "Accepted final source tree"
+    ],
+    "staleWp5CandidateGovernanceFieldsIgnoredUnderRiskAcceptance": "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED"
+  },
+  "wp6ReferenceScope": {
+    "name": "Electron API v2 cutover verification and old Runtime deletion",
+    "dependsOn": [
+      "WP5"
+    ],
+    "actions": [
+      "Switch all Electron runtime control paths to backend API v2",
+      "Validate snapshot commands events event-gap recovery and backend crash recovery",
+      "Delete old Electron business runtime and duplicate lifecycle code during production implementation",
+      "Scan source and installed runtime trees for legacy code and API bypasses"
+    ],
+    "exitCriteria": [
+      "Electron is DesktopHost only",
+      "Old runtime file and entry-point scan returns zero",
+      "No dual execution path exists",
+      "No API v2 bypass exists"
+    ]
+  },
+  "wp5ProductionReadinessVerification": {
+    "apiV2Router": "backend/routes/apiV2.js",
+    "runtimeAuthority": "backend/runtime/AppRuntime.js",
+    "desktopHost": "electron/desktopHost/DesktopHost.js",
+    "legacyCutoverGate": "electron/desktopHost/LegacyRuntimeCutoverGate.js",
+    "snapshotEndpointPresent": true,
+    "commandsEndpointPresent": true,
+    "eventsEndpointPresent": true,
+    "contractVersion2FailClosed": true,
+    "legacyRuntimeCutoverGatePresent": true,
+    "knownApiV2BypassesForWp6Closure": [
+      "backend/runtime/AppRuntime.js: executeLegacy fallback",
+      "backend/routes/system.js: legacy POST /policy safe-mode path"
+    ],
+    "status": "PASS_FOR_ACTIVATION_DESIGN_GATE_REQUIRED_BEFORE_PRODUCTION_CHANGE"
+  },
+  "riskAcceptanceIdsPreserved": [
+    "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+    "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+    "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+    "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED"
+  ],
+  "activationChangeBoundary": {
+    "allowed": [
+      "WP6 activation status update",
+      "project handoff update",
+      "work package status update",
+      "WP6 activation manifest",
+      "formal upstream identity binding",
+      "risk acceptance inheritance",
+      "two-stage acceptance rules"
+    ],
+    "forbidden": [
+      "WP6 production code",
+      "new business logic",
+      "database migration",
+      "runtime behavior change",
+      "new API implementation",
+      "new background task",
+      "formal release logic",
+      "WP7 changes"
+    ],
+    "productionCodeChanged": false
+  },
+  "activationIdentity": {
+    "status": "BOUND_TO_ACTIVATION_COMMIT",
+    "activationCommit": "3d48fc990deb64bb9fbfa623afa95c102ae516b5",
+    "activationSourceTree": "fdf199697d2ca1dd1a001e05518316bae0f81ecf",
+    "activationParentCommit": "c4d5a641e93c600c0199e9960fe8f570faa07808",
+    "activationParentSourceTree": "b6ece87673d804686bd231858097f6561ff1b200",
+    "bindingCommit": "SELF_REFERENCE_RECORDED_EXTERNALLY",
+    "bindingSourceTree": "SELF_REFERENCE_RECORDED_EXTERNALLY"
+  },
+  "twoStageAcceptance": {
+    "activationGate": {
+      "requiredDecision": "WP6_ACTIVATION_ACCEPTED",
+      "productionImplementationForbiddenUntilAccepted": true
+    },
+    "designGate": {
+      "requiredArtifact": "WP6_IMPLEMENTATION_PLAN_V1",
+      "productionCodeModificationForbiddenUntilCompleted": true
+    },
+    "convergencePreReview": {
+      "requiredDecision": "WP6_PREACCEPTED_FOR_FINAL_PACKAGING",
+      "lightweightArtifactsOnly": true
+    },
+    "finalPackagingForbiddenBeforePreacceptance": [
+      "candidate-binding-commit",
+      "final-delivery-head",
+      "complete-source-zip",
+      "complete-test-artifacts-zip",
+      "complete-delivery-zip",
+      "WP6_COMPLETED",
+      "WP7_ACTIVATION"
+    ]
+  },
+  "activationVerification": {
+    "parentExactWp5AcceptedFinalDeliveryHead": "PASS",
+    "parentSourceTreeExactWp5AcceptedFinalSourceTree": "PASS",
+    "activationCommitExists": "PASS",
+    "activationTreeExists": "PASS",
+    "activationChangeBoundary": "PASS_GOVERNANCE_AND_ACTIVATION_METADATA_ONLY",
+    "productionCodeChangeCount": 0,
+    "wp5RemainsCompleted": "PASS",
+    "wp6OnlyActiveCandidate": "PASS",
+    "wp7RemainsBlockedByWp6": "PASS",
+    "riskAcceptanceInheritance": "PASS_4_OF_4",
+    "jsonSyntax": "PASS"
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP4_FINAL_PACKAGING_REVIEW_CANDIDATE",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP4",
+  "status": "READY_FOR_FINAL_INDEPENDENT_REVIEW",
+  "reviewStatus": "PENDING_INDEPENDENT_REVIEW",
+  "reviewPhase": "FINAL_PACKAGING_AUTHORIZED",
+  "preAcceptanceStatus": "WP4_PREACCEPTED_FOR_FINAL_PACKAGING",
+  "preparedAtUtc": "2026-07-04T19:16:04Z",
+  "acceptedUpstreamBaseline": {
+    "WP3FinalImplementationCommit": "aca19d12c20e5ea23af93d1a1a9e840237f5a726",
+    "WP3AcceptedFinalDeliveryHead": "3d8bac3665098d495e3266ea8ea013c5aba6be16",
+    "WP3AcceptedSourceTree": "e2670016e7d6252e5cf206223fc4420b5666e606",
+    "reviewStatus": "ACCEPTED_WITH_KNOWN_EXCEPTION"
+  },
+  "implementationIdentity": {
+    "commit": "da29b9dc13e258b66d3de5a5320132a324ab8b6f",
+    "sourceTree": "ffcf273bf83416c4eec38f1e9d2b3f1de6bc7f35"
+  },
+  "candidateBindingIdentity": {
+    "commit": "91786b29a96ba338ba49263c164976ff83173e51",
+    "sourceTree": "8150033a574e3a5d38f017597ea03195b9ffaf1d"
+  },
+  "finalDeliveryIdentityBinding": {
+    "mode": "EXTERNAL_DELIVERY_JSON_AND_SHA256",
+    "finalDeliveryHead": null,
+    "finalSourceTree": null
+  },
+  "verification": {
+    "wp4RequiredTests": "PASS_158_OF_158",
+    "completeFaultMatrix": "PASS_140_OF_140",
+    "mutationTests": "PASS_62_OF_62_KILLED_ZERO_SURVIVORS_ZERO_INVALID",
+    "applicationConvergenceMatrix": "PASS_74_OF_74",
+    "ownerRegistryTargetedTests": "PASS_31_OF_31",
+    "wp3Regression": "PASS_WITH_EXISTING_ACCEPTED_WINDOWS_EXCEPTION",
+    "wp2Regression": "PASS_60_OF_60",
+    "wp1Regression": "PASS_24_OF_24",
+    "wp0Regression": "PASS_16_OF_16",
+    "wp0Gate": "PASS_4_OF_4",
+    "javascriptSyntax": "PASS_380_OF_380",
+    "repositoryClean": "PASS"
+  },
+  "riskAcceptance": {
+    "riskAcceptanceId": "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+    "acceptedBy": "Project Owner",
+    "status": "ACCEPTED",
+    "acceptedAtUtc": "2026-07-04T19:16:04Z",
+    "usageScope": [
+      "PROJECT_OWNER_ONLY",
+      "PERSONAL_SINGLE_USER_DEPLOYMENT",
+      "SINGLE_DEVICE_ENVIRONMENT"
+    ],
+    "excludedScopes": [
+      "PUBLIC_RELEASE",
+      "COMMERCIAL_DELIVERY",
+      "ENTERPRISE_ENVIRONMENT",
+      "MULTI_USER_ENVIRONMENT"
+    ],
+    "description": "The Windows Evidence generator does not yet strictly reject every future incomplete PASS result when reboot-boundary validation or required checks are absent. Final Packaging is authorized only under the stated owner-only single-user exception while all unexecuted Windows evidence remains explicit.",
+    "limitationsPreserved": true,
+    "knownGapMustRemainVisible": true,
+    "notRepresentedAsCompleted": [
+      "WINDOWS_REBOOT_BOUNDARY_VALIDATION",
+      "WINDOWS_PID_REUSE_VALIDATION",
+      "WINDOWS_OWNER_IDENTITY_ALL_SCENARIOS",
+      "COMPLETE_WINDOWS_EVIDENCE_PASS"
+    ],
+    "prohibitions": [
+      "DO_NOT_REMOVE_OR_HIDE_NOT_EXECUTED_WINDOWS_REQUIRED",
+      "DO_NOT_RECORD_INCOMPLETE_WINDOWS_EVIDENCE_AS_COMPLETE_PASS",
+      "DO_NOT_EXTEND_EXCEPTION_TO_PUBLIC_COMMERCIAL_ENTERPRISE_OR_MULTI_USER_USE"
+    ]
+  },
+  "windowsEvidence": {
+    "status": "NOT_EXECUTED_WINDOWS_REQUIRED",
+    "reasonCode": "WP4_WINDOWS_OWNER_PROCESS_IDENTITY_EVIDENCE_REQUIRES_WINDOWS",
+    "knownGapReasonCode": "WP4_WINDOWS_OWNER_PROCESS_IDENTITY_REAL_MACHINE_EVIDENCE_NOT_EXECUTED",
+    "technicalGeneratorFinalPackagingBlockerPreserved": true,
+    "ownerExceptionApplies": true
+  },
+  "governance": {
+    "WP4": {
+      "status": "ACTIVE",
+      "active": true,
+      "reviewStatus": "PENDING_INDEPENDENT_REVIEW"
+    },
+    "WP5": {
+      "status": "BLOCKED_BY_WP4",
+      "active": false
+    },
+    "finalAcceptanceRequired": "WP4_ACCEPTED"
+  }
+}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="言策 Yance 单色深色版">
+  <rect x="72" y="72" width="880" height="880" rx="216" fill="#0B1416"/>
+  <path d="M248 292H686V244L824 356 686 468V420H248Z" fill="#E6ECEC"/>
+  <rect x="292" y="492" width="382" height="68" rx="22" fill="#E6ECEC"/>
+  <path d="M304 612H676Q704 612 704 640V774Q704 802 676 802H430L330 876 356 802H304Q276 802 276 774V640Q276 612 304 612Z" fill="none" stroke="#E6ECEC" stroke-width="58" stroke-linejoin="round"/>
+</svg>

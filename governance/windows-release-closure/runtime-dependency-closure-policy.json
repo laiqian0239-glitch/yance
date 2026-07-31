@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE29_PACKAGED_RUNTIME_DEPENDENCY_CLOSURE_POLICY",
+  "status": "ENFORCED",
+  "issueFamily": "PACKAGED_RUNTIME_DEPENDENCY_REFERENCES_NON_PAYLOAD_SOURCE",
+  "productionRuntimeRoots": [
+    "backend",
+    "shared",
+    "electron",
+    "diagnostics",
+    "release",
+    "installer/installedIdentityReceipt.js"
+  ],
+  "forbiddenRuntimeDependencyRoots": [
+    "tools",
+    "tests",
+    "evidence",
+    "implementation",
+    "governance"
+  ],
+  "originalFailure": {
+    "source": "electron/updateManager.js",
+    "specifier": "../tools/wp7/pe-resource-editor",
+    "installedFailure": "Cannot find module '../tools/wp7/pe-resource-editor'",
+    "classification": [
+      "PRODUCT_SOURCE_DEFECT",
+      "PACKAGING_DEPENDENCY_CLOSURE_DEFECT",
+      "WINDOWS_ELECTRON_STARTUP_P0"
+    ]
+  },
+  "closureRequirements": [
+    "Production runtime files may not import or require excluded source roots",
+    "Every static relative production runtime dependency must resolve to a packaged source path",
+    "The packaged update manager must load with resources/app/tools absent",
+    "WP7 build and packaged-payload validation must both enforce the dependency closure",
+    "Build tooling and the installed updater must share the production-safe PE identity reader"
+  ],
+  "staticSearchTerms": [
+    "require('../tools/",
+    "require(\"../tools/",
+    "from '../tools/",
+    "from \"../tools/",
+    "../tests/",
+    "../evidence/",
+    "../implementation/",
+    "../governance/"
+  ],
+  "requiredRegressionTests": [
+    "tests/wp7/wp7-runtime-dependency-closure.test.js",
+    "tests/wp7/installed-application-probe-entry-integration.test.js"
+  ],
+  "releasePolicy": {
+    "windowsElectronUatRequired": true,
+    "formalInstallerAuthorizedBeforeUat": false,
+    "releaseApprovedBeforeUat": false
+  }
+}

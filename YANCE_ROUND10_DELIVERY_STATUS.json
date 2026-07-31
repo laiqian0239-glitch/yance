@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ROUND10_DELIVERY_STATUS",
+  "generatedAtUtc": "2026-07-25T17:23:15Z",
+  "artifactClass": "ROUND10_PLATFORM_PRODUCTION_SOURCE_CHECKPOINT",
+  "branch": "audit/system-round10-platform-production-closure-20260726",
+  "implementationCommit": "72b808eecbd628f601eb7c052d88614b0bfddd9c",
+  "implementationTree": "22d82621d66c3b9946cbb7c3e83290c063d0baa5",
+  "implementationParent": "fab490b7d8214a0bb8931f795fca7607b5eeb4b2",
+  "formalRelease": false,
+  "windowsUatCandidateGenerated": true,
+  "windowsUatAuthorized": true,
+  "realPlatformUatCompleted": false,
+  "completed": {
+    "platformProductionReadinessAuthority": true,
+    "facebookFirstContactAndEchoEvidence": true,
+    "facebookReconciliationResultProjection": true,
+    "whatsappIdentityReconciliationEvidence": true,
+    "telegramHistorySyncEvidence": true,
+    "unconfiguredPlatformDoesNotPoisonGlobalHealth": true,
+    "platformReadinessApi": true,
+    "safePlatformEvidenceExporter": true,
+    "round10WindowsUatPackageGenerator": true
+  },
+  "automatedEvidence": {
+    "backendTopLevel": {
+      "passed": 721,
+      "failed": 0
+    },
+    "platformProductionReadiness": {
+      "passed": 53,
+      "failed": 0
+    },
+    "whatsappRegression": {
+      "passed": 63,
+      "failed": 0
+    },
+    "round10PackageContract": {
+      "passed": 3,
+      "failed": 0
+    },
+    "themeAudit": "PASS",
+    "fixedColorDebt": 0
+  },
+  "pendingRealWindows": [
+    "Facebook new contact first-message proof",
+    "Facebook Business Suite outbound Echo proof",
+    "Facebook scheduled reconciliation with real Page history",
+    "WhatsApp LID and phone-JID merge proof on the real account",
+    "WhatsApp media, offline queue, reconnect and idempotent-send proof",
+    "Telegram QR/code login, history, avatar and media proof",
+    "runtime evidence ZIP exported from the real Windows candidate",
+    "8-12 hour pressure and platform reconnect run"
+  ],
+  "pendingOtherProductGates": [
+    "OpenRouter live commercial benchmark and final routes",
+    "Kurt full AI fact/evidence/profile/relationship/director/candidate/learning proof",
+    "29-theme and 136-sound Windows validation",
+    "database migration failure and artifact rollback rehearsal"
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_PHASE2_PARALLEL_INTEGRATION_VALIDATION",
+  "branch": "rebuild/windows-product-experience-closure-20260720-phase2-integrated",
+  "phase1Checkpoint": {
+    "commit": "51e054958fa02687fbb22225f9ba84cda41c730b",
+    "tree": "b692b4a82080a98a7a044caf5def2341b3d9306e"
+  },
+  "integrationBaseCommit": "309dc53",
+  "validatedHeadBeforeReportCommit": "fe65fb6",
+  "workstreams": [
+    {
+      "id": "A",
+      "name": "AI bilingual and learning quality",
+      "integrationCommit": "0be7576",
+      "sourceCommit": "b4357c3c4324ae722a5797aee8f10d6d91f39fa1"
+    },
+    {
+      "id": "B",
+      "name": "Facebook Business Login and messaging capability truth",
+      "integrationCommit": "7696ca5",
+      "sourceCommit": "73b03832c06abc9bc40953e24b51c66e040903f0"
+    },
+    {
+      "id": "D",
+      "name": "Safe stale backend owner recovery",
+      "integrationCommit": "529d544",
+      "sourceCommit": "85d4e23"
+    },
+    {
+      "id": "C",
+      "name": "Semantic runtime theme authority",
+      "integrationCommit": "38ca750",
+      "sourceCommit": "979cd4d"
+    }
+  ],
+  "targetedTests": [
+    {
+      "group": "AI bilingual, learning, language authority and model routing",
+      "passed": 30,
+      "total": 30,
+      "status": "PASS"
+    },
+    {
+      "group": "Facebook Worker",
+      "passed": 54,
+      "total": 54,
+      "status": "PASS"
+    },
+    {
+      "group": "Facebook desktop and token-security contracts",
+      "passed": 47,
+      "total": 47,
+      "status": "PASS"
+    },
+    {
+      "group": "Theme semantic authority and related regressions",
+      "passed": 16,
+      "total": 16,
+      "status": "PASS"
+    },
+    {
+      "group": "Automatic stale backend owner recovery",
+      "passed": 4,
+      "total": 4,
+      "status": "PASS"
+    }
+  ],
+  "targetedTotal": {
+    "passed": 151,
+    "total": 151,
+    "status": "PASS"
+  },
+  "staticChecks": {
+    "changedJavascriptSyntax": {
+      "passed": 35,
+      "total": 35,
+      "status": "PASS"
+    },
+    "changedCssBraceBalance": {
+      "passed": 3,
+      "total": 3,
+      "status": "PASS"
+    },
+    "gitDiffCheck": "PASS",
+    "themeFixedColorAudit": {
+      "status": "PASS",
+      "maintainedRuntimeFixedColors": 0,
+      "legacyInlineIndexDebt": 1335,
+      "legacyDebtStatus": "FROZEN_NOT_CLOSED"
+    }
+  },
+  "notExecuted": {
+    "fullPipeline": true,
+    "wp7": true,
+    "strictRounds": true,
+    "builder": true,
+    "realWindowsElectronUat": true,
+    "realFacebookOauthAndMessagingUat": true,
+    "realOllamaBusinessCallUat": true,
+    "fifteenThemeVisualUat": true
+  },
+  "knownGaps": [
+    "frontend/index.html still contains 1335 legacy fixed-color literals and requires a controlled semantic-token migration.",
+    "Facebook Worker code is prepared for Business Login but has not been deployed or exercised with the production Meta account in this integration checkpoint.",
+    "No claim is made that real Windows Electron, platform accounts, Ollama, or formal release acceptance has passed.",
+    "Full WP3/WP4 matrices were not restored or run in this source-only gate; only the new automatic-recovery contract was executed."
+  ],
+  "windowsPassClaim": false,
+  "releaseAuthorized": false
+}

@@ -1,0 +1,710 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP7_DESIGN_GATE_EVIDENCE_REQUIREMENTS",
+  "generatedAtUtc": "2026-07-05T10:12:44Z",
+  "identityBinding": {
+    "wp6AcceptedFinalDeliveryHead": "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+    "wp6AcceptedFinalSourceTree": "485891e55298667df30e2f588daec196dc530eb7",
+    "activationCommit": "ceffb5234d33518bfda2a88c0e3fad59fb7c8bce",
+    "activationSourceTree": "b457101ab8d5d04d073597039446ded41374a6c8",
+    "activationIdentityBindingCommit": "4ac6d2185bed28823210849704f3850cd875b5fb",
+    "activationBindingSourceTree": "d7f64dbf602ded1075978c13bea8449d7ef7e5e2",
+    "verifiedParentChain": [
+      "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+      "ceffb5234d33518bfda2a88c0e3fad59fb7c8bce",
+      "4ac6d2185bed28823210849704f3850cd875b5fb"
+    ]
+  },
+  "finalEvidenceSchema": {
+    "schemaVersion": 3,
+    "commonRequiredFields": [
+      "schemaVersion",
+      "documentType",
+      "stage",
+      "phase",
+      "workPackage",
+      "evidenceKind",
+      "evidenceClass",
+      "status",
+      "generatedAtUtc",
+      "frozenSourceCommit",
+      "frozenSourceTree",
+      "buildSessionId",
+      "buildId",
+      "productVersion",
+      "stageVersion",
+      "distributionMode",
+      "apiContractVersion",
+      "credentialProtocolVersion",
+      "runtimeLockProtocolVersion",
+      "databaseSchemaVersion",
+      "releaseManifestSha256",
+      "applicationPayloadSha256",
+      "applicationPayloadFilesystemIdentitySha256",
+      "payloadFilesSha256",
+      "productionDependencyBindingSha256",
+      "productionDependencyPackageGraphSha256",
+      "productionDependencyFileTreeSha256",
+      "productionDependencyModeTreeSha256",
+      "productionDependencyDirectoryModeTreeSha256",
+      "productionDependencyFileModePolicy",
+      "productionDependencyDirectoryModePolicy",
+      "productionDependencyPackageCount",
+      "productionDependencyFileCount",
+      "productionDependencyModeRecordCount",
+      "productionDependencyDirectoryCount",
+      "productionDependencyDirectoryModeRecordCount",
+      "gitPayloadModeTreeSha256",
+      "gitPayloadModeRecordCount",
+      "electronDistributionTreeSha256",
+      "electronDistributionFileCount",
+      "electronDistributionModeBoundFileCount",
+      "nodeRuntimeVersion",
+      "nodeRuntimeExecutablePath",
+      "nodeRuntimeExecutableSha256",
+      "nodeRuntimeTreeSha256",
+      "nodeRuntimeFileCount",
+      "nodeRuntimeModeBoundFileCount",
+      "nativeBinaryScanSha256",
+      "nativeBinaryFileCount",
+      "nativeBinaryFailureCount",
+      "nativeBinaryTargetPlatform",
+      "nativeBinaryTargetArch",
+      "installerFileName",
+      "installerSizeBytes",
+      "installerSha256",
+      "upstreamBindings",
+      "inheritedRiskAcceptances",
+      "assertions",
+      "reasonCodes",
+      "finalInstallationMode",
+      "legacyTestDataMigrationRequired",
+      "legacyTestVersionRollbackRequired",
+      "completeProjectSourceTreeSha256"
+    ],
+    "upstreamBindingsRequired": {
+      "WP4": [
+        "finalAcceptanceStatus",
+        "implementationCommit",
+        "implementationSourceTree",
+        "acceptedFinalDeliveryHead",
+        "acceptedFinalSourceTree",
+        "riskAcceptanceIds"
+      ],
+      "WP5": [
+        "finalAcceptanceStatus",
+        "implementationCommit",
+        "implementationSourceTree",
+        "acceptedFinalDeliveryHead",
+        "acceptedFinalSourceTree",
+        "riskAcceptanceIds"
+      ],
+      "WP6": [
+        "finalAcceptanceStatus",
+        "implementationCommit",
+        "implementationSourceTree",
+        "candidateBindingCommit",
+        "acceptedFinalDeliveryHead",
+        "acceptedFinalSourceTree",
+        "riskAcceptanceIds"
+      ]
+    },
+    "preReviewEvidenceClass": "PRE_REVIEW_ONLY",
+    "preReviewFinalReleaseEvidence": false,
+    "finalEvidenceOutputs": [
+      "evidence/wp7/source-freeze.json",
+      "evidence/wp7/final-release-evidence.json",
+      "evidence/wp7/clean-install.json",
+      "evidence/wp7/restart-cycle.json",
+      "evidence/wp7/build-identity.json",
+      "evidence/wp7/runtime-ownership.json",
+      "evidence/wp7/safe-mode-removal.json",
+      "evidence/wp7/credential-ready-gate.json",
+      "evidence/wp7/offline-startup.json",
+      "evidence/wp7/install-tree-inventory.json",
+      "evidence/wp7/build-provenance.json",
+      "evidence/wp7/boot-failure-diagnostics.json",
+      "evidence/wp7/upstream-contract-binding.json",
+      "evidence/wp7/protocol-version-binding.json",
+      "evidence/wp7/build-session-integrity.json",
+      "evidence/phase1-acceptance-evidence.json",
+      "evidence/wp7/full-source-delivery-closure.json",
+      "evidence/wp7/legacy-cleanup-inventory.json",
+      "evidence/wp7/preinstall-installer-sha256.json",
+      "evidence/wp7/first-start-initialization.json",
+      "evidence/wp7/no-contamination.json"
+    ],
+    "aggregateRules": [
+      "A01-A10 each appear exactly once and match WP7_ACCEPTANCE_CHECK_MAPPING.json byte-for-byte in normative fields.",
+      "Each acceptance result references all required tests and evidence files for that acceptanceId.",
+      "Every referenced child file is JSON, SHA256 pinned and PASS.",
+      "All child files share one complete source/build/installer identity tuple.",
+      "References are allowlisted under evidence/wp7 only, except evidence/phase1-acceptance-evidence.json itself.",
+      "Inherited risks are copied by ID and limitation and are never rewritten as PASS/CLOSED.",
+      "CLEAN_INSTALL policy fields equal CLEAN_INSTALL, false, false.",
+      "Full-source closure proves exact complete-tree equivalence.",
+      "Installer SHA256 is verified immediately before install and matches final-release-evidence.json.",
+      "No PRE_REVIEW_ONLY evidence substitutes for final machine evidence.",
+      "Final Windows child evidence is generated only from raw probe files produced by the non-fixture win32 harness.",
+      "Caller-supplied observations, platform, fixtureMode and PASS test results are forbidden.",
+      "FINAL_PACKAGING and FINAL_WINDOWS test results are generated by the tracked runner and bind one final execution context SHA256.",
+      "The final execution context binds the preaccepted implementation, sealed Final Delivery identity, payload root, installer SHA256, final release evidence and raw Windows evidence root.",
+      "The delivery Git bundle contains the annotated stage-6.4.5.8-rejected-architecture tag and its target object."
+    ],
+    "forbiddenContent": [
+      "credentials",
+      "credential digests",
+      "API session token or digest",
+      "one-time token",
+      "secrets derived from vault contents"
+    ],
+    "cleanInstallRequiredFields": [
+      "finalInstallationMode",
+      "legacyInstallationsDetected",
+      "legacyInstallationsUninstalled",
+      "oldProcessesDetected",
+      "oldProcessesTerminated",
+      "oldInstallerPathsRemoved",
+      "oldConfigPathsRemoved",
+      "oldDatabasePathsRemoved",
+      "oldCachePathsRemoved",
+      "oldStagingPathsRemoved",
+      "oldShortcutStartupServiceTaskEntriesRemoved",
+      "beforeResidualInventorySha256",
+      "afterResidualInventorySha256",
+      "remainingResidueCount",
+      "legacyTestDataMigrationAttempted",
+      "legacyTestVersionRollbackAttempted",
+      "installerSha256VerifiedImmediatelyBeforeInstall",
+      "firstStartFreshInitialization",
+      "status",
+      "reasonCodes"
+    ],
+    "completeSourceDeliveryRequiredFields": [
+      "finalDeliveryHead",
+      "finalDeliveryTree",
+      "trackedFileCount",
+      "sourceZipFileCount",
+      "missingFiles",
+      "extraFiles",
+      "mismatchedFiles",
+      "duplicatePaths",
+      "bundleAncestryIncludesWp6AcceptedHead",
+      "sourceZipSha256",
+      "bundleSha256",
+      "status"
+    ],
+    "acceptanceResultRequiredFields": [
+      "acceptanceId",
+      "formalRequirement",
+      "requiredTestIds",
+      "requiredEvidenceFiles",
+      "passOracle",
+      "failReasonCodes",
+      "applicablePhase",
+      "status",
+      "evidenceReferences"
+    ],
+    "acceptanceIdRegistry": [
+      "A01",
+      "A02",
+      "A03",
+      "A04",
+      "A05",
+      "A06",
+      "A07",
+      "A08",
+      "A09",
+      "A10"
+    ],
+    "acceptanceCheckMapping": [
+      {
+        "acceptanceId": "A01",
+        "formalRequirement": "After CLEAN_INSTALL, the final installed application starts, stops cleanly and starts again from the same sealed installer without legacy migration or rollback.",
+        "requiredTestIds": [
+          "clean-install-start-stop-restart.test"
+        ],
+        "requiredEvidenceFiles": [
+          "evidence/wp7/clean-install.json",
+          "evidence/wp7/restart-cycle.json"
+        ],
+        "passOracle": "Install status PASS; first start reaches local_ready; controlled stop confirms owner exit; restart reaches local_ready; installerSha256 and buildId are identical across all records; migrationAttempted=false; rollbackAttempted=false.",
+        "failReasonCodes": [
+          "WP7_CLEAN_INSTALL_START_STOP_RESTART_FAILED",
+          "WP7_FIRST_START_NOT_CLEAN"
+        ],
+        "applicablePhase": "FINAL_WINDOWS"
+      },
+      {
+        "acceptanceId": "A02",
+        "formalRequirement": "Electron, backend, installer and diagnostics expose one identical buildId and one identical release identity tuple.",
+        "requiredTestIds": [
+          "final-installer-build-id-consistency.test"
+        ],
+        "requiredEvidenceFiles": [
+          "evidence/wp7/build-identity.json",
+          "evidence/wp7/final-release-evidence.json",
+          "evidence/wp7/boot-failure-diagnostics.json"
+        ],
+        "passOracle": "All four consumers report the same buildId, productVersion, stageVersion, sourceCommit, sourceTree and manifest SHA256, with zero mismatches.",
+        "failReasonCodes": [
+          "BOOT_BUILD_ID_MISMATCH"
+        ],
+        "applicablePhase": "PRE_REVIEW_AND_FINAL"
+      },
+      {
+        "acceptanceId": "A03",
+        "formalRequirement": "Exactly one backend AppRuntime owns the installed business runtime at every observed point.",
+        "requiredTestIds": [
+          "single-backend-installed-runtime.test",
+          "wp7-backend-crash-recovery-installed.test"
+        ],
+        "requiredEvidenceFiles": [
+          "evidence/wp7/runtime-ownership.json"
+        ],
+        "passOracle": "Observed active AppRuntime owner count never exceeds one; crash/restart sequence yields one trusted replacement owner and zero overlapping owners.",
+        "failReasonCodes": [
+          "WP7_INSTALLED_DUAL_RUNTIME_OWNER",
+          "WP7_BACKEND_CRASH_RECOVERY_FAILED"
+        ],
+        "applicablePhase": "FINAL_WINDOWS"
+      },
+      {
+        "acceptanceId": "A04",
+        "formalRequirement": "Installed runtime never reads or obeys any legacy safe-mode fallback source after accepted authority exists.",
+        "requiredTestIds": [
+          "wp7-wp5-runtime-authority-installed-regression.test"
+        ],
+        "requiredEvidenceFiles": [
+          "evidence/wp7/safe-mode-removal.json"
+        ],
+        "passOracle": "Legacy safe-mode file, environment, desktop settings, renderer storage and system-policy mutations produce zero authority changes; Yance29 SQLite remains sole authority.",
+        "failReasonCodes": [
+          "WP7_LEGACY_MODE_FALLBACK_DETECTED"
+        ],
+        "applicablePhase": "FINAL_WINDOWS"
+      },
+      {
+        "acceptanceId": "A05",
+        "formalRequirement": "local_ready is impossible until credential hydration and all required authority projections agree.",
+        "requiredTestIds": [
+          "wp7-wp4-credential-authority-installed-regression.test"
+        ],
+        "requiredEvidenceFiles": [
+          "evidence/wp7/credential-ready-gate.json"
+        ],
+        "passOracle": "Every local_ready transition is preceded by successful credential hydration, trusted owner validation and projection agreement; injected early-ready mutation is rejected.",
+        "failReasonCodes": [
+          "WP7_INSTALLED_READY_GATE_BYPASS",
+          "WP7_CREDENTIAL_OWNER_CONTAINMENT_BYPASS"
+        ],
+        "applicablePhase": "FINAL_WINDOWS"
+      },
+      {
+        "acceptanceId": "A06",
+        "formalRequirement": "The installed application reaches local_ready while offline and reports explicit, truthful capability state.",
+        "requiredTestIds": [
+          "offline-installed-runtime-ready.test"
+        ],
+        "requiredEvidenceFiles": [
+          "evidence/wp7/offline-startup.json"
+        ],
+        "passOracle": "With network unavailable, local_ready completes within the defined timeout; unavailable external capabilities are explicit; no false online capability is reported.",
+        "failReasonCodes": [
+          "WP7_OFFLINE_STARTUP_FAILED"
+        ],
+        "applicablePhase": "FINAL_WINDOWS"
+      },
+      {
+        "acceptanceId": "A07",
+        "formalRequirement": "The final installed tree contains zero old runtime code, duplicate runtime entrypoints or forbidden legacy residue.",
+        "requiredTestIds": [
+          "installed-tree-old-runtime-scan-zero.test",
+          "wp7-no-old-process-or-build-contamination.test"
+        ],
+        "requiredEvidenceFiles": [
+          "evidence/wp7/install-tree-inventory.json",
+          "evidence/wp7/no-contamination.json"
+        ],
+        "passOracle": "Canonical installed-tree inventory and process/residual scan report zero forbidden files, zero duplicate runtime entrypoints and zero legacy runtime processes.",
+        "failReasonCodes": [
+          "WP7_INSTALLED_LEGACY_RUNTIME_DETECTED",
+          "WP7_OLD_RUNTIME_PROCESS_RESIDUE"
+        ],
+        "applicablePhase": "FINAL_WINDOWS"
+      },
+      {
+        "acceptanceId": "A08",
+        "formalRequirement": "The final installer is produced from clean staging and never uses an old installer plus app.asar.unpacked overlay or post-install runtime patch.",
+        "requiredTestIds": [
+          "final-build-clean-staging.test",
+          "wp1-artifact-reuse-denied.test",
+          "final-payload-recomputed.test",
+          "wp7-installer-seal-and-external-hash.test"
+        ],
+        "requiredEvidenceFiles": [
+          "evidence/wp7/build-provenance.json",
+          "evidence/wp7/build-session-integrity.json",
+          "evidence/wp7/final-release-evidence.json"
+        ],
+        "passOracle": "Staging starts empty; every payload byte has current-session provenance; overlay/post-install patch scanners report zero hits; sealed installer hash remains unchanged.",
+        "failReasonCodes": [
+          "FINAL_BUILD_REUSED_PIPELINE_TEST_ARTIFACT",
+          "WP0_OVERLAY_INSTALLER_PATTERN_DETECTED",
+          "WP7_CROSS_SESSION_ARTIFACT_REUSE"
+        ],
+        "applicablePhase": "PRE_REVIEW_AND_FINAL"
+      },
+      {
+        "acceptanceId": "A09",
+        "formalRequirement": "Every startup failure exposes machine-readable buildId, failedPhase and stable reasonCode.",
+        "requiredTestIds": [
+          "wp7-boot-failure-diagnostics.test"
+        ],
+        "requiredEvidenceFiles": [
+          "evidence/wp7/boot-failure-diagnostics.json"
+        ],
+        "passOracle": "Each injected startup failure produces valid JSON containing the exact buildId, non-empty failedPhase and allowlisted reasonCode; no narrative-only failure record is accepted.",
+        "failReasonCodes": [
+          "WP7_BOOT_DIAGNOSTIC_INCOMPLETE"
+        ],
+        "applicablePhase": "PRE_REVIEW_AND_FINAL"
+      },
+      {
+        "acceptanceId": "A10",
+        "formalRequirement": "All stage-level release evidence is machine-readable JSON, schema-valid, SHA256-pinned and joined to one final identity tuple.",
+        "requiredTestIds": [
+          "wp7-final-evidence-reference-only.test",
+          "acceptance-evidence-schema.test",
+          "wp7-evidence-cross-file-identity.test",
+          "wp7-acceptance-check-mapping.test"
+        ],
+        "requiredEvidenceFiles": [
+          "evidence/phase1-acceptance-evidence.json",
+          "evidence/wp7/final-release-evidence.json"
+        ],
+        "passOracle": "A01-A10 each appear exactly once; every referenced child JSON parses and validates; every reference has SHA256; all records share source, buildSessionId, buildId and installerSha256; no development evidence is referenced.",
+        "failReasonCodes": [
+          "WP7_FINAL_EVIDENCE_REFERENCE_VIOLATION",
+          "WP7_EVIDENCE_IDENTITY_SPLIT",
+          "WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID"
+        ],
+        "applicablePhase": "PRE_REVIEW_AND_FINAL"
+      }
+    ],
+    "windowsProvenanceRequiredFields": [
+      "platform",
+      "actualPlatform",
+      "fixtureMode",
+      "provenance"
+    ]
+  },
+  "phaseEvidenceRules": {
+    "DESIGN_GATE": {
+      "resultsMayBeClaimed": "MATERIAL_COMPLETENESS_ONLY",
+      "requiredTestsExecuted": false,
+      "finalReleaseEvidenceAllowed": false
+    },
+    "CONVERGENCE_PRE_REVIEW": {
+      "evidenceClass": "PRE_REVIEW_ONLY",
+      "finalInstallerEvidenceAllowed": false,
+      "requiredTestPhaseClasses": [
+        "PRE_REVIEW",
+        "PRE_REVIEW_AND_FINAL"
+      ],
+      "finalOnlyResultClaimsAllowed": false
+    },
+    "FINAL_PACKAGING": {
+      "evidenceClass": "FINAL_MACHINE_READABLE",
+      "mustBindSealedInstaller": true,
+      "windowsRealMachineRequired": true,
+      "requiredTestPhaseClasses": [
+        "PRE_REVIEW_AND_FINAL",
+        "FINAL_PACKAGING",
+        "FINAL_WINDOWS"
+      ],
+      "preReviewPassSubstitutionAllowed": false
+    }
+  },
+  "installationPolicy": {
+    "FINAL_INSTALLATION_MODE": "CLEAN_INSTALL",
+    "LEGACY_TEST_DATA_MIGRATION_REQUIRED": false,
+    "LEGACY_TEST_VERSION_ROLLBACK_REQUIRED": false
+  },
+  "secretExclusionMandatory": true,
+  "acceptanceCheckMapping": [
+    {
+      "acceptanceId": "A01",
+      "formalRequirement": "After CLEAN_INSTALL, the final installed application starts, stops cleanly and starts again from the same sealed installer without legacy migration or rollback.",
+      "requiredTestIds": [
+        "clean-install-start-stop-restart.test"
+      ],
+      "requiredEvidenceFiles": [
+        "evidence/wp7/clean-install.json",
+        "evidence/wp7/restart-cycle.json"
+      ],
+      "passOracle": "Install status PASS; first start reaches local_ready; controlled stop confirms owner exit; restart reaches local_ready; installerSha256 and buildId are identical across all records; migrationAttempted=false; rollbackAttempted=false.",
+      "failReasonCodes": [
+        "WP7_CLEAN_INSTALL_START_STOP_RESTART_FAILED",
+        "WP7_FIRST_START_NOT_CLEAN"
+      ],
+      "applicablePhase": "FINAL_WINDOWS"
+    },
+    {
+      "acceptanceId": "A02",
+      "formalRequirement": "Electron, backend, installer and diagnostics expose one identical buildId and one identical release identity tuple.",
+      "requiredTestIds": [
+        "final-installer-build-id-consistency.test"
+      ],
+      "requiredEvidenceFiles": [
+        "evidence/wp7/build-identity.json",
+        "evidence/wp7/final-release-evidence.json",
+        "evidence/wp7/boot-failure-diagnostics.json"
+      ],
+      "passOracle": "All four consumers report the same buildId, productVersion, stageVersion, sourceCommit, sourceTree and manifest SHA256, with zero mismatches.",
+      "failReasonCodes": [
+        "BOOT_BUILD_ID_MISMATCH"
+      ],
+      "applicablePhase": "PRE_REVIEW_AND_FINAL"
+    },
+    {
+      "acceptanceId": "A03",
+      "formalRequirement": "Exactly one backend AppRuntime owns the installed business runtime at every observed point.",
+      "requiredTestIds": [
+        "single-backend-installed-runtime.test",
+        "wp7-backend-crash-recovery-installed.test"
+      ],
+      "requiredEvidenceFiles": [
+        "evidence/wp7/runtime-ownership.json"
+      ],
+      "passOracle": "Observed active AppRuntime owner count never exceeds one; crash/restart sequence yields one trusted replacement owner and zero overlapping owners.",
+      "failReasonCodes": [
+        "WP7_INSTALLED_DUAL_RUNTIME_OWNER",
+        "WP7_BACKEND_CRASH_RECOVERY_FAILED"
+      ],
+      "applicablePhase": "FINAL_WINDOWS"
+    },
+    {
+      "acceptanceId": "A04",
+      "formalRequirement": "Installed runtime never reads or obeys any legacy safe-mode fallback source after accepted authority exists.",
+      "requiredTestIds": [
+        "wp7-wp5-runtime-authority-installed-regression.test"
+      ],
+      "requiredEvidenceFiles": [
+        "evidence/wp7/safe-mode-removal.json"
+      ],
+      "passOracle": "Legacy safe-mode file, environment, desktop settings, renderer storage and system-policy mutations produce zero authority changes; Yance29 SQLite remains sole authority.",
+      "failReasonCodes": [
+        "WP7_LEGACY_MODE_FALLBACK_DETECTED"
+      ],
+      "applicablePhase": "FINAL_WINDOWS"
+    },
+    {
+      "acceptanceId": "A05",
+      "formalRequirement": "local_ready is impossible until credential hydration and all required authority projections agree.",
+      "requiredTestIds": [
+        "wp7-wp4-credential-authority-installed-regression.test"
+      ],
+      "requiredEvidenceFiles": [
+        "evidence/wp7/credential-ready-gate.json"
+      ],
+      "passOracle": "Every local_ready transition is preceded by successful credential hydration, trusted owner validation and projection agreement; injected early-ready mutation is rejected.",
+      "failReasonCodes": [
+        "WP7_INSTALLED_READY_GATE_BYPASS",
+        "WP7_CREDENTIAL_OWNER_CONTAINMENT_BYPASS"
+      ],
+      "applicablePhase": "FINAL_WINDOWS"
+    },
+    {
+      "acceptanceId": "A06",
+      "formalRequirement": "The installed application reaches local_ready while offline and reports explicit, truthful capability state.",
+      "requiredTestIds": [
+        "offline-installed-runtime-ready.test"
+      ],
+      "requiredEvidenceFiles": [
+        "evidence/wp7/offline-startup.json"
+      ],
+      "passOracle": "With network unavailable, local_ready completes within the defined timeout; unavailable external capabilities are explicit; no false online capability is reported.",
+      "failReasonCodes": [
+        "WP7_OFFLINE_STARTUP_FAILED"
+      ],
+      "applicablePhase": "FINAL_WINDOWS"
+    },
+    {
+      "acceptanceId": "A07",
+      "formalRequirement": "The final installed tree contains zero old runtime code, duplicate runtime entrypoints or forbidden legacy residue.",
+      "requiredTestIds": [
+        "installed-tree-old-runtime-scan-zero.test",
+        "wp7-no-old-process-or-build-contamination.test"
+      ],
+      "requiredEvidenceFiles": [
+        "evidence/wp7/install-tree-inventory.json",
+        "evidence/wp7/no-contamination.json"
+      ],
+      "passOracle": "Canonical installed-tree inventory and process/residual scan report zero forbidden files, zero duplicate runtime entrypoints and zero legacy runtime processes.",
+      "failReasonCodes": [
+        "WP7_INSTALLED_LEGACY_RUNTIME_DETECTED",
+        "WP7_OLD_RUNTIME_PROCESS_RESIDUE"
+      ],
+      "applicablePhase": "FINAL_WINDOWS"
+    },
+    {
+      "acceptanceId": "A08",
+      "formalRequirement": "The final installer is produced from clean staging and never uses an old installer plus app.asar.unpacked overlay or post-install runtime patch.",
+      "requiredTestIds": [
+        "final-build-clean-staging.test",
+        "wp1-artifact-reuse-denied.test",
+        "final-payload-recomputed.test",
+        "wp7-installer-seal-and-external-hash.test"
+      ],
+      "requiredEvidenceFiles": [
+        "evidence/wp7/build-provenance.json",
+        "evidence/wp7/build-session-integrity.json",
+        "evidence/wp7/final-release-evidence.json"
+      ],
+      "passOracle": "Staging starts empty; every payload byte has current-session provenance; overlay/post-install patch scanners report zero hits; sealed installer hash remains unchanged.",
+      "failReasonCodes": [
+        "FINAL_BUILD_REUSED_PIPELINE_TEST_ARTIFACT",
+        "WP0_OVERLAY_INSTALLER_PATTERN_DETECTED",
+        "WP7_CROSS_SESSION_ARTIFACT_REUSE"
+      ],
+      "applicablePhase": "PRE_REVIEW_AND_FINAL"
+    },
+    {
+      "acceptanceId": "A09",
+      "formalRequirement": "Every startup failure exposes machine-readable buildId, failedPhase and stable reasonCode.",
+      "requiredTestIds": [
+        "wp7-boot-failure-diagnostics.test"
+      ],
+      "requiredEvidenceFiles": [
+        "evidence/wp7/boot-failure-diagnostics.json"
+      ],
+      "passOracle": "Each injected startup failure produces valid JSON containing the exact buildId, non-empty failedPhase and allowlisted reasonCode; no narrative-only failure record is accepted.",
+      "failReasonCodes": [
+        "WP7_BOOT_DIAGNOSTIC_INCOMPLETE"
+      ],
+      "applicablePhase": "PRE_REVIEW_AND_FINAL"
+    },
+    {
+      "acceptanceId": "A10",
+      "formalRequirement": "All stage-level release evidence is machine-readable JSON, schema-valid, SHA256-pinned and joined to one final identity tuple.",
+      "requiredTestIds": [
+        "wp7-final-evidence-reference-only.test",
+        "acceptance-evidence-schema.test",
+        "wp7-evidence-cross-file-identity.test",
+        "wp7-acceptance-check-mapping.test"
+      ],
+      "requiredEvidenceFiles": [
+        "evidence/phase1-acceptance-evidence.json",
+        "evidence/wp7/final-release-evidence.json"
+      ],
+      "passOracle": "A01-A10 each appear exactly once; every referenced child JSON parses and validates; every reference has SHA256; all records share source, buildSessionId, buildId and installerSha256; no development evidence is referenced.",
+      "failReasonCodes": [
+        "WP7_FINAL_EVIDENCE_REFERENCE_VIOLATION",
+        "WP7_EVIDENCE_IDENTITY_SPLIT",
+        "WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID"
+      ],
+      "applicablePhase": "PRE_REVIEW_AND_FINAL"
+    }
+  ],
+  "requiredTestPhaseModel": {
+    "schemaVersion": 1,
+    "documentType": "WP7_REQUIRED_TEST_PHASE_MODEL",
+    "generatedAtUtc": "2026-07-05T10:12:44Z",
+    "identityBinding": {
+      "wp6AcceptedFinalDeliveryHead": "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+      "wp6AcceptedFinalSourceTree": "485891e55298667df30e2f588daec196dc530eb7",
+      "activationCommit": "ceffb5234d33518bfda2a88c0e3fad59fb7c8bce",
+      "activationSourceTree": "b457101ab8d5d04d073597039446ded41374a6c8",
+      "activationIdentityBindingCommit": "4ac6d2185bed28823210849704f3850cd875b5fb",
+      "activationBindingSourceTree": "d7f64dbf602ded1075978c13bea8449d7ef7e5e2",
+      "verifiedParentChain": [
+        "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+        "ceffb5234d33518bfda2a88c0e3fad59fb7c8bce",
+        "4ac6d2185bed28823210849704f3850cd875b5fb"
+      ]
+    },
+    "normativeForDesignGateRevision": true,
+    "historicalReadinessPhaseLabelsNormative": false,
+    "phaseClasses": [
+      {
+        "id": "PRE_REVIEW",
+        "meaning": "Must execute and PASS before WP7 Convergence Pre-Review submission; no final installer or real-machine claim is permitted."
+      },
+      {
+        "id": "PRE_REVIEW_AND_FINAL",
+        "meaning": "Must execute and PASS before Convergence Pre-Review using implementation/tooling fixtures, then execute again against the frozen final build or final evidence during Final Packaging."
+      },
+      {
+        "id": "FINAL_PACKAGING",
+        "meaning": "Runs only after WP7_PREACCEPTED_FOR_FINAL_PACKAGING against final packaging identities or complete delivery closure; not required to enter Convergence Pre-Review."
+      },
+      {
+        "id": "FINAL_WINDOWS",
+        "meaning": "Runs only during authorized real Windows CLEAN_INSTALL validation against the sealed final installer; not required to enter Convergence Pre-Review."
+      }
+    ],
+    "convergencePreReviewRequiredPhaseClasses": [
+      "PRE_REVIEW",
+      "PRE_REVIEW_AND_FINAL"
+    ],
+    "finalPackagingRequiredPhaseClasses": [
+      "PRE_REVIEW_AND_FINAL",
+      "FINAL_PACKAGING",
+      "FINAL_WINDOWS"
+    ],
+    "repeatRule": "Every PRE_REVIEW_AND_FINAL test must have a pre-review execution record and a separate final execution record. A pre-review PASS cannot substitute for final-machine or final-package execution.",
+    "designGateExecutionStatus": "NOT_STARTED",
+    "testAssignments": {
+      "PRE_REVIEW": [
+        "wp7-upstream-accepted-binding.test",
+        "wp7-wp6-final-binding-required.test",
+        "wp7-build-crash-recovery.test",
+        "wp7-workstream-traceability.test"
+      ],
+      "PRE_REVIEW_AND_FINAL": [
+        "final-build-clean-staging.test",
+        "final-build-source-freeze-match.test",
+        "wp1-artifact-reuse-denied.test",
+        "final-payload-recomputed.test",
+        "final-installer-build-id-consistency.test",
+        "wp7-final-evidence-reference-only.test",
+        "acceptance-evidence-schema.test",
+        "wp7-release-protocol-version-consistency.test",
+        "wp7-wp0-real-build-branch-gate.test",
+        "wp7-build-session-exclusive.test",
+        "wp7-installer-seal-and-external-hash.test",
+        "wp7-unsigned-policy-truthfulness.test",
+        "wp7-deferred-scope-claim-denied.test",
+        "wp7-inherited-risk-register.test",
+        "wp7-evidence-cross-file-identity.test",
+        "wp7-complete-project-source-delivery.test",
+        "wp7-complete-bundle-parent-chain.test",
+        "wp7-clean-install-evidence-completeness.test",
+        "wp7-release-source-runtime-protocol-convergence.test",
+        "wp7-boot-failure-diagnostics.test",
+        "wp7-acceptance-check-mapping.test"
+      ],
+      "FINAL_PACKAGING": [
+        "wp7-final-packaging-change-boundary.test"
+      ],
+      "FINAL_WINDOWS": [
+        "clean-install-start-stop-restart.test",
+        "single-backend-installed-runtime.test",
+        "offline-installed-runtime-ready.test",
+        "installed-tree-old-runtime-scan-zero.test",
+        "wp7-wp4-credential-authority-installed-regression.test",
+        "wp7-wp5-runtime-authority-installed-regression.test",
+        "wp7-api-v2-event-gap-snapshot-recovery.test",
+        "wp7-backend-crash-recovery-installed.test",
+        "wp7-clean-install-old-version-uninstall.test",
+        "wp7-clean-install-residual-removal.test",
+        "wp7-clean-install-no-legacy-migration.test",
+        "wp7-clean-install-no-legacy-rollback.test",
+        "wp7-installer-sha256-preinstall.test",
+        "wp7-first-start-clean-initialization.test",
+        "wp7-no-old-process-or-build-contamination.test"
+      ]
+    }
+  }
+}

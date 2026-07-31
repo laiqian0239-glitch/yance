@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_SYSTEM_HEALTH_AUTHORITY_CLOSURE",
+  "sourceBaseline": "10970bef4d17bd0b9724688aca3ca205d24973f8",
+  "status": "UNIT_BEHAVIOR_PASS",
+  "windowsRenderStatus": "PENDING",
+  "endToEndTaskStatus": "PENDING",
+  "userConfirmationStatus": "PENDING",
+  "defectIds": [
+    "DEFECT-012",
+    "DEFECT-013"
+  ],
+  "relatedOpenDefectIds": [],
+  "authority": "SystemHealthAuthority",
+  "states": [
+    "healthy",
+    "degraded",
+    "blocked",
+    "recovering",
+    "unknown"
+  ],
+  "rootCausesClosed": [
+    "健康分过去只读取探针、账号、备份、AI与完整性，当前头像同步和媒体物化失败只进入原始日志，因此健康分可能保持100",
+    "错误与警告按原始日志逐条展示，相同根因会重复刷屏",
+    "前端直接JSON.stringify日志detail，导致空对象、多层JSON和内部字段不可读",
+    "当前活动错误、最近错误和历史错误没有时间边界，容易出现当前失败被掩盖或旧失败永久污染"
+  ],
+  "implementation": [
+    "backend/services/systemHealthAuthority.js",
+    "backend/services/systemCenterService.js",
+    "backend/routes/system.js",
+    "frontend/r32-system-center.js",
+    "frontend/r32-system-center.css"
+  ],
+  "truthfulnessRules": [
+    "存在活动错误聚合时健康分不得为100",
+    "当前阻断、高严重度降级、可重试恢复和历史记录必须分层显示",
+    "重复日志按根因、错误码和阶段聚合，并显示次数、首次和最后发生时间",
+    "日志主界面只显示中文影响与建议，原始字段放入可展开技术详情",
+    "历史错误可查看但不得永久污染当前健康状态",
+    "发布就绪继续独立于运行健康，不得用单一健康分声明正式发布通过"
+  ],
+  "targetedEvidence": {
+    "test": "tests/uat/systemHealthAuthority.test.js",
+    "focusedPassed": 5,
+    "focusedFailed": 0,
+    "adjacentPassed": 16,
+    "adjacentFailed": 0,
+    "scenarios": [
+      "repeated avatar and media failures aggregate into two root-cause records",
+      "active degradation prevents false health score 100",
+      "historical error remains visible without poisoning current health",
+      "current SQLite failure blocks health",
+      "system center renders Chinese aggregate instead of raw JSON detail"
+    ]
+  },
+  "limitations": [
+    "后台任务的持久化重试与最终失败状态已由后续 BackgroundJobAuthority 检查点关闭；真实 Windows 恢复结果仍待任务级验收",
+    "WINDOWS_RENDER_PASS 尚未执行",
+    "真实运行中错误进入恢复态、随后成功并从活动区退出仍需真实 Windows 任务级验收"
+  ]
+}

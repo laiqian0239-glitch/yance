@@ -1,0 +1,29 @@
+name: Stage 6.4.5.9 WP0 Architecture Gates
+
+on:
+  push:
+    branches:
+      - stage/6.4.5.9-architecture-closure
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  wp0-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout branch and immutable tags
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run executable local-equivalent WP0 gate
+        run: npm run verify:wp0:gate
+      - name: Run WP0 required tests
+        run: npm run test:wp0

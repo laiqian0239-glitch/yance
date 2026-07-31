@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "identityClass": "YANCE29_WINDOWS_RELEASE_CLOSURE_ACCEPTED_FIX_LEDGER",
+  "authoritativeHistory": {
+    "wp6AcceptedCommit": "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+    "activationCommit": "4ac6d2185bed28823210849704f3850cd875b5fb",
+    "activationTree": "d7f64dbf602ded1075978c13bea8449d7ef7e5e2",
+    "stage6Commit": "4a21ec3b127af8a9362bdc06bf47ef9023138b39"
+  },
+  "acceptedFixes": [
+    {
+      "scope": "WP4_WINDOWS_CONTAINMENT_SENTINEL_RELEASE",
+      "commit": "84a30d21477850034da66552099b44ea4cfb4f14",
+      "tree": "4c45993bba7c4804d41c8d055adfefafdab76993",
+      "parentCommit": "ff957ea495724fc29eb1f0f2f850550b7641a709",
+      "files": [
+        "electron/desktopHost/DesktopCredentialApplicationCoordinator.js",
+        "tests/wp4/desktop-credential-containment-crash-recovery.test.js"
+      ],
+      "windowsVerification": {
+        "requiredTests": "193/193",
+        "faultMatrix": "140/140",
+        "mutationKilled": 62,
+        "mutationSurvivor": 0,
+        "mutationInvalid": 0,
+        "overallExitCode": 0,
+        "residualWorkers": 0,
+        "closureEvidenceSha256": "b0ee0d4c14ed2d3a2530769d8faa38315eca6f53c55a7e0f1bdd6b1ec26a3e62"
+      }
+    },
+    {
+      "scope": "WP7_WINDOWS_PRE_REVIEW_FIXTURES",
+      "commit": "4352f8f800ce819aa608117260a6b28e11d8ff90",
+      "tree": "0f1e9f7bce693dd306be6e9a3016429c2d1cce70",
+      "parentCommit": "84a30d21477850034da66552099b44ea4cfb4f14",
+      "files": [
+        "tests/wp7/helpers.js",
+        "tests/wp7/wp7-windows-electron-pe-fixture.test.js"
+      ],
+      "windowsVerification": {
+        "targetedTests": "9/9",
+        "preReview": "28/28",
+        "overallExitCode": 0,
+        "evidenceSha256": "b75b36176de58b51802480551ef339660fa4a10ea17f975570c71315658c0d8f"
+      },
+      "productionPolicy": {
+        "nativeBinaryScannerChanged": false,
+        "productRuntimeChanged": false,
+        "installerRuntimeChanged": false
+      }
+    },
+    {
+      "scope": "WP7_WINDOWS_FINAL_BUILDER_COMMAND_AND_INSTALLER_CUSTODY",
+      "commit": "3356092a72e41a2eab1259ea0f5bab9142d11487",
+      "tree": "af856ca2911a12356034d9ecc35f97088a452eaf",
+      "parentCommit": "14017e1dab7d4cc0294eebe5bb643974f26c8200",
+      "inputHandoffSha256": "4fc158cc0433d862ac0d6af04ba4f76e8bd22f6de50d5df333a8ea7f48edda86",
+      "files": [
+        "tools/wp7/host-command-runner.js",
+        "tools/wp7/lib.js",
+        "tools/wp7/generate-production-dependency-binding.js",
+        "tests/wp7/helpers.js",
+        "tests/wp7/wp7-windows-builder-command-spawn.test.js"
+      ],
+      "contracts": {
+        "windowsNpmCmdUsesShell": true,
+        "nonWindowsNpmDirectSpawn": true,
+        "nsisCompilerShimDenied": true,
+        "nativeMakensisDirectSpawn": true,
+        "nonPeInstallerDenied": true,
+        "stubInstallerAccepted": false
+      },
+      "targetedVerification": {
+        "builderCommandTests": "7/7",
+        "windowsPeFixtureTests": "7/7",
+        "finalInstallerIdentity": "1/1",
+        "sourceFreeze": "1/1"
+      }
+    }
+  ],
+  "sealContract": {
+    "generatedEvidenceMustRemainExternal": true,
+    "sourceSealMustInclude": [
+      "complete Git Bundle",
+      "Git Tree-equivalent Source ZIP",
+      "Stage6-to-HEAD binary Patch without UTF-8 BOM",
+      "source identity report",
+      "independent verification result",
+      "standard two-column SHA256SUMS.txt"
+    ],
+    "generator": "tools/release-closure/create-source-seal.js",
+    "verifier": "tools/release-closure/verify-source-seal.js",
+    "windowsWrapper": "tools/release-closure/SEAL_WINDOWS_RELEASE_SOURCE.ps1"
+  }
+}

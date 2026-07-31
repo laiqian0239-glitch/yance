@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BRAND_REBUILD_STATUS",
+  "baseline": {
+    "branch": "rebuild/windows-release-closure-20260716-packaged-runtime-dependency-closure-fix",
+    "commit": "07d37a4fc088897a7d4ef9f236fc631202b7dfaf",
+    "tree": "d06b3a14e9e49159080fa035aade2643c6740b5d"
+  },
+  "developmentBranch": "rebuild/windows-release-closure-20260717-one-click-heartbeat-result-closure",
+  "publicBrand": {
+    "chinese": "言策",
+    "english": "Yance",
+    "executable": "Yance.exe",
+    "installerPattern": "Yance-Setup-<version>-x64.exe"
+  },
+  "costPolicy": {
+    "newPaidInfrastructureRequired": false,
+    "serverRequiredForLocalInternalTest": false,
+    "paidCodeSigningRequiredForLocalInternalTest": false,
+    "paidFontsOrArtworkAllowed": false,
+    "onlineUpdateServerEnabled": false
+  },
+  "sourcePhase": {
+    "status": "SOURCE_IMPLEMENTATION_COMPLETE_PENDING_WINDOWS",
+    "brandAssets": "VERIFIED_SOURCE",
+    "sourceBrandAudit": "VERIFIED_SOURCE",
+    "packagedBrandGate": "VERIFIED_SOURCE",
+    "installedBrandGateContract": "VERIFIED_SOURCE",
+    "legacyDataMigration": "VERIFIED_SOURCE",
+    "installerUpgradeMigration": "VERIFIED_SOURCE",
+    "verificationPolicy": "REVERIFY_ON_EVERY_CLEAN_DELIVERY_HEAD",
+    "referenceVerifyWp7": "EXTERNAL_EVIDENCE_REQUIRED_AND_REBOUND_FOR_EVERY_CLEAN_DELIVERY_HEAD",
+    "windowsCheckoutLineEndingContract": "VERIFIED_SOURCE_AWAITING_REAL_WINDOWS_ROUND",
+    "windowsVerificationRunnerContract": "VERIFIED_SOURCE_REAL_WINDOWS_CORE_DIAGNOSTIC_PATH_CONFIRMED_AWAITING_FORMAL_ROUNDS",
+    "windowsDiagnosticMode": "VERIFIED_SOURCE_WORKBUDDY_COMPATIBLE_AWAITING_REAL_WINDOWS_PREPLAY",
+    "windowsEnvironmentPreflight": "VERIFIED_SOURCE_RUNNER_TEMP_EVIDENCE_BOUND_AWAITING_REAL_WINDOWS_PREPLAY",
+    "windowsNodeNpmSubprocessBinding": "VERIFIED_SOURCE_REAL_WINDOWS_NPM_CI_AND_WP7_EXIT_CODE_PATH_CONFIRMED",
+    "windowsShortPathTempSelection": "VERIFIED_SOURCE_SINGLE_RUNNER_AUTHORITY_NO_DUPLICATE_CMD_PROBE_AWAITING_REAL_WINDOWS_PREPLAY",
+    "windowsAtomicRoundEvidence": "VERIFIED_SOURCE_STABLE_RESULT_STAGING_EXCLUDES_MUTABLE_SOURCE_CACHE_AND_TEMP",
+    "windowsTwoRoundFinalBuilderBinding": "VERIFIED_SOURCE_BUILDER_NATIVE_STDERR_SAFE_AWAITING_REAL_WINDOWS_ROUNDS",
+    "windowsAssistedPipeline": "VERIFIED_SOURCE_ONE_CLICK_UAC_HEARTBEAT_STAGE_ERRORS_AND_AUTO_RESULT_ZIP_AWAITING_REAL_WINDOWS_EXECUTION",
+    "windowsDeliveryVerifier": "VERIFIED_SOURCE_POWERSHELL51_PARAMETER_BINDING_AWAITING_REAL_WINDOWS_EXECUTION"
+  },
+  "windowsPhase": {
+    "verifyWp7Round1": "NOT_EXECUTED",
+    "verifyWp7Round2": "NOT_EXECUTED",
+    "installerBuiltFromNewBrandCommit": false,
+    "electronUatExecuted": false,
+    "accountAndAiUatExecuted": false
+  },
+  "release": {
+    "formalInstallerAuthorized": false,
+    "formalPublicReleaseAuthorized": false,
+    "releaseApproved": false,
+    "releaseStatus": "BLOCKED_PENDING_WINDOWS_INTERNAL_TEST_VALIDATION"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "documentType": "CHAT_EXPORT_DEVELOPMENT_BASELINE",
+  "baselineScope": "PRE_INTEGRATION_DEVELOPMENT_CHECKPOINT",
+  "integrationBranchEntered": false,
+  "status": [
+    "NOT_A_WP7_FORMAL_REVIEW_CANDIDATE",
+    "WP7_FORMAL_STATUS_UNCHANGED"
+  ],
+  "governanceBoundary": {
+    "productFunctionHealthAssertion": "NOT_EVALUATED_BY_THIS_DOCUMENT",
+    "formalInstallerAuthorizationChanged": false,
+    "releaseApprovalChanged": false,
+    "purpose": "Preserve the historical development boundary consumed by the chat-export governance test. Current product integration and runtime health are verified by separate implementation and UAT tests."
+  }
+}

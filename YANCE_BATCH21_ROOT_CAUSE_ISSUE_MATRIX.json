@@ -1,0 +1,171 @@
+{
+  "schemaVersion": "1.0",
+  "documentType": "YANCE_BATCH21_ROOT_CAUSE_ISSUE_MATRIX",
+  "project": "YANCE",
+  "generatedAtUtc": "2026-07-28T10:41:14Z",
+  "sourceBaseline": {
+    "authoritativeCommit": "f25fe2e2b4f065d2c09de034eddb67857eeb83bb",
+    "authoritativeTree": "015f7969a2363952071bf11f4da3eb2adaf7edbf",
+    "batch20ImplementationCommit": "2ea0b43cc6cff09b88a889ac60284c14a7f7a660",
+    "batch20ImplementationTree": "f31522bbfcab7fd4fe63ee1e232c68b17f029f66",
+    "batch20PackageCommit": "63a6cb3a6b8b98f7135ca0f83183540f434c67ed",
+    "batch20PackageTree": "e4a03816b7923aea9a1f8e27d32db143a20ca295"
+  },
+  "implementation": {
+    "branch": "development/windows-uat-f25fe2e-repair-batch21-root-authority",
+    "commit": "7b06376a68b269aefaac99c3822f3a70f68e04d6",
+    "tree": "ade20b77b6b3e042c4e83ef975eceeefebe0a4c7"
+  },
+  "governance": {
+    "repairState": "REPAIR_ATTEMPT_IN_PROGRESS",
+    "windowsUatState": "WINDOWS_UAT_BLOCKED",
+    "formalRelease": false,
+    "readyForPromotion": false,
+    "independentReviewRequired": true
+  },
+  "rootCauseDomains": [
+    {
+      "id": "RC-01",
+      "name": "Runtime state authority split and false positives",
+      "priority": "P0",
+      "sourceStatus": "SOURCE_FIXED_AUTOMATED_VERIFIED",
+      "closureStatus": "REAL_WINDOWS_PLATFORM_ACK_PENDING",
+      "positiveTests": [
+        "real ACK makes payload capability ready",
+        "sendVerified derives from fresh text ACK"
+      ],
+      "negativeTests": [
+        "connected without ACK remains degraded",
+        "expired ACK cannot keep verified state"
+      ]
+    },
+    {
+      "id": "RC-02",
+      "name": "Account identity ConversationBinding and outbox route contract mismatch",
+      "priority": "P0",
+      "sourceStatus": "SOURCE_FIXED_AUTOMATED_VERIFIED",
+      "closureStatus": "REAL_CROSS_PLATFORM_IDENTITY_UAT_PENDING",
+      "positiveTests": [
+        "message conversation person identity and binding commit together"
+      ],
+      "negativeTests": [
+        "forced identity failure rolls back all rows",
+        "nonexistent conversation binding rejected",
+        "route conflict fails closed"
+      ]
+    },
+    {
+      "id": "RC-03",
+      "name": "Message event persistence and UI hydration inconsistency",
+      "priority": "P0",
+      "sourceStatus": "SOURCE_FIXED_AUTOMATED_VERIFIED",
+      "closureStatus": "REAL_HISTORY_ECHO_RESTART_UAT_PENDING",
+      "positiveTests": [
+        "successful inbound hydrates from SQLite authority"
+      ],
+      "negativeTests": [
+        "realtime payload cannot push translated message into visible history",
+        "identity failure leaves no empty shell"
+      ]
+    },
+    {
+      "id": "RC-04",
+      "name": "Async operation lifecycle and completion writeback missing",
+      "priority": "P0",
+      "sourceStatus": "SOURCE_FIXED_AUTOMATED_VERIFIED",
+      "closureStatus": "REAL_WINDOWS_RESTART_LIFECYCLE_UAT_PENDING",
+      "positiveTests": [
+        "current generation can complete and persist result"
+      ],
+      "negativeTests": [
+        "new generation supersedes prior operation",
+        "stale completion writeback rejected"
+      ]
+    },
+    {
+      "id": "RC-05",
+      "name": "Adapter capability declarations detached from real platform ACK",
+      "priority": "P0",
+      "sourceStatus": "SOURCE_FIXED_AUTOMATED_VERIFIED",
+      "closureStatus": "REAL_TEXT_EMOJI_MEDIA_ACK_MATRIX_PENDING",
+      "positiveTests": [
+        "text emoji and media capability evidence separated",
+        "provider ids persisted"
+      ],
+      "negativeTests": [
+        "success without message id rejected",
+        "structured failure not accepted",
+        "accepted-but-unpersisted outcome blocks retry"
+      ]
+    },
+    {
+      "id": "RC-06",
+      "name": "OpenRouter onboarding qualification and production routing split",
+      "priority": "P0",
+      "sourceStatus": "SOURCE_FIXED_AUTOMATED_VERIFIED",
+      "closureStatus": "REAL_OPENROUTER_2_OF_2_PENDING",
+      "positiveTests": [
+        "two independent model results apply conditional routes once"
+      ],
+      "negativeTests": [
+        "fewer than two independent models blocked",
+        "formal qualification remains pending"
+      ]
+    },
+    {
+      "id": "RC-07",
+      "name": "Global design tokens and layout shell not authoritative",
+      "priority": "P1",
+      "sourceStatus": "SOURCE_FIXED_AUTOMATED_VERIFIED",
+      "closureStatus": "REAL_WINDOWS_DPI_RENDER_PENDING",
+      "positiveTests": [
+        "global semantic typography density contrast authority loaded last",
+        "flat document flow remains cross-page authority"
+      ],
+      "negativeTests": [
+        "large mode controls cannot retain fixed clipped height",
+        "production components cannot bypass semantic control selector"
+      ]
+    },
+    {
+      "id": "RC-08",
+      "name": "Automated test oracle does not represent real Windows and platform behavior",
+      "priority": "P0",
+      "sourceStatus": "AUTOMATED_ORACLE_REPAIRED",
+      "closureStatus": "COMPLETE_BACKEND_AND_REAL_UAT_PENDING",
+      "positiveTests": [
+        "round12 79/79",
+        "round13 24/24",
+        "uat diagnostics 142/142",
+        "source delivery 33/33"
+      ],
+      "negativeTests": [
+        "connected is not ready",
+        "test event logs isolated",
+        "automated evidence cannot authorize promotion"
+      ]
+    }
+  ],
+  "automatedVerification": {
+    "batch21RootCauseAndDesign": "8/8 PASS",
+    "round12PlatformCore": "79/79 PASS",
+    "round13AiQuality": "24/24 PASS",
+    "platformProductionReadiness": "58/58 PASS",
+    "uatDiagnostics": "142/142 PASS",
+    "sourceUatDelivery": "33/33 PASS",
+    "componentReadability": "6/6 PASS",
+    "batch20AiUxRegression": "11/11 PASS",
+    "translationAndQuotedSendCompatibility": "16/16 PASS",
+    "fullBackend": "INCOMPLETE: ATTEMPT1_REACHED_637_WITH_5_FAILURES_REPAIRED; ATTEMPT2_REACHED_614_WITH_NO_FAILURE_OBSERVED_BEFORE_TIMEOUT",
+    "rootCauseClosureUnit": "2/2 PASS",
+    "rootCauseClosureAudit": "DESIGN_BASELINE_READY_REAL_WINDOWS_PENDING"
+  },
+  "realEvidence": {
+    "windowsElectron": "NOT_EXECUTED_IN_THIS_ENVIRONMENT",
+    "whatsapp": "PENDING",
+    "facebook": "PENDING",
+    "telegram": "PENDING",
+    "openRouter": "PENDING",
+    "restartPersistence": "PENDING"
+  }
+}

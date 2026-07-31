@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ROOT_CAUSE_ACCEPTANCE_LEVELS",
+  "baseline": {
+    "branch": "uat/root-cause-closure-20260722",
+    "parentCommit": "334f3622d244a7438679973a6ffa1e90306cb169",
+    "parentTree": "f476cd0407ecfe247001c31c838d00ecc5322946"
+  },
+  "levels": [
+    {
+      "id": "SOURCE_CONTRACT_PASS",
+      "meaning": "源码合同、Schema、静态接线和错误合同通过",
+      "mayClaim": ["源码结构存在", "合同字段完整"],
+      "mustNotClaim": ["真实数据库通过", "真实 Windows UI 通过", "用户验收通过"]
+    },
+    {
+      "id": "UNIT_BEHAVIOR_PASS",
+      "meaning": "隔离函数和服务在受控夹具中行为通过",
+      "mayClaim": ["被覆盖的函数行为通过"],
+      "mustNotClaim": ["旧数据库迁移后通过", "真实 Electron 渲染通过"]
+    },
+    {
+      "id": "REAL_DB_REPLAY_PASS",
+      "meaning": "脱敏结构等价真实数据库回放、迁移、重试和幂等通过",
+      "mayClaim": ["真实结构数据库投影能够收敛"],
+      "mustNotClaim": ["Windows 视觉可读", "用户任务端到端通过"]
+    },
+    {
+      "id": "WINDOWS_RENDER_PASS",
+      "meaning": "真实 Windows Electron 在规定窗口和 DPI 下渲染门禁通过",
+      "mayClaim": ["关键状态可见、可读、未裁切"],
+      "mustNotClaim": ["完整用户任务通过"]
+    },
+    {
+      "id": "END_TO_END_TASK_PASS",
+      "meaning": "完整用户任务从输入、状态、存储、UI 到结果通过",
+      "mayClaim": ["指定用户任务通过"],
+      "mustNotClaim": ["所有产品功能通过", "用户最终确认"]
+    },
+    {
+      "id": "USER_CONFIRMED_REAL_WINDOWS_PASS",
+      "meaning": "用户在其真实 Windows、真实账号和真实数据中确认阶段通过",
+      "mayClaim": ["该阶段用户确认通过"],
+      "mustNotClaim": ["正式发布通过"]
+    },
+    {
+      "id": "FORMAL_RELEASE_PASS",
+      "meaning": "完成正式发布门禁、打包和最终发布验收",
+      "mayClaim": ["正式发布通过"],
+      "mustNotClaim": []
+    }
+  ],
+  "promotionRules": [
+    "不得跳级",
+    "每一级必须绑定来源 Commit、测试、数据库夹具或 Windows 证据",
+    "测试数量不得替代验收等级",
+    "USER_CONFIRMED_REAL_WINDOWS_PASS 只能由用户真实验收产生",
+    "未运行 WP7、STRICT、Final Builder 时不得声明 FORMAL_RELEASE_PASS"
+  ]
+}

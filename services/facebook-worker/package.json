@@ -1,0 +1,12 @@
+{
+  "name": "@yance/facebook-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "test:contracts": "node --test --test-concurrency=1 tests/desktop-worker-contract.test.js tests/facebook-adapter-contract.test.js",
+    "test:security": "node --test --test-concurrency=1 tests/webhook-security.test.js tests/oauth-token-security.test.js tests/desktop-auth.test.js",
+    "test:storage": "node --test --test-concurrency=1 tests/d1-migrations.test.js tests/lease-ack-recovery.test.js tests/media-r2-retention.test.js"
+  }
+}

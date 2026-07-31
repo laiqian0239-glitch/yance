@@ -1,0 +1,379 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_AUTHORITY_AND_WRITER_MATRIX",
+  "identityContract": [
+    "platform",
+    "sourceAccountId",
+    "platformContactIdentity",
+    "conversationId",
+    "canonicalContactId"
+  ],
+  "domains": [
+    {
+      "id": "replyLanguage",
+      "authority": "ConversationLanguageAuthority",
+      "currentImplementation": "backend/services/contactLanguageAuthority.js + backend/services/replyLanguageAuthority.js",
+      "singleWriter": "contactLanguageAuthority writes conversation observation/override; replyLanguageAuthority resolves one effective target and validates generation/approval/revision/send",
+      "storage": "contacts.payload_json.languageProfilesByScope[scopeKey]",
+      "readers": [
+        "backend/services/contextAwareReplyBrain.js",
+        "backend/routes/store.js",
+        "frontend/js/r32-store-client.js",
+        "backend/store/commands/registerAiReplyCommands.js"
+      ],
+      "requiredStates": [
+        "unknown",
+        "observed",
+        "user_locked",
+        "conflicted",
+        "validated",
+        "blocked_mismatch"
+      ],
+      "rootCauseRisks": [
+        "最新入站语言、人工锁定和陈旧画像优先级不一致",
+        "候选生成、审批、改写和发送前使用不同语言判断",
+        "中文回译被误当成候选原文"
+      ],
+      "sourceReferences": [
+        "backend/services/contactLanguageAuthority.js",
+        "backend/services/replyLanguageAuthority.js",
+        "backend/services/contextAwareReplyBrain.js",
+        "backend/routes/store.js",
+        "frontend/js/r32-store-client.js"
+      ]
+    },
+    {
+      "id": "translation",
+      "authority": "TranslationStateAuthority",
+      "currentImplementation": "backend/services/messageTranslationService.js",
+      "singleWriter": "MessageTranslationService translation job transition",
+      "storage": "r32_messages translation fields + translation job registry",
+      "readers": [
+        "backend/routes/store.js",
+        "frontend/js/r32-ui-runtime.js",
+        "frontend/js/r32-persona-runtime.js"
+      ],
+      "requiredStates": [
+        "not_requested",
+        "pending",
+        "success",
+        "failed",
+        "cancelled",
+        "superseded"
+      ],
+      "rootCauseRisks": [
+        "会话译文与客户档案/关系投影分裂",
+        "待生成状态未被成功译文收敛"
+      ],
+      "sourceReferences": [
+        "backend/services/messageTranslationService.js",
+        "backend/services/bilingualUnderstandingService.js",
+        "backend/routes/store.js",
+        "frontend/js/r32-ui-runtime.js",
+        "frontend/js/r32-persona-runtime.js"
+      ]
+    },
+    {
+      "id": "modelRuntime",
+      "authority": "ModelRuntimeAuthority",
+      "currentImplementation": "backend/services/modelRuntimeAuthority.js + backend/services/modelRegistry.js + backend/services/modelStatusProjection.js",
+      "singleWriter": "modelRegistry separately records qualification facts, business invocation facts and last successful invocation; ModelRuntimeAuthority is the only runtime projection",
+      "storage": "model registry durable state",
+      "readers": [
+        "backend/services/modelStatusService.js",
+        "backend/services/aiGateway.js",
+        "backend/services/systemCenterService.js",
+        "frontend/r32-system-center.js"
+      ],
+      "requiredStates": [
+        "UNCONFIGURED",
+        "CREDENTIAL_REQUIRED",
+        "VERIFYING",
+        "CONFIGURED_UNVERIFIED",
+        "VERIFIED_NOT_CALLED",
+        "AVAILABLE",
+        "DEGRADED_WITH_FALLBACK",
+        "TEMPORARILY_BLOCKED",
+        "UNAVAILABLE"
+      ],
+      "rootCauseRisks": [
+        "资格、路由、当前失败和最后成功由不同投影解释",
+        "同一模型卡显示互相矛盾状态"
+      ],
+      "sourceReferences": [
+        "backend/services/modelRuntimeAuthority.js",
+        "backend/services/modelRegistry.js",
+        "backend/services/modelStatusProjection.js",
+        "backend/services/modelStatusService.js",
+        "backend/services/aiGateway.js",
+        "frontend/js/r32-ai-workbench-runtime.js",
+        "frontend/r32-system-center.js"
+      ]
+    },
+    {
+      "id": "customerProfile",
+      "authority": "CustomerProfileAuthority",
+      "currentImplementation": "backend/services/customerProfileEvidenceAuthority.js + backend/repositories/workspaceRepository.js",
+      "singleWriter": "CustomerProfileEvidenceAuthority resolves source-message translation and writes the account-scoped SQLite evidence projection inside the analysis transaction",
+      "storage": "customer_profile_evidence unique projection + canonical customer_profiles source document",
+      "readers": [
+        "backend/routes/store.js",
+        "frontend/js/r32-ui-runtime.js",
+        "frontend/js/r32-persona-runtime.js"
+      ],
+      "requiredStates": [
+        "empty",
+        "collecting",
+        "ready",
+        "stale",
+        "rebuild_required"
+      ],
+      "rootCauseRisks": [
+        "同一证据重复写入",
+        "会话已有译文但档案仍待中文理解"
+      ],
+      "sourceReferences": [
+        "backend/services/customerProfileEvidenceAuthority.js",
+        "backend/services/socialAnalysisPresentationService.js",
+        "backend/repositories/workspaceRepository.js",
+        "backend/lib/r32SqliteStore.js",
+        "frontend/js/r32-ui-runtime.js",
+        "frontend/js/r32-persona-runtime.js"
+      ]
+    },
+    {
+      "id": "relationshipProjection",
+      "authority": "RelationshipProjectionAuthority",
+      "currentImplementation": "backend/services/relationshipProjectionAuthority.js + backend/repositories/workspaceRepository.js",
+      "singleWriter": "RelationshipProjectionAuthority is the only relationship status/summary/stage/next projector; source transactions write insights, social state, signals and timeline events",
+      "storage": "relationship_insights + customer_social_state + relationship_state_signals + relationship_timeline_events; UI receives one derived authority projection",
+      "readers": [
+        "backend/services/workspaceService.js",
+        "backend/routes/workspace.js",
+        "frontend/js/r32-ui-runtime.js"
+      ],
+      "requiredStates": [
+        "empty",
+        "pending_translation",
+        "pending_analysis",
+        "ready",
+        "stale",
+        "rebuild_required"
+      ],
+      "rootCauseRisks": [
+        "同一消息重复生成关系事件",
+        "有效节点存在但摘要长期待分析",
+        "前端分别读取 AI insight 与 StoreManager 后自行覆盖关系结论"
+      ],
+      "sourceReferences": [
+        "backend/services/relationshipProjectionAuthority.js",
+        "backend/repositories/workspaceRepository.js",
+        "backend/services/workspaceService.js",
+        "frontend/js/r32-ui-runtime.js"
+      ]
+    },
+    {
+      "id": "learningLifecycle",
+      "authority": "LearningLifecycleAuthority",
+      "currentImplementation": "backend/services/replyLearningScopeAuthority.js",
+      "singleWriter": "reply learning event and scope transaction",
+      "storage": "ai_reply_learning_scopes + versions + evidence",
+      "readers": [
+        "backend/services/replyFeedbackLearningService.js",
+        "backend/services/contextAwareReplyBrain.js",
+        "frontend/js/r32-phase1-governance-runtime.js",
+        "frontend/js/r32-ui-runtime.js"
+      ],
+      "requiredStates": [
+        "generated",
+        "accepted",
+        "edited",
+        "rejected",
+        "sent",
+        "send_failed",
+        "learned",
+        "rolled_back",
+        "forgotten"
+      ],
+      "rootCauseRisks": [
+        "候选按钮不可见导致生命周期无法人工确认",
+        "生成事件被误当学习成功"
+      ],
+      "sourceReferences": [
+        "backend/services/replyLearningScopeAuthority.js",
+        "backend/services/replyFeedbackLearningService.js",
+        "frontend/js/r32-phase1-governance-runtime.js",
+        "frontend/js/r32-ui-runtime.js"
+      ]
+    },
+    {
+      "id": "systemHealth",
+      "authority": "SystemHealthAuthority",
+      "currentImplementation": "backend/services/systemHealthAuthority.js + backend/services/systemCenterService.js",
+      "singleWriter": "SystemHealthAuthority aggregates bounded runtime logs and projects one health state/score; systemCenterService only supplies probes, integrity and runtime facts",
+      "storage": "derived runtime projection with bounded active/recent/historical error aggregates; no UI-local health truth",
+      "readers": [
+        "backend/routes/system.js",
+        "frontend/r32-system-center.js"
+      ],
+      "requiredStates": [
+        "healthy",
+        "degraded",
+        "blocked",
+        "recovering",
+        "unknown"
+      ],
+      "rootCauseRisks": [
+        "健康 100 与当前错误并存",
+        "陈旧失败永久污染或当前失败被掩盖"
+      ],
+      "sourceReferences": [
+        "backend/services/systemHealthAuthority.js",
+        "backend/services/systemCenterService.js",
+        "backend/routes/system.js",
+        "frontend/r32-system-center.js"
+      ]
+    },
+    {
+      "id": "accountRuntime",
+      "authority": "AccountRuntimeAuthority",
+      "currentImplementation": "backend/services/accountDiagnosticPolicy.js + account manager runtime",
+      "singleWriter": "account runtime/diagnostic reconciliation",
+      "storage": "r32_accounts runtime projection and diagnostic results",
+      "readers": [
+        "backend/services/systemCenterService.js",
+        "frontend/r32-account-center.js",
+        "frontend/r32-system-center.js"
+      ],
+      "requiredStates": [
+        "disconnected",
+        "connecting",
+        "connected",
+        "degraded",
+        "reauth_required",
+        "blocked"
+      ],
+      "rootCauseRisks": [
+        "已连接与等待真实连接确认同时显示",
+        "诊断和账号中心使用不同快照"
+      ],
+      "sourceReferences": [
+        "backend/services/accountDiagnosticPolicy.js",
+        "backend/services/systemCenterService.js",
+        "frontend/r32-account-center.js",
+        "frontend/r32-system-center.js"
+      ]
+    },
+    {
+      "id": "backgroundJobs",
+      "authority": "BackgroundJobAuthority",
+      "currentImplementation": "backend/services/backgroundJobAuthority.js + avatarService + whatsappHistoryMediaRecovery",
+      "singleWriter": "BackgroundJobAuthority atomically owns durable job state, attempts, retry timing, leases and final outcomes; worker services only execute acquired leases",
+      "storage": "background_job_state SQLite table with unique idempotency_key",
+      "readers": [
+        "backend/services/avatarService.js",
+        "backend/services/whatsappHistoryMediaRecovery.js",
+        "backend/services/systemCenterService.js",
+        "frontend/r32-system-center.js"
+      ],
+      "requiredStates": [
+        "PENDING",
+        "RUNNING",
+        "SUCCEEDED",
+        "RETRY_WAIT",
+        "FAILED_FINAL",
+        "CANCELLED",
+        "SUPERSEDED"
+      ],
+      "rootCauseRisks": [
+        "进程重启后丢失内存锁并重复执行",
+        "相同失败每次刷新都重新记录",
+        "不可重试任务没有最终状态",
+        "同一平台消息ID跨账号串任务"
+      ],
+      "sourceReferences": [
+        "backend/services/backgroundJobAuthority.js",
+        "backend/services/avatarService.js",
+        "backend/services/whatsappHistoryMediaRecovery.js",
+        "backend/lib/r32SqliteStore.js",
+        "backend/services/systemHealthAuthority.js",
+        "frontend/r32-system-center.js"
+      ]
+    },
+    {
+      "id": "notificationSound",
+      "authority": "NotificationSoundAuthority",
+      "currentImplementation": "shared/notificationSoundCatalog.js + backend/services/notificationPolicy.js + electron/SoundNotificationService.js",
+      "singleWriter": "NotificationSoundAuthority owns the selectable catalog and event-to-setting mapping; notificationPolicy persists settings and SoundNotificationService only plays the selected authority pattern",
+      "storage": "notification-settings SQLite document with catalog ids; catalog labels and mappings are versioned source authority",
+      "readers": [
+        "backend/routes/system.js",
+        "backend/services/systemCenterService.js",
+        "electron/SoundNotificationService.js",
+        "frontend/r32-system-center.js",
+        "frontend/r32-settings-recovery.js"
+      ],
+      "requiredStates": [
+        "enabled",
+        "disabled",
+        "selected",
+        "previewing",
+        "played",
+        "failed"
+      ],
+      "rootCauseRisks": [
+        "底层存在多套声音但正式页面没有选择入口",
+        "前端、后端和Electron各自维护不同声音目录",
+        "同一配置在多个正式页面形成平行写入入口"
+      ],
+      "sourceReferences": [
+        "shared/notificationSoundCatalog.js",
+        "backend/services/notificationPolicy.js",
+        "backend/routes/system.js",
+        "electron/SoundNotificationService.js",
+        "frontend/r32-system-center.js",
+        "frontend/r32-settings-recovery.js"
+      ]
+    },
+    {
+      "id": "businessPresentation",
+      "authority": "BusinessPresentationAuthority",
+      "currentImplementation": "frontend/js/r32-business-presentation-authority.js + formal business renderers",
+      "singleWriter": "BusinessPresentationAuthority is the only formal business label and identity-summary projector; exact technical identities remain unchanged in routing/storage and are shown only inside explicit technical details",
+      "storage": "source-versioned presentation catalog; no mutation of platform identity or business data",
+      "readers": [
+        "frontend/js/r32-ui-runtime.js",
+        "frontend/js/r32-contact-safe-renderers.js",
+        "frontend/js/r32-ai-workbench-runtime.js",
+        "frontend/r32-account-center.js"
+      ],
+      "requiredStates": [
+        "business_summary",
+        "localized_label",
+        "masked_identity",
+        "technical_details",
+        "routing_identity_unchanged"
+      ],
+      "rootCauseRisks": [
+        "正式中文页面直接显示 declining/new/calm_natural 等内部枚举",
+        "业务卡片直接显示 JID、UUID、消息哈希和内部会话 ID",
+        "为了隐藏技术 ID 误改底层发送路由身份"
+      ],
+      "sourceReferences": [
+        "frontend/js/r32-business-presentation-authority.js",
+        "frontend/js/r32-ui-runtime.js",
+        "frontend/js/r32-contact-safe-renderers.js",
+        "frontend/js/r32-ai-workbench-runtime.js",
+        "frontend/r32-account-center.js",
+        "frontend/r32-business-presentation.css"
+      ]
+    }
+  ],
+  "rules": [
+    "每个领域只能有一个权威状态投影",
+    "UI 不得自行组合多个布尔字段产生业务状态",
+    "写入者必须在数据库事务或明确的原子状态转换中工作",
+    "跨平台客户档案关联不得合并底层会话、草稿、翻译、学习和发送路由",
+    "姓名和头像不得成为身份关联或合并依据"
+  ]
+}

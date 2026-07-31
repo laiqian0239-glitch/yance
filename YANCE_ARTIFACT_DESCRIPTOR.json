@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ARTIFACT_DESCRIPTOR",
+  "generatedAtUtc": "2026-07-31T06:55:52.872Z",
+  "project": "言策 Yance",
+  "artifactType": "WINDOWS_UI_SOURCE_CANDIDATE",
+  "artifactClass": "BATCH40_FIX6D_WINDOWS_UI_UAT_CANDIDATE",
+  "artifactId": "audit-batch40-fix6d-windows-ui-uat-20260731-557e758",
+  "sourceIdentity": {
+    "branch": "fix6d-scroll-authority-v4",
+    "commit": "557e7586768744dcc24278d8bf68508a6181c04b",
+    "tree": "96099cf20673069624bfac9985547385ceb9a626",
+    "parent": "a932f1c25266460f3ee6c7953164c93234a659d6"
+  },
+  "governance": {
+    "formalRelease": false,
+    "readyForPromotion": false,
+    "windowsUiUat": false
+  },
+  "identityProtocol": {
+    "generatedAtArchiveTime": true,
+    "trackedIdentityDocumentsReplaced": true,
+    "exactArchiveContentVerified": true
+  }
+}

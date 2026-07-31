@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="言策 Yance 品牌展示版">
+  <defs>
+    <radialGradient id="scene" cx="50%" cy="35%" r="75%"><stop stop-color="#0F2E31"/><stop offset=".68" stop-color="#071113"/><stop offset="1" stop-color="#020708"/></radialGradient>
+    <linearGradient id="frame" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E6ECEC"/><stop offset=".38" stop-color="#8A9499"/><stop offset=".7" stop-color="#3DD9D0"/><stop offset="1" stop-color="#17BDB5"/></linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFFFFF"/><stop offset=".45" stop-color="#D9E1E2"/><stop offset="1" stop-color="#718084"/></linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="18" result="b"/><feColorMatrix in="b" values="0 0 0 0 0.239 0 0 0 0 0.851 0 0 0 0 0.816 0 0 0 .5 0"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#scene)"/>
+  <ellipse cx="512" cy="895" rx="325" ry="54" fill="#17BDB5" opacity=".2" filter="url(#glow)"/>
+  <rect x="86" y="74" width="852" height="852" rx="210" fill="#071416" stroke="url(#frame)" stroke-width="18" filter="url(#glow)"/>
+  <rect x="109" y="97" width="806" height="806" rx="190" fill="none" stroke="#E6ECEC" stroke-opacity=".2" stroke-width="5"/>
+  <g filter="url(#glow)">
+    <path d="M248 292H686V244L824 356 686 468V420H248Z" fill="url(#metal)" stroke="#3DD9D0" stroke-width="7"/>
+    <rect x="292" y="492" width="382" height="68" rx="22" fill="url(#metal)" stroke="#3DD9D0" stroke-width="6"/>
+    <path d="M304 612H676Q704 612 704 640V774Q704 802 676 802H430L330 876 356 802H304Q276 802 276 774V640Q276 612 304 612Z" fill="none" stroke="url(#metal)" stroke-width="58" stroke-linejoin="round"/>
+  </g>
+</svg>

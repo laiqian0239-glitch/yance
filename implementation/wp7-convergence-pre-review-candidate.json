@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 2,
+  "documentType": "WP7_CONVERGENCE_PRE_REVIEW_CANDIDATE_HISTORICAL_SNAPSHOT",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP7",
+  "generatedAtUtc": "2026-07-06T04:27:26Z",
+  "authorityClassification": "HISTORICAL_CPR_R5_SNAPSHOT_ONLY",
+  "currentAuthority": false,
+  "reusableAsCurrentCandidate": false,
+  "reusableAsFinalPackagingBaseline": false,
+  "supersededBy": {
+    "revisionId": "CPR-R8",
+    "governanceRevisionId": "CPR-R8-GR1",
+    "currentAuthorityPolicy": "governance/wp7/current-authority-consistency-policy.json",
+    "currentAuthorityFiles": [
+      "implementation/project-handoff.json",
+      "implementation/work-package-status.json",
+      "governance/wp7/convergence-correction-closure.json",
+      "governance/wp7/current-authority-consistency-policy.json"
+    ]
+  },
+  "historicalSnapshot": {
+    "schemaVersion": 1,
+    "documentType": "WP7_CONVERGENCE_PRE_REVIEW_CANDIDATE_STATUS",
+    "stage": "6.4.5.9",
+    "phase": "core-runtime-p1",
+    "workPackage": "WP7",
+    "candidateStatus": "IMPLEMENTATION_PAYLOAD_AND_ELECTRON_TREE_CLOSURE_COMPLETE_CPR_R5_CANDIDATE_NOT_FORMED",
+    "activationStatus": "WP7_ACTIVATION_ACCEPTED",
+    "designGateDecision": "WP7_DESIGN_GATE_CONFIRMED",
+    "implementationBaseCommit": "4ac6d2185bed28823210849704f3850cd875b5fb",
+    "implementationBaseSourceTree": "d7f64dbf602ded1075978c13bea8449d7ef7e5e2",
+    "implementationIdentityPolicy": "Exact corrected Convergence candidate HEAD and tree are bound externally in the Delivery JSON; this tracked record binds the production correction commit/tree and phase boundary.",
+    "productionImplementationCompletedForPreReview": false,
+    "requiredTestsExecutionStatus": "PASS_ALL_AVAILABLE_PRE_REVIEW_VALIDATION_PAYLOAD_AND_ELECTRON_TREE_CLOSURE_PENDING_INDEPENDENT_REVIEW_REAL_TRUSTED_PRODUCT_EXECUTION_NOT_EXECUTED",
+    "verification": {
+      "wp7RequiredTests": "PASS_25_OF_25",
+      "installedRuntimeProbeProtocolAndEntry": "PASS_38_OF_38",
+      "realPackagedElectronIntegration": "NOT_EXECUTED_TRUSTED_OFFICIAL_ELECTRON_ARCHIVE_AND_PRODUCT_EXECUTABLE_UNAVAILABLE",
+      "faultMatrix": "PASS_47_OF_47",
+      "concurrencyRaceMatrix": "PASS_15_OF_15",
+      "crashMatrix": "PASS_15_OF_15",
+      "mutationMatrix": "PASS_44_OF_44_KILLED_ZERO_SURVIVORS",
+      "convergenceCorrectionMatrix": "PASS_58_OF_58_KILLED_ZERO_SURVIVORS",
+      "developerAdversarialReview": "PASS_25_OF_25",
+      "historicalRegression": "PASS_WP0_THROUGH_WP6_WITH_WP3_EXISTING_WINDOWS_SKIP",
+      "sourceClosure": "PASS_PRODUCTION_CORRECTION_TRACKED_774_JAVASCRIPT_532_OF_532"
+    },
+    "finalPackagingAuthorized": false,
+    "candidateBindingCommitCreated": false,
+    "finalDeliveryHeadCreated": false,
+    "finalInstallerGenerated": false,
+    "formalWindowsCleanInstallPerformed": false,
+    "finalWindowsTestsExecuted": false,
+    "preAcceptanceIssued": false,
+    "finalAcceptanceStatus": "NOT_ACCEPTED",
+    "preservedRiskAcceptanceIds": [
+      "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+      "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+      "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+      "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED"
+    ],
+    "installationPolicy": {
+      "FINAL_INSTALLATION_MODE": "CLEAN_INSTALL",
+      "LEGACY_TEST_DATA_MIGRATION_REQUIRED": false,
+      "LEGACY_TEST_VERSION_ROLLBACK_REQUIRED": false
+    },
+    "forbiddenClaims": [
+      "WP7_PREACCEPTED_FOR_FINAL_PACKAGING",
+      "WP7_ACCEPTED",
+      "STAGE_6_4_5_9_ACCEPTED",
+      "PHASE1_ACCEPTED",
+      "FORMAL_WINDOWS_RELEASE"
+    ],
+    "generatedAtUtc": "2026-07-05T17:41:10Z",
+    "revisionId": "CPR-R5",
+    "priorDecision": "WP7_CONVERGENCE_PRE_REVIEW_REJECTED",
+    "priorImplementationCommit": "6bf3032b69c1d367114f295e0075cd77ecfc8153",
+    "priorImplementationSourceTree": "ae02da005c8bf1b9df0631d640fe861d276f792d",
+    "rejectionBlockersClosed": false,
+    "finalPhaseRequiredTestImplementations": "PRESENT_16_OF_16_NOT_EXECUTED",
+    "finalEvidenceToolingStatus": "PROVENANCE_LOCKED_IMPLEMENTED_NOT_FINAL_EXECUTED",
+    "reopenRequired": true,
+    "blockingReasonCode": "WP7_REAL_TRUSTED_PRODUCT_NINE_PROBE_EXECUTION_NOT_PERFORMED",
+    "formalReopenStatus": "ACTIVE_REJECTED_REVISION_REQUIRED",
+    "revisionCandidateStatus": "NOT_FORMED",
+    "closedBlockingReasonCodes": [
+      "WP7_INSTALLED_RUNTIME_PROBE_PRODUCTION_ENTRY_BROKEN",
+      "WP7_RELEASE_IDENTITY_CONSUMER_PROVENANCE_INCOMPLETE"
+    ],
+    "correctedProductionIdentity": {
+      "commit": "ddc9ab917adb9da9e9721fbf69592310a90b4dd3",
+      "sourceTree": "123092970bce084f9f7518aedcaf4ae9b168f6b5"
+    },
+    "priorRejectedCandidateIdentity": {
+      "commit": "36da7f4a5fcc1041081e9ec1ba4d5803050154e8",
+      "sourceTree": "de6ffd9786469ab223cac7e77b960378916bbe18"
+    },
+    "remainingBlockingReasonCodes": [
+      "WP7_REAL_TRUSTED_PRODUCT_NINE_PROBE_EXECUTION_NOT_PERFORMED"
+    ],
+    "implementationCorrectionReviewStatus": "PENDING_INDEPENDENT_REVIEW",
+    "developerClaimedClosedReasonCodes": [
+      "WP7_PACKAGED_ELECTRON_EXECUTABLE_TRUST_NOT_ENFORCED",
+      "WP7_PACKAGED_ELECTRON_EXECUTION_SUBSTITUTE_BYPASS",
+      "WP7_PACKAGED_ELECTRON_RESULT_VALIDATION_INCOMPLETE",
+      "WP7_PACKAGED_APPLICATION_EXECUTION_PATH_INCORRECT",
+      "WP7_PACKAGED_PROBE_INTEGRATION_SCOPE_INCOMPLETE",
+      "WP7_PACKAGED_APPLICATION_PAYLOAD_CLOSURE_NOT_ENFORCED",
+      "WP7_ELECTRON_DISTRIBUTION_TREE_TRUST_NOT_ENFORCED"
+    ]
+  }
+}

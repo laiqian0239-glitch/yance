@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WP5 Development Evidence Envelope",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "stage",
+    "workPackage",
+    "phase",
+    "generatedAtUtc",
+    "identity",
+    "status"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "stage": {
+      "const": "6.4.5.9"
+    },
+    "workPackage": {
+      "const": "WP5"
+    },
+    "phase": {
+      "enum": [
+        "DEVELOPMENT",
+        "CONVERGENCE_PRE_REVIEW",
+        "FINAL_PACKAGING"
+      ]
+    },
+    "generatedAtUtc": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "NOT_EXECUTED_WINDOWS_REQUIRED",
+        "INCOMPLETE"
+      ]
+    },
+    "identity": {
+      "type": "object",
+      "required": [
+        "sourceCommit",
+        "worktreeSourceTree",
+        "repositoryClean",
+        "sourceTree",
+        "implementationCommit"
+      ],
+      "properties": {
+        "sourceCommit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "worktreeSourceTree": {
+          "type": "string"
+        },
+        "implementationCommit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "repositoryClean": {
+          "type": "boolean"
+        },
+        "sourceTree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      }
+    },
+    "upstreamContractBinding": {
+      "type": "object"
+    },
+    "authorityStoreIdentity": {
+      "type": "object",
+      "properties": {
+        "operatingModeRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "stateVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "eventRetentionIndependent": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "writerOwnership": {
+      "type": "object"
+    },
+    "authorizationBoundary": {
+      "type": "object"
+    },
+    "commandLedger": {
+      "type": "object"
+    },
+    "requestReplay": {
+      "type": "object"
+    },
+    "appliedRuntimeState": {
+      "type": "object"
+    },
+    "publicationState": {
+      "type": "object"
+    },
+    "recoveryDecision": {
+      "type": "object"
+    },
+    "legacyMigration": {
+      "type": "object",
+      "properties": {
+        "sourceVerification": {
+          "type": "object",
+          "required": [
+            "sourceReadOnly",
+            "sourceMutationCount",
+            "before",
+            "after"
+          ],
+          "properties": {
+            "sourceReadOnly": {
+              "type": "boolean"
+            },
+            "sourceMutationCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "before": {
+              "type": "object",
+              "required": [
+                "canonicalSourceRoot",
+                "sourceFingerprint",
+                "sourceFileCount",
+                "sourceTotalBytes",
+                "files"
+              ],
+              "properties": {
+                "canonicalSourceRoot": {
+                  "type": "string"
+                },
+                "sourceFingerprint": {
+                  "type": "string"
+                },
+                "sourceFileCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "sourceTotalBytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "files": {
+                  "type": "array"
+                }
+              },
+              "additionalProperties": true
+            },
+            "after": {
+              "type": "object",
+              "required": [
+                "canonicalSourceRoot",
+                "sourceFingerprint",
+                "sourceFileCount",
+                "sourceTotalBytes",
+                "files"
+              ],
+              "properties": {
+                "canonicalSourceRoot": {
+                  "type": "string"
+                },
+                "sourceFingerprint": {
+                  "type": "string"
+                },
+                "sourceFileCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "sourceTotalBytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "files": {
+                  "type": "array"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "receipt": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "sourceFingerprint": {
+              "type": "string"
+            },
+            "sourceFileCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sourceTotalBytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "verificationBefore": {
+              "type": "object"
+            },
+            "verificationAfter": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "prohibitedPaths": {
+      "type": "object",
+      "properties": {
+        "rendererDesktopSafeModeFallbackUsed": {
+          "type": "boolean"
+        },
+        "rendererRestartSafeModeDeadEntryPresent": {
+          "type": "boolean"
+        },
+        "rendererFallbackScan": {
+          "type": "string"
+        },
+        "deadSafeModeRestartEntryScan": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "requiredTestResults": {
+      "type": "object"
+    },
+    "faultMatrix": {
+      "type": "object"
+    },
+    "concurrencyCrashMatrix": {
+      "type": "object"
+    },
+    "mutationResults": {
+      "type": "object"
+    },
+    "developerAdversarialReview": {
+      "type": "object"
+    },
+    "knownGaps": {
+      "type": "array"
+    },
+    "finalPackagingBlockers": {
+      "type": "array"
+    },
+    "r5RequiredEvidenceOutputs": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "contains": {
+        "enum": [
+          "runtime-state-authority.json",
+          "legacy-migration.json",
+          "write-path-audit.json",
+          "safe-mode-removal.json"
+        ]
+      }
+    }
+  },
+  "additionalProperties": true
+}

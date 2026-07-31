@@ -1,0 +1,3088 @@
+{
+  "schemaVersion": "m2-ipc-manifest.v2.qa-rework",
+  "project": "Yance",
+  "module": "M2 Electron Main",
+  "status": "Phase1 readonly audit rework; contract candidate; source modification not approved",
+  "requiredFields": [
+    "channel",
+    "direction",
+    "phase",
+    "inputSchema",
+    "outputSchema",
+    "requiresBackendReady",
+    "allowedDuringQuitting",
+    "allowedDuringRestart",
+    "reasonCodeOnFailure",
+    "sensitiveFields"
+  ],
+  "allowedDirections": [
+    "renderer-to-main",
+    "main-to-renderer"
+  ],
+  "allowedPhases": [
+    "pre-ready",
+    "trusted-ready"
+  ],
+  "denylist": [
+    {
+      "action": "execute-command",
+      "appliesTo": "all IPC channels and preload APIs",
+      "decision": "DENY",
+      "reason": "No renderer IPC may execute shell commands or spawn arbitrary programs.",
+      "reasonCodeOnFailure": "M2_IPC_EXECUTE_COMMAND_DENIED",
+      "m2Boundary": "must not be implemented in M2; cross-module concerns stay registered only"
+    },
+    {
+      "action": "read-arbitrary-file",
+      "appliesTo": "all IPC channels and preload APIs",
+      "decision": "DENY",
+      "reason": "No renderer IPC may read arbitrary absolute or relative filesystem paths.",
+      "reasonCodeOnFailure": "M2_IPC_READ_ARBITRARY_FILE_DENIED",
+      "m2Boundary": "must not be implemented in M2; cross-module concerns stay registered only"
+    },
+    {
+      "action": "write-arbitrary-file",
+      "appliesTo": "all IPC channels and preload APIs",
+      "decision": "DENY",
+      "reason": "No renderer IPC may write arbitrary filesystem paths; save dialogs must return sanitized app-controlled outputs only.",
+      "reasonCodeOnFailure": "M2_IPC_WRITE_ARBITRARY_FILE_DENIED",
+      "m2Boundary": "must not be implemented in M2; cross-module concerns stay registered only"
+    },
+    {
+      "action": "delete-file",
+      "appliesTo": "all IPC channels and preload APIs",
+      "decision": "DENY",
+      "reason": "No renderer IPC may delete filesystem paths.",
+      "reasonCodeOnFailure": "M2_IPC_DELETE_FILE_DENIED",
+      "m2Boundary": "must not be implemented in M2; cross-module concerns stay registered only"
+    },
+    {
+      "action": "open-sqlite",
+      "appliesTo": "all IPC channels and preload APIs",
+      "decision": "DENY",
+      "reason": "No renderer IPC may open SQLite files or bypass backend storage ownership.",
+      "reasonCodeOnFailure": "M2_IPC_OPEN_SQLITE_DENIED",
+      "m2Boundary": "must not be implemented in M2; cross-module concerns stay registered only"
+    },
+    {
+      "action": "repair-installation",
+      "appliesTo": "all IPC channels and preload APIs",
+      "decision": "DENY",
+      "reason": "No renderer IPC may repair or mutate installation layout.",
+      "reasonCodeOnFailure": "M2_IPC_REPAIR_INSTALLATION_DENIED",
+      "m2Boundary": "must not be implemented in M2; cross-module concerns stay registered only"
+    },
+    {
+      "action": "rebuild-native",
+      "appliesTo": "all IPC channels and preload APIs",
+      "decision": "DENY",
+      "reason": "No renderer IPC may rebuild, replace, delete, or load arbitrary native binaries.",
+      "reasonCodeOnFailure": "M2_IPC_REBUILD_NATIVE_DENIED",
+      "m2Boundary": "must not be implemented in M2; cross-module concerns stay registered only"
+    },
+    {
+      "action": "kill-process",
+      "appliesTo": "all IPC channels and preload APIs",
+      "decision": "DENY",
+      "reason": "No renderer IPC may kill arbitrary or unknown processes; restart must go through BackendProcessHost/coordinator only.",
+      "reasonCodeOnFailure": "M2_IPC_KILL_PROCESS_DENIED",
+      "m2Boundary": "must not be implemented in M2; cross-module concerns stay registered only"
+    },
+    {
+      "action": "override-release-contract",
+      "appliesTo": "all IPC channels and preload APIs",
+      "decision": "DENY",
+      "reason": "No renderer IPC may override release contract, manifest schema, resource path, or packaged-vs-dev path resolution.",
+      "reasonCodeOnFailure": "M2_IPC_OVERRIDE_RELEASE_CONTRACT_DENIED",
+      "m2Boundary": "must not be implemented in M2; cross-module concerns stay registered only"
+    }
+  ],
+  "handlers": [
+    {
+      "channel": "desktop:get-state",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": true,
+      "allowedDuringRestart": true,
+      "reasonCodeOnFailure": "DESKTOP_IPC_CONTRACT_VIOLATION",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1810
+      },
+      "rendererExposure": {
+        "api": "getState",
+        "file": "electron/preload.js",
+        "line": 14
+      },
+      "risk": "P2",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:get-settings",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_IPC_CONTRACT_VIOLATION",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1811
+      },
+      "rendererExposure": {
+        "api": "getSettings",
+        "file": "electron/preload.js",
+        "line": 15
+      },
+      "risk": "P2",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:update-settings",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "launchAtLogin": {
+            "type": "boolean"
+          },
+          "minimizeToTray": {
+            "type": "boolean"
+          },
+          "closeToTray": {
+            "type": "boolean"
+          },
+          "notifications": {
+            "type": "object"
+          },
+          "sound": {
+            "type": "object"
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_UPDATE_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1812
+      },
+      "rendererExposure": {
+        "api": "updateSettings",
+        "file": "electron/preload.js",
+        "line": 16
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:update-get-state",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_UPDATE_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1819
+      },
+      "rendererExposure": {
+        "api": "getUpdateState",
+        "file": "electron/preload.js",
+        "line": 51
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:update-check",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {},
+        "required": [],
+        "xRequiresExactSchemaBeforeImplementation": true
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_UPDATE_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1820
+      },
+      "rendererExposure": {
+        "api": "checkForUpdates",
+        "file": "electron/preload.js",
+        "line": 52
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "M6/M7/M8 dependency only if update/install semantics appear; no installer or native changes in M2"
+    },
+    {
+      "channel": "desktop:update-download",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {},
+        "required": [],
+        "xRequiresExactSchemaBeforeImplementation": true
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_UPDATE_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1821
+      },
+      "rendererExposure": {
+        "api": "downloadUpdate",
+        "file": "electron/preload.js",
+        "line": 53
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "M6/M7/M8 dependency only if update/install semantics appear; no installer or native changes in M2"
+    },
+    {
+      "channel": "desktop:update-install",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {},
+        "required": [],
+        "xRequiresExactSchemaBeforeImplementation": true
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_UPDATE_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1822
+      },
+      "rendererExposure": {
+        "api": "installUpdate",
+        "file": "electron/preload.js",
+        "line": 54
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "M6/M7/M8 dependency only if update/install semantics appear; no installer or native changes in M2"
+    },
+    {
+      "channel": "desktop:update-set-work-state",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "unsavedChanges": {
+            "type": "boolean"
+          },
+          "pendingReplyApproval": {
+            "type": "boolean"
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_UPDATE_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1823
+      },
+      "rendererExposure": {
+        "api": "setUpdateWorkState",
+        "file": "electron/preload.js",
+        "line": 55
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "direct structured validation present",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "M6/M7/M8 dependency only if update/install semantics appear; no installer or native changes in M2"
+    },
+    {
+      "channel": "desktop:open-auth-url",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "xAllowedProtocols": [
+              "https:"
+            ]
+          },
+          "provider": {
+            "type": "string",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_AUTH_URL_DENIED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1832
+      },
+      "rendererExposure": {
+        "api": "openAuthUrl",
+        "file": "electron/preload.js",
+        "line": 50
+      },
+      "risk": "P2",
+      "m2Scope": true,
+      "currentObservation": "direct structured validation present",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:open-directory",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "data",
+              "logs",
+              "program",
+              "portable-backups"
+            ]
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "xCurrentPreloadCompatibility": "current preload passes a string; M2 implementation must normalize string kind into this schema before handler dispatch"
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_FILE_DIALOG_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1833
+      },
+      "rendererExposure": {
+        "api": "openDataDirectory",
+        "file": "electron/preload.js",
+        "line": 17
+      },
+      "risk": "P2",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:select-directory",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_FILE_DIALOG_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1839
+      },
+      "rendererExposure": {
+        "api": "selectDirectory",
+        "file": "electron/preload.js",
+        "line": 20
+      },
+      "risk": "P2",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:select-portable-backup",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_FILE_DIALOG_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1843
+      },
+      "rendererExposure": {
+        "api": "selectPortableBackup",
+        "file": "electron/preload.js",
+        "line": 21
+      },
+      "risk": "P2",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:save-portable-backup",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "packageName": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.-]+\\.(yancebackup|yance28backup|yance32backup)$"
+          }
+        },
+        "required": [
+          "packageName"
+        ],
+        "xCurrentPreloadCompatibility": "current preload passes a string; M2 implementation must normalize into {packageName}"
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_FILE_DIALOG_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1862
+      },
+      "rendererExposure": {
+        "api": "savePortableBackup",
+        "file": "electron/preload.js",
+        "line": 22
+      },
+      "risk": "P2",
+      "m2Scope": true,
+      "currentObservation": "direct structured validation present",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:export-diagnostics",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "bundle": {
+            "type": "object"
+          }
+        },
+        "required": [],
+        "xSanitizationRequired": true
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_IPC_CONTRACT_VIOLATION",
+      "sensitiveFields": [
+        "absoluteUserPath",
+        "environment",
+        "tokens",
+        "credentialValues"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1877
+      },
+      "rendererExposure": {
+        "api": "exportDiagnostics",
+        "file": "electron/preload.js",
+        "line": 24
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:export-chat",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "conversationId"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "conversationId"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1888
+      },
+      "rendererExposure": {
+        "api": "exportChat",
+        "file": "electron/preload.js",
+        "line": 25
+      },
+      "risk": "P2",
+      "m2Scope": true,
+      "currentObservation": "direct structured validation present",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "M3 backend API boundary; do not change backend runtime semantics"
+    },
+    {
+      "channel": "desktop:get-runtime-projection",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": true,
+      "reasonCodeOnFailure": "DESKTOP_IPC_CONTRACT_VIOLATION",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1935
+      },
+      "rendererExposure": {
+        "api": "getRuntimeProjection",
+        "file": "electron/preload.js",
+        "line": 26
+      },
+      "risk": "P2",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:set-operating-mode",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "operatingMode": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "safeMode"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "operatingMode"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_RUNTIME_PROJECTION_UNAVAILABLE",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1936
+      },
+      "rendererExposure": {
+        "api": "setOperatingMode",
+        "file": "electron/preload.js",
+        "line": 27
+      },
+      "risk": "P2",
+      "m2Scope": true,
+      "currentObservation": "direct structured validation present",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:restart-backend",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_RESTART_BACKEND_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1950
+      },
+      "rendererExposure": {
+        "api": "restartBackend",
+        "file": "electron/preload.js",
+        "line": 28
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:restart-app",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_RESTART_APP_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1951
+      },
+      "rendererExposure": {
+        "api": "restartApp",
+        "file": "electron/preload.js",
+        "line": 29
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:notify",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "conversationId": {
+            "type": "string",
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_NOTIFICATION_OR_SOUND_DENIED",
+      "sensitiveFields": [
+        "body",
+        "conversationId"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1963
+      },
+      "rendererExposure": {
+        "api": "notify",
+        "file": "electron/preload.js",
+        "line": 30
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:play-sound",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "soundId": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "requestId": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "soundId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_NOTIFICATION_OR_SOUND_DENIED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1964
+      },
+      "rendererExposure": {
+        "api": "playSound",
+        "file": "electron/preload.js",
+        "line": 31
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:set-active-conversation",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "activeConversationId": {
+            "type": "string",
+            "maxLength": 256
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_IPC_CONTRACT_VIOLATION",
+      "sensitiveFields": [
+        "conversationId"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1965
+      },
+      "rendererExposure": {
+        "api": "setActiveConversation",
+        "file": "electron/preload.js",
+        "line": 33
+      },
+      "risk": "P2",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:report-sound-result",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "requestId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_NOTIFICATION_OR_SOUND_DENIED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1969
+      },
+      "rendererExposure": {
+        "api": "reportSoundResult",
+        "file": "electron/preload.js",
+        "line": 32
+      },
+      "risk": "P2",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "sound:result",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "requestId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_NOTIFICATION_OR_SOUND_DENIED",
+      "sensitiveFields": [],
+      "ipcType": "on",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1970
+      },
+      "rendererExposure": null,
+      "risk": "P2",
+      "m2Scope": true,
+      "currentObservation": "event listener accepts renderer result; must remain requestId-bound",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "none"
+    },
+    {
+      "channel": "desktop:save-credential",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "requestId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "value": {
+            "type": "object",
+            "additionalProperties": true,
+            "xSensitive": true
+          }
+        },
+        "required": [
+          "ref",
+          "value",
+          "requestId"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_CREDENTIAL_FACADE_UNAVAILABLE",
+      "sensitiveFields": [
+        "ref",
+        "value",
+        "credential.value",
+        "requestId"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1971
+      },
+      "rendererExposure": {
+        "api": "saveCredential",
+        "file": "electron/preload.js",
+        "line": 48
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "partial or implicit validation; requires M2 contract hardening",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "M4 boundary only; do not change Owner Recovery internals"
+    },
+    {
+      "channel": "desktop:delete-credential",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "requestId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "ref"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_CREDENTIAL_FACADE_UNAVAILABLE",
+      "sensitiveFields": [
+        "ref",
+        "value",
+        "credential.value",
+        "requestId"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 1972
+      },
+      "rendererExposure": {
+        "api": "deleteCredential",
+        "file": "electron/preload.js",
+        "line": 49
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "direct structured validation present",
+      "m2RequiredAction": "Add schema validation, lifecycle guard, and reasonCode-normalized error envelope.",
+      "crossModuleDependency": "M4 boundary only; do not change Owner Recovery internals"
+    },
+    {
+      "channel": "store:get-snapshot",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "domains": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "maxItems": 16
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "contactId",
+        "conversationId",
+        "messageText",
+        "draftContext",
+        "correction"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 4
+      },
+      "rendererExposure": {
+        "api": "storeSnapshot",
+        "file": "electron/preload.js",
+        "line": 34
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "query domains only; partial validation",
+      "m2RequiredAction": "Add explicit renderer IPC schema and backend-not-ready reasonCode mapping without changing backend API semantics.",
+      "crossModuleDependency": "M3 backend runtime/API semantics are out of scope; M2 only validates/normalizes renderer bridge input and errors."
+    },
+    {
+      "channel": "store:get-social-context",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "timelineLimit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "recentMessageLimit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "required": [
+          "contactId"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "contactId",
+        "conversationId",
+        "messageText",
+        "draftContext",
+        "correction"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 5
+      },
+      "rendererExposure": {
+        "api": "storeSocialContext",
+        "file": "electron/preload.js",
+        "line": 35
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "contactId required, limits loose",
+      "m2RequiredAction": "Add explicit renderer IPC schema and backend-not-ready reasonCode mapping without changing backend API semantics.",
+      "crossModuleDependency": "M3 backend runtime/API semantics are out of scope; M2 only validates/normalizes renderer bridge input and errors."
+    },
+    {
+      "channel": "store:generate-reply",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "conversationId": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "tone": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "draftContext": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "__yanceBridgeRequestId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "contactId"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "contactId",
+        "conversationId",
+        "messageText",
+        "draftContext",
+        "correction"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 6
+      },
+      "rendererExposure": {
+        "api": "storeGenerateReply",
+        "file": "electron/preload.js",
+        "line": 36
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "payload forwarded with no M2 schema",
+      "m2RequiredAction": "Add explicit renderer IPC schema and backend-not-ready reasonCode mapping without changing backend API semantics.",
+      "crossModuleDependency": "M3 backend runtime/API semantics are out of scope; M2 only validates/normalizes renderer bridge input and errors."
+    },
+    {
+      "channel": "store:approve-reply",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "candidateId"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "contactId",
+        "conversationId",
+        "messageText",
+        "draftContext",
+        "correction"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 7
+      },
+      "rendererExposure": {
+        "api": "storeApproveReply",
+        "file": "electron/preload.js",
+        "line": 37
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "candidateId cleaned but empty not rejected before endpoint construction",
+      "m2RequiredAction": "Add explicit renderer IPC schema and backend-not-ready reasonCode mapping without changing backend API semantics.",
+      "crossModuleDependency": "M3 backend runtime/API semantics are out of scope; M2 only validates/normalizes renderer bridge input and errors."
+    },
+    {
+      "channel": "store:reject-reply",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "candidateId"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "contactId",
+        "conversationId",
+        "messageText",
+        "draftContext",
+        "correction"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 8
+      },
+      "rendererExposure": {
+        "api": "storeRejectReply",
+        "file": "electron/preload.js",
+        "line": 38
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "candidateId cleaned but empty not rejected before endpoint construction",
+      "m2RequiredAction": "Add explicit renderer IPC schema and backend-not-ready reasonCode mapping without changing backend API semantics.",
+      "crossModuleDependency": "M3 backend runtime/API semantics are out of scope; M2 only validates/normalizes renderer bridge input and errors."
+    },
+    {
+      "channel": "store:revise-outbox",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "outboxId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "text": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 20000
+          }
+        },
+        "required": [
+          "outboxId",
+          "text"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "contactId",
+        "conversationId",
+        "messageText",
+        "draftContext",
+        "correction"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 9
+      },
+      "rendererExposure": {
+        "api": "storeReviseOutbox",
+        "file": "electron/preload.js",
+        "line": 39
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "outboxId cleaned but empty not rejected before endpoint construction",
+      "m2RequiredAction": "Add explicit renderer IPC schema and backend-not-ready reasonCode mapping without changing backend API semantics.",
+      "crossModuleDependency": "M3 backend runtime/API semantics are out of scope; M2 only validates/normalizes renderer bridge input and errors."
+    },
+    {
+      "channel": "store:confirm-send",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "outboxId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "outboxId"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "contactId",
+        "conversationId",
+        "messageText",
+        "draftContext",
+        "correction"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 10
+      },
+      "rendererExposure": {
+        "api": "storeConfirmSend",
+        "file": "electron/preload.js",
+        "line": 40
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "outboxId cleaned but empty not rejected before endpoint construction",
+      "m2RequiredAction": "Add explicit renderer IPC schema and backend-not-ready reasonCode mapping without changing backend API semantics.",
+      "crossModuleDependency": "M3 backend runtime/API semantics are out of scope; M2 only validates/normalizes renderer bridge input and errors."
+    },
+    {
+      "channel": "store:correct-inference",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "correction": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "contactId",
+          "correction"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "contactId",
+        "conversationId",
+        "messageText",
+        "draftContext",
+        "correction"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 11
+      },
+      "rendererExposure": {
+        "api": "storeCorrectInference",
+        "file": "electron/preload.js",
+        "line": 41
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "contactId cleaned but payload forwarded",
+      "m2RequiredAction": "Add explicit renderer IPC schema and backend-not-ready reasonCode mapping without changing backend API semantics.",
+      "crossModuleDependency": "M3 backend runtime/API semantics are out of scope; M2 only validates/normalizes renderer bridge input and errors."
+    },
+    {
+      "channel": "store:set-reading-mode",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "compact",
+              "comfortable",
+              "focus"
+            ]
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "contactId",
+        "conversationId",
+        "messageText",
+        "draftContext",
+        "correction"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 12
+      },
+      "rendererExposure": {
+        "api": "storeSetReadingMode",
+        "file": "electron/preload.js",
+        "line": 42
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "payload forwarded",
+      "m2RequiredAction": "Add explicit renderer IPC schema and backend-not-ready reasonCode mapping without changing backend API semantics.",
+      "crossModuleDependency": "M3 backend runtime/API semantics are out of scope; M2 only validates/normalizes renderer bridge input and errors."
+    },
+    {
+      "channel": "store:preview-theme",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "themeId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "themeId"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "contactId",
+        "conversationId",
+        "messageText",
+        "draftContext",
+        "correction"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 13
+      },
+      "rendererExposure": {
+        "api": "storePreviewTheme",
+        "file": "electron/preload.js",
+        "line": 43
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "payload forwarded",
+      "m2RequiredAction": "Add explicit renderer IPC schema and backend-not-ready reasonCode mapping without changing backend API semantics.",
+      "crossModuleDependency": "M3 backend runtime/API semantics are out of scope; M2 only validates/normalizes renderer bridge input and errors."
+    },
+    {
+      "channel": "store:cancel-theme-preview",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "contactId",
+        "conversationId",
+        "messageText",
+        "draftContext",
+        "correction"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 14
+      },
+      "rendererExposure": {
+        "api": "storeCancelThemePreview",
+        "file": "electron/preload.js",
+        "line": 44
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "no payload",
+      "m2RequiredAction": "Add explicit renderer IPC schema and backend-not-ready reasonCode mapping without changing backend API semantics.",
+      "crossModuleDependency": "M3 backend runtime/API semantics are out of scope; M2 only validates/normalizes renderer bridge input and errors."
+    },
+    {
+      "channel": "store:apply-theme",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "themeId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "themeId"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "contactId",
+        "conversationId",
+        "messageText",
+        "draftContext",
+        "correction"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 15
+      },
+      "rendererExposure": {
+        "api": "storeApplyTheme",
+        "file": "electron/preload.js",
+        "line": 45
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "payload forwarded",
+      "m2RequiredAction": "Add explicit renderer IPC schema and backend-not-ready reasonCode mapping without changing backend API semantics.",
+      "crossModuleDependency": "M3 backend runtime/API semantics are out of scope; M2 only validates/normalizes renderer bridge input and errors."
+    },
+    {
+      "channel": "store:set-motion-level",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "motionLevel": {
+            "type": "string",
+            "enum": [
+              "none",
+              "reduced",
+              "normal"
+            ]
+          }
+        },
+        "required": [
+          "motionLevel"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "contactId",
+        "conversationId",
+        "messageText",
+        "draftContext",
+        "correction"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 16
+      },
+      "rendererExposure": {
+        "api": "storeSetMotionLevel",
+        "file": "electron/preload.js",
+        "line": 46
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "payload forwarded",
+      "m2RequiredAction": "Add explicit renderer IPC schema and backend-not-ready reasonCode mapping without changing backend API semantics.",
+      "crossModuleDependency": "M3 backend runtime/API semantics are out of scope; M2 only validates/normalizes renderer bridge input and errors."
+    },
+    {
+      "channel": "store:set-background-effect",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "effect": {
+            "type": "string",
+            "enum": [
+              "none",
+              "blur",
+              "mica"
+            ]
+          }
+        },
+        "required": [
+          "effect"
+        ]
+      },
+      "outputSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "xErrorEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ok": {
+              "const": false
+            },
+            "reasonCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "reasonCode"
+          ]
+        }
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "contactId",
+        "conversationId",
+        "messageText",
+        "draftContext",
+        "correction"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 17
+      },
+      "rendererExposure": {
+        "api": "storeSetBackgroundEffect",
+        "file": "electron/preload.js",
+        "line": 47
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "payload forwarded",
+      "m2RequiredAction": "Add explicit renderer IPC schema and backend-not-ready reasonCode mapping without changing backend API semantics.",
+      "crossModuleDependency": "M3 backend runtime/API semantics are out of scope; M2 only validates/normalizes renderer bridge input and errors."
+    },
+    {
+      "channel": "store:cancel-request",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requestId"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "null"
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": true,
+      "allowedDuringRestart": true,
+      "reasonCodeOnFailure": "M2_STORE_CANCEL_REQUEST_FAILED",
+      "sensitiveFields": [],
+      "ipcType": "send",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 1
+      },
+      "rendererExposure": {
+        "api": "internal:invokeStoreCancelable",
+        "file": "electron/preload.js",
+        "line": 1
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "Renderer-scoped cancellation aborts only the matching long-running reply fetch.",
+      "m2RequiredAction": "Keep request IDs scoped to event.sender and remove controller state on settle/dispose.",
+      "crossModuleDependency": "Backend HTTP disconnect propagates AbortSignal through Brain, Runtime, and Provider."
+    }
+  ],
+  "outboundRendererChannels": [
+    {
+      "channel": "desktop:backend-state",
+      "direction": "main-to-renderer",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "payload emitted by main process; must be sanitized before send"
+      },
+      "outputSchema": {
+        "type": "null",
+        "description": "fire-and-forget renderer event"
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": true,
+      "allowedDuringRestart": true,
+      "reasonCodeOnFailure": "DESKTOP_RENDERER_EVENT_DROPPED",
+      "sensitiveFields": [
+        "apiSessionToken",
+        "authorization",
+        "credential.value",
+        "startupNonce",
+        "custodyPipePath",
+        "rawEnvironment"
+      ],
+      "preloadApis": [
+        "onBackendState"
+      ],
+      "currentObservation": "backend state update; currently payload shapes vary across ready/exit/fatal paths",
+      "m2RequiredAction": "standardize payload schema and lifecycle guards"
+    },
+    {
+      "channel": "desktop:runtime-projection",
+      "direction": "main-to-renderer",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "payload emitted by main process; must be sanitized before send"
+      },
+      "outputSchema": {
+        "type": "null",
+        "description": "fire-and-forget renderer event"
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": true,
+      "reasonCodeOnFailure": "DESKTOP_RENDERER_EVENT_DROPPED",
+      "sensitiveFields": [
+        "apiSessionToken",
+        "authorization",
+        "credential.value",
+        "startupNonce",
+        "custodyPipePath",
+        "rawEnvironment"
+      ],
+      "preloadApis": [
+        "onRuntimeProjection"
+      ],
+      "currentObservation": "runtime projection; cross-module read-only",
+      "m2RequiredAction": "standardize payload schema and lifecycle guards"
+    },
+    {
+      "channel": "desktop:event",
+      "direction": "main-to-renderer",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "payload emitted by main process; must be sanitized before send"
+      },
+      "outputSchema": {
+        "type": "null",
+        "description": "fire-and-forget renderer event"
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": true,
+      "allowedDuringRestart": true,
+      "reasonCodeOnFailure": "DESKTOP_RENDERER_EVENT_DROPPED",
+      "sensitiveFields": [
+        "apiSessionToken",
+        "authorization",
+        "credential.value",
+        "startupNonce",
+        "custodyPipePath",
+        "rawEnvironment"
+      ],
+      "preloadApis": [
+        "onDesktopEvent"
+      ],
+      "currentObservation": "desktop and backend events; payload not centrally typed",
+      "m2RequiredAction": "standardize payload schema and lifecycle guards"
+    },
+    {
+      "channel": "desktop:open-conversation",
+      "direction": "main-to-renderer",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "payload emitted by main process; must be sanitized before send"
+      },
+      "outputSchema": {
+        "type": "null",
+        "description": "fire-and-forget renderer event"
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_RENDERER_EVENT_DROPPED",
+      "sensitiveFields": [
+        "apiSessionToken",
+        "authorization",
+        "credential.value",
+        "startupNonce",
+        "custodyPipePath",
+        "rawEnvironment"
+      ],
+      "preloadApis": [
+        "onOpenConversation"
+      ],
+      "currentObservation": "second-instance / tray deep-link",
+      "m2RequiredAction": "standardize payload schema and lifecycle guards"
+    },
+    {
+      "channel": "desktop:open-view",
+      "direction": "main-to-renderer",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "payload emitted by main process; must be sanitized before send"
+      },
+      "outputSchema": {
+        "type": "null",
+        "description": "fire-and-forget renderer event"
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_RENDERER_EVENT_DROPPED",
+      "sensitiveFields": [
+        "apiSessionToken",
+        "authorization",
+        "credential.value",
+        "startupNonce",
+        "custodyPipePath",
+        "rawEnvironment"
+      ],
+      "preloadApis": [
+        "onOpenView"
+      ],
+      "currentObservation": "view navigation",
+      "m2RequiredAction": "standardize payload schema and lifecycle guards"
+    },
+    {
+      "channel": "desktop:play-sound-request",
+      "direction": "main-to-renderer",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "payload emitted by main process; must be sanitized before send"
+      },
+      "outputSchema": {
+        "type": "null",
+        "description": "fire-and-forget renderer event"
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_RENDERER_EVENT_DROPPED",
+      "sensitiveFields": [
+        "apiSessionToken",
+        "authorization",
+        "credential.value",
+        "startupNonce",
+        "custodyPipePath",
+        "rawEnvironment"
+      ],
+      "preloadApis": [
+        "onPlaySoundRequest"
+      ],
+      "currentObservation": "sound window / renderer audio bridge",
+      "m2RequiredAction": "standardize payload schema and lifecycle guards"
+    },
+    {
+      "channel": "desktop:notification-result",
+      "direction": "main-to-renderer",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "payload emitted by main process; must be sanitized before send"
+      },
+      "outputSchema": {
+        "type": "null",
+        "description": "fire-and-forget renderer event"
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_RENDERER_EVENT_DROPPED",
+      "sensitiveFields": [
+        "apiSessionToken",
+        "authorization",
+        "credential.value",
+        "startupNonce",
+        "custodyPipePath",
+        "rawEnvironment"
+      ],
+      "preloadApis": [
+        "onNotificationResult"
+      ],
+      "currentObservation": "notification delivery result",
+      "m2RequiredAction": "standardize payload schema and lifecycle guards"
+    },
+    {
+      "channel": "desktop:update-state",
+      "direction": "main-to-renderer",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "payload emitted by main process; must be sanitized before send"
+      },
+      "outputSchema": {
+        "type": "null",
+        "description": "fire-and-forget renderer event"
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_RENDERER_EVENT_DROPPED",
+      "sensitiveFields": [
+        "apiSessionToken",
+        "authorization",
+        "credential.value",
+        "startupNonce",
+        "custodyPipePath",
+        "rawEnvironment"
+      ],
+      "preloadApis": [
+        "onUpdateState"
+      ],
+      "currentObservation": "update status",
+      "m2RequiredAction": "standardize payload schema and lifecycle guards"
+    }
+  ],
+  "validationSummary": {
+    "rendererToMainHandlerCount": 40,
+    "mainToRendererChannelCount": 8,
+    "allRendererToMainHandlersHaveRequiredFields": true,
+    "allOutboundChannelsHaveRequiredFields": true,
+    "denylistCount": 9,
+    "sourceModificationPerformed": false,
+    "testingStarted": false,
+    "windowsVerificationStarted": false
+  },
+  "moduleBoundary": {
+    "M2Allowed": [
+      "Electron main lifecycle",
+      "IPC",
+      "BrowserWindow",
+      "Tray",
+      "quit/restart/relaunch",
+      "BackendProcessHost integration",
+      "packaged backend launch path resolution",
+      "startup failure receive/display"
+    ],
+    "M2Forbidden": [
+      "M3 Backend Runtime",
+      "M4 Owner Recovery internal strategy",
+      "M5 SQLite Ownership",
+      "M6 Release Layout",
+      "M7 Installer",
+      "M8 Native Binary"
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "brandingVersion": 2,
+  "brand": "Yance",
+  "palette": {
+    "deepObsidian": "#0B1416",
+    "deepOceanTeal": "#0F2E31",
+    "jadeTeal": "#17BDB5",
+    "glacierTeal": "#3DD9D0",
+    "mistWhite": "#E6ECEC",
+    "titaniumGray": "#8A9499"
+  },
+  "marks": {
+    "master": "source/yance-mark-master.svg",
+    "product": "product/yance-mark-flat.svg",
+    "micro": "product/yance-mark-micro.svg",
+    "presentation": "presentation/yance-mark-display.svg",
+    "monoDark": "product/yance-mark-mono-dark.svg",
+    "monoLight": "product/yance-mark-mono-light.svg"
+  },
+  "iconSizes": [16, 20, 24, 32, 48, 64, 128, 256, 512, 1024]
+}

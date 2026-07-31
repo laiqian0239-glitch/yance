@@ -1,0 +1,1159 @@
+{
+  "schemaVersion": 1,
+  "documentType": "PROJECT_HANDOFF",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "generatedAtUtc": "2026-07-06T12:28:35.710Z",
+  "purpose": "Canonical WP7 CPR-R9 Convergence Pre-Review revision candidate binding the rejected CPR-R8 baseline to one new Implementation identity, a verified WP7_PRE_REVIEW_ONLY sealed artifact, complete nine-probe raw evidence, complete test raw results and one-piece candidate delivery; no preacceptance or Final Packaging authorization is claimed.",
+  "governance": {
+    "acceptanceMode": "TWO_STAGE",
+    "currentPhase": "WP7_CONVERGENCE_PRE_REVIEW_CPR_R9_REVISION_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+    "wp6Accepted": true,
+    "wp6FinalAcceptanceToken": "WP6_ACCEPTED",
+    "wp7ReadyForActivation": true,
+    "wp7ActivationCandidateGenerated": true,
+    "wp7ActivationAccepted": true,
+    "wp7ActivationDecisionRequired": "WP7_ACTIVATION_ACCEPTED",
+    "wp7ProductionImplementationAuthorized": true,
+    "wp7FinalPackagingAuthorized": false,
+    "wp7ActivationIdentityBound": true,
+    "wp7ConvergencePreReviewAccepted": false,
+    "wp7PreAcceptanceStatus": "NOT_ISSUED_PENDING_INDEPENDENT_REVIEW",
+    "wp7FinalAcceptanceStatus": "NOT_ACCEPTED"
+  },
+  "authoritativeStatusPath": "implementation/work-package-status.json",
+  "acceptedUpstreamBaseline": {
+    "workPackage": "WP6",
+    "acceptedFinalDeliveryHead": "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+    "acceptedFinalSourceTree": "485891e55298667df30e2f588daec196dc530eb7",
+    "finalAcceptanceToken": "WP6_ACCEPTED",
+    "independentAuditDate": "2026-07-05"
+  },
+  "lastRejectedWp4Candidate": {
+    "candidateType": "CONVERGENCE_PRE_REVIEW_REJECTED",
+    "finalCodeImplementationCommit": "1b6a8ce0071864dcfc3b356510454359b6e5ae3c",
+    "finalCodeSourceTree": "8d59df4dde0fdcdbf7977899a864e6e84c9a28e0",
+    "parentRejectedImplementationCommit": "7761185a9629ae95c32f5c668da3b1ef79fad7ec",
+    "independentReviewStatus": "REJECTED",
+    "closedPriorBlockingReasonCodes": [
+      "WP4-OWNER-REGISTRY-SEMANTIC-VALIDATION-FAIL-OPEN",
+      "WP4-PREREVIEW-BUNDLE-MISSING-WP0-IMMUTABLE-TAG"
+    ],
+    "blockingReasonCodes": [
+      "WP4-START-HANDSHAKE-REJECTION-LIVE-OWNER-NOT-CONTAINED",
+      "WP4-MUTATION-EVIDENCE-HARNESS-FAILURE-MISCLASSIFIED-AS-KILL"
+    ],
+    "evidenceFalsePassReasonCode": "WP4-EVIDENCE-FALSE-PASS-START-HANDSHAKE-LIVE-OWNER"
+  },
+  "currentWp4": {
+    "status": "COMPLETED",
+    "active": false,
+    "reviewStatus": "ACCEPTED",
+    "acceptedAtUtc": "2026-07-04T20:22:08Z",
+    "implementationIdentity": {
+      "commit": "da29b9dc13e258b66d3de5a5320132a324ab8b6f",
+      "sourceTree": "ffcf273bf83416c4eec38f1e9d2b3f1de6bc7f35"
+    },
+    "candidateBindingIdentity": {
+      "commit": "91786b29a96ba338ba49263c164976ff83173e51",
+      "sourceTree": "8150033a574e3a5d38f017597ea03195b9ffaf1d"
+    },
+    "acceptedFinalDeliveryIdentity": {
+      "head": "2b929258c4d51c10a4dc49e90fcecf8b9f8170c4",
+      "sourceTree": "8de896200f82a65d22a7d15db78cd83f813188bf"
+    },
+    "independentAuditDecision": "WP4_ACCEPTED",
+    "independentAuditDate": "2026-07-05",
+    "verificationSummary": {
+      "wp4RequiredTests": "PASS_158_OF_158",
+      "completeFaultMatrix": "PASS_140_OF_140",
+      "mutationTests": "PASS_62_OF_62_KILLED_ZERO_SURVIVORS_ZERO_INVALID",
+      "applicationConvergenceMatrix": "PASS_74_OF_74",
+      "ownerRegistryTargetedTests": "PASS_31_OF_31",
+      "wp3Regression": "PASS_WITH_EXISTING_ACCEPTED_WINDOWS_EXCEPTION",
+      "wp2Regression": "PASS_60_OF_60",
+      "wp1Regression": "PASS_24_OF_24",
+      "wp0Regression": "PASS_16_OF_16",
+      "wp0Gate": "PASS_4_OF_4",
+      "javascriptSyntax": "PASS_380_OF_380",
+      "repositoryClean": "PASS"
+    },
+    "evidenceStatus": "ACCEPTED_WITH_OWNER_RISK",
+    "riskAcceptance": {
+      "riskAcceptanceId": "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+      "acceptedBy": "Project Owner",
+      "status": "ACCEPTED",
+      "acceptedAtUtc": "2026-07-04T19:16:04Z",
+      "usageScope": [
+        "PROJECT_OWNER_ONLY",
+        "PERSONAL_SINGLE_USER_DEPLOYMENT",
+        "SINGLE_DEVICE_ENVIRONMENT"
+      ],
+      "excludedScopes": [
+        "PUBLIC_RELEASE",
+        "COMMERCIAL_DELIVERY",
+        "ENTERPRISE_ENVIRONMENT",
+        "MULTI_USER_ENVIRONMENT"
+      ],
+      "description": "The Windows Evidence generator does not yet strictly reject every future incomplete PASS result when reboot-boundary validation or required checks are absent. Final Packaging is authorized only under the stated owner-only single-user exception while all unexecuted Windows evidence remains explicit.",
+      "limitationsPreserved": true,
+      "knownGapMustRemainVisible": true,
+      "notRepresentedAsCompleted": [
+        "WINDOWS_REBOOT_BOUNDARY_VALIDATION",
+        "WINDOWS_PID_REUSE_VALIDATION",
+        "WINDOWS_OWNER_IDENTITY_ALL_SCENARIOS",
+        "COMPLETE_WINDOWS_EVIDENCE_PASS"
+      ],
+      "prohibitions": [
+        "DO_NOT_REMOVE_OR_HIDE_NOT_EXECUTED_WINDOWS_REQUIRED",
+        "DO_NOT_RECORD_INCOMPLETE_WINDOWS_EVIDENCE_AS_COMPLETE_PASS",
+        "DO_NOT_EXTEND_EXCEPTION_TO_PUBLIC_COMMERCIAL_ENTERPRISE_OR_MULTI_USER_USE"
+      ]
+    },
+    "knownTechnicalGaps": [
+      {
+        "reasonCode": "WP4_WINDOWS_OWNER_PROCESS_IDENTITY_REAL_MACHINE_EVIDENCE_NOT_EXECUTED",
+        "status": "NOT_EXECUTED_WINDOWS_REQUIRED"
+      }
+    ],
+    "finalPackagingAuthorized": false,
+    "finalAcceptancePending": false
+  },
+  "downstream": {
+    "WP6": {
+      "status": "COMPLETED",
+      "active": false,
+      "reviewStatus": "ACCEPTED",
+      "finalAcceptanceStatus": "WP6_ACCEPTED"
+    },
+    "WP7": {
+      "status": "ACTIVE",
+      "active": true,
+      "activationStatus": "WP7_ACTIVATION_ACCEPTED",
+      "reviewStatus": "CONVERGENCE_REOPEN_CPR_R9_REVISION_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+      "activationBindingCommit": "4ac6d2185bed28823210849704f3850cd875b5fb",
+      "activationBindingSourceTree": "d7f64dbf602ded1075978c13bea8449d7ef7e5e2",
+      "designGateStatus": "CONFIRMED",
+      "designGateDecision": "WP7_DESIGN_GATE_CONFIRMED",
+      "productionImplementationAuthorized": true,
+      "requiredTestsExecutionStatus": "PASS_PRE_REVIEW_26_OF_26_INSTALLED_58_OF_58_CORRECTION_128_OF_128_ADVERSARIAL_25_OF_25_REAL_TRUSTED_PRODUCT_9_OF_9_RAW_EVIDENCE_COMPLETE",
+      "convergencePreReviewStatus": "REVISION_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+      "finalPackagingAuthorized": false,
+      "finalAcceptanceStatus": "NOT_ACCEPTED",
+      "implementationBaseCommit": "4ac6d2185bed28823210849704f3850cd875b5fb",
+      "implementationBaseSourceTree": "d7f64dbf602ded1075978c13bea8449d7ef7e5e2",
+      "preAcceptanceStatus": "NOT_ISSUED_PENDING_INDEPENDENT_REVIEW",
+      "candidateBindingCommit": null,
+      "candidateBindingSourceTree": null,
+      "implementationCommit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+      "implementationSourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+      "finalDeliveryHeadBindingMode": "EXTERNAL_DELIVERY_IDENTITY_AND_SHA256",
+      "finalDeliveryHead": null,
+      "finalDeliverySourceTree": null,
+      "finalInstallerGenerated": false,
+      "formalWindowsCleanInstallPerformed": false,
+      "finalWindowsTestsExecuted": false,
+      "operationalPreAcceptanceAuthorization": "NOT_AUTHORIZED_PENDING_INDEPENDENT_REVIEW",
+      "historicalPreAcceptanceRecord": "PRESERVED",
+      "finalPackagingStatus": "BLOCKED_PENDING_INDEPENDENT_PREACCEPTANCE",
+      "finalWindowsValidationExecuted": false,
+      "blockingReasonCodes": [],
+      "historicalPreWindowsBlockedArtifacts": {
+        "classification": "HISTORICAL_PREWINDOWS_BLOCKED_ARTIFACTS",
+        "reusableAsFinalPackagingBaseline": false,
+        "candidateBindingCommit": "93e8da26f28f124be99adaf9ce96b32d18f57f81",
+        "candidateBindingSourceTree": "7be020530a32448671324cae205601ccd6a9a190",
+        "finalDeliveryGovernanceHead": "a58d3ba996582e80dca5c2e637de96476c243b64",
+        "finalDeliveryGovernanceTree": "16c2a3800367a0c8b97ed761fd6ff6b3ace14ca4"
+      },
+      "correctedProductionCommit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+      "correctedProductionSourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+      "implementationIdentityBindingMode": "TRACKED_SOURCE_GOVERNANCE_AND_EXTERNAL_DELIVERY_IDENTITY",
+      "closedBlockingReasonCodes": [
+        "WP7_INSTALLED_RUNTIME_PROBE_PRODUCTION_ENTRY_BROKEN",
+        "WP7_RELEASE_IDENTITY_CONSUMER_PROVENANCE_INCOMPLETE",
+        "WP7_PACKAGED_APPLICATION_PAYLOAD_CLOSURE_NOT_ENFORCED",
+        "WP7_ELECTRON_DISTRIBUTION_TREE_TRUST_NOT_ENFORCED",
+        "WP7_PRODUCTION_DEPENDENCY_FILE_MODE_BINDING_NOT_ENFORCED",
+        "WP7_TRUSTED_PRODUCT_PROBE_ID_SET_INCONSISTENT",
+        "WP7_PRODUCTION_DEPENDENCY_DIRECTORY_MODE_BINDING_NOT_ENFORCED",
+        "WP7_CPR_R7_SOURCE_GOVERNANCE_IDENTITY_NOT_REBOUND",
+        "WP7_CPR_R8_SOURCE_GOVERNANCE_REBIND_INCOMPLETE",
+        "WP7_CPR_R8_GR1_PROJECT_HANDOFF_CURRENT_PHASE_AUTHORITY_CONFLICT",
+        "WP7_CPR_R8_GR1_DOWNSTREAM_CURRENT_CANDIDATE_IDENTITY_NOT_CLEARED",
+        "WP7_CPR_R8_GR1_GOVERNANCE_AUTHORITY_VERIFIER_SCOPE_INCOMPLETE",
+        "WP7_REAL_TRUSTED_PRODUCT_NINE_PROBE_EXECUTION_NOT_PERFORMED",
+        "WP7_OFFICIAL_ELECTRON_ARCHIVE_UNAVAILABLE",
+        "WP7_TRUSTED_PACKAGED_PRODUCT_INPUT_UNAVAILABLE",
+        "WP7_PACKAGED_PRODUCT_EXECUTABLE_UNAVAILABLE",
+        "WP7_PACKAGED_PAYLOAD_ROOT_UNAVAILABLE",
+        "WP7_PACKAGED_RESOURCES_ROOT_UNAVAILABLE",
+        "WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING",
+        "WP7_PRE_REVIEW_EVIDENCE_INDEX_MISSING",
+        "WP7_CANDIDATE_REQUIRED_DELIVERY_ARTIFACTS_MISSING",
+        "WP7_PRE_REVIEW_ARTIFACT_CLASSIFICATION_CONTRADICTION",
+        "WP7_PACKAGED_PROBE_SEALED_ARTIFACT_NOT_VERIFIED",
+        "WP7_COMPLETE_TEST_RAW_RESULTS_MISSING"
+      ],
+      "revisionId": "CPR-R9",
+      "revisionCandidateStatus": "FORMED_FOR_CONVERGENCE_PRE_REVIEW",
+      "currentBlockingReasonCode": null,
+      "developerClaimedImplementationClosures": {
+        "status": "CPR_R9_IMPLEMENTATION_COMPLETE_PENDING_INDEPENDENT_REVIEW",
+        "reasonCodes": [
+          "WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING",
+          "WP7_PRE_REVIEW_EVIDENCE_INDEX_MISSING",
+          "WP7_CANDIDATE_REQUIRED_DELIVERY_ARTIFACTS_MISSING",
+          "WP7_PRE_REVIEW_ARTIFACT_CLASSIFICATION_CONTRADICTION",
+          "WP7_PACKAGED_PROBE_SEALED_ARTIFACT_NOT_VERIFIED",
+          "WP7_COMPLETE_TEST_RAW_RESULTS_MISSING"
+        ],
+        "evidencePath": "governance/wp7/convergence-correction-closure.json"
+      },
+      "implementationIdentity": {
+        "commit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+        "sourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+        "frozenForCandidateReview": true,
+        "immutableDuringFinalPackaging": false
+      },
+      "correctedProductionIdentity": {
+        "commit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+        "sourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0"
+      },
+      "convergenceRevisionId": "CPR-R9",
+      "remainingBlockingReasonCodes": [],
+      "semanticProbeClosureStatus": "REAL_SEALED_PRE_REVIEW_PRODUCT_9_OF_9_RAW_EVIDENCE_COMPLETE",
+      "governanceRevisionId": "CPR-R9-GR1",
+      "developerClaimedGovernanceClosures": {
+        "status": "CPR_R9_COMPLETE_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+        "reasonCodes": [
+          "WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING",
+          "WP7_PRE_REVIEW_EVIDENCE_INDEX_MISSING",
+          "WP7_CANDIDATE_REQUIRED_DELIVERY_ARTIFACTS_MISSING",
+          "WP7_PRE_REVIEW_ARTIFACT_CLASSIFICATION_CONTRADICTION",
+          "WP7_PACKAGED_PROBE_SEALED_ARTIFACT_NOT_VERIFIED",
+          "WP7_COMPLETE_TEST_RAW_RESULTS_MISSING"
+        ],
+        "evidencePath": "governance/wp7/current-authority-consistency-policy.json",
+        "verificationCommand": "node tools/wp7/verify-governance-authority-consistency.js"
+      },
+      "preAcceptedAtUtc": null,
+      "preAcceptanceIssuedAfterReopen": false,
+      "sourceGovernanceRebindStatus": "GR2_GOVERNANCE_BASELINE_CONFIRMED_CANDIDATE_REBOUND",
+      "governanceAuthorityConsistencyStatus": "CANDIDATE_AUTHORITY_CONSISTENCY_PENDING_INDEPENDENT_REVIEW",
+      "realTrustedProductNineProbeExecution": {
+        "completed": 9,
+        "required": 9,
+        "status": "PASS",
+        "formalPassClaimed": true,
+        "executionClass": "PRE_REVIEW_PACKAGED_INTEGRATION",
+        "artifactClass": "WP7_PRE_REVIEW_ONLY",
+        "finalReleaseEvidence": false,
+        "formalWindowsEvidenceEligible": false,
+        "sourceCommit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+        "sourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+        "buildId": "Y29-29.2.5-S6.4.5.9-P1-7deeb76c99cf-20260706T121609Z",
+        "buildSessionId": "948f1d8d55efbc10ae43a546bccbf225",
+        "electronVersion": "31.7.7",
+        "nodeRuntimeVersion": "22.16.0",
+        "productArchiveSha256": "1bd4df86cc7f25aa40ce633082b015e088aa492b7270cbecaffe7aa3185db58e",
+        "preReviewSealedArtifactSha256": "8719a6d468bc142ebe33c46e806cb8c7e669795a2c8fd9e4c01bbc9efd1b04a6",
+        "preReviewSealedArtifactType": "TRUSTED_PRODUCT_BUILD_SESSION_SEAL_V1",
+        "preReviewEvidenceIndexSha256": "3101fde0a96389c0351332533a8dcd5f46fee5d3171b34c102503e1abbb0f536",
+        "rawProbeAggregateSha256": "5b0956207ec4fd7c911c33d4f99cba28fb279c9aa7e9af263b6867d0cd7f2b7d",
+        "executedAtUtcRange": {
+          "startedAtUtc": "2026-07-06T12:27:53.729Z",
+          "endedAtUtc": "2026-07-06T12:28:35.710Z"
+        },
+        "formalProbeIds": [
+          "first-start",
+          "controlled-stop",
+          "restart",
+          "offline-start",
+          "crash-recovery",
+          "safe-mode-negative",
+          "credential-gate-negative",
+          "event-gap-recovery",
+          "boot-failure"
+        ],
+        "probeResults": [
+          {
+            "probeId": "first-start",
+            "status": "PASS",
+            "processPid": 4638,
+            "startedAtUtc": "2026-07-06T12:27:53.729Z",
+            "endedAtUtc": "2026-07-06T12:27:56.167Z",
+            "probeResultSha256": "39c1e90c4145f59c1044cb53545d7fcb0a43e539291907b7a680a387f5f4cf53",
+            "stdoutSha256": "1f5d9a24db78d82de4a5deac8226d9ee4b45cb3ea2f45ae04fd358491ecf6234",
+            "stderrSha256": "58b7b10b0e9db4e3e01d3b833109f243ede4641d594e73a5b0eb0ba4b00cae43",
+            "processCustodySha256": "cffd97fe8a0c7f277c709a39674e36576b90db3d6e92ca749f656b5394acc852",
+            "executionContextSha256": "6dc737408d85e45e54b6fcfad93a6485f6d33402b9f66bbf3828026a5ab18d5b"
+          },
+          {
+            "probeId": "controlled-stop",
+            "status": "PASS",
+            "processPid": 4746,
+            "startedAtUtc": "2026-07-06T12:27:56.185Z",
+            "endedAtUtc": "2026-07-06T12:27:58.675Z",
+            "probeResultSha256": "004d4377d2ed319c43340429e5b95653625efd95741e0a816dc72a5561c570d7",
+            "stdoutSha256": "f58837d1e4995bedf00f9ff57b55835ebb3aeb5b021791c0a8f1b4095ef5e8eb",
+            "stderrSha256": "47e2333d60d798c9f2fee76c20ef3a55cb5a4ed7e8ca921149206f2f6329f4e4",
+            "processCustodySha256": "7abc2ec34c475c157c32c1791581a5603a63ef4bd85a34043e10a6257359e9e2",
+            "executionContextSha256": "f884fbe64b90c12301139aee047955c7dac3bc50c510ac69d53ac97b12bf02aa"
+          },
+          {
+            "probeId": "restart",
+            "status": "PASS",
+            "processPid": 4855,
+            "startedAtUtc": "2026-07-06T12:27:58.692Z",
+            "endedAtUtc": "2026-07-06T12:28:02.143Z",
+            "probeResultSha256": "b667e92f0b9f9accb3cd51d2eb20815f3e524aa31855c73672f854973a818936",
+            "stdoutSha256": "63e40c5ab8cb580c6bd77eb792147d470dd998aa89262fa83f287c82423c02ec",
+            "stderrSha256": "0f0d0022aedf5f279cf8b767723402fc9ed4cd006c5afe144994420ffff94b95",
+            "processCustodySha256": "f1e7bb14c6a540cec09fb719bf51110d982d8c1282e0ad38ef0c352a2d6e8ce8",
+            "executionContextSha256": "fbb4ed564df2d5586c7762d4d11787dc1d1a256ec85d5fb2eb12fbf840ab53d1"
+          },
+          {
+            "probeId": "offline-start",
+            "status": "PASS",
+            "processPid": 4987,
+            "startedAtUtc": "2026-07-06T12:28:02.160Z",
+            "endedAtUtc": "2026-07-06T12:28:04.609Z",
+            "probeResultSha256": "a43e258fd7e4c4a7da6617bd82e68779c6791558c91a5fc9c769e72ab431b03a",
+            "stdoutSha256": "97f964ec695221cfa924e3a67a93e1f16fa07dced80d1d0a3a1f8852f8ba156a",
+            "stderrSha256": "97e0aef1ba2897ab476309c09f10d13dd1a8e64afc57a68b054aed8b0c74c2bd",
+            "processCustodySha256": "9e8bcacf52eaf148c6ef2944addc12e39c498221899da4878d55be6f6547a444",
+            "executionContextSha256": "9b1815f43113614c5a5e4660cdea63164ff9ccf1a7f85eb652f8863b982dd018",
+            "networkIsolationProofSha256": "37c47644ee3e8c6106cb428605c2798ee0da51e87ea8ad8d26a69b3e2b9f3ada"
+          },
+          {
+            "probeId": "crash-recovery",
+            "status": "PASS",
+            "processPid": 5098,
+            "startedAtUtc": "2026-07-06T12:28:04.625Z",
+            "endedAtUtc": "2026-07-06T12:28:08.758Z",
+            "probeResultSha256": "1fee8618b9f6bbf47784f3724d04199bdc8b7a1665bb8c0670aae590cf97b9c0",
+            "stdoutSha256": "94d97bf078518f75b56ad2266ce2176c77c885efe10dda9f541c9533ae23ce60",
+            "stderrSha256": "e934be6021ad7575c5b5c2ce0f2f7de1c90a098f975f949a5fbaf99df79ebd94",
+            "processCustodySha256": "3fcdb8e56626d1718ae6a745c65a35d1f97a9522dd048f2497053e5bc5067820",
+            "executionContextSha256": "4e7885db81f5b5e060615c7bdc4e6aba1ca9288ddcfd7cc6cac3e65327090c10"
+          },
+          {
+            "probeId": "safe-mode-negative",
+            "status": "PASS",
+            "processPid": 5231,
+            "startedAtUtc": "2026-07-06T12:28:08.773Z",
+            "endedAtUtc": "2026-07-06T12:28:26.883Z",
+            "probeResultSha256": "d1a592036a91df659314b648c391b573213f730d89605323c5f578b310f14a61",
+            "stdoutSha256": "fa26dd5cb37bd3555e28d4f54a81da9a59fa20a1831594f9a13003a73598aae8",
+            "stderrSha256": "6ad11b6818272042557b27e0b9b3d2a6943da15a0d2f4e34bb01e2b63cecd1f3",
+            "processCustodySha256": "90c6d877d0d98de7e6e661cd15f04a4d3e1f995f61625c03f0b1bdab8bd5c149",
+            "executionContextSha256": "384a81ea482271ac591e2a5a4cd1fc450ff12c9f7cfa668cdfa061d0cb4c83c7"
+          },
+          {
+            "probeId": "credential-gate-negative",
+            "status": "PASS",
+            "processPid": 5876,
+            "startedAtUtc": "2026-07-06T12:28:26.899Z",
+            "endedAtUtc": "2026-07-06T12:28:29.514Z",
+            "probeResultSha256": "6dfc7adec0df349757c9abe10cb6504d0d57c2be3c6cc02bf8e06240eaeab142",
+            "stdoutSha256": "d27b96fadd95ac49251fc9339422dfd64d3818bc1c294ad1903f38daae719e83",
+            "stderrSha256": "609a026a15578fed3be9f6143b4ea4014c3beee03204e61c281bfc69af611b9b",
+            "processCustodySha256": "b1f70b2139a0a7aa8916881752a7eb9f25a13883b12dfd823bc27780b2f9b87f",
+            "executionContextSha256": "4adb9a71f095ccc92d973983cf94675a74a078a24d742919430e94db5cabee03"
+          },
+          {
+            "probeId": "event-gap-recovery",
+            "status": "PASS",
+            "processPid": 5986,
+            "startedAtUtc": "2026-07-06T12:28:29.533Z",
+            "endedAtUtc": "2026-07-06T12:28:32.231Z",
+            "probeResultSha256": "66151f863aaf2ce079603b6a2e088e9b1dfe0473200a57689f6b35b4b7e936dd",
+            "stdoutSha256": "0e6220818c7aef768708480494f24ab56eb5503b51231930a1e58c2cd1497c8d",
+            "stderrSha256": "4bef16ec4539c56bb60c3b520fc776e428cf198b385c5ed35c557408bf555ab0",
+            "processCustodySha256": "4da26b4ac852c8186c00b15857afff35e24b6770099a3b2b4144fe64ac5d964b",
+            "executionContextSha256": "cb5d3cc66d43604e1abe05124ed925a95c5ed0911cf2631c1d30b984edc83560"
+          },
+          {
+            "probeId": "boot-failure",
+            "status": "PASS",
+            "processPid": 6095,
+            "startedAtUtc": "2026-07-06T12:28:32.246Z",
+            "endedAtUtc": "2026-07-06T12:28:35.710Z",
+            "probeResultSha256": "d326d5c1a6cba7fb873d11f5b64d794bffebfe346d14346ee631551266478895",
+            "stdoutSha256": "b118f7ec4b2d1a157ff665a12b93f385e04f451a2a809eb56f7b33e14329a8b5",
+            "stderrSha256": "6295b30341fa5e0ea70f41e01b18233c04b296bce6c145da20e57ea58fe623b9",
+            "processCustodySha256": "e21bcb74a73ec47b4e335e3cbc79e07353f188f996e0a730285ec2f64e084ab5",
+            "executionContextSha256": "8ad4f4298e8695003388a10f12d0514b9b4e133a90000d28041d6276e48da224"
+          }
+        ],
+        "blockingReasonCodes": []
+      },
+      "candidateEvidenceBinding": {
+        "productionCorrectionCommit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+        "productionCorrectionSourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+        "directParentCommit": "40647dbdaa768517ddbcdb31ff207ac9d3a87457",
+        "buildId": "Y29-29.2.5-S6.4.5.9-P1-7deeb76c99cf-20260706T121609Z",
+        "buildSessionId": "948f1d8d55efbc10ae43a546bccbf225",
+        "artifactClass": "WP7_PRE_REVIEW_ONLY",
+        "evidenceClass": "PRE_REVIEW_PACKAGED_INTEGRATION",
+        "finalInstaller": false,
+        "finalReleaseEvidence": false,
+        "formalWindowsEvidenceEligible": false,
+        "trustedProductArchive": "Yance29_Stage6_4_5_9_WP7_PreReview_Trusted_Product_7deeb76c99cf.tar.gz",
+        "trustedProductArchiveSha256": "1bd4df86cc7f25aa40ce633082b015e088aa492b7270cbecaffe7aa3185db58e",
+        "preReviewSealedArtifact": "WP7_PRE_REVIEW_SEALED_ARTIFACT.json",
+        "preReviewSealedArtifactSha256": "8719a6d468bc142ebe33c46e806cb8c7e669795a2c8fd9e4c01bbc9efd1b04a6",
+        "preReviewSealedArtifactType": "TRUSTED_PRODUCT_BUILD_SESSION_SEAL_V1",
+        "preReviewEvidenceIndex": "WP7_PRE_REVIEW_EVIDENCE_INDEX.json",
+        "preReviewEvidenceIndexSha256": "3101fde0a96389c0351332533a8dcd5f46fee5d3171b34c102503e1abbb0f536",
+        "preReviewInternalSha256ManifestSha256": "cbe8bec0d78e81c769d271406117bca8d8e494fb8a8c24c0c98d0ee25ee026b6",
+        "realTrustedProductProbeResultPath": "raw-probes/WP7_TRUSTED_PRODUCT_NINE_FRESH_RESULT.json",
+        "realTrustedProductProbeResultSha256": "5b0956207ec4fd7c911c33d4f99cba28fb279c9aa7e9af263b6867d0cd7f2b7d",
+        "completeVerificationSummaryPath": "raw-tests/WP7_PRE_REVIEW_VERIFICATION_SUMMARY.json",
+        "completeVerificationSummarySha256": "2efb3068afa36ecd5e91ff7712dabfb140cb3e2f970099286aa5315b0fe36d54"
+      },
+      "productionImplementationCompletedForPreReview": true,
+      "implementationCorrectionStatus": "CPR_R9_IMPLEMENTATION_AND_COMPLETE_EVIDENCE_CLOSED_CANDIDATE_PENDING_INDEPENDENT_REVIEW"
+    }
+  },
+  "preReviewRequiredArtifacts": [
+    "git-bundle",
+    "complete-patch",
+    "implementation-commit-and-tree",
+    "change-list",
+    "targeted-tests",
+    "fault-matrices",
+    "mutation-results",
+    "adversarial-self-review",
+    "key-evidence",
+    "project-handoff",
+    "work-package-status"
+  ],
+  "finalPackagingAuthorizedArtifacts": [
+    "candidate-binding-commit",
+    "final-delivery-head",
+    "complete-git-bundle",
+    "complete-patch-from-wp6-accepted-baseline",
+    "complete-project-source-zip",
+    "sealed-candidate-windows-installer",
+    "final-packaging-and-windows-test-results",
+    "machine-readable-final-evidence",
+    "phase1-a01-a10-aggregate",
+    "complete-final-packaging-review-zip",
+    "internal-sha256",
+    "external-sha256",
+    "delivery-json",
+    "project-handoff",
+    "work-package-status-candidate"
+  ],
+  "currentWp5": {
+    "status": "COMPLETED",
+    "active": false,
+    "reviewStatus": "ACCEPTED",
+    "finalAcceptanceStatus": "WP5_ACCEPTED",
+    "implementationIdentity": {
+      "commit": "2d42a7424b1bac0dafa2b4c3bee3378266e1a92f",
+      "sourceTree": "1b7594dcc35e77a09e3e31473fbec74847a5e3c1"
+    },
+    "candidateBindingIdentity": {
+      "commit": "ba3728dcf267c338af19d78297309aa306ee8018",
+      "sourceTree": "6e6a9c27a18bce011da06863aa7ea4c2015db386"
+    },
+    "acceptedFinalDeliveryIdentity": {
+      "head": "c4d5a641e93c600c0199e9960fe8f570faa07808",
+      "sourceTree": "b6ece87673d804686bd231858097f6561ff1b200"
+    },
+    "riskAcceptanceIdsPreserved": [
+      "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+      "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+      "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+      "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED"
+    ],
+    "governanceFieldInterpretation": "The accepted final decision and accepted final delivery identity are authoritative. Stale final-packaging-candidate fields do not reactivate or reopen WP5."
+  },
+  "forbiddenUntilWp5Preaccepted": [
+    "WP5_CANDIDATE_BINDING_COMMIT",
+    "WP5_FINAL_DELIVERY_HEAD",
+    "WP5_COMPLETE_SOURCE_ZIP",
+    "WP5_COMPLETE_TEST_ARTIFACTS_ZIP",
+    "WP5_COMPLETE_FINAL_DELIVERY_ZIP",
+    "CLAIM_WP5_ACCEPTED",
+    "WP6_ACTIVATION"
+  ],
+  "currentWp6": {
+    "status": "COMPLETED",
+    "active": false,
+    "reviewStatus": "ACCEPTED",
+    "finalAcceptanceStatus": "WP6_ACCEPTED",
+    "acceptedFinalDeliveryHead": "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+    "acceptedFinalSourceTree": "485891e55298667df30e2f588daec196dc530eb7",
+    "implementationCommit": "30311e402c4c687b6c96c4cbc5c4a9bfc3420ebb",
+    "implementationSourceTree": "9e5560c06c955adce653962bf7c4b5fde59a4f0e",
+    "candidateBindingCommit": "992f919a4c9becedee598255cb7567b511911740",
+    "candidateBindingSourceTree": "eb7b82672a05658c06b55016977869661578940c",
+    "preservedRiskAcceptanceIds": [
+      "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+      "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+      "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+      "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED"
+    ]
+  },
+  "riskAcceptanceInheritance": {
+    "preservedIds": [
+      "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+      "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+      "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+      "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED"
+    ],
+    "scopeRule": "Each accepted risk remains limited to its original statement, interpretation, constraints, and owner-only/personal single-user usage scope. No Activation statement expands any risk acceptance.",
+    "wp5RiskInterpretationLimit": "The WP5 risk covers only stale governance-field expression in WP5 Final Packaging. It does not exempt production code, tests, Git identity, evidence, WP6 acceptance, WP7 Activation, or later work.",
+    "acceptedRiskIds": [
+      "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+      "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+      "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+      "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED"
+    ]
+  },
+  "wp6TwoStageAcceptance": {
+    "activationGate": {
+      "requiredDecision": "WP6_ACTIVATION_ACCEPTED",
+      "productionImplementationForbiddenUntilAccepted": true
+    },
+    "designGate": {
+      "requiredArtifact": "WP6_IMPLEMENTATION_PLAN_V1",
+      "productionCodeModificationForbiddenUntilCompleted": true
+    },
+    "convergencePreReview": {
+      "requiredDecision": "WP6_PREACCEPTED_FOR_FINAL_PACKAGING",
+      "lightweightArtifactsOnly": false,
+      "decisionStatus": "SATISFIED"
+    },
+    "finalPackagingForbiddenBeforePreacceptance": [
+      "candidate-binding-commit",
+      "final-delivery-head",
+      "complete-source-zip",
+      "complete-test-artifacts-zip",
+      "complete-delivery-zip",
+      "WP6_COMPLETED",
+      "WP7_ACTIVATION"
+    ]
+  },
+  "forbiddenUntilWp6ActivationAccepted": [
+    "WP6_PRODUCTION_IMPLEMENTATION",
+    "WP6_DATABASE_MIGRATION",
+    "WP6_RUNTIME_BEHAVIOR_CHANGE",
+    "WP6_NEW_API_IMPLEMENTATION",
+    "WP6_NEW_BACKGROUND_TASK",
+    "WP6_FORMAL_RELEASE_LOGIC",
+    "WP7_ACTIVATION"
+  ],
+  "updatedAtUtc": "2026-07-06T12:28:35.710Z",
+  "currentReviewPhase": "WP7_CONVERGENCE_PRE_REVIEW_CPR_R9_REVISION_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+  "finalAcceptanceRequired": null,
+  "finalPackagingAuthorized": false,
+  "preAcceptanceStatus": "NOT_ISSUED_PENDING_INDEPENDENT_REVIEW",
+  "finalAcceptanceStatus": "NOT_ACCEPTED",
+  "currentWp7": {
+    "status": "ACTIVE",
+    "active": true,
+    "activationStatus": "WP7_ACTIVATION_ACCEPTED",
+    "designGateDecision": "WP7_DESIGN_GATE_CONFIRMED",
+    "preAcceptanceStatus": "NOT_ISSUED_PENDING_INDEPENDENT_REVIEW",
+    "preAcceptedAtUtc": null,
+    "implementationIdentity": {
+      "commit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+      "sourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+      "frozenForCandidateReview": true,
+      "immutableDuringFinalPackaging": false
+    },
+    "finalPackagingAuthorized": false,
+    "finalWindowsValidationRequired": true,
+    "finalWindowsValidationExecuted": false,
+    "finalAcceptanceStatus": "NOT_ACCEPTED",
+    "preservedRiskAcceptanceIds": [
+      "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+      "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+      "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+      "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED"
+    ],
+    "implementationIdentityBindingMode": "TRACKED_SOURCE_GOVERNANCE_AND_EXTERNAL_DELIVERY_IDENTITY",
+    "correctedProductionIdentity": {
+      "commit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+      "sourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0"
+    },
+    "convergencePreReviewStatus": "REVISION_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+    "revisionId": "CPR-R9",
+    "semanticProbeClosureStatus": "REAL_SEALED_PRE_REVIEW_PRODUCT_9_OF_9_RAW_EVIDENCE_COMPLETE",
+    "revisionCandidateStatus": "FORMED_FOR_CONVERGENCE_PRE_REVIEW",
+    "currentBlockingReasonCode": null,
+    "reviewStatus": "CONVERGENCE_REOPEN_CPR_R9_REVISION_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+    "finalInstallerGenerated": false,
+    "formalWindowsCleanInstallPerformed": false,
+    "finalWindowsTestsExecuted": false,
+    "operationalPreAcceptanceAuthorization": "NOT_AUTHORIZED_PENDING_INDEPENDENT_REVIEW",
+    "finalPackagingStatus": "BLOCKED_PENDING_INDEPENDENT_PREACCEPTANCE",
+    "implementationCommit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+    "implementationSourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+    "correctedProductionCommit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+    "correctedProductionSourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+    "convergenceRevisionId": "CPR-R9",
+    "requiredTestsExecutionStatus": "PASS_PRE_REVIEW_26_OF_26_INSTALLED_58_OF_58_CORRECTION_128_OF_128_ADVERSARIAL_25_OF_25_REAL_TRUSTED_PRODUCT_9_OF_9_RAW_EVIDENCE_COMPLETE",
+    "closedBlockingReasonCodes": [
+      "WP7_INSTALLED_RUNTIME_PROBE_PRODUCTION_ENTRY_BROKEN",
+      "WP7_RELEASE_IDENTITY_CONSUMER_PROVENANCE_INCOMPLETE",
+      "WP7_PACKAGED_APPLICATION_PAYLOAD_CLOSURE_NOT_ENFORCED",
+      "WP7_ELECTRON_DISTRIBUTION_TREE_TRUST_NOT_ENFORCED",
+      "WP7_PRODUCTION_DEPENDENCY_FILE_MODE_BINDING_NOT_ENFORCED",
+      "WP7_TRUSTED_PRODUCT_PROBE_ID_SET_INCONSISTENT",
+      "WP7_PRODUCTION_DEPENDENCY_DIRECTORY_MODE_BINDING_NOT_ENFORCED",
+      "WP7_CPR_R8_SOURCE_GOVERNANCE_REBIND_INCOMPLETE",
+      "WP7_CPR_R8_GR1_PROJECT_HANDOFF_CURRENT_PHASE_AUTHORITY_CONFLICT",
+      "WP7_CPR_R8_GR1_DOWNSTREAM_CURRENT_CANDIDATE_IDENTITY_NOT_CLEARED",
+      "WP7_CPR_R8_GR1_GOVERNANCE_AUTHORITY_VERIFIER_SCOPE_INCOMPLETE",
+      "WP7_REAL_TRUSTED_PRODUCT_NINE_PROBE_EXECUTION_NOT_PERFORMED",
+      "WP7_OFFICIAL_ELECTRON_ARCHIVE_UNAVAILABLE",
+      "WP7_TRUSTED_PACKAGED_PRODUCT_INPUT_UNAVAILABLE",
+      "WP7_PACKAGED_PRODUCT_EXECUTABLE_UNAVAILABLE",
+      "WP7_PACKAGED_PAYLOAD_ROOT_UNAVAILABLE",
+      "WP7_PACKAGED_RESOURCES_ROOT_UNAVAILABLE",
+      "WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING",
+      "WP7_PRE_REVIEW_EVIDENCE_INDEX_MISSING",
+      "WP7_CANDIDATE_REQUIRED_DELIVERY_ARTIFACTS_MISSING",
+      "WP7_PRE_REVIEW_ARTIFACT_CLASSIFICATION_CONTRADICTION",
+      "WP7_PACKAGED_PROBE_SEALED_ARTIFACT_NOT_VERIFIED",
+      "WP7_COMPLETE_TEST_RAW_RESULTS_MISSING"
+    ],
+    "blockingReasonCodes": [],
+    "remainingBlockingReasonCodes": [],
+    "developerClaimedImplementationClosures": {
+      "status": "CPR_R9_IMPLEMENTATION_COMPLETE_PENDING_INDEPENDENT_REVIEW",
+      "reasonCodes": [
+        "WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING",
+        "WP7_PRE_REVIEW_EVIDENCE_INDEX_MISSING",
+        "WP7_CANDIDATE_REQUIRED_DELIVERY_ARTIFACTS_MISSING",
+        "WP7_PRE_REVIEW_ARTIFACT_CLASSIFICATION_CONTRADICTION",
+        "WP7_PACKAGED_PROBE_SEALED_ARTIFACT_NOT_VERIFIED",
+        "WP7_COMPLETE_TEST_RAW_RESULTS_MISSING"
+      ],
+      "evidencePath": "governance/wp7/convergence-correction-closure.json"
+    },
+    "governanceRevisionId": "CPR-R9-GR1",
+    "candidateBindingCommit": null,
+    "candidateBindingSourceTree": null,
+    "historicalPreAcceptanceRecord": {
+      "classification": "HISTORICAL_PREWINDOWS_PREACCEPTANCE_RECORD",
+      "currentAuthority": false,
+      "reusableAsCurrentCandidate": false,
+      "preAcceptedAtUtc": "2026-07-05T12:39:00Z",
+      "candidateBindingCommit": "93e8da26f28f124be99adaf9ce96b32d18f57f81",
+      "candidateBindingSourceTree": "7be020530a32448671324cae205601ccd6a9a190"
+    },
+    "independentAuditConfirmedClosures": [
+      "WP7_PRODUCTION_DEPENDENCY_FILE_MODE_BINDING_NOT_ENFORCED",
+      "WP7_TRUSTED_PRODUCT_PROBE_ID_SET_INCONSISTENT",
+      "WP7_PRODUCTION_DEPENDENCY_DIRECTORY_MODE_BINDING_NOT_ENFORCED"
+    ],
+    "developerClaimedGovernanceClosures": {
+      "status": "CPR_R9_COMPLETE_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+      "reasonCodes": [
+        "WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING",
+        "WP7_PRE_REVIEW_EVIDENCE_INDEX_MISSING",
+        "WP7_CANDIDATE_REQUIRED_DELIVERY_ARTIFACTS_MISSING",
+        "WP7_PRE_REVIEW_ARTIFACT_CLASSIFICATION_CONTRADICTION",
+        "WP7_PACKAGED_PROBE_SEALED_ARTIFACT_NOT_VERIFIED",
+        "WP7_COMPLETE_TEST_RAW_RESULTS_MISSING"
+      ],
+      "evidencePath": "governance/wp7/current-authority-consistency-policy.json",
+      "verificationCommand": "node tools/wp7/verify-governance-authority-consistency.js"
+    },
+    "realTrustedProductNineProbeExecution": {
+      "completed": 9,
+      "required": 9,
+      "status": "PASS",
+      "formalPassClaimed": true,
+      "executionClass": "PRE_REVIEW_PACKAGED_INTEGRATION",
+      "artifactClass": "WP7_PRE_REVIEW_ONLY",
+      "finalReleaseEvidence": false,
+      "formalWindowsEvidenceEligible": false,
+      "sourceCommit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+      "sourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+      "buildId": "Y29-29.2.5-S6.4.5.9-P1-7deeb76c99cf-20260706T121609Z",
+      "buildSessionId": "948f1d8d55efbc10ae43a546bccbf225",
+      "electronVersion": "31.7.7",
+      "nodeRuntimeVersion": "22.16.0",
+      "productArchiveSha256": "1bd4df86cc7f25aa40ce633082b015e088aa492b7270cbecaffe7aa3185db58e",
+      "preReviewSealedArtifactSha256": "8719a6d468bc142ebe33c46e806cb8c7e669795a2c8fd9e4c01bbc9efd1b04a6",
+      "preReviewSealedArtifactType": "TRUSTED_PRODUCT_BUILD_SESSION_SEAL_V1",
+      "preReviewEvidenceIndexSha256": "3101fde0a96389c0351332533a8dcd5f46fee5d3171b34c102503e1abbb0f536",
+      "rawProbeAggregateSha256": "5b0956207ec4fd7c911c33d4f99cba28fb279c9aa7e9af263b6867d0cd7f2b7d",
+      "executedAtUtcRange": {
+        "startedAtUtc": "2026-07-06T12:27:53.729Z",
+        "endedAtUtc": "2026-07-06T12:28:35.710Z"
+      },
+      "formalProbeIds": [
+        "first-start",
+        "controlled-stop",
+        "restart",
+        "offline-start",
+        "crash-recovery",
+        "safe-mode-negative",
+        "credential-gate-negative",
+        "event-gap-recovery",
+        "boot-failure"
+      ],
+      "probeResults": [
+        {
+          "probeId": "first-start",
+          "status": "PASS",
+          "processPid": 4638,
+          "startedAtUtc": "2026-07-06T12:27:53.729Z",
+          "endedAtUtc": "2026-07-06T12:27:56.167Z",
+          "probeResultSha256": "39c1e90c4145f59c1044cb53545d7fcb0a43e539291907b7a680a387f5f4cf53",
+          "stdoutSha256": "1f5d9a24db78d82de4a5deac8226d9ee4b45cb3ea2f45ae04fd358491ecf6234",
+          "stderrSha256": "58b7b10b0e9db4e3e01d3b833109f243ede4641d594e73a5b0eb0ba4b00cae43",
+          "processCustodySha256": "cffd97fe8a0c7f277c709a39674e36576b90db3d6e92ca749f656b5394acc852",
+          "executionContextSha256": "6dc737408d85e45e54b6fcfad93a6485f6d33402b9f66bbf3828026a5ab18d5b"
+        },
+        {
+          "probeId": "controlled-stop",
+          "status": "PASS",
+          "processPid": 4746,
+          "startedAtUtc": "2026-07-06T12:27:56.185Z",
+          "endedAtUtc": "2026-07-06T12:27:58.675Z",
+          "probeResultSha256": "004d4377d2ed319c43340429e5b95653625efd95741e0a816dc72a5561c570d7",
+          "stdoutSha256": "f58837d1e4995bedf00f9ff57b55835ebb3aeb5b021791c0a8f1b4095ef5e8eb",
+          "stderrSha256": "47e2333d60d798c9f2fee76c20ef3a55cb5a4ed7e8ca921149206f2f6329f4e4",
+          "processCustodySha256": "7abc2ec34c475c157c32c1791581a5603a63ef4bd85a34043e10a6257359e9e2",
+          "executionContextSha256": "f884fbe64b90c12301139aee047955c7dac3bc50c510ac69d53ac97b12bf02aa"
+        },
+        {
+          "probeId": "restart",
+          "status": "PASS",
+          "processPid": 4855,
+          "startedAtUtc": "2026-07-06T12:27:58.692Z",
+          "endedAtUtc": "2026-07-06T12:28:02.143Z",
+          "probeResultSha256": "b667e92f0b9f9accb3cd51d2eb20815f3e524aa31855c73672f854973a818936",
+          "stdoutSha256": "63e40c5ab8cb580c6bd77eb792147d470dd998aa89262fa83f287c82423c02ec",
+          "stderrSha256": "0f0d0022aedf5f279cf8b767723402fc9ed4cd006c5afe144994420ffff94b95",
+          "processCustodySha256": "f1e7bb14c6a540cec09fb719bf51110d982d8c1282e0ad38ef0c352a2d6e8ce8",
+          "executionContextSha256": "fbb4ed564df2d5586c7762d4d11787dc1d1a256ec85d5fb2eb12fbf840ab53d1"
+        },
+        {
+          "probeId": "offline-start",
+          "status": "PASS",
+          "processPid": 4987,
+          "startedAtUtc": "2026-07-06T12:28:02.160Z",
+          "endedAtUtc": "2026-07-06T12:28:04.609Z",
+          "probeResultSha256": "a43e258fd7e4c4a7da6617bd82e68779c6791558c91a5fc9c769e72ab431b03a",
+          "stdoutSha256": "97f964ec695221cfa924e3a67a93e1f16fa07dced80d1d0a3a1f8852f8ba156a",
+          "stderrSha256": "97e0aef1ba2897ab476309c09f10d13dd1a8e64afc57a68b054aed8b0c74c2bd",
+          "processCustodySha256": "9e8bcacf52eaf148c6ef2944addc12e39c498221899da4878d55be6f6547a444",
+          "executionContextSha256": "9b1815f43113614c5a5e4660cdea63164ff9ccf1a7f85eb652f8863b982dd018",
+          "networkIsolationProofSha256": "37c47644ee3e8c6106cb428605c2798ee0da51e87ea8ad8d26a69b3e2b9f3ada"
+        },
+        {
+          "probeId": "crash-recovery",
+          "status": "PASS",
+          "processPid": 5098,
+          "startedAtUtc": "2026-07-06T12:28:04.625Z",
+          "endedAtUtc": "2026-07-06T12:28:08.758Z",
+          "probeResultSha256": "1fee8618b9f6bbf47784f3724d04199bdc8b7a1665bb8c0670aae590cf97b9c0",
+          "stdoutSha256": "94d97bf078518f75b56ad2266ce2176c77c885efe10dda9f541c9533ae23ce60",
+          "stderrSha256": "e934be6021ad7575c5b5c2ce0f2f7de1c90a098f975f949a5fbaf99df79ebd94",
+          "processCustodySha256": "3fcdb8e56626d1718ae6a745c65a35d1f97a9522dd048f2497053e5bc5067820",
+          "executionContextSha256": "4e7885db81f5b5e060615c7bdc4e6aba1ca9288ddcfd7cc6cac3e65327090c10"
+        },
+        {
+          "probeId": "safe-mode-negative",
+          "status": "PASS",
+          "processPid": 5231,
+          "startedAtUtc": "2026-07-06T12:28:08.773Z",
+          "endedAtUtc": "2026-07-06T12:28:26.883Z",
+          "probeResultSha256": "d1a592036a91df659314b648c391b573213f730d89605323c5f578b310f14a61",
+          "stdoutSha256": "fa26dd5cb37bd3555e28d4f54a81da9a59fa20a1831594f9a13003a73598aae8",
+          "stderrSha256": "6ad11b6818272042557b27e0b9b3d2a6943da15a0d2f4e34bb01e2b63cecd1f3",
+          "processCustodySha256": "90c6d877d0d98de7e6e661cd15f04a4d3e1f995f61625c03f0b1bdab8bd5c149",
+          "executionContextSha256": "384a81ea482271ac591e2a5a4cd1fc450ff12c9f7cfa668cdfa061d0cb4c83c7"
+        },
+        {
+          "probeId": "credential-gate-negative",
+          "status": "PASS",
+          "processPid": 5876,
+          "startedAtUtc": "2026-07-06T12:28:26.899Z",
+          "endedAtUtc": "2026-07-06T12:28:29.514Z",
+          "probeResultSha256": "6dfc7adec0df349757c9abe10cb6504d0d57c2be3c6cc02bf8e06240eaeab142",
+          "stdoutSha256": "d27b96fadd95ac49251fc9339422dfd64d3818bc1c294ad1903f38daae719e83",
+          "stderrSha256": "609a026a15578fed3be9f6143b4ea4014c3beee03204e61c281bfc69af611b9b",
+          "processCustodySha256": "b1f70b2139a0a7aa8916881752a7eb9f25a13883b12dfd823bc27780b2f9b87f",
+          "executionContextSha256": "4adb9a71f095ccc92d973983cf94675a74a078a24d742919430e94db5cabee03"
+        },
+        {
+          "probeId": "event-gap-recovery",
+          "status": "PASS",
+          "processPid": 5986,
+          "startedAtUtc": "2026-07-06T12:28:29.533Z",
+          "endedAtUtc": "2026-07-06T12:28:32.231Z",
+          "probeResultSha256": "66151f863aaf2ce079603b6a2e088e9b1dfe0473200a57689f6b35b4b7e936dd",
+          "stdoutSha256": "0e6220818c7aef768708480494f24ab56eb5503b51231930a1e58c2cd1497c8d",
+          "stderrSha256": "4bef16ec4539c56bb60c3b520fc776e428cf198b385c5ed35c557408bf555ab0",
+          "processCustodySha256": "4da26b4ac852c8186c00b15857afff35e24b6770099a3b2b4144fe64ac5d964b",
+          "executionContextSha256": "cb5d3cc66d43604e1abe05124ed925a95c5ed0911cf2631c1d30b984edc83560"
+        },
+        {
+          "probeId": "boot-failure",
+          "status": "PASS",
+          "processPid": 6095,
+          "startedAtUtc": "2026-07-06T12:28:32.246Z",
+          "endedAtUtc": "2026-07-06T12:28:35.710Z",
+          "probeResultSha256": "d326d5c1a6cba7fb873d11f5b64d794bffebfe346d14346ee631551266478895",
+          "stdoutSha256": "b118f7ec4b2d1a157ff665a12b93f385e04f451a2a809eb56f7b33e14329a8b5",
+          "stderrSha256": "6295b30341fa5e0ea70f41e01b18233c04b296bce6c145da20e57ea58fe623b9",
+          "processCustodySha256": "e21bcb74a73ec47b4e335e3cbc79e07353f188f996e0a730285ec2f64e084ab5",
+          "executionContextSha256": "8ad4f4298e8695003388a10f12d0514b9b4e133a90000d28041d6276e48da224"
+        }
+      ],
+      "blockingReasonCodes": []
+    },
+    "candidateEvidenceBinding": {
+      "productionCorrectionCommit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+      "productionCorrectionSourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+      "directParentCommit": "40647dbdaa768517ddbcdb31ff207ac9d3a87457",
+      "buildId": "Y29-29.2.5-S6.4.5.9-P1-7deeb76c99cf-20260706T121609Z",
+      "buildSessionId": "948f1d8d55efbc10ae43a546bccbf225",
+      "artifactClass": "WP7_PRE_REVIEW_ONLY",
+      "evidenceClass": "PRE_REVIEW_PACKAGED_INTEGRATION",
+      "finalInstaller": false,
+      "finalReleaseEvidence": false,
+      "formalWindowsEvidenceEligible": false,
+      "trustedProductArchive": "Yance29_Stage6_4_5_9_WP7_PreReview_Trusted_Product_7deeb76c99cf.tar.gz",
+      "trustedProductArchiveSha256": "1bd4df86cc7f25aa40ce633082b015e088aa492b7270cbecaffe7aa3185db58e",
+      "preReviewSealedArtifact": "WP7_PRE_REVIEW_SEALED_ARTIFACT.json",
+      "preReviewSealedArtifactSha256": "8719a6d468bc142ebe33c46e806cb8c7e669795a2c8fd9e4c01bbc9efd1b04a6",
+      "preReviewSealedArtifactType": "TRUSTED_PRODUCT_BUILD_SESSION_SEAL_V1",
+      "preReviewEvidenceIndex": "WP7_PRE_REVIEW_EVIDENCE_INDEX.json",
+      "preReviewEvidenceIndexSha256": "3101fde0a96389c0351332533a8dcd5f46fee5d3171b34c102503e1abbb0f536",
+      "preReviewInternalSha256ManifestSha256": "cbe8bec0d78e81c769d271406117bca8d8e494fb8a8c24c0c98d0ee25ee026b6",
+      "realTrustedProductProbeResultPath": "raw-probes/WP7_TRUSTED_PRODUCT_NINE_FRESH_RESULT.json",
+      "realTrustedProductProbeResultSha256": "5b0956207ec4fd7c911c33d4f99cba28fb279c9aa7e9af263b6867d0cd7f2b7d",
+      "completeVerificationSummaryPath": "raw-tests/WP7_PRE_REVIEW_VERIFICATION_SUMMARY.json",
+      "completeVerificationSummarySha256": "2efb3068afa36ecd5e91ff7712dabfb140cb3e2f970099286aa5315b0fe36d54"
+    },
+    "productionImplementationCompletedForPreReview": true,
+    "preAcceptanceIssuedAfterReopen": false,
+    "finalDeliveryHead": null,
+    "implementationCorrectionStatus": "CPR_R9_IMPLEMENTATION_AND_COMPLETE_EVIDENCE_CLOSED_CANDIDATE_PENDING_INDEPENDENT_REVIEW"
+  },
+  "wp7TwoStageAcceptance": {
+    "activationGate": {
+      "requiredDecision": "WP7_ACTIVATION_ACCEPTED",
+      "productionImplementationForbiddenUntilAccepted": true
+    },
+    "designGate": {
+      "requiredArtifact": "WP7_IMPLEMENTATION_PLAN_V1",
+      "status": "CONFIRMED",
+      "productionCodeModificationForbiddenUntilCompleted": true
+    },
+    "convergencePreReview": {
+      "requiredDecision": "WP7_PREACCEPTED_FOR_FINAL_PACKAGING",
+      "status": "ACTIVE",
+      "revisionCandidateStatus": "FORMED_FOR_CONVERGENCE_PRE_REVIEW",
+      "revisionId": "CPR-R9",
+      "reopenDecision": "WP7_CONVERGENCE_PRE_REVIEW_REOPEN_REQUIRED",
+      "currentBlockingReasonCode": null,
+      "governanceRevisionId": "CPR-R9-GR1",
+      "currentReviewPhase": "WP7_CONVERGENCE_PRE_REVIEW_CPR_R9_REVISION_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+      "candidateBindingCommit": null,
+      "candidateBindingSourceTree": null,
+      "preAcceptanceIssuedAfterReopen": false,
+      "operationalPreAcceptanceAuthorization": "NOT_AUTHORIZED_PENDING_INDEPENDENT_REVIEW",
+      "productionImplementationIdentity": {
+        "commit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+        "sourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0"
+      },
+      "candidateEvidenceBinding": {
+        "productionCorrectionCommit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+        "productionCorrectionSourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+        "directParentCommit": "40647dbdaa768517ddbcdb31ff207ac9d3a87457",
+        "buildId": "Y29-29.2.5-S6.4.5.9-P1-7deeb76c99cf-20260706T121609Z",
+        "buildSessionId": "948f1d8d55efbc10ae43a546bccbf225",
+        "artifactClass": "WP7_PRE_REVIEW_ONLY",
+        "evidenceClass": "PRE_REVIEW_PACKAGED_INTEGRATION",
+        "finalInstaller": false,
+        "finalReleaseEvidence": false,
+        "formalWindowsEvidenceEligible": false,
+        "trustedProductArchive": "Yance29_Stage6_4_5_9_WP7_PreReview_Trusted_Product_7deeb76c99cf.tar.gz",
+        "trustedProductArchiveSha256": "1bd4df86cc7f25aa40ce633082b015e088aa492b7270cbecaffe7aa3185db58e",
+        "preReviewSealedArtifact": "WP7_PRE_REVIEW_SEALED_ARTIFACT.json",
+        "preReviewSealedArtifactSha256": "8719a6d468bc142ebe33c46e806cb8c7e669795a2c8fd9e4c01bbc9efd1b04a6",
+        "preReviewSealedArtifactType": "TRUSTED_PRODUCT_BUILD_SESSION_SEAL_V1",
+        "preReviewEvidenceIndex": "WP7_PRE_REVIEW_EVIDENCE_INDEX.json",
+        "preReviewEvidenceIndexSha256": "3101fde0a96389c0351332533a8dcd5f46fee5d3171b34c102503e1abbb0f536",
+        "preReviewInternalSha256ManifestSha256": "cbe8bec0d78e81c769d271406117bca8d8e494fb8a8c24c0c98d0ee25ee026b6",
+        "realTrustedProductProbeResultPath": "raw-probes/WP7_TRUSTED_PRODUCT_NINE_FRESH_RESULT.json",
+        "realTrustedProductProbeResultSha256": "5b0956207ec4fd7c911c33d4f99cba28fb279c9aa7e9af263b6867d0cd7f2b7d",
+        "completeVerificationSummaryPath": "raw-tests/WP7_PRE_REVIEW_VERIFICATION_SUMMARY.json",
+        "completeVerificationSummarySha256": "2efb3068afa36ecd5e91ff7712dabfb140cb3e2f970099286aa5315b0fe36d54"
+      },
+      "realTrustedProductNineProbeExecution": {
+        "completed": 9,
+        "required": 9,
+        "status": "PASS",
+        "formalPassClaimed": true,
+        "executionClass": "PRE_REVIEW_PACKAGED_INTEGRATION",
+        "artifactClass": "WP7_PRE_REVIEW_ONLY",
+        "finalReleaseEvidence": false,
+        "formalWindowsEvidenceEligible": false,
+        "sourceCommit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+        "sourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+        "buildId": "Y29-29.2.5-S6.4.5.9-P1-7deeb76c99cf-20260706T121609Z",
+        "buildSessionId": "948f1d8d55efbc10ae43a546bccbf225",
+        "electronVersion": "31.7.7",
+        "nodeRuntimeVersion": "22.16.0",
+        "productArchiveSha256": "1bd4df86cc7f25aa40ce633082b015e088aa492b7270cbecaffe7aa3185db58e",
+        "preReviewSealedArtifactSha256": "8719a6d468bc142ebe33c46e806cb8c7e669795a2c8fd9e4c01bbc9efd1b04a6",
+        "preReviewSealedArtifactType": "TRUSTED_PRODUCT_BUILD_SESSION_SEAL_V1",
+        "preReviewEvidenceIndexSha256": "3101fde0a96389c0351332533a8dcd5f46fee5d3171b34c102503e1abbb0f536",
+        "rawProbeAggregateSha256": "5b0956207ec4fd7c911c33d4f99cba28fb279c9aa7e9af263b6867d0cd7f2b7d",
+        "executedAtUtcRange": {
+          "startedAtUtc": "2026-07-06T12:27:53.729Z",
+          "endedAtUtc": "2026-07-06T12:28:35.710Z"
+        },
+        "formalProbeIds": [
+          "first-start",
+          "controlled-stop",
+          "restart",
+          "offline-start",
+          "crash-recovery",
+          "safe-mode-negative",
+          "credential-gate-negative",
+          "event-gap-recovery",
+          "boot-failure"
+        ],
+        "probeResults": [
+          {
+            "probeId": "first-start",
+            "status": "PASS",
+            "processPid": 4638,
+            "startedAtUtc": "2026-07-06T12:27:53.729Z",
+            "endedAtUtc": "2026-07-06T12:27:56.167Z",
+            "probeResultSha256": "39c1e90c4145f59c1044cb53545d7fcb0a43e539291907b7a680a387f5f4cf53",
+            "stdoutSha256": "1f5d9a24db78d82de4a5deac8226d9ee4b45cb3ea2f45ae04fd358491ecf6234",
+            "stderrSha256": "58b7b10b0e9db4e3e01d3b833109f243ede4641d594e73a5b0eb0ba4b00cae43",
+            "processCustodySha256": "cffd97fe8a0c7f277c709a39674e36576b90db3d6e92ca749f656b5394acc852",
+            "executionContextSha256": "6dc737408d85e45e54b6fcfad93a6485f6d33402b9f66bbf3828026a5ab18d5b"
+          },
+          {
+            "probeId": "controlled-stop",
+            "status": "PASS",
+            "processPid": 4746,
+            "startedAtUtc": "2026-07-06T12:27:56.185Z",
+            "endedAtUtc": "2026-07-06T12:27:58.675Z",
+            "probeResultSha256": "004d4377d2ed319c43340429e5b95653625efd95741e0a816dc72a5561c570d7",
+            "stdoutSha256": "f58837d1e4995bedf00f9ff57b55835ebb3aeb5b021791c0a8f1b4095ef5e8eb",
+            "stderrSha256": "47e2333d60d798c9f2fee76c20ef3a55cb5a4ed7e8ca921149206f2f6329f4e4",
+            "processCustodySha256": "7abc2ec34c475c157c32c1791581a5603a63ef4bd85a34043e10a6257359e9e2",
+            "executionContextSha256": "f884fbe64b90c12301139aee047955c7dac3bc50c510ac69d53ac97b12bf02aa"
+          },
+          {
+            "probeId": "restart",
+            "status": "PASS",
+            "processPid": 4855,
+            "startedAtUtc": "2026-07-06T12:27:58.692Z",
+            "endedAtUtc": "2026-07-06T12:28:02.143Z",
+            "probeResultSha256": "b667e92f0b9f9accb3cd51d2eb20815f3e524aa31855c73672f854973a818936",
+            "stdoutSha256": "63e40c5ab8cb580c6bd77eb792147d470dd998aa89262fa83f287c82423c02ec",
+            "stderrSha256": "0f0d0022aedf5f279cf8b767723402fc9ed4cd006c5afe144994420ffff94b95",
+            "processCustodySha256": "f1e7bb14c6a540cec09fb719bf51110d982d8c1282e0ad38ef0c352a2d6e8ce8",
+            "executionContextSha256": "fbb4ed564df2d5586c7762d4d11787dc1d1a256ec85d5fb2eb12fbf840ab53d1"
+          },
+          {
+            "probeId": "offline-start",
+            "status": "PASS",
+            "processPid": 4987,
+            "startedAtUtc": "2026-07-06T12:28:02.160Z",
+            "endedAtUtc": "2026-07-06T12:28:04.609Z",
+            "probeResultSha256": "a43e258fd7e4c4a7da6617bd82e68779c6791558c91a5fc9c769e72ab431b03a",
+            "stdoutSha256": "97f964ec695221cfa924e3a67a93e1f16fa07dced80d1d0a3a1f8852f8ba156a",
+            "stderrSha256": "97e0aef1ba2897ab476309c09f10d13dd1a8e64afc57a68b054aed8b0c74c2bd",
+            "processCustodySha256": "9e8bcacf52eaf148c6ef2944addc12e39c498221899da4878d55be6f6547a444",
+            "executionContextSha256": "9b1815f43113614c5a5e4660cdea63164ff9ccf1a7f85eb652f8863b982dd018",
+            "networkIsolationProofSha256": "37c47644ee3e8c6106cb428605c2798ee0da51e87ea8ad8d26a69b3e2b9f3ada"
+          },
+          {
+            "probeId": "crash-recovery",
+            "status": "PASS",
+            "processPid": 5098,
+            "startedAtUtc": "2026-07-06T12:28:04.625Z",
+            "endedAtUtc": "2026-07-06T12:28:08.758Z",
+            "probeResultSha256": "1fee8618b9f6bbf47784f3724d04199bdc8b7a1665bb8c0670aae590cf97b9c0",
+            "stdoutSha256": "94d97bf078518f75b56ad2266ce2176c77c885efe10dda9f541c9533ae23ce60",
+            "stderrSha256": "e934be6021ad7575c5b5c2ce0f2f7de1c90a098f975f949a5fbaf99df79ebd94",
+            "processCustodySha256": "3fcdb8e56626d1718ae6a745c65a35d1f97a9522dd048f2497053e5bc5067820",
+            "executionContextSha256": "4e7885db81f5b5e060615c7bdc4e6aba1ca9288ddcfd7cc6cac3e65327090c10"
+          },
+          {
+            "probeId": "safe-mode-negative",
+            "status": "PASS",
+            "processPid": 5231,
+            "startedAtUtc": "2026-07-06T12:28:08.773Z",
+            "endedAtUtc": "2026-07-06T12:28:26.883Z",
+            "probeResultSha256": "d1a592036a91df659314b648c391b573213f730d89605323c5f578b310f14a61",
+            "stdoutSha256": "fa26dd5cb37bd3555e28d4f54a81da9a59fa20a1831594f9a13003a73598aae8",
+            "stderrSha256": "6ad11b6818272042557b27e0b9b3d2a6943da15a0d2f4e34bb01e2b63cecd1f3",
+            "processCustodySha256": "90c6d877d0d98de7e6e661cd15f04a4d3e1f995f61625c03f0b1bdab8bd5c149",
+            "executionContextSha256": "384a81ea482271ac591e2a5a4cd1fc450ff12c9f7cfa668cdfa061d0cb4c83c7"
+          },
+          {
+            "probeId": "credential-gate-negative",
+            "status": "PASS",
+            "processPid": 5876,
+            "startedAtUtc": "2026-07-06T12:28:26.899Z",
+            "endedAtUtc": "2026-07-06T12:28:29.514Z",
+            "probeResultSha256": "6dfc7adec0df349757c9abe10cb6504d0d57c2be3c6cc02bf8e06240eaeab142",
+            "stdoutSha256": "d27b96fadd95ac49251fc9339422dfd64d3818bc1c294ad1903f38daae719e83",
+            "stderrSha256": "609a026a15578fed3be9f6143b4ea4014c3beee03204e61c281bfc69af611b9b",
+            "processCustodySha256": "b1f70b2139a0a7aa8916881752a7eb9f25a13883b12dfd823bc27780b2f9b87f",
+            "executionContextSha256": "4adb9a71f095ccc92d973983cf94675a74a078a24d742919430e94db5cabee03"
+          },
+          {
+            "probeId": "event-gap-recovery",
+            "status": "PASS",
+            "processPid": 5986,
+            "startedAtUtc": "2026-07-06T12:28:29.533Z",
+            "endedAtUtc": "2026-07-06T12:28:32.231Z",
+            "probeResultSha256": "66151f863aaf2ce079603b6a2e088e9b1dfe0473200a57689f6b35b4b7e936dd",
+            "stdoutSha256": "0e6220818c7aef768708480494f24ab56eb5503b51231930a1e58c2cd1497c8d",
+            "stderrSha256": "4bef16ec4539c56bb60c3b520fc776e428cf198b385c5ed35c557408bf555ab0",
+            "processCustodySha256": "4da26b4ac852c8186c00b15857afff35e24b6770099a3b2b4144fe64ac5d964b",
+            "executionContextSha256": "cb5d3cc66d43604e1abe05124ed925a95c5ed0911cf2631c1d30b984edc83560"
+          },
+          {
+            "probeId": "boot-failure",
+            "status": "PASS",
+            "processPid": 6095,
+            "startedAtUtc": "2026-07-06T12:28:32.246Z",
+            "endedAtUtc": "2026-07-06T12:28:35.710Z",
+            "probeResultSha256": "d326d5c1a6cba7fb873d11f5b64d794bffebfe346d14346ee631551266478895",
+            "stdoutSha256": "b118f7ec4b2d1a157ff665a12b93f385e04f451a2a809eb56f7b33e14329a8b5",
+            "stderrSha256": "6295b30341fa5e0ea70f41e01b18233c04b296bce6c145da20e57ea58fe623b9",
+            "processCustodySha256": "e21bcb74a73ec47b4e335e3cbc79e07353f188f996e0a730285ec2f64e084ab5",
+            "executionContextSha256": "8ad4f4298e8695003388a10f12d0514b9b4e133a90000d28041d6276e48da224"
+          }
+        ],
+        "blockingReasonCodes": []
+      },
+      "active": true,
+      "reviewStatus": "CONVERGENCE_REOPEN_CPR_R9_REVISION_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+      "convergencePreReviewStatus": "REVISION_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+      "preAcceptanceStatus": "NOT_ISSUED_PENDING_INDEPENDENT_REVIEW",
+      "preAcceptedAtUtc": null,
+      "finalPackagingAuthorized": false,
+      "finalAcceptanceStatus": "NOT_ACCEPTED",
+      "finalInstallerGenerated": false,
+      "formalWindowsCleanInstallPerformed": false,
+      "finalWindowsTestsExecuted": false,
+      "finalDeliveryHead": null,
+      "remainingBlockingReasonCodes": [],
+      "implementationIdentity": {
+        "commit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+        "sourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+        "frozenForCandidateReview": true,
+        "immutableDuringFinalPackaging": false
+      },
+      "correctedProductionIdentity": {
+        "commit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+        "sourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0"
+      },
+      "implementationCommit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+      "implementationSourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+      "correctedProductionCommit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+      "correctedProductionSourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+      "requiredTestsExecutionStatus": "PASS_PRE_REVIEW_26_OF_26_INSTALLED_58_OF_58_CORRECTION_128_OF_128_ADVERSARIAL_25_OF_25_REAL_TRUSTED_PRODUCT_9_OF_9_RAW_EVIDENCE_COMPLETE",
+      "implementationCorrectionStatus": "CPR_R9_IMPLEMENTATION_AND_COMPLETE_EVIDENCE_CLOSED_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+      "semanticProbeClosureStatus": "REAL_SEALED_PRE_REVIEW_PRODUCT_9_OF_9_RAW_EVIDENCE_COMPLETE",
+      "closedBlockingReasonCodes": [
+        "WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING",
+        "WP7_PRE_REVIEW_EVIDENCE_INDEX_MISSING",
+        "WP7_CANDIDATE_REQUIRED_DELIVERY_ARTIFACTS_MISSING",
+        "WP7_PRE_REVIEW_ARTIFACT_CLASSIFICATION_CONTRADICTION",
+        "WP7_PACKAGED_PROBE_SEALED_ARTIFACT_NOT_VERIFIED",
+        "WP7_COMPLETE_TEST_RAW_RESULTS_MISSING"
+      ],
+      "developerClaimedImplementationClosures": {
+        "status": "CPR_R9_IMPLEMENTATION_COMPLETE_PENDING_INDEPENDENT_REVIEW",
+        "reasonCodes": [
+          "WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING",
+          "WP7_PRE_REVIEW_EVIDENCE_INDEX_MISSING",
+          "WP7_CANDIDATE_REQUIRED_DELIVERY_ARTIFACTS_MISSING",
+          "WP7_PRE_REVIEW_ARTIFACT_CLASSIFICATION_CONTRADICTION",
+          "WP7_PACKAGED_PROBE_SEALED_ARTIFACT_NOT_VERIFIED",
+          "WP7_COMPLETE_TEST_RAW_RESULTS_MISSING"
+        ],
+        "evidencePath": "governance/wp7/convergence-correction-closure.json"
+      },
+      "developerClaimedGovernanceClosures": {
+        "status": "CPR_R9_COMPLETE_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+        "reasonCodes": [
+          "WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING",
+          "WP7_PRE_REVIEW_EVIDENCE_INDEX_MISSING",
+          "WP7_CANDIDATE_REQUIRED_DELIVERY_ARTIFACTS_MISSING",
+          "WP7_PRE_REVIEW_ARTIFACT_CLASSIFICATION_CONTRADICTION",
+          "WP7_PACKAGED_PROBE_SEALED_ARTIFACT_NOT_VERIFIED",
+          "WP7_COMPLETE_TEST_RAW_RESULTS_MISSING"
+        ],
+        "evidencePath": "governance/wp7/current-authority-consistency-policy.json",
+        "verificationCommand": "node tools/wp7/verify-governance-authority-consistency.js"
+      }
+    },
+    "finalPackagingForbiddenBeforePreacceptance": [
+      "candidate-binding-commit",
+      "final-delivery-head",
+      "complete-source-zip",
+      "complete-test-artifacts-zip",
+      "complete-delivery-zip",
+      "PHASE1_ACCEPTED"
+    ]
+  },
+  "forbiddenUntilWp7ActivationAccepted": [
+    "WP7_PRODUCTION_IMPLEMENTATION",
+    "WP7_DATABASE_MIGRATION",
+    "WP7_RUNTIME_BEHAVIOR_CHANGE",
+    "WP7_REQUIRED_TEST_IMPLEMENTATION",
+    "WP7_FINAL_BUILD",
+    "WP7_FINAL_INSTALLER",
+    "WP7_DESIGN_GATE_DECISION",
+    "WP7_CONVERGENCE_PRE_REVIEW",
+    "WP7_FINAL_PACKAGING",
+    "WP7_ACTIVE_STATUS"
+  ],
+  "installationPolicy": {
+    "FINAL_INSTALLATION_MODE": "CLEAN_INSTALL",
+    "LEGACY_TEST_DATA_MIGRATION_REQUIRED": false,
+    "LEGACY_TEST_VERSION_ROLLBACK_REQUIRED": false
+  },
+  "activationAcceptanceRequired": false,
+  "wp7DesignGateDecision": "WP7_DESIGN_GATE_CONFIRMED",
+  "wp7DesignGateRevision": "DG-R1",
+  "activeWorkPackages": [
+    "WP7"
+  ],
+  "lastCompletedWorkPackage": "WP6",
+  "forbiddenUntilWp7Preaccepted": [
+    "candidate-binding-commit",
+    "final-delivery-head",
+    "final-packaging",
+    "formal-windows-clean-install",
+    "clean-user-machine",
+    "WP7_ACCEPTED",
+    "STAGE_6_4_5_9_ACCEPTED",
+    "PHASE1_ACCEPTED"
+  ],
+  "governanceAuthorityConsistencyVerification": {
+    "policyPath": "governance/wp7/current-authority-consistency-policy.json",
+    "command": "node tools/wp7/verify-governance-authority-consistency.js",
+    "expectedStatus": "PASS",
+    "reviewStatus": "CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+    "scope": "ALL_CURRENT_AUTHORITY_PATHS_AND_NON_HISTORICAL_CANDIDATE_FIELDS"
+  }
+}

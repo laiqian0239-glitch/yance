@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH30_ROOT_CAUSE_ISSUE_MATRIX",
+  "generatedAtUtc": "2026-07-29T09:50:29Z",
+  "sourceIdentity": {
+    "implementationCommit": "4ef7a2b4182400e0ca7b4603dea6ba962ecb9bac",
+    "implementationTree": "52401514689468b2cd4b7e49e3ad6e107aa38d5e",
+    "parentPackageCommit": "cfd2dcae49614cd53b0706f823fdca82b1cbd52f"
+  },
+  "issues": [
+    {
+      "id": "B30-WP3-001",
+      "severity": "P0",
+      "status": "SOURCE_FIXED_WINDOWS_RETEST_REQUIRED",
+      "title": "WP3 evidence launcher reintroduces retired safe-mode authority",
+      "evidence": "Batch 29 Windows WP3 tests 43/43 passed, then production evidence failed at backend startup. Source closure identified YANCE_SAFE_MODE in the evidence launcher.",
+      "rootCause": "tools/wp3/production-api-v2-runtime.js injected YANCE_SAFE_MODE=1 even though runtime_state is the only production authority.",
+      "fix": "Remove YANCE_SAFE_MODE from the production evidence child environment and add a static authority gate.",
+      "verification": "Static authority and unique runtime construction tests 2/2 PASS; real Windows production evidence pending."
+    },
+    {
+      "id": "B30-WP4-001",
+      "severity": "P0",
+      "status": "SOURCE_FIXED_WINDOWS_RETEST_REQUIRED",
+      "title": "FD6 closure and rejected-owner exit race is misclassified as permanently live containment",
+      "evidence": "Batch 29 Windows A12, A14, A20 and A21 failed after backend startup failure/cleanup. On Windows the backend can exit from FD6 closure after stop has already reported failure.",
+      "rootCause": "Cleanup immediately persisted FATAL_OWNER_CONTAINMENT from the stale stop result without a bounded observation of the real child exit and owner registry recovery.",
+      "fix": "Observe a bounded concurrent-exit grace, wait for durable owner recovery, then resolve to FAILED_SAFE only when child, registry, FD6 and authority are all released. Otherwise remain fail-closed.",
+      "verification": "Containment/cancellation/journal targeted suite 43/43 PASS including a dedicated Windows FD6-close race test; real Windows matrix pending."
+    },
+    {
+      "id": "B30-WP4-002",
+      "severity": "P1",
+      "status": "SOURCE_FIXED_WINDOWS_RETEST_REQUIRED",
+      "title": "Startup cancellation timing was conflated with later child cleanup duration",
+      "evidence": "Batch 29 targeted Windows test reported ~4.6 seconds although startup-failed IPC had already cancelled the FD5 generation.",
+      "rootCause": "The oracle measured the entire host.start rejection and process cleanup instead of the authoritative cancellation timestamp.",
+      "fix": "Record lastStartCancellation at startup-failed/error/host-cancel and assert cancellation latency separately from cleanup.",
+      "verification": "Targeted startup cancellation tests PASS; real Windows timing pending."
+    },
+    {
+      "id": "B30-WP5-001",
+      "severity": "P1",
+      "status": "SOURCE_FIXED_WINDOWS_RETEST_REQUIRED",
+      "title": "WP5 source closure confuses negative probes, prefixed knobs and final identity bindings with legacy authority",
+      "evidence": "Batch 29 Windows mutation matrix passed 24/24, then source-closure failed five checks.",
+      "rootCause": "Broad textual regexes scanned negative-injection fixtures/minified same lines and expected final accepted identity fields to remain null.",
+      "fix": "Add explicit negative-probe exclusions, exact retired-key matching, direct desktopSettings access matching and phase-aware final identity validation.",
+      "verification": "Source closure 11/11, WP5 base 58/58 and 24/24 mutants KILLED; full continuous Windows verify pending."
+    }
+  ],
+  "governance": {
+    "windowsUatState": "WINDOWS_UAT_BLOCKED",
+    "readyForPromotion": false,
+    "formalRelease": false
+  }
+}

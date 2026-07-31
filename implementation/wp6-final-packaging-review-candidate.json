@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP6_FINAL_PACKAGING_REVIEW_CANDIDATE",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP6",
+  "status": "READY_FOR_FINAL_INDEPENDENT_REVIEW",
+  "reviewStatus": "PENDING_INDEPENDENT_REVIEW",
+  "reviewPhase": "FINAL_PACKAGING_AUTHORIZED",
+  "preAcceptanceStatus": "WP6_PREACCEPTED_FOR_FINAL_PACKAGING",
+  "preparedAtUtc": "2026-07-05T08:44:00Z",
+  "acceptedUpstreamBaseline": {
+    "WP5AcceptedFinalDeliveryHead": "c4d5a641e93c600c0199e9960fe8f570faa07808",
+    "WP5AcceptedSourceTree": "b6ece87673d804686bd231858097f6561ff1b200",
+    "reviewStatus": "ACCEPTED",
+    "finalAcceptanceToken": "WP5_ACCEPTED"
+  },
+  "activationIdentity": {
+    "commit": "3d48fc990deb64bb9fbfa623afa95c102ae516b5",
+    "sourceTree": "fdf199697d2ca1dd1a001e05518316bae0f81ecf",
+    "bindingCommit": "7de495936c955a67d737c351682a9e84ffd4d290",
+    "bindingSourceTree": "855376824e8f75aaebc41ce74f73a451026f977f"
+  },
+  "implementationIdentity": {
+    "commit": "30311e402c4c687b6c96c4cbc5c4a9bfc3420ebb",
+    "sourceTree": "9e5560c06c955adce653962bf7c4b5fde59a4f0e"
+  },
+  "candidateBindingIdentity": {
+    "commit": "992f919a4c9becedee598255cb7567b511911740",
+    "sourceTree": "eb7b82672a05658c06b55016977869661578940c"
+  },
+  "finalDeliveryIdentityBinding": {
+    "mode": "EXTERNAL_DELIVERY_JSON_AND_SHA256",
+    "finalDeliveryHead": null,
+    "finalSourceTree": null
+  },
+  "verification": {
+    "wp6RequiredTests": "PASS_34_OF_34",
+    "faultMatrix": "PASS_32_OF_32",
+    "concurrencyCrashMatrix": "PASS_20_OF_20",
+    "mutationMatrix": "PASS_35_OF_35_KILLED_ZERO_SURVIVORS_ZERO_INVALID_ZERO_TIMEOUT_ZERO_SIGNAL",
+    "developerAdversarialReview": "PASS_25_OF_25",
+    "sourceOldRuntimeScan": "PASS_221_FILES_ZERO_HITS_COMPLETE_SCAN",
+    "deterministicInstalledTreeScan": "PASS_248_FILES_ZERO_HITS_COMPLETE_SCAN",
+    "runtimeEntrypointInventory": "PASS_ZERO_DUPLICATE_EXECUTABLE_ENTRYPOINTS",
+    "evidenceSchema": "PASS_5_OF_5_ZERO_FINDINGS_SECRET_FREE",
+    "stopTransportUnknownRecovery": "PASS_SAME_COMMAND_ID_SAME_ENVELOPE_SINGLE_INTENT_SINGLE_SIDE_EFFECT_OWNER_BOUND_RESTART_ORDERED",
+    "wp0Regression": "PASS_16_OF_16",
+    "wp0Gate": "PASS_4_OF_4",
+    "wp1Regression": "PASS_24_OF_24",
+    "wp2Regression": "PASS_60_OF_60",
+    "wp3Regression": "PASS_22_OF_23_WITH_1_EXISTING_ACCEPTED_WINDOWS_SKIP",
+    "wp4Regression": "PASS_158_OF_158_47_OF_47_FILES",
+    "wp5Regression": "PASS_42_OF_42",
+    "javascriptSyntax": "PASS_457_OF_457",
+    "convergenceBundle": "PASS_COMPLETE_HISTORY",
+    "convergencePatch": "PASS_EXACT_IMPLEMENTATION_TREE",
+    "repositoryClean": "PASS"
+  },
+  "preservedRiskAcceptanceIds": [
+    "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+    "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+    "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+    "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED"
+  ],
+  "unknownLimitations": [
+    {
+      "reasonCode": "WP6_WINDOWS_REAL_INSTALLED_TREE_SCAN_NOT_EXECUTED",
+      "status": "UNKNOWN_NOT_EXECUTED",
+      "blocking": false,
+      "representation": "Deterministic installed-tree fixture passed; real Windows installed product tree is not represented as executed."
+    },
+    {
+      "reasonCode": "WP6_WINDOWS_REAL_PROCESS_BOUNDARY_CRASH_TIMING_NOT_EXECUTED",
+      "status": "UNKNOWN_NOT_EXECUTED",
+      "blocking": false,
+      "representation": "Cross-process Windows timing remains unexecuted and is not represented as PASS."
+    },
+    {
+      "reasonCode": "WP4_WINDOWS_OWNER_PROCESS_IDENTITY_REAL_MACHINE_EVIDENCE_NOT_EXECUTED",
+      "status": "UNKNOWN_ACCEPTED_UPSTREAM_EXCEPTION",
+      "blocking": false
+    },
+    {
+      "reasonCode": "WP3_WINDOWS_NAMED_MUTEX_REAL_MACHINE_VALIDATION_NOT_EXECUTED",
+      "status": "UNKNOWN_ACCEPTED_UPSTREAM_EXCEPTION",
+      "blocking": false
+    }
+  ],
+  "knownGaps": [],
+  "unresolvedBlockingGaps": [],
+  "governance": {
+    "WP6": {
+      "status": "ACTIVE",
+      "active": true,
+      "reviewStatus": "PENDING_INDEPENDENT_REVIEW",
+      "finalPackagingAuthorized": true
+    },
+    "WP7": {
+      "status": "BLOCKED_BY_WP6",
+      "active": false,
+      "activationAllowed": false
+    },
+    "finalAcceptanceRequired": "WP6_ACCEPTED"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP7_FORMAL_TRUSTED_PRODUCT_PROBE_SCOPE",
+  "authorityModule": "shared/wp7/formalProbeIds.js",
+  "runner": "tools/wp7/run-packaged-electron-probe-integration.js",
+  "windowsHarness": "tools/wp7/windows-final-harness.js",
+  "requiredProbeCount": 9,
+  "formalProbeIds": [
+    "first-start",
+    "controlled-stop",
+    "restart",
+    "offline-start",
+    "crash-recovery",
+    "safe-mode-negative",
+    "credential-gate-negative",
+    "event-gap-recovery",
+    "boot-failure"
+  ],
+  "highLevelEvidenceNamesAreNotExecutableProbeIds": true
+}

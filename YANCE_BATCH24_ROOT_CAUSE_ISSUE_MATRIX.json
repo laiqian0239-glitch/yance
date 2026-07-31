@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH24_ROOT_CAUSE_ISSUE_MATRIX",
+  "project": "言策",
+  "batch": 24,
+  "implementationIdentity": {
+    "branch": "development/windows-uat-f25fe2e-repair-batch24-state-transaction-closure",
+    "commit": "4582160eefb2f8c9fc628ac4aecfc9e035e87226",
+    "tree": "6784e899382166545c180b1e9981d24c236c2376"
+  },
+  "governance": {
+    "repairState": "REPAIR_ATTEMPT_IN_PROGRESS",
+    "windowsUatState": "WINDOWS_UAT_BLOCKED",
+    "formalRelease": false,
+    "readyForPromotion": false,
+    "independentReviewRequired": true
+  },
+  "items": [
+    {
+      "id": "WP-STX-01",
+      "severity": "P0",
+      "title": "启动恢复前置与单 SQLite Owner",
+      "status": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED_WINDOWS_PENDING",
+      "sourceClosed": true,
+      "realWindowsClosed": false,
+      "promotionClosed": false
+    },
+    {
+      "id": "WP-STX-02",
+      "severity": "P0",
+      "title": "出站命令本地原子事务",
+      "status": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED_WINDOWS_PENDING",
+      "sourceClosed": true,
+      "realWindowsClosed": false,
+      "promotionClosed": false
+    },
+    {
+      "id": "WP-STX-03",
+      "severity": "P0",
+      "title": "Queue CAS 状态机与本地 ACK checkpoint",
+      "status": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED_WINDOWS_PENDING",
+      "sourceClosed": true,
+      "realWindowsClosed": false,
+      "promotionClosed": false
+    },
+    {
+      "id": "WP-STX-04",
+      "severity": "P0",
+      "title": "账号启动 hydration barrier",
+      "status": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED_WINDOWS_PENDING",
+      "sourceClosed": true,
+      "realWindowsClosed": false,
+      "promotionClosed": false
+    },
+    {
+      "id": "WP-STX-05",
+      "severity": "P0",
+      "title": "账号/凭据/Adapter 生命周期 Saga",
+      "status": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED_WINDOWS_PENDING",
+      "sourceClosed": true,
+      "realWindowsClosed": false,
+      "promotionClosed": false
+    },
+    {
+      "id": "WP-STX-06",
+      "severity": "P0",
+      "title": "入站 Event 与 Projection 一致性",
+      "status": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED_WINDOWS_PENDING",
+      "sourceClosed": true,
+      "realWindowsClosed": false,
+      "promotionClosed": false
+    },
+    {
+      "id": "WP-STX-07",
+      "severity": "P0/P1",
+      "title": "Identity transactional outbox",
+      "status": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED_WINDOWS_PENDING",
+      "sourceClosed": true,
+      "realWindowsClosed": false,
+      "promotionClosed": false
+    },
+    {
+      "id": "WP-STX-08",
+      "severity": "P1",
+      "title": "Route 版本化与 Queue 数据库约束",
+      "status": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED_WINDOWS_PENDING",
+      "sourceClosed": true,
+      "realWindowsClosed": false,
+      "promotionClosed": false
+    },
+    {
+      "id": "WP-STX-09",
+      "severity": "P1",
+      "title": "账号能力投影保护与授权提升事务",
+      "status": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED_WINDOWS_PENDING",
+      "sourceClosed": true,
+      "realWindowsClosed": false,
+      "promotionClosed": false
+    },
+    {
+      "id": "WP-STX-10",
+      "severity": "P1",
+      "title": "RuntimeSettings 并发更新",
+      "status": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED_WINDOWS_PENDING",
+      "sourceClosed": true,
+      "realWindowsClosed": false,
+      "promotionClosed": false
+    },
+    {
+      "id": "WP-STX-11",
+      "severity": "P1",
+      "title": "Auth operation 重启恢复",
+      "status": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED_WINDOWS_PENDING",
+      "sourceClosed": true,
+      "realWindowsClosed": false,
+      "promotionClosed": false
+    },
+    {
+      "id": "B24-STX-12",
+      "severity": "P0",
+      "title": "人工 outcome 裁决、重试、取消与 Message receipt 原子性",
+      "status": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED_WINDOWS_PENDING",
+      "sourceClosed": true,
+      "realWindowsClosed": false,
+      "promotionClosed": false
+    }
+  ],
+  "globalBlockers": [
+    "CLEAN_NPM_CI_DEPENDENCY_GATEWAY_503",
+    "REAL_WINDOWS_STATE_TRANSACTION_UAT_PENDING",
+    "REAL_PLATFORM_ACK_RESTART_CONVERGENCE_PENDING",
+    "REAL_OPENROUTER_2_OF_2_PENDING",
+    "INDEPENDENT_REVIEW_REQUIRED"
+  ]
+}

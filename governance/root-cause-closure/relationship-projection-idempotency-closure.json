@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_RELATIONSHIP_PROJECTION_IDEMPOTENCY_CLOSURE",
+  "defectIds": [
+    "DEFECT-008"
+  ],
+  "status": "REAL_DB_REPLAY_PASS",
+  "windowsRenderStatus": "PENDING",
+  "endToEndTaskStatus": "PENDING",
+  "userConfirmationStatus": "PENDING",
+  "authority": "RelationshipProjectionAuthority",
+  "rootCause": [
+    "关系信号数据库唯一约束只包含 message_id + signal_type，未包含平台和账号实例",
+    "关系事件 event_id 每次使用随机 UUID，后台重试会把同一消息写成新事件",
+    "内存关系投影直接追加信号和事件，重复处理会再次叠加关系分数"
+  ],
+  "implementation": [
+    "backend/store/social/socialSignalSchema.js",
+    "backend/store/social/socialSignalParser.js",
+    "backend/store/social/relationTrailEngine.js",
+    "backend/store/commands/registerSocialIntelligenceCommands.js",
+    "backend/store/adapters/SqliteStorePersistenceAdapter.js",
+    "backend/lib/r32SqliteStore.js"
+  ],
+  "identityScope": [
+    "platform",
+    "sourceAccountId",
+    "conversationId",
+    "platformMessageId",
+    "signalTypeOrEventType",
+    "projectionVersion"
+  ],
+  "databaseContract": {
+    "signalIndex": "idx_relationship_signals_idempotency",
+    "timelineIndex": "idx_relationship_timeline_idempotency",
+    "legacyCrossAccountIndex": "idx_relationship_signals_message_type is non-unique",
+    "existingRows": "blank idempotency keys remain compatible; new writes are protected by partial unique indexes"
+  },
+  "targetedEvidence": {
+    "realSqliteReplaySuite": {
+      "passed": 3,
+      "failed": 0,
+      "test": "tests/uat/relationshipProjectionIdempotency.test.js"
+    },
+    "adjacentKeyNodeSuite": {
+      "passed": 21,
+      "failed": 0
+    },
+    "scenarios": [
+      "same message replay",
+      "same platform message id across two WhatsApp accounts",
+      "legacy database in-place migration"
+    ]
+  },
+  "limitations": [
+    "没有静默清理用户真实数据库中的历史重复事件",
+    "历史重复清理必须另行提供 dry-run、备份、差异报告、执行和回滚",
+    "尚未在真实 Windows 关系轨迹页面确认重复卡片消失"
+  ]
+}

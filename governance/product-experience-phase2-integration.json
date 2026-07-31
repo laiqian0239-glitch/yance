@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "program": "Yance Windows Product Experience Closure",
+  "phase": "Phase 2 - parallel product experience closure",
+  "sourceCheckpoint": {
+    "branch": "rebuild/windows-product-experience-closure-20260720-phase1",
+    "commit": "51e054958fa02687fbb22225f9ba84cda41c730b",
+    "tree": "b692b4a82080a98a7a044caf5def2341b3d9306e",
+    "tag": "phase1-checkpoint-20260720-51e0549"
+  },
+  "scope": {
+    "uatRange": "UAT-001..UAT-070",
+    "workPackages": 13,
+    "newFindingPolicy": "归入既有工作包子缺陷，不增加主编号"
+  },
+  "parallelStreams": [
+    {"id":"A","name":"AI bilingual learning closure","packages":["WPX-02","WPX-03","WPX-06","WPX-11"]},
+    {"id":"B","name":"Platform closure","packages":["WPX-01","WPX-04","WPX-08"]},
+    {"id":"C","name":"Product UI and interaction architecture","packages":["WPX-05","WPX-07","WPX-10","WPX-13"]},
+    {"id":"D","name":"Data security and resilience","packages":["WPX-09","WPX-12"]}
+  ],
+  "sharedContracts": {
+    "identityEntry": "conversationId -> canonical contactId",
+    "localizedContent": ["sourceText","sourceLanguage","translatedZh","translationStatus","translationModel","translatedAt"],
+    "analysisLayers": ["facts","inferences","risks","recommendations"],
+    "truthfulState": true,
+    "semanticThemeTokensOnly": true,
+    "transactionalMigrations": true
+  },
+  "longPipelineDeferred": true,
+  "claims": {"windowsPass":false,"platformPass":false,"releaseAuthorized":false}
+}

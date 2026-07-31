@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "policyId": "Y29-S6.4.5.9-WP0-FREEZE-POLICY",
+  "currentStage": "6.4.5.9",
+  "currentBranch": "stage/6.4.5.9-architecture-closure",
+  "distributionMode": "LOCAL_PRIVATE_UNSIGNED",
+  "privateSingleOwner": true,
+  "publicRelease": false,
+  "authenticodeRequired": false,
+  "microsoftStoreRequired": false,
+  "manifestDigitalSignatureRequired": false,
+  "unknownPublisherAccepted": true,
+  "rejectedBaselines": [
+    {
+      "stage": "6.4.5.8",
+      "status": "REJECTED_ARCHITECTURE_NOT_CLOSED",
+      "immutableTag": "stage-6.4.5.8-rejected-architecture",
+      "hotfixesAllowed": false,
+      "runtimeChangesAllowed": false,
+      "releaseCandidateAllowed": false,
+      "overlayInstallersAllowed": false
+    }
+  ],
+  "forbiddenReleaseMechanisms": [
+    "OLD_INSTALLER_PLUS_APP_ASAR_UNPACKED_OVERLAY",
+    "POST_INSTALL_RUNTIME_PATCH",
+    "STAGE_6_4_5_8_HOTFIX_ENTRYPOINT",
+    "INTEGRATED_REPAIR_HOTFIX",
+    "COMPLETE_INSTALLER_OVER_BASE_INSTALLER"
+  ],
+  "allowedImplementationOrder": [
+    "WP0",
+    "WP1",
+    "WP2",
+    "WP3",
+    "WP4",
+    "WP5",
+    "WP6",
+    "WP7"
+  ],
+  "baselineCommit": "c150182219edea2faf49c714275e9921a21df742",
+  "localGateRequiredForCommands": [
+    "build",
+    "package",
+    "release",
+    "pack",
+    "publish"
+  ],
+  "externalUntrackedReleaseScriptsAllowed": false,
+  "authorizedRebuildBranchPattern": "^rebuild/windows-release-closure-([0-9]{4})([0-9]{2})([0-9]{2})(?:-[a-z0-9][a-z0-9._-]*)?$",
+  "originalStageBranchRewriteAllowed": false
+}

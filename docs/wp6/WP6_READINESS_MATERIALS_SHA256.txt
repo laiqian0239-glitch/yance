@@ -1,0 +1,8 @@
+# WP6 Readiness Materials SHA256
+# Algorithm: SHA-256
+# Scope: the three formal Markdown readiness files listed below.
+# WP6_READINESS_MATERIALS_SHA256.txt is excluded from its own checksum list.
+
+868adf9faf4013c688b78d5f8522230914b6d20a0c5f728a0fe4be4be6070d69  WP6_READINESS_DESIGN_V1.md
+b8ff3dca8a7fe532a09601afd5988eb4c602963fa4b16082a8d929dafd3f29e3  WP6_READINESS_DESIGN_REVIEW_V1.md
+0b39fcc43c915eb879a7f20c3df07c9f52a02b0749388be44276ba3e563f9481  WP6_ACTIVATION_READINESS_REBIND.md

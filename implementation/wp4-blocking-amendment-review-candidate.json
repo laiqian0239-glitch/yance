@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP4",
+  "candidateType": "BLOCKING_AMENDMENT_IMPLEMENTATION_REVIEW_CANDIDATE",
+  "status": "VERIFIED_IMPLEMENTATION_REVIEW_CANDIDATE",
+  "reviewStatus": "PENDING_INDEPENDENT_REVIEW",
+  "acceptedBaseline": {
+    "wp3CandidateHead": "3d8bac3665098d495e3266ea8ea013c5aba6be16",
+    "wp3SourceTree": "e2670016e7d6252e5cf206223fc4420b5666e606"
+  },
+  "rejectedCandidate": {
+    "finalCodeImplementationCommit": "4ab561469b87a3244b4a0060ca0a3c75d1f0a36d",
+    "finalDeliveryHead": "7eeaf93fb1504f9fef488583da443236980c6723",
+    "finalSourceTree": "9a979436c5a7eb5f1638bf59a34d58ca748f3ff7"
+  },
+  "activationCommit": "dae1a17df2820ae3123639f1e9d1008759939d83",
+  "activationBindingCommit": "452294dbd5b12eec0c29406eee0bf74427eae112",
+  "reopenCommit": "b3d4319ff42d90278fe8fda9db33d9414fdb1d97",
+  "finalCodeImplementationCommit": "394a748de773a1048f7f58cca17420357443a67a",
+  "finalCodeSourceTree": "f1b304f55712c89ec719b9de6c55f021fc75d212",
+  "implementedAtUtc": "2026-07-03T09:07:39Z",
+  "requiredTests": {
+    "blueprintRequired": 11,
+    "executed": 18,
+    "passed": 18,
+    "failed": 0,
+    "skipped": 0
+  },
+  "scope": [
+    "Remove all post-ready secret-bearing generic Node IPC credential message paths",
+    "Desktop credential changes write the Electron vault first and take effect only through controlled backend restart and a new FD5 snapshot generation",
+    "Backend-generated secrets use dedicated inherited bidirectional FD6 custody requests with PID, manifest, epoch, generation, size, freshness, replay and acknowledgement checks",
+    "Vault failure and acknowledgement timeout never report persisted success",
+    "Credential generation, AppRuntime metadata, SQLite hydration state, Electron vault metadata and SecureBridge references remain aligned after acknowledged mutation",
+    "Post-ready generic IPC injection cannot mutate SecurityGuard references, AppRuntime metadata or the cloud model registry",
+    "Production secret-transport static scan reports zero generic Node IPC secret transports"
+  ],
+  "regressionPlan": [
+    "WP3",
+    "WP2",
+    "WP1",
+    "WP0",
+    "WP0_GATE"
+  ],
+  "nextWorkPackage": "WP5",
+  "nextWorkPackageStatus": "BLOCKED_BY_WP4",
+  "preservedReviewRecord": "implementation/wp4-review-candidate.json",
+  "verificationCompletedAtUtc": "2026-07-03T09:09:29Z",
+  "evidenceStatus": "PASS",
+  "evidenceGeneratorStatus": "PASS",
+  "evidenceGeneratedAtUtc": "2026-07-03T09:08:42.472Z",
+  "evidenceOutputs": [
+    "credential-protocol-negative-tests.json",
+    "credential-generation-and-epoch.json",
+    "credential-ready-gate.json",
+    "credential-transport-closure.json",
+    "credential-custody-acknowledgement.json",
+    "secret-log-scan.json",
+    "wp4-evidence-summary.json"
+  ],
+  "approvedSecretTransports": [
+    {
+      "id": "STARTUP_SNAPSHOT_FD5",
+      "transport": "DEDICATED_INHERITED_PIPE_FD5",
+      "direction": "Electron-to-backend",
+      "oneTime": true
+    },
+    {
+      "id": "RUNTIME_CUSTODY_FD6",
+      "transport": "DEDICATED_INHERITED_PIPE_FD6",
+      "direction": "Bidirectional request-ack",
+      "oneTime": false
+    }
+  ],
+  "genericNodeIpcSecretTransportCount": 0,
+  "regressionResults": {
+    "WP3": {
+      "total": 23,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 1,
+      "acceptedExceptionReasonCode": "WP3_WINDOWS_NAMED_MUTEX_NOT_EXECUTED"
+    },
+    "WP2": {
+      "total": 60,
+      "passed": 60,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP1": {
+      "total": 24,
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP0": {
+      "total": 16,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP0Gate": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    }
+  },
+  "javascriptSyntax": {
+    "total": 316,
+    "passed": 316,
+    "failed": 0
+  },
+  "repositoryCleanBeforeFinalMetadataCommit": true
+}

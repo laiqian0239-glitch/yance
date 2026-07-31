@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP7_ACTIVATION_IDENTITY_BINDING",
+  "stage": "6.4.5.9",
+  "workPackage": "WP7",
+  "generatedAtUtc": "2026-07-05T09:31:00Z",
+  "acceptedWp6Baseline": {
+    "finalDeliveryHead": "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+    "finalSourceTree": "485891e55298667df30e2f588daec196dc530eb7",
+    "acceptanceToken": "WP6_ACCEPTED"
+  },
+  "activationIdentity": {
+    "commit": "ceffb5234d33518bfda2a88c0e3fad59fb7c8bce",
+    "sourceTree": "b457101ab8d5d04d073597039446ded41374a6c8",
+    "parentCommit": "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+    "parentSourceTree": "485891e55298667df30e2f588daec196dc530eb7"
+  },
+  "verification": {
+    "parentExactWp6AcceptedFinalDeliveryHead": "PASS",
+    "parentSourceTreeExactWp6AcceptedFinalSourceTree": "PASS",
+    "activationCommitExists": "PASS",
+    "activationTreeExists": "PASS",
+    "activationChangeBoundary": "PASS_GOVERNANCE_READINESS_ACTIVATION_METADATA_ONLY",
+    "productionCodeChangeCount": 0,
+    "wp6RemainsCompletedAccepted": "PASS",
+    "wp7RemainsNotActivated": "PASS",
+    "activeWorkPackagesEmpty": "PASS",
+    "riskAcceptanceInheritance": "PASS_4_OF_4_NO_SCOPE_EXPANSION",
+    "installationPolicy": "PASS_CLEAN_INSTALL_NO_LEGACY_MIGRATION_NO_LEGACY_ROLLBACK",
+    "jsonSyntax": "PASS"
+  },
+  "bindingIdentityPolicy": "The binding commit hash and tree are recorded externally in WP7_ACTIVATION_DELIVERY.json and verification files because a tracked file cannot self-bind its containing commit."
+}

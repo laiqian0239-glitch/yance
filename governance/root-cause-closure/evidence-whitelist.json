@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_EVIDENCE_EXPORT_WHITELIST",
+  "allowedClasses": [
+    "source_identity",
+    "runtime_timestamps",
+    "database_size_and_schema_only",
+    "masked_account_summary",
+    "aggregated_error_codes",
+    "job_status_summary",
+    "user_selected_screenshots",
+    "user_initiated_redacted_diagnostic_export"
+  ],
+  "forbiddenFileNames": [
+    "platform-auth.json",
+    "yance-r32.db",
+    "yance-r32.db-wal",
+    "yance-r32.db-shm",
+    "desktop-credential-vault.json",
+    "desktop-credentials.json"
+  ],
+  "forbiddenNamePatterns": [
+    "session",
+    "token",
+    "cookie",
+    "credential",
+    "vault",
+    "private-key",
+    "api-hash",
+    "oauth-secret"
+  ],
+  "forbiddenJsonKeys": [
+    "apiHash",
+    "api_hash",
+    "appSecret",
+    "accessToken",
+    "refreshToken",
+    "pageToken",
+    "verifyToken",
+    "session",
+    "cookie",
+    "encryptionKey",
+    "privateKey"
+  ],
+  "exportRules": [
+    "证据包必须由白名单构建，禁止递归复制运行资源目录",
+    "平台配置只允许输出 configured=true/false、掩码和文件 SHA-256",
+    "打包前必须执行秘密字段扫描",
+    "秘密扫描发现命中时拒绝生成证据包"
+  ]
+}

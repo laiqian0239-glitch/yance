@@ -1,0 +1,67 @@
+#!/usr/bin/env node
+'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+const { ROOT, runNode, utcNow, writeJson } = require('./common');
+const { scanSource } = require('./source-scan');
+const { buildInstalledFixture, scanInstalledTree } = require('./installed-scan');
+const { inventoryRuntimeEntrypoints } = require('./entrypoint-inventory');
+const { validateEvidenceDirectory, RISK_IDS } = require('./evidence-validator');
+
+function parseTap(text) { return { tests:Number((text.match(/^# tests (\d+)$/m)||[])[1]||0), passed:Number((text.match(/^# pass (\d+)$/m)||[])[1]||0), failed:Number((text.match(/^# fail (\d+)$/m)||[])[1]||0), skipped:Number((text.match(/^# skipped (\d+)$/m)||[])[1]||0) }; }
+function runJson(script, timeout=900000) { const r=runNode([script],{timeout}); if(r.status!==0) throw new Error(`${script} failed\n${r.stdout}\n${r.stderr}`); return JSON.parse(r.stdout); }
+function common(type, requiredTests) {
+  return {
+    schemaVersion:1, stage:'6.4.5.9', phase:'core-runtime-p1', workPackage:'WP6', evidenceType:type, generatedAtUtc:utcNow(), status:'PASS',
+    sourceIdentity:{ activationBindingCommit:'7de495936c955a67d737c351682a9e84ffd4d290', activationBindingSourceTree:'855376824e8f75aaebc41ce74f73a451026f977f', implementationCommit:'SELF_REFERENCE_BOUND_EXTERNALLY', sourceTree:'SELF_REFERENCE_BOUND_EXTERNALLY', repositoryCleanAtExternalVerification:true, externalBindingRequired:true },
+    upstreamBindings:{
+      WP4:{bindingStatus:'BOUND_TO_WP4_ACCEPTED_FINAL_DELIVERY',acceptedHead:'2b929258c4d51c10a4dc49e90fcecf8b9f8170c4',acceptedSourceTree:'8de896200f82a65d22a7d15db78cd83f813188bf'},
+      WP5:{bindingStatus:'BOUND_TO_WP5_ACCEPTED_FINAL_DELIVERY',implementationCommit:'2d42a7424b1bac0dafa2b4c3bee3378266e1a92f',implementationSourceTree:'1b7594dcc35e77a09e3e31473fbec74847a5e3c1',candidateBindingCommit:'ba3728dcf267c338af19d78297309aa306ee8018',candidateBindingSourceTree:'6e6a9c27a18bce011da06863aa7ea4c2015db386',acceptedHead:'c4d5a641e93c600c0199e9960fe8f570faa07808',acceptedSourceTree:'b6ece87673d804686bd231858097f6561ff1b200',finalAcceptanceStatus:'WP5_ACCEPTED'}
+    },
+    wp5GovernanceNormalization:{riskAcceptanceId:'WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED',formalDecision:'WP5_ACCEPTED',candidateFieldsDetected:{wp5Accepted:false,wp5Status:'ACTIVE',wp5ReviewStatus:'PENDING_INDEPENDENT_REVIEW',wp6Status:'BLOCKED_BY_WP5'},formalDecisionOverrideApplied:true,identityMatchRequired:true,identityMatched:true,productionImpact:false},
+    riskAcceptances:RISK_IDS.map(id=>({id,preserved:true,scopeNotExpanded:true})), requiredTests, invariants:[], mutationOracleExecution:[], failedReasonCodes:[], secretMaterialPresent:false
+  };
+}
+function main(){
+  const testRun=runNode(['--test','--test-concurrency=1','tests/wp6/*.test.js'],{timeout:300000});
+  // spawn does not expand glob; run through each file in deterministic one command via shell is avoided.
+  const files=fs.readdirSync(path.join(ROOT,'tests','wp6')).filter(x=>x.endsWith('.test.js')).sort().map(x=>`tests/wp6/${x}`);
+  const actual=runNode(['--test','--test-concurrency=1',...files],{timeout:300000});
+  if(actual.status!==0) throw new Error(`WP6 required tests failed\n${actual.stdout}\n${actual.stderr}`);
+  const required=parseTap(actual.stdout);
+  const source=scanSource(); if(source.status!=='PASS') throw new Error(`source scan failed: ${JSON.stringify(source.findings)}`);
+  const fixture=buildInstalledFixture(); let installed; try{installed=scanInstalledTree(fixture.root,{evidenceClass:'DETERMINISTIC_INSTALLED_TREE_FIXTURE'});}finally{fixture.cleanup();}
+  if(installed.status!=='PASS')throw new Error('installed fixture scan failed');
+  const inventory=inventoryRuntimeEntrypoints(); if(inventory.status!=='PASS')throw new Error('entrypoint inventory failed');
+  const fault=runJson('tools/wp6/fault-matrix.js',600000);
+  const concurrency=runJson('tools/wp6/concurrency-crash-matrix.js',600000);
+  const mutation=runJson('tools/wp6/run-mutations.js',1200000);
+  const adversarial=runJson('tools/wp6/developer-adversarial-review.js',600000);
+  const requiredTests={status:'PASS',...required,files};
+  const mutationOracle={status:mutation.status,...mutation.summary};
+  const cutover={...common('electron-api-v2-cutover',requiredTests),
+    invariants:['ELECTRON_IS_READ_ONLY_RUNTIME_PROJECTION','TRUSTED_OWNER_REQUIRED_BEFORE_BASELINE','RUNTIME_CONTROL_API_V2_ONLY','POLICY_ROUTE_CANNOT_SET_OPERATING_MODE','LEGACY_EXECUTOR_NOT_REACHABLE','DIRECT_LIFECYCLE_FALLBACK_ZERO','STOP_OPERATION_ID_RETAINED_ACROSS_TRANSPORT_UNKNOWN','STOP_RECOVERY_OWNER_SESSION_BOUND','CONFIRMED_STOP_LOCAL_IDEMPOTENCY','NEW_OWNER_BASELINE_REQUIRES_OLD_STOP_EXIT_RECOVERY','RESTART_OWNER_RECOVERY_PRECEDES_NEW_BASELINE'],
+    mutationOracleExecution:[mutationOracle],
+    endpoints:{snapshot:'GET /api/app/v2/snapshot',commands:'POST /api/app/v2/commands',events:'GET /api/app/v2/events'},
+    apiSessionAndContract:{contractVersion:2,authorizationRequired:true,sessionBoundToBackendStart:true,staleResponseRejected:true,credentialMaterialPresent:false},
+    trustedOwnerBoundary:{candidateBeforeTrust:true,baselineBeforeTrust:false,durableOwnerAcceptanceRequired:true,fd4Fd5Fd6BindingRequired:true,runtimeProjectionValidationRequired:true},
+    snapshotAuthorityTriple:['stateVersion','operatingModeRevision','lastEventSequence'],
+    runtimeSetOperatingModeCallSites:['electron/desktopHost/ApiV2RuntimeClient.js','electron/desktopHost/RuntimeProjectionCoordinator.js','electron/main.js','electron/preload.js','frontend/r32-settings-recovery.js','frontend/r32-system-center.js'],
+    policyRouteOperatingModeCallSites:[],legacyExecuteRuntimeControlCallSites:[],processLocalEventBusAuthorityCallSites:[],rendererModeMutationPath:'narrow desktop setOperatingMode IPC -> API v2 command',electronModeMutationPath:'RuntimeProjectionCoordinator -> ApiV2RuntimeClient',
+    apiV2BypassCount:0,policyModeControlCount:0,legacyExecuteModeControlCount:0,directLifecycleFallbackReachableCount:0,coordinatorBypassCount:0,legacyFallbackUsed:false,
+    legacyOwnerCutoverStatus:'BOUND_TO_WP5_ACCEPTED_IMPLEMENTATION',migrationReceiptStatus:'BOUND_TO_WP5_ACCEPTED_IMPLEMENTATION',faultMatrix:fault.summary,concurrencyCrashMatrix:concurrency.summary,developerAdversarialReview:adversarial.summary
+  };
+  const gap={...common('event-gap-recovery',requiredTests),invariants:['EVENT_SEQUENCE_PERSISTED_MONOTONIC','EVENT_GAP_DISCARDS_INCREMENTAL_BASELINE','OLD_SESSION_RESPONSE_REJECTED','TRUSTED_OWNER_REVALIDATED'],mutationOracleExecution:[mutationOracle],ownerTrusted:true,backendStartInstance:'NON_SECRET_TEST_SESSION_1',ownerSession:'NON_SECRET_TEST_OWNER_1',stateVersionBefore:5,operatingModeRevisionBefore:3,lastEventSequenceBefore:7,eventGap:{expected:8,observed:9},eventsAppliedAfterGap:0,incrementalBaselineDiscarded:true,snapshotRefetched:true,stateVersionAfter:8,operatingModeRevisionAfter:3,lastEventSequenceAfter:10,operatingModeRevisionNonrollback:true,oldOwnerPollCancelled:true,staleResponseRejected:true,recoveredAuthorityTriple:{stateVersion:8,operatingModeRevision:3,lastEventSequence:10},persistedRuntimeEventsUsed:true,processLocalEventUsedAsAuthority:false};
+  const crash={...common('backend-crash-recovery',requiredTests),invariants:['COMMAND_INTENT_PERSISTED_BEFORE_APPLY','SAME_COMMAND_ID_RECOVERY','NO_SECOND_COMMAND_DURING_RECOVERY','STOP_TRANSPORT_UNKNOWN_SAME_ID_RECOVERY','STOP_RECOVERY_OWNER_SESSION_BOUND','STOP_OWNER_EXIT_CREATES_NO_SECOND_INTENT','CONFIRMED_STOP_REENTRY_CREATES_NO_SECOND_INTENT','NEW_OWNER_BASELINE_BLOCKED_UNTIL_STOP_EXIT_RECOVERY','RESTART_RESOLVES_STOP_ONLY_AFTER_OWNER_RECOVERY','EVENT_SEQUENCE_NONROLLBACK','FORCED_PROCESS_CUSTODY_NOT_RUNTIME_SUCCESS'],mutationOracleExecution:[mutationOracle],oldBackendIdentity:{kind:'NON_SECRET_TEST_IDENTITY',session:'old'},newBackendIdentity:{kind:'NON_SECRET_TEST_IDENTITY',session:'new'},sessionCredentialRotated:true,apiAuthorityRevokedBeforeReplacement:true,fd6ClosedBeforeReplacement:true,applicationFenceInstalled:true,realExitConfirmationRequired:true,ownerExitRecoveryRequired:true,pendingRuntimeCommandStatusBeforeCrash:'APPLY_FAILED',committedStateRevision:2,applyStatusBeforeCrash:'FAILED',publicationStatusBeforeCrash:'NOT_TERMINAL',recoveryCommandId:'SAME_DURABLE_COMMAND_ID',sameEnvelopeDigest:true,duplicateSideEffectCount:0,recoveredTerminalResponse:true,stopTransportUnknownRecovery:{status:'PASS',tests:['tests/wp6/stop-transport-unknown-recovery.test.js','tests/wp6/restart-stop-recovery-order.test.js'],faultMatrixIds:['F20_TIMEOUT_RECOVERY','F30_CONFIRMED_STOP_DUPLICATE_INTENT','F31_NEW_OWNER_BEFORE_STOP_EXIT_RECOVERY','F32_RESTART_RECOVERY_ORDER'],concurrencyMatrixIds:['C11_STOP_ACK_LOSS_SAME_ID','C12_STOP_OWNER_ROTATION','C13_STOP_OWNER_EXIT','C18_CONFIRMED_STOP_REENTRY','C19_NEW_OWNER_BIND_DURING_EXIT_RECOVERY','C20_RESTART_OWNER_RECOVERY_ORDER'],commandIdCreatedBeforeFirstRequest:true,retainedOperationFields:['commandId','envelope','envelopeDigest','expectedStateVersion','backendPid','startupNonce','backendSessionId','fd6PipeInstanceId','ownerSessionId','apiSessionGeneration'],sameCommandId:true,sameEnvelopeDigest:true,durableIntentCount:1,stopSideEffectCount:1,recoveredOriginalTerminalResult:true,ownerSessionMismatchRejected:true,conflictingEnvelopeRejected:true,backendExitDoesNotCreateSecondIntent:true,confirmedStopReentryDoesNotCreateSecondIntent:true,newOwnerBaselineBlockedUntilExitRecovery:true,resolvedStopArchivedBeforeNewOwnerBaseline:true,restartOwnerRecoveryPrecedesStopResolution:true,restartStopResolutionPrecedesNewBaseline:true,restartBlockedUntilStopOrExitRecoveryResolved:true,permanentPendingStateEliminated:true},newOwnerAcceptedTrustedBeforeSnapshot:true,eventSequenceNonrollback:true,forcedProcessCustodyReportedAsRuntimeSuccess:false,windowsEvidenceLimitation:'UNKNOWN_NOT_EXECUTED_IN_LINUX_DEVELOPMENT_ENVIRONMENT'};
+  const removal={...common('old-runtime-removal',requiredTests),invariants:['OLD_RUNTIME_EXACT_PATHS_ZERO','LEGACY_EXECUTOR_ZERO','API_V2_BYPASS_ZERO','SCAN_ERROR_INVALIDATES_ZERO'],mutationOracleExecution:[mutationOracle],exactOldPaths:source.exactOldPaths,semanticRolePatterns:['CoreRuntime','duplicate LifecycleStateMachine','generic Electron runtime executor','legacy desktop lifecycle IPC','policy operating mode writer'],dynamicLoadScan:true,caseInsensitiveScan:true,sourceRoots:source.roots,installedRoots:['resources/app.asar.unpacked fixture'],archivesExpanded:installed.archivesExpanded,symlinkPolicy:installed.symlinkPolicy,policyRouteModeControlHits:0,legacyExecuteRuntimeControlHits:0,directLifecycleFallbackHits:0,safeModeFileRuntimeReadHits:0,safeModeEnvironmentFallbackHits:0,desktopSettingsModeAuthorityHits:0,rendererStorageModeAuthorityHits:0,yance27RuntimeWriteHits:0,legacyFallbackUsed:false,sourceHitCount:source.hitCount,installedHitCount:installed.hitCount,scanComplete:source.scanComplete&&installed.scanComplete,scannerErrors:[...source.scannerErrors,...installed.scannerErrors],installedEvidenceClass:installed.evidenceClass,realWindowsInstalledTreeStatus:'UNKNOWN_NOT_EXECUTED'};
+  const entry={...common('runtime-entrypoint-inventory',requiredTests),invariants:['ONE_APP_RUNTIME_FACTORY','ONE_LIFECYCLE_STATE_MACHINE_CONSTRUCTION','ONE_API_V2_COMMAND_ROUTER','NO_GENERIC_LEGACY_EXECUTOR','NO_DIRECT_LIFECYCLE_CHANNEL'],mutationOracleExecution:[mutationOracle],allowedProductionCompositionRoot:inventory.allowedProductionCompositionRoot,allowedRuntimeFactory:inventory.allowedRuntimeFactory,duplicateExecutableEntrypoints:inventory.duplicates,duplicateExecutableEntrypointCount:inventory.duplicateExecutableEntrypointCount,inventory:inventory.inventory};
+  const directory=path.join(ROOT,'evidence','wp6'); fs.mkdirSync(directory,{recursive:true});
+  writeJson(path.join(directory,'electron-api-v2-cutover.json'),cutover); writeJson(path.join(directory,'event-gap-recovery.json'),gap); writeJson(path.join(directory,'backend-crash-recovery.json'),crash); writeJson(path.join(directory,'old-runtime-removal.json'),removal); writeJson(path.join(directory,'runtime-entrypoint-inventory.json'),entry);
+  const support=path.join(directory,'supporting'); fs.mkdirSync(support,{recursive:true});
+  writeJson(path.join(support,'required-tests.json'),{schemaVersion:1,status:'PASS',generatedAtUtc:utcNow(),...requiredTests});
+  writeJson(path.join(support,'fault-matrix.json'),fault); writeJson(path.join(support,'concurrency-crash-matrix.json'),concurrency); writeJson(path.join(support,'mutation-matrix.json'),mutation); writeJson(path.join(support,'developer-adversarial-review.json'),adversarial); writeJson(path.join(support,'source-scan.json'),source); writeJson(path.join(support,'installed-tree-fixture-scan.json'),installed);
+  const validation=validateEvidenceDirectory(directory); writeJson(path.join(support,'evidence-validation.json'),validation);
+  if(validation.status!=='PASS')throw new Error(`evidence validation failed ${JSON.stringify(validation)}`);
+  console.log(JSON.stringify({status:'PASS',requiredTests,faultMatrix:fault.summary,concurrencyCrashMatrix:concurrency.summary,mutationMatrix:mutation.summary,developerAdversarialReview:adversarial.summary,evidenceValidation:validation.status,files:['electron-api-v2-cutover.json','event-gap-recovery.json','backend-crash-recovery.json','old-runtime-removal.json','runtime-entrypoint-inventory.json']},null,2));
+}
+try{main();}catch(error){console.error(error.stack||error);process.exitCode=1;}

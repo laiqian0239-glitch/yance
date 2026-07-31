@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH29_ROOT_CAUSE_ISSUE_MATRIX",
+  "generatedAtUtc": "2026-07-29T08:24:51Z",
+  "sourceIdentity": {
+    "implementationCommit": "0c1b2377a36703296eee48cb2a427742ac45d3a7",
+    "implementationTree": "ddd9f71faa81d82319737478c721bc647d35a16f",
+    "parentPackageCommit": "a400cf21ae9c39c03b4a9d78f0f355a92a0a63bd"
+  },
+  "issues": [
+    {
+      "id": "B29-WP3-001",
+      "severity": "P1",
+      "status": "SOURCE_FIXED_WINDOWS_RETEST_REQUIRED",
+      "title": "WP3 stale-owner tests leave private SQLite brokers open before fixture removal",
+      "evidence": "Real Windows WP3 41/43; two EPERM temp-directory cleanup failures after fencing assertions passed.",
+      "rootCause": "RuntimeStateStore.close() does not own/close the private SQLiteBroker created by direct RuntimeOwnership; stale owner test released only mutex.",
+      "fix": "Use ownership release with releaseLease=false for stale owner, release current owner, then bounded Windows directory cleanup.",
+      "verification": "Direct dual-owner private-broker closure and directory removal 1/1 PASS; full Windows WP3 pending."
+    },
+    {
+      "id": "B29-WP4-001",
+      "severity": "P0",
+      "status": "SOURCE_FIXED_WINDOWS_RETEST_REQUIRED",
+      "title": "Backend startup failure does not preempt blocked credential FD5 write",
+      "evidence": "Real Windows WP4 194/195; A12/A14/A20/A21 CREDENTIAL_IPC_WRITE_TIMEOUT and three post-test unhandled Backend startup failed rejections.",
+      "rootCause": "CredentialIpcHost write deadline was independent from BackendProcessHost startup generation; startup-failed, child exit, stop and restart did not abort the pending write/promise graph.",
+      "fix": "Per-start AbortController propagated to FD5, hydration, READY and handshake waits; abort on startup-failed/error/exit/stop/restart; attach terminal catch handlers and remove listeners on settle.",
+      "verification": "Targeted startup-failure and stop cancellation 4/4 PASS; full Windows WP4 pending."
+    },
+    {
+      "id": "B29-WP5-001",
+      "severity": "P1",
+      "status": "SOURCE_FIXED_WINDOWS_RETEST_REQUIRED",
+      "title": "WP5 mutation harness misclassifies Windows Node test failures as harness errors",
+      "evidence": "Real Windows matrix: total 24, killed 5, survived 0, harnessError 19; Node 24 spec reporter emitted ✖, fail N and failing tests.",
+      "rootCause": "Classifier recognized TAP not ok and JSON FAIL only; it did not force TAP or recognize spec reporter failure markers.",
+      "fix": "Force --test-reporter=tap, support TAP/spec/JSON patterns, persist per-mutant command/exit/log hash, and emit live progress.",
+      "verification": "24 isolated mutants independently KILLED, 0 survived, 0 harness error; one uninterrupted Windows matrix pending."
+    }
+  ],
+  "governance": {
+    "windowsUatState": "WINDOWS_UAT_BLOCKED",
+    "readyForPromotion": false,
+    "formalRelease": false
+  }
+}

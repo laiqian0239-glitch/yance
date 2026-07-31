@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP5_CONVERGENCE_PRE_REVIEW_FORMAL_DECISION",
+  "stage": "6.4.5.9",
+  "workPackage": "WP5",
+  "decision": "WP5_PREACCEPTED_FOR_FINAL_PACKAGING",
+  "recordedAtUtc": "2026-07-05T05:29:18Z",
+  "candidateIdentity": {
+    "implementationCommit": "2d42a7424b1bac0dafa2b4c3bee3378266e1a92f",
+    "implementationSourceTree": "1b7594dcc35e77a09e3e31473fbec74847a5e3c1",
+    "parentCommit": "4812bc484ee808e30329a3393244ae30f390f5b8",
+    "activationBindingAncestor": "e52b9f6c6ddb59a45fc652aef43b195fbecb6aee"
+  },
+  "candidateBindingIdentity": {
+    "commit": "ba3728dcf267c338af19d78297309aa306ee8018",
+    "sourceTree": "6e6a9c27a18bce011da06863aa7ea4c2015db386"
+  },
+  "confirmedVerification": {
+    "wp5RequiredTests": "PASS_42_OF_42",
+    "faultMatrix": "PASS_18_OF_18",
+    "concurrencyCrashMatrix": "PASS_10_OF_10",
+    "mutationMatrix": "PASS_24_OF_24_KILLED_ZERO_SURVIVORS_ZERO_INVALID_ZERO_TIMEOUT_ZERO_SIGNAL_ZERO_HARNESS_ERROR",
+    "sourceClosure": "PASS_11_OF_11",
+    "developerAdversarialReview": "PASS_10_OF_10",
+    "windowsLegacyRuntimeCutover": "PASS_4_OF_4_REAL_WINDOWS_SELF_CONTAINED_SOURCE_BINDING",
+    "wp0Regression": "PASS_16_OF_16",
+    "wp0Gate": "PASS_4_OF_4",
+    "wp1Regression": "PASS_24_OF_24",
+    "wp2Regression": "PASS_60_OF_60",
+    "wp3Regression": "PASS_22_OF_23_WITH_1_EXISTING_ACCEPTED_WINDOWS_SKIP",
+    "wp4Regression": "PASS_158_OF_158_47_OF_47_FILES",
+    "formalVerify": "PASS_CLEAN_BUNDLE_ONLY_CLONE",
+    "repositoryClean": "PASS"
+  },
+  "preservedRiskAcceptanceIds": [
+    "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+    "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+    "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION"
+  ],
+  "finalPackagingAuthorization": {
+    "authorized": true,
+    "allowedArtifacts": [
+      "candidate-binding-commit",
+      "final-delivery-head",
+      "complete-source-zip",
+      "complete-test-artifacts-zip",
+      "complete-final-delivery-zip",
+      "delivery-json",
+      "internal-and-external-sha256",
+      "project-handoff",
+      "work-package-status-candidate"
+    ]
+  },
+  "formalStatusUntilFinalAcceptance": {
+    "WP5": {
+      "status": "ACTIVE",
+      "active": true,
+      "reviewStatus": "PENDING_INDEPENDENT_REVIEW",
+      "reviewPhase": "FINAL_PACKAGING_AUTHORIZED",
+      "preAcceptanceStatus": "WP5_PREACCEPTED_FOR_FINAL_PACKAGING",
+      "finalPackagingAuthorized": true
+    },
+    "WP6": {
+      "status": "BLOCKED_BY_WP5",
+      "active": false
+    }
+  },
+  "doesNotRepresent": [
+    "WP5_ACCEPTED",
+    "WP5_COMPLETED",
+    "WP6_ACTIVATION"
+  ]
+}

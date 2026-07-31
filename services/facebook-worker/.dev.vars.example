@@ -1,0 +1,12 @@
+# Copy to .dev.vars for local Worker development only. Never commit .dev.vars.
+META_APP_ID=replace_me
+META_APP_SECRET=replace_me
+META_VERIFY_TOKEN=replace_with_random_32_plus_chars
+# 32-byte key: base64 or 64 hex. For rotation, JSON is supported:
+# {"active":"k2","keys":{"k1":"BASE64_OLD_KEY","k2":"BASE64_NEW_KEY"}}
+TOKEN_ENCRYPTION_KEY=replace_with_32_byte_key
+DESKTOP_AUTH_MASTER_KEY=replace_with_random_32_plus_bytes
+
+# Non-secret Business Login binding; keep aligned with wrangler.jsonc.
+META_BUSINESS_LOGIN_CONFIG_ID=4234889550142986
+WORKER_BASE_URL=https://yance-facebook-gateway.wangyi198675.workers.dev

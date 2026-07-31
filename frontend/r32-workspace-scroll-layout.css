@@ -1,0 +1,450 @@
+:root{--ui-route-scroll-authority:workspace-root}
+
+/* FIX6D V4 · routed pages have one vertical scroll owner: the workspace root. */
+.ui-route-scroll-root{
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior-y:contain;
+  scrollbar-gutter:stable;
+  scroll-padding-block:0;
+}
+.ui-route-scroll-root .ui-route-scroll-surface{
+  height:auto;
+  max-height:none;
+  overflow:visible;
+  overscroll-behavior:auto;
+  scrollbar-gutter:auto;
+}
+
+/* FIX6D V4 · 全局工作区滚动与可用高度闭环
+   大型业务页面的顶部说明随路由工作区一起滚动；目录、详情和系统导航
+   都参与同一文档流，禁止重新成为独立纵向滚动容器。 */
+
+:is(
+  .profiles-workspace,
+  .timeline-workspace,
+  .insights-workspace,
+  .aiwork-workspace,
+  .account-center-workspace,
+  .system-center-workspace
+){
+  height:100%;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  scrollbar-width:thin;
+  scrollbar-color:color-mix(in srgb,var(--accent-primary) 42%,transparent) transparent;
+}
+
+/* 旧结构把顶部 Hero 固定为第一行，仅让下半区内部滚动。改为整页自然流。 */
+.app.profile-page-open .profiles-workspace,
+.app.timeline-page-open .timeline-workspace,
+.app.insights-page-open .insights-workspace,
+.app.aiwork-page-open .aiwork-workspace,
+.app.account-center-open .account-center-workspace,
+.app.system-center-open .system-center-workspace{
+  display:block;
+}
+
+:is(
+  .profile27-hero,
+  .timeline27-hero,
+  .insight29-hero,
+  .aiw30-hero,
+  .ac32-hero,
+  .sc32-hero
+){
+  position:relative;
+  z-index:0;
+}
+
+/* 下方核心工作区拥有足够的独立高度；向下滚动时 Hero 会正常离开视口。 */
+.profile27-main,
+.timeline27-main,
+.insight29-main,
+.ac32-main{
+  min-height:clamp(660px,calc(100vh - 104px),980px);
+  height:auto;
+}
+
+.aiw30-body{
+  min-height:clamp(700px,calc(100vh - 92px),1040px);
+  height:auto;
+}
+
+.sc32-body{
+  min-height:clamp(720px,calc(100vh - 86px),1080px);
+  height:auto;
+}
+
+/* 系统中心左侧九个分区和底部工程信息随路由根滚动并保持可达。 */
+.sc32-nav{flex:0 0 auto}
+.sc32-side-foot{margin-top:12px;flex:0 0 auto}
+
+/* AI 工作台：最近操作不再被压成狭窄窗口。 */
+.aiw30-sidebar{
+  grid-template-rows:auto auto minmax(220px,1fr) auto;
+}
+.aiw30-activity{
+  min-height:220px;
+  scrollbar-gutter:stable;
+}
+
+/* 详情标题始终位于自己的容器内，正文不会视觉穿透标题层。 */
+:is(
+  .profile27-detail-hero,
+  .timeline27-detail-hero,
+  .insight29-detail-hero,
+  .aiw30-content-head,
+  .ac32-detail-hero,
+  .sc32-panel-head
+){
+  position:relative;
+  z-index:2;
+  isolation:isolate;
+}
+
+:is(
+  .profile27-scroll,
+  .timeline27-scroll,
+  .insight29-detail-scroll,
+  .aiw30-scroll,
+  .ac32-scroll,
+  .sc32-content
+){
+  position:relative;
+  z-index:1;
+  scroll-padding-top:14px;
+  scrollbar-gutter:stable;
+}
+
+/* 低高度窗口优先保留操作区，顶部介绍压缩但不裁切。 */
+@media(max-height:900px){
+  .profile27-hero,.timeline27-hero,.insight29-hero,.aiw30-hero,.ac32-hero,.sc32-hero{padding-top:13px;padding-bottom:11px}
+  .profile27-title p,.timeline27-title p,.insight29-title p,.aiw30-title p,.ac32-title p,.sc32-title p{
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    overflow:hidden;
+  }
+  .profile27-syncbar,.timeline27-syncbar,.insight29-syncbar,.aiw30-sync{margin-top:9px}
+  .profile27-syncbar article,.timeline27-syncbar article,.insight29-syncbar article,.aiw30-sync article{padding-top:7px;padding-bottom:7px}
+}
+
+@media(max-width:820px){
+  :is(.profiles-workspace,.timeline-workspace,.insights-workspace,.aiwork-workspace,.account-center-workspace,.system-center-workspace){height:100%}
+  .profile27-main,.timeline27-main,.insight29-main,.aiw30-body,.ac32-main,.sc32-body{min-height:auto}
+  .sc32-sidebar{overflow:visible}
+  .aiw30-sidebar{grid-template-rows:auto auto minmax(180px,auto) auto}
+}
+
+
+/* 消息图片按真实内容尺寸呈现；贴纸、点赞等紧凑表达不再使用固定媒体海报。 */
+.msg .media-card{
+  width:fit-content;
+  max-width:min(420px,100%);
+  height:auto;
+  min-height:0;
+  padding:0;
+  overflow:hidden;
+  background:color-mix(in srgb,var(--surface-card) 82%,transparent);
+}
+.msg .media-card::before,.msg .media-card::after{display:none!important}
+.msg .media-card>img,.msg .media-card>video{
+  display:block;
+  width:auto;
+  max-width:100%;
+  height:auto;
+  max-height:360px;
+  object-fit:contain;
+  background:transparent;
+}
+.msg .media-card[data-media-kind="image"]:not(.media-compact-expression){width:min(420px,100%)}
+.msg .media-card[data-media-kind="image"]:not(.media-compact-expression)>img{width:100%}
+.msg .media-card.media-compact-expression{
+  width:fit-content;
+  max-width:152px;
+  border:0;
+  border-radius:12px;
+  box-shadow:none;
+  background:transparent;
+}
+.msg .media-card.media-compact-expression>img,
+.msg .media-card.media-compact-expression>video{
+  width:auto;
+  max-width:136px;
+  max-height:136px;
+  border-radius:10px;
+}
+.msg .media-card.media-compact-expression .media-analyze-btn{display:none!important}
+
+/* FIX18 · 诊断与日志滚动权威闭环
+   Fix15 将整页工作区改成自然滚动后，账号中心和系统中心仍保留旧的详情内滚动，
+   同时动态卡片使用 content-visibility:auto，长诊断卡首次进入视口时会重新估算高度，
+   造成“向上回退”、顶部被遮挡和刷新后位置漂移。Fix18 统一为一个主滚动容器。 */
+
+/* 统一账号中心：外层工作区是唯一主滚动条；账号目录保留独立安全滚动。 */
+.app.account-center-open .account-center-workspace{
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+.app.account-center-open .ac32-main{
+  align-items:start;
+  height:auto;
+}
+.app.account-center-open .ac32-directory{
+  position:relative;
+  top:auto;
+  max-height:none;
+  align-self:stretch;
+}
+.app.account-center-open .ac32-workbench{
+  display:block;
+  overflow:visible;
+  min-height:0;
+}
+.app.account-center-open .ac32-scroll{
+  min-height:0;
+  overflow:visible;
+  height:auto;
+}
+
+/* 系统中心：外层工作区是唯一纵向滚动所有者，左侧导航参与同一文档流。 */
+.app.system-center-open .system-center-workspace{
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+.app.system-center-open .sc32-body{
+  align-items:start;
+  height:auto;
+}
+.app.system-center-open .sc32-sidebar{
+  position:relative;
+  top:auto;
+  max-height:none;
+  align-self:stretch;
+  overflow:visible;
+  overscroll-behavior:auto;
+  scrollbar-gutter:auto;
+}
+.app.system-center-open .sc32-content{
+  min-height:0;
+  height:auto;
+  overflow:visible;
+}
+
+/* 动态诊断、操作历史和日志不能使用估算高度虚拟化，否则会在滚动时发生布局位移。 */
+.app.account-center-open :is(.ac32-section,.ac32-panel),
+.app.system-center-open :is(.sc32-section,.sc32-panel){
+  content-visibility:visible;
+  contain:none;
+  contain-intrinsic-size:none;
+}
+
+/* 操作历史默认展示业务摘要，内部账号 ID 与原始 JSON 仅放在可展开技术详情中。 */
+.ac32-history-row{grid-template-columns:minmax(0,1fr) auto}
+.ac32-history-row>span{display:none}
+.ac32-history-row details.ac32-technical-details{margin-top:7px}
+.ac32-history-row details.ac32-technical-details pre{
+  max-width:100%;
+  margin:7px 0 0;
+  padding:8px;
+  border:1px solid color-mix(in srgb,var(--border-active) 12%,transparent);
+  border-radius:9px;
+  background:color-mix(in srgb,var(--surface-control) 48%,transparent);
+  color:var(--text-secondary);
+  font:500 var(--ws-meta,10px)/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+
+@media(max-width:820px){
+  .app.account-center-open .ac32-directory,
+  .app.system-center-open .sc32-sidebar{
+    position:relative;
+    top:auto;
+    max-height:none;
+  }
+}
+
+/* Batch 8 · 多层标题、产品页签和正文必须保持独立文档流。 */
+:is(
+  .contacts-workspace,.profiles-workspace,.timeline-workspace,.insights-workspace,
+  .aiwork-workspace,.account-center-workspace,.system-center-workspace,
+  .settings-recovery-workspace,.theme-workspace
+)>:is(header,.product-area-subnav){
+  position:relative!important;
+  inset:auto!important;
+  top:auto!important;
+  min-width:0;
+  flex:0 0 auto;
+}
+.product-area-subnav{
+  position:relative!important;
+  inset:auto!important;
+  top:auto!important;
+  margin-top:0!important;
+  transform:none!important;
+  isolation:isolate;
+}
+:is(.sr32-head,.sc32-hero,.theme32-head,.ac32-hero,.aiw30-hero,.profile27-hero,.timeline27-hero,.insight29-hero){
+  min-width:0;
+  overflow:visible;
+  isolation:isolate;
+}
+:is(.sr32-head-actions,.sc32-hero-actions,.theme32-head-actions,.ac32-hero-actions,.aiw30-actions){
+  min-width:0;
+  max-width:100%;
+}
+@media(max-width:1050px){
+  :is(.sr32-head,.sc32-hero,.theme32-head,.ac32-hero,.aiw30-hero){align-items:flex-start;flex-wrap:wrap}
+}
+
+
+/* Batch 12 · 真实生产页面布局权威
+   只允许一个页面路由、一个顶层 Grid、一个正文滚动区。
+   该段位于文件末尾，覆盖 Fix15/Fix18 的外层自然流实验，避免标题、页签和正文互相争夺布局。 */
+:is(
+  .contacts-workspace,.profiles-workspace,.timeline-workspace,.insights-workspace,
+  .aiwork-workspace,.account-center-workspace,.system-center-workspace,
+  .settings-recovery-workspace,.theme-workspace
+){
+  height:100%;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior-y:contain;
+  scrollbar-gutter:stable;
+}
+
+.app.contact-page-open .contacts-workspace{
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr);
+}
+.app.profile-page-open .profiles-workspace{
+  display:grid!important;
+  grid-template-rows:auto auto auto minmax(0,1fr);
+}
+.app.timeline-page-open .timeline-workspace{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr);
+}
+.app.insights-page-open .insights-workspace{
+  display:grid!important;
+  grid-template-rows:auto auto auto minmax(0,1fr);
+}
+.app.aiwork-page-open .aiwork-workspace{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr);
+}
+.app.account-center-open .account-center-workspace{
+  display:grid!important;
+  grid-template-rows:auto auto auto minmax(0,1fr);
+}
+.app.system-center-open .system-center-workspace{
+  display:grid!important;
+  grid-template-rows:auto auto auto minmax(0,1fr);
+}
+.app.settings-recovery-open .settings-recovery-workspace,
+.app.theme-workspace-open .theme-workspace{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr);
+}
+
+:is(
+  .contact26-shell,.profile27-main,.timeline27-main,.insight29-main,.aiw30-body,
+  .ac32-main,.sc32-body,.sr32-body,.theme32-body
+){
+  min-height:0!important;
+  height:auto!important;
+}
+
+.app.account-center-open .ac32-directory,
+.app.system-center-open .sc32-sidebar{
+  position:relative;
+  inset:auto;
+  top:auto;
+  max-height:none;
+  align-self:stretch;
+}
+
+.app.account-center-open .ac32-workbench{
+  display:grid;
+  grid-template-rows:auto auto minmax(0,1fr);
+  min-height:0;
+  overflow:hidden;
+}
+.app.account-center-open .ac32-scroll,
+.app.system-center-open .sc32-content,
+.app.settings-recovery-open .sr32-content,
+.app.theme-workspace-open .theme32-body{
+  min-height:0;
+  height:auto;
+  overflow:visible;
+}
+
+:is(.product-area-subnav){
+  z-index:4;
+  max-width:100%;
+  min-width:0;
+}
+:is(.product-area-subnav) button{flex:0 0 auto}
+
+@media(max-width:820px){
+  :is(
+    .contacts-workspace,.profiles-workspace,.timeline-workspace,.insights-workspace,
+    .aiwork-workspace,.account-center-workspace,.system-center-workspace,
+    .settings-recovery-workspace,.theme-workspace
+  ){
+    overflow-y:auto;
+    overflow-x:hidden;
+    scrollbar-gutter:stable;
+  }
+
+  .app.contact-page-open .contacts-workspace,
+  .app.profile-page-open .profiles-workspace,
+  .app.timeline-page-open .timeline-workspace,
+  .app.insights-page-open .insights-workspace,
+  .app.aiwork-page-open .aiwork-workspace,
+  .app.account-center-open .account-center-workspace,
+  .app.system-center-open .system-center-workspace,
+  .app.settings-recovery-open .settings-recovery-workspace,
+  .app.theme-workspace-open .theme-workspace{
+    grid-template-rows:none;
+    grid-auto-rows:max-content;
+  }
+
+  :is(.ac32-main,.sc32-body,.sr32-body){
+    display:grid;
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+
+  :is(
+    .profile27-scroll,.timeline27-scroll,.insight29-detail-scroll,.aiw30-scroll,
+    .ac32-scroll,.sc32-content,.sr32-content,.theme32-body
+  ){
+    overflow:visible!important;
+    max-height:none!important;
+  }
+
+  .app.account-center-open .ac32-directory,
+  .app.system-center-open .sc32-sidebar{
+    max-height:none;
+    overflow:visible;
+  }
+}
+
+@media(max-width:560px){
+  :is(.sr32-head,.sc32-hero,.theme32-head,.ac32-hero,.aiw30-hero){
+    padding:14px;
+  }
+  :is(.sr32-head-actions,.sc32-hero-actions,.theme32-head-actions,.ac32-hero-actions,.aiw30-actions){
+    width:100%;
+    justify-content:flex-start;
+  }
+  .product-area-subnav{
+    border-radius:11px;
+    margin-bottom:7px!important;
+  }
+}

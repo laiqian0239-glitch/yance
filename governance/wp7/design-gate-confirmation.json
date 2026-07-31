@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP7_DESIGN_GATE_CONFIRMATION",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP7",
+  "decision": "WP7_DESIGN_GATE_CONFIRMED",
+  "decisionDate": "2026-07-05",
+  "revisionId": "DG-R1",
+  "activationIdentityBindingCommit": "4ac6d2185bed28823210849704f3850cd875b5fb",
+  "activationBindingSourceTree": "d7f64dbf602ded1075978c13bea8449d7ef7e5e2",
+  "productionImplementationAuthorized": true,
+  "finalPackagingAuthorized": false,
+  "finalAcceptanceStatus": "NOT_ACCEPTED",
+  "implementationStartRule": "Every implementation commit must descend from the accepted Activation identity binding commit."
+}

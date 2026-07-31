@@ -1,0 +1,167 @@
+{
+  "schemaVersion": "1.0",
+  "documentType": "YANCE_BATCH22_ROOT_CAUSE_ISSUE_MATRIX",
+  "project": "YANCE",
+  "generatedAtUtc": "2026-07-28T11:40:48Z",
+  "sourceBaseline": {
+    "originalCommit": "f25fe2e2b4f065d2c09de034eddb67857eeb83bb",
+    "originalTree": "015f7969a2363952071bf11f4da3eb2adaf7edbf",
+    "batch21PackageTree": "feffa17382ce18a54e5349a95800f342fc46d59b"
+  },
+  "implementation": {
+    "branch": "development/windows-uat-f25fe2e-repair-batch22-root-authority-closure",
+    "commit": "012685f2f89b4668f8f1ab0d60387506794ed28b",
+    "tree": "4aef90a1d14ca89fa603e4b21aa8faf8e3486576"
+  },
+  "governance": {
+    "repairState": "REPAIR_ATTEMPT_IN_PROGRESS",
+    "windowsUatState": "WINDOWS_UAT_BLOCKED",
+    "formalRelease": false,
+    "readyForPromotion": false,
+    "independentReviewRequired": true
+  },
+  "rootCauseDomains": [
+    {
+      "id": "RC-01",
+      "priority": "P0",
+      "name": "Account, Store, Outbox and platform ACK authority split",
+      "sourceStatus": "SOURCE_FIXED_BEHAVIORALLY_VERIFIED",
+      "closureStatus": "REAL_WINDOWS_PLATFORM_ACK_PENDING",
+      "positiveTests": [
+        "canAttemptSend permits first durable attempt",
+        "fresh text ACK alone establishes sendVerified"
+      ],
+      "negativeTests": [
+        "connected without ACK remains unverified",
+        "AI candidate is not cancelled merely because ACK is not yet verified",
+        "legacy verified SQLite account survives restart hydration without becoming connected-derived false positive"
+      ]
+    },
+    {
+      "id": "RC-02",
+      "priority": "P0",
+      "name": "PlatformAccount ExternalIdentity IdentityLink ConversationBinding Message OutboxRoute contract split",
+      "sourceStatus": "SOURCE_FIXED_BEHAVIORALLY_VERIFIED",
+      "closureStatus": "REAL_CROSS_PLATFORM_IDENTITY_AND_ROUTE_UAT_PENDING",
+      "positiveTests": [
+        "explicit ExternalIdentity and OutboxRoute persist",
+        "inbound identity/message and outbound queue/route commit atomically"
+      ],
+      "negativeTests": [
+        "missing PlatformAccount fails closed",
+        "invalid route rolls back queue row",
+        "account/platform/target conflict rejects egress"
+      ]
+    },
+    {
+      "id": "RC-03",
+      "priority": "P0",
+      "name": "Realtime event SQLite persistence and UI hydration split",
+      "sourceStatus": "SOURCE_FIXED_BEHAVIORALLY_VERIFIED",
+      "closureStatus": "REAL_HISTORY_ECHO_RESTART_UAT_PENDING",
+      "positiveTests": [
+        "message inserted/updated/translated events invalidate SQLite projection and reload"
+      ],
+      "negativeTests": [
+        "realtime payload cannot push visible history directly",
+        "removed stale media array mutation helper"
+      ]
+    },
+    {
+      "id": "RC-04",
+      "priority": "P0",
+      "name": "Authentication and async workflow completion lifecycle split",
+      "sourceStatus": "SOURCE_FIXED_BEHAVIORALLY_VERIFIED",
+      "closureStatus": "REAL_QR_OAUTH_RESTART_LIFECYCLE_PENDING",
+      "positiveTests": [
+        "QR waiting remains RUNNING",
+        "later account event settles same persistent workflow"
+      ],
+      "negativeTests": [
+        "auth start/cancel handler bypass removed",
+        "stale generation completion rejected",
+        "reused business operation hint cannot collide with terminal primary key"
+      ]
+    },
+    {
+      "id": "RC-05",
+      "priority": "P0",
+      "name": "Static capabilities detached from payload-specific platform ACK",
+      "sourceStatus": "SOURCE_FIXED_BEHAVIORALLY_VERIFIED",
+      "closureStatus": "REAL_TEXT_EMOJI_MEDIA_ACK_MATRIX_PENDING",
+      "positiveTests": [
+        "text emoji and media evidence remain capability-scoped"
+      ],
+      "negativeTests": [
+        "emoji failure cannot block account text health",
+        "success without platform message id is rejected",
+        "accepted-but-unpersisted outcome blocks retry"
+      ]
+    },
+    {
+      "id": "RC-06",
+      "priority": "P0",
+      "name": "OpenRouter key smoke qualification task assignment and route state split",
+      "sourceStatus": "SOURCE_PATH_AUTOMATED_VERIFIED",
+      "closureStatus": "REAL_OPENROUTER_2_OF_2_PENDING",
+      "positiveTests": [
+        "two distinct successful smoke models required before conditional route application"
+      ],
+      "negativeTests": [
+        "2/2 incomplete remains blocked",
+        "formal commercial qualification is never inferred from smoke"
+      ]
+    },
+    {
+      "id": "RC-07",
+      "priority": "P1",
+      "name": "Global typography density contrast and layout token coverage",
+      "sourceStatus": "SOURCE_PATCHED_COMPONENT_CONTRACT_VERIFIED",
+      "closureStatus": "REAL_WINDOWS_DPI_THEME_RENDER_PENDING",
+      "positiveTests": [
+        "component readability 6/6"
+      ],
+      "negativeTests": [
+        "automated CSS/component checks cannot authorize Windows render closure"
+      ]
+    },
+    {
+      "id": "RC-08",
+      "priority": "P0",
+      "name": "Automated oracle diverges from Electron platform and OpenRouter reality",
+      "sourceStatus": "BEHAVIORAL_ORACLE_REPAIRED",
+      "closureStatus": "REAL_WINDOWS_PLATFORM_OPENROUTER_EVIDENCE_PENDING",
+      "positiveTests": [
+        "162 backend files 956/956 pass in isolated serial execution",
+        "critical suites pass"
+      ],
+      "negativeTests": [
+        "monolithic runner hang is recorded instead of presented as PASS",
+        "automated evidence cannot change promotion state"
+      ]
+    }
+  ],
+  "automatedVerification": {
+    "fullBackend": "162 files, 956/956 PASS",
+    "fullBackendSummarySha256": "b6e2326d0ea8a3b134898ccc0f8f3d080f16c78b16f4984c6e5af76994def214",
+    "batch22RootCause": "18/18 PASS",
+    "round12PlatformCore": "79/79 PASS",
+    "round13AiQuality": "24/24 PASS",
+    "platformProductionReadiness": "58/58 PASS",
+    "uatDiagnostics": "142/142 PASS",
+    "sourceUatDelivery": "33/33 PASS",
+    "componentReadability": "6/6 PASS",
+    "round12Round13FinalReview": "34/34 PASS",
+    "javascriptSyntax": "45/45 PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "realEvidence": {
+    "windowsElectron": "NOT_EXECUTED_IN_THIS_ENVIRONMENT",
+    "whatsapp": "PENDING",
+    "facebook": "PENDING",
+    "telegram": "PENDING",
+    "openRouter": "PENDING",
+    "restartPersistence": "PENDING",
+    "dpiAndThemes": "PENDING"
+  }
+}

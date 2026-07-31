@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "productName": "言策",
+  "productVersion": "29.2.7",
+  "companyName": "言策科技",
+  "legalCopyright": "© 2026 言策科技 保留所有权利",
+  "stageVersion": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "distributionMode": "LOCAL_PRIVATE_UNSIGNED",
+  "apiContractVersion": 2,
+  "credentialProtocolVersion": 3,
+  "runtimeLockProtocolVersion": 1,
+  "publicProductName": "言策",
+  "publicProductNameEnglish": "Yance",
+  "publicVersion": "1.0.0",
+  "internalProductId": "Yance",
+  "executableName": "Yance.exe",
+  "installDirectoryName": "Yance",
+  "userDataDirectoryName": "Yance",
+  "brandingEpoch": 2,
+  "installerBaseName": "Yance-Setup",
+  "internalName": "Yance",
+  "originalFilename": "Yance.exe",
+  "appUserModelId": "com.yance.desktop",
+  "legacyCompatibility": {
+    "productIds": [
+      "Yance29"
+    ],
+    "executableNames": [
+      "Yance29.exe"
+    ],
+    "dataDirectoryNames": [
+      "Yance29"
+    ],
+    "registryKeys": [
+      "Software\\Yance29",
+      "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Yance29"
+    ],
+    "runtimeMutexPrefixes": [
+      "Local\\Yance29.AppRuntime."
+    ],
+    "reason": "One-cycle migration compatibility for existing internal-test installations and local user data.",
+    "userVisible": false,
+    "sunsetAfterBrandingEpoch": 3
+  },
+  "releaseChannel": "INTERNAL_TEST_ONLY",
+  "onlineUpdatesEnabled": false,
+  "updateMode": "MANUAL_INSTALLER_ONLY",
+  "formalPublicReleaseAuthorized": false
+}

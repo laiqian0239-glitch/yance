@@ -1,0 +1,2804 @@
+{
+  "schemaVersion": 1,
+  "authority": "NotificationSoundLibrary",
+  "source": "user-provided-audio-archive",
+  "importedAt": "2026-07-24T00:00:00.000Z",
+  "dedupe": {
+    "inputAudioEntries": 271,
+    "exactUniqueEntries": 128,
+    "validUniqueImported": 125,
+    "rejectedEntries": 3,
+    "removedDuplicateEntries": 143,
+    "strategy": [
+      "byte-level-sha256",
+      "decode-validation",
+      "normalized-pcm-sha256",
+      "existing-library-cross-check"
+    ]
+  },
+  "patterns": [
+    {
+      "id": "qq-cs-message",
+      "fileName": "yance-qq-cs-message.wav",
+      "label": "CS音效 · 消息",
+      "description": "QQ 音效库中的“CS音效”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "CS音效",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 1053,
+      "sourceContentSha256": "6be9eeb443e8d2b25659816d9f7a076737f2cc8f27424cf4b1ca2e1bec451d17",
+      "normalizedContentSha256": "573b0d1a1e079aa19181b037d0fbba8e2237ee6bff55a5d7d3f6700c7305e2ad",
+      "sizeBytes": 46522,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/MSG_CS音效_23370.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/CS音效/CS音效/MSG.wav"
+      ]
+    },
+    {
+      "id": "qq-classic-message",
+      "fileName": "yance-qq-classic-message.wav",
+      "label": "QQ经典 · 消息",
+      "description": "QQ 音效库中的“QQ经典”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "QQ经典",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 815,
+      "sourceContentSha256": "ef6cfbe97adac7cc6a2cea4f33bbc3488ce30a80fc7783f01d7e27d2aae51c34",
+      "normalizedContentSha256": "eee103e3f1e0e7c6c1a4818df0a62669c0a58ffb7f30161c040eeaaaaa02d9d1",
+      "sizeBytes": 36054,
+      "sourcePath": "新建文件夹/QQ原生音效/原版/msg.wav",
+      "duplicateAliasesRemoved": 2,
+      "aliases": [
+        "新建文件夹/QQ原生音效/所有变体/msg_QQ原版声音_9220.wav",
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/QQ原版声音/QQ原版声音/msg.wav"
+      ]
+    },
+    {
+      "id": "qq-samsung-message",
+      "fileName": "yance-qq-samsung-message.wav",
+      "label": "三星电话 · 消息",
+      "description": "QQ 音效库中的“三星电话”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "三星电话",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 1388,
+      "sourceContentSha256": "1de5bafb823194672d34d9e8d57b08da894439b95e2305b026174bbab501cb48",
+      "normalizedContentSha256": "87b542bd632ddf564e252750edba78e3bb00339094cb9cbbaf0ea344f46e1a6b",
+      "sizeBytes": 61312,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/MSG_三星电话_11152.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/三星电话/三星电话/MSG.wav"
+      ]
+    },
+    {
+      "id": "qq-strict-one-message",
+      "fileName": "yance-qq-strict-one-message.wav",
+      "label": "严守一 · 消息",
+      "description": "QQ 音效库中的“严守一”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "严守一",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 3000,
+      "sourceContentSha256": "80b24f8dc195e94c3ba97a7a323c33aaa9e0cc6d6d368129bc821e912cfd3fab",
+      "normalizedContentSha256": "5125dfb56177d3db2e8f47243a0328f8f65058d1ee6e01af8c7362ca7e64966d",
+      "sizeBytes": 132390,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/msg_严守一_66214.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/严守一/严守一/msg.wav"
+      ]
+    },
+    {
+      "id": "qq-kiss-hug-message",
+      "fileName": "yance-qq-kiss-hug-message.wav",
+      "label": "亲亲我抱抱我 · 消息",
+      "description": "QQ 音效库中的“亲亲我抱抱我”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "亲亲我抱抱我",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 4587,
+      "sourceContentSha256": "1ecbfb9cb4506036f085cb7ecb0ebc5b3ff887cb382fce9e4c05b5ccc3b84cb6",
+      "normalizedContentSha256": "365f4e425a096cda0ade9949a9dd40bb09bf6fcf082f74c6ffedcede56bfe745",
+      "sizeBytes": 205482,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Msg_亲亲我抱抱我_18780.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/亲亲我抱抱我/亲亲我抱抱我/Msg.wav"
+      ]
+    },
+    {
+      "id": "qq-first-love-message",
+      "fileName": "yance-qq-first-love-message.wav",
+      "label": "初恋情人 · 消息",
+      "description": "QQ 音效库中的“初恋情人”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "初恋情人",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 8510,
+      "sourceContentSha256": "17bc013684ca1d766fd5dde8a3f79fe6e40583eb0ee27b4beb9c2b19a57a584b",
+      "normalizedContentSha256": "86975a24f25e48145bae3eb33ee29eb0a2557a58d35a774ec46a64a45289efb1",
+      "sizeBytes": 379004,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Msg_初恋情人_34508.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/初恋情人/初恋情人/Msg.wav"
+      ]
+    },
+    {
+      "id": "qq-animal-message",
+      "fileName": "yance-qq-animal-message.wav",
+      "label": "动物音效 · 消息",
+      "description": "QQ 音效库中的“动物音效”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "动物音效",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 1499,
+      "sourceContentSha256": "767de4c55c45e4202b2496a3d4a002410311aa5c95828d48ecf277de4f65a9f8",
+      "normalizedContentSha256": "ce1be69beb847906d868894a2475e7ab4d4e068dd8028f9566ed325d2c00bd9c",
+      "sizeBytes": 66218,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/msg_动物音效_33148.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/动物音效/动物音效/msg.WAV"
+      ]
+    },
+    {
+      "id": "qq-classic-elegance-message",
+      "fileName": "yance-qq-classic-elegance-message.wav",
+      "label": "古典风韵 · 消息",
+      "description": "QQ 音效库中的“古典风韵”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "古典风韵",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 1881,
+      "sourceContentSha256": "1b90931e639907ff30ee3c39d3fa7077ffeef697981c588c81fb74c2a9a925d6",
+      "normalizedContentSha256": "1af561a916bb5bc1d614916f696c96aedbe341a96e4ef1557fac44c9a593a73c",
+      "sizeBytes": 85810,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Msg_古典风韵_7846.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/古典风韵/古典风韵/Msg.wav"
+      ]
+    },
+    {
+      "id": "qq-april-story-message",
+      "fileName": "yance-qq-april-story-message.wav",
+      "label": "四月物语 · 消息",
+      "description": "QQ 音效库中的“四月物语”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "四月物语",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 4156,
+      "sourceContentSha256": "ea7c535d2ceaeee4ec38e0f133158cc50c69fdb87bbacef67d2e0cbf1e6433b2",
+      "normalizedContentSha256": "80761ad3a24ea403b676de23f7d52a053a79f6c226e54b8d57cc8d7db1b29141",
+      "sizeBytes": 186378,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Msg_四月物语_17036.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/四月物语/四月物语/Msg.wav"
+      ]
+    },
+    {
+      "id": "qq-happy-pig-angel-message",
+      "fileName": "yance-qq-happy-pig-angel-message.wav",
+      "label": "小猪天使 永远开心 · 消息",
+      "description": "QQ 音效库中的“小猪天使 永远开心”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "小猪天使 永远开心",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 4946,
+      "sourceContentSha256": "f73b058267bd8ced9c0917bb281f0dfbca50cd3cacc8ebbb8f3d96f6a5d3a68c",
+      "normalizedContentSha256": "09a3718b04f232399f403a64b3ae89acff26e29fc190f56a3f0ae9492704a849",
+      "sizeBytes": 221358,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Msg1_小猪天使 永远开心_20220.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/小猪天使 永远开心/小猪天使 永远开心/Msg1.wav"
+      ]
+    },
+    {
+      "id": "qq-happy-pig-angel-message-alt2",
+      "fileName": "yance-qq-happy-pig-angel-message-alt2.wav",
+      "label": "小猪天使 永远开心 · 消息 · 变体 2",
+      "description": "QQ 音效库中的“小猪天使 永远开心”消息提示音，不同音色变体 2。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "小猪天使 永远开心",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 4289,
+      "sourceContentSha256": "bdbce77f0135bf7818d3b41ba5d2c15156ba5f4febb9f22a5091392e80de622c",
+      "normalizedContentSha256": "f20499e9460709d5bfa8446408cecbf85da643d02b567cebe81c4c5d9223750d",
+      "sizeBytes": 204348,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Msg_小猪天使 永远开心_18598.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/小猪天使 永远开心/小猪天使 永远开心/Msg.wav"
+      ]
+    },
+    {
+      "id": "qq-ghost-message",
+      "fileName": "yance-qq-ghost-message.wav",
+      "label": "幽灵现身 · 消息",
+      "description": "QQ 音效库中的“幽灵现身”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "幽灵现身",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 3245,
+      "sourceContentSha256": "90ac217e728c32d3afe3be031d678d01fdb10c5acfccb3f95596c8c0b9466daf",
+      "normalizedContentSha256": "e093bee540840990a3cb5347aac6ba5ac9dd7f98d92fadd2e11189c6b3c65159",
+      "sizeBytes": 146210,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Msg_幽灵现身_13404.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/幽灵现身/幽灵现身/Msg.wav"
+      ]
+    },
+    {
+      "id": "qq-exploration-message",
+      "fileName": "yance-qq-exploration-message.wav",
+      "label": "探索时代 · 消息",
+      "description": "QQ 音效库中的“探索时代”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "探索时代",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 831,
+      "sourceContentSha256": "bde2a84bcfab1c9584379a7ce9ee78cb2d84c99ec323719d32a6fded37cd1987",
+      "normalizedContentSha256": "7264cdff00ffb75efef2d154a5b525bdaba7c4059e25e10a1c550df7f4298c01",
+      "sizeBytes": 36718,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/MSG_探索时代_36710.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/探索时代/探索时代/MSG.wav"
+      ]
+    },
+    {
+      "id": "qq-gun-bubble-message",
+      "fileName": "yance-qq-gun-bubble-message.wav",
+      "label": "枪泡风格 · 消息",
+      "description": "QQ 音效库中的“枪泡风格”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "枪泡风格",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 1388,
+      "sourceContentSha256": "19a4c4dac0e141c4f7911a3659fbf3b53ec6de3aaab13dbfce364090d9f808f3",
+      "normalizedContentSha256": "2fed2367c61d8649588ddfb2cc41753010ad0d23f9c5899acc2a59ee6de8fe8e",
+      "sizeBytes": 61310,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/MSG_枪泡风格_30634.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/枪泡风格/枪泡风格/MSG.WAV"
+      ]
+    },
+    {
+      "id": "qq-romantic-storm-message",
+      "fileName": "yance-qq-romantic-storm-message.wav",
+      "label": "浪漫风暴 · 消息",
+      "description": "QQ 音效库中的“浪漫风暴”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "浪漫风暴",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 1963,
+      "sourceContentSha256": "aafa06f0752cd7c843cbbc0b990206aa21f0a6a783ad6bb1e29f5e46bbdad795",
+      "normalizedContentSha256": "17ed3015a105891b9f0ba02ce85f98d702d56d9634d003061109d39db4331313",
+      "sizeBytes": 90116,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Msg_浪漫风暴_8316.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/浪漫风暴/浪漫风暴/Msg.wav"
+      ]
+    },
+    {
+      "id": "qq-fresh-wind-message",
+      "fileName": "yance-qq-fresh-wind-message.wav",
+      "label": "清新的风 · 消息",
+      "description": "QQ 音效库中的“清新的风”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "清新的风",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 2900,
+      "sourceContentSha256": "f2f1ad7df288c11381cf90256c4f55688d9c50ff62d42eaafb25059d63a3f62a",
+      "normalizedContentSha256": "c4f85def1286b04e0068e11030f24096b86dabb0c9ab564d17c80e49f6a45e3d",
+      "sizeBytes": 131320,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Msg_清新的风_11974.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/清新的风/清新的风/Msg.wav"
+      ]
+    },
+    {
+      "id": "qq-believe-message",
+      "fileName": "yance-qq-believe-message.wav",
+      "label": "相信自己 · 消息",
+      "description": "QQ 音效库中的“相信自己”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "相信自己",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 4994,
+      "sourceContentSha256": "9c80fb27bc4e2651adc16d259158b51df9bac02dd3a5730c642e20f63154fdd9",
+      "normalizedContentSha256": "011345ae4a69ec5ec49b6c3d709ce77df3675c88ef670b3fdeb47e568d86bbde",
+      "sizeBytes": 223476,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Msg_相信自己_20412.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/相信自己/相信自己/Msg.wav"
+      ]
+    },
+    {
+      "id": "qq-real-voice-message",
+      "fileName": "yance-qq-real-voice-message.wav",
+      "label": "真人语音 · 消息",
+      "description": "QQ 音效库中的“真人语音”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "真人语音",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 1500,
+      "sourceContentSha256": "76a643a459ad353d6968daf213cd46838514ac25630664cb902f1e9f9d592ccb",
+      "normalizedContentSha256": "fa63436e33f6c0674add045bab0222cd1a15d17fde24b26685ed012200f2faee",
+      "sizeBytes": 66256,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/msg_真人语音_33166.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/真人语音/真人语音/msg.wav"
+      ]
+    },
+    {
+      "id": "qq-chat-taotao-message",
+      "fileName": "yance-qq-chat-taotao-message.wav",
+      "label": "聊聊淘淘 · 消息",
+      "description": "QQ 音效库中的“聊聊淘淘”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "聊聊淘淘",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 1317,
+      "sourceContentSha256": "f3b71c1029c35d77a5ebb59beb47b479c730dbcdd4390df4272ba12fe6cbcf04",
+      "normalizedContentSha256": "2338d904ea1e9d158ab8aec6b51ce7a6fbdddb809d718c10d340491cae169d54",
+      "sizeBytes": 58190,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/msg_聊聊淘淘_29134.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/聊聊淘淘/聊聊淘淘/msg.wav"
+      ]
+    },
+    {
+      "id": "qq-nature-message",
+      "fileName": "yance-qq-nature-message.wav",
+      "label": "自然音效 · 消息",
+      "description": "QQ 音效库中的“自然音效”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "自然音效",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 6257,
+      "sourceContentSha256": "7b4b3951aa38f90a9c23ce0869f23e6df06704864118b8d9593672080acd2faa",
+      "normalizedContentSha256": "c8a29bae5d06c1e96320c3f6872324df7130a7591f38d0262a51a18772f37a29",
+      "sizeBytes": 276032,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/MSG_自然音效_138022.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/自然音效/自然音效/MSG.WAV"
+      ]
+    },
+    {
+      "id": "qq-butterfly-message",
+      "fileName": "yance-qq-butterfly-message.wav",
+      "label": "蝴蝶花 · 消息",
+      "description": "QQ 音效库中的“蝴蝶花”消息提示音。",
+      "group": "QQ · 消息",
+      "family": "QQ 音效库",
+      "pack": "蝴蝶花",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 6502,
+      "sourceContentSha256": "8b361a1186f59034261225763cac1bc4f0232854532613d538c8695afe2c8d8c",
+      "normalizedContentSha256": "42af2e87a2826ad1e92fe3f7518e88dccef5216ae966a839ce8199f5dff9d65e",
+      "sizeBytes": 290100,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Msg_蝴蝶花_26444.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/蝴蝶花/蝴蝶花/Msg.wav"
+      ]
+    },
+    {
+      "id": "wechat-sent",
+      "fileName": "yance-wechat-sent.wav",
+      "label": "微信发送轻响",
+      "description": "微信音效库中的微信发送轻响。",
+      "group": "微信 · 消息",
+      "family": "微信音效库",
+      "pack": "微信经典",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 160,
+      "sourceContentSha256": "592cf83683739eda607a861ffa6621edb0b5ca44c42b43a9b358a42c447cdcba",
+      "normalizedContentSha256": "850012fb94b3f535d0f00aa4080cf2a78d09c7accd06d45c3e22b67a3523a62f",
+      "sizeBytes": 7134,
+      "sourcePath": "新建文件夹/WeChat原生音效/微信消息/微信发送消息音.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/WeChat/wechat_send.wav"
+      ]
+    },
+    {
+      "id": "wechat-message-synthetic",
+      "fileName": "yance-wechat-message-synthetic.wav",
+      "label": "微信合成消息音",
+      "description": "微信音效库中的微信合成消息音。",
+      "group": "微信 · 消息",
+      "family": "微信音效库",
+      "pack": "微信经典",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 250,
+      "sourceContentSha256": "cb76cefda859c8d2f01453f526b0fd57ccce0c07407b1a288083864dbc5460fb",
+      "normalizedContentSha256": "6040e58e69301a3b23f74299124e288a342d3b3e857e41f537b75e2cd9fdd1da",
+      "sizeBytes": 11104,
+      "sourcePath": "新建文件夹/WeChat原生音效/微信消息/微信消息提示音(合成).wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/WeChat/wechat_msg_real.wav"
+      ]
+    },
+    {
+      "id": "wechat-message-tone",
+      "fileName": "yance-wechat-message-tone.wav",
+      "label": "微信新消息音",
+      "description": "微信音效库中的微信新消息音。",
+      "group": "微信 · 消息",
+      "family": "微信音效库",
+      "pack": "微信经典",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 300,
+      "sourceContentSha256": "44e6f454c56708d14e58b96d770ed803325e11e8dfefcb4b55fc5838be6c5667",
+      "normalizedContentSha256": "12b8c5f9b142f93a86dc2f3b076cb21aefb47da7bd9d99fc827409490c32d0de",
+      "sizeBytes": 13308,
+      "sourcePath": "新建文件夹/WeChat原生音效/微信消息/微信新消息提示音(1006Hz).wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/WeChat/wechat_msg_118.wav"
+      ]
+    },
+    {
+      "id": "wechat-red-packet",
+      "fileName": "yance-wechat-red-packet.wav",
+      "label": "微信红包提示",
+      "description": "微信音效库中的微信红包提示。",
+      "group": "微信 · 消息",
+      "family": "微信音效库",
+      "pack": "微信经典",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 480,
+      "sourceContentSha256": "07523adc3103cfafeebdffc12271dd9d15dec153b43be520e0459ca9341721c0",
+      "normalizedContentSha256": "8ef77476b4de8979437bf3aa824f82bce1c13bddf6dbbec77686b72fb7fd3a14",
+      "sizeBytes": 21246,
+      "sourcePath": "新建文件夹/WeChat原生音效/微信其他/微信红包提示音.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/WeChat/wechat_hongbao.wav"
+      ]
+    },
+    {
+      "id": "wechat-message-classic",
+      "fileName": "yance-wechat-message-classic.wav",
+      "label": "微信经典消息",
+      "description": "微信音效库中的微信经典消息。",
+      "group": "微信 · 消息",
+      "family": "微信音效库",
+      "pack": "微信经典",
+      "role": "message",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 250,
+      "sourceContentSha256": "d7da947d4c373992daf4c2151e7f59c1e88414ebd87223fe5dae4df0a1992b21",
+      "normalizedContentSha256": "9bb400fec2411ad31340cd999b241c547ea31409d9220b7a857c47fe623be2db",
+      "sizeBytes": 11104,
+      "sourcePath": "新建文件夹/WeChat/wechat_msg.wav",
+      "duplicateAliasesRemoved": 0,
+      "aliases": []
+    },
+    {
+      "id": "qq-cs-folder",
+      "fileName": "yance-qq-cs-folder.wav",
+      "label": "CS音效 · 操作",
+      "description": "QQ 音效库中的“CS音效”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "CS音效",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 1441,
+      "sourceContentSha256": "0007234376ea98d7d5d10ea67158677ae42f5557e3d3e397e3db8bd6836396b0",
+      "normalizedContentSha256": "ed6e5d5dc17ec08d9b27478b9b1b5d6c05a74b9bf16e3c755be0ef45618986ed",
+      "sizeBytes": 63654,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Folder_CS音效_31914.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/CS音效/CS音效/Folder.wav"
+      ]
+    },
+    {
+      "id": "qq-classic-folder",
+      "fileName": "yance-qq-classic-folder.wav",
+      "label": "QQ经典 · 操作",
+      "description": "QQ 音效库中的“QQ经典”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "QQ经典",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 810,
+      "sourceContentSha256": "2d97666fdaf78fca005fb5171fdfd446e577c7f88be8ed64c7553a87d5ea1b1c",
+      "normalizedContentSha256": "d0a32766fb9d3f5d0ace024eef95dffe51c692c579f875326d27ad9870dc6a5a",
+      "sizeBytes": 35798,
+      "sourcePath": "新建文件夹/QQ原生音效/原版/folder.wav",
+      "duplicateAliasesRemoved": 2,
+      "aliases": [
+        "新建文件夹/QQ原生音效/所有变体/folder_QQ原版声音_9156.wav",
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/QQ原版声音/QQ原版声音/folder.wav"
+      ]
+    },
+    {
+      "id": "qq-samsung-folder",
+      "fileName": "yance-qq-samsung-folder.wav",
+      "label": "三星电话 · 操作",
+      "description": "QQ 音效库中的“三星电话”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "三星电话",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 2077,
+      "sourceContentSha256": "516eeefc039ff5ad4bae55e30b0c7fdcdd29d70fc3ca4064c976f9c01f9f6d49",
+      "normalizedContentSha256": "043b86a24f2027e8c086cf57fdb2d6986f9353b91915da25c8f1a83f0c1b6de1",
+      "sizeBytes": 91686,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Folder_三星电话_16662.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/三星电话/三星电话/Folder.wav"
+      ]
+    },
+    {
+      "id": "qq-strict-one-folder",
+      "fileName": "yance-qq-strict-one-folder.wav",
+      "label": "严守一 · 操作",
+      "description": "QQ 音效库中的“严守一”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "严守一",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 250,
+      "sourceContentSha256": "487f979c2c84c3f7971112cc3739a8324dfbf51111c86654ef490878769039d8",
+      "normalizedContentSha256": "5da620900e8cf668fd29e8e0a9c8ed35da51616ac35b70c5a7ac5f3748be0873",
+      "sizeBytes": 11104,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/folder_严守一_5572.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/严守一/严守一/folder.wav"
+      ]
+    },
+    {
+      "id": "qq-kiss-hug-folder",
+      "fileName": "yance-qq-kiss-hug-folder.wav",
+      "label": "亲亲我抱抱我 · 操作",
+      "description": "QQ 音效库中的“亲亲我抱抱我”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "亲亲我抱抱我",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 5124,
+      "sourceContentSha256": "1b4396206f5b43e0b9d1fe1fdc758090b03a6f47f857efaa9bfa1623b8a5f649",
+      "normalizedContentSha256": "76b379776a27ab18e201362ef409a014982a9745d8174d47d2c1316ac6e1abe4",
+      "sizeBytes": 246684,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Folder_亲亲我抱抱我_22438.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/亲亲我抱抱我/亲亲我抱抱我/Folder.wav"
+      ]
+    },
+    {
+      "id": "qq-first-love-folder",
+      "fileName": "yance-qq-first-love-folder.wav",
+      "label": "初恋情人 · 操作",
+      "description": "QQ 音效库中的“初恋情人”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "初恋情人",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 7757,
+      "sourceContentSha256": "35f28dc655be4667c12689e19e5d654cc95a6a2d66203e5856ad78e74ec37101",
+      "normalizedContentSha256": "24e67c59e3e1dcfd3fca406941676396bf8fa99d89562224668d87cc38397593",
+      "sizeBytes": 345138,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Folder_初恋情人_31436.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/初恋情人/初恋情人/Folder.wav"
+      ]
+    },
+    {
+      "id": "qq-animal-folder",
+      "fileName": "yance-qq-animal-folder.wav",
+      "label": "动物音效 · 操作",
+      "description": "QQ 音效库中的“动物音效”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "动物音效",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 1944,
+      "sourceContentSha256": "f73fd6ecbab8f56af98a098e47c79a11503a0738394fd47c2eccca0fe1ffd832",
+      "normalizedContentSha256": "958d6029c7c215c5b0a85925b7dc13014cd8d6a537860fd6f5098a28c70bce91",
+      "sizeBytes": 85796,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Folder_动物音效_42904.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/动物音效/动物音效/Folder.wav"
+      ]
+    },
+    {
+      "id": "qq-classic-elegance-folder",
+      "fileName": "yance-qq-classic-elegance-folder.wav",
+      "label": "古典风韵 · 操作",
+      "description": "QQ 音效库中的“古典风韵”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "古典风韵",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 2534,
+      "sourceContentSha256": "b49457498c7e5a89ac99cc0e51af0df883c517a75f24d21c01ba786c56848246",
+      "normalizedContentSha256": "7220c7347dc0a00d52aed816ec9057cd37adb1d7690eeb22173bd845d11c2f0f",
+      "sizeBytes": 114384,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Folder_古典风韵_10438.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/古典风韵/古典风韵/Folder.wav"
+      ]
+    },
+    {
+      "id": "qq-april-story-folder",
+      "fileName": "yance-qq-april-story-folder.wav",
+      "label": "四月物语 · 操作",
+      "description": "QQ 音效库中的“四月物语”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "四月物语",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 9033,
+      "sourceContentSha256": "1ba8d1a4d58141497b0d29c40ecaf5224c3b4320e73dce0a9676ad0a64440d1a",
+      "normalizedContentSha256": "40574a9a97713d183d10ff47c89cef8928bf57aa63b33e910671c349ea6c7a56",
+      "sizeBytes": 401232,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Folder_四月物语_36524.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/四月物语/四月物语/Folder.wav"
+      ]
+    },
+    {
+      "id": "qq-happy-pig-angel-folder",
+      "fileName": "yance-qq-happy-pig-angel-folder.wav",
+      "label": "小猪天使 永远开心 · 操作",
+      "description": "QQ 音效库中的“小猪天使 永远开心”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "小猪天使 永远开心",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 6410,
+      "sourceContentSha256": "576b7ccd2b5af9a7e3ed093a08db240b67fa6ee8aca6ffb1592953db5d0cbb78",
+      "normalizedContentSha256": "52e6998d220e496786985f2ea3883f68bb8d76cf027cac68249c80d03a4c4f63",
+      "sizeBytes": 285846,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Folder_小猪天使 永远开心_26002.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/小猪天使 永远开心/小猪天使 永远开心/Folder.wav"
+      ]
+    },
+    {
+      "id": "qq-ghost-folder",
+      "fileName": "yance-qq-ghost-folder.wav",
+      "label": "幽灵现身 · 操作",
+      "description": "QQ 音效库中的“幽灵现身”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "幽灵现身",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 2972,
+      "sourceContentSha256": "12760ca761f712c8ace206afc3106321108320e6a114084885d39e2ec24fb4b1",
+      "normalizedContentSha256": "4c7ba46f7b101f286259aa44d0b609037156d02ea265f60b675df75ed7217247",
+      "sizeBytes": 134570,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Folder_幽灵现身_12348.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/幽灵现身/幽灵现身/Folder.wav"
+      ]
+    },
+    {
+      "id": "qq-exploration-folder",
+      "fileName": "yance-qq-exploration-folder.wav",
+      "label": "探索时代 · 操作",
+      "description": "QQ 音效库中的“探索时代”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "探索时代",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 769,
+      "sourceContentSha256": "cfd503935c2b06f36effdadcbcec5936c0f84c9914cfc7293e8f92b5973ed2de",
+      "normalizedContentSha256": "feaebba09dbc7e4c3d277d94157746e6c652d7ecc83d71f8bcda98a02b3df642",
+      "sizeBytes": 33984,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Folder_探索时代_17030.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/探索时代/探索时代/Folder.wav"
+      ]
+    },
+    {
+      "id": "qq-gun-bubble-folder",
+      "fileName": "yance-qq-gun-bubble-folder.wav",
+      "label": "枪泡风格 · 操作",
+      "description": "QQ 音效库中的“枪泡风格”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "枪泡风格",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 1242,
+      "sourceContentSha256": "0d072b61651f23c0ffb139578ef6ddd22cbabc6dbeffd419fb580b14dd74f81d",
+      "normalizedContentSha256": "27c13ee4fa2a41eb2c64ef7c842735c5ac9f9a28798bf6a12e44a55fd21f1c12",
+      "sizeBytes": 54852,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/FOLDER_枪泡风格_19916.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/枪泡风格/枪泡风格/FOLDER.WAV"
+      ]
+    },
+    {
+      "id": "qq-romantic-storm-folder",
+      "fileName": "yance-qq-romantic-storm-folder.wav",
+      "label": "浪漫风暴 · 操作",
+      "description": "QQ 音效库中的“浪漫风暴”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "浪漫风暴",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 2338,
+      "sourceContentSha256": "18cac3b51cc71a5fba1f7d7da60ee86c40eb9130ea0dd6892689517aba5f41bf",
+      "normalizedContentSha256": "e5655f1118a63e0dd32536d1fa1578e24f34b0a74a7767da7347de6a18474551",
+      "sizeBytes": 105992,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Folder_浪漫风暴_9756.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/浪漫风暴/浪漫风暴/Folder.wav"
+      ]
+    },
+    {
+      "id": "qq-fresh-wind-folder",
+      "fileName": "yance-qq-fresh-wind-folder.wav",
+      "label": "清新的风 · 操作",
+      "description": "QQ 音效库中的“清新的风”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "清新的风",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 2377,
+      "sourceContentSha256": "4488b0a3d4958dc551ded1977ff16e005be8fbd96734a86b524936ff14efe332",
+      "normalizedContentSha256": "35fc7e5b1a94805441ec55e15815a8f9140b5cbde8bd70e1d870e4e64efbad6d",
+      "sizeBytes": 108036,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Folder_清新的风_9862.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/清新的风/清新的风/Folder.wav"
+      ]
+    },
+    {
+      "id": "qq-believe-folder",
+      "fileName": "yance-qq-believe-folder.wav",
+      "label": "相信自己 · 操作",
+      "description": "QQ 音效库中的“相信自己”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "相信自己",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 4902,
+      "sourceContentSha256": "99f802dc4c0bbdd24a93fb3732ce3c827bc268b29abfb024aa1f8bb1317e22d8",
+      "normalizedContentSha256": "935e593119cb10d12d9ce8cb199dd49f2c9227a50f0412db1d670864f5c71790",
+      "sizeBytes": 219242,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Folder_相信自己_20028.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/相信自己/相信自己/Folder.wav"
+      ]
+    },
+    {
+      "id": "qq-real-voice-folder",
+      "fileName": "yance-qq-real-voice-folder.wav",
+      "label": "真人语音 · 操作",
+      "description": "QQ 音效库中的“真人语音”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "真人语音",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 643,
+      "sourceContentSha256": "cc5b6e8e955234556a11903c243b5f6a4559c8c459e3d259eec11f6f0dddbdcb",
+      "normalizedContentSha256": "2c5c1a41d95aafe9ade7495f9f12dd8b532d57b826f33230e1aababfc584b368",
+      "sizeBytes": 28414,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/folder_真人语音_7258.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/真人语音/真人语音/folder.wav"
+      ]
+    },
+    {
+      "id": "qq-chat-taotao-folder",
+      "fileName": "yance-qq-chat-taotao-folder.wav",
+      "label": "聊聊淘淘 · 操作",
+      "description": "QQ 音效库中的“聊聊淘淘”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "聊聊淘淘",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 1512,
+      "sourceContentSha256": "329a70b6416f68dd5ea5bde513041cb048c5e05b50accfb6654de3ebfb656427",
+      "normalizedContentSha256": "c3cd0686c931b0bcd245c9772d5d15813b63d886748bba98379e33cc15736388",
+      "sizeBytes": 66766,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/folder_聊聊淘淘_33422.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/聊聊淘淘/聊聊淘淘/folder.wav"
+      ]
+    },
+    {
+      "id": "qq-nature-folder",
+      "fileName": "yance-qq-nature-folder.wav",
+      "label": "自然音效 · 操作",
+      "description": "QQ 音效库中的“自然音效”操作提示音。",
+      "group": "QQ · 操作",
+      "family": "QQ 音效库",
+      "pack": "自然音效",
+      "role": "folder",
+      "recommendedEvents": [
+        "outgoing"
+      ],
+      "durationMs": 5889,
+      "sourceContentSha256": "3c50dcbead432d413ef27b0171eb5f3b9d479ee96370687d1c7f1e5d40bbe245",
+      "normalizedContentSha256": "08333f997833967443b6b30a3618daf7dbbcd4d9bb6a02f5607e9a4cc2fa5cc5",
+      "sizeBytes": 259798,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Folder_自然音效_129904.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/自然音效/自然音效/Folder.wav"
+      ]
+    },
+    {
+      "id": "qq-cs-system",
+      "fileName": "yance-qq-cs-system.wav",
+      "label": "CS音效 · 系统",
+      "description": "QQ 音效库中的“CS音效”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "CS音效",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 1220,
+      "sourceContentSha256": "fafd0788d0ff65ad2a0b14600ac9d7a61ac70c15d08a81eef89644b30e54d5e5",
+      "normalizedContentSha256": "b1f49613ab79a837feb0c5bf15ee0e4578ede1354a811ed4807879e60a1e1e43",
+      "sizeBytes": 53906,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/system_CS音效_27062.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/CS音效/CS音效/system.wav"
+      ]
+    },
+    {
+      "id": "qq-classic-system",
+      "fileName": "yance-qq-classic-system.wav",
+      "label": "QQ经典 · 系统",
+      "description": "QQ 音效库中的“QQ经典”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "QQ经典",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 626,
+      "sourceContentSha256": "e899407b921047a290adb22134488732d283bcf7ecf6d39910a06cb47bfd79f4",
+      "normalizedContentSha256": "d40b4ebb1540201a394af8bdbae79b59d5a272b982f54a60f91e9ec46d0569a3",
+      "sizeBytes": 27690,
+      "sourcePath": "新建文件夹/QQ原生音效/原版/system.wav",
+      "duplicateAliasesRemoved": 2,
+      "aliases": [
+        "新建文件夹/QQ原生音效/所有变体/system_QQ原版声音_6947.wav",
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/QQ原版声音/QQ原版声音/system.wav"
+      ]
+    },
+    {
+      "id": "qq-samsung-system",
+      "fileName": "yance-qq-samsung-system.wav",
+      "label": "三星电话 · 系统",
+      "description": "QQ 音效库中的“三星电话”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "三星电话",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 881,
+      "sourceContentSha256": "4795df458e6f6882227478d5e9f4a300d6cebdd0119d9796e582c24663fb0682",
+      "normalizedContentSha256": "774ad39038cdf5062a6f81f26469dc5b388cd41c954eb9e01f548cf695777c45",
+      "sizeBytes": 38964,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/system_三星电话_19520.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/三星电话/三星电话/system.wav"
+      ]
+    },
+    {
+      "id": "qq-strict-one-system",
+      "fileName": "yance-qq-strict-one-system.wav",
+      "label": "严守一 · 系统",
+      "description": "QQ 音效库中的“严守一”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "严守一",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 4195,
+      "sourceContentSha256": "778d1aec456e32760909506d6c77cf916d23c14df89ba0edc70747f66f0a08d3",
+      "normalizedContentSha256": "b875709db50e318214054dd150aed8a701dec490f57028f6cb3bcb41e1c72d8a",
+      "sizeBytes": 185064,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/system_严守一_92552.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/严守一/严守一/system.wav"
+      ]
+    },
+    {
+      "id": "qq-kiss-hug-system",
+      "fileName": "yance-qq-kiss-hug-system.wav",
+      "label": "亲亲我抱抱我 · 系统",
+      "description": "QQ 音效库中的“亲亲我抱抱我”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "亲亲我抱抱我",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 5305,
+      "sourceContentSha256": "0dfb688761e766922a501f097c8935e4495c475dc22f12dcde72acd320d76381",
+      "normalizedContentSha256": "57394b19ac5c5c0f8f48898ddbf4805f7e6b3a9654e75d04ce574e85d6b1faff",
+      "sizeBytes": 237160,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/System_亲亲我抱抱我_21586.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/亲亲我抱抱我/亲亲我抱抱我/System.wav"
+      ]
+    },
+    {
+      "id": "qq-first-love-system",
+      "fileName": "yance-qq-first-love-system.wav",
+      "label": "初恋情人 · 系统",
+      "description": "QQ 音效库中的“初恋情人”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "初恋情人",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 7245,
+      "sourceContentSha256": "0a7182e6b4750c6bef5fd07d1303137d75ffd6170b28bb8666bf4a6f2cca9509",
+      "normalizedContentSha256": "447edf5135041c37c58e4a20ea0da78349024c307f47335aaf139b5d5e4dc45f",
+      "sizeBytes": 322910,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/System_初恋情人_29420.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/初恋情人/初恋情人/System.wav"
+      ]
+    },
+    {
+      "id": "qq-animal-system",
+      "fileName": "yance-qq-animal-system.wav",
+      "label": "动物音效 · 系统",
+      "description": "QQ 音效库中的“动物音效”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "动物音效",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 6027,
+      "sourceContentSha256": "4ad9294aaaa9543912722edffcc28a812f294813c3474bb76adc355e76cbf063",
+      "normalizedContentSha256": "a7a0114a77955dcb97b9935b073e983571decda940066ab236e167424c6d81b4",
+      "sizeBytes": 265900,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/system_动物音效_132988.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/动物音效/动物音效/system.WAV"
+      ]
+    },
+    {
+      "id": "qq-classic-elegance-system",
+      "fileName": "yance-qq-classic-elegance-system.wav",
+      "label": "古典风韵 · 系统",
+      "description": "QQ 音效库中的“古典风韵”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "古典风韵",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 2534,
+      "sourceContentSha256": "a9159d2f267f3cc4a3f6ec395880783c87291ee44e26259f686601583c7accff",
+      "normalizedContentSha256": "ec18b3d46abfb745b0d752107d7fa09c22f348de547e5e80965483c02dbdebf1",
+      "sizeBytes": 114384,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/System_古典风韵_10438.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/古典风韵/古典风韵/System.wav"
+      ]
+    },
+    {
+      "id": "qq-april-story-system",
+      "fileName": "yance-qq-april-story-system.wav",
+      "label": "四月物语 · 系统",
+      "description": "QQ 音效库中的“四月物语”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "四月物语",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 4923,
+      "sourceContentSha256": "42259ccdeaba5536e49e49d611a825972d47cc3d293b5f2fa50a3dc9f007bcfc",
+      "normalizedContentSha256": "f6a51ff82d467c4f168fd1769a8dc47756a1ee0c82d6b43bc275ec974e36a8fd",
+      "sizeBytes": 220244,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/System_四月物语_20108.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/四月物语/四月物语/System.wav"
+      ]
+    },
+    {
+      "id": "qq-happy-pig-angel-system",
+      "fileName": "yance-qq-happy-pig-angel-system.wav",
+      "label": "小猪天使 永远开心 · 系统",
+      "description": "QQ 音效库中的“小猪天使 永远开心”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "小猪天使 永远开心",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 5037,
+      "sourceContentSha256": "e2a839a6338a06906fbf8a5853a0639a509881c38eb3923a1c447f53cc0db7d1",
+      "normalizedContentSha256": "30161f0ee22b4043b5723a553d4ea42798da16a8ee78834038add4d2b04bd700",
+      "sizeBytes": 236100,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/System_小猪天使 永远开心_21478.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/小猪天使 永远开心/小猪天使 永远开心/System.wav"
+      ]
+    },
+    {
+      "id": "qq-ghost-system",
+      "fileName": "yance-qq-ghost-system.wav",
+      "label": "幽灵现身 · 系统",
+      "description": "QQ 音效库中的“幽灵现身”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "幽灵现身",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 1097,
+      "sourceContentSha256": "f55ba92b499a97ea0b3ab8010cb3e1e076a03865708197425f59c4f7d4c19053",
+      "normalizedContentSha256": "12c34e014bb16ccc180cd2cc24ae6b0297897fe409ce888e8df9e7b7bf825f63",
+      "sizeBytes": 51940,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/System_幽灵现身_4774.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/幽灵现身/幽灵现身/System.wav"
+      ]
+    },
+    {
+      "id": "qq-exploration-system",
+      "fileName": "yance-qq-exploration-system.wav",
+      "label": "探索时代 · 系统",
+      "description": "QQ 音效库中的“探索时代”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "探索时代",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 792,
+      "sourceContentSha256": "d48b09f25040140e557da5549304bd54c64a00908e58df54f13feb5a47400576",
+      "normalizedContentSha256": "ed02152948f5cd052e5f912ce90622de82bc09976c0f5b473fd09b8ab46ff9a4",
+      "sizeBytes": 35040,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/SYSTEM_探索时代_17558.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/探索时代/探索时代/SYSTEM.wav"
+      ]
+    },
+    {
+      "id": "qq-gun-bubble-system",
+      "fileName": "yance-qq-gun-bubble-system.wav",
+      "label": "枪泡风格 · 系统",
+      "description": "QQ 音效库中的“枪泡风格”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "枪泡风格",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 866,
+      "sourceContentSha256": "764b44d8294e76b981ae8d540b2c8507e4aacc81bac5dcd8f37d5ef93601a6b0",
+      "normalizedContentSha256": "cccff08856874d0cfc74e0394e3ec34333e2caa6c83e691178ab50b0f2643314",
+      "sizeBytes": 38258,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/SYSTEM_枪泡风格_13896.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/枪泡风格/枪泡风格/SYSTEM.WAV"
+      ]
+    },
+    {
+      "id": "qq-romantic-storm-system",
+      "fileName": "yance-qq-romantic-storm-system.wav",
+      "label": "浪漫风暴 · 系统",
+      "description": "QQ 音效库中的“浪漫风暴”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "浪漫风暴",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 2429,
+      "sourceContentSha256": "620e8de5250184cefc7e79916aff352adfbd47c33bdc3bbe85f54d825c1ac1b2",
+      "normalizedContentSha256": "480f6ba998e5c0059b6beba3f54dd58e51c4315a99946eebf1829f154c2852d3",
+      "sizeBytes": 110226,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/System_浪漫风暴_10140.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/浪漫风暴/浪漫风暴/System.wav"
+      ]
+    },
+    {
+      "id": "qq-fresh-wind-system",
+      "fileName": "yance-qq-fresh-wind-system.wav",
+      "label": "清新的风 · 系统",
+      "description": "QQ 音效库中的“清新的风”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "清新的风",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 2486,
+      "sourceContentSha256": "1b626e7b50da895a9bf4527f1b689d25aa8210cfb291ffe8f308d74682818749",
+      "normalizedContentSha256": "c0fec6d6a7ff91b401c5f2531de1f80a33f0eea581c7aae635d21140cb31dc02",
+      "sizeBytes": 112344,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/System_清新的风_10332.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/清新的风/清新的风/System.wav"
+      ]
+    },
+    {
+      "id": "qq-believe-system",
+      "fileName": "yance-qq-believe-system.wav",
+      "label": "相信自己 · 系统",
+      "description": "QQ 音效库中的“相信自己”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "相信自己",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 2351,
+      "sourceContentSha256": "30b32432c1fdafb3373e25a1a8135be662cf240146c58c048b3d7e074b785e84",
+      "normalizedContentSha256": "0c21f418b3bf621c1bf7292b5c93543bb66d3b3a80bad1ce61d74133209482fa",
+      "sizeBytes": 106978,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/System_相信自己_9766.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/相信自己/相信自己/System.wav"
+      ]
+    },
+    {
+      "id": "qq-real-voice-system",
+      "fileName": "yance-qq-real-voice-system.wav",
+      "label": "真人语音 · 系统",
+      "description": "QQ 音效库中的“真人语音”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "真人语音",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 679,
+      "sourceContentSha256": "f3bea7bfd797efcb6170aca3c29e57d2b1c39a67829f84fc21639ab98319b279",
+      "normalizedContentSha256": "bddb337e22353e3f45f2fc21dcda09c31194897f1ab91864e6c05c52646143f9",
+      "sizeBytes": 30030,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/system_真人语音_7532.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/真人语音/真人语音/system.wav"
+      ]
+    },
+    {
+      "id": "qq-chat-taotao-system",
+      "fileName": "yance-qq-chat-taotao-system.wav",
+      "label": "聊聊淘淘 · 系统",
+      "description": "QQ 音效库中的“聊聊淘淘”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "聊聊淘淘",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 1159,
+      "sourceContentSha256": "d02a23af1416a334960d3b94fbf12596ca69c8f0015a88341b97d49af05a752d",
+      "normalizedContentSha256": "19e3c47b11f0dcd42889a064c257eec87e73a3838a7b0e8236a86bd1d1755684",
+      "sizeBytes": 51182,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/system_聊聊淘淘_25630.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/聊聊淘淘/聊聊淘淘/system.wav"
+      ]
+    },
+    {
+      "id": "qq-nature-system",
+      "fileName": "yance-qq-nature-system.wav",
+      "label": "自然音效 · 系统",
+      "description": "QQ 音效库中的“自然音效”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "自然音效",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 2829,
+      "sourceContentSha256": "9776af259074a1b3f29d0a0bb23772c03828ec434cfe34889b174a35f37e8c92",
+      "normalizedContentSha256": "5149f6bf07dd721be005d84806147a58cc160d3375188237fc943040987ddd9a",
+      "sizeBytes": 124858,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/SYSTEM_自然音效_62434.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/自然音效/自然音效/SYSTEM.WAV"
+      ]
+    },
+    {
+      "id": "qq-butterfly-system",
+      "fileName": "yance-qq-butterfly-system.wav",
+      "label": "蝴蝶花 · 系统",
+      "description": "QQ 音效库中的“蝴蝶花”系统提示音。",
+      "group": "QQ · 系统",
+      "family": "QQ 音效库",
+      "pack": "蝴蝶花",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 7082,
+      "sourceContentSha256": "64377b1df282c103dc6ecc7cae7720a0d99a0a9f266c9525cbbc7b29b925b94d",
+      "normalizedContentSha256": "08d6745489c50b2585fc263be4380e1d9159c3a127ebabb97866fe9a8ebbdd73",
+      "sizeBytes": 315500,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/System_蝴蝶花_28748.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/蝴蝶花/蝴蝶花/System.wav"
+      ]
+    },
+    {
+      "id": "wechat-online",
+      "fileName": "yance-wechat-online.wav",
+      "label": "微信好友上线",
+      "description": "微信音效库中的微信好友上线。",
+      "group": "微信 · 状态",
+      "family": "微信音效库",
+      "pack": "微信经典",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online"
+      ],
+      "durationMs": 380,
+      "sourceContentSha256": "fb2eba05bfa109afd9101870b630af9f6d5838b7fcf8e00c17d3d939f2a5aa79",
+      "normalizedContentSha256": "b648695f1484e081264ff9e0eefe4e18d99db016e4266d7d54c1a82757d2ed51",
+      "sizeBytes": 16836,
+      "sourcePath": "新建文件夹/WeChat原生音效/微信其他/微信好友上线提醒.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/WeChat/wechat_online.wav"
+      ]
+    },
+    {
+      "id": "wechat-system",
+      "fileName": "yance-wechat-system.wav",
+      "label": "微信系统提醒",
+      "description": "微信音效库中的微信系统提醒。",
+      "group": "微信 · 状态",
+      "family": "微信音效库",
+      "pack": "微信经典",
+      "role": "system",
+      "recommendedEvents": [
+        "failure",
+        "presence-offline"
+      ],
+      "durationMs": 440,
+      "sourceContentSha256": "9b95789f4fe57e6b199933c1015de005078918744bb3c2eece5dbe70a1ac6a78",
+      "normalizedContentSha256": "1cb9c70eac4e94da528a574b7ae6078167c13d0a757b85b2590f6b89e596cb89",
+      "sizeBytes": 19482,
+      "sourcePath": "新建文件夹/WeChat原生音效/微信其他/微信系统消息音.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/WeChat/wechat_system.wav"
+      ]
+    },
+    {
+      "id": "qq-cs-global",
+      "fileName": "yance-qq-cs-global.wav",
+      "label": "CS音效 · 全局",
+      "description": "QQ 音效库中的“CS音效”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "CS音效",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 1019,
+      "sourceContentSha256": "f6c2824d126f0d22ec4dc9d4a77a41bb100589d2eb9e3496bb4f4dfb2a5d5b8e",
+      "normalizedContentSha256": "3b84685331ef803ef392685adc4112aa01b4169a55169182d422fd9274df19cd",
+      "sizeBytes": 45028,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Global_CS音效_11388.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/CS音效/CS音效/Global.wav"
+      ]
+    },
+    {
+      "id": "qq-classic-global",
+      "fileName": "yance-qq-classic-global.wav",
+      "label": "QQ经典 · 全局",
+      "description": "QQ 音效库中的“QQ经典”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "QQ经典",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 434,
+      "sourceContentSha256": "93fd7aa19431d459894a6c0094701bdb388aaf243208a455a4e274236d3aa9ab",
+      "normalizedContentSha256": "fe8d0a1019b5b636961cb46d9b4a18b87e73a091e3701345b1d34a8bbbf02389",
+      "sizeBytes": 19202,
+      "sourcePath": "新建文件夹/QQ原生音效/原版/Global.wav",
+      "duplicateAliasesRemoved": 2,
+      "aliases": [
+        "新建文件夹/QQ原生音效/所有变体/Global_QQ原版声音_4825.wav",
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/QQ原版声音/QQ原版声音/Global.wav"
+      ]
+    },
+    {
+      "id": "qq-samsung-global",
+      "fileName": "yance-qq-samsung-global.wav",
+      "label": "三星电话 · 全局",
+      "description": "QQ 音效库中的“三星电话”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "三星电话",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 1653,
+      "sourceContentSha256": "10b8019e12c9ecfb54d9cfec068f455cb9c951b4b94deaade9b5648172b60c67",
+      "normalizedContentSha256": "170e5c2b47bb0acc5d3baaab38175ce5a9aac9be24b2f3725166b060b4ad13ea",
+      "sizeBytes": 72978,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/global_三星电话_36528.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/三星电话/三星电话/global.wav"
+      ]
+    },
+    {
+      "id": "qq-strict-one-global",
+      "fileName": "yance-qq-strict-one-global.wav",
+      "label": "严守一 · 全局",
+      "description": "QQ 音效库中的“严守一”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "严守一",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 2750,
+      "sourceContentSha256": "d5ee15a8a848744dc427f12766456602b31dd9634e19035489b63e6d587831d5",
+      "normalizedContentSha256": "2a9f5f11102e8b475152d0d706379050658102ce8d237fdc118987be128df362",
+      "sizeBytes": 121364,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/global_严守一_60702.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/严守一/严守一/global.wav"
+      ]
+    },
+    {
+      "id": "qq-kiss-hug-global",
+      "fileName": "yance-qq-kiss-hug-global.wav",
+      "label": "亲亲我抱抱我 · 全局",
+      "description": "QQ 音效库中的“亲亲我抱抱我”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "亲亲我抱抱我",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 4968,
+      "sourceContentSha256": "7bdfda4aeab3fe64a9286cf15b6ee8c6391fadbfad3031409a95349a93805bc3",
+      "normalizedContentSha256": "61e884dab71bae5a88c3e6e4b966f68cc5c432b99c73139354c1f191a697a522",
+      "sizeBytes": 222416,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Global_亲亲我抱抱我_20316.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/亲亲我抱抱我/亲亲我抱抱我/Global.wav"
+      ]
+    },
+    {
+      "id": "qq-first-love-global",
+      "fileName": "yance-qq-first-love-global.wav",
+      "label": "初恋情人 · 全局",
+      "description": "QQ 音效库中的“初恋情人”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "初恋情人",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 7070,
+      "sourceContentSha256": "8b7244c98a7326ca6b1faf75fb5731e71186e0da8c24b8dfe7c47429ec644894",
+      "normalizedContentSha256": "f813282d1157449e86145c1e7c5c304c18cae5b04b247014dcacc77a51193a95",
+      "sizeBytes": 315500,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Global_初恋情人_28748.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/初恋情人/初恋情人/Global.wav"
+      ]
+    },
+    {
+      "id": "qq-animal-global",
+      "fileName": "yance-qq-animal-global.wav",
+      "label": "动物音效 · 全局",
+      "description": "QQ 音效库中的“动物音效”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "动物音效",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 5050,
+      "sourceContentSha256": "49c4a6358ad6c46e389a3567622e13833ce3a96774150b29867d5cd7b250cf18",
+      "normalizedContentSha256": "f30c3099a5e3f7d22990d92577292ddef0f8775112eb577cee131202fdeb99d3",
+      "sizeBytes": 222766,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Global_动物音效_111388.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/动物音效/动物音效/Global.wav"
+      ]
+    },
+    {
+      "id": "qq-classic-elegance-global",
+      "fileName": "yance-qq-classic-elegance-global.wav",
+      "label": "古典风韵 · 全局",
+      "description": "QQ 音效库中的“古典风韵”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "古典风韵",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 2743,
+      "sourceContentSha256": "4a3719a1d31d87142410f1c4e2a87315fbd4d85209d9c7af0eb7faeb3b6279ab",
+      "normalizedContentSha256": "0d2d284dc32dc79d1a2b93b402954d28b1f1fb058fa155699e805d3b4b75fc4e",
+      "sizeBytes": 123912,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Global_古典风韵_11302.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/古典风韵/古典风韵/Global.wav"
+      ]
+    },
+    {
+      "id": "qq-april-story-global",
+      "fileName": "yance-qq-april-story-global.wav",
+      "label": "四月物语 · 全局",
+      "description": "QQ 音效库中的“四月物语”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "四月物语",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 9961,
+      "sourceContentSha256": "1b8c988cfe69ad6abdb6e32990678f6ca03a8c49b6cf9bdb0d37257588b1d373",
+      "normalizedContentSha256": "6fdd02f3cde0916967d05b4f6f97a639db92c15d22c6bd25e246671ed559c707",
+      "sizeBytes": 442508,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Global_四月物语_40268.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/四月物语/四月物语/Global.wav"
+      ]
+    },
+    {
+      "id": "qq-happy-pig-angel-global",
+      "fileName": "yance-qq-happy-pig-angel-global.wav",
+      "label": "小猪天使 永远开心 · 全局",
+      "description": "QQ 音效库中的“小猪天使 永远开心”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "小猪天使 永远开心",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 3193,
+      "sourceContentSha256": "bd2891626ca061002cbcf522a0d63c87fb806a4897276abd208ca2149272cb5b",
+      "normalizedContentSha256": "230c9c18d4270611b4341e7a8121b5accb28623c76082eb75aecfcbc94b2ad88",
+      "sizeBytes": 162012,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Global_小猪天使 永远开心_14758.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/小猪天使 永远开心/小猪天使 永远开心/Global.wav"
+      ]
+    },
+    {
+      "id": "qq-ghost-global",
+      "fileName": "yance-qq-ghost-global.wav",
+      "label": "幽灵现身 · 全局",
+      "description": "QQ 音效库中的“幽灵现身”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "幽灵现身",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 4851,
+      "sourceContentSha256": "874a3db2518a7286ad6acd6ad054c46bf75d2a5aaf9fa2b05b1b2117f51fead1",
+      "normalizedContentSha256": "54ca91816e406709a08073ffdea5e94cb9044d3e18ecc54cf91bc08ef289d66c",
+      "sizeBytes": 217124,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Global_幽灵现身_19836.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/幽灵现身/幽灵现身/Global.wav"
+      ]
+    },
+    {
+      "id": "qq-exploration-global",
+      "fileName": "yance-qq-exploration-global.wav",
+      "label": "探索时代 · 全局",
+      "description": "QQ 音效库中的“探索时代”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "探索时代",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 2126,
+      "sourceContentSha256": "51367d24c149bc6c3fc76719837b7681f54b2bc2dbe01cd2c0fcfed0f6803fad",
+      "normalizedContentSha256": "5b4a947b65ecac8cc6571c68ed1ef54d5e139473e018b207f14a024387f3157c",
+      "sizeBytes": 93844,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Global_探索时代_46960.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/探索时代/探索时代/Global.WAV"
+      ]
+    },
+    {
+      "id": "qq-gun-bubble-global",
+      "fileName": "yance-qq-gun-bubble-global.wav",
+      "label": "枪泡风格 · 全局",
+      "description": "QQ 音效库中的“枪泡风格”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "枪泡风格",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 4209,
+      "sourceContentSha256": "9532cb0b16d1a16e353e0cd8537c2fc89ba98912cc984ef6b4f6cb58702bf58f",
+      "normalizedContentSha256": "f3cc132eb8fa5cb1210cd7460a965218cd191ba18a627dcd7d445af8466a98e7",
+      "sizeBytes": 185712,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Global_枪泡风格_33720.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/枪泡风格/枪泡风格/Global.wav"
+      ]
+    },
+    {
+      "id": "qq-romantic-storm-global",
+      "fileName": "yance-qq-romantic-storm-global.wav",
+      "label": "浪漫风暴 · 全局",
+      "description": "QQ 音效库中的“浪漫风暴”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "浪漫风暴",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 2376,
+      "sourceContentSha256": "ea3fdc5e6e4d6b567a5c94f934af7aaf79436d174d34279a9465f4ad3c1fc10e",
+      "normalizedContentSha256": "78f80251a1138fb7b29d38d553e12d0a8ee21dfea1e4a7e440f99358aba7df52",
+      "sizeBytes": 108110,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Global_浪漫风暴_9948.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/浪漫风暴/浪漫风暴/Global.wav"
+      ]
+    },
+    {
+      "id": "qq-fresh-wind-global",
+      "fileName": "yance-qq-fresh-wind-global.wav",
+      "label": "清新的风 · 全局",
+      "description": "QQ 音效库中的“清新的风”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "清新的风",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 4900,
+      "sourceContentSha256": "e5fa3422da1328c6b8c8a39859e52fb54521515a33db2a159cc55be7c93bc190",
+      "normalizedContentSha256": "4ef4a5a0261aa56c91ae709664746ac0dbedb2569666dbb82e8e45b16cd690ed",
+      "sizeBytes": 219242,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Global_清新的风_20028.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/清新的风/清新的风/Global.wav"
+      ]
+    },
+    {
+      "id": "qq-believe-global",
+      "fileName": "yance-qq-believe-global.wav",
+      "label": "相信自己 · 全局",
+      "description": "QQ 音效库中的“相信自己”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "相信自己",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 4464,
+      "sourceContentSha256": "cd69ce4d176f557465fa00c2706bdc8cbf674e293470375385d42fd7317fb54f",
+      "normalizedContentSha256": "ab11996164d1b6b13239a79fdcd72ce4c99922922ef7b1e8477087bcaa362eb4",
+      "sizeBytes": 200190,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Global_相信自己_18300.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/相信自己/相信自己/Global.wav"
+      ]
+    },
+    {
+      "id": "qq-real-voice-global",
+      "fileName": "yance-qq-real-voice-global.wav",
+      "label": "真人语音 · 全局",
+      "description": "QQ 音效库中的“真人语音”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "真人语音",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 1353,
+      "sourceContentSha256": "160e0fa1d103850311bd16f74dd448b2b93ff690e10bc8ddc866d03e1aa8825b",
+      "normalizedContentSha256": "c859d03dea360f775992107dece8ad3f9d5a1f303ae104cdbded58cabb834272",
+      "sizeBytes": 59760,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Global_真人语音_119384.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/真人语音/真人语音/Global.wav"
+      ]
+    },
+    {
+      "id": "qq-chat-taotao-global",
+      "fileName": "yance-qq-chat-taotao-global.wav",
+      "label": "聊聊淘淘 · 全局",
+      "description": "QQ 音效库中的“聊聊淘淘”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "聊聊淘淘",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 2156,
+      "sourceContentSha256": "bbbd29b052268601def1e44f851e94dd6708fee8ed3b0ddeef12e36a10d81846",
+      "normalizedContentSha256": "04ba6168124a84e468bf5b4354dede4bc16ec66dfb1730424da6f6f5bc2a30a2",
+      "sizeBytes": 95166,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/global_聊聊淘淘_47622.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/聊聊淘淘/聊聊淘淘/global.wav"
+      ]
+    },
+    {
+      "id": "qq-nature-global",
+      "fileName": "yance-qq-nature-global.wav",
+      "label": "自然音效 · 全局",
+      "description": "QQ 音效库中的“自然音效”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "自然音效",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 4831,
+      "sourceContentSha256": "5e5c03da80c6b49848f5b733f8c1ab9fc447b2a6afc11c7c4af95f1413f30d74",
+      "normalizedContentSha256": "f75d93c7263497883bad22dbff7331e034fa90d9ee5e07678ea70f6c938c632e",
+      "sizeBytes": 213126,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/global_自然音效_106568.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/自然音效/自然音效/global.wav"
+      ]
+    },
+    {
+      "id": "qq-butterfly-global",
+      "fileName": "yance-qq-butterfly-global.wav",
+      "label": "蝴蝶花 · 全局",
+      "description": "QQ 音效库中的“蝴蝶花”全局提示音。",
+      "group": "QQ · 全局",
+      "family": "QQ 音效库",
+      "pack": "蝴蝶花",
+      "role": "global",
+      "recommendedEvents": [
+        "presence-online",
+        "presence-offline"
+      ],
+      "durationMs": 6815,
+      "sourceContentSha256": "782b335494135ed7b3c8f93b3dd843569921639452bcdb1bdd2eac9f0ed78160",
+      "normalizedContentSha256": "272478a75a132808da0fb4cf0b37f74250ebeecc1b636cb7469421d7d86a7eef",
+      "sizeBytes": 303860,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Global_蝴蝶花_27692.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/蝴蝶花/蝴蝶花/Global.wav"
+      ]
+    },
+    {
+      "id": "wechat-call-classic",
+      "fileName": "yance-wechat-call-classic.wav",
+      "label": "微信经典通话铃声",
+      "description": "微信音效库中的微信经典通话铃声。",
+      "group": "微信 · 通话",
+      "family": "微信音效库",
+      "pack": "微信经典",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 1300,
+      "sourceContentSha256": "653c30c7872afeaff15fbf7b331b71a13dd0ccee630ac56c33dd36906444e483",
+      "normalizedContentSha256": "d0c2b66fcda165140778dc923dafaf81ba4bd5a15b301380918b584e2732f867",
+      "sizeBytes": 57408,
+      "sourcePath": "新建文件夹/WeChat原生音效/微信通话/微信通话铃声(440Hz).wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/WeChat/wechat_call_119.wav"
+      ]
+    },
+    {
+      "id": "wechat-hangup",
+      "fileName": "yance-wechat-hangup.wav",
+      "label": "微信通话挂断",
+      "description": "微信音效库中的微信通话挂断。",
+      "group": "微信 · 通话",
+      "family": "微信音效库",
+      "pack": "微信经典",
+      "role": "system",
+      "recommendedEvents": [
+        "failure"
+      ],
+      "durationMs": 350,
+      "sourceContentSha256": "2a8a9eecb599065551ca97a864bb1afa4fe5fc6ac8732fa2712c59ab46ebb5e7",
+      "normalizedContentSha256": "f61ff1a0c7dc54bea5831ff077fc7e6305673e6a599cc473866803b5671fd15d",
+      "sizeBytes": 15514,
+      "sourcePath": "新建文件夹/WeChat原生音效/微信通话/微信通话挂断音(880Hz).wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/WeChat/wechat_hangup_130.wav"
+      ]
+    },
+    {
+      "id": "wechat-call-soft",
+      "fileName": "yance-wechat-call-soft.wav",
+      "label": "微信通话铃声 2",
+      "description": "微信音效库中的微信通话铃声 2。",
+      "group": "微信 · 通话",
+      "family": "微信音效库",
+      "pack": "微信经典",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 1200,
+      "sourceContentSha256": "1cdbba46a27899b674036f285130db49b66a3a2bd79a5d9123eccab2c4a83a39",
+      "normalizedContentSha256": "d5e0b4bad4ea32778171c8cfe32138af6e9d1216e2d675dcc32359cc5fc1e43d",
+      "sizeBytes": 52998,
+      "sourcePath": "新建文件夹/WeChat原生音效/微信通话/微信通话铃声2(440Hz).wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/WeChat/wechat_call.wav"
+      ]
+    },
+    {
+      "id": "qq-cs-call",
+      "fileName": "yance-qq-cs-call.wav",
+      "label": "CS音效 · 来电",
+      "description": "QQ 音效库中的“CS音效”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "CS音效",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 6144,
+      "sourceContentSha256": "a4b3ffb0ea0531034c6537542bd1c1920f6025b30cb577498b83eecc365df27c",
+      "normalizedContentSha256": "32b77b7982f762b1fac5b1e30d9f3f79df8cc53f3fd25cb8b0ee6656ab6e7a76",
+      "sizeBytes": 271042,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/call_CS音效_135560.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/CS音效/CS音效/call.wav"
+      ]
+    },
+    {
+      "id": "qq-classic-call",
+      "fileName": "yance-qq-classic-call.wav",
+      "label": "QQ经典 · 来电",
+      "description": "QQ 音效库中的“QQ经典”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "QQ经典",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 1937,
+      "sourceContentSha256": "52501616b9ad3959a843f80f29614a6806cc7f6b5ae2b332470d629b3f6e2b98",
+      "normalizedContentSha256": "55ab6ea5e0db653dd70d1b24a110fe9c05de66c8bb97160b52d7391782979215",
+      "sizeBytes": 85522,
+      "sourcePath": "新建文件夹/QQ原生音效/原版/call.wav",
+      "duplicateAliasesRemoved": 6,
+      "aliases": [
+        "新建文件夹/QQ原生音效/所有变体/CALL_枪泡风格_11708.wav",
+        "新建文件夹/QQ原生音效/所有变体/call_真人语音_11708.wav",
+        "新建文件夹/QQ原生音效/所有变体/call_QQ原版声音_11708.wav",
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/枪泡风格/枪泡风格/CALL.WAV",
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/真人语音/真人语音/call.wav",
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/QQ原版声音/QQ原版声音/call.wav"
+      ]
+    },
+    {
+      "id": "qq-samsung-call",
+      "fileName": "yance-qq-samsung-call.wav",
+      "label": "三星电话 · 来电",
+      "description": "QQ 音效库中的“三星电话”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "三星电话",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 3750,
+      "sourceContentSha256": "27326d88395cfd05fa7cffd16517e6dfa92369a69fde0fd8fd4dd42847b66269",
+      "normalizedContentSha256": "3a2ddaa22c65ad51cecfb2854f3d48402b2d6d2e699589c996fe7884644ddd81",
+      "sizeBytes": 165452,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/call_三星电话_82731.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/三星电话/三星电话/call.wav"
+      ]
+    },
+    {
+      "id": "qq-kiss-hug-call",
+      "fileName": "yance-qq-kiss-hug-call.wav",
+      "label": "亲亲我抱抱我 · 来电",
+      "description": "QQ 音效库中的“亲亲我抱抱我”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "亲亲我抱抱我",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 5245,
+      "sourceContentSha256": "51e875e81f2aa2b71795d2c94d9095329f7ce39a87de8b42e1648f3739706ca8",
+      "normalizedContentSha256": "3c54035ac4b132cb291c4603657f916a1d90c0c1c7fb0e73f395f3615e75a633",
+      "sizeBytes": 233986,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Call_亲亲我抱抱我_21298.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/亲亲我抱抱我/亲亲我抱抱我/Call.wav"
+      ]
+    },
+    {
+      "id": "qq-first-love-call",
+      "fileName": "yance-qq-first-love-call.wav",
+      "label": "初恋情人 · 来电",
+      "description": "QQ 音效库中的“初恋情人”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "初恋情人",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 7124,
+      "sourceContentSha256": "69a733f587842475eed1e25d7929eeb7429c818861eea4aafdaa6f10ed4dd41e",
+      "normalizedContentSha256": "3ee569774ab4aec8aed5b81df0c78c37df63ebab01c4849526e31629190826c6",
+      "sizeBytes": 317618,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Call_初恋情人_28940.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/初恋情人/初恋情人/Call.wav"
+      ]
+    },
+    {
+      "id": "qq-animal-call",
+      "fileName": "yance-qq-animal-call.wav",
+      "label": "动物音效 · 来电",
+      "description": "QQ 音效库中的“动物音效”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "动物音效",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 5475,
+      "sourceContentSha256": "2c7af2ddb6785ce0b3e076e6402f6ae1bed37af522f07ae920c1cf86dbf91089",
+      "normalizedContentSha256": "717d62bc62d3a7a6bb0dec3c5735cda0cdb6519949dcbb0904d0341805b13f02",
+      "sizeBytes": 241536,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/call_动物音效_120774.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/动物音效/动物音效/call.WAV"
+      ]
+    },
+    {
+      "id": "qq-classic-elegance-call",
+      "fileName": "yance-qq-classic-elegance-call.wav",
+      "label": "古典风韵 · 来电",
+      "description": "QQ 音效库中的“古典风韵”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "古典风韵",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 1496,
+      "sourceContentSha256": "63fd96352145b34c302802436ba29192e72307ffd24a7fa93d3b3abc2c87c9a3",
+      "normalizedContentSha256": "7d30e8a67dad9d15e2a7ea650e2f824cd3d214adc28c056c5a65887449497841",
+      "sizeBytes": 68948,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Call_古典风韵_6396.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/古典风韵/古典风韵/Call.wav"
+      ]
+    },
+    {
+      "id": "qq-april-story-call",
+      "fileName": "yance-qq-april-story-call.wav",
+      "label": "四月物语 · 来电",
+      "description": "QQ 音效库中的“四月物语”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "四月物语",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 9369,
+      "sourceContentSha256": "f93f33a5c96b7fca52449f9fbf79f822792ed3dffb71b2ae752879b7de252d67",
+      "normalizedContentSha256": "5c954f84e7bb86ab214d3b32f83e1fbbafb6511e7735f114a92d55783c2f462b",
+      "sizeBytes": 416048,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Call_四月物语_37868.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/四月物语/四月物语/Call.wav"
+      ]
+    },
+    {
+      "id": "qq-happy-pig-angel-call",
+      "fileName": "yance-qq-happy-pig-angel-call.wav",
+      "label": "小猪天使 永远开心 · 来电",
+      "description": "QQ 音效库中的“小猪天使 永远开心”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "小猪天使 永远开心",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 4858,
+      "sourceContentSha256": "5bdb234dfe92dc049e8154d1dbf30aa26d89e306b15239a83950809517f29a2c",
+      "normalizedContentSha256": "6689c89ebe218d36bacf85f39c076d7c4cbd5fa1dc52768e15541d78cfda9d05",
+      "sizeBytes": 217124,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Call_小猪天使 永远开心_19836.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/小猪天使 永远开心/小猪天使 永远开心/Call.wav"
+      ]
+    },
+    {
+      "id": "qq-ghost-call",
+      "fileName": "yance-qq-ghost-call.wav",
+      "label": "幽灵现身 · 来电",
+      "description": "QQ 音效库中的“幽灵现身”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "幽灵现身",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 993,
+      "sourceContentSha256": "4872d67dc694669f99bb9f31fb3d962052651e7b016e4a29b691017d291f4e78",
+      "normalizedContentSha256": "2716d5ffc8fb0b4dbf4f3f7b38780f9d2326dc07ae77133b8d5c5eaeffe31f62",
+      "sizeBytes": 46648,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Call_幽灵现身_4294.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/幽灵现身/幽灵现身/Call.wav"
+      ]
+    },
+    {
+      "id": "qq-exploration-call",
+      "fileName": "yance-qq-exploration-call.wav",
+      "label": "探索时代 · 来电",
+      "description": "QQ 音效库中的“探索时代”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "探索时代",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 4089,
+      "sourceContentSha256": "65c95daaab4b5f1bb0722cc8942ebf5cbb51763478a9f20913ad82cb673bee2e",
+      "normalizedContentSha256": "735b7f476ae4d9b52d3f340b2d212af05f6c228bb8265f64b852aed50c2ec725",
+      "sizeBytes": 180416,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/CALL_探索时代_90246.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/探索时代/探索时代/CALL.wav"
+      ]
+    },
+    {
+      "id": "qq-romantic-storm-call",
+      "fileName": "yance-qq-romantic-storm-call.wav",
+      "label": "浪漫风暴 · 来电",
+      "description": "QQ 音效库中的“浪漫风暴”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "浪漫风暴",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 3442,
+      "sourceContentSha256": "ecc8e68eb6c4eb1a33c05a34de904bded6301b645766320fa48bad67719db551",
+      "normalizedContentSha256": "1ffdd89c2f5b7891f316af1b7085c147fc49be095dec6b41f9fbcfbc15e77531",
+      "sizeBytes": 154626,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Call_浪漫风暴_14156.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/浪漫风暴/浪漫风暴/Call.wav"
+      ]
+    },
+    {
+      "id": "qq-fresh-wind-call",
+      "fileName": "yance-qq-fresh-wind-call.wav",
+      "label": "清新的风 · 来电",
+      "description": "QQ 音效库中的“清新的风”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "清新的风",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 2586,
+      "sourceContentSha256": "78965b17563ca193aa0b78567de224064b675cba02b7bb44efd45ea4a14e26d8",
+      "normalizedContentSha256": "04b7a552be51596e95b21a2badd09ab580872a858399d6b06cba0c287f85df7a",
+      "sizeBytes": 117562,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Call_清新的风_10726.wav",
+      "duplicateAliasesRemoved": 3,
+      "aliases": [
+        "新建文件夹/QQ原生音效/所有变体/Folder_蝴蝶花_10726.wav",
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/清新的风/清新的风/Call.wav",
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/蝴蝶花/蝴蝶花/Folder.wav"
+      ]
+    },
+    {
+      "id": "qq-believe-call",
+      "fileName": "yance-qq-believe-call.wav",
+      "label": "相信自己 · 来电",
+      "description": "QQ 音效库中的“相信自己”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "相信自己",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 2012,
+      "sourceContentSha256": "2b8c314f0fbfac84f7cbf7eaff94854cf91216caae4765b29c3c29e55642640d",
+      "normalizedContentSha256": "d05925b969ff5be577221940a55a6930a50193d2e667e463716cc4e029a860bd",
+      "sizeBytes": 92234,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Call_相信自己_8508.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/相信自己/相信自己/Call.wav"
+      ]
+    },
+    {
+      "id": "qq-chat-taotao-call",
+      "fileName": "yance-qq-chat-taotao-call.wav",
+      "label": "聊聊淘淘 · 来电",
+      "description": "QQ 音效库中的“聊聊淘淘”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "聊聊淘淘",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 2396,
+      "sourceContentSha256": "5614623b8abbd1e3581487c1a8bcffb8e181e5f881cf57dfe4d8cad1261d0ba6",
+      "normalizedContentSha256": "050240d35f31cd92ca9023b1c78e55dd369012ce9bda94b0daae92b6267d25d5",
+      "sizeBytes": 105754,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/call_聊聊淘淘_52916.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/聊聊淘淘/聊聊淘淘/call.wav"
+      ]
+    },
+    {
+      "id": "qq-nature-call",
+      "fileName": "yance-qq-nature-call.wav",
+      "label": "自然音效 · 来电",
+      "description": "QQ 音效库中的“自然音效”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "自然音效",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 3313,
+      "sourceContentSha256": "f1be14cdf4e3e7455e4aa361301b9f38e5387ae42d1e1bcfc11dc7cc1d702c10",
+      "normalizedContentSha256": "18f34239f446912e1ac274f1d5f021bbd130390488339411cb2da71e923c9719",
+      "sizeBytes": 146164,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/CALL_自然音效_73088.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/自然音效/自然音效/CALL.WAV"
+      ]
+    },
+    {
+      "id": "qq-butterfly-call",
+      "fileName": "yance-qq-butterfly-call.wav",
+      "label": "蝴蝶花 · 来电",
+      "description": "QQ 音效库中的“蝴蝶花”来电提示音。",
+      "group": "QQ · 来电",
+      "family": "QQ 音效库",
+      "pack": "蝴蝶花",
+      "role": "call",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 4073,
+      "sourceContentSha256": "9ae038ee04c49abb6af89f56af1205634d03ddab131676eca0f127dad7e8b15d",
+      "normalizedContentSha256": "9b71a35dfde6dbe64c163d9edb40e8b8ed9140b267afd9ef20b55663a8b7b3ee",
+      "sizeBytes": 183180,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Call_蝴蝶花_16678.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/蝴蝶花/蝴蝶花/Call.wav"
+      ]
+    },
+    {
+      "id": "qq-cs-ring",
+      "fileName": "yance-qq-cs-ring.wav",
+      "label": "CS音效 · 铃声",
+      "description": "QQ 音效库中的“CS音效”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "CS音效",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 1916,
+      "sourceContentSha256": "a7a0cc9feb51f9475153e924f3e8a8353c4b8116acd4766d944224d2adf05856",
+      "normalizedContentSha256": "bafa391f42bb4480362ff3d7e9c6afc57ed03a67075b1ecf848d44fc34abd3df",
+      "sizeBytes": 84606,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/ring_CS音效_42412.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/CS音效/CS音效/ring.wav"
+      ]
+    },
+    {
+      "id": "qq-classic-ring",
+      "fileName": "yance-qq-classic-ring.wav",
+      "label": "QQ经典 · 铃声",
+      "description": "QQ 音效库中的“QQ经典”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "QQ经典",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 1905,
+      "sourceContentSha256": "e3f2d69bb6a475f237cd1b1a62f105c50759658fefe5212533c6a961e682f1db",
+      "normalizedContentSha256": "393998722311990d48f1bdf372c139b6ddacfbe52d0b5eb506470451e146fe87",
+      "sizeBytes": 84114,
+      "sourcePath": "新建文件夹/QQ原生音效/原版/ring.wav",
+      "duplicateAliasesRemoved": 4,
+      "aliases": [
+        "新建文件夹/QQ原生音效/所有变体/RING_枪泡风格_15326.wav",
+        "新建文件夹/QQ原生音效/所有变体/ring_QQ原版声音_15326.wav",
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/枪泡风格/枪泡风格/RING.WAV",
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/QQ原版声音/QQ原版声音/ring.wav"
+      ]
+    },
+    {
+      "id": "qq-samsung-ring",
+      "fileName": "yance-qq-samsung-ring.wav",
+      "label": "三星电话 · 铃声",
+      "description": "QQ 音效库中的“三星电话”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "三星电话",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 1500,
+      "sourceContentSha256": "c8a4d923924cf7dff2313ed0dd3dab46f6ecfb969cb630625e6f21ce957cd61f",
+      "normalizedContentSha256": "c1460a58be9c850aab6e2d04f72898c0a1c302598e2cb126e8f5ef44d885fa57",
+      "sizeBytes": 66228,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Ring_三星电话_33119.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/三星电话/三星电话/Ring.wav"
+      ]
+    },
+    {
+      "id": "qq-kiss-hug-ring",
+      "fileName": "yance-qq-kiss-hug-ring.wav",
+      "label": "亲亲我抱抱我 · 铃声",
+      "description": "QQ 音效库中的“亲亲我抱抱我”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "亲亲我抱抱我",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 2496,
+      "sourceContentSha256": "9cd32468c6aa25a978cf0dd8999ec56550f4e371b46ac81517197febcc195161",
+      "normalizedContentSha256": "d4a1e02ba803fef13ece7a5b78f6cfb8ac790933f22f50366af387f417b08f41",
+      "sizeBytes": 113402,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Ring_亲亲我抱抱我_10428.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/亲亲我抱抱我/亲亲我抱抱我/Ring.wav"
+      ]
+    },
+    {
+      "id": "qq-first-love-ring",
+      "fileName": "yance-qq-first-love-ring.wav",
+      "label": "初恋情人 · 铃声",
+      "description": "QQ 音效库中的“初恋情人”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "初恋情人",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 7639,
+      "sourceContentSha256": "41dfe3e50f986bb846ac603f7caf171a958f744c69a5efce97d213f850994fc7",
+      "normalizedContentSha256": "1015792e29afa48b2a8ecb2ba718a0345da845ff176177c88c3aef219028071c",
+      "sizeBytes": 339846,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Ring_初恋情人_30956.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/初恋情人/初恋情人/Ring.wav"
+      ]
+    },
+    {
+      "id": "qq-animal-ring",
+      "fileName": "yance-qq-animal-ring.wav",
+      "label": "动物音效 · 铃声",
+      "description": "QQ 音效库中的“动物音效”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "动物音效",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 2404,
+      "sourceContentSha256": "9e9bfac50c10403dc220ea350c74a5aec3806355965eb386ef3922e2d7ceeb7f",
+      "normalizedContentSha256": "c76910803f5d59fd081b495d47c08f18b2e0506d163d7f46651676b2e10907d8",
+      "sizeBytes": 106088,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/ring_动物音效_53050.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/动物音效/动物音效/ring.WAV"
+      ]
+    },
+    {
+      "id": "qq-classic-elegance-ring",
+      "fileName": "yance-qq-classic-elegance-ring.wav",
+      "label": "古典风韵 · 铃声",
+      "description": "QQ 音效库中的“古典风韵”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "古典风韵",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 862,
+      "sourceContentSha256": "450084c3bfd19c3d9cfda069db3950c3b88cdd77033591b9511fcb02a360d702",
+      "normalizedContentSha256": "71b87d5cafeb4e6d21fe2a78fbb1f1b62cea46d8778907f9eab7579cf1ddc7e0",
+      "sizeBytes": 41356,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Ring_古典风韵_3814.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/古典风韵/古典风韵/Ring.wav"
+      ]
+    },
+    {
+      "id": "qq-april-story-ring",
+      "fileName": "yance-qq-april-story-ring.wav",
+      "label": "四月物语 · 铃声",
+      "description": "QQ 音效库中的“四月物语”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "四月物语",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 8173,
+      "sourceContentSha256": "7fae5919cad63ce667e50565a4361ffcce679d91f3e40940dd207f2b5a5113d7",
+      "normalizedContentSha256": "7059d7be477ab79bb6fcd37a13b9167ba99e95b810ace14cc50728318f3f833f",
+      "sizeBytes": 363128,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Ring_四月物语_33068.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/四月物语/四月物语/Ring.wav"
+      ]
+    },
+    {
+      "id": "qq-happy-pig-angel-ring",
+      "fileName": "yance-qq-happy-pig-angel-ring.wav",
+      "label": "小猪天使 永远开心 · 铃声",
+      "description": "QQ 音效库中的“小猪天使 永远开心”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "小猪天使 永远开心",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 5097,
+      "sourceContentSha256": "35d4ee3a7ac4cdae04e039c3ab6e60041425b115861ee19c1d174b84f68e4adb",
+      "normalizedContentSha256": "77d8adad74136cea8574c853fa3371efceff54d610c692be2c99667117eef777",
+      "sizeBytes": 246684,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Ring_小猪天使 永远开心_22438.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/小猪天使 永远开心/小猪天使 永远开心/Ring.wav"
+      ]
+    },
+    {
+      "id": "qq-ghost-ring",
+      "fileName": "yance-qq-ghost-ring.wav",
+      "label": "幽灵现身 · 铃声",
+      "description": "QQ 音效库中的“幽灵现身”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "幽灵现身",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 993,
+      "sourceContentSha256": "453493a9c81e9fb9d82cb7c3f6719afbd2569560fee1ecebf4143296388fab01",
+      "normalizedContentSha256": "948d4fab80f1f6baad66d9a9fd3aa26087d5db20190475a3213874a6df924b0a",
+      "sizeBytes": 46648,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Ring_幽灵现身_4294.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/幽灵现身/幽灵现身/Ring.wav"
+      ]
+    },
+    {
+      "id": "qq-exploration-ring",
+      "fileName": "yance-qq-exploration-ring.wav",
+      "label": "探索时代 · 铃声",
+      "description": "QQ 音效库中的“探索时代”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "探索时代",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 2634,
+      "sourceContentSha256": "361a17d0193a16c4ae1f52c267901f83cfd01b7771bd2d3f34844fc7c17abe16",
+      "normalizedContentSha256": "6efed4aaaaf3bd00a012904b3bb98b55bd90b469e7eb5f89210bd56fbdc543dd",
+      "sizeBytes": 116238,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/RING_探索时代_58158.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/探索时代/探索时代/RING.wav"
+      ]
+    },
+    {
+      "id": "qq-romantic-storm-ring",
+      "fileName": "yance-qq-romantic-storm-ring.wav",
+      "label": "浪漫风暴 · 铃声",
+      "description": "QQ 音效库中的“浪漫风暴”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "浪漫风暴",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 2496,
+      "sourceContentSha256": "0176f10271d5e4f75e56ce41976d3f23befb334fc5188e9e3f50a47bc90a7075",
+      "normalizedContentSha256": "6738c9b54a885937eb2fccefcb16bf047e4ffa525fae28963a937d79889c9fbf",
+      "sizeBytes": 113402,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Ring_浪漫风暴_10428.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/浪漫风暴/浪漫风暴/Ring.wav"
+      ]
+    },
+    {
+      "id": "qq-fresh-wind-ring",
+      "fileName": "yance-qq-fresh-wind-ring.wav",
+      "label": "清新的风 · 铃声",
+      "description": "QQ 音效库中的“清新的风”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "清新的风",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 2769,
+      "sourceContentSha256": "0a9295820cbe20d23196964d054d0cd3575793acc3f9efbc9b5149158398de5c",
+      "normalizedContentSha256": "01864d21ef3e714e1dfb88d3102280177ea6d6e0d111be165929f881193b1612",
+      "sizeBytes": 124968,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Ring_清新的风_11398.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/清新的风/清新的风/Ring.wav"
+      ]
+    },
+    {
+      "id": "qq-believe-ring",
+      "fileName": "yance-qq-believe-ring.wav",
+      "label": "相信自己 · 铃声",
+      "description": "QQ 音效库中的“相信自己”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "相信自己",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 4335,
+      "sourceContentSha256": "d5ddddd4ae32c78c60296148b5804ed677d2457aaaaa471bc4cfd48767fa3728",
+      "normalizedContentSha256": "923bf2fc73583185726188a54ed3efa59e6b38272fb86acdfd8d69b5ab0c6fad",
+      "sizeBytes": 194898,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Ring_相信自己_17820.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/相信自己/相信自己/Ring.wav"
+      ]
+    },
+    {
+      "id": "qq-real-voice-ring",
+      "fileName": "yance-qq-real-voice-ring.wav",
+      "label": "真人语音 · 铃声",
+      "description": "QQ 音效库中的“真人语音”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "真人语音",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 2439,
+      "sourceContentSha256": "d7c89fe981437f0af8ba729e2e5750e9d11a1893705f54c8542d128b0e989754",
+      "normalizedContentSha256": "262c4c5d2d4373de834a76db8d27fc8d35ac2db92f1bb66bb0a3909746cc89d5",
+      "sizeBytes": 107670,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/ring_真人语音_19600.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/真人语音/真人语音/ring.wav"
+      ]
+    },
+    {
+      "id": "qq-chat-taotao-ring",
+      "fileName": "yance-qq-chat-taotao-ring.wav",
+      "label": "聊聊淘淘 · 铃声",
+      "description": "QQ 音效库中的“聊聊淘淘”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "聊聊淘淘",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 2467,
+      "sourceContentSha256": "23cda377a2d36b9f8055b37ca0c776501eacb8b7facac2f94e6793e6aa4b74fb",
+      "normalizedContentSha256": "662706ae31e134a635fc5cb97b042cdf89fe5b1fabdb4668b0352a8023e4db47",
+      "sizeBytes": 108908,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/ring_聊聊淘淘_54492.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/聊聊淘淘/聊聊淘淘/ring.wav"
+      ]
+    },
+    {
+      "id": "qq-nature-ring",
+      "fileName": "yance-qq-nature-ring.wav",
+      "label": "自然音效 · 铃声",
+      "description": "QQ 音效库中的“自然音效”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "自然音效",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 8167,
+      "sourceContentSha256": "d94193f922b6f994bf16ae5351e225706c6af6fb813fbbb61c5d7338fd073bad",
+      "normalizedContentSha256": "b4c9c896d37fed7ede330ce03a1d6b1294289352646f94415268630cb30c2ee7",
+      "sizeBytes": 360242,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/RING_自然音效_180126.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/自然音效/自然音效/RING.WAV"
+      ]
+    },
+    {
+      "id": "qq-butterfly-ring",
+      "fileName": "yance-qq-butterfly-ring.wav",
+      "label": "蝴蝶花 · 铃声",
+      "description": "QQ 音效库中的“蝴蝶花”铃声提示音。",
+      "group": "QQ · 铃声",
+      "family": "QQ 音效库",
+      "pack": "蝴蝶花",
+      "role": "ring",
+      "recommendedEvents": [
+        "incoming"
+      ],
+      "durationMs": 4123,
+      "sourceContentSha256": "c863c6f0f419968e0cbbb67bd0767d3080a73d3c1855c1e8f3cae1568fc3dacd",
+      "normalizedContentSha256": "35303b5b5fa568f18fabb2d7a2e2ab5e16e02eed5266be5d6e9146b785179227",
+      "sizeBytes": 185372,
+      "sourcePath": "新建文件夹/QQ原生音效/所有变体/Ring_蝴蝶花_16956.wav",
+      "duplicateAliasesRemoved": 1,
+      "aliases": [
+        "新建文件夹/QQ音效/1483099884817/20zhongqqxiaoxitishiyindabaotigongxiazai/蝴蝶花/蝴蝶花/Ring.wav"
+      ]
+    }
+  ]
+}

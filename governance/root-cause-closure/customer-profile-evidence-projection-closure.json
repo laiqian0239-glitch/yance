@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_CUSTOMER_PROFILE_EVIDENCE_PROJECTION_CLOSURE",
+  "sourceBaseline": "6f29684d9701a096d6cb1a31ed3e2e7d17fcb839",
+  "status": "REAL_DB_REPLAY_PASS",
+  "windowsRenderStatus": "PENDING",
+  "endToEndTaskStatus": "PENDING",
+  "userConfirmationStatus": "PENDING",
+  "defectIds": [
+    "DEFECT-009"
+  ],
+  "rootCausesClosed": [
+    "客户档案与关系展示不读取 r32_messages 中已成功的中文译文",
+    "模型随机行 ID 被纳入展示去重键，导致相同真实消息重复显示",
+    "客户证据仅存于可重复 JSON 数组，缺少数据库唯一幂等投影"
+  ],
+  "authority": "CustomerProfileEvidenceAuthority",
+  "identityContract": [
+    "platform",
+    "sourceAccountId",
+    "platformContactIdentity",
+    "conversationId",
+    "canonicalContactId"
+  ],
+  "idempotencyKey": [
+    "canonicalContactId",
+    "platform",
+    "sourceAccountId",
+    "conversationId",
+    "platformMessageId",
+    "evidenceType",
+    "projectionVersion"
+  ],
+  "databaseEnforcement": [
+    "customer_profile_evidence.idempotency_key UNIQUE"
+  ],
+  "translationConvergence": [
+    "优先复用证据自身 translatedZh",
+    "缺失时按 messageId/platformMessageId 查找 r32_messages 成功译文",
+    "消息 ID 缺失时只允许唯一原文精确匹配",
+    "失败或取消状态仍可复用 lastSuccessfulTranslatedZh",
+    "不得把外语原文伪装成中文理解"
+  ],
+  "historicalDataPolicy": [
+    "不静默删除 customer_profiles 或 relationship_insights 中的历史 JSON",
+    "运行时展示先按稳定幂等身份收敛重复卡片",
+    "后续历史清理必须 dry-run、备份、差异、执行、验证、回滚"
+  ],
+  "tests": [
+    "tests/uat/customerProfileEvidenceProjection.test.js",
+    "backend/tests/phase2AiBilingualQuality.test.js",
+    "backend/tests/phase2Batch4Recovery.test.js"
+  ],
+  "limitations": [
+    "DEFECT-007 有有效节点但关系摘要长期待分析，属于下一独立关系状态权威批次",
+    "WINDOWS_RENDER_PASS 尚未执行",
+    "真实用户数据库历史重复记录尚未执行清理"
+  ]
+}

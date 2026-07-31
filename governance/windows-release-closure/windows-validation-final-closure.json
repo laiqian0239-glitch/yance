@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_WINDOWS_VALIDATION_FINAL_CLOSURE_POLICY",
+  "status": "SOURCE_IMPLEMENTED_WORKBUDDY_ASSISTED_PENDING_REAL_WINDOWS_PREPLAY_AND_TWO_STRICT_ROUNDS",
+  "officialRoundPolicy": {
+    "diagnosticResultMayAuthorizeFinalBuilder": false,
+    "strictRoundCountRequired": 2,
+    "independentFreshCloneRequired": true,
+    "sharedNodeModulesAllowed": false,
+    "sharedNpmCacheAllowed": false,
+    "sharedTempAllowed": false,
+    "localSourcePatchingAllowed": false,
+    "assumeUnchangedAllowed": false,
+    "skipWorktreeAllowed": false,
+    "manualRoundResultAllowed": false,
+    "workBuddyAssistedExecutionAllowed": true,
+    "nativeWindowsPowerShellChildProcessesRequired": true
+  },
+  "runtimeBinding": {
+    "node": "v22.16.0",
+    "npm": "10.9.2",
+    "nodeExecutableMustBeAbsolute": true,
+    "npmCliMustBeInvokedThroughReviewedNode": true,
+    "npmScriptNodeExecutableMustMatchReviewedNode": true
+  },
+  "preflight": {
+    "runsBeforeNpmCi": true,
+    "requiresCleanRepository": true,
+    "rejectsHiddenIndexFlags": true,
+    "requiresWritableShortPathCapableTemp": true,
+    "minimumFreeDiskBytes": 10737418240,
+    "recordsLongPathPolicy": true,
+    "recordsAdministratorState": true,
+    "comShortPathResolverAllowed": false,
+    "nativeCmdShortPathResolverRequired": true
+  },
+  "verification": {
+    "strictMode": "FAIL_FAST",
+    "diagnosticMode": "CONTINUE_INDEPENDENT_SAFE_STEPS",
+    "convergenceTimeoutMs": 1800000,
+    "adversarialTimeoutMs": 2700000,
+    "heartbeatIntervalMs": 30000,
+    "timeoutKillsProcessTree": true,
+    "assistedSingleEntryPipelineRequired": true,
+    "missingBuildToolsOutcome": "BLOCKED_NOT_SOURCE_FAIL"
+  },
+  "requiredRoundEvidence": [
+    "ROUND_RESULT.json",
+    "ENVIRONMENT_MANIFEST.json",
+    "STEP_RESULTS.json",
+    "PROCESS_TIMELINE.json",
+    "RESIDUAL_PROCESSES.json",
+    "FINAL_STATUS.txt",
+    "evidence/WP7_PRE_REVIEW_VERIFICATION_SUMMARY.json",
+    "evidence/WP7_VERIFY_HEARTBEAT.json",
+    "evidence/WP7_VERIFY_PROCESS_TIMELINE.jsonl"
+  ],
+  "finalBuilder": {
+    "requiresTwoStrictPassRounds": true,
+    "requiresSameBranchCommitTree": true,
+    "requiresSameBundleSha256": true,
+    "requiresSameRunnerSha256": true,
+    "requiresSameNodeAndNpm": true,
+    "preacceptanceGeneratedFromRoundPair": true
+  },
+  "deferredNonBlockingScope": [
+    "CODE_SIGNING_CERTIFICATE",
+    "ONLINE_UPDATE_SERVER",
+    "PUBLIC_SERVER",
+    "PAID_FONT",
+    "PAID_DESIGN_ASSET",
+    "CLOUD_SERVICE",
+    "PUBLIC_RELEASE"
+  ]
+}

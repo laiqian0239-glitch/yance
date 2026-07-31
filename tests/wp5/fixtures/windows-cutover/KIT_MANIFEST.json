@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 2,
+  "stage": "6.4.5.9",
+  "workPackage": "WP5",
+  "packageType": "WINDOWS_CUTOVER_VALIDATION_KIT",
+  "generatedAtUtc": "2026-07-05T04:17:30.824299Z",
+  "launcherRevision": "PERSISTENT_CONSOLE_AND_EXTRACT_DIAGNOSTICS_V2",
+  "notImplementationCandidate": true,
+  "notFinalPackaging": true,
+  "activationBindingCommit": "e52b9f6c6ddb59a45fc652aef43b195fbecb6aee",
+  "worktreeSourceTree": "675e0c35f9774c96fceef33928a9867ff207b3da",
+  "currentEvidenceStatus": "INCOMPLETE",
+  "requiredResolution": "REAL_WINDOWS_PASS",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "1c4b808146e3986dc9eb491880548d520976180cc17db621c787fc56a0ae6304",
+      "sizeBytes": 1611
+    },
+    {
+      "path": "RUN_WP5_WINDOWS_CUTOVER.cmd",
+      "sha256": "dc90f351b22488e73edfd70e2a43f1733118cd5ea3cb198eb696035c81964079",
+      "sizeBytes": 2262
+    },
+    {
+      "path": "RUN_WP5_WINDOWS_CUTOVER.ps1",
+      "sha256": "0ed0ff31d2de71d074b3a7d4806b84c0414e12f79ecffffcc15c5b8a531cd69e",
+      "sizeBytes": 4284
+    },
+    {
+      "path": "electron/desktopHost/BackendOwnerRegistry.js",
+      "sha256": "22a35c669bb32fecd759e9049d121aae891a1f186200e18e541a2ae7242e172e",
+      "sizeBytes": 17798
+    },
+    {
+      "path": "electron/desktopHost/LegacyRuntimeCutoverGate.js",
+      "sha256": "5695f0692d9d65de909ee196f6250998ed1aa2f9ede9569b56e18b7802e33e5f",
+      "sizeBytes": 5892
+    },
+    {
+      "path": "tests/wp5/windows-cutover-evidence-contract.test.js",
+      "sha256": "82c4c1dfbf562b16ee2297d72def7aa861f9bac8d545794c94399dd60f455876",
+      "sizeBytes": 2526
+    },
+    {
+      "path": "tools/wp5/common.js",
+      "sha256": "56defc9af2e2e5443957825d9e618aac33c2ffe20c4bd2534ede9e624e1a880e",
+      "sizeBytes": 4279
+    },
+    {
+      "path": "tools/wp5/windows-legacy-runtime-cutover-evidence.js",
+      "sha256": "eb83e2319694a5954365fed2c7d71e56fc4f3397fe287d3c1b0ca2483a9623d8",
+      "sizeBytes": 9425
+    }
+  ]
+}

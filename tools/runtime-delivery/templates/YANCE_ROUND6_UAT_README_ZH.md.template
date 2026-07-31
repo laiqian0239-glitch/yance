@@ -1,0 +1,30 @@
+# 言策第6轮真实 Windows UAT 安装候选
+
+这不是正式发布版，而是用于录入真实 OpenRouter API Key、连接 Facebook / WhatsApp / Telegram 并完成真实 Windows 验收的安装候选。
+
+## 源码身份
+
+- Branch：`__EXPECTED_BRANCH__`
+- Commit：`__EXPECTED_COMMIT__`
+- Tree：`__EXPECTED_TREE__`
+- Artifact：`ROUND6_REAL_WINDOWS_UAT_CANDIDATE`
+
+## 安装
+
+1. 完全退出正在运行的言策。
+2. 确认电脑已安装 Node.js 22.5.0 或更高版本。
+3. 双击 `INSTALL_TEST_AND_START_YANCE_ROUND6_UAT.cmd`。
+4. 安装器会先校验源码载荷 SHA256，再解压到 `%LOCALAPPDATA%\Yance-UAT-Candidates\__SHORT_COMMIT__`。
+5. 若发现现有数据库，会在 `%LOCALAPPDATA%\Yance-UAT-RestorePoints\__SHORT_COMMIT__` 创建本地数据库恢复点，然后使用检测到的最大现有数据根启动。
+
+## 凭据规则
+
+- OpenRouter API Key 只在言策设置界面录入。
+- Facebook 通过正式 OAuth 在本机授权。
+- WhatsApp 在本机扫码。
+- Telegram 验证码和两步验证密码只在本机输入。
+- 不要把 Key、Token、Cookie、验证码或有效二维码放入聊天、脚本、日志或材料包。
+
+## 状态边界
+
+该候选用于真实验收。验收完成前不得标记 `USER_CONFIRMED_REAL_WINDOWS_PASS`，也不得作为正式发布安装包。

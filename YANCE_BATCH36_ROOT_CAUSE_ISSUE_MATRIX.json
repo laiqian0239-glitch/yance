@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH36_ROOT_CAUSE_ISSUE_MATRIX",
+  "generatedAtUtc": "2026-07-29T12:02:00Z",
+  "sourceIdentity": {
+    "branch": "development/windows-uat-batch36-consolidated-full-candidate",
+    "implementationCommit": "bdc0c9de8bdd604161117c1648595bba3649651d",
+    "implementationTree": "ba631ae63e15cc3f5d1d32737bf9b18d9894b316"
+  },
+  "issues": [
+    {
+      "id": "B36-BOOT-001",
+      "severity": "P0",
+      "status": "SOURCE_FIXED_WINDOWS_SELECTED_PASS_FULL_RETEST_REQUIRED",
+      "title": "Direct BackendProcessHost probes omitted required FD5 hydration and inherited retired authority",
+      "rootCause": "WP3/WP4 direct probes did not consistently declare credentialFrameRequired and inherited retired YANCE_SAFE_MODE/path authorities.",
+      "fix": "Require credential frame, strip retired exact keys, isolate data-root/SQLite/mutex authority and expose bounded boot diagnostics.",
+      "verification": "WP3 production boot passed in Batch31 Windows; full Batch36 Windows retest pending."
+    },
+    {
+      "id": "B36-WP4-001",
+      "severity": "P0",
+      "status": "SOURCE_FIXED_WINDOWS_SELECTED_PASS_FULL_RETEST_REQUIRED",
+      "title": "Rejected-owner concurrent exit was persisted as permanent live containment",
+      "rootCause": "Windows FD6 close could terminate the child after stop reported failure; stale stop result was treated as authoritative.",
+      "fix": "Observe bounded concurrent exit, require durable owner release, keep fail-closed only while child/owner/fence remains live.",
+      "verification": "Batch35 A12/A14/A20/A21 4/4 PASS; full matrix pending."
+    },
+    {
+      "id": "B36-SQLITE-001",
+      "severity": "P0",
+      "status": "SOURCE_FIXED_WINDOWS_SELECTED_PASS_FULL_RETEST_REQUIRED",
+      "title": "Long WP4 case identifiers caused SQLite CANTOPEN in Windows temporary paths",
+      "rootCause": "Full evidence case names were used as filesystem identity, producing 126–134 character database paths for the four longest cases.",
+      "fix": "Use short case number plus 12-character SHA256 prefix; preserve full case id only in evidence metadata.",
+      "verification": "Batch35 short-path contracts 6/6 and four target cases 4/4 PASS."
+    },
+    {
+      "id": "B36-SQLITE-002",
+      "severity": "P1",
+      "status": "SOURCE_FIXED",
+      "title": "SQLite ownership errors lacked bounded classification and retry",
+      "rootCause": "Store-open and lease-acquire failures were wrapped as generic runtime initialization errors.",
+      "fix": "Split ownership_store_open/ownership_lease_acquire; map fixed BOOT_SQLITE codes; retry only BUSY/LOCKED at 50/150/300ms.",
+      "verification": "SQLite classification/retry tests PASS; target Windows cases pass."
+    },
+    {
+      "id": "B36-EVIDENCE-001",
+      "severity": "P1",
+      "status": "SOURCE_FIXED",
+      "title": "Selected containment matrix represented unexecuted probes as FAIL",
+      "rootCause": "Grouped probe status required every full-matrix member even when a targeted case subset was intentionally selected.",
+      "fix": "Introduce NOT_RUN/PARTIAL semantics; selected result may be PASS with evidenceCompleteness=PARTIAL; complete PASS still requires all probes.",
+      "verification": "New evidence semantics tests 3/3 PASS."
+    }
+  ],
+  "openSourceDefects": [],
+  "externalPromotionBlockers": [
+    "BATCH36_WINDOWS_CLEAN_NPM_CI",
+    "BATCH36_FULL_WP3_WP4_WP5",
+    "BATCH36_REAL_ELECTRON",
+    "REAL_PLATFORM_UAT",
+    "REAL_OPENROUTER",
+    "INDEPENDENT_REVIEW"
+  ],
+  "governance": {
+    "windowsUatState": "WINDOWS_UAT_BLOCKED",
+    "readyForPromotion": false,
+    "formalRelease": false
+  }
+}

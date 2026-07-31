@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP6_ACTIVATION_ACCEPTANCE",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP6",
+  "acceptedAtUtc": "2026-07-05T06:40:09Z",
+  "decision": "WP6_ACTIVATION_ACCEPTED",
+  "acceptedIdentity": {
+    "wp5AcceptedFinalDeliveryHead": "c4d5a641e93c600c0199e9960fe8f570faa07808",
+    "wp5AcceptedFinalSourceTree": "b6ece87673d804686bd231858097f6561ff1b200",
+    "activationCommit": "3d48fc990deb64bb9fbfa623afa95c102ae516b5",
+    "activationSourceTree": "fdf199697d2ca1dd1a001e05518316bae0f81ecf",
+    "activationBindingCommit": "7de495936c955a67d737c351682a9e84ffd4d290",
+    "activationBindingSourceTree": "855376824e8f75aaebc41ce74f73a451026f977f"
+  },
+  "scope": "ACTIVATION_IDENTITY_GOVERNANCE_AND_BOUNDARY_ONLY",
+  "doesNotAccept": [
+    "WP6_PRODUCTION_IMPLEMENTATION",
+    "WP6_REQUIRED_TESTS",
+    "WP6_EVIDENCE",
+    "WP6_CONVERGENCE_PRE_REVIEW",
+    "WP6_FINAL_PACKAGING",
+    "WP6_FINAL_ACCEPTANCE"
+  ]
+}

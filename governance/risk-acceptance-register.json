@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "updatedAtUtc": "2026-07-05T06:15:00Z",
+  "records": [
+    {
+      "riskAcceptanceId": "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+      "workPackage": "WP2",
+      "acceptedBy": "Project Owner",
+      "usageScope": "Personal single-user deployment",
+      "status": "ACCEPTED",
+      "acceptedAtUtc": "2026-07-03T07:29:00Z",
+      "acceptanceBasis": {
+        "finalCodeImplementationCommit": "85ec59889dc2ca5c4c2d2ebd2feac9e631b006bc",
+        "finalDeliveryHead": "3474d37d8bea07d1ea0294801e7f78284aae6ff8",
+        "finalSourceTree": "ada9ddf5db0e25ef2274b82db5f5a3f8f5bb4c9e"
+      },
+      "riskStatement": "The WP2 token leak scanner does not cover every complete SHA256-equivalent encoding, including uppercase SHA256 hex, raw 32-byte digests, and some base64/base64url variants.",
+      "interpretation": "This is an accepted security-test coverage gap. It does not assert or imply that the current production code leaks an API session token or token digest.",
+      "constraints": [
+        "Do not describe the scanner as having complete encoding coverage.",
+        "Do not delete or rewrite prior independent-review findings.",
+        "Acceptance applies only to personal single-user deployment."
+      ]
+    },
+    {
+      "riskAcceptanceId": "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+      "workPackage": "WP3",
+      "acceptedBy": "Project Owner",
+      "usageScope": "Personal single-user deployment",
+      "status": "ACCEPTED",
+      "acceptedAtUtc": "2026-07-03T08:24:00Z",
+      "acceptanceBasis": {
+        "finalCodeImplementationCommit": "aca19d12c20e5ea23af93d1a1a9e840237f5a726",
+        "finalCandidateHead": "3d8bac3665098d495e3266ea8ea013c5aba6be16",
+        "finalSourceTree": "e2670016e7d6252e5cf206223fc4420b5666e606"
+      },
+      "riskStatement": "Windows 10/11 x64 real-machine Named Mutex validation was not executed, including real mutex creation, second-process acquisition denial, release waiting, abnormal-exit release behavior, and takeover ordering after true mutex release.",
+      "interpretation": "This is an accepted missing-platform-validation risk. It must not be described as Windows Named Mutex real-machine validation having passed.",
+      "constraints": [
+        "Do not claim Windows Named Mutex real-machine validation passed.",
+        "Do not delete or rewrite prior WP3 independent-review findings or Windows validation handoff records.",
+        "Acceptance applies only to personal single-user deployment."
+      ]
+    },
+    {
+      "riskAcceptanceId": "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+      "workPackage": "WP4",
+      "acceptedBy": "Project Owner",
+      "status": "ACCEPTED",
+      "acceptedAtUtc": "2026-07-04T19:16:04Z",
+      "usageScope": [
+        "PROJECT_OWNER_ONLY",
+        "PERSONAL_SINGLE_USER_DEPLOYMENT",
+        "SINGLE_DEVICE_ENVIRONMENT"
+      ],
+      "riskStatement": "The Windows Evidence generator does not strictly reject every future incomplete PASS result when reboot-boundary validation or required checks are absent.",
+      "interpretation": "Accepted only for the stated owner-only single-user scope. Missing Windows checks must remain visible and must not be represented as complete PASS.",
+      "constraints": [
+        "Do not hide NOT_EXECUTED Windows evidence.",
+        "Do not extend the exception to public, commercial, enterprise, or multi-user use."
+      ]
+    },
+    {
+      "riskAcceptanceId": "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED",
+      "workPackage": "WP5",
+      "acceptedBy": "Project Owner",
+      "status": "ACCEPTED",
+      "acceptedOn": "2026-07-05",
+      "acceptanceBasis": {
+        "implementationCommit": "2d42a7424b1bac0dafa2b4c3bee3378266e1a92f",
+        "implementationSourceTree": "1b7594dcc35e77a09e3e31473fbec74847a5e3c1",
+        "candidateBindingCommit": "ba3728dcf267c338af19d78297309aa306ee8018",
+        "candidateBindingSourceTree": "6e6a9c27a18bce011da06863aa7ea4c2015db386",
+        "acceptedFinalDeliveryHead": "c4d5a641e93c600c0199e9960fe8f570faa07808",
+        "acceptedFinalSourceTree": "b6ece87673d804686bd231858097f6561ff1b200"
+      },
+      "riskStatement": "The WP5 Final Packaging tracked handoff/status fields still express the pre-final-review candidate state even though the independent final decision accepted the package.",
+      "interpretation": "This is a governance-field expression inconsistency only. The authoritative state is WP5_ACCEPTED at the accepted Final Delivery HEAD and accepted final source tree.",
+      "constraints": [
+        "Do not reinterpret WP5 as ACTIVE or PENDING.",
+        "Do not extend this acceptance to production code, tests, Git identity, evidence, WP6 state, or later work packages.",
+        "Do not use stale candidate fields as authority over the final independent audit decision."
+      ]
+    }
+  ]
+}

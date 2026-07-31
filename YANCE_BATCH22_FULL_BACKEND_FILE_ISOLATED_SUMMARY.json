@@ -1,0 +1,1636 @@
+{
+  "schemaVersion": 1,
+  "gate": "backend-tests-file-isolated",
+  "generatedAtUtc": "2026-07-28T11:37:27Z",
+  "fileCount": 162,
+  "tests": 956,
+  "pass": 956,
+  "fail": 0,
+  "skipped": 0,
+  "cancelled": 0,
+  "missingFiles": [],
+  "failedFiles": [],
+  "files": [
+    {
+      "file": "backend/tests/accountLifecycleCommands.test.js",
+      "log": "accountLifecycleCommands.test.js.log",
+      "logSha256": "b68804ed76bfaeec181ff8b3a58b5a75b36bcecaba1396f61e0a48e3413d18e8",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/accountLifecycleRegression.test.js",
+      "log": "accountLifecycleRegression.test.js.log",
+      "logSha256": "13a631fe74cebadc37d8426fe7dbc93d7a4b76685a1d1bd4e4232a1c22910cef",
+      "tests": 14,
+      "pass": 14,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/accountRepositoryConcurrency.test.js",
+      "log": "accountRepositoryConcurrency.test.js.log",
+      "logSha256": "2fc8cc9a2e9d554709538d71872c2674f3f37bfc1e008dee913ea3d3023ee8ca",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/aiBrainBenchmarkRuntimeClosure.test.js",
+      "log": "aiBrainBenchmarkRuntimeClosure.test.js.log",
+      "logSha256": "2f6ab1586800f86fbe6a452d09eae5f81e32a931975b05a83a583d6a1fee0b64",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/aiBrainManualRouteClosure.test.js",
+      "log": "aiBrainManualRouteClosure.test.js.log",
+      "logSha256": "6e6f729d1d1f2830b5f0734d3b453781e98603b80544f3165b8e99b62107de72",
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/aiBrainModelAuthorityClosure.test.js",
+      "log": "aiBrainModelAuthorityClosure.test.js.log",
+      "logSha256": "d7105ada70b5d3cd132413c890dc3bc3be6cb48dbd9999e48741327e6f2dc8c3",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/aiBrainModelLifecycleClosure.test.js",
+      "log": "aiBrainModelLifecycleClosure.test.js.log",
+      "logSha256": "e3bf084af53feee912a89f0c2b6efbbee938e405fd48289e8d4e3dbcf528d390",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/aiBrainRouteActivationAuthorityClosure.test.js",
+      "log": "aiBrainRouteActivationAuthorityClosure.test.js.log",
+      "logSha256": "6da1c5f4f48dff9cec95ee588eac744ff03c7fedb290d6e0eaa15e0632651ab2",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/aiGatewayQualityEnforcement.test.js",
+      "log": "aiGatewayQualityEnforcement.test.js.log",
+      "logSha256": "7f9246cfbaf51509ad0639fa145d809df580bc9a3cc3cc957a04fa11a46f905e",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/aiModelGovernanceClosure.test.js",
+      "log": "aiModelGovernanceClosure.test.js.log",
+      "logSha256": "1da23670a82504b88e05a88e1d349b4faa18588dfca65fc94bd03631bd1036bc",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/aiQualityRouteAuthority.test.js",
+      "log": "aiQualityRouteAuthority.test.js.log",
+      "logSha256": "161203565fa66cecafa130ad0bd6e62df7e4f40acd71e9f4dab2e692b8fc7b1f",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/aiReplyBrainWhatsAppClosure.test.js",
+      "log": "aiReplyBrainWhatsAppClosure.test.js.log",
+      "logSha256": "d91331999b3e9d4a05a08cd8353eb1edc375738104ceebf4908d3b91ca5e1bed",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/aiTaskStageAuthorityClosure.test.js",
+      "log": "aiTaskStageAuthorityClosure.test.js.log",
+      "logSha256": "99c038cb2ebcd4355745f3977ceb6d10c5c0f53dc39082acfb970987f32b75e6",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/aiWorkbenchDialogAuthority.test.js",
+      "log": "aiWorkbenchDialogAuthority.test.js.log",
+      "logSha256": "5453665ee885156f1bf094e8d1350aa3f7df149c0b567f7353b399971d27b835",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/avatarSyncRegression.test.js",
+      "log": "avatarSyncRegression.test.js.log",
+      "logSha256": "547b322415fb5cacc0fad45777cf5808ad2ce7e50f934f06d364f1b75329a338",
+      "tests": 22,
+      "pass": 22,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/baileysProfilePictureTokenPatch.test.js",
+      "log": "baileysProfilePictureTokenPatch.test.js.log",
+      "logSha256": "da60be67c1470e9e2285c1009a00f4da77ba02d500658dc4125ee95406d09fc4",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/bilingualUnderstandingService.test.js",
+      "log": "bilingualUnderstandingService.test.js.log",
+      "logSha256": "965619796d85be4b83a5df10cb9e3da033bf208165118b9a342511eb2ebc3641",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/caller_migration.test.js",
+      "log": "caller_migration.test.js.log",
+      "logSha256": "e70c4b9387f0c7aa73c819a81583748cfddca14e17915a845d82af0637e06713",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/commercialModelBenchmarkService.test.js",
+      "log": "commercialModelBenchmarkService.test.js.log",
+      "logSha256": "2af800efecfff9501dd5e43b36531630c2710e528cccd1068bccdee15c19ab73",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/contactContextAuthority.test.js",
+      "log": "contactContextAuthority.test.js.log",
+      "logSha256": "cb519a3986e55ae6df3268866951301b069f4e59073218579adb3d34b1f79a71",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/contactFactExtractionCommercialClosure.test.js",
+      "log": "contactFactExtractionCommercialClosure.test.js.log",
+      "logSha256": "23c38c5b5ae9fad1c30693d0a8403b03158790e44112ff9be5eb3958bb4bc804",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/contactIdentityConfirmation.test.js",
+      "log": "contactIdentityConfirmation.test.js.log",
+      "logSha256": "48ced0c77ff300c1449909fe02498d79477c9b83a09de95e9a4129b0897eebd9",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/contactLanguageAuthority.test.js",
+      "log": "contactLanguageAuthority.test.js.log",
+      "logSha256": "8f96b5ccd4f43c47afc4bb7b6fdc768c5591f1e8e65f985567c1f496cb6b3a89",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/contactMerge.test.js",
+      "log": "contactMerge.test.js.log",
+      "logSha256": "f241e53913edcca76a9439729f7835c84bf4b8802e01e0626392d3bb9f006479",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/conversationPinAndWebCompanionFix21.test.js",
+      "log": "conversationPinAndWebCompanionFix21.test.js.log",
+      "logSha256": "271f8ecebe84709946d93c20e12ce7be4ee269324d30743019bd927bc3c27f5e",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/conversationSendQueueCoalescing.test.js",
+      "log": "conversationSendQueueCoalescing.test.js.log",
+      "logSha256": "19cb30fdfe448a678c36fbbdf768f3a9383079340344e5ec87a41453435ef033",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/coreCommandContractCoverage.test.js",
+      "log": "coreCommandContractCoverage.test.js.log",
+      "logSha256": "dd39017f865f460f99ac999f0650574b2de8e5ce0d37e5d18d3d81f4d610e5b5",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/customerProfileAssociationIsolation.test.js",
+      "log": "customerProfileAssociationIsolation.test.js.log",
+      "logSha256": "af1939524e4cb2e129d184feb264c9c03ecfdcae46e5fcda45f14cc933873714",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/datingFastReplyLearning.test.js",
+      "log": "datingFastReplyLearning.test.js.log",
+      "logSha256": "63ff791e83acc71962937ce024da0fc47757a964e14c3e08ea5537d8cc956494",
+      "tests": 13,
+      "pass": 13,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/diagnosticsPrivacyRegression.test.js",
+      "log": "diagnosticsPrivacyRegression.test.js.log",
+      "logSha256": "83eeb2a48c49171c635d09c9035b80ca96be0771d241383cc8311d61efca2b3f",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch1.test.js",
+      "log": "f25WindowsUatRepairBatch1.test.js.log",
+      "logSha256": "6ea2ab1af0291ff73645de60ab4a2318e63081d54e54d266175db142fa054178",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch10.test.js",
+      "log": "f25WindowsUatRepairBatch10.test.js.log",
+      "logSha256": "d519e612df93f15ba1095d6bde3c71d9b47dc40a2d15d7841ed90af1ce059160",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch11.test.js",
+      "log": "f25WindowsUatRepairBatch11.test.js.log",
+      "logSha256": "b8deb728259ab2f94aa128a28293950253694f62d4eff77857c04cf1dfb154d2",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch13.test.js",
+      "log": "f25WindowsUatRepairBatch13.test.js.log",
+      "logSha256": "fb572d187b82882a4507778b1ccecb376e4ed243b73988afb6b4c334b53b2ee1",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch14.test.js",
+      "log": "f25WindowsUatRepairBatch14.test.js.log",
+      "logSha256": "516ca3852fc6f5933c4c22f16806571f84bb908cd7e2c8451773345e39cf6bad",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch15.test.js",
+      "log": "f25WindowsUatRepairBatch15.test.js.log",
+      "logSha256": "f255f29bd7cfcad2133231c5d5ce12c54a3a5c80603c6626251d323dae2e8a8a",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch16.test.js",
+      "log": "f25WindowsUatRepairBatch16.test.js.log",
+      "logSha256": "8699db3f32a23a42dd2c55db6b4b9545ab452585156ebc51ad84033dbceef393",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch17.test.js",
+      "log": "f25WindowsUatRepairBatch17.test.js.log",
+      "logSha256": "80580c6b0511857d615dc1a8f6b7fcbda07210cd7abae4314b28ccbebb6cdaab",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch18.test.js",
+      "log": "f25WindowsUatRepairBatch18.test.js.log",
+      "logSha256": "6afce30127df04e4f3336755d2d78fed8e30f53b48e7d7d4b61780cf5b1dbe31",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch2.test.js",
+      "log": "f25WindowsUatRepairBatch2.test.js.log",
+      "logSha256": "8d6d0fdda470862e14d5a435724933db05e13e17dde61c395f275f0620e32847",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch21DesignSystemAuthority.test.js",
+      "log": "f25WindowsUatRepairBatch21DesignSystemAuthority.test.js.log",
+      "logSha256": "0a39d0ac1ff2168ab291edaf78a7aaac66f6b65cb4313e34634e47c7396c72ac",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch21RootAuthority.test.js",
+      "log": "f25WindowsUatRepairBatch21RootAuthority.test.js.log",
+      "logSha256": "53b7494e1c72b2058dae209309e767951d8c4da585d5f585566d8a2cce8e7f36",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch22RootAuthority.test.js",
+      "log": "f25WindowsUatRepairBatch22RootAuthority.test.js.log",
+      "logSha256": "6a03cfc3d1d14b474abf0e245fefcf19f4f9057f2e0d7a065dc680b54f62e02f",
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch2Behavior.test.js",
+      "log": "f25WindowsUatRepairBatch2Behavior.test.js.log",
+      "logSha256": "257a4a6da22d93d5da0a78346c975af9226098f18d8492a953f11a3cb8c50e8f",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch3.test.js",
+      "log": "f25WindowsUatRepairBatch3.test.js.log",
+      "logSha256": "0bdc929cbd869f7d3c4874e61746b944e3af45f139607d105bdc4d5bc5432a60",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch3Behavior.test.js",
+      "log": "f25WindowsUatRepairBatch3Behavior.test.js.log",
+      "logSha256": "4aa678fef1fe660e4638fd60e64ac972bea368c3e0f9eee018a3c7f76d8b147e",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch4.test.js",
+      "log": "f25WindowsUatRepairBatch4.test.js.log",
+      "logSha256": "e0b61a009b9fc923e469545879e705f5a08e2f3f83b57e260bef34a05a28344c",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch5.test.js",
+      "log": "f25WindowsUatRepairBatch5.test.js.log",
+      "logSha256": "65071b54643bb4f5b9e695c827d149d6a92651a23894f08c33b73d3bc031fcb5",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch6.test.js",
+      "log": "f25WindowsUatRepairBatch6.test.js.log",
+      "logSha256": "42db738ff33fea1e0de7563d0007b424c7db85504b63f309aeb64ed6a10071a7",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch7.test.js",
+      "log": "f25WindowsUatRepairBatch7.test.js.log",
+      "logSha256": "cc7222167c293a8d5d6e2bbca84fea2c48bc26d5aed0d1f9af198982dfa671cd",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch9.test.js",
+      "log": "f25WindowsUatRepairBatch9.test.js.log",
+      "logSha256": "26497f61631176a85b297f6580c2394b0f9b1957f88a9b287e5620e9278db734",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/facebookAccountProjectionRegression.test.js",
+      "log": "facebookAccountProjectionRegression.test.js.log",
+      "logSha256": "4b80e7741e3a0497ba3d5b63d1430f2febb64dcf468bcf54706f31da01ce83f5",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/facebookAvatarClosureDiagnostic.test.js",
+      "log": "facebookAvatarClosureDiagnostic.test.js.log",
+      "logSha256": "e1603166e95f5f8cd411f39cda15e60b14cdef4ee8fe03dcecab0f889e2f75d3",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/facebookAvatarImportLayoutPresenceFix20.test.js",
+      "log": "facebookAvatarImportLayoutPresenceFix20.test.js.log",
+      "logSha256": "74f016ef0b99cab269d5fb08a1e749ce6d7be9e4870ad6e6b9e3c3bf25d1529c",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/facebookBusinessSuiteAvatarImport.test.js",
+      "log": "facebookBusinessSuiteAvatarImport.test.js.log",
+      "logSha256": "adb8d20479a134c505be46b574faf69484df6906cf96245e04a7e3100d6d8873",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/facebookBusinessSuiteReconciliationRegression.test.js",
+      "log": "facebookBusinessSuiteReconciliationRegression.test.js.log",
+      "logSha256": "100c4a8fc12c1a6181d36d5ee7a99ec81b71a909189d0e693163a1dfae5d9362",
+      "tests": 12,
+      "pass": 12,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/facebookFormalWorkerIntegrationRegression.test.js",
+      "log": "facebookFormalWorkerIntegrationRegression.test.js.log",
+      "logSha256": "a6666ce4d1516a28e1a17ba01f52209a84ed836e53feb61b5bb0212274bf0356",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/facebookOAuthLifecycleRegression.test.js",
+      "log": "facebookOAuthLifecycleRegression.test.js.log",
+      "logSha256": "ec1a197bc9e2312b0c57f4974a45a3d7d64211b2a716078b1078405d4d3341bb",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/facebookPageDiscoveryDeployToolRegression.test.js",
+      "log": "facebookPageDiscoveryDeployToolRegression.test.js.log",
+      "logSha256": "d90f802e12e7b181fe87a55c8bb93d6a54c0906d4ed0f4b82b84bd8d674bf988",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/facebookProductionReadinessRegression.test.js",
+      "log": "facebookProductionReadinessRegression.test.js.log",
+      "logSha256": "62b79accfb30f728e8424f3e0475cee57d5818ad474c3db5de3ecc69bdba13a1",
+      "tests": 28,
+      "pass": 28,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/facebookWorkerDeploymentGuardFix17.test.js",
+      "log": "facebookWorkerDeploymentGuardFix17.test.js.log",
+      "logSha256": "1062b91c4c9a453a71aaf4ef0b9dd631510b0e969d89cf4ed334d430ab85ba69",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/finalMultiPlatformAccountIsolation.test.js",
+      "log": "finalMultiPlatformAccountIsolation.test.js.log",
+      "logSha256": "1ac2a6d1862c24754abf7cd0e9f054185ba6a0e6219eef8dfadaba25069b279a",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/fullPlatformAvatarTranslationFix13.test.js",
+      "log": "fullPlatformAvatarTranslationFix13.test.js.log",
+      "logSha256": "8de0237a21c9061b817e7e3b3b4a0e785c16c86586e3fd1e564c71732c65eb02",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/fullPlatformContactAiClosureFix11.test.js",
+      "log": "fullPlatformContactAiClosureFix11.test.js.log",
+      "logSha256": "9b6a909aeefc10c4bd08663ced288c50af0d0b295da0b84f5b31a9a05d50a0b9",
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/fullPlatformFacebookWindowsClosureFix12.test.js",
+      "log": "fullPlatformFacebookWindowsClosureFix12.test.js.log",
+      "logSha256": "759b652476e53909af22894ffab7f96ca2cc0a84272e1cea5be30ba712d549ff",
+      "tests": 9,
+      "pass": 9,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/fullPlatformFunctionAuditFix10Regression.test.js",
+      "log": "fullPlatformFunctionAuditFix10Regression.test.js.log",
+      "logSha256": "a1f0a7be2fb47e928b39798780f4e4f10605c29e11a28e0e2ba65ad0cb7e97d3",
+      "tests": 9,
+      "pass": 9,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/fullPlatformFunctionAuditFix14.test.js",
+      "log": "fullPlatformFunctionAuditFix14.test.js.log",
+      "logSha256": "6fa0128f80f5b19264f3af1ae2b839b362d4e669edecf99f6dd1f95b8f7339c9",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/fullPlatformFunctionAuditFix22.test.js",
+      "log": "fullPlatformFunctionAuditFix22.test.js.log",
+      "logSha256": "883bc1699aadaea70237efedc5d8d660a2b72d9b187a630b57a3935e568e9da5",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/fullPlatformFunctionAuditFix8Regression.test.js",
+      "log": "fullPlatformFunctionAuditFix8Regression.test.js.log",
+      "logSha256": "0dc1b051ff5fa7b19f25100a94ee22769c2ab42eedfbeba1d0af5c548ce457ff",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/fullPlatformFunctionAuditFix9Regression.test.js",
+      "log": "fullPlatformFunctionAuditFix9Regression.test.js.log",
+      "logSha256": "f6a38de3856bc60376e17b139a855c30aef7e9cd5af2a86c3c9d5c8d6d5382d2",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/fullProductInventoryGenerator.test.js",
+      "log": "fullProductInventoryGenerator.test.js.log",
+      "logSha256": "b6f81e412a3253ed969c051e3f3a2a523edc2a226bfeb54d672c1e256a85e925",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/globalToolsClosure.test.js",
+      "log": "globalToolsClosure.test.js.log",
+      "logSha256": "a35837e9a56a68ec2faa5c8b6ddb829f0c1b955551295242c95ea9feede3d131",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/globalWiringAudit.test.js",
+      "log": "globalWiringAudit.test.js.log",
+      "logSha256": "74928f56fb7c8cec56929235d0cfe3465ce77f1956b3d138755aa779c7d5297b",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/memoryEvidenceGovernanceService.test.js",
+      "log": "memoryEvidenceGovernanceService.test.js.log",
+      "logSha256": "3e5b4c34c41dff644a37fe49eb2f2416d83e006649b2eb200ed528eb3244c872",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/messageIdentityEvidenceOrdering.test.js",
+      "log": "messageIdentityEvidenceOrdering.test.js.log",
+      "logSha256": "951863287395252835b6ce8d28e2c5f89c4847ac9b96ac8340e6412c7b341c6d",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/messageTranslationJobs.test.js",
+      "log": "messageTranslationJobs.test.js.log",
+      "logSha256": "b2ca9d72c29387dc3d992c8f58575b36f500d88f28ea5ba29afe57be64053bde",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/messageTranslationService.test.js",
+      "log": "messageTranslationService.test.js.log",
+      "logSha256": "e626d7534f4712d07b25d4a3985658a279e585a3e1590a09e1bea78a81d91caf",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/modelRegistryTransactionSerialization.test.js",
+      "log": "modelRegistryTransactionSerialization.test.js.log",
+      "logSha256": "0ab7045eb15e10952ef46da51221db22de9f22a8341814080d30bb3f2379541d",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/openRouterAutoConfigurationService.test.js",
+      "log": "openRouterAutoConfigurationService.test.js.log",
+      "logSha256": "98bed75d5f118f2e1d03f8e673df28ec291952a5c91a85dc9315ca188b0d50cf",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/p0bIntegration.test.js",
+      "log": "p0bIntegration.test.js.log",
+      "logSha256": "9e7a63d50a404dd3776aafc42090b31007a342e045d015c4f69d1c3ba316d54e",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/pendingProfileIsolation.test.js",
+      "log": "pendingProfileIsolation.test.js.log",
+      "logSha256": "89529df9e39c088c88122ba3edaa5b081c894d2efb95a0b9279617774be2bd99",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/personaOwnerBaselineBootstrap.test.js",
+      "log": "personaOwnerBaselineBootstrap.test.js.log",
+      "logSha256": "f46f64b74a788102699c87091a0face3c118329ebf0ac67182695b74e94aa7ef",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/phase1GovernanceExperience.test.js",
+      "log": "phase1GovernanceExperience.test.js.log",
+      "logSha256": "b945ba0e91d1fd5d1469afbde6868e8f596ce00cb7ebbced83e8fdf0ed7eb2e7",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/phase1LanguageAndLearning.test.js",
+      "log": "phase1LanguageAndLearning.test.js.log",
+      "logSha256": "463ac5fc60dc23bcd1adbd705d2ec324dfa9d91f798ff4ebdfc77f0f30e7ba13",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/phase2AiBilingualQuality.test.js",
+      "log": "phase2AiBilingualQuality.test.js.log",
+      "logSha256": "a6c8a5b113b89ffc519cc4afc8f07ccd7ea1f5897ae15b973f49f60e77185840",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/phase2AutomaticBackendOwnerRecovery.test.js",
+      "log": "phase2AutomaticBackendOwnerRecovery.test.js.log",
+      "logSha256": "b5c041ca03c765d460621d899feef18685b4716d18c65cd384e2ddd3b6632ce2",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/phase2Batch3BilingualAndStyleVariation.test.js",
+      "log": "phase2Batch3BilingualAndStyleVariation.test.js.log",
+      "logSha256": "d6691aa8d7791ab56dc07e573af69e97fce53bfff3937c352c4a6083d841a051",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/phase2Batch3CapabilityAndSendState.test.js",
+      "log": "phase2Batch3CapabilityAndSendState.test.js.log",
+      "logSha256": "072c6c669f803d2adcc26255e6f8c26ae1444451bc2f36c3aa8b97d21491560a",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/phase2Batch3ThemeComputedAudit.test.js",
+      "log": "phase2Batch3ThemeComputedAudit.test.js.log",
+      "logSha256": "ba212e0e9094a140111517d195708995430a616ecd4eb2914e4ddc8094485869",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/phase2Batch4Recovery.test.js",
+      "log": "phase2Batch4Recovery.test.js.log",
+      "logSha256": "21344740655fab147fe8e248ff4b5d4cb5c04d8000c98dbad094aec3ddac35ea",
+      "tests": 40,
+      "pass": 40,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/phase2InteractionCompleteness.test.js",
+      "log": "phase2InteractionCompleteness.test.js.log",
+      "logSha256": "94462982009e0aa4df88cf331f14b957c77d3d925c8b90071a3803963d0a2d69",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/phase2TelegramNativeExpressions.test.js",
+      "log": "phase2TelegramNativeExpressions.test.js.log",
+      "logSha256": "f8bad537e133d25e5777c049a8a95ec12406fb98567ed0d1ab421a195b4ed185",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/phase2ThemeSemanticContract.test.js",
+      "log": "phase2ThemeSemanticContract.test.js.log",
+      "logSha256": "c57f62fa48a7590c500beb71b5edbdb7dda17ac2d3311c8a698b1cca6bbb50fa",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/platformAcceptedLocalPendingRepair.test.js",
+      "log": "platformAcceptedLocalPendingRepair.test.js.log",
+      "logSha256": "547a5463a959fb829dff3a5d35409130a6fa0ad7c456585715924a0406161104",
+      "tests": 23,
+      "pass": 23,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/platformAiResilienceUnifiedClosure.test.js",
+      "log": "platformAiResilienceUnifiedClosure.test.js.log",
+      "logSha256": "a30f17a6e5106443557d27fca4b2bf26e7c33931293003edb138a1e19aa67e74",
+      "tests": 14,
+      "pass": 14,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/platformAuthConfigRegression.test.js",
+      "log": "platformAuthConfigRegression.test.js.log",
+      "logSha256": "43b867a80b7cc4c6b332c281fc706e4d6b5bcedd8ed7a5dedf088a65a5cdf865",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/platformAuthSealToolRegression.test.js",
+      "log": "platformAuthSealToolRegression.test.js.log",
+      "logSha256": "c2fa9234f154324e5094ad598f31bb337b339388af4ea39091dc097f6dd20b15",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/platformCapabilityAuthority.test.js",
+      "log": "platformCapabilityAuthority.test.js.log",
+      "logSha256": "0a323322141c1511ec85537bb57e0df5abd3b5c68bc5394b6f05118ae3874c68",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/platformProductionReadinessAuthority.test.js",
+      "log": "platformProductionReadinessAuthority.test.js.log",
+      "logSha256": "6ce74d37af45704d7b7b85a87fe37aa10276cf9fbb7a90ac2f51bf512e5746da",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/platformRepairFollowupRegression.test.js",
+      "log": "platformRepairFollowupRegression.test.js.log",
+      "logSha256": "c078a57d1fefa3ff6a89dd1fae03d2e0822da18efefa1f4effdb60fe86239e86",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/recoveryStateCoalescing.test.js",
+      "log": "recoveryStateCoalescing.test.js.log",
+      "logSha256": "6d68cbb8b01d7a19837514240c536356216c46218065f8572cedf51cefbf74a6",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/relationshipKeyNode.test.js",
+      "log": "relationshipKeyNode.test.js.log",
+      "logSha256": "6a6a9e2cea41cf62380c6a5eec62556d7102f0b7af96c269419420ac3ba91ba6",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/replyBrainBenchmarkClosure.test.js",
+      "log": "replyBrainBenchmarkClosure.test.js.log",
+      "logSha256": "f0a604142342d37542ec62acb23ab050c4cd400d4a00338426451dd6891caaf1",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/replyFeedbackClosedLoop.test.js",
+      "log": "replyFeedbackClosedLoop.test.js.log",
+      "logSha256": "5c48086587eea638652122cb98f89d38a5308dc87268a5ebb4acd081f9f06ef7",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/replyFeedbackLearning.test.js",
+      "log": "replyFeedbackLearning.test.js.log",
+      "logSha256": "119ce8970742c3a1ffce429ff93ec2c961a765fd1d258e734f504c93fd189f4b",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/replyFeedbackVersioning.test.js",
+      "log": "replyFeedbackVersioning.test.js.log",
+      "logSha256": "001cb84980fc10da34ab1260c8f158fa589d7d70cffc1ac6094117f2b3469cbc",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/replyLanguageAuthority.test.js",
+      "log": "replyLanguageAuthority.test.js.log",
+      "logSha256": "496b05495922c1a47218649f90060dc7e7b327db740b1b361bfe34f91d0d5758",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/replyLearningScopeAuthority.test.js",
+      "log": "replyLearningScopeAuthority.test.js.log",
+      "logSha256": "8c7509e0b5676d2abe04cf4bbb319b62ed02c5cc97d3264792dcd621d8ccaf98",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/replyLearningSummaryService.test.js",
+      "log": "replyLearningSummaryService.test.js.log",
+      "logSha256": "6c041e73df78f51f8ee85748c97f4166c51610558babb4385d7ac6ce7e669b61",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/replyLearningUat053060Closure.test.js",
+      "log": "replyLearningUat053060Closure.test.js.log",
+      "logSha256": "9f11323f3a8538e9ec36379bceeb271c60d5851bc033a15333d837ca80817dba",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round12AdapterPorts.test.js",
+      "log": "round12AdapterPorts.test.js.log",
+      "logSha256": "5e76a5811f60f1808627bc66d93a0987967e5cc9730b8c181ff759184a4b0d17",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round12ArchitectureStatus.test.js",
+      "log": "round12ArchitectureStatus.test.js.log",
+      "logSha256": "77fe923a337cb46570abbb285681412ce83351e1e183f4d8d357108187493510",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round12PlatformCoreAuthorities.test.js",
+      "log": "round12PlatformCoreAuthorities.test.js.log",
+      "logSha256": "a12c51e87a0e5f31b1bbfe82fb62a4587fdbee2789990e46347839be9dcc0c01",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round12PlatformCoreMigration.test.js",
+      "log": "round12PlatformCoreMigration.test.js.log",
+      "logSha256": "dc5ec3af975e05039ed134c428a0fa66006145fbd0ab480c77125d282d026106",
+      "tests": 15,
+      "pass": 15,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round12Round13FinalGovernanceClosure.test.js",
+      "log": "round12Round13FinalGovernanceClosure.test.js.log",
+      "logSha256": "690cf859823d3c29c41bdc8770d68b6700c36d2aeb6d3441bb4e5c0065d1d0b7",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round12Round13FinalSevenClosure.test.js",
+      "log": "round12Round13FinalSevenClosure.test.js.log",
+      "logSha256": "308762a731583ead1e92fe98c26c8212e641cf87957389394325a1a0261e80c2",
+      "tests": 15,
+      "pass": 15,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round12Round13ProductGovernanceClosure.test.js",
+      "log": "round12Round13ProductGovernanceClosure.test.js.log",
+      "logSha256": "895cd9b65ef182e0035a7e949d7f8bb446a974cf1ce5be4454ed97ee27f013c8",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round12Round13RemainingClosure.test.js",
+      "log": "round12Round13RemainingClosure.test.js.log",
+      "logSha256": "0b731f00653f6ab9c8bc7c0a0cb93c9e26b10898b5929634481309e19826abf5",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round12Round13ThirdSelfCheck.test.js",
+      "log": "round12Round13ThirdSelfCheck.test.js.log",
+      "logSha256": "5b17e85a9a741263e7c633fe29f3a21ef8eb587d1949e4a6ec287f31d47bbf0d",
+      "tests": 24,
+      "pass": 24,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round13AIQualityArchitecture.test.js",
+      "log": "round13AIQualityArchitecture.test.js.log",
+      "logSha256": "a6c5b1f7515050ad3871c89e3325fe40cd7702354608768cbce8386543c78f33",
+      "tests": 9,
+      "pass": 9,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round7InboundIntelligenceP0.test.js",
+      "log": "round7InboundIntelligenceP0.test.js.log",
+      "logSha256": "b8372d58e7471382092496572cb0c4f1667a36a787c41b09355df8a637bc5c82",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round7ModelRoutingP0.test.js",
+      "log": "round7ModelRoutingP0.test.js.log",
+      "logSha256": "7ac0c30ebc61d18f803f1cdf45b5cc5fcaf6921e9f2b6e9589a4845a74482986",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round7ProductWiringP0.test.js",
+      "log": "round7ProductWiringP0.test.js.log",
+      "logSha256": "805c49454ef8067228e01a607d86c31d01256d5bfae1e25c02b768fe2a596ce8",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round8CommercialDialogAuthority.test.js",
+      "log": "round8CommercialDialogAuthority.test.js.log",
+      "logSha256": "ff23f67b629fbf8dcaafb4ee2f3fe2918189a83e4464188771910b659ddb27d7",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round8ProductAreaNavigation.test.js",
+      "log": "round8ProductAreaNavigation.test.js.log",
+      "logSha256": "93fb0b4fd99d6d4c89e287e8f7d4d4b3de8a4d5e4defd471cc597ce89faeadd4",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/round9AiTaskAuthority.test.js",
+      "log": "round9AiTaskAuthority.test.js.log",
+      "logSha256": "06028470db1eb881bb583b3e9846c1d6815c2b2a4cd1c2aec3c9a45ff3af928c",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/runtimeArtifactBootstrapService.test.js",
+      "log": "runtimeArtifactBootstrapService.test.js.log",
+      "logSha256": "7f97387a6cffdb57a0a5a348b1721febcddc9cc67d2108a54c556c1b32ea0ff0",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/runtimeArtifactRegistryService.test.js",
+      "log": "runtimeArtifactRegistryService.test.js.log",
+      "logSha256": "7b59a52192d061a431e3b6779bce298cc3c4a39a89a667c58a34334ae68fdf04",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/savedSuggestion.test.js",
+      "log": "savedSuggestion.test.js.log",
+      "logSha256": "e08a2bc0a2cddddebe29cbef484da3157b603179bc4f96530aeeac262ee67cd5",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/sendMessageService.test.js",
+      "log": "sendMessageService.test.js.log",
+      "logSha256": "5a899b6e2753e1affe117286c908584b79984dbee1de3b8074e47deb6d1154bc",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/socialChineseUnderstandingService.test.js",
+      "log": "socialChineseUnderstandingService.test.js.log",
+      "logSha256": "43a79ff31afb58c54e7827ba2a4bd434d13dd9a51940e2a7b5e4364649e988cf",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/socialLearningWindow.test.js",
+      "log": "socialLearningWindow.test.js.log",
+      "logSha256": "ea1119eb4d781077ecc476a865bc1431591024ba26c270f2b87a3e0342f1eadf",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/sourceUatRealWindowsEvidenceRegression.test.js",
+      "log": "sourceUatRealWindowsEvidenceRegression.test.js.log",
+      "logSha256": "a156cbc5765c35505cfc221cfc1bb1aaa38af1a4bbbd3b69521f49739d293486",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/sourceUatRound2IdentityRegression.test.js",
+      "log": "sourceUatRound2IdentityRegression.test.js.log",
+      "logSha256": "b53c9a634b99dd71a063a6ddfea428b5c3e5b01485ec705a3a2e82128454f2ff",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/sourceUatRound3FunctionalRegression.test.js",
+      "log": "sourceUatRound3FunctionalRegression.test.js.log",
+      "logSha256": "fe1cd04850dc876bbfe162a73f7fdee401115cfb61c2b71adeeb2df7eba740e5",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/sourceUatRound3IdentityRegression.test.js",
+      "log": "sourceUatRound3IdentityRegression.test.js.log",
+      "logSha256": "90568881c9931bcb6d1f3dc0908daec8de6522fda53b53d903b4dbb5de1248e8",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/sourceUatRound4StructuralRegression.test.js",
+      "log": "sourceUatRound4StructuralRegression.test.js.log",
+      "logSha256": "6387e446e241f56fb2d3c09b44063446688d6c34a7a5f5fff31cf3090f521163",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/sourceUatRound5ConversationIdentityRegression.test.js",
+      "log": "sourceUatRound5ConversationIdentityRegression.test.js.log",
+      "logSha256": "c69bc616e656cfd53846984227abe8300ecfa9008d7525e008c0f7945c6ad225",
+      "tests": 9,
+      "pass": 9,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/sourceUatRound6SocialContextRuntime.test.js",
+      "log": "sourceUatRound6SocialContextRuntime.test.js.log",
+      "logSha256": "c9e28169d1cb264cd235f62a2206d1b5c6925bf9874d7df4d61a9ee03f8a11c0",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/sourceUatRound8ModelRoutingAuthority.test.js",
+      "log": "sourceUatRound8ModelRoutingAuthority.test.js.log",
+      "logSha256": "0419d40ca2290cdf979c0df99c98c9c7c912dd896c00a4f7e504cc1fab40806a",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/systemAuditRound1CoreChain.test.js",
+      "log": "systemAuditRound1CoreChain.test.js.log",
+      "logSha256": "6678cd17fc080efa9306b9f7fbfb5c2bbb37bb16b05741c364b9ad49908fe4bf",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/systemAuditRound2DirectorProduction.test.js",
+      "log": "systemAuditRound2DirectorProduction.test.js.log",
+      "logSha256": "31effad8f077c6d76e417f9ddd6d40725d0c6b05e560e42c206e602d584c0585",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/systemAuditRound2ModelTruth.test.js",
+      "log": "systemAuditRound2ModelTruth.test.js.log",
+      "logSha256": "b933de2c2a42291cba920b8e6f3ec0cdc1d9a6379b8860da18d182a97ccad7b2",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/systemAuditRound2TranslationSend.test.js",
+      "log": "systemAuditRound2TranslationSend.test.js.log",
+      "logSha256": "09516857ace87d86f1a77fc84a3d5b5a6fbee607c936e9150b6b34946e916a3d",
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/systemAuditRound3LearningRecovery.test.js",
+      "log": "systemAuditRound3LearningRecovery.test.js.log",
+      "logSha256": "6a19d2a9291df58cc3d63e7075078b566cbfa2b508cedaa1ee7a40cea83afedf",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/systemAuditRound4RejectedLearningRecovery.test.js",
+      "log": "systemAuditRound4RejectedLearningRecovery.test.js.log",
+      "logSha256": "45cbeed7b3a7ab2ade3f75cd07cf05b923d263635e59f67144d1f497a8def1e2",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/systemAuditRound5ContactMergeLearningMigration.test.js",
+      "log": "systemAuditRound5ContactMergeLearningMigration.test.js.log",
+      "logSha256": "8f1633cc4a5ac1c03de281379c34e3354057f8df4962d92bdfe7cd5b4c320f6f",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/telegramHistorySyncRegression.test.js",
+      "log": "telegramHistorySyncRegression.test.js.log",
+      "logSha256": "78b00d220b448d2c503a655b8963950c0ede9e09611ae54690c21efbd2e57db6",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/whatsappCanonicalGuardRegression.test.js",
+      "log": "whatsappCanonicalGuardRegression.test.js.log",
+      "logSha256": "15f13c926dfeec072b2326e6c0c9be032da8a47bf2baedf9b5f68f9700095a33",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/whatsappCanonicalUiReferenceClosure.test.js",
+      "log": "whatsappCanonicalUiReferenceClosure.test.js.log",
+      "logSha256": "b3e450d2037d7e69130d4449105ffb2df66c7311168b566b73f5a62bfff0ab4e",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/whatsappConversationCapabilityClosure.test.js",
+      "log": "whatsappConversationCapabilityClosure.test.js.log",
+      "logSha256": "a9773311417393c08c9ce8cf4ffeae3b6b36a98fbdd55686226d72bb36c50791",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/whatsappHumanTypingPolicy.test.js",
+      "log": "whatsappHumanTypingPolicy.test.js.log",
+      "logSha256": "dca0f7a891dad7be32b6e095ab1b389119a066f93830eebd4aa085de5e7fb482",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/whatsappMediaRecoveryClosure.test.js",
+      "log": "whatsappMediaRecoveryClosure.test.js.log",
+      "logSha256": "d6f31e834f0cf86ae997549e0a89974a3446c7c28dfd2d6c7c17e9492c935b20",
+      "tests": 13,
+      "pass": 13,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/whatsappMobileVoiceIngestStability.test.js",
+      "log": "whatsappMobileVoiceIngestStability.test.js.log",
+      "logSha256": "83490e3c43107b2ed79f09d8b5fc0b91eda83c03d53cfac0a7a378071d589aa0",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/whatsappOrphanAccountReconciliation.test.js",
+      "log": "whatsappOrphanAccountReconciliation.test.js.log",
+      "logSha256": "2a52c4b134679b9709ac83158c30f453ac4b5cb8b94d665e6ae97e9cf478ebcc",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/whatsappQrChallenge.test.js",
+      "log": "whatsappQrChallenge.test.js.log",
+      "logSha256": "73dc13e2bd9aecd95d29e0c4fd6e4fbebecc61b5f4b75f5e3c9671383132ee30",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/whatsappReceiptRecoveryRegression.test.js",
+      "log": "whatsappReceiptRecoveryRegression.test.js.log",
+      "logSha256": "d3a945ae7501db2eb7c9df7b8e3a529a315fabdff8c92f3d3c0894fbce871254",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/whatsappVoiceTranscriptionScrollCleanup.test.js",
+      "log": "whatsappVoiceTranscriptionScrollCleanup.test.js.log",
+      "logSha256": "f1fa02b47ecb146047d17691e40f7c9aa3e5f74b0c59bd822477f9059d3bafc9",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/windowsClosureCurrentRegression.test.js",
+      "log": "windowsClosureCurrentRegression.test.js.log",
+      "logSha256": "264088dc3c6443b8847da410dee562e1c33884cb57dbeef3c77cf503d2c5dc54",
+      "tests": 21,
+      "pass": 21,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/windowsLocalApiRequestStormRegression.test.js",
+      "log": "windowsLocalApiRequestStormRegression.test.js.log",
+      "logSha256": "34d6c662692ae90468b0a4a698f8d926e7c2366f13a93bd098976102e3b944c0",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/windowsSourceUatRound1Regression.test.js",
+      "log": "windowsSourceUatRound1Regression.test.js.log",
+      "logSha256": "7e561066170a0b0f698afdc56d473ddb9f18c55f3d397c5deee96be9b83bff9f",
+      "tests": 11,
+      "pass": 11,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "file": "backend/tests/windowsUpgradePackageRegression.test.js",
+      "log": "windowsUpgradePackageRegression.test.js.log",
+      "logSha256": "58c2ffd030060a992575f2369157544311e600235f74edd49c13489fd267d758",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0
+    }
+  ],
+  "status": "PASS"
+}

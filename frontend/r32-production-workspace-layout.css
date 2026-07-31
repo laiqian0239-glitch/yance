@@ -1,0 +1,915 @@
+/*
+ * R32 · Batch 14 production workspace layout authority.
+ * Goal: one fixed production workspace, one body region, and only deliberate
+ * list/detail scroll surfaces. This file must load after theme authority.
+ */
+
+:is(
+  .contacts-workspace,.profiles-workspace,.timeline-workspace,.insights-workspace,
+  .aiwork-workspace,.account-center-workspace,.system-center-workspace,
+  .settings-recovery-workspace,.theme-workspace
+){
+  box-sizing:border-box;
+  min-width:0;
+  min-height:0;
+  height:100%;
+  max-height:100%;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior-y:contain;
+  scrollbar-gutter:stable;
+  border-radius:16px;
+}
+
+:is(
+  .contacts-workspace,.profiles-workspace,.timeline-workspace,.insights-workspace,
+  .aiwork-workspace,.account-center-workspace,.system-center-workspace,
+  .settings-recovery-workspace,.theme-workspace
+)>*{min-width:0}
+
+/* Keep the shared product-area navigation in normal flow and compact. */
+.product-area-subnav{
+  position:relative!important;
+  inset:auto!important;
+  z-index:8!important;
+  min-width:0;
+  min-height:38px;
+  margin:0!important;
+  padding:6px 10px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  border-left:0!important;
+  border-right:0!important;
+  border-radius:0!important;
+  scrollbar-width:thin;
+  overscroll-behavior-x:contain;
+}
+.product-area-subnav>*{flex:0 0 auto}
+
+/* Compact the page-wide hero rows so the actual work surface remains visible. */
+:is(.contact26-hero,.profile27-hero,.timeline27-hero,.insight29-hero,.aiw30-hero,.ac32-hero,.sc32-hero,.sr32-head,.theme32-head){
+  min-height:0!important;
+  padding:12px 16px 10px!important;
+  gap:12px!important;
+  overflow:hidden!important;
+}
+:is(.contact26-title,.profile27-title,.timeline27-title,.insight29-title,.aiw30-title,.ac32-title,.sc32-title,.sr32-head>div:first-child,.theme32-title){min-width:0}
+:is(.contact26-title,.profile27-title,.timeline27-title,.insight29-title,.aiw30-title,.ac32-title,.sc32-title,.sr32-head,.theme32-title) h1{
+  margin-top:3px!important;
+  margin-bottom:3px!important;
+  font-size:clamp(20px,1.55vw,27px)!important;
+  line-height:1.14!important;
+}
+:is(.contact26-title,.profile27-title,.timeline27-title,.insight29-title,.aiw30-title,.ac32-title,.sc32-title,.sr32-head,.theme32-title) p{
+  margin-top:4px!important;
+  line-height:1.42!important;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  overflow:hidden;
+}
+
+/* Multi-card status bars remain a single compact row on desktop. */
+:is(.contact26-hero-status,.profile27-syncbar,.timeline27-syncbar,.insight29-syncbar,.aiw30-syncbar){
+  margin-top:8px!important;
+  gap:6px!important;
+}
+:is(.contact26-hero-status,.profile27-syncbar,.timeline27-syncbar,.insight29-syncbar,.aiw30-syncbar)>article{
+  min-height:42px!important;
+  padding:6px 8px!important;
+}
+:is(.contact26-hero-status,.profile27-syncbar,.timeline27-syncbar,.insight29-syncbar,.aiw30-syncbar) span{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* Account and platform center: stable master-detail page; no outer page scroll. */
+.app.account-center-open .account-center-workspace{
+  grid-template-rows:auto auto auto minmax(0,1fr)!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+}
+.ac32-summary{
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  gap:6px!important;
+  padding:6px 10px!important;
+}
+.ac32-stat{padding:7px 9px!important;border-radius:10px!important}
+.ac32-stat b{margin-top:2px!important;font-size:clamp(15px,1.15vw,19px)!important}
+.ac32-stat small{margin-top:3px!important}
+.app.account-center-open .ac32-main{
+  min-height:0!important;
+  height:auto!important;
+  grid-template-columns:clamp(290px,25vw,360px) minmax(0,1fr)!important;
+  align-items:stretch!important;
+  gap:8px!important;
+  padding:8px!important;
+  overflow:visible!important;
+}
+.app.account-center-open .ac32-directory,
+.app.account-center-open .ac32-workbench{
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  align-self:stretch!important;
+  overflow:visible!important;
+}
+.app.account-center-open .ac32-directory{
+  position:relative!important;
+  inset:auto!important;
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+}
+.ac32-directory-head{padding:10px 11px 7px!important}
+.ac32-tools{padding:0 9px 8px!important;gap:6px!important}
+.ac32-account-list{min-height:0!important;overflow:visible!important}
+.app.account-center-open .ac32-workbench{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+}
+.ac32-detail-hero{padding:10px 12px!important;gap:10px!important}
+.ac32-detail-id .ac32-platform-icon{width:46px!important;height:46px!important}
+.ac32-detail-id h2{font-size:clamp(17px,1.2vw,21px)!important}
+.ac32-detail-id p{margin-top:3px!important}
+.ac32-detail-tabs{padding:6px 9px!important;gap:5px!important;overflow-x:auto!important;overflow-y:hidden!important;white-space:nowrap;scrollbar-width:thin}
+.app.account-center-open .ac32-scroll{
+  min-height:0!important;
+  height:auto!important;
+  overflow:visible!important;
+  padding:8px!important;
+}
+
+/* System center: replace the embedded vertical mini-page with a top tool rail. */
+.app.system-center-open .system-center-workspace{
+  grid-template-rows:auto auto auto minmax(0,1fr)!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+}
+.sc32-summary{
+  grid-template-columns:repeat(7,minmax(0,1fr))!important;
+  gap:6px!important;
+  padding:6px 9px!important;
+}
+.sc32-stat{padding:7px 8px!important;border-radius:10px!important}
+.sc32-stat b{margin-top:2px!important;font-size:clamp(13px,1vw,17px)!important}
+.app.system-center-open .sc32-body{
+  min-height:0!important;
+  height:auto!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:auto minmax(0,1fr)!important;
+  overflow:visible!important;
+}
+.app.system-center-open .sc32-sidebar{
+  position:relative!important;
+  inset:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  display:block!important;
+  padding:6px 8px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  border-right:0!important;
+  border-bottom:1px solid color-mix(in srgb,var(--border-active) 9%,transparent)!important;
+  scrollbar-width:thin;
+  overscroll-behavior-x:contain;
+}
+.sc32-nav{display:flex!important;gap:5px!important;width:max-content;min-width:100%}
+.sc32-nav button{
+  flex:0 0 auto;
+  width:auto!important;
+  min-width:150px;
+  min-height:42px!important;
+  padding:5px 8px!important;
+  grid-template-columns:28px minmax(0,1fr) auto!important;
+}
+.sc32-nav i{width:28px!important;height:28px!important}
+.sc32-nav small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc32-nav button.active{box-shadow:inset 0 -3px 0 var(--shadow-base)!important}
+.sc32-side-foot{display:none!important}
+.app.system-center-open .sc32-content{
+  min-height:0!important;
+  height:auto!important;
+  overflow:visible!important;
+  padding:10px 12px 20px!important;
+}
+
+/* Settings and recovery: same top-rail pattern; content gets the full width. */
+.app.settings-recovery-open .settings-recovery-workspace{
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+}
+.app.settings-recovery-open .sr32-body{
+  min-height:0!important;
+  height:auto!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:auto minmax(0,1fr)!important;
+  overflow:visible!important;
+}
+.sr32-side{
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:row!important;
+  gap:5px!important;
+  padding:6px 8px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  border-right:0!important;
+  border-bottom:1px solid color-mix(in srgb,var(--border-active) 9%,transparent)!important;
+  scrollbar-width:thin;
+  overscroll-behavior-x:contain;
+}
+.sr32-side button{
+  flex:0 0 auto;
+  width:auto!important;
+  min-width:166px;
+  min-height:42px;
+  padding:5px 8px!important;
+  grid-template-columns:28px minmax(0,1fr)!important;
+}
+.sr32-side button i{width:28px!important;height:28px!important}
+.sr32-side button small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr32-side-foot{display:none!important}
+.app.settings-recovery-open .sr32-content{
+  min-height:0!important;
+  height:auto!important;
+  overflow:visible!important;
+  padding:12px 14px 22px!important;
+}
+
+/* AI reply brain: controls become a horizontal command rail, not an embedded side page. */
+.app.aiwork-page-open .aiwork-workspace{
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+}
+.app.aiwork-page-open .aiw30-body{
+  min-height:0!important;
+  height:auto!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:auto minmax(0,1fr)!important;
+  gap:8px!important;
+  padding:8px!important;
+  overflow:visible!important;
+}
+.aiw30-sidebar{
+  min-height:0!important;
+  display:grid!important;
+  grid-template-columns:minmax(205px,.75fr) minmax(0,2.5fr) auto!important;
+  grid-template-rows:auto!important;
+  align-items:stretch;
+  overflow:hidden!important;
+}
+.aiw30-core{padding:8px 10px!important;border-bottom:0!important;border-right:1px solid color-mix(in srgb,var(--border-active) 9%,transparent)!important}
+.aiw30-core-orb{width:40px!important;height:40px!important}
+.aiw30-health{margin-top:6px!important;gap:5px!important}
+.aiw30-health article{padding:5px 6px!important}
+.aiw30-tabs{
+  min-width:0;
+  display:flex!important;
+  flex-direction:row!important;
+  gap:5px!important;
+  padding:7px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  border-bottom:0!important;
+  scrollbar-width:thin;
+  overscroll-behavior-x:contain;
+}
+.aiw30-tab{
+  flex:0 0 auto;
+  width:auto!important;
+  min-width:160px;
+  height:42px!important;
+  padding:0 8px!important;
+}
+.aiw30-tab.active{box-shadow:inset 0 -3px 0 var(--cyan)!important}
+.aiw30-activity{display:none!important}
+.aiw30-sidebar-foot{display:flex!important;align-items:center;padding:7px!important;border-top:0!important;border-left:1px solid color-mix(in srgb,var(--border-active) 9%,transparent)!important}
+.aiw30-sidebar-foot button{min-width:130px!important;width:auto!important}
+.aiw30-content{min-height:0!important;height:auto!important;overflow:visible!important}
+.aiw30-content-head{padding:8px 11px!important}
+.aiw30-scroll{min-height:0!important;height:auto!important;overflow:visible!important;padding:10px!important}
+
+/* Relationship insights: keep identity summary above the scroll region and stop overlap/clipping. */
+.app.insights-page-open .insights-workspace{
+  grid-template-rows:auto auto auto minmax(0,1fr)!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+}
+.app.insights-page-open .insight29-main{
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  grid-template-columns:clamp(285px,23vw,335px) minmax(0,1fr)!important;
+  gap:8px!important;
+  padding:8px!important;
+  overflow:visible!important;
+}
+.insight29-directory,.insight29-detail{min-height:0!important;height:auto!important;max-height:none!important;overflow:visible!important}
+.insight29-directory{grid-template-rows:auto auto minmax(0,1fr)!important}
+.insight29-directory-head{padding:10px 12px 7px!important}
+.insight29-tools{padding:7px 9px!important}
+.insight29-list{min-height:0!important;overflow:visible!important;padding:6px!important}
+.insight-person{padding:7px 8px!important;gap:8px!important}
+.insight29-detail{
+  position:relative;
+  isolation:isolate;
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr)!important;
+}
+.insight29-detail-hero{
+  position:relative!important;
+  z-index:2!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-height:none!important;
+  padding:10px 12px!important;
+  overflow:visible!important;
+  contain:none!important;
+}
+.insight29-person{min-width:0!important}
+.insight29-person .avatar{width:44px!important;height:44px!important}
+.insight29-person-copy{min-width:0!important}
+.insight29-person-copy h2{font-size:clamp(18px,1.25vw,24px)!important}
+.insight29-person-copy p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.insight29-health{min-width:0!important;margin-left:auto!important}
+.insight29-orb{width:48px!important;height:48px!important}
+.insight29-metrics{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;margin-top:8px!important}
+.insight29-metric{min-width:0;padding:7px 8px!important}
+.insight29-detail-scroll{
+  position:relative!important;
+  z-index:1!important;
+  min-height:0!important;
+  height:auto!important;
+  overflow:visible!important;
+  padding:10px!important;
+  scroll-padding-top:10px;
+}
+.insight29-section{content-visibility:visible!important;contain:none!important;contain-intrinsic-size:none!important}
+
+/* Contacts/profile/timeline: retain useful split panes, never scroll the whole workspace. */
+:is(.contact26-shell,.profile27-main,.timeline27-main){min-height:0!important;height:auto!important;overflow:visible!important;padding:8px!important;gap:8px!important}
+.contact26-lower{min-height:0!important;height:auto!important;overflow:visible!important;grid-template-columns:clamp(300px,24vw,365px) minmax(0,1fr)!important;gap:8px!important}
+:is(.contact26-directory,.contact26-detail,.profile27-directory,.profile27-detail,.timeline27-directory,.timeline27-detail){min-height:0!important;max-height:none!important;overflow:visible!important}
+:is(.contact26-list,.contact26-detail-scroll,.profile27-list,.profile27-scroll,.timeline27-list,.timeline27-scroll){min-height:0!important;overflow:visible!important}
+
+/* Prevent virtualized/contained business cards from painting over sticky summaries. */
+:is(.ac32-section,.sc32-section,.sr32-card,.aiw30-section,.insight29-section){content-visibility:visible!important;contain:none!important}
+
+@media(max-width:1350px){
+  .sc32-summary{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  .ac32-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .insight29-metrics{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .aiw30-sidebar{grid-template-columns:minmax(190px,.7fr) minmax(0,2.5fr)!important}
+  .aiw30-sidebar-foot{display:none!important}
+}
+
+@media(max-width:1080px){
+  .app.account-center-open .ac32-main,
+  .app.insights-page-open .insight29-main,
+  .contact26-lower,
+  .profile27-main,
+  .timeline27-main{grid-template-columns:minmax(250px,34vw) minmax(0,1fr)!important}
+  .aiw30-sidebar{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto auto!important}
+  .aiw30-core{display:none!important}
+  .sr32-grid,.ac32-grid,.aiw30-grid,.insight29-content{grid-template-columns:minmax(0,1fr)!important}
+  :is(.sr32-card.wide,.ac32-section.wide,.aiw30-section.wide,.insight29-section.wide){grid-column:auto!important}
+}
+
+@media(max-width:820px){
+  :is(
+    .contacts-workspace,.profiles-workspace,.timeline-workspace,.insights-workspace,
+    .aiwork-workspace,.account-center-workspace,.system-center-workspace,
+    .settings-recovery-workspace,.theme-workspace
+  ){
+    height:100%!important;
+    max-height:100%!important;
+    overflow:hidden!important;
+  }
+  .app.account-center-open .ac32-main,
+  .app.insights-page-open .insight29-main,
+  .contact26-lower,
+  .profile27-main,
+  .timeline27-main{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(190px,36%) minmax(0,1fr)!important}
+  .ac32-summary,.sc32-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .insight29-metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  :is(.ac32-directory,.insight29-directory){min-height:190px!important}
+  :is(.contact26-hero,.profile27-hero,.timeline27-hero,.insight29-hero,.aiw30-hero,.ac32-hero,.sc32-hero,.sr32-head,.theme32-head){padding:9px 11px 8px!important}
+}
+
+/* FIX6D · root route columns are computed by YanceWorkspaceLayoutAuthority. */
+
+/* Batch 16 · initial-viewport and single-scroll authority.
+   Real Windows screenshots showed that Batch 14/15 only removed the outer
+   embedding while old min-height rules still pushed the useful body below the
+   viewport. Every workspace now has an exact direct-child row contract. */
+
+/* Exact root/direct-child contracts. Do not add phantom grid rows. */
+.app.contact-page-open .contacts-workspace{
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr)!important;
+}
+.app.contact-page-open .contact26-shell{
+  display:grid!important;
+  grid-template-rows:auto auto auto minmax(0,1fr)!important;
+  min-height:0!important;
+  height:auto!important;
+  padding:0!important;
+  gap:0!important;
+  overflow:visible!important;
+}
+.app.profile-page-open .profiles-workspace{
+  display:grid!important;
+  grid-template-rows:auto auto auto minmax(0,1fr)!important;
+}
+.app.timeline-page-open .timeline-workspace{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+}
+.app.insights-page-open .insights-workspace{
+  display:grid!important;
+  grid-template-rows:auto auto auto minmax(0,1fr)!important;
+}
+.app.aiwork-page-open .aiwork-workspace{
+  display:grid!important;
+  grid-template-rows:auto auto auto minmax(0,1fr)!important;
+}
+.app.account-center-open .account-center-workspace{
+  display:grid!important;
+  grid-template-rows:auto auto auto minmax(0,1fr)!important;
+}
+.app.system-center-open .system-center-workspace{
+  display:grid!important;
+  grid-template-rows:auto auto auto minmax(0,1fr)!important;
+}
+.app.settings-recovery-open .settings-recovery-workspace{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+}
+.app.theme-workspace-open .theme-workspace{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+}
+
+
+.product-area-subnav{
+  min-height:32px!important;
+  height:32px!important;
+  margin:0!important;
+  padding:3px 8px!important;
+  gap:5px!important;
+  overflow:hidden!important;
+}
+.product-area-subnav strong{font-size:10px!important}
+.product-area-subnav button{min-height:26px!important;height:26px!important;padding:3px 8px!important}
+.product-area-subnav .product-area-note{font-size:9px!important}
+
+/* Neutralize legacy natural-page/min-height rules that forced the body below
+   the Windows viewport. */
+.app :is(
+  .profile27-main,.timeline27-main,.insight29-main,.aiw30-body,.ac32-main,
+  .sc32-body,.sr32-body,.theme32-body,.contact26-lower
+){
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  align-self:stretch!important;
+  overflow:visible!important;
+}
+
+/* Keep top chrome useful but subordinate to the work surface. */
+.app :is(.contact26-hero,.profile27-hero,.timeline27-hero,.insight29-hero,.aiw30-hero,.ac32-hero,.sc32-hero,.sr32-head,.theme32-head){
+  padding:8px 12px 7px!important;
+  gap:7px!important;
+}
+.app :is(.contact26-title,.profile27-title,.timeline27-title,.insight29-title,.aiw30-title,.ac32-title,.sc32-title,.sr32-head,.theme32-title) h1{
+  margin:1px 0 2px!important;
+  font-size:clamp(19px,1.35vw,25px)!important;
+  line-height:1.08!important;
+}
+.app :is(.contact26-title,.profile27-title,.timeline27-title,.insight29-title,.aiw30-title,.ac32-title,.sc32-title,.sr32-head,.theme32-title) p{
+  margin:2px 0 0!important;
+  line-height:1.3!important;
+  -webkit-line-clamp:1!important;
+}
+.app :is(.contact26-hero-actions,.profile27-actions,.timeline27-actions,.insight29-actions,.aiw30-actions,.ac32-actions,.sc32-actions,.sr32-actions,.theme32-actions){
+  gap:5px!important;
+}
+.app :is(.contact26-hero-actions,.profile27-actions,.timeline27-actions,.insight29-actions,.aiw30-actions,.ac32-actions,.sc32-actions,.sr32-actions,.theme32-actions) button{
+  min-height:32px!important;
+  padding:5px 9px!important;
+}
+
+/* Sync/status strips are one compact row, never another embedded page. */
+.app :is(.contact26-hero-status,.profile27-syncbar,.timeline27-syncbar,.insight29-syncbar,.aiw30-sync,.aiw30-syncbar){
+  margin-top:5px!important;
+  gap:5px!important;
+}
+.app :is(.contact26-hero-status,.profile27-syncbar,.timeline27-syncbar,.insight29-syncbar,.aiw30-sync,.aiw30-syncbar)>article{
+  min-height:34px!important;
+  padding:4px 7px!important;
+}
+.app :is(.contact26-hero-status,.profile27-syncbar,.timeline27-syncbar,.insight29-syncbar,.aiw30-sync,.aiw30-syncbar)>article span{
+  display:block!important;
+  max-width:100%!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  line-height:1.2!important;
+}
+
+/* Contacts: compact the duplicated overview so the list/detail body is visible
+   on first paint. */
+.contact26-stats,.profile27-stats{
+  min-height:0!important;
+  padding:5px 10px!important;
+  gap:5px!important;
+}
+.contact26-stats>article,.profile27-stats>article{
+  min-height:46px!important;
+  padding:6px 8px!important;
+}
+.relationship-workbench{
+  min-height:0!important;
+  max-height:none!important;
+  grid-template-columns:minmax(0,1.4fr) minmax(260px,.6fr)!important;
+  gap:6px!important;
+  padding:5px 10px!important;
+  overflow:visible!important;
+}
+.workbench-left{
+  min-height:0!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(250px,.72fr)!important;
+  gap:6px!important;
+  overflow:visible!important;
+}
+.workbench-summary,.workbench-queue,.workbench-current{
+  min-height:0!important;
+  padding:7px 9px!important;
+  overflow:visible!important;
+}
+.workbench-brand{margin-bottom:4px!important}
+.summary-grid{gap:4px!important}
+.summary-tile{min-height:42px!important;padding:5px 7px!important}
+.summary-tile small{display:none!important}
+.workbench-queue{overflow:visible!important}
+.workbench-current-cards{gap:5px!important;margin-top:5px!important}
+.current-card{padding:5px 7px!important}
+.contact26-lower{
+  padding:6px 8px 8px!important;
+}
+.contact26-directory,.contact26-detail{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+}
+.contact26-detail{grid-template-rows:auto minmax(0,1fr)!important}
+
+/* Profile/timeline/insights body rows. */
+.app.profile-page-open .profile27-main,
+.app.timeline-page-open .timeline27-main,
+.app.insights-page-open .insight29-main{
+  padding:6px 8px 8px!important;
+  gap:7px!important;
+}
+.profile27-directory,.timeline27-directory,.insight29-directory{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+}
+.profile27-detail,.timeline27-detail,.insight29-detail{
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr)!important;
+}
+.profile27-detail-hero,.timeline27-detail-hero,.insight29-detail-hero{
+  max-height:150px!important;
+  overflow:auto!important;
+  scrollbar-gutter:stable;
+}
+
+/* AI reply brain: the command rail must be compact and the panel itself must
+   be visible without dragging an inner scrollbar just to reach it. */
+.app.aiwork-page-open .aiw30-body{
+  grid-template-rows:auto minmax(0,1fr)!important;
+  padding:6px 8px 8px!important;
+  gap:6px!important;
+}
+.app.aiwork-page-open .aiw30-sidebar{
+  align-self:start!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:124px!important;
+  grid-template-columns:minmax(190px,.72fr) minmax(0,2.8fr) auto!important;
+  grid-template-rows:auto!important;
+  grid-auto-rows:auto!important;
+  overflow:hidden!important;
+}
+.aiw30-core{min-height:0!important;max-height:124px!important;overflow:hidden!important}
+.aiw30-health{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.aiw30-health article{min-height:34px!important}
+.aiw30-tabs{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(118px,1fr))!important;
+  align-items:stretch!important;
+  overflow:hidden!important;
+  white-space:normal!important;
+}
+.aiw30-tab{
+  min-width:0!important;
+  width:100%!important;
+  height:56px!important;
+  padding:5px 7px!important;
+}
+.aiw30-tab span{min-width:0!important}
+.aiw30-tab small{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.aiw30-sidebar-foot{min-height:0!important;max-height:124px!important;padding:6px!important}
+.aiw30-sidebar-foot button{min-width:112px!important;padding:5px 7px!important}
+.aiw30-content{
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr)!important;
+}
+.aiw30-content-head{min-height:0!important;padding:6px 9px!important}
+.aiw30-scroll{padding:8px 9px 18px!important;scroll-padding-top:8px!important}
+
+/* Account/system/settings: no horizontal command scrollbar and one detail
+   scroll authority. */
+.ac32-summary,.sc32-summary{padding:4px 8px!important;gap:4px!important}
+.ac32-stat,.sc32-stat{min-height:42px!important;padding:5px 7px!important}
+.app.account-center-open .ac32-main{padding:6px 8px 8px!important;gap:7px!important}
+.ac32-detail-tabs{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  overflow:visible!important;
+  white-space:normal!important;
+  padding:5px 7px!important;
+}
+.app.system-center-open .sc32-body,
+.app.settings-recovery-open .sr32-body{
+  grid-template-rows:auto minmax(0,1fr)!important;
+}
+.app.system-center-open .sc32-sidebar,
+.app.settings-recovery-open .sr32-side{
+  overflow:visible!important;
+  padding:5px 7px!important;
+}
+.sc32-nav,.sr32-side{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit,minmax(128px,1fr))!important;
+  width:100%!important;
+  gap:4px!important;
+}
+.sc32-nav button,.sr32-side button{
+  width:100%!important;
+  min-width:0!important;
+  min-height:36px!important;
+  padding:4px 6px!important;
+}
+.sc32-nav button{grid-template-columns:24px minmax(0,1fr) auto!important}
+.sc32-nav i,.sr32-side button i{width:24px!important;height:24px!important}
+.app.system-center-open .sc32-content,
+.app.settings-recovery-open .sr32-content{
+  padding:8px 10px 18px!important;
+}
+
+/* Low-height Windows layouts get the strongest compaction. */
+@media(max-height:820px){
+  .app :is(.contact26-title,.profile27-title,.timeline27-title,.insight29-title,.aiw30-title,.ac32-title,.sc32-title,.sr32-head,.theme32-title) p{display:none!important}
+  .app :is(.contact26-hero-status,.profile27-syncbar,.timeline27-syncbar,.insight29-syncbar,.aiw30-sync,.aiw30-syncbar)>article span{display:none!important}
+  .relationship-workbench{max-height:94px!important}
+  .summary-tile{min-height:36px!important}
+  .workbench-current p{display:none!important}
+  .app.aiwork-page-open .aiw30-sidebar{max-height:104px!important}
+  .aiw30-tab{height:48px!important}
+  .profile27-detail-hero,.timeline27-detail-hero,.insight29-detail-hero{max-height:118px!important}
+}
+
+@media(max-width:1120px){
+  .aiw30-tabs{grid-template-columns:repeat(5,minmax(92px,1fr))!important}
+  .aiw30-tab small{display:none!important}
+  .relationship-workbench{grid-template-columns:minmax(0,1fr)!important}
+  .workbench-current{display:none!important}
+}
+
+@media(max-width:820px){
+  .relationship-workbench{display:none!important}
+  .app.contact-page-open .contact26-shell{grid-template-rows:auto auto minmax(0,1fr)!important}
+  .aiw30-sidebar{grid-template-columns:minmax(0,1fr)!important;max-height:none!important}
+  .aiw30-core,.aiw30-sidebar-foot{display:none!important}
+  .aiw30-tabs{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .sc32-nav,.sr32-side{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+
+
+/* Batch 16 · zoom-safe command rails and first-paint reachability. */
+.app.contact-page-open .contact26-hero{
+  overflow:visible!important;
+}
+.app.contact-page-open .contact26-hero-actions{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  justify-content:flex-end!important;
+  align-content:center!important;
+  min-width:0!important;
+}
+.app.contact-page-open .contact26-hero-actions button{
+  white-space:nowrap!important;
+}
+
+.app.aiwork-page-open .aiw30-sidebar-foot{
+  display:none!important;
+}
+.app.aiwork-page-open .aiw30-sidebar{
+  grid-template-columns:minmax(180px,.72fr) minmax(0,3.3fr)!important;
+}
+.app.aiwork-page-open .aiw30-tabs{
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+}
+.app.aiwork-page-open .aiw30-tab{
+  min-width:0!important;
+  overflow:hidden!important;
+}
+
+.app.system-center-open .sc32-sidebar,
+.app.settings-recovery-open .sr32-side{
+  max-height:78px!important;
+  overflow:hidden!important;
+}
+.app.system-center-open .sc32-nav{
+  grid-template-columns:repeat(9,minmax(0,1fr))!important;
+  grid-auto-rows:34px!important;
+}
+.app.settings-recovery-open .sr32-side{
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  grid-auto-rows:34px!important;
+}
+.app.system-center-open .sc32-nav button,
+.app.settings-recovery-open .sr32-side button{
+  height:34px!important;
+  min-height:34px!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+}
+.app.system-center-open .sc32-nav button{
+  grid-template-columns:20px minmax(0,1fr) auto!important;
+  gap:4px!important;
+}
+.app.system-center-open .sc32-nav i,
+.app.settings-recovery-open .sr32-side button i{
+  width:20px!important;
+  height:20px!important;
+  font-size:11px!important;
+}
+.app.system-center-open .sc32-nav small,
+.app.settings-recovery-open .sr32-side small,
+.app.system-center-open .sc32-side-foot,
+.app.settings-recovery-open .sr32-side-foot{
+  display:none!important;
+}
+.app.system-center-open .sc32-nav b,
+.app.settings-recovery-open .sr32-side b{
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+
+@media(max-height:820px){
+  .app.contact-page-open .contact26-hero-actions button{min-height:28px!important;padding:3px 7px!important}
+  .app.system-center-open .sc32-sidebar,
+  .app.settings-recovery-open .sr32-side{max-height:68px!important}
+  .app.system-center-open .sc32-nav,
+  .app.settings-recovery-open .sr32-side{grid-auto-rows:30px!important}
+  .app.system-center-open .sc32-nav button,
+  .app.settings-recovery-open .sr32-side button{height:30px!important;min-height:30px!important;padding:2px 5px!important}
+  .app.aiwork-page-open .aiw30-tab{height:42px!important;padding:3px 5px!important}
+}
+
+/* Batch 18 · real Windows screenshot closure authority.
+   The previous max-width rules re-expanded summary cards and reintroduced
+   clipped mini-pages at normal 125% Windows scaling. Keep first-paint content
+   reachable and never turn a detail hero into a second vertical scroll area. */
+@media(min-width:1081px){
+  .app.contact-page-open .contact26-stats,
+  .app.profile-page-open .profile27-stats{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+  .app.account-center-open .ac32-summary{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+  .app.system-center-open .sc32-summary{grid-template-columns:repeat(7,minmax(0,1fr))!important}
+}
+
+.app :is(.profile27-detail-hero,.timeline27-detail-hero,.insight29-detail-hero){
+  max-height:none!important;
+  overflow:visible!important;
+  scrollbar-gutter:auto!important;
+}
+.app.insights-page-open .insight29-detail-hero{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+}
+.app.insights-page-open .insight29-metrics{
+  grid-column:1/-1!important;
+  margin-top:6px!important;
+}
+
+/* AI brain has one command surface. Old activity/core columns are not allowed
+   to squeeze or paint over the ten production tabs. */
+.app.aiwork-page-open .aiw30-sidebar{
+  grid-template-columns:minmax(0,1fr)!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+.app.aiwork-page-open .aiw30-core,
+.app.aiwork-page-open .aiw30-activity,
+.app.aiwork-page-open .aiw30-sidebar-foot{display:none!important}
+.app.aiwork-page-open .aiw30-tabs{
+  width:100%!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  grid-auto-rows:minmax(44px,auto)!important;
+  overflow:visible!important;
+  padding:5px!important;
+}
+.app.aiwork-page-open .aiw30-tab{
+  height:auto!important;
+  min-height:44px!important;
+}
+
+/* System/settings commands remain fully reachable at first paint. The Batch 16
+   max-height/overflow:hidden pair could silently cut off a wrapped row. */
+.app.system-center-open .sc32-sidebar,
+.app.settings-recovery-open .sr32-side{
+  max-height:none!important;
+  overflow:visible!important;
+}
+.app.system-center-open .sc32-nav{
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  grid-auto-rows:minmax(34px,auto)!important;
+}
+.app.settings-recovery-open .sr32-side{
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  grid-auto-rows:minmax(34px,auto)!important;
+}
+.app.system-center-open .sc32-nav button,
+.app.settings-recovery-open .sr32-side button{
+  height:auto!important;
+  min-height:34px!important;
+}
+
+/* The display panel is a normal bounded document, not a button floating over
+   the explanatory copy. */
+.display-settings-panel{
+  display:block!important;
+  max-height:min(640px,calc(100vh - 24px))!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  padding:14px!important;
+  overscroll-behavior:contain!important;
+  scrollbar-gutter:stable!important;
+}
+.display-settings-panel>*{position:static!important;max-width:100%!important;box-sizing:border-box!important}
+.display-settings-panel .display-note{margin-bottom:0!important}
+.display-settings-panel .display-actions{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  align-items:stretch!important;
+  gap:8px!important;
+}
+.display-settings-panel .display-actions .display-action{
+  position:static!important;
+  display:block!important;
+  width:100%!important;
+  height:44px!important;
+  min-height:44px!important;
+  margin:0!important;
+  align-self:stretch!important;
+  flex:none!important;
+}
+
+@media(max-width:1080px){
+  .app.system-center-open .sc32-nav{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .app.settings-recovery-open .sr32-side{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+
+
+/* FIX6D · Narrow routed workspaces no longer create inner account-center
+   scroll containers here.  r32-flat-document-flow.css owns the final narrow
+   route contract so the route workspace remains the sole vertical owner. */
+
+/* FIX6D · Optional status banners may be hidden.  The route body is explicitly
+   assigned to the final flexible row so hidden siblings cannot leave an empty
+   minmax track below the visible workspace. */
+.app.contact-page-open .contact26-shell,
+.app.profile-page-open .profile27-main,
+.app.timeline-page-open .timeline27-main,
+.app.insights-page-open .insight29-main,
+.app.aiwork-page-open .aiw30-body,
+.app.account-center-open .ac32-main,
+.app.system-center-open .sc32-body,
+.app.settings-recovery-open .sr32-body,
+.app.theme-workspace-open .theme32-body{
+  grid-row:-2/-1;
+  min-height:0!important;
+  height:auto!important;
+  align-self:stretch!important;
+}

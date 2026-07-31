@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP4",
+  "candidateType": "SECOND_BLOCKING_AMENDMENT_IMPLEMENTATION_REVIEW_CANDIDATE",
+  "status": "VERIFIED_IMPLEMENTATION_REVIEW_CANDIDATE",
+  "reviewStatus": "PENDING_INDEPENDENT_REVIEW",
+  "acceptedBaseline": {
+    "wp3CandidateHead": "3d8bac3665098d495e3266ea8ea013c5aba6be16",
+    "wp3SourceTree": "e2670016e7d6252e5cf206223fc4420b5666e606"
+  },
+  "priorRejectedCandidate": {
+    "finalCodeImplementationCommit": "394a748de773a1048f7f58cca17420357443a67a",
+    "candidateBindingCommit": "dcf33f15683dcc89791073761021d3e080d935e8",
+    "finalDeliveryHead": "2e2c233938a9344875d4ea7bad040add8bb76ec0",
+    "finalSourceTree": "d7947eb5f74fb238700ccdd742bfd1ecd7b035b1"
+  },
+  "activationCommit": "dae1a17df2820ae3123639f1e9d1008759939d83",
+  "activationBindingCommit": "452294dbd5b12eec0c29406eee0bf74427eae112",
+  "reopenCommit": "07cddf05fcfae8e949a899a18d61b48cc9760ae8",
+  "finalCodeImplementationCommit": "6daa400e5a388ca696ffc3c2c3f782b8240266e0",
+  "finalCodeSourceTree": "a713241f15362e8799c9bc0a57a9ba8a477d7ba3",
+  "implementedAtUtc": "2026-07-03T09:51:02Z",
+  "requiredTests": {
+    "blueprintRequired": 11,
+    "executed": 35,
+    "passed": 35,
+    "failed": 0,
+    "skipped": 0
+  },
+  "transactionProtocol": "PREPARE_COMMIT_ABORT_QUERY",
+  "durableRequestIdQuery": true,
+  "credentialVaultAtomicWrite": true,
+  "hydrationAckExactBinding": true,
+  "transactionFailureProbes": [
+    "hydration ack metadata mismatch",
+    "SQLite authority update failure",
+    "AppRuntime metadata update failure",
+    "ACK after commit loss",
+    "Electron exit between vault commit and ACK",
+    "backend exit between ACK and authority update",
+    "CredentialVault ENOSPC partial mutation"
+  ],
+  "evidenceStatus": "PASS",
+  "evidenceGeneratorStatus": "PASS",
+  "regressionResults": {
+    "WP3": {
+      "total": 23,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 1,
+      "acceptedExceptionReasonCode": "WP3_WINDOWS_NAMED_MUTEX_NOT_EXECUTED"
+    },
+    "WP2": {
+      "total": 60,
+      "passed": 60,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP1": {
+      "total": 24,
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP0": {
+      "total": 16,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP0Gate": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    }
+  },
+  "javascriptSyntax": {
+    "total": 321,
+    "passed": 321,
+    "failed": 0
+  },
+  "nextWorkPackage": "WP5",
+  "nextWorkPackageStatus": "BLOCKED_BY_WP4",
+  "preservedReviewRecords": [
+    "implementation/wp4-review-candidate.json",
+    "implementation/wp4-blocking-amendment-review-candidate.json"
+  ],
+  "candidateBindingCommit": "576329f6e71ed15faf95576c8c7ba3297673ae73"
+}

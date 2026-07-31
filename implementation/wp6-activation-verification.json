@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP6_ACTIVATION_INTERNAL_VERIFICATION",
+  "generatedAtUtc": "2026-07-05T06:16:00Z",
+  "acceptedWp5Baseline": {
+    "finalDeliveryHead": "c4d5a641e93c600c0199e9960fe8f570faa07808",
+    "finalSourceTree": "b6ece87673d804686bd231858097f6561ff1b200",
+    "acceptanceToken": "WP5_ACCEPTED"
+  },
+  "activationIdentity": {
+    "commit": "3d48fc990deb64bb9fbfa623afa95c102ae516b5",
+    "sourceTree": "fdf199697d2ca1dd1a001e05518316bae0f81ecf",
+    "parentCommit": "c4d5a641e93c600c0199e9960fe8f570faa07808",
+    "parentSourceTree": "b6ece87673d804686bd231858097f6561ff1b200"
+  },
+  "checks": {
+    "parentExactWp5AcceptedFinalDeliveryHead": "PASS",
+    "parentSourceTreeExactWp5AcceptedFinalSourceTree": "PASS",
+    "activationCommitExists": "PASS",
+    "activationTreeExists": "PASS",
+    "activationChangeBoundary": "PASS_GOVERNANCE_AND_ACTIVATION_METADATA_ONLY",
+    "productionCodeChangeCount": 0,
+    "wp5RemainsCompleted": "PASS",
+    "wp6OnlyActiveCandidate": "PASS",
+    "wp7RemainsBlockedByWp6": "PASS",
+    "riskAcceptanceInheritance": "PASS_4_OF_4",
+    "jsonSyntax": "PASS"
+  },
+  "result": "PASS_READY_FOR_INDEPENDENT_ACTIVATION_REVIEW",
+  "activationAccepted": false,
+  "productionImplementationAuthorized": false
+}

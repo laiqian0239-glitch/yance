@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DATA_PROTECTION_PRESENTATION_CLOSURE",
+  "sourceBaseline": "3e1ce585d470861539a5725cad905bb4a8556d32",
+  "status": "UNIT_BEHAVIOR_PASS",
+  "windowsRenderStatus": "PENDING",
+  "endToEndTaskStatus": "PENDING",
+  "userConfirmationStatus": "PENDING",
+  "defectIds": [
+    "DEFECT-015"
+  ],
+  "authority": "DataProtectionAuthority",
+  "rootCausesClosed": [
+    "目录统计函数把大小文本命名为label，展开对象时覆盖了媒体缓存等业务名称",
+    "前端读取不存在的sizeLabel字段，正式页面最终渲染undefined",
+    "业务名称、路径、备份状态和容量文本没有明确字段合同"
+  ],
+  "fieldContract": {
+    "id": "稳定数据根标识",
+    "label": "面向用户的业务名称，不得被统计字段覆盖",
+    "path": "脱敏后的路径或空字符串",
+    "backupIncluded": "是否纳入完整备份",
+    "bytes": "非负字节数",
+    "files": "非负整数文件数",
+    "sizeLabel": "格式化容量文本"
+  },
+  "implementation": [
+    "backend/services/dataProtectionAuthority.js",
+    "backend/services/systemCenterService.js",
+    "frontend/r32-system-center.js"
+  ],
+  "truthfulnessRules": [
+    "任何数据根都必须有明确业务名称和容量文本",
+    "正式UI不得显示undefined、null或字段名",
+    "不纳入备份必须显示明确状态，不得以空字符串隐藏",
+    "媒体缓存按需重新下载的说明不得覆盖其业务名称"
+  ],
+  "targetedEvidence": {
+    "test": "tests/uat/dataProtectionAuthority.test.js",
+    "focusedPassed": 3,
+    "focusedFailed": 0,
+    "scenarios": [
+      "业务名称与大小文本不能互相覆盖",
+      "旧数据缺字段时使用明确安全回退",
+      "系统中心服务与前端统一消费sizeLabel"
+    ]
+  },
+  "limitations": [
+    "WINDOWS_RENDER_PASS尚未执行",
+    "真实Windows数据保护页需确认媒体缓存显示为业务名称、容量和不纳入状态且没有undefined",
+    "本批没有修改三平台适配器或主题色板"
+  ]
+}

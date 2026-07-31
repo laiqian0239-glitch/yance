@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP7_FINAL_PACKAGING_ENTRY_STANDARD",
+  "generatedAtUtc": "2026-07-05T10:12:44Z",
+  "identityBinding": {
+    "wp6AcceptedFinalDeliveryHead": "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+    "wp6AcceptedFinalSourceTree": "485891e55298667df30e2f588daec196dc530eb7",
+    "activationCommit": "ceffb5234d33518bfda2a88c0e3fad59fb7c8bce",
+    "activationSourceTree": "b457101ab8d5d04d073597039446ded41374a6c8",
+    "activationIdentityBindingCommit": "4ac6d2185bed28823210849704f3850cd875b5fb",
+    "activationBindingSourceTree": "d7f64dbf602ded1075978c13bea8449d7ef7e5e2",
+    "verifiedParentChain": [
+      "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+      "ceffb5234d33518bfda2a88c0e3fad59fb7c8bce",
+      "4ac6d2185bed28823210849704f3850cd875b5fb"
+    ]
+  },
+  "decisionRequiredBeforeEntry": "WP7_PREACCEPTED_FOR_FINAL_PACKAGING",
+  "entryCriteria": [
+    "Preaccepted implementation commit and tree remain byte-for-byte unchanged.",
+    "All PRE_REVIEW and PRE_REVIEW_AND_FINAL pre-review executions remain PASS and no unresolved defect exists.",
+    "Final build begins from a clean checkout and unique empty staging root.",
+    "Complete source and Git history delivery tooling is ready and validated.",
+    "Final Windows validation machine is reserved under an exclusive lease; cleanup has not been performed before authorization.",
+    "Packaging commits are limited to authorized packaging, evidence and governance files."
+  ],
+  "requiredTestPhaseClassesDuringFinalPackaging": [
+    "PRE_REVIEW_AND_FINAL",
+    "FINAL_PACKAGING",
+    "FINAL_WINDOWS"
+  ],
+  "requiredRepeatTestIds": [
+    "final-build-clean-staging.test",
+    "final-build-source-freeze-match.test",
+    "wp1-artifact-reuse-denied.test",
+    "final-payload-recomputed.test",
+    "final-installer-build-id-consistency.test",
+    "wp7-final-evidence-reference-only.test",
+    "acceptance-evidence-schema.test",
+    "wp7-release-protocol-version-consistency.test",
+    "wp7-wp0-real-build-branch-gate.test",
+    "wp7-build-session-exclusive.test",
+    "wp7-installer-seal-and-external-hash.test",
+    "wp7-unsigned-policy-truthfulness.test",
+    "wp7-deferred-scope-claim-denied.test",
+    "wp7-inherited-risk-register.test",
+    "wp7-evidence-cross-file-identity.test",
+    "wp7-complete-project-source-delivery.test",
+    "wp7-complete-bundle-parent-chain.test",
+    "wp7-clean-install-evidence-completeness.test",
+    "wp7-release-source-runtime-protocol-convergence.test",
+    "wp7-boot-failure-diagnostics.test",
+    "wp7-acceptance-check-mapping.test"
+  ],
+  "requiredFinalPackagingTestIds": [
+    "wp7-final-packaging-change-boundary.test"
+  ],
+  "requiredFinalWindowsTestIds": [
+    "clean-install-start-stop-restart.test",
+    "single-backend-installed-runtime.test",
+    "offline-installed-runtime-ready.test",
+    "installed-tree-old-runtime-scan-zero.test",
+    "wp7-wp4-credential-authority-installed-regression.test",
+    "wp7-wp5-runtime-authority-installed-regression.test",
+    "wp7-api-v2-event-gap-snapshot-recovery.test",
+    "wp7-backend-crash-recovery-installed.test",
+    "wp7-clean-install-old-version-uninstall.test",
+    "wp7-clean-install-residual-removal.test",
+    "wp7-clean-install-no-legacy-migration.test",
+    "wp7-clean-install-no-legacy-rollback.test",
+    "wp7-installer-sha256-preinstall.test",
+    "wp7-first-start-clean-initialization.test",
+    "wp7-no-old-process-or-build-contamination.test"
+  ],
+  "exitConditions": [
+    "Every PRE_REVIEW_AND_FINAL test is rerun against final identities or final artifacts and passes.",
+    "Every FINAL_PACKAGING test passes.",
+    "Every FINAL_WINDOWS test passes on the designated machine against the sealed installer.",
+    "A01-A10 each resolve to PASS using their normative test/evidence/oracle mapping.",
+    "Complete bundle, patch, source ZIP, installer, evidence and SHA256 manifests bind to one Final Delivery identity.",
+    "FINAL_INSTALLATION_MODE=CLEAN_INSTALL; legacy migration=false; legacy rollback=false.",
+    "Installer SHA256 is verified immediately before execution.",
+    "First start initializes fresh state; zero legacy/test residue remains.",
+    "Independent final review is required before WP7_ACCEPTED or stage acceptance."
+  ],
+  "requiredArtifacts": [
+    "complete Git bundle",
+    "complete patch from accepted WP6 baseline",
+    "complete project source ZIP",
+    "complete tracked-file/source-closure report",
+    "complete test and matrix artifacts",
+    "sealed final Windows installer",
+    "release manifest and detached SHA256",
+    "external final release evidence",
+    "all evidence/wp7 machine-readable evidence",
+    "phase1 acceptance aggregate with A01-A10",
+    "internal and external SHA256 manifests",
+    "governance status and final-delivery records"
+  ],
+  "finalDecisionRequired": "WP7_ACCEPTED",
+  "stageAcceptanceSeparate": true,
+  "entryConditions": [
+    {
+      "id": "FP-R2-01",
+      "condition": "Delivery bundle contains the annotated immutable tag stage-6.4.5.8-rejected-architecture resolving to c150182219edea2faf49c714275e9921a21df742.",
+      "statusBeforeAuthorization": "REQUIRED"
+    },
+    {
+      "id": "FP-R2-02",
+      "condition": "Formal Windows raw evidence is produced on actual win32 with fixtureMode=false and no caller-supplied observations or test results.",
+      "statusBeforeAuthorization": "REQUIRED"
+    },
+    {
+      "id": "FP-R2-03",
+      "condition": "FINAL_PACKAGING and FINAL_WINDOWS runners require one sealed final execution context binding installer, payload, release evidence, Windows raw evidence, preacceptance and Final Delivery identities.",
+      "statusBeforeAuthorization": "REQUIRED"
+    }
+  ]
+}

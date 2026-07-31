@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP6_CONVERGENCE_PRE_REVIEW_INDEPENDENT_REVIEW_REJECTION",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP6",
+  "generatedAtUtc": "2026-07-05T08:10:49Z",
+  "auditDate": "2026-07-05",
+  "decision": "WP6_CONVERGENCE_PRE_REVIEW_REJECTED",
+  "preAcceptanceTokenIssued": false,
+  "rejectedCandidate": {
+    "implementationCommit": "5bac1caf8e3f5c8f0dcaf490e7e94e697e40c2fd",
+    "implementationSourceTree": "b82414d0a418b22fe90b39898480082ac873195e",
+    "parentCommit": "7de495936c955a67d737c351682a9e84ffd4d290",
+    "parentSourceTree": "855376824e8f75aaebc41ce74f73a451026f977f"
+  },
+  "technicalImplementationFindings": {
+    "previousStopTransportUnknownFindingClosed": true,
+    "previousF20CoverageFindingClosed": true,
+    "newTechnicalImplementationBlockers": 0
+  },
+  "blockingReasonCodes": [
+    "WP6_STATUS_CURRENT_REVIEW_PHASE_CONFLICT",
+    "WP6_GOVERNANCE_TIMESTAMP_PROVENANCE_CONFLICT",
+    "WP6_JAVASCRIPT_SYNTAX_COVERAGE_COUNT_MISMATCH"
+  ],
+  "rejectionScope": "GOVERNANCE_STATUS_TIMESTAMP_AND_EVIDENCE_COVERAGE_ONLY",
+  "requiredRemediation": {
+    "regenerateCurrentReviewPhase": true,
+    "regenerateGovernanceTimestampProvenance": true,
+    "runAllTrackedJavaScriptSyntaxChecks": true,
+    "expectedTrackedJavaScriptCount": 457,
+    "regenerateCompleteConvergencePreReviewCandidate": true
+  },
+  "governanceAfterDecision": {
+    "wp6Status": "ACTIVE",
+    "wp6ReviewStatus": "PENDING_CONVERGENCE_PRE_REVIEW",
+    "finalPackagingAuthorized": false,
+    "wp7Status": "BLOCKED_BY_WP6",
+    "wp7ActivationAllowed": false
+  }
+}

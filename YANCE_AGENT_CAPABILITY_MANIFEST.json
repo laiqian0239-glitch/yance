@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 3,
+  "documentType": "YANCE_AGENT_CAPABILITY_MANIFEST",
+  "agentClass": "YANCE_ENGINEERING_AGENT",
+  "version": "3.3.0",
+  "capabilities": {
+    "sourceAudit": true,
+    "sourceModification": true,
+    "automatedRegression": true,
+    "gitBundleRestore": true,
+    "artifactReverseVerification": true,
+    "realWindowsExecution": false,
+    "realFacebookOperation": false,
+    "realWhatsAppOperation": false,
+    "realTelegramOperation": false,
+    "independentReleaseApproval": false
+  },
+  "constraints": {
+    "cannotSelfApprove": true,
+    "cannotClaimRealUatWithoutExternalEvidence": true,
+    "cannotPromoteTruncatedEvidence": true,
+    "cannotUseFilenameAsVersionAuthority": true
+  }
+}

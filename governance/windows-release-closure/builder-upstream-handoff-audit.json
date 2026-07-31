@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE29_BUILDER_UPSTREAM_HANDOFF_AUDIT",
+  "handoffFile": "Yance29_BUILDER_UPSTREAM_HANDOFF_4352f8f.zip",
+  "handoffSha256": "4fc158cc0433d862ac0d6af04ba4f76e8bd22f6de50d5df333a8ea7f48edda86",
+  "handoffIdentity": {
+    "commit": "4352f8f800ce819aa608117260a6b28e11d8ff90",
+    "tree": "0f1e9f7bce693dd306be6e9a3016429c2d1cce70"
+  },
+  "acceptedInputs": [
+    "Windows npm command shim requires host-aware execution",
+    "final build already has Electron payload, NSIS and release evidence entry points",
+    "real Builder requires official Electron archive and native makensis.exe"
+  ],
+  "rejectedInputs": [
+    "28-byte controlled fixture installer as a release artifact",
+    "Builder evidence generated from controlled fake Electron, fake NSIS or fixture node_modules",
+    "direct reuse of evidence bound to the older handoff Commit/Tree"
+  ],
+  "handoffDefects": [
+    "BUILDER_SOURCE_CHANGE.patch is not a valid Git patch",
+    "SHA256SUMS.txt references missing SHA256SUMS.old",
+    "SHA256SUMS.txt contains an invalid self-hash",
+    "outer .sha256 file contains a UTF-8 BOM"
+  ],
+  "projectionPolicy": "Reimplement accepted behavior on the current authoritative HEAD, add regression tests, create a new Commit/Tree, rerun WP7 and reseal source."
+}

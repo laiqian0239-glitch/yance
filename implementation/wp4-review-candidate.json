@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP4",
+  "status": "IMPLEMENTATION_REVIEW_CANDIDATE",
+  "reviewStatus": "PENDING_INDEPENDENT_REVIEW",
+  "acceptedBaseline": {
+    "wp3CandidateHead": "3d8bac3665098d495e3266ea8ea013c5aba6be16",
+    "wp3SourceTree": "e2670016e7d6252e5cf206223fc4420b5666e606"
+  },
+  "activationCommit": "dae1a17df2820ae3123639f1e9d1008759939d83",
+  "finalCodeImplementationCommit": "4ab561469b87a3244b4a0060ca0a3c75d1f0a36d",
+  "finalCodeSourceTree": "7c1ccc2afdcc895dfb819e7846c9c84233efefe1",
+  "implementedAtUtc": "2026-07-03T08:32:49Z",
+  "requiredTests": {
+    "blueprintRequired": 11,
+    "executed": 13,
+    "passed": 13,
+    "failed": 0,
+    "skipped": 0
+  },
+  "regressionPlan": [
+    "WP3",
+    "WP2",
+    "WP1",
+    "WP0",
+    "WP0_GATE"
+  ],
+  "scope": [
+    "Dedicated inherited credential IPC with startupNonce, one-time token, PID, protocol, manifest, epoch, generation and size validation",
+    "Electron CredentialVaultHost epoch/generation authority and confirmed-exit reset protocol",
+    "Credential hydration and local account restore before local_ready",
+    "Local critical workers before local_ready and external workers after local_ready",
+    "Offline local_ready and nonblocking external provider failures",
+    "Credential value and common hash encoding zero-persistence scan",
+    "Removal of post-ready credential recovery branch"
+  ],
+  "nextWorkPackage": "WP5",
+  "nextWorkPackageStatus": "BLOCKED_BY_WP4",
+  "verificationCompletedAtUtc": "2026-07-03T08:35:05Z",
+  "evidenceStatus": "PASS",
+  "evidenceOutputs": [
+    "credential-protocol-negative-tests.json",
+    "credential-generation-and-epoch.json",
+    "credential-ready-gate.json",
+    "offline-local-ready.json",
+    "secret-log-scan.json",
+    "wp4-evidence-summary.json"
+  ],
+  "regressionResults": {
+    "WP3": {
+      "total": 23,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 1,
+      "acceptedExceptionReasonCode": "WP3_WINDOWS_NAMED_MUTEX_NOT_EXECUTED"
+    },
+    "WP2": {
+      "total": 60,
+      "passed": 60,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP1": {
+      "total": 24,
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP0": {
+      "total": 16,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP0Gate": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    }
+  },
+  "javascriptSyntax": {
+    "total": 306,
+    "passed": 306,
+    "failed": 0
+  },
+  "repositoryCleanBeforeFinalMetadataCommit": true
+}

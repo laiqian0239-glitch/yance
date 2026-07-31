@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH30_AUTOMATED_TEST_RECEIPT",
+  "generatedAtUtc": "2026-07-29T09:50:29Z",
+  "sourceIdentity": {
+    "branch": "development/windows-uat-batch30-wp3-wp4-wp5-root-fix",
+    "implementationCommit": "4ef7a2b4182400e0ca7b4603dea6ba962ecb9bac",
+    "implementationTree": "52401514689468b2cd4b7e49e3ad6e107aa38d5e",
+    "parentPackageCommit": "cfd2dcae49614cd53b0706f823fdca82b1cbd52f",
+    "parentPackageTree": "f09d42285686a8f4c670e72faf0df541d32d6b96"
+  },
+  "inputWindowsEvidence": {
+    "file": "YANCE_BATCH29_WINDOWS_EVIDENCE_20260729-154611.zip",
+    "sha256": "e3e5a4648ecad52db989348c2084fd55f4528e97bf6c466b9bc970a40d3eca36",
+    "acceptedPasses": "artifact identity, clean npm ci, npm ls, protocol, core gates; WP3 tests 43/43; WP5 mutation 24/24 before source-closure stage",
+    "repairTriggers": "WP3 production evidence BOOT_DESKTOP_STARTUP_FAILED; WP4 A12/A14/A20/A21 plus delayed cancellation; WP5 source-closure five false/legacy classifications"
+  },
+  "environment": {
+    "os": "Linux 6.12.13 x86_64 review container",
+    "node": "v22.16.0",
+    "npm": "10.9.2",
+    "dependencyState": "INCOMPLETE_NODE_MODULES; express/electron unavailable for true production child-process suites"
+  },
+  "results": {
+    "batch29WindowsArtifactAndDependencyGates": "PASS: handoff, Git bundle, PackageCommit/Tree, clean npm ci, npm ls, protocol, Round12, Round13, diagnostics and Source UAT",
+    "batch29WindowsWp3Tests": "PASS 43/43; evidence stage failed before production API verification because the evidence launcher injected retired YANCE_SAFE_MODE",
+    "batch30Wp3StaticAuthorityGate": "PASS 2/2: evidence launcher contains no YANCE_SAFE_MODE and runtime construction audit remains unique",
+    "batch30Wp4TargetedContainmentAndCancellation": "PASS 43/43 including backend startup cancellation, FD5 abort, rejected-owner containment, journal order and Windows FD6-close concurrent-exit race",
+    "batch30Wp4AdditionalNonProductionRegression": "PASS for all executed state-machine and IPC groups; true production child-process starts remain unavailable locally because express is absent",
+    "batch30Wp5BaseSuite": "PASS 58/58",
+    "batch30Wp5SourceClosure": "PASS 11/11",
+    "batch30Wp5MutationMatrix": "PASS 24/24 KILLED in bounded batches; 0 survived, 0 invalid, 0 timeout, 0 signal, 0 harness error",
+    "javascriptSyntax": "PASS for all changed JavaScript files",
+    "gitDiffCheck": "PASS",
+    "cleanNpmCiForBatch30Package": "PENDING_REAL_WINDOWS_REVALIDATION",
+    "wp3WindowsProductionEvidence": "PENDING_REAL_WINDOWS_REVALIDATION",
+    "wp4WindowsFourFormerFailures": "PENDING_REAL_WINDOWS_REVALIDATION",
+    "wp5WindowsFullContinuousVerify": "PENDING_REAL_WINDOWS_REVALIDATION",
+    "realWindowsElectronRequired": true,
+    "realPlatformUatRequired": true,
+    "realOpenRouterQualificationRequired": true
+  },
+  "wp5MutationEvidence": {
+    "executionMode": "bounded mutation batches due tool execution window",
+    "total": 24,
+    "killed": 24,
+    "survived": 0,
+    "invalid": 0,
+    "timeout": 0,
+    "signal": 0,
+    "harnessError": 0,
+    "singleContinuousWindowsVerify": "PENDING_REAL_WINDOWS_REVALIDATION"
+  },
+  "externalGates": {
+    "cleanNpmCiWindows": "PENDING_FOR_BATCH30_PACKAGE",
+    "wp3ProductionEvidenceWindows": "PENDING",
+    "wp4FormerFailureCasesWindows": "PENDING",
+    "wp5FullWindows": "PENDING",
+    "realWindowsElectron": "PENDING",
+    "realPlatformAck": "PENDING",
+    "realOpenRouter": "PENDING",
+    "independentReview": "REQUIRED"
+  },
+  "governance": {
+    "repairState": "REPAIR_ATTEMPT_IN_PROGRESS",
+    "windowsUatState": "WINDOWS_UAT_BLOCKED",
+    "formalRelease": false,
+    "readyForPromotion": false,
+    "windowsUatAuthorized": false
+  }
+}

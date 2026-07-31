@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP7_ACTIVATION_PLAN",
+  "stage": "6.4.5.9",
+  "workPackage": "WP7",
+  "generatedAtUtc": "2026-07-05T09:28:38Z",
+  "purpose": "Generate an Activation candidate from the exact accepted WP6 baseline without starting WP7 production implementation.",
+  "parentBaseline": {
+    "commit": "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+    "sourceTree": "485891e55298667df30e2f588daec196dc530eb7",
+    "acceptanceToken": "WP6_ACCEPTED"
+  },
+  "readinessStatus": "WP7_READY_FOR_ACTIVATION",
+  "changeBoundary": {
+    "allowed": [
+      "governance files",
+      "work package status files",
+      "Activation plan",
+      "Readiness binding files",
+      "Activation evidence and identity files"
+    ],
+    "forbidden": [
+      "production code",
+      "database migration",
+      "Electron runtime",
+      "backend",
+      "frontend",
+      "shared protocol",
+      "installer production implementation",
+      "WP7 required tests implementation",
+      "final build artifacts"
+    ]
+  },
+  "candidateState": {
+    "notYetActivated": true,
+    "active": false,
+    "reviewStatus": "PENDING_ACTIVATION_INDEPENDENT_REVIEW",
+    "productionImplementationAuthorized": false,
+    "finalPackagingAuthorized": false
+  },
+  "requiredIndependentDecision": "WP7_ACTIVATION_ACCEPTED",
+  "forbiddenOutputs": [
+    "WP7 production implementation",
+    "WP7 ACTIVE status",
+    "WP7 Design Gate decision",
+    "Convergence Pre-Review",
+    "Final Packaging",
+    "final installer",
+    "WP7_ACTIVATION_ACCEPTED"
+  ],
+  "installationPolicy": {
+    "FINAL_INSTALLATION_MODE": "CLEAN_INSTALL",
+    "LEGACY_TEST_DATA_MIGRATION_REQUIRED": false,
+    "LEGACY_TEST_VERSION_ROLLBACK_REQUIRED": false
+  },
+  "riskAcceptanceIdsPreserved": [
+    "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+    "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+    "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+    "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED"
+  ]
+}

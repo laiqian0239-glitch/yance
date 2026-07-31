@@ -1,0 +1,48 @@
+# 言策 Round 12/13 综合真实 Windows UAT 候选
+
+这不是正式发布版。该候选用于一次性验证 Round 11 会话中心、Round 12 多平台核心架构与 Round 13 AI 回复大脑质量架构。
+
+## 源码身份
+
+- Branch：`__EXPECTED_BRANCH__`
+- Commit：`__EXPECTED_COMMIT__`
+- Tree：`__EXPECTED_TREE__`
+- Artifact：`ROUND12_13_COMPREHENSIVE_WINDOWS_UAT_CANDIDATE`
+
+## 安装和启动
+
+1. 完全退出当前言策。
+2. 双击 `INSTALL_TEST_AND_START_YANCE_ROUND12_13_UAT.cmd`。
+3. 安装器会校验源码 ZIP、选择最大现有数据库、创建逐文件 SHA256 恢复点并安装完整依赖。
+4. 启动前强制运行平台核心、AI质量、会话中心、候选绑定、三平台生产状态和主题门禁；任一失败都不会启动言策。
+5. OpenRouter Key、平台凭据、验证码和二维码只能在运行中的言策界面录入。
+
+## 集中验收范围
+
+- Round 11 新会话中心、3–5条候选、草稿保护、AI日常/高级模式、译后发送。
+- Capability/Health 权威，平台和账号局部降级。
+- OutboxCommand、SendPolicy、幂等、断网重连和无旁路发送。
+- Adapter 四端口、入站 event-first 权威投影、全量分页收敛审计和阻断事件修复重放。
+- Person/IdentityLink 的证据型建议、人工确认、争议、解除、合并和审计回滚；确认同一Person锚定档案、关系、记忆与学习，并锚定会话。
+- 高能力主档与同档备用、应急学习隔离、DirectorStrategyV2、L1/L2/L3自动综合状态、L3提案批准/拒绝、回滚/忘记和目标驱动记忆。
+- Facebook、WhatsApp、Telegram真实收发及Kurt端到端证据。
+- Windows 100%、125%、150%缩放、宽窄窗口和主题。
+
+## 导出证据
+
+保持言策运行并将窗口置于前台，双击：
+
+`COLLECT_YANCE_ROUND12_13_EVIDENCE.cmd`
+
+下载目录会生成运行证据、综合检查清单和当前屏幕截图。截图可能包含聊天内容，请自行决定是否分享。
+
+采集器会同时生成 `WINDOWS_EVIDENCE_GATE.json`，并核对运行中的 Commit、Tree、Build、Manifest SHA256、证据清单哈希、分页完整性以及 AI 路由/Outbox 收据完整性。证据即使被成功打包，只要存在截断、身份不一致或阻断收据，脚本仍会以退出码 `3` 明确阻止晋升；不能把“生成了 ZIP”解释为验收通过。
+
+## 状态边界
+
+- `formalRelease=false`
+- `realWindowsUatRequired=true`
+- `realPlatformUatRequired=true`
+- `realOpenRouterQualificationRequired=true`
+- 真机、三平台和真实模型证据关闭前，不得标记正式发布通过。
+- 只有 `WINDOWS_EVIDENCE_GATE.json` 中 `readyForPromotion=true`，证据包才具备后续独立审核资格。

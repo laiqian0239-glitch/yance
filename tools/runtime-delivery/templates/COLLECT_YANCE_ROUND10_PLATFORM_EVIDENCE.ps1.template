@@ -1,0 +1,30 @@
+[CmdletBinding()]
+param(
+  [ValidateRange(1024, 65535)]
+  [int]$Port = 27632
+)
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+Set-Location -LiteralPath $PSScriptRoot
+
+$shortCommit = '__SHORT_COMMIT__'
+$sourceRoot = Join-Path $env:LOCALAPPDATA (Join-Path 'Yance-UAT-Candidates' (Join-Path $shortCommit 'source'))
+$toolPath = Join-Path $sourceRoot 'tools\uat\exportPlatformProductionEvidence.js'
+$node = Get-Command node.exe -ErrorAction SilentlyContinue
+if (-not $node) { throw 'Node.js was not found.' }
+if (-not (Test-Path -LiteralPath $toolPath -PathType Leaf)) { throw "Missing evidence exporter: $toolPath" }
+
+$downloadRoot = [Environment]::GetFolderPath('UserProfile')
+$downloadRoot = Join-Path $downloadRoot 'Downloads'
+if (-not (Test-Path -LiteralPath $downloadRoot -PathType Container)) { $downloadRoot = $env:USERPROFILE }
+$stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ')
+$outputRoot = Join-Path $downloadRoot "YANCE_ROUND10_PLATFORM_EVIDENCE_$stamp"
+$zipPath = "$outputRoot.zip"
+
+& $node.Source $toolPath --base-url "http://127.0.0.1:$Port" --output $outputRoot
+if ($LASTEXITCODE -ne 0) { throw "Evidence export failed. ExitCode=$LASTEXITCODE" }
+if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
+Compress-Archive -LiteralPath (Join-Path $outputRoot '*') -DestinationPath $zipPath -Force
+Write-Host "Evidence ZIP: $zipPath" -ForegroundColor Green
+exit 0

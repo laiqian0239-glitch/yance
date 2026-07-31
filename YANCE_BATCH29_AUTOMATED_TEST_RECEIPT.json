@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH29_AUTOMATED_TEST_RECEIPT",
+  "generatedAtUtc": "2026-07-29T08:24:51Z",
+  "sourceIdentity": {
+    "branch": "development/windows-uat-batch29-wp3-wp4-wp5-fix",
+    "implementationCommit": "0c1b2377a36703296eee48cb2a427742ac45d3a7",
+    "implementationTree": "ddd9f71faa81d82319737478c721bc647d35a16f",
+    "parentPackageCommit": "a400cf21ae9c39c03b4a9d78f0f355a92a0a63bd",
+    "parentPackageTree": "81a24c6cb3d3eb2718f37ed81a76d280ac0a3fa3"
+  },
+  "inputWindowsEvidence": {
+    "file": "YANCE_BATCH28_WINDOWS_EVIDENCE_20260729-134647.zip",
+    "sha256": "315a6cf445cc21cca75c685785da0cc9d70a04cf0ac6153e730e91174990dfe2",
+    "acceptedPasses": "clean npm ci, npm ls, core gates and full backend 1099/1099",
+    "repairTriggers": "WP3 41/43 due EPERM cleanup; WP4 194/195 with credential IPC write timeout and late unhandled rejection; WP5 5 killed plus 19 misclassified harness errors"
+  },
+  "environment": {
+    "os": "Linux 6.12.13 x86_64 review container",
+    "node": "v22.16.0",
+    "npm": "10.9.2",
+    "dependencyState": "INCOMPLETE_NODE_MODULES; express/electron unavailable for complete WP3/WP4 local matrix"
+  },
+  "results": {
+    "batch28WindowsEvidenceIdentity": "PASS: handoff SHA256 17/17, Git bundle, PackageCommit/Tree, clean npm ci and npm ls",
+    "batch28WindowsCoreRegression": "PASS: protocol 2/2, Batch28 16/16, Round12 79/79, Round13 24/24, UAT diagnostics 142/142, Source UAT 33/33, full backend 1099/1099",
+    "wp3DirectOwnershipCleanup": "1/1 PASS in Linux direct private-broker closure test; full Windows WP3 43-test rerun required",
+    "wp4StartupFailureCredentialAbort": "4/4 PASS targeted; blocked FD5 write aborts in under 2 seconds on startup-failed and stop paths",
+    "wp4BroaderBackendHostRegression": "76/77 PASS in incomplete Linux dependency environment; sole real-backend child start case blocked by missing express",
+    "wp5BaseSuite": "58/58 PASS",
+    "wp5MutationIsolation": "24/24 mutants independently KILLED, 0 survived, 0 harness error; one uninterrupted Windows matrix rerun required",
+    "javascriptSyntax": "all 7 changed JavaScript files PASS node --check",
+    "gitDiffCheck": "PASS",
+    "cleanNpmCiForBatch29Package": "PENDING_REAL_WINDOWS_REVALIDATION",
+    "wp3WindowsFullSuite": "PENDING_REAL_WINDOWS_REVALIDATION",
+    "wp4WindowsFullSuite": "PENDING_REAL_WINDOWS_REVALIDATION",
+    "wp5WindowsFullMatrix": "PENDING_REAL_WINDOWS_REVALIDATION",
+    "realWindowsElectronRequired": true,
+    "realPlatformUatRequired": true,
+    "realOpenRouterQualificationRequired": true,
+    "protocolV3": "2/2 PASS after Batch 29 metadata update",
+    "sourceUatDelivery": "33/33 PASS after Batch 29 metadata update"
+  },
+  "wp5MutationEvidence": {
+    "executionMode": "24 isolated mutant processes to avoid current container process-tree retention",
+    "total": 24,
+    "killed": 24,
+    "survived": 0,
+    "invalid": 0,
+    "timeout": 0,
+    "signal": 0,
+    "harnessError": 0,
+    "singleUninterruptedMatrix": "PENDING_REAL_WINDOWS_REVALIDATION"
+  },
+  "externalGates": {
+    "cleanNpmCiWindows": "PENDING_FOR_BATCH29_PACKAGE",
+    "wp3FullWindows": "PENDING",
+    "wp4FullWindows": "PENDING",
+    "wp5FullWindows": "PENDING",
+    "realWindowsElectron": "PENDING",
+    "realPlatformAck": "PENDING",
+    "realOpenRouter": "PENDING",
+    "independentReview": "REQUIRED"
+  },
+  "governance": {
+    "repairState": "REPAIR_ATTEMPT_IN_PROGRESS",
+    "windowsUatState": "WINDOWS_UAT_BLOCKED",
+    "formalRelease": false,
+    "readyForPromotion": false,
+    "windowsUatAuthorized": false
+  }
+}

@@ -1,0 +1,317 @@
+{
+  "schemaVersion": 1,
+  "brandingVersion": 2,
+  "publicBrand": {
+    "zh": "言策",
+    "en": "Yance"
+  },
+  "sunsetPolicy": "Legacy identifiers are migration-only and must be reviewed for removal after brandingEpoch 3.",
+  "historicalRoots": [
+    {
+      "pathPrefix": "docs/wp5/",
+      "category": "HISTORICAL_DOCUMENT",
+      "reason": "Accepted WP5 design history predating the public brand migration. Not packaged into the product."
+    },
+    {
+      "pathPrefix": "docs/wp6/",
+      "category": "HISTORICAL_DOCUMENT",
+      "reason": "Accepted WP6 design history predating the public brand migration. Not packaged into the product."
+    },
+    {
+      "pathPrefix": "docs/wp7/implementation/",
+      "category": "HISTORICAL_DOCUMENT",
+      "reason": "Historical implementation plan retained for audit traceability. Not packaged into the product."
+    },
+    {
+      "pathPrefix": "docs/security/YANCE29_",
+      "category": "HISTORICAL_DOCUMENT",
+      "reason": "Dated security audit filename retained as an immutable historical record."
+    },
+    {
+      "pathPrefix": "evidence/",
+      "category": "HISTORICAL_EVIDENCE",
+      "reason": "Immutable evidence generated against superseded source identities. Not packaged into the product."
+    },
+    {
+      "pathPrefix": "implementation/",
+      "category": "HISTORICAL_EVIDENCE",
+      "reason": "Historical work-package and handoff records. Not packaged into the product."
+    },
+    {
+      "pathPrefix": "governance/wp7/",
+      "category": "HISTORICAL_GOVERNANCE",
+      "reason": "Accepted historical traceability data retained without rewriting prior governance records."
+    },
+    {
+      "pathPrefix": "docs/GITHUB_RELEASE_UPLOAD_CHECKLIST_29.2.6.md",
+      "category": "HISTORICAL_RELEASE_DOCUMENT",
+      "reason": "Superseded signed GitHub release checklist retained for audit only; current internal testing uses manual local installers."
+    },
+    {
+      "pathPrefix": "docs/persona/PERSONA_BRAIN_INTEGRATION.md",
+      "category": "HISTORICAL_IMPLEMENTATION_DOCUMENT",
+      "reason": "Historical integration narrative references the architecture name at the time of implementation."
+    },
+    {
+      "pathPrefix": "docs/release/CONVERSATION_CENTER_UI_V2_2026-07-13.md",
+      "category": "HISTORICAL_IMPLEMENTATION_DOCUMENT",
+      "reason": "Dated UI implementation record retained without rewriting its source handoff identity."
+    },
+    {
+      "pathPrefix": "docs/wp7/WP7_ACTIVATION_READINESS_REBIND.json",
+      "category": "HISTORICAL_GOVERNANCE",
+      "reason": "Historical baseline package identity retained for audit traceability."
+    },
+    {
+      "pathPrefix": "governance/r5-baseline-lock.json",
+      "category": "HISTORICAL_BASELINE_IDENTITY",
+      "reason": "Immutable R5 baseline package identity predates the public brand migration."
+    },
+    {
+      "pathPrefix": "governance/repository-scope-policy.json",
+      "category": "HISTORICAL_BASELINE_IDENTITY",
+      "reason": "Accepted WP0 policy ID is an internal historical contract, not a user-visible product name."
+    },
+    {
+      "pathPrefix": "governance/stage-policy.json",
+      "category": "HISTORICAL_BASELINE_IDENTITY",
+      "reason": "Accepted WP0 freeze policy ID is an internal historical contract, not a user-visible product name."
+    },
+    {
+      "pathPrefix": "governance/windows-release-closure/",
+      "category": "HISTORICAL_GOVERNANCE",
+      "reason": "Accepted release-closure ledgers and policy document identities are retained as immutable audit records and are not packaged into the product."
+    }
+  ],
+  "exactAllowances": [
+    {
+      "path": "release/release-source.json",
+      "match": "Yance29|Yance29\\.exe|Software\\\\Yance29|Local\\\\Yance29\\.AppRuntime",
+      "category": "LEGACY_MIGRATION_CONTRACT",
+      "reason": "Authoritative, non-visible compatibility identifiers used to locate and migrate an installed legacy product.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/desktop-fixes/release-branding-migration.test.js"
+    },
+    {
+      "path": "installer/wp7/YanceFinalInstaller.nsi",
+      "match": "Yance29|言策29",
+      "category": "LEGACY_INSTALLER_CLEANUP",
+      "reason": "The new installer detects and removes legacy executable, shortcut, Start Menu and uninstall entries during upgrade.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/wp7/wp7-installer-branding-ux.test.js"
+    },
+    {
+      "path": "installer/installSteps.js",
+      "match": "Yance29|yance29",
+      "category": "LEGACY_PROCESS_DETECTION",
+      "reason": "Upgrade preflight recognizes a running legacy executable so it can be stopped safely.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/wp7/m7-install-steps.test.js"
+    },
+    {
+      "path": "electron/dataRootMigration.js",
+      "match": "Yance29",
+      "category": "LEGACY_DATA_MIGRATION",
+      "reason": "First-run data-root migration recognizes the legacy roaming data directory.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/desktop-fixes/yance-data-root-migration.test.js"
+    },
+    {
+      "path": "electron/main.js",
+      "match": "yance29",
+      "category": "LEGACY_RUNTIME_COMPATIBILITY",
+      "reason": "One migration cycle accepts legacy deep links and credential markers while writing only the new identifiers.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/desktop-fixes/release-branding-migration.test.js"
+    },
+    {
+      "path": "electron/legacyDataRoots.js",
+      "match": "yance29",
+      "category": "LEGACY_RUNTIME_AUTHORITY_MIGRATION",
+      "reason": "A failed brand-directory migration may temporarily run from the legacy root while locating the older Yance27 authority.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/wp5/runtime-authority-migration.test.js"
+    },
+    {
+      "path": "backend/services/legacyRootDiscovery.js",
+      "match": "yance29",
+      "category": "LEGACY_RUNTIME_AUTHORITY_MIGRATION",
+      "reason": "Backend fallback mirrors the Electron exact-root compatibility rule and performs no broad sibling scan.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/wp5/runtime-authority-migration.test.js"
+    },
+    {
+      "path": "frontend/js/r32-persona-runtime.js",
+      "match": "yance29",
+      "category": "LEGACY_LOCAL_STORAGE_MIGRATION",
+      "reason": "Reads and deletes one legacy browser-storage key, then writes only the new Yance key.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/desktop-fixes/release-branding-migration.test.js"
+    },
+    {
+      "path": "frontend/js/r32-ui-runtime.js",
+      "match": "yance29",
+      "category": "LEGACY_LOCAL_STORAGE_MIGRATION",
+      "reason": "Reads and deletes one legacy layout key, then writes only the new Yance key.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/desktop-fixes/release-branding-migration.test.js"
+    },
+    {
+      "path": "tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1",
+      "match": "Yance29",
+      "category": "LEGACY_PROCESS_UAT",
+      "reason": "Windows upgrade UAT detects and proves cleanup of a legacy running process.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/wp7/windows-preview-uat-runner-native-command.test.js"
+    },
+    {
+      "path": "tools/windows/VERIFY_RUNTIME_IDENTITY.ps1",
+      "match": "Yance29",
+      "category": "LEGACY_PROCESS_UAT",
+      "reason": "Runtime identity verification detects forbidden surviving legacy processes after upgrade.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/wp7/windows-harness-horizontal-closure.test.js"
+    },
+    {
+      "path": "backend/tests/diagnosticsPrivacyRegression.test.js",
+      "match": "Yance29",
+      "category": "NEGATIVE_PRIVACY_FIXTURE",
+      "reason": "Synthetic legacy path verifies that diagnostics redact historical product paths and personal data.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "backend/tests/diagnosticsPrivacyRegression.test.js"
+    },
+    {
+      "path": "tests/desktop-fixes/release-branding-migration.test.js",
+      "match": "Yance29|yance29|言策29|Y29",
+      "category": "REGRESSION_OR_NEGATIVE_FIXTURE",
+      "reason": "This exact test proves migration compatibility or rejects legacy public branding; no broader tests-directory exemption is permitted.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/desktop-fixes/release-branding-migration.test.js"
+    },
+    {
+      "path": "tests/desktop-fixes/yance-data-root-migration.test.js",
+      "match": "Yance29|yance29|言策29|Y29",
+      "category": "REGRESSION_OR_NEGATIVE_FIXTURE",
+      "reason": "This exact test proves migration compatibility or rejects legacy public branding; no broader tests-directory exemption is permitted.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/desktop-fixes/yance-data-root-migration.test.js"
+    },
+    {
+      "path": "tests/wp7/m7-install-steps.test.js",
+      "match": "Yance29|yance29|言策29|Y29",
+      "category": "REGRESSION_OR_NEGATIVE_FIXTURE",
+      "reason": "This exact test proves migration compatibility or rejects legacy public branding; no broader tests-directory exemption is permitted.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/wp7/m7-install-steps.test.js"
+    },
+    {
+      "path": "tests/wp7/wp7-installer-branding-ux.test.js",
+      "match": "Yance29|yance29|言策29|Y29",
+      "category": "REGRESSION_OR_NEGATIVE_FIXTURE",
+      "reason": "This exact test proves migration compatibility or rejects legacy public branding; no broader tests-directory exemption is permitted.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/wp7/wp7-installer-branding-ux.test.js"
+    },
+    {
+      "path": "tests/branding/packaged-brand-audit.test.js",
+      "match": "Yance[\\\\s_-]*29|言策[\\\\s_-]*29|Y[\\\\s_-]*29",
+      "category": "NEGATIVE_PACKAGED_BRAND_FIXTURE",
+      "reason": "This exact test injects legacy names into staged output and proves packaged and installed brand audits fail closed.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/branding/packaged-brand-audit.test.js"
+    },
+    {
+      "path": "tests/wp0/overlay-installer-pattern-scan.test.js",
+      "match": "Yance[\\s_-]*29",
+      "category": "NEGATIVE_OVERLAY_INSTALLER_FIXTURE",
+      "reason": "This exact WP0 fixture proves that legacy-branded overlay installers are rejected and never treated as release inputs.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/wp0/overlay-installer-pattern-scan.test.js"
+    },
+    {
+      "path": "tests/wp1/yance-branding-runtime-payload.test.js",
+      "match": "Yance[\\s_-]*29|言策[\\s_-]*29|Y[\\s_-]*29",
+      "category": "NEGATIVE_RUNTIME_PAYLOAD_BRAND_FIXTURE",
+      "reason": "This exact test injects a legacy public name into a generated runtime payload and proves the packaged gate fails closed.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/wp1/yance-branding-runtime-payload.test.js"
+    },
+    {
+      "path": "backend/runtime/NamedRuntimeMutex.js",
+      "match": "Yance29",
+      "category": "LEGACY_RUNTIME_MUTEX_COMPATIBILITY",
+      "reason": "For one branding migration cycle, the new runtime also owns the legacy named mutex so a retained legacy executable cannot run concurrently and create split-brain writes.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/wp3/portable-runtime-mutex-endpoint.test.js"
+    },
+    {
+      "path": "tests/wp3/portable-runtime-mutex-endpoint.test.js",
+      "match": "Yance29",
+      "category": "REGRESSION_OR_NEGATIVE_FIXTURE",
+      "reason": "This exact test proves the migration-bounded legacy mutex is held and released atomically with the new Yance mutex.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/wp3/portable-runtime-mutex-endpoint.test.js"
+    },
+    {
+      "path": "YANCE_ROUND11_FULL_PRODUCT_FUNCTION_INVENTORY.json",
+      "match": "YANCE29",
+      "category": "GENERATED_HISTORICAL_REFERENCE",
+      "reason": "Generated Round 11 inventory records the immutable filename of a historical security audit; it is not a user-visible product label.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/branding/legacy-brand-audit.test.js"
+    },
+    {
+      "path": "tools/runtime-delivery/templates/INSTALL_TEST_AND_START_YANCE_ROUND10_UAT.ps1.template",
+      "match": "Yance29",
+      "category": "LEGACY_DATA_ROOT_DISCOVERY",
+      "reason": "The UAT installer searches the legacy data directory only to preserve and migrate existing user data.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/desktop-fixes/release-branding-migration.test.js"
+    },
+    {
+      "path": "tools/runtime-delivery/templates/INSTALL_TEST_AND_START_YANCE_ROUND11_UAT.ps1.template",
+      "match": "Yance29",
+      "category": "LEGACY_DATA_ROOT_DISCOVERY",
+      "reason": "The UAT installer searches the legacy data directory only to preserve and migrate existing user data.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/desktop-fixes/release-branding-migration.test.js"
+    },
+    {
+      "path": "tools/runtime-delivery/templates/INSTALL_TEST_AND_START_YANCE_UAT.ps1.template",
+      "match": "Yance29",
+      "category": "LEGACY_DATA_ROOT_DISCOVERY",
+      "reason": "The UAT installer searches the legacy data directory only to preserve and migrate existing user data.",
+      "userVisible": false,
+      "sunsetAfterBrandingEpoch": 3,
+      "coveredBy": "tests/desktop-fixes/release-branding-migration.test.js"
+    }
+  ],
+  "selfFiles": [
+    "governance/branding/yance-legacy-brand-whitelist.json",
+    "governance/branding/YANCE_BRAND_REBUILD_MATRIX.md"
+  ]
+}

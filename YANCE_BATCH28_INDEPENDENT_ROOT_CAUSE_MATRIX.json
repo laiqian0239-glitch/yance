@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH28_INDEPENDENT_ROOT_CAUSE_MATRIX",
+  "generatedAtUtc": "2026-07-29T05:45:35Z",
+  "implementationCommit": "4ac6ddfc89adda08f0f51a697cd87c7a3ec72c16",
+  "items": [
+    {
+      "id": "B28-P0-01",
+      "title": "SQLite Owner reference counting and heartbeat authority",
+      "status": "CLOSED_SOURCE_AUTOMATED",
+      "finding": "Same-process handles could prematurely release ownership; live owner could be stolen after wall-clock jump."
+    },
+    {
+      "id": "B28-P0-02",
+      "title": "RuntimeOwnership dbPath authority",
+      "status": "CLOSED_SOURCE_AUTOMATED",
+      "finding": "Declared isolated dataRoot/dbPath was ignored by a global SQLite singleton."
+    },
+    {
+      "id": "B28-P0-03",
+      "title": "Telegram enrichment scoped restart recovery",
+      "status": "CLOSED_SOURCE_AUTOMATED",
+      "finding": "Global one-second RUNNING reset could steal unrelated jobs and ignore retry timing."
+    },
+    {
+      "id": "B28-P0-04",
+      "title": "Telegram history dual cursor",
+      "status": "CLOSED_SOURCE_AUTOMATED",
+      "finding": "Persisted checkpoint was not consumed; >single-page history and forward bursts could be skipped."
+    },
+    {
+      "id": "B28-P0-05",
+      "title": "send_outcome_unknown exact ledger and identity convergence",
+      "status": "CLOSED_SOURCE_AUTOMATED",
+      "finding": "1000-row list truncation undercounted blockers; journal/late ACK identity was incomplete."
+    },
+    {
+      "id": "B28-P0-06",
+      "title": "Platform operation deadline and late ACK isolation",
+      "status": "CLOSED_SOURCE_AUTOMATED",
+      "finding": "Caller signals could bypass hard deadline; late-result callback used a missing eventBus import."
+    },
+    {
+      "id": "B28-P0-07",
+      "title": "Auth/Reconcile cancellation and durable-write fence",
+      "status": "CLOSED_SOURCE_AUTOMATED",
+      "finding": "Port deadline could return while AccountManager/OAuth/history logic continued writing success."
+    },
+    {
+      "id": "B28-P0-08",
+      "title": "AI physical zombie slot release",
+      "status": "CLOSED_SOURCE_AUTOMATED",
+      "finding": "Successful hard termination still waited for an original Promise that might never settle."
+    },
+    {
+      "id": "B28-P0-09",
+      "title": "Learning source/projection/retry/DLQ ledger",
+      "status": "CLOSED_SOURCE_AUTOMATED",
+      "finding": "Deferred retry, ready work and unresolved poison records were conflated."
+    },
+    {
+      "id": "B28-P0-10",
+      "title": "Translation generation and restart CAS",
+      "status": "CLOSED_SOURCE_AUTOMATED",
+      "finding": "Forced retry/restart could permit stale translation results or permanent pending state."
+    },
+    {
+      "id": "B28-P0-11",
+      "title": "Candidate revision/persona final CAS",
+      "status": "CLOSED_SOURCE_AUTOMATED",
+      "finding": "Final candidate commit needed runtime generation, revision and persona fingerprint fencing."
+    },
+    {
+      "id": "B28-P0-12",
+      "title": "Telegram secure credential persistence recursion",
+      "status": "CLOSED_SOURCE_AUTOMATED",
+      "finding": "Real credential persistence called itself recursively and could stack overflow after login/logout."
+    },
+    {
+      "id": "B28-GATE-01",
+      "title": "Clean npm ci for repaired package identity",
+      "status": "PENDING_REAL_WINDOWS",
+      "finding": "Current Linux dependency directory is incomplete; old Windows evidence belongs to Batch 27."
+    },
+    {
+      "id": "B28-GATE-02",
+      "title": "Real Windows Electron runtime matrix",
+      "status": "PENDING_REAL_WINDOWS",
+      "finding": "Cold start, dual instance, force kill, sleep/wake and time jump are not executed here."
+    },
+    {
+      "id": "B28-GATE-03",
+      "title": "Real platform operation matrix",
+      "status": "PENDING_REAL_PLATFORM",
+      "finding": "WhatsApp/Telegram/Facebook real ACK, late ACK and restart reconciliation remain external."
+    },
+    {
+      "id": "B28-GATE-04",
+      "title": "Real OpenRouter qualification",
+      "status": "PENDING_REAL_OPENROUTER",
+      "finding": "Two-provider timeout/cancel/physical termination and rate-limit recovery remain external."
+    }
+  ],
+  "governance": {
+    "promotionBlocked": true,
+    "windowsUatAuthorized": false,
+    "formalRelease": false
+  }
+}

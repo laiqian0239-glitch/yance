@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "program": "Yance Windows Product Experience Closure",
+  "productPositioning": "面向德国和欧洲客户的多平台、多语言、关系型 AI 沟通工作台",
+  "scopeFreeze": {
+    "uatRange": "UAT-001..UAT-070",
+    "auditPointCount": 70,
+    "workPackageCount": 13,
+    "newFindingsPolicy": "归入现有工作包的子缺陷，不继续增加主编号"
+  },
+  "operatingPrinciples": [
+    "真实 Electron 界面、真实平台账号、真实 SQLite 和真实 Ollama 结果优先于结构性 PASS",
+    "在明显功能和视觉问题关闭前，不运行完整 Pipeline、WP7、STRICT Round 1/2 或 Final Builder",
+    "每个状态必须来自真实权威数据源，不允许界面开关替代后端可用性",
+    "所有给用户理解的关键外语内容提供中文理解层，外发内容保持联系人语言",
+    "功能按用户旅程和页面职责整体实现，不再逐截图追加零散补丁",
+    "任何数据库迁移都必须事务化、幂等、可备份、可回滚"
+  ],
+  "workPackages": [
+    {"id":"WPX-01","name":"联系人身份与会话权威","priority":"P0"},
+    {"id":"WPX-02","name":"本地模型与 AI 上下文闭环","priority":"P0"},
+    {"id":"WPX-03","name":"中文理解与客户语言输出","priority":"P0"},
+    {"id":"WPX-04","name":"Facebook OAuth 与消息闭环","priority":"P0"},
+    {"id":"WPX-05","name":"全局主题架构","priority":"P1"},
+    {"id":"WPX-06","name":"AI 回复大脑与风格控制","priority":"P1"},
+    {"id":"WPX-07","name":"聊天、媒体与平台素材","priority":"P1"},
+    {"id":"WPX-08","name":"Telegram、搜索、归档、通知与诊断","priority":"P1"},
+    {"id":"WPX-09","name":"数据、安全、错误与恢复","priority":"P2"},
+    {"id":"WPX-10","name":"性能、可访问性与真实 UAT","priority":"P2"},
+    {"id":"WPX-11","name":"AI 学习、评估与回滚闭环","priority":"P1"},
+    {"id":"WPX-12","name":"多账号、离线、隐私、迁移与发布闭环","priority":"P2"},
+    {"id":"WPX-13","name":"产品体验架构与设计治理","priority":"P0"}
+  ],
+  "executionOrder": [
+    "WPX-13",
+    "WPX-01",
+    "WPX-02",
+    "WPX-03",
+    "WPX-04",
+    "WPX-05",
+    "WPX-06",
+    "WPX-07",
+    "WPX-08",
+    "WPX-11",
+    "WPX-09",
+    "WPX-12",
+    "WPX-10"
+  ],
+  "phaseOne": {
+    "name": "权威数据与可理解 AI 基础",
+    "workPackages": ["WPX-13","WPX-01","WPX-02","WPX-03","WPX-11"],
+    "exitCriteria": [
+      "同一联系人只有一个规范身份和一个规范会话",
+      "AI 回复通过 conversationId 解析规范联系人上下文",
+      "真实 model-registry.routes 与界面状态一致，并具备主备模型",
+      "会话、候选、分析、关系和档案拥有统一中文理解层",
+      "学习事件从候选生成到真实发送可追踪，并能证明后续生成真实命中"
+    ]
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_RELATIONSHIP_STATE_AUTHORITY_CLOSURE",
+  "sourceBaseline": "84bf01cac49082c1b1b5373595e210861dbc016b",
+  "status": "REAL_DB_REPLAY_PASS",
+  "windowsRenderStatus": "PENDING",
+  "endToEndTaskStatus": "PENDING",
+  "userConfirmationStatus": "PENDING",
+  "defectIds": [
+    "DEFECT-007"
+  ],
+  "authority": "RelationshipProjectionAuthority",
+  "states": [
+    "empty",
+    "pending_translation",
+    "pending_analysis",
+    "ready",
+    "stale",
+    "rebuild_required"
+  ],
+  "rootCausesClosed": [
+    "relationship_insights 只在人工或 AI 分析时写入，而真实消息持续更新的是另一套 StoreManager 社交投影",
+    "前端分别读取两套关系数据并自行拼装 summary、stage 和 next，后到数据会覆盖先到数据",
+    "关系页的当前关系姿态错误读取 customer profile next，而不是 relationship trajectory next",
+    "有效节点数量错误使用趋势图点数，而不是关系事件权威数量"
+  ],
+  "sourcePriority": [
+    "fresh AI analysis",
+    "stale AI analysis retained with stale state",
+    "deterministic social rule projection",
+    "message baseline",
+    "empty"
+  ],
+  "truthfulnessRules": [
+    "存在真实关系信号或事件时不得显示暂无可确认内容",
+    "AI 尚未执行时必须明确显示规则投影，不得伪装成 AI 结论",
+    "存在新消息时保留最后一次成功分析并标记 stale，不清空已有结论",
+    "前端不得从 StoreManager 布尔字段重新计算关系结论",
+    "同平台多账号和不同会话的关系节点必须按物理联系人与 conversationId 隔离"
+  ],
+  "implementation": [
+    "backend/services/relationshipProjectionAuthority.js",
+    "backend/repositories/workspaceRepository.js",
+    "backend/services/workspaceService.js",
+    "frontend/js/r32-ui-runtime.js"
+  ],
+  "targetedEvidence": {
+    "test": "tests/uat/relationshipProjectionAuthority.test.js",
+    "passed": 4,
+    "failed": 0,
+    "scenarios": [
+      "valid social nodes without AI analysis",
+      "fresh AI insight",
+      "new message marks existing insight stale",
+      "same platform message id across two WhatsApp account instances",
+      "frontend no longer invents relationship summary/stage/next"
+    ]
+  },
+  "limitations": [
+    "WINDOWS_RENDER_PASS 尚未执行",
+    "真实用户数据库历史重复事件仍需另行 dry-run 清理",
+    "规则投影只用于避免空白和状态矛盾，不能替代模型深度关系分析"
+  ]
+}

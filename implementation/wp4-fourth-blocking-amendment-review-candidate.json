@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP4",
+  "candidateType": "FOURTH_BLOCKING_AMENDMENT_IMPLEMENTATION_REVIEW_CANDIDATE",
+  "status": "VERIFIED_IMPLEMENTATION_REVIEW_CANDIDATE",
+  "reviewStatus": "PENDING_INDEPENDENT_REVIEW",
+  "acceptedBaseline": {
+    "wp3CandidateHead": "3d8bac3665098d495e3266ea8ea013c5aba6be16",
+    "wp3SourceTree": "e2670016e7d6252e5cf206223fc4420b5666e606"
+  },
+  "priorRejectedCandidate": {
+    "finalCodeImplementationCommit": "0bf79439d6f8a19c752c0c7419cf2d3bb6198203",
+    "finalCodeSourceTree": "1207ef9224e3811d302aa782468834f6a9cd27cc",
+    "candidateBindingCommit": "27c3b0fbbdd6af12c93cf549cd2c5bccd1fa9fca",
+    "finalDeliveryHead": "aea8f84d0acf482b3d1e7d829e605eabe2e469c0",
+    "finalSourceTree": "34a538ae1c1efea9a52c4ff8757759085ccada0a",
+    "independentReviewStatus": "REJECTED"
+  },
+  "fourthReopenCommit": "c63422cd683aae7ac59fafc919653bd95cfb19a8",
+  "repairBaseFinalDeliveryHead": "aea8f84d0acf482b3d1e7d829e605eabe2e469c0",
+  "finalCodeImplementationCommit": "fc78e12d5a1a583b3a40df11ec30318e512b0a3c",
+  "finalCodeSourceTree": "59a6cc26179d7293e037de2f6ee279cb97780760",
+  "implementedAtUtc": "2026-07-03T10:53:45Z",
+  "implementation": {
+    "prepareResultUnknownRecovery": "AUTOMATIC_QUERY_THEN_CONTINUE_ABORT_OR_TERMINAL_RESULT",
+    "prepareUnknownFailurePolicy": "CONTROLLED_BACKEND_SHUTDOWN_AND_DESKTOP_RESTART",
+    "terminalTransactionRecovery": "VALIDATE_COMMITTED_AND_ROLLED_BACK_VAULT_AND_METADATA_OR_FAIL_CLOSED",
+    "abortJournalPersistenceFailure": "LIVE_HOST_UNAVAILABLE_AND_RESTART_RECOVERY",
+    "durableRequestIdReplayAcrossBackendRestart": true,
+    "historicalReplayValidation": [
+      "requestId",
+      "operation",
+      "ref",
+      "mutationSha256",
+      "vaultEpoch"
+    ],
+    "historicalReplayDoesNotAdvanceGeneration": true,
+    "requestIdMutationConflictReasonCode": "CREDENTIAL_CUSTODY_REQUEST_ID_CONFLICT",
+    "reasonCodes": [
+      "WP4_CREDENTIAL_PREPARE_RESULT_INDETERMINATE",
+      "WP4_CREDENTIAL_PREPARED_TRANSACTION_STUCK",
+      "WP4_CREDENTIAL_TERMINAL_JOURNAL_MISMATCH",
+      "WP4_CREDENTIAL_QUERY_FALSE_COMMITTED",
+      "WP4_CREDENTIAL_DURABLE_IDEMPOTENCY_FAILED"
+    ],
+    "preservedThirdAmendmentProtections": [
+      "real SIGKILL crash matrix",
+      "before/after digest recovery",
+      "CredentialVault copy-on-write",
+      "unified vault mutation queue",
+      "desktop and FD6 concurrency protection",
+      "post-COMMIT pipe-close indeterminate shutdown",
+      "FD5 startup snapshot",
+      "FD6 dedicated custody pipe",
+      "hydration and ready ACK exact binding",
+      "legacy generic IPC secret channel disabled",
+      "WP2 and WP3 accepted risk records"
+    ]
+  },
+  "requiredTests": {
+    "blueprintRequired": 11,
+    "executed": 60,
+    "passed": 60,
+    "failed": 0,
+    "skipped": 0
+  },
+  "fourthAmendmentEvidenceProbes": {
+    "status": "PASS",
+    "probeCount": 6,
+    "probes": [
+      "prepareAckLostRecovery",
+      "prepareResultUnknownShutdown",
+      "abortJournalWriteFailureRecovery",
+      "committedJournalVaultMismatchFailClosed",
+      "rolledBackJournalVaultMismatchFailClosed",
+      "requestIdReplayAfterBackendRestart"
+    ]
+  },
+  "retainedCrashMatrix": {
+    "status": "PASS",
+    "scenarioCount": 6,
+    "termination": "SIGKILL"
+  },
+  "evidenceStatus": "PASS",
+  "evidenceGeneratorStatus": "PASS",
+  "regressionResults": {
+    "WP3": {
+      "total": 23,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 1,
+      "acceptedExceptionReasonCode": "WP3_WINDOWS_NAMED_MUTEX_NOT_EXECUTED"
+    },
+    "WP2": {
+      "total": 60,
+      "passed": 60,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP1": {
+      "total": 24,
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP0": {
+      "total": 16,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP0Gate": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    }
+  },
+  "javascriptSyntax": {
+    "total": 333,
+    "passed": 333,
+    "failed": 0
+  },
+  "nextWorkPackage": "WP5",
+  "nextWorkPackageStatus": "BLOCKED_BY_WP4",
+  "candidateBindingCommit": "6813270ee9df559c0a45add8fb2613f9f21ccae3"
+}

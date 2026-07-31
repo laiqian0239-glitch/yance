@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH26_ROOT_CAUSE_ISSUE_MATRIX",
+  "sourceIdentity": {
+    "branch": "development/windows-uat-f25fe2e-repair-batch26-platform-ai-learning",
+    "commit": "0e64fa2155ef5b5d7ab9d0272dae0c0a42e87b4e",
+    "tree": "0a78bfe0bc3000ea1587cf7a29ab752beb2871c8"
+  },
+  "findings": [
+    {
+      "id": "B26-P0-01",
+      "severity": "P0",
+      "title": "Platform SDK hang can freeze send scheduling",
+      "sourceStatus": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED",
+      "automatedEvidence": "backend/tests/batch26PlatformAiLearningClosure.test.js plus full backend and final gates",
+      "realUatStatus": "PENDING",
+      "closed": false
+    },
+    {
+      "id": "B26-P0-02",
+      "severity": "P0",
+      "title": "Telegram remote acceptance/local persistence split can resend",
+      "sourceStatus": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED",
+      "automatedEvidence": "backend/tests/batch26PlatformAiLearningClosure.test.js plus full backend and final gates",
+      "realUatStatus": "PENDING",
+      "closed": false
+    },
+    {
+      "id": "B26-P0-03",
+      "severity": "P0",
+      "title": "Telegram enrichment blocks first inbound persistence",
+      "sourceStatus": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED",
+      "automatedEvidence": "backend/tests/batch26PlatformAiLearningClosure.test.js plus full backend and final gates",
+      "realUatStatus": "PENDING",
+      "closed": false
+    },
+    {
+      "id": "B26-P0-04",
+      "severity": "P0",
+      "title": "Global learning queue can block AI replies",
+      "sourceStatus": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED",
+      "automatedEvidence": "backend/tests/batch26PlatformAiLearningClosure.test.js plus full backend and final gates",
+      "realUatStatus": "PENDING",
+      "closed": false
+    },
+    {
+      "id": "B26-P0-05",
+      "severity": "P0",
+      "title": "Learning feedback/scope/L1 partial commit",
+      "sourceStatus": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED",
+      "automatedEvidence": "backend/tests/batch26PlatformAiLearningClosure.test.js plus full backend and final gates",
+      "realUatStatus": "PENDING",
+      "closed": false
+    },
+    {
+      "id": "B26-P1-01",
+      "severity": "P1",
+      "title": "Telegram live checkpoint/claim recovery",
+      "sourceStatus": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED",
+      "automatedEvidence": "backend/tests/batch26PlatformAiLearningClosure.test.js plus full backend and final gates",
+      "realUatStatus": "PENDING",
+      "closed": false
+    },
+    {
+      "id": "B26-P1-02",
+      "severity": "P1",
+      "title": "Telegram history cursor advances past failure",
+      "sourceStatus": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED",
+      "automatedEvidence": "backend/tests/batch26PlatformAiLearningClosure.test.js plus full backend and final gates",
+      "realUatStatus": "PENDING",
+      "closed": false
+    },
+    {
+      "id": "B26-P1-03",
+      "severity": "P1",
+      "title": "AI execution watchdog and slot recovery",
+      "sourceStatus": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED",
+      "automatedEvidence": "backend/tests/batch26PlatformAiLearningClosure.test.js plus full backend and final gates",
+      "realUatStatus": "PENDING",
+      "closed": false
+    },
+    {
+      "id": "B26-P1-04",
+      "severity": "P1",
+      "title": "AI durable running task restart recovery",
+      "sourceStatus": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED",
+      "automatedEvidence": "backend/tests/batch26PlatformAiLearningClosure.test.js plus full backend and final gates",
+      "realUatStatus": "PENDING",
+      "closed": false
+    },
+    {
+      "id": "B26-P1-05",
+      "severity": "P1",
+      "title": "AI analysis debounce crash gap",
+      "sourceStatus": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED",
+      "automatedEvidence": "backend/tests/batch26PlatformAiLearningClosure.test.js plus full backend and final gates",
+      "realUatStatus": "PENDING",
+      "closed": false
+    },
+    {
+      "id": "B26-P1-06",
+      "severity": "P1",
+      "title": "Learning reconciliation page cap and retry",
+      "sourceStatus": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED",
+      "automatedEvidence": "backend/tests/batch26PlatformAiLearningClosure.test.js plus full backend and final gates",
+      "realUatStatus": "PENDING",
+      "closed": false
+    },
+    {
+      "id": "B26-P1-07",
+      "severity": "P1",
+      "title": "Facebook raw body deadline",
+      "sourceStatus": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED",
+      "automatedEvidence": "backend/tests/batch26PlatformAiLearningClosure.test.js plus full backend and final gates",
+      "realUatStatus": "PENDING",
+      "closed": false
+    },
+    {
+      "id": "B26-P1-08",
+      "severity": "P1",
+      "title": "Telegram auth/disconnect/history deadlines",
+      "sourceStatus": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED",
+      "automatedEvidence": "backend/tests/batch26PlatformAiLearningClosure.test.js plus full backend and final gates",
+      "realUatStatus": "PENDING",
+      "closed": false
+    },
+    {
+      "id": "B26-P2-01",
+      "severity": "P2",
+      "title": "Candidate revision commit TOCTOU",
+      "sourceStatus": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED",
+      "automatedEvidence": "backend/tests/batch26PlatformAiLearningClosure.test.js plus full backend and final gates",
+      "realUatStatus": "NOT_RELEASE_AUTHORITY",
+      "closed": false
+    },
+    {
+      "id": "B26-P2-02",
+      "severity": "P2",
+      "title": "Parallel migration snapshot filename collision",
+      "sourceStatus": "SOURCE_IMPLEMENTED_AUTOMATED_VERIFIED",
+      "automatedEvidence": "backend/tests/batch26PlatformAiLearningClosure.test.js plus full backend and final gates",
+      "realUatStatus": "NOT_RELEASE_AUTHORITY",
+      "closed": false
+    }
+  ],
+  "governance": {
+    "repairState": "REPAIR_ATTEMPT_IN_PROGRESS",
+    "windowsUatState": "WINDOWS_UAT_BLOCKED",
+    "formalRelease": false,
+    "readyForPromotion": false,
+    "independentReviewRequired": true
+  }
+}

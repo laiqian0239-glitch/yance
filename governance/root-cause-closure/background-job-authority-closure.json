@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BACKGROUND_JOB_AUTHORITY_CLOSURE",
+  "sourceBaseline": "72247eadcbbf383e84f4d6365114128bf8413ffa",
+  "status": "REAL_DB_REPLAY_PASS",
+  "windowsRenderStatus": "PENDING",
+  "endToEndTaskStatus": "PENDING",
+  "userConfirmationStatus": "PENDING",
+  "defectIds": [
+    "DEFECT-014"
+  ],
+  "authority": "BackgroundJobAuthority",
+  "states": [
+    "PENDING",
+    "RUNNING",
+    "SUCCEEDED",
+    "RETRY_WAIT",
+    "FAILED_FINAL",
+    "CANCELLED",
+    "SUPERSEDED"
+  ],
+  "rootCausesClosed": [
+    "头像同步和历史媒体恢复过去只依赖进程内队列与Map，重启后会丢失锁和冷却状态",
+    "后台任务没有数据库级唯一租约，相同实体可在刷新、重连和重启后重复执行",
+    "不可重试失败、最大尝试次数和下次重试时间没有统一持久化权威",
+    "健康状态过去只依赖短期日志，日志轮转后仍未恢复的后台失败可能被错误显示为健康"
+  ],
+  "implementation": [
+    "backend/services/backgroundJobAuthority.js",
+    "backend/lib/r32SqliteStore.js background_job_state",
+    "backend/services/avatarService.js",
+    "backend/services/whatsappHistoryMediaRecovery.js",
+    "backend/server.js startup interrupted job recovery",
+    "backend/services/systemHealthAuthority.js",
+    "backend/services/systemCenterService.js",
+    "frontend/r32-system-center.js"
+  ],
+  "identityRules": [
+    "媒体任务至少按 platform + sourceAccountId + conversationId + messageId + mediaRevision 隔离",
+    "头像任务至少按 platform + sourceAccountId + conversationId + avatarRevision 隔离",
+    "姓名和头像像素不得进入任务合并依据",
+    "同一平台消息ID在不同账号或会话中必须形成不同幂等键"
+  ],
+  "runtimeRules": [
+    "同一幂等键同一时刻只能有一个RUNNING租约",
+    "RETRY_WAIT在nextRetryAt之前不得重新调用平台或媒体下载",
+    "达到最大尝试次数或不可重试错误必须进入FAILED_FINAL",
+    "进程中断留下的陈旧RUNNING在启动时恢复为RETRY_WAIT",
+    "用户显式重试必须使用force并创建新的租约尝试，不得静默清除历史证据",
+    "系统健康必须读取持久化任务状态，不能仅依赖内存日志"
+  ],
+  "targetedEvidence": {
+    "test": "tests/uat/backgroundJobAuthority.test.js",
+    "realDbReplayPassed": 9,
+    "systemHealthPassed": 6,
+    "adjacentPlatformAssertionsPassed": 51,
+    "environmentBlocked": [
+      "backend/tests/sourceUatRound3IdentityRegression.test.js and windowsClosureCurrentRegression.test.js require optional qrcode dependency in the source-only environment"
+    ],
+    "scenarios": [
+      "duplicate task suppression",
+      "restart persistence",
+      "retry cooldown and max attempts",
+      "non-retryable final failure",
+      "same message id multi-account isolation",
+      "stale RUNNING recovery",
+      "avatar service integration",
+      "history media queue integration",
+      "durable task health projection"
+    ]
+  },
+  "limitations": [
+    "真实 Windows 上头像或过期历史媒体最终能否恢复仍需任务级验收；本检查点证明不会无限重复和伪健康",
+    "WINDOWS_RENDER_PASS尚未执行",
+    "本批没有修改WhatsApp、Facebook、Telegram平台适配器或主题色板"
+  ]
+}

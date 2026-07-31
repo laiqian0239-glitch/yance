@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_MODEL_RUNTIME_AUTHORITY_CLOSURE",
+  "sourceBaseline": "4b2a93c770e5ae100e2a2fd0d6cc1f70fa880634",
+  "status": "REAL_DB_REPLAY_PASS",
+  "windowsRenderStatus": "PENDING",
+  "endToEndTaskStatus": "PENDING",
+  "userConfirmationStatus": "PENDING",
+  "defectIds": [
+    "DEFECT-010",
+    "DEFECT-011"
+  ],
+  "authority": "ModelRuntimeAuthority",
+  "states": [
+    "UNCONFIGURED",
+    "CREDENTIAL_REQUIRED",
+    "VERIFYING",
+    "CONFIGURED_UNVERIFIED",
+    "VERIFIED_NOT_CALLED",
+    "AVAILABLE",
+    "DEGRADED_WITH_FALLBACK",
+    "TEMPORARILY_BLOCKED",
+    "UNAVAILABLE"
+  ],
+  "rootCausesClosed": [
+    "资格测试与业务调用共用 lastAttemptStatus、lastError 和 connectivityStatus，互相覆盖真实状态",
+    "前端分别拼接资格、路由、当前失败和最后成功，单张模型卡出现互相矛盾结论",
+    "云模型供应商原始错误重复展示，缺少中文用户摘要与可展开技术详情",
+    "系统汇总按资格和连接布尔值统计，无法区分首次未调用、可用、降级和不可用"
+  ],
+  "truthfulnessRules": [
+    "每个模型只能有一个主 runtimeState",
+    "资格事实与业务调用事实必须独立持久化",
+    "业务失败不得覆盖资格连接结果，资格测试不得清除业务失败或最后成功记录",
+    "最后一次成功结果必须在后续失败时保留",
+    "用户界面只显示一条中文主状态；原始供应商错误只进入可展开技术详情",
+    "失败资格模型即使被陈旧路由引用也不得标记 routingEligible"
+  ],
+  "implementation": [
+    "backend/services/modelRuntimeAuthority.js",
+    "backend/services/modelRegistry.js",
+    "backend/services/modelStatusProjection.js",
+    "frontend/js/r32-ai-workbench-runtime.js"
+  ],
+  "targetedEvidence": {
+    "tests": [
+      "tests/uat/modelRuntimeAuthority.test.js",
+      "tests/uat/modelRegistryFactSeparation.test.js",
+      "backend/tests/aiModelGovernanceClosure.test.js",
+      "backend/tests/sourceUatRealWindowsEvidenceRegression.test.js"
+    ],
+    "passed": 20,
+    "failed": 0,
+    "realSqliteScenarios": [
+      "qualification success does not erase business failure",
+      "business failure does not rewrite qualification connectivity",
+      "business recovery preserves qualification evidence"
+    ]
+  },
+  "limitations": [
+    "WINDOWS_RENDER_PASS 尚未执行",
+    "真实云端配额恢复与备用模型接管仍需真实 Windows 任务级验收",
+    "系统健康总分的统一权威属于后续 DEFECT-012/013/014 收口"
+  ]
+}

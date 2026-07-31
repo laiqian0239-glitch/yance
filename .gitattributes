@@ -1,0 +1,48 @@
+# Deterministic cross-platform checkout contract.
+# Repository text normally materializes as LF even when a Windows user has
+# core.autocrlf=true. The source-UAT PowerShell launcher is the one reviewed
+# byte-level exception because its delivery gate requires ASCII CRLF.
+* text=auto eol=lf
+INSTALL_AND_START_YANCE_SOURCE_UAT_LARGEST_EXISTING_DATA.ps1 -text whitespace=cr-at-eol
+tools/runtime-delivery/templates/INSTALL_TEST_AND_START_YANCE_UAT.ps1.template -text whitespace=cr-at-eol
+
+# Binary release and runtime assets must never be line-ending normalized.
+*.png binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.zip binary
+*.bundle binary
+*.exe binary
+*.dll binary
+*.node binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+
+# Clean UAT/runtime source exports: retain historical scripts and reports in Git
+# history and bundles, but do not place misleading one-off entry points in the
+# installable Windows UAT payload.
+/DEPLOY_*.cmd export-ignore
+/DEPLOY_*.ps1 export-ignore
+/DIAGNOSE_WHATSAPP_SOURCE_UAT.* export-ignore
+/INSTALL_AND_START_YANCE_SOURCE_UAT* export-ignore
+/INSTALL_DEPLOY_AND_START_FACEBOOK_DIRECT_PAGE_TOKEN_RECOVERY.cmd export-ignore
+/INSTALL_FACEBOOK_AVATAR_IMPORTER.* export-ignore
+/INSTALL_LOCAL_WHISPER_FOR_YANCE.* export-ignore
+/P0_PREFLIGHT_SOURCE_UAT.* export-ignore
+/RUN_WHATSAPP_REAL_UAT_SAFE.* export-ignore
+/RUN_YANCE_FIX*_WINDOWS_UAT.ps1 export-ignore
+/START_FACEBOOK_AVATAR_CLOSURE_DIAGNOSTIC.cmd export-ignore
+/START_YANCE_SOURCE_UAT*.cmd export-ignore
+/FACEBOOK_*_REPORT_ZH.md export-ignore
+/FACEBOOK_AVATAR_CLOSURE_DIAGNOSTIC_CHANGELOG_ZH.md export-ignore
+/READ_FIRST_*.md export-ignore
+/RUNTIME_HOTFIX_*.json export-ignore
+/YANCE_FIX*_ZH.md export-ignore

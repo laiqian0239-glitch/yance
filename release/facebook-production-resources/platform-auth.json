@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "releaseManaged": true,
+  "telegram": {
+    "apiId": 30405309,
+    "apiHash": "28e8d7f70e8189e7acb2db9f4a52dce1"
+  },
+  "facebook": {
+    "workerBaseUrl": "https://yance-facebook-gateway.wangyi198675.workers.dev",
+    "graphVersion": "v25.0"
+  }
+}

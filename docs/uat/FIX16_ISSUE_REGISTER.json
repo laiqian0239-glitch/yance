@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "release": "FIX16_FULL_PLATFORM_RUNTIME_CLOSURE_20260724",
+  "baselineCommit": "003cf8ea9a104417232d32ec4e6d3fde1dd18b3e",
+  "artifactClass": "SOURCE_UAT_ONLY",
+  "status": "SOURCE_CONTRACT_PASS_REAL_UAT_PENDING",
+  "issues": [
+    {
+      "id": "FIX16-001",
+      "title": "Internal platform account identifiers exposed in user-facing route labels",
+      "status": "SOURCE_FIXED",
+      "realUat": "PENDING",
+      "acceptance": "No fa-/wa-/tg-/UUID identity is shown outside technical diagnostics"
+    },
+    {
+      "id": "FIX16-002",
+      "title": "Slow local models falsely fail under fragmented short timeouts",
+      "status": "SOURCE_FIXED",
+      "realUat": "PENDING",
+      "acceptance": "Interactive tasks run at least 180 seconds and deep/media tasks at least 240 seconds"
+    },
+    {
+      "id": "FIX16-003",
+      "title": "Task routes cannot persist per-task timeout",
+      "status": "SOURCE_FIXED",
+      "realUat": "PENDING",
+      "acceptance": "Primary, fallback, max tokens and timeout persist after restart"
+    },
+    {
+      "id": "FIX16-004",
+      "title": "Unexpected translation failures leave messages permanently pending",
+      "status": "SOURCE_FIXED",
+      "realUat": "PENDING",
+      "acceptance": "Unexpected failures settle to failed while preserving the last successful translation"
+    },
+    {
+      "id": "FIX16-005",
+      "title": "Backend translation updates do not clear renderer auto-translation queue",
+      "status": "SOURCE_FIXED",
+      "realUat": "PENDING",
+      "acceptance": "Current conversation updates immediately without switching conversations"
+    },
+    {
+      "id": "FIX16-006",
+      "title": "Translation job registry grows without terminal-job pruning",
+      "status": "SOURCE_FIXED",
+      "realUat": "PENDING",
+      "acceptance": "Terminal translation jobs are pruned while queued/running jobs remain"
+    },
+    {
+      "id": "FIX16-007",
+      "title": "Conversation analysis, vision and model verification use inconsistent short timeouts",
+      "status": "SOURCE_FIXED",
+      "realUat": "PENDING",
+      "acceptance": "Slow local analysis and verification complete without premature client timeout"
+    },
+    {
+      "id": "FIX16-008",
+      "title": "Fix15 global workspace scrolling and compact Facebook expressions require real Windows validation",
+      "status": "SOURCE_RETAINED",
+      "realUat": "PENDING",
+      "acceptance": "All listed workspaces scroll naturally and Facebook lightweight expressions stay compact"
+    }
+  ]
+}

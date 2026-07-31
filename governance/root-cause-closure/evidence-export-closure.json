@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ROOT_CAUSE_EVIDENCE_EXPORT_CLOSURE",
+  "defectId": "DEFECT-002",
+  "status": "UNIT_BEHAVIOR_PASS",
+  "sourceContract": "证据由白名单转换生成，不递归复制源码 UAT 运行资源目录",
+  "implementation": "tools/uat/exportSourceUatEvidence.js",
+  "test": "tests/uat/exportSourceUatEvidence.test.js",
+  "prohibitedEvidenceFiles": ["platform-auth.json", "yance-r32.db", "desktop-credential-vault.json"],
+  "safeOutputs": ["source-identity.json", "runtime-summary.json", "platform-auth-summary.json", "evidence-export-manifest.json"],
+  "realWindowsEvidence": "PENDING",
+  "userConfirmation": "PENDING"
+}

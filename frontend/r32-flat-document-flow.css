@@ -1,0 +1,81 @@
+/*
+ * FIX6D · Narrow-screen document-flow compatibility.
+ *
+ * Desktop routed workspaces are owned exclusively by
+ * r32-production-workspace-layout.css.  The former Batch19 desktop document
+ * flow competed with that authority, changed the body grid's intrinsic size,
+ * and caused route workspaces and conversation columns to end above the
+ * viewport.  Natural document flow now exists only for explicit mobile/narrow
+ * layouts.  The route workspace remains the only vertical scroll owner at
+ * every Windows width; the application shell and ordinary child panels never
+ * become competing scroll containers.
+ */
+
+:root{--ui-routed-desktop-layout:viewport-grid}
+
+@media(max-width:820px){
+  .app:is(
+    .contact-page-open,.profile-page-open,.timeline-page-open,.insights-page-open,
+    .aiwork-page-open,.account-center-open,.system-center-open,
+    .settings-recovery-open,.theme-workspace-open
+  ){
+    display:block!important;
+    height:100%!important;
+    min-height:0!important;
+    overflow:hidden!important;
+    overscroll-behavior:none;
+    scrollbar-gutter:auto;
+  }
+
+  .app:is(
+    .contact-page-open,.profile-page-open,.timeline-page-open,.insights-page-open,
+    .aiwork-page-open,.account-center-open,.system-center-open,
+    .settings-recovery-open,.theme-workspace-open
+  )>.nav{display:none!important}
+
+  .app.contact-page-open .contacts-workspace,
+  .app.profile-page-open .profiles-workspace,
+  .app.timeline-page-open .timeline-workspace,
+  .app.insights-page-open .insights-workspace,
+  .app.aiwork-page-open .aiwork-workspace,
+  .app.account-center-open .account-center-workspace,
+  .app.system-center-open .system-center-workspace,
+  .app.settings-recovery-open .settings-recovery-workspace,
+  .app.theme-workspace-open .theme-workspace{
+    display:grid!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    height:100%!important;
+    max-height:100%!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    overscroll-behavior-y:contain!important;
+    scrollbar-gutter:stable!important;
+    grid-template-rows:none!important;
+    grid-auto-rows:max-content!important;
+  }
+
+  :is(
+    .contact26-shell,.contact26-lower,.profile27-main,.timeline27-main,
+    .insight29-main,.aiw30-body,.ac32-main,.sc32-body,.sr32-body,.theme32-body
+  ){
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+  }
+
+  :is(.ac32-main,.sc32-body,.sr32-body){
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+
+  :is(
+    .profile27-list,.profile27-scroll,.timeline27-list,.timeline27-scroll,
+    .insight29-list,.insight29-detail-scroll,.aiw30-scroll,.ac32-account-list,
+    .ac32-scroll,.sc32-sidebar,.sc32-content,.sr32-side,.sr32-content,.theme32-body
+  ){
+    overflow:visible!important;
+    max-height:none!important;
+  }
+}

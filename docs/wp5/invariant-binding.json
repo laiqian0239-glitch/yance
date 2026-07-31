@@ -1,0 +1,832 @@
+{
+  "schemaVersion": 1,
+  "stage": "6.4.5.9",
+  "workPackage": "WP5",
+  "status": "IMPLEMENTATION_IN_PROGRESS",
+  "authority": "Yance29 SQLite runtime_state.operating_mode",
+  "upstreamBinding": {
+    "activationBindingCommit": "e52b9f6c6ddb59a45fc652aef43b195fbecb6aee",
+    "activationBindingTree": "2737a812081f6de1daa79c1013989d9959e23faf"
+  },
+  "invariants": [
+    {
+      "id": "I01",
+      "description": "Single persistent operating-mode authority",
+      "productionModules": [
+        "backend/runtime/RuntimeStateStore.js"
+      ],
+      "requiredProof": [
+        "runtime-state-single-authority.test.js",
+        "WP5_SOURCE_CLOSURE_SCAN"
+      ],
+      "mutationIds": [
+        "M01_GENERIC_STATE_MODE_BYPASS"
+      ],
+      "evidenceFields": [
+        "authorityModel.singleAuthority"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I02",
+      "description": "Authority exists only in Yance29",
+      "productionModules": [
+        "backend/config.js"
+      ],
+      "requiredProof": [
+        "yance29-only-write-path.test.js",
+        "WP5_SOURCE_CLOSURE_SCAN"
+      ],
+      "mutationIds": [
+        "M05_EXISTING_AUTHORITY_REREADS_LEGACY"
+      ],
+      "evidenceFields": [
+        "authorityStoreIdentity.currentRoot"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I03",
+      "description": "Existing Yance29 authority never rereads legacy to decide mode",
+      "productionModules": [
+        "backend/runtime/RuntimeAuthorityMigrationCoordinator.js"
+      ],
+      "requiredProof": [
+        "safe-mode-file-not-read.test.js"
+      ],
+      "mutationIds": [
+        "M05_EXISTING_AUTHORITY_REREADS_LEGACY"
+      ],
+      "evidenceFields": [
+        "legacyMigration.legacyReadAfterAuthority"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I04",
+      "description": "Caches cannot override SQLite authority",
+      "productionModules": [
+        "backend/runtime/AppRuntime.js"
+      ],
+      "requiredProof": [
+        "runtime-state-single-authority.test.js"
+      ],
+      "mutationIds": [
+        "M01_GENERIC_STATE_MODE_BYPASS"
+      ],
+      "evidenceFields": [
+        "authorityModel.cacheAuthoritative"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I05",
+      "description": "Successful response maps to durable revision",
+      "productionModules": [
+        "backend/runtime/OperatingModeTransitionGateway.js"
+      ],
+      "requiredProof": [
+        "operating-mode-gateway.test.js"
+      ],
+      "mutationIds": [
+        "M15_APPLY_FAILURE_REPORTED_SUCCESS"
+      ],
+      "evidenceFields": [
+        "commandLedger.committedRevision"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I06",
+      "description": "All new mode writes target Yance29",
+      "productionModules": [
+        "backend/runtime/RuntimeStateStore.js"
+      ],
+      "requiredProof": [
+        "yance29-only-write-path.test.js"
+      ],
+      "mutationIds": [
+        "M01_GENERIC_STATE_MODE_BYPASS"
+      ],
+      "evidenceFields": [
+        "writePathAudit.observedWriteRoots"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I07",
+      "description": "Yance27 remains read-only",
+      "productionModules": [
+        "backend/runtime/RuntimeAuthorityMigrationCoordinator.js",
+        "backend/services/migrationService.js",
+        "backend/services/legacyJsonMigrator.js",
+        "backend/migrations/legacySqliteMigrator.js"
+      ],
+      "requiredProof": [
+        "legacy-migration-read-only.test.js",
+        "external-data-migration-read-only.test.js",
+        "EXTERNAL_LEGACY_SOURCE_CONTENT_UNCHANGED",
+        "EXTERNAL_LEGACY_SOURCE_MUTATION_FAILS_CLOSED"
+      ],
+      "mutationIds": [
+        "M05_EXISTING_AUTHORITY_REREADS_LEGACY",
+        "M21_EXTERNAL_SOURCE_MUTATION_NOT_DETECTED"
+      ],
+      "evidenceFields": [
+        "legacyMigration.sourceMutationCount",
+        "legacyMigration.sourceVerification.before",
+        "legacyMigration.sourceVerification.after",
+        "legacyMigration.sourceVerification.sourceReadOnly",
+        "legacyMigration.sourceVerification.sourceMutationCount"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I08",
+      "description": "Authority initialization and migration receipt are atomic",
+      "productionModules": [
+        "backend/runtime/RuntimeStateStore.js",
+        "backend/runtime/RuntimeAuthorityMigrationCoordinator.js"
+      ],
+      "requiredProof": [
+        "runtime-authority-migration.test.js",
+        "F04_MISSING_RECEIPT_BLOCKS_EXISTING_AUTHORITY",
+        "F06C_RECEIPT_FINGERPRINT_MISMATCH_BLOCKS",
+        "F06D_RECEIPT_SOURCE_METADATA_MISMATCH_BLOCKS"
+      ],
+      "mutationIds": [
+        "M10_RECEIPT_COUNT_NOT_VALIDATED",
+        "M17_RECEIPT_INCOMPLETE_VERIFICATION_ACCEPTED",
+        "M23_RECEIPT_FINGERPRINT_NOT_BOUND"
+      ],
+      "evidenceFields": [
+        "legacyMigration.receiptStatus",
+        "legacyMigration.receipt.sourceFingerprint",
+        "legacyMigration.receipt.sourceFileCount",
+        "legacyMigration.receipt.sourceTotalBytes",
+        "legacyMigration.receipt.verificationBefore",
+        "legacyMigration.receipt.verificationAfter"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I09",
+      "description": "Failed transactions cannot leave partial success",
+      "productionModules": [
+        "backend/runtime/RuntimeStateStore.js"
+      ],
+      "requiredProof": [
+        "WP5_FAULT_MATRIX"
+      ],
+      "mutationIds": [
+        "M17_INCOMPLETE_RECEIPT_ACCEPTED"
+      ],
+      "evidenceFields": [
+        "faultMatrix.partialCommit"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I10",
+      "description": "Unknown commit/application result cannot return full success",
+      "productionModules": [
+        "backend/runtime/OperatingModeTransitionGateway.js"
+      ],
+      "requiredProof": [
+        "F10_APPLY_FAILURE_NOT_FULL_SUCCESS",
+        "F11_PUBLISH_FAILURE_NOT_FULL_SUCCESS"
+      ],
+      "mutationIds": [
+        "M15_APPLY_FAILURE_REPORTED_SUCCESS",
+        "M16_PUBLISH_FAILURE_REPORTED_SUCCESS"
+      ],
+      "evidenceFields": [
+        "recoveryDecision.fullSuccess"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I11",
+      "description": "Authority writes are verified before response",
+      "productionModules": [
+        "backend/runtime/RuntimeStateStore.js"
+      ],
+      "requiredProof": [
+        "operating-mode-gateway.test.js"
+      ],
+      "mutationIds": [
+        "M15_APPLY_FAILURE_REPORTED_SUCCESS"
+      ],
+      "evidenceFields": [
+        "authorityModel.readBack"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I12",
+      "description": "Concurrent writes are fenced and serialized",
+      "productionModules": [
+        "backend/runtime/RuntimeStateStore.js"
+      ],
+      "requiredProof": [
+        "C01_CONCURRENT_IDENTICAL_REQUEST_SINGLE_APPLY",
+        "F07_STALE_FENCING_TOKEN_REJECTED"
+      ],
+      "mutationIds": [
+        "M12_STALE_FENCE_ACCEPTED"
+      ],
+      "evidenceFields": [
+        "writerOwnership.fencing"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I13",
+      "description": "safe-mode-state.json cannot affect runtime after authority exists",
+      "productionModules": [
+        "backend/runtime/RuntimeAuthorityMigrationCoordinator.js"
+      ],
+      "requiredProof": [
+        "safe-mode-file-not-read.test.js"
+      ],
+      "mutationIds": [
+        "M05_EXISTING_AUTHORITY_REREADS_LEGACY"
+      ],
+      "evidenceFields": [
+        "prohibitedPaths.safeModeFile"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I14",
+      "description": "YANCE_SAFE_MODE cannot affect runtime",
+      "productionModules": [
+        "backend/services/safeModeService.js"
+      ],
+      "requiredProof": [
+        "safe-mode-env-fallback-absent.test.js",
+        "safe-mode-service-env-ignored.test.js"
+      ],
+      "mutationIds": [
+        "M07_ENV_SAFE_MODE_RESTORED"
+      ],
+      "evidenceFields": [
+        "prohibitedPaths.environmentFallbackUsed"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I15",
+      "description": "Desktop settings cannot persist operating mode",
+      "productionModules": [
+        "shared/desktopSettings.js",
+        "electron/desktopSettingsSchema.js"
+      ],
+      "requiredProof": [
+        "desktop-settings-fallback-absent.test.js"
+      ],
+      "mutationIds": [
+        "M08_DESKTOP_SAFE_MODE_PERSISTED"
+      ],
+      "evidenceFields": [
+        "prohibitedPaths.desktopFallbackUsed"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I16",
+      "description": "Renderer storage cannot be an authority",
+      "productionModules": [
+        "frontend/r32-system-center.js"
+      ],
+      "requiredProof": [
+        "WP5_SOURCE_CLOSURE_SCAN",
+        "renderer-operating-mode-authority.test.js"
+      ],
+      "mutationIds": [
+        "M01_GENERIC_STATE_MODE_BYPASS",
+        "M22_RENDERER_DESKTOP_SAFE_MODE_FALLBACK"
+      ],
+      "evidenceFields": [
+        "prohibitedPaths.browserStorageFallbackUsed",
+        "prohibitedPaths.rendererDesktopSafeModeFallbackUsed",
+        "prohibitedPaths.rendererRestartSafeModeDeadEntryPresent"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I17",
+      "description": "System policy cannot be operating-mode authority",
+      "productionModules": [
+        "backend/services/systemPolicy.js"
+      ],
+      "requiredProof": [
+        "system-policy-fallback-absent.test.js"
+      ],
+      "mutationIds": [
+        "M09_SYSTEM_POLICY_SAFE_MODE_ALLOWED"
+      ],
+      "evidenceFields": [
+        "prohibitedPaths.systemPolicyFallbackUsed"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I18",
+      "description": "SQLite failure cannot activate a legacy fallback",
+      "productionModules": [
+        "backend/runtime/BootCoordinator.js"
+      ],
+      "requiredProof": [
+        "WP5_FAULT_MATRIX"
+      ],
+      "mutationIds": [
+        "M17_INCOMPLETE_RECEIPT_ACCEPTED"
+      ],
+      "evidenceFields": [
+        "faultMatrix.fallbackUsed"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I19",
+      "description": "Production source has no executable legacy fallback chain",
+      "productionModules": [
+        "backend/server.js",
+        "electron/main.js",
+        "frontend/r32-system-center.js",
+        "frontend/r32-settings-recovery.js"
+      ],
+      "requiredProof": [
+        "WP5_SOURCE_CLOSURE_SCAN",
+        "renderer-operating-mode-authority.test.js"
+      ],
+      "mutationIds": [
+        "M14_BROAD_ENV_LEGACY_DISCOVERY_RESTORED",
+        "M22_RENDERER_DESKTOP_SAFE_MODE_FALLBACK"
+      ],
+      "evidenceFields": [
+        "prohibitedPaths.sourceScan",
+        "prohibitedPaths.rendererFallbackScan",
+        "prohibitedPaths.deadSafeModeRestartEntryScan"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I20",
+      "description": "Migration has exactly-once logical effect",
+      "productionModules": [
+        "backend/runtime/RuntimeAuthorityMigrationCoordinator.js"
+      ],
+      "requiredProof": [
+        "legacy-migration-idempotent.test.js"
+      ],
+      "mutationIds": [
+        "M10_RECEIPT_COUNT_NOT_VALIDATED"
+      ],
+      "evidenceFields": [
+        "legacyMigration.executionCount"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I21",
+      "description": "Retries do not duplicate side effects",
+      "productionModules": [
+        "backend/runtime/OperatingModeTransitionGateway.js"
+      ],
+      "requiredProof": [
+        "C01_CONCURRENT_IDENTICAL_REQUEST_SINGLE_APPLY",
+        "C06_HISTORY_SURVIVES_MULTIPLE_RESTARTS"
+      ],
+      "mutationIds": [
+        "M03_INFLIGHT_DIGEST_NOT_CHECKED"
+      ],
+      "evidenceFields": [
+        "requestReplay.duplicateSideEffects"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I22",
+      "description": "Migration source is read-only throughout",
+      "productionModules": [
+        "backend/runtime/RuntimeAuthorityMigrationCoordinator.js"
+      ],
+      "requiredProof": [
+        "legacy-migration-read-only.test.js"
+      ],
+      "mutationIds": [
+        "M05_EXISTING_AUTHORITY_REREADS_LEGACY"
+      ],
+      "evidenceFields": [
+        "legacyMigration.sourceReadOnly"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I23",
+      "description": "Legacy changes after migration do not alter authority",
+      "productionModules": [
+        "backend/runtime/RuntimeAuthorityMigrationCoordinator.js"
+      ],
+      "requiredProof": [
+        "C09_CURRENT_AUTHORITY_IGNORES_LATER_LEGACY_CHANGE"
+      ],
+      "mutationIds": [
+        "M05_EXISTING_AUTHORITY_REREADS_LEGACY"
+      ],
+      "evidenceFields": [
+        "legacyMigration.postSuccessLegacyIgnored"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I24",
+      "description": "Corrupt legacy is not treated as absent",
+      "productionModules": [
+        "backend/runtime/RuntimeAuthorityMigrationCoordinator.js"
+      ],
+      "requiredProof": [
+        "F03_CORRUPT_LEGACY_SQLITE_BLOCKS"
+      ],
+      "mutationIds": [
+        "M06_LEGACY_CONFLICT_IGNORED"
+      ],
+      "evidenceFields": [
+        "faultMatrix.legacyCorrupt"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I25",
+      "description": "Fresh default is persisted in Yance29",
+      "productionModules": [
+        "backend/runtime/RuntimeAuthorityMigrationCoordinator.js"
+      ],
+      "requiredProof": [
+        "runtime-authority-migration.test.js"
+      ],
+      "mutationIds": [
+        "M10_RECEIPT_COUNT_NOT_VALIDATED"
+      ],
+      "evidenceFields": [
+        "authorityModel.freshInitialization"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I26",
+      "description": "Runtime authority must be proven before runtime_state_ready",
+      "productionModules": [
+        "backend/runtime/BootCoordinator.js"
+      ],
+      "requiredProof": [
+        "test:wp3"
+      ],
+      "mutationIds": [
+        "M17_INCOMPLETE_RECEIPT_ACCEPTED"
+      ],
+      "evidenceFields": [
+        "stateMachine.runtimeStateReadyGate"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I27",
+      "description": "Crash recovery uses durable state only",
+      "productionModules": [
+        "backend/runtime/OperatingModeTransitionGateway.js",
+        "backend/runtime/RuntimeStateStore.js"
+      ],
+      "requiredProof": [
+        "C04_PUBLISH_ACK_LOSS_RECOVERS_AFTER_RESTART",
+        "C05_CRASH_AFTER_PERSIST_BEFORE_APPLY_RECOVERS",
+        "durable operating-mode revision survives event retention pruning and restart"
+      ],
+      "mutationIds": [
+        "M16_PUBLISH_FAILURE_REPORTED_SUCCESS",
+        "M24_EVENT_RETENTION_REMAINS_AUTHORITY_DEPENDENCY"
+      ],
+      "evidenceFields": [
+        "recoveryDecision.durableOnly",
+        "authorityStoreIdentity.operatingModeRevision",
+        "authorityStoreIdentity.eventRetentionIndependent"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I28",
+      "description": "Unresolved transactions recover before new writes",
+      "productionModules": [
+        "backend/runtime/OperatingModeTransitionGateway.js"
+      ],
+      "requiredProof": [
+        "C03_DIFFERENT_COMMAND_BLOCKED_DURING_APPLY_RECOVERY"
+      ],
+      "mutationIds": [
+        "M15_APPLY_FAILURE_REPORTED_SUCCESS"
+      ],
+      "evidenceFields": [
+        "commandLedger.pendingBlocksNew"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I29",
+      "description": "Shutdown cannot begin new mode transactions",
+      "productionModules": [
+        "backend/runtime/AppRuntime.js"
+      ],
+      "requiredProof": [
+        "WP5_CONCURRENCY_CRASH_MATRIX"
+      ],
+      "mutationIds": [
+        "M12_STALE_FENCE_ACCEPTED"
+      ],
+      "evidenceFields": [
+        "stateMachine.shutdownDrain"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I30",
+      "description": "WP4 credential/owner gates cannot be bypassed",
+      "productionModules": [
+        "electron/main.js",
+        "backend/runtime/BootCoordinator.js"
+      ],
+      "requiredProof": [
+        "test:wp4"
+      ],
+      "mutationIds": [
+        "M13_AMBIGUOUS_OWNER_NOT_BLOCKED"
+      ],
+      "evidenceFields": [
+        "upstreamContractBinding.wp4Gate"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I31",
+      "description": "commandId binds one normalized envelope digest",
+      "productionModules": [
+        "backend/runtime/RuntimeStateStore.js"
+      ],
+      "requiredProof": [
+        "operating-mode-gateway.test.js"
+      ],
+      "mutationIds": [
+        "M04_DURABLE_DIGEST_NOT_CHECKED"
+      ],
+      "evidenceFields": [
+        "commandLedger.envelopeSha256"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I32",
+      "description": "Same command replays same terminal result after restart",
+      "productionModules": [
+        "backend/runtime/RuntimeStateStore.js"
+      ],
+      "requiredProof": [
+        "C06_HISTORY_SURVIVES_MULTIPLE_RESTARTS"
+      ],
+      "mutationIds": [
+        "M04_DURABLE_DIGEST_NOT_CHECKED"
+      ],
+      "evidenceFields": [
+        "requestReplay.restartResult"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I33",
+      "description": "Command ledger is not current-mode authority",
+      "productionModules": [
+        "backend/runtime/RuntimeStateStore.js"
+      ],
+      "requiredProof": [
+        "F12_LEDGER_AUTHORITY_MISMATCH_BLOCKS_RECONCILE"
+      ],
+      "mutationIds": [
+        "M11_LEDGER_AUTHORITY_MISMATCH_IGNORED"
+      ],
+      "evidenceFields": [
+        "authorityModel.ledgerSeparation"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I34",
+      "description": "Persisted revision and applied revision are distinct",
+      "productionModules": [
+        "backend/runtime/RuntimeStateStore.js"
+      ],
+      "requiredProof": [
+        "operating-mode-gateway.test.js"
+      ],
+      "mutationIds": [
+        "M15_APPLY_FAILURE_REPORTED_SUCCESS"
+      ],
+      "evidenceFields": [
+        "appliedRuntimeState.appliedRevision"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I35",
+      "description": "Apply failure cannot report full success",
+      "productionModules": [
+        "backend/runtime/OperatingModeTransitionGateway.js"
+      ],
+      "requiredProof": [
+        "F10_APPLY_FAILURE_NOT_FULL_SUCCESS"
+      ],
+      "mutationIds": [
+        "M15_APPLY_FAILURE_REPORTED_SUCCESS"
+      ],
+      "evidenceFields": [
+        "appliedRuntimeState.fullSuccess"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I36",
+      "description": "At most one valid writer owner exists",
+      "productionModules": [
+        "backend/runtime/RuntimeOwnership.js"
+      ],
+      "requiredProof": [
+        "test:wp3",
+        "C07_STALE_OLD_OWNER_CANNOT_COMMIT_AFTER_LEASE_CHANGE"
+      ],
+      "mutationIds": [
+        "M12_STALE_FENCE_ACCEPTED"
+      ],
+      "evidenceFields": [
+        "writerOwnership.singleOwner"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I37",
+      "description": "Lease loss prevents commit",
+      "productionModules": [
+        "backend/runtime/RuntimeStateStore.js"
+      ],
+      "requiredProof": [
+        "F07_STALE_FENCING_TOKEN_REJECTED"
+      ],
+      "mutationIds": [
+        "M12_STALE_FENCE_ACCEPTED"
+      ],
+      "evidenceFields": [
+        "writerOwnership.leaseLossRejected"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I38",
+      "description": "Unauthorized direct writer paths are rejected",
+      "productionModules": [
+        "backend/runtime/RuntimeStateStore.js"
+      ],
+      "requiredProof": [
+        "F13_GENERIC_MODE_WRITER_BYPASS_REJECTED"
+      ],
+      "mutationIds": [
+        "M01_GENERIC_STATE_MODE_BYPASS",
+        "M02_GENERIC_COMMAND_MODE_BYPASS"
+      ],
+      "evidenceFields": [
+        "authorizationBoundary.directBypassRejected"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I39",
+      "description": "Authority binds correct Yance29 database identity",
+      "productionModules": [
+        "backend/runtime/RuntimePathIdentity.js",
+        "backend/config.js"
+      ],
+      "requiredProof": [
+        "yance29-only-write-path.test.js"
+      ],
+      "mutationIds": [
+        "M05_EXISTING_AUTHORITY_REREADS_LEGACY"
+      ],
+      "evidenceFields": [
+        "authorityStoreIdentity.dbPath"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I40",
+      "description": "Invalid schema or receipt cannot become fresh initialization",
+      "productionModules": [
+        "backend/runtime/RuntimeStateStore.js"
+      ],
+      "requiredProof": [
+        "F04_MISSING_RECEIPT_BLOCKS_EXISTING_AUTHORITY",
+        "F06_INCOMPLETE_RECEIPT_BLOCKS"
+      ],
+      "mutationIds": [
+        "M17_INCOMPLETE_RECEIPT_ACCEPTED"
+      ],
+      "evidenceFields": [
+        "faultMatrix.schemaReceipt"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I41",
+      "description": "Publication failure does not change authority or fake completion",
+      "productionModules": [
+        "backend/runtime/OperatingModeTransitionGateway.js"
+      ],
+      "requiredProof": [
+        "F11_PUBLISH_FAILURE_NOT_FULL_SUCCESS"
+      ],
+      "mutationIds": [
+        "M16_PUBLISH_FAILURE_REPORTED_SUCCESS"
+      ],
+      "evidenceFields": [
+        "publicationState.status"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I42",
+      "description": "External response equals durable terminal result",
+      "productionModules": [
+        "backend/runtime/RuntimeStateStore.js"
+      ],
+      "requiredProof": [
+        "C04_PUBLISH_ACK_LOSS_RECOVERS_AFTER_RESTART"
+      ],
+      "mutationIds": [
+        "M16_PUBLISH_FAILURE_REPORTED_SUCCESS"
+      ],
+      "evidenceFields": [
+        "requestReplay.responseMatchesDurable"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I43",
+      "description": "WP5 does not alter WP3 idempotency retention contract",
+      "productionModules": [
+        "backend/runtime/RuntimeStateStore.js"
+      ],
+      "requiredProof": [
+        "test:wp3"
+      ],
+      "mutationIds": [
+        "M04_DURABLE_DIGEST_NOT_CHECKED"
+      ],
+      "evidenceFields": [
+        "commandLedger.retentionContract"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I44",
+      "description": "Authorization reuses WP2 session and WP3 envelope contract",
+      "productionModules": [
+        "backend/routes/apiV2.js"
+      ],
+      "requiredProof": [
+        "test:wp2",
+        "test:wp3"
+      ],
+      "mutationIds": [
+        "M02_GENERIC_COMMAND_MODE_BYPASS"
+      ],
+      "evidenceFields": [
+        "authorizationBoundary.upstreamContract"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    },
+    {
+      "id": "I45",
+      "description": "Wrong revision cannot be applied or published",
+      "productionModules": [
+        "backend/runtime/OperatingModeTransitionGateway.js"
+      ],
+      "requiredProof": [
+        "F08_STATE_VERSION_CONFLICT_REJECTED",
+        "F12_LEDGER_AUTHORITY_MISMATCH_BLOCKS_RECONCILE"
+      ],
+      "mutationIds": [
+        "M11_LEDGER_AUTHORITY_MISMATCH_IGNORED"
+      ],
+      "evidenceFields": [
+        "appliedRuntimeState.revisionConsistency"
+      ],
+      "proofStatus": "PENDING_FINAL_FREEZE"
+    }
+  ]
+}

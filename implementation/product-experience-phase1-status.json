@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "program": "Yance Windows Product Experience Closure",
+  "branch": "rebuild/windows-product-experience-closure-20260720-phase1",
+  "sourceParent": "60215d9bbf325694f09d52c56028d9ae23b9984e",
+  "scope": "UAT-001..UAT-070 / 13 work packages",
+  "status": "IN_PROGRESS",
+  "currentPhase": "Phase 1 - authority data and understandable AI foundation",
+  "completed": [
+    "Frozen product positioning and core user journey",
+    "Frozen five-space information architecture and page responsibilities",
+    "Frozen truthful-state, bilingual, theme-token, failure-recovery and real-UAT principles",
+    "Restored latest Round 8 Git source with complete history",
+    "Ran targeted model-routing and reply-learning baseline tests",
+    "Added unified Chinese-understanding service with explicit success/failed lifecycle",
+    "AI reply candidates now return target-language text plus auditable Chinese translation",
+    "Added generic Store translation endpoint and frontend client method for subsequent message/insight integration",
+    "Persisted message-level Chinese translations with pending/success/failed lifecycle and realtime renderer updates",
+    "Added contact-language authority with observed-language history and explicit user override",
+    "Applied Chinese-first overlays to relationship analysis, trajectory and pending customer profile review while retaining original evidence",
+    "Persisted truthful reply generation metadata into candidates, outbox and bilingual learning evidence",
+    "Extended learning examples with platform, target language, Chinese understanding, model, route task and style provenance",
+    "Validated additive schema migration against the uploaded real SQLite copy without message loss or foreign-key errors",
+    "Added user-facing original/Chinese/bilingual conversation display control with translation retry",
+    "Added explicit per-contact reply-language lock so Chinese UI cannot contaminate customer-language output",
+    "Applied Chinese-first overlays to relationship insight and media-analysis rendering while retaining original text",
+    "Added contact/platform/global reply-learning isolation with evidence thresholds, provenance and private-example containment",
+    "Exposed layered learning state through the Store API for truthful learning governance UI",
+    "Validated new learning-scope schema and idempotent cross-contact promotion against the uploaded real SQLite copy"
+  ],
+  "baselineTests": {
+    "command": "node --test --test-concurrency=1 backend/tests/bilingualUnderstandingService.test.js backend/tests/contactLanguageAuthority.test.js backend/tests/messageTranslationService.test.js backend/tests/socialChineseUnderstandingService.test.js backend/tests/phase1LanguageAndLearning.test.js backend/tests/replyLearningScopeAuthority.test.js backend/tests/replyFeedbackLearning.test.js backend/tests/replyFeedbackClosedLoop.test.js backend/tests/replyFeedbackVersioning.test.js backend/tests/sourceUatRound6SocialContextRuntime.test.js backend/tests/sourceUatRound8ModelRoutingAuthority.test.js",
+    "passed": 31,
+    "failed": 0,
+    "realSqliteMigrationCheck": {
+      "source": "uploaded Round 4 database copy",
+      "messagesBeforeAndAfter": 303,
+      "contactsBeforeAndAfter": 11,
+      "learningScopeTablesCreated": [
+        "ai_reply_learning_scopes",
+        "ai_reply_learning_scope_versions"
+      ],
+      "secondPassChanges": 0,
+      "integrityCheck": "ok",
+      "foreignKeyErrors": 0
+    },
+    "fullPipelineExecuted": false,
+    "realWindowsUatExecuted": false
+  },
+  "nextImplementationSlice": [
+    "Complete Chinese understanding in customer profile, Persona, AI workbench learning governance and all remaining user-visible analysis fields",
+    "Expose truthful learning-hit provenance, versions, disable/delete/rollback controls in the AI workbench",
+    "Complete message-level bilingual search/navigation and translation task progress/cancel UX",
+    "Verify real Windows Ollama translation, reply-language locking, style changes and learning-scope hits before producing a consolidated UAT package"
+  ]
+}

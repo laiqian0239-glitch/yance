@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH40_FIX6C_LOCAL_VERIFICATION_SUMMARY",
+  "baseCommit": "113a793d5fc916d4fddf2b2c481f0a9aaa8f29c7",
+  "scope": "shared Windows UI contracts and evidence delivery",
+  "productionBackendChanged": false,
+  "results": {
+    "batch14": { "tests": 3, "pass": 3, "fail": 0, "exitCode": 0 },
+    "themeLayout": { "tests": 43, "pass": 43, "fail": 0, "exitCode": 0 },
+    "batch40Focused": { "tests": 66, "pass": 66, "fail": 0, "exitCode": 0 },
+    "fix6cUiFocused": { "tests": 44, "pass": 44, "fail": 0, "exitCode": 0 },
+    "uiPrelaunch": { "tests": 107, "pass": 107, "fail": 0, "exitCode": 0 },
+    "backendFull": {
+      "files": 200,
+      "tests": 1201,
+      "pass": 1201,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "todo": 0,
+      "exitCode": 0,
+      "allPassed": true
+    },
+    "static": {
+      "nodeSyntax": "PASS",
+      "cssFilesParsed": 5,
+      "cssParseErrors": 0,
+      "htmlIds": 350,
+      "duplicateHtmlIds": 0,
+      "gitDiffCheck": "PASS"
+    }
+  },
+  "knownMissingHistoricalFixtures": [
+    "artifacts/repair-batch19/YANCE_BATCH19_FLAT_DOCUMENT_FLOW_CHROMIUM_EVIDENCE.json",
+    "artifacts/repair-batch20/YANCE_BATCH20_PRODUCTION_LAYOUT_AND_READABILITY_CHROMIUM_EVIDENCE.json"
+  ],
+  "governance": {
+    "windowsUiUat": false,
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "realWindowsScreenshotRetestRequired": true
+  }
+}

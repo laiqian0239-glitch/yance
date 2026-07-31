@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_PHASE2_BATCH2_INTEGRATION_VALIDATION",
+  "baseCommit": "1b5f54ef2d646202412931722ee8cf671be8e32c",
+  "branch": "rebuild/windows-product-experience-closure-20260720-phase2-batch2",
+  "scope": [
+    "semantic theme migration with zero legacy inline structural color debt",
+    "complete message and contact context actions",
+    "bilingual SQLite search and Chinese-first media understanding",
+    "truthful platform expression capability reporting",
+    "Telegram authenticated recent stickers and saved GIF retrieval"
+  ],
+  "targetedTests": { "passed": 52, "total": 52, "status": "PASS" },
+  "javascriptSyntax": "PASS",
+  "themeColorAudit": {
+    "status": "PASS",
+    "legacyInlineStructuralColorDebt": 0,
+    "maintainedRuntimeFixedColors": 0
+  },
+  "gitDiffCheck": "PASS",
+  "fullPipelineExecuted": false,
+  "wp7Executed": false,
+  "strictRoundsExecuted": false,
+  "builderExecuted": false,
+  "realWindowsElectronUatExecuted": false,
+  "realTelegramNativeExpressionUatExecuted": false,
+  "facebookWorkerDeployedByThisBatch": false,
+  "windowsPassClaim": false,
+  "knownLimits": [
+    "WhatsApp native sticker favorites/recent catalog is not exposed by the current implementation; real chat history and valid local imports remain available.",
+    "Telegram TGS/WebM animated stickers may be listed but native animated sticker sending/rendering remains partial.",
+    "Visual theme completion still requires real Electron computed-style and screenshot UAT for all themes and routes.",
+    "Facebook production deployment and real OAuth/message exchange require the existing authenticated Cloudflare/Meta environment and were not executed in this source gate."
+  ]
+}

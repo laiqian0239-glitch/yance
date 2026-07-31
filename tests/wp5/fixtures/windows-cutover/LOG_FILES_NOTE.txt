@@ -1,0 +1,25 @@
+﻿WP5 Windows Cutover Validation Results
+Generated: 2026-07-05 04:23 UTC
+Platform: win32 (DESKTOP-029FH47)
+Node.js: v22.22.3
+
+RESULT: PASS ✅
+
+NOTE ON LOG FILES:
+WINDOWS_CUTOVER_CONSOLE.log and WINDOWS_CUTOVER_LAUNCHER.log were not
+generated because the validation was run directly via PowerShell node
+commands, NOT through the RUN_WP5_WINDOWS_CUTOVER.cmd launcher script.
+
+The launcher script was bypassed due to QClaw environment variable
+injection issues with CMD/batch execution. All commands ran cleanly
+in PowerShell with NODE_OPTIONS cleared.
+
+Evidence was verified via direct node execution:
+  - Contract tests: 3/3 PASS
+  - Windows evidence: 4/4 PASS (real hardware, no mocks)
+  - SHA256: F6C76FAE97049C9EA512CD8AD6A4980DEC37595B4B682066DF51DA5E858DAE49
+
+Files in this archive:
+  1. windows-legacy-runtime-cutover.json  — evidence artifact (SHA256 verified)
+  2. WP5_Windows_Validation_Report.md    — full validation report
+  3. THIS_FILE.txt                        — log file note

@@ -1,0 +1,423 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH27_ROOT_CAUSE_ISSUE_MATRIX",
+  "generatedAtUtc": "2026-07-29T02:28:43.537651+00:00",
+  "sourceIdentity": {
+    "branch": "development/windows-uat-f25fe2e-repair-batch27-developer-handoff-v2",
+    "implementationCommit": "0fea714780aad29aedca8a7ec51f25e42dac97b2",
+    "implementationTree": "84504230dcbd75d6791f65a801b3883961977d84",
+    "parentPackageCommit": "f97ae100e163a704fb28a625be121f8e0e6ac5e8",
+    "parentPackageTree": "e04232ba80c49e6e2e1f654211fd17ce60cee292"
+  },
+  "governance": {
+    "repairState": "REPAIR_ATTEMPT_IN_PROGRESS",
+    "windowsUatState": "WINDOWS_UAT_BLOCKED",
+    "formalRelease": false,
+    "readyForPromotion": false,
+    "independentReviewRequired": true
+  },
+  "summary": {
+    "P0": 4,
+    "P1": 6,
+    "P2": 7,
+    "systemRegressionGates": 5,
+    "sourceFixedAutomatedVerified": 22,
+    "realEvidencePending": true
+  },
+  "issues": [
+    {
+      "id": "DEV-P0-01",
+      "severity": "P0",
+      "title": "SQLite 活 owner 可在 heartbeat 陈旧后被第二进程抢占",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "R32SqliteStore 只在构造时 claimOwnership，没有周期调用 handle.heartbeat()；isOwnerActive 又在 heartbeat 超过 staleMs 后直接返回 false，即使 PID 仍存活。",
+      "impact": "两个活进程可能同时写同一 SQLite 文件、并行迁移、竞争 WAL/SHM 和快照。",
+      "changedFiles": [
+        "backend/lib/sqliteOwnership.js",
+        "backend/lib/r32SqliteStore.js",
+        "backend/lib/resilientLeaseClock.js"
+      ],
+      "automatedTests": [
+        "Batch27 live SQLite owner heartbeats beyond stale window and controlled takeover works after SIGKILL",
+        "Batch27 resilient lease clock detects +1h/-1h wall jumps without moving live leases backward or forward",
+        "Batch27 four processes racing the same fresh SQLite file allow exactly one migration owner"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "DEV-P0-02",
+      "severity": "P0",
+      "title": "Telegram enrichment 重启恢复分支不可用，并存在 500 条上限与无在线重试",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "恢复调用 messageStore.getMessage?.(externalId)，但导出接口只有 getMessageByDedupeKey；同时消息真实 dedupeKey 是 accountId:chatId:externalId。snapshot 只取最新 500 条，首次失败后没有稳定在线 retry scheduler。",
+      "impact": "基础消息可见但媒体/头像补全永久丢失；旧任务饥饿；恢复静默跳过。",
+      "changedFiles": [
+        "backend/services/telegramAdapter.js",
+        "backend/services/backgroundJobAuthority.js",
+        "backend/repositories/messageRepository.js"
+      ],
+      "automatedTests": [
+        "Batch27 Telegram enrichment recovery pages oldest-first and uses account-scoped dedupe keys",
+        "Batch27 background job enqueue outcomes and cursor pagination are explicit beyond 500 rows"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "DEV-P0-03",
+      "severity": "P0",
+      "title": "发送 deadline/crash 恢复丢失 command/account scope，单账号故障可重新升级成全局冻结",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "正常 timeout 用 last_error 字符串推断 commandScoped；进程在 markOutcomeUnknown 前崩溃时，recoverInterruptedSends/recoverStaleSends 把 sending 统一转成普通 unknown，随后 hydrate 把普通 unknown 计入全局 blocker。",
+      "impact": "单账号 SDK 悬挂在重启后可能冻结全部平台发送。",
+      "changedFiles": [
+        "backend/services/sendQueueService.js",
+        "backend/lib/r32SqliteStore.js",
+        "backend/migrations/batch27DeveloperHandoffV2Closure.js"
+      ],
+      "automatedTests": [
+        "Batch27 interrupted send preserves command scope and cannot become a global queue freeze",
+        "SYS-REG-02 late accepted result converges unknown exactly once and stale generation is rejected",
+        "SYS-REG-03 compound pressure keeps healthy account and provider lanes progressing with bounded durable backlog metrics"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "DEV-P0-04",
+      "severity": "P0",
+      "title": "AI JobQueue 释放逻辑槽位后底层 Provider 调用仍可存活并突破物理并发",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "timeout/cancel 调用 AbortController 后立即 settle 并 running.delete；若 Provider/SDK 忽略 AbortSignal，raw Promise、socket、TLS/worker 仍存活，下一任务立即获得槽位。",
+      "impact": "长期运行后物理请求、FD、内存、额度和迟到回调持续累积。",
+      "changedFiles": [
+        "backend/services/jobQueue.js",
+        "backend/services/aiGateway.js",
+        "backend/services/aiTaskRuntimeRegistry.js"
+      ],
+      "automatedTests": [
+        "Batch27 AI physical zombie circuit keeps actual provider concurrency bounded and persists the zombie state",
+        "DEV-P0-04 hard terminator ends a non-cooperative physical execution before provider capacity is reused",
+        "SYS-REG-03 compound pressure keeps healthy account and provider lanes progressing with bounded durable backlog metrics"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "DEV-P1-01",
+      "severity": "P1",
+      "title": "AI 中文翻译阶段未贯通取消信号，取消异常被吞，旧候选可能提交",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "translateToChinese 调用未传 runtimeTask.signal；translation service 捕获所有异常并转成 translationStatus=failed；dispatch 前没有显式 signal.aborted/generation fence。",
+      "impact": "已取消任务可能继续发出 AI_REPLY_CANDIDATE_READY。",
+      "changedFiles": [
+        "backend/services/contextAwareReplyBrain.js",
+        "backend/services/bilingualUnderstandingService.js",
+        "backend/store/commands/registerAiReplyCommands.js"
+      ],
+      "automatedTests": [
+        "DEV-P1-01 translation cancellation is propagated instead of converted into a failed translation result"
+      ],
+      "realEvidenceRequired": false
+    },
+    {
+      "id": "DEV-P1-02",
+      "severity": "P1",
+      "title": "WhatsApp deadline 后迟到成功仍会写本地 sent 和 outbound-sent 事件",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "bindEgressAbort 会关闭 socket，但 sendMessage 返回后没有 Telegram 等价的 post-SDK signal/generation/current-row 断言，随后继续 upsert sent。",
+      "impact": "Queue=outcome_unknown，而本地 message=sent，人工处置可能再次发送。",
+      "changedFiles": [
+        "backend/services/whatsappAdapter.js",
+        "backend/services/platformDriverRegistry.js"
+      ],
+      "automatedTests": [
+        "Batch27 WhatsApp late SDK success is quarantined before any local sent projection",
+        "SYS-REG-01 platform operation matrix propagates signal, generation and queue projection ownership"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "DEV-P1-03",
+      "severity": "P1",
+      "title": "Facebook 公共 egress signal/generation 未透传到 adapter/relay，迟到副作用未隔离",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "driverRegistry 调 Facebook sendText/sendMedia 时丢弃 input.signal/executionGeneration；facebookAdapter 调 relayClient.send 也无外部 signal；relay 只使用内部 timeout。",
+      "impact": "外层 Queue 已 outcome_unknown 后内层请求仍可成功并继续本地 sent 写入。",
+      "changedFiles": [
+        "backend/services/facebookAdapter.js",
+        "backend/services/facebookRelayClient.js",
+        "backend/services/platformAdapterPorts.js",
+        "backend/services/platformDriverRegistry.js"
+      ],
+      "automatedTests": [
+        "SYS-REG-01 platform operation matrix propagates signal, generation and queue projection ownership",
+        "SYS-REG-02 late accepted result converges unknown exactly once and stale generation is rejected"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "DEV-P1-04",
+      "severity": "P1",
+      "title": "durable 恢复存在 500/2000/5000 等硬截断，旧任务可永久遗留",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "snapshot 只按 updated_at DESC LIMIT 返回，没有 cursor；调用方把单批结果当成全部恢复。",
+      "impact": "超过上限的旧 Telegram/AI lifecycle/analysis 任务长期不恢复，且偏向最新任务。",
+      "changedFiles": [
+        "backend/services/asyncOperationLifecycleAuthority.js",
+        "backend/services/aiTaskRuntimeRegistry.js",
+        "backend/services/aiBrainOrchestrator.js",
+        "backend/services/backgroundJobAuthority.js",
+        "backend/services/telegramAdapter.js"
+      ],
+      "automatedTests": [
+        "Batch27 async lifecycle recovery pages only active states and reports exact remaining work",
+        "Batch27 Telegram enrichment recovery pages oldest-first and uses account-scoped dedupe keys",
+        "Batch27 background job enqueue outcomes and cursor pagination are explicit beyond 500 rows"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "DEV-P1-05",
+      "severity": "P1",
+      "title": "学习超大积压、毒记录与源/投影总账不一致，可误报 pendingBacklog=0",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "源反馈分页最大 100×500；skipped 源记录可能一直停留首页；runtime.pendingBacklog 仅被 projection.countUnresolved 覆盖；failed 与 retryable 混计。",
+      "impact": "仍有未学习数据时显示 backlog=0，或永久失败导致 backlog 永不归零，后续记录饥饿。",
+      "changedFiles": [
+        "backend/services/replyFeedbackLearningService.js",
+        "backend/repositories/replyLearningProjectionRepository.js",
+        "backend/repositories/replyFeedbackRepository.js"
+      ],
+      "automatedTests": [
+        "Batch27 learning lease generation fences stale workers and applies each effect once",
+        "Batch27 background job enqueue outcomes and cursor pagination are explicit beyond 500 rows",
+        "SYS-REG-03 compound pressure keeps healthy account and provider lanes progressing with bounded durable backlog metrics"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "DEV-P1-06",
+      "severity": "P1",
+      "title": "并非所有 migration snapshot 名称防碰撞",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "Round12/Schema11 已加入 PID+UUID；通用 pre-migration backup 和 Stage6 仍使用时间戳为主要唯一因子。",
+      "impact": "同毫秒并行迁移或同名数据库共享 migration-backups 目录时可能碰撞/覆盖/失败。",
+      "changedFiles": [
+        "backend/lib/r32SqliteStore.js",
+        "backend/migrations/stage6_3_4ArchitectureClosure.js"
+      ],
+      "automatedTests": [
+        "Batch27 four processes racing the same fresh SQLite file allow exactly one migration owner"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "DEV-P2-01",
+      "severity": "P2",
+      "title": "外部 AbortSignal 不会立即 settle executeWithDeadline",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "external abort 只 abort 内部 controller，Promise.race 中没有独立 external-abort rejection；底层忽略 signal 时仍等到 deadline timer。",
+      "impact": "关闭、账号切换和 supersede 的取消响应可能拖到平台 timeout。",
+      "changedFiles": [
+        "backend/services/executionDeadline.js"
+      ],
+      "automatedTests": [
+        "Batch27 external AbortSignal settles immediately even when the underlying operation ignores abort"
+      ],
+      "realEvidenceRequired": false
+    },
+    {
+      "id": "DEV-P2-02",
+      "severity": "P2",
+      "title": "AI analysis supersede 取消失败被吞，旧分析可能继续",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "backgroundJobAuthority.cancel 使用 catch (_) {}，只改变 durable job，不保证实际 Runtime/Provider 被取消。",
+      "impact": "旧分析与新分析并发，旧副作用需依赖后续 CAS 才能避免污染。",
+      "changedFiles": [
+        "backend/services/aiBrainOrchestrator.js",
+        "backend/services/aiTaskRuntimeRegistry.js"
+      ],
+      "automatedTests": [
+        "DEV-P1-01 translation cancellation is propagated instead of converted into a failed translation result",
+        "SYS-REG-04 AI timeout observability includes correlation, operation, generation and account lane"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "DEV-P2-03",
+      "severity": "P2",
+      "title": "学习 projection lease 过期与副作用执行之间仍需更强 fencing",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "claim 使用事务和 token，但 scope/L1 副作用执行期间 lease 可过期；新 worker 可重领，旧 worker 仍可能在外部副作用后才发现 lease lost。",
+      "impact": "若下游 recordFeedback/recordSignal 幂等键不完整，可发生双重投影。",
+      "changedFiles": [
+        "backend/repositories/replyLearningProjectionRepository.js",
+        "backend/services/replyFeedbackLearningService.js"
+      ],
+      "automatedTests": [
+        "Batch27 learning lease generation fences stale workers and applies each effect once"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "DEV-P2-04",
+      "severity": "P2",
+      "title": "lease/stale/retry 使用 wall clock，睡眠或 NTP 跳变可提前/延后回收",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "跨进程持久 lease 必须使用墙钟，但当前没有大跳变保护；deadline 本身是 setTimeout，不应误认为同类问题。",
+      "impact": "时钟前跳导致活 lease 被回收，回拨导致任务长时间不重试。",
+      "changedFiles": [
+        "backend/lib/resilientLeaseClock.js",
+        "backend/lib/sqliteOwnership.js",
+        "backend/services/backgroundJobAuthority.js",
+        "backend/repositories/replyLearningProjectionRepository.js"
+      ],
+      "automatedTests": [
+        "Batch27 resilient lease clock detects +1h/-1h wall jumps without moving live leases backward or forward"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "DEV-P2-05",
+      "severity": "P2",
+      "title": "backgroundJobAuthority.enqueue 遇到 SUCCEEDED 时返回旧任务，调用者可能误认为重新入队",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "enqueue 的 ON CONFLICT 保留 SUCCEEDED 状态和 payload，但返回值没有明确 created/alreadySucceeded/noop 语义。",
+      "impact": "业务请求“重跑”时实际上没有发生，调用者不易发现。",
+      "changedFiles": [
+        "backend/services/backgroundJobAuthority.js"
+      ],
+      "automatedTests": [
+        "Batch27 background job enqueue outcomes and cursor pagination are explicit beyond 500 rows"
+      ],
+      "realEvidenceRequired": false
+    },
+    {
+      "id": "DEV-P2-06",
+      "severity": "P2",
+      "title": "Persona 校验与候选提交之间存在 TOCTOU 窗口",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "提交 CAS 校验会话 revision 和 entity versions，但 personaVersionId/policyHash 只作为 payload，未在同一原子提交中与当前 Persona 权威版本比较。",
+      "impact": "最后 Persona 校验后、dispatch 前修改 Persona 时，旧 Persona 候选可能提交。",
+      "changedFiles": [
+        "backend/store/commands/registerAiReplyCommands.js",
+        "backend/services/contextAwareReplyBrain.js",
+        "backend/services/storeManagerService.js"
+      ],
+      "automatedTests": [
+        "Batch27 Persona version/hash is rechecked inside candidate persistence transaction"
+      ],
+      "realEvidenceRequired": false
+    },
+    {
+      "id": "DEV-P2-07",
+      "severity": "P2",
+      "title": "现有多进程 migration 测试未证明同一 SQLite 文件竞争安全",
+      "sourceAuditStatus": "CONFIRMED_IN_BATCH26_HANDOFF_V2",
+      "batch27Status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_EVIDENCE_PENDING",
+      "rootCause": "部分并行测试使用不同 DB 路径/YANCE_DATA_DIR，不能覆盖同文件 ownership+迁移竞争。",
+      "impact": "测试 PASS 不能证明真实双启动同文件安全。",
+      "changedFiles": [
+        "backend/tests/batch27DeveloperHandoffV2Closure.test.js"
+      ],
+      "automatedTests": [
+        "Batch27 four processes racing the same fresh SQLite file allow exactly one migration owner"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "SYS-REG-01",
+      "severity": "P1-GATE",
+      "title": "全平台全操作类型统一 Egress deadline/generation/post-SDK fence",
+      "sourceAuditStatus": "REQUIRED_INCREMENT",
+      "batch27Status": "AUTOMATED_GATE_PASS_REAL_EVIDENCE_PENDING",
+      "changedFiles": [
+        "backend/services/platformDriverRegistry.js",
+        "backend/services/platformAdapterPorts.js",
+        "backend/services/whatsappAdapter.js",
+        "backend/services/telegramAdapter.js",
+        "backend/services/facebookAdapter.js"
+      ],
+      "automatedTests": [
+        "SYS-REG-01 platform operation matrix propagates signal, generation and queue projection ownership"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "SYS-REG-02",
+      "severity": "P1-GATE",
+      "title": "send_outcome_unknown 跨 Queue/message/delivery/route/identity/reconcile 幂等收敛",
+      "sourceAuditStatus": "REQUIRED_INCREMENT",
+      "batch27Status": "AUTOMATED_GATE_PASS_REAL_EVIDENCE_PENDING",
+      "changedFiles": [
+        "backend/services/sendQueueService.js",
+        "backend/lib/r32SqliteStore.js"
+      ],
+      "automatedTests": [
+        "SYS-REG-02 late accepted result converges unknown exactly once and stale generation is rejected"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "SYS-REG-03",
+      "severity": "P1-GATE",
+      "title": "多账号悬挂+慢 Facebook+AI zombie+Telegram/学习积压组合背压",
+      "sourceAuditStatus": "REQUIRED_INCREMENT",
+      "batch27Status": "AUTOMATED_GATE_PASS_REAL_COMPOUND_STRESS_PENDING",
+      "changedFiles": [
+        "backend/services/sendQueueService.js",
+        "backend/services/jobQueue.js",
+        "backend/services/backgroundJobAuthority.js"
+      ],
+      "automatedTests": [
+        "SYS-REG-03 compound pressure keeps healthy account and provider lanes progressing with bounded durable backlog metrics"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "SYS-REG-04",
+      "severity": "P1-GATE",
+      "title": "跨状态机统一关联标识和指标",
+      "sourceAuditStatus": "REQUIRED_INCREMENT",
+      "batch27Status": "AUTOMATED_GATE_PASS_REAL_EVIDENCE_PENDING",
+      "changedFiles": [
+        "backend/services/jobQueue.js",
+        "backend/services/sendQueueService.js",
+        "backend/services/aiBrainOrchestrator.js"
+      ],
+      "automatedTests": [
+        "SYS-REG-04 AI timeout observability includes correlation, operation, generation and account lane"
+      ],
+      "realEvidenceRequired": true
+    },
+    {
+      "id": "SYS-REG-05",
+      "severity": "P1-GATE",
+      "title": "UAT 工具链证据不得替代产品源码闭环证据",
+      "sourceAuditStatus": "REQUIRED_INCREMENT",
+      "batch27Status": "GOVERNANCE_EVIDENCE_SEPARATED",
+      "changedFiles": [
+        "YANCE_BATCH27_DEVELOPER_HANDOFF_V2_REPAIR_REPORT_ZH.md",
+        "YANCE_BATCH27_SYSTEM_REGRESSION_COVERAGE.json",
+        "YANCE_EVIDENCE_MANIFEST.json"
+      ],
+      "automatedTests": [],
+      "realEvidenceRequired": false
+    }
+  ],
+  "statusSemantics": "SOURCE_FIXED_AUTOMATED_VERIFIED does not mean real Windows, real platform, real OpenRouter or promotion approval."
+}

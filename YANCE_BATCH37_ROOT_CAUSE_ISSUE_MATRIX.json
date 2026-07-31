@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH37_ROOT_CAUSE_ISSUE_MATRIX",
+  "generatedAtUtc": "2026-07-29T13:28:00Z",
+  "sourceIdentity": {
+    "branch": "development/windows-uat-batch37-evidence-toolchain-root-fix",
+    "implementationCommit": "8093d6dceb1f6fe647aafa83bc23d6fb0eed1e99",
+    "implementationTree": "6bac78dbf2af604aa563dcea5e2e32ecd9fd4f50"
+  },
+  "issues": [
+    {
+      "id": "B37-WP3-EVIDENCE-001",
+      "severity": "P0",
+      "status": "SOURCE_FIXED_WINDOWS_RETEST_REQUIRED",
+      "title": "WP3 evidence singleton ran in a contaminated process",
+      "rootCause": "generate-evidence.js executed production probes and the in-process singleton scenario in one Node process while inheriting runtime path and mutex authorities.",
+      "fix": "Run singleton evidence in a dedicated sanitized Node process; make generator import-safe; force deterministic TAP summary and validate complete test counts.",
+      "verification": "New direct tests 3/3 and isolated singleton 9/9 checks PASS; full Windows WP3 pending."
+    },
+    {
+      "id": "B37-WP4-EVIDENCE-001",
+      "severity": "P0",
+      "status": "SOURCE_FIXED_WINDOWS_RETEST_REQUIRED",
+      "title": "WP4 evidence required tests used shell glob execution",
+      "rootCause": "shell:true caused C:\\Program Files\\nodejs\\node.exe to be parsed as C:\\Program; wildcard expansion also depended on cmd.exe behavior.",
+      "fix": "Enumerate every tests/wp4/*.test.js file in JavaScript, invoke process.execPath directly with shell:false and TAP reporter.",
+      "verification": "New command/parser tests 2/2 PASS; full Windows evidence generation pending."
+    },
+    {
+      "id": "B37-WP5-EVIDENCE-001",
+      "severity": "P1",
+      "status": "SOURCE_FIXED_WINDOWS_RETEST_REQUIRED",
+      "title": "WP5 clean repository gate was invalidated by earlier evidence outputs",
+      "rootCause": "WP3/WP4 evidence defaulted to untracked directories inside the Git worktree before verify:wp5.",
+      "fix": "Support external WP3 evidence root and require the Windows runner to place WP3/WP4 evidence under the external evidence bundle before the WP5 clean-repository check.",
+      "verification": "Cross-workpackage static contracts 3/3 PASS; full Windows continuous sequence pending."
+    }
+  ],
+  "openSourceDefects": [],
+  "externalPromotionBlockers": [
+    "BATCH37_WINDOWS_CLEAN_NPM_CI",
+    "BATCH37_FULL_WP3_WP4_WP5",
+    "BATCH37_FULL_BACKEND",
+    "BATCH37_REAL_ELECTRON",
+    "REAL_PLATFORM_UAT",
+    "REAL_OPENROUTER",
+    "INDEPENDENT_REVIEW"
+  ],
+  "governance": {
+    "windowsUatState": "WINDOWS_UAT_BLOCKED",
+    "readyForPromotion": false,
+    "formalRelease": false
+  }
+}

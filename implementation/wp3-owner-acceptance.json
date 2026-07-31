@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP3",
+  "decision": "ACCEPTED_WITH_KNOWN_EXCEPTION",
+  "decidedAtUtc": "2026-07-03T08:24:00Z",
+  "acceptedBy": "Project Owner",
+  "acceptedCandidate": {
+    "finalCodeImplementationCommit": "aca19d12c20e5ea23af93d1a1a9e840237f5a726",
+    "finalCandidateHead": "3d8bac3665098d495e3266ea8ea013c5aba6be16",
+    "finalSourceTree": "e2670016e7d6252e5cf206223fc4420b5666e606"
+  },
+  "riskAcceptanceId": "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+  "knownException": {
+    "windowsNamedMutexRealValidation": "NOT_EXECUTED",
+    "acceptedScope": "Personal single-user deployment",
+    "mustNotClaimPassed": true
+  },
+  "preservedReviewRecord": "implementation/wp3-review-candidate.json",
+  "nextWorkPackage": "WP4"
+}

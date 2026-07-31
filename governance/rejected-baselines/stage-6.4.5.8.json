@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "stage": "6.4.5.8",
+  "status": "REJECTED_ARCHITECTURE_NOT_CLOSED",
+  "immutableTag": "stage-6.4.5.8-rejected-architecture",
+  "archivalUseOnly": true,
+  "runtimeChangesAllowed": false,
+  "hotfixesAllowed": false,
+  "releaseCandidateAllowed": false,
+  "overlayInstallersAllowed": false,
+  "reasonCode": "ARCHITECTURE_NOT_CLOSED",
+  "replacementStage": "6.4.5.9",
+  "baselineCommit": "c150182219edea2faf49c714275e9921a21df742"
+}

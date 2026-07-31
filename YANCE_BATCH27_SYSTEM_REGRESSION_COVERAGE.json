@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH27_SYSTEM_REGRESSION_COVERAGE",
+  "generatedAtUtc": "2026-07-29T02:28:43.537651+00:00",
+  "sourceIdentity": {
+    "implementationCommit": "0fea714780aad29aedca8a7ec51f25e42dac97b2",
+    "implementationTree": "84504230dcbd75d6791f65a801b3883961977d84"
+  },
+  "egressOperationMatrix": {
+    "whatsapp": [
+      "text",
+      "media",
+      "reaction",
+      "revoke",
+      "presence",
+      "read"
+    ],
+    "telegram": [
+      "text",
+      "media",
+      "reaction",
+      "revoke",
+      "native-expression",
+      "presence",
+      "read"
+    ],
+    "facebook": [
+      "text",
+      "media",
+      "presence",
+      "read"
+    ],
+    "requiredContext": [
+      "signal",
+      "executionGeneration",
+      "localProjectionOwnedByQueue",
+      "accountLane"
+    ],
+    "automatedResult": "17 operation paths verified in SYS-REG-01"
+  },
+  "unknownReconciliation": {
+    "states": [
+      "sending",
+      "send_outcome_unknown",
+      "platform_accepted_local_pending",
+      "sent",
+      "failed",
+      "cancelled"
+    ],
+    "invariants": [
+      "ordinary retry cannot resend unknown",
+      "stale generation rejected",
+      "matching remote acceptance converges exactly once",
+      "duplicate reconciliation creates no duplicate message",
+      "scope remains command/account unless explicitly global"
+    ],
+    "automatedResult": "PASS_SYS_REG_02"
+  },
+  "compoundPressure": {
+    "scenario": [
+      "Telegram lane ignores deadline",
+      "Facebook lane remains healthy",
+      "AI provider ignores AbortSignal",
+      "601 durable recovery jobs",
+      "concurrent SQLite reads"
+    ],
+    "automatedAssertions": [
+      "healthy platform lane reaches sent",
+      "healthy AI provider completes",
+      "stalled queue becomes command-scoped unknown",
+      "scheduler running flag releases",
+      "watchdog settles under 1 second",
+      "physical zombie remains isolated",
+      "provider circuit opens",
+      "durable remaining=551 after 50-row page",
+      "oldestPendingAt present",
+      "ledger consistency pass"
+    ],
+    "limitations": [
+      "No real provider socket/FD curve in container",
+      "No real Windows event-loop/handle telemetry",
+      "Real 50,000+ learning backlog stress pending"
+    ]
+  },
+  "observability": {
+    "required": [
+      "correlationId",
+      "operationId",
+      "executionGeneration",
+      "accountLane",
+      "lateResult",
+      "physicalZombie",
+      "durableRemaining",
+      "learningDLQ",
+      "ownershipFencing"
+    ],
+    "automatedResult": "PASS_SYS_REG_04"
+  },
+  "evidenceSeparation": {
+    "sourceFix": "YANCE_BATCH27_DEVELOPER_HANDOFF_V2_REPAIR_REPORT_ZH.md and source diff",
+    "automatedTests": "169 files / 1026 tests plus final gate logs",
+    "realWindowsPlatformOpenRouter": "PENDING_EXTERNAL_EXECUTION",
+    "uatInfrastructure": "Source UAT delivery and protocol V3 logs; not treated as product closure evidence"
+  }
+}

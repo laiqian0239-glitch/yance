@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "policy": {
+    "semanticContract": "frontend/r32-theme-semantic-contract.css",
+    "paletteSources": [
+      "frontend/r32-theme-motion.css",
+      "frontend/r32-theme-motion.js",
+      "frontend/r32-theme-authority.css"
+    ],
+    "maintainedRuntimeFiles": [
+      "frontend/js/r32-ui-runtime.js",
+      "frontend/r32-system-center.js",
+      "frontend/js/r32-insights-runtime.js",
+      "frontend/js/r32-ai-workbench-runtime.js",
+      "frontend/js/sqliteConversationRuntime.js",
+      "frontend/js/r32-safe-mode-runtime.js",
+      "frontend/r32-account-center.js",
+      "frontend/r32-phase1-governance.css"
+    ],
+    "legacyDebt": {
+      "frontend/index.html": 0
+    }
+  },
+  "fixedColorSources": [
+    {
+      "file": "frontend/r32-theme-motion.css",
+      "count": 703
+    },
+    {
+      "file": "frontend/r32-theme-authority.css",
+      "count": 9
+    },
+    {
+      "file": "frontend/r32-theme-motion.js",
+      "count": 9
+    }
+  ],
+  "failures": []
+}

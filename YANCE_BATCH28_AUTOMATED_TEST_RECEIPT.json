@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH28_AUTOMATED_TEST_RECEIPT",
+  "generatedAtUtc": "2026-07-29T05:45:35Z",
+  "sourceIdentity": {
+    "branch": "development/windows-uat-f25fe2e-repair-batch27-developer-handoff-v2",
+    "implementationCommit": "4ac6ddfc89adda08f0f51a697cd87c7a3ec72c16",
+    "implementationTree": "10fbb3fff5361e4385d8d06c1223609ab462f181",
+    "parentPackageCommit": "3ff188cf1fe6f3e06bdbe1523da9326b529e57a2",
+    "parentPackageTree": "03434938073f2d52707bebee89ff90e626630f0b"
+  },
+  "environment": {
+    "os": "Linux 6.12.13 x86_64 container",
+    "node": "v22.16.0",
+    "npm": "10.9.2",
+    "dependencyState": "INCOMPLETE_NODE_MODULES; clean install not established"
+  },
+  "results": {
+    "fullBackendFileDiscovery": "170 files, 1044/1044 PASS, 0 fail, 0 skipped, split into 9 deterministic chunks",
+    "batch28IndependentRootClosure": "16/16 PASS",
+    "authReconcileTargetedRegression": "96/96 PASS",
+    "round12PlatformCore": "79/79 PASS",
+    "round13AiQuality": "24/24 PASS",
+    "uatDiagnostics": "142/142 PASS",
+    "sourceUatDelivery": "33/33 PASS",
+    "wp5RuntimeOwnershipAndMigration": "58/58 PASS",
+    "javascriptSyntax": "34/34 changed JavaScript files PASS",
+    "gitDiffCheck": "PASS",
+    "wp3ApiIntegration": "BLOCKED_IN_CURRENT_LINUX_CONTAINER: 25 PASS, 16 fixture-load failures caused by missing express, 1 skipped",
+    "wp4ElectronMatrix": "BLOCKED_IN_CURRENT_LINUX_CONTAINER: Electron dependency unavailable; no product assertion closure",
+    "cleanNpmCi": "PENDING_REPAIRED_IDENTITY_WINDOWS_REVALIDATION",
+    "realWindowsElectronRequired": true,
+    "realPlatformUatRequired": true,
+    "realOpenRouterQualificationRequired": true
+  },
+  "backendChunks": [
+    {
+      "chunk": 0,
+      "tests": 157,
+      "pass": 157
+    },
+    {
+      "chunk": 1,
+      "tests": 91,
+      "pass": 91
+    },
+    {
+      "chunk": 2,
+      "tests": 111,
+      "pass": 111
+    },
+    {
+      "chunk": 3,
+      "tests": 153,
+      "pass": 153
+    },
+    {
+      "chunk": 4,
+      "tests": 105,
+      "pass": 105
+    },
+    {
+      "chunk": 5,
+      "tests": 109,
+      "pass": 109
+    },
+    {
+      "chunk": 6,
+      "tests": 132,
+      "pass": 132
+    },
+    {
+      "chunk": 7,
+      "tests": 107,
+      "pass": 107
+    },
+    {
+      "chunk": 8,
+      "tests": 79,
+      "pass": 79
+    }
+  ],
+  "externalGates": {
+    "cleanNpmCiWindows": "PENDING",
+    "realWindowsElectron": "PENDING",
+    "realPlatformAck": "PENDING",
+    "realOpenRouter": "PENDING",
+    "independentReview": "REQUIRED"
+  },
+  "governance": {
+    "repairState": "REPAIR_ATTEMPT_IN_PROGRESS",
+    "windowsUatState": "WINDOWS_UAT_BLOCKED",
+    "formalRelease": false,
+    "readyForPromotion": false,
+    "windowsUatAuthorized": false
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 2,
+  "documentType": "WP7_CURRENT_GOVERNANCE_AUTHORITY_CONSISTENCY_POLICY",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP7",
+  "generatedAtUtc": "2026-07-06T12:28:35.710Z",
+  "revisionId": "CPR-R9",
+  "governanceRevisionId": "CPR-R9-GR1",
+  "currentReviewPhase": "WP7_CONVERGENCE_PRE_REVIEW_CPR_R9_REVISION_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+  "implementationIdentity": {
+    "commit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+    "sourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0"
+  },
+  "currentState": {
+    "status": "ACTIVE",
+    "revisionCandidateStatus": "FORMED_FOR_CONVERGENCE_PRE_REVIEW",
+    "candidateBindingCommit": null,
+    "candidateBindingSourceTree": null,
+    "preAcceptedAtUtc": null,
+    "preAcceptanceIssuedAfterReopen": false,
+    "operationalPreAcceptanceAuthorization": "NOT_AUTHORIZED_PENDING_INDEPENDENT_REVIEW",
+    "finalPackagingAuthorized": false,
+    "finalDeliveryHead": null,
+    "finalAcceptanceStatus": "NOT_ACCEPTED",
+    "trustedProductProbeExecutions": 9,
+    "requiredTrustedProductProbeExecutions": 9,
+    "trustedProductExecutionStatus": "PASS",
+    "trustedProductFormalPassClaimed": true
+  },
+  "currentAuthorityFiles": [
+    "implementation/project-handoff.json",
+    "implementation/work-package-status.json",
+    "governance/wp7/convergence-correction-closure.json",
+    "governance/wp7/current-authority-consistency-policy.json"
+  ],
+  "historicalNonAuthorityFiles": [
+    {
+      "path": "implementation/wp7-convergence-pre-review-candidate.json",
+      "authorityClassification": "HISTORICAL_CPR_R5_SNAPSHOT_ONLY"
+    },
+    {
+      "path": "implementation/wp7-convergence-pre-review-reopen.json",
+      "authorityClassification": "HISTORICAL_CPR_R5_REOPEN_SNAPSHOT_ONLY"
+    }
+  ],
+  "preservedRiskAcceptanceIds": [
+    "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+    "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+    "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+    "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED"
+  ],
+  "installationPolicy": {
+    "FINAL_INSTALLATION_MODE": "CLEAN_INSTALL",
+    "LEGACY_TEST_DATA_MIGRATION_REQUIRED": false,
+    "LEGACY_TEST_VERSION_ROLLBACK_REQUIRED": false
+  },
+  "verificationCommand": "node tools/wp7/verify-governance-authority-consistency.js",
+  "currentReviewStatus": "CONVERGENCE_REOPEN_CPR_R9_REVISION_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+  "currentPreAcceptanceStatus": "NOT_ISSUED_PENDING_INDEPENDENT_REVIEW",
+  "candidateIdentityPolicy": {
+    "currentAuthorityCandidateFieldsMustBeNullWhenRevisionCandidateStatusNotFormed": true,
+    "historicalIdentityAllowedOnlyUnderHistoricalPaths": true,
+    "historicalPathMarker": "historical",
+    "scannedFieldNames": [
+      "candidateBindingCommit",
+      "candidateBindingSourceTree",
+      "preAcceptedAtUtc"
+    ],
+    "formedCandidateDoesNotEqualPreAcceptance": true,
+    "candidateBindingIdentityMustRemainNullBeforeIndependentPreAcceptance": true
+  },
+  "candidateFormationPolicy": {
+    "status": "FORMED_FOR_CONVERGENCE_PRE_REVIEW",
+    "productionIdentityFrozen": true,
+    "productionCommit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+    "productionSourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+    "candidateGovernanceIdentityBoundExternallyInDelivery": true,
+    "preAcceptanceIssued": false,
+    "finalPackagingAuthorized": false,
+    "evidenceBinding": {
+      "productionCorrectionCommit": "7deeb76c99cf4aeabda6d10eacd5c1342f453645",
+      "productionCorrectionSourceTree": "2f1db31f2ca3f4d66dbb898cac684db70e1b59d0",
+      "directParentCommit": "40647dbdaa768517ddbcdb31ff207ac9d3a87457",
+      "buildId": "Y29-29.2.5-S6.4.5.9-P1-7deeb76c99cf-20260706T121609Z",
+      "buildSessionId": "948f1d8d55efbc10ae43a546bccbf225",
+      "artifactClass": "WP7_PRE_REVIEW_ONLY",
+      "evidenceClass": "PRE_REVIEW_PACKAGED_INTEGRATION",
+      "finalInstaller": false,
+      "finalReleaseEvidence": false,
+      "formalWindowsEvidenceEligible": false,
+      "trustedProductArchive": "Yance29_Stage6_4_5_9_WP7_PreReview_Trusted_Product_7deeb76c99cf.tar.gz",
+      "trustedProductArchiveSha256": "1bd4df86cc7f25aa40ce633082b015e088aa492b7270cbecaffe7aa3185db58e",
+      "preReviewSealedArtifact": "WP7_PRE_REVIEW_SEALED_ARTIFACT.json",
+      "preReviewSealedArtifactSha256": "8719a6d468bc142ebe33c46e806cb8c7e669795a2c8fd9e4c01bbc9efd1b04a6",
+      "preReviewSealedArtifactType": "TRUSTED_PRODUCT_BUILD_SESSION_SEAL_V1",
+      "preReviewEvidenceIndex": "WP7_PRE_REVIEW_EVIDENCE_INDEX.json",
+      "preReviewEvidenceIndexSha256": "3101fde0a96389c0351332533a8dcd5f46fee5d3171b34c102503e1abbb0f536",
+      "preReviewInternalSha256ManifestSha256": "cbe8bec0d78e81c769d271406117bca8d8e494fb8a8c24c0c98d0ee25ee026b6",
+      "realTrustedProductProbeResultPath": "raw-probes/WP7_TRUSTED_PRODUCT_NINE_FRESH_RESULT.json",
+      "realTrustedProductProbeResultSha256": "5b0956207ec4fd7c911c33d4f99cba28fb279c9aa7e9af263b6867d0cd7f2b7d",
+      "completeVerificationSummaryPath": "raw-tests/WP7_PRE_REVIEW_VERIFICATION_SUMMARY.json",
+      "completeVerificationSummarySha256": "2efb3068afa36ecd5e91ff7712dabfb140cb3e2f970099286aa5315b0fe36d54"
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP4",
+  "candidateType": "FINAL_ARCHITECTURE_CLOSURE_REVIEW_CANDIDATE",
+  "status": "READY_FOR_FINAL_DELIVERY_FREEZE",
+  "reviewStatus": "PENDING_INDEPENDENT_REVIEW",
+  "implementedAtUtc": "2026-07-03T11:54:44Z",
+  "acceptedBaseline": {
+    "wp3CandidateHead": "3d8bac3665098d495e3266ea8ea013c5aba6be16",
+    "wp3SourceTree": "e2670016e7d6252e5cf206223fc4420b5666e606"
+  },
+  "rejectedFourthCandidate": {
+    "fourthReopenCommit": "c63422cd683aae7ac59fafc919653bd95cfb19a8",
+    "finalCodeImplementationCommit": "fc78e12d5a1a583b3a40df11ec30318e512b0a3c",
+    "finalCodeSourceTree": "59a6cc26179d7293e037de2f6ee279cb97780760",
+    "candidateBindingCommit": "6813270ee9df559c0a45add8fb2613f9f21ccae3",
+    "finalDeliveryHead": "328e08f9a8f64cba8a88937d7c8999906073bc60",
+    "finalSourceTree": "cb67a60afdadfeb6f4d6acda3562fbc7fa516df8",
+    "independentReviewStatus": "REJECTED"
+  },
+  "finalCodeImplementationCommit": "022a623efabb33ab5a34dfc270734165904d66ee",
+  "finalCodeSourceTree": "1eda57ed777ac545940e6aee64e95f2f87a85d2f",
+  "architectureClosure": {
+    "singleAuthorityModel": "PASS",
+    "stateMachine": "PASS_9_OF_9_STATES_FULLY_SPECIFIED",
+    "invariants": "PASS_10_OF_10",
+    "requiredTests": "PASS_76_OF_76",
+    "faultMatrix": "PASS_35_OF_35",
+    "mutationTests": "PASS_9_OF_9_KILLED",
+    "authorityClosureProbes": "PASS_10_OF_10",
+    "realSigkillCrashMatrix": "PASS_12_OF_12",
+    "productionCredentialChain": "PASS",
+    "knownGaps": []
+  },
+  "regressionResults": {
+    "WP3": {
+      "total": 23,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 1,
+      "acceptedExceptionReasonCode": "WP3_WINDOWS_NAMED_MUTEX_NOT_EXECUTED"
+    },
+    "WP2": {
+      "total": 60,
+      "passed": 60,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP1": {
+      "total": 24,
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP0": {
+      "total": 16,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP0Gate": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    },
+    "javascriptSyntax": {
+      "total": 344,
+      "passed": 344,
+      "failed": 0
+    }
+  },
+  "developerSelfReview": "docs/wp4/wp4-final-architecture-self-review.json",
+  "evidenceGenerator": "PASS_FRESH_EXECUTION_BOUND_TO_IMPLEMENTATION_COMMIT",
+  "cleanSourceVerification": {
+    "status": "PASS_AT_CANDIDATE_BINDING",
+    "verifiedCommit": "21ed8c6fe8cdc59e872ceb480437063940c6263b",
+    "verifiedSourceTree": "de51f38bc59df086019239763aac03dba46ab996",
+    "trackedFileCount": 418,
+    "npmCi": "PASS",
+    "wp4RequiredTests": "PASS_76_OF_76",
+    "faultMatrix": "PASS_35_OF_35",
+    "mutationTests": "PASS_9_OF_9_KILLED",
+    "wp3Regression": "PASS_22_OF_23_WITH_1_ACCEPTED_SKIP",
+    "wp2Regression": "PASS_60_OF_60",
+    "wp1Regression": "PASS_24_OF_24",
+    "wp0Regression": "PASS_16_OF_16",
+    "wp0Gate": "PASS_4_OF_4",
+    "javascriptSyntax": "PASS_344_OF_344",
+    "repositoryCleanBeforeGate": true,
+    "fullGitHistoryAndAnnotatedFreezeTagRestored": true
+  },
+  "candidateBindingCommit": "21ed8c6fe8cdc59e872ceb480437063940c6263b",
+  "governance": {
+    "wp4Status": "ACTIVE",
+    "wp4Active": true,
+    "reviewStatus": "PENDING_INDEPENDENT_REVIEW",
+    "wp5Status": "BLOCKED_BY_WP4"
+  },
+  "finalFreezePreparedAtUtc": "2026-07-03T11:58:10Z"
+}

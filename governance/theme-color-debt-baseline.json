@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "scope": "Phase 2 theme semantic migration",
+  "legacyDebt": {
+    "frontend/index.html": 1335
+  },
+  "allowedPaletteSources": [
+    "frontend/r32-theme-motion.css",
+    "frontend/r32-theme-motion.js",
+    "frontend/r32-theme-authority.css"
+  ],
+  "maintainedRuntimeFixedColorTarget": 0,
+  "note": "The inline legacy stylesheet is frozen debt, not an accepted final state. Future Phase 2 integration must migrate it by component without increasing the count."
+}

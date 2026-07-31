@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH22_AUTOMATED_TEST_RECEIPT",
+  "generatedAtUtc": "2026-07-28T11:40:48Z",
+  "implementationIdentity": {
+    "branch": "development/windows-uat-f25fe2e-repair-batch22-root-authority-closure",
+    "commit": "012685f2f89b4668f8f1ab0d60387506794ed28b",
+    "tree": "4aef90a1d14ca89fa603e4b21aa8faf8e3486576"
+  },
+  "fullBackend": {
+    "status": "PASS_FILE_ISOLATED_SERIAL",
+    "fileCount": 162,
+    "pass": 956,
+    "total": 956,
+    "fail": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "summaryFile": "YANCE_BATCH22_FULL_BACKEND_FILE_ISOLATED_SUMMARY.json",
+    "summarySha256": "b6e2326d0ea8a3b134898ccc0f8f3d080f16c78b16f4984c6e5af76994def214",
+    "executionSemantics": "Each backend test file was executed in a fresh Node test process with test concurrency 1 and a per-file timeout; all 162 files completed.",
+    "monolithicInvocation": "Two node --test backend/tests/*.test.js attempts did not terminate at a stable file boundary in this environment. They are documented but not counted as PASS."
+  },
+  "results": {
+    "batch22RootCause": {
+      "pass": 18,
+      "total": 18,
+      "fail": 0,
+      "logFile": "YANCE_BATCH22_ROOT.log",
+      "logSha256": "c839eda15bcbd8347bfacfe2f38354cf268fb6a789bc21e1c977bf7b2b0435e4"
+    },
+    "round12PlatformCore": {
+      "pass": 79,
+      "total": 79,
+      "fail": 0,
+      "logFile": "YANCE_BATCH22_ROUND12.log",
+      "logSha256": "d0730abc7b5081a588a78ae4a6f17a6a92e52fa39d4b09b7b79b45a55f67949a"
+    },
+    "round13AiQuality": {
+      "pass": 24,
+      "total": 24,
+      "fail": 0,
+      "logFile": "YANCE_BATCH22_ROUND13.log",
+      "logSha256": "ab210c3f6728d7347a93fb540212b8332475ef834019e2a6cca7b320bff5adeb"
+    },
+    "platformProductionReadiness": {
+      "pass": 58,
+      "total": 58,
+      "fail": 0,
+      "logFile": "YANCE_BATCH22_PLATFORM_READY.log",
+      "logSha256": "f88512b55717d8df14be99179525f243a8352d3b5d337b97b7288ff730904a9d"
+    },
+    "uatDiagnostics": {
+      "pass": 142,
+      "total": 142,
+      "fail": 0,
+      "logFile": "YANCE_BATCH22_UAT_DIAGNOSTICS.log",
+      "logSha256": "ce9d92292b36b4ae44dd2131cdb04f53f070900d7c75c6348cac0bf5019d2e35"
+    },
+    "sourceUatDelivery": {
+      "pass": 33,
+      "total": 33,
+      "fail": 0,
+      "logFile": "YANCE_BATCH22_SOURCE_UAT.log",
+      "logSha256": "6fd494a17d9f3a83ed805e6853888f47aa387fb1587fd4b990953dfa2559e936"
+    },
+    "componentReadability": {
+      "pass": 6,
+      "total": 6,
+      "fail": 0,
+      "logFile": "YANCE_BATCH22_COMPONENT_READABILITY.log",
+      "logSha256": "cf08a3a43e598d3f0439793833e35faa9a13978a778882b4f66313d90adf6e7b"
+    },
+    "round12Round13FinalReview": {
+      "pass": 34,
+      "total": 34,
+      "fail": 0,
+      "logFile": "YANCE_BATCH22_FINAL_REVIEW.log",
+      "logSha256": "53fc044dc692639fa6597f4ce1beca627efe69b9419abc838909d535881f53bc"
+    }
+  },
+  "staticChecks": {
+    "javascriptSyntax": {
+      "pass": 45,
+      "total": 45
+    },
+    "gitDiffCheck": "PASS"
+  },
+  "environmentLimitations": {
+    "cleanNpmCi": "NOT_REEXECUTED",
+    "realWindowsElectron": "NOT_EXECUTED",
+    "realPlatforms": "NOT_EXECUTED",
+    "realOpenRouter": "NOT_EXECUTED"
+  },
+  "governance": {
+    "automatedEvidenceCanAuthorizeWindowsUat": false,
+    "repairState": "REPAIR_ATTEMPT_IN_PROGRESS",
+    "windowsUatState": "WINDOWS_UAT_BLOCKED",
+    "formalRelease": false,
+    "readyForPromotion": false
+  }
+}

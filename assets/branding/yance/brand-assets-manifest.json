@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 2,
+  "brand": "Yance",
+  "chineseBrand": "言策",
+  "brandingVersion": 2,
+  "source": "assets/branding/yance/product/yance-mark-flat.svg",
+  "microSource": "assets/branding/yance/product/yance-mark-micro.svg",
+  "sizes": [
+    16,
+    20,
+    24,
+    32,
+    48,
+    64,
+    128,
+    256,
+    512,
+    1024
+  ],
+  "icoSizes": [
+    16,
+    20,
+    24,
+    32,
+    48,
+    64,
+    128,
+    256
+  ],
+  "generatedAtPolicy": "deterministic-from-tracked-svg-sources",
+  "files": [
+    {
+      "path": "assets/branding/yance/source/yance-mark-master.svg",
+      "bytes": 2025,
+      "sha256": "a5fcd37140be7bc66ecfd0c7851df7ae5684915ece413f1b7fa884733eb18859"
+    },
+    {
+      "path": "assets/branding/yance/source/yance-wordmark-zh-editable.svg",
+      "bytes": 529,
+      "sha256": "a6d9db6093414f973e0e7d584f90aa643c2500ecc659107eea531a85a10a5df4"
+    },
+    {
+      "path": "assets/branding/yance/source/yance-wordmark-en-editable.svg",
+      "bytes": 516,
+      "sha256": "f8979eeb72881efb38bb6579b44c8856c72da2293c67d09cdd4dc5a7d6e211f7"
+    },
+    {
+      "path": "assets/branding/yance/source/yance-lockup-horizontal-editable.svg",
+      "bytes": 1315,
+      "sha256": "2d7acdfb2623498c7213d0a819d0d44b5c801dffda511cc0a8939ea56f68f652"
+    },
+    {
+      "path": "assets/branding/yance/source/yance-lockup-stacked-editable.svg",
+      "bytes": 1357,
+      "sha256": "ec305ab386a13fdb5e68add8f6324b2165ada79d827e4904274888102b298c87"
+    },
+    {
+      "path": "assets/branding/yance/product/yance-mark-flat.svg",
+      "bytes": 971,
+      "sha256": "2293b659825602fdee01c23a102afb98f66fd22cdf0ba3c539b53fc0f65ac44a"
+    },
+    {
+      "path": "assets/branding/yance/product/yance-mark-micro.svg",
+      "bytes": 643,
+      "sha256": "79c9d38b0fb309d157f9a6f7a679d7d747e49660d3cd1841d919cf0d2c806630"
+    },
+    {
+      "path": "assets/branding/yance/product/yance-mark-mono-dark.svg",
+      "bytes": 537,
+      "sha256": "b8d728f9a4a65d01f17047171dddf731026f998af5a7b49a48a6f951aefbb432"
+    },
+    {
+      "path": "assets/branding/yance/product/yance-mark-mono-light.svg",
+      "bytes": 537,
+      "sha256": "7d4fe559a358392e2286790c059b7757efa9e9a5176f5c77f286b758b25be937"
+    },
+    {
+      "path": "assets/branding/yance/presentation/yance-mark-display.svg",
+      "bytes": 1878,
+      "sha256": "8b730d5f6fe0e54d495adfeaebab03f6f05d00dfb856540ebe5a062f53298838"
+    },
+    {
+      "path": "assets/branding/yance/wordmarks/yance-wordmark-zh.svg",
+      "bytes": 2679,
+      "sha256": "885e6887ccc8253b4f3d1e4bf678cfc07712e0f74cb06abe1e3889dd236c1b4d"
+    },
+    {
+      "path": "assets/branding/yance/wordmarks/yance-wordmark-en.svg",
+      "bytes": 3244,
+      "sha256": "3e76bd91ee2e27e7e7f4a614bee7cbe094444b691ecdafdbda9f5611fd2d81d1"
+    },
+    {
+      "path": "assets/branding/yance/wordmarks/yance-lockup-horizontal.svg",
+      "bytes": 5737,
+      "sha256": "cea28e32d58e56413459b76e5988f3fed748919d7874a88a89f9d19391d1f282"
+    },
+    {
+      "path": "assets/branding/yance/wordmarks/yance-lockup-stacked.svg",
+      "bytes": 6110,
+      "sha256": "cae4a920210d81dacb24d802dea656fe42368f054f16c175dd74f0020f5e8e33"
+    },
+    {
+      "path": "assets/branding/yance/generated/yance-app-icon-16.png",
+      "bytes": 678,
+      "sha256": "de6ee8386642a3e3ba5cec0d6f2711ca385376495d3d5811ca74eb91be72c5f1"
+    },
+    {
+      "path": "assets/branding/yance/generated/yance-app-icon-20.png",
+      "bytes": 832,
+      "sha256": "cc6f7481fdaee5a4ff54183d57acc85d5925b8cb422eb876bcc31e7235d3b980"
+    },
+    {
+      "path": "assets/branding/yance/generated/yance-app-icon-24.png",
+      "bytes": 971,
+      "sha256": "aa5f484af69fc3e37cbec7dffd43622aa34b0ac251c813f82056aced4ca1c645"
+    },
+    {
+      "path": "assets/branding/yance/generated/yance-app-icon-32.png",
+      "bytes": 1183,
+      "sha256": "a564de28606f112b1144668dadab94f015de900b478f17c6b6791c323e29d82a"
+    },
+    {
+      "path": "assets/branding/yance/generated/yance-app-icon-48.png",
+      "bytes": 1795,
+      "sha256": "96e0f7a2b631d0c3059c565182ee332e49f783132cb76a1a4d12141e6e6ffbff"
+    },
+    {
+      "path": "assets/branding/yance/generated/yance-app-icon-64.png",
+      "bytes": 2554,
+      "sha256": "ac506b803c108ce82f2d6c79e110c9a0c0fcb7fee52eb25a70eacc707e453262"
+    },
+    {
+      "path": "assets/branding/yance/generated/yance-app-icon-128.png",
+      "bytes": 5361,
+      "sha256": "54cd58c349a52908a54eb34868d3fbf2d07fcd718c553366a2bbeac619970178"
+    },
+    {
+      "path": "assets/branding/yance/generated/yance-app-icon-256.png",
+      "bytes": 11569,
+      "sha256": "5b88c772398b0010aaab53bfe3390c7810cb2c75903c11a2a8996b4ac0e0e817"
+    },
+    {
+      "path": "assets/branding/yance/generated/yance-app-icon-512.png",
+      "bytes": 27503,
+      "sha256": "a26dc2077c5fa59884c49414fe7c7253208fdfdd0046b84eec4d53a85d027bca"
+    },
+    {
+      "path": "assets/branding/yance/generated/yance-app-icon-1024.png",
+      "bytes": 66764,
+      "sha256": "1d32f1e6b73a76fca2835cdc7f5fee25f6c09996e120bcbd62facfa578ad2dfd"
+    },
+    {
+      "path": "assets/branding/yance/generated/Yance.ico",
+      "bytes": 115330,
+      "sha256": "44404cadc639055a0f27147088f6133d50b7e66152a52acd737d279cd84671fc"
+    }
+  ]
+}

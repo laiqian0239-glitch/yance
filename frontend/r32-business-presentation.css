@@ -1,0 +1,44 @@
+/* Root Cause Closure · BusinessPresentationAuthority
+   Formal business cards show localized summaries. Exact routing identities stay in explicit technical details. */
+.business-technical-details,
+.ac32-technical-details {
+  margin-top: 8px;
+  color: var(--text-secondary, var(--text-muted));
+  font-size: 12px;
+}
+.business-technical-toggle,
+.ac32-technical-details summary {
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--text-secondary, var(--text-muted));
+  font-weight: 700;
+  list-style-position: inside;
+}
+.business-technical-details dl,
+.ac32-technical-details dl {
+  display: grid;
+  grid-template-columns: minmax(72px, auto) minmax(0, 1fr);
+  gap: 5px 9px;
+  margin: 8px 0 0;
+  padding: 9px;
+  border: 1px solid var(--border-subtle, var(--border));
+  border-radius: 10px;
+  background: var(--surface-subtle);
+}
+.business-technical-details dt,
+.ac32-technical-details dt { color: var(--text-muted); }
+.business-technical-details dd,
+.ac32-technical-details dd {
+  margin: 0;
+  color: var(--text-primary, var(--text));
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.detail26-actions .business-technical-details { flex-basis: 100%; }
+
+/* AI business presentation authority: keep technical model failures readable and separate from business output. */
+.ai-business-summary-list{margin:0;padding-left:18px;display:grid;gap:5px;line-height:1.55}.ai-business-summary-list li{overflow-wrap:anywhere}
+.candidate-stage-failure{margin:0 0 12px;padding:13px;border:1px solid color-mix(in srgb,var(--status-danger) 58%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--status-danger) 9%,var(--surface-panel));display:grid;gap:10px}.candidate-stage-failure>header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.candidate-stage-failure>header b{font-size:13px}.candidate-stage-failure>header p{margin:4px 0 0;line-height:1.45}.candidate-stage-failure>header>span{font-size:10px;color:var(--text-secondary);white-space:nowrap}.candidate-stage-flow,.candidate-attempt-list{margin:0;padding:0;list-style:none;display:grid;gap:7px}.candidate-stage-flow{grid-template-columns:repeat(3,minmax(0,1fr))}.candidate-stage-flow li,.candidate-attempt-list li{min-width:0;padding:8px 9px;border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--surface-panel) 88%,transparent);display:grid;gap:3px}.candidate-stage-flow li[data-state="completed"]{border-color:color-mix(in srgb,var(--status-success) 45%,var(--line))}.candidate-stage-flow li[data-state="failed"]{border-color:color-mix(in srgb,var(--status-danger) 55%,var(--line))}.candidate-stage-flow span,.candidate-attempt-list span,.candidate-attempt-list small,.candidate-stage-failure footer{font-size:10px;color:var(--text-secondary);overflow-wrap:anywhere}.candidate-stage-failure details summary,.candidate-model-attempts summary{cursor:pointer;font-size:11px;font-weight:700}.candidate-model-attempts{margin:7px 0;padding:7px 9px;border:1px solid var(--line);border-radius:10px}.candidate-model-attempts p{margin:5px 0;font-size:10px;color:var(--text-secondary)}
+@media (max-width:1280px){.candidate-stage-flow{grid-template-columns:1fr}.candidate-stage-failure>header{display:grid}.candidate-stage-failure>header>span{white-space:normal}}

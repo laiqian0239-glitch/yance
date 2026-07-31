@@ -1,0 +1,874 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP7_WORKSTREAM_TRACEABILITY",
+  "generatedAtUtc": "2026-07-05T10:12:44Z",
+  "identityBinding": {
+    "wp6AcceptedFinalDeliveryHead": "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+    "wp6AcceptedFinalSourceTree": "485891e55298667df30e2f588daec196dc530eb7",
+    "activationCommit": "ceffb5234d33518bfda2a88c0e3fad59fb7c8bce",
+    "activationSourceTree": "b457101ab8d5d04d073597039446ded41374a6c8",
+    "activationIdentityBindingCommit": "4ac6d2185bed28823210849704f3850cd875b5fb",
+    "activationBindingSourceTree": "d7f64dbf602ded1075978c13bea8449d7ef7e5e2",
+    "verifiedParentChain": [
+      "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+      "ceffb5234d33518bfda2a88c0e3fad59fb7c8bce",
+      "4ac6d2185bed28823210849704f3850cd875b5fb"
+    ]
+  },
+  "workstreams": [
+    {
+      "id": "WS01",
+      "name": "Activation baseline lock and implementation branch discipline",
+      "objective": "Start every implementation action from the accepted WP7 Activation binding commit and reject source drift before any real build.",
+      "plannedChangeSurfaces": [
+        "governance/implementation identity metadata",
+        "tools/wp7 source-freeze verifier",
+        "WP0 branch gate integration"
+      ],
+      "entry": [
+        "WP7_DESIGN_GATE_CONFIRMED",
+        "HEAD and tree equal accepted Activation binding identity",
+        "clean repository"
+      ],
+      "exit": [
+        "implementation branch is uniquely identified",
+        "pre/post source identity checks fail closed",
+        "no untracked release surface"
+      ],
+      "entryConditions": [
+        "WP7_DESIGN_GATE_CONFIRMED",
+        "HEAD/tree equal accepted Activation binding identity",
+        "repository clean"
+      ],
+      "exitConditions": [
+        "implementation branch identity fixed",
+        "source drift detector and WP0 branch gate fail closed",
+        "no untracked release surface"
+      ],
+      "faultIds": [
+        "F01",
+        "F02",
+        "F03",
+        "F04",
+        "F05",
+        "F10",
+        "F11",
+        "F35"
+      ],
+      "raceIds": [
+        "C03"
+      ],
+      "crashIds": [],
+      "mutationIds": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M08",
+        "M09"
+      ],
+      "requiredTestIds": [
+        "wp7-upstream-accepted-binding.test",
+        "wp7-wp6-final-binding-required.test",
+        "final-build-source-freeze-match.test",
+        "wp7-wp0-real-build-branch-gate.test",
+        "wp7-inherited-risk-register.test"
+      ],
+      "requiredEvidenceOutputs": [
+        "evidence/wp7/pre-review/source-freeze.json",
+        "evidence/wp7/pre-review/upstream-contract-binding.json",
+        "evidence/wp7/source-freeze.json",
+        "evidence/wp7/upstream-contract-binding.json"
+      ],
+      "blockingReasonCodes": [
+        "WP7_ACTIVATION_BINDING_MISMATCH",
+        "WP7_SOURCE_NOT_CLEAN",
+        "WP7_PREACCEPTED_SOURCE_DRIFT",
+        "WP7_WP0_GATE_BRANCH_MISMATCH"
+      ],
+      "requiredBeforePhase": "CONVERGENCE_PRE_REVIEW"
+    },
+    {
+      "id": "WS02",
+      "name": "Release identity and manifest convergence",
+      "objective": "Make release/release-source.json the single human-maintained release source and bind all consumers to accepted protocol versions.",
+      "plannedChangeSurfaces": [
+        "release/release-source.json",
+        "generated release manifest tooling",
+        "installer/releaseIdentity.js",
+        "backend/electron/diagnostics manifest readers only where required"
+      ],
+      "mandatoryOracle": "credentialProtocolVersion must converge from historical 2 to accepted runtime truth 3 before Convergence Pre-Review.",
+      "forbidden": [
+        "second human-maintained release source",
+        "runtime semantic changes unrelated to release identity",
+        "silent manifest fallback"
+      ],
+      "entryConditions": [
+        "WS01 exit PASS",
+        "accepted runtime protocol constants independently observed"
+      ],
+      "exitConditions": [
+        "release/release-source.json is sole human-maintained source",
+        "credentialProtocolVersion=3 in generated identity",
+        "all consumers reject mismatch"
+      ],
+      "faultIds": [
+        "F10",
+        "F11",
+        "F12",
+        "F13",
+        "F29"
+      ],
+      "raceIds": [
+        "C03"
+      ],
+      "crashIds": [
+        "K04"
+      ],
+      "mutationIds": [
+        "M08",
+        "M09",
+        "M10",
+        "M11",
+        "M26",
+        "M43"
+      ],
+      "requiredTestIds": [
+        "wp7-release-protocol-version-consistency.test",
+        "wp7-release-source-runtime-protocol-convergence.test",
+        "final-installer-build-id-consistency.test",
+        "wp7-boot-failure-diagnostics.test"
+      ],
+      "requiredEvidenceOutputs": [
+        "evidence/wp7/pre-review/protocol-version-binding.json",
+        "evidence/wp7/pre-review/build-identity.json",
+        "evidence/wp7/protocol-version-binding.json",
+        "evidence/wp7/build-identity.json",
+        "evidence/wp7/boot-failure-diagnostics.json"
+      ],
+      "blockingReasonCodes": [
+        "WP7_PROTOCOL_VERSION_BINDING_MISMATCH",
+        "BOOT_BUILD_ID_MISMATCH",
+        "WP7_BOOT_DIAGNOSTIC_INCOMPLETE"
+      ],
+      "requiredBeforePhase": "CONVERGENCE_PRE_REVIEW"
+    },
+    {
+      "id": "WS03",
+      "name": "Protected real build/package/release pipeline",
+      "objective": "Replace WP0 protected-command NOT_CONFIGURED outcome with tracked WP7 real targets while preserving WP0 gate enforcement.",
+      "plannedChangeSurfaces": [
+        "package.json protected targets",
+        "tools/wp7 real-build orchestration",
+        "WP0 gate adapter without weakening gate rules"
+      ],
+      "requiredProperties": [
+        "authorized branch only",
+        "clean source only",
+        "exclusive build lease",
+        "unique buildSessionId",
+        "no evidence-mode bypass"
+      ],
+      "entryConditions": [
+        "WS01 exit PASS",
+        "WP0 protected gate rules preserved"
+      ],
+      "exitConditions": [
+        "tracked real build/package/release targets exist",
+        "exclusive build lease and unique buildSessionId enforced",
+        "unsealed session cannot be promoted"
+      ],
+      "faultIds": [
+        "F05",
+        "F06",
+        "F18",
+        "F19",
+        "F47"
+      ],
+      "raceIds": [
+        "C01",
+        "C02",
+        "C05"
+      ],
+      "crashIds": [
+        "K05",
+        "K06"
+      ],
+      "mutationIds": [
+        "M04",
+        "M16",
+        "M17",
+        "M32",
+        "M41"
+      ],
+      "requiredTestIds": [
+        "wp7-wp0-real-build-branch-gate.test",
+        "wp7-build-session-exclusive.test",
+        "wp7-build-crash-recovery.test",
+        "wp7-installer-seal-and-external-hash.test"
+      ],
+      "requiredEvidenceOutputs": [
+        "evidence/wp7/pre-review/build-session-integrity.json",
+        "evidence/wp7/pre-review/build-provenance.json",
+        "evidence/wp7/build-session-integrity.json",
+        "evidence/wp7/build-provenance.json"
+      ],
+      "blockingReasonCodes": [
+        "WP0_PROTECTED_COMMAND_TARGET_NOT_CONFIGURED",
+        "WP7_BUILD_SESSION_BUSY",
+        "WP7_PARTIAL_BUILD_REUSE_DENIED",
+        "WP0_OVERLAY_INSTALLER_PATTERN_DETECTED"
+      ],
+      "requiredBeforePhase": "CONVERGENCE_PRE_REVIEW"
+    },
+    {
+      "id": "WS04",
+      "name": "Empty staging, payload provenance and deterministic manifest",
+      "objective": "Build every final payload in a unique empty staging root and recompute all payload and manifest hashes in one sealed session.",
+      "requiredProperties": [
+        "empty-before-copy",
+        "no WP1 PIPELINE_TEST_ONLY reuse",
+        "canonical path validation",
+        "symlink rejection",
+        "NFC and Windows case collision rejection",
+        "stable sorted inventory",
+        "source origin proof"
+      ],
+      "outputs": [
+        "payload-files.json",
+        "applicationPayloadSha256",
+        "payloadFilesSha256",
+        "release-manifest.json",
+        "release-manifest.sha256"
+      ],
+      "entryConditions": [
+        "WS03 target available",
+        "unique empty staging root allocated"
+      ],
+      "exitConditions": [
+        "empty-before-copy proven",
+        "payload path/provenance canonicalization complete",
+        "payload and manifest hashes recomputed in one session"
+      ],
+      "faultIds": [
+        "F07",
+        "F08",
+        "F09",
+        "F14",
+        "F15",
+        "F16",
+        "F17",
+        "F47"
+      ],
+      "raceIds": [
+        "C01",
+        "C02",
+        "C03",
+        "C04"
+      ],
+      "crashIds": [
+        "K01",
+        "K02",
+        "K03",
+        "K04"
+      ],
+      "mutationIds": [
+        "M05",
+        "M06",
+        "M07",
+        "M12",
+        "M13",
+        "M14",
+        "M15",
+        "M32",
+        "M41"
+      ],
+      "requiredTestIds": [
+        "final-build-clean-staging.test",
+        "wp1-artifact-reuse-denied.test",
+        "final-payload-recomputed.test",
+        "wp7-build-session-exclusive.test",
+        "wp7-build-crash-recovery.test"
+      ],
+      "requiredEvidenceOutputs": [
+        "evidence/wp7/pre-review/build-provenance.json",
+        "evidence/wp7/pre-review/build-session-integrity.json",
+        "evidence/wp7/build-provenance.json",
+        "evidence/wp7/build-session-integrity.json"
+      ],
+      "blockingReasonCodes": [
+        "FINAL_BUILD_REUSED_PIPELINE_TEST_ARTIFACT",
+        "WP1_PROVENANCE_INDEX_REQUIRED",
+        "WP1_PAYLOAD_PATH_INVALID",
+        "WP1_PAYLOAD_SYMLINK_REJECTED",
+        "WP7_PAYLOAD_HASH_MISMATCH",
+        "WP7_PAYLOAD_SCOPE_VIOLATION",
+        "WP7_CROSS_SESSION_ARTIFACT_REUSE"
+      ],
+      "requiredBeforePhase": "CONVERGENCE_PRE_REVIEW"
+    },
+    {
+      "id": "WS05",
+      "name": "Deterministic installer build and sealing",
+      "objective": "Generate one Windows installer from the sealed payload, then fix installer filename, size and SHA256 before validation.",
+      "requiredProperties": [
+        "same frozen source and buildId",
+        "no overlay installer pattern",
+        "no post-install runtime patch",
+        "partial installer cannot be promoted",
+        "installer immutable after seal"
+      ],
+      "outputs": [
+        "sealed Windows installer",
+        "installer SHA256",
+        "installer build identity evidence"
+      ],
+      "entryConditions": [
+        "WS02 and WS04 exit PASS",
+        "payload session sealed"
+      ],
+      "exitConditions": [
+        "installer produced once from sealed payload",
+        "filename/size/SHA256 fixed",
+        "overlay and post-install patch paths absent"
+      ],
+      "faultIds": [
+        "F12",
+        "F18",
+        "F19",
+        "F44"
+      ],
+      "raceIds": [
+        "C05",
+        "C13"
+      ],
+      "crashIds": [
+        "K05",
+        "K06",
+        "K13"
+      ],
+      "mutationIds": [
+        "M10",
+        "M16",
+        "M17",
+        "M39"
+      ],
+      "requiredTestIds": [
+        "final-installer-build-id-consistency.test",
+        "wp7-installer-seal-and-external-hash.test",
+        "wp7-installer-sha256-preinstall.test"
+      ],
+      "requiredEvidenceOutputs": [
+        "evidence/wp7/pre-review/installer-seal-fixture.json",
+        "evidence/wp7/final-release-evidence.json",
+        "evidence/wp7/build-identity.json",
+        "evidence/wp7/preinstall-installer-sha256.json"
+      ],
+      "blockingReasonCodes": [
+        "WP7_INSTALLER_HASH_MISMATCH",
+        "WP0_OVERLAY_INSTALLER_PATTERN_DETECTED",
+        "WP7_PREINSTALL_INSTALLER_SHA256_MISMATCH",
+        "BOOT_BUILD_ID_MISMATCH"
+      ],
+      "requiredBeforePhase": "PRE_REVIEW_FIXTURE_THEN_FINAL_PACKAGING"
+    },
+    {
+      "id": "WS06",
+      "name": "Complete project source and Git delivery",
+      "objective": "Deliver the entire 言策29 project source tree and accepted history, not only WP7 changed files.",
+      "requiredProperties": [
+        "complete Git bundle includes accepted WP6 ancestry",
+        "complete source ZIP exactly equals final Git tree",
+        "tracked-file inventory",
+        "source closure report",
+        "patch from accepted WP6 baseline is supplementary only"
+      ],
+      "entryConditions": [
+        "source identity frozen",
+        "complete-tree inventory tooling available"
+      ],
+      "exitConditions": [
+        "complete Git bundle includes accepted WP6 ancestry",
+        "complete source ZIP equals final Git tree",
+        "patch remains supplementary only"
+      ],
+      "faultIds": [
+        "F36",
+        "F37"
+      ],
+      "raceIds": [
+        "C03"
+      ],
+      "crashIds": [
+        "K15"
+      ],
+      "mutationIds": [
+        "M33",
+        "M34"
+      ],
+      "requiredTestIds": [
+        "wp7-complete-project-source-delivery.test",
+        "wp7-complete-bundle-parent-chain.test",
+        "final-build-source-freeze-match.test"
+      ],
+      "requiredEvidenceOutputs": [
+        "evidence/wp7/pre-review/full-source-delivery-closure.json",
+        "evidence/wp7/full-source-delivery-closure.json"
+      ],
+      "blockingReasonCodes": [
+        "WP7_COMPLETE_PROJECT_SOURCE_REQUIRED",
+        "WP7_COMPLETE_GIT_HISTORY_REQUIRED",
+        "WP7_SOURCE_CHANGED_DURING_BUILD"
+      ],
+      "requiredBeforePhase": "CONVERGENCE_PRE_REVIEW_AND_FINAL_PACKAGING"
+    },
+    {
+      "id": "WS07",
+      "name": "CLEAN_INSTALL uninstall and residual cleanup workflow",
+      "objective": "Before final-machine installation, prove removal of every old test version, process, installer, configuration, database, cache, staging output, shortcut, task, service and startup entry.",
+      "timingBoundary": "Executed only during authorized final Windows validation, never during Design Gate preparation.",
+      "requiredProperties": [
+        "machine-readable before/after inventories",
+        "idempotent cleanup",
+        "exclusive machine validation lease",
+        "zero remaining residue"
+      ],
+      "entryConditions": [
+        "WP7_PREACCEPTED_FOR_FINAL_PACKAGING",
+        "sealed final installer exists",
+        "exclusive designated Windows validation machine lease acquired"
+      ],
+      "exitConditions": [
+        "all legacy/test installations and residues removed",
+        "before/after inventories SHA256-pinned",
+        "remainingResidueCount=0"
+      ],
+      "faultIds": [
+        "F38",
+        "F39",
+        "F40",
+        "F41",
+        "F42",
+        "F43",
+        "F46"
+      ],
+      "raceIds": [
+        "C06",
+        "C11",
+        "C12",
+        "C15"
+      ],
+      "crashIds": [
+        "K11",
+        "K12"
+      ],
+      "mutationIds": [
+        "M35",
+        "M36",
+        "M37",
+        "M38",
+        "M42",
+        "M44"
+      ],
+      "requiredTestIds": [
+        "wp7-clean-install-old-version-uninstall.test",
+        "wp7-clean-install-residual-removal.test",
+        "wp7-clean-install-no-legacy-migration.test",
+        "wp7-clean-install-no-legacy-rollback.test",
+        "wp7-no-old-process-or-build-contamination.test",
+        "wp7-clean-install-evidence-completeness.test"
+      ],
+      "requiredEvidenceOutputs": [
+        "evidence/wp7/legacy-cleanup-inventory.json",
+        "evidence/wp7/clean-install.json",
+        "evidence/wp7/no-contamination.json"
+      ],
+      "blockingReasonCodes": [
+        "WP7_LEGACY_TEST_INSTALLATION_RESIDUE",
+        "WP7_OLD_INSTALLER_RESIDUE",
+        "WP7_LEGACY_TEST_DATA_RESIDUE",
+        "WP7_OLD_RUNTIME_PROCESS_RESIDUE",
+        "WP7_LEGACY_TEST_DATA_MIGRATION_FORBIDDEN",
+        "WP7_LEGACY_TEST_VERSION_ROLLBACK_FORBIDDEN",
+        "WP7_CLEAN_INSTALL_EVIDENCE_INCOMPLETE"
+      ],
+      "requiredBeforePhase": "FINAL_WINDOWS"
+    },
+    {
+      "id": "WS08",
+      "name": "First-start and installed-runtime verification",
+      "objective": "Install the sealed installer into an empty environment and prove fresh initialization, credential/local readiness, single backend ownership, stop/restart/offline/crash recovery and zero legacy runtime residue.",
+      "requiredProperties": [
+        "no legacy migration attempt",
+        "no legacy rollback",
+        "installer SHA256 reverified immediately before execution",
+        "fresh database/configuration",
+        "accepted WP4-WP6 contracts preserved"
+      ],
+      "entryConditions": [
+        "WS07 exit PASS",
+        "installer SHA256 reverified immediately before execution"
+      ],
+      "exitConditions": [
+        "fresh first-start initialization proven",
+        "credential/local readiness gates pass",
+        "single owner, restart, offline and crash recovery pass",
+        "installed-tree legacy residue zero"
+      ],
+      "faultIds": [
+        "F20",
+        "F21",
+        "F22",
+        "F23",
+        "F24",
+        "F25",
+        "F26",
+        "F27",
+        "F28",
+        "F44",
+        "F45"
+      ],
+      "raceIds": [
+        "C07",
+        "C08",
+        "C09",
+        "C13",
+        "C14"
+      ],
+      "crashIds": [
+        "K07",
+        "K08",
+        "K09",
+        "K13",
+        "K14"
+      ],
+      "mutationIds": [
+        "M18",
+        "M19",
+        "M20",
+        "M21",
+        "M22",
+        "M23",
+        "M24",
+        "M25",
+        "M39",
+        "M40",
+        "M42"
+      ],
+      "requiredTestIds": [
+        "clean-install-start-stop-restart.test",
+        "single-backend-installed-runtime.test",
+        "offline-installed-runtime-ready.test",
+        "installed-tree-old-runtime-scan-zero.test",
+        "wp7-wp4-credential-authority-installed-regression.test",
+        "wp7-wp5-runtime-authority-installed-regression.test",
+        "wp7-api-v2-event-gap-snapshot-recovery.test",
+        "wp7-backend-crash-recovery-installed.test",
+        "wp7-installer-sha256-preinstall.test",
+        "wp7-first-start-clean-initialization.test",
+        "wp7-no-old-process-or-build-contamination.test"
+      ],
+      "requiredEvidenceOutputs": [
+        "evidence/wp7/restart-cycle.json",
+        "evidence/wp7/runtime-ownership.json",
+        "evidence/wp7/safe-mode-removal.json",
+        "evidence/wp7/credential-ready-gate.json",
+        "evidence/wp7/offline-startup.json",
+        "evidence/wp7/install-tree-inventory.json",
+        "evidence/wp7/preinstall-installer-sha256.json",
+        "evidence/wp7/first-start-initialization.json",
+        "evidence/wp7/no-contamination.json"
+      ],
+      "blockingReasonCodes": [
+        "WP7_INSTALLED_LEGACY_RUNTIME_DETECTED",
+        "WP7_INSTALLED_DUAL_RUNTIME_OWNER",
+        "WP7_EVENT_GAP_RECOVERY_BYPASS",
+        "WP7_BACKEND_CRASH_RECOVERY_FAILED",
+        "WP7_INSTALLED_READY_GATE_BYPASS",
+        "WP7_CREDENTIAL_OWNER_CONTAINMENT_BYPASS",
+        "WP7_LEGACY_MODE_FALLBACK_DETECTED",
+        "WP7_OFFLINE_STARTUP_FAILED",
+        "WP7_PREINSTALL_INSTALLER_SHA256_MISMATCH",
+        "WP7_FIRST_START_NOT_CLEAN"
+      ],
+      "requiredBeforePhase": "FINAL_WINDOWS_COMPLETION"
+    },
+    {
+      "id": "WS09",
+      "name": "Machine-readable evidence and phase aggregate",
+      "objective": "Regenerate final evidence only from the sealed installer and join every record on one source, build session, buildId and installer SHA256.",
+      "requiredProperties": [
+        "schema validation",
+        "SHA256-pinned child evidence",
+        "no development evidence substitution",
+        "A01-A10 individually mapped and validated",
+        "inherited risks disclosed unchanged",
+        "no secret material"
+      ],
+      "entryConditions": [
+        "evidence schema and A01-A10 mapping frozen",
+        "child evidence producers declare identity tuple"
+      ],
+      "exitConditions": [
+        "all child JSON schema-valid and SHA256-pinned",
+        "A01-A10 each appear exactly once",
+        "aggregate references only final evidence and shares one identity tuple"
+      ],
+      "faultIds": [
+        "F29",
+        "F30",
+        "F31",
+        "F32",
+        "F33",
+        "F34",
+        "F46"
+      ],
+      "raceIds": [
+        "C05",
+        "C10",
+        "C15"
+      ],
+      "crashIds": [
+        "K06",
+        "K10"
+      ],
+      "mutationIds": [
+        "M26",
+        "M27",
+        "M28",
+        "M29",
+        "M30",
+        "M31",
+        "M44"
+      ],
+      "requiredTestIds": [
+        "wp7-final-evidence-reference-only.test",
+        "acceptance-evidence-schema.test",
+        "wp7-evidence-cross-file-identity.test",
+        "wp7-boot-failure-diagnostics.test",
+        "wp7-acceptance-check-mapping.test",
+        "wp7-inherited-risk-register.test",
+        "wp7-unsigned-policy-truthfulness.test",
+        "wp7-deferred-scope-claim-denied.test",
+        "wp7-clean-install-evidence-completeness.test"
+      ],
+      "requiredEvidenceOutputs": [
+        "evidence/wp7/pre-review/evidence-schema-closure.json",
+        "evidence/wp7/boot-failure-diagnostics.json",
+        "evidence/wp7/final-release-evidence.json",
+        "evidence/phase1-acceptance-evidence.json"
+      ],
+      "blockingReasonCodes": [
+        "WP7_BOOT_DIAGNOSTIC_INCOMPLETE",
+        "WP7_FINAL_EVIDENCE_REFERENCE_VIOLATION",
+        "WP7_EVIDENCE_IDENTITY_SPLIT",
+        "WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID",
+        "WP7_UNSIGNED_POLICY_MISAPPLIED",
+        "WP7_DEFERRED_SCOPE_CLAIMED",
+        "WP7_INHERITED_RISK_RECORD_MISMATCH",
+        "WP7_CLEAN_INSTALL_EVIDENCE_INCOMPLETE"
+      ],
+      "requiredBeforePhase": "CONVERGENCE_PRE_REVIEW_SCHEMA_AND_FINAL_PACKAGING_AGGREGATE"
+    },
+    {
+      "id": "WS10",
+      "name": "Verification, mutation and adversarial closure",
+      "objective": "Execute every PRE_REVIEW and PRE_REVIEW_AND_FINAL test before Convergence Pre-Review, then require final repeats and final-only tests during Final Packaging; close all matrices, mutations and adversarial review.",
+      "requiredProperties": [
+        "zero test failures",
+        "zero mutation survivors",
+        "zero invalid/timeout/signal/harness error",
+        "repository clean",
+        "all evidence schema checks pass"
+      ],
+      "entryConditions": [
+        "WS01-WS09 phase-applicable implementation obligations complete",
+        "test harnesses and mutation oracles available"
+      ],
+      "exitConditions": [
+        "all PRE_REVIEW and PRE_REVIEW_AND_FINAL executions PASS before pre-review",
+        "all final repeats and FINAL_PACKAGING/FINAL_WINDOWS executions PASS before final acceptance",
+        "zero mutation survivors/invalid/timeouts/signals/harness errors",
+        "developer adversarial review PASS with evidence pointers"
+      ],
+      "faultIds": [
+        "F01",
+        "F02",
+        "F03",
+        "F04",
+        "F05",
+        "F06",
+        "F07",
+        "F08",
+        "F09",
+        "F10",
+        "F11",
+        "F12",
+        "F13",
+        "F14",
+        "F15",
+        "F16",
+        "F17",
+        "F18",
+        "F19",
+        "F20",
+        "F21",
+        "F22",
+        "F23",
+        "F24",
+        "F25",
+        "F26",
+        "F27",
+        "F28",
+        "F29",
+        "F30",
+        "F31",
+        "F32",
+        "F33",
+        "F34",
+        "F35",
+        "F36",
+        "F37",
+        "F38",
+        "F39",
+        "F40",
+        "F41",
+        "F42",
+        "F43",
+        "F44",
+        "F45",
+        "F46",
+        "F47"
+      ],
+      "raceIds": [
+        "C01",
+        "C02",
+        "C03",
+        "C04",
+        "C05",
+        "C06",
+        "C07",
+        "C08",
+        "C09",
+        "C10",
+        "C11",
+        "C12",
+        "C13",
+        "C14",
+        "C15"
+      ],
+      "crashIds": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K15"
+      ],
+      "mutationIds": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M06",
+        "M07",
+        "M08",
+        "M09",
+        "M10",
+        "M11",
+        "M12",
+        "M13",
+        "M14",
+        "M15",
+        "M16",
+        "M17",
+        "M18",
+        "M19",
+        "M20",
+        "M21",
+        "M22",
+        "M23",
+        "M24",
+        "M25",
+        "M26",
+        "M27",
+        "M28",
+        "M29",
+        "M30",
+        "M31",
+        "M32",
+        "M33",
+        "M34",
+        "M35",
+        "M36",
+        "M37",
+        "M38",
+        "M39",
+        "M40",
+        "M41",
+        "M42",
+        "M43",
+        "M44"
+      ],
+      "requiredTestIds": [
+        "final-build-clean-staging.test",
+        "final-build-source-freeze-match.test",
+        "wp1-artifact-reuse-denied.test",
+        "final-payload-recomputed.test",
+        "final-installer-build-id-consistency.test",
+        "wp7-final-evidence-reference-only.test",
+        "acceptance-evidence-schema.test",
+        "wp7-upstream-accepted-binding.test",
+        "wp7-wp6-final-binding-required.test",
+        "wp7-release-protocol-version-consistency.test",
+        "wp7-wp0-real-build-branch-gate.test",
+        "wp7-build-session-exclusive.test",
+        "wp7-build-crash-recovery.test",
+        "wp7-installer-seal-and-external-hash.test",
+        "wp7-unsigned-policy-truthfulness.test",
+        "wp7-deferred-scope-claim-denied.test",
+        "wp7-inherited-risk-register.test",
+        "wp7-evidence-cross-file-identity.test",
+        "wp7-complete-project-source-delivery.test",
+        "wp7-complete-bundle-parent-chain.test",
+        "wp7-clean-install-evidence-completeness.test",
+        "wp7-release-source-runtime-protocol-convergence.test",
+        "wp7-boot-failure-diagnostics.test",
+        "wp7-acceptance-check-mapping.test",
+        "wp7-workstream-traceability.test"
+      ],
+      "requiredEvidenceOutputs": [
+        "evidence/wp7/pre-review/verification-summary.json",
+        "evidence/wp7/pre-review/fault-race-crash-results.json",
+        "evidence/wp7/pre-review/mutation-results.json",
+        "evidence/wp7/pre-review/developer-adversarial-review.json"
+      ],
+      "blockingReasonCodes": [
+        "WP7_REQUIRED_TEST_PHASE_CONTRADICTION",
+        "WP7_TEST_FAILURE",
+        "WP7_MUTATION_SURVIVOR",
+        "WP7_MUTATION_HARNESS_ERROR",
+        "WP7_ADVERSARIAL_REVIEW_INCOMPLETE"
+      ],
+      "requiredBeforePhase": "CONVERGENCE_PRE_REVIEW"
+    }
+  ],
+  "validationRules": [
+    "WS01-WS10 each exist exactly once.",
+    "Every referenced F/C/K/M/test ID exists in the normative matrices or test registry.",
+    "Every workstream has non-empty entryConditions, exitConditions, requiredTestIds, requiredEvidenceOutputs, blockingReasonCodes and requiredBeforePhase.",
+    "A workstream cannot be declared closed until all phase-applicable tests and evidence obligations pass."
+  ],
+  "executionStatus": "NOT_STARTED"
+}

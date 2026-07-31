@@ -1,0 +1,250 @@
+[CmdletBinding()]
+param(
+  [switch]$UseIsolatedData,
+  [string]$CustomDataRoot = '',
+  [ValidateRange(1024, 65535)]
+  [int]$Port = 27632
+)
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+Set-Location -LiteralPath $PSScriptRoot
+
+$expectedCommit = '__EXPECTED_COMMIT__'
+$expectedTree = '__EXPECTED_TREE__'
+$expectedBranch = '__EXPECTED_BRANCH__'
+$payloadName = '__PAYLOAD_NAME__'
+$payloadSha256 = '__PAYLOAD_SHA256__'
+$shortCommit = $expectedCommit.Substring(0, 7)
+$payloadPath = Join-Path $PSScriptRoot (Join-Path 'payload' $payloadName)
+$installRoot = Join-Path $env:LOCALAPPDATA (Join-Path 'Yance-UAT-Candidates' $shortCommit)
+$sourceRoot = Join-Path $installRoot 'source'
+$logRoot = Join-Path $installRoot 'installer-logs'
+$restoreRoot = Join-Path $env:LOCALAPPDATA (Join-Path 'Yance-UAT-RestorePoints' $shortCommit)
+
+function Write-Step([string]$Text) {
+  Write-Host "[Yance Round 12/13 UAT] $Text" -ForegroundColor Cyan
+}
+
+function Get-LowerSha256([string]$Path) {
+  return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()
+}
+
+function Stop-YanceProcesses {
+  foreach ($name in @('Yance', 'Yance29')) {
+    Get-Process -Name $name -ErrorAction SilentlyContinue | ForEach-Object {
+      Write-Step "Stopping old process: $($_.ProcessName) PID=$($_.Id)"
+      Stop-Process -Id $_.Id -Force -ErrorAction Stop
+    }
+  }
+
+  try {
+    foreach ($owner in @(Get-NetTCPConnection -LocalPort $Port -ErrorAction Stop)) {
+      $process = Get-Process -Id $owner.OwningProcess -ErrorAction SilentlyContinue
+      if (-not $process) { continue }
+      $path = ''
+      try { $path = [string]$process.Path } catch {}
+      if ($process.ProcessName -in @('node', 'electron') -and $path -match '(?i)Yance-UAT-Candidates|Yance|node') {
+        Write-Step "Stopping stale port owner: $($process.ProcessName) PID=$($process.Id)"
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+      }
+    }
+  } catch {}
+}
+
+function Assert-NodeVersion {
+  $node = Get-Command node.exe -ErrorAction SilentlyContinue
+  if (-not $node) { throw 'Node.js was not found. Node.js 22.5.0 or newer is required.' }
+  $raw = (& $node.Source --version 2>$null | Out-String).Trim().TrimStart('v')
+  $version = [Version]$raw
+  if ($version -lt [Version]'22.5.0') { throw "Node.js version is too old: $raw; required >=22.5.0." }
+  return $node.Source
+}
+
+function Get-ExistingDataRoot([string]$NodePath) {
+  if ($UseIsolatedData) { return '' }
+  if ($CustomDataRoot) { return [IO.Path]::GetFullPath($CustomDataRoot) }
+  $script = @'
+const delivery = require('./tools/runtime-delivery/source-uat-delivery');
+const rows = delivery.discoverExistingDataRoots()
+  .filter(item => item && item.databaseExists)
+  .sort((a, b) => Number(b.databaseSizeBytes || 0) - Number(a.databaseSizeBytes || 0));
+process.stdout.write(rows[0] ? String(rows[0].dataRoot || '') : '');
+'@
+  return (& $NodePath -e $script 2>$null | Out-String).Trim()
+}
+
+function New-DatabaseRecoveryPoint([string]$DataRoot) {
+  if (-not $DataRoot) { return $null }
+  $store = Join-Path $DataRoot 'store'
+  $database = Join-Path $store 'yance-r32.db'
+  if (-not (Test-Path -LiteralPath $database -PathType Leaf)) { return $null }
+  $timestamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ')
+  $destination = Join-Path $restoreRoot $timestamp
+  New-Item -ItemType Directory -Path $destination -Force | Out-Null
+  $records = @()
+  foreach ($suffix in @('', '-wal', '-shm')) {
+    $source = "$database$suffix"
+    if (Test-Path -LiteralPath $source -PathType Leaf) {
+      $target = Join-Path $destination (Split-Path -Leaf $source)
+      Copy-Item -LiteralPath $source -Destination $target -Force
+      $sourceHash = Get-LowerSha256 $source
+      $targetHash = Get-LowerSha256 $target
+      if ($sourceHash -ne $targetHash) { throw "Recovery point verification failed for $(Split-Path -Leaf $source)." }
+      $records += [ordered]@{
+        name = Split-Path -Leaf $target
+        sizeBytes = (Get-Item -LiteralPath $target).Length
+        sha256 = $targetHash
+      }
+    }
+  }
+  if (@($records).Count -eq 0) { throw 'Recovery point did not contain any database files.' }
+  $record = [ordered]@{
+    schemaVersion = 3
+    createdAtUtc = [DateTime]::UtcNow.ToString('o')
+    sourceDataRoot = $DataRoot
+    expectedCommit = $expectedCommit
+    expectedTree = $expectedTree
+    files = $records
+    verified = $true
+  }
+  $record | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $destination 'RECOVERY_POINT.json') -Encoding UTF8
+  return $destination
+}
+
+function Invoke-NodeEntry(
+  [string]$NodePath,
+  [string]$DataRoot,
+  [string]$ScriptRelativePath,
+  [string]$ArgumentsSuffix,
+  [string]$StdoutPath,
+  [string]$StderrPath
+) {
+  $scriptPath = Join-Path $sourceRoot $ScriptRelativePath
+  if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) { throw "Missing Node entry: $scriptPath" }
+
+  $oldDataRoot = [Environment]::GetEnvironmentVariable('YANCE_UAT_SELECTED_DATA_ROOT', 'Process')
+  $oldPort = [Environment]::GetEnvironmentVariable('YANCE_PORT', 'Process')
+  try {
+    if ($DataRoot) { $env:YANCE_UAT_SELECTED_DATA_ROOT = $DataRoot }
+    else { Remove-Item Env:YANCE_UAT_SELECTED_DATA_ROOT -ErrorAction SilentlyContinue }
+    $env:YANCE_PORT = [string]$Port
+
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $NodePath
+    $startInfo.WorkingDirectory = $sourceRoot
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $false
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $escapedScript = $scriptPath.Replace('"', '\"')
+    $startInfo.Arguments = '"' + $escapedScript + '"' + $ArgumentsSuffix
+
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $startInfo
+    if (-not $process.Start()) { throw 'Node.js process did not start.' }
+    $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+    $stderrTask = $process.StandardError.ReadToEndAsync()
+    $process.WaitForExit()
+    $stdout = $stdoutTask.Result
+    $stderr = $stderrTask.Result
+    [IO.File]::WriteAllText($StdoutPath, [string]$stdout, (New-Object Text.UTF8Encoding($false)))
+    [IO.File]::WriteAllText($StderrPath, [string]$stderr, (New-Object Text.UTF8Encoding($false)))
+    if ($stdout) { Write-Host $stdout.TrimEnd() }
+    if ($stderr) { Write-Host $stderr.TrimEnd() -ForegroundColor Yellow }
+    return [int]$process.ExitCode
+  } finally {
+    if ($null -eq $oldDataRoot) { Remove-Item Env:YANCE_UAT_SELECTED_DATA_ROOT -ErrorAction SilentlyContinue }
+    else { $env:YANCE_UAT_SELECTED_DATA_ROOT = $oldDataRoot }
+    if ($null -eq $oldPort) { Remove-Item Env:YANCE_PORT -ErrorAction SilentlyContinue }
+    else { $env:YANCE_PORT = $oldPort }
+  }
+}
+
+try {
+  if (-not [Environment]::Is64BitOperatingSystem) { throw '64-bit Windows is required.' }
+  if (-not (Test-Path -LiteralPath $payloadPath -PathType Leaf)) { throw "Missing source payload: $payloadPath" }
+  $actualPayloadSha256 = Get-LowerSha256 $payloadPath
+  if ($actualPayloadSha256 -ne $payloadSha256) {
+    throw "Source payload SHA256 mismatch. Expected=$payloadSha256 Actual=$actualPayloadSha256"
+  }
+
+  $node = Assert-NodeVersion
+  Stop-YanceProcesses
+  New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
+
+  if (Test-Path -LiteralPath $sourceRoot) { Remove-Item -LiteralPath $sourceRoot -Recurse -Force }
+  New-Item -ItemType Directory -Path $sourceRoot -Force | Out-Null
+  Write-Step 'Extracting the verified Round 12/13 UAT source payload...'
+  Expand-Archive -LiteralPath $payloadPath -DestinationPath $sourceRoot -Force
+
+  $checkpointPath = Join-Path $sourceRoot 'YANCE_SOURCE_CHECKPOINT.json'
+  if (-not (Test-Path -LiteralPath $checkpointPath -PathType Leaf)) { throw 'The source payload is missing YANCE_SOURCE_CHECKPOINT.json.' }
+  $checkpoint = Get-Content -LiteralPath $checkpointPath -Raw | ConvertFrom-Json
+  if ($checkpoint.commit -ne $expectedCommit -or $checkpoint.tree -ne $expectedTree -or $checkpoint.branch -ne $expectedBranch) {
+    throw 'The extracted source identity does not match the installation candidate.'
+  }
+
+  Set-Location -LiteralPath $sourceRoot
+  $dataRoot = Get-ExistingDataRoot -NodePath $node
+  $recoveryPoint = New-DatabaseRecoveryPoint -DataRoot $dataRoot
+  if ($recoveryPoint) { Write-Step "Verified database recovery point: $recoveryPoint" }
+  elseif ($UseIsolatedData) { Write-Step 'Using an isolated UAT data directory.' }
+  else { Write-Step 'No existing SQLite database was selected; using an isolated UAT data directory.' }
+
+  $stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ')
+  $prepareStdout = Join-Path $logRoot "dependency-prepare-$stamp.stdout.log"
+  $prepareStderr = Join-Path $logRoot "dependency-prepare-$stamp.stderr.log"
+  Write-Step 'Installing and verifying complete dependencies before any product launch...'
+  $prepareExit = Invoke-NodeEntry -NodePath $node -DataRoot $dataRoot -ScriptRelativePath 'tools\runtime-delivery\start-source-uat.js' -ArgumentsSuffix ' --install --prepare-only --allow-dirty' -StdoutPath $prepareStdout -StderrPath $prepareStderr
+  if ($prepareExit -ne 0) {
+    throw "Dependency installation or integrity verification failed. ExitCode=$prepareExit Stdout=$prepareStdout Stderr=$prepareStderr"
+  }
+
+  $gateStdout = Join-Path $logRoot "prelaunch-gates-$stamp.stdout.log"
+  $gateStderr = Join-Path $logRoot "prelaunch-gates-$stamp.stderr.log"
+  Write-Step 'Running Round 12/13 platform-core, AI-quality, UI, candidate-binding and theme gates...'
+  $gateExit = Invoke-NodeEntry -NodePath $node -DataRoot $dataRoot -ScriptRelativePath 'tools\runtime-delivery\run-round12-13-prelaunch-gates.js' -ArgumentsSuffix '' -StdoutPath $gateStdout -StderrPath $gateStderr
+  if ($gateExit -ne 0) {
+    throw "Round 12/13 prelaunch gates failed. The application was not started. ExitCode=$gateExit Stdout=$gateStdout Stderr=$gateStderr"
+  }
+
+  $gateReceiptPath = Join-Path $sourceRoot 'YANCE_RUNTIME_PRELAUNCH_GATE_RECEIPT.json'
+  $authorizationRecordSha256 = ''
+  if ($env:YANCE_WINDOWS_UAT_AUTHORIZATION_RECORD -and (Test-Path -LiteralPath $env:YANCE_WINDOWS_UAT_AUTHORIZATION_RECORD -PathType Leaf)) {
+    $authorizationRecordSha256 = Get-LowerSha256 $env:YANCE_WINDOWS_UAT_AUTHORIZATION_RECORD
+  }
+  $gateReceipt = [ordered]@{
+    schemaVersion = 1
+    documentType = 'YANCE_RUNTIME_PRELAUNCH_GATE_RECEIPT'
+    generatedAtUtc = [DateTime]::UtcNow.ToString('o')
+    status = 'PASS'
+    branch = $expectedBranch
+    commit = $expectedCommit
+    tree = $expectedTree
+    prelaunchGatePassed = $true
+    stdoutPath = $gateStdout
+    stderrPath = $gateStderr
+    stdoutSha256 = Get-LowerSha256 $gateStdout
+    stderrSha256 = Get-LowerSha256 $gateStderr
+    authorizationId = [string]$env:YANCE_WINDOWS_UAT_AUTHORIZATION_ID
+    authorizationRecordSha256 = $authorizationRecordSha256
+    formalRelease = $false
+  }
+  $gateReceipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $gateReceiptPath -Encoding UTF8
+  $env:YANCE_RUNTIME_PRELAUNCH_GATE_RECEIPT = $gateReceiptPath
+
+  $stdoutPath = Join-Path $logRoot "launch-$stamp.stdout.log"
+  $stderrPath = Join-Path $logRoot "launch-$stamp.stderr.log"
+  Write-Step "Starting source identity: $expectedCommit / $expectedTree"
+  Write-Step 'Enter OpenRouter and platform credentials only inside the running Yance application.'
+  $exitCode = Invoke-NodeEntry -NodePath $node -DataRoot $dataRoot -ScriptRelativePath 'tools\runtime-delivery\start-source-uat.js' -ArgumentsSuffix '' -StdoutPath $stdoutPath -StderrPath $stderrPath
+  if ($exitCode -ne 0) {
+    throw "Startup failed. ExitCode=$exitCode Stdout=$stdoutPath Stderr=$stderrPath"
+  }
+  exit 0
+} catch {
+  Write-Host "[Yance Round 12/13 UAT] FAILED: $($_.Exception.Message)" -ForegroundColor Red
+  Write-Host 'The previous installation and the existing data directory were not deleted.' -ForegroundColor Yellow
+  exit 1
+}

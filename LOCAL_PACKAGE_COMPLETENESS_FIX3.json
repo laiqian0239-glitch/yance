@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_LOCAL_PACKAGE_COMPLETENESS_FIX",
+  "fixId": "FIX3-RESTORE-WHATSAPP-REAL-UAT-ROOT-ENTRY",
+  "sourceCheckpointCommit": "1f0a72b321e5ddc4d9404654e024575bea877bf3",
+  "sourceCheckpointTree": "9e633b3b754953523554343ac7cda804060acc95",
+  "formalRelease": false,
+  "windowsUatAuthorized": false,
+  "restoredPackageEntries": [
+    "RUN_WHATSAPP_REAL_UAT_SAFE.ps1",
+    "RUN_WHATSAPP_REAL_UAT_SAFE.cmd"
+  ],
+  "reason": "The source diagnostic contract references these root launch entries, but the FIX2 local-validation ZIP omitted them. FIX3 restores the omitted package entries without treating the local package as a release candidate."
+}

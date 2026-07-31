@@ -1,0 +1,38 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "yance-facebook-gateway",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-01",
+  "workers_dev": true,
+  "observability": { "enabled": true, "head_sampling_rate": 0.1 },
+  "vars": {
+    "FACEBOOK_GRAPH_VERSION": "v25.0",
+    "META_BUSINESS_LOGIN_CONFIG_ID": "4234889550142986",
+    "WORKER_BASE_URL": "https://yance-facebook-gateway.wangyi198675.workers.dev",
+    "OAUTH_STATE_TTL_SECONDS": "1800",
+    "EVENT_RETENTION_DAYS": "7",
+    "DEAD_LETTER_RETENTION_DAYS": "30",
+    "MEDIA_RETENTION_DAYS": "14",
+    "MEDIA_RETRY_MAX_ATTEMPTS": "6",
+    "MEDIA_RETRY_BASE_SECONDS": "30",
+    "DESKTOP_REQUEST_WINDOW_SECONDS": "300",
+    "DESKTOP_RATE_LIMIT_PER_MINUTE": "120",
+    "MAX_WEBHOOK_BODY_BYTES": "2097152",
+    "MAX_DESKTOP_BODY_BYTES": "33554432"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "yance-facebook-gateway",
+      "database_id": "9394aab2-8a7d-40fa-88b5-90455a7a0bbd",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "yance-facebook-media"
+    }
+  ],
+  "triggers": { "crons": ["17 3 * * *"] }
+}

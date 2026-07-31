@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_COMPONENT_READABILITY_ROOT_CAUSE_CLOSURE",
+  "defectIds": [
+    "DEFECT-003",
+    "DEFECT-004",
+    "DEFECT-005",
+    "DEFECT-006"
+  ],
+  "status": "UNIT_BEHAVIOR_PASS",
+  "windowsRenderStatus": "PENDING",
+  "endToEndTaskStatus": "PENDING",
+  "userConfirmationStatus": "PENDING",
+  "authority": "SharedActionControlReadabilityAuthority",
+  "implementation": [
+    "frontend/r32-component-readability.css",
+    "frontend/index.html"
+  ],
+  "ownershipRules": [
+    "主题色板继续冻结；组件层只消费语义颜色变量",
+    "正式按钮必须有可见文字或明确 aria-label，文字与背景不得使用同一语义颜色",
+    "中文可变文本不得依赖固定高度承载",
+    "候选操作、学习操作和客户档案操作共用同一可读性合同",
+    "候选元数据在右侧窄栏必须水平书写并允许自然换行"
+  ],
+  "registeredControlGroups": [
+    "candidate-actions",
+    "profile-actions",
+    "micro-tune",
+    "candidate-trust",
+    "contact-detail-actions",
+    "timeline27-detail-actions",
+    "insight29-decision-actions",
+    "aiw30-actions"
+  ],
+  "targetedEvidence": {
+    "sourceContractTest": "tests/uat/componentReadabilityContract.test.js",
+    "legacySameColorControlScan": "enabled",
+    "visibleActionLabels": [
+      "放入输入框",
+      "选择合并",
+      "编辑",
+      "拒绝候选",
+      "重新生成",
+      "刷新",
+      "撤销最近学习",
+      "导出",
+      "清空当前联系人学习",
+      "永久忘记学习"
+    ],
+    "componentContractSuite": {
+      "passed": 6,
+      "failed": 0
+    },
+    "adjacentFrozenThemeSuite": {
+      "passed": 7,
+      "failed": 0
+    },
+    "frozenThemeContrast": {
+      "themes": 15,
+      "minimumRequiredRatio": 7,
+      "status": "PASS"
+    },
+    "preExistingThemeAuditDebt": {
+      "file": "frontend/js/r32-dialog-runtime.js",
+      "fixedColorHits": 15,
+      "presentInParentCommit": true
+    }
+  },
+  "limitations": [
+    "当前环境没有可用的 Electron/Playwright Windows 渲染器",
+    "尚未在用户真实 Windows、真实主题和真实 DPI 下复验截图",
+    "不得提升为 WINDOWS_RENDER_PASS 或 USER_CONFIRMED_REAL_WINDOWS_PASS"
+  ]
+}

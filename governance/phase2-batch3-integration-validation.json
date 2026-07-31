@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_PHASE2_BATCH3_INTEGRATION_VALIDATION",
+  "baseCommit": "cf04bb9a6f00351815a12a12b3fe469f1ad771bc",
+  "branch": "rebuild/windows-product-experience-closure-20260720-phase2-batch3",
+  "sourceCommits": [
+    "17dd30d",
+    "83ab335",
+    "aa27261",
+    "da18b12"
+  ],
+  "scope": [
+    "computed-style audit for all 15 themes and routed workspaces",
+    "truthful platform capability decisions and visible media send queue state",
+    "Chinese-first relationship insight presentation with expandable original evidence",
+    "mandatory Chinese back-translation status for AI reply candidates",
+    "verified style tuning with strict retry and honest failure",
+    "immediate contact-only learning example prompt contract"
+  ],
+  "phase2TargetedTests": { "passed": 31, "total": 31, "status": "PASS" },
+  "extendedSequentialTests": {
+    "passed": 88,
+    "total": 88,
+    "status": "PASS",
+    "isolatedDataDirectory": true,
+    "testConcurrency": 1
+  },
+  "javascriptSyntax": { "passed": 10, "total": 10, "status": "PASS" },
+  "cssStructure": { "passed": 3, "total": 3, "status": "PASS" },
+  "themeColorAudit": {
+    "status": "PASS",
+    "legacyInlineStructuralColorDebt": 0,
+    "maintainedRuntimeFixedColors": 0
+  },
+  "gitDiffCheck": "PASS",
+  "fullPipelineExecuted": false,
+  "wp7Executed": false,
+  "strictRoundsExecuted": false,
+  "builderExecuted": false,
+  "realWindowsElectronUatExecuted": false,
+  "realComputedStyleAuditExecuted": false,
+  "realOllamaStyleVariationUatExecuted": false,
+  "realPlatformCapabilityUatExecuted": false,
+  "facebookWorkerDeployedByThisBatch": false,
+  "windowsPassClaim": false,
+  "knownLimits": [
+    "The computed-style engine is installed and structurally tested, but every theme and route still requires execution in the real Electron renderer.",
+    "Style tuning now fails honestly when model output does not change, but real local-model behavior must be verified on the user's Ollama installation.",
+    "Chinese-first relationship presentation depends on translated authority data; missing translations are surfaced as pending rather than invented.",
+    "Platform capability menus depend on real runtime capability contracts and still require WhatsApp, Telegram and Facebook account UAT.",
+    "Facebook production deployment and real OAuth/message exchange were not executed in this source batch."
+  ]
+}

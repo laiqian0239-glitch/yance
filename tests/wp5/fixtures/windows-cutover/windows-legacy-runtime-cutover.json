@@ -1,0 +1,126 @@
+﻿{
+  "schemaVersion": 1,
+  "stage": "6.4.5.9",
+  "workPackage": "WP5",
+  "evidenceId": "WP5_WINDOWS_LEGACY_RUNTIME_CUTOVER",
+  "generatedAtUtc": "2026-07-05T04:23:12.615Z",
+  "platform": "win32",
+  "status": "PASS",
+  "reasonCode": null,
+  "productionChainExecuted": true,
+  "requiredCheckIds": [
+    "NO_OWNER_ALLOWS_STARTUP",
+    "LIVE_OWNER_CONTAINED",
+    "PID_REUSE_NOT_KILLED",
+    "AMBIGUOUS_IDENTITY_FAILS_CLOSED"
+  ],
+  "checks": [
+    {
+      "id": "NO_OWNER_ALLOWS_STARTUP",
+      "status": "PASS",
+      "detail": {
+        "ok": true,
+        "state": "LEGACY_OWNER_CLEARED",
+        "ownerRecordPath": "C:\\Users\\1\\AppData\\Local\\Temp\\wp5-windows-cutover-BBSWNW\\no-record\\Yance27\\secure\\desktop-backend-owner.json",
+        "legacyDataRoot": "C:\\Users\\1\\AppData\\Local\\Temp\\wp5-windows-cutover-BBSWNW\\no-record\\Yance27",
+        "ownerRecordPresent": false,
+        "sourceRegistryMutated": false,
+        "checkedAtUtc": "2026-07-05T04:23:10.527Z"
+      }
+    },
+    {
+      "id": "LIVE_OWNER_CONTAINED",
+      "status": "PASS",
+      "detail": {
+        "ok": true,
+        "state": "LEGACY_OWNER_EXIT_CONFIRMED",
+        "ownerRecordPath": "C:\\Users\\1\\AppData\\Local\\Temp\\wp5-windows-cutover-BBSWNW\\live\\Yance27\\secure\\desktop-backend-owner.json",
+        "legacyDataRoot": "C:\\Users\\1\\AppData\\Local\\Temp\\wp5-windows-cutover-BBSWNW\\live\\Yance27",
+        "backendPid": 22312,
+        "sourceRegistryMutated": false,
+        "initialProbe": {
+          "alive": true,
+          "identityMatch": true,
+          "reasonCode": "OWNER_IDENTITY_MATCH",
+          "backendPid": 22312,
+          "expected": {
+            "platform": "win32",
+            "creationTimeUtc": "2026-07-05T04:23:10.5332120Z",
+            "executablePathDigest": "8739d9665d20f9e1f80a3a8e47113ad150945e2190ae0127732178fa98b89aef",
+            "commandDigest": "dc18590f9438f8bb5926d3db118980b9408a4d8c5cfa2c3642f77b01cd5ab7f8"
+          },
+          "actual": {
+            "platform": "win32",
+            "creationTimeUtc": "2026-07-05T04:23:10.5332120Z",
+            "executablePathDigest": "8739d9665d20f9e1f80a3a8e47113ad150945e2190ae0127732178fa98b89aef",
+            "commandDigest": "dc18590f9438f8bb5926d3db118980b9408a4d8c5cfa2c3642f77b01cd5ab7f8"
+          }
+        },
+        "finalProbe": {
+          "alive": false,
+          "identityMatch": true,
+          "reasonCode": "OWNER_NOT_LIVE",
+          "backendPid": 22312
+        },
+        "forced": false,
+        "pidReusedAfterSignal": false,
+        "checkedAtUtc": "2026-07-05T04:23:11.411Z"
+      },
+      "sourceRegistryUnchanged": true
+    },
+    {
+      "id": "PID_REUSE_NOT_KILLED",
+      "status": "PASS",
+      "detail": {
+        "ok": true,
+        "state": "LEGACY_OWNER_CLEARED",
+        "pidReused": true,
+        "ownerRecordPath": "C:\\Users\\1\\AppData\\Local\\Temp\\wp5-windows-cutover-BBSWNW\\pid-reuse\\Yance27\\secure\\desktop-backend-owner.json",
+        "legacyDataRoot": "C:\\Users\\1\\AppData\\Local\\Temp\\wp5-windows-cutover-BBSWNW\\pid-reuse\\Yance27",
+        "backendPid": 17652,
+        "sourceRegistryMutated": false,
+        "initialProbe": {
+          "alive": true,
+          "identityMatch": false,
+          "reasonCode": "OWNER_PID_REUSED",
+          "backendPid": 17652,
+          "expected": {
+            "platform": "win32",
+            "creationTimeUtc": "2026-07-05T04:23:11.4146530Z",
+            "executablePathDigest": "8739d9665d20f9e1f80a3a8e47113ad150945e2190ae0127732178fa98b89aef",
+            "commandDigest": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          "actual": {
+            "platform": "win32",
+            "creationTimeUtc": "2026-07-05T04:23:11.4146530Z",
+            "executablePathDigest": "8739d9665d20f9e1f80a3a8e47113ad150945e2190ae0127732178fa98b89aef",
+            "commandDigest": "f1abb5149b7c6e8fb1fa3cbc4507f8c2fad803468d43ff59cbaac1855f0affdd"
+          }
+        },
+        "finalProbe": {
+          "alive": true,
+          "identityMatch": false,
+          "reasonCode": "OWNER_PID_REUSED",
+          "backendPid": 17652
+        },
+        "checkedAtUtc": "2026-07-05T04:23:12.205Z"
+      },
+      "killAttempts": 0,
+      "unrelatedProcessStillLive": true,
+      "sourceRegistryUnchanged": true
+    },
+    {
+      "id": "AMBIGUOUS_IDENTITY_FAILS_CLOSED",
+      "status": "PASS",
+      "blockedCode": "WP5_LEGACY_OWNER_AMBIGUOUS",
+      "killAttempts": 0,
+      "ownerStillLive": true,
+      "sourceRegistryUnchanged": true
+    }
+  ],
+  "completeness": {
+    "missing": [],
+    "duplicates": [],
+    "failed": []
+  }
+}

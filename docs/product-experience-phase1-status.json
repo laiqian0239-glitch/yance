@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_PRODUCT_EXPERIENCE_PHASE1_STATUS",
+  "branch": "rebuild/windows-product-experience-closure-20260720-phase1",
+  "baseCommit": "70821c3747ec94875ba08fb27dc0873943d0b4f7",
+  "scope": {
+    "uatAuditPoints": "UAT-001..UAT-070",
+    "engineeringWorkPackages": 13,
+    "currentSegment": "bilingual-governance-search-and-translation-jobs"
+  },
+  "implementedInThisSegment": [
+    "real three-layer reply-learning governance with preference enable-disable-delete and version restore",
+    "candidate-level proof of the exact reviewed learning applied to generation",
+    "Persona Chinese understanding layer that preserves authoritative source data",
+    "bilingual full-text search across contacts, original messages and persisted Chinese translations",
+    "message translation job lifecycle with progress, cancellation and retry",
+    "explicit cancelled translation persistence without deleting source text"
+  ],
+  "targetedValidation": {
+    "testsPassed": 36,
+    "testsTotal": 36,
+    "javascriptSyntax": "PASS",
+    "gitDiffCheck": "PASS",
+    "cssBraceCheck": "PASS"
+  },
+  "notExecuted": {
+    "fullPipeline": true,
+    "wp7": true,
+    "strictRounds": true,
+    "builder": true,
+    "realWindowsElectronUat": true,
+    "realOllamaUat": true,
+    "realPlatformUat": true
+  },
+  "claims": {
+    "windowsPass": false,
+    "platformPass": false,
+    "releaseAuthorized": false
+  }
+}

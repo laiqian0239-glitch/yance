@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP7_ACTIVATION_READINESS_REBIND",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP7",
+  "generatedAtUtc": "2026-07-05T09:28:38Z",
+  "readinessStatus": "WP7_READY_FOR_ACTIVATION",
+  "acceptedWp6Baseline": {
+    "finalDeliveryHead": "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+    "finalSourceTree": "485891e55298667df30e2f588daec196dc530eb7",
+    "acceptanceToken": "WP6_ACCEPTED"
+  },
+  "rebind": {
+    "from": "PROVISIONAL_PENDING_WP6_ACCEPTANCE",
+    "to": "BOUND_TO_WP6_ACCEPTED_FINAL_DELIVERY",
+    "remainingProvisionalMarkers": 0
+  },
+  "referencePackage": {
+    "packageId": "Y29-S6.4.5.9-P1-BLUEPRINT-20260702T225634Z-R5",
+    "workPackage": "WP7",
+    "scope": {
+      "name": "Frozen-source clean final build and machine-readable evidence",
+      "dependsOn": [
+        "WP6"
+      ],
+      "actions": [
+        "Freeze source commit after WP0 through WP6 complete",
+        "Build application payload from an empty staging directory",
+        "Regenerate payload-files.json payload hashes release-manifest.json and release-manifest.sha256",
+        "Build final installer and generate external release-evidence.json",
+        "Reject reuse of any WP1 test manifest hash or evidence",
+        "Perform clean install and execute all ten Phase 1 acceptance checks",
+        "Generate evidence/phase1-acceptance-evidence.json",
+        "Regenerate final build identity offline startup build provenance and boot failure diagnostics evidence against the frozen-source final installer",
+        "Generate phase1 acceptance evidence that references only WP7 final-installer evidence and never WP1 WP3 or WP4 development evidence"
+      ],
+      "exitCriteria": [
+        "No old installer overlay mechanism is used",
+        "Final hashes and manifest are recomputed after source freeze",
+        "Installed tree contains no old runtime residue",
+        "All ten machine-readable evidence checks pass",
+        "Phase status becomes PHASE1_ACCEPTED"
+      ],
+      "requiredTests": [
+        "final-build-clean-staging.test",
+        "final-build-source-freeze-match.test",
+        "wp1-artifact-reuse-denied.test",
+        "final-payload-recomputed.test",
+        "final-installer-build-id-consistency.test",
+        "clean-install-start-stop-restart.test",
+        "single-backend-installed-runtime.test",
+        "offline-installed-runtime-ready.test",
+        "installed-tree-old-runtime-scan-zero.test",
+        "wp7-final-evidence-reference-only.test",
+        "acceptance-evidence-schema.test"
+      ],
+      "evidenceOutputs": [
+        "evidence/wp7/source-freeze.json",
+        "evidence/wp7/final-release-evidence.json",
+        "evidence/wp7/clean-install.json",
+        "evidence/wp7/restart-cycle.json",
+        "evidence/wp7/build-identity.json",
+        "evidence/wp7/runtime-ownership.json",
+        "evidence/wp7/safe-mode-removal.json",
+        "evidence/wp7/credential-ready-gate.json",
+        "evidence/wp7/offline-startup.json",
+        "evidence/wp7/install-tree-inventory.json",
+        "evidence/wp7/build-provenance.json",
+        "evidence/wp7/boot-failure-diagnostics.json",
+        "evidence/phase1-acceptance-evidence.json"
+      ]
+    }
+  },
+  "entryConditions": {
+    "wp0ThroughWp6Completed": true,
+    "wp6AcceptedIdentityVerified": true,
+    "activeWorkPackages": [],
+    "lastCompletedWorkPackage": "WP6",
+    "activationIndependentReviewRequired": true,
+    "activationAccepted": false
+  },
+  "hardGates": [
+    {
+      "id": "WP7_ACTIVATION_ACCEPTANCE_GATE",
+      "rule": "WP7 production implementation is forbidden until WP7_ACTIVATION_ACCEPTED is independently signed."
+    },
+    {
+      "id": "WP7_DESIGN_GATE",
+      "rule": "No production code, required-test implementation, final build, installer build, or machine evidence execution before a separate WP7 Design Gate is completed after Activation acceptance."
+    },
+    {
+      "id": "WP7_SOURCE_FREEZE_GATE",
+      "rule": "Final sourceCommit must be frozen only after WP0 through WP6 are complete and must match all final release evidence."
+    },
+    {
+      "id": "WP7_PROTOCOL_VERSION_BINDING_GATE",
+      "rule": "Final release source and release manifest must bind the accepted runtime protocol version 3; otherwise Convergence Pre-Review cannot pass."
+    },
+    {
+      "id": "WP7_WP1_ARTIFACT_REUSE_DENIAL",
+      "rule": "No WP1 test manifest, hash, or evidence may be reused in the final build."
+    },
+    {
+      "id": "WP7_CLEAN_INSTALL_GATE",
+      "rule": "Final verification must use CLEAN_INSTALL and must not require legacy test data migration or rollback to a legacy test version."
+    }
+  ],
+  "riskAcceptanceIdsPreserved": [
+    "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+    "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+    "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+    "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED"
+  ],
+  "riskScopeExpansionAuthorized": false,
+  "installationPolicy": {
+    "FINAL_INSTALLATION_MODE": "CLEAN_INSTALL",
+    "LEGACY_TEST_DATA_MIGRATION_REQUIRED": false,
+    "LEGACY_TEST_VERSION_ROLLBACK_REQUIRED": false
+  },
+  "activationBoundary": {
+    "allowed": [
+      "governance files",
+      "work package status files",
+      "Activation plan",
+      "Readiness binding files",
+      "Activation evidence and identity files"
+    ],
+    "forbidden": [
+      "production code",
+      "database migration",
+      "Electron runtime",
+      "backend",
+      "frontend",
+      "shared protocol",
+      "installer production implementation",
+      "WP7 required tests implementation",
+      "final build artifacts"
+    ]
+  },
+  "result": "PASS_READY_FOR_WP7_ACTIVATION_CANDIDATE_GENERATION"
+}

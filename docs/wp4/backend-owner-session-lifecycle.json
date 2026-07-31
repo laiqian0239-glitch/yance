@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "machine": "Backend Credential Owner Session Lifecycle",
+  "identityFields": ["backendPid","startupNonce","backendSessionId","manifestSha256","vaultEpoch","hydrationGeneration","fd6PipeInstanceId"],
+  "states": {
+    "UNBOUND": {"fd5":true,"fd6":false,"next":["HYDRATION_PENDING"]},
+    "HYDRATION_PENDING": {"condition":"FD5 frame issued but exact ACK not yet accepted","fd5":false,"fd6":"pipe identity may be established but mutations are not authoritative","next":["ACTIVE_OWNER","EXIT_DETECTED","UNAVAILABLE"]},
+    "ACTIVE_OWNER": {"condition":"Exact FD5 ACK accepted and FD6 pipe bound to the same complete identity","fd5":false,"fd6":true,"next":["EXIT_DETECTED","UNAVAILABLE"]},
+    "EXIT_DETECTED": {"condition":"BackendProcessHost observed the real child exit and closed the old FD6 pipe","fd5":false,"fd6":false,"next":["OWNER_EXIT_RECOVERY"]},
+    "OWNER_EXIT_RECOVERY": {"condition":"CredentialVaultHost serialized queue terminates the old owner transaction and verifies authority projection","fd5":false,"fd6":false,"next":["UNBOUND","UNAVAILABLE"]},
+    "UNAVAILABLE": {"condition":"Owner transaction cannot be deterministically committed or rolled back","fd5":false,"fd6":false,"next":[]}
+  },
+  "restartRule":"A new backend may be scheduled only after real child exit, old pipe close, owner-exit recovery, empty activeTransactionId and ACTIVE authority.",
+  "pidReuseRule":"PID equality alone never establishes ownership. Every identity field must match."
+}

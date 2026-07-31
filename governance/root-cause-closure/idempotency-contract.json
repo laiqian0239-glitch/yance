@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DERIVED_DATA_IDEMPOTENCY_CONTRACT",
+  "identityContract": [
+    "platform",
+    "sourceAccountId",
+    "platformContactIdentity",
+    "conversationId",
+    "canonicalContactId"
+  ],
+  "projections": [
+    {
+      "id": "relationshipSignal",
+      "idempotencyKey": [
+        "platform",
+        "sourceAccountId",
+        "conversationId",
+        "platformMessageId",
+        "signalType",
+        "parserVersion"
+      ],
+      "databaseEnforcement": "required_partial_unique_index_implemented",
+      "rebuildable": true,
+      "implementation": [
+        "relationship_state_signals.idempotency_key",
+        "idx_relationship_signals_idempotency"
+      ]
+    },
+    {
+      "id": "relationshipEvent",
+      "idempotencyKey": [
+        "platform",
+        "sourceAccountId",
+        "conversationId",
+        "platformMessageId",
+        "eventType",
+        "projectionVersion"
+      ],
+      "databaseEnforcement": "required_partial_unique_index_implemented",
+      "rebuildable": true,
+      "implementation": [
+        "relationship_timeline_events.idempotency_key",
+        "idx_relationship_timeline_idempotency"
+      ]
+    },
+    {
+      "id": "customerProfileEvidence",
+      "idempotencyKey": [
+        "canonicalContactId",
+        "platform",
+        "sourceAccountId",
+        "conversationId",
+        "platformMessageId",
+        "evidenceType",
+        "projectionVersion"
+      ],
+      "databaseEnforcement": "required_unique_index_implemented",
+      "rebuildable": true,
+      "implementation": [
+        "customer_profile_evidence.idempotency_key UNIQUE",
+        "backend/services/customerProfileEvidenceAuthority.js",
+        "backend/repositories/workspaceRepository.js analysis transaction"
+      ]
+    },
+    {
+      "id": "translationJob",
+      "idempotencyKey": [
+        "platform",
+        "sourceAccountId",
+        "conversationId",
+        "platformMessageId",
+        "targetLanguage",
+        "sourceRevision"
+      ],
+      "databaseEnforcement": "required_unique_index_or_atomic_upsert",
+      "rebuildable": true
+    },
+    {
+      "id": "learningEvent",
+      "idempotencyKey": [
+        "platform",
+        "sourceAccountId",
+        "conversationId",
+        "candidateId",
+        "eventType",
+        "eventRevision"
+      ],
+      "databaseEnforcement": "required_unique_index",
+      "rebuildable": true
+    },
+    {
+      "id": "mediaMaterialization",
+      "idempotencyKey": [
+        "platform",
+        "sourceAccountId",
+        "conversationId",
+        "platformMessageId",
+        "mediaIdentity",
+        "materializerVersion"
+      ],
+      "databaseEnforcement": "required_unique_index_and_durable_job_lease_implemented",
+      "rebuildable": true,
+      "implementation": [
+        "background_job_state.idempotency_key UNIQUE",
+        "backend/services/backgroundJobAuthority.js",
+        "backend/services/whatsappHistoryMediaRecovery.js"
+      ]
+    },
+    {
+      "id": "accountAvatarSync",
+      "idempotencyKey": [
+        "platform",
+        "sourceAccountId",
+        "conversationId",
+        "avatarRevision"
+      ],
+      "databaseEnforcement": "required_unique_index_and_durable_job_lease_implemented",
+      "rebuildable": true,
+      "implementation": [
+        "background_job_state.idempotency_key UNIQUE",
+        "backend/services/backgroundJobAuthority.js",
+        "backend/services/avatarService.js"
+      ]
+    }
+  ],
+  "requiredOperations": [
+    "dry_run",
+    "backup",
+    "rebuild",
+    "verify",
+    "rollback"
+  ],
+  "rules": [
+    "相同源消息和相同投影版本重复处理不得新增业务记录",
+    "后台重启、失败重试和并发执行必须得到同一最终状态",
+    "所有去重修复必须先 dry-run 并输出差异",
+    "用户真实数据库不得静默删除或合并"
+  ]
+}

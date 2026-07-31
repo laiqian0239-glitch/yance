@@ -1,0 +1,134 @@
+[CmdletBinding()]
+param(
+  [ValidateRange(1024, 65535)]
+  [int]$Port = 27632
+)
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+Set-Location -LiteralPath $PSScriptRoot
+$shortCommit = '__SHORT_COMMIT__'
+$expectedCommit = '__EXPECTED_COMMIT__'
+$expectedTree = '__EXPECTED_TREE__'
+$sourceRoot = Join-Path $env:LOCALAPPDATA (Join-Path 'Yance-UAT-Candidates' (Join-Path $shortCommit 'source'))
+$toolPath = Join-Path $sourceRoot 'tools\uat\exportPlatformProductionEvidence.js'
+$node = Get-Command node.exe -ErrorAction SilentlyContinue
+if (-not $node) { throw 'Node.js was not found.' }
+if (-not (Test-Path -LiteralPath $toolPath -PathType Leaf)) { throw "Missing evidence exporter: $toolPath" }
+$downloadRoot = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads'
+if (-not (Test-Path -LiteralPath $downloadRoot -PathType Container)) { $downloadRoot = $env:USERPROFILE }
+$stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ')
+$outputRoot = Join-Path $downloadRoot "YANCE_ROUND12_13_UI_EVIDENCE_$stamp"
+$zipPath = "$outputRoot.zip"
+New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
+$runtimeEvidenceRoot = Join-Path $outputRoot 'runtime'
+& $node.Source $toolPath --base-url "http://127.0.0.1:$Port" --output $runtimeEvidenceRoot
+if ($LASTEXITCODE -ne 0) { throw "Evidence export failed. ExitCode=$LASTEXITCODE" }
+
+$gateErrors = New-Object System.Collections.Generic.List[string]
+function Add-GateError([string]$Message) { $script:gateErrors.Add($Message) | Out-Null }
+function Read-JsonFile([string]$Path) {
+  if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { Add-GateError "Missing evidence file: $Path"; return $null }
+  if ((Get-Item -LiteralPath $Path).Length -le 2) { Add-GateError "Evidence file is empty: $Path"; return $null }
+  try { return Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json }
+  catch { Add-GateError "Evidence JSON is invalid: $Path :: $($_.Exception.Message)"; return $null }
+}
+
+$requiredEvidenceFiles = @(
+  'runtime-health.json',
+  'architecture-release-gate.json',
+  'ai-route-outbox-runtime-evidence.json',
+  'event-projection-governance.json',
+  'learning-governance.json',
+  'identity-governance.json',
+  'evidence-summary.json'
+)
+$evidenceSummaryPath = Join-Path $runtimeEvidenceRoot 'evidence-summary.json'
+$runtimeHealthPath = Join-Path $runtimeEvidenceRoot 'runtime-health.json'
+$runtimeManifestPath = Join-Path $runtimeEvidenceRoot 'manifest.json'
+$evidenceSummary = Read-JsonFile $evidenceSummaryPath
+$runtimeHealth = Read-JsonFile $runtimeHealthPath
+$runtimeManifest = Read-JsonFile $runtimeManifestPath
+foreach ($name in $requiredEvidenceFiles) {
+  $filePath = Join-Path $runtimeEvidenceRoot $name
+  if (-not (Test-Path -LiteralPath $filePath -PathType Leaf)) { Add-GateError "Required evidence is missing: $name" }
+}
+if ($runtimeManifest) {
+  $manifestEntries = @{}
+  foreach ($entry in @($runtimeManifest.files)) { $manifestEntries[[string]$entry.name] = $entry }
+  foreach ($name in $requiredEvidenceFiles) {
+    if (-not $manifestEntries.ContainsKey($name)) { Add-GateError "Evidence manifest does not list: $name"; continue }
+    $filePath = Join-Path $runtimeEvidenceRoot $name
+    if (Test-Path -LiteralPath $filePath -PathType Leaf) {
+      $actualHash = (Get-FileHash -LiteralPath $filePath -Algorithm SHA256).Hash.ToLowerInvariant()
+      $expectedHash = ([string]$manifestEntries[$name].sha256).ToLowerInvariant()
+      if ($actualHash -ne $expectedHash) { Add-GateError "Evidence hash mismatch: $name" }
+      if ([int64]$manifestEntries[$name].sizeBytes -ne (Get-Item -LiteralPath $filePath).Length) { Add-GateError "Evidence size mismatch: $name" }
+    }
+  }
+}
+if ($runtimeHealth -and $runtimeHealth.product) {
+  if ([string]$runtimeHealth.product.sourceCommit -ne $expectedCommit) { Add-GateError "Runtime source commit does not match this candidate." }
+  if ([string]$runtimeHealth.product.sourceTree -ne $expectedTree) { Add-GateError "Runtime source tree does not match this candidate." }
+  if (-not [string]$runtimeHealth.product.buildId) { Add-GateError "Runtime buildId is missing." }
+  if (-not ([string]$runtimeHealth.product.releaseManifestSha256 -match '^[0-9a-fA-F]{64}$')) { Add-GateError "Runtime release manifest SHA256 is missing or invalid." }
+}
+if ($evidenceSummary) {
+  if ([string]$evidenceSummary.runtimeSourceCommit -ne $expectedCommit) { Add-GateError "Evidence summary is not bound to the expected source commit." }
+  if ([string]$evidenceSummary.runtimeSourceTree -ne $expectedTree) { Add-GateError "Evidence summary is not bound to the expected source tree." }
+  if (-not [string]$evidenceSummary.runtimeBuildId) { Add-GateError "Evidence summary runtimeBuildId is missing." }
+  if ($runtimeHealth -and ([string]$evidenceSummary.runtimeBuildId -ne [string]$runtimeHealth.product.buildId)) { Add-GateError "Evidence summary buildId differs from runtime health." }
+  if ($runtimeHealth -and ([string]$evidenceSummary.runtimeManifestSha256 -ne [string]$runtimeHealth.product.releaseManifestSha256)) { Add-GateError "Evidence summary manifest SHA256 differs from runtime health." }
+  if ($evidenceSummary.governanceEvidenceComplete -ne $true) { Add-GateError "Governance evidence pagination or integrity is incomplete." }
+  foreach ($property in @($evidenceSummary.evidenceTruncation.PSObject.Properties)) {
+    if ($property.Value -eq $true) { Add-GateError "Evidence is truncated: $($property.Name)" }
+  }
+  if ([int]$evidenceSummary.runtimeEvidenceIntegrity.releaseBlocking -ne 0) { Add-GateError "Runtime AI route or Outbox evidence integrity has blocking rows." }
+  if ($evidenceSummary.evidencePromotionAllowed -ne $true) { Add-GateError "Architecture release gate does not permit evidence promotion." }
+}
+$gateReceipt = [ordered]@{
+  schemaVersion = 1
+  documentType = 'YANCE_ROUND12_13_WINDOWS_EVIDENCE_GATE'
+  generatedAtUtc = [DateTime]::UtcNow.ToString('o')
+  expectedCommit = $expectedCommit
+  expectedTree = $expectedTree
+  runtimeBuildId = if ($evidenceSummary) { [string]$evidenceSummary.runtimeBuildId } else { '' }
+  runtimeManifestSha256 = if ($evidenceSummary) { [string]$evidenceSummary.runtimeManifestSha256 } else { '' }
+  readyForPromotion = ($gateErrors.Count -eq 0)
+  errors = @($gateErrors)
+}
+$gateReceipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $outputRoot 'WINDOWS_EVIDENCE_GATE.json') -Encoding UTF8
+@'
+AUTOMATIC SCREENSHOT CAPTURE IS DISABLED.
+Reason: full-desktop capture can include unrelated windows, private messages, credentials, QR codes, or other secrets.
+Only add screenshots manually after:
+1. Hiding every unrelated application and notification.
+2. Capturing the Yance application window only.
+3. Reviewing the image before adding it to the evidence package.
+4. Confirming no token, cookie, password, QR code, personal conversation, or unrelated desktop content is visible.
+'@ | Set-Content -LiteralPath (Join-Path $outputRoot 'SCREENSHOT_CAPTURE_POLICY.txt') -Encoding UTF8
+@'
+ROUND 12/13 COMPREHENSIVE WINDOWS UAT CHECKLIST
+1. Runtime Branch, Commit, Tree, data root and port owner match this candidate.
+2. Five product areas and Round 11 conversation-center layout render correctly.
+3. Quick replies show 3 to 5 genuinely different strategies, fill drafts only, and never auto-send.
+4. Director, quick reply and learning show high-capability route receipts; emergency mode is visible and excluded from learning.
+5. Composer translation freezes the approved target-language text; translation failure never sends Chinese.
+6. Facebook, WhatsApp and Telegram UI actions follow current account capabilities and account-level health.
+7. Text, media, reaction, revoke and Telegram native expressions enter the durable Outbox before platform execution.
+8. Disconnect and reconnect preserve queued commands without consuming retry budget while offline or duplicating sends.
+9. Identity governance lists Person and IdentityLink evidence; verify, dispute, detach, merge and rollback remain auditable and reversible; the same Person profile, relationship, memory and learning remain unified across linked identities.
+10. Event-first projection runs a complete paginated audit; review blocking receipts, repair or replay failures, and require blocking=0 before convergence.
+11. L2/L3 governance shows scheduler health and reason codes; review L3 proposals, approve or reject, then verify rollback and forget.
+12. Validate normal and narrow windows, 100, 125 and 150 percent scaling, dark, light and high-contrast themes.
+13. Run real Facebook, WhatsApp and Telegram operations and the Kurt end-to-end evidence chain before release approval.
+'@ | Set-Content -LiteralPath (Join-Path $outputRoot 'ROUND12_13_COMPREHENSIVE_UAT_CHECKLIST.txt') -Encoding ASCII
+if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
+Compress-Archive -LiteralPath (Join-Path $outputRoot '*') -DestinationPath $zipPath -Force
+Write-Host "Evidence ZIP: $zipPath" -ForegroundColor Green
+if ($gateErrors.Count -gt 0) {
+  Write-Host "Evidence was collected, but promotion is blocked:" -ForegroundColor Yellow
+  foreach ($gateError in $gateErrors) { Write-Host " - $gateError" -ForegroundColor Yellow }
+  exit 3
+}
+Write-Host "Evidence identity, pagination and integrity gate: PASS" -ForegroundColor Green
+exit 0

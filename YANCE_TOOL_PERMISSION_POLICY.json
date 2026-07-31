@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 3,
+  "documentType": "YANCE_TOOL_PERMISSION_POLICY",
+  "levels": {
+    "L0": {
+      "name": "read-only",
+      "allowed": ["inspect source", "read logs", "calculate hashes", "list runtime state"]
+    },
+    "L1": {
+      "name": "controlled-ui",
+      "allowed": ["launch dedicated UAT", "operate fixed application UI", "collect reviewed non-secret evidence"]
+    },
+    "L2": {
+      "name": "engineering-modification",
+      "allowed": ["modify source on isolated branch", "install project dependencies", "run tests", "create non-release artifacts"]
+    },
+    "L3": {
+      "name": "high-risk",
+      "explicitAuthorizationRequired": true,
+      "operations": ["delete real user data", "change system security settings", "read or export credentials", "publish release", "perform irreversible external action"]
+    }
+  },
+  "roleSeparation": {
+    "executor": "may implement and test",
+    "independentReviewer": "must not be the same approval act as executor",
+    "releaseApprover": "must independently authorize promotion",
+    "selfApprovalForbidden": true
+  }
+}

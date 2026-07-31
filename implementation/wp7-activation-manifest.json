@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP7_ACTIVATION_MANIFEST",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP7",
+  "generatedAtUtc": "2026-07-05T09:31:00Z",
+  "activationStatus": "CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+  "requiredAcceptanceToken": "WP7_ACTIVATION_ACCEPTED",
+  "parentBaseline": {
+    "commit": "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+    "sourceTree": "485891e55298667df30e2f588daec196dc530eb7",
+    "workPackage": "WP6",
+    "acceptanceToken": "WP6_ACCEPTED"
+  },
+  "readinessRebind": {
+    "status": "WP7_READY_FOR_ACTIVATION",
+    "from": "PROVISIONAL_PENDING_WP6_ACCEPTANCE",
+    "to": "BOUND_TO_WP6_ACCEPTED_FINAL_DELIVERY",
+    "remainingProvisionalMarkers": 0
+  },
+  "wp7ReferenceScope": {
+    "name": "Frozen-source clean final build and machine-readable evidence",
+    "dependsOn": [
+      "WP6"
+    ],
+    "actions": [
+      "Freeze source commit after WP0 through WP6 complete",
+      "Build application payload from an empty staging directory",
+      "Regenerate payload-files.json payload hashes release-manifest.json and release-manifest.sha256",
+      "Build final installer and generate external release-evidence.json",
+      "Reject reuse of any WP1 test manifest hash or evidence",
+      "Perform clean install and execute all ten Phase 1 acceptance checks",
+      "Generate evidence/phase1-acceptance-evidence.json",
+      "Regenerate final build identity offline startup build provenance and boot failure diagnostics evidence against the frozen-source final installer",
+      "Generate phase1 acceptance evidence that references only WP7 final-installer evidence and never WP1 WP3 or WP4 development evidence"
+    ],
+    "exitCriteria": [
+      "No old installer overlay mechanism is used",
+      "Final hashes and manifest are recomputed after source freeze",
+      "Installed tree contains no old runtime residue",
+      "All ten machine-readable evidence checks pass",
+      "Phase status becomes PHASE1_ACCEPTED"
+    ],
+    "requiredTests": [
+      "final-build-clean-staging.test",
+      "final-build-source-freeze-match.test",
+      "wp1-artifact-reuse-denied.test",
+      "final-payload-recomputed.test",
+      "final-installer-build-id-consistency.test",
+      "clean-install-start-stop-restart.test",
+      "single-backend-installed-runtime.test",
+      "offline-installed-runtime-ready.test",
+      "installed-tree-old-runtime-scan-zero.test",
+      "wp7-final-evidence-reference-only.test",
+      "acceptance-evidence-schema.test"
+    ],
+    "evidenceOutputs": [
+      "evidence/wp7/source-freeze.json",
+      "evidence/wp7/final-release-evidence.json",
+      "evidence/wp7/clean-install.json",
+      "evidence/wp7/restart-cycle.json",
+      "evidence/wp7/build-identity.json",
+      "evidence/wp7/runtime-ownership.json",
+      "evidence/wp7/safe-mode-removal.json",
+      "evidence/wp7/credential-ready-gate.json",
+      "evidence/wp7/offline-startup.json",
+      "evidence/wp7/install-tree-inventory.json",
+      "evidence/wp7/build-provenance.json",
+      "evidence/wp7/boot-failure-diagnostics.json",
+      "evidence/phase1-acceptance-evidence.json"
+    ]
+  },
+  "riskAcceptanceIdsPreserved": [
+    "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+    "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+    "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+    "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED"
+  ],
+  "installationPolicy": {
+    "FINAL_INSTALLATION_MODE": "CLEAN_INSTALL",
+    "LEGACY_TEST_DATA_MIGRATION_REQUIRED": false,
+    "LEGACY_TEST_VERSION_ROLLBACK_REQUIRED": false
+  },
+  "activationChangeBoundary": {
+    "allowed": [
+      "governance files",
+      "work package status files",
+      "Activation plan",
+      "Readiness binding files",
+      "Activation evidence and identity files"
+    ],
+    "forbidden": [
+      "production code",
+      "database migration",
+      "Electron runtime",
+      "backend",
+      "frontend",
+      "shared protocol",
+      "installer production implementation",
+      "WP7 required tests implementation",
+      "final build artifacts"
+    ],
+    "productionCodeChanged": false
+  },
+  "activationIdentity": {
+    "status": "BOUND_TO_ACTIVATION_COMMIT",
+    "activationCommit": "ceffb5234d33518bfda2a88c0e3fad59fb7c8bce",
+    "activationSourceTree": "b457101ab8d5d04d073597039446ded41374a6c8",
+    "activationParentCommit": "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+    "activationParentSourceTree": "485891e55298667df30e2f588daec196dc530eb7",
+    "bindingCommit": "SELF_REFERENCE_RECORDED_EXTERNALLY",
+    "bindingSourceTree": "SELF_REFERENCE_RECORDED_EXTERNALLY"
+  },
+  "twoStageAcceptance": {
+    "activationGate": {
+      "requiredDecision": "WP7_ACTIVATION_ACCEPTED",
+      "productionImplementationForbiddenUntilAccepted": true
+    },
+    "designGate": {
+      "requiredArtifact": "WP7_IMPLEMENTATION_PLAN_V1",
+      "status": "NOT_CREATED",
+      "productionCodeModificationForbiddenUntilCompleted": true
+    },
+    "convergencePreReview": {
+      "requiredDecision": "WP7_PREACCEPTED_FOR_FINAL_PACKAGING",
+      "status": "NOT_CREATED"
+    },
+    "finalPackagingForbiddenBeforePreacceptance": [
+      "candidate-binding-commit",
+      "final-delivery-head",
+      "complete-source-zip",
+      "complete-test-artifacts-zip",
+      "complete-delivery-zip",
+      "PHASE1_ACCEPTED"
+    ]
+  },
+  "prohibitions": [
+    "WP7_PRODUCTION_IMPLEMENTATION",
+    "WP7_DATABASE_MIGRATION",
+    "WP7_RUNTIME_BEHAVIOR_CHANGE",
+    "WP7_REQUIRED_TEST_IMPLEMENTATION",
+    "WP7_FINAL_BUILD",
+    "WP7_FINAL_INSTALLER",
+    "WP7_DESIGN_GATE_DECISION",
+    "WP7_CONVERGENCE_PRE_REVIEW",
+    "WP7_FINAL_PACKAGING",
+    "WP7_ACTIVE_STATUS"
+  ],
+  "activationVerification": {
+    "parentExactWp6AcceptedFinalDeliveryHead": "PASS",
+    "parentSourceTreeExactWp6AcceptedFinalSourceTree": "PASS",
+    "activationCommitExists": "PASS",
+    "activationTreeExists": "PASS",
+    "activationChangeBoundary": "PASS_GOVERNANCE_READINESS_ACTIVATION_METADATA_ONLY",
+    "productionCodeChangeCount": 0,
+    "wp6RemainsCompletedAccepted": "PASS",
+    "wp7RemainsNotActivated": "PASS",
+    "activeWorkPackagesEmpty": "PASS",
+    "riskAcceptanceInheritance": "PASS_4_OF_4_NO_SCOPE_EXPANSION",
+    "installationPolicy": "PASS_CLEAN_INSTALL_NO_LEGACY_MIGRATION_NO_LEGACY_ROLLBACK",
+    "jsonSyntax": "PASS"
+  }
+}

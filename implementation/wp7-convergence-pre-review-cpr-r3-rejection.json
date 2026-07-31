@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP7_CONVERGENCE_PRE_REVIEW_CPR_R3_REJECTION_RECORD",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP7",
+  "decisionDate": "2026-07-05",
+  "decision": "WP7_CONVERGENCE_PRE_REVIEW_REJECTED",
+  "rejectedCandidateIdentity": {
+    "head": "dae0672b2fa6947ce70d5fb1ef61ca043dd03b34",
+    "sourceTree": "12f85977c9bf6185ce48d76d997f4b13fcc2f40d",
+    "productionCorrectionCommit": "ac61f9e5f92aa2e0c1d8e0f5fe22e89aa94ef601",
+    "productionCorrectionTree": "9f5005a116b0371654b185bbb11d20a4bad0595d"
+  },
+  "blockingReasonCodes": [
+    "WP7_INSTALLED_RUNTIME_PROBE_SEMANTIC_COVERAGE_INCOMPLETE",
+    "WP7_INSTALLED_APPLICATION_PROBE_INTEGRATION_TEST_MISSING",
+    "WP7_RUNTIME_PROBE_ACCEPTANCE_ORACLE_SELF_CONFIRMATION"
+  ],
+  "statusAfterDecision": {
+    "convergencePreReviewStatus": "REJECTED_REVISION_REQUIRED",
+    "preAcceptanceIssuedAfterReopen": false,
+    "operationalPreAcceptanceAuthorization": "SUSPENDED",
+    "finalPackagingAuthorized": false
+  },
+  "immutableHistory": true
+}

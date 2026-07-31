@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "言策网页伴侣 · Facebook",
+  "short_name": "言策网页伴侣",
+  "description": "用户主动从 Meta Business Suite 补全联系人头像，并预览会话与最近消息差异。",
+  "version": "1.1.0",
+  "version_name": "Fix21 2026-07-24",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsqutiTOi1ZzOXxAIqXXiNil9EqcsPa/LfmpFWH5SxUtYtkSwOd/NPyjhDFSIgOvsWno1kvaRJICnhrsI7UL40Ml4Q99ZTJjF1iIUbhk9g/hze9Hadi5i/gcW5GjbdP4hcpILRYof4KrIsScBt3L2zjL2kmu286f5zK67/c2UMUf1nRVL9wOsR4iL/Kzj94YN4RWlYo8HV22iwmi/d/ihVwM/kSNptsT0jPe5G6vfmLAruWbq5cX/Y0Jy+1W2X0i4aY9ZBbHdavVig/SkxjL1XX/P0W5G4+Y05YL2DHJWP2qGoCHCu7ZnEy9Y/diPZ2/ZA1u+OEmjmi8CGSFTyE4E/wIDAQAB",
+  "permissions": ["storage", "activeTab", "tabs"],
+  "host_permissions": [
+    "https://business.facebook.com/*",
+    "https://*.fbcdn.net/*",
+    "https://*.facebook.com/*",
+    "https://*.fbsbx.com/*",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "background": { "service_worker": "service-worker.js" },
+  "action": {
+    "default_title": "言策网页伴侣",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://business.facebook.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "brand": "Yance",
+  "origin": "Original geometric vector artwork created for the Yance project from the approved conversation-bubble, 言, and forward-arrow concept.",
+  "thirdPartyArtwork": false,
+  "bundledFontFiles": false,
+  "fontPolicy": "Wordmark SVG source references system or open-source fallback fonts; no font binary is distributed with the application.",
+  "tooling": ["SVG", "Inkscape", "ImageMagick"],
+  "costPolicy": "No paid assets, fonts, cloud services, or commercial design dependencies are required."
+}

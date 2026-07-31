@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP4",
+  "recordType": "SECOND_BLOCKING_AMENDMENT_INDEPENDENT_REVIEW_REJECTION",
+  "reviewStatus": "REJECTED",
+  "decision": "BLOCKING_AMENDMENT_REQUIRED",
+  "wp5ActivationAllowed": false,
+  "reviewedCandidate": {
+    "reopenCommit": "07cddf05fcfae8e949a899a18d61b48cc9760ae8",
+    "finalCodeImplementationCommit": "6daa400e5a388ca696ffc3c2c3f782b8240266e0",
+    "finalCodeSourceTree": "a713241f15362e8799c9bc0a57a9ba8a477d7ba3",
+    "candidateBindingCommit": "576329f6e71ed15faf95576c8c7ba3297673ae73",
+    "finalDeliveryHead": "d542b098c8b7238b9d09b2551d94428abe8283af",
+    "finalSourceTree": "328a207b1687203d18409322af68c218e9089012",
+    "independentReviewStatus": "REJECTED"
+  },
+  "blockingFindings": [
+    {
+      "reasonCode": "WP4_CREDENTIAL_TRANSACTION_CRASH_RECOVERY_FAILED",
+      "summary": "Cross-file vault, metadata, and transaction journal states were not deterministically recovered."
+    },
+    {
+      "reasonCode": "WP4_CREDENTIAL_CONCURRENT_MUTATION_LOST",
+      "summary": "Desktop credential mutations could be overwritten by stale FD6 afterRaw snapshots."
+    },
+    {
+      "reasonCode": "WP4_CREDENTIAL_INDETERMINATE_COMMIT_RUNNING",
+      "summary": "Post-COMMIT channel closure could leave the backend running with an unknown generation."
+    },
+    {
+      "reasonCode": "WP4_CREDENTIAL_STATE_AUTHORITY_SPLIT",
+      "summary": "Electron and backend generations could diverge after communication failure."
+    }
+  ],
+  "requiredStateAfterRejection": {
+    "WP4": {
+      "status": "ACTIVE",
+      "active": true,
+      "reviewStatus": "PENDING_INDEPENDENT_REVIEW"
+    },
+    "WP5": {
+      "status": "BLOCKED_BY_WP4",
+      "active": false,
+      "activationAllowed": false
+    }
+  }
+}

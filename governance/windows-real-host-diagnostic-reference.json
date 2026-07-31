@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_WINDOWS_REAL_HOST_DIAGNOSTIC_REFERENCE",
+  "observedAtUtc": "2026-07-17T08:30:26.3424546Z",
+  "sourceIdentity": {
+    "branch": "rebuild/windows-release-closure-20260717-runner-preflight-evidence-closure",
+    "commit": "db5a98b3e1ceac21d4f6d492b51ac089f51bcff9",
+    "tree": "d8c4e88a11059e26cd15747431b6a28d33dc4cd6"
+  },
+  "runnerSemanticsCarriedForwardBy": {
+    "commit": "e27f991eeeb25b3ad346407d779a55bf917ca67b",
+    "description": "Windows PowerShell 5.1 native stderr warnings are non-fatal when the native exit code is zero."
+  },
+  "realWindowsHostResults": {
+    "tempSelection": "PASS",
+    "freshBundleClone": "PASS",
+    "sourceIdentity": "PASS",
+    "repositoryCleanBefore": "PASS",
+    "preflight": "PASS",
+    "npmCi": {
+      "status": "PASS",
+      "exitCode": 0
+    },
+    "brandingAssets": "PASS",
+    "brandingTests": {
+      "status": "PASS",
+      "passed": 28,
+      "failed": 0
+    },
+    "brandMigrationTests": {
+      "status": "PASS",
+      "passed": 18,
+      "failed": 0
+    },
+    "wp7RequiredTests": {
+      "status": "PASS",
+      "passed": 34,
+      "failed": 0
+    },
+    "wp7PreReviewSummary": "PASS"
+  },
+  "formalStatus": {
+    "eligible": false,
+    "reasonCode": "REFERENCE_DIAGNOSTIC_INTERRUPTED_BEFORE_RUNNER_FINALIZATION",
+    "missing": [
+      "verify process exit-code capture",
+      "post-verification git fsck",
+      "formal STRICT round identity"
+    ]
+  },
+  "usePolicy": "REFERENCE_ONLY_NOT_A_FORMAL_ROUND"
+}

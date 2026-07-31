@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 3,
+  "documentType": "YANCE_ENVIRONMENT_DESCRIPTOR",
+  "development": {
+    "operatingSystems": ["Linux review container", "Windows 10/11 UAT"],
+    "node": ">=22.5.0",
+    "npm": ">=10",
+    "packageManager": "npm@10.9.2"
+  },
+  "windowsUat": {
+    "powershell": "5.1",
+    "dataRootMustBeExplicit": true,
+    "existingDataRecoveryPointRequired": true,
+    "portOwnerEvidenceRequired": true,
+    "runtimeCommitTreeEvidenceRequired": true,
+    "fullDesktopAutomaticCaptureForbidden": true
+  },
+  "externalSystems": {
+    "openRouter": "required for real commercial-model UAT",
+    "facebook": "real account required",
+    "whatsapp": "real account required",
+    "telegram": "real account required"
+  },
+  "dataSafety": {
+    "deleteRealUserData": "L3 explicit authorization required",
+    "exportCredentials": "forbidden",
+    "modifySystemSecuritySettings": "L3 explicit authorization required"
+  }
+}

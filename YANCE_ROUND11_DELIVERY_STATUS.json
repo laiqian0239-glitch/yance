@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ROUND11_DELIVERY_STATUS",
+  "generatedAtUtc": "2026-07-26T12:17:37Z",
+  "artifactClass": "ROUND11_CONVERSATION_CENTER_UI_SOURCE_CHECKPOINT",
+  "branch": "audit/system-round11-conversation-center-ui-20260726",
+  "implementationCommit": "8fab2cf6f394ffc953fc45d0a6ef34d0a2c622c8",
+  "implementationTree": "cfae2c7effcc37c436c9579c275a44c4f92f3567",
+  "implementationParent": "024d881023fbee0654c9ded78438c4223f19eda9",
+  "formalRelease": false,
+  "windowsUatCandidateGenerated": true,
+  "windowsUatAuthorized": true,
+  "realWindowsUiUatCompleted": false,
+  "realPlatformUatCompleted": false,
+  "completed": {
+    "conversationCenterV3ProductionMount": true,
+    "sharedQuickReplyDock": true,
+    "threeToFiveCandidatePresentation": true,
+    "candidateNeverAutoSends": true,
+    "draftReplaceOrAppendProtection": true,
+    "aiDailyAndAdvancedModes": true,
+    "fiveProductAreaNavigation": true,
+    "composerTranslationRoutePresentation": true,
+    "round11WindowsUiEvidenceCollector": true,
+    "round11WindowsUatPackageGenerator": true,
+    "dependencySensitivePrelaunchGate": true
+  },
+  "automatedEvidence": {
+    "round11ConversationCenterUi": {
+      "passed": 6,
+      "failed": 0
+    },
+    "round11WindowsPackageContract": {
+      "passed": 5,
+      "failed": 0
+    },
+    "backendTopLevel": {
+      "passed": 721,
+      "failed": 0
+    },
+    "platformProductionReadiness": {
+      "passed": 53,
+      "failed": 0
+    },
+    "sourceUatDelivery": {
+      "passed": 24,
+      "failed": 0
+    },
+    "uatDiagnostics": {
+      "passed": 107,
+      "failed": 0,
+      "executionNote": "Full set verified as 51 initial tests plus 56 remaining tests after the combined command exceeded the container time budget."
+    },
+    "themeAudit": "PASS",
+    "fixedColorDebt": 0
+  },
+  "dependencyBlockedTests": [
+    {
+      "file": "backend/tests/personaBrain/candidateBinding.test.js",
+      "reason": "The current container lacks express, so this dependency-sensitive test was not counted as passed here. The Round 11 Windows installer now performs npm ci, verifies dependencies, runs this test in the mandatory prelaunch gate, and refuses to start Electron if it fails."
+    }
+  ],
+  "pendingRealWindows": [
+    "Confirm the five product areas are the only user-facing top-level areas in the running Electron build",
+    "Confirm the quick-reply dock is between messages and composer, shows 3 candidates and expands to 5",
+    "Confirm candidate use/append protects an existing draft and never sends automatically",
+    "Confirm AI daily mode is default and advanced mode preserves Understanding, Director, Candidates, Profile, Media, Timeline and Learning",
+    "Confirm outbound translation route displays the real target language and never sends Chinese on translation failure",
+    "Confirm normal, narrow, 100%, 125% and 150% Windows layouts",
+    "Confirm dark, light and high-contrast theme rendering",
+    "Export Round 11 runtime and screenshot evidence ZIP"
+  ],
+  "pendingOtherProductGates": [
+    "Facebook, WhatsApp and Telegram real-account production UAT",
+    "OpenRouter live commercial benchmark and final task routes",
+    "Kurt fact/evidence/profile/relationship/director/candidate/learning end-to-end proof",
+    "29-theme and 136-sound real Windows validation",
+    "8-12 hour pressure, reconnect and disaster-recovery rehearsal"
+  ]
+}

@@ -1,0 +1,44 @@
+# 言策 Round 11 新会话中心真实 Windows UAT 候选
+
+这不是正式发布版。该候选用于验证新版会话中心、五大产品区域、快捷候选、AI日常/高级模式、译后发送状态及三平台既有生产链。
+
+## 源码身份
+
+- Branch：`__EXPECTED_BRANCH__`
+- Commit：`__EXPECTED_COMMIT__`
+- Tree：`__EXPECTED_TREE__`
+- Artifact：`ROUND11_CONVERSATION_CENTER_WINDOWS_UAT_CANDIDATE`
+
+## 安装和启动
+
+1. 完全退出当前言策。
+2. 双击 `INSTALL_TEST_AND_START_YANCE_ROUND11_UAT.cmd`。
+3. 常规模式只把现有数据目录作为只读来源，先创建逐文件校验的独立克隆；真实数据目录绝不会作为候选运行时目录。
+4. 隔离模式每次创建全新的空白数据目录，不复用上次 UAT 状态。
+5. 安装器会校验源码身份、创建数据库恢复点、校验克隆收据并验证完整依赖。
+6. 依赖完整后，安装器会先运行会话中心、候选绑定、三平台生产门禁和主题审计；任一失败都不会启动言策。
+7. 启动失败时会自动生成脱敏诊断 ZIP；诊断包不复制数据库、凭据或 WhatsApp 会话。
+8. 只在言策界面录入 OpenRouter Key、平台凭据、验证码或二维码。
+
+## 必测界面
+
+- 五大区域：会话工作台、AI回复大脑、联系人与关系、账号与平台、系统与设置。
+- 会话区消息与输入框之间出现快捷候选区，默认3条，可展开到5条。
+- 候选点击只写入草稿，不自动发送；已有草稿时必须保护。
+- 右侧AI默认日常模式，高级模式保留理解、导演、候选、客户档案、媒体、轨迹和学习。
+- 输入框显示真实 `中→德`、`中→英` 等译后发送状态。
+- Windows 100%、125%、150%缩放，以及普通和窄窗口不遮挡。
+
+## 导出证据
+
+保持言策运行并将窗口置于前台，双击：
+
+`COLLECT_YANCE_ROUND11_UI_EVIDENCE.cmd`
+
+下载目录会生成证据 ZIP。自动桌面截图已禁用，需按包内 `SCREENSHOT_CAPTURE_POLICY.txt` 手工添加仅包含言策窗口的截图。若独立采集进程无法取得 Electron 应用会话，ZIP 仍会生成，并在 `RUNTIME_EXPORT_STATUS.json` 中明确记录 `BLOCKED_AUTHENTICATED_ELECTRON_SESSION_REQUIRED`，同时保留预启动门禁日志；该状态不能冒充运行时导出通过。
+
+## 状态边界
+
+- `formalRelease=false`
+- `realWindowsUatRequired=true`
+- 在真实 Windows 界面和真实平台证据关闭前，不得标记正式发布通过。

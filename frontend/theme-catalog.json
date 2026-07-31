@@ -1,0 +1,1663 @@
+{
+  "version": 2,
+  "defaultThemeId": "midnight-cyan",
+  "lightDefaultThemeId": "jade-paper",
+  "darkDefaultThemeId": "midnight-cyan",
+  "themes": [
+    {
+      "id": "midnight-cyan",
+      "name": "午夜青曜",
+      "description": "言策经典深海青，冷静、清晰、适合长时间工作。",
+      "tags": [
+        "经典",
+        "冷静",
+        "科技"
+      ],
+      "preview": [
+        "#020712",
+        "rgba(67,234,214,.7)",
+        "rgba(154,112,255,.5)",
+        "rgba(67,234,214,.34)"
+      ],
+      "style": "科技",
+      "brightness": "深色",
+      "scenes": [
+        "办公",
+        "客服"
+      ],
+      "texture": "玻璃",
+      "series": "经典系列",
+      "accessibility": "standard",
+      "defaults": {
+        "fontProfile": "sans",
+        "spacing": "comfortable",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#020712",
+        "bg2": "#030b16",
+        "nav": "#05111d",
+        "panel": "#061421",
+        "panel2": "#081a29",
+        "card": "#091e2e",
+        "card2": "#0b2435",
+        "line": "rgba(85,192,226,.18)",
+        "line2": "rgba(68,241,220,.33)",
+        "text": "#f1fbff",
+        "muted": "#7f9cad",
+        "muted2": "#5f7a8c",
+        "cyan": "#43ead6",
+        "cyan2": "#56cce7",
+        "green": "#57efb0",
+        "violet": "#9a70ff",
+        "pink": "#ef75bd",
+        "gold": "#f3cf77",
+        "red": "#ff6f82",
+        "theme-accent": "#43ead6",
+        "theme-accent-2": "#9a70ff",
+        "theme-accent-3": "#ef75bd",
+        "theme-glow": "rgba(67,234,214,.24)",
+        "theme-grid": "rgba(99,204,236,.045)"
+      }
+    },
+    {
+      "id": "violet-noir",
+      "name": "紫夜高定",
+      "description": "黑紫与柔粉光晕，偏时尚编辑与高级夜景氛围。",
+      "tags": [
+        "时尚",
+        "高定",
+        "夜景"
+      ],
+      "preview": [
+        "#080512",
+        "rgba(212,124,255,.75)",
+        "rgba(255,121,186,.55)",
+        "rgba(212,124,255,.34)"
+      ],
+      "style": "时尚",
+      "brightness": "深色",
+      "scenes": [
+        "创作",
+        "办公"
+      ],
+      "texture": "玻璃",
+      "series": "紫金系列",
+      "accessibility": "standard",
+      "defaults": {
+        "fontProfile": "sans",
+        "spacing": "spacious",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#06040e",
+        "bg2": "#0a0715",
+        "nav": "#0b0918",
+        "panel": "#100c20",
+        "panel2": "#16102a",
+        "card": "#1a1230",
+        "card2": "#21163a",
+        "line": "rgba(179,135,255,.20)",
+        "line2": "rgba(230,115,255,.35)",
+        "text": "#fff7ff",
+        "muted": "#b09cbc",
+        "muted2": "#796a86",
+        "cyan": "#d47cff",
+        "cyan2": "#9e8bff",
+        "green": "#72efc0",
+        "violet": "#b777ff",
+        "pink": "#ff79ba",
+        "gold": "#f6d789",
+        "red": "#ff7890",
+        "theme-accent": "#d47cff",
+        "theme-accent-2": "#7e8cff",
+        "theme-accent-3": "#ff79ba",
+        "theme-glow": "rgba(190,111,255,.26)",
+        "theme-grid": "rgba(201,151,255,.052)"
+      }
+    },
+    {
+      "id": "emerald-glass",
+      "name": "翡翠玻璃",
+      "description": "克制的墨绿玻璃质感，温和、专业且不失生命感。",
+      "tags": [
+        "优雅",
+        "自然",
+        "玻璃"
+      ],
+      "preview": [
+        "#03110f",
+        "rgba(93,240,189,.72)",
+        "rgba(98,217,209,.5)",
+        "rgba(93,240,189,.32)"
+      ],
+      "style": "人文",
+      "brightness": "深色",
+      "scenes": [
+        "办公",
+        "客服"
+      ],
+      "texture": "玻璃",
+      "series": "青绿系列",
+      "accessibility": "standard",
+      "defaults": {
+        "fontProfile": "humanist",
+        "spacing": "comfortable",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#03100f",
+        "bg2": "#051715",
+        "nav": "#071a18",
+        "panel": "#09211e",
+        "panel2": "#0b2a26",
+        "card": "#0d302c",
+        "card2": "#103a34",
+        "line": "rgba(97,232,190,.18)",
+        "line2": "rgba(90,255,204,.35)",
+        "text": "#effff8",
+        "muted": "#8eb8a9",
+        "muted2": "#658579",
+        "cyan": "#5df0bd",
+        "cyan2": "#62d9d1",
+        "green": "#80f2a7",
+        "violet": "#8e8cff",
+        "pink": "#f58ab7",
+        "gold": "#f2d17b",
+        "red": "#ff7786",
+        "theme-accent": "#5df0bd",
+        "theme-accent-2": "#62d9d1",
+        "theme-accent-3": "#8e8cff",
+        "theme-glow": "rgba(93,240,189,.23)",
+        "theme-grid": "rgba(110,239,199,.045)"
+      }
+    },
+    {
+      "id": "graphite-luxe",
+      "name": "石墨鎏金",
+      "description": "低饱和石墨与香槟金，适合成熟商务与高端客户。",
+      "tags": [
+        "商务",
+        "成熟",
+        "低调"
+      ],
+      "preview": [
+        "#090b0e",
+        "rgba(227,202,140,.72)",
+        "rgba(159,180,195,.48)",
+        "rgba(227,202,140,.30)"
+      ],
+      "style": "商务",
+      "brightness": "深色",
+      "scenes": [
+        "办公",
+        "客服"
+      ],
+      "texture": "金属",
+      "series": "经典系列",
+      "accessibility": "standard",
+      "defaults": {
+        "fontProfile": "sans",
+        "spacing": "compact",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#080a0d",
+        "bg2": "#0d1014",
+        "nav": "#11151a",
+        "panel": "#14191f",
+        "panel2": "#181e25",
+        "card": "#1d242c",
+        "card2": "#232c35",
+        "line": "rgba(188,205,220,.16)",
+        "line2": "rgba(226,201,134,.30)",
+        "text": "#f7f5ef",
+        "muted": "#a2a9ae",
+        "muted2": "#71777d",
+        "cyan": "#e3ca8c",
+        "cyan2": "#9fb4c3",
+        "green": "#a7e0bd",
+        "violet": "#b8a4e8",
+        "pink": "#dca5bb",
+        "gold": "#ebcd84",
+        "red": "#e8848f",
+        "theme-accent": "#e3ca8c",
+        "theme-accent-2": "#9fb4c3",
+        "theme-accent-3": "#b8a4e8",
+        "theme-glow": "rgba(227,202,140,.19)",
+        "theme-grid": "rgba(197,208,218,.035)"
+      }
+    },
+    {
+      "id": "aurora-editorial",
+      "name": "极光编辑部",
+      "description": "蓝绿极光与编辑部式层次，视觉更活跃但保持克制。",
+      "tags": [
+        "极光",
+        "动态",
+        "编辑"
+      ],
+      "preview": [
+        "#04111c",
+        "rgba(107,234,215,.72)",
+        "rgba(103,184,255,.55)",
+        "rgba(107,234,215,.34)"
+      ],
+      "style": "科技",
+      "brightness": "深色",
+      "scenes": [
+        "创作",
+        "办公"
+      ],
+      "texture": "玻璃",
+      "series": "沉浸系列",
+      "accessibility": "standard",
+      "defaults": {
+        "fontProfile": "sans",
+        "spacing": "comfortable",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#03101b",
+        "bg2": "#071220",
+        "nav": "#071726",
+        "panel": "#0a1a2a",
+        "panel2": "#0d2235",
+        "card": "#102942",
+        "card2": "#143451",
+        "line": "rgba(98,195,236,.18)",
+        "line2": "rgba(126,235,220,.36)",
+        "text": "#f4fbff",
+        "muted": "#8aa6b7",
+        "muted2": "#617889",
+        "cyan": "#6bead7",
+        "cyan2": "#67b8ff",
+        "green": "#7df0b6",
+        "violet": "#9d88ff",
+        "pink": "#f287c2",
+        "gold": "#f1cf82",
+        "red": "#ff7189",
+        "theme-accent": "#6bead7",
+        "theme-accent-2": "#67b8ff",
+        "theme-accent-3": "#f287c2",
+        "theme-glow": "rgba(90,205,230,.25)",
+        "theme-grid": "rgba(95,193,228,.048)"
+      }
+    },
+    {
+      "id": "rose-atelier",
+      "name": "玫瑰工坊",
+      "description": "烟粉、玫瑰金与深莓色，柔和但保持清晰的工作层级。",
+      "tags": [
+        "玫瑰",
+        "柔和",
+        "精致"
+      ],
+      "preview": [
+        "#12070d",
+        "rgba(255,139,176,.76)",
+        "rgba(219,122,255,.5)",
+        "rgba(255,139,176,.34)"
+      ],
+      "style": "时尚",
+      "brightness": "深色",
+      "scenes": [
+        "客服",
+        "创作"
+      ],
+      "texture": "玻璃",
+      "series": "玫瑰系列",
+      "accessibility": "standard",
+      "defaults": {
+        "fontProfile": "humanist",
+        "spacing": "comfortable",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#10060b",
+        "bg2": "#170810",
+        "nav": "#190a12",
+        "panel": "#210d18",
+        "panel2": "#2a1120",
+        "card": "#321526",
+        "card2": "#3b192d",
+        "line": "rgba(255,139,176,.18)",
+        "line2": "rgba(255,139,176,.36)",
+        "text": "#fff7fa",
+        "muted": "#c19aa8",
+        "muted2": "#886c77",
+        "cyan": "#ff8bb0",
+        "cyan2": "#db7aff",
+        "green": "#7de7b4",
+        "violet": "#b98cff",
+        "pink": "#ff7da9",
+        "gold": "#e9bf87",
+        "red": "#ff6f88",
+        "theme-accent": "#ff8bb0",
+        "theme-accent-2": "#db7aff",
+        "theme-accent-3": "#f2b078",
+        "theme-glow": "rgba(255,139,176,.23)",
+        "theme-grid": "rgba(255,158,190,.045)"
+      }
+    },
+    {
+      "id": "sapphire-command",
+      "name": "蓝宝石指挥舱",
+      "description": "深海军蓝与蓝宝石高光，适合高密度运营和监控。",
+      "tags": [
+        "蓝宝石",
+        "指挥",
+        "沉稳"
+      ],
+      "preview": [
+        "#030918",
+        "rgba(91,151,255,.78)",
+        "rgba(91,225,255,.52)",
+        "rgba(91,151,255,.36)"
+      ],
+      "style": "科技",
+      "brightness": "深色",
+      "scenes": [
+        "监控",
+        "运营"
+      ],
+      "texture": "金属",
+      "series": "指挥系列",
+      "accessibility": "standard",
+      "defaults": {
+        "fontProfile": "sans",
+        "spacing": "compact",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#020817",
+        "bg2": "#040d20",
+        "nav": "#061126",
+        "panel": "#08172f",
+        "panel2": "#0b1e3b",
+        "card": "#0e2649",
+        "card2": "#12305a",
+        "line": "rgba(91,151,255,.18)",
+        "line2": "rgba(91,180,255,.36)",
+        "text": "#f4f8ff",
+        "muted": "#8ea5c5",
+        "muted2": "#63758f",
+        "cyan": "#5b97ff",
+        "cyan2": "#5be1ff",
+        "green": "#72e9b5",
+        "violet": "#9786ff",
+        "pink": "#ef88c9",
+        "gold": "#efd080",
+        "red": "#ff748d",
+        "theme-accent": "#5b97ff",
+        "theme-accent-2": "#5be1ff",
+        "theme-accent-3": "#a27cff",
+        "theme-glow": "rgba(91,151,255,.25)",
+        "theme-grid": "rgba(103,174,255,.05)"
+      }
+    },
+    {
+      "id": "amber-library",
+      "name": "琥珀书房",
+      "description": "深棕木色与琥珀灯光，温暖、专注且适合长时间阅读。",
+      "tags": [
+        "琥珀",
+        "阅读",
+        "温暖"
+      ],
+      "preview": [
+        "#110b05",
+        "rgba(245,178,82,.78)",
+        "rgba(213,122,72,.5)",
+        "rgba(245,178,82,.34)"
+      ],
+      "style": "人文",
+      "brightness": "深色",
+      "scenes": [
+        "阅读",
+        "办公"
+      ],
+      "texture": "哑光",
+      "series": "阅读系列",
+      "accessibility": "eye-care",
+      "defaults": {
+        "fontProfile": "serif",
+        "spacing": "comfortable",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#0e0904",
+        "bg2": "#150e07",
+        "nav": "#181008",
+        "panel": "#20150b",
+        "panel2": "#291b0e",
+        "card": "#332213",
+        "card2": "#3d2a18",
+        "line": "rgba(245,178,82,.17)",
+        "line2": "rgba(245,178,82,.34)",
+        "text": "#fff8eb",
+        "muted": "#b9a489",
+        "muted2": "#81715e",
+        "cyan": "#f5b252",
+        "cyan2": "#d57a48",
+        "green": "#a8d68b",
+        "violet": "#b697d7",
+        "pink": "#dd8b9d",
+        "gold": "#f3c96d",
+        "red": "#ec786f",
+        "theme-accent": "#f5b252",
+        "theme-accent-2": "#d57a48",
+        "theme-accent-3": "#e9c17d",
+        "theme-glow": "rgba(245,178,82,.21)",
+        "theme-grid": "rgba(231,178,101,.04)"
+      }
+    },
+    {
+      "id": "crimson-velvet",
+      "name": "绯红丝绒",
+      "description": "酒红、绯红与暗金构成具有舞台感的高对比视觉。",
+      "tags": [
+        "绯红",
+        "丝绒",
+        "戏剧"
+      ],
+      "preview": [
+        "#120408",
+        "rgba(255,91,118,.76)",
+        "rgba(247,176,91,.48)",
+        "rgba(255,91,118,.34)"
+      ],
+      "style": "时尚",
+      "brightness": "深色",
+      "scenes": [
+        "创作"
+      ],
+      "texture": "丝绒",
+      "series": "沉浸系列",
+      "accessibility": "standard",
+      "defaults": {
+        "fontProfile": "serif",
+        "spacing": "spacious",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#100307",
+        "bg2": "#17050a",
+        "nav": "#1a070d",
+        "panel": "#220912",
+        "panel2": "#2c0c18",
+        "card": "#361020",
+        "card2": "#411427",
+        "line": "rgba(255,91,118,.18)",
+        "line2": "rgba(255,91,118,.36)",
+        "text": "#fff6f7",
+        "muted": "#c398a0",
+        "muted2": "#896b72",
+        "cyan": "#ff5b76",
+        "cyan2": "#f7b05b",
+        "green": "#82dba6",
+        "violet": "#bc82ed",
+        "pink": "#ff729e",
+        "gold": "#e8bd70",
+        "red": "#ff5673",
+        "theme-accent": "#ff5b76",
+        "theme-accent-2": "#f7b05b",
+        "theme-accent-3": "#c47cff",
+        "theme-glow": "rgba(255,91,118,.23)",
+        "theme-grid": "rgba(255,112,137,.045)"
+      }
+    },
+    {
+      "id": "arctic-orbit",
+      "name": "极地轨道",
+      "description": "冰蓝、银灰与冷白高光，呈现干净的未来设备氛围。",
+      "tags": [
+        "冰蓝",
+        "未来",
+        "清透"
+      ],
+      "preview": [
+        "#050b12",
+        "rgba(126,211,255,.78)",
+        "rgba(187,214,255,.52)",
+        "rgba(126,211,255,.34)"
+      ],
+      "style": "科技",
+      "brightness": "深色",
+      "scenes": [
+        "办公",
+        "监控"
+      ],
+      "texture": "玻璃",
+      "series": "冷色系列",
+      "accessibility": "standard",
+      "defaults": {
+        "fontProfile": "sans",
+        "spacing": "compact",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#040a11",
+        "bg2": "#07111b",
+        "nav": "#091620",
+        "panel": "#0c1c28",
+        "panel2": "#102533",
+        "card": "#142e3e",
+        "card2": "#19394b",
+        "line": "rgba(126,211,255,.18)",
+        "line2": "rgba(126,211,255,.35)",
+        "text": "#f7fcff",
+        "muted": "#9bb3c2",
+        "muted2": "#6c7e8a",
+        "cyan": "#7ed3ff",
+        "cyan2": "#bbd6ff",
+        "green": "#82e2bd",
+        "violet": "#a9a1ff",
+        "pink": "#e99bc7",
+        "gold": "#e7d08d",
+        "red": "#f47c8c",
+        "theme-accent": "#7ed3ff",
+        "theme-accent-2": "#bbd6ff",
+        "theme-accent-3": "#8da7ff",
+        "theme-glow": "rgba(126,211,255,.22)",
+        "theme-grid": "rgba(160,221,255,.045)"
+      }
+    },
+    {
+      "id": "jade-ink",
+      "name": "青玉墨境",
+      "description": "墨黑、青玉与低饱和青绿，安静而有东方质感。",
+      "tags": [
+        "青玉",
+        "东方",
+        "安静"
+      ],
+      "preview": [
+        "#040d0b",
+        "rgba(105,215,170,.75)",
+        "rgba(123,178,151,.48)",
+        "rgba(105,215,170,.32)"
+      ],
+      "style": "人文",
+      "brightness": "深色",
+      "scenes": [
+        "阅读",
+        "客服"
+      ],
+      "texture": "哑光",
+      "series": "东方系列",
+      "accessibility": "eye-care",
+      "defaults": {
+        "fontProfile": "humanist",
+        "spacing": "comfortable",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#030b09",
+        "bg2": "#06110e",
+        "nav": "#081612",
+        "panel": "#0a1d18",
+        "panel2": "#0d261f",
+        "card": "#113027",
+        "card2": "#153a30",
+        "line": "rgba(105,215,170,.17)",
+        "line2": "rgba(105,215,170,.34)",
+        "text": "#f2fff9",
+        "muted": "#92afa3",
+        "muted2": "#667a72",
+        "cyan": "#69d7aa",
+        "cyan2": "#7bb297",
+        "green": "#8be3a1",
+        "violet": "#9d93d2",
+        "pink": "#d994ad",
+        "gold": "#d8c17f",
+        "red": "#ec7d83",
+        "theme-accent": "#69d7aa",
+        "theme-accent-2": "#7bb297",
+        "theme-accent-3": "#9d93d2",
+        "theme-glow": "rgba(105,215,170,.21)",
+        "theme-grid": "rgba(119,204,168,.04)"
+      }
+    },
+    {
+      "id": "cobalt-neon",
+      "name": "钴蓝霓虹",
+      "description": "钴蓝、电紫与霓虹粉，适合更强烈的科技夜景。",
+      "tags": [
+        "钴蓝",
+        "霓虹",
+        "活力"
+      ],
+      "preview": [
+        "#050515",
+        "rgba(83,108,255,.8)",
+        "rgba(224,90,255,.56)",
+        "rgba(83,108,255,.36)"
+      ],
+      "style": "科技",
+      "brightness": "深色",
+      "scenes": [
+        "创作",
+        "监控"
+      ],
+      "texture": "霓虹",
+      "series": "沉浸系列",
+      "accessibility": "standard",
+      "defaults": {
+        "fontProfile": "sans",
+        "spacing": "comfortable",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#040412",
+        "bg2": "#070619",
+        "nav": "#090821",
+        "panel": "#0d0b2b",
+        "panel2": "#121038",
+        "card": "#181447",
+        "card2": "#20195a",
+        "line": "rgba(83,108,255,.20)",
+        "line2": "rgba(224,90,255,.37)",
+        "text": "#f8f7ff",
+        "muted": "#a09bc2",
+        "muted2": "#706b8b",
+        "cyan": "#536cff",
+        "cyan2": "#e05aff",
+        "green": "#69e4bd",
+        "violet": "#8e72ff",
+        "pink": "#ff69c7",
+        "gold": "#efca72",
+        "red": "#ff6688",
+        "theme-accent": "#536cff",
+        "theme-accent-2": "#e05aff",
+        "theme-accent-3": "#ff69c7",
+        "theme-glow": "rgba(83,108,255,.27)",
+        "theme-grid": "rgba(125,105,255,.055)"
+      }
+    },
+    {
+      "id": "coffee-paper",
+      "name": "咖啡纸页",
+      "description": "浓缩咖啡、皮革棕与纸页米金，成熟而有人情味。",
+      "tags": [
+        "咖啡",
+        "纸页",
+        "复古"
+      ],
+      "preview": [
+        "#100a07",
+        "rgba(201,151,103,.76)",
+        "rgba(232,195,132,.48)",
+        "rgba(201,151,103,.32)"
+      ],
+      "style": "人文",
+      "brightness": "深色",
+      "scenes": [
+        "阅读",
+        "客服"
+      ],
+      "texture": "纸张",
+      "series": "阅读系列",
+      "accessibility": "eye-care",
+      "defaults": {
+        "fontProfile": "serif",
+        "spacing": "comfortable",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#0d0805",
+        "bg2": "#140c08",
+        "nav": "#170f0b",
+        "panel": "#1e1510",
+        "panel2": "#271c15",
+        "card": "#30241b",
+        "card2": "#3a2c22",
+        "line": "rgba(201,151,103,.17)",
+        "line2": "rgba(232,195,132,.31)",
+        "text": "#fff9ef",
+        "muted": "#b6a18e",
+        "muted2": "#7e7063",
+        "cyan": "#c99767",
+        "cyan2": "#e8c384",
+        "green": "#9fca91",
+        "violet": "#ae94c4",
+        "pink": "#d899a8",
+        "gold": "#dfbd78",
+        "red": "#df7b78",
+        "theme-accent": "#c99767",
+        "theme-accent-2": "#e8c384",
+        "theme-accent-3": "#ae94c4",
+        "theme-glow": "rgba(201,151,103,.20)",
+        "theme-grid": "rgba(210,174,133,.038)"
+      }
+    },
+    {
+      "id": "plum-mist",
+      "name": "梅雾",
+      "description": "深梅紫与雾灰粉，柔和、克制并带有轻微朦胧感。",
+      "tags": [
+        "梅紫",
+        "雾感",
+        "克制"
+      ],
+      "preview": [
+        "#0e0711",
+        "rgba(195,126,210,.76)",
+        "rgba(224,160,189,.5)",
+        "rgba(195,126,210,.33)"
+      ],
+      "style": "时尚",
+      "brightness": "深色",
+      "scenes": [
+        "办公",
+        "客服"
+      ],
+      "texture": "哑光",
+      "series": "莫兰迪系列",
+      "accessibility": "standard",
+      "defaults": {
+        "fontProfile": "humanist",
+        "spacing": "comfortable",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#0c060f",
+        "bg2": "#120916",
+        "nav": "#160b1a",
+        "panel": "#1d0f23",
+        "panel2": "#26142d",
+        "card": "#301938",
+        "card2": "#3a1f44",
+        "line": "rgba(195,126,210,.18)",
+        "line2": "rgba(224,160,189,.34)",
+        "text": "#fff8ff",
+        "muted": "#b6a0b9",
+        "muted2": "#7e6e81",
+        "cyan": "#c37ed2",
+        "cyan2": "#e0a0bd",
+        "green": "#80d4aa",
+        "violet": "#b184e9",
+        "pink": "#e68eb6",
+        "gold": "#dfc17e",
+        "red": "#ec778a",
+        "theme-accent": "#c37ed2",
+        "theme-accent-2": "#e0a0bd",
+        "theme-accent-3": "#8c8ee5",
+        "theme-glow": "rgba(195,126,210,.23)",
+        "theme-grid": "rgba(208,150,216,.045)"
+      }
+    },
+    {
+      "id": "solar-flare",
+      "name": "日曜橙焰",
+      "description": "深炭黑与橙金高光，具有清晰、积极的行动氛围。",
+      "tags": [
+        "橙金",
+        "行动",
+        "明快"
+      ],
+      "preview": [
+        "#100806",
+        "rgba(255,145,61,.8)",
+        "rgba(255,204,91,.52)",
+        "rgba(255,145,61,.35)"
+      ],
+      "style": "商务",
+      "brightness": "深色",
+      "scenes": [
+        "运营",
+        "办公"
+      ],
+      "texture": "金属",
+      "series": "行动系列",
+      "accessibility": "standard",
+      "defaults": {
+        "fontProfile": "sans",
+        "spacing": "compact",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#0e0704",
+        "bg2": "#160b06",
+        "nav": "#190e08",
+        "panel": "#21130b",
+        "panel2": "#2b190e",
+        "card": "#352014",
+        "card2": "#402719",
+        "line": "rgba(255,145,61,.18)",
+        "line2": "rgba(255,204,91,.36)",
+        "text": "#fff8ef",
+        "muted": "#bea18c",
+        "muted2": "#846f60",
+        "cyan": "#ff913d",
+        "cyan2": "#ffcc5b",
+        "green": "#9ed88c",
+        "violet": "#b58ed9",
+        "pink": "#e9899d",
+        "gold": "#f4c650",
+        "red": "#f26e67",
+        "theme-accent": "#ff913d",
+        "theme-accent-2": "#ffcc5b",
+        "theme-accent-3": "#f05f7d",
+        "theme-glow": "rgba(255,145,61,.23)",
+        "theme-grid": "rgba(255,174,92,.045)"
+      }
+    },
+    {
+      "id": "jade-paper",
+      "name": "青白玉纸",
+      "description": "青玉墨境的日间浅色版，清透纸白与青玉绿适合明亮办公环境。",
+      "tags": [
+        "浅色",
+        "青玉",
+        "日间"
+      ],
+      "preview": [
+        "#f2f7f4",
+        "#1c845b",
+        "#2e8f83",
+        "rgba(28,132,91,.38)"
+      ],
+      "style": "人文",
+      "brightness": "浅色",
+      "scenes": [
+        "办公",
+        "阅读"
+      ],
+      "texture": "纸张",
+      "series": "东方系列",
+      "accessibility": "eye-care",
+      "defaults": {
+        "fontProfile": "humanist",
+        "spacing": "comfortable",
+        "motionLevel": "balanced",
+        "backgroundEffect": "none"
+      },
+      "tokens": {
+        "bg": "#f2f7f4",
+        "bg2": "#e9f1ed",
+        "nav": "#e3ede8",
+        "panel": "#f7faf8",
+        "panel2": "#edf4f0",
+        "card": "#ffffff",
+        "card2": "#e5efea",
+        "line": "rgba(40,104,77,.18)",
+        "line2": "rgba(28,132,91,.38)",
+        "text": "#17271f",
+        "muted": "#536b60",
+        "muted2": "#778b82",
+        "cyan": "#1c845b",
+        "cyan2": "#2e8f83",
+        "green": "#2f8f57",
+        "violet": "#6f65a8",
+        "pink": "#ad657c",
+        "gold": "#9b7428",
+        "red": "#b74650",
+        "theme-accent": "#1c845b",
+        "theme-accent-2": "#2e8f83",
+        "theme-accent-3": "#6f65a8",
+        "theme-glow": "rgba(28,132,91,.14)",
+        "theme-grid": "rgba(38,112,83,.055)"
+      }
+    },
+    {
+      "id": "mist-atelier",
+      "name": "雾白工坊",
+      "description": "玫瑰工坊的日间浅色版，以雾白、灰粉和低反光表面降低视觉负担。",
+      "tags": [
+        "浅色",
+        "玫瑰",
+        "柔和"
+      ],
+      "preview": [
+        "#faf5f7",
+        "#ad5277",
+        "#8f61a4",
+        "rgba(177,82,119,.34)"
+      ],
+      "style": "时尚",
+      "brightness": "浅色",
+      "scenes": [
+        "客服",
+        "办公"
+      ],
+      "texture": "哑光",
+      "series": "玫瑰系列",
+      "accessibility": "standard",
+      "defaults": {
+        "fontProfile": "humanist",
+        "spacing": "comfortable",
+        "motionLevel": "balanced",
+        "backgroundEffect": "none"
+      },
+      "tokens": {
+        "bg": "#faf5f7",
+        "bg2": "#f4ecef",
+        "nav": "#f1e8ec",
+        "panel": "#fffafb",
+        "panel2": "#f8eef2",
+        "card": "#ffffff",
+        "card2": "#f2e5ea",
+        "line": "rgba(139,78,101,.16)",
+        "line2": "rgba(177,82,119,.34)",
+        "text": "#332329",
+        "muted": "#755d66",
+        "muted2": "#97838b",
+        "cyan": "#ad5277",
+        "cyan2": "#8f61a4",
+        "green": "#3f8b68",
+        "violet": "#7d5fa5",
+        "pink": "#ba5d84",
+        "gold": "#9a742e",
+        "red": "#b94355",
+        "theme-accent": "#ad5277",
+        "theme-accent-2": "#8f61a4",
+        "theme-accent-3": "#c17b55",
+        "theme-glow": "rgba(173,82,119,.13)",
+        "theme-grid": "rgba(149,91,113,.045)"
+      }
+    },
+    {
+      "id": "pure-black-code",
+      "name": "纯黑代码",
+      "description": "去除光晕与玻璃装饰的纯黑高密度主题，面向开发者和信息密集场景。",
+      "tags": [
+        "极简",
+        "纯黑",
+        "高密度"
+      ],
+      "preview": [
+        "#000000",
+        "#00e5be",
+        "#4db2ff",
+        "rgba(0,229,190,.55)"
+      ],
+      "style": "科技",
+      "brightness": "深色",
+      "scenes": [
+        "办公",
+        "监控"
+      ],
+      "texture": "极简",
+      "series": "极简系列",
+      "accessibility": "high-contrast",
+      "defaults": {
+        "fontProfile": "mono",
+        "spacing": "compact",
+        "motionLevel": "off",
+        "backgroundEffect": "none"
+      },
+      "tokens": {
+        "bg": "#000000",
+        "bg2": "#050505",
+        "nav": "#090909",
+        "panel": "#0d0d0d",
+        "panel2": "#121212",
+        "card": "#171717",
+        "card2": "#1d1d1d",
+        "line": "rgba(255,255,255,.18)",
+        "line2": "rgba(0,229,190,.55)",
+        "text": "#ffffff",
+        "muted": "#c0c0c0",
+        "muted2": "#8f8f8f",
+        "cyan": "#00e5be",
+        "cyan2": "#4db2ff",
+        "green": "#57e389",
+        "violet": "#b08cff",
+        "pink": "#ff6fb4",
+        "gold": "#ffd166",
+        "red": "#ff6577",
+        "theme-accent": "#00e5be",
+        "theme-accent-2": "#4db2ff",
+        "theme-accent-3": "#ff6fb4",
+        "theme-glow": "rgba(0,229,190,.10)",
+        "theme-grid": "rgba(255,255,255,.035)"
+      }
+    },
+    {
+      "id": "white-paper-reading",
+      "name": "白纸阅读",
+      "description": "类纸张纯白表面与高对比文字，最大化长文本阅读和信息密度。",
+      "tags": [
+        "极简",
+        "白纸",
+        "阅读"
+      ],
+      "preview": [
+        "#fbfaf6",
+        "#245c8f",
+        "#5b4b8a",
+        "rgba(36,92,143,.38)"
+      ],
+      "style": "人文",
+      "brightness": "浅色",
+      "scenes": [
+        "阅读",
+        "办公"
+      ],
+      "texture": "纸张",
+      "series": "极简系列",
+      "accessibility": "high-contrast",
+      "defaults": {
+        "fontProfile": "serif",
+        "spacing": "compact",
+        "motionLevel": "off",
+        "backgroundEffect": "none"
+      },
+      "tokens": {
+        "bg": "#fbfaf6",
+        "bg2": "#f4f2eb",
+        "nav": "#eeece4",
+        "panel": "#fffefa",
+        "panel2": "#f6f3eb",
+        "card": "#ffffff",
+        "card2": "#ece9df",
+        "line": "rgba(42,42,38,.18)",
+        "line2": "rgba(36,92,143,.38)",
+        "text": "#191a18",
+        "muted": "#555750",
+        "muted2": "#7b7d74",
+        "cyan": "#245c8f",
+        "cyan2": "#5b4b8a",
+        "green": "#2f7650",
+        "violet": "#694e93",
+        "pink": "#9c4f70",
+        "gold": "#886719",
+        "red": "#a5323e",
+        "theme-accent": "#245c8f",
+        "theme-accent-2": "#5b4b8a",
+        "theme-accent-3": "#9c4f70",
+        "theme-glow": "rgba(36,92,143,.08)",
+        "theme-grid": "rgba(44,46,42,.04)"
+      }
+    },
+    {
+      "id": "wabi-earth",
+      "name": "侘寂大地",
+      "description": "低饱和哑光土褐、苔绿与陶灰，弱化高光，营造质朴舒缓的工作环境。",
+      "tags": [
+        "侘寂",
+        "大地",
+        "哑光"
+      ],
+      "preview": [
+        "#17140f",
+        "#a39a6d",
+        "#8c9a7b",
+        "rgba(157,151,108,.31)"
+      ],
+      "style": "人文",
+      "brightness": "深色",
+      "scenes": [
+        "阅读",
+        "客服",
+        "办公"
+      ],
+      "texture": "哑光",
+      "series": "大地系列",
+      "accessibility": "eye-care",
+      "defaults": {
+        "fontProfile": "humanist",
+        "spacing": "comfortable",
+        "motionLevel": "off",
+        "backgroundEffect": "none"
+      },
+      "tokens": {
+        "bg": "#17140f",
+        "bg2": "#1d1913",
+        "nav": "#211d17",
+        "panel": "#28231c",
+        "panel2": "#302a22",
+        "card": "#383129",
+        "card2": "#423a30",
+        "line": "rgba(190,174,145,.16)",
+        "line2": "rgba(157,151,108,.31)",
+        "text": "#f0eadc",
+        "muted": "#b2a894",
+        "muted2": "#81796b",
+        "cyan": "#a39a6d",
+        "cyan2": "#8c9a7b",
+        "green": "#91a477",
+        "violet": "#9b8d9e",
+        "pink": "#b28e83",
+        "gold": "#b89c62",
+        "red": "#bd756d",
+        "theme-accent": "#a39a6d",
+        "theme-accent-2": "#8c9a7b",
+        "theme-accent-3": "#b28e83",
+        "theme-glow": "rgba(163,154,109,.12)",
+        "theme-grid": "rgba(193,177,145,.025)"
+      }
+    },
+    {
+      "id": "cyber-pulse",
+      "name": "赛博脉冲",
+      "description": "纯黑底上的青、电紫与荧光绿强对比撞色，面向极客和创意用户。",
+      "tags": [
+        "赛博",
+        "霓虹",
+        "高对比"
+      ],
+      "preview": [
+        "#020207",
+        "#00f5ff",
+        "#ff2bd6",
+        "rgba(255,43,214,.52)"
+      ],
+      "style": "科技",
+      "brightness": "深色",
+      "scenes": [
+        "创作",
+        "监控"
+      ],
+      "texture": "霓虹",
+      "series": "沉浸系列",
+      "accessibility": "standard",
+      "defaults": {
+        "fontProfile": "sans",
+        "spacing": "comfortable",
+        "motionLevel": "enhanced",
+        "backgroundEffect": "aurora"
+      },
+      "tokens": {
+        "bg": "#020207",
+        "bg2": "#05040d",
+        "nav": "#080611",
+        "panel": "#0b0817",
+        "panel2": "#110d21",
+        "card": "#16102b",
+        "card2": "#1d1538",
+        "line": "rgba(0,245,255,.22)",
+        "line2": "rgba(255,43,214,.52)",
+        "text": "#fbffff",
+        "muted": "#a8a7bf",
+        "muted2": "#74738d",
+        "cyan": "#00f5ff",
+        "cyan2": "#ff2bd6",
+        "green": "#b7ff00",
+        "violet": "#8b5cff",
+        "pink": "#ff2bd6",
+        "gold": "#ffe45e",
+        "red": "#ff425c",
+        "theme-accent": "#00f5ff",
+        "theme-accent-2": "#ff2bd6",
+        "theme-accent-3": "#b7ff00",
+        "theme-glow": "rgba(0,245,255,.32)",
+        "theme-grid": "rgba(0,245,255,.065)"
+      }
+    },
+    {
+      "id": "morandi-cloud",
+      "name": "莫兰迪云阶",
+      "description": "灰调蓝、豆沙粉与鼠尾草绿降低视觉刺激，适合长时间轻办公。",
+      "tags": [
+        "莫兰迪",
+        "柔色",
+        "低刺激"
+      ],
+      "preview": [
+        "#ececeb",
+        "#5d747b",
+        "#8a7180",
+        "rgba(93,116,123,.31)"
+      ],
+      "style": "人文",
+      "brightness": "浅色",
+      "scenes": [
+        "办公",
+        "客服"
+      ],
+      "texture": "哑光",
+      "series": "莫兰迪系列",
+      "accessibility": "eye-care",
+      "defaults": {
+        "fontProfile": "humanist",
+        "spacing": "comfortable",
+        "motionLevel": "off",
+        "backgroundEffect": "none"
+      },
+      "tokens": {
+        "bg": "#ececeb",
+        "bg2": "#e4e5e4",
+        "nav": "#dfe2e1",
+        "panel": "#f1f1ef",
+        "panel2": "#e7e8e5",
+        "card": "#f7f7f4",
+        "card2": "#dde0dd",
+        "line": "rgba(91,101,104,.16)",
+        "line2": "rgba(93,116,123,.31)",
+        "text": "#303536",
+        "muted": "#687174",
+        "muted2": "#8c9495",
+        "cyan": "#5d747b",
+        "cyan2": "#8a7180",
+        "green": "#6f826b",
+        "violet": "#7b718b",
+        "pink": "#9b747f",
+        "gold": "#8f7b50",
+        "red": "#9d5f63",
+        "theme-accent": "#5d747b",
+        "theme-accent-2": "#8a7180",
+        "theme-accent-3": "#8a7180",
+        "theme-glow": "rgba(93,116,123,.09)",
+        "theme-grid": "rgba(91,101,104,.035)"
+      }
+    },
+    {
+      "id": "data-operations",
+      "name": "数据运营舱",
+      "description": "强化指标、趋势和告警色辨识度的监控主题，适配运营看板与高密度数据。",
+      "tags": [
+        "数据",
+        "运营",
+        "监控"
+      ],
+      "preview": [
+        "#071019",
+        "#41b8e6",
+        "#ff9f43",
+        "rgba(65,184,230,.42)"
+      ],
+      "style": "商务",
+      "brightness": "深色",
+      "scenes": [
+        "监控",
+        "运营"
+      ],
+      "texture": "金属",
+      "series": "指挥系列",
+      "accessibility": "colorblind",
+      "defaults": {
+        "fontProfile": "sans",
+        "spacing": "compact",
+        "motionLevel": "balanced",
+        "backgroundEffect": "grid"
+      },
+      "tokens": {
+        "bg": "#071019",
+        "bg2": "#0a1622",
+        "nav": "#0d1b29",
+        "panel": "#102233",
+        "panel2": "#142b40",
+        "card": "#18344c",
+        "card2": "#1c3e5a",
+        "line": "rgba(104,167,211,.20)",
+        "line2": "rgba(65,184,230,.42)",
+        "text": "#f3f9fc",
+        "muted": "#9db2c0",
+        "muted2": "#6d8290",
+        "cyan": "#41b8e6",
+        "cyan2": "#ff9f43",
+        "green": "#36c692",
+        "violet": "#9f86ff",
+        "pink": "#e77ba9",
+        "gold": "#ffd166",
+        "red": "#ff6b5f",
+        "theme-accent": "#41b8e6",
+        "theme-accent-2": "#ff9f43",
+        "theme-accent-3": "#ff9f43",
+        "theme-glow": "rgba(65,184,230,.18)",
+        "theme-grid": "rgba(89,167,211,.055)"
+      }
+    },
+    {
+      "id": "service-warm",
+      "name": "客服暖砂",
+      "description": "低饱和暖砂与柔和绿，降低长时间对话中的视觉疲劳和情绪压力。",
+      "tags": [
+        "客服",
+        "暖调",
+        "低疲劳"
+      ],
+      "preview": [
+        "#f7f1e8",
+        "#547f69",
+        "#b17c52",
+        "rgba(84,130,105,.32)"
+      ],
+      "style": "商务",
+      "brightness": "浅色",
+      "scenes": [
+        "客服",
+        "办公"
+      ],
+      "texture": "哑光",
+      "series": "场景系列",
+      "accessibility": "eye-care",
+      "defaults": {
+        "fontProfile": "humanist",
+        "spacing": "comfortable",
+        "motionLevel": "off",
+        "backgroundEffect": "none"
+      },
+      "tokens": {
+        "bg": "#f7f1e8",
+        "bg2": "#efe6da",
+        "nav": "#eadfd1",
+        "panel": "#fbf6ef",
+        "panel2": "#f2e9dd",
+        "card": "#fffaf4",
+        "card2": "#e9ddcf",
+        "line": "rgba(112,88,62,.16)",
+        "line2": "rgba(84,130,105,.32)",
+        "text": "#332a22",
+        "muted": "#746657",
+        "muted2": "#978a7c",
+        "cyan": "#547f69",
+        "cyan2": "#b17c52",
+        "green": "#4f8965",
+        "violet": "#786c99",
+        "pink": "#a96d78",
+        "gold": "#94712d",
+        "red": "#ad4d4d",
+        "theme-accent": "#547f69",
+        "theme-accent-2": "#b17c52",
+        "theme-accent-3": "#b17c52",
+        "theme-glow": "rgba(84,127,105,.09)",
+        "theme-grid": "rgba(112,88,62,.03)"
+      }
+    },
+    {
+      "id": "creative-pop",
+      "name": "创意拼色",
+      "description": "活泼蓝橙撞色、宽松间距和清晰内容分区，适合脚本、文案与创意产出。",
+      "tags": [
+        "创意",
+        "撞色",
+        "宽松"
+      ],
+      "preview": [
+        "#f7f6fb",
+        "#415adc",
+        "#f07b3f",
+        "rgba(65,90,220,.34)"
+      ],
+      "style": "时尚",
+      "brightness": "浅色",
+      "scenes": [
+        "创作"
+      ],
+      "texture": "哑光",
+      "series": "场景系列",
+      "accessibility": "standard",
+      "defaults": {
+        "fontProfile": "sans",
+        "spacing": "spacious",
+        "motionLevel": "balanced",
+        "backgroundEffect": "ambient"
+      },
+      "tokens": {
+        "bg": "#f7f6fb",
+        "bg2": "#efedf8",
+        "nav": "#e8e5f4",
+        "panel": "#fcfbff",
+        "panel2": "#f2effa",
+        "card": "#ffffff",
+        "card2": "#e9e5f5",
+        "line": "rgba(74,73,117,.16)",
+        "line2": "rgba(65,90,220,.34)",
+        "text": "#28263b",
+        "muted": "#67647e",
+        "muted2": "#8d8aa0",
+        "cyan": "#415adc",
+        "cyan2": "#f07b3f",
+        "green": "#2d9870",
+        "violet": "#7651c8",
+        "pink": "#d94f93",
+        "gold": "#a57712",
+        "red": "#bf3f4e",
+        "theme-accent": "#415adc",
+        "theme-accent-2": "#f07b3f",
+        "theme-accent-3": "#d94f93",
+        "theme-glow": "rgba(65,90,220,.12)",
+        "theme-grid": "rgba(74,73,117,.035)"
+      }
+    },
+    {
+      "id": "high-contrast-dark",
+      "name": "高对比夜视",
+      "description": "黑底白字与醒目黄蓝焦点色，面向低视力和强光干扰环境。",
+      "tags": [
+        "无障碍",
+        "高对比",
+        "深色"
+      ],
+      "preview": [
+        "#000000",
+        "#ffe23d",
+        "#5bc0ff",
+        "rgba(255,226,61,.88)"
+      ],
+      "style": "商务",
+      "brightness": "深色",
+      "scenes": [
+        "办公",
+        "监控",
+        "阅读"
+      ],
+      "texture": "极简",
+      "series": "无障碍系列",
+      "accessibility": "high-contrast",
+      "defaults": {
+        "fontProfile": "sans",
+        "spacing": "comfortable",
+        "motionLevel": "off",
+        "backgroundEffect": "none"
+      },
+      "tokens": {
+        "bg": "#000000",
+        "bg2": "#050505",
+        "nav": "#000000",
+        "panel": "#0a0a0a",
+        "panel2": "#111111",
+        "card": "#171717",
+        "card2": "#202020",
+        "line": "rgba(255,255,255,.42)",
+        "line2": "rgba(255,226,61,.88)",
+        "text": "#ffffff",
+        "muted": "#e2e2e2",
+        "muted2": "#b7b7b7",
+        "cyan": "#ffe23d",
+        "cyan2": "#5bc0ff",
+        "green": "#69f0ae",
+        "violet": "#c9a7ff",
+        "pink": "#ff8fc5",
+        "gold": "#ffe23d",
+        "red": "#ff6b6b",
+        "theme-accent": "#ffe23d",
+        "theme-accent-2": "#5bc0ff",
+        "theme-accent-3": "#5bc0ff",
+        "theme-glow": "rgba(255,226,61,.10)",
+        "theme-grid": "rgba(255,255,255,.06)"
+      }
+    },
+    {
+      "id": "high-contrast-light",
+      "name": "高对比日读",
+      "description": "白底近黑文字与深蓝焦点色，保持浅色环境中的清晰层级。",
+      "tags": [
+        "无障碍",
+        "高对比",
+        "浅色"
+      ],
+      "preview": [
+        "#ffffff",
+        "#0047ab",
+        "#6a2ca0",
+        "rgba(0,71,171,.68)"
+      ],
+      "style": "商务",
+      "brightness": "浅色",
+      "scenes": [
+        "办公",
+        "阅读"
+      ],
+      "texture": "极简",
+      "series": "无障碍系列",
+      "accessibility": "high-contrast",
+      "defaults": {
+        "fontProfile": "sans",
+        "spacing": "comfortable",
+        "motionLevel": "off",
+        "backgroundEffect": "none"
+      },
+      "tokens": {
+        "bg": "#ffffff",
+        "bg2": "#f3f3f3",
+        "nav": "#ededed",
+        "panel": "#ffffff",
+        "panel2": "#f5f5f5",
+        "card": "#ffffff",
+        "card2": "#e7e7e7",
+        "line": "rgba(0,0,0,.32)",
+        "line2": "rgba(0,71,171,.68)",
+        "text": "#0a0a0a",
+        "muted": "#383838",
+        "muted2": "#646464",
+        "cyan": "#0047ab",
+        "cyan2": "#6a2ca0",
+        "green": "#0b6b3a",
+        "violet": "#5b2a86",
+        "pink": "#8f2451",
+        "gold": "#725500",
+        "red": "#9f1d28",
+        "theme-accent": "#0047ab",
+        "theme-accent-2": "#6a2ca0",
+        "theme-accent-3": "#8f2451",
+        "theme-glow": "rgba(0,71,171,.07)",
+        "theme-grid": "rgba(0,0,0,.045)"
+      }
+    },
+    {
+      "id": "colorblind-signal",
+      "name": "色觉安全信号",
+      "description": "采用蓝、橙、青和紫的色盲友好组合，并为趋势与状态启用形状辅助。",
+      "tags": [
+        "无障碍",
+        "色盲友好",
+        "数据"
+      ],
+      "preview": [
+        "#0b1118",
+        "#56b4e9",
+        "#e69f00",
+        "rgba(86,180,233,.48)"
+      ],
+      "style": "科技",
+      "brightness": "深色",
+      "scenes": [
+        "监控",
+        "运营",
+        "办公"
+      ],
+      "texture": "哑光",
+      "series": "无障碍系列",
+      "accessibility": "colorblind",
+      "defaults": {
+        "fontProfile": "sans",
+        "spacing": "compact",
+        "motionLevel": "off",
+        "backgroundEffect": "grid"
+      },
+      "tokens": {
+        "bg": "#0b1118",
+        "bg2": "#101923",
+        "nav": "#131f2b",
+        "panel": "#172633",
+        "panel2": "#1b2f3f",
+        "card": "#20384a",
+        "card2": "#26445a",
+        "line": "rgba(96,156,195,.22)",
+        "line2": "rgba(86,180,233,.48)",
+        "text": "#f5f8fa",
+        "muted": "#acbbc4",
+        "muted2": "#798b95",
+        "cyan": "#56b4e9",
+        "cyan2": "#e69f00",
+        "green": "#009e73",
+        "violet": "#8b79c6",
+        "pink": "#cc79a7",
+        "gold": "#f0e442",
+        "red": "#d55e00",
+        "theme-accent": "#56b4e9",
+        "theme-accent-2": "#e69f00",
+        "theme-accent-3": "#cc79a7",
+        "theme-glow": "rgba(86,180,233,.15)",
+        "theme-grid": "rgba(86,180,233,.045)"
+      }
+    },
+    {
+      "id": "eye-care-paper",
+      "name": "护眼纸墨",
+      "description": "暖纸底、墨灰字与低蓝光配色，面向八小时以上长时间使用。",
+      "tags": [
+        "护眼",
+        "纸张",
+        "低蓝光"
+      ],
+      "preview": [
+        "#f2ead8",
+        "#526f4f",
+        "#8d6f46",
+        "rgba(82,111,79,.34)"
+      ],
+      "style": "人文",
+      "brightness": "浅色",
+      "scenes": [
+        "阅读",
+        "客服",
+        "办公"
+      ],
+      "texture": "纸张",
+      "series": "阅读系列",
+      "accessibility": "eye-care",
+      "defaults": {
+        "fontProfile": "serif",
+        "spacing": "comfortable",
+        "motionLevel": "off",
+        "backgroundEffect": "none"
+      },
+      "tokens": {
+        "bg": "#f2ead8",
+        "bg2": "#ebe1cc",
+        "nav": "#e5dac3",
+        "panel": "#f7efdf",
+        "panel2": "#eee4d1",
+        "card": "#fbf4e6",
+        "card2": "#e4d8c0",
+        "line": "rgba(79,66,49,.17)",
+        "line2": "rgba(82,111,79,.34)",
+        "text": "#332f28",
+        "muted": "#6e6558",
+        "muted2": "#918777",
+        "cyan": "#526f4f",
+        "cyan2": "#8d6f46",
+        "green": "#4e7b56",
+        "violet": "#706584",
+        "pink": "#8e6670",
+        "gold": "#806523",
+        "red": "#9b4d49",
+        "theme-accent": "#526f4f",
+        "theme-accent-2": "#8d6f46",
+        "theme-accent-3": "#8d6f46",
+        "theme-glow": "rgba(82,111,79,.07)",
+        "theme-grid": "rgba(79,66,49,.025)"
+      }
+    }
+  ]
+}

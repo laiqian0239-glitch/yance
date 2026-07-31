@@ -1,0 +1,3 @@
+'use strict';
+const assert=require('node:assert/strict'); const test=require('node:test'); const fs=require('node:fs'); const path=require('node:path'); const { createAuthorityHarness }=require('./helpers');
+test('existing Yance authority ignores later safe-mode-state changes',async()=>{const h=await createAuthorityHarness(); try{fs.mkdirSync(h.legacyRoot,{recursive:true}); fs.writeFileSync(path.join(h.legacyRoot,'safe-mode-state.json'),JSON.stringify({active:true})); const result=h.migration.ensureAuthority(); assert.equal(result.legacyRead,false); assert.equal(h.store.snapshot().runtime.operatingMode,'normal');}finally{await h.close();}});

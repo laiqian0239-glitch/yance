@@ -1,0 +1,110 @@
+/*
+ * Phase 2 semantic theme contract.
+ * Feature modules and runtime-created components must consume these tokens.
+ * Palette definitions remain in r32-theme-motion.css; this file owns meaning.
+ */
+:root{
+  --surface-app:var(--theme-shell-bg,var(--bg));
+  --surface-nav:var(--theme-nav-bg,var(--nav));
+  --surface-panel:var(--theme-panel-bg,var(--panel));
+  --surface-panel-raised:var(--theme-panel-bg-2,var(--panel2));
+  --surface-card:var(--theme-card-bg,var(--card));
+  --surface-card-raised:var(--theme-card-bg-2,var(--card2));
+  --surface-control:var(--theme-control-bg,var(--panel2));
+  --surface-control-hover:var(--theme-control-hover,var(--card2));
+  --border-default:var(--theme-border,var(--line));
+  --border-active:var(--theme-border-strong,var(--line2));
+  --text-primary:var(--text);
+  --text-secondary:var(--theme-text-soft,var(--muted));
+  --text-muted:var(--theme-text-faint,var(--muted2));
+  --accent-primary:var(--theme-accent,var(--cyan));
+  --accent-secondary:var(--theme-accent-2,var(--violet));
+  --accent-tertiary:var(--theme-accent-3,var(--pink));
+  --status-success:var(--green);
+  --status-warning:var(--gold);
+  --status-danger:var(--red);
+  --status-info:var(--accent-secondary);
+  --focus-ring:0 0 0 3px color-mix(in srgb,var(--accent-primary) 25%,transparent);
+  --overlay-scrim:color-mix(in srgb,var(--surface-app) 70%,transparent);
+
+  /* FIX6D public semantic contract. Components consume meaning, not palette names. */
+  --ui-brand-accent:var(--accent-primary);
+  --ui-brand-accent-soft:color-mix(in srgb,var(--ui-brand-accent) 16%,transparent);
+  --ui-nav-active-surface:linear-gradient(145deg,color-mix(in srgb,var(--ui-brand-accent) 16%,var(--surface-control)),color-mix(in srgb,var(--accent-secondary) 8%,var(--surface-control)));
+  --ui-nav-active-border:color-mix(in srgb,var(--ui-brand-accent) 52%,var(--border-default));
+  --ui-nav-icon-color:var(--text-secondary);
+  --ui-control-border:var(--border-default);
+  --ui-focus-ring:0 0 0 3px color-mix(in srgb,var(--ui-brand-accent) 25%,transparent);
+  --ui-panel-surface-1:var(--surface-panel);
+  --ui-panel-surface-2:var(--surface-panel-raised);
+  --ui-panel-surface-3:var(--surface-card);
+  --ui-text-primary:var(--text-primary);
+  --ui-text-secondary:var(--text-secondary);
+  --ui-text-muted:var(--text-muted);
+
+  /* Shared density and hit-target contract. */
+  --ui-nav-hit-size:42px;
+  --ui-control-height:38px;
+  --ui-panel-gap:8px;
+  --ui-body-font-size:12px;
+  --ui-meta-font-size:10px;
+  --ui-radius-control:11px;
+  --ui-radius-panel:16px;
+
+  --presence-typing:var(--accent-primary);
+  --presence-online:var(--status-success);
+  --presence-offline:var(--text-muted);
+  --presence-shadow:0 0 12px color-mix(in srgb,var(--presence-typing) 66%,transparent);
+  --presence-online-shadow:0 0 8px color-mix(in srgb,var(--presence-online) 54%,transparent);
+
+  --chart-series-primary:var(--accent-primary);
+  --chart-series-secondary:var(--accent-secondary);
+  --chart-series-tertiary:var(--accent-tertiary);
+  --chart-grid:color-mix(in srgb,var(--text-muted) 20%,transparent);
+  --chart-area:color-mix(in srgb,var(--chart-series-primary) 28%,transparent);
+
+  --avatar-surface-start:var(--accent-primary);
+  --avatar-surface-end:var(--accent-secondary);
+  --avatar-face:color-mix(in srgb,var(--text-primary) 88%,var(--accent-primary) 12%);
+  --avatar-body:color-mix(in srgb,var(--text-primary) 72%,var(--accent-secondary) 28%);
+  --avatar-hair:color-mix(in srgb,var(--surface-app) 76%,var(--accent-primary) 24%);
+  --avatar-text:var(--theme-on-accent,var(--surface-app));
+
+  --safe-mode-surface:color-mix(in srgb,var(--status-danger) 26%,var(--surface-panel));
+  --safe-mode-border:color-mix(in srgb,var(--status-danger) 58%,var(--border-default));
+  --safe-mode-text:var(--text-primary);
+}
+
+#chatOnline[data-presence="typing"]{color:var(--presence-typing)}
+#chatOnline[data-presence="online"]{color:var(--presence-online)}
+#chatOnline[data-presence="offline"]{color:var(--presence-offline)}
+#chatOnline[data-presence="typing"]>i{background:var(--presence-typing);box-shadow:var(--presence-shadow)}
+#chatOnline[data-presence="online"]>i{background:var(--presence-online);box-shadow:var(--presence-online-shadow)}
+#chatOnline[data-presence="offline"]>i{background:var(--presence-offline);box-shadow:none}
+
+#analysisStatus[data-state="running"]{color:var(--status-warning)}
+#analysisStatus[data-state="error"]{color:var(--status-danger)}
+#analysisStatus[data-state="complete"]{color:var(--status-success)}
+#analysisStatus[data-state="idle"]{color:var(--text-secondary)}
+
+#sc32LiveDot[data-health-level="healthy"]{background:var(--status-success)}
+#sc32LiveDot[data-health-level="attention"]{background:var(--status-warning)}
+#sc32LiveDot[data-health-level="critical"]{background:var(--status-danger)}
+
+.aiw30-material-count{color:var(--text-secondary);font-size:var(--ws-meta)}
+
+#yanceSafeModeBanner{
+  position:fixed;z-index:99999;left:50%;top:12px;transform:translateX(-50%);
+  max-width:min(900px,calc(100vw - 32px));padding:10px 14px;border:1px solid var(--safe-mode-border);
+  border-radius:12px;background:var(--safe-mode-surface);color:var(--safe-mode-text);
+  box-shadow:var(--theme-shadow-strong,0 10px 32px color-mix(in srgb,var(--surface-app) 72%,transparent));
+  font:13px/1.45 system-ui;display:none;align-items:center;gap:12px;
+}
+#yanceSafeModeBanner [data-safe-message]{flex:1}
+#yanceSafeModeBanner [data-safe-open]{
+  border:1px solid var(--border-default);border-radius:8px;padding:6px 10px;cursor:pointer;
+  background:var(--surface-control);color:var(--text-primary)
+}
+#yanceSafeModeBanner [data-safe-open]:hover{border-color:var(--border-active);box-shadow:var(--focus-ring)}
+
+[data-avatar-fallback="true"]{color:var(--avatar-text)}

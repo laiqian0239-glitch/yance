@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP4",
+  "recordType": "THIRD_BLOCKING_AMENDMENT_INDEPENDENT_REVIEW_REJECTION",
+  "reviewStatus": "REJECTED",
+  "decision": "FOURTH_BLOCKING_AMENDMENT_REQUIRED",
+  "wp5ActivationAllowed": false,
+  "reviewedCandidate": {
+    "finalCodeImplementationCommit": "0bf79439d6f8a19c752c0c7419cf2d3bb6198203",
+    "finalCodeSourceTree": "1207ef9224e3811d302aa782468834f6a9cd27cc",
+    "candidateBindingCommit": "27c3b0fbbdd6af12c93cf549cd2c5bccd1fa9fca",
+    "finalDeliveryHead": "aea8f84d0acf482b3d1e7d829e605eabe2e469c0",
+    "finalSourceTree": "34a538ae1c1efea9a52c4ff8757759085ccada0a",
+    "independentReviewStatus": "REJECTED"
+  },
+  "blockingFindings": [
+    {
+      "reasonCode": "WP4_CREDENTIAL_PREPARE_RESULT_INDETERMINATE",
+      "summary": "PREPARE acknowledgement loss did not automatically QUERY or ABORT the durable PREPARED transaction."
+    },
+    {
+      "reasonCode": "WP4_CREDENTIAL_TERMINAL_JOURNAL_MISMATCH",
+      "summary": "COMMITTED and ROLLED_BACK terminal journals were not fully validated against vault and metadata disk state."
+    },
+    {
+      "reasonCode": "WP4_CREDENTIAL_DURABLE_IDEMPOTENCY_FAILED",
+      "summary": "A completed requestId could not be replayed after backend restart because historical generations were validated as new transactions."
+    },
+    {
+      "reasonCode": "WP4_CREDENTIAL_PREPARED_TRANSACTION_STUCK",
+      "summary": "A lost PREPARE result could leave activeTransactionId occupied and make all later custody requests permanently BUSY."
+    }
+  ],
+  "requiredStateAfterRejection": {
+    "WP4": {
+      "status": "ACTIVE",
+      "active": true,
+      "reviewStatus": "PENDING_INDEPENDENT_REVIEW"
+    },
+    "WP5": {
+      "status": "BLOCKED_BY_WP4",
+      "active": false,
+      "activationAllowed": false
+    }
+  },
+  "recordedAtUtc": "2026-07-03T10:50:01Z"
+}

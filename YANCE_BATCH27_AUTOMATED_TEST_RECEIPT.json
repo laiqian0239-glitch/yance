@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH27_AUTOMATED_TEST_RECEIPT",
+  "generatedAtUtc": "2026-07-29T02:28:43.537651+00:00",
+  "sourceIdentity": {
+    "branch": "development/windows-uat-f25fe2e-repair-batch27-developer-handoff-v2",
+    "implementationCommit": "0fea714780aad29aedca8a7ec51f25e42dac97b2",
+    "implementationTree": "84504230dcbd75d6791f65a801b3883961977d84",
+    "parentPackageCommit": "f97ae100e163a704fb28a625be121f8e0e6ac5e8"
+  },
+  "results": {
+    "fullBackendParallelFileIsolated": "169 files, 1026/1026 PASS, 0 fail, 0 skipped, 4 workers, unique data root per file",
+    "batch27DeveloperHandoffV2": "13/13 PASS",
+    "batch27SystemRegression": "6/6 PASS",
+    "batch26Regression": "19/19 PASS",
+    "round12PlatformCore": "79/79 PASS",
+    "round13AiQuality": "24/24 PASS",
+    "platformProductionReadiness": "58/58 PASS",
+    "uatDiagnostics": "142/142 PASS",
+    "sourceUatDelivery": "33/33 PASS",
+    "finalReview": "34/34 PASS",
+    "componentReadability": "6/6 PASS",
+    "rootCauseClosure": "2/2 PASS",
+    "javascriptSyntax": "37/37 PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "externalGates": {
+    "cleanNpmCi": "PENDING_BATCH27_WINDOWS_REVALIDATION",
+    "realWindowsElectron": "PENDING",
+    "realPlatformAck": "PENDING",
+    "realOpenRouter2Of2": "PENDING",
+    "independentReview": "REQUIRED"
+  },
+  "governance": {
+    "windowsUatState": "WINDOWS_UAT_BLOCKED",
+    "formalRelease": false,
+    "readyForPromotion": false
+  }
+}

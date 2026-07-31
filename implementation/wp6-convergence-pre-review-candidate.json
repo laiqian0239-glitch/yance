@@ -1,0 +1,215 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP6_CONVERGENCE_PRE_REVIEW_CANDIDATE_DECLARATION",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP6",
+  "generatedAtUtc": "2026-07-05T08:10:49Z",
+  "status": "SECOND_REVISED_CANDIDATE_GENERATED_PENDING_INDEPENDENT_REVIEW",
+  "requestableDecision": "WP6_PREACCEPTED_FOR_FINAL_PACKAGING",
+  "sourceIdentity": {
+    "implementationCommit": "SELF_REFERENCE_BOUND_EXTERNALLY",
+    "implementationSourceTree": "SELF_REFERENCE_BOUND_EXTERNALLY",
+    "parentCommit": "7de495936c955a67d737c351682a9e84ffd4d290",
+    "parentSourceTree": "855376824e8f75aaebc41ce74f73a451026f977f",
+    "externalBindingRequired": true
+  },
+  "upstreamBinding": {
+    "wp5AcceptedFinalDeliveryHead": "c4d5a641e93c600c0199e9960fe8f570faa07808",
+    "wp5AcceptedFinalSourceTree": "b6ece87673d804686bd231858097f6561ff1b200",
+    "wp6ActivationCommit": "3d48fc990deb64bb9fbfa623afa95c102ae516b5",
+    "wp6ActivationSourceTree": "fdf199697d2ca1dd1a001e05518316bae0f81ecf",
+    "wp6ActivationBindingCommit": "7de495936c955a67d737c351682a9e84ffd4d290",
+    "wp6ActivationBindingSourceTree": "855376824e8f75aaebc41ce74f73a451026f977f"
+  },
+  "verificationSummary": {
+    "wp6RequiredTests": "PASS_34_OF_34",
+    "faultMatrix": "PASS_32_OF_32_INCLUDING_F20_TIMEOUT_RECOVERY_AND_RESTART_RECOVERY_ORDER",
+    "concurrencyCrashMatrix": "PASS_20_OF_20",
+    "mutationMatrix": "PASS_35_OF_35_KILLED_ZERO_SURVIVORS_ZERO_INVALID_ZERO_TIMEOUT_ZERO_SIGNAL_ZERO_HARNESS_ERROR",
+    "developerAdversarialReview": "PASS_25_OF_25",
+    "sourceOldRuntimeScan": "PASS_ZERO_HITS_COMPLETE_SCAN",
+    "deterministicInstalledTreeScan": "PASS_ZERO_HITS_COMPLETE_SCAN",
+    "runtimeEntrypointInventory": "PASS_ZERO_DUPLICATE_EXECUTABLE_ENTRYPOINTS",
+    "evidenceSchema": "PASS_5_OF_5_WITH_COMPLETE_STOP_TRANSPORT_UNKNOWN_AND_RESTART_RECOVERY",
+    "stopTransportUnknownRecovery": "PASS_SAME_COMMAND_ID_SAME_ENVELOPE_SINGLE_INTENT_SINGLE_SIDE_EFFECT_OWNER_BOUND_RESTART_ORDERED",
+    "wp1Regression": "PASS_24_OF_24",
+    "wp2Regression": "PASS_60_OF_60",
+    "wp3Regression": "PASS_22_OF_23_WITH_1_EXISTING_ACCEPTED_WINDOWS_SKIP",
+    "wp4Regression": "PASS_158_OF_158_47_OF_47_FILES_ISOLATED",
+    "wp5Regression": "PASS_42_OF_42",
+    "wp0Regression": "PENDING_COMMIT_BOUND_REVERIFY",
+    "wp0Gate": "PENDING_COMMIT_BOUND_REVERIFY",
+    "javascriptSyntax": "PASS_457_OF_457",
+    "repositoryClean": "EXTERNAL_COMMIT_BOUND_VERIFICATION_REQUIRED",
+    "bundlePatchIdentity": "EXTERNAL_CANDIDATE_VERIFICATION_REQUIRED"
+  },
+  "evidenceFiles": [
+    "evidence/wp6/electron-api-v2-cutover.json",
+    "evidence/wp6/event-gap-recovery.json",
+    "evidence/wp6/backend-crash-recovery.json",
+    "evidence/wp6/old-runtime-removal.json",
+    "evidence/wp6/runtime-entrypoint-inventory.json"
+  ],
+  "knownGaps": [],
+  "unresolvedBlockingGaps": [],
+  "unknownLimitations": [
+    {
+      "reasonCode": "WP6_WINDOWS_REAL_INSTALLED_TREE_SCAN_NOT_EXECUTED",
+      "status": "UNKNOWN_NOT_EXECUTED",
+      "blocking": false,
+      "representation": "Deterministic installed-tree fixture passed; real Windows installed product tree is not represented as executed."
+    },
+    {
+      "reasonCode": "WP6_WINDOWS_REAL_PROCESS_BOUNDARY_CRASH_TIMING_NOT_EXECUTED",
+      "status": "UNKNOWN_NOT_EXECUTED",
+      "blocking": false,
+      "representation": "Cross-process Windows timing remains unexecuted and is not represented as PASS."
+    },
+    {
+      "reasonCode": "WP4_WINDOWS_OWNER_PROCESS_IDENTITY_REAL_MACHINE_EVIDENCE_NOT_EXECUTED",
+      "status": "UNKNOWN_ACCEPTED_UPSTREAM_EXCEPTION",
+      "blocking": false
+    },
+    {
+      "reasonCode": "WP3_WINDOWS_NAMED_MUTEX_REAL_MACHINE_VALIDATION_NOT_EXECUTED",
+      "status": "UNKNOWN_ACCEPTED_UPSTREAM_EXCEPTION",
+      "blocking": false
+    }
+  ],
+  "preservedRiskAcceptanceIds": [
+    "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+    "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+    "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+    "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED"
+  ],
+  "governance": {
+    "wp6Status": "ACTIVE",
+    "wp6ReviewStatus": "PENDING_CONVERGENCE_PRE_REVIEW",
+    "wp6Completed": false,
+    "finalPackagingAuthorized": false,
+    "wp7Status": "BLOCKED_BY_WP6",
+    "wp7ActivationAllowed": false
+  },
+  "prohibitedArtifactsConfirmedAbsent": [
+    "candidate-binding-commit",
+    "final-delivery-head",
+    "complete-source-zip",
+    "complete-test-artifacts-zip",
+    "complete-final-delivery-zip",
+    "WP6_COMPLETED",
+    "WP7_ACTIVATION"
+  ],
+  "implementationAdaptations": [
+    {
+      "id": "WP6_TEST_FILENAME_WP0_GATE_COMPATIBILITY",
+      "planReference": "operating-mode-revision-distinct-from-state-version.test.js",
+      "implementedFilename": "operating-mode-counter-distinct-from-state-version.test.js",
+      "semanticOracleUnchanged": true,
+      "reason": "WP0 forbidden release-entrypoint scanner treats Revision-pattern executable filenames as prohibited release surfaces."
+    }
+  ],
+  "supersedesRejectedCandidate": {
+    "decision": "WP6_CONVERGENCE_PRE_REVIEW_REJECTED",
+    "auditDate": "2026-07-05",
+    "candidateOrdinal": 2,
+    "implementationCommit": "5bac1caf8e3f5c8f0dcaf490e7e94e697e40c2fd",
+    "implementationSourceTree": "b82414d0a418b22fe90b39898480082ac873195e",
+    "blockingReasonCodes": [
+      "WP6_STATUS_CURRENT_REVIEW_PHASE_CONFLICT",
+      "WP6_GOVERNANCE_TIMESTAMP_PROVENANCE_CONFLICT",
+      "WP6_JAVASCRIPT_SYNTAX_COVERAGE_COUNT_MISMATCH"
+    ],
+    "productionImplementationAcceptedAsTechnicallyClosed": true,
+    "rejectionScope": "GOVERNANCE_STATUS_TIMESTAMP_AND_EVIDENCE_COVERAGE_ONLY"
+  },
+  "rejectionClosure": {
+    "productionImplementationChanged": true,
+    "sameCommandIdRecoveryImplemented": true,
+    "sameEnvelopeDigestRetained": true,
+    "ownerSessionBoundRecovery": true,
+    "backendExitCreatesNoSecondIntent": true,
+    "restartWaitsForResolution": true,
+    "f20CoverageRestored": true,
+    "confirmedStopReentryCreatesNoSecondIntent": true,
+    "newOwnerBaselineBlockedUntilExitRecovery": true,
+    "resolvedStopArchivedBeforeNewOwnerBaseline": true,
+    "restartOwnerRecoveryPrecedesStopResolution": true,
+    "stopResolutionPrecedesNewBaseline": true
+  },
+  "updatedAtUtc": "2026-07-05T08:10:49Z",
+  "currentReviewPhase": "WP6_CONVERGENCE_PRE_REVIEW_PENDING_INDEPENDENT_REVIEW",
+  "previousRejectedCandidate": {
+    "decision": "WP6_CONVERGENCE_PRE_REVIEW_REJECTED",
+    "auditDate": "2026-07-05",
+    "candidateOrdinal": 2,
+    "implementationCommit": "5bac1caf8e3f5c8f0dcaf490e7e94e697e40c2fd",
+    "implementationSourceTree": "b82414d0a418b22fe90b39898480082ac873195e",
+    "blockingReasonCodes": [
+      "WP6_STATUS_CURRENT_REVIEW_PHASE_CONFLICT",
+      "WP6_GOVERNANCE_TIMESTAMP_PROVENANCE_CONFLICT",
+      "WP6_JAVASCRIPT_SYNTAX_COVERAGE_COUNT_MISMATCH"
+    ],
+    "productionImplementationAcceptedAsTechnicallyClosed": true,
+    "rejectionScope": "GOVERNANCE_STATUS_TIMESTAMP_AND_EVIDENCE_COVERAGE_ONLY"
+  },
+  "rejectedCandidateHistory": [
+    {
+      "decision": "WP6_CONVERGENCE_PRE_REVIEW_REJECTED",
+      "auditDate": "2026-07-05",
+      "candidateOrdinal": 1,
+      "implementationCommit": "dedc0cac9aea26dfb0c2da2fb5166c369acf0513",
+      "implementationSourceTree": "dbd6306f67ec0d33d2abcfdd1c711d91fa742193",
+      "blockingReasonCodes": [
+        "WP6_STOP_TRANSPORT_UNKNOWN_SAME_COMMAND_RECOVERY_MISSING",
+        "WP6_REQUIRED_F20_TIMEOUT_RECOVERY_COVERAGE_MISSING"
+      ],
+      "technicalImplementationFindingsClosed": true
+    },
+    {
+      "decision": "WP6_CONVERGENCE_PRE_REVIEW_REJECTED",
+      "auditDate": "2026-07-05",
+      "candidateOrdinal": 2,
+      "implementationCommit": "5bac1caf8e3f5c8f0dcaf490e7e94e697e40c2fd",
+      "implementationSourceTree": "b82414d0a418b22fe90b39898480082ac873195e",
+      "blockingReasonCodes": [
+        "WP6_STATUS_CURRENT_REVIEW_PHASE_CONFLICT",
+        "WP6_GOVERNANCE_TIMESTAMP_PROVENANCE_CONFLICT",
+        "WP6_JAVASCRIPT_SYNTAX_COVERAGE_COUNT_MISMATCH"
+      ],
+      "productionImplementationAcceptedAsTechnicallyClosed": true,
+      "rejectionScope": "GOVERNANCE_STATUS_TIMESTAMP_AND_EVIDENCE_COVERAGE_ONLY"
+    }
+  ],
+  "resolvedIndependentReviewFindings": [
+    {
+      "reasonCode": "WP6_STATUS_CURRENT_REVIEW_PHASE_CONFLICT",
+      "status": "CLOSED_BY_GOVERNANCE_REGENERATION",
+      "closure": "currentReviewPhase is regenerated as WP6_CONVERGENCE_PRE_REVIEW_PENDING_INDEPENDENT_REVIEW; Activation review is recorded only as accepted history."
+    },
+    {
+      "reasonCode": "WP6_GOVERNANCE_TIMESTAMP_PROVENANCE_CONFLICT",
+      "status": "CLOSED_BY_TIMESTAMP_PROVENANCE_REGENERATION",
+      "closure": "project-handoff and work-package-status were regenerated after implementation completion; generatedAtUtc and updatedAtUtc now reflect this governance revision and precede the new commit."
+    },
+    {
+      "reasonCode": "WP6_JAVASCRIPT_SYNTAX_COVERAGE_COUNT_MISMATCH",
+      "status": "CLOSED_BY_FULL_TRACKED_TREE_RECOUNT",
+      "closure": "All 457 Git-tracked JavaScript files are included in the syntax oracle and external candidate evidence."
+    }
+  ],
+  "governanceRevision": {
+    "generatedAtUtc": "2026-07-05T08:10:49Z",
+    "productionImplementationChangedSincePriorCandidate": false,
+    "priorCandidateCommit": "5bac1caf8e3f5c8f0dcaf490e7e94e697e40c2fd",
+    "priorCandidateSourceTree": "b82414d0a418b22fe90b39898480082ac873195e",
+    "closedReasonCodes": [
+      "WP6_STATUS_CURRENT_REVIEW_PHASE_CONFLICT",
+      "WP6_GOVERNANCE_TIMESTAMP_PROVENANCE_CONFLICT",
+      "WP6_JAVASCRIPT_SYNTAX_COVERAGE_COUNT_MISMATCH"
+    ],
+    "trackedJavaScriptFileCount": 457,
+    "syntaxPassedFileCount": 457,
+    "currentReviewPhase": "WP6_CONVERGENCE_PRE_REVIEW_PENDING_INDEPENDENT_REVIEW"
+  }
+}

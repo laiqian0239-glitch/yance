@@ -1,0 +1,256 @@
+/* 全局阅读字号路由。
+   所有正式页面、弹窗和工作台只读取同一组 --ws-* 变量。 */
+:root,
+html[data-reading="comfortable"]{
+  --ws-page-title:clamp(29px,1.65vw,38px);
+  --ws-page-copy:clamp(14.5px,.84vw,17px);
+  --ws-section-title:clamp(17px,.96vw,21px);
+  --ws-card-title:clamp(15px,.84vw,18px);
+  --ws-body:clamp(14.5px,.79vw,17px);
+  --ws-small:clamp(12.5px,.69vw,15px);
+  --ws-meta:clamp(11.2px,.62vw,13.5px);
+  --ws-number:clamp(22px,1.28vw,31px);
+  --ws-button:clamp(12.5px,.70vw,15px);
+  --ws-control-h:38px;
+}
+html[data-reading="standard"]{
+  --ws-page-title:clamp(26px,1.45vw,34px);
+  --ws-page-copy:clamp(13px,.73vw,15px);
+  --ws-section-title:clamp(15px,.84vw,18px);
+  --ws-card-title:clamp(13.5px,.75vw,16px);
+  --ws-body:clamp(13px,.70vw,15px);
+  --ws-small:clamp(11.5px,.62vw,13px);
+  --ws-meta:clamp(10.2px,.55vw,11.8px);
+  --ws-number:clamp(20px,1.12vw,27px);
+  --ws-button:clamp(11.5px,.62vw,13px);
+  --ws-control-h:36px;
+}
+html[data-reading="large"]{
+  --ws-page-title:clamp(34px,1.95vw,46px);
+  --ws-page-copy:clamp(17px,.98vw,20px);
+  --ws-section-title:clamp(20px,1.12vw,24px);
+  --ws-card-title:clamp(17.5px,.98vw,21px);
+  --ws-body:clamp(16.5px,.92vw,19px);
+  --ws-small:clamp(14.5px,.80vw,17px);
+  --ws-meta:clamp(13px,.71vw,15px);
+  --ws-number:clamp(27px,1.50vw,36px);
+  --ws-button:clamp(14.5px,.80vw,16.5px);
+  --ws-control-h:44px;
+  --ws-card-pad:15px;
+  --ws-gap:12px;
+}
+
+/* 所有路由根节点与弹窗继承同一阅读字号。 */
+.contacts,.chat,.ai,
+.contacts-workspace,.profiles-workspace,.timeline-workspace,.insights-workspace,.aiwork-workspace,
+.account-center-workspace,.system-center-workspace,.settings-recovery-workspace,.theme-workspace,
+.basic-settings-panel,.display-settings-panel,dialog{
+  font-size:var(--ws-body)!important;
+  text-rendering:optimizeLegibility;
+}
+:is(.contacts,.chat,.ai,.contacts-workspace,.profiles-workspace,.timeline-workspace,.insights-workspace,.aiwork-workspace,.account-center-workspace,.system-center-workspace,.settings-recovery-workspace,.theme-workspace,.basic-settings-panel,.display-settings-panel,dialog)
+:is(button,input,textarea,select){font-size:var(--ws-button)!important;line-height:1.35}
+
+/* 会话中心与右侧AI回复大脑。 */
+.contacts-head h2,.chat-title h2,.ai-head h2{font-size:var(--ws-section-title)!important}
+.contacts-head small,.chat-online,.contact-time,.contact-status,.tags i,.msg footer,.ai-head small,.main-tabs button i,.utility-tabs button{font-size:var(--ws-meta)!important}
+.filters button,.contact-name,.snippet,.contacts-foot,.msg>p,.quote,.translation,.ai-view p,.ai-view span,.ai-view label{font-size:var(--ws-body)!important;line-height:1.62}
+.contact-name,.ai-view h3,.ai-view h4{font-size:var(--ws-card-title)!important}
+
+/* 系统中心。 */
+.sc32-title h1{font-size:var(--ws-page-title)!important}.sc32-title p{font-size:var(--ws-page-copy)!important;line-height:1.7!important}
+.sc32-title small,.sc32-title-line,.sc32-stat span,.sc32-stat small,.sc32-nav small,.sc32-nav em,.sc32-side-foot span,.sc32-side-foot p,
+.sc32-section>header span,.sc32-service span,.sc32-service p,.sc32-service strong,.sc32-row p,.sc32-row em,.sc32-row time,
+.sc32-fact span,.sc32-fact small,.sc32-model-card small,.sc32-model-card p,.sc32-model-card em,.sc32-inline-note{font-size:var(--ws-meta)!important;line-height:1.58!important}
+.sc32-panel-head h2{font-size:var(--ws-section-title)!important}.sc32-panel-head p{font-size:var(--ws-body)!important;line-height:1.65!important}
+.sc32-nav b,.sc32-side-foot b,.sc32-service b,.sc32-row b,.sc32-fact b,.sc32-toggle-row b,.sc32-model-card b{font-size:var(--ws-body)!important;line-height:1.5!important}
+.sc32-section h3{font-size:var(--ws-card-title)!important}.sc32-stat b{font-size:var(--ws-number)!important}
+.sc32-button{min-height:var(--ws-control-h)!important;font-size:var(--ws-button)!important}
+
+/* 设置与恢复，以及独立设置弹窗。 */
+.sr32-head h1{font-size:var(--ws-page-title)!important}.sr32-head p{font-size:var(--ws-page-copy)!important;line-height:1.7!important}.sr32-head small{font-size:var(--ws-meta)!important}
+.sr32-title h2{font-size:var(--ws-section-title)!important}.sr32-title p,.sr32-card header p,.sr32-toggle small,.sr32-row small,.sr32-result,.sr32-empty,.sr32-toast{font-size:var(--ws-small)!important;line-height:1.58!important}
+.sr32-side button b,.sr32-card h3,.sr32-toggle b,.sr32-fact b,.sr32-row b{font-size:var(--ws-body)!important;line-height:1.5!important}
+.sr32-side button small,.sr32-side-foot,.sr32-card header em,.sr32-form label,.sr32-fact span{font-size:var(--ws-meta)!important;line-height:1.5!important}
+.sr32-btn,.sr32-form input,.sr32-form select{min-height:var(--ws-control-h)!important;font-size:var(--ws-button)!important}
+.basic-settings-panel h3,.display-settings-panel h3{font-size:var(--ws-card-title)!important}
+.basic-settings-panel header p,.basic-settings-state,.basic-settings-toggles small,.basic-settings-panel footer span,.display-settings-panel header p,.display-group>span,.display-note{font-size:var(--ws-small)!important;line-height:1.58!important}
+.basic-settings-toggles b{font-size:var(--ws-body)!important}.basic-settings-actions button,.basic-settings-panel footer button,.display-options button{min-height:var(--ws-control-h)!important;font-size:var(--ws-button)!important}
+
+/* 账号中心和账号登录弹窗。 */
+.ac32-title h1{font-size:var(--ws-page-title)!important}.ac32-title p{font-size:var(--ws-page-copy)!important}.ac32-title small{font-size:var(--ws-meta)!important}
+.ac32-directory-head h2,.ac32-detail-id h2,.ac32-dialog h2{font-size:var(--ws-section-title)!important}
+.ac32-account-copy b,.ac32-section h3,.ac32-fact b,.ac32-action-row b,.ac32-history-row b,.ac32-diagnostic-row b,.ac32-binding-row b{font-size:var(--ws-body)!important}
+.ac32-account-copy p,.ac32-account-meta span,.ac32-state,.ac32-section>header span,.ac32-fact span,.ac32-fact em,.ac32-action-row p,.ac32-history-row p,.ac32-diagnostic-row p,.ac32-binding-row p,.ac32-form label{font-size:var(--ws-meta)!important;line-height:1.55!important}
+.ac32-button,.ac32-form input,.ac32-form select,.ac32-form textarea{min-height:var(--ws-control-h)!important;font-size:var(--ws-button)!important}
+
+/* AI工作台、关系洞察和主工作页面。 */
+.aiw30-title h1,.insight29-title h1,.contact26-title h1,.profile27-title h1,.timeline27-title h1{font-size:var(--ws-page-title)!important}
+.aiw30-title p,.insight29-title p,.contact26-title p,.profile27-title p,.timeline27-title p{font-size:var(--ws-page-copy)!important;line-height:1.7!important}
+.aiw30-panel-head h2,.aiw30-command h2,.insight29-person-copy h2{font-size:var(--ws-section-title)!important}
+.aiw30-section h3,.aiw30-template h4,.aiw30-rule h4,.aiw30-service h4,.insight29-section h3{font-size:var(--ws-card-title)!important}
+.aiw30-section p,.aiw30-template p,.aiw30-rule p,.aiw30-service-tags span,.aiw30-service footer b,.aiw30-contact-empty p,.insight29-card p{font-size:var(--ws-body)!important;line-height:1.65!important}
+.aiw30-section small,.aiw30-section>header span,.aiw30-template footer span,.aiw30-rule-meta span,.aiw30-service small,.insight29-card em,.insight29-source{font-size:var(--ws-meta)!important}
+.aiw30-section button,.aiw30-template button,.aiw30-rule-actions button,.aiw30-service button,.insight29-inline-actions button{min-height:var(--ws-control-h)!important;font-size:var(--ws-button)!important}
+
+/* 大字模式同时提高弱化文字对比度，避免“放大了仍看不清”。 */
+html[data-reading="large"] :is(.muted,small,.sc32-title p,.sc32-panel-head p,.sc32-row p,.sc32-service p,.sc32-fact span,.sr32-head p,.sr32-title p,.sr32-card header p,.sr32-toggle small,.sr32-row small,.aiw30-section p,.aiw30-template p,.aiw30-rule p,.contacts-foot,.snippet){color:var(--accent-primary)!important}
+html[data-reading="large"] :is(.sc32-row b,.sc32-service b,.sc32-model-card b,.sr32-toggle b,.sr32-row b,.aiw30-template h4,.aiw30-rule h4){font-weight:720!important}
+
+@media(max-width:1100px){
+  html[data-reading="large"]{--ws-body:16px;--ws-small:14px;--ws-meta:12.5px;--ws-button:14px;--ws-page-title:32px;--ws-section-title:19px;--ws-card-title:17px}
+}
+
+/* Batch 20: the reading setting is the platform-wide typography authority. */
+html[data-reading="standard"]{--ws-body:14px;--ws-small:13px;--ws-meta:12px;--ws-button:13px;--ws-card-title:15px;--ws-section-title:18px}
+html[data-reading="comfortable"],:root{--ws-body:15px;--ws-small:14px;--ws-meta:13px;--ws-button:14px;--ws-card-title:16px;--ws-section-title:20px}
+html[data-reading="large"]{--ws-body:18px;--ws-small:16px;--ws-meta:14px;--ws-button:16px;--ws-card-title:19px;--ws-section-title:23px}
+
+#app :is(p,li,td,th,label,.snippet,.translation,.quote,.notice,.description,.detail,.copy){font-size:var(--ws-body)!important;line-height:1.58!important}
+#app :is(small,.muted,.meta,.hint,.caption,.eyebrow,.kicker,.status,.pill,.tag,.badge,em:not(.icon),time){font-size:var(--ws-meta)!important;line-height:1.45!important}
+#app :is(button,input,textarea,select,option){font-size:var(--ws-button)!important}
+#app :is(h4,.card-title,.panel-title,.section-title){font-size:var(--ws-card-title)!important;line-height:1.35!important}
+#app :is(.text-muted,.muted,small,.meta,.hint,.caption,.snippet,.contacts-foot){color:color-mix(in srgb,var(--text-secondary) 88%,var(--text-primary) 12%)!important}
+
+/* Previously hard-coded 7–11px production surfaces. */
+#app :is(
+  .quick-reply-title small,.quick-reply-actions button,.quick-reply-card header b,.quick-reply-card header span,
+  .quick-reply-card .quick-cn,.quick-reply-card footer button,.quick-reply-empty,.quick-tune-row button,
+  .ai-head-actions button,.ai-daily-status small,.ai-daily-status b,.ai-daily-status span,
+  .ai-daily-card header b,.ai-daily-card header button,.ai-daily-card p,.ai-daily-card strong,
+  .ai-daily-evidence span,.ai-daily-candidate b,.ai-daily-actions button,.utility-tabs:before,
+  .persona-effective-note,.persona-readable-note b,.persona-readable-note p,.persona-readable-section>header small,
+  .persona-readable-section>header h4,.persona-readable-section>header>span,.persona-readable-row>span,
+  .persona-readable-row>b,.persona-readable-row>p,.persona-readable-row>p em,.persona-readable-row>small,
+  .persona-readable-empty,.composer-suggestion-state em,.ac32-hint,.ac32-dialog-status p
+){font-size:var(--ws-meta)!important;line-height:1.5!important}
+#app :is(.persona-readable-row>b,.ai-daily-card strong,.ai-daily-candidate header b){font-size:var(--ws-body)!important}
+
+/* Density changes spacing and row height globally; it never creates fixed-height content panes. */
+html[data-density="comfortable"]{--ui-density-gap:12px;--ui-density-pad:14px;--ui-density-row:42px}
+html[data-density="compact"]{--ui-density-gap:8px;--ui-density-pad:10px;--ui-density-row:34px}
+#app :is(.sc32-row,.sr32-row,.ac32-action-row,.ac32-history-row,.ac32-diagnostic-row,.aiw30-template,.aiw30-rule,.persona-readable-row){min-height:var(--ui-density-row);padding:var(--ui-density-pad)!important}
+#app :is(.sc32-grid,.sr32-grid,.ac32-grid,.aiw30-grid,.persona-readable-grid,.brain-grid){gap:var(--ui-density-gap)!important}
+
+/* Large text must expand content instead of clipping it. */
+html[data-reading="large"] #app :is(.panel,.card,article,section,header,footer,.workspace,.workbench,.grid,.row){max-height:none}
+html[data-reading="large"] #app :is(.contact-name,.snippet,.ai-daily-candidate p,.sc32-row p,.sr32-row small,.ac32-account-copy p){white-space:normal!important;text-overflow:clip!important;-webkit-line-clamp:unset!important;overflow:visible!important}
+
+/* Batch 20: legacy compact composer controls must obey the global reading authority. */
+#app :is(.reply-mode-control,.reply-mode-control select,.composer-settings-row select,.composer-settings-row button,.composer-tool-row button,.composer-bottom-row button){
+  font-size:var(--ws-button)!important;
+  line-height:1.35!important;
+}
+
+/* Batch 20 · 全平台增强对比度。只改变语义颜色，不写死主题色。 */
+html[data-contrast="high"] {
+  --ws-meta-opacity: 1;
+}
+html[data-contrast="high"] :where(small,.muted,.sub,.meta,.hint,.caption,.helper,.description,.status-copy,.display-note) {
+  color: color-mix(in srgb, var(--text-primary) 84%, var(--accent-primary)) !important;
+  opacity: 1 !important;
+}
+html[data-contrast="high"] :where(button,input,textarea,select,[role="button"],.chip,.tag,.badge) {
+  border-color: color-mix(in srgb, var(--text-primary) 30%, var(--accent-primary)) !important;
+}
+html[data-contrast="high"] :where(input,textarea,select)::placeholder {
+  color: color-mix(in srgb, var(--text-primary) 66%, var(--accent-primary)) !important;
+  opacity: 1 !important;
+}
+html[data-contrast="high"] :where(.panel,.card,.section,.workspace-card,.ai-daily-card) {
+  border-color: color-mix(in srgb, var(--text-primary) 20%, var(--line)) !important;
+}
+
+/* Batch 21 · one semantic display authority for every production component. */
+:root{
+  --yance-font-page-title:var(--ws-page-title);
+  --yance-font-section-title:var(--ws-section-title);
+  --yance-font-card-title:var(--ws-card-title);
+  --yance-font-body:var(--ws-body);
+  --yance-font-supporting:var(--ws-small);
+  --yance-font-meta:var(--ws-meta);
+  --yance-control-height:max(var(--ws-control-h),var(--ui-density-row,38px));
+  --yance-component-gap:var(--ui-density-gap,12px);
+  --yance-component-padding:var(--ui-density-pad,14px);
+}
+#app{
+  font-size:var(--yance-font-body)!important;
+  line-height:1.55;
+}
+#app :where(
+  .panel,.card,.section,.workspace-card,.sc32-section,.sr32-card,.ac32-section,
+  .aiw30-section,.persona-readable-section,.ai-daily-card,[data-production-component]
+){
+  min-width:0;
+  max-width:100%;
+}
+#app :where(
+  button:not(.ui-binary-control),input:not(.ui-binary-control),textarea,select,
+  [role="button"]:not(.ui-binary-control),[role="combobox"],[data-production-control]:not(.ui-binary-control)
+){
+  min-height:var(--yance-control-height);
+  max-width:100%;
+  font-size:var(--yance-font-body)!important;
+}
+#app :where(
+  .toolbar,.actions,.button-row,.filter-row,.composer-settings-row,.composer-tool-row,
+  .composer-bottom-row,.sc32-actions,.sr32-actions,.ac32-actions,[data-production-actions]
+){
+  display:flex;
+  flex-wrap:wrap;
+  gap:var(--yance-component-gap);
+  min-width:0;
+}
+#app :where(
+  .panel-body,.card-body,.section-body,.sc32-content,.sr32-content,.ac32-scroll,
+  .aiw30-scroll,.persona-readable-grid,[data-production-body]
+){
+  min-width:0;
+  max-height:none;
+}
+html[data-reading="large"] #app :where(
+  button:not(.ui-binary-control),input:not(.ui-binary-control),textarea,select,[role="button"]:not(.ui-binary-control)
+){
+  white-space:normal;
+  height:auto;
+}
+html[data-contrast="high"] #app :where(a,button,[role="button"],input,textarea,select):focus-visible{
+  outline:3px solid var(--accent-primary)!important;
+  outline-offset:2px!important;
+}
+
+/* FIX6D Matrix V2 · the AI reply panel consumes the same semantic reading scale as every other workspace. */
+#app .ai-head h2{font-size:var(--ws-section-title)!important}
+#app .ai-head small,
+#app .ai-daily-status small,
+#app .ai-daily-status span,
+#app .ai-daily-card header button,
+#app .ai-daily-evidence span,
+#app .ai-daily-candidate header span,
+#app .ai-candidate-process span{font-size:var(--ws-meta)!important;line-height:1.45!important}
+#app .ai-daily-status b,
+#app .ai-daily-card header b,
+#app .ai-daily-candidate header b{font-size:var(--ws-card-title)!important;line-height:1.35!important}
+#app .ai-daily-card p,
+#app .ai-daily-card strong,
+#app .ai-daily-candidate p,
+#app .ai-daily-candidate .ai-candidate-foreign,
+#app .ai-daily-candidate .ai-candidate-cn{font-size:var(--ws-body)!important;line-height:1.55!important}
+html[data-reading="large"]{--ws-meta:15px}
+@media(max-width:1100px){html[data-reading="large"]{--ws-meta:14.5px}}
+
+/* The contact selector is one row; the three AI-workbench commands are one second row. */
+#app .aiw30-actions{
+  display:grid!important;
+  grid-template-columns:repeat(3,max-content);
+  align-items:center;
+  justify-content:end;
+  gap:6px!important;
+  max-width:min(100%,540px);
+}
+#app .aiw30-actions label{grid-column:1/-1;display:flex;min-width:0;width:100%}
+#app .aiw30-actions label select{flex:1 1 auto;min-width:0;width:100%}
+@media(min-width:1700px){
+  #app .aiw30-actions{display:flex!important;max-width:none}
+  #app .aiw30-actions label{width:auto}
+}

@@ -1,0 +1,20 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const { createCredentialRuntime, startup } = require('./helpers');
+test('credential values and their common hashes are absent from persisted runtime output', async () => {
+  const secret = 'wp4-super-secret-refresh-token';
+  const context = startup();
+  const hydration = { vaultEpoch: context.credentialVaultEpoch, generation: 1, payloadBytes: Buffer.byteLength(secret), entryCount: 1, entries: [{ ref: 'provider/token', value: { refreshToken: secret } }] };
+  const created = await createCredentialRuntime({ context, hydration });
+  const forms = [secret, crypto.createHash('sha256').update(secret).digest('hex'), crypto.createHash('sha256').update(secret).digest('base64'), Buffer.from(secret).toString('base64'), Buffer.from(secret).toString('base64url')];
+  const files = [];
+  const walk = dir => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const full = path.join(dir, entry.name); if (entry.isDirectory()) walk(full); else files.push(full); } };
+  walk(created.root);
+  const corpus = files.map(file => { try { return fs.readFileSync(file).toString('latin1'); } catch (_) { return ''; } }).join('\n');
+  for (const value of forms) assert.equal(corpus.includes(value), false, `secret representation leaked: ${value.slice(0, 12)}`);
+  await created.close();
+});

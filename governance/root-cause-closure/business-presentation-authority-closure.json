@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BUSINESS_PRESENTATION_AUTHORITY_CLOSURE",
+  "sourceBaseline": "830bbb6e2ac4b8fe99df7b73a247ee32def31ce9",
+  "status": "UNIT_BEHAVIOR_PASS",
+  "windowsRenderStatus": "PENDING",
+  "endToEndTaskStatus": "PENDING",
+  "userConfirmationStatus": "PENDING",
+  "defectIds": [
+    "DEFECT-017",
+    "DEFECT-018"
+  ],
+  "authority": "BusinessPresentationAuthority",
+  "rootCausesClosed": [
+    "关系阶段、互动风格、学习范围和事件来源由各页面直接显示后端枚举，缺少统一中文业务映射",
+    "正式联系人、关系和账号卡片直接显示 JID、UUID、会话 ID 与消息哈希，业务信息和诊断技术信息没有分层",
+    "过去隐藏技术身份可能误伤底层发送路由，本批明确只改变展示投影，不改变精确身份字段"
+  ],
+  "implementation": [
+    "frontend/js/r32-business-presentation-authority.js",
+    "frontend/r32-business-presentation.css",
+    "frontend/js/r32-ui-runtime.js",
+    "frontend/js/r32-contact-safe-renderers.js",
+    "frontend/js/r32-ai-workbench-runtime.js",
+    "frontend/r32-account-center.js"
+  ],
+  "authorityRules": [
+    "正式业务页面必须通过唯一权威把内部枚举映射为中文业务状态",
+    "JID、UUID、哈希和内部复合键在业务卡片中只显示可区分的摘要",
+    "精确技术身份只能在用户主动展开的技术详情或诊断视图中显示",
+    "发送路由、消息证据、数据库身份和五项隔离合同不得被展示层改写",
+    "已经是中文或正常业务文本的值保持原样，不进行猜测性替换"
+  ],
+  "targetedEvidence": {
+    "authorityTest": "tests/uat/businessPresentationAuthority.test.js",
+    "passed": 5,
+    "failed": 0,
+    "scenarios": [
+      "内部枚举中文化",
+      "JID/UUID/哈希识别与业务摘要",
+      "正式运行时加载顺序",
+      "业务卡片不再直接渲染原始阶段和稳定身份",
+      "精确发送路由与消息证据合同保持不变"
+    ],
+    "focusedAndAdjacentPassed": 38,
+    "preExistingAdjacentFailures": [
+      "conversation-center-ui-v2 中 3 条旧样式/菜单断言在父提交 830bbb6 同样失败",
+      "DOM sink audit 中 2 条旧审计断言在父提交 830bbb6 同样失败"
+    ],
+    "securityEvidence": "stored-xss-rendering 2/2 PASS"
+  },
+  "limitations": [
+    "WINDOWS_RENDER_PASS尚未执行",
+    "真实 Windows 仍需确认关系页、联系人详情、账号绑定和学习材料在当前主题与DPI下显示清晰",
+    "本批没有修改三平台适配器、底层路由或冻结主题色板"
+  ]
+}

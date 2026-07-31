@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP6_CONVERGENCE_PRE_REVIEW_REJECTION",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP6",
+  "auditDate": "2026-07-05",
+  "decision": "WP6_CONVERGENCE_PRE_REVIEW_REJECTED",
+  "preAcceptanceTokenIssued": false,
+  "rejectedIdentity": {
+    "implementationCommit": "dedc0cac9aea26dfb0c2da2fb5166c369acf0513",
+    "implementationSourceTree": "dbd6306f67ec0d33d2abcfdd1c711d91fa742193",
+    "parentCommit": "7de495936c955a67d737c351682a9e84ffd4d290",
+    "parentSourceTree": "855376824e8f75aaebc41ce74f73a451026f977f"
+  },
+  "blockingReasonCodes": [
+    "WP6_STOP_TRANSPORT_UNKNOWN_SAME_COMMAND_RECOVERY_MISSING",
+    "WP6_REQUIRED_F20_TIMEOUT_RECOVERY_COVERAGE_MISSING"
+  ],
+  "productionFinding": {
+    "summary": "Electron runtime.stop transport-unknown path did not retain a recoverable stop operation and could create a new commandId on retry.",
+    "requiredClosure": [
+      "commandId created before first request",
+      "exact envelope and digest retained",
+      "owner/session binding retained",
+      "same ID same envelope recovery",
+      "owner/session change rejects replay",
+      "backend exit creates no second intent",
+      "restart waits for stop or exit recovery"
+    ]
+  },
+  "candidateSuperseded": true,
+  "finalPackagingAuthorized": false,
+  "wp6Completed": false,
+  "wp7ActivationAllowed": false
+}

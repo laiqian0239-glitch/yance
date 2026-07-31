@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP7_DEVELOPER_ADVERSARIAL_SELF_REVIEW_REQUIREMENTS",
+  "generatedAtUtc": "2026-07-05T10:12:44Z",
+  "executionStatus": "NOT_STARTED",
+  "requiredBefore": "CONVERGENCE_PRE_REVIEW",
+  "identityBinding": {
+    "wp6AcceptedFinalDeliveryHead": "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+    "wp6AcceptedFinalSourceTree": "485891e55298667df30e2f588daec196dc530eb7",
+    "activationCommit": "ceffb5234d33518bfda2a88c0e3fad59fb7c8bce",
+    "activationSourceTree": "b457101ab8d5d04d073597039446ded41374a6c8",
+    "activationIdentityBindingCommit": "4ac6d2185bed28823210849704f3850cd875b5fb",
+    "activationBindingSourceTree": "d7f64dbf602ded1075978c13bea8449d7ef7e5e2",
+    "verifiedParentChain": [
+      "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+      "ceffb5234d33518bfda2a88c0e3fad59fb7c8bce",
+      "4ac6d2185bed28823210849704f3850cd875b5fb"
+    ]
+  },
+  "challenges": [
+    {
+      "id": "AR01",
+      "challenge": "Prove the implementation branch starts from the exact accepted Activation binding commit/tree and contains no unrelated ancestry."
+    },
+    {
+      "id": "AR02",
+      "challenge": "Attempt to invoke build/package/release on an unauthorized branch, dirty tree and evidence mode; all must fail closed."
+    },
+    {
+      "id": "AR03",
+      "challenge": "Attempt to reuse WP1 PIPELINE_TEST_ONLY artifacts or a prior WP7 session under renamed paths; provenance checks must reject."
+    },
+    {
+      "id": "AR04",
+      "challenge": "Attempt staging traversal, absolute paths, UNC paths, symlinks, NFC collisions and Windows case collisions."
+    },
+    {
+      "id": "AR05",
+      "challenge": "Change a payload byte after inventory generation and prove payload and manifest sealing rejects it."
+    },
+    {
+      "id": "AR06",
+      "challenge": "Alter one release identity consumer or retain credentialProtocolVersion 2; consistency gates must reject."
+    },
+    {
+      "id": "AR07",
+      "challenge": "Run concurrent builds against the same staging/output and prove exclusive lease and cross-session isolation."
+    },
+    {
+      "id": "AR08",
+      "challenge": "Crash at every K01-K15 point and prove no partial artifact can be promoted or reused."
+    },
+    {
+      "id": "AR09",
+      "challenge": "Replace or modify the installer after sealing and immediately before execution; SHA256 controls must abort."
+    },
+    {
+      "id": "AR10",
+      "challenge": "Leave one old executable, process, config, DB, cache, installer, staging file, shortcut, service, task or startup entry; cleanup evidence must fail."
+    },
+    {
+      "id": "AR11",
+      "challenge": "Attempt first start with an old data root or legacy migration enabled; validation must fail."
+    },
+    {
+      "id": "AR12",
+      "challenge": "Attempt to run two backend owners or bypass event-gap snapshot recovery in the installed runtime."
+    },
+    {
+      "id": "AR13",
+      "challenge": "Attempt to produce final evidence from development fixtures, screenshots or a different installer SHA256; schema/identity joins must reject."
+    },
+    {
+      "id": "AR14",
+      "challenge": "Replace complete source ZIP with changed-files-only content or prune WP6 ancestry from the bundle; closure checks must reject."
+    },
+    {
+      "id": "AR15",
+      "challenge": "Remove or broaden any inherited risk acceptance; governance validation must reject."
+    },
+    {
+      "id": "AR16",
+      "challenge": "Search all evidence for secrets, API session material, credential payloads and vault-derived digests; any hit blocks delivery."
+    },
+    {
+      "id": "AR17",
+      "challenge": "Prove every mutation M01-M44 is killed by the named oracle with no harness-classification false pass."
+    },
+    {
+      "id": "AR18",
+      "challenge": "Independently rebuild package inventories and SHA256 lists from scratch and compare exact results."
+    },
+    {
+      "id": "AR19",
+      "challenge": "Verify Convergence Pre-Review package does not contain final installer or final acceptance claims."
+    },
+    {
+      "id": "AR20",
+      "challenge": "Verify Final Packaging cannot run without WP7_PREACCEPTED_FOR_FINAL_PACKAGING and unchanged preaccepted source identity."
+    },
+    {
+      "id": "AR21",
+      "challenge": "Delete or duplicate one A01-A10 mapping or change its test/evidence/oracle binding.",
+      "requiredProof": "wp7-acceptance-check-mapping.test rejects with a stable reason code."
+    },
+    {
+      "id": "AR22",
+      "challenge": "Misclassify a FINAL_WINDOWS test as PRE_REVIEW or omit a PRE_REVIEW_AND_FINAL repeat.",
+      "requiredProof": "phase-model validator and entry-standard validator reject the package."
+    },
+    {
+      "id": "AR23",
+      "challenge": "Remove one WS entry/exit/matrix/test/evidence/blocking mapping or reference a nonexistent ID.",
+      "requiredProof": "wp7-workstream-traceability.test rejects with dangling or missing-field details."
+    },
+    {
+      "id": "AR24",
+      "challenge": "Execute the complete Convergence correction matrix including installed-runtime probe identity, production dependency replacement/graph/integrity/source/joint re-signing, exact Git modes, Electron unixMode, binding replacement, safe CONNECTING WebSocket restart disposal, bounded renderer-storage navigation to an exact inert same-origin document, retained inert renderer custody, whole-process-tree timeout closure, allowlisted boot-failure child launch continuity and sealed-context mutations.",
+      "requiredProof": "All 122 correction mutations/race probes are killed with zero survivor, invalid, timeout, signal or harness error."
+    },
+    {
+      "id": "AR25",
+      "challenge": "Remove or weaken the installed application probe producer, external reviewed dependency authority, exact Git file-mode comparison, Electron unixMode distribution binding, safe CONNECTING WebSocket restart disposal, exact inert renderer-storage probe document, retained inert renderer custody, whole-process-tree timeout closure, allowlisted boot-failure child launch continuity, or allow packaged internal manifests to self-confirm modified production code.",
+      "requiredProof": "The installed-runtime probe suites pass, all nine producer IDs remain present, dependency/Git/Electron closure remains externally bound, renderer storage is accessed only through the guarded script-free and connection-free same-origin document, the inert renderer is retained across safe-mode restart cycles and disposed at probe completion, process timeouts terminate the complete product tree, boot-failure children inherit only active allowlisted product switches, and all negative cases fail with stable reason codes."
+    }
+  ],
+  "passRule": "All challenges pass with evidence pointers; A01-A10 mapping, test phase assignments and WS01-WS10 traceability are validated; zero unresolved finding remains."
+}

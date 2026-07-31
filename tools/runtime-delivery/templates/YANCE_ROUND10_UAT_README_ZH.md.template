@@ -1,0 +1,55 @@
+# 言策 Round 10 三平台生产链真实 Windows UAT 候选
+
+这不是正式发布版。该候选用于验证 Facebook、WhatsApp、Telegram 的真实生产链、运行身份、数据根、故障降级及证据导出。
+
+## 源码身份
+
+- Branch：`__EXPECTED_BRANCH__`
+- Commit：`__EXPECTED_COMMIT__`
+- Tree：`__EXPECTED_TREE__`
+- Artifact：`ROUND10_PLATFORM_PRODUCTION_WINDOWS_UAT_CANDIDATE`
+
+## 安装和启动
+
+1. 完全退出当前言策。
+2. 确认已安装 Node.js 22.5.0 或更高版本。
+3. 双击 `INSTALL_TEST_AND_START_YANCE_ROUND10_UAT.cmd`。
+4. 安装器会校验源码载荷、选择最大现有数据库并创建逐文件 SHA256 恢复点。
+5. 依赖不完整时会执行带重试和完整性校验的 `npm ci`；依赖不完整时禁止启动。
+6. 只在言策界面录入 OpenRouter Key、平台凭据、验证码或二维码。
+
+## 三平台真实操作
+
+### Facebook
+
+- 使用新联系人向公共主页发送首条消息。
+- 在 Meta Business Suite 后台发送一条消息，验证 Echo 只写入一次。
+- 执行全部同步，验证最近会话补偿和定期对账结果。
+- 验证头像、名称、媒体和不支持在线状态的界面降级。
+
+### WhatsApp
+
+- 验证同一联系人 LID 与手机号 JID 不产生重复会话。
+- 收发文本、图片、语音、GIF、贴纸和无文字附件。
+- 断网后发送并重连，验证只发送一次、草稿和历史不丢失。
+
+### Telegram
+
+- 验证二维码或验证码登录、认证恢复、历史、头像和媒体。
+- 未配置 Telegram 时应显示未配置，不得把整个系统判为严重故障。
+
+## 导出安全证据
+
+完成真实操作后，在言策保持运行时双击：
+
+`COLLECT_YANCE_ROUND10_PLATFORM_EVIDENCE.cmd`
+
+证据 ZIP 会生成到下载目录。账号和联系人标识会哈希处理，Token、Cookie、密码、二维码和会话密钥不会导出。
+
+该证据只证明自动门禁与运行状态。真实消息、媒体、登录、Echo、断网和重连仍需截图或平台侧记录共同验收。
+
+## 状态边界
+
+- `formalRelease=false`
+- `realWindowsUatRequired=true`
+- 在真实平台证据关闭前，不得标记正式发布通过。

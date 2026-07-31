@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_REPLY_LANGUAGE_ROOT_CAUSE_CLOSURE",
+  "defectIds": [
+    "DEFECT-001"
+  ],
+  "sourceParentCommit": "86ca1a89874d1e1a3e4cf81a1905581c8ed57a97",
+  "status": "UNIT_BEHAVIOR_PASS",
+  "realDbReplayStatus": "PENDING",
+  "windowsRenderStatus": "PENDING",
+  "endToEndTaskStatus": "PENDING",
+  "userConfirmationStatus": "PENDING",
+  "authority": "ConversationLanguageAuthority",
+  "implementation": [
+    "backend/services/contactLanguageAuthority.js",
+    "backend/services/replyLanguageAuthority.js",
+    "backend/services/contextAwareReplyBrain.js",
+    "backend/store/commands/registerAiReplyCommands.js",
+    "frontend/js/r32-ui-runtime.js"
+  ],
+  "priorityRules": [
+    "人工明确锁定语言优先",
+    "最新入站消息的明确或检测语言次之",
+    "会话作用域历史观察再次之",
+    "Persona 语言只能作为低置信度回退"
+  ],
+  "blockingGates": [
+    "模型首个候选语言不匹配时只允许一次受控修复",
+    "受控修复后仍不匹配则不提交候选",
+    "用户批准候选前重新核验目标语言",
+    "用户修改已批准文本时重新核验目标语言",
+    "最终发送确认前再次核验目标语言"
+  ],
+  "identityScope": [
+    "platform",
+    "sourceAccountId",
+    "platformContactIdentity",
+    "conversationId",
+    "canonicalContactId"
+  ],
+  "targetedEvidence": {
+    "focusedSuite": {
+      "passed": 37,
+      "failed": 0,
+      "command": "npm run test:reply-language-authority"
+    },
+    "adjacentTranslationLearningSuite": {
+      "passed": 36,
+      "failed": 0
+    },
+    "rootGovernanceSuite": {
+      "passed": 6,
+      "failed": 0
+    },
+    "knownFixtureCorrections": [
+      "陈旧 German Persona 不再覆盖最新英语入站消息",
+      "德语学习闭环夹具改为真实德语候选，禁止英语文本伪装成德语目标"
+    ]
+  },
+  "limitations": [
+    "尚未在用户真实数据库执行回放",
+    "尚未在真实 Windows 界面验证英语客户候选原文、放入输入框和发送阻断",
+    "不能提升为 WINDOWS_RENDER_PASS 或 USER_CONFIRMED_REAL_WINDOWS_PASS"
+  ]
+}

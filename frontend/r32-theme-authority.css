@@ -1,0 +1,700 @@
+/*
+ * Yance global theme authority.
+ * Loaded after every feature stylesheet so a selected theme affects the whole
+ * application shell, conversation center and routed workspaces instead of only
+ * the theme settings page.
+ */
+:root{
+  --theme-shell-bg:var(--bg);
+  --theme-shell-bg-2:var(--bg2);
+  --theme-nav-bg:color-mix(in srgb,var(--nav) 94%,black 6%);
+  --theme-panel-bg:color-mix(in srgb,var(--panel) var(--theme-user-glass-percent,96%),transparent);
+  --theme-panel-bg-2:color-mix(in srgb,var(--panel2) var(--theme-user-glass-percent,92%),transparent);
+  --theme-card-bg:color-mix(in srgb,var(--card) var(--theme-user-glass-percent,88%),transparent);
+  --theme-card-bg-2:color-mix(in srgb,var(--card2) var(--theme-user-glass-percent,82%),transparent);
+  --theme-control-bg:color-mix(in srgb,var(--panel2) 76%,var(--bg) 24%);
+  --theme-control-hover:color-mix(in srgb,var(--card2) 74%,var(--theme-accent) 8%);
+  --theme-active-bg:color-mix(in srgb,var(--theme-accent) 17%,var(--panel2));
+  --theme-active-bg-2:color-mix(in srgb,var(--theme-accent-2) 15%,var(--panel));
+  --theme-border:color-mix(in srgb,var(--theme-accent) 17%,transparent);
+  --theme-border-soft:color-mix(in srgb,var(--theme-accent) 10%,transparent);
+  --theme-border-strong:color-mix(in srgb,var(--theme-accent) 48%,transparent);
+  --theme-text-soft:color-mix(in srgb,var(--muted) 90%,var(--text) 10%);
+  --theme-text-faint:color-mix(in srgb,var(--muted2) 88%,var(--text) 12%);
+  --theme-shadow-soft:0 18px 56px color-mix(in srgb,black 70%,var(--theme-accent) 3%);
+  --theme-shadow-active:0 0 0 1px color-mix(in srgb,var(--theme-accent) 18%,transparent),0 0 26px var(--theme-glow);
+  --theme-shadow-strong:0 24px 78px color-mix(in srgb,black 76%,var(--theme-accent) 5%),0 0 0 1px var(--theme-border-soft);
+  --theme-workspace-bg:linear-gradient(155deg,var(--theme-panel-bg),color-mix(in srgb,var(--theme-shell-bg) 96%,black 4%));
+  --surface-app:var(--theme-shell-bg);
+  --surface-nav:var(--theme-nav-bg);
+  --surface-panel:var(--theme-panel-bg);
+  --surface-panel-raised:var(--theme-panel-bg-2);
+  --surface-card:var(--theme-card-bg);
+  --surface-card-raised:var(--theme-card-bg-2);
+  --surface-control:var(--theme-control-bg);
+  --border-default:var(--theme-border);
+  --border-active:var(--theme-border-strong);
+  --accent-primary:var(--theme-accent);
+  --accent-secondary:var(--theme-accent-2);
+  --theme-on-accent:#031d24;
+  --chat-stage:color-mix(in srgb,var(--bg) 92%,black 8%);
+  --chat-stage-2:color-mix(in srgb,var(--bg2) 90%,var(--panel) 10%);
+  --bubble-in:color-mix(in srgb,var(--card) 82%,var(--panel) 18%);
+  --bubble-in-2:color-mix(in srgb,var(--card2) 78%,var(--panel2) 22%);
+  --bubble-out:color-mix(in srgb,var(--theme-accent) 20%,var(--panel2));
+  --bubble-out-2:color-mix(in srgb,var(--theme-accent) 31%,var(--card2));
+  --translation-gold:var(--gold);
+  --quiet-text:var(--muted);
+  --text-primary:var(--text);
+  --text-secondary:var(--theme-text-soft);
+  --text-muted:var(--theme-text-faint);
+  --status-success:var(--green);
+  --status-warning:var(--gold);
+  --status-danger:var(--red);
+  --status-info:var(--theme-accent-2);
+  --status-success-bg:color-mix(in srgb,var(--status-success) 13%,var(--surface-card));
+  --status-warning-bg:color-mix(in srgb,var(--status-warning) 13%,var(--surface-card));
+  --status-danger-bg:color-mix(in srgb,var(--status-danger) 13%,var(--surface-card));
+  --status-info-bg:color-mix(in srgb,var(--status-info) 13%,var(--surface-card));
+  --shadow-base:black;
+
+  /* FIX6D semantic aliases remain authoritative after all feature CSS. */
+  --ui-brand-accent:var(--theme-accent);
+  --ui-brand-accent-soft:color-mix(in srgb,var(--theme-accent) 16%,transparent);
+  --ui-nav-active-surface:linear-gradient(145deg,color-mix(in srgb,var(--theme-accent) 16%,var(--theme-control-bg)),color-mix(in srgb,var(--theme-accent-2) 8%,var(--theme-control-bg)));
+  --ui-nav-active-border:color-mix(in srgb,var(--theme-accent) 52%,var(--theme-border));
+  --ui-nav-icon-color:var(--theme-text-soft);
+  --ui-control-border:var(--theme-border);
+  --ui-focus-ring:0 0 0 3px color-mix(in srgb,var(--theme-accent) 25%,transparent);
+  --ui-panel-surface-1:var(--theme-panel-bg);
+  --ui-panel-surface-2:var(--theme-panel-bg-2);
+  --ui-panel-surface-3:var(--theme-card-bg);
+  --ui-text-primary:var(--text);
+  --ui-text-secondary:var(--theme-text-soft);
+  --ui-text-muted:var(--theme-text-faint);
+}
+
+html[data-theme="graphite-luxe"]{--theme-on-accent:#211c10}
+html[data-theme="violet-noir"]{--theme-on-accent:#210729}
+html[data-theme="emerald-glass"]{--theme-on-accent:#04241b}
+html[data-theme="wabi-earth"]{--theme-on-accent:#ffffff}
+html[data-theme-brightness="light"]{
+  --theme-on-accent:#ffffff;
+  --theme-nav-bg:color-mix(in srgb,var(--nav) 96%,white 4%);
+  --theme-workspace-bg:linear-gradient(155deg,var(--theme-panel-bg),color-mix(in srgb,var(--theme-shell-bg) 96%,white 4%));
+  --theme-shadow-soft:0 16px 42px color-mix(in srgb,#334 14%,transparent);
+  --theme-shadow-strong:0 22px 65px color-mix(in srgb,#334 18%,transparent),0 0 0 1px var(--theme-border-soft);
+  --chat-stage:color-mix(in srgb,var(--bg) 96%,white 4%);
+  --chat-stage-2:color-mix(in srgb,var(--bg2) 94%,var(--panel) 6%);
+  --shadow-base:#33404a;
+}
+
+html,body{background:var(--theme-shell-bg)!important;color:var(--text)}
+body:before{background:
+  radial-gradient(circle at 80% -8%,color-mix(in srgb,var(--theme-accent-2) 22%,transparent),transparent 35%),
+  radial-gradient(circle at 3% 104%,color-mix(in srgb,var(--theme-accent) 18%,transparent),transparent 36%),
+  radial-gradient(circle at 48% 115%,color-mix(in srgb,var(--theme-accent-3) 9%,transparent),transparent 46%),
+  linear-gradient(135deg,color-mix(in srgb,var(--panel2) 26%,transparent),transparent 50%)!important}
+body:after{background-image:linear-gradient(var(--theme-grid) 1px,transparent 1px),linear-gradient(90deg,var(--theme-grid) 1px,transparent 1px)!important}
+
+/* Desktop chrome and global shell. */
+.desktop-titlebar{
+  border-color:var(--theme-border-soft)!important;
+  background:linear-gradient(90deg,var(--theme-shell-bg),var(--theme-nav-bg) 52%,var(--theme-panel-bg))!important
+}
+.titlebar-product-icon,.titlebar-action{
+  border-color:var(--theme-border)!important;
+  background:var(--theme-control-bg)!important
+}
+.titlebar-action{color:var(--theme-text-soft)!important}
+.titlebar-action:hover{border-color:var(--theme-border-strong)!important;color:var(--text)!important;box-shadow:0 0 18px var(--theme-glow)}
+.titlebar-product em,.titlebar-status{color:var(--theme-text-faint)!important}
+
+.panel,
+dialog,
+.basic-settings-panel,.display-settings-panel,
+.contacts-workspace,.profiles-workspace,.timeline-workspace,.insights-workspace,.aiwork-workspace,
+.account-center-workspace,.system-center-workspace,.settings-recovery-workspace,.theme-workspace{
+  border-color:var(--theme-border)!important;
+  background:linear-gradient(155deg,var(--theme-panel-bg),color-mix(in srgb,var(--theme-shell-bg) 96%,black 4%))!important;
+  box-shadow:var(--theme-shadow-soft)!important
+}
+
+/* Navigation. */
+.nav{background:linear-gradient(180deg,var(--theme-nav-bg),color-mix(in srgb,var(--theme-shell-bg) 96%,black 4%))!important}
+.nav .brand{
+  border-color:var(--ui-nav-active-border)!important;
+  background:color-mix(in srgb,var(--ui-brand-accent-soft) 58%,var(--theme-card-bg-2))!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ui-brand-accent) 10%,transparent)!important
+}
+.nav .brand-mark{
+  color:var(--ui-brand-accent)!important;
+  background:currentColor!important;
+}
+.titlebar-product-mark{
+  color:var(--ui-brand-accent)!important;
+  background:currentColor!important;
+}
+.brand-copy b{color:var(--ui-text-primary)!important}.brand-copy small{color:var(--ui-brand-accent)!important}
+.nav-group-label{color:var(--ui-text-muted)!important}
+.icon,.nav-menu .icon,.nav-bottom .icon,.nav-restore-edge{
+  border-color:var(--ui-control-border)!important;
+  background:var(--theme-control-bg)!important;
+  color:var(--ui-nav-icon-color)!important
+}
+.icon:hover,.icon.active,.nav-menu .icon.active,.nav-bottom .icon.active{
+  color:var(--ui-text-primary)!important;border-color:var(--ui-nav-active-border)!important;
+  background:var(--ui-nav-active-surface)!important;
+  box-shadow:inset 3px 0 0 var(--ui-brand-accent)!important
+}
+.nav-menu .icon.active:after{background:var(--ui-brand-accent)!important;box-shadow:none!important}
+
+/* Contact list and search controls. */
+.contacts-head,.contacts-foot{border-color:var(--theme-border-soft)!important;background:color-mix(in srgb,var(--theme-panel-bg) 92%,transparent)!important}
+.contacts-head small,.search span{color:var(--theme-accent)!important}
+.search,.filters button,.chat-account-select,.chat-platform-badge,
+.composer .tools button,.utility-tabs button,.candidate-process-status>button,
+.form-grid input,.form-grid textarea,.merge-select select{
+  border-color:var(--theme-border)!important;
+  background:var(--theme-control-bg)!important;
+  color:var(--theme-text-soft)!important
+}
+.search input::placeholder,textarea::placeholder{color:var(--theme-text-faint)!important}
+.filters button.active,.utility-tabs button.active,.main-tabs button.active{
+  color:var(--text)!important;border-color:var(--theme-border-strong)!important;
+  background:linear-gradient(135deg,var(--theme-active-bg),var(--theme-active-bg-2))!important;
+  box-shadow:inset 3px 0 0 var(--theme-accent)!important
+}
+.contact-card{
+  border-color:var(--theme-border-soft)!important;
+  background:linear-gradient(180deg,var(--theme-card-bg),color-mix(in srgb,var(--theme-panel-bg) 96%,black 4%))!important
+}
+.contact-card:hover{border-color:color-mix(in srgb,var(--theme-accent) 28%,transparent)!important;background:var(--theme-control-hover)!important}
+.contact-card.active{
+  border-color:var(--theme-border-strong)!important;
+  background:linear-gradient(135deg,var(--theme-active-bg),var(--theme-active-bg-2))!important;
+  box-shadow:var(--theme-shadow-active)!important
+}
+.contact-card.active:before{background:var(--theme-accent)!important;box-shadow:0 0 13px var(--theme-accent)!important}
+.contact-time,.contact-status,.snippet,.contacts-foot,.tags i{color:var(--theme-text-soft)!important}
+.tags i{border-color:var(--theme-border)!important}
+
+/* Conversation stage. */
+.chat{background:var(--chat-stage)!important}
+.chat-head{
+  border-color:var(--theme-border-soft)!important;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--theme-panel-bg) 96%,transparent),color-mix(in srgb,var(--theme-shell-bg-2) 94%,transparent))!important
+}
+.chat-identity-main:hover .chat-title h2{color:var(--text)!important;text-shadow:0 0 15px var(--theme-glow)}
+.chat-online{color:var(--theme-text-soft)!important}
+.messages{
+  background:radial-gradient(circle at 78% 0%,color-mix(in srgb,var(--theme-accent-2) 8%,transparent),transparent 39%),linear-gradient(180deg,var(--chat-stage-2),var(--chat-stage))!important
+}
+.msg{
+  border-color:color-mix(in srgb,var(--theme-accent) 14%,transparent)!important;
+  background:linear-gradient(145deg,var(--bubble-in),var(--bubble-in-2))!important
+}
+.msg.me{
+  border-color:color-mix(in srgb,var(--theme-accent) 34%,transparent)!important;
+  background:linear-gradient(145deg,var(--bubble-out),var(--bubble-out-2))!important;
+  box-shadow:0 9px 24px color-mix(in srgb,black 70%,var(--theme-accent) 4%)!important
+}
+.msg .message-original{color:var(--text)!important}.msg footer{color:var(--quiet-text)!important}
+.composer{
+  border-color:var(--theme-border-soft)!important;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--theme-panel-bg) 98%,transparent),var(--theme-panel-bg-2))!important
+}
+.composer textarea{color:var(--text)!important;background:transparent!important}
+.composer:focus-within{border-color:var(--theme-border-strong)!important;box-shadow:0 -8px 35px var(--theme-glow),inset 0 1px 0 var(--theme-border)!important}
+.send,.primary,.theme32-button.primary,.ac32-button.primary,.sc32-button.primary,.sr32-btn.primary,
+.aiw30-actions .primary,.insight29-decision-actions .primary,.dialog-actions .primary{
+  border-color:transparent!important;
+  background:linear-gradient(135deg,var(--theme-accent),color-mix(in srgb,var(--theme-accent-2) 62%,var(--theme-accent)))!important;
+  color:var(--theme-on-accent)!important;
+  box-shadow:0 0 22px var(--theme-glow)!important
+}
+
+/* AI reply brain. */
+.ai{border-color:var(--theme-border)!important;background:linear-gradient(155deg,var(--theme-panel-bg),var(--theme-shell-bg))!important}
+.ai:before{background:radial-gradient(circle at center,color-mix(in srgb,var(--theme-accent-2) 25%,transparent),transparent 68%)!important}
+.ai-head,.main-tabs,.utility-tabs,.flowbar{border-color:var(--theme-border-soft)!important;background:color-mix(in srgb,var(--theme-panel-bg) 94%,transparent)!important}
+.brain-orb{border-color:var(--theme-border-strong)!important;background:radial-gradient(circle,var(--theme-accent) 0 6%,color-mix(in srgb,var(--theme-accent) 18%,transparent) 8% 28%,transparent 30%)!important;box-shadow:0 0 30px var(--theme-glow)!important}
+.main-tabs button,.utility-tabs button{color:var(--theme-text-soft)!important}
+.main-tabs button.active,.utility-tabs button.active{color:var(--text)!important}
+.ai-scroll{background:linear-gradient(180deg,color-mix(in srgb,var(--theme-shell-bg-2) 88%,transparent),var(--theme-shell-bg))!important}
+.brain-card,.strategy-hero,.candidate,.candidate-process-status,.neural-core,.risk-box,.opp-box,.simulation .sim,.evidence-row,.reason-step,.signal{
+  border-color:var(--theme-border-soft)!important;
+  background:linear-gradient(145deg,var(--theme-card-bg),color-mix(in srgb,var(--theme-panel-bg) 94%,black 6%))!important
+}
+.candidate.selected{border-color:var(--theme-border-strong)!important;box-shadow:var(--theme-shadow-active)!important}
+.candidate.selected [data-act="select"]{background:var(--theme-accent)!important;border-color:var(--theme-accent)!important;color:var(--theme-on-accent)!important}
+
+/* Routed workspaces: shared shell, headers, cards and controls. */
+:is(.contact26-hero,.profile27-hero,.timeline27-hero,.insight29-hero,.aiw30-hero,.ac32-hero,.sc32-hero,.sr32-head,.theme32-head){
+  border-color:var(--theme-border-soft)!important;
+  background:linear-gradient(110deg,color-mix(in srgb,var(--theme-accent) 9%,var(--theme-panel-bg)),var(--theme-panel-bg) 50%,color-mix(in srgb,var(--theme-accent-2) 10%,var(--theme-panel-bg)))!important
+}
+:is(.contact26-section,.profile27-section,.timeline27-section,.insight29-section,.aiw30-section,.ac32-section,.sc32-section,.sr32-card,.theme32-section,
+.ac32-account,.ac32-fact,.ac32-action-row,.ac32-history-row,.ac32-diagnostic-row,.ac32-binding-row,
+.sc32-service,.sc32-row,.sc32-fact,.sc32-model-card,.sc32-account-card,.sc32-backup-row,.sc32-danger-card,
+.aiw30-template,.aiw30-rule,.aiw30-service,.insight29-card,.insight29-metric,.insight29-evidence article,
+.persona-card,.persona-editor-card,.basic-settings-toggles label,.display-group){
+  border-color:var(--theme-border-soft)!important;
+  background:linear-gradient(145deg,var(--theme-card-bg),color-mix(in srgb,var(--theme-panel-bg) 94%,black 6%))!important
+}
+:is(.ac32-button,.sc32-button,.sr32-btn,.theme32-button,.aiw30-actions button,.insight29-inline-actions button,.insight29-decision-actions button,
+.ac32-form input,.ac32-form select,.ac32-form textarea,.sc32-field input,.sc32-field select,.sr32-form input,.sr32-form select,.theme32-options button){
+  border-color:var(--theme-border)!important;
+  background:var(--theme-control-bg)!important;
+  color:var(--theme-text-soft)!important
+}
+:is(.ac32-tabs button.active,.sc32-nav button.active,.sr32-side button.active,.theme32-options button.active){
+  color:var(--text)!important;border-color:var(--theme-border-strong)!important;
+  background:linear-gradient(135deg,var(--theme-active-bg),var(--theme-active-bg-2))!important;
+  box-shadow:var(--theme-shadow-active)!important
+}
+:is(.ac32-title small,.sc32-title small,.sr32-head small,.theme32-head small,.contact26-title small,.profile27-title small,.timeline27-title small,.insight29-title small,.aiw30-title small){color:var(--theme-accent)!important}
+:is(.ac32-title p,.sc32-title p,.sr32-head p,.theme32-head p,.contact26-title p,.profile27-title p,.timeline27-title p,.insight29-title p,.aiw30-title p){color:var(--theme-text-soft)!important}
+
+/* Dialogs, overlays and small popovers. */
+dialog{background:var(--theme-panel-bg)!important}
+.dialog-head,.dialog-actions{border-color:var(--theme-border-soft)!important;background:var(--theme-panel-bg-2)!important}
+.r32-message-menu,.r32-quote-bar,.r32-pending-attachment,.toast,.r32-update-center{
+  border-color:var(--theme-border)!important;
+  background:color-mix(in srgb,var(--theme-panel-bg) 97%,black 3%)!important;
+  color:var(--text)!important
+}
+.r32-message-menu button:hover{background:var(--theme-active-bg)!important}
+
+/* The preview must be visibly global while the user is still on the theme page. */
+html[data-theme-preview="true"] .desktop-titlebar,
+html[data-theme-preview="true"] .panel,
+html[data-theme-preview="true"] .theme-workspace{transition:background var(--motion-medium) ease,border-color var(--motion-fast) ease,box-shadow var(--motion-medium) ease!important}
+
+/* R32.1 complete routed-workspace authority.
+ * Feature styles intentionally retain semantic success/warning/error colors,
+ * while every structural surface now follows the selected global theme.
+ */
+.system-status{
+  border-color:var(--theme-border-strong)!important;
+  background:color-mix(in srgb,var(--theme-panel-bg) 97%,black 3%)!important;
+  color:var(--text)!important;
+  box-shadow:var(--theme-shadow-active)!important
+}
+.system-status button{
+  border-color:var(--theme-border-strong)!important;
+  background:var(--theme-control-bg)!important;
+  color:var(--text)!important
+}
+.system-status button:hover{background:var(--theme-active-bg)!important}
+
+:is(.contact26-shell,.profile27-main,.timeline27-main,.ac32-main,.sc32-body,.sr32-body){color:var(--text)!important}
+:is(.contact26-hero-status article,.hero-status-card,.profile27-syncbar article,.timeline27-syncbar article,
+.contact26-stat,.profile27-stat,.timeline27-metric,.ac32-stat,.sc32-stat){
+  border-color:var(--theme-border-soft)!important;
+  background:linear-gradient(145deg,var(--theme-card-bg),var(--theme-card-bg-2))!important;
+  box-shadow:none!important
+}
+:is(.contact26-stat.active,.profile27-stat.active,.timeline27-metric.active,.ac32-stat.active,.sc32-stat.active){
+  border-color:var(--theme-border-strong)!important;
+  box-shadow:var(--theme-shadow-active)!important
+}
+:is(.hero-status-card span,.contact26-stat span,.contact26-stat small,.profile27-stat span,.profile27-stat small,
+.timeline27-metric span,.timeline27-metric small,.directory-title p,.profile27-directory-head p,.timeline27-directory-head p,
+.identity26-main p,.profile27-copy p,.timeline27-copy p,.identity26-side time,.timeline27-side small){color:var(--theme-text-soft)!important}
+
+:is(.contact26-directory,.contact26-detail,.profile27-directory,.profile27-detail,.timeline27-directory,.timeline27-detail,
+.ac32-directory,.ac32-workbench,.sc32-sidebar,.sc32-content,.sr32-side,.sr32-content){
+  border-color:var(--theme-border)!important;
+  background:linear-gradient(155deg,var(--theme-panel-bg),color-mix(in srgb,var(--theme-shell-bg) 96%,black 4%))!important
+}
+:is(.directory-title,.profile27-directory-head,.timeline27-directory-head,.ac32-directory-head,.sc32-panel-head,.sr32-side-foot){
+  border-color:var(--theme-border-soft)!important;
+  background:color-mix(in srgb,var(--theme-panel-bg-2) 90%,transparent)!important
+}
+:is(.directory-search,.profile27-search,.timeline27-search,.ac32-search,.sc32-field,.sr32-form input,.sr32-form select){
+  border-color:var(--theme-border)!important;
+  background:var(--theme-control-bg)!important;
+  color:var(--text)!important
+}
+:is(.directory-search input,.profile27-search input,.timeline27-search input,.ac32-search input,.sc32-field input,.sc32-field select){
+  color:var(--text)!important;background:transparent!important
+}
+:is(.directory-filters button,.profile27-filters button,.timeline27-quick button,.timeline27-ranges button,.ac32-filters button,.ac32-tabs button,.sc32-nav button,.sr32-side button){
+  border-color:var(--theme-border)!important;
+  background:var(--theme-control-bg)!important;
+  color:var(--theme-text-soft)!important
+}
+:is(.directory-filters button.active,.profile27-filters button.active,.timeline27-quick button.active,.timeline27-ranges button.active,
+.ac32-filters button.active,.ac32-tabs button.active,.sc32-nav button.active,.sr32-side button.active){
+  border-color:var(--theme-border-strong)!important;
+  background:linear-gradient(135deg,var(--theme-active-bg),var(--theme-active-bg-2))!important;
+  color:var(--text)!important;
+  box-shadow:var(--theme-shadow-active)!important
+}
+
+:is(.identity26-card,.profile27-card,.timeline27-card,.ac32-account,.sc32-row,.sr32-row){
+  border-color:var(--theme-border-soft)!important;
+  background:linear-gradient(145deg,var(--theme-card-bg),color-mix(in srgb,var(--theme-panel-bg) 94%,black 6%))!important;
+  color:var(--text)!important
+}
+:is(.identity26-card:hover,.profile27-card:hover,.timeline27-card:hover,.ac32-account:hover,.sc32-row:hover,.sr32-row:hover){
+  border-color:color-mix(in srgb,var(--theme-accent) 30%,transparent)!important;
+  background:var(--theme-control-hover)!important
+}
+:is(.identity26-card.active,.profile27-card.active,.timeline27-card.active,.ac32-account.active,.sc32-row.active,.sr32-row.active){
+  border-color:var(--theme-border-strong)!important;
+  background:linear-gradient(135deg,var(--theme-active-bg),var(--theme-active-bg-2))!important;
+  box-shadow:var(--theme-shadow-active)!important
+}
+:is(.identity26-card.active:before,.profile27-card.active:before,.timeline27-card.active:before){
+  background:var(--theme-accent)!important;
+  box-shadow:0 0 13px var(--theme-accent)!important
+}
+:is(.identity26-tags i,.profile27-tags i,.timeline27-tags i,.detail26-meta span,.profile27-meta span,.timeline27-meta span,
+.ac32-cap,.ac32-detail-tags span,.sc32-chip){
+  border-color:var(--theme-border)!important;
+  background:color-mix(in srgb,var(--theme-control-bg) 86%,transparent)!important;
+  color:var(--theme-text-soft)!important
+}
+
+:is(.detail26-hero,.profile27-detail-hero,.timeline27-detail-hero,.ac32-detail-hero,.sc32-panel-head){
+  border-color:var(--theme-border-soft)!important;
+  background:linear-gradient(110deg,var(--theme-active-bg),var(--theme-panel-bg) 58%,var(--theme-active-bg-2))!important
+}
+:is(.detail26-actions button,.profile27-detail-actions button,.timeline27-detail-actions button,.ac32-detail-actions button,
+.contact26-hero-actions button,.profile27-actions button,.timeline27-actions button,.sc32-panel-actions button){
+  border-color:var(--theme-border)!important;
+  background:var(--theme-control-bg)!important;
+  color:var(--theme-text-soft)!important
+}
+:is(.detail26-actions button:hover,.profile27-detail-actions button:hover,.timeline27-detail-actions button:hover,.ac32-detail-actions button:hover,
+.contact26-hero-actions button:hover,.profile27-actions button:hover,.timeline27-actions button:hover,.sc32-panel-actions button:hover){
+  border-color:var(--theme-border-strong)!important;
+  background:var(--theme-control-hover)!important;
+  color:var(--text)!important
+}
+:is(.detail26-actions .primary,.profile27-detail-actions .primary,.timeline27-detail-actions .primary,
+.contact26-hero-actions .primary,.profile27-actions .primary,.timeline27-actions .primary){
+  border-color:transparent!important;
+  background:linear-gradient(135deg,var(--theme-accent),color-mix(in srgb,var(--theme-accent-2) 62%,var(--theme-accent)))!important;
+  color:var(--theme-on-accent)!important;
+  box-shadow:0 0 22px var(--theme-glow)!important
+}
+
+:is(.detail26-fact,.detail26-section,.evidence26 article,.detail26-next,.detail26-recent,
+.profile27-section,.profile27-rangebar,.timeline27-rangebar,.timeline27-section,
+.rhythm-card,.topic27,.turning-event,.signal27,.next27,.evidence27,
+.ac32-fact,.ac32-action-row,.ac32-history-row,.ac32-binding-row,.ac32-diagnostic-row,.ac32-hint,.ac32-send-source,
+.sc32-service,.sc32-fact,.sc32-model-card,.sc32-account-card,.sc32-backup-row,.sc32-danger-card,.sc32-inline-note,.sc32-edge-note,.sc32-result,
+.sr32-card,.sr32-fact,.sr32-result){
+  border-color:var(--theme-border-soft)!important;
+  background:linear-gradient(145deg,var(--theme-card-bg),color-mix(in srgb,var(--theme-panel-bg) 94%,black 6%))!important
+}
+:is(.detail26-section header,.profile27-section>header,.timeline27-section>header,.ac32-section>header,.sc32-section>header,.sr32-card>header){
+  border-color:var(--theme-border-soft)!important;
+  background:color-mix(in srgb,var(--theme-panel-bg-2) 88%,transparent)!important
+}
+:is(.detail26-profile p,.profile27-person p,.timeline27-person p,.detail26-section header span,.profile27-section>header span,.timeline27-section>header span,
+.detail26-fact small,.evidence26 p,.detail26-next p,.detail26-recent small,.profile27-body p,.timeline27-body p,
+.ac32-account-meta,.ac32-action-row p,.ac32-history-row p,.sc32-row p,.sc32-fact span,.sc32-service p,.sr32-row p){color:var(--theme-text-soft)!important}
+
+/* Global empty, loading and diagnostic states must not revert to cyan-only legacy cards. */
+:is(.ui-empty-state,.ac32-empty,.sc32-empty,.sc32-loading,.sr32-empty,.aiw30-contact-empty){
+  border-color:var(--theme-border-soft)!important;
+  background:color-mix(in srgb,var(--theme-card-bg) 78%,transparent)!important;
+  color:var(--text)!important
+}
+:is(.ui-empty-state p,.ac32-empty p,.sc32-empty p,.sc32-loading p,.sr32-empty p,.aiw30-contact-empty p){color:var(--theme-text-soft)!important}
+.ui-empty-orb{border-color:var(--theme-border-strong)!important;background:var(--theme-active-bg)!important;box-shadow:0 0 24px var(--theme-glow)!important}
+
+/* Use the selected theme for non-semantic decorative accents. */
+:is(.contact26-hero:before,.profile27-hero:before,.timeline27-detail-hero:after){
+  filter:hue-rotate(var(--theme-hue-shift,0deg)) saturate(.9)!important
+}
+:is(.directory-search span,.profile27-search span,.timeline27-search span,.timeline27-side strong,.mini-spark polyline){
+  color:var(--theme-accent)!important;stroke:var(--theme-accent)!important
+}
+:is(.sc32-diagnostic-list,.sc32-probe-groups,.ac32-diagnostic-list,.ac32-action-list,.ac32-binding-list,.ac32-history,.sc32-list,.sc32-log-list,.sc32-account-list,.sc32-backup-list,.sr32-list){color:var(--text)!important}
+
+/* R32.2 source-UAT closure: remove legacy cyan as a structural authority.
+ * Semantic success/warning/error indicators remain untouched; backgrounds,
+ * borders, controls, diagrams and scrollbars inherit the active theme.
+ */
+:where(html,body,div,section,main,aside,article,nav,dialog,textarea,select){
+  scrollbar-color:color-mix(in srgb,var(--theme-accent) 58%,transparent) color-mix(in srgb,var(--theme-panel-bg) 88%,transparent)
+}
+*::-webkit-scrollbar{width:8px;height:8px}
+*::-webkit-scrollbar-track{background:color-mix(in srgb,var(--theme-panel-bg) 88%,transparent)}
+*::-webkit-scrollbar-thumb{
+  border:2px solid color-mix(in srgb,var(--theme-panel-bg) 88%,transparent);
+  border-radius:999px;
+  background:color-mix(in srgb,var(--theme-accent) 58%,transparent)
+}
+*::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--theme-accent) 78%,transparent)}
+
+/* Contact identity and relationship workbench. */
+:is(.relationship-workbench,.workbench-left,.summary-tile,.workbench-queue button,.current-card){
+  border-color:var(--theme-border-soft)!important;
+  background:linear-gradient(145deg,var(--theme-card-bg),var(--theme-card-bg-2))!important;
+  color:var(--text)!important
+}
+.relationship-workbench{
+  border-color:var(--theme-border)!important;
+  background:linear-gradient(135deg,var(--theme-panel-bg),var(--theme-shell-bg-2))!important
+}
+.workbench-brand .orb{
+  background:linear-gradient(145deg,var(--theme-accent),var(--theme-accent-2))!important;
+  box-shadow:0 0 22px var(--theme-glow)!important
+}
+:is(.workbench-brand span,.summary-tile span,.workbench-current small,.workbench-current>p){color:var(--theme-accent)!important}
+:is(.summary-tile small,.current-card span){color:var(--theme-text-soft)!important}
+.workbench-queue button.active{
+  border-color:var(--theme-border-strong)!important;
+  background:linear-gradient(135deg,var(--theme-active-bg),var(--theme-active-bg-2))!important;
+  box-shadow:var(--theme-shadow-active)!important
+}
+.workbench-queue button.active span{color:var(--theme-accent)!important}
+:is(.contact26-stat:after,.contact26-hero:before){
+  background:radial-gradient(circle,color-mix(in srgb,var(--theme-accent-2) 16%,transparent),transparent 68%)!important
+}
+
+/* AI reply brain: decorative reasoning graphics follow the active theme. */
+.neural-core{
+  border-color:var(--theme-border-strong)!important;
+  background:radial-gradient(circle at 50% 44%,color-mix(in srgb,var(--theme-accent-2) 22%,transparent),transparent 31%),linear-gradient(145deg,var(--theme-card-bg),var(--theme-panel-bg))!important;
+  box-shadow:inset 0 0 60px color-mix(in srgb,var(--theme-accent) 5%,transparent),var(--theme-shadow-soft)!important
+}
+.neural-core:before{
+  background-image:linear-gradient(var(--theme-grid) 1px,transparent 1px),linear-gradient(90deg,var(--theme-grid) 1px,transparent 1px)!important
+}
+.neural-core:after{
+  background:linear-gradient(90deg,transparent,var(--theme-accent),var(--theme-accent-2),transparent)!important;
+  box-shadow:0 0 16px var(--theme-glow)!important
+}
+.core-ring{border-color:color-mix(in srgb,var(--theme-accent) 62%,transparent)!important}
+.core-ring.r2{border-color:color-mix(in srgb,var(--theme-accent-2) 68%,transparent)!important}
+.core-ring.r3{border-color:color-mix(in srgb,var(--theme-accent-3) 62%,transparent)!important}
+.core-center strong{color:var(--text)!important;text-shadow:0 0 18px var(--theme-glow)!important}
+.core-center span{color:var(--theme-accent)!important}
+.node,.reason-step i{background:var(--theme-accent)!important;box-shadow:0 0 15px var(--theme-glow)!important}
+.node:after{background:linear-gradient(90deg,color-mix(in srgb,var(--theme-accent) 68%,transparent),transparent)!important}
+.n2{background:var(--theme-accent-2)!important;box-shadow:0 0 15px color-mix(in srgb,var(--theme-accent-2) 62%,transparent)!important}
+.n2:after{background:linear-gradient(90deg,color-mix(in srgb,var(--theme-accent-2) 68%,transparent),transparent)!important}
+.n3{background:var(--theme-accent-3)!important;box-shadow:0 0 15px color-mix(in srgb,var(--theme-accent-3) 62%,transparent)!important}
+.n3:after{background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--theme-accent-3) 68%,transparent))!important}
+.n4:after{background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--theme-accent) 68%,transparent))!important}
+:is(.core-metrics article,.signal,.evidence-row,.reason-step,.chips b){
+  border-color:var(--theme-border-soft)!important;
+  background:color-mix(in srgb,var(--theme-card-bg) 84%,transparent)!important
+}
+.signal i{background:var(--theme-active-bg)!important;color:var(--theme-accent)!important}
+.evidence-row:before{background:var(--theme-accent-2)!important;box-shadow:0 0 11px color-mix(in srgb,var(--theme-accent-2) 65%,transparent)!important}
+.evidence-row:not(:last-child):after{background:linear-gradient(var(--theme-accent-2),transparent)!important}
+.track{background:color-mix(in srgb,var(--theme-panel-bg-2) 85%,black 15%)!important}
+.track i{background:linear-gradient(90deg,var(--theme-accent-2),var(--theme-accent))!important}
+
+/* AI workbench structural surfaces and routing diagram. */
+:is(.aiw30-sidebar,.aiw30-content,.aiw30-core,.aiw30-tabs,.aiw30-activity,.aiw30-sidebar-foot,.aiw30-content-head){
+  border-color:var(--theme-border-soft)!important;
+  background:color-mix(in srgb,var(--theme-panel-bg) 95%,transparent)!important
+}
+:is(.aiw30-sync article,.aiw30-health article,.aiw30-log article,.aiw30-section,.aiw30-command,.aiw30-stack article,
+.aiw30-template,.aiw30-rule,.aiw30-stat,.aiw30-step,.aiw30-material,.aiw30-governance article,.aiw30-service,.aiw30-route){
+  border-color:var(--theme-border-soft)!important;
+  background:linear-gradient(145deg,var(--theme-card-bg),var(--theme-card-bg-2))!important;
+  color:var(--text)!important
+}
+.aiw30-hero:before{background:radial-gradient(circle,color-mix(in srgb,var(--theme-accent) 18%,transparent),color-mix(in srgb,var(--theme-accent-2) 12%,transparent) 45%,transparent 72%)!important}
+.aiw30-core-orb{
+  background:conic-gradient(var(--theme-accent) 0 74%,color-mix(in srgb,var(--theme-accent) 7%,transparent) 74%)!important;
+  box-shadow:0 0 26px var(--theme-glow)!important
+}
+.aiw30-core-orb:before{background:var(--theme-panel-bg)!important;border-color:var(--theme-border-strong)!important}
+.aiw30-core-orb:after{background:var(--theme-accent)!important;box-shadow:0 0 15px var(--theme-accent)!important}
+:is(.aiw30-tab,.aiw30-sidebar-foot button,.aiw30-content-actions button,.aiw30-template button,.aiw30-rule-actions button,
+.aiw30-contact-empty button,.aiw30-chips button,.aiw30-material-actions button,.aiw30-service footer button,
+.aiw30-route select,.aiw30-route input,.aiw30-route-toggle,.aiw30-dialog textarea,.aiw30-dialog input,.aiw30-dialog select){
+  border-color:var(--theme-border)!important;
+  background:var(--theme-control-bg)!important;
+  color:var(--theme-text-soft)!important
+}
+.aiw30-tab:hover{background:var(--theme-control-hover)!important}
+.aiw30-tab.active,.aiw30-chips button.active,.aiw30-route-toggle:not(.off){
+  border-color:var(--theme-border-strong)!important;
+  background:linear-gradient(135deg,var(--theme-active-bg),var(--theme-active-bg-2))!important;
+  color:var(--text)!important;
+  box-shadow:var(--theme-shadow-active)!important
+}
+.aiw30-tab.active{box-shadow:inset 3px 0 0 var(--theme-accent),var(--theme-shadow-active)!important}
+.aiw30-tab i{background:var(--theme-active-bg)!important}
+:is(.aiw30-content-title small,.aiw30-command small,.aiw30-stack em,.aiw30-template small,.aiw30-step:not(:last-child):after){color:var(--theme-accent)!important}
+.aiw30-template.active{border-color:var(--theme-border-strong)!important;box-shadow:inset 3px 0 0 var(--theme-accent)!important}
+.aiw30-route-map{
+  border-color:var(--theme-border-soft)!important;
+  background:radial-gradient(circle at 50% 50%,color-mix(in srgb,var(--theme-accent) 10%,transparent),transparent 32%),linear-gradient(var(--theme-grid) 1px,transparent 1px),linear-gradient(90deg,var(--theme-grid) 1px,transparent 1px)!important;
+  background-size:auto,24px 24px,24px 24px!important
+}
+.aiw30-route-map .node{fill:var(--theme-panel-bg)!important;stroke:var(--theme-accent)!important}
+.aiw30-route-map .cloud{stroke:var(--theme-accent-2)!important}
+.aiw30-route-map .line{stroke:var(--theme-accent)!important}
+.aiw30-route-map .pulse{fill:var(--theme-accent)!important;filter:drop-shadow(0 0 5px var(--theme-accent))!important}
+.aiw30-route-map text{fill:var(--theme-text-soft)!important}
+
+/* Non-semantic accents in all routed workspaces. */
+:is(.directory-filters button.active,.profile27-filters button.active,.timeline27-quick button.active,.timeline27-ranges button.active){
+  border-color:var(--theme-border-strong)!important;
+  background:linear-gradient(135deg,var(--theme-active-bg),var(--theme-active-bg-2))!important;
+  color:var(--text)!important
+}
+:is(.detail26-recent,.aiw30-log article){border-left-color:var(--theme-accent)!important}
+
+/* R32.3 remaining visual closure: settings, update surfaces and SVG charts. */
+:is(.r32-update-actions button,.basic-settings-actions button,.basic-settings-panel footer button,
+.persona-history button,.persona-pending button,.sr32-sound-picker select,.sr32-sound-picker button,
+.sr32-card button,.display-group button){
+  border-color:var(--theme-border)!important;
+  background:var(--theme-control-bg)!important;
+  color:var(--theme-text-soft)!important
+}
+:is(.r32-update-actions button:hover,.basic-settings-actions button:hover,.basic-settings-panel footer button:hover,
+.persona-history button:hover,.persona-pending button:hover,.sr32-sound-picker button:hover,.sr32-card button:hover){
+  border-color:var(--theme-border-strong)!important;
+  background:var(--theme-control-hover)!important;
+  color:var(--text)!important
+}
+:is(.sr32-sound-picker,.sr32-sound-grid,.basic-settings-panel,.display-settings-panel,.persona-summary article){
+  border-color:var(--theme-border-soft)!important;
+  background:linear-gradient(145deg,var(--theme-card-bg),var(--theme-card-bg-2))!important
+}
+:is(.sr32-toast,.ac32-dialog,.ac32-hint,.r32-update-center,.basic-settings-panel){
+  border-color:var(--theme-border)!important;
+  background:color-mix(in srgb,var(--theme-panel-bg) 97%,black 3%)!important;
+  color:var(--text)!important
+}
+.r32-update-center progress{accent-color:var(--theme-accent)!important}
+:is(.sc32-trend .line,.trajectory-chart .chart-line-temp,.insight29-chart .line){
+  stroke:var(--theme-accent)!important;
+  filter:drop-shadow(0 0 5px var(--theme-glow))!important
+}
+:is(.trajectory-chart .chart-line-init,.insight29-chart .line-secondary){stroke:var(--theme-accent-2)!important}
+:is(.trajectory-chart .chart-line-depth,.insight29-chart .line-tertiary){stroke:var(--theme-accent-3)!important}
+:is(.sc32-trend b,.chart-legend span:first-child i){color:var(--theme-accent)!important;background:var(--theme-accent)!important}
+#sc32TrendFill stop:first-child,#r29area stop:first-child,#trajectoryArea stop:first-child{stop-color:var(--theme-accent)!important}
+#r29line stop:first-child,#routeGrad stop:first-child{stop-color:var(--theme-accent)!important}
+#r29line stop:nth-child(2),#routeGrad stop:nth-child(2){stop-color:var(--theme-accent-2)!important}
+#r29line stop:last-child,#routeGrad stop:last-child{stop-color:var(--theme-accent-3)!important}
+
+/* Conversation actions and reply controls must not retain the legacy cyan shell. */
+:is(.composer-suggestion-state button,.reply-mode-control select,.flow-secondary,.chat-empty-guidance button){
+  border-color:var(--theme-border)!important;
+  background:var(--theme-control-bg)!important;
+  color:var(--theme-text-soft)!important
+}
+:is(.composer-suggestion-state button:hover,.flow-secondary:hover,.chat-empty-guidance button:hover){
+  border-color:var(--theme-border-strong)!important;
+  background:var(--theme-control-hover)!important;
+  color:var(--text)!important
+}
+:is(.composer-suggestion-state button.active,.flow-primary,.chat-empty-guidance button){
+  border-color:transparent!important;
+  background:linear-gradient(135deg,var(--theme-accent),color-mix(in srgb,var(--theme-accent-2) 62%,var(--theme-accent)))!important;
+  color:var(--theme-on-accent)!important;
+  box-shadow:0 0 20px var(--theme-glow)!important
+}
+.reply-mode-control span,.composer-suggestion-state em{color:var(--theme-text-soft)!important}
+
+/* Round 2: relationship/identity/search/title-shell closure. */
+:is(.relationship-workbench,.insights-workspace,.insight29-main,.insight29-directory,.insight29-detail,
+.insight29-detail-scroll,.insight29-content,.insight29-hero,.insight29-syncbar,.insight29-detail-hero,
+.relation-core,.identity-workspace,.profile-workspace,.timeline-workspace){
+  border-color:var(--theme-border-soft)!important;
+  background:var(--theme-workspace-bg)!important;
+  color:var(--text)!important
+}
+:is(.insight29-directory,.insight29-detail,.insight29-section,.insight29-card,.insight29-metric,
+.insight29-person,.insight-person,.insight29-health,.insight29-chart,.insight29-decision,
+.insight29-source,.insight29-evidence,.insight29-jumps,.relation-metrics article,
+.identity-card,.identity-summary,.profile-card,.timeline-card,.empty-state){
+  border-color:var(--theme-border-soft)!important;
+  background:linear-gradient(145deg,var(--theme-card-bg),var(--theme-card-bg-2))!important;
+  color:var(--text)!important
+}
+:is(.insight29-search,.insight29-search input,.insight29-filters button,.insight29-period button,
+.insight29-actions button,.insight29-decision-actions button,.insight29-jumps button,
+.identity-tools input,.profile-tools input,.timeline-tools input){
+  border-color:var(--theme-border)!important;
+  background:var(--theme-control-bg)!important;
+  color:var(--theme-text-soft)!important
+}
+:is(.insight29-filters button.active,.insight29-period button.active,.insight-person.active,
+.insight29-actions button.primary,.insight29-decision-actions button.primary){
+  border-color:var(--theme-border-strong)!important;
+  background:linear-gradient(135deg,var(--theme-active-bg),var(--theme-active-bg-2))!important;
+  color:var(--text)!important;
+  box-shadow:var(--theme-shadow-active)!important
+}
+:is(.insight29-title small,.insight29-source,.insight29-metric span,.insight29-health span,
+.relation-orb span,.insight29-card strong){color:var(--theme-accent)!important}
+.relation-orb,.insight29-orb{
+  border-color:var(--theme-border-strong)!important;
+  background:radial-gradient(circle,color-mix(in srgb,var(--theme-accent) 22%,transparent),var(--theme-card-bg) 64%)!important;
+  box-shadow:0 0 24px var(--theme-glow)!important
+}
+
+.contact-search-dialog{width:min(760px,calc(100vw - 40px));max-height:min(760px,calc(100vh - 60px));padding:0;border:1px solid var(--theme-border-strong);border-radius:18px;background:var(--theme-panel-bg);color:var(--text);box-shadow:var(--theme-shadow-strong)}
+.contact-search-dialog::backdrop{background:color-mix(in srgb,var(--shadow-base) 68%,transparent);backdrop-filter:blur(8px)}
+.contact-search-dialog header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--theme-border-soft);background:var(--theme-card-bg)}
+.contact-search-dialog header h2{margin:0;font-size:20px}.contact-search-dialog header button,.contact-search-result{border:1px solid var(--theme-border);background:var(--theme-control-bg);color:var(--text);border-radius:11px}
+.contact-search-body{padding:18px}.contact-search-body input{width:100%;box-sizing:border-box;padding:13px 15px;border:1px solid var(--theme-border-strong);border-radius:12px;background:var(--theme-control-bg);color:var(--text);outline:none}
+.contact-search-results{display:grid;gap:9px;margin-top:14px;max-height:480px;overflow:auto}.contact-search-result{display:grid;grid-template-columns:46px 1fr auto;gap:12px;align-items:center;padding:11px;text-align:left;cursor:pointer}.contact-search-result:hover{background:var(--theme-control-hover);border-color:var(--theme-border-strong)}
+.contact-search-result i{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--theme-accent),var(--theme-accent-2));color:var(--theme-on-accent);font-style:normal;font-weight:800}.contact-search-result b,.contact-search-result span{display:block}.contact-search-result small{color:var(--theme-text-soft)}.contact-search-empty{padding:42px 16px;text-align:center;color:var(--theme-text-soft)}
+
+/* Round 4 semantic surface contract. Dynamic runtime components and routed workspaces
+ * consume the same tokens instead of falling back to their original fixed cyan palette. */
+:root[data-theme] :where(
+  .relationship-workbench,.relation-core,.insight29-main,.insight29-content,.insight29-detail-scroll,
+  .identity-workspace,.profile-workspace,.timeline-workspace,.account-center-workspace,.system-center-workspace,
+  .settings-recovery-workspace,.aiwork-workspace,.theme-workspace,.r32-dialog,.r32-media-viewer-dialog,
+  .contact-search-dialog,.basic-settings-panel,.display-settings-panel
+){background:var(--theme-workspace-bg)!important;border-color:var(--border-default)!important;color:var(--text)!important}
+:root[data-theme] :where(
+  .r32-dialog-body,.r32-expression-card,.r32-expression-empty,.r32-search-result,.r32-pending-attachment,
+  .r32-quote-bar,.r32-media-analysis,.contact-search-result,.aiw30-service,.aiw30-template,.aiw30-rule,
+  .insight29-card,.insight29-metric,.insight29-health,.insight29-chart,.insight29-decision,.insight29-person,
+  .sc32-service,.sc32-model-card,.ac32-account,.sr32-card
+):not(.success):not(.warning):not(.error):not(.danger){background:linear-gradient(145deg,var(--surface-card),var(--surface-card-raised))!important;border-color:var(--border-default)!important;color:var(--text)!important}
+:root[data-theme] :where(.r32-expression-card:hover,.contact-search-result:hover){background:var(--theme-control-hover)!important;border-color:var(--border-active)!important}
+:root[data-theme] .r32-expression-card.unsupported{opacity:.56;filter:saturate(.55)}
+:root[data-theme] .r32-expression-card i{color:var(--accent-primary);font-style:normal;font-size:var(--ws-meta,9px)}
+:root[data-theme] .r32-expression-empty{grid-column:1/-1;padding:28px;text-align:center}.r32-expression-empty p{color:var(--theme-text-soft)}
+
+/* Last-resort component authority: semantic status colors are excluded. */
+:root[data-theme] :where(.panel,.card,.workspace-card,.detail-card,.summary-card,.empty-card):not(.success):not(.warning):not(.error):not(.danger){border-color:var(--theme-border-soft)!important;background-color:var(--theme-card-bg)!important}
+:root[data-theme] :where(input,textarea,select):not([type=range]){border-color:var(--theme-border)!important;background-color:var(--theme-control-bg)!important;color:var(--text)!important}
+:root[data-theme] ::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--theme-accent) 58%,var(--theme-panel-bg))!important;border-color:var(--theme-panel-bg)!important}
+:root[data-theme] ::-webkit-scrollbar-track{background:color-mix(in srgb,var(--theme-panel-bg) 92%,black 8%)!important}
+
+
+/* Batch 13 · 阅读与界面密度面板必须是完全不透底的独立浮层。 */
+:root[data-theme] .display-settings-panel,
+.display-settings-panel{
+  z-index:10020!important;
+  box-sizing:border-box!important;
+  width:min(350px,calc(100vw - 96px))!important;
+  max-height:calc(100vh - 24px)!important;
+  overflow:auto!important;
+  isolation:isolate!important;
+  background:color-mix(in srgb,var(--panel) 96%,var(--bg) 4%)!important;
+  background-color:var(--panel)!important;
+  border-color:var(--theme-border-strong)!important;
+  box-shadow:0 24px 72px color-mix(in srgb,var(--shadow-base) 68%,transparent),0 0 0 1px color-mix(in srgb,var(--accent-primary) 14%,transparent)!important;
+  backdrop-filter:none!important;
+}
+.display-settings-panel::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:color-mix(in srgb,var(--panel) 96%,var(--bg) 4%);pointer-events:none}
+.display-settings-panel .close-display,.display-settings-panel .display-options button{background:var(--theme-control-bg)!important;color:var(--text)!important;border-color:var(--theme-border)!important}
+.display-settings-panel .display-options button.active{background:linear-gradient(135deg,var(--theme-control-hover),color-mix(in srgb,var(--theme-accent) 18%,var(--theme-control-bg)))!important;color:var(--text)!important;border-color:var(--theme-border-strong)!important}
+.display-settings-panel .display-note{background:var(--theme-card-bg)!important;color:var(--theme-text-soft)!important;border:1px solid var(--theme-border-soft)}
+.display-settings-panel .diagnostic-trigger{width:100%;min-height:38px;margin-top:11px;border:1px solid var(--theme-border-strong);border-radius:10px;background:var(--theme-control-bg);color:var(--text);font-weight:750;cursor:pointer}
+.display-settings-panel .diagnostic-trigger:hover{background:var(--theme-control-hover)}
+@media(max-width:980px){.display-settings-panel{left:72px!important;right:10px!important;width:auto!important}}

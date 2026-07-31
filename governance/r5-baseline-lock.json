@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "packageId": "Y29-S6.4.5.9-P1-BLUEPRINT-20260702T225634Z-R5",
+  "blueprintSha256": "b22618bf233121966209610281023b308d421783d53146bd96413ad39398bd3a",
+  "workPackagesSha256": "71237e25443f0762dfdfd4136e9517a13106dc430e4ce88ca7bd1b150cf765e9",
+  "amendmentValidationSha256": "b30bcf6e610a94fd3f43369e2a9c96316aa5db3268fa1ce8df2e736fd6cb637c",
+  "packageManifestSha256": "47114b6460be8aebde91dc6006bb6ff5f7ed71cfd3643e15e2aff0e4e64e54e7",
+  "blueprintZipSha256": "6afc5451bb2108ba24d634447eaca3bc2f2be9d4f7ac90c7d728136e4072c206",
+  "documentStatus": "APPROVED_FOR_IMPLEMENTATION",
+  "amendmentStatus": "AMENDMENTS_INCORPORATED",
+  "implementationStatusAtLock": "NOT_STARTED",
+  "phase1AcceptanceStatus": "PENDING"
+}

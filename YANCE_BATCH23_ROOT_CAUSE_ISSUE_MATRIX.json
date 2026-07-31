@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "batch": 23,
+  "basePackageCommit": "14a6e6162fdc8eef81a752fa73ba4219816e3512",
+  "issues": [
+    {
+      "id": "B22-P0-01",
+      "name": "OUTBOUND_COMMAND_CREATION_NOT_ATOMIC",
+      "severity": "P0",
+      "status": "SOURCE_FIXED_FOCUSED_AUTOMATED_VERIFIED_REAL_UAT_PENDING",
+      "scope": ["text", "media", "native_expression", "reaction", "revoke"],
+      "realWindowsEvidence": false,
+      "realPlatformAckEvidence": false
+    },
+    {
+      "id": "B22-P1-02",
+      "name": "ACCOUNT_CONNECTION_RUNTIME_REHYDRATION_INCOMPLETE",
+      "severity": "P1",
+      "status": "OPEN"
+    },
+    {
+      "id": "B22-P2-03",
+      "name": "ACCOUNT_CONNECT_ROLLBACK_TIMEOUT_UNBOUNDED",
+      "severity": "P2",
+      "status": "OPEN"
+    }
+  ],
+  "formalRelease": false,
+  "readyForPromotion": false,
+  "windowsUatBlocked": true
+}

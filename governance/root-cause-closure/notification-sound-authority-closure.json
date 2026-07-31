@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_NOTIFICATION_SOUND_AUTHORITY_CLOSURE",
+  "sourceBaseline": "c12160ead96f422ba13cf1d70a720d14e3557ef3",
+  "status": "UNIT_BEHAVIOR_PASS",
+  "windowsRenderStatus": "PENDING",
+  "endToEndTaskStatus": "PENDING",
+  "userConfirmationStatus": "PENDING",
+  "defectIds": [
+    "DEFECT-016"
+  ],
+  "authority": "NotificationSoundAuthority",
+  "catalog": {
+    "patterns": 11,
+    "eventSelectors": 5
+  },
+  "rootCausesClosed": [
+    "声音资源和事件映射分别硬编码在后端、Electron和前端，存在目录漂移风险",
+    "系统中心正式通知页面只显示总开关和音量，没有事件级提示音选择入口",
+    "设置与恢复页面形成第二套通知写入面，用户无法判断哪个页面是正式入口"
+  ],
+  "implementation": [
+    "shared/notificationSoundCatalog.js",
+    "backend/services/notificationPolicy.js",
+    "backend/routes/system.js",
+    "backend/services/systemCenterService.js",
+    "electron/SoundNotificationService.js",
+    "frontend/r32-system-center.js",
+    "frontend/r32-system-center.css",
+    "frontend/r32-settings-recovery.js"
+  ],
+  "authorityRules": [
+    "11套声音目录、中文名称、说明、默认值和5类事件映射只在共享权威中定义",
+    "后端保存的只能是权威目录中的pattern id",
+    "Electron播放服务必须使用同一目录和事件映射",
+    "系统中心通知与声音页是唯一完整正式配置入口",
+    "设置与恢复页只显示摘要并跳转，不再形成第二套通知写入面",
+    "每类事件均可独立选择并强制试听，试听不受总开关和免打扰影响"
+  ],
+  "targetedEvidence": {
+    "authorityTest": "tests/uat/notificationSoundAuthority.test.js",
+    "authorityPassed": 5,
+    "soundNotificationPassed": 29,
+    "failed": 0,
+    "scenarios": [
+      "单一目录拥有11种声音和5类事件映射",
+      "后端与Electron使用相同归一化规则",
+      "通知API和系统总览返回同一目录",
+      "系统中心显示事件级选择和试听",
+      "原设置页只保留跳转和媒体设置"
+    ]
+  },
+  "limitations": [
+    "WINDOWS_RENDER_PASS尚未执行",
+    "真实Windows仍需逐一试听至少三种不同声音并确认保存后重启保持",
+    "本批没有修改三平台适配器或主题色板"
+  ]
+}

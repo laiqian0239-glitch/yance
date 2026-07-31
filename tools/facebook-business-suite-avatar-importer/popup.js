@@ -1,0 +1,4 @@
+'use strict';
+const statusNode=document.getElementById('status'),portNode=document.getElementById('port');
+async function check(){const stored=await chrome.storage.local.get(['yancePort']);portNode.value=stored.yancePort||27632;const result=await chrome.runtime.sendMessage({type:'YANCE_GET_STATUS'});if(result?.ok&&result.session?.active){statusNode.className='';statusNode.textContent=`已连接：${result.session.pageName||result.session.accountName}，导入窗口有效至 ${new Date(result.session.expiresAt).toLocaleTimeString('zh-CN',{hour12:false})}`;}else{statusNode.className='bad';statusNode.textContent=result?.message||'言策网页伴侣窗口尚未开启';}}
+document.getElementById('save').onclick=async()=>{await chrome.runtime.sendMessage({type:'YANCE_SET_PORT',port:Number(portNode.value)});await check();};check().catch(error=>{statusNode.className='bad';statusNode.textContent=error.message;});

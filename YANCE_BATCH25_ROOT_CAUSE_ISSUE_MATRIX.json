@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH25_ROOT_CAUSE_ISSUE_MATRIX",
+  "sourceIdentity": {
+    "implementationCommit": "9323851f08eaacccdb5baa7c382e3638ab62a301",
+    "implementationTree": "5d0fd6cb3d517e79c0bf1b030c53d3d08a6cadfe"
+  },
+  "findings": [
+    {
+      "id": "B25-P0-01",
+      "title": "restore crash journal and full-media protection",
+      "status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_WINDOWS_PENDING"
+    },
+    {
+      "id": "B25-P0-02",
+      "title": "settings worker same-file alias bypass",
+      "status": "SOURCE_FIXED_AUTOMATED_VERIFIED_WINDOWS_PATH_MATRIX_PENDING"
+    },
+    {
+      "id": "B25-P1-01",
+      "title": "legacy stdout ready marker",
+      "status": "SOURCE_FIXED_AUTOMATED_VERIFIED"
+    },
+    {
+      "id": "B25-P1-02",
+      "title": "navigation and privileged IPC origin boundary",
+      "status": "SOURCE_FIXED_AUTOMATED_VERIFIED_REAL_ELECTRON_PENDING"
+    },
+    {
+      "id": "B25-P1-03",
+      "title": "nested async transaction failure propagation",
+      "status": "SOURCE_FIXED_AUTOMATED_VERIFIED"
+    },
+    {
+      "id": "B25-P1-04",
+      "title": "SQLite ownership claim TOCTOU",
+      "status": "SOURCE_FIXED_AUTOMATED_VERIFIED_WINDOWS_CONTENTION_PENDING"
+    },
+    {
+      "id": "B25-P1-05",
+      "title": "outer package identity mismatch",
+      "status": "PACKAGE_PROTOCOL_REPAIRED_EXTERNAL_REVERSE_VERIFICATION_REQUIRED"
+    },
+    {
+      "id": "B25-P2-01",
+      "title": "parallel test data-root isolation",
+      "status": "SOURCE_FIXED_AUTOMATED_VERIFIED"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH31_WINDOWS_BOOT_HOTFIX_DESCRIPTOR",
+  "project": "言策",
+  "artifactType": "WINDOWS_TARGETED_REPAIR_HOTFIX",
+  "basePackageCommit": "740e1168e50bf540b924d41856fd5ea32bb6bd85",
+  "basePackageTree": "264b628cc69da84a1b253b5ecd9623103ede2784",
+  "repairScope": [
+    "WP3 mandatory FD5 hydration frame",
+    "retired YANCE_SAFE_MODE inheritance removal",
+    "early boot phase-safe reason codes",
+    "WP4 safe startup phase diagnostics"
+  ],
+  "governance": {
+    "state": "REPAIR_ATTEMPT_IN_PROGRESS",
+    "windowsUatAuthorized": false,
+    "readyForPromotion": false,
+    "formalRelease": false
+  },
+  "realWindowsTargetedValidationRequired": true
+}

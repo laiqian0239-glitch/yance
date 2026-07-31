@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP7_REQUIRED_TEST_PHASE_MODEL",
+  "generatedAtUtc": "2026-07-05T10:12:44Z",
+  "identityBinding": {
+    "wp6AcceptedFinalDeliveryHead": "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+    "wp6AcceptedFinalSourceTree": "485891e55298667df30e2f588daec196dc530eb7",
+    "activationCommit": "ceffb5234d33518bfda2a88c0e3fad59fb7c8bce",
+    "activationSourceTree": "b457101ab8d5d04d073597039446ded41374a6c8",
+    "activationIdentityBindingCommit": "4ac6d2185bed28823210849704f3850cd875b5fb",
+    "activationBindingSourceTree": "d7f64dbf602ded1075978c13bea8449d7ef7e5e2",
+    "verifiedParentChain": [
+      "07b1b4c8b49e09195ef1cf1186f6d632b7567677",
+      "ceffb5234d33518bfda2a88c0e3fad59fb7c8bce",
+      "4ac6d2185bed28823210849704f3850cd875b5fb"
+    ]
+  },
+  "normativeForDesignGateRevision": true,
+  "historicalReadinessPhaseLabelsNormative": false,
+  "phaseClasses": [
+    {
+      "id": "PRE_REVIEW",
+      "meaning": "Must execute and PASS before WP7 Convergence Pre-Review submission; no final installer or real-machine claim is permitted."
+    },
+    {
+      "id": "PRE_REVIEW_AND_FINAL",
+      "meaning": "Must execute and PASS before Convergence Pre-Review using implementation/tooling fixtures, then execute again against the frozen final build or final evidence during Final Packaging."
+    },
+    {
+      "id": "FINAL_PACKAGING",
+      "meaning": "Runs only after WP7_PREACCEPTED_FOR_FINAL_PACKAGING against final packaging identities or complete delivery closure; not required to enter Convergence Pre-Review."
+    },
+    {
+      "id": "FINAL_WINDOWS",
+      "meaning": "Runs only during authorized real Windows CLEAN_INSTALL validation against the sealed final installer; not required to enter Convergence Pre-Review."
+    }
+  ],
+  "convergencePreReviewRequiredPhaseClasses": [
+    "PRE_REVIEW",
+    "PRE_REVIEW_AND_FINAL"
+  ],
+  "convergencePreReviewRequiredTestCount": 26,
+  "finalPackagingRequiredPhaseClasses": [
+    "PRE_REVIEW_AND_FINAL",
+    "FINAL_PACKAGING",
+    "FINAL_WINDOWS"
+  ],
+  "repeatRule": "Every PRE_REVIEW_AND_FINAL test must have a pre-review execution record and a separate final execution record. A pre-review PASS cannot substitute for final-machine or final-package execution.",
+  "designGateExecutionStatus": "NOT_STARTED",
+  "testAssignments": {
+    "PRE_REVIEW": [
+      "wp7-upstream-accepted-binding.test",
+      "wp7-wp6-final-binding-required.test",
+      "wp7-build-crash-recovery.test",
+      "wp7-workstream-traceability.test"
+    ],
+    "PRE_REVIEW_AND_FINAL": [
+      "final-build-clean-staging.test",
+      "final-build-source-freeze-match.test",
+      "wp1-artifact-reuse-denied.test",
+      "final-payload-recomputed.test",
+      "wp7-runtime-dependency-closure.test",
+      "final-installer-build-id-consistency.test",
+      "wp7-final-evidence-reference-only.test",
+      "acceptance-evidence-schema.test",
+      "wp7-release-protocol-version-consistency.test",
+      "wp7-wp0-real-build-branch-gate.test",
+      "wp7-build-session-exclusive.test",
+      "wp7-installer-seal-and-external-hash.test",
+      "wp7-unsigned-policy-truthfulness.test",
+      "wp7-deferred-scope-claim-denied.test",
+      "wp7-inherited-risk-register.test",
+      "wp7-evidence-cross-file-identity.test",
+      "wp7-complete-project-source-delivery.test",
+      "wp7-complete-bundle-parent-chain.test",
+      "wp7-clean-install-evidence-completeness.test",
+      "wp7-release-source-runtime-protocol-convergence.test",
+      "wp7-boot-failure-diagnostics.test",
+      "wp7-acceptance-check-mapping.test"
+    ],
+    "FINAL_PACKAGING": [
+      "wp7-final-packaging-change-boundary.test"
+    ],
+    "FINAL_WINDOWS": [
+      "clean-install-start-stop-restart.test",
+      "single-backend-installed-runtime.test",
+      "offline-installed-runtime-ready.test",
+      "installed-tree-old-runtime-scan-zero.test",
+      "wp7-wp4-credential-authority-installed-regression.test",
+      "wp7-wp5-runtime-authority-installed-regression.test",
+      "wp7-api-v2-event-gap-snapshot-recovery.test",
+      "wp7-backend-crash-recovery-installed.test",
+      "wp7-clean-install-old-version-uninstall.test",
+      "wp7-clean-install-residual-removal.test",
+      "wp7-clean-install-no-legacy-migration.test",
+      "wp7-clean-install-no-legacy-rollback.test",
+      "wp7-installer-sha256-preinstall.test",
+      "wp7-first-start-clean-initialization.test",
+      "wp7-no-old-process-or-build-contamination.test"
+    ]
+  }
+}

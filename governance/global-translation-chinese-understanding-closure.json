@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-22T04:02:00+07:00",
+  "baseline": {
+    "branch": "uat/global-product-closure-20260722",
+    "parentCommit": "c5a4f2974ceccfb4985156bed5edaebb1a5bba35",
+    "parentTree": "a89988ac3550929582c1a6107cb4e15f907840a2"
+  },
+  "frozenAcceptance": {
+    "whatsapp": "USER_CONFIRMED_REAL_WINDOWS_STAGE_PASS",
+    "facebook": "USER_CONFIRMED_REAL_WINDOWS_STAGE_PASS",
+    "telegram": "USER_CONFIRMED_REAL_WINDOWS_STAGE_PASS",
+    "theme": "USER_CONFIRMED_REAL_WINDOWS_STAGE_PASS"
+  },
+  "scope": "GLOBAL_TRANSLATION_AND_CHINESE_UNDERSTANDING_BATCH_1",
+  "identityContract": [
+    "platform",
+    "sourceAccountId",
+    "platformContactIdentity",
+    "conversationId",
+    "canonicalContactId"
+  ],
+  "closedGaps": [
+    "conversation_scoped_contact_language_authority",
+    "translation_model_unavailable_is_explicit_failure",
+    "last_successful_translation_preserved",
+    "duplicate_language_observation_deduplicated",
+    "ai_reply_target_language_reads_conversation_scope"
+  ],
+  "validation": {
+    "syntax": "PASS",
+    "translationAndBilingualTargetedTests": 25,
+    "replyLanguageAndLearningTargetedTests": 29,
+    "realSqliteScopeIsolation": "PASS",
+    "realWindowsUat": "PENDING",
+    "formalRelease": "NOT_VALIDATED"
+  },
+  "prohibitedActionsObserved": {
+    "wp7": false,
+    "strict": false,
+    "finalBuilder": false,
+    "longPipeline": false,
+    "platformAdapterChanges": false,
+    "themeChanges": false
+  }
+}

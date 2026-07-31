@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 3,
+  "documentType": "YANCE_SECOND_OMISSION_REVIEW_SOURCE_RECEIPT",
+  "project": "言策",
+  "branch": "development/second-omission-review-after-d45747e",
+  "baselineCommit": "d45747e8420446ed3ca4a5a9386e24adae14d9b4",
+  "upstreamBaselineCommit": "992d6cb806d94313a644e6387fbb934f34bc75d0",
+  "sourceStatus": "SOURCE_OMISSION_FIXES_COMPLETE",
+  "promotionState": "BLOCKED",
+  "newlyClosedOmissions": 8,
+  "tests": {
+    "fullBackend": { "files": 147, "tests": 900, "pass": 900, "fail": 0 },
+    "round12PlatformCore": { "tests": 79, "pass": 79, "fail": 0 },
+    "round13AiQuality": { "tests": 24, "pass": 24, "fail": 0 },
+    "uatDiagnostics": { "tests": 117, "pass": 117, "fail": 0 },
+    "sourceUatDelivery": { "tests": 33, "pass": 33, "fail": 0 },
+    "protocolV3": { "tests": 2, "pass": 2, "fail": 0 },
+    "themeAudit": "PASS_ZERO_FIXED_COLOR_DEBT"
+  },
+  "blockingGates": [
+    {
+      "code": "COMPLETE_DEPENDENCY_PERSONA_API",
+      "status": "BLOCKED",
+      "reason": "express is unavailable; npm ci package downloads return HTTP 503 from configured internal registry"
+    },
+    {
+      "code": "INDEPENDENT_REVIEW",
+      "status": "REQUIRED_EXTERNAL_ROLE"
+    },
+    {
+      "code": "REAL_WINDOWS_PLATFORM_UAT",
+      "status": "PENDING"
+    }
+  ],
+  "invalidatedArtifacts": ["YANCE_ROUND12_13_WINDOWS_UAT_d45747e.zip"],
+  "replacementWindowsUatGenerated": false,
+  "selfApproval": false
+}

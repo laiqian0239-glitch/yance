@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH21_AUTOMATED_TEST_RECEIPT",
+  "generatedAtUtc": "2026-07-28T10:41:14Z",
+  "implementationCommit": "7b06376a68b269aefaac99c3822f3a70f68e04d6",
+  "implementationTree": "ade20b77b6b3e042c4e83ef975eceeefebe0a4c7",
+  "results": {
+    "batch21RootCauseAndDesign": {
+      "pass": 8,
+      "total": 8
+    },
+    "round12PlatformCore": {
+      "pass": 79,
+      "total": 79
+    },
+    "round13AiQuality": {
+      "pass": 24,
+      "total": 24
+    },
+    "platformProductionReadiness": {
+      "pass": 58,
+      "total": 58
+    },
+    "uatDiagnostics": {
+      "pass": 142,
+      "total": 142
+    },
+    "sourceUatDelivery": {
+      "pass": 33,
+      "total": 33
+    },
+    "componentReadability": {
+      "pass": 6,
+      "total": 6
+    },
+    "batch20AiUxRegression": {
+      "pass": 11,
+      "total": 11
+    },
+    "translationAndQuotedSendCompatibility": {
+      "pass": 16,
+      "total": 16
+    },
+    "rootCauseClosureUnit": {
+      "pass": 2,
+      "total": 2
+    },
+    "rootCauseClosureAudit": "DESIGN_BASELINE_READY_REAL_WINDOWS_PENDING"
+  },
+  "fullBackend": {
+    "status": "INCOMPLETE_EXTERNAL_TIMEOUT",
+    "attempt1": "terminated by 120 second execution limit after 637 tests; 5 failures found and repaired",
+    "attempt2": "terminated by 300 second execution limit after 614 passing tests; no failure observed before termination",
+    "requiredNext": "Run the complete backend suite without the current environment execution cap on the Windows build host."
+  },
+  "governance": {
+    "automatedEvidenceCanAuthorizeWindowsUat": false,
+    "realWindowsRequired": true,
+    "realPlatformsRequired": true,
+    "realOpenRouterRequired": true
+  }
+}

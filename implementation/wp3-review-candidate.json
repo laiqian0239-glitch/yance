@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP3",
+  "status": "BLOCKING_AMENDMENT_AWAITING_WINDOWS_VALIDATION",
+  "generatedAtUtc": "2026-07-03T08:08:17Z",
+  "baseline": {
+    "acceptedWp2FinalCodeImplementationCommit": "85ec59889dc2ca5c4c2d2ebd2feac9e631b006bc",
+    "acceptedWp2FinalDeliveryHead": "3474d37d8bea07d1ea0294801e7f78284aae6ff8",
+    "acceptedWp2FinalSourceTree": "ada9ddf5db0e25ef2274b82db5f5a3f8f5bb4c9e",
+    "riskAcceptanceId": "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION"
+  },
+  "activation": {
+    "activationCommit": "74cca0187aa80c5d9ab8bff958cccdd5a92fa1f2",
+    "bindingCommit": "09dda36bc1d719f1c6e7bb1d8398296692f3de63"
+  },
+  "implementation": {
+    "blockingAmendmentCodeCommit": "aca19d12c20e5ea23af93d1a1a9e840237f5a726",
+    "blockingAmendmentCodeSourceTree": "fdd6b0ed699f1f9565e52780603277ada47fd389",
+    "supersedesRejectedCodeCommit": "e250fac0558a7aa244a7b18170bf583fb9f52127",
+    "blockingAmendmentCommits": [
+      "a045406996c40fe2942fdc95d253ce2a74566a17",
+      "381beef88d8fce2d902d3da3c8dad6c27127eb15",
+      "be8adcaebf594f07828378dd2e06da358500d33c",
+      "aca19d12c20e5ea23af93d1a1a9e840237f5a726"
+    ]
+  },
+  "verification": {
+    "requiredTests": "22/23 PASS; 1 WINDOWS-ONLY PENDING",
+    "wp2Regression": "60/60 PASS",
+    "wp1Regression": "24/24 PASS",
+    "wp0Regression": "16/16 PASS",
+    "wp0Gate": "4/4 PASS",
+    "javascriptSyntax": "289/289 PASS",
+    "productionApiV2Scenario": "PASS",
+    "productionRuntimeAliasScenario": "PASS_ON_PORTABLE_PROVIDER",
+    "singleProductionRuntimeAudit": "PASS",
+    "runtimeSingletonIntegrity": "PASS",
+    "dependencyLockInstall": "PASS",
+    "windowsNamedMutex": "REQUIRED_NOT_EXECUTED_IN_CURRENT_LINUX_ENVIRONMENT",
+    "evidenceGenerator": "EXPECTED_NONZERO: WP3_WINDOWS_NAMED_MUTEX_NOT_EXECUTED"
+  },
+  "reviewPolicy": {
+    "wp3RemainsActive": true,
+    "wp4RemainsBlocked": true,
+    "completionRequiresIndependentReview": true
+  },
+  "reviewOutcome": {
+    "decision": "NOT_ACCEPTED",
+    "reviewRound": 1,
+    "recordedAtUtc": "2026-07-03T08:00:00Z",
+    "candidateFinalCodeImplementationCommit": "e250fac0558a7aa244a7b18170bf583fb9f52127",
+    "candidateFinalDeliveryHead": "ee9569bb4ad149c8b755bb84e0785d3dbf539bcf",
+    "candidateFinalSourceTree": "0568156e99aef40bd3513f975f8a10cad222c1a6",
+    "blockingAreas": [
+      "runtime-path-canonicalization",
+      "single-production-runtime",
+      "factory-clear-integrity",
+      "evidence-real-results",
+      "windows-named-mutex-real-validation",
+      "dependency-lock-and-clean-install"
+    ]
+  },
+  "blockingAmendmentProgress": {
+    "runtimePathCanonicalization": "IMPLEMENTED_AND_LOCAL_TESTED",
+    "singleProductionRuntime": "IMPLEMENTED_AND_LOCAL_TESTED",
+    "factoryClearIntegrity": "IMPLEMENTED_AND_LOCAL_TESTED",
+    "evidenceRealResults": "IMPLEMENTED_FAILS_CLOSED_WITHOUT_WINDOWS_EVIDENCE",
+    "windowsNamedMutexRealValidation": "PENDING_EXTERNAL_WINDOWS_EXECUTION",
+    "dependencyLockAndCleanInstall": "IMPLEMENTED_AND_LOCAL_TESTED",
+    "cleanSourceMutationGateCompatibility": "IMPLEMENTED_AND_LOCAL_TESTED",
+    "cleanSourceExactGitIdentity": "IMPLEMENTED_WITH_BRANCH_TAG_AND_TREE_RESTORATION"
+  }
+}

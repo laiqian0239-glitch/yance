@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP7_DESIGN_GATE_CONFIRMATION_BINDING",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP7",
+  "decision": "WP7_DESIGN_GATE_CONFIRMED",
+  "revisionId": "DG-R1",
+  "decisionDate": "2026-07-05",
+  "activationIdentityBindingCommit": "4ac6d2185bed28823210849704f3850cd875b5fb",
+  "activationBindingSourceTree": "d7f64dbf602ded1075978c13bea8449d7ef7e5e2",
+  "productionImplementationAuthorized": true,
+  "requiredTestsExecutionStatus": "NOT_STARTED",
+  "finalPackagingAuthorized": false,
+  "finalAcceptanceStatus": "NOT_ACCEPTED",
+  "preservedRiskAcceptanceIds": [
+    "WP2-API-SESSION-LEAK-SCANNER-COVERAGE-EXCEPTION",
+    "WP3-WINDOWS-NAMED-MUTEX-VALIDATION-EXCEPTION",
+    "WP4_WINDOWS_EVIDENCE_PASS_COMPLETENESS_EXCEPTION",
+    "WP5_FINAL_PACKAGING_HANDOFF_STATUS_INCONSISTENCY_ACCEPTED"
+  ],
+  "implementationStartRule": "All production implementation must descend from the accepted Activation identity binding commit.",
+  "prohibitions": [
+    "FINAL_PACKAGING_BEFORE_WP7_PREACCEPTED_FOR_FINAL_PACKAGING",
+    "FORMAL_WINDOWS_CLEAN_INSTALL_BEFORE_FINAL_PACKAGING_AUTHORIZATION",
+    "WP7_ACCEPTED_BEFORE_FINAL_INDEPENDENT_REVIEW"
+  ]
+}

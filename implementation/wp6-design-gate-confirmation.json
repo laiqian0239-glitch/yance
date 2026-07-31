@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "documentType": "WP6_DESIGN_GATE_CONFIRMATION",
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP6",
+  "confirmedAtUtc": "2026-07-05T06:40:09Z",
+  "decision": "WP6_DESIGN_GATE_CONFIRMED",
+  "activationBindingCommit": "7de495936c955a67d737c351682a9e84ffd4d290",
+  "activationBindingSourceTree": "855376824e8f75aaebc41ce74f73a451026f977f",
+  "implementationPlan": {
+    "path": "docs/wp6/WP6_IMPLEMENTATION_PLAN_V1.md",
+    "sha256": "4c1fd77247ce3b4b874a82657f685a50c052c93acea88ca5881a90a5c441afcb"
+  },
+  "productionImplementationAuthorized": true,
+  "requiredTestsStatus": "NOT_STARTED",
+  "evidenceStatus": "NOT_STARTED",
+  "finalPackagingAuthorized": false,
+  "wp7ActivationAllowed": false
+}

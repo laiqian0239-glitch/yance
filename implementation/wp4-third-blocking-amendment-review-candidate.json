@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP4",
+  "candidateType": "THIRD_BLOCKING_AMENDMENT_IMPLEMENTATION_REVIEW_CANDIDATE",
+  "status": "VERIFIED_IMPLEMENTATION_REVIEW_CANDIDATE",
+  "reviewStatus": "PENDING_INDEPENDENT_REVIEW",
+  "acceptedBaseline": {
+    "wp3CandidateHead": "3d8bac3665098d495e3266ea8ea013c5aba6be16",
+    "wp3SourceTree": "e2670016e7d6252e5cf206223fc4420b5666e606"
+  },
+  "priorRejectedCandidate": {
+    "reopenCommit": "07cddf05fcfae8e949a899a18d61b48cc9760ae8",
+    "finalCodeImplementationCommit": "6daa400e5a388ca696ffc3c2c3f782b8240266e0",
+    "finalCodeSourceTree": "a713241f15362e8799c9bc0a57a9ba8a477d7ba3",
+    "candidateBindingCommit": "576329f6e71ed15faf95576c8c7ba3297673ae73",
+    "finalDeliveryHead": "d542b098c8b7238b9d09b2551d94428abe8283af",
+    "finalSourceTree": "328a207b1687203d18409322af68c218e9089012",
+    "independentReviewStatus": "REJECTED"
+  },
+  "activationCommit": "dae1a17df2820ae3123639f1e9d1008759939d83",
+  "activationBindingCommit": "452294dbd5b12eec0c29406eee0bf74427eae112",
+  "historicalReopenCommit": "07cddf05fcfae8e949a899a18d61b48cc9760ae8",
+  "repairBaseFinalDeliveryHead": "d542b098c8b7238b9d09b2551d94428abe8283af",
+  "finalCodeImplementationCommit": "0bf79439d6f8a19c752c0c7419cf2d3bb6198203",
+  "finalCodeSourceTree": "1207ef9224e3811d302aa782468834f6a9cd27cc",
+  "implementedAtUtc": "2026-07-03T10:22:36Z",
+  "implementation": {
+    "crossFileCrashRecovery": "DETERMINISTIC_BY_BEFORE_AFTER_DIGEST_METADATA_AND_TRANSACTION_STATE",
+    "ambiguousRecovery": "FAIL_CLOSED_WITH_WP4_CREDENTIAL_TRANSACTION_RECOVERY_AMBIGUOUS",
+    "realCrashInjection": "INDEPENDENT_CHILD_PROCESS_SIGKILL",
+    "unifiedVaultMutationCoordinator": true,
+    "sharedSerializedOperationQueue": true,
+    "compareAndSwapStaleTransactionRejection": true,
+    "desktopAndFd6LostUpdateProtection": true,
+    "allPostCommitCommunicationFailures": "QUERY_OR_CONTROLLED_TERMINATION",
+    "credentialCustodyClientStateTracking": [
+      "PREPARED",
+      "COMMIT_SENT",
+      "COMMIT_RESULT_UNKNOWN"
+    ],
+    "preservedAcceptedProtections": [
+      "hydration ACK exact binding",
+      "ready metadata exact binding",
+      "CredentialVault copy-on-write",
+      "legacy secure-credential generic IPC disabled",
+      "FD5 startup snapshot",
+      "FD6 custody pipe",
+      "requestId QUERY and idempotent results",
+      "SQLite and AppRuntime rollback",
+      "WP2 and WP3 accepted risk records"
+    ]
+  },
+  "requiredTests": {
+    "blueprintRequired": 11,
+    "executed": 48,
+    "passed": 48,
+    "failed": 0,
+    "skipped": 0
+  },
+  "crashMatrix": {
+    "status": "PASS",
+    "scenarioCount": 6,
+    "termination": "SIGKILL",
+    "points": [
+      "AFTER_PREPARED_JOURNAL",
+      "AFTER_COMMITTING_JOURNAL",
+      "AFTER_VAULT_ATOMIC_REPLACE",
+      "AFTER_METADATA_ATOMIC_REPLACE",
+      "BEFORE_COMMITTED_JOURNAL",
+      "AFTER_COMMITTED_JOURNAL"
+    ]
+  },
+  "concurrencyProbes": {
+    "status": "PASS",
+    "probeCount": 4
+  },
+  "indeterminateCommitProbes": {
+    "status": "PASS",
+    "probeCount": 5
+  },
+  "evidenceStatus": "PASS",
+  "evidenceGeneratorStatus": "PASS",
+  "evidenceGeneratedAtUtc": "2026-07-03T10:21:09.539Z",
+  "regressionResults": {
+    "WP3": {
+      "total": 23,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 1,
+      "acceptedExceptionReasonCode": "WP3_WINDOWS_NAMED_MUTEX_NOT_EXECUTED"
+    },
+    "WP2": {
+      "total": 60,
+      "passed": 60,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP1": {
+      "total": 24,
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP0": {
+      "total": 16,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    "WP0Gate": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    }
+  },
+  "javascriptSyntax": {
+    "total": 329,
+    "passed": 329,
+    "failed": 0
+  },
+  "nextWorkPackage": "WP5",
+  "nextWorkPackageStatus": "BLOCKED_BY_WP4",
+  "preservedReviewRecords": [
+    "implementation/wp4-review-candidate.json",
+    "implementation/wp4-blocking-amendment-review-candidate.json",
+    "implementation/wp4-second-blocking-amendment-review-candidate.json",
+    "implementation/wp4-second-blocking-amendment-review-rejection.json"
+  ],
+  "candidateBindingCommit": "27c3b0fbbdd6af12c93cf549cd2c5bccd1fa9fca"
+}

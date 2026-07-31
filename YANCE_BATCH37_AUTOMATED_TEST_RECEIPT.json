@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH37_AUTOMATED_TEST_RECEIPT",
+  "generatedAtUtc": "2026-07-29T13:28:00Z",
+  "sourceIdentity": {
+    "branch": "development/windows-uat-batch37-evidence-toolchain-root-fix",
+    "implementationCommit": "8093d6dceb1f6fe647aafa83bc23d6fb0eed1e99",
+    "implementationTree": "6bac78dbf2af604aa563dcea5e2e32ecd9fd4f50",
+    "parentPackageCommit": "fd809edd50c49f599c501c1f5f59f1c86eeb2fb4",
+    "parentPackageTree": "dc2c0e1fffe9df2d367a5b3d6512df5de3e69739"
+  },
+  "inputWindowsEvidence": {
+    "file": "YANCE_BATCH36_WINDOWS_FULL_EVIDENCE_20260729-191217.zip",
+    "sha256": "e6d80f847c129be0d922e9174b809653cb109ebb732bf049fbb0e1648b1b189e",
+    "status": "FAIL_EVIDENCE_TOOLCHAIN",
+    "confirmedPasses": [
+      "clean npm ci",
+      "V3 protocol",
+      "Source UAT",
+      "Batch36 evidence semantics",
+      "Batch35 four-case regression",
+      "WP5 source closure",
+      "WP3 tests 44/44",
+      "WP4 tests 215/215",
+      "WP4 mutations 62/62"
+    ],
+    "confirmedFailures": [
+      "WP3 evidence singleton contamination",
+      "WP4 evidence shell quoting",
+      "WP5 repository dirty after prior evidence generation"
+    ]
+  },
+  "automatedVerification": {
+    "batch36WindowsEvidence": "REVIEWED FAIL: SHA256 e6d80f847c129be0d922e9174b809653cb109ebb732bf049fbb0e1648b1b189e; clean npm ci PASS; WP3 tests 44/44 PASS; WP4 tests 215/215 PASS; WP4 mutations 62/62 KILLED; four historical WP4 cases PASS; evidence toolchain failures isolated",
+    "batch37DirectEvidenceToolchainTests": "PASS 8/8",
+    "wp3IsolatedRuntimeSingleton": "PASS with all 9 singleton integrity checks",
+    "protocolV3": "PASS 2/2 after Batch37 descriptor update",
+    "sourceUatDelivery": "PASS 33/33 after Batch37 descriptor update",
+    "cleanNpmCiForBatch37Package": "PENDING_REAL_WINDOWS_REVALIDATION",
+    "wp3FullWindows": "PENDING_REAL_WINDOWS_REVALIDATION",
+    "wp4FullWindows": "PENDING_REAL_WINDOWS_REVALIDATION",
+    "wp5FullWindowsContinuous": "PENDING_REAL_WINDOWS_REVALIDATION",
+    "fullBackendRecursiveWindows": "PENDING_REAL_WINDOWS_REVALIDATION",
+    "realWindowsElectronRequired": true,
+    "realPlatformUatRequired": true,
+    "realOpenRouterQualificationRequired": true,
+    "gitDiffCheck": "PASS"
+  },
+  "governance": {
+    "status": "REPAIR_ATTEMPT_IN_PROGRESS",
+    "windowsUatState": "WINDOWS_UAT_BLOCKED",
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "windowsUatAuthorized": false
+  }
+}

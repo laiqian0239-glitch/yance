@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_REAL_WINDOWS_DEFECT_BASELINE",
+  "sourceCommit": "334f3622d244a7438679973a6ffa1e90306cb169",
+  "evidencePackage": "Yance-Real-Windows-Evidence-334f362-20260722-101817.zip",
+  "screenshotCount": 81,
+  "status": "FAIL_WITH_MULTIPLE_CONFIRMED_DEFECTS",
+  "defects": [
+    {"id":"DEFECT-001","priority":"P0","domain":"replyLanguage","summary":"英语或德语客户出现中文候选原文","evidence":["Snipaste_2026-07-22_10-51-17.png","Snipaste_2026-07-22_10-40-50.png","Snipaste_2026-07-22_10-40-58.png"]},
+    {"id":"DEFECT-002","priority":"P0","domain":"evidence","summary":"证据包泄露平台应用敏感配置","evidence":["Launch-Evidence/source-uat-resources/platform-auth.json"]},
+    {"id":"DEFECT-003","priority":"P1","domain":"uiComponents","summary":"候选底部多个操作按钮没有可见文字","evidence":["Snipaste_2026-07-22_10-31-29.png","Snipaste_2026-07-22_10-51-17.png"]},
+    {"id":"DEFECT-004","priority":"P1","domain":"uiComponents","summary":"回复学习标签被垂直裁切","evidence":["Snipaste_2026-07-22_10-35-17.png"]},
+    {"id":"DEFECT-005","priority":"P1","domain":"uiComponents","summary":"客户档案学习按钮无标签","evidence":["Snipaste_2026-07-22_10-38-46.png"]},
+    {"id":"DEFECT-006","priority":"P1","domain":"uiLayout","summary":"候选元数据和最终确认状态布局破损","evidence":["Snipaste_2026-07-22_10-31-29.png","Snipaste_2026-07-22_10-51-17.png"]},
+    {"id":"DEFECT-007","priority":"P1","domain":"relationshipProjection","summary":"关系事件存在但中文理解与真实分析没有生成","evidence":["Snipaste_2026-07-22_10-39-14.png","Snipaste_2026-07-22_10-39-39.png"]},
+    {"id":"DEFECT-008","priority":"P1","domain":"relationshipProjection","summary":"关系轨迹重复写入同一条消息","evidence":["Snipaste_2026-07-22_10-39-48.png"]},
+    {"id":"DEFECT-009","priority":"P1","domain":"customerProfile","summary":"客户档案重复出现中文理解待生成卡片","evidence":["Snipaste_2026-07-22_10-38-26.png"]},
+    {"id":"DEFECT-010","priority":"P1","domain":"modelRuntime","summary":"模型资格状态互相矛盾","evidence":["Snipaste_2026-07-22_10-41-42.png"]},
+    {"id":"DEFECT-011","priority":"P1","domain":"modelRuntime","summary":"云模型错误重复、未中文化且未归一","evidence":["Snipaste_2026-07-22_10-43-44.png"]},
+    {"id":"DEFECT-012","priority":"P1","domain":"systemHealth","summary":"系统健康显示 100 但同页存在当前错误","evidence":["Snipaste_2026-07-22_10-47-03.png","Snipaste_2026-07-22_10-47-13.png"]},
+    {"id":"DEFECT-013","priority":"P1","domain":"diagnostics","summary":"诊断日志对用户不可读","evidence":["Snipaste_2026-07-22_10-47-03.png"]},
+    {"id":"DEFECT-014","priority":"P1","domain":"backgroundJobs","summary":"当前运行存在媒体物化和头像同步失败","evidence":["Snipaste_2026-07-22_10-47-03.png","Snipaste_2026-07-22_10-47-13.png"]},
+    {"id":"DEFECT-015","priority":"P1","domain":"uiComponents","summary":"数据保护页面直接显示 undefined","evidence":["Snipaste_2026-07-22_10-46-07.png"]},
+    {"id":"DEFECT-016","priority":"P2","domain":"notifications","summary":"通知设置没有多套提示音选择入口","evidence":["Snipaste_2026-07-22_10-45-50.png","Snipaste_2026-07-22_10-47-58.png"]},
+    {"id":"DEFECT-017","priority":"P2","domain":"localization","summary":"中文界面混入英文和内部枚举","evidence":["Snipaste_2026-07-22_10-39-14.png","Snipaste_2026-07-22_10-43-44.png","Snipaste_2026-07-22_10-46-07.png"]},
+    {"id":"DEFECT-018","priority":"P2","domain":"uiPrivacy","summary":"正式页面显示内部身份字符串","evidence":["Snipaste_2026-07-22_10-38-26.png","Snipaste_2026-07-22_10-39-48.png","Snipaste_2026-07-22_10-40-50.png"]}
+  ]
+}

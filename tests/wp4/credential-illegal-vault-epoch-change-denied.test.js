@@ -1,0 +1,28 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { CredentialVault } = require('../../electron/credentialVault');
+const { CredentialVaultHost } = require('../../electron/desktopHost/CredentialVaultHost');
+const { createOwnership, temporaryRoot } = require('./helpers');
+test('vault epoch change is denied unless legal reset authorization matches old and new epoch', async () => {
+  const root = temporaryRoot();
+  const safeStorage = { isEncryptionAvailable: () => true, encryptString: value => Buffer.from(String(value), 'utf8'), decryptString: value => Buffer.from(value).toString('utf8') };
+  const vault = new CredentialVault(path.join(root, 'vault', 'credential-vault.bin'), { safeStorage });
+  const vaultHost = new CredentialVaultHost({ vault, metadataPath: path.join(root, 'vault', 'vault-meta.json') });
+  assert.throws(() => vaultHost.resetAfterBackendStopped({ exitConfirmed: false }), error => error.reasonCode === 'CREDENTIAL_VAULT_RESET_BACKEND_EXIT_REQUIRED');
+  const originalEpoch = vaultHost.snapshotMetadata().vaultEpoch;
+  const ownership = await createOwnership(root);
+  const guard = ownership.guard();
+  const initial = vaultHost.createHydrationFrame({ startupNonce: 'initial', oneTimeToken: 'z'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
+  ownership.store.acceptCredentialHydration({ ...guard, vaultEpoch: originalEpoch, generation: initial.frame.generation, authorityEventId: initial.frame.authorityEventId, authorityHeadDigest: initial.frame.authorityHeadDigest, referenceCount: initial.frame.vaultReferenceCount, payloadBytes: initial.frame.payloadBytes });
+  const resetResult = await vaultHost.resetAfterBackendStopped({ exitConfirmed: true });
+  const reset = vaultHost.snapshotMetadata();
+  assert.equal(resetResult.transactionState, 'COMMITTED');
+  const prepared = vaultHost.createHydrationFrame({ startupNonce: 'nonce', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
+  assert.throws(() => ownership.store.acceptCredentialHydration({ ...guard, vaultEpoch: reset.vaultEpoch, generation: prepared.frame.generation, authorityEventId: prepared.frame.authorityEventId, authorityHeadDigest: prepared.frame.authorityHeadDigest, referenceCount: prepared.frame.vaultReferenceCount, payloadBytes: prepared.frame.payloadBytes }), error => error.reasonCode === 'CREDENTIAL_ILLEGAL_VAULT_EPOCH_CHANGE_DENIED');
+  const accepted = ownership.store.acceptCredentialHydration({ ...guard, vaultEpoch: reset.vaultEpoch, generation: prepared.frame.generation, authorityEventId: prepared.frame.authorityEventId, authorityHeadDigest: prepared.frame.authorityHeadDigest, referenceCount: prepared.frame.vaultReferenceCount, payloadBytes: prepared.frame.payloadBytes, resetAuthorization: prepared.resetAuthorization });
+  assert.equal(accepted.vaultEpoch, reset.vaultEpoch);
+  await ownership.release(); fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+});

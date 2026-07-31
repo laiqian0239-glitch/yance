@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "stage": "6.4.5.9",
+  "phase": "core-runtime-p1",
+  "workPackage": "WP4",
+  "decision": "REJECTED",
+  "reviewType": "FOURTH_BLOCKING_AMENDMENT_INDEPENDENT_REVIEW",
+  "decidedAtUtc": "2026-07-03T11:50:48Z",
+  "rejectedCandidate": {
+    "fourthReopenCommit": "c63422cd683aae7ac59fafc919653bd95cfb19a8",
+    "finalCodeImplementationCommit": "fc78e12d5a1a583b3a40df11ec30318e512b0a3c",
+    "finalCodeSourceTree": "59a6cc26179d7293e037de2f6ee279cb97780760",
+    "candidateBindingCommit": "6813270ee9df559c0a45add8fb2613f9f21ccae3",
+    "finalDeliveryHead": "328e08f9a8f64cba8a88937d7c8999906073bc60",
+    "finalSourceTree": "cb67a60afdadfeb6f4d6acda3562fbc7fa516df8"
+  },
+  "requiredDisposition": {
+    "wp4Status": "ACTIVE",
+    "wp4Active": true,
+    "wp4ReviewStatus": "PENDING_INDEPENDENT_REVIEW",
+    "wp5Status": "BLOCKED_BY_WP4"
+  },
+  "blockingThemes": [
+    "authority history continuity",
+    "strict transaction journal schema and completeness",
+    "durable requestId history",
+    "strict credential decryption",
+    "FD5 reference-count binding"
+  ],
+  "supersedingRepairPolicy": "FINAL_ARCHITECTURE_CLOSURE_ONLY_NO_INCREMENTAL_PATCH_CANDIDATE"
+}

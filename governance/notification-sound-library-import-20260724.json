@@ -1,0 +1,716 @@
+{
+  "schemaVersion": 1,
+  "result": "PASS",
+  "inputArchive": "新建文件夹.zip",
+  "inputAudioEntries": 271,
+  "exactUniqueEntries": 128,
+  "importedValidUniqueSounds": 125,
+  "existingYanceSounds": 11,
+  "finalBuiltInSoundCount": 136,
+  "duplicateAudioAssets": 0,
+  "removedDuplicateEntries": 143,
+  "rejected": [
+    {
+      "source": "新建文件夹/WeChat/ear0_test_36d3.wav",
+      "reason": "empty-audio"
+    },
+    {
+      "source": "新建文件夹/WeChat/msgRemSound.wav",
+      "reason": "invalid-or-undecodable-audio",
+      "sizeBytes": 146
+    },
+    {
+      "source": "新建文件夹/WeChat/wei_xin_ti_shi.wav",
+      "reason": "invalid-or-undecodable-audio",
+      "sizeBytes": 706
+    }
+  ],
+  "security": {
+    "executablesCopied": 0,
+    "dllsCopied": 0,
+    "scriptsCopied": 0,
+    "note": "Only validated audio streams were decoded and re-encoded as mono PCM WAV. Non-audio archive content was ignored."
+  },
+  "assets": [
+    {
+      "fileName": "yance-qq-samsung-call.wav",
+      "sha256": "3a2ddaa22c65ad51cecfb2854f3d48402b2d6d2e699589c996fe7884644ddd81",
+      "sizeBytes": 165452
+    },
+    {
+      "fileName": "yance-wechat-online.wav",
+      "sha256": "b648695f1484e081264ff9e0eefe4e18d99db016e4266d7d54c1a82757d2ed51",
+      "sizeBytes": 16836
+    },
+    {
+      "fileName": "yance-task-complete.wav",
+      "sha256": "591b99c881b36b413d4cc6e27d213f1db36c3ef2e0b833da6e3d589eba509732",
+      "sizeBytes": 49436
+    },
+    {
+      "fileName": "yance-qq-classic-folder.wav",
+      "sha256": "d0a32766fb9d3f5d0ace024eef95dffe51c692c579f875326d27ad9870dc6a5a",
+      "sizeBytes": 35798
+    },
+    {
+      "fileName": "yance-wechat-message-tone.wav",
+      "sha256": "12b8c5f9b142f93a86dc2f3b076cb21aefb47da7bd9d99fc827409490c32d0de",
+      "sizeBytes": 13308
+    },
+    {
+      "fileName": "yance-qq-nature-global.wav",
+      "sha256": "f75d93c7263497883bad22dbff7331e034fa90d9ee5e07678ea70f6c938c632e",
+      "sizeBytes": 213126
+    },
+    {
+      "fileName": "yance-qq-butterfly-global.wav",
+      "sha256": "272478a75a132808da0fb4cf0b37f74250ebeecc1b636cb7469421d7d86a7eef",
+      "sizeBytes": 303860
+    },
+    {
+      "fileName": "yance-qq-gun-bubble-global.wav",
+      "sha256": "f3cc132eb8fa5cb1210cd7460a965218cd191ba18a627dcd7d445af8466a98e7",
+      "sizeBytes": 185712
+    },
+    {
+      "fileName": "yance-qq-real-voice-ring.wav",
+      "sha256": "262c4c5d2d4373de834a76db8d27fc8d35ac2db92f1bb66bb0a3909746cc89d5",
+      "sizeBytes": 107670
+    },
+    {
+      "fileName": "yance-qq-cs-global.wav",
+      "sha256": "3b84685331ef803ef392685adc4112aa01b4169a55169182d422fd9274df19cd",
+      "sizeBytes": 45028
+    },
+    {
+      "fileName": "yance-qq-real-voice-global.wav",
+      "sha256": "c859d03dea360f775992107dece8ad3f9d5a1f303ae104cdbded58cabb834272",
+      "sizeBytes": 59760
+    },
+    {
+      "fileName": "yance-wechat-system.wav",
+      "sha256": "1cb9c70eac4e94da528a574b7ae6078167c13d0a757b85b2590f6b89e596cb89",
+      "sizeBytes": 19482
+    },
+    {
+      "fileName": "yance-qq-butterfly-call.wav",
+      "sha256": "9b71a35dfde6dbe64c163d9edb40e8b8ed9140b267afd9ef20b55663a8b7b3ee",
+      "sizeBytes": 183180
+    },
+    {
+      "fileName": "yance-qq-fresh-wind-message.wav",
+      "sha256": "c4f85def1286b04e0068e11030f24096b86dabb0c9ab564d17c80e49f6a45e3d",
+      "sizeBytes": 131320
+    },
+    {
+      "fileName": "yance-qq-real-voice-system.wav",
+      "sha256": "bddb337e22353e3f45f2fc21dcda09c31194897f1ab91864e6c05c52646143f9",
+      "sizeBytes": 30030
+    },
+    {
+      "fileName": "yance-qq-classic-elegance-system.wav",
+      "sha256": "ec18b3d46abfb745b0d752107d7fa09c22f348de547e5e80965483c02dbdebf1",
+      "sizeBytes": 114384
+    },
+    {
+      "fileName": "yance-qq-exploration-system.wav",
+      "sha256": "ed02152948f5cd052e5f912ce90622de82bc09976c0f5b473fd09b8ab46ff9a4",
+      "sizeBytes": 35040
+    },
+    {
+      "fileName": "yance-qq-classic-elegance-call.wav",
+      "sha256": "7d30e8a67dad9d15e2a7ea650e2f824cd3d214adc28c056c5a65887449497841",
+      "sizeBytes": 68948
+    },
+    {
+      "fileName": "yance-qq-chat-taotao-system.wav",
+      "sha256": "19e3c47b11f0dcd42889a064c257eec87e73a3838a7b0e8236a86bd1d1755684",
+      "sizeBytes": 51182
+    },
+    {
+      "fileName": "yance-qq-classic-global.wav",
+      "sha256": "fe8d0a1019b5b636961cb46d9b4a18b87e73a091e3701345b1d34a8bbbf02389",
+      "sizeBytes": 19202
+    },
+    {
+      "fileName": "yance-qq-exploration-call.wav",
+      "sha256": "735b7f476ae4d9b52d3f340b2d212af05f6c228bb8265f64b852aed50c2ec725",
+      "sizeBytes": 180416
+    },
+    {
+      "fileName": "yance-qq-classic-ring.wav",
+      "sha256": "393998722311990d48f1bdf372c139b6ddacfbe52d0b5eb506470451e146fe87",
+      "sizeBytes": 84114
+    },
+    {
+      "fileName": "yance-qq-romantic-storm-system.wav",
+      "sha256": "480f6ba998e5c0059b6beba3f54dd58e51c4315a99946eebf1829f154c2852d3",
+      "sizeBytes": 110226
+    },
+    {
+      "fileName": "yance-qq-samsung-system.wav",
+      "sha256": "774ad39038cdf5062a6f81f26469dc5b388cd41c954eb9e01f548cf695777c45",
+      "sizeBytes": 38964
+    },
+    {
+      "fileName": "yance-qq-believe-ring.wav",
+      "sha256": "923bf2fc73583185726188a54ed3efa59e6b38272fb86acdfd8d69b5ab0c6fad",
+      "sizeBytes": 194898
+    },
+    {
+      "fileName": "yance-qq-nature-system.wav",
+      "sha256": "5149f6bf07dd721be005d84806147a58cc160d3375188237fc943040987ddd9a",
+      "sizeBytes": 124858
+    },
+    {
+      "fileName": "yance-qq-butterfly-ring.wav",
+      "sha256": "35303b5b5fa568f18fabb2d7a2e2ab5e16e02eed5266be5d6e9146b785179227",
+      "sizeBytes": 185372
+    },
+    {
+      "fileName": "yance-qq-chat-taotao-global.wav",
+      "sha256": "04ba6168124a84e468bf5b4354dede4bc16ec66dfb1730424da6f6f5bc2a30a2",
+      "sizeBytes": 95166
+    },
+    {
+      "fileName": "yance-qq-first-love-system.wav",
+      "sha256": "447edf5135041c37c58e4a20ea0da78349024c307f47335aaf139b5d5e4dc45f",
+      "sizeBytes": 322910
+    },
+    {
+      "fileName": "yance-qq-fresh-wind-global.wav",
+      "sha256": "4ef4a5a0261aa56c91ae709664746ac0dbedb2569666dbb82e8e45b16cd690ed",
+      "sizeBytes": 219242
+    },
+    {
+      "fileName": "yance-qq-chat-taotao-ring.wav",
+      "sha256": "662706ae31e134a635fc5cb97b042cdf89fe5b1fabdb4668b0352a8023e4db47",
+      "sizeBytes": 108908
+    },
+    {
+      "fileName": "yance-qq-samsung-global.wav",
+      "sha256": "170e5c2b47bb0acc5d3baaab38175ce5a9aac9be24b2f3725166b060b4ad13ea",
+      "sizeBytes": 72978
+    },
+    {
+      "fileName": "yance-qq-happy-pig-angel-call.wav",
+      "sha256": "6689c89ebe218d36bacf85f39c076d7c4cbd5fa1dc52768e15541d78cfda9d05",
+      "sizeBytes": 217124
+    },
+    {
+      "fileName": "yance-message-sent.wav",
+      "sha256": "a967ae9135a268fc8eac3fe93960d99914c2a5cf3edf0983efc0c291d83228db",
+      "sizeBytes": 30030
+    },
+    {
+      "fileName": "yance-qq-classic-elegance-message.wav",
+      "sha256": "1af561a916bb5bc1d614916f696c96aedbe341a96e4ef1557fac44c9a593a73c",
+      "sizeBytes": 85810
+    },
+    {
+      "fileName": "yance-wechat-sent.wav",
+      "sha256": "850012fb94b3f535d0f00aa4080cf2a78d09c7accd06d45c3e22b67a3523a62f",
+      "sizeBytes": 7134
+    },
+    {
+      "fileName": "yance-qq-cs-message.wav",
+      "sha256": "573b0d1a1e079aa19181b037d0fbba8e2237ee6bff55a5d7d3f6700c7305e2ad",
+      "sizeBytes": 46522
+    },
+    {
+      "fileName": "yance-qq-kiss-hug-global.wav",
+      "sha256": "61e884dab71bae5a88c3e6e4b966f68cc5c432b99c73139354c1f191a697a522",
+      "sizeBytes": 222416
+    },
+    {
+      "fileName": "yance-qq-classic-call.wav",
+      "sha256": "55ab6ea5e0db653dd70d1b24a110fe9c05de66c8bb97160b52d7391782979215",
+      "sizeBytes": 85522
+    },
+    {
+      "fileName": "yance-qq-romantic-storm-folder.wav",
+      "sha256": "e5655f1118a63e0dd32536d1fa1578e24f34b0a74a7767da7347de6a18474551",
+      "sizeBytes": 105992
+    },
+    {
+      "fileName": "yance-qq-fresh-wind-system.wav",
+      "sha256": "c0fec6d6a7ff91b401c5f2531de1f80a33f0eea581c7aae635d21140cb31dc02",
+      "sizeBytes": 112344
+    },
+    {
+      "fileName": "yance-qq-exploration-ring.wav",
+      "sha256": "6efed4aaaaf3bd00a012904b3bb98b55bd90b469e7eb5f89210bd56fbdc543dd",
+      "sizeBytes": 116238
+    },
+    {
+      "fileName": "yance-qq-exploration-message.wav",
+      "sha256": "7264cdff00ffb75efef2d154a5b525bdaba7c4059e25e10a1c550df7f4298c01",
+      "sizeBytes": 36718
+    },
+    {
+      "fileName": "yance-qq-nature-call.wav",
+      "sha256": "18f34239f446912e1ac274f1d5f021bbd130390488339411cb2da71e923c9719",
+      "sizeBytes": 146164
+    },
+    {
+      "fileName": "yance-qq-kiss-hug-folder.wav",
+      "sha256": "76b379776a27ab18e201362ef409a014982a9745d8174d47d2c1316ac6e1abe4",
+      "sizeBytes": 246684
+    },
+    {
+      "fileName": "yance-qq-first-love-call.wav",
+      "sha256": "3ee569774ab4aec8aed5b81df0c78c37df63ebab01c4849526e31629190826c6",
+      "sizeBytes": 317618
+    },
+    {
+      "fileName": "yance-contact-online.wav",
+      "sha256": "7a5a34e8264f455af8fbf13f302f67d6b7af41f8a268078c8d1390e65015d830",
+      "sizeBytes": 37088
+    },
+    {
+      "fileName": "yance-qq-chat-taotao-folder.wav",
+      "sha256": "c3cd0686c931b0bcd245c9772d5d15813b63d886748bba98379e33cc15736388",
+      "sizeBytes": 66766
+    },
+    {
+      "fileName": "yance-wechat-call-classic.wav",
+      "sha256": "d0c2b66fcda165140778dc923dafaf81ba4bd5a15b301380918b584e2732f867",
+      "sizeBytes": 57408
+    },
+    {
+      "fileName": "yance-qq-nature-folder.wav",
+      "sha256": "08333f997833967443b6b30a3618daf7dbbcd4d9bb6a02f5607e9a4cc2fa5cc5",
+      "sizeBytes": 259798
+    },
+    {
+      "fileName": "yance-qq-first-love-global.wav",
+      "sha256": "f813282d1157449e86145c1e7c5c304c18cae5b04b247014dcacc77a51193a95",
+      "sizeBytes": 315500
+    },
+    {
+      "fileName": "yance-qq-real-voice-message.wav",
+      "sha256": "fa63436e33f6c0674add045bab0222cd1a15d17fde24b26685ed012200f2faee",
+      "sizeBytes": 66256
+    },
+    {
+      "fileName": "yance-qq-kiss-hug-ring.wav",
+      "sha256": "d4a1e02ba803fef13ece7a5b78f6cfb8ac790933f22f50366af387f417b08f41",
+      "sizeBytes": 113402
+    },
+    {
+      "fileName": "yance-qq-romantic-storm-call.wav",
+      "sha256": "1ffdd89c2f5b7891f316af1b7085c147fc49be095dec6b41f9fbcfbc15e77531",
+      "sizeBytes": 154626
+    },
+    {
+      "fileName": "yance-qq-april-story-message.wav",
+      "sha256": "80761ad3a24ea403b676de23f7d52a053a79f6c226e54b8d57cc8d7db1b29141",
+      "sizeBytes": 186378
+    },
+    {
+      "fileName": "yance-qq-happy-pig-angel-system.wav",
+      "sha256": "30161f0ee22b4043b5723a553d4ea42798da16a8ee78834038add4d2b04bd700",
+      "sizeBytes": 236100
+    },
+    {
+      "fileName": "yance-qq-classic-elegance-ring.wav",
+      "sha256": "71b87d5cafeb4e6d21fe2a78fbb1f1b62cea46d8778907f9eab7579cf1ddc7e0",
+      "sizeBytes": 41356
+    },
+    {
+      "fileName": "yance-qq-april-story-folder.wav",
+      "sha256": "40574a9a97713d183d10ff47c89cef8928bf57aa63b33e910671c349ea6c7a56",
+      "sizeBytes": 401232
+    },
+    {
+      "fileName": "yance-qq-romantic-storm-message.wav",
+      "sha256": "17ed3015a105891b9f0ba02ce85f98d702d56d9634d003061109d39db4331313",
+      "sizeBytes": 90116
+    },
+    {
+      "fileName": "yance-qq-happy-pig-angel-message-alt2.wav",
+      "sha256": "f20499e9460709d5bfa8446408cecbf85da643d02b567cebe81c4c5d9223750d",
+      "sizeBytes": 204348
+    },
+    {
+      "fileName": "yance-qq-gun-bubble-message.wav",
+      "sha256": "2fed2367c61d8649588ddfb2cc41753010ad0d23f9c5899acc2a59ee6de8fe8e",
+      "sizeBytes": 61310
+    },
+    {
+      "fileName": "yance-qq-first-love-message.wav",
+      "sha256": "86975a24f25e48145bae3eb33ee29eb0a2557a58d35a774ec46a64a45289efb1",
+      "sizeBytes": 379004
+    },
+    {
+      "fileName": "yance-qq-classic-elegance-global.wav",
+      "sha256": "0d2d284dc32dc79d1a2b93b402954d28b1f1fb058fa155699e805d3b4b75fc4e",
+      "sizeBytes": 123912
+    },
+    {
+      "fileName": "yance-qq-fresh-wind-ring.wav",
+      "sha256": "01864d21ef3e714e1dfb88d3102280177ea6d6e0d111be165929f881193b1612",
+      "sizeBytes": 124968
+    },
+    {
+      "fileName": "yance-qq-samsung-folder.wav",
+      "sha256": "043b86a24f2027e8c086cf57fdb2d6986f9353b91915da25c8f1a83f0c1b6de1",
+      "sizeBytes": 91686
+    },
+    {
+      "fileName": "yance-wechat-message-synthetic.wav",
+      "sha256": "6040e58e69301a3b23f74299124e288a342d3b3e857e41f537b75e2cd9fdd1da",
+      "sizeBytes": 11104
+    },
+    {
+      "fileName": "yance-message.wav",
+      "sha256": "76ba22ab86d7359744b72e37ca2ecf1614bf6d002774af67c07d65603c8f7717",
+      "sizeBytes": 37088
+    },
+    {
+      "fileName": "yance-qq-first-love-folder.wav",
+      "sha256": "24e67c59e3e1dcfd3fca406941676396bf8fa99d89562224668d87cc38397593",
+      "sizeBytes": 345138
+    },
+    {
+      "fileName": "yance-qq-chat-taotao-call.wav",
+      "sha256": "050240d35f31cd92ca9023b1c78e55dd369012ce9bda94b0daae92b6267d25d5",
+      "sizeBytes": 105754
+    },
+    {
+      "fileName": "yance-qq-kiss-hug-message.wav",
+      "sha256": "365f4e425a096cda0ade9949a9dd40bb09bf6fcf082f74c6ffedcede56bfe745",
+      "sizeBytes": 205482
+    },
+    {
+      "fileName": "yance-qq-butterfly-system.wav",
+      "sha256": "08d6745489c50b2585fc263be4380e1d9159c3a127ebabb97866fe9a8ebbdd73",
+      "sizeBytes": 315500
+    },
+    {
+      "fileName": "yance-qq-cs-system.wav",
+      "sha256": "b1f49613ab79a837feb0c5bf15ee0e4578ede1354a811ed4807879e60a1e1e43",
+      "sizeBytes": 53906
+    },
+    {
+      "fileName": "yance-qq-believe-system.wav",
+      "sha256": "0c21f418b3bf621c1bf7292b5c93543bb66d3b3a80bad1ce61d74133209482fa",
+      "sizeBytes": 106978
+    },
+    {
+      "fileName": "yance-qq-strict-one-global.wav",
+      "sha256": "2a9f5f11102e8b475152d0d706379050658102ce8d237fdc118987be128df362",
+      "sizeBytes": 121364
+    },
+    {
+      "fileName": "yance-qq-exploration-global.wav",
+      "sha256": "5b4a947b65ecac8cc6571c68ed1ef54d5e139473e018b207f14a024387f3157c",
+      "sizeBytes": 93844
+    },
+    {
+      "fileName": "yance-qq-april-story-call.wav",
+      "sha256": "5c954f84e7bb86ab214d3b32f83e1fbbafb6511e7735f114a92d55783c2f462b",
+      "sizeBytes": 416048
+    },
+    {
+      "fileName": "yance-qq-animal-message.wav",
+      "sha256": "ce1be69beb847906d868894a2475e7ab4d4e068dd8028f9566ed325d2c00bd9c",
+      "sizeBytes": 66218
+    },
+    {
+      "fileName": "yance-qq-ghost-folder.wav",
+      "sha256": "4c7ba46f7b101f286259aa44d0b609037156d02ea265f60b675df75ed7217247",
+      "sizeBytes": 134570
+    },
+    {
+      "fileName": "yance-qq-believe-message.wav",
+      "sha256": "011345ae4a69ec5ec49b6c3d709ce77df3675c88ef670b3fdeb47e568d86bbde",
+      "sizeBytes": 223476
+    },
+    {
+      "fileName": "yance-qq-ghost-ring.wav",
+      "sha256": "948d4fab80f1f6baad66d9a9fd3aa26087d5db20190475a3213874a6df924b0a",
+      "sizeBytes": 46648
+    },
+    {
+      "fileName": "yance-qq-believe-global.wav",
+      "sha256": "ab11996164d1b6b13239a79fdcd72ce4c99922922ef7b1e8477087bcaa362eb4",
+      "sizeBytes": 200190
+    },
+    {
+      "fileName": "yance-qq-happy-pig-angel-global.wav",
+      "sha256": "230c9c18d4270611b4341e7a8121b5accb28623c76082eb75aecfcbc94b2ad88",
+      "sizeBytes": 162012
+    },
+    {
+      "fileName": "yance-qq-classic-system.wav",
+      "sha256": "d40b4ebb1540201a394af8bdbae79b59d5a272b982f54a60f91e9ec46d0569a3",
+      "sizeBytes": 27690
+    },
+    {
+      "fileName": "yance-send-failed.wav",
+      "sha256": "3de428afb819e47e211074cb6c53b58f89c33f3f4812f60a4eccbea6a6a9cfec",
+      "sizeBytes": 38852
+    },
+    {
+      "fileName": "yance-qq-strict-one-message.wav",
+      "sha256": "5125dfb56177d3db2e8f47243a0328f8f65058d1ee6e01af8c7362ca7e64966d",
+      "sizeBytes": 132390
+    },
+    {
+      "fileName": "yance-warning-low.wav",
+      "sha256": "99c03ebe35b2b653cafb0103daef25b64bfa5905a3062f0dbb507b797b761c74",
+      "sizeBytes": 47672
+    },
+    {
+      "fileName": "yance-qq-classic-message.wav",
+      "sha256": "eee103e3f1e0e7c6c1a4818df0a62669c0a58ffb7f30161c040eeaaaaa02d9d1",
+      "sizeBytes": 36054
+    },
+    {
+      "fileName": "yance-qq-ghost-system.wav",
+      "sha256": "12c34e014bb16ccc180cd2cc24ae6b0297897fe409ce888e8df9e7b7bf825f63",
+      "sizeBytes": 51940
+    },
+    {
+      "fileName": "yance-qq-believe-call.wav",
+      "sha256": "d05925b969ff5be577221940a55a6930a50193d2e667e463716cc4e029a860bd",
+      "sizeBytes": 92234
+    },
+    {
+      "fileName": "yance-qq-ghost-message.wav",
+      "sha256": "e093bee540840990a3cb5347aac6ba5ac9dd7f98d92fadd2e11189c6b3c65159",
+      "sizeBytes": 146210
+    },
+    {
+      "fileName": "yance-qq-cs-folder.wav",
+      "sha256": "ed6e5d5dc17ec08d9b27478b9b1b5d6c05a74b9bf16e3c755be0ef45618986ed",
+      "sizeBytes": 63654
+    },
+    {
+      "fileName": "yance-message-pulse.wav",
+      "sha256": "34d8953e0df97c1b472067b4623728bf98e50910364ce014099576be9dafad63",
+      "sizeBytes": 37970
+    },
+    {
+      "fileName": "yance-qq-animal-ring.wav",
+      "sha256": "c76910803f5d59fd081b495d47c08f18b2e0506d163d7f46651676b2e10907d8",
+      "sizeBytes": 106088
+    },
+    {
+      "fileName": "yance-qq-april-story-global.wav",
+      "sha256": "6fdd02f3cde0916967d05b4f6f97a639db92c15d22c6bd25e246671ed559c707",
+      "sizeBytes": 442508
+    },
+    {
+      "fileName": "yance-qq-april-story-system.wav",
+      "sha256": "f6a51ff82d467c4f168fd1769a8dc47756a1ee0c82d6b43bc275ec974e36a8fd",
+      "sizeBytes": 220244
+    },
+    {
+      "fileName": "yance-qq-real-voice-folder.wav",
+      "sha256": "2c5c1a41d95aafe9ade7495f9f12dd8b532d57b826f33230e1aababfc584b368",
+      "sizeBytes": 28414
+    },
+    {
+      "fileName": "yance-message-soft.wav",
+      "sha256": "cacf7b437a6d22c078b268aac93cd1652a3cf07ec3e673c35937065154d2c2ed",
+      "sizeBytes": 33560
+    },
+    {
+      "fileName": "yance-qq-classic-elegance-folder.wav",
+      "sha256": "7220c7347dc0a00d52aed816ec9057cd37adb1d7690eeb22173bd845d11c2f0f",
+      "sizeBytes": 114384
+    },
+    {
+      "fileName": "yance-qq-strict-one-folder.wav",
+      "sha256": "5da620900e8cf668fd29e8e0a9c8ed35da51616ac35b70c5a7ac5f3748be0873",
+      "sizeBytes": 11104
+    },
+    {
+      "fileName": "yance-qq-believe-folder.wav",
+      "sha256": "935e593119cb10d12d9ce8cb199dd49f2c9227a50f0412db1d670864f5c71790",
+      "sizeBytes": 219242
+    },
+    {
+      "fileName": "yance-wechat-red-packet.wav",
+      "sha256": "8ef77476b4de8979437bf3aa824f82bce1c13bddf6dbbec77686b72fb7fd3a14",
+      "sizeBytes": 21246
+    },
+    {
+      "fileName": "yance-qq-chat-taotao-message.wav",
+      "sha256": "2338d904ea1e9d158ab8aec6b51ce7a6fbdddb809d718c10d340491cae169d54",
+      "sizeBytes": 58190
+    },
+    {
+      "fileName": "yance-qq-gun-bubble-system.wav",
+      "sha256": "cccff08856874d0cfc74e0394e3ec34333e2caa6c83e691178ab50b0f2643314",
+      "sizeBytes": 38258
+    },
+    {
+      "fileName": "yance-qq-ghost-global.wav",
+      "sha256": "54ca91816e406709a08073ffdea5e94cb9044d3e18ecc54cf91bc08ef289d66c",
+      "sizeBytes": 217124
+    },
+    {
+      "fileName": "yance-qq-cs-call.wav",
+      "sha256": "32b77b7982f762b1fac5b1e30d9f3f79df8cc53f3fd25cb8b0ee6656ab6e7a76",
+      "sizeBytes": 271042
+    },
+    {
+      "fileName": "yance-qq-exploration-folder.wav",
+      "sha256": "feaebba09dbc7e4c3d277d94157746e6c652d7ecc83d71f8bcda98a02b3df642",
+      "sizeBytes": 33984
+    },
+    {
+      "fileName": "yance-qq-animal-system.wav",
+      "sha256": "a7a0114a77955dcb97b9935b073e983571decda940066ab236e167424c6d81b4",
+      "sizeBytes": 265900
+    },
+    {
+      "fileName": "yance-qq-animal-folder.wav",
+      "sha256": "958d6029c7c215c5b0a85925b7dc13014cd8d6a537860fd6f5098a28c70bce91",
+      "sizeBytes": 85796
+    },
+    {
+      "fileName": "yance-qq-first-love-ring.wav",
+      "sha256": "1015792e29afa48b2a8ecb2ba718a0345da845ff176177c88c3aef219028071c",
+      "sizeBytes": 339846
+    },
+    {
+      "fileName": "yance-wechat-hangup.wav",
+      "sha256": "f61ff1a0c7dc54bea5831ff077fc7e6305673e6a599cc473866803b5671fd15d",
+      "sizeBytes": 15514
+    },
+    {
+      "fileName": "yance-wechat-call-soft.wav",
+      "sha256": "d5e0b4bad4ea32778171c8cfe32138af6e9d1216e2d675dcc32359cc5fc1e43d",
+      "sizeBytes": 52998
+    },
+    {
+      "fileName": "yance-qq-samsung-ring.wav",
+      "sha256": "c1460a58be9c850aab6e2d04f72898c0a1c302598e2cb126e8f5ef44d885fa57",
+      "sizeBytes": 66228
+    },
+    {
+      "fileName": "yance-qq-fresh-wind-call.wav",
+      "sha256": "04b7a552be51596e95b21a2badd09ab580872a858399d6b06cba0c287f85df7a",
+      "sizeBytes": 117562
+    },
+    {
+      "fileName": "yance-qq-fresh-wind-folder.wav",
+      "sha256": "35fc7e5b1a94805441ec55e15815a8f9140b5cbde8bd70e1d870e4e64efbad6d",
+      "sizeBytes": 108036
+    },
+    {
+      "fileName": "yance-qq-strict-one-system.wav",
+      "sha256": "b875709db50e318214054dd150aed8a701dec490f57028f6cb3bcb41e1c72d8a",
+      "sizeBytes": 185064
+    },
+    {
+      "fileName": "yance-qq-nature-message.wav",
+      "sha256": "c8a29bae5d06c1e96320c3f6872324df7130a7591f38d0262a51a18772f37a29",
+      "sizeBytes": 276032
+    },
+    {
+      "fileName": "yance-qq-happy-pig-angel-ring.wav",
+      "sha256": "77d8adad74136cea8574c853fa3371efceff54d610c692be2c99667117eef777",
+      "sizeBytes": 246684
+    },
+    {
+      "fileName": "yance-message-crystal.wav",
+      "sha256": "1583c622301d4e637966e7719ff3e572022d01e62f8c184baba041478105c7bb",
+      "sizeBytes": 37088
+    },
+    {
+      "fileName": "yance-qq-romantic-storm-ring.wav",
+      "sha256": "6738c9b54a885937eb2fccefcb16bf047e4ffa525fae28963a937d79889c9fbf",
+      "sizeBytes": 113402
+    },
+    {
+      "fileName": "yance-qq-kiss-hug-call.wav",
+      "sha256": "3c54035ac4b132cb291c4603657f916a1d90c0c1c7fb0e73f395f3615e75a633",
+      "sizeBytes": 233986
+    },
+    {
+      "fileName": "yance-message-chime.wav",
+      "sha256": "07356c8af4585bdca89d8b9b65177cc770202e087d18c05a82b75682d96d63b5",
+      "sizeBytes": 40616
+    },
+    {
+      "fileName": "yance-qq-ghost-call.wav",
+      "sha256": "2716d5ffc8fb0b4dbf4f3f7b38780f9d2326dc07ae77133b8d5c5eaeffe31f62",
+      "sizeBytes": 46648
+    },
+    {
+      "fileName": "yance-qq-nature-ring.wav",
+      "sha256": "b4c9c896d37fed7ede330ce03a1d6b1294289352646f94415268630cb30c2ee7",
+      "sizeBytes": 360242
+    },
+    {
+      "fileName": "yance-qq-kiss-hug-system.wav",
+      "sha256": "57394b19ac5c5c0f8f48898ddbf4805f7e6b3a9654e75d04ce574e85d6b1faff",
+      "sizeBytes": 237160
+    },
+    {
+      "fileName": "yance-contact-offline.wav",
+      "sha256": "c4bd5c88539bc535f321b77a0bc3ee19b1bdfa6c0ef449510730a877c0e0e0a3",
+      "sizeBytes": 37088
+    },
+    {
+      "fileName": "yance-wechat-message-classic.wav",
+      "sha256": "9bb400fec2411ad31340cd999b241c547ea31409d9220b7a857c47fe623be2db",
+      "sizeBytes": 11104
+    },
+    {
+      "fileName": "yance-qq-happy-pig-angel-message.wav",
+      "sha256": "09a3718b04f232399f403a64b3ae89acff26e29fc190f56a3f0ae9492704a849",
+      "sizeBytes": 221358
+    },
+    {
+      "fileName": "yance-qq-animal-call.wav",
+      "sha256": "717d62bc62d3a7a6bb0dec3c5735cda0cdb6519949dcbb0904d0341805b13f02",
+      "sizeBytes": 241536
+    },
+    {
+      "fileName": "yance-qq-gun-bubble-folder.wav",
+      "sha256": "27c13ee4fa2a41eb2c64ef7c842735c5ac9f9a28798bf6a12e44a55fd21f1c12",
+      "sizeBytes": 54852
+    },
+    {
+      "fileName": "yance-qq-butterfly-message.wav",
+      "sha256": "42af2e87a2826ad1e92fe3f7518e88dccef5216ae966a839ce8199f5dff9d65e",
+      "sizeBytes": 290100
+    },
+    {
+      "fileName": "yance-qq-happy-pig-angel-folder.wav",
+      "sha256": "52e6998d220e496786985f2ea3883f68bb8d76cf027cac68249c80d03a4c4f63",
+      "sizeBytes": 285846
+    },
+    {
+      "fileName": "yance-qq-samsung-message.wav",
+      "sha256": "87b542bd632ddf564e252750edba78e3bb00339094cb9cbbaf0ea344f46e1a6b",
+      "sizeBytes": 61312
+    },
+    {
+      "fileName": "yance-qq-cs-ring.wav",
+      "sha256": "bafa391f42bb4480362ff3d7e9c6afc57ed03a67075b1ecf848d44fc34abd3df",
+      "sizeBytes": 84606
+    },
+    {
+      "fileName": "yance-qq-romantic-storm-global.wav",
+      "sha256": "78f80251a1138fb7b29d38d553e12d0a8ee21dfea1e4a7e440f99358aba7df52",
+      "sizeBytes": 108110
+    },
+    {
+      "fileName": "yance-qq-april-story-ring.wav",
+      "sha256": "7059d7be477ab79bb6fcd37a13b9167ba99e95b810ace14cc50728318f3f833f",
+      "sizeBytes": 363128
+    },
+    {
+      "fileName": "yance-qq-animal-global.wav",
+      "sha256": "f30c3099a5e3f7d22990d92577292ddef0f8775112eb577cee131202fdeb99d3",
+      "sizeBytes": 222766
+    }
+  ]
+}

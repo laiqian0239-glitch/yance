@@ -1,0 +1,28 @@
+name: WP3 Windows Named Mutex Evidence
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'backend/runtime/**'
+      - 'backend/desktopHostedEntry.js'
+      - 'backend/server.js'
+      - 'electron/desktopHost/**'
+      - 'tests/wp3/**'
+      - 'tools/wp3/**'
+      - 'package-lock.json'
+jobs:
+  windows-named-mutex:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node tools/wp3/windows-named-mutex-evidence.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wp3-windows-named-mutex-evidence
+          path: evidence/wp3/windows-named-mutex-real.json
+          if-no-files-found: error

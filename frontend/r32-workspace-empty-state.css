@@ -1,0 +1,118 @@
+/*
+ * FIX6D · Shared routed master/detail and empty-state authority.
+ * One semantic shell owns equal-height panes and one fill state owns all
+ * account/profile/timeline/insight empty presentations.
+ */
+
+.ui-master-detail-shell{
+  min-width:0;
+  min-height:0;
+  height:100%;
+  align-items:stretch;
+  overflow:hidden;
+}
+.ui-master-pane,.ui-detail-pane{
+  min-width:0;
+  min-height:0;
+  height:100%;
+  align-self:stretch;
+  overflow:hidden;
+}
+.ui-master-pane{display:grid;grid-template-rows:auto auto minmax(0,1fr)}
+.ui-detail-pane{display:grid;grid-template-rows:auto minmax(0,1fr)}
+.ui-detail-pane>.ui-empty-decoration-track:empty{display:none!important}
+.ui-detail-pane>.ui-empty-decoration-track:not(:empty){display:block}
+.ui-detail-pane>.ui-empty-state-fill:only-child{grid-row:1/-1}
+
+.ui-detail-pane :is(.detail26-scroll,.profile27-scroll,.timeline27-scroll,.insight29-detail-scroll){
+  min-height:0;
+  height:100%;
+}
+.ui-detail-pane :is(.detail26-scroll,.profile27-scroll,.timeline27-scroll,.insight29-detail-scroll,.detail26-grid,.profile27-grid,.timeline27-content,.insight29-content):has(> .ui-empty-state-fill){
+  display:grid;
+  grid-template-columns:minmax(0,1fr)!important;
+  place-items:stretch;
+  min-height:0;
+  height:100%;
+}
+
+.ui-empty-state-fill{
+  width:100%;
+  grid-column:1/-1;
+  grid-row:1/-1;
+  min-width:0;
+  min-height:0;
+  height:100%;
+  align-self:stretch;
+  display:grid!important;
+  place-items:center;
+  align-content:center;
+  padding:clamp(18px,3vh,34px)!important;
+  margin:0!important;
+  overflow:hidden;
+  text-align:center;
+}
+.ui-empty-state-fill>div,
+.ui-empty-state-fill.ui-empty-state>div{
+  width:min(100%,620px)!important;
+  min-height:clamp(180px,32vh,340px)!important;
+  display:grid;
+  place-content:center;
+  justify-items:center;
+  padding:clamp(22px,3vw,42px)!important;
+}
+.ui-empty-state-fill.ac32-empty{
+  min-height:100%;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+.ui-master-pane .ui-empty-state-fill>div{
+  min-height:clamp(150px,28vh,280px)!important;
+}
+
+@media(max-width:820px){
+  .ui-master-detail-shell{height:auto;overflow:visible}
+  .ui-master-pane,.ui-detail-pane{height:auto;min-height:360px;overflow:visible}
+  .ui-empty-state-fill{min-height:320px}
+}
+
+/* When the optional detail hero is empty, the scroll/content surface owns the
+   full detail pane instead of being auto-placed into the first intrinsic row. */
+.ui-detail-pane:has(> .ui-empty-decoration-track:empty) > :not(.ui-empty-decoration-track){
+  grid-row:1/-1;
+  min-height:0;
+  height:100%;
+}
+.ui-master-pane > :is(.ac32-account-list,.profile27-list,.timeline27-list,.insight29-list):has(> .ui-empty-state-fill){
+  display:grid;
+  min-height:0;
+  height:100%;
+}
+.ui-detail-pane > :only-child{
+  grid-row:1/-1;
+  min-height:0;
+  height:100%;
+}
+
+
+/* FIX6D V4 · Filter labels remain atomic at every reading scale.
+   The rail may scroll horizontally, but a semantic label never becomes a
+   two- or three-line vertical button. */
+.ui-filter-rail{
+  min-width:0;
+  max-width:100%;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+  overscroll-behavior-inline:contain;
+}
+.ui-filter-rail::-webkit-scrollbar{display:none}
+.ui-filter-rail button{
+  flex:0 0 auto;
+  min-width:max-content;
+  white-space:nowrap!important;
+  writing-mode:horizontal-tb!important;
+  text-orientation:mixed!important;
+  line-height:1.2;
+}
