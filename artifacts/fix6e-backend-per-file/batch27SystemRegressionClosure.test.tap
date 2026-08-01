@@ -1,0 +1,48 @@
+TAP version 13
+# (node:17466) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: SYS-REG-01 platform operation matrix propagates signal, generation and queue projection ownership
+ok 1 - SYS-REG-01 platform operation matrix propagates signal, generation and queue projection ownership
+  ---
+  duration_ms: 3.495012
+  type: 'test'
+  ...
+# Subtest: SYS-REG-02 late accepted result converges unknown exactly once and stale generation is rejected
+ok 2 - SYS-REG-02 late accepted result converges unknown exactly once and stale generation is rejected
+  ---
+  duration_ms: 14.294382
+  type: 'test'
+  ...
+# Subtest: DEV-P0-04 hard terminator ends a non-cooperative physical execution before provider capacity is reused
+ok 3 - DEV-P0-04 hard terminator ends a non-cooperative physical execution before provider capacity is reused
+  ---
+  duration_ms: 36.618138
+  type: 'test'
+  ...
+# Subtest: DEV-P1-01 translation cancellation is propagated instead of converted into a failed translation result
+ok 4 - DEV-P1-01 translation cancellation is propagated instead of converted into a failed translation result
+  ---
+  duration_ms: 1.471539
+  type: 'test'
+  ...
+# Subtest: SYS-REG-04 AI timeout observability includes correlation, operation, generation and account lane
+ok 5 - SYS-REG-04 AI timeout observability includes correlation, operation, generation and account lane
+  ---
+  duration_ms: 22.1756
+  type: 'test'
+  ...
+# Subtest: SYS-REG-03 compound pressure keeps healthy account and provider lanes progressing with bounded durable backlog metrics
+ok 6 - SYS-REG-03 compound pressure keeps healthy account and provider lanes progressing with bounded durable backlog metrics
+  ---
+  duration_ms: 651.819902
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1089.337134

@@ -1,0 +1,54 @@
+TAP version 13
+# (node:18923) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: private platform release seal binds the exact production Worker and Telegram application identity
+ok 1 - private platform release seal binds the exact production Worker and Telegram application identity
+  ---
+  duration_ms: 1.326177
+  type: 'test'
+  ...
+# Subtest: formal Worker health probe accepts only the expected service identity
+ok 2 - formal Worker health probe accepts only the expected service identity
+  ---
+  duration_ms: 0.936945
+  type: 'test'
+  ...
+# Subtest: desktop requests reject an old or injected Worker URL when the release is formally bound
+ok 3 - desktop requests reject an old or injected Worker URL when the release is formally bound
+  ---
+  duration_ms: 0.785562
+  type: 'test'
+  ...
+# Subtest: browser OAuth starts at the formal Worker and never places Meta App credentials in the URL
+ok 4 - browser OAuth starts at the formal Worker and never places Meta App credentials in the URL
+  ---
+  duration_ms: 3.777835
+  type: 'test'
+  ...
+# Subtest: OAuth page selection rejects Worker, device, page and Graph binding changes before credentials persist
+ok 5 - OAuth page selection rejects Worker, device, page and Graph binding changes before credentials persist
+  ---
+  duration_ms: 2.593269
+  type: 'test'
+  ...
+# Subtest: event polling counts only ACKs confirmed by Worker after local processing
+ok 6 - event polling counts only ACKs confirmed by Worker after local processing
+  ---
+  duration_ms: 0.667902
+  type: 'test'
+  ...
+# Subtest: Facebook relay readiness remains permission/subscription scoped and state callback failures are observable
+ok 7 - Facebook relay readiness remains permission/subscription scoped and state callback failures are observable
+  ---
+  duration_ms: 1.14368
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 394.272349

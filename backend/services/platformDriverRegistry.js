@@ -3,6 +3,8 @@
 const whatsapp = require('./whatsappAdapter');
 const telegram = require('./telegramAdapter');
 const facebook = require('./facebookAdapter');
+const facebookPersonalIdentity = require('./facebookPersonalIdentityAdapter');
+const facebookPersonalMessenger = require('./facebookPersonalMessengerExperimentalAdapter');
 
 const PLATFORMS = Object.freeze(['whatsapp', 'telegram', 'facebook']);
 
@@ -103,6 +105,97 @@ const drivers = Object.freeze({
   })
 });
 
+
+const driverById = Object.freeze({
+  'whatsapp-web-multidevice': Object.freeze({
+    ...drivers.whatsapp,
+    driverId: 'whatsapp-web-multidevice', accountKind: 'personal-multidevice', official: false,
+    supportLevel: 'experimental', messagingSupported: true, riskDisclosureRequired: true,
+    isolationModel: 'isolated-auth-directory'
+  }),
+  'telegram-personal-mtproto': Object.freeze({
+    ...drivers.telegram,
+    driverId: 'telegram-personal-mtproto', accountKind: 'personal', official: true,
+    supportLevel: 'production', messagingSupported: true, riskDisclosureRequired: false,
+    isolationModel: 'isolated-session-worker'
+  }),
+  'facebook-page-official': Object.freeze({
+    ...drivers.facebook,
+    driverId: 'facebook-page-official', accountKind: 'page', official: true,
+    supportLevel: 'production', messagingSupported: true, riskDisclosureRequired: false,
+    isolationModel: 'page-account-worker'
+  }),
+  'facebook-personal-identity-official': Object.freeze({
+    platform: 'facebook', adapter: facebookPersonalIdentity,
+    driverId: 'facebook-personal-identity-official', accountKind: 'personal-identity', official: true,
+    supportLevel: 'identity-only', messagingSupported: false, riskDisclosureRequired: false,
+    isolationModel: 'oauth-identity',
+    resolveAccountKey(account) { return clean(account?.id); }, credentialState() { return null; },
+    status(account) { return facebookPersonalIdentity.status(account); },
+    credentialReady(account, secret = {}) { return facebookPersonalIdentity.credentialReady(account, secret); },
+    async connect(account, options = {}) { return facebookPersonalIdentity.connect(account, options); },
+    async disconnect(account, options = {}) { return facebookPersonalIdentity.disconnect(account, options); },
+    async sync(account, options = {}) { return facebookPersonalIdentity.sync(account, options); },
+    externalTarget(value) { return clean(value).replace(/^facebook:/i, ''); },
+    adapterAccountId(account, requestedId = '') { return clean(account?.id || requestedId); },
+    sendText(context, input) { return facebookPersonalIdentity.sendText(context, input); },
+    sendMedia(context, input) { return facebookPersonalIdentity.sendMedia(context, input); },
+    sendPresence(context, input) { return facebookPersonalIdentity.sendPresence(context, input); },
+    markRead(context, input) { return facebookPersonalIdentity.markRead(context, input); }
+  }),
+  'facebook-personal-messenger-experimental': Object.freeze({
+    platform: 'facebook', adapter: facebookPersonalMessenger,
+    driverId: 'facebook-personal-messenger-experimental', accountKind: 'personal-messenger', official: false,
+    supportLevel: 'experimental', messagingSupported: true, riskDisclosureRequired: true,
+    isolationModel: 'isolated-browser-session',
+    resolveAccountKey(account) { return clean(account?.id); }, credentialState() { return null; },
+    status(account) { return facebookPersonalMessenger.status(account); },
+    credentialReady(account, secret = {}) { return facebookPersonalMessenger.credentialReady(account, secret); },
+    async connect(account, options = {}) { return facebookPersonalMessenger.connect(account, options); },
+    async disconnect(account, options = {}) { return facebookPersonalMessenger.disconnect(account, options); },
+    async sync(account, options = {}) { return facebookPersonalMessenger.sync(account, options); },
+    externalTarget(value) { return clean(value).replace(/^facebook:/i, ''); },
+    adapterAccountId(account, requestedId = '') { return clean(account?.id || requestedId); },
+    async sendText(context, input) { return facebookPersonalMessenger.sendText(context, input); },
+    async sendMedia(context, input) { return facebookPersonalMessenger.sendMedia(context, input); },
+    async sendPresence(context, input) { return facebookPersonalMessenger.sendPresence(context, input); },
+    async markRead(context, input) { return facebookPersonalMessenger.markRead(context, input); }
+  })
+});
+
+function resolveDriverId(account = {}) {
+  const platform = normalizePlatform(account.platform);
+  const explicit = clean(account?.metadata?.driverId || account?.driverId);
+  if (explicit) {
+    if (!driverById[explicit]) throw unsupported(platform, `resolve-driver:${explicit}`);
+    return explicit;
+  }
+  const kind = clean(account?.metadata?.accountKind || account?.accountKind).toLowerCase();
+  if (platform === 'facebook') {
+    if (kind === 'personal-identity') return 'facebook-personal-identity-official';
+    if (kind === 'personal-messenger') return 'facebook-personal-messenger-experimental';
+    return 'facebook-page-official';
+  }
+  if (platform === 'telegram') return 'telegram-personal-mtproto';
+  return 'whatsapp-web-multidevice';
+}
+function getForAccount(account = {}) { return driverById[resolveDriverId(account)]; }
+function driverContracts() {
+  return Object.fromEntries(Object.entries(driverById).map(([driverId, driver]) => {
+    const featureEnabled = typeof driver.adapter?.enabled === 'function' ? driver.adapter.enabled() : true;
+    const browserBridgePending = driverId === 'facebook-personal-messenger-experimental';
+    return [driverId, {
+      driverId, platform: driver.platform, accountKind: driver.accountKind, official: driver.official === true,
+      supportLevel: driver.supportLevel, messagingSupported: driver.messagingSupported === true,
+      riskDisclosureRequired: driver.riskDisclosureRequired === true, isolationModel: driver.isolationModel,
+      featureEnabled,
+      onboardingAvailable: featureEnabled && !browserBridgePending,
+      onboardingReason: !featureEnabled ? 'FEATURE_FLAG_DISABLED' : browserBridgePending ? 'FACEBOOK_PERSONAL_MESSENGER_BROWSER_BRIDGE_PENDING' : '',
+      operations: Object.keys(driver).filter(key => typeof driver[key] === 'function').sort()
+    }];
+  }));
+}
+
 function get(platform) { return drivers[normalizePlatform(platform)]; }
 function call(platform, operation, ...args) {
   const driver = get(platform);
@@ -116,4 +209,4 @@ function contracts() {
   }]));
 }
 
-module.exports = { PLATFORMS, drivers, get, call, contracts, unsupported, normalizePlatform, mapWhatsAppState };
+module.exports = { PLATFORMS, drivers, driverById, get, getForAccount, resolveDriverId, call, contracts, driverContracts, unsupported, normalizePlatform, mapWhatsAppState };

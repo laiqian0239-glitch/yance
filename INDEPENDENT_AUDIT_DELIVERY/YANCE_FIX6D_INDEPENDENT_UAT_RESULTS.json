@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_FIX6D_RUNTIME_AUTHORITY_V1_INDEPENDENT_AUDIT_DELIVERY",
+  "generatedAtUtc": "2026-07-31T13:53:13.563206+00:00",
+  "inputIdentity": {
+    "declaredBranch": "fix6d-runtime-authority-v1",
+    "declaredCommit": "91096c2eb1a9e289b1a68b351a326166cf9c379d",
+    "declaredTree": "de013fcf1f2547cdc48874976f2a719f9c73f57c",
+    "sha256GatesPassed": true
+  },
+  "derivedRepair": {
+    "status": "DERIVED_INDEPENDENT_REPAIR_NOT_OFFICIAL_COMMIT",
+    "changedFiles": 16,
+    "productionFiles": 10,
+    "testFiles": 6,
+    "patchSha256": "23354dd0d92c8c8e586196e176bfaf08cfa8a1113b9bf9773277cda4acb18c66"
+  },
+  "independentFindings": [
+    {
+      "id": "FIX6D-IA-01",
+      "severity": "高",
+      "defect": "凭据成功态可在未明确持久提交、未明确运行时确认时被接受",
+      "repair": "凭据收据统一 fail-closed：仅 mutationCommitted=true 且 runtimeConfirmed=true 才允许 ok=true。",
+      "redReproduced": true,
+      "greenPassed": true
+    },
+    {
+      "id": "FIX6D-IA-02",
+      "severity": "高",
+      "defect": "Batch-only 模型对部分已声明任务及未知任务 fail-open",
+      "repair": "模型能力权威改为已知交互任务白名单；未知任务和 Batch-only 一律拒绝。",
+      "redReproduced": true,
+      "greenPassed": true
+    },
+    {
+      "id": "FIX6D-IA-03",
+      "severity": "高",
+      "defect": "OpenRouter 双模型可用不同注册表 ID 重复同一规范化 model slug",
+      "repair": "候选与成功结果均按规范化 slug 去重，禁止“同模型双 ID”伪独立。",
+      "redReproduced": true,
+      "greenPassed": true
+    },
+    {
+      "id": "FIX6D-IA-04",
+      "severity": "高",
+      "defect": "OpenRouter smoke 可在缺少真实 chat-completions requestId/模式时通过",
+      "repair": "新增真实调用收据校验：requestId、returnedModel、requestMode 必须完整且匹配。",
+      "redReproduced": true,
+      "greenPassed": true
+    },
+    {
+      "id": "FIX6D-IA-05",
+      "severity": "高",
+      "defect": "正式资格收据可由未完成的形式证据签发",
+      "repair": "签发入口只接受 completed=true 的正式证据；删除公共原始 issue 入口。",
+      "redReproduced": true,
+      "greenPassed": true
+    },
+    {
+      "id": "FIX6D-IA-06",
+      "severity": "高",
+      "defect": "已签发收据未绑定当前模型基准，基准变更后旧收据仍有效",
+      "repair": "收据绑定当前正式基准摘要、状态、模型、任务与有效期，验证时重新核对。",
+      "redReproduced": true,
+      "greenPassed": true
+    },
+    {
+      "id": "FIX6D-IA-07",
+      "severity": "严重",
+      "defect": "手工构造外形合法的收据可绕过当前基准权威",
+      "repair": "收据 ID 与证据摘要确定性签名式绑定；伪造、过期、未来签发、基准不一致全部拒绝。",
+      "redReproduced": true,
+      "greenPassed": true
+    },
+    {
+      "id": "FIX6D-IA-08",
+      "severity": "高",
+      "defect": "模型路由状态权威读取失败时 AI 自动化未隔离",
+      "repair": "将 MODEL_ROUTE_STATUS_UNAVAILABLE 归入 AI 隔离域，停止自动任务但不触发全局安全模式。",
+      "redReproduced": true,
+      "greenPassed": true
+    },
+    {
+      "id": "FIX6D-IA-09",
+      "severity": "高",
+      "defect": "AI Brain 模型选择器未委托统一路由完整性权威",
+      "repair": "模型选择统一调用 modelRoutingIntegrityService，关闭调用方直连绕过。",
+      "redReproduced": true,
+      "greenPassed": true
+    },
+    {
+      "id": "FIX6D-IA-10",
+      "severity": "高",
+      "defect": "低层安全模式迁移可写入空原因/来源/证据，破坏原子诊断",
+      "repair": "网关与 RuntimeStateStore 统一从耐久命令包派生完整元数据；读取时校验完整性。",
+      "redReproduced": true,
+      "greenPassed": true
+    }
+  ],
+  "tests": {
+    "independentAdversarial": {
+      "tests": 10,
+      "passed": 10,
+      "failed": 0,
+      "redBaseline": {
+        "tests": 10,
+        "passed": 0,
+        "failed": 10
+      }
+    },
+    "focusedRegression": {
+      "tests": 129,
+      "passed": 129,
+      "failed": 0
+    },
+    "backendPerFile": {
+      "files": 194,
+      "passedFiles": 194,
+      "timedOutFiles": 0,
+      "tests": 1146,
+      "passed": 1146,
+      "failed": 0
+    },
+    "sourceUatDelivery": {
+      "tests": 41,
+      "passed": 41,
+      "failed": 0
+    },
+    "wp5": {
+      "tests": 68,
+      "passed": 68,
+      "failed": 0
+    },
+    "typography": {
+      "staticTests": 2,
+      "matrixTests": 1,
+      "passed": 3,
+      "failed": 0
+    },
+    "modifiedJsSyntax": {
+      "files": 11,
+      "passed": 11,
+      "failed": 0
+    },
+    "wp4": {
+      "status": "KNOWN_UPSTREAM_BLOCKED_NON_BLOCKING_PER_UAT_INSTRUCTION",
+      "codes": [
+        "BOOT_SERVER_IMPORT_FAILED",
+        "GENERIC_NODE_IPC_STATIC_SCAN_FAILED",
+        "APPLICATION_LIFECYCLE_MATRIX_FAILED"
+      ]
+    }
+  },
+  "scenarios": [
+    {
+      "id": 1,
+      "name": "凭据写入失败事务状态区分",
+      "sourceResult": "PASS_AFTER_REPAIR",
+      "windowsResult": "PENDING",
+      "evidence": [
+        "independent_audit_green.tap",
+        "focused_regression_green.tap"
+      ],
+      "conclusion": "源码权威已区分未提交、已提交但运行时确认失败、完整成功；仍需真实 Windows UI 文案与重启链路。"
+    },
+    {
+      "id": 2,
+      "name": "OpenRouter 首个模型失效自动切换候选",
+      "sourceResult": "PASS_AFTER_REPAIR",
+      "windowsResult": "PENDING_REAL_OPENROUTER",
+      "evidence": [
+        "independent_audit_green.tap",
+        "focused_regression_green.tap"
+      ],
+      "conclusion": "已验证失败后继续候选、规范化 slug 独立性和真实调用收据契约；未取得真实服务 requestId。"
+    },
+    {
+      "id": 3,
+      "name": "普通对话禁止调度 Batch-only 模型",
+      "sourceResult": "PASS_AFTER_REPAIR",
+      "windowsResult": "PENDING_UI_CONFIRMATION",
+      "evidence": [
+        "independent_audit_green.tap",
+        "backend_per_file_summary.json"
+      ],
+      "conclusion": "能力权威对全部已声明交互任务及未知任务 fail-closed；仍需 Windows 路由 UI 观察。"
+    },
+    {
+      "id": 4,
+      "name": "翻译/快捷回复无法绕过资格收据",
+      "sourceResult": "PASS_AFTER_REPAIR",
+      "windowsResult": "PENDING_REAL_ROLE_ROUTING",
+      "evidence": [
+        "independent_audit_green.tap",
+        "focused_regression_green.tap"
+      ],
+      "conclusion": "收据绑定模型、任务、当前正式基准、证据摘要和期限；conditional/onboarding/手工构造均不能铸造正式资格。"
+    },
+    {
+      "id": 5,
+      "name": "AI 路由故障不阻断人工消息与账号连接",
+      "sourceResult": "PASS_AFTER_REPAIR",
+      "windowsResult": "PENDING_REAL_CHANNELS",
+      "evidence": [
+        "independent_audit_green.tap",
+        "wp5_green.tap"
+      ],
+      "conclusion": "AI 路由状态异常进入 AI 独立隔离域且不升级全局安全模式；真实三渠道与账号连接仍待实机。"
+    },
+    {
+      "id": 6,
+      "name": "执行中 AI 任务隔离后支持重试且无脏副作用",
+      "sourceResult": "PASS",
+      "windowsResult": "PENDING_LIVE_RETRY",
+      "evidence": [
+        "focused_regression_green.tap",
+        "backend_per_file_summary.json"
+      ],
+      "conclusion": "恢复重试、晚到结果 fence、任务替换和隔离回归通过；真实执行中断与人工复核仍待 Windows。"
+    },
+    {
+      "id": 7,
+      "name": "安全模式触发信息完整原子存储",
+      "sourceResult": "PASS_AFTER_REPAIR",
+      "windowsResult": "PENDING_DIAGNOSTIC_EXPORT",
+      "evidence": [
+        "independent_audit_green.tap",
+        "wp5_green.tap"
+      ],
+      "conclusion": "operatingMode 与 reasonCode/reasons/enteredAt/trigger/updatedBy/evidenceSha256 同事务落库并读取校验；需 Windows 诊断 JSON 实证。"
+    }
+  ],
+  "externalTools": {
+    "stubEngine": {
+      "invoked": true,
+      "organizations": [],
+      "endpointCreated": false,
+      "usedAsEvidence": false
+    },
+    "sentry": {
+      "status": "NOT_RUN_NO_AUTH_TOKEN_OR_PROJECT"
+    },
+    "replayIo": {
+      "status": "NOT_RUN_NO_RECORDING_ID"
+    },
+    "sonarQube": {
+      "status": "NOT_RUN_MCP_AND_CLI_UNAVAILABLE"
+    },
+    "fallow": {
+      "status": "NOT_RUN_CLI_UNAVAILABLE_INSTALL_REGISTRY_404"
+    },
+    "codeRabbit": {
+      "status": "NOT_RUN_CLI_UNAVAILABLE_INSTALL_DNS_FAILURE"
+    }
+  },
+  "realEnvironmentEvidence": {
+    "realWindows": false,
+    "realOpenRouter": false,
+    "realFacebookTelegramWhatsApp": false,
+    "windowsDpiScreenshots": false,
+    "sourceChromiumTypographyMatrix": true
+  },
+  "gates": {
+    "windowsUiUat": false,
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "candidatePackageGenerated": false
+  }
+}

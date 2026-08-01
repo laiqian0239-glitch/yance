@@ -176,10 +176,11 @@ test('OpenRouter dual-model smoke writes one durable lifecycle and applies route
       openRouter: { keyFingerprint: 'sha256:test-key' }
     };
     let routesApplied = 0;
+    const recordedTests = [];
     const registry = {
       read: () => state,
       async recordInvocation() {}, async recordReplyBrainBenchmark() {}, async recordCommercialBenchmark() {},
-      async recordTest() {}, async recordOpenRouterOnboardingSmoke() {}, async recordInvocationFailure() {},
+      async recordTest(modelId, result) { recordedTests.push({ modelId, result }); }, async recordOpenRouterOnboardingSmoke() {}, async recordInvocationFailure() {},
       async applyOpenRouterConditionalRoutes(routes) { routesApplied += 1; state.routes = routes; return { routes }; }
     };
     const executeModel = async model => ({
@@ -193,12 +194,18 @@ test('OpenRouter dual-model smoke writes one durable lifecycle and applies route
         translationZh: '你好', fabricatedFacts: []
       }),
       returnedModel: model.name, totalMs: 42, firstTokenMs: 10, promptTokens: 120, outputTokens: 80, totalTokens: 200,
-      raw: { id: `request-${model.id}` }, requestMode: 'json'
+      raw: { id: `request-${model.id}` }, requestMode: 'chat-completions-standard'
     });
     const result = await smoke.run({ registry, operationLifecycle: lifecycle, executeModel, snapshot: { selections: {} } });
     assert.equal(result.pass, true);
     assert.equal(result.results.length, 2);
     assert.equal(routesApplied, 1);
+    assert.equal(recordedTests.length, 2);
+    assert.ok(recordedTests.every(row => row.result.allowedTasks.includes('translation')));
+    assert.equal(result.routes.translation.primary, 'or-primary');
+    assert.equal(result.routes.translation.fallback, 'or-fallback');
+    assert.equal(result.routes.translation.allowConditional, true);
+    assert.equal(result.routes.translation.humanReviewRequired, true);
     const operation = lifecycle.read(result.operationId);
     assert.equal(operation.state, STATES.SUCCEEDED);
     assert.equal(operation.result.passed, 2);

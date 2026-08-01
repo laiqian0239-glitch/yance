@@ -1,0 +1,126 @@
+TAP version 13
+# (node:17358) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Batch26 AI watchdog releases the logical result but never overbooks a physical provider zombie
+ok 1 - Batch26 AI watchdog releases the logical result but never overbooks a physical provider zombie
+  ---
+  duration_ms: 36.115052
+  type: 'test'
+  ...
+# Subtest: Batch26 platform egress deadline returns outcome-unknown while another account still completes
+ok 2 - Batch26 platform egress deadline returns outcome-unknown while another account still completes
+  ---
+  duration_ms: 1004.769705
+  type: 'test'
+  ...
+# Subtest: Batch26 WhatsApp egress abort closes the authoritative socket generation
+ok 3 - Batch26 WhatsApp egress abort closes the authoritative socket generation
+  ---
+  duration_ms: 11.663175
+  type: 'test'
+  ...
+# Subtest: Batch26 Telegram egress abort disconnects and quarantines the current client generation
+ok 4 - Batch26 Telegram egress abort disconnects and quarantines the current client generation
+  ---
+  duration_ms: 21.031892
+  type: 'test'
+  ...
+# Subtest: Batch26 send queue tick releases a timed-out lane and completes another account lane
+ok 5 - Batch26 send queue tick releases a timed-out lane and completes another account lane
+  ---
+  duration_ms: 32.577064
+  type: 'test'
+  ...
+# Subtest: Batch26 Telegram QR authorization polling has a hard per-call deadline
+ok 6 - Batch26 Telegram QR authorization polling has a hard per-call deadline
+  ---
+  duration_ms: 37.979009
+  type: 'test'
+  ...
+# Subtest: Batch26 Telegram phone login deadline aborts an SDK start promise that never settles
+ok 7 - Batch26 Telegram phone login deadline aborts an SDK start promise that never settles
+  ---
+  duration_ms: 102.964363
+  type: 'test'
+  ...
+# Subtest: Batch26 Telegram remote acceptance returns durable local repair instead of a retryable rejection
+ok 8 - Batch26 Telegram remote acceptance returns durable local repair instead of a retryable rejection
+  ---
+  duration_ms: 0.835655
+  type: 'test'
+  ...
+# Subtest: Batch26 Telegram live ingest persists text and durable enrichment identity before any media work
+ok 9 - Batch26 Telegram live ingest persists text and durable enrichment identity before any media work
+  ---
+  duration_ms: 4.653688
+  type: 'test'
+  ...
+# Subtest: Batch26 Telegram live ingest failure records failed checkpoint and releases the remote claim
+ok 10 - Batch26 Telegram live ingest failure records failed checkpoint and releases the remote claim
+  ---
+  duration_ms: 1.713478
+  type: 'test'
+  ...
+# Subtest: Batch26 Telegram history failure does not advance the durable cursor
+ok 11 - Batch26 Telegram history failure does not advance the durable cursor
+  ---
+  duration_ms: 4.846012
+  type: 'test'
+  ...
+# Subtest: Batch26 learning barrier is bounded and replies may use the last committed version
+ok 12 - Batch26 learning barrier is bounded and replies may use the last committed version
+  ---
+  duration_ms: 40.908737
+  type: 'test'
+  ...
+# Subtest: Batch26 feedback evidence and projection job roll back together, then projection remains retryable
+ok 13 - Batch26 feedback evidence and projection job roll back together, then projection remains retryable
+  ---
+  duration_ms: 412.28718
+  type: 'test'
+  ...
+# Subtest: Batch26 learning startup reconciliation paginates beyond the former 500-row cap
+ok 14 - Batch26 learning startup reconciliation paginates beyond the former 500-row cap
+  ---
+  duration_ms: 65.143131
+  type: 'test'
+  ...
+# Subtest: Batch26 candidate commit CAS rejects a stale conversation revision without writing a candidate
+ok 15 - Batch26 candidate commit CAS rejects a stale conversation revision without writing a candidate
+  ---
+  duration_ms: 379.597471
+  type: 'test'
+  ...
+# Subtest: Batch26 interrupted durable AI runtime task is failed on restart recovery
+ok 16 - Batch26 interrupted durable AI runtime task is failed on restart recovery
+  ---
+  duration_ms: 9.038223
+  type: 'test'
+  ...
+# Subtest: Batch26 authoritative inbound message transaction includes durable analysis and enrichment jobs
+ok 17 - Batch26 authoritative inbound message transaction includes durable analysis and enrichment jobs
+  ---
+  duration_ms: 29.493793
+  type: 'test'
+  ...
+# Subtest: Batch26 parallel migrations create collision-proof snapshots for different databases
+ok 18 - Batch26 parallel migrations create collision-proof snapshots for different databases
+  ---
+  duration_ms: 639.881895
+  type: 'test'
+  ...
+# Subtest: Batch26 Facebook raw response body has its own deadline and cancels the body
+ok 19 - Batch26 Facebook raw response body has its own deadline and cancels the body
+  ---
+  duration_ms: 1002.423363
+  type: 'test'
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4267.722425

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_FIX6E_CHAMPION_BRAIN_VERIFICATION",
+  "generatedAtUtc": "2026-07-31T14:48:03Z",
+  "sourceIdentity": {
+    "base": "YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_DERIVED_REPAIR_R2",
+    "derived": "FIX6E_CHAMPION_BRAIN_DERIVED_V1",
+    "gitIdentityAvailable": false
+  },
+  "authorities": [
+    "ReplyChampionAuthority",
+    "AIWorkloadPlacementAuthority",
+    "AIBudgetAuthority"
+  ],
+  "defaults": {
+    "totalBudgetUsd": 15,
+    "championReserveUsd": 5,
+    "maxFallbackScoreGap": 8
+  },
+  "tests": {
+    "syntax": {
+      "files": 14,
+      "passed": 14,
+      "failed": 0
+    },
+    "focusedRegression": {
+      "tests": 78,
+      "passed": 78,
+      "failed": 0
+    },
+    "round13AiQuality": {
+      "tests": 24,
+      "passed": 24,
+      "failed": 0
+    },
+    "wp5": {
+      "tests": 68,
+      "passed": 68,
+      "failed": 0
+    },
+    "sourceUatDelivery": {
+      "tests": 41,
+      "passed": 41,
+      "failed": 0
+    },
+    "backendPerFile": {
+      "files": 199,
+      "filesPassed": 199,
+      "tests": 1169,
+      "passed": 1169,
+      "failed": 0,
+      "missing": 0,
+      "cancelled": 0
+    }
+  },
+  "externalTools": {
+    "stubEngine": {
+      "organizations": [],
+      "endpointCreated": false,
+      "usedAsProviderEvidence": false
+    },
+    "sonarQube": {
+      "mcpAvailable": false,
+      "cliAvailable": false,
+      "containerRuntimeAvailable": false,
+      "analysisCompleted": false
+    }
+  },
+  "databaseBaselineSha256": "7ea2c4ea67963ca820712d83821cfd3180ff357eff3185406164f8d38427f0f7",
+  "realEnvironmentEvidence": {
+    "windows": false,
+    "openRouter": false,
+    "ollama": false,
+    "socialChannels": false
+  },
+  "windowsUiUat": false,
+  "readyForPromotion": false,
+  "formalRelease": false,
+  "candidatePackageGenerated": false
+}

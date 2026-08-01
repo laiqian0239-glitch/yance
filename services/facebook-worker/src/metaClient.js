@@ -31,14 +31,32 @@ async function metaJson(url, options = {}, fetchImpl = fetch) {
   return data;
 }
 
-export function authorizationUrl(config, redirectUri, state) {
+export function authorizationUrl(config, redirectUri, state, options = {}) {
+  const mode = clean(options.mode, 'page').toLowerCase();
   const url = new URL(`https://www.facebook.com/${config.graphVersion}/dialog/oauth`);
   url.searchParams.set('client_id', config.appId);
   url.searchParams.set('redirect_uri', redirectUri);
   url.searchParams.set('state', state);
-  url.searchParams.set('config_id', config.businessLoginConfigId);
+  if (mode === 'identity') url.searchParams.set('scope', 'public_profile');
+  else url.searchParams.set('config_id', config.businessLoginConfigId);
   url.searchParams.set('response_type', 'code');
   return url.toString();
+}
+
+export async function fetchPersonalProfile(config, userAccessToken, fetchImpl = fetch) {
+  const url = new URL(graphUrl(config, 'me'));
+  url.searchParams.set('fields', 'id,name,picture');
+  const profile = await metaJson(url.toString(), {
+    headers: { authorization: `Bearer ${userAccessToken}`, accept: 'application/json' }
+  }, fetchImpl);
+  const userId = safeTargetId(profile?.id);
+  if (!userId) throw new GatewayError('FACEBOOK_PERSONAL_IDENTITY_MISSING', 'Meta 未返回个人身份标识', 502);
+  return {
+    userId,
+    displayName: clean(profile?.name, 'Facebook 用户'),
+    avatarUrl: clean(profile?.picture?.data?.url),
+    messagingSupported: false
+  };
 }
 
 export async function exchangeCode(config, redirectUri, code, fetchImpl = fetch) {

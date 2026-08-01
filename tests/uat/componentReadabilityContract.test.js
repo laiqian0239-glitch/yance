@@ -95,8 +95,10 @@ test('candidate and learning actions have visible labels and non-clipping geomet
   assert.match(authoritySource, /white-space:normal!important/u);
 });
 
-test('candidate tuning and metadata cannot collapse into 7px chips or vertical status text', () => {
-  assert.match(authoritySource, /\.micro-tune button\{[\s\S]*font-size:11px!important/u);
+test('candidate tuning and metadata consume semantic controls without collapsing into micro typography', () => {
+  assert.match(authoritySource, /\.micro-tune button\{[\s\S]*font-size:var\(--type-control\);/u);
+  assert.match(authoritySource, /\.candidate-trust\{[\s\S]*font-size:var\(--type-badge\);/u);
+  assert.doesNotMatch(authoritySource, /font-size:[^;}]*!important/u);
   assert.match(authoritySource, /\.candidate-trust\{[\s\S]*grid-template-columns:minmax\(0,1fr\)!important/u);
   assert.match(authoritySource, /\.candidate-trust>span\{[\s\S]*writing-mode:horizontal-tb!important/u);
   assert.match(authoritySource, /overflow-wrap:anywhere/u);

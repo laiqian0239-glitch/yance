@@ -1,0 +1,54 @@
+TAP version 13
+# (node:20593) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: benchmark runtime policy gives 5.9B and 14B different warmup and scenario budgets
+ok 1 - benchmark runtime policy gives 5.9B and 14B different warmup and scenario budgets
+  ---
+  duration_ms: 0.899163
+  type: 'test'
+  ...
+# Subtest: technical timeout is incomplete rather than a model quality failure
+ok 2 - technical timeout is incomplete rather than a model quality failure
+  ---
+  duration_ms: 4.228168
+  type: 'test'
+  ...
+# Subtest: an incomplete retry preserves the last qualified benchmark, tasks and routes
+ok 3 - an incomplete retry preserves the last qualified benchmark, tasks and routes
+  ---
+  duration_ms: 9.189011
+  type: 'test'
+  ...
+# Subtest: completed quality failure still removes reply eligibility
+ok 4 - completed quality failure still removes reply eligibility
+  ---
+  duration_ms: 3.220379
+  type: 'test'
+  ...
+# Subtest: legacy 1800 reply limits are normalized to task-specific budgets
+ok 5 - legacy 1800 reply limits are normalized to task-specific budgets
+  ---
+  duration_ms: 0.311572
+  type: 'test'
+  ...
+# Subtest: workbench waits for long local benchmarks and explains serial warmup
+ok 6 - workbench waits for long local benchmarks and explains serial warmup
+  ---
+  duration_ms: 0.572215
+  type: 'test'
+  ...
+# Subtest: local batch prevents duplicate runs, re-evaluates incomplete models and unloads between models
+ok 7 - local batch prevents duplicate runs, re-evaluates incomplete models and unloads between models
+  ---
+  duration_ms: 1.420341
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 386.689783

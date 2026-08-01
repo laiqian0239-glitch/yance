@@ -1,0 +1,60 @@
+TAP version 13
+# (node:19076) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Fix14 keeps transient Facebook avatar failures retryable and deterministic unsupported_get non-retryable
+ok 1 - Fix14 keeps transient Facebook avatar failures retryable and deterministic unsupported_get non-retryable
+  ---
+  duration_ms: 2.064049
+  type: 'test'
+  ...
+# Subtest: Fix14 diagnostics do not turn generic contact-avatar-unavailable into deterministic unsupported_get
+ok 2 - Fix14 diagnostics do not turn generic contact-avatar-unavailable into deterministic unsupported_get
+  ---
+  duration_ms: 0.338017
+  type: 'test'
+  ...
+# Subtest: Fix14 translates legitimate bracketed text but skips known media placeholders
+ok 3 - Fix14 translates legitimate bracketed text but skips known media placeholders
+  ---
+  duration_ms: 0.408139
+  type: 'test'
+  ...
+# Subtest: Fix14 does not treat a foreign sentence containing a Chinese name as already translated
+ok 4 - Fix14 does not treat a foreign sentence containing a Chinese name as already translated
+  ---
+  duration_ms: 3.675494
+  type: 'test'
+  ...
+# Subtest: Fix14 keeps Chinese text with URLs on the identity path
+ok 5 - Fix14 keeps Chinese text with URLs on the identity path
+  ---
+  duration_ms: 0.244176
+  type: 'test'
+  ...
+# Subtest: Fix14 restores spaced and double-digit terminology placeholders without swallowing surrounding spaces or colliding token indexes
+ok 6 - Fix14 restores spaced and double-digit terminology placeholders without swallowing surrounding spaces or colliding token indexes
+  ---
+  duration_ms: 18.278797
+  type: 'test'
+  ...
+# Subtest: Fix14 drops a queued translation whose source changed before execution and translates the latest source only once
+ok 7 - Fix14 drops a queued translation whose source changed before execution and translates the latest source only once
+  ---
+  duration_ms: 29.81876
+  type: 'test'
+  ...
+# Subtest: current Worker deployment verifier binds the exact v11 evidence contract without a root deployment script
+ok 8 - current Worker deployment verifier binds the exact v11 evidence contract without a root deployment script
+  ---
+  duration_ms: 0.387691
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 434.688835

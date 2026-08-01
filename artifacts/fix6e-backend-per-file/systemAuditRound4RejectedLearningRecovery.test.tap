@@ -1,0 +1,24 @@
+TAP version 13
+# (node:20197) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Round 4 recovers explicit rejection learning after a crash and preserves director/model evidence
+ok 1 - Round 4 recovers explicit rejection learning after a crash and preserves director/model evidence
+  ---
+  duration_ms: 349.922764
+  type: 'test'
+  ...
+# Subtest: Round 4 learnable sends cannot be starved by older send-only terminal rows
+ok 2 - Round 4 learnable sends cannot be starved by older send-only terminal rows
+  ---
+  duration_ms: 661.372582
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1088.931619

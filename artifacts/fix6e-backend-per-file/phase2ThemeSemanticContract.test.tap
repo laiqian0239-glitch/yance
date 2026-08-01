@@ -1,0 +1,34 @@
+TAP version 13
+# Subtest: semantic theme contract is loaded directly after palette definitions
+ok 1 - semantic theme contract is loaded directly after palette definitions
+  ---
+  duration_ms: 1.918167
+  type: 'test'
+  ...
+# Subtest: runtime-created components use semantic tokens instead of fixed colors
+ok 2 - runtime-created components use semantic tokens instead of fixed colors
+  ---
+  duration_ms: 5.946654
+  type: 'test'
+  ...
+# Subtest: semantic contract owns presence, charts, avatars, safe mode and overlay tokens
+ok 3 - semantic contract owns presence, charts, avatars, safe mode and overlay tokens
+  ---
+  duration_ms: 0.421278
+  type: 'test'
+  ...
+# Subtest: fixed-color debt gate passes and writes an auditable report
+ok 4 - fixed-color debt gate passes and writes an auditable report
+  ---
+  duration_ms: 49.51564
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 103.855406

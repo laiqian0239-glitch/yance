@@ -1,0 +1,60 @@
+TAP version 13
+# (node:17505) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: truthy hard termination without an exit receipt keeps physical capacity occupied
+ok 1 - truthy hard termination without an exit receipt keeps physical capacity occupied
+  ---
+  duration_ms: 56.181684
+  type: 'test'
+  ...
+# Subtest: mismatched execution exit receipt cannot release another physical slot
+ok 2 - mismatched execution exit receipt cannot release another physical slot
+  ---
+  duration_ms: 54.657018
+  type: 'test'
+  ...
+# Subtest: matching verified exit receipt releases the physical slot
+ok 3 - matching verified exit receipt releases the physical slot
+  ---
+  duration_ms: 26.486143
+  type: 'test'
+  ...
+# Subtest: physical provider ownership follows the active fallback attempt
+ok 4 - physical provider ownership follows the active fallback attempt
+  ---
+  duration_ms: 25.5921
+  type: 'test'
+  ...
+# Subtest: hard termination receipt matches the bound child execution rather than the logical queue ID
+ok 5 - hard termination receipt matches the bound child execution rather than the logical queue ID
+  ---
+  duration_ms: 23.709178
+  type: 'test'
+  ...
+# Subtest: model execution host resolves a result only after the isolated child exits
+ok 6 - model execution host resolves a result only after the isolated child exits
+  ---
+  duration_ms: 26.774109
+  type: 'test'
+  ...
+# Subtest: hard termination returns the matching child exit receipt
+ok 7 - hard termination returns the matching child exit receipt
+  ---
+  duration_ms: 23.670658
+  type: 'test'
+  ...
+# Subtest: production AiGateway attempts execute through the isolated host and update provider ownership
+ok 8 - production AiGateway attempts execute through the isolated host and update provider ownership
+  ---
+  duration_ms: 10.418711
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 578.703047

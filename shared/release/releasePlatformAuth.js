@@ -21,7 +21,7 @@ function secureReleaseUrl(value, protocols) {
   let url;
   try { url = new URL(raw); }
   catch (_) { throw releaseConfigError('PLATFORM_AUTH_URL_INVALID', '平台发行服务地址格式无效'); }
-  if (!protocols.includes(url.protocol) && !(process.env.NODE_ENV === 'test' && ['http:','ws:'].includes(url.protocol))) {
+  if (!protocols.includes(url.protocol)) {
     throw releaseConfigError('PLATFORM_AUTH_HTTPS_REQUIRED', '平台发行服务必须使用 HTTPS/WSS', { protocol: url.protocol });
   }
   if (url.username || url.password) throw releaseConfigError('PLATFORM_AUTH_URL_CREDENTIALS_FORBIDDEN', '平台发行服务地址不能包含用户名或密码');

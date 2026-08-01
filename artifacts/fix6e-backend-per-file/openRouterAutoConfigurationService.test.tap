@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: one OpenRouter credential auto-discovers, filters, ranks, and registers a compact Yance model pool
+ok 1 - one OpenRouter credential auto-discovers, filters, ranks, and registers a compact Yance model pool
+  ---
+  duration_ms: 14.615857
+  type: 'test'
+  ...
+# Subtest: missing secure credential blocks auto configuration before any model is registered
+ok 2 - missing secure credential blocks auto configuration before any model is registered
+  ---
+  duration_ms: 1.543792
+  type: 'test'
+  ...
+# Subtest: catalog normalization recognizes zero-price free variants and model capabilities
+ok 3 - catalog normalization recognizes zero-price free variants and model capabilities
+  ---
+  duration_ms: 0.293184
+  type: 'test'
+  ...
+# Subtest: capability classifier separates chat analysis models from image, audio, and video generators
+ok 4 - capability classifier separates chat analysis models from image, audio, and video generators
+  ---
+  duration_ms: 0.215005
+  type: 'test'
+  ...
+# Subtest: missing OpenRouter price fields are unknown rather than silently treated as free
+ok 5 - missing OpenRouter price fields are unknown rather than silently treated as free
+  ---
+  duration_ms: 0.27884
+  type: 'test'
+  ...
+# Subtest: account status refresh reads the real key endpoint without exposing the API key
+ok 6 - account status refresh reads the real key endpoint without exposing the API key
+  ---
+  duration_ms: 0.507998
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 116.158155

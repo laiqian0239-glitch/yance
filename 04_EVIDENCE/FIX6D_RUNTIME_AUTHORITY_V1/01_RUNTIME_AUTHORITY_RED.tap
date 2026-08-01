@@ -1,0 +1,136 @@
+TAP version 13
+# (node:8898) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: credential mutation receipt distinguishes durable commit from runtime confirmation failure
+ok 1 - credential mutation receipt distinguishes durable commit from runtime confirmation failure
+  ---
+  duration_ms: 1.517939
+  type: 'test'
+  ...
+# Subtest: model capability authority excludes batch-only models from every interactive route
+ok 2 - model capability authority excludes batch-only models from every interactive route
+  ---
+  duration_ms: 0.551196
+  type: 'test'
+  ...
+# Subtest: OpenRouter onboarding keeps trying eligible independent candidates until two real calls pass
+ok 3 - OpenRouter onboarding keeps trying eligible independent candidates until two real calls pass
+  ---
+  duration_ms: 8.667852
+  type: 'test'
+  ...
+# Subtest: formal AI role eligibility requires a valid model-bound role receipt
+ok 4 - formal AI role eligibility requires a valid model-bound role receipt
+  ---
+  duration_ms: 0.80319
+  type: 'test'
+  ...
+# Subtest: AI route qualification blocker isolates AI automation without entering global safe mode
+ok 5 - AI route qualification blocker isolates AI automation without entering global safe mode
+  ---
+  duration_ms: 2.300739
+  type: 'test'
+  ...
+# Subtest: system-critical unknown-send blocker still enters global safe mode
+ok 6 - system-critical unknown-send blocker still enters global safe mode
+  ---
+  duration_ms: 0.387514
+  type: 'test'
+  ...
+# Subtest: safe mode reason metadata is committed atomically with operating mode authority
+ok 7 - safe mode reason metadata is committed atomically with operating mode authority
+  ---
+  duration_ms: 278.663478
+  type: 'test'
+  ...
+# Subtest: only formal benchmark authorities may mint governed AI role receipts
+ok 8 - only formal benchmark authorities may mint governed AI role receipts
+  ---
+  duration_ms: 0.219726
+  type: 'test'
+  ...
+# Subtest: AI automation orchestrator consumes domain isolation authority before scheduling or processing
+ok 9 - AI automation orchestrator consumes domain isolation authority before scheduling or processing
+  ---
+  duration_ms: 55.632415
+  type: 'test'
+  ...
+# Subtest: OpenRouter UI preserves a committed credential receipt when runtime application is unconfirmed
+ok 10 - OpenRouter UI preserves a committed credential receipt when runtime application is unconfirmed
+  ---
+  duration_ms: 0.649773
+  type: 'test'
+  ...
+# Subtest: governed formal routes cannot bypass receipt authority through the routing integrity layer
+ok 11 - governed formal routes cannot bypass receipt authority through the routing integrity layer
+  ---
+  duration_ms: 0.324972
+  type: 'test'
+  ...
+# Subtest: domain isolation authority notifies automation consumers when AI isolation changes
+ok 12 - domain isolation authority notifies automation consumers when AI isolation changes
+  ---
+  duration_ms: 0.321156
+  type: 'test'
+  ...
+# Subtest: allowConditional cannot downgrade a formally qualified reply model that lacks its durable receipt
+not ok 13 - allowConditional cannot downgrade a formally qualified reply model that lacks its durable receipt
+  ---
+  duration_ms: 0.972411
+  type: 'test'
+  location: '/mnt/data/yance_r2/YANCE_BATCH40_FIX6D_GLOBAL_TYPOGRAPHY_V5_SOURCE/.worktrees/fix6d-runtime-authority-v1/tests/uat/fix6dRuntimeAuthorityRepair.test.js:275:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/data/yance_r2/YANCE_BATCH40_FIX6D_GLOBAL_TYPOGRAPHY_V5_SOURCE/.worktrees/fix6d-runtime-authority-v1/tests/uat/fix6dRuntimeAuthorityRepair.test.js:286:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: governed receipt issuance rejects onboarding or caller-provided pass flags without formal benchmark evidence
+not ok 14 - governed receipt issuance rejects onboarding or caller-provided pass flags without formal benchmark evidence
+  ---
+  duration_ms: 0.210873
+  type: 'test'
+  location: '/mnt/data/yance_r2/YANCE_BATCH40_FIX6D_GLOBAL_TYPOGRAPHY_V5_SOURCE/.worktrees/fix6d-runtime-authority-v1/tests/uat/fix6dRuntimeAuthorityRepair.test.js:300:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The validation function is expected to return "true". Received false
+    
+    Caught error:
+    
+    TypeError: roleReceipts.issueFromEvidence is not a function
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  stack: |-
+    TestContext.<anonymous> (/mnt/data/yance_r2/YANCE_BATCH40_FIX6D_GLOBAL_TYPOGRAPHY_V5_SOURCE/.worktrees/fix6d-runtime-authority-v1/tests/uat/fix6dRuntimeAuthorityRepair.test.js:301:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 12
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 671.073883

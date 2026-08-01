@@ -12,6 +12,7 @@ process.env.YANCE_DATA_DIR = dataRoot;
 const { closeR32Store } = require('../lib/r32StoreSingleton');
 const registry = require('../services/modelRegistry');
 const replyBrainAuthority = require('../services/replyBrainModelAuthority');
+const roleReceipts = require('../services/aiRoleQualificationReceiptAuthority');
 
 const root = path.resolve(__dirname, '../..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
@@ -64,7 +65,7 @@ test('reply benchmark failure removes reply routes and a later pass can restore 
   });
 
   let state = await registry.recordReplyBrainBenchmark('brain', {
-    authority: 'YanceReplyBrainBenchmark', testedAt: new Date().toISOString(), pass: false,
+    authority: 'YanceReplyBrainBenchmark', testedAt: new Date().toISOString(), completed: true, pass: false,
     status: 'REPLY_BRAIN_FAILED', score: 55, qualifyingTasks: [], summary: 'style failed'
   });
   let model = state.models.find(row => row.id === 'brain');
@@ -73,7 +74,7 @@ test('reply benchmark failure removes reply routes and a later pass can restore 
   assert.equal(model.replyBrainBenchmarkScore, 55);
 
   state = await registry.recordReplyBrainBenchmark('brain', {
-    authority: 'YanceReplyBrainBenchmark', testedAt: new Date().toISOString(), pass: true,
+    authority: 'YanceReplyBrainBenchmark', testedAt: new Date().toISOString(), completed: true, pass: true,
     status: 'REPLY_BRAIN_QUALIFIED', score: 91,
     qualifyingTasks: ['quick_reply', 'deep_reply', 'director'], scenarios: []
   });
@@ -87,13 +88,15 @@ test('reply benchmark failure removes reply routes and a later pass can restore 
 
 test('recommended reply routes persist the strongest benchmark model and an independent fallback without replacing translation', async () => {
   const scores = { persona: { pass: true }, hallucination: { pass: true }, json: { pass: true } };
-  const benchmark = score => ({ authority: 'YanceReplyBrainBenchmark', status: 'REPLY_BRAIN_QUALIFIED', pass: true, score, testedAt: new Date().toISOString() });
+  const benchmark = score => ({ authority: 'YanceReplyBrainBenchmark', status: 'REPLY_BRAIN_QUALIFIED', completed: true, pass: true, score, qualifyingTasks: ['quick_reply', 'deep_reply', 'director'], testedAt: '2026-07-31T10:00:00.000Z', scenarios: [] });
+  const replyModel = (id, name, score, parameterSize, provider) => { const evidence = benchmark(score); return { id, name, provider, modelSlug: `${provider}/${id}`, qualification: 'verified', available: true, parameterSize, allowedTasks: ['quick_reply', 'deep_reply', 'director'], lastTest: { scores }, lastReplyBrainBenchmark: evidence, roleQualificationReceipts: Object.fromEntries(['quick_reply', 'deep_reply', 'director'].map(task => [task, roleReceipts.issueFromEvidence({ modelId: id, task, evidence, expiresAt: '2030-01-01T00:00:00.000Z' })])) }; };
+  const translationEvidence = { authority: 'YanceCommercialModelBenchmark', status: 'COMMERCIAL_MODEL_QUALIFIED', testedAt: '2026-07-31T10:00:00.000Z', completed: true, pass: true, score: 95, qualifyingTasks: ['translation'], translationScore: 95 };
   registry.write({
     schemaVersion: 3,
     models: [
-      { id: 'main', name: 'ministral-3:14b', provider: 'ollama', qualification: 'verified', available: true, parameterSize: '14B', allowedTasks: ['quick_reply', 'deep_reply', 'director'], lastTest: { scores }, lastReplyBrainBenchmark: benchmark(94) },
-      { id: 'backup', name: 'gemma3:12b', provider: 'ollama', qualification: 'verified', available: true, parameterSize: '12B', allowedTasks: ['quick_reply', 'deep_reply', 'director'], lastTest: { scores }, lastReplyBrainBenchmark: benchmark(86) },
-      { id: 'translation', name: 'translategemma:4b', provider: 'ollama', qualification: 'verified', available: true, allowedTasks: ['translation'], lastTest: { scores: { translation: { pass: true } } } }
+      replyModel('main', 'Anthropic: primary', 94, '14B', 'anthropic'),
+      replyModel('backup', 'OpenAI: backup', 86, '12B', 'openai'),
+      { id: 'translation', name: 'translategemma:4b', provider: 'ollama', qualification: 'verified', available: true, allowedTasks: ['translation'], lastTest: { scores: { translation: { pass: true } } }, lastCommercialBenchmark: translationEvidence, roleQualificationReceipts: { translation: roleReceipts.issueFromEvidence({ modelId: 'translation', task: 'translation', evidence: translationEvidence, expiresAt: '2030-01-01T00:00:00.000Z' }) } }
     ],
     routes: { translation: { primary: 'translation', fallback: '', enabled: true } },
     history: []

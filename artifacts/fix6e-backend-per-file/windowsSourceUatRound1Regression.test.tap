@@ -1,0 +1,78 @@
+TAP version 13
+# (node:20397) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: source-mode DesktopHost forwards release and platform-auth paths to the backend child
+ok 1 - source-mode DesktopHost forwards release and platform-auth paths to the backend child
+  ---
+  duration_ms: 2.054377
+  type: 'test'
+  ...
+# Subtest: WhatsApp source UAT requests full history and consumes Baileys history snapshots
+ok 2 - WhatsApp source UAT requests full history and consumes Baileys history snapshots
+  ---
+  duration_ms: 0.904654
+  type: 'test'
+  ...
+# Subtest: WhatsApp JID normalization keeps stable person and group identities
+ok 3 - WhatsApp JID normalization keeps stable person and group identities
+  ---
+  duration_ms: 0.707561
+  type: 'test'
+  ...
+# Subtest: WhatsApp history contacts and chats are persisted under the canonical database account id
+ok 4 - WhatsApp history contacts and chats are persisted under the canonical database account id
+  ---
+  duration_ms: 33.692977
+  type: 'test'
+  ...
+# Subtest: WhatsApp account profile photo is fetched and exposed to account-center runtime data
+ok 5 - WhatsApp account profile photo is fetched and exposed to account-center runtime data
+  ---
+  duration_ms: 5282.240051
+  type: 'test'
+  ...
+# Subtest: WhatsApp presence and avatar subscriptions include canonical database account conversations
+ok 6 - WhatsApp presence and avatar subscriptions include canonical database account conversations
+  ---
+  duration_ms: 1.823231
+  type: 'test'
+  ...
+# Subtest: account center mounts real account avatars and falls back to the display identity
+ok 7 - account center mounts real account avatars and falls back to the display identity
+  ---
+  duration_ms: 1.332852
+  type: 'test'
+  ...
+# Subtest: contact-search navigation opens the contact workspace and focuses its search field
+ok 8 - contact-search navigation opens the contact workspace and focuses its search field
+  ---
+  duration_ms: 2.828452
+  type: 'test'
+  ...
+# Subtest: theme studio exposes the expanded persisted theme catalog
+ok 9 - theme studio exposes the expanded persisted theme catalog
+  ---
+  duration_ms: 7.030153
+  type: 'test'
+  ...
+# Subtest: notification settings expose multi-sound per-event selectors and forced preview
+ok 10 - notification settings expose multi-sound per-event selectors and forced preview
+  ---
+  duration_ms: 1.793811
+  type: 'test'
+  ...
+# Subtest: WhatsApp live persistence and UI events use canonical database account ids
+ok 11 - WhatsApp live persistence and UI events use canonical database account ids
+  ---
+  duration_ms: 1.013585
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5991.265079

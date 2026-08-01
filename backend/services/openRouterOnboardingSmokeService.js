@@ -3,6 +3,8 @@
 const { executeModel } = require('./modelExecutor');
 const { appearsGerman } = require('./modelQualification');
 const { authority: asyncOperationLifecycleAuthority } = require('./asyncOperationLifecycleAuthority');
+const modelCapabilityAuthority = require('./modelCapabilityAuthority');
+const frontierCandidateAuthority = require('./openRouterFrontierCandidateAuthority');
 
 const AUTHORITY = 'OpenRouterOnboardingSmokeAuthority';
 const REQUIRED_CAPABILITIES = Object.freeze([
@@ -22,6 +24,23 @@ const ALLOWED_TASKS = Object.freeze([
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function object(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
 function array(value) { return Array.isArray(value) ? value : []; }
+function modelIdentity(model = {}) { return clean(model.name || model.model || model.id).toLowerCase(); }
+
+function assertRealChatCompletionReceipt(model = {}, inference = {}) {
+  const requestId = clean(inference.raw?.id);
+  const returnedModel = clean(inference.returnedModel);
+  const requestMode = clean(inference.requestMode);
+  if (!requestId || !returnedModel || !/^chat-completions(?:-|$)/u.test(requestMode)) {
+    const error = new Error('OpenRouter 真实 /chat/completions 调用缺少可核验 requestId、returnedModel 或请求模式');
+    error.code = 'OPENROUTER_SMOKE_REQUEST_RECEIPT_INVALID';
+    error.requestId = requestId;
+    error.returnedModel = returnedModel;
+    error.requestMode = requestMode;
+    error.modelId = clean(model.id);
+    throw error;
+  }
+  return { requestId, returnedModel, requestMode };
+}
 
 function parseJson(text = '') {
   const raw = clean(text).replace(/^```(?:json)?\s*/iu, '').replace(/\s*```$/u, '');
@@ -99,23 +118,11 @@ async function runModelSmoke(model, options = {}) {
       { role: 'system', content: '只输出符合要求的 JSON。不得输出分析过程。' },
       { role: 'user', content: prompt }
     ], { maxTokens: 720, temperature: 0.2, json: true, timeoutMs: Number(options.timeoutMs || 120000) }, options.signal);
+    const callReceipt = assertRealChatCompletionReceipt(model, inference);
     const payload = parseJson(inference.text);
     const validated = validatePayload(payload);
     await registry.recordInvocation(model.id, inference);
     await registry.recordReplyBrainBenchmark(model.id, benchmarkResult(validated, inference));
-    await registry.recordCommercialBenchmark(model.id, {
-      schemaVersion: 1,
-      authority: AUTHORITY,
-      testedAt: new Date().toISOString(),
-      completed: true,
-      pass: true,
-      status: 'OPENROUTER_TRANSLATION_SMOKE_PASSED',
-      score: 82,
-      translationScore: 82,
-      evidenceScore: 0,
-      qualifyingTasks: ['translation'],
-      summary: '中文桥接翻译最小真实调用通过；其他商业任务资格仍待专项评估。'
-    });
     await registry.recordTest(model.id, {
       schemaVersion: 1,
       testedAt: new Date().toISOString(),
@@ -146,9 +153,9 @@ async function runModelSmoke(model, options = {}) {
       testedAt: new Date().toISOString(),
       modelId: model.id,
       modelSlug: clean(model.name),
-      returnedModel: clean(inference.returnedModel),
-      requestId: clean(inference.raw?.id),
-      requestMode: clean(inference.requestMode),
+      returnedModel: callReceipt.returnedModel,
+      requestId: callReceipt.requestId,
+      requestMode: callReceipt.requestMode,
       latencyMs: Number(inference.totalMs || 0),
       tokenUsage: {
         prompt: Number(inference.promptTokens || 0), output: Number(inference.outputTokens || 0), total: Number(inference.totalTokens || 0)
@@ -184,17 +191,45 @@ async function runModelSmoke(model, options = {}) {
 
 function selectIndependentModels(snapshot = {}, models = [], limit = 2) {
   const preferredSlugs = [];
+  for (const slug of [snapshot.preferredRoute?.primarySlug, snapshot.preferredRoute?.fallbackSlug]) {
+    const normalized = clean(slug).toLowerCase();
+    if (normalized && !preferredSlugs.includes(normalized)) preferredSlugs.push(normalized);
+  }
   for (const role of ['quick_reply', 'director', 'deep_reply', 'translation']) {
     for (const row of array(snapshot.selections?.[role])) {
-      const slug = clean(row.id || row.name);
+      const slug = clean(row.id || row.name).toLowerCase();
       if (slug && !preferredSlugs.includes(slug)) preferredSlugs.push(slug);
     }
   }
-  const bySlug = new Map(array(models).map(model => [clean(model.name), model]));
-  const selected = preferredSlugs.map(slug => bySlug.get(slug)).filter(Boolean);
-  for (const model of array(models)) {
-    if (selected.some(row => row.id === model.id)) continue;
-    if (model.source === 'openrouter-auto' && model.available !== false && model.userDisabled !== true) selected.push(model);
+  const eligible = array(models).filter(model => modelCapabilityAuthority.supportsInteractiveChat(model));
+  const bySlug = new Map();
+  for (const model of eligible) {
+    const slug = modelIdentity(model);
+    if (slug && !bySlug.has(slug)) bySlug.set(slug, model);
+  }
+  const ordered = [];
+  const orderedSlugs = new Set();
+  const appendOrdered = model => {
+    const slug = modelIdentity(model);
+    if (!model || !slug || orderedSlugs.has(slug)) return;
+    orderedSlugs.add(slug);
+    ordered.push(model);
+  };
+  for (const slug of preferredSlugs) appendOrdered(bySlug.get(slug));
+  for (const model of eligible) {
+    if (model.source === 'openrouter-auto' && model.available !== false && model.userDisabled !== true) appendOrdered(model);
+  }
+  if (ordered.length < 2) return ordered;
+  const primary = ordered[0];
+  const primaryProvider = frontierCandidateAuthority.providerOf(modelIdentity(primary));
+  const independentFallback = ordered.slice(1).find(model => {
+    const provider = frontierCandidateAuthority.providerOf(modelIdentity(model));
+    return provider && provider !== primaryProvider;
+  });
+  const selected = [primary];
+  if (independentFallback) selected.push(independentFallback);
+  for (const model of ordered.slice(1)) {
+    if (!selected.some(row => modelIdentity(row) === modelIdentity(model))) selected.push(model);
   }
   return selected.slice(0, Math.max(2, Number(limit || 2)));
 }
@@ -213,7 +248,7 @@ function conditionalRoutes(primary, fallback) {
     director: { ...base, maxTokens: 1200, timeoutMs: 120000 },
     quick_reply: { ...base, maxTokens: 1200, timeoutMs: 120000 },
     deep_reply: { ...base, maxTokens: 1800, timeoutMs: 180000 },
-    translation: { ...base, allowConditional: false, maxTokens: 1200, timeoutMs: 120000 },
+    translation: { ...base, maxTokens: 1200, timeoutMs: 120000 },
     learning_synthesis: { ...base, maxTokens: 1400, timeoutMs: 150000 }
   };
 }
@@ -223,7 +258,8 @@ async function run(options = {}) {
   const lifecycle = options.operationLifecycle || asyncOperationLifecycleAuthority;
   const snapshot = object(options.snapshot);
   const state = registry.read();
-  const selected = selectIndependentModels(snapshot, state.models || [], 2);
+  const maxCandidates = Math.max(2, Math.min(12, Number(options.maxCandidates || 8)));
+  const selected = selectIndependentModels(snapshot, state.models || [], maxCandidates);
   const fingerprint = [
     clean(state.openRouterOnboarding?.keyFingerprint || state.openRouter?.keyFingerprint || 'key-state-unknown'),
     ...selected.map(model => `${clean(model.id)}:${clean(model.name)}`),
@@ -231,54 +267,74 @@ async function run(options = {}) {
   ].join('|');
   const operation = lifecycle.create({
     operationId: clean(options.operationId),
-    operationType: 'openrouter.onboarding.dual-model-smoke',
+    operationType: 'openrouter.onboarding.adaptive-independent-smoke',
     scopeKey: 'openrouter:production-routing',
     objectFingerprint: fingerprint,
-    metadata: { selectedModelIds: selected.map(model => clean(model.id)), selectedModelSlugs: selected.map(model => clean(model.name)) }
+    metadata: {
+      candidateModelIds: selected.map(model => clean(model.id)),
+      candidateModelSlugs: selected.map(model => clean(model.name)),
+      maxCandidates
+    }
   }).operation;
   lifecycle.start(operation.operationId, { progress: 5 });
   try {
-    if (selected.length < 2 || selected[0].id === selected[1].id) {
-      const error = new Error('OpenRouter 至少需要两个不同的云端模型才能建立主模型与独立备用模型');
+    if (selected.length < 2) {
+      const error = new Error('OpenRouter 至少需要两个支持交互聊天的不同云端模型才能建立主模型与独立备用模型');
       error.code = 'OPENROUTER_INDEPENDENT_FALLBACK_REQUIRED';
+      error.results = [];
       throw error;
     }
     const results = [];
-    for (const model of selected.slice(0, 2)) {
-      results.push(await runModelSmoke(model, { registry, signal: options.signal, timeoutMs: options.timeoutMs, executeModel: options.executeModel }));
-      lifecycle.progress(operation.operationId, 40 + (results.length * 20));
+    const passedModels = [];
+    for (const model of selected) {
+      const result = await runModelSmoke(model, {
+        registry,
+        signal: options.signal,
+        timeoutMs: options.timeoutMs,
+        executeModel: options.executeModel
+      });
+      results.push(result);
+      if (result.pass === true && !passedModels.some(row => modelIdentity(row) === modelIdentity(model))) passedModels.push(model);
+      lifecycle.progress(operation.operationId, Math.min(90, 10 + Math.round((results.length / selected.length) * 75)));
+      if (passedModels.length >= 2) break;
     }
-    const passed = results.filter(row => row.pass === true);
-    if (passed.length < 2) {
-      const error = new Error(`OpenRouter 最小真实调用只通过 ${passed.length}/2，未建立独立备用路由`);
+    if (passedModels.length < 2) {
+      const error = new Error(`OpenRouter 候选池真实调用只找到 ${passedModels.length}/2 个成功模型，未建立独立备用路由`);
       error.code = 'OPENROUTER_ONBOARDING_SMOKE_INCOMPLETE';
       error.results = results;
+      error.attemptedModelIds = results.map(row => row.modelId);
       throw error;
     }
-    const routedState = await registry.applyOpenRouterConditionalRoutes(conditionalRoutes(selected[0], selected[1]));
+    const primary = passedModels[0];
+    const fallback = passedModels[1];
+    const routedState = await registry.applyOpenRouterConditionalRoutes(conditionalRoutes(primary, fallback));
     const output = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       authority: AUTHORITY,
       pass: true,
       state: 'conditional-ready',
       operationId: operation.operationId,
       operationGeneration: operation.generation,
-      primaryModelId: selected[0].id,
-      primaryModelSlug: selected[0].name,
-      fallbackModelId: selected[1].id,
-      fallbackModelSlug: selected[1].name,
+      primaryModelId: primary.id,
+      primaryModelSlug: primary.name,
+      fallbackModelId: fallback.id,
+      fallbackModelSlug: fallback.name,
+      attemptedModelCount: results.length,
+      failedModelCount: results.filter(row => row.pass !== true).length,
       results,
       routes: routedState.routes || {},
       formalBenchmarkStatus: 'pending',
       humanReviewRequired: true,
-      message: 'OpenRouter 已完成双模型最小真实调用并建立条件试运行路由；正式商业专项评估仍待执行。'
+      message: 'OpenRouter 已从交互候选池中取得两个独立真实调用成功模型并建立条件试运行路由；正式商业专项评估仍待执行。'
     };
     lifecycle.succeed(operation.operationId, {
       state: output.state,
       primaryModelId: output.primaryModelId,
       fallbackModelId: output.fallbackModelId,
+      attempted: output.attemptedModelCount,
+      failed: output.failedModelCount,
       passed: 2,
-      total: 2
+      total: results.length
     }, { generation: operation.generation, objectFingerprint: operation.objectFingerprint });
     return output;
   } catch (error) {
@@ -295,6 +351,8 @@ module.exports = {
   ALLOWED_TASKS,
   parseJson,
   validatePayload,
+  assertRealChatCompletionReceipt,
+  modelIdentity,
   selectIndependentModels,
   conditionalRoutes,
   runModelSmoke,

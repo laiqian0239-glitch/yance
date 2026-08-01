@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: final outbox confirmation persists normalized quoted-message context
+ok 1 - final outbox confirmation persists normalized quoted-message context
+  ---
+  duration_ms: 9.728665
+  type: 'test'
+  ...
+# Subtest: quoted context normalizer rejects missing ids and preserves platform key fields
+ok 2 - quoted context normalizer rejects missing ids and preserves platform key fields
+  ---
+  duration_ms: 0.206271
+  type: 'test'
+  ...
+# Subtest: AI send-and-learn durable queue path forwards persisted quote
+ok 3 - AI send-and-learn durable queue path forwards persisted quote
+  ---
+  duration_ms: 2.435302
+  type: 'test'
+  ...
+# Subtest: legacy account REST send route no longer drops quote fields
+ok 4 - legacy account REST send route no longer drops quote fields
+  ---
+  duration_ms: 0.231723
+  type: 'test'
+  ...
+# Subtest: core text send reconciles an uncertain first response using the identical idempotent payload
+ok 5 - core text send reconciles an uncertain first response using the identical idempotent payload
+  ---
+  duration_ms: 252.770453
+  type: 'test'
+  ...
+# Subtest: successful but malformed core response is reconciled with the same idempotency key
+ok 6 - successful but malformed core response is reconciled with the same idempotency key
+  ---
+  duration_ms: 252.369846
+  type: 'test'
+  ...
+# Subtest: composer retains the same idempotency key only while text is unchanged after an uncertain response
+ok 7 - composer retains the same idempotency key only while text is unchanged after an uncertain response
+  ---
+  duration_ms: 2.119242
+  type: 'test'
+  ...
+# Subtest: current test runner supersedes obsolete Fix9 root runner and keeps release packaging separate
+ok 8 - current test runner supersedes obsolete Fix9 root runner and keeps release packaging separate
+  ---
+  duration_ms: 0.38576
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 577.274041

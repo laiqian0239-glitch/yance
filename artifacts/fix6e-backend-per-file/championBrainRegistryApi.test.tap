@@ -1,0 +1,36 @@
+TAP version 13
+# (node:17953) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: model registry persists validated champion budget policy
+ok 1 - model registry persists validated champion budget policy
+  ---
+  duration_ms: 3.895591
+  type: 'test'
+  ...
+# Subtest: model registry rejects a reserve larger than total budget
+ok 2 - model registry rejects a reserve larger than total budget
+  ---
+  duration_ms: 0.412484
+  type: 'test'
+  ...
+# Subtest: models API exposes brain routing diagnostics and controlled budget policy update
+ok 3 - models API exposes brain routing diagnostics and controlled budget policy update
+  ---
+  duration_ms: 1.730371
+  type: 'test'
+  ...
+# Subtest: model registry accumulates metered cloud invocation cost in the protected budget ledger
+ok 4 - model registry accumulates metered cloud invocation cost in the protected budget ledger
+  ---
+  duration_ms: 1.941513
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 348.248721

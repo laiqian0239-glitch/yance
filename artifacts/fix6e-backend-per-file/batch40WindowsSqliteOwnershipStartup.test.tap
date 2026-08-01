@@ -1,0 +1,34 @@
+TAP version 13
+# Subtest: Batch40 Windows current-process ownership identity never launches CIM during startup
+ok 1 - Batch40 Windows current-process ownership identity never launches CIM during startup
+  ---
+  duration_ms: 0.745891
+  type: 'test'
+  ...
+# Subtest: Batch40 fresh live SQLite owner does not trigger synchronous identity capture
+ok 2 - Batch40 fresh live SQLite owner does not trigger synchronous identity capture
+  ---
+  duration_ms: 0.185889
+  type: 'test'
+  ...
+# Subtest: Batch40 stale Windows PID reuse remains detectable with v3 identities
+ok 3 - Batch40 stale Windows PID reuse remains detectable with v3 identities
+  ---
+  duration_ms: 0.276882
+  type: 'test'
+  ...
+# Subtest: Batch40 FIX4 v2 Windows lock identity remains comparable after v3 upgrade
+ok 4 - Batch40 FIX4 v2 Windows lock identity remains comparable after v3 upgrade
+  ---
+  duration_ms: 0.166976
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 46.09837

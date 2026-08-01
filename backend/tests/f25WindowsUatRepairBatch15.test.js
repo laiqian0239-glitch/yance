@@ -9,6 +9,7 @@ const http = require('node:http');
 const cloud = require('../services/openAiCompatibleClient');
 const openRouter = require('../services/openRouterAutoConfigurationService');
 const routing = require('../services/modelRoutingIntegrityService');
+const roleReceipts = require('../services/aiRoleQualificationReceiptAuthority');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const source = file => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -25,6 +26,7 @@ function close(server) {
 }
 
 function translationModel(id, provider) {
+  const evidence = { authority: 'YanceCommercialModelBenchmark', status: 'COMMERCIAL_MODEL_QUALIFIED', testedAt: '2026-07-31T10:00:00.000Z', completed: true, pass: true, score: 95, qualifyingTasks: ['translation'], translationScore: 95 };
   return {
     id,
     name: id,
@@ -32,34 +34,30 @@ function translationModel(id, provider) {
     available: true,
     qualification: 'verified',
     allowedTasks: ['translation'],
-    callCount: 1
+    callCount: 1,
+    lastCommercialBenchmark: evidence,
+    roleQualificationReceipts: { translation: roleReceipts.issueFromEvidence({ modelId: id, task: 'translation', evidence, expiresAt: '2030-01-01T00:00:00.000Z' }) }
   };
 }
 
 function replyModel(id, provider, score) {
+  const evidence = {
+    authority: 'YanceReplyBrainBenchmark', pass: true, status: 'REPLY_BRAIN_QUALIFIED', completed: true, score,
+    qualifyingTasks: ['quick_reply', 'deep_reply', 'director'], testedAt: '2026-07-31T10:00:00.000Z',
+    scenarios: [
+      { id: 'german_whatsapp', pass: true, weight: 25, score: 25, issues: [] },
+      { id: 'english_whatsapp', pass: true, weight: 20, score: 20, issues: [] },
+      { id: 'persona_boundary', pass: true, weight: 25, score: 25, issues: [] },
+      { id: 'director_schema', pass: true, weight: 15, score: 15, issues: [] },
+      { id: 'latency', pass: true, weight: 15, score: 15, issues: [] }
+    ]
+  };
+  const governed = ['quick_reply', 'deep_reply', 'director'];
   return {
-    id,
-    name: id,
-    provider,
-    available: true,
-    qualification: 'verified',
-    allowedTasks: ['quick_reply', 'deep_reply', 'director'],
-    callCount: 1,
+    id, name: id, provider, available: true, qualification: 'verified', allowedTasks: governed, callCount: 1,
     lastTest: { scores: { persona: { pass: true }, hallucination: { pass: true }, json: { pass: true } } },
-    lastReplyBrainBenchmark: {
-      authority: 'YanceReplyBrainBenchmark',
-      pass: true,
-      status: 'REPLY_BRAIN_QUALIFIED',
-      completed: true,
-      score,
-      scenarios: [
-        { id: 'german_whatsapp', pass: true, weight: 25, score: 25, issues: [] },
-        { id: 'english_whatsapp', pass: true, weight: 20, score: 20, issues: [] },
-        { id: 'persona_boundary', pass: true, weight: 25, score: 25, issues: [] },
-        { id: 'director_schema', pass: true, weight: 15, score: 15, issues: [] },
-        { id: 'latency', pass: true, weight: 15, score: 15, issues: [] }
-      ]
-    }
+    lastReplyBrainBenchmark: evidence,
+    roleQualificationReceipts: Object.fromEntries(governed.map(task => [task, roleReceipts.issueFromEvidence({ modelId: id, task, evidence, expiresAt: '2030-01-01T00:00:00.000Z' })]))
   };
 }
 
@@ -133,7 +131,7 @@ test('OpenRouter secure credential normalization strips a pasted Bearer prefix b
   assert.equal(observed.every(row => row.apiKey === 'normalized-key'), true);
 });
 
-test('automatic route authority prefers qualified cloud quality and retains local as fallback', () => {
+test('automatic route authority selects the evidence champion and a qualified runner-up', () => {
   const cloudReply = replyModel('cloud-reply', 'openai-compatible', 92);
   const localReply = replyModel('local-reply', 'ollama', 92);
   const result = routing.repairRegistryDocument({
@@ -142,7 +140,7 @@ test('automatic route authority prefers qualified cloud quality and retains loca
   });
   assert.equal(result.document.routes.quick_reply.primary, 'cloud-reply');
   assert.equal(result.document.routes.quick_reply.fallback, 'local-reply');
-  assert.equal(result.document.routes.quick_reply.qualityPolicyVersion, 'ai-quality-cloud-first-v2');
+  assert.equal(result.document.routes.quick_reply.qualityPolicyVersion, 'ai-champion-brain-v2');
 });
 
 test('translation defaults to cloud quality but preserves an explicit local-only policy', () => {
@@ -179,10 +177,15 @@ test('AI workbench makes OpenRouter the primary action and waits for credential 
   assert.doesNotMatch(frontend, /默认只使用通过真实回复基准的本地模型/);
 });
 
-test('backend OpenRouter auto-configuration persists cloud-first automation after credential validation', () => {
+test('backend OpenRouter auto-configuration preserves the existing global automation decision', () => {
   const routes = source('backend/routes/models.js');
-  assert.match(routes, /aiAutomation\.updateConfig\(\{ enabled: true, localOnly: false \}\)/);
-  assert.match(routes, /routingPolicy: 'cloud-quality-first-local-fallback'/);
+  const start = routes.indexOf("router.post('/cloud/openrouter/auto-configure'");
+  const end = routes.indexOf("router.get('/cloud/openrouter/status'", start);
+  const onboardingRoute = routes.slice(start, end);
+  assert.doesNotMatch(onboardingRoute, /aiAutomation\.updateConfig/u);
+  assert.match(onboardingRoute, /const automationStatus = aiAutomation\.status\(\)/u);
+  assert.match(onboardingRoute, /automationChanged: false/u);
+  assert.match(onboardingRoute, /routingPolicy: 'cloud-quality-first-local-fallback'/);
 });
 
 test('Batch15 removes screenshot-confirmed composer text artifacts', () => {

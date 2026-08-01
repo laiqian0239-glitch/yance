@@ -1,0 +1,202 @@
+[
+  {
+    "file": "backend/tests/round12PlatformCoreMigration.test.js",
+    "status": "passed",
+    "durationSeconds": 4.533,
+    "testsPassed": 15,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round12PlatformCoreMigration.test.tap"
+  },
+  {
+    "file": "backend/tests/round12Round13FinalGovernanceClosure.test.js",
+    "status": "passed",
+    "durationSeconds": 2.144,
+    "testsPassed": 8,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round12Round13FinalGovernanceClosure.test.tap"
+  },
+  {
+    "file": "backend/tests/round12Round13FinalSevenClosure.test.js",
+    "status": "passed",
+    "durationSeconds": 3.223,
+    "testsPassed": 15,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round12Round13FinalSevenClosure.test.tap"
+  },
+  {
+    "file": "backend/tests/round12Round13ProductGovernanceClosure.test.js",
+    "status": "passed",
+    "durationSeconds": 0.939,
+    "testsPassed": 7,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round12Round13ProductGovernanceClosure.test.tap"
+  },
+  {
+    "file": "backend/tests/round12Round13RemainingClosure.test.js",
+    "status": "passed",
+    "durationSeconds": 1.431,
+    "testsPassed": 8,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round12Round13RemainingClosure.test.tap"
+  },
+  {
+    "file": "backend/tests/round12Round13ThirdSelfCheck.test.js",
+    "status": "passed",
+    "durationSeconds": 6.457,
+    "testsPassed": 24,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round12Round13ThirdSelfCheck.test.tap"
+  },
+  {
+    "file": "backend/tests/round13AIQualityArchitecture.test.js",
+    "status": "passed",
+    "durationSeconds": 2.525,
+    "testsPassed": 9,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round13AIQualityArchitecture.test.tap"
+  },
+  {
+    "file": "backend/tests/round7InboundIntelligenceP0.test.js",
+    "status": "passed",
+    "durationSeconds": 0.797,
+    "testsPassed": 5,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round7InboundIntelligenceP0.test.tap"
+  },
+  {
+    "file": "backend/tests/round7ModelRoutingP0.test.js",
+    "status": "passed",
+    "durationSeconds": 0.383,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round7ModelRoutingP0.test.tap"
+  },
+  {
+    "file": "backend/tests/round7ProductWiringP0.test.js",
+    "status": "passed",
+    "durationSeconds": 0.481,
+    "testsPassed": 7,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round7ProductWiringP0.test.tap"
+  },
+  {
+    "file": "backend/tests/round8CommercialDialogAuthority.test.js",
+    "status": "passed",
+    "durationSeconds": 0.087,
+    "testsPassed": 2,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round8CommercialDialogAuthority.test.tap"
+  },
+  {
+    "file": "backend/tests/round8ProductAreaNavigation.test.js",
+    "status": "passed",
+    "durationSeconds": 0.084,
+    "testsPassed": 6,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round8ProductAreaNavigation.test.tap"
+  },
+  {
+    "file": "backend/tests/round9AiTaskAuthority.test.js",
+    "status": "passed",
+    "durationSeconds": 0.103,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round9AiTaskAuthority.test.tap"
+  },
+  {
+    "file": "backend/tests/runtimeArtifactBootstrapService.test.js",
+    "status": "passed",
+    "durationSeconds": 0.403,
+    "testsPassed": 1,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/runtimeArtifactBootstrapService.test.tap"
+  },
+  {
+    "file": "backend/tests/runtimeArtifactRegistryService.test.js",
+    "status": "passed",
+    "durationSeconds": 0.097,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/runtimeArtifactRegistryService.test.tap"
+  },
+  {
+    "file": "backend/tests/savedSuggestion.test.js",
+    "status": "passed",
+    "durationSeconds": 0.068,
+    "testsPassed": 1,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/savedSuggestion.test.tap"
+  },
+  {
+    "file": "backend/tests/sendMessageService.test.js",
+    "status": "passed",
+    "durationSeconds": 0.064,
+    "testsPassed": 1,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/sendMessageService.test.tap"
+  },
+  {
+    "file": "backend/tests/socialChineseUnderstandingService.test.js",
+    "status": "passed",
+    "durationSeconds": 0.086,
+    "testsPassed": 2,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/socialChineseUnderstandingService.test.tap"
+  },
+  {
+    "file": "backend/tests/socialLearningWindow.test.js",
+    "status": "passed",
+    "durationSeconds": 0.106,
+    "testsPassed": 2,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/socialLearningWindow.test.tap"
+  },
+  {
+    "file": "backend/tests/sourceUatRealWindowsEvidenceRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.63,
+    "testsPassed": 7,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/sourceUatRealWindowsEvidenceRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/sourceUatRound2IdentityRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.49,
+    "testsPassed": 7,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/sourceUatRound2IdentityRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/sourceUatRound3FunctionalRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.553,
+    "testsPassed": 6,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/sourceUatRound3FunctionalRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/sourceUatRound3IdentityRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.449,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/sourceUatRound3IdentityRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/sourceUatRound4StructuralRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.386,
+    "testsPassed": 5,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/sourceUatRound4StructuralRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/sourceUatRound5ConversationIdentityRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.547,
+    "testsPassed": 9,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/sourceUatRound5ConversationIdentityRegression.test.tap"
+  }
+]

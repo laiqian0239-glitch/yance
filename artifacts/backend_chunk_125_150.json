@@ -1,0 +1,202 @@
+[
+  {
+    "file": "backend/tests/phase2Batch4Recovery.test.js",
+    "status": "passed",
+    "durationSeconds": 0.117,
+    "testsPassed": 40,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/phase2Batch4Recovery.test.tap"
+  },
+  {
+    "file": "backend/tests/phase2InteractionCompleteness.test.js",
+    "status": "passed",
+    "durationSeconds": 0.079,
+    "testsPassed": 7,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/phase2InteractionCompleteness.test.tap"
+  },
+  {
+    "file": "backend/tests/phase2TelegramNativeExpressions.test.js",
+    "status": "passed",
+    "durationSeconds": 0.073,
+    "testsPassed": 2,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/phase2TelegramNativeExpressions.test.tap"
+  },
+  {
+    "file": "backend/tests/phase2ThemeSemanticContract.test.js",
+    "status": "passed",
+    "durationSeconds": 0.133,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/phase2ThemeSemanticContract.test.tap"
+  },
+  {
+    "file": "backend/tests/platformAcceptedLocalPendingRepair.test.js",
+    "status": "passed",
+    "durationSeconds": 2.294,
+    "testsPassed": 23,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/platformAcceptedLocalPendingRepair.test.tap"
+  },
+  {
+    "file": "backend/tests/platformAiResilienceUnifiedClosure.test.js",
+    "status": "passed",
+    "durationSeconds": 0.804,
+    "testsPassed": 14,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/platformAiResilienceUnifiedClosure.test.tap"
+  },
+  {
+    "file": "backend/tests/platformAuthConfigRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.32,
+    "testsPassed": 7,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/platformAuthConfigRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/platformAuthSealToolRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.077,
+    "testsPassed": 5,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/platformAuthSealToolRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/platformCapabilityAuthority.test.js",
+    "status": "passed",
+    "durationSeconds": 0.096,
+    "testsPassed": 6,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/platformCapabilityAuthority.test.tap"
+  },
+  {
+    "file": "backend/tests/platformProductionReadinessAuthority.test.js",
+    "status": "passed",
+    "durationSeconds": 0.391,
+    "testsPassed": 7,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/platformProductionReadinessAuthority.test.tap"
+  },
+  {
+    "file": "backend/tests/platformRepairFollowupRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.486,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/platformRepairFollowupRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/recoveryStateCoalescing.test.js",
+    "status": "passed",
+    "durationSeconds": 0.109,
+    "testsPassed": 2,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/recoveryStateCoalescing.test.tap"
+  },
+  {
+    "file": "backend/tests/relationshipKeyNode.test.js",
+    "status": "passed",
+    "durationSeconds": 0.075,
+    "testsPassed": 1,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/relationshipKeyNode.test.tap"
+  },
+  {
+    "file": "backend/tests/replyBrainBenchmarkClosure.test.js",
+    "status": "passed",
+    "durationSeconds": 0.376,
+    "testsPassed": 6,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/replyBrainBenchmarkClosure.test.tap"
+  },
+  {
+    "file": "backend/tests/replyChampionAuthority.test.js",
+    "status": "passed",
+    "durationSeconds": 0.082,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/replyChampionAuthority.test.tap"
+  },
+  {
+    "file": "backend/tests/replyFeedbackClosedLoop.test.js",
+    "status": "passed",
+    "durationSeconds": 0.548,
+    "testsPassed": 2,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/replyFeedbackClosedLoop.test.tap"
+  },
+  {
+    "file": "backend/tests/replyFeedbackLearning.test.js",
+    "status": "passed",
+    "durationSeconds": 0.097,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/replyFeedbackLearning.test.tap"
+  },
+  {
+    "file": "backend/tests/replyFeedbackVersioning.test.js",
+    "status": "passed",
+    "durationSeconds": 0.398,
+    "testsPassed": 1,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/replyFeedbackVersioning.test.tap"
+  },
+  {
+    "file": "backend/tests/replyLanguageAuthority.test.js",
+    "status": "passed",
+    "durationSeconds": 0.075,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/replyLanguageAuthority.test.tap"
+  },
+  {
+    "file": "backend/tests/replyLearningScopeAuthority.test.js",
+    "status": "passed",
+    "durationSeconds": 1.235,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/replyLearningScopeAuthority.test.tap"
+  },
+  {
+    "file": "backend/tests/replyLearningSummaryService.test.js",
+    "status": "passed",
+    "durationSeconds": 0.097,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/replyLearningSummaryService.test.tap"
+  },
+  {
+    "file": "backend/tests/replyLearningUat053060Closure.test.js",
+    "status": "passed",
+    "durationSeconds": 1.553,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/replyLearningUat053060Closure.test.tap"
+  },
+  {
+    "file": "backend/tests/round12AdapterPorts.test.js",
+    "status": "passed",
+    "durationSeconds": 0.976,
+    "testsPassed": 8,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round12AdapterPorts.test.tap"
+  },
+  {
+    "file": "backend/tests/round12ArchitectureStatus.test.js",
+    "status": "passed",
+    "durationSeconds": 0.864,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round12ArchitectureStatus.test.tap"
+  },
+  {
+    "file": "backend/tests/round12PlatformCoreAuthorities.test.js",
+    "status": "passed",
+    "durationSeconds": 3.163,
+    "testsPassed": 8,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/round12PlatformCoreAuthorities.test.tap"
+  }
+]

@@ -1,0 +1,162 @@
+TAP version 13
+# (node:17332) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: magic-byte validation accepts JPEG/PNG/WebP/GIF and rejects HTML/JSON
+ok 1 - magic-byte validation accepts JPEG/PNG/WebP/GIF and rejects HTML/JSON
+  ---
+  duration_ms: 0.907744
+  type: 'test'
+  ...
+# Subtest: JID normalization distinguishes contacts, groups, broadcast, newsletter and system identities
+ok 2 - JID normalization distinguishes contacts, groups, broadcast, newsletter and system identities
+  ---
+  duration_ms: 0.64226
+  type: 'test'
+  ...
+# Subtest: first sync downloads, validates, atomically caches and only then persists ready state
+ok 3 - first sync downloads, validates, atomically caches and only then persists ready state
+  ---
+  duration_ms: 3.802277
+  type: 'test'
+  ...
+# Subtest: profilePictureUrl empty clears a broken cache and records profile-url-empty
+ok 4 - profilePictureUrl empty clears a broken cache and records profile-url-empty
+  ---
+  duration_ms: 0.980763
+  type: 'test'
+  ...
+# Subtest: avatar replacement cleans superseded files while empty profile lookup preserves a known-good cache
+ok 5 - avatar replacement cleans superseded files while empty profile lookup preserves a known-good cache
+  ---
+  duration_ms: 1.839523
+  type: 'test'
+  ...
+# Subtest: profilePictureUrl tries PN and LID candidates with an explicit timeout and logs empty responses
+ok 6 - profilePictureUrl tries PN and LID candidates with an explicit timeout and logs empty responses
+  ---
+  duration_ms: 1.855169
+  type: 'test'
+  ...
+# Subtest: WhatsApp Business avatars are trusted by WhatsApp provenance even when pixels contain another brand logo
+ok 7 - WhatsApp Business avatars are trusted by WhatsApp provenance even when pixels contain another brand logo
+  ---
+  duration_ms: 1.029074
+  type: 'test'
+  ...
+# Subtest: privacy restriction and HTTP 403/404 are explicit and are not retried indefinitely
+ok 8 - privacy restriction and HTTP 403/404 are explicit and are not retried indefinitely
+  ---
+  duration_ms: 2.341459
+  type: 'test'
+  ...
+# Subtest: request timeout becomes fetch-timeout without blocking the queue forever
+ok 9 - request timeout becomes fetch-timeout without blocking the queue forever
+  ---
+  duration_ms: 50.41349
+  type: 'test'
+  ...
+# Subtest: HTML response is never relabeled as image/jpeg
+ok 10 - HTML response is never relabeled as image/jpeg
+  ---
+  duration_ms: 1.026109
+  type: 'test'
+  ...
+# Subtest: JSON response is never relabeled as image/jpeg
+ok 11 - JSON response is never relabeled as image/jpeg
+  ---
+  duration_ms: 0.526029
+  type: 'test'
+  ...
+# Subtest: missing or corrupt cache bypasses the six-hour TTL and is repaired immediately
+ok 12 - missing or corrupt cache bypasses the six-hour TTL and is repaired immediately
+  ---
+  duration_ms: 2.113535
+  type: 'test'
+  ...
+# Subtest: database update failure rolls back the just-written cache file and records a structured failure
+ok 13 - database update failure rolls back the just-written cache file and records a structured failure
+  ---
+  duration_ms: 1.259277
+  type: 'test'
+  ...
+# Subtest: transient network failure retries once with backoff and then succeeds
+ok 14 - transient network failure retries once with backoff and then succeeds
+  ---
+  duration_ms: 201.898753
+  type: 'test'
+  ...
+# Subtest: final retry failure records the actual attempt count without exposing the signed CDN URL
+ok 15 - final retry failure records the actual attempt count without exposing the signed CDN URL
+  ---
+  duration_ms: 200.867956
+  type: 'test'
+  ...
+# Subtest: queue enforces bounded concurrency and de-duplicates identical JIDs
+ok 16 - queue enforces bounded concurrency and de-duplicates identical JIDs
+  ---
+  duration_ms: 186.027289
+  type: 'test'
+  ...
+# Subtest: manual sync returns the required machine-readable avatar statistics
+ok 17 - manual sync returns the required machine-readable avatar statistics
+  ---
+  duration_ms: 1.165986
+  type: 'test'
+  ...
+# Subtest: SQLite cleanup closes the store before bounded EBUSY-aware directory removal
+ok 18 - SQLite cleanup closes the store before bounded EBUSY-aware directory removal
+  ---
+  duration_ms: 0.188046
+  type: 'test'
+  ...
+# Subtest: SQLite persists avatar_url, avatar_updated_at and avatar_status for contacts and conversations
+ok 19 - SQLite persists avatar_url, avatar_updated_at and avatar_status for contacts and conversations
+  ---
+  duration_ms: 275.190444
+  type: 'test'
+  ...
+# Subtest: Telegram buffer and Facebook signed-proxy avatar paths remain compatible with the shared service
+ok 20 - Telegram buffer and Facebook signed-proxy avatar paths remain compatible with the shared service
+  ---
+  duration_ms: 2.833949
+  type: 'test'
+  ...
+# Subtest: manual account sync exposes all required avatar counters in the visible result message
+ok 21 - manual account sync exposes all required avatar counters in the visible result message
+  ---
+  duration_ms: 2.48847
+  type: 'test'
+  ...
+# Subtest: WhatsApp trigger matrix and frontend same-origin fallback/versioning are wired
+ok 22 - WhatsApp trigger matrix and frontend same-origin fallback/versioning are wired
+  ---
+  duration_ms: 1.520323
+  type: 'test'
+  ...
+# Subtest: bulk avatar sync bounds submitted work to worker concurrency instead of filling an unbounded queue
+ok 23 - bulk avatar sync bounds submitted work to worker concurrency instead of filling an unbounded queue
+  ---
+  duration_ms: 3.151849
+  type: 'test'
+  ...
+# Subtest: bulk avatar sync aborts active transport work and does not convert operation cancellation into an avatar failure
+ok 24 - bulk avatar sync aborts active transport work and does not convert operation cancellation into an avatar failure
+  ---
+  duration_ms: 1.795312
+  type: 'test'
+  ...
+# Subtest: avatar refresh memo is bounded and evicts the oldest conversation key
+ok 25 - avatar refresh memo is bounded and evicts the oldest conversation key
+  ---
+  duration_ms: 0.410046
+  type: 'test'
+  ...
+1..25
+# tests 25
+# suites 0
+# pass 25
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1312.845172

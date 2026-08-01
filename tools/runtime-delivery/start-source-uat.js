@@ -2,7 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { spawn } = require('node:child_process');
+const crypto = require('node:crypto');
 const {
   DEFAULT_PORT,
   assertSupportedNode,
@@ -17,6 +17,7 @@ const {
   resolveDataRoot,
   verifyDependencyIntegrity
 } = require('./source-uat-delivery');
+const { startDetachedElectron, waitForRuntimeReady } = require('./source-uat-runtime-supervisor');
 
 function parseArgs(argv) {
   const options = { install: false, prepareOnly: false, useExistingData: false, useLargestExistingData: false, allowNonWindows: false, allowDirty: false };
@@ -52,7 +53,7 @@ async function main() {
   const prepared = prepareSourceUat(repoRoot, { allowDirty: options.allowDirty });
   const port = normalizePort(options.port || process.env.YANCE_PORT || DEFAULT_PORT);
   const dataRootCandidates = discoverExistingDataRoots();
-  const dataRoot = resolveDataRoot(options);
+  const dataRoot = resolveDataRoot({ ...options, sourceIdentity: prepared.identity });
   fs.mkdirSync(dataRoot, { recursive: true });
   const selectedDataRootEvidence = inspectDataRoot(dataRoot);
   const largerDataRoot = dataRootCandidates.find(row => row.databaseSizeBytes > selectedDataRootEvidence.databaseSizeBytes);
@@ -103,7 +104,8 @@ async function main() {
     dependencyInstallation: dependencyInstallation ? {
       mode: dependencyInstallation.mode,
       attemptCount: dependencyInstallation.install?.attempts?.length || 0,
-      logRoot: dependencyInstallation.install?.logRoot || ''
+      logRoot: dependencyInstallation.install?.logRoot || '',
+      cleanInstallReceipt: dependencyInstallation.cleanInstallReceipt || null
     } : null
   };
   if (options.prepareOnly) {
@@ -140,13 +142,39 @@ async function main() {
   process.stdout.write(`- Mode: ${launchBase.dataMode}\n`);
   process.stdout.write(`- Dependencies: ${dependencyIntegrity.installedCount}/${dependencyIntegrity.directDependencyCount} verified\n`);
   if (launchBase.dataRootWarning) process.stdout.write(`[数据目录提醒] ${launchBase.dataRootWarning}\n`);
-  const child = spawn(electron, [repoRoot], { cwd: repoRoot, env, stdio: 'inherit', windowsHide: false });
-  const exitCode = await new Promise((resolve, reject) => {
-    child.once('error', reject);
-    child.once('exit', (code, signal) => resolve({ code: Number.isInteger(code) ? code : 1, signal: signal || null }));
+  const runtimeLogRoot = path.join(prepared.outputRoot, 'runtime-logs');
+  const launched = startDetachedElectron({ electron, repoRoot, env, logRoot: runtimeLogRoot });
+  launched.child.once('error', error => {
+    try {
+      fs.writeFileSync(launchReportPath, canonicalJson({ ...launchBase, platform: process.platform, status: 'FAILED', startedAtUtc, failedAtUtc: new Date().toISOString(), reasonCode: 'SOURCE_UAT_ELECTRON_SPAWN_FAILED', message: error.message }), 'utf8');
+    } catch (_) {}
   });
-  fs.writeFileSync(launchReportPath, canonicalJson({ ...launchBase, status: exitCode.code === 0 ? 'EXITED' : 'FAILED', startedAtUtc, exitedAtUtc: new Date().toISOString(), exitCode: exitCode.code, signal: exitCode.signal }), 'utf8');
-  process.exitCode = exitCode.code;
+  const runtimeReady = await waitForRuntimeReady({
+    port,
+    child: launched.child,
+    timeoutMs: Number(env.YANCE_BACKEND_STARTUP_TIMEOUT_MS || 180000)
+  });
+  const electronExecutableSha256 = crypto.createHash('sha256').update(fs.readFileSync(electron)).digest('hex');
+  const readyReceipt = {
+    ...launchBase,
+    platform: process.platform,
+    arch: process.arch,
+    status: 'RUNTIME_READY',
+    startedAtUtc,
+    readyAtUtc: runtimeReady.readyAtUtc,
+    electronExecutable: electron,
+    electronExecutableSha256,
+    electronPid: runtimeReady.electronPid,
+    backendPid: runtimeReady.backendPid,
+    readiness: runtimeReady.readiness,
+    electronLogs: {
+      stdoutPath: launched.stdoutPath,
+      stderrPath: launched.stderrPath
+    }
+  };
+  fs.writeFileSync(launchReportPath, canonicalJson(readyReceipt), 'utf8');
+  process.stdout.write(`${JSON.stringify({ status: 'RUNTIME_READY', launchReportPath, electronPid: runtimeReady.electronPid, backendPid: runtimeReady.backendPid, electronExecutableSha256 }, null, 2)}\n`);
+  process.exitCode = 0;
 }
 
 main().catch(error => {

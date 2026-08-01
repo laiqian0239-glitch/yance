@@ -1,0 +1,36 @@
+TAP version 13
+# (node:18088) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: every AccountContext account/message command is registered in the shared command contract
+ok 1 - every AccountContext account/message command is registered in the shared command contract
+  ---
+  duration_ms: 1.265208
+  type: 'test'
+  ...
+# Subtest: dedicated authentication challenge command passes the shared command envelope gate
+ok 2 - dedicated authentication challenge command passes the shared command envelope gate
+  ---
+  duration_ms: 0.211878
+  type: 'test'
+  ...
+# Subtest: repeated Telegram QR start reuses the active QR flow instead of disconnecting it
+ok 3 - repeated Telegram QR start reuses the active QR flow instead of disconnecting it
+  ---
+  duration_ms: 1.496976
+  type: 'test'
+  ...
+# Subtest: stale Telegram login completion cannot replace the current account session
+ok 4 - stale Telegram login completion cannot replace the current account session
+  ---
+  duration_ms: 0.661229
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 335.383891

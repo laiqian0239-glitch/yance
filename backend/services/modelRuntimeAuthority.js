@@ -2,6 +2,7 @@
 
 const { QUALIFICATION } = require('../../shared/constants');
 const { normalizeModelError } = require('./modelErrorNormalizer');
+const modelCapabilityAuthority = require('./modelCapabilityAuthority');
 
 const STATES = Object.freeze({
   unconfigured: 'UNCONFIGURED',
@@ -181,9 +182,20 @@ function projectModel(model = {}, state = {}, options = {}) {
     STATES.unconfigured, STATES.credentialRequired, STATES.verifying,
     STATES.configuredUnverified, STATES.unavailable, STATES.temporarilyBlocked, STATES.disabled
   ].includes(runtimeState);
+  const capabilityProfile = modelCapabilityAuthority.classify(model);
+  const modelPurpose = capabilityProfile.batchOnly
+    ? 'batch-only'
+    : capabilityProfile.interactiveChat
+      ? 'interactive-reply'
+      : 'background-utility';
   return {
     ...model,
     authority: 'ModelRuntimeAuthority',
+    capabilityAuthority: capabilityProfile.authority,
+    capabilityProfile,
+    modelPurpose,
+    batchOnly: capabilityProfile.batchOnly,
+    interactiveReplyVisible: capabilityProfile.interactiveChat && !capabilityProfile.batchOnly,
     qualification,
     qualificationLabel: qualificationLabel(qualification),
     qualificationPassed: qualification === QUALIFICATION.verified,

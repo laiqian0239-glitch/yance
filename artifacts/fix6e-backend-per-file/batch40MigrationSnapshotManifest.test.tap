@@ -1,0 +1,88 @@
+TAP version 13
+# Subtest: verified snapshot binds canonical source identity, target bytes, and atomic manifest
+ok 1 - verified snapshot binds canonical source identity, target bytes, and atomic manifest
+  ---
+  duration_ms: 8.700331
+  type: 'test'
+  ...
+# Subtest: temporary manifest publication names stay within the Windows path budget
+ok 2 - temporary manifest publication names stay within the Windows path budget
+  ---
+  duration_ms: 4.275353
+  type: 'test'
+  ...
+# Subtest: Windows directory fsync EPERM does not invalidate an otherwise durable snapshot
+ok 3 - Windows directory fsync EPERM does not invalidate an otherwise durable snapshot
+  ---
+  duration_ms: 6.671487
+  type: 'test'
+  ...
+# Subtest: Windows snapshot file fsync uses a writable descriptor
+ok 4 - Windows snapshot file fsync uses a writable descriptor
+  ---
+  duration_ms: 5.646419
+  type: 'test'
+  ...
+# Subtest: Windows file fsync EPERM remains fail-closed
+ok 5 - Windows file fsync EPERM remains fail-closed
+  ---
+  duration_ms: 1.545715
+  type: 'test'
+  ...
+# Subtest: Windows directory fsync errors other than EPERM remain fail-closed
+ok 6 - Windows directory fsync errors other than EPERM remain fail-closed
+  ---
+  duration_ms: 3.240357
+  type: 'test'
+  ...
+# Subtest: source replacement and corrupted target abort before publishing a manifest
+ok 7 - source replacement and corrupted target abort before publishing a manifest
+  ---
+  duration_ms: 1.403345
+  type: 'test'
+  ...
+# Subtest: manifest rename failure is fail-closed and leaves no published authority
+ok 8 - manifest rename failure is fail-closed and leaves no published authority
+  ---
+  duration_ms: 3.286021
+  type: 'test'
+  ...
+# Subtest: a busy or incomplete WAL checkpoint is rejected even when SQLite does not throw
+ok 9 - a busy or incomplete WAL checkpoint is rejected even when SQLite does not throw
+  ---
+  duration_ms: 1.168878
+  type: 'test'
+  ...
+# Subtest: an empty main database identity fails closed instead of impersonating memory storage
+ok 10 - an empty main database identity fails closed instead of impersonating memory storage
+  ---
+  duration_ms: 0.304576
+  type: 'test'
+  ...
+# Subtest: a failed WAL checkpoint aborts before a migration snapshot is published
+ok 11 - a failed WAL checkpoint aborts before a migration snapshot is published
+  ---
+  duration_ms: 0.65104
+  type: 'test'
+  ...
+# Subtest: a failed database identity query cannot be treated as an in-memory database
+ok 12 - a failed database identity query cannot be treated as an in-memory database
+  ---
+  duration_ms: 0.186179
+  type: 'test'
+  ...
+# Subtest: all VACUUM migration snapshots use a bounded collision-safe filename
+ok 13 - all VACUUM migration snapshots use a bounded collision-safe filename
+  ---
+  duration_ms: 2.143387
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 96.183492

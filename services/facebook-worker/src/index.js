@@ -163,6 +163,8 @@ async function route(request, env, ctx, dependencies = {}) {
     },
     oauthContract: {
       version: OAUTH_CONTRACT_VERSION,
+      supportedModes: ['page', 'identity'],
+      personalIdentity: { profileFields: ['id','name','picture'], messagingSupported: false, tokenReturnedToDesktop: false },
       authorizationMode: OAUTH_AUTHORIZATION_MODE,
       legacyScopeParameter: false,
       callbackUrl: `${config.workerBaseUrl}/oauth/facebook/callback`,

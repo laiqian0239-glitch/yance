@@ -79,7 +79,7 @@ function runR32InsightsDiagnostics(){
     identityState:data.identityState||{},
     profileState:data.profileState||{},
     trajectoryState:data.trajectoryState||{},
-    fontSystemReady:getComputedStyle(document.documentElement).getPropertyValue('--ws-body').trim()!=='',
+    fontSystemReady:getComputedStyle(document.documentElement).getPropertyValue('--type-body').trim()!=='',
     responsiveReady:Boolean(workspace&&workspace.scrollWidth<=workspace.clientWidth+4),
     responsiveDetail:`当前 ${innerWidth}×${innerHeight} ${workspace&&workspace.scrollWidth<=workspace.clientWidth+4?'无':'存在'}关系洞察横向溢出`,
     hasContentComponent:Boolean(workspace?.querySelector('.insight29-section')),

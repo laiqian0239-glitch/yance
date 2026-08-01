@@ -118,7 +118,7 @@ test('manual unknown-send resolution records actor reason and terminal audit evi
   } finally { restore(); }
 });
 
-test('automatic safety supervisor enters safe mode once for critical blockers and never auto-exits', async () => {
+test('automatic safety supervisor isolates an unknown-send capability without global safe mode', async () => {
   const transitions = [];
   const runtime = {
     operatingMode: 'normal',
@@ -137,8 +137,11 @@ test('automatic safety supervisor enters safe mode once for critical blockers an
   });
   await supervisor.evaluate();
   await supervisor.evaluate();
-  assert.equal(transitions.length, 1);
-  assert.equal(transitions[0].metadata.code, 'SEND_OUTCOME_UNKNOWN');
-  assert.equal(runtime.operatingMode, 'safeMode');
-  assert.equal(supervisor.snapshot().manualReviewRequired, true);
+  assert.equal(transitions.length, 0);
+  assert.equal(runtime.operatingMode, 'normal');
+  const snapshot = supervisor.snapshot();
+  assert.equal(snapshot.manualReviewRequired, true);
+  assert.equal(snapshot.globalWriteBlocked, false);
+  assert.equal(snapshot.capabilities.send.blocked, true);
+  assert.deepEqual(snapshot.capabilities.send.reasons, ['SEND_OUTCOME_UNKNOWN']);
 });

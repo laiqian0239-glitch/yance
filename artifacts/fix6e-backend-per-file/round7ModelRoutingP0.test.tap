@@ -1,0 +1,36 @@
+TAP version 13
+# (node:20705) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: translation profiles keep realtime and outbound on qualified cloud while history uses local model
+ok 1 - translation profiles keep realtime and outbound on qualified cloud while history uses local model
+  ---
+  duration_ms: 1.333895
+  type: 'test'
+  ...
+# Subtest: routing repair preserves benchmark authority selections and validates history translation models
+ok 2 - routing repair preserves benchmark authority selections and validates history translation models
+  ---
+  duration_ms: 12.17049
+  type: 'test'
+  ...
+# Subtest: catalog task eligibility blocks generation-only models even when they are otherwise marked verified
+ok 3 - catalog task eligibility blocks generation-only models even when they are otherwise marked verified
+  ---
+  duration_ms: 0.232646
+  type: 'test'
+  ...
+# Subtest: AI workbench no longer hard-codes a tiny 6/3 benchmark or treats automatic routes as conditional trials
+ok 4 - AI workbench no longer hard-codes a tiny 6/3 benchmark or treats automatic routes as conditional trials
+  ---
+  duration_ms: 0.988151
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 406.826624

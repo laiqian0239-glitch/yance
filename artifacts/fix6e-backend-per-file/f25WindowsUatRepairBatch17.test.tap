@@ -1,0 +1,42 @@
+TAP version 13
+# (node:18231) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Batch 17 recognizes multilingual one-line social openers without inventing profile facts
+ok 1 - Batch 17 recognizes multilingual one-line social openers without inventing profile facts
+  ---
+  duration_ms: 4.779513
+  type: 'test'
+  ...
+# Subtest: Batch 17 full analysis converts an invalid empty model envelope into a committed greeting analysis
+ok 2 - Batch 17 full analysis converts an invalid empty model envelope into a committed greeting analysis
+  ---
+  duration_ms: 541.212571
+  type: 'test'
+  ...
+# Subtest: Batch 17 candidate edits are provisional and become active only through a successful-send signal
+ok 3 - Batch 17 candidate edits are provisional and become active only through a successful-send signal
+  ---
+  duration_ms: 271.124494
+  type: 'test'
+  ...
+# Subtest: Batch 17 reply brain generates a real German candidate for a one-line Hallo opener
+ok 4 - Batch 17 reply brain generates a real German candidate for a one-line Hallo opener
+  ---
+  duration_ms: 23.484392
+  type: 'test'
+  ...
+# Subtest: Batch 17 frontend automatically runs understanding then 3-5 candidates and records routed-model provenance
+ok 5 - Batch 17 frontend automatically runs understanding then 3-5 candidates and records routed-model provenance
+  ---
+  duration_ms: 2.1762
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1070.93336

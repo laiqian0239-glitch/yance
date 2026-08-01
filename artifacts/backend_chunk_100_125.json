@@ -1,0 +1,202 @@
+[
+  {
+    "file": "backend/tests/fullPlatformFacebookWindowsClosureFix12.test.js",
+    "status": "passed",
+    "durationSeconds": 0.094,
+    "testsPassed": 9,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/fullPlatformFacebookWindowsClosureFix12.test.tap"
+  },
+  {
+    "file": "backend/tests/fullPlatformFunctionAuditFix10Regression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.115,
+    "testsPassed": 9,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/fullPlatformFunctionAuditFix10Regression.test.tap"
+  },
+  {
+    "file": "backend/tests/fullPlatformFunctionAuditFix14.test.js",
+    "status": "passed",
+    "durationSeconds": 0.461,
+    "testsPassed": 8,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/fullPlatformFunctionAuditFix14.test.tap"
+  },
+  {
+    "file": "backend/tests/fullPlatformFunctionAuditFix22.test.js",
+    "status": "passed",
+    "durationSeconds": 0.513,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/fullPlatformFunctionAuditFix22.test.tap"
+  },
+  {
+    "file": "backend/tests/fullPlatformFunctionAuditFix8Regression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.464,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/fullPlatformFunctionAuditFix8Regression.test.tap"
+  },
+  {
+    "file": "backend/tests/fullPlatformFunctionAuditFix9Regression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.604,
+    "testsPassed": 8,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/fullPlatformFunctionAuditFix9Regression.test.tap"
+  },
+  {
+    "file": "backend/tests/fullProductInventoryGenerator.test.js",
+    "status": "passed",
+    "durationSeconds": 0.274,
+    "testsPassed": 1,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/fullProductInventoryGenerator.test.tap"
+  },
+  {
+    "file": "backend/tests/globalToolsClosure.test.js",
+    "status": "passed",
+    "durationSeconds": 0.091,
+    "testsPassed": 5,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/globalToolsClosure.test.tap"
+  },
+  {
+    "file": "backend/tests/globalWiringAudit.test.js",
+    "status": "passed",
+    "durationSeconds": 0.138,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/globalWiringAudit.test.tap"
+  },
+  {
+    "file": "backend/tests/memoryEvidenceGovernanceService.test.js",
+    "status": "passed",
+    "durationSeconds": 0.079,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/memoryEvidenceGovernanceService.test.tap"
+  },
+  {
+    "file": "backend/tests/messageIdentityEvidenceOrdering.test.js",
+    "status": "passed",
+    "durationSeconds": 0.615,
+    "testsPassed": 1,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/messageIdentityEvidenceOrdering.test.tap"
+  },
+  {
+    "file": "backend/tests/messageTranslationJobs.test.js",
+    "status": "passed",
+    "durationSeconds": 0.606,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/messageTranslationJobs.test.tap"
+  },
+  {
+    "file": "backend/tests/messageTranslationService.test.js",
+    "status": "passed",
+    "durationSeconds": 1.095,
+    "testsPassed": 2,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/messageTranslationService.test.tap"
+  },
+  {
+    "file": "backend/tests/modelRegistryTransactionSerialization.test.js",
+    "status": "passed",
+    "durationSeconds": 0.517,
+    "testsPassed": 1,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/modelRegistryTransactionSerialization.test.tap"
+  },
+  {
+    "file": "backend/tests/openRouterAutoConfigurationService.test.js",
+    "status": "passed",
+    "durationSeconds": 0.155,
+    "testsPassed": 6,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/openRouterAutoConfigurationService.test.tap"
+  },
+  {
+    "file": "backend/tests/p0bIntegration.test.js",
+    "status": "passed",
+    "durationSeconds": 2.083,
+    "testsPassed": 1,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/p0bIntegration.test.tap"
+  },
+  {
+    "file": "backend/tests/pendingProfileIsolation.test.js",
+    "status": "passed",
+    "durationSeconds": 1.261,
+    "testsPassed": 2,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/pendingProfileIsolation.test.tap"
+  },
+  {
+    "file": "backend/tests/personaOwnerBaselineBootstrap.test.js",
+    "status": "passed",
+    "durationSeconds": 0.572,
+    "testsPassed": 2,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/personaOwnerBaselineBootstrap.test.tap"
+  },
+  {
+    "file": "backend/tests/phase1GovernanceExperience.test.js",
+    "status": "passed",
+    "durationSeconds": 0.45,
+    "testsPassed": 6,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/phase1GovernanceExperience.test.tap"
+  },
+  {
+    "file": "backend/tests/phase1LanguageAndLearning.test.js",
+    "status": "passed",
+    "durationSeconds": 0.171,
+    "testsPassed": 5,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/phase1LanguageAndLearning.test.tap"
+  },
+  {
+    "file": "backend/tests/phase2AiBilingualQuality.test.js",
+    "status": "passed",
+    "durationSeconds": 0.103,
+    "testsPassed": 5,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/phase2AiBilingualQuality.test.tap"
+  },
+  {
+    "file": "backend/tests/phase2AutomaticBackendOwnerRecovery.test.js",
+    "status": "passed",
+    "durationSeconds": 0.211,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/phase2AutomaticBackendOwnerRecovery.test.tap"
+  },
+  {
+    "file": "backend/tests/phase2Batch3BilingualAndStyleVariation.test.js",
+    "status": "passed",
+    "durationSeconds": 0.121,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/phase2Batch3BilingualAndStyleVariation.test.tap"
+  },
+  {
+    "file": "backend/tests/phase2Batch3CapabilityAndSendState.test.js",
+    "status": "passed",
+    "durationSeconds": 0.1,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/phase2Batch3CapabilityAndSendState.test.tap"
+  },
+  {
+    "file": "backend/tests/phase2Batch3ThemeComputedAudit.test.js",
+    "status": "passed",
+    "durationSeconds": 0.123,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/phase2Batch3ThemeComputedAudit.test.tap"
+  }
+]

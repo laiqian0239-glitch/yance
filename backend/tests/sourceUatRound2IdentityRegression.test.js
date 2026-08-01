@@ -77,8 +77,11 @@ test('native Windows titlebar and relationship surfaces follow the active theme'
   assert.match(css, /\.relationship-workbench/);
 });
 
-test('Facebook authorization copy describes personal-admin OAuth followed by Page selection', () => {
+test('Facebook authorization copy separates official Page, official personal identity and experimental Messenger', () => {
   const source = read('frontend/r32-account-center.js');
-  assert.match(source, /使用主页管理员个人账号授权/);
-  assert.match(source, /拥有公共主页管理权限的个人 Facebook 账号完成授权/);
+  assert.match(source, /Facebook 公共主页（官方）/);
+  assert.match(source, /Facebook 个人身份（官方，仅身份）/);
+  assert.match(source, /Facebook 个人 Messenger（非官方实验）/);
+  assert.match(source, /个人身份登录不提供 Messenger 私信/);
+  assert.match(source, /不会创建一个无法登录的假账号/);
 });

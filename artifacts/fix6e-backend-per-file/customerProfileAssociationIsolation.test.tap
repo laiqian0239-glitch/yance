@@ -1,0 +1,48 @@
+TAP version 13
+# (node:18101) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: same name and avatar never associate customer identities automatically
+ok 1 - same name and avatar never associate customer identities automatically
+  ---
+  duration_ms: 257.873722
+  type: 'test'
+  ...
+# Subtest: explicit customer-profile association shares profile and Persona scope without merging routes
+ok 2 - explicit customer-profile association shares profile and Persona scope without merging routes
+  ---
+  duration_ms: 586.118651
+  type: 'test'
+  ...
+# Subtest: relationship insight preserves full platform/account/conversation source scope
+ok 3 - relationship insight preserves full platform/account/conversation source scope
+  ---
+  duration_ms: 285.151165
+  type: 'test'
+  ...
+# Subtest: ambiguous phone or JID across accounts is blocked instead of selecting first route
+ok 4 - ambiguous phone or JID across accounts is blocked instead of selecting first route
+  ---
+  duration_ms: 257.356248
+  type: 'test'
+  ...
+# Subtest: unsafe name/avatar association evidence and conflicting profiles are rejected
+ok 5 - unsafe name/avatar association evidence and conflicting profiles are rejected
+  ---
+  duration_ms: 280.633851
+  type: 'test'
+  ...
+# Subtest: separating an associated identity copies the shared profile but preserves routes
+ok 6 - separating an associated identity copies the shared profile but preserves routes
+  ---
+  duration_ms: 276.591339
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2043.296709

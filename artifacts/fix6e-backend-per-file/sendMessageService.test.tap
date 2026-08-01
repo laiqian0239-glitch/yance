@@ -1,0 +1,22 @@
+TAP version 13
+# PASS exposes stable surface
+# PASS send({type:text}) routes to text
+# PASS send({operation:media}) routes to media
+# PASS unknown type throws SEND_TYPE_UNSUPPORTED
+# PASS missing type throws SEND_TYPE_UNSUPPORTED
+# 5 passed, 0 failed
+# Subtest: backend/tests/sendMessageService.test.js
+ok 1 - backend/tests/sendMessageService.test.js
+  ---
+  duration_ms: 30.248876
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 37.519568

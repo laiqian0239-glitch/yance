@@ -179,7 +179,10 @@ test('public health endpoint publishes the no-legacy-scope OAuth contract', asyn
   assert.equal(data.avatarProxyContract.evidenceContractVersion, 6);
   assert.equal(data.avatarProxyContract.maximumBytes, 8 * 1024 * 1024);
   assert.deepEqual(data.avatarProxyContract.contentTypes, ['image/*']);
-  assert.equal(data.oauthContract.version, 5);
+  assert.equal(data.oauthContract.version, 6);
+  assert.deepEqual(data.oauthContract.supportedModes, ['page', 'identity']);
+  assert.equal(data.oauthContract.personalIdentity.messagingSupported, false);
+  assert.equal(data.oauthContract.personalIdentity.tokenReturnedToDesktop, false);
   assert.equal(data.oauthContract.pageDiscovery.primary, '/me/accounts');
   assert.deepEqual(data.oauthContract.pageDiscovery.tokenRecovery, ['/{debug_token.user_id}/accounts', '/{granular_target_id}?fields=access_token']);
   assert.equal(data.oauthContract.pageDiscovery.selectionEvidence, 'debug_token.granular_scopes.target_ids');
@@ -416,4 +419,38 @@ test('Token vault rejects tampered ciphertext', async () => {
   const env = testEnv(); const record = await encryptToken('secret', 'page-1', env.TOKEN_ENCRYPTION_KEY);
   record.ciphertext = record.ciphertext.slice(0, -2) + 'AA';
   await assert.rejects(decryptToken(record, env.TOKEN_ENCRYPTION_KEY), error => error.code === 'FACEBOOK_TOKEN_DECRYPT_FAILED');
+});
+
+test('official personal identity OAuth returns a profile receipt without page permissions or Messenger capability', async () => {
+  const env = testEnv();
+  const config = workerConfig(env);
+  const keys = await deviceKeys();
+  const clientSecret = 'client-secret-personal-identity-abcdefghijklmnopqrstuvwxyz';
+  const flowId = `identity-${crypto.randomUUID()}`;
+  const startUrl = new URL('https://yance-facebook-gateway.example.workers.dev/oauth/facebook/start');
+  startUrl.searchParams.set('flow_id', flowId);
+  startUrl.searchParams.set('client_proof', await sha256Base64Url(clientSecret));
+  startUrl.searchParams.set('device_id', 'device-identity-1');
+  startUrl.searchParams.set('public_key', keys.publicKeySpki);
+  startUrl.searchParams.set('device_name', 'Windows Identity Test');
+  startUrl.searchParams.set('mode', 'identity');
+  const started = await beginOAuth(new Request(startUrl), env, config);
+  const authorization = new URL(started.headers.get('location'));
+  assert.equal(authorization.searchParams.get('config_id'), null);
+  assert.equal(authorization.searchParams.get('scope'), 'public_profile');
+  const state = authorization.searchParams.get('state');
+
+  const identityFetch = async (url) => {
+    const target = String(url);
+    if (target.includes('/oauth/access_token')) return new Response(JSON.stringify({ access_token: 'personal-identity-token-secret', expires_in: 3600 }), { status: 200, headers: { 'content-type': 'application/json' } });
+    if (target.includes('/me?') || target.endsWith('/me')) return new Response(JSON.stringify({ id: 'user-900', name: 'Identity User', picture: { data: { url: 'https://example.test/user.png' } } }), { status: 200, headers: { 'content-type': 'application/json' } });
+    throw new Error(`unexpected identity Meta URL ${target}`);
+  };
+  await handleOAuthCallback(new Request(`https://yance-facebook-gateway.example.workers.dev/oauth/facebook/callback?state=${encodeURIComponent(state)}&code=identity-code`), env, config, identityFetch);
+  const result = await pollOAuthResult(new Request(`https://worker.test/oauth/facebook/result/${flowId}`, { headers: { authorization: `Bearer ${clientSecret}` } }), env, flowId);
+  assert.equal(result.mode, 'identity');
+  assert.equal(result.status, 'authorized');
+  assert.deepEqual(result.identity, { userId: 'user-900', displayName: 'Identity User', avatarUrl: 'https://example.test/user.png', messagingSupported: false });
+  assert.deepEqual(result.pages, []);
+  assert.equal(JSON.stringify(result).includes('personal-identity-token-secret'), false);
 });

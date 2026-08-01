@@ -1,0 +1,24 @@
+TAP version 13
+# (node:17992) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# PASS getSocialContext delegates to selector
+# PASS getSocialContext evaluates production selector factories against StoreManager state
+# PASS recordSocialSignal routes to local-authority ingest
+# PASS recordSocialSignal throws when writer not wired
+# PASS boundary invariant: local authority, backend projection only
+# 5 passed, 0 failed
+# Subtest: backend/tests/contactContextAuthority.test.js
+ok 1 - backend/tests/contactContextAuthority.test.js
+  ---
+  duration_ms: 299.045661
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 305.384813

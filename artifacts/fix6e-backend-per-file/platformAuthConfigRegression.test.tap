@@ -1,0 +1,54 @@
+TAP version 13
+# (node:19483) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: sealed release platform configuration enables consumer Telegram and Facebook login without exposing values publicly
+ok 1 - sealed release platform configuration enables consumer Telegram and Facebook login without exposing values publicly
+  ---
+  duration_ms: 3.942246
+  type: 'test'
+  ...
+# Subtest: Telegram-only sealed release enables Telegram while Facebook remains unavailable
+ok 2 - Telegram-only sealed release enables Telegram while Facebook remains unavailable
+  ---
+  duration_ms: 1.117997
+  type: 'test'
+  ...
+# Subtest: tampered release platform configuration fails closed
+ok 3 - tampered release platform configuration fails closed
+  ---
+  duration_ms: 1.719139
+  type: 'test'
+  ...
+# Subtest: missing release services never ask a normal user for developer configuration
+ok 4 - missing release services never ask a normal user for developer configuration
+  ---
+  duration_ms: 0.620073
+  type: 'test'
+  ...
+# Subtest: platform application settings cannot be changed or deleted by the normal application runtime
+ok 5 - platform application settings cannot be changed or deleted by the normal application runtime
+  ---
+  duration_ms: 0.580946
+  type: 'test'
+  ...
+# Subtest: release configuration validation rejects malformed Telegram values and insecure Facebook endpoints
+ok 6 - release configuration validation rejects malformed Telegram values and insecure Facebook endpoints
+  ---
+  duration_ms: 0.216827
+  type: 'test'
+  ...
+# Subtest: Facebook Page authorization still requires messaging and metadata permissions
+ok 7 - Facebook Page authorization still requires messaging and metadata permissions
+  ---
+  duration_ms: 0.259883
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 293.879028

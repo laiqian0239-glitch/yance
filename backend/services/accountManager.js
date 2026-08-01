@@ -28,6 +28,8 @@ const { MATRIX: CAPABILITY_MATRIX, publicContracts } = require('./platformCapabi
 const RECEIVE_DEPENDENT_CAPABILITIES = new Set(['incomingTyping', 'terminalPresence', 'contacts', 'historySync', 'lottieSticker', 'animatedEmojiDisplay']);
 const BIDIRECTIONAL_CAPABILITIES = new Set(['sticker', 'animatedSticker']);
 
+function driverFor(account) { return platformDrivers.getForAccount ? platformDrivers.getForAccount(account) : platformDrivers.get(account.platform); }
+
 
 function logCriticalFailure(operation, error, detail = {}) {
   logger.warn('accounts', 'critical-operation-failed', {
@@ -104,7 +106,7 @@ class AccountManager {
     try {
       for (const account of accountStore.listAll()) {
         let runtime;
-        try { runtime = platformDrivers.get(account.platform).status(account); }
+        try { runtime = driverFor(account).status(account); }
         catch (error) { runtime = { state: 'recovering', reasonCode: error.code || 'ADAPTER_STATUS_RECOVERY_PENDING', lastError: error.message }; }
         this.runtime.set(account.id, runtime || { state: 'recovering', reasonCode: 'ADAPTER_STATUS_RECOVERY_PENDING' });
         await accountLifecycleSaga.settleLatestFromAdapter(account.id, runtime?.state || 'recovering', runtime || {});
@@ -130,7 +132,7 @@ class AccountManager {
 
   rawRuntime(account) {
     try {
-      const row = platformDrivers.get(account.platform).status(account);
+      const row = driverFor(account).status(account);
       const authoritative = this.runtime.get(account.id) || null;
       const adapterAttemptId = String(row?.attemptId || row?.connectionAttemptId || '');
       const activeAttemptId = String(authoritative?.connectionAttemptId || authoritative?.attemptId || '');
@@ -177,11 +179,12 @@ class AccountManager {
     const lifecycleAuthorityPending = Boolean(latestSaga && ['running', 'compensating', 'manual_review'].includes(latestSaga.state));
     const authorityPending = authorizationPending || lifecycleAuthorityPending;
     const unread = this.accountUnread(account.id);
-    const driver = platformDrivers.get(account.platform);
+    const driver = driverFor(account);
     const whatsappCredential = account.platform === 'whatsapp' ? driver.credentialState(account) : null;
     const platformSecret = account.platform === 'whatsapp' ? null : (securityGuard.credentials.get(account.credentialRef) || {});
     const credentialReady = driver.credentialReady(account, platformSecret);
-    const capabilities = { ...CAPABILITY_MATRIX[account.platform] };
+    const messagingSupported = driver.messagingSupported !== false;
+    const capabilities = messagingSupported ? { ...CAPABILITY_MATRIX[account.platform] } : Object.fromEntries(Object.keys(CAPABILITY_MATRIX[account.platform] || {}).map(name => [name, false]));
     const directChallenge = ['whatsapp', 'telegram'].includes(account.platform)
       ? authChallenges.status(account.id)
       : { ready: false, expiresAt: '', version: 0 };
@@ -192,8 +195,8 @@ class AccountManager {
     const runtimeSendReady = typeof runtime.canAttemptSend === 'boolean'
       ? runtime.canAttemptSend
       : (typeof runtime.canSend === 'boolean' ? runtime.canSend : connectedNow);
-    const canAttemptSend = authorityPending ? false : Boolean(runtimeSendReady && credentialReady && connectedNow);
-    const canReceive = authorityPending ? false : (typeof runtime.canReceive === 'boolean' ? runtime.canReceive : connectedNow);
+    const canAttemptSend = authorityPending || !messagingSupported ? false : Boolean(runtimeSendReady && credentialReady && connectedNow);
+    const canReceive = authorityPending || !messagingSupported ? false : (typeof runtime.canReceive === 'boolean' ? runtime.canReceive : connectedNow);
     const deliveryTruth = platformDeliveryAuthority.accountTruth({ platform: account.platform, accountId: account.id });
     const sendVerified = Boolean(canAttemptSend && deliveryTruth.sendVerified === true);
     const canSend = sendVerified;
@@ -208,6 +211,13 @@ class AccountManager {
     }));
     return {
       ...account,
+      driverId: driver.driverId || account.driverId || account.metadata?.driverId || '',
+      accountKind: driver.accountKind || account.accountKind || account.metadata?.accountKind || '',
+      officialDriver: driver.official === true,
+      supportLevel: driver.supportLevel || 'production',
+      messagingSupported,
+      riskDisclosureRequired: driver.riskDisclosureRequired === true,
+      isolationModel: driver.isolationModel || '',
       authorizationPending,
       authorityPending,
       lifecycleAuthorityPending,
@@ -293,7 +303,8 @@ class AccountManager {
         runtimeCredentialRefs: securityGuard.credentials.listRefs()
       },
       capabilityMatrix: CAPABILITY_MATRIX,
-      platformAuth: platformAuthConfig.publicState()
+      platformAuth: platformAuthConfig.publicState(),
+      driverContracts: platformDrivers.driverContracts()
     };
   }
 
@@ -367,7 +378,7 @@ class AccountManager {
     if (options.skipAdapterStop !== true) {
       try {
         if (account.platform === 'telegram') await platformDrivers.get('telegram').cancelLogin(account);
-        else await platformDrivers.get(account.platform).disconnect(account, { logout: false });
+        else await driverFor(account).disconnect(account, { logout: false });
       } catch (error) {
         logCriticalFailure('account.pendingAuthorization.disconnect', error, { accountId: account.id, platform: account.platform });
       }
@@ -407,7 +418,7 @@ class AccountManager {
       });
       await accountLifecycleSaga.setPhase(saga.operation_id, 'prepared', 'sqlite_mark_remove_pending');
       await accountLifecycleSaga.setPhase(saga.operation_id, 'sqlite_mark_remove_pending', 'adapter_disconnect_started');
-      adapterReceipt = await platformDrivers.get(account.platform).disconnect(account, { logout: Boolean(options.logout) });
+      adapterReceipt = await driverFor(account).disconnect(account, { logout: Boolean(options.logout) });
       await accountLifecycleSaga.setPhase(saga.operation_id, 'adapter_disconnect_started', 'adapter_disconnected', { adapterReceipt });
       const removed = await accountStore.tombstone(id, { reason: 'user-remove', pendingCleanup: Boolean(options.clearCredentials) });
       await accountLifecycleSaga.setPhase(saga.operation_id, 'adapter_disconnected', 'sqlite_tombstoned');
@@ -464,14 +475,15 @@ class AccountManager {
     this.publishSummary();
     let result;
     let adapterStarted = false;
-    const driver = platformDrivers.get(account.platform);
+    const driver = driverFor(account);
     try {
       result = await withAbortSignal(
         driver.connect(account, {
           manual: true,
           attemptId,
           signal: options.signal || null,
-          executionGeneration: options.operationGeneration || attemptId
+          executionGeneration: options.operationGeneration || attemptId,
+          secret: securityGuard.credentials.get(account.credentialRef) || {}
         }),
         options.signal,
         'ACCOUNT_CONNECT_ABORTED'
@@ -505,7 +517,7 @@ class AccountManager {
       if (currentSaga && currentSaga.state === 'running') await accountLifecycleSaga.markCompensating(saga.operation_id, currentSaga.phase, error);
       let rollbackFailed = false;
       if (adapterStarted) {
-        try { await withTimeout(platformDrivers.get(account.platform).disconnect(account, { logout: false }), 5000, 'ACCOUNT_CONNECT_ROLLBACK_TIMEOUT'); }
+        try { await withTimeout(driverFor(account).disconnect(account, { logout: false }), 5000, 'ACCOUNT_CONNECT_ROLLBACK_TIMEOUT'); }
         catch (rollbackError) {
           rollbackFailed = true;
           logger.error('accounts', 'account-connect-adapter-rollback-failed', { accountId: id, platform: account.platform, errorCode: rollbackError.code || rollbackError.message });
@@ -541,7 +553,7 @@ class AccountManager {
       });
     }
     const result = await withAbortSignal(
-      platformDrivers.get(account.platform).sync(account, {
+      driverFor(account).sync(account, {
         signal: options.signal || null,
         executionGeneration: options.executionGeneration || options.operationGeneration || ''
       }),
@@ -599,7 +611,7 @@ class AccountManager {
         await accountLifecycleSaga.setPhase(saga.operation_id, 'sqlite_mark_disconnect_pending', 'adapter_disconnect_started');
       }
       result = await withAbortSignal(
-        platformDrivers.get(account.platform).disconnect(account, {
+        driverFor(account).disconnect(account, {
           logout,
           signal: options.signal || null,
           executionGeneration: options.operationGeneration || ''
@@ -667,6 +679,12 @@ class AccountManager {
     assertOperationActive(options.signal, 'FACEBOOK_OAUTH_STATUS_ABORTED');
     const result = await withAbortSignal(facebookOAuth.poll(id, flowId, options), options.signal, 'FACEBOOK_OAUTH_STATUS_ABORTED');
     assertOperationActive(options.signal, 'FACEBOOK_OAUTH_STATUS_ABORTED');
+    if (result?.mode === 'identity' && result?.status === 'completed') {
+      const connected = await this.connect(id, { signal: options.signal, attemptId: options.operationGeneration, operationGeneration: options.operationGeneration });
+      assertOperationActive(options.signal, 'FACEBOOK_OAUTH_STATUS_ABORTED');
+      this.publishSummary();
+      return { ...result, account: connected };
+    }
     return result;
   }
 
@@ -699,7 +717,7 @@ class AccountManager {
     const account = accountStore.get(id);
     if (!account || account.platform !== 'telegram') throw Object.assign(new Error('Telegram账号不存在'), { code: 'TELEGRAM_ACCOUNT_NOT_FOUND', status: 404 });
     const result = await withAbortSignal(
-      platformDrivers.get(account.platform).beginQrLogin(account, options),
+      driverFor(account).beginQrLogin(account, options),
       options.signal,
       'TELEGRAM_QR_START_ABORTED'
     );
@@ -712,7 +730,7 @@ class AccountManager {
     const account = accountStore.get(id);
     if (!account || account.platform !== 'telegram') throw Object.assign(new Error('Telegram账号不存在'), { code: 'TELEGRAM_ACCOUNT_NOT_FOUND', status: 404 });
     const result = await withAbortSignal(
-      platformDrivers.get(account.platform).beginPhoneLogin(account, phoneNumber, options),
+      driverFor(account).beginPhoneLogin(account, phoneNumber, options),
       options.signal,
       'TELEGRAM_PHONE_START_ABORTED'
     );
@@ -725,7 +743,7 @@ class AccountManager {
     const account = accountStore.get(id);
     if (!account || account.platform !== 'telegram') throw Object.assign(new Error('Telegram账号不存在'), { code: 'TELEGRAM_ACCOUNT_NOT_FOUND', status: 404 });
     assertOperationActive(options.signal, 'TELEGRAM_LOGIN_CANCEL_ABORTED');
-    const result = await withAbortSignal(platformDrivers.get(account.platform).cancelLogin(account, options), options.signal, 'TELEGRAM_LOGIN_CANCEL_ABORTED');
+    const result = await withAbortSignal(driverFor(account).cancelLogin(account, options), options.signal, 'TELEGRAM_LOGIN_CANCEL_ABORTED');
     assertOperationActive(options.signal, 'TELEGRAM_LOGIN_CANCEL_ABORTED');
     this.runtime.set(id, result);
     if (account.lifecycleState === 'pending-auth' || account.metadata?.authorizationPending === true) {
@@ -741,7 +759,7 @@ class AccountManager {
     const account = accountStore.get(id);
     if (!account || account.platform !== 'telegram') throw Object.assign(new Error('Telegram账号不存在'), { code: 'TELEGRAM_ACCOUNT_NOT_FOUND', status: 404 });
     assertOperationActive(options.signal, 'TELEGRAM_CODE_SUBMIT_ABORTED');
-    const result = await withAbortSignal(platformDrivers.get(account.platform).submitCode(account, code, options), options.signal, 'TELEGRAM_CODE_SUBMIT_ABORTED');
+    const result = await withAbortSignal(driverFor(account).submitCode(account, code, options), options.signal, 'TELEGRAM_CODE_SUBMIT_ABORTED');
     assertOperationActive(options.signal, 'TELEGRAM_CODE_SUBMIT_ABORTED');
     await this.updateIdentityFromRuntime(accountStore.get(id), result).catch(error => logCriticalFailure('telegram.submitCode.updateIdentityFromRuntime', error, { accountId: id }));
     assertOperationActive(options.signal, 'TELEGRAM_CODE_SUBMIT_ABORTED');
@@ -753,7 +771,7 @@ class AccountManager {
     const account = accountStore.get(id);
     if (!account || account.platform !== 'telegram') throw Object.assign(new Error('Telegram账号不存在'), { code: 'TELEGRAM_ACCOUNT_NOT_FOUND', status: 404 });
     assertOperationActive(options.signal, 'TELEGRAM_PASSWORD_SUBMIT_ABORTED');
-    const result = await withAbortSignal(platformDrivers.get(account.platform).submitPassword(account, password, options), options.signal, 'TELEGRAM_PASSWORD_SUBMIT_ABORTED');
+    const result = await withAbortSignal(driverFor(account).submitPassword(account, password, options), options.signal, 'TELEGRAM_PASSWORD_SUBMIT_ABORTED');
     assertOperationActive(options.signal, 'TELEGRAM_PASSWORD_SUBMIT_ABORTED');
     await this.updateIdentityFromRuntime(accountStore.get(id), result).catch(error => logCriticalFailure('telegram.submitPassword.updateIdentityFromRuntime', error, { accountId: id }));
     assertOperationActive(options.signal, 'TELEGRAM_PASSWORD_SUBMIT_ABORTED');

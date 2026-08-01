@@ -1,0 +1,16 @@
+TAP version 13
+# Subtest: Batch40 matrix preserves every historical control exactly once with strict closure evidence
+ok 1 - Batch40 matrix preserves every historical control exactly once with strict closure evidence
+  ---
+  duration_ms: 4.263873
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 49.553722

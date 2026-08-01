@@ -1,0 +1,260 @@
+
+> yance-desktop@0.0.0-development test:source-uat-delivery
+> node --test --test-concurrency=1 tests/runtime-delivery/*.test.js
+
+TAP version 13
+# Subtest: source candidate is generated only from clean HEAD and binds both identity documents to that HEAD
+ok 1 - source candidate is generated only from clean HEAD and binds both identity documents to that HEAD
+  ---
+  duration_ms: 118.974709
+  type: 'test'
+  ...
+# Subtest: source candidate generation rejects a dirty working tree instead of packaging uncommitted content
+ok 2 - source candidate generation rejects a dirty working tree instead of packaging uncommitted content
+  ---
+  duration_ms: 47.134559
+  type: 'test'
+  ...
+# Subtest: FIX6D Runtime Authority V1 source ZIP binds Windows source UAT to the implementation identity
+ok 3 - FIX6D Runtime Authority V1 source ZIP binds Windows source UAT to the implementation identity
+  ---
+  duration_ms: 1.272391
+  type: 'test'
+  ...
+# Subtest: identity-bound archive replaces stale tracked identity documents and verifies exact HEAD identity
+ok 4 - identity-bound archive replaces stale tracked identity documents and verifies exact HEAD identity
+  ---
+  duration_ms: 38.553706
+  type: 'test'
+  ...
+# Subtest: identity-bound archive verification rejects a declared identity that differs from archive content
+ok 5 - identity-bound archive verification rejects a declared identity that differs from archive content
+  ---
+  duration_ms: 47.18711
+  type: 'test'
+  ...
+# Subtest: round10 Windows UAT installer remains single-entry, recovery-first and local-secret-only
+ok 6 - round10 Windows UAT installer remains single-entry, recovery-first and local-secret-only
+  ---
+  duration_ms: 1.82076
+  type: 'test'
+  ...
+# Subtest: round10 evidence collector invokes the safe platform exporter and writes a Downloads ZIP
+ok 7 - round10 evidence collector invokes the safe platform exporter and writes a Downloads ZIP
+  ---
+  duration_ms: 0.289489
+  type: 'test'
+  ...
+# Subtest: round10 package renderer rejects unresolved placeholders
+ok 8 - round10 package renderer rejects unresolved placeholders
+  ---
+  duration_ms: 0.525745
+  type: 'test'
+  ...
+# Subtest: round11 Windows UI UAT keeps one installer and one evidence entry
+ok 9 - round11 Windows UI UAT keeps one installer and one evidence entry
+  ---
+  duration_ms: 13.696049
+  type: 'test'
+  ...
+# Subtest: round11 UI evidence checklist covers the redesigned production interface
+ok 10 - round11 UI evidence checklist covers the redesigned production interface
+  ---
+  duration_ms: 0.394451
+  type: 'test'
+  ...
+# Subtest: round11 prelaunch gate runs dependency-sensitive production tests before Electron starts
+ok 11 - round11 prelaunch gate runs dependency-sensitive production tests before Electron starts
+  ---
+  duration_ms: 0.311464
+  type: 'test'
+  ...
+# Subtest: round11 package generator enforces clean identity-bound immutable payload
+ok 12 - round11 package generator enforces clean identity-bound immutable payload
+  ---
+  duration_ms: 0.469155
+  type: 'test'
+  ...
+# Subtest: round11 generated command and PowerShell files are rendered as ASCII CRLF
+ok 13 - round11 generated command and PowerShell files are rendered as ASCII CRLF
+  ---
+  duration_ms: 2.363422
+  type: 'test'
+  ...
+# Subtest: round11 identity-bound payload replaces both tracked identity documents with exact delivery identity
+ok 14 - round11 identity-bound payload replaces both tracked identity documents with exact delivery identity
+  ---
+  duration_ms: 44.874633
+  type: 'test'
+  ...
+# Subtest: round12/13 Windows UAT keeps one installer and one evidence entry
+ok 15 - round12/13 Windows UAT keeps one installer and one evidence entry
+  ---
+  duration_ms: 1.071366
+  type: 'test'
+  ...
+# Subtest: round12/13 evidence checklist covers platform core, AI quality and Round 11 UI
+ok 16 - round12/13 evidence checklist covers platform core, AI quality and Round 11 UI
+  ---
+  duration_ms: 0.343565
+  type: 'test'
+  ...
+# Subtest: round12/13 prelaunch gate requires complete dependencies and all architecture layers before Electron starts
+ok 17 - round12/13 prelaunch gate requires complete dependencies and all architecture layers before Electron starts
+  ---
+  duration_ms: 0.242612
+  type: 'test'
+  ...
+# Subtest: round12/13 package generator enforces a clean identity-bound immutable payload
+ok 18 - round12/13 package generator enforces a clean identity-bound immutable payload
+  ---
+  duration_ms: 0.280755
+  type: 'test'
+  ...
+# Subtest: round12/13 generated command and PowerShell files are ASCII CRLF
+ok 19 - round12/13 generated command and PowerShell files are ASCII CRLF
+  ---
+  duration_ms: 2.685412
+  type: 'test'
+  ...
+# Subtest: round12/13 identity-bound payload contains exactly one delivery checkpoint
+ok 20 - round12/13 identity-bound payload contains exactly one delivery checkpoint
+  ---
+  duration_ms: 37.447439
+  type: 'test'
+  ...
+# Subtest: round12/13 payload includes every tracked file even when export-ignore is set
+ok 21 - round12/13 payload includes every tracked file even when export-ignore is set
+  ---
+  duration_ms: 57.052645
+  type: 'test'
+  ...
+# Subtest: round6 UAT installer template preserves safety and local-secret boundaries
+ok 22 - round6 UAT installer template preserves safety and local-secret boundaries
+  ---
+  duration_ms: 37.221761
+  type: 'test'
+  ...
+# Subtest: round6 package renderer rejects unresolved identity placeholders
+ok 23 - round6 package renderer rejects unresolved identity placeholders
+  ---
+  duration_ms: 0.686052
+  type: 'test'
+  ...
+# Subtest: round6 package generator declares the ASCII bootstrap and exit-code-only stderr policy
+ok 24 - round6 package generator declares the ASCII bootstrap and exit-code-only stderr policy
+  ---
+  duration_ms: 0.453568
+  type: 'test'
+  ...
+# Subtest: prepareSourceUat generates a verified source-only release identity without release claims
+ok 25 - prepareSourceUat generates a verified source-only release identity without release claims
+  ---
+  duration_ms: 250.231094
+  type: 'test'
+  ...
+# Subtest: public platform auth is hash-bound and contains no secret field names
+ok 26 - public platform auth is hash-bound and contains no secret field names
+  ---
+  duration_ms: 118.566464
+  type: 'test'
+  ...
+# Subtest: data root is isolated by default and existing data requires explicit choice
+ok 27 - data root is isolated by default and existing data requires explicit choice
+  ---
+  duration_ms: 0.390524
+  type: 'test'
+  ...
+# Subtest: largest-existing mode chooses the largest non-empty SQLite root without copying data
+ok 28 - largest-existing mode chooses the largest non-empty SQLite root without copying data
+  ---
+  duration_ms: 1.212677
+  type: 'test'
+  ...
+# Subtest: runtime version and port guards reject unsupported values
+ok 29 - runtime version and port guards reject unsupported values
+  ---
+  duration_ms: 0.616835
+  type: 'test'
+  ...
+# Subtest: npm ci uses the Windows command shell for npm.cmd and hides the console window
+ok 30 - npm ci uses the Windows command shell for npm.cmd and hides the console window
+  ---
+  duration_ms: 1.311042
+  type: 'test'
+  ...
+# Subtest: dependency integrity rejects missing or incomplete direct packages before source UAT launch
+ok 31 - dependency integrity rejects missing or incomplete direct packages before source UAT launch
+  ---
+  duration_ms: 0.680124
+  type: 'test'
+  ...
+# Subtest: npm ci retry records every failed attempt and succeeds without hiding install evidence
+ok 32 - npm ci retry records every failed attempt and succeeds without hiding install evidence
+  ---
+  duration_ms: 1.507308
+  type: 'test'
+  ...
+# Subtest: Electron local archive recovery is bound to the reviewed Windows SHA-256
+ok 33 - Electron local archive recovery is bound to the reviewed Windows SHA-256
+  ---
+  duration_ms: 0.662549
+  type: 'test'
+  ...
+# Subtest: Electron ZIP extraction rejects traversal and absolute entries
+ok 34 - Electron ZIP extraction rejects traversal and absolute entries
+  ---
+  duration_ms: 0.637847
+  type: 'test'
+  ...
+# Subtest: obsolete root launchers remain quarantined and npm scripts use the source UAT authority
+ok 35 - obsolete root launchers remain quarantined and npm scripts use the source UAT authority
+  ---
+  duration_ms: 4.645543
+  type: 'test'
+  ...
+# Subtest: source UAT authority retries npm installation and rejects incomplete dependency trees
+ok 36 - source UAT authority retries npm installation and rejects incomplete dependency trees
+  ---
+  duration_ms: 0.305259
+  type: 'test'
+  ...
+# Subtest: Windows source UAT defaults to software rendering without changing installed production policy
+ok 37 - Windows source UAT defaults to software rendering without changing installed production policy
+  ---
+  duration_ms: 0.547447
+  type: 'test'
+  ...
+# Subtest: source UAT accepts a collector-selected data root through the process environment
+ok 38 - source UAT accepts a collector-selected data root through the process environment
+  ---
+  duration_ms: 0.110486
+  type: 'test'
+  ...
+# Subtest: Windows UI UAT diagnostic sanitizer removes secrets, user content and absolute host paths
+ok 39 - Windows UI UAT diagnostic sanitizer removes secrets, user content and absolute host paths
+  ---
+  duration_ms: 10.926506
+  type: 'test'
+  ...
+# Subtest: diagnostic sanitizer rejects source and destination being the same file
+ok 40 - diagnostic sanitizer rejects source and destination being the same file
+  ---
+  duration_ms: 0.731537
+  type: 'test'
+  ...
+# Subtest: diagnostic sanitizer preserves a structured clone receipt while redacting host paths
+ok 41 - diagnostic sanitizer preserves a structured clone receipt while redacting host paths
+  ---
+  duration_ms: 3.170126
+  type: 'test'
+  ...
+1..41
+# tests 41
+# suites 0
+# pass 41
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1862.019521

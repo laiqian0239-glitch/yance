@@ -94,6 +94,95 @@
     return sanitizeUserFacingRaw(raw, cleanText(options.fallback, '请求失败'));
   }
 
+
+
+  function runtimeFailureName(value) {
+    if (!value || typeof value !== 'object') return '';
+    return cleanText(value.name, '');
+  }
+
+  function classifyRuntimeFailure(value, options = {}) {
+    const kind = cleanText(options.kind, 'error').toLowerCase();
+    const code = reasonCode(value, cleanText(options.reasonCode, '')).toUpperCase();
+    const name = runtimeFailureName(value);
+    const raw = rawMessage(value, cleanText(options.fallback, '运行时错误'));
+    const combined = `${code} ${name} ${raw}`;
+
+    if (name === 'AbortError' || /(?:^|_)(?:ABORTED|SUPERSEDED|CANCELLED)(?:_|$)/u.test(code) || /request aborted|operation aborted|任务已取消|任务已被更新/u.test(raw)) {
+      return Object.freeze({
+        kind,
+        reasonCode: 'RENDERER_OPERATION_ABORTED',
+        severity: 'info',
+        fatal: false,
+        recoverable: true,
+        silent: true,
+        userMessage: '旧任务已取消，不影响当前页面'
+      });
+    }
+
+    if (/ResizeObserver loop (?:limit exceeded|completed with undelivered notifications)/iu.test(raw)) {
+      return Object.freeze({
+        kind,
+        reasonCode: 'RENDERER_LAYOUT_OBSERVER_TRANSIENT',
+        severity: 'info',
+        fatal: false,
+        recoverable: true,
+        silent: true,
+        userMessage: '布局观察器已自动收敛'
+      });
+    }
+
+    if (
+      /ERR_(?:NETWORK_CHANGED|INTERNET_DISCONNECTED|CONNECTION_RESET|CONNECTION_CLOSED|TIMED_OUT)|FAILED TO FETCH|NETWORKERROR|LOAD FAILED|NETWORK SERVICE/iu.test(combined) ||
+      code === 'INTERNET_OFFLINE' ||
+      code === 'CORE_NETWORK_UNAVAILABLE' ||
+      code === 'NETWORK_SERVICE_PROCESS_CRASHED'
+    ) {
+      return Object.freeze({
+        kind,
+        reasonCode: 'RENDERER_NETWORK_TRANSIENT',
+        severity: 'warning',
+        fatal: false,
+        recoverable: true,
+        silent: false,
+        userMessage: '网络服务正在恢复，联网状态将自动重新读取'
+      });
+    }
+
+    const javascriptFault = kind === 'error' || /ReferenceError|TypeError|SyntaxError|is not defined/iu.test(raw) || /REFERENCEERROR|TYPEERROR|SYNTAXERROR/u.test(code);
+    return Object.freeze({
+      kind,
+      reasonCode: javascriptFault ? 'RENDERER_JAVASCRIPT_FAULT' : (code || 'RENDERER_ASYNC_OPERATION_FAILED'),
+      severity: javascriptFault ? 'error' : 'warning',
+      fatal: javascriptFault,
+      recoverable: !javascriptFault,
+      silent: false,
+      userMessage: javascriptFault ? '界面模块发生代码异常，已保留当前页面和诊断证据' : userMessage(value, { fallback: '异步任务未完成，已保留诊断证据' })
+    });
+  }
+
+  function runtimeDiagnosticEvidence(value, options = {}) {
+    const classification = classifyRuntimeFailure(value, options);
+    const stack = cleanText(value?.stack, '').slice(0, 6000);
+    const detail = rawMessage(value, cleanText(options.fallback, '运行时错误')).slice(0, 1200);
+    return Object.freeze({
+      schemaVersion: 1,
+      at: cleanText(options.at, '') || new Date().toISOString(),
+      module: cleanText(options.module, classification.kind === 'error' ? '运行时' : '异步任务'),
+      kind: classification.kind,
+      reasonCode: classification.reasonCode,
+      severity: classification.severity,
+      fatal: classification.fatal,
+      recoverable: classification.recoverable,
+      silent: classification.silent,
+      detail,
+      filename: cleanText(options.filename, '').slice(0, 600),
+      line: Math.max(0, Number(options.line || 0)),
+      column: Math.max(0, Number(options.column || 0)),
+      stack
+    });
+  }
+
   function createError(payload, options = {}) {
     const source = payload?.error && typeof payload.error === 'object' ? payload.error : payload;
     const code = reasonCode(source, reasonCode(payload, cleanText(options.reasonCode, 'REQUEST_FAILED')));
@@ -110,5 +199,5 @@
     return error;
   }
 
-  return Object.freeze({ cleanText, reasonCode, rawMessage, sanitizeUserFacingRaw, hasDesktopSessionBridge, userMessage, createError });
+  return Object.freeze({ cleanText, reasonCode, rawMessage, sanitizeUserFacingRaw, hasDesktopSessionBridge, userMessage, classifyRuntimeFailure, runtimeDiagnosticEvidence, createError });
 });

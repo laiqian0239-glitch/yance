@@ -1,0 +1,13 @@
+{
+  "stubEngine": {
+    "organizations": [],
+    "endpointCreated": false,
+    "usedAsProviderEvidence": false
+  },
+  "sonarQube": {
+    "mcpAvailable": false,
+    "cliAvailable": false,
+    "containerRuntimeAvailable": false,
+    "analysisCompleted": false
+  }
+}

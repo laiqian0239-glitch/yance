@@ -44,10 +44,8 @@
 
   /* Shared density and hit-target contract. */
   --ui-nav-hit-size:42px;
-  --ui-control-height:38px;
   --ui-panel-gap:8px;
-  --ui-body-font-size:12px;
-  --ui-meta-font-size:10px;
+
   --ui-radius-control:11px;
   --ui-radius-panel:16px;
 
@@ -91,14 +89,14 @@
 #sc32LiveDot[data-health-level="attention"]{background:var(--status-warning)}
 #sc32LiveDot[data-health-level="critical"]{background:var(--status-danger)}
 
-.aiw30-material-count{color:var(--text-secondary);font-size:var(--ws-meta)}
+.aiw30-material-count{color:var(--text-secondary);font-size:var(--type-meta)}
 
 #yanceSafeModeBanner{
   position:fixed;z-index:99999;left:50%;top:12px;transform:translateX(-50%);
   max-width:min(900px,calc(100vw - 32px));padding:10px 14px;border:1px solid var(--safe-mode-border);
   border-radius:12px;background:var(--safe-mode-surface);color:var(--safe-mode-text);
   box-shadow:var(--theme-shadow-strong,0 10px 32px color-mix(in srgb,var(--surface-app) 72%,transparent));
-  font:13px/1.45 system-ui;display:none;align-items:center;gap:12px;
+  font:var(--type-body)/1.45 system-ui;display:none;align-items:center;gap:12px;
 }
 #yanceSafeModeBanner [data-safe-message]{flex:1}
 #yanceSafeModeBanner [data-safe-open]{

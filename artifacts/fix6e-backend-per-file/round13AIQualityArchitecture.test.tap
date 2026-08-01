@@ -1,0 +1,66 @@
+TAP version 13
+# (node:19836) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: DirectorStrategyV2 is reusable until context, persona, memory or learning versions change
+ok 1 - DirectorStrategyV2 is reusable until context, persona, memory or learning versions change
+  ---
+  duration_ms: 340.847261
+  type: 'test'
+  ...
+# Subtest: candidate plans keep one persona while creating distinct strategy branches
+ok 2 - candidate plans keep one persona while creating distinct strategy branches
+  ---
+  duration_ms: 376.262374
+  type: 'test'
+  ...
+# Subtest: eligible L1 feedback changes the next preference profile immediately
+ok 3 - eligible L1 feedback changes the next preference profile immediately
+  ---
+  duration_ms: 458.113987
+  type: 'test'
+  ...
+# Subtest: emergency candidates are recorded for audit but excluded from learning profiles
+ok 4 - emergency candidates are recorded for audit but excluded from learning profiles
+  ---
+  duration_ms: 288.449801
+  type: 'test'
+  ...
+# Subtest: L3 Persona promotion requires high confidence, current cross-contact L2 profiles and human approval
+ok 5 - L3 Persona promotion requires high confidence, current cross-contact L2 profiles and human approval
+  ---
+  duration_ms: 328.459849
+  type: 'test'
+  ...
+# Subtest: goal-driven memory recall prioritizes useful evidence and suppresses conflicts and unsupported claims
+ok 6 - goal-driven memory recall prioritizes useful evidence and suppresses conflicts and unsupported claims
+  ---
+  duration_ms: 1.078674
+  type: 'test'
+  ...
+# Subtest: production candidate variants map to distinct controlled strategy branches
+ok 7 - production candidate variants map to distinct controlled strategy branches
+  ---
+  duration_ms: 0.445939
+  type: 'test'
+  ...
+# Subtest: production sent feedback writes one idempotent L1 signal and changes the next branch preference
+ok 8 - production sent feedback writes one idempotent L1 signal and changes the next branch preference
+  ---
+  duration_ms: 313.778802
+  type: 'test'
+  ...
+# Subtest: candidate interactions remain provisional until successful send and emergency results stay excluded
+ok 9 - candidate interactions remain provisional until successful send and emergency results stay excluded
+  ---
+  duration_ms: 297.673497
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2495.903344

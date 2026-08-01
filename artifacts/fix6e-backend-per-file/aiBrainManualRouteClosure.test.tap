@@ -1,0 +1,70 @@
+TAP version 13
+# Subtest: an available Ministral model with real calls is pending, not quality zero, and can be manually trialled
+ok 1 - an available Ministral model with real calls is pending, not quality zero, and can be manually trialled
+  ---
+  duration_ms: 3.476357
+  type: 'test'
+  ...
+# Subtest: an old base-qualification-only zero is displayed as pending because chat scenarios never ran
+ok 2 - an old base-qualification-only zero is displayed as pending because chat scenarios never ran
+  ---
+  duration_ms: 0.533136
+  type: 'test'
+  ...
+# Subtest: task-specific conditional thresholds allow a 60 quick model and a 70 deep model without granting formal qualification
+ok 3 - task-specific conditional thresholds allow a 60 quick model and a 70 deep model without granting formal qualification
+  ---
+  duration_ms: 1.633403
+  type: 'test'
+  ...
+# Subtest: wrong-language or invented-fact evidence remains a hard block even for manual selection
+ok 4 - wrong-language or invented-fact evidence remains a hard block even for manual selection
+  ---
+  duration_ms: 0.792103
+  type: 'test'
+  ...
+# Subtest: manual conditional route is rejected without an explicit conditional flag and accepted with it
+ok 5 - manual conditional route is rejected without an explicit conditional flag and accepted with it
+  ---
+  duration_ms: 3.582845
+  type: 'test'
+  ...
+# Subtest: automatic reply routing resolves an actual conditional model and records why it was selected
+ok 6 - automatic reply routing resolves an actual conditional model and records why it was selected
+  ---
+  duration_ms: 7.500736
+  type: 'test'
+  ...
+# Subtest: candidate generation remains blocked until director and commercial translation quality are both ready
+ok 7 - candidate generation remains blocked until director and commercial translation quality are both ready
+  ---
+  duration_ms: 0.820045
+  type: 'test'
+  ...
+# Subtest: workbench exposes grouped manual selectors, auto explanation, and per-route real testing
+ok 8 - workbench exposes grouped manual selectors, auto explanation, and per-route real testing
+  ---
+  duration_ms: 0.713519
+  type: 'test'
+  ...
+# Subtest: route test API and benchmark workflow are not blocked by the old base-qualification gate
+ok 9 - route test API and benchmark workflow are not blocked by the old base-qualification gate
+  ---
+  duration_ms: 1.111554
+  type: 'test'
+  ...
+# Subtest: manual and automatic conditional reply routes persist atomically in a real isolated SQLite registry
+ok 10 - manual and automatic conditional reply routes persist atomically in a real isolated SQLite registry
+  ---
+  duration_ms: 346.096547
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 424.343978

@@ -1,0 +1,156 @@
+TAP version 13
+# (node:19818) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: capability aggregation degrades mixed scopes and keeps authentication actions available during onboarding
+ok 1 - capability aggregation degrades mixed scopes and keeps authentication actions available during onboarding
+  ---
+  duration_ms: 10.400898
+  type: 'test'
+  ...
+# Subtest: domain event ledger rejects collisions, redacts nested secrets, validates time, and quarantines failed replays
+ok 2 - domain event ledger rejects collisions, redacts nested secrets, validates time, and quarantines failed replays
+  ---
+  duration_ms: 360.234558
+  type: 'test'
+  ...
+# Subtest: send policy binds an auditable outbox id, verifies AI receipts, policy integrity, capability snapshot and live account state
+ok 3 - send policy binds an auditable outbox id, verifies AI receipts, policy integrity, capability snapshot and live account state
+  ---
+  duration_ms: 320.06763
+  type: 'test'
+  ...
+# Subtest: send policy ignores caller-supplied account projections and legacy evidence bypasses
+ok 4 - send policy ignores caller-supplied account projections and legacy evidence bypasses
+  ---
+  duration_ms: 315.061002
+  type: 'test'
+  ...
+# Subtest: send execution rejects capability snapshot scope forgery even when the command envelope is rehashed
+ok 5 - send execution rejects capability snapshot scope forgery even when the command envelope is rehashed
+  ---
+  duration_ms: 335.274589
+  type: 'test'
+  ...
+# Subtest: send queue idempotency key cannot silently reuse a different frozen payload
+ok 6 - send queue idempotency key cannot silently reuse a different frozen payload
+  ---
+  duration_ms: 346.480551
+  type: 'test'
+  ...
+# Subtest: conditional AI route remains conditional and route receipt tampering is rejected
+ok 7 - conditional AI route remains conditional and route receipt tampering is rejected
+  ---
+  duration_ms: 0.971572
+  type: 'test'
+  ...
+# Subtest: director plan cannot be adjusted through a missing axis or after supersession
+ok 8 - director plan cannot be adjusted through a missing axis or after supersession
+  ---
+  duration_ms: 324.166362
+  type: 'test'
+  ...
+# Subtest: identity merge cannot bypass evidence with a force flag
+ok 9 - identity merge cannot bypass evidence with a force flag
+  ---
+  duration_ms: 288.41862
+  type: 'test'
+  ...
+# Subtest: identity rollback refuses to overwrite a link changed after merge
+ok 10 - identity rollback refuses to overwrite a link changed after merge
+  ---
+  duration_ms: 287.958265
+  type: 'test'
+  ...
+# Subtest: learning signal idempotency conflicts are blocked and transactional profile rebuild leaves no partial signal
+ok 11 - learning signal idempotency conflicts are blocked and transactional profile rebuild leaves no partial signal
+  ---
+  duration_ms: 262.482375
+  type: 'test'
+  ...
+# Subtest: learning promotion replay returns its original profile version after newer signals and rejects changed requests
+ok 12 - learning promotion replay returns its original profile version after newer signals and rejects changed requests
+  ---
+  duration_ms: 287.999984
+  type: 'test'
+  ...
+# Subtest: learning rollback requires an exact non-forgotten target version
+ok 13 - learning rollback requires an exact non-forgotten target version
+  ---
+  duration_ms: 307.252883
+  type: 'test'
+  ...
+# Subtest: learning rollback and forget are transactional and auditable
+ok 14 - learning rollback and forget are transactional and auditable
+  ---
+  duration_ms: 278.744159
+  type: 'test'
+  ...
+# Subtest: learning payloads reject prototype pollution, cycles, non-JSON values and oversized structures before persistence
+ok 15 - learning payloads reject prototype pollution, cycles, non-JSON values and oversized structures before persistence
+  ---
+  duration_ms: 266.08504
+  type: 'test'
+  ...
+# Subtest: identity observation cannot attach a new platform identity to an existing Person without explicit audited evidence
+ok 16 - identity observation cannot attach a new platform identity to an existing Person without explicit audited evidence
+  ---
+  duration_ms: 261.680946
+  type: 'test'
+  ...
+# Subtest: send retry decisions honor the persisted frozen policy rather than the process-wide retry ceiling
+ok 17 - send retry decisions honor the persisted frozen policy rather than the process-wide retry ceiling
+  ---
+  duration_ms: 0.471377
+  type: 'test'
+  ...
+# Subtest: legacy queue freezing mutates the claimed row so a first-send failure still uses the persisted policy
+ok 18 - legacy queue freezing mutates the claimed row so a first-send failure still uses the persisted policy
+  ---
+  duration_ms: 1.360628
+  type: 'test'
+  ...
+# Subtest: domain event identifiers and post-redaction payload size are bounded before persistence
+ok 19 - domain event identifiers and post-redaction payload size are bounded before persistence
+  ---
+  duration_ms: 270.953711
+  type: 'test'
+  ...
+# Subtest: detached identity links cannot be silently overwritten by a stale merge rollback plan
+ok 20 - detached identity links cannot be silently overwritten by a stale merge rollback plan
+  ---
+  duration_ms: 287.884656
+  type: 'test'
+  ...
+# Subtest: learning synthesis idempotency binds audit actor, reason, source versions and aggregation scope
+ok 21 - learning synthesis idempotency binds audit actor, reason, source versions and aggregation scope
+  ---
+  duration_ms: 290.22651
+  type: 'test'
+  ...
+# Subtest: permanent learning forget marks every version forgotten and blocks later rollback
+ok 22 - permanent learning forget marks every version forgotten and blocks later rollback
+  ---
+  duration_ms: 296.459883
+  type: 'test'
+  ...
+# Subtest: signed AI route receipts permit visible emergency sending but never long-term learning
+ok 23 - signed AI route receipts permit visible emergency sending but never long-term learning
+  ---
+  duration_ms: 291.625053
+  type: 'test'
+  ...
+# Subtest: all platform send policies wait for reconnection without consuming frozen retry budget
+ok 24 - all platform send policies wait for reconnection without consuming frozen retry budget
+  ---
+  duration_ms: 288.88241
+  type: 'test'
+  ...
+1..24
+# tests 24
+# suites 0
+# pass 24
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6430.534365

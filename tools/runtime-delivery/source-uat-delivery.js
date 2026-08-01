@@ -10,8 +10,12 @@ const { execFileSync, spawnSync } = require('node:child_process');
 const { expectedBuildId, validateReleaseManifest } = require('../../shared/release/releaseManifestSchema');
 const { loadReleaseIdentity } = require('../../shared/release/releaseIdentity');
 const { deriveDatabaseSchemaVersion } = require('../wp1/lib');
+const { seedTrustedDependencyCache } = require('./dependency-install-authority');
+const { resolveNpmInvocation } = require('./npm-process-authority');
 
 const CHECKPOINT_FILE = 'YANCE_SOURCE_CHECKPOINT.json';
+const DERIVED_IDENTITY_FILE = 'YANCE_DERIVED_SOURCE_IDENTITY.json';
+const ARTIFACT_DESCRIPTOR_FILE = 'YANCE_ARTIFACT_DESCRIPTOR.json';
 const GENERATED_ROOT_RELATIVE = path.join('.tmp', 'source-uat-resources');
 const SOURCE_UAT_ARTIFACT_CLASS = 'SOURCE_UAT_ONLY';
 const DEFAULT_PORT = 27632;
@@ -71,6 +75,164 @@ function checkpointIdentity(repoRoot) {
   };
 }
 
+function derivedPayloadRecords(repoRoot) {
+  return sourcePayloadRecords(repoRoot).filter(row => row.path !== DERIVED_IDENTITY_FILE);
+}
+
+function derivedPayloadManifestSha256(repoRoot) {
+  return sha256Buffer(Buffer.from(canonicalJson(derivedPayloadRecords(repoRoot)), 'utf8'));
+}
+
+function createDerivedSourceIdentity(repoRoot, options = {}) {
+  const root = path.resolve(repoRoot);
+  const baseCommit = clean(options.baseCommit);
+  const baseTree = clean(options.baseTree);
+  const derivedVersion = clean(options.derivedVersion);
+  const releaseBatch = clean(options.releaseBatch || 'BATCH40').toUpperCase();
+  if (!/^BATCH\d+$/u.test(releaseBatch)) throw deliveryError('SOURCE_UAT_RELEASE_BATCH_INVALID', '派生源码身份缺少有效 releaseBatch', { releaseBatch });
+  if (!derivedVersion) throw deliveryError('SOURCE_UAT_DERIVED_VERSION_REQUIRED', '派生源码身份缺少 derivedVersion');
+  if (!/^[0-9a-f]{40}$/u.test(baseCommit) || !/^[0-9a-f]{40}$/u.test(baseTree)) {
+    throw deliveryError('SOURCE_UAT_DERIVED_BASE_IDENTITY_INVALID', '派生源码身份缺少有效 baseCommit/baseTree');
+  }
+  const identityPath = path.join(root, DERIVED_IDENTITY_FILE);
+  try { fs.unlinkSync(identityPath); } catch (error) { if (error?.code !== 'ENOENT') throw error; }
+  const releaseGates = {
+    windowsUiUat: false,
+    readyForPromotion: false,
+    formalRelease: false,
+    candidatePackageGenerated: false
+  };
+  const artifactClass = `${releaseBatch}_${derivedVersion}_WINDOWS_SOURCE_UAT`;
+  const descriptor = {
+    schemaVersion: 3,
+    documentType: 'YANCE_ARTIFACT_DESCRIPTOR',
+    generatedAtUtc: clean(options.generatedAtUtc || new Date().toISOString()),
+    project: '言策 Yance',
+    artifactType: 'WINDOWS_SOURCE_UAT_HANDOFF',
+    artifactClass,
+    artifactId: `yance-${releaseBatch.toLowerCase()}-${derivedVersion.toLowerCase().replace(/[^a-z0-9]+/gu, '-')}-windows-source-uat`,
+    sourceIdentity: {
+      authority: DERIVED_IDENTITY_FILE,
+      derivedVersion,
+      baseCommit,
+      baseTree
+    },
+    repairAuthority: {
+      frontierCandidateAuthority: true,
+      preferredCrossProviderRoute: true,
+      batchInteractiveIsolation: true,
+      aiBrainRoleLifecycleAuthorityV2: true,
+      requestedResolvedRouteAuthority: true,
+      singleTaskAtomicRouteTesting: true,
+      providerFailureDomainAuthority: true,
+      modelExecutionEvidenceAuthority: true,
+      modelPoolSegmentationAuthority: true,
+      offlineBenchmarkPlatformUatSeparation: true,
+      trustedDependencyInstallAuthority: true,
+      deterministicNpmFailureClassificationAuthority: true,
+      cleanWindowsInstallReceiptAuthority: true,
+      sourceIdentityScopedDataRoot: true,
+      windowsRuntimeRecoveryAuthority: true,
+      contactIndependentModelHydration: true,
+      rendererRuntimeFailureClassification: true,
+      modelRegistryProjectionAuthority: true,
+      atomicModelRuntimeSnapshotAuthority: true,
+      semanticLayoutClippingAuthority: true,
+      windowsExplorerPathAuthority: true,
+      sqliteFreeModelWorkerAuthority: true,
+      versionedModelExecutionEnvelopeAuthority: true,
+      modelWorkerRuntimeRoleGuard: true,
+      hostOnlyModelExecutionPersistenceAuthority: true,
+      systemPolicySnapshotAuthority: true,
+      releaseTransportSecurityAuthority: true,
+      openRouterOnboardingStateAuthority: true,
+      routeDraftProjectionAuthority: true,
+      routeTimeoutPolicyAuthority: true,
+      openRouterPresentationAuthority: true,
+      onboardingAutomationNonMutationAuthority: true,
+      candidateProductionExecutionAuthority: true,
+      candidateExecutionTraceAuthority: true,
+      unifiedDiagnosticSummaryAuthority: true,
+      onboardingCandidatePresentationAuthority: true,
+      persistentEvidenceAuthority: true,
+      durableExecutionAuthority: true,
+      canonicalCommunicationAuthority: true,
+      typedThreePlatformAdapterAuthority: true,
+      contactRelationshipEvidenceAuthority: true,
+      aiReplyLearningReceiptAuthority: true,
+      architectureShadowCutoverAuthority: true,
+      unifiedArchitectureDiagnosticAuthority: true,
+      modelServiceTaskRoutingAuthority: true,
+      independentProviderFallbackAuthority: true,
+      sharedModelTimeoutBudgetAuthority: true,
+      providerCooldownPersistenceAuthority: true,
+      candidateTranslationRouteAuthority: true,
+      scopedSafetyAuthority: true,
+      safeModeExitReceiptAuthority: true,
+      accountPlatformCapabilityIsolationAuthority: true,
+      facebookDriverTypeAuthority: true,
+      facebookPersonalIdentityOAuthAuthority: true,
+      experimentalFacebookMessengerIsolationAuthority: true,
+      officialPagePersonalIdentitySeparationAuthority: true,
+      derivedSourceIdentity: true
+    },
+    governance: releaseGates,
+    identityProtocol: {
+      derivedPayloadBoundBySha256: true,
+      sourceUatOnly: true,
+      installerBuilt: false
+    }
+  };
+  fs.writeFileSync(path.join(root, ARTIFACT_DESCRIPTOR_FILE), canonicalJson(descriptor), 'utf8');
+  const records = derivedPayloadRecords(root);
+  const payloadManifestSha256 = sha256Buffer(Buffer.from(canonicalJson(records), 'utf8'));
+  const document = {
+    schemaVersion: 1,
+    documentType: 'YANCE_DERIVED_SOURCE_IDENTITY',
+    derivedVersion,
+    baseCommit,
+    baseTree,
+    payloadManifestSha256,
+    payloadFileCount: records.length,
+    payloadTotalBytes: records.reduce((sum, row) => sum + Number(row.sizeBytes || 0), 0),
+    generatedAtUtc: clean(options.generatedAtUtc || new Date().toISOString()),
+    releaseGates
+  };
+  fs.writeFileSync(identityPath, canonicalJson(document), 'utf8');
+  return document;
+}
+
+function derivedIdentity(repoRoot) {
+  const identityPath = path.join(repoRoot, DERIVED_IDENTITY_FILE);
+  if (!fs.existsSync(identityPath)) return null;
+  const document = readJson(identityPath);
+  if (document.documentType !== 'YANCE_DERIVED_SOURCE_IDENTITY' || document.schemaVersion !== 1) {
+    throw deliveryError('SOURCE_UAT_DERIVED_IDENTITY_INVALID', `${DERIVED_IDENTITY_FILE} 契约无效`, { identityPath });
+  }
+  const baseCommit = clean(document.baseCommit);
+  const baseTree = clean(document.baseTree);
+  const payloadManifestSha256 = clean(document.payloadManifestSha256);
+  if (!/^[0-9a-f]{40}$/u.test(baseCommit) || !/^[0-9a-f]{40}$/u.test(baseTree) || !/^[0-9a-f]{64}$/u.test(payloadManifestSha256)) {
+    throw deliveryError('SOURCE_UAT_DERIVED_IDENTITY_INVALID', `${DERIVED_IDENTITY_FILE} 字段无效`, { identityPath });
+  }
+  const actual = derivedPayloadManifestSha256(repoRoot);
+  if (actual !== payloadManifestSha256) {
+    throw deliveryError('SOURCE_UAT_DERIVED_IDENTITY_MISMATCH', '派生源码内容与身份清单不一致，拒绝启动', { expected: payloadManifestSha256, actual, identityPath });
+  }
+  return {
+    branch: clean(document.derivedVersion),
+    commit: payloadManifestSha256.slice(0, 40),
+    tree: payloadManifestSha256.slice(24, 64),
+    tag: clean(document.derivedVersion),
+    source: DERIVED_IDENTITY_FILE,
+    workingTreeClean: null,
+    derived: true,
+    baseCommit,
+    baseTree,
+    payloadManifestSha256
+  };
+}
+
 function resolveSourceIdentity(repoRoot, options = {}) {
   const gitDir = path.join(repoRoot, '.git');
   if (fs.existsSync(gitDir)) {
@@ -92,6 +254,8 @@ function resolveSourceIdentity(repoRoot, options = {}) {
     }
     return { branch, commit, tree, tag: '', source: 'git', workingTreeClean };
   }
+  const derived = derivedIdentity(repoRoot);
+  if (derived) return derived;
   const checkpoint = checkpointIdentity(repoRoot);
   if (checkpoint) return checkpoint;
   const commit = clean(options.commit || process.env.YANCE_SOURCE_COMMIT);
@@ -99,10 +263,10 @@ function resolveSourceIdentity(repoRoot, options = {}) {
   if (/^[0-9a-f]{40}$/.test(commit) && /^[0-9a-f]{40}$/.test(tree)) {
     return { branch: clean(options.branch), commit, tree, tag: clean(options.tag), source: 'environment', workingTreeClean: null };
   }
-  throw deliveryError('SOURCE_UAT_IDENTITY_MISSING', '源码包没有 .git，也没有 YANCE_SOURCE_CHECKPOINT.json，无法建立可信 UAT 身份');
+  throw deliveryError('SOURCE_UAT_IDENTITY_MISSING', '源码包没有 .git、YANCE_DERIVED_SOURCE_IDENTITY.json 或 YANCE_SOURCE_CHECKPOINT.json，无法建立可信 UAT 身份');
 }
 
-const WALK_EXCLUDED_ROOTS = new Set(['.git', 'node_modules', '.tmp', 'coverage', 'dist', 'build', 'release-output', '.wp1-output']);
+const WALK_EXCLUDED_ROOTS = new Set(['.git', 'node_modules', '.tmp', '.yance-cache', 'coverage', 'dist', 'build', 'release-output', '.wp1-output']);
 
 function listSourceFiles(repoRoot) {
   if (fs.existsSync(path.join(repoRoot, '.git'))) {
@@ -328,7 +492,7 @@ function discoverExistingDataRoots(env = process.env) {
   if (localAppData) {
     try {
       for (const entry of fs.readdirSync(localAppData, { withFileTypes: true })) {
-        if (entry.isDirectory() && /^Yance-Source-UAT-user-config-/u.test(entry.name)) candidates.push(path.join(localAppData, entry.name));
+        if (entry.isDirectory() && /^Yance-Source-UAT(?:-|$)/u.test(entry.name)) candidates.push(path.join(localAppData, entry.name));
       }
     } catch (_) {}
   }
@@ -350,7 +514,13 @@ function resolveDataRoot(options = {}, env = process.env) {
     return path.join(appData, 'Yance');
   }
   const parent = clean(env.LOCALAPPDATA || env.APPDATA || os.tmpdir());
-  return path.join(parent, 'Yance-Source-UAT');
+  const identity = options.sourceIdentity && typeof options.sourceIdentity === 'object' ? options.sourceIdentity : {};
+  const commit = clean(identity.commit);
+  const tree = clean(identity.tree);
+  const identitySuffix = /^[0-9a-f]{40}$/u.test(commit) && /^[0-9a-f]{40}$/u.test(tree)
+    ? `-${commit.slice(0, 8)}-${tree.slice(0, 8)}`
+    : '';
+  return path.join(parent, `Yance-Source-UAT${identitySuffix}`);
 }
 
 function normalizePort(value) {
@@ -504,15 +674,25 @@ function runNpmCi(repoRoot, env = {}, options = {}) {
     const stdio = stdoutFd != null || stderrFd != null
       ? ['ignore', stdoutFd == null ? 'inherit' : stdoutFd, stderrFd == null ? 'inherit' : stderrFd]
       : 'inherit';
-    const result = spawn(npmCommand(platform), ['ci', '--no-audit', '--no-fund'], {
+    const invocation = resolveNpmInvocation({
+      platform,
+      npmCliPath: options.npmCliPath,
+      nodeExecutable: options.nodeExecutable,
+      npmCommand: options.npmCommand,
+      env: { ...process.env, ...env },
+      existsSync: options.existsSync
+    });
+    const result = spawn(invocation.command, [...invocation.argsPrefix, 'ci', '--no-audit', '--no-fund'], {
       cwd: repoRoot,
       stdio,
-      shell: platform === 'win32',
+      shell: invocation.shell,
       windowsHide: true,
       env: {
         ...process.env,
         npm_config_audit: 'false',
         npm_config_fund: 'false',
+        ...(options.cacheRoot ? { npm_config_cache: path.resolve(options.cacheRoot) } : {}),
+        ...(options.preferOffline ? { npm_config_prefer_offline: 'true' } : {}),
         ELECTRON_GET_NO_PROGRESS: '1',
         ...env
       }
@@ -525,6 +705,41 @@ function runNpmCi(repoRoot, env = {}, options = {}) {
     if (stdoutFd != null) fs.closeSync(stdoutFd);
     if (stderrFd != null) fs.closeSync(stderrFd);
   }
+}
+
+
+function classifyNpmInstallFailure(stderrText) {
+  const text = String(stderrText || '');
+  if (/\bE404\b/u.test(text) && /is not in this registry|404 Not Found/iu.test(text)) {
+    const quoted = /'([^'@]+)@https?:\/\/[^']+\/-\/[^/]+-([0-9][^/'\s]*)\.tgz'/u.exec(text);
+    const url = /\/([^/]+)-([0-9][^/\s]*)\.tgz/u.exec(text);
+    return {
+      category: 'DEPENDENCY_REGISTRY_PACKAGE_MISSING',
+      deterministic: true,
+      retryRecommended: false,
+      packageName: quoted?.[1] || url?.[1] || '',
+      version: quoted?.[2] || url?.[2] || '',
+      httpStatus: 404
+    };
+  }
+  if (/\b(ETIMEDOUT|ECONNRESET|EAI_AGAIN|ENETUNREACH|ECONNREFUSED)\b/u.test(text)) {
+    return {
+      category: 'DEPENDENCY_NETWORK_TRANSIENT',
+      deterministic: false,
+      retryRecommended: true,
+      packageName: '',
+      version: '',
+      httpStatus: null
+    };
+  }
+  return {
+    category: 'DEPENDENCY_INSTALL_FAILURE_UNCLASSIFIED',
+    deterministic: false,
+    retryRecommended: false,
+    packageName: '',
+    version: '',
+    httpStatus: null
+  };
 }
 
 function runNpmCiWithRetry(repoRoot, env = {}, options = {}) {
@@ -546,8 +761,14 @@ function runNpmCiWithRetry(repoRoot, env = {}, options = {}) {
       stderrPath,
       completedAtUtc: new Date().toISOString()
     };
+    if (result.error || result.status !== 0) {
+      let stderrText = '';
+      try { stderrText = fs.readFileSync(stderrPath, 'utf8'); } catch {}
+      record.failure = classifyNpmInstallFailure(stderrText || result.error?.message || '');
+    }
     attempts.push(record);
     if (!result.error && result.status === 0) return { ok: true, attempts, final: record, logRoot };
+    if (record.failure?.deterministic && !record.failure.retryRecommended) break;
   }
   return { ok: false, attempts, final: attempts[attempts.length - 1], logRoot };
 }
@@ -593,30 +814,84 @@ function extractElectronArchive(repoRoot, archive) {
   return { executablePath, versionPath, pathFile };
 }
 
+function cleanInstallReceipt(repoRoot, context) {
+  return Object.freeze({
+    schemaVersion: 1,
+    documentType: 'YANCE_CLEAN_INSTALL_RECEIPT',
+    status: 'SOURCE_INSTALL_VERIFIED',
+    generatedAtUtc: new Date().toISOString(),
+    platform: context.platform,
+    arch: context.arch,
+    windowsUat: false,
+    readyForPromotion: false,
+    formalRelease: false,
+    lockfile: {
+      path: 'package-lock.json',
+      sha256: sha256File(path.join(repoRoot, 'package-lock.json'))
+    },
+    registry: {
+      overrideApplied: false,
+      inheritedRegistry: clean(process.env.npm_config_registry || process.env.NPM_CONFIG_REGISTRY)
+    },
+    dependencySeed: context.seedReceipt,
+    npmCi: {
+      preferOffline: true,
+      cacheRoot: context.seedReceipt.cacheRoot,
+      attemptCount: context.install.attempts.length,
+      finalStatus: context.install.final.status,
+      logRoot: context.install.logRoot
+    },
+    dependencyIntegrity: context.integrity,
+    electronLaunch: {
+      status: 'NOT_EXECUTED',
+      reason: context.platform === 'win32' ? 'INSTALL_ONLY_NO_LAUNCH_EVIDENCE' : 'NON_WINDOWS_ENVIRONMENT'
+    }
+  });
+}
+
 function installDependencies(repoRoot, options = {}) {
   const platform = options.platform || process.platform;
   const arch = options.arch || process.arch;
   const maxAttempts = options.maxAttempts || 3;
   const logRoot = options.logRoot || path.join(repoRoot, '.tmp', 'source-uat-install');
-  const localArchive = discoverElectronArchive(repoRoot, { ...options, platform, arch });
+  const dependencyAuthority = options.dependencyAuthority || { seedTrustedDependencyCache };
+  const seedReceipt = dependencyAuthority.seedTrustedDependencyCache(repoRoot, {
+    cacheRoot: options.cacheRoot,
+    platform,
+    spawn: options.cacheSpawn,
+    npmCliPath: options.npmCliPath,
+    nodeExecutable: options.nodeExecutable,
+    npmCommand: options.npmCommand,
+    env: options.env,
+    existsSync: options.existsSync
+  });
+  const cacheOptions = { cacheRoot: seedReceipt.cacheRoot, preferOffline: true };
+  const discover = options.discoverElectronArchive || discoverElectronArchive;
+  const runInstall = options.runNpmCiWithRetry || runNpmCiWithRetry;
+  const verifyIntegrity = options.verifyDependencyIntegrity || verifyDependencyIntegrity;
+  const extractArchive = options.extractElectronArchive || extractElectronArchive;
+  const localArchive = discover(repoRoot, { ...options, platform, arch });
   if (localArchive.archivePath) {
-    const install = runNpmCiWithRetry(repoRoot, { ELECTRON_SKIP_BINARY_DOWNLOAD: '1' }, { ...options, platform, maxAttempts, logRoot });
+    const install = runInstall(repoRoot, { ELECTRON_SKIP_BINARY_DOWNLOAD: '1' }, { ...options, ...cacheOptions, platform, maxAttempts, logRoot });
     if (!install.ok) {
       throw deliveryError('SOURCE_UAT_NPM_CI_FAILED', 'npm ci 多次重试后仍未成功（本地 Electron 模式）', {
         attempts: install.attempts,
-        logRoot: install.logRoot
+        logRoot: install.logRoot,
+        dependencySeed: seedReceipt
       });
     }
-    const extracted = extractElectronArchive(repoRoot, localArchive);
-    const integrity = verifyDependencyIntegrity(repoRoot, { platform });
-    return { mode: 'verified-local-electron-archive', archive: localArchive, extracted, install, integrity };
+    const extracted = extractArchive(repoRoot, localArchive);
+    const integrity = verifyIntegrity(repoRoot, { platform });
+    const receipt = cleanInstallReceipt(repoRoot, { platform, arch, seedReceipt, install, integrity });
+    return { mode: 'verified-local-electron-archive', archive: localArchive, extracted, install, integrity, dependencySeed: seedReceipt, cleanInstallReceipt: receipt };
   }
   const mirror = clean(options.electronMirror || process.env.YANCE_ELECTRON_MIRROR || process.env.ELECTRON_MIRROR);
-  const install = runNpmCiWithRetry(repoRoot, mirror ? { ELECTRON_MIRROR: mirror } : {}, { ...options, platform, maxAttempts, logRoot });
+  const install = runInstall(repoRoot, mirror ? { ELECTRON_MIRROR: mirror } : {}, { ...options, ...cacheOptions, platform, maxAttempts, logRoot });
   if (!install.ok) {
     throw deliveryError('SOURCE_UAT_NPM_CI_FAILED', 'npm ci 多次重试后仍未成功。若 GitHub 无法访问，请提供经过校验的 Electron ZIP 或配置可信镜像。', {
       attempts: install.attempts,
       logRoot: install.logRoot,
+      dependencySeed: seedReceipt,
       expectedElectronArchive: localArchive.artifact.fileName,
       expectedElectronSha256: localArchive.artifact.sha256,
       supportedRecovery: [
@@ -626,8 +901,9 @@ function installDependencies(repoRoot, options = {}) {
       ]
     });
   }
-  const integrity = verifyDependencyIntegrity(repoRoot, { platform });
-  return { mode: mirror ? 'electron-mirror' : 'electron-default-download', mirror: mirror || '', install, integrity };
+  const integrity = verifyIntegrity(repoRoot, { platform });
+  const receipt = cleanInstallReceipt(repoRoot, { platform, arch, seedReceipt, install, integrity });
+  return { mode: mirror ? 'electron-mirror' : 'electron-default-download', mirror: mirror || '', install, integrity, dependencySeed: seedReceipt, cleanInstallReceipt: receipt };
 }
 
 function electronExecutable(repoRoot, platform = process.platform) {
@@ -642,17 +918,22 @@ function electronExecutable(repoRoot, platform = process.platform) {
 
 module.exports = {
   CHECKPOINT_FILE,
+  DERIVED_IDENTITY_FILE,
+  ARTIFACT_DESCRIPTOR_FILE,
   DEFAULT_PORT,
   GENERATED_ROOT_RELATIVE,
   SOURCE_UAT_ARTIFACT_CLASS,
   assertSupportedNode,
   buildSourceUatManifest,
   canonicalJson,
+  classifyNpmInstallFailure,
   copySealedPlatformAuth,
   deliveryError,
   electronExecutable,
   discoverElectronArchive,
   discoverExistingDataRoots,
+  createDerivedSourceIdentity,
+  derivedPayloadManifestSha256,
   expectedElectronArtifact,
   extractElectronArchive,
   inspectDataRoot,

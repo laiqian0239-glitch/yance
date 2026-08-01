@@ -9,11 +9,13 @@ const test = require('node:test');
 const { loadReleaseIdentity } = require('../../shared/release/releaseIdentity');
 const {
   SOURCE_UAT_ARTIFACT_CLASS,
+  classifyNpmInstallFailure,
   assertSupportedNode,
   discoverElectronArchive,
   discoverExistingDataRoots,
   expectedElectronArtifact,
   inspectDataRoot,
+  installDependencies,
   normalizePort,
   payloadIdentity,
   prepareSourceUat,
@@ -22,6 +24,7 @@ const {
   runNpmCiWithRetry,
   sha256File,
   secureZipEntryPath,
+  sourcePayloadRecords,
   verifyDependencyIntegrity
 } = require('../../tools/runtime-delivery/source-uat-delivery');
 
@@ -30,6 +33,16 @@ const repoRoot = path.resolve(__dirname, '..', '..');
 function tempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'yance-source-uat-test-'));
 }
+
+
+test('private dependency caches are excluded from source identity payloads', () => {
+  const root = tempRoot();
+  fs.mkdirSync(path.join(root, '.yance-cache', 'npm'), { recursive: true });
+  fs.writeFileSync(path.join(root, '.yance-cache', 'npm', 'cache-entry'), 'runtime-cache');
+  fs.writeFileSync(path.join(root, 'source.js'), 'module.exports = true;');
+  const records = sourcePayloadRecords(root);
+  assert.deepEqual(records.map(row => row.path), ['source.js']);
+});
 
 test('prepareSourceUat generates a verified source-only release identity without release claims', () => {
   const outputRoot = tempRoot();
@@ -102,21 +115,97 @@ test('runtime version and port guards reject unsupported values', () => {
 
 
 
-test('npm ci uses the Windows command shell for npm.cmd and hides the console window', () => {
+test('npm ci invokes npm-cli.js through node.exe on Windows without a command shell', () => {
   let invocation = null;
+  const fixtureRoot = tempRoot();
+  const npmCliPath = path.join(fixtureRoot, 'node_modules', 'npm', 'bin', 'npm-cli.js');
+  fs.mkdirSync(path.dirname(npmCliPath), { recursive: true });
+  fs.writeFileSync(npmCliPath, '');
   const result = runNpmCi(repoRoot, { ELECTRON_SKIP_BINARY_DOWNLOAD: '1' }, {
     platform: 'win32',
+    npmCliPath,
+    nodeExecutable: process.execPath,
     spawn(command, args, options) {
       invocation = { command, args, options };
       return { status: 0, error: null, signal: null };
     }
   });
   assert.deepEqual(result, { status: 0, error: null, signal: null });
-  assert.equal(invocation.command, 'npm.cmd');
-  assert.deepEqual(invocation.args, ['ci', '--no-audit', '--no-fund']);
-  assert.equal(invocation.options.shell, true);
+  assert.equal(invocation.command, process.execPath);
+  assert.deepEqual(invocation.args, [npmCliPath, 'ci', '--no-audit', '--no-fund']);
+  assert.equal(invocation.options.shell, false);
   assert.equal(invocation.options.windowsHide, true);
   assert.equal(invocation.options.env.ELECTRON_SKIP_BINARY_DOWNLOAD, '1');
+});
+
+
+test('npm ci consumes the authority private cache with prefer-offline and does not override registry', () => {
+  let invocation = null;
+  const cacheRoot = path.join(tempRoot(), 'npm-cache');
+  runNpmCi(repoRoot, {}, {
+    platform: 'linux',
+    cacheRoot,
+    preferOffline: true,
+    spawn(command, args, options) {
+      invocation = { command, args, options };
+      return { status: 0, error: null, signal: null };
+    }
+  });
+  assert.equal(invocation.options.env.npm_config_cache, path.resolve(cacheRoot));
+  assert.equal(invocation.options.env.npm_config_prefer_offline, 'true');
+  assert.equal(Object.hasOwn(invocation.options.env, 'npm_config_registry'), false);
+  assert.doesNotMatch(invocation.args.join(' '), /registry/iu);
+});
+
+test('installDependencies seeds the trusted cache before npm ci and returns a clean install receipt', () => {
+  const root = tempRoot();
+  fs.mkdirSync(path.join(root, 'governance'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ dependencies: {} }));
+  fs.writeFileSync(path.join(root, 'package-lock.json'), JSON.stringify({ lockfileVersion: 3, packages: {} }));
+  fs.writeFileSync(path.join(root, 'governance/dependency-install-policy.json'), JSON.stringify({ schemaVersion: 1, trustedCacheSeeds: [] }));
+  const order = [];
+  const result = installDependencies(root, {
+    platform: 'linux',
+    arch: 'x64',
+    maxAttempts: 1,
+    cacheRoot: path.join(root, '.cache/npm'),
+    dependencyAuthority: {
+      seedTrustedDependencyCache() {
+        order.push('seed');
+        return { ok: true, cacheRoot: path.join(root, '.cache/npm'), seedCount: 1, seeds: [{ packageName: 'yauzl', version: '2.10.0', archiveSha256: 'a'.repeat(64) }] };
+      }
+    },
+    discoverElectronArchive() {
+      return { artifact: { fileName: 'electron.zip', sha256: 'b'.repeat(64) }, archivePath: '', candidates: [] };
+    },
+    runNpmCiWithRetry(repoRootArg, env, options) {
+      order.push('npm-ci');
+      assert.equal(options.cacheRoot, path.join(root, '.cache/npm'));
+      assert.equal(options.preferOffline, true);
+      return { ok: true, attempts: [{ attempt: 1, status: 0 }], final: { status: 0 }, logRoot: path.join(root, 'logs') };
+    },
+    verifyDependencyIntegrity() {
+      order.push('integrity');
+      return { ok: true, directDependencyCount: 0, installedCount: 0, missing: [], invalid: [], checkedAtUtc: '2026-08-02T00:00:00.000Z' };
+    }
+  });
+  assert.deepEqual(order, ['seed', 'npm-ci', 'integrity']);
+  assert.equal(result.cleanInstallReceipt.status, 'SOURCE_INSTALL_VERIFIED');
+  assert.equal(result.cleanInstallReceipt.windowsUat, false);
+  assert.equal(result.cleanInstallReceipt.electronLaunch.status, 'NOT_EXECUTED');
+  assert.equal(result.cleanInstallReceipt.dependencySeed.seedCount, 1);
+});
+
+test('installDependencies fails closed when trusted dependency cache seeding fails', () => {
+  const root = tempRoot();
+  assert.throws(() => installDependencies(root, {
+    platform: 'linux',
+    dependencyAuthority: {
+      seedTrustedDependencyCache() {
+        throw Object.assign(new Error('seed failed'), { reasonCode: 'SOURCE_UAT_DEPENDENCY_SEED_SHA256_MISMATCH' });
+      }
+    }
+  }), error => error.reasonCode === 'SOURCE_UAT_DEPENDENCY_SEED_SHA256_MISMATCH');
 });
 
 
@@ -134,6 +223,47 @@ test('dependency integrity rejects missing or incomplete direct packages before 
   const complete = verifyDependencyIntegrity(root, { packageNames: ['express'], platform: 'linux' });
   assert.equal(complete.ok, true);
   assert.equal(complete.installedCount, 1);
+});
+
+
+test('npm install failures classify registry package 404 as deterministic missing dependency', () => {
+  const classification = classifyNpmInstallFailure(`npm error code E404\nnpm error 404 Not Found - GET https://mirror.example/yargs-parser/-/yargs-parser-18.1.3.tgz\nnpm error 404 'yargs-parser@https://mirror.example/yargs-parser/-/yargs-parser-18.1.3.tgz' is not in this registry.`);
+  assert.deepEqual(classification, {
+    category: 'DEPENDENCY_REGISTRY_PACKAGE_MISSING',
+    deterministic: true,
+    retryRecommended: false,
+    packageName: 'yargs-parser',
+    version: '18.1.3',
+    httpStatus: 404
+  });
+});
+
+test('npm install failures classify network timeout as transient without hiding it', () => {
+  const classification = classifyNpmInstallFailure('npm error code ETIMEDOUT\nnpm error network request timed out');
+  assert.equal(classification.category, 'DEPENDENCY_NETWORK_TRANSIENT');
+  assert.equal(classification.deterministic, false);
+  assert.equal(classification.retryRecommended, true);
+});
+
+
+test('npm ci retry stops after a deterministic registry package 404', () => {
+  const root = tempRoot();
+  let calls = 0;
+  const result = runNpmCiWithRetry(root, {}, {
+    platform: 'linux',
+    maxAttempts: 3,
+    logRoot: path.join(root, 'logs'),
+    spawn(command, args, options) {
+      calls += 1;
+      fs.writeSync(options.stdio[2], "npm error code E404\nnpm error 404 'yargs-parser@https://mirror.example/yargs-parser/-/yargs-parser-18.1.3.tgz' is not in this registry.\n");
+      return { status: 1, error: null, signal: null };
+    }
+  });
+  assert.equal(result.ok, false);
+  assert.equal(calls, 1);
+  assert.equal(result.attempts.length, 1);
+  assert.equal(result.final.failure.category, 'DEPENDENCY_REGISTRY_PACKAGE_MISSING');
+  assert.equal(result.final.failure.retryRecommended, false);
 });
 
 test('npm ci retry records every failed attempt and succeeds without hiding install evidence', () => {
@@ -159,8 +289,10 @@ test('Electron local archive recovery is bound to the reviewed Windows SHA-256',
   const artifact = expectedElectronArtifact(repoRoot, 'win32', 'x64');
   assert.equal(artifact.fileName, 'electron-v39.8.5-win32-x64.zip');
   assert.match(artifact.sha256, /^[0-9a-f]{64}$/u);
+  const expectedArchive = path.join(repoRoot, 'vendor', 'electron', artifact.fileName);
   const discovered = discoverElectronArchive(repoRoot, { platform: 'win32', arch: 'x64', electronZip: path.join(tempRoot(), 'missing.zip') });
-  assert.equal(discovered.archivePath, '');
+  assert.equal(discovered.archivePath, expectedArchive);
+  assert.equal(discovered.actualSha256, artifact.sha256);
   assert.equal(discovered.artifact.sha256, artifact.sha256);
 });
 
@@ -169,6 +301,32 @@ test('Electron ZIP extraction rejects traversal and absolute entries', () => {
   assert.throws(() => secureZipEntryPath(root, '../electron.exe'), error => error.reasonCode === 'SOURCE_UAT_ELECTRON_ARCHIVE_ENTRY_INVALID');
   assert.throws(() => secureZipEntryPath(root, 'C:/electron.exe'), error => error.reasonCode === 'SOURCE_UAT_ELECTRON_ARCHIVE_ENTRY_INVALID');
   assert.doesNotThrow(() => secureZipEntryPath(root, 'locales/zh-CN.pak'));
+});
+
+test('FIX6O Windows launcher uses the trusted install authority without sandbox bypasses', () => {
+  const cmdPath = path.join(repoRoot, 'RUN_FIX6O_GATE0_WINDOWS_UAT.cmd');
+  const ps1Path = path.join(repoRoot, 'RUN_FIX6O_GATE0_WINDOWS_UAT.ps1');
+  assert.equal(fs.existsSync(cmdPath), true);
+  assert.equal(fs.existsSync(ps1Path), true);
+
+  const cmdBytes = fs.readFileSync(cmdPath);
+  const forbiddenControlBytes = [...cmdBytes].filter(byte => byte < 32 && ![9, 10, 13].includes(byte));
+  assert.deepEqual(forbiddenControlBytes, [], 'launcher must not contain embedded control characters');
+  const cmd = cmdBytes.toString('utf8');
+  assert.doesNotMatch(cmd, /(?<!\r)\n/u, 'launcher must use CRLF line endings');
+  assert.match(cmd, /RUN_FIX6O_GATE0_WINDOWS_UAT\.ps1/u);
+  assert.match(cmd, /pause[\s\S]*exit \/b %YANCE_EXIT%/u, 'launcher must remain visible after failure or normal exit');
+
+  const ps1 = fs.readFileSync(ps1Path, 'utf8');
+  assert.match(ps1, /tools[\\/]runtime-delivery[\\/]start-source-uat\.js/u);
+  assert.match(ps1, /vendor[\\/]electron[\\/]electron-v39\.8\.5-win32-x64\.zip/u);
+  assert.match(ps1, /d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34/u);
+  assert.match(ps1, /gate0-windows-launcher/u);
+  assert.match(ps1, /Start-Process/u);
+  assert.match(ps1, /RedirectStandardOutput/u);
+  assert.match(ps1, /RedirectStandardError/u);
+  assert.match(ps1, /--install/u);
+  assert.doesNotMatch(`${cmd}\n${ps1}`, /--no-sandbox|ELECTRON_DISABLE_SANDBOX/iu);
 });
 
 test('obsolete root launchers remain quarantined and npm scripts use the source UAT authority', () => {

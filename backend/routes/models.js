@@ -6,6 +6,8 @@ const registry = require('../services/modelRegistry');
 const modelStatus = require('../services/modelStatusService');
 const qualification = require('../services/modelQualification');
 const aiGateway = require('../services/aiGateway');
+const candidateExecutionService = require('../services/candidateExecutionService');
+const productionExecutionService = require('../services/productionExecutionService');
 const eventBus = require('../services/eventBus');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
 const securityGuard = getSecurityGuard();
@@ -21,6 +23,9 @@ const openRouterAutoConfiguration = require('../services/openRouterAutoConfigura
 const commercialModelBenchmark = require('../services/commercialModelBenchmarkService');
 const aiQualityRouteAuthority = require('../services/aiQualityRouteAuthority');
 const openRouterOnboardingSmoke = require('../services/openRouterOnboardingSmokeService');
+const replyChampionAuthority = require('../services/replyChampionAuthority');
+const workloadPlacementAuthority = require('../services/aiWorkloadPlacementAuthority');
+const aiBudgetAuthority = require('../services/aiBudgetAuthority');
 
 const router = express.Router();
 const testControllers = new Map();
@@ -112,6 +117,60 @@ router.get('/quality-routing', (_req, res) => {
       blocked: rows.filter(row => row.state === aiQualityRouteAuthority.ROUTE_STATE.BLOCKED).length
     }
   });
+});
+
+
+router.get('/brain-routing', (_req, res) => {
+  const state = registry.read();
+  const models = Array.isArray(state.models) ? state.models : [];
+  const now = new Date().toISOString();
+  const championTasks = ['quick_reply', 'deep_reply', 'director'];
+  const champions = Object.fromEntries(championTasks.map(task => [task, replyChampionAuthority.decide(models, task, {
+    now,
+    maxFallbackScoreGap: Number(state.routes?.[task]?.maxFallbackScoreGap ?? replyChampionAuthority.DEFAULT_MAX_FALLBACK_SCORE_GAP)
+  })]));
+  const workloadProfiles = {
+    translationOutbound: { task: 'translation', options: { translationProfile: 'outbound', now } },
+    translationHistory: { task: 'translation', options: { translationProfile: 'history', background: true, now } },
+    relationship: { task: 'relationship', options: { background: true, now } },
+    understanding: { task: 'understanding', options: { background: true, now } },
+    factExtraction: { task: 'fact_extraction', options: { background: true, now } },
+    memoryExtraction: { task: 'memory_extraction', options: { background: true, now } },
+    summary: { task: 'summary', options: { background: true, now } }
+  };
+  const workloads = Object.fromEntries(Object.entries(workloadProfiles).map(([name, profile]) => {
+    const ranked = workloadPlacementAuthority.rankCandidates(models, profile.task, profile.options);
+    return [name, {
+      authority: ranked.authority,
+      schemaVersion: ranked.schemaVersion,
+      policy: ranked.policy,
+      candidates: ranked.candidates,
+      rejected: ranked.rejected
+    }];
+  }));
+  const budget = aiBudgetAuthority.decide(state, { task: 'relationship', modelCostClass: 'paid-cloud' });
+  res.json({
+    ok: true,
+    authorityVersion: 'ai-champion-brain-v1',
+    champions,
+    workloads,
+    budget: {
+      policy: state.aiBudgetPolicy,
+      usage: state.aiBudgetUsage,
+      remainingUsd: budget.remainingUsd,
+      reserveUsd: budget.reserveUsd,
+      paidBackgroundAdmission: { pass: budget.pass, reasonCode: budget.reasonCode }
+    }
+  });
+});
+
+router.patch('/budget-policy', async (req, res, next) => {
+  try {
+    const state = await registry.setAiBudgetPolicy(req.body || {});
+    res.json({ ok: true, policy: state.aiBudgetPolicy, usage: state.aiBudgetUsage });
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.patch('/:id/lifecycle', async (req, res, next) => {
@@ -282,10 +341,10 @@ router.post('/cloud/openrouter/auto-configure', async (req, res, next) => {
         models: projectedFailure.models,
         routes: projectedFailure.routes,
         replyBrain: projectedFailure.replyBrain,
-        nextAction: '检查失败模型后重新运行最小真实调用；不得把目录读取成功当作回复链路成功。'
+        nextAction: '系统已按能力过滤并顺序尝试候选模型；请检查全部失败收据后重试，不得把目录读取成功当作回复链路成功。'
       });
     }
-    const automationConfig = await aiAutomation.updateConfig({ enabled: true, localOnly: false });
+    const automationStatus = aiAutomation.status();
     const connectedState = await registry.recordOpenRouterSnapshot({
       connectionState: 'conditional-ready',
       authenticationStatus: 'passed',
@@ -319,7 +378,9 @@ router.post('/cloud/openrouter/auto-configure', async (req, res, next) => {
       models: projected.models,
       routes: projected.routes,
       replyBrain: projected.replyBrain,
-      automation: automationConfig,
+      automation: automationStatus,
+      automationChanged: false,
+      automationChangeReason: 'OPENROUTER_ONBOARDING_DOES_NOT_MUTATE_GLOBAL_AUTOMATION',
       routingPolicy: 'cloud-quality-first-local-fallback',
       localFallbackScope: 'offline-only',
       routingPolicyDetail: 'cloud-quality-first-local-offline-fallback',
@@ -767,12 +828,17 @@ router.post('/routes/:task/test', async (req, res, next) => {
   try {
     const task = String(req.params.task || '').trim();
     if (!['quick_reply', 'deep_reply', 'director'].includes(task)) return res.status(400).json({ ok: false, error: 'UNSUPPORTED_ROUTE_TEST', message: '当前只支持测试快速回复、深度回复和 AI 导演路由。' });
+    const routeDraft = req.body?.routeDraft;
     const state = modelStatus.read();
-    const route = state.routes?.[task] || {};
+    const route = routeDraft && typeof routeDraft === 'object'
+      ? registry.validateRouteDraft(task, routeDraft, { autoSelect: true, source: 'route-test-draft' })
+      : (state.routes?.[task] || {});
     if (route.enabled === false || !route.primary) return res.status(409).json({ ok: false, error: 'ROUTE_NOT_CONFIGURED', message: '请先选择主模型并启用该任务路由。' });
     const startedAt = Date.now();
-    const result = await aiGateway.execute({
+    const result = await candidateExecutionService.execute({
       task,
+      routeTestId: String(req.body?.routeTestId || '').trim(),
+      route,
       messages: routeTestMessages(task),
       options: {
         maxTokens: Number(route.maxTokens || (task === 'deep_reply' ? 480 : task === 'director' ? 360 : 220)),
@@ -787,6 +853,10 @@ router.post('/routes/:task/test', async (req, res, next) => {
       pass: judged.pass,
       task,
       route: {
+        requested: route.requested,
+        resolved: route.resolved,
+        resolutionState: route.resolutionState,
+        reasonCodes: route.reasonCodes,
         primary: route.primary,
         fallback: route.fallback || '',
         allowConditional: route.allowConditional === true,
@@ -796,6 +866,11 @@ router.post('/routes/:task/test', async (req, res, next) => {
         autoSelectionReason: route.autoSelectionReason || '',
         timeoutMs: modelTaskRuntimePolicy.normalizeTimeoutMs(task, route.timeoutMs)
       },
+      routeTestId: result.routeTestId,
+      executionMode: result.executionMode,
+      deliveryEligible: result.deliveryEligible === true,
+      learningEligible: result.learningEligible === true,
+      formalReceiptEligible: result.formalReceiptEligible === true,
       modelId: result.modelId,
       model: result.model,
       fallbackUsed: result.fallbackUsed === true,
@@ -807,6 +882,18 @@ router.post('/routes/:task/test', async (req, res, next) => {
       structured: judged.structured || null,
       message: judged.pass ? '当前路由真实测试通过。' : '模型能够调用，但输出没有通过语言、Persona 或 WhatsApp 风格门禁。'
     });
+  } catch (error) { next(error); }
+});
+
+
+router.patch('/routes/:task', async (req, res, next) => {
+  try {
+    const task = String(req.params.task || '').trim();
+    const state = await registry.setRoute(task, req.body?.route || req.body?.routeDraft || {}, {
+      autoSelect: req.body?.autoSelect !== false,
+      source: 'user-configured-single-task'
+    });
+    res.json({ ok: true, task, route: state.routes?.[task] || null, routesUpdatedAt: state.routesUpdatedAt || '' });
   } catch (error) { next(error); }
 });
 
@@ -826,7 +913,7 @@ router.post('/execute', async (req, res, next) => {
   const closeHandler = () => { if (!res.writableEnded) abortRequest(); };
   res.once('close', closeHandler);
   try {
-    const result = await aiGateway.execute({
+    const result = await productionExecutionService.execute({
       task: req.body?.task,
       messages: req.body?.messages || [],
       modelId: req.body?.modelId || '',
@@ -848,7 +935,7 @@ router.post('/execute', async (req, res, next) => {
 
 router.post('/jobs', (req, res, next) => {
   try {
-    const submitted = aiGateway.submit({
+    const submitted = productionExecutionService.submit({
       task: req.body?.task,
       messages: req.body?.messages || [],
       modelId: req.body?.modelId || '',

@@ -1,0 +1,36 @@
+TAP version 13
+# (node:19683) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: UAT-053/054 lifecycle is truthful and rejection requires an explicit reason
+ok 1 - UAT-053/054 lifecycle is truthful and rejection requires an explicit reason
+  ---
+  duration_ms: 362.981368
+  type: 'test'
+  ...
+# Subtest: UAT-053/056/058 successful edited send records identity, applies learning, and exposes the full path
+ok 2 - UAT-053/056/058 successful edited send records identity, applies learning, and exposes the full path
+  ---
+  duration_ms: 370.182592
+  type: 'test'
+  ...
+# Subtest: UAT-059 permanent forget deletes contact learning and removes its evidence from wider scopes and histories
+ok 3 - UAT-059 permanent forget deletes contact learning and removes its evidence from wider scopes and histories
+  ---
+  duration_ms: 350.163313
+  type: 'test'
+  ...
+# Subtest: UAT-060 governance distinguishes lifecycle records from actual learning samples
+ok 4 - UAT-060 governance distinguishes lifecycle records from actual learning samples
+  ---
+  duration_ms: 344.389592
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1520.604891

@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: capability authority exposes canonical capability ids without losing legacy ids
+ok 1 - capability authority exposes canonical capability ids without losing legacy ids
+  ---
+  duration_ms: 13.304056
+  type: 'test'
+  ...
+# Subtest: facebook policy capability remains constrained while current account can send
+ok 2 - facebook policy capability remains constrained while current account can send
+  ---
+  duration_ms: 2.856127
+  type: 'test'
+  ...
+# Subtest: whatsapp identity degradation does not disable text sending
+ok 3 - whatsapp identity degradation does not disable text sending
+  ---
+  duration_ms: 1.831085
+  type: 'test'
+  ...
+# Subtest: telegram onboarding is account scoped and never escalates to global failure
+ok 4 - telegram onboarding is account scoped and never escalates to global failure
+  ---
+  duration_ms: 5.469409
+  type: 'test'
+  ...
+# Subtest: unknown capability is explicitly unavailable rather than defaulting to supported
+ok 5 - unknown capability is explicitly unavailable rather than defaulting to supported
+  ---
+  duration_ms: 0.816319
+  type: 'test'
+  ...
+# Subtest: history synchronization can degrade independently from real-time send and receive
+ok 6 - history synchronization can degrade independently from real-time send and receive
+  ---
+  duration_ms: 0.782403
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 72.114437

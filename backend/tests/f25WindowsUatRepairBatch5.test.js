@@ -7,38 +7,36 @@ const path = require('node:path');
 const analysisAuthority = require('../services/aiAnalysisResultAuthority');
 const taskReadinessAuthority = require('../services/aiTaskRoleReadinessAuthority');
 const replyBrainAuthority = require('../services/replyBrainModelAuthority');
+const roleReceipts = require('../services/aiRoleQualificationReceiptAuthority');
 
-function qualifiedModel(id, tasks = taskReadinessAuthority.CORE_AI_TASKS) {
+function qualifiedModel(id, tasks = taskReadinessAuthority.CORE_AI_TASKS, provider = 'openai-compatible', modelSlug = '') {
+  const allowedTasks = [...new Set([...tasks, 'quick_reply', 'deep_reply', 'director'])];
+  const commercialEvidence = {
+    authority: 'YanceCommercialModelBenchmark', status: 'COMMERCIAL_MODEL_QUALIFIED', testedAt: '2026-07-31T10:00:00.000Z',
+    completed: true, pass: true, score: 95, qualifyingTasks: [...new Set([...tasks, 'translation'])], translationScore: 95, evidenceScore: 95
+  };
+  const replyEvidence = {
+    authority: 'YanceReplyBrainBenchmark', status: 'REPLY_BRAIN_QUALIFIED', testedAt: '2026-07-31T10:00:00.000Z',
+    completed: true, pass: true, score: 94, qualifyingTasks: ['quick_reply', 'deep_reply', 'director'], scenarios: []
+  };
+  const receipts = {};
+  for (const task of roleReceipts.GOVERNED_TASKS) {
+    if (!allowedTasks.includes(task)) continue;
+    const evidence = task === 'translation' ? commercialEvidence : replyEvidence;
+    receipts[task] = roleReceipts.issueFromEvidence({ modelId: id, task, evidence, expiresAt: '2030-01-01T00:00:00.000Z' });
+  }
   return {
     id,
     name: `general-${id}`,
-    provider: 'openai-compatible',
+    provider,
+    modelSlug,
     available: true,
     qualification: 'verified',
-    allowedTasks: [...new Set([...tasks, 'quick_reply', 'deep_reply', 'director'])],
-    lastTest: {
-      scores: {
-        persona: { pass: true },
-        hallucination: { pass: true },
-        json: { pass: true },
-        translation: { pass: true }
-      }
-    },
-    lastCommercialBenchmark: {
-      completed: true,
-      pass: true,
-      qualifyingTasks: [...new Set([...tasks, 'translation'])],
-      translationScore: 95,
-      evidenceScore: 95
-    },
-    lastReplyBrainBenchmark: {
-      authority: 'YanceReplyBrainBenchmark',
-      completed: true,
-      pass: true,
-      status: 'REPLY_BRAIN_QUALIFIED',
-      score: 94,
-      scenarios: []
-    }
+    allowedTasks,
+    lastTest: { scores: { persona: { pass: true }, hallucination: { pass: true }, json: { pass: true }, translation: { pass: true } } },
+    lastCommercialBenchmark: commercialEvidence,
+    lastReplyBrainBenchmark: replyEvidence,
+    roleQualificationReceipts: receipts
   };
 }
 
@@ -81,8 +79,8 @@ test('analysis result authority rejects empty output and produces a committed au
 });
 
 test('translation readiness requires a distinct qualified primary and fallback model', () => {
-  const primary = qualifiedModel('translation-primary');
-  const fallback = qualifiedModel('translation-fallback');
+  const primary = qualifiedModel('translation-primary', taskReadinessAuthority.CORE_AI_TASKS, 'openrouter', 'anthropic/translation-primary');
+  const fallback = qualifiedModel('translation-fallback', taskReadinessAuthority.CORE_AI_TASKS, 'openrouter', 'openai/translation-fallback');
   let result = replyBrainAuthority.evaluate([primary], {
     translation: { primary: primary.id, fallback: '', requestedEnabled: true }
   });

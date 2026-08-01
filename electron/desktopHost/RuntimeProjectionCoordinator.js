@@ -490,7 +490,7 @@ class RuntimeProjectionCoordinator {
     return response;
   }
 
-  setOperatingMode(operatingMode, reason = '', options = {}) { return this._command('runtime.setOperatingMode', { operatingMode, reason }, options); }
+  setOperatingMode(operatingMode, reason = '', options = {}) { return this._command('runtime.setOperatingMode', { operatingMode, reason, exitAuthorizationId: String(options.exitAuthorizationId || ''), exitAuthorizationToken: String(options.exitAuthorizationToken || '') }, options); }
   requestStop(reason = '', options = {}) {
     this.prepareForStop();
     let operation = this.stopOperation;

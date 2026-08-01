@@ -1,0 +1,48 @@
+TAP version 13
+# (node:18871) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Facebook Avatar Closure diagnostic traces identity, signed Worker bytes, SQLite and cache without exposing raw PSID
+ok 1 - Facebook Avatar Closure diagnostic traces identity, signed Worker bytes, SQLite and cache without exposing raw PSID
+  ---
+  duration_ms: 21.936024
+  type: 'test'
+  ...
+# Subtest: Facebook Avatar Closure route and UI export are present
+ok 2 - Facebook Avatar Closure route and UI export are present
+  ---
+  duration_ms: 1.455945
+  type: 'test'
+  ...
+# Subtest: Facebook Avatar Closure preserves Worker V9 Picture Edge, generic picture and Messenger profile evidence separately
+ok 3 - Facebook Avatar Closure preserves Worker V9 Picture Edge, generic picture and Messenger profile evidence separately
+  ---
+  duration_ms: 2.281089
+  type: 'test'
+  ...
+# Subtest: Facebook Avatar Closure compares persisted identity with message-derived identity without exporting raw IDs
+ok 4 - Facebook Avatar Closure compares persisted identity with message-derived identity without exporting raw IDs
+  ---
+  duration_ms: 1.638785
+  type: 'test'
+  ...
+# Subtest: avatarService exposes read-only buffer and cache validators used by Avatar Closure
+ok 5 - avatarService exposes read-only buffer and cache validators used by Avatar Closure
+  ---
+  duration_ms: 0.108409
+  type: 'test'
+  ...
+# Subtest: Avatar Closure renderer and core contracts include the real command path and V8 branch labels
+ok 6 - Avatar Closure renderer and core contracts include the real command path and V8 branch labels
+  ---
+  duration_ms: 1.012098
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 350.295611

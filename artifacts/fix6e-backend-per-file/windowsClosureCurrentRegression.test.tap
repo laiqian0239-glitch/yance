@@ -1,0 +1,144 @@
+TAP version 13
+# (node:20367) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: sync merge keeps stable WhatsApp identity and avatar during incomplete snapshots
+ok 1 - sync merge keeps stable WhatsApp identity and avatar during incomplete snapshots
+  ---
+  duration_ms: 1.489132
+  type: 'test'
+  ...
+# Subtest: sync event storm is coalesced without media-triggered full conversation reload
+ok 2 - sync event storm is coalesced without media-triggered full conversation reload
+  ---
+  duration_ms: 0.834383
+  type: 'test'
+  ...
+# Subtest: history completion still requests one intentional full conversation reload
+ok 3 - history completion still requests one intentional full conversation reload
+  ---
+  duration_ms: 0.290328
+  type: 'test'
+  ...
+# Subtest: authoritative merge and removal refreshes replace the visible contact set instead of retaining tombstones
+ok 4 - authoritative merge and removal refreshes replace the visible contact set instead of retaining tombstones
+  ---
+  duration_ms: 1.659636
+  type: 'test'
+  ...
+# Subtest: conversation refresh fingerprint ignores volatile snapshots but detects visible changes
+ok 5 - conversation refresh fingerprint ignores volatile snapshots but detects visible changes
+  ---
+  duration_ms: 0.535756
+  type: 'test'
+  ...
+# Subtest: typing fingerprint ignores cloned equivalent snapshots but detects actual typing changes
+ok 6 - typing fingerprint ignores cloned equivalent snapshots but detects actual typing changes
+  ---
+  duration_ms: 0.223203
+  type: 'test'
+  ...
+# Subtest: individual media recovery patches are not treated as full conversation reloads
+ok 7 - individual media recovery patches are not treated as full conversation reloads
+  ---
+  duration_ms: 0.5611
+  type: 'test'
+  ...
+# Subtest: media recovery repository updates are recognized without suppressing unrelated message updates
+ok 8 - media recovery repository updates are recognized without suppressing unrelated message updates
+  ---
+  duration_ms: 0.211084
+  type: 'test'
+  ...
+# Subtest: conversation runtime suppresses unchanged DOM rebuilds and incremental refresh does not rebroadcast initial data-ready
+ok 9 - conversation runtime suppresses unchanged DOM rebuilds and incremental refresh does not rebroadcast initial data-ready
+  ---
+  duration_ms: 3.159595
+  type: 'test'
+  ...
+# Subtest: history media recovery is deduplicated, concurrent and reaches a terminal state
+ok 10 - history media recovery is deduplicated, concurrent and reaches a terminal state
+  ---
+  duration_ms: 11.592335
+  type: 'test'
+  ...
+# Subtest: history media queue limits settle excess records explicitly instead of leaving them recovering
+ok 11 - history media queue limits settle excess records explicitly instead of leaving them recovering
+  ---
+  duration_ms: 0.372642
+  type: 'test'
+  ...
+# Subtest: customer social context resolves a direct conversation id back to its canonical contact
+ok 12 - customer social context resolves a direct conversation id back to its canonical contact
+  ---
+  duration_ms: 276.094826
+  type: 'test'
+  ...
+# Subtest: startup auto-connect restores Telegram sessions that are credential-ready but initially unconfigured
+ok 13 - startup auto-connect restores Telegram sessions that are credential-ready but initially unconfigured
+  ---
+  duration_ms: 12.569003
+  type: 'test'
+  ...
+# Subtest: cloud model failure remains configured and exposes the real HTTP error
+ok 14 - cloud model failure remains configured and exposes the real HTTP error
+  ---
+  duration_ms: 3.152273
+  type: 'test'
+  ...
+# Subtest: OpenAI-compatible test retries modern completion parameter shape after a 400 compatibility error
+ok 15 - OpenAI-compatible test retries modern completion parameter shape after a 400 compatibility error
+  ---
+  duration_ms: 14.74995
+  type: 'test'
+  ...
+# Subtest: cloud model verification performs discovery, text inference and optional image inference
+ok 16 - cloud model verification performs discovery, text inference and optional image inference
+  ---
+  duration_ms: 1.723812
+  type: 'test'
+  ...
+# Subtest: cloud model network failures expose TLS and transport error categories
+ok 17 - cloud model network failures expose TLS and transport error categories
+  ---
+  duration_ms: 0.66311
+  type: 'test'
+  ...
+# Subtest: Facebook avatar proxy authorizes upstream Facebook image reads without exposing page token to desktop
+ok 18 - Facebook avatar proxy authorizes upstream Facebook image reads without exposing page token to desktop
+  ---
+  duration_ms: 15.164551
+  type: 'test'
+  ...
+# Subtest: Facebook account state persists the proxied Page avatar into account metadata
+ok 19 - Facebook account state persists the proxied Page avatar into account metadata
+  ---
+  duration_ms: 0.396348
+  type: 'test'
+  ...
+# Subtest: cloud model setup discovers visible models and requires a minimum real inference before save
+ok 20 - cloud model setup discovers visible models and requires a minimum real inference before save
+  ---
+  duration_ms: 1.923136
+  type: 'test'
+  ...
+# Subtest: source launch authority imports data-root discovery while obsolete root launchers remain quarantined
+ok 21 - source launch authority imports data-root discovery while obsolete root launchers remain quarantined
+  ---
+  duration_ms: 0.257451
+  type: 'test'
+  ...
+# Subtest: diagnostic success no longer requires a returned path and route changes clear stale status
+ok 22 - diagnostic success no longer requires a returned path and route changes clear stale status
+  ---
+  duration_ms: 0.677159
+  type: 'test'
+  ...
+1..22
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 756.810761

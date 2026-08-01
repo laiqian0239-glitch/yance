@@ -1,0 +1,90 @@
+TAP version 13
+# (node:20288) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Baileys media envelope round-trips encrypted media bytes without logging-only placeholders
+ok 1 - Baileys media envelope round-trips encrypted media bytes without logging-only placeholders
+  ---
+  duration_ms: 1.560078
+  type: 'test'
+  ...
+# Subtest: photos persist thumbnail plus durable media envelope for restart recovery
+ok 2 - photos persist thumbnail plus durable media envelope for restart recovery
+  ---
+  duration_ms: 1.587325
+  type: 'test'
+  ...
+# Subtest: lottie FutureProofMessage unwraps to normal sticker recovery instead of unsupported
+ok 3 - lottie FutureProofMessage unwraps to normal sticker recovery instead of unsupported
+  ---
+  duration_ms: 0.524642
+  type: 'test'
+  ...
+# Subtest: voice messages preserve Opus waveform and durable envelope
+ok 4 - voice messages preserve Opus waveform and durable envelope
+  ---
+  duration_ms: 0.359799
+  type: 'test'
+  ...
+# Subtest: restart resume reconstructs stored envelope and persists ready media
+ok 5 - restart resume reconstructs stored envelope and persists ready media
+  ---
+  duration_ms: 11.039195
+  type: 'test'
+  ...
+# Subtest: brand logos remain valid WhatsApp Business avatars because provenance is authoritative
+ok 6 - brand logos remain valid WhatsApp Business avatars because provenance is authoritative
+  ---
+  duration_ms: 0.361791
+  type: 'test'
+  ...
+# Subtest: runtime has thumbnail fallback, retry action and durable recovery route
+ok 7 - runtime has thumbnail fallback, retry action and durable recovery route
+  ---
+  duration_ms: 2.658165
+  type: 'test'
+  ...
+# Subtest: transcription reports configured command or precise engine-not-configured status
+ok 8 - transcription reports configured command or precise engine-not-configured status
+  ---
+  duration_ms: 3.624484
+  type: 'test'
+  ...
+# Subtest: on-demand history refetch is treated as media patching, not another full conversation reload
+ok 9 - on-demand history refetch is treated as media patching, not another full conversation reload
+  ---
+  duration_ms: 1.694205
+  type: 'test'
+  ...
+# Subtest: WhatsApp Business names use real directory/profile fields and never avatar pixel classification
+ok 10 - WhatsApp Business names use real directory/profile fields and never avatar pixel classification
+  ---
+  duration_ms: 1.10819
+  type: 'test'
+  ...
+# Subtest: voice transcription discovers ffmpeg for WhatsApp OGG Opus conversion before whisper.cpp
+ok 11 - voice transcription discovers ffmpeg for WhatsApp OGG Opus conversion before whisper.cpp
+  ---
+  duration_ms: 0.226294
+  type: 'test'
+  ...
+# Subtest: WhatsApp diagnostics expose the real media recovery backlog by kind and missing envelope
+ok 12 - WhatsApp diagnostics expose the real media recovery backlog by kind and missing envelope
+  ---
+  duration_ms: 0.204397
+  type: 'test'
+  ...
+# Subtest: media recovery uses finite backoff and manual retry counts exactly once
+ok 13 - media recovery uses finite backoff and manual retry counts exactly once
+  ---
+  duration_ms: 21.067541
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 377.506515

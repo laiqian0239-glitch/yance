@@ -1,0 +1,48 @@
+TAP version 13
+# (node:20223) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Telegram history sync imports messages in chronological order and restores server unread count
+ok 1 - Telegram history sync imports messages in chronological order and restores server unread count
+  ---
+  duration_ms: 4.583496
+  type: 'test'
+  ...
+# Subtest: Telegram timestamp helper accepts Date, Unix seconds, and Unix milliseconds
+ok 2 - Telegram timestamp helper accepts Date, Unix seconds, and Unix milliseconds
+  ---
+  duration_ms: 0.26046
+  type: 'test'
+  ...
+# Subtest: Telegram live ingest retries when a prior receipt exists but the message was never persisted
+ok 3 - Telegram live ingest retries when a prior receipt exists but the message was never persisted
+  ---
+  duration_ms: 2.415546
+  type: 'test'
+  ...
+# Subtest: Telegram first live message is visible before sender/avatar enrichment starts
+ok 4 - Telegram first live message is visible before sender/avatar enrichment starts
+  ---
+  duration_ms: 0.9412
+  type: 'test'
+  ...
+# Subtest: Telegram history sync resumes durable backfill offset across runs without skipping older pages
+ok 5 - Telegram history sync resumes durable backfill offset across runs without skipping older pages
+  ---
+  duration_ms: 2.75839
+  type: 'test'
+  ...
+# Subtest: Telegram history sync does not advance the committed high-water mark until a multi-run new-message gap is closed
+ok 6 - Telegram history sync does not advance the committed high-water mark until a multi-run new-message gap is closed
+  ---
+  duration_ms: 2.420454
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 500.649634

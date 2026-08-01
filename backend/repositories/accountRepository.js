@@ -17,6 +17,12 @@ const STATE_DEFAULTS = Object.freeze({
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 function now() { return new Date().toISOString(); }
 function idFor(platform) { return `${platform.slice(0, 2)}-${crypto.randomUUID()}`; }
+function defaultAccountKind(platform) { return platform === 'facebook' ? 'page' : platform === 'telegram' ? 'personal' : 'personal-multidevice'; }
+function defaultDriverId(platform, accountKind) {
+  if (platform === 'facebook') return accountKind === 'personal-identity' ? 'facebook-personal-identity-official' : accountKind === 'personal-messenger' ? 'facebook-personal-messenger-experimental' : 'facebook-page-official';
+  if (platform === 'telegram') return 'telegram-personal-mtproto';
+  return 'whatsapp-web-multidevice';
+}
 
 function readState(store = getStore()) {
   const value = store.getSetting(STATE_NAMESPACE, 'document', STATE_DEFAULTS) || STATE_DEFAULTS;
@@ -96,6 +102,8 @@ function sanitizeAccount(input = {}, existing = {}) {
   }
   const id = String(input.id || existing.id || idFor(platform));
   const paused = input.paused == null ? Boolean(existing.paused) : Boolean(input.paused);
+  const accountKind = String(input.accountKind || input.metadata?.accountKind || existing.accountKind || existing.metadata?.accountKind || defaultAccountKind(platform)).trim().toLowerCase();
+  const driverId = String(input.driverId || input.metadata?.driverId || existing.driverId || existing.metadata?.driverId || defaultDriverId(platform, accountKind)).trim();
   const existingLifecycle = String(existing.lifecycleState || 'active');
   const requestedLifecycle = String(input.lifecycleState || '');
   const lifecycle = requestedLifecycle || (['merged','tombstoned','deleted'].includes(existingLifecycle) ? existingLifecycle : (paused ? 'paused' : 'active'));
@@ -112,7 +120,9 @@ function sanitizeAccount(input = {}, existing = {}) {
     notificationsEnabled: input.notificationsEnabled == null ? existing.notificationsEnabled !== false : Boolean(input.notificationsEnabled),
     autoReconnect: input.autoReconnect == null ? existing.autoReconnect !== false : Boolean(input.autoReconnect),
     paused,
-    metadata: { ...(existing.metadata || {}), ...(input.metadata || {}) },
+    accountKind,
+    driverId,
+    metadata: { ...(existing.metadata || {}), ...(input.metadata || {}), accountKind, driverId },
     canonicalAccountId: String(input.canonicalAccountId || existing.canonicalAccountId || id),
     lifecycleState: lifecycle,
     mergedIntoId: String(input.mergedIntoId || existing.mergedIntoId || ''),

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_GATE0_DEPENDENCY_INSTALL_BLOCKER",
+  "generatedAtUtc": "2026-08-01T18:01:50.671840Z",
+  "status": "BLOCKED_DETERMINISTIC_REGISTRY_PACKAGE_MISSING",
+  "currentProjectState": "PARTIAL",
+  "readyForPromotion": false,
+  "formalRelease": false,
+  "trustedSeedVerification": [
+    {
+      "packageName": "yauzl",
+      "version": "2.10.0",
+      "archivePath": "vendor/npm/yauzl-2.10.0.tgz",
+      "archiveBytes": 18697,
+      "archiveSha256": "550f31835d7b64007309033dfb33571825b4ccfd92d31729749139b504c26cb1",
+      "integrity": "sha512-p4a9I6X6nu6IhoGmBqAcbJy1mlC4j27vEPZX9F4L4/vZT3Lyq1VkFHw/V/PUcB9Buo+DG3iHkT0x3Qya58zc3g==",
+      "lockMatched": true,
+      "packageMetadataMatched": true,
+      "cacheSeeded": true
+    },
+    {
+      "packageName": "yargs-parser",
+      "version": "18.1.3",
+      "archivePath": "vendor/npm/yargs-parser-18.1.3.tgz",
+      "archiveBytes": 19098,
+      "archiveSha256": "0c9135ee2330fd9cdc19fed11b8d9a7b292f5dd8ddf40c13b051340693ebbe58",
+      "integrity": "sha512-o50j0JeToy/4K6OZcaQmW6lyXXKhq7csREXcDwk2omFPJEwUNOVtJKvmDr9EI1fAJZUyZcRF7kxGBWmRXudrCQ==",
+      "lockMatched": true,
+      "packageMetadataMatched": true,
+      "cacheSeeded": true
+    }
+  ],
+  "npmCi": {
+    "attemptCount": 1,
+    "retryStoppedByPolicy": true,
+    "failure": {
+      "category": "DEPENDENCY_REGISTRY_PACKAGE_MISSING",
+      "deterministic": true,
+      "retryRecommended": false,
+      "packageName": "yargs",
+      "version": "15.4.1",
+      "httpStatus": 404
+    },
+    "registryOverrideApplied": false,
+    "privateCacheUsed": true,
+    "preferOffline": true
+  },
+  "requiredNextArtifact": {
+    "packageName": "yargs",
+    "version": "15.4.1",
+    "resolved": "https://registry.npmjs.org/yargs/-/yargs-15.4.1.tgz",
+    "integrity": "sha512-aePbxDmcYW++PaqBsJ+HYUFwCdv4LVvdnhBy78E57PIor8/OVvhMrADFFEDh8DHDFRv/O9i3lPhsENjO7QX0+A==",
+    "license": "MIT",
+    "acceptance": "原始 npm 发布 tarball 必须同时通过 lock version/resolved/integrity、SHA-256 和 package.json name/version 校验"
+  },
+  "ciClassification": "DETERMINISTIC_DEPENDENCY_MIRROR_GAP_DO_NOT_BLIND_RETRY",
+  "github": {
+    "repository": "laiqian0239-glitch/yance",
+    "remoteBaselineContainsGate0V3": false,
+    "writePerformed": false
+  },
+  "circleci": {
+    "configPresent": false,
+    "pipelineExecuted": false
+  },
+  "replayEvidence": {
+    "available": false,
+    "reason": "NO_REPLAY_RECORDING_ID_IN_SOURCE_OR_GITHUB_CONTEXT"
+  }
+}

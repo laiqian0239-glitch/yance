@@ -1,6 +1,7 @@
 'use strict';
 
 const { requestJson, normalizeEndpoint, normalizeApiKey } = require('./openAiCompatibleClient');
+const frontierCandidateAuthority = require('./openRouterFrontierCandidateAuthority');
 
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1';
 const SERVICE_VERSION = 'openrouter-auto-config-v3-quality-first';
@@ -27,6 +28,7 @@ const EMBEDDING_PATTERN = /embedding|rerank|vector model|bge-|nomic-embed|e5-/u;
 const SAFETY_PATTERN = /moderation|content safety|guard(?:rail)?|safety classifier/u;
 const CODE_PATTERN = /\bcoder\b|code model|coding agent|starcoder|deepseek-coder|codeqwen/u;
 const TRANSCRIPTION_PATTERN = /speech[- ]?to[- ]?text|transcription|whisper/u;
+const BATCH_PATTERN = /(?:^|[:/._-])batch(?:$|[:/._-])/u;
 const GENERATION_PATTERN = /(?:text[- ]?to[- ]?(?:image|video|audio|music)|image generator|video generator|audio generator|music generator|speech synthesis|text[- ]?to[- ]?speech|\btts\b|\blyria\b|image\s*\d|nano banana|krea|flux\b|stable diffusion|midjourney)/u;
 
 function pricePerMillion(value) {
@@ -73,6 +75,7 @@ function normalizeCatalogModel(raw = {}) {
   const imageOutput = effectiveOutputs.includes('image');
   const audioOutput = effectiveOutputs.includes('audio');
   const videoOutput = effectiveOutputs.includes('video');
+  const batchOnly = BATCH_PATTERN.test(lower(id)) || lower(raw.api_mode) === 'batch' || lower(raw.endpoint_type) === 'batch';
   const generationOnly = (!textOutput && (imageOutput || audioOutput || videoOutput)) || GENERATION_PATTERN.test(text);
   const base = {
     id,
@@ -99,6 +102,7 @@ function normalizeCatalogModel(raw = {}) {
     audioOutput,
     videoOutput,
     generationOnly,
+    batchOnly,
     structuredOutput: supportedParameters.some(value => ['structured_outputs', 'response_format'].includes(value)),
     reasoning: supportedParameters.some(value => ['reasoning', 'include_reasoning'].includes(value)),
     tools: supportedParameters.some(value => ['tools', 'tool_choice'].includes(value)),
@@ -112,6 +116,7 @@ function normalizeCatalogModel(raw = {}) {
 function exclusionReason(model = {}) {
   const text = lower(`${model.id} ${model.name} ${model.description}`);
   if (!model.id) return 'missing-model-id';
+  if (model.batchOnly === true || BATCH_PATTERN.test(lower(model.id))) return 'batch-only-model';
   if (ROUTER_PATTERN.test(text)) return 'dynamic-router-not-deterministic';
   if (EMBEDDING_PATTERN.test(text)) return 'embedding-or-rerank-model';
   if (SAFETY_PATTERN.test(text)) return 'safety-classifier';
@@ -262,9 +267,13 @@ function rankForRole(models, role, limit = ROLE_LIMIT) {
     .slice(0, limit);
 }
 
-function buildSelections(models = []) {
+function buildSelections(models = [], frontierPlan = frontierCandidateAuthority.buildPlan(models)) {
   const roles = ['translation', 'quick_reply', 'director', 'deep_reply', 'media_analysis', 'memory_extraction', 'persona_rewrite'];
-  return Object.fromEntries(roles.map(role => [role, rankForRole(models, role)]));
+  return Object.fromEntries(roles.map(role => {
+    const rows = rankForRole(models, role);
+    const forcePreferred = ['quick_reply', 'director', 'deep_reply', 'persona_rewrite'].includes(role);
+    return [role, frontierCandidateAuthority.prioritizeRows(rows, frontierPlan, { forcePreferred })];
+  }));
 }
 
 function selectedTaskHints(selections = {}) {
@@ -279,15 +288,18 @@ function selectedTaskHints(selections = {}) {
   return hints;
 }
 
-function chooseRegistrationRows(selections = {}) {
+function chooseRegistrationRows(selections = {}, frontierPlan = {}) {
   const hints = selectedTaskHints(selections);
   const unique = new Map();
-  for (const rows of Object.values(selections)) {
-    for (const row of rows) if (!unique.has(row.id)) unique.set(row.id, { ...row, taskHints: hints.get(row.id) || [] });
-  }
+  const append = row => {
+    if (!row?.id || unique.has(row.id)) return;
+    unique.set(row.id, { ...row, taskHints: hints.get(row.id) || [] });
+  };
+  for (const row of Array.isArray(frontierPlan.shortlist) ? frontierPlan.shortlist : []) append(row);
+  for (const rows of Object.values(selections)) for (const row of rows) append(row);
   return [...unique.values()]
-    .map(row => ({ ...row, registrationQuality: familyQuality(row), usagePolicy: usagePolicy(row) }))
-    .sort((a, b) => b.registrationQuality - a.registrationQuality || Number(a.free) - Number(b.free) || b.taskHints.length - a.taskHints.length || b.selectionScore - a.selectionScore)
+    .map((row, index) => ({ ...row, frontierOrder: index, registrationQuality: familyQuality(row), usagePolicy: usagePolicy(row) }))
+    .sort((a, b) => a.frontierOrder - b.frontierOrder || b.registrationQuality - a.registrationQuality || Number(a.free) - Number(b.free) || b.taskHints.length - a.taskHints.length || Number(b.selectionScore || 0) - Number(a.selectionScore || 0))
     .slice(0, REGISTER_LIMIT);
 }
 
@@ -421,8 +433,9 @@ async function autoConfigure(options = {}) {
   const catalog = rawCatalog.map(normalizeCatalogModel).filter(model => model.id);
   const eligible = catalog.filter(model => !isSpecialPurpose(model));
   if (!eligible.length) throw Object.assign(new Error('OpenRouter当前账号没有返回适合言策任务的模型'), { code: 'OPENROUTER_MODEL_CATALOG_EMPTY' });
-  const selections = buildSelections(eligible);
-  const registrationRows = chooseRegistrationRows(selections);
+  const frontierPlan = frontierCandidateAuthority.buildPlan(eligible, { limit: REGISTER_LIMIT });
+  const selections = buildSelections(eligible, frontierPlan);
+  const registrationRows = chooseRegistrationRows(selections, frontierPlan);
   if (!registrationRows.length) throw Object.assign(new Error('没有找到适合言策任务的OpenRouter模型'), { code: 'OPENROUTER_NO_YANCE_CANDIDATES' });
 
   if (typeof registry.synchronizeOpenRouterCatalog === 'function') {
@@ -474,6 +487,19 @@ async function autoConfigure(options = {}) {
     selections: Object.fromEntries(Object.entries(selections).map(([role, rows]) => [role, rows.map(publicSelection)])),
     registered: registrationRows.map(publicSelection),
     routingPolicy: 'QUALITY_FIRST_CLOUD_PRIMARY_FREE_UTILITY_LOCAL_OFFLINE_FALLBACK',
+    preferredRoute: {
+      authority: frontierPlan.authority,
+      primarySlug: frontierPlan.preferredPrimary.slug,
+      primaryAvailable: frontierPlan.preferredPrimary.available,
+      primaryReasonCode: frontierPlan.preferredPrimary.reasonCode,
+      fallbackSlug: frontierPlan.preferredFallback.slug,
+      fallbackAvailable: frontierPlan.preferredFallback.available,
+      fallbackReasonCode: frontierPlan.preferredFallback.reasonCode,
+      providerCoverage: frontierPlan.providerCoverage,
+      formalQualificationRequired: true
+    },
+    frontierCandidateCount: frontierPlan.shortlist.length,
+    frontierRejected: frontierPlan.rejected,
     benchmarkStatus: 'pending'
   };
   if (typeof registry.recordOpenRouterSnapshot === 'function') await registry.recordOpenRouterSnapshot(snapshot);
@@ -495,6 +521,7 @@ module.exports = {
   rankForRole,
   buildSelections,
   chooseRegistrationRows,
+  frontierCandidateAuthority,
   catalogRegistryRow,
   publicKeyStatus,
   refreshAccountStatus,

@@ -1,0 +1,60 @@
+TAP version 13
+# (node:20262) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: supported conversation operations use in-app dialogs and removed contact-menu tag editing does not survive as a hidden duplicate
+ok 1 - supported conversation operations use in-app dialogs and removed contact-menu tag editing does not survive as a hidden duplicate
+  ---
+  duration_ms: 10.889187
+  type: 'test'
+  ...
+# Subtest: conversation route selector only switches explicit linked conversations and never binds by name or avatar
+ok 2 - conversation route selector only switches explicit linked conversations and never binds by name or avatar
+  ---
+  duration_ms: 1.833545
+  type: 'test'
+  ...
+# Subtest: capability decisions distinguish protocol support, account connection, target route and conflicts
+ok 3 - capability decisions distinguish protocol support, account connection, target route and conflicts
+  ---
+  duration_ms: 0.472664
+  type: 'test'
+  ...
+# Subtest: conversation menu is intentionally slim, non-duplicated, and every rendered action has a handler
+ok 4 - conversation menu is intentionally slim, non-duplicated, and every rendered action has a handler
+  ---
+  duration_ms: 1.618632
+  type: 'test'
+  ...
+# Subtest: scroll persistence records only user intent and invalidates old pixel-only workspace state
+ok 5 - scroll persistence records only user intent and invalidates old pixel-only workspace state
+  ---
+  duration_ms: 2.649482
+  type: 'test'
+  ...
+# Subtest: GIF and sticker library never feeds expired remote URLs to image cards or cross-account send routes
+ok 6 - GIF and sticker library never feeds expired remote URLs to image cards or cross-account send routes
+  ---
+  duration_ms: 0.684691
+  type: 'test'
+  ...
+# Subtest: dynamic WebP, GIF and video recognition extracts a local representative PNG frame
+ok 7 - dynamic WebP, GIF and video recognition extracts a local representative PNG frame
+  ---
+  duration_ms: 0.980857
+  type: 'test'
+  ...
+# Subtest: media analysis shows one friendly error surface and hides raw WhatsApp URLs from media recovery cards
+ok 8 - media analysis shows one friendly error surface and hides raw WhatsApp URLs from media recovery cards
+  ---
+  duration_ms: 2.403634
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 331.091589

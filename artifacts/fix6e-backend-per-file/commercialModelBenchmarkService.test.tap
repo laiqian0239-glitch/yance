@@ -1,0 +1,52 @@
+TAP version 13
+# Subtest: commercial benchmark proves translation, role isolation, evidence, and qualifies utility tasks
+ok 1 - commercial benchmark proves translation, role isolation, evidence, and qualifies utility tasks
+  ---
+  duration_ms: 3.201954
+  type: 'test'
+  ...
+# Subtest: commercial benchmark blocks outbound self facts and internal ids from contact fact qualification
+ok 2 - commercial benchmark blocks outbound self facts and internal ids from contact fact qualification
+  ---
+  duration_ms: 1.83517
+  type: 'test'
+  ...
+# Subtest: utility route recommendation prefers a passing free model and keeps a distinct fallback
+ok 3 - utility route recommendation prefers a passing free model and keeps a distinct fallback
+  ---
+  duration_ms: 0.519893
+  type: 'test'
+  ...
+# Subtest: translation routing uses commercially qualified cloud for realtime and preserves local model for history only
+ok 4 - translation routing uses commercially qualified cloud for realtime and preserves local model for history only
+  ---
+  duration_ms: 0.269485
+  type: 'test'
+  ...
+# Subtest: unknown model pricing is not classified as free or preferred over a known paid fallback
+ok 5 - unknown model pricing is not classified as free or preferred over a known paid fallback
+  ---
+  duration_ms: 0.2367
+  type: 'test'
+  ...
+# Subtest: OpenRouter shortlist is compact and follows role selections without duplicate models
+ok 6 - OpenRouter shortlist is compact and follows role selections without duplicate models
+  ---
+  duration_ms: 0.480167
+  type: 'test'
+  ...
+# Subtest: benchmark plan reports catalog, shortlist, and unassessed counts instead of implying every synced model was evaluated
+ok 7 - benchmark plan reports catalog, shortlist, and unassessed counts instead of implying every synced model was evaluated
+  ---
+  duration_ms: 0.47063
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 61.51634

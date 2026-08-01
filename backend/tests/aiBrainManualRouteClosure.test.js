@@ -95,8 +95,8 @@ test('manual conditional route is rejected without an explicit conditional flag 
 });
 
 test('automatic reply routing resolves an actual conditional model and records why it was selected', () => {
-  const qwen = runtimeModel({ id: 'qwen9', name: 'qwen3.5:9b', lastReplyBrainBenchmark: benchmark(60) });
-  const gemma = runtimeModel({ id: 'gemma12', name: 'gemma3:12b', lastReplyBrainBenchmark: benchmark(70) });
+  const qwen = runtimeModel({ id: 'qwen9', name: 'qwen3.5:9b', provider: 'google', modelSlug: 'google/qwen3.5-9b', lastReplyBrainBenchmark: benchmark(60) });
+  const gemma = runtimeModel({ id: 'gemma12', name: 'gemma3:12b', provider: 'openai', modelSlug: 'openai/gpt-5.6-sol', lastReplyBrainBenchmark: benchmark(70) });
   const resolved = routing.validateRoutes({
     quick_reply: { primarySelection: 'auto', fallbackSelection: 'auto', enabled: true, allowConditional: true }
   }, [qwen, gemma], { throwOnInvalid: true, autoSelect: true }).repairedRoutes.quick_reply;
@@ -157,9 +157,9 @@ const { closeR32Store } = require('./backend/lib/r32StoreSingleton');
   const now = new Date().toISOString();
   const benchmark = score => ({ authority: 'YanceReplyBrainBenchmark', status: 'REPLY_BRAIN_FAILED', completed: true, pass: false, score, testedAt: now, qualifyingTasks: [], scenarios: [] });
   await registry.write({ schemaVersion: 1, models: [
-    { id: 'ministral', name: 'ministral-3:14b', provider: 'ollama', available: true, qualification: 'verified', allowedTasks: ['understanding'], callCount: 29, lastSuccessfulInvocation: { at: now } },
-    { id: 'gemma', name: 'gemma3:12b', provider: 'ollama', available: true, qualification: 'verified', allowedTasks: ['understanding'], lastReplyBrainBenchmark: benchmark(70), callCount: 4, lastSuccessfulInvocation: { at: now } },
-    { id: 'qwen', name: 'qwen3.5:9b', provider: 'ollama', available: true, qualification: 'verified', allowedTasks: ['understanding'], lastReplyBrainBenchmark: benchmark(60), callCount: 13, lastSuccessfulInvocation: { at: now } }
+    { id: 'ministral', name: 'ministral-3:14b', provider: 'anthropic', modelSlug: 'anthropic/claude-opus-5', available: true, qualification: 'verified', allowedTasks: ['understanding'], callCount: 29, lastSuccessfulInvocation: { at: now } },
+    { id: 'gemma', name: 'gemma3:12b', provider: 'openai', modelSlug: 'openai/gpt-5.6-sol', available: true, qualification: 'verified', allowedTasks: ['understanding'], lastReplyBrainBenchmark: benchmark(70), callCount: 4, lastSuccessfulInvocation: { at: now } },
+    { id: 'qwen', name: 'qwen3.5:9b', provider: 'google', modelSlug: 'google/gemini-3.5-flash', available: true, qualification: 'verified', allowedTasks: ['understanding'], lastReplyBrainBenchmark: benchmark(60), callCount: 13, lastSuccessfulInvocation: { at: now } }
   ], routes: {}, history: [] });
   await registry.setRoutes({
     quick_reply: { primary: 'qwen', fallback: 'gemma', primarySelection: 'manual', fallbackSelection: 'manual', enabled: true, allowConditional: true, humanReviewRequired: true, maxTokens: 220 },

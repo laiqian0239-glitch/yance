@@ -1,0 +1,42 @@
+TAP version 13
+# (node:17839) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: a zombie in one provider lane does not consume another provider lane
+ok 1 - a zombie in one provider lane does not consume another provider lane
+  ---
+  duration_ms: 32.647039
+  type: 'test'
+  ...
+# Subtest: one provider decision authority describes cooldown, zombie, capacity, and available states
+ok 2 - one provider decision authority describes cooldown, zombie, capacity, and available states
+  ---
+  duration_ms: 1.128129
+  type: 'test'
+  ...
+# Subtest: AI gateway passes provider capacity overrides to its queue authority
+ok 3 - AI gateway passes provider capacity overrides to its queue authority
+  ---
+  duration_ms: 0.234911
+  type: 'test'
+  ...
+# Subtest: global physical concurrency remains authoritative across provider lanes
+ok 4 - global physical concurrency remains authoritative across provider lanes
+  ---
+  duration_ms: 61.815689
+  type: 'test'
+  ...
+# Subtest: provider transfer cannot exceed the target provider lease
+ok 5 - provider transfer cannot exceed the target provider lease
+  ---
+  duration_ms: 6.596569
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 476.912416

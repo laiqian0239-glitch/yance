@@ -10,13 +10,14 @@ const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 
 const modelProjection = require('../services/modelStatusProjection');
 const { aiRoutingReadiness, aiTaskRoutingReadiness } = require('../services/diagnosticReadiness');
+const roleReceipts = require('../services/aiRoleQualificationReceiptAuthority');
 
 function qualifiedModel() {
   const tasks = [
     'translation', 'understanding', 'relationship', 'director',
     'quick_reply', 'deep_reply', 'fact_extraction', 'memory_extraction'
   ];
-  return {
+  const model = {
     id: 'verified-brain',
     name: 'qwen3.5:14b',
     provider: 'ollama',
@@ -32,8 +33,11 @@ function qualifiedModel() {
       }
     },
     lastCommercialBenchmark: {
+      authority: 'YanceCommercialModelBenchmark',
       completed: true,
       pass: true,
+      status: 'COMMERCIAL_MODEL_QUALIFIED',
+      score: 95,
       qualifyingTasks: tasks,
       translationScore: 95,
       evidenceScore: 95
@@ -49,6 +53,20 @@ function qualifiedModel() {
     },
     lastSuccessfulInvocation: { at: new Date().toISOString() }
   };
+  model.roleQualificationReceipts = Object.fromEntries(
+    ['translation', 'quick_reply', 'deep_reply', 'director'].map(task => {
+      const evidence = task === 'translation' ? model.lastCommercialBenchmark : model.lastReplyBrainBenchmark;
+      return [task, roleReceipts.issueFromEvidence({
+        modelId: model.id,
+        task,
+        score: Number(evidence.score || 0),
+        issuedAt: '2026-07-31T10:00:00.000Z',
+        expiresAt: '2027-07-31T10:00:00.000Z',
+        evidence
+      })];
+    })
+  );
+  return model;
 }
 
 function completeRoutes(modelId = 'verified-brain') {
@@ -134,7 +152,7 @@ test('F25-D35/D39/D40 system center projects unresolved sends into issues and th
 
   assert.match(system, /send-outcome-unknown-write-block/u);
   assert.match(system, /发送结果不确定，已阻止新增出站写入/u);
-  assert.match(system, /writeGate: policy\.emergencyStop \|\| safeModeService\.isActive\(\) \|\| sendQueueState\.writeBlocked \|\| safetySupervisor\.manualReviewRequired \? 'blocked' : 'open'/u);
+  assert.match(system, /writeGate: policy\.emergencyStop \|\| safeModeService\.isActive\(\) \|\| sendQueueState\.writeBlocked \|\| safetySupervisor\.globalWriteBlocked \? 'blocked' : 'open'/u);
   assert.match(system, /writeGateReasons/u);
   assert.match(ui, /effectiveWriteBlocked = s\.writeGate === 'blocked'/u);
   assert.match(ui, /await refresh\(false\)/u, 'policy changes must refresh the authoritative backend gate instead of forcing it open locally');

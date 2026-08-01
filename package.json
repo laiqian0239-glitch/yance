@@ -159,8 +159,8 @@
     "test:batch19-flat-layout": "node --test tests/uat/f25WindowsUatRepairBatch19FlatLayout.test.js",
     "test:batch21-root-cause": "node --test --test-concurrency=1 backend/tests/f25WindowsUatRepairBatch21RootAuthority.test.js backend/tests/f25WindowsUatRepairBatch21DesignSystemAuthority.test.js",
     "test:batch22-root-cause": "node --test --test-concurrency=1 backend/tests/f25WindowsUatRepairBatch22RootAuthority.test.js backend/tests/f25WindowsUatRepairBatch21RootAuthority.test.js backend/tests/f25WindowsUatRepairBatch21DesignSystemAuthority.test.js",
-    "security:scan-staged": "node scripts/security/scan-staged-secrets.js",
-    "test:security-scan": "node --test --test-concurrency=1 tests/security/staged-secret-scanner.test.js"
+    "verify:windows-explorer-source-paths": "node tools/runtime-delivery/verify-windows-explorer-source-paths.js",
+    "verify:clean-windows-install": "node tools/uat/verify-clean-windows-install.js"
   },
   "releaseIdentitySource": "release/release-source.json",
   "devDependencies": {

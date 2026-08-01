@@ -1,0 +1,150 @@
+TAP version 13
+# (node:19457) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: WhatsApp stale startup behavior invalidates the old generation before allocating the replacement
+ok 1 - WhatsApp stale startup behavior invalidates the old generation before allocating the replacement
+  ---
+  duration_ms: 2.515141
+  type: 'test'
+  ...
+# Subtest: platform accepted local pending is durable and is never claimed for a second network send
+ok 2 - platform accepted local pending is durable and is never claimed for a second network send
+  ---
+  duration_ms: 270.347714
+  type: 'test'
+  ...
+# Subtest: stale in-flight sends become outcome-unknown and are never automatically claimed again
+ok 3 - stale in-flight sends become outcome-unknown and are never automatically claimed again
+  ---
+  duration_ms: 290.459693
+  type: 'test'
+  ...
+# Subtest: application restart treats every inherited sending row as outcome-unknown immediately
+ok 4 - application restart treats every inherited sending row as outcome-unknown immediately
+  ---
+  duration_ms: 252.578851
+  type: 'test'
+  ...
+# Subtest: primary message database uses FULL synchronous durability for send-state commits
+ok 5 - primary message database uses FULL synchronous durability for send-state commits
+  ---
+  duration_ms: 251.245069
+  type: 'test'
+  ...
+# Subtest: persisted outcome-unknown rows block automatic network and system resume attempts
+ok 6 - persisted outcome-unknown rows block automatic network and system resume attempts
+  ---
+  duration_ms: 3.918812
+  type: 'test'
+  ...
+# Subtest: application start rehydrates persisted outcome-unknown blockers before queue processing
+ok 7 - application start rehydrates persisted outcome-unknown blockers before queue processing
+  ---
+  duration_ms: 0.920849
+  type: 'test'
+  ...
+# Subtest: outcome-unknown scan failure during a running tick fails closed before any network claim
+ok 8 - outcome-unknown scan failure during a running tick fails closed before any network claim
+  ---
+  duration_ms: 1.059751
+  type: 'test'
+  ...
+# Subtest: a newly raised outcome-unknown pause stops already-claimed later rows before network dispatch
+ok 9 - a newly raised outcome-unknown pause stops already-claimed later rows before network dispatch
+  ---
+  duration_ms: 0.94199
+  type: 'test'
+  ...
+# Subtest: paused queues continue local journal recovery while network dispatch remains gated
+ok 10 - paused queues continue local journal recovery while network dispatch remains gated
+  ---
+  duration_ms: 0.929963
+  type: 'test'
+  ...
+# Subtest: manual confirmation that the platform did not send moves outcome-unknown back to retry and clears the blocker
+ok 11 - manual confirmation that the platform did not send moves outcome-unknown back to retry and clears the blocker
+  ---
+  duration_ms: 2.075304
+  type: 'test'
+  ...
+# Subtest: manual not-sent reconciliation clears any uncertain remote message id in SQLite
+ok 12 - manual not-sent reconciliation clears any uncertain remote message id in SQLite
+  ---
+  duration_ms: 266.35181
+  type: 'test'
+  ...
+# Subtest: defer cannot overwrite a send-outcome-unknown row back to retry
+ok 13 - defer cannot overwrite a send-outcome-unknown row back to retry
+  ---
+  duration_ms: 272.807922
+  type: 'test'
+  ...
+# Subtest: outcome-unknown persistence cannot overwrite a queue item that is no longer sending
+ok 14 - outcome-unknown persistence cannot overwrite a queue item that is no longer sending
+  ---
+  duration_ms: 254.17935
+  type: 'test'
+  ...
+# Subtest: runtime-only outcome blockers retry SQLite persistence during local recovery
+ok 15 - runtime-only outcome blockers retry SQLite persistence during local recovery
+  ---
+  duration_ms: 0.605772
+  type: 'test'
+  ...
+# Subtest: manual confirmation that the platform sent creates local repair plans without another network dispatch
+ok 16 - manual confirmation that the platform sent creates local repair plans without another network dispatch
+  ---
+  duration_ms: 2.570877
+  type: 'test'
+  ...
+# Subtest: outcome-unknown reconciliation is exposed through the core contract and restored in the conversation UI after restart
+ok 17 - outcome-unknown reconciliation is exposed through the core contract and restored in the conversation UI after restart
+  ---
+  duration_ms: 0.803174
+  type: 'test'
+  ...
+# Subtest: platform acceptance with both journal and SQLite checkpoint failures pauses the queue and blocks automatic resend
+ok 18 - platform acceptance with both journal and SQLite checkpoint failures pauses the queue and blocks automatic resend
+  ---
+  duration_ms: 3.179376
+  type: 'test'
+  ...
+# Subtest: corrupt platform-acceptance journals are quarantined instead of being parsed on every queue tick
+ok 19 - corrupt platform-acceptance journals are quarantined instead of being parsed on every queue tick
+  ---
+  duration_ms: 1.025672
+  type: 'test'
+  ...
+# Subtest: valid platform-acceptance journals remain retryable when SQLite recovery is temporarily unavailable
+ok 20 - valid platform-acceptance journals remain retryable when SQLite recovery is temporarily unavailable
+  ---
+  duration_ms: 0.431657
+  type: 'test'
+  ...
+# Subtest: repair enqueue failure keeps the send in platform accepted local pending instead of marking sent or retrying network
+ok 21 - repair enqueue failure keeps the send in platform accepted local pending instead of marking sent or retrying network
+  ---
+  duration_ms: 1.432259
+  type: 'test'
+  ...
+# Subtest: receipt repair never deletes a media source owned by outbound media repair
+ok 22 - receipt repair never deletes a media source owned by outbound media repair
+  ---
+  duration_ms: 0.764706
+  type: 'test'
+  ...
+# Subtest: pending platform acceptance recovery enqueues local plans without calling the network dispatcher
+ok 23 - pending platform acceptance recovery enqueues local plans without calling the network dispatcher
+  ---
+  duration_ms: 0.425322
+  type: 'test'
+  ...
+1..23
+# tests 23
+# suites 0
+# pass 23
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2268.951022

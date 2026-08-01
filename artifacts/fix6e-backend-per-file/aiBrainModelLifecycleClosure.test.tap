@@ -1,0 +1,48 @@
+TAP version 13
+# (node:17195) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: disabling a model removes every route reference without deleting the model record
+ok 1 - disabling a model removes every route reference without deleting the model record
+  ---
+  duration_ms: 7.280297
+  type: 'test'
+  ...
+# Subtest: reply benchmark failure removes reply routes and a later pass can restore qualified routing
+ok 2 - reply benchmark failure removes reply routes and a later pass can restore qualified routing
+  ---
+  duration_ms: 9.502075
+  type: 'test'
+  ...
+# Subtest: recommended reply routes persist the strongest benchmark model and an independent fallback without replacing translation
+ok 3 - recommended reply routes persist the strongest benchmark model and an independent fallback without replacing translation
+  ---
+  duration_ms: 7.316605
+  type: 'test'
+  ...
+# Subtest: cloud configuration is verified before it is persisted
+ok 4 - cloud configuration is verified before it is persisted
+  ---
+  duration_ms: 1.052497
+  type: 'test'
+  ...
+# Subtest: AI workbench exposes Chinese audit, disable, reconfigure and delete actions
+ok 5 - AI workbench exposes Chinese audit, disable, reconfigure and delete actions
+  ---
+  duration_ms: 0.939781
+  type: 'test'
+  ...
+# Subtest: local Ollama removal requires disable, exact-name confirmation and the official delete API
+ok 6 - local Ollama removal requires disable, exact-name confirmation and the official delete API
+  ---
+  duration_ms: 0.373998
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 360.593885

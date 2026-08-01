@@ -81,11 +81,11 @@ test.after(() => {
   fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 });
 
-test('Batch27 Schema 18 installs structured unknown, learning ledger, AI physical state and recovery metrics', () => {
-  const f = fixture('yance-b27-schema18-');
+test('current schema preserves Batch27 structured unknown, learning ledger, AI physical state and recovery metrics', () => {
+  const f = fixture('yance-b27-current-schema-');
   try {
-    assert.equal(SCHEMA_VERSION, 18);
-    assert.equal(Number(f.store.getMeta('schema_version')), 18);
+    assert.equal(SCHEMA_VERSION, 20);
+    assert.equal(Number(f.store.getMeta('schema_version')), SCHEMA_VERSION);
     const tables = new Set(f.store.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(row => row.name));
     for (const name of ['reply_learning_projection_effects','reply_learning_source_reconciliation','reply_learning_reconciliation_ledger','ai_provider_physical_execution_state','durable_recovery_metrics']) assert.equal(tables.has(name), true, name);
     const queueColumns = new Set(f.store.db.prepare('PRAGMA table_info(r32_send_queue)').all().map(row => row.name));

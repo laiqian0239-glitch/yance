@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH40_FIX6J_V2_SQLITE_FREE_MODEL_WORKER_VERIFICATION",
+  "derivedVersion": "FIX6J_V2_SQLITE_FREE_MODEL_WORKER_AUTHORITY_V1",
+  "upstream": {
+    "artifact": "YANCE_FIX6I_SOURCE.zip",
+    "sha256": "850f9ea4e068235cdc1451f93346e67dc9a30d7f0c50397f10cec6936a79d4da"
+  },
+  "sourceVerification": {
+    "changedJavaScriptSyntax": {
+      "checked": 38,
+      "pass": 38,
+      "fail": 0,
+      "runtime": "v22.16.0"
+    },
+    "focused": {
+      "tests": 36,
+      "pass": 36,
+      "fail": 0
+    },
+    "formerTask9Failures": {
+      "tests": 23,
+      "pass": 23,
+      "fail": 0
+    },
+    "relatedRegression": {
+      "tests": 20,
+      "pass": 20,
+      "fail": 0
+    },
+    "round13": {
+      "tests": 71,
+      "pass": 71,
+      "fail": 0
+    },
+    "wp5OwnershipState": {
+      "tests": 34,
+      "pass": 34,
+      "fail": 0
+    },
+    "backendPerFile": {
+      "files": 220,
+      "tests": 1256,
+      "pass": 1256,
+      "fail": 0,
+      "timeout": 0,
+      "skip": 0
+    },
+    "sourceDataIntegrity": {
+      "allMatch": true,
+      "backendDataExists": false
+    }
+  },
+  "workModeCheckpoint": {
+    "runtime": "v22.22.1",
+    "focused": {
+      "tests": 25,
+      "pass": 25
+    },
+    "cleanlinessInner": {
+      "tests": 31,
+      "pass": 31
+    },
+    "relatedRegression": {
+      "tests": 20,
+      "pass": 20
+    },
+    "round13": {
+      "tests": 71,
+      "pass": 71
+    },
+    "wp5OwnershipState": {
+      "tests": 34,
+      "pass": 34
+    }
+  },
+  "releaseGates": {
+    "windowsUiUat": false,
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "candidatePackageGenerated": false
+  }
+}

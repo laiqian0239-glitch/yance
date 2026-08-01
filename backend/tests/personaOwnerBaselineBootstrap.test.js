@@ -40,3 +40,4 @@ test('production server explicitly enables owner Persona baseline bootstrap', ()
   const source = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
   assert.match(source, /createPersonaBrainRouter\(\{ initializeOwnerBaseline: true \}\)/);
 });
+

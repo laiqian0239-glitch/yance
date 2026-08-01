@@ -1,0 +1,48 @@
+TAP version 13
+# (node:18832) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Batch 7: Persona Chinese understanding repairs structure with the same model and records an auditable receipt
+ok 1 - Batch 7: Persona Chinese understanding repairs structure with the same model and records an auditable receipt
+  ---
+  duration_ms: 2.137292
+  type: 'test'
+  ...
+# Subtest: Batch 7: Persona Chinese understanding fails safely without replacing authoritative source
+ok 2 - Batch 7: Persona Chinese understanding fails safely without replacing authoritative source
+  ---
+  duration_ms: 0.840847
+  type: 'test'
+  ...
+# Subtest: Batch 7: live fictional Persona exposes style only and produces a truth-firewall receipt
+ok 3 - Batch 7: live fictional Persona exposes style only and produces a truth-firewall receipt
+  ---
+  duration_ms: 268.710874
+  type: 'test'
+  ...
+# Subtest: Batch 7: Persona replacement requires a current field-level preview receipt and rollback verifies restored sections
+ok 4 - Batch 7: Persona replacement requires a current field-level preview receipt and rollback verifies restored sections
+  ---
+  duration_ms: 286.277917
+  type: 'test'
+  ...
+# Subtest: Batch 7: production reply candidates carry Persona truth receipts into approval and outbox metadata
+ok 5 - Batch 7: production reply candidates carry Persona truth receipts into approval and outbox metadata
+  ---
+  duration_ms: 0.753606
+  type: 'test'
+  ...
+# Subtest: Batch 7: degraded Chinese understanding stays a readable business result and Persona save is preview-gated in the API and UI
+ok 6 - Batch 7: degraded Chinese understanding stays a readable business result and Persona save is preview-gated in the API and UI
+  ---
+  duration_ms: 0.493197
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 624.750937

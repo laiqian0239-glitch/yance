@@ -176,7 +176,7 @@ test('media analysis shows one friendly error surface and hides raw WhatsApp URL
   const capabilities = source('frontend/js/r32-conversation-capabilities.js');
   const ui = source('frontend/js/r32-ui-runtime.js');
   assert.match(capabilities, /notifyOnce/);
-  assert.match(capabilities.slice(capabilities.indexOf("function notify(message"), capabilities.indexOf('function capabilityRows')), /YanceSystemStatus\?\.show/);
+  assert.match(capabilities.slice(capabilities.indexOf("function notify(message"), capabilities.indexOf('function capabilityRows')), /YanceNotificationLayoutAuthority\.show/);
   assert.match(capabilities, /FAILED TO LOAD IMAGE OR AUDIO FILE/);
   assert.match(ui, /friendlyMediaRecoveryError/);
   assert.match(ui, /WhatsApp 原下载凭证已失效/);

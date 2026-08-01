@@ -1,0 +1,48 @@
+TAP version 13
+# (node:19001) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Fix13 translates both incoming and outgoing foreign-language messages and does not requeue fresh persisted results
+ok 1 - Fix13 translates both incoming and outgoing foreign-language messages and does not requeue fresh persisted results
+  ---
+  duration_ms: 2.94405
+  type: 'test'
+  ...
+# Subtest: Fix13 automatic translation event wiring includes outgoing messages
+ok 2 - Fix13 automatic translation event wiring includes outgoing messages
+  ---
+  duration_ms: 2.739925
+  type: 'test'
+  ...
+# Subtest: Fix13 repairs malformed YANCE terminology placeholders before persisting Chinese translation
+ok 3 - Fix13 repairs malformed YANCE terminology placeholders before persisting Chinese translation
+  ---
+  duration_ms: 5.846374
+  type: 'test'
+  ...
+# Subtest: Fix13 SQLite upserts preserve successful translations across delivery updates and mark them stale only when source text changes
+ok 4 - Fix13 SQLite upserts preserve successful translations across delivery updates and mark them stale only when source text changes
+  ---
+  duration_ms: 261.734274
+  type: 'test'
+  ...
+# Subtest: Fix13 classifies deterministic Meta unsupported_get as an unavailable contact-avatar capability without automatic retry
+ok 5 - Fix13 classifies deterministic Meta unsupported_get as an unavailable contact-avatar capability without automatic retry
+  ---
+  duration_ms: 20.137169
+  type: 'test'
+  ...
+# Subtest: current product keeps outgoing translation, persistence and Worker v11 classification without obsolete root runners
+ok 6 - current product keeps outgoing translation, persistence and Worker v11 classification without obsolete root runners
+  ---
+  duration_ms: 4.796397
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 649.209015

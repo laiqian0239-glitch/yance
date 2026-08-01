@@ -1,0 +1,22 @@
+TAP version 13
+# Subtest: one global display authority owns typography, density and contrast for production components
+ok 1 - one global display authority owns typography, density and contrast for production components
+  ---
+  duration_ms: 4.333979
+  type: 'test'
+  ...
+# Subtest: desktop routed layout has one viewport-grid authority and mobile document flow is scoped
+ok 2 - desktop routed layout has one viewport-grid authority and mobile document flow is scoped
+  ---
+  duration_ms: 0.367701
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 47.415556

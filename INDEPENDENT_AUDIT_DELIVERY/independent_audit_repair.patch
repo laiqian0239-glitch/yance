@@ -1,0 +1,841 @@
+diff --git a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/runtime/OperatingModeTransitionGateway.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/runtime/OperatingModeTransitionGateway.js
+index 85746cb..cbb5432 100644
+--- a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/runtime/OperatingModeTransitionGateway.js
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/runtime/OperatingModeTransitionGateway.js
+@@ -35,7 +35,14 @@ class OperatingModeTransitionGateway {
+       if (active.digest !== digest) throw new AppRuntimeError('COMMAND_ID_REUSE_MISMATCH', 'commandId was reused with a different envelope', { status: 409 });
+       return active.promise;
+     }
+-    const promise = this._transition({ ...input, targetMode, commandId, envelope }).finally(() => this.inFlight.delete(commandId));
++    const payload = envelope.payload && typeof envelope.payload === 'object' ? envelope.payload : {};
++    const reason = Object.prototype.hasOwnProperty.call(input, 'reason') ? String(input.reason || '') : String(payload.reason || '');
++    const source = Object.prototype.hasOwnProperty.call(input, 'source') ? String(input.source || '') : String(payload.source || 'internal');
++    const metadata = {
++      ...(payload.metadata && typeof payload.metadata === 'object' ? payload.metadata : {}),
++      ...(input.metadata && typeof input.metadata === 'object' ? input.metadata : {})
++    };
++    const promise = this._transition({ ...input, targetMode, commandId, envelope, reason, source, metadata }).finally(() => this.inFlight.delete(commandId));
+     this.inFlight.set(commandId, { digest, promise });
+     return promise;
+   }
+diff --git a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/runtime/RuntimeStateStore.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/runtime/RuntimeStateStore.js
+index e54c6a1..70a23fc 100644
+--- a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/runtime/RuntimeStateStore.js
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/runtime/RuntimeStateStore.js
+@@ -16,19 +16,25 @@ function stable(value) {
+ function envelopeHash(envelope) { return crypto.createHash('sha256').update(stable(envelope)).digest('hex'); }
+ function clean(value) { return String(value == null ? '' : value).trim(); }
+ function unique(values) { return [...new Set((Array.isArray(values) ? values : []).map(clean).filter(Boolean))]; }
++function dateLike(value) { return Number.isFinite(Date.parse(clean(value))); }
+ function buildOperatingModeMetadata(mode, input = {}, at = nowIso()) {
+   const target = assertOperatingMode(mode, { source: 'buildOperatingModeMetadata' });
+-  const evidence = input.evidence && typeof input.evidence === 'object' ? input.evidence : null;
+-  const reasonCode = clean(input.reasonCode || input.code || input.reason);
++  const safeMode = target === OPERATING_MODES.SAFE_MODE;
++  const reasonCode = clean(input.reasonCode || input.code || input.reason) || (safeMode ? 'SAFE_MODE_REASON_UNSPECIFIED' : '');
+   const reasons = unique([reasonCode, ...(Array.isArray(input.reasons) ? input.reasons : []), ...(Array.isArray(input.triggers) ? input.triggers : [])]);
++  const trigger = safeMode ? clean(input.trigger || input.source || 'runtime-authority') : '';
++  const updatedBy = clean(input.actor || input.updatedBy || input.source || 'runtime-authority');
++  const evidence = input.evidence && typeof input.evidence === 'object'
++    ? input.evidence
++    : safeMode ? { reasonCode, reasons, trigger, updatedBy } : null;
+   return {
+     schemaVersion: 1,
+-    reasonCode: target === OPERATING_MODES.SAFE_MODE ? reasonCode : '',
+-    reasons: target === OPERATING_MODES.SAFE_MODE ? reasons : [],
+-    trigger: target === OPERATING_MODES.SAFE_MODE ? clean(input.trigger || input.source) : '',
+-    enteredAt: target === OPERATING_MODES.SAFE_MODE ? clean(input.enteredAt || at) : '',
++    reasonCode: safeMode ? reasonCode : '',
++    reasons: safeMode ? reasons : [],
++    trigger,
++    enteredAt: safeMode ? clean(input.enteredAt || at) : '',
+     updatedAt: at,
+-    updatedBy: clean(input.actor || input.updatedBy || input.source || 'runtime-authority'),
++    updatedBy,
+     evidenceSha256: evidence ? crypto.createHash('sha256').update(stable(evidence)).digest('hex') : ''
+   };
+ }
+@@ -657,6 +663,20 @@ class RuntimeStateStore {
+       }
+     }
+     const metadata = parseJson(row.operating_mode_metadata_json, {}) || {};
++    if (operatingMode === OPERATING_MODES.SAFE_MODE) {
++      const complete = clean(metadata.reasonCode)
++        && unique(metadata.reasons).length > 0
++        && clean(metadata.trigger)
++        && dateLike(metadata.enteredAt)
++        && clean(metadata.updatedBy)
++        && /^[a-f0-9]{64}$/u.test(clean(metadata.evidenceSha256));
++      if (!complete) {
++        throw new AppRuntimeError('SAFE_MODE_METADATA_INCOMPLETE', 'Safe mode authority metadata is incomplete', {
++          status: 503,
++          details: { operatingModeRevision, reasonCode: clean(metadata.reasonCode), trigger: clean(metadata.trigger), enteredAt: clean(metadata.enteredAt), updatedBy: clean(metadata.updatedBy), evidenceSha256: clean(metadata.evidenceSha256) }
++        });
++      }
++    }
+     return {
+       operatingMode,
+       operatingModeRevision,
+@@ -684,10 +704,16 @@ class RuntimeStateStore {
+       const receipt = migration || {};
+       const now = this.clock();
+       const stateVersion = 1;
++      const modeMetadata = buildOperatingModeMetadata(mode, {
++        reasonCode: mode === OPERATING_MODES.SAFE_MODE ? 'INITIAL_SAFE_MODE' : '',
++        trigger: 'runtime-authority-initialization',
++        actor: 'runtime-authority-migration',
++        evidence: { migrationId: receipt.migrationId || '', sourceFingerprint: receipt.sourceFingerprint || '' }
++      }, now);
+       this.db.prepare(`
+-        INSERT INTO runtime_state(id,state_version,operating_mode_revision,lifecycle_state,operating_mode,local_ready,owner_instance_id,fencing_token,capabilities_json,diagnostics_json,updated_at_utc)
+-        VALUES(1,?,?,'created',?,0,?,?,?, ?,?)
+-      `).run(stateVersion, stateVersion, mode, ownerInstanceId, Number(fencingToken), json({}), json({ failedPhase: null, reasonCode: null }), now);
++        INSERT INTO runtime_state(id,state_version,operating_mode_revision,lifecycle_state,operating_mode,operating_mode_metadata_json,local_ready,owner_instance_id,fencing_token,capabilities_json,diagnostics_json,updated_at_utc)
++        VALUES(1,?,?,'created',?,?,0,?,?,?, ?,?)
++      `).run(stateVersion, stateVersion, mode, json(modeMetadata), ownerInstanceId, Number(fencingToken), json({}), json({ failedPhase: null, reasonCode: null }), now);
+       this.db.prepare(`
+         INSERT INTO runtime_migration_receipt(
+           migration_id,migration_version,source_canonical_path,source_fingerprint,source_file_count,source_total_bytes,
+@@ -785,11 +811,18 @@ class RuntimeStateStore {
+       const previousMode = assertOperatingMode(row.operating_mode, { source: 'persistOperatingModeCommand.current' });
+       const nextVersion = Number(row.state_version) + 1;
+       const at = this.clock();
+-      const modeMetadata = buildOperatingModeMetadata(mode, {
++      const commandMetadata = {
+         ...metadata,
+-        ...(envelope.payload?.metadata && typeof envelope.payload.metadata === 'object' ? envelope.payload.metadata : {}),
++        ...(envelope.payload?.metadata && typeof envelope.payload.metadata === 'object' ? envelope.payload.metadata : {})
++      };
++      const evidence = commandMetadata.evidence && typeof commandMetadata.evidence === 'object'
++        ? commandMetadata.evidence
++        : { commandId: envelope.commandId, expectedStateVersion: Number(envelope.expectedStateVersion), targetMode: mode, reason, source };
++      const modeMetadata = buildOperatingModeMetadata(mode, {
++        ...commandMetadata,
+         reason,
+-        source
++        source,
++        evidence
+       }, at);
+       const update = this.db.prepare(`
+         UPDATE runtime_state SET state_version=?,operating_mode_revision=?,operating_mode=?,operating_mode_metadata_json=?,owner_instance_id=?,fencing_token=?,updated_at_utc=?
+diff --git a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/aiBrainOrchestrator.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/aiBrainOrchestrator.js
+index 634fd17..468bb52 100644
+--- a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/aiBrainOrchestrator.js
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/aiBrainOrchestrator.js
+@@ -12,6 +12,7 @@ const { QUALIFICATION } = require('../../shared/constants');
+ const messageSpeakerAuthority = require('./messageSpeakerAuthority');
+ const backgroundJobAuthority = require('./backgroundJobAuthority');
+ const { getRuntimeDomainIsolationAuthority } = require('./runtimeDomainIsolationAuthority');
++const modelRoutingIntegrityService = require('./modelRoutingIntegrityService');
+ 
+ const DEFAULTS = Object.freeze({
+   schemaVersion: 1,
+@@ -104,16 +105,14 @@ async function updateDocument(mutator) {
+   });
+ }
+ 
+-function eligibleModel(task, config) {
+-  const state = modelRegistry.read();
++function eligibleModel(task, config, registryState = null) {
++  const state = registryState && typeof registryState === 'object' ? registryState : modelRegistry.read();
++  const route = state.routes?.[task] || {};
+   const models = (state.models || []).filter(model => {
+-    if (model.available === false) return false;
+-    if (![QUALIFICATION.verified, QUALIFICATION.experimental].includes(model.qualification)) return false;
+-    if (!Array.isArray(model.allowedTasks) || !model.allowedTasks.includes(task)) return false;
++    if (!modelRoutingIntegrityService.eligibleForTask(model, task, { allowExperimental: true, allowConditional: false })) return false;
+     if (config.localOnly && model.provider !== 'ollama') return false;
+     return true;
+   });
+-  const route = state.routes?.[task] || {};
+   return models.find(model => model.id === route.primary)
+     || models.find(model => model.id === route.fallback)
+     || models[0]
+@@ -677,4 +676,4 @@ async function updateConfig(patch = {}) {
+   return document.config;
+ }
+ 
+-module.exports = { start, stop, schedule, recoverStartupAnalyses, processConversation, status, readConfig: () => readDocument().config, updateConfig, normalizeConfig, shouldScheduleInboundMessage, translationIsPending, isSupersededAnalysisError, automationIsolationDecision, pauseAutomationForIsolation, DEFAULTS };
++module.exports = { start, stop, schedule, recoverStartupAnalyses, processConversation, status, readConfig: () => readDocument().config, updateConfig, normalizeConfig, shouldScheduleInboundMessage, translationIsPending, isSupersededAnalysisError, automationIsolationDecision, pauseAutomationForIsolation, eligibleModel, DEFAULTS };
+diff --git a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/aiRoleQualificationReceiptAuthority.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/aiRoleQualificationReceiptAuthority.js
+index c29b7f4..cc8201e 100644
+--- a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/aiRoleQualificationReceiptAuthority.js
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/aiRoleQualificationReceiptAuthority.js
+@@ -6,6 +6,7 @@ const AUTHORITY = 'AIRoleQualificationReceiptAuthority';
+ const SCHEMA_VERSION = 1;
+ const GOVERNED_TASKS = Object.freeze(['quick_reply', 'deep_reply', 'director', 'translation']);
+ const DEFAULT_TTL_MS = 180 * 24 * 60 * 60 * 1000;
++const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
+ 
+ function clean(value) { return String(value == null ? '' : value).trim(); }
+ function stable(value) {
+@@ -15,7 +16,17 @@ function stable(value) {
+ }
+ function sha256(value) { return crypto.createHash('sha256').update(stable(value)).digest('hex'); }
+ function date(value, fallback = '') { const text = clean(value); return Number.isFinite(Date.parse(text)) ? text : fallback; }
+-
++function benchmarkFor(model = {}, task = '') {
++  return clean(task) === 'translation'
++    ? (model.lastCommercialBenchmark && typeof model.lastCommercialBenchmark === 'object' ? model.lastCommercialBenchmark : null)
++    : (model.lastReplyBrainBenchmark && typeof model.lastReplyBrainBenchmark === 'object' ? model.lastReplyBrainBenchmark : null);
++}
++function evidenceDigest({ modelId, task, pass, score, evidence }) {
++  return sha256({ modelId: clean(modelId), task: clean(task), pass: pass === true, score: Number(score || 0), evidence: evidence && typeof evidence === 'object' ? evidence : {} });
++}
++function receiptId({ modelId, task, issuedAt, evidenceSha256 }) {
++  return `role-${sha256({ modelId: clean(modelId), task: clean(task), issuedAt: clean(issuedAt), evidenceSha256: clean(evidenceSha256) }).slice(0, 24)}`;
++}
+ 
+ function evidenceAllowsIssuance(task = '', evidence = {}) {
+   const target = clean(task);
+@@ -24,35 +35,35 @@ function evidenceAllowsIssuance(task = '', evidence = {}) {
+   const qualifyingTasks = new Set(Array.isArray(evidence.qualifyingTasks) ? evidence.qualifyingTasks.map(clean) : []);
+   let reason = '';
+   if (!GOVERNED_TASKS.includes(target)) reason = 'ROLE_RECEIPT_TASK_UNSUPPORTED';
+-  else if (evidence.completed === false) reason = 'ROLE_RECEIPT_BENCHMARK_INCOMPLETE';
++  else if (evidence.completed !== true) reason = 'ROLE_RECEIPT_BENCHMARK_INCOMPLETE';
+   else if (evidence.pass !== true || !qualifyingTasks.has(target)) reason = 'ROLE_RECEIPT_BENCHMARK_NOT_QUALIFIED';
+   else if (target === 'translation' && (authority !== 'YanceCommercialModelBenchmark' || status !== 'COMMERCIAL_MODEL_QUALIFIED')) reason = 'ROLE_RECEIPT_TRANSLATION_AUTHORITY_INVALID';
+   else if (target !== 'translation' && (authority !== 'YanceReplyBrainBenchmark' || status !== 'REPLY_BRAIN_QUALIFIED')) reason = 'ROLE_RECEIPT_REPLY_AUTHORITY_INVALID';
+   return { pass: !reason, reason, task: target, benchmarkAuthority: authority, benchmarkStatus: status };
+ }
+ 
+-function issue(input = {}) {
++function issueValidated(input = {}, evidence = {}, decision = {}) {
+   const modelId = clean(input.modelId);
+   const task = clean(input.task);
+   if (!modelId) throw Object.assign(new Error('modelId is required'), { code: 'ROLE_RECEIPT_MODEL_REQUIRED' });
+-  if (!GOVERNED_TASKS.includes(task)) throw Object.assign(new Error(`Unsupported role receipt task: ${task}`), { code: 'ROLE_RECEIPT_TASK_UNSUPPORTED' });
+-  const issuedAt = date(input.issuedAt, new Date().toISOString());
++  const issuedAt = date(input.issuedAt || evidence.testedAt || evidence.completedAt, new Date().toISOString());
+   const expiresAt = date(input.expiresAt, new Date(Date.parse(issuedAt) + DEFAULT_TTL_MS).toISOString());
+-  const evidence = input.evidence && typeof input.evidence === 'object' ? input.evidence : {};
+-  const evidenceSha256 = sha256({ modelId, task, pass: input.pass === true, score: Number(input.score || 0), evidence });
++  if (Date.parse(expiresAt) <= Date.parse(issuedAt)) throw Object.assign(new Error('expiresAt must be after issuedAt'), { code: 'ROLE_RECEIPT_EXPIRY_INVALID' });
++  const score = Number(input.score ?? evidence.score ?? 0);
++  const evidenceSha256 = evidenceDigest({ modelId, task, pass: true, score, evidence });
+   return Object.freeze({
+     schemaVersion: SCHEMA_VERSION,
+     authority: AUTHORITY,
+-    receiptId: `role-${sha256({ modelId, task, issuedAt, evidenceSha256 }).slice(0, 24)}`,
++    receiptId: receiptId({ modelId, task, issuedAt, evidenceSha256 }),
+     modelId,
+     task,
+-    pass: input.pass === true,
+-    score: Number(input.score || 0),
++    pass: true,
++    score,
+     issuedAt,
+     expiresAt,
+     evidenceSha256,
+-    benchmarkAuthority: clean(input.benchmarkAuthority || evidence.authority),
+-    benchmarkStatus: clean(input.benchmarkStatus || evidence.status),
++    benchmarkAuthority: decision.benchmarkAuthority,
++    benchmarkStatus: decision.benchmarkStatus,
+     summary: clean(input.summary || evidence.summary)
+   });
+ }
+@@ -68,16 +79,7 @@ function issueFromEvidence(input = {}) {
+     error.benchmarkStatus = decision.benchmarkStatus;
+     throw error;
+   }
+-  return issue({
+-    ...input,
+-    pass: true,
+-    score: Number(input.score ?? evidence.score ?? 0),
+-    issuedAt: input.issuedAt || evidence.testedAt || evidence.completedAt,
+-    benchmarkAuthority: decision.benchmarkAuthority,
+-    benchmarkStatus: decision.benchmarkStatus,
+-    summary: input.summary || evidence.summary,
+-    evidence
+-  });
++  return issueValidated(input, evidence, decision);
+ }
+ 
+ function receiptFor(model = {}, task = '') {
+@@ -91,7 +93,9 @@ function validate(model = {}, task = '', options = {}) {
+   const target = clean(task);
+   const receipt = options.receipt || receiptFor(model, target);
+   const now = date(options.now, new Date().toISOString());
++  const nowMs = Date.parse(now);
+   let reason = '';
++  let benchmark = null;
+   if (!GOVERNED_TASKS.includes(target)) reason = 'ROLE_RECEIPT_TASK_UNSUPPORTED';
+   else if (!receipt || typeof receipt !== 'object') reason = 'ROLE_RECEIPT_MISSING';
+   else if (clean(receipt.authority) !== AUTHORITY || Number(receipt.schemaVersion) !== SCHEMA_VERSION) reason = 'ROLE_RECEIPT_AUTHORITY_INVALID';
+@@ -99,9 +103,32 @@ function validate(model = {}, task = '', options = {}) {
+   else if (clean(receipt.task) !== target) reason = 'ROLE_RECEIPT_TASK_MISMATCH';
+   else if (receipt.pass !== true) reason = 'ROLE_RECEIPT_NOT_PASSED';
+   else if (!date(receipt.issuedAt)) reason = 'ROLE_RECEIPT_ISSUED_AT_INVALID';
+-  else if (!date(receipt.expiresAt) || Date.parse(receipt.expiresAt) <= Date.parse(now)) reason = 'ROLE_RECEIPT_EXPIRED';
++  else if (Date.parse(receipt.issuedAt) > nowMs + MAX_CLOCK_SKEW_MS) reason = 'ROLE_RECEIPT_ISSUED_IN_FUTURE';
++  else if (!date(receipt.expiresAt) || Date.parse(receipt.expiresAt) <= Date.parse(receipt.issuedAt)) reason = 'ROLE_RECEIPT_EXPIRY_INVALID';
++  else if (Date.parse(receipt.expiresAt) <= nowMs) reason = 'ROLE_RECEIPT_EXPIRED';
+   else if (!/^[a-f0-9]{64}$/u.test(clean(receipt.evidenceSha256))) reason = 'ROLE_RECEIPT_EVIDENCE_INVALID';
++  else if (clean(receipt.receiptId) !== receiptId(receipt)) reason = 'ROLE_RECEIPT_ID_INVALID';
++  else {
++    benchmark = benchmarkFor(model, target);
++    const decision = evidenceAllowsIssuance(target, benchmark || {});
++    if (!decision.pass) reason = decision.reason === 'ROLE_RECEIPT_BENCHMARK_INCOMPLETE' ? 'ROLE_RECEIPT_CURRENT_BENCHMARK_INCOMPLETE' : 'ROLE_RECEIPT_CURRENT_BENCHMARK_NOT_QUALIFIED';
++    else if (clean(receipt.benchmarkAuthority) !== decision.benchmarkAuthority || clean(receipt.benchmarkStatus) !== decision.benchmarkStatus) reason = 'ROLE_RECEIPT_BENCHMARK_AUTHORITY_MISMATCH';
++    else {
++      const expected = evidenceDigest({ modelId: model.id, task: target, pass: true, score: receipt.score, evidence: benchmark });
++      if (clean(receipt.evidenceSha256) !== expected) reason = 'ROLE_RECEIPT_EVIDENCE_MISMATCH';
++    }
++  }
+   return { authority: AUTHORITY, schemaVersion: SCHEMA_VERSION, pass: !reason, reason, task: target, modelId: clean(model.id), receipt: receipt || null, checkedAt: now };
+ }
+ 
+-module.exports = { AUTHORITY, SCHEMA_VERSION, GOVERNED_TASKS, DEFAULT_TTL_MS, evidenceAllowsIssuance, issue, issueFromEvidence, receiptFor, validate };
++module.exports = {
++  AUTHORITY,
++  SCHEMA_VERSION,
++  GOVERNED_TASKS,
++  DEFAULT_TTL_MS,
++  MAX_CLOCK_SKEW_MS,
++  evidenceAllowsIssuance,
++  issueFromEvidence,
++  receiptFor,
++  validate
++};
+diff --git a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/aiTaskRoleReadinessAuthority.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/aiTaskRoleReadinessAuthority.js
+index e206c91..6316c31 100644
+--- a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/aiTaskRoleReadinessAuthority.js
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/aiTaskRoleReadinessAuthority.js
+@@ -28,8 +28,7 @@ function commercialTaskPass(model = {}, task = '') {
+   const benchmark = model.lastCommercialBenchmark && typeof model.lastCommercialBenchmark === 'object'
+     ? model.lastCommercialBenchmark
+     : null;
+-  const tasks = Array.isArray(benchmark?.qualifyingTasks) ? benchmark.qualifyingTasks.map(clean) : [];
+-  return Boolean(benchmark && benchmark.completed !== false && tasks.includes(clean(task)));
++  return Boolean(benchmark && roleReceiptAuthority.evidenceAllowsIssuance(clean(task), benchmark).pass === true);
+ }
+ function formalTaskEligible(model, task, route = {}) {
+   if (!model) return false;
+diff --git a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/modelCapabilityAuthority.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/modelCapabilityAuthority.js
+index d5be10e..843690b 100644
+--- a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/modelCapabilityAuthority.js
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/modelCapabilityAuthority.js
+@@ -1,12 +1,10 @@
+ 'use strict';
+ 
++const { TASKS } = require('../../shared/constants');
++
+ const AUTHORITY = 'ModelCapabilityAuthority';
+ const SCHEMA_VERSION = 1;
+-const INTERACTIVE_TASKS = new Set([
+-  'general', 'director', 'quick_reply', 'deep_reply', 'translation', 'persona_rewrite',
+-  'learning_synthesis', 'relationship', 'quality_review', 'fact_extraction',
+-  'memory_extraction', 'understanding', 'summary', 'media_analysis'
+-]);
++const INTERACTIVE_TASKS = new Set([...TASKS, 'general', 'learning_synthesis']);
+ 
+ function clean(value) { return String(value == null ? '' : value).trim(); }
+ function lower(value) { return clean(value).toLowerCase(); }
+@@ -59,8 +57,8 @@ function supportsInteractiveChat(model = {}) { return classify(model).interactiv
+ function supportsTask(model = {}, task = '') {
+   const target = clean(task);
+   if (!target) return false;
+-  if (INTERACTIVE_TASKS.has(target)) return supportsInteractiveChat(model);
+-  return !classify(model).embedding;
++  if (!INTERACTIVE_TASKS.has(target)) return false;
++  return supportsInteractiveChat(model);
+ }
+ 
+ module.exports = { AUTHORITY, SCHEMA_VERSION, INTERACTIVE_TASKS, classify, supportsInteractiveChat, supportsTask };
+diff --git a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/modelRegistry.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/modelRegistry.js
+index 6573b44..00cad10 100644
+--- a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/modelRegistry.js
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/modelRegistry.js
+@@ -341,20 +341,17 @@ function nextRoleReceipts(previous = {}, modelId, tasks = [], result = {}, optio
+   const qualifying = new Set(Array.isArray(tasks) ? tasks : []);
+   if (result.completed === false) return receipts;
+   for (const task of governed) {
+-    const evidenceDecision = roleReceiptAuthority.evidenceAllowsIssuance(task, { ...result, qualifyingTasks: [...qualifying] });
+-    if (evidenceDecision.pass) {
+-      receipts[task] = roleReceiptAuthority.issue({
++    const evidence = { ...result, qualifyingTasks: [...qualifying] };
++    try {
++      receipts[task] = roleReceiptAuthority.issueFromEvidence({
+         modelId,
+         task,
+-        pass: true,
+         score: Number(result.score || 0),
+         issuedAt: result.testedAt,
+-        benchmarkAuthority: result.authority,
+-        benchmarkStatus: result.status,
+         summary: result.summary,
+-        evidence: result
++        evidence
+       });
+-    } else {
++    } catch (_) {
+       delete receipts[task];
+     }
+   }
+diff --git a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/openRouterOnboardingSmokeService.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/openRouterOnboardingSmokeService.js
+index ff6fc16..4aed77a 100644
+--- a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/openRouterOnboardingSmokeService.js
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/openRouterOnboardingSmokeService.js
+@@ -23,6 +23,23 @@ const ALLOWED_TASKS = Object.freeze([
+ function clean(value) { return String(value == null ? '' : value).trim(); }
+ function object(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
+ function array(value) { return Array.isArray(value) ? value : []; }
++function modelIdentity(model = {}) { return clean(model.name || model.model || model.id).toLowerCase(); }
++
++function assertRealChatCompletionReceipt(model = {}, inference = {}) {
++  const requestId = clean(inference.raw?.id);
++  const returnedModel = clean(inference.returnedModel);
++  const requestMode = clean(inference.requestMode);
++  if (!requestId || !returnedModel || !/^chat-completions(?:-|$)/u.test(requestMode)) {
++    const error = new Error('OpenRouter 真实 /chat/completions 调用缺少可核验 requestId、returnedModel 或请求模式');
++    error.code = 'OPENROUTER_SMOKE_REQUEST_RECEIPT_INVALID';
++    error.requestId = requestId;
++    error.returnedModel = returnedModel;
++    error.requestMode = requestMode;
++    error.modelId = clean(model.id);
++    throw error;
++  }
++  return { requestId, returnedModel, requestMode };
++}
+ 
+ function parseJson(text = '') {
+   const raw = clean(text).replace(/^```(?:json)?\s*/iu, '').replace(/\s*```$/u, '');
+@@ -100,6 +117,7 @@ async function runModelSmoke(model, options = {}) {
+       { role: 'system', content: '只输出符合要求的 JSON。不得输出分析过程。' },
+       { role: 'user', content: prompt }
+     ], { maxTokens: 720, temperature: 0.2, json: true, timeoutMs: Number(options.timeoutMs || 120000) }, options.signal);
++    const callReceipt = assertRealChatCompletionReceipt(model, inference);
+     const payload = parseJson(inference.text);
+     const validated = validatePayload(payload);
+     await registry.recordInvocation(model.id, inference);
+@@ -134,9 +152,9 @@ async function runModelSmoke(model, options = {}) {
+       testedAt: new Date().toISOString(),
+       modelId: model.id,
+       modelSlug: clean(model.name),
+-      returnedModel: clean(inference.returnedModel),
+-      requestId: clean(inference.raw?.id),
+-      requestMode: clean(inference.requestMode),
++      returnedModel: callReceipt.returnedModel,
++      requestId: callReceipt.requestId,
++      requestMode: callReceipt.requestMode,
+       latencyMs: Number(inference.totalMs || 0),
+       tokenUsage: {
+         prompt: Number(inference.promptTokens || 0), output: Number(inference.outputTokens || 0), total: Number(inference.totalTokens || 0)
+@@ -174,16 +192,27 @@ function selectIndependentModels(snapshot = {}, models = [], limit = 2) {
+   const preferredSlugs = [];
+   for (const role of ['quick_reply', 'director', 'deep_reply', 'translation']) {
+     for (const row of array(snapshot.selections?.[role])) {
+-      const slug = clean(row.id || row.name);
++      const slug = clean(row.id || row.name).toLowerCase();
+       if (slug && !preferredSlugs.includes(slug)) preferredSlugs.push(slug);
+     }
+   }
+   const eligible = array(models).filter(model => modelCapabilityAuthority.supportsInteractiveChat(model));
+-  const bySlug = new Map(eligible.map(model => [clean(model.name), model]));
+-  const selected = preferredSlugs.map(slug => bySlug.get(slug)).filter(Boolean);
++  const bySlug = new Map();
++  for (const model of eligible) {
++    const slug = modelIdentity(model);
++    if (slug && !bySlug.has(slug)) bySlug.set(slug, model);
++  }
++  const selected = [];
++  const selectedSlugs = new Set();
++  const append = model => {
++    const slug = modelIdentity(model);
++    if (!model || !slug || selectedSlugs.has(slug)) return;
++    selectedSlugs.add(slug);
++    selected.push(model);
++  };
++  for (const slug of preferredSlugs) append(bySlug.get(slug));
+   for (const model of eligible) {
+-    if (selected.some(row => row.id === model.id)) continue;
+-    if (model.source === 'openrouter-auto' && model.available !== false && model.userDisabled !== true) selected.push(model);
++    if (model.source === 'openrouter-auto' && model.available !== false && model.userDisabled !== true) append(model);
+   }
+   return selected.slice(0, Math.max(2, Number(limit || 2)));
+ }
+@@ -247,7 +276,7 @@ async function run(options = {}) {
+         executeModel: options.executeModel
+       });
+       results.push(result);
+-      if (result.pass === true && !passedModels.some(row => row.id === model.id)) passedModels.push(model);
++      if (result.pass === true && !passedModels.some(row => modelIdentity(row) === modelIdentity(model))) passedModels.push(model);
+       lifecycle.progress(operation.operationId, Math.min(90, 10 + Math.round((results.length / selected.length) * 75)));
+       if (passedModels.length >= 2) break;
+     }
+@@ -304,6 +333,8 @@ module.exports = {
+   ALLOWED_TASKS,
+   parseJson,
+   validatePayload,
++  assertRealChatCompletionReceipt,
++  modelIdentity,
+   selectIndependentModels,
+   conditionalRoutes,
+   runModelSmoke,
+diff --git a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/runtimeSafetySupervisor.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/runtimeSafetySupervisor.js
+index 9b6d419..cdc9b00 100644
+--- a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/runtimeSafetySupervisor.js
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/services/runtimeSafetySupervisor.js
+@@ -94,7 +94,7 @@ class RuntimeSafetySupervisor {
+         triggers.push({ code: 'MODEL_ROUTE_QUALIFICATION_BLOCKED', severity: 'high', domain: 'ai', scope: 'ai-automation', detail: `${Math.max(1, invalid)} 条持久化模型路由不合格`, evidence: { invalidPersistedRouteCount: invalid } });
+       }
+     } catch (error) {
+-      triggers.push({ code: 'MODEL_ROUTE_STATUS_UNAVAILABLE', severity: 'high', detail: error.message || String(error) });
++      triggers.push({ code: 'MODEL_ROUTE_STATUS_UNAVAILABLE', severity: 'high', domain: 'ai', scope: 'ai-automation', detail: error.message || String(error), evidence: { causeCode: clean(error.code) } });
+     }
+ 
+     try {
+diff --git a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/tests/aiBrainModelLifecycleClosure.test.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/tests/aiBrainModelLifecycleClosure.test.js
+index 397dc9d..dbae49a 100644
+--- a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/tests/aiBrainModelLifecycleClosure.test.js
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/tests/aiBrainModelLifecycleClosure.test.js
+@@ -65,7 +65,7 @@ test('reply benchmark failure removes reply routes and a later pass can restore
+   });
+ 
+   let state = await registry.recordReplyBrainBenchmark('brain', {
+-    authority: 'YanceReplyBrainBenchmark', testedAt: new Date().toISOString(), pass: false,
++    authority: 'YanceReplyBrainBenchmark', testedAt: new Date().toISOString(), completed: true, pass: false,
+     status: 'REPLY_BRAIN_FAILED', score: 55, qualifyingTasks: [], summary: 'style failed'
+   });
+   let model = state.models.find(row => row.id === 'brain');
+@@ -74,7 +74,7 @@ test('reply benchmark failure removes reply routes and a later pass can restore
+   assert.equal(model.replyBrainBenchmarkScore, 55);
+ 
+   state = await registry.recordReplyBrainBenchmark('brain', {
+-    authority: 'YanceReplyBrainBenchmark', testedAt: new Date().toISOString(), pass: true,
++    authority: 'YanceReplyBrainBenchmark', testedAt: new Date().toISOString(), completed: true, pass: true,
+     status: 'REPLY_BRAIN_QUALIFIED', score: 91,
+     qualifyingTasks: ['quick_reply', 'deep_reply', 'director'], scenarios: []
+   });
+diff --git a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/tests/f25WindowsUatRepairBatch21RootAuthority.test.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/tests/f25WindowsUatRepairBatch21RootAuthority.test.js
+index 6df7972..7de386b 100644
+--- a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/tests/f25WindowsUatRepairBatch21RootAuthority.test.js
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/tests/f25WindowsUatRepairBatch21RootAuthority.test.js
+@@ -193,7 +193,7 @@ test('OpenRouter dual-model smoke writes one durable lifecycle and applies route
+         translationZh: '你好', fabricatedFacts: []
+       }),
+       returnedModel: model.name, totalMs: 42, firstTokenMs: 10, promptTokens: 120, outputTokens: 80, totalTokens: 200,
+-      raw: { id: `request-${model.id}` }, requestMode: 'json'
++      raw: { id: `request-${model.id}` }, requestMode: 'chat-completions-standard'
+     });
+     const result = await smoke.run({ registry, operationLifecycle: lifecycle, executeModel, snapshot: { selections: {} } });
+     assert.equal(result.pass, true);
+diff --git a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/tests/f25WindowsUatRepairBatch3.test.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/tests/f25WindowsUatRepairBatch3.test.js
+index e64c6ea..4a0c54f 100644
+--- a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/tests/f25WindowsUatRepairBatch3.test.js
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/backend/tests/f25WindowsUatRepairBatch3.test.js
+@@ -17,7 +17,7 @@ function qualifiedModel() {
+     'translation', 'understanding', 'relationship', 'director',
+     'quick_reply', 'deep_reply', 'fact_extraction', 'memory_extraction'
+   ];
+-  return {
++  const model = {
+     id: 'verified-brain',
+     name: 'qwen3.5:14b',
+     provider: 'ollama',
+@@ -37,6 +37,7 @@ function qualifiedModel() {
+       completed: true,
+       pass: true,
+       status: 'COMMERCIAL_MODEL_QUALIFIED',
++      score: 95,
+       qualifyingTasks: tasks,
+       translationScore: 95,
+       evidenceScore: 95
+@@ -50,17 +51,22 @@ function qualifiedModel() {
+       qualifyingTasks: ['quick_reply', 'deep_reply', 'director'],
+       scenarios: []
+     },
+-    roleQualificationReceipts: Object.fromEntries(['translation', 'quick_reply', 'deep_reply', 'director'].map(task => [task, roleReceipts.issue({
+-      modelId: 'verified-brain',
+-      task,
+-      pass: true,
+-      score: 96,
+-      issuedAt: '2026-07-31T10:00:00.000Z',
+-      expiresAt: '2027-07-31T10:00:00.000Z',
+-      evidence: { authority: task === 'translation' ? 'YanceCommercialModelBenchmark' : 'YanceReplyBrainBenchmark', status: task === 'translation' ? 'COMMERCIAL_MODEL_QUALIFIED' : 'REPLY_BRAIN_QUALIFIED' }
+-    })])),
+     lastSuccessfulInvocation: { at: new Date().toISOString() }
+   };
++  model.roleQualificationReceipts = Object.fromEntries(
++    ['translation', 'quick_reply', 'deep_reply', 'director'].map(task => {
++      const evidence = task === 'translation' ? model.lastCommercialBenchmark : model.lastReplyBrainBenchmark;
++      return [task, roleReceipts.issueFromEvidence({
++        modelId: model.id,
++        task,
++        score: Number(evidence.score || 0),
++        issuedAt: '2026-07-31T10:00:00.000Z',
++        expiresAt: '2027-07-31T10:00:00.000Z',
++        evidence
++      })];
++    })
++  );
++  return model;
+ }
+ 
+ function completeRoutes(modelId = 'verified-brain') {
+diff --git a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/frontend/js/r32-credential-mutation-receipt.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/frontend/js/r32-credential-mutation-receipt.js
+index 868992c..b503b26 100644
+--- a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/frontend/js/r32-credential-mutation-receipt.js
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/frontend/js/r32-credential-mutation-receipt.js
+@@ -9,12 +9,12 @@
+   function normalize(result={}){
+     const source=result&&typeof result==='object'?result:{};
+     const mutationCommitted=source.mutationCommitted===true||source.mutation?.transactionState==='COMMITTED';
+-    const runtimeConfirmed=source.runtimeConfirmed!==undefined?source.runtimeConfirmed===true:source.ok===true;
++    const runtimeConfirmed=source.runtimeConfirmed===true;
+     const requestId=clean(source.requestId||source.mutation?.requestId);
+     const reasonCode=clean(source.reasonCode||source.code||source.error);
+     const message=clean(source.message);
+     return {
+-      ok:source.ok===true&&runtimeConfirmed,
++      ok:source.ok===true&&mutationCommitted&&runtimeConfirmed,
+       mutationCommitted,
+       runtimeConfirmed,
+       requestId,
+diff --git a/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js
+new file mode 100644
+index 0000000..b83e26e
+--- /dev/null
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js
+@@ -0,0 +1,201 @@
++'use strict';
++
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const path = require('node:path');
++
++const credentialReceipt = require('../../frontend/js/r32-credential-mutation-receipt');
++const capabilityAuthority = require('../../backend/services/modelCapabilityAuthority');
++const onboarding = require('../../backend/services/openRouterOnboardingSmokeService');
++const roleReceipts = require('../../backend/services/aiRoleQualificationReceiptAuthority');
++const { RuntimeDomainIsolationAuthority } = require('../../backend/services/runtimeDomainIsolationAuthority');
++const { RuntimeSafetySupervisor } = require('../../backend/services/runtimeSafetySupervisor');
++const { OperatingModeTransitionGateway } = require('../../backend/runtime/OperatingModeTransitionGateway');
++const { createAuthorityHarness, envelope } = require('../wp5/helpers');
++
++const ROOT = path.resolve(__dirname, '..', '..');
++const source = file => fs.readFileSync(path.join(ROOT, file), 'utf8');
++
++function validInference(model, overrides = {}) {
++  return {
++    text: JSON.stringify({
++      director: { goal: '自然回应', strategy: '短句承接', avoid: ['不虚构事实'] },
++      candidates: [
++        { text: 'Hallo, wie war dein Tag?', translationZh: '你好，你今天过得怎么样？', direction: '自然' },
++        { text: 'Die Rose macht dein Hallo besonders. Was machst du gerade?', translationZh: '玫瑰让你的问候很特别。你现在在做什么？', direction: '轻松' },
++        { text: 'Hallo du. Was hat dich heute zum Lächeln gebracht?', translationZh: '你好呀。今天什么让你笑了？', direction: '温和' }
++      ],
++      translationZh: '你好，附带一朵玫瑰。',
++      fabricatedFacts: []
++    }),
++    totalMs: 50,
++    firstTokenMs: 10,
++    promptTokens: 10,
++    outputTokens: 20,
++    totalTokens: 30,
++    returnedModel: model.name,
++    requestMode: 'chat-completions-standard',
++    raw: { id: `req-${model.id}` },
++    ...overrides
++  };
++}
++
++function cloud(id, name) {
++  return { id, name, provider: 'openai-compatible', source: 'openrouter-auto', available: true, credentialRef: 'model:openrouter:default' };
++}
++
++function fakeRegistry(models) {
++  const state = { models: models.map(model => ({ ...model })), routes: {}, openRouter: { keyFingerprint: 'sha256:audit' } };
++  return {
++    state,
++    read: () => state,
++    async recordInvocation() {},
++    async recordInvocationFailure() {},
++    async recordReplyBrainBenchmark() {},
++    async recordTest() {},
++    async recordOpenRouterOnboardingSmoke() {},
++    async applyOpenRouterConditionalRoutes(routes) { state.routes = routes; return state; }
++  };
++}
++
++function supervisorWith(modelStatus) {
++  return new RuntimeSafetySupervisor({
++    runtime: { operatingMode: 'normal', async enterSafeMode() { this.operatingMode = 'safeMode'; } },
++    domainIsolation: new RuntimeDomainIsolationAuthority(),
++    sendQueue: { status: () => ({ resumeBlocked: false, outcomeUnknown: 0 }) },
++    modelStatus,
++    backgroundJobs: { snapshot: () => ({ counts: { FAILED_FINAL: 0 }, consistency: { pass: true } }) },
++    accountManager: { list: () => ({ accounts: [] }) },
++    platformReadiness: { evaluate: () => ({ summary: { blockedPlatforms: 0 } }) },
++    eventBus: { on() {}, off() {}, publish() {} },
++    logger: { error() {} }
++  });
++}
++
++test('credential success requires an explicit durable commit and explicit runtime confirmation', () => {
++  for (const input of [
++    { ok: true },
++    { ok: true, mutationCommitted: false, runtimeConfirmed: true },
++    { ok: true, mutationCommitted: true, runtimeConfirmed: false }
++  ]) {
++    assert.throws(() => credentialReceipt.assertSaved(input));
++  }
++  assert.equal(credentialReceipt.assertSaved({ ok: true, mutationCommitted: true, runtimeConfirmed: true }).ok, true);
++});
++
++test('batch-only capability fails closed for every declared runtime task and unknown tasks', () => {
++  const batch = { id: 'batch', name: 'vendor/model:batch', allowedTasks: ['material_analysis', 'speech_transcription', 'future_task'] };
++  for (const task of ['material_analysis', 'speech_transcription', 'future_task']) {
++    assert.equal(capabilityAuthority.supportsTask(batch, task), false, task);
++  }
++  assert.equal(capabilityAuthority.supportsTask({ id: 'chat', name: 'vendor/chat' }, 'future_task'), false);
++});
++
++test('OpenRouter independent fallback is unique by normalized model slug, not registry id', async () => {
++  const registry = fakeRegistry([
++    cloud('same-a', 'vendor/same-model'),
++    cloud('same-b', 'vendor/same-model'),
++    cloud('independent-c', 'vendor/independent-model')
++  ]);
++  const result = await onboarding.run({
++    registry,
++    maxCandidates: 3,
++    snapshot: { selections: { quick_reply: [{ id: 'vendor/same-model' }] } },
++    executeModel: async model => validInference(model)
++  });
++  assert.equal(result.pass, true);
++  assert.notEqual(result.primaryModelSlug, result.fallbackModelSlug);
++  assert.equal(result.fallbackModelId, 'independent-c');
++});
++
++test('OpenRouter smoke cannot pass without a real chat-completions request id', async () => {
++  const registry = fakeRegistry([cloud('a', 'vendor/a'), cloud('b', 'vendor/b')]);
++  await assert.rejects(
++    onboarding.run({
++      registry,
++      snapshot: { selections: {} },
++      executeModel: async model => model.id === 'a'
++        ? validInference(model, { raw: {}, requestMode: 'chat-completions-standard' })
++        : validInference(model)
++    }),
++    error => error?.code === 'OPENROUTER_ONBOARDING_SMOKE_INCOMPLETE'
++      && error.results?.some(row => row.modelId === 'a' && row.pass === false && row.code === 'OPENROUTER_SMOKE_REQUEST_RECEIPT_INVALID')
++  );
++});
++
++test('governed receipt issuance requires completed formal evidence', () => {
++  assert.throws(
++    () => roleReceipts.issueFromEvidence({
++      modelId: 'm1', task: 'translation',
++      evidence: { authority: 'YanceCommercialModelBenchmark', status: 'COMMERCIAL_MODEL_QUALIFIED', pass: true, qualifyingTasks: ['translation'] }
++    }),
++    error => error?.code === 'ROLE_RECEIPT_BENCHMARK_INCOMPLETE'
++  );
++});
++
++test('governed receipt is cryptographically bound to the current model benchmark', () => {
++  const evidence = {
++    authority: 'YanceCommercialModelBenchmark', status: 'COMMERCIAL_MODEL_QUALIFIED',
++    completed: true, pass: true, score: 95, qualifyingTasks: ['translation'], summary: 'baseline-a', testedAt: '2026-07-31T10:00:00.000Z'
++  };
++  const model = { id: 'm1', lastCommercialBenchmark: evidence };
++  const receipt = roleReceipts.issueFromEvidence({ modelId: model.id, task: 'translation', evidence, expiresAt: '2030-01-01T00:00:00.000Z' });
++  model.roleQualificationReceipts = { translation: receipt };
++  assert.equal(roleReceipts.validate(model, 'translation', { now: '2026-07-31T12:00:00.000Z' }).pass, true);
++  model.lastCommercialBenchmark = { ...evidence, summary: 'changed-benchmark' };
++  const stale = roleReceipts.validate(model, 'translation', { now: '2026-07-31T12:00:00.000Z' });
++  assert.equal(stale.pass, false);
++  assert.equal(stale.reason, 'ROLE_RECEIPT_EVIDENCE_MISMATCH');
++});
++
++test('handcrafted receipt cannot bypass current benchmark authority', () => {
++  const model = {
++    id: 'm1',
++    lastCommercialBenchmark: {
++      authority: 'YanceCommercialModelBenchmark', status: 'COMMERCIAL_MODEL_QUALIFIED',
++      completed: true, pass: true, score: 90, qualifyingTasks: ['translation']
++    },
++    roleQualificationReceipts: {
++      translation: {
++        schemaVersion: 1, authority: 'AIRoleQualificationReceiptAuthority', receiptId: 'forged',
++        modelId: 'm1', task: 'translation', pass: true, score: 90,
++        issuedAt: '2026-07-31T10:00:00.000Z', expiresAt: '2030-01-01T00:00:00.000Z',
++        evidenceSha256: 'a'.repeat(64), benchmarkAuthority: 'YanceCommercialModelBenchmark',
++        benchmarkStatus: 'COMMERCIAL_MODEL_QUALIFIED'
++      }
++    }
++  };
++  assert.equal(roleReceipts.validate(model, 'translation', { now: '2026-07-31T12:00:00.000Z' }).pass, false);
++});
++
++test('AI route status authority failure isolates AI automation without global safe mode', async () => {
++  const supervisor = supervisorWith({ read() { throw Object.assign(new Error('sqlite unavailable'), { code: 'SQLITE_BUSY' }); } });
++  await supervisor.evaluate();
++  const snapshot = supervisor.snapshot();
++  assert.equal(snapshot.aiAutomationBlocked, true);
++  assert.equal(snapshot.globalWriteBlocked, false);
++  assert.deepEqual(snapshot.aiIsolationReasons, ['MODEL_ROUTE_STATUS_UNAVAILABLE']);
++});
++
++test('AI brain model selection delegates to the shared routing integrity authority', () => {
++  const code = source('backend/services/aiBrainOrchestrator.js');
++  assert.match(code, /modelRoutingIntegrityService/u);
++  assert.match(code, /eligibleForTask\(model,\s*task/u);
++});
++
++test('safe-mode metadata derives complete atomic diagnostics from the command envelope', async () => {
++  const h = await createAuthorityHarness();
++  try {
++    const gateway = new OperatingModeTransitionGateway({ store: h.store, ownership: h.ownership });
++    const command = envelope({ commandId: 'audit-safe-mode', expectedStateVersion: 1, operatingMode: 'safeMode', reason: 'SYSTEM_LEDGER_MISMATCH', source: 'audit-injection' });
++    await gateway.transition({ targetMode: 'safeMode', commandId: command.commandId, envelope: command });
++    const authority = h.store.getOperatingModeAuthority();
++    assert.equal(authority.reasonCode, 'SYSTEM_LEDGER_MISMATCH');
++    assert.deepEqual(authority.reasons, ['SYSTEM_LEDGER_MISMATCH']);
++    assert.equal(authority.trigger, 'audit-injection');
++    assert.equal(authority.updatedBy, 'audit-injection');
++    assert.match(authority.enteredAt, /^202/u);
++    assert.match(authority.evidenceSha256, /^[a-f0-9]{64}$/u);
++  } finally { await h.close(); }
++});
+diff --git a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/tests/uat/fix6dRuntimeAuthorityRepair.test.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/tests/uat/fix6dRuntimeAuthorityRepair.test.js
+index cced55a..e7fa610 100644
+--- a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/tests/uat/fix6dRuntimeAuthorityRepair.test.js
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/tests/uat/fix6dRuntimeAuthorityRepair.test.js
+@@ -113,10 +113,10 @@ test('OpenRouter onboarding keeps trying eligible independent candidates until t
+ test('formal AI role eligibility requires a valid model-bound role receipt', () => {
+   const model = {
+     id: 'm1', name: 'vendor/model', available: true, qualification: 'verified', allowedTasks: ['translation'],
+-    lastCommercialBenchmark: { completed: true, pass: true, qualifyingTasks: ['translation'] }
++    lastCommercialBenchmark: { authority: 'YanceCommercialModelBenchmark', status: 'COMMERCIAL_MODEL_QUALIFIED', completed: true, pass: true, score: 91, qualifyingTasks: ['translation'] }
+   };
+   assert.equal(readiness.formalTaskEligible(model, 'translation', {}), false);
+-  const receipt = roleReceipts.issue({ modelId: 'm1', task: 'translation', pass: true, score: 91, evidence: { benchmarkId: 'b1' }, issuedAt: '2026-07-31T10:00:00.000Z', expiresAt: '2027-07-31T10:00:00.000Z' });
++  const receipt = roleReceipts.issueFromEvidence({ modelId: 'm1', task: 'translation', pass: true, score: 91, evidence: model.lastCommercialBenchmark, issuedAt: '2026-07-31T10:00:00.000Z', expiresAt: '2027-07-31T10:00:00.000Z' });
+   model.roleQualificationReceipts = { translation: receipt };
+   assert.equal(roleReceipts.validate(model, 'translation', { now: '2026-07-31T12:00:00.000Z' }).pass, true);
+   assert.equal(readiness.formalTaskEligible(model, 'translation', { now: '2026-07-31T12:00:00.000Z' }), true);
+@@ -251,7 +251,7 @@ test('governed formal routes cannot bypass receipt authority through the routing
+   };
+   assert.equal(routingIntegrity.eligibleForTask(model, 'translation', { allowConditional: false }), false);
+   model.roleQualificationReceipts = {
+-    translation: roleReceipts.issue({ modelId: model.id, task: 'translation', pass: true, issuedAt: '2026-07-31T10:00:00.000Z', expiresAt: '2027-07-31T10:00:00.000Z', evidence: model.lastCommercialBenchmark })
++    translation: roleReceipts.issueFromEvidence({ modelId: model.id, task: 'translation', pass: true, issuedAt: '2026-07-31T10:00:00.000Z', expiresAt: '2027-07-31T10:00:00.000Z', evidence: model.lastCommercialBenchmark })
+   };
+   assert.equal(routingIntegrity.eligibleForTask(model, 'translation', { allowConditional: false }), true);
+ });
+diff --git a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/tests/uat/modelRuntimeAuthority.test.js b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/tests/uat/modelRuntimeAuthority.test.js
+index b81c65b..0e6677a 100644
+--- a/mnt/data/fix6d_audit/pristine/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/tests/uat/modelRuntimeAuthority.test.js
++++ b/mnt/data/fix6d_audit/uat/YANCE_BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_SOURCE/tests/uat/modelRuntimeAuthority.test.js
+@@ -24,7 +24,7 @@ function cloud(overrides = {}) {
+     ...overrides
+   };
+   if (!model.roleQualificationReceipts) {
+-    model.roleQualificationReceipts = Object.fromEntries(['quick_reply', 'deep_reply', 'director'].map(task => [task, roleReceipts.issue({
++    model.roleQualificationReceipts = Object.fromEntries(['quick_reply', 'deep_reply', 'director'].map(task => [task, roleReceipts.issueFromEvidence({
+       modelId: model.id,
+       task,
+       pass: true,

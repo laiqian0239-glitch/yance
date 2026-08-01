@@ -1,0 +1,34 @@
+TAP version 13
+# Subtest: memory, media, and persona are canonical first-class AI tasks across backend and workbench
+ok 1 - memory, media, and persona are canonical first-class AI tasks across backend and workbench
+  ---
+  duration_ms: 1.05547
+  type: 'test'
+  ...
+# Subtest: OpenRouter capability classification does not confuse learning material analysis with media input
+ok 2 - OpenRouter capability classification does not confuse learning material analysis with media input
+  ---
+  duration_ms: 1.691306
+  type: 'test'
+  ...
+# Subtest: commercial evidence qualification activates the independent memory route
+ok 3 - commercial evidence qualification activates the independent memory route
+  ---
+  duration_ms: 0.432544
+  type: 'test'
+  ...
+# Subtest: diagnostic readiness cannot report a green core AI when memory or director routes are missing
+ok 4 - diagnostic readiness cannot report a green core AI when memory or director routes are missing
+  ---
+  duration_ms: 6.999752
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 69.27146

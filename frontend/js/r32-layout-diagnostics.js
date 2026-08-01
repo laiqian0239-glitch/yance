@@ -25,7 +25,44 @@
     return Math.max(0, right - left) * Math.max(0, bottom - top);
   }
 
-  function collectHeaderFlowMetrics(workspace) {
+  function semanticText(value) {
+    const text = String(value || '').replace(/\s+/g, ' ').trim();
+    return text && /[\p{L}\p{N}]/u.test(text) ? text : '';
+  }
+
+  function clipsAxis(value) {
+    return /^(?:hidden|clip)$/u.test(String(value || '').toLowerCase());
+  }
+
+  function nodeIsVisible(node, style) {
+    if (!node || !style) return false;
+    if (node.getAttribute?.('aria-hidden') === 'true') return false;
+    if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false;
+    const rect = node.getBoundingClientRect?.() || {};
+    return Number(rect.width || 0) > 0 && Number(rect.height || 0) > 0;
+  }
+
+  function hasActualTextClipping(node, win) {
+    if (!node || !win?.getComputedStyle || !semanticText(node.textContent)) return false;
+    const style = win.getComputedStyle(node);
+    if (!nodeIsVisible(node, style)) return false;
+    const dpr = Math.max(1, Number(win.devicePixelRatio || 1));
+    const fontSize = Math.max(8, Number.parseFloat(style.fontSize) || 16);
+    const tolerance = Math.max(2, Math.ceil(dpr), Math.round(fontSize * 0.08));
+    const horizontalOverrun = Number(node.scrollWidth || 0) - Number(node.clientWidth || 0) > tolerance;
+    const verticalOverrun = Number(node.scrollHeight || 0) - Number(node.clientHeight || 0) > tolerance;
+    const overflow = String(style.overflow || '').toLowerCase();
+    const overflowX = String(style.overflowX || overflow).toLowerCase();
+    const overflowY = String(style.overflowY || overflow).toLowerCase();
+    const textOverflow = String(style.textOverflow || '').toLowerCase();
+    const whiteSpace = String(style.whiteSpace || '').toLowerCase();
+    const lineClamp = Number.parseInt(style.webkitLineClamp || style.lineClamp || '0', 10) || 0;
+    const horizontalContract = clipsAxis(overflowX) || clipsAxis(overflow) || (whiteSpace === 'nowrap' && /^(?:ellipsis|clip)$/u.test(textOverflow) && overflowX !== 'visible');
+    const verticalContract = clipsAxis(overflowY) || clipsAxis(overflow) || lineClamp > 0;
+    return (horizontalOverrun && horizontalContract) || (verticalOverrun && verticalContract);
+  }
+
+  function collectHeaderFlowMetrics(workspace, win = root) {
     if (!workspace?.querySelector) return { headerSubnavOverlapArea: 0, clippedTitleSamples: [] };
     const header = workspace.querySelector(':scope > header');
     const subnav = workspace.querySelector(':scope > .product-area-subnav');
@@ -34,9 +71,8 @@
     const clippedTitleSamples = [];
     for (const node of workspace.querySelectorAll(':scope > header h1,:scope > header h2,:scope > header p,:scope > header button')) {
       if (clippedTitleSamples.length >= 5) break;
-      if ((node.scrollWidth || 0) > (node.clientWidth || 0) + 2 || (node.scrollHeight || 0) > (node.clientHeight || 0) + 2) {
-        clippedTitleSamples.push(String(node.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 48));
-      }
+      const value = semanticText(node.textContent);
+      if (value && hasActualTextClipping(node, win)) clippedTitleSamples.push(value.slice(0, 48));
     }
     return {
       headerSubnavOverlapArea: headerRect && subnavRect ? rectangleOverlapArea(headerRect, subnavRect) : 0,
@@ -86,10 +122,10 @@
     const nodes = workspace.querySelectorAll('button,h1,h2,h3,h4,p,span,b,label,small,strong,em');
     for (const node of nodes) {
       if (samples.length >= 5) break;
-      const value = String(node.textContent || '').replace(/\s+/g, ' ').trim();
+      const value = semanticText(node.textContent);
       if (value.length < 2 || value.length > 80) continue;
       const style = win.getComputedStyle(node);
-      if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) continue;
+      if (!nodeIsVisible(node, style)) continue;
       const rect = node.getBoundingClientRect();
       const fontSize = Math.max(8, Number.parseFloat(style.fontSize) || 12);
       if (rect.width > 0 && rect.height > 0 && rect.width < Math.max(20, fontSize * 1.55) && rect.height > rect.width * 1.8) samples.push(value.slice(0, 24));
@@ -130,7 +166,7 @@
     }
     const style = win?.getComputedStyle?.(workspace) || workspace.style || {};
     const rect = workspace.getBoundingClientRect?.() || {};
-    const headerFlow = collectHeaderFlowMetrics(workspace);
+    const headerFlow = collectHeaderFlowMetrics(workspace, win);
     return evaluateWorkspaceMetrics({
       ...route,
       ...headerFlow,

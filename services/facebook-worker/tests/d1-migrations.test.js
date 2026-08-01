@@ -19,6 +19,8 @@ test('D1 migrations create all required tables and can be applied repeatedly', (
   const accountColumns = db.database.prepare('PRAGMA table_info(facebook_accounts)').all().map(row => row.name);
   assert.ok(accountColumns.includes('page_picture_url'));
   for (const column of ['granted_scopes','missing_permissions','history_sync_available','history_sync_reason','last_permission_check_at','permission_source']) assert.ok(accountColumns.includes(column), column);
+  const oauthColumns = db.database.prepare('PRAGMA table_info(facebook_oauth_states)').all().map(row => row.name);
+  for (const column of ['flow_mode','identity_json']) assert.ok(oauthColumns.includes(column), column);
   db.close();
 });
 

@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: human typing tiers follow the requested time envelopes and short replies avoid four bursts
+ok 1 - human typing tiers follow the requested time envelopes and short replies avoid four bursts
+  ---
+  duration_ms: 2.151361
+  type: 'test'
+  ...
+# Subtest: AI generation remains locally visible but never exposes platform composing
+ok 2 - AI generation remains locally visible but never exposes platform composing
+  ---
+  duration_ms: 1.356802
+  type: 'test'
+  ...
+# Subtest: approved WhatsApp reply alternates composing and paused and sends inside the final composing burst
+ok 3 - approved WhatsApp reply alternates composing and paused and sends inside the final composing burst
+  ---
+  duration_ms: 1.380861
+  type: 'test'
+  ...
+# Subtest: new incoming message aborts the silent phase without exposing composing
+ok 4 - new incoming message aborts the silent phase without exposing composing
+  ---
+  duration_ms: 1.55351
+  type: 'test'
+  ...
+# Subtest: manual keyboard activity cancels an active simulated burst and immediately sends paused
+ok 5 - manual keyboard activity cancels an active simulated burst and immediately sends paused
+  ---
+  duration_ms: 2.049253
+  type: 'test'
+  ...
+# Subtest: user cancel aborts a silent approved send and keeps the approved reply available for later confirmation
+ok 6 - user cancel aborts a silent approved send and keeps the approved reply available for later confirmation
+  ---
+  duration_ms: 0.621916
+  type: 'test'
+  ...
+# Subtest: outbox abort distinguishes user cancellation from stale incoming context
+ok 7 - outbox abort distinguishes user cancellation from stale incoming context
+  ---
+  duration_ms: 5.499416
+  type: 'test'
+  ...
+# Subtest: frontend contract cancels simulation on trusted manual input and conversation change
+ok 8 - frontend contract cancels simulation on trusted manual input and conversation change
+  ---
+  duration_ms: 2.18876
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 76.73104

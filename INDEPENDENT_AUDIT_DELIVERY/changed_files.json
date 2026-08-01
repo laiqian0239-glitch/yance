@@ -1,0 +1,114 @@
+[
+  {
+    "path": "backend/runtime/OperatingModeTransitionGateway.js",
+    "status": "modified",
+    "beforeSha256": "b88a028b9956ba3b770e09a6ec7a250285868944ae2132047190f6927d824f64",
+    "afterSha256": "523b4c05c140354fbe6eb1348b1e3c4d087f3ad8b18df351fd22931b45ab1d71",
+    "afterBytes": 7729
+  },
+  {
+    "path": "backend/runtime/RuntimeStateStore.js",
+    "status": "modified",
+    "beforeSha256": "bb7c106f4ad2bbd8a237e5c3d083c4ec3777236a926dbfb801505c3753fa5143",
+    "afterSha256": "fa9caca8bb4d47328e5f776e5821aab64c89f12c7983446e295c7e5a8c62d538",
+    "afterBytes": 65787
+  },
+  {
+    "path": "backend/services/aiBrainOrchestrator.js",
+    "status": "modified",
+    "beforeSha256": "817d4fb67c66b80dfa395d692af81eb37eefdc80782f6e6f1c4496b24b294ede",
+    "afterSha256": "65bd61b788718028ffa305831a1343c96b5e6b12f9f02acd4c1e892b2fcbb98b",
+    "afterBytes": 29570
+  },
+  {
+    "path": "backend/services/aiRoleQualificationReceiptAuthority.js",
+    "status": "modified",
+    "beforeSha256": "582e3e992ed5578b5968f5ebd55215780c0014cc5d74b7b4fde3e640e9d20582",
+    "afterSha256": "2e3c1511ba85a5091e17c5788139ae561c88c361c4ac929ec661788332e9f6c1",
+    "afterBytes": 7347
+  },
+  {
+    "path": "backend/services/aiTaskRoleReadinessAuthority.js",
+    "status": "modified",
+    "beforeSha256": "2b63c0972243f40d5273b53690cd9a7d1a685b4f10c2caae78a07369814c230d",
+    "afterSha256": "6eb1fd1faa339ec9ac95b3af81febf0f0a0a7cf961b7cee532558ac473944a71",
+    "afterBytes": 6881
+  },
+  {
+    "path": "backend/services/modelCapabilityAuthority.js",
+    "status": "modified",
+    "beforeSha256": "9d66c94df1ec4bda000945cd1157008cc6c22ae3a40308878f002ae78cec52dc",
+    "afterSha256": "fb06f83165d1789229932e3d81cdd2a0039be2acf4a985675f0c6f67ec25ee32",
+    "afterBytes": 2622
+  },
+  {
+    "path": "backend/services/modelRegistry.js",
+    "status": "modified",
+    "beforeSha256": "11d15e5d0126dbcfe7ac2cdb5c60ef914e370ea07bf38e565d3a3606e640f5ca",
+    "afterSha256": "83b193dbfd3870666dfbff38a9ba71712afc75547bf2b3f57ff20b1d6023ebad",
+    "afterBytes": 32029
+  },
+  {
+    "path": "backend/services/openRouterOnboardingSmokeService.js",
+    "status": "modified",
+    "beforeSha256": "20099cada092a458331deb2da0eda53e9877cfac90aac6502d815cd6e9b91505",
+    "afterSha256": "3fb99604f627c81b4317cfcd7f6b745526b842f30d73ed3ffc19e17d3a53f0d1",
+    "afterBytes": 15411
+  },
+  {
+    "path": "backend/services/runtimeSafetySupervisor.js",
+    "status": "modified",
+    "beforeSha256": "e53d41d833d3d5306d30a197a111051bc04e8903836e812a4b5a1475ca190e84",
+    "afterSha256": "719c602ead0dd2635a3b1362b7ffcc0af6c85ca0ec55620dcbce736221add725",
+    "afterBytes": 9112
+  },
+  {
+    "path": "backend/tests/aiBrainModelLifecycleClosure.test.js",
+    "status": "modified",
+    "beforeSha256": "b9431ebdd72c58d3fa72da8a5b79665b6f31fb45f726e5badf57070f3882ff71",
+    "afterSha256": "7255c614a1c3ff9ee7a5369ec66e35e4d04d609cae067abf0f2a264a2cf952c9",
+    "afterBytes": 8116
+  },
+  {
+    "path": "backend/tests/f25WindowsUatRepairBatch21RootAuthority.test.js",
+    "status": "modified",
+    "beforeSha256": "356bee2b6c84094069331965d171202d167369f1f9c5573b2af13cc0fc5e9aee",
+    "afterSha256": "b6a962c2d996d6924b67a172b2deac01ca6504e91a2fb51893297f166a27ec7e",
+    "afterBytes": 12872
+  },
+  {
+    "path": "backend/tests/f25WindowsUatRepairBatch3.test.js",
+    "status": "modified",
+    "beforeSha256": "c2858e6b27f14a56956c144837fa7835fad7ba21f63b26367631c5890304c527",
+    "afterSha256": "6d46bfa30d1c5d46a55fb8ebda5ae9db28dccfff82f5697faa79e79886d7aed3",
+    "afterBytes": 7559
+  },
+  {
+    "path": "frontend/js/r32-credential-mutation-receipt.js",
+    "status": "modified",
+    "beforeSha256": "d74e20eaa67643c42bff1c26d86dfd5a599bd23b9e57b11e69e726bf99c9daed",
+    "afterSha256": "9630df69f8f273b0dbf6f5fec287d121a7371f4f95fc4a8be243f4a4822da6e3",
+    "afterBytes": 1841
+  },
+  {
+    "path": "tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js",
+    "status": "added",
+    "beforeSha256": null,
+    "afterSha256": "904ffb64100beb5a692ecdbcee5451ae1adfec1102c6465abffe8b0975385d4a",
+    "afterBytes": 9772
+  },
+  {
+    "path": "tests/uat/fix6dRuntimeAuthorityRepair.test.js",
+    "status": "modified",
+    "beforeSha256": "27627e34beff88e794fa7c35c60b0db1906682aca0fcf1d7ec61489448676f0d",
+    "afterSha256": "ce566ca2e5c2623d22871e0c5ef0f012fb9e01f0c0302769197b3e70427628c7",
+    "afterBytes": 17814
+  },
+  {
+    "path": "tests/uat/modelRuntimeAuthority.test.js",
+    "status": "modified",
+    "beforeSha256": "568644cb9df8f719e17fa6e7b97047d331358882813de64578a75f2168fd0f09",
+    "afterSha256": "d265e1a2727596f3e36bd710b4b6df7601e645af5cc6f0a1fa339715bc80839d",
+    "afterBytes": 6695
+  }
+]

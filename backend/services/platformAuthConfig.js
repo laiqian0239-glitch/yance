@@ -1,7 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const { loadReleasePlatformAuth } = require('./releasePlatformAuth');
+const { loadReleasePlatformAuth, secureReleaseUrl } = require('./releasePlatformAuth');
 
 const DEFAULT_FACEBOOK_GRAPH_VERSION = 'v25.0';
 const MINIMUM_FACEBOOK_GRAPH_MAJOR = 24;
@@ -15,16 +15,12 @@ function configurationError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, status: 400, details });
 }
 function secureUrl(value, protocols = ['https:']) {
-  const raw = clean(value);
-  if (!raw) return '';
-  let url;
-  try { url = new URL(raw); }
-  catch (_) { throw configurationError('PLATFORM_AUTH_URL_INVALID', '平台授权服务地址格式无效'); }
-  if (!protocols.includes(url.protocol) && !(process.env.NODE_ENV === 'test' && ['http:','ws:'].includes(url.protocol))) {
-    throw Object.assign(new Error('平台授权服务必须使用 HTTPS/WSS'), { code: 'PLATFORM_AUTH_HTTPS_REQUIRED', status: 400, details: { protocol: url.protocol } });
+  try {
+    return secureReleaseUrl(value, protocols);
+  } catch (error) {
+    if (!Number(error.status)) error.status = 400;
+    throw error;
   }
-  if (url.username || url.password) throw configurationError('PLATFORM_AUTH_URL_CREDENTIALS_FORBIDDEN', '平台授权服务地址不能包含用户名或密码');
-  return url.toString().replace(/\/$/, '');
 }
 
 function normalizeTelegram(input = {}) {

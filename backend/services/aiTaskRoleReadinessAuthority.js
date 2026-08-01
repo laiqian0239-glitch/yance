@@ -2,6 +2,7 @@
 
 const routingIntegrity = require('./modelRoutingIntegrityService');
 const replyBrainAuthority = require('./replyBrainModelAuthority');
+const roleReceiptAuthority = require('./aiRoleQualificationReceiptAuthority');
 
 const AUTHORITY = 'AITaskRoleReadinessAuthority';
 const SCHEMA_VERSION = 1;
@@ -27,8 +28,7 @@ function commercialTaskPass(model = {}, task = '') {
   const benchmark = model.lastCommercialBenchmark && typeof model.lastCommercialBenchmark === 'object'
     ? model.lastCommercialBenchmark
     : null;
-  const tasks = Array.isArray(benchmark?.qualifyingTasks) ? benchmark.qualifyingTasks.map(clean) : [];
-  return Boolean(benchmark && benchmark.completed !== false && tasks.includes(clean(task)));
+  return Boolean(benchmark && roleReceiptAuthority.evidenceAllowsIssuance(clean(task), benchmark).pass === true);
 }
 function formalTaskEligible(model, task, route = {}) {
   if (!model) return false;
@@ -37,6 +37,9 @@ function formalTaskEligible(model, task, route = {}) {
     allowExperimental: route.allowExperimental === true,
     allowConditional: false
   })) return false;
+  if (roleReceiptAuthority.GOVERNED_TASKS.includes(target)) {
+    if (!roleReceiptAuthority.validate(model, target, { now: route.now }).pass) return false;
+  }
   if (target === 'translation') return commercialTaskPass(model, 'translation');
   if (['quick_reply', 'deep_reply', 'director'].includes(target)) {
     return replyBrainAuthority.taskQualification(model, target).full === true;
@@ -144,5 +147,6 @@ module.exports = {
   REDUNDANCY_REQUIRED_TASKS,
   commercialTaskPass,
   formalTaskEligible,
-  evaluate
+  evaluate,
+  roleReceiptAuthority
 };

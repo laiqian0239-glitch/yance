@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH40_FIX6D_GLOBAL_TYPOGRAPHY_V5_WINDOWS_SOURCE_UAT_R2_MANIFEST",
+  "generatedAtUtc": "2026-07-31T11:18:28.866995Z",
+  "sourceUatIdentity": {
+    "branch": "fix6d-global-typography-v5",
+    "commit": "514dc7a45e4891ed96c00a9046702676b9fe6d2c",
+    "tree": "c594b6848c6bf588ec72eba6308eef21090cc5ec"
+  },
+  "upstream": {
+    "branch": "fix6d-scroll-authority-v4",
+    "commit": "557e7586768744dcc24278d8bf68508a6181c04b",
+    "tree": "96099cf20673069624bfac9985547385ceb9a626"
+  },
+  "repack": {
+    "revision": "R2",
+    "reason": "Correct stale source UAT identity documents before Windows acceptance.",
+    "productionFrontendChanged": false,
+    "productionBackendChanged": false,
+    "testAdded": "tests/runtime-delivery/fix6d-v5-source-checkpoint-identity.test.js"
+  },
+  "governance": {
+    "windowsUiUat": false,
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "candidatePackageGenerated": false
+  },
+  "authoritativeCommands": {
+    "isolatedInstallAndStart": "npm run install:start:source-uat",
+    "largestExistingData": "npm run start:source-uat -- --largest-existing-data",
+    "fixedAppData": "npm run start:source-uat:existing"
+  }
+}

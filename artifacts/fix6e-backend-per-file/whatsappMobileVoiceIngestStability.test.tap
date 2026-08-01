@@ -1,0 +1,54 @@
+TAP version 13
+# (node:20302) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: mobile-originated voice unwraps deviceSentMessage and binds to the destination conversation
+ok 1 - mobile-originated voice unwraps deviceSentMessage and binds to the destination conversation
+  ---
+  duration_ms: 1.685874
+  type: 'test'
+  ...
+# Subtest: mobile-originated media is unwrapped before Baileys download and keeps the destination JID
+ok 2 - mobile-originated media is unwrapped before Baileys download and keeps the destination JID
+  ---
+  duration_ms: 0.146223
+  type: 'test'
+  ...
+# Subtest: companion echoes with different outer ids share one media transport dedupe key
+ok 3 - companion echoes with different outer ids share one media transport dedupe key
+  ---
+  duration_ms: 0.477052
+  type: 'test'
+  ...
+# Subtest: duplicate checkpoint does not let an unknown placeholder block a real voice upgrade
+ok 4 - duplicate checkpoint does not let an unknown placeholder block a real voice upgrade
+  ---
+  duration_ms: 0.357239
+  type: 'test'
+  ...
+# Subtest: repository stores multiple companion echoes as one voice row and retains external id aliases
+ok 5 - repository stores multiple companion echoes as one voice row and retains external id aliases
+  ---
+  duration_ms: 8.332384
+  type: 'test'
+  ...
+# Subtest: startup repair removes a duplicate group of synthetic unsupported mobile echoes
+ok 6 - startup repair removes a duplicate group of synthetic unsupported mobile echoes
+  ---
+  duration_ms: 29.747346
+  type: 'test'
+  ...
+# Subtest: programmatic scroll restoration never triggers older-history loading
+ok 7 - programmatic scroll restoration never triggers older-history loading
+  ---
+  duration_ms: 2.90951
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 395.136308

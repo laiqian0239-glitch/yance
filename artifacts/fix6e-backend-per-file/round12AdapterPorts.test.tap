@@ -1,0 +1,60 @@
+TAP version 13
+# (node:19696) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: each registered platform exposes exactly auth, ingress, egress and reconcile ports
+ok 1 - each registered platform exposes exactly auth, ingress, egress and reconcile ports
+  ---
+  duration_ms: 1.850494
+  type: 'test'
+  ...
+# Subtest: ingress produces a redacted, idempotent domain event instead of UI state
+ok 2 - ingress produces a redacted, idempotent domain event instead of UI state
+  ---
+  duration_ms: 327.740474
+  type: 'test'
+  ...
+# Subtest: egress refuses non-Outbox payloads and accepts frozen OutboxCommand only
+ok 3 - egress refuses non-Outbox payloads and accepts frozen OutboxCommand only
+  ---
+  duration_ms: 262.493522
+  type: 'test'
+  ...
+# Subtest: egress treats structured success=false as a rejection instead of platform acceptance
+ok 4 - egress treats structured success=false as a rejection instead of platform acceptance
+  ---
+  duration_ms: 259.418698
+  type: 'test'
+  ...
+# Subtest: reconcile failures degrade only that account and never block realtime traffic
+ok 5 - reconcile failures degrade only that account and never block realtime traffic
+  ---
+  duration_ms: 11.296198
+  type: 'test'
+  ...
+# Subtest: platform ports reject Express, DOM and raw SQLite boundary objects
+ok 6 - platform ports reject Express, DOM and raw SQLite boundary objects
+  ---
+  duration_ms: 0.457439
+  type: 'test'
+  ...
+# Subtest: platform ports reject binary, prototype-pollution keys and accessors before crossing the adapter boundary
+ok 7 - platform ports reject binary, prototype-pollution keys and accessors before crossing the adapter boundary
+  ---
+  duration_ms: 0.618752
+  type: 'test'
+  ...
+# Subtest: durable message egress refuses a claimed success without a platform message id
+ok 8 - durable message egress refuses a claimed success without a platform message id
+  ---
+  duration_ms: 0.355574
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 947.040243

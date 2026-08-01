@@ -1,0 +1,32 @@
+TAP version 13
+# AC-004 relationshipKeyNode — 真实 SQLite 集成测试
+#   ✓ 扩展 schema：key node 列已存在
+#   ✓ markKeyNode 新建 fact 关键节点：持久化 + 版本 + 事件 + 审计
+#   ✓ markKeyNode 新建 inference 关键节点：node_kind=inference
+#   ✓ markKeyNode kind 非法 → KEY_NODE_KIND_INVALID
+#   ✓ markKeyNode 新建但缺 contactId → INVALID_INPUT
+#   ✓ markKeyNode 标记已有轨迹事件为关键节点
+#   ✓ markKeyNode 幂等：同 kind 再次标记不产生事件/审计
+#   ✓ markKeyNode CAS 冲突：expectedVersion 不符 → VERSION_CONFLICT 且无写入
+#   ✓ markKeyNode 未知 eventId → KEY_NODE_EVENT_NOT_FOUND
+#   ✓ unmarkKeyNode：取消标记 + 事件
+#   ✓ unmarkKeyNode 幂等：已非关键节点直接返回
+#   ✓ listKeyNodes：按联系人列出，可按 fact/inference 过滤
+#   ✓ getKeyNode：关键节点返回，非关键节点返回 null
+#   ✓ 失败恢复旧投影：写一半抛错后事务回滚，旧状态保留
+# AC-004 通过 14 / 失败 0
+# Subtest: backend/tests/relationshipKeyNode.test.js
+ok 1 - backend/tests/relationshipKeyNode.test.js
+  ---
+  duration_ms: 40.009293
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 47.309521

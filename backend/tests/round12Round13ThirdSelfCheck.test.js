@@ -303,12 +303,17 @@ test('send queue idempotency key cannot silently reuse a different frozen payloa
   });
 });
 
-test('conditional AI route remains conditional and route receipt tampering is rejected', () => {
-  const conditional = { id: 'conditional', provider: 'openrouter', qualification: 'experimental', available: true, allowedTasks: ['understanding'], capabilityTags: ['relationship_reasoning','json_schema_strict'] };
-  const plan = aiQuality.routePlan({ task: 'understanding', route: { primary: 'conditional', fallback: 'conditional-fallback', allowConditional: true }, models: [
-    conditional, { ...conditional, id: 'conditional-fallback' }
+test('candidate-only translation remains non-deliverable and route receipt tampering is rejected', () => {
+  const translationPrimary = { id: 'translation-primary', provider: 'anthropic', modelSlug: 'anthropic/claude-sonnet', qualification: 'verified', available: true, allowedTasks: ['translation'], capabilityTags: ['multilingual_zh_bridge'] };
+  const translationFallback = { ...translationPrimary, id: 'translation-fallback', provider: 'openai', modelSlug: 'openai/gpt-mini' };
+  const translationPlan = aiQuality.routePlan({ task: 'translation', executionMode: 'candidate-only', route: { primary: translationPrimary.id, fallback: translationFallback.id, allowConditional: true }, models: [
+    translationPrimary, translationFallback
   ] });
-  assert.equal(plan.state, 'conditional');
+  assert.equal(translationPlan.state, 'conditional');
+  assert.equal(translationPlan.deliveryEligible, false);
+  assert.equal(translationPlan.formalReceiptEligible, false);
+  assert.equal(translationPlan.humanReviewRequired, true);
+
   const receipt = validRouteReceipt('quick_reply');
   assert.throws(() => aiQuality.verifyRouteReceipt({ ...receipt, qualityTier: 'conditional' }, { task: 'quick_reply' }), error => error.code === 'AI_QUALITY_ROUTE_RECEIPT_INVALID');
 });

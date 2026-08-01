@@ -1,0 +1,60 @@
+TAP version 13
+# (node:19766) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: current schema preserves durable Person anchors and future writes inherit the active Person automatically
+ok 1 - current schema preserves durable Person anchors and future writes inherit the active Person automatically
+  ---
+  duration_ms: 304.983564
+  type: 'test'
+  ...
+# Subtest: Person merge moves profile, relationship, memory and conversation anchors and rollback restores all of them
+ok 2 - Person merge moves profile, relationship, memory and conversation anchors and rollback restores all of them
+  ---
+  duration_ms: 279.42733
+  type: 'test'
+  ...
+# Subtest: detach and verify transitions have executable audited rollback, including detached conversation bindings
+ok 3 - detach and verify transitions have executable audited rollback, including detached conversation bindings
+  ---
+  duration_ms: 307.975099
+  type: 'test'
+  ...
+# Subtest: operational event bridge verifies media lifecycle state before recording an applied receipt
+ok 4 - operational event bridge verifies media lifecycle state before recording an applied receipt
+  ---
+  duration_ms: 300.091165
+  type: 'test'
+  ...
+# Subtest: operational events never self-prove: missing state is blocking until an independent audit sees persisted state
+ok 5 - operational events never self-prove: missing state is blocking until an independent audit sees persisted state
+  ---
+  duration_ms: 258.671504
+  type: 'test'
+  ...
+# Subtest: blocking projection pagination deduplicates events across statuses and keeps offsets stable
+ok 6 - blocking projection pagination deduplicates events across statuses and keeps offsets stable
+  ---
+  duration_ms: 262.798596
+  type: 'test'
+  ...
+# Subtest: architecture runtime health degrades safely but blocks release while projection is unaudited or divergent
+ok 7 - architecture runtime health degrades safely but blocks release while projection is unaudited or divergent
+  ---
+  duration_ms: 1.31067
+  type: 'test'
+  ...
+# Subtest: formal UI refreshes account-level capabilities and evidence exports release, projection, identity and learning governance
+ok 8 - formal UI refreshes account-level capabilities and evidence exports release, projection, identity and learning governance
+  ---
+  duration_ms: 0.910695
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2089.156715

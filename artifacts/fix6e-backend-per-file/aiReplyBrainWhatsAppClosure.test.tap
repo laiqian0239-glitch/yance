@@ -1,0 +1,42 @@
+TAP version 13
+# (node:17280) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: qualification and runtime share the same WhatsApp style contract
+ok 1 - qualification and runtime share the same WhatsApp style contract
+  ---
+  duration_ms: 4.20575
+  type: 'test'
+  ...
+# Subtest: WhatsApp style guard blocks long dashes, report language and repeated names
+ok 2 - WhatsApp style guard blocks long dashes, report language and repeated names
+  ---
+  duration_ms: 5.208121
+  type: 'test'
+  ...
+# Subtest: normal German WhatsApp reply passes the style guard
+ok 3 - normal German WhatsApp reply passes the style guard
+  ---
+  duration_ms: 0.158701
+  type: 'test'
+  ...
+# Subtest: backend is the candidate-count authority and balanced mode produces selection
+ok 4 - backend is the candidate-count authority and balanced mode produces selection
+  ---
+  duration_ms: 0.219675
+  type: 'test'
+  ...
+# Subtest: merge prompt requires a fresh AI rewrite rather than concatenation
+ok 5 - merge prompt requires a fresh AI rewrite rather than concatenation
+  ---
+  duration_ms: 2.842324
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 90.563213

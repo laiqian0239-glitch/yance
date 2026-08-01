@@ -14,6 +14,30 @@ function stable(value) {
   return JSON.stringify(value);
 }
 function envelopeHash(envelope) { return crypto.createHash('sha256').update(stable(envelope)).digest('hex'); }
+function clean(value) { return String(value == null ? '' : value).trim(); }
+function unique(values) { return [...new Set((Array.isArray(values) ? values : []).map(clean).filter(Boolean))]; }
+function dateLike(value) { return Number.isFinite(Date.parse(clean(value))); }
+function buildOperatingModeMetadata(mode, input = {}, at = nowIso()) {
+  const target = assertOperatingMode(mode, { source: 'buildOperatingModeMetadata' });
+  const safeMode = target === OPERATING_MODES.SAFE_MODE;
+  const reasonCode = clean(input.reasonCode || input.code || input.reason) || (safeMode ? 'SAFE_MODE_REASON_UNSPECIFIED' : '');
+  const reasons = unique([reasonCode, ...(Array.isArray(input.reasons) ? input.reasons : []), ...(Array.isArray(input.triggers) ? input.triggers : [])]);
+  const trigger = safeMode ? clean(input.trigger || input.source || 'runtime-authority') : '';
+  const updatedBy = clean(input.actor || input.updatedBy || input.source || 'runtime-authority');
+  const evidence = input.evidence && typeof input.evidence === 'object'
+    ? input.evidence
+    : safeMode ? { reasonCode, reasons, trigger, updatedBy } : null;
+  return {
+    schemaVersion: 1,
+    reasonCode: safeMode ? reasonCode : '',
+    reasons: safeMode ? reasons : [],
+    trigger,
+    enteredAt: safeMode ? clean(input.enteredAt || at) : '',
+    updatedAt: at,
+    updatedBy,
+    evidenceSha256: evidence ? crypto.createHash('sha256').update(stable(evidence)).digest('hex') : ''
+  };
+}
 
 class RuntimeStateStore {
   constructor(options = {}) {
@@ -54,6 +78,7 @@ class RuntimeStateStore {
         operating_mode_revision INTEGER NOT NULL,
         lifecycle_state TEXT NOT NULL,
         operating_mode TEXT NOT NULL,
+        operating_mode_metadata_json TEXT NOT NULL DEFAULT '{}',
         local_ready INTEGER NOT NULL,
         owner_instance_id TEXT NOT NULL,
         fencing_token INTEGER NOT NULL,
@@ -164,6 +189,19 @@ class RuntimeStateStore {
       this.db.exec('ALTER TABLE runtime_state ADD COLUMN operating_mode_revision INTEGER NOT NULL DEFAULT 0');
       const latestModeEvent = this.db.prepare("SELECT state_version FROM runtime_event WHERE event_type IN ('runtime.authority_initialized','runtime.operating_mode_persisted') ORDER BY event_sequence DESC LIMIT 1").get();
       if (latestModeEvent) this.db.prepare('UPDATE runtime_state SET operating_mode_revision=? WHERE id=1 AND operating_mode_revision=0').run(Number(latestModeEvent.state_version));
+    }
+    if (!runtimeStateColumns.has('operating_mode_metadata_json')) {
+      this.db.exec("ALTER TABLE runtime_state ADD COLUMN operating_mode_metadata_json TEXT NOT NULL DEFAULT '{}'");
+      const row = this.db.prepare('SELECT operating_mode,updated_at_utc FROM runtime_state WHERE id=1').get();
+      if (row) {
+        const metadata = buildOperatingModeMetadata(row.operating_mode, {
+          reasonCode: row.operating_mode === OPERATING_MODES.SAFE_MODE ? 'MIGRATED_SAFE_MODE' : '',
+          reasons: row.operating_mode === OPERATING_MODES.SAFE_MODE ? ['MIGRATED_SAFE_MODE'] : [],
+          trigger: 'runtime-state-schema-migration',
+          actor: 'runtime-state-schema-migration'
+        }, row.updated_at_utc || this.clock());
+        this.db.prepare('UPDATE runtime_state SET operating_mode_metadata_json=? WHERE id=1').run(json(metadata));
+      }
     }
     const credentialColumns = new Set(this.db.prepare('PRAGMA table_info(credential_hydration_state)').all().map(row => row.name));
     const additions = [
@@ -624,12 +662,35 @@ class RuntimeStateStore {
         });
       }
     }
+    const metadata = parseJson(row.operating_mode_metadata_json, {}) || {};
+    if (operatingMode === OPERATING_MODES.SAFE_MODE) {
+      const complete = clean(metadata.reasonCode)
+        && unique(metadata.reasons).length > 0
+        && clean(metadata.trigger)
+        && dateLike(metadata.enteredAt)
+        && clean(metadata.updatedBy)
+        && /^[a-f0-9]{64}$/u.test(clean(metadata.evidenceSha256));
+      if (!complete) {
+        throw new AppRuntimeError('SAFE_MODE_METADATA_INCOMPLETE', 'Safe mode authority metadata is incomplete', {
+          status: 503,
+          details: { operatingModeRevision, reasonCode: clean(metadata.reasonCode), trigger: clean(metadata.trigger), enteredAt: clean(metadata.enteredAt), updatedBy: clean(metadata.updatedBy), evidenceSha256: clean(metadata.evidenceSha256) }
+        });
+      }
+    }
     return {
       operatingMode,
       operatingModeRevision,
       stateVersion: Number(row.state_version),
       eventSequence: Number(event?.event_sequence || 0),
-      eventType: event?.event_type || 'runtime.authority_revision'
+      eventType: event?.event_type || 'runtime.authority_revision',
+      reasonCode: clean(metadata.reasonCode),
+      reason: clean(metadata.reasonCode),
+      reasons: unique(metadata.reasons),
+      trigger: clean(metadata.trigger),
+      enteredAt: clean(metadata.enteredAt),
+      updatedAtUtc: clean(metadata.updatedAt || row.updated_at_utc),
+      updatedBy: clean(metadata.updatedBy || 'runtime-authority'),
+      evidenceSha256: clean(metadata.evidenceSha256)
     };
   }
 
@@ -643,10 +704,16 @@ class RuntimeStateStore {
       const receipt = migration || {};
       const now = this.clock();
       const stateVersion = 1;
+      const modeMetadata = buildOperatingModeMetadata(mode, {
+        reasonCode: mode === OPERATING_MODES.SAFE_MODE ? 'INITIAL_SAFE_MODE' : '',
+        trigger: 'runtime-authority-initialization',
+        actor: 'runtime-authority-migration',
+        evidence: { migrationId: receipt.migrationId || '', sourceFingerprint: receipt.sourceFingerprint || '' }
+      }, now);
       this.db.prepare(`
-        INSERT INTO runtime_state(id,state_version,operating_mode_revision,lifecycle_state,operating_mode,local_ready,owner_instance_id,fencing_token,capabilities_json,diagnostics_json,updated_at_utc)
-        VALUES(1,?,?,'created',?,0,?,?,?, ?,?)
-      `).run(stateVersion, stateVersion, mode, ownerInstanceId, Number(fencingToken), json({}), json({ failedPhase: null, reasonCode: null }), now);
+        INSERT INTO runtime_state(id,state_version,operating_mode_revision,lifecycle_state,operating_mode,operating_mode_metadata_json,local_ready,owner_instance_id,fencing_token,capabilities_json,diagnostics_json,updated_at_utc)
+        VALUES(1,?,?,'created',?,?,0,?,?,?, ?,?)
+      `).run(stateVersion, stateVersion, mode, json(modeMetadata), ownerInstanceId, Number(fencingToken), json({}), json({ failedPhase: null, reasonCode: null }), now);
       this.db.prepare(`
         INSERT INTO runtime_migration_receipt(
           migration_id,migration_version,source_canonical_path,source_fingerprint,source_file_count,source_total_bytes,
@@ -717,7 +784,7 @@ class RuntimeStateStore {
     return { ...authority, receipt: this.getMigrationReceipt() };
   }
 
-  persistOperatingModeCommand({ leaseName, ownerInstanceId, fencingToken, envelope, targetMode, reason = '', source = '' }) {
+  persistOperatingModeCommand({ leaseName, ownerInstanceId, fencingToken, envelope, targetMode, reason = '', source = '', metadata = {} }) {
     const digest = envelopeHash(envelope);
     return this.transaction(() => {
       this._assertFence(leaseName, ownerInstanceId, fencingToken);
@@ -744,12 +811,25 @@ class RuntimeStateStore {
       const previousMode = assertOperatingMode(row.operating_mode, { source: 'persistOperatingModeCommand.current' });
       const nextVersion = Number(row.state_version) + 1;
       const at = this.clock();
+      const commandMetadata = {
+        ...metadata,
+        ...(envelope.payload?.metadata && typeof envelope.payload.metadata === 'object' ? envelope.payload.metadata : {})
+      };
+      const evidence = commandMetadata.evidence && typeof commandMetadata.evidence === 'object'
+        ? commandMetadata.evidence
+        : { commandId: envelope.commandId, expectedStateVersion: Number(envelope.expectedStateVersion), targetMode: mode, reason, source };
+      const modeMetadata = buildOperatingModeMetadata(mode, {
+        ...commandMetadata,
+        reason,
+        source,
+        evidence
+      }, at);
       const update = this.db.prepare(`
-        UPDATE runtime_state SET state_version=?,operating_mode_revision=?,operating_mode=?,owner_instance_id=?,fencing_token=?,updated_at_utc=?
+        UPDATE runtime_state SET state_version=?,operating_mode_revision=?,operating_mode=?,operating_mode_metadata_json=?,owner_instance_id=?,fencing_token=?,updated_at_utc=?
         WHERE id=1 AND owner_instance_id=? AND fencing_token=?
-      `).run(nextVersion, nextVersion, mode, ownerInstanceId, Number(fencingToken), at, ownerInstanceId, Number(fencingToken));
+      `).run(nextVersion, nextVersion, mode, json(modeMetadata), ownerInstanceId, Number(fencingToken), at, ownerInstanceId, Number(fencingToken));
       if (Number(update.changes) !== 1) throw new AppRuntimeError('STALE_FENCING_TOKEN', 'Operating mode write rejected by fencing guard', { status: 409 });
-      const event = this._insertEvent('runtime.operating_mode_persisted', nextVersion, { commandId: envelope.commandId, from: previousMode, to: mode, reason, source });
+      const event = this._insertEvent('runtime.operating_mode_persisted', nextVersion, { commandId: envelope.commandId, from: previousMode, to: mode, reason, source, metadata: modeMetadata });
       const response = { contractVersion: 2, commandId: envelope.commandId, accepted: true, duplicate: false, stateVersion: nextVersion, resultingEventSequence: event.eventSequence, reasonCode: null, result: { operatingMode: mode, applicationStatus: 'PENDING' } };
       this.db.prepare(`
         INSERT INTO command_idempotency(command_id,envelope_sha256,envelope_json,response_json,created_at_utc,command_type,status,target_mode,committed_revision)
@@ -971,4 +1051,4 @@ class RuntimeStateStore {
   close() { if (!this.ownsDb) return; try { this.db.close(); } catch (_) {} }
 }
 
-module.exports = { RuntimeStateStore, envelopeHash, stable };
+module.exports = { RuntimeStateStore, envelopeHash, stable, buildOperatingModeMetadata };

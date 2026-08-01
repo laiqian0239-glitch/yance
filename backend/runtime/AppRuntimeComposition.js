@@ -32,6 +32,7 @@ const domainEventProjectionAuthority = require('../services/domainEventProjectio
 const accountLifecycleSaga = require('../services/accountLifecycleSagaService').singleton;
 const learningSynthesisScheduler = require('../services/learningSynthesisScheduler').singleton;
 const { getRuntimeSafetySupervisor } = require('../services/runtimeSafetySupervisor');
+const { getScopedSafetyAuthority } = require('../services/scopedSafetyAuthority');
 
 function createAppRuntimeComposition(runtime) {
   const securityGuard = getSecurityGuard();
@@ -45,13 +46,25 @@ function createAppRuntimeComposition(runtime) {
   const recoveryManager = new RecoveryManager({
     safeModeService, backupService, diagnosticsService, productionDiagnostics, systemPolicy,
     lifecycleManager: runtime, securityGuard, eventBus, logger,
-    artifactRegistry, artifactBootstrap
+    artifactRegistry, artifactBootstrap, scopedSafety: getScopedSafetyAuthority()
   });
   const storeProjectionCoordinator = new StoreProjectionCoordinator({ eventBus, logger, workspaceData, modelRegistry, aiTaskRuntimeRegistry });
   const runtimeSafetySupervisor = getRuntimeSafetySupervisor().bindRuntime(runtime);
   safeModeService.bindAuthority(() => {
     const snapshot = runtime.store.snapshot();
-    return { operatingMode: snapshot.runtime.operatingMode, updatedAtUtc: snapshot.runtime.updatedAtUtc || '' };
+    let authority = {};
+    try { authority = runtime.store.getOperatingModeAuthority?.() || {}; } catch (_) {}
+    return {
+      operatingMode: snapshot.runtime.operatingMode,
+      updatedAtUtc: snapshot.runtime.updatedAtUtc || '',
+      reasonCode: authority.reasonCode || '',
+      reason: authority.reason || authority.reasonCode || '',
+      reasons: authority.reasons || [],
+      enteredAt: authority.enteredAt || '',
+      updatedBy: authority.updatedBy || 'runtime-authority',
+      trigger: authority.trigger || '',
+      evidenceSha256: authority.evidenceSha256 || ''
+    };
   });
   securityGuard.setPolicyProviders({
     safeModeProvider: () => runtime.operatingMode === 'safeMode',

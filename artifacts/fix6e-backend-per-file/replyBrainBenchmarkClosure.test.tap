@@ -1,0 +1,48 @@
+TAP version 13
+# (node:19574) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: a natural multilingual WhatsApp model passes the complete reply brain benchmark
+ok 1 - a natural multilingual WhatsApp model passes the complete reply brain benchmark
+  ---
+  duration_ms: 6.412335
+  type: 'test'
+  ...
+# Subtest: long dashes and report-style replies fail the German WhatsApp scenario
+ok 2 - long dashes and report-style replies fail the German WhatsApp scenario
+  ---
+  duration_ms: 2.272388
+  type: 'test'
+  ...
+# Subtest: wrong-language replies cannot qualify as a German reply brain
+ok 3 - wrong-language replies cannot qualify as a German reply brain
+  ---
+  duration_ms: 0.487603
+  type: 'test'
+  ...
+# Subtest: invented Persona facts and invalid director JSON are blocking failures
+ok 4 - invented Persona facts and invalid director JSON are blocking failures
+  ---
+  duration_ms: 0.54776
+  type: 'test'
+  ...
+# Subtest: nearly identical candidates fail the diversity scenario
+ok 5 - nearly identical candidates fail the diversity scenario
+  ---
+  duration_ms: 0.63719
+  type: 'test'
+  ...
+# Subtest: translation, coder and embedding models are rejected without invoking chat scenarios
+ok 6 - translation, coder and embedding models are rejected without invoking chat scenarios
+  ---
+  duration_ms: 0.281824
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 351.22415

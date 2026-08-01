@@ -15,12 +15,15 @@ test('one global display authority owns typography, density and contrast for pro
   const stylesheetOrder = [...html.matchAll(/<link[^>]+href="([^"]+\.css)"[^>]*>/gu)].map(match => match[1]);
   assert.ok(stylesheetOrder.includes('/r32-global-reading.css'));
   assert.ok(stylesheetOrder.indexOf('/r32-global-reading.css') > stylesheetOrder.indexOf('/r32-conversation-center-v2.css'));
-  assert.match(css, /--yance-font-body:var\(--ws-body\)/u);
-  assert.match(css, /--yance-control-height:max\(var\(--ws-control-h\),var\(--ui-density-row/u);
-  assert.match(css, /\[data-production-component\]/u);
-  assert.match(css, /\[data-production-control\]/u);
-  assert.match(css, /html\[data-reading="large"\][\s\S]*white-space:normal/u);
-  assert.match(css, /html\[data-contrast="high"\][\s\S]*focus-visible/u);
+  for (const token of ['--type-page-title','--type-section-title','--type-card-title','--type-body','--type-caption','--type-meta','--type-control','--type-badge','--type-data-value']) {
+    assert.match(css, new RegExp(`${token}:`));
+  }
+  assert.match(css, /html\[data-reading="standard"\]/u);
+  assert.match(css, /html\[data-reading="comfortable"\]/u);
+  assert.match(css, /html\[data-reading="large"\]/u);
+  assert.match(css, /html\[data-density="compact"\]/u);
+  assert.doesNotMatch(css, /--ws-/u);
+  assert.doesNotMatch(css, /\[data-production-(?:component|control)\]/u);
   assert.match(runtime, /dataset\.displayAuthority='batch21-semantic-v1'/u);
   assert.match(runtime, /yance:display-authority-changed/u);
 });

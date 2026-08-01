@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DERIVED_SOURCE_IDENTITY",
+  "derivedVersion": "FIX6O_GATE0_WINDOWS_UAT_SOURCE_V5E",
+  "baseCommit": "20f9163bf75dc13212dca9092ff0c47b033c4a87",
+  "baseTree": "6516b154355273146e58b71f8cdc9de2aafb5b29",
+  "payloadManifestSha256": "f362ae239c804fca9ef4d477f5cd269475c2417996ce651ba1b0a98ad49aab51",
+  "payloadFileCount": 2671,
+  "payloadTotalBytes": 300661801,
+  "generatedAtUtc": "2026-08-01T20:13:29.217Z",
+  "releaseGates": {
+    "windowsUiUat": false,
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "candidatePackageGenerated": false
+  }
+}

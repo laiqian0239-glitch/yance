@@ -149,7 +149,7 @@ class ApiV2RuntimeClient {
       commandId: input.commandId,
       commandType: 'runtime.setOperatingMode',
       expectedStateVersion: input.expectedStateVersion,
-      payload: { operatingMode: input.operatingMode, reason: String(input.reason || 'desktop-runtime-mode-change'), source: 'electron-api-v2' }
+      payload: { operatingMode: input.operatingMode, reason: String(input.reason || 'desktop-runtime-mode-change'), source: 'electron-api-v2', exitAuthorizationId: String(input.exitAuthorizationId || ''), exitAuthorizationToken: String(input.exitAuthorizationToken || '') }
     });
     return this.executeCommand(envelope, options);
   }

@@ -11,8 +11,8 @@
       .yance-dialog-runtime{position:fixed;inset:0;z-index:120000;display:grid;place-items:center;padding:24px;background:var(--overlay-scrim);backdrop-filter:blur(6px)}
       .yance-dialog-runtime[hidden]{display:none}
       .yance-dialog-card{width:min(520px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:var(--text);box-shadow:var(--overlay-shadow)}
-      .yance-dialog-card header{padding:20px 22px 8px}.yance-dialog-card h3{margin:0;font-size:20px}.yance-dialog-card p{margin:8px 0 0;color:var(--muted);line-height:1.6;white-space:pre-wrap}
-      .yance-dialog-body{padding:14px 22px}.yance-dialog-body label{display:grid;gap:8px;font-size:13px;color:var(--muted)}
+      .yance-dialog-card header{padding:20px 22px 8px}.yance-dialog-card h3{margin:0;font-size:var(--type-card-title)}.yance-dialog-card p{margin:8px 0 0;color:var(--muted);line-height:1.6;white-space:pre-wrap}
+      .yance-dialog-body{padding:14px 22px}.yance-dialog-body label{display:grid;gap:8px;font-size:var(--type-meta);color:var(--muted)}
       .yance-dialog-body input,.yance-dialog-body textarea,.yance-dialog-body select{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--text);padding:12px 14px;font:inherit;outline:none}
       .yance-dialog-body textarea{min-height:120px;resize:vertical}.yance-dialog-body input:focus,.yance-dialog-body textarea:focus,.yance-dialog-body select:focus{border-color:var(--accent)}
       .yance-dialog-actions{display:flex;justify-content:flex-end;gap:10px;padding:12px 22px 20px}.yance-dialog-actions button{border:1px solid var(--line);border-radius:11px;background:transparent;color:inherit;padding:10px 18px;font:inherit;cursor:pointer}

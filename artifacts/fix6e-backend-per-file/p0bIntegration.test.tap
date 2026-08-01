@@ -1,0 +1,24 @@
+TAP version 13
+#   PASS  AC-002 确认身份持久写入 contacts 表
+#   PASS  AC-002 乐观并发冲突（版本不符）回滚
+#   PASS  AC-002 撤销身份确认持久复位
+#   PASS  AC-003 合并持久墓碑化（merged_into_id 权威写入）
+#   PASS  AC-003 持久撤销恢复被合并联系人
+#   PASS  AC-004 标记关键节点持久写入 timeline 表
+#   PASS  AC-004 取消标记持久复位
+# P0-B integration: 7 passed, 0 failed
+# Subtest: backend/tests/p0bIntegration.test.js
+ok 1 - backend/tests/p0bIntegration.test.js
+  ---
+  duration_ms: 2007.308117
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2047.434449

@@ -1,0 +1,42 @@
+TAP version 13
+# (node:17702) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: a physical persistence write failure degrades the queue and blocks later work
+ok 1 - a physical persistence write failure degrades the queue and blocks later work
+  ---
+  duration_ms: 12.215981
+  type: 'test'
+  ...
+# Subtest: missing default SQLite persistence authority blocks execution fail-closed
+ok 2 - missing default SQLite persistence authority blocks execution fail-closed
+  ---
+  duration_ms: 0.402258
+  type: 'test'
+  ...
+# Subtest: a physical execution identity rebind write failure degrades the queue
+ok 3 - a physical execution identity rebind write failure degrades the queue
+  ---
+  duration_ms: 0.713463
+  type: 'test'
+  ...
+# Subtest: probe success cannot reopen until every unknown execution has a matching verified receipt
+ok 4 - probe success cannot reopen until every unknown execution has a matching verified receipt
+  ---
+  duration_ms: 1.467659
+  type: 'test'
+  ...
+# Subtest: default SQLite recovery does not declare a previous physical execution terminated without a receipt
+ok 5 - default SQLite recovery does not declare a previous physical execution terminated without a receipt
+  ---
+  duration_ms: 247.404708
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 323.332899

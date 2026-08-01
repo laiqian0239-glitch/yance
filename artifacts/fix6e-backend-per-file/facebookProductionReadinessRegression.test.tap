@@ -1,0 +1,180 @@
+TAP version 13
+# (node:18962) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Facebook authorization with missing required permissions is never reported connected
+ok 1 - Facebook authorization with missing required permissions is never reported connected
+  ---
+  duration_ms: 6.059432
+  type: 'test'
+  ...
+# Subtest: Facebook Page without cloud webhook subscription can send but cannot receive
+ok 2 - Facebook Page without cloud webhook subscription can send but cannot receive
+  ---
+  duration_ms: 1.272152
+  type: 'test'
+  ...
+# Subtest: Facebook new messaging remains ready when only history permission is unavailable
+ok 3 - Facebook new messaging remains ready when only history permission is unavailable
+  ---
+  duration_ms: 2.265569
+  type: 'test'
+  ...
+# Subtest: Facebook becomes receive-ready only after permissions, cloud subscription and HTTPS polling are ready
+ok 4 - Facebook becomes receive-ready only after permissions, cloud subscription and HTTPS polling are ready
+  ---
+  duration_ms: 1.356183
+  type: 'test'
+  ...
+# Subtest: Facebook status polling cannot revive send or receive after Page token expiry
+ok 5 - Facebook status polling cannot revive send or receive after Page token expiry
+  ---
+  duration_ms: 0.402652
+  type: 'test'
+  ...
+# Subtest: Facebook status polling keeps outbound ready but disables inbound while relay reconnects
+ok 6 - Facebook status polling keeps outbound ready but disables inbound while relay reconnects
+  ---
+  duration_ms: 0.173307
+  type: 'test'
+  ...
+# Subtest: Facebook readiness helpers require the current Page permission set and normalize webhook fields
+ok 7 - Facebook readiness helpers require the current Page permission set and normalize webhook fields
+  ---
+  duration_ms: 0.26835
+  type: 'test'
+  ...
+# Subtest: Facebook ad referral metadata is normalized without retaining arbitrary nested payloads
+ok 8 - Facebook ad referral metadata is normalized without retaining arbitrary nested payloads
+  ---
+  duration_ms: 0.286302
+  type: 'test'
+  ...
+# Subtest: standalone Click-to-Messenger referral creates a local inbox event and conversation attribution
+ok 9 - standalone Click-to-Messenger referral creates a local inbox event and conversation attribution
+  ---
+  duration_ms: 2.536729
+  type: 'test'
+  ...
+# Subtest: Facebook cloud history sync imports real history without exposing Page Token to Windows
+ok 10 - Facebook cloud history sync imports real history without exposing Page Token to Windows
+  ---
+  duration_ms: 1.968772
+  type: 'test'
+  ...
+# Subtest: Facebook Worker media persists a visible placeholder before asynchronous caching
+ok 11 - Facebook Worker media persists a visible placeholder before asynchronous caching
+  ---
+  duration_ms: 10.522338
+  type: 'test'
+  ...
+# Subtest: Facebook Worker media failure keeps the message and marks only the attachment retryable
+ok 12 - Facebook Worker media failure keeps the message and marks only the attachment retryable
+  ---
+  duration_ms: 3.4981
+  type: 'test'
+  ...
+# Subtest: Facebook Business Suite reconciliation resumes from a durable cursor and resets after the final page
+ok 13 - Facebook Business Suite reconciliation resumes from a durable cursor and resets after the final page
+  ---
+  duration_ms: 0.858058
+  type: 'test'
+  ...
+# Subtest: Windows FacebookAdapter refuses all direct Graph API calls
+ok 14 - Windows FacebookAdapter refuses all direct Graph API calls
+  ---
+  duration_ms: 0.592125
+  type: 'test'
+  ...
+# Subtest: Windows legacy media fallback revalidates every redirect destination
+ok 15 - Windows legacy media fallback revalidates every redirect destination
+  ---
+  duration_ms: 15.000144
+  type: 'test'
+  ...
+# Subtest: Facebook history helpers reject untrusted pagination hosts and normalize attachment descriptors
+ok 16 - Facebook history helpers reject untrusted pagination hosts and normalize attachment descriptors
+  ---
+  duration_ms: 0.346957
+  type: 'test'
+  ...
+# Subtest: Facebook delivery, read, reaction and delete events update existing local messages without creating duplicates
+ok 17 - Facebook delivery, read, reaction and delete events update existing local messages without creating duplicates
+  ---
+  duration_ms: 0.673693
+  type: 'test'
+  ...
+# Subtest: Facebook outbound echo is persisted as outbound and never triggers an incoming notification
+ok 18 - Facebook outbound echo is persisted as outbound and never triggers an incoming notification
+  ---
+  duration_ms: 0.599631
+  type: 'test'
+  ...
+# Subtest: Facebook page avatar proxy runs asynchronously after realtime connection is available
+ok 19 - Facebook page avatar proxy runs asynchronously after realtime connection is available
+  ---
+  duration_ms: 6.466963
+  type: 'test'
+  ...
+# Subtest: Facebook first-message profile avatar uses signed Worker proxy before a conversation row exists
+ok 20 - Facebook first-message profile avatar uses signed Worker proxy before a conversation row exists
+  ---
+  duration_ms: 1.270087
+  type: 'test'
+  ...
+# Subtest: Facebook profile-name failure does not suppress the independent avatar request
+ok 21 - Facebook profile-name failure does not suppress the independent avatar request
+  ---
+  duration_ms: 1.571594
+  type: 'test'
+  ...
+# Subtest: Facebook page-avatar failure remains visible in account runtime instead of being reported as healthy avatar state
+ok 22 - Facebook page-avatar failure remains visible in account runtime instead of being reported as healthy avatar state
+  ---
+  duration_ms: 5.319104
+  type: 'test'
+  ...
+# Subtest: Facebook reconnect schedules avatar repair for existing contacts without waiting for history sync or a new webhook
+ok 23 - Facebook reconnect schedules avatar repair for existing contacts without waiting for history sync or a new webhook
+  ---
+  duration_ms: 0.854961
+  type: 'test'
+  ...
+# Subtest: Facebook existing-contact repair resolves PSID from persisted chatJid and writes the cached avatar
+ok 24 - Facebook existing-contact repair resolves PSID from persisted chatJid and writes the cached avatar
+  ---
+  duration_ms: 1.334318
+  type: 'test'
+  ...
+# Subtest: Facebook existing-contact repair persists an explicit failure when no valid PSID can be recovered
+ok 25 - Facebook existing-contact repair persists an explicit failure when no valid PSID can be recovered
+  ---
+  duration_ms: 0.465541
+  type: 'test'
+  ...
+# Subtest: Facebook first-contact webhook persists and notifies before optional profile/avatar enrichment
+ok 26 - Facebook first-contact webhook persists and notifies before optional profile/avatar enrichment
+  ---
+  duration_ms: 0.606464
+  type: 'test'
+  ...
+# Subtest: Facebook webhook contact enrichment is asynchronous, deduplicated and non-destructive
+ok 27 - Facebook webhook contact enrichment is asynchronous, deduplicated and non-destructive
+  ---
+  duration_ms: 1.319428
+  type: 'test'
+  ...
+# Subtest: Facebook notification failure never rolls back an already persisted inbound message
+ok 28 - Facebook notification failure never rolls back an already persisted inbound message
+  ---
+  duration_ms: 1.070196
+  type: 'test'
+  ...
+1..28
+# tests 28
+# suites 0
+# pass 28
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1454.812971

@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: F25-D02/D14 raw persisted model routes remain visible as quarantine instead of being repaired into a false pass
+ok 1 - F25-D02/D14 raw persisted model routes remain visible as quarantine instead of being repaired into a false pass
+  ---
+  duration_ms: 9.273937
+  type: 'test'
+  ...
+# Subtest: F25-D02/D14 AI readiness fails on invalid persisted routes even when the repaired runtime routes are otherwise complete
+ok 2 - F25-D02/D14 AI readiness fails on invalid persisted routes even when the repaired runtime routes are otherwise complete
+  ---
+  duration_ms: 1.891634
+  type: 'test'
+  ...
+# Subtest: F25-D35/D40 every outbound enqueue path checks the unresolved-send gate before doing work
+ok 3 - F25-D35/D40 every outbound enqueue path checks the unresolved-send gate before doing work
+  ---
+  duration_ms: 0.76085
+  type: 'test'
+  ...
+# Subtest: F25-D02/D03 system health and diagnostics expose persisted-vs-operational route authority
+ok 4 - F25-D02/D03 system health and diagnostics expose persisted-vs-operational route authority
+  ---
+  duration_ms: 1.247769
+  type: 'test'
+  ...
+# Subtest: F25-D35/D39/D40 system center projects unresolved sends into issues and the effective write gate
+ok 5 - F25-D35/D39/D40 system center projects unresolved sends into issues and the effective write gate
+  ---
+  duration_ms: 0.798918
+  type: 'test'
+  ...
+# Subtest: F25-D03 invalid-route integrity events have stable task-role-model identity and are deduplicated
+ok 6 - F25-D03 invalid-route integrity events have stable task-role-model identity and are deduplicated
+  ---
+  duration_ms: 0.39753
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 66.177045

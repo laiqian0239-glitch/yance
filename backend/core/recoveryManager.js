@@ -1,9 +1,30 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const { CoreError } = require('../../shared/core/errors');
 const { sanitizeObject } = require('../services/privacy');
+const { isGlobalReason } = require('../services/scopedSafetyAuthority');
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
+function nowIso() { return new Date().toISOString(); }
+function hash(value) { return crypto.createHash('sha256').update(String(value || '')).digest('hex'); }
+
+const GLOBAL_DIAGNOSTIC_IDS = new Set([
+  'data-root', 'sqlite-store', 'secure-root', 'restore-engine',
+  'runtime-authority', 'runtime-operating-mode-authority', 'artifact-integrity',
+  'release-manifest-integrity', 'database-migration'
+]);
+
+function diagnosticReasonCode(row = {}) {
+  return clean(row.reasonCode || row.code || row.id).toUpperCase();
+}
+function isGlobalDiagnosticFailure(row = {}) {
+  if (row.pass !== false || !['critical', 'high'].includes(clean(row.severity).toLowerCase())) return false;
+  const reasonCode = diagnosticReasonCode(row);
+  if (isGlobalReason(reasonCode)) return true;
+  if (clean(row.scopeType).toLowerCase() === 'system' && GLOBAL_DIAGNOSTIC_IDS.has(clean(row.id).toLowerCase())) return true;
+  return GLOBAL_DIAGNOSTIC_IDS.has(clean(row.id).toLowerCase());
+}
 
 class RecoveryManager {
   constructor({
@@ -17,7 +38,9 @@ class RecoveryManager {
     eventBus,
     logger,
     artifactRegistry = null,
-    artifactBootstrap = null
+    artifactBootstrap = null,
+    scopedSafety = null,
+    clock = nowIso
   }) {
     this.safeModeService = safeModeService;
     this.backupService = backupService;
@@ -30,6 +53,9 @@ class RecoveryManager {
     this.logger = logger;
     this.artifactRegistry = artifactRegistry;
     this.artifactBootstrap = artifactBootstrap;
+    this.scopedSafety = scopedSafety || null;
+    this.clock = clock;
+    this.safeModeExitAuthorizations = new Map();
     this.artifactBootstrapState = null;
     this.started = false;
     this.startedAt = '';
@@ -61,7 +87,9 @@ class RecoveryManager {
       pendingRestore: this.backupService.pendingRestore(),
       recentRestoreHistory: this.backupService.restoreHistory(10),
       artifacts: this.artifactRegistry?.snapshot?.() || null,
-      artifactBootstrap: this.artifactBootstrapState || this.artifactBootstrap?.snapshot?.() || null
+      artifactBootstrap: this.artifactBootstrapState || this.artifactBootstrap?.snapshot?.() || null,
+      scopedSafety: this.scopedSafety?.snapshot?.() || { active: [], globalBlockers: [] },
+      safeModeExitAssessment: this.safeModeExitAssessment()
     };
   }
 
@@ -71,8 +99,63 @@ class RecoveryManager {
 
   integritySnapshot() {
     const diagnostics = this.diagnosticsService.snapshot();
-    const criticalFailures = (diagnostics.tests || []).filter(row => row.id !== 'safe-mode-state' && row.pass === false && ['critical', 'high'].includes(row.severity));
-    return { diagnostics, criticalFailures, ok: criticalFailures.length === 0 };
+    const criticalFailures = (diagnostics.tests || []).filter(row => row.id !== 'safe-mode-state' && row.pass === false && ['critical', 'high'].includes(clean(row.severity).toLowerCase()));
+    const globalCriticalFailures = criticalFailures.filter(isGlobalDiagnosticFailure);
+    const scopedFailures = criticalFailures.filter(row => !isGlobalDiagnosticFailure(row));
+    return { diagnostics, criticalFailures, globalCriticalFailures, scopedFailures, ok: globalCriticalFailures.length === 0 };
+  }
+
+  safeModeExitAssessment() {
+    const integrity = this.integritySnapshot();
+    let scoped = { active: [], globalBlockers: [] };
+    try { scoped = this.scopedSafety?.snapshot?.() || scoped; } catch (_) {}
+    const globalBlockers = [
+      ...integrity.globalCriticalFailures.map(row => ({ source: 'diagnostics', reasonCode: diagnosticReasonCode(row), id: clean(row.id), detail: clean(row.detail) })),
+      ...(scoped.globalBlockers || []).map(row => ({ source: 'scoped-safety', reasonCode: clean(row.reasonCode), issueId: clean(row.issueId), detail: row.detail || {} }))
+    ];
+    const seen = new Set();
+    const uniqueBlockers = globalBlockers.filter(row => {
+      const key = `${row.source}:${row.reasonCode}:${row.id || row.issueId || ''}`;
+      if (seen.has(key)) return false; seen.add(key); return true;
+    });
+    return {
+      ok: uniqueBlockers.length === 0,
+      globalBlockers: uniqueBlockers,
+      scopedFailures: integrity.scopedFailures,
+      scopedIssues: (scoped.active || []).filter(row => row.scopeType !== 'system'),
+      assessedAt: this.clock()
+    };
+  }
+
+  prepareSafeModeExit(payload = {}, context = {}) {
+    if (clean(payload.confirmation) !== 'EXIT_SAFE_MODE') throw new CoreError('SAFE_MODE_CONFIRMATION_REQUIRED', '退出安全模式需要明确确认', { status: 409 });
+    const assessment = this.safeModeExitAssessment();
+    if (!assessment.ok) {
+      throw new CoreError('SAFE_MODE_EXIT_BLOCKED_GLOBAL', '仍存在共享基础设施阻断，不能退出全局安全模式', { status: 409, details: { blockers: assessment.globalBlockers } });
+    }
+    const exitAuthorizationId = `safe-exit-${crypto.randomUUID()}`;
+    const exitAuthorizationToken = crypto.randomBytes(32).toString('hex');
+    const issuedAt = this.clock();
+    const expiresAt = new Date(Date.parse(issuedAt) + 60_000).toISOString();
+    this.safeModeExitAuthorizations.set(exitAuthorizationId, {
+      tokenSha256: hash(exitAuthorizationToken), expiresAt, actor: clean(context.actor || 'user'), reason: clean(payload.reason || 'safe-mode-cleared')
+    });
+    return { exitAuthorizationId, exitAuthorizationToken, issuedAt, expiresAt, assessment };
+  }
+
+  consumeSafeModeExitAuthorization(payload = {}) {
+    const id = clean(payload.exitAuthorizationId);
+    const token = clean(payload.exitAuthorizationToken);
+    if (!id || !token) {
+      throw new CoreError('SAFE_MODE_EXIT_AUTHORIZATION_REQUIRED', '退出全局安全模式需要恢复权威签发的有效收据', { status: 409 });
+    }
+    const row = this.safeModeExitAuthorizations.get(id);
+    if (!row) throw new CoreError('SAFE_MODE_EXIT_AUTHORIZATION_INVALID', '安全模式退出收据不存在、已使用或已失效', { status: 409 });
+    this.safeModeExitAuthorizations.delete(id);
+    if (Date.parse(row.expiresAt) <= Date.parse(this.clock()) || hash(token) !== row.tokenSha256) {
+      throw new CoreError('SAFE_MODE_EXIT_AUTHORIZATION_INVALID', '安全模式退出收据无效或已过期', { status: 409 });
+    }
+    return true;
   }
 
   async execute(command, payload = {}, context = {}) {
@@ -85,17 +168,8 @@ class RecoveryManager {
         this.eventBus?.publish?.('recovery:safe-mode-entered', { reason, correlationId: context.correlationId || '' });
         return this.snapshot();
       });
-      case 'recovery.clearSafeMode': return this.secured(command, context, async () => {
-        const integrity = this.integritySnapshot();
-        if (!integrity.ok && payload.force !== true) {
-          throw new CoreError('SAFE_MODE_EXIT_BLOCKED', '仍存在高严重度完整性问题，不能退出安全模式', { status: 409, details: { failures: integrity.criticalFailures } });
-        }
-        if (payload.force === true && !clean(payload.reason)) throw new CoreError('SAFE_MODE_FORCE_REASON_REQUIRED', '强制退出安全模式必须填写原因', { status: 400 });
-        if (clean(payload.confirmation) !== 'EXIT_SAFE_MODE') throw new CoreError('SAFE_MODE_CONFIRMATION_REQUIRED', '退出安全模式需要明确确认', { status: 409 });
-        if (this.lifecycleManager.operatingMode === 'safeMode') await this.lifecycleManager.exitSafeMode(payload.reason || 'safe-mode-cleared');
-        this.eventBus?.publish?.('recovery:safe-mode-cleared', { forced: payload.force === true, correlationId: context.correlationId || '' });
-        return { ...this.snapshot(), integrity };
-      });
+      case 'recovery.prepareSafeModeExit':
+      case 'recovery.clearSafeMode': return this.secured(command, context, async () => this.prepareSafeModeExit(payload, context));
       case 'recovery.createBackup': return this.secured(command, context, async () => this.backupService.createBackup(payload.label || 'manual-recovery', { profile: payload.profile, roots: payload.roots }));
       case 'recovery.verifyBackup': return this.backupService.verifyBackup(payload.name, { force: true });
       case 'recovery.stageRestore': return this.secured(command, context, async () => {

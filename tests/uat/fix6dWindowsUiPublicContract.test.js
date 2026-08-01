@@ -68,18 +68,23 @@ test('FIX6D production shell consumes one computed grid contract', () => {
   assert.match(css, /grid-column:var\(--ui-route-main-column\)/);
 });
 
-test('FIX6D shared density keeps navigation and AI content readable without heavy active chrome', () => {
+test('FIX6D shared density and typography remain separate semantic authorities without legacy font aliases', () => {
   const css = source('frontend/r32-conversation-center-v2.css');
   const semantic = source('frontend/r32-theme-semantic-contract.css');
-  for (const token of ['--ui-nav-hit-size', '--ui-control-height', '--ui-panel-gap', '--ui-body-font-size', '--ui-meta-font-size']) {
+  const reading = source('frontend/r32-global-reading.css');
+  for (const token of ['--ui-nav-hit-size', '--ui-panel-gap']) {
     assert.match(semantic, new RegExp(`${token}\\s*:`));
   }
+  for (const token of ['--type-body', '--type-meta', '--type-section-title', '--type-control', '--control-min-height']) {
+    assert.match(reading, new RegExp(`${token}\\s*:`));
+  }
+  assert.doesNotMatch(`${semantic}\n${css}`, /--ui-(?:body|meta)-font-size|--ui-control-height/u);
   assert.match(css, /\.nav-menu \.icon[^}]*min-height:var\(--ui-nav-hit-size\)/s);
-  assert.match(css, /\.ai[^}]*font-size:var\(--ui-body-font-size\)/s);
+  assert.match(css, /\.ai-brand h2\{[^}]*font-size:var\(--type-section-title\)/s);
+  assert.match(css, /\.ai-head-actions button\{[^}]*font-size:var\(--type-control\)/s);
   const active = css.match(/\.nav-menu \.icon\.active[\s\S]*?\}/)?.[0] || '';
   assert.doesNotMatch(active, /0 0 2[0-9]px/);
 });
-
 test('FIX6D settings switches remain inside the same bounded semantic row', () => {
   const system = source('frontend/r32-system-center.css');
   const systemRuntime = source('frontend/r32-system-center.js');
@@ -87,18 +92,18 @@ test('FIX6D settings switches remain inside the same bounded semantic row', () =
   const settingsRuntime = source('frontend/r32-settings-recovery.js');
   const html = source('frontend/index.html');
   const reading = source('frontend/r32-global-reading.css');
+  const component = source('frontend/r32-component-readability.css');
   assert.match(system, /\.sc32-toggle-row\{[^}]*grid-template-columns:minmax\(0,1fr\) auto[^}]*max-width:none/s);
   assert.match(settings, /\.sr32-toggle\{[^}]*grid-template-columns:minmax\(0,1fr\) auto[^}]*width:100%/s);
   assert.match(system, /@media\(max-width:700px\)[\s\S]*\.sc32-toggle-row\{[^}]*grid-template-columns:minmax\(0,1fr\)/s);
   assert.match(systemRuntime, /class="sc32-switch[^"]*ui-binary-control/);
   assert.match(settingsRuntime, /class="ui-binary-control"[^>]*type="checkbox"/);
   assert.equal((html.match(/class="ui-binary-control"[^>]*type="checkbox"/g) || []).length, 4);
-  assert.match(reading, /button:not\(\.ui-binary-control\)/);
-  assert.match(reading, /input:not\(\.ui-binary-control\)/);
-  assert.match(reading, /html\[data-reading="large"\] #app :where\([\s\S]*?button:not\(\.ui-binary-control\)[\s\S]*?\)\{/);
-  assert.match(reading, /html\[data-reading="large"\] #app :where\([\s\S]*?input:not\(\.ui-binary-control\)[\s\S]*?\)\{/);
+  assert.match(component, /button:not\(\.ui-binary-control\)/);
+  assert.match(component, /input:not\(\.ui-binary-control\)/);
+  assert.match(component, /min-height:max\(var\(--control-min-height\),var\(--density-row-height\)\)/);
+  assert.doesNotMatch(reading, /#app|button|input|\.ui-binary-control/u);
 });
-
 test('FIX6D notifications use one titlebar-safe global region', () => {
   const html = source('frontend/index.html');
   const runtime = source('frontend/js/r32-ui-runtime.js');

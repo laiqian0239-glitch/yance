@@ -1,0 +1,22 @@
+TAP version 13
+# Subtest: commercial workspaces use the themed dialog authority instead of browser-native confirmation prompts
+ok 1 - commercial workspaces use the themed dialog authority instead of browser-native confirmation prompts
+  ---
+  duration_ms: 6.08146
+  type: 'test'
+  ...
+# Subtest: destructive account, recovery, persona and learning actions are still explicitly confirmed
+ok 2 - destructive account, recovery, persona and learning actions are still explicitly confirmed
+  ---
+  duration_ms: 6.443836
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 58.019901

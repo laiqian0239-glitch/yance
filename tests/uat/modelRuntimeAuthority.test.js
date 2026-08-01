@@ -6,9 +6,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const projection = require('../../backend/services/modelStatusProjection');
 const authority = require('../../backend/services/modelRuntimeAuthority');
+const roleReceipts = require('../../backend/services/aiRoleQualificationReceiptAuthority');
 
 function cloud(overrides = {}) {
-  return {
+  const model = {
     id: 'cloud-main',
     name: 'gpt-4o-mini',
     provider: 'openai-compatible',
@@ -19,9 +20,21 @@ function cloud(overrides = {}) {
     qualification: 'verified',
     allowedTasks: ['quick_reply', 'deep_reply', 'director'],
     lastTest: { testedAt: '2026-07-22T01:00:00.000Z', connectivity: { pass: true, status: 200 }, scores: { persona: { pass: true }, hallucination: { pass: true }, json: { pass: true } } },
-    lastReplyBrainBenchmark: { authority: 'YanceReplyBrainBenchmark', status: 'REPLY_BRAIN_QUALIFIED', pass: true, score: 90, testedAt: '2026-07-22T01:00:00.000Z' },
+    lastReplyBrainBenchmark: { authority: 'YanceReplyBrainBenchmark', status: 'REPLY_BRAIN_QUALIFIED', completed: true, pass: true, score: 90, qualifyingTasks: ['quick_reply', 'deep_reply', 'director'], testedAt: '2026-07-22T01:00:00.000Z' },
     ...overrides
   };
+  if (!model.roleQualificationReceipts) {
+    model.roleQualificationReceipts = Object.fromEntries(['quick_reply', 'deep_reply', 'director'].map(task => [task, roleReceipts.issueFromEvidence({
+      modelId: model.id,
+      task,
+      pass: true,
+      score: 90,
+      issuedAt: '2026-07-31T10:00:00.000Z',
+      expiresAt: '2027-07-31T10:00:00.000Z',
+      evidence: model.lastReplyBrainBenchmark
+    })]));
+  }
+  return model;
 }
 
 const options = { credentialReady: () => true };

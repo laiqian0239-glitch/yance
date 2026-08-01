@@ -8,11 +8,17 @@ const eventBus = require('./eventBus');
 const logger = require('./logger');
 const { JobQueue } = require('./jobQueue');
 const { TASKS, QUALIFICATION } = require('../../shared/constants');
-const { normalizedTask, eligibleForTask, cleanModelId } = require('./modelRoutingIntegrityService');
+const { normalizedTask, eligibleForTask, cleanModelId, normalizeRoute } = require('./modelRoutingIntegrityService');
 const { normalizeModelError, createAllModelsFailedError } = require('./modelErrorNormalizer');
 const taskRuntimePolicy = require('./modelTaskRuntimePolicy');
 const aiQualityRouteAuthority = require('./aiQualityRouteAuthority');
 const aiContextReductionPolicy = require('./aiContextReductionPolicy');
+const workloadPlacementAuthority = require('./aiWorkloadPlacementAuthority');
+const aiBudgetAuthority = require('./aiBudgetAuthority');
+const executionModeAuthority = require('./aiExecutionModeAuthority');
+const aiExecutionTraceAuthority = require('./aiExecutionTraceAuthority');
+const taskRoutingAuthority = require('./modelServiceTaskRoutingAuthority');
+const providerDomainAuthority = require('./modelProviderFailureDomainAuthority');
 
 function taskPriority(task, options = {}) {
   if (Number.isFinite(Number(options.priority))) return Number(options.priority);
@@ -125,15 +131,6 @@ function translationRouteIds(route = {}, profile = 'realtime') {
   return { primaryId: cleanModelId(route.primary), fallbackId: cleanModelId(route.fallback) };
 }
 
-function shouldCountModelFailure(error = {}) {
-  const code = String(error.code || '').toUpperCase();
-  const status = Number(error.status || 0);
-  if (['MODEL_CANCELLED', 'JOB_CANCELLED', 'MODEL_REQUEST_DISCONNECTED', 'AI_QUEUE_TIMEOUT'].includes(code)) return false;
-  if (status >= 400 && status < 500 && status !== 408 && status !== 429) return false;
-  if (/(CREDENTIAL_MISSING|INVALID_|MODEL_NOT_FOUND|UNSUPPORTED_MODEL_PROVIDER|MISCONFIGURED)/u.test(code)) return false;
-  return /(TIMEOUT|NETWORK|ECONN|OFFLINE|OOM|RESOURCE|RATE|HTTP_5|REQUEST_FAILED|INVOCATION_FAILED)/u.test(code)
-    || status === 408 || status === 429 || status >= 500;
-}
 
 class AiGateway {
   constructor(options = {}) {
@@ -149,6 +146,10 @@ class AiGateway {
     this.controllers = new Map();
     this.jobs = new Map();
     this.failures = new Map();
+    this.cooldowns = new Map();
+    this.clock = {
+      now: typeof options.clock?.now === 'function' ? options.clock.now : Date.now
+    };
     this.queueIds = new Map();
     this.dedupe = new Map();
     this.latestContextGenerations = new Map();
@@ -209,12 +210,13 @@ class AiGateway {
   }
 
   loadPersistedCircuits() {
-    const now = Date.now();
+    const now = this.clock.now();
     for (const model of this.registry.read().models || []) {
       const openedUntil = Date.parse(String(model.circuitOpenedUntil || ''));
       if (!Number.isFinite(openedUntil) || openedUntil <= now) continue;
       const openedAt = Date.parse(String(model.circuitOpenedAt || '')) || now;
       this.failures.set(model.id, { count: Math.max(3, Number(model.consecutiveFailureCount || 3)), openedAt });
+      this.cooldowns.set(model.id, openedUntil);
     }
   }
 
@@ -242,69 +244,166 @@ class AiGateway {
     const targetTask = normalizedTask(task);
     if (!TASKS.includes(targetTask)) throw new Error(`UNKNOWN_TASK:${task}`);
     const state = this.registry.read();
-    const route = state.routes?.[targetTask] || state.routes?.[task] || {};
-    const candidates = this.eligibleModels(targetTask, {
+    const models = state.models || [];
+    const executionPolicy = executionModeAuthority.policyFor(options.executionMode);
+    const routeOverrideApplied = Boolean(options.routeOverride && typeof options.routeOverride === 'object');
+    const route = routeOverrideApplied
+      ? normalizeRoute(options.routeOverride, targetTask)
+      : (state.routes?.[targetTask] || state.routes?.[task] || {});
+    const candidates = models.filter(model => eligibleForTask(model, targetTask, {
       allowExperimental: route.allowExperimental === true,
-      allowConditional: route.allowConditional === true
-    });
+      allowConditional: executionPolicy.allowConditional === true
+    }));
     const find = id => candidates.find(model => model.id === cleanModelId(id));
+    const byId = new Map(models.map(model => [cleanModelId(model.id), model]));
     const explicit = requestedModelId && find(requestedModelId);
     const translationProfile = targetTask === 'translation'
       ? String(options.translationProfile || (options.background === true ? 'history' : 'realtime')).trim().toLowerCase()
       : '';
+    const placementDecision = workloadPlacementAuthority.rankCandidates(models, targetTask, {
+      translationProfile,
+      background: options.background === true,
+      allowConditional: executionPolicy.allowConditional === true,
+      requestedModelId: explicit?.id || '',
+      maxFallbackScoreGap: Number(route.maxFallbackScoreGap || 0) || undefined
+    });
+    const rankedModels = placementDecision.candidates
+      .map(row => byId.get(cleanModelId(row.modelId)))
+      .filter(model => model && eligibleForTask(model, targetTask, {
+        allowExperimental: route.allowExperimental === true,
+        allowConditional: executionPolicy.allowConditional === true
+      }));
+    const budgetFor = model => aiBudgetAuthority.decide(state, {
+      task: targetTask,
+      translationProfile,
+      background: options.background === true,
+      modelCostClass: workloadPlacementAuthority.modelCostClass(model || {})
+    });
+    const admittedRanked = [];
+    const blockedBudgetDecisions = [];
+    for (const model of rankedModels) {
+      const decision = budgetFor(model);
+      if (decision.pass) admittedRanked.push({ model, decision });
+      else blockedBudgetDecisions.push({ modelId: model.id, decision });
+    }
+
     const profileIds = targetTask === 'translation'
       ? translationRouteIds(route, translationProfile)
       : { primaryId: route.primary, fallbackId: route.fallback };
-    const profilePrimaryId = profileIds.primaryId;
-    const profileFallbackId = profileIds.fallbackId;
-    const configuredPrimary = route.enabled === false ? null : (explicit || find(profilePrimaryId) || null);
-    const configuredFallback = route.enabled === false ? null : (find(profileFallbackId) || null);
-    const primary = configuredPrimary || configuredFallback || null;
+    const autoSelection = route.primarySelection === 'auto' || (!cleanModelId(profileIds.primaryId) && !explicit);
     const onlyRequestedModel = options.onlyRequestedModel === true && Boolean(explicit);
-    const fallback = !onlyRequestedModel && configuredPrimary && configuredFallback && configuredFallback.id !== configuredPrimary.id
-      ? configuredFallback
-      : null;
+    let primary = null;
+    let fallback = null;
+    let budgetDecision = null;
+
+    if (explicit) {
+      budgetDecision = budgetFor(explicit);
+      primary = budgetDecision.pass ? explicit : null;
+    } else if (autoSelection) {
+      primary = admittedRanked[0]?.model || null;
+      fallback = !onlyRequestedModel ? admittedRanked.find(row => row.model.id !== primary?.id)?.model || null : null;
+      budgetDecision = admittedRanked[0]?.decision || blockedBudgetDecisions[0]?.decision || aiBudgetAuthority.decide(state, {
+        task: targetTask,
+        translationProfile,
+        background: options.background === true,
+        modelCostClass: 'paid-cloud'
+      });
+    } else {
+      const configuredPrimary = route.enabled === false ? null : find(profileIds.primaryId);
+      const configuredFallback = route.enabled === false ? null : find(profileIds.fallbackId);
+      if (configuredPrimary) {
+        budgetDecision = budgetFor(configuredPrimary);
+        primary = budgetDecision.pass ? configuredPrimary : null;
+      }
+      if (!primary && configuredFallback) {
+        const fallbackBudget = budgetFor(configuredFallback);
+        if (fallbackBudget.pass) {
+          primary = configuredFallback;
+          budgetDecision = fallbackBudget;
+        } else if (!budgetDecision) budgetDecision = fallbackBudget;
+      } else if (!onlyRequestedModel && configuredFallback && configuredFallback.id !== primary?.id) {
+        const fallbackBudget = budgetFor(configuredFallback);
+        if (fallbackBudget.pass) fallback = configuredFallback;
+      }
+    }
+
+    if (primary && !fallback && !onlyRequestedModel && autoSelection) {
+      fallback = admittedRanked.find(row => row.model.id !== primary.id)?.model || null;
+    }
     const emergencyId = cleanModelId(route.emergency || route.emergencyModelId);
     const emergencyCandidate = route.allowEmergency === true
-      ? (state.models || []).find(model => model.id === emergencyId && eligibleForTask(model, targetTask, { allowExperimental: true, allowConditional: true })) || null
+      ? models.find(model => model.id === emergencyId && eligibleForTask(model, targetTask, { allowExperimental: true, allowConditional: true })) || null
       : null;
-    const emergency = !onlyRequestedModel && emergencyCandidate && ![primary?.id, fallback?.id].includes(emergencyCandidate.id) ? emergencyCandidate : null;
+    const emergencyBudget = emergencyCandidate ? budgetFor(emergencyCandidate) : null;
+    const emergency = !onlyRequestedModel && emergencyCandidate && emergencyBudget?.pass === true && ![primary?.id, fallback?.id].includes(emergencyCandidate.id)
+      ? emergencyCandidate
+      : null;
     const qualityPlan = aiQualityRouteAuthority.routePlan({
       task: targetTask,
+      executionMode: executionPolicy.mode,
       route: { ...route, primary: primary?.id || '', fallback: fallback?.id || '', emergency: emergency?.id || '' },
-      models: state.models || [],
+      models,
       requestedModelId: explicit?.id || ''
     });
-    // The quality authority is an execution gate, not an observability-only
-    // annotation. A model that remains selectable under the legacy routing
-    // rules must still satisfy the task-specific quality tier and capability
-    // contract before AiGateway is allowed to invoke it.
+    qualityPlan.placementDecision = {
+      authority: placementDecision.authority,
+      schemaVersion: placementDecision.schemaVersion,
+      policy: placementDecision.policy,
+      candidateModelIds: placementDecision.candidates.map(row => row.modelId),
+      rejected: placementDecision.rejected
+    };
+    qualityPlan.budgetDecision = budgetDecision;
     const qualityPrimary = qualityPlan.primaryPass || qualityPlan.primaryConditional ? primary : null;
     const qualityFallback = qualityPrimary && qualityPlan.fallbackPass ? fallback : null;
     const qualityEmergency = qualityPlan.emergencyPass ? emergency : null;
     return {
-      primary: qualityPrimary, fallback: qualityFallback, emergency: qualityEmergency,
-      qualityPlan, route, task: targetTask, translationProfile,
-      conditional: route.allowConditional === true,
-      humanReviewRequired: route.humanReviewRequired === true || route.allowConditional === true
+      primary: qualityPrimary,
+      fallback: qualityFallback,
+      emergency: qualityEmergency,
+      qualityPlan,
+      placementDecision,
+      budgetDecision,
+      budgetBlockedCandidates: blockedBudgetDecisions,
+      route,
+      routeOverrideApplied,
+      task: targetTask,
+      translationProfile,
+      executionMode: executionPolicy.mode,
+      deliveryEligible: executionPolicy.deliveryEligible,
+      learningEligible: executionPolicy.learningEligible,
+      formalReceiptEligible: executionPolicy.formalReceiptEligible,
+      conditional: qualityPlan.state === aiQualityRouteAuthority.ROUTE_STATE.CONDITIONAL,
+      humanReviewRequired: executionPolicy.humanReviewRequired === true || qualityPlan.humanReviewRequired === true
     };
   }
 
   noteFailure(modelId) {
     const current = this.failures.get(modelId) || { count: 0, openedAt: 0 };
     current.count += 1;
-    if (current.count >= 3) current.openedAt = Date.now();
+    if (current.count >= 3) current.openedAt = this.clock.now();
     this.failures.set(modelId, current);
   }
 
   noteSuccess(modelId) {
     this.failures.delete(modelId);
+    this.cooldowns.delete(modelId);
+  }
+
+  noteCooldown(modelId, retryAfterMs = 0) {
+    const duration = Math.max(0, Number(retryAfterMs || 0));
+    if (!modelId || duration <= 0) return '';
+    const until = this.clock.now() + duration;
+    this.cooldowns.set(modelId, until);
+    return new Date(until).toISOString();
   }
 
   isCircuitOpen(modelId) {
+    const cooldownUntil = Number(this.cooldowns.get(modelId) || 0);
+    if (cooldownUntil > this.clock.now()) return true;
+    if (cooldownUntil) this.cooldowns.delete(modelId);
     const row = this.failures.get(modelId);
     if (!row?.openedAt) return false;
-    if (Date.now() - row.openedAt > 5 * 60 * 1000) {
+    if (this.clock.now() - row.openedAt > 5 * 60 * 1000) {
       this.failures.delete(modelId);
       return false;
     }
@@ -325,10 +424,31 @@ class AiGateway {
   }) {
     const route = this.resolveRoute(task, modelId, options);
     const routedTask = route.task;
+    const routeTestId = String(options.routeTestId || '').trim();
+    const durableExecutionId = String(options.executionId || jobId || '').trim();
+    aiExecutionTraceAuthority.record(routeTestId, 'gateway-route-resolved', {
+      task: routedTask,
+      executionId: durableExecutionId,
+      executionMode: route.executionMode,
+      resolvedPrimary: route.primary?.id || '',
+      resolvedFallback: route.fallback?.id || '',
+      allowConditional: route.executionMode === executionModeAuthority.EXECUTION_MODE.CANDIDATE_ONLY,
+      humanReviewRequired: route.humanReviewRequired === true,
+      formalQualification: route.qualityPlan?.primaryPass === true,
+      routeState: route.qualityPlan?.state || '',
+      reasonCodes: route.qualityPlan?.reasonCodes || [],
+      deliveryEligible: route.deliveryEligible === true,
+      learningEligible: route.learningEligible === true,
+      formalReceiptEligible: route.formalReceiptEligible === true
+    });
     const routeTimeoutMs = Number(route.route?.timeoutMs || 0);
     const callerTimeoutMs = Number(options.timeoutMs || 0);
     const effectiveTimeoutMs = taskRuntimePolicy.normalizeTimeoutMs(routedTask, Math.max(routeTimeoutMs, callerTimeoutMs));
     const effectiveMaxTokens = taskRuntimePolicy.normalizeMaxTokens(routedTask, options.maxTokens || route.route?.maxTokens);
+    const executionBudget = taskRoutingAuthority.createBudget({
+      totalBudgetMs: effectiveTimeoutMs,
+      now: this.clock.now
+    });
     const assertCommitAllowed = () => assertExecutionCommitAllowed({
       signal,
       executionId: jobId,
@@ -355,28 +475,62 @@ class AiGateway {
         : `任务 ${task} 没有通过资格测试的可用模型`);
       error.code = qualityBlocked ? 'AI_QUALITY_ROUTE_BLOCKED' : 'NO_QUALIFIED_MODEL';
       error.qualityPlan = route.qualityPlan || null;
+      aiExecutionTraceAuthority.record(routeTestId, 'quality-plan-blocked', {
+        task: routedTask, executionId: durableExecutionId, executionMode: route.executionMode, routeState: route.qualityPlan?.state || '',
+        reasonCode: error.code, reasonCodes: route.qualityPlan?.reasonCodes || [],
+        resolvedPrimary: route.primary?.id || '', resolvedFallback: route.fallback?.id || ''
+      });
       throw error;
     }
     let lastError = null;
     const attempts = [];
-    eventBus.publish('ai:job-started', { jobId, task: routedTask, requestedTask: task, candidates: candidates.map(entry => entry.model.name), timeoutMs: effectiveTimeoutMs, maxTokens: effectiveMaxTokens });
-    for (const candidate of candidates) {
+    eventBus.publish('ai:job-started', {
+      jobId,
+      task: routedTask,
+      requestedTask: task,
+      candidates: candidates.map(entry => entry.model.name),
+      timeoutMs: effectiveTimeoutMs,
+      maxTokens: effectiveMaxTokens,
+      totalBudgetMs: executionBudget.totalBudgetMs
+    });
+
+    const runAttempt = async ({ candidate, attemptMessages, contextReductionReceipt = null }) => {
       const model = candidate.model;
       const modelQuality = aiQualityRouteAuthority.modelProjection(model, routedTask);
-      if (signal?.aborted) throw signal.reason || new Error('MODEL_CANCELLED');
-      if (this.isCircuitOpen(model.id)) {
-        attempts.push({ modelId: model.id, model: model.name, role: candidate.role, emergencyMode: candidate.emergencyMode, qualityTier: modelQuality.qualityTier, status: 'circuit_open', code: 'MODEL_CIRCUIT_OPEN', message: '模型熔断保护中，本次已跳过', httpStatus: 0 });
-        eventBus.publish('ai:job-model-skipped', { jobId, task: routedTask, requestedTask: task, modelId: model.id, model: model.name, role: candidate.role, qualityTier: modelQuality.qualityTier, code: 'MODEL_CIRCUIT_OPEN' });
-        continue;
+      const remainingBefore = executionBudget.remainingMs();
+      if (remainingBefore <= 0) {
+        throw Object.assign(new Error('AI model route total timeout budget exhausted'), {
+          code: 'AI_ROUTE_TOTAL_BUDGET_EXHAUSTED',
+          status: 408,
+          timeoutMs: executionBudget.totalBudgetMs
+        });
       }
+      const attemptTimeoutMs = executionBudget.attemptTimeoutMs(effectiveTimeoutMs);
+      const attemptId = randomUUID();
+      const attemptStartedAt = this.clock.now();
+      const provider = this.providerKeyForModel(model);
+      const failureDomain = providerDomainAuthority.providerFailureDomain(model);
+      aiExecutionTraceAuthority.record(routeTestId, 'worker-started', {
+        task: routedTask,
+        executionId: durableExecutionId,
+        attemptId,
+        executionMode: route.executionMode,
+        modelId: model.id,
+        provider,
+        failureDomain,
+        workerStarted: true,
+        status: contextReductionReceipt ? 'context-reduced-retry' : 'running',
+        timeoutMs: attemptTimeoutMs,
+        remainingBudgetMs: remainingBefore
+      });
       try {
         const rawResult = await this.executeModelAttempt({
           jobId,
           model,
-          messages,
+          messages: attemptMessages,
           options: {
             maxTokens: effectiveMaxTokens,
-            timeoutMs: effectiveTimeoutMs,
+            timeoutMs: attemptTimeoutMs,
             temperature: options.temperature,
             json: options.json,
             keepAlive: options.keepAlive,
@@ -386,36 +540,252 @@ class AiGateway {
           updateProvider,
           bindExecution
         });
-        const result = normalizeModelResult(rawResult, options);
+        const result = taskRoutingAuthority.assertUsableResult(normalizeModelResult(rawResult, options));
+        const providerRequestId = String(result.providerRequestId || result.requestId || '').trim();
+        aiExecutionTraceAuthority.record(routeTestId, 'provider-result', {
+          task: routedTask,
+          executionId: durableExecutionId,
+          attemptId,
+          executionMode: route.executionMode,
+          modelId: model.id,
+          provider,
+          failureDomain,
+          providerRequestId,
+          status: 'success',
+          workerStarted: true,
+          remainingBudgetMs: executionBudget.remainingMs()
+        });
         assertCommitAllowed();
         await this.registry.recordInvocation(model.id, result);
         assertCommitAllowed();
         this.noteSuccess(model.id);
-        attempts.push({ modelId: model.id, model: model.name, role: candidate.role, emergencyMode: candidate.emergencyMode, qualityTier: modelQuality.qualityTier, status: 'success', code: '', message: '', httpStatus: 0, timeoutMs: effectiveTimeoutMs });
-        const fallbackUsed = candidate.role !== 'primary';
-        const qualityRouteReceipt = aiQualityRouteAuthority.routeReceipt({
-          task: routedTask,
-          selectedModel: model,
-          routePlan: route.qualityPlan,
-          fallbackUsed,
+        const receipt = taskRoutingAuthority.attemptReceipt({
+          attemptId,
+          modelId: model.id,
+          model: model.name,
+          provider,
+          failureDomain,
+          role: candidate.role,
           emergencyMode: candidate.emergencyMode,
-          attempts
+          qualityTier: modelQuality.qualityTier,
+          status: 'success',
+          providerRequestId,
+          timeoutMs: attemptTimeoutMs,
+          remainingBudgetMs: executionBudget.remainingMs(),
+          latencyMs: this.clock.now() - attemptStartedAt
         });
-        eventBus.publish('ai:job-complete', {
-          jobId, task: routedTask, requestedTask: task, modelId: model.id, model: model.name,
-          fallbackUsed, emergencyMode: candidate.emergencyMode, learningEligible: qualityRouteReceipt.learningEligible,
-          qualityTier: qualityRouteReceipt.qualityTier, qualityRouteReceipt, attempts, metrics: result
+        if (contextReductionReceipt) {
+          receipt.contextReduced = true;
+          receipt.recoveryPhase = 'same-model-reduced-context';
+          receipt.originalContextChars = Number(contextReductionReceipt.originalChars || 0);
+          receipt.reducedContextChars = Number(contextReductionReceipt.reducedChars || 0);
+          receipt.contextReductionReceipt = contextReductionReceipt;
+        }
+        attempts.push(receipt);
+        return { result, modelQuality };
+      } catch (error) {
+        if (error?.code === 'AI_STALE_EXECUTION_RESULT') throw error;
+        const normalized = normalizeModelError(error, { nowMs: this.clock.now() });
+        const recovery = aiQualityRouteAuthority.classifyFailure(normalized);
+        const nextRetryAt = normalized.retryAfterMs > 0
+          ? this.noteCooldown(model.id, normalized.retryAfterMs)
+          : normalized.nextRetryAt;
+        const receipt = taskRoutingAuthority.attemptReceipt({
+          attemptId,
+          modelId: model.id,
+          model: model.name,
+          provider,
+          failureDomain,
+          role: candidate.role,
+          emergencyMode: candidate.emergencyMode,
+          qualityTier: modelQuality.qualityTier,
+          status: 'failed',
+          code: normalized.code,
+          reasonCode: recovery.reasonCode,
+          fallbackAllowed: recovery.fallbackAllowed,
+          retrySameModel: recovery.retrySameModel,
+          retryAfterMs: normalized.retryAfterMs,
+          nextRetryAt,
+          providerRequestId: normalized.providerRequestId || error?.providerRequestId,
+          httpStatus: normalized.status,
+          timeoutMs: attemptTimeoutMs,
+          remainingBudgetMs: executionBudget.remainingMs(),
+          latencyMs: this.clock.now() - attemptStartedAt,
+          outcomeUnknown: recovery.outcomeUnknown,
+          message: normalized.message
         });
-        return {
-          jobId, task: routedTask, requestedTask: task, modelId: model.id, model: model.name,
-          fallbackUsed, emergencyMode: candidate.emergencyMode, learningEligible: qualityRouteReceipt.learningEligible,
-          qualityTier: qualityRouteReceipt.qualityTier, qualityDegraded: qualityRouteReceipt.qualityDegraded,
-          highCapabilityPath: qualityRouteReceipt.highCapabilityPath,
-          qualityRouteReceipt,
-          conditionalRoute: route.conditional === true,
-          humanReviewRequired: route.humanReviewRequired === true || candidate.emergencyMode,
-          effectiveTimeoutMs, effectiveMaxTokens, attempts, ...result
-        };
+        receipt.recoveryAction = recovery.action;
+        if (contextReductionReceipt) {
+          receipt.contextReduced = true;
+          receipt.recoveryPhase = 'same-model-reduced-context';
+          receipt.originalContextChars = Number(contextReductionReceipt.originalChars || 0);
+          receipt.reducedContextChars = Number(contextReductionReceipt.reducedChars || 0);
+        }
+        attempts.push(receipt);
+        aiExecutionTraceAuthority.record(routeTestId, 'provider-attempt-failed', {
+          task: routedTask,
+          executionId: durableExecutionId,
+          attemptId,
+          executionMode: route.executionMode,
+          modelId: model.id,
+          provider,
+          failureDomain,
+          status: 'failed',
+          errorCode: normalized.code,
+          reasonCode: recovery.reasonCode,
+          fallbackAllowed: recovery.fallbackAllowed,
+          retryAfterMs: normalized.retryAfterMs,
+          nextRetryAt,
+          remainingBudgetMs: executionBudget.remainingMs(),
+          workerStarted: true
+        });
+        eventBus.publish('ai:job-model-failed', {
+          jobId,
+          task: routedTask,
+          requestedTask: task,
+          modelId: model.id,
+          model: model.name,
+          role: candidate.role,
+          emergencyMode: candidate.emergencyMode,
+          qualityTier: modelQuality.qualityTier,
+          error: normalized.message,
+          code: normalized.code,
+          reasonCode: recovery.reasonCode,
+          recoveryAction: recovery.action,
+          fallbackAllowed: recovery.fallbackAllowed,
+          retryAfterMs: normalized.retryAfterMs,
+          nextRetryAt,
+          httpStatus: normalized.status
+        });
+        if (recovery.countsForCircuit) this.noteFailure(model.id);
+        if (!['MODEL_CANCELLED', 'JOB_CANCELLED', 'MODEL_REQUEST_DISCONNECTED'].includes(String(normalized.code || '').toUpperCase())) {
+          await this.registry.recordInvocationFailure(model.id, error, {
+            countForCircuit: recovery.countsForCircuit === true,
+            cooldownUntil: nextRetryAt || ''
+          });
+        }
+        error.normalizedModelError = normalized;
+        error.routeRecovery = recovery;
+        error.attemptReceipt = receipt;
+        throw error;
+      }
+    };
+
+    const complete = ({ candidate, modelQuality, result, contextReductionReceipt = null }) => {
+      const model = candidate.model;
+      const fallbackUsed = candidate.role !== 'primary';
+      const qualityRouteReceipt = aiQualityRouteAuthority.routeReceipt({
+        task: routedTask,
+        executionMode: route.executionMode,
+        selectedModel: model,
+        routePlan: route.qualityPlan,
+        fallbackUsed,
+        emergencyMode: candidate.emergencyMode,
+        attempts
+      });
+      eventBus.publish('ai:job-complete', {
+        jobId,
+        task: routedTask,
+        requestedTask: task,
+        modelId: model.id,
+        model: model.name,
+        fallbackUsed,
+        emergencyMode: candidate.emergencyMode,
+        learningEligible: qualityRouteReceipt.learningEligible,
+        qualityTier: qualityRouteReceipt.qualityTier,
+        qualityRouteReceipt,
+        attempts,
+        metrics: result,
+        contextReductionReceipt,
+        totalBudgetMs: executionBudget.totalBudgetMs,
+        remainingBudgetMs: executionBudget.remainingMs()
+      });
+      return {
+        jobId,
+        task: routedTask,
+        requestedTask: task,
+        modelId: model.id,
+        model: model.name,
+        fallbackUsed,
+        emergencyMode: candidate.emergencyMode,
+        learningEligible: qualityRouteReceipt.learningEligible,
+        qualityTier: qualityRouteReceipt.qualityTier,
+        qualityDegraded: qualityRouteReceipt.qualityDegraded,
+        highCapabilityPath: qualityRouteReceipt.highCapabilityPath,
+        qualityRouteReceipt,
+        executionMode: route.executionMode,
+        deliveryEligible: route.deliveryEligible === true && candidate.emergencyMode !== true,
+        formalReceiptEligible: route.formalReceiptEligible === true && candidate.emergencyMode !== true,
+        conditionalRoute: route.conditional === true,
+        humanReviewRequired: route.humanReviewRequired === true || candidate.emergencyMode,
+        effectiveTimeoutMs,
+        totalBudgetMs: executionBudget.totalBudgetMs,
+        remainingBudgetMs: executionBudget.remainingMs(),
+        effectiveMaxTokens,
+        attempts,
+        ...(contextReductionReceipt ? { contextReductionReceipt } : {}),
+        ...result
+      };
+    };
+
+    for (const candidate of candidates) {
+      const model = candidate.model;
+      const modelQuality = aiQualityRouteAuthority.modelProjection(model, routedTask);
+      if (signal?.aborted) throw signal.reason || new Error('MODEL_CANCELLED');
+      if (executionBudget.remainingMs() <= 0) {
+        lastError = Object.assign(new Error('AI model route total timeout budget exhausted'), {
+          code: 'AI_ROUTE_TOTAL_BUDGET_EXHAUSTED',
+          status: 408
+        });
+        attempts.push(taskRoutingAuthority.attemptReceipt({
+          modelId: model.id,
+          model: model.name,
+          provider: this.providerKeyForModel(model),
+          failureDomain: providerDomainAuthority.providerFailureDomain(model),
+          role: candidate.role,
+          emergencyMode: candidate.emergencyMode,
+          qualityTier: modelQuality.qualityTier,
+          status: 'failed',
+          code: lastError.code,
+          reasonCode: 'TOTAL_BUDGET_EXHAUSTED',
+          fallbackAllowed: false,
+          timeoutMs: 0,
+          remainingBudgetMs: 0,
+          message: lastError.message
+        }));
+        break;
+      }
+      if (this.isCircuitOpen(model.id)) {
+        attempts.push(taskRoutingAuthority.attemptReceipt({
+          modelId: model.id,
+          model: model.name,
+          provider: this.providerKeyForModel(model),
+          failureDomain: providerDomainAuthority.providerFailureDomain(model),
+          role: candidate.role,
+          emergencyMode: candidate.emergencyMode,
+          qualityTier: modelQuality.qualityTier,
+          status: 'circuit_open',
+          code: 'MODEL_CIRCUIT_OPEN',
+          reasonCode: 'MODEL_COOLDOWN_OR_CIRCUIT_OPEN',
+          fallbackAllowed: true,
+          remainingBudgetMs: executionBudget.remainingMs(),
+          message: '模型熔断或 Retry-After 冷却中，本次已跳过'
+        }));
+        eventBus.publish('ai:job-model-skipped', {
+          jobId,
+          task: routedTask,
+          requestedTask: task,
+          modelId: model.id,
+          model: model.name,
+          role: candidate.role,
+          qualityTier: modelQuality.qualityTier,
+          code: 'MODEL_CIRCUIT_OPEN'
+        });
+        continue;
+      }
+      try {
+        const outcome = await runAttempt({ candidate, attemptMessages: messages });
+        return complete({ candidate, modelQuality: outcome.modelQuality, result: outcome.result });
       } catch (error) {
         if (error?.code === 'AI_STALE_EXECUTION_RESULT') {
           eventBus.publish('ai:stale-execution-result', {
@@ -427,79 +797,29 @@ class AiGateway {
           throw error;
         }
         lastError = error;
-        const normalized = normalizeModelError(error);
-        const recovery = aiQualityRouteAuthority.classifyFailure(normalized);
-        attempts.push({
-          modelId: model.id, model: model.name, role: candidate.role, emergencyMode: candidate.emergencyMode,
-          qualityTier: modelQuality.qualityTier, status: 'failed', code: normalized.code,
-          reasonCode: recovery.reasonCode, recoveryAction: recovery.action,
-          message: normalized.message, httpStatus: normalized.status, timeoutMs: effectiveTimeoutMs
-        });
-        eventBus.publish('ai:job-model-failed', {
-          jobId, task: routedTask, requestedTask: task, modelId: model.id, model: model.name,
-          role: candidate.role, emergencyMode: candidate.emergencyMode, qualityTier: modelQuality.qualityTier,
-          error: normalized.message, code: normalized.code, reasonCode: recovery.reasonCode,
-          recoveryAction: recovery.action, httpStatus: normalized.status
-        });
-        const reduction = recovery.reasonCode === 'TIMEOUT' && options.contextReductionBeforeFallback !== false
+        const recovery = error.routeRecovery || taskRoutingAuthority.classifyFailure(error.normalizedModelError || error);
+        const reduction = recovery.reasonCode === 'TIMEOUT'
+          && recovery.retrySameModel === true
+          && options.contextReductionBeforeFallback !== false
+          && executionBudget.remainingMs() > 0
           ? aiContextReductionPolicy.reduceMessages(messages, { task: routedTask, targetRatio: options.contextReductionRatio })
           : { changed: false, reasonCode: 'NOT_REQUESTED', messages };
         if (reduction.changed) {
           eventBus.publish('ai:job-context-reduced-retry', {
-            jobId, task: routedTask, requestedTask: task, modelId: model.id, model: model.name,
-            originalChars: reduction.originalChars, reducedChars: reduction.reducedChars,
-            reductionRatio: reduction.reductionRatio, originalHash: reduction.originalHash, reducedHash: reduction.reducedHash
+            jobId,
+            task: routedTask,
+            requestedTask: task,
+            modelId: model.id,
+            model: model.name,
+            originalChars: reduction.originalChars,
+            reducedChars: reduction.reducedChars,
+            reductionRatio: reduction.reductionRatio,
+            originalHash: reduction.originalHash,
+            reducedHash: reduction.reducedHash
           });
           try {
-            const reducedRawResult = await this.executeModelAttempt({
-              jobId,
-              model,
-              messages: reduction.messages,
-              options: {
-              maxTokens: effectiveMaxTokens,
-              timeoutMs: effectiveTimeoutMs,
-              temperature: options.temperature,
-              json: options.json,
-              keepAlive: options.keepAlive,
-              onToken: fencedOnToken
-              },
-              signal,
-              updateProvider,
-              bindExecution
-            });
-            const reducedResult = normalizeModelResult(reducedRawResult, options);
-            assertCommitAllowed();
-            await this.registry.recordInvocation(model.id, reducedResult);
-            assertCommitAllowed();
-            this.noteSuccess(model.id);
-            attempts.push({
-              modelId: model.id, model: model.name, role: candidate.role, emergencyMode: candidate.emergencyMode,
-              qualityTier: modelQuality.qualityTier, status: 'success', code: '', message: '', httpStatus: 0,
-              timeoutMs: effectiveTimeoutMs, contextReduced: true, recoveryPhase: 'same-model-reduced-context',
-              originalContextChars: reduction.originalChars, reducedContextChars: reduction.reducedChars,
-              contextReductionReceipt: reduction
-            });
-            const fallbackUsed = candidate.role !== 'primary';
-            const qualityRouteReceipt = aiQualityRouteAuthority.routeReceipt({
-              task: routedTask, selectedModel: model, routePlan: route.qualityPlan,
-              fallbackUsed, emergencyMode: candidate.emergencyMode, attempts
-            });
-            eventBus.publish('ai:job-complete', {
-              jobId, task: routedTask, requestedTask: task, modelId: model.id, model: model.name,
-              fallbackUsed, emergencyMode: candidate.emergencyMode, learningEligible: qualityRouteReceipt.learningEligible,
-              qualityTier: qualityRouteReceipt.qualityTier, qualityRouteReceipt, attempts, metrics: reducedResult,
-              contextReductionReceipt: reduction
-            });
-            return {
-              jobId, task: routedTask, requestedTask: task, modelId: model.id, model: model.name,
-              fallbackUsed, emergencyMode: candidate.emergencyMode, learningEligible: qualityRouteReceipt.learningEligible,
-              qualityTier: qualityRouteReceipt.qualityTier, qualityDegraded: qualityRouteReceipt.qualityDegraded,
-              highCapabilityPath: qualityRouteReceipt.highCapabilityPath,
-              qualityRouteReceipt,
-              conditionalRoute: route.conditional === true,
-              humanReviewRequired: route.humanReviewRequired === true || candidate.emergencyMode,
-              effectiveTimeoutMs, effectiveMaxTokens, attempts, contextReductionReceipt: reduction, ...reducedResult
-            };
+            const outcome = await runAttempt({ candidate, attemptMessages: reduction.messages, contextReductionReceipt: reduction });
+            return complete({ candidate, modelQuality: outcome.modelQuality, result: outcome.result, contextReductionReceipt: reduction });
           } catch (reducedError) {
             if (reducedError?.code === 'AI_STALE_EXECUTION_RESULT') {
               eventBus.publish('ai:stale-execution-result', {
@@ -511,35 +831,25 @@ class AiGateway {
               throw reducedError;
             }
             lastError = reducedError;
-            const reducedNormalized = normalizeModelError(reducedError);
-            const reducedRecovery = aiQualityRouteAuthority.classifyFailure(reducedNormalized);
-            attempts.push({
-              modelId: model.id, model: model.name, role: candidate.role, emergencyMode: candidate.emergencyMode,
-              qualityTier: modelQuality.qualityTier, status: 'failed', code: reducedNormalized.code,
-              reasonCode: reducedRecovery.reasonCode, recoveryAction: reducedRecovery.action,
-              message: reducedNormalized.message, httpStatus: reducedNormalized.status, timeoutMs: effectiveTimeoutMs,
-              contextReduced: true, recoveryPhase: 'same-model-reduced-context',
-              originalContextChars: reduction.originalChars, reducedContextChars: reduction.reducedChars
-            });
-            const reducedCountForCircuit = shouldCountModelFailure(reducedNormalized);
-            if (reducedCountForCircuit) this.noteFailure(model.id);
-            if (!['MODEL_CANCELLED', 'JOB_CANCELLED', 'MODEL_REQUEST_DISCONNECTED'].includes(String(reducedNormalized.code || '').toUpperCase())) {
-              await this.registry.recordInvocationFailure(model.id, reducedError, { countForCircuit: reducedCountForCircuit });
-            }
+            const reducedRecovery = reducedError.routeRecovery || taskRoutingAuthority.classifyFailure(reducedError.normalizedModelError || reducedError);
             eventBus.publish('ai:job-context-reduced-retry-failed', {
-              jobId, task: routedTask, requestedTask: task, modelId: model.id, model: model.name,
-              code: reducedNormalized.code, reasonCode: reducedRecovery.reasonCode,
-              recoveryAction: 'switch_same_tier_after_context_reduction',
-              originalChars: reduction.originalChars, reducedChars: reduction.reducedChars
+              jobId,
+              task: routedTask,
+              requestedTask: task,
+              modelId: model.id,
+              model: model.name,
+              code: reducedError.normalizedModelError?.code || reducedError.code,
+              reasonCode: reducedRecovery.reasonCode,
+              recoveryAction: reducedRecovery.action,
+              fallbackAllowed: reducedRecovery.fallbackAllowed,
+              originalChars: reduction.originalChars,
+              reducedChars: reduction.reducedChars
             });
+            if (!reducedRecovery.fallbackAllowed) break;
             continue;
           }
         }
-        const countForCircuit = shouldCountModelFailure(normalized);
-        if (countForCircuit) this.noteFailure(model.id);
-        if (!['MODEL_CANCELLED', 'JOB_CANCELLED', 'MODEL_REQUEST_DISCONNECTED'].includes(String(normalized.code || '').toUpperCase())) {
-          await this.registry.recordInvocationFailure(model.id, error, { countForCircuit });
-        }
+        if (!recovery.fallbackAllowed) break;
       }
     }
     const aggregate = createAllModelsFailedError(attempts, { cause: lastError });
@@ -576,7 +886,8 @@ class AiGateway {
   }
 
   submit({ task, messages, modelId = '', options = {}, signal: externalSignal = null, priority = undefined, queueTimeoutMs = undefined, background = false, context: rawContext = {} }) {
-    const routeResolution = this.resolveRoute(task, modelId);
+    const routeOptions = { ...options, background: background === true };
+    const routeResolution = this.resolveRoute(task, modelId, routeOptions);
     const configuredTimeoutMs = Number(routeResolution.route?.timeoutMs || 0);
     const physicalProviderKey = cleanModelId(
       routeResolution.primary?.providerId || routeResolution.primary?.provider || routeResolution.primary?.id
@@ -584,7 +895,7 @@ class AiGateway {
       || modelId || task
     );
     const effectiveOptions = {
-      ...options,
+      ...routeOptions,
       timeoutMs: taskRuntimePolicy.normalizeTimeoutMs(task, Math.max(configuredTimeoutMs, Number(options.timeoutMs || 0)))
     };
     const jobId = randomUUID();

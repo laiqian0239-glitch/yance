@@ -1,0 +1,60 @@
+TAP version 13
+# (node:19722) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: identity observations are account-scoped and never merge by display name
+ok 1 - identity observations are account-scoped and never merge by display name
+  ---
+  duration_ms: 612.691198
+  type: 'test'
+  ...
+# Subtest: identity merge requires evidence and can be completely rolled back
+ok 2 - identity merge requires evidence and can be completely rolled back
+  ---
+  duration_ms: 289.187304
+  type: 'test'
+  ...
+# Subtest: domain events are idempotent and redact credentials, QR and binary payloads
+ok 3 - domain events are idempotent and redact credentials, QR and binary payloads
+  ---
+  duration_ms: 297.164135
+  type: 'test'
+  ...
+# Subtest: shadow projection records match and mismatch without replacing production projection
+ok 4 - shadow projection records match and mismatch without replacing production projection
+  ---
+  duration_ms: 299.803893
+  type: 'test'
+  ...
+# Subtest: send policy freezes approved target-language text and persists capability evidence
+ok 5 - send policy freezes approved target-language text and persists capability evidence
+  ---
+  duration_ms: 342.655346
+  type: 'test'
+  ...
+# Subtest: emergency send commands are excluded from long-term learning
+ok 6 - emergency send commands are excluded from long-term learning
+  ---
+  duration_ms: 392.669962
+  type: 'test'
+  ...
+# Subtest: send policy rejects an unconfigured account before a doomed command enters the queue
+ok 7 - send policy rejects an unconfigured account before a doomed command enters the queue
+  ---
+  duration_ms: 429.046498
+  type: 'test'
+  ...
+# Subtest: default send policy reads the live AccountManager projection rather than stale account rows
+ok 8 - default send policy reads the live AccountManager projection rather than stale account rows
+  ---
+  duration_ms: 380.048855
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3131.120512

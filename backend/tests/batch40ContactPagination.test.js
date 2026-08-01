@@ -13,7 +13,9 @@ const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 
 test('conversation pages use a stable offset window without duplicates', t => {
   const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-b40-contact-pages-'));
-  const store = new R32SqliteStore({ filePath: path.join(dataRoot, 'contacts.db') });
+  const dbPath = path.join(dataRoot, 'contacts.db');
+  const store = new R32SqliteStore({ dbPath });
+  assert.equal(store.dbPath, path.resolve(dbPath));
   t.after(() => {
     try { store.close(); } catch (_) {}
     fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });

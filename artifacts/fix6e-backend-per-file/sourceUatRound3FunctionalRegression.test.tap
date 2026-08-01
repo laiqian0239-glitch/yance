@@ -1,0 +1,48 @@
+TAP version 13
+# (node:20031) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: conversation analysis keeps aiGateway method bound so dedupe state is available
+ok 1 - conversation analysis keeps aiGateway method bound so dedupe state is available
+  ---
+  duration_ms: 2.667351
+  type: 'test'
+  ...
+# Subtest: a real connectivity response makes a local model experimental instead of unusable
+ok 2 - a real connectivity response makes a local model experimental instead of unusable
+  ---
+  duration_ms: 0.354522
+  type: 'test'
+  ...
+# Subtest: successful qualification automatically creates task routes
+ok 3 - successful qualification automatically creates task routes
+  ---
+  duration_ms: 0.489727
+  type: 'test'
+  ...
+# Subtest: archived filter, contact context actions and alternate online accounts are interactive
+ok 4 - archived filter, contact context actions and alternate online accounts are interactive
+  ---
+  duration_ms: 3.337028
+  type: 'test'
+  ...
+# Subtest: chat media viewer and platform-real expression library are functional
+ok 5 - chat media viewer and platform-real expression library are functional
+  ---
+  duration_ms: 1.420636
+  type: 'test'
+  ...
+# Subtest: decorative placeholder assets are not wired into the live expression picker
+ok 6 - decorative placeholder assets are not wired into the live expression picker
+  ---
+  duration_ms: 1.033795
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 520.767594

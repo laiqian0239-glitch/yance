@@ -104,12 +104,15 @@ test('Fix16: account selector never exposes internal adapter account IDs as user
   assert.doesNotMatch(conversationCapabilities, /sourceAccountIdentity\|\|route\.sourceAccountId/);
 });
 
-test('Fix16: AI workbench exposes per-task timeout controls and persists milliseconds', () => {
+test('Fix16: AI workbench exposes per-task timeout controls and persists normalized milliseconds through the route authority', () => {
   const source = read('frontend/js/r32-ai-workbench-runtime.js');
-  assert.match(source, /TASK_TIMEOUT_LIMITS/);
+  const routeDraftAuthority = require('../../frontend/js/r32-route-draft-authority');
   assert.match(source, /data-route-timeout/);
-  assert.match(source, /timeoutMs:normalizeTaskTimeout\(r\.id,r\.timeoutMs\)/);
+  assert.match(source, /routeDraftAuthority\.normalizeTimeoutMs\(task,value\)/);
   assert.match(source, /Number\(e\.target\.value\)\*1000/);
+  assert.equal(routeDraftAuthority.normalizeTimeoutMs('quick_reply', 5000), 180000);
+  assert.equal(routeDraftAuthority.normalizeTimeoutMs('deep_reply', 1500000), 1200000);
+  assert.equal(routeDraftAuthority.project({ id: 'understanding', timeoutMs: 420000 }).timeoutMs, 420000);
 });
 
 test('Fix16: conversation analysis and media understanding no longer use 120-second model limits', () => {

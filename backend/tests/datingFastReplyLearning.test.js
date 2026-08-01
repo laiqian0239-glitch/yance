@@ -153,8 +153,7 @@ test('interaction policy remains advisory while archived contacts still block th
 test('fast technical guard does not run relationship-value blocking but still blocks secrets', () => {
   const provocative = validateFastReplyCandidate('让他吃醋一下也许挺有意思。', {});
   assert.equal(provocative.pass, true);
-  const syntheticOpenAiKey = ['sk', 'abcdefghijklmnopqrstuvwxyz123456'].join('-');
-  const secret = validateFastReplyCandidate(`api_key = ${syntheticOpenAiKey}`, {});
+  const secret = validateFastReplyCandidate('api_key = sk-abcdefghijklmnopqrstuvwxyz123456', {});
   assert.equal(secret.pass, false);
   assert.ok(secret.blockers.some(row => row.code === 'OBVIOUS_SECRET_LEAK'));
 });

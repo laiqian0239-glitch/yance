@@ -1,0 +1,66 @@
+TAP version 13
+# (node:20070) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: WhatsApp LID and phone sessions merge transactionally and idempotently
+ok 1 - WhatsApp LID and phone sessions merge transactionally and idempotently
+  ---
+  duration_ms: 88.778541
+  type: 'test'
+  ...
+# Subtest: reference conflicts rollback the complete WhatsApp merge instead of leaving partial state
+ok 2 - reference conflicts rollback the complete WhatsApp merge instead of leaving partial state
+  ---
+  duration_ms: 16.101042
+  type: 'test'
+  ...
+# Subtest: canonical selection rejects placeholder phone JIDs
+ok 3 - canonical selection rejects placeholder phone JIDs
+  ---
+  duration_ms: 0.289291
+  type: 'test'
+  ...
+# Subtest: startup reconciliation discovers persisted aliases missing from identity authority
+ok 4 - startup reconciliation discovers persisted aliases missing from identity authority
+  ---
+  duration_ms: 26.806391
+  type: 'test'
+  ...
+# Subtest: outbound messages are canonicalized before persistence
+ok 5 - outbound messages are canonicalized before persistence
+  ---
+  duration_ms: 8.452301
+  type: 'test'
+  ...
+# Subtest: WhatsApp outbound text and media send through the canonical target before persistence
+ok 6 - WhatsApp outbound text and media send through the canonical target before persistence
+  ---
+  duration_ms: 1.931559
+  type: 'test'
+  ...
+# Subtest: privacy restriction preserves a valid cached avatar
+ok 7 - privacy restriction preserves a valid cached avatar
+  ---
+  duration_ms: 0.78813
+  type: 'test'
+  ...
+# Subtest: AI reply generation resolves contact from conversation instead of trusting a session key as contact id
+ok 8 - AI reply generation resolves contact from conversation instead of trusting a session key as contact id
+  ---
+  duration_ms: 2.914528
+  type: 'test'
+  ...
+# Subtest: functional workspaces use semantic theme tokens rather than fixed color literals
+ok 9 - functional workspaces use semantic theme tokens rather than fixed color literals
+  ---
+  duration_ms: 4.227268
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 521.353698

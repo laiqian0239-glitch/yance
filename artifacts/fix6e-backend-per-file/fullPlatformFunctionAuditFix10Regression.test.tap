@@ -1,0 +1,66 @@
+TAP version 13
+# (node:19063) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Telegram native expression retries with the same idempotency key do not resend
+ok 1 - Telegram native expression retries with the same idempotency key do not resend
+  ---
+  duration_ms: 1.245928
+  type: 'test'
+  ...
+# Subtest: media stream quote preserves participant for WhatsApp group replies
+ok 2 - media stream quote preserves participant for WhatsApp group replies
+  ---
+  duration_ms: 0.561548
+  type: 'test'
+  ...
+# Subtest: media, forwarding and Telegram native expression sends share uncertain-response reconciliation
+ok 3 - media, forwarding and Telegram native expression sends share uncertain-response reconciliation
+  ---
+  duration_ms: 0.750701
+  type: 'test'
+  ...
+# Subtest: successful media send clears only the originating conversation caption and draft
+ok 4 - successful media send clears only the originating conversation caption and draft
+  ---
+  duration_ms: 0.543668
+  type: 'test'
+  ...
+# Subtest: Telegram sticker send consumes quote without consuming unrelated composer text
+ok 5 - Telegram sticker send consumes quote without consuming unrelated composer text
+  ---
+  duration_ms: 0.531752
+  type: 'test'
+  ...
+# Subtest: second malformed text-send response remains uncertain and retains its key
+ok 6 - second malformed text-send response remains uncertain and retains its key
+  ---
+  duration_ms: 1.8709
+  type: 'test'
+  ...
+# Subtest: StoreManager and general R32 JSON clients reject malformed successful responses
+ok 7 - StoreManager and general R32 JSON clients reject malformed successful responses
+  ---
+  duration_ms: 1.922952
+  type: 'test'
+  ...
+# Subtest: AI workbench and media analysis reject malformed successful responses
+ok 8 - AI workbench and media analysis reject malformed successful responses
+  ---
+  duration_ms: 1.827364
+  type: 'test'
+  ...
+# Subtest: current recursive test authority replaces obsolete Fix10 root runner
+ok 9 - current recursive test authority replaces obsolete Fix10 root runner
+  ---
+  duration_ms: 0.440317
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 87.259753

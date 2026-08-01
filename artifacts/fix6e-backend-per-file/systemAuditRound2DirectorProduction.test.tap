@@ -1,0 +1,36 @@
+TAP version 13
+# (node:20140) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: production candidate path executes director first and manual controls override automatic plan
+ok 1 - production candidate path executes director first and manual controls override automatic plan
+  ---
+  duration_ms: 282.844484
+  type: 'test'
+  ...
+# Subtest: invalid director output blocks reply generation and reports the director stage truthfully
+ok 2 - invalid director output blocks reply generation and reports the director stage truthfully
+  ---
+  duration_ms: 3.298795
+  type: 'test'
+  ...
+# Subtest: director schema repair retries the exact successful model once before reply generation
+ok 3 - director schema repair retries the exact successful model once before reply generation
+  ---
+  duration_ms: 5.005466
+  type: 'test'
+  ...
+# Subtest: director schema rejects wrong language, internal identifiers and invalid question counts
+ok 4 - director schema rejects wrong language, internal identifiers and invalid question counts
+  ---
+  duration_ms: 0.335238
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 529.661033
