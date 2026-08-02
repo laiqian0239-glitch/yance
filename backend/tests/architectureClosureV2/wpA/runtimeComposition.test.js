@@ -95,6 +95,11 @@ test('real broker capability and R32 store bind the same runtime, coordinator, l
         authorityWriteHostCapability: host.capability,
         authorityStore
       });
+      const authorityDescriptors = Object.getOwnPropertyDescriptors(runtime);
+      for (const key of ['authorityWriteHostCapability', 'authorityWriteHostToken', 'primaryAuthorityStore']) {
+        assert.equal(authorityDescriptors[key]?.writable, false, `${key} must be immutable after factory validation`);
+        assert.equal(authorityDescriptors[key]?.configurable, false, `${key} must not be redefinable after factory validation`);
+      }
       const coreBusinessCommand = Object.getPrototypeOf(runtime).executeBusinessCommand;
       const composition = runtime.configureProductionServices();
       const readiness = AppRuntimeFactory.assertAuthorityReady();
