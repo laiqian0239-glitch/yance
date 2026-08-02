@@ -44,6 +44,12 @@ jobs:
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js
       - name: Run real process ownership and takeover matrix
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/authorityWriteHostProcessMatrix.test.js
+      - name: Run A2 canonical serialization, classification and replay contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/canonicalSerialization.test.js
+          backend/tests/architectureClosureV2/wpA/dataClassificationRegistry.test.js
+          backend/tests/architectureClosureV2/wpA/eventTypeRegistryReplay.test.js
       - name: Install locked dependencies for legacy regressions
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run existing SQLite ownership and fencing regressions
