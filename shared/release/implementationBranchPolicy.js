@@ -10,6 +10,7 @@ const ACV2_BRANCH_PATTERN = /^acv2\/wp-([a-h])-[a-z0-9][a-z0-9-]*$/;
 const ACV2_AUTHORIZATION_PATH = path.resolve(__dirname, '..', '..', 'governance', 'architecture-closure-v2', 'implementation-plan-authorization.json');
 const ACV2_SCOPE_AMENDMENT_PATH = path.resolve(__dirname, '..', '..', 'governance', 'architecture-closure-v2', 'wp-a-a6-scope-amendment.json');
 const ACV2_TASK_SCOPE_CHAIN_PATH = path.resolve(__dirname, '..', '..', 'governance', 'architecture-closure-v2', 'wp-a-task-scope-chain.json');
+const ACV2_POST_MERGE_DEFECT_PATH = path.resolve(__dirname, '..', '..', 'governance', 'architecture-closure-v2', 'wp-a-post-merge-defect-001.json');
 const ACV2_AUTHORIZATION_REPOSITORY_PATH = 'governance/architecture-closure-v2/implementation-plan-authorization.json';
 const ACV2_AUTHORIZATION_BLOB_SHA = '203697b36c06e0dc72c92113ef58f1a8f2394312';
 const ACV2_WP_A_PARENT_GOVERNANCE_HEAD = 'd81599d8a3f3de891da369b6f1ddbd01e264c78d';
@@ -56,6 +57,10 @@ function loadWorkPackageScopeAmendment(filePath = ACV2_SCOPE_AMENDMENT_PATH) {
 }
 
 function loadWorkPackageTaskScopeChain(filePath = ACV2_TASK_SCOPE_CHAIN_PATH) {
+  return loadJsonObject(filePath);
+}
+
+function loadWorkPackagePostMergeDefect(filePath = ACV2_POST_MERGE_DEFECT_PATH) {
   return loadJsonObject(filePath);
 }
 
@@ -302,11 +307,83 @@ function evaluateAuthorizedWorkPackageTaskScope(options = {}) {
   });
 }
 
+function isValidWorkPackagePostMergeDefect(defect) {
+  if (!defect || typeof defect !== 'object' || Array.isArray(defect)) return false;
+  if (defect.schemaVersion !== 1 || defect.documentType !== 'YANCE_ACV2_POST_MERGE_DEFECT') return false;
+  if (defect.program !== 'Architecture Closure V2') return false;
+  if (defect.repository !== 'laiqian0239-glitch/yance' || defect.workPackage !== 'WP-A') return false;
+  if (defect.defectId !== 'WP-A-POST-MERGE-DEFECT-001') return false;
+  if (!new Set(['IMPLEMENTING', 'INDEPENDENT_REVIEW', 'CLOSED']).has(defect.status)) return false;
+  const scope = defect.scope || {};
+  if (scope.mode !== 'POST_CLOSE_DEFECT_EXACT_FILES') return false;
+  if (scope.parentClosedTask !== 'A8') return false;
+  if (scope.parentClosureReceiptPath !== 'governance/architecture-closure-v2/wp-a-a8-closure.json') return false;
+  if (scope.targetBranch !== 'stage/6.4.5.9-architecture-closure') return false;
+  if (!/^[a-f0-9]{40}$/u.test(String(scope.baseHead || ''))) return false;
+  if (!Number.isSafeInteger(scope.approvedChangedFileCount) || scope.approvedChangedFileCount < 1) return false;
+  if (!/^[a-f0-9]{64}$/u.test(String(scope.approvedChangedFileSetSha256 || ''))) return false;
+  if (!Array.isArray(scope.exactPaths) || scope.exactPaths.length !== scope.approvedChangedFileCount) return false;
+  if (!scope.exactPaths.every(isExactAdditionalPath)) return false;
+  if (new Set(scope.exactPaths).size !== scope.exactPaths.length) return false;
+  if (!scope.exactPaths.includes('governance/architecture-closure-v2/wp-a-post-merge-defect-001.json')) return false;
+  const governance = defect.governance || {};
+  return governance.readyForPromotion === true
+    && governance.formalRelease === false
+    && governance.publish === false
+    && governance.wpBAuthorized === false
+    && governance.temporaryBypassAllowed === false
+    && governance.testRemovalAllowed === false
+    && governance.matrixReductionAllowed === false
+    && governance.scannerWeakeningAllowed === false;
+}
+
+function evaluateAuthorizedPostMergeDefectScope(options = {}) {
+  const defect = options.defect;
+  const branch = String(options.branch || '');
+  const changedFiles = normalizeChangedFiles(options.changedFiles);
+  const changedFileSetSha256 = workPackageChangedFilesSha256(changedFiles);
+  if (!isValidWorkPackagePostMergeDefect(defect) || branch !== defect.scope.targetBranch) {
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'ACV2_POST_MERGE_DEFECT_SCOPE_INVALID',
+      changedFileSetSha256,
+      postMergeDefectScopeApplied: false,
+      unauthorizedPaths: changedFiles,
+      readyForPromotion: false
+    });
+  }
+  if (defect.scope.approvedChangedFileCount !== changedFiles.length
+    || defect.scope.approvedChangedFileSetSha256 !== changedFileSetSha256) {
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'ACV2_POST_MERGE_DEFECT_CHANGED_FILE_SET_MISMATCH',
+      changedFileSetSha256,
+      postMergeDefectScopeApplied: true,
+      defectId: defect.defectId,
+      unauthorizedPaths: [],
+      readyForPromotion: false
+    });
+  }
+  const allowed = new Set(defect.scope.exactPaths);
+  const unauthorizedPaths = changedFiles.filter(file => !allowed.has(file));
+  return Object.freeze({
+    pass: unauthorizedPaths.length === 0,
+    reasonCode: unauthorizedPaths.length ? 'ACV2_POST_MERGE_DEFECT_SCOPE_VIOLATION' : null,
+    changedFileSetSha256,
+    postMergeDefectScopeApplied: true,
+    defectId: defect.defectId,
+    unauthorizedPaths,
+    allowedPathCount: allowed.size,
+    readyForPromotion: unauthorizedPaths.length === 0 && defect.governance.readyForPromotion === true
+  });
+}
+
 module.exports = {
   REBUILD_BRANCH_PATTERN_SOURCE,
   ACV2_AUTHORIZATION_PATH,
   ACV2_SCOPE_AMENDMENT_PATH,
   ACV2_TASK_SCOPE_CHAIN_PATH,
+  ACV2_POST_MERGE_DEFECT_PATH,
   ACV2_AUTHORIZATION_REPOSITORY_PATH,
   ACV2_AUTHORIZATION_BLOB_SHA,
   ACV2_WP_A_PARENT_GOVERNANCE_HEAD,
@@ -317,9 +394,11 @@ module.exports = {
   loadWorkPackageAuthorization,
   loadWorkPackageScopeAmendment,
   loadWorkPackageTaskScopeChain,
+  loadWorkPackagePostMergeDefect,
   isValidWorkPackageAuthorization,
   isValidWorkPackageScopeAmendment,
   validateWorkPackageTaskScopeChain,
+  isValidWorkPackagePostMergeDefect,
   isAuthorizedAcv2WorkPackageBranch,
   isAuthorizedImplementationBranch,
   authorizedImplementationBranchDescription,
@@ -329,5 +408,6 @@ module.exports = {
   effectiveAllowedProductionPaths,
   effectiveTaskScopePaths,
   evaluateAuthorizedWorkPackageScope,
-  evaluateAuthorizedWorkPackageTaskScope
+  evaluateAuthorizedWorkPackageTaskScope,
+  evaluateAuthorizedPostMergeDefectScope
 };

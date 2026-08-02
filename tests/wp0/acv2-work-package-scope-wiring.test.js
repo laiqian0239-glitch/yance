@@ -11,6 +11,7 @@ const protectedCommandPath = path.join(repoRoot, 'tools', 'wp0', 'run-protected-
 const sharedScopeGatePath = path.join(repoRoot, 'tools', 'wp0', 'work-package-scope-gate.js');
 const authorizationPath = path.join(repoRoot, 'governance', 'architecture-closure-v2', 'implementation-plan-authorization.json');
 const taskScopeChainPath = path.join(repoRoot, 'governance', 'architecture-closure-v2', 'wp-a-task-scope-chain.json');
+const postMergeDefectPath = path.join(repoRoot, 'governance', 'architecture-closure-v2', 'wp-a-post-merge-defect-001.json');
 
 test('every executable WP0 entrypoint consumes one shared ACV2 work-package scope gate', () => {
   const verifySource = fs.readFileSync(verifyGatePath, 'utf8');
@@ -25,7 +26,7 @@ test('every executable WP0 entrypoint consumes one shared ACV2 work-package scop
   assert.match(protectedSource, /evidenceSourceCommit/);
 });
 
-test('shared scope gate prefers the sequential task chain and preserves historical amendment fallback', () => {
+test('shared scope gate preserves the immutable task chain and adds fail-closed post-close defect scope', () => {
   assert.equal(fs.existsSync(sharedScopeGatePath), true, 'shared work-package scope gate must exist');
   const source = fs.readFileSync(sharedScopeGatePath, 'utf8');
   assert.match(source, /evaluateAuthorizedWorkPackageTaskScope/);
@@ -35,13 +36,17 @@ test('shared scope gate prefers the sequential task chain and preserves historic
   assert.match(source, /activeTask/);
   assert.match(source, /evaluateAuthorizedWorkPackageScope/);
   assert.match(source, /loadWorkPackageScopeAmendment/);
+  assert.match(source, /evaluateAuthorizedPostMergeDefectScope/);
+  assert.match(source, /loadWorkPackagePostMergeDefect/);
+  assert.match(source, /isValidWorkPackagePostMergeDefect/);
+  assert.match(source, /postMergeDefectScopeApplied/);
   assert.match(source, /ACV2_AUTHORIZATION_BLOB_SHA/);
   assert.match(source, /ACV2_WP_A_PARENT_GOVERNANCE_HEAD/);
   assert.match(source, /status[^\n]*--porcelain/);
   assert.match(source, /core\.quotePath=false/);
   assert.match(source, /diff[\s\S]*--name-only/);
   assert.match(source, /merge-base[^\n]*--is-ancestor/);
-  assert.match(source, /ACV2_(?:WORK_PACKAGE|TASK)_SCOPE_/);
+  assert.match(source, /ACV2_(?:WORK_PACKAGE|TASK|POST_MERGE_DEFECT)_SCOPE_/);
 });
 
 test('repository task scope chain is machine-readable and pins A6 and A7 closed before A8', () => {
@@ -62,21 +67,18 @@ test('repository task scope chain is machine-readable and pins A6 and A7 closed 
   assert.equal(document.governance.readyForPromotion, false);
 });
 
-test('detached evidence mode still evaluates the authorized ACV2 changed-file scope', () => {
+test('detached evidence at an A8-R1 commit uses the exact post-close defect scope', () => {
   const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
   const authorization = JSON.parse(fs.readFileSync(authorizationPath, 'utf8'));
+  const defect = JSON.parse(fs.readFileSync(postMergeDefectPath, 'utf8'));
   const sourceCommit = 'a'.repeat(40);
   const calls = [];
   const git = args => {
     calls.push([...args]);
     if (args[0] === 'status') return '';
     if (args[0] === 'rev-parse' && args[1] === 'HEAD') return sourceCommit;
-    if (args[0] === 'rev-parse' && String(args[1]).startsWith('HEAD:')) {
-      return '203697b36c06e0dc72c92113ef58f1a8f2394312';
-    }
-    if (args[0] === 'cat-file') return '';
-    if (args[0] === 'merge-base') return '';
-    if (args.includes('diff') && args.includes('--name-only')) return '';
+    if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
+    if (args.includes('diff') && args.includes('--name-only')) return defect.scope.exactPaths.join('\n');
     throw new Error(`unexpected git command: ${args.join(' ')}`);
   };
 
@@ -85,16 +87,52 @@ test('detached evidence mode still evaluates the authorized ACV2 changed-file sc
     evidenceMode: true,
     evidenceSourceCommit: sourceCommit,
     authorization,
-    taskScopeChain: null,
-    amendment: null,
+    postMergeDefect: defect,
     git
   });
 
   assert.equal(result.applicable, true);
-  assert.equal(result.pass, true);
-  assert.equal(result.effectiveBranch, authorization.authorizedBranch);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.effectiveBranch, defect.scope.targetBranch);
+  assert.equal(result.postMergeDefectScopeApplied, true);
   assert.equal(result.taskScopeChainApplied, false);
+  assert.equal(result.defectId, defect.defectId);
+  assert.equal(result.changedFileCount, defect.scope.approvedChangedFileCount);
+  assert.equal(result.changedFileSetSha256, defect.scope.approvedChangedFileSetSha256);
+  assert.equal(result.readyForPromotion, true);
   assert.ok(calls.some(args => args.includes('diff') && args.includes('--name-only')));
+});
+
+test('historical detached evidence without an A8-R1 document retains the prior ACV2 scope path', () => {
+  const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
+  const authorization = JSON.parse(fs.readFileSync(authorizationPath, 'utf8'));
+  const sourceCommit = 'b'.repeat(40);
+  const git = args => {
+    if (args[0] === 'status') return '';
+    if (args[0] === 'rev-parse' && args[1] === 'HEAD') return sourceCommit;
+    if (args[0] === 'rev-parse' && String(args[1]).startsWith('HEAD:')) {
+      return '203697b36c06e0dc72c92113ef58f1a8f2394312';
+    }
+    if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
+    if (args.includes('diff') && args.includes('--name-only')) return '';
+    throw new Error(`unexpected git command: ${args.join(' ')}`);
+  };
+  const result = evaluateWorkPackageScopeForGate({
+    branch: null,
+    evidenceMode: true,
+    evidenceSourceCommit: sourceCommit,
+    authorization,
+    postMergeDefect: null,
+    taskScopeChain: null,
+    amendment: null,
+    git
+  });
+  assert.equal(result.applicable, true);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.effectiveBranch, authorization.authorizedBranch);
+  assert.equal(result.postMergeDefectScopeApplied, false);
+  assert.equal(result.taskScopeChainApplied, false);
+  assert.equal(result.readyForPromotion, false);
 });
 
 test('active task chain evaluation reports A8 and cannot claim promotion readiness', () => {

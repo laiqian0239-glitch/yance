@@ -31,12 +31,18 @@
       "backend/migrations/architectureClosureV2WpA.js",
       "backend/migrations/architectureClosureV2WpAIntegrity.js",
       "backend/services/authorityTransactionCoordinator.js",
+      "backend/services/canonicalEventLedgerAuthority.js",
       "backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinatorIntegrity.test.js",
-      "backend/tests/architectureClosureV2/wpA/schema21AppendOnlyIntegrity.test.js",
+      "backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js",
       "backend/tests/architectureClosureV2/wpA/schema22PostMergeIntegrityMigration.test.js",
+      "backend/tests/round12PlatformCoreAuthorities.test.js",
       "governance/architecture-closure-v2/authority-registry.json",
       "governance/architecture-closure-v2/wp-a-post-merge-defect-001.json",
-      "tests/wp0/wp-a-post-merge-validation.test.js"
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/acv2-work-package-scope-wiring.test.js",
+      "tests/wp0/implementation-branch-policy.test.js",
+      "tests/wp0/wp-a-post-merge-validation.test.js",
+      "tools/wp0/work-package-scope-gate.js"
     ]
   },
   "closureConditions": [
@@ -57,5 +63,39 @@
     "testRemovalAllowed": false,
     "matrixReductionAllowed": false,
     "scannerWeakeningAllowed": false
-  }
+  },
+  "scope": {
+    "mode": "POST_CLOSE_DEFECT_EXACT_FILES",
+    "parentClosedTask": "A8",
+    "parentClosureReceiptPath": "governance/architecture-closure-v2/wp-a-a8-closure.json",
+    "targetBranch": "stage/6.4.5.9-architecture-closure",
+    "baseHead": "36631c1856b957c75d9fcf6359833a6169b093fc",
+    "approvedChangedFileCount": 16,
+    "approvedChangedFileSetSha256": "e2eff8a8d1c37bdd3f61ca51d5916bdbe071c8905b7224fad7805e669a8b798e",
+    "exactPaths": [
+      ".github/workflows/wp-a-post-merge-validation.yml",
+      "backend/migrations/architectureClosureV2WpA.js",
+      "backend/migrations/architectureClosureV2WpAIntegrity.js",
+      "backend/services/authorityTransactionCoordinator.js",
+      "backend/services/canonicalEventLedgerAuthority.js",
+      "backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinatorIntegrity.test.js",
+      "backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js",
+      "backend/tests/architectureClosureV2/wpA/schema22PostMergeIntegrityMigration.test.js",
+      "backend/tests/round12PlatformCoreAuthorities.test.js",
+      "governance/architecture-closure-v2/authority-registry.json",
+      "governance/architecture-closure-v2/wp-a-post-merge-defect-001.json",
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/acv2-work-package-scope-wiring.test.js",
+      "tests/wp0/implementation-branch-policy.test.js",
+      "tests/wp0/wp-a-post-merge-validation.test.js",
+      "tools/wp0/work-package-scope-gate.js"
+    ],
+    "detachedEvidenceUsesSameExactScope": true,
+    "closedA8TaskScopeRemainsImmutable": true
+  },
+  "independentReviewFindings": [
+    "DATABASE_MUST_REJECT_NEW_UNVERSIONED_OR_UNHASHED_RECEIPTS",
+    "AUTHORITY_ASSIGNED_EVENT_TIME_MUST_HAVE_CONCURRENTLY_STABLE_IDEMPOTENT_SEMANTICS",
+    "CLOSED_A8_SCOPE_MUST_REMAIN_IMMUTABLE_WHILE_POST_CLOSE_DEFECT_USES_A8_R1_SCOPE"
+  ]
 }
