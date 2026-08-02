@@ -86,18 +86,23 @@ test('primary SQLite process roles fail closed for workers, probes, utilities an
   }
 });
 
-test('SqliteConnectionBroker rejects production construction without a current host capability', () => {
+test('SqliteConnectionBroker acquires a real host capability and rejects a forged one', () => {
   const { root, dbPath } = tempDb();
+  let broker;
   try {
-    assert.throws(
-      () => new SqliteConnectionBroker({ dbPath }),
-      error => error?.code === 'AUTHORITY_WRITE_HOST_CAPABILITY_REQUIRED'
-    );
     assert.throws(
       () => new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: Object.freeze({}) }),
       error => error?.code === 'AUTHORITY_WRITE_HOST_CAPABILITY_INVALID'
     );
-  } finally { cleanup(root); }
+    broker = new SqliteConnectionBroker({ dbPath });
+    const snapshot = broker.snapshot();
+    assert.equal(snapshot.owner, 'AuthorityWriteHost');
+    assert.equal(snapshot.authorityWriteHostCapability.hostGeneration, 1);
+    assert.equal(snapshot.authorityWriteHostCapability.fencingToken, 1);
+  } finally {
+    try { broker?.close(); } catch (_) {}
+    cleanup(root);
+  }
 });
 
 test('fresh database bootstrap and Schema 20 upgrade both converge to the complete Schema 21 object set', () => {
