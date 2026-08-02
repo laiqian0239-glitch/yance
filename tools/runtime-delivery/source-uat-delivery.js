@@ -12,6 +12,7 @@ const { loadReleaseIdentity } = require('../../shared/release/releaseIdentity');
 const { deriveDatabaseSchemaVersion } = require('../wp1/lib');
 const { seedTrustedDependencyCache } = require('./dependency-install-authority');
 const { resolveNpmInvocation } = require('./npm-process-authority');
+const { assertSealedExportRoot } = require('./sealed-export-authority');
 
 const CHECKPOINT_FILE = 'YANCE_SOURCE_CHECKPOINT.json';
 const DERIVED_IDENTITY_FILE = 'YANCE_DERIVED_SOURCE_IDENTITY.json';
@@ -84,7 +85,7 @@ function derivedPayloadManifestSha256(repoRoot) {
 }
 
 function createDerivedSourceIdentity(repoRoot, options = {}) {
-  const root = path.resolve(repoRoot);
+  const root = assertSealedExportRoot(repoRoot);
   const baseCommit = clean(options.baseCommit);
   const baseTree = clean(options.baseTree);
   const derivedVersion = clean(options.derivedVersion);
