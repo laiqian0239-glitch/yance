@@ -23,20 +23,40 @@ test('A0 evidence remains immutable while current task authorization advances mo
   assert.equal(baseline.parentGovernanceHead, 'd81599d8a3f3de891da369b6f1ddbd01e264c78d');
   assert.equal(baseline.authorizedBranch, 'acv2/wp-a-identity-ledger-write-host');
   assert.equal(baseline.a0.status, 'CLOSED');
+
   const currentIndex = taskNumber(baseline.currentAuthorizedTask);
   assert.ok(currentIndex >= 1, `unknown current task ${baseline.currentAuthorizedTask}`);
   for (const completed of baseline.completedTasks || []) {
     const completedIndex = taskNumber(completed);
-    assert.ok(completedIndex >= 0 && completedIndex < currentIndex, `completed task is not before current task: ${completed}`);
+    assert.ok(
+      completedIndex >= 0 && completedIndex <= currentIndex,
+      `completed task is after current authorization: ${completed}`
+    );
   }
+  for (const reopened of baseline.reopenedTasks || []) {
+    const reopenedIndex = taskNumber(reopened);
+    assert.ok(
+      reopenedIndex >= 1 && reopenedIndex <= currentIndex,
+      `reopened task is outside current authorization: ${reopened}`
+    );
+  }
+
   if (currentIndex === 3) {
-    assert.equal(baseline.a3TestCodeAllowed, true);
-    assert.equal(typeof baseline.a3ProductionCodeAllowed, 'boolean');
-    if (baseline.a3ProductionCodeAllowed) {
-      assert.equal(baseline.a3?.redEvidence?.conclusion, 'EXPECTED_FAILURE');
-      assert.equal(baseline.a3?.implementationStartConditionSatisfied, true);
-    }
+    assert.equal(baseline.a3?.status, 'REOPENED_BY_INDEPENDENT_REVIEW_RED');
+    assert.equal(baseline.a3?.rootRepairAuthorized, true);
+    assert.equal(baseline.a3?.reviewRedEvidence?.implementationStartConditionSatisfied, true);
+    assert.equal(baseline.a3?.greenEvidenceRequired, true);
+    assert.equal(baseline.a3?.independentSourceReviewRequired, true);
+    assert.equal(
+      baseline.productionCodeScope,
+      'WP_A_A1_SCHEMA_FOUNDATION_AND_A3_COORDINATOR_ONLY'
+    );
+    assert.ok(
+      baseline.reviewRepairAllowedFiles.includes('backend/services/authorityTransactionCoordinator.js')
+    );
+    assert.ok(baseline.lockedTasks.includes('A4'));
   }
+
   assert.deepEqual(config.discoveryRoots, ['backend']);
   assert.deepEqual(config.discoveryExcludes, ['backend/tests', 'backend/migrations']);
 
@@ -66,7 +86,11 @@ test('authority registry is complete, single-classified, and bound to real sourc
     assert.ok(entry.projection);
     assert.ok(entry.removalCondition);
     assert.ok(fs.existsSync(path.join(repoRoot, entry.path)), entry.path);
-    assert.equal(pathOwners.has(entry.path), false, `${entry.path} cannot be both an authority writer and a compatibility projector`);
+    assert.equal(
+      pathOwners.has(entry.path),
+      false,
+      `${entry.path} cannot be both an authority writer and a compatibility projector`
+    );
     pathOwners.set(entry.path, entry.classification);
   }
 });
@@ -95,5 +119,8 @@ test('WP-A source closure report remains fail-closed and valid until all registe
   assert.ok(report.violationCount > 0, 'WP-A is not yet globally closed');
   assert.equal(report.counts.REGISTRY_INVALID || 0, 0, 'governance registry/configuration must remain valid');
   assert.equal(report.ok, false, 'source scanner must remain non-passing until A8');
-  assert.ok((report.counts.CANONICAL_LEDGER_COORDINATOR_MISSING || 0) > 0, 'A3/A4 closure must still be visible');
+  assert.ok(
+    (report.counts.CANONICAL_LEDGER_COORDINATOR_MISSING || 0) > 0,
+    'A3/A4 closure must still be visible'
+  );
 });
