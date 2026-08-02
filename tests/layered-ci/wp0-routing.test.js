@@ -35,6 +35,21 @@ test('layered governance-only changes select GOVERNANCE_WP0', () => {
   assert.equal(result.route, ROUTES.GOVERNANCE);
 });
 
+test('WP-A Promotion Authorization exact scope selects GOVERNANCE_WP0', () => {
+  const result = classifyWp0Route(policy, [
+    '.github/workflows/wp-a-promotion-authorization.yml',
+    'governance/architecture-closure-v2/wp-a-promotion-authorization.json',
+    'governance/layered-ci/wp0-routing-policy.json',
+    'tests/layered-ci/wp0-routing.test.js',
+    'tests/wp0/wp-a-promotion-authorization.test.js',
+    'tools/architecture-closure-v2/verify-wp-a-promotion-authorization.js'
+  ]);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.route, ROUTES.GOVERNANCE);
+  assert.equal(result.governanceChangesPresent, true);
+  assert.equal(result.productChangesPresent, false);
+});
+
 test('product, release, architecture review docs and existing WP0 implementation changes select PRODUCT_WP0', () => {
   for (const file of [
     'backend/runtime/AppRuntime.js',

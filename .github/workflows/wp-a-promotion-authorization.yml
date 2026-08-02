@@ -1,0 +1,117 @@
+name: WP-A Promotion Authorization Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/wp-a-promotion-authorization.yml
+      - governance/architecture-closure-v2/wp-a-promotion-authorization.json
+      - governance/layered-ci/wp0-routing-policy.json
+      - tests/layered-ci/wp0-routing.test.js
+      - tests/wp0/wp-a-promotion-authorization.test.js
+      - tools/architecture-closure-v2/verify-wp-a-promotion-authorization.js
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+
+concurrency:
+  group: wp-a-promotion-authorization-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-promotion-authorization:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'governance/wp-a-promotion-authorization'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      REPOSITORY: laiqian0239-glitch/yance
+      CANDIDATE_PULL_REQUEST: '5'
+      CANDIDATE_HEAD: c57ec612ca07cd1cfa939e075f4dbcce2287eaca
+      ACV2_RUN_ID: '30769056193'
+      WP0_RUN_ID: '30769056196'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout promotion governance candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Run promotion authorization contracts
+        run: |
+          node --check tools/architecture-closure-v2/verify-wp-a-promotion-authorization.js
+          node --test --test-concurrency=1 \
+            tests/layered-ci/wp0-routing.test.js \
+            tests/wp0/wp-a-promotion-authorization.test.js \
+            tests/wp0/github-actions-workflow-syntax.test.js
+
+      - name: Collect immutable candidate evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence_root="${RUNNER_TEMP}/wp-a-promotion-evidence"
+          mkdir -p "${evidence_root}"
+
+          gh api "repos/${REPOSITORY}/pulls/${CANDIDATE_PULL_REQUEST}" \
+            > "${evidence_root}/candidate-pr.json"
+          gh api "repos/${REPOSITORY}/actions/runs/${ACV2_RUN_ID}" \
+            > "${evidence_root}/acv2-run.json"
+          gh api "repos/${REPOSITORY}/actions/runs/${WP0_RUN_ID}" \
+            > "${evidence_root}/wp0-run.json"
+          gh api "repos/${REPOSITORY}/actions/runs/${ACV2_RUN_ID}/jobs?per_page=100" \
+            > "${evidence_root}/acv2-jobs.json"
+          gh api "repos/${REPOSITORY}/actions/runs/${WP0_RUN_ID}/jobs?per_page=100" \
+            > "${evidence_root}/wp0-jobs.json"
+          gh api --paginate "repos/${REPOSITORY}/pulls/${CANDIDATE_PULL_REQUEST}/files?per_page=100" \
+            --jq '.[].filename' \
+            | LC_ALL=C sort -u \
+            > "${evidence_root}/candidate-files.txt"
+
+          git fetch --no-tags origin "${CANDIDATE_HEAD}"
+          git show "${CANDIDATE_HEAD}:governance/architecture-closure-v2/wp-a-a8-closure.json" \
+            > "${evidence_root}/a8-closure.json"
+
+          git fetch --no-tags origin main
+          git diff --name-only "origin/main...HEAD" \
+            | sed 's#\\#/#g' \
+            | LC_ALL=C sort -u \
+            > "${evidence_root}/promotion-files.txt"
+
+          test -s "${evidence_root}/candidate-pr.json"
+          test -s "${evidence_root}/candidate-files.txt"
+          test -s "${evidence_root}/promotion-files.txt"
+          test -s "${evidence_root}/a8-closure.json"
+
+      - name: Enforce fail-closed promotion identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence_root="${RUNNER_TEMP}/wp-a-promotion-evidence"
+          node tools/architecture-closure-v2/verify-wp-a-promotion-authorization.js \
+            --pull-request "${evidence_root}/candidate-pr.json" \
+            --acv2-run "${evidence_root}/acv2-run.json" \
+            --wp0-run "${evidence_root}/wp0-run.json" \
+            --acv2-jobs "${evidence_root}/acv2-jobs.json" \
+            --wp0-jobs "${evidence_root}/wp0-jobs.json" \
+            --candidate-files "${evidence_root}/candidate-files.txt" \
+            --promotion-files "${evidence_root}/promotion-files.txt" \
+            --closure-receipt "${evidence_root}/a8-closure.json"
+
+      - name: Confirm governance-only diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check "origin/main...HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
