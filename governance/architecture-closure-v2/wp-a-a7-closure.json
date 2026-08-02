@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_TASK_CLOSURE_RECEIPT",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-A",
+  "task": "A7",
+  "status": "CLOSED",
+  "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
+  "pullRequest": 5,
+  "parentTask": "A6",
+  "reviewedCodeHead": "15512d531079334829f3ebf2d04ab174cec58a8c",
+  "reviewGateHead": "e535dab84b9c8ac760a16bb86a0cf5adf32d0bff",
+  "independentReview": {
+    "document": "docs/architecture/YANCE_ACV2_WP_A_A7_SOURCE_REVIEW_ZH.md",
+    "decision": "SOURCE_REVIEW_PASSED_FINAL_PLATFORM_GATES_REQUIRED",
+    "openP0": 0,
+    "openP1": 0
+  },
+  "verification": {
+    "acv2Run": 30762117214,
+    "ubuntuJob": 91534408675,
+    "windowsJob": 91534408668,
+    "sourceClosureJob": 91534408663,
+    "wp0Run": 30762117203,
+    "wp0ProductJob": 91534432675,
+    "wp0AggregateJob": 91534524709,
+    "sealedExportUbuntuJob": 91534432681,
+    "sealedExportWindowsJob": 91534432700,
+    "ubuntuConclusion": "success",
+    "windowsConclusion": "success",
+    "wp0Conclusion": "success",
+    "sealedExportUbuntuConclusion": "success",
+    "sealedExportWindowsConclusion": "success",
+    "sourceClosureConclusion": "expected_failure_deferred_to_A8"
+  },
+  "verifiedInvariants": [
+    "DETERMINISTIC_CONTIGUOUS_LEDGER_REPLAY",
+    "PAYLOAD_AND_EVENT_HASH_VERIFIED_BEFORE_UPCAST_OR_REDUCE",
+    "SYNCHRONOUS_DETERMINISTIC_UPCASTER_AND_REDUCER_BOUNDARY",
+    "VERSIONED_SEGMENT_SNAPSHOT_REQUIRED",
+    "CANONICAL_ARCHIVE_WRITE_AND_EXACT_READBACK_VERIFIED",
+    "DURABLE_EVIDENCE_RECEIPT_REQUIRED_BEFORE_RETIRE",
+    "SNAPSHOT_BOUND_ATOMIC_RETIREMENT_RECEIPT_REQUIRED",
+    "CANCELLATION_AND_ALL_FAULTS_FAIL_CLOSED"
+  ],
+  "governance": {
+    "automaticNextTaskAuthorization": false,
+    "automaticNextWorkPackageAuthorization": false,
+    "prMustRemainDraft": true,
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "publish": false
+  }
+}
