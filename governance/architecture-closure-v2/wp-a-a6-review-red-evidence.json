@@ -1,11 +1,11 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "documentType": "YANCE_ACV2_WP_A_A6_INDEPENDENT_REVIEW_EVIDENCE",
   "status": "IMPLEMENTATION_AND_EXECUTABLE_SCOPE_GATES_REPAIRED_VALIDATION_BLOCKED",
   "workPackage": "WP-A",
   "task": "A6_WIRE_SINGLE_WRITE_HOST_LEDGER_AND_IDENTITY_AUTHORITY_INTO_RUNTIME_STARTUP",
-  "reviewedRuntimeImplementationHead": "e43d5216219e69c9b08048c7bcdfba1134360cbc",
-  "reviewedGovernanceImplementationHead": "ee1ce7cffe69b4235cc26a6acbf58c045a3fd79d",
+  "reviewedRuntimeImplementationHead": "0f43b7b59f2c3baed948e90552f6afb8d323e1d5",
+  "reviewedGovernanceImplementationHead": "0b4bfcd0b2b25be68f0af359fab1d1998ccf9e0f",
   "reviewMode": "INDEPENDENT_SOURCE_REVIEW_WITH_ADVERSARIAL_CONTRACTS",
   "externalReviewer": {
     "codeRabbitUsed": false,
@@ -32,6 +32,11 @@
     "FACTORY_READ_PRIVATE_GATEWAY_BINDINGS_THROUGH_OBSOLETE_PUBLIC_FIELDS",
     "GATEWAY_READINESS_EVIDENCE_METHODS_COULD_BE_SHADOWED",
     "RUNTIME_STATE_STORE_COULD_OMIT_DB_AND_BYPASS_PRIMARY_DATABASE_IDENTITY_CHECK",
+    "CANONICAL_LEDGER_SINGLETON_COULD_BE_REBOUND_TO_A_COMPETING_AUTHORITY",
+    "DOMAIN_EVENT_LOG_FACADE_COULD_BE_REBOUND_AWAY_FROM_THE_CANONICAL_LEDGER",
+    "REPOSITORY_LEDGER_AND_IDENTITY_CORE_REFERENCES_COULD_BE_REPLACED_AFTER_COMPOSITION",
+    "APP_RUNTIME_CLEAR_ALLOWED_A_SECOND_PROCESS_RUNTIME_GRAPH_WHILE_LEDGER_SINGLETON_REMAINED_BOUND",
+    "TEST_RUNTIME_RESET_DID_NOT_RESET_THE_CANONICAL_LEDGER_SINGLETON",
     "ACV2_PULL_REQUEST_WORKFLOW_FILTER_DID_NOT_MATCH_THE_CURRENT_MAIN_BASE",
     "WP0_DECLARED_ALLOWED_PRODUCTION_PATHS_BUT_DID_NOT_ENFORCE_CHANGED_FILE_SCOPE",
     "A6_BASELINE_EXCLUDED_REQUIRED_BOTTOM_LAYER_RUNTIME_ROOT_REPAIR_FILES",
@@ -46,6 +51,12 @@
     "RUNTIME_COMPOSITION_IS_PRIVATE_WEAKMAP_STATE",
     "RUNTIME_STATE_STORE_DB_MUST_EQUAL_THE_BROKER_OWNED_AUTHORITY_DB_OBJECT",
     "COORDINATOR_LEDGER_IDENTITY_AND_GATEWAY_SHARE_ONE_VERIFIED_AUTHORITY_GRAPH",
+    "PLATFORM_REPOSITORY_LEDGER_COMPATIBILITY_REPOSITORY_AND_IDENTITY_REFERENCES_ARE_IMMUTABLE",
+    "CANONICAL_LEDGER_SINGLETON_IS_ONE_WAY_BOUND_TO_THE_COMPOSED_LEDGER",
+    "DOMAIN_EVENT_LOG_FACADE_IS_FROZEN_AND_DELEGATES_TO_THE_CANONICAL_LEDGER_SINGLETON",
+    "APP_RUNTIME_AND_CANONICAL_LEDGER_ARE_ONE_PROCESS_LIFETIME_GRAPH",
+    "PRODUCTION_CLEAR_DOES_NOT_AUTHORIZE_A_SECOND_RUNTIME_GRAPH",
+    "EXPLICIT_TEST_RESET_CLEARS_RUNTIME_AND_LEDGER_SINGLETONS_TOGETHER",
     "STARTUP_IDENTITY_HANDLER_USES_THE_COMPOSED_IDENTITY_AUTHORITY_INSTANCE",
     "STARTUP_HANDLER_MAP_IS_FROZEN_NULL_PROTOTYPE_OWN_FUNCTION_MAP",
     "STARTUP_GATEWAY_INSTANCE_AND_PROTOTYPE_ARE_FROZEN_BEFORE_EXTERNAL_OBSERVATION",
@@ -60,6 +71,7 @@
     "backend/tests/architectureClosureV2/wpA/runtimeComposition.test.js",
     "backend/tests/architectureClosureV2/wpA/runtimeGatewaySurface.test.js",
     "backend/tests/architectureClosureV2/wpA/runtimeStateStoreBinding.test.js",
+    "backend/tests/architectureClosureV2/wpA/runtimeProcessSingleton.test.js",
     "backend/tests/architectureClosureV2/wpA/startupOrdering.test.js"
   ],
   "governanceAdversarialContracts": [
@@ -70,6 +82,8 @@
     "backend/runtime/AppRuntime.js",
     "backend/runtime/AppRuntimeFactory.js",
     "backend/runtime/AppRuntimeComposition.js",
+    "backend/services/canonicalEventLedgerAuthority.js",
+    "backend/services/domainEventLogService.js",
     "backend/server.js",
     "electron/desktopHost/ApiV2RuntimeClient.js"
   ],
@@ -79,8 +93,8 @@
     "baseAuthorizationBlobSha": "203697b36c06e0dc72c92113ef58f1a8f2394312",
     "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
     "pullRequest": 5,
-    "approvedChangedFileCount": 82,
-    "approvedChangedFileSetSha256": "024e5b4db507f1526085af9dc2dd6ef71755d1e7063f0cdd418a3c1896229866",
+    "approvedChangedFileCount": 83,
+    "approvedChangedFileSetSha256": "d2cac11bd6864b02e09fa68015dbdba5c41bb2777bf79e821f00a846b651702a",
     "additionalExactPathCount": 17,
     "sharedExecutableGate": "tools/wp0/work-package-scope-gate.js",
     "protectedEntrypoints": [
@@ -97,18 +111,18 @@
     "externallySignedAuthorizationClaimed": false
   },
   "latestValidationAttempt": {
-    "reviewedHead": "ee1ce7cffe69b4235cc26a6acbf58c045a3fd79d",
-    "acv2WorkflowRunId": 30752221618,
+    "reviewedHead": "0f43b7b59f2c3baed948e90552f6afb8d323e1d5",
+    "acv2WorkflowRunId": 30753367583,
     "acv2Jobs": {
-      "ubuntu": 91508155884,
-      "windows": 91508155870,
-      "sourceClosure": 91508155887
+      "ubuntu": 91511229857,
+      "windows": 91511229894,
+      "sourceClosure": 91511229862
     },
-    "wp0WorkflowRunId": 30752221614,
+    "wp0WorkflowRunId": 30753367590,
     "wp0Jobs": {
-      "wp0": 91508156024,
-      "sealedExportUbuntu": 91508155988,
-      "sealedExportWindows": 91508155981
+      "wp0": 91511229670,
+      "sealedExportUbuntu": 91511229661,
+      "sealedExportWindows": 91511229701
     },
     "allJobsHadSteps": false,
     "allJobsHadLogs": false,
