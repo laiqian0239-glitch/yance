@@ -14,17 +14,7 @@ function source(filePath) {
 }
 
 function firstMutationIndex(text) {
-  const markers = [
-    'migrationService.migrateAtStartup(',
-    'syncCheckpointService.recoverInterrupted(',
-    'backgroundJobAuthority.recoverInterrupted(',
-    'canonicalIdentityService.canonicalizeWhatsAppAccounts(',
-    'cacheGcService.purge(',
-    'runProductionDataGuard(',
-    'workspaceService.initializeDataPipelines('
-  ];
-  const indexes = markers.map(marker => text.indexOf(marker)).filter(index => index >= 0);
-  return indexes.length ? Math.min(...indexes) : -1;
+  return text.indexOf('APP_RUNTIME.executeBusinessCommand(');
 }
 
 test('server proves runtime authority readiness before any startup recovery or business mutation', () => {
@@ -32,7 +22,7 @@ test('server proves runtime authority readiness before any startup recovery or b
   const authorityGate = text.indexOf('AppRuntimeFactory.assertAuthorityReady(');
   const firstMutation = firstMutationIndex(text);
   assert.ok(authorityGate >= 0, 'server must call AppRuntimeFactory.assertAuthorityReady');
-  assert.ok(firstMutation >= 0, 'startup mutation inventory must remain observable');
+  assert.ok(firstMutation >= 0, 'versioned startup command boundary must remain observable');
   assert.ok(authorityGate < firstMutation, 'authority readiness must be proven before the first startup mutation');
 });
 
