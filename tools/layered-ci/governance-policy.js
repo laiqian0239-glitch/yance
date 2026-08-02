@@ -133,7 +133,19 @@ function validateRiskPolicy(policy) {
     return fail('CI_RISK_LEVELS_INVALID');
   }
   if (policy.defaultCodeLevel !== 'L1') return fail('CI_RISK_DEFAULT_LEVEL_INVALID');
-  for (const field of ['documentationPrefixes', 'l2ExactPaths', 'l2Prefixes']) {
+
+  const exactFields = ['documentationExactPaths', 'l1ExactPaths', 'l2ExactPaths'];
+  for (const field of exactFields) {
+    if (!Array.isArray(policy[field]) || new Set(policy[field]).size !== policy[field].length) {
+      return fail('CI_RISK_RULES_INVALID', { field });
+    }
+    for (const rule of policy[field]) {
+      if (normalizeRepositoryPath(rule) !== rule) return fail('CI_RISK_RULE_INVALID', { field, rule });
+    }
+  }
+
+  const prefixFields = ['documentationPrefixes', 'l1Prefixes', 'l2Prefixes'];
+  for (const field of prefixFields) {
     if (!Array.isArray(policy[field]) || new Set(policy[field]).size !== policy[field].length) {
       return fail('CI_RISK_RULES_INVALID', { field });
     }
@@ -141,6 +153,7 @@ function validateRiskPolicy(policy) {
       if (!normalizeRule(rule)) return fail('CI_RISK_RULE_INVALID', { field, rule });
     }
   }
+
   if (policy.l3Automatic !== false || policy.unknownPathFailsClosed !== true) {
     return fail('CI_RISK_FAIL_CLOSED_INVALID');
   }
@@ -148,14 +161,36 @@ function validateRiskPolicy(policy) {
   return verdict({ pass: true, reasonCode: null });
 }
 
-function ruleMatchesPath(rule, file) {
-  if (rule.endsWith('/')) return file.startsWith(rule);
-  return file === rule || file.startsWith(rule);
+function exactRuleMatches(rules, file) {
+  return rules.includes(file);
 }
 
-function documentationRuleMatches(rule, file) {
-  if (rule.endsWith('/')) return file.startsWith(rule);
-  return file === rule || file.startsWith(rule);
+function prefixRuleMatches(rules, file) {
+  return rules.find(rule => file.startsWith(rule)) || null;
+}
+
+function classifyFile(policy, file) {
+  if (exactRuleMatches(policy.l2ExactPaths, file)) {
+    return { classification: 'L2', rule: file, type: 'EXACT' };
+  }
+  const l2Prefix = prefixRuleMatches(policy.l2Prefixes, file);
+  if (l2Prefix) return { classification: 'L2', rule: l2Prefix, type: 'PREFIX' };
+
+  if (exactRuleMatches(policy.documentationExactPaths, file)) {
+    return { classification: 'DOCUMENTATION', rule: file, type: 'EXACT' };
+  }
+  const documentationPrefix = prefixRuleMatches(policy.documentationPrefixes, file);
+  if (documentationPrefix) {
+    return { classification: 'DOCUMENTATION', rule: documentationPrefix, type: 'PREFIX' };
+  }
+
+  if (exactRuleMatches(policy.l1ExactPaths, file)) {
+    return { classification: 'L1', rule: file, type: 'EXACT' };
+  }
+  const l1Prefix = prefixRuleMatches(policy.l1Prefixes, file);
+  if (l1Prefix) return { classification: 'L1', rule: l1Prefix, type: 'PREFIX' };
+
+  return { classification: 'UNKNOWN', rule: null, type: null };
 }
 
 function classifyChangedFiles(policy, changedFiles = []) {
@@ -179,15 +214,21 @@ function classifyChangedFiles(policy, changedFiles = []) {
     });
   }
 
-  const l2Reasons = [];
-  for (const file of files) {
-    if (policy.l2ExactPaths.includes(file)) {
-      l2Reasons.push({ file, rule: file, type: 'EXACT' });
-      continue;
-    }
-    const matchedPrefix = policy.l2Prefixes.find(rule => ruleMatchesPath(rule, file));
-    if (matchedPrefix) l2Reasons.push({ file, rule: matchedPrefix, type: 'PREFIX' });
+  const classified = files.map(file => ({ file, ...classifyFile(policy, file) }));
+  const unknownPaths = classified
+    .filter(item => item.classification === 'UNKNOWN')
+    .map(item => item.file);
+  if (unknownPaths.length) {
+    return fail('CI_UNKNOWN_PATH', {
+      unknownPaths,
+      changedFiles: files,
+      promotionRequired: false
+    });
   }
+
+  const l2Reasons = classified
+    .filter(item => item.classification === 'L2')
+    .map(item => ({ file: item.file, rule: item.rule, type: item.type }));
   if (l2Reasons.length) {
     return verdict({
       pass: true,
@@ -199,9 +240,7 @@ function classifyChangedFiles(policy, changedFiles = []) {
     });
   }
 
-  const documentationOnly = files.every(file =>
-    policy.documentationPrefixes.some(rule => documentationRuleMatches(rule, file))
-  );
+  const documentationOnly = classified.every(item => item.classification === 'DOCUMENTATION');
   return verdict({
     pass: true,
     reasonCode: null,
