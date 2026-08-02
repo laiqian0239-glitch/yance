@@ -163,7 +163,10 @@ class AiGateway {
       reservedHighPrioritySlots: concurrency > 1 ? Math.max(1, Number(process.env.YANCE_AI_INTERACTIVE_RESERVED_SLOTS || 1)) : 0,
       highPriorityThreshold: 70
     });
-    this.loadPersistedCircuits();
+    // Persistent routing state is hydrated by the production lifecycle only
+    // after the broker-owned authority graph is ready. Constructors remain
+    // pure and never touch the primary database.
+    this.persistedCircuitsHydrated = false;
   }
 
   providerKeyForModel(model = {}) {
@@ -209,15 +212,33 @@ class AiGateway {
     return handle.requestTermination(context.error || context.reason || 'queue-termination');
   }
 
-  loadPersistedCircuits() {
+  hydratePersistedCircuits() {
+    if (this.persistedCircuitsHydrated) return this.persistedCircuitSnapshot();
+    const state = this.registry.read();
     const now = this.clock.now();
-    for (const model of this.registry.read().models || []) {
+    this.failures.clear();
+    this.cooldowns.clear();
+    for (const model of state.models || []) {
       const openedUntil = Date.parse(String(model.circuitOpenedUntil || ''));
       if (!Number.isFinite(openedUntil) || openedUntil <= now) continue;
       const openedAt = Date.parse(String(model.circuitOpenedAt || '')) || now;
       this.failures.set(model.id, { count: Math.max(3, Number(model.consecutiveFailureCount || 3)), openedAt });
       this.cooldowns.set(model.id, openedUntil);
     }
+    this.persistedCircuitsHydrated = true;
+    return this.persistedCircuitSnapshot();
+  }
+
+  prepare() {
+    return this.hydratePersistedCircuits();
+  }
+
+  persistedCircuitSnapshot() {
+    return Object.freeze({
+      hydrated: this.persistedCircuitsHydrated === true,
+      failureCount: this.failures.size,
+      cooldownCount: this.cooldowns.size
+    });
   }
 
   _pruneJobs(limit = this.jobRetentionLimit) {

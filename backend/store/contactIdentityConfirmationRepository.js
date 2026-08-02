@@ -4,7 +4,7 @@
  * AC-002 仓储（集成层）—— 把联系人身份确认接到 R32 权威 contacts 表。
  *
  * 设计原则（与 P0-A/P0-B 一致）: 稳定契约 + 依赖注入缝 + 增量 schema。
- *  - 通过依赖注入的 node:sqlite DatabaseSync（生产来自 getR32Store().db）。
+ *  - 通过依赖注入接收 broker-owned primary database capability；仓储本身不获取主存储。
  *  - schema 采用 ADD COLUMN IF NOT EXISTS 增量扩展，幂等、对现有数据非破坏。
  *  - 乐观并发: updateContactIdentity 基于 identity_version 做 CAS；
  *    版本不符抛 STORE_VERSION_CONFLICT，权威身份保持原状（原子回滚）。

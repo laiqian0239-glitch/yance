@@ -18,6 +18,24 @@ function clean(value) { return String(value == null ? '' : value).trim(); }
 function same(left, right) { return JSON.stringify(left ?? null) === JSON.stringify(right ?? null); }
 function sameProjection(left, right) { return same(projectMessage(left || {}), projectMessage(right || {})); }
 function bounded(value, fallback, min, max) { const n = Number(value); return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback; }
+function ledgerSequenceOf(event = {}) {
+  const ledgerSequence = Number(event.ledgerSequence || event.ledger_sequence || 0);
+  if (!Number.isSafeInteger(ledgerSequence) || ledgerSequence < 1) {
+    throw Object.assign(new Error('Domain projection requires a positive canonical ledgerSequence'), { code: 'CANONICAL_LEDGER_SEQUENCE_REQUIRED' });
+  }
+  return ledgerSequence;
+}
+function projectionEvent(event = {}) {
+  return Object.freeze({
+    ...event,
+    event_id: clean(event.eventId || event.event_id),
+    event_type: clean(event.eventType || event.event_type),
+    platform: clean(event.platform),
+    source_account_id: clean(event.sourceAccountId || event.source_account_id),
+    replay_state: clean(event.replayState || event.replay_state) || 'available',
+    payload: event.payload || {}
+  });
+}
 function projectorFor(event = {}) {
   const type = clean(event.event_type || event.eventType);
   if (type === 'message.received') return { name: PROJECTOR_NAME, version: PROJECTOR_VERSION, kind: 'message' };
@@ -47,7 +65,7 @@ class DomainEventProjectionAuthority {
     for (const timer of previous) clearTimeout(timer);
     const timers = [150, 1200, 5000].map((delay, index) => setTimeout(() => {
       try {
-        const event = this.repository.getDomainEvent(id); if (!event) return;
+        const event = this.eventLog.readEvent(id); if (!event) return;
         const result = { applied: 0, mismatch: 0, missing: 0, skipped: 0, failures: [] };
         this.auditEvent(event, result);
         if (result.applied > 0 || result.skipped > 0 || index === 2) {
@@ -74,57 +92,63 @@ class DomainEventProjectionAuthority {
   }
 
   auditEvent(event, result) {
-    const projector = projectorFor(event);
+    const ledgerSequence = ledgerSequenceOf(event);
+    const candidate = projectionEvent(event);
+    const eventId = candidate.event_id;
+    const projector = projectorFor(candidate);
     if (!projector) {
       result.skipped += 1;
-      this.repository.upsertProjectionReceipt({ projectorName: OPERATIONAL_PROJECTOR_NAME, projectorVersion: OPERATIONAL_PROJECTOR_VERSION, eventId: event.event_id, projectionStatus: 'skipped', projectionHash: '', targetRefs: [], failureCode: 'DOMAIN_EVENT_PROJECTOR_UNSUPPORTED', failureReason: `eventType=${clean(event.event_type)}`, attempt: 1, projectedAt: new Date().toISOString() });
+      this.eventLog.recordSkippedProjection({
+        eventId, ledgerSequence, projectorName: OPERATIONAL_PROJECTOR_NAME, projectorVersion: OPERATIONAL_PROJECTOR_VERSION,
+        failureCode: 'DOMAIN_EVENT_PROJECTOR_UNSUPPORTED', failureReason: `eventType=${candidate.event_type}`
+      });
       return;
     }
-    if (clean(event.replay_state) === 'expired') { result.skipped += 1; return; }
+    if (candidate.replay_state === 'expired') { result.skipped += 1; return; }
     if (projector.kind === 'message') {
-      const projection = projectDomainEvent({ ...event, payload: event.payload || {} });
+      const projection = projectDomainEvent(candidate);
       const messageId = clean(projection.id);
       const saved = messageId ? this.messageStore.getMessageByDedupeKey(messageId) : null;
       if (!saved) {
-        result.missing += 1; result.failures.push({ eventId: event.event_id, messageId, code: 'DOMAIN_EVENT_TARGET_MESSAGE_MISSING' });
-        this.eventLog.recordProjectionFailure({ eventId: event.event_id, projectorName: projector.name, projectorVersion: projector.version, failureCode: 'DOMAIN_EVENT_TARGET_MESSAGE_MISSING', failureReason: `messageId=${messageId || 'unknown'}`, targetRefs: messageId ? [{ table: 'r32_messages', id: messageId }] : [] });
+        result.missing += 1; result.failures.push({ eventId, ledgerSequence, messageId, code: 'DOMAIN_EVENT_TARGET_MESSAGE_MISSING' });
+        this.eventLog.recordProjectionFailure({ eventId, ledgerSequence, projectorName: projector.name, projectorVersion: projector.version, failureCode: 'DOMAIN_EVENT_TARGET_MESSAGE_MISSING', failureReason: `messageId=${messageId || 'unknown'}`, targetRefs: messageId ? [{ table: 'r32_messages', id: messageId }] : [] });
         return;
       }
       const actual = projectMessage(saved);
       if (!sameProjection(projection, actual)) {
-        result.mismatch += 1; result.failures.push({ eventId: event.event_id, messageId, code: 'SHADOW_PROJECTION_MISMATCH' });
-        this.eventLog.recordShadowProjection({ eventId: event.event_id, projectorName: projector.name, projectorVersion: projector.version, expectedProjection: projection, actualProjection: actual, targetRefs: [{ table: 'r32_messages', id: messageId }] });
+        result.mismatch += 1; result.failures.push({ eventId, ledgerSequence, messageId, code: 'SHADOW_PROJECTION_MISMATCH' });
+        this.eventLog.recordShadowProjection({ eventId, ledgerSequence, projectorName: projector.name, projectorVersion: projector.version, expectedProjection: projection, actualProjection: actual, targetRefs: [{ table: 'r32_messages', id: messageId }] });
         return;
       }
-      this.eventLog.recordAppliedProjection({ eventId: event.event_id, projectorName: projector.name, projectorVersion: projector.version, projection: actual, targetRefs: [{ table: 'r32_messages', id: messageId }] });
+      this.eventLog.recordAppliedProjection({ eventId, ledgerSequence, projectorName: projector.name, projectorVersion: projector.version, projection: actual, targetRefs: [{ table: 'r32_messages', id: messageId }] });
       result.applied += 1; return;
     }
-    const expected = operationalProjector.projection({ ...event, payload: event.payload || {} });
-    const actual = operationalProjector.actualFor({ ...event, payload: event.payload || {} }, this.repository.store());
+    const expected = operationalProjector.projection(candidate);
+    const actual = operationalProjector.actualFor(candidate, this.repository.store());
     if (actual == null) {
-      result.missing += 1; result.failures.push({ eventId: event.event_id, code: 'DOMAIN_OPERATIONAL_TARGET_MISSING' });
-      this.eventLog.recordProjectionFailure({ eventId: event.event_id, projectorName: projector.name, projectorVersion: projector.version, failureCode: 'DOMAIN_OPERATIONAL_TARGET_MISSING', failureReason: `eventType=${clean(event.event_type)}`, targetRefs: [] });
+      result.missing += 1; result.failures.push({ eventId, ledgerSequence, code: 'DOMAIN_OPERATIONAL_TARGET_MISSING' });
+      this.eventLog.recordProjectionFailure({ eventId, ledgerSequence, projectorName: projector.name, projectorVersion: projector.version, failureCode: 'DOMAIN_OPERATIONAL_TARGET_MISSING', failureReason: `eventType=${candidate.event_type}`, targetRefs: [] });
       return;
     }
     if (!operationalProjector.isVerified(actual)) {
-      result.mismatch += 1; result.failures.push({ eventId: event.event_id, code: 'DOMAIN_OPERATIONAL_PROJECTION_MISMATCH' });
-      this.eventLog.recordShadowProjection({ eventId: event.event_id, projectorName: projector.name, projectorVersion: projector.version, expectedProjection: expected, actualProjection: actual, targetRefs: [] });
+      result.mismatch += 1; result.failures.push({ eventId, ledgerSequence, code: 'DOMAIN_OPERATIONAL_PROJECTION_MISMATCH' });
+      this.eventLog.recordShadowProjection({ eventId, ledgerSequence, projectorName: projector.name, projectorVersion: projector.version, expectedProjection: expected, actualProjection: actual, targetRefs: [] });
       return;
     }
-    this.eventLog.recordAppliedProjection({ eventId: event.event_id, projectorName: projector.name, projectorVersion: projector.version, projection: actual, targetRefs: [] });
+    this.eventLog.recordAppliedProjection({ eventId, ledgerSequence, projectorName: projector.name, projectorVersion: projector.version, projection: actual, targetRefs: [] });
     result.applied += 1;
   }
 
   auditExisting(input = {}) {
     const pageSize = bounded(input.pageSize, 1000, 1, 10000);
     const eventType = clean(input.eventType);
-    const total = this.repository.countDomainEvents(eventType ? { eventType } : {});
+    const total = this.eventLog.countEvents(eventType ? { eventType } : {});
     const maximum = input.maximum == null ? total : bounded(input.maximum, total, 1, 10000000);
     const result = { authority: AUTHORITY, projectorName: 'all-domain-projectors', projectorVersion: 'round13', eventType: eventType || 'all', total, maximum, pageSize, scanned: 0, applied: 0, mismatch: 0, missing: 0, skipped: 0, failures: [], truncated: maximum < total };
     let offset = 0;
     while (offset < maximum) {
       const limit = Math.min(pageSize, maximum - offset);
-      const events = this.repository.listDomainEvents({ ...(eventType ? { eventType } : {}), limit, offset });
+      const events = this.eventLog.listEvents({ ...(eventType ? { eventType } : {}), limit, offset });
       if (!events.length) break;
       for (const event of events) { result.scanned += 1; this.auditEvent(event, result); }
       offset += events.length; if (events.length < limit) break;
@@ -147,10 +171,12 @@ class DomainEventProjectionAuthority {
     const eventId = clean(input.eventId); const actor = clean(input.actor); const reason = clean(input.reason);
     if (!eventId) throw Object.assign(new Error('必须指定待修复的领域事件。'), { code: 'DOMAIN_EVENT_ID_REQUIRED', status: 400 });
     if (!actor || !reason) throw Object.assign(new Error('投影修复必须记录操作者和原因。'), { code: 'DOMAIN_EVENT_REPAIR_AUDIT_REQUIRED', status: 409 });
-    const event = this.repository.getDomainEvent(eventId); if (!event) throw Object.assign(new Error('待修复的领域事件不存在。'), { code: 'DOMAIN_EVENT_NOT_FOUND', status: 404 });
+    const event = this.eventLog.readEvent(eventId); if (!event) throw Object.assign(new Error('待修复的领域事件不存在。'), { code: 'DOMAIN_EVENT_NOT_FOUND', status: 404 });
+    const candidate = projectionEvent(event);
+    const ledgerSequence = ledgerSequenceOf(event);
     const projector = projectorFor(event); if (!projector) throw Object.assign(new Error('当前事件没有可用投影器。'), { code: 'DOMAIN_EVENT_PROJECTOR_UNSUPPORTED', status: 409 });
     if (projector.kind === 'message') {
-      const projection = projectDomainEvent({ ...event, payload: event.payload || {} });
+      const projection = projectDomainEvent(candidate);
       if (!clean(projection.id) || !clean(projection.platform) || !clean(projection.accountId) || !clean(projection.conversationId)) throw Object.assign(new Error('领域事件缺少可恢复消息所需的稳定字段。'), { code: 'DOMAIN_EVENT_PROJECTION_INCOMPLETE', status: 409, eventId });
       const applied = await this.messageStore.upsert({
         ...projection,
@@ -164,12 +190,12 @@ class DomainEventProjectionAuthority {
         });
       }
     } else {
-      const repaired = await operationalProjector.repair({ ...event, payload: event.payload || {} }, this.repository.store());
+      const repaired = await operationalProjector.repair(candidate, this.repository.store());
       if (!repaired) throw Object.assign(new Error('该运营事件只能审计，不能自动重放。'), { code: 'DOMAIN_EVENT_REPAIR_NOT_SUPPORTED', status: 409, eventId });
     }
     const verify = { applied: 0, mismatch: 0, missing: 0, skipped: 0, failures: [] }; this.auditEvent(event, verify);
     if (verify.mismatch || verify.missing) throw Object.assign(new Error('修复写入后投影仍不一致。'), { code: 'DOMAIN_EVENT_REPAIR_VERIFICATION_FAILED', status: 409, verify });
-    const result = { authority: AUTHORITY, repaired: true, actor, reason, eventId, eventType: clean(event.event_type), convergence: this.convergence() };
+    const result = { authority: AUTHORITY, repaired: true, actor, reason, eventId, ledgerSequence, eventType: candidate.event_type, convergence: this.convergence() };
     this.eventBus.publish('domain-event:projection-repaired', result); return result;
   }
 

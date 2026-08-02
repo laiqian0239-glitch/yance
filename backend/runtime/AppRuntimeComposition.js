@@ -16,12 +16,15 @@ const updatePreflight = require('../services/updatePreflightService');
 const workspaceData = require('../services/workspaceDataService');
 const modelRegistry = require('../services/modelRegistry');
 const aiTaskRuntimeRegistry = require('../services/aiTaskRuntimeRegistry');
+const aiGateway = require('../services/aiGateway');
+const { configureWorkspaceIdentityCommandFacade } = require('../services/workspaceIdentityCommandFacade');
 const backupService = require('../services/backupService');
 const diagnosticsService = require('../services/diagnosticsService');
 const productionDiagnostics = require('../services/productionDiagnosticsService');
 const safeModeService = require('../services/safeModeService');
 const systemPolicy = require('../services/systemPolicy');
 const migrationService = require('../services/migrationService');
+const { createMigrationAuthority, configureMigrationAuthority } = require('../services/migrationAuthority');
 const syncCheckpointService = require('../services/syncCheckpointService');
 const backgroundJobAuthority = require('../services/backgroundJobAuthority');
 const cacheGcService = require('../services/cacheGcService');
@@ -338,13 +341,18 @@ function createAppRuntimeComposition(runtime) {
     throw gatewayError('APP_RUNTIME_CANONICAL_AUTHORITY_STORE_REQUIRED', 'Production composition requires the current broker-owned authority store', 503);
   }
 
+  const workspaceIdentityCommandFacade = configureWorkspaceIdentityCommandFacade({ db: authorityStore.db });
+  const migrationAuthority = configureMigrationAuthority(createMigrationAuthority({ store: authorityStore, authorityWriteHostCapability }));
+
   const authorityTransactionCoordinator = new AuthorityTransactionCoordinator({ store: authorityStore, eventBus });
   lockAuthorityBinding(authorityTransactionCoordinator, 'store', authorityStore);
   lockAuthorityBinding(authorityTransactionCoordinator, 'db', authorityStore.db);
 
+  const coordinatorCapability = authorityTransactionCoordinator.repositoryCapability();
   const platformCoreStoreProvider = () => authorityStore;
-  const platformCoreRepository = createPlatformCoreRepository({ storeProvider: platformCoreStoreProvider });
+  const platformCoreRepository = createPlatformCoreRepository({ storeProvider: platformCoreStoreProvider, coordinatorCapability });
   lockAuthorityBinding(platformCoreRepository, 'storeProvider', platformCoreStoreProvider);
+  lockAuthorityBinding(platformCoreRepository, 'coordinatorCapability', coordinatorCapability);
 
   const canonicalEventLedgerAuthority = new CanonicalEventLedgerAuthority({ coordinator: authorityTransactionCoordinator, store: authorityStore, compatibilityRepository: platformCoreRepository });
   lockAuthorityBinding(canonicalEventLedgerAuthority, 'coordinator', authorityTransactionCoordinator);
@@ -378,7 +386,7 @@ function createAppRuntimeComposition(runtime) {
   });
   securityGuard.setPolicyProviders({ safeModeProvider: () => runtime.operatingMode === 'safeMode', lifecycleStateProvider: () => runtime.state, productionDiagnostics });
   return Object.freeze({
-    authorities: Object.freeze({ authorityWriteHostCapability, authorityTransactionCoordinator, canonicalEventLedgerAuthority, identityAuthority, platformCoreRepository }),
+    authorities: Object.freeze({ authorityWriteHostCapability, authorityTransactionCoordinator, canonicalEventLedgerAuthority, identityAuthority, platformCoreRepository, workspaceIdentityCommandFacade, migrationAuthority }),
     authorityCommandGateway,
     commandSubmitter,
     accountContext,
@@ -389,6 +397,7 @@ function createAppRuntimeComposition(runtime) {
     runtimeSafetySupervisor,
     participants: Object.freeze([
       { name: 'security-guard', service: securityGuard, critical: true },
+      { name: 'ai-gateway', service: aiGateway, critical: true },
       { name: 'recovery-manager', service: recoveryManager, critical: true },
       { name: 'account-lifecycle-saga', service: accountLifecycleSaga, critical: true },
       { name: 'account-context', service: accountContext, critical: true },

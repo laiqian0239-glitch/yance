@@ -22,7 +22,8 @@ test('A8 primary store singleton has no process-local constructor fallback', () 
   const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-a8-no-broker-'));
   try {
     const script = `
-      process.env.YANCE_PROCESS_ROLE = 'backend-primary';
+      process.env.YANCE_PROCESS_ROLE = 'test-fixture';
+      process.env.NODE_TEST_CONTEXT = 'a8-primary-store-boundary';
       process.env.YANCE_DATA_DIR = ${JSON.stringify(dataRoot)};
       const { getR32Store } = require('./backend/lib/r32StoreSingleton');
       try {
@@ -38,7 +39,7 @@ test('A8 primary store singleton has no process-local constructor fallback', () 
     const result = spawnSync(process.execPath, ['-e', script], {
       cwd: repoRoot,
       encoding: 'utf8',
-      env: { ...process.env, YANCE_DATA_DIR: dataRoot, YANCE_PROCESS_ROLE: 'backend-primary' }
+      env: { ...process.env, NODE_TEST_CONTEXT: 'a8-primary-store-boundary', YANCE_DATA_DIR: dataRoot, YANCE_PROCESS_ROLE: 'test-fixture' }
     });
     assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
     assert.equal(fs.existsSync(path.join(dataRoot, 'store', 'yance-r32.db')), false);

@@ -5,7 +5,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { R32SqliteStore } = require('../lib/r32SqliteStore');
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const { SqliteConnectionBroker } = require('../lib/sqliteConnectionBroker');
+const { AuthorityTransactionCoordinator } = require('../services/authorityTransactionCoordinator');
+const canonicalEventLedger = require('../services/canonicalEventLedgerAuthority');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
 const { IdentityLinkAuthority } = require('../services/identityLinkAuthority');
 const { DomainEventLogService } = require('../services/domainEventLogService');
@@ -31,22 +34,51 @@ function validQuickReplyReceipt() {
 
 function withAuthorities(callback) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-r12-authority-'));
-  const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
-  const repository = createPlatformCoreRepository({ storeProvider: () => store });
+  const dbPath = path.join(root, 'database', 'yance.db');
+  const previousReset = process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
+  process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
+  canonicalEventLedger.resetSingletonForTests();
+  const host = acquireAuthorityWriteHost({ dbPath, instanceId: 'round12-platform-core-test-host' });
+  const broker = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: host.capability });
+  const store = broker.open();
+  const coordinator = new AuthorityTransactionCoordinator({
+    store,
+    eventBus: { publish() {} }
+  });
+  const coordinatorCapability = coordinator.repositoryCapability();
+  const repository = createPlatformCoreRepository({
+    storeProvider: () => store,
+    coordinatorCapability
+  });
+  const ledger = new canonicalEventLedger.CanonicalEventLedgerAuthority({
+    coordinator,
+    store,
+    compatibilityRepository: repository
+  });
+  canonicalEventLedger.configureSingleton(ledger);
   const accountStateProvider = () => [
     { id: 'wa-1', platform: 'whatsapp', state: 'connected', canSend: true, canReceive: true, credentialReady: true, capabilityAvailability: {} },
     { id: 'tg-1', platform: 'telegram', state: 'connected', canSend: true, canReceive: true, credentialReady: true, capabilityAvailability: {} }
   ];
   try {
     return callback({
+      host,
+      broker,
       store,
+      coordinator,
+      coordinatorCapability,
       repository,
+      ledger,
       identity: new IdentityLinkAuthority({ repository }),
-      events: new DomainEventLogService({ repository }),
+      events: new DomainEventLogService({ canonicalAuthority: ledger }),
       sendPolicy: new SendPolicyAuthority({ repository, accountStateProvider })
     });
   } finally {
-    try { store.close(); } catch (_) {}
+    try { canonicalEventLedger.resetSingletonForTests(); } catch (_) {}
+    try { broker.checkpointAndClose(); } catch (_) {}
+    try { host.release(); } catch (_) {}
+    if (previousReset == null) delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
+    else process.env.YANCE_TEST_ONLY_RUNTIME_RESET = previousReset;
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 }
@@ -93,10 +125,11 @@ test('domain events are idempotent and redact credentials, QR and binary payload
     assert.equal(first.event.payload.accessToken, '[REDACTED]');
     assert.equal(first.event.payload.nested.password, '[REDACTED]');
     assert.equal(first.event.payload.mediaBuffer.redacted, true);
-    const raw = store.db.prepare('SELECT payload_json FROM domain_events WHERE event_id=?').get(first.event.eventId).payload_json;
+    const raw = store.db.prepare('SELECT canonical_json FROM authority_payload_store WHERE payload_id=?').get(first.event.payloadId).canonical_json;
     assert.equal(raw.includes('secret'), false);
     assert.equal(raw.includes('"pw"'), false);
-    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM domain_events').get().count, 1);
+    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM canonical_event_headers').get().count, 1);
+    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM domain_events').get().count, 0);
   });
 });
 

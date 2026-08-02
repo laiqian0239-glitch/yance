@@ -113,14 +113,12 @@ test('scanner rejects an unregistered writable primary-store acquisition', () =>
   ]);
 });
 
-test('WP-A source closure report remains fail-closed and valid until all registered and unregistered paths close', () => {
+test('WP-A source closure report is globally closed without weakening discovery', () => {
   const report = scanner.scanRegisteredSources({ wp: 'A' });
   assert.ok(report.scannedSourceFiles > 0, 'source closure must scan real backend source files');
-  assert.ok(report.violationCount > 0, 'WP-A is not yet globally closed');
   assert.equal(report.counts.REGISTRY_INVALID || 0, 0, 'governance registry/configuration must remain valid');
-  assert.equal(report.ok, false, 'source scanner must remain non-passing until A8');
-  assert.ok(
-    (report.counts.CANONICAL_LEDGER_COORDINATOR_MISSING || 0) > 0,
-    'A3/A4 closure must still be visible'
-  );
+  assert.deepEqual(report.violations, []);
+  assert.equal(report.violationCount, 0);
+  assert.deepEqual(report.counts, {});
+  assert.equal(report.ok, true);
 });

@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { createCompactSnapshotTarget } = require('./migrationSnapshotManifest');
+const { resolveMigrationSnapshotRoot } = require('./migrationSnapshotRoot');
 
 const MIGRATION_ID = '010_round12_platform_core_unification';
 const TARGET_SCHEMA_VERSION = 10;
@@ -22,7 +23,7 @@ function createSnapshot(db) {
   try { dbPath = db.prepare("PRAGMA database_list").all().find(row => row.name === 'main')?.file || ''; } catch (_) {}
   if (!dbPath || dbPath === ':memory:' || !fs.existsSync(dbPath)) return { created: false, reason: 'non-file-database' };
   try { db.exec('PRAGMA wal_checkpoint(FULL)'); } catch (_) {}
-  const root = path.join(path.dirname(path.dirname(dbPath)), 'migration-backups');
+  const root = resolveMigrationSnapshotRoot(dbPath);
   fs.mkdirSync(root, { recursive: true });
   // Bind the snapshot to a unique process generation. Different isolated
   // databases may legitimately migrate in parallel while sharing the same
@@ -270,6 +271,7 @@ function applyRound12PlatformCoreUnification(db) {
         projector_name TEXT NOT NULL,
         projector_version TEXT NOT NULL,
         event_id TEXT NOT NULL,
+        ledger_sequence INTEGER NOT NULL DEFAULT 0,
         projection_status TEXT NOT NULL,
         projection_hash TEXT NOT NULL DEFAULT '',
         target_refs_json TEXT NOT NULL DEFAULT '[]',
@@ -278,7 +280,7 @@ function applyRound12PlatformCoreUnification(db) {
         attempt INTEGER NOT NULL DEFAULT 1,
         projected_at TEXT NOT NULL,
         PRIMARY KEY(projector_name, projector_version, event_id),
-        FOREIGN KEY(event_id) REFERENCES domain_events(event_id) ON DELETE CASCADE,
+        CHECK(ledger_sequence >= 0),
         CHECK(projection_status IN ('shadow-match','shadow-mismatch','applied','failed','skipped'))
       ) STRICT;
       CREATE INDEX IF NOT EXISTS idx_projection_receipts_status ON domain_projection_receipts(projection_status, projected_at DESC);

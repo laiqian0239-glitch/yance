@@ -178,26 +178,10 @@ test('duplicate aggregate version and committed header or payload mutation fail 
   }
 });
 
-test('direct legacy repository append is persistently rejected once the canonical ledger authority is active', () => {
+test('legacy repository exposes no direct event append surface after canonical closure', () => {
   const harness = createHarness('yance-acv2-a4-direct-');
   try {
-    assert.throws(
-      () => harness.repository.insertDomainEvent({
-        eventId: 'legacy:event:1',
-        schemaVersion: 1,
-        platform: 'telegram',
-        sourceAccountId: 'tg-1',
-        externalEventId: 'external-1',
-        eventType: 'message.received',
-        idempotencyKey: 'legacy-idempotency-1',
-        occurredAt: '2026-08-02T09:00:00.000Z',
-        receivedAt: '2026-08-02T09:00:00.000Z',
-        payload: { text: 'bypass' },
-        payloadSha256: '1'.repeat(64),
-        retentionUntil: '2026-09-01T09:00:00.000Z'
-      }),
-      error => /CANONICAL_EVENT_LEDGER_APPEND_REQUIRED/.test(String(error?.message || ''))
-    );
+    assert.equal(typeof harness.repository.insertDomainEvent, 'undefined');
     assert.equal(count(harness.store.db, 'domain_events'), 0);
     assert.equal(count(harness.store.db, 'canonical_event_headers'), 0);
   } finally {

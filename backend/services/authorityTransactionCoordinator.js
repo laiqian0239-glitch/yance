@@ -12,6 +12,7 @@ const EVENT_FIELDS = new Set([
 ]);
 const PROJECTOR_FIELDS = new Set(['projectorId', 'projectorVersion', 'apply']);
 const CLASSIFICATION_VALUES = new Set(Object.values(CLASSIFICATIONS));
+const COORDINATOR_REPOSITORY_CAPABILITIES = new WeakMap();
 
 function coordinatorError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
@@ -276,6 +277,17 @@ function createProjectorDatabaseCapability(db) {
   });
 }
 
+function assertCoordinatorRepositoryCapability(capability, store) {
+  const state = COORDINATOR_REPOSITORY_CAPABILITIES.get(capability);
+  if (!state || state.store !== store || state.coordinator.store !== store) {
+    throw coordinatorError(
+      'AUTHORITY_COORDINATOR_CAPABILITY_INVALID',
+      'Platform repository mutation requires the runtime-issued coordinatorCapability'
+    );
+  }
+  return state.coordinator.tokenSnapshot();
+}
+
 class AuthorityTransactionCoordinator {
   constructor(options = {}) {
     if (!options.store || !options.store.db || typeof options.store.transaction !== 'function') {
@@ -288,6 +300,22 @@ class AuthorityTransactionCoordinator {
     this.onTransactionTelemetry = typeof options.onTransactionTelemetry === 'function'
       ? options.onTransactionTelemetry
       : (() => {});
+    const coordinatorCapability = Object.freeze({
+      authority: 'AuthorityTransactionCoordinator',
+      purpose: 'platform-core-ledger-projection'
+    });
+    COORDINATOR_REPOSITORY_CAPABILITIES.set(coordinatorCapability, Object.freeze({ coordinator: this, store: this.store }));
+    Object.defineProperty(this, 'coordinatorCapability', {
+      value: coordinatorCapability,
+      enumerable: true,
+      writable: false,
+      configurable: false
+    });
+  }
+
+  repositoryCapability() {
+    this.tokenSnapshot();
+    return this.coordinatorCapability;
   }
 
   tokenSnapshot() {
@@ -628,5 +656,6 @@ class AuthorityTransactionCoordinator {
 module.exports = {
   AuthorityTransactionCoordinator,
   createProjectorDatabaseCapability,
-  coordinatorError
+  coordinatorError,
+  assertCoordinatorRepositoryCapability
 };

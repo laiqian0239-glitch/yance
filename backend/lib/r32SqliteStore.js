@@ -60,6 +60,7 @@ const {
   applyArchitectureClosureV2WpA,
   TARGET_SCHEMA_VERSION: ACV2_WP_A_SCHEMA_VERSION
 } = require('../migrations/architectureClosureV2WpA');
+const { ensureCanonicalProjectionReceiptSchema } = require('../migrations/projectionReceiptSchemaAuthority');
 const {
   acquireAuthorityWriteHost,
   assertCurrentAuthorityWriteHostToken,
@@ -1144,6 +1145,7 @@ class R32SqliteStore {
     applyBatch41Fix6MArchitectureReferenceClosure(this.db);
     applyBatch42Fix6OScopedSafetyAndOmnichannelRuntime(this.db);
     applyArchitectureClosureV2WpA(this.db);
+    ensureCanonicalProjectionReceiptSchema(this.db);
   }
 
   transaction(callback) {

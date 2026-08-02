@@ -384,6 +384,33 @@ class CanonicalEventLedgerAuthority {
     return publicEvent(row, payload);
   }
 
+  countEvents(input = {}) {
+    const clauses = [];
+    const params = [];
+    if (input.eventType) { clauses.push('event_type=?'); params.push(clean(input.eventType)); }
+    if (input.platform) { clauses.push('platform=?'); params.push(clean(input.platform).toLowerCase()); }
+    if (input.sourceAccountId) { clauses.push('source_account_id=?'); params.push(clean(input.sourceAccountId)); }
+    if (input.afterLedgerSequence != null) { clauses.push('ledger_sequence>?'); params.push(Number(input.afterLedgerSequence || 0)); }
+    const row = this.db.prepare(`SELECT COUNT(*) AS n FROM canonical_event_headers${clauses.length ? ` WHERE ${clauses.join(' AND ')}` : ''}`).get(...params);
+    return Number(row?.n || 0);
+  }
+
+  listEvents(input = {}) {
+    const clauses = [];
+    const params = [];
+    if (input.eventType) { clauses.push('event_type=?'); params.push(clean(input.eventType)); }
+    if (input.platform) { clauses.push('platform=?'); params.push(clean(input.platform).toLowerCase()); }
+    if (input.sourceAccountId) { clauses.push('source_account_id=?'); params.push(clean(input.sourceAccountId)); }
+    if (input.afterLedgerSequence != null) { clauses.push('ledger_sequence>?'); params.push(Number(input.afterLedgerSequence || 0)); }
+    const limit = Math.max(1, Math.min(Number(input.limit || 1000), 100000));
+    const offset = Math.max(0, Number(input.offset || 0));
+    const rows = this.db.prepare(`
+      SELECT event_id FROM canonical_event_headers${clauses.length ? ` WHERE ${clauses.join(' AND ')}` : ''}
+      ORDER BY ledger_sequence ASC LIMIT ? OFFSET ?
+    `).all(...params, limit, offset);
+    return rows.map(row => this.readEvent(row.event_id));
+  }
+
   append(input = {}) {
     const source = assertAppendInputShape(input);
     const occurredAt = timestamp(source.occurredAt, new Date(Number(this.clock())).toISOString(), 'occurredAt');
@@ -582,7 +609,8 @@ class CanonicalEventLedgerAuthority {
 
   recordShadowProjection(input = {}) {
     const eventId = required(input.eventId, 'eventId', 1024);
-    if (!this.readEvent(eventId)) throw authorityError('CANONICAL_EVENT_NOT_FOUND', 'Canonical event does not exist', { eventId });
+    const event = this.readEvent(eventId);
+    if (!event) throw authorityError('CANONICAL_EVENT_NOT_FOUND', 'Canonical event does not exist', { eventId });
     const repository = this.requireCompatibilityRepository();
     const expectedHash = canonicalHash(input.expectedProjection ?? null);
     const actualHash = canonicalHash(input.actualProjection ?? null);
@@ -591,6 +619,7 @@ class CanonicalEventLedgerAuthority {
       projectorName: optional(input.projectorName, 'projectorName', 256) || 'unknown-projector',
       projectorVersion: optional(input.projectorVersion, 'projectorVersion', 128) || 'v1',
       eventId,
+      ledgerSequence: event.ledgerSequence,
       projectionStatus: matches ? 'shadow-match' : 'shadow-mismatch',
       projectionHash: actualHash,
       targetRefs: input.targetRefs || [],
@@ -604,13 +633,15 @@ class CanonicalEventLedgerAuthority {
 
   recordAppliedProjection(input = {}) {
     const eventId = required(input.eventId, 'eventId', 1024);
-    if (!this.readEvent(eventId)) throw authorityError('CANONICAL_EVENT_NOT_FOUND', 'Canonical event does not exist', { eventId });
+    const event = this.readEvent(eventId);
+    if (!event) throw authorityError('CANONICAL_EVENT_NOT_FOUND', 'Canonical event does not exist', { eventId });
     const repository = this.requireCompatibilityRepository();
     const projectionHash = canonicalHash(input.projection ?? null);
     const receipt = repository.upsertProjectionReceipt({
       projectorName: optional(input.projectorName, 'projectorName', 256) || 'production-message-projector',
       projectorVersion: optional(input.projectorVersion, 'projectorVersion', 128) || 'v1',
       eventId,
+      ledgerSequence: event.ledgerSequence,
       projectionStatus: 'applied',
       projectionHash,
       targetRefs: input.targetRefs || [],
@@ -642,14 +673,37 @@ class CanonicalEventLedgerAuthority {
     return status;
   }
 
+  recordSkippedProjection(input = {}) {
+    const eventId = required(input.eventId, 'eventId', 1024);
+    const event = this.readEvent(eventId);
+    if (!event) throw authorityError('CANONICAL_EVENT_NOT_FOUND', 'Canonical event does not exist', { eventId });
+    const repository = this.requireCompatibilityRepository();
+    const receipt = repository.upsertProjectionReceipt({
+      projectorName: optional(input.projectorName, 'projectorName', 256) || 'unknown-projector',
+      projectorVersion: optional(input.projectorVersion, 'projectorVersion', 128) || 'v1',
+      eventId,
+      ledgerSequence: event.ledgerSequence,
+      projectionStatus: 'skipped',
+      projectionHash: '',
+      targetRefs: input.targetRefs || [],
+      failureCode: optional(input.failureCode, 'failureCode', 256) || 'CANONICAL_EVENT_PROJECTOR_UNSUPPORTED',
+      failureReason: optional(input.failureReason, 'failureReason', 2048),
+      attempt: Number(input.attempt || 1),
+      projectedAt: optional(input.projectedAt, 'projectedAt', 64) || new Date(Number(this.clock())).toISOString()
+    });
+    return Object.freeze({ authority: AUTHORITY, skipped: true, receipt });
+  }
+
   recordProjectionFailure(input = {}) {
     const eventId = required(input.eventId, 'eventId', 1024);
-    if (!this.readEvent(eventId)) throw authorityError('CANONICAL_EVENT_NOT_FOUND', 'Canonical event does not exist', { eventId });
+    const event = this.readEvent(eventId);
+    if (!event) throw authorityError('CANONICAL_EVENT_NOT_FOUND', 'Canonical event does not exist', { eventId });
     const repository = this.requireCompatibilityRepository();
     const receipt = repository.upsertProjectionReceipt({
       projectorName: optional(input.projectorName, 'projectorName', 256) || 'production-message-projector',
       projectorVersion: optional(input.projectorVersion, 'projectorVersion', 128) || 'v1',
       eventId,
+      ledgerSequence: event.ledgerSequence,
       projectionStatus: 'failed',
       projectionHash: '',
       targetRefs: input.targetRefs || [],
@@ -768,11 +822,14 @@ function resetSingletonForTests() {
 const singleton = Object.freeze({
   append: input => resolveSingleton().append(input),
   readEvent: eventId => resolveSingleton().readEvent(eventId),
+  countEvents: input => resolveSingleton().countEvents(input),
+  listEvents: input => resolveSingleton().listEvents(input),
   recordShadowProjection: input => resolveSingleton().recordShadowProjection(input),
   recordAppliedProjection: input => resolveSingleton().recordAppliedProjection(input),
   convergence: input => resolveSingleton().convergence(input),
   assertConverged: input => resolveSingleton().assertConverged(input),
   recordProjectionFailure: input => resolveSingleton().recordProjectionFailure(input),
+  recordSkippedProjection: input => resolveSingleton().recordSkippedProjection(input),
   replay: input => resolveSingleton().replay(input)
 });
 
