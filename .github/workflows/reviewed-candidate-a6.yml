@@ -43,9 +43,10 @@ jobs:
           fetch-tags: false
           lfs: false
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Fetch trusted reviewed-candidate refs
         shell: bash
         run: |
@@ -76,11 +77,12 @@ jobs:
           fetch-depth: 1
           fetch-tags: false
           lfs: false
+          persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
-          cache: npm
+          package-manager-cache: false
       - name: Verify Windows runtime mutex helper selection
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/windowsRuntimeMutexPowerShell.test.js
       - name: Run AuthorityWriteHost and ownership contracts
@@ -136,9 +138,10 @@ jobs:
           fetch-tags: false
           lfs: false
       - name: Set up Node.js for candidate verification
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Revalidate candidate immediately before WP0
         shell: bash
         run: |
@@ -169,9 +172,10 @@ jobs:
           git switch --force-create "${IMPLEMENTATION_BRANCH}" "${REVIEWED_HEAD_SHA}"
           test "$(git rev-parse HEAD)" = "${REVIEWED_HEAD_SHA}"
       - name: Set up reviewed Node.js runtime
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Fetch and verify trusted Electron LFS object
         shell: bash
         run: |
@@ -181,6 +185,8 @@ jobs:
           echo "${ELECTRON_LFS_OID}  ${ELECTRON_LFS_PATH}" | sha256sum --check --strict
           test "$(stat --format='%s' "${ELECTRON_LFS_PATH}")" = "${ELECTRON_LFS_SIZE}"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run WP0 required tests
         run: npm run test:wp0
       - name: Run staged-secret scanner regressions
@@ -215,9 +221,11 @@ jobs:
           fetch-depth: 1
           fetch-tags: false
           lfs: false
+          persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Run sealed export canonical path regressions
         run: node --test --test-concurrency=1 tests/runtime-delivery/repository-source-identity-authority.test.js
