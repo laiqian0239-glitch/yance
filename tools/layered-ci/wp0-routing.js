@@ -6,13 +6,32 @@ const ROUTES = Object.freeze({
 });
 
 function outcome(values = {}) {
-  return Object.freeze({ pass: false, reasonCode: 'WP0_ROUTE_INVALID', route: null, readyForPromotion: false, ...values, readyForPromotion: false });
+  return Object.freeze({
+    pass: false,
+    reasonCode: 'WP0_ROUTE_INVALID',
+    route: null,
+    ...values,
+    // Pinned after the spread so no caller can claim promotion readiness.
+    readyForPromotion: false
+  });
 }
-function fail(reasonCode, details = {}) { return outcome({ reasonCode, ...details }); }
+
+function fail(reasonCode, details = {}) {
+  return outcome({ reasonCode, ...details });
+}
 
 function normalizePath(value) {
-  const normalized = String(value || '').trim().replace(/\\/gu, '/').replace(/^\.\//u, '').replace(/\/$/u, '');
-  if (!normalized || normalized.startsWith('/') || /^[A-Za-z]:\//u.test(normalized) || /[*?[\]]/u.test(normalized)) return '';
+  const normalized = String(value || '')
+    .trim()
+    .replace(/\\/gu, '/')
+    .replace(/^\.\//u, '')
+    .replace(/\/$/u, '');
+  if (
+    !normalized
+    || normalized.startsWith('/')
+    || /^[A-Za-z]:\//u.test(normalized)
+    || /[*?[\]]/u.test(normalized)
+  ) return '';
   const segments = normalized.split('/');
   if (segments.some(segment => !segment || segment === '.' || segment === '..')) return '';
   return normalized;
@@ -32,11 +51,15 @@ function validRules(values) {
 
 function validateWp0RoutingPolicy(policy) {
   if (!policy || typeof policy !== 'object' || Array.isArray(policy)) return fail('WP0_ROUTE_POLICY_INVALID');
-  if (policy.schemaVersion !== 1 || policy.documentType !== 'YANCE_WP0_SCOPE_ROUTING_POLICY') return fail('WP0_ROUTE_POLICY_SCHEMA_INVALID');
+  if (policy.schemaVersion !== 1 || policy.documentType !== 'YANCE_WP0_SCOPE_ROUTING_POLICY') {
+    return fail('WP0_ROUTE_POLICY_SCHEMA_INVALID');
+  }
   for (const field of ['governanceExactPaths', 'governancePrefixes', 'productExactPaths', 'productPrefixes']) {
     if (!validRules(policy[field])) return fail('WP0_ROUTE_RULE_INVALID', { field });
   }
-  if (policy.mixedChangesEscalateToProduct !== true || policy.unknownPathFailsClosed !== true) return fail('WP0_ROUTE_FAIL_CLOSED_INVALID');
+  if (policy.mixedChangesEscalateToProduct !== true || policy.unknownPathFailsClosed !== true) {
+    return fail('WP0_ROUTE_FAIL_CLOSED_INVALID');
+  }
   if (policy.readyForPromotion !== false) return fail('WP0_ROUTE_PROMOTION_MUST_REMAIN_FALSE');
   return outcome({ pass: true, reasonCode: null });
 }
@@ -70,7 +93,19 @@ function classifyWp0Route(policy, changedFiles = []) {
   }
   if (unknown.length) return fail('WP0_ROUTE_UNKNOWN_PATH', { unknownPaths: unknown });
   const route = product ? ROUTES.PRODUCT : ROUTES.GOVERNANCE;
-  return outcome({ pass: true, reasonCode: null, route, changedFiles: files, governanceChangesPresent: governance, productChangesPresent: product });
+  return outcome({
+    pass: true,
+    reasonCode: null,
+    route,
+    changedFiles: files,
+    governanceChangesPresent: governance,
+    productChangesPresent: product
+  });
 }
 
-module.exports = { ROUTES, classifyWp0Route, normalizePath, validateWp0RoutingPolicy };
+module.exports = {
+  ROUTES,
+  classifyWp0Route,
+  normalizePath,
+  validateWp0RoutingPolicy
+};
