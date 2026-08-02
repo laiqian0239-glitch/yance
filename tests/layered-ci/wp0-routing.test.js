@@ -26,6 +26,7 @@ test('layered governance-only changes select GOVERNANCE_WP0', () => {
     'governance/layered-ci/risk-policy.json',
     'tools/layered-ci/governance-policy.js',
     'tests/layered-ci/governance-policy.test.js',
+    '.github/actions/resolve-diff-range/action.yml',
     '.github/workflows/reviewed-candidate-a6.yml',
     'tools/independent-review/review-contract.js',
     'docs/superpowers/specs/2026-08-02-layered-ci-reviewed-candidate-design.md'
@@ -72,6 +73,7 @@ test('Stage WP0 workflow routes governance separately and preserves one stable a
   const text = fs.readFileSync(path.join(ROOT, '.github/workflows/stage-6459-wp0-gates.yml'), 'utf8');
   assert.match(text, /wp0-route:/u);
   assert.match(text, /select-wp0-route\.js/u);
+  assert.match(text, /\.\/\.github\/actions\/resolve-diff-range/u);
   assert.match(text, /wp0-product:/u);
   assert.match(text, /wp0-governance:/u);
   assert.match(text, /wp0-gates:\n\s+name: wp0-gates/u);
