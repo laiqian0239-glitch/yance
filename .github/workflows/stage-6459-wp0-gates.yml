@@ -35,35 +35,28 @@ jobs:
           fetch-depth: 0
           fetch-tags: false
           lfs: false
+          persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
+          package-manager-cache: false
+      - name: Resolve trusted diff range
+        id: range
+        uses: ./.github/actions/resolve-diff-range
+        with:
+          event-name: ${{ github.event_name }}
+          pull-request-base-sha: ${{ github.event.pull_request.base.sha }}
+          pull-request-head-sha: ${{ github.event.pull_request.head.sha }}
+          push-base-sha: ${{ github.event.before }}
+          push-head-sha: ${{ github.sha }}
       - name: Classify protected WP0 route
         id: route
         shell: bash
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PUSH_BASE_SHA: ${{ github.event.before }}
-          PUSH_HEAD_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
-            base="${PR_BASE_SHA}"
-            head="${PR_HEAD_SHA}"
-          else
-            base="${PUSH_BASE_SHA}"
-            head="${PUSH_HEAD_SHA}"
-          fi
-          if [[ ! "${base}" =~ ^[0-9a-f]{40}$ ]] || [[ "${base}" == "0000000000000000000000000000000000000000" ]]; then
-            git fetch --no-tags --force origin main:refs/remotes/origin/main
-            base="$(git rev-parse refs/remotes/origin/main)"
-          fi
-          git cat-file -e "${base}^{commit}"
-          git cat-file -e "${head}^{commit}"
-          node tools/layered-ci/select-wp0-route.js --base "${base}" --head "${head}"
+          BASE_SHA: ${{ steps.range.outputs.base }}
+          HEAD_SHA: ${{ steps.range.outputs.head }}
+        run: node tools/layered-ci/select-wp0-route.js --base "${BASE_SHA}" --head "${HEAD_SHA}"
 
   wp0-product:
     name: wp0-product
@@ -91,9 +84,10 @@ jobs:
           git switch --force-create "${IMPLEMENTATION_BRANCH}" "${REVIEWED_HEAD_SHA}"
           test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})"
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Fetch and verify trusted Electron LFS object
         shell: bash
         run: |
@@ -103,6 +97,8 @@ jobs:
           echo "${ELECTRON_LFS_OID}  ${ELECTRON_LFS_PATH}" | sha256sum --check --strict
           test "$(stat --format='%s' "${ELECTRON_LFS_PATH}")" = "${ELECTRON_LFS_SIZE}"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run WP0 required tests
         run: npm run test:wp0
       - name: Run staged-secret scanner regressions
@@ -132,10 +128,12 @@ jobs:
           fetch-depth: 0
           fetch-tags: false
           lfs: false
+          persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Run layered governance contracts
         run: node --test --test-concurrency=1 tests/layered-ci/*.test.js
       - name: Run independent review contract
@@ -200,9 +198,11 @@ jobs:
           fetch-depth: 1
           fetch-tags: false
           lfs: false
+          persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Run sealed export canonical path regressions
         run: node --test --test-concurrency=1 tests/runtime-delivery/repository-source-identity-authority.test.js
