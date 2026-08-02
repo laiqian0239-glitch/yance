@@ -95,11 +95,16 @@ test('real broker capability and R32 store bind the same runtime, coordinator, l
         authorityWriteHostCapability: host.capability,
         authorityStore
       });
+      const coreBusinessCommand = Object.getPrototypeOf(runtime).executeBusinessCommand;
       const composition = runtime.configureProductionServices();
       const readiness = AppRuntimeFactory.assertAuthorityReady();
 
       assert.equal(runtime.authorityWriteHostCapability, host.capability);
       assert.equal(runtime.primaryAuthorityStore, authorityStore);
+      assert.equal(runtime.executeBusinessCommand, coreBusinessCommand);
+      assert.equal(Object.hasOwn(runtime, 'executeBusinessCommand'), false);
+      assert.equal(typeof composition.commandSubmitter, 'function');
+      assert.equal(Object.hasOwn(composition.recoveryManager, 'commandSubmitter'), false);
       assert.equal(composition.authorities.authorityWriteHostCapability, host.capability);
       assert.equal(composition.authorities.authorityTransactionCoordinator.store, authorityStore);
       assert.equal(composition.authorities.canonicalEventLedgerAuthority.store, authorityStore);
