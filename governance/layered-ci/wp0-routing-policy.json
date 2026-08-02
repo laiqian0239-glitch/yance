@@ -10,6 +10,7 @@
     ".github/workflows/stage-6459-wp0-gates.yml"
   ],
   "governancePrefixes": [
+    ".github/actions/resolve-diff-range/",
     "governance/layered-ci/",
     "tools/layered-ci/",
     "tests/layered-ci/",
