@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_A_A2_RED_EVIDENCE",
+  "status": "VALID_RED_RECORDED",
+  "workPackage": "WP-A",
+  "task": "A2_VERSIONED_CANONICAL_SERIALIZATION_AND_DATA_CLASSIFICATION",
+  "repository": "laiqian0239-glitch/yance",
+  "pullRequest": 5,
+  "branch": "acv2/wp-a-identity-ledger-write-host",
+  "parentGovernanceHead": "0dff57a23d0b18c06932bb5e5f55fc6d5c88dee0",
+  "redHead": "81d92f05ce061c984c5936047bced1863337e585",
+  "workflow": {
+    "name": "ACV2 WP-A Architecture Gates",
+    "runId": 30736818711,
+    "runNumber": 67,
+    "conclusion": "EXPECTED_FAILURE",
+    "ubuntuJobId": 91466991439,
+    "windowsJobId": 91466991449,
+    "ubuntuConclusion": "EXPECTED_FAILURE",
+    "windowsConclusion": "EXPECTED_FAILURE"
+  },
+  "prerequisiteRegressionResultsPerPlatform": {
+    "windowsMutexHelper": "3_OF_3_PASS",
+    "authorityWriteHostAndSchema21": "7_OF_7_PASS",
+    "realProcessOwnershipAndTakeover": "2_OF_2_PASS"
+  },
+  "a2SuitePerPlatform": {
+    "tests": 21,
+    "passed": 0,
+    "failed": 21,
+    "failureMode": "MISSING_PUBLIC_A2_IMPLEMENTATIONS",
+    "missingModules": [
+      "backend/services/canonicalSerialization.js",
+      "backend/services/dataClassificationRegistry.js",
+      "backend/services/eventTypeRegistry.js"
+    ]
+  },
+  "requiredContractsCaptured": [
+    "CANONICALIZATION_VERSION_DOMAIN_SEPARATION",
+    "DETERMINISTIC_OBJECT_TIMESTAMP_NUMBER_ARRAY_AND_SET_SERIALIZATION",
+    "NON_FINITE_UNSAFE_CYCLE_ACCESSOR_EXECUTABLE_AND_NON_PLAIN_REJECTION",
+    "EXACT_DATA_CLASSIFICATION_VOCABULARY",
+    "UNKNOWN_AND_UNCLASSIFIED_FIELDS_FAIL_CLOSED",
+    "SECRET_REFERENCE_ONLY_NO_SECRET_MATERIAL",
+    "BINARY_REFERENCE_ONLY_NO_INLINE_BYTES",
+    "EVENT_DESCRIPTOR_COMPLETE_AND_CONFLICT_SAFE",
+    "CONTIGUOUS_UPCASTER_CHAIN",
+    "NONDETERMINISTIC_UPCASTER_REJECTION",
+    "UPCASTER_INPUT_IMMUTABILITY",
+    "ASYNC_UPCASTER_REJECTION"
+  ],
+  "productionCodeChangedBeforeRed": false,
+  "temporaryBypassUsed": false,
+  "nextAuthorizedAction": "IMPLEMENT_A2_PUBLIC_MODULES_ONLY",
+  "lockedTasks": ["A3", "A4", "A5", "A6", "A7", "A8"],
+  "lockedWorkPackages": ["WP-B", "WP-C", "WP-D", "WP-E", "WP-F", "WP-G", "WP-H"]
+}
