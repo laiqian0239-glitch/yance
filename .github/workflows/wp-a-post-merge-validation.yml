@@ -1,0 +1,142 @@
+name: WP-A Main Post-Merge Validation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/wp-a-post-merge-validation.yml
+      - backend/**
+      - electron/**
+      - governance/architecture-closure-v2/**
+      - package.json
+      - package-lock.json
+      - shared/release/**
+      - tests/runtime-delivery/repository-source-identity-authority.test.js
+      - tests/wp0/**
+      - tests/wp3/stale-fencing-token-outbox-denied.test.js
+      - tests/wp4/application-matrix-temp-path.test.js
+      - tests/wp5/m5-sqlite-ownership.test.js
+      - tools/architecture-closure-v2/**
+      - tools/layered-ci/**
+      - tools/wp0/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  identity-source-closure:
+    name: wp-a-post-merge-identity-source-closure
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact main commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Verify exact integration identity and governance
+        run: |
+          node --check tools/architecture-closure-v2/verify-wp-a-post-merge.js
+          node --check tools/architecture-closure-v2/run-wp-a-post-merge-contracts.js
+          node tools/architecture-closure-v2/verify-wp-a-post-merge.js --require-origin-main
+
+      - name: Enforce zero-violation source closure
+        run: |
+          node --test --test-concurrency=1 \
+            backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js \
+            backend/tests/architectureClosureV2/wpA/sourceClosureFinal.test.js
+          node tools/architecture-closure-v2/source-closure-scan.js --wp A
+
+      - name: Run portable governance and security contracts
+        run: |
+          node --test --test-concurrency=1 \
+            tests/layered-ci/*.test.js \
+            tests/independent-review/chatgpt-review-contract.test.js \
+            tests/wp0/wp-a-post-merge-validation.test.js
+          npm run test:security-scan
+          node tools/protocol/validate-v3-protocols.js
+
+      - name: Confirm clean validation workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+  platform-contracts:
+    name: wp-a-post-merge-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact main commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run complete portable WP-A contract matrix
+        run: node tools/architecture-closure-v2/run-wp-a-post-merge-contracts.js
+
+      - name: Confirm clean validation workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+  post-merge-gate:
+    name: wp-a-post-merge-gate
+    if: ${{ always() }}
+    needs:
+      - identity-source-closure
+      - platform-contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Enforce all post-merge results
+        shell: bash
+        env:
+          IDENTITY_RESULT: ${{ needs.identity-source-closure.result }}
+          PLATFORM_RESULT: ${{ needs.platform-contracts.result }}
+        run: |
+          set -euo pipefail
+          test "${IDENTITY_RESULT}" = "success"
+          test "${PLATFORM_RESULT}" = "success"
+          {
+            echo '### WP-A post-merge validation'
+            echo ''
+            echo '- readyForPromotion=true'
+            echo '- formalRelease=false'
+            echo '- publish=false'
+            echo '- wpBAuthorized=false'
+          } >> "${GITHUB_STEP_SUMMARY}"
