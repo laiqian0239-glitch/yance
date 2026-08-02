@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "documentType": "YANCE_ACV2_WP_A_BASELINE",
   "status": "A1_CLOSED_A2_TEST_FIRST_AUTHORIZED",
   "workPackage": "WP-A",
@@ -22,6 +22,22 @@
   "a2FirstRequiredAction": "ADD_FAILING_CANONICAL_SERIALIZATION_CLASSIFICATION_AND_UPCASTER_TESTS",
   "automaticNextTaskAuthorization": false,
   "automaticNextWorkPackageAuthorization": false,
+  "sourceClosure": {
+    "schemaVersion": 1,
+    "status": "OPEN_UNTIL_WP_A_A8",
+    "discoveryRoots": ["backend"],
+    "discoveryExcludes": ["backend/tests", "backend/migrations"],
+    "a0EvidenceDocument": "governance/architecture-closure-v2/wp-a-a0-red-evidence.json",
+    "initialViolationClasses": [
+      "PRIMARY_DB_FALLBACK_PRESENT",
+      "AUTHORITY_WRITE_HOST_CAPABILITY_MISSING",
+      "PRIMARY_DB_ROLE_BOUNDARY_INCOMPLETE",
+      "CANONICAL_LEDGER_COORDINATOR_MISSING"
+    ],
+    "closureRule": "CURRENT_VIOLATIONS_MAY_DECREASE_BY_TASK_BUT_REPORT_OK_MUST_REMAIN_FALSE_UNTIL_A8",
+    "registryInvalidAllowed": false,
+    "unregisteredPrimaryDbAccessAllowed": false
+  },
   "a0": {
     "status": "CLOSED",
     "productionBusinessCodeChanged": false,
