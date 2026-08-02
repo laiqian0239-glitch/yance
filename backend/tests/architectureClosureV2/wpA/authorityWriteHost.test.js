@@ -56,11 +56,11 @@ function requireA1() {
   return authority;
 }
 
-test('A1 registers Schema 21 and the AuthorityWriteHost public boundary', () => {
+test('A1 base migration plus post-merge integrity migration expose Schema 22 and the AuthorityWriteHost boundary', () => {
   const authority = loadHostModule();
-  assert.ok(fs.existsSync(migrationPath), 'Schema 21 migration is missing');
+  assert.ok(fs.existsSync(migrationPath), 'WP-A schema migration entrypoint is missing');
   assert.ok(authority, 'AuthorityWriteHost service is missing');
-  assert.equal(SCHEMA_VERSION, 21);
+  assert.equal(SCHEMA_VERSION, 22);
   assert.equal(typeof authority?.acquireAuthorityWriteHost, 'function');
   assert.equal(typeof authority?.assertCurrentAuthorityWriteHostToken, 'function');
 });
@@ -113,7 +113,7 @@ test('SqliteConnectionBroker requires a genuine externally acquired host capabil
   }
 });
 
-test('fresh database bootstrap and Schema 20 upgrade both converge to the complete Schema 21 object set', () => {
+test('fresh database bootstrap and Schema 20 upgrade both converge to the complete Schema 22 object set', () => {
   const authority = requireA1();
   const required = new Set([
     'authority_write_host_lease',
@@ -149,12 +149,16 @@ test('fresh database bootstrap and Schema 20 upgrade both converge to the comple
       host = authority.acquireAuthorityWriteHost({ dbPath, instanceId: `host-${mode}` });
       broker = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: host.capability });
       const store = broker.open();
-      assert.equal(store.getMeta('schema_version'), 21);
+      assert.equal(store.getMeta('schema_version'), 22);
       const names = tableNames(store.db);
       for (const name of required) assert.equal(names.has(name), true, `${mode}:${name}`);
-      const migration = store.db.prepare("SELECT status,checksum FROM r32_schema_migrations WHERE migration_id='021_architecture_closure_v2_wp_a'").get();
-      assert.equal(migration?.status, 'completed');
-      assert.match(String(migration?.checksum || ''), /^[a-f0-9]{64}$/);
+      const baseMigration = store.db.prepare("SELECT status,checksum FROM r32_schema_migrations WHERE migration_id='021_architecture_closure_v2_wp_a'").get();
+      assert.equal(baseMigration?.status, 'completed');
+      assert.match(String(baseMigration?.checksum || ''), /^[a-f0-9]{64}$/);
+      const integrityMigration = store.db.prepare("SELECT status,checksum,target_schema_version FROM r32_schema_migrations WHERE migration_id='022_architecture_closure_v2_wp_a_integrity'").get();
+      assert.equal(integrityMigration?.status, 'completed');
+      assert.equal(integrityMigration?.target_schema_version, 22);
+      assert.match(String(integrityMigration?.checksum || ''), /^[a-f0-9]{64}$/);
     } finally {
       try { broker?.close(); } catch (_) {}
       try { host?.close(); } catch (_) {}

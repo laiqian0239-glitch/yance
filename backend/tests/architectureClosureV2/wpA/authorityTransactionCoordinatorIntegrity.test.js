@@ -122,6 +122,34 @@ test('event classification and retention policy are part of the idempotent event
   } finally { h.close(); }
 });
 
+test('legacy receipts without an event content hash fail closed instead of guessing historical semantics', () => {
+  const h = harness();
+  try {
+    const envelope = command();
+    h.store.db.prepare(`INSERT INTO authority_command_receipts(
+      command_id,authority_scope,idempotency_key,command_content_sha256,event_content_sha256,status,
+      first_event_id,last_event_id,aggregate_version,host_generation,fencing_token,result_json,committed_at
+    ) VALUES(?,?,?,?,?,'COMMITTED','','',0,?,?,?,?)`).run(
+      envelope.commandId,
+      envelope.authorityScope,
+      envelope.idempotencyKey,
+      envelope.contentSha256,
+      '',
+      1,
+      1,
+      JSON.stringify({ commandContentSha256: envelope.contentSha256, receipt: { status: 'COMMITTED' } }),
+      '2026-08-03T00:00:00.000Z'
+    );
+    assert.throws(
+      () => h.coordinator.execute({ command: envelope, event: event(), projector: projector() }),
+      error => error?.code === 'AUTHORITY_COMMAND_EVENT_CONTENT_UNVERIFIABLE'
+        && error?.existingEventContentSha256 === ''
+        && /^[a-f0-9]{64}$/u.test(error?.incomingEventContentSha256 || '')
+    );
+    assert.equal(h.store.db.prepare('SELECT COUNT(*) AS count FROM canonical_event_headers').get().count, 0);
+  } finally { h.close(); }
+});
+
 test('projector SQL capability rejects nondeterministic functions extension loading and SQLite internal tables', () => {
   let prepared = 0;
   const capability = createProjectorDatabaseCapability({

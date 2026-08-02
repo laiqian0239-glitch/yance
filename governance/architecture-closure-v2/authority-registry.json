@@ -892,6 +892,39 @@
         "PRAGMA integrity_check"
       ],
       "forbiddenSourceMarkers": []
+    },
+    {
+      "id": "A8-SCHEMA-INTEGRITY-MIGRATION",
+      "path": "backend/migrations/architectureClosureV2WpAIntegrity.js",
+      "classification": "RECOVERY",
+      "authorityOwner": "AuthorityWriteHost",
+      "commandEntrypoint": "applyArchitectureClosureV2WpAIntegrity",
+      "eventTypes": [
+        "authority-schema.integrity-upgraded"
+      ],
+      "aggregate": "SchemaIntegrity",
+      "versionStrategy": "schemaVersion+migrationChecksum",
+      "idempotencyKey": "022_architecture_closure_v2_wp_a_integrity",
+      "receiptIssuer": "AuthorityWriteHost",
+      "projection": "r32_schema_migrations",
+      "legacyPaths": {
+        "writer": [
+          "Schema 21 receipts without explicit event content hash"
+        ],
+        "recovery": [
+          "Schema 21 to Schema 22 forward migration"
+        ],
+        "fallback": []
+      },
+      "removalCondition": "Schema 22 is installed transactionally and historical unverifiable event content fails closed.",
+      "blockingWorkPackage": "WP-A",
+      "closureState": "CLOSED",
+      "requiredSourceMarkers": [
+        "AuthorityWriteHost"
+      ],
+      "forbiddenSourceMarkers": [
+        "new R32SqliteStore"
+      ]
     }
   ]
 }

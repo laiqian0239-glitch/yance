@@ -156,6 +156,23 @@ function normalizeEvent(input) {
   });
 }
 
+function eventContentSha256(event) {
+  return canonicalHash({
+    eventId: event.eventId,
+    eventType: event.eventType,
+    schemaVersion: event.schemaVersion,
+    payloadClassification: event.payloadClassification,
+    payloadSha256: event.payloadSha256,
+    occurredAt: event.occurredAt,
+    platform: event.platform,
+    sourceAccountId: event.sourceAccountId,
+    generation: event.generation,
+    redactionVersion: event.redactionVersion,
+    retentionClass: event.retentionClass,
+    ledgerSegmentId: event.ledgerSegmentId
+  });
+}
+
 function normalizeProjector(input) {
   const descriptors = assertExactPlainObject(input, PROJECTOR_FIELDS, 'projector');
   for (const field of PROJECTOR_FIELDS) {
@@ -348,9 +365,15 @@ class AuthorityTransactionCoordinator {
       WHERE authority_scope=? AND idempotency_key=?`).get(authorityScope, idempotencyKey) || null;
   }
 
-  assertIdempotency(existing, command) {
+  assertIdempotency(existing, command, incomingEventContentSha256) {
     const document = parseJson(existing.result_json, {}) || {};
-    if (String(document.commandContentSha256 || '') !== command.contentSha256) {
+    const existingCommandContentSha256 = String(
+      existing.command_content_sha256 || document.commandContentSha256 || ''
+    );
+    const existingEventContentSha256 = String(
+      existing.event_content_sha256 || document.eventContentSha256 || ''
+    );
+    if (existingCommandContentSha256 !== command.contentSha256) {
       throw coordinatorError(
         'AUTHORITY_COMMAND_IDEMPOTENCY_CONFLICT',
         'The idempotency key already belongs to different command content',
@@ -359,8 +382,36 @@ class AuthorityTransactionCoordinator {
           idempotencyKey: command.idempotencyKey,
           existingCommandId: String(existing.command_id || ''),
           incomingCommandId: command.commandId,
-          existingContentSha256: String(document.commandContentSha256 || ''),
+          existingContentSha256: existingCommandContentSha256,
           incomingContentSha256: command.contentSha256
+        }
+      );
+    }
+    if (!/^[a-f0-9]{64}$/u.test(existingEventContentSha256)) {
+      throw coordinatorError(
+        'AUTHORITY_COMMAND_EVENT_CONTENT_UNVERIFIABLE',
+        'The historical receipt does not contain a verifiable event content hash',
+        {
+          authorityScope: command.authorityScope,
+          idempotencyKey: command.idempotencyKey,
+          existingCommandId: String(existing.command_id || ''),
+          incomingCommandId: command.commandId,
+          existingEventContentSha256,
+          incomingEventContentSha256
+        }
+      );
+    }
+    if (existingEventContentSha256 !== incomingEventContentSha256) {
+      throw coordinatorError(
+        'AUTHORITY_COMMAND_IDEMPOTENCY_CONFLICT',
+        'The idempotency key already belongs to different event content',
+        {
+          authorityScope: command.authorityScope,
+          idempotencyKey: command.idempotencyKey,
+          existingCommandId: String(existing.command_id || ''),
+          incomingCommandId: command.commandId,
+          existingEventContentSha256,
+          incomingEventContentSha256
         }
       );
     }
@@ -377,6 +428,7 @@ class AuthorityTransactionCoordinator {
     const startedAtMs = Number(this.clock());
     const command = assertAuthorityCommandEnvelope(input.command);
     const event = normalizeEvent(input.event);
+    const incomingEventContentSha256 = eventContentSha256(event);
     const projector = normalizeProjector(input.projector);
     const token = this.tokenSnapshot();
     let committed;
@@ -391,7 +443,12 @@ class AuthorityTransactionCoordinator {
         fencingToken: token.fencingToken
       }, () => {
         const existing = this.existingReceipt(command.authorityScope, command.idempotencyKey);
-        if (existing) return { receipt: this.assertIdempotency(existing, command), replayed: true };
+        if (existing) {
+          return {
+            receipt: this.assertIdempotency(existing, command, incomingEventContentSha256),
+            replayed: true
+          };
+        }
 
         const recordedAt = new Date(Number.isFinite(startedAtMs) ? startedAtMs : Date.now()).toISOString();
         const nextVersion = command.expectedVersion + 1;
@@ -406,9 +463,9 @@ class AuthorityTransactionCoordinator {
             ledger_sequence,event_id,event_type,aggregate_type,aggregate_id,aggregate_version,
             command_id,idempotency_key,trace_id,correlation_id,causation_id,platform,source_account_id,
             generation,occurred_at,recorded_at,payload_id,payload_sha256,redaction_version,schema_version,
-            canonicalization_version,writer_authority,host_generation,fencing_token,ledger_segment_id
+            canonicalization_version,writer_authority,host_generation,fencing_token,ledger_segment_id,retention_class
           )
-          SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
+          SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
           WHERE COALESCE((
             SELECT MAX(aggregate_version) FROM canonical_event_headers
             WHERE aggregate_type=? AND aggregate_id=?
@@ -444,6 +501,7 @@ class AuthorityTransactionCoordinator {
           token.hostGeneration,
           token.fencingToken,
           event.ledgerSegmentId,
+          event.retentionClass,
           command.aggregateType,
           command.aggregateId,
           command.expectedVersion,
@@ -557,6 +615,7 @@ class AuthorityTransactionCoordinator {
 
         const receiptDocument = {
           commandContentSha256: command.contentSha256,
+          eventContentSha256: incomingEventContentSha256,
           receipt: {
             status: 'COMMITTED',
             commandId: command.commandId,
@@ -573,12 +632,14 @@ class AuthorityTransactionCoordinator {
           result
         };
         this.db.prepare(`INSERT INTO authority_command_receipts(
-          command_id,authority_scope,idempotency_key,status,first_event_id,last_event_id,aggregate_version,
-          host_generation,fencing_token,result_json,committed_at
-        ) VALUES(?,?,?,'COMMITTED',?,?,?,?,?,?,?)`).run(
+          command_id,authority_scope,idempotency_key,command_content_sha256,event_content_sha256,status,
+          first_event_id,last_event_id,aggregate_version,host_generation,fencing_token,result_json,committed_at
+        ) VALUES(?,?,?,?,?,'COMMITTED',?,?,?,?,?,?,?)`).run(
           command.commandId,
           command.authorityScope,
           command.idempotencyKey,
+          command.contentSha256,
+          incomingEventContentSha256,
           event.eventId,
           event.eventId,
           nextVersion,
@@ -656,6 +717,7 @@ class AuthorityTransactionCoordinator {
 module.exports = {
   AuthorityTransactionCoordinator,
   createProjectorDatabaseCapability,
+  eventContentSha256,
   coordinatorError,
   assertCoordinatorRepositoryCapability
 };
