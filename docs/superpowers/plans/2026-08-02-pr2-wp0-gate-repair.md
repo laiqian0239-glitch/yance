@@ -4,7 +4,7 @@
 
 **Goal:** Repair the Stage 6.4.5.9 WP0 failures without disabling checks, broadening authorized implementation branches, or suppressing active release-surface violations.
 
-**Architecture:** Move reference-only classification into an explicit governance policy consumed by the scanner, make pull-request branch identity an explicit CLI input, fetch immutable tags with an auditable Git command, and govern Electron ZIP tracking with matching `.gitignore` and LFS assertions. Generated source-identity documents remain fail-closed and must be regenerated only after the final source tree is fixed.
+**Architecture:** The portable repository does not contain the original provenance commit `c150182219edea2faf49c714275e9921a21df742`, so it cannot truthfully create or verify a live annotated tag that peels to that absent object. The rejected decision is therefore anchored to an immutable commit and blob that do exist in this repository, while the original commit remains provenance metadata. Historical audit delivery classification is policy-driven and narrow, PR branch identity is bound to a fetched remote branch tip, and derived payload identity is generated only in a git-free sealed export.
 
 **Tech Stack:** Node.js 22, node:test, GitHub Actions, Git, Git LFS, JSON governance policies.
 
@@ -13,8 +13,9 @@
 - All defects must be fixed in shared authority layers; temporary bypasses and relaxed validation are forbidden.
 - Stage 6.4.5.8 remains permanently rejected.
 - Authorized implementation branches remain `stage/6.4.5.9-architecture-closure` or `rebuild/windows-release-closure-YYYYMMDD[-suffix]`.
-- Historical evidence may be reference-only only through an explicit policy entry; runtime, build, package, release, deploy, and tool paths remain active by default.
-- Missing or non-annotated immutable tags remain a hard failure.
+- Runtime, build, package, release, deploy, scripts, services, and tools remain active scan surfaces.
+- Only `INDEPENDENT_AUDIT_DELIVERY` is declared reference-only, through explicit governance policy.
+- The archive anchor commit, ancestor relationship, path, blob object, and rejected decision fields all fail closed.
 - `readyForPromotion`, `formalRelease`, and `candidatePackageGenerated` remain false.
 
 ---
@@ -26,121 +27,81 @@
 - Modify: `governance/repository-scope-policy.json`
 - Modify: `tools/wp0/lib.js`
 
-**Interfaces:**
-- Consumes: `repository-scope-policy.json`
-- Produces: `referenceOnlyRoots: string[]` and policy-driven `classifyScanPath(relativePath, policy)` behavior.
+- [x] Add a fixture proving `INDEPENDENT_AUDIT_DELIVERY/FULL_SOURCE_FILE_MANIFEST.json` is classified `REFERENCE_ONLY_AUDIT_DELIVERY`.
+- [x] Add an active `tools/` control fixture proving the same rejected-stage text is still blocked.
+- [x] Validate policy paths, classifications, duplicates, and protected active-root overlap.
+- [ ] Execute `node --test tests/wp0/forbidden-hotfix-entrypoints.test.js` and capture fresh output.
 
-- [ ] **Step 1: Write the failing test**
-
-Add a fixture containing `INDEPENDENT_AUDIT_DELIVERY/FULL_SOURCE_FILE_MANIFEST.json` with rejected-stage historical text and assert zero violations plus `REFERENCE_ONLY_AUDIT_DELIVERY`. Add a control fixture under `tools/` with the same text and assert a violation.
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `node --test tests/wp0/forbidden-hotfix-entrypoints.test.js`
-Expected: FAIL because `INDEPENDENT_AUDIT_DELIVERY` is currently classified as `ACTIVE_SOURCE_OR_AUTOMATION`.
-
-- [ ] **Step 3: Write minimal implementation**
-
-Add `referenceOnlyRoots` to the governance policy and make the scanner load, validate, normalize, and apply those roots before defaulting to active source. Keep `governance/`, `tests/wp0/`, `tools/wp0/`, `evidence/`, and `implementation/` classifications explicit.
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `node --test tests/wp0/forbidden-hotfix-entrypoints.test.js`
-Expected: PASS, with the active control fixture still rejected.
-
-- [ ] **Step 5: Commit**
-
-Commit message: `fix(wp0): govern reference-only audit delivery roots`
-
-### Task 2: Pull-request branch and immutable-tag transport authority
+### Task 2: Portable rejected-baseline archive authority
 
 **Files:**
 - Modify: `tests/wp0/freeze-rejected-baseline.test.js`
-- Modify: `tools/wp0/verify-gate.js`
-- Modify: `.github/workflows/stage-6459-wp0-gates.yml`
+- Modify: `governance/stage-policy.json`
+- Modify: `governance/rejected-baselines/stage-6.4.5.8.json`
+- Modify: `tools/wp0/lib.js`
 
-**Interfaces:**
-- Consumes: `--branch <name>` CLI input and `github.head_ref`/`github.ref_name`.
-- Produces: explicit reviewed-branch identity passed to `verifyWp0Gate({ branch })`.
+**Authority values:**
+- Provenance commit: `c150182219edea2faf49c714275e9921a21df742`
+- Archive anchor commit: `570823e722f6db475066d6ef80ba900ac5c6cb39`
+- Archive path: `governance/rejected-baselines/stage-6.4.5.8.json`
+- Archive blob: `6a5ffc68e76baf6a477668c6c2faf61934e94720`
 
-- [ ] **Step 1: Write the failing test**
+- [x] Verify the anchor object is a commit and an ancestor of `HEAD`.
+- [x] Verify the exact path resolves to the expected blob object.
+- [x] Compare the archived and current rejection decision fields.
+- [x] Declare `originalVcsHistoryAvailable=false` and fail if the absent provenance object is incorrectly treated as repository history.
+- [x] Keep the historical tag name only as a label, not as an unverifiable live ref claim.
+- [x] Add a blob-mismatch fail-closed regression.
+- [ ] Execute `node --test tests/wp0/freeze-rejected-baseline.test.js` and capture fresh output.
 
-Add a child-process test invoking `tools/wp0/verify-gate.js --branch rebuild/windows-release-closure-20260802-gate0-wp0-fix` and assert the reported runtime target branch equals the supplied branch rather than detached HEAD.
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `node --test tests/wp0/freeze-rejected-baseline.test.js`
-Expected: FAIL because `verify-gate.js` ignores `--branch`.
-
-- [ ] **Step 3: Write minimal implementation**
-
-Parse `--branch`, pass it into `verifyWp0Gate`, and update the workflow to execute `git fetch --force origin +refs/tags/*:refs/tags/*` followed by `git show-ref --verify refs/tags/stage-6.4.5.8-rejected-architecture`. Invoke the gate with `--branch "${{ github.head_ref || github.ref_name }}"`.
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `node --test tests/wp0/freeze-rejected-baseline.test.js`
-Expected: PASS when the immutable annotated tag exists; missing tag remains a hard failure with a precise diagnostic.
-
-- [ ] **Step 5: Commit**
-
-Commit message: `fix(wp0): bind PR gate to reviewed branch and fetched tags`
-
-### Task 3: Electron archive tracking authority
+### Task 3: Reviewed PR branch identity
 
 **Files:**
-- Modify: `tests/runtime-delivery/source-uat-delivery.test.js`
+- Modify: `tools/wp0/verify-gate.js`
+- Modify: `.github/workflows/stage-6459-wp0-gates.yml`
+- Test: `tests/wp0/freeze-rejected-baseline.test.js`
+
+- [x] Parse `--branch` and validate it with `git check-ref-format`.
+- [x] Require `refs/remotes/origin/<branch>` and require its tip to equal checked-out `HEAD`.
+- [x] Check out the reviewed PR head rather than the synthetic merge commit.
+- [x] Fetch the reviewed branch into the trusted `origin` namespace.
+- [x] Add matching-tip and mismatched-tip regressions.
+- [ ] Confirm a fresh GitHub Actions run completes successfully.
+
+### Task 4: Electron archive tracking authority
+
+**Files:**
+- Create: `tests/runtime-delivery/electron-archive-tracking-authority.test.js`
 - Modify: `.gitignore`
 - Verify: `.gitattributes`
 
-**Interfaces:**
-- Produces: normal Git discovery for `vendor/electron/*.zip` while all other ZIP files remain ignored and Electron ZIPs remain LFS-managed.
+- [x] Add the narrow `!vendor/electron/*.zip` ignore exception.
+- [x] Keep unrelated ZIP files ignored.
+- [x] Require `filter=lfs diff=lfs merge=lfs -text` through `git check-attr`.
+- [ ] Execute the focused runtime-delivery test and capture fresh output.
 
-- [ ] **Step 1: Write the failing test**
-
-Add assertions that `.gitignore` contains `!vendor/electron/*.zip`, `.gitattributes` contains `vendor/electron/*.zip filter=lfs diff=lfs merge=lfs -text`, and no broad `!*.zip` exception exists.
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `node --test tests/runtime-delivery/source-uat-delivery.test.js`
-Expected: FAIL because the narrow `.gitignore` exception is absent.
-
-- [ ] **Step 3: Write minimal implementation**
-
-Add only `!vendor/electron/*.zip` immediately after the global `*.zip` ignore rule.
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `node --test tests/runtime-delivery/source-uat-delivery.test.js`
-Expected: PASS.
-
-- [ ] **Step 5: Commit**
-
-Commit message: `fix(delivery): track trusted Electron archives without force-add`
-
-### Task 4: Remote verification and source identity reseal
+### Task 5: Mutable repository versus sealed export identity
 
 **Files:**
-- Regenerate: `YANCE_DERIVED_SOURCE_IDENTITY.json`
-- Regenerate: `YANCE_ARTIFACT_DESCRIPTOR.json`
-- Regenerate any manifest or receipt whose contract binds the full payload.
+- Create: `tests/runtime-delivery/repository-source-identity-authority.test.js`
+- Modify: `.gitignore`
+- Delete: `YANCE_DERIVED_SOURCE_IDENTITY.json`
+- Modify: `YANCE_ARTIFACT_DESCRIPTOR.json`
+- Modify: `tools/runtime-delivery/create-derived-source-identity.js`
 
-**Interfaces:**
-- Consumes: final fixed source tree and immutable annotated tag.
-- Produces: a new payload manifest SHA-256 and matching generated identity documents.
+- [x] Remove the stale tracked derived payload seal from the mutable repository.
+- [x] Ignore repository-root `YANCE_DERIVED_SOURCE_IDENTITY.json`.
+- [x] Describe the repository as `MUTABLE_GIT_IMPLEMENTATION_REPOSITORY` with runtime `HEAD`/tree resolution.
+- [x] Keep all release and promotion flags false.
+- [x] Reject derived identity CLI generation in any root containing `.git`.
+- [x] Preserve derived identity generation for git-free source exports.
+- [ ] Execute `node --test tests/runtime-delivery/repository-source-identity-authority.test.js` and the existing derived-identity regressions.
 
-- [ ] **Step 1: Run focused tests and WP0 gate**
+### Task 6: Verification and review
 
-Run: `npm run test:wp0 && npm run verify:wp0:gate -- --branch rebuild/windows-release-closure-20260802-gate0-wp0-fix`
-Expected: PASS after the immutable annotated tag exists remotely.
-
-- [ ] **Step 2: Regenerate identity after all code changes**
-
-Run the repository's `tools/runtime-delivery/create-derived-source-identity.js` against the clean final export, using the final base commit/tree and a new derived version.
-
-- [ ] **Step 3: Verify fail-closed behavior**
-
-Modify one exported payload byte and confirm `SOURCE_UAT_DERIVED_IDENTITY_MISMATCH`; restore the byte and confirm verification passes.
-
-- [ ] **Step 4: Push final commit and inspect GitHub Actions**
-
-Expected: `Stage 6.4.5.9 WP0 Architecture Gates` concludes `success`; the PR remains Draft and all release gates remain false.
+- [ ] Run `npm run test:wp0`.
+- [ ] Run `npm run verify:wp0:gate -- --branch rebuild/windows-release-closure-20260802-gate0-wp0-fix` with the trusted remote branch ref present.
+- [ ] Run the focused runtime-delivery identity and LFS tests.
+- [ ] Verify `tools/protocol/validate-v3-protocols.js` accepts the repository descriptor.
+- [ ] Inspect the fresh GitHub Actions job log and record its run ID and conclusion.
+- [ ] Keep PR #4 Draft until all fresh evidence is available; do not claim promotion or formal release readiness.
