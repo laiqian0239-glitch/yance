@@ -739,8 +739,18 @@ function configureSingleton(authority) {
   if (!(authority instanceof CanonicalEventLedgerAuthority)) {
     throw new TypeError('configureSingleton requires CanonicalEventLedgerAuthority');
   }
+  if (configuredSingleton && configuredSingleton !== authority) {
+    throw authorityError(
+      'CANONICAL_EVENT_LEDGER_SINGLETON_ALREADY_CONFIGURED',
+      'Canonical event ledger singleton is already bound to another authority instance',
+      { status: 409 }
+    );
+  }
   configuredSingleton = authority;
   return configuredSingleton;
+}
+function isConfiguredSingleton(authority) {
+  return configuredSingleton === authority;
 }
 const singleton = Object.freeze({
   append: input => resolveSingleton().append(input),
@@ -763,6 +773,7 @@ module.exports = {
   CanonicalEventLedgerAuthority,
   createCanonicalEventLedgerAuthority,
   configureSingleton,
+  isConfiguredSingleton,
   singleton,
   redactPayload,
   canonical,
