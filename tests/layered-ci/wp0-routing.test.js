@@ -35,19 +35,28 @@ test('layered governance-only changes select GOVERNANCE_WP0', () => {
   assert.equal(result.route, ROUTES.GOVERNANCE);
 });
 
-test('product, release and existing WP0 implementation changes select PRODUCT_WP0', () => {
+test('product, release, architecture review docs and existing WP0 implementation changes select PRODUCT_WP0', () => {
   for (const file of [
     'backend/runtime/AppRuntime.js',
     'frontend/index.html',
     'package.json',
     'tools/wp0/verify-gate.js',
     'shared/release/implementationBranchPolicy.js',
-    'release/release-source.json'
+    'release/release-source.json',
+    'docs/architecture/YANCE_ACV2_WP_A_A5_SOURCE_REVIEW_ZH.md'
   ]) {
     const result = classifyWp0Route(policy, [file]);
     assert.equal(result.pass, true, file);
     assert.equal(result.route, ROUTES.PRODUCT, file);
   }
+});
+
+test('specific layered governance documents retain governance priority over the general docs product route', () => {
+  const result = classifyWp0Route(policy, [
+    'docs/superpowers/specs/2026-08-02-layered-ci-reviewed-candidate-design.md'
+  ]);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.route, ROUTES.GOVERNANCE);
 });
 
 test('mixed governance and product changes escalate to PRODUCT_WP0', () => {

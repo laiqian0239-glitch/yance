@@ -28,6 +28,7 @@
   "productPrefixes": [
     ".github/",
     "backend/",
+    "docs/",
     "electron/",
     "frontend/",
     "governance/",
