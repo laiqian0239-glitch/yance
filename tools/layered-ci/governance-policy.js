@@ -12,13 +12,14 @@ const REQUIRED_LIFECYCLE_STATES = Object.freeze([
   'REOPENED_INVALID_EVIDENCE'
 ]);
 const REQUIRED_LEVELS = Object.freeze(['L0', 'L1', 'L2', 'L3']);
+const DEPENDENCY_MANIFEST_BASENAMES = new Set(['package.json', 'package-lock.json']);
 
 function verdict(values = {}) {
   return Object.freeze({
     pass: false,
     reasonCode: 'GOVERNANCE_POLICY_INVALID',
-    readyForPromotion: false,
     ...values,
+    // Pinned after the spread so no caller can claim promotion readiness.
     readyForPromotion: false
   });
 }
@@ -124,6 +125,16 @@ function validateTransition(policy, from, to, context = {}) {
   return verdict({ pass: true, reasonCode: null, previousState: from, nextState: to });
 }
 
+function validateRuleArray(policy, field, normalizer) {
+  if (!Array.isArray(policy[field]) || new Set(policy[field]).size !== policy[field].length) {
+    return fail('CI_RISK_RULES_INVALID', { field });
+  }
+  for (const rule of policy[field]) {
+    if (normalizer(rule) !== rule) return fail('CI_RISK_RULE_INVALID', { field, rule });
+  }
+  return null;
+}
+
 function validateRiskPolicy(policy) {
   if (!policy || typeof policy !== 'object' || Array.isArray(policy)) return fail('CI_RISK_POLICY_INVALID');
   if (policy.schemaVersion !== 1 || policy.documentType !== 'YANCE_LAYERED_CI_RISK_POLICY') {
@@ -134,24 +145,13 @@ function validateRiskPolicy(policy) {
   }
   if (policy.defaultCodeLevel !== 'L1') return fail('CI_RISK_DEFAULT_LEVEL_INVALID');
 
-  const exactFields = ['documentationExactPaths', 'l1ExactPaths', 'l2ExactPaths'];
-  for (const field of exactFields) {
-    if (!Array.isArray(policy[field]) || new Set(policy[field]).size !== policy[field].length) {
-      return fail('CI_RISK_RULES_INVALID', { field });
-    }
-    for (const rule of policy[field]) {
-      if (normalizeRepositoryPath(rule) !== rule) return fail('CI_RISK_RULE_INVALID', { field, rule });
-    }
+  for (const field of ['documentationExactPaths', 'l1ExactPaths', 'l2ExactPaths']) {
+    const invalid = validateRuleArray(policy, field, normalizeRepositoryPath);
+    if (invalid) return invalid;
   }
-
-  const prefixFields = ['documentationPrefixes', 'l1Prefixes', 'l2Prefixes'];
-  for (const field of prefixFields) {
-    if (!Array.isArray(policy[field]) || new Set(policy[field]).size !== policy[field].length) {
-      return fail('CI_RISK_RULES_INVALID', { field });
-    }
-    for (const rule of policy[field]) {
-      if (!normalizeRule(rule)) return fail('CI_RISK_RULE_INVALID', { field, rule });
-    }
+  for (const field of ['documentationPrefixes', 'l1Prefixes', 'l2Prefixes']) {
+    const invalid = validateRuleArray(policy, field, normalizeRule);
+    if (invalid) return invalid;
   }
 
   if (policy.l3Automatic !== false || policy.unknownPathFailsClosed !== true) {
@@ -169,7 +169,18 @@ function prefixRuleMatches(rules, file) {
   return rules.find(rule => file.startsWith(rule)) || null;
 }
 
+function isDependencyManifestPath(file) {
+  return DEPENDENCY_MANIFEST_BASENAMES.has(file.slice(file.lastIndexOf('/') + 1));
+}
+
 function classifyFile(policy, file) {
+  if (isDependencyManifestPath(file)) {
+    return {
+      classification: 'L2',
+      rule: `**/${file.slice(file.lastIndexOf('/') + 1)}`,
+      type: 'BASENAME'
+    };
+  }
   if (exactRuleMatches(policy.l2ExactPaths, file)) {
     return { classification: 'L2', rule: file, type: 'EXACT' };
   }
@@ -252,6 +263,7 @@ function classifyChangedFiles(policy, changedFiles = []) {
 }
 
 module.exports = {
+  DEPENDENCY_MANIFEST_BASENAMES,
   REQUIRED_LEVELS,
   REQUIRED_LIFECYCLE_STATES,
   classifyChangedFiles,
