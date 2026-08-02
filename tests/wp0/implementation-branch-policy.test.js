@@ -4,18 +4,29 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const {
   canonicalStageBranch,
   isReleaseClosureRebuildBranch,
   isAuthorizedImplementationBranch,
   authorizedImplementationBranchDescription,
+  loadWorkPackageScopeAmendment,
   evaluateAuthorizedWorkPackageScope,
   workPackageChangedFilesSha256
 } = require('../../shared/release/implementationBranchPolicy');
 const { CURRENT_STAGE, currentBranch, checkRuntimeTargetGate } = require('../../tools/wp0/lib');
 
-const AUTHORIZATION_PATH = path.join(__dirname, '..', '..', 'governance', 'architecture-closure-v2', 'implementation-plan-authorization.json');
+const REPO_ROOT = path.join(__dirname, '..', '..');
+const AUTHORIZATION_PATH = path.join(REPO_ROOT, 'governance', 'architecture-closure-v2', 'implementation-plan-authorization.json');
+const PARENT_GOVERNANCE_HEAD = 'd81599d8a3f3de891da369b6f1ddbd01e264c78d';
 function authorization() { return JSON.parse(fs.readFileSync(AUTHORIZATION_PATH, 'utf8')); }
+function actualWorkPackageChangedFiles() {
+  const output = execFileSync('git', ['diff', '--name-only', PARENT_GOVERNANCE_HEAD, 'HEAD'], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8'
+  });
+  return output.split(/\r?\n/u).map(value => value.trim()).filter(Boolean).sort();
+}
 
 function scopeAmendment(document, changedFiles) {
   return {
@@ -27,7 +38,7 @@ function scopeAmendment(document, changedFiles) {
     authorizedBranch: document.authorizedBranch,
     baseAuthorizationPath: 'governance/architecture-closure-v2/implementation-plan-authorization.json',
     baseAuthorizationBlobSha: '203697b36c06e0dc72c92113ef58f1a8f2394312',
-    parentGovernanceHead: 'd81599d8a3f3de891da369b6f1ddbd01e264c78d',
+    parentGovernanceHead: PARENT_GOVERNANCE_HEAD,
     approvedChangedFileSetSha256: workPackageChangedFilesSha256(changedFiles),
     additionalAllowedPaths: [
       'backend/runtime/AppRuntime.js',
@@ -141,6 +152,22 @@ test('work-package scope requires an exact independently reviewed amendment', ()
   });
   assert.equal(staleDigest.pass, false);
   assert.equal(staleDigest.reasonCode, 'ACV2_CHANGED_FILE_SET_MISMATCH');
+});
+
+test('checked-out WP-A diff matches the exact approved scope amendment', () => {
+  const document = authorization();
+  const amendment = loadWorkPackageScopeAmendment();
+  assert.ok(amendment, 'scope amendment must exist and parse as JSON');
+  const changedFiles = actualWorkPackageChangedFiles();
+  const result = evaluateAuthorizedWorkPackageScope({
+    branch: document.authorizedBranch,
+    changedFiles,
+    authorization: document,
+    amendment
+  });
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.changedFileSetSha256, amendment.approvedChangedFileSetSha256);
+  assert.deepEqual(result.unauthorizedPaths, []);
 });
 
 test('malformed, impossible-date and arbitrary branches remain denied', () => {
