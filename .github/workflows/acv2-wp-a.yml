@@ -18,7 +18,7 @@ jobs:
   acv2-wp-a-platform-matrix:
     name: acv2-wp-a-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 12
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -41,3 +41,9 @@ jobs:
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js
       - name: Run real process ownership and takeover matrix
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/authorityWriteHostProcessMatrix.test.js
+      - name: Run existing SQLite ownership and fencing regressions
+        run: >-
+          node --test --test-concurrency=1
+          tests/wp5/m5-sqlite-ownership.test.js
+          tests/wp4/application-matrix-temp-path.test.js
+          tests/wp3/stale-fencing-token-outbox-denied.test.js
