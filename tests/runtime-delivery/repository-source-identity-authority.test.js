@@ -34,6 +34,19 @@ function createDirectoryLink(target, linkPath) {
   return linkPath;
 }
 
+function comparablePhysicalPath(value) {
+  const physical = fs.realpathSync.native(path.resolve(value));
+  return process.platform === 'win32' ? physical.toLowerCase() : physical;
+}
+
+function samePhysicalPath(left, right) {
+  try {
+    return comparablePhysicalPath(left) === comparablePhysicalPath(right);
+  } catch (_) {
+    return false;
+  }
+}
+
 function derivedIdentityCliArgs(exportRoot, derivedVersion) {
   return [
     path.join(REPO_ROOT, 'tools', 'runtime-delivery', 'create-derived-source-identity.js'),
@@ -155,7 +168,7 @@ test('derived identity API rejects a root-level .git file even when its target i
     assert.throws(
       () => delivery.createDerivedSourceIdentity(exportRoot, VALID_IDENTITY_OPTIONS),
       error => error?.reasonCode === 'SOURCE_UAT_DERIVED_IDENTITY_GIT_ROOT_FORBIDDEN'
-        && path.resolve(error?.details?.gitMetadataPath || '') === path.resolve(gitFile),
+        && samePhysicalPath(error?.details?.gitMetadataPath || '', gitFile),
       'a .git file is mutable repository metadata and must invalidate the export seal'
     );
   } finally {
@@ -201,7 +214,7 @@ test('derived identity API rejects embedded Git metadata below the export root',
     assert.throws(
       () => delivery.createDerivedSourceIdentity(exportRoot, VALID_IDENTITY_OPTIONS),
       error => error?.reasonCode === 'SOURCE_UAT_DERIVED_IDENTITY_GIT_ROOT_FORBIDDEN'
-        && path.resolve(error?.details?.gitMetadataPath || '') === path.resolve(embeddedGit),
+        && samePhysicalPath(error?.details?.gitMetadataPath || '', embeddedGit),
       'embedded mutable VCS metadata must invalidate the entire export seal'
     );
   } finally {
@@ -221,7 +234,7 @@ test('derived identity API rejects a root symlink or Windows junction before any
       error => error?.reasonCode === 'SOURCE_UAT_DERIVED_IDENTITY_ROOT_LINK_FORBIDDEN'
         && error?.details?.relation === 'ROOT_SYMBOLIC_LINK_OR_REPARSE_POINT'
         && path.resolve(error?.details?.logicalRoot || '') === path.resolve(linkedRoot)
-        && path.resolve(error?.details?.canonicalRoot || '') === fs.realpathSync.native(linkedRoot),
+        && samePhysicalPath(error?.details?.canonicalRoot || '', linkedRoot),
       'root links and Windows junctions must be rejected by the shared authority'
     );
     assert.equal(fs.existsSync(path.join(targetRoot, DERIVED_IDENTITY)), false);
@@ -253,7 +266,7 @@ test('derived identity CLI rejects a linked Git subtree even when GIT_CEILING_DI
     const error = JSON.parse(child.stderr);
     assert.equal(error.reasonCode, 'SOURCE_UAT_DERIVED_IDENTITY_ROOT_LINK_FORBIDDEN');
     assert.equal(error.details?.relation, 'ROOT_SYMBOLIC_LINK_OR_REPARSE_POINT');
-    assert.equal(path.resolve(error.details?.canonicalRoot || ''), fs.realpathSync.native(linkedRoot));
+    assert.ok(samePhysicalPath(error.details?.canonicalRoot || '', linkedRoot));
   } finally {
     fs.rmSync(linkParent, { recursive: true, force: true });
     fs.rmSync(repositoryRoot, { recursive: true, force: true });
@@ -269,11 +282,11 @@ test('sealed export authority returns one physical canonical root for linked par
     createDirectoryLink(physicalParent, aliasParent);
     const logicalExport = path.join(aliasParent, 'candidate');
     const canonicalExport = fs.realpathSync.native(logicalExport);
-    assert.equal(assertSealedExportRoot(logicalExport), canonicalExport);
+    assert.equal(comparablePhysicalPath(assertSealedExportRoot(logicalExport)), comparablePhysicalPath(canonicalExport));
     delivery.createDerivedSourceIdentity(logicalExport, VALID_IDENTITY_OPTIONS);
     assert.ok(fs.existsSync(path.join(canonicalExport, DERIVED_IDENTITY)));
     assert.ok(fs.existsSync(path.join(canonicalExport, 'YANCE_ARTIFACT_DESCRIPTOR.json')));
-    assert.equal(canonicalExport, fs.realpathSync.native(physicalExport));
+    assert.ok(samePhysicalPath(canonicalExport, physicalExport));
   } finally {
     fs.rmSync(aliasContainer, { recursive: true, force: true });
     fs.rmSync(physicalParent, { recursive: true, force: true });
