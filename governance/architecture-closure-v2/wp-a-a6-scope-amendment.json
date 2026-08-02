@@ -10,8 +10,8 @@
   "baseAuthorizationPath": "governance/architecture-closure-v2/implementation-plan-authorization.json",
   "baseAuthorizationBlobSha": "203697b36c06e0dc72c92113ef58f1a8f2394312",
   "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
-  "approvedChangedFileCount": 80,
-  "approvedChangedFileSetSha256": "de42be729228dd25ef8ace04f61f6f393d780870865eda86701c364887169a32",
+  "approvedChangedFileCount": 82,
+  "approvedChangedFileSetSha256": "024e5b4db507f1526085af9dc2dd6ef71755d1e7063f0cdd418a3c1896229866",
   "additionalAllowedPaths": [
     "backend/runtime/AppRuntime.js",
     "backend/runtime/NamedRuntimeMutex.js",
@@ -27,7 +27,9 @@
     "tests/wp0/acv2-work-package-scope-wiring.test.js",
     "tests/wp0/implementation-branch-policy.test.js",
     "tests/wp5/m5-sqlite-ownership.test.js",
-    "tools/wp0/verify-gate.js"
+    "tools/wp0/run-protected-command.js",
+    "tools/wp0/verify-gate.js",
+    "tools/wp0/work-package-scope-gate.js"
   ],
   "reviewFindings": [
     {
@@ -63,9 +65,11 @@
         "shared/release/implementationBranchPolicy.js",
         "tests/wp0/acv2-work-package-scope-wiring.test.js",
         "tests/wp0/implementation-branch-policy.test.js",
-        "tools/wp0/verify-gate.js"
+        "tools/wp0/run-protected-command.js",
+        "tools/wp0/verify-gate.js",
+        "tools/wp0/work-package-scope-gate.js"
       ],
-      "reason": "The exact authorized child branch and reviewed changed-file set must be consumed by both the WP0 regression suite and the executable gate used by protected build, package and release commands."
+      "reason": "One shared fail-closed scope gate now protects both verify:wp0:gate and the build/package/release wrapper. It validates a clean worktree, the frozen authorization blob, the fixed parent Head and the exact reviewed changed-file set."
     }
   ],
   "governance": {
@@ -85,6 +89,7 @@
     "AUTHORIZED_BRANCH_MISMATCH",
     "BASE_AUTHORIZATION_BLOB_MISMATCH",
     "PARENT_GOVERNANCE_HEAD_MISMATCH",
+    "WORKTREE_NOT_CLEAN",
     "PR_MARKED_READY_OR_MERGED",
     "ANY_WILDCARD_SCOPE_EXPANSION",
     "AUTOMATIC_NEXT_TASK_OR_WORK_PACKAGE_AUTHORIZATION"
