@@ -43,6 +43,10 @@ const { getScopedSafetyAuthority } = require('../services/scopedSafetyAuthority'
 const { AuthorityTransactionCoordinator } = require('../services/authorityTransactionCoordinator');
 const { CanonicalEventLedgerAuthority } = require('../services/canonicalEventLedgerAuthority');
 const { IdentityAuthority } = require('../services/identityAuthority');
+const {
+  isAuthorityWriteHostCapability,
+  assertCurrentAuthorityWriteHostToken
+} = require('../services/authorityWriteHost');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
 const { canonicalHash } = require('../services/canonicalSerialization');
 const { AppRuntimeError } = require('./errors');
@@ -137,13 +141,35 @@ class RuntimeAuthorityCommandGateway {
   constructor(options = {}) {
     this.runtime = options.runtime;
     this.authorityWriteHostCapability = options.authorityWriteHostCapability;
+    this.authorityStore = options.authorityStore;
     this.receipts = new Map();
-    if (!this.runtime || !this.authorityWriteHostCapability) {
-      throw gatewayError('STARTUP_COMMAND_GATEWAY_AUTHORITY_REQUIRED', 'Startup command gateway requires runtime authority', 503);
+    if (!this.runtime
+      || !isAuthorityWriteHostCapability(this.authorityWriteHostCapability)
+      || !this.authorityStore?.db
+      || typeof this.authorityStore.transaction !== 'function') {
+      throw gatewayError(
+        'STARTUP_COMMAND_GATEWAY_WRITE_HOST_REQUIRED',
+        'Startup command gateway requires the current broker-owned write-host capability and authority store',
+        503
+      );
     }
+    if (this.authorityStore.authorityWriteHostCapability !== this.authorityWriteHostCapability) {
+      throw gatewayError(
+        'STARTUP_COMMAND_GATEWAY_STORE_MISMATCH',
+        'Startup command gateway authority store is not bound to the supplied write-host capability',
+        409
+      );
+    }
+    this.assertAuthorityCurrent();
+  }
+
+  assertAuthorityCurrent() {
+    assertCurrentAuthorityWriteHostToken(this.authorityWriteHostCapability, this.authorityStore.db);
+    return true;
   }
 
   execute(input) {
+    this.assertAuthorityCurrent();
     const envelope = assertStartupEnvelope(input);
     const contentSha256 = canonicalHash(envelope);
     const existing = this.receipts.get(envelope.commandId);
@@ -160,6 +186,7 @@ class RuntimeAuthorityCommandGateway {
         actualStateVersion: Number(snapshot.stateVersion)
       });
     }
+    this.assertAuthorityCurrent();
     const handler = STARTUP_COMMAND_HANDLERS[envelope.commandType];
     const result = handler(envelope.payload);
     if (result && typeof result.then === 'function') {
@@ -216,7 +243,8 @@ function createAppRuntimeComposition(runtime) {
   const identityAuthority = new IdentityAuthority({ repository: platformCoreRepository });
   const authorityCommandGateway = new RuntimeAuthorityCommandGateway({
     runtime,
-    authorityWriteHostCapability
+    authorityWriteHostCapability,
+    authorityStore
   });
   const commandSubmitter = envelope => authorityCommandGateway.execute(envelope);
 
