@@ -293,10 +293,10 @@ function boundServerPort() {
 }
 
 function announceReady() {
-  const authorityState = AppRuntimeFactory.assertAuthorityReady();
+  const authorityState = AppRuntimeFactory.assertAuthorityReady({ requireStartupGatewaySealed: true });
   const canonicalLedgerReady = authorityState.canonicalLedgerReady === true;
   const identityAuthorityReady = authorityState.identityAuthorityReady === true;
-  if (!authorityState.authorityWriteHostBound || !canonicalLedgerReady || !identityAuthorityReady) {
+  if (!authorityState.authorityWriteHostBound || !canonicalLedgerReady || !identityAuthorityReady || !authorityState.canonicalGraphBound || !authorityState.startupGatewaySealed) {
     const error = new Error('Backend authority readiness could not be proven');
     error.code = 'BACKEND_AUTHORITY_READINESS_FAILED';
     throw error;
