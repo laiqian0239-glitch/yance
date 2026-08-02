@@ -148,6 +148,64 @@ test('AppRuntimeFactory rejects a runtime state store bound to a different prima
   }
 });
 
+test('startup command gateway rejects forged write-host capabilities before any handler can run', () => {
+  const { RuntimeAuthorityCommandGateway } = require('../../../runtime/AppRuntimeComposition');
+  const forged = { forged: true };
+  assert.throws(
+    () => new RuntimeAuthorityCommandGateway({
+      runtime: { snapshot: () => ({ stateVersion: 1 }) },
+      authorityWriteHostCapability: forged,
+      authorityStore: { db: {}, transaction() {}, authorityWriteHostCapability: forged }
+    }),
+    error => error?.code === 'STARTUP_COMMAND_GATEWAY_WRITE_HOST_REQUIRED'
+  );
+});
+
+test('startup command gateway rejects a capability fenced by a newer host generation', () => {
+  const { RuntimeAuthorityCommandGateway } = require('../../../runtime/AppRuntimeComposition');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-acv2-a6-stale-gateway-'));
+  const dbPath = path.join(root, 'yance-r32.db');
+  let hostA;
+  let hostB;
+  let brokerA;
+  let brokerB;
+  try {
+    hostA = acquireAuthorityWriteHost({
+      dbPath,
+      instanceId: 'a6-gateway-host-a',
+      ownershipPid: 47001,
+      ownershipProcessIdentity: 'a6-gateway-host-a',
+      ownershipPidAlive: pid => pid === 47001
+    });
+    brokerA = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: hostA.capability });
+    const authorityStoreA = brokerA.open();
+    hostA.releaseStartupClaimForTests();
+    hostB = acquireAuthorityWriteHost({
+      dbPath,
+      instanceId: 'a6-gateway-host-b',
+      ownershipPid: 47002,
+      ownershipProcessIdentity: 'a6-gateway-host-b',
+      ownershipPidAlive: () => false
+    });
+    brokerB = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: hostB.capability });
+    brokerB.open();
+    assert.throws(
+      () => new RuntimeAuthorityCommandGateway({
+        runtime: { snapshot: () => ({ stateVersion: 1 }) },
+        authorityWriteHostCapability: hostA.capability,
+        authorityStore: authorityStoreA
+      }),
+      error => error?.code === 'AUTHORITY_WRITE_HOST_FENCED'
+    );
+  } finally {
+    try { brokerB?.checkpointAndClose(); } catch (_) {}
+    try { hostB?.release(); } catch (_) {}
+    try { brokerA?.checkpointAndClose(); } catch (_) {}
+    try { hostA?.release(); } catch (_) {}
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  }
+});
+
 test('desktop runtime client refuses own or inherited primary write capability injection', () => {
   const { ApiV2RuntimeClient } = require('../../../../electron/desktopHost/ApiV2RuntimeClient');
   const baseOptions = {
@@ -177,21 +235,24 @@ test('startup command payload accessors are rejected without getter execution', 
       return 'must-not-run';
     }
   });
-  const gateway = new RuntimeAuthorityCommandGateway({
-    runtime: { snapshot: () => ({ stateVersion: 1 }) },
-    authorityWriteHostCapability: { testOnly: true }
+  withAuthorityStore('yance-acv2-a6-payload-', ({ host, authorityStore }) => {
+    const gateway = new RuntimeAuthorityCommandGateway({
+      runtime: { snapshot: () => ({ stateVersion: 1 }) },
+      authorityWriteHostCapability: host.capability,
+      authorityStore
+    });
+    assert.throws(
+      () => gateway.execute({
+        contractVersion: 2,
+        commandId: '11111111-1111-4111-8111-111111111111',
+        commandType: 'startup.invalid',
+        expectedStateVersion: 1,
+        issuedAtUtc: '2026-08-02T11:00:00.000Z',
+        payload
+      }),
+      error => error?.code === 'STARTUP_COMMAND_PAYLOAD_ACCESSOR_FORBIDDEN'
+    );
   });
-  assert.throws(
-    () => gateway.execute({
-      contractVersion: 2,
-      commandId: '11111111-1111-4111-8111-111111111111',
-      commandType: 'startup.invalid',
-      expectedStateVersion: 1,
-      issuedAtUtc: '2026-08-02T11:00:00.000Z',
-      payload
-    }),
-    error => error?.code === 'STARTUP_COMMAND_PAYLOAD_ACCESSOR_FORBIDDEN'
-  );
   assert.equal(getterExecuted, false);
 });
 
