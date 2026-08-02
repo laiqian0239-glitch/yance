@@ -55,7 +55,7 @@ test('repository task scope chain is machine-readable and pins A6 and A7 closed 
   assert.equal(document.tasks[1].parentTask, 'A6');
   assert.equal(document.tasks[1].parentEvidenceBranchTip, document.tasks[0].evidenceBranchTip);
   assert.equal(document.tasks[2].task, 'A8');
-  assert.equal(document.tasks[2].state, 'INDEPENDENT_REVIEW');
+  assert.equal(document.tasks[2].state, 'CLOSED');
   assert.equal(document.tasks[2].parentTask, 'A7');
   assert.equal(document.tasks[2].parentEvidenceBranchTip, document.tasks[1].evidenceBranchTip);
   assert.equal(document.governance.wildcardExpansionAllowed, false);

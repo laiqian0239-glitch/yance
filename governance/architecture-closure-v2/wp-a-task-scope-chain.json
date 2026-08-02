@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "documentType": "YANCE_ACV2_TASK_SCOPE_CHAIN",
-  "status": "A8_INDEPENDENT_REVIEW",
+  "status": "A8_CLOSED",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "WP-A",
   "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
@@ -10,8 +10,8 @@
   "baseAuthorizationBlobSha": "203697b36c06e0dc72c92113ef58f1a8f2394312",
   "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
   "activeTask": "A8",
-  "approvedChangedFileCount": 126,
-  "approvedChangedFileSetSha256": "5803a74dcef56f940655e37aab5fa8241c7aac0d4c0d9158595d1120ab7408cc",
+  "approvedChangedFileCount": 127,
+  "approvedChangedFileSetSha256": "567aa6bce738497f291bd9116d71abc3bff0f85267258cd6ddf36d24d2f2f38b",
   "tasks": [
     {
       "task": "A6",
@@ -63,13 +63,13 @@
     },
     {
       "task": "A8",
-      "state": "INDEPENDENT_REVIEW",
+      "state": "CLOSED",
       "parentTask": "A7",
       "parentEvidenceBranchTip": "cbfaf2855f9eb2137dbdccddff1ef396d5bb4ef3",
       "redEvidenceHead": "55cb4f79f1af5e8d38e3ee04858a206aa4b041f5",
       "redEvidencePath": "governance/architecture-closure-v2/wp-a-a8-red-evidence.json",
-      "reviewedCodeHead": "a0958ba7c387f9b68d3f795f99961d2f68d5516d",
-      "evidenceBranchTip": "a0958ba7c387f9b68d3f795f99961d2f68d5516d",
+      "reviewedCodeHead": "31ea3b2a1cdd95023e5ab6655bb2e36cdcd8dfde",
+      "evidenceBranchTip": "31ea3b2a1cdd95023e5ab6655bb2e36cdcd8dfde",
       "closureReceiptPath": "governance/architecture-closure-v2/wp-a-a8-closure.json",
       "additionalAllowedPaths": [
         ".github/workflows/windows-production-release.yml",
