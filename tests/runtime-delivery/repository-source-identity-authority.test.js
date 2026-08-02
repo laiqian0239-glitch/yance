@@ -28,6 +28,17 @@ function createMinimalExport(root) {
   return root;
 }
 
+function derivedIdentityCliArgs(exportRoot, derivedVersion) {
+  return [
+    path.join(REPO_ROOT, 'tools', 'runtime-delivery', 'create-derived-source-identity.js'),
+    `--root=${exportRoot}`,
+    `--derived-version=${derivedVersion}`,
+    '--release-batch=BATCH40',
+    `--base-commit=${'1'.repeat(40)}`,
+    `--base-tree=${'2'.repeat(40)}`
+  ];
+}
+
 test('mutable Git repository does not track an export-derived source identity', () => {
   const tracked = spawnSync('git', ['ls-files', '--error-unmatch', DERIVED_IDENTITY], {
     cwd: REPO_ROOT,
@@ -64,6 +75,19 @@ test('repository artifact descriptor truthfully declares runtime Git identity an
   assert.equal(identity.tree, git(['rev-parse', 'HEAD^{tree}']));
 });
 
+test('derived identity API accepts a true Git-free export and binds its payload', () => {
+  const exportRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-derived-git-free-'));
+  try {
+    createMinimalExport(exportRoot);
+    const document = delivery.createDerivedSourceIdentity(exportRoot, VALID_IDENTITY_OPTIONS);
+    assert.equal(document.documentType, 'YANCE_DERIVED_SOURCE_IDENTITY');
+    assert.match(document.payloadManifestSha256, /^[0-9a-f]{64}$/u);
+    assert.equal(delivery.resolveSourceIdentity(exportRoot).payloadManifestSha256, document.payloadManifestSha256);
+  } finally {
+    fs.rmSync(exportRoot, { recursive: true, force: true });
+  }
+});
+
 test('derived identity CLI rejects a mutable Git repository root', () => {
   const child = spawnSync(process.execPath, [
     'tools/runtime-delivery/create-derived-source-identity.js',
@@ -88,6 +112,7 @@ test('derived identity API rejects an export directory nested inside a Git workt
     assert.throws(
       () => delivery.createDerivedSourceIdentity(nestedExport, VALID_IDENTITY_OPTIONS),
       error => error?.reasonCode === 'SOURCE_UAT_DERIVED_IDENTITY_GIT_ROOT_FORBIDDEN'
+        && error?.details?.relation === 'GIT_REV_PARSE_CONTEXT'
         && Boolean(error?.details?.gitMetadataPath),
       'a subdirectory of a mutable worktree must never be treated as a sealed export'
     );
@@ -101,23 +126,59 @@ test('derived identity CLI rejects an export directory nested inside a Git workt
   try {
     execFileSync('git', ['init', '--quiet', repositoryRoot], { encoding: 'utf8' });
     const nestedExport = createMinimalExport(path.join(repositoryRoot, 'exports', 'candidate'));
-    const child = spawnSync(process.execPath, [
-      path.join(REPO_ROOT, 'tools', 'runtime-delivery', 'create-derived-source-identity.js'),
-      `--root=${nestedExport}`,
-      '--derived-version=NESTED_WORKTREE_MUST_BE_REJECTED',
-      '--release-batch=BATCH40',
-      `--base-commit=${'1'.repeat(40)}`,
-      `--base-tree=${'2'.repeat(40)}`
-    ], {
+    const child = spawnSync(process.execPath, derivedIdentityCliArgs(nestedExport, 'NESTED_WORKTREE_MUST_BE_REJECTED'), {
       cwd: nestedExport,
       encoding: 'utf8'
     });
     assert.notEqual(child.status, 0);
     const error = JSON.parse(child.stderr);
     assert.equal(error.reasonCode, 'SOURCE_UAT_DERIVED_IDENTITY_GIT_ROOT_FORBIDDEN');
+    assert.equal(error.details?.relation, 'GIT_REV_PARSE_CONTEXT');
     assert.ok(error.details?.gitMetadataPath);
   } finally {
     fs.rmSync(repositoryRoot, { recursive: true, force: true });
+  }
+});
+
+test('derived identity API rejects a root-level .git file even when its target is invalid', () => {
+  const exportRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-derived-git-file-'));
+  try {
+    createMinimalExport(exportRoot);
+    const gitFile = path.join(exportRoot, '.git');
+    fs.writeFileSync(gitFile, 'gitdir: ../missing-git-directory\n', 'utf8');
+    assert.throws(
+      () => delivery.createDerivedSourceIdentity(exportRoot, VALID_IDENTITY_OPTIONS),
+      error => error?.reasonCode === 'SOURCE_UAT_DERIVED_IDENTITY_GIT_ROOT_FORBIDDEN'
+        && path.resolve(error?.details?.gitMetadataPath || '') === path.resolve(gitFile),
+      'a .git file is mutable repository metadata and must invalidate the export seal'
+    );
+  } finally {
+    fs.rmSync(exportRoot, { recursive: true, force: true });
+  }
+});
+
+test('derived identity CLI rejects Git context supplied through GIT_DIR and GIT_WORK_TREE', () => {
+  const repositoryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-derived-env-git-'));
+  const exportRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-derived-env-export-'));
+  try {
+    execFileSync('git', ['init', '--quiet', repositoryRoot], { encoding: 'utf8' });
+    createMinimalExport(exportRoot);
+    const child = spawnSync(process.execPath, derivedIdentityCliArgs(exportRoot, 'ENV_GIT_CONTEXT_MUST_BE_REJECTED'), {
+      cwd: exportRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        GIT_DIR: path.join(repositoryRoot, '.git'),
+        GIT_WORK_TREE: repositoryRoot
+      }
+    });
+    assert.notEqual(child.status, 0);
+    const error = JSON.parse(child.stderr);
+    assert.equal(error.reasonCode, 'SOURCE_UAT_DERIVED_IDENTITY_GIT_ROOT_FORBIDDEN');
+    assert.equal(error.details?.relation, 'GIT_REV_PARSE_CONTEXT');
+  } finally {
+    fs.rmSync(repositoryRoot, { recursive: true, force: true });
+    fs.rmSync(exportRoot, { recursive: true, force: true });
   }
 });
 
