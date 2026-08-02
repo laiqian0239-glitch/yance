@@ -12,16 +12,19 @@ function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(repoRoot, relativePath), 'utf8'));
 }
 
-test('A0 baseline pins the approved governance head and test-only file scope', () => {
+test('A0 baseline pins the approved governance head and recorded RED scope', () => {
   const baseline = readJson(scanner.BASELINE_PATH);
   assert.equal(baseline.parentGovernanceHead, 'd81599d8a3f3de891da369b6f1ddbd01e264c78d');
   assert.equal(baseline.authorizedBranch, 'acv2/wp-a-identity-ledger-write-host');
-  assert.equal(baseline.productionCodeAllowedInTask, false);
+  assert.equal(baseline.a0ProductionBusinessCodeChanged, false);
   assert.equal(baseline.governanceInfrastructureChangeAllowed, true);
   assert.equal(baseline.redEvidenceRequiredBeforeProductionCode, true);
-  assert.deepEqual(baseline.changedFileAllowlist, [
+  assert.equal(baseline.redEvidenceSatisfied, true);
+  assert.equal(baseline.currentAuthorizedTask, 'A1_INTRODUCE_SCHEMA_21_AND_PERSISTENT_AUTHORITY_WRITE_HOST_LEASE');
+  assert.deepEqual(baseline.a0ChangedFileAllowlist, [
     'governance/architecture-closure-v2/wp-a-baseline.json',
     'governance/architecture-closure-v2/wp-a-branch-policy-amendment.json',
+    'governance/architecture-closure-v2/wp-a-a0-red-evidence.json',
     'governance/architecture-closure-v2/authority-registry.json',
     'tools/architecture-closure-v2/source-closure-scan.js',
     'backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js',
@@ -30,6 +33,14 @@ test('A0 baseline pins the approved governance head and test-only file scope', (
     'tests/wp0/implementation-branch-policy.test.js',
     'package.json'
   ]);
+
+  const evidence = readJson(baseline.validRedEvidence.document);
+  assert.equal(evidence.status, 'VALID_RED_RECORDED');
+  assert.equal(evidence.redHead, baseline.validRedEvidence.head);
+  assert.equal(evidence.workflow.runId, baseline.validRedEvidence.workflowRunId);
+  assert.equal(evidence.workflow.wp0JobId, baseline.validRedEvidence.workflowJobId);
+  assert.equal(evidence.productionBusinessCodeChanged, false);
+  assert.deepEqual(evidence.requiredViolationClassesSatisfied, baseline.requiredRedViolationClasses);
 });
 
 test('authority registry is complete, single-classified, and bound to real source paths', () => {
@@ -72,7 +83,7 @@ test('scanner rejects an unregistered writable primary-store acquisition', () =>
   ]);
 });
 
-test('WP-A source closure is blocked until the four root violation classes are removed', () => {
+test('WP-A source closure remains blocked until the recorded root violations are removed', () => {
   const baseline = readJson(scanner.BASELINE_PATH);
   const report = scanner.scanRegisteredSources({ wp: 'A' });
   for (const violationClass of baseline.requiredRedViolationClasses) {
