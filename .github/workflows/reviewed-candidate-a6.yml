@@ -42,6 +42,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: false
           lfs: false
+          persist-credentials: false
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
@@ -137,6 +138,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: false
           lfs: false
+          persist-credentials: false
       - name: Set up Node.js for candidate verification
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
@@ -176,7 +178,7 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
-      - name: Fetch and verify trusted Electron LFS object
+      - name: Fetch trusted Electron LFS object and remove credentials
         shell: bash
         run: |
           set -euo pipefail
@@ -184,6 +186,8 @@ jobs:
           git lfs pull origin --include="${ELECTRON_LFS_PATH}" --exclude=""
           echo "${ELECTRON_LFS_OID}  ${ELECTRON_LFS_PATH}" | sha256sum --check --strict
           test "$(stat --format='%s' "${ELECTRON_LFS_PATH}")" = "${ELECTRON_LFS_SIZE}"
+          git config --local --unset-all http.https://github.com/.extraheader || true
+          git config --local --unset-all credential.helper || true
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
