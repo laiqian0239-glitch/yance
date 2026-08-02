@@ -42,9 +42,10 @@ jobs:
           fetch-tags: false
           lfs: false
       - name: Set up Node.js for candidate verification
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Fetch and verify exact reviewed candidate
         shell: bash
         run: |
@@ -61,11 +62,12 @@ jobs:
           fetch-depth: 1
           fetch-tags: false
           lfs: false
+          persist-credentials: false
       - name: Set up reviewed Node.js runtime
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
-          cache: npm
+          package-manager-cache: false
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run unfiltered SQLite ownership and fencing regressions
