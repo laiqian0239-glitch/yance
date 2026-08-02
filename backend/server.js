@@ -41,7 +41,7 @@ const STARTUP_AUTHORITY_READINESS = AppRuntimeFactory.assertAuthorityReady();
 
 function executeStartupAuthorityCommand(commandType, payload = {}) {
   const snapshot = APP_RUNTIME.snapshot();
-  return APP_RUNTIME.executeBusinessCommand({
+  return RUNTIME_COMPOSITION.commandSubmitter({
     contractVersion: 2,
     commandId: randomUUID(),
     commandType,
