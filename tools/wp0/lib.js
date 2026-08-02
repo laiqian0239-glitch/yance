@@ -17,7 +17,11 @@ const POLICY_PATH = path.join(REPO_ROOT, 'governance', 'stage-policy.json');
 const REJECTED_BASELINE_PATH = path.join(REPO_ROOT, 'governance', 'rejected-baselines', 'stage-6.4.5.8.json');
 const REPOSITORY_SCOPE_POLICY_PATH = path.join(REPO_ROOT, 'governance', 'repository-scope-policy.json');
 const EXPECTED_TAG = 'stage-6.4.5.8-rejected-architecture';
-const EXPECTED_BASELINE_COMMIT = 'c150182219edea2faf49c714275e9921a21df742';
+const EXPECTED_BASELINE_PROVENANCE_COMMIT = 'c150182219edea2faf49c714275e9921a21df742';
+const EXPECTED_BASELINE_COMMIT = EXPECTED_BASELINE_PROVENANCE_COMMIT;
+const EXPECTED_BASELINE_ANCHOR_COMMIT = '570823e722f6db475066d6ef80ba900ac5c6cb39';
+const EXPECTED_BASELINE_ANCHOR_PATH = 'governance/rejected-baselines/stage-6.4.5.8.json';
+const EXPECTED_BASELINE_ANCHOR_BLOB = '6a5ffc68e76baf6a477668c6c2faf61934e94720';
 const PROTECTED_ACTIVE_ROOTS = new Set([
   'backend',
   'electron',
@@ -214,36 +218,112 @@ function scanRepositoryReleaseSurfaces(rootDir = REPO_ROOT) {
   };
 }
 
-function verifyImmutableTag() {
+function essentialRejectedBaselineFields(document) {
+  return {
+    stage: document?.stage,
+    status: document?.status,
+    archivalUseOnly: document?.archivalUseOnly,
+    runtimeChangesAllowed: document?.runtimeChangesAllowed,
+    hotfixesAllowed: document?.hotfixesAllowed,
+    releaseCandidateAllowed: document?.releaseCandidateAllowed,
+    overlayInstallersAllowed: document?.overlayInstallersAllowed,
+    reasonCode: document?.reasonCode,
+    replacementStage: document?.replacementStage,
+    baselineCommit: document?.baselineCommit
+  };
+}
+
+function verifyRejectedBaselineAnchor(options = {}) {
+  const policy = readJson(POLICY_PATH);
+  const repositoryScope = readJson(REPOSITORY_SCOPE_POLICY_PATH);
+  const currentRejected = readJson(REJECTED_BASELINE_PATH);
+  const authority = policy.baselineAuthority || {};
+  const expectedProvenanceCommit = options.expectedProvenanceCommit || EXPECTED_BASELINE_PROVENANCE_COMMIT;
+  const expectedAnchorCommit = options.expectedAnchorCommit || EXPECTED_BASELINE_ANCHOR_COMMIT;
+  const expectedAnchorPath = options.expectedAnchorPath || EXPECTED_BASELINE_ANCHOR_PATH;
+  const expectedAnchorBlob = options.expectedAnchorBlob || EXPECTED_BASELINE_ANCHOR_BLOB;
   const errors = [];
-  let tagRef = null;
-  let tagObjectType = null;
-  let peeledCommit = null;
-  try { tagRef = git(['show-ref', '--verify', '--hash', `refs/tags/${EXPECTED_TAG}`]); }
-  catch { errors.push(`missing Git tag refs/tags/${EXPECTED_TAG}`); }
-  if (tagRef) {
-    try { tagObjectType = git(['cat-file', '-t', `refs/tags/${EXPECTED_TAG}`]); }
-    catch { errors.push('unable to inspect immutable tag object type'); }
-    try { peeledCommit = git(['rev-parse', `refs/tags/${EXPECTED_TAG}^{}`]); }
-    catch { errors.push('unable to peel immutable tag to commit'); }
+  let anchorObjectType = null;
+  let anchorBlob = null;
+  let anchorIsAncestor = false;
+  let archivedRejected = null;
+  let provenanceObjectPresent = false;
+
+  if (policy.schemaVersion !== 2) errors.push('stage policy must use schemaVersion 2 archive authority');
+  if (authority.type !== 'CANONICAL_PORTABLE_REPOSITORY_ARCHIVE_ANCHOR') errors.push('baselineAuthority.type mismatch');
+  if (authority.originalVcsHistoryAvailable !== false) errors.push('baseline authority must declare originalVcsHistoryAvailable=false');
+  if (repositoryScope.originalVcsHistoryAvailable !== false) errors.push('repository scope must declare originalVcsHistoryAvailable=false');
+  if (authority.provenanceCommit !== expectedProvenanceCommit) errors.push('baseline provenance commit mismatch');
+  if (authority.anchorCommit !== expectedAnchorCommit) errors.push('baseline anchor commit mismatch');
+  if (authority.anchorPath !== expectedAnchorPath) errors.push('baseline anchor path mismatch');
+  if (authority.anchorBlob !== expectedAnchorBlob) errors.push('baseline anchor blob policy mismatch');
+  if (policy.baselineCommit !== expectedProvenanceCommit) errors.push('stage policy baselineCommit mismatch');
+  if (currentRejected.baselineCommit !== expectedProvenanceCommit) errors.push('current rejected baseline provenance mismatch');
+
+  try { anchorObjectType = git(['cat-file', '-t', expectedAnchorCommit]); }
+  catch { errors.push(`missing canonical archive anchor commit ${expectedAnchorCommit}`); }
+  if (anchorObjectType && anchorObjectType !== 'commit') errors.push('canonical archive anchor object must be a commit');
+
+  try {
+    git(['merge-base', '--is-ancestor', expectedAnchorCommit, 'HEAD']);
+    anchorIsAncestor = true;
+  } catch {
+    errors.push('canonical archive anchor commit must be an ancestor of HEAD');
   }
-  if (tagObjectType !== 'tag') errors.push('immutable tag must be an annotated tag object');
-  if (peeledCommit !== EXPECTED_BASELINE_COMMIT) errors.push(`immutable tag must point to baseline commit ${EXPECTED_BASELINE_COMMIT}`);
+
+  try { anchorBlob = git(['rev-parse', `${expectedAnchorCommit}:${expectedAnchorPath}`]); }
+  catch { errors.push(`canonical archive anchor path is missing: ${expectedAnchorPath}`); }
+  if (anchorBlob && anchorBlob !== expectedAnchorBlob) errors.push(`canonical archive anchor blob mismatch: expected ${expectedAnchorBlob}, got ${anchorBlob}`);
+
+  try { archivedRejected = JSON.parse(git(['show', `${expectedAnchorCommit}:${expectedAnchorPath}`])); }
+  catch { errors.push('unable to read or parse rejected baseline from canonical archive anchor'); }
+
+  if (archivedRejected) {
+    const archivedFields = essentialRejectedBaselineFields(archivedRejected);
+    const currentFields = essentialRejectedBaselineFields(currentRejected);
+    if (JSON.stringify(archivedFields) !== JSON.stringify(currentFields)) {
+      errors.push('current rejected baseline decision differs from canonical archive anchor');
+    }
+  }
+
+  const currentArchiveAuthority = currentRejected.archiveAuthority || {};
+  if (currentRejected.schemaVersion !== 2) errors.push('current rejected baseline must use schemaVersion 2');
+  if (currentArchiveAuthority.type !== authority.type) errors.push('current rejected baseline archive authority type mismatch');
+  if (currentArchiveAuthority.originalVcsHistoryAvailable !== false) errors.push('current rejected baseline must declare originalVcsHistoryAvailable=false');
+  if (currentArchiveAuthority.anchorCommit !== expectedAnchorCommit) errors.push('current rejected baseline anchor commit mismatch');
+  if (currentArchiveAuthority.anchorPath !== expectedAnchorPath) errors.push('current rejected baseline anchor path mismatch');
+  if (currentArchiveAuthority.anchorBlob !== expectedAnchorBlob) errors.push('current rejected baseline anchor blob mismatch');
+
+  try {
+    git(['cat-file', '-e', `${expectedProvenanceCommit}^{commit}`]);
+    provenanceObjectPresent = true;
+  } catch {
+    provenanceObjectPresent = false;
+  }
+  if (provenanceObjectPresent) errors.push('portable repository unexpectedly contains original VCS baseline commit while policy declares history unavailable');
+
   return {
     pass: errors.length === 0,
-    reasonCode: errors.length ? 'WP0_IMMUTABLE_TAG_INVALID' : null,
+    reasonCode: errors.length ? 'WP0_REJECTED_BASELINE_ANCHOR_INVALID' : null,
     errors,
-    tagName: EXPECTED_TAG,
-    tagRefObject: tagRef,
-    tagObjectType,
-    peeledCommit,
-    expectedBaselineCommit: EXPECTED_BASELINE_COMMIT
+    authorityType: authority.type || null,
+    provenanceCommit: expectedProvenanceCommit,
+    originalVcsHistoryAvailable: repositoryScope.originalVcsHistoryAvailable,
+    provenanceObjectPresent,
+    anchorCommit: expectedAnchorCommit,
+    anchorObjectType,
+    anchorIsAncestor,
+    anchorPath: expectedAnchorPath,
+    expectedAnchorBlob,
+    anchorBlob,
+    archivedDecision: archivedRejected ? essentialRejectedBaselineFields(archivedRejected) : null,
+    currentDecision: essentialRejectedBaselineFields(currentRejected)
   };
 }
 
 function changedFilesSinceBaseline() {
   try {
-    const raw = git(['diff', '--name-only', `${EXPECTED_TAG}^{}`, 'HEAD']);
+    const raw = git(['diff', '--name-only', EXPECTED_BASELINE_ANCHOR_COMMIT, 'HEAD']);
     return raw ? raw.split(/\r?\n/).filter(Boolean).sort() : [];
   } catch {
     return [];
@@ -284,33 +364,34 @@ function checkFreezePolicy(options = {}) {
   if (policy.currentBranch !== ALLOWED_BRANCH) errors.push('currentBranch mismatch');
   if (policy.authorizedRebuildBranchPattern !== REBUILD_BRANCH_PATTERN_SOURCE) errors.push('authorizedRebuildBranchPattern mismatch');
   if (policy.originalStageBranchRewriteAllowed !== false) errors.push('originalStageBranchRewriteAllowed must be false');
-  if (policy.baselineCommit !== EXPECTED_BASELINE_COMMIT) errors.push('stage policy baselineCommit mismatch');
-  if (rejected.baselineCommit !== EXPECTED_BASELINE_COMMIT) errors.push('rejected baseline commit mismatch');
+  if (policy.baselineCommit !== EXPECTED_BASELINE_PROVENANCE_COMMIT) errors.push('stage policy baselineCommit mismatch');
+  if (rejected.baselineCommit !== EXPECTED_BASELINE_PROVENANCE_COMMIT) errors.push('rejected baseline commit mismatch');
   const baseline = policy.rejectedBaselines.find((item) => item.stage === REJECTED_STAGE);
   if (!baseline) errors.push(`missing rejected Stage ${REJECTED_STAGE} baseline`);
   else {
     if (baseline.status !== 'REJECTED_ARCHITECTURE_NOT_CLOSED') errors.push('rejected baseline status mismatch');
+    if (baseline.historicalTagLabel !== EXPECTED_TAG) errors.push('rejected baseline historicalTagLabel mismatch');
     for (const key of ['hotfixesAllowed', 'runtimeChangesAllowed', 'releaseCandidateAllowed', 'overlayInstallersAllowed']) {
       if (baseline[key] !== false) errors.push(`${key} must be false`);
     }
   }
   if (rejected.archivalUseOnly !== true) errors.push('rejected baseline must be archivalUseOnly');
   if (rejected.replacementStage !== CURRENT_STAGE) errors.push('replacementStage mismatch');
-  const tag = verifyImmutableTag();
-  if (!tag.pass) errors.push(...tag.errors);
+  const anchor = verifyRejectedBaselineAnchor(options.baselineAnchorOptions || {});
+  if (!anchor.pass) errors.push(...anchor.errors);
   const runtimeTarget = checkRuntimeTargetGate(options);
   if (!runtimeTarget.pass) errors.push(...runtimeTarget.errors);
   return {
     id: 'freeze-rejected-baseline.test',
     pass: errors.length === 0,
-    reasonCode: errors.length ? (tag.pass ? runtimeTarget.reasonCode || 'WP0_FREEZE_POLICY_INVALID' : tag.reasonCode) : null,
+    reasonCode: errors.length ? (anchor.pass ? runtimeTarget.reasonCode || 'WP0_FREEZE_POLICY_INVALID' : anchor.reasonCode) : null,
     errors,
     details: {
       policyId: policy.policyId,
       currentStage: policy.currentStage,
       rejectedStage: rejected.stage,
       rejectedStatus: rejected.status,
-      immutableTag: tag,
+      baselineAnchor: anchor,
       runtimeTargetGate: runtimeTarget
     }
   };
@@ -456,7 +537,8 @@ function runAllChecks(options = {}) {
       targetStage: options.targetStage || CURRENT_STAGE,
       branch: Object.prototype.hasOwnProperty.call(options, 'branch') ? options.branch : currentBranch(),
       evidenceMode: options.evidenceMode === true,
-      evidenceSourceCommit: options.evidenceSourceCommit || null
+      evidenceSourceCommit: options.evidenceSourceCommit || null,
+      baselineAnchorOptions: options.baselineAnchorOptions || null
     }),
     checkOverlayInstallerPatterns(rootDir),
     checkUnsignedModePolicy(),
@@ -469,11 +551,12 @@ function verifyWp0Gate(options = {}) {
     targetStage: options.targetStage || CURRENT_STAGE,
     ...(Object.prototype.hasOwnProperty.call(options, 'branch') ? { branch: options.branch } : {}),
     evidenceMode: options.evidenceMode === true,
-    evidenceSourceCommit: options.evidenceSourceCommit || null
+    evidenceSourceCommit: options.evidenceSourceCommit || null,
+    baselineAnchorOptions: options.baselineAnchorOptions || null
   });
   const failed = checks.filter((item) => !item.pass);
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     gateId: `YANCE-S${CURRENT_STAGE}-WP0-LOCAL-GATE`,
     status: failed.length ? 'FAIL' : 'PASS',
     reasonCode: failed.length ? failed[0].reasonCode : null,
@@ -500,6 +583,10 @@ module.exports = {
   REPOSITORY_SCOPE_POLICY_PATH,
   EXPECTED_TAG,
   EXPECTED_BASELINE_COMMIT,
+  EXPECTED_BASELINE_PROVENANCE_COMMIT,
+  EXPECTED_BASELINE_ANCHOR_COMMIT,
+  EXPECTED_BASELINE_ANCHOR_PATH,
+  EXPECTED_BASELINE_ANCHOR_BLOB,
   CURRENT_STAGE,
   ALLOWED_BRANCH,
   REJECTED_STAGE,
@@ -512,7 +599,7 @@ module.exports = {
   listTrackedFiles,
   classifyScanPath,
   scanRepositoryReleaseSurfaces,
-  verifyImmutableTag,
+  verifyRejectedBaselineAnchor,
   changedFilesSinceBaseline,
   checkRuntimeTargetGate,
   checkFreezePolicy,
