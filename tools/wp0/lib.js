@@ -18,6 +18,16 @@ const REJECTED_BASELINE_PATH = path.join(REPO_ROOT, 'governance', 'rejected-base
 const REPOSITORY_SCOPE_POLICY_PATH = path.join(REPO_ROOT, 'governance', 'repository-scope-policy.json');
 const EXPECTED_TAG = 'stage-6.4.5.8-rejected-architecture';
 const EXPECTED_BASELINE_COMMIT = 'c150182219edea2faf49c714275e9921a21df742';
+const PROTECTED_ACTIVE_ROOTS = new Set([
+  'backend',
+  'electron',
+  'frontend',
+  'shared',
+  'scripts',
+  'services',
+  'tools'
+]);
+
 function configuredStage() {
   const source = JSON.parse(fs.readFileSync(RELEASE_SOURCE_PATH, 'utf8'));
   if (!source.stageVersion || typeof source.stageVersion !== 'string') {
@@ -31,6 +41,41 @@ const REJECTED_STAGE = '6.4.5.8';
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+function normalizeRepositoryRelativePath(value, fieldName) {
+  const normalized = String(value || '').trim().replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/$/, '');
+  if (!normalized || normalized === '.' || normalized.startsWith('/') || /^[A-Za-z]:\//.test(normalized)) {
+    throw new Error(`${fieldName} must be a non-empty repository-relative path`);
+  }
+  const segments = normalized.split('/');
+  if (segments.some((segment) => !segment || segment === '.' || segment === '..')) {
+    throw new Error(`${fieldName} must not contain empty, current-directory, or parent-directory segments`);
+  }
+  return normalized;
+}
+
+function referenceOnlyRootPolicies(policy = readJson(REPOSITORY_SCOPE_POLICY_PATH)) {
+  if (!policy || policy.schemaVersion !== 2 || !Array.isArray(policy.referenceOnlyRoots)) {
+    throw new Error('repository scope policy must define schemaVersion 2 referenceOnlyRoots');
+  }
+  const seen = new Set();
+  const rows = policy.referenceOnlyRoots.map((entry, index) => {
+    const root = normalizeRepositoryRelativePath(entry?.path, `referenceOnlyRoots[${index}].path`);
+    const classification = String(entry?.classification || '').trim();
+    if (!/^[A-Z][A-Z0-9_]*$/.test(classification) || classification === 'ACTIVE_SOURCE_OR_AUTOMATION') {
+      throw new Error(`referenceOnlyRoots[${index}].classification must be an explicit non-active classification`);
+    }
+    const firstSegment = root.split('/')[0].toLowerCase();
+    if (PROTECTED_ACTIVE_ROOTS.has(firstSegment)) {
+      throw new Error(`reference-only root ${root} overlaps protected active source root ${firstSegment}`);
+    }
+    const key = root.toLowerCase();
+    if (seen.has(key)) throw new Error(`duplicate reference-only root ${root}`);
+    seen.add(key);
+    return Object.freeze({ path: root, lowerPath: key, classification });
+  });
+  return rows.sort((left, right) => right.lowerPath.length - left.lowerPath.length || left.lowerPath.localeCompare(right.lowerPath));
 }
 
 function sha256File(filePath) {
@@ -83,14 +128,18 @@ function isScanCandidate(relativePath) {
   return /(^|\/)(package\.json|electron-builder\.ya?ml|forge\.config\.(js|cjs|mjs))$/i.test(relativePath);
 }
 
-function classifyScanPath(relativePath) {
-  const lower = relativePath.toLowerCase();
+function classifyScanPath(relativePath, scopePolicy = readJson(REPOSITORY_SCOPE_POLICY_PATH)) {
+  const normalized = normalizeRepositoryRelativePath(relativePath, 'relativePath');
+  const lower = normalized.toLowerCase();
   if (lower.startsWith('governance/')) return 'POLICY_REFERENCE';
   if (lower.startsWith('tests/wp0/')) return 'TEST_FIXTURE_OR_ASSERTION';
   if (lower.startsWith('tools/wp0/')) return 'WP0_GATE_IMPLEMENTATION';
   if (lower.startsWith('evidence/')) return 'GENERATED_EVIDENCE';
   if (lower.startsWith('implementation/')) return 'STATUS_METADATA';
-  return 'ACTIVE_SOURCE_OR_AUTOMATION';
+  const referenceOnly = referenceOnlyRootPolicies(scopePolicy).find((entry) =>
+    lower === entry.lowerPath || lower.startsWith(`${entry.lowerPath}/`)
+  );
+  return referenceOnly?.classification || 'ACTIVE_SOURCE_OR_AUTOMATION';
 }
 
 function relFromRoot(rootDir, relativePath) {
@@ -103,6 +152,7 @@ function scanRepositoryReleaseSurfaces(rootDir = REPO_ROOT) {
   const violations = [];
   const scanned = [];
   const referenceOnly = [];
+  const scopePolicy = readJson(REPOSITORY_SCOPE_POLICY_PATH);
   const filenamePattern = /(integrated[ _-]?repair|complete[ _-]?installer|apply.*hotfix|start[ _-]?update|stage6[._-]?4[._-]?5[._-]?8|revision\s*\d*)/i;
   const overlayTargetPattern = /(app\.asar\.unpacked|resources[\\/]app\.asar\.unpacked)/i;
   const copyPattern = /(copy-item|xcopy|robocopy|copy\s+\/y|fs\.(?:cp|copyfile)|copyfiles|rsync)/i;
@@ -110,7 +160,7 @@ function scanRepositoryReleaseSurfaces(rootDir = REPO_ROOT) {
   const oldReleaseTermPattern = /(integrated[ _-]?repair[ _-]?hotfix|complete[ _-]?installer|revision\s*\d+|runtime[ _-]?patch|post[ _-]?install[ _-]?patch)/i;
 
   for (const relativePath of candidates) {
-    const classification = classifyScanPath(relativePath);
+    const classification = classifyScanPath(relativePath, scopePolicy);
     const record = { path: relativePath, classification };
     scanned.push(record);
     const full = relFromRoot(rootDir, relativePath);
@@ -354,6 +404,7 @@ function checkRepositoryScope() {
     canonicalImplementationRepository: policy.canonicalImplementationRepository,
     trackedFileCount: tracked.length,
     runtimeSourceRootsRequired: policy.runtimeSourceRootsRequired,
+    referenceOnlyRoots: referenceOnlyRootPolicies(policy).map(({ path: root, classification }) => ({ path: root, classification })),
     missingRuntimeRoots,
     runtimeSourceForExtractedArtifactPresent: missingRuntimeRoots.length === 0,
     originalVcsHistoryAvailable: policy.originalVcsHistoryAvailable,
@@ -389,6 +440,7 @@ function checkForbiddenHotfixEntrypoints(rootDir = REPO_ROOT) {
       scannedFileCount: scan.scannedFileCount,
       activeSurfaceCount: scan.activeSurfaceCount,
       referenceOnlyCount: scan.referenceOnlyCount,
+      scannedFiles: scan.scannedFiles,
       violationCount: violations.length,
       violations,
       commandGate,
@@ -427,7 +479,7 @@ function verifyWp0Gate(options = {}) {
     reasonCode: failed.length ? failed[0].reasonCode : null,
     targetStage: options.targetStage || CURRENT_STAGE,
     sourceCommit: currentCommit(),
-    branch: currentBranch(),
+    branch: Object.prototype.hasOwnProperty.call(options, 'branch') ? options.branch : currentBranch(),
     requiredCheckCount: checks.length,
     passedCheckCount: checks.filter((item) => item.pass).length,
     failedCheckCount: failed.length,
@@ -452,11 +504,13 @@ module.exports = {
   ALLOWED_BRANCH,
   REJECTED_STAGE,
   readJson,
+  referenceOnlyRootPolicies,
   sha256File,
   git,
   currentCommit,
   currentBranch,
   listTrackedFiles,
+  classifyScanPath,
   scanRepositoryReleaseSurfaces,
   verifyImmutableTag,
   changedFilesSinceBaseline,
