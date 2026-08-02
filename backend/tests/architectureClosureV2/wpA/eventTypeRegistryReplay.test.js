@@ -189,3 +189,48 @@ test('conflicting duplicate event descriptors are rejected while exact re-regist
     error => error?.code === 'EVENT_TYPE_DESCRIPTOR_CONFLICT'
   );
 });
+
+test('upcasters execute in a restricted sandbox and cannot reach closure or host globals', () => {
+  const { EventTypeRegistry } = loadRegistryModule();
+  let hostCalls = 0;
+  const hiddenHostCapability = () => {
+    hostCalls += 1;
+    return 'host-secret';
+  };
+  const registry = new EventTypeRegistry({ canonicalizationVersion: 1 });
+  registry.register(descriptor({
+    upcasters: [{
+      fromVersion: 1,
+      toVersion: 2,
+      transform(payload) {
+        return {
+          sourceAccountId: payload.accountId,
+          externalId: payload.externalId,
+          displayName: hiddenHostCapability()
+        };
+      }
+    }]
+  }));
+  assert.throws(
+    () => registry.upcast({ eventType: 'account.identity.observed', schemaVersion: 1, payload: { accountId: 'a', externalId: 'e' } }),
+    error => error?.code === 'EVENT_UPCASTER_SANDBOX_VIOLATION'
+  );
+  assert.equal(hostCalls, 0);
+});
+
+test('unknown descriptor fields and missing classification coverage fail closed', () => {
+  const { EventTypeRegistry } = loadRegistryModule();
+  const unknown = new EventTypeRegistry({ canonicalizationVersion: 1 });
+  assert.throws(
+    () => unknown.register(descriptor({ temporaryBypass: true })),
+    error => error?.code === 'EVENT_TYPE_DESCRIPTOR_FIELD_UNREGISTERED' && error?.field === 'temporaryBypass'
+  );
+
+  const incomplete = new EventTypeRegistry({ canonicalizationVersion: 1 });
+  assert.throws(
+    () => incomplete.register(descriptor({
+      classificationSchema: { sourceAccountId: 'PUBLIC_METADATA' }
+    })),
+    error => error?.code === 'EVENT_CLASSIFICATION_SCHEMA_INCOMPLETE' && error?.field === 'externalId'
+  );
+});
