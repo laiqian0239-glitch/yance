@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -14,6 +15,16 @@ const ACV2_AUTHORIZATION_PATH = path.resolve(
   'architecture-closure-v2',
   'implementation-plan-authorization.json'
 );
+const ACV2_SCOPE_AMENDMENT_PATH = path.resolve(
+  __dirname,
+  '..',
+  '..',
+  'governance',
+  'architecture-closure-v2',
+  'wp-a-a6-scope-amendment.json'
+);
+const ACV2_AUTHORIZATION_REPOSITORY_PATH = 'governance/architecture-closure-v2/implementation-plan-authorization.json';
+const ACV2_AUTHORIZATION_BLOB_SHA = '203697b36c06e0dc72c92113ef58f1a8f2394312';
 
 function canonicalStageBranch(stageVersion) {
   if (typeof stageVersion !== 'string' || !/^\d+\.\d+\.\d+\.\d+$/.test(stageVersion)) {
@@ -35,13 +46,21 @@ function isReleaseClosureRebuildBranch(branch) {
   return Boolean(match && isValidUtcCalendarDate(match[1], match[2], match[3]));
 }
 
-function loadWorkPackageAuthorization(filePath = ACV2_AUTHORIZATION_PATH) {
+function loadJsonObject(filePath) {
   try {
     const document = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     return document && typeof document === 'object' && !Array.isArray(document) ? document : null;
   } catch (_) {
     return null;
   }
+}
+
+function loadWorkPackageAuthorization(filePath = ACV2_AUTHORIZATION_PATH) {
+  return loadJsonObject(filePath);
+}
+
+function loadWorkPackageScopeAmendment(filePath = ACV2_SCOPE_AMENDMENT_PATH) {
+  return loadJsonObject(filePath);
 }
 
 function authorizationWorkPackageLetter(authorization) {
@@ -59,6 +78,7 @@ function isValidWorkPackageAuthorization(authorization) {
   if (authorization.governance?.pr4MustRemainDraft !== true) return false;
   if (typeof authorization.requiredBaseRef !== 'string' || !authorization.requiredBaseRef.trim()) return false;
   if (typeof authorization.approvedParentHead !== 'string' || !/^[a-f0-9]{40}$/u.test(authorization.approvedParentHead)) return false;
+  if (!Array.isArray(authorization.allowedProductionPaths) || authorization.allowedProductionPaths.length === 0) return false;
 
   const letter = authorizationWorkPackageLetter(authorization);
   if (!letter) return false;
@@ -94,14 +114,144 @@ function authorizedImplementationBranchDescription(stageVersion, options = {}) {
     : base;
 }
 
+function normalizeRepositoryPath(value) {
+  const normalized = String(value || '').trim().replace(/\\/gu, '/').replace(/^\.\//u, '').replace(/\/$/u, '');
+  if (!normalized || normalized.startsWith('/') || /^[A-Za-z]:\//u.test(normalized)) return '';
+  const segments = normalized.split('/');
+  if (segments.some(segment => !segment || segment === '.' || segment === '..')) return '';
+  return normalized;
+}
+
+function globPatternToRegExp(pattern) {
+  const escaped = pattern.replace(/[.+^${}()|[\]\\]/gu, '\\$&');
+  const source = escaped
+    .replace(/\*\*/gu, '\u0000')
+    .replace(/\*/gu, '[^/]*')
+    .replace(/\u0000/gu, '.*');
+  return new RegExp(`^${source}$`, 'u');
+}
+
+function matchesAuthorizedProductionPath(relativePath, pattern) {
+  const pathValue = normalizeRepositoryPath(relativePath);
+  const patternValue = normalizeRepositoryPath(pattern);
+  if (!pathValue || !patternValue) return false;
+  if (!/[?*[]/u.test(patternValue)) return pathValue === patternValue;
+  return globPatternToRegExp(patternValue).test(pathValue);
+}
+
+function workPackageChangedFilesSha256(values = []) {
+  const normalized = [...new Set((Array.isArray(values) ? values : [])
+    .map(normalizeRepositoryPath)
+    .filter(Boolean))].sort();
+  return crypto.createHash('sha256').update(`${normalized.join('\n')}\n`, 'utf8').digest('hex');
+}
+
+function isExactAdditionalPath(value) {
+  const normalized = normalizeRepositoryPath(value);
+  return Boolean(normalized && normalized === value && !/[?*[]/u.test(normalized));
+}
+
+function isValidWorkPackageScopeAmendment(amendment, authorization) {
+  if (!isValidWorkPackageAuthorization(authorization)) return false;
+  if (!amendment || typeof amendment !== 'object' || Array.isArray(amendment)) return false;
+  if (amendment.schemaVersion !== 1) return false;
+  if (amendment.documentType !== 'YANCE_ACV2_WORK_PACKAGE_SCOPE_AMENDMENT') return false;
+  if (amendment.status !== 'APPROVED_INDEPENDENT_REVIEW_SCOPE_AMENDMENT') return false;
+  if (amendment.repository !== authorization.repository) return false;
+  if (amendment.workPackage !== authorization.currentAuthorizedWorkPackage) return false;
+  if (amendment.authorizedBranch !== authorization.authorizedBranch) return false;
+  if (amendment.baseAuthorizationPath !== ACV2_AUTHORIZATION_REPOSITORY_PATH) return false;
+  if (amendment.baseAuthorizationBlobSha !== ACV2_AUTHORIZATION_BLOB_SHA) return false;
+  if (!/^[a-f0-9]{40}$/u.test(String(amendment.parentGovernanceHead || ''))) return false;
+  if (!/^[a-f0-9]{64}$/u.test(String(amendment.approvedChangedFileSetSha256 || ''))) return false;
+  if (!Array.isArray(amendment.additionalAllowedPaths) || amendment.additionalAllowedPaths.length === 0) return false;
+  if (!amendment.additionalAllowedPaths.every(isExactAdditionalPath)) return false;
+  if (new Set(amendment.additionalAllowedPaths).size !== amendment.additionalAllowedPaths.length) return false;
+  const governance = amendment.governance || {};
+  if (governance.exactPathExpansionOnly !== true) return false;
+  if (governance.wildcardExpansionAllowed !== false) return false;
+  if (governance.prMustRemainDraft !== true) return false;
+  if (governance.automaticNextTaskAuthorization !== false) return false;
+  if (governance.automaticNextWorkPackageAuthorization !== false) return false;
+  if (governance.readyForPromotion !== false) return false;
+  return true;
+}
+
+function effectiveAllowedProductionPaths(authorization, amendment = null) {
+  if (!isValidWorkPackageAuthorization(authorization)) return [];
+  const base = [...authorization.allowedProductionPaths];
+  if (!isValidWorkPackageScopeAmendment(amendment, authorization)) return Object.freeze(base);
+  return Object.freeze([...new Set([...base, ...amendment.additionalAllowedPaths])]);
+}
+
+function evaluateAuthorizedWorkPackageScope(options = {}) {
+  const authorization = options.authorization;
+  const amendment = options.amendment || null;
+  const branch = String(options.branch || '');
+  const changedFiles = [...new Set((Array.isArray(options.changedFiles) ? options.changedFiles : [])
+    .map(normalizeRepositoryPath)
+    .filter(Boolean))].sort();
+  const changedFileSetSha256 = workPackageChangedFilesSha256(changedFiles);
+
+  if (!isValidWorkPackageAuthorization(authorization) || branch !== authorization.authorizedBranch) {
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'ACV2_WORK_PACKAGE_AUTHORIZATION_INVALID',
+      changedFileSetSha256,
+      amendmentApplied: false,
+      unauthorizedPaths: changedFiles
+    });
+  }
+
+  if (amendment && !isValidWorkPackageScopeAmendment(amendment, authorization)) {
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'ACV2_SCOPE_AMENDMENT_INVALID',
+      changedFileSetSha256,
+      amendmentApplied: false,
+      unauthorizedPaths: changedFiles.filter(file => !authorization.allowedProductionPaths.some(pattern => matchesAuthorizedProductionPath(file, pattern)))
+    });
+  }
+  if (amendment && amendment.approvedChangedFileSetSha256 !== changedFileSetSha256) {
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'ACV2_CHANGED_FILE_SET_MISMATCH',
+      changedFileSetSha256,
+      amendmentApplied: true,
+      unauthorizedPaths: []
+    });
+  }
+
+  const allowedPaths = effectiveAllowedProductionPaths(authorization, amendment);
+  const unauthorizedPaths = changedFiles.filter(file => !allowedPaths.some(pattern => matchesAuthorizedProductionPath(file, pattern)));
+  return Object.freeze({
+    pass: unauthorizedPaths.length === 0,
+    reasonCode: unauthorizedPaths.length ? 'ACV2_WORK_PACKAGE_SCOPE_VIOLATION' : null,
+    changedFileSetSha256,
+    amendmentApplied: Boolean(amendment),
+    unauthorizedPaths,
+    allowedPathCount: allowedPaths.length
+  });
+}
+
 module.exports = {
   REBUILD_BRANCH_PATTERN_SOURCE,
   ACV2_AUTHORIZATION_PATH,
+  ACV2_SCOPE_AMENDMENT_PATH,
+  ACV2_AUTHORIZATION_REPOSITORY_PATH,
+  ACV2_AUTHORIZATION_BLOB_SHA,
   canonicalStageBranch,
   isReleaseClosureRebuildBranch,
   loadWorkPackageAuthorization,
+  loadWorkPackageScopeAmendment,
   isValidWorkPackageAuthorization,
+  isValidWorkPackageScopeAmendment,
   isAuthorizedAcv2WorkPackageBranch,
   isAuthorizedImplementationBranch,
-  authorizedImplementationBranchDescription
+  authorizedImplementationBranchDescription,
+  normalizeRepositoryPath,
+  matchesAuthorizedProductionPath,
+  workPackageChangedFilesSha256,
+  effectiveAllowedProductionPaths,
+  evaluateAuthorizedWorkPackageScope
 };
