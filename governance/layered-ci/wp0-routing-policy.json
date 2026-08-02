@@ -6,6 +6,7 @@
     ".github/workflows/layered-ci-task.yml",
     ".github/workflows/layered-ci-promotion.yml",
     ".github/workflows/reviewed-candidate-a6.yml",
+    ".github/workflows/reviewed-candidate-a6-sqlite.yml",
     ".github/workflows/stage-6459-wp0-gates.yml"
   ],
   "governancePrefixes": [
