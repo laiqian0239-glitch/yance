@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const { stableId } = require('../lib/r32SqliteStore');
 const { singleton: defaultRepository } = require('../repositories/platformCoreRepository');
+const legacyCanonicalIdentity = require('../repositories/canonicalIdentityRepository');
 const domainEventLog = require('./domainEventLogService').singleton;
 const operationalProjectionReceipts = require('./operationalProjectionReceiptAuthority');
 
@@ -18,6 +19,7 @@ function now() { return new Date().toISOString(); }
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 function unique(values = []) { return [...new Set(values.map(clean).filter(Boolean))]; }
 function error(code, message, status = 400, detail = {}) { return Object.assign(new Error(message), { code, status, ...detail }); }
+
 const IDENTITY_MAX_DEPTH = 8;
 const IDENTITY_MAX_NODES = 1000;
 const IDENTITY_MAX_BYTES = 128 * 1024;
@@ -25,6 +27,33 @@ const FORBIDDEN_IDENTITY_KEYS = new Set(['__proto__', 'prototype', 'constructor'
 const IDENTITY_MAX_IDENTIFIER = 1024;
 const IDENTITY_MAX_EVIDENCE_REFS = 100;
 const SENSITIVE_IDENTITY_KEY = /(token|secret|password|cookie|authorization|credential|qrcode|privatekey)/i;
+
+function normalizeIdentityInput(input = {}, label = 'identityInput') {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw error('IDENTITY_INPUT_OBJECT_INVALID', `${label} 必须是纯对象。`);
+  }
+  const prototype = Object.getPrototypeOf(input);
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw error('IDENTITY_INPUT_OBJECT_INVALID', `${label} 必须是纯对象。`);
+  }
+  if (Object.getOwnPropertySymbols(input).length) {
+    throw error('IDENTITY_INPUT_SYMBOL_KEY_FORBIDDEN', `${label} 不得包含 Symbol 键。`);
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(input);
+  const output = {};
+  for (const key of Object.getOwnPropertyNames(input)) {
+    if (FORBIDDEN_IDENTITY_KEYS.has(key)) {
+      throw error('IDENTITY_INPUT_KEY_FORBIDDEN', `${label} 包含危险对象键。`, 400, { key });
+    }
+    const descriptor = descriptors[key];
+    if (typeof descriptor?.get === 'function' || typeof descriptor?.set === 'function') {
+      throw error('IDENTITY_INPUT_ACCESSOR_FORBIDDEN', `${label} 不得包含 getter/setter。`, 400, { key });
+    }
+    output[key] = descriptor?.value;
+  }
+  return Object.freeze(output);
+}
+
 function sanitizeIdentityObject(value, label = 'identityPayload') {
   const seen = new WeakSet();
   const state = { nodes: 0 };
@@ -62,6 +91,7 @@ function sanitizeIdentityObject(value, label = 'identityPayload') {
   if (bytes > IDENTITY_MAX_BYTES) throw error('IDENTITY_PAYLOAD_TOO_LARGE', `${label} 超过最大持久化大小。`, 413, { bytes, maximum: IDENTITY_MAX_BYTES });
   return sanitized;
 }
+
 function boundedText(value, label, maximum = IDENTITY_MAX_IDENTIFIER, pattern = null) {
   const result = clean(value);
   if (result.length > maximum) throw error('IDENTITY_IDENTIFIER_TOO_LONG', `${label} 超过最大长度。`, 413, { label, length: result.length, maximum });
@@ -86,18 +116,17 @@ function timestamp(value, fallback = now()) {
   return new Date(result).toISOString();
 }
 function validateScope(input = {}) {
-  const workspaceId = boundedText(input.workspaceId, 'workspaceId', 256) || 'default';
-  const platform = boundedText(input.platform, 'platform', 32, /^[a-z0-9_-]+$/i).toLowerCase();
-  const sourceAccountId = boundedText(input.sourceAccountId, 'sourceAccountId', 512);
-  const externalId = boundedText(input.externalId, 'externalId', 1024);
+  const safeInput = normalizeIdentityInput(input, 'identityScope');
+  const workspaceId = boundedText(safeInput.workspaceId, 'workspaceId', 256) || 'default';
+  const platform = boundedText(safeInput.platform, 'platform', 32, /^[a-z0-9_-]+$/i).toLowerCase();
+  const sourceAccountId = boundedText(safeInput.sourceAccountId, 'sourceAccountId', 512);
+  const externalId = boundedText(safeInput.externalId, 'externalId', 1024);
   if (!platform || !sourceAccountId || !externalId) {
     throw error('IDENTITY_SCOPE_INCOMPLETE', '身份链接必须包含平台、来源账号和外部身份。', 400, { workspaceId, platform, sourceAccountId, externalId });
   }
   return { workspaceId, platform, sourceAccountId, externalId };
 }
-function canonicalExternalIdentityScope(input = {}) {
-  return Object.freeze(validateScope(input));
-}
+function canonicalExternalIdentityScope(input = {}) { return Object.freeze(validateScope(input)); }
 function canonicalPersonId(input = {}) {
   const scope = canonicalExternalIdentityScope(input);
   return stableId('person', [scope.workspaceId, scope.platform, scope.sourceAccountId, scope.externalId]);
@@ -106,6 +135,7 @@ function canonicalIdentityLinkId(input = {}) {
   const scope = canonicalExternalIdentityScope(input);
   return stableId('identity-link', [scope.workspaceId, scope.platform, scope.sourceAccountId, scope.externalId]);
 }
+
 function publicLink(row) {
   if (!row) return null;
   return {
@@ -126,18 +156,6 @@ function publicLink(row) {
     updatedAt: row.updated_at
   };
 }
-function recordIdentityDomainEvent({ repository, eventType, auditId, workspaceId = 'default', platform = 'identity', sourceAccountId = '', projection = {}, targetRefs = [] }) {
-  const account = clean(sourceAccountId) || clean(workspaceId) || 'default';
-  const created = domainEventLog.append({
-    platform: clean(platform).toLowerCase() || 'identity', sourceAccountId: account,
-    externalEventId: clean(auditId), eventType,
-    idempotencyKey: ['identity', eventType, clean(auditId)].join(':'),
-    occurredAt: now(), payload: { projection }, retentionDays: 90
-  });
-  operationalProjectionReceipts.verifyAndRecord({ created, eventLog: domainEventLog, repository, store: repository?.store?.(), targetRefs });
-  return created;
-}
-
 function publicPerson(row) {
   if (!row) return null;
   return {
@@ -152,18 +170,47 @@ function publicPerson(row) {
     updatedAt: row.updated_at
   };
 }
+function recordIdentityDomainEvent({ repository, eventType, auditId, workspaceId = 'default', platform = 'identity', sourceAccountId = '', projection = {}, targetRefs = [] }) {
+  const account = clean(sourceAccountId) || clean(workspaceId) || 'default';
+  const created = domainEventLog.append({
+    platform: clean(platform).toLowerCase() || 'identity', sourceAccountId: account,
+    externalEventId: clean(auditId), eventType,
+    idempotencyKey: ['identity', eventType, clean(auditId)].join(':'),
+    occurredAt: now(), payload: { projection }, retentionDays: 90
+  });
+  operationalProjectionReceipts.verifyAndRecord({ created, eventLog: domainEventLog, repository, store: repository?.store?.(), targetRefs });
+  return created;
+}
 
 class IdentityAuthority {
   constructor(options = {}) {
     this.repository = options.repository || defaultRepository;
     this.eventRecorder = typeof options.eventRecorder === 'function' ? options.eventRecorder : recordIdentityDomainEvent;
+    this.legacyCanonicalIdentity = options.legacyCanonicalIdentity || legacyCanonicalIdentity;
   }
 
   recordIdentityDomainEvent(input = {}) {
     return this.eventRecorder({ repository: this.repository, ...input });
   }
 
+  finalizeOperation(result = {}) {
+    const pending = result?.pendingDomainEvent || null;
+    const output = { ...result };
+    delete output.pendingDomainEvent;
+    if (pending) this.recordIdentityDomainEvent({ ...pending, projection: output });
+    return output;
+  }
+
+  canonicalizeWhatsAppAccounts(options = {}) {
+    return this.legacyCanonicalIdentity.canonicalizeWhatsAppAccounts(options);
+  }
+  resolveCanonicalAccountId(...args) { return this.legacyCanonicalIdentity.resolveCanonicalAccountId(...args); }
+  accountIdentityAliases(...args) { return this.legacyCanonicalIdentity.accountIdentityAliases(...args); }
+  buildGroups(...args) { return this.legacyCanonicalIdentity.buildGroups(...args); }
+  canonicalScore(...args) { return this.legacyCanonicalIdentity.canonicalScore(...args); }
+
   observeWithinTransaction(input = {}, repo = this.repository) {
+    input = normalizeIdentityInput(input, 'identityObservation');
     const scope = canonicalExternalIdentityScope(input);
     const existing = repo.getIdentityLinkByScope(scope);
     const operationAt = timestamp(input.observedAt);
@@ -242,31 +289,20 @@ class IdentityAuthority {
       authority: AUTHORITY, created: true, auditId, person: publicPerson(person), link: publicLink(link), contactId, conversationId,
       pendingDomainEvent: {
         eventType: 'identity.link.observed', auditId, workspaceId: scope.workspaceId, platform: scope.platform,
-        sourceAccountId: scope.sourceAccountId, identityLinkId
+        sourceAccountId: scope.sourceAccountId,
+        targetRefs: [{ table: 'identity_links', id: identityLinkId }, { table: 'identity_link_audit', id: auditId }]
       }
     };
   }
 
-  finalizeObservation(result = {}) {
-    const pending = result.pendingDomainEvent || null;
-    const output = { ...result };
-    delete output.pendingDomainEvent;
-    if (!pending) return output;
-    this.recordIdentityDomainEvent({
-      eventType: pending.eventType, auditId: pending.auditId,
-      workspaceId: pending.workspaceId, platform: pending.platform, sourceAccountId: pending.sourceAccountId,
-      projection: output,
-      targetRefs: [{ table: 'identity_links', id: pending.identityLinkId }, { table: 'identity_link_audit', id: pending.auditId }]
-    });
-    return output;
-  }
-
   observe(input = {}) {
-    const result = this.repository.transaction(repo => this.observeWithinTransaction(input, repo));
-    return this.finalizeObservation(result);
+    const safeInput = normalizeIdentityInput(input, 'identityObservation');
+    const result = this.repository.transaction(repo => this.observeWithinTransaction(safeInput, repo));
+    return this.finalizeOperation(result);
   }
 
   transition(identityLinkId, nextStatus, input = {}) {
+    input = normalizeIdentityInput(input, 'identityTransition');
     identityLinkId = boundedText(identityLinkId, 'identityLinkId', 1024);
     const operationAt = timestamp(input.at);
     const link = this.repository.getIdentityLink(identityLinkId);
@@ -286,7 +322,7 @@ class IdentityAuthority {
       throw error('IDENTITY_VERIFICATION_EVIDENCE_REQUIRED', '身份验证必须提供证据和明确验证方法。', 409, { identityLinkId });
     }
     const operation = nextStatus === LINK_STATUS.SUGGESTED ? 'suggest' : nextStatus === LINK_STATUS.VERIFIED ? 'verify' : nextStatus === LINK_STATUS.DISPUTED ? 'dispute' : 'detach';
-    return this.repository.transaction(repo => {
+    const result = this.repository.transaction(repo => {
       const before = publicLink(link);
       const detachedConversationBindings = nextStatus === LINK_STATUS.DETACHED
         ? repo.listConversationBindings({ personId: link.person_id, state: 'active', limit: 10000 }).filter(row => clean(row.platform) === clean(link.platform) && clean(row.account_id) === clean(link.source_account_id) && clean(row.external_id) === clean(link.external_id))
@@ -309,10 +345,16 @@ class IdentityAuthority {
         reason, actor, createdAt: operationAt
       });
       repo.insertIdentityOperationReceipt({ receiptId: `identity-receipt-${crypto.randomUUID()}`, auditId, operation, status: 'applied', before: { link: before }, after: { link: publicLink(updated) }, actor, reason, createdAt: operationAt });
-      const result = { authority: AUTHORITY, auditId, operation, link: publicLink(updated), rollbackAvailable: true };
-      this.recordIdentityDomainEvent({ eventType: 'identity.link.transitioned', auditId, workspaceId: link.workspace_id, platform: link.platform, sourceAccountId: link.source_account_id, projection: result, targetRefs: [{ table: 'identity_links', id: identityLinkId }, { table: 'identity_link_audit', id: auditId }] });
-      return result;
+      return {
+        authority: AUTHORITY, auditId, operation, link: publicLink(updated), rollbackAvailable: true,
+        pendingDomainEvent: {
+          eventType: 'identity.link.transitioned', auditId, workspaceId: link.workspace_id,
+          platform: link.platform, sourceAccountId: link.source_account_id,
+          targetRefs: [{ table: 'identity_links', id: identityLinkId }, { table: 'identity_link_audit', id: auditId }]
+        }
+      };
     });
+    return this.finalizeOperation(result);
   }
 
   suggest(identityLinkId, input = {}) { return this.transition(identityLinkId, LINK_STATUS.SUGGESTED, input); }
@@ -321,6 +363,7 @@ class IdentityAuthority {
   detach(identityLinkId, input = {}) { return this.transition(identityLinkId, LINK_STATUS.DETACHED, input); }
 
   merge(input = {}) {
+    input = normalizeIdentityInput(input, 'identityMerge');
     const sourcePersonId = boundedText(input.sourcePersonId, 'sourcePersonId', 1024);
     const targetPersonId = boundedText(input.targetPersonId, 'targetPersonId', 1024);
     if (!sourcePersonId || !targetPersonId || sourcePersonId === targetPersonId) throw error('IDENTITY_MERGE_INVALID', '身份合并必须指定两个不同的 Person。', 400);
@@ -338,7 +381,7 @@ class IdentityAuthority {
     const operationAt = timestamp(input.at);
     const auditId = `identity-audit-${crypto.randomUUID()}`;
     const before = { sourcePerson: publicPerson(source), targetPerson: publicPerson(target), links: links.map(publicLink) };
-    return this.repository.transaction(repo => {
+    const result = this.repository.transaction(repo => {
       for (const link of links) repo.updateIdentityLink(link.identity_link_id, {
         personId: targetPersonId,
         linkStatus: link.link_status === LINK_STATUS.DETACHED ? LINK_STATUS.DETACHED : LINK_STATUS.MERGED,
@@ -362,20 +405,24 @@ class IdentityAuthority {
       const mergeAfter = { sourcePerson: publicPerson(repo.getPerson(sourcePersonId)), targetPerson: publicPerson(repo.getPerson(targetPersonId)), links: afterLinks.map(publicLink), contactIds: movedAnchors.contactIds, conversationIds: movedAnchors.conversationIds };
       repo.insertIdentityAudit({
         auditId, operation: 'merge', workspaceId: source.workspace_id, sourcePersonId, targetPersonId,
-        before, after: mergeAfter,
-        evidenceRefs: mergeEvidenceRefs, rollbackPlan, reason, actor, createdAt: operationAt
+        before, after: mergeAfter, evidenceRefs: mergeEvidenceRefs, rollbackPlan, reason, actor, createdAt: operationAt
       });
       repo.insertIdentityOperationReceipt({ receiptId: `identity-receipt-${crypto.randomUUID()}`, auditId, operation: 'merge', status: 'applied', before, after: mergeAfter, actor, reason, createdAt: operationAt });
-      const result = {
+      return {
         authority: AUTHORITY, auditId, sourcePerson: publicPerson(repo.getPerson(sourcePersonId)),
-        targetPerson: publicPerson(repo.getPerson(targetPersonId)), movedLinks: afterLinks.map(publicLink), movedAnchors, rollbackAvailable: true
+        targetPerson: publicPerson(repo.getPerson(targetPersonId)), movedLinks: afterLinks.map(publicLink), movedAnchors, rollbackAvailable: true,
+        pendingDomainEvent: {
+          eventType: 'identity.person.merged', auditId, workspaceId: source.workspace_id,
+          platform: links[0]?.platform || 'identity', sourceAccountId: links[0]?.source_account_id || source.workspace_id,
+          targetRefs: [{ table: 'persons', id: sourcePersonId }, { table: 'persons', id: targetPersonId }, { table: 'identity_link_audit', id: auditId }]
+        }
       };
-      this.recordIdentityDomainEvent({ eventType: 'identity.person.merged', auditId, workspaceId: source.workspace_id, platform: links[0]?.platform || 'identity', sourceAccountId: links[0]?.source_account_id || source.workspace_id, projection: result, targetRefs: [{ table: 'persons', id: sourcePersonId }, { table: 'persons', id: targetPersonId }, { table: 'identity_link_audit', id: auditId }] });
-      return result;
     });
+    return this.finalizeOperation(result);
   }
 
   rollbackMerge(auditId, input = {}) {
+    input = normalizeIdentityInput(input, 'identityMergeRollback');
     auditId = boundedText(auditId, 'auditId', 1024);
     const audit = this.repository.getIdentityAudit(auditId);
     if (!audit || audit.operation !== 'merge') throw error('IDENTITY_MERGE_AUDIT_NOT_FOUND', '找不到可回滚的身份合并审计。', 404);
@@ -386,15 +433,13 @@ class IdentityAuthority {
     if (!actor || !reason) throw error('IDENTITY_ROLLBACK_AUDIT_REQUIRED', '身份合并回滚必须记录操作者和原因。', 409);
     const operationAt = timestamp(input.at);
     const rollbackAuditId = `identity-audit-${crypto.randomUUID()}`;
-    return this.repository.transaction(repo => {
+    const result = this.repository.transaction(repo => {
       const currentRows = plan.links.map(item => ({ plan: item, row: repo.getIdentityLink(item.identityLinkId) }));
       const missing = currentRows.filter(item => !item.row).map(item => item.plan.identityLinkId);
       if (missing.length) throw error('IDENTITY_ROLLBACK_CONFLICT', '身份合并后有链接已被删除，不能静默覆盖后续变更。', 409, { missing });
       const conflicts = currentRows.filter(item => {
         const row = item.row;
-        const expectedStatus = clean(item.plan.linkStatus) === LINK_STATUS.DETACHED
-          ? LINK_STATUS.DETACHED
-          : LINK_STATUS.MERGED;
+        const expectedStatus = clean(item.plan.linkStatus) === LINK_STATUS.DETACHED ? LINK_STATUS.DETACHED : LINK_STATUS.MERGED;
         return clean(row.person_id) !== clean(plan.targetPersonId)
           || clean(row.link_status) !== expectedStatus
           || clean(row.superseded_by) !== clean(plan.targetPersonId);
@@ -411,16 +456,10 @@ class IdentityAuthority {
       }
       const beforeLinks = currentRows.map(item => publicLink(item.row));
       for (const item of plan.links) repo.updateIdentityLink(item.identityLinkId, {
-        personId: item.personId,
-        linkStatus: item.linkStatus,
-        supersededBy: item.supersededBy || '',
-        updatedAt: operationAt
+        personId: item.personId, linkStatus: item.linkStatus, supersededBy: item.supersededBy || '', updatedAt: operationAt
       });
       const restoredAnchors = repo.rollbackPersonAnchors({
-        sourcePersonId: plan.sourcePersonId,
-        targetPersonId: plan.targetPersonId,
-        auditId,
-        updatedAt: operationAt,
+        sourcePersonId: plan.sourcePersonId, targetPersonId: plan.targetPersonId, auditId, updatedAt: operationAt,
         relationshipLearningProfiles: plan.relationshipLearningProfiles || [],
         relationshipLearningSignals: plan.relationshipLearningSignals || []
       });
@@ -435,31 +474,48 @@ class IdentityAuthority {
         reason, actor, createdAt: operationAt
       });
       repo.insertIdentityOperationReceipt({ receiptId: `identity-receipt-${crypto.randomUUID()}`, auditId, operation: 'merge', status: 'rolled-back', before: { links: beforeLinks }, after: rollbackAfter, actor, reason, createdAt: operationAt });
-      const result = { authority: AUTHORITY, rollbackAuditId, mergeAuditId: auditId, restoredLinks: afterLinks, restoredAnchors, sourcePerson: publicPerson(repo.getPerson(plan.sourcePersonId)) };
-      this.recordIdentityDomainEvent({ eventType: 'identity.operation.rolled_back', auditId: rollbackAuditId, workspaceId: audit.workspace_id, platform: afterLinks[0]?.platform || 'identity', sourceAccountId: afterLinks[0]?.sourceAccountId || audit.workspace_id, projection: result, targetRefs: [{ table: 'identity_link_audit', id: rollbackAuditId }] });
-      return result;
+      return {
+        authority: AUTHORITY, rollbackAuditId, mergeAuditId: auditId, restoredLinks: afterLinks, restoredAnchors,
+        sourcePerson: publicPerson(repo.getPerson(plan.sourcePersonId)),
+        pendingDomainEvent: {
+          eventType: 'identity.operation.rolled_back', auditId: rollbackAuditId, workspaceId: audit.workspace_id,
+          platform: afterLinks[0]?.platform || 'identity', sourceAccountId: afterLinks[0]?.sourceAccountId || audit.workspace_id,
+          targetRefs: [{ table: 'identity_link_audit', id: rollbackAuditId }]
+        }
+      };
     });
+    return this.finalizeOperation(result);
   }
 
   rollbackAudit(auditId, input = {}) {
+    input = normalizeIdentityInput(input, 'identityOperationRollback');
     auditId = boundedText(auditId, 'auditId', 1024);
     const audit = this.repository.getIdentityAudit(auditId);
     if (!audit) throw error('IDENTITY_AUDIT_NOT_FOUND', '身份审计不存在。', 404, { auditId });
     if (audit.operation === 'merge') return this.rollbackMerge(auditId, input);
     if (!['suggest','verify','dispute','detach'].includes(clean(audit.operation))) throw error('IDENTITY_AUDIT_NOT_ROLLBACKABLE', '该身份审计不支持通用回滚。', 409, { operation: audit.operation });
     if (this.repository.listIdentityOperationReceipts({ auditId, status: 'rolled-back', limit: 1 }).length) throw error('IDENTITY_AUDIT_ALREADY_ROLLED_BACK', '该身份操作已经回滚。', 409, { auditId });
-    const plan = audit.rollback_plan || {}; const before = plan.beforeLink || audit.before; const expectedAfter = plan.expectedAfterLink || audit.after;
+    const plan = audit.rollback_plan || {};
+    const before = plan.beforeLink || audit.before;
+    const expectedAfter = plan.expectedAfterLink || audit.after;
     const identityLinkId = boundedText(plan.identityLinkId || audit.identity_link_id, 'identityLinkId', 1024);
     const current = this.repository.getIdentityLink(identityLinkId);
     if (!current) throw error('IDENTITY_ROLLBACK_CONFLICT', '身份链接已不存在，不能静默回滚。', 409, { identityLinkId });
-    const currentPublic = publicLink(current); const comparisonKeys = ['personId','linkStatus','confidence','verificationMethod','supersededBy'];
+    const currentPublic = publicLink(current);
+    const comparisonKeys = ['personId','linkStatus','confidence','verificationMethod','supersededBy'];
     const conflicts = comparisonKeys.filter(key => JSON.stringify(currentPublic?.[key] ?? '') !== JSON.stringify(expectedAfter?.[key] ?? ''));
     if (conflicts.length) throw error('IDENTITY_ROLLBACK_CONFLICT', '身份状态在原操作后已发生变化，不能覆盖后续操作。', 409, { identityLinkId, conflicts });
-    const actor = boundedText(input.actor, 'actor', 256); const reason = boundedText(input.reason, 'reason', 2000);
+    const actor = boundedText(input.actor, 'actor', 256);
+    const reason = boundedText(input.reason, 'reason', 2000);
     if (!actor || !reason) throw error('IDENTITY_ROLLBACK_AUDIT_REQUIRED', '身份回滚必须记录操作者和原因。', 409);
-    const operationAt = timestamp(input.at); const rollbackAuditId = `identity-audit-${crypto.randomUUID()}`;
-    return this.repository.transaction(repo => {
-      const restored = repo.updateIdentityLink(identityLinkId, { personId: before.personId, linkStatus: before.linkStatus, confidence: before.confidence, verificationMethod: before.verificationMethod, evidenceRefs: before.evidenceRefs || [], createdBy: before.createdBy, supersededBy: before.supersededBy || '', payload: before.payload || {}, updatedAt: operationAt });
+    const operationAt = timestamp(input.at);
+    const rollbackAuditId = `identity-audit-${crypto.randomUUID()}`;
+    const result = this.repository.transaction(repo => {
+      const restored = repo.updateIdentityLink(identityLinkId, {
+        personId: before.personId, linkStatus: before.linkStatus, confidence: before.confidence,
+        verificationMethod: before.verificationMethod, evidenceRefs: before.evidenceRefs || [], createdBy: before.createdBy,
+        supersededBy: before.supersededBy || '', payload: before.payload || {}, updatedAt: operationAt
+      });
       const restoredBindings = [];
       for (const binding of Array.isArray(plan.conversationBindings) ? plan.conversationBindings : []) {
         const currentBinding = repo.listConversationBindings({ personId: clean(before.personId), conversationId: clean(binding.conversation_id), limit: 10 }).find(row => clean(row.conversation_id) === clean(binding.conversation_id));
@@ -467,16 +523,29 @@ class IdentityAuthority {
         restoredBindings.push(repo.updateConversationBinding(clean(before.personId), clean(binding.conversation_id), { state: clean(binding.state) || 'active', source: 'identity-rollback', updatedAt: operationAt }));
       }
       const after = publicLink(restored);
-      repo.insertIdentityAudit({ auditId: rollbackAuditId, operation: 'rollback', workspaceId: audit.workspace_id, sourcePersonId: clean(before.personId), targetPersonId: clean(before.personId), identityLinkId, before: { originalAuditId: auditId, link: currentPublic }, after: { link: after, conversationBindings: restoredBindings }, evidenceRefs: evidenceRefs(input.evidenceRefs), rollbackPlan: { operation: 'reapply-transition', originalAuditId: auditId }, reason, actor, createdAt: operationAt });
+      repo.insertIdentityAudit({
+        auditId: rollbackAuditId, operation: 'rollback', workspaceId: audit.workspace_id,
+        sourcePersonId: clean(before.personId), targetPersonId: clean(before.personId), identityLinkId,
+        before: { originalAuditId: auditId, link: currentPublic }, after: { link: after, conversationBindings: restoredBindings },
+        evidenceRefs: evidenceRefs(input.evidenceRefs), rollbackPlan: { operation: 'reapply-transition', originalAuditId: auditId },
+        reason, actor, createdAt: operationAt
+      });
       repo.insertIdentityOperationReceipt({ receiptId: `identity-receipt-${crypto.randomUUID()}`, auditId, operation: audit.operation, status: 'rolled-back', before: { link: currentPublic }, after: { link: after }, actor, reason, createdAt: operationAt });
-      const result = { authority: AUTHORITY, auditId, rollbackAuditId, operation: audit.operation, link: after };
-      this.recordIdentityDomainEvent({ eventType: 'identity.operation.rolled_back', auditId: rollbackAuditId, workspaceId: audit.workspace_id, platform: after.platform || 'identity', sourceAccountId: after.sourceAccountId || audit.workspace_id, projection: result, targetRefs: [{ table: 'identity_links', id: identityLinkId }, { table: 'identity_link_audit', id: rollbackAuditId }] });
-      return result;
+      return {
+        authority: AUTHORITY, auditId, rollbackAuditId, operation: audit.operation, link: after,
+        pendingDomainEvent: {
+          eventType: 'identity.operation.rolled_back', auditId: rollbackAuditId, workspaceId: audit.workspace_id,
+          platform: after.platform || 'identity', sourceAccountId: after.sourceAccountId || audit.workspace_id,
+          targetRefs: [{ table: 'identity_links', id: identityLinkId }, { table: 'identity_link_audit', id: rollbackAuditId }]
+        }
+      };
     });
+    return this.finalizeOperation(result);
   }
 
   resolve(scope = {}) {
-    const link = this.repository.getIdentityLinkByScope(canonicalExternalIdentityScope(scope));
+    const safeScope = canonicalExternalIdentityScope(scope);
+    const link = this.repository.getIdentityLinkByScope(safeScope);
     return link ? { authority: AUTHORITY, person: publicPerson(this.repository.getPerson(link.person_id)), link: publicLink(link) } : null;
   }
 }
@@ -489,6 +558,7 @@ module.exports = {
   IdentityAuthority,
   IdentityLinkAuthority: IdentityAuthority,
   singleton,
+  normalizeIdentityInput,
   validateScope,
   canonicalExternalIdentityScope,
   canonicalPersonId,
