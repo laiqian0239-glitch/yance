@@ -1,35 +1,19 @@
 'use strict';
 
-const { canonicalSerialize, canonicalHash, CANONICALIZATION_VERSION } = require('./canonicalSerialization');
+const { canonicalSerialize, canonicalHash } = require('./canonicalSerialization');
 const { CLASSIFICATIONS } = require('./dataClassificationRegistry');
 const { assertAuthorityCommandEnvelope } = require('./authorityCommandProtocol');
 const { runWithAuthorityWriteTransaction } = require('./authorityTransactionContext');
 
 const EVENT_FIELDS = new Set([
-  'eventId',
-  'eventType',
-  'schemaVersion',
-  'payloadClassification',
-  'occurredAt',
-  'payload',
-  'platform',
-  'sourceAccountId',
-  'generation',
-  'redactionVersion',
-  'retentionClass',
-  'ledgerSegmentId'
+  'eventId', 'eventType', 'schemaVersion', 'payloadClassification', 'occurredAt', 'payload',
+  'platform', 'sourceAccountId', 'generation', 'redactionVersion', 'retentionClass', 'ledgerSegmentId'
 ]);
 const PROJECTOR_FIELDS = new Set(['projectorId', 'projectorVersion', 'apply']);
 const CLASSIFICATION_VALUES = new Set(Object.values(CLASSIFICATIONS));
 
 function coordinatorError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
-}
-
-function codeUnitCompare(leftInput, rightInput) {
-  const left = String(leftInput);
-  const right = String(rightInput);
-  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function isPlainObject(value) {
@@ -116,7 +100,7 @@ function normalizeEvent(input) {
     schemaVersion,
     payloadClassification,
     occurredAt: normalizeTimestamp(descriptors.occurredAt.value, 'event.occurredAt'),
-    payload: JSON.parse(payloadCanonical),
+    payload: Object.freeze(JSON.parse(payloadCanonical)),
     payloadCanonical,
     payloadSha256: canonicalHash(descriptors.payload.value),
     platform: optionalString(descriptors.platform?.value, 'event.platform', 64),
@@ -149,7 +133,7 @@ function parseJson(value, fallback = null) {
 
 function canonicalResult(value) {
   const result = value == null ? {} : value;
-  try { return JSON.parse(canonicalSerialize(result)); }
+  try { return Object.freeze(JSON.parse(canonicalSerialize(result))); }
   catch (error) {
     throw coordinatorError('AUTHORITY_TRANSACTION_RESULT_INVALID', 'Projector result must be canonical plain data', {
       causeCode: error?.code || '',
@@ -170,7 +154,7 @@ function receiptFromRow(row, replayed) {
     eventId: String(row?.last_event_id || receipt.eventId || ''),
     aggregateType: String(receipt.aggregateType || ''),
     aggregateId: String(receipt.aggregateId || ''),
-    aggregateVersion: Number(receipt.aggregateVersion || 0),
+    aggregateVersion: Number(row?.aggregate_version || receipt.aggregateVersion || 0),
     hostGeneration: Number(row?.host_generation || receipt.hostGeneration || 0),
     fencingToken: Number(row?.fencing_token || receipt.fencingToken || 0),
     committedAt: String(row?.committed_at || receipt.committedAt || ''),
@@ -197,15 +181,12 @@ class AuthorityTransactionCoordinator {
       throw coordinatorError('AUTHORITY_WRITE_HOST_CAPABILITY_REQUIRED', 'Coordinator store has no current AuthorityWriteHost capability');
     }
     const token = capability.tokenSnapshot();
-    if (!token || !Number.isSafeInteger(Number(token.hostGeneration)) || Number(token.hostGeneration) < 1 ||
-        !Number.isSafeInteger(Number(token.fencingToken)) || Number(token.fencingToken) < 1) {
+    const hostId = String(token?.instanceId || '').trim();
+    if (!hostId || !Number.isSafeInteger(Number(token?.hostGeneration)) || Number(token.hostGeneration) < 1 ||
+        !Number.isSafeInteger(Number(token?.fencingToken)) || Number(token.fencingToken) < 1) {
       throw coordinatorError('AUTHORITY_WRITE_HOST_CAPABILITY_INVALID', 'Coordinator host token is invalid');
     }
-    return Object.freeze({
-      hostId: String(token.hostId || ''),
-      hostGeneration: Number(token.hostGeneration),
-      fencingToken: Number(token.fencingToken)
-    });
+    return Object.freeze({ hostId, hostGeneration: Number(token.hostGeneration), fencingToken: Number(token.fencingToken) });
   }
 
   existingReceipt(authorityScope, idempotencyKey) {
@@ -229,8 +210,7 @@ class AuthorityTransactionCoordinator {
   }
 
   observe(observation) {
-    try { this.onTransactionTelemetry(Object.freeze({ ...observation })); }
-    catch (_) {}
+    try { this.onTransactionTelemetry(Object.freeze({ ...observation })); } catch (_) {}
   }
 
   execute(input = {}) {
@@ -240,8 +220,8 @@ class AuthorityTransactionCoordinator {
     const event = normalizeEvent(input.event);
     const projector = normalizeProjector(input.projector);
     const token = this.tokenSnapshot();
-    let committed = null;
-    let published = false;
+    let committed;
+    let notificationPublished = false;
 
     try {
       committed = this.store.transaction(() => runWithAuthorityWriteTransaction({
@@ -254,55 +234,29 @@ class AuthorityTransactionCoordinator {
         const existing = this.existingReceipt(command.authorityScope, command.idempotencyKey);
         if (existing) return { receipt: this.assertIdempotency(existing, command), replayed: true };
 
-        const receivedAt = new Date(Number.isFinite(startedAtMs) ? startedAtMs : Date.now()).toISOString();
+        const recordedAt = new Date(Number.isFinite(startedAtMs) ? startedAtMs : Date.now()).toISOString();
         const nextVersion = command.expectedVersion + 1;
-        const payloadRef = `payload:${event.eventId}`;
+        const payloadId = `payload:${event.eventId}`;
         const insertHeader = this.db.prepare(`
           INSERT INTO canonical_event_headers(
-            event_id,event_type,aggregate_type,aggregate_id,aggregate_version,command_id,idempotency_key,
-            trace_id,correlation_id,causation_id,platform,source_account_id,generation,occurred_at,received_at,
-            payload_ref,redaction_version,schema_version,canonicalization_version,writer_authority,
-            host_generation,fencing_token,ledger_segment_id
+            event_id,aggregate_type,aggregate_id,aggregate_version,event_type,schema_version,payload_id,
+            command_id,idempotency_key,correlation_id,causation_id,host_generation,fencing_token,occurred_at,recorded_at
           )
-          SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
+          SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
           WHERE COALESCE((
             SELECT MAX(aggregate_version) FROM canonical_event_headers
             WHERE aggregate_type=? AND aggregate_id=?
           ),0)=?
             AND EXISTS(
               SELECT 1 FROM authority_write_host_lease
-              WHERE singleton_id=1 AND authority_host_id=? AND host_generation=? AND fencing_token=? AND state='ACTIVE'
+              WHERE singleton_id=1 AND owner_instance_id=? AND host_generation=? AND fencing_token=? AND state='ACTIVE'
             )
         `).run(
-          event.eventId,
-          event.eventType,
-          command.aggregateType,
-          command.aggregateId,
-          nextVersion,
-          command.commandId,
-          command.idempotencyKey,
-          command.traceId,
-          command.correlationId,
-          command.causationId,
-          event.platform,
-          event.sourceAccountId,
-          event.generation,
-          event.occurredAt,
-          receivedAt,
-          payloadRef,
-          event.redactionVersion,
-          event.schemaVersion,
-          CANONICALIZATION_VERSION,
-          command.authorityScope,
-          token.hostGeneration,
-          token.fencingToken,
-          event.ledgerSegmentId,
-          command.aggregateType,
-          command.aggregateId,
-          command.expectedVersion,
-          token.hostId,
-          token.hostGeneration,
-          token.fencingToken
+          event.eventId, command.aggregateType, command.aggregateId, nextVersion, event.eventType, event.schemaVersion,
+          payloadId, command.commandId, command.idempotencyKey, command.correlationId, command.causationId,
+          token.hostGeneration, token.fencingToken, event.occurredAt, recordedAt,
+          command.aggregateType, command.aggregateId, command.expectedVersion,
+          token.hostId, token.hostGeneration, token.fencingToken
         );
         if (Number(insertHeader.changes || 0) !== 1) {
           this.store.assertOwnership();
@@ -317,18 +271,14 @@ class AuthorityTransactionCoordinator {
             currentVersion
           });
         }
-        const ledgerSequence = Number(this.db.prepare('SELECT rowid AS sequence FROM canonical_event_headers WHERE event_id=?').get(event.eventId)?.sequence || 0);
 
+        const ledgerSequence = Number(this.db.prepare(
+          'SELECT rowid AS sequence FROM canonical_event_headers WHERE event_id=?'
+        ).get(event.eventId)?.sequence || 0);
         this.db.prepare(`INSERT INTO authority_payload_store(
-          payload_ref,event_id,classification,payload_json,payload_sha256,encryption_version,retention_class,created_at
-        ) VALUES(?,?,?,?,?,'none',?,?)`).run(
-          payloadRef,
-          event.eventId,
-          event.payloadClassification,
-          event.payloadCanonical,
-          event.payloadSha256,
-          event.retentionClass,
-          receivedAt
+          payload_id,classification,canonical_json,payload_sha256,encryption_key_ref,created_at
+        ) VALUES(?,?,?,?,?,?)`).run(
+          payloadId, event.payloadClassification, event.payloadCanonical, event.payloadSha256, '', recordedAt
         );
 
         const projectionOutput = projector.apply(Object.freeze({
@@ -355,62 +305,42 @@ class AuthorityTransactionCoordinator {
         }
         const result = canonicalResult(projectionOutput.result || {});
 
-        this.db.prepare(`
+        const checkpoint = this.db.prepare(`
           INSERT INTO projection_checkpoints_v2(
-            projector_id,projector_version,ledger_sequence,lease_owner,generation,fencing_token,output_hash,lag,updated_at
-          ) VALUES(?,?,?,?,?,?,?,0,?)
+            projector_id,projector_version,last_event_id,last_aggregate_version,state_hash,updated_at
+          ) VALUES(?,?,?,?,?,?)
           ON CONFLICT(projector_id) DO UPDATE SET
             projector_version=excluded.projector_version,
-            ledger_sequence=excluded.ledger_sequence,
-            lease_owner=excluded.lease_owner,
-            generation=excluded.generation,
-            fencing_token=excluded.fencing_token,
-            output_hash=excluded.output_hash,
-            lag=0,
+            last_event_id=excluded.last_event_id,
+            last_aggregate_version=excluded.last_aggregate_version,
+            state_hash=excluded.state_hash,
             updated_at=excluded.updated_at
-          WHERE projection_checkpoints_v2.ledger_sequence < excluded.ledger_sequence
-            AND projection_checkpoints_v2.generation <= excluded.generation
-        `).run(
-          projector.projectorId,
-          projector.projectorVersion,
-          ledgerSequence,
-          token.hostId,
-          token.hostGeneration,
-          token.fencingToken,
-          stateHash,
-          receivedAt
-        );
+          WHERE projection_checkpoints_v2.last_aggregate_version < excluded.last_aggregate_version
+        `).run(projector.projectorId, projector.projectorVersion, event.eventId, ledgerSequence, stateHash, recordedAt);
+        if (Number(checkpoint.changes || 0) !== 1) {
+          throw coordinatorError('AUTHORITY_PROJECTION_CHECKPOINT_STALE', 'Projection checkpoint did not advance atomically', {
+            projectorId: projector.projectorId,
+            ledgerSequence
+          });
+        }
 
         const receiptDocument = {
           commandContentSha256: command.contentSha256,
           receipt: {
-            status: 'COMMITTED',
-            commandId: command.commandId,
-            authorityScope: command.authorityScope,
-            idempotencyKey: command.idempotencyKey,
-            eventId: event.eventId,
-            aggregateType: command.aggregateType,
-            aggregateId: command.aggregateId,
-            aggregateVersion: nextVersion,
-            hostGeneration: token.hostGeneration,
-            fencingToken: token.fencingToken,
-            committedAt: receivedAt
+            status: 'COMMITTED', commandId: command.commandId, authorityScope: command.authorityScope,
+            idempotencyKey: command.idempotencyKey, eventId: event.eventId,
+            aggregateType: command.aggregateType, aggregateId: command.aggregateId, aggregateVersion: nextVersion,
+            hostGeneration: token.hostGeneration, fencingToken: token.fencingToken, committedAt: recordedAt
           },
           result
         };
         this.db.prepare(`INSERT INTO authority_command_receipts(
-          command_id,authority_scope,idempotency_key,status,first_event_id,last_event_id,result_json,
-          host_generation,fencing_token,committed_at
-        ) VALUES(?,?,?,'COMMITTED',?,?,?,?,?,?)`).run(
-          command.commandId,
-          command.authorityScope,
-          command.idempotencyKey,
-          event.eventId,
-          event.eventId,
-          canonicalSerialize(receiptDocument),
-          token.hostGeneration,
-          token.fencingToken,
-          receivedAt
+          command_id,authority_scope,idempotency_key,status,first_event_id,last_event_id,aggregate_version,
+          host_generation,fencing_token,result_json,committed_at
+        ) VALUES(?,?,?,'COMMITTED',?,?,?,?,?,?,?)`).run(
+          command.commandId, command.authorityScope, command.idempotencyKey,
+          event.eventId, event.eventId, nextVersion, token.hostGeneration, token.fencingToken,
+          canonicalSerialize(receiptDocument), recordedAt
         );
 
         const row = this.db.prepare('SELECT * FROM authority_command_receipts WHERE command_id=?').get(command.commandId);
@@ -419,11 +349,8 @@ class AuthorityTransactionCoordinator {
     } catch (error) {
       const finishedAtMs = Number(this.clock());
       this.observe({
-        status: 'ROLLED_BACK',
-        commandId: command.commandId,
-        authorityScope: command.authorityScope,
-        hostGeneration: token.hostGeneration,
-        fencingToken: token.fencingToken,
+        status: 'ROLLED_BACK', commandId: command.commandId, authorityScope: command.authorityScope,
+        hostGeneration: token.hostGeneration, fencingToken: token.fencingToken,
         durationMs: Math.max(0, (Number.isFinite(finishedAtMs) ? finishedAtMs : startedAtMs) - startedAtMs),
         reasonCode: String(error?.code || 'AUTHORITY_TRANSACTION_FAILED')
       });
@@ -432,10 +359,8 @@ class AuthorityTransactionCoordinator {
 
     const finishedAtMs = Number(this.clock());
     this.observe({
-      status: committed.replayed ? 'REPLAYED' : 'COMMITTED',
-      commandId: command.commandId,
-      authorityScope: command.authorityScope,
-      hostGeneration: token.hostGeneration,
+      status: committed.replayed ? 'REPLAYED' : 'COMMITTED', commandId: command.commandId,
+      authorityScope: command.authorityScope, hostGeneration: token.hostGeneration,
       fencingToken: token.fencingToken,
       durationMs: Math.max(0, (Number.isFinite(finishedAtMs) ? finishedAtMs : startedAtMs) - startedAtMs),
       reasonCode: ''
@@ -452,25 +377,19 @@ class AuthorityTransactionCoordinator {
           hostGeneration: committed.receipt.hostGeneration,
           fencingToken: committed.receipt.fencingToken
         }));
-        published = true;
+        notificationPublished = true;
       } catch (error) {
         this.observe({
-          status: 'POST_COMMIT_NOTIFICATION_FAILED',
-          commandId: command.commandId,
-          authorityScope: command.authorityScope,
-          hostGeneration: token.hostGeneration,
-          fencingToken: token.fencingToken,
-          durationMs: Math.max(0, Number(this.clock()) - startedAtMs),
+          status: 'POST_COMMIT_NOTIFICATION_FAILED', commandId: command.commandId,
+          authorityScope: command.authorityScope, hostGeneration: token.hostGeneration,
+          fencingToken: token.fencingToken, durationMs: Math.max(0, Number(this.clock()) - startedAtMs),
           reasonCode: String(error?.code || 'POST_COMMIT_NOTIFICATION_FAILED')
         });
       }
     }
 
-    return Object.freeze({ ...committed.receipt, notificationPublished: published });
+    return Object.freeze({ ...committed.receipt, notificationPublished });
   }
 }
 
-module.exports = {
-  AuthorityTransactionCoordinator,
-  coordinatorError
-};
+module.exports = { AuthorityTransactionCoordinator, coordinatorError };
