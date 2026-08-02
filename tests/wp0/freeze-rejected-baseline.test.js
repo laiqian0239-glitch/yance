@@ -1,7 +1,9 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { spawnSync } = require('node:child_process');
 const {
+  REPO_ROOT,
   EXPECTED_BASELINE_COMMIT,
   EXPECTED_TAG,
   checkFreezePolicy,
@@ -27,4 +29,17 @@ test('runtime/build target Stage 6.4.5.8 is rejected by executable gate', () => 
   const result = checkRuntimeTargetGate({ targetStage: '6.4.5.8' });
   assert.equal(result.pass, false);
   assert.equal(result.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');
+});
+
+test('verify-gate CLI binds the gate to the explicitly reviewed implementation branch', () => {
+  const reviewedBranch = 'rebuild/windows-release-closure-20260802-cli-probe';
+  const child = spawnSync(process.execPath, ['tools/wp0/verify-gate.js', '--branch', reviewedBranch], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8'
+  });
+  assert.equal(child.error, undefined, child.error?.message);
+  const result = JSON.parse(child.stdout);
+  const freeze = result.checks.find((item) => item.id === 'freeze-rejected-baseline.test');
+  assert.equal(result.branch, reviewedBranch, JSON.stringify(result));
+  assert.equal(freeze?.details?.runtimeTargetGate?.branch, reviewedBranch, JSON.stringify(result));
 });
