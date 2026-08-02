@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_A_A3_RED_EVIDENCE",
+  "status": "VALID_RED_RECORDED",
+  "workPackage": "WP-A",
+  "task": "A3_AUTHORITY_TRANSACTION_COORDINATOR_AND_COMMAND_PROTOCOL",
+  "repository": "laiqian0239-glitch/yance",
+  "pullRequest": 5,
+  "branch": "acv2/wp-a-identity-ledger-write-host",
+  "redHead": "749da0b06227c95e7471149b4af78e4ab3ef465e",
+  "workflow": {
+    "name": "ACV2 WP-A Architecture Gates",
+    "runId": 30738032544,
+    "runNumber": 76,
+    "conclusion": "EXPECTED_FAILURE",
+    "ubuntuJobId": 91470284799,
+    "windowsJobId": 91470284793,
+    "sourceClosureJobId": 91470284770,
+    "ubuntuConclusion": "EXPECTED_FAILURE",
+    "windowsConclusion": "EXPECTED_FAILURE",
+    "sourceClosureConclusion": "EXPECTED_FAILURE"
+  },
+  "prerequisiteResultsPerPlatform": {
+    "windowsMutexHelper": "3_OF_3_PASS",
+    "authorityWriteHostAndSchema21": "7_OF_7_PASS",
+    "realProcessOwnershipAndTakeover": "2_OF_2_PASS",
+    "a2CanonicalClassificationAndReplay": "33_OF_33_PASS"
+  },
+  "a3SuitePerPlatform": {
+    "tests": 18,
+    "passed": 0,
+    "failed": 18,
+    "failureMode": "MISSING_PUBLIC_A3_IMPLEMENTATIONS",
+    "missingModules": [
+      "backend/services/authorityTransactionCoordinator.js",
+      "backend/services/authorityCommandProtocol.js",
+      "backend/services/authorityTransactionContext.js",
+      "backend/services/externalIoBoundaryGuard.js"
+    ]
+  },
+  "sourceClosureIsolation": {
+    "registryAndOpenStateContract": "PASS",
+    "finalSourceClosure": "EXPECTED_FAIL_UNTIL_A8",
+    "wp0RegressionMaskingRemoved": true,
+    "temporaryBypassUsed": false
+  },
+  "requiredContractsCaptured": [
+    "COMMAND_ENVELOPE_EXACT_DEEP_FROZEN_AND_CONTENT_ADDRESSED",
+    "COMMAND_FINGERPRINT_DETERMINISTIC",
+    "COMMAND_UNKNOWN_SYMBOL_ACCESSOR_AND_PROTOTYPE_FIELDS_REJECTED",
+    "IDEMPOTENT_REPLAY_RETURNS_ORIGINAL_RECEIPT",
+    "IDEMPOTENCY_CONTENT_CONFLICT_FAILS_CLOSED",
+    "AGGREGATE_VERSION_CONFLICT_REJECTED_BY_SQL_CONDITION",
+    "EVENT_PAYLOAD_PROJECTION_CHECKPOINT_AND_RECEIPT_ATOMIC",
+    "ROLLBACK_PUBLISHES_NO_EVENT_AND_LEAVES_NO_PARTIAL_ROWS",
+    "ASYNC_PROJECTOR_CALLBACK_REJECTED",
+    "EXTERNAL_IO_FORBIDDEN_INSIDE_WRITE_TRANSACTION",
+    "TRANSACTION_CONTEXT_SURVIVES_AWAIT_AND_CLEARS_AFTER_SETTLEMENT",
+    "UNKNOWN_EXTERNAL_IO_KIND_FAILS_CLOSED",
+    "HOST_GENERATION_AND_FENCING_PRESENT_IN_PERSISTED_ROWS",
+    "STALE_COORDINATOR_REJECTED_AFTER_TAKEOVER"
+  ],
+  "productionCodeChangedBeforeRed": false,
+  "testsWeakened": false,
+  "nextAuthorizedAction": "IMPLEMENT_A3_PUBLIC_MODULES_ONLY",
+  "lockedTasks": ["A4", "A5", "A6", "A7", "A8"],
+  "lockedWorkPackages": ["WP-B", "WP-C", "WP-D", "WP-E", "WP-F", "WP-G", "WP-H"]
+}
