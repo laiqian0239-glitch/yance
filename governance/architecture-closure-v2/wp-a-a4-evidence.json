@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_A_A4_EVIDENCE",
+  "status": "A4_CLOSED_AFTER_THREE_ADVERSARIAL_REOPENS_AND_ROOT_REPAIRS",
+  "workPackage": "WP-A",
+  "task": "A4_CANONICAL_EVENT_LEDGER_AUTHORITY",
+  "finalCodeHead": "0eda8a159db88d15379ae8d66a504e3aa5f80dbd",
+  "initialRed": {
+    "head": "ae43ede5c096ec6438969294d9c8248ad3196be0",
+    "workflowRunId": 30742811474,
+    "ubuntuJobId": 91483141685,
+    "windowsJobId": 91483141676,
+    "result": "0_OF_8_PASS_8_OF_8_EXPECTED_FAIL_PER_PLATFORM",
+    "wp0WorkflowRunId": 30742811486
+  },
+  "reviewReopens": [
+    {
+      "head": "edceded87c86af6759ed127babcfb3f2fe1d1c8d",
+      "workflowRunId": 30743381932,
+      "ubuntuJobId": 91484674100,
+      "result": "7_OF_10_PASS_THREE_EXPECTED_FAIL",
+      "gaps": [
+        "REPLAY_PAYLOAD_NOT_DEEPLY_FROZEN",
+        "AUTHORITY_TOP_LEVEL_INPUT_NOT_FAIL_CLOSED",
+        "SCOPED_EXTERNAL_EVENT_DUPLICABLE_WITH_DIFFERENT_IDEMPOTENCY"
+      ]
+    },
+    {
+      "head": "3f438629d92aaeba9ed127c96b384dc2d7cf614e",
+      "workflowRunId": 30743693050,
+      "ubuntuJobId": 91485497265,
+      "result": "9_OF_10_PASS_ONE_EXPECTED_FAIL",
+      "gaps": [
+        "EXPLICIT_AGGREGATE_ID_BYPASSES_SCOPED_EXTERNAL_EVENT_UNIQUENESS"
+      ]
+    }
+  ],
+  "rootRepairCommits": [
+    {
+      "sha": "c4f88fdace5768718b0cf22630972e1add44dbc6",
+      "purpose": "CREATE_SINGLE_CANONICAL_EVENT_LEDGER_AUTHORITY"
+    },
+    {
+      "sha": "9baf85852cef8a13adc5bb6b1be11af96722afcc",
+      "purpose": "REDUCE_DOMAIN_EVENT_LOG_SERVICE_TO_PURE_FACADE"
+    },
+    {
+      "sha": "78f7e04fe8a8a30ecb63dbd0d7e818a4d5e891d3",
+      "purpose": "CLOSE_SQLITE_HANDLE_BEFORE_WINDOWS_TEST_CLEANUP"
+    },
+    {
+      "sha": "94076aba4bfbdf6d24a07997187b825d8169be8c",
+      "purpose": "HARDEN_INPUT_SHAPE_DEEP_FREEZE_AND_EXTERNAL_IDENTITY"
+    },
+    {
+      "sha": "0eda8a159db88d15379ae8d66a504e3aa5f80dbd",
+      "purpose": "BIND_SCOPED_EXTERNAL_EVENT_TO_FIXED_AGGREGATE_ROOT"
+    }
+  ],
+  "finalAcv2Workflow": {
+    "runId": 30743781529,
+    "overallConclusion": "EXPECTED_FAILURE_DUE_TO_A8_SOURCE_CLOSURE_ONLY",
+    "ubuntu": {
+      "jobId": 91485738360,
+      "conclusion": "SUCCESS",
+      "tests": {
+        "windowsRuntimeMutexHelper": "3_OF_3_PASS",
+        "authorityWriteHostAndSchema21": "7_OF_7_PASS",
+        "realProcessOwnershipAndTakeover": "2_OF_2_PASS",
+        "a2CanonicalClassificationReplay": "33_OF_33_PASS",
+        "a3CoordinatorSchemaAndAdversarial": "24_OF_24_PASS",
+        "a4CanonicalLedgerAndFacade": "10_OF_10_PASS",
+        "legacySqliteOwnershipPathAndFencing": "22_OF_22_PASS"
+      }
+    },
+    "windows": {
+      "jobId": 91485738414,
+      "conclusion": "SUCCESS",
+      "tests": {
+        "windowsRuntimeMutexHelper": "3_OF_3_PASS",
+        "authorityWriteHostAndSchema21": "7_OF_7_PASS",
+        "realProcessOwnershipAndTakeover": "2_OF_2_PASS",
+        "a2CanonicalClassificationReplay": "33_OF_33_PASS",
+        "a3CoordinatorSchemaAndAdversarial": "24_OF_24_PASS",
+        "a4CanonicalLedgerAndFacade": "10_OF_10_PASS",
+        "legacySqliteOwnershipPathAndFencing": "22_OF_22_PASS"
+      }
+    },
+    "sourceClosure": {
+      "jobId": 91485738387,
+      "a0RegistryAndOpenStateContract": "SUCCESS",
+      "finalScanner": "EXPECTED_FAILURE_UNTIL_A8",
+      "gateWeakened": false
+    }
+  },
+  "finalWp0Workflow": {
+    "runId": 30743781521,
+    "overallConclusion": "SUCCESS",
+    "wp0JobId": 91485738358,
+    "stagedSecretScanner": "SUCCESS",
+    "sourceIdentityAndElectronTracking": "SUCCESS",
+    "protocolDescriptor": "SUCCESS",
+    "localEquivalentGate": "SUCCESS",
+    "sealedExportUbuntuJobId": 91485738355,
+    "sealedExportWindowsJobId": 91485738341
+  },
+  "verifiedInvariants": [
+    "ONE_CANONICAL_LEDGER_IMPLEMENTATION_AND_APPEND_PATH",
+    "DOMAIN_EVENT_LOG_SERVICE_IS_A_PURE_COMPATIBILITY_FACADE",
+    "HEADER_AND_ACTIVE_PAYLOAD_UPDATE_DELETE_FAIL_CLOSED",
+    "LEGACY_DOMAIN_EVENT_INSERT_FAILS_CLOSED_BY_PERSISTENT_SQLITE_TRIGGER",
+    "PAYLOAD_HASH_VERIFIED_ACROSS_CANONICAL_BODY_HEADER_AND_PAYLOAD_STORE",
+    "REPLAY_PAYLOAD_DEEPLY_IMMUTABLE",
+    "TOP_LEVEL_UNKNOWN_SYMBOL_ACCESSOR_AND_PROTOTYPE_FIELDS_FAIL_CLOSED_WITHOUT_GETTER_EXECUTION",
+    "SCOPED_EXTERNAL_EVENT_USES_FIXED_EXTERNAL_DOMAIN_EVENT_AGGREGATE_ROOT",
+    "EXPLICIT_AGGREGATE_ID_TYPE_IDEMPOTENCY_OR_NONZERO_EXPECTED_VERSION_CANNOT_BYPASS_EXTERNAL_IDENTITY_UNIQUENESS",
+    "BUSINESS_PAYLOAD_REPLAYABLE_WITHOUT_BUSINESS_BODY_IN_EVIDENCE"
+  ],
+  "knownGovernedResidual": {
+    "legacyRepositoryMethodSourceStillPresent": true,
+    "runtimeWriteBlockedByPersistentTrigger": true,
+    "startupOrderingOwnedByTask": "A6",
+    "zeroWriterSourceClosureOwnedByTask": "A8",
+    "dualWriteAuthorized": false
+  },
+  "independentSourceReview": {
+    "document": "docs/architecture/YANCE_ACV2_WP_A_A4_SOURCE_REVIEW_ZH.md",
+    "decision": "APPROVED_AFTER_THREE_ADVERSARIAL_REOPENS_AND_ROOT_REPAIRS",
+    "openP0": 0,
+    "openP1": 0
+  },
+  "codeRabbit": {
+    "initialRedInvocationCommentId": 5157036292,
+    "initialRedResponseCommentId": 5157036779,
+    "finalInvocationCommentId": 5157199728,
+    "finalResponseCommentId": 5157200259,
+    "formalReviewExecuted": false,
+    "outcome": "NOT_EXECUTED_PRO_SEAT_NOT_ASSIGNED",
+    "issuesClaimed": null
+  },
+  "repairPolicy": {
+    "temporaryBypassUsed": false,
+    "featureFlagBypassUsed": false,
+    "warningOnlyGuardUsed": false,
+    "legacyDualWriteRestored": false,
+    "testWeakeningUsed": false,
+    "sourceClosureGateDowngraded": false,
+    "productionCodeOutsideAuthorizedScopeChanged": false
+  },
+  "nextAuthorization": {
+    "task": "A5_IDENTITY_AUTHORITY",
+    "testFirstRedOnly": true,
+    "productionCodeAllowed": false,
+    "allowedTestFile": "backend/tests/architectureClosureV2/wpA/identityAuthority.test.js",
+    "productionFilesLocked": [
+      "backend/services/identityAuthority.js",
+      "backend/services/canonicalIdentityService.js",
+      "backend/services/identityLinkAuthority.js"
+    ]
+  }
+}
