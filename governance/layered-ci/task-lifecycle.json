@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_LAYERED_TASK_LIFECYCLE",
+  "states": [
+    "SPEC_DRAFT",
+    "SPEC_REVIEWED",
+    "RED_LOCKED",
+    "IMPLEMENTING",
+    "GREEN_PROVISIONAL",
+    "INDEPENDENT_REVIEW",
+    "CLOSED",
+    "POST_CLOSURE_DEFECT",
+    "REOPENED_INVALID_EVIDENCE"
+  ],
+  "transitions": [
+    { "from": "SPEC_DRAFT", "to": "SPEC_REVIEWED", "requires": ["specReviewed"] },
+    { "from": "SPEC_REVIEWED", "to": "RED_LOCKED", "requires": ["redEvidenceLocked"] },
+    { "from": "RED_LOCKED", "to": "IMPLEMENTING", "requires": ["implementationAuthorized"] },
+    { "from": "IMPLEMENTING", "to": "GREEN_PROVISIONAL", "requires": ["taskTestsPassed"] },
+    { "from": "GREEN_PROVISIONAL", "to": "INDEPENDENT_REVIEW", "requires": ["candidateShaFrozen"] },
+    { "from": "INDEPENDENT_REVIEW", "to": "CLOSED", "requires": ["independentReviewPassed", "l2EvidencePassed", "candidateShaFrozen"] },
+    { "from": "CLOSED", "to": "POST_CLOSURE_DEFECT", "requires": ["newDefectRecorded"] },
+    { "from": "CLOSED", "to": "REOPENED_INVALID_EVIDENCE", "requires": ["reopenReasonAuthorized"] }
+  ],
+  "reopenAllowedReasonCodes": [
+    "CLOSURE_EVIDENCE_FALSE",
+    "VERIFIED_SHA_MISMATCH",
+    "TEST_RESULT_CONTAMINATED"
+  ],
+  "greenProvisionalIsClosed": false,
+  "independentReviewBeforeClosed": true,
+  "readyForPromotion": false
+}
