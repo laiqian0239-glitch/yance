@@ -14,6 +14,34 @@ const MAX_EVENT_PAYLOAD_BYTES = 2 * 1024 * 1024;
 const MAX_REDACTION_DEPTH = 32;
 const MAX_REDACTION_NODES = 10000;
 const FORBIDDEN_OBJECT_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+const APPEND_INPUT_FIELDS = new Set([
+  'commandId',
+  'idempotencyKey',
+  'aggregateType',
+  'aggregateId',
+  'expectedVersion',
+  'actor',
+  'traceId',
+  'correlationId',
+  'causationId',
+  'eventId',
+  'eventType',
+  'externalEventId',
+  'schemaVersion',
+  'payloadClassification',
+  'occurredAt',
+  'receivedAt',
+  'payload',
+  'payloadSha256',
+  'platform',
+  'sourceAccountId',
+  'generation',
+  'redactionVersion',
+  'retentionClass',
+  'retentionDays',
+  'retentionUntil',
+  'ledgerSegmentId'
+]);
 const SECRET_KEY = /(?:token|secret|password|passwd|cookie|authorization|credential|qr(?:code)?|sessionkey|privatekey|clientsecret|accesstoken|refreshtoken)/i;
 const BINARY_KEY = /(?:buffer|binary|blob|filebytes|media(?:data|bytes)|base64)/i;
 const SECRET_VALUE_PATTERNS = Object.freeze([
@@ -34,7 +62,11 @@ function required(value, field, maximum = 2048) {
   const result = clean(value);
   if (!result) throw authorityError('CANONICAL_EVENT_FIELD_REQUIRED', `${field} is required`, { field });
   if (result.length > maximum || /[\u0000-\u001f\u007f]/u.test(result)) {
-    throw authorityError('CANONICAL_EVENT_FIELD_INVALID', `${field} is invalid`, { field, maximum, length: result.length });
+    throw authorityError('CANONICAL_EVENT_FIELD_INVALID', `${field} is invalid`, {
+      field,
+      maximum,
+      length: result.length
+    });
   }
   return result;
 }
@@ -42,7 +74,11 @@ function required(value, field, maximum = 2048) {
 function optional(value, field, maximum = 2048) {
   const result = clean(value);
   if (result.length > maximum || /[\u0000-\u001f\u007f]/u.test(result)) {
-    throw authorityError('CANONICAL_EVENT_FIELD_INVALID', `${field} is invalid`, { field, maximum, length: result.length });
+    throw authorityError('CANONICAL_EVENT_FIELD_INVALID', `${field} is invalid`, {
+      field,
+      maximum,
+      length: result.length
+    });
   }
   return result;
 }
@@ -62,6 +98,51 @@ function canonical(value) {
 
 function sha256(value) {
   return canonicalHash(value);
+}
+
+function assertAppendInputShape(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw authorityError('CANONICAL_EVENT_INPUT_INVALID', 'Canonical event append input must be a plain object');
+  }
+  const prototype = Object.getPrototypeOf(input);
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw authorityError('CANONICAL_EVENT_INPUT_INVALID', 'Canonical event append input must be a plain object');
+  }
+  if (Object.getOwnPropertySymbols(input).length) {
+    throw authorityError(
+      'CANONICAL_EVENT_INPUT_SYMBOL_KEY_FORBIDDEN',
+      'Canonical event append input cannot contain symbol-keyed state'
+    );
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(input);
+  const normalized = {};
+  for (const field of Object.getOwnPropertyNames(input)) {
+    if (FORBIDDEN_OBJECT_KEYS.has(field)) {
+      throw authorityError('CANONICAL_EVENT_INPUT_FORBIDDEN_KEY', 'Canonical event input contains a prototype mutation key', {
+        field
+      });
+    }
+    if (!APPEND_INPUT_FIELDS.has(field)) {
+      throw authorityError('CANONICAL_EVENT_INPUT_FIELD_UNREGISTERED', `Canonical event input field ${field} is not registered`, {
+        field
+      });
+    }
+    const descriptor = descriptors[field];
+    if (typeof descriptor?.get === 'function' || typeof descriptor?.set === 'function') {
+      throw authorityError('CANONICAL_EVENT_INPUT_ACCESSOR_FORBIDDEN', 'Canonical event input cannot contain accessors', {
+        field
+      });
+    }
+    normalized[field] = descriptor.value;
+  }
+  return Object.freeze(normalized);
+}
+
+function deepFreeze(value, seen = new WeakSet()) {
+  if (!value || typeof value !== 'object' || seen.has(value)) return value;
+  seen.add(value);
+  for (const key of Reflect.ownKeys(value)) deepFreeze(value[key], seen);
+  return Object.freeze(value);
 }
 
 function redactString(value, path, report) {
@@ -124,6 +205,10 @@ function redactPayload(value, keyPath = [], report = [], state = null, depth = 0
       report.push(Object.freeze({ path, reason: 'non-plain-object' }));
       return '[REDACTED_NON_PLAIN_OBJECT]';
     }
+    if (Object.getOwnPropertySymbols(value).length) {
+      report.push(Object.freeze({ path, reason: 'symbol-key' }));
+      return '[REDACTED_SYMBOL_KEYED_OBJECT]';
+    }
     const output = {};
     const descriptors = Object.getOwnPropertyDescriptors(value);
     for (const key of Object.getOwnPropertyNames(value)) {
@@ -161,6 +246,16 @@ function redactPayload(value, keyPath = [], report = [], state = null, depth = 0
   } finally {
     context.seen.delete(value);
   }
+}
+
+function normalizePayload(value, classification, report) {
+  const normalized = classification === CLASSIFICATIONS.BUSINESS_CONTENT
+    ? redactPayload(value ?? {}, [], report)
+    : JSON.parse(canonicalSerialize(value ?? {}));
+  if (!normalized || typeof normalized !== 'object' || Array.isArray(normalized)) {
+    throw authorityError('CANONICAL_EVENT_PAYLOAD_INVALID', 'Canonical event payload must be a plain object');
+  }
+  return normalized;
 }
 
 function deterministicId(prefix, value) {
@@ -241,7 +336,7 @@ function publicEvent(row, payload) {
     hostGeneration: Number(row.host_generation || 0),
     fencingToken: Number(row.fencing_token || 0),
     ledgerSegmentId: clean(row.ledger_segment_id),
-    payload: Object.freeze(payload)
+    payload: deepFreeze(payload)
   });
 }
 
@@ -290,16 +385,23 @@ class CanonicalEventLedgerAuthority {
   }
 
   append(input = {}) {
-    if (!input || typeof input !== 'object' || Array.isArray(input)) {
-      throw authorityError('CANONICAL_EVENT_INPUT_INVALID', 'Canonical event append input must be an object');
+    const source = assertAppendInputShape(input);
+    const occurredAt = timestamp(source.occurredAt, new Date(Number(this.clock())).toISOString(), 'occurredAt');
+    const platform = optional(source.platform, 'platform', 64).toLowerCase();
+    const sourceAccountId = optional(source.sourceAccountId, 'sourceAccountId', 1024);
+    const eventType = required(source.eventType, 'eventType', 256);
+    const externalEventId = optional(source.externalEventId, 'externalEventId', 1024);
+    if (externalEventId && (!platform || !sourceAccountId)) {
+      throw authorityError(
+        'CANONICAL_EVENT_EXTERNAL_SCOPE_INCOMPLETE',
+        'externalEventId requires platform and sourceAccountId'
+      );
     }
-    const occurredAt = timestamp(input.occurredAt, new Date(Number(this.clock())).toISOString(), 'occurredAt');
-    const platform = optional(input.platform, 'platform', 64).toLowerCase();
-    const sourceAccountId = optional(input.sourceAccountId, 'sourceAccountId', 1024);
-    const eventType = required(input.eventType, 'eventType', 256);
-    const externalEventId = optional(input.externalEventId, 'externalEventId', 1024);
-    const idempotencyKey = optional(input.idempotencyKey, 'idempotencyKey', 2048)
-      || (externalEventId && platform && sourceAccountId
+    const externalIdentity = externalEventId
+      ? Object.freeze({ platform, sourceAccountId, eventType, externalEventId })
+      : null;
+    const idempotencyKey = optional(source.idempotencyKey, 'idempotencyKey', 2048)
+      || (externalIdentity
         ? `${platform}:${sourceAccountId}:${eventType}:${externalEventId}`
         : '');
     if (!idempotencyKey) {
@@ -310,16 +412,14 @@ class CanonicalEventLedgerAuthority {
     }
 
     const report = [];
-    const payloadClassification = optional(input.payloadClassification, 'payloadClassification', 64)
+    const payloadClassification = optional(source.payloadClassification, 'payloadClassification', 64)
       || CLASSIFICATIONS.BUSINESS_CONTENT;
     if (!Object.values(CLASSIFICATIONS).includes(payloadClassification)) {
       throw authorityError('CANONICAL_EVENT_CLASSIFICATION_INVALID', 'payloadClassification is not registered', {
         payloadClassification
       });
     }
-    const payload = payloadClassification === CLASSIFICATIONS.BUSINESS_CONTENT
-      ? redactPayload(input.payload ?? {}, [], report)
-      : input.payload ?? {};
+    const payload = normalizePayload(source.payload, payloadClassification, report);
     const payloadCanonical = canonicalSerialize(payload);
     if (Buffer.byteLength(payloadCanonical, 'utf8') > MAX_EVENT_PAYLOAD_BYTES) {
       throw authorityError('CANONICAL_EVENT_PAYLOAD_TOO_LARGE', 'Canonical event payload exceeds maximum size', {
@@ -327,7 +427,7 @@ class CanonicalEventLedgerAuthority {
       });
     }
     const payloadSha256 = canonicalHash(payload);
-    const callerHash = optional(input.payloadSha256, 'payloadSha256', 64).toLowerCase();
+    const callerHash = optional(source.payloadSha256, 'payloadSha256', 64).toLowerCase();
     if (callerHash && callerHash !== payloadSha256) {
       throw authorityError('CANONICAL_EVENT_PAYLOAD_HASH_MISMATCH', 'Caller payload hash does not match canonical payload', {
         expectedPayloadSha256: payloadSha256,
@@ -335,31 +435,31 @@ class CanonicalEventLedgerAuthority {
       });
     }
 
-    const aggregateType = optional(input.aggregateType, 'aggregateType', 128) || 'DomainEvent';
-    const provisionalAggregateId = optional(input.aggregateId, 'aggregateId', 1024)
-      || deterministicId('aggregate', { platform, sourceAccountId, eventType, idempotencyKey });
-    const eventId = optional(input.eventId, 'eventId', 1024)
+    const aggregateType = optional(source.aggregateType, 'aggregateType', 128) || 'DomainEvent';
+    const provisionalAggregateId = optional(source.aggregateId, 'aggregateId', 1024)
+      || deterministicId('aggregate', externalIdentity || { authority: AUTHORITY, idempotencyKey });
+    const eventId = optional(source.eventId, 'eventId', 1024)
       || deterministicId('event', { authority: AUTHORITY, idempotencyKey });
-    const commandId = optional(input.commandId, 'commandId', 512)
+    const commandId = optional(source.commandId, 'commandId', 512)
       || deterministicId('command', { authority: AUTHORITY, idempotencyKey });
-    const traceId = optional(input.traceId, 'traceId', 512)
+    const traceId = optional(source.traceId, 'traceId', 512)
       || deterministicId('trace', { authority: AUTHORITY, idempotencyKey });
-    const expectedVersion = input.expectedVersion == null ? 0 : Number(input.expectedVersion);
+    const expectedVersion = source.expectedVersion == null ? 0 : Number(source.expectedVersion);
     if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 0) {
       throw authorityError('CANONICAL_EVENT_EXPECTED_VERSION_INVALID', 'expectedVersion must be a non-negative safe integer', {
-        expectedVersion: input.expectedVersion
+        expectedVersion: source.expectedVersion
       });
     }
-    const schemaVersion = input.schemaVersion == null ? SCHEMA_VERSION : Number(input.schemaVersion);
+    const schemaVersion = source.schemaVersion == null ? SCHEMA_VERSION : Number(source.schemaVersion);
     if (!Number.isSafeInteger(schemaVersion) || schemaVersion < 1) {
       throw authorityError('CANONICAL_EVENT_SCHEMA_VERSION_INVALID', 'schemaVersion must be a positive safe integer', {
-        schemaVersion: input.schemaVersion
+        schemaVersion: source.schemaVersion
       });
     }
-    const generation = input.generation == null ? 0 : Number(input.generation);
+    const generation = source.generation == null ? 0 : Number(source.generation);
     if (!Number.isSafeInteger(generation) || generation < 0) {
       throw authorityError('CANONICAL_EVENT_GENERATION_INVALID', 'generation must be a non-negative safe integer', {
-        generation: input.generation
+        generation: source.generation
       });
     }
 
@@ -371,10 +471,10 @@ class CanonicalEventLedgerAuthority {
       aggregateType,
       aggregateId: provisionalAggregateId,
       expectedVersion,
-      actor: input.actor || { actorType: 'system', actorId: 'canonical-event-ledger' },
+      actor: source.actor || { actorType: 'system', actorId: 'canonical-event-ledger' },
       traceId,
-      correlationId: optional(input.correlationId, 'correlationId', 512),
-      causationId: optional(input.causationId, 'causationId', 512),
+      correlationId: optional(source.correlationId, 'correlationId', 512),
+      causationId: optional(source.causationId, 'causationId', 512),
       payload: {
         eventId,
         eventType,
@@ -407,9 +507,9 @@ class CanonicalEventLedgerAuthority {
         platform,
         sourceAccountId,
         generation,
-        redactionVersion: optional(input.redactionVersion, 'redactionVersion', 128) || REDACTION_VERSION,
-        retentionClass: optional(input.retentionClass, 'retentionClass', 128) || 'ACTIVE_REPLAY',
-        ledgerSegmentId: optional(input.ledgerSegmentId, 'ledgerSegmentId', 512) || 'segment-active-v1'
+        redactionVersion: optional(source.redactionVersion, 'redactionVersion', 128) || REDACTION_VERSION,
+        retentionClass: optional(source.retentionClass, 'retentionClass', 128) || 'ACTIVE_REPLAY',
+        ledgerSegmentId: optional(source.ledgerSegmentId, 'ledgerSegmentId', 512) || 'segment-active-v1'
       },
       projector: {
         projectorId: 'canonical-event-ledger',
@@ -556,14 +656,44 @@ class CanonicalEventLedgerAuthority {
     if (typeof input.projector !== 'function') {
       throw authorityError('CANONICAL_EVENT_PROJECTOR_REQUIRED', 'Replay requires a projector function');
     }
-    const result = await input.projector(event);
-    return Object.freeze({
-      authority: AUTHORITY,
-      applied: true,
-      eventId,
-      result,
-      projectionHash: canonicalHash(result ?? null)
-    });
+    const repository = this.compatibilityRepository;
+    const projectorName = optional(input.projectorName, 'projectorName', 256) || 'replay-projector';
+    const projectorVersion = optional(input.projectorVersion, 'projectorVersion', 128) || 'v1';
+    const previous = repository?.getProjectionReceipt?.(projectorName, projectorVersion, eventId) || null;
+    if (previous?.projection_status === 'applied' && input.forceReapply !== true) {
+      return Object.freeze({ authority: AUTHORITY, applied: false, idempotentReplay: true, receipt: previous });
+    }
+    try {
+      const result = await input.projector(event);
+      const projectionHash = canonicalHash(result ?? null);
+      const receipt = repository?.upsertProjectionReceipt?.({
+        projectorName,
+        projectorVersion,
+        eventId,
+        projectionStatus: 'applied',
+        projectionHash,
+        targetRefs: result?.targetRefs || [],
+        failureCode: '',
+        failureReason: '',
+        attempt: Math.max(Number(input.attempt || 1), 1),
+        projectedAt: new Date(Number(this.clock())).toISOString()
+      }) || null;
+      return Object.freeze({ authority: AUTHORITY, applied: true, eventId, result, projectionHash, receipt });
+    } catch (cause) {
+      const receipt = repository?.upsertProjectionReceipt?.({
+        projectorName,
+        projectorVersion,
+        eventId,
+        projectionStatus: 'failed',
+        projectionHash: '',
+        targetRefs: [],
+        failureCode: optional(cause?.code, 'failureCode', 256) || 'CANONICAL_EVENT_REPLAY_FAILED',
+        failureReason: optional(cause?.message, 'failureReason', 2048),
+        attempt: Math.max(Number(input.attempt || 1), 1),
+        projectedAt: new Date(Number(this.clock())).toISOString()
+      }) || null;
+      throw Object.assign(cause, { code: cause?.code || 'CANONICAL_EVENT_REPLAY_FAILED', receipt });
+    }
   }
 }
 
