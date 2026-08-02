@@ -64,10 +64,17 @@ const STARTUP_COMMAND_HANDLERS = Object.freeze({
   'startup.productionDataGuard': () => runProductionDataGuard(),
   'startup.initializeWorkspacePipelines': () => workspaceService.initializeDataPipelines()
 });
+const STARTUP_COMMAND_FIELDS = new Set(['contractVersion', 'commandId', 'commandType', 'expectedStateVersion', 'issuedAtUtc', 'payload']);
 const FORBIDDEN_STARTUP_PAYLOAD_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+const SEALED_STARTUP_GATEWAYS = new WeakSet();
 
 function gatewayError(code, message, status = 400, details = {}) {
   return new AppRuntimeError(code, message, { status, details });
+}
+
+function hasStartupCommandHandler(commandType) {
+  return Object.prototype.hasOwnProperty.call(STARTUP_COMMAND_HANDLERS, commandType)
+    && typeof STARTUP_COMMAND_HANDLERS[commandType] === 'function';
 }
 
 function snapshotStartupPayload(value) {
@@ -112,10 +119,9 @@ function assertStartupEnvelope(input) {
     throw gatewayError('STARTUP_COMMAND_ENVELOPE_INVALID', 'Startup command envelope cannot contain symbol keys');
   }
   const descriptors = Object.getOwnPropertyDescriptors(input);
-  const allowed = new Set(['contractVersion', 'commandId', 'commandType', 'expectedStateVersion', 'issuedAtUtc', 'payload']);
   for (const key of Object.getOwnPropertyNames(input)) {
     const descriptor = descriptors[key];
-    if (descriptor?.get || descriptor?.set || !allowed.has(key)) {
+    if (descriptor?.get || descriptor?.set || !STARTUP_COMMAND_FIELDS.has(key)) {
       throw gatewayError('STARTUP_COMMAND_ENVELOPE_INVALID', `Startup command field ${key} is not allowed`);
     }
   }
@@ -129,7 +135,7 @@ function assertStartupEnvelope(input) {
   });
   if (envelope.contractVersion !== 2
     || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(envelope.commandId)
-    || !STARTUP_COMMAND_HANDLERS[envelope.commandType]
+    || !hasStartupCommandHandler(envelope.commandType)
     || !Number.isInteger(envelope.expectedStateVersion)
     || !Number.isFinite(Date.parse(envelope.issuedAtUtc))) {
     throw gatewayError('STARTUP_COMMAND_ENVELOPE_INVALID', 'Startup command envelope is malformed');
@@ -139,27 +145,32 @@ function assertStartupEnvelope(input) {
 
 class RuntimeAuthorityCommandGateway {
   constructor(options = {}) {
-    this.runtime = options.runtime;
-    this.authorityWriteHostCapability = options.authorityWriteHostCapability;
-    this.authorityStore = options.authorityStore;
-    this.receipts = new Map();
-    if (!this.runtime
-      || !isAuthorityWriteHostCapability(this.authorityWriteHostCapability)
-      || !this.authorityStore?.db
-      || typeof this.authorityStore.transaction !== 'function') {
+    const runtime = options.runtime;
+    const authorityWriteHostCapability = options.authorityWriteHostCapability;
+    const authorityStore = options.authorityStore;
+    if (!runtime
+      || !isAuthorityWriteHostCapability(authorityWriteHostCapability)
+      || !authorityStore?.db
+      || typeof authorityStore.transaction !== 'function') {
       throw gatewayError(
         'STARTUP_COMMAND_GATEWAY_WRITE_HOST_REQUIRED',
         'Startup command gateway requires the current broker-owned write-host capability and authority store',
         503
       );
     }
-    if (this.authorityStore.authorityWriteHostCapability !== this.authorityWriteHostCapability) {
+    if (authorityStore.authorityWriteHostCapability !== authorityWriteHostCapability) {
       throw gatewayError(
         'STARTUP_COMMAND_GATEWAY_STORE_MISMATCH',
         'Startup command gateway authority store is not bound to the supplied write-host capability',
         409
       );
     }
+    Object.defineProperties(this, {
+      runtime: { value: runtime, enumerable: false, writable: false, configurable: false },
+      authorityWriteHostCapability: { value: authorityWriteHostCapability, enumerable: false, writable: false, configurable: false },
+      authorityStore: { value: authorityStore, enumerable: false, writable: false, configurable: false },
+      receipts: { value: new Map(), enumerable: false, writable: false, configurable: false }
+    });
     this.assertAuthorityCurrent();
   }
 
@@ -169,6 +180,9 @@ class RuntimeAuthorityCommandGateway {
   }
 
   execute(input) {
+    if (SEALED_STARTUP_GATEWAYS.has(this)) {
+      throw gatewayError('STARTUP_COMMAND_GATEWAY_SEALED', 'Startup command gateway is sealed after boot', 409);
+    }
     this.assertAuthorityCurrent();
     const envelope = assertStartupEnvelope(input);
     const contentSha256 = canonicalHash(envelope);
@@ -218,8 +232,17 @@ class RuntimeAuthorityCommandGateway {
     });
   }
 
+  seal() {
+    SEALED_STARTUP_GATEWAYS.add(this);
+    return this.snapshot();
+  }
+
   snapshot() {
-    return Object.freeze({ authority: 'RuntimeAuthorityCommandGateway', receiptCount: this.receipts.size });
+    return Object.freeze({
+      authority: 'RuntimeAuthorityCommandGateway',
+      state: SEALED_STARTUP_GATEWAYS.has(this) ? 'sealed' : 'open',
+      receiptCount: this.receipts.size
+    });
   }
 }
 
