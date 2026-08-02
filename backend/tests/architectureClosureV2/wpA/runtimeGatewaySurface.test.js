@@ -10,10 +10,11 @@ const { acquireAuthorityWriteHost } = require('../../../services/authorityWriteH
 const { SqliteConnectionBroker } = require('../../../lib/sqliteConnectionBroker');
 const { AppRuntimeFactory } = require('../../../runtime/AppRuntimeFactory');
 
-function minimalRuntimeDependencies() {
+function minimalRuntimeDependencies(db) {
   return {
     ownership: { guard: () => ({ ownerInstanceId: 'owner', fencingToken: 1 }) },
     store: {
+      db,
       snapshot: () => ({
         stateVersion: 1,
         lastEventSequence: 0,
@@ -52,7 +53,7 @@ test('readiness locks startup gateway surface against forged evidence methods', 
     withAuthorityStore(({ host, authorityStore }) => {
       AppRuntimeFactory.resetForTests();
       const runtime = AppRuntimeFactory.create({
-        ...minimalRuntimeDependencies(),
+        ...minimalRuntimeDependencies(authorityStore.db),
         authorityWriteHostCapability: host.capability,
         authorityStore
       });
