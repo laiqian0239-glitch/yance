@@ -12,16 +12,8 @@
   ],
   "referenceOnlyRoots": [
     {
-      "path": "04_EVIDENCE",
-      "classification": "GENERATED_EVIDENCE"
-    },
-    {
       "path": "INDEPENDENT_AUDIT_DELIVERY",
       "classification": "REFERENCE_ONLY_AUDIT_DELIVERY"
-    },
-    {
-      "path": "artifacts",
-      "classification": "GENERATED_TEST_ARTIFACT"
     }
   ],
   "originalVcsHistoryAvailable": false,
