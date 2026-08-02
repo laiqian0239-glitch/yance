@@ -34,3 +34,47 @@ jobs:
           node-version: '22'
       - name: Run layered governance contracts
         run: node --test --test-concurrency=1 tests/layered-ci/*.test.js
+
+  layered-ci-risk:
+    name: layered-ci-risk
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout full candidate history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Select required CI level
+        id: risk
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+          PUSH_HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
+            base="${PR_BASE_SHA}"
+            head="${PR_HEAD_SHA}"
+          else
+            base="${PUSH_BASE_SHA}"
+            head="${PUSH_HEAD_SHA}"
+          fi
+          if [[ ! "${base}" =~ ^[0-9a-f]{40}$ ]] || [[ "${base}" == "0000000000000000000000000000000000000000" ]]; then
+            git fetch --no-tags --force origin main:refs/remotes/origin/main
+            base="$(git rev-parse refs/remotes/origin/main)"
+          fi
+          git cat-file -e "${base}^{commit}"
+          git cat-file -e "${head}^{commit}"
+          node tools/layered-ci/select-ci-level.js --base "${base}" --head "${head}"
+      - name: Assert promotion is never automatic
+        shell: bash
+        run: |
+          test '${{ steps.risk.outputs.promotion_required }}' = 'false'
