@@ -16,6 +16,7 @@ const updatePreflight = require('../services/updatePreflightService');
 const workspaceData = require('../services/workspaceDataService');
 const modelRegistry = require('../services/modelRegistry');
 const aiTaskRuntimeRegistry = require('../services/aiTaskRuntimeRegistry');
+const aiGateway = require('../services/aiGateway');
 const backupService = require('../services/backupService');
 const diagnosticsService = require('../services/diagnosticsService');
 const productionDiagnostics = require('../services/productionDiagnosticsService');
@@ -389,6 +390,7 @@ function createAppRuntimeComposition(runtime) {
     runtimeSafetySupervisor,
     participants: Object.freeze([
       { name: 'security-guard', service: securityGuard, critical: true },
+      { name: 'ai-gateway', service: aiGateway, critical: true },
       { name: 'recovery-manager', service: recoveryManager, critical: true },
       { name: 'account-lifecycle-saga', service: accountLifecycleSaga, critical: true },
       { name: 'account-context', service: accountContext, critical: true },
