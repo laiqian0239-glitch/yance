@@ -15,7 +15,7 @@ const SHA = Object.freeze({
   base: '1'.repeat(40),
   reviewed: '2'.repeat(40),
   tip: '3'.repeat(40),
-  evidence: '4'.repeat(40)
+  evidence: '3'.repeat(40)
 });
 const reviewedFiles = Object.freeze([
   'backend/runtime/AppRuntime.js',
