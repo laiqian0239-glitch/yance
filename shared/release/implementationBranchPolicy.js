@@ -7,27 +7,16 @@ const path = require('node:path');
 const REBUILD_BRANCH_PATTERN_SOURCE = '^rebuild/windows-release-closure-([0-9]{4})([0-9]{2})([0-9]{2})(?:-[a-z0-9][a-z0-9._-]*)?$';
 const REBUILD_BRANCH_PATTERN = new RegExp(REBUILD_BRANCH_PATTERN_SOURCE);
 const ACV2_BRANCH_PATTERN = /^acv2\/wp-([a-h])-[a-z0-9][a-z0-9-]*$/;
-const ACV2_AUTHORIZATION_PATH = path.resolve(
-  __dirname,
-  '..',
-  '..',
-  'governance',
-  'architecture-closure-v2',
-  'implementation-plan-authorization.json'
-);
-const ACV2_SCOPE_AMENDMENT_PATH = path.resolve(
-  __dirname,
-  '..',
-  '..',
-  'governance',
-  'architecture-closure-v2',
-  'wp-a-a6-scope-amendment.json'
-);
+const ACV2_AUTHORIZATION_PATH = path.resolve(__dirname, '..', '..', 'governance', 'architecture-closure-v2', 'implementation-plan-authorization.json');
+const ACV2_SCOPE_AMENDMENT_PATH = path.resolve(__dirname, '..', '..', 'governance', 'architecture-closure-v2', 'wp-a-a6-scope-amendment.json');
+const ACV2_TASK_SCOPE_CHAIN_PATH = path.resolve(__dirname, '..', '..', 'governance', 'architecture-closure-v2', 'wp-a-task-scope-chain.json');
 const ACV2_AUTHORIZATION_REPOSITORY_PATH = 'governance/architecture-closure-v2/implementation-plan-authorization.json';
 const ACV2_AUTHORIZATION_BLOB_SHA = '203697b36c06e0dc72c92113ef58f1a8f2394312';
 const ACV2_WP_A_PARENT_GOVERNANCE_HEAD = 'd81599d8a3f3de891da369b6f1ddbd01e264c78d';
 const ACV2_WP_A_PULL_REQUEST = 5;
 const ACV2_SCOPE_AMENDMENT_TASK = 'A6_INDEPENDENT_ROOT_REPAIR_AND_GOVERNANCE_SCOPE_CLOSURE';
+const ACV2_TASK_PATTERN = /^A([0-8])$/u;
+const ACV2_TASK_STATES = new Set(['RED_LOCKED', 'IMPLEMENTING', 'GREEN_PROVISIONAL', 'INDEPENDENT_REVIEW', 'CLOSED']);
 
 function canonicalStageBranch(stageVersion) {
   if (typeof stageVersion !== 'string' || !/^\d+\.\d+\.\d+\.\d+$/.test(stageVersion)) {
@@ -66,6 +55,10 @@ function loadWorkPackageScopeAmendment(filePath = ACV2_SCOPE_AMENDMENT_PATH) {
   return loadJsonObject(filePath);
 }
 
+function loadWorkPackageTaskScopeChain(filePath = ACV2_TASK_SCOPE_CHAIN_PATH) {
+  return loadJsonObject(filePath);
+}
+
 function authorizationWorkPackageLetter(authorization) {
   const branchMatch = String(authorization?.authorizedBranch || '').match(ACV2_BRANCH_PATTERN);
   return branchMatch ? branchMatch[1].toUpperCase() : '';
@@ -99,8 +92,9 @@ function resolveAuthorization(options = {}) {
 }
 
 function isAuthorizedAcv2WorkPackageBranch(branch, authorization) {
-  if (typeof branch !== 'string' || !isValidWorkPackageAuthorization(authorization)) return false;
-  return branch === authorization.authorizedBranch;
+  return typeof branch === 'string'
+    && isValidWorkPackageAuthorization(authorization)
+    && branch === authorization.authorizedBranch;
 }
 
 function isAuthorizedImplementationBranch(branch, stageVersion, options = {}) {
@@ -127,10 +121,7 @@ function normalizeRepositoryPath(value) {
 
 function globPatternToRegExp(pattern) {
   const escaped = pattern.replace(/[.+^${}()|[\]\\]/gu, '\\$&');
-  const source = escaped
-    .replace(/\*\*/gu, '\u0000')
-    .replace(/\*/gu, '[^/]*')
-    .replace(/\u0000/gu, '.*');
+  const source = escaped.replace(/\*\*/gu, '\u0000').replace(/\*/gu, '[^/]*').replace(/\u0000/gu, '.*');
   return new RegExp(`^${source}$`, 'u');
 }
 
@@ -142,10 +133,14 @@ function matchesAuthorizedProductionPath(relativePath, pattern) {
   return globPatternToRegExp(patternValue).test(pathValue);
 }
 
-function workPackageChangedFilesSha256(values = []) {
-  const normalized = [...new Set((Array.isArray(values) ? values : [])
+function normalizeChangedFiles(values) {
+  return [...new Set((Array.isArray(values) ? values : [])
     .map(normalizeRepositoryPath)
     .filter(Boolean))].sort();
+}
+
+function workPackageChangedFilesSha256(values = []) {
+  const normalized = normalizeChangedFiles(values);
   return crypto.createHash('sha256').update(`${normalized.join('\n')}\n`, 'utf8').digest('hex');
 }
 
@@ -157,8 +152,7 @@ function isExactAdditionalPath(value) {
 function isValidWorkPackageScopeAmendment(amendment, authorization) {
   if (!isValidWorkPackageAuthorization(authorization)) return false;
   if (!amendment || typeof amendment !== 'object' || Array.isArray(amendment)) return false;
-  if (amendment.schemaVersion !== 1) return false;
-  if (amendment.documentType !== 'YANCE_ACV2_WORK_PACKAGE_SCOPE_AMENDMENT') return false;
+  if (amendment.schemaVersion !== 1 || amendment.documentType !== 'YANCE_ACV2_WORK_PACKAGE_SCOPE_AMENDMENT') return false;
   if (amendment.status !== 'APPROVED_INDEPENDENT_REVIEW_SCOPE_AMENDMENT') return false;
   if (amendment.repository !== authorization.repository) return false;
   if (amendment.workPackage !== authorization.currentAuthorizedWorkPackage) return false;
@@ -174,13 +168,62 @@ function isValidWorkPackageScopeAmendment(amendment, authorization) {
   if (!amendment.additionalAllowedPaths.every(isExactAdditionalPath)) return false;
   if (new Set(amendment.additionalAllowedPaths).size !== amendment.additionalAllowedPaths.length) return false;
   const governance = amendment.governance || {};
-  if (governance.exactPathExpansionOnly !== true) return false;
-  if (governance.wildcardExpansionAllowed !== false) return false;
-  if (governance.prMustRemainDraft !== true) return false;
-  if (governance.automaticNextTaskAuthorization !== false) return false;
-  if (governance.automaticNextWorkPackageAuthorization !== false) return false;
-  if (governance.readyForPromotion !== false) return false;
-  return true;
+  return governance.exactPathExpansionOnly === true
+    && governance.wildcardExpansionAllowed === false
+    && governance.prMustRemainDraft === true
+    && governance.automaticNextTaskAuthorization === false
+    && governance.automaticNextWorkPackageAuthorization === false
+    && governance.readyForPromotion === false;
+}
+
+function isValidTaskEntry(task, index, tasks) {
+  if (!task || typeof task !== 'object' || Array.isArray(task)) return false;
+  const match = String(task.task || '').match(ACV2_TASK_PATTERN);
+  if (!match || !ACV2_TASK_STATES.has(task.state)) return false;
+  if (!Array.isArray(task.additionalAllowedPaths) || !task.additionalAllowedPaths.every(isExactAdditionalPath)) return false;
+  if (new Set(task.additionalAllowedPaths).size !== task.additionalAllowedPaths.length) return false;
+  if (index === 0) {
+    return task.task === 'A6'
+      && task.state === 'CLOSED'
+      && /^[a-f0-9]{40}$/u.test(String(task.reviewedCodeHead || ''))
+      && /^[a-f0-9]{40}$/u.test(String(task.evidenceBranchTip || ''))
+      && isExactAdditionalPath(task.closureReceiptPath);
+  }
+  const previous = tasks[index - 1];
+  return previous.state === 'CLOSED'
+    && task.parentTask === previous.task
+    && task.parentEvidenceBranchTip === previous.evidenceBranchTip
+    && Number(match[1]) === Number(String(previous.task).slice(1)) + 1;
+}
+
+function validateWorkPackageTaskScopeChain(chain, authorization) {
+  if (!isValidWorkPackageAuthorization(authorization)) return false;
+  if (!chain || typeof chain !== 'object' || Array.isArray(chain)) return false;
+  if (chain.schemaVersion !== 1 || chain.documentType !== 'YANCE_ACV2_TASK_SCOPE_CHAIN') return false;
+  if (!/^A[0-8]_(?:RED_LOCKED|IMPLEMENTING|GREEN_PROVISIONAL|INDEPENDENT_REVIEW|CLOSED)$/u.test(String(chain.status || ''))) return false;
+  if (chain.repository !== authorization.repository) return false;
+  if (chain.workPackage !== authorization.currentAuthorizedWorkPackage) return false;
+  if (chain.authorizedBranch !== authorization.authorizedBranch) return false;
+  if (chain.pullRequest !== ACV2_WP_A_PULL_REQUEST) return false;
+  if (chain.baseAuthorizationPath !== ACV2_AUTHORIZATION_REPOSITORY_PATH) return false;
+  if (chain.baseAuthorizationBlobSha !== ACV2_AUTHORIZATION_BLOB_SHA) return false;
+  if (chain.parentGovernanceHead !== ACV2_WP_A_PARENT_GOVERNANCE_HEAD) return false;
+  if (!ACV2_TASK_PATTERN.test(String(chain.activeTask || ''))) return false;
+  if (!Number.isSafeInteger(chain.approvedChangedFileCount) || chain.approvedChangedFileCount < 1) return false;
+  if (!/^[a-f0-9]{64}$/u.test(String(chain.approvedChangedFileSetSha256 || ''))) return false;
+  if (!Array.isArray(chain.tasks) || chain.tasks.length < 2) return false;
+  if (new Set(chain.tasks.map(task => task?.task)).size !== chain.tasks.length) return false;
+  if (!chain.tasks.every(isValidTaskEntry)) return false;
+  const active = chain.tasks.at(-1);
+  if (active.task !== chain.activeTask || chain.status !== `${active.task}_${active.state}`) return false;
+  const governance = chain.governance || {};
+  return governance.exactPathExpansionOnly === true
+    && governance.wildcardExpansionAllowed === false
+    && governance.previousTaskClosureRequired === true
+    && governance.prMustRemainDraft === true
+    && governance.automaticNextTaskAuthorization === false
+    && governance.automaticNextWorkPackageAuthorization === false
+    && governance.readyForPromotion === false;
 }
 
 function effectiveAllowedProductionPaths(authorization, amendment = null) {
@@ -190,45 +233,29 @@ function effectiveAllowedProductionPaths(authorization, amendment = null) {
   return Object.freeze([...new Set([...base, ...amendment.additionalAllowedPaths])]);
 }
 
+function effectiveTaskScopePaths(authorization, chain) {
+  if (!validateWorkPackageTaskScopeChain(chain, authorization)) return [];
+  return Object.freeze([...new Set([
+    ...authorization.allowedProductionPaths,
+    ...chain.tasks.flatMap(task => task.additionalAllowedPaths)
+  ])]);
+}
+
 function evaluateAuthorizedWorkPackageScope(options = {}) {
   const authorization = options.authorization;
   const amendment = options.amendment || null;
   const branch = String(options.branch || '');
-  const changedFiles = [...new Set((Array.isArray(options.changedFiles) ? options.changedFiles : [])
-    .map(normalizeRepositoryPath)
-    .filter(Boolean))].sort();
+  const changedFiles = normalizeChangedFiles(options.changedFiles);
   const changedFileSetSha256 = workPackageChangedFilesSha256(changedFiles);
 
   if (!isValidWorkPackageAuthorization(authorization) || branch !== authorization.authorizedBranch) {
-    return Object.freeze({
-      pass: false,
-      reasonCode: 'ACV2_WORK_PACKAGE_AUTHORIZATION_INVALID',
-      changedFileSetSha256,
-      amendmentApplied: false,
-      unauthorizedPaths: changedFiles
-    });
+    return Object.freeze({ pass: false, reasonCode: 'ACV2_WORK_PACKAGE_AUTHORIZATION_INVALID', changedFileSetSha256, amendmentApplied: false, unauthorizedPaths: changedFiles });
   }
-
   if (amendment && !isValidWorkPackageScopeAmendment(amendment, authorization)) {
-    return Object.freeze({
-      pass: false,
-      reasonCode: 'ACV2_SCOPE_AMENDMENT_INVALID',
-      changedFileSetSha256,
-      amendmentApplied: false,
-      unauthorizedPaths: changedFiles.filter(file => !authorization.allowedProductionPaths.some(pattern => matchesAuthorizedProductionPath(file, pattern)))
-    });
+    return Object.freeze({ pass: false, reasonCode: 'ACV2_SCOPE_AMENDMENT_INVALID', changedFileSetSha256, amendmentApplied: false, unauthorizedPaths: changedFiles.filter(file => !authorization.allowedProductionPaths.some(pattern => matchesAuthorizedProductionPath(file, pattern))) });
   }
-  if (amendment && (
-    amendment.approvedChangedFileCount !== changedFiles.length
-    || amendment.approvedChangedFileSetSha256 !== changedFileSetSha256
-  )) {
-    return Object.freeze({
-      pass: false,
-      reasonCode: 'ACV2_CHANGED_FILE_SET_MISMATCH',
-      changedFileSetSha256,
-      amendmentApplied: true,
-      unauthorizedPaths: []
-    });
+  if (amendment && (amendment.approvedChangedFileCount !== changedFiles.length || amendment.approvedChangedFileSetSha256 !== changedFileSetSha256)) {
+    return Object.freeze({ pass: false, reasonCode: 'ACV2_CHANGED_FILE_SET_MISMATCH', changedFileSetSha256, amendmentApplied: true, unauthorizedPaths: [] });
   }
 
   const allowedPaths = effectiveAllowedProductionPaths(authorization, amendment);
@@ -243,10 +270,43 @@ function evaluateAuthorizedWorkPackageScope(options = {}) {
   });
 }
 
+function evaluateAuthorizedWorkPackageTaskScope(options = {}) {
+  const authorization = options.authorization;
+  const taskScopeChain = options.taskScopeChain;
+  const branch = String(options.branch || '');
+  const rawChangedFiles = Array.isArray(options.changedFiles) ? options.changedFiles : [];
+  const changedFiles = normalizeChangedFiles(rawChangedFiles);
+  const changedFileSetSha256 = workPackageChangedFilesSha256(changedFiles);
+
+  if (!isValidWorkPackageAuthorization(authorization) || branch !== authorization.authorizedBranch) {
+    return Object.freeze({ pass: false, reasonCode: 'ACV2_WORK_PACKAGE_AUTHORIZATION_INVALID', changedFileSetSha256, taskScopeChainApplied: false, unauthorizedPaths: changedFiles, readyForPromotion: false });
+  }
+  if (!validateWorkPackageTaskScopeChain(taskScopeChain, authorization)) {
+    return Object.freeze({ pass: false, reasonCode: 'ACV2_TASK_SCOPE_CHAIN_INVALID', changedFileSetSha256, taskScopeChainApplied: false, unauthorizedPaths: changedFiles, readyForPromotion: false });
+  }
+  if (taskScopeChain.approvedChangedFileCount !== changedFiles.length || taskScopeChain.approvedChangedFileSetSha256 !== changedFileSetSha256) {
+    return Object.freeze({ pass: false, reasonCode: 'ACV2_TASK_CHANGED_FILE_SET_MISMATCH', changedFileSetSha256, taskScopeChainApplied: true, activeTask: taskScopeChain.activeTask, unauthorizedPaths: [], readyForPromotion: false });
+  }
+
+  const allowedPaths = effectiveTaskScopePaths(authorization, taskScopeChain);
+  const unauthorizedPaths = changedFiles.filter(file => !allowedPaths.some(pattern => matchesAuthorizedProductionPath(file, pattern)));
+  return Object.freeze({
+    pass: unauthorizedPaths.length === 0,
+    reasonCode: unauthorizedPaths.length ? 'ACV2_TASK_SCOPE_VIOLATION' : null,
+    changedFileSetSha256,
+    taskScopeChainApplied: true,
+    activeTask: taskScopeChain.activeTask,
+    unauthorizedPaths,
+    allowedPathCount: allowedPaths.length,
+    readyForPromotion: false
+  });
+}
+
 module.exports = {
   REBUILD_BRANCH_PATTERN_SOURCE,
   ACV2_AUTHORIZATION_PATH,
   ACV2_SCOPE_AMENDMENT_PATH,
+  ACV2_TASK_SCOPE_CHAIN_PATH,
   ACV2_AUTHORIZATION_REPOSITORY_PATH,
   ACV2_AUTHORIZATION_BLOB_SHA,
   ACV2_WP_A_PARENT_GOVERNANCE_HEAD,
@@ -256,8 +316,10 @@ module.exports = {
   isReleaseClosureRebuildBranch,
   loadWorkPackageAuthorization,
   loadWorkPackageScopeAmendment,
+  loadWorkPackageTaskScopeChain,
   isValidWorkPackageAuthorization,
   isValidWorkPackageScopeAmendment,
+  validateWorkPackageTaskScopeChain,
   isAuthorizedAcv2WorkPackageBranch,
   isAuthorizedImplementationBranch,
   authorizedImplementationBranchDescription,
@@ -265,5 +327,7 @@ module.exports = {
   matchesAuthorizedProductionPath,
   workPackageChangedFilesSha256,
   effectiveAllowedProductionPaths,
-  evaluateAuthorizedWorkPackageScope
+  effectiveTaskScopePaths,
+  evaluateAuthorizedWorkPackageScope,
+  evaluateAuthorizedWorkPackageTaskScope
 };
