@@ -28,6 +28,16 @@ test('A6 workflow validates frozen candidate before running exact reviewed head'
   assert.doesNotMatch(text, /verify:wp0:gate[^\n]*--branch/u);
 });
 
+test('A6 SQLite legacy workflow runs ownership tests without identity name filtering', () => {
+  const text = workflow('reviewed-candidate-a6-sqlite.yml');
+  assert.match(text, /a6-reviewed-sqlite-legacy/u);
+  assert.match(text, /3684dbd840faec8d6e732b0b68eae25f1ad9b2b3/u);
+  assert.match(text, /tests\/wp5\/m5-sqlite-ownership\.test\.js/u);
+  assert.match(text, /tests\/wp4\/application-matrix-temp-path\.test\.js/u);
+  assert.match(text, /tests\/wp3\/stale-fencing-token-outbox-denied\.test\.js/u);
+  assert.doesNotMatch(text, /--test-name-pattern/u);
+});
+
 test('task workflow accepts predefined suites rather than arbitrary commands', () => {
   const text = workflow('layered-ci-task.yml');
   assert.match(text, /type: choice/u);
