@@ -22,6 +22,7 @@ const EXTERNAL_WORKERS = Object.freeze([
   'ai_provider_worker',
   'translation_provider_worker'
 ]);
+const RUNTIME_COMPOSITIONS = new WeakMap();
 
 function isObject(value) { return Boolean(value) && typeof value === 'object' && !Array.isArray(value); }
 function validateEnvelope(envelope) {
@@ -38,14 +39,24 @@ function validateEnvelope(envelope) {
 class AppRuntime {
   constructor(options = {}) {
     recordConstruction('AppRuntime');
-    this.ownership = options.ownership;
-    this.store = options.store;
-    this.lifecycle = options.lifecycle;
-    this.buildId = String(options.buildId || '');
+    const ownership = options.ownership;
+    const store = options.store;
+    const lifecycle = options.lifecycle;
+    const buildId = String(options.buildId || '');
+    if (!ownership || !store || !lifecycle || !buildId) throw new TypeError('AppRuntime dependencies are required');
+    Object.defineProperties(this, {
+      ownership: { value: ownership, enumerable: true, writable: false, configurable: false },
+      store: { value: store, enumerable: true, writable: false, configurable: false },
+      lifecycle: { value: lifecycle, enumerable: true, writable: false, configurable: false },
+      composition: {
+        enumerable: true,
+        configurable: false,
+        get() { return RUNTIME_COMPOSITIONS.get(this) || null; }
+      }
+    });
+    this.buildId = buildId;
     this.onStopRequested = options.onStopRequested || (() => {});
-    if (!this.ownership || !this.store || !this.lifecycle || !this.buildId) throw new TypeError('AppRuntime dependencies are required');
     this.workerClassification = Object.freeze({ localCritical: LOCAL_CRITICAL_WORKERS, externalAfterLocalReady: EXTERNAL_WORKERS });
-    this.composition = null;
     this.productionServicesStarted = false;
     this.credentialHydration = options.credentialHydration || null;
     this.localCriticalWorkerState = Object.fromEntries(LOCAL_CRITICAL_WORKERS.map(name => [name, 'pending']));
@@ -148,11 +159,21 @@ class AppRuntime {
   }
 
   configureProductionServices() {
-    if (!this.composition) {
+    let composition = RUNTIME_COMPOSITIONS.get(this) || null;
+    if (!composition) {
       const { createAppRuntimeComposition } = require('./AppRuntimeComposition');
-      this.composition = createAppRuntimeComposition(this);
+      const candidate = createAppRuntimeComposition(this);
+      if (!candidate || typeof candidate !== 'object' || !Object.isFrozen(candidate)) {
+        throw new AppRuntimeError(
+          'APP_RUNTIME_COMPOSITION_INVALID',
+          'Production runtime composition must be a frozen object',
+          { status: 503 }
+        );
+      }
+      RUNTIME_COMPOSITIONS.set(this, candidate);
+      composition = candidate;
     }
-    return this.composition;
+    return composition;
   }
 
   async startProductionServices() {
