@@ -65,16 +65,19 @@ test('portable post-merge matrix enumerates all WP-A contracts and critical regr
   ]) assert.ok(files.includes(required), `missing required post-merge contract: ${required}`);
 });
 
-test('post-merge workflow is permanent, exact-main and fail closed', () => {
+test('integration workflow validates pull requests and exact main without bypasses', () => {
   const workflow = fs.readFileSync(
     path.join(ROOT, '.github', 'workflows', 'wp-a-post-merge-validation.yml'),
     'utf8'
   );
+  assert.match(workflow, /pull_request:\n\s+branches:\n\s+- main/u);
   assert.match(workflow, /push:\n\s+branches:\n\s+- main/u);
   assert.match(workflow, /workflow_dispatch:/u);
   assert.match(workflow, /ref: \$\{\{ github\.sha \}\}/u);
   assert.match(workflow, /git fetch --no-tags --force origin main:refs\/remotes\/origin\/main/u);
+  assert.match(workflow, /GITHUB_EVENT_NAME/u);
   assert.match(workflow, /verify-wp-a-post-merge\.js --require-origin-main/u);
+  assert.match(workflow, /else\n\s+node tools\/architecture-closure-v2\/verify-wp-a-post-merge\.js/u);
   assert.match(workflow, /run-wp-a-post-merge-contracts\.js/u);
   assert.match(workflow, /ubuntu-latest/u);
   assert.match(workflow, /windows-latest/u);
