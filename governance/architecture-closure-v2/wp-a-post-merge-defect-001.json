@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_POST_MERGE_DEFECT",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-A",
+  "defectId": "WP-A-POST-MERGE-DEFECT-001",
+  "status": "IMPLEMENTING",
+  "discoveredBy": {
+    "workflow": "WP-A Main Post-Merge Validation",
+    "runId": 30770982540,
+    "ubuntuJobId": 91557975079,
+    "validatedMainHead": "36631c1856b957c75d9fcf6359833a6169b093fc",
+    "testCount": 187,
+    "passed": 183,
+    "failed": 4
+  },
+  "rootCauses": [
+    "AUTHORITY_COMMAND_RECEIPTS_LACK_EXPLICIT_COMMAND_AND_EVENT_CONTENT_HASH_COLUMNS",
+    "EVENT_RETENTION_CLASS_IS_NOT_PERSISTED_IN_CANONICAL_HEADERS",
+    "CANONICAL_PAYLOAD_IDENTIFIER_IS_NOT_ONE_TO_ONE",
+    "IMMUTABLE_SCHEMA_AUTHORITIES_LACK_MIGRATION_LEVEL_UPDATE_AND_DELETE_BLOCKERS"
+  ],
+  "repair": {
+    "targetBranch": "stage/6.4.5.9-architecture-closure",
+    "targetSchemaVersion": 22,
+    "migrationId": "022_architecture_closure_v2_wp_a_integrity",
+    "legacyReceiptPolicy": "FAIL_CLOSED_WHEN_EVENT_CONTENT_HASH_IS_UNAVAILABLE",
+    "requiredPaths": [
+      ".github/workflows/wp-a-post-merge-validation.yml",
+      "backend/migrations/architectureClosureV2WpA.js",
+      "backend/migrations/architectureClosureV2WpAIntegrity.js",
+      "backend/services/authorityTransactionCoordinator.js",
+      "backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinatorIntegrity.test.js",
+      "backend/tests/architectureClosureV2/wpA/schema21AppendOnlyIntegrity.test.js",
+      "backend/tests/architectureClosureV2/wpA/schema22PostMergeIntegrityMigration.test.js",
+      "governance/architecture-closure-v2/authority-registry.json",
+      "governance/architecture-closure-v2/wp-a-post-merge-defect-001.json",
+      "tests/wp0/wp-a-post-merge-validation.test.js"
+    ]
+  },
+  "closureConditions": [
+    "ALL_FOUR_DISCOVERED_ASSERTIONS_PASS",
+    "SCHEMA_21_TO_22_MIGRATION_PRESERVES_EXISTING_ROWS",
+    "UNVERIFIABLE_LEGACY_EVENT_CONTENT_FAILS_CLOSED",
+    "SOURCE_CLOSURE_VIOLATION_COUNT_IS_ZERO",
+    "PRE_MERGE_UBUNTU_AND_WINDOWS_FULL_MATRIX_GREEN",
+    "INDEPENDENT_REVIEW_P0_AND_P1_ARE_ZERO",
+    "MAIN_POST_MERGE_IDENTITY_UBUNTU_WINDOWS_AND_AGGREGATE_GATE_GREEN"
+  ],
+  "governance": {
+    "readyForPromotion": true,
+    "formalRelease": false,
+    "publish": false,
+    "wpBAuthorized": false,
+    "temporaryBypassAllowed": false,
+    "testRemovalAllowed": false,
+    "matrixReductionAllowed": false,
+    "scannerWeakeningAllowed": false
+  }
+}

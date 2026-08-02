@@ -1,6 +1,25 @@
 name: WP-A Main Post-Merge Validation
 
 on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/wp-a-post-merge-validation.yml
+      - backend/**
+      - electron/**
+      - governance/architecture-closure-v2/**
+      - package.json
+      - package-lock.json
+      - shared/release/**
+      - tests/runtime-delivery/repository-source-identity-authority.test.js
+      - tests/wp0/**
+      - tests/wp3/stale-fencing-token-outbox-denied.test.js
+      - tests/wp4/application-matrix-temp-path.test.js
+      - tests/wp5/m5-sqlite-ownership.test.js
+      - tools/architecture-closure-v2/**
+      - tools/layered-ci/**
+      - tools/wp0/**
   push:
     branches:
       - main
@@ -31,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout exact main commit
+      - name: Checkout exact validation commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
@@ -53,7 +72,11 @@ jobs:
           git fetch --no-tags --force origin main:refs/remotes/origin/main
           node --check tools/architecture-closure-v2/verify-wp-a-post-merge.js
           node --check tools/architecture-closure-v2/run-wp-a-post-merge-contracts.js
-          node tools/architecture-closure-v2/verify-wp-a-post-merge.js --require-origin-main
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            node tools/architecture-closure-v2/verify-wp-a-post-merge.js --require-origin-main
+          else
+            node tools/architecture-closure-v2/verify-wp-a-post-merge.js
+          fi
 
       - name: Enforce zero-violation source closure
         run: |
@@ -89,7 +112,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
     steps:
-      - name: Checkout exact main commit
+      - name: Checkout exact validation commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
@@ -126,7 +149,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Enforce all post-merge results
+      - name: Enforce all validation results
         shell: bash
         env:
           IDENTITY_RESULT: ${{ needs.identity-source-closure.result }}
@@ -136,7 +159,7 @@ jobs:
           test "${IDENTITY_RESULT}" = "success"
           test "${PLATFORM_RESULT}" = "success"
           {
-            echo '### WP-A post-merge validation'
+            echo '### WP-A integration validation'
             echo ''
             echo '- readyForPromotion=true'
             echo '- formalRelease=false'

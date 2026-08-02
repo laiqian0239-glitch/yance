@@ -413,7 +413,7 @@ class CanonicalEventLedgerAuthority {
 
   append(input = {}) {
     const source = assertAppendInputShape(input);
-    const occurredAt = timestamp(source.occurredAt, new Date(Number(this.clock())).toISOString(), 'occurredAt');
+    const requestedOccurredAt = optional(source.occurredAt, 'occurredAt', 64);
     const platform = optional(source.platform, 'platform', 64).toLowerCase();
     const sourceAccountId = optional(source.sourceAccountId, 'sourceAccountId', 1024);
     const eventType = required(source.eventType, 'eventType', 256);
@@ -487,6 +487,12 @@ class CanonicalEventLedgerAuthority {
       || deterministicId('event', { authority: AUTHORITY, idempotencyKey });
     const commandId = optional(source.commandId, 'commandId', 512)
       || deterministicId('command', { authority: AUTHORITY, idempotencyKey });
+    const occurredAtAuthorityAssigned = !requestedOccurredAt;
+    const occurredAt = timestamp(
+      requestedOccurredAt,
+      new Date(Number(this.clock())).toISOString(),
+      'occurredAt'
+    );
     const traceId = optional(source.traceId, 'traceId', 512)
       || deterministicId('trace', { authority: AUTHORITY, idempotencyKey });
     const schemaVersion = source.schemaVersion == null ? SCHEMA_VERSION : Number(source.schemaVersion);
@@ -542,6 +548,7 @@ class CanonicalEventLedgerAuthority {
         schemaVersion,
         payloadClassification,
         occurredAt,
+        occurredAtAuthorityAssigned,
         payload,
         platform,
         sourceAccountId,
