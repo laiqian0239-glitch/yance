@@ -177,3 +177,96 @@ test('legacy and canonical callers resolve the same scoped identity without a se
     harness.close();
   }
 });
+
+test('scope boundary rejects accessors, symbols and non-plain objects without executing getters', () => {
+  const { canonicalExternalIdentityScope } = loadA5();
+  let getterExecuted = false;
+  const accessorInput = observation();
+  Object.defineProperty(accessorInput, 'platform', {
+    enumerable: true,
+    get() {
+      getterExecuted = true;
+      return 'whatsapp';
+    }
+  });
+  assert.throws(
+    () => canonicalExternalIdentityScope(accessorInput),
+    error => error?.code === 'IDENTITY_INPUT_ACCESSOR_FORBIDDEN'
+  );
+  assert.equal(getterExecuted, false);
+
+  const symbolInput = observation();
+  symbolInput[Symbol('hidden-scope')] = 'hidden';
+  assert.throws(
+    () => canonicalExternalIdentityScope(symbolInput),
+    error => error?.code === 'IDENTITY_INPUT_SYMBOL_KEY_FORBIDDEN'
+  );
+
+  const inheritedInput = Object.create({ platform: 'whatsapp' });
+  Object.assign(inheritedInput, observation({ platform: undefined }));
+  assert.throws(
+    () => canonicalExternalIdentityScope(inheritedInput),
+    error => error?.code === 'IDENTITY_INPUT_OBJECT_INVALID'
+  );
+});
+
+test('legacy canonical account APIs delegate through the same IdentityAuthority singleton', t => {
+  const authorityModule = loadA5();
+  const canonicalSource = fs.readFileSync(legacyCanonicalPath, 'utf8');
+  assert.doesNotMatch(canonicalSource, /canonicalIdentityRepository/);
+
+  const delegated = { ok: true, delegated: true };
+  assert.equal(typeof authorityModule.singleton.canonicalizeWhatsAppAccounts, 'function');
+  t.mock.method(authorityModule.singleton, 'canonicalizeWhatsAppAccounts', options => ({ ...delegated, options }));
+
+  delete require.cache[require.resolve(legacyCanonicalPath)];
+  const legacyCanonical = require(legacyCanonicalPath);
+  const options = { dryRun: true };
+  assert.deepEqual(legacyCanonical.canonicalizeWhatsAppAccounts(options), { ...delegated, options });
+  assert.equal(legacyCanonical.identityAuthority, authorityModule.singleton);
+});
+
+test('identity events are recorded only after the repository transaction has completed', () => {
+  const harness = createHarness('yance-acv2-a5-event-boundary-');
+  try {
+    const originalTransaction = harness.repository.transaction.bind(harness.repository);
+    let transactionDepth = 0;
+    harness.repository.transaction = callback => originalTransaction(repo => {
+      transactionDepth += 1;
+      try { return callback(repo); }
+      finally { transactionDepth -= 1; }
+    });
+
+    const eventDepths = [];
+    const authority = new harness.IdentityAuthority({
+      repository: harness.repository,
+      eventRecorder: () => eventDepths.push(transactionDepth)
+    });
+    const first = authority.observe(observation());
+    authority.verify(first.link.identityLinkId, {
+      evidenceRefs: ['proof:first'],
+      verificationMethod: 'manual-confirmation',
+      actor: 'owner',
+      reason: 'verified first identity',
+      at: '2026-08-02T10:01:00.000Z'
+    });
+    const second = authority.observe(observation({
+      platform: 'telegram',
+      sourceAccountId: 'tg-account-1',
+      externalId: 'telegram-user-88'
+    }));
+    authority.merge({
+      sourcePersonId: second.person.personId,
+      targetPersonId: first.person.personId,
+      evidenceRefs: ['proof:cross-platform'],
+      actor: 'owner',
+      reason: 'explicit same-person confirmation',
+      at: '2026-08-02T10:02:00.000Z'
+    });
+
+    assert.ok(eventDepths.length >= 4);
+    assert.deepEqual([...new Set(eventDepths)], [0]);
+  } finally {
+    harness.close();
+  }
+});
