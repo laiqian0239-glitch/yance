@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 15,
+  "schemaVersion": 16,
   "documentType": "YANCE_ACV2_WP_A_BASELINE",
-  "status": "A4_CLOSED_A5_TEST_FIRST_RED_AUTHORIZED",
+  "status": "A5_RED_RECORDED_PRODUCTION_IMPLEMENTATION_AUTHORIZED",
   "workPackage": "WP-A",
   "completedTasks": [
     "A0_FREEZE_WRITER_READ_RECOVERY_FALLBACK_INVENTORY_AND_ADD_RED_TESTS",
@@ -11,7 +11,7 @@
     "A4_CANONICAL_EVENT_LEDGER_AUTHORITY_AND_COMPATIBILITY_FACADE"
   ],
   "reopenedTasks": [],
-  "currentAuthorizedTask": "A5_TEST_FIRST_RED",
+  "currentAuthorizedTask": "A5_PRODUCTION_IMPLEMENTATION",
   "repository": "laiqian0239-glitch/yance",
   "parentPullRequest": 4,
   "stackedPullRequest": 5,
@@ -19,7 +19,7 @@
   "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
   "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
   "prMustRemainDraft": true,
-  "productionCodeScope": "NONE_A5_TESTS_ONLY",
+  "productionCodeScope": "WP_A_A5_EXACT_THREE_FILES_ONLY",
   "automaticNextTaskAuthorization": false,
   "automaticNextWorkPackageAuthorization": false,
   "sourceClosure": {
@@ -182,33 +182,55 @@
     }
   },
   "a5": {
-    "status": "TEST_FIRST_RED_AUTHORIZED",
+    "status": "RED_RECORDED_PRODUCTION_IMPLEMENTATION_AUTHORIZED",
     "task": "IDENTITY_AUTHORITY_AND_CANONICAL_SCOPED_IDS",
     "testCodeAllowed": true,
-    "productionCodeAllowed": false,
-    "implementationStartConditionSatisfied": false,
+    "productionCodeAllowed": true,
+    "implementationStartConditionSatisfied": true,
+    "redEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a5-red-evidence.json",
+      "redHead": "4711e319e9e4bc85255582b70b01d6d6d312696e",
+      "workflowRunId": 30744296174,
+      "ubuntuJobId": 91487138223,
+      "windowsJobId": 91487138219,
+      "wp0WorkflowRunId": 30744296177,
+      "result": "0_OF_4_PASS_4_OF_4_EXPECTED_FAIL_PER_PLATFORM"
+    },
+    "codeRabbit": {
+      "invocationCommentId": 5157293572,
+      "responseCommentId": 5157293947,
+      "formalReviewExecuted": false,
+      "outcome": "NOT_EXECUTED_PRO_SEAT_NOT_ASSIGNED",
+      "issuesClaimed": null
+    },
     "allowedTestFiles": [
       "backend/tests/architectureClosureV2/wpA/identityAuthority.test.js"
     ],
-    "productionFilesLocked": [
+    "allowedEvidenceHarnessFiles": [
+      ".github/workflows/acv2-wp-a.yml"
+    ],
+    "allowedProductionFiles": [
       "backend/services/identityAuthority.js",
       "backend/services/canonicalIdentityService.js",
       "backend/services/identityLinkAuthority.js"
     ],
-    "requiredRedInvariants": [
+    "requiredGreenInvariants": [
       "EXTERNAL_IDENTITY_SCOPE_INCLUDES_PLATFORM_SOURCE_ACCOUNT_AND_EXTERNAL_ID",
       "DISPLAY_NAME_AVATAR_USERNAME_OR_FORMATTED_PHONE_ALONE_CANNOT_MERGE_CONTACTS",
       "ID_GENERATION_IS_DETERMINISTIC_AND_COLLISION_SAFE_ACROSS_SCOPE",
-      "LEGACY_IDENTITY_CALLERS_USE_THE_SAME_AUTHORITY_AND_CANNOT_WRITE_A_SEPARATE_FACT"
+      "LEGACY_IDENTITY_CALLERS_USE_THE_SAME_AUTHORITY_AND_CANNOT_WRITE_A_SEPARATE_FACT",
+      "LEGACY_IDENTITY_MODULES_ARE_COMPATIBILITY_FACADES_OVER_ONE_AUTHORITY"
     ],
-    "redEvidenceRequired": true,
-    "redEvidenceDocument": "governance/architecture-closure-v2/wp-a-a5-red-evidence.json"
+    "greenEvidenceRequired": true,
+    "independentSourceReviewRequired": true
   },
   "prohibitedActions": [
-    "IMPLEMENT_A5_PRODUCTION_BEFORE_TRUSTED_RED_EVIDENCE",
+    "CHANGE_A5_RED_EXPECTATIONS_TO_ACCEPT_MULTIPLE_IDENTITY_AUTHORITIES",
+    "ADD_SECOND_IDENTITY_FACT_WRITER",
+    "MERGE_IDENTITIES_FROM_WEAK_PROFILE_SIGNALS_ALONE",
+    "GENERATE_CANONICAL_IDS_WITHOUT_FULL_EXTERNAL_SCOPE",
+    "MODIFY_PRODUCTION_CODE_OUTSIDE_A5_EXACT_THREE_FILES",
     "RESTORE_LEGACY_DOMAIN_EVENT_DUAL_WRITE",
-    "CHANGE_A4_TESTS_TO_ACCEPT_A_SECOND_LEDGER_OR_APPEND_PATH",
-    "MODIFY_A5_PRODUCTION_FILES_BEFORE_RED",
     "IMPLEMENT_A6_OR_LATER",
     "IMPLEMENT_WP_B_OR_LATER",
     "OPEN_ACV2_BRANCH_WILDCARD",
