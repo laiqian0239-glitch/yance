@@ -99,3 +99,38 @@ test('canonicalization input is not mutated and version participates in the hash
     canonicalHash(input, { version: 2, setLikePaths: ['$.tags'] })
   );
 });
+
+test('canonical key and set ordering is independent of host localeCompare behavior', () => {
+  const { canonicalSerialize } = loadCanonicalSerialization();
+  const input = { z: 1, a: 2, tags: ['z', 'a', 'm'] };
+  const options = { setLikePaths: ['$.tags'] };
+  const baseline = canonicalSerialize(input, options);
+  const original = String.prototype.localeCompare;
+  try {
+    String.prototype.localeCompare = function reverseLocaleCompare(other) {
+      const left = String(this);
+      const right = String(other);
+      return left < right ? 1 : left > right ? -1 : 0;
+    };
+    assert.equal(canonicalSerialize(input, options), baseline);
+  } finally {
+    String.prototype.localeCompare = original;
+  }
+});
+
+test('symbol keys, sparse arrays and custom array properties fail closed instead of disappearing from the hash', () => {
+  const { canonicalSerialize } = loadCanonicalSerialization();
+  const withSymbol = { visible: true };
+  withSymbol[Symbol('hidden')] = 'secret';
+  const sparse = [];
+  sparse[1] = 'value';
+  const decorated = ['value'];
+  decorated.extra = 'hidden';
+
+  for (const value of [withSymbol, sparse, decorated]) {
+    assert.throws(
+      () => canonicalSerialize(value),
+      error => ['CANONICAL_SYMBOL_KEY_FORBIDDEN', 'CANONICAL_SPARSE_ARRAY_FORBIDDEN', 'CANONICAL_ARRAY_PROPERTY_FORBIDDEN'].includes(error?.code)
+    );
+  }
+});
