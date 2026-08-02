@@ -4,26 +4,41 @@ on:
   push:
     branches:
       - stage/6.4.5.9-architecture-closure
+      - rebuild/windows-release-closure-*
   pull_request:
 
 permissions:
   contents: read
 
+env:
+  IMPLEMENTATION_BRANCH: ${{ github.head_ref || github.ref_name }}
+  REVIEWED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   wp0-gates:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
-      - name: Checkout branch and immutable tags
+      - name: Checkout reviewed source head
         uses: actions/checkout@v4
         with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
           fetch-depth: 0
-          fetch-tags: true
+          fetch-tags: false
+      - name: Establish trusted branch and immutable tag refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --force origin "${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
+          git fetch --force origin "+refs/tags/*:refs/tags/*"
+          git show-ref --verify "refs/tags/stage-6.4.5.8-rejected-architecture"
+          git switch --force-create "${IMPLEMENTATION_BRANCH}" "${REVIEWED_HEAD_SHA}"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})"
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run executable local-equivalent WP0 gate
-        run: npm run verify:wp0:gate
       - name: Run WP0 required tests
         run: npm run test:wp0
+      - name: Run executable local-equivalent WP0 gate
+        run: npm run verify:wp0:gate -- --branch "${IMPLEMENTATION_BRANCH}"
