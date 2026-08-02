@@ -13,6 +13,7 @@ const CLASSIFICATION_VALUES = new Set(Object.values(CLASSIFICATIONS));
 const FIELD_TYPES = new Set(['string', 'number', 'boolean', 'object', 'array']);
 const SECRET_REFERENCE_KEYS = new Set(['credentialRef', 'generation', 'receiptId', 'scope']);
 const BINARY_REFERENCE_KEYS = new Set(['binaryRef', 'sha256', 'size', 'mime', 'lifecycleState']);
+const FORBIDDEN_OBJECT_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 const INLINE_BINARY_KEY = /^(?:bytes?|data|base64|buffer|blob|binary|content)$/i;
 const SECRET_MATERIAL_KEY = /(?:api[_-]?key|token|secret|password|passwd|cookie|authorization|qr(?:code)?|private[_-]?key|refresh[_-]?token|access[_-]?token|session)/i;
 const SECRET_MATERIAL_VALUE = /^(?:sk-[A-Za-z0-9_-]{6,}|Bearer\s+\S+|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/i;
@@ -41,9 +42,21 @@ function assertNoSymbolKeys(value, code, message, fieldPath) {
   }
 }
 
+function assertNoForbiddenKeys(value, fieldPath) {
+  if (!value || typeof value !== 'object') return;
+  const forbidden = Object.getOwnPropertyNames(value).find(key => FORBIDDEN_OBJECT_KEYS.has(key));
+  if (forbidden) {
+    throw classificationError('DATA_CLASSIFICATION_FORBIDDEN_KEY', 'Classified data cannot contain prototype mutation keys', {
+      fieldPath: fieldPath === '$' ? `$.${forbidden}` : `${fieldPath}.${forbidden}`,
+      key: forbidden
+    });
+  }
+}
+
 function assertPlainObject(value, code, message, fieldPath) {
   if (!isPlainObject(value)) throw classificationError(code, message, { fieldPath });
   assertNoSymbolKeys(value, code, message, fieldPath);
+  assertNoForbiddenKeys(value, fieldPath);
   const descriptors = Object.getOwnPropertyDescriptors(value);
   for (const key of Object.getOwnPropertyNames(value)) {
     const descriptor = descriptors[key];
@@ -69,6 +82,7 @@ function clonePlain(value, fieldPath = '$', seen = new WeakSet()) {
   try {
     if (Array.isArray(value)) {
       assertNoSymbolKeys(value, 'DATA_CLASSIFICATION_VALUE_UNSAFE', 'Classified arrays cannot contain symbol-keyed state', fieldPath);
+      assertNoForbiddenKeys(value, fieldPath);
       const result = [];
       for (let index = 0; index < value.length; index += 1) {
         if (!Object.prototype.hasOwnProperty.call(value, index)) {
@@ -118,6 +132,7 @@ function containsInlineBinary(value, seen = new WeakSet()) {
   seen.add(value);
   try {
     assertNoSymbolKeys(value, 'BINARY_REFERENCE_INLINE_DATA_FORBIDDEN', 'Binary references cannot contain symbol-keyed data', '$.binary');
+    assertNoForbiddenKeys(value, '$.binary');
     if (Array.isArray(value)) {
       for (let index = 0; index < value.length; index += 1) {
         const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
