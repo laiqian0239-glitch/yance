@@ -84,7 +84,7 @@ function appendInput(overrides = {}) {
     schemaVersion: 1,
     payloadClassification: 'BUSINESS_CONTENT',
     occurredAt: '2026-08-02T09:00:00.000Z',
-    payload: { text: 'private business body', locale: 'de' },
+    payload: { text: 'private business body', metadata: { locale: 'de' } },
     platform: 'telegram',
     sourceAccountId: 'tg-1',
     generation: 1,
@@ -115,6 +115,9 @@ test('canonical authority is the only append path and keeps business payload rep
 
     const replayable = harness.authority.readEvent(input.eventId);
     assert.deepEqual(replayable.payload, input.payload);
+    assert.equal(Object.isFrozen(replayable.payload), true);
+    assert.equal(Object.isFrozen(replayable.payload.metadata), true);
+    assert.throws(() => { replayable.payload.metadata.locale = 'en'; }, TypeError);
     assert.match(replayable.payloadSha256, /^[a-f0-9]{64}$/);
 
     assert.equal(harness.evidence.length, 1);
@@ -197,6 +200,67 @@ test('direct legacy repository append is persistently rejected once the canonica
     );
     assert.equal(count(harness.store.db, 'domain_events'), 0);
     assert.equal(count(harness.store.db, 'canonical_event_headers'), 0);
+  } finally {
+    harness.close();
+  }
+});
+
+test('authority input rejects unknown, symbol and accessor fields without executing getters', () => {
+  const harness = createHarness('yance-acv2-a4-shape-');
+  try {
+    let getterExecuted = false;
+    const accessorInput = appendInput();
+    Object.defineProperty(accessorInput, 'payload', {
+      enumerable: true,
+      get() {
+        getterExecuted = true;
+        return { text: 'must not execute' };
+      }
+    });
+    assert.throws(
+      () => harness.authority.append(accessorInput),
+      error => error?.code === 'CANONICAL_EVENT_INPUT_ACCESSOR_FORBIDDEN'
+    );
+    assert.equal(getterExecuted, false);
+
+    assert.throws(
+      () => harness.authority.append({ ...appendInput(), unexpectedAuthorityField: true }),
+      error => error?.code === 'CANONICAL_EVENT_INPUT_FIELD_UNREGISTERED'
+    );
+
+    const symbolInput = appendInput();
+    symbolInput[Symbol('hidden')] = 'hidden-state';
+    assert.throws(
+      () => harness.authority.append(symbolInput),
+      error => error?.code === 'CANONICAL_EVENT_INPUT_SYMBOL_KEY_FORBIDDEN'
+    );
+    assert.equal(count(harness.store.db, 'canonical_event_headers'), 0);
+  } finally {
+    harness.close();
+  }
+});
+
+test('one scoped external event cannot be appended again under a different explicit idempotency key', () => {
+  const harness = createHarness('yance-acv2-a4-external-');
+  try {
+    harness.authority.append(appendInput({
+      commandId: 'command:a4:external:1',
+      idempotencyKey: 'idempotency:a4:external:1',
+      aggregateId: undefined,
+      eventId: 'event:a4:external:1',
+      externalEventId: 'telegram-update-77'
+    }));
+    assert.throws(
+      () => harness.authority.append(appendInput({
+        commandId: 'command:a4:external:2',
+        idempotencyKey: 'idempotency:a4:external:2',
+        aggregateId: undefined,
+        eventId: 'event:a4:external:2',
+        externalEventId: 'telegram-update-77'
+      })),
+      error => error?.code === 'AUTHORITY_AGGREGATE_VERSION_CONFLICT'
+    );
+    assert.equal(count(harness.store.db, 'canonical_event_headers'), 1);
   } finally {
     harness.close();
   }
