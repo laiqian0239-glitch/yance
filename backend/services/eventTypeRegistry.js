@@ -98,18 +98,6 @@ function clonePlain(value, path = '$', seen = new WeakSet()) {
   }
 }
 
-function cloneSandboxValue(value, details) {
-  try {
-    return structuredClone(value);
-  } catch (error) {
-    throw registryError('EVENT_UPCASTER_OUTPUT_UNSAFE', 'Upcaster output is not structured-cloneable plain data', {
-      ...details,
-      causeCode: error?.code || '',
-      causeMessage: error?.message || String(error)
-    });
-  }
-}
-
 function deepFreeze(value, seen = new WeakSet()) {
   if (!value || typeof value !== 'object' || seen.has(value)) return value;
   seen.add(value);
@@ -161,23 +149,69 @@ function compileUpcasterExpression(source, details) {
   return expression;
 }
 
+function serializeVmBoundaryInput(input, details) {
+  try {
+    const encoded = JSON.stringify(input);
+    if (typeof encoded !== 'string') throw new TypeError('input JSON encoding did not produce a string');
+    return encoded;
+  } catch (error) {
+    throw registryError('EVENT_UPCASTER_INPUT_UNSAFE', 'Upcaster input cannot cross the primitive JSON boundary', {
+      ...details,
+      causeName: error?.name || '',
+      causeMessage: error?.message || String(error)
+    });
+  }
+}
+
+function parseVmBoundaryOutput(encoded, code, message, details) {
+  if (typeof encoded !== 'string') throw registryError(code, message, details);
+  try {
+    return JSON.parse(encoded);
+  } catch (error) {
+    throw registryError(code, message, {
+      ...details,
+      causeName: error?.name || '',
+      causeMessage: error?.message || String(error)
+    });
+  }
+}
+
 function executeSandboxedUpcaster(expression, input, details) {
+  // Only primitives cross into the VM. Passing a host-origin object gives its
+  // constructor chain access to the host Function constructor, which defeats
+  // codeGeneration restrictions. The VM creates its own input with its own
+  // JSON intrinsic, and only JSON strings cross back to the host.
   const sandbox = Object.create(null);
-  sandbox.__input = cloneSandboxValue(input, details);
-  sandbox.__output = undefined;
-  for (const forbidden of [
-    'Date', 'process', 'require', 'fetch', 'performance', 'Intl', 'Temporal',
-    'setTimeout', 'setInterval', 'setImmediate', 'queueMicrotask', 'crypto',
-    'WebAssembly', 'SharedArrayBuffer', 'Atomics', 'console', 'Buffer'
-  ]) sandbox[forbidden] = undefined;
+  sandbox.__inputJson = serializeVmBoundaryInput(input, details);
+  sandbox.__inputAfterJson = '';
+  sandbox.__outputJson = '';
+  sandbox.__async = false;
 
   const context = vm.createContext(sandbox, {
     name: `yance-upcaster-${details.eventType}-${details.fromVersion}-${details.toVersion}`,
     codeGeneration: { strings: false, wasm: false }
   });
   try {
-    new vm.Script(`Object.defineProperty(Math, 'random', { value: undefined, configurable: false, writable: false }); Object.freeze(Math);`).runInContext(context, { timeout: 20 });
-    new vm.Script(`'use strict'; globalThis.__output = (${expression})(globalThis.__input);`, {
+    new vm.Script(`
+      Object.defineProperty(Math, 'random', { value: undefined, configurable: false, writable: false });
+      Object.freeze(Math);
+    `).runInContext(context, { timeout: 20 });
+    new vm.Script(`
+      'use strict';
+      const __input = JSON.parse(globalThis.__inputJson);
+      delete globalThis.__inputJson;
+      const __output = (${expression})(__input);
+      globalThis.__async = Boolean(__output && typeof __output.then === 'function');
+      if (!globalThis.__async) {
+        const __inputAfterJson = JSON.stringify(__input);
+        const __outputJson = JSON.stringify(__output);
+        if (typeof __inputAfterJson !== 'string' || typeof __outputJson !== 'string') {
+          throw new TypeError('upcaster input/output is not JSON data');
+        }
+        globalThis.__inputAfterJson = __inputAfterJson;
+        globalThis.__outputJson = __outputJson;
+      }
+    `, {
       filename: `yance-upcaster-${details.eventType}-${details.fromVersion}-${details.toVersion}.js`
     }).runInContext(context, { timeout: 50 });
   } catch (error) {
@@ -187,9 +221,21 @@ function executeSandboxedUpcaster(expression, input, details) {
       causeMessage: error?.message || String(error)
     });
   }
+  if (sandbox.__async === true) return { async: true, inputAfter: null, output: null };
   return {
-    inputAfter: cloneSandboxValue(sandbox.__input, details),
-    output: sandbox.__output
+    async: false,
+    inputAfter: parseVmBoundaryOutput(
+      sandbox.__inputAfterJson,
+      'EVENT_UPCASTER_INPUT_UNSAFE',
+      'Upcaster input could not be returned through the primitive JSON boundary',
+      details
+    ),
+    output: parseVmBoundaryOutput(
+      sandbox.__outputJson,
+      'EVENT_UPCASTER_OUTPUT_UNSAFE',
+      'Upcaster output could not be returned through the primitive JSON boundary',
+      details
+    )
   };
 }
 
@@ -434,24 +480,24 @@ class EventTypeRegistry {
       const firstInput = clonePlain(payload, '$.payload');
       const firstBefore = canonicalSerialize(firstInput);
       const firstExecution = executeSandboxedUpcaster(upcaster.expression, firstInput, details);
-      if (firstExecution.output && typeof firstExecution.output.then === 'function') {
+      if (firstExecution.async) {
         throw registryError('EVENT_UPCASTER_ASYNC_FORBIDDEN', 'Event upcasters must be synchronous pure functions', details);
       }
       if (canonicalSerialize(firstExecution.inputAfter) !== firstBefore) {
         throw registryError('EVENT_UPCASTER_MUTATED_INPUT', 'Event upcaster mutated its input payload', details);
       }
-      const normalizedFirstOutput = clonePlain(cloneSandboxValue(firstExecution.output, details), '$.upcastOutput');
+      const normalizedFirstOutput = clonePlain(firstExecution.output, '$.upcastOutput');
 
       const secondInput = clonePlain(payload, '$.payload');
       const secondBefore = canonicalSerialize(secondInput);
       const secondExecution = executeSandboxedUpcaster(upcaster.expression, secondInput, details);
-      if (secondExecution.output && typeof secondExecution.output.then === 'function') {
+      if (secondExecution.async) {
         throw registryError('EVENT_UPCASTER_ASYNC_FORBIDDEN', 'Event upcasters must be synchronous pure functions', details);
       }
       if (canonicalSerialize(secondExecution.inputAfter) !== secondBefore) {
         throw registryError('EVENT_UPCASTER_MUTATED_INPUT', 'Event upcaster mutated its input payload', details);
       }
-      const normalizedSecondOutput = clonePlain(cloneSandboxValue(secondExecution.output, details), '$.upcastOutput');
+      const normalizedSecondOutput = clonePlain(secondExecution.output, '$.upcastOutput');
       if (canonicalSerialize(normalizedFirstOutput) !== canonicalSerialize(normalizedSecondOutput)) {
         throw registryError('EVENT_UPCASTER_NONDETERMINISTIC', 'Event upcaster returned different outputs for the same input', details);
       }
