@@ -21,11 +21,58 @@ env:
   ELECTRON_LFS_SIZE: '136644393'
 
 jobs:
-  wp0-gates:
+  wp0-route:
+    name: wp0-route
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 6
+    outputs:
+      route: ${{ steps.route.outputs.route }}
     steps:
-      - name: Checkout reviewed source head
+      - name: Checkout full review history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Classify protected WP0 route
+        id: route
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+          PUSH_HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
+            base="${PR_BASE_SHA}"
+            head="${PR_HEAD_SHA}"
+          else
+            base="${PUSH_BASE_SHA}"
+            head="${PUSH_HEAD_SHA}"
+          fi
+          if [[ ! "${base}" =~ ^[0-9a-f]{40}$ ]] || [[ "${base}" == "0000000000000000000000000000000000000000" ]]; then
+            git fetch --no-tags --force origin main:refs/remotes/origin/main
+            base="$(git rev-parse refs/remotes/origin/main)"
+          fi
+          git cat-file -e "${base}^{commit}"
+          git cat-file -e "${head}^{commit}"
+          node tools/layered-ci/select-wp0-route.js --base "${base}" --head "${head}"
+
+  wp0-product:
+    name: wp0-product
+    if: ${{ needs.wp0-route.outputs.route == 'PRODUCT_WP0' }}
+    needs: wp0-route
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout reviewed product source head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ env.REVIEWED_HEAD_SHA }}
@@ -71,8 +118,72 @@ jobs:
       - name: Run executable local-equivalent WP0 gate
         run: npm run verify:wp0:gate -- --branch "${IMPLEMENTATION_BRANCH}"
 
+  wp0-governance:
+    name: wp0-governance
+    if: ${{ needs.wp0-route.outputs.route == 'GOVERNANCE_WP0' }}
+    needs: wp0-route
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout reviewed governance head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Run layered governance contracts
+        run: node --test --test-concurrency=1 tests/layered-ci/*.test.js
+      - name: Run independent review contract
+        run: node --test --test-concurrency=1 tests/independent-review/chatgpt-review-contract.test.js
+      - name: Run staged-secret scanner regressions
+        run: npm run test:security-scan
+      - name: Validate repository protocol descriptor
+        run: node tools/protocol/validate-v3-protocols.js
+
+  wp0-gates:
+    name: wp0-gates
+    if: ${{ always() }}
+    needs:
+      - wp0-route
+      - wp0-product
+      - wp0-governance
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Enforce selected WP0 route result
+        shell: bash
+        env:
+          ROUTE: ${{ needs.wp0-route.outputs.route }}
+          ROUTE_RESULT: ${{ needs.wp0-route.result }}
+          PRODUCT_RESULT: ${{ needs.wp0-product.result }}
+          GOVERNANCE_RESULT: ${{ needs.wp0-governance.result }}
+        run: |
+          set -euo pipefail
+          test "${ROUTE_RESULT}" = "success"
+          case "${ROUTE}" in
+            PRODUCT_WP0)
+              test "${PRODUCT_RESULT}" = "success"
+              test "${GOVERNANCE_RESULT}" = "skipped"
+              ;;
+            GOVERNANCE_WP0)
+              test "${PRODUCT_RESULT}" = "skipped"
+              test "${GOVERNANCE_RESULT}" = "success"
+              ;;
+            *)
+              echo "unknown fail-closed WP0 route: ${ROUTE}" >&2
+              exit 1
+              ;;
+          esac
+
   sealed-export-platform-matrix:
     name: sealed-export-${{ matrix.os }}
+    if: ${{ needs.wp0-route.outputs.route == 'PRODUCT_WP0' }}
+    needs: wp0-route
     runs-on: ${{ matrix.os }}
     timeout-minutes: 8
     strategy:
