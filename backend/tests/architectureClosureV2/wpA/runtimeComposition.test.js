@@ -59,6 +59,13 @@ function startupEnvelope(commandType, payload = {}) {
   };
 }
 
+function assertImmutableBinding(target, key, expected) {
+  const descriptor = Object.getOwnPropertyDescriptor(target, key);
+  assert.equal(descriptor?.value, expected, `${key} must retain the canonical binding`);
+  assert.equal(descriptor?.writable, false, `${key} must not be replaceable`);
+  assert.equal(descriptor?.configurable, false, `${key} must not be redefinable`);
+}
+
 test('AppRuntimeFactory rejects every production runtime that lacks a real AuthorityWriteHost capability', () => {
   const previous = process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
   process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
@@ -94,7 +101,7 @@ test('runtime composition constructs coordinator, canonical ledger and identity 
   assert.match(text, /authorities\s*:\s*Object\.freeze/);
 });
 
-test('real broker capability and R32 store bind the same runtime, coordinator, ledger and identity authority', () => {
+test('real broker capability and R32 store bind one immutable runtime authority graph', () => {
   const previous = process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
   process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
   const { AppRuntimeFactory } = require('../../../runtime/AppRuntimeFactory');
@@ -106,29 +113,45 @@ test('real broker capability and R32 store bind the same runtime, coordinator, l
         authorityWriteHostCapability: host.capability,
         authorityStore
       });
-      const authorityDescriptors = Object.getOwnPropertyDescriptors(runtime);
-      for (const key of ['authorityWriteHostCapability', 'authorityWriteHostToken', 'primaryAuthorityStore']) {
-        assert.equal(authorityDescriptors[key]?.writable, false, `${key} must be immutable after factory validation`);
-        assert.equal(authorityDescriptors[key]?.configurable, false, `${key} must not be redefinable after factory validation`);
-      }
+      assertImmutableBinding(runtime, 'authorityWriteHostCapability', host.capability);
+      assertImmutableBinding(runtime, 'authorityWriteHostToken', host.capability.tokenSnapshot());
+      assertImmutableBinding(runtime, 'primaryAuthorityStore', authorityStore);
+
       const coreBusinessCommand = Object.getPrototypeOf(runtime).executeBusinessCommand;
       const composition = runtime.configureProductionServices();
-      const readiness = AppRuntimeFactory.assertAuthorityReady();
+      const coordinator = composition.authorities.authorityTransactionCoordinator;
+      const ledger = composition.authorities.canonicalEventLedgerAuthority;
+      const identity = composition.authorities.identityAuthority;
 
-      assert.equal(runtime.authorityWriteHostCapability, host.capability);
-      assert.equal(runtime.primaryAuthorityStore, authorityStore);
+      assertImmutableBinding(coordinator, 'store', authorityStore);
+      assertImmutableBinding(coordinator, 'db', authorityStore.db);
+      assertImmutableBinding(ledger, 'coordinator', coordinator);
+      assertImmutableBinding(ledger, 'store', authorityStore);
+      assertImmutableBinding(ledger, 'db', authorityStore.db);
+      assertImmutableBinding(identity, 'repository', composition.authorities.platformCoreRepository);
+
       assert.equal(runtime.executeBusinessCommand, coreBusinessCommand);
       assert.equal(Object.hasOwn(runtime, 'executeBusinessCommand'), false);
       assert.equal(typeof composition.commandSubmitter, 'function');
       assert.equal(Object.hasOwn(composition.recoveryManager, 'commandSubmitter'), false);
       assert.equal(composition.authorities.authorityWriteHostCapability, host.capability);
-      assert.equal(composition.authorities.authorityTransactionCoordinator.store, authorityStore);
-      assert.equal(composition.authorities.canonicalEventLedgerAuthority.store, authorityStore);
-      assert.equal(composition.authorities.identityAuthority.repository.store(), authorityStore);
-      assert.equal(readiness.authorityWriteHostBound, true);
-      assert.equal(readiness.coordinatorReady, true);
-      assert.equal(readiness.canonicalLedgerReady, true);
-      assert.equal(readiness.identityAuthorityReady, true);
+      assert.equal(identity.repository.store(), authorityStore);
+
+      const openReadiness = AppRuntimeFactory.assertAuthorityReady();
+      assert.equal(openReadiness.authorityWriteHostBound, true);
+      assert.equal(openReadiness.canonicalGraphBound, true);
+      assert.equal(openReadiness.startupGatewaySealed, false);
+      assert.throws(
+        () => AppRuntimeFactory.assertAuthorityReady({ requireStartupGatewaySealed: true }),
+        error => error?.code === 'APP_RUNTIME_STARTUP_GATEWAY_NOT_SEALED'
+      );
+      composition.authorityCommandGateway.seal();
+      const sealedReadiness = AppRuntimeFactory.assertAuthorityReady({ requireStartupGatewaySealed: true });
+      assert.equal(sealedReadiness.coordinatorReady, true);
+      assert.equal(sealedReadiness.canonicalLedgerReady, true);
+      assert.equal(sealedReadiness.identityAuthorityReady, true);
+      assert.equal(sealedReadiness.canonicalGraphBound, true);
+      assert.equal(sealedReadiness.startupGatewaySealed, true);
       AppRuntimeFactory.clear(runtime);
     });
   } finally {
@@ -231,11 +254,9 @@ test('startup gateway rejects prototype-chain command names and seals after boot
       authorityWriteHostCapability: host.capability,
       authorityStore
     });
-    const descriptors = Object.getOwnPropertyDescriptors(gateway);
-    for (const key of ['runtime', 'authorityWriteHostCapability', 'authorityStore']) {
-      assert.equal(descriptors[key]?.writable, false, `${key} must not be replaceable`);
-      assert.equal(descriptors[key]?.configurable, false, `${key} must not be redefinable`);
-    }
+    assertImmutableBinding(gateway, 'runtime', runtime);
+    assertImmutableBinding(gateway, 'authorityWriteHostCapability', host.capability);
+    assertImmutableBinding(gateway, 'authorityStore', authorityStore);
     assert.throws(
       () => gateway.execute(startupEnvelope('constructor')),
       error => error?.code === 'STARTUP_COMMAND_ENVELOPE_INVALID'
