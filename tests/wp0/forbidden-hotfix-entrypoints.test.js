@@ -9,7 +9,8 @@ const {
   REPO_ROOT,
   checkForbiddenHotfixEntrypoints,
   checkProtectedCommandPolicy,
-  checkRepositoryScope
+  checkRepositoryScope,
+  referenceOnlyRootPolicies
 } = require('../../tools/wp0/lib');
 
 test('forbidden-hotfix-entrypoints.test', () => {
@@ -84,5 +85,30 @@ test('the same rejected-stage text remains forbidden in active tools', () => {
     assert.equal(result.details.violations[0]?.file, 'tools/release/release-plan.json');
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('reference-only policy cannot overlap repository execution authorities', () => {
+  const protectedAuthorities = [
+    '.github',
+    '.github/workflows',
+    '.gitattributes',
+    '.gitignore',
+    'package.json',
+    'package-lock.json',
+    'release'
+  ];
+  for (const authorityPath of protectedAuthorities) {
+    assert.throws(
+      () => referenceOnlyRootPolicies({
+        schemaVersion: 2,
+        referenceOnlyRoots: [{
+          path: authorityPath,
+          classification: 'REFERENCE_ONLY_TEST_FIXTURE'
+        }]
+      }),
+      /overlaps protected active authority path/,
+      `${authorityPath} must remain active and cannot be excluded from release-surface enforcement`
+    );
   }
 });
