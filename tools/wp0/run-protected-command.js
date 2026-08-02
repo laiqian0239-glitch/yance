@@ -27,7 +27,12 @@ const gate = verifyWp0Gate({
     evidenceSourceCommit
   } : {})
 });
-const workPackageScope = evaluateWorkPackageScopeForGate({ branch, git });
+const workPackageScope = evaluateWorkPackageScopeForGate({
+  branch,
+  git,
+  evidenceMode: Boolean(evidenceSourceCommit),
+  evidenceSourceCommit
+});
 const gatePassed = gate.status === 'PASS' && workPackageScope.pass;
 if (!gatePassed) {
   process.stdout.write(`${JSON.stringify({
