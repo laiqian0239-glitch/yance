@@ -20,7 +20,7 @@ env:
 jobs:
   wp0-gates:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - name: Checkout reviewed source head
         uses: actions/checkout@v4
@@ -45,5 +45,13 @@ jobs:
           node-version: '22'
       - name: Run WP0 required tests
         run: npm run test:wp0
+      - name: Run source identity and Electron tracking regressions
+        run: >-
+          node --test --test-concurrency=1
+          tests/runtime-delivery/electron-archive-tracking-authority.test.js
+          tests/runtime-delivery/repository-source-identity-authority.test.js
+          tests/runtime-delivery/fix6f-source-uat-isolation.test.js
+      - name: Validate repository protocol descriptor
+        run: node tools/protocol/validate-v3-protocols.js
       - name: Run executable local-equivalent WP0 gate
         run: npm run verify:wp0:gate -- --branch "${IMPLEMENTATION_BRANCH}"
