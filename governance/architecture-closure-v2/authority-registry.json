@@ -18,18 +18,30 @@
       "classification": "AUTHORITY_WRITER",
       "authorityOwner": "AuthorityWriteHost",
       "commandEntrypoint": "bootDesktopHostedBackend",
-      "eventTypes": ["authority-host.acquired"],
+      "eventTypes": [
+        "authority-host.acquired"
+      ],
       "aggregate": "AuthorityHostLease",
       "versionStrategy": "hostGeneration+fencingToken",
       "idempotencyKey": "startupNonce",
       "receiptIssuer": "AuthorityWriteHost",
       "projection": "authority_write_host_lease",
-      "legacyPaths": {"writer": ["createSqliteConnectionBroker"], "recovery": [], "fallback": []},
+      "legacyPaths": {
+        "writer": [
+          "createSqliteConnectionBroker"
+        ],
+        "recovery": [],
+        "fallback": []
+      },
       "removalCondition": "Database lease is acquired before any writable broker is constructed.",
       "blockingWorkPackage": "WP-A",
       "closureState": "OPEN",
-      "requiredSourceMarkers": ["acquireAuthorityWriteHost"],
-      "forbiddenSourceMarkers": ["createSqliteConnectionBroker({ dbPath: primarySqlitePath })"]
+      "requiredSourceMarkers": [
+        "acquireAuthorityWriteHost"
+      ],
+      "forbiddenSourceMarkers": [
+        "createSqliteConnectionBroker({ dbPath: primarySqlitePath })"
+      ]
     },
     {
       "id": "A0-SQLITE-BROKER",
@@ -37,17 +49,29 @@
       "classification": "AUTHORITY_WRITER",
       "authorityOwner": "AuthorityWriteHost",
       "commandEntrypoint": "createSqliteConnectionBroker",
-      "eventTypes": ["authority-host.broker-opened"],
+      "eventTypes": [
+        "authority-host.broker-opened"
+      ],
       "aggregate": "AuthorityHostLease",
       "versionStrategy": "hostGeneration+fencingToken",
       "idempotencyKey": "authorityHostCapabilityId",
       "receiptIssuer": "AuthorityWriteHost",
       "projection": "authority_write_host_lease",
-      "legacyPaths": {"writer": ["SqliteConnectionBroker.open"], "recovery": ["checkpointAndClose"], "fallback": []},
+      "legacyPaths": {
+        "writer": [
+          "SqliteConnectionBroker.open"
+        ],
+        "recovery": [
+          "checkpointAndClose"
+        ],
+        "fallback": []
+      },
       "removalCondition": "Production broker construction requires a current AuthorityWriteHost capability.",
       "blockingWorkPackage": "WP-A",
       "closureState": "OPEN",
-      "requiredSourceMarkers": ["authorityWriteHostCapability"],
+      "requiredSourceMarkers": [
+        "authorityWriteHostCapability"
+      ],
       "forbiddenSourceMarkers": []
     },
     {
@@ -56,17 +80,31 @@
       "classification": "AUTHORITY_WRITER",
       "authorityOwner": "AuthorityWriteHost",
       "commandEntrypoint": "AuthorityTransactionCoordinator",
-      "eventTypes": ["canonical-event.appended", "authority-command.committed"],
+      "eventTypes": [
+        "canonical-event.appended",
+        "authority-command.committed"
+      ],
       "aggregate": "CanonicalAggregate",
       "versionStrategy": "aggregateVersion+hostGeneration+fencingToken",
       "idempotencyKey": "commandId+idempotencyKey",
       "receiptIssuer": "AuthorityTransactionCoordinator",
       "projection": "authoritative synchronous projections",
-      "legacyPaths": {"writer": ["R32SqliteStore constructor", "raw transaction APIs"], "recovery": ["schema migration bootstrap"], "fallback": []},
+      "legacyPaths": {
+        "writer": [
+          "R32SqliteStore constructor",
+          "raw transaction APIs"
+        ],
+        "recovery": [
+          "schema migration bootstrap"
+        ],
+        "fallback": []
+      },
       "removalCondition": "All writable transactions require a verified current host token and coordinator context.",
       "blockingWorkPackage": "WP-A",
       "closureState": "OPEN",
-      "requiredSourceMarkers": ["assertCurrentAuthorityWriteHostToken"],
+      "requiredSourceMarkers": [
+        "assertCurrentAuthorityWriteHostToken"
+      ],
       "forbiddenSourceMarkers": []
     },
     {
@@ -81,12 +119,22 @@
       "idempotencyKey": "processRole+databasePath",
       "receiptIssuer": "AuthorityWriteHost",
       "projection": "none",
-      "legacyPaths": {"writer": [], "recovery": [], "fallback": ["new R32SqliteStore when broker is absent"]},
+      "legacyPaths": {
+        "writer": [],
+        "recovery": [],
+        "fallback": [
+          "new R32SqliteStore when broker is absent"
+        ]
+      },
       "removalCondition": "Missing broker fails closed; no process-local writable-store construction remains.",
       "blockingWorkPackage": "WP-A",
       "closureState": "OPEN",
-      "requiredSourceMarkers": ["SQLITE_BROKER_NOT_READY"],
-      "forbiddenSourceMarkers": ["new R32SqliteStore"]
+      "requiredSourceMarkers": [
+        "SQLITE_BROKER_NOT_READY"
+      ],
+      "forbiddenSourceMarkers": [
+        "new R32SqliteStore"
+      ]
     },
     {
       "id": "A0-STORE-PROVIDER",
@@ -100,12 +148,24 @@
       "idempotencyKey": "requestId",
       "receiptIssuer": "AuthorityWriteHost",
       "projection": "versioned read snapshot",
-      "legacyPaths": {"writer": ["getStore exposes raw writable store"], "recovery": ["closeStore"], "fallback": []},
+      "legacyPaths": {
+        "writer": [
+          "getStore exposes raw writable store"
+        ],
+        "recovery": [
+          "closeStore"
+        ],
+        "fallback": []
+      },
       "removalCondition": "Domain services cannot obtain a raw writable primary store through this facade.",
       "blockingWorkPackage": "WP-A",
       "closureState": "OPEN",
-      "requiredSourceMarkers": ["getAuthorityReadSnapshot"],
-      "forbiddenSourceMarkers": ["function getStore() { return getR32Store(); }"]
+      "requiredSourceMarkers": [
+        "getAuthorityReadSnapshot"
+      ],
+      "forbiddenSourceMarkers": [
+        "function getStore() { return getR32Store(); }"
+      ]
     },
     {
       "id": "A0-PROCESS-ROLE-GUARD",
@@ -113,18 +173,34 @@
       "classification": "FORBIDDEN",
       "authorityOwner": "AuthorityWriteHost",
       "commandEntrypoint": "assertPrimarySqliteHost",
-      "eventTypes": ["primary-sqlite.access-rejected"],
+      "eventTypes": [
+        "primary-sqlite.access-rejected"
+      ],
       "aggregate": "PrimarySqliteAccess",
       "versionStrategy": "processRoleContractVersion",
       "idempotencyKey": "pid+startupNonce+operation",
       "receiptIssuer": "AuthorityWriteHost",
       "projection": "diagnostic observation only",
-      "legacyPaths": {"writer": [], "recovery": [], "fallback": ["unknown roles default to desktop-host access"]},
+      "legacyPaths": {
+        "writer": [],
+        "recovery": [],
+        "fallback": [
+          "unknown roles default to desktop-host access"
+        ]
+      },
       "removalCondition": "Only the explicit desktop authority-host role can access the live primary database.",
       "blockingWorkPackage": "WP-A",
       "closureState": "OPEN",
-      "requiredSourceMarkers": ["assertPrimarySqliteHost", "CHANNEL_PROTOCOL_WORKER", "MEDIA_WORKER", "UAT_PROBE", "UTILITY_PROCESS"],
-      "forbiddenSourceMarkers": ["process.env.YANCE_PROCESS_ROLE || ROLES.DESKTOP_HOST"]
+      "requiredSourceMarkers": [
+        "assertPrimarySqliteHost",
+        "CHANNEL_PROTOCOL_WORKER",
+        "MEDIA_WORKER",
+        "UAT_PROBE",
+        "UTILITY_PROCESS"
+      ],
+      "forbiddenSourceMarkers": [
+        "process.env.YANCE_PROCESS_ROLE || ROLES.DESKTOP_HOST"
+      ]
     },
     {
       "id": "A0-LEGACY-JSON-MIGRATOR",
@@ -132,18 +208,33 @@
       "classification": "RECOVERY",
       "authorityOwner": "AuthorityWriteHost",
       "commandEntrypoint": "migration command protocol",
-      "eventTypes": ["legacy-import.requested", "legacy-import.completed"],
+      "eventTypes": [
+        "legacy-import.requested",
+        "legacy-import.completed"
+      ],
       "aggregate": "LegacyImport",
       "versionStrategy": "sourceFingerprint+schemaVersion",
       "idempotencyKey": "sourceRoot+sourceFingerprint",
       "receiptIssuer": "MigrationAuthority",
       "projection": "canonical ledger import projection",
-      "legacyPaths": {"writer": ["direct R32SqliteStore construction"], "recovery": ["legacy JSON import"], "fallback": []},
+      "legacyPaths": {
+        "writer": [
+          "direct R32SqliteStore construction"
+        ],
+        "recovery": [
+          "legacy JSON import"
+        ],
+        "fallback": []
+      },
       "removalCondition": "Migration executes inside the current host command boundary or against an offline staging database.",
       "blockingWorkPackage": "WP-A",
       "closureState": "OPEN",
-      "requiredSourceMarkers": ["AuthorityWriteHost"],
-      "forbiddenSourceMarkers": ["new R32SqliteStore"]
+      "requiredSourceMarkers": [
+        "AuthorityWriteHost"
+      ],
+      "forbiddenSourceMarkers": [
+        "new R32SqliteStore"
+      ]
     },
     {
       "id": "A0-LEGACY-SQLITE-MIGRATOR",
@@ -151,18 +242,33 @@
       "classification": "RECOVERY",
       "authorityOwner": "AuthorityWriteHost",
       "commandEntrypoint": "migration command protocol",
-      "eventTypes": ["legacy-sqlite-import.requested", "legacy-sqlite-import.completed"],
+      "eventTypes": [
+        "legacy-sqlite-import.requested",
+        "legacy-sqlite-import.completed"
+      ],
       "aggregate": "LegacyImport",
       "versionStrategy": "sourceFingerprint+schemaVersion",
       "idempotencyKey": "sourceDatabaseHash",
       "receiptIssuer": "MigrationAuthority",
       "projection": "canonical ledger import projection",
-      "legacyPaths": {"writer": ["direct target store construction"], "recovery": ["legacy SQLite import"], "fallback": []},
+      "legacyPaths": {
+        "writer": [
+          "direct target store construction"
+        ],
+        "recovery": [
+          "legacy SQLite import"
+        ],
+        "fallback": []
+      },
       "removalCondition": "Target primary writes are routed through the current host or an offline staging database.",
       "blockingWorkPackage": "WP-A",
       "closureState": "OPEN",
-      "requiredSourceMarkers": ["AuthorityWriteHost"],
-      "forbiddenSourceMarkers": ["new R32SqliteStore"]
+      "requiredSourceMarkers": [
+        "AuthorityWriteHost"
+      ],
+      "forbiddenSourceMarkers": [
+        "new R32SqliteStore"
+      ]
     },
     {
       "id": "A0-DOMAIN-EVENT-LOG",
@@ -170,18 +276,33 @@
       "classification": "AUTHORITY_WRITER",
       "authorityOwner": "CanonicalEventLedgerAuthority",
       "commandEntrypoint": "AuthorityTransactionCoordinator.execute",
-      "eventTypes": ["canonical-event.appended"],
+      "eventTypes": [
+        "canonical-event.appended"
+      ],
       "aggregate": "CanonicalAggregate",
       "versionStrategy": "aggregateVersion+schemaVersion",
       "idempotencyKey": "authorityScope+idempotencyKey",
       "receiptIssuer": "CanonicalEventLedgerAuthority",
       "projection": "canonical event header and managed payload",
-      "legacyPaths": {"writer": ["DomainEventLogService.append direct repository sequence"], "recovery": [], "fallback": ["schemaVersion fixed to 1"]},
+      "legacyPaths": {
+        "writer": [
+          "DomainEventLogService.append direct repository sequence"
+        ],
+        "recovery": [],
+        "fallback": [
+          "schemaVersion fixed to 1"
+        ]
+      },
       "removalCondition": "The service is a compatibility facade with no independent persistence logic.",
       "blockingWorkPackage": "WP-A",
       "closureState": "OPEN",
-      "requiredSourceMarkers": ["canonicalEventLedgerAuthority", "authorityTransactionCoordinator"],
-      "forbiddenSourceMarkers": ["this.repository.getDomainEventByIdempotency"]
+      "requiredSourceMarkers": [
+        "canonicalEventLedgerAuthority",
+        "authorityTransactionCoordinator"
+      ],
+      "forbiddenSourceMarkers": [
+        "this.repository.getDomainEventByIdempotency"
+      ]
     },
     {
       "id": "A0-PLATFORM-CORE-REPOSITORY",
@@ -189,18 +310,32 @@
       "classification": "FALLBACK",
       "authorityOwner": "CanonicalEventLedgerAuthority",
       "commandEntrypoint": "AuthorityTransactionCoordinator.execute",
-      "eventTypes": ["canonical-event.appended"],
+      "eventTypes": [
+        "canonical-event.appended"
+      ],
       "aggregate": "CanonicalAggregate",
       "versionStrategy": "aggregateVersion",
       "idempotencyKey": "commandId+idempotencyKey",
       "receiptIssuer": "CanonicalEventLedgerAuthority",
       "projection": "ledger projector only",
-      "legacyPaths": {"writer": ["direct domain-event repository append"], "recovery": [], "fallback": ["repository callable outside coordinator"]},
+      "legacyPaths": {
+        "writer": [
+          "direct domain-event repository append"
+        ],
+        "recovery": [],
+        "fallback": [
+          "repository callable outside coordinator"
+        ]
+      },
       "removalCondition": "Direct append APIs are removed or made coordinator-private.",
       "blockingWorkPackage": "WP-A",
       "closureState": "OPEN",
-      "requiredSourceMarkers": ["coordinatorCapability"],
-      "forbiddenSourceMarkers": ["insertDomainEvent"]
+      "requiredSourceMarkers": [
+        "coordinatorCapability"
+      ],
+      "forbiddenSourceMarkers": [
+        "insertDomainEvent"
+      ]
     },
     {
       "id": "A0-DOMAIN-EVENT-PROJECTOR",
@@ -208,17 +343,28 @@
       "classification": "LEDGER_PROJECTOR",
       "authorityOwner": "CanonicalEventLedgerAuthority",
       "commandEntrypoint": "project committed ledger sequence",
-      "eventTypes": ["projection.checkpoint-advanced"],
+      "eventTypes": [
+        "projection.checkpoint-advanced"
+      ],
       "aggregate": "ProjectionCheckpoint",
       "versionStrategy": "ledgerSequence+projectorVersion",
       "idempotencyKey": "projectorId+ledgerSequence",
       "receiptIssuer": "CanonicalEventLedgerAuthority",
       "projection": "compatibility read models",
-      "legacyPaths": {"writer": [], "recovery": ["projection replay"], "fallback": []},
+      "legacyPaths": {
+        "writer": [],
+        "recovery": [
+          "projection replay"
+        ],
+        "fallback": []
+      },
       "removalCondition": "Projection writes require a committed ledger sequence and versioned checkpoint.",
       "blockingWorkPackage": "WP-A",
       "closureState": "OPEN",
-      "requiredSourceMarkers": ["ledgerSequence", "projectorVersion"],
+      "requiredSourceMarkers": [
+        "ledgerSequence",
+        "projectorVersion"
+      ],
       "forbiddenSourceMarkers": []
     },
     {
@@ -233,7 +379,20 @@
       "idempotencyKey": "startupNonce",
       "receiptIssuer": "ArchitectureRuntime",
       "projection": "runtime participant graph",
-      "legacyPaths": {"writer": ["accountManager", "messageStore", "sendQueueService", "platformMessagingService"], "recovery": ["RecoveryManager"], "fallback": ["legacy participants remain production-wired"]},
+      "legacyPaths": {
+        "writer": [
+          "accountManager",
+          "messageStore",
+          "sendQueueService",
+          "platformMessagingService"
+        ],
+        "recovery": [
+          "RecoveryManager"
+        ],
+        "fallback": [
+          "legacy participants remain production-wired"
+        ]
+      },
       "removalCondition": "Each legacy writer is disabled before its compatibility projector remains.",
       "blockingWorkPackage": "WP-C",
       "closureState": "OPEN",
@@ -246,13 +405,28 @@
       "classification": "RECOVERY",
       "authorityOwner": "ArchitectureRuntime",
       "commandEntrypoint": "desktop-hosted startup command sequence",
-      "eventTypes": ["startup-recovery.requested", "startup-recovery.completed"],
+      "eventTypes": [
+        "startup-recovery.requested",
+        "startup-recovery.completed"
+      ],
       "aggregate": "StartupRecovery",
       "versionStrategy": "startupAttemptId",
       "idempotencyKey": "startupAttemptId+recoveryKind",
       "receiptIssuer": "ArchitectureRuntime",
       "projection": "startup diagnostics",
-      "legacyPaths": {"writer": ["canonicalizeWhatsAppAccounts dryRun false"], "recovery": ["syncCheckpointService.recoverInterrupted", "backgroundJobAuthority.recoverInterrupted", "migrationService.migrateAtStartup"], "fallback": ["modelRegistry.repairRoutes"]},
+      "legacyPaths": {
+        "writer": [
+          "canonicalizeWhatsAppAccounts dryRun false"
+        ],
+        "recovery": [
+          "syncCheckpointService.recoverInterrupted",
+          "backgroundJobAuthority.recoverInterrupted",
+          "migrationService.migrateAtStartup"
+        ],
+        "fallback": [
+          "modelRegistry.repairRoutes"
+        ]
+      },
       "removalCondition": "Startup recovery is expressed as durable authority commands with receipts.",
       "blockingWorkPackage": "WP-G",
       "closureState": "OPEN",
@@ -265,13 +439,23 @@
       "classification": "AUTHORITY_WRITER",
       "authorityOwner": "DurableExecutionAuthority",
       "commandEntrypoint": "durable operation command protocol",
-      "eventTypes": ["durable-operation.transitioned"],
+      "eventTypes": [
+        "durable-operation.transitioned"
+      ],
       "aggregate": "DurableOperation",
       "versionStrategy": "generation+fencingToken+expectedState",
       "idempotencyKey": "operationKind+idempotencyKey",
       "receiptIssuer": "DurableExecutionAuthority",
       "projection": "durable_executions",
-      "legacyPaths": {"writer": ["read then unconditional UPDATE by execution_id"], "recovery": ["retry and cancellation state"], "fallback": []},
+      "legacyPaths": {
+        "writer": [
+          "read then unconditional UPDATE by execution_id"
+        ],
+        "recovery": [
+          "retry and cancellation state"
+        ],
+        "fallback": []
+      },
       "removalCondition": "All transitions use database CAS and the current AuthorityWriteHost transaction.",
       "blockingWorkPackage": "WP-B",
       "closureState": "OPEN",
@@ -284,13 +468,24 @@
       "classification": "AUTHORITY_WRITER",
       "authorityOwner": "CommunicationAuthority",
       "commandEntrypoint": "communication command protocol",
-      "eventTypes": ["communication.message-ingested", "communication.delivery-receipt-recorded"],
+      "eventTypes": [
+        "communication.message-ingested",
+        "communication.delivery-receipt-recorded"
+      ],
       "aggregate": "CanonicalMessage",
       "versionStrategy": "messageVersion+receiptSequence",
       "idempotencyKey": "platform+sourceAccountId+externalIdentity",
       "receiptIssuer": "CommunicationAuthority",
       "projection": "communication read models",
-      "legacyPaths": {"writer": ["direct table writes"], "recovery": ["delivery and checkpoint convergence"], "fallback": []},
+      "legacyPaths": {
+        "writer": [
+          "direct table writes"
+        ],
+        "recovery": [
+          "delivery and checkpoint convergence"
+        ],
+        "fallback": []
+      },
       "removalCondition": "Commands commit through the canonical ledger and coordinator.",
       "blockingWorkPackage": "WP-C",
       "closureState": "OPEN",
@@ -303,13 +498,23 @@
       "classification": "FALLBACK",
       "authorityOwner": "CommunicationAuthority",
       "commandEntrypoint": "account command protocol",
-      "eventTypes": ["communication.account-upserted"],
+      "eventTypes": [
+        "communication.account-upserted"
+      ],
       "aggregate": "ExternalAccountIdentity",
       "versionStrategy": "accountVersion",
       "idempotencyKey": "platform+sourceAccountId",
       "receiptIssuer": "CommunicationAuthority",
       "projection": "legacy account compatibility projection",
-      "legacyPaths": {"writer": ["accountManager mutation APIs"], "recovery": [], "fallback": ["legacy account store"]},
+      "legacyPaths": {
+        "writer": [
+          "accountManager mutation APIs"
+        ],
+        "recovery": [],
+        "fallback": [
+          "legacy account store"
+        ]
+      },
       "removalCondition": "Business mutation APIs delegate to CommunicationAuthority or are deleted.",
       "blockingWorkPackage": "WP-C",
       "closureState": "OPEN",
@@ -322,13 +527,23 @@
       "classification": "FALLBACK",
       "authorityOwner": "CommunicationAuthority",
       "commandEntrypoint": "message command protocol",
-      "eventTypes": ["communication.message-ingested"],
+      "eventTypes": [
+        "communication.message-ingested"
+      ],
       "aggregate": "CanonicalMessage",
       "versionStrategy": "messageVersion",
       "idempotencyKey": "canonicalMessageId",
       "receiptIssuer": "CommunicationAuthority",
       "projection": "legacy message compatibility projection",
-      "legacyPaths": {"writer": ["messageStore mutation APIs"], "recovery": [], "fallback": ["legacy message store"]},
+      "legacyPaths": {
+        "writer": [
+          "messageStore mutation APIs"
+        ],
+        "recovery": [],
+        "fallback": [
+          "legacy message store"
+        ]
+      },
       "removalCondition": "Direct business writes are disabled before the compatibility projection remains.",
       "blockingWorkPackage": "WP-C",
       "closureState": "OPEN",
@@ -341,13 +556,26 @@
       "classification": "FALLBACK",
       "authorityOwner": "DurableExecutionAuthority",
       "commandEntrypoint": "external action outbox command protocol",
-      "eventTypes": ["external-action.intent-created", "communication.delivery-attempted"],
+      "eventTypes": [
+        "external-action.intent-created",
+        "communication.delivery-attempted"
+      ],
       "aggregate": "ExternalActionIntent",
       "versionStrategy": "generation+attemptSequence",
       "idempotencyKey": "deliveryActionId",
       "receiptIssuer": "CommunicationAuthority",
       "projection": "legacy send queue compatibility projection",
-      "legacyPaths": {"writer": ["send queue enqueue/claim/complete"], "recovery": ["queue retry"], "fallback": ["legacy send dispatcher"]},
+      "legacyPaths": {
+        "writer": [
+          "send queue enqueue/claim/complete"
+        ],
+        "recovery": [
+          "queue retry"
+        ],
+        "fallback": [
+          "legacy send dispatcher"
+        ]
+      },
       "removalCondition": "Queue becomes a ledger/outbox projection with no direct external-action truth.",
       "blockingWorkPackage": "WP-B",
       "closureState": "OPEN",
@@ -360,13 +588,25 @@
       "classification": "FALLBACK",
       "authorityOwner": "CommunicationAuthority",
       "commandEntrypoint": "channel adapter command gateway",
-      "eventTypes": ["communication.delivery-requested"],
+      "eventTypes": [
+        "communication.delivery-requested"
+      ],
       "aggregate": "DeliveryAttempt",
       "versionStrategy": "attemptSequence",
       "idempotencyKey": "deliveryActionId",
       "receiptIssuer": "CommunicationAuthority",
       "projection": "none",
-      "legacyPaths": {"writer": ["direct platform send orchestration"], "recovery": ["platform retry/reconciliation"], "fallback": ["platform-specific business branching"]},
+      "legacyPaths": {
+        "writer": [
+          "direct platform send orchestration"
+        ],
+        "recovery": [
+          "platform retry/reconciliation"
+        ],
+        "fallback": [
+          "platform-specific business branching"
+        ]
+      },
       "removalCondition": "All external sends originate from committed outbox intents.",
       "blockingWorkPackage": "WP-C",
       "closureState": "OPEN",
@@ -379,13 +619,23 @@
       "classification": "RECOVERY",
       "authorityOwner": "CommunicationAuthority",
       "commandEntrypoint": "durable sync command protocol",
-      "eventTypes": ["communication.sync-checkpoint-advanced"],
+      "eventTypes": [
+        "communication.sync-checkpoint-advanced"
+      ],
       "aggregate": "SyncCheckpoint",
       "versionStrategy": "checkpointVersion",
       "idempotencyKey": "platform+account+stream+gap",
       "receiptIssuer": "CommunicationAuthority",
       "projection": "communication_sync_checkpoints",
-      "legacyPaths": {"writer": ["checkpoint updates"], "recovery": ["recoverInterrupted"], "fallback": []},
+      "legacyPaths": {
+        "writer": [
+          "checkpoint updates"
+        ],
+        "recovery": [
+          "recoverInterrupted"
+        ],
+        "fallback": []
+      },
       "removalCondition": "Checkpoint recovery is driven by durable operation history and committed gaps.",
       "blockingWorkPackage": "WP-C",
       "closureState": "OPEN",
@@ -398,13 +648,25 @@
       "classification": "RECOVERY",
       "authorityOwner": "DurableExecutionAuthority",
       "commandEntrypoint": "durable operation command protocol",
-      "eventTypes": ["durable-operation.recovered"],
+      "eventTypes": [
+        "durable-operation.recovered"
+      ],
       "aggregate": "DurableOperation",
       "versionStrategy": "generation+fencingToken",
       "idempotencyKey": "operationKind+idempotencyKey",
       "receiptIssuer": "DurableExecutionAuthority",
       "projection": "durable execution read model",
-      "legacyPaths": {"writer": ["background job state"], "recovery": ["recoverInterrupted"], "fallback": ["legacy retry timer"]},
+      "legacyPaths": {
+        "writer": [
+          "background job state"
+        ],
+        "recovery": [
+          "recoverInterrupted"
+        ],
+        "fallback": [
+          "legacy retry timer"
+        ]
+      },
       "removalCondition": "Legacy jobs are migrated to durable operations and old recovery timers are deleted.",
       "blockingWorkPackage": "WP-B",
       "closureState": "OPEN",
@@ -417,13 +679,26 @@
       "classification": "RECOVERY",
       "authorityOwner": "MigrationAuthority",
       "commandEntrypoint": "migration command protocol",
-      "eventTypes": ["legacy-import.requested", "legacy-import.completed"],
+      "eventTypes": [
+        "legacy-import.requested",
+        "legacy-import.completed"
+      ],
       "aggregate": "LegacyImport",
       "versionStrategy": "sourceFingerprint+schemaVersion",
       "idempotencyKey": "sourceRoot+fingerprint",
       "receiptIssuer": "MigrationAuthority",
       "projection": "migration report",
-      "legacyPaths": {"writer": ["legacy import into primary"], "recovery": ["migrateAtStartup"], "fallback": ["legacy root discovery"]},
+      "legacyPaths": {
+        "writer": [
+          "legacy import into primary"
+        ],
+        "recovery": [
+          "migrateAtStartup"
+        ],
+        "fallback": [
+          "legacy root discovery"
+        ]
+      },
       "removalCondition": "Startup imports are bounded, receipt-backed authority commands or offline staging operations.",
       "blockingWorkPackage": "WP-G",
       "closureState": "OPEN",
@@ -436,13 +711,26 @@
       "classification": "RECOVERY",
       "authorityOwner": "ArchitectureRuntime",
       "commandEntrypoint": "recovery command protocol",
-      "eventTypes": ["runtime-recovery.requested", "runtime-recovery.completed"],
+      "eventTypes": [
+        "runtime-recovery.requested",
+        "runtime-recovery.completed"
+      ],
       "aggregate": "RuntimeRecovery",
       "versionStrategy": "recoveryAttemptVersion",
       "idempotencyKey": "startupAttemptId+recoveryKind",
       "receiptIssuer": "ArchitectureRuntime",
       "projection": "runtime recovery diagnostics",
-      "legacyPaths": {"writer": ["recovery manager state mutations"], "recovery": ["backup/restore and safe-mode recovery"], "fallback": ["legacy event bus recovery"]},
+      "legacyPaths": {
+        "writer": [
+          "recovery manager state mutations"
+        ],
+        "recovery": [
+          "backup/restore and safe-mode recovery"
+        ],
+        "fallback": [
+          "legacy event bus recovery"
+        ]
+      },
       "removalCondition": "Recovery effects are represented by durable commands and domain receipts.",
       "blockingWorkPackage": "WP-G",
       "closureState": "OPEN",
@@ -455,13 +743,24 @@
       "classification": "RECOVERY",
       "authorityOwner": "ArchitectureRuntime",
       "commandEntrypoint": "repair command protocol",
-      "eventTypes": ["persistence-repair.requested", "persistence-repair.completed"],
+      "eventTypes": [
+        "persistence-repair.requested",
+        "persistence-repair.completed"
+      ],
       "aggregate": "PersistenceRepair",
       "versionStrategy": "repairGeneration",
       "idempotencyKey": "repairScope+sourceFingerprint",
       "receiptIssuer": "ArchitectureRuntime",
       "projection": "repair diagnostics",
-      "legacyPaths": {"writer": ["direct repair mutations"], "recovery": ["local persistence repair"], "fallback": []},
+      "legacyPaths": {
+        "writer": [
+          "direct repair mutations"
+        ],
+        "recovery": [
+          "local persistence repair"
+        ],
+        "fallback": []
+      },
       "removalCondition": "Repair runs under a fenced host command or on an offline copy.",
       "blockingWorkPackage": "WP-G",
       "closureState": "OPEN",
@@ -474,17 +773,124 @@
       "classification": "RECOVERY",
       "authorityOwner": "ArchitectureRuntime",
       "commandEntrypoint": "runtime recovery command protocol",
-      "eventTypes": ["runtime-recovery.requested", "runtime-recovery.completed"],
+      "eventTypes": [
+        "runtime-recovery.requested",
+        "runtime-recovery.completed"
+      ],
       "aggregate": "RuntimeRecovery",
       "versionStrategy": "recoveryGeneration",
       "idempotencyKey": "startupAttemptId+scope",
       "receiptIssuer": "ArchitectureRuntime",
       "projection": "runtime recovery status",
-      "legacyPaths": {"writer": ["runtime recovery mutations"], "recovery": ["runtime restart recovery"], "fallback": ["legacy fallback recovery"]},
+      "legacyPaths": {
+        "writer": [
+          "runtime recovery mutations"
+        ],
+        "recovery": [
+          "runtime restart recovery"
+        ],
+        "fallback": [
+          "legacy fallback recovery"
+        ]
+      },
       "removalCondition": "Recovery is driven by ledger/durable state and cannot revive deleted writers.",
       "blockingWorkPackage": "WP-G",
       "closureState": "OPEN",
       "requiredSourceMarkers": [],
+      "forbiddenSourceMarkers": []
+    },
+    {
+      "id": "A0-AUTHORITY-WRITE-HOST-BOOTSTRAP",
+      "path": "backend/services/authorityWriteHost.js",
+      "classification": "AUTHORITY_WRITER",
+      "authorityOwner": "AuthorityWriteHost",
+      "commandEntrypoint": "acquireAuthorityWriteHost",
+      "eventTypes": [
+        "authority-host.acquired"
+      ],
+      "aggregate": "AuthorityHostLease",
+      "versionStrategy": "hostGeneration+fencingToken",
+      "idempotencyKey": "startupNonce",
+      "receiptIssuer": "AuthorityWriteHost",
+      "projection": "authority_write_host_lease",
+      "legacyPaths": {
+        "writer": [
+          "bootstrap SQLite lease compare-and-swap"
+        ],
+        "recovery": [],
+        "fallback": []
+      },
+      "removalCondition": "The bootstrap handle exists only while atomically acquiring the one current host capability and is closed before returning.",
+      "blockingWorkPackage": "WP-A",
+      "closureState": "OPEN",
+      "requiredSourceMarkers": [
+        "assertPrimarySqliteHost",
+        "claimOwnership",
+        "new DatabaseSync",
+        "ensureAuthorityWriteHostBootstrapObjects"
+      ],
+      "forbiddenSourceMarkers": []
+    },
+    {
+      "id": "A0-RUNTIME-LEGACY-READ-AUTHORITY",
+      "path": "backend/runtime/RuntimeAuthorityMigrationCoordinator.js",
+      "classification": "RECOVERY",
+      "authorityOwner": "ArchitectureRuntime",
+      "commandEntrypoint": "RuntimeAuthorityMigrationCoordinator.ensureAuthority",
+      "eventTypes": [
+        "runtime-authority.migrated"
+      ],
+      "aggregate": "RuntimeAuthorityMigration",
+      "versionStrategy": "sourceFingerprint+migrationVersion",
+      "idempotencyKey": "legacyRoot+sourceFingerprint",
+      "receiptIssuer": "ArchitectureRuntime",
+      "projection": "runtime authority state",
+      "legacyPaths": {
+        "writer": [],
+        "recovery": [
+          "read-only Yance27 runtime inspection"
+        ],
+        "fallback": []
+      },
+      "removalCondition": "Legacy SQLite is opened read-only with query_only and only the broker-owned runtime store receives the migration result.",
+      "blockingWorkPackage": "WP-A",
+      "closureState": "OPEN",
+      "requiredSourceMarkers": [
+        "{ readOnly: true }",
+        "PRAGMA query_only=ON",
+        "sourceMutationCount: 0"
+      ],
+      "forbiddenSourceMarkers": []
+    },
+    {
+      "id": "A0-BACKUP-SNAPSHOT-AUTHORITY",
+      "path": "backend/services/backupService.js",
+      "classification": "RECOVERY",
+      "authorityOwner": "BackupAuthority",
+      "commandEntrypoint": "createConsistentSqliteSnapshot",
+      "eventTypes": [
+        "backup.snapshot-created"
+      ],
+      "aggregate": "BackupSnapshot",
+      "versionStrategy": "manifestSchemaVersion+sha256",
+      "idempotencyKey": "backupName+sourceDigest",
+      "receiptIssuer": "BackupAuthority",
+      "projection": "verified offline backup file",
+      "legacyPaths": {
+        "writer": [],
+        "recovery": [
+          "read-only primary snapshot and offline integrity verification"
+        ],
+        "fallback": []
+      },
+      "removalCondition": "Primary SQLite is opened read-only; output is a separate backup file verified before publication.",
+      "blockingWorkPackage": "WP-A",
+      "closureState": "OPEN",
+      "requiredSourceMarkers": [
+        "{ readOnly: true }",
+        "VACUUM INTO",
+        "PRAGMA integrity_check"
+      ],
       "forbiddenSourceMarkers": []
     }
   ]

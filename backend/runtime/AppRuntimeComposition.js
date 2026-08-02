@@ -17,6 +17,7 @@ const workspaceData = require('../services/workspaceDataService');
 const modelRegistry = require('../services/modelRegistry');
 const aiTaskRuntimeRegistry = require('../services/aiTaskRuntimeRegistry');
 const aiGateway = require('../services/aiGateway');
+const { configureWorkspaceIdentityCommandFacade } = require('../services/workspaceIdentityCommandFacade');
 const backupService = require('../services/backupService');
 const diagnosticsService = require('../services/diagnosticsService');
 const productionDiagnostics = require('../services/productionDiagnosticsService');
@@ -339,6 +340,8 @@ function createAppRuntimeComposition(runtime) {
     throw gatewayError('APP_RUNTIME_CANONICAL_AUTHORITY_STORE_REQUIRED', 'Production composition requires the current broker-owned authority store', 503);
   }
 
+  const workspaceIdentityCommandFacade = configureWorkspaceIdentityCommandFacade({ db: authorityStore.db });
+
   const authorityTransactionCoordinator = new AuthorityTransactionCoordinator({ store: authorityStore, eventBus });
   lockAuthorityBinding(authorityTransactionCoordinator, 'store', authorityStore);
   lockAuthorityBinding(authorityTransactionCoordinator, 'db', authorityStore.db);
@@ -379,7 +382,7 @@ function createAppRuntimeComposition(runtime) {
   });
   securityGuard.setPolicyProviders({ safeModeProvider: () => runtime.operatingMode === 'safeMode', lifecycleStateProvider: () => runtime.state, productionDiagnostics });
   return Object.freeze({
-    authorities: Object.freeze({ authorityWriteHostCapability, authorityTransactionCoordinator, canonicalEventLedgerAuthority, identityAuthority, platformCoreRepository }),
+    authorities: Object.freeze({ authorityWriteHostCapability, authorityTransactionCoordinator, canonicalEventLedgerAuthority, identityAuthority, platformCoreRepository, workspaceIdentityCommandFacade }),
     authorityCommandGateway,
     commandSubmitter,
     accountContext,

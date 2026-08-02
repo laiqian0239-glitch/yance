@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { createCompactSnapshotTarget } = require('./migrationSnapshotManifest');
+const { resolveMigrationSnapshotRoot } = require('./migrationSnapshotRoot');
 
 const MIGRATION_ID = '011_round12_round13_selfcheck_hardening';
 const TARGET_SCHEMA_VERSION = 11;
@@ -56,7 +57,7 @@ function createSnapshot(db) {
   try { dbPath = db.prepare('PRAGMA database_list').all().find(row => row.name === 'main')?.file || ''; } catch (_) {}
   if (!dbPath || dbPath === ':memory:' || !fs.existsSync(dbPath)) return { created: false, reason: 'non-file-database' };
   try { db.exec('PRAGMA wal_checkpoint(FULL)'); } catch (_) {}
-  const root = path.join(path.dirname(path.dirname(dbPath)), 'migration-backups');
+  const root = resolveMigrationSnapshotRoot(dbPath);
   fs.mkdirSync(root, { recursive: true });
   // Different databases may migrate in parallel while sharing the same
   // migration-backups parent (for example isolated test roots below /tmp).

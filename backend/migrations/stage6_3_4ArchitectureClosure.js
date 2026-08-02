@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { createVerifiedSnapshot } = require('./migrationSnapshotManifest');
+const { resolveMigrationSnapshotRoot } = require('./migrationSnapshotRoot');
 
 const MIGRATION_ID = '009_stage6_3_4_architecture_closure';
 const TARGET_SCHEMA_VERSION = 9;
@@ -66,7 +67,7 @@ function createPreMigrationSnapshot(db) {
   }
   // Keep migration safety snapshots outside the live store tree so normal backups
   // cannot recursively capture snapshot WAL/SHM companions.
-  const root = path.join(path.dirname(path.dirname(dbPath)), 'migration-backups');
+  const root = resolveMigrationSnapshotRoot(dbPath);
   fs.mkdirSync(root, { recursive: true });
   const generation = crypto.randomUUID();
   return createVerifiedSnapshot({

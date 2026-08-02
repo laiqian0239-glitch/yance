@@ -161,7 +161,7 @@ const { createApiV2Router } = require('./routes/apiV2');
 const { createPersonaBrainRouter } = require('./routes/personaBrain');
 
 let startupStoreManager = { ok: true, executed: false, mode: 'pending' };
-const storeReadyPromise = storeManagerService.initialize()
+const storeReadyPromise = storeManagerService.initialize({ persistenceOptions: { store: APP_RUNTIME.primaryAuthorityStore } })
   .then(storeManager => {
     startupStoreManager = { ok: true, executed: true, stateVersion: storeManager.stateVersion, at: new Date().toISOString() };
     messageTranslationService.install();
