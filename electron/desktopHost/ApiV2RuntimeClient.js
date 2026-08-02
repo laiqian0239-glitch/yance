@@ -16,7 +16,7 @@ function sessionIdentity(binding = {}) {
 
 class ApiV2RuntimeClient {
   constructor(options = {}) {
-    if (Object.prototype.hasOwnProperty.call(options, 'authorityWriteHostCapability')) {
+    if (Reflect.has(Object(options), 'authorityWriteHostCapability')) {
       throw makeError(
         'DESKTOP_WRITE_CAPABILITY_FORBIDDEN',
         'Desktop and renderer command transports must never receive a primary write-host capability',
