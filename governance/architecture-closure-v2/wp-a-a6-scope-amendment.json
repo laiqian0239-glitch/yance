@@ -10,8 +10,8 @@
   "baseAuthorizationPath": "governance/architecture-closure-v2/implementation-plan-authorization.json",
   "baseAuthorizationBlobSha": "203697b36c06e0dc72c92113ef58f1a8f2394312",
   "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
-  "approvedChangedFileCount": 78,
-  "approvedChangedFileSetSha256": "09ea0728cb5677d5b4f6d970f1b9dd8e85abff94d9d736fbabc5da83d24e2bf6",
+  "approvedChangedFileCount": 80,
+  "approvedChangedFileSetSha256": "de42be729228dd25ef8ace04f61f6f393d780870865eda86701c364887169a32",
   "additionalAllowedPaths": [
     "backend/runtime/AppRuntime.js",
     "backend/runtime/NamedRuntimeMutex.js",
@@ -24,8 +24,10 @@
     "docs/architecture/YANCE_ACV2_WP_A_A5_SOURCE_REVIEW_ZH.md",
     "governance/architecture-closure-v2/authority-registry.json",
     "shared/release/implementationBranchPolicy.js",
+    "tests/wp0/acv2-work-package-scope-wiring.test.js",
     "tests/wp0/implementation-branch-policy.test.js",
-    "tests/wp5/m5-sqlite-ownership.test.js"
+    "tests/wp5/m5-sqlite-ownership.test.js",
+    "tools/wp0/verify-gate.js"
   ],
   "reviewFindings": [
     {
@@ -59,9 +61,11 @@
       "class": "WP0_MACHINE_POLICY_INTEGRATION",
       "paths": [
         "shared/release/implementationBranchPolicy.js",
-        "tests/wp0/implementation-branch-policy.test.js"
+        "tests/wp0/acv2-work-package-scope-wiring.test.js",
+        "tests/wp0/implementation-branch-policy.test.js",
+        "tools/wp0/verify-gate.js"
       ],
-      "reason": "The exact authorized child branch and scope amendment must be consumed by the existing WP0 machine gate without authorizing arbitrary ACV2 branches."
+      "reason": "The exact authorized child branch and reviewed changed-file set must be consumed by both the WP0 regression suite and the executable gate used by protected build, package and release commands."
     }
   ],
   "governance": {
