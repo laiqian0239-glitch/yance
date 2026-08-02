@@ -3,12 +3,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
 const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
 const factoryPath = path.join(repoRoot, 'backend', 'runtime', 'AppRuntimeFactory.js');
 const compositionPath = path.join(repoRoot, 'backend', 'runtime', 'AppRuntimeComposition.js');
 const desktopClientPath = path.join(repoRoot, 'electron', 'desktopHost', 'ApiV2RuntimeClient.js');
+const { acquireAuthorityWriteHost } = require('../../../services/authorityWriteHost');
+const { SqliteConnectionBroker } = require('../../../lib/sqliteConnectionBroker');
 
 function source(filePath) {
   return fs.readFileSync(filePath, 'utf8');
@@ -64,6 +67,47 @@ test('runtime composition constructs coordinator, canonical ledger and identity 
   assert.ok(coordinator < recovery && ledger < recovery && identity < recovery, 'all authorities must exist before recovery construction');
   assert.match(text, /authorityWriteHostCapability/);
   assert.match(text, /authorities\s*:\s*Object\.freeze/);
+});
+
+test('real broker capability and R32 store bind the same runtime, coordinator, ledger and identity authority', () => {
+  const previous = process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
+  process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-acv2-a6-runtime-'));
+  const dbPath = path.join(root, 'yance-r32.db');
+  const host = acquireAuthorityWriteHost({ dbPath, instanceId: 'a6-runtime-host' });
+  const broker = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: host.capability });
+  const authorityStore = broker.open();
+  const { AppRuntimeFactory } = require('../../../runtime/AppRuntimeFactory');
+  let runtime = null;
+  try {
+    AppRuntimeFactory.resetForTests();
+    runtime = AppRuntimeFactory.create({
+      ...minimalRuntimeDependencies(),
+      authorityWriteHostCapability: host.capability,
+      authorityStore
+    });
+    const composition = runtime.configureProductionServices();
+    const readiness = AppRuntimeFactory.assertAuthorityReady();
+
+    assert.equal(runtime.authorityWriteHostCapability, host.capability);
+    assert.equal(runtime.primaryAuthorityStore, authorityStore);
+    assert.equal(composition.authorities.authorityWriteHostCapability, host.capability);
+    assert.equal(composition.authorities.authorityTransactionCoordinator.store, authorityStore);
+    assert.equal(composition.authorities.canonicalEventLedgerAuthority.store, authorityStore);
+    assert.equal(composition.authorities.identityAuthority.repository.store(), authorityStore);
+    assert.equal(readiness.authorityWriteHostBound, true);
+    assert.equal(readiness.coordinatorReady, true);
+    assert.equal(readiness.canonicalLedgerReady, true);
+    assert.equal(readiness.identityAuthorityReady, true);
+  } finally {
+    if (runtime) AppRuntimeFactory.clear(runtime);
+    try { broker.checkpointAndClose(); } catch (_) {}
+    try { host.release(); } catch (_) {}
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    AppRuntimeFactory.resetForTests();
+    if (previous == null) delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
+    else process.env.YANCE_TEST_ONLY_RUNTIME_RESET = previous;
+  }
 });
 
 test('desktop runtime client refuses injected primary write capability instead of retaining or ignoring it', () => {
