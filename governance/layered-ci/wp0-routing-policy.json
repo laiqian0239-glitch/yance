@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_WP0_SCOPE_ROUTING_POLICY",
+  "governanceExactPaths": [
+    ".github/workflows/layered-ci-fast.yml",
+    ".github/workflows/layered-ci-task.yml",
+    ".github/workflows/layered-ci-promotion.yml",
+    ".github/workflows/reviewed-candidate-a6.yml",
+    ".github/workflows/reviewed-candidate-a6-sqlite.yml",
+    ".github/workflows/stage-6459-wp0-gates.yml"
+  ],
+  "governancePrefixes": [
+    ".github/actions/resolve-diff-range/",
+    "governance/layered-ci/",
+    "tools/layered-ci/",
+    "tests/layered-ci/",
+    "tools/independent-review/",
+    "docs/superpowers/specs/2026-08-02-layered-ci-reviewed-candidate",
+    "docs/superpowers/plans/2026-08-02-layered-ci-reviewed-candidate"
+  ],
+  "productExactPaths": [
+    "package.json",
+    "package-lock.json",
+    ".gitattributes",
+    ".gitignore",
+    "yance_artifact_descriptor.json"
+  ],
+  "productPrefixes": [
+    ".github/",
+    "backend/",
+    "electron/",
+    "frontend/",
+    "governance/",
+    "implementation/",
+    "release/",
+    "scripts/",
+    "services/",
+    "shared/",
+    "tests/",
+    "tools/",
+    "vendor/"
+  ],
+  "mixedChangesEscalateToProduct": true,
+  "unknownPathFailsClosed": true,
+  "readyForPromotion": false
+}

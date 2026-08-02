@@ -1,0 +1,64 @@
+name: Resolve trusted diff range
+description: Resolve and validate the exact base and head commits used by layered governance gates
+
+inputs:
+  event-name:
+    description: GitHub event name
+    required: true
+  pull-request-base-sha:
+    description: Pull request base SHA
+    required: false
+    default: ''
+  pull-request-head-sha:
+    description: Pull request head SHA
+    required: false
+    default: ''
+  push-base-sha:
+    description: Push before SHA
+    required: false
+    default: ''
+  push-head-sha:
+    description: Push head SHA
+    required: false
+    default: ''
+
+outputs:
+  base:
+    description: Validated exact base commit
+    value: ${{ steps.resolve.outputs.base }}
+  head:
+    description: Validated exact head commit
+    value: ${{ steps.resolve.outputs.head }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve and validate exact commits
+      id: resolve
+      shell: bash
+      env:
+        EVENT_NAME: ${{ inputs.event-name }}
+        PR_BASE_SHA: ${{ inputs.pull-request-base-sha }}
+        PR_HEAD_SHA: ${{ inputs.pull-request-head-sha }}
+        PUSH_BASE_SHA: ${{ inputs.push-base-sha }}
+        PUSH_HEAD_SHA: ${{ inputs.push-head-sha }}
+      run: |
+        set -euo pipefail
+        if [[ "${EVENT_NAME}" == "pull_request" ]]; then
+          base="${PR_BASE_SHA}"
+          head="${PR_HEAD_SHA}"
+        else
+          base="${PUSH_BASE_SHA}"
+          head="${PUSH_HEAD_SHA}"
+        fi
+
+        if [[ ! "${base}" =~ ^[0-9a-f]{40}$ ]] || [[ "${base}" == "0000000000000000000000000000000000000000" ]]; then
+          git fetch --no-tags --force origin main:refs/remotes/origin/main
+          base="$(git rev-parse refs/remotes/origin/main)"
+        fi
+
+        [[ "${base}" =~ ^[0-9a-f]{40}$ ]]
+        [[ "${head}" =~ ^[0-9a-f]{40}$ ]]
+        git cat-file -e "${base}^{commit}"
+        git cat-file -e "${head}^{commit}"
+        printf 'base=%s\nhead=%s\n' "${base}" "${head}" >> "${GITHUB_OUTPUT}"

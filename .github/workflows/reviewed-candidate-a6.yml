@@ -1,0 +1,235 @@
+name: A6 Reviewed Candidate Verification
+
+on:
+  push:
+    branches:
+      - governance/layered-ci-reviewed-candidate
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'governance/layered-ci/**'
+      - 'tools/layered-ci/**'
+      - 'tests/layered-ci/**'
+      - '.github/workflows/reviewed-candidate-a6.yml'
+      - '.github/workflows/layered-ci-*.yml'
+
+permissions:
+  contents: read
+
+env:
+  CANDIDATE_MANIFEST: governance/layered-ci/reviewed-candidate-a6.json
+  IMPLEMENTATION_BRANCH: acv2/wp-a-identity-ledger-write-host
+  GOVERNANCE_BASE_SHA: d81599d8a3f3de891da369b6f1ddbd01e264c78d
+  REVIEWED_HEAD_SHA: 3684dbd840faec8d6e732b0b68eae25f1ad9b2b3
+  BRANCH_TIP_SHA: e877aec9e16663296e632c224a1da3b7892f1f2b
+  BASELINE_ANCHOR_COMMIT: 570823e722f6db475066d6ef80ba900ac5c6cb39
+  BASELINE_ANCHOR_PATH: governance/rejected-baselines/stage-6.4.5.8.json
+  BASELINE_ANCHOR_BLOB: 6a5ffc68e76baf6a477668c6c2faf61934e94720
+  ELECTRON_LFS_PATH: vendor/electron/electron-v39.8.5-win32-x64.zip
+  ELECTRON_LFS_OID: d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34
+  ELECTRON_LFS_SIZE: '136644393'
+
+jobs:
+  a6-reviewed-candidate-identity:
+    name: a6-reviewed-candidate-identity
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout governance verifier
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Fetch trusted reviewed-candidate refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --force origin "${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
+          git fetch --no-tags --force origin "${GOVERNANCE_BASE_SHA}"
+          git fetch --no-tags --force origin "${REVIEWED_HEAD_SHA}"
+          git fetch --no-tags --force origin "${BRANCH_TIP_SHA}"
+      - name: Verify reviewed candidate identity and exact scope
+        run: node tools/layered-ci/verify-reviewed-candidate.js "${CANDIDATE_MANIFEST}"
+
+  a6-reviewed-runtime:
+    name: a6-reviewed-runtime-${{ matrix.os }}
+    needs: a6-reviewed-candidate-identity
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact reviewed A6 head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify Windows runtime mutex helper selection
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/windowsRuntimeMutexPowerShell.test.js
+      - name: Run AuthorityWriteHost and ownership contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js
+          backend/tests/architectureClosureV2/wpA/authorityWriteHostProcessMatrix.test.js
+      - name: Run A2 through A5 authority contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/canonicalSerialization.test.js
+          backend/tests/architectureClosureV2/wpA/dataClassificationRegistry.test.js
+          backend/tests/architectureClosureV2/wpA/eventTypeRegistryReplay.test.js
+          backend/tests/architectureClosureV2/wpA/upcasterSandboxEscape.test.js
+          backend/tests/architectureClosureV2/wpA/prototypePollutionBoundary.test.js
+          backend/tests/architectureClosureV2/wpA/authorityCommandProtocol.test.js
+          backend/tests/architectureClosureV2/wpA/noExternalIoInTransaction.test.js
+          backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinator.test.js
+          backend/tests/architectureClosureV2/wpA/schema21AuthorityContract.test.js
+          backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinatorAdversarial.test.js
+          backend/tests/architectureClosureV2/wpA/canonicalEventLedgerAuthority.test.js
+          backend/tests/architectureClosureV2/wpA/domainEventCompatibilityFacade.test.js
+          backend/tests/architectureClosureV2/wpA/identityAuthority.test.js
+      - name: Run A6 runtime composition contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/runtimeComposition.test.js
+          backend/tests/architectureClosureV2/wpA/runtimeGatewaySurface.test.js
+          backend/tests/architectureClosureV2/wpA/runtimeStateStoreBinding.test.js
+          backend/tests/architectureClosureV2/wpA/runtimeProcessSingleton.test.js
+          backend/tests/architectureClosureV2/wpA/startupOrdering.test.js
+      - name: Install locked dependencies for legacy regressions
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run identity and SQLite legacy regressions
+        run: >-
+          node --test --test-concurrency=1
+          --test-name-pattern="identity observations|identity merge"
+          backend/tests/round12PlatformCoreAuthorities.test.js
+          tests/wp5/m5-sqlite-ownership.test.js
+          tests/wp4/application-matrix-temp-path.test.js
+          tests/wp3/stale-fencing-token-outbox-denied.test.js
+
+  a6-reviewed-wp0:
+    name: a6-reviewed-wp0
+    needs: a6-reviewed-candidate-identity
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout governance verifier
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Set up Node.js for candidate verification
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Revalidate candidate immediately before WP0
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --force origin "${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
+          git fetch --no-tags --force origin "${GOVERNANCE_BASE_SHA}"
+          git fetch --no-tags --force origin "${REVIEWED_HEAD_SHA}"
+          git fetch --no-tags --force origin "${BRANCH_TIP_SHA}"
+          node tools/layered-ci/verify-reviewed-candidate.js "${CANDIDATE_MANIFEST}"
+      - name: Checkout exact reviewed WP0 head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+      - name: Establish reviewed local branch and trusted archive refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --force origin "main:refs/remotes/origin/main"
+          git fetch --no-tags --force origin "${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
+          test "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})" = "${BRANCH_TIP_SHA}"
+          git merge-base --is-ancestor "${REVIEWED_HEAD_SHA}" "${BRANCH_TIP_SHA}"
+          git cat-file -e "${BASELINE_ANCHOR_COMMIT}^{commit}"
+          git merge-base --is-ancestor "${BASELINE_ANCHOR_COMMIT}" "${REVIEWED_HEAD_SHA}"
+          test "$(git rev-parse "${BASELINE_ANCHOR_COMMIT}:${BASELINE_ANCHOR_PATH}")" = "${BASELINE_ANCHOR_BLOB}"
+          git switch --force-create "${IMPLEMENTATION_BRANCH}" "${REVIEWED_HEAD_SHA}"
+          test "$(git rev-parse HEAD)" = "${REVIEWED_HEAD_SHA}"
+      - name: Set up reviewed Node.js runtime
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Fetch trusted Electron LFS object and remove credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          git lfs install --local
+          git lfs pull origin --include="${ELECTRON_LFS_PATH}" --exclude=""
+          echo "${ELECTRON_LFS_OID}  ${ELECTRON_LFS_PATH}" | sha256sum --check --strict
+          test "$(stat --format='%s' "${ELECTRON_LFS_PATH}")" = "${ELECTRON_LFS_SIZE}"
+          git config --local --unset-all http.https://github.com/.extraheader || true
+          git config --local --unset-all credential.helper || true
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run WP0 required tests
+        run: npm run test:wp0
+      - name: Run staged-secret scanner regressions
+        run: npm run test:security-scan
+      - name: Run source identity and Electron tracking regressions
+        run: >-
+          node --test --test-concurrency=1
+          tests/runtime-delivery/electron-archive-tracking-authority.test.js
+          tests/runtime-delivery/repository-source-identity-authority.test.js
+          tests/runtime-delivery/fix6f-source-uat-isolation.test.js
+      - name: Validate repository protocol descriptor
+        run: node tools/protocol/validate-v3-protocols.js
+      - name: Run WP0 gate against reviewed local branch identity
+        run: npm run verify:wp0:gate
+
+  a6-reviewed-sealed-export:
+    name: a6-reviewed-sealed-export-${{ matrix.os }}
+    needs: a6-reviewed-candidate-identity
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact reviewed source head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Run sealed export canonical path regressions
+        run: node --test --test-concurrency=1 tests/runtime-delivery/repository-source-identity-authority.test.js

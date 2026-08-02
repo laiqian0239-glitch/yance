@@ -21,11 +21,51 @@ env:
   ELECTRON_LFS_SIZE: '136644393'
 
 jobs:
-  wp0-gates:
+  wp0-route:
+    name: wp0-route
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 6
+    outputs:
+      route: ${{ steps.route.outputs.route }}
     steps:
-      - name: Checkout reviewed source head
+      - name: Checkout full review history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Resolve trusted diff range
+        id: range
+        uses: ./.github/actions/resolve-diff-range
+        with:
+          event-name: ${{ github.event_name }}
+          pull-request-base-sha: ${{ github.event.pull_request.base.sha }}
+          pull-request-head-sha: ${{ github.event.pull_request.head.sha }}
+          push-base-sha: ${{ github.event.before }}
+          push-head-sha: ${{ github.sha }}
+      - name: Classify protected WP0 route
+        id: route
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.range.outputs.base }}
+          HEAD_SHA: ${{ steps.range.outputs.head }}
+        run: node tools/layered-ci/select-wp0-route.js --base "${BASE_SHA}" --head "${HEAD_SHA}"
+
+  wp0-product:
+    name: wp0-product
+    if: ${{ needs.wp0-route.outputs.route == 'PRODUCT_WP0' }}
+    needs: wp0-route
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout reviewed product source head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ env.REVIEWED_HEAD_SHA }}
@@ -44,9 +84,10 @@ jobs:
           git switch --force-create "${IMPLEMENTATION_BRANCH}" "${REVIEWED_HEAD_SHA}"
           test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})"
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Fetch and verify trusted Electron LFS object
         shell: bash
         run: |
@@ -56,6 +97,8 @@ jobs:
           echo "${ELECTRON_LFS_OID}  ${ELECTRON_LFS_PATH}" | sha256sum --check --strict
           test "$(stat --format='%s' "${ELECTRON_LFS_PATH}")" = "${ELECTRON_LFS_SIZE}"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run WP0 required tests
         run: npm run test:wp0
       - name: Run staged-secret scanner regressions
@@ -71,8 +114,74 @@ jobs:
       - name: Run executable local-equivalent WP0 gate
         run: npm run verify:wp0:gate -- --branch "${IMPLEMENTATION_BRANCH}"
 
+  wp0-governance:
+    name: wp0-governance
+    if: ${{ needs.wp0-route.outputs.route == 'GOVERNANCE_WP0' }}
+    needs: wp0-route
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout reviewed governance head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Run layered governance contracts
+        run: node --test --test-concurrency=1 tests/layered-ci/*.test.js
+      - name: Run independent review contract
+        run: node --test --test-concurrency=1 tests/independent-review/chatgpt-review-contract.test.js
+      - name: Run staged-secret scanner regressions
+        run: npm run test:security-scan
+      - name: Validate repository protocol descriptor
+        run: node tools/protocol/validate-v3-protocols.js
+
+  wp0-gates:
+    name: wp0-gates
+    if: ${{ always() }}
+    needs:
+      - wp0-route
+      - wp0-product
+      - wp0-governance
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Enforce selected WP0 route result
+        shell: bash
+        env:
+          ROUTE: ${{ needs.wp0-route.outputs.route }}
+          ROUTE_RESULT: ${{ needs.wp0-route.result }}
+          PRODUCT_RESULT: ${{ needs.wp0-product.result }}
+          GOVERNANCE_RESULT: ${{ needs.wp0-governance.result }}
+        run: |
+          set -euo pipefail
+          test "${ROUTE_RESULT}" = "success"
+          case "${ROUTE}" in
+            PRODUCT_WP0)
+              test "${PRODUCT_RESULT}" = "success"
+              test "${GOVERNANCE_RESULT}" = "skipped"
+              ;;
+            GOVERNANCE_WP0)
+              test "${PRODUCT_RESULT}" = "skipped"
+              test "${GOVERNANCE_RESULT}" = "success"
+              ;;
+            *)
+              echo "unknown fail-closed WP0 route: ${ROUTE}" >&2
+              exit 1
+              ;;
+          esac
+
   sealed-export-platform-matrix:
     name: sealed-export-${{ matrix.os }}
+    if: ${{ needs.wp0-route.outputs.route == 'PRODUCT_WP0' }}
+    needs: wp0-route
     runs-on: ${{ matrix.os }}
     timeout-minutes: 8
     strategy:
@@ -89,9 +198,11 @@ jobs:
           fetch-depth: 1
           fetch-tags: false
           lfs: false
+          persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Run sealed export canonical path regressions
         run: node --test --test-concurrency=1 tests/runtime-delivery/repository-source-identity-authority.test.js

@@ -1,0 +1,95 @@
+name: Layered CI Fast Feedback
+
+on:
+  push:
+    branches:
+      - governance/layered-ci-reviewed-candidate
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'governance/layered-ci/**'
+      - 'tools/layered-ci/**'
+      - 'tests/layered-ci/**'
+      - '.github/actions/resolve-diff-range/**'
+      - '.github/workflows/layered-ci-*.yml'
+      - '.github/workflows/reviewed-candidate-a6.yml'
+      - '.github/workflows/reviewed-candidate-a6-sqlite.yml'
+      - '.github/workflows/stage-6459-wp0-gates.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  layered-ci-policy:
+    name: layered-ci-policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout governance candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Run layered governance contracts
+        run: node --test --test-concurrency=1 tests/layered-ci/*.test.js
+
+  layered-ci-risk:
+    name: layered-ci-risk
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      required_level: ${{ steps.risk.outputs.required_level }}
+      requires_l2: ${{ steps.risk.outputs.requires_l2 }}
+      candidate_sha: ${{ steps.range.outputs.head }}
+    steps:
+      - name: Checkout full candidate history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Resolve trusted diff range
+        id: range
+        uses: ./.github/actions/resolve-diff-range
+        with:
+          event-name: ${{ github.event_name }}
+          pull-request-base-sha: ${{ github.event.pull_request.base.sha }}
+          pull-request-head-sha: ${{ github.event.pull_request.head.sha }}
+          push-base-sha: ${{ github.event.before }}
+          push-head-sha: ${{ github.sha }}
+      - name: Select required CI level
+        id: risk
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.range.outputs.base }}
+          HEAD_SHA: ${{ steps.range.outputs.head }}
+        run: node tools/layered-ci/select-ci-level.js --base "${BASE_SHA}" --head "${HEAD_SHA}"
+      - name: Assert promotion is never automatic
+        shell: bash
+        env:
+          PROMOTION_REQUIRED: ${{ steps.risk.outputs.promotion_required }}
+        run: test "${PROMOTION_REQUIRED}" = 'false'
+
+  layered-ci-l2:
+    name: layered-ci-l2-governance
+    if: ${{ needs.layered-ci-risk.outputs.requires_l2 == 'true' }}
+    needs:
+      - layered-ci-policy
+      - layered-ci-risk
+    uses: ./.github/workflows/layered-ci-task.yml
+    with:
+      candidate_sha: ${{ needs.layered-ci-risk.outputs.candidate_sha }}
+      required_level: L2
+      suite: layered_governance

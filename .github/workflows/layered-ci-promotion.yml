@@ -1,0 +1,82 @@
+name: Layered CI Promotion Verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Exact reviewed branch, tag, or commit
+        required: true
+        type: string
+      expected_commit:
+        description: Exact reviewed 40-character commit
+        required: true
+        type: string
+      expected_tree:
+        description: Exact reviewed 40-character tree
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  SOURCE_REF: ${{ inputs.source_ref }}
+  EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+  EXPECTED_TREE: ${{ inputs.expected_tree }}
+
+jobs:
+  l3-promotion-verification:
+    name: layered-ci-l3-promotion-verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    outputs:
+      readyForPromotion: ${{ steps.governance-result.outputs.readyForPromotion }}
+      formalRelease: ${{ steps.governance-result.outputs.formalRelease }}
+      publish: ${{ steps.governance-result.outputs.publish }}
+    steps:
+      - name: Checkout exact promotion source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.SOURCE_REF }}
+          fetch-depth: 0
+          fetch-tags: true
+          lfs: false
+          persist-credentials: false
+      - name: Set up reviewed Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify exact commit and tree identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${EXPECTED_COMMIT}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${EXPECTED_TREE}" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "${EXPECTED_COMMIT}"
+          test "$(git rev-parse 'HEAD^{tree}')" = "${EXPECTED_TREE}"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run source and work-package verification
+        run: |
+          npm run test:wp0
+          npm run test:security-scan
+          npm run test:wp7
+      - name: Record non-publishing governance result
+        id: governance-result
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo 'readyForPromotion=false'
+            echo 'formalRelease=false'
+            echo 'publish=false'
+          } >> "${GITHUB_OUTPUT}"
+          {
+            echo '### Layered CI promotion verification'
+            echo ''
+            echo '- readyForPromotion=false'
+            echo '- formalRelease=false'
+            echo '- publish=false'
+          } >> "${GITHUB_STEP_SUMMARY}"
