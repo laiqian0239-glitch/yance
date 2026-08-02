@@ -69,6 +69,14 @@ test('unknown or invalid paths fail closed rather than selecting a cheaper route
   assert.equal(invalid.reasonCode, 'WP0_ROUTE_PATH_INVALID');
 });
 
+test('Stage WP0 route checkout preserves base-owned local actions for pre-existing PR branches', () => {
+  const text = fs.readFileSync(path.join(ROOT, '.github/workflows/stage-6459-wp0-gates.yml'), 'utf8');
+  const routeJob = text.slice(text.indexOf('  wp0-route:'), text.indexOf('  wp0-product:'));
+  assert.match(routeJob, /Checkout pull-request merge or pushed branch history/u);
+  assert.doesNotMatch(routeJob, /ref:\s*\$\{\{ env\.REVIEWED_HEAD_SHA \}\}/u);
+  assert.match(routeJob, /uses:\s*\.\/\.github\/actions\/resolve-diff-range/u);
+});
+
 test('Stage WP0 workflow routes governance separately and preserves one stable aggregate gate', () => {
   const text = fs.readFileSync(path.join(ROOT, '.github/workflows/stage-6459-wp0-gates.yml'), 'utf8');
   assert.match(text, /wp0-route:/u);
