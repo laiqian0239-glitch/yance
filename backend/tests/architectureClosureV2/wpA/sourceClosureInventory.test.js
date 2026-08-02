@@ -12,35 +12,25 @@ function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(repoRoot, relativePath), 'utf8'));
 }
 
-test('A0 baseline pins the approved governance head and recorded RED scope', () => {
+test('A0 evidence remains immutable while current task authorization advances independently', () => {
   const baseline = readJson(scanner.BASELINE_PATH);
+  const config = scanner.sourceClosureConfig(baseline);
   assert.equal(baseline.parentGovernanceHead, 'd81599d8a3f3de891da369b6f1ddbd01e264c78d');
   assert.equal(baseline.authorizedBranch, 'acv2/wp-a-identity-ledger-write-host');
-  assert.equal(baseline.a0ProductionBusinessCodeChanged, false);
-  assert.equal(baseline.governanceInfrastructureChangeAllowed, true);
-  assert.equal(baseline.redEvidenceRequiredBeforeProductionCode, true);
-  assert.equal(baseline.redEvidenceSatisfied, true);
-  assert.equal(baseline.currentAuthorizedTask, 'A1_INTRODUCE_SCHEMA_21_AND_PERSISTENT_AUTHORITY_WRITE_HOST_LEASE');
-  assert.deepEqual(baseline.a0ChangedFileAllowlist, [
-    'governance/architecture-closure-v2/wp-a-baseline.json',
-    'governance/architecture-closure-v2/wp-a-branch-policy-amendment.json',
-    'governance/architecture-closure-v2/wp-a-a0-red-evidence.json',
-    'governance/architecture-closure-v2/authority-registry.json',
-    'tools/architecture-closure-v2/source-closure-scan.js',
-    'backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js',
-    'shared/release/implementationBranchPolicy.js',
-    'tools/wp0/lib.js',
-    'tests/wp0/implementation-branch-policy.test.js',
-    'package.json'
-  ]);
+  assert.equal(baseline.a0.status, 'CLOSED');
+  assert.equal(baseline.currentAuthorizedTask, 'A2_VERSIONED_CANONICAL_SERIALIZATION_AND_DATA_CLASSIFICATION');
+  assert.equal(baseline.a2TestCodeAllowed, true);
+  assert.equal(baseline.a2ProductionCodeAllowed, false);
+  assert.deepEqual(config.discoveryRoots, ['backend']);
+  assert.deepEqual(config.discoveryExcludes, ['backend/tests', 'backend/migrations']);
 
-  const evidence = readJson(baseline.validRedEvidence.document);
+  const evidence = readJson(config.a0EvidenceDocument);
   assert.equal(evidence.status, 'VALID_RED_RECORDED');
-  assert.equal(evidence.redHead, baseline.validRedEvidence.head);
-  assert.equal(evidence.workflow.runId, baseline.validRedEvidence.workflowRunId);
-  assert.equal(evidence.workflow.wp0JobId, baseline.validRedEvidence.workflowJobId);
+  assert.equal(evidence.redHead, baseline.a0.redEvidence.head);
+  assert.equal(evidence.workflow.runId, baseline.a0.redEvidence.workflowRunId);
+  assert.equal(evidence.workflow.wp0JobId, baseline.a0.redEvidence.workflowJobId);
   assert.equal(evidence.productionBusinessCodeChanged, false);
-  assert.deepEqual(evidence.requiredViolationClassesSatisfied, baseline.requiredRedViolationClasses);
+  assert.deepEqual(evidence.requiredViolationClassesSatisfied, config.initialViolationClasses);
 });
 
 test('authority registry is complete, single-classified, and bound to real source paths', () => {
@@ -83,15 +73,14 @@ test('scanner rejects an unregistered writable primary-store acquisition', () =>
   ]);
 });
 
-test('WP-A source closure remains blocked until the recorded root violations are removed', () => {
-  const baseline = readJson(scanner.BASELINE_PATH);
+test('WP-A source closure remains a single RED until all registered and unregistered paths close', () => {
   const report = scanner.scanRegisteredSources({ wp: 'A' });
-  for (const violationClass of baseline.requiredRedViolationClasses) {
-    assert.ok(report.counts[violationClass] > 0, `RED baseline must capture ${violationClass}`);
-  }
+  assert.ok(report.scannedSourceFiles > 0, 'source closure must scan real backend source files');
+  assert.ok(report.violationCount > 0, 'WP-A is not yet globally closed');
+  assert.equal(report.counts.REGISTRY_INVALID || 0, 0, 'governance registry/configuration must remain valid');
   assert.equal(
     report.ok,
     true,
-    `WP-A A0 expected RED before production code. ${JSON.stringify({ counts: report.counts, violations: report.violations.slice(0, 20) }, null, 2)}`
+    `WP-A source closure expected RED until A8. ${JSON.stringify({ counts: report.counts, violations: report.violations.slice(0, 20) }, null, 2)}`
   );
 });
