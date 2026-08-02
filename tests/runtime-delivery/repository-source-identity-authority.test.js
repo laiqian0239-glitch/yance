@@ -88,7 +88,7 @@ test('derived identity API rejects an export directory nested inside a Git workt
     assert.throws(
       () => delivery.createDerivedSourceIdentity(nestedExport, VALID_IDENTITY_OPTIONS),
       error => error?.reasonCode === 'SOURCE_UAT_DERIVED_IDENTITY_GIT_ROOT_FORBIDDEN'
-        && error?.details?.gitMetadataPath,
+        && Boolean(error?.details?.gitMetadataPath),
       'a subdirectory of a mutable worktree must never be treated as a sealed export'
     );
   } finally {
