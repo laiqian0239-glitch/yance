@@ -17,12 +17,17 @@ test('A0 baseline pins the approved governance head and test-only file scope', (
   assert.equal(baseline.parentGovernanceHead, 'd81599d8a3f3de891da369b6f1ddbd01e264c78d');
   assert.equal(baseline.authorizedBranch, 'acv2/wp-a-identity-ledger-write-host');
   assert.equal(baseline.productionCodeAllowedInTask, false);
+  assert.equal(baseline.governanceInfrastructureChangeAllowed, true);
   assert.equal(baseline.redEvidenceRequiredBeforeProductionCode, true);
   assert.deepEqual(baseline.changedFileAllowlist, [
     'governance/architecture-closure-v2/wp-a-baseline.json',
+    'governance/architecture-closure-v2/wp-a-branch-policy-amendment.json',
     'governance/architecture-closure-v2/authority-registry.json',
     'tools/architecture-closure-v2/source-closure-scan.js',
     'backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js',
+    'shared/release/implementationBranchPolicy.js',
+    'tools/wp0/lib.js',
+    'tests/wp0/implementation-branch-policy.test.js',
     'package.json'
   ]);
 });
