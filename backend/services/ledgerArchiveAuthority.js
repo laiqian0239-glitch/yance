@@ -6,6 +6,7 @@ const {
 } = require('./canonicalSerialization');
 
 const PRIVATE = new WeakMap();
+const SNAPSHOT_TOKEN_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 
 function fail(code, message, details = {}, cause = null) {
   const error = new Error(message, cause ? { cause } : undefined);
@@ -52,6 +53,44 @@ function validateSegmentId(value) {
   if (typeof value !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u.test(value)) {
     throw fail('LEDGER_ARCHIVE_SEGMENT_INVALID', 'segmentId is invalid', { segmentId: value });
   }
+}
+
+function validateSnapshotToken(value) {
+  if (typeof value !== 'string' || !SNAPSHOT_TOKEN_PATTERN.test(value)) {
+    throw fail('LEDGER_ARCHIVE_SNAPSHOT_INVALID', 'segment snapshotToken is invalid', {
+      snapshotToken: value
+    });
+  }
+}
+
+function normalizeSnapshot(rawSnapshot, requestedSegmentId) {
+  if (!rawSnapshot || typeof rawSnapshot !== 'object' || Array.isArray(rawSnapshot)) {
+    throw fail(
+      'LEDGER_ARCHIVE_SNAPSHOT_INVALID',
+      'readSegment must return a versioned snapshot object rather than an event array',
+      { segmentId: requestedSegmentId }
+    );
+  }
+
+  const snapshot = canonicalClone(
+    rawSnapshot,
+    'LEDGER_ARCHIVE_SNAPSHOT_INVALID',
+    'segment snapshot'
+  );
+  if (snapshot.segmentId !== requestedSegmentId) {
+    throw fail('LEDGER_ARCHIVE_SNAPSHOT_INVALID', 'segment snapshot identity mismatch', {
+      expectedSegmentId: requestedSegmentId,
+      actualSegmentId: snapshot.segmentId
+    });
+  }
+  validateSnapshotToken(snapshot.snapshotToken);
+  if (!Array.isArray(snapshot.events)) {
+    throw fail('LEDGER_ARCHIVE_SNAPSHOT_INVALID', 'segment snapshot events must be an array', {
+      segmentId: requestedSegmentId,
+      snapshotToken: snapshot.snapshotToken
+    });
+  }
+  return snapshot;
 }
 
 function validateSegment(events, options) {
@@ -111,25 +150,66 @@ function readBackCanonicalJson(value) {
   throw fail('LEDGER_ARCHIVE_READBACK_FAILED', 'archive read-back must return canonical JSON bytes or text');
 }
 
+function assertWriteReceipt(value, expected) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || value.archiveId !== expected.archiveId) {
+    throw fail('LEDGER_ARCHIVE_WRITE_FAILED', 'archive writer did not acknowledge the exact archive identity', {
+      expectedArchiveId: expected.archiveId,
+      actualArchiveId: value?.archiveId || null
+    });
+  }
+}
+
+function assertEvidenceReceipt(value, evidenceSha256, context) {
+  if (
+    !value
+    || typeof value !== 'object'
+    || Array.isArray(value)
+    || value.recorded !== true
+    || value.evidenceSha256 !== evidenceSha256
+  ) {
+    throw fail('LEDGER_ARCHIVE_EVIDENCE_FAILED', 'archive evidence recorder did not acknowledge exact durable evidence', {
+      ...context,
+      expectedEvidenceSha256: evidenceSha256,
+      actualEvidenceSha256: value?.evidenceSha256 || null,
+      recorded: value?.recorded === true
+    });
+  }
+}
+
+function assertRetirementReceipt(value, expected) {
+  const matches = value
+    && typeof value === 'object'
+    && !Array.isArray(value)
+    && value.retired === true
+    && value.segmentId === expected.segmentId
+    && value.snapshotToken === expected.snapshotToken
+    && value.archiveId === expected.archiveId
+    && value.archiveSha256 === expected.archiveSha256;
+  if (!matches) {
+    throw fail('LEDGER_ARCHIVE_RETIRE_FORBIDDEN', 'retirement authority did not return an exact snapshot-bound receipt', {
+      expectedSegmentId: expected.segmentId,
+      expectedSnapshotToken: expected.snapshotToken,
+      expectedArchiveId: expected.archiveId,
+      expectedArchiveSha256: expected.archiveSha256,
+      actualReceipt: value && typeof value === 'object' ? value : null
+    });
+  }
+}
+
 class LedgerArchiveAuthority {
   constructor(options = {}) {
-    const required = ['readSegment', 'writeArchive', 'readArchive', 'retireSegment'];
+    const required = ['readSegment', 'writeArchive', 'readArchive', 'evidenceRecorder', 'retireSegment'];
     for (const name of required) {
       if (typeof options[name] !== 'function') {
         throw fail('LEDGER_ARCHIVE_DEPENDENCY_INVALID', `${name} must be a function`, { dependency: name });
       }
     }
-    if (options.evidenceRecorder !== undefined && typeof options.evidenceRecorder !== 'function') {
-      throw fail('LEDGER_ARCHIVE_DEPENDENCY_INVALID', 'evidenceRecorder must be a function', {
-        dependency: 'evidenceRecorder'
-      });
-    }
     PRIVATE.set(this, Object.freeze({
       readSegment: options.readSegment,
       writeArchive: options.writeArchive,
       readArchive: options.readArchive,
-      retireSegment: options.retireSegment,
-      evidenceRecorder: options.evidenceRecorder || (() => {})
+      evidenceRecorder: options.evidenceRecorder,
+      retireSegment: options.retireSegment
     }));
     Object.freeze(this);
   }
@@ -152,26 +232,22 @@ class LedgerArchiveAuthority {
     }
     checkCancelled(options.signal);
 
-    let rawEvents;
+    let rawSnapshot;
     try {
-      rawEvents = dependencies.readSegment(segmentId);
+      rawSnapshot = dependencies.readSegment(segmentId);
     } catch (cause) {
-      throw fail('LEDGER_ARCHIVE_SEGMENT_INVALID', 'failed to read active ledger segment', { segmentId }, cause);
+      throw fail('LEDGER_ARCHIVE_SNAPSHOT_INVALID', 'failed to read versioned ledger segment snapshot', {
+        segmentId
+      }, cause);
     }
-    if (isThenable(rawEvents)) {
-      throw fail('LEDGER_ARCHIVE_SEGMENT_INVALID', 'readSegment must be synchronous and deterministic', {
+    if (isThenable(rawSnapshot)) {
+      throw fail('LEDGER_ARCHIVE_SNAPSHOT_INVALID', 'readSegment must be synchronous and deterministic', {
         segmentId
       });
     }
-    if (!Array.isArray(rawEvents)) {
-      throw fail('LEDGER_ARCHIVE_SEGMENT_INVALID', 'readSegment must return an array', { segmentId });
-    }
 
-    const events = rawEvents.map((event, index) => canonicalClone(
-      event,
-      'LEDGER_ARCHIVE_SEGMENT_INVALID',
-      `segment event[${index}]`
-    ));
+    const snapshot = normalizeSnapshot(rawSnapshot, segmentId);
+    const events = snapshot.events;
     validateSegment(events, options);
     checkCancelled(options.signal);
 
@@ -179,6 +255,7 @@ class LedgerArchiveAuthority {
       schemaVersion: 1,
       documentType: 'YANCE_CANONICAL_LEDGER_ARCHIVE',
       segmentId,
+      snapshotToken: snapshot.snapshotToken,
       firstSequence: options.expectedFirstSequence,
       lastSequence: options.expectedLastSequence,
       eventCount: events.length,
@@ -187,11 +264,15 @@ class LedgerArchiveAuthority {
     const canonicalJson = canonicalSerialize(archiveDocument);
     const archiveSha256 = canonicalHash(archiveDocument);
     const archiveId = `ledger-archive:${segmentId}:${archiveSha256}`;
-    const writeRecord = deepFreeze({
+    const archiveContext = Object.freeze({
       archiveId,
       segmentId,
+      snapshotToken: snapshot.snapshotToken,
+      archiveSha256
+    });
+    const writeRecord = deepFreeze({
+      ...archiveContext,
       canonicalJson,
-      archiveSha256,
       firstSequence: options.expectedFirstSequence,
       lastSequence: options.expectedLastSequence,
       eventCount: events.length
@@ -202,12 +283,11 @@ class LedgerArchiveAuthority {
       if (isThenable(writeResult)) {
         throw fail('LEDGER_ARCHIVE_WRITE_ASYNC_FORBIDDEN', 'writeArchive must be synchronous');
       }
+      assertWriteReceipt(writeResult, archiveContext);
     } catch (cause) {
       if (cause?.code === 'LEDGER_ARCHIVE_WRITE_ASYNC_FORBIDDEN') throw cause;
-      throw fail('LEDGER_ARCHIVE_WRITE_FAILED', 'failed to write ledger archive', {
-        archiveId,
-        segmentId
-      }, cause);
+      if (cause?.code === 'LEDGER_ARCHIVE_WRITE_FAILED') throw cause;
+      throw fail('LEDGER_ARCHIVE_WRITE_FAILED', 'failed to write ledger archive', archiveContext, cause);
     }
 
     checkCancelled(options.signal);
@@ -220,96 +300,94 @@ class LedgerArchiveAuthority {
       readBack = readBackCanonicalJson(value);
     } catch (cause) {
       if (cause?.code === 'LEDGER_ARCHIVE_READBACK_ASYNC_FORBIDDEN') throw cause;
-      throw fail('LEDGER_ARCHIVE_READBACK_FAILED', 'failed to read back ledger archive', {
-        archiveId,
-        segmentId
-      }, cause);
+      throw fail('LEDGER_ARCHIVE_READBACK_FAILED', 'failed to read back ledger archive', archiveContext, cause);
     }
 
     if (readBack !== canonicalJson) {
-      throw fail('LEDGER_ARCHIVE_DIGEST_MISMATCH', 'archive read-back does not match canonical bytes', {
-        archiveId,
-        segmentId,
-        expectedArchiveSha256: archiveSha256
-      });
+      throw fail('LEDGER_ARCHIVE_DIGEST_MISMATCH', 'archive read-back does not match canonical bytes', archiveContext);
     }
     let parsedReadBack;
     try {
       parsedReadBack = JSON.parse(readBack);
     } catch (cause) {
-      throw fail('LEDGER_ARCHIVE_DIGEST_MISMATCH', 'archive read-back is not valid canonical JSON', {
-        archiveId,
-        segmentId
-      }, cause);
+      throw fail('LEDGER_ARCHIVE_DIGEST_MISMATCH', 'archive read-back is not valid canonical JSON', archiveContext, cause);
     }
-    if (canonicalHash(parsedReadBack) !== archiveSha256) {
+    const actualArchiveSha256 = canonicalHash(parsedReadBack);
+    if (actualArchiveSha256 !== archiveSha256) {
       throw fail('LEDGER_ARCHIVE_DIGEST_MISMATCH', 'archive read-back digest mismatch', {
-        archiveId,
-        segmentId,
-        expectedArchiveSha256: archiveSha256,
-        actualArchiveSha256: canonicalHash(parsedReadBack)
+        ...archiveContext,
+        actualArchiveSha256
       });
+    }
+    if (
+      parsedReadBack.segmentId !== segmentId
+      || parsedReadBack.snapshotToken !== snapshot.snapshotToken
+      || parsedReadBack.firstSequence !== options.expectedFirstSequence
+      || parsedReadBack.lastSequence !== options.expectedLastSequence
+      || parsedReadBack.eventCount !== events.length
+    ) {
+      throw fail('LEDGER_ARCHIVE_BOUNDARY_MISMATCH', 'archive read-back identity or boundaries changed', archiveContext);
     }
 
     checkCancelled(options.signal);
-    const retirementReceipt = deepFreeze({
+    const retirementEvidence = deepFreeze({
+      schemaVersion: 1,
+      documentType: 'YANCE_LEDGER_ARCHIVE_RETIREMENT_AUTHORIZATION',
       status: 'LEDGER_ARCHIVE_VERIFIED_FOR_RETIREMENT',
-      archiveId,
-      segmentId,
-      archiveSha256,
+      ...archiveContext,
       firstSequence: options.expectedFirstSequence,
       lastSequence: options.expectedLastSequence,
       eventCount: events.length
     });
+    const evidenceSha256 = canonicalHash(retirementEvidence);
     try {
-      const retireResult = dependencies.retireSegment(retirementReceipt);
-      if (isThenable(retireResult)) {
+      const evidenceResult = dependencies.evidenceRecorder(retirementEvidence);
+      if (isThenable(evidenceResult)) {
+        throw fail('LEDGER_ARCHIVE_EVIDENCE_ASYNC_FORBIDDEN', 'evidenceRecorder must be synchronous');
+      }
+      assertEvidenceReceipt(evidenceResult, evidenceSha256, archiveContext);
+    } catch (cause) {
+      if (cause?.code === 'LEDGER_ARCHIVE_EVIDENCE_ASYNC_FORBIDDEN') throw cause;
+      if (cause?.code === 'LEDGER_ARCHIVE_EVIDENCE_FAILED') throw cause;
+      throw fail('LEDGER_ARCHIVE_EVIDENCE_FAILED', 'failed to record verified retirement evidence', archiveContext, cause);
+    }
+
+    checkCancelled(options.signal);
+    const retirementRequest = deepFreeze({
+      status: 'LEDGER_ARCHIVE_RETIRE_EXACT_SNAPSHOT',
+      ...archiveContext,
+      evidenceSha256,
+      firstSequence: options.expectedFirstSequence,
+      lastSequence: options.expectedLastSequence,
+      eventCount: events.length
+    });
+    let retirementReceipt;
+    try {
+      retirementReceipt = dependencies.retireSegment(retirementRequest);
+      if (isThenable(retirementReceipt)) {
         throw fail('LEDGER_ARCHIVE_RETIRE_ASYNC_FORBIDDEN', 'retireSegment must be synchronous');
       }
-      if (retireResult && typeof retireResult === 'object' && retireResult.retired === false) {
-        throw fail('LEDGER_ARCHIVE_RETIRE_FORBIDDEN', 'active segment retirement was denied');
-      }
+      assertRetirementReceipt(retirementReceipt, archiveContext);
     } catch (cause) {
       if (cause?.code === 'LEDGER_ARCHIVE_RETIRE_FORBIDDEN' || cause?.code === 'LEDGER_ARCHIVE_RETIRE_ASYNC_FORBIDDEN') {
         throw cause;
       }
-      throw fail('LEDGER_ARCHIVE_RETIRE_FORBIDDEN', 'active segment retirement failed', {
-        archiveId,
-        segmentId
-      }, cause);
-    }
-
-    const evidence = deepFreeze({
-      status: 'LEDGER_ARCHIVE_VERIFIED_AND_RETIRED',
-      archiveId,
-      segmentId,
-      archiveSha256,
-      firstSequence: options.expectedFirstSequence,
-      lastSequence: options.expectedLastSequence,
-      eventCount: events.length
-    });
-    try {
-      const evidenceResult = dependencies.evidenceRecorder(evidence);
-      if (isThenable(evidenceResult)) {
-        throw fail('LEDGER_ARCHIVE_EVIDENCE_ASYNC_FORBIDDEN', 'evidenceRecorder must be synchronous');
-      }
-    } catch (cause) {
-      if (cause?.code === 'LEDGER_ARCHIVE_EVIDENCE_ASYNC_FORBIDDEN') throw cause;
-      throw fail('LEDGER_ARCHIVE_EVIDENCE_FAILED', 'failed to record archive evidence', {
-        archiveId,
-        segmentId
-      }, cause);
+      throw fail('LEDGER_ARCHIVE_RETIRE_FORBIDDEN', 'atomic snapshot retirement failed', archiveContext, cause);
     }
 
     return deepFreeze({
-      archiveId,
-      segmentId,
-      archiveSha256,
+      ...archiveContext,
       canonicalJson,
       archiveDocument,
       firstSequence: options.expectedFirstSequence,
       lastSequence: options.expectedLastSequence,
       eventCount: events.length,
+      evidenceSha256,
+      retirementReceipt: canonicalClone(
+        retirementReceipt,
+        'LEDGER_ARCHIVE_RETIRE_FORBIDDEN',
+        'retirement receipt'
+      ),
       retired: true
     });
   }
