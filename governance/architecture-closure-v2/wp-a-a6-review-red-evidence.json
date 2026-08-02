@@ -1,11 +1,11 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "documentType": "YANCE_ACV2_WP_A_A6_INDEPENDENT_REVIEW_EVIDENCE",
   "status": "IMPLEMENTATION_AND_EXECUTABLE_SCOPE_GATES_REPAIRED_VALIDATION_BLOCKED",
   "workPackage": "WP-A",
   "task": "A6_WIRE_SINGLE_WRITE_HOST_LEDGER_AND_IDENTITY_AUTHORITY_INTO_RUNTIME_STARTUP",
   "reviewedRuntimeImplementationHead": "0f43b7b59f2c3baed948e90552f6afb8d323e1d5",
-  "reviewedGovernanceImplementationHead": "0b4bfcd0b2b25be68f0af359fab1d1998ccf9e0f",
+  "reviewedGovernanceImplementationHead": "3684dbd840faec8d6e732b0b68eae25f1ad9b2b3",
   "reviewMode": "INDEPENDENT_SOURCE_REVIEW_WITH_ADVERSARIAL_CONTRACTS",
   "externalReviewer": {
     "codeRabbitUsed": false,
@@ -41,7 +41,8 @@
     "WP0_DECLARED_ALLOWED_PRODUCTION_PATHS_BUT_DID_NOT_ENFORCE_CHANGED_FILE_SCOPE",
     "A6_BASELINE_EXCLUDED_REQUIRED_BOTTOM_LAYER_RUNTIME_ROOT_REPAIR_FILES",
     "VERIFY_WP0_GATE_DID_NOT_PROTECT_BUILD_PACKAGE_RELEASE_ENTRYPOINTS",
-    "PARENT_TO_HEAD_DIFF_DID_NOT_REJECT_DIRTY_OR_UNTRACKED_WORKTREE_STATE"
+    "PARENT_TO_HEAD_DIFF_DID_NOT_REJECT_DIRTY_OR_UNTRACKED_WORKTREE_STATE",
+    "DETACHED_EVIDENCE_MODE_TREATED_NULL_BRANCH_AS_NON_ACV2_AND_SKIPPED_WORK_PACKAGE_SCOPE"
   ],
   "implementationProperties": [
     "CORE_BUSINESS_COMMAND_ENTRYPOINT_PRESERVED",
@@ -65,7 +66,8 @@
     "WORK_PACKAGE_SCOPE_IS_ENFORCED_BY_SORTED_CHANGED_FILE_SET_HASH_AND_EXACT_PATHS",
     "SCOPE_AMENDMENT_REJECTS_WILDCARDS_WRONG_PARENT_WRONG_PR_WRONG_COUNT_AND_UNKNOWN_PATHS",
     "VERIFY_GATE_AND_BUILD_PACKAGE_RELEASE_SHARE_ONE_SCOPE_GATE",
-    "SCOPE_GATE_REJECTS_DIRTY_WORKTREE_AUTHORIZATION_BLOB_DRIFT_PARENT_DRIFT_AND_CHANGED_FILE_DRIFT"
+    "SCOPE_GATE_REJECTS_DIRTY_WORKTREE_AUTHORIZATION_BLOB_DRIFT_PARENT_DRIFT_AND_CHANGED_FILE_DRIFT",
+    "DETACHED_EVIDENCE_REQUIRES_EXACT_HEAD_AND_INHERITS_THE_MACHINE_AUTHORIZED_ACV2_BRANCH_SCOPE"
   ],
   "runtimeAdversarialContracts": [
     "backend/tests/architectureClosureV2/wpA/runtimeComposition.test.js",
@@ -99,11 +101,14 @@
     "sharedExecutableGate": "tools/wp0/work-package-scope-gate.js",
     "protectedEntrypoints": [
       "tools/wp0/verify-gate.js",
-      "tools/wp0/run-protected-command.js"
+      "tools/wp0/run-protected-command.js",
+      "tools/wp0/generate-evidence.js"
     ],
     "cleanWorktreeRequired": true,
     "authorizationBlobPinned": true,
     "parentMustBeAncestor": true,
+    "detachedEvidenceHeadMustEqualRequestedSourceCommit": true,
+    "detachedEvidenceUsesAuthorizedBranchScope": true,
     "wildcardExpansionAllowed": false,
     "automaticNextTaskAuthorization": false,
     "automaticNextWorkPackageAuthorization": false,
@@ -111,18 +116,18 @@
     "externallySignedAuthorizationClaimed": false
   },
   "latestValidationAttempt": {
-    "reviewedHead": "0f43b7b59f2c3baed948e90552f6afb8d323e1d5",
-    "acv2WorkflowRunId": 30753367583,
+    "reviewedHead": "3684dbd840faec8d6e732b0b68eae25f1ad9b2b3",
+    "acv2WorkflowRunId": 30753720406,
     "acv2Jobs": {
-      "ubuntu": 91511229857,
-      "windows": 91511229894,
-      "sourceClosure": 91511229862
+      "ubuntu": 91512169365,
+      "windows": 91512169333,
+      "sourceClosure": 91512169291
     },
-    "wp0WorkflowRunId": 30753367590,
+    "wp0WorkflowRunId": 30753720397,
     "wp0Jobs": {
-      "wp0": 91511229670,
-      "sealedExportUbuntu": 91511229661,
-      "sealedExportWindows": 91511229701
+      "wp0": 91512169281,
+      "sealedExportUbuntu": 91512169297,
+      "sealedExportWindows": 91512169294
     },
     "allJobsHadSteps": false,
     "allJobsHadLogs": false,
