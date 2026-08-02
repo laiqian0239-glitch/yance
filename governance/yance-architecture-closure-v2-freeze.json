@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ARCHITECTURE_CLOSURE_V2_FREEZE",
+  "project": "Yance",
+  "program": "Architecture Closure V2",
+  "status": "FROZEN_FOR_INDEPENDENT_REVIEW",
+  "createdAt": "2026-08-02T11:36:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "pullRequest": 4,
+  "branch": "rebuild/windows-release-closure-20260802-gate0-wp0-fix",
+  "initialReviewedHead": "15e538a6c26817b3cb8422fa3739f01256ec109e",
+  "designCommit": "b63f1cd73295432fce5f6506a49220481e4aaf73",
+  "matrixCommit": "09e8c95d079b2f65336d14048963e4e5e0ea5e3e",
+  "documents": {
+    "design": "docs/superpowers/specs/2026-08-02-yance-architecture-closure-v2-design.md",
+    "rootCauseMigrationMatrix": "docs/architecture/YANCE_ARCHITECTURE_CLOSURE_V2_ROOT_CAUSE_MIGRATION_MATRIX_ZH.md"
+  },
+  "governance": {
+    "prMustRemainDraft": true,
+    "implementationPlanAllowed": false,
+    "productionCodeChangesAllowed": false,
+    "gate1MayStart": false,
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "candidatePackageGenerated": false,
+    "independentDesignReviewRequired": true,
+    "independentSourceReviewRequiredAfterImplementation": true,
+    "realWindowsUatRequired": true,
+    "realThreePlatformUatRequired": true
+  },
+  "nonNegotiableInvariants": [
+    "ONE_FACT_ONE_AUTHORITY_WRITER",
+    "ONE_COMMAND_ONE_LEDGER_TRANSACTION",
+    "NO_LEGACY_NEW_DUAL_WRITE",
+    "DURABLE_OPERATION_FULL_LIFECYCLE",
+    "EXTERNAL_ACTION_REQUIRES_RECEIPT",
+    "STALE_OWNER_AND_LATE_RESULT_REJECTED",
+    "AI_DECISION_TRACEABLE_TO_MODEL_EXECUTION_DELIVERY_AND_LEARNING",
+    "OLD_WRITER_RECOVERY_AND_FALLBACK_REMOVED_AFTER_CUTOVER",
+    "NO_PRODUCTION_CLOSURE_BEFORE_REAL_UAT"
+  ],
+  "workPackageOrder": [
+    "WP-A_IDENTITY_AND_EVENT_LEDGER",
+    "WP-B_DURABLE_EXECUTION",
+    "WP-C_COMMUNICATION_CORE",
+    "WP-D_MODEL_LIFECYCLE",
+    "WP-E_EVIDENCE_GRAPH",
+    "WP-F_MEMORY_AND_LEARNING",
+    "WP-G_SHADOW_CUTOVER_AND_LEGACY_REMOVAL",
+    "WP-H_REAL_ENVIRONMENT_UAT"
+  ],
+  "designApprovalRequirements": [
+    "SINGLE_LEDGER_WITHOUT_SECOND_EVENT_STORE",
+    "COMPLETE_OLD_WRITER_RECOVERY_FALLBACK_INVENTORY",
+    "SQLITE_TRANSACTION_AND_MULTIPROCESS_SEMANTICS_REVIEWED",
+    "DURABLE_EXECUTION_CAS_LEASE_DEADLINE_AND_CANCELLATION_REVIEWED",
+    "MODEL_LIFECYCLE_IMPLICIT_CONVERSIONS_ELIMINATED",
+    "EVIDENCE_AND_MEMORY_REDACTION_SCOPE_REVIEWED",
+    "CUTOVER_RECEIPT_AND_DELETION_GATE_ENFORCEABLE",
+    "WP_ORDER_APPROVED"
+  ],
+  "preImplementationBlockers": [
+    {
+      "id": "GATE0-SEALED-EXPORT-CANONICAL-PATH",
+      "status": "OPEN",
+      "requirements": [
+        "ROOT_LSTAT_AND_REALPATH_CANONICALIZATION",
+        "REJECT_ROOT_SYMLINK_AND_WINDOWS_JUNCTION_REPARSE_POINT",
+        "USE_CANONICAL_ROOT_FOR_SCAN_GIT_PROBE_AND_HASH",
+        "SANITIZE_REPOSITORY_DISCOVERY_GIT_ENVIRONMENT",
+        "LINUX_SYMLINK_WINDOWS_JUNCTION_AND_GIT_ENV_MATRIX_TESTS"
+      ]
+    }
+  ],
+  "implementationStartCondition": "INDEPENDENT_DESIGN_REVIEW_APPROVED_AND_ALL_PREIMPLEMENTATION_BLOCKERS_CLOSED",
+  "prohibitedCompletionSignals": [
+    "TEST_COUNT_ONLY",
+    "COVERAGE_ONLY",
+    "UI_GREEN_ONLY",
+    "SINGLE_SMOKE_ONLY",
+    "NO_MISMATCH_OBSERVED_WITH_INSUFFICIENT_SAMPLES",
+    "NEW_AUTHORITY_ADDED_WITH_OLD_WRITER_RETAINED"
+  ]
+}
