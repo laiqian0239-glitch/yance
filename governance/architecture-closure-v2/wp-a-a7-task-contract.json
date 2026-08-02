@@ -5,7 +5,7 @@
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "WP-A",
   "task": "A7",
-  "status": "GREEN_PROVISIONAL",
+  "status": "INDEPENDENT_REVIEW",
   "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
   "pullRequest": 5,
   "parentTask": "A6",
@@ -30,10 +30,12 @@
     "LEDGER_REPLAY_UPCAST_FAILED",
     "LEDGER_REPLAY_REDUCER_FAILED",
     "LEDGER_REPLAY_CANCELLED",
+    "LEDGER_ARCHIVE_SNAPSHOT_INVALID",
     "LEDGER_ARCHIVE_SEGMENT_INVALID",
     "LEDGER_ARCHIVE_WRITE_FAILED",
     "LEDGER_ARCHIVE_READBACK_FAILED",
     "LEDGER_ARCHIVE_DIGEST_MISMATCH",
+    "LEDGER_ARCHIVE_EVIDENCE_FAILED",
     "LEDGER_ARCHIVE_EVENT_COUNT_MISMATCH",
     "LEDGER_ARCHIVE_BOUNDARY_MISMATCH",
     "LEDGER_ARCHIVE_RETIRE_FORBIDDEN"
@@ -47,8 +49,16 @@
     "backend/services/ledgerArchiveAuthority.js",
     "tools/architecture-closure-v2/wp-a-replay-evidence.js"
   ],
-  "verifiedCandidateSha": "07d95cc8fcfd90adc6b835dcdcdaa27f28e38418",
-  "verification": {
+  "reviewedCodeHead": "15512d531079334829f3ebf2d04ab174cec58a8c",
+  "independentReview": {
+    "document": "docs/architecture/YANCE_ACV2_WP_A_A7_SOURCE_REVIEW_ZH.md",
+    "documentCommit": "12d0b62f447df2cd2136d07e9d18e64c2b3bedfd",
+    "decision": "SOURCE_REVIEW_PASSED_FINAL_PLATFORM_GATES_REQUIRED",
+    "openP0": 0,
+    "openP1": 0
+  },
+  "priorGreenVerification": {
+    "candidateSha": "07d95cc8fcfd90adc6b835dcdcdaa27f28e38418",
     "acv2Run": 30760426776,
     "wp0Run": 30760426788,
     "ubuntuJob": 91529812080,
@@ -56,16 +66,27 @@
     "wp0ProductJob": 91529829327,
     "wp0AggregateJob": 91529905675,
     "sealedExportUbuntuJob": 91529829331,
-    "sealedExportWindowsJob": 91529829334,
+    "sealedExportWindowsJob": 91529829334
+  },
+  "finalVerification": {
+    "requiredAtOrAfterReviewCommit": "12d0b62f447df2cd2136d07e9d18e64c2b3bedfd",
+    "acv2Run": null,
+    "wp0Run": null,
+    "ubuntuJob": null,
+    "windowsJob": null,
+    "wp0ProductJob": null,
+    "wp0AggregateJob": null,
+    "sealedExportUbuntuJob": null,
+    "sealedExportWindowsJob": null,
     "sourceClosureDeferredTo": "A8"
   },
   "closureConditions": {
     "redEvidenceCaptured": true,
     "implementationGreen": true,
-    "ubuntuGreen": true,
-    "windowsGreen": true,
-    "wp0Green": true,
-    "independentReviewPassed": false,
+    "ubuntuGreen": false,
+    "windowsGreen": false,
+    "wp0Green": false,
+    "independentReviewPassed": true,
     "candidateShaFrozen": true
   },
   "outOfScope": [
