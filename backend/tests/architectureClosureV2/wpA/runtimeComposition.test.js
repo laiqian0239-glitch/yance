@@ -20,13 +20,7 @@ function minimalRuntimeDependencies() {
   return {
     ownership: { guard: () => ({ ownerInstanceId: 'owner', fencingToken: 1 }) },
     store: {
-      snapshot: () => ({
-        stateVersion: 1,
-        lastEventSequence: 0,
-        runtime: { operatingMode: 'normal', operatingModeRevision: 1 },
-        capabilities: {},
-        diagnosticsSummary: {}
-      })
+      snapshot: () => ({ stateVersion: 1, lastEventSequence: 0, runtime: { operatingMode: 'normal', operatingModeRevision: 1 }, capabilities: {}, diagnosticsSummary: {} })
     },
     lifecycle: { state: 'runtime_state_ready' },
     buildId: 'acv2-a6-test-build'
@@ -48,14 +42,7 @@ function withAuthorityStore(prefix, callback) {
 }
 
 function startupEnvelope(commandType, payload = {}) {
-  return {
-    contractVersion: 2,
-    commandId: '11111111-1111-4111-8111-111111111111',
-    commandType,
-    expectedStateVersion: 1,
-    issuedAtUtc: '2026-08-02T11:00:00.000Z',
-    payload
-  };
+  return { contractVersion: 2, commandId: '11111111-1111-4111-8111-111111111111', commandType, expectedStateVersion: 1, issuedAtUtc: '2026-08-02T11:00:00.000Z', payload };
 }
 
 function testStartupHandlers() {
@@ -75,10 +62,7 @@ test('AppRuntimeFactory rejects every production runtime that lacks a real Autho
   const { AppRuntimeFactory } = require('../../../runtime/AppRuntimeFactory');
   try {
     AppRuntimeFactory.resetForTests();
-    assert.throws(
-      () => AppRuntimeFactory.create(minimalRuntimeDependencies()),
-      error => error?.code === 'APP_RUNTIME_AUTHORITY_WRITE_HOST_REQUIRED'
-    );
+    assert.throws(() => AppRuntimeFactory.create(minimalRuntimeDependencies()), error => error?.code === 'APP_RUNTIME_AUTHORITY_WRITE_HOST_REQUIRED');
     assert.equal(AppRuntimeFactory.current(), null);
     assert.equal(AppRuntimeFactory.diagnostics().authorityWriteHostBound, false);
   } finally {
@@ -125,12 +109,7 @@ test('real broker capability and R32 store bind one immutable runtime authority 
     withAuthorityStore('yance-acv2-a6-runtime-', ({ host, authorityStore }) => {
       AppRuntimeFactory.resetForTests();
       const dependencies = minimalRuntimeDependencies();
-      const runtime = AppRuntimeFactory.create({
-        ...dependencies,
-        authorityWriteHostCapability: host.capability,
-        authorityStore
-      });
-
+      const runtime = AppRuntimeFactory.create({ ...dependencies, authorityWriteHostCapability: host.capability, authorityStore });
       assertImmutableBinding(runtime, 'ownership', dependencies.ownership);
       assertImmutableBinding(runtime, 'store', dependencies.store);
       assertImmutableBinding(runtime, 'lifecycle', dependencies.lifecycle);
@@ -154,13 +133,17 @@ test('real broker capability and R32 store bind one immutable runtime authority 
       const coordinator = composition.authorities.authorityTransactionCoordinator;
       const ledger = composition.authorities.canonicalEventLedgerAuthority;
       const identity = composition.authorities.identityAuthority;
+      const gateway = composition.authorityCommandGateway;
       assertImmutableBinding(coordinator, 'store', authorityStore);
       assertImmutableBinding(coordinator, 'db', authorityStore.db);
       assertImmutableBinding(ledger, 'coordinator', coordinator);
       assertImmutableBinding(ledger, 'store', authorityStore);
       assertImmutableBinding(ledger, 'db', authorityStore.db);
       assertImmutableBinding(identity, 'repository', composition.authorities.platformCoreRepository);
-      assertImmutableBinding(composition.authorityCommandGateway, 'commandHandlers', composition.startupCommandHandlers);
+      assert.equal(Object.hasOwn(composition, 'startupCommandHandlers'), false);
+      assert.equal(Object.hasOwn(gateway, 'commandHandlers'), false);
+      assert.equal(gateway.commandHandlers, undefined);
+      assert.equal(gateway.assertCanonicalBinding({ runtime, authorityWriteHostCapability: host.capability, authorityStore, identityAuthority: identity }).bound, true);
 
       assert.equal(runtime.executeBusinessCommand, coreBusinessCommand);
       assert.equal(Object.hasOwn(runtime, 'executeBusinessCommand'), false);
@@ -173,11 +156,8 @@ test('real broker capability and R32 store bind one immutable runtime authority 
       assert.equal(openReadiness.authorityWriteHostBound, true);
       assert.equal(openReadiness.canonicalGraphBound, true);
       assert.equal(openReadiness.startupGatewaySealed, false);
-      assert.throws(
-        () => AppRuntimeFactory.assertAuthorityReady({ requireStartupGatewaySealed: true }),
-        error => error?.code === 'APP_RUNTIME_STARTUP_GATEWAY_NOT_SEALED'
-      );
-      composition.authorityCommandGateway.seal();
+      assert.throws(() => AppRuntimeFactory.assertAuthorityReady({ requireStartupGatewaySealed: true }), error => error?.code === 'APP_RUNTIME_STARTUP_GATEWAY_NOT_SEALED');
+      gateway.seal();
       const sealedReadiness = AppRuntimeFactory.assertAuthorityReady({ requireStartupGatewaySealed: true });
       assert.equal(sealedReadiness.coordinatorReady, true);
       assert.equal(sealedReadiness.canonicalLedgerReady, true);
@@ -202,10 +182,7 @@ test('AppRuntimeFactory rejects a runtime state store bound to a different prima
       AppRuntimeFactory.resetForTests();
       const dependencies = minimalRuntimeDependencies();
       dependencies.store = { ...dependencies.store, db: { deliberatelyDifferentDatabase: true } };
-      assert.throws(
-        () => AppRuntimeFactory.create({ ...dependencies, authorityWriteHostCapability: host.capability, authorityStore }),
-        error => error?.code === 'APP_RUNTIME_PRIMARY_DB_MISMATCH'
-      );
+      assert.throws(() => AppRuntimeFactory.create({ ...dependencies, authorityWriteHostCapability: host.capability, authorityStore }), error => error?.code === 'APP_RUNTIME_PRIMARY_DB_MISMATCH');
       assert.equal(AppRuntimeFactory.current(), null);
     });
   } finally {
@@ -218,15 +195,7 @@ test('AppRuntimeFactory rejects a runtime state store bound to a different prima
 test('startup command gateway rejects forged write-host capabilities before any handler can run', () => {
   const { RuntimeAuthorityCommandGateway } = require('../../../runtime/AppRuntimeComposition');
   const forged = { forged: true };
-  assert.throws(
-    () => new RuntimeAuthorityCommandGateway({
-      runtime: { snapshot: () => ({ stateVersion: 1 }) },
-      authorityWriteHostCapability: forged,
-      authorityStore: { db: {}, transaction() {}, authorityWriteHostCapability: forged },
-      commandHandlers: testStartupHandlers()
-    }),
-    error => error?.code === 'STARTUP_COMMAND_GATEWAY_WRITE_HOST_REQUIRED'
-  );
+  assert.throws(() => new RuntimeAuthorityCommandGateway({ runtime: { snapshot: () => ({ stateVersion: 1 }) }, authorityWriteHostCapability: forged, authorityStore: { db: {}, transaction() {}, authorityWriteHostCapability: forged }, commandHandlers: testStartupHandlers() }), error => error?.code === 'STARTUP_COMMAND_GATEWAY_WRITE_HOST_REQUIRED');
 });
 
 test('startup command gateway rejects a capability fenced by a newer host generation', () => {
@@ -235,34 +204,14 @@ test('startup command gateway rejects a capability fenced by a newer host genera
   const dbPath = path.join(root, 'yance-r32.db');
   let hostA; let hostB; let brokerA; let brokerB;
   try {
-    hostA = acquireAuthorityWriteHost({
-      dbPath,
-      instanceId: 'a6-gateway-host-a',
-      ownershipPid: 47001,
-      ownershipProcessIdentity: 'a6-gateway-host-a',
-      ownershipPidAlive: pid => pid === 47001
-    });
+    hostA = acquireAuthorityWriteHost({ dbPath, instanceId: 'a6-gateway-host-a', ownershipPid: 47001, ownershipProcessIdentity: 'a6-gateway-host-a', ownershipPidAlive: pid => pid === 47001 });
     brokerA = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: hostA.capability });
     const authorityStoreA = brokerA.open();
     hostA.releaseStartupClaimForTests();
-    hostB = acquireAuthorityWriteHost({
-      dbPath,
-      instanceId: 'a6-gateway-host-b',
-      ownershipPid: 47002,
-      ownershipProcessIdentity: 'a6-gateway-host-b',
-      ownershipPidAlive: () => false
-    });
+    hostB = acquireAuthorityWriteHost({ dbPath, instanceId: 'a6-gateway-host-b', ownershipPid: 47002, ownershipProcessIdentity: 'a6-gateway-host-b', ownershipPidAlive: () => false });
     brokerB = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: hostB.capability });
     brokerB.open();
-    assert.throws(
-      () => new RuntimeAuthorityCommandGateway({
-        runtime: { snapshot: () => ({ stateVersion: 1 }) },
-        authorityWriteHostCapability: hostA.capability,
-        authorityStore: authorityStoreA,
-        commandHandlers: testStartupHandlers()
-      }),
-      error => error?.code === 'AUTHORITY_WRITE_HOST_FENCED'
-    );
+    assert.throws(() => new RuntimeAuthorityCommandGateway({ runtime: { snapshot: () => ({ stateVersion: 1 }) }, authorityWriteHostCapability: hostA.capability, authorityStore: authorityStoreA, commandHandlers: testStartupHandlers() }), error => error?.code === 'AUTHORITY_WRITE_HOST_FENCED');
   } finally {
     try { brokerB?.checkpointAndClose(); } catch (_) {}
     try { hostB?.release(); } catch (_) {}
@@ -272,75 +221,37 @@ test('startup command gateway rejects a capability fenced by a newer host genera
   }
 });
 
-test('startup gateway rejects prototype-chain command names and seals after boot', () => {
+test('startup gateway hides handlers, rejects prototype-chain commands and seals after boot', () => {
   const { RuntimeAuthorityCommandGateway } = require('../../../runtime/AppRuntimeComposition');
   withAuthorityStore('yance-acv2-a6-sealed-', ({ host, authorityStore }) => {
     const runtime = { snapshot: () => ({ stateVersion: 1 }) };
-    const handlers = testStartupHandlers();
-    const gateway = new RuntimeAuthorityCommandGateway({
-      runtime,
-      authorityWriteHostCapability: host.capability,
-      authorityStore,
-      commandHandlers: handlers
-    });
-    assertImmutableBinding(gateway, 'runtime', runtime);
-    assertImmutableBinding(gateway, 'authorityWriteHostCapability', host.capability);
-    assertImmutableBinding(gateway, 'authorityStore', authorityStore);
-    assertImmutableBinding(gateway, 'commandHandlers', handlers);
-    assert.throws(
-      () => gateway.execute(startupEnvelope('constructor')),
-      error => error?.code === 'STARTUP_COMMAND_ENVELOPE_INVALID'
-    );
+    const gateway = new RuntimeAuthorityCommandGateway({ runtime, authorityWriteHostCapability: host.capability, authorityStore, commandHandlers: testStartupHandlers() });
+    assert.equal(Object.hasOwn(gateway, 'commandHandlers'), false);
+    assert.equal(gateway.commandHandlers, undefined);
+    assert.throws(() => gateway.execute(startupEnvelope('constructor')), error => error?.code === 'STARTUP_COMMAND_ENVELOPE_INVALID');
     assert.equal(gateway.snapshot().state, 'open');
     gateway.seal();
     assert.equal(gateway.snapshot().state, 'sealed');
-    assert.throws(
-      () => gateway.execute(startupEnvelope('startup.invalid')),
-      error => error?.code === 'STARTUP_COMMAND_GATEWAY_SEALED'
-    );
+    assert.throws(() => gateway.execute(startupEnvelope('startup.invalid')), error => error?.code === 'STARTUP_COMMAND_GATEWAY_SEALED');
   });
 });
 
 test('desktop runtime client refuses own or inherited primary write capability injection', () => {
   const { ApiV2RuntimeClient } = require('../../../../electron/desktopHost/ApiV2RuntimeClient');
-  const baseOptions = {
-    baseURL: 'http://127.0.0.1:1',
-    fetch: async () => ({ ok: true, status: 200, json: async () => ({}) }),
-    sessionProvider: () => ({ apiSessionToken: 'token', backendSessionId: 'session', startupNonce: 'nonce' })
-  };
-  assert.throws(
-    () => new ApiV2RuntimeClient({ ...baseOptions, authorityWriteHostCapability: { forged: true } }),
-    error => error?.reasonCode === 'DESKTOP_WRITE_CAPABILITY_FORBIDDEN' || error?.code === 'DESKTOP_WRITE_CAPABILITY_FORBIDDEN'
-  );
+  const baseOptions = { baseURL: 'http://127.0.0.1:1', fetch: async () => ({ ok: true, status: 200, json: async () => ({}) }), sessionProvider: () => ({ apiSessionToken: 'token', backendSessionId: 'session', startupNonce: 'nonce' }) };
+  assert.throws(() => new ApiV2RuntimeClient({ ...baseOptions, authorityWriteHostCapability: { forged: true } }), error => error?.reasonCode === 'DESKTOP_WRITE_CAPABILITY_FORBIDDEN' || error?.code === 'DESKTOP_WRITE_CAPABILITY_FORBIDDEN');
   const inherited = Object.assign(Object.create({ authorityWriteHostCapability: { forged: true } }), baseOptions);
-  assert.throws(
-    () => new ApiV2RuntimeClient(inherited),
-    error => error?.reasonCode === 'DESKTOP_WRITE_CAPABILITY_FORBIDDEN' || error?.code === 'DESKTOP_WRITE_CAPABILITY_FORBIDDEN'
-  );
+  assert.throws(() => new ApiV2RuntimeClient(inherited), error => error?.reasonCode === 'DESKTOP_WRITE_CAPABILITY_FORBIDDEN' || error?.code === 'DESKTOP_WRITE_CAPABILITY_FORBIDDEN');
 });
 
 test('startup command payload accessors are rejected without getter execution', () => {
   const { RuntimeAuthorityCommandGateway } = require('../../../runtime/AppRuntimeComposition');
   let getterExecuted = false;
   const payload = {};
-  Object.defineProperty(payload, 'hidden', {
-    enumerable: true,
-    get() {
-      getterExecuted = true;
-      return 'must-not-run';
-    }
-  });
+  Object.defineProperty(payload, 'hidden', { enumerable: true, get() { getterExecuted = true; return 'must-not-run'; } });
   withAuthorityStore('yance-acv2-a6-payload-', ({ host, authorityStore }) => {
-    const gateway = new RuntimeAuthorityCommandGateway({
-      runtime: { snapshot: () => ({ stateVersion: 1 }) },
-      authorityWriteHostCapability: host.capability,
-      authorityStore,
-      commandHandlers: testStartupHandlers()
-    });
-    assert.throws(
-      () => gateway.execute(startupEnvelope('startup.invalid', payload)),
-      error => error?.code === 'STARTUP_COMMAND_PAYLOAD_ACCESSOR_FORBIDDEN'
-    );
+    const gateway = new RuntimeAuthorityCommandGateway({ runtime: { snapshot: () => ({ stateVersion: 1 }) }, authorityWriteHostCapability: host.capability, authorityStore, commandHandlers: testStartupHandlers() });
+    assert.throws(() => gateway.execute(startupEnvelope('startup.invalid', payload)), error => error?.code === 'STARTUP_COMMAND_PAYLOAD_ACCESSOR_FORBIDDEN');
   });
   assert.equal(getterExecuted, false);
 });
@@ -349,30 +260,10 @@ test('desktop runtime client remains a command transport and exposes no write-ho
   const clientSource = source(desktopClientPath);
   assert.doesNotMatch(clientSource, /require\([^\n]*authorityWriteHost/i);
   assert.doesNotMatch(clientSource, /authorityWriteHostCapability\s*[:=]/);
-
   const requests = [];
   const { ApiV2RuntimeClient } = require('../../../../electron/desktopHost/ApiV2RuntimeClient');
-  const client = new ApiV2RuntimeClient({
-    baseURL: 'http://127.0.0.1:1',
-    fetch: async (url, options) => {
-      requests.push({ url, options });
-      return { ok: true, status: 200, json: async () => ({ ok: true, accepted: true }) };
-    },
-    sessionProvider: () => ({
-      apiSessionToken: 'token',
-      backendSessionId: 'session',
-      startupNonce: 'nonce',
-      backendPid: 1,
-      ownerTrusted: true
-    }),
-    randomUUID: () => '11111111-1111-4111-8111-111111111111',
-    clock: () => '2026-08-02T11:00:00.000Z'
-  });
-  const envelope = client.command({
-    commandType: 'runtime.stop',
-    expectedStateVersion: 1,
-    payload: { reason: 'a6-contract' }
-  });
+  const client = new ApiV2RuntimeClient({ baseURL: 'http://127.0.0.1:1', fetch: async (url, options) => { requests.push({ url, options }); return { ok: true, status: 200, json: async () => ({ ok: true, accepted: true }) }; }, sessionProvider: () => ({ apiSessionToken: 'token', backendSessionId: 'session', startupNonce: 'nonce', backendPid: 1, ownerTrusted: true }), randomUUID: () => '11111111-1111-4111-8111-111111111111', clock: () => '2026-08-02T11:00:00.000Z' });
+  const envelope = client.command({ commandType: 'runtime.stop', expectedStateVersion: 1, payload: { reason: 'a6-contract' } });
   await client.executeCommand(envelope);
   assert.equal(requests.length, 1);
   assert.match(requests[0].url, /\/api\/app\/v2\/commands$/);
