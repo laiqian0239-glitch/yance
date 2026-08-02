@@ -1,14 +1,14 @@
 {
-  "schemaVersion": 9,
+  "schemaVersion": 10,
   "documentType": "YANCE_ACV2_WP_A_BASELINE",
-  "status": "A2_CLOSED_A3_TEST_FIRST_AUTHORIZED",
+  "status": "A3_VALID_RED_RECORDED_IMPLEMENTATION_AUTHORIZED",
   "workPackage": "WP-A",
   "completedTasks": [
     "A0_FREEZE_WRITER_READ_RECOVERY_FALLBACK_INVENTORY_AND_ADD_RED_TESTS",
     "A1_INTRODUCE_SCHEMA_21_AND_PERSISTENT_AUTHORITY_WRITE_HOST_LEASE",
     "A2_VERSIONED_CANONICAL_SERIALIZATION_AND_DATA_CLASSIFICATION"
   ],
-  "currentAuthorizedTask": "A3_AUTHORITY_TRANSACTION_COORDINATOR_AND_COMMAND_PROTOCOL_TEST_FIRST",
+  "currentAuthorizedTask": "A3_AUTHORITY_TRANSACTION_COORDINATOR_AND_COMMAND_PROTOCOL_IMPLEMENTATION",
   "repository": "laiqian0239-glitch/yance",
   "parentPullRequest": 4,
   "stackedPullRequest": 5,
@@ -16,11 +16,11 @@
   "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
   "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
   "prMustRemainDraft": true,
-  "productionCodeScope": "WP_A_ONLY",
+  "productionCodeScope": "WP_A_A3_ONLY",
   "a3TestCodeAllowed": true,
-  "a3ProductionCodeAllowed": false,
-  "a3ProductionCodeStartCondition": "VALID_A3_RED_EVIDENCE_RECORDED_ON_UBUNTU_AND_WINDOWS",
-  "a3FirstRequiredAction": "ADD_FAILING_COORDINATOR_ATOMICITY_IDEMPOTENCY_FENCING_AND_EXTERNAL_IO_TESTS",
+  "a3ProductionCodeAllowed": true,
+  "a3ProductionCodeStartCondition": "SATISFIED_BY_VALID_A3_RED_EVIDENCE",
+  "a3FirstRequiredAction": "IMPLEMENT_A3_PUBLIC_MODULES_ONLY",
   "automaticNextTaskAuthorization": false,
   "automaticNextWorkPackageAuthorization": false,
   "sourceClosure": {
@@ -37,7 +37,9 @@
     ],
     "closureRule": "CURRENT_VIOLATIONS_MAY_DECREASE_BY_TASK_BUT_REPORT_OK_MUST_REMAIN_FALSE_UNTIL_A8",
     "registryInvalidAllowed": false,
-    "unregisteredPrimaryDbAccessAllowed": false
+    "unregisteredPrimaryDbAccessAllowed": false,
+    "dedicatedWorkflowJob": "acv2-wp-a-source-closure",
+    "mustNotMaskWp0Regressions": true
   },
   "a0": {
     "status": "CLOSED",
@@ -55,21 +57,6 @@
     "primaryRedEvidence": {
       "head": "3ece409ddcabab43ea1c21fee1a2395a85d54855",
       "workflowRunId": 30735524098,
-      "conclusion": "EXPECTED_FAILURE"
-    },
-    "governanceHeadReopenEvidence": {
-      "head": "c800dec2dcbe4ae905cfae5dc87cc4575a3d6f47",
-      "workflowRunId": 30736147115,
-      "windowsJobId": 91465192517,
-      "reasonCode": "WINDOWS_RUNTIME_MUTEX_HELPER_STARTUP_TIMEOUT",
-      "a1Contract": "7_OF_7_PASS",
-      "realProcessMatrix": "2_OF_2_PASS",
-      "legacyRegressions": "21_OF_22_PASS",
-      "failureBeforeFencingAssertion": true
-    },
-    "windowsHelperRedEvidence": {
-      "head": "2443b327bd4e5a4c112a6fa4cac6e0d5a4f63bc9",
-      "workflowRunId": 30736259095,
       "conclusion": "EXPECTED_FAILURE"
     },
     "greenEvidence": {
@@ -99,29 +86,8 @@
       "workflowRunId": 30736818711,
       "ubuntuJobId": 91466991439,
       "windowsJobId": 91466991449,
-      "conclusion": "EXPECTED_FAILURE",
-      "a1Prerequisites": "12_OF_12_PASS_PER_PLATFORM",
-      "a2Contract": "0_OF_21_PASS_PER_PLATFORM_MISSING_PUBLIC_MODULES"
+      "conclusion": "EXPECTED_FAILURE"
     },
-    "independentReviewReopens": [
-      {
-        "head": "fdef944954ad9d86f707b10a19e617075ce8f099",
-        "workflowRunId": 30737130362,
-        "result": "21_PASS_7_EXPECTED_FAIL_PER_PLATFORM"
-      },
-      {
-        "head": "d002960ce414767bb6c002e2f279f659095d77a4",
-        "workflowRunId": 30737394158,
-        "result": "29_PASS_1_EXPECTED_FAIL_PER_PLATFORM",
-        "reasonCode": "VM_HOST_OBJECT_CONSTRUCTOR_ESCAPE"
-      },
-      {
-        "head": "064993668171cb796482ab79372f5d049fa10caa",
-        "workflowRunId": 30737549974,
-        "result": "30_PASS_3_EXPECTED_FAIL_PER_PLATFORM",
-        "reasonCode": "PROTOTYPE_MUTATION_KEYS_NOT_REJECTED"
-      }
-    ],
     "greenEvidence": {
       "document": "governance/architecture-closure-v2/wp-a-a2-evidence.json",
       "reviewedCodeHead": "947c5a66610d260869188bb7c8fdf36ee0b00f54",
@@ -141,19 +107,30 @@
       "decision": "APPROVED_AFTER_TWO_ADDITIONAL_REOPENS_AND_ROOT_REPAIRS",
       "openP0": 0,
       "openP1": 0
-    },
-    "closedInvariants": [
-      "DETERMINISTIC_VERSIONED_CANONICAL_SERIALIZATION",
-      "EXACT_FAIL_CLOSED_DATA_CLASSIFICATION",
-      "SECRET_AND_BINARY_REFERENCE_CUSTODY_BOUNDARIES",
-      "CONTIGUOUS_DETERMINISTIC_UPCASTERS",
-      "PRIMITIVE_ONLY_VM_BOUNDARY",
-      "CONSTRUCTOR_ESCAPE_REJECTED",
-      "PROTOTYPE_MUTATION_KEYS_REJECTED",
-      "UBUNTU_WINDOWS_AND_LEGACY_REGRESSIONS_GREEN"
-    ]
+    }
   },
-  "a3TestFirstAllowedFiles": [
+  "a3": {
+    "status": "RED_RECORDED_IMPLEMENTATION_AUTHORIZED",
+    "redEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a3-red-evidence.json",
+      "head": "749da0b06227c95e7471149b4af78e4ab3ef465e",
+      "workflowRunId": 30738032544,
+      "ubuntuJobId": 91470284799,
+      "windowsJobId": 91470284793,
+      "sourceClosureJobId": 91470284770,
+      "conclusion": "EXPECTED_FAILURE",
+      "a1A2Prerequisites": "45_OF_45_PASS_PER_PLATFORM",
+      "a3Contract": "0_OF_18_PASS_PER_PLATFORM_MISSING_PUBLIC_MODULES"
+    },
+    "implementationStartConditionSatisfied": true,
+    "greenEvidenceRequired": true,
+    "independentSourceReviewRequired": true
+  },
+  "a3AllowedFiles": [
+    "backend/services/authorityTransactionCoordinator.js",
+    "backend/services/authorityCommandProtocol.js",
+    "backend/services/authorityTransactionContext.js",
+    "backend/services/externalIoBoundaryGuard.js",
     "backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinator.test.js",
     "backend/tests/architectureClosureV2/wpA/authorityCommandProtocol.test.js",
     "backend/tests/architectureClosureV2/wpA/noExternalIoInTransaction.test.js",
@@ -162,28 +139,26 @@
     ".github/workflows/*acv2*",
     "package.json"
   ],
-  "a3ProductionFilesLockedUntilRed": [
-    "backend/services/authorityTransactionCoordinator.js",
-    "backend/services/authorityCommandProtocol.js",
-    "backend/services/authorityTransactionContext.js",
-    "backend/services/externalIoBoundaryGuard.js"
-  ],
-  "a3RequiredRedContracts": [
+  "a3RequiredGreenContracts": [
+    "COMMAND_ENVELOPE_EXACT_DEEP_FROZEN_AND_CONTENT_ADDRESSED",
     "IDEMPOTENT_REPLAY_RETURNS_ORIGINAL_RECEIPT",
     "IDEMPOTENCY_CONTENT_CONFLICT_FAILS_CLOSED",
     "AGGREGATE_VERSION_CONFLICT_REJECTED_BY_SQL_CONDITION",
     "EVENT_PAYLOAD_PROJECTION_CHECKPOINT_AND_RECEIPT_ATOMIC",
     "ROLLBACK_PUBLISHES_NO_EVENT_AND_LEAVES_NO_PARTIAL_ROWS",
+    "ASYNC_PROJECTOR_CALLBACK_REJECTED",
     "EXTERNAL_IO_FORBIDDEN_INSIDE_WRITE_TRANSACTION",
-    "HOST_GENERATION_AND_FENCING_PRESENT_IN_SQL_MUTATION_CONDITION"
+    "TRANSACTION_CONTEXT_CLEARS_AFTER_SETTLEMENT",
+    "HOST_GENERATION_AND_FENCING_PERSISTED_AND_ENFORCED",
+    "STALE_COORDINATOR_REJECTED_AFTER_TAKEOVER"
   ],
   "a3ProhibitedActions": [
-    "IMPLEMENT_A3_PRODUCTION_CODE_BEFORE_VALID_RED",
     "IMPLEMENT_A4_OR_LATER",
     "IMPLEMENT_WP_B_OR_LATER",
     "OPEN_ACV2_BRANCH_WILDCARD",
-    "REMOVE_A0_SOURCE_CLOSURE_GATE",
+    "REMOVE_OR_DOWNGRADE_SOURCE_CLOSURE_GATE",
     "ALLOW_EXTERNAL_IO_IN_WRITE_TRANSACTION",
+    "BYPASS_HOST_FENCING",
     "MARK_PR_READY_OR_MERGE"
   ],
   "wpAComplete": false,
