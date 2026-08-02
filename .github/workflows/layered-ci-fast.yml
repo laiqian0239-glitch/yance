@@ -1,0 +1,36 @@
+name: Layered CI Fast Feedback
+
+on:
+  push:
+    branches:
+      - governance/layered-ci-reviewed-candidate
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'governance/layered-ci/**'
+      - 'tools/layered-ci/**'
+      - 'tests/layered-ci/**'
+      - '.github/workflows/layered-ci-*.yml'
+      - '.github/workflows/reviewed-candidate-a6.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  layered-ci-policy:
+    name: layered-ci-policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout governance candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Run layered governance contracts
+        run: node --test --test-concurrency=1 tests/layered-ci/*.test.js
