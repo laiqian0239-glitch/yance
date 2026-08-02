@@ -7,6 +7,8 @@ on:
     paths:
       - .github/workflows/wp-a-promotion-authorization.yml
       - governance/architecture-closure-v2/wp-a-promotion-authorization.json
+      - governance/layered-ci/wp0-routing-policy.json
+      - tests/layered-ci/wp0-routing.test.js
       - tests/wp0/wp-a-promotion-authorization.test.js
       - tools/architecture-closure-v2/verify-wp-a-promotion-authorization.js
   workflow_dispatch:
@@ -51,6 +53,7 @@ jobs:
         run: |
           node --check tools/architecture-closure-v2/verify-wp-a-promotion-authorization.js
           node --test --test-concurrency=1 \
+            tests/layered-ci/wp0-routing.test.js \
             tests/wp0/wp-a-promotion-authorization.test.js \
             tests/wp0/github-actions-workflow-syntax.test.js
 
