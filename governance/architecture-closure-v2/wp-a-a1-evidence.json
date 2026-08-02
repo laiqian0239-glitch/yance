@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "documentType": "YANCE_ACV2_WP_A_A1_EVIDENCE",
-  "status": "A1_IMPLEMENTATION_VERIFIED",
+  "status": "A1_IMPLEMENTATION_AND_GOVERNANCE_HEAD_VERIFIED",
   "workPackage": "WP-A",
   "task": "A1_INTRODUCE_SCHEMA_21_AND_PERSISTENT_AUTHORITY_WRITE_HOST_LEASE",
   "repository": "laiqian0239-glitch/yance",
@@ -25,18 +25,48 @@
       "FORCED_DEATH_TAKEOVER_MISSING"
     ]
   },
-  "verifiedCodeHead": "46fb99bdd81f62402e8157e3fa098d3fca2ab7e2",
+  "initialGreenCandidate": {
+    "head": "46fb99bdd81f62402e8157e3fa098d3fca2ab7e2",
+    "workflowRunId": 30736058708,
+    "ubuntuJobId": 91464957869,
+    "windowsJobId": 91464957871,
+    "conclusion": "SUCCESS"
+  },
+  "governanceHeadReopenEvidence": {
+    "head": "c800dec2dcbe4ae905cfae5dc87cc4575a3d6f47",
+    "workflowRunId": 30736147115,
+    "windowsJobId": 91465192517,
+    "result": "A1_REOPENED",
+    "reasonCode": "WINDOWS_RUNTIME_MUTEX_HELPER_STARTUP_TIMEOUT",
+    "authorityWriteHostContract": "7_OF_7_PASS",
+    "realProcessMatrix": "2_OF_2_PASS",
+    "legacyRegressions": "21_OF_22_PASS",
+    "failureBeforeFencingAssertion": true
+  },
+  "windowsMutexHelperRedEvidence": {
+    "head": "2443b327bd4e5a4c112a6fa4cac6e0d5a4f63bc9",
+    "workflowRunId": 30736259095,
+    "conclusion": "EXPECTED_FAILURE",
+    "missingContract": "resolveWindowsPowerShellExecutable"
+  },
+  "verifiedCodeHead": "22485f03bc52739b79bf3a5e354c2f7ffc67cf9d",
   "workflow": {
     "name": "ACV2 WP-A Architecture Gates",
-    "runId": 30736058708,
-    "runNumber": 33,
+    "runId": 30736290546,
+    "runNumber": 47,
     "conclusion": "SUCCESS",
-    "ubuntuJobId": 91464957869,
+    "ubuntuJobId": 91465563418,
     "ubuntuConclusion": "SUCCESS",
-    "windowsJobId": 91464957871,
+    "windowsJobId": 91465563426,
     "windowsConclusion": "SUCCESS"
   },
   "testResultsPerPlatform": {
+    "windowsMutexHelperSelection": {
+      "tests": 3,
+      "passed": 3,
+      "failed": 0,
+      "timeoutPolicyUnchangedMs": 5000
+    },
     "authorityWriteHostContract": {
       "tests": 7,
       "passed": 7,
@@ -81,7 +111,9 @@
     "clockForwardBackwardCannotRestoreOldToken": "PASS",
     "forgedCapabilityRejected": "PASS",
     "unknownAndWorkerRolesFailClosed": "PASS",
-    "testResetsRemainTestOnly": "PASS"
+    "testResetsRemainTestOnly": "PASS",
+    "windowsMutexPowerShell7Preferred": "PASS",
+    "windowsPowerShell51FallbackRetained": "PASS"
   },
   "rootCauseCorrections": [
     {
@@ -96,6 +128,15 @@
       "symptom": "An old test expected wall-clock staleness alone to steal from a demonstrably live PID",
       "rootCause": "The fixture predated clock-jump and PID-identity protection",
       "repair": "Require dead-owner evidence or comparable PID-reuse identity before takeover",
+      "temporaryBypassUsed": false
+    },
+    {
+      "id": "A1-WINDOWS-RUNTIME-MUTEX-HELPER-STARTUP",
+      "symptom": "Windows PowerShell 5.1 helper did not complete the named-mutex handshake within the unchanged 5 second policy on a newer runner image",
+      "rootCause": "The implementation always launched legacy powershell.exe even when PowerShell 7 was installed and already available",
+      "repair": "Prefer an installed PowerShell 7 executable, retain explicit validated override and Windows PowerShell 5.1 fallback",
+      "timeoutRelaxed": false,
+      "mutexBypassed": false,
       "temporaryBypassUsed": false
     }
   ],
