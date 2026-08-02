@@ -3,7 +3,6 @@
 const path = require('node:path');
 const { R32SqliteStore } = require('./r32SqliteStore');
 const {
-  acquireAuthorityWriteHost,
   isAuthorityWriteHostCapability,
   requireAuthorityWriteHostCapability
 } = require('../services/authorityWriteHost');
@@ -11,37 +10,25 @@ const {
 class SqliteConnectionBroker {
   constructor(options = {}) {
     if (!options.dbPath) throw new TypeError('SqliteConnectionBroker requires dbPath');
+    if (!options.authorityWriteHostCapability) {
+      const error = new Error('SqliteConnectionBroker requires an externally acquired AuthorityWriteHost capability');
+      error.code = 'AUTHORITY_WRITE_HOST_CAPABILITY_REQUIRED';
+      throw error;
+    }
+
     this.dbPath = path.resolve(options.dbPath);
     this.storeOptions = { ...(options.storeOptions || {}) };
     this.store = null;
     this.closed = false;
     this.heartbeatTimer = null;
-    this.ownedAuthorityHost = null;
+    this.authorityWriteHostCapability = requireAuthorityWriteHostCapability(options.authorityWriteHostCapability);
 
-    if (options.authorityWriteHostCapability) {
-      this.authorityWriteHostCapability = requireAuthorityWriteHostCapability(options.authorityWriteHostCapability);
-    } else {
-      this.ownedAuthorityHost = acquireAuthorityWriteHost({
-        dbPath: this.dbPath,
-        instanceId: options.instanceId,
-        startupNonce: options.startupNonce,
-        ownershipStaleMs: options.ownershipStaleMs,
-        ownershipPid: options.ownershipPid,
-        ownershipPidAlive: options.ownershipPidAlive,
-        ownershipProcessIdentity: options.ownershipProcessIdentity,
-        ownershipCapturePidIdentity: options.ownershipCapturePidIdentity,
-        ownershipFsProvider: options.ownershipFsProvider,
-        clock: options.ownershipClock || options.clock
-      });
-      this.authorityWriteHostCapability = this.ownedAuthorityHost.capability;
-    }
     if (!isAuthorityWriteHostCapability(this.authorityWriteHostCapability)) {
       throw Object.assign(new Error('AuthorityWriteHost capability is invalid'), {
         code: 'AUTHORITY_WRITE_HOST_CAPABILITY_INVALID'
       });
     }
     if (path.resolve(this.authorityWriteHostCapability.dbPath) !== this.dbPath) {
-      try { this.ownedAuthorityHost?.close(); } catch (_) {}
       throw Object.assign(new Error('AuthorityWriteHost capability database path does not match broker path'), {
         code: 'AUTHORITY_WRITE_HOST_CAPABILITY_PATH_MISMATCH'
       });
@@ -72,7 +59,6 @@ class SqliteConnectionBroker {
       } catch (error) {
         try { this.store?.close(); } catch (_) {}
         this.store = null;
-        try { this.ownedAuthorityHost?.close(); } catch (_) {}
         throw error;
       }
     }
@@ -101,7 +87,10 @@ class SqliteConnectionBroker {
   transactionAsync(fn) { return this.open().transactionAsync(fn); }
 
   checkpointAndClose() {
-    if (!this.store || this.closed) return;
+    if (!this.store || this.closed) {
+      this.close();
+      return;
+    }
     try { this.store.db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch (_) {}
     this.close();
   }
@@ -115,7 +104,6 @@ class SqliteConnectionBroker {
     if (this.store) {
       try { this.store.close(); } finally { this.store = null; }
     }
-    try { this.ownedAuthorityHost?.close(); } catch (_) {}
     try { this.authorityWriteHostCapability?.close(); } catch (_) {}
   }
 
