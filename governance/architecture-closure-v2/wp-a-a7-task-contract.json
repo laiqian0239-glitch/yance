@@ -5,7 +5,7 @@
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "WP-A",
   "task": "A7",
-  "status": "IMPLEMENTING",
+  "status": "GREEN_PROVISIONAL",
   "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
   "pullRequest": 5,
   "parentTask": "A6",
@@ -47,14 +47,26 @@
     "backend/services/ledgerArchiveAuthority.js",
     "tools/architecture-closure-v2/wp-a-replay-evidence.js"
   ],
+  "verifiedCandidateSha": "07d95cc8fcfd90adc6b835dcdcdaa27f28e38418",
+  "verification": {
+    "acv2Run": 30760426776,
+    "wp0Run": 30760426788,
+    "ubuntuJob": 91529812080,
+    "windowsJob": 91529812097,
+    "wp0ProductJob": 91529829327,
+    "wp0AggregateJob": 91529905675,
+    "sealedExportUbuntuJob": 91529829331,
+    "sealedExportWindowsJob": 91529829334,
+    "sourceClosureDeferredTo": "A8"
+  },
   "closureConditions": {
     "redEvidenceCaptured": true,
-    "implementationGreen": false,
-    "ubuntuGreen": false,
-    "windowsGreen": false,
-    "wp0Green": false,
+    "implementationGreen": true,
+    "ubuntuGreen": true,
+    "windowsGreen": true,
+    "wp0Green": true,
     "independentReviewPassed": false,
-    "candidateShaFrozen": false
+    "candidateShaFrozen": true
   },
   "outOfScope": [
     "Durable authority command and receipt protocol",
