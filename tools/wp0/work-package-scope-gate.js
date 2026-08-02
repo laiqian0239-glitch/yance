@@ -21,7 +21,6 @@ function scopeResult(values) {
     unauthorizedPaths: [],
     taskScopeChainApplied: false,
     activeTask: null,
-    readyForPromotion: false,
     ...values,
     readyForPromotion: false
   });
