@@ -56,13 +56,22 @@ const {
   applyBatch42Fix6OScopedSafetyAndOmnichannelRuntime,
   TARGET_SCHEMA_VERSION: BATCH42_FIX6O_SCHEMA_VERSION
 } = require('../migrations/batch42Fix6OScopedSafetyAndOmnichannelRuntime');
+const {
+  applyArchitectureClosureV2WpA,
+  TARGET_SCHEMA_VERSION: ACV2_WP_A_SCHEMA_VERSION
+} = require('../migrations/architectureClosureV2WpA');
+const {
+  acquireAuthorityWriteHost,
+  assertCurrentAuthorityWriteHostToken,
+  requireAuthorityWriteHostCapability
+} = require('../services/authorityWriteHost');
 const { claimOwnership, SqliteOwnershipError } = require('./sqliteOwnership');
 const { SqliteTransactionCoordinator } = require('../store/sqliteTransactionCoordinator');
 
 // M5 — schema-version governance. Bump this only when a forward migration is
 // shipped; an older binary opening a newer DB must fail fast (downgrade risk),
 // never silently corrupt.
-const SCHEMA_VERSION = Math.max(STAGE634_SCHEMA_VERSION, ROUND12_SCHEMA_VERSION, ROUND12_13_HARDENING_SCHEMA_VERSION, ROUND12_13_REMAINING_SCHEMA_VERSION, ROUND12_13_FINAL_GOVERNANCE_SCHEMA_VERSION, ROUND12_13_FINAL_SEVEN_SCHEMA_VERSION, BATCH22_IDENTITY_ROUTE_SCHEMA_VERSION, BATCH24_STATE_TRANSACTION_SCHEMA_VERSION, BATCH26_PLATFORM_AI_LEARNING_SCHEMA_VERSION, BATCH27_DEVELOPER_HANDOFF_SCHEMA_VERSION, BATCH41_FIX6M_SCHEMA_VERSION, BATCH42_FIX6O_SCHEMA_VERSION);
+const SCHEMA_VERSION = Math.max(STAGE634_SCHEMA_VERSION, ROUND12_SCHEMA_VERSION, ROUND12_13_HARDENING_SCHEMA_VERSION, ROUND12_13_REMAINING_SCHEMA_VERSION, ROUND12_13_FINAL_GOVERNANCE_SCHEMA_VERSION, ROUND12_13_FINAL_SEVEN_SCHEMA_VERSION, BATCH22_IDENTITY_ROUTE_SCHEMA_VERSION, BATCH24_STATE_TRANSACTION_SCHEMA_VERSION, BATCH26_PLATFORM_AI_LEARNING_SCHEMA_VERSION, BATCH27_DEVELOPER_HANDOFF_SCHEMA_VERSION, BATCH41_FIX6M_SCHEMA_VERSION, BATCH42_FIX6O_SCHEMA_VERSION, ACV2_WP_A_SCHEMA_VERSION);
 
 function nowIso() {
   return new Date().toISOString();
@@ -184,6 +193,26 @@ class R32SqliteStore {
     this.transactions = null;
     this.ownershipHeartbeatTimer = null;
     this.ownershipLostError = null;
+    this.ownedAuthorityWriteHost = null;
+    if (options.authorityWriteHostCapability) {
+      this.authorityWriteHostCapability = requireAuthorityWriteHostCapability(options.authorityWriteHostCapability);
+    } else {
+      this.ownedAuthorityWriteHost = acquireAuthorityWriteHost({
+        dbPath,
+        instanceId: options.instanceId,
+        ownershipStaleMs: options.ownershipStaleMs,
+        ownershipPid: options.ownershipPid,
+        ownershipPidAlive: options.ownershipPidAlive,
+        ownershipProcessIdentity: options.ownershipProcessIdentity,
+        ownershipCapturePidIdentity: options.ownershipCapturePidIdentity,
+        ownershipFsProvider: options.ownershipFsProvider,
+        clock: options.ownershipClock
+      });
+      this.authorityWriteHostCapability = this.ownedAuthorityWriteHost.capability;
+    }
+    if (path.resolve(this.authorityWriteHostCapability.dbPath) !== dbPath) {
+      throw Object.assign(new Error('AuthorityWriteHost capability path mismatch'), { code: 'AUTHORITY_WRITE_HOST_CAPABILITY_PATH_MISMATCH' });
+    }
     this.ownershipStaleMs = Math.max(1000, Number(options.ownershipStaleMs || 30000));
     this.ownershipHeartbeatMs = Math.max(250, Math.min(
       Math.floor(this.ownershipStaleMs / 3),
@@ -219,6 +248,7 @@ class R32SqliteStore {
       this.ensureSchema();
       this.governSchemaVersion(schemaPreflight);
       this.commitSchemaMigrationReceipt(schemaPreflight);
+      this.authorityWriteHostCapability.attachStore(this);
       this.startOwnershipHeartbeat();
     } catch (error) {
       // A constructor that rejects the database (for example, because its
@@ -252,6 +282,8 @@ class R32SqliteStore {
           message: closeError.message || String(closeError)
         };
       }
+      try { this.ownedAuthorityWriteHost?.close(); } catch (_) {}
+      try { this.authorityWriteHostCapability?.close(); } catch (_) {}
       throw error;
     }
   }
@@ -272,7 +304,7 @@ class R32SqliteStore {
     };
     this.ownershipHeartbeatTimer = setInterval(() => {
       let ok = false;
-      try { ok = this.ownership.heartbeat() === true; } catch (_) { ok = false; }
+      try { ok = this.authorityWriteHostCapability.heartbeat() === true; } catch (error) { this.ownershipLostError = error; ok = false; }
       if (!ok) loseOwnership();
     }, this.ownershipHeartbeatMs);
     this.ownershipHeartbeatTimer.unref?.();
@@ -281,6 +313,7 @@ class R32SqliteStore {
   assertOwnership() {
     if (this.ownershipLostError) throw this.ownershipLostError;
     if (!this.db) throw Object.assign(new Error('SQLite store is closed'), { code: 'SQLITE_STORE_CLOSED', dbPath: this.dbPath });
+    assertCurrentAuthorityWriteHostToken(this.authorityWriteHostCapability, this.db);
     return true;
   }
 
@@ -1110,16 +1143,23 @@ class R32SqliteStore {
     applyBatch27DeveloperHandoffV2Closure(this.db);
     applyBatch41Fix6MArchitectureReferenceClosure(this.db);
     applyBatch42Fix6OScopedSafetyAndOmnichannelRuntime(this.db);
+    applyArchitectureClosureV2WpA(this.db);
   }
 
   transaction(callback) {
     this.assertOwnership();
-    return this.transactions.runSync(() => callback(this));
+    return this.transactions.runSync(() => {
+      assertCurrentAuthorityWriteHostToken(this.authorityWriteHostCapability, this.db);
+      return callback(this);
+    });
   }
 
   transactionAsync(callback) {
     this.assertOwnership();
-    return this.transactions.runAsync(() => callback(this));
+    return this.transactions.runAsync(() => {
+      assertCurrentAuthorityWriteHostToken(this.authorityWriteHostCapability, this.db);
+      return callback(this);
+    });
   }
 
   setMeta(key, value) {
@@ -2124,6 +2164,8 @@ class R32SqliteStore {
       this.db = null;
     }
     try { this.ownership?.release(); } catch (_) {}
+    try { this.ownedAuthorityWriteHost?.close(); } catch (_) {}
+    try { this.authorityWriteHostCapability?.close(); } catch (_) {}
   }
 }
 
