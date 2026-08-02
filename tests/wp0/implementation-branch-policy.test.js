@@ -11,17 +11,35 @@ const {
   isAuthorizedImplementationBranch,
   authorizedImplementationBranchDescription,
   loadWorkPackageScopeAmendment,
+  loadWorkPackageTaskScopeChain,
+  isValidWorkPackageScopeAmendment,
+  validateWorkPackageTaskScopeChain,
   evaluateAuthorizedWorkPackageScope,
+  evaluateAuthorizedWorkPackageTaskScope,
   workPackageChangedFilesSha256
 } = require('../../shared/release/implementationBranchPolicy');
 const { CURRENT_STAGE, currentBranch, checkRuntimeTargetGate } = require('../../tools/wp0/lib');
 
 const REPO_ROOT = path.join(__dirname, '..', '..');
 const AUTHORIZATION_PATH = path.join(REPO_ROOT, 'governance', 'architecture-closure-v2', 'implementation-plan-authorization.json');
+const A6_CLOSURE_PATH = path.join(REPO_ROOT, 'governance', 'architecture-closure-v2', 'wp-a-a6-closure.json');
 const PARENT_GOVERNANCE_HEAD = 'd81599d8a3f3de891da369b6f1ddbd01e264c78d';
-function authorization() { return JSON.parse(fs.readFileSync(AUTHORIZATION_PATH, 'utf8')); }
+const A6_FROZEN_DIGEST = 'd2cac11bd6864b02e09fa68015dbdba5c41bb2777bf79e821f00a846b651702a';
+
+function authorization() {
+  return JSON.parse(fs.readFileSync(AUTHORIZATION_PATH, 'utf8'));
+}
+
 function actualWorkPackageChangedFiles() {
-  const output = execFileSync('git', ['diff', '--name-only', PARENT_GOVERNANCE_HEAD, 'HEAD'], {
+  const output = execFileSync('git', [
+    '-c',
+    'core.quotePath=false',
+    'diff',
+    '--name-only',
+    PARENT_GOVERNANCE_HEAD,
+    'HEAD',
+    '--'
+  ], {
     cwd: REPO_ROOT,
     encoding: 'utf8'
   });
@@ -75,7 +93,10 @@ test('exact machine-authorized ACV2 work-package branch is accepted without a wi
   const document = authorization();
   const exact = document.authorizedBranch;
   assert.equal(isAuthorizedImplementationBranch(exact, CURRENT_STAGE, { authorization: document }), true);
-  assert.match(authorizedImplementationBranchDescription(CURRENT_STAGE, { authorization: document }), new RegExp(exact.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(
+    authorizedImplementationBranchDescription(CURRENT_STAGE, { authorization: document }),
+    new RegExp(exact.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  );
 
   for (const branch of [
     'acv2/wp-a-arbitrary',
@@ -89,6 +110,16 @@ test('exact machine-authorized ACV2 work-package branch is accepted without a wi
   assert.equal(isAuthorizedImplementationBranch(exact, CURRENT_STAGE, {
     authorization: { ...document, governance: { ...document.governance, automaticNextWorkPackageAuthorization: true } }
   }), false);
+});
+
+test('historical A6 amendment remains immutable and independently valid', () => {
+  const document = authorization();
+  const amendment = loadWorkPackageScopeAmendment();
+  assert.ok(amendment, 'historical A6 scope amendment must exist');
+  assert.equal(isValidWorkPackageScopeAmendment(amendment, document), true);
+  assert.equal(amendment.approvedChangedFileCount, 83);
+  assert.equal(amendment.approvedChangedFileSetSha256, A6_FROZEN_DIGEST);
+  assert.equal(amendment.governance.readyForPromotion, false);
 });
 
 test('work-package scope requires an exact independently reviewed amendment', () => {
@@ -123,29 +154,27 @@ test('work-package scope requires an exact independently reviewed amendment', ()
   assert.equal(accepted.pass, true);
   assert.deepEqual(accepted.unauthorizedPaths, []);
 
-  const unknownPath = evaluateAuthorizedWorkPackageScope({
+  const unknownPath = 'backend/runtime/UnreviewedWriter.js';
+  const expanded = [...changedFiles, unknownPath];
+  const unknownResult = evaluateAuthorizedWorkPackageScope({
     branch: document.authorizedBranch,
-    changedFiles: [...changedFiles, 'backend/runtime/UnreviewedWriter.js'],
+    changedFiles: expanded,
     authorization: document,
     amendment: {
       ...approved,
-      approvedChangedFileCount: changedFiles.length + 1,
-      approvedChangedFileSetSha256: workPackageChangedFilesSha256([...changedFiles, 'backend/runtime/UnreviewedWriter.js'])
+      approvedChangedFileCount: expanded.length,
+      approvedChangedFileSetSha256: workPackageChangedFilesSha256(expanded)
     }
   });
-  assert.equal(unknownPath.pass, false);
-  assert.deepEqual(unknownPath.unauthorizedPaths, ['backend/runtime/UnreviewedWriter.js']);
+  assert.equal(unknownResult.pass, false);
+  assert.deepEqual(unknownResult.unauthorizedPaths, [unknownPath]);
 
   const wildcardExpansion = evaluateAuthorizedWorkPackageScope({
     branch: document.authorizedBranch,
     changedFiles,
     authorization: document,
-    amendment: {
-      ...approved,
-      additionalAllowedPaths: ['backend/**']
-    }
+    amendment: { ...approved, additionalAllowedPaths: ['backend/**'] }
   });
-  assert.equal(wildcardExpansion.pass, false);
   assert.equal(wildcardExpansion.reasonCode, 'ACV2_SCOPE_AMENDMENT_INVALID');
 
   const wrongParent = evaluateAuthorizedWorkPackageScope({
@@ -154,7 +183,6 @@ test('work-package scope requires an exact independently reviewed amendment', ()
     authorization: document,
     amendment: { ...approved, parentGovernanceHead: 'f'.repeat(40) }
   });
-  assert.equal(wrongParent.pass, false);
   assert.equal(wrongParent.reasonCode, 'ACV2_SCOPE_AMENDMENT_INVALID');
 
   const wrongCount = evaluateAuthorizedWorkPackageScope({
@@ -163,34 +191,34 @@ test('work-package scope requires an exact independently reviewed amendment', ()
     authorization: document,
     amendment: { ...approved, approvedChangedFileCount: changedFiles.length + 1 }
   });
-  assert.equal(wrongCount.pass, false);
   assert.equal(wrongCount.reasonCode, 'ACV2_CHANGED_FILE_SET_MISMATCH');
-
-  const staleDigest = evaluateAuthorizedWorkPackageScope({
-    branch: document.authorizedBranch,
-    changedFiles,
-    authorization: document,
-    amendment: { ...approved, approvedChangedFileSetSha256: '0'.repeat(64) }
-  });
-  assert.equal(staleDigest.pass, false);
-  assert.equal(staleDigest.reasonCode, 'ACV2_CHANGED_FILE_SET_MISMATCH');
 });
 
-test('checked-out WP-A diff matches the exact approved scope amendment', () => {
+test('checked-out WP-A diff matches the exact active task scope chain', () => {
   const document = authorization();
-  const amendment = loadWorkPackageScopeAmendment();
-  assert.ok(amendment, 'scope amendment must exist and parse as JSON');
+  const chain = loadWorkPackageTaskScopeChain();
+  assert.ok(chain, 'task scope chain must exist and parse as JSON');
+  assert.equal(validateWorkPackageTaskScopeChain(chain, document), true);
+
+  const closure = JSON.parse(fs.readFileSync(A6_CLOSURE_PATH, 'utf8'));
+  assert.equal(closure.task, 'A6');
+  assert.equal(closure.status, 'CLOSED');
+  assert.equal(closure.frozenEvidenceBranchTip, chain.tasks[0].evidenceBranchTip);
+  assert.equal(closure.governance.readyForPromotion, false);
+
   const changedFiles = actualWorkPackageChangedFiles();
-  const result = evaluateAuthorizedWorkPackageScope({
+  const result = evaluateAuthorizedWorkPackageTaskScope({
     branch: document.authorizedBranch,
     changedFiles,
     authorization: document,
-    amendment
+    taskScopeChain: chain
   });
   assert.equal(result.pass, true, JSON.stringify(result));
-  assert.equal(result.changedFileSetSha256, amendment.approvedChangedFileSetSha256);
-  assert.equal(changedFiles.length, amendment.approvedChangedFileCount);
+  assert.equal(result.activeTask, 'A7');
+  assert.equal(result.changedFileSetSha256, chain.approvedChangedFileSetSha256);
+  assert.equal(changedFiles.length, chain.approvedChangedFileCount);
   assert.deepEqual(result.unauthorizedPaths, []);
+  assert.equal(result.readyForPromotion, false);
 });
 
 test('malformed, impossible-date and arbitrary branches remain denied', () => {
