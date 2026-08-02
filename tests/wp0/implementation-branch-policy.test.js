@@ -194,7 +194,7 @@ test('work-package scope requires an exact independently reviewed amendment', ()
   assert.equal(wrongCount.reasonCode, 'ACV2_CHANGED_FILE_SET_MISMATCH');
 });
 
-test('checked-out WP-A diff matches the exact active task scope chain', () => {
+test('checked-out WP-A diff matches the exact active A8 task scope chain', () => {
   const document = authorization();
   const chain = loadWorkPackageTaskScopeChain();
   assert.ok(chain, 'task scope chain must exist and parse as JSON');
@@ -214,7 +214,7 @@ test('checked-out WP-A diff matches the exact active task scope chain', () => {
     taskScopeChain: chain
   });
   assert.equal(result.pass, true, JSON.stringify(result));
-  assert.equal(result.activeTask, 'A7');
+  assert.equal(result.activeTask, 'A8');
   assert.equal(result.changedFileSetSha256, chain.approvedChangedFileSetSha256);
   assert.equal(changedFiles.length, chain.approvedChangedFileCount);
   assert.deepEqual(result.unauthorizedPaths, []);
