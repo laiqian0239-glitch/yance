@@ -83,9 +83,9 @@ function gitAdapter(overrides = {}) {
     }
     if (args[0] === 'rev-parse') return values.remoteTip;
     if (args[0] === 'rev-list') return values.postReviewCommits.join('\n');
-    if (args[0] === 'diff' && args[1] === '--name-only') {
-      if (args[2] === SHA.base && args[3] === SHA.reviewed) return values.reviewedFiles.join('\n');
-      if (args[2] === SHA.reviewed && args[3] === SHA.tip) return values.postReviewPaths.join('\n');
+    if (args[0] === '-c' && args[1] === 'core.quotePath=false' && args[2] === 'diff') {
+      if (args[4] === SHA.base && args[5] === SHA.reviewed) return values.reviewedFiles.join('\n');
+      if (args[4] === SHA.reviewed && args[5] === SHA.tip) return values.postReviewPaths.join('\n');
     }
     throw new Error(`unexpected git command: ${command}`);
   };
@@ -125,6 +125,38 @@ test('candidate passes when graph, scope, commits and paths are exact', () => {
   assert.equal(result.postReviewCommitsVerified, true);
   assert.equal(result.postReviewPathsVerified, true);
   assert.equal(result.readyForPromotion, false);
+});
+
+test('candidate fails closed when a declared commit object is missing', () => {
+  const result = evaluateReviewedCandidate({
+    manifest: manifest(),
+    git: gitAdapter({ missingObjects: new Set([SHA.reviewed]) })
+  });
+  assert.equal(result.pass, false);
+  assert.equal(result.reasonCode, 'CANDIDATE_GIT_OBJECT_MISSING');
+  assert.equal(result.field, 'reviewedHead');
+});
+
+test('candidate fails closed when ancestry is broken', () => {
+  const base = evaluateReviewedCandidate({
+    manifest: manifest(),
+    git: gitAdapter({ failBaseAncestor: true })
+  });
+  assert.equal(base.pass, false);
+  assert.equal(base.reasonCode, 'GOVERNANCE_BASE_NOT_ANCESTOR');
+
+  const reviewed = evaluateReviewedCandidate({
+    manifest: manifest(),
+    git: gitAdapter({ failReviewedAncestor: true })
+  });
+  assert.equal(reviewed.pass, false);
+  assert.equal(reviewed.reasonCode, 'REVIEWED_HEAD_NOT_ANCESTOR');
+});
+
+test('candidate fails closed when no git adapter is supplied', () => {
+  const result = evaluateReviewedCandidate({ manifest: manifest() });
+  assert.equal(result.pass, false);
+  assert.equal(result.reasonCode, 'CANDIDATE_GIT_REQUIRED');
 });
 
 test('candidate fails closed when authorized branch tip drifts', () => {
