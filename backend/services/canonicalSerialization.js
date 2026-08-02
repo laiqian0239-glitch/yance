@@ -8,6 +8,12 @@ function canonicalError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
 }
 
+function codeUnitCompare(leftInput, rightInput) {
+  const left = String(leftInput);
+  const right = String(rightInput);
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 function normalizePaths(values) {
   if (values == null) return new Set();
   if (!Array.isArray(values) && !(values instanceof Set)) {
@@ -42,6 +48,45 @@ function arrayPath(parent, index) {
   return `${parent}[${index}]`;
 }
 
+function assertNoSymbolKeys(value, path) {
+  const symbols = Object.getOwnPropertySymbols(value);
+  if (symbols.length) {
+    throw canonicalError('CANONICAL_SYMBOL_KEY_FORBIDDEN', 'Canonical values cannot contain symbol-keyed state', {
+      fieldPath: path,
+      symbolCount: symbols.length
+    });
+  }
+}
+
+function encodeArray(value, path, context) {
+  assertNoSymbolKeys(value, path);
+  const ownNames = Object.getOwnPropertyNames(value);
+  const unexpected = ownNames.find(name => name !== 'length' && !/^(?:0|[1-9][0-9]*)$/.test(name));
+  if (unexpected) {
+    throw canonicalError('CANONICAL_ARRAY_PROPERTY_FORBIDDEN', 'Canonical arrays cannot contain custom own properties', {
+      fieldPath: `${path}.${unexpected}`
+    });
+  }
+  const encoded = [];
+  for (let index = 0; index < value.length; index += 1) {
+    if (!Object.prototype.hasOwnProperty.call(value, index)) {
+      throw canonicalError('CANONICAL_SPARSE_ARRAY_FORBIDDEN', 'Canonical arrays cannot contain sparse holes', {
+        fieldPath: arrayPath(path, index)
+      });
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+    if (typeof descriptor?.get === 'function' || typeof descriptor?.set === 'function') {
+      throw canonicalError('CANONICAL_ACCESSOR_FORBIDDEN', 'Canonical arrays cannot contain accessors', {
+        fieldPath: arrayPath(path, index)
+      });
+    }
+    encoded.push(encode(descriptor?.value, arrayPath(path, index), context));
+  }
+  if (!context.setLikePaths.has(path)) return `[${encoded.join(',')}]`;
+  const unique = [...new Set(encoded)].sort(codeUnitCompare);
+  return `[${unique.join(',')}]`;
+}
+
 function encode(value, path, context) {
   if (value === null) return 'null';
 
@@ -66,20 +111,16 @@ function encode(value, path, context) {
 
   context.seen.add(value);
   try {
-    if (Array.isArray(value)) {
-      const encoded = value.map((item, index) => encode(item, arrayPath(path, index), context));
-      if (!context.setLikePaths.has(path)) return `[${encoded.join(',')}]`;
-      const unique = [...new Set(encoded)].sort((left, right) => left.localeCompare(right));
-      return `[${unique.join(',')}]`;
-    }
+    if (Array.isArray(value)) return encodeArray(value, path, context);
 
     const prototype = Object.getPrototypeOf(value);
     if (prototype !== Object.prototype && prototype !== null) {
       throw canonicalError('CANONICAL_NON_PLAIN_OBJECT_FORBIDDEN', 'Canonical values must use plain objects', { fieldPath: path });
     }
+    assertNoSymbolKeys(value, path);
 
     const descriptors = Object.getOwnPropertyDescriptors(value);
-    const keys = Object.keys(descriptors).sort((left, right) => left.localeCompare(right));
+    const keys = Object.keys(descriptors).sort(codeUnitCompare);
     const entries = [];
     for (const key of keys) {
       const descriptor = descriptors[key];
