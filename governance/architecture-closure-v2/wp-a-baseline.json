@@ -1,16 +1,17 @@
 {
-  "schemaVersion": 14,
+  "schemaVersion": 15,
   "documentType": "YANCE_ACV2_WP_A_BASELINE",
-  "status": "A4_RED_RECORDED_PRODUCTION_IMPLEMENTATION_AUTHORIZED",
+  "status": "A4_CLOSED_A5_TEST_FIRST_RED_AUTHORIZED",
   "workPackage": "WP-A",
   "completedTasks": [
     "A0_FREEZE_WRITER_READ_RECOVERY_FALLBACK_INVENTORY_AND_ADD_RED_TESTS",
     "A1_SCHEMA_21_LEDGER_AND_PROJECTOR_SEMANTIC_CONTRACT",
     "A2_VERSIONED_CANONICAL_SERIALIZATION_AND_DATA_CLASSIFICATION",
-    "A3_AUTHORITY_TRANSACTION_COORDINATOR_PROJECTOR_CAPABILITY"
+    "A3_AUTHORITY_TRANSACTION_COORDINATOR_PROJECTOR_CAPABILITY",
+    "A4_CANONICAL_EVENT_LEDGER_AUTHORITY_AND_COMPATIBILITY_FACADE"
   ],
   "reopenedTasks": [],
-  "currentAuthorizedTask": "A4_PRODUCTION_IMPLEMENTATION",
+  "currentAuthorizedTask": "A5_TEST_FIRST_RED",
   "repository": "laiqian0239-glitch/yance",
   "parentPullRequest": 4,
   "stackedPullRequest": 5,
@@ -18,7 +19,7 @@
   "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
   "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
   "prMustRemainDraft": true,
-  "productionCodeScope": "WP_A_A4_EXACT_THREE_FILES_ONLY",
+  "productionCodeScope": "NONE_A5_TESTS_ONLY",
   "automaticNextTaskAuthorization": false,
   "automaticNextWorkPackageAuthorization": false,
   "sourceClosure": {
@@ -58,7 +59,6 @@
       "windowsJobId": 91465563426,
       "result": "12_OF_12_AND_22_OF_22_PASS_PER_PLATFORM"
     },
-    "reopenReason": "SCHEMA_21_DDL_DID_NOT_CARRY_FROZEN_LEDGER_SEQUENCE_TRACE_SOURCE_PAYLOAD_HASH_WRITER_OR_PROJECTOR_LEASE_FENCING_SEMANTICS",
     "finalRepairEvidence": {
       "document": "governance/architecture-closure-v2/wp-a-a3-evidence.json",
       "reviewedCodeHead": "d559c8e76a1f67717da2146151fd552fec51539c",
@@ -124,10 +124,7 @@
     }
   },
   "a4": {
-    "status": "RED_RECORDED_PRODUCTION_IMPLEMENTATION_AUTHORIZED",
-    "testCodeAllowed": true,
-    "productionCodeAllowed": true,
-    "implementationStartConditionSatisfied": true,
+    "status": "CLOSED",
     "task": "UPGRADE_DOMAIN_EVENT_LOG_AUTHORITY_IN_PLACE_TO_CANONICAL_EVENT_LEDGER_AUTHORITY",
     "redEvidence": {
       "document": "governance/architecture-closure-v2/wp-a-a4-red-evidence.json",
@@ -138,45 +135,81 @@
       "result": "0_OF_8_PASS_8_OF_8_EXPECTED_FAIL_PER_PLATFORM",
       "wp0WorkflowRunId": 30742811486
     },
+    "reviewReopenEvidence": [
+      {
+        "head": "edceded87c86af6759ed127babcfb3f2fe1d1c8d",
+        "workflowRunId": 30743381932,
+        "ubuntuJobId": 91484674100,
+        "result": "7_OF_10_PASS_THREE_EXPECTED_FAIL"
+      },
+      {
+        "head": "3f438629d92aaeba9ed127c96b384dc2d7cf614e",
+        "workflowRunId": 30743693050,
+        "ubuntuJobId": 91485497265,
+        "result": "9_OF_10_PASS_ONE_EXPECTED_FAIL"
+      }
+    ],
+    "finalGreenEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a4-evidence.json",
+      "reviewedCodeHead": "0eda8a159db88d15379ae8d66a504e3aa5f80dbd",
+      "workflowRunId": 30743781529,
+      "ubuntuJobId": 91485738360,
+      "windowsJobId": 91485738414,
+      "wp0WorkflowRunId": 30743781521,
+      "result": "10_OF_10_A4_AND_22_OF_22_LEGACY_PASS_PER_PLATFORM"
+    },
+    "independentSourceReview": {
+      "document": "docs/architecture/YANCE_ACV2_WP_A_A4_SOURCE_REVIEW_ZH.md",
+      "decision": "APPROVED_AFTER_THREE_ADVERSARIAL_REOPENS_AND_ROOT_REPAIRS",
+      "openP0": 0,
+      "openP1": 0
+    },
     "codeRabbit": {
-      "invocationCommentId": 5157036292,
-      "responseCommentId": 5157036779,
+      "initialRedInvocationCommentId": 5157036292,
+      "initialRedResponseCommentId": 5157036779,
+      "finalInvocationCommentId": 5157199728,
+      "finalResponseCommentId": 5157200259,
       "formalReviewExecuted": false,
       "outcome": "NOT_EXECUTED_PRO_SEAT_NOT_ASSIGNED",
       "issuesClaimed": null
     },
+    "knownGovernedResidual": {
+      "legacyRepositoryMethodSourceStillPresent": true,
+      "runtimeWriteBlockedByPersistentTrigger": true,
+      "startupOrderingOwnedByTask": "A6",
+      "zeroWriterSourceClosureOwnedByTask": "A8",
+      "dualWriteAuthorized": false
+    }
+  },
+  "a5": {
+    "status": "TEST_FIRST_RED_AUTHORIZED",
+    "task": "IDENTITY_AUTHORITY_AND_CANONICAL_SCOPED_IDS",
+    "testCodeAllowed": true,
+    "productionCodeAllowed": false,
+    "implementationStartConditionSatisfied": false,
     "allowedTestFiles": [
-      "backend/tests/architectureClosureV2/wpA/canonicalEventLedgerAuthority.test.js",
-      "backend/tests/architectureClosureV2/wpA/domainEventCompatibilityFacade.test.js"
+      "backend/tests/architectureClosureV2/wpA/identityAuthority.test.js"
     ],
-    "allowedEvidenceHarnessFiles": [
-      ".github/workflows/acv2-wp-a.yml"
+    "productionFilesLocked": [
+      "backend/services/identityAuthority.js",
+      "backend/services/canonicalIdentityService.js",
+      "backend/services/identityLinkAuthority.js"
     ],
-    "allowedProductionFiles": [
-      "backend/services/canonicalEventLedgerAuthority.js",
-      "backend/services/domainEventLogService.js",
-      "backend/repositories/platformCoreRepository.js"
+    "requiredRedInvariants": [
+      "EXTERNAL_IDENTITY_SCOPE_INCLUDES_PLATFORM_SOURCE_ACCOUNT_AND_EXTERNAL_ID",
+      "DISPLAY_NAME_AVATAR_USERNAME_OR_FORMATTED_PHONE_ALONE_CANNOT_MERGE_CONTACTS",
+      "ID_GENERATION_IS_DETERMINISTIC_AND_COLLISION_SAFE_ACROSS_SCOPE",
+      "LEGACY_IDENTITY_CALLERS_USE_THE_SAME_AUTHORITY_AND_CANNOT_WRITE_A_SEPARATE_FACT"
     ],
-    "requiredGreenInvariants": [
-      "EXACTLY_ONE_LEDGER_IMPLEMENTATION_AND_ONE_APPEND_PATH",
-      "DOMAIN_EVENT_LOG_SERVICE_HAS_NO_INDEPENDENT_PERSISTENCE",
-      "HEADER_PAYLOAD_HASH_MISMATCH_FAILS_CLOSED",
-      "DUPLICATE_AGGREGATE_VERSION_FAILS_CLOSED",
-      "COMMITTED_EVENT_MUTATION_FAILS_CLOSED",
-      "DIRECT_REPOSITORY_APPEND_FAILS_CLOSED",
-      "BUSINESS_PAYLOAD_REMAINS_REPLAYABLE_WITHOUT_COPYING_BUSINESS_BODY_TO_EVIDENCE"
-    ],
-    "greenEvidenceRequired": true,
-    "independentSourceReviewRequired": true
+    "redEvidenceRequired": true,
+    "redEvidenceDocument": "governance/architecture-closure-v2/wp-a-a5-red-evidence.json"
   },
   "prohibitedActions": [
-    "CHANGE_A4_RED_EXPECTATIONS_TO_MATCH_OLD_IMPLEMENTATION",
-    "ADD_SECOND_LEDGER_IMPLEMENTATION",
-    "ADD_SECOND_APPEND_PATH",
-    "KEEP_INDEPENDENT_DOMAIN_EVENT_LOG_PERSISTENCE",
-    "ADD_CALLER_BYPASS_OR_WARNING_ONLY_GUARD",
-    "MODIFY_PRODUCTION_CODE_OUTSIDE_A4_EXACT_THREE_FILES",
-    "IMPLEMENT_A5_OR_LATER",
+    "IMPLEMENT_A5_PRODUCTION_BEFORE_TRUSTED_RED_EVIDENCE",
+    "RESTORE_LEGACY_DOMAIN_EVENT_DUAL_WRITE",
+    "CHANGE_A4_TESTS_TO_ACCEPT_A_SECOND_LEDGER_OR_APPEND_PATH",
+    "MODIFY_A5_PRODUCTION_FILES_BEFORE_RED",
+    "IMPLEMENT_A6_OR_LATER",
     "IMPLEMENT_WP_B_OR_LATER",
     "OPEN_ACV2_BRANCH_WILDCARD",
     "REMOVE_OR_DOWNGRADE_SOURCE_CLOSURE_GATE",
@@ -187,6 +220,6 @@
   "candidatePackageGenerated": false,
   "readyForPromotion": false,
   "formalRelease": false,
-  "lockedTasks": ["A5", "A6", "A7", "A8"],
+  "lockedTasks": ["A6", "A7", "A8"],
   "lockedWorkPackages": ["WP-B", "WP-C", "WP-D", "WP-E", "WP-F", "WP-G", "WP-H"]
 }
