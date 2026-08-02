@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "policyId": "Y29-S6.4.5.9-WP0-FREEZE-POLICY",
   "currentStage": "6.4.5.9",
   "currentBranch": "stage/6.4.5.9-architecture-closure",
@@ -14,13 +14,21 @@
     {
       "stage": "6.4.5.8",
       "status": "REJECTED_ARCHITECTURE_NOT_CLOSED",
-      "immutableTag": "stage-6.4.5.8-rejected-architecture",
+      "historicalTagLabel": "stage-6.4.5.8-rejected-architecture",
       "hotfixesAllowed": false,
       "runtimeChangesAllowed": false,
       "releaseCandidateAllowed": false,
       "overlayInstallersAllowed": false
     }
   ],
+  "baselineAuthority": {
+    "type": "CANONICAL_PORTABLE_REPOSITORY_ARCHIVE_ANCHOR",
+    "originalVcsHistoryAvailable": false,
+    "provenanceCommit": "c150182219edea2faf49c714275e9921a21df742",
+    "anchorCommit": "570823e722f6db475066d6ef80ba900ac5c6cb39",
+    "anchorPath": "governance/rejected-baselines/stage-6.4.5.8.json",
+    "anchorBlob": "6a5ffc68e76baf6a477668c6c2faf61934e94720"
+  },
   "forbiddenReleaseMechanisms": [
     "OLD_INSTALLER_PLUS_APP_ASAR_UNPACKED_OVERLAY",
     "POST_INSTALL_RUNTIME_PATCH",
