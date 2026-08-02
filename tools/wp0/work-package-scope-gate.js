@@ -5,8 +5,11 @@ const {
   ACV2_AUTHORIZATION_REPOSITORY_PATH,
   ACV2_WP_A_PARENT_GOVERNANCE_HEAD,
   evaluateAuthorizedWorkPackageScope,
+  evaluateAuthorizedWorkPackageTaskScope,
   loadWorkPackageAuthorization,
-  loadWorkPackageScopeAmendment
+  loadWorkPackageScopeAmendment,
+  loadWorkPackageTaskScopeChain,
+  validateWorkPackageTaskScopeChain
 } = require('../../shared/release/implementationBranchPolicy');
 
 function scopeResult(values) {
@@ -16,12 +19,38 @@ function scopeResult(values) {
     effectiveBranch: '',
     changedFileCount: 0,
     unauthorizedPaths: [],
-    ...values
+    taskScopeChainApplied: false,
+    activeTask: null,
+    readyForPromotion: false,
+    ...values,
+    readyForPromotion: false
   });
 }
 
 function fail(reasonCode, details = {}) {
   return scopeResult({ pass: false, reasonCode, ...details });
+}
+
+function readChangedFiles(git, effectiveBranch) {
+  try {
+    const raw = git([
+      '-c',
+      'core.quotePath=false',
+      'diff',
+      '--name-only',
+      ACV2_WP_A_PARENT_GOVERNANCE_HEAD,
+      'HEAD',
+      '--'
+    ]);
+    return raw
+      ? [...new Set(raw.split(/\r?\n/u).map(value => value.trim()).filter(Boolean))].sort()
+      : [];
+  } catch (cause) {
+    return fail('ACV2_WORK_PACKAGE_SCOPE_DIFF_FAILED', {
+      effectiveBranch,
+      error: cause?.message || String(cause)
+    });
+  }
 }
 
 function evaluateWorkPackageScopeForGate(options = {}) {
@@ -37,9 +66,7 @@ function evaluateWorkPackageScopeForGate(options = {}) {
   let effectiveBranch = branch;
 
   if (detachedEvidence && authorization?.authorizedBranch) {
-    if (typeof git !== 'function') {
-      return fail('ACV2_WORK_PACKAGE_SCOPE_GIT_REQUIRED');
-    }
+    if (typeof git !== 'function') return fail('ACV2_WORK_PACKAGE_SCOPE_GIT_REQUIRED');
     let actualHead;
     try {
       actualHead = git(['rev-parse', 'HEAD']);
@@ -65,12 +92,13 @@ function evaluateWorkPackageScopeForGate(options = {}) {
       parentGovernanceHead: ACV2_WP_A_PARENT_GOVERNANCE_HEAD,
       effectiveBranch,
       changedFileCount: 0,
-      unauthorizedPaths: []
+      unauthorizedPaths: [],
+      taskScopeChainApplied: false,
+      activeTask: null,
+      readyForPromotion: false
     });
   }
-  if (typeof git !== 'function') {
-    return fail('ACV2_WORK_PACKAGE_SCOPE_GIT_REQUIRED', { effectiveBranch });
-  }
+  if (typeof git !== 'function') return fail('ACV2_WORK_PACKAGE_SCOPE_GIT_REQUIRED', { effectiveBranch });
   if (!authorization || effectiveBranch !== authorization.authorizedBranch) {
     return fail('ACV2_WORK_PACKAGE_SCOPE_AUTHORIZATION_INVALID', { effectiveBranch });
   }
@@ -118,16 +146,32 @@ function evaluateWorkPackageScopeForGate(options = {}) {
     });
   }
 
-  let changedFiles;
-  try {
-    const raw = git(['diff', '--name-only', ACV2_WP_A_PARENT_GOVERNANCE_HEAD, 'HEAD']);
-    changedFiles = raw
-      ? [...new Set(raw.split(/\r?\n/u).map(value => value.trim()).filter(Boolean))].sort()
-      : [];
-  } catch (cause) {
-    return fail('ACV2_WORK_PACKAGE_SCOPE_DIFF_FAILED', {
+  const changedFiles = readChangedFiles(git, effectiveBranch);
+  if (!Array.isArray(changedFiles)) return changedFiles;
+
+  const taskScopeChain = Object.prototype.hasOwnProperty.call(options, 'taskScopeChain')
+    ? options.taskScopeChain
+    : loadWorkPackageTaskScopeChain();
+
+  if (taskScopeChain) {
+    if (!validateWorkPackageTaskScopeChain(taskScopeChain, authorization)) {
+      return fail('ACV2_TASK_SCOPE_CHAIN_INVALID', {
+        effectiveBranch,
+        changedFileCount: changedFiles.length
+      });
+    }
+    const evaluation = evaluateAuthorizedWorkPackageTaskScope({
+      branch: effectiveBranch,
+      changedFiles,
+      authorization,
+      taskScopeChain
+    });
+    return scopeResult({
+      ...evaluation,
       effectiveBranch,
-      error: cause?.message || String(cause)
+      changedFileCount: changedFiles.length,
+      taskScopeChainApplied: true,
+      activeTask: taskScopeChain.activeTask
     });
   }
 
@@ -143,7 +187,9 @@ function evaluateWorkPackageScopeForGate(options = {}) {
   return scopeResult({
     ...evaluation,
     effectiveBranch,
-    changedFileCount: changedFiles.length
+    changedFileCount: changedFiles.length,
+    taskScopeChainApplied: false,
+    activeTask: null
   });
 }
 
