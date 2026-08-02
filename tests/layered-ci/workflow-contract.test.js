@@ -69,6 +69,19 @@ test('portable governance suite never invokes branch-bound WP0 contracts', () =>
   assert.match(text, /inputs\.suite == 'wp0' \|\| inputs\.suite == 'full_work_package'/u);
 });
 
+test('credentials are absent or removed before repository-controlled tests execute', () => {
+  const a6 = workflow('reviewed-candidate-a6.yml');
+  assert.match(a6, /Checkout governance verifier[\s\S]*persist-credentials:\s*false/u);
+  assert.match(a6, /Fetch trusted Electron LFS object and remove credentials[\s\S]*unset-all http\.https:\/\/github\.com\/\.extraheader[\s\S]*Install locked dependencies/u);
+
+  const sqlite = workflow('reviewed-candidate-a6-sqlite.yml');
+  assert.match(sqlite, /Checkout governance verifier[\s\S]*persist-credentials:\s*false/u);
+  assert.match(sqlite, /Checkout exact reviewed A6 head[\s\S]*persist-credentials:\s*false/u);
+
+  const task = workflow('layered-ci-task.yml');
+  assert.match(task, /Establish authorized local branch and remove credentials[\s\S]*unset-all http\.https:\/\/github\.com\/\.extraheader[\s\S]*Set up Node\.js/u);
+});
+
 test('privileged workflow setup disables package-manager caching', () => {
   for (const name of [
     'layered-ci-fast.yml',
