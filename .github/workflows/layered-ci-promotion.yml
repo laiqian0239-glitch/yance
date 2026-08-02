@@ -29,6 +29,10 @@ jobs:
     name: layered-ci-l3-promotion-verification
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    outputs:
+      readyForPromotion: ${{ steps.governance-result.outputs.readyForPromotion }}
+      formalRelease: ${{ steps.governance-result.outputs.formalRelease }}
+      publish: ${{ steps.governance-result.outputs.publish }}
     steps:
       - name: Checkout exact promotion source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -37,11 +41,12 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
           lfs: false
+          persist-credentials: false
       - name: Set up reviewed Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
-          cache: npm
+          package-manager-cache: false
       - name: Verify exact commit and tree identity
         shell: bash
         run: |
@@ -59,8 +64,19 @@ jobs:
           npm run test:security-scan
           npm run test:wp7
       - name: Record non-publishing governance result
+        id: governance-result
         shell: bash
         run: |
-          echo 'readyForPromotion=false'
-          echo 'formalRelease=false'
-          echo 'publish=false'
+          set -euo pipefail
+          {
+            echo 'readyForPromotion=false'
+            echo 'formalRelease=false'
+            echo 'publish=false'
+          } >> "${GITHUB_OUTPUT}"
+          {
+            echo '### Layered CI promotion verification'
+            echo ''
+            echo '- readyForPromotion=false'
+            echo '- formalRelease=false'
+            echo '- publish=false'
+          } >> "${GITHUB_STEP_SUMMARY}"
