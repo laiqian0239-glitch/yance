@@ -1,6 +1,11 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const {
+  applyArchitectureClosureV2WpAIntegrity,
+  isArchitectureClosureV2WpAIntegrityApplied,
+  TARGET_SCHEMA_VERSION: INTEGRITY_TARGET_SCHEMA_VERSION
+} = require('./architectureClosureV2WpAIntegrity');
 
 const MIGRATION_ID = '021_architecture_closure_v2_wp_a';
 const TARGET_SCHEMA_VERSION = 21;
@@ -282,8 +287,9 @@ function applyArchitectureClosureV2WpA(db) {
     error.actualChecksum = String(existing.checksum || '');
     throw error;
   }
+  const integrityApplied = isArchitectureClosureV2WpAIntegrityApplied(db);
   ensureObjects(db);
-  ensureConsistency(db);
+  if (!integrityApplied) ensureConsistency(db);
   const at = nowIso();
   setSchemaVersion(db, TARGET_SCHEMA_VERSION, at);
   const report = JSON.stringify({
@@ -303,18 +309,24 @@ function applyArchitectureClosureV2WpA(db) {
       SET target_schema_version=?,status='completed',checksum=?,completed_at=?,report_json=?
       WHERE migration_id=?`).run(TARGET_SCHEMA_VERSION,MIGRATION_CHECKSUM,at,report,MIGRATION_ID);
   }
+  const integrity = applyArchitectureClosureV2WpAIntegrity(db);
   return {
-    migrationId: MIGRATION_ID,
-    targetSchemaVersion: TARGET_SCHEMA_VERSION,
-    checksum: MIGRATION_CHECKSUM,
+    migrationId: integrity.migrationId,
+    baseMigrationId: MIGRATION_ID,
+    targetSchemaVersion: integrity.targetSchemaVersion,
+    baseTargetSchemaVersion: TARGET_SCHEMA_VERSION,
+    checksum: integrity.checksum,
+    baseChecksum: MIGRATION_CHECKSUM,
     bootstrapChecksum: BOOTSTRAP_CHECKSUM,
-    schemaContractVersion: 2
+    schemaContractVersion: 3,
+    legacyReceiptPolicy: integrity.legacyReceiptPolicy
   };
 }
 
 module.exports = {
   MIGRATION_ID,
-  TARGET_SCHEMA_VERSION,
+  BASE_TARGET_SCHEMA_VERSION: TARGET_SCHEMA_VERSION,
+  TARGET_SCHEMA_VERSION: INTEGRITY_TARGET_SCHEMA_VERSION,
   BOOTSTRAP_DEFINITION,
   BOOTSTRAP_CHECKSUM,
   SCHEMA_CONTRACT,

@@ -119,6 +119,7 @@ test('domain events are idempotent and redact credentials, QR and binary payload
     };
     const first = events.append(input);
     const second = events.append(input);
+    assert.equal(second.event.occurredAt, first.event.occurredAt);
     assert.equal(first.created, true);
     assert.equal(second.created, false);
     assert.equal(first.event.eventId, second.event.eventId);
