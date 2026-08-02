@@ -237,7 +237,6 @@ class RuntimeAuthorityCommandGateway {
       sealed: false
     });
     this.assertAuthorityCurrent();
-    Object.freeze(this);
   }
 
   assertAuthorityCurrent() {
@@ -327,7 +326,6 @@ class RuntimeAuthorityCommandGateway {
     });
   }
 }
-Object.freeze(RuntimeAuthorityCommandGateway.prototype);
 
 function createAppRuntimeComposition(runtime) {
   const authorityWriteHostCapability = runtime.authorityWriteHostCapability;
@@ -396,4 +394,7 @@ function createAppRuntimeComposition(runtime) {
   });
 }
 
-module.exports = { RuntimeAuthorityCommandGateway, createStartupCommandHandlers, createAppRuntimeComposition };
+const testOnlyExports = process.env.NODE_TEST_CONTEXT
+  ? { RuntimeAuthorityCommandGateway }
+  : {};
+module.exports = { createAppRuntimeComposition, ...testOnlyExports };
