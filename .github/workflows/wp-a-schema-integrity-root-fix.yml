@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/wp-a-schema-integrity-root-fix.yml
       - tools/architecture-closure-v2/apply-wp-a-schema-integrity-root-fix.js
+      - tools/architecture-closure-v2/apply-wp-a-schema-integrity-followup.js
       - backend/tests/architectureClosureV2/wpA/schema22PostMergeIntegrityMigration.test.js
 
 permissions:
@@ -37,22 +38,27 @@ jobs:
           package-manager-cache: false
 
       - name: Apply exact root fix
-        run: node -e "global.GITHUB_EVENT_NAME = '\${GITHUB_EVENT_NAME}'; require('./tools/architecture-closure-v2/apply-wp-a-schema-integrity-root-fix.js')"
+        run: |
+          node -e "global.GITHUB_EVENT_NAME = '\${GITHUB_EVENT_NAME}'; require('./tools/architecture-closure-v2/apply-wp-a-schema-integrity-root-fix.js')"
+          node tools/architecture-closure-v2/apply-wp-a-schema-integrity-followup.js
 
       - name: Verify syntax and locked installation
         run: |
           node --check backend/migrations/architectureClosureV2WpA.js
           node --check backend/migrations/architectureClosureV2WpAIntegrity.js
           node --check backend/services/authorityTransactionCoordinator.js
+          node --check backend/services/canonicalEventLedgerAuthority.js
           node --check backend/tests/architectureClosureV2/wpA/schema22PostMergeIntegrityMigration.test.js
           npm ci --ignore-scripts --no-audit --no-fund
 
-      - name: Reproduce and close the four post-merge failures
+      - name: Reproduce and close the post-merge failures
         run: |
           node --test --test-concurrency=1 \
             backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinatorIntegrity.test.js \
+            backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js \
             backend/tests/architectureClosureV2/wpA/schema21AppendOnlyIntegrity.test.js \
-            backend/tests/architectureClosureV2/wpA/schema22PostMergeIntegrityMigration.test.js
+            backend/tests/architectureClosureV2/wpA/schema22PostMergeIntegrityMigration.test.js \
+            backend/tests/round12PlatformCoreAuthorities.test.js
 
       - name: Run the complete portable WP-A matrix
         run: node tools/architecture-closure-v2/run-wp-a-post-merge-contracts.js
@@ -74,7 +80,8 @@ jobs:
           set -euo pipefail
           rm -f \
             .github/workflows/wp-a-schema-integrity-root-fix.yml \
-            tools/architecture-closure-v2/apply-wp-a-schema-integrity-root-fix.js
+            tools/architecture-closure-v2/apply-wp-a-schema-integrity-root-fix.js \
+            tools/architecture-closure-v2/apply-wp-a-schema-integrity-followup.js
           git add -A
           git diff --cached --check
           git config user.name "github-actions[bot]"
