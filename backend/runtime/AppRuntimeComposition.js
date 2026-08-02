@@ -219,7 +219,6 @@ function createAppRuntimeComposition(runtime) {
     authorityWriteHostCapability
   });
   const commandSubmitter = envelope => authorityCommandGateway.execute(envelope);
-  runtime.executeBusinessCommand = commandSubmitter;
 
   const securityGuard = getSecurityGuard();
   const accountContext = new AccountContext({
@@ -232,8 +231,7 @@ function createAppRuntimeComposition(runtime) {
   const recoveryManager = new RecoveryManager({
     safeModeService, backupService, diagnosticsService, productionDiagnostics, systemPolicy,
     lifecycleManager: runtime, securityGuard, eventBus, logger,
-    artifactRegistry, artifactBootstrap, scopedSafety: getScopedSafetyAuthority(),
-    authorityCommandGateway, commandSubmitter
+    artifactRegistry, artifactBootstrap, scopedSafety: getScopedSafetyAuthority()
   });
   const storeProjectionCoordinator = new StoreProjectionCoordinator({ eventBus, logger, workspaceData, modelRegistry, aiTaskRuntimeRegistry });
   const runtimeSafetySupervisor = getRuntimeSafetySupervisor().bindRuntime(runtime);
