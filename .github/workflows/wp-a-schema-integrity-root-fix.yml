@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/wp-a-schema-integrity-root-fix.yml
       - tools/architecture-closure-v2/apply-wp-a-schema-integrity-root-fix.js
+      - backend/tests/architectureClosureV2/wpA/schema22PostMergeIntegrityMigration.test.js
 
 permissions:
   contents: write
