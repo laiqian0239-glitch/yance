@@ -9,21 +9,38 @@ const MAX_REDACTION_DEPTH = canonicalEventLedgerAuthority.MAX_REDACTION_DEPTH;
 const MAX_REDACTION_NODES = canonicalEventLedgerAuthority.MAX_REDACTION_NODES;
 const MAX_EVENT_PAYLOAD_BYTES = canonicalEventLedgerAuthority.MAX_EVENT_PAYLOAD_BYTES;
 
+function authorityError(code, message) {
+  return Object.assign(new TypeError(message), { code });
+}
+
 function assertCanonicalAuthorityBinding(authority) {
-  if (!authority || typeof authority.append !== 'function') {
-    throw Object.assign(new TypeError('DomainEventLogService requires the canonical ledger authority'), {
-      code: 'CANONICAL_EVENT_LEDGER_AUTHORITY_REQUIRED'
-    });
+  if (!authority || (typeof authority !== 'object' && typeof authority !== 'function')) {
+    throw authorityError(
+      'CANONICAL_EVENT_LEDGER_AUTHORITY_REQUIRED',
+      'DomainEventLogService requires the canonical ledger authority'
+    );
   }
   if (authority instanceof canonicalEventLedgerAuthority.CanonicalEventLedgerAuthority) {
     const authorityTransactionCoordinator = authority.coordinator;
     if (!authorityTransactionCoordinator || typeof authorityTransactionCoordinator.execute !== 'function') {
-      throw Object.assign(new TypeError('Canonical ledger authority is not bound to AuthorityTransactionCoordinator'), {
-        code: 'CANONICAL_EVENT_LEDGER_COORDINATOR_REQUIRED'
-      });
+      throw authorityError(
+        'CANONICAL_EVENT_LEDGER_COORDINATOR_REQUIRED',
+        'Canonical ledger authority is not bound to AuthorityTransactionCoordinator'
+      );
     }
   }
   return authority;
+}
+
+function invokeCanonicalAuthority(authority, methodName, argument) {
+  const method = authority?.[methodName];
+  if (typeof method !== 'function') {
+    throw authorityError(
+      'CANONICAL_EVENT_LEDGER_CAPABILITY_REQUIRED',
+      `Canonical ledger authority does not expose ${methodName}`
+    );
+  }
+  return Reflect.apply(method, authority, [argument]);
 }
 
 class DomainEventLogService {
@@ -44,35 +61,35 @@ class DomainEventLogService {
   }
 
   append(input = {}) {
-    return this.canonicalAuthority.append(input);
+    return invokeCanonicalAuthority(this.canonicalAuthority, 'append', input);
   }
 
   readEvent(eventId) {
-    return this.canonicalAuthority.readEvent(eventId);
+    return invokeCanonicalAuthority(this.canonicalAuthority, 'readEvent', eventId);
   }
 
   recordShadowProjection(input = {}) {
-    return this.canonicalAuthority.recordShadowProjection(input);
+    return invokeCanonicalAuthority(this.canonicalAuthority, 'recordShadowProjection', input);
   }
 
   recordAppliedProjection(input = {}) {
-    return this.canonicalAuthority.recordAppliedProjection(input);
+    return invokeCanonicalAuthority(this.canonicalAuthority, 'recordAppliedProjection', input);
   }
 
   convergence(input = {}) {
-    return this.canonicalAuthority.convergence(input);
+    return invokeCanonicalAuthority(this.canonicalAuthority, 'convergence', input);
   }
 
   assertConverged(input = {}) {
-    return this.canonicalAuthority.assertConverged(input);
+    return invokeCanonicalAuthority(this.canonicalAuthority, 'assertConverged', input);
   }
 
   recordProjectionFailure(input = {}) {
-    return this.canonicalAuthority.recordProjectionFailure(input);
+    return invokeCanonicalAuthority(this.canonicalAuthority, 'recordProjectionFailure', input);
   }
 
   replay(input = {}) {
-    return this.canonicalAuthority.replay(input);
+    return invokeCanonicalAuthority(this.canonicalAuthority, 'replay', input);
   }
 }
 Object.freeze(DomainEventLogService.prototype);
