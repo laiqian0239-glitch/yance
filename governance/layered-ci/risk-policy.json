@@ -3,27 +3,39 @@
   "documentType": "YANCE_LAYERED_CI_RISK_POLICY",
   "levels": ["L0", "L1", "L2", "L3"],
   "defaultCodeLevel": "L1",
+  "documentationExactPaths": [
+    "README.md"
+  ],
   "documentationPrefixes": [
-    "docs/",
-    "README"
+    "docs/"
+  ],
+  "l1ExactPaths": [],
+  "l1Prefixes": [
+    "backend/",
+    "frontend/",
+    "scripts/",
+    "services/",
+    "shared/",
+    "tests/",
+    "tools/"
   ],
   "l2ExactPaths": [
     "package.json",
     "package-lock.json"
   ],
   "l2Prefixes": [
-    ".github/workflows/",
+    ".github/",
     "backend/lib/sqlite",
     "backend/runtime/",
     "backend/migrations/",
     "backend/services/authority",
     "backend/services/backup",
     "backend/services/recovery",
-    "tools/wp0/",
-    "tools/layered-ci/",
+    "electron/",
+    "governance/",
     "shared/release/",
-    "governance/layered-ci/",
-    "electron/"
+    "tools/layered-ci/",
+    "tools/wp0/"
   ],
   "l3Automatic": false,
   "unknownPathFailsClosed": true,
