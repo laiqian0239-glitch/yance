@@ -336,6 +336,7 @@ function publicEvent(row, payload) {
     hostGeneration: Number(row.host_generation || 0),
     fencingToken: Number(row.fencing_token || 0),
     ledgerSegmentId: clean(row.ledger_segment_id),
+    retentionClass: clean(row.retention_class),
     payload: deepFreeze(payload)
   });
 }

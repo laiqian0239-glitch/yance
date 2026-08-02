@@ -8,7 +8,8 @@ const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 
 const {
-  ensureObjects: ensureSchema21Objects
+  ensureObjects: ensureSchema21Objects,
+  applyArchitectureClosureV2WpA
 } = require('../../../migrations/architectureClosureV2WpA');
 const {
   MIGRATION_ID,
@@ -96,6 +97,19 @@ test('Schema 22 upgrades a Schema 21 database without inventing historical event
   assert.equal(migration.target_schema_version, 22);
   assert.equal(migration.status, 'completed');
   assert.equal(migration.checksum, MIGRATION_CHECKSUM);
+  assert.equal(JSON.parse(db.prepare("SELECT value_json FROM r32_meta WHERE key='schema_version'").get().value_json), 22);
+}));
+
+test('reapplying the WP-A entrypoint never transiently downgrades completed Schema 22 metadata', () => withRawDatabase(db => {
+  const first = applyArchitectureClosureV2WpA(db);
+  assert.equal(first.targetSchemaVersion, 22);
+  db.exec(`CREATE TRIGGER reject_schema_21_reentry
+    BEFORE UPDATE OF value_json ON r32_meta
+    WHEN NEW.key IN ('schema_version','schemaVersion') AND NEW.value_json='21'
+    BEGIN SELECT RAISE(ABORT,'schema 21 downgrade forbidden'); END;`);
+
+  const second = applyArchitectureClosureV2WpA(db);
+  assert.equal(second.targetSchemaVersion, 22);
   assert.equal(JSON.parse(db.prepare("SELECT value_json FROM r32_meta WHERE key='schema_version'").get().value_json), 22);
 }));
 

@@ -277,6 +277,20 @@ function ensureConsistency(db) {
   }
 }
 
+function architectureClosureResult(integrity) {
+  return {
+    migrationId: integrity.migrationId,
+    baseMigrationId: MIGRATION_ID,
+    targetSchemaVersion: integrity.targetSchemaVersion,
+    baseTargetSchemaVersion: TARGET_SCHEMA_VERSION,
+    checksum: integrity.checksum,
+    baseChecksum: MIGRATION_CHECKSUM,
+    bootstrapChecksum: BOOTSTRAP_CHECKSUM,
+    schemaContractVersion: 3,
+    legacyReceiptPolicy: integrity.legacyReceiptPolicy
+  };
+}
+
 function applyArchitectureClosureV2WpA(db) {
   ensureMigrationTable(db);
   const existing = db.prepare('SELECT * FROM r32_schema_migrations WHERE migration_id=?').get(MIGRATION_ID);
@@ -288,8 +302,11 @@ function applyArchitectureClosureV2WpA(db) {
     throw error;
   }
   const integrityApplied = isArchitectureClosureV2WpAIntegrityApplied(db);
+  if (integrityApplied) {
+    return architectureClosureResult(applyArchitectureClosureV2WpAIntegrity(db));
+  }
   ensureObjects(db);
-  if (!integrityApplied) ensureConsistency(db);
+  ensureConsistency(db);
   const at = nowIso();
   setSchemaVersion(db, TARGET_SCHEMA_VERSION, at);
   const report = JSON.stringify({
@@ -309,18 +326,7 @@ function applyArchitectureClosureV2WpA(db) {
       SET target_schema_version=?,status='completed',checksum=?,completed_at=?,report_json=?
       WHERE migration_id=?`).run(TARGET_SCHEMA_VERSION,MIGRATION_CHECKSUM,at,report,MIGRATION_ID);
   }
-  const integrity = applyArchitectureClosureV2WpAIntegrity(db);
-  return {
-    migrationId: integrity.migrationId,
-    baseMigrationId: MIGRATION_ID,
-    targetSchemaVersion: integrity.targetSchemaVersion,
-    baseTargetSchemaVersion: TARGET_SCHEMA_VERSION,
-    checksum: integrity.checksum,
-    baseChecksum: MIGRATION_CHECKSUM,
-    bootstrapChecksum: BOOTSTRAP_CHECKSUM,
-    schemaContractVersion: 3,
-    legacyReceiptPolicy: integrity.legacyReceiptPolicy
-  };
+  return architectureClosureResult(applyArchitectureClosureV2WpAIntegrity(db));
 }
 
 module.exports = {
