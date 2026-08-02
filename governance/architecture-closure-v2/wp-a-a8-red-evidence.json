@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_TASK_RED_EVIDENCE",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-A",
+  "task": "A8",
+  "status": "VALID_RED_RECORDED",
+  "redHead": "55cb4f79f1af5e8d38e3ee04858a206aa4b041f5",
+  "parentTask": "A7",
+  "parentEvidenceBranchTip": "cbfaf2855f9eb2137dbdccddff1ef396d5bb4ef3",
+  "workflow": {
+    "acv2RunId": 30762469778,
+    "ubuntuJobId": 91535361379,
+    "windowsJobId": 91535361409,
+    "sourceClosureJobId": 91535361461,
+    "ubuntuFailureStep": "Run A8 zero-writer source closure contract",
+    "windowsFailureStep": "Run A8 zero-writer source closure contract",
+    "sourceClosureFailureStep": "Validate A8 zero-writer contract",
+    "priorA1ThroughA7StepsPassedOnUbuntu": true,
+    "priorA1ThroughA7StepsPassedOnWindows": true,
+    "syntaxOrModuleFailure": false
+  },
+  "scanner": {
+    "path": "tools/architecture-closure-v2/source-closure-scan.js",
+    "scannedSourceFiles": 354,
+    "registryEntries": 25,
+    "violationCount": 22,
+    "counts": {
+      "AUTHORITY_WRITE_HOST_CAPABILITY_MISSING": 2,
+      "PRIMARY_DB_FALLBACK_PRESENT": 2,
+      "PRIMARY_DB_ROLE_BOUNDARY_INCOMPLETE": 6,
+      "CANONICAL_LEDGER_COORDINATOR_MISSING": 4,
+      "UNREGISTERED_PRIMARY_DB_ACCESS": 8
+    },
+    "registryInvalidCount": 0,
+    "discoveryRoots": ["backend"],
+    "discoveryExcludes": ["backend/tests", "backend/migrations"],
+    "weakeningApplied": false
+  },
+  "violations": [
+    { "path": "backend/desktopHostedEntry.js", "class": "AUTHORITY_WRITE_HOST_CAPABILITY_MISSING", "issue": "missing acquireAuthorityWriteHost and direct broker construction" },
+    { "path": "backend/lib/r32StoreSingleton.js", "class": "PRIMARY_DB_FALLBACK_PRESENT", "issue": "missing SQLITE_BROKER_NOT_READY and local R32SqliteStore fallback" },
+    { "path": "backend/repositories/storeProvider.js", "class": "PRIMARY_DB_ROLE_BOUNDARY_INCOMPLETE", "issue": "raw getStore facade instead of getAuthorityReadSnapshot" },
+    { "path": "backend/services/legacyJsonMigrator.js", "class": "PRIMARY_DB_ROLE_BOUNDARY_INCOMPLETE", "issue": "constructs live target R32SqliteStore without AuthorityWriteHost" },
+    { "path": "backend/migrations/legacySqliteMigrator.js", "class": "PRIMARY_DB_ROLE_BOUNDARY_INCOMPLETE", "issue": "constructs live target R32SqliteStore without AuthorityWriteHost" },
+    { "path": "backend/services/domainEventLogService.js", "class": "CANONICAL_LEDGER_COORDINATOR_MISSING", "issue": "compatibility facade lacks explicit authorityTransactionCoordinator binding" },
+    { "path": "backend/repositories/platformCoreRepository.js", "class": "CANONICAL_LEDGER_COORDINATOR_MISSING", "issue": "public insertDomainEvent remains and coordinatorCapability is absent" },
+    { "path": "backend/services/domainEventProjectionAuthority.js", "class": "CANONICAL_LEDGER_COORDINATOR_MISSING", "issue": "projection mutation is not bound to ledgerSequence" },
+    { "path": "backend/lib/sqliteDocumentStore.js", "class": "UNREGISTERED_PRIMARY_DB_ACCESS", "issue": "implicit getR32Store acquisition" },
+    { "path": "backend/lib/sqliteOwnership.js", "class": "UNREGISTERED_PRIMARY_DB_ACCESS", "issue": "direct DatabaseSync constructor outside explicit SQLite authority" },
+    { "path": "backend/routes/workspace.js", "class": "UNREGISTERED_PRIMARY_DB_ACCESS", "issue": "route obtains getR32Store().db and constructs repositories per request" },
+    { "path": "backend/runtime/RuntimeAuthorityMigrationCoordinator.js", "class": "UNREGISTERED_PRIMARY_DB_ACCESS", "issue": "direct read-only DatabaseSync constructor without isolated source authority" },
+    { "path": "backend/services/authorityWriteHost.js", "class": "UNREGISTERED_PRIMARY_DB_ACCESS", "issue": "canonical primary constructor is not yet registered as the sole host boundary" },
+    { "path": "backend/services/backupService.js", "class": "UNREGISTERED_PRIMARY_DB_ACCESS", "issue": "direct snapshot and verification DatabaseSync constructors" },
+    { "path": "backend/store/adapters/SqliteStorePersistenceAdapter.js", "class": "UNREGISTERED_PRIMARY_DB_ACCESS", "issue": "implicit getR32Store acquisition" },
+    { "path": "backend/store/contactIdentityConfirmationRepository.js", "class": "UNREGISTERED_PRIMARY_DB_ACCESS", "issue": "source advertises production raw-store injection instead of transaction capability" }
+  ],
+  "implementationAuthorization": {
+    "plan": "docs/superpowers/plans/2026-08-03-wp-a-a8-source-closure.md",
+    "testFirstSatisfied": true,
+    "productionImplementationMayBegin": true,
+    "scannerWeakeningAuthorized": false,
+    "registryOnlyClosureAuthorized": false
+  },
+  "governance": {
+    "prMustRemainDraft": true,
+    "automaticClosure": false,
+    "automaticNextWorkPackageAuthorization": false,
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "publish": false
+  }
+}
