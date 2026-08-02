@@ -29,20 +29,8 @@ function buildRegistry() {
   return registry;
 }
 
-test('the classification vocabulary is exact and immutable', () => {
-  const { CLASSIFICATIONS } = loadRegistryModule();
-  assert.deepEqual(Object.values(CLASSIFICATIONS).sort(), [
-    'BINARY_REFERENCE',
-    'BUSINESS_CONTENT',
-    'PUBLIC_METADATA',
-    'SECRET_REFERENCE'
-  ]);
-  assert.equal(Object.isFrozen(CLASSIFICATIONS), true);
-});
-
-test('registered payload fields validate without copying business content into metadata', () => {
-  const registry = buildRegistry();
-  const result = registry.validateEventPayload('message.received', {
+function validPayload(overrides = {}) {
+  return {
     eventId: 'evt-1',
     body: 'private message body',
     credential: {
@@ -57,8 +45,25 @@ test('registered payload fields validate without copying business content into m
       size: 123,
       mime: 'image/png',
       lifecycleState: 'AVAILABLE'
-    }
-  });
+    },
+    ...overrides
+  };
+}
+
+test('the classification vocabulary is exact and immutable', () => {
+  const { CLASSIFICATIONS } = loadRegistryModule();
+  assert.deepEqual(Object.values(CLASSIFICATIONS).sort(), [
+    'BINARY_REFERENCE',
+    'BUSINESS_CONTENT',
+    'PUBLIC_METADATA',
+    'SECRET_REFERENCE'
+  ]);
+  assert.equal(Object.isFrozen(CLASSIFICATIONS), true);
+});
+
+test('registered payload fields validate without copying business content into metadata', () => {
+  const registry = buildRegistry();
+  const result = registry.validateEventPayload('message.received', validPayload());
   assert.equal(result.ok, true);
   assert.deepEqual(result.classifications, {
     eventId: 'PUBLIC_METADATA',
@@ -79,7 +84,7 @@ test('unknown payload fields and schema fields without a classification fail clo
 
   const valid = buildRegistry();
   assert.throws(
-    () => valid.validateEventPayload('message.received', { eventId: 'evt-1', body: 'x', credential: {}, media: {}, extra: true }),
+    () => valid.validateEventPayload('message.received', { ...validPayload(), extra: true }),
     error => error?.code === 'DATA_CLASSIFICATION_FIELD_UNREGISTERED' && error?.fieldPath === '$.extra'
   );
 });
@@ -95,7 +100,7 @@ test('secret references reject raw API keys, tokens, cookies, QR material and ar
   ];
   for (const credential of forbidden) {
     assert.throws(
-      () => registry.validateEventPayload('message.received', { eventId: 'e', body: 'b', credential, media: { binaryRef: 'managed://m', sha256: 'a'.repeat(64), size: 1, mime: 'x', lifecycleState: 'AVAILABLE' } }),
+      () => registry.validateEventPayload('message.received', validPayload({ credential })),
       error => error?.code === 'SECRET_REFERENCE_MATERIAL_FORBIDDEN'
     );
   }
@@ -110,7 +115,7 @@ test('secret references require a stable reference, positive generation and cust
     { generation: 1, receiptId: 'r' }
   ]) {
     assert.throws(
-      () => registry.validateEventPayload('message.received', { eventId: 'e', body: 'b', credential, media: { binaryRef: 'managed://m', sha256: 'a'.repeat(64), size: 1, mime: 'x', lifecycleState: 'AVAILABLE' } }),
+      () => registry.validateEventPayload('message.received', validPayload({ credential })),
       error => error?.code === 'SECRET_REFERENCE_INCOMPLETE'
     );
   }
@@ -125,7 +130,7 @@ test('binary references reject embedded Buffer, Uint8Array and base64 bodies', (
   ];
   for (const media of forbidden) {
     assert.throws(
-      () => registry.validateEventPayload('message.received', { eventId: 'e', body: 'b', credential: { credentialRef: 'vault://x', generation: 1, receiptId: 'r' }, media }),
+      () => registry.validateEventPayload('message.received', validPayload({ media })),
       error => error?.code === 'BINARY_REFERENCE_INLINE_DATA_FORBIDDEN'
     );
   }
@@ -140,5 +145,59 @@ test('duplicate event registration with a conflicting classification schema is r
       fields: { eventId: { classification: CLASSIFICATIONS.BUSINESS_CONTENT, type: 'string' } }
     }),
     error => error?.code === 'DATA_CLASSIFICATION_SCHEMA_CONFLICT'
+  );
+});
+
+test('symbol and non-enumerable payload fields cannot bypass unknown-field rejection', () => {
+  const registry = buildRegistry();
+  const hidden = validPayload();
+  Object.defineProperty(hidden, 'hiddenSecret', { enumerable: false, value: 'secret' });
+  assert.throws(
+    () => registry.validateEventPayload('message.received', hidden),
+    error => error?.code === 'DATA_CLASSIFICATION_FIELD_UNREGISTERED' && error?.fieldPath === '$.hiddenSecret'
+  );
+
+  const symbol = validPayload();
+  symbol[Symbol('hidden')] = 'secret';
+  assert.throws(
+    () => registry.validateEventPayload('message.received', symbol),
+    error => error?.code === 'DATA_CLASSIFICATION_SYMBOL_KEY_FORBIDDEN'
+  );
+});
+
+test('binary reference accessors are rejected without executing their getter', () => {
+  const registry = buildRegistry();
+  let reads = 0;
+  const media = {
+    binaryRef: 'managed://m',
+    sha256: 'a'.repeat(64),
+    size: 1,
+    mime: 'image/png',
+    lifecycleState: 'AVAILABLE'
+  };
+  Object.defineProperty(media, 'data', {
+    enumerable: true,
+    get() { reads += 1; throw new Error('getter must never execute'); }
+  });
+  assert.throws(
+    () => registry.validateEventPayload('message.received', validPayload({ media })),
+    error => error?.code === 'BINARY_REFERENCE_INLINE_DATA_FORBIDDEN'
+  );
+  assert.equal(reads, 0);
+});
+
+test('credential and binary references accept only custody and managed reference schemes', () => {
+  const registry = buildRegistry();
+  assert.throws(
+    () => registry.validateEventPayload('message.received', validPayload({
+      credential: { credentialRef: 'https://example.com/?token=raw', generation: 1, receiptId: 'r' }
+    })),
+    error => error?.code === 'SECRET_REFERENCE_INCOMPLETE'
+  );
+  assert.throws(
+    () => registry.validateEventPayload('message.received', validPayload({
+      media: { binaryRef: 'https://example.com/raw.bin', sha256: 'a'.repeat(64), size: 1, mime: 'application/octet-stream', lifecycleState: 'AVAILABLE' }
+    })),
+    error => error?.code === 'BINARY_REFERENCE_INCOMPLETE'
   );
 });
