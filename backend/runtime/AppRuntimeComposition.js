@@ -53,7 +53,8 @@ const { AppRuntimeError } = require('./errors');
 
 const STARTUP_COMMAND_FIELDS = new Set(['contractVersion', 'commandId', 'commandType', 'expectedStateVersion', 'issuedAtUtc', 'payload']);
 const FORBIDDEN_STARTUP_PAYLOAD_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
-const SEALED_STARTUP_GATEWAYS = new WeakSet();
+const STARTUP_HANDLER_AUTHORITIES = new WeakMap();
+const STARTUP_GATEWAY_STATES = new WeakMap();
 
 function gatewayError(code, message, status = 400, details = {}) {
   return new AppRuntimeError(code, message, { status, details });
@@ -68,7 +69,7 @@ function createStartupCommandHandlers(options = {}) {
       503
     );
   }
-  return Object.freeze(Object.assign(Object.create(null), {
+  const handlers = Object.freeze(Object.assign(Object.create(null), {
     'startup.migrate': () => migrationService.migrateAtStartup(),
     'startup.recoverSync': () => syncCheckpointService.recoverInterrupted(),
     'startup.recoverBackgroundJobs': payload => backgroundJobAuthority.recoverInterrupted({
@@ -81,6 +82,8 @@ function createStartupCommandHandlers(options = {}) {
     'startup.productionDataGuard': () => runProductionDataGuard(),
     'startup.initializeWorkspacePipelines': () => workspaceService.initializeDataPipelines()
   }));
+  STARTUP_HANDLER_AUTHORITIES.set(handlers, identityAuthority);
+  return handlers;
 }
 
 function assertStartupCommandHandlers(value) {
@@ -105,6 +108,14 @@ function assertStartupCommandHandlers(value) {
     throw gatewayError('STARTUP_COMMAND_HANDLERS_INVALID', 'Startup command handlers cannot be empty', 503);
   }
   return value;
+}
+
+function startupGatewayState(gateway) {
+  const state = STARTUP_GATEWAY_STATES.get(gateway);
+  if (!state) {
+    throw gatewayError('STARTUP_COMMAND_GATEWAY_INVALID', 'Startup command gateway private state is unavailable', 503);
+  }
+  return state;
 }
 
 function hasStartupCommandHandler(commandHandlers, commandType) {
@@ -217,36 +228,50 @@ class RuntimeAuthorityCommandGateway {
         409
       );
     }
-    Object.defineProperties(this, {
-      runtime: { value: runtime, enumerable: false, writable: false, configurable: false },
-      authorityWriteHostCapability: { value: authorityWriteHostCapability, enumerable: false, writable: false, configurable: false },
-      authorityStore: { value: authorityStore, enumerable: false, writable: false, configurable: false },
-      commandHandlers: { value: commandHandlers, enumerable: false, writable: false, configurable: false },
-      receipts: { value: new Map(), enumerable: false, writable: false, configurable: false }
+    STARTUP_GATEWAY_STATES.set(this, {
+      runtime,
+      authorityWriteHostCapability,
+      authorityStore,
+      commandHandlers,
+      receipts: new Map(),
+      sealed: false
     });
     this.assertAuthorityCurrent();
   }
 
   assertAuthorityCurrent() {
-    assertCurrentAuthorityWriteHostToken(this.authorityWriteHostCapability, this.authorityStore.db);
+    const state = startupGatewayState(this);
+    assertCurrentAuthorityWriteHostToken(state.authorityWriteHostCapability, state.authorityStore.db);
     return true;
   }
 
+  assertCanonicalBinding(expected = {}) {
+    const state = startupGatewayState(this);
+    const checks = Object.freeze({
+      runtimeMatches: state.runtime === expected.runtime,
+      capabilityMatches: state.authorityWriteHostCapability === expected.authorityWriteHostCapability,
+      storeMatches: state.authorityStore === expected.authorityStore,
+      identityAuthorityMatches: STARTUP_HANDLER_AUTHORITIES.get(state.commandHandlers) === expected.identityAuthority
+    });
+    return Object.freeze({ bound: Object.values(checks).every(Boolean), checks });
+  }
+
   execute(input) {
-    if (SEALED_STARTUP_GATEWAYS.has(this)) {
+    const state = startupGatewayState(this);
+    if (state.sealed) {
       throw gatewayError('STARTUP_COMMAND_GATEWAY_SEALED', 'Startup command gateway is sealed after boot', 409);
     }
     this.assertAuthorityCurrent();
-    const envelope = assertStartupEnvelope(input, this.commandHandlers);
+    const envelope = assertStartupEnvelope(input, state.commandHandlers);
     const contentSha256 = canonicalHash(envelope);
-    const existing = this.receipts.get(envelope.commandId);
+    const existing = state.receipts.get(envelope.commandId);
     if (existing) {
       if (existing.contentSha256 !== contentSha256) {
         throw gatewayError('STARTUP_COMMAND_IDEMPOTENCY_CONFLICT', 'Startup commandId was reused with different content', 409);
       }
       return Object.freeze({ ...existing.receipt, duplicate: true });
     }
-    const snapshot = this.runtime.snapshot();
+    const snapshot = state.runtime.snapshot();
     if (Number(snapshot.stateVersion) !== envelope.expectedStateVersion) {
       throw gatewayError('STARTUP_COMMAND_STATE_VERSION_CONFLICT', 'Startup command expectedStateVersion is stale', 409, {
         expectedStateVersion: envelope.expectedStateVersion,
@@ -254,7 +279,7 @@ class RuntimeAuthorityCommandGateway {
       });
     }
     this.assertAuthorityCurrent();
-    const handler = this.commandHandlers[envelope.commandType];
+    const handler = state.commandHandlers[envelope.commandType];
     const result = handler(envelope.payload);
     if (result && typeof result.then === 'function') {
       throw gatewayError('STARTUP_COMMAND_ASYNC_HANDLER_FORBIDDEN', 'Startup authority handlers must complete synchronously before readiness', 500);
@@ -269,12 +294,13 @@ class RuntimeAuthorityCommandGateway {
       completedAtUtc: new Date().toISOString(),
       result: result == null ? null : result
     });
-    this.receipts.set(envelope.commandId, Object.freeze({ contentSha256, receipt }));
+    state.receipts.set(envelope.commandId, Object.freeze({ contentSha256, receipt }));
     return receipt;
   }
 
   submit(commandType, payload = {}) {
-    const snapshot = this.runtime.snapshot();
+    const state = startupGatewayState(this);
+    const snapshot = state.runtime.snapshot();
     return this.execute({
       contractVersion: 2,
       commandId: randomUUID(),
@@ -286,15 +312,17 @@ class RuntimeAuthorityCommandGateway {
   }
 
   seal() {
-    SEALED_STARTUP_GATEWAYS.add(this);
+    const state = startupGatewayState(this);
+    state.sealed = true;
     return this.snapshot();
   }
 
   snapshot() {
+    const state = startupGatewayState(this);
     return Object.freeze({
       authority: 'RuntimeAuthorityCommandGateway',
-      state: SEALED_STARTUP_GATEWAYS.has(this) ? 'sealed' : 'open',
-      receiptCount: this.receipts.size
+      state: state.sealed ? 'sealed' : 'open',
+      receiptCount: state.receipts.size
     });
   }
 }
@@ -340,7 +368,6 @@ function createAppRuntimeComposition(runtime) {
   securityGuard.setPolicyProviders({ safeModeProvider: () => runtime.operatingMode === 'safeMode', lifecycleStateProvider: () => runtime.state, productionDiagnostics });
   return Object.freeze({
     authorities: Object.freeze({ authorityWriteHostCapability, authorityTransactionCoordinator, canonicalEventLedgerAuthority, identityAuthority, platformCoreRepository }),
-    startupCommandHandlers,
     authorityCommandGateway,
     commandSubmitter,
     accountContext,
