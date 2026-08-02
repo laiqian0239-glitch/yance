@@ -27,6 +27,7 @@ const FORBIDDEN_IDENTITY_KEYS = new Set(['__proto__', 'prototype', 'constructor'
 const IDENTITY_MAX_IDENTIFIER = 1024;
 const IDENTITY_MAX_EVIDENCE_REFS = 100;
 const SENSITIVE_IDENTITY_KEY = /(token|secret|password|cookie|authorization|credential|qrcode|privatekey)/i;
+const STRONG_CANONICAL_IDENTITY_TOKEN = /^(?:jid|credential|source):/;
 
 function normalizeIdentityInput(input = {}, label = 'identityInput') {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
@@ -202,7 +203,30 @@ class IdentityAuthority {
   }
 
   canonicalizeWhatsAppAccounts(options = {}) {
-    return this.legacyCanonicalIdentity.canonicalizeWhatsAppAccounts(options);
+    const safeOptions = normalizeIdentityInput(options, 'identityCanonicalizationOptions');
+    if (safeOptions.dryRun === true) {
+      return this.legacyCanonicalIdentity.canonicalizeWhatsAppAccounts({ ...safeOptions, dryRun: true });
+    }
+    const preview = this.legacyCanonicalIdentity.canonicalizeWhatsAppAccounts({ ...safeOptions, dryRun: true });
+    const groups = Array.isArray(preview?.groups) ? preview.groups : [];
+    const weakGroups = groups.filter(group => {
+      const tokens = Array.isArray(group?.sharedTokens) ? group.sharedTokens.map(clean).filter(Boolean) : [];
+      return !tokens.some(token => STRONG_CANONICAL_IDENTITY_TOKEN.test(token));
+    });
+    if (weakGroups.length) {
+      throw error(
+        'IDENTITY_CANONICALIZATION_WEAK_SIGNAL_FORBIDDEN',
+        '身份合并组缺少 JID、凭证或受管来源等强身份证据。',
+        409,
+        {
+          groups: weakGroups.map(group => ({
+            canonicalId: clean(group?.canonicalId),
+            aliasIds: Array.isArray(group?.aliasIds) ? group.aliasIds.map(clean).filter(Boolean) : []
+          }))
+        }
+      );
+    }
+    return this.legacyCanonicalIdentity.canonicalizeWhatsAppAccounts(safeOptions);
   }
   resolveCanonicalAccountId(...args) { return this.legacyCanonicalIdentity.resolveCanonicalAccountId(...args); }
   accountIdentityAliases(...args) { return this.legacyCanonicalIdentity.accountIdentityAliases(...args); }
