@@ -270,3 +270,61 @@ test('identity events are recorded only after the repository transaction has com
     harness.close();
   }
 });
+
+test('legacy canonicalization refuses phone-only identity groups before any mutation', () => {
+  const { IdentityAuthority } = loadA5();
+  const weakCalls = [];
+  const weakLegacy = {
+    canonicalizeWhatsAppAccounts(options = {}) {
+      weakCalls.push(options);
+      if (options.dryRun === true) {
+        return {
+          ok: true,
+          dryRun: true,
+          executed: false,
+          groups: [{ canonicalId: 'wa-1', aliasIds: ['wa-2'], sharedTokens: ['phone:491701234567'] }]
+        };
+      }
+      return { ok: true, executed: true };
+    }
+  };
+  const weakAuthority = new IdentityAuthority({
+    repository: {},
+    eventRecorder: () => {},
+    legacyCanonicalIdentity: weakLegacy
+  });
+  assert.throws(
+    () => weakAuthority.canonicalizeWhatsAppAccounts({ store: { marker: 'store' } }),
+    error => error?.code === 'IDENTITY_CANONICALIZATION_WEAK_SIGNAL_FORBIDDEN'
+  );
+  assert.equal(weakCalls.length, 1);
+  assert.equal(weakCalls[0].dryRun, true);
+
+  const strongCalls = [];
+  const strongLegacy = {
+    canonicalizeWhatsAppAccounts(options = {}) {
+      strongCalls.push(options);
+      if (options.dryRun === true) {
+        return {
+          ok: true,
+          dryRun: true,
+          executed: false,
+          groups: [{ canonicalId: 'wa-1', aliasIds: ['wa-2'], sharedTokens: ['jid:491701234567@s.whatsapp.net'] }]
+        };
+      }
+      return { ok: true, executed: true };
+    }
+  };
+  const strongAuthority = new IdentityAuthority({
+    repository: {},
+    eventRecorder: () => {},
+    legacyCanonicalIdentity: strongLegacy
+  });
+  assert.deepEqual(
+    strongAuthority.canonicalizeWhatsAppAccounts({ store: { marker: 'store' } }),
+    { ok: true, executed: true }
+  );
+  assert.equal(strongCalls.length, 2);
+  assert.equal(strongCalls[0].dryRun, true);
+  assert.notEqual(strongCalls[1].dryRun, true);
+});
