@@ -1,11 +1,11 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "documentType": "YANCE_ACV2_WP_A_A6_INDEPENDENT_REVIEW_EVIDENCE",
-  "status": "IMPLEMENTATION_AND_SCOPE_GATES_REPAIRED_VALIDATION_BLOCKED",
+  "status": "IMPLEMENTATION_AND_EXECUTABLE_SCOPE_GATES_REPAIRED_VALIDATION_BLOCKED",
   "workPackage": "WP-A",
   "task": "A6_WIRE_SINGLE_WRITE_HOST_LEDGER_AND_IDENTITY_AUTHORITY_INTO_RUNTIME_STARTUP",
-  "reviewedRuntimeImplementationHead": "c02f00fe69319d80468eae786f227959bb4b85af",
-  "reviewedGovernanceImplementationHead": "f5a263ad5004fa3707a22058bad969575a9876ad",
+  "reviewedRuntimeImplementationHead": "e43d5216219e69c9b08048c7bcdfba1134360cbc",
+  "reviewedGovernanceImplementationHead": "ee1ce7cffe69b4235cc26a6acbf58c045a3fd79d",
   "reviewMode": "INDEPENDENT_SOURCE_REVIEW_WITH_ADVERSARIAL_CONTRACTS",
   "externalReviewer": {
     "codeRabbitUsed": false,
@@ -34,7 +34,9 @@
     "RUNTIME_STATE_STORE_COULD_OMIT_DB_AND_BYPASS_PRIMARY_DATABASE_IDENTITY_CHECK",
     "ACV2_PULL_REQUEST_WORKFLOW_FILTER_DID_NOT_MATCH_THE_CURRENT_MAIN_BASE",
     "WP0_DECLARED_ALLOWED_PRODUCTION_PATHS_BUT_DID_NOT_ENFORCE_CHANGED_FILE_SCOPE",
-    "A6_BASELINE_EXCLUDED_REQUIRED_BOTTOM_LAYER_RUNTIME_ROOT_REPAIR_FILES"
+    "A6_BASELINE_EXCLUDED_REQUIRED_BOTTOM_LAYER_RUNTIME_ROOT_REPAIR_FILES",
+    "VERIFY_WP0_GATE_DID_NOT_PROTECT_BUILD_PACKAGE_RELEASE_ENTRYPOINTS",
+    "PARENT_TO_HEAD_DIFF_DID_NOT_REJECT_DIRTY_OR_UNTRACKED_WORKTREE_STATE"
   ],
   "implementationProperties": [
     "CORE_BUSINESS_COMMAND_ENTRYPOINT_PRESERVED",
@@ -50,7 +52,9 @@
     "STARTUP_GATEWAY_HAS_ONE_WAY_SEAL_BEFORE_BACKEND_READINESS",
     "DESKTOP_TRANSPORT_REJECTS_OWN_AND_INHERITED_WRITE_HOST_CAPABILITY_INJECTION",
     "WORK_PACKAGE_SCOPE_IS_ENFORCED_BY_SORTED_CHANGED_FILE_SET_HASH_AND_EXACT_PATHS",
-    "SCOPE_AMENDMENT_REJECTS_WILDCARDS_WRONG_PARENT_WRONG_PR_WRONG_COUNT_AND_UNKNOWN_PATHS"
+    "SCOPE_AMENDMENT_REJECTS_WILDCARDS_WRONG_PARENT_WRONG_PR_WRONG_COUNT_AND_UNKNOWN_PATHS",
+    "VERIFY_GATE_AND_BUILD_PACKAGE_RELEASE_SHARE_ONE_SCOPE_GATE",
+    "SCOPE_GATE_REJECTS_DIRTY_WORKTREE_AUTHORIZATION_BLOB_DRIFT_PARENT_DRIFT_AND_CHANGED_FILE_DRIFT"
   ],
   "runtimeAdversarialContracts": [
     "backend/tests/architectureClosureV2/wpA/runtimeComposition.test.js",
@@ -58,7 +62,10 @@
     "backend/tests/architectureClosureV2/wpA/runtimeStateStoreBinding.test.js",
     "backend/tests/architectureClosureV2/wpA/startupOrdering.test.js"
   ],
-  "governanceAdversarialContract": "tests/wp0/implementation-branch-policy.test.js",
+  "governanceAdversarialContracts": [
+    "tests/wp0/implementation-branch-policy.test.js",
+    "tests/wp0/acv2-work-package-scope-wiring.test.js"
+  ],
   "productionScope": [
     "backend/runtime/AppRuntime.js",
     "backend/runtime/AppRuntimeFactory.js",
@@ -72,9 +79,17 @@
     "baseAuthorizationBlobSha": "203697b36c06e0dc72c92113ef58f1a8f2394312",
     "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
     "pullRequest": 5,
-    "approvedChangedFileCount": 78,
-    "approvedChangedFileSetSha256": "09ea0728cb5677d5b4f6d970f1b9dd8e85abff94d9d736fbabc5da83d24e2bf6",
-    "additionalExactPathCount": 13,
+    "approvedChangedFileCount": 82,
+    "approvedChangedFileSetSha256": "024e5b4db507f1526085af9dc2dd6ef71755d1e7063f0cdd418a3c1896229866",
+    "additionalExactPathCount": 17,
+    "sharedExecutableGate": "tools/wp0/work-package-scope-gate.js",
+    "protectedEntrypoints": [
+      "tools/wp0/verify-gate.js",
+      "tools/wp0/run-protected-command.js"
+    ],
+    "cleanWorktreeRequired": true,
+    "authorizationBlobPinned": true,
+    "parentMustBeAncestor": true,
     "wildcardExpansionAllowed": false,
     "automaticNextTaskAuthorization": false,
     "automaticNextWorkPackageAuthorization": false,
@@ -82,18 +97,18 @@
     "externallySignedAuthorizationClaimed": false
   },
   "latestValidationAttempt": {
-    "reviewedHead": "f5a263ad5004fa3707a22058bad969575a9876ad",
-    "acv2WorkflowRunId": 30751671994,
+    "reviewedHead": "ee1ce7cffe69b4235cc26a6acbf58c045a3fd79d",
+    "acv2WorkflowRunId": 30752221618,
     "acv2Jobs": {
-      "ubuntu": 91506694494,
-      "windows": 91506694509,
-      "sourceClosure": 91506694470
+      "ubuntu": 91508155884,
+      "windows": 91508155870,
+      "sourceClosure": 91508155887
     },
-    "wp0WorkflowRunId": 30751671984,
+    "wp0WorkflowRunId": 30752221614,
     "wp0Jobs": {
-      "wp0": 91506694474,
-      "sealedExportUbuntu": 91506694506,
-      "sealedExportWindows": 91506694453
+      "wp0": 91508156024,
+      "sealedExportUbuntu": 91508155988,
+      "sealedExportWindows": 91508155981
     },
     "allJobsHadSteps": false,
     "allJobsHadLogs": false,
