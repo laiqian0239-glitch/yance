@@ -44,15 +44,20 @@ test('shared scope gate prefers the sequential task chain and preserves historic
   assert.match(source, /ACV2_(?:WORK_PACKAGE|TASK)_SCOPE_/);
 });
 
-test('repository task scope chain is machine-readable and pins A6 closed before A7', () => {
+test('repository task scope chain is machine-readable and pins A6 and A7 closed before A8', () => {
   const document = JSON.parse(fs.readFileSync(taskScopeChainPath, 'utf8'));
   assert.equal(document.documentType, 'YANCE_ACV2_TASK_SCOPE_CHAIN');
-  assert.equal(document.activeTask, 'A7');
+  assert.equal(document.activeTask, 'A8');
   assert.equal(document.tasks[0].task, 'A6');
   assert.equal(document.tasks[0].state, 'CLOSED');
   assert.equal(document.tasks[1].task, 'A7');
+  assert.equal(document.tasks[1].state, 'CLOSED');
   assert.equal(document.tasks[1].parentTask, 'A6');
   assert.equal(document.tasks[1].parentEvidenceBranchTip, document.tasks[0].evidenceBranchTip);
+  assert.equal(document.tasks[2].task, 'A8');
+  assert.equal(document.tasks[2].state, 'IMPLEMENTING');
+  assert.equal(document.tasks[2].parentTask, 'A7');
+  assert.equal(document.tasks[2].parentEvidenceBranchTip, document.tasks[1].evidenceBranchTip);
   assert.equal(document.governance.wildcardExpansionAllowed, false);
   assert.equal(document.governance.readyForPromotion, false);
 });
@@ -92,7 +97,7 @@ test('detached evidence mode still evaluates the authorized ACV2 changed-file sc
   assert.ok(calls.some(args => args.includes('diff') && args.includes('--name-only')));
 });
 
-test('active task chain evaluation reports A7 and cannot claim promotion readiness', () => {
+test('active task chain evaluation reports A8 and cannot claim promotion readiness', () => {
   const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
   const authorization = JSON.parse(fs.readFileSync(authorizationPath, 'utf8'));
   const chain = JSON.parse(fs.readFileSync(taskScopeChainPath, 'utf8'));
@@ -126,6 +131,6 @@ test('active task chain evaluation reports A7 and cannot claim promotion readine
   });
   assert.equal(result.pass, true, JSON.stringify(result));
   assert.equal(result.taskScopeChainApplied, true);
-  assert.equal(result.activeTask, 'A7');
+  assert.equal(result.activeTask, 'A8');
   assert.equal(result.readyForPromotion, false);
 });
