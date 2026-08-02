@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 17,
+  "schemaVersion": 18,
   "documentType": "YANCE_ACV2_WP_A_BASELINE",
-  "status": "A5_CLOSED_A6_TEST_FIRST_RED_AUTHORIZED",
+  "status": "A6_RED_RECORDED_PRODUCTION_IMPLEMENTATION_AUTHORIZED",
   "workPackage": "WP-A",
   "completedTasks": [
     "A0_FREEZE_WRITER_READ_RECOVERY_FALLBACK_INVENTORY_AND_ADD_RED_TESTS",
@@ -12,7 +12,7 @@
     "A5_IDENTITY_AUTHORITY_AND_CANONICAL_SCOPED_IDS"
   ],
   "reopenedTasks": [],
-  "currentAuthorizedTask": "A6_TEST_FIRST_RED",
+  "currentAuthorizedTask": "A6_PRODUCTION_IMPLEMENTATION",
   "repository": "laiqian0239-glitch/yance",
   "parentPullRequest": 4,
   "stackedPullRequest": 5,
@@ -20,7 +20,7 @@
   "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
   "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
   "prMustRemainDraft": true,
-  "productionCodeScope": "NONE_A6_RED_ONLY",
+  "productionCodeScope": "WP_A_A6_EXACT_FOUR_FILES_ONLY",
   "automaticNextTaskAuthorization": false,
   "automaticNextWorkPackageAuthorization": false,
   "sourceClosure": {
@@ -240,11 +240,29 @@
     }
   },
   "a6": {
-    "status": "TEST_FIRST_RED_AUTHORIZED",
+    "status": "RED_RECORDED_PRODUCTION_IMPLEMENTATION_AUTHORIZED",
     "task": "WIRE_SINGLE_WRITE_HOST_LEDGER_AND_IDENTITY_AUTHORITY_INTO_RUNTIME_STARTUP",
     "testCodeAllowed": true,
-    "productionCodeAllowed": false,
-    "implementationStartConditionSatisfied": false,
+    "productionCodeAllowed": true,
+    "implementationStartConditionSatisfied": true,
+    "redEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a6-red-evidence.json",
+      "redHead": "d7270de80c6e1652818496a20fe520cfeba9ae08",
+      "workflowRunId": 30745969318,
+      "ubuntuJobId": 91491520477,
+      "windowsJobId": 91491520485,
+      "sourceClosureJobId": 91491520473,
+      "wp0WorkflowRunId": 30745969294,
+      "result": "A6_STEP_EXPECTED_FAILURE_PER_PLATFORM_WITH_A1_THROUGH_A5_GREEN"
+    },
+    "codeRabbit": {
+      "invocationCommentId": 5157598077,
+      "responseCommentId": null,
+      "formalReviewExecuted": false,
+      "outcome": "NOT_EXECUTED_PRO_SEAT_NOT_ASSIGNED",
+      "issuesClaimed": null,
+      "responseIdOmittedReason": "CONNECTOR_DID_NOT_RELIABLY_EXPOSE_THE_LATEST_BOT_COMMENT_ID"
+    },
     "allowedTestFiles": [
       "backend/tests/architectureClosureV2/wpA/runtimeComposition.test.js",
       "backend/tests/architectureClosureV2/wpA/startupOrdering.test.js"
@@ -252,27 +270,30 @@
     "allowedEvidenceHarnessFiles": [
       ".github/workflows/acv2-wp-a.yml"
     ],
-    "lockedProductionFiles": [
+    "allowedProductionFiles": [
       "backend/runtime/AppRuntimeFactory.js",
       "backend/runtime/AppRuntimeComposition.js",
       "backend/server.js",
       "electron/desktopHost/ApiV2RuntimeClient.js"
     ],
-    "requiredRedInvariants": [
+    "requiredGreenInvariants": [
       "WRITE_HOST_IS_ACQUIRED_BEFORE_ANY_PRODUCTION_BUSINESS_RECOVERY_OR_MUTATION",
       "STARTUP_RECOVERY_SUBMITS_VERSIONED_COMMANDS_AND_CANNOT_WRITE_DIRECTLY",
       "FAILED_WRITE_HOST_CLAIM_PREVENTS_READINESS",
       "RENDERER_AND_UTILITY_PROCESSES_CAN_SUBMIT_COMMANDS_BUT_NEVER_RECEIVE_WRITE_CAPABILITY",
-      "LEGACY_WRITER_PATHS_ARE_BLOCKED_OR_DELEGATED_BEFORE_NEW_RUNTIME_PATH_IS_ENABLED"
+      "LEGACY_WRITER_PATHS_ARE_BLOCKED_OR_DELEGATED_BEFORE_NEW_RUNTIME_PATH_IS_ENABLED",
+      "COORDINATOR_LEDGER_AND_IDENTITY_AUTHORITY_EXIST_BEFORE_RECOVERY_MANAGER",
+      "RECOVERY_MANAGER_RECEIVES_COMMAND_GATEWAY_NOT_RAW_WRITE_STORE"
     ],
-    "redEvidenceRequiredBeforeProductionImplementation": true
+    "greenEvidenceRequired": true,
+    "independentSourceReviewRequired": true
   },
   "prohibitedActions": [
-    "MODIFY_A6_PRODUCTION_FILES_BEFORE_TRUSTED_RED_IS_RECORDED",
     "CHANGE_A6_RED_EXPECTATIONS_TO_ACCEPT_LATE_WRITE_HOST_ACQUISITION",
     "ALLOW_STARTUP_RECOVERY_TO_WRITE_PRIMARY_SQLITE_DIRECTLY",
     "PASS_WRITE_CAPABILITY_TO_RENDERER_OR_UTILITY_PROCESSES",
     "ENABLE_NEW_RUNTIME_PATH_BEFORE_LEGACY_WRITERS_ARE_BLOCKED_OR_DELEGATED",
+    "MODIFY_PRODUCTION_CODE_OUTSIDE_A6_EXACT_FOUR_FILES",
     "RESTORE_WEAK_SIGNAL_IDENTITY_MERGE",
     "RESTORE_LEGACY_DOMAIN_EVENT_DUAL_WRITE",
     "IMPLEMENT_A7_OR_LATER",
