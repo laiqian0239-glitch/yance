@@ -187,6 +187,10 @@ function acquireAuthorityWriteHost(options = {}) {
         currentDb() { return attachedStore?.db || null; },
         attachStore(store) {
           if (closed) throw hostError('AUTHORITY_WRITE_HOST_CLOSED', 'AuthorityWriteHost capability is closed');
+          if (attachedStore === store) {
+            assertCurrentAuthorityWriteHostToken(capability, store.db);
+            return true;
+          }
           if (attachedStore && attachedStore !== store) {
             throw hostError('AUTHORITY_WRITE_HOST_CAPABILITY_ALREADY_ATTACHED', 'AuthorityWriteHost capability is already attached');
           }
