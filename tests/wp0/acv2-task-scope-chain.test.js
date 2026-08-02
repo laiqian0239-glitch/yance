@@ -1,5 +1,6 @@
 'use strict';
 
+// RED contract: production task-scope APIs are intentionally absent at this commit.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
