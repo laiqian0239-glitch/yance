@@ -38,6 +38,8 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Verify Windows runtime mutex helper selection
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/windowsRuntimeMutexPowerShell.test.js
       - name: Run AuthorityWriteHost unit and migration contract
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js
       - name: Run real process ownership and takeover matrix
