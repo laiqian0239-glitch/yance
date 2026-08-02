@@ -435,21 +435,33 @@ class CanonicalEventLedgerAuthority {
       });
     }
 
-    const aggregateType = optional(source.aggregateType, 'aggregateType', 128) || 'DomainEvent';
-    const provisionalAggregateId = optional(source.aggregateId, 'aggregateId', 1024)
-      || deterministicId('aggregate', externalIdentity || { authority: AUTHORITY, idempotencyKey });
+    const requestedExpectedVersion = source.expectedVersion == null ? 0 : Number(source.expectedVersion);
+    if (!Number.isSafeInteger(requestedExpectedVersion) || requestedExpectedVersion < 0) {
+      throw authorityError('CANONICAL_EVENT_EXPECTED_VERSION_INVALID', 'expectedVersion must be a non-negative safe integer', {
+        expectedVersion: source.expectedVersion
+      });
+    }
+    if (externalIdentity && requestedExpectedVersion !== 0) {
+      throw authorityError(
+        'CANONICAL_EVENT_EXTERNAL_IDENTITY_CONFLICT',
+        'A scoped external event is a single-fact aggregate and requires expectedVersion 0',
+        { expectedVersion: requestedExpectedVersion, externalIdentity }
+      );
+    }
+    const aggregateType = externalIdentity
+      ? 'ExternalDomainEvent'
+      : optional(source.aggregateType, 'aggregateType', 128) || 'DomainEvent';
+    const provisionalAggregateId = externalIdentity
+      ? deterministicId('external-event', externalIdentity)
+      : optional(source.aggregateId, 'aggregateId', 1024)
+        || deterministicId('aggregate', { authority: AUTHORITY, idempotencyKey });
+    const expectedVersion = externalIdentity ? 0 : requestedExpectedVersion;
     const eventId = optional(source.eventId, 'eventId', 1024)
       || deterministicId('event', { authority: AUTHORITY, idempotencyKey });
     const commandId = optional(source.commandId, 'commandId', 512)
       || deterministicId('command', { authority: AUTHORITY, idempotencyKey });
     const traceId = optional(source.traceId, 'traceId', 512)
       || deterministicId('trace', { authority: AUTHORITY, idempotencyKey });
-    const expectedVersion = source.expectedVersion == null ? 0 : Number(source.expectedVersion);
-    if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 0) {
-      throw authorityError('CANONICAL_EVENT_EXPECTED_VERSION_INVALID', 'expectedVersion must be a non-negative safe integer', {
-        expectedVersion: source.expectedVersion
-      });
-    }
     const schemaVersion = source.schemaVersion == null ? SCHEMA_VERSION : Number(source.schemaVersion);
     if (!Number.isSafeInteger(schemaVersion) || schemaVersion < 1) {
       throw authorityError('CANONICAL_EVENT_SCHEMA_VERSION_INVALID', 'schemaVersion must be a positive safe integer', {
