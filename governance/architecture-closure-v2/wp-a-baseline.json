@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 12,
+  "schemaVersion": 13,
   "documentType": "YANCE_ACV2_WP_A_BASELINE",
   "status": "A3_CLOSED_A4_TEST_FIRST_RED_AUTHORIZED",
   "workPackage": "WP-A",
@@ -146,6 +146,16 @@
       "backend/tests/architectureClosureV2/wpA/canonicalEventLedgerAuthority.test.js",
       "backend/tests/architectureClosureV2/wpA/domainEventCompatibilityFacade.test.js"
     ],
+    "allowedEvidenceHarnessFiles": [
+      ".github/workflows/acv2-wp-a.yml"
+    ],
+    "redEvidenceRequired": true,
+    "redEvidenceDocument": "governance/architecture-closure-v2/wp-a-a4-red-evidence.json",
+    "redWorkflow": {
+      "stepName": "Run A4 canonical ledger and compatibility facade RED contracts",
+      "requiredPlatforms": ["ubuntu-latest", "windows-latest"],
+      "expectedConclusion": "FAILURE_BEFORE_PRODUCTION_IMPLEMENTATION"
+    },
     "productionFilesLocked": [
       "backend/services/canonicalEventLedgerAuthority.js",
       "backend/services/domainEventLogService.js",
