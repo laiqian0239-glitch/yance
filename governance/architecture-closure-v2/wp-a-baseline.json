@@ -1,18 +1,23 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "documentType": "YANCE_ACV2_WP_A_BASELINE",
-  "status": "A0_RED_BASELINE_FROZEN_WITH_BRANCH_POLICY_AMENDMENT",
+  "status": "A0_VALID_RED_RECORDED_A1_AUTHORIZED",
   "workPackage": "WP-A",
-  "task": "A0_FREEZE_WRITER_READ_RECOVERY_FALLBACK_INVENTORY_AND_ADD_RED_TESTS",
+  "completedTask": "A0_FREEZE_WRITER_READ_RECOVERY_FALLBACK_INVENTORY_AND_ADD_RED_TESTS",
+  "currentAuthorizedTask": "A1_INTRODUCE_SCHEMA_21_AND_PERSISTENT_AUTHORITY_WRITE_HOST_LEASE",
   "repository": "laiqian0239-glitch/yance",
   "parentPullRequest": 4,
+  "stackedPullRequest": 5,
   "parentBranch": "rebuild/windows-release-closure-20260802-gate0-wp0-fix",
   "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
   "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
-  "productionCodeAllowedInTask": false,
+  "a0ProductionBusinessCodeChanged": false,
+  "a1ProductionCodeAllowed": true,
+  "a1ProductionCodeScope": "WP_A_ONLY",
   "governanceInfrastructureChangeAllowed": true,
   "redEvidenceRequiredBeforeProductionCode": true,
-  "automaticNextTaskAuthorization": false,
+  "redEvidenceSatisfied": true,
+  "automaticNextWorkPackageAuthorization": false,
   "discoveryRoots": [
     "backend"
   ],
@@ -20,9 +25,10 @@
     "backend/tests",
     "backend/migrations"
   ],
-  "changedFileAllowlist": [
+  "a0ChangedFileAllowlist": [
     "governance/architecture-closure-v2/wp-a-baseline.json",
     "governance/architecture-closure-v2/wp-a-branch-policy-amendment.json",
+    "governance/architecture-closure-v2/wp-a-a0-red-evidence.json",
     "governance/architecture-closure-v2/authority-registry.json",
     "tools/architecture-closure-v2/source-closure-scan.js",
     "backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js",
@@ -42,8 +48,27 @@
     "workflowJobId": 91461773095,
     "reasonCode": "ACV2_MACHINE_AUTHORIZATION_NOT_CONSUMED_BY_WP0_BRANCH_POLICY"
   },
+  "validRedEvidence": {
+    "document": "governance/architecture-closure-v2/wp-a-a0-red-evidence.json",
+    "head": "8d8c473000e2150a76c2f101df8c15caf9dba209",
+    "workflowRunId": 30735074692,
+    "workflowJobId": 91462292785,
+    "conclusion": "EXPECTED_FAILURE",
+    "existingWp0": "29_OF_29_PASS",
+    "a0Suite": "3_PASS_1_EXPECTED_FAIL",
+    "requiredViolationClassesCaptured": true
+  },
   "branchPolicyAmendment": "governance/architecture-closure-v2/wp-a-branch-policy-amendment.json",
-  "nextTaskAfterRecordedRed": "A1_INTRODUCE_SCHEMA_21_AND_PERSISTENT_AUTHORITY_WRITE_HOST_LEASE",
+  "a1StartCondition": "VALID_A0_RED_EVIDENCE_RECORDED_AND_BRANCH_EQUALS_MACHINE_AUTHORIZATION",
+  "a1FirstRequiredAction": "ADD_FAILING_AUTHORITY_WRITE_HOST_BOOTSTRAP_LEASE_AND_FENCING_TESTS",
+  "a1ProhibitedActions": [
+    "IMPLEMENT_WP_B_OR_LATER",
+    "OPEN_ACV2_BRANCH_WILDCARD",
+    "REMOVE_A0_SOURCE_CLOSURE_GATE",
+    "ALLOW_LOCAL_PRIMARY_STORE_FALLBACK",
+    "TREAT_BUSY_TIMEOUT_AS_SERIALIZATION",
+    "MARK_PR_READY_OR_MERGE"
+  ],
   "lockedWorkPackages": [
     "WP-B",
     "WP-C",
