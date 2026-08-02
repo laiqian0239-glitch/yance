@@ -116,6 +116,18 @@ test('runtime, SQLite, workflows, WP0 and package changes escalate to L2', () =>
   }
 });
 
+test('nested dependency manifests always escalate to L2', () => {
+  for (const file of [
+    'packages/desktop/package.json',
+    'backend/plugins/identity/package-lock.json'
+  ]) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, true, file);
+    assert.equal(result.requiredLevel, 'L2', file);
+    assert.equal(result.reasons[0].type, 'BASENAME', file);
+  }
+});
+
 test('L3 is never selected automatically', () => {
   const result = classifyChangedFiles(risk, ['electron/main.js']);
   assert.equal(result.requiredLevel, 'L2');
