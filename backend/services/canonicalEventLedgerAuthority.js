@@ -752,6 +752,19 @@ function configureSingleton(authority) {
 function isConfiguredSingleton(authority) {
   return configuredSingleton === authority;
 }
+function resetSingletonForTests() {
+  if (!process.env.NODE_TEST_CONTEXT
+    && process.env.NODE_ENV !== 'test'
+    && process.env.YANCE_TEST_ONLY_RUNTIME_RESET !== '1') {
+    throw authorityError(
+      'CANONICAL_EVENT_LEDGER_TEST_RESET_FORBIDDEN',
+      'Canonical event ledger singleton reset is unavailable in production',
+      { status: 403 }
+    );
+  }
+  configuredSingleton = null;
+  return true;
+}
 const singleton = Object.freeze({
   append: input => resolveSingleton().append(input),
   readEvent: eventId => resolveSingleton().readEvent(eventId),
@@ -774,6 +787,7 @@ module.exports = {
   createCanonicalEventLedgerAuthority,
   configureSingleton,
   isConfiguredSingleton,
+  resetSingletonForTests,
   singleton,
   redactPayload,
   canonical,
