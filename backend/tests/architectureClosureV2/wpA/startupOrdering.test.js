@@ -76,15 +76,17 @@ test('production composition is enabled before mutable routes, queues and recove
   assert.ok(mutableImports.every(index => configure < index), 'authority composition must precede mutable production service loading');
 });
 
-test('readiness is fail-closed and revalidates write-host, ledger and identity authority state', () => {
+test('readiness is fail-closed and revalidates the sealed write-host, ledger and identity graph', () => {
   const text = source(serverPath);
   const announceStart = text.indexOf('function announceReady()');
   const announceEnd = text.indexOf('\nconst app = express()', announceStart);
   assert.ok(announceStart >= 0 && announceEnd > announceStart, 'announceReady function must remain discoverable');
   const announceBody = text.slice(announceStart, announceEnd);
-  assert.match(announceBody, /AppRuntimeFactory\.assertAuthorityReady\s*\(/);
+  assert.match(announceBody, /AppRuntimeFactory\.assertAuthorityReady\s*\(\s*\{\s*requireStartupGatewaySealed\s*:\s*true\s*\}\s*\)/);
   assert.match(announceBody, /canonicalLedgerReady/);
   assert.match(announceBody, /identityAuthorityReady/);
+  assert.match(announceBody, /canonicalGraphBound/);
+  assert.match(announceBody, /startupGatewaySealed/);
   assert.doesNotMatch(announceBody, /ready\s*:\s*true[\s\S]*catch\s*\([^)]*\)\s*\{\s*\}/);
 });
 
