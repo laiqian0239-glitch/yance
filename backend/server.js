@@ -1,5 +1,6 @@
 'use strict';
 
+const { randomUUID } = require('node:crypto');
 const { getBackendReleaseIdentity } = require('./releaseIdentity');
 const { identityTuple } = require('../shared/release/identityObservation');
 const { WP7_RENDERER_STORAGE_PROBE_PATH, rendererStorageProbeResponse } = require('../shared/wp7/rendererStorageProbeDocument');
@@ -35,6 +36,21 @@ function markStartupPhase(name) {
 ensureDirectories();
 markStartupPhase('directoriesReadyMs');
 
+const RUNTIME_COMPOSITION = APP_RUNTIME.configureProductionServices();
+const STARTUP_AUTHORITY_READINESS = AppRuntimeFactory.assertAuthorityReady();
+
+function executeStartupAuthorityCommand(commandType, payload = {}) {
+  const snapshot = APP_RUNTIME.snapshot();
+  return RUNTIME_COMPOSITION.commandSubmitter({
+    contractVersion: 2,
+    commandId: randomUUID(),
+    commandType,
+    expectedStateVersion: Number(snapshot.stateVersion),
+    issuedAtUtc: new Date().toISOString(),
+    payload
+  });
+}
+
 const safeModeService = require('./services/safeModeService');
 const productionDiagnostics = require('./services/productionDiagnosticsService');
 const {
@@ -57,33 +73,28 @@ const startupRestore = globalThis.__YANCE_STARTUP_RESTORE__ || {
   source: 'boot-phase-0-not-required'
 };
 
-const migrationService = require('./services/migrationService');
 let startupMigration;
 try {
-  startupMigration = migrationService.migrateAtStartup();
+  startupMigration = executeStartupAuthorityCommand('startup.migrate').result;
 } catch (error) {
   startupMigration = { ok: false, executed: false, error: error.message, code: error.code || 'STARTUP_MIGRATION_FAILED' };
 }
 markStartupPhase('legacyMigrationReadyMs');
-if (!startupMigration.ok) {
-  const error = new Error(`启动迁移未完成：${startupMigration.error || startupMigration.code || 'unknown failure'}`);
-  error.code = startupMigration.code || 'STARTUP_MIGRATION_FAILED';
+if (!startupMigration?.ok) {
+  const error = new Error(`启动迁移未完成：${startupMigration?.error || startupMigration?.code || 'unknown failure'}`);
+  error.code = startupMigration?.code || 'STARTUP_MIGRATION_FAILED';
   throw error;
 }
 
-const canonicalIdentityService = require('./services/canonicalIdentityService');
-const cacheGcService = require('./services/cacheGcService');
-const syncCheckpointService = require('./services/syncCheckpointService');
-const backgroundJobAuthority = require('./services/backgroundJobAuthority');
 let startupArchitectureClosure = { ok: true, executed: false, identity: null, cache: null, interruptedSyncs: [], interruptedBackgroundJobs: [] };
 try {
-  const interruptedSyncs = syncCheckpointService.recoverInterrupted();
-  const interruptedBackgroundJobs = backgroundJobAuthority.recoverInterrupted({ retryDelayMs: 30_000 });
-  const identity = canonicalIdentityService.canonicalizeWhatsAppAccounts({ dryRun: false });
-  const cache = cacheGcService.purge();
+  const interruptedSyncs = executeStartupAuthorityCommand('startup.recoverSync').result || [];
+  const interruptedBackgroundJobs = executeStartupAuthorityCommand('startup.recoverBackgroundJobs', { retryDelayMs: 30_000 }).result || [];
+  const identity = executeStartupAuthorityCommand('startup.canonicalizeIdentity', { dryRun: false }).result;
+  const cache = executeStartupAuthorityCommand('startup.purgeCache').result;
   startupArchitectureClosure = {
     ok: true,
-    executed: Boolean(identity.executed || cache.removed?.length || interruptedSyncs.length || interruptedBackgroundJobs.length),
+    executed: Boolean(identity?.executed || cache?.removed?.length || interruptedSyncs.length || interruptedBackgroundJobs.length),
     identity,
     cache,
     interruptedSyncs,
@@ -96,13 +107,13 @@ try {
 }
 markStartupPhase('architectureClosureReadyMs');
 
-const { runProductionDataGuard } = require('./migrations/legacyDemoCleanup');
-const startupProductionGuard = runProductionDataGuard();
-const workspaceService = require('./services/workspaceService');
-const startupStage6Data = workspaceService.initializeDataPipelines();
+const startupProductionGuard = executeStartupAuthorityCommand('startup.productionDataGuard').result;
+const startupStage6Data = executeStartupAuthorityCommand('startup.initializeWorkspacePipelines').result;
+RUNTIME_COMPOSITION.authorityCommandGateway.seal();
 markStartupPhase('dataPipelinesReadyMs');
 
-// Stateful services are loaded only after restore, SQLite migration and production cleanup complete.
+// Stateful services are loaded only after write-host authority, canonical composition,
+// versioned startup recovery, SQLite migration and production cleanup complete.
 const modelsRouter = require('./routes/models');
 const messagesRouter = require('./routes/messages');
 const systemRouter = require('./routes/system');
@@ -148,10 +159,9 @@ const storeRouter = require('./routes/store');
 const coreRouter = require('./routes/core');
 const { createApiV2Router } = require('./routes/apiV2');
 const { createPersonaBrainRouter } = require('./routes/personaBrain');
-APP_RUNTIME.configureProductionServices();
 
 let startupStoreManager = { ok: true, executed: false, mode: 'pending' };
-const storeReadyPromise = storeManagerService.initialize()
+const storeReadyPromise = storeManagerService.initialize({ persistenceOptions: { store: APP_RUNTIME.primaryAuthorityStore } })
   .then(storeManager => {
     startupStoreManager = { ok: true, executed: true, stateVersion: storeManager.stateVersion, at: new Date().toISOString() };
     messageTranslationService.install();
@@ -283,6 +293,14 @@ function boundServerPort() {
 }
 
 function announceReady() {
+  const authorityState = AppRuntimeFactory.assertAuthorityReady({ requireStartupGatewaySealed: true });
+  const canonicalLedgerReady = authorityState.canonicalLedgerReady === true;
+  const identityAuthorityReady = authorityState.identityAuthorityReady === true;
+  if (!authorityState.authorityWriteHostBound || !canonicalLedgerReady || !identityAuthorityReady || !authorityState.canonicalGraphBound || !authorityState.startupGatewaySealed) {
+    const error = new Error('Backend authority readiness could not be proven');
+    error.code = 'BACKEND_AUTHORITY_READINESS_FAILED';
+    throw error;
+  }
   backendReadiness = {
     ...backendReadiness,
     ready: true,
@@ -295,7 +313,8 @@ function announceReady() {
     ...readinessPayload({ includeNonce: true }),
     host: CONFIG.host,
     port: boundServerPort(),
-    url: `http://${CONFIG.host}:${boundServerPort()}`
+    url: `http://${CONFIG.host}:${boundServerPort()}`,
+    authorityReadiness: { ...authorityState, canonicalLedgerReady, identityAuthorityReady }
   };
   sendParentMessage(payload);
   try {
@@ -372,6 +391,9 @@ app.get('/api/health', (_req, res) => res.json({
   startupModelScan,
   startupStoreManager,
   startupTimings,
+  startupStage6Data,
+  startupAuthorityReadiness: STARTUP_AUTHORITY_READINESS,
+  runtimeComposition: RUNTIME_COMPOSITION.authorityCommandGateway.snapshot(),
   storeManager: storeManagerService.status(),
   aiReplyOutbox: aiReplyOutboxService.status(),
   runtimeRecovery: runtimeRecovery.status(),
@@ -732,7 +754,6 @@ server.listen(CONFIG.port, CONFIG.host, async () => {
   }, 500);
 
 });
-
 
 process.on('message', message => {
   if (!message || typeof message !== 'object') return;

@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_TASK_CLOSURE_RECEIPT",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-A",
+  "task": "A8",
+  "status": "CLOSED",
+  "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
+  "pullRequest": 5,
+  "parentTask": "A7",
+  "previousReviewedCodeHead": "a0958ba7c387f9b68d3f795f99961d2f68d5516d",
+  "reviewedCodeHead": "31ea3b2a1cdd95023e5ab6655bb2e36cdcd8dfde",
+  "reviewGateHead": "31ea3b2a1cdd95023e5ab6655bb2e36cdcd8dfde",
+  "independentReview": {
+    "protocol": "yance-chatgpt-independent-review:v1",
+    "reviewId": 4839751328,
+    "reviewerMode": "CHATGPT_GITHUB_CONNECTED_SESSION",
+    "decision": "ALLOW_MERGE",
+    "reviewedHead": "31ea3b2a1cdd95023e5ab6655bb2e36cdcd8dfde",
+    "openP0": 0,
+    "openP1": 0,
+    "temporaryBypassDetected": false,
+    "missingEvidence": [],
+    "blockers": []
+  },
+  "verification": {
+    "acv2Run": 30768091043,
+    "ubuntuJob": 91550307545,
+    "windowsJob": 91550307529,
+    "sourceClosureJob": 91550307524,
+    "wp0Run": 30768091038,
+    "wp0ProductJob": 91550335657,
+    "wp0AggregateJob": 91550457521,
+    "sealedExportUbuntuJob": 91550335692,
+    "sealedExportWindowsJob": 91550335661,
+    "ubuntuConclusion": "success",
+    "windowsConclusion": "success",
+    "sourceClosureConclusion": "success",
+    "wp0Conclusion": "success",
+    "sealedExportUbuntuConclusion": "success",
+    "sealedExportWindowsConclusion": "success",
+    "sourceClosureViolationCount": 0
+  },
+  "reviewedDefectClosure": {
+    "defect": "ZERO_VALUED_CANONICAL_PROJECTION_RECEIPT_SEQUENCE_NOT_BACKFILLED",
+    "redGreenWorkflowRun": 30767787492,
+    "redGreenWorkflowJob": 91549474197,
+    "resolution": "Positive sequences are preserved; zero-valued canonical receipts are backfilled from canonical_event_headers; pure legacy receipts remain sequence 0."
+  },
+  "verifiedInvariants": [
+    "AUTHORITY_WRITE_HOST_IS_THE_ONLY_PRIMARY_SQLITE_HOST",
+    "PRIMARY_STORE_ACCESS_REQUIRES_EXPLICIT_BROKER_OWNED_CAPABILITY",
+    "MIGRATIONS_CONSUME_RUNTIME_ISSUED_WRITE_HOST_AUTHORITY",
+    "LEGACY_DOMAIN_EVENT_INSERT_SURFACE_REMOVED",
+    "PLATFORM_CORE_LEDGER_MUTATION_REQUIRES_COORDINATOR_CAPABILITY",
+    "PROJECTION_RECEIPTS_BIND_CANONICAL_EVENT_ID_AND_LEDGER_SEQUENCE",
+    "HISTORICAL_CANONICAL_RECEIPT_SEQUENCE_ZERO_IS_BACKFILLED",
+    "RUNTIME_OWNERSHIP_RELEASES_HOST_AND_BROKER_AS_ONE_LIFECYCLE",
+    "WP_A_SOURCE_CLOSURE_HAS_ZERO_VIOLATIONS",
+    "NO_SCANNER_WEAKENING_NO_WILDCARD_EXPANSION_NO_TEMPORARY_FALLBACK"
+  ],
+  "governance": {
+    "automaticNextTaskAuthorization": false,
+    "automaticNextWorkPackageAuthorization": false,
+    "prMustRemainDraft": true,
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "publish": false
+  }
+}

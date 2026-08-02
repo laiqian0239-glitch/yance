@@ -55,11 +55,23 @@ async function bootDesktopHostedBackend(options = {}) {
   const primarySqlitePath = path.join(dataRoot, 'store', 'yance-r32.db');
   process.env.YANCE_PRIMARY_SQLITE_PATH = primarySqlitePath;
 
+  let authorityWriteHost;
   let sqliteBroker;
   try {
+    const { acquireAuthorityWriteHost } = require('./services/authorityWriteHost');
+    authorityWriteHost = acquireAuthorityWriteHost({
+      dbPath: primarySqlitePath,
+      startupNonce: context.startupNonce,
+      instanceId: `desktop-hosted-backend:${context.startupNonce || process.pid}`
+    });
     const { createSqliteConnectionBroker } = require('./lib/sqliteConnectionBroker');
-    sqliteBroker = createSqliteConnectionBroker({ dbPath: primarySqlitePath });
+    sqliteBroker = createSqliteConnectionBroker({
+      dbPath: primarySqlitePath,
+      authorityWriteHostCapability: authorityWriteHost.capability
+    });
   } catch (error) {
+    try { sqliteBroker?.close(); } catch (_) {}
+    try { authorityWriteHost?.close(); } catch (_) {}
     throw phaseFailure(error, 'BOOT_SQLITE_BROKER_FAILED');
   }
   globalThis.__YANCE_STARTUP_RESTORE__ = startupRestore;
@@ -98,6 +110,7 @@ async function bootDesktopHostedBackend(options = {}) {
       });
     } catch (error) {
       try { sqliteBroker.checkpointAndClose(); } catch (_) {}
+      try { authorityWriteHost.close(); } catch (_) {}
       throw phaseFailure(error, 'BOOT_RUNTIME_INITIALIZATION_FAILED');
     }
   }
@@ -106,6 +119,7 @@ async function bootDesktopHostedBackend(options = {}) {
   } catch (error) {
     await runtimeCoordinator?.stop('server-import-failed').catch(() => {});
     try { sqliteBroker.checkpointAndClose(); } catch (_) {}
+    try { authorityWriteHost.close(); } catch (_) {}
     throw phaseFailure(error, 'BOOT_SERVER_IMPORT_FAILED');
   }
   return context;

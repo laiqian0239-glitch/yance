@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_TASK_CLOSURE_RECEIPT",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-A",
+  "task": "A6",
+  "status": "CLOSED",
+  "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
+  "pullRequest": 5,
+  "governanceBase": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
+  "reviewedCodeHead": "3684dbd840faec8d6e732b0b68eae25f1ad9b2b3",
+  "frozenEvidenceBranchTip": "e877aec9e16663296e632c224a1da3b7892f1f2b",
+  "reviewedChangedFileCount": 83,
+  "reviewedChangedFileSetSha256": "d2cac11bd6864b02e09fa68015dbdba5c41bb2777bf79e821f00a846b651702a",
+  "evidence": {
+    "candidateIdentityVerified": true,
+    "historicalCandidateContinuityVerified": true,
+    "credibleUbuntuGreen": true,
+    "credibleWindowsGreen": true,
+    "credibleWp0Green": true,
+    "sqliteOwnershipUbuntuGreen": true,
+    "sqliteOwnershipWindowsGreen": true,
+    "independentReviewPassed": true,
+    "workflowRuns": {
+      "reviewedCandidate": 30759556449,
+      "sqliteLegacy": 30759556455,
+      "layeredCi": 30759556530,
+      "wp0": 30759556447
+    },
+    "independentReviewPullRequests": [7, 10]
+  },
+  "deferred": {
+    "sourceClosure": "A8",
+    "durableCommandReceiptAndCrashRecovery": "WP-G"
+  },
+  "governance": {
+    "closureEvidenceImmutable": true,
+    "laterBranchProgressMustDescendFromFrozenEvidenceTip": true,
+    "automaticNextTaskAuthorization": false,
+    "automaticNextWorkPackageAuthorization": false,
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "publish": false
+  }
+}

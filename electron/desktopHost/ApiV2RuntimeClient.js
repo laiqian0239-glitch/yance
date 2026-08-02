@@ -16,6 +16,14 @@ function sessionIdentity(binding = {}) {
 
 class ApiV2RuntimeClient {
   constructor(options = {}) {
+    if (Reflect.has(Object(options), 'authorityWriteHostCapability')) {
+      throw makeError(
+        'DESKTOP_WRITE_CAPABILITY_FORBIDDEN',
+        'Desktop and renderer command transports must never receive a primary write-host capability',
+        {},
+        403
+      );
+    }
     this.baseURL = String(options.baseURL || '').replace(/\/$/, '');
     this.fetch = options.fetch || globalThis.fetch;
     this.sessionProvider = options.sessionProvider;

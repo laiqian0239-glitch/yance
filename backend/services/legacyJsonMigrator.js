@@ -3,7 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { R32SqliteStore, stableId } = require('../lib/r32SqliteStore');
+const { stableId } = require('../lib/r32SqliteStore');
+const { assertMigrationAuthority } = require('./migrationAuthority');
 const { PATHS } = require('../config');
 
 const LEGACY_NAMES = Object.freeze([
@@ -384,10 +385,14 @@ function migrateLegacyJson(options = {}) {
     return report;
   }
 
-  const store = new R32SqliteStore({ dbPath });
+  const migrationAuthority = assertMigrationAuthority(options.migrationAuthority);
+  if (migrationAuthority.authority !== 'AuthorityWriteHostMigrationAuthority') {
+    throw Object.assign(new Error('Legacy JSON import requires AuthorityWriteHostMigrationAuthority'), { code: 'MIGRATION_AUTHORITY_INVALID' });
+  }
+  migrationAuthority.assertTargetDbPath(dbPath);
+  const store = migrationAuthority.targetStore();
   const previous = store.findCompletedMigration(report.sourceFingerprint);
   if (previous && !options.force) {
-    store.close();
     report.ok = true;
     report.mode = 'already-imported';
     report.warnings.push(`相同数据快照已由迁移任务 ${previous.id} 导入。`);
@@ -422,8 +427,6 @@ function migrateLegacyJson(options = {}) {
     report.completedAt = new Date().toISOString();
     store.finishMigrationRun(runId, 'failed', report);
     throw error;
-  } finally {
-    store.close();
   }
   if (options.archive !== false) {
     try {

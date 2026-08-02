@@ -2,14 +2,37 @@
 
 const path = require('node:path');
 const { R32SqliteStore } = require('./r32SqliteStore');
+const {
+  isAuthorityWriteHostCapability,
+  requireAuthorityWriteHostCapability
+} = require('../services/authorityWriteHost');
 
 class SqliteConnectionBroker {
   constructor(options = {}) {
     if (!options.dbPath) throw new TypeError('SqliteConnectionBroker requires dbPath');
+    if (!options.authorityWriteHostCapability) {
+      const error = new Error('SqliteConnectionBroker requires an externally acquired AuthorityWriteHost capability');
+      error.code = 'AUTHORITY_WRITE_HOST_CAPABILITY_REQUIRED';
+      throw error;
+    }
+
     this.dbPath = path.resolve(options.dbPath);
     this.storeOptions = { ...(options.storeOptions || {}) };
     this.store = null;
     this.closed = false;
+    this.heartbeatTimer = null;
+    this.authorityWriteHostCapability = requireAuthorityWriteHostCapability(options.authorityWriteHostCapability);
+
+    if (!isAuthorityWriteHostCapability(this.authorityWriteHostCapability)) {
+      throw Object.assign(new Error('AuthorityWriteHost capability is invalid'), {
+        code: 'AUTHORITY_WRITE_HOST_CAPABILITY_INVALID'
+      });
+    }
+    if (path.resolve(this.authorityWriteHostCapability.dbPath) !== this.dbPath) {
+      throw Object.assign(new Error('AuthorityWriteHost capability database path does not match broker path'), {
+        code: 'AUTHORITY_WRITE_HOST_CAPABILITY_PATH_MISMATCH'
+      });
+    }
   }
 
   open() {
@@ -18,8 +41,43 @@ class SqliteConnectionBroker {
       error.code = 'SQLITE_BROKER_CLOSED';
       throw error;
     }
-    if (!this.store) this.store = new R32SqliteStore({ ...this.storeOptions, dbPath: this.dbPath });
+    if (!this.store) {
+      try {
+        const ownership = this.authorityWriteHostCapability.ownershipOptions || {};
+        this.store = new R32SqliteStore({
+          ...this.storeOptions,
+          dbPath: this.dbPath,
+          authorityWriteHostCapability: this.authorityWriteHostCapability,
+          ownershipPid: ownership.pid,
+          ownershipPidAlive: ownership.pidAlive,
+          ownershipClock: ownership.clock,
+          ownershipFsProvider: ownership.fsProvider,
+          ownershipCapturePidIdentity: ownership.capturePidIdentity
+        });
+        this.authorityWriteHostCapability.attachStore(this.store);
+        this.startHeartbeat();
+      } catch (error) {
+        try { this.store?.close(); } catch (_) {}
+        this.store = null;
+        throw error;
+      }
+    }
     return this.store;
+  }
+
+  startHeartbeat() {
+    if (this.heartbeatTimer || this.closed) return;
+    this.heartbeatTimer = setInterval(() => {
+      try {
+        this.authorityWriteHostCapability.heartbeat();
+      } catch (error) {
+        if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
+        this.heartbeatTimer = null;
+        try { this.store?.db?.exec('PRAGMA query_only = ON'); } catch (_) {}
+        if (this.store && !this.store.ownershipLostError) this.store.ownershipLostError = error;
+      }
+    }, Math.max(250, Number(this.storeOptions.authorityHeartbeatMs || 1000)));
+    this.heartbeatTimer.unref?.();
   }
 
   isOpen() { return Boolean(this.store && !this.closed); }
@@ -29,7 +87,10 @@ class SqliteConnectionBroker {
   transactionAsync(fn) { return this.open().transactionAsync(fn); }
 
   checkpointAndClose() {
-    if (!this.store || this.closed) return;
+    if (!this.store || this.closed) {
+      this.close();
+      return;
+    }
     try { this.store.db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch (_) {}
     this.close();
   }
@@ -37,13 +98,23 @@ class SqliteConnectionBroker {
   close() {
     if (this.closed) return;
     this.closed = true;
+    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
+    this.heartbeatTimer = null;
+    try { this.authorityWriteHostCapability?.markReleased(); } catch (_) {}
     if (this.store) {
       try { this.store.close(); } finally { this.store = null; }
     }
+    try { this.authorityWriteHostCapability?.close(); } catch (_) {}
   }
 
   snapshot() {
-    return Object.freeze({ dbPath: this.dbPath, open: this.isOpen(), closed: this.closed, owner: 'SqliteConnectionBroker' });
+    return Object.freeze({
+      dbPath: this.dbPath,
+      open: this.isOpen(),
+      closed: this.closed,
+      owner: 'AuthorityWriteHost',
+      authorityWriteHostCapability: this.authorityWriteHostCapability.tokenSnapshot()
+    });
   }
 }
 
@@ -77,7 +148,7 @@ function getSqliteConnectionBroker(options = {}) {
   return singleton;
 }
 function resetSqliteConnectionBrokerForTests() {
-  if (process.env.NODE_ENV !== 'test' && process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET !== '1') {
+  if (!process.env.NODE_TEST_CONTEXT && process.env.NODE_ENV !== 'test' && process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET !== '1') {
     const error = new Error('SQLite broker reset is test-only');
     error.code = 'SQLITE_BROKER_RESET_FORBIDDEN';
     throw error;

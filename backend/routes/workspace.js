@@ -9,30 +9,15 @@ const workspaceRepository = require('../repositories/workspaceRepository');
 const chatExport = require('../services/chatExportService');
 const outboundTranslationAuthority = require('../services/outboundTranslationAuthority');
 
-// P0-B 集成层：把 身份确认 / 合并 / 关键节点 稳定契约接到 R32 权威 SQLite。
-const { getR32Store } = require('../lib/r32StoreSingleton');
-const { ContactIdentityConfirmationRepository } = require('../store/contactIdentityConfirmationRepository');
-const { createContactIdentityConfirmationService } = require('../services/contactIdentityConfirmationService');
-const { ContactMergeRepository } = require('../store/contactMergeRepository');
-const { createContactMergeService } = require('../services/contactMergeService');
-const { RelationshipKeyNodeRepository } = require('../store/relationshipKeyNodeRepository');
-const { createRelationshipKeyNodeService } = require('../services/relationshipKeyNodeService');
+// P0-B integration is bound once by AppRuntimeComposition to the broker-owned
+// database capability. HTTP routes never acquire a primary store.
+const { getWorkspaceIdentityCommandFacade } = require('../services/workspaceIdentityCommandFacade');
 
 const router = express.Router();
 
-// 惰性构建服务（每次请求基于单例 db；ensureSchema 幂等，对现有数据非破坏）。
-function buildIdentityService() {
-  const repo = new ContactIdentityConfirmationRepository({ db: getR32Store().db });
-  return createContactIdentityConfirmationService({ store: repo, now: () => Date.now() });
-}
-function buildMergeService() {
-  const repo = new ContactMergeRepository({ db: getR32Store().db });
-  return createContactMergeService({ store: repo, now: () => Date.now() });
-}
-function buildKeyNodeService() {
-  const repo = new RelationshipKeyNodeRepository({ db: getR32Store().db });
-  return createRelationshipKeyNodeService({ store: repo, now: () => Date.now() });
-}
+function buildIdentityService() { return getWorkspaceIdentityCommandFacade().identityService; }
+function buildMergeService() { return getWorkspaceIdentityCommandFacade().mergeService; }
+function buildKeyNodeService() { return getWorkspaceIdentityCommandFacade().keyNodeService; }
 
 // 把稳定契约的 CoreError.code 映射到 HTTP 状态，便于前端接线。
 function respondError(res, error) {

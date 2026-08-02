@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 2,
+  "documentType": "YANCE_ACV2_WP_A_A3_EVIDENCE",
+  "status": "A3_GREEN_RECORDED_AND_INDEPENDENT_REVIEW_APPROVED",
+  "workPackage": "WP-A",
+  "task": "A3_AUTHORITY_TRANSACTION_COORDINATOR",
+  "reviewedCodeHead": "d559c8e76a1f67717da2146151fd552fec51539c",
+  "verifiedGovernanceHead": "4c432f7f13f66ab0f7c895e591ad1e14cc6a2f34",
+  "productionScope": [
+    "backend/services/authorityTransactionCoordinator.js"
+  ],
+  "rootRepairCommits": [
+    {
+      "sha": "99c79c51e977f176dfd59cbe9afaaf0443f676cb",
+      "purpose": "ALLOCATE_GLOBAL_LEDGER_SEQUENCE_AND_ISOLATE_PROJECTOR_DATABASE_CAPABILITY"
+    },
+    {
+      "sha": "d559c8e76a1f67717da2146151fd552fec51539c",
+      "purpose": "ALIGN_A0_MONOTONIC_AUTHORIZATION_WITH_REOPENED_TASK_MODEL"
+    }
+  ],
+  "codeHeadVerification": {
+    "acv2RunId": 30742117971,
+    "overallConclusion": "EXPECTED_FAILURE_DUE_TO_A8_SOURCE_CLOSURE_ONLY",
+    "ubuntuJobId": 91481252161,
+    "ubuntuConclusion": "SUCCESS",
+    "windowsJobId": 91481252158,
+    "windowsConclusion": "SUCCESS",
+    "sourceClosureJobId": 91481252131,
+    "a0RegistryAndOpenStateContract": "SUCCESS",
+    "finalSourceClosureScanner": "EXPECTED_FAILURE_UNTIL_A8",
+    "wp0RunId": 30742117979,
+    "wp0Conclusion": "SUCCESS",
+    "wp0JobId": 91481252166,
+    "sealedExportUbuntuJobId": 91481252192,
+    "sealedExportWindowsJobId": 91481252177
+  },
+  "governanceHeadVerification": {
+    "acv2RunId": 30742356643,
+    "overallConclusion": "EXPECTED_FAILURE_DUE_TO_A8_SOURCE_CLOSURE_ONLY",
+    "ubuntuJobId": 91481900311,
+    "ubuntuConclusion": "SUCCESS",
+    "windowsJobId": 91481900362,
+    "windowsConclusion": "SUCCESS",
+    "sourceClosureJobId": 91481900309,
+    "a0RegistryAndOpenStateContract": "SUCCESS",
+    "finalSourceClosureScanner": "EXPECTED_FAILURE_UNTIL_A8",
+    "wp0RunId": 30742356634,
+    "wp0Conclusion": "SUCCESS",
+    "wp0JobId": 91481900193,
+    "sealedExportUbuntuJobId": 91481900260,
+    "sealedExportWindowsJobId": 91481900228
+  },
+  "perPlatformTests": {
+    "windowsRuntimeMutexHelper": "3_OF_3_PASS",
+    "authorityWriteHostAndSchema21": "7_OF_7_PASS",
+    "realProcessOwnershipAndTakeover": "2_OF_2_PASS",
+    "a2CanonicalClassificationReplay": "33_OF_33_PASS",
+    "a3CoordinatorSchemaAndAdversarial": "24_OF_24_PASS",
+    "legacySqliteOwnershipPathAndFencing": "22_OF_22_PASS"
+  },
+  "verifiedInvariants": [
+    "LEDGER_SEQUENCE_ALLOCATED_AND_INSERTED_INSIDE_THE_SAME_BEGIN_IMMEDIATE_TRANSACTION",
+    "COMPLETE_SCHEMA21_HEADER_METADATA_PERSISTED",
+    "AGGREGATE_VERSION_CONFLICT_REJECTED_BY_CONDITIONAL_SQL_MUTATION",
+    "HEADER_PAYLOAD_PROJECTION_CHECKPOINT_AND_RECEIPT_COMMIT_ATOMICALLY",
+    "ROLLBACK_PUBLISHES_NO_PROCESS_EVENT_AND_LEAVES_NO_PARTIAL_ROWS",
+    "PROJECTOR_RECEIVES_REVOCABLE_TRANSACTION_SCOPED_SQL_CAPABILITY_NOT_RAW_PRIMARY_DATABASE",
+    "PROJECTOR_TRANSACTION_CONTROL_AUTHORITY_TABLE_ACCESS_AND_POST_CALLBACK_WRITES_FAIL_CLOSED",
+    "PROJECTOR_PAYLOAD_IS_DEEPLY_IMMUTABLE",
+    "HOST_GENERATION_AND_FENCING_TOKEN_BIND_EVERY_COMMAND_TRANSACTION",
+    "SAME_IDEMPOTENCY_AND_CONTENT_REPLAYS_ORIGINAL_RECEIPT",
+    "IDEMPOTENCY_CONTENT_CONFLICT_FAILS_CLOSED",
+    "EXTERNAL_IO_INSIDE_AUTHORITY_TRANSACTION_FAILS_CLOSED",
+    "EVENT_NOTIFICATION_OCCURS_ONLY_AFTER_COMMIT"
+  ],
+  "independentSourceReview": {
+    "document": "docs/architecture/YANCE_ACV2_WP_A_A3_SOURCE_REVIEW_ZH.md",
+    "decision": "APPROVED_AFTER_LEDGER_SEQUENCE_AND_GOVERNANCE_CONTRACT_ROOT_REPAIR",
+    "openP0": 0,
+    "openP1": 0
+  },
+  "codeRabbit": {
+    "invocationCommentId": 5156916790,
+    "responseCommentId": 5156917299,
+    "formalReviewExecuted": false,
+    "outcome": "NOT_EXECUTED_PRO_SEAT_NOT_ASSIGNED",
+    "issuesClaimed": null
+  },
+  "repairPolicy": {
+    "temporaryBypassUsed": false,
+    "compatibilityColumnPatchUsed": false,
+    "testWeakeningUsed": false,
+    "sourceClosureGateDowngraded": false,
+    "productionCodeOutsideAuthorizedScopeChanged": false
+  },
+  "nextAuthorization": {
+    "task": "A4_UPGRADE_DOMAIN_EVENT_LOG_AUTHORITY_IN_PLACE",
+    "testFirstRedOnly": true,
+    "productionCodeAllowed": false,
+    "requiredRedTests": [
+      "backend/tests/architectureClosureV2/wpA/canonicalEventLedgerAuthority.test.js",
+      "backend/tests/architectureClosureV2/wpA/domainEventCompatibilityFacade.test.js"
+    ]
+  }
+}

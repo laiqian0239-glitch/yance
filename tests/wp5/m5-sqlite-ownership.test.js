@@ -121,13 +121,14 @@ test('a second claim while the first owner is live throws SQLITE_OWNERSHIP_CONFL
   );
 });
 
-test('a stale lock is taken over by a new owner', () => {
+test('a stale lock with a dead owner is taken over by a new owner', () => {
   const fs = memFs();
   let t = 1000;
   const clock = () => t;
   claimOwnership({ dbPath: '/d/app.db', instanceId: 'A', pid: 42, clock, fsProvider: fs, staleMs: 30000 });
   t = 1000 + 60000; // older than staleMs
-  const h = claimOwnership({ dbPath: '/d/app.db', instanceId: 'B', clock, fsProvider: fs, staleMs: 30000 });
+  const pidAlive = (pid) => pid === 42 ? false : true;
+  const h = claimOwnership({ dbPath: '/d/app.db', instanceId: 'B', pid: 99, clock, fsProvider: fs, staleMs: 30000, pidAlive });
   assert.strictEqual(h.instanceId, 'B');
   const lock = JSON.parse(fs._files.get('/d/app.db.ownership.json'));
   assert.strictEqual(lock.instanceId, 'B');

@@ -6,6 +6,7 @@ const { NamedRuntimeMutex, RuntimeMutexSet, runtimeMutexName, legacyRuntimeMutex
 const { RuntimeStateStore } = require('./RuntimeStateStore');
 const { normalizeRuntimeError } = require('./errors');
 const { canonicalizeRuntimePaths } = require('./RuntimePathIdentity');
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, Math.max(0, Number(ms || 0))));
@@ -104,6 +105,8 @@ class RuntimeOwnership {
       });
     }
     this._ownedSqliteBroker = null;
+    this._ownedAuthorityWriteHost = null;
+    this.authorityWriteHostFactory = options.authorityWriteHostFactory || acquireAuthorityWriteHost;
     this.storeFactory = options.storeFactory || (storeOptions => {
       if (options.db) return new RuntimeStateStore({ ...storeOptions, db: options.db });
       // RuntimeOwnership is path-scoped. Falling back to the process-global
@@ -113,13 +116,29 @@ class RuntimeOwnership {
       // its primary broker; direct ownership users receive a private broker for
       // the exact canonical dbPath and RuntimeOwnership closes it on release.
       const { SqliteConnectionBroker } = require('../lib/sqliteConnectionBroker');
-      if (this._ownedSqliteBroker && !this._ownedSqliteBroker.closed) {
-        const error = new Error('Runtime ownership SQLite broker is already open');
-        error.code = 'RUNTIME_SQLITE_BROKER_ALREADY_OPEN';
+      if ((this._ownedSqliteBroker && !this._ownedSqliteBroker.closed) || this._ownedAuthorityWriteHost) {
+        const error = new Error('Runtime ownership SQLite authority is already open');
+        error.code = 'RUNTIME_SQLITE_AUTHORITY_ALREADY_OPEN';
         throw error;
       }
-      this._ownedSqliteBroker = new SqliteConnectionBroker({ dbPath: storeOptions.dbPath });
-      return new RuntimeStateStore({ ...storeOptions, db: this._ownedSqliteBroker.open().db });
+      const host = this.authorityWriteHostFactory({
+        dbPath: storeOptions.dbPath,
+        instanceId: `runtime-ownership:${this.ownerInstanceId}`
+      });
+      this._ownedAuthorityWriteHost = host;
+      try {
+        this._ownedSqliteBroker = new SqliteConnectionBroker({
+          dbPath: storeOptions.dbPath,
+          authorityWriteHostCapability: host.capability
+        });
+        return new RuntimeStateStore({ ...storeOptions, db: this._ownedSqliteBroker.open().db });
+      } catch (error) {
+        try { this._ownedSqliteBroker?.close(); } catch (_) {}
+        this._ownedSqliteBroker = null;
+        try { host.release(); } catch (_) {}
+        this._ownedAuthorityWriteHost = null;
+        throw error;
+      }
     });
     this.initializeRuntimeState = options.initializeRuntimeState !== false;
     this.store = null;
@@ -134,6 +153,13 @@ class RuntimeOwnership {
     this._consecutiveHeartbeatFailures = 0;
     this._leaseLost = false;
     this._exitGuardHandler = null;
+  }
+
+  _closeOwnedSqliteAuthority() {
+    try { this._ownedSqliteBroker?.close(); } catch (_) {}
+    this._ownedSqliteBroker = null;
+    try { this._ownedAuthorityWriteHost?.release(); } catch (_) {}
+    this._ownedAuthorityWriteHost = null;
   }
 
   _defaultOnLeaseLost(reason, detail = {}) {
@@ -178,8 +204,7 @@ class RuntimeOwnership {
           if (failedPhase === 'ownership_store_open') {
             try { this.store?.close(); } catch (_) {}
             this.store = null;
-            try { this._ownedSqliteBroker?.close(); } catch (_) {}
-            this._ownedSqliteBroker = null;
+            this._closeOwnedSqliteAuthority();
           }
           await sleep(retryDelaysMs[attempt]);
         }
@@ -190,8 +215,7 @@ class RuntimeOwnership {
     } catch (error) {
       try { this.store?.close(); } catch (_) {}
       this.store = null;
-      try { this._ownedSqliteBroker?.close(); } catch (_) {}
-      this._ownedSqliteBroker = null;
+      this._closeOwnedSqliteAuthority();
       await this.mutex.release().catch(() => {});
       throw sqliteOwnershipFailure(error, failedPhase);
     }
@@ -299,8 +323,7 @@ class RuntimeOwnership {
     if (options.closeStore !== false) {
       try { this.store?.close(); } catch (_) {}
       this.store = null;
-      try { this._ownedSqliteBroker?.close(); } catch (_) {}
-      this._ownedSqliteBroker = null;
+      this._closeOwnedSqliteAuthority();
     }
     await this.mutex.release().catch(() => {});
   }

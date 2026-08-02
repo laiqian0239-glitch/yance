@@ -2,8 +2,8 @@
 
 // M5 — SQLite Ownership governance (pure, zero runtime dependency).
 //
-// Risk closed: `R32SqliteStore` opens the app-data SQLite (`yance-r32.db`)
-// with `new DatabaseSync(dbPath)` and NO cross-instance ownership guard. A
+// Risk closed: legacy primary-store construction opened the app-data SQLite
+// without a cross-instance ownership guard. A
 // second backend instance (Electron relaunch, or two app copies) opening the
 // same file can cause lock contention / `database is locked` / silent
 // corruption. We add a sidecar ownership lockfile with a heartbeat + staleness

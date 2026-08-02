@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
+const { acquireAuthorityWriteHost } = require('../../backend/services/authorityWriteHost');
 const { SqliteConnectionBroker } = require('../../backend/lib/sqliteConnectionBroker');
 const {
   applicationMatrixTempPrefix,
@@ -40,13 +41,21 @@ test('short matrix temp roots can open and close the production SQLite store', (
   for (const caseId of LONG_WINDOWS_CASES) {
     const root = createApplicationMatrixTempRoot(caseId);
     const dbPath = path.join(root, 'store', 'yance-r32.db');
-    const broker = new SqliteConnectionBroker({ dbPath });
+    const host = acquireAuthorityWriteHost({
+      dbPath,
+      instanceId: `wp4-temp-path-${applicationMatrixTempPrefix(caseId)}`
+    });
+    const broker = new SqliteConnectionBroker({
+      dbPath,
+      authorityWriteHostCapability: host.capability
+    });
     try {
       const store = broker.open();
       assert.equal(path.resolve(store.dbPath), path.resolve(dbPath));
       assert.equal(fs.existsSync(dbPath), true);
     } finally {
-      broker.checkpointAndClose();
+      try { broker.checkpointAndClose(); } catch (_) {}
+      try { host.release(); } catch (_) {}
       fs.rmSync(root, { recursive: true, force: true });
     }
   }

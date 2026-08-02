@@ -1,7 +1,6 @@
 'use strict';
 
 const { randomUUID, createHash } = require('crypto');
-const { getR32Store } = require('../../lib/r32StoreSingleton');
 const { createInitialState } = require('../StoreManager');
 const { RECENT_SOCIAL_MESSAGE_LIMIT } = require('../social/learningPolicy');
 const { normalizeAppearanceState } = require('../themeAppearancePolicy');
@@ -241,7 +240,12 @@ function toOutbox(row) {
 
 class SqliteStorePersistenceAdapter {
   constructor(options = {}) {
-    this.store = options.store || getR32Store();
+    if (!options.store || !options.store.db || typeof options.store.transactionAsync !== 'function') {
+      const error = new TypeError('SqliteStorePersistenceAdapter requires the broker-owned primary store capability');
+      error.code = 'PRIMARY_STORE_CAPABILITY_REQUIRED';
+      throw error;
+    }
+    this.store = options.store;
     this.recentMessageLimit = Math.max(8, Math.min(120, Number(options.recentMessageLimit || RECENT_SOCIAL_MESSAGE_LIMIT)));
     this.timelineLimit = Math.max(20, Math.min(500, Number(options.timelineLimit || 120)));
   }

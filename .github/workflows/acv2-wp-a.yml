@@ -1,0 +1,126 @@
+name: ACV2 WP-A Architecture Gates
+
+on:
+  pull_request:
+    branches:
+      - main
+      - rebuild/windows-release-closure-20260802-gate0-wp0-fix
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  REVIEWED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  acv2-wp-a-platform-matrix:
+    name: acv2-wp-a-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout reviewed WP-A head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify Windows runtime mutex helper selection
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/windowsRuntimeMutexPowerShell.test.js
+      - name: Run AuthorityWriteHost unit and migration contract
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js
+      - name: Run real process ownership and takeover matrix
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/authorityWriteHostProcessMatrix.test.js
+      - name: Run A2 canonical serialization, classification and replay contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/canonicalSerialization.test.js
+          backend/tests/architectureClosureV2/wpA/dataClassificationRegistry.test.js
+          backend/tests/architectureClosureV2/wpA/eventTypeRegistryReplay.test.js
+          backend/tests/architectureClosureV2/wpA/upcasterSandboxEscape.test.js
+          backend/tests/architectureClosureV2/wpA/prototypePollutionBoundary.test.js
+      - name: Run A3 command coordinator, schema and adversarial contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/authorityCommandProtocol.test.js
+          backend/tests/architectureClosureV2/wpA/noExternalIoInTransaction.test.js
+          backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinator.test.js
+          backend/tests/architectureClosureV2/wpA/schema21AuthorityContract.test.js
+          backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinatorAdversarial.test.js
+      - name: Run A4 canonical ledger and compatibility facade contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/canonicalEventLedgerAuthority.test.js
+          backend/tests/architectureClosureV2/wpA/domainEventCompatibilityFacade.test.js
+      - name: Run A5 identity authority contracts
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/identityAuthority.test.js
+      - name: Run A6 runtime composition and startup ordering contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/runtimeComposition.test.js
+          backend/tests/architectureClosureV2/wpA/runtimeGatewaySurface.test.js
+          backend/tests/architectureClosureV2/wpA/runtimeStateStoreBinding.test.js
+          backend/tests/architectureClosureV2/wpA/runtimeProcessSingleton.test.js
+          backend/tests/architectureClosureV2/wpA/startupOrdering.test.js
+      - name: Run A7 deterministic replay and verify-before-retire archive contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/ledgerReplay.test.js
+          backend/tests/architectureClosureV2/wpA/ledgerArchiveFaultMatrix.test.js
+      - name: Generate deterministic A7 contract evidence
+        run: node tools/architecture-closure-v2/wp-a-replay-evidence.js
+      - name: Run A8 boot and primary store capability contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/sourceClosureBootAuthority.test.js
+          backend/tests/architectureClosureV2/wpA/primaryStoreCapabilityBoundary.test.js
+      - name: Run A8 zero-writer source closure contract
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/sourceClosureFinal.test.js
+      - name: Install locked dependencies for legacy regressions
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run legacy identity observe, merge and rollback regressions
+        run: node --test --test-concurrency=1 --test-name-pattern="identity observations|identity merge" backend/tests/round12PlatformCoreAuthorities.test.js
+      - name: Run existing SQLite ownership and fencing regressions
+        run: >-
+          node --test --test-concurrency=1
+          tests/wp5/m5-sqlite-ownership.test.js
+          tests/wp4/application-matrix-temp-path.test.js
+          tests/wp3/stale-fencing-token-outbox-denied.test.js
+
+  acv2-wp-a-source-closure:
+    name: acv2-wp-a-source-closure
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout reviewed WP-A head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Validate A0 registry and open-state contract
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js
+      - name: Validate A8 zero-writer contract
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/sourceClosureFinal.test.js
+      - name: Enforce full WP-A source closure
+        run: node tools/architecture-closure-v2/source-closure-scan.js --wp A

@@ -9,6 +9,7 @@ const { PATHS } = require('../config');
 const { walk, migrateLegacyJson } = require('./legacyJsonMigrator');
 const { walkLegacyDatabases, migrateLegacySqlite } = require('./legacySqliteMigrator');
 const { discoverLegacyDataRoots } = require('./legacyRootDiscovery');
+const { getMigrationAuthority } = require('./migrationAuthority');
 
 const plans = new Map();
 
@@ -121,14 +122,17 @@ function importSourceRoot(sourceRoot, options = {}) {
     warnings: [],
     sourceVerification: options.sourceUntouched === true ? { ok: false, before: sourceBefore, after: null, sourceMutationCount: null } : null
   };
+  const migrationAuthority = (sqliteFiles.length || jsonFiles.length)
+    ? (options.migrationAuthority || getMigrationAuthority())
+    : null;
   if (sqliteFiles.length) {
-    result.sqlite = migrateLegacySqlite({ sourceRoot: root, dbPath: PATHS.sqlite, files: sqliteFiles, stopOnError: options.stopOnError === true });
+    result.sqlite = migrateLegacySqlite({ sourceRoot: root, dbPath: PATHS.sqlite, files: sqliteFiles, stopOnError: options.stopOnError === true, migrationAuthority });
     result.ok = result.ok && result.sqlite.ok;
     result.executed = result.executed || !['nothing-to-import', 'already-imported'].includes(result.sqlite.mode);
     result.warnings.push(...(result.sqlite.warnings || []));
   }
   if (jsonFiles.length) {
-    result.json = migrateLegacyJson({ sourceRoot: root, dbPath: PATHS.sqlite, files: jsonFiles, archive: options.archiveJson === true });
+    result.json = migrateLegacyJson({ sourceRoot: root, dbPath: PATHS.sqlite, files: jsonFiles, archive: options.archiveJson === true, migrationAuthority });
     result.ok = result.ok && result.json.ok;
     result.executed = result.executed || !['nothing-to-import', 'already-imported'].includes(result.json.mode);
     result.warnings.push(...(result.json.warnings || []));

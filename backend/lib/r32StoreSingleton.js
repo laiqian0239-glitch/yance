@@ -3,27 +3,22 @@
 const { assertStorageAccess } = require('./runtimeRoleGuard');
 assertStorageAccess('getR32Store');
 
-const { PATHS, ensureDirectories } = require('../config');
-const { R32SqliteStore } = require('./r32SqliteStore');
-
-let instance = null;
-
 function getR32Store() {
-  const broker = require('./sqliteConnectionBroker').getSqliteConnectionBroker({ optional: true });
-  if (broker) return broker.getStore();
-  if (!instance) {
-    ensureDirectories();
-    instance = new R32SqliteStore({ dbPath: PATHS.sqlite });
+  const { getSqliteConnectionBroker } = require('./sqliteConnectionBroker');
+  const broker = getSqliteConnectionBroker();
+  if (!broker) {
+    const error = new Error('SQLite broker is not initialized');
+    error.code = 'SQLITE_BROKER_NOT_READY';
+    throw error;
   }
-  return instance;
+  return broker.getStore();
 }
 
 function closeR32Store() {
-  const broker = require('./sqliteConnectionBroker').getSqliteConnectionBroker({ optional: true });
-  if (broker) { broker.checkpointAndClose(); return; }
-  if (!instance) return;
-  try { instance.close(); } finally { instance = null; }
+  const { getSqliteConnectionBroker } = require('./sqliteConnectionBroker');
+  const broker = getSqliteConnectionBroker({ optional: true });
+  if (!broker) return;
+  broker.checkpointAndClose();
 }
-
 
 module.exports = { getR32Store, closeR32Store };

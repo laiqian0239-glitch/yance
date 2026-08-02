@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_A_A5_REVIEW_RED_EVIDENCE",
+  "status": "TRUSTED_REVIEW_REOPENS_RECORDED",
+  "workPackage": "WP-A",
+  "task": "A5_IDENTITY_AUTHORITY_AND_CANONICAL_SCOPED_IDS",
+  "reopens": [
+    {
+      "sequence": 1,
+      "head": "ef847d6140d77e59645b481a7ff3c0cc29dbf160",
+      "workflowRunId": 30744907149,
+      "ubuntuJobId": 91488728958,
+      "windowsJobId": 91488728964,
+      "result": "4_OF_7_PASS_3_OF_7_EXPECTED_FAIL_PER_PLATFORM",
+      "rootCauses": [
+        "SCOPE_INPUT_ACCESSOR_SYMBOL_AND_NONPLAIN_OBJECT_BOUNDARY_MISSING",
+        "LEGACY_CANONICAL_SERVICE_BYPASSED_IDENTITY_AUTHORITY",
+        "IDENTITY_DOMAIN_EVENTS_RECORDED_INSIDE_REPOSITORY_TRANSACTION"
+      ]
+    },
+    {
+      "sequence": 2,
+      "head": "d1157378bef4da76600d2c08f131058dec435d13",
+      "workflowRunId": 30745355767,
+      "ubuntuJobId": 91489897796,
+      "windowsJobId": 91489898063,
+      "result": "7_OF_8_PASS_1_OF_8_EXPECTED_FAIL_PER_PLATFORM",
+      "rootCauses": [
+        "LEGACY_CANONICALIZATION_COULD_EXECUTE_A_PHONE_ONLY_IDENTITY_MERGE"
+      ]
+    }
+  ],
+  "predecessorContractsStayedGreen": true,
+  "testsRelaxed": false,
+  "productionBypassAdded": false,
+  "prMustRemainDraft": true
+}

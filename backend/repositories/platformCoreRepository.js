@@ -2,6 +2,8 @@
 
 const { getStore } = require('./storeProvider');
 const { parseJson } = require('../lib/r32SqliteStore');
+const { assertCoordinatorRepositoryCapability } = require('../services/authorityTransactionCoordinator');
+const { ensureCanonicalProjectionReceiptSchema } = require('../migrations/projectionReceiptSchemaAuthority');
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function json(value, fallback = '{}') {
@@ -32,9 +34,17 @@ function sameRawLearningProfile(row, snapshot) {
 class PlatformCoreRepository {
   constructor(options = {}) {
     this.storeProvider = typeof options.storeProvider === 'function' ? options.storeProvider : getStore;
+    this.coordinatorCapability = options.coordinatorCapability || null;
+    if (this.coordinatorCapability) assertCoordinatorRepositoryCapability(this.coordinatorCapability, this.store());
   }
   store() { return this.storeProvider(); }
   transaction(callback) { return this.store().transaction(() => callback(this)); }
+  assertCoordinatorWrite() {
+    if (!this.coordinatorCapability) {
+      throw Object.assign(new Error('Platform core ledger mutation requires coordinatorCapability'), { code: 'AUTHORITY_COORDINATOR_CAPABILITY_REQUIRED' });
+    }
+    return assertCoordinatorRepositoryCapability(this.coordinatorCapability, this.store());
+  }
 
   getPerson(personId) {
     return rowJson(this.store().db.prepare('SELECT * FROM persons WHERE person_id=?').get(clean(personId)), ['payload_json']);
@@ -508,22 +518,8 @@ class PlatformCoreRepository {
       LIMIT 1
     `).get(clean(platform).toLowerCase(), clean(sourceAccountId), clean(eventType), externalId), ['payload_json']);
   }
-  insertDomainEvent(input = {}) {
-    this.store().db.prepare(`
-      INSERT INTO domain_events(
-        event_id,schema_version,platform,source_account_id,external_event_id,event_type,idempotency_key,correlation_id,
-        causation_id,occurred_at,received_at,redaction_version,payload_json,payload_sha256,retention_until,replay_state
-      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-      ON CONFLICT(idempotency_key) DO NOTHING
-    `).run(
-      clean(input.eventId), Number(input.schemaVersion || 1), clean(input.platform).toLowerCase(), clean(input.sourceAccountId),
-      clean(input.externalEventId), clean(input.eventType), clean(input.idempotencyKey), clean(input.correlationId), clean(input.causationId),
-      clean(input.occurredAt), clean(input.receivedAt), clean(input.redactionVersion) || 'v1', json(input.payload || {}), clean(input.payloadSha256),
-      clean(input.retentionUntil), clean(input.replayState) || 'available'
-    );
-    return this.getDomainEventByIdempotency(input.idempotencyKey);
-  }
   updateDomainReplayState(eventId, replayState) {
+    this.assertCoordinatorWrite();
     this.store().db.prepare('UPDATE domain_events SET replay_state=? WHERE event_id=?').run(clean(replayState), clean(eventId));
     return this.getDomainEvent(eventId);
   }
@@ -559,20 +555,45 @@ class PlatformCoreRepository {
     `).get(clean(projectorName), clean(projectorVersion), clean(eventId)), ['target_refs_json']);
   }
   upsertProjectionReceipt(input = {}) {
-    this.store().db.prepare(`
-      INSERT INTO domain_projection_receipts(
-        projector_name,projector_version,event_id,projection_status,projection_hash,target_refs_json,failure_code,failure_reason,attempt,projected_at
-      ) VALUES(?,?,?,?,?,?,?,?,?,?)
-      ON CONFLICT(projector_name,projector_version,event_id) DO UPDATE SET
-        projection_status=excluded.projection_status,projection_hash=excluded.projection_hash,target_refs_json=excluded.target_refs_json,
-        failure_code=excluded.failure_code,failure_reason=excluded.failure_reason,attempt=excluded.attempt,projected_at=excluded.projected_at
-    `).run(
-      clean(input.projectorName), clean(input.projectorVersion), clean(input.eventId), clean(input.projectionStatus), clean(input.projectionHash),
-      json(input.targetRefs || [], '[]'), clean(input.failureCode), clean(input.failureReason), Number(input.attempt || 1), clean(input.projectedAt)
-    );
-    return rowJson(this.store().db.prepare(`
-      SELECT * FROM domain_projection_receipts WHERE projector_name=? AND projector_version=? AND event_id=?
-    `).get(clean(input.projectorName), clean(input.projectorVersion), clean(input.eventId)), ['target_refs_json']);
+    const ledgerSequence = Number(input.ledgerSequence);
+    if (!Number.isSafeInteger(ledgerSequence) || ledgerSequence < 1) {
+      throw Object.assign(new Error('Projection receipt requires a positive canonical ledgerSequence'), { code: 'CANONICAL_LEDGER_SEQUENCE_REQUIRED' });
+    }
+    const token = this.assertCoordinatorWrite();
+    const store = this.store();
+    const db = store.db;
+    ensureCanonicalProjectionReceiptSchema(db);
+    return store.transaction(() => {
+      db.prepare(`
+        INSERT INTO domain_projection_receipts(
+          projector_name,projector_version,event_id,ledger_sequence,projection_status,projection_hash,target_refs_json,failure_code,failure_reason,attempt,projected_at
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(projector_name,projector_version,event_id) DO UPDATE SET
+          ledger_sequence=excluded.ledger_sequence,projection_status=excluded.projection_status,projection_hash=excluded.projection_hash,
+          target_refs_json=excluded.target_refs_json,failure_code=excluded.failure_code,failure_reason=excluded.failure_reason,
+          attempt=excluded.attempt,projected_at=excluded.projected_at
+        WHERE domain_projection_receipts.ledger_sequence<=excluded.ledger_sequence
+      `).run(
+        clean(input.projectorName), clean(input.projectorVersion), clean(input.eventId), ledgerSequence, clean(input.projectionStatus),
+        clean(input.projectionHash), json(input.targetRefs || [], '[]'), clean(input.failureCode), clean(input.failureReason),
+        Number(input.attempt || 1), clean(input.projectedAt)
+      );
+      db.prepare(`
+        INSERT INTO projection_checkpoints_v2(
+          projector_id,projector_version,ledger_sequence,lease_owner,generation,fencing_token,output_hash,lag,updated_at
+        ) VALUES(?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(projector_id) DO UPDATE SET
+          projector_version=excluded.projector_version,ledger_sequence=excluded.ledger_sequence,lease_owner=excluded.lease_owner,
+          generation=excluded.generation,fencing_token=excluded.fencing_token,output_hash=excluded.output_hash,lag=excluded.lag,updated_at=excluded.updated_at
+        WHERE projection_checkpoints_v2.ledger_sequence<=excluded.ledger_sequence
+      `).run(
+        clean(input.projectorName), clean(input.projectorVersion), ledgerSequence, token.hostId, token.hostGeneration, token.fencingToken,
+        clean(input.projectionHash), 0, clean(input.projectedAt)
+      );
+      return rowJson(db.prepare(`
+        SELECT * FROM domain_projection_receipts WHERE projector_name=? AND projector_version=? AND event_id=?
+      `).get(clean(input.projectorName), clean(input.projectorVersion), clean(input.eventId)), ['target_refs_json']);
+    });
   }
 
 

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_A_A5_RED_EVIDENCE",
+  "status": "TRUSTED_RED_RECORDED",
+  "workPackage": "WP-A",
+  "task": "A5_IDENTITY_AUTHORITY_AND_CANONICAL_SCOPED_IDS",
+  "redHead": "4711e319e9e4bc85255582b70b01d6d6d312696e",
+  "workflowRunId": 30744296174,
+  "ubuntuJobId": 91487138223,
+  "windowsJobId": 91487138219,
+  "wp0WorkflowRunId": 30744296177,
+  "wp0JobId": 91487138205,
+  "sealedExportUbuntuJobId": 91487138226,
+  "sealedExportWindowsJobId": 91487138351,
+  "result": "0_OF_4_A5_PASS_4_OF_4_EXPECTED_FAIL_PER_PLATFORM",
+  "failureReason": "backend/services/identityAuthority.js is absent; all four contracts fail at the frozen authority boundary",
+  "predecessorStatus": {
+    "a1": "PASS",
+    "a2": "PASS",
+    "a3": "PASS",
+    "a4": "10_OF_10_PASS_PER_PLATFORM",
+    "wp0": "PASS",
+    "sealedExportUbuntu": "PASS",
+    "sealedExportWindows": "PASS",
+    "a0RegistryContract": "PASS",
+    "sourceClosureScanner": "EXPECTED_FAILURE_UNTIL_A8"
+  },
+  "requiredRedInvariants": [
+    "EXTERNAL_IDENTITY_SCOPE_INCLUDES_PLATFORM_SOURCE_ACCOUNT_AND_EXTERNAL_ID",
+    "DISPLAY_NAME_AVATAR_USERNAME_OR_FORMATTED_PHONE_ALONE_CANNOT_MERGE_CONTACTS",
+    "ID_GENERATION_IS_DETERMINISTIC_AND_COLLISION_SAFE_ACROSS_SCOPE",
+    "LEGACY_IDENTITY_CALLERS_USE_THE_SAME_AUTHORITY_AND_CANNOT_WRITE_A_SEPARATE_FACT"
+  ],
+  "productionFilesChanged": false,
+  "implementationAuthorizedByThisDocument": false,
+  "prMustRemainDraft": true
+}

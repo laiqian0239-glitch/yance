@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_A_A4_RED_EVIDENCE",
+  "status": "A4_TRUSTED_RED_RECORDED",
+  "workPackage": "WP-A",
+  "task": "A4_UPGRADE_DOMAIN_EVENT_LOG_AUTHORITY_IN_PLACE_TO_CANONICAL_EVENT_LEDGER_AUTHORITY",
+  "redHead": "ae43ede5c096ec6438969294d9c8248ad3196be0",
+  "testOnlyCommits": [
+    {
+      "sha": "19bb9ae31efc1ace2755dbde22d7d7122a3de44a",
+      "path": "backend/tests/architectureClosureV2/wpA/canonicalEventLedgerAuthority.test.js"
+    },
+    {
+      "sha": "bbfbecaba93ddf266152345f8a459e1c288e1c6f",
+      "path": "backend/tests/architectureClosureV2/wpA/domainEventCompatibilityFacade.test.js"
+    },
+    {
+      "sha": "ae43ede5c096ec6438969294d9c8248ad3196be0",
+      "path": ".github/workflows/acv2-wp-a.yml",
+      "purpose": "EXECUTE_EXACT_A4_RED_CONTRACTS_ON_UBUNTU_AND_WINDOWS"
+    }
+  ],
+  "acv2Workflow": {
+    "runId": 30742811474,
+    "overallConclusion": "EXPECTED_FAILURE_DUE_TO_A4_RED_AND_A8_SOURCE_CLOSURE",
+    "ubuntu": {
+      "jobId": 91483141685,
+      "conclusion": "EXPECTED_FAILURE",
+      "preA4Results": {
+        "windowsRuntimeMutexHelper": "3_OF_3_PASS",
+        "authorityWriteHostAndSchema21": "7_OF_7_PASS",
+        "realProcessOwnershipAndTakeover": "2_OF_2_PASS",
+        "a2CanonicalClassificationReplay": "33_OF_33_PASS",
+        "a3CoordinatorSchemaAndAdversarial": "24_OF_24_PASS"
+      },
+      "a4Red": {
+        "result": "0_OF_8_PASS_8_OF_8_EXPECTED_FAIL",
+        "stepName": "Run A4 canonical ledger and compatibility facade RED contracts"
+      }
+    },
+    "windows": {
+      "jobId": 91483141676,
+      "conclusion": "EXPECTED_FAILURE",
+      "preA4Results": {
+        "windowsRuntimeMutexHelper": "3_OF_3_PASS",
+        "authorityWriteHostAndSchema21": "7_OF_7_PASS",
+        "realProcessOwnershipAndTakeover": "2_OF_2_PASS",
+        "a2CanonicalClassificationReplay": "33_OF_33_PASS",
+        "a3CoordinatorSchemaAndAdversarial": "24_OF_24_PASS"
+      },
+      "a4Red": {
+        "result": "0_OF_8_PASS_8_OF_8_EXPECTED_FAIL",
+        "stepName": "Run A4 canonical ledger and compatibility facade RED contracts"
+      }
+    },
+    "sourceClosure": {
+      "jobId": 91483141671,
+      "a0RegistryAndOpenStateContract": "SUCCESS",
+      "finalScanner": "EXPECTED_FAILURE_UNTIL_A8",
+      "gateWeakened": false
+    }
+  },
+  "wp0Workflow": {
+    "runId": 30742811486,
+    "overallConclusion": "SUCCESS",
+    "wp0JobId": 91483141688,
+    "wp0RequiredTests": "SUCCESS",
+    "stagedSecretScanner": "SUCCESS",
+    "sourceIdentityAndElectronTracking": "SUCCESS",
+    "protocolDescriptor": "SUCCESS",
+    "localEquivalentGate": "SUCCESS",
+    "sealedExportUbuntuJobId": 91483141712,
+    "sealedExportWindowsJobId": 91483141710
+  },
+  "observedRootGaps": [
+    {
+      "invariant": "EXACTLY_ONE_LEDGER_IMPLEMENTATION_AND_ONE_APPEND_PATH",
+      "evidence": "CANONICAL_EVENT_LEDGER_AUTHORITY_MODULE_MISSING"
+    },
+    {
+      "invariant": "DOMAIN_EVENT_LOG_SERVICE_HAS_NO_INDEPENDENT_PERSISTENCE",
+      "evidence": "LEGACY_SERVICE_STILL_OWNS_CRYPTO_CANONICALIZATION_REDACTION_IDENTITY_REPOSITORY_READS_AND_WRITES"
+    },
+    {
+      "invariant": "HEADER_PAYLOAD_HASH_MISMATCH_FAILS_CLOSED",
+      "evidence": "CANONICAL_AUTHORITY_BOUNDARY_MISSING"
+    },
+    {
+      "invariant": "DUPLICATE_AGGREGATE_VERSION_FAILS_CLOSED",
+      "evidence": "CANONICAL_AUTHORITY_BOUNDARY_MISSING"
+    },
+    {
+      "invariant": "COMMITTED_EVENT_MUTATION_FAILS_CLOSED",
+      "evidence": "CANONICAL_AUTHORITY_AND_ACTIVE_PAYLOAD_IMMUTABILITY_BOUNDARY_MISSING"
+    },
+    {
+      "invariant": "DIRECT_REPOSITORY_APPEND_FAILS_CLOSED",
+      "evidence": "PLATFORM_CORE_REPOSITORY_INSERT_DOMAIN_EVENT_REMAINS_DIRECTLY_WRITABLE"
+    },
+    {
+      "invariant": "BUSINESS_PAYLOAD_REMAINS_REPLAYABLE_WITHOUT_COPYING_BUSINESS_BODY_TO_EVIDENCE",
+      "evidence": "SINGLE_CANONICAL_LEDGER_EVIDENCE_BOUNDARY_MISSING"
+    }
+  ],
+  "crossPlatformEquivalence": {
+    "ubuntuAndWindowsSameFailureCount": true,
+    "ubuntuAndWindowsSameArchitecturalCauses": true,
+    "syntaxOrPathFailure": false,
+    "runnerSpecificFailure": false
+  },
+  "repairPolicy": {
+    "productionBusinessCodeChanged": false,
+    "temporaryBypassUsed": false,
+    "testWeakeningUsed": false,
+    "expectedFailureMaskingUsed": false,
+    "sourceClosureGateDowngraded": false
+  },
+  "implementationAuthorizationPrerequisites": {
+    "trustedRedRecorded": true,
+    "implementationStartConditionSatisfied": true,
+    "exactProductionFiles": [
+      "backend/services/canonicalEventLedgerAuthority.js",
+      "backend/services/domainEventLogService.js",
+      "backend/repositories/platformCoreRepository.js"
+    ],
+    "a5ThroughA8Locked": true,
+    "wpBThroughWpHLocked": true,
+    "prMustRemainDraft": true,
+    "mergeAndReleaseLocked": true
+  }
+}

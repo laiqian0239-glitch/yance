@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 2,
+  "documentType": "YANCE_ACV2_WP_A_A1_EVIDENCE",
+  "status": "A1_IMPLEMENTATION_AND_GOVERNANCE_HEAD_VERIFIED",
+  "workPackage": "WP-A",
+  "task": "A1_INTRODUCE_SCHEMA_21_AND_PERSISTENT_AUTHORITY_WRITE_HOST_LEASE",
+  "repository": "laiqian0239-glitch/yance",
+  "pullRequest": 5,
+  "branch": "acv2/wp-a-identity-ledger-write-host",
+  "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
+  "redEvidence": {
+    "head": "3ece409ddcabab43ea1c21fee1a2395a85d54855",
+    "workflowRunId": 30735524098,
+    "ubuntuJobId": 91463527062,
+    "windowsJobId": 91463527127,
+    "conclusion": "EXPECTED_FAILURE",
+    "productionCodePresent": false,
+    "capturedInvariants": [
+      "SCHEMA_21_MISSING",
+      "AUTHORITY_WRITE_HOST_SERVICE_MISSING",
+      "PRIMARY_SQLITE_ROLE_BOUNDARY_MISSING",
+      "HOST_CAPABILITY_BOUNDARY_MISSING",
+      "DATABASE_GENERATION_FENCING_MISSING",
+      "REAL_PROCESS_CONFLICT_REJECTION_MISSING",
+      "FORCED_DEATH_TAKEOVER_MISSING"
+    ]
+  },
+  "initialGreenCandidate": {
+    "head": "46fb99bdd81f62402e8157e3fa098d3fca2ab7e2",
+    "workflowRunId": 30736058708,
+    "ubuntuJobId": 91464957869,
+    "windowsJobId": 91464957871,
+    "conclusion": "SUCCESS"
+  },
+  "governanceHeadReopenEvidence": {
+    "head": "c800dec2dcbe4ae905cfae5dc87cc4575a3d6f47",
+    "workflowRunId": 30736147115,
+    "windowsJobId": 91465192517,
+    "result": "A1_REOPENED",
+    "reasonCode": "WINDOWS_RUNTIME_MUTEX_HELPER_STARTUP_TIMEOUT",
+    "authorityWriteHostContract": "7_OF_7_PASS",
+    "realProcessMatrix": "2_OF_2_PASS",
+    "legacyRegressions": "21_OF_22_PASS",
+    "failureBeforeFencingAssertion": true
+  },
+  "windowsMutexHelperRedEvidence": {
+    "head": "2443b327bd4e5a4c112a6fa4cac6e0d5a4f63bc9",
+    "workflowRunId": 30736259095,
+    "conclusion": "EXPECTED_FAILURE",
+    "missingContract": "resolveWindowsPowerShellExecutable"
+  },
+  "verifiedCodeHead": "22485f03bc52739b79bf3a5e354c2f7ffc67cf9d",
+  "workflow": {
+    "name": "ACV2 WP-A Architecture Gates",
+    "runId": 30736290546,
+    "runNumber": 47,
+    "conclusion": "SUCCESS",
+    "ubuntuJobId": 91465563418,
+    "ubuntuConclusion": "SUCCESS",
+    "windowsJobId": 91465563426,
+    "windowsConclusion": "SUCCESS"
+  },
+  "testResultsPerPlatform": {
+    "windowsMutexHelperSelection": {
+      "tests": 3,
+      "passed": 3,
+      "failed": 0,
+      "timeoutPolicyUnchangedMs": 5000
+    },
+    "authorityWriteHostContract": {
+      "tests": 7,
+      "passed": 7,
+      "failed": 0
+    },
+    "realProcessMatrix": {
+      "tests": 2,
+      "passed": 2,
+      "failed": 0,
+      "cases": [
+        "LIVE_SECOND_PROCESS_REJECTED",
+        "SIGKILL_TAKEOVER_INCREMENTS_GENERATION_AND_FENCING"
+      ]
+    },
+    "legacyOwnershipPathAndFencingRegressions": {
+      "tests": 22,
+      "passed": 22,
+      "failed": 0
+    }
+  },
+  "schema21": {
+    "migrationId": "021_architecture_closure_v2_wp_a",
+    "freshBootstrapVerified": true,
+    "schema20UpgradeVerified": true,
+    "checksumPinned": true,
+    "objects": [
+      "authority_write_host_lease",
+      "canonical_event_headers",
+      "authority_payload_store",
+      "event_type_registry",
+      "authority_command_receipts",
+      "projection_checkpoints_v2",
+      "ledger_segments",
+      "ledger_snapshots"
+    ]
+  },
+  "authorityInvariants": {
+    "sidecarPurpose": "STARTUP_EXCLUSION_AND_CRASH_DETECTION",
+    "databaseLeasePurpose": "COMMIT_AUTHORITY",
+    "generationAndFencingCas": "PASS",
+    "staleTransactionRejectedInsideBeginImmediate": "PASS",
+    "clockForwardBackwardCannotRestoreOldToken": "PASS",
+    "forgedCapabilityRejected": "PASS",
+    "unknownAndWorkerRolesFailClosed": "PASS",
+    "testResetsRemainTestOnly": "PASS",
+    "windowsMutexPowerShell7Preferred": "PASS",
+    "windowsPowerShell51FallbackRetained": "PASS"
+  },
+  "rootCauseCorrections": [
+    {
+      "id": "A1-DOUBLE-ATTACH-SIDECAR-REFERENCE-LOSS",
+      "symptom": "A live second process could acquire after the same store was attached twice",
+      "rootCause": "The second identical attach released the final process-scoped sidecar reference and unlinked the lock",
+      "repair": "Make attachment of the identical store strictly idempotent while retaining token validation",
+      "temporaryBypassUsed": false
+    },
+    {
+      "id": "A1-LEGACY-STALE-TAKEOVER-TEST-SEMANTICS",
+      "symptom": "An old test expected wall-clock staleness alone to steal from a demonstrably live PID",
+      "rootCause": "The fixture predated clock-jump and PID-identity protection",
+      "repair": "Require dead-owner evidence or comparable PID-reuse identity before takeover",
+      "temporaryBypassUsed": false
+    },
+    {
+      "id": "A1-WINDOWS-RUNTIME-MUTEX-HELPER-STARTUP",
+      "symptom": "Windows PowerShell 5.1 helper did not complete the named-mutex handshake within the unchanged 5 second policy on a newer runner image",
+      "rootCause": "The implementation always launched legacy powershell.exe even when PowerShell 7 was installed and already available",
+      "repair": "Prefer an installed PowerShell 7 executable, retain explicit validated override and Windows PowerShell 5.1 fallback",
+      "timeoutRelaxed": false,
+      "mutexBypassed": false,
+      "temporaryBypassUsed": false
+    }
+  ],
+  "productionScope": "WP_A_A1_ONLY",
+  "wpBThroughWpHChanged": false,
+  "temporaryBypassUsed": false,
+  "busyTimeoutTreatedAsSerialization": false,
+  "nextTaskRequiresIndependentReview": true,
+  "nextCandidateTask": "A2_VERSIONED_CANONICAL_SERIALIZATION_AND_DATA_CLASSIFICATION",
+  "lockedWorkPackages": ["WP-B", "WP-C", "WP-D", "WP-E", "WP-F", "WP-G", "WP-H"]
+}

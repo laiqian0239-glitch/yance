@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_A_A0_RED_EVIDENCE",
+  "status": "VALID_RED_RECORDED",
+  "workPackage": "WP-A",
+  "task": "A0_FREEZE_WRITER_READ_RECOVERY_FALLBACK_INVENTORY_AND_ADD_RED_TESTS",
+  "repository": "laiqian0239-glitch/yance",
+  "pullRequest": 5,
+  "branch": "acv2/wp-a-identity-ledger-write-host",
+  "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
+  "redHead": "8d8c473000e2150a76c2f101df8c15caf9dba209",
+  "workflow": {
+    "name": "Stage 6.4.5.9 WP0 Architecture Gates",
+    "runId": 30735074692,
+    "runNumber": 123,
+    "conclusion": "EXPECTED_FAILURE",
+    "wp0JobId": 91462292785,
+    "ubuntuCanonicalPathJobId": 91462292761,
+    "windowsCanonicalPathJobId": 91462292776,
+    "ubuntuCanonicalPathConclusion": "SUCCESS",
+    "windowsCanonicalPathConclusion": "SUCCESS"
+  },
+  "existingWp0": {
+    "tests": 29,
+    "passed": 29,
+    "failed": 0,
+    "branchPolicyExactAuthorization": "PASS",
+    "arbitraryAcv2WildcardDenied": "PASS"
+  },
+  "a0Suite": {
+    "tests": 4,
+    "passed": 3,
+    "failed": 1,
+    "failureMode": "TARGET_ARCHITECTURE_CLOSURE_ASSERTION_ONLY",
+    "registryContract": "PASS",
+    "unregisteredWriterFixture": "PASS",
+    "sourceClosure": "EXPECTED_FAIL"
+  },
+  "violationCounts": {
+    "AUTHORITY_WRITE_HOST_CAPABILITY_MISSING": 4,
+    "PRIMARY_DB_FALLBACK_PRESENT": 2,
+    "PRIMARY_DB_ROLE_BOUNDARY_INCOMPLETE": 12,
+    "CANONICAL_LEDGER_COORDINATOR_MISSING": 6,
+    "UNREGISTERED_PRIMARY_DB_ACCESS": 7
+  },
+  "requiredViolationClassesSatisfied": [
+    "PRIMARY_DB_FALLBACK_PRESENT",
+    "AUTHORITY_WRITE_HOST_CAPABILITY_MISSING",
+    "PRIMARY_DB_ROLE_BOUNDARY_INCOMPLETE",
+    "CANONICAL_LEDGER_COORDINATOR_MISSING"
+  ],
+  "branchPolicyRootFix": {
+    "invalidPreRedRunId": 30734885056,
+    "policyRedHead": "fdbf78e14cd26a1760d912a56468858160dd3928",
+    "policyRedRunId": 30734970367,
+    "policyRedJobId": 91462000280,
+    "policyRepairCommit": "d2b4543a4c396afb07ffd86ce1322b7074803a9d",
+    "rootCause": "MACHINE_AUTHORIZATION_NOT_CONSUMED_BY_SHARED_BRANCH_POLICY",
+    "fix": "EXACT_AUTHORIZED_BRANCH_ONLY_NO_ACV2_WILDCARD"
+  },
+  "productionBusinessCodeChanged": false,
+  "temporaryBypassUsed": false,
+  "wildcardBranchAuthorizationUsed": false,
+  "nextAuthorizedTask": "A1_INTRODUCE_SCHEMA_21_AND_PERSISTENT_AUTHORITY_WRITE_HOST_LEASE",
+  "lockedWorkPackages": [
+    "WP-B",
+    "WP-C",
+    "WP-D",
+    "WP-E",
+    "WP-F",
+    "WP-G",
+    "WP-H"
+  ]
+}

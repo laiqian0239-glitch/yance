@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_TASK_CONTRACT",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-A",
+  "task": "A7",
+  "status": "CLOSED",
+  "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
+  "pullRequest": 5,
+  "parentTask": "A6",
+  "parentEvidenceBranchTip": "e877aec9e16663296e632c224a1da3b7892f1f2b",
+  "objective": "Implement deterministic, integrity-verified canonical ledger replay and verify-before-retire archive authority without introducing a second write path.",
+  "invariants": [
+    "Replay consumes canonical ledger sequence order only and rejects gaps, duplicates and reordering.",
+    "Every replayed payload and event envelope is hash-verified before upcast or state application.",
+    "Upcasters and reducers are deterministic, synchronous and forbidden from external I/O.",
+    "Replay never mutates the canonical ledger or production authority state.",
+    "Archive creation is deterministic and content-addressed.",
+    "Active segment retirement is forbidden until archive read-back, digest, count and boundary verification succeed.",
+    "Any partial write, truncation, corruption, mismatch, cancellation or dependency failure fails closed and preserves the active segment.",
+    "All evidence records use canonical serialization and contain no secrets or inline binary payloads."
+  ],
+  "failureModes": [
+    "LEDGER_REPLAY_SEQUENCE_GAP",
+    "LEDGER_REPLAY_SEQUENCE_DUPLICATE",
+    "LEDGER_REPLAY_ORDER_INVALID",
+    "LEDGER_REPLAY_PAYLOAD_HASH_MISMATCH",
+    "LEDGER_REPLAY_EVENT_HASH_MISMATCH",
+    "LEDGER_REPLAY_UPCAST_FAILED",
+    "LEDGER_REPLAY_REDUCER_FAILED",
+    "LEDGER_REPLAY_CANCELLED",
+    "LEDGER_ARCHIVE_SNAPSHOT_INVALID",
+    "LEDGER_ARCHIVE_SEGMENT_INVALID",
+    "LEDGER_ARCHIVE_WRITE_FAILED",
+    "LEDGER_ARCHIVE_READBACK_FAILED",
+    "LEDGER_ARCHIVE_DIGEST_MISMATCH",
+    "LEDGER_ARCHIVE_EVIDENCE_FAILED",
+    "LEDGER_ARCHIVE_EVENT_COUNT_MISMATCH",
+    "LEDGER_ARCHIVE_BOUNDARY_MISMATCH",
+    "LEDGER_ARCHIVE_RETIRE_FORBIDDEN"
+  ],
+  "requiredContracts": [
+    "backend/tests/architectureClosureV2/wpA/ledgerReplay.test.js",
+    "backend/tests/architectureClosureV2/wpA/ledgerArchiveFaultMatrix.test.js"
+  ],
+  "implementationPaths": [
+    "backend/services/ledgerReplayAuthority.js",
+    "backend/services/ledgerArchiveAuthority.js",
+    "tools/architecture-closure-v2/wp-a-replay-evidence.js"
+  ],
+  "reviewedCodeHead": "15512d531079334829f3ebf2d04ab174cec58a8c",
+  "closureReceipt": "governance/architecture-closure-v2/wp-a-a7-closure.json",
+  "evidenceBranchTip": "cbfaf2855f9eb2137dbdccddff1ef396d5bb4ef3",
+  "independentReview": {
+    "document": "docs/architecture/YANCE_ACV2_WP_A_A7_SOURCE_REVIEW_ZH.md",
+    "documentCommit": "12d0b62f447df2cd2136d07e9d18e64c2b3bedfd",
+    "decision": "SOURCE_REVIEW_PASSED_FINAL_PLATFORM_GATES_REQUIRED",
+    "openP0": 0,
+    "openP1": 0
+  },
+  "finalVerification": {
+    "reviewGateHead": "e535dab84b9c8ac760a16bb86a0cf5adf32d0bff",
+    "acv2Run": 30762117214,
+    "wp0Run": 30762117203,
+    "ubuntuJob": 91534408675,
+    "windowsJob": 91534408668,
+    "wp0ProductJob": 91534432675,
+    "wp0AggregateJob": 91534524709,
+    "sealedExportUbuntuJob": 91534432681,
+    "sealedExportWindowsJob": 91534432700,
+    "sourceClosureJob": 91534408663,
+    "sourceClosureDeferredTo": "A8"
+  },
+  "closureConditions": {
+    "redEvidenceCaptured": true,
+    "implementationGreen": true,
+    "ubuntuGreen": true,
+    "windowsGreen": true,
+    "wp0Green": true,
+    "independentReviewPassed": true,
+    "candidateShaFrozen": true
+  },
+  "outOfScope": [
+    "Durable authority command and receipt protocol",
+    "Cross-process retry and crash recovery",
+    "WP-B through WP-H implementation",
+    "A8 full source closure",
+    "Promotion, packaging and release"
+  ],
+  "governance": {
+    "specReviewed": true,
+    "redMustPrecedeImplementation": true,
+    "greenIsProvisionalUntilIndependentReview": true,
+    "automaticClosure": false,
+    "automaticNextTaskAuthorization": false,
+    "automaticNextWorkPackageAuthorization": false,
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "publish": false
+  }
+}

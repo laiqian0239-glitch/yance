@@ -1,0 +1,312 @@
+{
+  "schemaVersion": 18,
+  "documentType": "YANCE_ACV2_WP_A_BASELINE",
+  "status": "A6_RED_RECORDED_PRODUCTION_IMPLEMENTATION_AUTHORIZED",
+  "workPackage": "WP-A",
+  "completedTasks": [
+    "A0_FREEZE_WRITER_READ_RECOVERY_FALLBACK_INVENTORY_AND_ADD_RED_TESTS",
+    "A1_SCHEMA_21_LEDGER_AND_PROJECTOR_SEMANTIC_CONTRACT",
+    "A2_VERSIONED_CANONICAL_SERIALIZATION_AND_DATA_CLASSIFICATION",
+    "A3_AUTHORITY_TRANSACTION_COORDINATOR_PROJECTOR_CAPABILITY",
+    "A4_CANONICAL_EVENT_LEDGER_AUTHORITY_AND_COMPATIBILITY_FACADE",
+    "A5_IDENTITY_AUTHORITY_AND_CANONICAL_SCOPED_IDS"
+  ],
+  "reopenedTasks": [],
+  "currentAuthorizedTask": "A6_PRODUCTION_IMPLEMENTATION",
+  "repository": "laiqian0239-glitch/yance",
+  "parentPullRequest": 4,
+  "stackedPullRequest": 5,
+  "parentBranch": "rebuild/windows-release-closure-20260802-gate0-wp0-fix",
+  "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
+  "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
+  "prMustRemainDraft": true,
+  "productionCodeScope": "WP_A_A6_EXACT_FOUR_FILES_ONLY",
+  "automaticNextTaskAuthorization": false,
+  "automaticNextWorkPackageAuthorization": false,
+  "sourceClosure": {
+    "schemaVersion": 1,
+    "status": "OPEN_UNTIL_WP_A_A8",
+    "discoveryRoots": ["backend"],
+    "discoveryExcludes": ["backend/tests", "backend/migrations"],
+    "a0EvidenceDocument": "governance/architecture-closure-v2/wp-a-a0-red-evidence.json",
+    "initialViolationClasses": [
+      "PRIMARY_DB_FALLBACK_PRESENT",
+      "AUTHORITY_WRITE_HOST_CAPABILITY_MISSING",
+      "PRIMARY_DB_ROLE_BOUNDARY_INCOMPLETE",
+      "CANONICAL_LEDGER_COORDINATOR_MISSING"
+    ],
+    "dedicatedWorkflowJob": "acv2-wp-a-source-closure",
+    "mustNotMaskWp0Regressions": true,
+    "registryInvalidAllowed": false,
+    "unregisteredPrimaryDbAccessAllowed": false
+  },
+  "a0": {
+    "status": "CLOSED",
+    "redEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a0-red-evidence.json",
+      "head": "8d8c473000e2150a76c2f101df8c15caf9dba209",
+      "workflowRunId": 30735074692,
+      "workflowJobId": 91462292785,
+      "conclusion": "EXPECTED_FAILURE"
+    }
+  },
+  "a1": {
+    "status": "CLOSED_AFTER_A3_INDEPENDENT_REVIEW_ROOT_REPAIR",
+    "originalGreenEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a1-evidence.json",
+      "verifiedCodeHead": "22485f03bc52739b79bf3a5e354c2f7ffc67cf9d",
+      "workflowRunId": 30736290546,
+      "ubuntuJobId": 91465563418,
+      "windowsJobId": 91465563426,
+      "result": "12_OF_12_AND_22_OF_22_PASS_PER_PLATFORM"
+    },
+    "finalRepairEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a3-evidence.json",
+      "reviewedCodeHead": "d559c8e76a1f67717da2146151fd552fec51539c",
+      "workflowRunId": 30742117971,
+      "ubuntuJobId": 91481252161,
+      "windowsJobId": 91481252158,
+      "result": "SCHEMA21_AND_A3_AND_LEGACY_REGRESSIONS_PASS_PER_PLATFORM"
+    },
+    "historicalMigrationsOneThroughTwentyImmutable": true,
+    "compatibilityColumnPatchUsed": false,
+    "semanticColumnReuseUsed": false
+  },
+  "a2": {
+    "status": "CLOSED",
+    "greenEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a2-evidence.json",
+      "reviewedCodeHead": "947c5a66610d260869188bb7c8fdf36ee0b00f54",
+      "workflowRunId": 30737653039,
+      "ubuntuJobId": 91469279772,
+      "windowsJobId": 91469279753,
+      "result": "33_OF_33_AND_22_OF_22_PASS_PER_PLATFORM"
+    },
+    "independentSourceReview": {
+      "baseDocument": "docs/architecture/YANCE_ACV2_WP_A_A2_SOURCE_REVIEW_ZH.md",
+      "normativeAmendment": "docs/architecture/YANCE_ACV2_WP_A_A2_SOURCE_REVIEW_AMENDMENT_1_ZH.md",
+      "decision": "APPROVED_AFTER_TWO_ADDITIONAL_REOPENS_AND_ROOT_REPAIRS",
+      "openP0": 0,
+      "openP1": 0
+    }
+  },
+  "a3": {
+    "status": "CLOSED",
+    "initialRedEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a3-red-evidence.json",
+      "head": "749da0b06227c95e7471149b4af78e4ab3ef465e",
+      "workflowRunId": 30738032544,
+      "ubuntuJobId": 91470284799,
+      "windowsJobId": 91470284793,
+      "result": "0_OF_18_PASS_PER_PLATFORM_MISSING_PUBLIC_MODULES"
+    },
+    "reviewRedEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a3-review-red-evidence.json",
+      "head": "30972cb025a5d059b5e2e7376156e3dd5571978a",
+      "workflowRunId": 30738506985,
+      "ubuntuJobId": 91471561304,
+      "windowsJobId": 91471561296,
+      "result": "18_PASS_6_EXPECTED_FAIL_PER_PLATFORM"
+    },
+    "finalGreenEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a3-evidence.json",
+      "reviewedCodeHead": "d559c8e76a1f67717da2146151fd552fec51539c",
+      "workflowRunId": 30742117971,
+      "ubuntuJobId": 91481252161,
+      "windowsJobId": 91481252158,
+      "wp0WorkflowRunId": 30742117979,
+      "result": "24_OF_24_A3_AND_22_OF_22_LEGACY_PASS_PER_PLATFORM"
+    },
+    "independentSourceReview": {
+      "document": "docs/architecture/YANCE_ACV2_WP_A_A3_SOURCE_REVIEW_ZH.md",
+      "decision": "APPROVED_AFTER_LEDGER_SEQUENCE_AND_GOVERNANCE_CONTRACT_ROOT_REPAIR",
+      "openP0": 0,
+      "openP1": 0
+    }
+  },
+  "a4": {
+    "status": "CLOSED",
+    "task": "UPGRADE_DOMAIN_EVENT_LOG_AUTHORITY_IN_PLACE_TO_CANONICAL_EVENT_LEDGER_AUTHORITY",
+    "redEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a4-red-evidence.json",
+      "redHead": "ae43ede5c096ec6438969294d9c8248ad3196be0",
+      "workflowRunId": 30742811474,
+      "ubuntuJobId": 91483141685,
+      "windowsJobId": 91483141676,
+      "result": "0_OF_8_PASS_8_OF_8_EXPECTED_FAIL_PER_PLATFORM",
+      "wp0WorkflowRunId": 30742811486
+    },
+    "reviewReopenEvidence": [
+      {
+        "head": "edceded87c86af6759ed127babcfb3f2fe1d1c8d",
+        "workflowRunId": 30743381932,
+        "ubuntuJobId": 91484674100,
+        "result": "7_OF_10_PASS_THREE_EXPECTED_FAIL"
+      },
+      {
+        "head": "3f438629d92aaeba9ed127c96b384dc2d7cf614e",
+        "workflowRunId": 30743693050,
+        "ubuntuJobId": 91485497265,
+        "result": "9_OF_10_PASS_ONE_EXPECTED_FAIL"
+      }
+    ],
+    "finalGreenEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a4-evidence.json",
+      "reviewedCodeHead": "0eda8a159db88d15379ae8d66a504e3aa5f80dbd",
+      "workflowRunId": 30743781529,
+      "ubuntuJobId": 91485738360,
+      "windowsJobId": 91485738414,
+      "wp0WorkflowRunId": 30743781521,
+      "result": "10_OF_10_A4_AND_22_OF_22_LEGACY_PASS_PER_PLATFORM"
+    },
+    "independentSourceReview": {
+      "document": "docs/architecture/YANCE_ACV2_WP_A_A4_SOURCE_REVIEW_ZH.md",
+      "decision": "APPROVED_AFTER_THREE_ADVERSARIAL_REOPENS_AND_ROOT_REPAIRS",
+      "openP0": 0,
+      "openP1": 0
+    },
+    "codeRabbit": {
+      "initialRedInvocationCommentId": 5157036292,
+      "initialRedResponseCommentId": 5157036779,
+      "finalInvocationCommentId": 5157199728,
+      "finalResponseCommentId": 5157200259,
+      "formalReviewExecuted": false,
+      "outcome": "NOT_EXECUTED_PRO_SEAT_NOT_ASSIGNED",
+      "issuesClaimed": null
+    },
+    "knownGovernedResidual": {
+      "legacyRepositoryMethodSourceStillPresent": true,
+      "runtimeWriteBlockedByPersistentTrigger": true,
+      "startupOrderingOwnedByTask": "A6",
+      "zeroWriterSourceClosureOwnedByTask": "A8",
+      "dualWriteAuthorized": false
+    }
+  },
+  "a5": {
+    "status": "CLOSED",
+    "task": "IDENTITY_AUTHORITY_AND_CANONICAL_SCOPED_IDS",
+    "initialRedEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a5-red-evidence.json",
+      "redHead": "4711e319e9e4bc85255582b70b01d6d6d312696e",
+      "workflowRunId": 30744296174,
+      "ubuntuJobId": 91487138223,
+      "windowsJobId": 91487138219,
+      "wp0WorkflowRunId": 30744296177,
+      "result": "0_OF_4_PASS_4_OF_4_EXPECTED_FAIL_PER_PLATFORM"
+    },
+    "reviewRedEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a5-review-red-evidence.json",
+      "reopens": [
+        {
+          "head": "ef847d6140d77e59645b481a7ff3c0cc29dbf160",
+          "workflowRunId": 30744907149,
+          "ubuntuJobId": 91488728958,
+          "windowsJobId": 91488728964,
+          "result": "4_OF_7_PASS_3_OF_7_EXPECTED_FAIL_PER_PLATFORM"
+        },
+        {
+          "head": "d1157378bef4da76600d2c08f131058dec435d13",
+          "workflowRunId": 30745355767,
+          "ubuntuJobId": 91489897796,
+          "windowsJobId": 91489898063,
+          "result": "7_OF_8_PASS_1_OF_8_EXPECTED_FAIL_PER_PLATFORM"
+        }
+      ]
+    },
+    "finalGreenEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a5-evidence.json",
+      "reviewedCodeHead": "eae90377b78768a2f8779049f60f5b486e05f40c",
+      "workflowRunId": 30745488892,
+      "ubuntuJobId": 91490249468,
+      "windowsJobId": 91490249479,
+      "wp0WorkflowRunId": 30745488917,
+      "result": "8_OF_8_A5_AND_TARGETED_LEGACY_IDENTITY_AND_22_OF_22_SQLITE_REGRESSIONS_PASS_PER_PLATFORM"
+    },
+    "independentSourceReview": {
+      "document": "docs/architecture/YANCE_ACV2_WP_A_A5_SOURCE_REVIEW_ZH.md",
+      "decision": "APPROVED_AFTER_TWO_ADVERSARIAL_REOPENS_AND_ROOT_REPAIRS",
+      "openP0": 0,
+      "openP1": 0
+    },
+    "codeRabbit": {
+      "redInvocationCommentId": 5157293572,
+      "redResponseCommentId": 5157293947,
+      "finalInvocationCommentId": 5157497437,
+      "finalResponseCommentId": null,
+      "formalReviewExecuted": false,
+      "outcome": "NOT_EXECUTED_PRO_SEAT_NOT_ASSIGNED",
+      "issuesClaimed": null,
+      "responseIdOmittedReason": "CONNECTOR_DID_NOT_RELIABLY_EXPOSE_THE_LATEST_BOT_COMMENT_ID"
+    }
+  },
+  "a6": {
+    "status": "RED_RECORDED_PRODUCTION_IMPLEMENTATION_AUTHORIZED",
+    "task": "WIRE_SINGLE_WRITE_HOST_LEDGER_AND_IDENTITY_AUTHORITY_INTO_RUNTIME_STARTUP",
+    "testCodeAllowed": true,
+    "productionCodeAllowed": true,
+    "implementationStartConditionSatisfied": true,
+    "redEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a6-red-evidence.json",
+      "redHead": "d7270de80c6e1652818496a20fe520cfeba9ae08",
+      "workflowRunId": 30745969318,
+      "ubuntuJobId": 91491520477,
+      "windowsJobId": 91491520485,
+      "sourceClosureJobId": 91491520473,
+      "wp0WorkflowRunId": 30745969294,
+      "result": "A6_STEP_EXPECTED_FAILURE_PER_PLATFORM_WITH_A1_THROUGH_A5_GREEN"
+    },
+    "codeRabbit": {
+      "invocationCommentId": 5157598077,
+      "responseCommentId": null,
+      "formalReviewExecuted": false,
+      "outcome": "NOT_EXECUTED_PRO_SEAT_NOT_ASSIGNED",
+      "issuesClaimed": null,
+      "responseIdOmittedReason": "CONNECTOR_DID_NOT_RELIABLY_EXPOSE_THE_LATEST_BOT_COMMENT_ID"
+    },
+    "allowedTestFiles": [
+      "backend/tests/architectureClosureV2/wpA/runtimeComposition.test.js",
+      "backend/tests/architectureClosureV2/wpA/startupOrdering.test.js"
+    ],
+    "allowedEvidenceHarnessFiles": [
+      ".github/workflows/acv2-wp-a.yml"
+    ],
+    "allowedProductionFiles": [
+      "backend/runtime/AppRuntimeFactory.js",
+      "backend/runtime/AppRuntimeComposition.js",
+      "backend/server.js",
+      "electron/desktopHost/ApiV2RuntimeClient.js"
+    ],
+    "requiredGreenInvariants": [
+      "WRITE_HOST_IS_ACQUIRED_BEFORE_ANY_PRODUCTION_BUSINESS_RECOVERY_OR_MUTATION",
+      "STARTUP_RECOVERY_SUBMITS_VERSIONED_COMMANDS_AND_CANNOT_WRITE_DIRECTLY",
+      "FAILED_WRITE_HOST_CLAIM_PREVENTS_READINESS",
+      "RENDERER_AND_UTILITY_PROCESSES_CAN_SUBMIT_COMMANDS_BUT_NEVER_RECEIVE_WRITE_CAPABILITY",
+      "LEGACY_WRITER_PATHS_ARE_BLOCKED_OR_DELEGATED_BEFORE_NEW_RUNTIME_PATH_IS_ENABLED",
+      "COORDINATOR_LEDGER_AND_IDENTITY_AUTHORITY_EXIST_BEFORE_RECOVERY_MANAGER",
+      "RECOVERY_MANAGER_RECEIVES_COMMAND_GATEWAY_NOT_RAW_WRITE_STORE"
+    ],
+    "greenEvidenceRequired": true,
+    "independentSourceReviewRequired": true
+  },
+  "prohibitedActions": [
+    "CHANGE_A6_RED_EXPECTATIONS_TO_ACCEPT_LATE_WRITE_HOST_ACQUISITION",
+    "ALLOW_STARTUP_RECOVERY_TO_WRITE_PRIMARY_SQLITE_DIRECTLY",
+    "PASS_WRITE_CAPABILITY_TO_RENDERER_OR_UTILITY_PROCESSES",
+    "ENABLE_NEW_RUNTIME_PATH_BEFORE_LEGACY_WRITERS_ARE_BLOCKED_OR_DELEGATED",
+    "MODIFY_PRODUCTION_CODE_OUTSIDE_A6_EXACT_FOUR_FILES",
+    "RESTORE_WEAK_SIGNAL_IDENTITY_MERGE",
+    "RESTORE_LEGACY_DOMAIN_EVENT_DUAL_WRITE",
+    "IMPLEMENT_A7_OR_LATER",
+    "IMPLEMENT_WP_B_OR_LATER",
+    "OPEN_ACV2_BRANCH_WILDCARD",
+    "REMOVE_OR_DOWNGRADE_SOURCE_CLOSURE_GATE",
+    "MARK_PR_READY_OR_MERGE"
+  ],
+  "wpAComplete": false,
+  "gate1MayStart": false,
+  "candidatePackageGenerated": false,
+  "readyForPromotion": false,
+  "formalRelease": false,
+  "lockedTasks": ["A7", "A8"],
+  "lockedWorkPackages": ["WP-B", "WP-C", "WP-D", "WP-E", "WP-F", "WP-G", "WP-H"]
+}

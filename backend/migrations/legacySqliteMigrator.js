@@ -4,7 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { DatabaseSync } = require('node:sqlite');
-const { R32SqliteStore, stableId, parseJson } = require('../lib/r32SqliteStore');
+const { stableId, parseJson } = require('../lib/r32SqliteStore');
+const { assertMigrationAuthority } = require('../services/migrationAuthority');
 const { PATHS } = require('../config');
 
 const DB_NAMES = new Set([
@@ -562,9 +563,13 @@ function migrateLegacySqlite(options = {}) {
   const files = options.files || walkLegacyDatabases(sourceRoot, { skipFiles: [targetDbPath] });
   const report = { ok: true, sourceRoot, targetDbPath, mode: files.length ? 'sqlite-import' : 'nothing-to-import', files: [], imported: {}, warnings: [], startedAt: new Date().toISOString(), completedAt: '' };
   if (!files.length) { report.completedAt = new Date().toISOString(); return report; }
-  const targetStore = new R32SqliteStore({ dbPath: targetDbPath });
-  try {
-    for (const sourceFile of files) {
+  const migrationAuthority = assertMigrationAuthority(options.migrationAuthority);
+  if (migrationAuthority.authority !== 'AuthorityWriteHostMigrationAuthority') {
+    throw Object.assign(new Error('Legacy SQLite import requires AuthorityWriteHostMigrationAuthority'), { code: 'MIGRATION_AUTHORITY_INVALID' });
+  }
+  migrationAuthority.assertTargetDbPath(targetDbPath);
+  const targetStore = migrationAuthority.targetStore();
+  for (const sourceFile of files) {
       try {
         const item = migrateOneDatabase(sourceFile, targetStore, sourceRoot, options);
         report.files.push(item);
@@ -575,8 +580,7 @@ function migrateLegacySqlite(options = {}) {
         report.warnings.push({ sourceFile, error: error.message, code: error.code || 'LEGACY_SQLITE_IMPORT_FAILED' });
         if (options.stopOnError) throw error;
       }
-    }
-  } finally { targetStore.close(); }
+  }
   report.completedAt = new Date().toISOString();
   report.mode = report.files.every(item => item.mode === 'already-imported') ? 'already-imported' : (report.ok ? 'completed' : 'completed-with-warnings');
   return report;

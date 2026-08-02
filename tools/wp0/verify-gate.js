@@ -1,6 +1,7 @@
 'use strict';
 
-const { CURRENT_STAGE, currentCommit, git, verifyWp0Gate } = require('./lib');
+const { evaluateWorkPackageScopeForGate } = require('./work-package-scope-gate');
+const { CURRENT_STAGE, currentBranch, currentCommit, git, verifyWp0Gate } = require('./lib');
 
 function argValue(name, fallback) {
   const index = process.argv.indexOf(name);
@@ -43,9 +44,18 @@ function resolveReviewedBranch(branch) {
 function main() {
   const targetStage = argValue('--target-stage', CURRENT_STAGE);
   const reviewedBranch = resolveReviewedBranch(argValue('--branch', ''));
+  const branch = reviewedBranch || currentBranch();
   const options = { targetStage };
   if (reviewedBranch) options.branch = reviewedBranch;
-  const result = verifyWp0Gate(options);
+  const wp0 = verifyWp0Gate(options);
+  const workPackageScope = evaluateWorkPackageScopeForGate({ branch, git });
+  const status = wp0.status === 'PASS' && workPackageScope.pass ? 'PASS' : 'FAIL';
+  const result = Object.freeze({
+    ...wp0,
+    status,
+    reasonCode: wp0.status !== 'PASS' ? wp0.reasonCode : workPackageScope.reasonCode,
+    workPackageScope
+  });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   if (result.status !== 'PASS') process.exitCode = 1;
 }

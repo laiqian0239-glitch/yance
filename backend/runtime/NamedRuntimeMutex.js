@@ -1,7 +1,9 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const fs = require('node:fs');
 const net = require('node:net');
+const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { AppRuntimeError } = require('./errors');
 
@@ -36,6 +38,34 @@ function portableHostForName(name) {
 
 function portableEndpointForName(name) {
   return Object.freeze({ host: portableHostForName(name), port: portablePortForName(name) });
+}
+
+function resolveWindowsPowerShellExecutable(options = {}) {
+  const env = options.env || process.env;
+  const existsSync = options.existsSync || fs.existsSync;
+  const explicit = String(env.YANCE_RUNTIME_POWERSHELL_EXE || '').trim();
+  if (explicit) {
+    const normalized = path.win32.normalize(explicit);
+    if (!existsSync(normalized)) {
+      const error = new Error(`Configured Windows runtime PowerShell helper does not exist: ${normalized}`);
+      error.code = 'WINDOWS_RUNTIME_POWERSHELL_EXPLICIT_PATH_INVALID';
+      throw error;
+    }
+    return normalized;
+  }
+
+  const roots = [...new Set([
+    String(env.ProgramW6432 || '').trim(),
+    String(env.ProgramFiles || '').trim()
+  ].filter(Boolean))];
+  for (const root of roots) {
+    const candidate = path.win32.join(root, 'PowerShell', '7', 'pwsh.exe');
+    if (existsSync(candidate)) return candidate;
+  }
+
+  // Windows PowerShell 5.1 is part of supported Windows installations and is
+  // retained as an explicit fallback for machines without PowerShell 7.
+  return 'powershell.exe';
 }
 
 class NamedRuntimeMutex {
@@ -96,6 +126,7 @@ class NamedRuntimeMutex {
 
   _acquireWindows() {
     return new Promise((resolve, reject) => {
+      const executable = resolveWindowsPowerShellExecutable();
       const script = [
         "$ErrorActionPreference='Stop'",
         "$created=$false",
@@ -108,7 +139,7 @@ class NamedRuntimeMutex {
         "try{$mutex.ReleaseMutex()}catch{}",
         "$mutex.Dispose()"
       ].join(';');
-      const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script], {
+      const child = spawn(executable, ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script], {
         stdio: ['pipe', 'pipe', 'pipe'],
         windowsHide: true,
         env: { ...process.env, YANCE_RUNTIME_MUTEX_NAME: this.name }
@@ -117,7 +148,7 @@ class NamedRuntimeMutex {
       let stderr = '';
       let settled = false;
       const timer = setTimeout(() => finish(new AppRuntimeError('BOOT_RUNTIME_MUTEX_UNAVAILABLE', 'Timed out acquiring Windows runtime mutex', {
-        failedPhase: 'runtime_ownership', details: { mutexName: this.name }
+        failedPhase: 'runtime_ownership', details: { mutexName: this.name, executable }
       })), this.acquireTimeoutMs);
       const finish = (error) => {
         if (settled) return;
@@ -136,17 +167,17 @@ class NamedRuntimeMutex {
         stdout += chunk.toString('utf8');
         if (stdout.includes('ACQUIRED')) finish();
         if (stdout.includes('DENIED')) finish(new AppRuntimeError('BOOT_RUNTIME_MUTEX_HELD', 'Another backend still owns the AppRuntime mutex', {
-          status: 409, failedPhase: 'runtime_ownership', details: { mutexName: this.name, provider: this.provider }
+          status: 409, failedPhase: 'runtime_ownership', details: { mutexName: this.name, provider: this.provider, executable }
         }));
       });
       child.stderr.on('data', chunk => { stderr += chunk.toString('utf8'); });
       child.once('error', error => finish(new AppRuntimeError('BOOT_RUNTIME_MUTEX_UNAVAILABLE', error.message, {
-        failedPhase: 'runtime_ownership', details: { mutexName: this.name, provider: this.provider, code: error.code || '' }
+        failedPhase: 'runtime_ownership', details: { mutexName: this.name, provider: this.provider, code: error.code || '', executable }
       })));
       child.once('exit', code => {
         if (!settled) finish(new AppRuntimeError(code === 73 ? 'BOOT_RUNTIME_MUTEX_HELD' : 'BOOT_RUNTIME_MUTEX_UNAVAILABLE',
           code === 73 ? 'Another backend still owns the AppRuntime mutex' : `Windows runtime mutex helper exited: ${stderr.trim() || code}`,
-          { status: code === 73 ? 409 : 500, failedPhase: 'runtime_ownership', details: { mutexName: this.name, code } }));
+          { status: code === 73 ? 409 : 500, failedPhase: 'runtime_ownership', details: { mutexName: this.name, code, executable } }));
         else if (this._held) this._held = false;
       });
     });
@@ -242,6 +273,7 @@ module.exports = {
   portableEndpointForName,
   portableHostForName,
   portablePortForName,
+  resolveWindowsPowerShellExecutable,
   runtimeMutexName,
   legacyRuntimeMutexName
 };
