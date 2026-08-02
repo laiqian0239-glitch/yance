@@ -35,10 +35,13 @@ function scopeAmendment(document, changedFiles) {
     status: 'APPROVED_INDEPENDENT_REVIEW_SCOPE_AMENDMENT',
     repository: document.repository,
     workPackage: document.currentAuthorizedWorkPackage,
+    task: 'A6_INDEPENDENT_ROOT_REPAIR_AND_GOVERNANCE_SCOPE_CLOSURE',
     authorizedBranch: document.authorizedBranch,
+    pullRequest: 5,
     baseAuthorizationPath: 'governance/architecture-closure-v2/implementation-plan-authorization.json',
     baseAuthorizationBlobSha: '203697b36c06e0dc72c92113ef58f1a8f2394312',
     parentGovernanceHead: PARENT_GOVERNANCE_HEAD,
+    approvedChangedFileCount: changedFiles.length,
     approvedChangedFileSetSha256: workPackageChangedFilesSha256(changedFiles),
     additionalAllowedPaths: [
       'backend/runtime/AppRuntime.js',
@@ -126,6 +129,7 @@ test('work-package scope requires an exact independently reviewed amendment', ()
     authorization: document,
     amendment: {
       ...approved,
+      approvedChangedFileCount: changedFiles.length + 1,
       approvedChangedFileSetSha256: workPackageChangedFilesSha256([...changedFiles, 'backend/runtime/UnreviewedWriter.js'])
     }
   });
@@ -143,6 +147,24 @@ test('work-package scope requires an exact independently reviewed amendment', ()
   });
   assert.equal(wildcardExpansion.pass, false);
   assert.equal(wildcardExpansion.reasonCode, 'ACV2_SCOPE_AMENDMENT_INVALID');
+
+  const wrongParent = evaluateAuthorizedWorkPackageScope({
+    branch: document.authorizedBranch,
+    changedFiles,
+    authorization: document,
+    amendment: { ...approved, parentGovernanceHead: 'f'.repeat(40) }
+  });
+  assert.equal(wrongParent.pass, false);
+  assert.equal(wrongParent.reasonCode, 'ACV2_SCOPE_AMENDMENT_INVALID');
+
+  const wrongCount = evaluateAuthorizedWorkPackageScope({
+    branch: document.authorizedBranch,
+    changedFiles,
+    authorization: document,
+    amendment: { ...approved, approvedChangedFileCount: changedFiles.length + 1 }
+  });
+  assert.equal(wrongCount.pass, false);
+  assert.equal(wrongCount.reasonCode, 'ACV2_CHANGED_FILE_SET_MISMATCH');
 
   const staleDigest = evaluateAuthorizedWorkPackageScope({
     branch: document.authorizedBranch,
@@ -167,6 +189,7 @@ test('checked-out WP-A diff matches the exact approved scope amendment', () => {
   });
   assert.equal(result.pass, true, JSON.stringify(result));
   assert.equal(result.changedFileSetSha256, amendment.approvedChangedFileSetSha256);
+  assert.equal(changedFiles.length, amendment.approvedChangedFileCount);
   assert.deepEqual(result.unauthorizedPaths, []);
 });
 
