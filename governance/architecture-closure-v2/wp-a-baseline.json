@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_A_BASELINE",
+  "status": "A0_RED_BASELINE_FROZEN",
+  "workPackage": "WP-A",
+  "task": "A0_FREEZE_WRITER_READ_RECOVERY_FALLBACK_INVENTORY_AND_ADD_RED_TESTS",
+  "repository": "laiqian0239-glitch/yance",
+  "parentPullRequest": 4,
+  "parentBranch": "rebuild/windows-release-closure-20260802-gate0-wp0-fix",
+  "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
+  "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
+  "productionCodeAllowedInTask": false,
+  "redEvidenceRequiredBeforeProductionCode": true,
+  "automaticNextTaskAuthorization": false,
+  "discoveryRoots": [
+    "backend"
+  ],
+  "discoveryExcludes": [
+    "backend/tests",
+    "backend/migrations"
+  ],
+  "changedFileAllowlist": [
+    "governance/architecture-closure-v2/wp-a-baseline.json",
+    "governance/architecture-closure-v2/authority-registry.json",
+    "tools/architecture-closure-v2/source-closure-scan.js",
+    "backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js",
+    "package.json"
+  ],
+  "requiredRedViolationClasses": [
+    "PRIMARY_DB_FALLBACK_PRESENT",
+    "AUTHORITY_WRITE_HOST_CAPABILITY_MISSING",
+    "PRIMARY_DB_ROLE_BOUNDARY_INCOMPLETE",
+    "CANONICAL_LEDGER_COORDINATOR_MISSING"
+  ],
+  "nextTaskAfterRecordedRed": "A1_INTRODUCE_SCHEMA_21_AND_PERSISTENT_AUTHORITY_WRITE_HOST_LEASE",
+  "lockedWorkPackages": [
+    "WP-B",
+    "WP-C",
+    "WP-D",
+    "WP-E",
+    "WP-F",
+    "WP-G",
+    "WP-H"
+  ]
+}
