@@ -90,11 +90,9 @@ test('Schema 22 upgrades a Schema 21 database without inventing historical event
 
   const migration = db.prepare('SELECT target_schema_version,status,checksum FROM r32_schema_migrations WHERE migration_id=?')
     .get(MIGRATION_ID);
-  assert.deepEqual(migration, {
-    target_schema_version: 22,
-    status: 'completed',
-    checksum: MIGRATION_CHECKSUM
-  });
+  assert.equal(migration.target_schema_version, 22);
+  assert.equal(migration.status, 'completed');
+  assert.equal(migration.checksum, MIGRATION_CHECKSUM);
   assert.equal(JSON.parse(db.prepare("SELECT value_json FROM r32_meta WHERE key='schema_version'").get().value_json), 22);
 }));
 
