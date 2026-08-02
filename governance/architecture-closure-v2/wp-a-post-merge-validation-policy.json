@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_A_POST_MERGE_VALIDATION_POLICY",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-A",
+  "status": "POST_MERGE_VALIDATION_REQUIRED",
+  "defaultBranch": "main",
+  "integration": {
+    "candidatePullRequest": 5,
+    "candidateHead": "c57ec612ca07cd1cfa939e075f4dbcce2287eaca",
+    "promotionAuthorizationPullRequest": 13,
+    "promotionAuthorizationCommit": "286e412ce979badc0b5a217646ed6c488a6dcb78",
+    "mergeCommit": "e24c5d11dc1d0fb9fbd82479bb3949aba05aec50",
+    "a8ClosurePath": "governance/architecture-closure-v2/wp-a-a8-closure.json",
+    "a8ClosureBlobSha": "13af1adf7fb2b468b02b9db056bf6716a699a061",
+    "promotionAuthorizationPath": "governance/architecture-closure-v2/wp-a-promotion-authorization.json",
+    "promotionAuthorizationBlobSha": "4561eac47531b108305646ba43b2743510cb8c55"
+  },
+  "requiredValidation": {
+    "identityAndAncestry": true,
+    "sourceClosureViolationCount": 0,
+    "ubuntuContracts": true,
+    "windowsContracts": true,
+    "legacyIdentityRegressions": true,
+    "sqliteOwnershipAndFencingRegressions": true,
+    "sealedExportRegressions": true,
+    "portableGovernanceContracts": true
+  },
+  "activation": {
+    "trigger": "PUSH_TO_MAIN_ON_RELEVANT_WP_A_SURFACE",
+    "exactCheckedOutCommitRequired": true,
+    "cleanWorktreeRequired": true,
+    "cancelPreviousMainValidation": false
+  },
+  "governance": {
+    "readyForPromotion": true,
+    "formalRelease": false,
+    "publish": false,
+    "automaticNextWorkPackageAuthorization": false,
+    "wpBAuthorized": false,
+    "temporaryBypassAllowed": false,
+    "continueOnErrorAllowed": false,
+    "wildcardAuthorizationAllowed": false
+  }
+}
