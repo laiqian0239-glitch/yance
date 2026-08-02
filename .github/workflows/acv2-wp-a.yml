@@ -84,6 +84,11 @@ jobs:
           backend/tests/architectureClosureV2/wpA/ledgerArchiveFaultMatrix.test.js
       - name: Generate deterministic A7 contract evidence
         run: node tools/architecture-closure-v2/wp-a-replay-evidence.js
+      - name: Run A8 boot and primary store capability contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/sourceClosureBootAuthority.test.js
+          backend/tests/architectureClosureV2/wpA/primaryStoreCapabilityBoundary.test.js
       - name: Run A8 zero-writer source closure contract
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/sourceClosureFinal.test.js
       - name: Install locked dependencies for legacy regressions
