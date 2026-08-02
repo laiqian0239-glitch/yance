@@ -10,18 +10,43 @@ const BOOTSTRAP_DEFINITION = Object.freeze({
   version: 1
 });
 const BOOTSTRAP_CHECKSUM = crypto.createHash('sha256').update(JSON.stringify(BOOTSTRAP_DEFINITION)).digest('hex');
-const MIGRATION_CHECKSUM = crypto.createHash('sha256').update([
-  MIGRATION_ID,
-  TARGET_SCHEMA_VERSION,
-  BOOTSTRAP_CHECKSUM,
-  'canonical_event_headers',
-  'authority_payload_store',
-  'event_type_registry',
-  'authority_command_receipts',
-  'projection_checkpoints_v2',
-  'ledger_segments',
-  'ledger_snapshots'
-].join('\n')).digest('hex');
+const SCHEMA_CONTRACT = Object.freeze({
+  canonical_event_headers: Object.freeze([
+    'ledger_sequence', 'event_id', 'event_type', 'aggregate_type', 'aggregate_id', 'aggregate_version',
+    'command_id', 'idempotency_key', 'trace_id', 'correlation_id', 'causation_id', 'platform',
+    'source_account_id', 'generation', 'occurred_at', 'recorded_at', 'payload_id', 'payload_sha256',
+    'redaction_version', 'schema_version', 'canonicalization_version', 'writer_authority',
+    'host_generation', 'fencing_token', 'ledger_segment_id'
+  ]),
+  authority_payload_store: Object.freeze([
+    'payload_id', 'classification', 'canonical_json', 'payload_sha256', 'encryption_key_ref', 'created_at'
+  ]),
+  event_type_registry: Object.freeze([
+    'event_type', 'schema_version', 'aggregate_type', 'payload_classification', 'upcaster_id', 'active', 'registered_at'
+  ]),
+  authority_command_receipts: Object.freeze([
+    'command_id', 'authority_scope', 'idempotency_key', 'status', 'first_event_id', 'last_event_id',
+    'aggregate_version', 'host_generation', 'fencing_token', 'result_json', 'committed_at'
+  ]),
+  projection_checkpoints_v2: Object.freeze([
+    'projector_id', 'projector_version', 'ledger_sequence', 'lease_owner', 'generation',
+    'fencing_token', 'output_hash', 'lag', 'updated_at'
+  ]),
+  ledger_segments: Object.freeze([
+    'segment_id', 'first_event_id', 'last_event_id', 'event_count', 'previous_segment_hash', 'segment_hash', 'sealed_at'
+  ]),
+  ledger_snapshots: Object.freeze([
+    'snapshot_id', 'aggregate_type', 'aggregate_id', 'aggregate_version', 'snapshot_schema_version',
+    'payload_id', 'event_head_hash', 'created_at'
+  ])
+});
+const MIGRATION_CHECKSUM = crypto.createHash('sha256').update(JSON.stringify({
+  migrationId: MIGRATION_ID,
+  targetSchemaVersion: TARGET_SCHEMA_VERSION,
+  bootstrapChecksum: BOOTSTRAP_CHECKSUM,
+  schemaContract: SCHEMA_CONTRACT,
+  contractVersion: 2
+})).digest('hex');
 
 function nowIso() { return new Date().toISOString(); }
 function tableExists(db, table) {
@@ -98,39 +123,57 @@ function ensureObjects(db) {
   ensureAuthorityWriteHostBootstrapObjects(db);
   db.exec(`
     CREATE TABLE IF NOT EXISTS canonical_event_headers(
+      ledger_sequence INTEGER NOT NULL,
       event_id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
       aggregate_type TEXT NOT NULL,
       aggregate_id TEXT NOT NULL,
-      aggregate_version INTEGER NOT NULL,
-      event_type TEXT NOT NULL,
-      schema_version INTEGER NOT NULL,
-      payload_id TEXT NOT NULL,
+      aggregate_version INTEGER NOT NULL CHECK(aggregate_version>=1),
       command_id TEXT NOT NULL,
       idempotency_key TEXT NOT NULL,
+      trace_id TEXT NOT NULL,
       correlation_id TEXT NOT NULL DEFAULT '',
       causation_id TEXT NOT NULL DEFAULT '',
-      host_generation INTEGER NOT NULL,
-      fencing_token INTEGER NOT NULL,
+      platform TEXT NOT NULL DEFAULT '',
+      source_account_id TEXT NOT NULL DEFAULT '',
+      generation INTEGER NOT NULL DEFAULT 0 CHECK(generation>=0),
       occurred_at TEXT NOT NULL,
       recorded_at TEXT NOT NULL,
+      payload_id TEXT NOT NULL,
+      payload_sha256 TEXT NOT NULL CHECK(length(payload_sha256)=64),
+      redaction_version TEXT NOT NULL,
+      schema_version INTEGER NOT NULL CHECK(schema_version>=1),
+      canonicalization_version INTEGER NOT NULL CHECK(canonicalization_version>=1),
+      writer_authority TEXT NOT NULL,
+      host_generation INTEGER NOT NULL CHECK(host_generation>=1),
+      fencing_token INTEGER NOT NULL CHECK(fencing_token>=1),
+      ledger_segment_id TEXT NOT NULL,
       UNIQUE(aggregate_type,aggregate_id,aggregate_version),
       UNIQUE(command_id,idempotency_key)
     ) STRICT;
-    CREATE INDEX IF NOT EXISTS idx_canonical_event_headers_sequence
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_canonical_event_headers_ledger_sequence
+      ON canonical_event_headers(ledger_sequence);
+    CREATE INDEX IF NOT EXISTS idx_canonical_event_headers_aggregate
       ON canonical_event_headers(aggregate_type,aggregate_id,aggregate_version);
+    CREATE INDEX IF NOT EXISTS idx_canonical_event_headers_trace
+      ON canonical_event_headers(trace_id,ledger_sequence);
+    CREATE TRIGGER IF NOT EXISTS trg_canonical_event_headers_append_only_update
+      BEFORE UPDATE ON canonical_event_headers BEGIN SELECT RAISE(ABORT,'canonical_event_headers append-only'); END;
+    CREATE TRIGGER IF NOT EXISTS trg_canonical_event_headers_append_only_delete
+      BEFORE DELETE ON canonical_event_headers BEGIN SELECT RAISE(ABORT,'canonical_event_headers append-only'); END;
 
     CREATE TABLE IF NOT EXISTS authority_payload_store(
       payload_id TEXT PRIMARY KEY,
       classification TEXT NOT NULL,
       canonical_json TEXT NOT NULL,
-      payload_sha256 TEXT NOT NULL,
+      payload_sha256 TEXT NOT NULL CHECK(length(payload_sha256)=64),
       encryption_key_ref TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL
     ) STRICT;
 
     CREATE TABLE IF NOT EXISTS event_type_registry(
       event_type TEXT NOT NULL,
-      schema_version INTEGER NOT NULL,
+      schema_version INTEGER NOT NULL CHECK(schema_version>=1),
       aggregate_type TEXT NOT NULL,
       payload_classification TEXT NOT NULL,
       upcaster_id TEXT NOT NULL DEFAULT '',
@@ -147,8 +190,8 @@ function ensureObjects(db) {
       first_event_id TEXT NOT NULL DEFAULT '',
       last_event_id TEXT NOT NULL DEFAULT '',
       aggregate_version INTEGER NOT NULL DEFAULT 0,
-      host_generation INTEGER NOT NULL,
-      fencing_token INTEGER NOT NULL,
+      host_generation INTEGER NOT NULL CHECK(host_generation>=1),
+      fencing_token INTEGER NOT NULL CHECK(fencing_token>=1),
       result_json TEXT NOT NULL DEFAULT '{}',
       committed_at TEXT NOT NULL,
       UNIQUE(authority_scope,idempotency_key)
@@ -157,11 +200,16 @@ function ensureObjects(db) {
     CREATE TABLE IF NOT EXISTS projection_checkpoints_v2(
       projector_id TEXT PRIMARY KEY,
       projector_version TEXT NOT NULL,
-      last_event_id TEXT NOT NULL DEFAULT '',
-      last_aggregate_version INTEGER NOT NULL DEFAULT 0,
-      state_hash TEXT NOT NULL DEFAULT '',
+      ledger_sequence INTEGER NOT NULL CHECK(ledger_sequence>=0),
+      lease_owner TEXT NOT NULL,
+      generation INTEGER NOT NULL CHECK(generation>=1),
+      fencing_token INTEGER NOT NULL CHECK(fencing_token>=1),
+      output_hash TEXT NOT NULL CHECK(length(output_hash)=64),
+      lag INTEGER NOT NULL CHECK(lag>=0),
       updated_at TEXT NOT NULL
     ) STRICT;
+    CREATE INDEX IF NOT EXISTS idx_projection_checkpoints_v2_sequence
+      ON projection_checkpoints_v2(ledger_sequence,projector_id);
 
     CREATE TABLE IF NOT EXISTS ledger_segments(
       segment_id TEXT PRIMARY KEY,
@@ -187,17 +235,24 @@ function ensureObjects(db) {
   `);
 }
 
+function actualColumns(db, table) {
+  return db.prepare(`PRAGMA table_info(${table})`).all().map(row => String(row.name));
+}
+function ensureExactColumns(db, table, expected) {
+  const actual = actualColumns(db, table);
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    const error = new Error(`Schema 21 table ${table} does not match its frozen column contract`);
+    error.code = 'ACV2_WP_A_SCHEMA_CONTRACT_MISMATCH';
+    error.table = table;
+    error.expectedColumns = expected;
+    error.actualColumns = actual;
+    throw error;
+  }
+}
 function ensureConsistency(db) {
   const required = [
-    'authority_write_host_bootstrap_metadata',
-    'authority_write_host_lease',
-    'canonical_event_headers',
-    'authority_payload_store',
-    'event_type_registry',
-    'authority_command_receipts',
-    'projection_checkpoints_v2',
-    'ledger_segments',
-    'ledger_snapshots'
+    'authority_write_host_bootstrap_metadata', 'authority_write_host_lease',
+    ...Object.keys(SCHEMA_CONTRACT)
   ];
   for (const table of required) {
     if (!tableExists(db, table)) throw new Error(`ACV2 WP-A migration missing ${table}`);
@@ -206,6 +261,13 @@ function ensureConsistency(db) {
   if (!metadata || metadata.checksum !== BOOTSTRAP_CHECKSUM) {
     const error = new Error('AuthorityWriteHost bootstrap checksum mismatch');
     error.code = 'AUTHORITY_WRITE_HOST_BOOTSTRAP_CHECKSUM_MISMATCH';
+    throw error;
+  }
+  for (const [table, expected] of Object.entries(SCHEMA_CONTRACT)) ensureExactColumns(db, table, expected);
+  const ledgerIndex = db.prepare("SELECT name,sql FROM sqlite_master WHERE type='index' AND name='idx_canonical_event_headers_ledger_sequence'").get();
+  if (!ledgerIndex || !/CREATE UNIQUE INDEX/i.test(String(ledgerIndex.sql || ''))) {
+    const error = new Error('Schema 21 canonical ledger sequence unique index is missing');
+    error.code = 'ACV2_WP_A_LEDGER_SEQUENCE_INDEX_MISSING';
     throw error;
   }
 }
@@ -227,7 +289,9 @@ function applyArchitectureClosureV2WpA(db) {
   const report = JSON.stringify({
     authority: 'AuthorityWriteHost',
     schemaVersion: TARGET_SCHEMA_VERSION,
+    schemaContractVersion: 2,
     bootstrapChecksum: BOOTSTRAP_CHECKSUM,
+    migrationChecksum: MIGRATION_CHECKSUM,
     tables: 9
   });
   if (!existing) {
@@ -243,7 +307,8 @@ function applyArchitectureClosureV2WpA(db) {
     migrationId: MIGRATION_ID,
     targetSchemaVersion: TARGET_SCHEMA_VERSION,
     checksum: MIGRATION_CHECKSUM,
-    bootstrapChecksum: BOOTSTRAP_CHECKSUM
+    bootstrapChecksum: BOOTSTRAP_CHECKSUM,
+    schemaContractVersion: 2
   };
 }
 
@@ -252,6 +317,7 @@ module.exports = {
   TARGET_SCHEMA_VERSION,
   BOOTSTRAP_DEFINITION,
   BOOTSTRAP_CHECKSUM,
+  SCHEMA_CONTRACT,
   MIGRATION_CHECKSUM,
   ensureAuthorityWriteHostBootstrapObjects,
   ensureObjects,
