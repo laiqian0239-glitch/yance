@@ -14,7 +14,7 @@ function source(filePath) {
 }
 
 function firstMutationIndex(text) {
-  return text.indexOf('APP_RUNTIME.executeBusinessCommand(');
+  return text.indexOf('RUNTIME_COMPOSITION.commandSubmitter(');
 }
 
 test('server proves runtime authority readiness before any startup recovery or business mutation', () => {
@@ -22,12 +22,13 @@ test('server proves runtime authority readiness before any startup recovery or b
   const authorityGate = text.indexOf('AppRuntimeFactory.assertAuthorityReady(');
   const firstMutation = firstMutationIndex(text);
   assert.ok(authorityGate >= 0, 'server must call AppRuntimeFactory.assertAuthorityReady');
-  assert.ok(firstMutation >= 0, 'versioned startup command boundary must remain observable');
+  assert.ok(firstMutation >= 0, 'dedicated startup command boundary must remain observable');
   assert.ok(authorityGate < firstMutation, 'authority readiness must be proven before the first startup mutation');
 });
 
-test('startup recovery uses versioned runtime commands and contains no direct legacy writer calls', () => {
-  const text = source(serverPath);
+test('startup recovery uses a dedicated versioned dispatcher and never replaces the core business command entrypoint', () => {
+  const serverText = source(serverPath);
+  const compositionText = source(compositionPath);
   const forbiddenDirectCalls = [
     /migrationService\.migrateAtStartup\s*\(/,
     /syncCheckpointService\.recoverInterrupted\s*\(/,
@@ -37,10 +38,12 @@ test('startup recovery uses versioned runtime commands and contains no direct le
     /runProductionDataGuard\s*\(/,
     /workspaceService\.initializeDataPipelines\s*\(/
   ];
-  for (const pattern of forbiddenDirectCalls) assert.doesNotMatch(text, pattern);
-  assert.match(text, /APP_RUNTIME\.(?:executeBusinessCommand|executeCommand)\s*\(/);
-  assert.match(text, /contractVersion\s*:\s*2/);
-  assert.match(text, /expectedStateVersion/);
+  for (const pattern of forbiddenDirectCalls) assert.doesNotMatch(serverText, pattern);
+  assert.match(serverText, /RUNTIME_COMPOSITION\.commandSubmitter\s*\(/);
+  assert.doesNotMatch(serverText, /APP_RUNTIME\.executeBusinessCommand\s*\(/);
+  assert.match(serverText, /contractVersion\s*:\s*2/);
+  assert.match(serverText, /expectedStateVersion/);
+  assert.doesNotMatch(compositionText, /runtime\.executeBusinessCommand\s*=/);
 });
 
 test('production composition is enabled before mutable routes, queues and recovery services are loaded', () => {
@@ -70,12 +73,12 @@ test('readiness is fail-closed and revalidates write-host, ledger and identity a
   assert.doesNotMatch(announceBody, /ready\s*:\s*true[\s\S]*catch\s*\([^)]*\)\s*\{\s*\}/);
 });
 
-test('recovery manager is composed behind the canonical authority boundary rather than receiving a raw write store', () => {
+test('recovery manager receives neither a raw write store nor an unused decorative startup gateway', () => {
   const text = source(compositionPath);
   const recoveryStart = text.indexOf('new RecoveryManager({');
   const recoveryEnd = text.indexOf('});', recoveryStart);
   assert.ok(recoveryStart >= 0 && recoveryEnd > recoveryStart);
   const recoveryBody = text.slice(recoveryStart, recoveryEnd);
-  assert.match(recoveryBody, /commandSubmitter|authorityCommandGateway/);
   assert.doesNotMatch(recoveryBody, /\b(?:db|store|repository)\s*[,}]/);
+  assert.doesNotMatch(recoveryBody, /\b(?:authorityCommandGateway|commandSubmitter)\s*[,}]/);
 });
