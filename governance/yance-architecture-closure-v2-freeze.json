@@ -1,11 +1,12 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "documentType": "YANCE_ARCHITECTURE_CLOSURE_V2_GOVERNANCE",
   "project": "Yance",
   "program": "Architecture Closure V2",
-  "status": "INDEPENDENT_DESIGN_REVIEW_APPROVED_AFTER_NORMATIVE_AMENDMENT",
+  "status": "PREIMPLEMENTATION_BLOCKERS_CLOSED_IMPLEMENTATION_PLAN_AUTHORIZED",
   "createdAt": "2026-08-02T11:36:00+07:00",
-  "reviewedAt": "2026-08-02T12:04:00+07:00",
+  "designReviewedAt": "2026-08-02T12:04:00+07:00",
+  "gate0SourceReviewedAt": "2026-08-02T12:28:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "pullRequest": 4,
   "branch": "rebuild/windows-release-closure-20260802-gate0-wp0-fix",
@@ -15,19 +16,29 @@
   "matrixCommit": "09e8c95d079b2f65336d14048963e4e5e0ea5e3e",
   "designAmendmentCommit": "15d4962d969c43a7b6377be14282299b5223682f",
   "matrixAmendmentCommit": "d6e6ea8b66e7404c9ea5889d7e3097b0ee3153fb",
-  "independentReviewReportCommit": "61c3318508a73c05afdebce7663cf4756797fccd",
+  "independentDesignReviewReportCommit": "61c3318508a73c05afdebce7663cf4756797fccd",
+  "gate0RepairPlanCommit": "2194ed92e7788532cfbee73a8d8a3756218396a9",
+  "gate0RedTestCommit": "59464d2f3b8c19322846d57bcd9aa368c7eb5860",
+  "gate0AuthorityRepairCommit": "a660c2b94b508d1739f21311c00c2d04f37b8462",
+  "gate0PlatformMatrixCommit": "3fa616f46d7f9a06fbd0aaba45d40dcfcda89a42",
+  "gate0FinalCodeHead": "94ed2d31be2ded82724d07c83a5b30c00141a424",
+  "gate0IndependentSourceReviewCommit": "b3ae7082efa10e1363877da0333a196c3ea893dd",
   "documents": {
     "design": "docs/superpowers/specs/2026-08-02-yance-architecture-closure-v2-design.md",
     "designAmendment": "docs/superpowers/specs/2026-08-02-yance-architecture-closure-v2-independent-review-amendment.md",
     "rootCauseMigrationMatrix": "docs/architecture/YANCE_ARCHITECTURE_CLOSURE_V2_ROOT_CAUSE_MIGRATION_MATRIX_ZH.md",
     "rootCauseMigrationMatrixAmendment": "docs/architecture/YANCE_ARCHITECTURE_CLOSURE_V2_ROOT_CAUSE_MIGRATION_MATRIX_AMENDMENT_1_ZH.md",
-    "independentDesignReview": "docs/architecture/YANCE_ARCHITECTURE_CLOSURE_V2_INDEPENDENT_DESIGN_REVIEW_ZH.md"
+    "independentDesignReview": "docs/architecture/YANCE_ARCHITECTURE_CLOSURE_V2_INDEPENDENT_DESIGN_REVIEW_ZH.md",
+    "gate0RepairPlan": "docs/superpowers/plans/2026-08-02-gate0-sealed-export-canonical-path-repair.md",
+    "gate0IndependentSourceReview": "docs/architecture/GATE0_SEALED_EXPORT_CANONICAL_PATH_REPAIR_REVIEW_ZH.md"
   },
   "governance": {
     "prMustRemainDraft": true,
     "independentDesignReviewApproved": true,
     "architectureDesignClosed": true,
-    "implementationPlanAllowed": false,
+    "allPreImplementationBlockersClosed": true,
+    "implementationPlanAllowed": true,
+    "independentImplementationPlanReviewRequired": true,
     "productionCodeChangesAllowed": false,
     "wpAImplementationAllowed": false,
     "gate1MayStart": false,
@@ -90,20 +101,38 @@
   "preImplementationBlockers": [
     {
       "id": "GATE0-SEALED-EXPORT-CANONICAL-PATH",
-      "status": "OPEN",
+      "status": "CLOSED",
       "severity": "P0",
-      "requirements": [
-        "ROOT_LSTAT_AND_REALPATH_CANONICALIZATION",
-        "REJECT_ROOT_SYMLINK_AND_WINDOWS_JUNCTION_REPARSE_POINT",
-        "USE_CANONICAL_ROOT_FOR_SCAN_GIT_PROBE_AND_HASH",
-        "SANITIZE_REPOSITORY_DISCOVERY_GIT_ENVIRONMENT",
-        "LINUX_SYMLINK_WINDOWS_JUNCTION_AND_GIT_ENV_MATRIX_TESTS",
-        "INDEPENDENT_SOURCE_REREVIEW"
-      ]
+      "closedBy": "PUBLIC_SHARED_SEALED_EXPORT_AUTHORITY_REFACTOR",
+      "independentSourceReview": "APPROVED",
+      "requirements": {
+        "ROOT_LSTAT_AND_REALPATH_CANONICALIZATION": "PASS",
+        "REJECT_ROOT_SYMLINK_AND_WINDOWS_JUNCTION_REPARSE_POINT": "PASS",
+        "USE_CANONICAL_ROOT_FOR_SCAN_GIT_PROBE_AND_HASH": "PASS",
+        "SANITIZE_REPOSITORY_DISCOVERY_GIT_ENVIRONMENT": "PASS",
+        "LINUX_SYMLINK_WINDOWS_JUNCTION_AND_GIT_ENV_MATRIX_TESTS": "PASS",
+        "INDEPENDENT_SOURCE_REREVIEW": "PASS"
+      },
+      "redEvidence": {
+        "head": "59464d2f3b8c19322846d57bcd9aa368c7eb5860",
+        "workflowRunId": 30733603063,
+        "workflowJobId": 91458106277,
+        "conclusion": "EXPECTED_FAIL",
+        "tests": "14_PASS_4_EXPECTED_FAIL"
+      },
+      "greenEvidence": {
+        "head": "94ed2d31be2ded82724d07c83a5b30c00141a424",
+        "workflowRunId": 30733768375,
+        "fullWp0JobId": 91458559041,
+        "ubuntuMatrixJobId": 91458559053,
+        "windowsMatrixJobId": 91458559065,
+        "conclusion": "ALL_SUCCESS",
+        "windowsCanonicalPathTests": "12_OF_12_PASS"
+      }
     }
   ],
-  "nextAuthorizedStage": "GATE0_SEALED_EXPORT_CANONICAL_PATH_REPAIR_AND_INDEPENDENT_SOURCE_REREVIEW",
-  "implementationStartCondition": "INDEPENDENT_DESIGN_REVIEW_APPROVED_AND_ALL_PREIMPLEMENTATION_BLOCKERS_CLOSED",
+  "nextAuthorizedStage": "ARCHITECTURE_CLOSURE_V2_IMPLEMENTATION_PLAN_AND_INDEPENDENT_PLAN_REVIEW",
+  "implementationStartCondition": "INDEPENDENT_IMPLEMENTATION_PLAN_REVIEW_APPROVED",
   "prohibitedCompletionSignals": [
     "TEST_COUNT_ONLY",
     "COVERAGE_ONLY",
