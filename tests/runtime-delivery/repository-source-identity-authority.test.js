@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { execFileSync, spawnSync } = require('node:child_process');
 const test = require('node:test');
@@ -9,9 +10,22 @@ const delivery = require('../../tools/runtime-delivery/source-uat-delivery');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const DERIVED_IDENTITY = 'YANCE_DERIVED_SOURCE_IDENTITY.json';
+const VALID_IDENTITY_OPTIONS = Object.freeze({
+  derivedVersion: 'SEALED_EXPORT_AUTHORITY_TEST',
+  releaseBatch: 'BATCH40',
+  baseCommit: '1'.repeat(40),
+  baseTree: '2'.repeat(40),
+  generatedAtUtc: '2026-08-02T00:00:00.000Z'
+});
 
 function git(args) {
   return execFileSync('git', args, { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
+}
+
+function createMinimalExport(root) {
+  fs.mkdirSync(root, { recursive: true });
+  fs.writeFileSync(path.join(root, 'payload.txt'), 'sealed payload\n', 'utf8');
+  return root;
 }
 
 test('mutable Git repository does not track an export-derived source identity', () => {
@@ -64,4 +78,63 @@ test('derived identity CLI rejects a mutable Git repository root', () => {
   assert.notEqual(child.status, 0);
   const error = JSON.parse(child.stderr);
   assert.equal(error.reasonCode, 'SOURCE_UAT_DERIVED_IDENTITY_GIT_ROOT_FORBIDDEN');
+});
+
+test('derived identity API rejects an export directory nested inside a Git worktree', () => {
+  const repositoryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-derived-parent-git-'));
+  try {
+    execFileSync('git', ['init', '--quiet', repositoryRoot], { encoding: 'utf8' });
+    const nestedExport = createMinimalExport(path.join(repositoryRoot, 'exports', 'candidate'));
+    assert.throws(
+      () => delivery.createDerivedSourceIdentity(nestedExport, VALID_IDENTITY_OPTIONS),
+      error => error?.reasonCode === 'SOURCE_UAT_DERIVED_IDENTITY_GIT_ROOT_FORBIDDEN'
+        && error?.details?.gitMetadataPath,
+      'a subdirectory of a mutable worktree must never be treated as a sealed export'
+    );
+  } finally {
+    fs.rmSync(repositoryRoot, { recursive: true, force: true });
+  }
+});
+
+test('derived identity CLI rejects an export directory nested inside a Git worktree', () => {
+  const repositoryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-derived-cli-parent-git-'));
+  try {
+    execFileSync('git', ['init', '--quiet', repositoryRoot], { encoding: 'utf8' });
+    const nestedExport = createMinimalExport(path.join(repositoryRoot, 'exports', 'candidate'));
+    const child = spawnSync(process.execPath, [
+      path.join(REPO_ROOT, 'tools', 'runtime-delivery', 'create-derived-source-identity.js'),
+      `--root=${nestedExport}`,
+      '--derived-version=NESTED_WORKTREE_MUST_BE_REJECTED',
+      '--release-batch=BATCH40',
+      `--base-commit=${'1'.repeat(40)}`,
+      `--base-tree=${'2'.repeat(40)}`
+    ], {
+      cwd: nestedExport,
+      encoding: 'utf8'
+    });
+    assert.notEqual(child.status, 0);
+    const error = JSON.parse(child.stderr);
+    assert.equal(error.reasonCode, 'SOURCE_UAT_DERIVED_IDENTITY_GIT_ROOT_FORBIDDEN');
+    assert.ok(error.details?.gitMetadataPath);
+  } finally {
+    fs.rmSync(repositoryRoot, { recursive: true, force: true });
+  }
+});
+
+test('derived identity API rejects embedded Git metadata below the export root', () => {
+  const exportRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-derived-embedded-git-'));
+  try {
+    createMinimalExport(exportRoot);
+    const embeddedGit = path.join(exportRoot, 'vendor', 'source', '.git');
+    fs.mkdirSync(embeddedGit, { recursive: true });
+    fs.writeFileSync(path.join(embeddedGit, 'HEAD'), 'ref: refs/heads/main\n', 'utf8');
+    assert.throws(
+      () => delivery.createDerivedSourceIdentity(exportRoot, VALID_IDENTITY_OPTIONS),
+      error => error?.reasonCode === 'SOURCE_UAT_DERIVED_IDENTITY_GIT_ROOT_FORBIDDEN'
+        && path.resolve(error?.details?.gitMetadataPath || '') === path.resolve(embeddedGit),
+      'embedded mutable VCS metadata must invalidate the entire export seal'
+    );
+  } finally {
+    fs.rmSync(exportRoot, { recursive: true, force: true });
+  }
 });
