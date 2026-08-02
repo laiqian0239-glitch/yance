@@ -249,7 +249,7 @@ function clearProcessBindings() {
 
 class AppRuntimeFactory {
   static create(options = {}) {
-    if (processRuntime) {
+    if (processRuntime || factoryCreateCount > 0) {
       throw factoryError('APP_RUNTIME_ALREADY_EXISTS', 'A backend process may create only one AppRuntime');
     }
     const binding = resolveAuthorityBinding(options);
@@ -362,6 +362,7 @@ class AppRuntimeFactory {
     if (!process.env.NODE_TEST_CONTEXT && process.env.NODE_ENV !== 'test' && process.env.YANCE_TEST_ONLY_RUNTIME_RESET !== '1') {
       throw factoryError('APP_RUNTIME_TEST_RESET_FORBIDDEN', 'AppRuntime test reset is unavailable in production', 403);
     }
+    canonicalEventLedgerModule.resetSingletonForTests();
     clearProcessBindings();
     factoryCreateCount = 0;
   }
