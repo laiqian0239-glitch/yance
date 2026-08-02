@@ -73,6 +73,7 @@ test('post-merge workflow is permanent, exact-main and fail closed', () => {
   assert.match(workflow, /push:\n\s+branches:\n\s+- main/u);
   assert.match(workflow, /workflow_dispatch:/u);
   assert.match(workflow, /ref: \$\{\{ github\.sha \}\}/u);
+  assert.match(workflow, /git fetch --no-tags --force origin main:refs\/remotes\/origin\/main/u);
   assert.match(workflow, /verify-wp-a-post-merge\.js --require-origin-main/u);
   assert.match(workflow, /run-wp-a-post-merge-contracts\.js/u);
   assert.match(workflow, /ubuntu-latest/u);
