@@ -10,7 +10,7 @@ function workflow(name) {
   return fs.readFileSync(path.join(ROOT, '.github', 'workflows', name), 'utf8');
 }
 
-test('fast workflow exposes policy, risk and risk-selected L2 checks', () => {
+test('fast workflow exposes policy, risk and risk-selected portable L2 checks', () => {
   const text = workflow('layered-ci-fast.yml');
   assert.match(text, /layered-ci-policy/u);
   assert.match(text, /layered-ci-risk/u);
@@ -18,6 +18,7 @@ test('fast workflow exposes policy, risk and risk-selected L2 checks', () => {
   assert.match(text, /\.\/\.github\/actions\/resolve-diff-range/u);
   assert.match(text, /layered-ci-l2-governance/u);
   assert.match(text, /needs\.layered-ci-risk\.outputs\.requires_l2 == 'true'/u);
+  assert.match(text, /suite:\s*layered_governance/u);
   assert.match(text, /reviewed-candidate-a6-sqlite\.yml/u);
   assert.match(text, /stage-6459-wp0-gates\.yml/u);
 });
@@ -44,16 +45,28 @@ test('A6 SQLite legacy workflow runs ownership tests without identity name filte
   assert.doesNotMatch(text, /--test-name-pattern/u);
 });
 
-test('task workflow is reusable and accepts predefined suites rather than arbitrary commands', () => {
+test('task workflow separates portable suites from branch-bound WP0 suites', () => {
   const text = workflow('layered-ci-task.yml');
   assert.match(text, /workflow_call:/u);
   assert.match(text, /type: choice/u);
+  assert.match(text, /layered_governance/u);
   assert.match(text, /acv2_wp_a_a6/u);
   assert.match(text, /full_work_package/u);
   assert.doesNotMatch(text, /task_test_command/u);
+  assert.match(text, /candidate_branch:/u);
+  assert.match(text, /Validate branch-bound WP0 candidate/u);
+  assert.match(text, /refs\/remotes\/origin\/\$\{CANDIDATE_BRANCH\}/u);
+  assert.match(text, /layered-ci-l2-portable-\$\{\{ matrix\.os \}\}/u);
+  assert.match(text, /layered-ci-l2-branch-bound-wp0-\$\{\{ matrix\.os \}\}/u);
   assert.match(text, /windows-latest/u);
   assert.match(text, /Install locked dependencies for WP0 and work-package tests[\s\S]*Run WP0 task contracts/u);
-  assert.match(text, /Install locked dependencies for WP0 and work-package tests[\s\S]*Run cross-platform sealed source identity/u);
+});
+
+test('portable governance suite never invokes branch-bound WP0 contracts', () => {
+  const text = workflow('layered-ci-task.yml');
+  assert.match(text, /inputs\.suite == 'layered_governance'/u);
+  assert.match(text, /tests\/layered-ci\/\*\.test\.js/u);
+  assert.match(text, /inputs\.suite == 'wp0' \|\| inputs\.suite == 'full_work_package'/u);
 });
 
 test('privileged workflow setup disables package-manager caching', () => {
