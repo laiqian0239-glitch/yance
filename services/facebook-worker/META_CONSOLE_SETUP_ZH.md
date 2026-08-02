@@ -102,3 +102,17 @@ pages_read_engagement
 4. 连接、同步、重授权、断开和诊断状态。
 
 用户不会填写 App ID、App Secret、Broker、Relay、Webhook 地址或 Page Token；Windows 安装包也不包含 `META_APP_ID`，OAuth URL 由 Worker 使用 Cloudflare Secret 生成。
+
+
+## 7. 官方个人身份登录
+
+同一精确 OAuth 回调支持 `mode=identity`。该模式使用官方 Facebook Login，仅请求 `public_profile` 并读取 `id,name,picture`。
+
+它不会：
+
+- 请求或继承公共主页权限；
+- 枚举、订阅或发送主页消息；
+- 把用户 Access Token 返回 Windows；
+- 提供个人 Messenger 私信读写。
+
+部署后 `/healthz` 必须发布 OAuth 合同版本 6、`supportedModes=[page,identity]`，以及 `personalIdentity.messagingSupported=false`。旧版本 Worker 仍可服务公共主页，但桌面端必须拒绝在旧合同上启动个人身份登录。

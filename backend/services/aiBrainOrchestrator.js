@@ -11,6 +11,8 @@ const logger = require('./logger');
 const { QUALIFICATION } = require('../../shared/constants');
 const messageSpeakerAuthority = require('./messageSpeakerAuthority');
 const backgroundJobAuthority = require('./backgroundJobAuthority');
+const { getRuntimeDomainIsolationAuthority } = require('./runtimeDomainIsolationAuthority');
+const modelRoutingIntegrityService = require('./modelRoutingIntegrityService');
 
 const DEFAULTS = Object.freeze({
   schemaVersion: 1,
@@ -51,6 +53,8 @@ let listener = null;
 let translationListener = null;
 let revokeListener = null;
 let activeJobs = 0;
+let isolationUnsubscribe = null;
+const runtimeDomainIsolationAuthority = getRuntimeDomainIsolationAuthority();
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function nowIso() { return new Date().toISOString(); }
@@ -101,16 +105,14 @@ async function updateDocument(mutator) {
   });
 }
 
-function eligibleModel(task, config) {
-  const state = modelRegistry.read();
+function eligibleModel(task, config, registryState = null) {
+  const state = registryState && typeof registryState === 'object' ? registryState : modelRegistry.read();
+  const route = state.routes?.[task] || {};
   const models = (state.models || []).filter(model => {
-    if (model.available === false) return false;
-    if (![QUALIFICATION.verified, QUALIFICATION.experimental].includes(model.qualification)) return false;
-    if (!Array.isArray(model.allowedTasks) || !model.allowedTasks.includes(task)) return false;
+    if (!modelRoutingIntegrityService.eligibleForTask(model, task, { allowExperimental: true, allowConditional: false })) return false;
     if (config.localOnly && model.provider !== 'ollama') return false;
     return true;
   });
-  const route = state.routes?.[task] || {};
   return models.find(model => model.id === route.primary)
     || models.find(model => model.id === route.fallback)
     || models[0]
@@ -156,6 +158,44 @@ function isSupersededAnalysisError(error) {
   return clean(error?.code).toUpperCase() === 'AI_STALE_RESULT';
 }
 
+function automationIsolationDecision(snapshot = runtimeDomainIsolationAuthority.snapshot()) {
+  const reasons = [...new Set((Array.isArray(snapshot?.aiIsolationReasons) ? snapshot.aiIsolationReasons : []).map(clean).filter(Boolean))];
+  const blocked = snapshot?.aiAutomationBlocked === true;
+  return { blocked, reasons, reason: blocked ? 'ai-domain-isolated' : '' };
+}
+
+async function pauseAutomationForIsolation(snapshot = runtimeDomainIsolationAuthority.snapshot()) {
+  const isolation = automationIsolationDecision(snapshot);
+  if (!isolation.blocked) return { paused: false, reasons: [] };
+  const error = Object.assign(new Error('AI automation paused by domain isolation authority'), {
+    code: 'AI_DOMAIN_ISOLATED',
+    reasons: isolation.reasons
+  });
+  let deferred = 0;
+  for (const [conversationId, entry] of timers.entries()) {
+    clearTimeout(entry?.timer || entry);
+    entry?.controller?.abort?.(error);
+    if (entry?.lease) {
+      try {
+        backgroundJobAuthority.fail(entry.lease, error, {
+          retryable: true,
+          maxAttempts: 20,
+          retryDelayMs: 15_000,
+          payload: { conversationId, reason: isolation.reason, isolationReasons: isolation.reasons }
+        });
+        deferred += 1;
+      } catch (failure) {
+        logger.error('models', 'ai-domain-isolation-defer-failed', { conversationId, code: failure.code || '', error: failure.message });
+      }
+    }
+  }
+  timers.clear();
+  for (const entry of analysisControllers.values()) entry?.controller?.abort?.(error);
+  await persistStatus({ lastSkipReason: isolation.reason, lastError: '' });
+  eventBus.publish('ai:automation-isolated', { reasons: isolation.reasons, deferred, activeJobs, at: nowIso() });
+  return { paused: true, reasons: isolation.reasons, deferred, activeJobs };
+}
+
 function extractJson(text) {
   const raw = clean(text);
   if (!raw) return null;
@@ -198,6 +238,17 @@ async function processConversation(conversationId, options = {}) {
   if (!config.enabled || !config.analyzeInbound) {
     await persistStatus({ skipped: Number(readDocument().status.skipped || 0) + 1, lastSkipReason: 'disabled', lastConversationId: conversationId });
     return { processed: false, reason: 'disabled' };
+  }
+  const isolation = automationIsolationDecision();
+  if (isolation.blocked) {
+    const current = readDocument().status;
+    await persistStatus({
+      skipped: Number(current.skipped || 0) + 1,
+      lastSkipReason: isolation.reason,
+      lastConversationId: conversationId,
+      lastError: ''
+    });
+    return { processed: false, reason: isolation.reason, isolationReasons: isolation.reasons };
   }
   let deterministicFacts = null;
   if (config.extractFactCandidates) {
@@ -284,7 +335,18 @@ async function processConversation(conversationId, options = {}) {
     return { processed: true, ...result, modelId: result.model?.id || model.id };
   } catch (error) {
     const current = readDocument().status;
-    if (signal?.aborted || ['AI_ANALYSIS_CANCELLED','JOB_CANCELLED','SUPERSEDED_BY_NEWER_INBOUND','MODEL_CANCELLED'].includes(clean(error?.code).toUpperCase())) {
+    const cancellationCode = clean(error?.code || signal?.reason?.code).toUpperCase();
+    if (cancellationCode === 'AI_DOMAIN_ISOLATED') {
+      const isolation = automationIsolationDecision();
+      await persistStatus({
+        skipped: Number(current.skipped || 0) + 1,
+        lastConversationId: conversationId,
+        lastError: '',
+        lastSkipReason: 'ai-domain-isolated'
+      });
+      return { processed: false, deferred: true, reason: 'ai-domain-isolated', isolationReasons: isolation.reasons };
+    }
+    if (signal?.aborted || ['AI_ANALYSIS_CANCELLED','JOB_CANCELLED','SUPERSEDED_BY_NEWER_INBOUND','MODEL_CANCELLED'].includes(cancellationCode)) {
       await persistStatus({
         skipped: Number(current.skipped || 0) + 1,
         superseded: Number(current.superseded || 0) + 1,
@@ -369,6 +431,11 @@ async function runScheduledAnalysis(conversationId, identity, lease, controller)
     }
     return result;
   } catch (error) {
+    const abortCode = clean(error?.code || signal?.reason?.code).toUpperCase();
+    if (abortCode === 'AI_DOMAIN_ISOLATED') {
+      backgroundJobAuthority.fail(lease, error, { retryable: true, maxAttempts: 20, retryDelayMs: 15_000, payload: { conversationId, reason: 'ai-domain-isolated' } });
+      return { processed: false, deferred: true, reason: 'ai-domain-isolated' };
+    }
     if (signal?.aborted) {
       backgroundJobAuthority.authority.cancel(identity.idempotencyKey, clean(error?.code || signal.reason?.code || 'SUPERSEDED_BY_NEWER_INBOUND'));
       return { processed: false, cancelled: true, reason: 'cancelled-or-superseded' };
@@ -386,6 +453,12 @@ function schedule(conversationId, options = {}) {
   if (!id) return false;
   const { config } = readDocument();
   if (!config.enabled || !config.analyzeInbound) return false;
+  const isolation = automationIsolationDecision();
+  if (isolation.blocked) {
+    persistStatus({ lastConversationId: id, lastSkipReason: isolation.reason, lastError: '' }).catch(() => {});
+    eventBus.publish('ai:automation-isolated', { conversationId: id, reasons: isolation.reasons, at: nowIso() });
+    return false;
+  }
   const identity = analysisJobIdentity(id);
   if (!identity) return false;
 
@@ -434,6 +507,10 @@ function schedule(conversationId, options = {}) {
 }
 
 function recoverStartupAnalyses(options = {}) {
+  const isolation = automationIsolationDecision(options.domainIsolationSnapshot);
+  if (isolation.blocked) {
+    return { scanned: 0, recovered: 0, remaining: 0, oldestPendingAt: '', pages: 0, budgetExhausted: false, conversationsScanned: 0, blocked: true, reason: isolation.reason, isolationReasons: isolation.reasons };
+  }
   const backgroundJobs = options.backgroundJobs || backgroundJobAuthority;
   const scheduleAnalysis = options.scheduleAnalysis || schedule;
   const listConversations = options.listConversations || (() => messageStore.listConversations());
@@ -505,6 +582,18 @@ function recoverStartupAnalyses(options = {}) {
 function start() {
   if (started) return status();
   started = true;
+  isolationUnsubscribe = runtimeDomainIsolationAuthority.subscribe(snapshot => {
+    const isolation = automationIsolationDecision(snapshot);
+    if (isolation.blocked) {
+      pauseAutomationForIsolation(snapshot).catch(error => logger.error('models', 'ai-domain-isolation-pause-failed', { code: error.code || '', error: error.message }));
+    } else {
+      setTimeout(() => {
+        if (!started) return;
+        try { recoverStartupAnalyses({ domainIsolationSnapshot: snapshot }); }
+        catch (error) { logger.warn('models', 'ai-domain-isolation-resume-failed', { code: error.code || '', error: error.message }); }
+      }, 0).unref?.();
+    }
+  });
   listener = event => {
     const message = event?.payload?.message || {};
     if (!shouldScheduleInboundMessage(message)) return;
@@ -548,6 +637,8 @@ function stop() {
   listener = null;
   translationListener = null;
   revokeListener = null;
+  isolationUnsubscribe?.();
+  isolationUnsubscribe = null;
   for (const entry of timers.values()) {
     clearTimeout(entry?.timer || entry);
     entry?.controller?.abort?.(Object.assign(new Error('AI automation stopped'), { code: 'AI_ANALYSIS_CANCELLED' }));
@@ -562,7 +653,16 @@ function stop() {
 
 function status() {
   const document = readDocument();
-  return { ...document.status, running: started, pendingConversations: timers.size, activeJobs, config: document.config };
+  const isolation = automationIsolationDecision();
+  return {
+    ...document.status,
+    running: started,
+    pendingConversations: timers.size,
+    activeJobs,
+    config: document.config,
+    aiAutomationBlocked: isolation.blocked,
+    aiIsolationReasons: isolation.reasons
+  };
 }
 
 async function updateConfig(patch = {}) {
@@ -576,4 +676,4 @@ async function updateConfig(patch = {}) {
   return document.config;
 }
 
-module.exports = { start, stop, schedule, recoverStartupAnalyses, processConversation, status, readConfig: () => readDocument().config, updateConfig, normalizeConfig, shouldScheduleInboundMessage, translationIsPending, isSupersededAnalysisError, DEFAULTS };
+module.exports = { start, stop, schedule, recoverStartupAnalyses, processConversation, status, readConfig: () => readDocument().config, updateConfig, normalizeConfig, shouldScheduleInboundMessage, translationIsPending, isSupersededAnalysisError, automationIsolationDecision, pauseAutomationForIsolation, eligibleModel, DEFAULTS };

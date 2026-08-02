@@ -1,0 +1,54 @@
+TAP version 13
+# (node:18257) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: F25-D07 manual pending-auth connection reaches the WhatsApp adapter while automatic recovery remains blocked
+ok 1 - F25-D07 manual pending-auth connection reaches the WhatsApp adapter while automatic recovery remains blocked
+  ---
+  duration_ms: 2.78446
+  type: 'test'
+  ...
+# Subtest: F25-D07 every connection attempt has an auditable attempt id and lifecycle timestamps
+ok 2 - F25-D07 every connection attempt has an auditable attempt id and lifecycle timestamps
+  ---
+  duration_ms: 1.603772
+  type: 'test'
+  ...
+# Subtest: F25-D07 WhatsApp terminal events preserve the real error and stable reason code
+ok 3 - F25-D07 WhatsApp terminal events preserve the real error and stable reason code
+  ---
+  duration_ms: 0.642205
+  type: 'test'
+  ...
+# Subtest: F25-D09 WhatsApp adapter states map to one canonical account runtime vocabulary
+ok 4 - F25-D09 WhatsApp adapter states map to one canonical account runtime vocabulary
+  ---
+  duration_ms: 0.121965
+  type: 'test'
+  ...
+# Subtest: F25-D07 runtime event merging preserves request ownership instead of replacing the whole state object
+ok 5 - F25-D07 runtime event merging preserves request ownership instead of replacing the whole state object
+  ---
+  duration_ms: 0.458037
+  type: 'test'
+  ...
+# Subtest: F25-D07 stale adapter events cannot overwrite a newer connection attempt
+ok 6 - F25-D07 stale adapter events cannot overwrite a newer connection attempt
+  ---
+  duration_ms: 0.303527
+  type: 'test'
+  ...
+# Subtest: F25-D46 product-area subnavigation no longer overlays titles or consumes the content grid row
+ok 7 - F25-D46 product-area subnavigation no longer overlays titles or consumes the content grid row
+  ---
+  duration_ms: 0.453149
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 370.271433

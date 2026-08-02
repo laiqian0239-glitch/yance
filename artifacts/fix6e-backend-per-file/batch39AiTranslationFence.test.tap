@@ -1,0 +1,36 @@
+TAP version 13
+# (node:17545) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: translation rejects a result that resolves after its AbortSignal is cancelled
+ok 1 - translation rejects a result that resolves after its AbortSignal is cancelled
+  ---
+  duration_ms: 1.580123
+  type: 'test'
+  ...
+# Subtest: translation rejects a result from a superseded generation
+ok 2 - translation rejects a result from a superseded generation
+  ---
+  duration_ms: 0.319008
+  type: 'test'
+  ...
+# Subtest: workspace abort during Chinese translation cannot commit a completed analysis
+ok 3 - workspace abort during Chinese translation cannot commit a completed analysis
+  ---
+  duration_ms: 500.868746
+  type: 'test'
+  ...
+# Subtest: workspace rechecks source generation inside the final persistence transaction
+ok 4 - workspace rechecks source generation inside the final persistence transaction
+  ---
+  duration_ms: 262.138654
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 850.466901

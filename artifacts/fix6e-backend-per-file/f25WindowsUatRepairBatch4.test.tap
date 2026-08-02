@@ -1,0 +1,36 @@
+TAP version 13
+# (node:18793) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: background job snapshot uses full-table authoritative aggregates independent of display limit
+ok 1 - background job snapshot uses full-table authoritative aggregates independent of display limit
+  ---
+  duration_ms: 269.474862
+  type: 'test'
+  ...
+# Subtest: durable message.sent evidence reconciles an unknown send without another platform dispatch
+ok 2 - durable message.sent evidence reconciles an unknown send without another platform dispatch
+  ---
+  duration_ms: 0.94805
+  type: 'test'
+  ...
+# Subtest: manual unknown-send resolution records actor reason and terminal audit evidence
+ok 3 - manual unknown-send resolution records actor reason and terminal audit evidence
+  ---
+  duration_ms: 1.190668
+  type: 'test'
+  ...
+# Subtest: automatic safety supervisor enters safe mode once for critical blockers and never auto-exits
+ok 4 - automatic safety supervisor enters safe mode once for critical blockers and never auto-exits
+  ---
+  duration_ms: 1.071716
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 675.08931

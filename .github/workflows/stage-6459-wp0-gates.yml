@@ -4,26 +4,94 @@ on:
   push:
     branches:
       - stage/6.4.5.9-architecture-closure
+      - rebuild/windows-release-closure-*
   pull_request:
 
 permissions:
   contents: read
 
+env:
+  IMPLEMENTATION_BRANCH: ${{ github.head_ref || github.ref_name }}
+  REVIEWED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  BASELINE_ANCHOR_COMMIT: 570823e722f6db475066d6ef80ba900ac5c6cb39
+  BASELINE_ANCHOR_PATH: governance/rejected-baselines/stage-6.4.5.8.json
+  BASELINE_ANCHOR_BLOB: 6a5ffc68e76baf6a477668c6c2faf61934e94720
+  ELECTRON_LFS_PATH: vendor/electron/electron-v39.8.5-win32-x64.zip
+  ELECTRON_LFS_OID: d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34
+  ELECTRON_LFS_SIZE: '136644393'
+
 jobs:
   wp0-gates:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     steps:
-      - name: Checkout branch and immutable tags
-        uses: actions/checkout@v4
+      - name: Checkout reviewed source head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
           fetch-depth: 0
-          fetch-tags: true
+          fetch-tags: false
+          lfs: false
+      - name: Establish trusted branch and archive anchor refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --force origin "main:refs/remotes/origin/main"
+          git fetch --no-tags --force origin "${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
+          git cat-file -e "${BASELINE_ANCHOR_COMMIT}^{commit}"
+          git merge-base --is-ancestor "${BASELINE_ANCHOR_COMMIT}" "${REVIEWED_HEAD_SHA}"
+          test "$(git rev-parse "${BASELINE_ANCHOR_COMMIT}:${BASELINE_ANCHOR_PATH}")" = "${BASELINE_ANCHOR_BLOB}"
+          git switch --force-create "${IMPLEMENTATION_BRANCH}" "${REVIEWED_HEAD_SHA}"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})"
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
-      - name: Run executable local-equivalent WP0 gate
-        run: npm run verify:wp0:gate
+      - name: Fetch and verify trusted Electron LFS object
+        shell: bash
+        run: |
+          set -euo pipefail
+          git lfs install --local
+          git lfs pull origin --include="${ELECTRON_LFS_PATH}" --exclude=""
+          echo "${ELECTRON_LFS_OID}  ${ELECTRON_LFS_PATH}" | sha256sum --check --strict
+          test "$(stat --format='%s' "${ELECTRON_LFS_PATH}")" = "${ELECTRON_LFS_SIZE}"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - name: Run WP0 required tests
         run: npm run test:wp0
+      - name: Run staged-secret scanner regressions
+        run: npm run test:security-scan
+      - name: Run source identity and Electron tracking regressions
+        run: >-
+          node --test --test-concurrency=1
+          tests/runtime-delivery/electron-archive-tracking-authority.test.js
+          tests/runtime-delivery/repository-source-identity-authority.test.js
+          tests/runtime-delivery/fix6f-source-uat-isolation.test.js
+      - name: Validate repository protocol descriptor
+        run: node tools/protocol/validate-v3-protocols.js
+      - name: Run executable local-equivalent WP0 gate
+        run: npm run verify:wp0:gate -- --branch "${IMPLEMENTATION_BRANCH}"
+
+  sealed-export-platform-matrix:
+    name: sealed-export-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout reviewed source head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Run sealed export canonical path regressions
+        run: node --test --test-concurrency=1 tests/runtime-delivery/repository-source-identity-authority.test.js

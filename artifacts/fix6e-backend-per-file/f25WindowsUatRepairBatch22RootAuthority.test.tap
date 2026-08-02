@@ -1,0 +1,72 @@
+TAP version 13
+# (node:18296) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: connected state never becomes sendVerified or canSend without real ACK authority
+ok 1 - connected state never becomes sendVerified or canSend without real ACK authority
+  ---
+  duration_ms: 0.785699
+  type: 'test'
+  ...
+# Subtest: message:inserted is a behavioral SQLite reload trigger
+ok 2 - message:inserted is a behavioral SQLite reload trigger
+  ---
+  duration_ms: 0.779686
+  type: 'test'
+  ...
+# Subtest: interactive authentication remains RUNNING until later platform state settles the same workflow
+ok 3 - interactive authentication remains RUNNING until later platform state settles the same workflow
+  ---
+  duration_ms: 273.193185
+  type: 'test'
+  ...
+# Subtest: PlatformAccount to ExternalIdentity to IdentityLink to ConversationBinding to Message to OutboxRoute is one constrained chain
+ok 4 - PlatformAccount to ExternalIdentity to IdentityLink to ConversationBinding to Message to OutboxRoute is one constrained chain
+  ---
+  duration_ms: 270.972051
+  type: 'test'
+  ...
+# Subtest: emoji-only failure is capability-scoped and does not overwrite account text health
+ok 5 - emoji-only failure is capability-scoped and does not overwrite account text health
+  ---
+  duration_ms: 256.784947
+  type: 'test'
+  ...
+# Subtest: identity domain event finalization failure survives restart as a durable outbox row and can be replayed
+ok 6 - identity domain event finalization failure survives restart as a durable outbox row and can be replayed
+  ---
+  duration_ms: 270.864701
+  type: 'test'
+  ...
+# Subtest: OutboxRoute assertion is fail-closed and never creates a route during Egress authorization
+ok 7 - OutboxRoute assertion is fail-closed and never creates a route during Egress authorization
+  ---
+  duration_ms: 282.973192
+  type: 'test'
+  ...
+# Subtest: send queue and immutable OutboxRoute version are committed atomically and invalid scope leaves no orphan row
+ok 8 - send queue and immutable OutboxRoute version are committed atomically and invalid scope leaves no orphan row
+  ---
+  duration_ms: 281.524867
+  type: 'test'
+  ...
+# Subtest: a completed lifecycle can reuse a business operation hint without primary-key collision
+ok 9 - a completed lifecycle can reuse a business operation hint without primary-key collision
+  ---
+  duration_ms: 283.273126
+  type: 'test'
+  ...
+# Subtest: AI candidates are not cancelled merely because real send ACK is still unverified
+ok 10 - AI candidates are not cancelled merely because real send ACK is still unverified
+  ---
+  duration_ms: 0.443288
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2008.879053

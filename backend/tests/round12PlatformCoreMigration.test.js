@@ -13,7 +13,8 @@ const finalGovernance = require('../migrations/round12Round13FinalGovernanceClos
 const finalSeven = require('../migrations/round12Round13FinalSevenClosure');
 const batch22 = require('../migrations/batch22IdentityRouteAuthority');
 const batch24 = require('../migrations/batch24StateTransactionConsistency');
-const batch27 = require('../migrations/batch27DeveloperHandoffV2Closure');
+const batch41 = require('../migrations/batch41Fix6MArchitectureReferenceClosure');
+const batch42 = require('../migrations/batch42Fix6OScopedSafetyAndOmnichannelRuntime');
 
 function withStore(callback) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-r12-schema-'));
@@ -47,8 +48,8 @@ test('round12 migration creates platform, identity, event, strategy and learning
     for (const name of ['outbox_id', 'send_policy_json', 'capability_snapshot_id', 'quality_tier', 'emergency_mode']) {
       assert.equal(queueColumns.has(name), true, name);
     }
-    assert.equal(store.getMeta('schemaVersion', 0), batch27.TARGET_SCHEMA_VERSION);
-    assert.equal(store.getMeta('schema_version', 0), batch27.TARGET_SCHEMA_VERSION);
+    assert.equal(store.getMeta('schemaVersion', 0), batch42.TARGET_SCHEMA_VERSION);
+    assert.equal(store.getMeta('schema_version', 0), batch42.TARGET_SCHEMA_VERSION);
     const receipt = store.db.prepare('SELECT status,target_schema_version,checksum FROM r32_schema_migrations WHERE migration_id=?').get(migration.MIGRATION_ID);
     assert.equal(receipt.status, 'completed');
     assert.equal(receipt.target_schema_version, migration.TARGET_SCHEMA_VERSION);
@@ -63,12 +64,12 @@ test('round12 migration is idempotent and older consistency checks do not downgr
   let second;
   try {
     first = new R32SqliteStore({ dbPath });
-    assert.equal(first.getMeta('schemaVersion', 0), batch27.TARGET_SCHEMA_VERSION);
-    assert.equal(first.getMeta('schema_version', 0), batch27.TARGET_SCHEMA_VERSION);
+    assert.equal(first.getMeta('schemaVersion', 0), batch42.TARGET_SCHEMA_VERSION);
+    assert.equal(first.getMeta('schema_version', 0), batch42.TARGET_SCHEMA_VERSION);
     first.close(); first = null;
     second = new R32SqliteStore({ dbPath });
-    assert.equal(second.getMeta('schemaVersion', 0), batch27.TARGET_SCHEMA_VERSION);
-    assert.equal(second.getMeta('schema_version', 0), batch27.TARGET_SCHEMA_VERSION);
+    assert.equal(second.getMeta('schemaVersion', 0), batch42.TARGET_SCHEMA_VERSION);
+    assert.equal(second.getMeta('schema_version', 0), batch42.TARGET_SCHEMA_VERSION);
     const count = second.db.prepare('SELECT COUNT(*) AS count FROM r32_schema_migrations WHERE migration_id=?').get(migration.MIGRATION_ID).count;
     assert.equal(count, 1);
   } finally {
@@ -99,7 +100,7 @@ test('schema 14 final-seven closure installs relationship Person anchors and an 
     }
     first.close(); first = null;
     second = new R32SqliteStore({ dbPath });
-    assert.equal(second.getMeta('schemaVersion', 0), batch27.TARGET_SCHEMA_VERSION);
+    assert.equal(second.getMeta('schemaVersion', 0), batch42.TARGET_SCHEMA_VERSION);
     assert.equal(second.db.prepare('SELECT COUNT(*) AS n FROM r32_schema_migrations WHERE migration_id=?').get(finalSeven.MIGRATION_ID).n, 1);
   } finally {
     try { first?.close(); } catch (_) {}
@@ -177,11 +178,11 @@ test('schema governance reads both historical keys and refuses either key ahead 
     let store;
     try {
       store = new R32SqliteStore({ dbPath });
-      store.setMeta(aheadKey, batch27.TARGET_SCHEMA_VERSION + 1);
+      store.setMeta(aheadKey, batch42.TARGET_SCHEMA_VERSION + 1);
       store.close(); store = null;
       assert.throws(
         () => { store = new R32SqliteStore({ dbPath }); },
-        error => error?.reasonCode === 'SCHEMA_VERSION_AHEAD' && error?.databaseVersion === batch27.TARGET_SCHEMA_VERSION + 1,
+        error => error?.reasonCode === 'SCHEMA_VERSION_AHEAD' && error?.databaseVersion === batch42.TARGET_SCHEMA_VERSION + 1,
         aheadKey
       );
     } finally {
@@ -231,8 +232,8 @@ test('schema 12 remaining closure admits pending L3 governance states and instal
   let second;
   try {
     first = new R32SqliteStore({ dbPath });
-    assert.equal(first.getMeta('schemaVersion', 0), batch27.TARGET_SCHEMA_VERSION);
-    assert.equal(first.getMeta('schema_version', 0), batch27.TARGET_SCHEMA_VERSION);
+    assert.equal(first.getMeta('schemaVersion', 0), batch42.TARGET_SCHEMA_VERSION);
+    assert.equal(first.getMeta('schema_version', 0), batch42.TARGET_SCHEMA_VERSION);
 
     const profileSql = String(first.db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='learning_preference_profiles'").get()?.sql || '');
     const auditSql = String(first.db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='learning_promotion_audit'").get()?.sql || '');
@@ -261,7 +262,7 @@ test('schema 12 remaining closure admits pending L3 governance states and instal
 
     first.close(); first = null;
     second = new R32SqliteStore({ dbPath });
-    assert.equal(second.getMeta('schemaVersion', 0), batch27.TARGET_SCHEMA_VERSION);
+    assert.equal(second.getMeta('schemaVersion', 0), batch42.TARGET_SCHEMA_VERSION);
     assert.equal(second.db.prepare('SELECT COUNT(*) AS count FROM r32_schema_migrations WHERE migration_id=?').get(remainingClosure.MIGRATION_ID).count, 1);
     assert.equal(second.db.prepare("SELECT state FROM learning_preference_profiles WHERE scope_type='persona' AND scope_id='owner' AND learning_level='L3' AND version=1").get().state, 'pending-approval');
   } finally {

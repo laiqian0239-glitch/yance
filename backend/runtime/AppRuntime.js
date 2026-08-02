@@ -201,7 +201,7 @@ class AppRuntime {
   reconcileOperatingMode() { return this.operatingModeGateway.reconcile(); }
 
   async _setOperatingMode(operatingMode, reason = '', options = {}) {
-    return this.operatingModeGateway.transition({ targetMode: operatingMode, reason, source: options.source || 'internal', commandId: options.commandId, envelope: options.envelope });
+    return this.operatingModeGateway.transition({ targetMode: operatingMode, reason, source: options.source || 'internal', commandId: options.commandId, envelope: options.envelope, metadata: options.metadata || {} });
   }
 
   async _applyRuntimeControl(commandType, payload = {}, context = {}) {
@@ -271,7 +271,7 @@ class AppRuntime {
   }
 
   async enterSafeMode(reason = 'safe-mode', metadata = {}) {
-    await this._setOperatingMode(OPERATING_MODES.SAFE_MODE, metadata.code || reason, { source: metadata.source || 'recovery' });
+    await this._setOperatingMode(OPERATING_MODES.SAFE_MODE, metadata.code || reason, { source: metadata.source || 'recovery', metadata: { reasonCode: metadata.code || reason, reasons: metadata.triggers || [], trigger: metadata.trigger || metadata.source || 'recovery', actor: metadata.source || 'recovery', evidence: metadata.evidence || {} } });
     return this.productionServicesSnapshot();
   }
 
@@ -332,6 +332,10 @@ class AppRuntime {
     if (!supported.has(envelope.commandType)) throw new AppRuntimeError('COMMAND_TYPE_UNSUPPORTED', `Unsupported commandType: ${envelope.commandType}`, { status: 400 });
     if (envelope.commandType === 'runtime.setOperatingMode') {
       const operatingMode = assertOperatingMode(envelope.payload.operatingMode, { source: 'api-v2' });
+      if (this.operatingMode === OPERATING_MODES.SAFE_MODE && operatingMode === OPERATING_MODES.NORMAL) {
+        const composition = this.configureProductionServices();
+        composition.recoveryManager?.consumeSafeModeExitAuthorization?.(envelope.payload);
+      }
       return this._setOperatingMode(operatingMode, envelope.payload.reason || 'api-v2-command', { source: 'api-v2', commandId: envelope.commandId, envelope });
     }
     if (['runtime.setNetwork', 'runtime.suspend', 'runtime.resume'].includes(envelope.commandType)) {

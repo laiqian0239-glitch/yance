@@ -1,0 +1,36 @@
+TAP version 13
+# (node:17715) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: learning enqueue carries its deadline and rejects a late external result before commit
+ok 1 - learning enqueue carries its deadline and rejects a late external result before commit
+  ---
+  duration_ms: 52.556609
+  type: 'test'
+  ...
+# Subtest: learning execution deadline starts when its scope lane begins, not while queued
+ok 2 - learning execution deadline starts when its scope lane begins, not while queued
+  ---
+  duration_ms: 40.499775
+  type: 'test'
+  ...
+# Subtest: learning tasks queued before service stop cannot start after the service controller is cleared
+ok 3 - learning tasks queued before service stop cannot start after the service controller is cleared
+  ---
+  duration_ms: 11.558585
+  type: 'test'
+  ...
+# Subtest: future retry remains unresolved while a new claim receives a new durable generation
+ok 4 - future retry remains unresolved while a new claim receives a new durable generation
+  ---
+  duration_ms: 257.127498
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 438.93874

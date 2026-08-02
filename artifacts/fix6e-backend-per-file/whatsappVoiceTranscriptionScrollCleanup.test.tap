@@ -1,0 +1,36 @@
+TAP version 13
+# (node:20354) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: legacy empty synthetic voice conversation is archived even after an older build already deleted its duplicate rows
+ok 1 - legacy empty synthetic voice conversation is archived even after an older build already deleted its duplicate rows
+  ---
+  duration_ms: 45.72241
+  type: 'test'
+  ...
+# Subtest: empty weak WhatsApp contact without synthetic marker is not archived
+ok 2 - empty weak WhatsApp contact without synthetic marker is not archived
+  ---
+  duration_ms: 36.788095
+  type: 'test'
+  ...
+# Subtest: scroll persistence distinguishes bottom, anchor and legacy offset states
+ok 3 - scroll persistence distinguishes bottom, anchor and legacy offset states
+  ---
+  duration_ms: 2.41515
+  type: 'test'
+  ...
+# Subtest: whisper.cpp argument contract is cross-platform and the current runtime-delivery installer is wired through API and UI
+ok 4 - whisper.cpp argument contract is cross-platform and the current runtime-delivery installer is wired through API and UI
+  ---
+  duration_ms: 0.867563
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 523.398876

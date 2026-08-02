@@ -97,9 +97,12 @@ test('nested API errors retain reasonCode and never render object placeholders',
   assert.match(storeClient, /YanceRuntimeErrors/);
 });
 
-test('async errors preserve concrete user-facing detail instead of replacing every failure', () => {
-  assert.match(runtime, /const detail=userFacingRuntimeError\(e\.reason,'异步任务失败'\)/);
-  assert.match(runtime, /reasonCode:runtimeErrorCode\(e\.reason\)/);
+test('async errors preserve concrete user-facing detail and classify recoverable failures before escalation', () => {
+  assert.match(runtime, /const classification=classifyRuntimeFailure\(e\.reason,\{kind:'unhandledrejection'\}\)/);
+  assert.match(runtime, /recordRendererRuntimeFailure\('unhandledrejection',e\.reason\|\|new Error\('异步任务失败'\)\)/);
+  assert.match(runtime, /if\(classification\.silent\)return/);
+  assert.match(runtime, /if\(classification\.recoverable\)\{showSystemStatus\('warning',classification\.userMessage/);
+  assert.match(runtime, /showSystemStatus\('error',`\$\{classification\.userMessage\}（\$\{evidence\.reasonCode\}）`/);
   assert.doesNotMatch(runtime, /showSystemStatus\('error','异步任务失败，数据没有被覆盖'/);
 });
 

@@ -1,0 +1,22 @@
+TAP version 13
+# Subtest: history streams own abort controllers and inactive media uses the shared coordinator
+ok 1 - history streams own abort controllers and inactive media uses the shared coordinator
+  ---
+  duration_ms: 2.078715
+  type: 'test'
+  ...
+# Subtest: theme runtime exposes disposal for its store, timer, and media-query listener
+ok 2 - theme runtime exposes disposal for its store, timer, and media-query listener
+  ---
+  duration_ms: 0.549116
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 49.374664

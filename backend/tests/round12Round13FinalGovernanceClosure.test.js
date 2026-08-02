@@ -17,7 +17,8 @@ const architectureHealth = require('../services/architectureRuntimeHealthService
 const finalMigration = require('../migrations/round12Round13FinalGovernanceClosure');
 const finalSevenMigration = require('../migrations/round12Round13FinalSevenClosure');
 const batch24Migration = require('../migrations/batch24StateTransactionConsistency');
-const batch27Migration = require('../migrations/batch27DeveloperHandoffV2Closure');
+const batch41Migration = require('../migrations/batch41Fix6MArchitectureReferenceClosure');
+const batch42Migration = require('../migrations/batch42Fix6OScopedSafetyAndOmnichannelRuntime');
 
 function withRepository(callback) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-final-governance-'));
@@ -52,7 +53,7 @@ function insertContext(store, contactId, conversationId) {
 
 test('current schema preserves durable Person anchors and future writes inherit the active Person automatically', () => {
   withRepository(({ store, repository }) => {
-    assert.equal(store.getMeta('schemaVersion', 0), batch27Migration.TARGET_SCHEMA_VERSION);
+    assert.equal(store.getMeta('schemaVersion', 0), batch42Migration.TARGET_SCHEMA_VERSION);
     const schema13Receipt = store.db.prepare('SELECT target_schema_version FROM r32_schema_migrations WHERE migration_id=?').get(finalMigration.MIGRATION_ID);
     assert.equal(Number(schema13Receipt?.target_schema_version || 0), finalMigration.TARGET_SCHEMA_VERSION);
     for (const trigger of ['trg_person_contact_binding_propagate','trg_person_contact_binding_reactivate','trg_conversation_binding_propagate','trg_conversation_binding_reactivate']) {

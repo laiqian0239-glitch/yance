@@ -76,12 +76,19 @@ test('automatic recommendation respects an explicit user stop', () => {
 
 test('frontend separates saved activation from operational readiness and protects unsaved drafts', () => {
   const source = fs.readFileSync(path.join(__dirname, '../../frontend/js/r32-ai-workbench-runtime.js'), 'utf8');
-  assert.match(source, /requestedEnabled:r\.enabled!==false/u);
+  const routeDraftAuthority = require('../../frontend/js/r32-route-draft-authority');
+  const draft = routeDraftAuthority.project({ id: 'quick_reply', main: 'auto', backup: 'auto', enabled: true }, [], { purpose: 'persist' });
+  assert.equal(draft.requestedEnabled, true);
+  assert.equal(draft.enabled, true);
   assert.match(source, /activationState=!requestedEnabled\?'disabled':resilient\?'resilient':operational\?'primary-only':'waiting-model'/u);
   assert.match(source, /期望启用，但路由未就绪/u);
   assert.match(source, /主模型可运行，但缺少合格独立备用模型/u);
   assert.match(source, /routeDraftDirty/u);
-  assert.match(source, /if\(!\(state\.tab==='routing'&&state\.routeDraftDirty\)\)\{[^}]*state\.routes=registryRoutes/u);
+  assert.match(source, /YanceModelRuntimeSnapshotAuthority/u);
+  assert.match(source, /shouldPreserveModelRouteDraft/u);
+  const snapshotAuthority = require('../../frontend/js/r32-model-runtime-snapshot-authority');
+  assert.equal(snapshotAuthority.shouldPreserveRoutes({ tab: 'routing', routeDraftDirty: true }), true);
+  assert.equal(snapshotAuthority.shouldPreserveRoutes({ tab: 'models', routeDraftDirty: true }), false);
 });
 
 test('real SQLite keeps the enabled intent through an empty recommendation pass', () => {

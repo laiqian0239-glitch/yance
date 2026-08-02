@@ -1,0 +1,90 @@
+TAP version 13
+# (node:17404) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Batch27 Schema 18 installs structured unknown, learning ledger, AI physical state and recovery metrics
+ok 1 - Batch27 Schema 18 installs structured unknown, learning ledger, AI physical state and recovery metrics
+  ---
+  duration_ms: 275.911935
+  type: 'test'
+  ...
+# Subtest: Batch27 live SQLite owner heartbeats beyond stale window and controlled takeover works after SIGKILL
+ok 2 - Batch27 live SQLite owner heartbeats beyond stale window and controlled takeover works after SIGKILL
+  ---
+  duration_ms: 2765.753232
+  type: 'test'
+  ...
+# Subtest: Batch27 interrupted send preserves command scope and cannot become a global queue freeze
+ok 3 - Batch27 interrupted send preserves command scope and cannot become a global queue freeze
+  ---
+  duration_ms: 279.769933
+  type: 'test'
+  ...
+# Subtest: Batch27 external AbortSignal settles immediately even when the underlying operation ignores abort
+ok 4 - Batch27 external AbortSignal settles immediately even when the underlying operation ignores abort
+  ---
+  duration_ms: 20.953365
+  type: 'test'
+  ...
+# Subtest: Batch27 background job enqueue outcomes and cursor pagination are explicit beyond 500 rows
+ok 5 - Batch27 background job enqueue outcomes and cursor pagination are explicit beyond 500 rows
+  ---
+  duration_ms: 815.869526
+  type: 'test'
+  ...
+# Subtest: Batch27 AI physical zombie circuit keeps actual provider concurrency bounded and persists the zombie state
+ok 6 - Batch27 AI physical zombie circuit keeps actual provider concurrency bounded and persists the zombie state
+  ---
+  duration_ms: 35.186782
+  type: 'test'
+  ...
+# Subtest: Batch27 learning lease generation fences stale workers and applies each effect once
+ok 7 - Batch27 learning lease generation fences stale workers and applies each effect once
+  ---
+  duration_ms: 279.992016
+  type: 'test'
+  ...
+# Subtest: Batch27 resilient lease clock detects +1h/-1h wall jumps without moving live leases backward or forward
+ok 8 - Batch27 resilient lease clock detects +1h/-1h wall jumps without moving live leases backward or forward
+  ---
+  duration_ms: 0.339982
+  type: 'test'
+  ...
+# Subtest: Batch27 Telegram enrichment recovery pages oldest-first and uses account-scoped dedupe keys
+ok 9 - Batch27 Telegram enrichment recovery pages oldest-first and uses account-scoped dedupe keys
+  ---
+  duration_ms: 3.564247
+  type: 'test'
+  ...
+# Subtest: Batch27 WhatsApp late SDK success is quarantined before any local sent projection
+ok 10 - Batch27 WhatsApp late SDK success is quarantined before any local sent projection
+  ---
+  duration_ms: 10.0642
+  type: 'test'
+  ...
+# Subtest: Batch27 Persona version/hash is rechecked inside candidate persistence transaction
+ok 11 - Batch27 Persona version/hash is rechecked inside candidate persistence transaction
+  ---
+  duration_ms: 269.87405
+  type: 'test'
+  ...
+# Subtest: Batch27 async lifecycle recovery pages only active states and reports exact remaining work
+ok 12 - Batch27 async lifecycle recovery pages only active states and reports exact remaining work
+  ---
+  duration_ms: 354.43062
+  type: 'test'
+  ...
+# Subtest: Batch27 four processes racing the same fresh SQLite file allow exactly one migration owner
+ok 13 - Batch27 four processes racing the same fresh SQLite file allow exactly one migration owner
+  ---
+  duration_ms: 4331.884894
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9915.529059

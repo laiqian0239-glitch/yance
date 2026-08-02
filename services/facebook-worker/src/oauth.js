@@ -1,7 +1,7 @@
 import { all, changes, first, run } from './db.js';
 import { GatewayError, invariant } from './errors.js';
 import { signEnrollment, verifyEnrollment } from './desktopAuth.js';
-import { authorizationUrl, discoverManagedPages, exchangeCode, fetchGrantedPermissions, subscribePage } from './metaClient.js';
+import { authorizationUrl, discoverManagedPages, exchangeCode, fetchGrantedPermissions, fetchPersonalProfile, subscribePage } from './metaClient.js';
 import { decryptToken, encryptToken } from './tokenVault.js';
 import { addSeconds, clean, randomBase64Url, randomId, sha256Base64Url, timingSafeEqualBytes, utcNow, utf8 } from './utils.js';
 import { OPTIONAL_PERMISSIONS, REQUIRED_PERMISSIONS, SUBSCRIBED_FIELDS } from './config.js';
@@ -86,6 +86,8 @@ export async function beginOAuth(request, env, config) {
   const deviceId = clean(url.searchParams.get('device_id'));
   const devicePublicKey = await validateDevicePublicKey(url.searchParams.get('public_key'));
   const deviceDisplayName = clean(url.searchParams.get('device_name'), 'Yance Windows').slice(0, 120);
+  const flowMode = clean(url.searchParams.get('mode'), 'page').toLowerCase();
+  invariant(['page', 'identity'].includes(flowMode), 'FACEBOOK_OAUTH_MODE_INVALID', 'Facebook 授权模式无效', 400);
   invariant(flowId && flowId.length <= 128 && /^[A-Za-z0-9._-]+$/.test(flowId), 'FACEBOOK_OAUTH_FLOW_ID_INVALID', 'Facebook 授权流程标识无效', 400);
   invariant(/^[A-Za-z0-9_-]{40,64}$/.test(clientProof), 'FACEBOOK_OAUTH_CLIENT_PROOF_INVALID', 'Facebook 授权流程证明无效', 400);
   invariant(deviceId && deviceId.length <= 128, 'FACEBOOK_DEVICE_ID_INVALID', '设备标识无效', 400);
@@ -97,10 +99,10 @@ export async function beginOAuth(request, env, config) {
   const now = utcNow();
   const enrollmentValue = `${flowId}.${deviceId}.${devicePublicKey}.${clientProof}`;
   const enrollmentMac = await signEnrollment(config.desktopAuthMasterKey, enrollmentValue);
-  await run(env.DB, `INSERT INTO facebook_oauth_states(id,flow_id,state_hash,client_proof,device_id,device_public_key_spki,device_display_name,enrollment_mac,status,created_at,expires_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`, [
-    randomId('fboauth_'), flowId, stateHash, clientProof, deviceId, devicePublicKey, deviceDisplayName, enrollmentMac, 'pending', now, addSeconds(now, config.oauthStateTtlSeconds), now
+  await run(env.DB, `INSERT INTO facebook_oauth_states(id,flow_id,state_hash,client_proof,device_id,device_public_key_spki,device_display_name,enrollment_mac,status,created_at,expires_at,updated_at,flow_mode,identity_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
+    randomId('fboauth_'), flowId, stateHash, clientProof, deviceId, devicePublicKey, deviceDisplayName, enrollmentMac, 'pending', now, addSeconds(now, config.oauthStateTtlSeconds), now, flowMode, '{}'
   ]);
-  return Response.redirect(authorizationUrl(config, callbackUrl(request, config), state), 302);
+  return Response.redirect(authorizationUrl(config, callbackUrl(request, config), state, { mode: flowMode }), 302);
 }
 
 export async function handleOAuthCallback(request, env, config, fetchImpl = fetch) {
@@ -122,6 +124,18 @@ export async function handleOAuthCallback(request, env, config, fetchImpl = fetc
     const code = clean(url.searchParams.get('code'));
     invariant(code, 'FACEBOOK_OAUTH_CODE_MISSING', 'Facebook OAuth 回调缺少授权码', 400);
     const token = await exchangeCode(config, callbackUrl(request, config), code, fetchImpl);
+    if (clean(flow.flow_mode, 'page') === 'identity') {
+      const identity = await fetchPersonalProfile(config, token.access_token, fetchImpl);
+      await persistOAuthDiagnostics(env, flow.flow_id, 'identity_resolved', {
+        schemaVersion: 1,
+        stage: 'personal-identity',
+        userIdPresent: Boolean(identity.userId),
+        avatarPresent: Boolean(identity.avatarUrl),
+        messagingSupported: false
+      });
+      await run(env.DB, `UPDATE facebook_oauth_states SET status='authorized',identity_json=?,error_code='',updated_at=? WHERE id=?`, [JSON.stringify(identity), utcNow(), flow.id]);
+      return { flowId: flow.flow_id, status: 'authorized', mode: 'identity' };
+    }
     const grantedPermissions = await fetchGrantedPermissions(config, token.access_token, fetchImpl);
     const missingRequiredPermissions = REQUIRED_PERMISSIONS.filter(permission => !grantedPermissions.includes(permission));
     const missingOptionalPermissions = OPTIONAL_PERMISSIONS.filter(permission => !grantedPermissions.includes(permission));
@@ -172,14 +186,26 @@ export async function handleOAuthCallback(request, env, config, fetchImpl = fetc
 
 export async function pollOAuthResult(request, env, flowId) {
   const flow = await assertFlowClient(request, env, flowId);
-  const pages = flow.status === 'authorized' ? await all(env.DB, `SELECT page_id,page_name,page_username,picture_url,permissions_json,missing_permissions_json,token_expires_at,permission_checked_at,permission_source FROM facebook_oauth_page_candidates WHERE flow_id=? ORDER BY page_name,page_id`, [flow.flow_id]) : [];
+  const mode = clean(flow.flow_mode, 'page');
+  const pages = mode === 'page' && flow.status === 'authorized' ? await all(env.DB, `SELECT page_id,page_name,page_username,picture_url,permissions_json,missing_permissions_json,token_expires_at,permission_checked_at,permission_source FROM facebook_oauth_page_candidates WHERE flow_id=? ORDER BY page_name,page_id`, [flow.flow_id]) : [];
   const diagnostics = await readOAuthDiagnostics(env, flow.flow_id);
+  let identity = null;
+  if (mode === 'identity' && flow.status === 'authorized') {
+    try { identity = JSON.parse(flow.identity_json || '{}'); } catch (_) { identity = null; }
+  }
   return {
     flowId: flow.flow_id,
+    mode,
     status: flow.status,
     errorCode: clean(flow.error_code),
     expiresAt: flow.expires_at,
     diagnostics,
+    identity: identity && clean(identity.userId) ? {
+      userId: clean(identity.userId),
+      displayName: clean(identity.displayName, 'Facebook 用户'),
+      avatarUrl: clean(identity.avatarUrl),
+      messagingSupported: false
+    } : null,
     pages: pages.map(page => {
       const permissions = JSON.parse(page.permissions_json || '[]');
       const missingOptionalPermissions = JSON.parse(page.missing_permissions_json || '[]');

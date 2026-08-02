@@ -146,7 +146,14 @@ test('platform application settings cannot be changed or deleted by the normal a
   await assert.rejects(platformAuthConfig.clear('facebook'), error => error.code === 'PLATFORM_AUTH_RELEASE_MANAGED');
 });
 
-test('release configuration validation rejects malformed Telegram values and insecure Facebook endpoints', () => {
+test('release configuration validation rejects malformed values and never weakens transport security in test mode', t => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'test';
+  t.after(() => {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+  });
+
   assert.throws(() => platformAuthConfig.normalizeTelegram({ apiId: 0, apiHash: 'bad' }), error => error.code === 'TELEGRAM_API_ID_INVALID');
   assert.throws(() => platformAuthConfig.normalizeTelegram({ apiId: 123, apiHash: 'bad' }), error => error.code === 'TELEGRAM_API_HASH_INVALID');
   assert.throws(() => platformAuthConfig.normalizeFacebook({
@@ -154,6 +161,10 @@ test('release configuration validation rejects malformed Telegram values and ins
     relayUrl: 'wss://relay.example.com/facebook',
     graphVersion: 'v25.0'
   }), error => error.code === 'PLATFORM_AUTH_HTTPS_REQUIRED');
+  assert.throws(
+    () => releasePlatformAuth.secureReleaseUrl('http://auth.example.com', ['https:']),
+    error => error.code === 'PLATFORM_AUTH_HTTPS_REQUIRED'
+  );
 });
 
 test('Facebook Page authorization still requires messaging and metadata permissions', () => {

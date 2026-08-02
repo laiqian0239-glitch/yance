@@ -1,0 +1,1606 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_FIX6E_BACKEND_PER_FILE_VERIFICATION",
+  "generatedAtUtc": "2026-07-31T14:44:41Z",
+  "filesTotal": 199,
+  "filesPassed": 199,
+  "filesFailed": 0,
+  "filesMissing": 0,
+  "testsPassed": 1169,
+  "testsFailed": 0,
+  "testsCancelled": 0,
+  "results": [
+    {
+      "file": "backend/tests/accountLifecycleCommands.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/accountLifecycleCommands.test.tap"
+    },
+    {
+      "file": "backend/tests/accountLifecycleRegression.test.js",
+      "status": "passed",
+      "testsPassed": 15,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/accountLifecycleRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/accountRepositoryConcurrency.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/accountRepositoryConcurrency.test.tap"
+    },
+    {
+      "file": "backend/tests/aiBrainBenchmarkRuntimeClosure.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/aiBrainBenchmarkRuntimeClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/aiBrainManualRouteClosure.test.js",
+      "status": "passed",
+      "testsPassed": 10,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/aiBrainManualRouteClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/aiBrainModelAuthorityClosure.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/aiBrainModelAuthorityClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/aiBrainModelLifecycleClosure.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/aiBrainModelLifecycleClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/aiBrainRouteActivationAuthorityClosure.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/aiBrainRouteActivationAuthorityClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/aiBudgetAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/aiBudgetAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/aiGatewayQualityEnforcement.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/aiGatewayQualityEnforcement.test.tap"
+    },
+    {
+      "file": "backend/tests/aiModelGovernanceClosure.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/aiModelGovernanceClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/aiQualityRouteAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/aiQualityRouteAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/aiReplyBrainWhatsAppClosure.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/aiReplyBrainWhatsAppClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/aiTaskStageAuthorityClosure.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/aiTaskStageAuthorityClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/aiWorkbenchDialogAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/aiWorkbenchDialogAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/aiWorkloadPlacementAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/aiWorkloadPlacementAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/avatarSyncRegression.test.js",
+      "status": "passed",
+      "testsPassed": 25,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/avatarSyncRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/baileysProfilePictureTokenPatch.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/baileysProfilePictureTokenPatch.test.tap"
+    },
+    {
+      "file": "backend/tests/batch26PlatformAiLearningClosure.test.js",
+      "status": "passed",
+      "testsPassed": 19,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch26PlatformAiLearningClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/batch27DeveloperHandoffV2Closure.test.js",
+      "status": "passed",
+      "testsPassed": 13,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch27DeveloperHandoffV2Closure.test.tap"
+    },
+    {
+      "file": "backend/tests/batch27SystemRegressionClosure.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch27SystemRegressionClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/batch28IndependentReviewRootClosure.test.js",
+      "status": "passed",
+      "testsPassed": 16,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch28IndependentReviewRootClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/batch39AccountLaneClaim.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch39AccountLaneClaim.test.tap"
+    },
+    {
+      "file": "backend/tests/batch39AiPhysicalExecution.test.js",
+      "status": "passed",
+      "testsPassed": 8,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch39AiPhysicalExecution.test.tap"
+    },
+    {
+      "file": "backend/tests/batch39AiRecoveryScope.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch39AiRecoveryScope.test.tap"
+    },
+    {
+      "file": "backend/tests/batch39AiTranslationFence.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch39AiTranslationFence.test.tap"
+    },
+    {
+      "file": "backend/tests/batch39FacebookRelayFence.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch39FacebookRelayFence.test.tap"
+    },
+    {
+      "file": "backend/tests/batch39TelegramSessionFence.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch39TelegramSessionFence.test.tap"
+    },
+    {
+      "file": "backend/tests/batch39WhatsappSessionFence.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch39WhatsappSessionFence.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40AiLateResultFence.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40AiLateResultFence.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40AiTaskReplacement.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40AiTaskReplacement.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40ChannelAbortPropagation.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40ChannelAbortPropagation.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40CompactSchemaBackup.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40CompactSchemaBackup.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40ContactPagination.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40ContactPagination.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40ControlMatrix.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40ControlMatrix.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40HeartbeatRunner.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40HeartbeatRunner.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40JobQueuePersistence.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40JobQueuePersistence.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40LearningDeadlineLedger.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40LearningDeadlineLedger.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40MigrationSnapshotManifest.test.js",
+      "status": "passed",
+      "testsPassed": 13,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40MigrationSnapshotManifest.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40PresenceOrdering.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40PresenceOrdering.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40ProviderIsolation.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40ProviderIsolation.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40RendererLifecycle.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40RendererLifecycle.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40ReplyAbortPropagation.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40ReplyAbortPropagation.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40TestTempRoot.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40TestTempRoot.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40WindowsAcceptancePackage.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40WindowsAcceptancePackage.test.tap"
+    },
+    {
+      "file": "backend/tests/batch40WindowsSqliteOwnershipStartup.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/batch40WindowsSqliteOwnershipStartup.test.tap"
+    },
+    {
+      "file": "backend/tests/bilingualUnderstandingService.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/bilingualUnderstandingService.test.tap"
+    },
+    {
+      "file": "backend/tests/caller_migration.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/caller_migration.test.tap"
+    },
+    {
+      "file": "backend/tests/championBrainRegistryApi.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/championBrainRegistryApi.test.tap"
+    },
+    {
+      "file": "backend/tests/championBrainRoutingIntegration.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/championBrainRoutingIntegration.test.tap"
+    },
+    {
+      "file": "backend/tests/commercialModelBenchmarkService.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/commercialModelBenchmarkService.test.tap"
+    },
+    {
+      "file": "backend/tests/contactContextAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/contactContextAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/contactFactExtractionCommercialClosure.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/contactFactExtractionCommercialClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/contactIdentityConfirmation.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/contactIdentityConfirmation.test.tap"
+    },
+    {
+      "file": "backend/tests/contactLanguageAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/contactLanguageAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/contactMerge.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/contactMerge.test.tap"
+    },
+    {
+      "file": "backend/tests/conversationPinAndWebCompanionFix21.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/conversationPinAndWebCompanionFix21.test.tap"
+    },
+    {
+      "file": "backend/tests/conversationSendQueueCoalescing.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/conversationSendQueueCoalescing.test.tap"
+    },
+    {
+      "file": "backend/tests/coreCommandContractCoverage.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/coreCommandContractCoverage.test.tap"
+    },
+    {
+      "file": "backend/tests/customerProfileAssociationIsolation.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/customerProfileAssociationIsolation.test.tap"
+    },
+    {
+      "file": "backend/tests/datingFastReplyLearning.test.js",
+      "status": "passed",
+      "testsPassed": 13,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/datingFastReplyLearning.test.tap"
+    },
+    {
+      "file": "backend/tests/diagnosticsPrivacyRegression.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/diagnosticsPrivacyRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch1.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch1.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch10.test.js",
+      "status": "passed",
+      "testsPassed": 8,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch10.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch11.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch11.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch13.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch13.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch14.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch14.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch15.test.js",
+      "status": "passed",
+      "testsPassed": 11,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch15.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch16.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch16.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch17.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch17.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch18.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch18.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch2.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch2.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch21DesignSystemAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch21DesignSystemAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch21RootAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch21RootAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch22RootAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 10,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch22RootAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch23OutboundAtomicity.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch23OutboundAtomicity.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch24DomainProjectionRecovery.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch24DomainProjectionRecovery.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch24StateTransactionConsistency.test.js",
+      "status": "passed",
+      "testsPassed": 19,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch24StateTransactionConsistency.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch25IndependentBlockers.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch25IndependentBlockers.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch2Behavior.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch2Behavior.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch3.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch3.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch3Behavior.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch3Behavior.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch4.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch4.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch5.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch5.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch6.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch6.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch7.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch7.test.tap"
+    },
+    {
+      "file": "backend/tests/f25WindowsUatRepairBatch9.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch9.test.tap"
+    },
+    {
+      "file": "backend/tests/facebookAccountProjectionRegression.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/facebookAccountProjectionRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/facebookAvatarClosureDiagnostic.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/facebookAvatarClosureDiagnostic.test.tap"
+    },
+    {
+      "file": "backend/tests/facebookAvatarImportLayoutPresenceFix20.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/facebookAvatarImportLayoutPresenceFix20.test.tap"
+    },
+    {
+      "file": "backend/tests/facebookBusinessSuiteAvatarImport.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/facebookBusinessSuiteAvatarImport.test.tap"
+    },
+    {
+      "file": "backend/tests/facebookBusinessSuiteReconciliationRegression.test.js",
+      "status": "passed",
+      "testsPassed": 12,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/facebookBusinessSuiteReconciliationRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/facebookFormalWorkerIntegrationRegression.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/facebookFormalWorkerIntegrationRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/facebookOAuthLifecycleRegression.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/facebookOAuthLifecycleRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/facebookPageDiscoveryDeployToolRegression.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/facebookPageDiscoveryDeployToolRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/facebookProductionReadinessRegression.test.js",
+      "status": "passed",
+      "testsPassed": 28,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/facebookProductionReadinessRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/facebookWorkerDeploymentGuardFix17.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/facebookWorkerDeploymentGuardFix17.test.tap"
+    },
+    {
+      "file": "backend/tests/finalMultiPlatformAccountIsolation.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/finalMultiPlatformAccountIsolation.test.tap"
+    },
+    {
+      "file": "backend/tests/fullPlatformAvatarTranslationFix13.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/fullPlatformAvatarTranslationFix13.test.tap"
+    },
+    {
+      "file": "backend/tests/fullPlatformContactAiClosureFix11.test.js",
+      "status": "passed",
+      "testsPassed": 18,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/fullPlatformContactAiClosureFix11.test.tap"
+    },
+    {
+      "file": "backend/tests/fullPlatformFacebookWindowsClosureFix12.test.js",
+      "status": "passed",
+      "testsPassed": 9,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/fullPlatformFacebookWindowsClosureFix12.test.tap"
+    },
+    {
+      "file": "backend/tests/fullPlatformFunctionAuditFix10Regression.test.js",
+      "status": "passed",
+      "testsPassed": 9,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/fullPlatformFunctionAuditFix10Regression.test.tap"
+    },
+    {
+      "file": "backend/tests/fullPlatformFunctionAuditFix14.test.js",
+      "status": "passed",
+      "testsPassed": 8,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/fullPlatformFunctionAuditFix14.test.tap"
+    },
+    {
+      "file": "backend/tests/fullPlatformFunctionAuditFix22.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/fullPlatformFunctionAuditFix22.test.tap"
+    },
+    {
+      "file": "backend/tests/fullPlatformFunctionAuditFix8Regression.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/fullPlatformFunctionAuditFix8Regression.test.tap"
+    },
+    {
+      "file": "backend/tests/fullPlatformFunctionAuditFix9Regression.test.js",
+      "status": "passed",
+      "testsPassed": 8,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/fullPlatformFunctionAuditFix9Regression.test.tap"
+    },
+    {
+      "file": "backend/tests/fullProductInventoryGenerator.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/fullProductInventoryGenerator.test.tap"
+    },
+    {
+      "file": "backend/tests/globalToolsClosure.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/globalToolsClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/globalWiringAudit.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/globalWiringAudit.test.tap"
+    },
+    {
+      "file": "backend/tests/memoryEvidenceGovernanceService.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/memoryEvidenceGovernanceService.test.tap"
+    },
+    {
+      "file": "backend/tests/messageIdentityEvidenceOrdering.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/messageIdentityEvidenceOrdering.test.tap"
+    },
+    {
+      "file": "backend/tests/messageTranslationJobs.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/messageTranslationJobs.test.tap"
+    },
+    {
+      "file": "backend/tests/messageTranslationService.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/messageTranslationService.test.tap"
+    },
+    {
+      "file": "backend/tests/modelRegistryTransactionSerialization.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/modelRegistryTransactionSerialization.test.tap"
+    },
+    {
+      "file": "backend/tests/openRouterAutoConfigurationService.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/openRouterAutoConfigurationService.test.tap"
+    },
+    {
+      "file": "backend/tests/p0bIntegration.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/p0bIntegration.test.tap"
+    },
+    {
+      "file": "backend/tests/pendingProfileIsolation.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/pendingProfileIsolation.test.tap"
+    },
+    {
+      "file": "backend/tests/personaOwnerBaselineBootstrap.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/personaOwnerBaselineBootstrap.test.tap"
+    },
+    {
+      "file": "backend/tests/phase1GovernanceExperience.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/phase1GovernanceExperience.test.tap"
+    },
+    {
+      "file": "backend/tests/phase1LanguageAndLearning.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/phase1LanguageAndLearning.test.tap"
+    },
+    {
+      "file": "backend/tests/phase2AiBilingualQuality.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/phase2AiBilingualQuality.test.tap"
+    },
+    {
+      "file": "backend/tests/phase2AutomaticBackendOwnerRecovery.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/phase2AutomaticBackendOwnerRecovery.test.tap"
+    },
+    {
+      "file": "backend/tests/phase2Batch3BilingualAndStyleVariation.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/phase2Batch3BilingualAndStyleVariation.test.tap"
+    },
+    {
+      "file": "backend/tests/phase2Batch3CapabilityAndSendState.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/phase2Batch3CapabilityAndSendState.test.tap"
+    },
+    {
+      "file": "backend/tests/phase2Batch3ThemeComputedAudit.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/phase2Batch3ThemeComputedAudit.test.tap"
+    },
+    {
+      "file": "backend/tests/phase2Batch4Recovery.test.js",
+      "status": "passed",
+      "testsPassed": 40,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/phase2Batch4Recovery.test.tap"
+    },
+    {
+      "file": "backend/tests/phase2InteractionCompleteness.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/phase2InteractionCompleteness.test.tap"
+    },
+    {
+      "file": "backend/tests/phase2TelegramNativeExpressions.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/phase2TelegramNativeExpressions.test.tap"
+    },
+    {
+      "file": "backend/tests/phase2ThemeSemanticContract.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/phase2ThemeSemanticContract.test.tap"
+    },
+    {
+      "file": "backend/tests/platformAcceptedLocalPendingRepair.test.js",
+      "status": "passed",
+      "testsPassed": 23,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/platformAcceptedLocalPendingRepair.test.tap"
+    },
+    {
+      "file": "backend/tests/platformAiResilienceUnifiedClosure.test.js",
+      "status": "passed",
+      "testsPassed": 14,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/platformAiResilienceUnifiedClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/platformAuthConfigRegression.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/platformAuthConfigRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/platformAuthSealToolRegression.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/platformAuthSealToolRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/platformCapabilityAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/platformCapabilityAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/platformProductionReadinessAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/platformProductionReadinessAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/platformRepairFollowupRegression.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/platformRepairFollowupRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/recoveryStateCoalescing.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/recoveryStateCoalescing.test.tap"
+    },
+    {
+      "file": "backend/tests/relationshipKeyNode.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/relationshipKeyNode.test.tap"
+    },
+    {
+      "file": "backend/tests/replyBrainBenchmarkClosure.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/replyBrainBenchmarkClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/replyChampionAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/replyChampionAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/replyFeedbackClosedLoop.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/replyFeedbackClosedLoop.test.tap"
+    },
+    {
+      "file": "backend/tests/replyFeedbackLearning.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/replyFeedbackLearning.test.tap"
+    },
+    {
+      "file": "backend/tests/replyFeedbackVersioning.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/replyFeedbackVersioning.test.tap"
+    },
+    {
+      "file": "backend/tests/replyLanguageAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/replyLanguageAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/replyLearningScopeAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/replyLearningScopeAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/replyLearningSummaryService.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/replyLearningSummaryService.test.tap"
+    },
+    {
+      "file": "backend/tests/replyLearningUat053060Closure.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/replyLearningUat053060Closure.test.tap"
+    },
+    {
+      "file": "backend/tests/round12AdapterPorts.test.js",
+      "status": "passed",
+      "testsPassed": 8,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round12AdapterPorts.test.tap"
+    },
+    {
+      "file": "backend/tests/round12ArchitectureStatus.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round12ArchitectureStatus.test.tap"
+    },
+    {
+      "file": "backend/tests/round12PlatformCoreAuthorities.test.js",
+      "status": "passed",
+      "testsPassed": 8,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round12PlatformCoreAuthorities.test.tap"
+    },
+    {
+      "file": "backend/tests/round12PlatformCoreMigration.test.js",
+      "status": "passed",
+      "testsPassed": 15,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round12PlatformCoreMigration.test.tap"
+    },
+    {
+      "file": "backend/tests/round12Round13FinalGovernanceClosure.test.js",
+      "status": "passed",
+      "testsPassed": 8,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round12Round13FinalGovernanceClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/round12Round13FinalSevenClosure.test.js",
+      "status": "passed",
+      "testsPassed": 15,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round12Round13FinalSevenClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/round12Round13ProductGovernanceClosure.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round12Round13ProductGovernanceClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/round12Round13RemainingClosure.test.js",
+      "status": "passed",
+      "testsPassed": 8,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round12Round13RemainingClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/round12Round13ThirdSelfCheck.test.js",
+      "status": "passed",
+      "testsPassed": 24,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round12Round13ThirdSelfCheck.test.tap"
+    },
+    {
+      "file": "backend/tests/round13AIQualityArchitecture.test.js",
+      "status": "passed",
+      "testsPassed": 9,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round13AIQualityArchitecture.test.tap"
+    },
+    {
+      "file": "backend/tests/round7InboundIntelligenceP0.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round7InboundIntelligenceP0.test.tap"
+    },
+    {
+      "file": "backend/tests/round7ModelRoutingP0.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round7ModelRoutingP0.test.tap"
+    },
+    {
+      "file": "backend/tests/round7ProductWiringP0.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round7ProductWiringP0.test.tap"
+    },
+    {
+      "file": "backend/tests/round8CommercialDialogAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round8CommercialDialogAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/round8ProductAreaNavigation.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round8ProductAreaNavigation.test.tap"
+    },
+    {
+      "file": "backend/tests/round9AiTaskAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/round9AiTaskAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/runtimeArtifactBootstrapService.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/runtimeArtifactBootstrapService.test.tap"
+    },
+    {
+      "file": "backend/tests/runtimeArtifactRegistryService.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/runtimeArtifactRegistryService.test.tap"
+    },
+    {
+      "file": "backend/tests/savedSuggestion.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/savedSuggestion.test.tap"
+    },
+    {
+      "file": "backend/tests/sendMessageService.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/sendMessageService.test.tap"
+    },
+    {
+      "file": "backend/tests/socialChineseUnderstandingService.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/socialChineseUnderstandingService.test.tap"
+    },
+    {
+      "file": "backend/tests/socialLearningWindow.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/socialLearningWindow.test.tap"
+    },
+    {
+      "file": "backend/tests/sourceUatRealWindowsEvidenceRegression.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/sourceUatRealWindowsEvidenceRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/sourceUatRound2IdentityRegression.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/sourceUatRound2IdentityRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/sourceUatRound3FunctionalRegression.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/sourceUatRound3FunctionalRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/sourceUatRound3IdentityRegression.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/sourceUatRound3IdentityRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/sourceUatRound4StructuralRegression.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/sourceUatRound4StructuralRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/sourceUatRound5ConversationIdentityRegression.test.js",
+      "status": "passed",
+      "testsPassed": 9,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/sourceUatRound5ConversationIdentityRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/sourceUatRound6SocialContextRuntime.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/sourceUatRound6SocialContextRuntime.test.tap"
+    },
+    {
+      "file": "backend/tests/sourceUatRound8ModelRoutingAuthority.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/sourceUatRound8ModelRoutingAuthority.test.tap"
+    },
+    {
+      "file": "backend/tests/systemAuditRound1CoreChain.test.js",
+      "status": "passed",
+      "testsPassed": 8,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/systemAuditRound1CoreChain.test.tap"
+    },
+    {
+      "file": "backend/tests/systemAuditRound2DirectorProduction.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/systemAuditRound2DirectorProduction.test.tap"
+    },
+    {
+      "file": "backend/tests/systemAuditRound2ModelTruth.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/systemAuditRound2ModelTruth.test.tap"
+    },
+    {
+      "file": "backend/tests/systemAuditRound2TranslationSend.test.js",
+      "status": "passed",
+      "testsPassed": 10,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/systemAuditRound2TranslationSend.test.tap"
+    },
+    {
+      "file": "backend/tests/systemAuditRound3LearningRecovery.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/systemAuditRound3LearningRecovery.test.tap"
+    },
+    {
+      "file": "backend/tests/systemAuditRound4RejectedLearningRecovery.test.js",
+      "status": "passed",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/systemAuditRound4RejectedLearningRecovery.test.tap"
+    },
+    {
+      "file": "backend/tests/systemAuditRound5ContactMergeLearningMigration.test.js",
+      "status": "passed",
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/systemAuditRound5ContactMergeLearningMigration.test.tap"
+    },
+    {
+      "file": "backend/tests/telegramHistorySyncRegression.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/telegramHistorySyncRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/whatsappCanonicalGuardRegression.test.js",
+      "status": "passed",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/whatsappCanonicalGuardRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/whatsappCanonicalUiReferenceClosure.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/whatsappCanonicalUiReferenceClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/whatsappConversationCapabilityClosure.test.js",
+      "status": "passed",
+      "testsPassed": 8,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/whatsappConversationCapabilityClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/whatsappHumanTypingPolicy.test.js",
+      "status": "passed",
+      "testsPassed": 8,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/whatsappHumanTypingPolicy.test.tap"
+    },
+    {
+      "file": "backend/tests/whatsappMediaRecoveryClosure.test.js",
+      "status": "passed",
+      "testsPassed": 13,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/whatsappMediaRecoveryClosure.test.tap"
+    },
+    {
+      "file": "backend/tests/whatsappMobileVoiceIngestStability.test.js",
+      "status": "passed",
+      "testsPassed": 7,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/whatsappMobileVoiceIngestStability.test.tap"
+    },
+    {
+      "file": "backend/tests/whatsappOrphanAccountReconciliation.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/whatsappOrphanAccountReconciliation.test.tap"
+    },
+    {
+      "file": "backend/tests/whatsappQrChallenge.test.js",
+      "status": "passed",
+      "testsPassed": 8,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/whatsappQrChallenge.test.tap"
+    },
+    {
+      "file": "backend/tests/whatsappReceiptRecoveryRegression.test.js",
+      "status": "passed",
+      "testsPassed": 3,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/whatsappReceiptRecoveryRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/whatsappVoiceTranscriptionScrollCleanup.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/whatsappVoiceTranscriptionScrollCleanup.test.tap"
+    },
+    {
+      "file": "backend/tests/windowsClosureCurrentRegression.test.js",
+      "status": "passed",
+      "testsPassed": 22,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/windowsClosureCurrentRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/windowsLocalApiRequestStormRegression.test.js",
+      "status": "passed",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/windowsLocalApiRequestStormRegression.test.tap"
+    },
+    {
+      "file": "backend/tests/windowsSourceUatRound1Regression.test.js",
+      "status": "passed",
+      "testsPassed": 11,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/windowsSourceUatRound1Regression.test.tap"
+    },
+    {
+      "file": "backend/tests/windowsUpgradePackageRegression.test.js",
+      "status": "passed",
+      "testsPassed": 4,
+      "testsFailed": 0,
+      "testsCancelled": 0,
+      "log": "artifacts/fix6e-backend-per-file/windowsUpgradePackageRegression.test.tap"
+    }
+  ]
+}

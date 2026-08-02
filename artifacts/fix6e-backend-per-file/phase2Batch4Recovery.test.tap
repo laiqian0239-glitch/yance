@@ -1,0 +1,250 @@
+TAP version 13
+# Subtest: 1 mergeLocalized preserves authoritative fields when no overlay exists
+ok 1 - 1 mergeLocalized preserves authoritative fields when no overlay exists
+  ---
+  duration_ms: 3.133605
+  type: 'test'
+  ...
+# Subtest: 2 mergeLocalized overlays Chinese presentation without deleting original siblings
+ok 2 - 2 mergeLocalized overlays Chinese presentation without deleting original siblings
+  ---
+  duration_ms: 0.17339
+  type: 'test'
+  ...
+# Subtest: 3 chineseFirst reads the dedicated Chinese presentation layer
+ok 3 - 3 chineseFirst reads the dedicated Chinese presentation layer
+  ---
+  duration_ms: 0.228666
+  type: 'test'
+  ...
+# Subtest: 4 localizedScalar exposes foreign original and Chinese primary
+ok 4 - 4 localizedScalar exposes foreign original and Chinese primary
+  ---
+  duration_ms: 0.170819
+  type: 'test'
+  ...
+# Subtest: 5 localizedScalar marks missing Chinese as pending instead of fabricating
+ok 5 - 5 localizedScalar marks missing Chinese as pending instead of fabricating
+  ---
+  duration_ms: 0.363475
+  type: 'test'
+  ...
+# Subtest: 6 localizedScalar accepts authoritative Chinese source without a duplicate translation
+ok 6 - 6 localizedScalar accepts authoritative Chinese source without a duplicate translation
+  ---
+  duration_ms: 0.286458
+  type: 'test'
+  ...
+# Subtest: 7 localizedPair keeps the original field address
+ok 7 - 7 localizedPair keeps the original field address
+  ---
+  duration_ms: 0.434966
+  type: 'test'
+  ...
+# Subtest: 8 containsChinese identifies Chinese presentation text
+ok 8 - 8 containsChinese identifies Chinese presentation text
+  ---
+  duration_ms: 0.114166
+  type: 'test'
+  ...
+# Subtest: 9 presentation schema is version 3
+ok 9 - 9 presentation schema is version 3
+  ---
+  duration_ms: 3.367075
+  type: 'test'
+  ...
+# Subtest: 10 confirmed facts display Chinese and retain foreign original
+ok 10 - 10 confirmed facts display Chinese and retain foreign original
+  ---
+  duration_ms: 0.91205
+  type: 'test'
+  ...
+# Subtest: 11 inferences remain explicitly separate from facts
+ok 11 - 11 inferences remain explicitly separate from facts
+  ---
+  duration_ms: 1.100352
+  type: 'test'
+  ...
+# Subtest: 12 commitments receive bilingual presentation
+ok 12 - 12 commitments receive bilingual presentation
+  ---
+  duration_ms: 0.409146
+  type: 'test'
+  ...
+# Subtest: 13 boundaries receive bilingual presentation
+ok 13 - 13 boundaries receive bilingual presentation
+  ---
+  duration_ms: 0.378728
+  type: 'test'
+  ...
+# Subtest: 14 milestones retain timestamp and original description
+ok 14 - 14 milestones retain timestamp and original description
+  ---
+  duration_ms: 0.342406
+  type: 'test'
+  ...
+# Subtest: 15 recommendations show Chinese next action while preserving source
+ok 15 - 15 recommendations show Chinese next action while preserving source
+  ---
+  duration_ms: 0.769421
+  type: 'test'
+  ...
+# Subtest: 16 relationship summary is Chinese-first
+ok 16 - 16 relationship summary is Chinese-first
+  ---
+  duration_ms: 0.34397
+  type: 'test'
+  ...
+# Subtest: 17 relationship stage preserves foreign source
+ok 17 - 17 relationship stage preserves foreign source
+  ---
+  duration_ms: 0.645119
+  type: 'test'
+  ...
+# Subtest: 18 evidence preserves the original quote
+ok 18 - 18 evidence preserves the original quote
+  ---
+  duration_ms: 0.800658
+  type: 'test'
+  ...
+# Subtest: 19 topic presentation retains source title and Chinese title
+ok 19 - 19 topic presentation retains source title and Chinese title
+  ---
+  duration_ms: 0.408775
+  type: 'test'
+  ...
+# Subtest: 20 foreign-only fields are visibly pending
+ok 20 - 20 foreign-only fields are visibly pending
+  ---
+  duration_ms: 0.343256
+  type: 'test'
+  ...
+# Subtest: 21 Telegram expression reference is opaque
+ok 21 - 21 Telegram expression reference is opaque
+  ---
+  duration_ms: 0.660934
+  type: 'test'
+  ...
+# Subtest: 22 reference resolves for its owning account
+ok 22 - 22 reference resolves for its owning account
+  ---
+  duration_ms: 0.20769
+  type: 'test'
+  ...
+# Subtest: 23 reference blocks cross-account use
+ok 23 - 23 reference blocks cross-account use
+  ---
+  duration_ms: 0.495131
+  type: 'test'
+  ...
+# Subtest: 24 reference blocks kind mismatch
+ok 24 - 24 reference blocks kind mismatch
+  ---
+  duration_ms: 0.376411
+  type: 'test'
+  ...
+# Subtest: 25 expired or unknown reference returns refresh guidance
+ok 25 - 25 expired or unknown reference returns refresh guidance
+  ---
+  duration_ms: 0.172525
+  type: 'test'
+  ...
+# Subtest: 26 revoke removes a reference
+ok 26 - 26 revoke removes a reference
+  ---
+  duration_ms: 0.178786
+  type: 'test'
+  ...
+# Subtest: 27 clearAccount removes only the selected account references
+ok 27 - 27 clearAccount removes only the selected account references
+  ---
+  duration_ms: 0.280216
+  type: 'test'
+  ...
+# Subtest: 28 reference metadata is kept server-side
+ok 28 - 28 reference metadata is kept server-side
+  ---
+  duration_ms: 0.160413
+  type: 'test'
+  ...
+# Subtest: 29 JSONC parser removes comments and trailing commas
+ok 29 - 29 JSONC parser removes comments and trailing commas
+  ---
+  duration_ms: 0.197638
+  type: 'test'
+  ...
+# Subtest: 30 publicVariables removes secret-shaped keys
+ok 30 - 30 publicVariables removes secret-shaped keys
+  ---
+  duration_ms: 0.342603
+  type: 'test'
+  ...
+# Subtest: 31 preflight validates fixed callback route
+ok 31 - 31 preflight validates fixed callback route
+  ---
+  duration_ms: 0.465203
+  type: 'test'
+  ...
+# Subtest: 32 preflight validates fixed webhook route
+ok 32 - 32 preflight validates fixed webhook route
+  ---
+  duration_ms: 0.147053
+  type: 'test'
+  ...
+# Subtest: 33 placeholder D1 ID keeps preflight incomplete
+ok 33 - 33 placeholder D1 ID keeps preflight incomplete
+  ---
+  duration_ms: 0.744216
+  type: 'test'
+  ...
+# Subtest: 34 Wrangler-resolved D1 ID completes the public preflight
+ok 34 - 34 Wrangler-resolved D1 ID completes the public preflight
+  ---
+  duration_ms: 0.192453
+  type: 'test'
+  ...
+# Subtest: 35 resolveD1Id accepts Wrangler uuid output
+ok 35 - 35 resolveD1Id accepts Wrangler uuid output
+  ---
+  duration_ms: 0.183019
+  type: 'test'
+  ...
+# Subtest: 36 preflight explicitly does not claim history permission
+ok 36 - 36 preflight explicitly does not claim history permission
+  ---
+  duration_ms: 0.247127
+  type: 'test'
+  ...
+# Subtest: 37 profile and timeline UI expose Chinese-first and original presentation
+ok 37 - 37 profile and timeline UI expose Chinese-first and original presentation
+  ---
+  duration_ms: 1.516862
+  type: 'test'
+  ...
+# Subtest: 38 Persona UI is readable before advanced JSON editing
+ok 38 - 38 Persona UI is readable before advanced JSON editing
+  ---
+  duration_ms: 0.395504
+  type: 'test'
+  ...
+# Subtest: 39 Telegram native picker uses opaque send endpoint and preserves sticker composer text
+ok 39 - 39 Telegram native picker uses opaque send endpoint and preserves sticker composer text
+  ---
+  duration_ms: 0.703918
+  type: 'test'
+  ...
+# Subtest: 40 TGS preview is explicitly a format icon while native send stays enabled
+ok 40 - 40 TGS preview is explicitly a format icon while native send stays enabled
+  ---
+  duration_ms: 0.855637
+  type: 'test'
+  ...
+1..40
+# tests 40
+# suites 0
+# pass 40
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 88.143702

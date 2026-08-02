@@ -240,3 +240,63 @@ test('Facebook OAuth UI stops cancelled flows and reports Page discovery evidenc
   assert.match(source, /data-panel-action="facebook-sync-now"/u);
   assert.match(source, /立即执行会话对账/u);
 });
+
+test('official Facebook personal identity login completes without Page selection and never grants Messenger capability', async t => {
+  const account = {
+    ...fakeAccount(),
+    id: 'facebook-personal-identity-account',
+    credentialRef: 'facebook-personal-identity-credential',
+    metadata: { accountKind: 'personal-identity', driverId: 'facebook-personal-identity-official', authorizationPending: true }
+  };
+  let vault = { pageId: 'old-page', cloudAccountId: 'old-cloud', workerBaseUrl: 'https://old-worker.example', devicePrivateKeyPkcs8: 'old-private', authorizationMode: 'cloudflare-worker' };
+  let updated = null;
+  patch(t, accountStore, 'get', () => ({ ...account, ...(updated || {}) }));
+  patch(t, accountStore, 'update', async (_id, value) => { updated = value; return { ...account, ...value }; });
+  patch(t, platformAuthConfig, 'facebook', () => ({ configured: true, workerBaseUrl: 'https://yance-facebook.example.workers.dev', graphVersion: 'v25.0' }));
+  patch(t, platformAuthConfig, 'randomSecret', bytes => `secret-${bytes}-${'x'.repeat(bytes)}`);
+  patch(t, platformAuthConfig, 'sha256Base64Url', () => 'p'.repeat(43));
+  patch(t, relayClient, 'generateDeviceIdentity', () => ({ deviceId: 'fbdev-identity', publicKeySpki: 'identity-public-key', privateKeyPkcs8: 'identity-private-key' }));
+  patch(t, securityGuard, 'readCredential', () => vault);
+  patch(t, securityGuard, 'persistCredential', async (_ref, value) => { vault = value; return true; });
+  patch(t, global, 'fetch', async url => {
+    const target = String(url);
+    if (target.endsWith('/healthz')) return response(200, {
+      ok: true, service: 'yance-facebook-gateway', graphVersion: 'v25.0',
+      oauthContract: {
+        version: 6, supportedModes: ['page','identity'],
+        personalIdentity: { messagingSupported: false, tokenReturnedToDesktop: false },
+        authorizationMode: 'business-login-configuration', legacyScopeParameter: false,
+        callbackUrl: 'https://yance-facebook.example.workers.dev/oauth/facebook/callback',
+        requiredPermissions: ['pages_show_list','pages_messaging','pages_manage_metadata'],
+        optionalPermissions: ['pages_read_engagement'],
+        pageDiscovery: {
+          primary: '/me/accounts', tokenRecovery: ['/{debug_token.user_id}/accounts','/{granular_target_id}?fields=access_token'],
+          selectionEvidence: 'debug_token.granular_scopes.target_ids', directPageProfileProbe: true,
+          directPageTokenRecovery: true, directPageTokenFields: ['id,access_token','access_token'],
+          profileHydration: 'page-access-token', diagnosticsPersistedWithoutTokens: true
+        }
+      }
+    });
+    return response(200, {
+      ok: true, mode: 'identity', status: 'authorized', pages: [],
+      identity: { userId: 'user-identity-1', displayName: 'Identity User', avatarUrl: 'https://example.test/identity.png', messagingSupported: false }
+    });
+  });
+  t.after(() => facebookOAuthService._flows.clear());
+
+  const started = await facebookOAuthService.begin(account.id);
+  assert.equal(started.mode, 'identity');
+  assert.equal(new URL(started.authorizationUrl).searchParams.get('mode'), 'identity');
+  const completed = await facebookOAuthService.poll(account.id, started.flowId);
+  assert.equal(completed.status, 'completed');
+  assert.equal(completed.mode, 'identity');
+  assert.equal(completed.identity.messagingSupported, false);
+  assert.equal(vault.userId, 'user-identity-1');
+  assert.match(vault.identityReceipt, /^[a-f0-9]{64}$/u);
+  assert.equal(vault.messagingSupported, false);
+  assert.equal(Object.hasOwn(vault, 'accessToken'), false);
+  for (const forbidden of ['pageId','cloudAccountId','workerBaseUrl','devicePrivateKeyPkcs8']) assert.equal(Object.hasOwn(vault, forbidden), false, forbidden);
+  assert.equal(updated.metadata.accountKind, 'personal-identity');
+  assert.equal(updated.metadata.driverId, 'facebook-personal-identity-official');
+  assert.equal(updated.metadata.messagingSupported, false);
+});

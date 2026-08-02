@@ -1,0 +1,34 @@
+TAP version 13
+# Subtest: Batch13 source UAT data clone preserves credentials and leaves source untouched
+ok 1 - Batch13 source UAT data clone preserves credentials and leaves source untouched
+  ---
+  duration_ms: 9.050982
+  type: 'test'
+  ...
+# Subtest: Batch13 clone-only safe-mode reset requires explicit flags and exact marker target
+ok 2 - Batch13 clone-only safe-mode reset requires explicit flags and exact marker target
+  ---
+  duration_ms: 1.356673
+  type: 'test'
+  ...
+# Subtest: Batch13 data clone rejects nested targets and symbolic links
+ok 3 - Batch13 data clone rejects nested targets and symbolic links
+  ---
+  duration_ms: 0.654232
+  type: 'test'
+  ...
+# Subtest: Batch13 screenshot defects are wired to production UI behavior
+ok 4 - Batch13 screenshot defects are wired to production UI behavior
+  ---
+  duration_ms: 1.198005
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 55.767101

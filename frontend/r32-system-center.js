@@ -781,8 +781,13 @@ async function updatePolicy(patch) {
   return state.overview.policy;
 }
 async function updateOperatingMode(nextSafe, reason = '') {
-  if (!window.yanceDesktop?.setOperatingMode) throw new Error('安全模式修改需要Windows桌面API v2控制面');
-  await window.yanceDesktop.setOperatingMode(nextSafe ? 'safeMode' : 'normal', reason || (nextSafe ? 'system-center-enter-safe-mode' : 'system-center-exit-safe-mode'));
+  if (nextSafe) {
+    if (!window.YanceCore?.recovery?.enterSafeMode) throw new Error('安全模式修改需要Windows桌面API v2控制面');
+    await window.YanceCore.recovery.enterSafeMode({ reason: reason || 'system-center-enter-safe-mode' });
+  } else {
+    if (!window.YanceCore?.recovery?.clearSafeMode) throw new Error('恢复权威尚未就绪');
+    await window.YanceCore.recovery.clearSafeMode({ confirmation: 'EXIT_SAFE_MODE', reason: reason || 'system-center-exit-safe-mode' });
+  }
   return refresh(true);
 }
 

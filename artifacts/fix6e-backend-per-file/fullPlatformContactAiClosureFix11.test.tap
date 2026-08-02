@@ -1,0 +1,120 @@
+TAP version 13
+# (node:19014) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: avatar and identity persistence events refresh the live contact UI
+ok 1 - avatar and identity persistence events refresh the live contact UI
+  ---
+  duration_ms: 2.77958
+  type: 'test'
+  ...
+# Subtest: avatar freshness and terminal presence fields participate in the live UI fingerprint
+ok 2 - avatar freshness and terminal presence fields participate in the live UI fingerprint
+  ---
+  duration_ms: 0.475018
+  type: 'test'
+  ...
+# Subtest: terminal presence updates the matching contact without changing other contacts
+ok 3 - terminal presence updates the matching contact without changing other contacts
+  ---
+  duration_ms: 0.363389
+  type: 'test'
+  ...
+# Subtest: terminal presence ignores an older reconnect event after a newer state is rendered
+ok 4 - terminal presence ignores an older reconnect event after a newer state is rendered
+  ---
+  duration_ms: 0.177412
+  type: 'test'
+  ...
+# Subtest: WhatsApp numeric last-seen values are normalized before persistence and UI display
+ok 5 - WhatsApp numeric last-seen values are normalized before persistence and UI display
+  ---
+  duration_ms: 0.73648
+  type: 'test'
+  ...
+# Subtest: Telegram raw user status events become terminal online and offline presence
+ok 6 - Telegram raw user status events become terminal online and offline presence
+  ---
+  duration_ms: 0.737928
+  type: 'test'
+  ...
+# Subtest: group participant presence never creates contact online notifications
+ok 7 - group participant presence never creates contact online notifications
+  ---
+  duration_ms: 0.676042
+  type: 'test'
+  ...
+# Subtest: platform capability contracts disclose terminal presence support honestly
+ok 8 - platform capability contracts disclose terminal presence support honestly
+  ---
+  duration_ms: 1.079836
+  type: 'test'
+  ...
+# Subtest: Facebook capability remains unsupported internally without showing a fake presence row to customers
+ok 9 - Facebook capability remains unsupported internally without showing a fake presence row to customers
+  ---
+  duration_ms: 1.470873
+  type: 'test'
+  ...
+# Subtest: reply-learning events invalidate only the affected contact conversation cache
+ok 10 - reply-learning events invalidate only the affected contact conversation cache
+  ---
+  duration_ms: 1.871384
+  type: 'test'
+  ...
+# Subtest: reply generation waits for pending learning and preserves layered learning after quiet-window refresh
+ok 11 - reply generation waits for pending learning and preserves layered learning after quiet-window refresh
+  ---
+  duration_ms: 8.344205
+  type: 'test'
+  ...
+# Subtest: presence events carry contact identity and avatar into notifications
+ok 12 - presence events carry contact identity and avatar into notifications
+  ---
+  duration_ms: 1.424135
+  type: 'test'
+  ...
+# Subtest: contact fallback names never present Telegram or Facebook ids as WhatsApp phone numbers
+ok 13 - contact fallback names never present Telegram or Facebook ids as WhatsApp phone numbers
+  ---
+  duration_ms: 8.447094
+  type: 'test'
+  ...
+# Subtest: AI reply brain uses the active platform instead of calling every reply WhatsApp
+ok 14 - AI reply brain uses the active platform instead of calling every reply WhatsApp
+  ---
+  duration_ms: 2.596459
+  type: 'test'
+  ...
+# Subtest: reply-brain qualification performs real generation coverage across all three platforms
+ok 15 - reply-brain qualification performs real generation coverage across all three platforms
+  ---
+  duration_ms: 0.563451
+  type: 'test'
+  ...
+# Subtest: reply-brain context compression preserves contact language, boundaries and sensitive topics
+ok 16 - reply-brain context compression preserves contact language, boundaries and sensitive topics
+  ---
+  duration_ms: 0.328847
+  type: 'test'
+  ...
+# Subtest: candidate dedupe fingerprint changes when learned preferences change
+ok 17 - candidate dedupe fingerprint changes when learned preferences change
+  ---
+  duration_ms: 0.665486
+  type: 'test'
+  ...
+# Subtest: current product replaces obsolete Fix11 launcher with production-chain regression tests
+ok 18 - current product replaces obsolete Fix11 launcher with production-chain regression tests
+  ---
+  duration_ms: 0.244924
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 18
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 575.332212

@@ -1,0 +1,36 @@
+TAP version 13
+# (node:19652) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: platform and global learning require cross-contact evidence
+ok 1 - platform and global learning require cross-contact evidence
+  ---
+  duration_ms: 292.579924
+  type: 'test'
+  ...
+# Subtest: layered preferences use contact over platform over global and never share private examples
+ok 2 - layered preferences use contact over platform over global and never share private examples
+  ---
+  duration_ms: 248.688276
+  type: 'test'
+  ...
+# Subtest: learning governance can disable, enable, delete and restore scoped preferences
+ok 3 - learning governance can disable, enable, delete and restore scoped preferences
+  ---
+  duration_ms: 278.04834
+  type: 'test'
+  ...
+# Subtest: same platform different accounts never share platform learning
+ok 4 - same platform different accounts never share platform learning
+  ---
+  duration_ms: 328.330751
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1205.844363

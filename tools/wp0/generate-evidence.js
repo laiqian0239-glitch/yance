@@ -9,13 +9,11 @@ const {
   REPO_ROOT,
   readJson,
   sha256File,
-  currentCommit,
-  currentBranch,
   runAllChecks,
   scanRepositoryReleaseSurfaces,
   checkRepositoryScope,
   checkProtectedCommandPolicy,
-  verifyImmutableTag,
+  verifyRejectedBaselineAnchor,
   writeJson
 } = require('./lib');
 
@@ -140,7 +138,7 @@ const checks = runAllChecks({
 const fullScan = scanRepositoryReleaseSurfaces();
 const repositoryScope = checkRepositoryScope();
 const commandPolicy = checkProtectedCommandPolicy();
-const immutableTag = verifyImmutableTag();
+const baselineAnchor = verifyRejectedBaselineAnchor();
 const allPass = checks.every((item) => item.pass);
 const failed = checks.filter((item) => !item.pass);
 
@@ -189,7 +187,7 @@ writeJson(out('freeze-policy.json'), {
   reasonCode: checks[0].reasonCode,
   currentStage: policy.currentStage,
   rejectedBaseline: rejected,
-  immutableTag,
+  baselineAnchor,
   policySha256: sha256File(policyPath),
   rejectedBaselineSha256: sha256File(rejectedPath),
   r5BaselineLockSha256: sha256File(baselineLockPath),

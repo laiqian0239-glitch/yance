@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: protects reserved budget from paid background tasks
+ok 1 - protects reserved budget from paid background tasks
+  ---
+  duration_ms: 0.799836
+  type: 'test'
+  ...
+# Subtest: formal champion reply remains admitted inside the reserve
+ok 2 - formal champion reply remains admitted inside the reserve
+  ---
+  duration_ms: 0.121617
+  type: 'test'
+  ...
+# Subtest: local and free models never consume paid admission
+ok 3 - local and free models never consume paid admission
+  ---
+  duration_ms: 0.143161
+  type: 'test'
+  ...
+# Subtest: invalid budget state fails closed only for paid background work
+ok 4 - invalid budget state fails closed only for paid background work
+  ---
+  duration_ms: 0.101347
+  type: 'test'
+  ...
+# Subtest: outbound final translation may use the quality reserve while background translation may not
+ok 5 - outbound final translation may use the quality reserve while background translation may not
+  ---
+  duration_ms: 0.109971
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 52.425325

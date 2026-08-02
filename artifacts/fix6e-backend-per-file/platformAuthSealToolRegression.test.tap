@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: release seal tool writes a detached-hash-bound consumer platform configuration
+ok 1 - release seal tool writes a detached-hash-bound consumer platform configuration
+  ---
+  duration_ms: 2.263876
+  type: 'test'
+  ...
+# Subtest: release seal tool accepts Telegram-only provisioning and leaves Facebook disabled
+ok 2 - release seal tool accepts Telegram-only provisioning and leaves Facebook disabled
+  ---
+  duration_ms: 1.118618
+  type: 'test'
+  ...
+# Subtest: release seal tool rejects an empty release configuration
+ok 3 - release seal tool rejects an empty release configuration
+  ---
+  duration_ms: 0.855416
+  type: 'test'
+  ...
+# Subtest: sealed release file fails closed after mutation
+ok 4 - sealed release file fails closed after mutation
+  ---
+  duration_ms: 0.799282
+  type: 'test'
+  ...
+# Subtest: hash-correct but incomplete sealed release file is rejected before packaging or runtime use
+ok 5 - hash-correct but incomplete sealed release file is rejected before packaging or runtime use
+  ---
+  duration_ms: 0.464029
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 52.560251

@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: main workspace diagnostics export the exact current checks through the sanitized backend bundle
+ok 1 - main workspace diagnostics export the exact current checks through the sanitized backend bundle
+  ---
+  duration_ms: 1.503566
+  type: 'test'
+  ...
+# Subtest: search and archive remain real independent workspaces and persisted actions
+ok 2 - search and archive remain real independent workspaces and persisted actions
+  ---
+  duration_ms: 0.457395
+  type: 'test'
+  ...
+# Subtest: attachment-only send and media viewer operations are connected to real handlers
+ok 3 - attachment-only send and media viewer operations are connected to real handlers
+  ---
+  duration_ms: 0.315513
+  type: 'test'
+  ...
+# Subtest: notification settings expose multiple per-event sound choices with real preview
+ok 4 - notification settings expose multiple per-event sound choices with real preview
+  ---
+  duration_ms: 0.175795
+  type: 'test'
+  ...
+# Subtest: system center diagnostics export remains available as the full recovery path
+ok 5 - system center diagnostics export remains available as the full recovery path
+  ---
+  duration_ms: 0.171505
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 62.400217

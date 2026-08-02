@@ -1,0 +1,54 @@
+TAP version 13
+# (node:18218) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: production workspace CSS has exact real-child rows, compact route rails, and no full-height body overlap
+ok 1 - production workspace CSS has exact real-child rows, compact route rails, and no full-height body overlap
+  ---
+  duration_ms: 2.455497
+  type: 'test'
+  ...
+# Subtest: page scroll state is bound to the actual detail scroller and opens at the top
+ok 2 - page scroll state is bound to the actual detail scroller and opens at the top
+  ---
+  duration_ms: 2.26604
+  type: 'test'
+  ...
+# Subtest: Facebook page and historical account aliases resolve to one canonical account
+ok 3 - Facebook page and historical account aliases resolve to one canonical account
+  ---
+  duration_ms: 0.744547
+  type: 'test'
+  ...
+# Subtest: conversation sender uses the resolved canonical runtime account instead of a stale page alias
+ok 4 - conversation sender uses the resolved canonical runtime account instead of a stale page alias
+  ---
+  duration_ms: 2.465893
+  type: 'test'
+  ...
+# Subtest: WhatsApp selector chooses the matching registered session, not a whole recent root
+ok 5 - WhatsApp selector chooses the matching registered session, not a whole recent root
+  ---
+  duration_ms: 3.669069
+  type: 'test'
+  ...
+# Subtest: isolated UAT clone overlays only the selected WhatsApp account session
+ok 6 - isolated UAT clone overlays only the selected WhatsApp account session
+  ---
+  duration_ms: 9.247844
+  type: 'test'
+  ...
+# Subtest: OpenRouter shortlist is quality-first for final replies and keeps free models as utility fallback
+ok 7 - OpenRouter shortlist is quality-first for final replies and keeps free models as utility fallback
+  ---
+  duration_ms: 3.31675
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 88.485292

@@ -1,5 +1,6 @@
 'use strict';
 
+const providerDomainAuthority = require('./modelProviderFailureDomainAuthority');
 const taskRuntimePolicy = require('./modelTaskRuntimePolicy');
 
 const REPLY_TASKS = Object.freeze(['quick_reply', 'deep_reply', 'director']);
@@ -265,7 +266,9 @@ function recommendedReplyRoutes(models = [], existingRoutes = {}) {
     const candidates = taskCandidates(models, task, { fullOnly: true });
     const trialCandidates = taskCandidates(models, task).filter(row => !row.qualification.full);
     const main = candidates[0] || null;
-    const backup = candidates.find(row => row.model.id !== main?.model.id) || null;
+    const mainDomain = providerDomainAuthority.providerFailureDomain(main?.model || {});
+    const backup = candidates.find(row => row.model.id !== main?.model.id
+      && providerDomainAuthority.providerFailureDomain(row.model) !== mainDomain) || null;
     const hasPrevious = Boolean(existingRoutes && Object.prototype.hasOwnProperty.call(existingRoutes, task));
     const previous = routes[task] && typeof routes[task] === 'object' ? routes[task] : {};
     const requestedEnabled = hasPrevious
@@ -321,12 +324,16 @@ function routeStatus(routes = {}, models = [], task) {
   const primary = byId.get(clean(route.primary));
   const fallback = byId.get(clean(route.fallback));
   const primaryQualification = primary ? taskQualification(primary, task) : { state: TASK_QUALIFICATION.blocked, selectable: false, full: false, score: 0, reason: '未配置' };
-  const fallbackQualification = fallback ? taskQualification(fallback, task) : { state: TASK_QUALIFICATION.blocked, selectable: false, full: false, score: 0, reason: '未配置' };
+  const fallbackQualificationBase = fallback ? taskQualification(fallback, task) : { state: TASK_QUALIFICATION.blocked, selectable: false, full: false, score: 0, reason: '未配置' };
+  const fallbackProviderIndependent = Boolean(primary && fallback && providerDomainAuthority.independent(primary, fallback));
+  const fallbackQualification = fallback && !fallbackProviderIndependent
+    ? { ...fallbackQualificationBase, full: false, reason: '备用模型必须位于独立供应商故障域' }
+    : fallbackQualificationBase;
   const allowConditional = route.allowConditional === true;
   const primaryPass = Boolean(primary && primaryQualification.full && taskPassed(primary, task) && primary.userDisabled !== true);
-  const fallbackPass = Boolean(fallback && fallbackQualification.full && taskPassed(fallback, task) && fallback.userDisabled !== true && fallback.id !== primary?.id);
+  const fallbackPass = Boolean(fallback && fallbackProviderIndependent && fallbackQualification.full && taskPassed(fallback, task) && fallback.userDisabled !== true && fallback.id !== primary?.id);
   const primaryUsable = Boolean(primary && (primaryPass || (allowConditional && primaryQualification.selectable)) && primary.userDisabled !== true);
-  const fallbackUsable = Boolean(fallback && fallback.id !== primary?.id && (fallbackPass || (allowConditional && fallbackQualification.selectable)) && fallback.userDisabled !== true);
+  const fallbackUsable = Boolean(fallback && fallbackProviderIndependent && fallback.id !== primary?.id && (fallbackPass || (allowConditional && fallbackQualification.selectable)) && fallback.userDisabled !== true);
   const requestedEnabled = route.requestedEnabled !== undefined ? route.requestedEnabled !== false : route.enabled !== false;
   return {
     task,
@@ -341,6 +348,7 @@ function routeStatus(routes = {}, models = [], task) {
     fallbackPass,
     primaryUsable,
     fallbackUsable,
+    fallbackProviderIndependent,
     primaryQualification,
     fallbackQualification,
     allowConditional,
@@ -371,14 +379,16 @@ function translationStatus(routes = {}, models = []) {
   const primaryQualityPass = translationBenchmarkPass(primary);
   const fallbackQualityPass = translationBenchmarkPass(fallback);
   const fallbackDistinct = Boolean(fallback && primary && clean(fallback.id) !== clean(primary.id));
-  const pass = primaryConnected && primaryQualityPass && fallbackConnected && fallbackQualityPass && fallbackDistinct;
+  const fallbackProviderIndependent = Boolean(fallbackDistinct && providerDomainAuthority.independent(primary, fallback));
+  const pass = primaryConnected && primaryQualityPass && fallbackConnected && fallbackQualityPass && fallbackProviderIndependent;
   let reason = '';
   if (!primaryConnected) reason = '翻译主模型未连接或任务类型不匹配';
   else if (!primaryQualityPass) reason = '翻译主模型尚未通过中德商业翻译专项';
   else if (!fallbackConnected) reason = '缺少已连接的独立翻译备用模型';
-  else if (!fallbackDistinct) reason = '翻译主模型与备用模型必须独立';
+  else if (!fallbackDistinct) reason = '翻译主模型与备用模型必须是不同模型';
+  else if (!fallbackProviderIndependent) reason = '翻译备用模型必须位于独立供应商故障域';
   else if (!fallbackQualityPass) reason = '翻译备用模型尚未通过中德商业翻译专项';
-  else reason = '翻译主备模型均已通过中德商业翻译专项';
+  else reason = '翻译主备模型均已通过中德商业翻译专项且供应商故障域独立';
   return {
     task: 'translation',
     primaryModelId: clean(route.primary),
@@ -392,6 +402,7 @@ function translationStatus(routes = {}, models = []) {
     fallbackQualityPass,
     qualityPass: primaryQualityPass,
     fallbackDistinct,
+    fallbackProviderIndependent,
     pass,
     reason
   };

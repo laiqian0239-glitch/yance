@@ -1,0 +1,60 @@
+TAP version 13
+# (node:20328) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: WhatsApp QR challenge is short-lived, refreshable and explicitly cleared
+ok 1 - WhatsApp QR challenge is short-lived, refreshable and explicitly cleared
+  ---
+  duration_ms: 1.29534
+  type: 'test'
+  ...
+# Subtest: generic account list exposes only QR readiness metadata, never QR bytes
+ok 2 - generic account list exposes only QR readiness metadata, never QR bytes
+  ---
+  duration_ms: 2.927501
+  type: 'test'
+  ...
+# Subtest: Telegram QR bytes stay out of account listings and are readable only through the dedicated challenge endpoint
+ok 3 - Telegram QR bytes stay out of account listings and are readable only through the dedicated challenge endpoint
+  ---
+  duration_ms: 1.603832
+  type: 'test'
+  ...
+# Subtest: Telegram QR production path issues and clears a short-lived challenge instead of publishing QR bytes in account state
+ok 4 - Telegram QR production path issues and clears a short-lived challenge instead of publishing QR bytes in account state
+  ---
+  duration_ms: 2.167044
+  type: 'test'
+  ...
+# Subtest: QR delivery has independent polling and WebSocket channels and clears on successful scan
+ok 5 - QR delivery has independent polling and WebSocket channels and clears on successful scan
+  ---
+  duration_ms: 2.001775
+  type: 'test'
+  ...
+# Subtest: WhatsApp version discovery is fail-open and bounded so QR startup cannot hang on GitHub
+ok 6 - WhatsApp version discovery is fail-open and bounded so QR startup cannot hang on GitHub
+  ---
+  duration_ms: 25.177358
+  type: 'test'
+  ...
+# Subtest: WhatsApp version discovery preserves a valid resolved protocol version
+ok 7 - WhatsApp version discovery preserves a valid resolved protocol version
+  ---
+  duration_ms: 1.344808
+  type: 'test'
+  ...
+# Subtest: WhatsApp QR startup has a hard timeout, stale-socket replacement and a user-visible retry path
+ok 8 - WhatsApp QR startup has a hard timeout, stale-socket replacement and a user-visible retry path
+  ---
+  duration_ms: 1.875684
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 418.999495

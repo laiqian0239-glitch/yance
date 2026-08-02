@@ -1,0 +1,60 @@
+TAP version 13
+# (node:20127) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: one authority separates peer, self echo, system, forwarded, quoted and draft messages
+ok 1 - one authority separates peer, self echo, system, forwarded, quoted and draft messages
+  ---
+  duration_ms: 1.164893
+  type: 'test'
+  ...
+# Subtest: system/control content cannot trigger facts, turn cancellation, AI automation or social signals
+ok 2 - system/control content cannot trigger facts, turn cancellation, AI automation or social signals
+  ---
+  duration_ms: 1.874779
+  type: 'test'
+  ...
+# Subtest: automatic AI treats generation changes as superseded work rather than a model failure
+ok 3 - automatic AI treats generation changes as superseded work rather than a model failure
+  ---
+  duration_ms: 0.440809
+  type: 'test'
+  ...
+# Subtest: conversation analysis excludes system messages and binds model execution to platform/account/session generation
+ok 4 - conversation analysis excludes system messages and binds model execution to platform/account/session generation
+  ---
+  duration_ms: 395.075774
+  type: 'test'
+  ...
+# Subtest: new message arriving during model execution supersedes the old model analysis before AI profile and insight writeback
+ok 5 - new message arriving during model execution supersedes the old model analysis before AI profile and insight writeback
+  ---
+  duration_ms: 343.368271
+  type: 'test'
+  ...
+# Subtest: completed workspace profile and relationship analysis are projected into the same StoreManager context used by director and candidates
+ok 6 - completed workspace profile and relationship analysis are projected into the same StoreManager context used by director and candidates
+  ---
+  duration_ms: 4.887756
+  type: 'test'
+  ...
+# Subtest: revoking a source message transactionally disables its facts, interests, evidence and relationship analysis
+ok 7 - revoking a source message transactionally disables its facts, interests, evidence and relationship analysis
+  ---
+  duration_ms: 296.57004
+  type: 'test'
+  ...
+# Subtest: stale relationship analysis is excluded from director and candidate context
+ok 8 - stale relationship analysis is excluded from director and candidate context
+  ---
+  duration_ms: 1.31258
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1474.699632

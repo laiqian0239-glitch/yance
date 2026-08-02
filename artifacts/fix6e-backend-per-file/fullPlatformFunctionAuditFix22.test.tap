@@ -1,0 +1,36 @@
+TAP version 13
+# (node:19089) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Fix22: profile text resolves the complete fallback chain across all platforms
+ok 1 - Fix22: profile text resolves the complete fallback chain across all platforms
+  ---
+  duration_ms: 6.088272
+  type: 'test'
+  ...
+# Subtest: Fix22: Facebook presence is omitted rather than rendered as an unsupported online state
+ok 2 - Fix22: Facebook presence is omitted rather than rendered as an unsupported online state
+  ---
+  duration_ms: 10.796576
+  type: 'test'
+  ...
+# Subtest: Fix22: narrow chat headers wrap all route controls instead of relying only on taller rows
+ok 3 - Fix22: narrow chat headers wrap all route controls instead of relying only on taller rows
+  ---
+  duration_ms: 0.788057
+  type: 'test'
+  ...
+# Subtest: Round7: the slim contact menu exposes no copy action, so opaque platform IDs cannot be copied from that surface
+ok 4 - Round7: the slim contact menu exposes no copy action, so opaque platform IDs cannot be copied from that surface
+  ---
+  duration_ms: 3.277624
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 484.913228

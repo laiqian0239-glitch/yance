@@ -1,0 +1,16 @@
+TAP version 13
+# Subtest: command runner streams output, writes UTF-8 evidence, and emits terminal-only heartbeats
+ok 1 - command runner streams output, writes UTF-8 evidence, and emits terminal-only heartbeats
+  ---
+  duration_ms: 200.013748
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 243.216768

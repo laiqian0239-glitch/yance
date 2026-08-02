@@ -1,0 +1,18 @@
+TAP version 13
+# (node:19185) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: failed message projection cannot create identity evidence for a nonexistent message
+ok 1 - failed message projection cannot create identity evidence for a nonexistent message
+  ---
+  duration_ms: 13.646154
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 588.883131

@@ -37,11 +37,11 @@
       #navSystemEntries.product-area-hidden-host{display:none!important}
       .product-area-subnav{display:none;align-items:center;gap:7px;min-height:42px;padding:7px 10px;margin:0 0 10px;border:1px solid color-mix(in srgb,var(--theme-border-strong) 72%,transparent);border-radius:14px;background:var(--theme-panel-bg);box-shadow:var(--theme-shadow-soft);position:relative;top:auto;z-index:3;flex:0 0 auto}
       .product-area-subnav.show{display:flex}
-      .product-area-subnav strong{font-size:var(--ws-small);color:var(--text);margin-right:3px;white-space:nowrap}
-      .product-area-subnav button{min-height:30px;padding:6px 10px;border:1px solid color-mix(in srgb,var(--accent-primary) 16%,transparent);border-radius:10px;background:color-mix(in srgb,var(--theme-card-bg) 88%,transparent);color:var(--muted);font:600 var(--ws-meta)/1.2 system-ui;cursor:pointer}
+      .product-area-subnav strong{font-size:var(--type-body-strong);color:var(--text);margin-right:3px;white-space:nowrap}
+      .product-area-subnav button{min-height:30px;padding:6px 10px;border:1px solid color-mix(in srgb,var(--accent-primary) 16%,transparent);border-radius:10px;background:color-mix(in srgb,var(--theme-card-bg) 88%,transparent);color:var(--muted);font:600 var(--type-meta)/1.2 system-ui;cursor:pointer}
       .product-area-subnav button:hover{color:var(--text);border-color:color-mix(in srgb,var(--accent-primary) 32%,transparent)}
       .product-area-subnav button.active{color:var(--theme-on-accent);background:linear-gradient(135deg,var(--status-success),var(--accent-primary));border-color:color-mix(in srgb,var(--accent-primary) 58%,transparent);box-shadow:0 8px 24px color-mix(in srgb,var(--shadow-base) 14%,transparent)}
-      .product-area-subnav .product-area-note{margin-left:auto;color:var(--muted2);font-size:var(--ws-meta);white-space:nowrap}
+      .product-area-subnav .product-area-note{margin-left:auto;color:var(--muted2);font-size:var(--type-caption);white-space:nowrap}
       .contact-page-open #relationshipAreaSubnav,.profile-page-open #relationshipAreaSubnav,.insights-page-open #relationshipAreaSubnav,.timeline-page-open #relationshipAreaSubnav{display:flex}
       .system-center-open #systemAreaSubnav,.settings-recovery-open #systemAreaSubnav,.theme-workspace-open #systemAreaSubnav{display:flex}
       .app.settings-recovery-open .settings-recovery-workspace,.app.theme-workspace-open .theme-workspace{grid-template-rows:auto auto minmax(0,1fr)}

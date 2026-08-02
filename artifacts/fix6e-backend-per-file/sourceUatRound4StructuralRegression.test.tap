@@ -1,0 +1,42 @@
+TAP version 13
+# (node:20057) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: attachment-only composer is sendable and attachment changes resync button state
+ok 1 - attachment-only composer is sendable and attachment changes resync button state
+  ---
+  duration_ms: 2.914047
+  type: 'test'
+  ...
+# Subtest: WhatsApp LID prefers phone-number alternate JID and authority persists aliases, name and avatar
+ok 2 - WhatsApp LID prefers phone-number alternate JID and authority persists aliases, name and avatar
+  ---
+  duration_ms: 4.639675
+  type: 'test'
+  ...
+# Subtest: platform expression library accepts real WebP stickers and rejects fake native-format coercion
+ok 3 - platform expression library accepts real WebP stickers and rejects fake native-format coercion
+  ---
+  duration_ms: 1.520874
+  type: 'test'
+  ...
+# Subtest: Ollama autoactivation chooses usable general and translation models, not coder/embed models
+ok 4 - Ollama autoactivation chooses usable general and translation models, not coder/embed models
+  ---
+  duration_ms: 0.951882
+  type: 'test'
+  ...
+# Subtest: theme authority defines missing workspace/shadow variables and dynamic surfaces use semantic contract
+ok 5 - theme authority defines missing workspace/shadow variables and dynamic surfaces use semantic contract
+  ---
+  duration_ms: 0.455014
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 358.710278

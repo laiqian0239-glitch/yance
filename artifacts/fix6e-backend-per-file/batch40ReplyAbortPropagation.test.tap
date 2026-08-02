@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: HTTP response disconnect aborts an unfinished reply operation but normal completion does not
+ok 1 - HTTP response disconnect aborts an unfinished reply operation but normal completion does not
+  ---
+  duration_ms: 1.261854
+  type: 'test'
+  ...
+# Subtest: reply generation propagates AbortSignal from UI fetch through route and brain
+ok 2 - reply generation propagates AbortSignal from UI fetch through route and brain
+  ---
+  duration_ms: 3.275745
+  type: 'test'
+  ...
+# Subtest: desktop IPC reply cancellation aborts the main-process local API fetch in the same renderer scope
+ok 3 - desktop IPC reply cancellation aborts the main-process local API fetch in the same renderer scope
+  ---
+  duration_ms: 1.198613
+  type: 'test'
+  ...
+# Subtest: preload exposes a cancellable desktop reply invocation without attempting to clone AbortSignal over IPC
+ok 4 - preload exposes a cancellable desktop reply invocation without attempting to clone AbortSignal over IPC
+  ---
+  duration_ms: 0.450591
+  type: 'test'
+  ...
+# Subtest: every UI reply-generation entry point owns a cancellable request scope
+ok 5 - every UI reply-generation entry point owns a cancellable request scope
+  ---
+  duration_ms: 2.520976
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 54.60861

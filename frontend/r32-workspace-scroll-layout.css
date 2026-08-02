@@ -6,7 +6,11 @@
   overflow-x:hidden;
   overscroll-behavior-y:contain;
   scrollbar-gutter:stable;
-  scroll-padding-block:0;
+  scroll-padding-block-start:max(12px,var(--density-gap));
+  scroll-padding-block-end:max(12px,var(--density-gap));
+}
+.ui-route-scroll-root :is(h1,h2,h3,h4,[data-scroll-anchor]){
+  scroll-margin-block-start:max(12px,var(--density-gap));
 }
 .ui-route-scroll-root .ui-route-scroll-surface{
   height:auto;
@@ -123,10 +127,10 @@
 @media(max-height:900px){
   .profile27-hero,.timeline27-hero,.insight29-hero,.aiw30-hero,.ac32-hero,.sc32-hero{padding-top:13px;padding-bottom:11px}
   .profile27-title p,.timeline27-title p,.insight29-title p,.aiw30-title p,.ac32-title p,.sc32-title p{
-    display:-webkit-box;
-    -webkit-box-orient:vertical;
-    -webkit-line-clamp:2;
-    overflow:hidden;
+    display:block;
+    overflow:visible;
+    white-space:normal;
+    overflow-wrap:anywhere;
   }
   .profile27-syncbar,.timeline27-syncbar,.insight29-syncbar,.aiw30-sync{margin-top:9px}
   .profile27-syncbar article,.timeline27-syncbar article,.insight29-syncbar article,.aiw30-sync article{padding-top:7px;padding-bottom:7px}
@@ -254,7 +258,7 @@
   border-radius:9px;
   background:color-mix(in srgb,var(--surface-control) 48%,transparent);
   color:var(--text-secondary);
-  font:500 var(--ws-meta,10px)/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;
+  font:500 var(--type-meta)/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;
   white-space:pre-wrap;
   overflow-wrap:anywhere;
 }

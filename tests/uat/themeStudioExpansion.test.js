@@ -179,10 +179,12 @@ test('theme studio frontend exposes filters, mini previews, personalization, acc
     'theme32Search', 'theme32Style', 'theme32Brightness', 'theme32Scene', 'theme32Texture',
     'theme32ViewTabs', '我的收藏', '最近使用', 'theme32-preview',
     'backgroundDepth', 'glowIntensity', 'glassOpacity', 'accentSaturation',
-    'fontProfile', 'fontScale', 'lineHeight', 'spacing',
+    'fontProfile', 'lineHeight', 'spacing',
     'saveCustomThemePreset', 'applyCustomThemePreset', 'deleteCustomThemePreset',
     "window.matchMedia?.('(prefers-color-scheme: light)')", "current.themeMode === 'schedule'"
   ]) assert.ok(runtime.includes(marker), `runtime missing ${marker}`);
+  assert.equal(runtime.includes('fontScale'), false, 'theme studio must not restore a second font-size authority');
+  assert.ok(read('frontend/r32-global-reading.css').includes('data-reading="large"'), 'reading modes own semantic font scaling');
 
   for (const marker of [
     'data-theme-accessibility="high-contrast"',

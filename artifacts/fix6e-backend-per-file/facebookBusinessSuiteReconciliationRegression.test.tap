@@ -1,0 +1,84 @@
+TAP version 13
+# (node:18910) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Business Suite reconciliation retries a transient SQLite transaction owner conflict before failing a conversation
+ok 1 - Business Suite reconciliation retries a transient SQLite transaction owner conflict before failing a conversation
+  ---
+  duration_ms: 7.652634
+  type: 'test'
+  ...
+# Subtest: Facebook peer resolution always selects the non-Page participant for inbound and echo events
+ok 2 - Facebook peer resolution always selects the non-Page participant for inbound and echo events
+  ---
+  duration_ms: 0.214701
+  type: 'test'
+  ...
+# Subtest: unknown Facebook first message atomically creates account-scoped contact, conversation and message identity
+ok 3 - unknown Facebook first message atomically creates account-scoped contact, conversation and message identity
+  ---
+  duration_ms: 27.513601
+  type: 'test'
+  ...
+# Subtest: Facebook contact refresh preserves existing tags while adding external conversation identity
+ok 4 - Facebook contact refresh preserves existing tags while adding external conversation identity
+  ---
+  duration_ms: 29.430571
+  type: 'test'
+  ...
+# Subtest: local outbound send and later Business Suite echo with the same Meta message id remain one SQLite row
+ok 5 - local outbound send and later Business Suite echo with the same Meta message id remain one SQLite row
+  ---
+  duration_ms: 20.762197
+  type: 'test'
+  ...
+# Subtest: Business Suite outbound echo creates a new contact/conversation and is stored as own message
+ok 6 - Business Suite outbound echo creates a new contact/conversation and is stored as own message
+  ---
+  duration_ms: 16.506766
+  type: 'test'
+  ...
+# Subtest: Facebook post-connect reconciliation runs once, records completion and stops cleanly
+ok 7 - Facebook post-connect reconciliation runs once, records completion and stops cleanly
+  ---
+  duration_ms: 30.730313
+  type: 'test'
+  ...
+# Subtest: Facebook reconciliation exposes a real blocked state without pages_read_engagement
+ok 8 - Facebook reconciliation exposes a real blocked state without pages_read_engagement
+  ---
+  duration_ms: 1.018103
+  type: 'test'
+  ...
+# Subtest: Facebook natural contact identity reuses an existing legacy primary key instead of violating the account-scoped unique index
+ok 9 - Facebook natural contact identity reuses an existing legacy primary key instead of violating the account-scoped unique index
+  ---
+  duration_ms: 22.740136
+  type: 'test'
+  ...
+# Subtest: Facebook inbound webhook and outbound echo can persist the same natural contact identity without duplicate-contact races
+ok 10 - Facebook inbound webhook and outbound echo can persist the same natural contact identity without duplicate-contact races
+  ---
+  duration_ms: 90.346342
+  type: 'test'
+  ...
+# Subtest: Facebook send remains successful after Meta acceptance when local persistence needs repair
+ok 11 - Facebook send remains successful after Meta acceptance when local persistence needs repair
+  ---
+  duration_ms: 1.199826
+  type: 'test'
+  ...
+# Subtest: send queue never schedules a second network send after platform acceptance when only the local receipt projection fails
+ok 12 - send queue never schedules a second network send after platform acceptance when only the local receipt projection fails
+  ---
+  duration_ms: 18.464369
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 899.46427

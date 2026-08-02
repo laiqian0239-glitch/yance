@@ -1,0 +1,108 @@
+TAP version 13
+# (node:17479) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: B28-P0-01 background takeover is process-fenced, account-scoped, due-aware and cursor-stable
+ok 1 - B28-P0-01 background takeover is process-fenced, account-scoped, due-aware and cursor-stable
+  ---
+  duration_ms: 389.282573
+  type: 'test'
+  ...
+# Subtest: B28-P0-02 verified hard-termination exit receipt releases physical slot even when provider promise never settles
+ok 2 - B28-P0-02 verified hard-termination exit receipt releases physical slot even when provider promise never settles
+  ---
+  duration_ms: 39.950076
+  type: 'test'
+  ...
+# Subtest: B28-P0-03 caller cancellation quarantines a later provider ACK with generation and reason
+ok 3 - B28-P0-03 caller cancellation quarantines a later provider ACK with generation and reason
+  ---
+  duration_ms: 11.551679
+  type: 'test'
+  ...
+# Subtest: B28-P0-13 adapter-port deadline publishes a late platform ACK for durable queue convergence
+ok 4 - B28-P0-13 adapter-port deadline publishes a late platform ACK for durable queue convergence
+  ---
+  duration_ms: 1025.741455
+  type: 'test'
+  ...
+# Subtest: B28-P0-08 a bare cancellation signal cannot bypass direct platform operation deadline or generation fencing
+ok 5 - B28-P0-08 a bare cancellation signal cannot bypass direct platform operation deadline or generation fencing
+  ---
+  duration_ms: 1008.753861
+  type: 'test'
+  ...
+# Subtest: B28-P0-04 send_outcome_unknown uses exact SQL totals beyond 1000 and rejects stale/mismatched convergence
+ok 6 - B28-P0-04 send_outcome_unknown uses exact SQL totals beyond 1000 and rejects stale/mismatched convergence
+  ---
+  duration_ms: 66.150557
+  type: 'test'
+  ...
+# Subtest: B28-P0-12 outcome-unknown crash journal is route/generation fenced before replay
+ok 7 - B28-P0-12 outcome-unknown crash journal is route/generation fenced before replay
+  ---
+  duration_ms: 15.014634
+  type: 'test'
+  ...
+# Subtest: B28-P0-05 async recovery cursor remains stable while earlier pages become terminal
+ok 8 - B28-P0-05 async recovery cursor remains stable while earlier pages become terminal
+  ---
+  duration_ms: 298.128717
+  type: 'test'
+  ...
+# Subtest: B28-P0-06 candidate final transaction rejects cancelled runtime generation before persistence
+ok 9 - B28-P0-06 candidate final transaction rejects cancelled runtime generation before persistence
+  ---
+  duration_ms: 294.747291
+  type: 'test'
+  ...
+# Subtest: B28-P0-07 translation final transaction rejects superseded generation and only commits the newest result
+ok 10 - B28-P0-07 translation final transaction rejects superseded generation and only commits the newest result
+  ---
+  duration_ms: 302.806001
+  type: 'test'
+  ...
+# Subtest: B28-P0-09 translation restart recovery atomically fails pending message and active lifecycle generation
+ok 11 - B28-P0-09 translation restart recovery atomically fails pending message and active lifecycle generation
+  ---
+  duration_ms: 275.597328
+  type: 'test'
+  ...
+# Subtest: B28-P1-01 learning ledger separates ready, active, deferred retry and DLQ exactly
+ok 12 - B28-P1-01 learning ledger separates ready, active, deferred retry and DLQ exactly
+  ---
+  duration_ms: 265.465536
+  type: 'test'
+  ...
+# Subtest: B28-P0-10 RuntimeOwnership honors its canonical dbPath and releases process guards
+ok 13 - B28-P0-10 RuntimeOwnership honors its canonical dbPath and releases process guards
+  ---
+  duration_ms: 618.024027
+  type: 'test'
+  ...
+# Subtest: B28-P0-14 Telegram credential persistence delegates once to guarded custody instead of recursing
+ok 14 - B28-P0-14 Telegram credential persistence delegates once to guarded custody instead of recursing
+  ---
+  duration_ms: 0.345349
+  type: 'test'
+  ...
+# Subtest: B28-P0-15 every AccountManager auth/reconcile operation receives the authoritative signal and generation
+ok 15 - B28-P0-15 every AccountManager auth/reconcile operation receives the authoritative signal and generation
+  ---
+  duration_ms: 0.702919
+  type: 'test'
+  ...
+# Subtest: B28-P0-16 auth and reconcile deadlines quarantine late completions by operation generation
+ok 16 - B28-P0-16 auth and reconcile deadlines quarantine late completions by operation generation
+  ---
+  duration_ms: 1012.584658
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6039.30685

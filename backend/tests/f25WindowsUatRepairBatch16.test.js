@@ -53,14 +53,16 @@ test('page scroll state is bound to the actual detail scroller and opens at the 
   const system = source('frontend/r32-system-center.js');
   const insights = source('frontend/js/r32-insights-runtime.js');
   const ai = source('frontend/js/r32-ai-workbench-runtime.js');
-  assert.match(account, /document\.getElementById\('ac32Scroll'\)/);
+  assert.match(account, /YanceWorkspaceRouteAuthority/);
+  assert.match(account, /captureScroll\?\.\(app, 'accounts'\)/);
+  assert.match(account, /restoreScroll\?\.\(app, 'accounts', top\)/);
   assert.match(account, /restoreAccountCenterScroll\(state\.selectedId, state\.tab, 0\)/);
-  assert.doesNotMatch(account, /workspace\.scrollTop =/);
+  assert.doesNotMatch(account, /(?:workspace|ac32Scroll)\.scrollTop\s*=/);
   assert.match(system, /document\.getElementById\('sc32Content'\)/);
   assert.match(system, /renderPanel\(\{ capture: false, workspaceTop: 0 \}\)/);
   assert.match(insights, /insightState\.view=true;insightState\.scrollTop=0/);
   assert.match(ai, /state\.scroll\[tab\]=0/);
-  assert.match(ai, /scroll\.scrollTop=0/);
+  assert.match(ai, /restoreScroll\?\.\(app,'ai-workbench',0\)/);
 });
 
 test('Facebook page and historical account aliases resolve to one canonical account', () => {
@@ -143,5 +145,7 @@ test('OpenRouter shortlist is quality-first for final replies and keeps free mod
   const ui = source('frontend/js/r32-ai-workbench-runtime.js');
   assert.match(ui, /OpenRouter 云端质量策略/);
   assert.match(ui, /免费模型主要承担摘要、事实提取、草稿池和低风险备用/);
-  assert.match(ui, /state\.openRouter=status\.openRouter\|\|snap\|\|state\.openRouter/);
+  assert.match(ui, /projectModelRuntimeSnapshot\(status,state,\{\s*preserveRoutes\s*:\s*false\s*\}\)/);
+  assert.match(ui, /commitModelRuntimeSnapshot\(modelSnapshot,\{\s*preserveRoutes\s*:\s*false\s*\}\)/);
+  assert.doesNotMatch(ui, /state\.openRouter=status\.openRouter\|\|snap\|\|state\.openRouter/);
 });

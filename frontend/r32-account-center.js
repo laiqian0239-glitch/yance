@@ -12,8 +12,21 @@ const STORAGE_KEY = 'yance27-r32-account-center';
 const PLATFORM = {
   whatsapp: { label: 'WhatsApp', icon: 'W', auth: '二维码 / 手机号配对码', accent: 'whatsapp' },
   telegram: { label: 'Telegram', icon: 'T', auth: '二维码优先 / 手机号备用', accent: 'telegram' },
-  facebook: { label: 'Facebook 公共主页', icon: 'f', auth: '浏览器授权 / 主页选择', accent: 'facebook' }
+  facebook: { label: 'Facebook', icon: 'f', auth: '公共主页 / 个人身份 / 实验 Messenger', accent: 'facebook' }
 };
+
+const FACEBOOK_ACCOUNT_TYPES = Object.freeze({
+  page: { accountKind: 'page', driverId: 'facebook-page-official', label: 'Facebook 公共主页（官方）' },
+  'personal-identity': { accountKind: 'personal-identity', driverId: 'facebook-personal-identity-official', label: 'Facebook 个人身份（官方，仅身份）' },
+  'personal-messenger': { accountKind: 'personal-messenger', driverId: 'facebook-personal-messenger-experimental', label: 'Facebook 个人 Messenger（非官方实验）' }
+});
+function facebookAccountType(value = 'page') {
+  const normalized = String(value || '').trim().toLowerCase();
+  return FACEBOOK_ACCOUNT_TYPES[normalized] || Object.values(FACEBOOK_ACCOUNT_TYPES).find(row => row.driverId === normalized) || FACEBOOK_ACCOUNT_TYPES.page;
+}
+function selectedFacebookType() { return facebookAccountType(document.getElementById('ac32FormFacebookKind')?.value || 'page'); }
+function driverContract(driverId) { return state.data.driverContracts?.[driverId] || null; }
+
 const CAP_LABELS = {
   text: '文本', image: '图片', video: '视频', gif: 'GIF', animatedSticker: '动态贴纸', voice: '语音', file: '文件',
   quote: '引用回复', reaction: '消息回应', revoke: '消息撤回', readReceipt: '平台已读回执', typingSend: '发送输入状态', incomingTyping: '接收对方输入状态', terminalPresence: '联系人上线/离线提醒', contacts: '联系人同步',
@@ -320,7 +333,7 @@ function renderSummary() {
     ['已连接账号', `${s.connected || 0}/${s.total || 0}`, s.abnormal ? `${s.abnormal} 个异常需要处理` : (s.limited ? `${s.limited} 个账号仅部分能力可用` : '当前没有异常账号')],
     ['WhatsApp', `${platform.whatsapp?.connected || 0}/${platform.whatsapp?.total || 0}`, platform.whatsapp?.abnormal ? `异常 ${platform.whatsapp.abnormal}` : '二维码与多设备会话'],
     ['Telegram', `${platform.telegram?.connected || 0}/${platform.telegram?.total || 0}`, state.data.platformAuth?.telegram?.available === true ? (platform.telegram?.abnormal ? `异常 ${platform.telegram.abnormal}` : '扫码或手机号登录') : '当前安装包尚未启用'],
-    ['Facebook', `${platform.facebook?.connected || 0}/${platform.facebook?.total || 0}`, state.data.platformAuth?.facebook?.available === true ? (platform.facebook?.abnormal ? `异常 ${platform.facebook.abnormal}` : '浏览器授权与主页选择') : '当前安装包尚未启用'],
+    ['Facebook', `${platform.facebook?.connected || 0}/${platform.facebook?.total || 0}`, state.data.platformAuth?.facebook?.available === true ? (platform.facebook?.abnormal ? `异常 ${platform.facebook.abnormal}` : '公共主页与个人身份授权') : '当前安装包尚未启用'],
     ['总未读', String(s.unread || 0), '按平台与来源账号严格隔离'],
     ['最近同步', s.lastSyncAt ? new Date(s.lastSyncAt).toLocaleTimeString('zh-CN',{hour12:false}) : '尚无', s.paused ? `${s.paused} 个账号已暂停` : '自动重连与状态恢复已启用']
   ].map(row => `<article class="ac32-stat"><span>${htmlText(row[0])}</span><b>${htmlText(row[1])}</b><small>${htmlText(row[2])}</small></article>`).join('');
@@ -466,14 +479,25 @@ function renderLogin(account) {
   }
   if (account.platform === 'facebook') {
     const available = authConfig.facebook?.available === true;
+    const type = facebookAccountType(account.accountKind || account.driverId);
     const flow = state.facebookFlow?.accountId === account.id ? state.facebookFlow : null;
     const pages = flow?.pages || [];
-    auth = `${available?'<div class="ac32-hint">使用拥有公共主页管理权限的个人 Facebook 账号授权。授权结果必须包含 pages_read_engagement，才能同步 Meta Business Suite 的新联系人、最近会话和公共主页后台发送消息。</div>':'<div class="ac32-hint bad">当前安装包尚未启用 Facebook 登录。请安装包含 Facebook 平台服务的正式升级包。</div>'}
-      ${account.credentialReady&&account.historySyncAvailable===false?`<div class="ac32-hint bad" style="margin-top:10px"><b>当前 Facebook 绑定不完整：</b>${htmlText(account.historySyncReason||'缺少 pages_read_engagement，Business Suite 会话无法补拉')}。请点击下方授权按钮重新授权。</div>`:''}
-      ${flow?`<div class="ac32-hint warn" style="margin-top:10px">授权状态：${htmlText(flow.status || '等待浏览器确认')}</div>`:''}
-      ${flow?.diagnostics?`<div class="ac32-hint ${htmlAttr(flow.status==='error'?'bad':'warn')}" style="margin-top:10px">${htmlText(facebookFlowDiagnostics(flow))}</div>`:''}
-      ${pages.length?`<div class="ac32-page-choice" style="margin-top:10px">${pages.map(page=>{const missingBase=page.permissionReady===false;const missingHistory=page.historySyncAvailable===false;const blocked=missingBase;const detail=missingBase?`授权范围不足：${(page.missingPermissions||[]).join(', ')}`:missingHistory?`可完成绑定；缺少 pages_read_engagement 时历史对账受限`:(page.username?`@${page.username}`:page.id);return `<button class="ac32-account" data-facebook-page="${htmlAttr(page.id)}" ${blocked?'disabled':''}><span class="ac32-account-copy"><b>${htmlText(page.name)}</b><p>${htmlText(detail)}</p></span><span class="ac32-state ${htmlAttr(blocked?'error':missingHistory?'limited':'connected')}"><i></i>${htmlText(missingBase?'需要重新授权':missingHistory?'选择并以受限模式连接':'选择此主页')}</span></button>`}).join('')}</div>`:''}`;
-    actions = `<button class="ac32-button primary" data-panel-action="facebook-oauth" ${available?'':'disabled'}>${htmlText(available?'使用主页管理员个人账号授权':'Facebook 登录尚未启用')}</button>${flow?'<button class="ac32-button" data-panel-action="facebook-cancel">取消授权</button>':''}<button class="ac32-button" data-panel-action="diagnose">检查连接</button>`;
+    if (type.accountKind === 'personal-identity') {
+      auth = `${available?'<div class="ac32-hint">使用官方 Facebook Login 读取当前个人身份、名称和头像。个人身份登录不提供 Messenger 私信读取或发送能力。</div>':'<div class="ac32-hint bad">当前安装包尚未启用 Facebook 登录。</div>'}
+        ${flow?`<div class="ac32-hint warn" style="margin-top:10px">身份授权状态：${htmlText(flow.status || '等待浏览器确认')}</div>`:''}
+        ${account.state==='connected'?'<div class="ac32-hint" style="margin-top:10px">官方个人身份已连接；消息能力保持关闭，避免把身份授权伪装成 Messenger 接入。</div>':''}`;
+      actions = `<button class="ac32-button primary" data-panel-action="facebook-oauth" ${available?'':'disabled'}>${htmlText(available?'使用官方 Facebook Login':'Facebook 登录尚未启用')}</button>${flow?'<button class="ac32-button" data-panel-action="facebook-cancel">取消授权</button>':''}<button class="ac32-button" data-panel-action="diagnose">检查身份状态</button>`;
+    } else if (type.accountKind === 'personal-messenger') {
+      auth = '<div class="ac32-hint bad"><b>非官方实验能力：</b>个人 Messenger 依赖独立浏览器会话，可能因页面变化、登录挑战或账号风控失效。当前浏览器桥未完成真实验收，驱动保持隔离暂停，不会影响其他账号。</div>';
+      actions = '<button class="ac32-button primary" disabled>个人 Messenger 实验驱动尚未开放</button><button class="ac32-button" data-panel-action="diagnose">查看隔离原因</button>';
+    } else {
+      auth = `${available?'<div class="ac32-hint">使用拥有公共主页管理权限的个人 Facebook 账号授权。授权结果必须包含 pages_read_engagement，才能同步 Meta Business Suite 的新联系人、最近会话和公共主页后台发送消息。</div>':'<div class="ac32-hint bad">当前安装包尚未启用 Facebook 登录。请安装包含 Facebook 平台服务的正式升级包。</div>'}
+        ${account.credentialReady&&account.historySyncAvailable===false?`<div class="ac32-hint bad" style="margin-top:10px"><b>当前 Facebook 绑定不完整：</b>${htmlText(account.historySyncReason||'缺少 pages_read_engagement，Business Suite 会话无法补拉')}。请点击下方授权按钮重新授权。</div>`:''}
+        ${flow?`<div class="ac32-hint warn" style="margin-top:10px">授权状态：${htmlText(flow.status || '等待浏览器确认')}</div>`:''}
+        ${flow?.diagnostics?`<div class="ac32-hint ${htmlAttr(flow.status==='error'?'bad':'warn')}" style="margin-top:10px">${htmlText(facebookFlowDiagnostics(flow))}</div>`:''}
+        ${pages.length?`<div class="ac32-page-choice" style="margin-top:10px">${pages.map(page=>{const missingBase=page.permissionReady===false;const missingHistory=page.historySyncAvailable===false;const blocked=missingBase;const detail=missingBase?`授权范围不足：${(page.missingPermissions||[]).join(', ')}`:missingHistory?`可完成绑定；缺少 pages_read_engagement 时历史对账受限`:(page.username?`@${page.username}`:page.id);return `<button class="ac32-account" data-facebook-page="${htmlAttr(page.id)}" ${blocked?'disabled':''}><span class="ac32-account-copy"><b>${htmlText(page.name)}</b><p>${htmlText(detail)}</p></span><span class="ac32-state ${htmlAttr(blocked?'error':missingHistory?'limited':'connected')}"><i></i>${htmlText(missingBase?'需要重新授权':missingHistory?'选择并以受限模式连接':'选择此主页')}</span></button>`}).join('')}</div>`:''}`;
+      actions = `<button class="ac32-button primary" data-panel-action="facebook-oauth" ${available?'':'disabled'}>${htmlText(available?'使用主页管理员个人账号授权':'Facebook 登录尚未启用')}</button>${flow?'<button class="ac32-button" data-panel-action="facebook-cancel">取消授权</button>':''}<button class="ac32-button" data-panel-action="diagnose">检查连接</button>`;
+    }
   }
   const notice = authNoticeMarkup(account);
   return `<div class="ac32-grid"><article class="ac32-section wide"><header><h3>${htmlText(p.label)} 登录</h3><span>普通用户登录</span></header><div class="ac32-section-body">${notice}${auth}<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:11px">${actions}</div></div></article><article class="ac32-section"><header><h3>当前状态</h3><span>${htmlText(account.stateLabel)}</span></header><div class="ac32-section-body"><div class="ac32-fact-grid"><article class="ac32-fact"><span>平台</span><b>${htmlText(p.label)}</b></article><article class="ac32-fact"><span>账号</span><b>${htmlText(account.identityLabel || account.displayName || '尚未登录')}</b></article><article class="ac32-fact"><span>最近连接</span><b>${htmlText(fmtDate(account.connectedAt))}</b></article><article class="ac32-fact"><span>发送状态</span><b>${htmlText(account.sendVerified?'真实ACK已验证':account.canAttemptSend?'允许尝试·待ACK':'尚不可发送')}</b></article></div></div></article></div>`;
@@ -489,9 +513,10 @@ function renderSync(account) {
   const historyCapability = accountCapability(account, 'historySync', historyFallback);
   const historyLabel = accountCapabilityLabel(account, 'historySync', historyFallback);
   const historyReason = historyCapability.note || account.historySyncReason || '';
-  const facebookCloud = account.platform === 'facebook' ? `<article class="ac32-section wide"><header><h3>Facebook 云端离线队列</h3><span>Cloudflare Worker · D1 · R2</span></header><div class="ac32-section-body"><div class="ac32-health"><article><span>Worker 状态</span><b>${htmlText(account.workerStatus || '尚未连接')}</b></article><article><span>等待同步</span><b>${htmlText(account.pendingEvents || 0)}</b></article><article><span>死信事件</span><b>${htmlText(account.deadLetter || 0)}</b></article><article><span>最近 ACK</span><b>${htmlText(account.lastAckAt ? fmtDate(account.lastAckAt) : '尚无')}</b></article><article><span>Page Token</span><b>${htmlText(account.tokenStatus === 'active' ? '云端有效' : account.tokenStatus || '尚未验证')}</b></article></div><div class="ac32-hint" style="margin-top:10px">电脑关闭时，Meta Webhook 由 Cloudflare Worker 接收并暂存到 D1；图片和附件临时保存到 R2。言策上线后按租约拉取，只有成功写入本机 SQLite 后才确认 ACK。Page Token 不会下发到 Windows。</div></div></article>` : '';
-  const facebookReconciliation = account.platform === 'facebook' ? `<article class="ac32-section wide"><header><h3>Business Suite 会话对账</h3><span>${htmlText(account.reconciliationActive?'自动补偿已运行':account.historySyncAvailable===true?'等待启动':'权限阻断')}</span></header><div class="ac32-section-body"><div class="ac32-health"><article><span>历史权限</span><b>${htmlText(account.historySyncAvailable===true?'已授权':'缺少 pages_read_engagement')}</b></article><article><span>周期对账</span><b>${htmlText(account.reconciliationActive?'运行中':'未运行')}</b></article><article><span>当前任务</span><b>${htmlText(account.reconciliationRunning?'正在同步':'空闲')}</b></article><article><span>最近对账</span><b>${htmlText(account.reconciliationLastAt?fmtDate(account.reconciliationLastAt):'尚无')}</b></article><article><span>最近错误</span><b>${htmlText(account.reconciliationLastError||'无')}</b></article></div>${account.historySyncAvailable===true?`<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px"><button class="ac32-button primary" data-panel-action="facebook-sync-now" ${account.reconciliationRunning?'disabled':''}>${htmlText(account.reconciliationRunning?'正在执行对账…':'立即执行会话对账')}</button></div>`:`<div class="ac32-hint bad" style="margin-top:10px">${htmlText(account.historySyncReason||'缺少 pages_read_engagement，无法读取 Meta Business Suite 最近会话')}。请到“登录与凭据”重新授权；未补齐前，旧会话仍可能显示，但新联系人和公共主页后台消息不能保证进入言策。</div>`}</div></article>` : '';
-  return facebookCloud + facebookReconciliation + `<div class="ac32-grid"><article class="ac32-section wide"><header><h3>同步与断线恢复</h3><span>账号独立队列，不阻塞其他平台</span></header><div class="ac32-section-body"><div class="ac32-health"><article><span>实时连接</span><b>${htmlText(account.stateLabel)}</b></article><article><span>最近成功同步</span><b>${htmlText(account.lastSyncAt?new Date(account.lastSyncAt).toLocaleTimeString('zh-CN',{hour12:false}):'尚无')}</b></article><article><span>历史补拉</span><b>${htmlText(historyLabel)}</b>${!historyCapability.supported&&historyReason?`<small>${htmlText(historyReason)}</small>`:''}</article><article><span>当前未读</span><b>${htmlText(account.unread||0)}</b></article><article><span>自动重连</span><b>${htmlText(account.autoReconnect?'开启':'关闭')}</b></article></div></div></article><article class="ac32-section"><header><h3>断线恢复保护</h3><span>幂等</span></header><div class="ac32-section-body"><div class="ac32-action-list"><article class="ac32-action-row"><i>✓</i><div><b>消息去重与乱序恢复</b><p>平台账号、原始会话ID和原始消息ID组成幂等键。</p></div><em>启用</em></article><article class="ac32-action-row"><i>✓</i><div><b>未读与通知去重</b><p>历史补拉不会重复累计未读或重复弹出桌面通知。</p></div><em>启用</em></article><article class="ac32-action-row"><i>✓</i><div><b>媒体任务恢复</b><p>${htmlText(account.platform==='facebook'?'R2 媒体在本地落盘成功前保留，可重复拉取。':'下载失败保留状态，可重试而不删除聊天记录。')}</p></div><em>启用</em></article></div></div></article><article class="ac32-section"><header><h3>限流与队列</h3><span>平台级隔离</span></header><div class="ac32-section-body"><div class="ac32-fact-grid"><article class="ac32-fact"><span>Flood Wait</span><b>${htmlText(account.floodWaitSeconds?`${account.floodWaitSeconds} 秒`:'无')}</b></article><article class="ac32-fact"><span>发送队列</span><b>独立账号队列</b></article><article class="ac32-fact"><span>失败重试</span><b>指数退避</b></article><article class="ac32-fact"><span>连续失败</span><b>自动暂停路由</b></article></div></div></article></div>`;
+  const facebookPageAccount = account.platform === 'facebook' && facebookAccountType(account.accountKind || account.driverId).accountKind === 'page';
+  const facebookCloud = facebookPageAccount ? `<article class="ac32-section wide"><header><h3>Facebook 云端离线队列</h3><span>Cloudflare Worker · D1 · R2</span></header><div class="ac32-section-body"><div class="ac32-health"><article><span>Worker 状态</span><b>${htmlText(account.workerStatus || '尚未连接')}</b></article><article><span>等待同步</span><b>${htmlText(account.pendingEvents || 0)}</b></article><article><span>死信事件</span><b>${htmlText(account.deadLetter || 0)}</b></article><article><span>最近 ACK</span><b>${htmlText(account.lastAckAt ? fmtDate(account.lastAckAt) : '尚无')}</b></article><article><span>Page Token</span><b>${htmlText(account.tokenStatus === 'active' ? '云端有效' : account.tokenStatus || '尚未验证')}</b></article></div><div class="ac32-hint" style="margin-top:10px">电脑关闭时，Meta Webhook 由 Cloudflare Worker 接收并暂存到 D1；图片和附件临时保存到 R2。言策上线后按租约拉取，只有成功写入本机 SQLite 后才确认 ACK。Page Token 不会下发到 Windows。</div></div></article>` : '';
+  const facebookReconciliation = facebookPageAccount ? `<article class="ac32-section wide"><header><h3>Business Suite 会话对账</h3><span>${htmlText(account.reconciliationActive?'自动补偿已运行':account.historySyncAvailable===true?'等待启动':'权限阻断')}</span></header><div class="ac32-section-body"><div class="ac32-health"><article><span>历史权限</span><b>${htmlText(account.historySyncAvailable===true?'已授权':'缺少 pages_read_engagement')}</b></article><article><span>周期对账</span><b>${htmlText(account.reconciliationActive?'运行中':'未运行')}</b></article><article><span>当前任务</span><b>${htmlText(account.reconciliationRunning?'正在同步':'空闲')}</b></article><article><span>最近对账</span><b>${htmlText(account.reconciliationLastAt?fmtDate(account.reconciliationLastAt):'尚无')}</b></article><article><span>最近错误</span><b>${htmlText(account.reconciliationLastError||'无')}</b></article></div>${account.historySyncAvailable===true?`<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px"><button class="ac32-button primary" data-panel-action="facebook-sync-now" ${account.reconciliationRunning?'disabled':''}>${htmlText(account.reconciliationRunning?'正在执行对账…':'立即执行会话对账')}</button></div>`:`<div class="ac32-hint bad" style="margin-top:10px">${htmlText(account.historySyncReason||'缺少 pages_read_engagement，无法读取 Meta Business Suite 最近会话')}。请到“登录与凭据”重新授权；未补齐前，旧会话仍可能显示，但新联系人和公共主页后台消息不能保证进入言策。</div>`}</div></article>` : '';
+  return facebookCloud + facebookReconciliation + `<div class="ac32-grid"><article class="ac32-section wide"><header><h3>同步与断线恢复</h3><span>账号独立队列，不阻塞其他平台</span></header><div class="ac32-section-body"><div class="ac32-health"><article><span>实时连接</span><b>${htmlText(account.stateLabel)}</b></article><article><span>最近成功同步</span><b>${htmlText(account.lastSyncAt?new Date(account.lastSyncAt).toLocaleTimeString('zh-CN',{hour12:false}):'尚无')}</b></article><article><span>历史补拉</span><b>${htmlText(historyLabel)}</b>${!historyCapability.supported&&historyReason?`<small>${htmlText(historyReason)}</small>`:''}</article><article><span>当前未读</span><b>${htmlText(account.unread||0)}</b></article><article><span>自动重连</span><b>${htmlText(account.autoReconnect?'开启':'关闭')}</b></article></div></div></article><article class="ac32-section"><header><h3>断线恢复保护</h3><span>幂等</span></header><div class="ac32-section-body"><div class="ac32-action-list"><article class="ac32-action-row"><i>✓</i><div><b>消息去重与乱序恢复</b><p>平台账号、原始会话ID和原始消息ID组成幂等键。</p></div><em>启用</em></article><article class="ac32-action-row"><i>✓</i><div><b>未读与通知去重</b><p>历史补拉不会重复累计未读或重复弹出桌面通知。</p></div><em>启用</em></article><article class="ac32-action-row"><i>✓</i><div><b>媒体任务恢复</b><p>${htmlText(facebookPageAccount?'R2 媒体在本地落盘成功前保留，可重复拉取。':'下载失败保留状态，可重试而不删除聊天记录。')}</p></div><em>启用</em></article></div></div></article><article class="ac32-section"><header><h3>限流与队列</h3><span>平台级隔离</span></header><div class="ac32-section-body"><div class="ac32-fact-grid"><article class="ac32-fact"><span>Flood Wait</span><b>${htmlText(account.floodWaitSeconds?`${account.floodWaitSeconds} 秒`:'无')}</b></article><article class="ac32-fact"><span>发送队列</span><b>独立账号队列</b></article><article class="ac32-fact"><span>失败重试</span><b>指数退避</b></article><article class="ac32-fact"><span>连续失败</span><b>自动暂停路由</b></article></div></div></article></div>`;
 }
 
 function renderNotifications(account) {
@@ -962,12 +987,13 @@ async function cancelTelegramLogin(account) {
   await mutate(`/${encodeURIComponent(account.id)}/telegram/cancel`, 'POST', {}, '正在取消 Telegram 登录…');
 }
 async function startFacebookOAuth(account) {
-  if (!ensureAccountAuthAllowed(account, '启动 Facebook 公共主页授权')) return;
+  const type = facebookAccountType(account.accountKind || account.driverId);
+  if (!ensureAccountAuthAllowed(account, type.accountKind === 'personal-identity' ? '启动 Facebook 个人身份授权' : '启动 Facebook 公共主页授权')) return;
   clearAuthNotice(account.id);
   try {
-    toast('正在打开系统浏览器完成 Facebook 授权…', 'warning');
+    toast(type.accountKind === 'personal-identity' ? '正在打开官方 Facebook Login 读取个人身份…' : '正在打开系统浏览器完成 Facebook 公共主页授权…', 'warning');
     const data = await api(`/${encodeURIComponent(account.id)}/facebook/oauth/start`, { method:'POST', body:{} });
-    state.facebookFlow = { accountId: account.id, ...data.flow, pages: [] };
+    state.facebookFlow = { accountId: account.id, mode: data.flow?.mode || (type.accountKind === 'personal-identity' ? 'identity' : 'page'), ...data.flow, pages: [] };
     state.tab = 'login'; renderWorkbench();
     if (!window.yanceDesktop?.openAuthUrl) throw new Error('当前桌面桥不支持打开安全授权页面');
     await window.yanceDesktop.openAuthUrl(data.flow.authorizationUrl, 'facebook');
@@ -986,6 +1012,15 @@ async function pollFacebookOAuth(account, flowId) {
       const data = await api(`/${encodeURIComponent(account.id)}/facebook/oauth/status?flowId=${encodeURIComponent(flowId)}`);
       state.facebookFlow = { accountId: account.id, flowId, ...data.flow };
       renderWorkbench();
+      if (data.flow.status === 'completed' && data.flow.mode === 'identity') {
+        state.authPollToken += 1;
+        state.facebookFlow = null;
+        await refreshAccounts(false);
+        state.tab = 'login';
+        renderWorkbench();
+        toast('Facebook 个人身份登录完成。该账号只提供身份与头像，不提供 Messenger 私信。');
+        return;
+      }
       if (data.flow.status === 'authorized') { toast('授权完成，请选择要连接的公共主页'); return; }
       if (['denied','error','cancelled'].includes(data.flow.status)) {
         await cancelFacebookOAuth(account, { silent:true, reason:`facebook-oauth-${data.flow.status}` });
@@ -1095,22 +1130,42 @@ function accountForm(account, credentialsOnly = false) {
     return '<div class="ac32-hint bad">平台级发行设置不属于普通用户操作。请返回账号登录页面。</div>';
   }
   if (account) {
-    return `<div class="ac32-form"><label>账号显示名称<input id="ac32FormName" value="${htmlAttr(account.displayName || platformInfo(account.platform).label)}" placeholder="例如：我的 WhatsApp"></label><label>备注<input id="ac32FormIdentity" value="${htmlAttr(account.identityLabel || '')}" placeholder="登录后会自动更新，可留空"></label></div><div class="ac32-hint" style="margin-top:10px">平台身份和内部账号 ID 由系统自动维护，无需手工填写。</div>`;
+    const type = account.platform === 'facebook' ? facebookAccountType(account.accountKind || account.driverId) : null;
+    return `<div class="ac32-form"><label>账号显示名称<input id="ac32FormName" value="${htmlAttr(account.displayName || platformInfo(account.platform).label)}" placeholder="例如：我的 WhatsApp"></label><label>备注<input id="ac32FormIdentity" value="${htmlAttr(account.identityLabel || '')}" placeholder="登录后会自动更新，可留空"></label></div>${type?`<div class="ac32-hint" style="margin-top:10px">账号类型：${htmlText(type.label)}。账号类型和驱动在创建后不可伪装切换。</div>`:'<div class="ac32-hint" style="margin-top:10px">平台身份和内部账号 ID 由系统自动维护，无需手工填写。</div>'}`;
   }
   const platform = 'whatsapp';
   const authConfig = state.data.platformAuth || {};
   return `<div class="ac32-form"><label>选择平台<select id="ac32FormPlatform">${Object.entries(PLATFORM).map(([id,row])=>{ const available = id === 'whatsapp' || authConfig[id]?.available === true; return `<option value="${htmlAttr(id)}" ${platform===id?'selected':''}>${htmlText(row.label)}${available?'':'（本安装包未启用）'}</option>`; }).join('')}</select></label></div><div id="ac32PlatformFields" style="margin-top:10px">${platformFields(platform)}</div>`;
 }
 
-function platformFields(platform) {
+function facebookTypeSelector(selected = 'page') {
+  return `<div class="ac32-form"><label>Facebook 账号类型<select id="ac32FormFacebookKind">${Object.values(FACEBOOK_ACCOUNT_TYPES).map(row => `<option value="${htmlAttr(row.accountKind)}" ${row.accountKind===selected?'selected':''}>${htmlText(row.label)}</option>`).join('')}</select></label></div>`;
+}
+
+function platformFields(platform, facebookKind = 'page') {
   const authConfig = state.data.platformAuth || {};
   if (platform === 'whatsapp') return '<div class="ac32-hint">点击“显示二维码并连接”，然后用手机 WhatsApp 扫码。</div>';
   if (platform === 'telegram') return authConfig.telegram?.available === true
     ? '<div class="ac32-hint">可选择扫描二维码登录，也可使用手机号接收验证码。</div>'
     : '<div class="ac32-hint bad">当前安装包尚未启用 Telegram 登录。升级到已启用版本后即可扫码或使用手机号登录。</div>';
-  return authConfig.facebook?.available === true
-    ? '<div class="ac32-hint">使用拥有公共主页管理权限的个人 Facebook 账号完成授权，言策随后读取并让你选择要连接的公共主页。</div>'
-    : '<div class="ac32-hint bad">当前安装包尚未启用 Facebook 登录。升级到已启用版本后即可通过浏览器授权并选择主页。</div>';
+  const type = facebookAccountType(facebookKind);
+  const contract = driverContract(type.driverId);
+  let detail = '';
+  if (type.accountKind === 'page') detail = '使用拥有公共主页管理权限的个人 Facebook 账号完成官方授权，随后选择需要连接的公共主页。';
+  if (type.accountKind === 'personal-identity') detail = '使用官方 Facebook Login 读取个人身份、名称和头像。个人身份登录不提供 Messenger 私信读取或发送能力。';
+  if (type.accountKind === 'personal-messenger') detail = '这是依赖独立浏览器会话的非官方实验能力，可能因 Meta 页面变化、登录挑战或风控失效；当前浏览器桥尚未达到可验收状态。';
+  const available = authConfig.facebook?.available === true && type.accountKind !== 'personal-messenger' && contract?.onboardingAvailable !== false;
+  return `${facebookTypeSelector(type.accountKind)}<div class="ac32-hint ${htmlAttr(type.accountKind==='personal-messenger'?'bad':'')}">${htmlText(detail)}</div>${authConfig.facebook?.available===true?'':`<div class="ac32-hint bad" style="margin-top:8px">当前安装包尚未启用 Facebook 登录。</div>`}${type.accountKind==='personal-messenger'?`<div class="ac32-hint bad" style="margin-top:8px">非官方实验能力必须独立启用并完成浏览器桥验收；当前不会创建一个无法登录的假账号。</div>`:''}`;
+}
+
+function bindFacebookKindSelector() {
+  const select = document.getElementById('ac32FormFacebookKind');
+  if (!select) return;
+  select.addEventListener('change', event => {
+    document.getElementById('ac32PlatformFields').innerHTML = platformFields('facebook', event.target.value);
+    bindFacebookKindSelector();
+    updateAccountDialogAction('facebook', false);
+  });
 }
 
 function updateAccountDialogAction(platform, editing = false) {
@@ -1122,9 +1177,19 @@ function updateAccountDialogAction(platform, editing = false) {
     return;
   }
   const authConfig = state.data.platformAuth || {};
+  if (platform === 'facebook') {
+    const type = selectedFacebookType();
+    const contract = driverContract(type.driverId);
+    const available = authConfig.facebook?.available === true && type.accountKind !== 'personal-messenger' && contract?.onboardingAvailable !== false;
+    button.disabled = !available;
+    button.textContent = type.accountKind === 'page' ? (available ? '使用管理员账号授权主页' : 'Facebook 主页登录尚未启用')
+      : type.accountKind === 'personal-identity' ? (available ? '使用官方 Facebook Login' : 'Facebook 身份登录尚未启用')
+      : '个人 Messenger 实验驱动尚未开放';
+    return;
+  }
   const available = platform === 'whatsapp' || authConfig[platform]?.available === true;
   button.disabled = !available;
-  button.textContent = platform === 'whatsapp' ? '显示二维码并连接' : platform === 'telegram' ? (available ? '扫描二维码登录' : 'Telegram 登录尚未启用') : (available ? '使用管理员个人账号授权' : 'Facebook 登录尚未启用');
+  button.textContent = platform === 'whatsapp' ? '显示二维码并连接' : platform === 'telegram' ? (available ? '扫描二维码登录' : 'Telegram 登录尚未启用') : '连接账号';
 }
 
 function openAccountDialog(account = null, credentialsOnly = false) {
@@ -1139,8 +1204,10 @@ function openAccountDialog(account = null, credentialsOnly = false) {
   if (select) {
     select.addEventListener('change', event => {
       document.getElementById('ac32PlatformFields').innerHTML = platformFields(event.target.value);
+      bindFacebookKindSelector();
       updateAccountDialogAction(event.target.value, false);
     });
+    bindFacebookKindSelector();
     updateAccountDialogAction(select.value, false);
   } else {
     updateAccountDialogAction(account?.platform || '', Boolean(account) && !credentialsOnly);
@@ -1177,7 +1244,21 @@ async function saveAccountDialog() {
     if (platform === 'facebook' && authConfig.facebook?.available !== true) return setAccountDialogStatus('当前安装包尚未启用 Facebook 登录，请安装已启用平台服务的版本。', 'warning');
 
     const p = platformInfo(platform);
-    const data = await api('', { method:'POST', body:{ platform, displayName:`${p.label} 账号`, identityLabel:'登录后自动识别', authorizationPending:true } });
+    const facebookType = platform === 'facebook' ? selectedFacebookType() : null;
+    const contract = facebookType ? driverContract(facebookType.driverId) : null;
+    if (facebookType?.accountKind === 'personal-messenger') {
+      return setAccountDialogStatus('Facebook 个人 Messenger 属于非官方实验能力，当前浏览器桥尚未完成真实验收，因此不会创建一个无法登录的假账号。', 'warning');
+    }
+    if (facebookType && contract?.onboardingAvailable === false) {
+      return setAccountDialogStatus(`当前驱动尚不可登录：${contract.onboardingReason || 'ONBOARDING_UNAVAILABLE'}`, 'warning');
+    }
+    const accountKind = facebookType?.accountKind || undefined;
+    const driverId = facebookType?.driverId || undefined;
+    const displayName = facebookType?.label || `${p.label} 账号`;
+    const data = await api('', { method:'POST', body:{
+      platform, displayName, identityLabel:'登录后自动识别', authorizationPending:true,
+      ...(accountKind ? { accountKind, driverId, metadata: { accountKind, driverId } } : {})
+    } });
     const account = data.account;
     if (!account) throw new Error('账号创建失败');
     dialog.close();

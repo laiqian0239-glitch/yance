@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: connected WhatsApp source_account_id alias resolves as the bound production account
+ok 1 - connected WhatsApp source_account_id alias resolves as the bound production account
+  ---
+  duration_ms: 0.855897
+  type: 'test'
+  ...
+# Subtest: connected account without confirmed send capability is not mislabeled as a source conflict or reauthentication
+ok 2 - connected account without confirmed send capability is not mislabeled as a source conflict or reauthentication
+  ---
+  duration_ms: 0.966956
+  type: 'test'
+  ...
+# Subtest: reauthorization is only shown for an explicit platform credential state
+ok 3 - reauthorization is only shown for an explicit platform credential state
+  ---
+  duration_ms: 0.390412
+  type: 'test'
+  ...
+# Subtest: platform mismatch remains a hard identity conflict
+ok 4 - platform mismatch remains a hard identity conflict
+  ---
+  duration_ms: 0.130281
+  type: 'test'
+  ...
+# Subtest: an older candidate generation token becomes unusable after a new inbound message
+ok 5 - an older candidate generation token becomes unusable after a new inbound message
+  ---
+  duration_ms: 1.706291
+  type: 'test'
+  ...
+# Subtest: a token cannot be reused with a different latest-message fingerprint
+ok 6 - a token cannot be reused with a different latest-message fingerprint
+  ---
+  duration_ms: 1.276264
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 55.062948

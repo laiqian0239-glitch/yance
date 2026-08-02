@@ -1,0 +1,52 @@
+TAP version 13
+# Subtest: core reply routes require high-capability primary and same-tier fallback
+ok 1 - core reply routes require high-capability primary and same-tier fallback
+  ---
+  duration_ms: 2.996732
+  type: 'test'
+  ...
+# Subtest: a weaker fallback does not count as reliable continuity for a high primary
+ok 2 - a weaker fallback does not count as reliable continuity for a high primary
+  ---
+  duration_ms: 0.467186
+  type: 'test'
+  ...
+# Subtest: conditional trial remains visible and requires human review
+ok 3 - conditional trial remains visible and requires human review
+  ---
+  duration_ms: 0.307726
+  type: 'test'
+  ...
+# Subtest: emergency output is explicitly isolated from long-term learning
+ok 4 - emergency output is explicitly isolated from long-term learning
+  ---
+  duration_ms: 2.212191
+  type: 'test'
+  ...
+# Subtest: failure classification prefers same-tier recovery actions
+ok 5 - failure classification prefers same-tier recovery actions
+  ---
+  duration_ms: 0.345086
+  type: 'test'
+  ...
+# Subtest: translation quality is evaluated independently from social reply quality
+ok 6 - translation quality is evaluated independently from social reply quality
+  ---
+  duration_ms: 0.178751
+  type: 'test'
+  ...
+# Subtest: learning synthesis can reach high tier only through a fully qualified director-grade model
+ok 7 - learning synthesis can reach high tier only through a fully qualified director-grade model
+  ---
+  duration_ms: 0.2507
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 74.739504

@@ -3,6 +3,11 @@
 const { TASKS } = require('../../shared/constants');
 const replyBrainAuthority = require('./replyBrainModelAuthority');
 const taskRuntimePolicy = require('./modelTaskRuntimePolicy');
+const modelCapabilityAuthority = require('./modelCapabilityAuthority');
+const roleReceiptAuthority = require('./aiRoleQualificationReceiptAuthority');
+const replyChampionAuthority = require('./replyChampionAuthority');
+const workloadPlacementAuthority = require('./aiWorkloadPlacementAuthority');
+const routeResolutionAuthority = require('./aiRouteResolutionAuthority');
 
 const TASK_ALIASES = Object.freeze({
   reply: 'quick_reply',
@@ -42,6 +47,7 @@ function parseParameterBillions(model = {}) {
 
 function modelTaskPolicyAllows(model, task) {
   const target = normalizedTask(task);
+  if (!modelCapabilityAuthority.supportsTask(model, target)) return false;
   const taskEligibility = model?.catalogMetadata?.taskEligibility;
   if (taskEligibility && typeof taskEligibility === 'object') {
     const role = target === 'media_analysis'
@@ -59,13 +65,33 @@ function modelTaskPolicyAllows(model, task) {
   return true;
 }
 
+function onboardingConditionalTaskEligible(model = {}, task = '') {
+  const target = normalizedTask(task);
+  const allowed = new Set(Array.isArray(model.allowedTasks) ? model.allowedTasks : []);
+  const smokePassed = model.onboardingSmokeStatus === 'passed' || model.openRouterOnboardingSmoke?.pass === true;
+  return String(model.qualification || '') === 'experimental' && smokePassed && allowed.has(target);
+}
+
 function eligibleForTask(model, task, options = {}) {
   if (!model || model.available === false || model.userDisabled === true || !modelTaskPolicyAllows(model, task)) return false;
   const qualification = String(model.qualification || '');
   const target = normalizedTask(task);
+  const receiptDecision = roleReceiptAuthority.GOVERNED_TASKS.includes(target)
+    ? roleReceiptAuthority.validate(model, target, { now: options.now })
+    : { pass: true };
   if (REPLY_BENCHMARK_TASKS.has(target)) {
-    if (replyBrainAuthority.replyBrainQualified(model)) return true;
+    const formallyQualified = replyBrainAuthority.replyBrainQualified(model);
+    if (formallyQualified) return receiptDecision.pass === true;
     if (options.allowConditional === true && replyBrainAuthority.manualRouteEligible(model, target)) return true;
+    return false;
+  }
+  if (target === 'translation') {
+    if (receiptDecision.pass === true) return true;
+    if (options.allowConditional === true) {
+      const allowed = new Set(Array.isArray(model.allowedTasks) ? model.allowedTasks : []);
+      return (qualification === 'verified' && allowed.has('translation'))
+        || onboardingConditionalTaskEligible(model, 'translation');
+    }
     return false;
   }
   if (qualification !== 'verified' && !(options.allowExperimental === true && qualification === 'experimental')) return false;
@@ -110,55 +136,123 @@ function routeCandidateScore(model, task) {
 }
 
 function candidatesForTask(models, task, options = {}) {
+  const target = normalizedTask(task);
+  const sourceModels = Array.isArray(models) ? models : [];
+  const byId = new Map(sourceModels.map(model => [cleanModelId(model.id), model]));
+  const placement = workloadPlacementAuthority.rankCandidates(sourceModels, target, {
+    translationProfile: target === 'translation' ? (options.translationProfile || 'outbound') : '',
+    background: options.background === true,
+    now: options.now,
+    maxFallbackScoreGap: options.maxFallbackScoreGap
+  });
+  const selected = placement.candidates
+    .map(row => byId.get(cleanModelId(row.modelId)))
+    .filter(Boolean);
+  if (selected.length || target === 'translation') return selected;
   const allowExperimental = options.allowExperimental !== false;
   const allowConditional = options.allowConditional === true;
-  return (Array.isArray(models) ? models : [])
-    .filter(model => eligibleForTask(model, task, { allowExperimental, allowConditional }))
-    .sort((a, b) => routeCandidateScore(b, task) - routeCandidateScore(a, task));
+  if (replyChampionAuthority.isFormalReplyTask(target) && !allowConditional) return [];
+  return sourceModels
+    .filter(model => eligibleForTask(model, target, { allowExperimental, allowConditional, now: options.now }))
+    .sort((a, b) => routeCandidateScore(b, target) - routeCandidateScore(a, target));
 }
 
 function normalizeRoute(route = {}, task = '') {
-  if (typeof route === 'string') return {
-    primary: cleanModelId(route), fallback: '', requestedPrimary: cleanModelId(route), requestedFallback: '',
-    allowExperimental: false, allowConditional: false, allowCloudFallback: true, humanReviewRequired: false,
-    primarySelection: 'manual', fallbackSelection: 'auto', requestedEnabled: true, enabled: true, operational: true,
-    maxTokens: taskRuntimePolicy.normalizeMaxTokens(task, 0), timeoutMs: taskRuntimePolicy.normalizeTimeoutMs(task, 0), source: '', autoSelectionReason: '', updatedAt: ''
-  };
-  const primary = cleanModelId(route?.primary);
-  const fallback = cleanModelId(route?.fallback);
-  const primarySelection = String(route?.primarySelection || (primary ? 'manual' : 'auto')).trim() === 'auto' ? 'auto' : 'manual';
-  const fallbackSelection = String(route?.fallbackSelection || (fallback ? 'manual' : 'auto')).trim() === 'manual' ? 'manual' : 'auto';
-  const requestedEnabled = route?.requestedEnabled !== undefined
-    ? route.requestedEnabled !== false
-    : route?.enabled !== false;
+  const v2 = routeResolutionAuthority.normalizeRouteV2(route, task);
+  const source = typeof route === 'string' ? { primary: route } : (route && typeof route === 'object' ? route : {});
+  const primary = v2.legacy.primary;
+  const fallback = v2.legacy.fallback;
+  const primarySelection = v2.legacy.primarySelection;
+  const fallbackSelection = v2.legacy.fallbackSelection;
+  const requestedEnabled = v2.legacy.requestedEnabled;
   return {
+    authority: v2.authority,
+    schemaVersion: v2.schemaVersion,
+    requested: v2.requested,
+    resolved: v2.resolved,
+    resolutionState: v2.resolutionState,
+    reasonCodes: [...v2.reasonCodes],
     primary,
     fallback,
-    requestedPrimary: primarySelection === 'manual' ? cleanModelId(route?.requestedPrimary || primary) : '',
-    requestedFallback: fallbackSelection === 'manual' ? cleanModelId(route?.requestedFallback || fallback) : '',
-    allowExperimental: route?.allowExperimental === true,
-    allowConditional: route?.allowConditional === true,
-    allowCloudFallback: route?.allowCloudFallback !== false,
-    humanReviewRequired: route?.humanReviewRequired === true || route?.allowConditional === true,
-    allowEmergency: route?.allowEmergency === true,
-    emergency: cleanModelId(route?.emergency || route?.emergencyModelId),
-    emergencyModelId: cleanModelId(route?.emergency || route?.emergencyModelId),
+    requestedPrimary: v2.legacy.requestedPrimary,
+    requestedFallback: v2.legacy.requestedFallback,
+    allowExperimental: source.allowExperimental === true,
+    allowConditional: source.allowConditional === true,
+    allowCloudFallback: source.allowCloudFallback !== false,
+    humanReviewRequired: source.humanReviewRequired === true || source.allowConditional === true,
+    allowEmergency: source.allowEmergency === true,
+    emergency: cleanModelId(source.emergency || source.emergencyModelId),
+    emergencyModelId: cleanModelId(source.emergency || source.emergencyModelId),
     emergencyLearningEligible: false,
-    qualityPolicyVersion: String(route?.qualityPolicyVersion || 'ai-quality-cloud-first-v2'),
+    qualityPolicyVersion: String(source.qualityPolicyVersion || 'ai-champion-brain-v2'),
+    maxFallbackScoreGap: Math.max(0, Number(source.maxFallbackScoreGap ?? replyChampionAuthority.DEFAULT_MAX_FALLBACK_SCORE_GAP)),
     primarySelection,
     fallbackSelection,
     requestedEnabled,
     enabled: requestedEnabled,
     operational: requestedEnabled && Boolean(primary),
-    maxTokens: taskRuntimePolicy.normalizeMaxTokens(task, route?.maxTokens),
-    timeoutMs: taskRuntimePolicy.normalizeTimeoutMs(task, route?.timeoutMs),
-    source: String(route?.source || ''),
-    autoSelectionReason: String(route?.autoSelectionReason || ''),
-    historyPrimary: cleanModelId(route?.historyPrimary),
-    historyFallback: cleanModelId(route?.historyFallback),
-    offlineFallback: cleanModelId(route?.offlineFallback),
-    profiles: route?.profiles && typeof route.profiles === 'object' ? { ...route.profiles } : {},
-    updatedAt: String(route?.updatedAt || '')
+    maxTokens: taskRuntimePolicy.normalizeMaxTokens(task, source.maxTokens),
+    timeoutMs: taskRuntimePolicy.normalizeTimeoutMs(task, source.timeoutMs),
+    source: String(source.source || ''),
+    autoSelectionReason: String(source.autoSelectionReason || ''),
+    historyPrimary: cleanModelId(source.historyPrimary),
+    historyFallback: cleanModelId(source.historyFallback),
+    offlineFallback: cleanModelId(source.offlineFallback),
+    profiles: source.profiles && typeof source.profiles === 'object' ? { ...source.profiles } : {},
+    updatedAt: String(source.updatedAt || '')
+  };
+}
+
+function projectResolvedRouteV2(route = {}, task = '', byId = new Map()) {
+  const primaryModel = byId.get(cleanModelId(route.primary));
+  const fallbackModel = byId.get(cleanModelId(route.fallback));
+  const primaryReason = cleanModelId(route.primary)
+    ? route.primarySelection === 'auto'
+      ? (route.allowConditional === true ? 'AUTO_CONDITIONAL_CHALLENGER_SELECTED' : 'AUTO_CHAMPION_SELECTED')
+      : 'MANUAL_MODEL_SELECTED'
+    : 'PRIMARY_MODEL_UNRESOLVED';
+  const fallbackReason = cleanModelId(route.fallback)
+    ? route.fallbackSelection === 'auto'
+      ? 'AUTO_FALLBACK_PROVIDER_INDEPENDENT'
+      : (routeResolutionAuthority.providerFailureDomain(fallbackModel || {}) === routeResolutionAuthority.providerFailureDomain(primaryModel || {})
+        ? 'MANUAL_FALLBACK_SHARED_PROVIDER_DOMAIN'
+        : 'MANUAL_FALLBACK_PROVIDER_INDEPENDENT')
+    : route.fallbackSelection === 'auto'
+      ? 'NO_QUALIFIED_INDEPENDENT_FALLBACK'
+      : 'FALLBACK_NOT_REQUESTED';
+  const requested = {
+    enabled: route.requestedEnabled !== false,
+    primary: {
+      mode: route.primarySelection === 'auto' ? 'auto' : 'manual',
+      modelId: route.primarySelection === 'manual' ? cleanModelId(route.requestedPrimary || route.primary) : ''
+    },
+    fallback: {
+      mode: route.fallbackSelection === 'manual' ? 'manual' : 'auto',
+      modelId: route.fallbackSelection === 'manual' ? cleanModelId(route.requestedFallback || route.fallback) : ''
+    }
+  };
+  const resolved = {
+    primary: {
+      modelId: cleanModelId(route.primary),
+      provider: routeResolutionAuthority.providerFailureDomain(primaryModel || {}),
+      reasonCode: primaryReason
+    },
+    fallback: {
+      modelId: cleanModelId(route.fallback),
+      provider: cleanModelId(route.fallback) ? routeResolutionAuthority.providerFailureDomain(fallbackModel || {}) : '',
+      reasonCode: fallbackReason
+    }
+  };
+  const v2 = routeResolutionAuthority.normalizeRouteV2({ requested, resolved }, task);
+  return {
+    ...route,
+    authority: v2.authority,
+    schemaVersion: v2.schemaVersion,
+    requested: v2.requested,
+    resolved: v2.resolved,
+    resolutionState: v2.resolutionState,
+    reasonCodes: [...v2.reasonCodes],
+    ...v2.legacy
   };
 }
 
@@ -228,36 +322,57 @@ function repairRegistryDocument(document = {}, options = {}) {
     }
 
     if (options.autoSelectVerified !== false && next.enabled !== false) {
-      const allCandidates = candidatesForTask(models, task, { allowExperimental: true, allowConditional: REPLY_BENCHMARK_TASKS.has(task) });
+      const formalReplyTask = replyChampionAuthority.isFormalReplyTask(task);
+      const championDecision = formalReplyTask
+        ? replyChampionAuthority.decide(models, task, {
+            now: options.now,
+            maxFallbackScoreGap: Number(next.maxFallbackScoreGap || replyChampionAuthority.DEFAULT_MAX_FALLBACK_SCORE_GAP)
+          })
+        : null;
+      const conditionalAutoTrial = Boolean(formalReplyTask && championDecision?.pass !== true && next.allowConditional === true);
+      const allCandidates = candidatesForTask(models, task, {
+        allowExperimental: true,
+        allowConditional: conditionalAutoTrial,
+        translationProfile: normalizedTask(task) === 'translation' ? 'outbound' : '',
+        maxFallbackScoreGap: Number(next.maxFallbackScoreGap || replyChampionAuthority.DEFAULT_MAX_FALLBACK_SCORE_GAP)
+      });
       const candidates = normalizedTask(task) === 'translation' && next.allowCloudFallback !== true
         ? allCandidates.filter(model => model.provider === 'ollama')
         : allCandidates;
       const autoPrimary = next.primarySelection === 'auto';
       const autoFallback = next.fallbackSelection === 'auto';
-      const authoritySelected = /commercial-model-benchmark|reply-brain-benchmark/iu.test(String(next.source || '')) && Boolean(next.primary);
-      if (autoPrimary && candidates[0] && !authoritySelected) {
-        next.primary = candidates[0].id;
+      const source = formalReplyTask
+        ? (conditionalAutoTrial ? 'reply-conditional-authority-auto' : 'reply-champion-authority-auto')
+        : 'workload-placement-authority-auto';
+      if (autoPrimary) {
+        next.primary = candidates[0]?.id || '';
         next.requestedPrimary = '';
-        next.allowExperimental = candidates[0].qualification === 'experimental';
-        const primaryQualification = REPLY_BENCHMARK_TASKS.has(task) ? replyBrainAuthority.taskQualification(candidates[0], task) : null;
-        next.allowConditional = next.allowConditional || Boolean(primaryQualification && !primaryQualification.full);
-        next.humanReviewRequired = next.humanReviewRequired || next.allowConditional;
-        next.autoSelectionReason = primaryQualification ? `${candidates[0].name}：${primaryQualification.reason}` : `${candidates[0].name}：当前任务评分最高`;
-        next.source = 'routing-authority-auto';
+        next.allowExperimental = false;
+        next.allowConditional = conditionalAutoTrial;
+        next.humanReviewRequired = conditionalAutoTrial;
+        next.autoSelectionReason = candidates[0]
+          ? conditionalAutoTrial
+            ? `${candidates[0].name}：当前无正式冠军，按专项评估门槛进入条件试运行，必须人工确认`
+            : `${candidates[0].name}：由${source === 'reply-champion-authority-auto' ? '任务冠军权威' : '工作负载分层权威'}选定`
+          : '当前任务没有通过权威门禁的模型';
+        next.source = source;
         next.updatedAt = new Date().toISOString();
       }
-      if (autoFallback && !authoritySelected) {
-        const fallback = candidates.find(model => model.id !== next.primary);
+      if (autoFallback) {
+        const primaryModel = byId.get(next.primary);
+        const primaryDomain = routeResolutionAuthority.providerFailureDomain(primaryModel || {});
+        const fallback = candidates.find(model => model.id !== next.primary
+          && routeResolutionAuthority.providerFailureDomain(model) !== primaryDomain);
         next.fallback = fallback?.id || '';
         next.requestedFallback = '';
-        if (fallback) {
-          next.allowExperimental = next.allowExperimental || fallback.qualification === 'experimental';
-          const fallbackQualification = REPLY_BENCHMARK_TASKS.has(task) ? replyBrainAuthority.taskQualification(fallback, task) : null;
-          next.allowConditional = next.allowConditional || Boolean(fallbackQualification && !fallbackQualification.full);
-          next.humanReviewRequired = next.humanReviewRequired || next.allowConditional;
-          next.source = 'routing-authority-auto';
-          next.updatedAt = new Date().toISOString();
-        }
+        next.source = source;
+        next.updatedAt = new Date().toISOString();
+      }
+      if (task === 'translation') {
+        const historyCandidates = candidatesForTask(models, 'translation', { translationProfile: 'history', allowConditional: false });
+        if (!next.historyPrimary || next.primarySelection === 'auto') next.historyPrimary = historyCandidates[0]?.id || '';
+        if (!next.historyFallback || next.fallbackSelection === 'auto') next.historyFallback = historyCandidates.find(model => model.id !== next.historyPrimary)?.id || '';
+        if (!next.offlineFallback || next.primarySelection === 'auto') next.offlineFallback = historyCandidates.find(model => model.provider === 'ollama')?.id || next.historyPrimary || '';
       }
     }
 
@@ -276,8 +391,9 @@ function repairRegistryDocument(document = {}, options = {}) {
     next.requestedEnabled = next.requestedEnabled !== false;
     next.enabled = next.requestedEnabled;
     next.operational = next.requestedEnabled && Boolean(next.primary);
-    repaired[task] = next;
-    if (JSON.stringify(normalizeRoute(routes[task] || {}, task)) !== JSON.stringify(next)) changed = true;
+    const projectedNext = projectResolvedRouteV2(next, task, byId);
+    repaired[task] = projectedNext;
+    if (JSON.stringify(normalizeRoute(routes[task] || {}, task)) !== JSON.stringify(projectedNext)) changed = true;
   }
 
   return {
@@ -318,6 +434,7 @@ module.exports = {
   normalizedTask,
   eligibleForTask,
   normalizeRoute,
+  projectResolvedRouteV2,
   repairRegistryDocument,
   validateRoutes,
   configuredRouteCount,
@@ -328,5 +445,6 @@ module.exports = {
   isCoderModel,
   isTranslationModel,
   parseParameterBillions,
-  taskRuntimePolicy
+  taskRuntimePolicy,
+  modelCapabilityAuthority
 };

@@ -1,0 +1,42 @@
+TAP version 13
+# (node:19849) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: explicit inbound facts persist and publish a profile refresh without requiring a model
+ok 1 - explicit inbound facts persist and publish a profile refresh without requiring a model
+  ---
+  duration_ms: 331.310517
+  type: 'test'
+  ...
+# Subtest: automatic inbound processing extracts explicit facts before checking model availability
+ok 2 - automatic inbound processing extracts explicit facts before checking model availability
+  ---
+  duration_ms: 328.066788
+  type: 'test'
+  ...
+# Subtest: production UI refreshes profile projection when explicit facts arrive
+ok 3 - production UI refreshes profile projection when explicit facts arrive
+  ---
+  duration_ms: 1.803279
+  type: 'test'
+  ...
+# Subtest: social ingestion updates relationship and memory, and reply brain receives the confirmed facts
+ok 4 - social ingestion updates relationship and memory, and reply brain receives the confirmed facts
+  ---
+  duration_ms: 43.411727
+  type: 'test'
+  ...
+# Subtest: legacy social event bridge listens to authoritative store events instead of recursively republishing itself
+ok 5 - legacy social event bridge listens to authoritative store events instead of recursively republishing itself
+  ---
+  duration_ms: 0.45997
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 769.700207

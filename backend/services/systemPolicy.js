@@ -1,21 +1,13 @@
 'use strict';
 
-const { SqliteDocumentStore } = require('../lib/sqliteDocumentStore');
+const repository = require('./systemPolicyRepository');
+const { normalizeSystemPolicy, assertWriteAllowedFromPolicy } = require('./systemPolicyCore');
 const eventBus = require('./eventBus');
 const logger = require('./logger');
 
-const store = new SqliteDocumentStore('system-policy', {
-  schemaVersion: 1,
-  emergencyStop: false,
-  privacyMode: true,
-  reason: '',
-  updatedAt: '',
-  updatedBy: 'system'
-});
-
 function read() {
-  const { safeMode: _legacySafeMode, ...value } = store.read();
-  return { ...value, operatingModeAuthority: 'runtime_state.operating_mode' };
+  const value = repository.read();
+  return { ...value, ...normalizeSystemPolicy(value) };
 }
 
 async function update(patch = {}, actor = 'desktop-user') {
@@ -33,28 +25,18 @@ async function update(patch = {}, actor = 'desktop-user') {
   if (Object.prototype.hasOwnProperty.call(nextPatch, 'emergencyStop')) nextPatch.emergencyStop = Boolean(nextPatch.emergencyStop);
   if (Object.prototype.hasOwnProperty.call(nextPatch, 'privacyMode')) nextPatch.privacyMode = Boolean(nextPatch.privacyMode);
   if (Object.prototype.hasOwnProperty.call(nextPatch, 'reason')) nextPatch.reason = String(nextPatch.reason || '').slice(0, 240);
-  const value = await store.update(current => ({
-    ...current,
-    ...nextPatch,
-    updatedAt: new Date().toISOString(),
-    updatedBy: String(actor || 'desktop-user').slice(0, 80)
-  }));
+  const value = await repository.update(nextPatch, actor);
   logger.warn('system', 'system-policy-updated', {
     emergencyStop: value.emergencyStop,
     privacyMode: value.privacyMode,
     actor: value.updatedBy
   });
   eventBus.publish('system:policy-updated', value);
-  return value;
+  return { ...value, ...normalizeSystemPolicy(value) };
 }
 
 function assertWriteAllowed(action = 'write') {
-  const value = read();
-  if (!value.emergencyStop) return true;
-  const error = new Error(`全局紧急停止已开启，已阻止操作：${action}`);
-  error.code = 'GLOBAL_WRITE_BLOCKED';
-  error.status = 423;
-  throw error;
+  return assertWriteAllowedFromPolicy(read(), action);
 }
 
 module.exports = { read, update, assertWriteAllowed };

@@ -1,0 +1,444 @@
+
+> yance-desktop@0.0.0-development test:wp5
+> node --test --test-concurrency=1 tests/wp5/*.test.js
+
+TAP version 13
+# Subtest: self-contained Windows evidence fixture reconstructs validation-kit source binding
+ok 1 - self-contained Windows evidence fixture reconstructs validation-kit source binding
+  ---
+  duration_ms: 2.695954
+  type: 'test'
+  ...
+# Subtest: self-contained raw Windows evidence has complete real-host PASS checks
+ok 2 - self-contained raw Windows evidence has complete real-host PASS checks
+  ---
+  duration_ms: 1.128452
+  type: 'test'
+  ...
+# Subtest: formal verify order imports Windows evidence before adversarial review and generates R5 evidence
+ok 3 - formal verify order imports Windows evidence before adversarial review and generates R5 evidence
+  ---
+  duration_ms: 0.204393
+  type: 'test'
+  ...
+# Subtest: WP3 and WP4 evidence generators support output roots outside the source repository
+ok 4 - WP3 and WP4 evidence generators support output roots outside the source repository
+  ---
+  duration_ms: 0.859814
+  type: 'test'
+  ...
+# Subtest: WP3 evidence generator is import-safe and isolates singleton execution
+ok 5 - WP3 evidence generator is import-safe and isolates singleton execution
+  ---
+  duration_ms: 0.17542
+  type: 'test'
+  ...
+# Subtest: WP4 required-test evidence does not depend on shell glob expansion
+ok 6 - WP4 required-test evidence does not depend on shell glob expansion
+  ---
+  duration_ms: 0.822369
+  type: 'test'
+  ...
+# Subtest: safeMode is forbidden as Electron desktop persistence and absent from legacy normalized settings
+ok 7 - safeMode is forbidden as Electron desktop persistence and absent from legacy normalized settings
+  ---
+  duration_ms: 0.887585
+  type: 'test'
+  ...
+# Subtest: external Yance27 JSON migration verifies content-level source immutability and never archives source
+ok 8 - external Yance27 JSON migration verifies content-level source immutability and never archives source
+  ---
+  duration_ms: 331.118755
+  type: 'test'
+  ...
+# Subtest: external Yance27 source mutation during import is detected and fails closed
+ok 9 - external Yance27 source mutation during import is detected and fails closed
+  ---
+  duration_ms: 329.940349
+  type: 'test'
+  ...
+# Subtest: safeModeService is read-only and reflects only the bound runtime authority
+ok 10 - safeModeService is read-only and reflects only the bound runtime authority
+  ---
+  duration_ms: 1.590506
+  type: 'test'
+  ...
+# Subtest: desktop settings discard legacy safeMode and cannot persist it
+ok 11 - desktop settings discard legacy safeMode and cannot persist it
+  ---
+  duration_ms: 0.226004
+  type: 'test'
+  ...
+# Subtest: production startup and discovery contain no executable safe-mode environment fallback or broad legacy scan
+ok 12 - production startup and discovery contain no executable safe-mode environment fallback or broad legacy scan
+  ---
+  duration_ms: 0.336198
+  type: 'test'
+  ...
+# Subtest: production source has no fallback from authority failure to legacy mode
+ok 13 - production source has no fallback from authority failure to legacy mode
+  ---
+  duration_ms: 0.797491
+  type: 'test'
+  ...
+# (node:18056) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: repeated startup keeps one receipt and one authority initialization
+ok 14 - repeated startup keeps one receipt and one authority initialization
+  ---
+  duration_ms: 265.89174
+  type: 'test'
+  ...
+# (node:18063) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: legacy SQLite is opened read-only and no marker is written into Yance27
+ok 15 - legacy SQLite is opened read-only and no marker is written into Yance27
+  ---
+  duration_ms: 276.842519
+  type: 'test'
+  ...
+# (node:18070) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: no Yance27 owner record clears the cutover gate without mutation
+ok 16 - no Yance27 owner record clears the cutover gate without mutation
+  ---
+  duration_ms: 1.808629
+  type: 'test'
+  ...
+# Subtest: identity-matched live Yance27 owner is contained and real exit is confirmed
+ok 17 - identity-matched live Yance27 owner is contained and real exit is confirmed
+  ---
+  duration_ms: 1.811543
+  type: 'test'
+  ...
+# Subtest: PID reuse is not killed and is treated as a cleared stale legacy owner
+ok 18 - PID reuse is not killed and is treated as a cleared stale legacy owner
+  ---
+  duration_ms: 0.561281
+  type: 'test'
+  ...
+# Subtest: live owner with unverifiable identity blocks Yance startup
+ok 19 - live owner with unverifiable identity blocks Yance startup
+  ---
+  duration_ms: 0.821297
+  type: 'test'
+  ...
+# Subtest: semantically invalid owner registry blocks without overwriting Yance27
+ok 20 - semantically invalid owner registry blocks without overwriting Yance27
+  ---
+  duration_ms: 0.680448
+  type: 'test'
+  ...
+# Subtest: current Windows process identity is derived locally without spawning a CIM probe
+ok 21 - current Windows process identity is derived locally without spawning a CIM probe
+  ---
+  duration_ms: 0.953583
+  type: 'test'
+  ...
+# Subtest: fresh live owner avoids expensive identity capture until PID-reuse evidence is needed
+ok 22 - fresh live owner avoids expensive identity capture until PID-reuse evidence is needed
+  ---
+  duration_ms: 0.212615
+  type: 'test'
+  ...
+# Subtest: Windows v3 identity comparison tolerates clock sampling drift but rejects PID reuse
+ok 23 - Windows v3 identity comparison tolerates clock sampling drift but rejects PID reuse
+  ---
+  duration_ms: 0.233897
+  type: 'test'
+  ...
+# Subtest: legacy Windows v2 lock identity remains comparable with v3 capture
+ok 24 - legacy Windows v2 lock identity remains comparable with v3 capture
+  ---
+  duration_ms: 0.21632
+  type: 'test'
+  ...
+# Subtest: stale live PID with a different comparable identity is reclaimable
+ok 25 - stale live PID with a different comparable identity is reclaimable
+  ---
+  duration_ms: 0.181589
+  type: 'test'
+  ...
+# Subtest: claimOwnership writes a lockfile with identity + heartbeat
+ok 26 - claimOwnership writes a lockfile with identity + heartbeat
+  ---
+  duration_ms: 0.800055
+  type: 'test'
+  ...
+# Subtest: a second claim while the first owner is live throws SQLITE_OWNERSHIP_CONFLICT
+ok 27 - a second claim while the first owner is live throws SQLITE_OWNERSHIP_CONFLICT
+  ---
+  duration_ms: 0.473241
+  type: 'test'
+  ...
+# Subtest: a stale lock is taken over by a new owner
+ok 28 - a stale lock is taken over by a new owner
+  ---
+  duration_ms: 0.294145
+  type: 'test'
+  ...
+# Subtest: heartbeat refreshes lastHeartbeatMs; release removes the lockfile only if ours
+ok 29 - heartbeat refreshes lastHeartbeatMs; release removes the lockfile only if ours
+  ---
+  duration_ms: 0.622242
+  type: 'test'
+  ...
+# Subtest: isLive reflects the staleness window
+ok 30 - isLive reflects the staleness window
+  ---
+  duration_ms: 0.317591
+  type: 'test'
+  ...
+# Subtest: claimOwnership records schemaVersion and rejects a missing dbPath
+ok 31 - claimOwnership records schemaVersion and rejects a missing dbPath
+  ---
+  duration_ms: 1.421095
+  type: 'test'
+  ...
+# Subtest: a fresh heartbeat with a DEAD owner pid is reclaimed (no conflict)
+ok 32 - a fresh heartbeat with a DEAD owner pid is reclaimed (no conflict)
+  ---
+  duration_ms: 0.265544
+  type: 'test'
+  ...
+# Subtest: a fresh heartbeat with an ALIVE owner pid still conflicts
+ok 33 - a fresh heartbeat with an ALIVE owner pid still conflicts
+  ---
+  duration_ms: 0.309989
+  type: 'test'
+  ...
+# Subtest: isOwnerActive combines heartbeat and pid liveness
+ok 34 - isOwnerActive combines heartbeat and pid liveness
+  ---
+  duration_ms: 0.159867
+  type: 'test'
+  ...
+# Subtest: a second claim from the SAME pid is a re-entrant open and does not throw
+ok 35 - a second claim from the SAME pid is a re-entrant open and does not throw
+  ---
+  duration_ms: 0.354265
+  type: 'test'
+  ...
+# Subtest: a second claim from a DIFFERENT alive pid still conflicts (cross-process guard intact)
+ok 36 - a second claim from a DIFFERENT alive pid still conflicts (cross-process guard intact)
+  ---
+  duration_ms: 0.201659
+  type: 'test'
+  ...
+# Subtest: a malformed ownership lock fails closed instead of being silently replaced
+ok 37 - a malformed ownership lock fails closed instead of being silently replaced
+  ---
+  duration_ms: 0.170082
+  type: 'test'
+  ...
+# Subtest: an unreadable ownership lock fails closed instead of assuming there is no owner
+ok 38 - an unreadable ownership lock fails closed instead of assuming there is no owner
+  ---
+  duration_ms: 0.168129
+  type: 'test'
+  ...
+# (node:18084) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: R32SqliteStore claims ownership and rejects a second live instance (different pid)
+ok 39 - R32SqliteStore claims ownership and rejects a second live instance (different pid)
+  ---
+  duration_ms: 244.688386
+  type: 'test'
+  ...
+# Subtest: same-process re-entrant open (same pid) is benign and does NOT throw
+ok 40 - same-process re-entrant open (same pid) is benign and does NOT throw
+  ---
+  duration_ms: 241.712826
+  type: 'test'
+  ...
+# Subtest: after close, a new instance can re-acquire the same db path
+ok 41 - after close, a new instance can re-acquire the same db path
+  ---
+  duration_ms: 239.794365
+  type: 'test'
+  ...
+# Subtest: opening a newer-schema DB with an older binary fails with SCHEMA_VERSION_AHEAD
+ok 42 - opening a newer-schema DB with an older binary fails with SCHEMA_VERSION_AHEAD
+  ---
+  duration_ms: 225.890624
+  type: 'test'
+  ...
+# Subtest: unversioned existing database is backed up and records a committed migration receipt before schema adoption
+ok 43 - unversioned existing database is backed up and records a committed migration receipt before schema adoption
+  ---
+  duration_ms: 233.566707
+  type: 'test'
+  ...
+# (node:18091) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: operating mode command persists applies publishes and replays without a second revision
+ok 44 - operating mode command persists applies publishes and replays without a second revision
+  ---
+  duration_ms: 267.310888
+  type: 'test'
+  ...
+# Subtest: same commandId with a different mutation is rejected before any second side effect
+ok 45 - same commandId with a different mutation is rejected before any second side effect
+  ---
+  duration_ms: 255.726685
+  type: 'test'
+  ...
+# Subtest: apply failure leaves a recoverable durable command and same command resumes without another revision
+ok 46 - apply failure leaves a recoverable durable command and same command resumes without another revision
+  ---
+  duration_ms: 250.080925
+  type: 'test'
+  ...
+# Subtest: startup reconcile validates ledger against authority before applying any mode
+ok 47 - startup reconcile validates ledger against authority before applying any mode
+  ---
+  duration_ms: 263.980213
+  type: 'test'
+  ...
+# Subtest: generic runtime state and command writers cannot bypass the operating mode gateway
+ok 48 - generic runtime state and command writers cannot bypass the operating mode gateway
+  ---
+  duration_ms: 252.287729
+  type: 'test'
+  ...
+# Subtest: concurrent identical commandId shares one in-flight apply and publication
+ok 49 - concurrent identical commandId shares one in-flight apply and publication
+  ---
+  duration_ms: 268.182804
+  type: 'test'
+  ...
+# Subtest: publish failure is recovered from durable authority after a real ownership restart
+ok 50 - publish failure is recovered from durable authority after a real ownership restart
+  ---
+  duration_ms: 340.120032
+  type: 'test'
+  ...
+# Subtest: startup recovery uses the durable operating-mode revision after lifecycle transitions advance global stateVersion
+ok 51 - startup recovery uses the durable operating-mode revision after lifecycle transitions advance global stateVersion
+  ---
+  duration_ms: 319.260797
+  type: 'test'
+  ...
+# Subtest: durable operating-mode revision survives event retention pruning and restart
+ok 52 - durable operating-mode revision survives event retention pruning and restart
+  ---
+  duration_ms: 316.994329
+  type: 'test'
+  ...
+# Subtest: renderer presents safe mode only from backend policy authority and has no desktop restart fallback
+ok 53 - renderer presents safe mode only from backend policy authority and has no desktop restart fallback
+  ---
+  duration_ms: 1.232145
+  type: 'test'
+  ...
+# (node:18105) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: fresh initialization persists normal authority and a committed migration receipt
+ok 54 - fresh initialization persists normal authority and a committed migration receipt
+  ---
+  duration_ms: 311.16341
+  type: 'test'
+  ...
+# Subtest: Yance27 runtime authority is read-only and becomes the one-time Yance authority
+ok 55 - Yance27 runtime authority is read-only and becomes the one-time Yance authority
+  ---
+  duration_ms: 308.687677
+  type: 'test'
+  ...
+# Subtest: conflicting Yance27 candidates fail closed without creating Yance runtime_state
+ok 56 - conflicting Yance27 candidates fail closed without creating Yance runtime_state
+  ---
+  duration_ms: 333.952193
+  type: 'test'
+  ...
+# Subtest: legacy root discovery accepts only the exact Yance27 sibling by default
+ok 57 - legacy root discovery accepts only the exact Yance27 sibling by default
+  ---
+  duration_ms: 1.610306
+  type: 'test'
+  ...
+# (node:18112) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: runtime_state is the only production SQL operating-mode writer
+ok 58 - runtime_state is the only production SQL operating-mode writer
+  ---
+  duration_ms: 338.334937
+  type: 'test'
+  ...
+# (node:18119) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: YANCE_SAFE_MODE cannot change fresh authority initialization
+ok 59 - YANCE_SAFE_MODE cannot change fresh authority initialization
+  ---
+  duration_ms: 295.064016
+  type: 'test'
+  ...
+# (node:18126) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: existing Yance authority ignores later safe-mode-state changes
+ok 60 - existing Yance authority ignores later safe-mode-state changes
+  ---
+  duration_ms: 307.66073
+  type: 'test'
+  ...
+# Subtest: safeModeService ignores YANCE_SAFE_MODE and reflects only bound runtime authority
+ok 61 - safeModeService ignores YANCE_SAFE_MODE and reflects only bound runtime authority
+  ---
+  duration_ms: 0.734919
+  type: 'test'
+  ...
+# Subtest: safeMode is applied before production services and local-ready workers can proceed
+ok 62 - safeMode is applied before production services and local-ready workers can proceed
+  ---
+  duration_ms: 1.296631
+  type: 'test'
+  ...
+# Subtest: normal startup records the authority revision without prematurely resuming services
+ok 63 - normal startup records the authority revision without prematurely resuming services
+  ---
+  duration_ms: 0.169641
+  type: 'test'
+  ...
+# (node:18147) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: system policy service strips legacy safeMode and rejects direct writes
+ok 64 - system policy service strips legacy safeMode and rejects direct writes
+  ---
+  duration_ms: 285.116463
+  type: 'test'
+  ...
+# Subtest: Windows cutover evidence owner record satisfies the accepted WP4 registry schema
+ok 65 - Windows cutover evidence owner record satisfies the accepted WP4 registry schema
+  ---
+  duration_ms: 1.233037
+  type: 'test'
+  ...
+# Subtest: stale Windows identity remains schema-valid but cannot match the real command digest
+ok 66 - stale Windows identity remains schema-valid but cannot match the real command digest
+  ---
+  duration_ms: 0.327315
+  type: 'test'
+  ...
+# Subtest: Windows evidence cannot PASS when a required real-host check is missing or failed
+ok 67 - Windows evidence cannot PASS when a required real-host check is missing or failed
+  ---
+  duration_ms: 0.722861
+  type: 'test'
+  ...
+# (node:18161) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: mode writes change only the Yance database path
+ok 68 - mode writes change only the Yance database path
+  ---
+  duration_ms: 318.019873
+  type: 'test'
+  ...
+1..68
+# tests 68
+# suites 0
+# pass 68
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8265.08377

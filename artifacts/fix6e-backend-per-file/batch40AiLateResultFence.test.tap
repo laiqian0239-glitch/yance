@@ -1,0 +1,54 @@
+TAP version 13
+# (node:17597) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: a primary model result resolving after cancellation has no success side effects
+ok 1 - a primary model result resolving after cancellation has no success side effects
+  ---
+  duration_ms: 6.220939
+  type: 'test'
+  ...
+# Subtest: cancellation while the invocation ledger is awaiting blocks completion and success return
+ok 2 - cancellation while the invocation ledger is awaiting blocks completion and success return
+  ---
+  duration_ms: 1.075014
+  type: 'test'
+  ...
+# Subtest: stream tokens are fenced after cancellation before reaching the caller
+ok 3 - stream tokens are fenced after cancellation before reaching the caller
+  ---
+  duration_ms: 1.06557
+  type: 'test'
+  ...
+# Subtest: a fallback result resolving after cancellation has no success side effects
+ok 4 - a fallback result resolving after cancellation has no success side effects
+  ---
+  duration_ms: 8.359069
+  type: 'test'
+  ...
+# Subtest: a context-reduced retry resolving after cancellation has no success side effects
+ok 5 - a context-reduced retry resolving after cancellation has no success side effects
+  ---
+  duration_ms: 13.6732
+  type: 'test'
+  ...
+# Subtest: a result from a superseded generation is rejected even when its signal is not aborted
+ok 6 - a result from a superseded generation is rejected even when its signal is not aborted
+  ---
+  duration_ms: 1.142156
+  type: 'test'
+  ...
+# Subtest: a missing current generation authority cannot authorize an expected generation
+ok 7 - a missing current generation authority cannot authorize an expected generation
+  ---
+  duration_ms: 0.816083
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 426.547467

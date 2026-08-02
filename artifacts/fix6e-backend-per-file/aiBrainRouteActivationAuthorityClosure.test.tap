@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: user activation intent remains enabled while an auto route is waiting for a usable model
+ok 1 - user activation intent remains enabled while an auto route is waiting for a usable model
+  ---
+  duration_ms: 3.114805
+  type: 'test'
+  ...
+# Subtest: automatic recommendation never turns off a route the user explicitly enabled
+ok 2 - automatic recommendation never turns off a route the user explicitly enabled
+  ---
+  duration_ms: 0.394173
+  type: 'test'
+  ...
+# Subtest: automatic recommendation respects an explicit user stop
+ok 3 - automatic recommendation respects an explicit user stop
+  ---
+  duration_ms: 3.421488
+  type: 'test'
+  ...
+# Subtest: frontend separates saved activation from operational readiness and protects unsaved drafts
+ok 4 - frontend separates saved activation from operational readiness and protects unsaved drafts
+  ---
+  duration_ms: 0.993481
+  type: 'test'
+  ...
+# Subtest: real SQLite keeps the enabled intent through an empty recommendation pass
+ok 5 - real SQLite keeps the enabled intent through an empty recommendation pass
+  ---
+  duration_ms: 379.304009
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 441.11683

@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: privacy redaction preserves UUIDs while redacting phones, secrets and absolute host paths
+ok 1 - privacy redaction preserves UUIDs while redacting phones, secrets and absolute host paths
+  ---
+  duration_ms: 1.916049
+  type: 'test'
+  ...
+# Subtest: health readiness cannot be green when account operations fail or AI has no routable model
+ok 2 - health readiness cannot be green when account operations fail or AI has no routable model
+  ---
+  duration_ms: 2.421644
+  type: 'test'
+  ...
+# Subtest: unconfigured platforms are not creatable/connectable while WhatsApp remains available
+ok 3 - unconfigured platforms are not creatable/connectable while WhatsApp remains available
+  ---
+  duration_ms: 1.234204
+  type: 'test'
+  ...
+# Subtest: recovery diagnostics export removes host paths and authentication challenges
+ok 4 - recovery diagnostics export removes host paths and authentication challenges
+  ---
+  duration_ms: 0.797922
+  type: 'test'
+  ...
+# Subtest: high-frequency credential reads are sampled instead of flooding diagnostics
+ok 5 - high-frequency credential reads are sampled instead of flooding diagnostics
+  ---
+  duration_ms: 1.010962
+  type: 'test'
+  ...
+# Subtest: rate-limited logger, QR polling and consumer-only platform login gates are present
+ok 6 - rate-limited logger, QR polling and consumer-only platform login gates are present
+  ---
+  duration_ms: 1.401868
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 62.37581

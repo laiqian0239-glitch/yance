@@ -1,0 +1,96 @@
+TAP version 13
+# (node:20691) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: large local reply modes retain three-to-four minute budgets and explicit three minutes is never clamped
+ok 1 - large local reply modes retain three-to-four minute budgets and explicit three minutes is never clamped
+  ---
+  duration_ms: 1.065766
+  type: 'test'
+  ...
+# Subtest: AI queue wait budgets cannot expire before slow local-model execution budgets
+ok 2 - AI queue wait budgets cannot expire before slow local-model execution budgets
+  ---
+  duration_ms: 0.284178
+  type: 'test'
+  ...
+# Subtest: context-aware reply generation does not reintroduce a 15-second queue timeout
+ok 3 - context-aware reply generation does not reintroduce a 15-second queue timeout
+  ---
+  duration_ms: 0.606625
+  type: 'test'
+  ...
+# Subtest: automatic translation routing is cloud-quality-first unless local-only is explicitly selected
+ok 4 - automatic translation routing is cloud-quality-first unless local-only is explicitly selected
+  ---
+  duration_ms: 12.098413
+  type: 'test'
+  ...
+# Subtest: AI queue runs interactive priority before background work once a slot opens
+ok 5 - AI queue runs interactive priority before background work once a slot opens
+  ---
+  duration_ms: 15.704592
+  type: 'test'
+  ...
+# Subtest: AI queue reserves one execution slot for interactive work when background jobs are busy
+ok 6 - AI queue reserves one execution slot for interactive work when background jobs are busy
+  ---
+  duration_ms: 19.147918
+  type: 'test'
+  ...
+# Subtest: AI queue rejects a task that never starts before its queue deadline
+ok 7 - AI queue rejects a task that never starts before its queue deadline
+  ---
+  duration_ms: 24.963928
+  type: 'test'
+  ...
+# Subtest: WhatsApp durable receipts are scoped by conversation while other platforms keep their contract
+ok 8 - WhatsApp durable receipts are scoped by conversation while other platforms keep their contract
+  ---
+  duration_ms: 0.281104
+  type: 'test'
+  ...
+# Subtest: backend announces core readiness before starting AI enhancement services
+ok 9 - backend announces core readiness before starting AI enhancement services
+  ---
+  duration_ms: 0.5516
+  type: 'test'
+  ...
+# Subtest: automatic translation accepts both inbound and outbound foreign-language messages while history backfill remains background work
+ok 10 - automatic translation accepts both inbound and outbound foreign-language messages while history backfill remains background work
+  ---
+  duration_ms: 0.548889
+  type: 'test'
+  ...
+# Subtest: platform delivery and local persistence are separate and send work is isolated by platform plus account
+ok 11 - platform delivery and local persistence are separate and send work is isolated by platform plus account
+  ---
+  duration_ms: 0.642775
+  type: 'test'
+  ...
+# Subtest: interrupted local persistence repairs are requeued after backend restart
+ok 12 - interrupted local persistence repairs are requeued after backend restart
+  ---
+  duration_ms: 543.100049
+  type: 'test'
+  ...
+# Subtest: AI activity is a warning rather than an update-install blocker
+ok 13 - AI activity is a warning rather than an update-install blocker
+  ---
+  duration_ms: 0.209102
+  type: 'test'
+  ...
+# Subtest: model circuit state survives backend restart and successful calls clear it
+ok 14 - model circuit state survives backend restart and successful calls clear it
+  ---
+  duration_ms: 0.302382
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1489.163282

@@ -12,7 +12,9 @@ const relayClient = require('./facebookRelayClient');
 const logger = require('./logger');
 
 const FLOW_TTL_MS = 30 * 60 * 1000;
-const WORKER_OAUTH_CONTRACT_VERSION = 5;
+const PAGE_WORKER_OAUTH_CONTRACT_VERSION = 5;
+const IDENTITY_WORKER_OAUTH_CONTRACT_VERSION = 6;
+const WORKER_OAUTH_CONTRACT_VERSION = PAGE_WORKER_OAUTH_CONTRACT_VERSION;
 const REQUIRED_PAGE_PERMISSIONS = Object.freeze(['pages_show_list', 'pages_messaging', 'pages_manage_metadata']);
 const OPTIONAL_PAGE_PERMISSIONS = Object.freeze(['pages_read_engagement']);
 const flows = new Map();
@@ -147,7 +149,7 @@ async function persistPendingFlow(account, flow, options = {}) {
       flowId: flow.flowId, accountId: flow.accountId, clientSecret: flow.clientSecret,
       createdAt: flow.createdAt, createdMs: flow.createdMs, status: flow.status,
       pages: flow.pages, diagnostics: flow.diagnostics || null,
-      workerBaseUrl: flow.workerBaseUrl, graphVersion: flow.graphVersion, identity: flow.identity
+      workerBaseUrl: flow.workerBaseUrl, graphVersion: flow.graphVersion, identity: flow.identity, mode: flow.mode || 'page'
     }
   });
   assertOperationActive(options.signal, 'FACEBOOK_OAUTH_PERSIST_ABORTED');
@@ -209,7 +211,7 @@ async function workerRequest(url, options = {}, timeoutMs = 15000, operation = {
   }
 }
 
-async function verifyWorkerOAuthContract(workerBaseUrl, graphVersion, options = {}) {
+async function verifyWorkerOAuthContract(workerBaseUrl, graphVersion, mode = 'page', options = {}) {
   const data = await workerRequest(`${workerBaseUrl}/healthz`, {}, 10000, options);
   const contract = data && typeof data.oauthContract === 'object' ? data.oauthContract : {};
   const required = Array.isArray(contract.requiredPermissions) ? contract.requiredPermissions.map(clean) : [];
@@ -217,7 +219,7 @@ async function verifyWorkerOAuthContract(workerBaseUrl, graphVersion, options = 
   const expectedCallback = `${workerBaseUrl}/oauth/facebook/callback`;
   const pageDiscovery = contract.pageDiscovery && typeof contract.pageDiscovery === 'object' ? contract.pageDiscovery : {};
   const valid = data.service === 'yance-facebook-gateway'
-    && Number(contract.version || 0) >= WORKER_OAUTH_CONTRACT_VERSION
+    && Number(contract.version || 0) >= (mode === 'identity' ? IDENTITY_WORKER_OAUTH_CONTRACT_VERSION : PAGE_WORKER_OAUTH_CONTRACT_VERSION)
     && contract.authorizationMode === 'business-login-configuration'
     && contract.legacyScopeParameter === false
     && clean(contract.callbackUrl) === expectedCallback
@@ -235,13 +237,14 @@ async function verifyWorkerOAuthContract(workerBaseUrl, graphVersion, options = 
     && pageDiscovery.directPageTokenFields.includes('id,access_token')
     && pageDiscovery.directPageTokenFields.includes('access_token')
     && clean(pageDiscovery.profileHydration) === 'page-access-token'
-    && pageDiscovery.diagnosticsPersistedWithoutTokens === true;
+    && pageDiscovery.diagnosticsPersistedWithoutTokens === true
+    && (mode !== 'identity' || (Array.isArray(contract.supportedModes) && contract.supportedModes.includes('identity') && contract.personalIdentity?.messagingSupported === false && contract.personalIdentity?.tokenReturnedToDesktop === false));
   if (!valid) {
     throw Object.assign(new Error('Facebook 正式 Worker 仍是旧授权合同或配置不完整，请先更新 Meta 回调/权限并重新部署现有 Worker'), {
       code: 'FACEBOOK_WORKER_OAUTH_CONTRACT_STALE',
       status: 409,
       details: {
-        expectedContractVersion: WORKER_OAUTH_CONTRACT_VERSION,
+        expectedContractVersion: mode === 'identity' ? IDENTITY_WORKER_OAUTH_CONTRACT_VERSION : PAGE_WORKER_OAUTH_CONTRACT_VERSION,
         receivedContractVersion: Number(contract.version || 0),
         expectedCallback,
         receivedCallback: clean(contract.callbackUrl),
@@ -260,7 +263,9 @@ async function begin(accountId, options = {}) {
   const config = platformAuthConfig.facebook();
   if (!config.configured) throw Object.assign(new Error('当前安装包尚未启用 Facebook 登录，请安装已启用的正式升级包'), { code: 'FACEBOOK_RELEASE_SERVICE_UNAVAILABLE', status: 409 });
   const boundWorkerBaseUrl = relayClient.assertReleaseWorkerBinding(config.workerBaseUrl);
-  await verifyWorkerOAuthContract(boundWorkerBaseUrl, config.graphVersion, options);
+  const accountKind = clean(account?.metadata?.accountKind || account?.accountKind, 'page').toLowerCase();
+  const mode = accountKind === 'personal-identity' ? 'identity' : 'page';
+  await verifyWorkerOAuthContract(boundWorkerBaseUrl, config.graphVersion, mode, options);
   assertOperationActive(options.signal, 'FACEBOOK_OAUTH_START_ABORTED');
   prune();
   const existing = securityGuard.credentials.get(account.credentialRef) || {};
@@ -274,20 +279,21 @@ async function begin(accountId, options = {}) {
   url.searchParams.set('device_id', identity.deviceId);
   url.searchParams.set('public_key', identity.publicKeySpki);
   url.searchParams.set('device_name', clean(process.env.COMPUTERNAME || 'Yance Windows').slice(0, 120));
-  const flow = { flowId, accountId, clientSecret, createdAt: now(), createdMs: Date.now(), status: 'pending', pages: [], workerBaseUrl: boundWorkerBaseUrl, graphVersion: config.graphVersion, identity };
+  url.searchParams.set('mode', mode);
+  const flow = { flowId, accountId, clientSecret, createdAt: now(), createdMs: Date.now(), status: 'pending', mode, pages: [], workerBaseUrl: boundWorkerBaseUrl, graphVersion: config.graphVersion, identity };
   assertOperationActive(options.signal, 'FACEBOOK_OAUTH_START_ABORTED');
   flows.set(flowId, flow);
   writeDurableFlow(flow);
   await persistPendingFlow(account, flow, options);
   assertOperationActive(options.signal, 'FACEBOOK_OAUTH_START_ABORTED');
   logger.info('facebook', 'oauth-flow-started', { accountId, flowId, workerHost: new URL(boundWorkerBaseUrl).host });
-  return { flowId, authorizationUrl: url.toString(), status: 'pending', expiresAt: new Date(Date.now() + FLOW_TTL_MS).toISOString() };
+  return { flowId, mode, authorizationUrl: url.toString(), status: 'pending', expiresAt: new Date(Date.now() + FLOW_TTL_MS).toISOString() };
 }
 
 async function poll(accountId, flowId, options = {}) {
   assertOperationActive(options.signal, 'FACEBOOK_OAUTH_STATUS_ABORTED');
   const flow = await getFlow(accountId, flowId);
-  if (flow.status === 'authorized') return { flowId, status: flow.status, pages: flow.pages, expiresAt: new Date(flow.createdMs + FLOW_TTL_MS).toISOString() };
+  if (flow.status === 'authorized') return { flowId, mode: flow.mode || 'page', status: flow.status, identity: flow.personalIdentity || null, pages: flow.pages, expiresAt: new Date(flow.createdMs + FLOW_TTL_MS).toISOString() };
   const data = await workerRequest(`${flow.workerBaseUrl}/oauth/facebook/result/${encodeURIComponent(flow.flowId)}`, { headers: { authorization: `Bearer ${flow.clientSecret}` } }, 15000, options);
   assertOperationActive(options.signal, 'FACEBOOK_OAUTH_STATUS_ABORTED');
   const status = clean(data.status, 'pending');
@@ -297,14 +303,51 @@ async function poll(accountId, flowId, options = {}) {
     flow.error = clean(data.message) || facebookOAuthFailureMessage(data.errorCode, flow.diagnostics || {});
     return { flowId, status, error: flow.error, errorCode: clean(data.errorCode), diagnostics: flow.diagnostics };
   }
-  if (status !== 'authorized') return { flowId, status: 'pending', expiresAt: clean(data.expiresAt, new Date(flow.createdMs + FLOW_TTL_MS).toISOString()) };
+  if (status !== 'authorized') return { flowId, mode: clean(data.mode, flow.mode || 'page'), status: 'pending', expiresAt: clean(data.expiresAt, new Date(flow.createdMs + FLOW_TTL_MS).toISOString()) };
+  const mode = clean(data.mode, flow.mode || 'page');
+  if (mode === 'identity') {
+    const identity = data.identity && typeof data.identity === 'object' ? data.identity : {};
+    const userId = clean(identity.userId);
+    if (!userId) throw Object.assign(new Error('Facebook 个人身份授权结果缺失用户标识'), { code: 'FACEBOOK_PERSONAL_IDENTITY_MISSING', status: 502 });
+    const account = accountStore.get(accountId);
+    if (!account) throw Object.assign(new Error('Facebook账号不存在'), { code: 'FACEBOOK_ACCOUNT_NOT_FOUND', status: 404 });
+    const completedAt = now();
+    const identityReceipt = crypto.createHash('sha256').update(`${flow.workerBaseUrl}\n${flow.flowId}\n${userId}\n${completedAt}`).digest('hex');
+    const existing = securityGuard.credentials.get(account.credentialRef) || {};
+    const pendingFacebookOAuth = existing.pendingFacebookOAuth;
+    await securityGuard.credentials.persist(account.credentialRef, {
+      ...(pendingFacebookOAuth ? { pendingFacebookOAuth } : {}),
+      authorizationMode: 'facebook-login-personal-identity',
+      userId,
+      displayName: clean(identity.displayName, account.displayName),
+      avatarUrl: clean(identity.avatarUrl),
+      identityReceipt,
+      identityCompletedAt: completedAt,
+      messagingSupported: false
+    });
+    await accountStore.update(account.id, {
+      displayName: clean(identity.displayName, account.displayName),
+      identityLabel: clean(identity.displayName, account.identityLabel),
+      lifecycleState: 'ready',
+      autoReconnect: false,
+      metadata: {
+        ...(account.metadata || {}), accountKind: 'personal-identity', driverId: 'facebook-personal-identity-official',
+        authorizationPending: false, identityUserId: userId, identityReceipt, avatarUrl: clean(identity.avatarUrl),
+        messagingSupported: false, authorizationMode: 'facebook-login-personal-identity'
+      }
+    });
+    flow.status = 'completed'; flow.mode = 'identity'; flow.personalIdentity = { userId, displayName: clean(identity.displayName), avatarUrl: clean(identity.avatarUrl), messagingSupported: false };
+    await clearPendingFlow(account, flowId, options);
+    flows.delete(flowId);
+    return { flowId, mode: 'identity', status: 'completed', identity: flow.personalIdentity, pages: [], expiresAt: clean(data.expiresAt) };
+  }
   const pages = Array.isArray(data.pages) ? data.pages.filter(page => clean(page.id)) : [];
   if (!pages.length) throw Object.assign(new Error('授权成功，但没有可管理的 Facebook 公共主页'), { code: 'FACEBOOK_NO_MANAGED_PAGES', status: 409 });
   flow.status = 'authorized'; flow.pages = pages.map(safePage); flow.diagnostics = data.diagnostics || null;
   const account = accountStore.get(accountId);
   if (account) await persistPendingFlow(account, flow, options);
   writeDurableFlow(flow);
-  return { flowId, status: 'authorized', pages: flow.pages, diagnostics: flow.diagnostics, expiresAt: clean(data.expiresAt) };
+  return { flowId, mode: 'page', status: 'authorized', pages: flow.pages, diagnostics: flow.diagnostics, expiresAt: clean(data.expiresAt) };
 }
 
 async function selectPage(accountId, flowId, pageId, options = {}) {
@@ -377,4 +420,4 @@ async function cancel(accountId, flowId, options = {}) {
   return { flowId: flow.flowId, status: flow.status };
 }
 
-module.exports = { REQUIRED_PAGE_PERMISSIONS, OPTIONAL_PAGE_PERMISSIONS, WORKER_OAUTH_CONTRACT_VERSION, normalizePermission, permissionList, missingPagePermissions, missingOptionalPagePermissions, verifyWorkerOAuthContract, begin, poll, selectPage, cancel, _flows: flows };
+module.exports = { REQUIRED_PAGE_PERMISSIONS, OPTIONAL_PAGE_PERMISSIONS, WORKER_OAUTH_CONTRACT_VERSION, PAGE_WORKER_OAUTH_CONTRACT_VERSION, IDENTITY_WORKER_OAUTH_CONTRACT_VERSION, normalizePermission, permissionList, missingPagePermissions, missingOptionalPagePermissions, verifyWorkerOAuthContract, begin, poll, selectPage, cancel, _flows: flows };

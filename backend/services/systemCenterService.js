@@ -358,9 +358,20 @@ function buildIssues(report, accounts, ai, backups, notifications, policy, secur
   }
   const supervisor = runtimeSignals.safetySupervisor || {};
   const safetyTriggers = Array.isArray(supervisor.activeTriggers) ? supervisor.activeTriggers : [];
-  if (safetyTriggers.length) {
-    const safetySeverity = safetyTriggers.some(row => row.severity === 'critical') ? 'critical' : 'high';
-    add('automatic-safety-supervisor', safetySeverity, '自动安全监督器发现运行阻断', safetyTriggers.map(row => row.code).join('、'), 'security', '检查安全模式', { reasonCode: safetyTriggers[0]?.code || 'AUTOMATIC_SAFETY_TRIGGER', safetySupervisor: supervisor });
+  if (supervisor.globalWriteBlocked === true) {
+    const reasons = supervisor.globalSafeModeReasons || [];
+    add('automatic-global-safety-supervisor', 'critical', '共享基础设施触发全局安全模式', reasons.join('、') || '共享数据库、凭据、迁移或制品完整性异常。', 'security', '打开恢复中心', { reasonCode: reasons[0] || 'AUTOMATIC_GLOBAL_SAFETY_TRIGGER', safetySupervisor: supervisor });
+  }
+  for (const [accountId, issue] of Object.entries(supervisor.accounts || {})) {
+    const title = issue.state === 'reauth-required' ? '账号需要重新授权' : '账号已隔离';
+    add(`scoped-account-${accountId}`, 'high', title, `${issue.platform || '平台'} · ${accountId} · ${(issue.reasons || []).join('、')}`, 'connections', '处理该账号', { reasonCode: issue.reasons?.[0] || 'ACCOUNT_SCOPED_SAFETY_ISSUE', accountId, scopeType: 'account', blockedCapabilities: issue.blockedCapabilities || [] });
+  }
+  for (const [platform, issue] of Object.entries(supervisor.platforms || {})) {
+    if (issue.state === 'attention' && Array.isArray(issue.affectedAccounts) && issue.affectedAccounts.length) continue;
+    add(`scoped-platform-${platform}`, 'high', '平台能力降级', `${platform} · ${(issue.reasons || []).join('、')} · 受影响能力 ${(issue.blockedCapabilities || []).join('、') || '待诊断'}`, 'connections', '检查该平台', { reasonCode: issue.reasons?.[0] || 'PLATFORM_SCOPED_SAFETY_ISSUE', platform, scopeType: 'platform' });
+  }
+  for (const [capability, issue] of Object.entries(supervisor.capabilities || {})) {
+    add(`scoped-capability-${capability}`, capability === 'send' ? 'critical' : 'high', '单项能力已暂停', `${capability} · ${(issue.reasons || []).join('、')}`, capability === 'ai-automation' ? 'ai' : 'diagnostics', '查看该能力', { reasonCode: issue.reasons?.[0] || 'CAPABILITY_SCOPED_SAFETY_ISSUE', capability, scopeType: 'capability' });
   }
   if (!secure.available && process.env.NODE_ENV !== 'test') add('secure-storage', 'critical', '系统安全存储不可用', '账号密钥无法可靠保存，请检查Windows凭据保护环境。', 'security', '查看凭据保护');
   for (const test of report.tests.filter(row => (row.status || (row.pass ? 'pass' : 'fail')) === 'fail')) add(`probe-${test.id}`, test.severity === 'critical' || test.group === 'security' || test.group === 'backup' ? 'critical' : 'high', test.name, test.detail, test.group === 'backup' ? 'data' : 'diagnostics', '立即处理', { reasonCode: test.reasonCode, evidence: test.evidence || {} });
@@ -548,12 +559,14 @@ function snapshot() {
       credentialRefs: secure.refs,
       legacyAuthChannelsAllowed: false,
       selfApprovalAllowed: false,
-      writeGate: policy.emergencyStop || safeModeService.isActive() || sendQueueState.writeBlocked || safetySupervisor.manualReviewRequired ? 'blocked' : 'open',
+      aiAutomationBlocked: safetySupervisor.aiAutomationBlocked === true,
+      aiIsolationReasons: safetySupervisor.aiIsolationReasons || [],
+      writeGate: policy.emergencyStop || safeModeService.isActive() || sendQueueState.writeBlocked || safetySupervisor.globalWriteBlocked ? 'blocked' : 'open',
       writeGateReasons: [
         policy.emergencyStop ? 'GLOBAL_EMERGENCY_STOP' : '',
         safeModeService.isActive() ? 'SAFE_MODE_ACTIVE' : '',
         sendQueueState.writeBlocked ? (sendQueueState.pausedReason || 'SEND_QUEUE_WRITE_BLOCKED') : '',
-        safetySupervisor.manualReviewRequired ? (safetySupervisor.activeTriggers?.[0]?.code || 'AUTOMATIC_SAFETY_TRIGGER') : ''
+        safetySupervisor.globalWriteBlocked ? (safetySupervisor.globalSafeModeReasons?.[0] || 'AUTOMATIC_SAFETY_TRIGGER') : ''
       ].filter(Boolean)
     },
     backups,

@@ -10,6 +10,7 @@ const taskPolicy = require('../services/modelTaskRuntimePolicy');
 const routing = require('../services/modelRoutingIntegrityService');
 const openRouter = require('../services/openRouterAutoConfigurationService');
 const commercial = require('../services/commercialModelBenchmarkService');
+const roleReceipts = require('../services/aiRoleQualificationReceiptAuthority');
 
 const root = path.resolve(__dirname, '../..');
 
@@ -77,7 +78,16 @@ test('commercial evidence qualification activates the independent memory route',
 
 test('diagnostic readiness cannot report a green core AI when memory or director routes are missing', () => {
   const { aiTaskRoutingReadiness, CORE_AI_TASKS } = require('../services/diagnosticReadiness');
-  const qualified = (id, tasks) => ({ id, name: id, provider: 'openai-compatible', available: true, qualification: 'verified', allowedTasks: tasks, lastTest: { scores: { persona: { pass: true }, hallucination: { pass: true }, json: { pass: true }, translation: { pass: true } } }, lastCommercialBenchmark: { completed: true, pass: true, qualifyingTasks: tasks, translationScore: 95, evidenceScore: 95 }, lastReplyBrainBenchmark: { authority: 'YanceReplyBrainBenchmark', completed: true, pass: true, status: 'REPLY_BRAIN_QUALIFIED', score: 90, qualifyingTasks: tasks, scenarios: [] } });
+  const qualified = (id, tasks) => {
+    const commercialEvidence = { authority: 'YanceCommercialModelBenchmark', status: 'COMMERCIAL_MODEL_QUALIFIED', testedAt: '2026-07-31T10:00:00.000Z', completed: true, pass: true, score: 95, qualifyingTasks: tasks, translationScore: 95, evidenceScore: 95 };
+    const replyEvidence = { authority: 'YanceReplyBrainBenchmark', status: 'REPLY_BRAIN_QUALIFIED', testedAt: '2026-07-31T10:00:00.000Z', completed: true, pass: true, score: 90, qualifyingTasks: tasks, scenarios: [] };
+    const receipts = {};
+    for (const task of tasks.filter(value => roleReceipts.GOVERNED_TASKS.includes(value))) {
+      const evidence = task === 'translation' ? commercialEvidence : replyEvidence;
+      receipts[task] = roleReceipts.issueFromEvidence({ modelId: id, task, evidence, expiresAt: '2030-01-01T00:00:00.000Z' });
+    }
+    return { id, name: id, provider: 'openai-compatible', available: true, qualification: 'verified', allowedTasks: tasks, lastTest: { scores: { persona: { pass: true }, hallucination: { pass: true }, json: { pass: true }, translation: { pass: true } } }, lastCommercialBenchmark: commercialEvidence, lastReplyBrainBenchmark: replyEvidence, roleQualificationReceipts: receipts };
+  };
   const empty = aiTaskRoutingReadiness({ models: [], routes: {} });
   assert.equal(empty.pass, false);
   assert.match(empty.summary, /尚未配置可用AI模型/);

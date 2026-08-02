@@ -1,0 +1,35 @@
+TAP version 13
+# PASS sendText routes to platform.sendText
+# PASS sendMedia routes to platform.sendMedia
+# PASS sendReaction routes to platform.sendReaction
+# PASS revokeMessage routes to platform.revokeMessage
+# PASS sendPresence routes to platform.sendPresence
+# PASS markRead routes to platform.markRead
+# PASS resolveAccount routes to platform.resolveAccount
+# PASS lifecycle.start routes to accountManager.connect
+# PASS lifecycle.restart routes to accountManager.reconnect
+# PASS lifecycle.stop (no logout) routes to accountManager.disconnect(logout:false)
+# PASS lifecycle.stop (logout) routes to accountManager.disconnect(logout:true)
+# PASS authority.getSocialContext routes to customerSocialSelectors
+# PASS authority.getSocialContext returns not-found for unknown
+# PASS authority.recordSocialSignal delegates to setIngest
+# PASS authority.assertLocalAuthority is a no-op invariant-assertion
+# PASS authority.assertLocalAuthority does not throw
+# 16 passed, 0 failed
+# (node:17940) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: backend/tests/caller_migration.test.js
+ok 1 - backend/tests/caller_migration.test.js
+  ---
+  duration_ms: 316.022007
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 322.554583

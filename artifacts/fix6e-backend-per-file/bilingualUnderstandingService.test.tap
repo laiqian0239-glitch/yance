@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: detects common German and Chinese text
+ok 1 - detects common German and Chinese text
+  ---
+  duration_ms: 1.576997
+  type: 'test'
+  ...
+# Subtest: Chinese input is returned without a model call
+ok 2 - Chinese input is returned without a model call
+  ---
+  duration_ms: 0.467529
+  type: 'test'
+  ...
+# Subtest: foreign reply receives auditable Chinese understanding
+ok 3 - foreign reply receives auditable Chinese understanding
+  ---
+  duration_ms: 1.773708
+  type: 'test'
+  ...
+# Subtest: translation failure is explicit and non-destructive
+ok 4 - translation failure is explicit and non-destructive
+  ---
+  duration_ms: 1.260097
+  type: 'test'
+  ...
+# Subtest: missing translation gateway is an explicit retryable failure, not a silent success
+ok 5 - missing translation gateway is an explicit retryable failure, not a silent success
+  ---
+  duration_ms: 0.281194
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 50.506433

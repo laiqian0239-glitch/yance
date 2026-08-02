@@ -57,16 +57,16 @@
 :is(.contact26-title,.profile27-title,.timeline27-title,.insight29-title,.aiw30-title,.ac32-title,.sc32-title,.sr32-head,.theme32-title) h1{
   margin-top:3px!important;
   margin-bottom:3px!important;
-  font-size:clamp(20px,1.55vw,27px)!important;
+  font-size:var(--type-page-title);
   line-height:1.14!important;
 }
 :is(.contact26-title,.profile27-title,.timeline27-title,.insight29-title,.aiw30-title,.ac32-title,.sc32-title,.sr32-head,.theme32-title) p{
   margin-top:4px!important;
   line-height:1.42!important;
-  display:-webkit-box;
-  -webkit-box-orient:vertical;
-  -webkit-line-clamp:2;
-  overflow:hidden;
+  display:block;
+  overflow:visible;
+  white-space:normal;
+  overflow-wrap:anywhere;
 }
 
 /* Multi-card status bars remain a single compact row on desktop. */
@@ -96,7 +96,7 @@
   padding:6px 10px!important;
 }
 .ac32-stat{padding:7px 9px!important;border-radius:10px!important}
-.ac32-stat b{margin-top:2px!important;font-size:clamp(15px,1.15vw,19px)!important}
+.ac32-stat b{margin-top:2px!important;font-size:var(--type-data-value)}
 .ac32-stat small{margin-top:3px!important}
 .app.account-center-open .ac32-main{
   min-height:0!important;
@@ -130,7 +130,7 @@
 }
 .ac32-detail-hero{padding:10px 12px!important;gap:10px!important}
 .ac32-detail-id .ac32-platform-icon{width:46px!important;height:46px!important}
-.ac32-detail-id h2{font-size:clamp(17px,1.2vw,21px)!important}
+.ac32-detail-id h2{font-size:var(--type-section-title)}
 .ac32-detail-id p{margin-top:3px!important}
 .ac32-detail-tabs{padding:6px 9px!important;gap:5px!important;overflow-x:auto!important;overflow-y:hidden!important;white-space:nowrap;scrollbar-width:thin}
 .app.account-center-open .ac32-scroll{
@@ -152,7 +152,7 @@
   padding:6px 9px!important;
 }
 .sc32-stat{padding:7px 8px!important;border-radius:10px!important}
-.sc32-stat b{margin-top:2px!important;font-size:clamp(13px,1vw,17px)!important}
+.sc32-stat b{margin-top:2px!important;font-size:var(--type-data-value)}
 .app.system-center-open .sc32-body{
   min-height:0!important;
   height:auto!important;
@@ -335,7 +335,7 @@
 .insight29-person{min-width:0!important}
 .insight29-person .avatar{width:44px!important;height:44px!important}
 .insight29-person-copy{min-width:0!important}
-.insight29-person-copy h2{font-size:clamp(18px,1.25vw,24px)!important}
+.insight29-person-copy h2{font-size:var(--type-section-title)}
 .insight29-person-copy p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .insight29-health{min-width:0!important;margin-left:auto!important}
 .insight29-orb{width:48px!important;height:48px!important}
@@ -465,9 +465,9 @@
   gap:5px!important;
   overflow:hidden!important;
 }
-.product-area-subnav strong{font-size:10px!important}
+.product-area-subnav strong{font-size:var(--type-body-strong)}
 .product-area-subnav button{min-height:26px!important;height:26px!important;padding:3px 8px!important}
-.product-area-subnav .product-area-note{font-size:9px!important}
+.product-area-subnav .product-area-note{font-size:var(--type-caption)}
 
 /* Neutralize legacy natural-page/min-height rules that forced the body below
    the Windows viewport. */
@@ -489,19 +489,23 @@
 }
 .app :is(.contact26-title,.profile27-title,.timeline27-title,.insight29-title,.aiw30-title,.ac32-title,.sc32-title,.sr32-head,.theme32-title) h1{
   margin:1px 0 2px!important;
-  font-size:clamp(19px,1.35vw,25px)!important;
+  font-size:var(--type-page-title);
   line-height:1.08!important;
 }
 .app :is(.contact26-title,.profile27-title,.timeline27-title,.insight29-title,.aiw30-title,.ac32-title,.sc32-title,.sr32-head,.theme32-title) p{
   margin:2px 0 0!important;
-  line-height:1.3!important;
-  -webkit-line-clamp:1!important;
+  line-height:var(--leading-body)!important;
+  display:block!important;
+  overflow:visible!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere;
 }
 .app :is(.contact26-hero-actions,.profile27-actions,.timeline27-actions,.insight29-actions,.aiw30-actions,.ac32-actions,.sc32-actions,.sr32-actions,.theme32-actions){
   gap:5px!important;
 }
 .app :is(.contact26-hero-actions,.profile27-actions,.timeline27-actions,.insight29-actions,.aiw30-actions,.ac32-actions,.sc32-actions,.sr32-actions,.theme32-actions) button{
-  min-height:32px!important;
+  min-height:var(--control-min-height)!important;
+  height:auto!important;
   padding:5px 9px!important;
 }
 
@@ -675,18 +679,6 @@
   padding:8px 10px 18px!important;
 }
 
-/* Low-height Windows layouts get the strongest compaction. */
-@media(max-height:820px){
-  .app :is(.contact26-title,.profile27-title,.timeline27-title,.insight29-title,.aiw30-title,.ac32-title,.sc32-title,.sr32-head,.theme32-title) p{display:none!important}
-  .app :is(.contact26-hero-status,.profile27-syncbar,.timeline27-syncbar,.insight29-syncbar,.aiw30-sync,.aiw30-syncbar)>article span{display:none!important}
-  .relationship-workbench{max-height:94px!important}
-  .summary-tile{min-height:36px!important}
-  .workbench-current p{display:none!important}
-  .app.aiwork-page-open .aiw30-sidebar{max-height:104px!important}
-  .aiw30-tab{height:48px!important}
-  .profile27-detail-hero,.timeline27-detail-hero,.insight29-detail-hero{max-height:118px!important}
-}
-
 @media(max-width:1120px){
   .aiw30-tabs{grid-template-columns:repeat(5,minmax(92px,1fr))!important}
   .aiw30-tab small{display:none!important}
@@ -761,7 +753,7 @@
 .app.settings-recovery-open .sr32-side button i{
   width:20px!important;
   height:20px!important;
-  font-size:11px!important;
+  font-size:var(--type-control);
 }
 .app.system-center-open .sc32-nav small,
 .app.settings-recovery-open .sr32-side small,
@@ -774,17 +766,6 @@
   white-space:nowrap!important;
   overflow:hidden!important;
   text-overflow:ellipsis!important;
-}
-
-@media(max-height:820px){
-  .app.contact-page-open .contact26-hero-actions button{min-height:28px!important;padding:3px 7px!important}
-  .app.system-center-open .sc32-sidebar,
-  .app.settings-recovery-open .sr32-side{max-height:68px!important}
-  .app.system-center-open .sc32-nav,
-  .app.settings-recovery-open .sr32-side{grid-auto-rows:30px!important}
-  .app.system-center-open .sc32-nav button,
-  .app.settings-recovery-open .sr32-side button{height:30px!important;min-height:30px!important;padding:2px 5px!important}
-  .app.aiwork-page-open .aiw30-tab{height:42px!important;padding:3px 5px!important}
 }
 
 /* Batch 18 · real Windows screenshot closure authority.
@@ -913,3 +894,9 @@
   height:auto!important;
   align-self:stretch!important;
 }
+
+/* FIX6D AI workbench actions reflow without a typography override layer. */
+#app .aiw30-actions{display:grid;grid-template-columns:repeat(3,max-content);align-items:center;justify-content:end;gap:6px;max-width:min(100%,540px)}
+#app .aiw30-actions label{grid-column:1/-1;display:flex;min-width:0;width:100%}
+#app .aiw30-actions label select{flex:1 1 auto;min-width:0;width:100%}
+@media(min-width:1700px){#app .aiw30-actions{display:flex;max-width:none}#app .aiw30-actions label{width:auto}}

@@ -1,0 +1,54 @@
+TAP version 13
+# (node:20018) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: raw WhatsApp LID is never exposed as the visible sender name
+ok 1 - raw WhatsApp LID is never exposed as the visible sender name
+  ---
+  duration_ms: 2.412768
+  type: 'test'
+  ...
+# Subtest: WhatsApp account profile picture is cached to the local media route before UI exposure
+ok 2 - WhatsApp account profile picture is cached to the local media route before UI exposure
+  ---
+  duration_ms: 2.019608
+  type: 'test'
+  ...
+# Subtest: Telegram login source contains QR authorization polling, account avatar caching and automatic history sync
+ok 3 - Telegram login source contains QR authorization polling, account avatar caching and automatic history sync
+  ---
+  duration_ms: 0.563813
+  type: 'test'
+  ...
+# Subtest: runtime identity persistence carries Telegram and WhatsApp live avatars into account metadata
+ok 4 - runtime identity persistence carries Telegram and WhatsApp live avatars into account metadata
+  ---
+  duration_ms: 0.684429
+  type: 'test'
+  ...
+# Subtest: contact search is an independent modal rather than an alias of the identity page
+ok 5 - contact search is an independent modal rather than an alias of the identity page
+  ---
+  duration_ms: 1.774054
+  type: 'test'
+  ...
+# Subtest: native Windows titlebar and relationship surfaces follow the active theme
+ok 6 - native Windows titlebar and relationship surfaces follow the active theme
+  ---
+  duration_ms: 1.463448
+  type: 'test'
+  ...
+# Subtest: Facebook authorization copy describes personal-admin OAuth followed by Page selection
+ok 7 - Facebook authorization copy describes personal-admin OAuth followed by Page selection
+  ---
+  duration_ms: 1.179771
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 458.078304

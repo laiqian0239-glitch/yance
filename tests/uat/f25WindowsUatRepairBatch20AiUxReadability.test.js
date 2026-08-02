@@ -82,17 +82,23 @@ test('account login completion stops QR polling, shows success, closes the dialo
   assert.match(account, /reconcileAuthorizationCompletion/u);
 });
 
-test('platform-wide reading authority loads after all component CSS and covers meta, controls, contrast and density', () => {
+test('platform-wide reading authority is token-only and remains independent from density and contrast authorities', () => {
   const html = source('frontend/index.html');
   const css = source('frontend/r32-global-reading.css');
+  const themeAuthority = source('frontend/r32-theme-authority.css');
   assert.ok(html.lastIndexOf('/r32-global-reading.css') > html.lastIndexOf('/r32-flat-document-flow.css'));
-  assert.match(css, /--ws-body/u);
-  assert.match(css, /--ws-meta/u);
+  for (const token of ['page-title', 'section-title', 'card-title', 'body', 'body-strong', 'caption', 'meta', 'control', 'badge', 'data-value']) {
+    assert.match(css, new RegExp(`--type-${token}:`, 'u'));
+  }
+  assert.match(css, /html\[data-reading="standard"\]/u);
+  assert.match(css, /html\[data-reading="comfortable"\]/u);
   assert.match(css, /html\[data-reading="large"\]/u);
+  assert.match(css, /html\[data-density="compact"\]/u);
   assert.match(css, /html\[data-density="comfortable"\]/u);
-  assert.match(css, /html\[data-contrast="high"\]/u);
-  assert.match(css, /\.reply-mode-control/u);
-  assert.match(css, /color:color-mix\(in srgb,var\(--text-secondary/u);
+  assert.doesNotMatch(css, /--ws-/u);
+  assert.doesNotMatch(css, /!important/u);
+  assert.doesNotMatch(css, /(?:^|\})\s*[.#][^{]+\{/u);
+  assert.doesNotMatch(themeAuthority, /--type-[\w-]+\s*:/u);
   assert.match(html, /id="resetDisplaySettings"/u);
   assert.match(html, /id="displayScaleStatus"/u);
   const ui = source('frontend/js/r32-ui-runtime.js');
@@ -142,6 +148,8 @@ test('two different OpenRouter models must pass real JSON/director/candidate/tra
     assert.equal(registry.state.routes[task].fallback, 'cloud-b');
     assert.equal(registry.state.routes[task].humanReviewRequired, true);
   }
+  assert.equal(registry.state.routes.translation.allowConditional, true);
+  assert.equal(registry.state.routes.translation.humanReviewRequired, true);
 });
 
 test('OpenRouter onboarding refuses to claim success when the independent fallback model fails', async () => {
@@ -194,13 +202,17 @@ test('candidate generation backend records an observable operation and never rep
 });
 
 
-test('current Batch 20 source retains the full 81-case Chromium flat-flow geometry matrix', () => {
-  const evidence = JSON.parse(source('artifacts/repair-batch20/YANCE_BATCH20_PRODUCTION_LAYOUT_AND_READABILITY_CHROMIUM_EVIDENCE.json'));
-  assert.equal(evidence.documentType, 'YANCE_BATCH20_PRODUCTION_LAYOUT_AND_READABILITY_CHROMIUM_EVIDENCE');
-  assert.equal(evidence.testCount, 81);
-  assert.equal(evidence.passCount, 81);
-  assert.equal(evidence.failCount, 0);
-  assert.equal(evidence.passed, true);
+test('current FIX6D source retains the full real-Chromium typography and reflow matrix gate', () => {
+  const probe = source('tools/uat/fix6d_global_typography_matrix_probe.py');
+  const gate = source('tests/uat/fix6dGlobalTypographyComputedStyleMatrix.test.js');
+  assert.match(probe, /from playwright\.sync_api import sync_playwright/u);
+  assert.match(probe, /getComputedStyle/u);
+  assert.match(probe, /scrollHeight/u);
+  assert.match(probe, /scrollWidth/u);
+  assert.match(gate, /assert\.equal\(result\.themeCount, 29/u);
+  assert.match(gate, /assert\.equal\(result\.routeCount, 10/u);
+  assert.match(gate, /\(3 \* 2 \* 3 \* 2 \* 10\) \+ \(\(29 - 1\) \* 10\)/u);
+  assert.match(gate, /assert\.equal\(result\.pass, true/u);
 });
 
 
@@ -212,6 +224,8 @@ test('conditional OpenRouter primary and independent fallback survive the real r
     source: 'openrouter-auto',
     available: true,
     qualification: 'experimental',
+    onboardingSmokeStatus: 'passed',
+    openRouterOnboardingSmoke: { pass: true },
     allowedTasks: ['director', 'quick_reply', 'deep_reply', 'translation', 'persona_rewrite', 'learning_synthesis'],
     lastSuccessfulInvocation: { at: new Date().toISOString(), returnedModel: `vendor/${id}` },
     lastQualificationTest: { scores: { json: { pass: true }, persona: { pass: true }, hallucination: { pass: true }, translation: { pass: true } } },
@@ -234,4 +248,8 @@ test('conditional OpenRouter primary and independent fallback survive the real r
     assert.equal(repaired.document.routes[task].fallback, 'cloud-b');
     assert.equal(repaired.document.routes[task].humanReviewRequired, true);
   }
+  assert.equal(Object.prototype.hasOwnProperty.call(routes, 'translation'), true, 'minimal onboarding smoke must create a human-review translation candidate route');
+  assert.equal(smoke.ALLOWED_TASKS.includes('translation'), true, 'minimal onboarding smoke may grant candidate-only translation eligibility');
+  assert.equal(repaired.document.routes.translation.allowConditional, true);
+  assert.equal(repaired.document.routes.translation.humanReviewRequired, true);
 });

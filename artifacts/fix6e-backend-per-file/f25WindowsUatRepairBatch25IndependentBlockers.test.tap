@@ -1,0 +1,54 @@
+TAP version 13
+# (node:18547) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: full-media restore crash after original move preserves current-only media in durable protection backup
+ok 1 - full-media restore crash after original move preserves current-only media in durable protection backup
+  ---
+  duration_ms: 152.342552
+  type: 'test'
+  ...
+# Subtest: SQLite settings worker rejects hardlink alias of primary DB and accepts only trusted settings path
+ok 2 - SQLite settings worker rejects hardlink alias of primary DB and accepts only trusted settings path
+  ---
+  duration_ms: 57.215579
+  type: 'test'
+  ...
+# Subtest: legacy stdout ready marker cannot settle startup and full identity tuple is required
+ok 3 - legacy stdout ready marker cannot settle startup and full identity tuple is required
+  ---
+  duration_ms: 2.549283
+  type: 'test'
+  ...
+# Subtest: main window navigation and privileged IPC reject data/about/blob/file and subframes
+ok 4 - main window navigation and privileged IPC reject data/about/blob/file and subframes
+  ---
+  duration_ms: 0.786453
+  type: 'test'
+  ...
+# Subtest: unawaited nested async transaction failure rolls back root transaction
+ok 5 - unawaited nested async transaction failure rolls back root transaction
+  ---
+  duration_ms: 4.814182
+  type: 'test'
+  ...
+# Subtest: simultaneous SQLite ownership claim allows at most one process
+ok 6 - simultaneous SQLite ownership claim allows at most one process
+  ---
+  duration_ms: 17116.08004
+  type: 'test'
+  ...
+# Subtest: node test contexts without explicit data root are isolated from user default data
+ok 7 - node test contexts without explicit data root are isolated from user default data
+  ---
+  duration_ms: 79.009745
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 17461.879423

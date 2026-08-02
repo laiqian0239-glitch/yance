@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { fork } = require('node:child_process');
 
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-b39-ai-physical-root-'));
 process.env.YANCE_DATA_DIR = dataRoot;
@@ -12,6 +13,7 @@ process.env.NODE_ENV = 'test';
 
 const { JobQueue } = require('../services/jobQueue');
 const { AiGateway } = require('../services/aiGateway');
+const roleReceipts = require('../services/aiRoleQualificationReceiptAuthority');
 const { closeStore } = require('../repositories/storeProvider');
 
 const delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
@@ -175,10 +177,11 @@ test('model execution host resolves a result only after the isolated child exits
   fs.writeFileSync(workerPath, `
     'use strict';
     process.once('message', message => {
+      const executionId = message.envelope.executionId;
       process.send({
         type: 'result',
-        executionId: message.executionId,
-        result: { text: 'isolated-result', returnedModel: message.model.name }
+        executionId,
+        result: { text: 'isolated-result', returnedModel: message.envelope.executionSpec.modelName }
       }, () => process.exit(0));
     });
   `, 'utf8');
@@ -188,16 +191,18 @@ test('model execution host resolves a result only after the isolated child exits
       ({ startModelExecution } = require('../services/modelExecutionHost'));
     });
     const handle = startModelExecution({
-      model: { id: 'model-a', name: 'model-a', provider: 'test' },
+      model: { id: 'model-a', name: 'model-a', provider: 'ollama' },
+      task: 'translation',
       messages: [{ role: 'user', content: 'hello' }],
       options: {},
-      workerPath
+      childProcessFactory: (_productionPath, args, options) => fork(workerPath, args, options)
     });
     const result = await handle.result;
     const receipt = await handle.exit;
     assert.deepEqual(result, { text: 'isolated-result', returnedModel: 'model-a' });
     assert.equal(receipt.executionId, handle.executionId);
-    assert.equal(receipt.terminated, true);
+    assert.equal(receipt.terminated, false);
+    assert.equal(receipt.terminationClass, 'completed');
     assert.equal(receipt.exitCode, 0);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -209,8 +214,8 @@ test('hard termination returns the matching child exit receipt', async () => {
   const workerPath = path.join(root, 'worker.js');
   fs.writeFileSync(workerPath, `
     'use strict';
-    process.once('message', () => {
-      process.send({ type: 'started' });
+    process.once('message', message => {
+      process.send({ type: 'started', executionId: message.envelope.executionId });
       setInterval(() => {}, 1000);
     });
   `, 'utf8');
@@ -220,10 +225,11 @@ test('hard termination returns the matching child exit receipt', async () => {
       ({ startModelExecution } = require('../services/modelExecutionHost'));
     });
     const handle = startModelExecution({
-      model: { id: 'model-stuck', name: 'model-stuck', provider: 'test' },
+      model: { id: 'model-stuck', name: 'model-stuck', provider: 'ollama' },
+      task: 'translation',
       messages: [],
       options: {},
-      workerPath,
+      childProcessFactory: (_productionPath, args, options) => fork(workerPath, args, options),
       terminationGraceMs: 20
     });
     await handle.started;
@@ -250,9 +256,12 @@ test('production AiGateway attempts execute through the isolated host and update
     userDisabled: false,
     allowedTasks: ['translation'],
     lastCommercialBenchmark: {
-      completed: true,
-      qualifyingTasks: ['translation']
+      authority: 'YanceCommercialModelBenchmark', status: 'COMMERCIAL_MODEL_QUALIFIED', testedAt: '2026-07-31T10:00:00.000Z',
+      completed: true, pass: true, score: 95, qualifyingTasks: ['translation'], translationScore: 95
     }
+  };
+  model.roleQualificationReceipts = {
+    translation: roleReceipts.issueFromEvidence({ modelId: model.id, task: 'translation', evidence: model.lastCommercialBenchmark, expiresAt: '2030-01-01T00:00:00.000Z' })
   };
   const registry = {
     read: () => ({

@@ -1,0 +1,178 @@
+[
+  {
+    "file": "backend/tests/f25WindowsUatRepairBatch25IndependentBlockers.test.js",
+    "status": "passed",
+    "durationSeconds": 17.489,
+    "testsPassed": 7,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch25IndependentBlockers.test.tap"
+  },
+  {
+    "file": "backend/tests/f25WindowsUatRepairBatch2Behavior.test.js",
+    "status": "passed",
+    "durationSeconds": 0.707,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch2Behavior.test.tap"
+  },
+  {
+    "file": "backend/tests/f25WindowsUatRepairBatch3.test.js",
+    "status": "passed",
+    "durationSeconds": 0.094,
+    "testsPassed": 6,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch3.test.tap"
+  },
+  {
+    "file": "backend/tests/f25WindowsUatRepairBatch3Behavior.test.js",
+    "status": "passed",
+    "durationSeconds": 0.647,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch3Behavior.test.tap"
+  },
+  {
+    "file": "backend/tests/f25WindowsUatRepairBatch4.test.js",
+    "status": "passed",
+    "durationSeconds": 0.702,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch4.test.tap"
+  },
+  {
+    "file": "backend/tests/f25WindowsUatRepairBatch5.test.js",
+    "status": "passed",
+    "durationSeconds": 0.092,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch5.test.tap"
+  },
+  {
+    "file": "backend/tests/f25WindowsUatRepairBatch6.test.js",
+    "status": "passed",
+    "durationSeconds": 0.671,
+    "testsPassed": 5,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch6.test.tap"
+  },
+  {
+    "file": "backend/tests/f25WindowsUatRepairBatch7.test.js",
+    "status": "passed",
+    "durationSeconds": 0.651,
+    "testsPassed": 6,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch7.test.tap"
+  },
+  {
+    "file": "backend/tests/f25WindowsUatRepairBatch9.test.js",
+    "status": "passed",
+    "durationSeconds": 0.099,
+    "testsPassed": 6,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/f25WindowsUatRepairBatch9.test.tap"
+  },
+  {
+    "file": "backend/tests/facebookAccountProjectionRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.07,
+    "testsPassed": 1,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/facebookAccountProjectionRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/facebookAvatarClosureDiagnostic.test.js",
+    "status": "passed",
+    "durationSeconds": 0.374,
+    "testsPassed": 6,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/facebookAvatarClosureDiagnostic.test.tap"
+  },
+  {
+    "file": "backend/tests/facebookAvatarImportLayoutPresenceFix20.test.js",
+    "status": "passed",
+    "durationSeconds": 0.071,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/facebookAvatarImportLayoutPresenceFix20.test.tap"
+  },
+  {
+    "file": "backend/tests/facebookBusinessSuiteAvatarImport.test.js",
+    "status": "passed",
+    "durationSeconds": 0.378,
+    "testsPassed": 7,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/facebookBusinessSuiteAvatarImport.test.tap"
+  },
+  {
+    "file": "backend/tests/facebookBusinessSuiteReconciliationRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.926,
+    "testsPassed": 12,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/facebookBusinessSuiteReconciliationRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/facebookFormalWorkerIntegrationRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.421,
+    "testsPassed": 7,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/facebookFormalWorkerIntegrationRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/facebookOAuthLifecycleRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.381,
+    "testsPassed": 7,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/facebookOAuthLifecycleRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/facebookPageDiscoveryDeployToolRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.079,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/facebookPageDiscoveryDeployToolRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/facebookProductionReadinessRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 1.483,
+    "testsPassed": 28,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/facebookProductionReadinessRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/facebookWorkerDeploymentGuardFix17.test.js",
+    "status": "passed",
+    "durationSeconds": 0.086,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/facebookWorkerDeploymentGuardFix17.test.tap"
+  },
+  {
+    "file": "backend/tests/finalMultiPlatformAccountIsolation.test.js",
+    "status": "passed",
+    "durationSeconds": 0.103,
+    "testsPassed": 5,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/finalMultiPlatformAccountIsolation.test.tap"
+  },
+  {
+    "file": "backend/tests/fullPlatformAvatarTranslationFix13.test.js",
+    "status": "passed",
+    "durationSeconds": 0.674,
+    "testsPassed": 6,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/fullPlatformAvatarTranslationFix13.test.tap"
+  },
+  {
+    "file": "backend/tests/fullPlatformContactAiClosureFix11.test.js",
+    "status": "passed",
+    "durationSeconds": 0.602,
+    "testsPassed": 18,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/fullPlatformContactAiClosureFix11.test.tap"
+  }
+]

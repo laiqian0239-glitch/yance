@@ -1,0 +1,31 @@
+TAP version 13
+# AC-005 savedSuggestion — 集成测试（V1 本地书签）
+#   ✓ saveSuggestion 创建记录：deviceLocal:true + 稳定 schemaVersion + savedAt
+#   ✓ saveSuggestion 幂等：重复保存（同 suggestionId）不产生第二条、返回 idempotent
+#   ✓ unsaveSuggestion 删除记录；幂等：重复取消不抛错
+#   ✓ listSaved 按联系人过滤
+#   ✓ isSaved 状态正确
+#   ✓ 不产生任务/提醒/全局行动事件（eventBus 无任何 emit）
+#   ✓ 不触发后端 connect/sync（不再作为 CONNECT 阻断）
+#   ✓ 缺失 contactId → INVALID_INPUT
+#   ✓ 缺失 suggestionId 取消 → INVALID_INPUT
+#   ✓ 显式 suggestionId 被采用
+#   ✓ label/note 正确持久化
+#   ✓ schemaVersion 稳定且可随迁移演进
+#   ✓ 跨实例持久化（同 storage 共享状态）
+# AC-005 通过 13 / 失败 0
+# Subtest: backend/tests/savedSuggestion.test.js
+ok 1 - backend/tests/savedSuggestion.test.js
+  ---
+  duration_ms: 29.162771
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 39.422423

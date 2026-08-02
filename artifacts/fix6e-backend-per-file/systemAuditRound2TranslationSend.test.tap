@@ -1,0 +1,72 @@
+TAP version 13
+# (node:20166) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Chinese manual text is translated to the scoped contact language with protected entities preserved
+ok 1 - Chinese manual text is translated to the scoped contact language with protected entities preserved
+  ---
+  duration_ms: 6.041238
+  type: 'test'
+  ...
+# Subtest: translation model failure blocks Chinese before the durable send queue
+ok 2 - translation model failure blocks Chinese before the durable send queue
+  ---
+  duration_ms: 1.946973
+  type: 'test'
+  ...
+# Subtest: unresolved target language blocks Chinese instead of guessing or sending source text
+ok 3 - unresolved target language blocks Chinese instead of guessing or sending source text
+  ---
+  duration_ms: 0.382258
+  type: 'test'
+  ...
+# Subtest: non-Chinese manual text bypasses the model and remains unchanged
+ok 4 - non-Chinese manual text bypasses the model and remains unchanged
+  ---
+  duration_ms: 0.253198
+  type: 'test'
+  ...
+# Subtest: send queue stores and dispatches only the verified target-language text
+ok 5 - send queue stores and dispatches only the verified target-language text
+  ---
+  duration_ms: 23.687507
+  type: 'test'
+  ...
+# Subtest: send queue never creates a durable row when outbound translation blocks
+ok 6 - send queue never creates a durable row when outbound translation blocks
+  ---
+  duration_ms: 1.363882
+  type: 'test'
+  ...
+# Subtest: automatic Chinese-understanding translation ignores system and revoked messages
+ok 7 - automatic Chinese-understanding translation ignores system and revoked messages
+  ---
+  duration_ms: 1.153223
+  type: 'test'
+  ...
+# Subtest: blocked media caption translation creates no queue file or durable row
+ok 8 - blocked media caption translation creates no queue file or durable row
+  ---
+  duration_ms: 2.088373
+  type: 'test'
+  ...
+# Subtest: ordinary foreign-language messaging remains durable when every AI model is unavailable
+ok 9 - ordinary foreign-language messaging remains durable when every AI model is unavailable
+  ---
+  duration_ms: 8.119712
+  type: 'test'
+  ...
+# Subtest: frontend send timeout covers the 180 second translation budget
+ok 10 - frontend send timeout covers the 180 second translation budget
+  ---
+  duration_ms: 0.304179
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1086.525102

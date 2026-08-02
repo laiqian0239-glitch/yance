@@ -17,7 +17,34 @@ const POLICY_PATH = path.join(REPO_ROOT, 'governance', 'stage-policy.json');
 const REJECTED_BASELINE_PATH = path.join(REPO_ROOT, 'governance', 'rejected-baselines', 'stage-6.4.5.8.json');
 const REPOSITORY_SCOPE_POLICY_PATH = path.join(REPO_ROOT, 'governance', 'repository-scope-policy.json');
 const EXPECTED_TAG = 'stage-6.4.5.8-rejected-architecture';
-const EXPECTED_BASELINE_COMMIT = 'c150182219edea2faf49c714275e9921a21df742';
+const EXPECTED_BASELINE_PROVENANCE_COMMIT = 'c150182219edea2faf49c714275e9921a21df742';
+const EXPECTED_BASELINE_COMMIT = EXPECTED_BASELINE_PROVENANCE_COMMIT;
+const EXPECTED_BASELINE_ANCHOR_COMMIT = '570823e722f6db475066d6ef80ba900ac5c6cb39';
+const EXPECTED_BASELINE_ANCHOR_PATH = 'governance/rejected-baselines/stage-6.4.5.8.json';
+const EXPECTED_BASELINE_ANCHOR_BLOB = '6a5ffc68e76baf6a477668c6c2faf61934e94720';
+const APPROVED_REFERENCE_ONLY_AUTHORITIES = new Map([
+  ['independent_audit_delivery', 'REFERENCE_ONLY_AUDIT_DELIVERY']
+]);
+const PROTECTED_ACTIVE_AUTHORITY_PATHS = Object.freeze([
+  '.github',
+  '.gitattributes',
+  '.gitignore',
+  'backend',
+  'electron',
+  'frontend',
+  'governance',
+  'package.json',
+  'package-lock.json',
+  'release',
+  'scripts',
+  'services',
+  'shared',
+  'tests',
+  'tools',
+  'vendor',
+  'yance_artifact_descriptor.json'
+]);
+
 function configuredStage() {
   const source = JSON.parse(fs.readFileSync(RELEASE_SOURCE_PATH, 'utf8'));
   if (!source.stageVersion || typeof source.stageVersion !== 'string') {
@@ -31,6 +58,56 @@ const REJECTED_STAGE = '6.4.5.8';
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+function normalizeRepositoryRelativePath(value, fieldName) {
+  const normalized = String(value || '').trim().replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/$/, '');
+  if (!normalized || normalized === '.' || normalized.startsWith('/') || /^[A-Za-z]:\//.test(normalized)) {
+    throw new Error(`${fieldName} must be a non-empty repository-relative path`);
+  }
+  const segments = normalized.split('/');
+  if (segments.some((segment) => !segment || segment === '.' || segment === '..')) {
+    throw new Error(`${fieldName} must not contain empty, current-directory, or parent-directory segments`);
+  }
+  return normalized;
+}
+
+function repositoryPathsOverlap(left, right) {
+  const a = String(left || '').toLowerCase();
+  const b = String(right || '').toLowerCase();
+  return a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`);
+}
+
+function referenceOnlyRootPolicies(policy = readJson(REPOSITORY_SCOPE_POLICY_PATH)) {
+  if (!policy || policy.schemaVersion !== 2 || !Array.isArray(policy.referenceOnlyRoots)) {
+    throw new Error('repository scope policy must define schemaVersion 2 referenceOnlyRoots');
+  }
+  const seen = new Set();
+  const rows = policy.referenceOnlyRoots.map((entry, index) => {
+    const root = normalizeRepositoryRelativePath(entry?.path, `referenceOnlyRoots[${index}].path`);
+    const classification = String(entry?.classification || '').trim();
+    if (!/^[A-Z][A-Z0-9_]*$/.test(classification) || classification === 'ACTIVE_SOURCE_OR_AUTOMATION') {
+      throw new Error(`referenceOnlyRoots[${index}].classification must be an explicit non-active classification`);
+    }
+    const key = root.toLowerCase();
+    const overlappingAuthority = PROTECTED_ACTIVE_AUTHORITY_PATHS.find((authorityPath) =>
+      repositoryPathsOverlap(key, authorityPath)
+    );
+    if (overlappingAuthority) {
+      throw new Error(`reference-only root ${root} overlaps protected active authority path ${overlappingAuthority}`);
+    }
+    const expectedClassification = APPROVED_REFERENCE_ONLY_AUTHORITIES.get(key);
+    if (!expectedClassification) {
+      throw new Error(`reference-only root ${root} is not an approved historical authority`);
+    }
+    if (classification !== expectedClassification) {
+      throw new Error(`reference-only root ${root} must use classification ${expectedClassification}`);
+    }
+    if (seen.has(key)) throw new Error(`duplicate reference-only root ${root}`);
+    seen.add(key);
+    return Object.freeze({ path: root, lowerPath: key, classification });
+  });
+  return rows.sort((left, right) => right.lowerPath.length - left.lowerPath.length || left.lowerPath.localeCompare(right.lowerPath));
 }
 
 function sha256File(filePath) {
@@ -83,14 +160,18 @@ function isScanCandidate(relativePath) {
   return /(^|\/)(package\.json|electron-builder\.ya?ml|forge\.config\.(js|cjs|mjs))$/i.test(relativePath);
 }
 
-function classifyScanPath(relativePath) {
-  const lower = relativePath.toLowerCase();
+function classifyScanPath(relativePath, scopePolicy = readJson(REPOSITORY_SCOPE_POLICY_PATH)) {
+  const normalized = normalizeRepositoryRelativePath(relativePath, 'relativePath');
+  const lower = normalized.toLowerCase();
   if (lower.startsWith('governance/')) return 'POLICY_REFERENCE';
   if (lower.startsWith('tests/wp0/')) return 'TEST_FIXTURE_OR_ASSERTION';
   if (lower.startsWith('tools/wp0/')) return 'WP0_GATE_IMPLEMENTATION';
   if (lower.startsWith('evidence/')) return 'GENERATED_EVIDENCE';
   if (lower.startsWith('implementation/')) return 'STATUS_METADATA';
-  return 'ACTIVE_SOURCE_OR_AUTOMATION';
+  const referenceOnly = referenceOnlyRootPolicies(scopePolicy).find((entry) =>
+    lower === entry.lowerPath || lower.startsWith(`${entry.lowerPath}/`)
+  );
+  return referenceOnly?.classification || 'ACTIVE_SOURCE_OR_AUTOMATION';
 }
 
 function relFromRoot(rootDir, relativePath) {
@@ -103,6 +184,7 @@ function scanRepositoryReleaseSurfaces(rootDir = REPO_ROOT) {
   const violations = [];
   const scanned = [];
   const referenceOnly = [];
+  const scopePolicy = readJson(REPOSITORY_SCOPE_POLICY_PATH);
   const filenamePattern = /(integrated[ _-]?repair|complete[ _-]?installer|apply.*hotfix|start[ _-]?update|stage6[._-]?4[._-]?5[._-]?8|revision\s*\d*)/i;
   const overlayTargetPattern = /(app\.asar\.unpacked|resources[\\/]app\.asar\.unpacked)/i;
   const copyPattern = /(copy-item|xcopy|robocopy|copy\s+\/y|fs\.(?:cp|copyfile)|copyfiles|rsync)/i;
@@ -110,7 +192,7 @@ function scanRepositoryReleaseSurfaces(rootDir = REPO_ROOT) {
   const oldReleaseTermPattern = /(integrated[ _-]?repair[ _-]?hotfix|complete[ _-]?installer|revision\s*\d+|runtime[ _-]?patch|post[ _-]?install[ _-]?patch)/i;
 
   for (const relativePath of candidates) {
-    const classification = classifyScanPath(relativePath);
+    const classification = classifyScanPath(relativePath, scopePolicy);
     const record = { path: relativePath, classification };
     scanned.push(record);
     const full = relFromRoot(rootDir, relativePath);
@@ -164,36 +246,112 @@ function scanRepositoryReleaseSurfaces(rootDir = REPO_ROOT) {
   };
 }
 
-function verifyImmutableTag() {
+function essentialRejectedBaselineFields(document) {
+  return {
+    stage: document?.stage,
+    status: document?.status,
+    archivalUseOnly: document?.archivalUseOnly,
+    runtimeChangesAllowed: document?.runtimeChangesAllowed,
+    hotfixesAllowed: document?.hotfixesAllowed,
+    releaseCandidateAllowed: document?.releaseCandidateAllowed,
+    overlayInstallersAllowed: document?.overlayInstallersAllowed,
+    reasonCode: document?.reasonCode,
+    replacementStage: document?.replacementStage,
+    baselineCommit: document?.baselineCommit
+  };
+}
+
+function verifyRejectedBaselineAnchor(options = {}) {
+  const policy = readJson(POLICY_PATH);
+  const repositoryScope = readJson(REPOSITORY_SCOPE_POLICY_PATH);
+  const currentRejected = readJson(REJECTED_BASELINE_PATH);
+  const authority = policy.baselineAuthority || {};
+  const expectedProvenanceCommit = options.expectedProvenanceCommit || EXPECTED_BASELINE_PROVENANCE_COMMIT;
+  const expectedAnchorCommit = options.expectedAnchorCommit || EXPECTED_BASELINE_ANCHOR_COMMIT;
+  const expectedAnchorPath = options.expectedAnchorPath || EXPECTED_BASELINE_ANCHOR_PATH;
+  const expectedAnchorBlob = options.expectedAnchorBlob || EXPECTED_BASELINE_ANCHOR_BLOB;
   const errors = [];
-  let tagRef = null;
-  let tagObjectType = null;
-  let peeledCommit = null;
-  try { tagRef = git(['show-ref', '--verify', '--hash', `refs/tags/${EXPECTED_TAG}`]); }
-  catch { errors.push(`missing Git tag refs/tags/${EXPECTED_TAG}`); }
-  if (tagRef) {
-    try { tagObjectType = git(['cat-file', '-t', `refs/tags/${EXPECTED_TAG}`]); }
-    catch { errors.push('unable to inspect immutable tag object type'); }
-    try { peeledCommit = git(['rev-parse', `refs/tags/${EXPECTED_TAG}^{}`]); }
-    catch { errors.push('unable to peel immutable tag to commit'); }
+  let anchorObjectType = null;
+  let anchorBlob = null;
+  let anchorIsAncestor = false;
+  let archivedRejected = null;
+  let provenanceObjectPresent = false;
+
+  if (policy.schemaVersion !== 2) errors.push('stage policy must use schemaVersion 2 archive authority');
+  if (authority.type !== 'CANONICAL_PORTABLE_REPOSITORY_ARCHIVE_ANCHOR') errors.push('baselineAuthority.type mismatch');
+  if (authority.originalVcsHistoryAvailable !== false) errors.push('baseline authority must declare originalVcsHistoryAvailable=false');
+  if (repositoryScope.originalVcsHistoryAvailable !== false) errors.push('repository scope must declare originalVcsHistoryAvailable=false');
+  if (authority.provenanceCommit !== expectedProvenanceCommit) errors.push('baseline provenance commit mismatch');
+  if (authority.anchorCommit !== expectedAnchorCommit) errors.push('baseline anchor commit mismatch');
+  if (authority.anchorPath !== expectedAnchorPath) errors.push('baseline anchor path mismatch');
+  if (authority.anchorBlob !== expectedAnchorBlob) errors.push('baseline anchor blob policy mismatch');
+  if (policy.baselineCommit !== expectedProvenanceCommit) errors.push('stage policy baselineCommit mismatch');
+  if (currentRejected.baselineCommit !== expectedProvenanceCommit) errors.push('current rejected baseline provenance mismatch');
+
+  try { anchorObjectType = git(['cat-file', '-t', expectedAnchorCommit]); }
+  catch { errors.push(`missing canonical archive anchor commit ${expectedAnchorCommit}`); }
+  if (anchorObjectType && anchorObjectType !== 'commit') errors.push('canonical archive anchor object must be a commit');
+
+  try {
+    git(['merge-base', '--is-ancestor', expectedAnchorCommit, 'HEAD']);
+    anchorIsAncestor = true;
+  } catch {
+    errors.push('canonical archive anchor commit must be an ancestor of HEAD');
   }
-  if (tagObjectType !== 'tag') errors.push('immutable tag must be an annotated tag object');
-  if (peeledCommit !== EXPECTED_BASELINE_COMMIT) errors.push(`immutable tag must point to baseline commit ${EXPECTED_BASELINE_COMMIT}`);
+
+  try { anchorBlob = git(['rev-parse', `${expectedAnchorCommit}:${expectedAnchorPath}`]); }
+  catch { errors.push(`canonical archive anchor path is missing: ${expectedAnchorPath}`); }
+  if (anchorBlob && anchorBlob !== expectedAnchorBlob) errors.push(`canonical archive anchor blob mismatch: expected ${expectedAnchorBlob}, got ${anchorBlob}`);
+
+  try { archivedRejected = JSON.parse(git(['show', `${expectedAnchorCommit}:${expectedAnchorPath}`])); }
+  catch { errors.push('unable to read or parse rejected baseline from canonical archive anchor'); }
+
+  if (archivedRejected) {
+    const archivedFields = essentialRejectedBaselineFields(archivedRejected);
+    const currentFields = essentialRejectedBaselineFields(currentRejected);
+    if (JSON.stringify(archivedFields) !== JSON.stringify(currentFields)) {
+      errors.push('current rejected baseline decision differs from canonical archive anchor');
+    }
+  }
+
+  const currentArchiveAuthority = currentRejected.archiveAuthority || {};
+  if (currentRejected.schemaVersion !== 2) errors.push('current rejected baseline must use schemaVersion 2');
+  if (currentArchiveAuthority.type !== authority.type) errors.push('current rejected baseline archive authority type mismatch');
+  if (currentArchiveAuthority.originalVcsHistoryAvailable !== false) errors.push('current rejected baseline must declare originalVcsHistoryAvailable=false');
+  if (currentArchiveAuthority.anchorCommit !== expectedAnchorCommit) errors.push('current rejected baseline anchor commit mismatch');
+  if (currentArchiveAuthority.anchorPath !== expectedAnchorPath) errors.push('current rejected baseline anchor path mismatch');
+  if (currentArchiveAuthority.anchorBlob !== expectedAnchorBlob) errors.push('current rejected baseline anchor blob mismatch');
+
+  try {
+    git(['cat-file', '-e', `${expectedProvenanceCommit}^{commit}`]);
+    provenanceObjectPresent = true;
+  } catch {
+    provenanceObjectPresent = false;
+  }
+  if (provenanceObjectPresent) errors.push('portable repository unexpectedly contains original VCS baseline commit while policy declares history unavailable');
+
   return {
     pass: errors.length === 0,
-    reasonCode: errors.length ? 'WP0_IMMUTABLE_TAG_INVALID' : null,
+    reasonCode: errors.length ? 'WP0_REJECTED_BASELINE_ANCHOR_INVALID' : null,
     errors,
-    tagName: EXPECTED_TAG,
-    tagRefObject: tagRef,
-    tagObjectType,
-    peeledCommit,
-    expectedBaselineCommit: EXPECTED_BASELINE_COMMIT
+    authorityType: authority.type || null,
+    provenanceCommit: expectedProvenanceCommit,
+    originalVcsHistoryAvailable: repositoryScope.originalVcsHistoryAvailable,
+    provenanceObjectPresent,
+    anchorCommit: expectedAnchorCommit,
+    anchorObjectType,
+    anchorIsAncestor,
+    anchorPath: expectedAnchorPath,
+    expectedAnchorBlob,
+    anchorBlob,
+    archivedDecision: archivedRejected ? essentialRejectedBaselineFields(archivedRejected) : null,
+    currentDecision: essentialRejectedBaselineFields(currentRejected)
   };
 }
 
 function changedFilesSinceBaseline() {
   try {
-    const raw = git(['diff', '--name-only', `${EXPECTED_TAG}^{}`, 'HEAD']);
+    const raw = git(['diff', '--name-only', EXPECTED_BASELINE_ANCHOR_COMMIT, 'HEAD']);
     return raw ? raw.split(/\r?\n/).filter(Boolean).sort() : [];
   } catch {
     return [];
@@ -234,33 +392,34 @@ function checkFreezePolicy(options = {}) {
   if (policy.currentBranch !== ALLOWED_BRANCH) errors.push('currentBranch mismatch');
   if (policy.authorizedRebuildBranchPattern !== REBUILD_BRANCH_PATTERN_SOURCE) errors.push('authorizedRebuildBranchPattern mismatch');
   if (policy.originalStageBranchRewriteAllowed !== false) errors.push('originalStageBranchRewriteAllowed must be false');
-  if (policy.baselineCommit !== EXPECTED_BASELINE_COMMIT) errors.push('stage policy baselineCommit mismatch');
-  if (rejected.baselineCommit !== EXPECTED_BASELINE_COMMIT) errors.push('rejected baseline commit mismatch');
+  if (policy.baselineCommit !== EXPECTED_BASELINE_PROVENANCE_COMMIT) errors.push('stage policy baselineCommit mismatch');
+  if (rejected.baselineCommit !== EXPECTED_BASELINE_PROVENANCE_COMMIT) errors.push('rejected baseline commit mismatch');
   const baseline = policy.rejectedBaselines.find((item) => item.stage === REJECTED_STAGE);
   if (!baseline) errors.push(`missing rejected Stage ${REJECTED_STAGE} baseline`);
   else {
     if (baseline.status !== 'REJECTED_ARCHITECTURE_NOT_CLOSED') errors.push('rejected baseline status mismatch');
+    if (baseline.historicalTagLabel !== EXPECTED_TAG) errors.push('rejected baseline historicalTagLabel mismatch');
     for (const key of ['hotfixesAllowed', 'runtimeChangesAllowed', 'releaseCandidateAllowed', 'overlayInstallersAllowed']) {
       if (baseline[key] !== false) errors.push(`${key} must be false`);
     }
   }
   if (rejected.archivalUseOnly !== true) errors.push('rejected baseline must be archivalUseOnly');
   if (rejected.replacementStage !== CURRENT_STAGE) errors.push('replacementStage mismatch');
-  const tag = verifyImmutableTag();
-  if (!tag.pass) errors.push(...tag.errors);
+  const anchor = verifyRejectedBaselineAnchor(options.baselineAnchorOptions || {});
+  if (!anchor.pass) errors.push(...anchor.errors);
   const runtimeTarget = checkRuntimeTargetGate(options);
   if (!runtimeTarget.pass) errors.push(...runtimeTarget.errors);
   return {
     id: 'freeze-rejected-baseline.test',
     pass: errors.length === 0,
-    reasonCode: errors.length ? (tag.pass ? runtimeTarget.reasonCode || 'WP0_FREEZE_POLICY_INVALID' : tag.reasonCode) : null,
+    reasonCode: errors.length ? (anchor.pass ? runtimeTarget.reasonCode || 'WP0_FREEZE_POLICY_INVALID' : anchor.reasonCode) : null,
     errors,
     details: {
       policyId: policy.policyId,
       currentStage: policy.currentStage,
       rejectedStage: rejected.stage,
       rejectedStatus: rejected.status,
-      immutableTag: tag,
+      baselineAnchor: anchor,
       runtimeTargetGate: runtimeTarget
     }
   };
@@ -314,11 +473,13 @@ function checkProtectedCommandPolicy() {
   if (scripts['verify:wp0:gate'] !== 'node tools/wp0/verify-gate.js') errors.push('verify:wp0:gate must derive target stage from release/release-source.json');
   if (scripts.prepack !== 'npm run verify:wp0:gate') errors.push('prepack must run verify:wp0:gate');
   if (scripts.prepublishOnly !== 'npm run verify:wp0:gate') errors.push('prepublishOnly must run verify:wp0:gate');
+  if (scripts['security:scan-staged'] !== 'node scripts/security/scan-staged-secrets.js') errors.push('security:scan-staged must use the canonical staged-secret scanner');
+  if (scripts['test:security-scan'] !== 'node --test --test-concurrency=1 tests/security/staged-secret-scanner.test.js') errors.push('test:security-scan must run the canonical scanner regression suite');
   return {
     pass: errors.length === 0,
     reasonCode: errors.length ? 'WP0_LOCAL_COMMAND_GATE_NOT_ENFORCED' : null,
     errors,
-    protectedCommands: ['build', 'package', 'release', 'pack', 'publish'],
+    protectedCommands: ['build', 'package', 'release', 'pack', 'publish', 'security:scan-staged', 'test:security-scan'],
     packageScripts: scripts
   };
 }
@@ -354,6 +515,7 @@ function checkRepositoryScope() {
     canonicalImplementationRepository: policy.canonicalImplementationRepository,
     trackedFileCount: tracked.length,
     runtimeSourceRootsRequired: policy.runtimeSourceRootsRequired,
+    referenceOnlyRoots: referenceOnlyRootPolicies(policy).map(({ path: root, classification }) => ({ path: root, classification })),
     missingRuntimeRoots,
     runtimeSourceForExtractedArtifactPresent: missingRuntimeRoots.length === 0,
     originalVcsHistoryAvailable: policy.originalVcsHistoryAvailable,
@@ -389,6 +551,7 @@ function checkForbiddenHotfixEntrypoints(rootDir = REPO_ROOT) {
       scannedFileCount: scan.scannedFileCount,
       activeSurfaceCount: scan.activeSurfaceCount,
       referenceOnlyCount: scan.referenceOnlyCount,
+      scannedFiles: scan.scannedFiles,
       violationCount: violations.length,
       violations,
       commandGate,
@@ -404,7 +567,8 @@ function runAllChecks(options = {}) {
       targetStage: options.targetStage || CURRENT_STAGE,
       branch: Object.prototype.hasOwnProperty.call(options, 'branch') ? options.branch : currentBranch(),
       evidenceMode: options.evidenceMode === true,
-      evidenceSourceCommit: options.evidenceSourceCommit || null
+      evidenceSourceCommit: options.evidenceSourceCommit || null,
+      baselineAnchorOptions: options.baselineAnchorOptions || null
     }),
     checkOverlayInstallerPatterns(rootDir),
     checkUnsignedModePolicy(),
@@ -417,17 +581,18 @@ function verifyWp0Gate(options = {}) {
     targetStage: options.targetStage || CURRENT_STAGE,
     ...(Object.prototype.hasOwnProperty.call(options, 'branch') ? { branch: options.branch } : {}),
     evidenceMode: options.evidenceMode === true,
-    evidenceSourceCommit: options.evidenceSourceCommit || null
+    evidenceSourceCommit: options.evidenceSourceCommit || null,
+    baselineAnchorOptions: options.baselineAnchorOptions || null
   });
   const failed = checks.filter((item) => !item.pass);
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     gateId: `YANCE-S${CURRENT_STAGE}-WP0-LOCAL-GATE`,
     status: failed.length ? 'FAIL' : 'PASS',
     reasonCode: failed.length ? failed[0].reasonCode : null,
     targetStage: options.targetStage || CURRENT_STAGE,
     sourceCommit: currentCommit(),
-    branch: currentBranch(),
+    branch: Object.prototype.hasOwnProperty.call(options, 'branch') ? options.branch : currentBranch(),
     requiredCheckCount: checks.length,
     passedCheckCount: checks.filter((item) => item.pass).length,
     failedCheckCount: failed.length,
@@ -448,17 +613,23 @@ module.exports = {
   REPOSITORY_SCOPE_POLICY_PATH,
   EXPECTED_TAG,
   EXPECTED_BASELINE_COMMIT,
+  EXPECTED_BASELINE_PROVENANCE_COMMIT,
+  EXPECTED_BASELINE_ANCHOR_COMMIT,
+  EXPECTED_BASELINE_ANCHOR_PATH,
+  EXPECTED_BASELINE_ANCHOR_BLOB,
   CURRENT_STAGE,
   ALLOWED_BRANCH,
   REJECTED_STAGE,
   readJson,
+  referenceOnlyRootPolicies,
   sha256File,
   git,
   currentCommit,
   currentBranch,
   listTrackedFiles,
+  classifyScanPath,
   scanRepositoryReleaseSurfaces,
-  verifyImmutableTag,
+  verifyRejectedBaselineAnchor,
   changedFilesSinceBaseline,
   checkRuntimeTargetGate,
   checkFreezePolicy,

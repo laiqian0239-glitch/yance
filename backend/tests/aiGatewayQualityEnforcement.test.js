@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const registry = require('../services/modelRegistry');
 const { AiGateway } = require('../services/aiGateway');
+const roleReceipts = require('../services/aiRoleQualificationReceiptAuthority');
 
 function verifiedModel(id, task, extra = {}) {
   return {
@@ -37,7 +38,7 @@ test('AiGateway blocks a legacy-eligible translation model that lacks translatio
   assert.equal(route.qualityPlan.state, 'blocked');
 });
 
-test('AiGateway permits an explicitly visible conditional translation route only when configured for human review', t => {
+test('AiGateway does not permit conditional translation even when a stale route requests human review', t => {
   const model = verifiedModel('translation-conditional', 'translation');
   const gateway = gatewayFor(t, {
     models: [model],
@@ -52,10 +53,10 @@ test('AiGateway permits an explicitly visible conditional translation route only
   });
 
   const route = gateway.resolveRoute('translation');
-  assert.equal(route.qualityPlan.primaryConditional, true);
-  assert.equal(route.primary.id, model.id);
-  assert.equal(route.conditional, true);
-  assert.equal(route.humanReviewRequired, true);
+  assert.equal(route.qualityPlan.primaryPass, false);
+  assert.equal(route.qualityPlan.primaryConditional, false);
+  assert.equal(route.primary, null);
+  assert.equal(route.qualityPlan.state, 'blocked');
 });
 
 test('AiGateway blocks fact extraction when JSON schema capability is missing', t => {
@@ -72,8 +73,10 @@ test('AiGateway blocks fact extraction when JSON schema capability is missing', 
 });
 
 test('AiGateway executes a commercially qualified translation model through the quality gate', t => {
+  const evidence = { authority: 'YanceCommercialModelBenchmark', status: 'COMMERCIAL_MODEL_QUALIFIED', testedAt: '2026-07-31T10:00:00.000Z', completed: true, pass: true, score: 95, qualifyingTasks: ['translation'], translationScore: 95 };
   const model = verifiedModel('translation-qualified', 'translation', {
-    lastCommercialBenchmark: { completed: true, qualifyingTasks: ['translation'] }
+    lastCommercialBenchmark: evidence,
+    roleQualificationReceipts: { translation: roleReceipts.issueFromEvidence({ modelId: 'translation-qualified', task: 'translation', evidence, expiresAt: '2030-01-01T00:00:00.000Z' }) }
   });
   const gateway = gatewayFor(t, {
     models: [model],

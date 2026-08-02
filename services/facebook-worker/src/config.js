@@ -1,7 +1,7 @@
 import { GatewayError } from './errors.js';
 import { boundedInteger, clean } from './utils.js';
 
-export const OAUTH_CONTRACT_VERSION = 5;
+export const OAUTH_CONTRACT_VERSION = 6;
 export const OAUTH_AUTHORIZATION_MODE = 'business-login-configuration';
 export const REQUIRED_PERMISSIONS = Object.freeze(['pages_show_list', 'pages_messaging', 'pages_manage_metadata']);
 export const OPTIONAL_PERMISSIONS = Object.freeze(['pages_read_engagement']);

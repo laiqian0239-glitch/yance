@@ -1,0 +1,76 @@
+TAP version 13
+# Subtest: OpenAI-compatible transport sends a real Bearer authorization header without exposing the key
+ok 1 - OpenAI-compatible transport sends a real Bearer authorization header without exposing the key
+  ---
+  duration_ms: 48.574098
+  type: 'test'
+  ...
+# Subtest: Node native fallback transport also sends the authorization header deterministically
+ok 2 - Node native fallback transport also sends the authorization header deterministically
+  ---
+  duration_ms: 21.236699
+  type: 'test'
+  ...
+# Subtest: OpenRouter secure credential normalization strips a pasted Bearer prefix before both account requests
+ok 3 - OpenRouter secure credential normalization strips a pasted Bearer prefix before both account requests
+  ---
+  duration_ms: 7.031204
+  type: 'test'
+  ...
+# Subtest: automatic route authority selects the evidence champion and a qualified runner-up
+ok 4 - automatic route authority selects the evidence champion and a qualified runner-up
+  ---
+  duration_ms: 36.415658
+  type: 'test'
+  ...
+# Subtest: translation defaults to cloud quality but preserves an explicit local-only policy
+ok 5 - translation defaults to cloud quality but preserves an explicit local-only policy
+  ---
+  duration_ms: 19.89736
+  type: 'test'
+  ...
+# Subtest: AI workbench makes OpenRouter the primary action and waits for credential restart before account discovery
+ok 6 - AI workbench makes OpenRouter the primary action and waits for credential restart before account discovery
+  ---
+  duration_ms: 1.800726
+  type: 'test'
+  ...
+# Subtest: backend OpenRouter auto-configuration persists cloud-first automation after credential validation
+ok 7 - backend OpenRouter auto-configuration persists cloud-first automation after credential validation
+  ---
+  duration_ms: 1.384272
+  type: 'test'
+  ...
+# Subtest: Batch15 removes screenshot-confirmed composer text artifacts
+ok 8 - Batch15 removes screenshot-confirmed composer text artifacts
+  ---
+  duration_ms: 4.880962
+  type: 'test'
+  ...
+# Subtest: Batch15 reflows the shell and account center before controls overlap
+ok 9 - Batch15 reflows the shell and account center before controls overlap
+  ---
+  duration_ms: 4.450605
+  type: 'test'
+  ...
+# Subtest: Batch15 keeps settings labels and switches in the same bounded row
+ok 10 - Batch15 keeps settings labels and switches in the same bounded row
+  ---
+  duration_ms: 0.547914
+  type: 'test'
+  ...
+# Subtest: Batch15 normalizes display actions through one shared size class
+ok 11 - Batch15 normalizes display actions through one shared size class
+  ---
+  duration_ms: 1.91115
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 213.706444

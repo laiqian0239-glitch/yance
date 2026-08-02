@@ -1,0 +1,34 @@
+TAP version 13
+# Subtest: one-click upgrade package binds installer, baseline, target and rollback workflow
+ok 1 - one-click upgrade package binds installer, baseline, target and rollback workflow
+  ---
+  duration_ms: 3.839558
+  type: 'test'
+  ...
+# Subtest: upgrade PowerShell is fail-closed and includes application plus user-data rollback
+ok 2 - upgrade PowerShell is fail-closed and includes application plus user-data rollback
+  ---
+  duration_ms: 0.251578
+  type: 'test'
+  ...
+# Subtest: upgrade package rejects incomplete Git identities
+ok 3 - upgrade package rejects incomplete Git identities
+  ---
+  duration_ms: 0.552671
+  type: 'test'
+  ...
+# Subtest: upgrade generator rejects a missing or non-empty output path without deleting existing files
+ok 4 - upgrade generator rejects a missing or non-empty output path without deleting existing files
+  ---
+  duration_ms: 0.380758
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 57.066128

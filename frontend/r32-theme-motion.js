@@ -35,7 +35,7 @@
     'timeline-page-open', 'insights-page-open', 'aiwork-page-open', 'account-center-open', 'system-center-open', 'settings-recovery-open'
   ];
   const DEFAULT_TUNING = Object.freeze({ backgroundDepth: 50, glowIntensity: 50, glassOpacity: 72, accentSaturation: 100 });
-  const DEFAULT_TYPOGRAPHY = Object.freeze({ fontProfile: 'theme', fontScale: 100, lineHeight: 155, spacing: 'theme' });
+  const DEFAULT_TYPOGRAPHY = Object.freeze({ fontProfile: 'theme', lineHeight: 155, spacing: 'theme' });
   const FONT_STACKS = Object.freeze({
     sans: '"Segoe UI Variable Text","Segoe UI","Microsoft YaHei UI",sans-serif',
     humanist: '"Segoe UI Variable Text","Microsoft YaHei UI","PingFang SC",sans-serif',
@@ -240,14 +240,8 @@
     root.style.setProperty('--theme-user-glass-opacity', String(clamp(tuning.glassOpacity, 20, 100, 72) / 100));
     root.style.setProperty('--theme-user-glass-percent', `${clamp(tuning.glassOpacity, 20, 100, 72)}%`);
     root.style.setProperty('--theme-font-family', FONT_STACKS[typography.fontProfile] || FONT_STACKS.sans);
-    root.style.setProperty('--theme-font-scale', String(clamp(typography.fontScale, 90, 120, 100) / 100));
     root.style.setProperty('--theme-line-height', String(clamp(typography.lineHeight, 130, 190, 155) / 100));
-    root.style.setProperty('--ws-card-title', `calc(14px * var(--theme-font-scale))`);
-    root.style.setProperty('--ws-body', `calc(13px * var(--theme-font-scale))`);
-    root.style.setProperty('--ws-small', `calc(11px * var(--theme-font-scale))`);
-    root.style.setProperty('--ws-meta', `calc(10px * var(--theme-font-scale))`);
-    root.style.setProperty('--ws-section', `calc(17px * var(--theme-font-scale))`);
-    root.style.setProperty('--ws-section-title', `calc(17px * var(--theme-font-scale))`);
+
     const computedTheme = getComputedStyle(root);
     const titlebarColor = sanitizeCssColor(clean(computedTheme.getPropertyValue('--nav')))
       || sanitizeCssColor(tuneHex(theme.tokens?.nav || theme.preview?.[0], depthDelta, 1));
@@ -370,12 +364,11 @@
     });
     $('theme32Typography').innerHTML = `
       <label class="theme32-field"><span>字体风格</span><select id="theme32Font">${FONT_PROFILES.map(row => `<option value="${htmlAttr(row[0])}" ${typography.fontProfile === row[0] ? 'selected' : ''}>${htmlText(row[1])}</option>`).join('')}</select></label>
-      ${sliderRowHtml('fontScale', '字号比例', 90, 120, typography.fontScale, '%')}
       ${sliderRowHtml('lineHeight', '正文行高', 130, 190, typography.lineHeight, '%')}
       <label class="theme32-field"><span>内容间距</span><select id="theme32Spacing">${SPACING.map(row => `<option value="${htmlAttr(row[0])}" ${typography.spacing === row[0] ? 'selected' : ''}>${htmlText(row[1])}</option>`).join('')}</select></label>`;
     $('theme32Font').onchange = () => updateTypography({ fontProfile: $('theme32Font').value });
     $('theme32Spacing').onchange = () => updateTypography({ spacing: $('theme32Spacing').value });
-    $('theme32Typography').querySelectorAll('[data-tuning="fontScale"],[data-tuning="lineHeight"]').forEach(input => input.oninput = () => {
+    $('theme32Typography').querySelectorAll('[data-tuning="lineHeight"]').forEach(input => input.oninput = () => {
       const value = $('theme32Typography').querySelector(`[data-value-for="${input.dataset.tuning}"]`);
       if (value) value.textContent = `${input.value}%`;
       updateTypography({ [input.dataset.tuning]: Number(input.value) }, true);

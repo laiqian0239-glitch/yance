@@ -1,0 +1,54 @@
+TAP version 13
+# (node:19875) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: workspace contact summary exposes original and Chinese translation from the latest message
+ok 1 - workspace contact summary exposes original and Chinese translation from the latest message
+  ---
+  duration_ms: 0.855267
+  type: 'test'
+  ...
+# Subtest: conversation production UI is wired to bilingual contact summaries
+ok 2 - conversation production UI is wired to bilingual contact summaries
+  ---
+  duration_ms: 2.439611
+  type: 'test'
+  ...
+# Subtest: understanding state cannot complete without intent, need, evidence and strategy
+ok 3 - understanding state cannot complete without intent, need, evidence and strategy
+  ---
+  duration_ms: 1.475496
+  type: 'test'
+  ...
+# Subtest: composer exposes automatic Chinese-to-contact-language send status
+ok 4 - composer exposes automatic Chinese-to-contact-language send status
+  ---
+  duration_ms: 2.283067
+  type: 'test'
+  ...
+# Subtest: contact context menu is reduced to open, pin and archive
+ok 5 - contact context menu is reduced to open, pin and archive
+  ---
+  duration_ms: 4.657356
+  type: 'test'
+  ...
+# Subtest: AI workbench distinguishes enabled, configured and operational routes
+ok 6 - AI workbench distinguishes enabled, configured and operational routes
+  ---
+  duration_ms: 1.174746
+  type: 'test'
+  ...
+# Subtest: reply brain cannot become candidate-ready without director and commercially qualified translation
+ok 7 - reply brain cannot become candidate-ready without director and commercially qualified translation
+  ---
+  duration_ms: 0.303897
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 454.569132

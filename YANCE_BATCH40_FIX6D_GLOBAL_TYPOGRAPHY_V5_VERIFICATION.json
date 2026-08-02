@@ -1,0 +1,562 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_BATCH40_FIX6D_GLOBAL_TYPOGRAPHY_V5_VERIFICATION",
+  "upstream": {
+    "branch": "fix6d-scroll-authority-v4",
+    "commit": "557e7586768744dcc24278d8bf68508a6181c04b",
+    "tree": "96099cf20673069624bfac9985547385ceb9a626",
+    "sourceArchiveSha256": "1b4612cd943c4fa1bf6692ed1870ca45deaed66ab82e22713522a0ff6af646ae",
+    "gitHistoryPresentInArchive": false,
+    "syntheticImportCommit": "d4f657676de35c0a2fcf4b121b381b0db7769a1d"
+  },
+  "implementation": {
+    "branch": "fix6d-global-typography-v5",
+    "commit": "514dc7a45e4891ed96c00a9046702676b9fe6d2c",
+    "tree": "c594b6848c6bf588ec72eba6308eef21090cc5ec",
+    "productionBackendChanged": false
+  },
+  "staticTypographyGate": {
+    "filesScanned": 74,
+    "violations": 0,
+    "hardcodedFontSize": 0,
+    "hardcodedFontShorthand": 0,
+    "fontSizeImportant": 0,
+    "inlineFontSize": 0,
+    "dynamicFontSize": 0,
+    "legacyWsTokens": 0,
+    "lineClamp": 0,
+    "readingSelectorFiles": [
+      "frontend/r32-global-reading.css"
+    ],
+    "semanticTokenDefinitionFiles": [
+      "frontend/r32-global-reading.css"
+    ],
+    "semanticTokenDefinitions": 30,
+    "gateSelfTests": {
+      "tests": 2,
+      "pass": 2,
+      "fail": 0
+    }
+  },
+  "chromiumComputedStyleMatrix": {
+    "engine": "system Chromium through Python Playwright",
+    "platform": "Linux sandbox",
+    "pass": true,
+    "themeCount": 29,
+    "routeCount": 10,
+    "failureCount": 0,
+    "totalScenarios": 1280,
+    "totalRoleChecks": 9856,
+    "totalComputedTextChecks": 1572,
+    "totalControlChecks": 567,
+    "totalHeadingChecks": 153,
+    "totalLayoutChecks": 20,
+    "viewports": [
+      {
+        "pass": true,
+        "viewport": {
+          "width": 1680,
+          "height": 900
+        },
+        "themes": 29,
+        "routes": 10,
+        "scenarioCounts": {
+          "total": 640,
+          "roleChecks": 4928,
+          "computedTextChecks": 882,
+          "controlChecks": 309,
+          "headingChecks": 81,
+          "layoutChecks": 10
+        },
+        "missingRoles": [],
+        "failureCount": 0,
+        "failureTypes": {},
+        "failures": [],
+        "samples": [
+          {
+            "route": "conversation",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 842,
+              "scrollHeight": 842
+            }
+          },
+          {
+            "route": "contacts",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 842,
+              "scrollHeight": 842
+            }
+          },
+          {
+            "route": "profiles",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 842,
+              "scrollHeight": 842
+            }
+          },
+          {
+            "route": "timeline",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 842,
+              "scrollHeight": 842
+            }
+          },
+          {
+            "route": "insights",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 842,
+              "scrollHeight": 842
+            }
+          },
+          {
+            "route": "ai-workbench",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 842,
+              "scrollHeight": 842
+            }
+          },
+          {
+            "route": "accounts",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 842,
+              "scrollHeight": 842
+            }
+          },
+          {
+            "route": "system",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 842,
+              "scrollHeight": 842
+            }
+          },
+          {
+            "route": "settings",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 842,
+              "scrollHeight": 842
+            }
+          },
+          {
+            "route": "theme",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 842,
+              "scrollHeight": 1426
+            }
+          }
+        ]
+      },
+      {
+        "pass": true,
+        "viewport": {
+          "width": 760,
+          "height": 700
+        },
+        "themes": 29,
+        "routes": 10,
+        "scenarioCounts": {
+          "total": 640,
+          "roleChecks": 4928,
+          "computedTextChecks": 690,
+          "controlChecks": 258,
+          "headingChecks": 72,
+          "layoutChecks": 10
+        },
+        "missingRoles": [],
+        "failureCount": 0,
+        "failureTypes": {},
+        "failures": [],
+        "samples": [
+          {
+            "route": "conversation",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 642,
+              "scrollHeight": 642
+            }
+          },
+          {
+            "route": "contacts",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 642,
+              "scrollHeight": 642
+            }
+          },
+          {
+            "route": "profiles",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 642,
+              "scrollHeight": 670
+            }
+          },
+          {
+            "route": "timeline",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 642,
+              "scrollHeight": 724
+            }
+          },
+          {
+            "route": "insights",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 642,
+              "scrollHeight": 712
+            }
+          },
+          {
+            "route": "ai-workbench",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 642,
+              "scrollHeight": 776
+            }
+          },
+          {
+            "route": "accounts",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 644,
+              "scrollHeight": 644
+            }
+          },
+          {
+            "route": "system",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 644,
+              "scrollHeight": 644
+            }
+          },
+          {
+            "route": "settings",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 642,
+              "scrollHeight": 642
+            }
+          },
+          {
+            "route": "theme",
+            "tokens": {
+              "page-title": 40,
+              "section-title": 24,
+              "card-title": 19,
+              "body": 18,
+              "body-strong": 18,
+              "caption": 16,
+              "meta": 14,
+              "control": 16,
+              "badge": 14,
+              "data-value": 34
+            },
+            "workspace": {
+              "height": 642,
+              "scrollHeight": 2525
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "focusedRegression": {
+    "tests": 90,
+    "pass": 90,
+    "fail": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "todo": 0,
+    "groups": [
+      {
+        "name": "component-and-batch20-contract-migration",
+        "tests": 17,
+        "pass": 17
+      },
+      {
+        "name": "batch19-fix15-fix18-regression",
+        "tests": 14,
+        "pass": 14
+      },
+      {
+        "name": "ai-typography-and-batched-computed-style",
+        "tests": 3,
+        "pass": 3
+      },
+      {
+        "name": "computed-style-and-conversation-state",
+        "tests": 8,
+        "pass": 8
+      },
+      {
+        "name": "windows-theme-empty-route-round11-static-contracts",
+        "tests": 25,
+        "pass": 25
+      },
+      {
+        "name": "notification-scroll-screenshot-system-theme-browser-regressions",
+        "tests": 21,
+        "pass": 21
+      },
+      {
+        "name": "typography-audit-and-self-test",
+        "tests": 2,
+        "pass": 2
+      }
+    ]
+  },
+  "staticChecks": {
+    "nodeSyntax": "PASS",
+    "pythonCompile": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "externalTools": {
+    "github": {
+      "invoked": true,
+      "accessibleRepositories": 0,
+      "pushed": false,
+      "pullRequestCreated": false
+    },
+    "fallow": {
+      "invoked": true,
+      "available": false,
+      "reason": "CLI/MCP unavailable; internal npm registry returned 404"
+    },
+    "sonarqube": {
+      "invoked": true,
+      "available": false,
+      "reason": "CLI/MCP unavailable; no Docker, Podman, or Nerdctl runtime"
+    }
+  },
+  "governance": {
+    "windowsUiUat": false,
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "candidatePackageGenerated": false,
+    "realWindowsScaleRetestRequired": [
+      100,
+      125,
+      150
+    ]
+  }
+}

@@ -71,8 +71,9 @@ test('core reply routes require high-capability primary and same-tier fallback',
 });
 
 test('a weaker fallback does not count as reliable continuity for a high primary', () => {
-  const primary = highModel('primary');
+  const primary = highModel('primary', 'provider-a');
   const fallback = conditionalModel('fallback');
+  fallback.provider = 'provider-b';
   const plan = authority.routePlan({
     task: 'quick_reply',
     route: { primary: primary.id, fallback: fallback.id, allowConditional: true },
@@ -88,6 +89,7 @@ test('conditional trial remains visible and requires human review', () => {
   const fallback = conditionalModel('trial-b');
   const plan = authority.routePlan({
     task: 'quick_reply',
+    executionMode: 'candidate-only',
     route: { primary: primary.id, fallback: fallback.id, allowConditional: true },
     models: [primary, fallback]
   });
@@ -119,11 +121,11 @@ test('emergency output is explicitly isolated from long-term learning', () => {
   assert.match(receipt.receiptHash, /^[a-f0-9]{64}$/);
 });
 
-test('failure classification prefers same-tier recovery actions', () => {
-  assert.equal(authority.classifyFailure({ status: 404 }).action, 'switch_same_tier');
-  assert.equal(authority.classifyFailure({ status: 429 }).action, 'switch_provider_or_backoff_same_tier');
-  assert.equal(authority.classifyFailure({ code: 'JSON_SCHEMA_INVALID' }).action, 'correct_once_then_switch_same_tier');
-  assert.equal(authority.classifyFailure({ code: 'MODEL_TIMEOUT' }).action, 'reduce_context_then_switch_low_latency_same_tier');
+test('failure classification uses controlled independent-provider recovery actions', () => {
+  assert.equal(authority.classifyFailure({ status: 404 }).action, 'switch_independent_provider');
+  assert.equal(authority.classifyFailure({ status: 429 }).action, 'cooldown_then_switch_independent_provider');
+  assert.equal(authority.classifyFailure({ code: 'JSON_SCHEMA_INVALID' }).action, 'switch_independent_provider_and_record_quality_failure');
+  assert.equal(authority.classifyFailure({ code: 'MODEL_TIMEOUT' }).action, 'reduce_context_then_switch_independent_provider');
 });
 
 test('translation quality is evaluated independently from social reply quality', () => {

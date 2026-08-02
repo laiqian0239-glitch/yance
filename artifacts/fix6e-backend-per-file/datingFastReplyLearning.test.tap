@@ -1,0 +1,90 @@
+TAP version 13
+# (node:18114) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: reply performance policy keeps rapid, balanced and deep provide selectable candidates
+ok 1 - reply performance policy keeps rapid, balanced and deep provide selectable candidates
+  ---
+  duration_ms: 0.963957
+  type: 'test'
+  ...
+# Subtest: legacy SQLite reply tables migrate in place without losing the existing database
+ok 2 - legacy SQLite reply tables migrate in place without losing the existing database
+  ---
+  duration_ms: 314.913427
+  type: 'test'
+  ...
+# Subtest: interaction policy remains advisory while archived contacts still block the technical send path
+ok 3 - interaction policy remains advisory while archived contacts still block the technical send path
+  ---
+  duration_ms: 4.261021
+  type: 'test'
+  ...
+# Subtest: fast technical guard does not run relationship-value blocking but still blocks secrets
+ok 4 - fast technical guard does not run relationship-value blocking but still blocks secrets
+  ---
+  duration_ms: 3.027688
+  type: 'test'
+  ...
+# Subtest: conversation turn coordinator increments only for inbound content and groups message ids
+ok 5 - conversation turn coordinator increments only for inbound content and groups message ids
+  ---
+  duration_ms: 1.229893
+  type: 'test'
+  ...
+# Subtest: candidate approval is rejected when the conversation revision changed
+ok 6 - candidate approval is rejected when the conversation revision changed
+  ---
+  duration_ms: 2.309284
+  type: 'test'
+  ...
+# Subtest: approved reply persists learning mode, source and conversation binding in outbox metadata
+ok 7 - approved reply persists learning mode, source and conversation binding in outbox metadata
+  ---
+  duration_ms: 3.521375
+  type: 'test'
+  ...
+# Subtest: send_only successful messages do not enter reply learning
+ok 8 - send_only successful messages do not enter reply learning
+  ---
+  duration_ms: 0.484026
+  type: 'test'
+  ...
+# Subtest: fast reply generation runs director then reply and commits aggregated context binding
+ok 9 - fast reply generation runs director then reply and commits aggregated context binding
+  ---
+  duration_ms: 277.55653
+  type: 'test'
+  ...
+# Subtest: a successfully sent reply becomes an immediate contact-only example without waiting for style threshold
+ok 10 - a successfully sent reply becomes an immediate contact-only example without waiting for style threshold
+  ---
+  duration_ms: 4.358287
+  type: 'test'
+  ...
+# Subtest: immediate learned examples are included in the next prompt as style-only contact context
+ok 11 - immediate learned examples are included in the next prompt as style-only contact context
+  ---
+  duration_ms: 0.555724
+  type: 'test'
+  ...
+# Subtest: conversation UI exposes fast modes, send-learning controls, incoming invalidation and local learning management
+ok 12 - conversation UI exposes fast modes, send-learning controls, incoming invalidation and local learning management
+  ---
+  duration_ms: 2.638087
+  type: 'test'
+  ...
+# Subtest: approval and final send are blocked when an English candidate contains Chinese text
+ok 13 - approval and final send are blocked when an English candidate contains Chinese text
+  ---
+  duration_ms: 4.889116
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 721.703029

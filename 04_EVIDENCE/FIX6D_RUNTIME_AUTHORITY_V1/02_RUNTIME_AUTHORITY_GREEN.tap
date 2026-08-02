@@ -1,0 +1,96 @@
+TAP version 13
+# (node:8937) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: credential mutation receipt distinguishes durable commit from runtime confirmation failure
+ok 1 - credential mutation receipt distinguishes durable commit from runtime confirmation failure
+  ---
+  duration_ms: 1.701541
+  type: 'test'
+  ...
+# Subtest: model capability authority excludes batch-only models from every interactive route
+ok 2 - model capability authority excludes batch-only models from every interactive route
+  ---
+  duration_ms: 0.565968
+  type: 'test'
+  ...
+# Subtest: OpenRouter onboarding keeps trying eligible independent candidates until two real calls pass
+ok 3 - OpenRouter onboarding keeps trying eligible independent candidates until two real calls pass
+  ---
+  duration_ms: 10.028844
+  type: 'test'
+  ...
+# Subtest: formal AI role eligibility requires a valid model-bound role receipt
+ok 4 - formal AI role eligibility requires a valid model-bound role receipt
+  ---
+  duration_ms: 0.927224
+  type: 'test'
+  ...
+# Subtest: AI route qualification blocker isolates AI automation without entering global safe mode
+ok 5 - AI route qualification blocker isolates AI automation without entering global safe mode
+  ---
+  duration_ms: 2.59149
+  type: 'test'
+  ...
+# Subtest: system-critical unknown-send blocker still enters global safe mode
+ok 6 - system-critical unknown-send blocker still enters global safe mode
+  ---
+  duration_ms: 0.394255
+  type: 'test'
+  ...
+# Subtest: safe mode reason metadata is committed atomically with operating mode authority
+ok 7 - safe mode reason metadata is committed atomically with operating mode authority
+  ---
+  duration_ms: 318.367398
+  type: 'test'
+  ...
+# Subtest: only formal benchmark authorities may mint governed AI role receipts
+ok 8 - only formal benchmark authorities may mint governed AI role receipts
+  ---
+  duration_ms: 0.235228
+  type: 'test'
+  ...
+# Subtest: AI automation orchestrator consumes domain isolation authority before scheduling or processing
+ok 9 - AI automation orchestrator consumes domain isolation authority before scheduling or processing
+  ---
+  duration_ms: 54.913429
+  type: 'test'
+  ...
+# Subtest: OpenRouter UI preserves a committed credential receipt when runtime application is unconfirmed
+ok 10 - OpenRouter UI preserves a committed credential receipt when runtime application is unconfirmed
+  ---
+  duration_ms: 0.650684
+  type: 'test'
+  ...
+# Subtest: governed formal routes cannot bypass receipt authority through the routing integrity layer
+ok 11 - governed formal routes cannot bypass receipt authority through the routing integrity layer
+  ---
+  duration_ms: 0.336569
+  type: 'test'
+  ...
+# Subtest: domain isolation authority notifies automation consumers when AI isolation changes
+ok 12 - domain isolation authority notifies automation consumers when AI isolation changes
+  ---
+  duration_ms: 0.706777
+  type: 'test'
+  ...
+# Subtest: allowConditional cannot downgrade a formally qualified reply model that lacks its durable receipt
+ok 13 - allowConditional cannot downgrade a formally qualified reply model that lacks its durable receipt
+  ---
+  duration_ms: 0.905992
+  type: 'test'
+  ...
+# Subtest: governed receipt issuance rejects onboarding or caller-provided pass flags without formal benchmark evidence
+ok 14 - governed receipt issuance rejects onboarding or caller-provided pass flags without formal benchmark evidence
+  ---
+  duration_ms: 1.563116
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 758.916015

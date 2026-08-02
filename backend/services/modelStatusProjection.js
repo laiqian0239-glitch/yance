@@ -5,6 +5,7 @@ const routingIntegrity = require('./modelRoutingIntegrityService');
 const authority = require('./modelRuntimeAuthority');
 const replyBrainAuthority = require('./replyBrainModelAuthority');
 const aiTaskRoleReadinessAuthority = require('./aiTaskRoleReadinessAuthority');
+const modelPoolSegmentationAuthority = require('./modelPoolSegmentationAuthority');
 
 function buildAssignments(routes = {}) {
   const byModel = new Map();
@@ -66,11 +67,21 @@ function project(state = {}, options = {}) {
       quarantine: repaired.quarantine.map(row => ({ ...row }))
     }
   });
+  const modelPools = modelPoolSegmentationAuthority.segment(models, routes, {
+    now: options.now,
+    platformAccounts: options.platformAccounts || state.platformAccounts || [],
+    platformUatPassed: options.platformUatPassed === true || state.platformUatPassed === true,
+    shadowValidatedByTask: options.shadowValidatedByTask || state.shadowValidatedByTask || {}
+  });
+  const modelsWithLifecycle = models.map(model => ({
+    ...model,
+    taskLifecycles: modelPools.lifecycles[model.id] || {}
+  }));
   const rawOpenRouter = state.openRouter && typeof state.openRouter === 'object' ? state.openRouter : {};
   const { credentialRef: _credentialRef, ...openRouterSnapshot } = rawOpenRouter;
-  const trackedCloudCostUsd = models.reduce((sum, model) => sum + Number(model.totalCostUsd || 0), 0);
+  const trackedCloudCostUsd = modelsWithLifecycle.reduce((sum, model) => sum + Number(model.totalCostUsd || 0), 0);
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     source: 'sqlite:model-registry',
     authority: 'ModelRuntimeAuthority',
     generatedAt: new Date().toISOString(),
@@ -90,7 +101,8 @@ function project(state = {}, options = {}) {
     },
     routesUpdatedAt: state.routesUpdatedAt || state.routesRepairedAt || '',
     history: Array.isArray(state.history) ? state.history.slice(0, 500) : [],
-    models,
+    models: modelsWithLifecycle,
+    modelPools,
     openRouter: {
       ...openRouterSnapshot,
       credentialConfigured: Boolean(rawOpenRouter.credentialRef)
@@ -104,6 +116,7 @@ function project(state = {}, options = {}) {
       invalidPersistedRoutes: repaired.quarantine.length,
       replyBrainReady: replyBrain.pass,
       replyBrainCandidates: replyBrain.coreCandidateCount,
+      replyCandidateInventoryCount: modelPools.summary.replyCandidateModelCount,
       coreTasksConfigured: taskReadiness.configured,
       coreTasksOperational: taskReadiness.operational,
       coreTasksResilient: taskReadiness.resilient,

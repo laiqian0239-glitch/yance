@@ -1,0 +1,48 @@
+TAP version 13
+# (node:19289) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: phase 1 governance UI reads real three-layer learning and supports mutation and restore
+ok 1 - phase 1 governance UI reads real three-layer learning and supports mutation and restore
+  ---
+  duration_ms: 6.708224
+  type: 'test'
+  ...
+# Subtest: global search indexes contacts, original messages and Chinese translations and can locate a message
+ok 2 - global search indexes contacts, original messages and Chinese translations and can locate a message
+  ---
+  duration_ms: 2.872099
+  type: 'test'
+  ...
+# Subtest: translation retry uses a cancellable job lifecycle instead of a blocking direct call
+ok 3 - translation retry uses a cancellable job lifecycle instead of a blocking direct call
+  ---
+  duration_ms: 0.433082
+  type: 'test'
+  ...
+# Subtest: candidate cards expose the exact reviewed learning applied to generation
+ok 4 - candidate cards expose the exact reviewed learning applied to generation
+  ---
+  duration_ms: 2.89831
+  type: 'test'
+  ...
+# Subtest: persona workbench has a Chinese understanding layer without overwriting authoritative source data
+ok 5 - persona workbench has a Chinese understanding layer without overwriting authoritative source data
+  ---
+  duration_ms: 0.904744
+  type: 'test'
+  ...
+# Subtest: SQLite bilingual search finds a message by its persisted Chinese translation
+ok 6 - SQLite bilingual search finds a message by its persisted Chinese translation
+  ---
+  duration_ms: 332.744468
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 402.560812

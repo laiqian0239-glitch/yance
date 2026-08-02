@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: commercial navigation consolidates the product into five primary areas without deleting legacy routes
+ok 1 - commercial navigation consolidates the product into five primary areas without deleting legacy routes
+  ---
+  duration_ms: 0.80372
+  type: 'test'
+  ...
+# Subtest: relationship and system subnavigation reuses authoritative existing workspaces
+ok 2 - relationship and system subnavigation reuses authoritative existing workspaces
+  ---
+  duration_ms: 0.586076
+  type: 'test'
+  ...
+# Subtest: AI workbench is presented as the AI reply brain while keeping advanced internals available
+ok 3 - AI workbench is presented as the AI reply brain while keeping advanced internals available
+  ---
+  duration_ms: 0.124863
+  type: 'test'
+  ...
+# Subtest: AI reply brain defaults to a calm business mode and keeps model internals behind an advanced toggle
+ok 4 - AI reply brain defaults to a calm business mode and keeps model internals behind an advanced toggle
+  ---
+  duration_ms: 0.145344
+  type: 'test'
+  ...
+# Subtest: cross-module status copy is descriptive and does not hard-code unverified completion or waiting labels
+ok 5 - cross-module status copy is descriptive and does not hard-code unverified completion or waiting labels
+  ---
+  duration_ms: 0.507145
+  type: 'test'
+  ...
+# Subtest: navigation synchronization is idempotent and avoids mutation-observer self loops
+ok 6 - navigation synchronization is idempotent and avoids mutation-observer self loops
+  ---
+  duration_ms: 0.152646
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 58.800575

@@ -1,0 +1,48 @@
+TAP version 13
+# (node:18283) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: async lifecycle supersedes old generations and rejects stale completion writeback
+ok 1 - async lifecycle supersedes old generations and rejects stale completion writeback
+  ---
+  duration_ms: 289.246114
+  type: 'test'
+  ...
+# Subtest: delivery authority separates text, emoji and media capability truth by real platform ACK
+ok 2 - delivery authority separates text, emoji and media capability truth by real platform ACK
+  ---
+  duration_ms: 265.150825
+  type: 'test'
+  ...
+# Subtest: identity failure rolls back message, conversation, person and bindings as one transaction
+ok 3 - identity failure rolls back message, conversation, person and bindings as one transaction
+  ---
+  duration_ms: 13.663763
+  type: 'test'
+  ...
+# Subtest: successful inbound commit hydrates canonical identity and account route from SQLite authority
+ok 4 - successful inbound commit hydrates canonical identity and account route from SQLite authority
+  ---
+  duration_ms: 25.483454
+  type: 'test'
+  ...
+# Subtest: OpenRouter dual-model smoke writes one durable lifecycle and applies routes only after 2/2 real-call results
+ok 5 - OpenRouter dual-model smoke writes one durable lifecycle and applies routes only after 2/2 real-call results
+  ---
+  duration_ms: 287.249306
+  type: 'test'
+  ...
+# Subtest: renderer treats realtime message events as SQLite invalidations instead of a second message authority
+ok 6 - renderer treats realtime message events as SQLite invalidations instead of a second message authority
+  ---
+  duration_ms: 1.839081
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1484.559725

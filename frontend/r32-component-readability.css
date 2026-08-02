@@ -51,14 +51,14 @@
   #testSoundBtn
 ){
   box-sizing:border-box!important;
-  min-height:34px!important;
+  min-height:var(--control-min-height)!important;
   height:auto!important;
   padding:7px 11px!important;
   border:1px solid var(--rc-action-border)!important;
   border-radius:9px;
   background:var(--rc-action-surface)!important;
   color:var(--rc-action-text)!important;
-  font-size:max(11px,var(--ws-button,11px))!important;
+  font-size:var(--type-control);
   font-weight:650;
   line-height:1.35!important;
   white-space:normal!important;
@@ -199,7 +199,7 @@
   border:1px solid var(--rc-action-border)!important;
   background:var(--rc-action-surface)!important;
   color:var(--rc-action-text)!important;
-  font-size:11px!important;
+  font-size:var(--type-control);
   font-weight:600;
   line-height:1.35!important;
   white-space:normal!important;
@@ -219,7 +219,7 @@
   align-items:start!important;
   gap:6px!important;
   color:var(--rc-action-text-muted)!important;
-  font-size:11px!important;
+  font-size:var(--type-badge);
   line-height:1.55!important;
 }
 .candidate-trust>span{
@@ -245,3 +245,18 @@
   .profile-actions{display:grid!important;grid-template-columns:1fr!important}
   .profile-actions button{width:100%;flex:none}
 }
+
+/* FIX6D fluid typography consumption contract. Reading mode changes tokens only. */
+#app{font-size:var(--type-body);line-height:var(--leading-body);text-rendering:optimizeLegibility}
+#app :where(.panel,.card,article,section,header,footer,.workspace,.workbench,.grid,.row,[data-production-component]){min-width:0;max-width:100%;max-height:none}
+#app :where(p,li,td,th,label,.snippet,.translation,.quote,.notice,.description,.detail,.copy){overflow-wrap:anywhere}
+#app :where(.contact-name,.snippet,.ai-daily-candidate p,.sc32-row p,.sr32-row small,.ac32-account-copy p){white-space:normal;text-overflow:clip;overflow:visible}
+#app :where(button:not(.ui-binary-control),input:not(.ui-binary-control),textarea,select,[role="button"]:not(.ui-binary-control),[role="combobox"],[data-production-control]:not(.ui-binary-control)){min-height:max(var(--control-min-height),var(--density-row-height));height:auto;max-width:100%;white-space:normal;line-height:var(--leading-compact)}
+#app :where(.toolbar,.actions,.button-row,.filter-row,.composer-settings-row,.composer-tool-row,.composer-bottom-row,.sc32-actions,.sr32-actions,.ac32-actions,[data-production-actions]){display:flex;flex-wrap:wrap;gap:var(--density-gap);min-width:0}
+#app :where(.sc32-row,.sr32-row,.ac32-action-row,.ac32-history-row,.ac32-diagnostic-row,.aiw30-template,.aiw30-rule,.persona-readable-row){min-height:var(--density-row-height);padding:var(--density-card-padding)}
+#app :where(.sc32-grid,.sr32-grid,.ac32-grid,.aiw30-grid,.persona-readable-grid,.brain-grid){gap:var(--density-gap)}
+html[data-contrast="high"] :where(small,.muted,.sub,.meta,.hint,.caption,.helper,.description,.status-copy,.display-note){color:color-mix(in srgb,var(--text-primary) 84%,var(--accent-primary));opacity:1}
+html[data-contrast="high"] :where(button,input,textarea,select,[role="button"],.chip,.tag,.badge){border-color:color-mix(in srgb,var(--text-primary) 30%,var(--accent-primary))}
+html[data-contrast="high"] :where(input,textarea,select)::placeholder{color:color-mix(in srgb,var(--text-primary) 66%,var(--accent-primary));opacity:1}
+html[data-contrast="high"] :where(.panel,.card,.section,.workspace-card,.ai-daily-card){border-color:color-mix(in srgb,var(--text-primary) 20%,var(--line))}
+html[data-contrast="high"] #app :where(a,button,[role="button"],input,textarea,select):focus-visible{outline:3px solid var(--accent-primary);outline-offset:2px}

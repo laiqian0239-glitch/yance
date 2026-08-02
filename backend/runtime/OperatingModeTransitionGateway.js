@@ -27,7 +27,7 @@ class OperatingModeTransitionGateway {
       commandType: 'runtime.setOperatingMode',
       expectedStateVersion: Number(current.stateVersion),
       issuedAtUtc: this.clock(),
-      payload: { operatingMode: targetMode, reason: String(input.reason || ''), source: String(input.source || 'internal') }
+      payload: { operatingMode: targetMode, reason: String(input.reason || ''), source: String(input.source || 'internal'), metadata: input.metadata && typeof input.metadata === 'object' ? input.metadata : {} }
     };
     const digest = this.store.commandEnvelopeHash(envelope);
     const active = this.inFlight.get(commandId);
@@ -35,18 +35,26 @@ class OperatingModeTransitionGateway {
       if (active.digest !== digest) throw new AppRuntimeError('COMMAND_ID_REUSE_MISMATCH', 'commandId was reused with a different envelope', { status: 409 });
       return active.promise;
     }
-    const promise = this._transition({ ...input, targetMode, commandId, envelope }).finally(() => this.inFlight.delete(commandId));
+    const payload = envelope.payload && typeof envelope.payload === 'object' ? envelope.payload : {};
+    const reason = Object.prototype.hasOwnProperty.call(input, 'reason') ? String(input.reason || '') : String(payload.reason || '');
+    const source = Object.prototype.hasOwnProperty.call(input, 'source') ? String(input.source || '') : String(payload.source || 'internal');
+    const metadata = {
+      ...(payload.metadata && typeof payload.metadata === 'object' ? payload.metadata : {}),
+      ...(input.metadata && typeof input.metadata === 'object' ? input.metadata : {})
+    };
+    const promise = this._transition({ ...input, targetMode, commandId, envelope, reason, source, metadata }).finally(() => this.inFlight.delete(commandId));
     this.inFlight.set(commandId, { digest, promise });
     return promise;
   }
 
-  async _transition({ targetMode, commandId, envelope, reason = '', source = 'internal' }) {
+  async _transition({ targetMode, commandId, envelope, reason = '', source = 'internal', metadata = {} }) {
     const persisted = this.store.persistOperatingModeCommand({
       ...this._guard(),
       envelope,
       targetMode,
       reason,
-      source
+      source,
+      metadata
     });
     if (persisted.duplicate && persisted.terminal === true) return persisted.response;
 

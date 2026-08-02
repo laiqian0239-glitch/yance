@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const eventBus = require('../services/eventBus');
 const { AiGateway } = require('../services/aiGateway');
+const roleReceipts = require('../services/aiRoleQualificationReceiptAuthority');
 
 function deferred() {
   let resolve;
@@ -16,6 +17,7 @@ function deferred() {
 }
 
 function qualifiedModel(id) {
+  const evidence = { authority: 'YanceCommercialModelBenchmark', status: 'COMMERCIAL_MODEL_QUALIFIED', testedAt: '2026-07-31T10:00:00.000Z', completed: true, pass: true, score: 95, qualifyingTasks: ['translation'], translationScore: 95 };
   return {
     id,
     name: id,
@@ -24,10 +26,8 @@ function qualifiedModel(id) {
     available: true,
     userDisabled: false,
     allowedTasks: ['translation'],
-    lastCommercialBenchmark: {
-      completed: true,
-      qualifyingTasks: ['translation']
-    }
+    lastCommercialBenchmark: evidence,
+    roleQualificationReceipts: { translation: roleReceipts.issueFromEvidence({ modelId: id, task: 'translation', evidence, expiresAt: '2030-01-01T00:00:00.000Z' }) }
   };
 }
 
@@ -164,6 +164,8 @@ test('stream tokens are fenced after cancellation before reaching the caller', a
 test('a fallback result resolving after cancellation has no success side effects', async t => {
   const primary = qualifiedModel('batch40-fallback-primary');
   const fallback = qualifiedModel('batch40-fallback-secondary');
+  primary.modelSlug = 'anthropic/claude-opus-5';
+  fallback.modelSlug = 'openai/gpt-5.6-sol';
   const invocation = deferred();
   const fallbackStarted = deferred();
   const successCalls = [];

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "policyId": "Y29-S6.4.5.9-WP0-REPOSITORY-SCOPE",
   "sourceOrigin": "EXTRACTED_29_2_4_INSTALLER_SOURCE_BASELINE",
   "baselineCommit": "c150182219edea2faf49c714275e9921a21df742",
@@ -9,6 +9,12 @@
     "electron",
     "frontend",
     "shared"
+  ],
+  "referenceOnlyRoots": [
+    {
+      "path": "INDEPENDENT_AUDIT_DELIVERY",
+      "classification": "REFERENCE_ONLY_AUDIT_DELIVERY"
+    }
   ],
   "originalVcsHistoryAvailable": false,
   "originalInstallerProjectAvailable": false,

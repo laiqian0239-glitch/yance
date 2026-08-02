@@ -8,6 +8,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '../..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const routing = require('../services/modelRoutingIntegrityService');
+const roleReceipts = require('../services/aiRoleQualificationReceiptAuthority');
 const autoActivation = require('../services/modelAutoActivationService');
 const qualification = require('../services/modelQualification');
 const ollama = require('../services/ollamaClient');
@@ -15,13 +16,32 @@ const workspaceData = require('../services/workspaceDataService');
 const { ensureCustomerContext } = require('../services/storeManagerService');
 
 function model(id, name, qualificationValue, allowedTasks, sizeBytes) {
-  return { id, name, provider: 'ollama', available: true, qualification: qualificationValue, allowedTasks, sizeBytes };
+  const result = { id, name, provider: 'ollama', available: true, qualification: qualificationValue, allowedTasks, sizeBytes };
+  if (qualificationValue === 'verified' && allowedTasks.includes('translation')) {
+    const evidence = { authority: 'YanceCommercialModelBenchmark', status: 'COMMERCIAL_MODEL_QUALIFIED', testedAt: '2026-07-31T10:00:00.000Z', completed: true, pass: true, score: 95, qualifyingTasks: ['translation'], translationScore: 95 };
+    result.lastCommercialBenchmark = evidence;
+    result.roleQualificationReceipts = { translation: roleReceipts.issueFromEvidence({ modelId: id, task: 'translation', evidence, expiresAt: '2030-01-01T00:00:00.000Z' }) };
+  }
+  return result;
+}
+
+function withReplyAuthority(modelValue) {
+  const tasks = ['quick_reply', 'deep_reply', 'director'];
+  const evidence = { authority: 'YanceReplyBrainBenchmark', status: 'REPLY_BRAIN_QUALIFIED', testedAt: '2026-07-31T10:00:00.000Z', completed: true, pass: true, score: 91, qualifyingTasks: tasks, scenarios: [] };
+  return {
+    ...modelValue,
+    lastReplyBrainBenchmark: evidence,
+    roleQualificationReceipts: {
+      ...(modelValue.roleQualificationReceipts || {}),
+      ...Object.fromEntries(tasks.map(task => [task, roleReceipts.issueFromEvidence({ modelId: modelValue.id, task, evidence, expiresAt: '2030-01-01T00:00:00.000Z' })]))
+    }
+  };
 }
 
 test('empty registry routes are rebuilt for every task from actual allowedTasks', () => {
   const models = [
     model('q4', 'qwen3.5:4b-q4_K_M', 'experimental', ['general', 'quick_reply', 'deep_reply', 'fact_extraction', 'understanding', 'summary'], 3_400_000_000),
-    { ...model('min', 'ministral-3:14b', 'verified', ['general', 'quick_reply', 'deep_reply', 'quality_review', 'relationship', 'material_analysis', 'director'], 9_000_000_000), lastTest: { scores: { persona: { pass: true }, hallucination: { pass: true }, json: { pass: true } } }, lastReplyBrainBenchmark: { authority: 'YanceReplyBrainBenchmark', status: 'REPLY_BRAIN_QUALIFIED', pass: true, score: 91, testedAt: new Date().toISOString() } },
+    withReplyAuthority({ ...model('min', 'ministral-3:14b', 'verified', ['general', 'quick_reply', 'deep_reply', 'quality_review', 'relationship', 'material_analysis', 'director'], 9_000_000_000), lastTest: { scores: { persona: { pass: true }, hallucination: { pass: true }, json: { pass: true } } } }),
     model('tr', 'translategemma:4b', 'verified', ['general', 'translation', 'quick_reply'], 3_300_000_000),
     model('coder', 'qwen2.5-coder:14b-instruct', 'verified', ['quick_reply', 'deep_reply', 'director', 'fact_extraction'], 9_000_000_000)
   ];
@@ -106,8 +126,24 @@ test('AI workbench route health is based on assigned registry routes, not eleven
   assert.match(ui, /configured=Boolean\(actualMain\)/);
   assert.match(ui, /primarySelection==='auto'/);
   assert.match(ui, /actualMain/);
-  assert.match(ui, /state\.taskReadiness=modelState\.taskReadiness\|\|state\.taskReadiness/);
-  assert.match(ui, /state\.routes=registryRoutes\(modelState\.routes\|\|\{\},state\.taskReadiness\)/);
+  assert.match(ui, /YanceModelRuntimeSnapshotAuthority/u);
+  assert.match(ui, /modelRuntimeSnapshotAuthority\.projectModelRuntimeSnapshot/u);
+  const snapshotAuthority = require('../../frontend/js/r32-model-runtime-snapshot-authority');
+  const readiness = { pass: true, tasks: [{ task: 'quick_reply', operational: true }], missing: [] };
+  const snapshot = snapshotAuthority.projectModelRuntimeSnapshot({
+    modelState: { models: [], routes: { quick_reply: { primary: 'resolved-model' } }, taskReadiness: readiness },
+    previousState: { routes: [], taskReadiness: {} },
+    defaults: { taskReadiness: {}, replyBrain: {}, modelPools: {}, openRouter: {}, aiAutomation: {} },
+    adapters: {
+      projectServices: models => models,
+      projectRoutes: (routes, taskReadiness) => [{ id: 'quick_reply', actualMain: routes.quick_reply.primary, taskReadiness }],
+      summarizeServices: services => ({ count: services.length }),
+      mergeAuthoritativeSummary: (derived, authoritative) => ({ ...derived, ...authoritative })
+    }
+  });
+  assert.strictEqual(snapshot.taskReadiness, readiness);
+  assert.equal(snapshot.routes[0].actualMain, 'resolved-model');
+  assert.strictEqual(snapshot.routes[0].taskReadiness, readiness);
   assert.match(ui, /\$\{configuredRoutes\}\/\$\{totalRoutes\} 已配置 · \$\{operationalRoutes\} 主路由可运行 · \$\{resilientRoutes\} 主备就绪/);
   assert.doesNotMatch(ui, /state\.routes\.length===Object\.keys\(TASK_META\)\.length/);
 });

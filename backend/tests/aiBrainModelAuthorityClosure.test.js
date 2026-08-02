@@ -6,9 +6,9 @@ const authority = require('../services/replyBrainModelAuthority');
 const routing = require('../services/modelRoutingIntegrityService');
 const { aiRoutingReadiness } = require('../services/diagnosticReadiness');
 
-function qualifiedModel(id, name, parameterSize = '14B') {
+function qualifiedModel(id, name, parameterSize = '14B', provider = 'ollama', modelSlug = '') {
   return {
-    id, name, provider: 'ollama', available: true, qualification: 'verified', parameterSize,
+    id, name, provider, modelSlug, available: true, qualification: 'verified', parameterSize,
     allowedTasks: ['general', 'quick_reply', 'deep_reply', 'director', 'quality_review'],
     lastTest: { scores: { persona: { pass: true }, hallucination: { pass: true }, json: { pass: true } } },
     lastSuccessfulInvocation: { at: new Date().toISOString() },
@@ -36,14 +36,14 @@ test('a stronger verified chat model ranks ahead of a small chat model for live 
 
 test('reply brain readiness requires primary and fallback chat models plus director and translation', () => {
   const main = authority.projectModel(qualifiedModel('main', 'ministral-3:14b', '14B'));
-  const backup = authority.projectModel(qualifiedModel('backup', 'gemma3:12b', '12B'));
+  const backup = authority.projectModel(qualifiedModel('backup', 'OpenRouter · OpenAI: GPT Backup', '12B', 'openrouter', 'openai/gpt-backup'));
   const translation = authority.projectModel({
-    id: 'translation', name: 'translator-free', provider: 'openrouter', qualification: 'verified',
+    id: 'translation', name: 'translator-free', provider: 'openrouter', modelSlug: 'anthropic/translator-main', qualification: 'verified',
     allowedTasks: ['translation'],
     lastCommercialBenchmark: { completed: true, pass: true, qualifyingTasks: ['translation'], translationScore: 92 }
   });
   const translationBackup = authority.projectModel({
-    id: 'translation-backup', name: 'translator-backup', provider: 'openrouter', qualification: 'verified',
+    id: 'translation-backup', name: 'translator-backup', provider: 'openrouter', modelSlug: 'openai/translator-backup', qualification: 'verified',
     allowedTasks: ['translation'],
     lastCommercialBenchmark: { completed: true, pass: true, qualifyingTasks: ['translation'], translationScore: 90 }
   });
@@ -60,6 +60,56 @@ test('reply brain readiness requires primary and fallback chat models plus direc
   assert.equal(authority.evaluate([main, backup, translation, translationBackup], routes).pass, false);
 });
 
+test('same-provider fallback does not satisfy formal reply-brain readiness', () => {
+  const main = authority.projectModel(qualifiedModel('same-main', 'ministral-3:14b', '14B'));
+  const backup = authority.projectModel(qualifiedModel('same-backup', 'gemma3:12b', '12B'));
+  const translation = authority.projectModel({
+    id: 'translation-main', name: 'translator-main', provider: 'openrouter', modelSlug: 'anthropic/translator-main', qualification: 'verified',
+    allowedTasks: ['translation'],
+    lastCommercialBenchmark: { completed: true, pass: true, qualifyingTasks: ['translation'], translationScore: 92 }
+  });
+  const translationBackup = authority.projectModel({
+    id: 'translation-backup', name: 'translator-backup', provider: 'openrouter', modelSlug: 'openai/translator-backup', qualification: 'verified',
+    allowedTasks: ['translation'],
+    lastCommercialBenchmark: { completed: true, pass: true, qualifyingTasks: ['translation'], translationScore: 90 }
+  });
+  const routes = {
+    quick_reply: { primary: 'same-main', fallback: 'same-backup', enabled: true },
+    deep_reply: { primary: 'same-main', fallback: 'same-backup', enabled: true },
+    director: { primary: 'same-main', fallback: 'same-backup', enabled: true },
+    translation: { primary: 'translation-main', fallback: 'translation-backup', enabled: true }
+  };
+  const result = authority.evaluate([main, backup, translation, translationBackup], routes);
+  assert.equal(result.pass, false);
+  assert.equal(result.quick.fallbackProviderIndependent, false);
+  assert.match(result.quick.fallbackQualification.reason, /供应商|故障域|独立/u);
+});
+
+test('same-provider translation backup does not satisfy formal reply-brain readiness', () => {
+  const main = authority.projectModel(qualifiedModel('reply-main', 'ministral-3:14b', '14B', 'ollama'));
+  const backup = authority.projectModel(qualifiedModel('reply-backup', 'OpenRouter · OpenAI: GPT Backup', '12B', 'openrouter', 'openai/gpt-backup'));
+  const translation = authority.projectModel({
+    id: 'translation-main-same', name: 'translator-main', provider: 'openrouter', modelSlug: 'anthropic/translator-main', qualification: 'verified',
+    allowedTasks: ['translation'],
+    lastCommercialBenchmark: { completed: true, pass: true, qualifyingTasks: ['translation'], translationScore: 92 }
+  });
+  const translationBackup = authority.projectModel({
+    id: 'translation-backup-same', name: 'translator-backup', provider: 'openrouter', modelSlug: 'anthropic/translator-backup', qualification: 'verified',
+    allowedTasks: ['translation'],
+    lastCommercialBenchmark: { completed: true, pass: true, qualifyingTasks: ['translation'], translationScore: 90 }
+  });
+  const routes = {
+    quick_reply: { primary: 'reply-main', fallback: 'reply-backup', enabled: true },
+    deep_reply: { primary: 'reply-main', fallback: 'reply-backup', enabled: true },
+    director: { primary: 'reply-main', fallback: 'reply-backup', enabled: true },
+    translation: { primary: 'translation-main-same', fallback: 'translation-backup-same', enabled: true }
+  };
+  const result = authority.evaluate([main, backup, translation, translationBackup], routes);
+  assert.equal(result.pass, false);
+  assert.equal(result.translation.fallbackProviderIndependent, false);
+  assert.match(result.translation.reason, /供应商|故障域|独立/u);
+});
+
 test('audit requires disable-first review before a historically used non-chat model can be removed', () => {
   const coder = { id: 'coder', name: 'deepseek-coder:6.7b', provider: 'ollama', qualification: 'verified', allowedTasks: ['general'], callCount: 4 };
   const row = authority.audit([coder], {}).models[0];
@@ -70,7 +120,7 @@ test('audit requires disable-first review before a historically used non-chat mo
 
 test('benchmark recommendation selects the strongest qualified model and an independent fallback', () => {
   const main = authority.projectModel(qualifiedModel('main', 'ministral-3:14b', '14B'));
-  const backup = authority.projectModel({ ...qualifiedModel('backup', 'gemma3:12b', '12B'), lastReplyBrainBenchmark: { authority: 'YanceReplyBrainBenchmark', status: 'REPLY_BRAIN_QUALIFIED', pass: true, score: 86, testedAt: new Date().toISOString() } });
+  const backup = authority.projectModel({ ...qualifiedModel('backup', 'OpenRouter · OpenAI: GPT Backup', '12B', 'openrouter', 'openai/gpt-backup'), lastReplyBrainBenchmark: { authority: 'YanceReplyBrainBenchmark', status: 'REPLY_BRAIN_QUALIFIED', pass: true, score: 86, testedAt: new Date().toISOString() } });
   const failed = authority.projectModel({ ...qualifiedModel('failed', 'qwen3:5.9b', '5.9B'), lastReplyBrainBenchmark: { authority: 'YanceReplyBrainBenchmark', status: 'REPLY_BRAIN_FAILED', pass: false, score: 62, testedAt: new Date().toISOString() } });
   const recommendation = authority.recommendedReplyRoutes([backup, failed, main], { translation: { primary: 'translation', enabled: true } });
   assert.equal(recommendation.main.id, 'main');

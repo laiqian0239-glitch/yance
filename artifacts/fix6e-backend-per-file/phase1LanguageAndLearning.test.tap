@@ -1,0 +1,42 @@
+TAP version 13
+# (node:19302) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: contact language authority overrides Chinese UI/persona preference for customer replies
+ok 1 - contact language authority overrides Chinese UI/persona preference for customer replies
+  ---
+  duration_ms: 3.250469
+  type: 'test'
+  ...
+# Subtest: relationship trajectory reads the Chinese understanding overlay without losing original evidence
+ok 2 - relationship trajectory reads the Chinese understanding overlay without losing original evidence
+  ---
+  duration_ms: 0.513867
+  type: 'test'
+  ...
+# Subtest: reply learning retains customer language, Chinese understanding and generation provenance
+ok 3 - reply learning retains customer language, Chinese understanding and generation provenance
+  ---
+  duration_ms: 0.989115
+  type: 'test'
+  ...
+# Subtest: conversation runtime exposes bilingual display, translation retry and explicit contact-language controls
+ok 4 - conversation runtime exposes bilingual display, translation retry and explicit contact-language controls
+  ---
+  duration_ms: 0.537243
+  type: 'test'
+  ...
+# Subtest: relationship and media views prefer Chinese understanding while retaining original text
+ok 5 - relationship and media views prefer Chinese understanding while retaining original text
+  ---
+  duration_ms: 4.067906
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 145.572933

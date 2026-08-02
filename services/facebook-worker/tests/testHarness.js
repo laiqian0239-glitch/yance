@@ -57,7 +57,7 @@ export function applyMigrations(db) {
   for (const file of fs.readdirSync(directory).filter(name => name.endsWith('.sql')).sort()) {
     try { db.exec(fs.readFileSync(path.join(directory, file), 'utf8')); }
     catch (error) {
-      if (!/duplicate column name:\s*(page_picture_url|granted_scopes|missing_permissions|history_sync_available|history_sync_reason|last_permission_check_at|permission_source|permission_checked_at)/iu.test(String(error?.message || error))) throw error;
+      if (!/duplicate column name:\s*(page_picture_url|granted_scopes|missing_permissions|history_sync_available|history_sync_reason|last_permission_check_at|permission_source|permission_checked_at|flow_mode|identity_json)/iu.test(String(error?.message || error))) throw error;
     }
   }
 }

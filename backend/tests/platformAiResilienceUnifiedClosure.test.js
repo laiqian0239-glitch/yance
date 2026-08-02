@@ -10,6 +10,7 @@ const { resolveQueueTimeoutMs } = require('../services/aiGateway');
 const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const replyPerformancePolicy = require('../services/replyPerformancePolicy');
 const routing = require('../services/modelRoutingIntegrityService');
+const roleReceipts = require('../services/aiRoleQualificationReceiptAuthority');
 const syncCheckpoint = require('../repositories/syncCheckpointRepository');
 const localRepairRepository = require('../repositories/localPersistenceRepairRepository');
 
@@ -18,14 +19,11 @@ const source = file => fs.readFileSync(path.join(ROOT, file), 'utf8');
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function translationModel(id, provider) {
+  const evidence = { authority: 'YanceCommercialModelBenchmark', status: 'COMMERCIAL_MODEL_QUALIFIED', testedAt: '2026-07-31T10:00:00.000Z', completed: true, pass: true, score: 95, qualifyingTasks: ['translation'], translationScore: 95 };
   return {
-    id,
-    name: id,
-    provider,
-    available: true,
-    qualification: 'verified',
-    allowedTasks: ['translation'],
-    callCount: 1
+    id, name: id, provider, available: true, qualification: 'verified', allowedTasks: ['translation'], callCount: 1,
+    lastCommercialBenchmark: evidence,
+    roleQualificationReceipts: { translation: roleReceipts.issueFromEvidence({ modelId: id, task: 'translation', evidence, expiresAt: '2030-01-01T00:00:00.000Z' }) }
   };
 }
 
@@ -186,7 +184,8 @@ test('model circuit state survives backend restart and successful calls clear it
   const registry = source('backend/services/modelRegistry.js');
   assert.match(gateway, /loadPersistedCircuits\(\)/);
   assert.match(gateway, /model\.circuitOpenedUntil/);
-  assert.match(gateway, /recordInvocationFailure\(model\.id, error, \{ countForCircuit \}\)/);
+  assert.match(gateway, /recordInvocationFailure\(model\.id, error, \{[\s\S]*countForCircuit: recovery\.countsForCircuit === true,[\s\S]*cooldownUntil: nextRetryAt \|\| ''/);
+  assert.match(gateway, /noteCooldown\(model\.id, normalized\.retryAfterMs\)/);
   assert.match(registry, /consecutiveFailureCount/);
   assert.match(registry, /circuitOpenedUntil/);
   assert.match(registry, /consecutiveFailureCount: 0/);

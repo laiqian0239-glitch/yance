@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: translation and coder models can never qualify as reply brains
+ok 1 - translation and coder models can never qualify as reply brains
+  ---
+  duration_ms: 2.416714
+  type: 'test'
+  ...
+# Subtest: a stronger verified chat model ranks ahead of a small chat model for live replies
+ok 2 - a stronger verified chat model ranks ahead of a small chat model for live replies
+  ---
+  duration_ms: 0.937924
+  type: 'test'
+  ...
+# Subtest: reply brain readiness requires primary and fallback chat models plus director and translation
+ok 3 - reply brain readiness requires primary and fallback chat models plus director and translation
+  ---
+  duration_ms: 2.474224
+  type: 'test'
+  ...
+# Subtest: audit requires disable-first review before a historically used non-chat model can be removed
+ok 4 - audit requires disable-first review before a historically used non-chat model can be removed
+  ---
+  duration_ms: 0.38872
+  type: 'test'
+  ...
+# Subtest: benchmark recommendation selects the strongest qualified model and an independent fallback
+ok 5 - benchmark recommendation selects the strongest qualified model and an independent fallback
+  ---
+  duration_ms: 1.339717
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 66.962832

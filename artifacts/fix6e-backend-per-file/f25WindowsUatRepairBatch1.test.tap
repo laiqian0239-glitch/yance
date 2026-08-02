@@ -1,0 +1,52 @@
+TAP version 13
+# Subtest: F25-D05 WhatsApp runtime state mapping is exported and AccountManager never calls an undefined local symbol
+ok 1 - F25-D05 WhatsApp runtime state mapping is exported and AccountManager never calls an undefined local symbol
+  ---
+  duration_ms: 2.58187
+  type: 'test'
+  ...
+# Subtest: F25-D04 pending authorization accounts are excluded from formal account totals
+ok 2 - F25-D04 pending authorization accounts are excluded from formal account totals
+  ---
+  duration_ms: 0.331128
+  type: 'test'
+  ...
+# Subtest: F25-D04 pending authorization accounts are blocked from automatic recovery but remain manually operable for the auth flow
+ok 3 - F25-D04 pending authorization accounts are blocked from automatic recovery but remain manually operable for the auth flow
+  ---
+  duration_ms: 0.438571
+  type: 'test'
+  ...
+# Subtest: F25-D04 account creation uses a pending authorization lifecycle and cannot become default before success
+ok 4 - F25-D04 account creation uses a pending authorization lifecycle and cannot become default before success
+  ---
+  duration_ms: 1.173498
+  type: 'test'
+  ...
+# Subtest: F25-D04 failed and cancelled authorization has an idempotent cleanup command wired end-to-end
+ok 5 - F25-D04 failed and cancelled authorization has an idempotent cleanup command wired end-to-end
+  ---
+  duration_ms: 2.014418
+  type: 'test'
+  ...
+# Subtest: F25-D06 account connection has a bounded 60 second core budget and reports a stable timeout code
+ok 6 - F25-D06 account connection has a bounded 60 second core budget and reports a stable timeout code
+  ---
+  duration_ms: 0.740874
+  type: 'test'
+  ...
+# Subtest: F25-D04 successful authorization promotes the account and only then enables automatic recovery
+ok 7 - F25-D04 successful authorization promotes the account and only then enables automatic recovery
+  ---
+  duration_ms: 0.514065
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 55.622829

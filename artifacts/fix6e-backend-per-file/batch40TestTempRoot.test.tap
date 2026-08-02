@@ -1,0 +1,22 @@
+TAP version 13
+# Subtest: launcher creates one existing absolute fallback temp root for every child variable
+ok 1 - launcher creates one existing absolute fallback temp root for every child variable
+  ---
+  duration_ms: 1.697754
+  type: 'test'
+  ...
+# Subtest: launcher prioritizes an explicit compact test temp parent over inherited system temp paths
+ok 2 - launcher prioritizes an explicit compact test temp parent over inherited system temp paths
+  ---
+  duration_ms: 0.857306
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 48.239266

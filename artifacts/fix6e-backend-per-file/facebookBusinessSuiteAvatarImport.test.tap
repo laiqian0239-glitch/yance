@@ -1,0 +1,54 @@
+TAP version 13
+# (node:18897) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Business Suite importer creates a time-limited account-bound session and exact-name preview
+ok 1 - Business Suite importer creates a time-limited account-bound session and exact-name preview
+  ---
+  duration_ms: 2.910303
+  type: 'test'
+  ...
+# Subtest: Business Suite importer persists image bytes, SQLite avatar state and manual lock
+ok 2 - Business Suite importer persists image bytes, SQLite avatar state and manual lock
+  ---
+  duration_ms: 0.806222
+  type: 'test'
+  ...
+# Subtest: Business Suite importer does not overwrite a different user-confirmed manual avatar by default
+ok 3 - Business Suite importer does not overwrite a different user-confirmed manual avatar by default
+  ---
+  duration_ms: 0.412944
+  type: 'test'
+  ...
+# Subtest: duplicate display names stay ambiguous and are never silently imported
+ok 4 - duplicate display names stay ambiguous and are never silently imported
+  ---
+  duration_ms: 0.251686
+  type: 'test'
+  ...
+# Subtest: web companion incremental preview skips unchanged avatars and reports message differences
+ok 5 - web companion incremental preview skips unchanged avatars and reports message differences
+  ---
+  duration_ms: 0.861711
+  type: 'test'
+  ...
+# Subtest: extension bridge and Manifest V3 stay narrowly scoped while obsolete root installers remain quarantined
+ok 6 - extension bridge and Manifest V3 stay narrowly scoped while obsolete root installers remain quarantined
+  ---
+  duration_ms: 0.575101
+  type: 'test'
+  ...
+# Subtest: account center exposes start, refresh and stop controls without manual file upload
+ok 7 - account center exposes start, refresh and stop controls without manual file upload
+  ---
+  duration_ms: 0.974744
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 352.45593

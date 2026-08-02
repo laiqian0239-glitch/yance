@@ -116,6 +116,7 @@ const { createMainWindowActivationController } = require('./mainWindowActivation
 const { createMainWindowRuntimeReadiness } = require('./mainWindowRuntimeReadiness');
 const { preserveTaskbarOnMinimize, hideWindowToTray, restoreWindowTaskbar } = require('./windowLifecyclePolicy');
 const { getElectronReleaseIdentity } = require('./releaseIdentity');
+const { classifyChildProcessGone } = require('./runtimeProcessHealthAuthority');
 const { readInstallerIdentityReceipt } = require('../installer/installedIdentityReceipt');
 const { isPostInstallReason, writePostInstallLaunchReceipt } = require('./postInstallLaunchReceipt');
 const { loadReleasePlatformAuth } = require('../shared/release/releasePlatformAuth');
@@ -409,6 +410,12 @@ installR32WindowSecurity({
 });
 
 let mainWindow = null;
+
+app.on('child-process-gone', (_event, details = {}) => {
+  const health = classifyChildProcessGone(details);
+  desktopLog(health.fatal ? 'error' : health.recoverable ? 'warn' : 'info', 'desktop-child-process-gone', health);
+  sendToRenderer('desktop:runtime-health', health);
+});
 
 // --- P0-A Phase 3b: canonical sound notification gating (OD-003 DI-2=A) ---
 // SoundNotificationService is the single decision authority for whether a sound plays.
@@ -2608,8 +2615,29 @@ async function applyVaultMutationWithRestart(operation, ref, value, options = {}
   return desktopCredentialApplicationCoordinator.applyVaultMutationWithRestart(operation, key, value, options);
 }
 
-function saveCredentialFromDesktop(ref, value, options = {}) {
-  return applyVaultMutationWithRestart('persist', ref, value, options);
+async function saveCredentialFromDesktop(ref, value, options = {}) {
+  const requestId = String(options.requestId || '');
+  try {
+    const result = await applyVaultMutationWithRestart('persist', ref, value, options);
+    return {
+      ...result,
+      ok: true,
+      mutationCommitted: result?.mutation?.transactionState === 'COMMITTED' || result?.mutationCommitted === true,
+      runtimeConfirmed: true,
+      requestId: String(result?.requestId || requestId),
+      reasonCode: '',
+      message: ''
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      mutationCommitted: error?.mutationCommitted === true,
+      runtimeConfirmed: false,
+      requestId: String(error?.requestId || requestId),
+      reasonCode: String(error?.reasonCode || error?.code || 'CREDENTIAL_APPLICATION_FAILED'),
+      message: String(error?.message || 'Credential application failed')
+    };
+  }
 }
 
 async function deleteCredentialFromDesktop(ref, options = {}) {
@@ -2809,7 +2837,7 @@ function registerIpc() {
       error.reasonCode = 'OPERATING_MODE_INVALID';
       throw error;
     }
-    return runtimeProjectionCoordinator.setOperatingMode(operatingMode, String(input.reason || 'desktop-renderer-mode-change'));
+    return runtimeProjectionCoordinator.setOperatingMode(operatingMode, String(input.reason || 'desktop-renderer-mode-change'), { exitAuthorizationId: String(input.exitAuthorizationId || ''), exitAuthorizationToken: String(input.exitAuthorizationToken || '') });
   });
   ipcGuardHandle('desktop:restart-backend', () => restartBackend());
   ipcGuardHandle('desktop:restart-app', async () => restartElectronApp({

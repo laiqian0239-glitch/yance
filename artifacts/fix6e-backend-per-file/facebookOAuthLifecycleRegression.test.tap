@@ -1,0 +1,54 @@
+TAP version 13
+# (node:18936) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Facebook OAuth starts only against sealed Worker URL and registers a public device identity
+ok 1 - Facebook OAuth starts only against sealed Worker URL and registers a public device identity
+  ---
+  duration_ms: 5.579436
+  type: 'test'
+  ...
+# Subtest: Facebook OAuth refuses to open a stale Worker that does not publish the no-legacy-scope contract
+ok 2 - Facebook OAuth refuses to open a stale Worker that does not publish the no-legacy-scope contract
+  ---
+  duration_ms: 0.911123
+  type: 'test'
+  ...
+# Subtest: Facebook OAuth polling ignores any injected Page Token and exposes only safe Page metadata
+ok 3 - Facebook OAuth polling ignores any injected Page Token and exposes only safe Page metadata
+  ---
+  duration_ms: 2.15151
+  type: 'test'
+  ...
+# Subtest: Facebook OAuth polling recovers an authorized flow after the in-memory service state is lost
+ok 4 - Facebook OAuth polling recovers an authorized flow after the in-memory service state is lost
+  ---
+  duration_ms: 2.948876
+  type: 'test'
+  ...
+# Subtest: Facebook Page selection completes credential replacement when history permission is absent
+ok 5 - Facebook Page selection completes credential replacement when history permission is absent
+  ---
+  duration_ms: 4.073366
+  type: 'test'
+  ...
+# Subtest: Facebook Page selection persists cloud account and device identity without Page Token
+ok 6 - Facebook Page selection persists cloud account and device identity without Page Token
+  ---
+  duration_ms: 4.531377
+  type: 'test'
+  ...
+# Subtest: Facebook OAuth UI stops cancelled flows and reports Page discovery evidence without blaming App Domains
+ok 7 - Facebook OAuth UI stops cancelled flows and reports Page discovery evidence without blaming App Domains
+  ---
+  duration_ms: 1.249777
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 356.320085

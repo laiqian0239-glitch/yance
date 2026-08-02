@@ -9,7 +9,8 @@ const {
   REPO_ROOT,
   checkForbiddenHotfixEntrypoints,
   checkProtectedCommandPolicy,
-  checkRepositoryScope
+  checkRepositoryScope,
+  referenceOnlyRootPolicies
 } = require('../../tools/wp0/lib');
 
 test('forbidden-hotfix-entrypoints.test', () => {
@@ -49,4 +50,65 @@ test('hotfix entrypoint scanner rejects forbidden fixture filename', () => {
   const result = checkForbiddenHotfixEntrypoints(root);
   assert.equal(result.pass, false);
   assert.equal(result.reasonCode, 'WP0_FORBIDDEN_HOTFIX_ENTRYPOINT');
+});
+
+test('historical audit delivery is classified by policy as reference-only', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp0-audit-reference-'));
+  try {
+    const auditRoot = path.join(root, 'INDEPENDENT_AUDIT_DELIVERY');
+    fs.mkdirSync(auditRoot, { recursive: true });
+    fs.writeFileSync(
+      path.join(auditRoot, 'FULL_SOURCE_FILE_MANIFEST.json'),
+      JSON.stringify({ historicalStage: '6.4.5.8', disposition: 'rejected hotfix release candidate' })
+    );
+    const result = checkForbiddenHotfixEntrypoints(root);
+    assert.equal(result.pass, true, JSON.stringify(result));
+    const scanned = result.details.scannedFiles.find((item) => item.path === 'INDEPENDENT_AUDIT_DELIVERY/FULL_SOURCE_FILE_MANIFEST.json');
+    assert.equal(scanned?.classification, 'REFERENCE_ONLY_AUDIT_DELIVERY');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('the same rejected-stage text remains forbidden in active tools', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp0-active-control-'));
+  try {
+    const toolsRoot = path.join(root, 'tools', 'release');
+    fs.mkdirSync(toolsRoot, { recursive: true });
+    fs.writeFileSync(
+      path.join(toolsRoot, 'release-plan.json'),
+      JSON.stringify({ targetStage: '6.4.5.8', action: 'hotfix release candidate' })
+    );
+    const result = checkForbiddenHotfixEntrypoints(root);
+    assert.equal(result.pass, false);
+    assert.equal(result.reasonCode, 'WP0_FORBIDDEN_HOTFIX_ENTRYPOINT');
+    assert.equal(result.details.violations[0]?.file, 'tools/release/release-plan.json');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('reference-only policy cannot overlap repository execution authorities', () => {
+  const protectedAuthorities = [
+    '.github',
+    '.github/workflows',
+    '.gitattributes',
+    '.gitignore',
+    'package.json',
+    'package-lock.json',
+    'release'
+  ];
+  for (const authorityPath of protectedAuthorities) {
+    assert.throws(
+      () => referenceOnlyRootPolicies({
+        schemaVersion: 2,
+        referenceOnlyRoots: [{
+          path: authorityPath,
+          classification: 'REFERENCE_ONLY_TEST_FIXTURE'
+        }]
+      }),
+      /overlaps protected active authority path/,
+      `${authorityPath} must remain active and cannot be excluded from release-surface enforcement`
+    );
+  }
 });

@@ -1,0 +1,25 @@
+TAP version 13
+# AC-002 contactIdentityConfirmationService tests
+#   [PASS] confirmIdentity 成功: 身份被标记 + receipt + 事件
+#   [PASS] 乐观并发: expectedVersion 不匹配抛 VERSION_CONFLICT 且不写
+#   [PASS] 失败不改权威身份: store 写入抛错则不审计不 emit
+#   [PASS] revokeIdentity: 撤销确认状态
+#   [PASS] getConfirmationState: 未确认
+#   [PASS] CONTACT_NOT_FOUND
+#   [PASS] 缺依赖抛 MISSING_STORE
+# AC-002 result: 7 passed, 0 failed
+# Subtest: backend/tests/contactIdentityConfirmation.test.js
+ok 1 - backend/tests/contactIdentityConfirmation.test.js
+  ---
+  duration_ms: 33.092885
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 39.302205

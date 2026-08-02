@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "generatedAtUtc": "2026-07-31T13:00:51.039772Z",
+  "implementation": {
+    "commit": "91096c2eb1a9e289b1a68b351a326166cf9c379d",
+    "tree": "de013fcf1f2547cdc48874976f2a719f9c73f57c"
+  },
+  "results": {
+    "runtimeAuthorityTdd": {
+      "tests": 14,
+      "passed": 14,
+      "failed": 0,
+      "evidence": "fix6d_runtime_authority_fourth_red/green"
+    },
+    "consolidatedRegression": {
+      "tests": 71,
+      "passed": 71,
+      "failed": 0
+    },
+    "backendPerFile": {
+      "files": 194,
+      "tests": 1146,
+      "passed": 1146,
+      "failed": 0
+    },
+    "sourceUatDelivery": {
+      "tests": 41,
+      "passed": 41,
+      "failed": 0
+    },
+    "wp5": {
+      "tests": 68,
+      "passed": 68,
+      "failed": 0
+    },
+    "typographyRegression": {
+      "tests": 3,
+      "passed": 3,
+      "failed": 0
+    },
+    "wp4": {
+      "status": "blocked",
+      "baselineReproduced": true,
+      "codes": [
+        "BOOT_SERVER_IMPORT_FAILED",
+        "GENERIC_NODE_IPC_STATIC_SCAN_FAILED",
+        "APPLICATION_LIFECYCLE_MATRIX_FAILED"
+      ],
+      "mutationRunner": "timed-out-with-no-output"
+    }
+  },
+  "stubEngine": {
+    "organizations": [],
+    "endpointCreated": false
+  },
+  "releaseGates": {
+    "windowsUiUat": false,
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "candidatePackageGenerated": false
+  }
+}

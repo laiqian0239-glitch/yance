@@ -1,0 +1,64 @@
+TAP version 13
+# Subtest: Fix12 Facebook desktop relay verifies signed envelopes and derives a safe management URL
+ok 1 - Fix12 Facebook desktop relay verifies signed envelopes and derives a safe management URL
+  ---
+  duration_ms: 1.164969
+  type: 'test'
+  ...
+# Subtest: Fix12 Worker tries Messenger profile, generic id picture and Picture Edge and reports deterministic Meta access denial
+ok 2 - Fix12 Worker tries Messenger profile, generic id picture and Picture Edge and reports deterministic Meta access denial
+  ---
+  duration_ms: 0.467529
+  type: 'test'
+  ...
+# Subtest: Fix12 avatar closure reports Meta access denial instead of blaming a matching message-derived identity
+ok 3 - Fix12 avatar closure reports Meta access denial instead of blaming a matching message-derived identity
+  ---
+  duration_ms: 0.555081
+  type: 'test'
+  ...
+# Subtest: Facebook contact UI omits unsupported presence placeholders and exposes richer identity diagnostics
+ok 4 - Facebook contact UI omits unsupported presence placeholders and exposes richer identity diagnostics
+  ---
+  duration_ms: 2.554264
+  type: 'test'
+  ...
+# Subtest: Fix12 bilingual history queues missing inbound translations and translation-only mode preserves untranslated original text
+ok 5 - Fix12 bilingual history queues missing inbound translations and translation-only mode preserves untranslated original text
+  ---
+  duration_ms: 2.156104
+  type: 'test'
+  ...
+# Subtest: Fix12 hides synthetic media placeholder text after media renders while preserving real captions
+ok 6 - Fix12 hides synthetic media placeholder text after media renders while preserving real captions
+  ---
+  duration_ms: 2.981146
+  type: 'test'
+  ...
+# Subtest: current source UAT launcher is checkpoint-aware and obsolete Fix12 runner is absent
+ok 7 - current source UAT launcher is checkpoint-aware and obsolete Fix12 runner is absent
+  ---
+  duration_ms: 0.352968
+  type: 'test'
+  ...
+# Subtest: Fix12 branding and Whisper contracts work in Windows source ZIPs without .git or fake POSIX executables
+ok 8 - Fix12 branding and Whisper contracts work in Windows source ZIPs without .git or fake POSIX executables
+  ---
+  duration_ms: 0.174324
+  type: 'test'
+  ...
+# Subtest: Fix12 keeps platform-aware AI reply and learning fingerprints from Fix11 intact
+ok 9 - Fix12 keeps platform-aware AI reply and learning fingerprints from Fix11 intact
+  ---
+  duration_ms: 1.790919
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 64.8122

@@ -171,9 +171,16 @@ const api = Object.freeze({
       if (!window.yanceDesktop?.setOperatingMode) throw Object.assign(new Error('安全模式修改需要Electron API v2控制面'), { code: 'OPERATING_MODE_API_V2_REQUIRED' });
       return window.yanceDesktop.setOperatingMode('safeMode', String(payload?.reason || 'recovery-ui'));
     },
-    clearSafeMode: payload => {
+    clearSafeMode: async payload => {
       if (!window.yanceDesktop?.setOperatingMode) throw Object.assign(new Error('安全模式修改需要Electron API v2控制面'), { code: 'OPERATING_MODE_API_V2_REQUIRED' });
-      return window.yanceDesktop.setOperatingMode('normal', String(payload?.reason || 'recovery-ui'));
+      const receipt = await command('recovery.prepareSafeModeExit', {
+        confirmation: String(payload?.confirmation || 'EXIT_SAFE_MODE'),
+        reason: String(payload?.reason || 'recovery-ui')
+      });
+      return window.yanceDesktop.setOperatingMode('normal', String(payload?.reason || 'recovery-ui'), {
+        exitAuthorizationId: receipt.exitAuthorizationId,
+        exitAuthorizationToken: receipt.exitAuthorizationToken
+      });
     },
     exportDiagnostics: payload => command('recovery.exportDiagnostics', payload || {}, { timeoutMs: 30000 })
   }),

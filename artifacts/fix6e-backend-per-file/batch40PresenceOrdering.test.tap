@@ -1,0 +1,24 @@
+TAP version 13
+# (node:17808) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: conversation metadata persistence ignores an older terminal presence update
+ok 1 - conversation metadata persistence ignores an older terminal presence update
+  ---
+  duration_ms: 3.355242
+  type: 'test'
+  ...
+# Subtest: a stale presence fragment cannot suppress unrelated newer metadata fields
+ok 2 - a stale presence fragment cannot suppress unrelated newer metadata fields
+  ---
+  duration_ms: 2.39422
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 562.775732

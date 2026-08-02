@@ -1,5 +1,8 @@
 'use strict';
 
+const { assertStorageAccess } = require('./runtimeRoleGuard');
+assertStorageAccess('SqliteDocumentStore');
+
 const { getR32Store } = require('./r32StoreSingleton');
 
 function clone(value) {

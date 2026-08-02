@@ -1,0 +1,21 @@
+TAP version 13
+# PASS start -> connect
+# PASS stop (no logout)
+# PASS assertEligible passes
+# PASS assertEligible blocked throws
+# 4 passed, 0 failed
+# Subtest: backend/tests/accountLifecycleCommands.test.js
+ok 1 - backend/tests/accountLifecycleCommands.test.js
+  ---
+  duration_ms: 24.835057
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 31.36824

@@ -1,0 +1,194 @@
+[
+  {
+    "file": "backend/tests/sourceUatRound6SocialContextRuntime.test.js",
+    "status": "passed",
+    "durationSeconds": 0.38,
+    "testsPassed": 1,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/sourceUatRound6SocialContextRuntime.test.tap"
+  },
+  {
+    "file": "backend/tests/sourceUatRound8ModelRoutingAuthority.test.js",
+    "status": "passed",
+    "durationSeconds": 0.405,
+    "testsPassed": 7,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/sourceUatRound8ModelRoutingAuthority.test.tap"
+  },
+  {
+    "file": "backend/tests/systemAuditRound1CoreChain.test.js",
+    "status": "passed",
+    "durationSeconds": 1.5,
+    "testsPassed": 8,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/systemAuditRound1CoreChain.test.tap"
+  },
+  {
+    "file": "backend/tests/systemAuditRound2DirectorProduction.test.js",
+    "status": "passed",
+    "durationSeconds": 0.56,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/systemAuditRound2DirectorProduction.test.tap"
+  },
+  {
+    "file": "backend/tests/systemAuditRound2ModelTruth.test.js",
+    "status": "passed",
+    "durationSeconds": 0.39,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/systemAuditRound2ModelTruth.test.tap"
+  },
+  {
+    "file": "backend/tests/systemAuditRound2TranslationSend.test.js",
+    "status": "passed",
+    "durationSeconds": 1.126,
+    "testsPassed": 10,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/systemAuditRound2TranslationSend.test.tap"
+  },
+  {
+    "file": "backend/tests/systemAuditRound3LearningRecovery.test.js",
+    "status": "passed",
+    "durationSeconds": 0.963,
+    "testsPassed": 2,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/systemAuditRound3LearningRecovery.test.tap"
+  },
+  {
+    "file": "backend/tests/systemAuditRound4RejectedLearningRecovery.test.js",
+    "status": "passed",
+    "durationSeconds": 1.12,
+    "testsPassed": 2,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/systemAuditRound4RejectedLearningRecovery.test.tap"
+  },
+  {
+    "file": "backend/tests/systemAuditRound5ContactMergeLearningMigration.test.js",
+    "status": "passed",
+    "durationSeconds": 0.446,
+    "testsPassed": 1,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/systemAuditRound5ContactMergeLearningMigration.test.tap"
+  },
+  {
+    "file": "backend/tests/telegramHistorySyncRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.53,
+    "testsPassed": 6,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/telegramHistorySyncRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/whatsappCanonicalGuardRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.481,
+    "testsPassed": 6,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/whatsappCanonicalGuardRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/whatsappCanonicalUiReferenceClosure.test.js",
+    "status": "passed",
+    "durationSeconds": 1.035,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/whatsappCanonicalUiReferenceClosure.test.tap"
+  },
+  {
+    "file": "backend/tests/whatsappConversationCapabilityClosure.test.js",
+    "status": "passed",
+    "durationSeconds": 0.357,
+    "testsPassed": 8,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/whatsappConversationCapabilityClosure.test.tap"
+  },
+  {
+    "file": "backend/tests/whatsappHumanTypingPolicy.test.js",
+    "status": "passed",
+    "durationSeconds": 0.103,
+    "testsPassed": 8,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/whatsappHumanTypingPolicy.test.tap"
+  },
+  {
+    "file": "backend/tests/whatsappMediaRecoveryClosure.test.js",
+    "status": "passed",
+    "durationSeconds": 0.4,
+    "testsPassed": 13,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/whatsappMediaRecoveryClosure.test.tap"
+  },
+  {
+    "file": "backend/tests/whatsappMobileVoiceIngestStability.test.js",
+    "status": "passed",
+    "durationSeconds": 0.421,
+    "testsPassed": 7,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/whatsappMobileVoiceIngestStability.test.tap"
+  },
+  {
+    "file": "backend/tests/whatsappOrphanAccountReconciliation.test.js",
+    "status": "passed",
+    "durationSeconds": 0.565,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/whatsappOrphanAccountReconciliation.test.tap"
+  },
+  {
+    "file": "backend/tests/whatsappQrChallenge.test.js",
+    "status": "passed",
+    "durationSeconds": 0.453,
+    "testsPassed": 8,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/whatsappQrChallenge.test.tap"
+  },
+  {
+    "file": "backend/tests/whatsappReceiptRecoveryRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.458,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/whatsappReceiptRecoveryRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/whatsappVoiceTranscriptionScrollCleanup.test.js",
+    "status": "passed",
+    "durationSeconds": 0.604,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/whatsappVoiceTranscriptionScrollCleanup.test.tap"
+  },
+  {
+    "file": "backend/tests/windowsClosureCurrentRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.787,
+    "testsPassed": 22,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/windowsClosureCurrentRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/windowsLocalApiRequestStormRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.7,
+    "testsPassed": 5,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/windowsLocalApiRequestStormRegression.test.tap"
+  },
+  {
+    "file": "backend/tests/windowsSourceUatRound1Regression.test.js",
+    "status": "passed",
+    "durationSeconds": 6.022,
+    "testsPassed": 11,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/windowsSourceUatRound1Regression.test.tap"
+  },
+  {
+    "file": "backend/tests/windowsUpgradePackageRegression.test.js",
+    "status": "passed",
+    "durationSeconds": 0.09,
+    "testsPassed": 4,
+    "testsFailed": 0,
+    "log": "artifacts/fix6e-backend-per-file/windowsUpgradePackageRegression.test.tap"
+  }
+]

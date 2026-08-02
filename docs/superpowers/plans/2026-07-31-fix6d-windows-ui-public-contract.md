@@ -284,3 +284,4 @@ git commit -m "Integrate FIX6D UI contracts into Windows gates"
 - [ ] **Step 5: Build and reverse-verify the final UI UAT ZIP**
 
 Generate from clean HEAD, verify package SHA256, source commit/tree, internal checksums, unzip to a fresh directory, and rerun the focused FIX6D tests plus round11 prelaunch gates from the extracted bytes.
+

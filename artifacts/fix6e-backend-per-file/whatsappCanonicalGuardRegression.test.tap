@@ -1,0 +1,48 @@
+TAP version 13
+# (node:20236) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: invalid placeholder identities never become history or send targets
+ok 1 - invalid placeholder identities never become history or send targets
+  ---
+  duration_ms: 4.507756
+  type: 'test'
+  ...
+# Subtest: invalid peer identities do not create contacts
+ok 2 - invalid peer identities do not create contacts
+  ---
+  duration_ms: 0.420684
+  type: 'test'
+  ...
+# Subtest: canonical target prefers a valid phone JID over its LID alias
+ok 3 - canonical target prefers a valid phone JID over its LID alias
+  ---
+  duration_ms: 1.483697
+  type: 'test'
+  ...
+# Subtest: startup reconciliation derives a phone JID from an explicit stored phone field
+ok 4 - startup reconciliation derives a phone JID from an explicit stored phone field
+  ---
+  duration_ms: 10.006513
+  type: 'test'
+  ...
+# Subtest: runtime reconciliation preserves an unresolved legacy conversation instead of blanking it
+ok 5 - runtime reconciliation preserves an unresolved legacy conversation instead of blanking it
+  ---
+  duration_ms: 8.172731
+  type: 'test'
+  ...
+# Subtest: authority resolution repairs mixed legacy rows instead of selecting an invalid canonical
+ok 6 - authority resolution repairs mixed legacy rows instead of selecting an invalid canonical
+  ---
+  duration_ms: 2.689508
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 454.230648

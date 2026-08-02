@@ -23,6 +23,7 @@ const { CONFIG, PATHS, ensureDirectories } = require('./config');
 const { evaluateSourceUatCloneReset } = require('./runtime/sourceUatClonePolicy');
 const runtimeMode = require('./services/runtimeMode');
 const aiTaskStageAuthority = require('./services/aiTaskStageAuthority');
+const modelExecutionEvidenceStore = require('./services/modelExecutionEvidenceStore');
 
 const STARTUP_CLOCK = process.hrtime.bigint();
 const startupTimings = {};
@@ -485,6 +486,7 @@ app.use((error, req, res, _next) => {
   const aiFailure = error.aiStageFailure || (candidateGenerationRequest && /MODEL|AI_REPLY|ALL_MODELS|UNKNOWN_TASK|QUALITY|LANGUAGE_MISMATCH/u.test(reasonCode)
     ? aiTaskStageAuthority.projectFailure(error, { stage: error.stage || 'candidate_generation', task: error.task })
     : null);
+  const executionEvidence = modelExecutionEvidenceStore.projectError(error);
   res.status(status).json({
     ok: false,
     error: reasonCode,
@@ -492,7 +494,9 @@ app.use((error, req, res, _next) => {
     reasonCode,
     retryable: error.retryable === true || aiFailure?.retryable === true,
     message: aiFailure?.messageZh || error.message || '请求失败',
-    ...(aiFailure ? { aiFailure } : {})
+    ...(error.routeTestId ? { routeTestId: String(error.routeTestId) } : {}),
+    ...(aiFailure ? { aiFailure } : {}),
+    ...(executionEvidence ? { modelExecutionEvidence: executionEvidence } : {})
   });
 });
 

@@ -4,6 +4,7 @@ const accountManager = require('./accountManager');
 const modelStatus = require('./modelStatusService');
 const platformCapabilityAuthority = require('./platformCapabilityAuthority');
 const platformAdapters = require('./platformAdapterPorts').singleton;
+const channelAdapterRuntime = require('./channelAdapterRuntime');
 const platformDriverRegistry = require('./platformDriverRegistry');
 const aiQualityRouteAuthority = require('./aiQualityRouteAuthority');
 const { singleton: platformCoreRepository } = require('../repositories/platformCoreRepository');
@@ -82,6 +83,7 @@ function snapshot(options = {}) {
         }]))
       },
       adapterContracts: platformAdapters.contracts(),
+      channelAdapterContracts: channelAdapterRuntime.describe(),
       persistence: safePersistenceSummary(repository),
       cutover: {
         capabilityAuthority: {
@@ -126,7 +128,8 @@ function snapshot(options = {}) {
           concreteAdapterImportsRestrictedToCompositionRoot: true,
           internalLifecycleDispatchUsesDriverRegistry: true,
           allLegacyAuthAndReconcileHandlersMigrated: true,
-          driverContracts: platformDriverRegistry.contracts()
+          driverContracts: platformDriverRegistry.contracts(),
+          accountDriverContracts: platformDriverRegistry.driverContracts()
         },
         identityAuthority: {
           state: 'person-anchor-wired',

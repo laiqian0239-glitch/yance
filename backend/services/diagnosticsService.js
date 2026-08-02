@@ -19,6 +19,10 @@ const { accountReadiness, aiRoutingReadiness, aiTaskRoutingReadiness } = require
 const { diagnosticResult, summarizeDiagnosticResults } = require('./diagnosticResult');
 const platformProductionReadiness = require('./platformProductionReadinessAuthority');
 const sendQueue = require('./sendQueueService');
+const { getRuntimeSafetySupervisor } = require('./runtimeSafetySupervisor');
+const modelExecutionEvidenceStore = require('./modelExecutionEvidenceStore');
+const aiExecutionTraceAuthority = require('./aiExecutionTraceAuthority');
+const fix6mArchitectureDiagnostics = require('./fix6mArchitectureDiagnostics');
 
 function writable(dir) {
   try {
@@ -97,6 +101,40 @@ function candidateOperationReadiness(operationTrace = {}) {
   return { active, recent, latest, failures, latestFailed, latestSucceeded };
 }
 
+
+function candidateRouteTraceReadiness(rows = []) {
+  const recent = (Array.isArray(rows) ? rows : []).slice(0, 20).map(row => {
+    const lastStage = Array.isArray(row?.stages) ? row.stages[row.stages.length - 1] : null;
+    return {
+      routeTestId: String(row?.routeTestId || ''),
+      task: String(row?.task || ''),
+      executionMode: String(row?.executionMode || ''),
+      status: String(row?.status || ''),
+      completedAt: String(row?.completedAt || row?.startedAt || ''),
+      modelId: String(lastStage?.evidence?.modelId || ''),
+      providerRequestId: String(lastStage?.evidence?.providerRequestId || ''),
+      reasonCode: String(lastStage?.evidence?.reasonCode || lastStage?.evidence?.errorCode || '')
+    };
+  });
+  const latest = recent[0] || null;
+  const latestFailed = latest?.status === 'failed';
+  return {
+    pass: !latestFailed,
+    status: latestFailed ? 'warning' : 'pass',
+    reasonCode: latestFailed
+      ? 'AI_CANDIDATE_ROUTE_TEST_RECENT_FAILURE'
+      : latest
+        ? 'AI_CANDIDATE_ROUTE_TEST_RECENT_SUCCESS'
+        : 'AI_CANDIDATE_ROUTE_TEST_NOT_ATTEMPTED',
+    detail: latestFailed
+      ? `最近候选路由测试失败：${latest.task || 'unknown-task'} · ${latest.reasonCode || 'CANDIDATE_ROUTE_TEST_FAILED'}`
+      : latest
+        ? `最近候选路由测试已记录：${latest.task || 'unknown-task'} · ${latest.status || 'unknown'}`
+        : '尚无候选路由测试记录',
+    evidence: { recent }
+  };
+}
+
 function snapshot() {
   const modelState = modelStatus.read();
   const db = sqliteState();
@@ -108,6 +146,7 @@ function snapshot() {
   const latestVerification = latestBackup ? backup.verifyBackup(latestBackup.name) : null;
   const pending = backup.pendingRestore();
   const safeMode = safeModeService.snapshot();
+  const safetySupervisor = getRuntimeSafetySupervisor().snapshot();
   let sendQueueState;
   try { sendQueueState = sendQueue.status(); }
   catch (error) { sendQueueState = { paused: true, pausedReason: 'SEND_QUEUE_STATUS_UNAVAILABLE', outcomeUnknown: 0, resumeBlocked: true, error: error.message || String(error) }; }
@@ -118,6 +157,12 @@ function snapshot() {
   const aiTaskReadiness = aiTaskRoutingReadiness(modelState);
   const openRouterReadinessState = openRouterReadiness(modelState);
   const candidateOperations = candidateOperationReadiness(operationTrace);
+  const candidateRouteTraces = aiExecutionTraceAuthority.recent(20);
+  const candidateRouteTraceState = candidateRouteTraceReadiness(candidateRouteTraces);
+  const recentModelExecutions = modelExecutionEvidenceStore.readRecent(20);
+  const latestModelExecution = recentModelExecutions[0] || null;
+  const latestModelExecutionFailed = latestModelExecution?.terminated === true;
+  const fix6mArchitectureState = fix6mArchitectureDiagnostics.snapshot();
   const backupRoots = Object.keys(backup.ROOTS || {});
   const sqliteExists = fs.existsSync(PATHS.sqlite);
   const rawTests = [
@@ -128,6 +173,7 @@ function snapshot() {
     { id: 'whatsapp-auth', group: 'security', severity: 'high', name: 'WhatsApp认证目录可用', pass: writable(PATHS.whatsappAuth), detail: PATHS.whatsappAuth },
     { id: 'ai-assets', group: 'ai', severity: 'medium', name: 'AI成果目录可用', pass: writable(PATHS.aiAssets), detail: '提示词、知识库与轻量适配器可纳入备份' },
     { id: 'models-store', group: 'ai', severity: 'medium', name: '模型注册表可读', pass: Array.isArray(modelState.models), detail: `${modelState.models?.length || 0} 个模型 · ${Number(modelState.summary?.routesPersisted || 0)} 条持久路由 · ${Number(modelState.summary?.routesOperational || 0)} 条可运行路由` },
+    { id: 'fix6m-architecture-authorities', group: 'architecture', severity: 'critical', name: '通信、任务、关系与学习公共权威', pass: fix6mArchitectureState.pass, status: fix6mArchitectureState.status, detail: `停滞任务 ${Number(fix6mArchitectureState.counts?.stalledExecutions || 0)} · 媒体失败 ${Number(fix6mArchitectureState.counts?.retryableMediaFailures || 0) + Number(fix6mArchitectureState.counts?.permanentMediaFailures || 0)} · 同步缺口 ${Number(fix6mArchitectureState.counts?.openSyncGaps || 0)} · 不确定发送 ${Number(fix6mArchitectureState.counts?.uncertainDeliveries || 0)} · 影子不一致 ${Number(fix6mArchitectureState.shadowGate?.mismatches || 0)}`, reasonCode: fix6mArchitectureState.reasonCode, evidence: fix6mArchitectureState },
     {
       id: 'openrouter-runtime-readiness',
       group: 'ai',
@@ -150,6 +196,38 @@ function snapshot() {
             ? 'OPENROUTER_CONDITIONAL_READY_HUMAN_REVIEW_REQUIRED'
             : 'OPENROUTER_RUNTIME_NOT_READY',
       evidence: openRouterReadinessState
+    },
+    {
+      id: 'ai-model-execution-evidence',
+      group: 'ai',
+      severity: 'high',
+      name: '隔离模型执行证据',
+      pass: !latestModelExecutionFailed,
+      status: latestModelExecutionFailed ? 'warning' : 'pass',
+      detail: latestModelExecution
+        ? latestModelExecutionFailed
+          ? `最近隔离执行未完成：${latestModelExecution.terminationClass || 'unknown'} · ${latestModelExecution.terminationReason || 'MODEL_EXECUTION_TERMINATED'}`
+          : `最近隔离执行已完成 · ${latestModelExecution.modelId || 'unknown-model'} · ${latestModelExecution.durationMs || 0}ms`
+        : '尚无隔离模型执行记录',
+      reasonCode: latestModelExecutionFailed
+        ? 'AI_MODEL_EXECUTION_RECENT_FAILURE'
+        : latestModelExecution
+          ? 'AI_MODEL_EXECUTION_RECENT_SUCCESS'
+          : 'AI_MODEL_EXECUTION_NOT_ATTEMPTED',
+      evidence: {
+        recent: recentModelExecutions.slice(0, 10)
+      }
+    },
+    {
+      id: 'ai-candidate-route-trace',
+      group: 'ai',
+      severity: 'high',
+      name: '候选路由测试全链路追踪',
+      pass: candidateRouteTraceState.pass,
+      status: candidateRouteTraceState.status,
+      detail: candidateRouteTraceState.detail,
+      reasonCode: candidateRouteTraceState.reasonCode,
+      evidence: candidateRouteTraceState.evidence
     },
     {
       id: 'ai-candidate-operation-observability',
@@ -206,6 +284,7 @@ function snapshot() {
     }),
     { id: 'ai-routing-readiness', group: 'ai', severity: 'high', name: 'AI 回复大脑任务路由完整', pass: aiReadiness.pass, detail: aiReadiness.count === 0 ? '尚未配置模型' : aiReadiness.routeIntegrity?.pass === false ? `持久化模型路由存在 ${Number(aiReadiness.routeIntegrity.invalidPersistedRouteCount || aiReadiness.routeIntegrity.quarantine?.length || 0)} 条不合格记录，已阻止假通过` : aiReadiness.replyBrain.userMessage, evidence: { routeIntegrity: aiReadiness.routeIntegrity, replyBrain: aiReadiness.replyBrain } },
     { id: 'ai-core-task-readiness', group: 'ai', severity: 'high', name: 'AI核心任务真实可运行', pass: aiTaskReadiness.pass, detail: aiReadiness.count === 0 ? '尚未配置模型' : aiTaskReadiness.summary },
+    { id: 'ai-domain-isolation', group: 'ai', severity: 'high', name: 'AI自动任务域隔离', pass: safetySupervisor.aiAutomationBlocked !== true, status: safetySupervisor.aiAutomationBlocked ? 'warning' : 'pass', detail: safetySupervisor.aiAutomationBlocked ? `AI自动任务已隔离：${(safetySupervisor.aiIsolationReasons || []).join('、')}` : 'AI自动任务域未隔离', evidence: safetySupervisor.domainIsolation || {} },
     { id: 'credential-vault', group: 'security', severity: 'critical', name: '系统凭据隔离桥', pass: securityGuard.available || process.env.NODE_ENV === 'test', detail: securityGuard.available ? '敏感凭据由Electron safeStorage加密后持久化' : '独立服务模式不持久化明文凭据' },
     { id: 'notification-config', group: 'notification', severity: 'medium', name: '通知设置有效', pass: typeof notifications.enabled === 'boolean' && typeof notifications.soundEnabled === 'boolean' && notifications.soundVolume >= 0 && notifications.soundVolume <= 1, detail: `桌面 ${notifications.desktopEnabled ? '开启' : '关闭'} · 声音 ${notifications.soundEnabled ? Math.round(notifications.soundVolume * 100) + '%' : '关闭'}` },
     { id: 'write-gate', group: 'security', severity: 'critical', name: '全局写操作门禁', pass: policy.emergencyStop === true || safeMode.active === true || sendQueueState.resumeBlocked === true ? true : typeof policy.emergencyStop === 'boolean', status: policy.emergencyStop === true || safeMode.active === true || sendQueueState.resumeBlocked === true ? 'warning' : 'pass', detail: policy.emergencyStop ? '紧急停止已开启，新增写操作已阻止' : safeMode.active ? '安全模式已开启，自动写操作已阻止' : sendQueueState.resumeBlocked ? `发送结果不确定，队列写门禁已阻止新增出站：${sendQueueState.pausedReason || 'PLATFORM_ACCEPTED_CHECKPOINT_UNCERTAIN'}` : '正常开放', evidence: { emergencyStop: policy.emergencyStop === true, safeMode: safeMode.active === true, sendQueue: sendQueueState } },
@@ -284,6 +363,7 @@ function snapshot() {
       replyBrainState: modelState.replyBrain?.state || 'REPLY_BRAIN_INCOMPLETE',
       source: modelState.source,
       openRouter: openRouterReadinessState,
+      candidateRouteTraces: candidateRouteTraceState.evidence.recent,
       candidateOperations: {
         active: candidateOperations.active.length,
         recent: candidateOperations.recent.slice(0, 10).map(row => ({ operationId: row.operationId, type: row.type, code: row.code || '', lifecycleState: row.lifecycleState || '', at: row.completedAt || row.startedAt || '' }))
@@ -300,8 +380,10 @@ function snapshot() {
     notifications,
     backupRoots,
     pendingRestore: pending,
-    safeMode
+    safeMode,
+    runtimeSafetySupervisor: safetySupervisor,
+    fix6mArchitecture: fix6mArchitectureState
   };
 }
 
-module.exports = { snapshot, writable, sqliteState, openRouterReadiness, candidateOperationReadiness };
+module.exports = { snapshot, writable, sqliteState, openRouterReadiness, candidateOperationReadiness, candidateRouteTraceReadiness };

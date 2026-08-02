@@ -1,5 +1,7 @@
 'use strict';
 
+const taskRoutingAuthority = require('./modelServiceTaskRoutingAuthority');
+
 const MESSAGE_KEYS = ['message', 'detail', 'reason', 'error_description', 'title', 'description'];
 const CODE_KEYS = ['code', 'reasonCode', 'errorCode', 'error_code', 'type'];
 
@@ -65,7 +67,22 @@ function normalizeModelError(value, options = {}) {
   const message = extractText(value, options.fallbackMessage || '模型调用失败').slice(0, 500);
   const code = extractCode(value, options.fallbackCode || 'MODEL_INVOCATION_FAILED').slice(0, 120);
   const status = Number(value?.status || value?.statusCode || value?.response?.status || value?.error?.status || 0) || 0;
-  return { message, code, status };
+  const retryAfterMs = taskRoutingAuthority.retryAfterMs(value, { nowMs: options.nowMs });
+  const nowMs = Number.isFinite(Number(options.nowMs)) ? Number(options.nowMs) : Date.now();
+  return {
+    message,
+    code,
+    status,
+    retryAfterMs,
+    nextRetryAt: retryAfterMs > 0 ? new Date(nowMs + retryAfterMs).toISOString() : '',
+    providerRequestId: primitiveText(
+      value?.providerRequestId
+      || value?.requestId
+      || value?.response?.headers?.['x-request-id']
+      || value?.response?.headers?.['x-openai-request-id']
+      || value?.error?.request_id
+    )
+  };
 }
 
 function createAllModelsFailedError(attempts = [], options = {}) {

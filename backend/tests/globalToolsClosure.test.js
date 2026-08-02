@@ -20,7 +20,11 @@ const main = read('electron/main.js');
 
 test('main workspace diagnostics export the exact current checks through the sanitized backend bundle', () => {
   assert.match(index, /id="exportDiagnostic">导出脱敏诊断</);
-  assert.match(ui, /lastDiagnosticSnapshot=diagnosticSnapshot\(tests\)/);
+  assert.match(index, /r32-diagnostic-summary-authority\.js/);
+  assert.match(ui, /YanceDiagnosticSummaryAuthority/);
+  assert.match(ui, /apiJson\('\/api\/r32\/system\/diagnostics'/);
+  assert.match(ui, /lastDiagnosticSnapshot=\{\.\.\.diagnosticSnapshot\(merged\.rows\)/);
+  assert.match(ui, /工作区全绿不能覆盖系统失败/);
   assert.match(ui, /apiJson\('\/api\/r32\/system\/diagnostics\/export'\)/);
   assert.match(ui, /workspaceDiagnostics:lastDiagnosticSnapshot/);
   assert.match(ui, /diagnosticSafeText/);

@@ -1,5 +1,8 @@
 'use strict';
 
+const { assertStorageAccess } = require('./runtimeRoleGuard');
+assertStorageAccess('getR32Store');
+
 const { PATHS, ensureDirectories } = require('../config');
 const { R32SqliteStore } = require('./r32SqliteStore');
 

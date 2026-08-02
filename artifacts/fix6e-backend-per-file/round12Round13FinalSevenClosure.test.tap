@@ -1,0 +1,102 @@
+TAP version 13
+# (node:19779) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: relationship L2 profiles are anchored to Person and consumed by subsequent social context
+ok 1 - relationship L2 profiles are anchored to Person and consumed by subsequent social context
+  ---
+  duration_ms: 277.311419
+  type: 'test'
+  ...
+# Subtest: canonical relationship L2 wins deterministically over legacy contact L2 across every platform contact
+ok 2 - canonical relationship L2 wins deterministically over legacy contact L2 across every platform contact
+  ---
+  duration_ms: 291.769964
+  type: 'test'
+  ...
+# Subtest: automatic L2 synthesis targets the shared Person when multiple contacts belong to one relationship
+ok 3 - automatic L2 synthesis targets the shared Person when multiple contacts belong to one relationship
+  ---
+  duration_ms: 272.401573
+  type: 'test'
+  ...
+# Subtest: conflicting Person facts are stable across platform contacts and are withheld from AI facts until resolved
+ok 4 - conflicting Person facts are stable across platform contacts and are withheld from AI facts until resolved
+  ---
+  duration_ms: 274.225639
+  type: 'test'
+  ...
+# Subtest: Person fact arbitration selects newer equally authoritative confirmed evidence without depending on active contact
+ok 5 - Person fact arbitration selects newer equally authoritative confirmed evidence without depending on active contact
+  ---
+  duration_ms: 267.15475
+  type: 'test'
+  ...
+# Subtest: operational projector verifies send, contact, conversation and identity rollback against independent persisted state
+ok 6 - operational projector verifies send, contact, conversation and identity rollback against independent persisted state
+  ---
+  duration_ms: 277.082627
+  type: 'test'
+  ...
+# Subtest: runtime evidence exports hashed identities, immutable command receipts and honest pagination
+ok 7 - runtime evidence exports hashed identities, immutable command receipts and honest pagination
+  ---
+  duration_ms: 252.926619
+  type: 'test'
+  ...
+# Subtest: account state events force dynamic capability refresh for the active conversation
+ok 8 - account state events force dynamic capability refresh for the active conversation
+  ---
+  duration_ms: 1.81641
+  type: 'test'
+  ...
+# Subtest: remaining contact read APIs aggregate through Person authority and evidence pagination cannot claim truncated data is complete
+ok 9 - remaining contact read APIs aggregate through Person authority and evidence pagination cannot claim truncated data is complete
+  ---
+  duration_ms: 1.421059
+  type: 'test'
+  ...
+# Subtest: workspace contact, profile, relationship projection and conversation reads resolve through Person authority
+ok 10 - workspace contact, profile, relationship projection and conversation reads resolve through Person authority
+  ---
+  duration_ms: 301.324427
+  type: 'test'
+  ...
+# Subtest: relationship insight trajectory aggregates every conversation bound to the same Person
+ok 11 - relationship insight trajectory aggregates every conversation bound to the same Person
+  ---
+  duration_ms: 0.533354
+  type: 'test'
+  ...
+# Subtest: Person feedback version restore rejects ambiguous contact versions and allows an explicit source identity
+ok 12 - Person feedback version restore rejects ambiguous contact versions and allows an explicit source identity
+  ---
+  duration_ms: 302.531249
+  type: 'test'
+  ...
+# Subtest: Person profile and relationship writes converge on one profile contact while legacy non-anchor rows remain readable
+ok 13 - Person profile and relationship writes converge on one profile contact while legacy non-anchor rows remain readable
+  ---
+  duration_ms: 283.611552
+  type: 'test'
+  ...
+# Subtest: learning governance mutation fails closed for relationship scope instead of falling back to global owner
+ok 14 - learning governance mutation fails closed for relationship scope instead of falling back to global owner
+  ---
+  duration_ms: 0.349127
+  type: 'test'
+  ...
+# Subtest: new relationship key-node projections anchor to Person while existing events retain source identity
+ok 15 - new relationship key-node projections anchor to Person while existing events retain source identity
+  ---
+  duration_ms: 0.268858
+  type: 'test'
+  ...
+1..15
+# tests 15
+# suites 0
+# pass 15
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3197.515446

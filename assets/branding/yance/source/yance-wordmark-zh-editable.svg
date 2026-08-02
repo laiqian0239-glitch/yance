@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 220" role="img" aria-label="言策"><defs>
   <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0F2E31"/><stop offset="1" stop-color="#0B1416"/></linearGradient>
   <linearGradient id="fg" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#F7FAFA"/><stop offset="1" stop-color="#AEB7BA"/></linearGradient>
-
+  
 </defs><text x="16" y="166" fill="#E6ECEC" font-family="Noto Sans CJK SC" font-size="164" font-weight="700" letter-spacing="14">言策</text></svg>

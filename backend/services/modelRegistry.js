@@ -5,6 +5,8 @@ const { QUALIFICATION } = require('../../shared/constants');
 const crypto = require('crypto');
 const routingIntegrity = require('./modelRoutingIntegrityService');
 const { normalizeModelError } = require('./modelErrorNormalizer');
+const roleReceiptAuthority = require('./aiRoleQualificationReceiptAuthority');
+const aiBudgetAuthority = require('./aiBudgetAuthority');
 
 const store = new SqliteDocumentStore('model-registry', {
   schemaVersion: 1,
@@ -13,8 +15,72 @@ const store = new SqliteDocumentStore('model-registry', {
   version: '',
   models: [],
   routes: {},
-  history: []
+  history: [],
+  aiBudgetPolicy: {
+    totalBudgetUsd: aiBudgetAuthority.DEFAULT_POLICY.totalBudgetUsd,
+    championReserveUsd: aiBudgetAuthority.DEFAULT_POLICY.championReserveUsd,
+    backgroundPaidEnabled: aiBudgetAuthority.DEFAULT_POLICY.backgroundPaidEnabled,
+    updatedAt: '',
+    source: 'default'
+  },
+  aiBudgetUsage: {
+    spentUsd: 0,
+    periodStartedAt: ''
+  }
 });
+
+
+function readWithAuthorities() {
+  const current = store.read();
+  const policy = aiBudgetAuthority.normalizePolicy(current.aiBudgetPolicy || {});
+  const usage = aiBudgetAuthority.normalizeUsage(current.aiBudgetUsage || {});
+  return {
+    ...current,
+    aiBudgetPolicy: {
+      totalBudgetUsd: policy.totalBudgetUsd,
+      championReserveUsd: policy.championReserveUsd,
+      backgroundPaidEnabled: policy.backgroundPaidEnabled,
+      updatedAt: String(current.aiBudgetPolicy?.updatedAt || ''),
+      source: String(current.aiBudgetPolicy?.source || 'default')
+    },
+    aiBudgetUsage: {
+      spentUsd: usage.spentUsd,
+      periodStartedAt: String(current.aiBudgetUsage?.periodStartedAt || '')
+    }
+  };
+}
+
+async function setAiBudgetPolicy(input = {}) {
+  const totalBudgetUsd = Number(input.totalBudgetUsd);
+  const championReserveUsd = Number(input.championReserveUsd);
+  const valid = Number.isFinite(totalBudgetUsd)
+    && totalBudgetUsd >= 0
+    && Number.isFinite(championReserveUsd)
+    && championReserveUsd >= 0
+    && championReserveUsd <= totalBudgetUsd
+    && (input.backgroundPaidEnabled === undefined || typeof input.backgroundPaidEnabled === 'boolean');
+  if (!valid) {
+    const error = new Error('AI_BUDGET_POLICY_INVALID');
+    error.code = 'AI_BUDGET_POLICY_INVALID';
+    error.status = 400;
+    throw error;
+  }
+  return store.updateAsync(current => {
+    const usage = aiBudgetAuthority.normalizeUsage(current.aiBudgetUsage || {});
+    current.aiBudgetPolicy = {
+      totalBudgetUsd,
+      championReserveUsd,
+      backgroundPaidEnabled: input.backgroundPaidEnabled !== false,
+      updatedAt: new Date().toISOString(),
+      source: 'user-configured'
+    };
+    current.aiBudgetUsage = {
+      spentUsd: usage.spentUsd,
+      periodStartedAt: String(current.aiBudgetUsage?.periodStartedAt || '')
+    };
+    return current;
+  }).then(() => readWithAuthorities());
+}
 
 function cleanCircuitDate(value) {
   const text = String(value || '').trim();
@@ -224,6 +290,13 @@ function recordInvocation(modelId, metrics = {}) {
       : null;
     const invocationCost = reportedCost != null ? reportedCost : estimatedCost;
     const costSource = reportedCost != null ? 'provider-usage' : estimatedCost != null ? 'catalog-estimate' : 'unknown';
+    if (invocationCost != null && invocationCost > 0 && String(model.provider || '').toLowerCase() !== 'ollama') {
+      const usage = aiBudgetAuthority.normalizeUsage(current.aiBudgetUsage || {});
+      current.aiBudgetUsage = {
+        spentUsd: Number((usage.spentUsd + invocationCost).toFixed(12)),
+        periodStartedAt: String(current.aiBudgetUsage?.periodStartedAt || succeededAt)
+      };
+    }
     current.models[index] = {
       ...model,
       lastUsedAt: succeededAt,
@@ -265,9 +338,14 @@ function recordInvocationFailure(modelId, error, options = {}) {
     const now = new Date();
     const countForCircuit = options.countForCircuit === true;
     const consecutiveFailureCount = countForCircuit ? Number(model.consecutiveFailureCount || 0) + 1 : Number(model.consecutiveFailureCount || 0);
-    const shouldOpenCircuit = countForCircuit && consecutiveFailureCount >= 3;
+    const requestedCooldownUntil = cleanCircuitDate(options.cooldownUntil);
+    const requestedCooldownMs = Date.parse(requestedCooldownUntil);
+    const cooldownRequested = Number.isFinite(requestedCooldownMs) && requestedCooldownMs > now.getTime();
+    const thresholdOpenedUntilMs = countForCircuit && consecutiveFailureCount >= 3 ? now.getTime() + 5 * 60 * 1000 : 0;
+    const shouldOpenCircuit = thresholdOpenedUntilMs > 0 || cooldownRequested;
+    const openedUntilMs = Math.max(thresholdOpenedUntilMs, cooldownRequested ? requestedCooldownMs : 0);
     const circuitOpenedAt = shouldOpenCircuit ? now.toISOString() : cleanCircuitDate(model.circuitOpenedAt);
-    const circuitOpenedUntil = shouldOpenCircuit ? new Date(now.getTime() + 5 * 60 * 1000).toISOString() : cleanCircuitDate(model.circuitOpenedUntil);
+    const circuitOpenedUntil = shouldOpenCircuit ? new Date(openedUntilMs).toISOString() : cleanCircuitDate(model.circuitOpenedUntil);
     current.models[index] = {
       ...model,
       lastFailedAt: now.toISOString(),
@@ -334,6 +412,48 @@ function recordTest(modelId, result) {
   });
 }
 
+function nextRoleReceipts(previous = {}, modelId, tasks = [], result = {}, options = {}) {
+  const receipts = { ...(previous.roleQualificationReceipts && typeof previous.roleQualificationReceipts === 'object' ? previous.roleQualificationReceipts : {}) };
+  const governed = new Set(options.governedTasks || roleReceiptAuthority.GOVERNED_TASKS);
+  const qualifying = new Set(Array.isArray(tasks) ? tasks : []);
+  if (result.completed === false) return receipts;
+  for (const task of governed) {
+    const evidence = { ...result, qualifyingTasks: [...qualifying] };
+    try {
+      receipts[task] = roleReceiptAuthority.issueFromEvidence({
+        modelId,
+        task,
+        score: Number(result.score || 0),
+        issuedAt: result.testedAt,
+        summary: result.summary,
+        evidence
+      });
+    } catch (_) {
+      delete receipts[task];
+    }
+  }
+  return receipts;
+}
+
+function recordRoleQualificationReceipt(modelId, task, input = {}) {
+  return store.updateAsync(current => {
+    const index = (current.models || []).findIndex(model => model.id === modelId);
+    if (index < 0) throw Object.assign(new Error('MODEL_NOT_FOUND'), { code: 'MODEL_NOT_FOUND' });
+    const previous = current.models[index];
+    const evidence = input.evidence && typeof input.evidence === 'object' ? input.evidence : input;
+    const receipt = roleReceiptAuthority.issueFromEvidence({ ...input, modelId, task, evidence });
+    current.models[index] = {
+      ...previous,
+      roleQualificationReceipts: { ...(previous.roleQualificationReceipts || {}), [task]: receipt },
+      updatedAt: new Date().toISOString()
+    };
+    current.history = Array.isArray(current.history) ? current.history : [];
+    current.history.unshift({ type: 'ai-role-qualification-receipt', modelId, model: previous.name, task, receiptId: receipt.receiptId, pass: receipt.pass, score: receipt.score, testedAt: receipt.issuedAt });
+    current.history = current.history.slice(0, 500);
+    return routingIntegrity.repairRegistryDocument(current, { autoSelectVerified: true, rebalanceAutoRoutes: true }).document;
+  });
+}
+
 function recordReplyBrainBenchmark(modelId, result = {}) {
   return store.updateAsync(current => {
     const index = (current.models || []).findIndex(model => model.id === modelId);
@@ -374,6 +494,7 @@ function recordReplyBrainBenchmark(modelId, result = {}) {
         lastReplyBrainBenchmark: result,
         lastReplyBrainBenchmarkAttempt: result,
         lastSuccessfulReplyBrainBenchmark: result.pass === true ? result : previousSuccessful,
+        roleQualificationReceipts: nextRoleReceipts(previous, modelId, Array.isArray(result.qualifyingTasks) ? result.qualifyingTasks : [], result, { governedTasks: ['quick_reply', 'deep_reply', 'director'] }),
         replyBrainBenchmarkStatus: String(result.status || (result.pass === true ? 'REPLY_BRAIN_QUALIFIED' : 'REPLY_BRAIN_FAILED')),
         replyBrainBenchmarkScore: Number(result.score || 0),
         replyBrainBenchmarkTestedAt: now,
@@ -432,6 +553,7 @@ function recordCommercialBenchmark(modelId, result = {}) {
       qualification: nextQualification,
       allowedTasks: [...allowed],
       lastCommercialBenchmark: result,
+      roleQualificationReceipts: nextRoleReceipts(previous, modelId, Array.isArray(result.qualifyingTasks) ? result.qualifyingTasks : [], result, { governedTasks: ['translation'] }),
       commercialBenchmarkStatus: String(result.status || (result.pass === true ? 'COMMERCIAL_MODEL_QUALIFIED' : 'COMMERCIAL_MODEL_FAILED')),
       commercialBenchmarkScore: Number(result.score || 0),
       commercialTranslationScore: Number(result.translationScore || 0),
@@ -580,20 +702,70 @@ function setRoutes(routes, options = {}) {
   });
 }
 
+function validateRouteDraft(task, route, options = {}) {
+  const target = routingIntegrity.normalizedTask(task);
+  if (!target) throw Object.assign(new Error('MODEL_ROUTE_TASK_REQUIRED'), { code: 'MODEL_ROUTE_TASK_REQUIRED', status: 400 });
+  const current = store.read();
+  const validation = routingIntegrity.validateRoutes({ [target]: route || {} }, current.models || [], {
+    throwOnInvalid: options.throwOnInvalid !== false,
+    autoSelect: options.autoSelect !== false
+  });
+  const resolved = validation.repairedRoutes[target];
+  if (!resolved) throw Object.assign(new Error('MODEL_ROUTE_DRAFT_UNRESOLVED'), { code: 'MODEL_ROUTE_DRAFT_UNRESOLVED', status: 400, task: target });
+  return {
+    ...resolved,
+    source: String(options.source || 'user-route-draft'),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function setRoute(task, route, options = {}) {
+  const target = routingIntegrity.normalizedTask(task);
+  if (!target) return Promise.reject(Object.assign(new Error('MODEL_ROUTE_TASK_REQUIRED'), { code: 'MODEL_ROUTE_TASK_REQUIRED', status: 400 }));
+  return store.updateAsync(current => {
+    const validation = routingIntegrity.validateRoutes({ [target]: route || {} }, current.models || [], {
+      throwOnInvalid: options.throwOnInvalid !== false,
+      autoSelect: options.autoSelect !== false
+    });
+    const resolved = validation.repairedRoutes[target];
+    if (!resolved) throw Object.assign(new Error('MODEL_ROUTE_DRAFT_UNRESOLVED'), { code: 'MODEL_ROUTE_DRAFT_UNRESOLVED', status: 400, task: target });
+    const now = new Date().toISOString();
+    current.routes = current.routes && typeof current.routes === 'object' ? { ...current.routes } : {};
+    current.routes[target] = {
+      ...resolved,
+      source: String(options.source || 'user-configured-single-task'),
+      updatedAt: now
+    };
+    const existingQuarantine = Array.isArray(current.routeQuarantine) ? current.routeQuarantine : [];
+    current.routeQuarantine = [
+      ...existingQuarantine.filter(row => routingIntegrity.normalizedTask(row?.task) !== target),
+      ...validation.quarantine.filter(row => routingIntegrity.normalizedTask(row?.task) === target)
+    ];
+    current.schemaVersion = Math.max(3, Number(current.schemaVersion || 0));
+    current.routesUpdatedAt = now;
+    current.lastRouteUpdatedTask = target;
+    return current;
+  });
+}
+
 function repairRoutes(options = {}) {
   return store.updateAsync(current => routingIntegrity.repairRegistryDocument(current, { autoSelectVerified: options.autoSelectVerified !== false, rebalanceAutoRoutes: options.rebalanceAutoRoutes !== false }).document);
 }
 
 module.exports = {
-  read: () => store.read(),
+  read: () => readWithAuthorities(),
   write: value => store.write(value),
   mergeDiscovered,
   recordTest,
   recordReplyBrainBenchmark,
   recordCommercialBenchmark,
+  recordRoleQualificationReceipt,
   applyRecommendedUtilityRoutes,
   applyRecommendedReplyBrainRoutes,
+  setAiBudgetPolicy,
   setRoutes,
+  validateRouteDraft,
+  setRoute,
   upsertCloudModel,
   synchronizeOpenRouterCatalog,
   removeModel,

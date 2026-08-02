@@ -5,7 +5,6 @@
 * text=auto eol=lf
 INSTALL_AND_START_YANCE_SOURCE_UAT_LARGEST_EXISTING_DATA.ps1 -text whitespace=cr-at-eol
 tools/runtime-delivery/templates/INSTALL_TEST_AND_START_YANCE_UAT.ps1.template -text whitespace=cr-at-eol
-
 # Binary release and runtime assets must never be line-ending normalized.
 *.png binary
 *.ico binary
@@ -25,7 +24,6 @@ tools/runtime-delivery/templates/INSTALL_TEST_AND_START_YANCE_UAT.ps1.template -
 *.woff2 binary
 *.ttf binary
 *.otf binary
-
 # Clean UAT/runtime source exports: retain historical scripts and reports in Git
 # history and bundles, but do not place misleading one-off entry points in the
 # installable Windows UAT payload.
@@ -46,3 +44,4 @@ tools/runtime-delivery/templates/INSTALL_TEST_AND_START_YANCE_UAT.ps1.template -
 /READ_FIRST_*.md export-ignore
 /RUNTIME_HOTFIX_*.json export-ignore
 /YANCE_FIX*_ZH.md export-ignore
+vendor/electron/*.zip filter=lfs diff=lfs merge=lfs -text

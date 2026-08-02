@@ -1,14 +1,14 @@
 # 言策 Batch 27 源码变更记录
 
-基线：Batch 26 PackageCommit `f97ae100e163a704fb28a625be121f8e0e6ac5e8`。
+基线：Batch 26 PackageCommit `f97ae100e163a704fb28a625be121f8e0e6ac5e8`。  
 实现：`0fea714780aad29aedca8a7ec51f25e42dac97b2` / Tree `84504230dcbd75d6791f65a801b3883961977d84`。
 
 ## 主要新增
 
-- `backend/lib/resilientLeaseClock.js
+- `backend/lib/resilientLeaseClock.js`
 - `backend/migrations/batch27DeveloperHandoffV2Closure.js`（Schema 18）
-- `backend/tests/batch27DeveloperHandoffV2Closure.test.js
-- `backend/tests/batch27SystemRegressionClosure.test.js
+- `backend/tests/batch27DeveloperHandoffV2Closure.test.js`
+- `backend/tests/batch27SystemRegressionClosure.test.js`
 
 ## 主要改造域
 

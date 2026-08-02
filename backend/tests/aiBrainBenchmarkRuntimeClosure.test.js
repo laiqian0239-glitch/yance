@@ -15,6 +15,7 @@ const routingIntegrity = require('../services/modelRoutingIntegrityService');
 const { runReplyBrainBenchmark } = require('../services/replyBrainBenchmark');
 const registry = require('../services/modelRegistry');
 const authority = require('../services/replyBrainModelAuthority');
+const roleReceipts = require('../services/aiRoleQualificationReceiptAuthority');
 const { closeR32Store } = require('../lib/r32StoreSingleton');
 
 const root = path.resolve(__dirname, '../..');
@@ -36,6 +37,12 @@ function passingBenchmark(score = 92) {
     qualifyingTasks: ['quick_reply', 'deep_reply', 'director'],
     scenarios: []
   };
+}
+
+function replyQualificationReceipts(modelId, evidence) {
+  return Object.fromEntries(['quick_reply', 'deep_reply', 'director'].map(task => [task, roleReceipts.issueFromEvidence({
+    modelId, task, evidence, issuedAt: evidence.testedAt, expiresAt: '2030-01-01T00:00:00.000Z'
+  })]));
 }
 
 test.after(() => {
@@ -76,7 +83,7 @@ test('an incomplete retry preserves the last qualified benchmark, tasks and rout
       id: 'brain', name: 'ministral-3:14b', provider: 'ollama', available: true,
       qualification: 'verified', allowedTasks: ['quick_reply', 'deep_reply', 'director'],
       lastTest: { scores: qualificationScores() }, lastReplyBrainBenchmark: previous,
-      lastSuccessfulReplyBrainBenchmark: previous
+      lastSuccessfulReplyBrainBenchmark: previous, roleQualificationReceipts: replyQualificationReceipts('brain', previous)
     }],
     routes: {
       quick_reply: { primary: 'brain', fallback: '', enabled: true, maxTokens: 220 },
@@ -109,7 +116,7 @@ test('completed quality failure still removes reply eligibility', async () => {
   const previous = passingBenchmark(90);
   registry.write({
     schemaVersion: 3,
-    models: [{ id: 'brain', name: 'ministral-3:14b', provider: 'ollama', available: true, qualification: 'verified', allowedTasks: ['quick_reply', 'deep_reply', 'director'], lastTest: { scores: qualificationScores() }, lastReplyBrainBenchmark: previous }],
+    models: [{ id: 'brain', name: 'ministral-3:14b', provider: 'ollama', available: true, qualification: 'verified', allowedTasks: ['quick_reply', 'deep_reply', 'director'], lastTest: { scores: qualificationScores() }, lastReplyBrainBenchmark: previous, roleQualificationReceipts: replyQualificationReceipts('brain', previous) }],
     routes: { quick_reply: { primary: 'brain', enabled: true }, deep_reply: { primary: 'brain', enabled: true }, director: { primary: 'brain', enabled: true } },
     history: []
   });

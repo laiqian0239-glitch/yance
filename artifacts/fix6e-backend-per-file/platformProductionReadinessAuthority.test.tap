@@ -1,0 +1,54 @@
+TAP version 13
+# (node:19522) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: unconfigured Telegram accounts remain onboarding and never become a global critical failure
+ok 1 - unconfigured Telegram accounts remain onboarding and never become a global critical failure
+  ---
+  duration_ms: 2.60879
+  type: 'test'
+  ...
+# Subtest: Facebook readiness separates real-time messaging from optional Business Suite history permission
+ok 2 - Facebook readiness separates real-time messaging from optional Business Suite history permission
+  ---
+  duration_ms: 0.321478
+  type: 'test'
+  ...
+# Subtest: Facebook readiness blocks a configured Page when webhook receive chain is unavailable
+ok 3 - Facebook readiness blocks a configured Page when webhook receive chain is unavailable
+  ---
+  duration_ms: 0.247623
+  type: 'test'
+  ...
+# Subtest: WhatsApp readiness reports identity reconciliation evidence separately from message connectivity
+ok 4 - WhatsApp readiness reports identity reconciliation evidence separately from message connectivity
+  ---
+  duration_ms: 0.236104
+  type: 'test'
+  ...
+# Subtest: Telegram readiness records history sync degradation without disabling basic message send and receive
+ok 5 - Telegram readiness records history sync degradation without disabling basic message send and receive
+  ---
+  duration_ms: 0.151625
+  type: 'test'
+  ...
+# Subtest: WhatsApp adapter status exposes the latest identity reconciliation evidence
+ok 6 - WhatsApp adapter status exposes the latest identity reconciliation evidence
+  ---
+  duration_ms: 0.2585
+  type: 'test'
+  ...
+# Subtest: Telegram adapter status exposes history synchronization evidence
+ok 7 - Telegram adapter status exposes history synchronization evidence
+  ---
+  duration_ms: 0.160509
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 366.123163

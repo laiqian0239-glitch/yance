@@ -12,6 +12,9 @@ evidence/wp5/development/
 
 .worktrees/
 
+# Generated only inside a git-free sealed source export.
+/YANCE_DERIVED_SOURCE_IDENTITY.json
+
 # GitHub import safety exclusions
 .env
 .env.*
@@ -41,5 +44,6 @@ release-output/
 .worktrees/
 
 *.zip
+!vendor/electron/*.zip
 *.7z
 *.rar

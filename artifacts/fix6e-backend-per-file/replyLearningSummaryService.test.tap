@@ -1,0 +1,30 @@
+TAP version 13
+# (node:19665) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: reply learning summary separates real feedback events from imported materials and resolves canonical aliases
+ok 1 - reply learning summary separates real feedback events from imported materials and resolves canonical aliases
+  ---
+  duration_ms: 0.789576
+  type: 'test'
+  ...
+# Subtest: workspace learning summary is keyed by the actual conversation contact id used by the workbench
+ok 2 - workspace learning summary is keyed by the actual conversation contact id used by the workbench
+  ---
+  duration_ms: 0.202992
+  type: 'test'
+  ...
+# Subtest: AI workbench consumes authoritative reply learning governance instead of equating learning with imported materials only
+ok 3 - AI workbench consumes authoritative reply learning governance instead of equating learning with imported materials only
+  ---
+  duration_ms: 0.725595
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 61.717216

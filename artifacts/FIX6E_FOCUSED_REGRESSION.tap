@@ -1,0 +1,488 @@
+TAP version 13
+# Subtest: an available Ministral model with real calls is pending, not quality zero, and can be manually trialled
+ok 1 - an available Ministral model with real calls is pending, not quality zero, and can be manually trialled
+  ---
+  duration_ms: 3.374616
+  type: 'test'
+  ...
+# Subtest: an old base-qualification-only zero is displayed as pending because chat scenarios never ran
+ok 2 - an old base-qualification-only zero is displayed as pending because chat scenarios never ran
+  ---
+  duration_ms: 0.540808
+  type: 'test'
+  ...
+# Subtest: task-specific conditional thresholds allow a 60 quick model and a 70 deep model without granting formal qualification
+ok 3 - task-specific conditional thresholds allow a 60 quick model and a 70 deep model without granting formal qualification
+  ---
+  duration_ms: 0.418139
+  type: 'test'
+  ...
+# Subtest: wrong-language or invented-fact evidence remains a hard block even for manual selection
+ok 4 - wrong-language or invented-fact evidence remains a hard block even for manual selection
+  ---
+  duration_ms: 0.779143
+  type: 'test'
+  ...
+# Subtest: manual conditional route is rejected without an explicit conditional flag and accepted with it
+ok 5 - manual conditional route is rejected without an explicit conditional flag and accepted with it
+  ---
+  duration_ms: 5.205133
+  type: 'test'
+  ...
+# Subtest: automatic reply routing resolves an actual conditional model and records why it was selected
+ok 6 - automatic reply routing resolves an actual conditional model and records why it was selected
+  ---
+  duration_ms: 9.541264
+  type: 'test'
+  ...
+# Subtest: candidate generation remains blocked until director and commercial translation quality are both ready
+ok 7 - candidate generation remains blocked until director and commercial translation quality are both ready
+  ---
+  duration_ms: 0.873513
+  type: 'test'
+  ...
+# Subtest: workbench exposes grouped manual selectors, auto explanation, and per-route real testing
+ok 8 - workbench exposes grouped manual selectors, auto explanation, and per-route real testing
+  ---
+  duration_ms: 1.042931
+  type: 'test'
+  ...
+# Subtest: route test API and benchmark workflow are not blocked by the old base-qualification gate
+ok 9 - route test API and benchmark workflow are not blocked by the old base-qualification gate
+  ---
+  duration_ms: 1.221523
+  type: 'test'
+  ...
+# Subtest: manual and automatic conditional reply routes persist atomically in a real isolated SQLite registry
+ok 10 - manual and automatic conditional reply routes persist atomically in a real isolated SQLite registry
+  ---
+  duration_ms: 317.349953
+  type: 'test'
+  ...
+# Subtest: protects reserved budget from paid background tasks
+ok 11 - protects reserved budget from paid background tasks
+  ---
+  duration_ms: 0.82825
+  type: 'test'
+  ...
+# Subtest: formal champion reply remains admitted inside the reserve
+ok 12 - formal champion reply remains admitted inside the reserve
+  ---
+  duration_ms: 0.120999
+  type: 'test'
+  ...
+# Subtest: local and free models never consume paid admission
+ok 13 - local and free models never consume paid admission
+  ---
+  duration_ms: 0.13819
+  type: 'test'
+  ...
+# Subtest: invalid budget state fails closed only for paid background work
+ok 14 - invalid budget state fails closed only for paid background work
+  ---
+  duration_ms: 0.094712
+  type: 'test'
+  ...
+# Subtest: outbound final translation may use the quality reserve while background translation may not
+ok 15 - outbound final translation may use the quality reserve while background translation may not
+  ---
+  duration_ms: 0.196102
+  type: 'test'
+  ...
+# (node:20822) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: AiGateway blocks a legacy-eligible translation model that lacks translation quality qualification
+ok 16 - AiGateway blocks a legacy-eligible translation model that lacks translation quality qualification
+  ---
+  duration_ms: 2.313569
+  type: 'test'
+  ...
+# Subtest: AiGateway does not permit conditional translation even when a stale route requests human review
+ok 17 - AiGateway does not permit conditional translation even when a stale route requests human review
+  ---
+  duration_ms: 0.429971
+  type: 'test'
+  ...
+# Subtest: AiGateway blocks fact extraction when JSON schema capability is missing
+ok 18 - AiGateway blocks fact extraction when JSON schema capability is missing
+  ---
+  duration_ms: 1.240004
+  type: 'test'
+  ...
+# Subtest: AiGateway executes a commercially qualified translation model through the quality gate
+ok 19 - AiGateway executes a commercially qualified translation model through the quality gate
+  ---
+  duration_ms: 1.004401
+  type: 'test'
+  ...
+# Subtest: core reply routes require high-capability primary and same-tier fallback
+ok 20 - core reply routes require high-capability primary and same-tier fallback
+  ---
+  duration_ms: 2.840776
+  type: 'test'
+  ...
+# Subtest: a weaker fallback does not count as reliable continuity for a high primary
+ok 21 - a weaker fallback does not count as reliable continuity for a high primary
+  ---
+  duration_ms: 0.633099
+  type: 'test'
+  ...
+# Subtest: conditional trial remains visible and requires human review
+ok 22 - conditional trial remains visible and requires human review
+  ---
+  duration_ms: 0.322094
+  type: 'test'
+  ...
+# Subtest: emergency output is explicitly isolated from long-term learning
+ok 23 - emergency output is explicitly isolated from long-term learning
+  ---
+  duration_ms: 2.369603
+  type: 'test'
+  ...
+# Subtest: failure classification prefers same-tier recovery actions
+ok 24 - failure classification prefers same-tier recovery actions
+  ---
+  duration_ms: 0.339906
+  type: 'test'
+  ...
+# Subtest: translation quality is evaluated independently from social reply quality
+ok 25 - translation quality is evaluated independently from social reply quality
+  ---
+  duration_ms: 0.292958
+  type: 'test'
+  ...
+# Subtest: learning synthesis can reach high tier only through a fully qualified director-grade model
+ok 26 - learning synthesis can reach high tier only through a fully qualified director-grade model
+  ---
+  duration_ms: 0.267602
+  type: 'test'
+  ...
+# Subtest: relationship analysis prefers a qualified local privacy model
+ok 27 - relationship analysis prefers a qualified local privacy model
+  ---
+  duration_ms: 1.509751
+  type: 'test'
+  ...
+# Subtest: inbound/history translation uses local then free cloud
+ok 28 - inbound/history translation uses local then free cloud
+  ---
+  duration_ms: 1.899517
+  type: 'test'
+  ...
+# Subtest: outbound translation ranks by formal translation quality, not price
+ok 29 - outbound translation ranks by formal translation quality, not price
+  ---
+  duration_ms: 0.597075
+  type: 'test'
+  ...
+# (node:20843) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: model registry persists validated champion budget policy
+ok 30 - model registry persists validated champion budget policy
+  ---
+  duration_ms: 4.26967
+  type: 'test'
+  ...
+# Subtest: model registry rejects a reserve larger than total budget
+ok 31 - model registry rejects a reserve larger than total budget
+  ---
+  duration_ms: 0.416972
+  type: 'test'
+  ...
+# Subtest: models API exposes brain routing diagnostics and controlled budget policy update
+ok 32 - models API exposes brain routing diagnostics and controlled budget policy update
+  ---
+  duration_ms: 1.566474
+  type: 'test'
+  ...
+# Subtest: model registry accumulates metered cloud invocation cost in the protected budget ledger
+ok 33 - model registry accumulates metered cloud invocation cost in the protected budget ledger
+  ---
+  duration_ms: 2.802687
+  type: 'test'
+  ...
+# (node:20850) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: formal quality plan blocks a configured model that is not the task champion
+ok 34 - formal quality plan blocks a configured model that is not the task champion
+  ---
+  duration_ms: 3.152842
+  type: 'test'
+  ...
+# Subtest: automatic reply route selects evidence champion instead of name and parameter heuristics
+ok 35 - automatic reply route selects evidence champion instead of name and parameter heuristics
+  ---
+  duration_ms: 4.861974
+  type: 'test'
+  ...
+# Subtest: automatic relationship route selects local privacy model before paid cloud
+ok 36 - automatic relationship route selects local privacy model before paid cloud
+  ---
+  duration_ms: 1.229601
+  type: 'test'
+  ...
+# Subtest: gateway protects champion reserve by selecting local background model
+ok 37 - gateway protects champion reserve by selecting local background model
+  ---
+  duration_ms: 1.07876
+  type: 'test'
+  ...
+# Subtest: gateway blocks paid-only background work when reserve is protected
+ok 38 - gateway blocks paid-only background work when reserve is protected
+  ---
+  duration_ms: 0.277589
+  type: 'test'
+  ...
+# Subtest: budget protection never downgrades or blocks the formal champion reply
+ok 39 - budget protection never downgrades or blocks the formal champion reply
+  ---
+  duration_ms: 1.363786
+  type: 'test'
+  ...
+# Subtest: queued background translation preserves workload profile during initial and execution route resolution
+ok 40 - queued background translation preserves workload profile during initial and execution route resolution
+  ---
+  duration_ms: 43.697129
+  type: 'test'
+  ...
+# Subtest: OpenAI-compatible transport sends a real Bearer authorization header without exposing the key
+ok 41 - OpenAI-compatible transport sends a real Bearer authorization header without exposing the key
+  ---
+  duration_ms: 38.379892
+  type: 'test'
+  ...
+# Subtest: Node native fallback transport also sends the authorization header deterministically
+ok 42 - Node native fallback transport also sends the authorization header deterministically
+  ---
+  duration_ms: 8.108968
+  type: 'test'
+  ...
+# Subtest: OpenRouter secure credential normalization strips a pasted Bearer prefix before both account requests
+ok 43 - OpenRouter secure credential normalization strips a pasted Bearer prefix before both account requests
+  ---
+  duration_ms: 2.839194
+  type: 'test'
+  ...
+# Subtest: automatic route authority selects the evidence champion and a qualified runner-up
+ok 44 - automatic route authority selects the evidence champion and a qualified runner-up
+  ---
+  duration_ms: 11.399001
+  type: 'test'
+  ...
+# Subtest: translation defaults to cloud quality but preserves an explicit local-only policy
+ok 45 - translation defaults to cloud quality but preserves an explicit local-only policy
+  ---
+  duration_ms: 1.563997
+  type: 'test'
+  ...
+# Subtest: AI workbench makes OpenRouter the primary action and waits for credential restart before account discovery
+ok 46 - AI workbench makes OpenRouter the primary action and waits for credential restart before account discovery
+  ---
+  duration_ms: 0.871393
+  type: 'test'
+  ...
+# Subtest: backend OpenRouter auto-configuration persists cloud-first automation after credential validation
+ok 47 - backend OpenRouter auto-configuration persists cloud-first automation after credential validation
+  ---
+  duration_ms: 0.502608
+  type: 'test'
+  ...
+# Subtest: Batch15 removes screenshot-confirmed composer text artifacts
+ok 48 - Batch15 removes screenshot-confirmed composer text artifacts
+  ---
+  duration_ms: 3.357406
+  type: 'test'
+  ...
+# Subtest: Batch15 reflows the shell and account center before controls overlap
+ok 49 - Batch15 reflows the shell and account center before controls overlap
+  ---
+  duration_ms: 1.415514
+  type: 'test'
+  ...
+# Subtest: Batch15 keeps settings labels and switches in the same bounded row
+ok 50 - Batch15 keeps settings labels and switches in the same bounded row
+  ---
+  duration_ms: 0.487862
+  type: 'test'
+  ...
+# Subtest: Batch15 normalizes display actions through one shared size class
+ok 51 - Batch15 normalizes display actions through one shared size class
+  ---
+  duration_ms: 1.691881
+  type: 'test'
+  ...
+# (node:20864) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: large local reply modes retain three-to-four minute budgets and explicit three minutes is never clamped
+ok 52 - large local reply modes retain three-to-four minute budgets and explicit three minutes is never clamped
+  ---
+  duration_ms: 1.087826
+  type: 'test'
+  ...
+# Subtest: AI queue wait budgets cannot expire before slow local-model execution budgets
+ok 53 - AI queue wait budgets cannot expire before slow local-model execution budgets
+  ---
+  duration_ms: 0.202749
+  type: 'test'
+  ...
+# Subtest: context-aware reply generation does not reintroduce a 15-second queue timeout
+ok 54 - context-aware reply generation does not reintroduce a 15-second queue timeout
+  ---
+  duration_ms: 0.576215
+  type: 'test'
+  ...
+# Subtest: automatic translation routing is cloud-quality-first unless local-only is explicitly selected
+ok 55 - automatic translation routing is cloud-quality-first unless local-only is explicitly selected
+  ---
+  duration_ms: 12.0707
+  type: 'test'
+  ...
+# Subtest: AI queue runs interactive priority before background work once a slot opens
+ok 56 - AI queue runs interactive priority before background work once a slot opens
+  ---
+  duration_ms: 14.805535
+  type: 'test'
+  ...
+# Subtest: AI queue reserves one execution slot for interactive work when background jobs are busy
+ok 57 - AI queue reserves one execution slot for interactive work when background jobs are busy
+  ---
+  duration_ms: 16.107571
+  type: 'test'
+  ...
+# Subtest: AI queue rejects a task that never starts before its queue deadline
+ok 58 - AI queue rejects a task that never starts before its queue deadline
+  ---
+  duration_ms: 23.516276
+  type: 'test'
+  ...
+# Subtest: WhatsApp durable receipts are scoped by conversation while other platforms keep their contract
+ok 59 - WhatsApp durable receipts are scoped by conversation while other platforms keep their contract
+  ---
+  duration_ms: 0.729647
+  type: 'test'
+  ...
+# Subtest: backend announces core readiness before starting AI enhancement services
+ok 60 - backend announces core readiness before starting AI enhancement services
+  ---
+  duration_ms: 0.847328
+  type: 'test'
+  ...
+# Subtest: automatic translation accepts both inbound and outbound foreign-language messages while history backfill remains background work
+ok 61 - automatic translation accepts both inbound and outbound foreign-language messages while history backfill remains background work
+  ---
+  duration_ms: 0.562578
+  type: 'test'
+  ...
+# Subtest: platform delivery and local persistence are separate and send work is isolated by platform plus account
+ok 62 - platform delivery and local persistence are separate and send work is isolated by platform plus account
+  ---
+  duration_ms: 0.739034
+  type: 'test'
+  ...
+# Subtest: interrupted local persistence repairs are requeued after backend restart
+ok 63 - interrupted local persistence repairs are requeued after backend restart
+  ---
+  duration_ms: 252.282046
+  type: 'test'
+  ...
+# Subtest: AI activity is a warning rather than an update-install blocker
+ok 64 - AI activity is a warning rather than an update-install blocker
+  ---
+  duration_ms: 0.169002
+  type: 'test'
+  ...
+# Subtest: model circuit state survives backend restart and successful calls clear it
+ok 65 - model circuit state survives backend restart and successful calls clear it
+  ---
+  duration_ms: 0.416605
+  type: 'test'
+  ...
+# Subtest: selects the highest task evidence score as champion
+ok 66 - selects the highest task evidence score as champion
+  ---
+  duration_ms: 3.183957
+  type: 'test'
+  ...
+# Subtest: manual weak model cannot replace the formal champion
+ok 67 - manual weak model cannot replace the formal champion
+  ---
+  duration_ms: 1.357577
+  type: 'test'
+  ...
+# Subtest: runner-up is accepted only inside the configured quality gap
+ok 68 - runner-up is accepted only inside the configured quality gap
+  ---
+  duration_ms: 0.903349
+  type: 'test'
+  ...
+# Subtest: expired formal receipt is excluded from champion ranking
+ok 69 - expired formal receipt is excluded from champion ranking
+  ---
+  duration_ms: 1.164348
+  type: 'test'
+  ...
+# (node:20878) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: DirectorStrategyV2 is reusable until context, persona, memory or learning versions change
+ok 70 - DirectorStrategyV2 is reusable until context, persona, memory or learning versions change
+  ---
+  duration_ms: 277.188509
+  type: 'test'
+  ...
+# Subtest: candidate plans keep one persona while creating distinct strategy branches
+ok 71 - candidate plans keep one persona while creating distinct strategy branches
+  ---
+  duration_ms: 260.668097
+  type: 'test'
+  ...
+# Subtest: eligible L1 feedback changes the next preference profile immediately
+ok 72 - eligible L1 feedback changes the next preference profile immediately
+  ---
+  duration_ms: 250.15007
+  type: 'test'
+  ...
+# Subtest: emergency candidates are recorded for audit but excluded from learning profiles
+ok 73 - emergency candidates are recorded for audit but excluded from learning profiles
+  ---
+  duration_ms: 298.542211
+  type: 'test'
+  ...
+# Subtest: L3 Persona promotion requires high confidence, current cross-contact L2 profiles and human approval
+ok 74 - L3 Persona promotion requires high confidence, current cross-contact L2 profiles and human approval
+  ---
+  duration_ms: 240.629345
+  type: 'test'
+  ...
+# Subtest: goal-driven memory recall prioritizes useful evidence and suppresses conflicts and unsupported claims
+ok 75 - goal-driven memory recall prioritizes useful evidence and suppresses conflicts and unsupported claims
+  ---
+  duration_ms: 0.777257
+  type: 'test'
+  ...
+# Subtest: production candidate variants map to distinct controlled strategy branches
+ok 76 - production candidate variants map to distinct controlled strategy branches
+  ---
+  duration_ms: 0.427766
+  type: 'test'
+  ...
+# Subtest: production sent feedback writes one idempotent L1 signal and changes the next branch preference
+ok 77 - production sent feedback writes one idempotent L1 signal and changes the next branch preference
+  ---
+  duration_ms: 245.610477
+  type: 'test'
+  ...
+# Subtest: candidate interactions remain provisional until successful send and emergency results stay excluded
+ok 78 - candidate interactions remain provisional until successful send and emergency results stay excluded
+  ---
+  duration_ms: 248.462615
+  type: 'test'
+  ...
+1..78
+# tests 78
+# suites 0
+# pass 78
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4329.071902
