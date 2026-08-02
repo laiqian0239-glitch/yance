@@ -19,7 +19,7 @@ jobs:
   acv2-wp-a-platform-matrix:
     name: acv2-wp-a-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -34,11 +34,12 @@ jobs:
           fetch-depth: 1
           fetch-tags: false
           lfs: false
+          persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
-          cache: npm
+          package-manager-cache: false
       - name: Verify Windows runtime mutex helper selection
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/windowsRuntimeMutexPowerShell.test.js
       - name: Run AuthorityWriteHost unit and migration contract
@@ -76,6 +77,13 @@ jobs:
           backend/tests/architectureClosureV2/wpA/runtimeStateStoreBinding.test.js
           backend/tests/architectureClosureV2/wpA/runtimeProcessSingleton.test.js
           backend/tests/architectureClosureV2/wpA/startupOrdering.test.js
+      - name: Run A7 deterministic replay and verify-before-retire archive contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/ledgerReplay.test.js
+          backend/tests/architectureClosureV2/wpA/ledgerArchiveFaultMatrix.test.js
+      - name: Generate deterministic A7 contract evidence
+        run: node tools/architecture-closure-v2/wp-a-replay-evidence.js
       - name: Install locked dependencies for legacy regressions
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run legacy identity observe, merge and rollback regressions
@@ -99,10 +107,12 @@ jobs:
           fetch-depth: 1
           fetch-tags: false
           lfs: false
+          persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Validate A0 registry and open-state contract
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js
       - name: Enforce full WP-A source closure
