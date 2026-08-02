@@ -109,6 +109,7 @@ markStartupPhase('architectureClosureReadyMs');
 
 const startupProductionGuard = executeStartupAuthorityCommand('startup.productionDataGuard').result;
 const startupStage6Data = executeStartupAuthorityCommand('startup.initializeWorkspacePipelines').result;
+RUNTIME_COMPOSITION.authorityCommandGateway.seal();
 markStartupPhase('dataPipelinesReadyMs');
 
 // Stateful services are loaded only after write-host authority, canonical composition,
