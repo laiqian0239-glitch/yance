@@ -84,6 +84,8 @@ jobs:
           backend/tests/architectureClosureV2/wpA/ledgerArchiveFaultMatrix.test.js
       - name: Generate deterministic A7 contract evidence
         run: node tools/architecture-closure-v2/wp-a-replay-evidence.js
+      - name: Run A8 zero-writer source closure contract
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/sourceClosureFinal.test.js
       - name: Install locked dependencies for legacy regressions
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run legacy identity observe, merge and rollback regressions
@@ -115,5 +117,7 @@ jobs:
           package-manager-cache: false
       - name: Validate A0 registry and open-state contract
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js
+      - name: Validate A8 zero-writer contract
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/sourceClosureFinal.test.js
       - name: Enforce full WP-A source closure
         run: node tools/architecture-closure-v2/source-closure-scan.js --wp A
