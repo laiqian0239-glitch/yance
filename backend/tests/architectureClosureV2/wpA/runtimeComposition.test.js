@@ -48,6 +48,17 @@ function withAuthorityStore(prefix, callback) {
   }
 }
 
+function startupEnvelope(commandType, payload = {}) {
+  return {
+    contractVersion: 2,
+    commandId: '11111111-1111-4111-8111-111111111111',
+    commandType,
+    expectedStateVersion: 1,
+    issuedAtUtc: '2026-08-02T11:00:00.000Z',
+    payload
+  };
+}
+
 test('AppRuntimeFactory rejects every production runtime that lacks a real AuthorityWriteHost capability', () => {
   const previous = process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
   process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
@@ -211,6 +222,34 @@ test('startup command gateway rejects a capability fenced by a newer host genera
   }
 });
 
+test('startup gateway rejects prototype-chain command names and seals after boot', () => {
+  const { RuntimeAuthorityCommandGateway } = require('../../../runtime/AppRuntimeComposition');
+  withAuthorityStore('yance-acv2-a6-sealed-', ({ host, authorityStore }) => {
+    const runtime = { snapshot: () => ({ stateVersion: 1 }) };
+    const gateway = new RuntimeAuthorityCommandGateway({
+      runtime,
+      authorityWriteHostCapability: host.capability,
+      authorityStore
+    });
+    const descriptors = Object.getOwnPropertyDescriptors(gateway);
+    for (const key of ['runtime', 'authorityWriteHostCapability', 'authorityStore']) {
+      assert.equal(descriptors[key]?.writable, false, `${key} must not be replaceable`);
+      assert.equal(descriptors[key]?.configurable, false, `${key} must not be redefinable`);
+    }
+    assert.throws(
+      () => gateway.execute(startupEnvelope('constructor')),
+      error => error?.code === 'STARTUP_COMMAND_ENVELOPE_INVALID'
+    );
+    assert.equal(gateway.snapshot().state, 'open');
+    gateway.seal();
+    assert.equal(gateway.snapshot().state, 'sealed');
+    assert.throws(
+      () => gateway.execute(startupEnvelope('startup.invalid')),
+      error => error?.code === 'STARTUP_COMMAND_GATEWAY_SEALED'
+    );
+  });
+});
+
 test('desktop runtime client refuses own or inherited primary write capability injection', () => {
   const { ApiV2RuntimeClient } = require('../../../../electron/desktopHost/ApiV2RuntimeClient');
   const baseOptions = {
@@ -247,14 +286,7 @@ test('startup command payload accessors are rejected without getter execution', 
       authorityStore
     });
     assert.throws(
-      () => gateway.execute({
-        contractVersion: 2,
-        commandId: '11111111-1111-4111-8111-111111111111',
-        commandType: 'startup.invalid',
-        expectedStateVersion: 1,
-        issuedAtUtc: '2026-08-02T11:00:00.000Z',
-        payload
-      }),
+      () => gateway.execute(startupEnvelope('startup.invalid', payload)),
       error => error?.code === 'STARTUP_COMMAND_PAYLOAD_ACCESSOR_FORBIDDEN'
     );
   });
