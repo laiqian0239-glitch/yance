@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 2,
+  "documentType": "YANCE_ACV2_SOURCE_CLOSURE_SCAN",
+  "workPackage": "WP-A",
+  "branch": "acv2/wp-a-identity-ledger-write-host",
+  "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
+  "a0EvidenceDocument": "governance/architecture-closure-v2/wp-a-a0-red-evidence.json",
+  "initialViolationClasses": [
+    "PRIMARY_DB_FALLBACK_PRESENT",
+    "AUTHORITY_WRITE_HOST_CAPABILITY_MISSING",
+    "PRIMARY_DB_ROLE_BOUNDARY_INCOMPLETE",
+    "CANONICAL_LEDGER_COORDINATOR_MISSING"
+  ],
+  "ok": false,
+  "registryEntries": 25,
+  "scannedSourceFiles": 354,
+  "violationCount": 14,
+  "counts": {
+    "PRIMARY_DB_ROLE_BOUNDARY_INCOMPLETE": 4,
+    "CANONICAL_LEDGER_COORDINATOR_MISSING": 3,
+    "UNREGISTERED_PRIMARY_DB_ACCESS": 7
+  },
+  "violations": [
+    {
+      "violationClass": "PRIMARY_DB_ROLE_BOUNDARY_INCOMPLETE",
+      "code": "REQUIRED_MARKER_MISSING",
+      "id": "A0-LEGACY-JSON-MIGRATOR",
+      "path": "backend/services/legacyJsonMigrator.js",
+      "marker": "AuthorityWriteHost"
+    },
+    {
+      "violationClass": "PRIMARY_DB_ROLE_BOUNDARY_INCOMPLETE",
+      "code": "FORBIDDEN_MARKER_PRESENT",
+      "id": "A0-LEGACY-JSON-MIGRATOR",
+      "path": "backend/services/legacyJsonMigrator.js",
+      "marker": "new R32SqliteStore"
+    },
+    {
+      "violationClass": "PRIMARY_DB_ROLE_BOUNDARY_INCOMPLETE",
+      "code": "REQUIRED_MARKER_MISSING",
+      "id": "A0-LEGACY-SQLITE-MIGRATOR",
+      "path": "backend/migrations/legacySqliteMigrator.js",
+      "marker": "AuthorityWriteHost"
+    },
+    {
+      "violationClass": "PRIMARY_DB_ROLE_BOUNDARY_INCOMPLETE",
+      "code": "FORBIDDEN_MARKER_PRESENT",
+      "id": "A0-LEGACY-SQLITE-MIGRATOR",
+      "path": "backend/migrations/legacySqliteMigrator.js",
+      "marker": "new R32SqliteStore"
+    },
+    {
+      "violationClass": "CANONICAL_LEDGER_COORDINATOR_MISSING",
+      "code": "REQUIRED_MARKER_MISSING",
+      "id": "A0-PLATFORM-CORE-REPOSITORY",
+      "path": "backend/repositories/platformCoreRepository.js",
+      "marker": "coordinatorCapability"
+    },
+    {
+      "violationClass": "CANONICAL_LEDGER_COORDINATOR_MISSING",
+      "code": "FORBIDDEN_MARKER_PRESENT",
+      "id": "A0-PLATFORM-CORE-REPOSITORY",
+      "path": "backend/repositories/platformCoreRepository.js",
+      "marker": "insertDomainEvent"
+    },
+    {
+      "violationClass": "CANONICAL_LEDGER_COORDINATOR_MISSING",
+      "code": "REQUIRED_MARKER_MISSING",
+      "id": "A0-DOMAIN-EVENT-PROJECTOR",
+      "path": "backend/services/domainEventProjectionAuthority.js",
+      "marker": "ledgerSequence"
+    },
+    {
+      "violationClass": "UNREGISTERED_PRIMARY_DB_ACCESS",
+      "code": "UNREGISTERED_PRIMARY_DB_ACCESS",
+      "path": "backend/lib/sqliteOwnership.js",
+      "capabilities": [
+        "PRIMARY_DB_CONSTRUCTOR"
+      ]
+    },
+    {
+      "violationClass": "UNREGISTERED_PRIMARY_DB_ACCESS",
+      "code": "UNREGISTERED_PRIMARY_DB_ACCESS",
+      "path": "backend/routes/workspace.js",
+      "capabilities": [
+        "PRIMARY_STORE_ACQUISITION"
+      ]
+    },
+    {
+      "violationClass": "UNREGISTERED_PRIMARY_DB_ACCESS",
+      "code": "UNREGISTERED_PRIMARY_DB_ACCESS",
+      "path": "backend/runtime/RuntimeAuthorityMigrationCoordinator.js",
+      "capabilities": [
+        "PRIMARY_DB_CONSTRUCTOR"
+      ]
+    },
+    {
+      "violationClass": "UNREGISTERED_PRIMARY_DB_ACCESS",
+      "code": "UNREGISTERED_PRIMARY_DB_ACCESS",
+      "path": "backend/services/authorityWriteHost.js",
+      "capabilities": [
+        "PRIMARY_DB_CONSTRUCTOR"
+      ]
+    },
+    {
+      "violationClass": "UNREGISTERED_PRIMARY_DB_ACCESS",
+      "code": "UNREGISTERED_PRIMARY_DB_ACCESS",
+      "path": "backend/services/backupService.js",
+      "capabilities": [
+        "PRIMARY_DB_CONSTRUCTOR"
+      ]
+    },
+    {
+      "violationClass": "UNREGISTERED_PRIMARY_DB_ACCESS",
+      "code": "UNREGISTERED_PRIMARY_DB_ACCESS",
+      "path": "backend/store/adapters/SqliteStorePersistenceAdapter.js",
+      "capabilities": [
+        "PRIMARY_STORE_ACQUISITION"
+      ]
+    },
+    {
+      "violationClass": "UNREGISTERED_PRIMARY_DB_ACCESS",
+      "code": "UNREGISTERED_PRIMARY_DB_ACCESS",
+      "path": "backend/store/contactIdentityConfirmationRepository.js",
+      "capabilities": [
+        "PRIMARY_STORE_ACQUISITION"
+      ]
+    }
+  ]
+}
