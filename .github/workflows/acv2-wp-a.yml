@@ -6,6 +6,7 @@ on:
       - acv2/wp-a-identity-ledger-write-host
   pull_request:
     branches:
+      - main
       - rebuild/windows-release-closure-20260802-gate0-wp0-fix
 
 permissions:
@@ -67,7 +68,7 @@ jobs:
           backend/tests/architectureClosureV2/wpA/domainEventCompatibilityFacade.test.js
       - name: Run A5 identity authority contracts
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/identityAuthority.test.js
-      - name: Run A6 runtime composition and startup ordering RED contracts
+      - name: Run A6 runtime composition and startup ordering contracts
         run: >-
           node --test --test-concurrency=1
           backend/tests/architectureClosureV2/wpA/runtimeComposition.test.js
