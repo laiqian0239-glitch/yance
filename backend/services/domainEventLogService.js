@@ -11,7 +11,14 @@ const MAX_EVENT_PAYLOAD_BYTES = canonicalEventLedgerAuthority.MAX_EVENT_PAYLOAD_
 
 class DomainEventLogService {
   constructor(options = {}) {
-    this.canonicalAuthority = canonicalEventLedgerAuthority.createCanonicalEventLedgerAuthority(options);
+    const canonicalAuthority = canonicalEventLedgerAuthority.createCanonicalEventLedgerAuthority(options);
+    Object.defineProperty(this, 'canonicalAuthority', {
+      value: canonicalAuthority,
+      enumerable: true,
+      writable: false,
+      configurable: false
+    });
+    Object.freeze(this);
   }
 
   append(input = {}) {
@@ -46,6 +53,7 @@ class DomainEventLogService {
     return this.canonicalAuthority.replay(input);
   }
 }
+Object.freeze(DomainEventLogService.prototype);
 
 const singleton = new DomainEventLogService({
   canonicalAuthority: canonicalEventLedgerAuthority.singleton
