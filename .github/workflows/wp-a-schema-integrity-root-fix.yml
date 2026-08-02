@@ -74,16 +74,22 @@ jobs:
           node tools/architecture-closure-v2/source-closure-scan.js --wp A
           npm run test:security-scan
 
-      - name: Commit only verified source and governance
+      - name: Commit verified non-workflow source and governance
         shell: bash
         run: |
           set -euo pipefail
+          git restore --source=HEAD -- \
+            .github/workflows/wp-a-post-merge-validation.yml \
+            tests/wp0/wp-a-post-merge-validation.test.js
           rm -f \
-            .github/workflows/wp-a-schema-integrity-root-fix.yml \
             tools/architecture-closure-v2/apply-wp-a-schema-integrity-root-fix.js \
             tools/architecture-closure-v2/apply-wp-a-schema-integrity-followup.js
           git add -A
           git diff --cached --check
+          if git diff --cached --name-only | grep -q '^\.github/workflows/'; then
+            echo 'Runner source commit must not modify workflow files.' >&2
+            exit 1
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "fix(wp-a): close post-merge Schema 21 integrity defects"
