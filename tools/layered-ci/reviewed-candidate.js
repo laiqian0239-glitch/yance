@@ -17,11 +17,11 @@ function result(values = {}) {
     governanceBaseVerified: false,
     reviewedHeadVerified: false,
     branchTipVerified: false,
+    currentBranchTipVerified: false,
     reviewedScopeVerified: false,
     postReviewCommitsVerified: false,
     postReviewPathsVerified: false,
     ...values,
-    // Pinned after the spread so no caller can claim promotion readiness.
     readyForPromotion: false
   });
 }
@@ -37,9 +37,9 @@ function normalizeRepositoryPath(value) {
     .replace(/^\.\//u, '')
     .replace(/\/$/u, '');
   if (!normalized || normalized.startsWith('/') || /^[A-Za-z]:\//u.test(normalized)) return '';
+  if (/[*?[\]]/u.test(normalized)) return '';
   const segments = normalized.split('/');
   if (segments.some(segment => !segment || segment === '.' || segment === '..')) return '';
-  if (/[*?[\]]/u.test(normalized)) return '';
   return normalized;
 }
 
@@ -85,9 +85,7 @@ function validateManifest(manifest) {
     return fail('CANDIDATE_BRANCH_INVALID');
   }
   for (const field of ['governanceBase', 'reviewedHead', 'branchTip']) {
-    if (!SHA_PATTERN.test(String(manifest[field] || ''))) {
-      return fail('CANDIDATE_SHA_INVALID', { field });
-    }
+    if (!SHA_PATTERN.test(String(manifest[field] || ''))) return fail('CANDIDATE_SHA_INVALID', { field });
   }
   if (!Number.isSafeInteger(manifest.reviewedChangedFileCount) || manifest.reviewedChangedFileCount < 0) {
     return fail('CANDIDATE_REVIEWED_FILE_COUNT_INVALID');
@@ -98,6 +96,7 @@ function validateManifest(manifest) {
   if (!Array.isArray(manifest.allowedPostReviewCommits)) {
     return fail('CANDIDATE_POST_REVIEW_COMMITS_INVALID');
   }
+
   const commitShas = [];
   for (const entry of manifest.allowedPostReviewCommits) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry) || !SHA_PATTERN.test(String(entry.sha || ''))) {
@@ -108,15 +107,14 @@ function validateManifest(manifest) {
     }
     commitShas.push(entry.sha);
   }
-  if (new Set(commitShas).size !== commitShas.length) {
-    return fail('CANDIDATE_POST_REVIEW_COMMIT_DUPLICATE');
-  }
+  if (new Set(commitShas).size !== commitShas.length) return fail('CANDIDATE_POST_REVIEW_COMMIT_DUPLICATE');
   if (commitShas.length === 0 && manifest.reviewedHead !== manifest.branchTip) {
     return fail('CANDIDATE_POST_REVIEW_COMMITS_MISSING');
   }
-  if (commitShas.length > 0 && commitShas[commitShas.length - 1] !== manifest.branchTip) {
+  if (commitShas.length > 0 && commitShas.at(-1) !== manifest.branchTip) {
     return fail('CANDIDATE_POST_REVIEW_TIP_NOT_FROZEN');
   }
+
   const paths = normalizedSortedPaths(manifest.allowedPostReviewPaths);
   if (!paths || paths.length !== manifest.allowedPostReviewPaths.length) {
     return fail('CANDIDATE_POST_REVIEW_PATH_INVALID');
@@ -124,12 +122,8 @@ function validateManifest(manifest) {
   if (manifest.governance?.wildcardAuthorizationAllowed !== false) {
     return fail('CANDIDATE_WILDCARD_AUTHORIZATION_FORBIDDEN');
   }
-  if (manifest.governance?.pr5MustRemainDraft !== true) {
-    return fail('CANDIDATE_PR5_DRAFT_REQUIRED');
-  }
-  if (manifest.governance?.automaticClosure !== false) {
-    return fail('CANDIDATE_AUTOMATIC_CLOSURE_FORBIDDEN');
-  }
+  if (manifest.governance?.pr5MustRemainDraft !== true) return fail('CANDIDATE_PR5_DRAFT_REQUIRED');
+  if (manifest.governance?.automaticClosure !== false) return fail('CANDIDATE_AUTOMATIC_CLOSURE_FORBIDDEN');
   if (manifest.governance?.readyForPromotion !== false || manifest.readyForPromotion !== false) {
     return fail('CANDIDATE_PROMOTION_MUST_REMAIN_FALSE');
   }
@@ -140,9 +134,26 @@ function sameArray(left, right) {
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
+function requireCommit(git, field, sha) {
+  try {
+    git(['cat-file', '-e', `${sha}^{commit}`]);
+    return null;
+  } catch (cause) {
+    return fail('CANDIDATE_GIT_OBJECT_MISSING', { field, sha, error: cause?.message || String(cause) });
+  }
+}
+
+function requireAncestor(git, ancestor, descendant, reasonCode, details = {}) {
+  try {
+    git(['merge-base', '--is-ancestor', ancestor, descendant]);
+    return null;
+  } catch (cause) {
+    return fail(reasonCode, { ...details, error: cause?.message || String(cause) });
+  }
+}
+
 function evaluateReviewedCandidate(options = {}) {
-  const manifest = options.manifest;
-  const git = options.git;
+  const { manifest, git } = options;
   const validation = validateManifest(manifest);
   if (!validation.pass) return validation;
   if (typeof git !== 'function') return fail('CANDIDATE_GIT_REQUIRED');
@@ -152,31 +163,30 @@ function evaluateReviewedCandidate(options = {}) {
     ['reviewedHead', manifest.reviewedHead],
     ['branchTip', manifest.branchTip]
   ]) {
-    try {
-      git(['cat-file', '-e', `${sha}^{commit}`]);
-    } catch (cause) {
-      return fail('CANDIDATE_GIT_OBJECT_MISSING', { field, sha, error: cause?.message || String(cause) });
-    }
+    const missing = requireCommit(git, field, sha);
+    if (missing) return missing;
   }
 
-  try {
-    git(['merge-base', '--is-ancestor', manifest.governanceBase, manifest.reviewedHead]);
-  } catch (cause) {
-    return fail('GOVERNANCE_BASE_NOT_ANCESTOR', { error: cause?.message || String(cause) });
-  }
+  const invalidBase = requireAncestor(
+    git,
+    manifest.governanceBase,
+    manifest.reviewedHead,
+    'GOVERNANCE_BASE_NOT_ANCESTOR'
+  );
+  if (invalidBase) return invalidBase;
 
-  try {
-    git(['merge-base', '--is-ancestor', manifest.reviewedHead, manifest.branchTip]);
-  } catch (cause) {
-    return fail('REVIEWED_HEAD_NOT_ANCESTOR', {
-      governanceBaseVerified: true,
-      error: cause?.message || String(cause)
-    });
-  }
+  const invalidReviewed = requireAncestor(
+    git,
+    manifest.reviewedHead,
+    manifest.branchTip,
+    'REVIEWED_HEAD_NOT_ANCESTOR',
+    { governanceBaseVerified: true }
+  );
+  if (invalidReviewed) return invalidReviewed;
 
-  let remoteTip;
+  let currentBranchTip;
   try {
-    remoteTip = git(['rev-parse', `refs/remotes/origin/${manifest.authorizedBranch}`]);
+    currentBranchTip = git(['rev-parse', `refs/remotes/origin/${manifest.authorizedBranch}`]);
   } catch (cause) {
     return fail('AUTHORIZED_BRANCH_REF_MISSING', {
       governanceBaseVerified: true,
@@ -184,13 +194,24 @@ function evaluateReviewedCandidate(options = {}) {
       error: cause?.message || String(cause)
     });
   }
-  if (remoteTip !== manifest.branchTip) {
-    return fail('BRANCH_TIP_MISMATCH', {
-      governanceBaseVerified: true,
-      reviewedHeadVerified: true,
-      expectedBranchTip: manifest.branchTip,
-      actualBranchTip: remoteTip
-    });
+
+  const missingCurrent = requireCommit(git, 'currentBranchTip', currentBranchTip);
+  if (missingCurrent) return missingCurrent;
+
+  if (currentBranchTip !== manifest.branchTip) {
+    const diverged = requireAncestor(
+      git,
+      manifest.branchTip,
+      currentBranchTip,
+      'CURRENT_BRANCH_DIVERGED_FROM_FROZEN_TIP',
+      {
+        governanceBaseVerified: true,
+        reviewedHeadVerified: true,
+        frozenBranchTip: manifest.branchTip,
+        currentBranchTip
+      }
+    );
+    if (diverged) return diverged;
   }
 
   let reviewedFiles;
@@ -204,10 +225,12 @@ function evaluateReviewedCandidate(options = {}) {
       governanceBaseVerified: true,
       reviewedHeadVerified: true,
       branchTipVerified: true,
+      currentBranchTipVerified: true,
       error: cause?.message || String(cause)
     });
   }
   if (!reviewedFiles) return fail('REVIEWED_SCOPE_PATH_INVALID');
+
   const reviewedDigest = changedFileSetSha256(reviewedFiles);
   if (
     reviewedFiles.length !== manifest.reviewedChangedFileCount
@@ -217,6 +240,7 @@ function evaluateReviewedCandidate(options = {}) {
       governanceBaseVerified: true,
       reviewedHeadVerified: true,
       branchTipVerified: true,
+      currentBranchTipVerified: true,
       expectedChangedFileCount: manifest.reviewedChangedFileCount,
       actualChangedFileCount: reviewedFiles.length,
       expectedChangedFileSetSha256: manifest.reviewedChangedFileSetSha256,
@@ -226,14 +250,13 @@ function evaluateReviewedCandidate(options = {}) {
 
   let postReviewCommits;
   try {
-    postReviewCommits = lines(git([
-      'rev-list', '--reverse', `${manifest.reviewedHead}..${manifest.branchTip}`
-    ]));
+    postReviewCommits = lines(git(['rev-list', '--reverse', `${manifest.reviewedHead}..${manifest.branchTip}`]));
   } catch (cause) {
     return fail('POST_REVIEW_COMMITS_UNAVAILABLE', {
       governanceBaseVerified: true,
       reviewedHeadVerified: true,
       branchTipVerified: true,
+      currentBranchTipVerified: true,
       reviewedScopeVerified: true,
       error: cause?.message || String(cause)
     });
@@ -244,6 +267,7 @@ function evaluateReviewedCandidate(options = {}) {
       governanceBaseVerified: true,
       reviewedHeadVerified: true,
       branchTipVerified: true,
+      currentBranchTipVerified: true,
       reviewedScopeVerified: true,
       expectedPostReviewCommits: expectedCommits,
       actualPostReviewCommits: postReviewCommits
@@ -261,6 +285,7 @@ function evaluateReviewedCandidate(options = {}) {
       governanceBaseVerified: true,
       reviewedHeadVerified: true,
       branchTipVerified: true,
+      currentBranchTipVerified: true,
       reviewedScopeVerified: true,
       postReviewCommitsVerified: true,
       error: cause?.message || String(cause)
@@ -272,6 +297,7 @@ function evaluateReviewedCandidate(options = {}) {
       governanceBaseVerified: true,
       reviewedHeadVerified: true,
       branchTipVerified: true,
+      currentBranchTipVerified: true,
       reviewedScopeVerified: true,
       postReviewCommitsVerified: true,
       expectedPostReviewPaths: expectedPaths,
@@ -285,13 +311,15 @@ function evaluateReviewedCandidate(options = {}) {
     governanceBaseVerified: true,
     reviewedHeadVerified: true,
     branchTipVerified: true,
+    currentBranchTipVerified: true,
     reviewedScopeVerified: true,
     postReviewCommitsVerified: true,
     postReviewPathsVerified: true,
     reviewedChangedFileCount: reviewedFiles.length,
     reviewedChangedFileSetSha256: reviewedDigest,
     reviewedHead: manifest.reviewedHead,
-    branchTip: manifest.branchTip
+    branchTip: manifest.branchTip,
+    currentBranchTip
   });
 }
 
