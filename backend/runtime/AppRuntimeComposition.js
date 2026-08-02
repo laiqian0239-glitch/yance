@@ -237,6 +237,7 @@ class RuntimeAuthorityCommandGateway {
       sealed: false
     });
     this.assertAuthorityCurrent();
+    Object.freeze(this);
   }
 
   assertAuthorityCurrent() {
@@ -327,6 +328,8 @@ class RuntimeAuthorityCommandGateway {
   }
 }
 
+Object.freeze(RuntimeAuthorityCommandGateway.prototype);
+
 function createAppRuntimeComposition(runtime) {
   const authorityWriteHostCapability = runtime.authorityWriteHostCapability;
   const authorityStore = runtime.primaryAuthorityStore;
@@ -395,6 +398,6 @@ function createAppRuntimeComposition(runtime) {
 }
 
 const testOnlyExports = process.env.NODE_TEST_CONTEXT
-  ? { RuntimeAuthorityCommandGateway }
+  ? { RuntimeAuthorityCommandGateway, createStartupCommandHandlers }
   : {};
 module.exports = { createAppRuntimeComposition, ...testOnlyExports };
