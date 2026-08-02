@@ -67,6 +67,7 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: false
+          persist-credentials: false
       - name: Validate exact candidate, level and suite
         shell: bash
         run: |
@@ -143,7 +144,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: false
           lfs: false
-      - name: Establish authorized local branch and anchor
+      - name: Establish authorized local branch and remove credentials
         shell: bash
         run: |
           set -euo pipefail
@@ -152,6 +153,8 @@ jobs:
           git cat-file -e "${BASELINE_ANCHOR_COMMIT}^{commit}"
           git merge-base --is-ancestor "${BASELINE_ANCHOR_COMMIT}" "${CANDIDATE_SHA}"
           git switch --force-create "${CANDIDATE_BRANCH}" "${CANDIDATE_SHA}"
+          git config --local --unset-all http.https://github.com/.extraheader || true
+          git config --local --unset-all credential.helper || true
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
@@ -231,7 +234,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: false
           lfs: false
-      - name: Establish authorized local branch and anchor
+      - name: Establish authorized local branch and remove credentials
         shell: bash
         run: |
           set -euo pipefail
@@ -240,6 +243,8 @@ jobs:
           git cat-file -e "${BASELINE_ANCHOR_COMMIT}^{commit}"
           git merge-base --is-ancestor "${BASELINE_ANCHOR_COMMIT}" "${CANDIDATE_SHA}"
           git switch --force-create "${CANDIDATE_BRANCH}" "${CANDIDATE_SHA}"
+          git config --local --unset-all http.https://github.com/.extraheader || true
+          git config --local --unset-all credential.helper || true
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
