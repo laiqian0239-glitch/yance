@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_PROMOTION_AUTHORIZATION",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-A",
+  "status": "APPROVED_PENDING_MERGE",
+  "promotionCandidate": {
+    "pullRequest": 5,
+    "baseRef": "main",
+    "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
+    "candidateHead": "c57ec612ca07cd1cfa939e075f4dbcce2287eaca",
+    "reviewedCodeHead": "31ea3b2a1cdd95023e5ab6655bb2e36cdcd8dfde",
+    "changedFileCount": 127,
+    "changedFileSetSha256": "567aa6bce738497f291bd9116d71abc3bff0f85267258cd6ddf36d24d2f2f38b",
+    "closureReceiptPath": "governance/architecture-closure-v2/wp-a-a8-closure.json",
+    "independentReviewId": 4839751328,
+    "sourceClosureViolationCount": 0
+  },
+  "verification": {
+    "acv2": {
+      "runId": 30769056193,
+      "requiredConclusion": "success",
+      "jobs": {
+        "sourceClosure": 91552879891,
+        "ubuntu": 91552879899,
+        "windows": 91552879900
+      }
+    },
+    "wp0": {
+      "runId": 30769056196,
+      "requiredConclusion": "success",
+      "jobs": {
+        "route": 91552879913,
+        "product": 91552906071,
+        "sealedExportWindows": 91552906073,
+        "sealedExportUbuntu": 91552906075,
+        "aggregate": 91553005485
+      }
+    }
+  },
+  "activation": {
+    "requiredDefaultBranch": "main",
+    "effectiveOnlyWhenPresentOnDefaultBranch": true,
+    "candidateHeadMustRemainExact": true,
+    "candidatePullRequestMustRemainDraftUntilActivation": true,
+    "authorizationPullRequestMustContainGovernanceFilesOnly": true,
+    "afterActivation": {
+      "readyForPromotion": true,
+      "candidatePullRequestMayLeaveDraft": true,
+      "formalRelease": false,
+      "publish": false
+    }
+  },
+  "governance": {
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "publish": false,
+    "automaticNextWorkPackageAuthorization": false,
+    "wpBAuthorized": false,
+    "temporaryBypassAllowed": false,
+    "wildcardScopeExpansionAllowed": false
+  }
+}
