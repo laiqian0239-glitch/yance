@@ -16,18 +16,22 @@ env:
   BASELINE_ANCHOR_COMMIT: 570823e722f6db475066d6ef80ba900ac5c6cb39
   BASELINE_ANCHOR_PATH: governance/rejected-baselines/stage-6.4.5.8.json
   BASELINE_ANCHOR_BLOB: 6a5ffc68e76baf6a477668c6c2faf61934e94720
+  ELECTRON_LFS_PATH: vendor/electron/electron-v39.8.5-win32-x64.zip
+  ELECTRON_LFS_OID: d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34
+  ELECTRON_LFS_SIZE: '136644393'
 
 jobs:
   wp0-gates:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - name: Checkout reviewed source head
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ env.REVIEWED_HEAD_SHA }}
           fetch-depth: 0
           fetch-tags: false
+          lfs: false
       - name: Establish trusted branch and archive anchor refs
         shell: bash
         run: |
@@ -40,9 +44,18 @@ jobs:
           git switch --force-create "${IMPLEMENTATION_BRANCH}" "${REVIEWED_HEAD_SHA}"
           test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})"
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
+      - name: Fetch and verify trusted Electron LFS object
+        shell: bash
+        run: |
+          set -euo pipefail
+          git lfs install --local
+          git lfs pull origin --include="${ELECTRON_LFS_PATH}" --exclude=""
+          echo "${ELECTRON_LFS_OID}  ${ELECTRON_LFS_PATH}" | sha256sum --check --strict
+          test "$(stat --format='%s' "${ELECTRON_LFS_PATH}")" = "${ELECTRON_LFS_SIZE}"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - name: Run WP0 required tests
         run: npm run test:wp0
       - name: Run source identity and Electron tracking regressions
