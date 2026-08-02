@@ -60,9 +60,40 @@ const STARTUP_COMMAND_HANDLERS = Object.freeze({
   'startup.productionDataGuard': () => runProductionDataGuard(),
   'startup.initializeWorkspacePipelines': () => workspaceService.initializeDataPipelines()
 });
+const FORBIDDEN_STARTUP_PAYLOAD_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 
 function gatewayError(code, message, status = 400, details = {}) {
   return new AppRuntimeError(code, message, { status, details });
+}
+
+function snapshotStartupPayload(value) {
+  if (value == null) return Object.freeze({});
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    throw gatewayError('STARTUP_COMMAND_PAYLOAD_INVALID', 'Startup command payload must be a plain object');
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw gatewayError('STARTUP_COMMAND_PAYLOAD_INVALID', 'Startup command payload must be a plain object');
+  }
+  if (Object.getOwnPropertySymbols(value).length) {
+    throw gatewayError('STARTUP_COMMAND_PAYLOAD_SYMBOL_KEY_FORBIDDEN', 'Startup command payload cannot contain symbol keys');
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const output = {};
+  for (const key of Object.getOwnPropertyNames(value)) {
+    if (FORBIDDEN_STARTUP_PAYLOAD_KEYS.has(key)) {
+      throw gatewayError('STARTUP_COMMAND_PAYLOAD_KEY_FORBIDDEN', `Startup command payload field ${key} is forbidden`);
+    }
+    const descriptor = descriptors[key];
+    if (typeof descriptor?.get === 'function' || typeof descriptor?.set === 'function') {
+      throw gatewayError(
+        'STARTUP_COMMAND_PAYLOAD_ACCESSOR_FORBIDDEN',
+        `Startup command payload field ${key} cannot be an accessor`
+      );
+    }
+    output[key] = descriptor?.value;
+  }
+  return Object.freeze(output);
 }
 
 function assertStartupEnvelope(input) {
@@ -90,9 +121,7 @@ function assertStartupEnvelope(input) {
     commandType: String(descriptors.commandType?.value || '').trim(),
     expectedStateVersion: Number(descriptors.expectedStateVersion?.value),
     issuedAtUtc: String(descriptors.issuedAtUtc?.value || '').trim(),
-    payload: descriptors.payload?.value && typeof descriptors.payload.value === 'object'
-      ? Object.freeze({ ...descriptors.payload.value })
-      : Object.freeze({})
+    payload: snapshotStartupPayload(descriptors.payload?.value)
   });
   if (envelope.contractVersion !== 2
     || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(envelope.commandId)
