@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_TASK_CONTRACT",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-A",
+  "task": "A8",
+  "status": "RED_LOCKED",
+  "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
+  "pullRequest": 5,
+  "parentTask": "A7",
+  "parentEvidenceBranchTip": "cbfaf2855f9eb2137dbdccddff1ef396d5bb4ef3",
+  "objective": "Eliminate every registered and unregistered primary SQLite writer, fallback and legacy ledger mutation path while preserving fail-closed discovery and all prior authority contracts.",
+  "implementationPlan": "docs/superpowers/plans/2026-08-03-wp-a-a8-source-closure.md",
+  "requiredContracts": [
+    "backend/tests/architectureClosureV2/wpA/sourceClosureFinal.test.js",
+    "backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js"
+  ],
+  "frozenScanner": {
+    "path": "tools/architecture-closure-v2/source-closure-scan.js",
+    "discoveryRoots": ["backend"],
+    "discoveryExcludes": ["backend/tests", "backend/migrations"],
+    "registryInvalidAllowed": false,
+    "unregisteredPrimaryDbAccessAllowed": false,
+    "weakeningAuthorized": false
+  },
+  "redExpectation": {
+    "requiredFailure": "NON_EMPTY_REAL_SOURCE_CLOSURE_VIOLATION_ARRAY",
+    "syntaxOrModuleFailureAllowed": false,
+    "scannerExitMustRemainNonZero": true,
+    "zeroViolationContractMustFail": true
+  },
+  "rootRepairGroups": [
+    "DESKTOP_WRITE_HOST_BEFORE_BROKER",
+    "NO_PROCESS_LOCAL_PRIMARY_STORE_FALLBACK",
+    "NO_RAW_STORE_PROVIDER_OR_ROUTE_ACQUISITION",
+    "OFFLINE_MIGRATION_SOURCE_AND_LIVE_TARGET_SEPARATION",
+    "CANONICAL_LEDGER_ONLY_APPEND_AND_PROJECTION_PATH",
+    "READ_ONLY_BACKUP_AND_OWNERSHIP_INSPECTION_BOUNDARY"
+  ],
+  "prohibitedActions": [
+    "ADD_SCANNER_EXCLUSION",
+    "REMOVE_ACQUISITION_PATTERN",
+    "CHANGE_REQUIRED_MARKER_TO_MATCH_LEGACY_SOURCE_WITHOUT_RUNTIME_BOUNDARY",
+    "REGISTER_A_PATH_WITHOUT_AN_EXECUTABLE_AUTHORITY_CONTRACT",
+    "ALLOW_MISSING_BROKER_FALLBACK",
+    "ALLOW_ROUTE_OR_DOMAIN_SERVICE_RAW_DATABASE_ACCESS",
+    "SKIP_OR_TOLERATE_SOURCE_CLOSURE_FAILURE",
+    "MARK_REGISTRY_ENTRY_CLOSED_BEFORE_ITS_CONTRACT_PASSES"
+  ],
+  "closureConditions": {
+    "redEvidenceCaptured": false,
+    "scannerUnchangedOrStrengthened": true,
+    "registeredViolationCount": 0,
+    "unregisteredViolationCount": 0,
+    "ubuntuGreen": false,
+    "windowsGreen": false,
+    "wp0Green": false,
+    "sourceClosureGreen": false,
+    "independentReviewPassed": false,
+    "candidateShaFrozen": false
+  },
+  "governance": {
+    "testFirstRequired": true,
+    "exactPathExpansionOnly": true,
+    "automaticClosure": false,
+    "automaticNextTaskAuthorization": false,
+    "automaticNextWorkPackageAuthorization": false,
+    "prMustRemainDraft": true,
+    "readyForPromotion": false,
+    "formalRelease": false,
+    "publish": false
+  }
+}
