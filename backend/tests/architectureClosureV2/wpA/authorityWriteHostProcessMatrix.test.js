@@ -34,7 +34,7 @@ try {
   broker = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: host.capability });
   broker.open();
   process.stdout.write(JSON.stringify({ ok: true, token: host.tokenSnapshot(), pid: process.pid }) + '\n');
-  if (mode === 'hold') setInterval(() => host.heartbeat(), 100).unref();
+  if (mode === 'hold') setInterval(() => host.heartbeat(), 100);
   else { broker.close(); host.close(); }
 } catch (error) {
   process.stdout.write(JSON.stringify({ ok: false, code: error.code || error.reasonCode || '', message: error.message }) + '\n');
