@@ -51,19 +51,6 @@ const { createPlatformCoreRepository } = require('../repositories/platformCoreRe
 const { canonicalHash } = require('../services/canonicalSerialization');
 const { AppRuntimeError } = require('./errors');
 
-const STARTUP_COMMAND_HANDLERS = Object.freeze({
-  'startup.migrate': () => migrationService.migrateAtStartup(),
-  'startup.recoverSync': () => syncCheckpointService.recoverInterrupted(),
-  'startup.recoverBackgroundJobs': payload => backgroundJobAuthority.recoverInterrupted({
-    retryDelayMs: Math.max(0, Number(payload?.retryDelayMs || 30_000))
-  }),
-  'startup.canonicalizeIdentity': payload => canonicalIdentity.canonicalizeWhatsAppAccounts({
-    dryRun: payload?.dryRun === true
-  }),
-  'startup.purgeCache': () => cacheGcService.purge(),
-  'startup.productionDataGuard': () => runProductionDataGuard(),
-  'startup.initializeWorkspacePipelines': () => workspaceService.initializeDataPipelines()
-});
 const STARTUP_COMMAND_FIELDS = new Set(['contractVersion', 'commandId', 'commandType', 'expectedStateVersion', 'issuedAtUtc', 'payload']);
 const FORBIDDEN_STARTUP_PAYLOAD_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 const SEALED_STARTUP_GATEWAYS = new WeakSet();
@@ -72,9 +59,57 @@ function gatewayError(code, message, status = 400, details = {}) {
   return new AppRuntimeError(code, message, { status, details });
 }
 
-function hasStartupCommandHandler(commandType) {
-  return Object.prototype.hasOwnProperty.call(STARTUP_COMMAND_HANDLERS, commandType)
-    && typeof STARTUP_COMMAND_HANDLERS[commandType] === 'function';
+function createStartupCommandHandlers(options = {}) {
+  const identityAuthority = options.identityAuthority;
+  if (!identityAuthority || typeof identityAuthority.canonicalizeWhatsAppAccounts !== 'function') {
+    throw gatewayError(
+      'STARTUP_COMMAND_IDENTITY_AUTHORITY_REQUIRED',
+      'Startup command handlers require the composition IdentityAuthority',
+      503
+    );
+  }
+  return Object.freeze(Object.assign(Object.create(null), {
+    'startup.migrate': () => migrationService.migrateAtStartup(),
+    'startup.recoverSync': () => syncCheckpointService.recoverInterrupted(),
+    'startup.recoverBackgroundJobs': payload => backgroundJobAuthority.recoverInterrupted({
+      retryDelayMs: Math.max(0, Number(payload?.retryDelayMs || 30_000))
+    }),
+    'startup.canonicalizeIdentity': payload => identityAuthority.canonicalizeWhatsAppAccounts({
+      dryRun: payload?.dryRun === true
+    }),
+    'startup.purgeCache': () => cacheGcService.purge(),
+    'startup.productionDataGuard': () => runProductionDataGuard(),
+    'startup.initializeWorkspacePipelines': () => workspaceService.initializeDataPipelines()
+  }));
+}
+
+function assertStartupCommandHandlers(value) {
+  if (!value || typeof value !== 'object' || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value)) {
+    throw gatewayError(
+      'STARTUP_COMMAND_HANDLERS_INVALID',
+      'Startup command handlers must be a frozen null-prototype map',
+      503
+    );
+  }
+  if (Object.getOwnPropertySymbols(value).length) {
+    throw gatewayError('STARTUP_COMMAND_HANDLERS_INVALID', 'Startup command handlers cannot contain symbol keys', 503);
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  for (const key of Object.getOwnPropertyNames(value)) {
+    const descriptor = descriptors[key];
+    if (descriptor?.get || descriptor?.set || typeof descriptor?.value !== 'function') {
+      throw gatewayError('STARTUP_COMMAND_HANDLERS_INVALID', `Startup command handler ${key} is invalid`, 503);
+    }
+  }
+  if (!Object.keys(descriptors).length) {
+    throw gatewayError('STARTUP_COMMAND_HANDLERS_INVALID', 'Startup command handlers cannot be empty', 503);
+  }
+  return value;
+}
+
+function hasStartupCommandHandler(commandHandlers, commandType) {
+  return Object.prototype.hasOwnProperty.call(commandHandlers, commandType)
+    && typeof commandHandlers[commandType] === 'function';
 }
 
 function lockAuthorityBinding(target, key, expected) {
@@ -116,17 +151,14 @@ function snapshotStartupPayload(value) {
     }
     const descriptor = descriptors[key];
     if (typeof descriptor?.get === 'function' || typeof descriptor?.set === 'function') {
-      throw gatewayError(
-        'STARTUP_COMMAND_PAYLOAD_ACCESSOR_FORBIDDEN',
-        `Startup command payload field ${key} cannot be an accessor`
-      );
+      throw gatewayError('STARTUP_COMMAND_PAYLOAD_ACCESSOR_FORBIDDEN', `Startup command payload field ${key} cannot be an accessor`);
     }
     output[key] = descriptor?.value;
   }
   return Object.freeze(output);
 }
 
-function assertStartupEnvelope(input) {
+function assertStartupEnvelope(input, commandHandlers) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     throw gatewayError('STARTUP_COMMAND_ENVELOPE_INVALID', 'Startup command envelope must be a plain object');
   }
@@ -154,7 +186,7 @@ function assertStartupEnvelope(input) {
   });
   if (envelope.contractVersion !== 2
     || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(envelope.commandId)
-    || !hasStartupCommandHandler(envelope.commandType)
+    || !hasStartupCommandHandler(commandHandlers, envelope.commandType)
     || !Number.isInteger(envelope.expectedStateVersion)
     || !Number.isFinite(Date.parse(envelope.issuedAtUtc))) {
     throw gatewayError('STARTUP_COMMAND_ENVELOPE_INVALID', 'Startup command envelope is malformed');
@@ -167,6 +199,7 @@ class RuntimeAuthorityCommandGateway {
     const runtime = options.runtime;
     const authorityWriteHostCapability = options.authorityWriteHostCapability;
     const authorityStore = options.authorityStore;
+    const commandHandlers = assertStartupCommandHandlers(options.commandHandlers);
     if (!runtime
       || !isAuthorityWriteHostCapability(authorityWriteHostCapability)
       || !authorityStore?.db
@@ -188,6 +221,7 @@ class RuntimeAuthorityCommandGateway {
       runtime: { value: runtime, enumerable: false, writable: false, configurable: false },
       authorityWriteHostCapability: { value: authorityWriteHostCapability, enumerable: false, writable: false, configurable: false },
       authorityStore: { value: authorityStore, enumerable: false, writable: false, configurable: false },
+      commandHandlers: { value: commandHandlers, enumerable: false, writable: false, configurable: false },
       receipts: { value: new Map(), enumerable: false, writable: false, configurable: false }
     });
     this.assertAuthorityCurrent();
@@ -203,7 +237,7 @@ class RuntimeAuthorityCommandGateway {
       throw gatewayError('STARTUP_COMMAND_GATEWAY_SEALED', 'Startup command gateway is sealed after boot', 409);
     }
     this.assertAuthorityCurrent();
-    const envelope = assertStartupEnvelope(input);
+    const envelope = assertStartupEnvelope(input, this.commandHandlers);
     const contentSha256 = canonicalHash(envelope);
     const existing = this.receipts.get(envelope.commandId);
     if (existing) {
@@ -220,7 +254,7 @@ class RuntimeAuthorityCommandGateway {
       });
     }
     this.assertAuthorityCurrent();
-    const handler = STARTUP_COMMAND_HANDLERS[envelope.commandType];
+    const handler = this.commandHandlers[envelope.commandType];
     const result = handler(envelope.payload);
     if (result && typeof result.then === 'function') {
       throw gatewayError('STARTUP_COMMAND_ASYNC_HANDLER_FORBIDDEN', 'Startup authority handlers must complete synchronously before readiness', 500);
@@ -272,19 +306,12 @@ function createAppRuntimeComposition(runtime) {
     throw gatewayError('APP_RUNTIME_CANONICAL_AUTHORITY_STORE_REQUIRED', 'Production composition requires the current broker-owned authority store', 503);
   }
 
-  const authorityTransactionCoordinator = new AuthorityTransactionCoordinator({
-    store: authorityStore,
-    eventBus
-  });
+  const authorityTransactionCoordinator = new AuthorityTransactionCoordinator({ store: authorityStore, eventBus });
   lockAuthorityBinding(authorityTransactionCoordinator, 'store', authorityStore);
   lockAuthorityBinding(authorityTransactionCoordinator, 'db', authorityStore.db);
 
   const platformCoreRepository = createPlatformCoreRepository({ storeProvider: () => authorityStore });
-  const canonicalEventLedgerAuthority = new CanonicalEventLedgerAuthority({
-    coordinator: authorityTransactionCoordinator,
-    store: authorityStore,
-    compatibilityRepository: platformCoreRepository
-  });
+  const canonicalEventLedgerAuthority = new CanonicalEventLedgerAuthority({ coordinator: authorityTransactionCoordinator, store: authorityStore, compatibilityRepository: platformCoreRepository });
   lockAuthorityBinding(canonicalEventLedgerAuthority, 'coordinator', authorityTransactionCoordinator);
   lockAuthorityBinding(canonicalEventLedgerAuthority, 'store', authorityStore);
   lockAuthorityBinding(canonicalEventLedgerAuthority, 'db', authorityStore.db);
@@ -292,57 +319,28 @@ function createAppRuntimeComposition(runtime) {
   const identityAuthority = new IdentityAuthority({ repository: platformCoreRepository });
   lockAuthorityBinding(identityAuthority, 'repository', platformCoreRepository);
 
-  const authorityCommandGateway = new RuntimeAuthorityCommandGateway({
-    runtime,
-    authorityWriteHostCapability,
-    authorityStore
-  });
+  const startupCommandHandlers = createStartupCommandHandlers({ identityAuthority });
+  const authorityCommandGateway = new RuntimeAuthorityCommandGateway({ runtime, authorityWriteHostCapability, authorityStore, commandHandlers: startupCommandHandlers });
   const commandSubmitter = envelope => authorityCommandGateway.execute(envelope);
 
   const securityGuard = getSecurityGuard();
-  const accountContext = new AccountContext({
-    securityGuard, accountManager, accountStore, accountMigration, messageStore, sendQueue,
-    platformMessaging, platformCapabilities, platformDrivers, canonicalIdentity, eventBus
-  });
+  const accountContext = new AccountContext({ securityGuard, accountManager, accountStore, accountMigration, messageStore, sendQueue, platformMessaging, platformCapabilities, platformDrivers, canonicalIdentity, eventBus });
   const updateManager = new UpdateManager({ securityGuard, lifecycleManager: runtime, updatePreflight, eventBus });
   const artifactRegistry = getRuntimeArtifactRegistryService();
   const artifactBootstrap = new RuntimeArtifactBootstrapService({ artifactRegistry, registry: artifactRegistry, modelRegistry, logger });
-  const recoveryManager = new RecoveryManager({
-    safeModeService, backupService, diagnosticsService, productionDiagnostics, systemPolicy,
-    lifecycleManager: runtime, securityGuard, eventBus, logger,
-    artifactRegistry, artifactBootstrap, scopedSafety: getScopedSafetyAuthority()
-  });
+  const recoveryManager = new RecoveryManager({ safeModeService, backupService, diagnosticsService, productionDiagnostics, systemPolicy, lifecycleManager: runtime, securityGuard, eventBus, logger, artifactRegistry, artifactBootstrap, scopedSafety: getScopedSafetyAuthority() });
   const storeProjectionCoordinator = new StoreProjectionCoordinator({ eventBus, logger, workspaceData, modelRegistry, aiTaskRuntimeRegistry });
   const runtimeSafetySupervisor = getRuntimeSafetySupervisor().bindRuntime(runtime);
   safeModeService.bindAuthority(() => {
     const snapshot = runtime.store.snapshot();
     let authority = {};
     try { authority = runtime.store.getOperatingModeAuthority?.() || {}; } catch (_) {}
-    return {
-      operatingMode: snapshot.runtime.operatingMode,
-      updatedAtUtc: snapshot.runtime.updatedAtUtc || '',
-      reasonCode: authority.reasonCode || '',
-      reason: authority.reason || authority.reasonCode || '',
-      reasons: authority.reasons || [],
-      enteredAt: authority.enteredAt || '',
-      updatedBy: authority.updatedBy || 'runtime-authority',
-      trigger: authority.trigger || '',
-      evidenceSha256: authority.evidenceSha256 || ''
-    };
+    return { operatingMode: snapshot.runtime.operatingMode, updatedAtUtc: snapshot.runtime.updatedAtUtc || '', reasonCode: authority.reasonCode || '', reason: authority.reason || authority.reasonCode || '', reasons: authority.reasons || [], enteredAt: authority.enteredAt || '', updatedBy: authority.updatedBy || 'runtime-authority', trigger: authority.trigger || '', evidenceSha256: authority.evidenceSha256 || '' };
   });
-  securityGuard.setPolicyProviders({
-    safeModeProvider: () => runtime.operatingMode === 'safeMode',
-    lifecycleStateProvider: () => runtime.state,
-    productionDiagnostics
-  });
+  securityGuard.setPolicyProviders({ safeModeProvider: () => runtime.operatingMode === 'safeMode', lifecycleStateProvider: () => runtime.state, productionDiagnostics });
   return Object.freeze({
-    authorities: Object.freeze({
-      authorityWriteHostCapability,
-      authorityTransactionCoordinator,
-      canonicalEventLedgerAuthority,
-      identityAuthority,
-      platformCoreRepository
-    }),
+    authorities: Object.freeze({ authorityWriteHostCapability, authorityTransactionCoordinator, canonicalEventLedgerAuthority, identityAuthority, platformCoreRepository }),
+    startupCommandHandlers,
     authorityCommandGateway,
     commandSubmitter,
     accountContext,
@@ -369,4 +367,4 @@ function createAppRuntimeComposition(runtime) {
   });
 }
 
-module.exports = { RuntimeAuthorityCommandGateway, createAppRuntimeComposition };
+module.exports = { RuntimeAuthorityCommandGateway, createStartupCommandHandlers, createAppRuntimeComposition };
