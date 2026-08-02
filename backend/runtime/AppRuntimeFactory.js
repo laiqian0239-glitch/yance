@@ -6,6 +6,8 @@ const {
   isAuthorityWriteHostCapability,
   assertCurrentAuthorityWriteHostToken
 } = require('../services/authorityWriteHost');
+const canonicalEventLedgerModule = require('../services/canonicalEventLedgerAuthority');
+const domainEventLog = require('../services/domainEventLogService').singleton;
 const { getSqliteConnectionBroker } = require('../lib/sqliteConnectionBroker');
 
 let processRuntime = null;
@@ -144,6 +146,18 @@ function lockGatewayEvidenceSurface(gateway) {
   return Object.isFrozen(expectedPrototype) && Object.isFrozen(gateway);
 }
 
+function hasImmutableValue(target, key, expected) {
+  const descriptor = target && Object.getOwnPropertyDescriptor(target, key);
+  return Boolean(
+    descriptor
+    && !descriptor.get
+    && !descriptor.set
+    && descriptor.value === expected
+    && descriptor.writable === false
+    && descriptor.configurable === false
+  );
+}
+
 function canonicalAuthorityGraph(runtime) {
   const composition = runtime?.composition || null;
   const authorities = composition?.authorities || null;
@@ -154,7 +168,9 @@ function canonicalAuthorityGraph(runtime) {
   const gateway = composition?.authorityCommandGateway || null;
   const gatewayEvidenceSurfaceLocked = lockGatewayEvidenceSurface(gateway);
   let identityStore = null;
+  let repositoryStore = null;
   try { identityStore = identity?.repository?.store?.() || null; } catch (_) { identityStore = null; }
+  try { repositoryStore = platformCoreRepository?.store?.() || null; } catch (_) { repositoryStore = null; }
   let gatewayState = '';
   try {
     if (gatewayEvidenceSurfaceLocked) gatewayState = String(gateway.snapshot().state || '');
@@ -173,6 +189,11 @@ function canonicalAuthorityGraph(runtime) {
     gatewayBinding = null;
   }
 
+  const domainEventFacadeImmutable = hasImmutableValue(
+    domainEventLog,
+    'canonicalAuthority',
+    canonicalEventLedgerModule.singleton
+  ) && Object.isFrozen(domainEventLog);
   const checks = Object.freeze({
     runtimeOwnershipMatches: runtime?.ownership === processOwnership,
     runtimeStateStoreMatches: runtime?.store === processRuntimeStateStore,
@@ -183,10 +204,19 @@ function canonicalAuthorityGraph(runtime) {
     compositionCapabilityMatches: authorities?.authorityWriteHostCapability === processAuthorityWriteHostCapability,
     coordinatorStoreMatches: coordinator?.store === processAuthorityWriteHostStore,
     coordinatorDatabaseMatches: coordinator?.db === processAuthorityWriteHostStore?.db,
+    repositoryProviderImmutable: hasImmutableValue(platformCoreRepository, 'storeProvider', platformCoreRepository?.storeProvider),
+    repositoryStoreMatches: repositoryStore === processAuthorityWriteHostStore,
     ledgerCoordinatorMatches: ledger?.coordinator === coordinator,
     ledgerStoreMatches: ledger?.store === processAuthorityWriteHostStore,
     ledgerDatabaseMatches: ledger?.db === processAuthorityWriteHostStore?.db,
+    ledgerCompatibilityRepositoryMatches: ledger?.compatibilityRepository === platformCoreRepository,
+    ledgerCompatibilityRepositoryImmutable: hasImmutableValue(ledger, 'compatibilityRepository', platformCoreRepository),
+    canonicalLedgerSingletonMatches: canonicalEventLedgerModule.isConfiguredSingleton?.(ledger) === true,
+    domainEventFacadeImmutable,
     identityRepositoryMatches: identity?.repository === platformCoreRepository,
+    identityRepositoryImmutable: hasImmutableValue(identity, 'repository', platformCoreRepository),
+    identityEventRecorderImmutable: hasImmutableValue(identity, 'eventRecorder', identity?.eventRecorder),
+    identityLegacyCanonicalizerImmutable: hasImmutableValue(identity, 'legacyCanonicalIdentity', identity?.legacyCanonicalIdentity),
     identityStoreMatches: identityStore === processAuthorityWriteHostStore,
     gatewayEvidenceSurfaceLocked,
     gatewayPrivateBindingMatches: gatewayBinding?.bound === true
