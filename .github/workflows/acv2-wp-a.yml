@@ -60,11 +60,13 @@ jobs:
           backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinator.test.js
           backend/tests/architectureClosureV2/wpA/schema21AuthorityContract.test.js
           backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinatorAdversarial.test.js
-      - name: Run A4 canonical ledger and compatibility facade RED contracts
+      - name: Run A4 canonical ledger and compatibility facade contracts
         run: >-
           node --test --test-concurrency=1
           backend/tests/architectureClosureV2/wpA/canonicalEventLedgerAuthority.test.js
           backend/tests/architectureClosureV2/wpA/domainEventCompatibilityFacade.test.js
+      - name: Run A5 identity authority RED contracts
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/identityAuthority.test.js
       - name: Install locked dependencies for legacy regressions
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run existing SQLite ownership and fencing regressions
