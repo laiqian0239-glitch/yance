@@ -14,7 +14,7 @@ on:
         description: Exact reviewed 40-character source tree
         required: true
       publish:
-        description: Deferred: publish assets to a future trusted Yance-Releases repository
+        description: "Deferred: publish assets to a future trusted Yance-Releases repository"
         required: true
         type: boolean
         default: false
