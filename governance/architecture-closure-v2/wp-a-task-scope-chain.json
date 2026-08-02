@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "documentType": "YANCE_ACV2_TASK_SCOPE_CHAIN",
-  "status": "A7_IMPLEMENTING",
+  "status": "A7_GREEN_PROVISIONAL",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "WP-A",
   "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
@@ -41,7 +41,7 @@
     },
     {
       "task": "A7",
-      "state": "IMPLEMENTING",
+      "state": "GREEN_PROVISIONAL",
       "parentTask": "A6",
       "parentEvidenceBranchTip": "e877aec9e16663296e632c224a1da3b7892f1f2b",
       "additionalAllowedPaths": [
