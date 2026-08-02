@@ -58,6 +58,13 @@ function resolveAuthorityBinding(options = {}) {
       409
     );
   }
+  if (options.store?.db && options.store.db !== authorityStore.db) {
+    throw factoryError(
+      'APP_RUNTIME_PRIMARY_DB_MISMATCH',
+      'Runtime state and canonical authorities must use the same primary SQLite database',
+      409
+    );
+  }
   try {
     assertCurrentAuthorityWriteHostToken(capability, authorityStore.db);
   } catch (cause) {
