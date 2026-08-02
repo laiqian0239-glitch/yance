@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "documentType": "YANCE_ACV2_TASK_SCOPE_CHAIN",
-  "status": "A8_IMPLEMENTING",
+  "status": "A8_INDEPENDENT_REVIEW",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "WP-A",
   "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
@@ -10,8 +10,8 @@
   "baseAuthorizationBlobSha": "203697b36c06e0dc72c92113ef58f1a8f2394312",
   "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
   "activeTask": "A8",
-  "approvedChangedFileCount": 104,
-  "approvedChangedFileSetSha256": "33f98885bc9a95ca24af1a4a230068675ed0d20f8c41356169a5511e261622be",
+  "approvedChangedFileCount": 126,
+  "approvedChangedFileSetSha256": "5803a74dcef56f940655e37aab5fa8241c7aac0d4c0d9158595d1120ab7408cc",
   "tasks": [
     {
       "task": "A6",
@@ -63,11 +63,14 @@
     },
     {
       "task": "A8",
-      "state": "IMPLEMENTING",
+      "state": "INDEPENDENT_REVIEW",
       "parentTask": "A7",
       "parentEvidenceBranchTip": "cbfaf2855f9eb2137dbdccddff1ef396d5bb4ef3",
       "redEvidenceHead": "55cb4f79f1af5e8d38e3ee04858a206aa4b041f5",
       "redEvidencePath": "governance/architecture-closure-v2/wp-a-a8-red-evidence.json",
+      "reviewedCodeHead": "6d34ad3b8969c521f7338289781a75f53aab4be0",
+      "evidenceBranchTip": "6d34ad3b8969c521f7338289781a75f53aab4be0",
+      "closureReceiptPath": "governance/architecture-closure-v2/wp-a-a8-closure.json",
       "additionalAllowedPaths": [
         "backend/desktopHostedEntry.js",
         "backend/lib/r32SqliteStore.js",
