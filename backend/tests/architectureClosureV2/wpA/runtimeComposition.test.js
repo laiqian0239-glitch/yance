@@ -16,10 +16,11 @@ const { SqliteConnectionBroker } = require('../../../lib/sqliteConnectionBroker'
 
 function source(filePath) { return fs.readFileSync(filePath, 'utf8'); }
 
-function minimalRuntimeDependencies() {
+function minimalRuntimeDependencies(db = null) {
   return {
     ownership: { guard: () => ({ ownerInstanceId: 'owner', fencingToken: 1 }) },
     store: {
+      ...(db ? { db } : {}),
       snapshot: () => ({ stateVersion: 1, lastEventSequence: 0, runtime: { operatingMode: 'normal', operatingModeRevision: 1 }, capabilities: {}, diagnosticsSummary: {} })
     },
     lifecycle: { state: 'runtime_state_ready' },
@@ -108,7 +109,7 @@ test('real broker capability and R32 store bind one immutable runtime authority 
   try {
     withAuthorityStore('yance-acv2-a6-runtime-', ({ host, authorityStore }) => {
       AppRuntimeFactory.resetForTests();
-      const dependencies = minimalRuntimeDependencies();
+      const dependencies = minimalRuntimeDependencies(authorityStore.db);
       const runtime = AppRuntimeFactory.create({ ...dependencies, authorityWriteHostCapability: host.capability, authorityStore });
       assertImmutableBinding(runtime, 'ownership', dependencies.ownership);
       assertImmutableBinding(runtime, 'store', dependencies.store);
