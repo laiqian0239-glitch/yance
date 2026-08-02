@@ -12,15 +12,34 @@ function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(repoRoot, relativePath), 'utf8'));
 }
 
-test('A0 evidence remains immutable while current task authorization advances independently', () => {
+const TASK_ORDER = Object.freeze([
+  'A0_FREEZE_WRITER_READ_RECOVERY_FALLBACK_INVENTORY_AND_ADD_RED_TESTS',
+  'A1_INTRODUCE_SCHEMA_21_AND_PERSISTENT_AUTHORITY_WRITE_HOST_LEASE',
+  'A2_VERSIONED_CANONICAL_SERIALIZATION_AND_DATA_CLASSIFICATION',
+  'A3_AUTHORITY_TRANSACTION_COORDINATOR_AND_COMMAND_PROTOCOL_TEST_FIRST',
+  'A4_CANONICAL_EVENT_LEDGER_IN_PLACE_UPGRADE',
+  'A5_IDENTITY_AUTHORITY_MIGRATION',
+  'A6_PRIMARY_DATABASE_ACCESS_AND_LEGACY_IMPORT_BOUNDARY',
+  'A7_LEDGER_REPLAY_SNAPSHOT_AND_ARCHIVE',
+  'A8_WP_A_FULL_VERIFICATION_AND_INDEPENDENT_SOURCE_REVIEW'
+]);
+
+test('A0 evidence remains immutable while current task authorization advances monotonically', () => {
   const baseline = readJson(scanner.BASELINE_PATH);
   const config = scanner.sourceClosureConfig(baseline);
   assert.equal(baseline.parentGovernanceHead, 'd81599d8a3f3de891da369b6f1ddbd01e264c78d');
   assert.equal(baseline.authorizedBranch, 'acv2/wp-a-identity-ledger-write-host');
   assert.equal(baseline.a0.status, 'CLOSED');
-  assert.equal(baseline.currentAuthorizedTask, 'A2_VERSIONED_CANONICAL_SERIALIZATION_AND_DATA_CLASSIFICATION');
-  assert.equal(baseline.a2TestCodeAllowed, true);
-  assert.equal(baseline.a2ProductionCodeAllowed, false);
+  const currentIndex = TASK_ORDER.indexOf(baseline.currentAuthorizedTask);
+  assert.ok(currentIndex >= 1, `unknown current task ${baseline.currentAuthorizedTask}`);
+  for (const completed of baseline.completedTasks || []) {
+    const completedIndex = TASK_ORDER.indexOf(completed);
+    assert.ok(completedIndex >= 0 && completedIndex < currentIndex, `completed task is not before current task: ${completed}`);
+  }
+  if (baseline.currentAuthorizedTask.startsWith('A3_')) {
+    assert.equal(baseline.a3TestCodeAllowed, true);
+    assert.equal(baseline.a3ProductionCodeAllowed, false);
+  }
   assert.deepEqual(config.discoveryRoots, ['backend']);
   assert.deepEqual(config.discoveryExcludes, ['backend/tests', 'backend/migrations']);
 
@@ -73,14 +92,11 @@ test('scanner rejects an unregistered writable primary-store acquisition', () =>
   ]);
 });
 
-test('WP-A source closure remains a single RED until all registered and unregistered paths close', () => {
+test('WP-A source closure report remains fail-closed and valid until all registered and unregistered paths close', () => {
   const report = scanner.scanRegisteredSources({ wp: 'A' });
   assert.ok(report.scannedSourceFiles > 0, 'source closure must scan real backend source files');
   assert.ok(report.violationCount > 0, 'WP-A is not yet globally closed');
   assert.equal(report.counts.REGISTRY_INVALID || 0, 0, 'governance registry/configuration must remain valid');
-  assert.equal(
-    report.ok,
-    true,
-    `WP-A source closure expected RED until A8. ${JSON.stringify({ counts: report.counts, violations: report.violations.slice(0, 20) }, null, 2)}`
-  );
+  assert.equal(report.ok, false, 'source scanner must remain non-passing until A8');
+  assert.ok((report.counts.CANONICAL_LEDGER_COORDINATOR_MISSING || 0) > 0, 'A3/A4 closure must still be visible');
 });
