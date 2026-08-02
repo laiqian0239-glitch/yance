@@ -8,6 +8,87 @@ function sealedExportError(reasonCode, message, details = {}) {
   return Object.assign(new Error(message), { reasonCode, code: reasonCode, details });
 }
 
+function sanitizeGitEnvironment(sourceEnv = process.env) {
+  const environment = {};
+  for (const [key, value] of Object.entries(sourceEnv || {})) {
+    if (/^GIT_/iu.test(key)) continue;
+    if (value != null) environment[key] = String(value);
+  }
+  environment.LC_ALL = 'C';
+  environment.LANG = 'C';
+  return environment;
+}
+
+function canonicalizeSealedExportRoot(value) {
+  let logicalRoot;
+  try {
+    logicalRoot = path.resolve(value);
+  } catch (error) {
+    throw sealedExportError(
+      'SOURCE_UAT_DERIVED_IDENTITY_EXPORT_ROOT_INVALID',
+      '派生源码身份要求存在且可读取的密封导出目录',
+      { logicalRoot: '', canonicalRoot: '', message: error.message }
+    );
+  }
+
+  let rootLstat;
+  try {
+    rootLstat = fs.lstatSync(logicalRoot);
+  } catch (error) {
+    throw sealedExportError(
+      'SOURCE_UAT_DERIVED_IDENTITY_EXPORT_ROOT_INVALID',
+      '派生源码身份要求存在且可读取的密封导出目录',
+      { root: logicalRoot, logicalRoot, canonicalRoot: '', message: error.message }
+    );
+  }
+
+  if (rootLstat.isSymbolicLink()) {
+    let canonicalRoot = '';
+    try { canonicalRoot = fs.realpathSync.native(logicalRoot); } catch (_) {}
+    throw sealedExportError(
+      'SOURCE_UAT_DERIVED_IDENTITY_ROOT_LINK_FORBIDDEN',
+      '派生源码身份根路径不能是符号链接、Windows junction 或其他链接型重解析入口',
+      {
+        root: logicalRoot,
+        logicalRoot,
+        canonicalRoot,
+        relation: 'ROOT_SYMBOLIC_LINK_OR_REPARSE_POINT'
+      }
+    );
+  }
+
+  let canonicalRoot;
+  try {
+    canonicalRoot = fs.realpathSync.native(logicalRoot);
+  } catch (error) {
+    throw sealedExportError(
+      'SOURCE_UAT_DERIVED_IDENTITY_EXPORT_ROOT_INVALID',
+      '无法解析密封导出目录的物理规范路径',
+      { root: logicalRoot, logicalRoot, canonicalRoot: '', message: error.message }
+    );
+  }
+
+  let canonicalStat;
+  try {
+    canonicalStat = fs.statSync(canonicalRoot);
+  } catch (error) {
+    throw sealedExportError(
+      'SOURCE_UAT_DERIVED_IDENTITY_EXPORT_ROOT_INVALID',
+      '派生源码身份要求存在且可读取的密封导出目录',
+      { root: canonicalRoot, logicalRoot, canonicalRoot, message: error.message }
+    );
+  }
+  if (!canonicalStat.isDirectory()) {
+    throw sealedExportError(
+      'SOURCE_UAT_DERIVED_IDENTITY_EXPORT_ROOT_INVALID',
+      '派生源码身份根路径必须是目录',
+      { root: canonicalRoot, logicalRoot, canonicalRoot }
+    );
+  }
+
+  return Object.freeze({ logicalRoot, canonicalRoot });
+}
+
 function existingGitMetadataInAncestors(root) {
   let cursor = path.resolve(root);
   while (true) {
@@ -39,12 +120,10 @@ function commandText(value) {
 
 function gitRepositoryContext(root, options = {}) {
   const execute = options.execFileSync || execFileSync;
-  const environment = {
+  const environment = sanitizeGitEnvironment({
     ...process.env,
-    ...(options.env || {}),
-    LC_ALL: 'C',
-    LANG: 'C'
-  };
+    ...(options.env || {})
+  });
   const commandOptions = {
     cwd: root,
     encoding: 'utf8',
@@ -78,24 +157,9 @@ function gitRepositoryContext(root, options = {}) {
 }
 
 function assertSealedExportRoot(value) {
-  const root = path.resolve(value);
-  let stat;
-  try {
-    stat = fs.statSync(root);
-  } catch (error) {
-    throw sealedExportError(
-      'SOURCE_UAT_DERIVED_IDENTITY_EXPORT_ROOT_INVALID',
-      '派生源码身份要求存在且可读取的密封导出目录',
-      { root, message: error.message }
-    );
-  }
-  if (!stat.isDirectory()) {
-    throw sealedExportError(
-      'SOURCE_UAT_DERIVED_IDENTITY_EXPORT_ROOT_INVALID',
-      '派生源码身份根路径必须是目录',
-      { root }
-    );
-  }
+  const { logicalRoot, canonicalRoot } = canonicalizeSealedExportRoot(value);
+  const root = canonicalRoot;
+  const commonDetails = { root, logicalRoot, canonicalRoot };
 
   const ancestorMarker = existingGitMetadataInAncestors(root);
   let gitContext;
@@ -107,7 +171,7 @@ function assertSealedExportRoot(value) {
       'SOURCE_UAT_DERIVED_IDENTITY_GIT_ROOT_FORBIDDEN',
       '派生源码身份只能在完全不受 Git 工作树控制的密封导出目录生成',
       {
-        root,
+        ...commonDetails,
         gitMetadataPath: ancestorMarker,
         relation: 'ANCESTOR_OR_ROOT_GIT_METADATA',
         probeFailureReasonCode: error.reasonCode || error.code || ''
@@ -119,7 +183,7 @@ function assertSealedExportRoot(value) {
       'SOURCE_UAT_DERIVED_IDENTITY_GIT_ROOT_FORBIDDEN',
       '派生源码身份只能在完全不受 Git 工作树控制的密封导出目录生成',
       {
-        root,
+        ...commonDetails,
         gitMetadataPath: ancestorMarker || gitContext.gitDir,
         relation: gitContext.detected ? 'GIT_REV_PARSE_CONTEXT' : 'ANCESTOR_OR_ROOT_GIT_METADATA',
         gitWorkTree: gitContext.workTree || ''
@@ -134,7 +198,7 @@ function assertSealedExportRoot(value) {
     throw sealedExportError(
       'SOURCE_UAT_DERIVED_IDENTITY_GIT_PROBE_FAILED',
       '无法完整扫描导出目录中的嵌套 Git 元数据，拒绝生成派生源码身份',
-      { root, message: error.message }
+      { ...commonDetails, message: error.message }
     );
   }
   if (nestedMarker) {
@@ -142,7 +206,7 @@ function assertSealedExportRoot(value) {
       'SOURCE_UAT_DERIVED_IDENTITY_GIT_ROOT_FORBIDDEN',
       '派生源码身份不能覆盖包含嵌套 Git 元数据的目录树',
       {
-        root,
+        ...commonDetails,
         gitMetadataPath: nestedMarker,
         relation: 'EMBEDDED_GIT_METADATA'
       }
@@ -153,8 +217,10 @@ function assertSealedExportRoot(value) {
 
 module.exports = {
   assertSealedExportRoot,
+  canonicalizeSealedExportRoot,
   embeddedGitMetadata,
   existingGitMetadataInAncestors,
   gitRepositoryContext,
+  sanitizeGitEnvironment,
   sealedExportError
 };
