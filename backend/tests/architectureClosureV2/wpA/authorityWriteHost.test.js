@@ -86,21 +86,29 @@ test('primary SQLite process roles fail closed for workers, probes, utilities an
   }
 });
 
-test('SqliteConnectionBroker acquires a real host capability and rejects a forged one', () => {
+test('SqliteConnectionBroker requires a genuine externally acquired host capability', () => {
+  const authority = requireA1();
   const { root, dbPath } = tempDb();
+  let host;
   let broker;
   try {
+    assert.throws(
+      () => new SqliteConnectionBroker({ dbPath }),
+      error => error?.code === 'AUTHORITY_WRITE_HOST_CAPABILITY_REQUIRED'
+    );
     assert.throws(
       () => new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: Object.freeze({}) }),
       error => error?.code === 'AUTHORITY_WRITE_HOST_CAPABILITY_INVALID'
     );
-    broker = new SqliteConnectionBroker({ dbPath });
+    host = authority.acquireAuthorityWriteHost({ dbPath, instanceId: 'a1-explicit-host' });
+    broker = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: host.capability });
     const snapshot = broker.snapshot();
     assert.equal(snapshot.owner, 'AuthorityWriteHost');
     assert.equal(snapshot.authorityWriteHostCapability.hostGeneration, 1);
     assert.equal(snapshot.authorityWriteHostCapability.fencingToken, 1);
   } finally {
     try { broker?.close(); } catch (_) {}
+    try { host?.close(); } catch (_) {}
     cleanup(root);
   }
 });
