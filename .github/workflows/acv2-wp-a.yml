@@ -18,7 +18,7 @@ jobs:
   acv2-wp-a-platform-matrix:
     name: acv2-wp-a-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -37,10 +37,13 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
+          cache: npm
       - name: Run AuthorityWriteHost unit and migration contract
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js
       - name: Run real process ownership and takeover matrix
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/authorityWriteHostProcessMatrix.test.js
+      - name: Install locked dependencies for legacy regressions
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run existing SQLite ownership and fencing regressions
         run: >-
           node --test --test-concurrency=1
