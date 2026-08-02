@@ -1,0 +1,43 @@
+name: ACV2 WP-A Architecture Gates
+
+on:
+  push:
+    branches:
+      - acv2/wp-a-identity-ledger-write-host
+  pull_request:
+    branches:
+      - rebuild/windows-release-closure-20260802-gate0-wp0-fix
+
+permissions:
+  contents: read
+
+env:
+  REVIEWED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  acv2-wp-a-platform-matrix:
+    name: acv2-wp-a-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout reviewed WP-A head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Run AuthorityWriteHost unit and migration contract
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js
+      - name: Run real process ownership and takeover matrix
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/authorityWriteHostProcessMatrix.test.js
