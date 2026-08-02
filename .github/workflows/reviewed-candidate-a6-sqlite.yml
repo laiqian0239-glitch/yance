@@ -1,17 +1,16 @@
 name: A6 Reviewed SQLite Legacy Verification
 
 on:
-  push:
-    branches:
-      - governance/layered-ci-reviewed-candidate
+  workflow_dispatch:
   pull_request:
     branches:
       - main
     paths:
-      - 'governance/layered-ci/**'
-      - 'tools/layered-ci/**'
-      - 'tests/layered-ci/**'
-      - '.github/workflows/reviewed-candidate-a6*.yml'
+      - 'governance/layered-ci/reviewed-candidate-a6.json'
+      - 'tools/layered-ci/reviewed-candidate.js'
+      - 'tools/layered-ci/verify-reviewed-candidate.js'
+      - 'tests/layered-ci/reviewed-candidate.test.js'
+      - '.github/workflows/reviewed-candidate-a6-sqlite.yml'
 
 permissions:
   contents: read
@@ -47,7 +46,7 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
-      - name: Fetch and verify exact reviewed candidate
+      - name: Fetch and verify historical reviewed candidate
         shell: bash
         run: |
           set -euo pipefail

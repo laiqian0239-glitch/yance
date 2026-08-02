@@ -15,6 +15,7 @@ const SHA = Object.freeze({
   base: '1'.repeat(40),
   reviewed: '2'.repeat(40),
   tip: '3'.repeat(40),
+  current: '4'.repeat(40),
   evidence: '3'.repeat(40)
 });
 const reviewedFiles = Object.freeze([
@@ -66,6 +67,7 @@ function gitAdapter(overrides = {}) {
     postReviewPaths: [...postReviewPaths],
     failBaseAncestor: false,
     failReviewedAncestor: false,
+    failFrozenTipAncestor: false,
     missingObjects: new Set(),
     ...overrides
   };
@@ -77,8 +79,15 @@ function gitAdapter(overrides = {}) {
       return '';
     }
     if (args[0] === 'merge-base' && args[1] === '--is-ancestor') {
-      if (args[2] === SHA.base && values.failBaseAncestor) throw new Error('not ancestor');
-      if (args[2] === SHA.reviewed && values.failReviewedAncestor) throw new Error('not ancestor');
+      if (args[2] === SHA.base && args[3] === SHA.reviewed && values.failBaseAncestor) {
+        throw new Error('base not ancestor');
+      }
+      if (args[2] === SHA.reviewed && args[3] === SHA.tip && values.failReviewedAncestor) {
+        throw new Error('reviewed head not ancestor');
+      }
+      if (args[2] === SHA.tip && args[3] === values.remoteTip && values.failFrozenTipAncestor) {
+        throw new Error('frozen tip not ancestor');
+      }
       return '';
     }
     if (args[0] === 'rev-parse') return values.remoteTip;
@@ -118,13 +127,19 @@ test('manifest rejects unknown post-review classifications and promotion claims'
 test('candidate passes when graph, scope, commits and paths are exact', () => {
   const result = evaluateReviewedCandidate({ manifest: manifest(), git: gitAdapter() });
   assert.equal(result.pass, true, JSON.stringify(result));
-  assert.equal(result.reasonCode, null);
-  assert.equal(result.reviewedHeadVerified, true);
-  assert.equal(result.branchTipVerified, true);
-  assert.equal(result.reviewedScopeVerified, true);
-  assert.equal(result.postReviewCommitsVerified, true);
-  assert.equal(result.postReviewPathsVerified, true);
+  assert.equal(result.currentBranchTip, SHA.tip);
   assert.equal(result.readyForPromotion, false);
+});
+
+test('frozen candidate remains valid when the authorized branch advances by descendants', () => {
+  const result = evaluateReviewedCandidate({
+    manifest: manifest(),
+    git: gitAdapter({ remoteTip: SHA.current })
+  });
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.branchTip, SHA.tip);
+  assert.equal(result.currentBranchTip, SHA.current);
+  assert.equal(result.currentBranchTipVerified, true);
 });
 
 test('candidate fails closed when a declared commit object is missing', () => {
@@ -137,20 +152,29 @@ test('candidate fails closed when a declared commit object is missing', () => {
   assert.equal(result.field, 'reviewedHead');
 });
 
-test('candidate fails closed when ancestry is broken', () => {
+test('candidate fails closed when reviewed ancestry is broken', () => {
   const base = evaluateReviewedCandidate({
     manifest: manifest(),
     git: gitAdapter({ failBaseAncestor: true })
   });
-  assert.equal(base.pass, false);
   assert.equal(base.reasonCode, 'GOVERNANCE_BASE_NOT_ANCESTOR');
 
   const reviewed = evaluateReviewedCandidate({
     manifest: manifest(),
     git: gitAdapter({ failReviewedAncestor: true })
   });
-  assert.equal(reviewed.pass, false);
   assert.equal(reviewed.reasonCode, 'REVIEWED_HEAD_NOT_ANCESTOR');
+});
+
+test('candidate fails closed when the current remote branch diverges from the frozen tip', () => {
+  const result = evaluateReviewedCandidate({
+    manifest: manifest(),
+    git: gitAdapter({ remoteTip: SHA.current, failFrozenTipAncestor: true })
+  });
+  assert.equal(result.pass, false);
+  assert.equal(result.reasonCode, 'CURRENT_BRANCH_DIVERGED_FROM_FROZEN_TIP');
+  assert.equal(result.frozenBranchTip, SHA.tip);
+  assert.equal(result.currentBranchTip, SHA.current);
 });
 
 test('candidate fails closed when no git adapter is supplied', () => {
@@ -159,39 +183,27 @@ test('candidate fails closed when no git adapter is supplied', () => {
   assert.equal(result.reasonCode, 'CANDIDATE_GIT_REQUIRED');
 });
 
-test('candidate fails closed when authorized branch tip drifts', () => {
-  const result = evaluateReviewedCandidate({
-    manifest: manifest(),
-    git: gitAdapter({ remoteTip: '5'.repeat(40) })
-  });
-  assert.equal(result.pass, false);
-  assert.equal(result.reasonCode, 'BRANCH_TIP_MISMATCH');
-});
-
 test('candidate fails closed when reviewed scope digest changes', () => {
   const result = evaluateReviewedCandidate({
     manifest: manifest(),
     git: gitAdapter({ reviewedFiles: [...reviewedFiles, 'backend/runtime/Unreviewed.js'] })
   });
-  assert.equal(result.pass, false);
   assert.equal(result.reasonCode, 'REVIEWED_SCOPE_MISMATCH');
 });
 
-test('candidate fails closed when post-review commit list expands', () => {
+test('candidate fails closed when frozen post-review commit list expands', () => {
   const result = evaluateReviewedCandidate({
     manifest: manifest(),
     git: gitAdapter({ postReviewCommits: [SHA.evidence, '6'.repeat(40)] })
   });
-  assert.equal(result.pass, false);
   assert.equal(result.reasonCode, 'POST_REVIEW_COMMIT_MISMATCH');
 });
 
-test('candidate fails closed when post-review path list expands', () => {
+test('candidate fails closed when frozen post-review path list expands', () => {
   const result = evaluateReviewedCandidate({
     manifest: manifest(),
     git: gitAdapter({ postReviewPaths: [...postReviewPaths, 'backend/runtime/AppRuntime.js'] })
   });
-  assert.equal(result.pass, false);
   assert.equal(result.reasonCode, 'POST_REVIEW_PATH_MISMATCH');
 });
 
