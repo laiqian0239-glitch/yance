@@ -102,6 +102,50 @@ function defineImmutableAuthorityBindings(runtime, binding) {
   return runtime;
 }
 
+function canonicalAuthorityGraph(runtime) {
+  const composition = runtime?.composition || null;
+  const authorities = composition?.authorities || null;
+  const coordinator = authorities?.authorityTransactionCoordinator || null;
+  const ledger = authorities?.canonicalEventLedgerAuthority || null;
+  const identity = authorities?.identityAuthority || null;
+  const platformCoreRepository = authorities?.platformCoreRepository || null;
+  const gateway = composition?.authorityCommandGateway || null;
+  let identityStore = null;
+  try { identityStore = identity?.repository?.store?.() || null; } catch (_) { identityStore = null; }
+  let gatewayState = '';
+  try { gatewayState = String(gateway?.snapshot?.().state || ''); } catch (_) { gatewayState = ''; }
+
+  const checks = Object.freeze({
+    runtimeCapabilityMatches: runtime?.authorityWriteHostCapability === processAuthorityWriteHostCapability,
+    runtimeTokenMatches: runtime?.authorityWriteHostToken === processAuthorityWriteHostToken,
+    runtimeStoreMatches: runtime?.primaryAuthorityStore === processAuthorityWriteHostStore,
+    compositionCapabilityMatches: authorities?.authorityWriteHostCapability === processAuthorityWriteHostCapability,
+    coordinatorStoreMatches: coordinator?.store === processAuthorityWriteHostStore,
+    coordinatorDatabaseMatches: coordinator?.db === processAuthorityWriteHostStore?.db,
+    ledgerCoordinatorMatches: ledger?.coordinator === coordinator,
+    ledgerStoreMatches: ledger?.store === processAuthorityWriteHostStore,
+    ledgerDatabaseMatches: ledger?.db === processAuthorityWriteHostStore?.db,
+    identityRepositoryMatches: identity?.repository === platformCoreRepository,
+    identityStoreMatches: identityStore === processAuthorityWriteHostStore,
+    gatewayRuntimeMatches: gateway?.runtime === runtime,
+    gatewayCapabilityMatches: gateway?.authorityWriteHostCapability === processAuthorityWriteHostCapability,
+    gatewayStoreMatches: gateway?.authorityStore === processAuthorityWriteHostStore
+  });
+  const canonicalGraphBound = Object.values(checks).every(Boolean);
+  return Object.freeze({
+    composition,
+    authorities,
+    coordinator,
+    ledger,
+    identity,
+    gateway,
+    checks,
+    canonicalGraphBound,
+    startupGatewayState: gatewayState,
+    startupGatewaySealed: gatewayState === 'sealed'
+  });
+}
+
 class AppRuntimeFactory {
   static create(options = {}) {
     if (processRuntime) {
@@ -154,11 +198,11 @@ class AppRuntimeFactory {
       );
     }
 
-    const authorities = runtime.composition?.authorities || null;
-    const canonicalLedgerReady = Boolean(authorities?.canonicalEventLedgerAuthority);
-    const identityAuthorityReady = Boolean(authorities?.identityAuthority);
-    const coordinatorReady = Boolean(authorities?.authorityTransactionCoordinator);
-    if (options.requireComposition !== false && (!canonicalLedgerReady || !identityAuthorityReady || !coordinatorReady)) {
+    const graph = canonicalAuthorityGraph(runtime);
+    const coordinatorReady = Boolean(graph.coordinator);
+    const canonicalLedgerReady = Boolean(graph.ledger);
+    const identityAuthorityReady = Boolean(graph.identity);
+    if (options.requireComposition !== false && (!coordinatorReady || !canonicalLedgerReady || !identityAuthorityReady)) {
       throw factoryError(
         'APP_RUNTIME_CANONICAL_AUTHORITIES_NOT_READY',
         'Canonical coordinator, ledger and identity authorities must be composed before readiness',
@@ -166,11 +210,30 @@ class AppRuntimeFactory {
         { coordinatorReady, canonicalLedgerReady, identityAuthorityReady }
       );
     }
+    if (coordinatorReady && canonicalLedgerReady && identityAuthorityReady && !graph.canonicalGraphBound) {
+      throw factoryError(
+        'APP_RUNTIME_CANONICAL_AUTHORITY_BINDING_MISMATCH',
+        'Canonical runtime authorities no longer share the validated write-host capability and primary store',
+        503,
+        { checks: graph.checks }
+      );
+    }
+    if (options.requireStartupGatewaySealed === true && !graph.startupGatewaySealed) {
+      throw factoryError(
+        'APP_RUNTIME_STARTUP_GATEWAY_NOT_SEALED',
+        'Startup command gateway must be sealed before backend readiness',
+        503,
+        { startupGatewayState: graph.startupGatewayState }
+      );
+    }
     return Object.freeze({
       authorityWriteHostBound: true,
       coordinatorReady,
       canonicalLedgerReady,
       identityAuthorityReady,
+      canonicalGraphBound: graph.canonicalGraphBound,
+      startupGatewayState: graph.startupGatewayState,
+      startupGatewaySealed: graph.startupGatewaySealed,
       token: processAuthorityWriteHostToken
     });
   }
@@ -185,15 +248,18 @@ class AppRuntimeFactory {
   }
 
   static diagnostics() {
-    const authorities = processRuntime?.composition?.authorities || null;
+    const graph = processRuntime ? canonicalAuthorityGraph(processRuntime) : null;
     return Object.freeze({
       currentPresent: Boolean(processRuntime),
       createCount: factoryCreateCount,
       authorityWriteHostBound: Boolean(processAuthorityWriteHostToken),
       authorityWriteHostToken: processAuthorityWriteHostToken,
-      coordinatorReady: Boolean(authorities?.authorityTransactionCoordinator),
-      canonicalLedgerReady: Boolean(authorities?.canonicalEventLedgerAuthority),
-      identityAuthorityReady: Boolean(authorities?.identityAuthority)
+      coordinatorReady: Boolean(graph?.coordinator),
+      canonicalLedgerReady: Boolean(graph?.ledger),
+      identityAuthorityReady: Boolean(graph?.identity),
+      canonicalGraphBound: graph?.canonicalGraphBound === true,
+      startupGatewayState: graph?.startupGatewayState || '',
+      startupGatewaySealed: graph?.startupGatewaySealed === true
     });
   }
 
