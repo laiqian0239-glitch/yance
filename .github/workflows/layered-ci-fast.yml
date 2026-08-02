@@ -92,4 +92,4 @@ jobs:
     with:
       candidate_sha: ${{ needs.layered-ci-risk.outputs.candidate_sha }}
       required_level: L2
-      suite: wp0
+      suite: layered_governance
