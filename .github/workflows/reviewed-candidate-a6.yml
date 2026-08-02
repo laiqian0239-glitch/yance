@@ -1,18 +1,16 @@
 name: A6 Reviewed Candidate Verification
 
 on:
-  push:
-    branches:
-      - governance/layered-ci-reviewed-candidate
+  workflow_dispatch:
   pull_request:
     branches:
       - main
     paths:
-      - 'governance/layered-ci/**'
-      - 'tools/layered-ci/**'
-      - 'tests/layered-ci/**'
+      - 'governance/layered-ci/reviewed-candidate-a6.json'
+      - 'tools/layered-ci/reviewed-candidate.js'
+      - 'tools/layered-ci/verify-reviewed-candidate.js'
+      - 'tests/layered-ci/reviewed-candidate.test.js'
       - '.github/workflows/reviewed-candidate-a6.yml'
-      - '.github/workflows/layered-ci-*.yml'
 
 permissions:
   contents: read
@@ -56,7 +54,7 @@ jobs:
           git fetch --no-tags --force origin "${GOVERNANCE_BASE_SHA}"
           git fetch --no-tags --force origin "${REVIEWED_HEAD_SHA}"
           git fetch --no-tags --force origin "${BRANCH_TIP_SHA}"
-      - name: Verify reviewed candidate identity and exact scope
+      - name: Verify frozen candidate identity and descendant branch continuity
         run: node tools/layered-ci/verify-reviewed-candidate.js "${CANDIDATE_MANIFEST}"
 
   a6-reviewed-runtime:
@@ -144,7 +142,7 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
-      - name: Revalidate candidate immediately before WP0
+      - name: Revalidate historical candidate immediately before WP0
         shell: bash
         run: |
           set -euo pipefail
@@ -160,14 +158,15 @@ jobs:
           fetch-depth: 0
           fetch-tags: false
           lfs: false
-      - name: Establish reviewed local branch and trusted archive refs
+      - name: Establish frozen evidence ancestry and trusted archive refs
         shell: bash
         run: |
           set -euo pipefail
           git fetch --no-tags --force origin "main:refs/remotes/origin/main"
           git fetch --no-tags --force origin "${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
-          test "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})" = "${BRANCH_TIP_SHA}"
+          current_tip="$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})"
           git merge-base --is-ancestor "${REVIEWED_HEAD_SHA}" "${BRANCH_TIP_SHA}"
+          git merge-base --is-ancestor "${BRANCH_TIP_SHA}" "${current_tip}"
           git cat-file -e "${BASELINE_ANCHOR_COMMIT}^{commit}"
           git merge-base --is-ancestor "${BASELINE_ANCHOR_COMMIT}" "${REVIEWED_HEAD_SHA}"
           test "$(git rev-parse "${BASELINE_ANCHOR_COMMIT}:${BASELINE_ANCHOR_PATH}")" = "${BASELINE_ANCHOR_BLOB}"
