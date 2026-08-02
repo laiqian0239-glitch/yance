@@ -1,35 +1,97 @@
 {
-  "schemaVersion": 1,
-  "documentType": "YANCE_ACV2_WP_A_A6_REVIEW_RED_EVIDENCE",
-  "status": "TRUSTED_REVIEW_REOPEN_RECORDED",
+  "schemaVersion": 2,
+  "documentType": "YANCE_ACV2_WP_A_A6_INDEPENDENT_REVIEW_EVIDENCE",
+  "status": "IMPLEMENTATION_REPAIRED_VALIDATION_BLOCKED",
   "workPackage": "WP-A",
   "task": "A6_WIRE_SINGLE_WRITE_HOST_LEDGER_AND_IDENTITY_AUTHORITY_INTO_RUNTIME_STARTUP",
-  "head": "5025eaab08570432e5a01fc30f5da120b5e3d653",
-  "workflowRunId": 30747139027,
-  "ubuntuJobId": 91494540579,
-  "windowsJobId": 91494540585,
-  "sourceClosureJobId": 91494540583,
-  "result": "A6_ADVERSARIAL_STEP_EXPECTED_FAILURE_PER_PLATFORM_WITH_A1_THROUGH_A5_GREEN",
-  "newAdversarialContracts": [
-    "APP_RUNTIME_REJECTS_RUNTIME_STATE_DB_DIFFERENT_FROM_CANONICAL_AUTHORITY_DB",
-    "DESKTOP_CLIENT_REJECTS_OWN_OR_INHERITED_WRITE_HOST_CAPABILITY",
-    "STARTUP_COMMAND_PAYLOAD_ACCESSORS_ARE_REJECTED_WITHOUT_GETTER_EXECUTION"
+  "reviewedImplementationHead": "c02f00fe69319d80468eae786f227959bb4b85af",
+  "reviewMode": "INDEPENDENT_SOURCE_REVIEW_WITH_ADVERSARIAL_CONTRACTS",
+  "externalReviewer": {
+    "codeRabbitUsed": false,
+    "reason": "NO_PAID_SEAT",
+    "robotApprovalClaimed": false
+  },
+  "trustedEarlierReviewRed": {
+    "head": "5025eaab08570432e5a01fc30f5da120b5e3d653",
+    "workflowRunId": 30747139027,
+    "ubuntuJobId": 91494540579,
+    "windowsJobId": 91494540585,
+    "sourceClosureJobId": 91494540583
+  },
+  "independentRootCausesClosedInSource": [
+    "STARTUP_GATEWAY_OVERWROTE_APP_RUNTIME_CORE_BUSINESS_COMMAND_ENTRYPOINT",
+    "RECOVERY_MANAGER_RECEIVED_UNUSED_DECORATIVE_GATEWAY_DEPENDENCIES",
+    "STARTUP_GATEWAY_ACCEPTED_FORGED_OR_FENCED_WRITE_HOST_CAPABILITIES",
+    "RUNTIME_AUTHORITY_BINDINGS_AND_COMPOSITION_COULD_BE_REPLACED_AFTER_FACTORY_VALIDATION",
+    "STARTUP_COMMAND_ALLOWLIST_ACCEPTED_PROTOTYPE_CHAIN_NAMES",
+    "STARTUP_GATEWAY_REMAINED_REUSABLE_AFTER_BOOT",
+    "READINESS_CHECKED_AUTHORITY_OBJECT_PRESENCE_WITHOUT_PROVING_ONE_CANONICAL_BINDING_GRAPH",
+    "STARTUP_IDENTITY_HANDLER_USED_A_GLOBAL_SINGLETON_INSTEAD_OF_THE_COMPOSED_IDENTITY_AUTHORITY",
+    "FACTORY_READ_PRIVATE_GATEWAY_BINDINGS_THROUGH_OBSOLETE_PUBLIC_FIELDS",
+    "GATEWAY_READINESS_EVIDENCE_METHODS_COULD_BE_SHADOWED",
+    "RUNTIME_STATE_STORE_COULD_OMIT_DB_AND_BYPASS_PRIMARY_DATABASE_IDENTITY_CHECK",
+    "ACV2_PULL_REQUEST_WORKFLOW_FILTER_DID_NOT_MATCH_THE_CURRENT_MAIN_BASE"
   ],
-  "rootCauses": [
-    "FACTORY_DID_NOT_PROVE_RUNTIME_STATE_AND_CANONICAL_AUTHORITIES_SHARED_ONE_PRIMARY_DB_OBJECT",
-    "DESKTOP_CAPABILITY_REJECTION_CHECKED_ONLY_OWN_PROPERTIES",
-    "STARTUP_PAYLOAD_SPREAD_COULD_EXECUTE_CALLER_ACCESSORS"
+  "implementationProperties": [
+    "CORE_BUSINESS_COMMAND_ENTRYPOINT_PRESERVED",
+    "STARTUP_DISPATCHER_IS_SEPARATE_FROM_APP_RUNTIME_BUSINESS_COMMANDS",
+    "WRITE_HOST_CAPABILITY_AND_STORE_REVALIDATED_AT_GATEWAY_CONSTRUCTION_AND_EXECUTION",
+    "RUNTIME_OWNERSHIP_STORE_LIFECYCLE_CAPABILITY_TOKEN_AND_AUTHORITY_STORE_BINDINGS_ARE_IMMUTABLE",
+    "RUNTIME_COMPOSITION_IS_PRIVATE_WEAKMAP_STATE",
+    "RUNTIME_STATE_STORE_DB_MUST_EQUAL_THE_BROKER_OWNED_AUTHORITY_DB_OBJECT",
+    "COORDINATOR_LEDGER_IDENTITY_AND_GATEWAY_SHARE_ONE_VERIFIED_AUTHORITY_GRAPH",
+    "STARTUP_IDENTITY_HANDLER_USES_THE_COMPOSED_IDENTITY_AUTHORITY_INSTANCE",
+    "STARTUP_HANDLER_MAP_IS_FROZEN_NULL_PROTOTYPE_OWN_FUNCTION_MAP",
+    "STARTUP_GATEWAY_INSTANCE_AND_PROTOTYPE_ARE_FROZEN_BEFORE_EXTERNAL_OBSERVATION",
+    "STARTUP_GATEWAY_HAS_ONE_WAY_SEAL_BEFORE_BACKEND_READINESS",
+    "DESKTOP_TRANSPORT_REJECTS_OWN_AND_INHERITED_WRITE_HOST_CAPABILITY_INJECTION"
   ],
-  "predecessorContractsStayedGreen": true,
+  "adversarialContracts": [
+    "backend/tests/architectureClosureV2/wpA/runtimeComposition.test.js",
+    "backend/tests/architectureClosureV2/wpA/runtimeGatewaySurface.test.js",
+    "backend/tests/architectureClosureV2/wpA/runtimeStateStoreBinding.test.js",
+    "backend/tests/architectureClosureV2/wpA/startupOrdering.test.js"
+  ],
+  "productionScope": [
+    "backend/runtime/AppRuntime.js",
+    "backend/runtime/AppRuntimeFactory.js",
+    "backend/runtime/AppRuntimeComposition.js",
+    "backend/server.js",
+    "electron/desktopHost/ApiV2RuntimeClient.js"
+  ],
+  "latestValidationAttempt": {
+    "acv2WorkflowRunId": 30751003960,
+    "acv2Jobs": {
+      "ubuntu": 91504918322,
+      "windows": 91504918328,
+      "sourceClosure": 91504918306
+    },
+    "wp0WorkflowRunId": 30751003941,
+    "wp0Jobs": {
+      "wp0": 91504918242,
+      "sealedExportUbuntu": 91504918203,
+      "sealedExportWindows": 91504918237
+    },
+    "allJobsHadSteps": false,
+    "allJobsHadLogs": false,
+    "observedState": "RUNNER_NOT_STARTED_STEPS_NULL_LOGS_NULL",
+    "countsAsCodeRed": false,
+    "countsAsCodeGreen": false
+  },
+  "verificationState": {
+    "credibleUbuntuGreen": false,
+    "credibleWindowsGreen": false,
+    "credibleWp0Green": false,
+    "finalGreenEvidenceRequired": true,
+    "a6Closed": false,
+    "readyForPromotion": false
+  },
+  "scopeBoundary": {
+    "durableStartupCommandReceipts": "DEFERRED_TO_WP_G",
+    "crashRecoveryAndCrossProcessIdempotency": "DEFERRED_TO_WP_G",
+    "inMemoryReceiptMapClaimedAsDurable": false
+  },
   "testsRelaxed": false,
   "temporaryBypassUsed": false,
-  "productionScopeExpanded": false,
-  "implementationFixHead": "9729568024eb292d1c1f14d39ac58f7eaa2f334b",
-  "implementationFixes": [
-    "APP_RUNTIME_PRIMARY_DB_MISMATCH_FAIL_CLOSED",
-    "PROTOTYPE_CHAIN_AWARE_DESKTOP_CAPABILITY_REJECTION",
-    "DESCRIPTOR_SAFE_STARTUP_PAYLOAD_SNAPSHOT"
-  ],
-  "finalGreenEvidenceRequired": true,
   "prMustRemainDraft": true
 }
