@@ -41,7 +41,8 @@ const learningSynthesisScheduler = require('../services/learningSynthesisSchedul
 const { getRuntimeSafetySupervisor } = require('../services/runtimeSafetySupervisor');
 const { getScopedSafetyAuthority } = require('../services/scopedSafetyAuthority');
 const { AuthorityTransactionCoordinator } = require('../services/authorityTransactionCoordinator');
-const { CanonicalEventLedgerAuthority } = require('../services/canonicalEventLedgerAuthority');
+const canonicalEventLedgerModule = require('../services/canonicalEventLedgerAuthority');
+const { CanonicalEventLedgerAuthority } = canonicalEventLedgerModule;
 const { IdentityAuthority } = require('../services/identityAuthority');
 const {
   isAuthorityWriteHostCapability,
@@ -341,14 +342,21 @@ function createAppRuntimeComposition(runtime) {
   lockAuthorityBinding(authorityTransactionCoordinator, 'store', authorityStore);
   lockAuthorityBinding(authorityTransactionCoordinator, 'db', authorityStore.db);
 
-  const platformCoreRepository = createPlatformCoreRepository({ storeProvider: () => authorityStore });
+  const platformCoreStoreProvider = () => authorityStore;
+  const platformCoreRepository = createPlatformCoreRepository({ storeProvider: platformCoreStoreProvider });
+  lockAuthorityBinding(platformCoreRepository, 'storeProvider', platformCoreStoreProvider);
+
   const canonicalEventLedgerAuthority = new CanonicalEventLedgerAuthority({ coordinator: authorityTransactionCoordinator, store: authorityStore, compatibilityRepository: platformCoreRepository });
   lockAuthorityBinding(canonicalEventLedgerAuthority, 'coordinator', authorityTransactionCoordinator);
   lockAuthorityBinding(canonicalEventLedgerAuthority, 'store', authorityStore);
   lockAuthorityBinding(canonicalEventLedgerAuthority, 'db', authorityStore.db);
+  lockAuthorityBinding(canonicalEventLedgerAuthority, 'compatibilityRepository', platformCoreRepository);
+  canonicalEventLedgerModule.configureSingleton(canonicalEventLedgerAuthority);
 
   const identityAuthority = new IdentityAuthority({ repository: platformCoreRepository });
   lockAuthorityBinding(identityAuthority, 'repository', platformCoreRepository);
+  lockAuthorityBinding(identityAuthority, 'eventRecorder', identityAuthority.eventRecorder);
+  lockAuthorityBinding(identityAuthority, 'legacyCanonicalIdentity', identityAuthority.legacyCanonicalIdentity);
 
   const startupCommandHandlers = createStartupCommandHandlers({ identityAuthority });
   const authorityCommandGateway = new RuntimeAuthorityCommandGateway({ runtime, authorityWriteHostCapability, authorityStore, commandHandlers: startupCommandHandlers });
@@ -397,7 +405,4 @@ function createAppRuntimeComposition(runtime) {
   });
 }
 
-const testOnlyExports = process.env.NODE_TEST_CONTEXT
-  ? { RuntimeAuthorityCommandGateway, createStartupCommandHandlers }
-  : {};
-module.exports = { createAppRuntimeComposition, ...testOnlyExports };
+module.exports = { RuntimeAuthorityCommandGateway, createStartupCommandHandlers, createAppRuntimeComposition };
