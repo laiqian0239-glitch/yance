@@ -17,6 +17,7 @@ const REQUIRED_DESCRIPTOR_FIELDS = Object.freeze([
 const ALLOWED_DESCRIPTOR_FIELDS = new Set([...REQUIRED_DESCRIPTOR_FIELDS, 'upcasters']);
 const ALLOWED_UPCASTER_FIELDS = new Set(['fromVersion', 'toVersion', 'transform']);
 const CLASSIFICATION_VALUES = new Set(Object.values(CLASSIFICATIONS));
+const FORBIDDEN_OBJECT_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 
 const NONDETERMINISTIC_UPCASTER_PATTERNS = Object.freeze([
   { pattern: /\bDate\s*\.\s*now\s*\(/, primitive: 'Date.now' },
@@ -42,6 +43,19 @@ function codeUnitCompare(leftInput, rightInput) {
   const left = String(leftInput);
   const right = String(rightInput);
   return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function childPath(parent, key) {
+  return parent === '$' ? `$.${key}` : `${parent}.${key}`;
+}
+
+function assertAllowedObjectKey(key, path) {
+  if (FORBIDDEN_OBJECT_KEYS.has(key)) {
+    throw registryError('EVENT_DESCRIPTOR_FORBIDDEN_KEY', 'Event registry data cannot contain prototype mutation keys', {
+      fieldPath: childPath(path, key),
+      key
+    });
+  }
 }
 
 function isPlainObject(value) {
@@ -71,7 +85,10 @@ function clonePlain(value, path = '$', seen = new WeakSet()) {
     if (Array.isArray(value)) {
       const ownNames = Object.getOwnPropertyNames(value);
       const unexpected = ownNames.find(name => name !== 'length' && !/^(?:0|[1-9][0-9]*)$/.test(name));
-      if (unexpected) throw registryError('EVENT_DESCRIPTOR_VALUE_UNSAFE', 'Event registry arrays cannot contain custom properties', { fieldPath: `${path}.${unexpected}` });
+      if (unexpected) {
+        if (FORBIDDEN_OBJECT_KEYS.has(unexpected)) assertAllowedObjectKey(unexpected, path);
+        throw registryError('EVENT_DESCRIPTOR_VALUE_UNSAFE', 'Event registry arrays cannot contain custom properties', { fieldPath: `${path}.${unexpected}` });
+      }
       const result = [];
       for (let index = 0; index < value.length; index += 1) {
         const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
@@ -86,6 +103,7 @@ function clonePlain(value, path = '$', seen = new WeakSet()) {
     const result = {};
     const descriptors = Object.getOwnPropertyDescriptors(value);
     for (const key of Object.getOwnPropertyNames(value).sort(codeUnitCompare)) {
+      assertAllowedObjectKey(key, path);
       const descriptor = descriptors[key];
       if (typeof descriptor.get === 'function' || typeof descriptor.set === 'function') {
         throw registryError('EVENT_DESCRIPTOR_VALUE_UNSAFE', 'Event registry values cannot contain accessors', { fieldPath: `${path}.${key}` });
@@ -336,6 +354,13 @@ function assertDescriptorShape(input) {
   const descriptors = Object.getOwnPropertyDescriptors(input);
   const accessor = Object.getOwnPropertyNames(input).find(field => typeof descriptors[field]?.get === 'function' || typeof descriptors[field]?.set === 'function');
   if (accessor) throw registryError('EVENT_TYPE_DESCRIPTOR_FIELD_UNREGISTERED', 'Event descriptor cannot contain accessors', { field: accessor });
+  const forbidden = Object.getOwnPropertyNames(input).find(field => FORBIDDEN_OBJECT_KEYS.has(field));
+  if (forbidden) {
+    throw registryError('EVENT_DESCRIPTOR_FORBIDDEN_KEY', 'Event descriptor cannot contain prototype mutation keys', {
+      field: forbidden,
+      fieldPath: childPath('$', forbidden)
+    });
+  }
   const unknown = Object.getOwnPropertyNames(input).find(field => !ALLOWED_DESCRIPTOR_FIELDS.has(field));
   if (unknown) throw registryError('EVENT_TYPE_DESCRIPTOR_FIELD_UNREGISTERED', `Event descriptor field ${unknown} is not registered`, { field: unknown });
 }
