@@ -134,13 +134,34 @@ test('real broker capability and R32 store bind one immutable runtime authority 
       const coordinator = composition.authorities.authorityTransactionCoordinator;
       const ledger = composition.authorities.canonicalEventLedgerAuthority;
       const identity = composition.authorities.identityAuthority;
+      const platformCoreRepository = composition.authorities.platformCoreRepository;
       const gateway = composition.authorityCommandGateway;
       assertImmutableBinding(coordinator, 'store', authorityStore);
       assertImmutableBinding(coordinator, 'db', authorityStore.db);
+      assertImmutableBinding(platformCoreRepository, 'storeProvider', platformCoreRepository.storeProvider);
       assertImmutableBinding(ledger, 'coordinator', coordinator);
       assertImmutableBinding(ledger, 'store', authorityStore);
       assertImmutableBinding(ledger, 'db', authorityStore.db);
-      assertImmutableBinding(identity, 'repository', composition.authorities.platformCoreRepository);
+      assertImmutableBinding(ledger, 'compatibilityRepository', platformCoreRepository);
+      assertImmutableBinding(identity, 'repository', platformCoreRepository);
+      assertImmutableBinding(identity, 'eventRecorder', identity.eventRecorder);
+      assertImmutableBinding(identity, 'legacyCanonicalIdentity', identity.legacyCanonicalIdentity);
+
+      const canonicalLedgerModule = require('../../../services/canonicalEventLedgerAuthority');
+      const domainEventLog = require('../../../services/domainEventLogService').singleton;
+      assert.equal(typeof canonicalLedgerModule.isConfiguredSingleton, 'function');
+      assert.equal(canonicalLedgerModule.isConfiguredSingleton(ledger), true);
+      assertImmutableBinding(domainEventLog, 'canonicalAuthority', canonicalLedgerModule.singleton);
+      const competingLedger = new canonicalLedgerModule.CanonicalEventLedgerAuthority({
+        coordinator,
+        store: authorityStore,
+        compatibilityRepository: platformCoreRepository
+      });
+      assert.throws(
+        () => canonicalLedgerModule.configureSingleton(competingLedger),
+        error => error?.code === 'CANONICAL_EVENT_LEDGER_SINGLETON_ALREADY_CONFIGURED'
+      );
+
       assert.equal(Object.hasOwn(composition, 'startupCommandHandlers'), false);
       assert.equal(Object.hasOwn(gateway, 'commandHandlers'), false);
       assert.equal(gateway.commandHandlers, undefined);
