@@ -34,6 +34,20 @@ function minimalRuntimeDependencies() {
   };
 }
 
+function withAuthorityStore(prefix, callback) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  const dbPath = path.join(root, 'yance-r32.db');
+  const host = acquireAuthorityWriteHost({ dbPath, instanceId: `${prefix}-host` });
+  const broker = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: host.capability });
+  const authorityStore = broker.open();
+  try { return callback({ root, dbPath, host, broker, authorityStore }); }
+  finally {
+    try { broker.checkpointAndClose(); } catch (_) {}
+    try { host.release(); } catch (_) {}
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  }
+}
+
 test('AppRuntimeFactory rejects every production runtime that lacks a real AuthorityWriteHost capability', () => {
   const previous = process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
   process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
@@ -72,59 +86,108 @@ test('runtime composition constructs coordinator, canonical ledger and identity 
 test('real broker capability and R32 store bind the same runtime, coordinator, ledger and identity authority', () => {
   const previous = process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
   process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-acv2-a6-runtime-'));
-  const dbPath = path.join(root, 'yance-r32.db');
-  const host = acquireAuthorityWriteHost({ dbPath, instanceId: 'a6-runtime-host' });
-  const broker = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: host.capability });
-  const authorityStore = broker.open();
   const { AppRuntimeFactory } = require('../../../runtime/AppRuntimeFactory');
-  let runtime = null;
   try {
-    AppRuntimeFactory.resetForTests();
-    runtime = AppRuntimeFactory.create({
-      ...minimalRuntimeDependencies(),
-      authorityWriteHostCapability: host.capability,
-      authorityStore
-    });
-    const composition = runtime.configureProductionServices();
-    const readiness = AppRuntimeFactory.assertAuthorityReady();
+    withAuthorityStore('yance-acv2-a6-runtime-', ({ host, authorityStore }) => {
+      AppRuntimeFactory.resetForTests();
+      const runtime = AppRuntimeFactory.create({
+        ...minimalRuntimeDependencies(),
+        authorityWriteHostCapability: host.capability,
+        authorityStore
+      });
+      const composition = runtime.configureProductionServices();
+      const readiness = AppRuntimeFactory.assertAuthorityReady();
 
-    assert.equal(runtime.authorityWriteHostCapability, host.capability);
-    assert.equal(runtime.primaryAuthorityStore, authorityStore);
-    assert.equal(composition.authorities.authorityWriteHostCapability, host.capability);
-    assert.equal(composition.authorities.authorityTransactionCoordinator.store, authorityStore);
-    assert.equal(composition.authorities.canonicalEventLedgerAuthority.store, authorityStore);
-    assert.equal(composition.authorities.identityAuthority.repository.store(), authorityStore);
-    assert.equal(readiness.authorityWriteHostBound, true);
-    assert.equal(readiness.coordinatorReady, true);
-    assert.equal(readiness.canonicalLedgerReady, true);
-    assert.equal(readiness.identityAuthorityReady, true);
+      assert.equal(runtime.authorityWriteHostCapability, host.capability);
+      assert.equal(runtime.primaryAuthorityStore, authorityStore);
+      assert.equal(composition.authorities.authorityWriteHostCapability, host.capability);
+      assert.equal(composition.authorities.authorityTransactionCoordinator.store, authorityStore);
+      assert.equal(composition.authorities.canonicalEventLedgerAuthority.store, authorityStore);
+      assert.equal(composition.authorities.identityAuthority.repository.store(), authorityStore);
+      assert.equal(readiness.authorityWriteHostBound, true);
+      assert.equal(readiness.coordinatorReady, true);
+      assert.equal(readiness.canonicalLedgerReady, true);
+      assert.equal(readiness.identityAuthorityReady, true);
+      AppRuntimeFactory.clear(runtime);
+    });
   } finally {
-    if (runtime) AppRuntimeFactory.clear(runtime);
-    try { broker.checkpointAndClose(); } catch (_) {}
-    try { host.release(); } catch (_) {}
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
     AppRuntimeFactory.resetForTests();
     if (previous == null) delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
     else process.env.YANCE_TEST_ONLY_RUNTIME_RESET = previous;
   }
 });
 
-test('desktop runtime client refuses injected primary write capability instead of retaining or ignoring it', () => {
+test('AppRuntimeFactory rejects a runtime state store bound to a different primary database', () => {
+  const previous = process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
+  process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
+  const { AppRuntimeFactory } = require('../../../runtime/AppRuntimeFactory');
+  try {
+    withAuthorityStore('yance-acv2-a6-db-mismatch-', ({ host, authorityStore }) => {
+      AppRuntimeFactory.resetForTests();
+      const dependencies = minimalRuntimeDependencies();
+      dependencies.store = { ...dependencies.store, db: { deliberatelyDifferentDatabase: true } };
+      assert.throws(
+        () => AppRuntimeFactory.create({
+          ...dependencies,
+          authorityWriteHostCapability: host.capability,
+          authorityStore
+        }),
+        error => error?.code === 'APP_RUNTIME_PRIMARY_DB_MISMATCH'
+      );
+      assert.equal(AppRuntimeFactory.current(), null);
+    });
+  } finally {
+    AppRuntimeFactory.resetForTests();
+    if (previous == null) delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
+    else process.env.YANCE_TEST_ONLY_RUNTIME_RESET = previous;
+  }
+});
+
+test('desktop runtime client refuses own or inherited primary write capability injection', () => {
   const { ApiV2RuntimeClient } = require('../../../../electron/desktopHost/ApiV2RuntimeClient');
+  const baseOptions = {
+    baseURL: 'http://127.0.0.1:1',
+    fetch: async () => ({ ok: true, status: 200, json: async () => ({}) }),
+    sessionProvider: () => ({ apiSessionToken: 'token', backendSessionId: 'session', startupNonce: 'nonce' })
+  };
   assert.throws(
-    () => new ApiV2RuntimeClient({
-      baseURL: 'http://127.0.0.1:1',
-      fetch: async () => ({ ok: true, status: 200, json: async () => ({}) }),
-      sessionProvider: () => ({
-        apiSessionToken: 'token',
-        backendSessionId: 'session',
-        startupNonce: 'nonce'
-      }),
-      authorityWriteHostCapability: { forged: true }
-    }),
+    () => new ApiV2RuntimeClient({ ...baseOptions, authorityWriteHostCapability: { forged: true } }),
     error => error?.reasonCode === 'DESKTOP_WRITE_CAPABILITY_FORBIDDEN' || error?.code === 'DESKTOP_WRITE_CAPABILITY_FORBIDDEN'
   );
+  const inherited = Object.assign(Object.create({ authorityWriteHostCapability: { forged: true } }), baseOptions);
+  assert.throws(
+    () => new ApiV2RuntimeClient(inherited),
+    error => error?.reasonCode === 'DESKTOP_WRITE_CAPABILITY_FORBIDDEN' || error?.code === 'DESKTOP_WRITE_CAPABILITY_FORBIDDEN'
+  );
+});
+
+test('startup command payload accessors are rejected without getter execution', () => {
+  const { RuntimeAuthorityCommandGateway } = require('../../../runtime/AppRuntimeComposition');
+  let getterExecuted = false;
+  const payload = {};
+  Object.defineProperty(payload, 'hidden', {
+    enumerable: true,
+    get() {
+      getterExecuted = true;
+      return 'must-not-run';
+    }
+  });
+  const gateway = new RuntimeAuthorityCommandGateway({
+    runtime: { snapshot: () => ({ stateVersion: 1 }) },
+    authorityWriteHostCapability: { testOnly: true }
+  });
+  assert.throws(
+    () => gateway.execute({
+      contractVersion: 2,
+      commandId: '11111111-1111-4111-8111-111111111111',
+      commandType: 'startup.invalid',
+      expectedStateVersion: 1,
+      issuedAtUtc: '2026-08-02T11:00:00.000Z',
+      payload
+    }),
+    error => error?.code === 'STARTUP_COMMAND_PAYLOAD_ACCESSOR_FORBIDDEN'
+  );
+  assert.equal(getterExecuted, false);
 });
 
 test('desktop runtime client remains a command transport and exposes no write-host capability surface', async () => {
