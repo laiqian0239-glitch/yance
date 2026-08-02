@@ -1,4 +1,13 @@
 'use strict';
 
-// Compatibility export. All persistence now lives in the repository layer.
-module.exports = require('../repositories/canonicalIdentityRepository');
+const legacyCanonicalIdentity = require('../repositories/canonicalIdentityRepository');
+const authority = require('./identityAuthority');
+
+module.exports = {
+  ...legacyCanonicalIdentity,
+  identityAuthority: authority.singleton,
+  IdentityAuthority: authority.IdentityAuthority,
+  canonicalExternalIdentityScope: authority.canonicalExternalIdentityScope,
+  canonicalPersonId: authority.canonicalPersonId,
+  canonicalIdentityLinkId: authority.canonicalIdentityLinkId
+};
