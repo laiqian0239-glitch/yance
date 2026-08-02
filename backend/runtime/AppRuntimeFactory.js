@@ -102,6 +102,41 @@ function defineImmutableAuthorityBindings(runtime, binding) {
   return runtime;
 }
 
+function lockGatewayEvidenceSurface(gateway) {
+  if (!gateway || typeof gateway !== 'object') return false;
+  let RuntimeAuthorityCommandGateway = null;
+  try {
+    ({ RuntimeAuthorityCommandGateway } = require('./AppRuntimeComposition'));
+  } catch (_) {
+    return false;
+  }
+  const expectedPrototype = RuntimeAuthorityCommandGateway?.prototype || null;
+  if (!expectedPrototype || Object.getPrototypeOf(gateway) !== expectedPrototype) return false;
+
+  const requiredMethods = [
+    'assertAuthorityCurrent',
+    'assertCanonicalBinding',
+    'execute',
+    'submit',
+    'seal',
+    'snapshot'
+  ];
+  const descriptors = Object.getOwnPropertyDescriptors(expectedPrototype);
+  for (const method of requiredMethods) {
+    const descriptor = descriptors[method];
+    if (!descriptor || descriptor.get || descriptor.set || typeof descriptor.value !== 'function') return false;
+    if (Object.prototype.hasOwnProperty.call(gateway, method)) return false;
+  }
+
+  try {
+    Object.freeze(expectedPrototype);
+    Object.freeze(gateway);
+  } catch (_) {
+    return false;
+  }
+  return Object.isFrozen(expectedPrototype) && Object.isFrozen(gateway);
+}
+
 function canonicalAuthorityGraph(runtime) {
   const composition = runtime?.composition || null;
   const authorities = composition?.authorities || null;
@@ -110,18 +145,23 @@ function canonicalAuthorityGraph(runtime) {
   const identity = authorities?.identityAuthority || null;
   const platformCoreRepository = authorities?.platformCoreRepository || null;
   const gateway = composition?.authorityCommandGateway || null;
+  const gatewayEvidenceSurfaceLocked = lockGatewayEvidenceSurface(gateway);
   let identityStore = null;
   try { identityStore = identity?.repository?.store?.() || null; } catch (_) { identityStore = null; }
   let gatewayState = '';
-  try { gatewayState = String(gateway?.snapshot?.().state || ''); } catch (_) { gatewayState = ''; }
+  try {
+    if (gatewayEvidenceSurfaceLocked) gatewayState = String(gateway.snapshot().state || '');
+  } catch (_) { gatewayState = ''; }
   let gatewayBinding = null;
   try {
-    gatewayBinding = gateway?.assertCanonicalBinding?.({
-      runtime,
-      authorityWriteHostCapability: processAuthorityWriteHostCapability,
-      authorityStore: processAuthorityWriteHostStore,
-      identityAuthority: identity
-    }) || null;
+    if (gatewayEvidenceSurfaceLocked) {
+      gatewayBinding = gateway.assertCanonicalBinding({
+        runtime,
+        authorityWriteHostCapability: processAuthorityWriteHostCapability,
+        authorityStore: processAuthorityWriteHostStore,
+        identityAuthority: identity
+      }) || null;
+    }
   } catch (_) {
     gatewayBinding = null;
   }
@@ -141,6 +181,7 @@ function canonicalAuthorityGraph(runtime) {
     ledgerDatabaseMatches: ledger?.db === processAuthorityWriteHostStore?.db,
     identityRepositoryMatches: identity?.repository === platformCoreRepository,
     identityStoreMatches: identityStore === processAuthorityWriteHostStore,
+    gatewayEvidenceSurfaceLocked,
     gatewayPrivateBindingMatches: gatewayBinding?.bound === true
   });
   const canonicalGraphBound = Object.values(checks).every(Boolean);
