@@ -85,6 +85,12 @@ test('documentation-only changes stay at L0', () => {
   assert.equal(result.requiredLevel, 'L0');
 });
 
+test('README-like executable names are not treated as documentation', () => {
+  const result = classifyChangedFiles(risk, ['README-run.js']);
+  assert.equal(result.pass, false);
+  assert.equal(result.reasonCode, 'CI_UNKNOWN_PATH');
+});
+
 test('ordinary product or test code uses L1', () => {
   const result = classifyChangedFiles(risk, [
     'frontend/components/ConversationHeader.jsx',
@@ -116,8 +122,15 @@ test('L3 is never selected automatically', () => {
   assert.equal(result.promotionRequired, false);
 });
 
-test('invalid and unknown paths fail closed', () => {
+test('invalid repository paths fail closed', () => {
   const result = classifyChangedFiles(risk, ['../escape.js']);
   assert.equal(result.pass, false);
   assert.equal(result.reasonCode, 'CI_CHANGED_PATH_INVALID');
+});
+
+test('syntactically valid but unclassified paths fail closed', () => {
+  const result = classifyChangedFiles(risk, ['unclassified/new-gate.js']);
+  assert.equal(result.pass, false);
+  assert.equal(result.reasonCode, 'CI_UNKNOWN_PATH');
+  assert.deepEqual(result.unknownPaths, ['unclassified/new-gate.js']);
 });
