@@ -132,7 +132,9 @@ observe、transition、merge、rollback 的数据库事实、审计和 operation
 
 ## 6. 工具复核状态
 
-CodeRabbit 已在初始 RED 后被请求复核，但机器人明确返回未分配 Pro seat，正式 review 未执行。本复审不将该回复描述为“0 issues”。最终代码仍需再次发起限定请求并如实记录工具结果。
+CodeRabbit 已分别在 A5 初始 RED 与最终代码 Head 后被请求限定复核。机器人两次均明确返回未分配 Pro seat，正式 review 未执行。本复审不将该回复描述为“0 issues”或审批通过，也未为触发机器人将 Draft 改为 Ready。
+
+最终请求 comment ID：`5157497437`。最新 bot 回复 ID 因连接器未可靠暴露而记为 `null`，不进行猜测。
 
 ## 7. 治理边界
 
