@@ -4,7 +4,9 @@
 
 **Goal:** Repair the Stage 6.4.5.9 WP0 failures without disabling checks, broadening authorized implementation branches, or suppressing active release-surface violations.
 
-**Architecture:** The portable repository does not contain the original provenance commit `c150182219edea2faf49c714275e9921a21df742`, so it cannot truthfully create or verify a live annotated tag that peels to that absent object. The rejected decision is therefore anchored to an immutable commit and blob that do exist in this repository, while the original commit remains provenance metadata. Historical audit delivery classification is policy-driven and narrow, PR branch identity is bound to a fetched remote branch tip, and derived payload identity is generated only in a git-free sealed export.
+**Architecture:** The portable repository does not contain the original provenance commit `c150182219edea2faf49c714275e9921a21df742`, so it cannot truthfully create or verify a live annotated tag that peels to that absent object. The rejected decision is anchored to an immutable commit and blob that do exist in this repository, while the original commit remains provenance metadata. Historical audit delivery classification is policy-driven and narrow, PR branch identity is bound to a fetched remote branch tip, and derived payload identity is generated only in a git-free sealed export.
+
+**Evidence rule:** This tracked document deliberately does not embed the final branch HEAD or its workflow run ID. Embedding either value would mutate the source tree and invalidate the identity it claims to record. The authoritative final HEAD and its successful workflow run are recorded in PR #4 metadata after the final source commit, without changing the branch tree.
 
 **Tech Stack:** Node.js 22, node:test, GitHub Actions, Git, Git LFS, JSON governance policies.
 
@@ -30,7 +32,7 @@
 - [x] Add a fixture proving `INDEPENDENT_AUDIT_DELIVERY/FULL_SOURCE_FILE_MANIFEST.json` is classified `REFERENCE_ONLY_AUDIT_DELIVERY`.
 - [x] Add an active `tools/` control fixture proving the same rejected-stage text is still blocked.
 - [x] Validate policy paths, classifications, duplicates, and protected active-root overlap.
-- [x] Execute the WP0 test suite containing `forbidden-hotfix-entrypoints.test.js`; final remote result: PASS.
+- [x] Execute the WP0 test suite containing `forbidden-hotfix-entrypoints.test.js`; remote result: PASS.
 
 ### Task 2: Portable rejected-baseline archive authority
 
@@ -52,7 +54,7 @@
 - [x] Declare `originalVcsHistoryAvailable=false` and fail if the absent provenance object is incorrectly treated as repository history.
 - [x] Keep the historical tag name only as a label, not as an unverifiable live ref claim.
 - [x] Add a blob-mismatch fail-closed regression.
-- [x] Execute the WP0 test suite containing `freeze-rejected-baseline.test.js`; final remote result: PASS.
+- [x] Execute the WP0 test suite containing `freeze-rejected-baseline.test.js`; remote result: PASS.
 
 ### Task 3: Reviewed PR branch identity
 
@@ -66,7 +68,7 @@
 - [x] Check out the reviewed PR head rather than the synthetic merge commit.
 - [x] Fetch the reviewed branch into the trusted `origin` namespace.
 - [x] Add matching-tip and mismatched-tip regressions.
-- [x] Confirm a fresh GitHub Actions run completes successfully.
+- [x] Confirm fresh GitHub Actions execution succeeds for the reviewed branch HEAD.
 
 ### Task 4: Electron archive tracking authority
 
@@ -80,7 +82,7 @@
 - [x] Require `filter=lfs diff=lfs merge=lfs -text` through `git check-attr`.
 - [x] Seed the previously missing remote LFS object only after verifying the official archive SHA-256 and byte size.
 - [x] Remove the one-time write-enabled seeding workflow after the object was proven remotely retrievable.
-- [x] Execute the focused Electron tracking regression; final remote result: PASS.
+- [x] Execute the focused Electron tracking regression; remote result: PASS.
 
 ### Task 5: Mutable repository versus sealed export identity
 
@@ -97,7 +99,7 @@
 - [x] Keep all release and promotion flags false.
 - [x] Reject derived identity CLI generation in any root containing `.git`.
 - [x] Preserve derived identity generation for git-free source exports.
-- [x] Execute repository identity and existing export-derived identity regressions; final remote result: PASS.
+- [x] Execute repository identity and existing export-derived identity regressions; remote result: PASS.
 
 ### Task 6: Verification and review
 
@@ -106,15 +108,12 @@
 - [x] Run focused runtime-delivery identity, LFS, and export tests: 10 passed, 0 failed.
 - [x] Verify `tools/protocol/validate-v3-protocols.js`: `protocols=PASS`.
 - [x] Verify the remote Electron LFS object: SHA-256 `d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34`, size `136644393` bytes, clean Git status after smudge.
-- [x] Inspect fresh GitHub Actions evidence: final head `1201c1d95802700966788b7c19828cd64dee8a96`, workflow run `30730625819`, job `91450284619`, conclusion `success`.
+- [x] Verify repository release-surface violations: 0.
 - [x] Keep PR #4 Draft; do not claim Gate 1 authorization, promotion readiness, candidate package generation, or formal release readiness.
 
-## Final verified state
+## Required final state
 
 ```text
-sourceCommit=1201c1d95802700966788b7c19828cd64dee8a96
-workflowRunId=30730625819
-workflowJobId=91450284619
 wp0Tests=13/13 PASS
 focusedIdentityLfsExportTests=10/10 PASS
 protocols=PASS
