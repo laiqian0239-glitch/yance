@@ -13,6 +13,9 @@ permissions:
 env:
   IMPLEMENTATION_BRANCH: ${{ github.head_ref || github.ref_name }}
   REVIEWED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  BASELINE_ANCHOR_COMMIT: 570823e722f6db475066d6ef80ba900ac5c6cb39
+  BASELINE_ANCHOR_PATH: governance/rejected-baselines/stage-6.4.5.8.json
+  BASELINE_ANCHOR_BLOB: 6a5ffc68e76baf6a477668c6c2faf61934e94720
 
 jobs:
   wp0-gates:
@@ -25,13 +28,15 @@ jobs:
           ref: ${{ env.REVIEWED_HEAD_SHA }}
           fetch-depth: 0
           fetch-tags: false
-      - name: Establish trusted branch and immutable tag refs
+      - name: Establish trusted branch and archive anchor refs
         shell: bash
         run: |
           set -euo pipefail
+          git fetch --no-tags --force origin "main:refs/remotes/origin/main"
           git fetch --no-tags --force origin "${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
-          git fetch --force origin "+refs/tags/*:refs/tags/*"
-          git show-ref --verify "refs/tags/stage-6.4.5.8-rejected-architecture"
+          git cat-file -e "${BASELINE_ANCHOR_COMMIT}^{commit}"
+          git merge-base --is-ancestor "${BASELINE_ANCHOR_COMMIT}" "${REVIEWED_HEAD_SHA}"
+          test "$(git rev-parse "${BASELINE_ANCHOR_COMMIT}:${BASELINE_ANCHOR_PATH}")" = "${BASELINE_ANCHOR_BLOB}"
           git switch --force-create "${IMPLEMENTATION_BRANCH}" "${REVIEWED_HEAD_SHA}"
           test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})"
       - name: Set up Node.js
