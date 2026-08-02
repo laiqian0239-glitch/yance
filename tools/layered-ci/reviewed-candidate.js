@@ -20,8 +20,8 @@ function result(values = {}) {
     reviewedScopeVerified: false,
     postReviewCommitsVerified: false,
     postReviewPathsVerified: false,
-    readyForPromotion: false,
     ...values,
+    // Pinned after the spread so no caller can claim promotion readiness.
     readyForPromotion: false
   });
 }
@@ -196,7 +196,8 @@ function evaluateReviewedCandidate(options = {}) {
   let reviewedFiles;
   try {
     reviewedFiles = normalizedSortedPaths(lines(git([
-      'diff', '--name-only', manifest.governanceBase, manifest.reviewedHead
+      '-c', 'core.quotePath=false', 'diff', '--name-only',
+      manifest.governanceBase, manifest.reviewedHead, '--'
     ])));
   } catch (cause) {
     return fail('REVIEWED_SCOPE_UNAVAILABLE', {
@@ -252,7 +253,8 @@ function evaluateReviewedCandidate(options = {}) {
   let postReviewPaths;
   try {
     postReviewPaths = normalizedSortedPaths(lines(git([
-      'diff', '--name-only', manifest.reviewedHead, manifest.branchTip
+      '-c', 'core.quotePath=false', 'diff', '--name-only',
+      manifest.reviewedHead, manifest.branchTip, '--'
     ])));
   } catch (cause) {
     return fail('POST_REVIEW_PATHS_UNAVAILABLE', {
