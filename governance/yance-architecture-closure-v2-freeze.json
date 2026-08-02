@@ -1,84 +1,119 @@
 {
-  "schemaVersion": 1,
-  "documentType": "YANCE_ARCHITECTURE_CLOSURE_V2_FREEZE",
+  "schemaVersion": 2,
+  "documentType": "YANCE_ARCHITECTURE_CLOSURE_V2_GOVERNANCE",
   "project": "Yance",
   "program": "Architecture Closure V2",
-  "status": "FROZEN_FOR_INDEPENDENT_REVIEW",
+  "status": "INDEPENDENT_DESIGN_REVIEW_APPROVED_AFTER_NORMATIVE_AMENDMENT",
   "createdAt": "2026-08-02T11:36:00+07:00",
+  "reviewedAt": "2026-08-02T12:04:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "pullRequest": 4,
   "branch": "rebuild/windows-release-closure-20260802-gate0-wp0-fix",
   "initialReviewedHead": "15e538a6c26817b3cb8422fa3739f01256ec109e",
+  "designFreezeHead": "205292b2baa0a83222a19fc2dd1ba1de133bb78f",
   "designCommit": "b63f1cd73295432fce5f6506a49220481e4aaf73",
   "matrixCommit": "09e8c95d079b2f65336d14048963e4e5e0ea5e3e",
+  "designAmendmentCommit": "15d4962d969c43a7b6377be14282299b5223682f",
+  "matrixAmendmentCommit": "d6e6ea8b66e7404c9ea5889d7e3097b0ee3153fb",
+  "independentReviewReportCommit": "61c3318508a73c05afdebce7663cf4756797fccd",
   "documents": {
     "design": "docs/superpowers/specs/2026-08-02-yance-architecture-closure-v2-design.md",
-    "rootCauseMigrationMatrix": "docs/architecture/YANCE_ARCHITECTURE_CLOSURE_V2_ROOT_CAUSE_MIGRATION_MATRIX_ZH.md"
+    "designAmendment": "docs/superpowers/specs/2026-08-02-yance-architecture-closure-v2-independent-review-amendment.md",
+    "rootCauseMigrationMatrix": "docs/architecture/YANCE_ARCHITECTURE_CLOSURE_V2_ROOT_CAUSE_MIGRATION_MATRIX_ZH.md",
+    "rootCauseMigrationMatrixAmendment": "docs/architecture/YANCE_ARCHITECTURE_CLOSURE_V2_ROOT_CAUSE_MIGRATION_MATRIX_AMENDMENT_1_ZH.md",
+    "independentDesignReview": "docs/architecture/YANCE_ARCHITECTURE_CLOSURE_V2_INDEPENDENT_DESIGN_REVIEW_ZH.md"
   },
   "governance": {
     "prMustRemainDraft": true,
+    "independentDesignReviewApproved": true,
+    "architectureDesignClosed": true,
     "implementationPlanAllowed": false,
     "productionCodeChangesAllowed": false,
+    "wpAImplementationAllowed": false,
     "gate1MayStart": false,
     "readyForPromotion": false,
     "formalRelease": false,
     "candidatePackageGenerated": false,
-    "independentDesignReviewRequired": true,
+    "independentSourceReviewRequiredBeforeWpA": true,
     "independentSourceReviewRequiredAfterImplementation": true,
     "realWindowsUatRequired": true,
     "realThreePlatformUatRequired": true
   },
+  "normativePrecedence": [
+    "designAmendment",
+    "design",
+    "rootCauseMigrationMatrixAmendment",
+    "rootCauseMigrationMatrix"
+  ],
   "nonNegotiableInvariants": [
     "ONE_FACT_ONE_AUTHORITY_WRITER",
     "ONE_COMMAND_ONE_LEDGER_TRANSACTION",
+    "ONE_PHYSICAL_SQLITE_WRITE_HOST",
     "NO_LEGACY_NEW_DUAL_WRITE",
+    "NO_NETWORK_OR_EXTERNAL_IO_INSIDE_SQLITE_WRITE_TRANSACTION",
+    "EXTERNAL_ACTION_INTENT_ATTEMPT_RECEIPT_RECONCILIATION",
     "DURABLE_OPERATION_FULL_LIFECYCLE",
-    "EXTERNAL_ACTION_REQUIRES_RECEIPT",
-    "STALE_OWNER_AND_LATE_RESULT_REJECTED",
+    "EXTERNAL_ACTION_REQUIRES_DOMAIN_RECEIPT",
+    "STALE_OWNER_AND_LATE_RESULT_REJECTED_BY_DATABASE_CAS",
+    "BUSINESS_CONTENT_SECRET_REFERENCE_BINARY_REFERENCE_AND_EVIDENCE_SEPARATED",
+    "CREDENTIAL_CUSTODY_IS_THE_ONLY_SECRET_WRITER",
+    "EVIDENCE_AUTHORITY_DOES_NOT_ISSUE_DOMAIN_TRUTH",
+    "EVENT_SCHEMA_EVOLUTION_AND_REPLAY_ARE_VERSIONED_AND_DETERMINISTIC",
+    "READ_CUTOVER_AND_LEGACY_REMOVAL_USE_SEPARATE_RECEIPTS",
     "AI_DECISION_TRACEABLE_TO_MODEL_EXECUTION_DELIVERY_AND_LEARNING",
     "OLD_WRITER_RECOVERY_AND_FALLBACK_REMOVED_AFTER_CUTOVER",
     "NO_PRODUCTION_CLOSURE_BEFORE_REAL_UAT"
   ],
   "workPackageOrder": [
-    "WP-A_IDENTITY_AND_EVENT_LEDGER",
-    "WP-B_DURABLE_EXECUTION",
+    "WP-A_IDENTITY_EVENT_LEDGER_WRITE_HOST_PAYLOAD_SCHEMA",
+    "WP-B_DURABLE_EXECUTION_EXTERNAL_ACTION_OUTBOX",
     "WP-C_COMMUNICATION_CORE",
-    "WP-D_MODEL_LIFECYCLE",
-    "WP-E_EVIDENCE_GRAPH",
-    "WP-F_MEMORY_AND_LEARNING",
-    "WP-G_SHADOW_CUTOVER_AND_LEGACY_REMOVAL",
+    "WP-D_MODEL_LIFECYCLE_CREDENTIAL_BINDING",
+    "WP-E_EVIDENCE_GRAPH_DOMAIN_RECEIPT_INDEX",
+    "WP-F_MEMORY_AND_LEARNING_DUAL_APPROVAL",
+    "WP-G_SHADOW_TWO_PHASE_CUTOVER_AND_LEGACY_REMOVAL",
     "WP-H_REAL_ENVIRONMENT_UAT"
   ],
-  "designApprovalRequirements": [
-    "SINGLE_LEDGER_WITHOUT_SECOND_EVENT_STORE",
-    "COMPLETE_OLD_WRITER_RECOVERY_FALLBACK_INVENTORY",
-    "SQLITE_TRANSACTION_AND_MULTIPROCESS_SEMANTICS_REVIEWED",
-    "DURABLE_EXECUTION_CAS_LEASE_DEADLINE_AND_CANCELLATION_REVIEWED",
-    "MODEL_LIFECYCLE_IMPLICIT_CONVERSIONS_ELIMINATED",
-    "EVIDENCE_AND_MEMORY_REDACTION_SCOPE_REVIEWED",
-    "CUTOVER_RECEIPT_AND_DELETION_GATE_ENFORCEABLE",
-    "WP_ORDER_APPROVED"
+  "closedDesignReviewFindings": [
+    "DR-P0-01_SINGLE_SQLITE_WRITE_HOST",
+    "DR-P0-02_EXTERNAL_SIDE_EFFECT_ATOMICITY",
+    "DR-P0-03_LEDGER_PAYLOAD_AND_EVIDENCE_BOUNDARY",
+    "DR-P0-04_CUTOVER_RECEIPT_SEQUENCE",
+    "DR-P0-05_DOMAIN_RECEIPT_ISSUER_BOUNDARY",
+    "DR-P0-06_CREDENTIAL_CUSTODY_BOUNDARY",
+    "DR-P1-01_EVENT_SCHEMA_EVOLUTION",
+    "DR-P1-02_HISTORY_GROWTH",
+    "DR-P1-03_REPLY_AND_MEMORY_APPROVAL_SEPARATION",
+    "DR-P1-04_SHADOW_CANONICALIZATION",
+    "DR-P1-05_LEASE_CLOCK_FENCING"
   ],
   "preImplementationBlockers": [
     {
       "id": "GATE0-SEALED-EXPORT-CANONICAL-PATH",
       "status": "OPEN",
+      "severity": "P0",
       "requirements": [
         "ROOT_LSTAT_AND_REALPATH_CANONICALIZATION",
         "REJECT_ROOT_SYMLINK_AND_WINDOWS_JUNCTION_REPARSE_POINT",
         "USE_CANONICAL_ROOT_FOR_SCAN_GIT_PROBE_AND_HASH",
         "SANITIZE_REPOSITORY_DISCOVERY_GIT_ENVIRONMENT",
-        "LINUX_SYMLINK_WINDOWS_JUNCTION_AND_GIT_ENV_MATRIX_TESTS"
+        "LINUX_SYMLINK_WINDOWS_JUNCTION_AND_GIT_ENV_MATRIX_TESTS",
+        "INDEPENDENT_SOURCE_REREVIEW"
       ]
     }
   ],
+  "nextAuthorizedStage": "GATE0_SEALED_EXPORT_CANONICAL_PATH_REPAIR_AND_INDEPENDENT_SOURCE_REREVIEW",
   "implementationStartCondition": "INDEPENDENT_DESIGN_REVIEW_APPROVED_AND_ALL_PREIMPLEMENTATION_BLOCKERS_CLOSED",
   "prohibitedCompletionSignals": [
     "TEST_COUNT_ONLY",
     "COVERAGE_ONLY",
     "UI_GREEN_ONLY",
     "SINGLE_SMOKE_ONLY",
+    "BUSY_TIMEOUT_USED_AS_WRITE_SERIALIZATION",
+    "BLIND_RETRY_AFTER_UNCERTAIN_REMOTE_OUTCOME",
+    "EVIDENCE_OBSERVATION_USED_AS_DOMAIN_SUCCESS",
     "NO_MISMATCH_OBSERVED_WITH_INSUFFICIENT_SAMPLES",
-    "NEW_AUTHORITY_ADDED_WITH_OLD_WRITER_RETAINED"
+    "NEW_AUTHORITY_ADDED_WITH_OLD_WRITER_RETAINED",
+    "READ_CUTOVER_WITHOUT_LEGACY_REMOVAL_CLOSURE"
   ]
 }
