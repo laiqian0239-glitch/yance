@@ -22,14 +22,27 @@ const EXPECTED_BASELINE_COMMIT = EXPECTED_BASELINE_PROVENANCE_COMMIT;
 const EXPECTED_BASELINE_ANCHOR_COMMIT = '570823e722f6db475066d6ef80ba900ac5c6cb39';
 const EXPECTED_BASELINE_ANCHOR_PATH = 'governance/rejected-baselines/stage-6.4.5.8.json';
 const EXPECTED_BASELINE_ANCHOR_BLOB = '6a5ffc68e76baf6a477668c6c2faf61934e94720';
-const PROTECTED_ACTIVE_ROOTS = new Set([
+const APPROVED_REFERENCE_ONLY_AUTHORITIES = new Map([
+  ['independent_audit_delivery', 'REFERENCE_ONLY_AUDIT_DELIVERY']
+]);
+const PROTECTED_ACTIVE_AUTHORITY_PATHS = Object.freeze([
+  '.github',
+  '.gitattributes',
+  '.gitignore',
   'backend',
   'electron',
   'frontend',
-  'shared',
+  'governance',
+  'package.json',
+  'package-lock.json',
+  'release',
   'scripts',
   'services',
-  'tools'
+  'shared',
+  'tests',
+  'tools',
+  'vendor',
+  'yance_artifact_descriptor.json'
 ]);
 
 function configuredStage() {
@@ -59,6 +72,12 @@ function normalizeRepositoryRelativePath(value, fieldName) {
   return normalized;
 }
 
+function repositoryPathsOverlap(left, right) {
+  const a = String(left || '').toLowerCase();
+  const b = String(right || '').toLowerCase();
+  return a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`);
+}
+
 function referenceOnlyRootPolicies(policy = readJson(REPOSITORY_SCOPE_POLICY_PATH)) {
   if (!policy || policy.schemaVersion !== 2 || !Array.isArray(policy.referenceOnlyRoots)) {
     throw new Error('repository scope policy must define schemaVersion 2 referenceOnlyRoots');
@@ -70,11 +89,20 @@ function referenceOnlyRootPolicies(policy = readJson(REPOSITORY_SCOPE_POLICY_PAT
     if (!/^[A-Z][A-Z0-9_]*$/.test(classification) || classification === 'ACTIVE_SOURCE_OR_AUTOMATION') {
       throw new Error(`referenceOnlyRoots[${index}].classification must be an explicit non-active classification`);
     }
-    const firstSegment = root.split('/')[0].toLowerCase();
-    if (PROTECTED_ACTIVE_ROOTS.has(firstSegment)) {
-      throw new Error(`reference-only root ${root} overlaps protected active source root ${firstSegment}`);
-    }
     const key = root.toLowerCase();
+    const overlappingAuthority = PROTECTED_ACTIVE_AUTHORITY_PATHS.find((authorityPath) =>
+      repositoryPathsOverlap(key, authorityPath)
+    );
+    if (overlappingAuthority) {
+      throw new Error(`reference-only root ${root} overlaps protected active authority path ${overlappingAuthority}`);
+    }
+    const expectedClassification = APPROVED_REFERENCE_ONLY_AUTHORITIES.get(key);
+    if (!expectedClassification) {
+      throw new Error(`reference-only root ${root} is not an approved historical authority`);
+    }
+    if (classification !== expectedClassification) {
+      throw new Error(`reference-only root ${root} must use classification ${expectedClassification}`);
+    }
     if (seen.has(key)) throw new Error(`duplicate reference-only root ${root}`);
     seen.add(key);
     return Object.freeze({ path: root, lowerPath: key, classification });
@@ -445,11 +473,13 @@ function checkProtectedCommandPolicy() {
   if (scripts['verify:wp0:gate'] !== 'node tools/wp0/verify-gate.js') errors.push('verify:wp0:gate must derive target stage from release/release-source.json');
   if (scripts.prepack !== 'npm run verify:wp0:gate') errors.push('prepack must run verify:wp0:gate');
   if (scripts.prepublishOnly !== 'npm run verify:wp0:gate') errors.push('prepublishOnly must run verify:wp0:gate');
+  if (scripts['security:scan-staged'] !== 'node scripts/security/scan-staged-secrets.js') errors.push('security:scan-staged must use the canonical staged-secret scanner');
+  if (scripts['test:security-scan'] !== 'node --test --test-concurrency=1 tests/security/staged-secret-scanner.test.js') errors.push('test:security-scan must run the canonical scanner regression suite');
   return {
     pass: errors.length === 0,
     reasonCode: errors.length ? 'WP0_LOCAL_COMMAND_GATE_NOT_ENFORCED' : null,
     errors,
-    protectedCommands: ['build', 'package', 'release', 'pack', 'publish'],
+    protectedCommands: ['build', 'package', 'release', 'pack', 'publish', 'security:scan-staged', 'test:security-scan'],
     packageScripts: scripts
   };
 }
