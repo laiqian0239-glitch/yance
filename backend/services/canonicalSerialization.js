@@ -3,6 +3,7 @@
 const crypto = require('node:crypto');
 
 const CANONICALIZATION_VERSION = 1;
+const FORBIDDEN_OBJECT_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 
 function canonicalError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
@@ -54,6 +55,15 @@ function assertNoSymbolKeys(value, path) {
     throw canonicalError('CANONICAL_SYMBOL_KEY_FORBIDDEN', 'Canonical values cannot contain symbol-keyed state', {
       fieldPath: path,
       symbolCount: symbols.length
+    });
+  }
+}
+
+function assertObjectKeyAllowed(key, path) {
+  if (FORBIDDEN_OBJECT_KEYS.has(key)) {
+    throw canonicalError('CANONICAL_FORBIDDEN_OBJECT_KEY', 'Canonical values cannot contain prototype mutation keys', {
+      fieldPath: childPath(path, key),
+      key
     });
   }
 }
@@ -123,6 +133,7 @@ function encode(value, path, context) {
     const keys = Object.keys(descriptors).sort(codeUnitCompare);
     const entries = [];
     for (const key of keys) {
+      assertObjectKeyAllowed(key, path);
       const descriptor = descriptors[key];
       const fieldPath = childPath(path, key);
       if (typeof descriptor.get === 'function' || typeof descriptor.set === 'function') {
