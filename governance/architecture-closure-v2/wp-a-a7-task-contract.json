@@ -5,7 +5,7 @@
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "WP-A",
   "task": "A7",
-  "status": "RED_LOCKED",
+  "status": "IMPLEMENTING",
   "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
   "pullRequest": 5,
   "parentTask": "A6",
