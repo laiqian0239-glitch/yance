@@ -78,6 +78,30 @@ function resolveAuthorityBinding(options = {}) {
   return Object.freeze({ capability, authorityStore, token: capability.tokenSnapshot() });
 }
 
+function defineImmutableAuthorityBindings(runtime, binding) {
+  Object.defineProperties(runtime, {
+    authorityWriteHostCapability: Object.freeze({
+      value: binding.capability,
+      enumerable: false,
+      writable: false,
+      configurable: false
+    }),
+    authorityWriteHostToken: Object.freeze({
+      value: binding.token,
+      enumerable: false,
+      writable: false,
+      configurable: false
+    }),
+    primaryAuthorityStore: Object.freeze({
+      value: binding.authorityStore,
+      enumerable: false,
+      writable: false,
+      configurable: false
+    })
+  });
+  return runtime;
+}
+
 class AppRuntimeFactory {
   static create(options = {}) {
     if (processRuntime) {
@@ -93,9 +117,7 @@ class AppRuntimeFactory {
         authorityWriteHostToken: binding.token,
         primaryAuthorityStore: binding.authorityStore
       });
-      runtime.authorityWriteHostCapability = binding.capability;
-      runtime.authorityWriteHostToken = binding.token;
-      runtime.primaryAuthorityStore = binding.authorityStore;
+      defineImmutableAuthorityBindings(runtime, binding);
       processAuthorityWriteHostCapability = binding.capability;
       processAuthorityWriteHostStore = binding.authorityStore;
       processAuthorityWriteHostToken = binding.token;
