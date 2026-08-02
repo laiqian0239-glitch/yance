@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "documentType": "YANCE_ACV2_TASK_SCOPE_CHAIN",
-  "status": "A7_GREEN_PROVISIONAL",
+  "status": "A7_INDEPENDENT_REVIEW",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "WP-A",
   "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
@@ -10,8 +10,8 @@
   "baseAuthorizationBlobSha": "203697b36c06e0dc72c92113ef58f1a8f2394312",
   "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
   "activeTask": "A7",
-  "approvedChangedFileCount": 92,
-  "approvedChangedFileSetSha256": "5ea27d00a4b74165d27b087bab96c1ca029edb6312384bf08a4c981559b4464f",
+  "approvedChangedFileCount": 93,
+  "approvedChangedFileSetSha256": "ae47a3708d881139a6464ab1c629634f41b1ae296c0f4f6c869bd7499bf3a25d",
   "tasks": [
     {
       "task": "A6",
@@ -41,9 +41,10 @@
     },
     {
       "task": "A7",
-      "state": "GREEN_PROVISIONAL",
+      "state": "INDEPENDENT_REVIEW",
       "parentTask": "A6",
       "parentEvidenceBranchTip": "e877aec9e16663296e632c224a1da3b7892f1f2b",
+      "reviewedCodeHead": "15512d531079334829f3ebf2d04ab174cec58a8c",
       "additionalAllowedPaths": [
         "backend/services/ledgerReplayAuthority.js",
         "backend/services/ledgerArchiveAuthority.js",
@@ -53,7 +54,8 @@
         "governance/architecture-closure-v2/wp-a-a6-closure.json",
         "governance/architecture-closure-v2/wp-a-a7-task-contract.json",
         "governance/architecture-closure-v2/wp-a-task-scope-chain.json",
-        "tests/wp0/acv2-task-scope-chain.test.js"
+        "tests/wp0/acv2-task-scope-chain.test.js",
+        "docs/architecture/YANCE_ACV2_WP_A_A7_SOURCE_REVIEW_ZH.md"
       ]
     }
   ],
