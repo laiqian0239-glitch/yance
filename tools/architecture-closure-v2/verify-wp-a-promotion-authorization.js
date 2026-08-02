@@ -16,6 +16,8 @@ const DEFAULT_AUTHORIZATION_PATH = path.join(
 const EXACT_PROMOTION_FILES = Object.freeze([
   '.github/workflows/wp-a-promotion-authorization.yml',
   'governance/architecture-closure-v2/wp-a-promotion-authorization.json',
+  'governance/layered-ci/wp0-routing-policy.json',
+  'tests/layered-ci/wp0-routing.test.js',
   'tests/wp0/wp-a-promotion-authorization.test.js',
   'tools/architecture-closure-v2/verify-wp-a-promotion-authorization.js'
 ].sort());
