@@ -61,7 +61,7 @@ function createHarness(prefix = 'yance-acv2-a4-') {
     evidence,
     published,
     close() {
-      try { broker.closeAll(); } catch (_) {}
+      try { broker.checkpointAndClose(); } catch (_) {}
       try { host.release(); } catch (_) {}
       fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
     }
