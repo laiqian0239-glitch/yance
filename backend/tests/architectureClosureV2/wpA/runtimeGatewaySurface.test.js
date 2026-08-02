@@ -8,12 +8,23 @@ const path = require('node:path');
 
 const { acquireAuthorityWriteHost } = require('../../../services/authorityWriteHost');
 const { SqliteConnectionBroker } = require('../../../lib/sqliteConnectionBroker');
-const { RuntimeAuthorityCommandGateway } = require('../../../runtime/AppRuntimeComposition');
+const { AppRuntimeFactory } = require('../../../runtime/AppRuntimeFactory');
 
-function commandHandlers() {
-  return Object.freeze(Object.assign(Object.create(null), {
-    'startup.noop': () => ({ ok: true })
-  }));
+function minimalRuntimeDependencies() {
+  return {
+    ownership: { guard: () => ({ ownerInstanceId: 'owner', fencingToken: 1 }) },
+    store: {
+      snapshot: () => ({
+        stateVersion: 1,
+        lastEventSequence: 0,
+        runtime: { operatingMode: 'normal', operatingModeRevision: 1 },
+        capabilities: {},
+        diagnosticsSummary: {}
+      })
+    },
+    lifecycle: { state: 'runtime_state_ready' },
+    buildId: 'acv2-a6-gateway-surface-test'
+  };
 }
 
 function withAuthorityStore(callback) {
@@ -34,28 +45,39 @@ function withAuthorityStore(callback) {
   }
 }
 
-test('startup gateway surface cannot be shadowed to forge readiness evidence', () => {
-  withAuthorityStore(({ host, authorityStore }) => {
-    const gateway = new RuntimeAuthorityCommandGateway({
-      runtime: { snapshot: () => ({ stateVersion: 1 }) },
-      authorityWriteHostCapability: host.capability,
-      authorityStore,
-      commandHandlers: commandHandlers()
+test('readiness locks startup gateway surface against forged evidence methods', () => {
+  const previous = process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
+  process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
+  try {
+    withAuthorityStore(({ host, authorityStore }) => {
+      AppRuntimeFactory.resetForTests();
+      const runtime = AppRuntimeFactory.create({
+        ...minimalRuntimeDependencies(),
+        authorityWriteHostCapability: host.capability,
+        authorityStore
+      });
+      const gateway = runtime.configureProductionServices().authorityCommandGateway;
+
+      AppRuntimeFactory.assertAuthorityReady();
+      assert.equal(Object.isFrozen(gateway), true, 'gateway instance must reject own-property method shadowing');
+      assert.equal(Object.isFrozen(Object.getPrototypeOf(gateway)), true, 'gateway prototype must reject process-wide method replacement');
+      assert.throws(
+        () => Object.defineProperty(gateway, 'snapshot', { value: () => ({ state: 'sealed' }) }),
+        TypeError
+      );
+      assert.throws(
+        () => Object.defineProperty(gateway, 'assertCanonicalBinding', { value: () => ({ bound: true }) }),
+        TypeError
+      );
+
+      assert.equal(gateway.snapshot().state, 'open');
+      gateway.seal();
+      assert.equal(gateway.snapshot().state, 'sealed');
+      AppRuntimeFactory.clear(runtime);
     });
-
-    assert.equal(Object.isFrozen(gateway), true, 'gateway instance must reject own-property method shadowing');
-    assert.equal(Object.isFrozen(Object.getPrototypeOf(gateway)), true, 'gateway prototype must reject process-wide method replacement');
-    assert.throws(
-      () => Object.defineProperty(gateway, 'snapshot', { value: () => ({ state: 'sealed' }) }),
-      TypeError
-    );
-    assert.throws(
-      () => Object.defineProperty(gateway, 'assertCanonicalBinding', { value: () => ({ bound: true }) }),
-      TypeError
-    );
-
-    assert.equal(gateway.snapshot().state, 'open');
-    gateway.seal();
-    assert.equal(gateway.snapshot().state, 'sealed');
-  });
+  } finally {
+    AppRuntimeFactory.resetForTests();
+    if (previous == null) delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
+    else process.env.YANCE_TEST_ONLY_RUNTIME_RESET = previous;
+  }
 });
