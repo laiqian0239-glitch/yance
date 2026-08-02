@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_A_BRANCH_POLICY_AMENDMENT",
+  "status": "A0_GOVERNANCE_INTEGRATION_REQUIRED",
+  "workPackage": "WP-A",
+  "task": "A0",
+  "reasonCode": "ACV2_MACHINE_AUTHORIZATION_NOT_CONSUMED_BY_WP0_BRANCH_POLICY",
+  "failedWorkflowRunId": 30734885056,
+  "failedWorkflowJobId": 91461773095,
+  "invalidRedReason": "WP0 rejected the exact authorized child branch before the A0 source-closure tests ran.",
+  "requiredRootFix": {
+    "policyModule": "shared/release/implementationBranchPolicy.js",
+    "consumer": "tools/wp0/lib.js",
+    "tests": "tests/wp0/implementation-branch-policy.test.js",
+    "authorizationSource": "governance/architecture-closure-v2/implementation-plan-authorization.json",
+    "rules": [
+      "Authorize only the exact authorizedBranch declared by a valid machine-readable work-package authorization.",
+      "Do not authorize arbitrary acv2/* branches.",
+      "Do not change the canonical Stage branch or dated rebuild branch rules.",
+      "Fail closed when the authorization document is absent, malformed, not active, or automaticNextWorkPackageAuthorization is not false.",
+      "The public branch-policy description must name the exact authorized child branch when valid."
+    ]
+  },
+  "temporaryBypassAllowed": false,
+  "branchWildcardAllowed": false,
+  "productionBusinessCodeAllowed": false
+}
