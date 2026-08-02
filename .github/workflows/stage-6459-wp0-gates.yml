@@ -28,10 +28,9 @@ jobs:
     outputs:
       route: ${{ steps.route.outputs.route }}
     steps:
-      - name: Checkout full review history
+      - name: Checkout pull-request merge or pushed branch history
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ env.REVIEWED_HEAD_SHA }}
           fetch-depth: 0
           fetch-tags: false
           lfs: false
