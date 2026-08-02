@@ -10,8 +10,8 @@
   "baseAuthorizationBlobSha": "203697b36c06e0dc72c92113ef58f1a8f2394312",
   "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
   "activeTask": "A8",
-  "approvedChangedFileCount": 100,
-  "approvedChangedFileSetSha256": "054753577cca2deb349527696e70d45d53ae79688c060ede02ff52bcca4eb7b2",
+  "approvedChangedFileCount": 104,
+  "approvedChangedFileSetSha256": "33f98885bc9a95ca24af1a4a230068675ed0d20f8c41356169a5511e261622be",
   "tasks": [
     {
       "task": "A6",
@@ -70,6 +70,7 @@
       "redEvidencePath": "governance/architecture-closure-v2/wp-a-a8-red-evidence.json",
       "additionalAllowedPaths": [
         "backend/desktopHostedEntry.js",
+        "backend/lib/r32SqliteStore.js",
         "backend/lib/r32StoreSingleton.js",
         "backend/lib/sqliteDocumentStore.js",
         "backend/lib/sqliteOwnership.js",
@@ -77,6 +78,7 @@
         "backend/repositories/storeProvider.js",
         "backend/repositories/platformCoreRepository.js",
         "backend/runtime/RuntimeAuthorityMigrationCoordinator.js",
+        "backend/runtime/RuntimeOwnership.js",
         "backend/runtime/AppRuntimeComposition.js",
         "backend/services/authorityWriteHost.js",
         "backend/services/legacyJsonMigrator.js",
@@ -95,6 +97,7 @@
         "backend/tests/architectureClosureV2/wpA/sourceClosureFinal.test.js",
         "backend/tests/architectureClosureV2/wpA/sourceClosureBootAuthority.test.js",
         "backend/tests/architectureClosureV2/wpA/primaryStoreCapabilityBoundary.test.js",
+        "backend/tests/architectureClosureV2/wpA/sourceClosureRuntimeOwnership.test.js",
         "backend/tests/architectureClosureV2/wpA/migrationAuthorityBoundary.test.js",
         "backend/tests/architectureClosureV2/wpA/sourceClosureLedgerBoundary.test.js",
         "backend/tests/architectureClosureV2/wpA/workspaceIdentityCommandBoundary.test.js",
