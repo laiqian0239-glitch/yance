@@ -240,13 +240,13 @@ test('authority input rejects unknown, symbol and accessor fields without execut
   }
 });
 
-test('one scoped external event cannot be appended again under a different explicit idempotency key', () => {
+test('scoped external event identity cannot be bypassed with different explicit idempotency and aggregate ids', () => {
   const harness = createHarness('yance-acv2-a4-external-');
   try {
     harness.authority.append(appendInput({
       commandId: 'command:a4:external:1',
       idempotencyKey: 'idempotency:a4:external:1',
-      aggregateId: undefined,
+      aggregateId: 'caller-aggregate:one',
       eventId: 'event:a4:external:1',
       externalEventId: 'telegram-update-77'
     }));
@@ -254,11 +254,12 @@ test('one scoped external event cannot be appended again under a different expli
       () => harness.authority.append(appendInput({
         commandId: 'command:a4:external:2',
         idempotencyKey: 'idempotency:a4:external:2',
-        aggregateId: undefined,
+        aggregateId: 'caller-aggregate:two',
         eventId: 'event:a4:external:2',
         externalEventId: 'telegram-update-77'
       })),
-      error => error?.code === 'AUTHORITY_AGGREGATE_VERSION_CONFLICT'
+      error => error?.code === 'CANONICAL_EVENT_EXTERNAL_IDENTITY_CONFLICT'
+        || error?.code === 'AUTHORITY_AGGREGATE_VERSION_CONFLICT'
     );
     assert.equal(count(harness.store.db, 'canonical_event_headers'), 1);
   } finally {
