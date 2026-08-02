@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_A_A3_REVIEW_RED_EVIDENCE",
+  "status": "VALID_REVIEW_RED_RECORDED",
+  "workPackage": "WP-A",
+  "task": "A3_AUTHORITY_TRANSACTION_COORDINATOR_AND_COMMAND_PROTOCOL",
+  "repository": "laiqian0239-glitch/yance",
+  "pullRequest": 5,
+  "branch": "acv2/wp-a-identity-ledger-write-host",
+  "reviewedImplementationHead": "06e2459a97dcacfd68d70f4a48b9b831cc065263",
+  "reviewRedHead": "30972cb025a5d059b5e2e7376156e3dd5571978a",
+  "workflow": {
+    "name": "ACV2 WP-A Architecture Gates",
+    "runId": 30738506985,
+    "ubuntuJobId": 91471561304,
+    "windowsJobId": 91471561296,
+    "sourceClosureJobId": 91471561268,
+    "ubuntuConclusion": "EXPECTED_FAILURE",
+    "windowsConclusion": "EXPECTED_FAILURE",
+    "sourceClosureConclusion": "EXPECTED_FAILURE"
+  },
+  "prerequisitesPerPlatform": {
+    "windowsMutexHelper": "3_OF_3_PASS",
+    "authorityWriteHostAndSchema21OriginalContract": "7_OF_7_PASS",
+    "realProcessOwnershipAndTakeover": "2_OF_2_PASS",
+    "a2CanonicalClassificationAndReplay": "33_OF_33_PASS",
+    "originalA3Contracts": "18_OF_18_PASS"
+  },
+  "reviewSuitePerPlatform": {
+    "tests": 24,
+    "passed": 18,
+    "failed": 6,
+    "expectedFailures": [
+      "SCHEMA_21_CANONICAL_EVENT_HEADER_INCOMPLETE",
+      "SCHEMA_21_PROJECTOR_CHECKPOINT_SEMANTIC_CONTRACT_INCOMPLETE",
+      "PROJECTOR_RECEIVES_RAW_PRIMARY_DATABASE",
+      "RETAINED_PROJECTOR_DATABASE_CAPABILITY_REMAINS_LIVE_AFTER_COMMIT",
+      "LEDGER_PAYLOAD_NOT_DEEPLY_IMMUTABLE",
+      "TRACE_SOURCE_HASH_AND_PROJECTOR_FENCING_METADATA_NOT_PERSISTED"
+    ]
+  },
+  "rootCause": {
+    "schema": "INITIAL_SCHEMA_21_DDL_FROZE_ONLY_MINIMAL_COLUMNS_AND_COULD_NOT_EXPRESS_GLOBAL_LEDGER_SEQUENCE_OR_PROJECTOR_LEASE_FENCING",
+    "coordinator": "PROJECTOR_CALLBACK_RECEIVED_RAW_DATABASE_AND_SHALLOW_FROZEN_PAYLOAD",
+    "semanticBypassRejected": "LAST_AGGREGATE_VERSION_MUST_NOT_BE_REUSED_AS_GLOBAL_LEDGER_SEQUENCE"
+  },
+  "requiredRootRepair": [
+    "REDEFINE_UNRELEASED_SCHEMA_21_WITH_COMPLETE_LEDGER_AND_PROJECTOR_CONTRACT",
+    "PIN_MIGRATION_CHECKSUM_TO_COMPLETE_SCHEMA_CONTRACT",
+    "PERSIST_GLOBAL_LEDGER_SEQUENCE_AND_FULL_EVENT_METADATA",
+    "PERSIST_PROJECTOR_LEASE_GENERATION_FENCING_OUTPUT_HASH_AND_LAG",
+    "PASS_TRANSACTION_SCOPED_REVOKABLE_DATABASE_CAPABILITY_TO_PROJECTOR",
+    "REJECT_TRANSACTION_CONTROL_AND_AUTHORITY_TABLE_ACCESS_FROM_PROJECTOR",
+    "EXPIRE_PREPARED_STATEMENTS_AND_DATABASE_CAPABILITY_AFTER_CALLBACK",
+    "DEEP_FREEZE_PROJECTOR_PAYLOAD"
+  ],
+  "temporaryCompatibilityColumnsAllowed": false,
+  "testsWeakened": false,
+  "nextAuthorizedAction": "REOPEN_A1_SCHEMA_FOUNDATION_AND_A3_COORDINATOR_FOR_ROOT_REPAIR",
+  "lockedTasks": ["A4", "A5", "A6", "A7", "A8"],
+  "lockedWorkPackages": ["WP-B", "WP-C", "WP-D", "WP-E", "WP-F", "WP-G", "WP-H"]
+}
