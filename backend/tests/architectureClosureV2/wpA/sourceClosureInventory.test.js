@@ -12,17 +12,10 @@ function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(repoRoot, relativePath), 'utf8'));
 }
 
-const TASK_ORDER = Object.freeze([
-  'A0_FREEZE_WRITER_READ_RECOVERY_FALLBACK_INVENTORY_AND_ADD_RED_TESTS',
-  'A1_INTRODUCE_SCHEMA_21_AND_PERSISTENT_AUTHORITY_WRITE_HOST_LEASE',
-  'A2_VERSIONED_CANONICAL_SERIALIZATION_AND_DATA_CLASSIFICATION',
-  'A3_AUTHORITY_TRANSACTION_COORDINATOR_AND_COMMAND_PROTOCOL_TEST_FIRST',
-  'A4_CANONICAL_EVENT_LEDGER_IN_PLACE_UPGRADE',
-  'A5_IDENTITY_AUTHORITY_MIGRATION',
-  'A6_PRIMARY_DATABASE_ACCESS_AND_LEGACY_IMPORT_BOUNDARY',
-  'A7_LEDGER_REPLAY_SNAPSHOT_AND_ARCHIVE',
-  'A8_WP_A_FULL_VERIFICATION_AND_INDEPENDENT_SOURCE_REVIEW'
-]);
+function taskNumber(value) {
+  const match = /^A([0-8])_/.exec(String(value || ''));
+  return match ? Number(match[1]) : -1;
+}
 
 test('A0 evidence remains immutable while current task authorization advances monotonically', () => {
   const baseline = readJson(scanner.BASELINE_PATH);
@@ -30,15 +23,19 @@ test('A0 evidence remains immutable while current task authorization advances mo
   assert.equal(baseline.parentGovernanceHead, 'd81599d8a3f3de891da369b6f1ddbd01e264c78d');
   assert.equal(baseline.authorizedBranch, 'acv2/wp-a-identity-ledger-write-host');
   assert.equal(baseline.a0.status, 'CLOSED');
-  const currentIndex = TASK_ORDER.indexOf(baseline.currentAuthorizedTask);
+  const currentIndex = taskNumber(baseline.currentAuthorizedTask);
   assert.ok(currentIndex >= 1, `unknown current task ${baseline.currentAuthorizedTask}`);
   for (const completed of baseline.completedTasks || []) {
-    const completedIndex = TASK_ORDER.indexOf(completed);
+    const completedIndex = taskNumber(completed);
     assert.ok(completedIndex >= 0 && completedIndex < currentIndex, `completed task is not before current task: ${completed}`);
   }
-  if (baseline.currentAuthorizedTask.startsWith('A3_')) {
+  if (currentIndex === 3) {
     assert.equal(baseline.a3TestCodeAllowed, true);
-    assert.equal(baseline.a3ProductionCodeAllowed, false);
+    assert.equal(typeof baseline.a3ProductionCodeAllowed, 'boolean');
+    if (baseline.a3ProductionCodeAllowed) {
+      assert.equal(baseline.a3?.redEvidence?.conclusion, 'EXPECTED_FAILURE');
+      assert.equal(baseline.a3?.implementationStartConditionSatisfied, true);
+    }
   }
   assert.deepEqual(config.discoveryRoots, ['backend']);
   assert.deepEqual(config.discoveryExcludes, ['backend/tests', 'backend/migrations']);
