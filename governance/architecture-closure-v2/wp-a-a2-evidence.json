@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "documentType": "YANCE_ACV2_WP_A_A2_EVIDENCE",
-  "status": "GREEN_VERIFIED_AFTER_INDEPENDENT_REVIEW_REOPEN",
+  "status": "GREEN_VERIFIED_AFTER_TWO_INDEPENDENT_REVIEW_REOPENS",
   "workPackage": "WP-A",
   "task": "A2_VERSIONED_CANONICAL_SERIALIZATION_AND_DATA_CLASSIFICATION",
   "repository": "laiqian0239-glitch/yance",
@@ -25,7 +25,7 @@
     "a2ContractPerPlatform": "21_OF_21_PASS",
     "legacyRegressionsPerPlatform": "22_OF_22_PASS"
   },
-  "independentReviewReopen": {
+  "independentReviewReopenOne": {
     "redHead": "fdef944954ad9d86f707b10a19e617075ce8f099",
     "workflowRunId": 30737130362,
     "ubuntuJobId": 91467868831,
@@ -43,17 +43,61 @@
       "A2-R-P1-04_DESCRIPTOR_AND_CLASSIFICATION_COVERAGE_GAPS"
     ]
   },
-  "finalGreen": {
-    "reviewedCodeHead": "ff74d7a72a7be2974a4023035ab6d779e17ed081",
+  "reviewGreenOne": {
+    "head": "ff74d7a72a7be2974a4023035ab6d779e17ed081",
     "workflowRunId": 30737251833,
     "ubuntuJobId": 91468231849,
     "windowsJobId": 91468231885,
+    "result": "SUCCESS",
+    "a2ContractPerPlatform": "28_OF_28_PASS",
+    "legacyRegressionsPerPlatform": "22_OF_22_PASS",
+    "supersededAsFinalEvidence": true,
+    "supersededReason": "HOST_ORIGIN_VM_INPUT_OBJECT_ENABLED_CONSTRUCTOR_ESCAPE"
+  },
+  "independentReviewReopenTwo": {
+    "vmEscapeRed": {
+      "head": "d002960ce414767bb6c002e2f279f659095d77a4",
+      "workflowRunId": 30737394158,
+      "ubuntuJobId": 91468598290,
+      "windowsJobId": 91468598271,
+      "result": "EXPECTED_FAILURE",
+      "a1PrerequisitesPerPlatform": "12_OF_12_PASS",
+      "a2ContractPerPlatform": "29_PASS_1_EXPECTED_FAIL",
+      "finding": "A2-R-P0-04_VM_HOST_OBJECT_CONSTRUCTOR_ESCAPE",
+      "rootCause": "HOST_ORIGIN_OBJECT_WAS_INSERTED_INTO_VM_GLOBAL_CONTEXT_AND_RETAINED_HOST_FUNCTION_CONSTRUCTOR_CHAIN"
+    },
+    "vmEscapeRepair": {
+      "head": "50e75537720ac4bc455de0fe821fae1b9ebe932e",
+      "workflowRunId": 30737480199,
+      "ubuntuJobId": 91468816238,
+      "windowsJobId": 91468816210,
+      "result": "SUCCESS",
+      "a2ContractPerPlatform": "30_OF_30_PASS",
+      "rootFix": "PRIMITIVE_JSON_STRING_ONLY_CROSSES_VM_BOUNDARY_AND_VM_NATIVE_JSON_PARSE_CREATES_INPUT"
+    },
+    "prototypePollutionRed": {
+      "head": "064993668171cb796482ab79372f5d049fa10caa",
+      "workflowRunId": 30737549974,
+      "ubuntuJobId": 91469007420,
+      "windowsJobId": 91469007370,
+      "result": "EXPECTED_FAILURE",
+      "a1PrerequisitesPerPlatform": "12_OF_12_PASS",
+      "a2ContractPerPlatform": "30_PASS_3_EXPECTED_FAIL",
+      "finding": "A2-R-P0-05_PROTOTYPE_MUTATION_KEYS_COULD_POLLUTE_OR_DISAPPEAR",
+      "rootCause": "PLAIN_OBJECT_CLONES_USED_ASSIGNMENT_WITHOUT_REJECTING_PROTO_PROTOTYPE_OR_CONSTRUCTOR_OWN_KEYS"
+    }
+  },
+  "finalGreen": {
+    "reviewedCodeHead": "947c5a66610d260869188bb7c8fdf36ee0b00f54",
+    "workflowRunId": 30737653039,
+    "ubuntuJobId": 91469279772,
+    "windowsJobId": 91469279753,
     "ubuntuConclusion": "SUCCESS",
     "windowsConclusion": "SUCCESS",
     "windowsMutexHelperPerPlatform": "3_OF_3_PASS",
     "authorityWriteHostPerPlatform": "7_OF_7_PASS",
     "realProcessOwnershipPerPlatform": "2_OF_2_PASS",
-    "a2ContractPerPlatform": "28_OF_28_PASS",
+    "a2ContractPerPlatform": "33_OF_33_PASS",
     "legacyRegressionsPerPlatform": "22_OF_22_PASS"
   },
   "closedInvariants": [
@@ -61,6 +105,7 @@
     "LOCALE_FREE_UTF16_CODE_UNIT_ORDERING",
     "DETERMINISTIC_TIMESTAMP_NUMBER_OBJECT_ARRAY_AND_SET_SERIALIZATION",
     "SYMBOL_SPARSE_CUSTOM_ARRAY_ACCESSOR_CYCLE_EXECUTABLE_AND_NON_PLAIN_REJECTION",
+    "PROTOTYPE_MUTATION_KEYS_REJECTED_AT_EVERY_BOUNDARY",
     "EXACT_DATA_CLASSIFICATION_VOCABULARY",
     "UNKNOWN_ENUMERABLE_NONENUMERABLE_AND_SYMBOL_FIELDS_FAIL_CLOSED",
     "BUSINESS_CONTENT_EXCLUDED_FROM_METADATA",
@@ -73,6 +118,9 @@
     "CONTIGUOUS_UPCASTER_CHAIN",
     "UPCASTER_SOURCE_STATIC_REJECTION",
     "UPCASTER_RESTRICTED_VM_CONTEXT",
+    "UPCASTER_PRIMITIVE_ONLY_VM_BOUNDARY",
+    "UPCASTER_CONTEXT_NATIVE_INPUT_OBJECT",
+    "UPCASTER_CONSTRUCTOR_ESCAPE_REJECTED",
     "UPCASTER_NO_HOST_CLOSURE_OR_GLOBAL_CAPABILITY",
     "UPCASTER_NO_INPUT_MUTATION_ASYNC_OR_NONDETERMINISTIC_OUTPUT"
   ],
@@ -83,7 +131,8 @@
     "invoked": true,
     "requestCommentId": 5156080850,
     "formalReview": "SKIPPED_BY_SERVICE_DRAFT_FREE_SEAT",
-    "walkthroughSummaryAvailable": true
+    "walkthroughSummaryAvailable": true,
+    "manualReviewNotMisrepresentedAsCodeRabbit": true
   },
   "sentry": {
     "pluginInvoked": true,
@@ -91,7 +140,7 @@
     "reason": "NO_READ_ONLY_SENTRY_TOKEN_OR_CONNECTED_SENTRY_API_AVAILABLE_IN_SESSION",
     "inventedFindings": false
   },
-  "nextGate": "INDEPENDENT_A2_SOURCE_REVIEW_AND_FINAL_GOVERNANCE_HEAD_REVALIDATION",
+  "nextGate": "FINAL_A2_SOURCE_REVIEW_DOCUMENT_AND_GOVERNANCE_HEAD_REVALIDATION",
   "lockedTasks": ["A3", "A4", "A5", "A6", "A7", "A8"],
   "lockedWorkPackages": ["WP-B", "WP-C", "WP-D", "WP-E", "WP-F", "WP-G", "WP-H"]
 }
