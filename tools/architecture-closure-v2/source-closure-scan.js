@@ -31,6 +31,36 @@ function normalizePath(value) {
   return String(value || '').split(path.sep).join('/').replace(/^\.\//u, '');
 }
 
+function sourceClosureConfig(baseline) {
+  const config = baseline?.sourceClosure;
+  if (!config || typeof config !== 'object') {
+    const error = new Error('WP-A baseline must define sourceClosure configuration');
+    error.code = 'SOURCE_CLOSURE_CONFIG_REQUIRED';
+    throw error;
+  }
+  if (!Array.isArray(config.discoveryRoots) || config.discoveryRoots.length === 0) {
+    const error = new Error('sourceClosure.discoveryRoots must be non-empty');
+    error.code = 'SOURCE_CLOSURE_DISCOVERY_ROOTS_REQUIRED';
+    throw error;
+  }
+  if (!Array.isArray(config.discoveryExcludes)) {
+    const error = new Error('sourceClosure.discoveryExcludes must be an array');
+    error.code = 'SOURCE_CLOSURE_DISCOVERY_EXCLUDES_REQUIRED';
+    throw error;
+  }
+  if (!Array.isArray(config.initialViolationClasses) || config.initialViolationClasses.length === 0) {
+    const error = new Error('sourceClosure.initialViolationClasses must be non-empty');
+    error.code = 'SOURCE_CLOSURE_INITIAL_VIOLATIONS_REQUIRED';
+    throw error;
+  }
+  if (typeof config.a0EvidenceDocument !== 'string' || !config.a0EvidenceDocument) {
+    const error = new Error('sourceClosure.a0EvidenceDocument is required');
+    error.code = 'SOURCE_CLOSURE_A0_EVIDENCE_REQUIRED';
+    throw error;
+  }
+  return config;
+}
+
 function walkJavaScript(relativeRoot, excludes = []) {
   const absoluteRoot = path.join(REPO_ROOT, relativeRoot);
   const normalizedExcludes = excludes.map(normalizePath);
@@ -88,6 +118,8 @@ function validateRegistry(registry, baseline) {
   }
   if (baseline?.authorizedBranch !== 'acv2/wp-a-identity-ledger-write-host') errors.push({ code: 'BASELINE_BRANCH_MISMATCH' });
   if (baseline?.parentGovernanceHead !== 'd81599d8a3f3de891da369b6f1ddbd01e264c78d') errors.push({ code: 'BASELINE_PARENT_HEAD_MISMATCH' });
+  try { sourceClosureConfig(baseline); }
+  catch (error) { errors.push({ code: error.code || 'SOURCE_CLOSURE_CONFIG_INVALID' }); }
   return errors;
 }
 
@@ -121,6 +153,7 @@ function scanRegisteredSources({ baseline = readJson(BASELINE_PATH), registry = 
   const registryErrors = validateRegistry(registry, baseline);
   const violations = registryErrors.map(error => ({ violationClass: 'REGISTRY_INVALID', ...error }));
   const targetWorkPackage = `WP-${String(wp || 'A').toUpperCase()}`;
+  const config = sourceClosureConfig(baseline);
 
   for (const entry of registry.entries || []) {
     const sourcePath = path.join(REPO_ROOT, normalizePath(entry.path));
@@ -153,8 +186,8 @@ function scanRegisteredSources({ baseline = readJson(BASELINE_PATH), registry = 
   }
 
   const sourceRows = [];
-  for (const root of baseline.discoveryRoots || []) {
-    for (const relativePath of walkJavaScript(root, baseline.discoveryExcludes || [])) {
+  for (const root of config.discoveryRoots) {
+    for (const relativePath of walkJavaScript(root, config.discoveryExcludes)) {
       sourceRows.push({ path: relativePath, source: fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8') });
     }
   }
@@ -163,11 +196,13 @@ function scanRegisteredSources({ baseline = readJson(BASELINE_PATH), registry = 
   const counts = {};
   for (const violation of violations) counts[violation.violationClass] = (counts[violation.violationClass] || 0) + 1;
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     documentType: 'YANCE_ACV2_SOURCE_CLOSURE_SCAN',
     workPackage: targetWorkPackage,
     branch: baseline.authorizedBranch,
     parentGovernanceHead: baseline.parentGovernanceHead,
+    a0EvidenceDocument: config.a0EvidenceDocument,
+    initialViolationClasses: config.initialViolationClasses,
     ok: violations.length === 0,
     registryEntries: registry.entries?.length || 0,
     scannedSourceFiles: sourceRows.length,
@@ -211,6 +246,7 @@ module.exports = {
   normalizePath,
   readJson,
   scanRegisteredSources,
+  sourceClosureConfig,
   validateRegistry,
   walkJavaScript
 };
