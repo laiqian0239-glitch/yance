@@ -1,16 +1,20 @@
 {
   "schemaVersion": 3,
   "documentType": "YANCE_ARTIFACT_DESCRIPTOR",
-  "generatedAtUtc": "2026-08-01T20:13:28.857Z",
+  "generatedAtUtc": "2026-08-02T03:10:00.000Z",
   "project": "言策 Yance",
-  "artifactType": "WINDOWS_SOURCE_UAT_HANDOFF",
-  "artifactClass": "BATCH40_FIX6O_GATE0_WINDOWS_UAT_SOURCE_V5E_WINDOWS_SOURCE_UAT",
-  "artifactId": "yance-batch40-fix6o-gate0-windows-uat-source-v5e-windows-source-uat",
+  "artifactType": "MUTABLE_GIT_IMPLEMENTATION_REPOSITORY",
+  "artifactClass": "YANCE_STAGE_6_4_5_9_WP0_REPAIR_REPOSITORY",
+  "artifactId": "yance-stage-6-4-5-9-wp0-repair-repository",
+  "candidate": false,
+  "formalRelease": false,
   "sourceIdentity": {
-    "authority": "YANCE_DERIVED_SOURCE_IDENTITY.json",
-    "derivedVersion": "FIX6O_GATE0_WINDOWS_UAT_SOURCE_V5E",
-    "baseCommit": "20f9163bf75dc13212dca9092ff0c47b033c4a87",
-    "baseTree": "6516b154355273146e58b71f8cdc9de2aafb5b29"
+    "authority": "GIT_HEAD_AT_RUNTIME",
+    "branchPolicy": "stage/6.4.5.9-architecture-closure or rebuild/windows-release-closure-YYYYMMDD[-suffix]",
+    "commitResolution": "git rev-parse HEAD",
+    "treeResolution": "git rev-parse HEAD^{tree}",
+    "trackedDerivedIdentity": false,
+    "sealedExport": false
   },
   "repairAuthority": {
     "frontierCandidateAuthority": true,
@@ -69,7 +73,7 @@
     "facebookPersonalIdentityOAuthAuthority": true,
     "experimentalFacebookMessengerIsolationAuthority": true,
     "officialPagePersonalIdentitySeparationAuthority": true,
-    "derivedSourceIdentity": true
+    "derivedSourceIdentity": false
   },
   "governance": {
     "windowsUiUat": false,
@@ -78,8 +82,10 @@
     "candidatePackageGenerated": false
   },
   "identityProtocol": {
-    "derivedPayloadBoundBySha256": true,
-    "sourceUatOnly": true,
+    "derivedPayloadBoundBySha256": false,
+    "trackedDerivedIdentityForbidden": true,
+    "derivedIdentityGeneratedAtExport": true,
+    "sourceUatOnly": false,
     "installerBuilt": false
   }
 }
