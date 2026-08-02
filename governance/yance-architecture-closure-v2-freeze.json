@@ -1,17 +1,19 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "documentType": "YANCE_ARCHITECTURE_CLOSURE_V2_GOVERNANCE",
   "project": "Yance",
   "program": "Architecture Closure V2",
-  "status": "PREIMPLEMENTATION_BLOCKERS_CLOSED_IMPLEMENTATION_PLAN_AUTHORIZED",
+  "status": "INDEPENDENT_IMPLEMENTATION_PLAN_REVIEW_APPROVED_WP_A_AUTHORIZED",
   "createdAt": "2026-08-02T11:36:00+07:00",
   "designReviewedAt": "2026-08-02T12:04:00+07:00",
   "gate0SourceReviewedAt": "2026-08-02T12:28:00+07:00",
+  "implementationPlanReviewedAt": "2026-08-02T12:42:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "pullRequest": 4,
   "branch": "rebuild/windows-release-closure-20260802-gate0-wp0-fix",
   "initialReviewedHead": "15e538a6c26817b3cb8422fa3739f01256ec109e",
   "designFreezeHead": "205292b2baa0a83222a19fc2dd1ba1de133bb78f",
+  "gate0GovernanceHead": "cc086cdc4b6a52fc960eb2cd5fa9f741918d2a09",
   "designCommit": "b63f1cd73295432fce5f6506a49220481e4aaf73",
   "matrixCommit": "09e8c95d079b2f65336d14048963e4e5e0ea5e3e",
   "designAmendmentCommit": "15d4962d969c43a7b6377be14282299b5223682f",
@@ -23,6 +25,10 @@
   "gate0PlatformMatrixCommit": "3fa616f46d7f9a06fbd0aaba45d40dcfcda89a42",
   "gate0FinalCodeHead": "94ed2d31be2ded82724d07c83a5b30c00141a424",
   "gate0IndependentSourceReviewCommit": "b3ae7082efa10e1363877da0333a196c3ea893dd",
+  "implementationPlanCommit": "8345527df1567d692ebf26ab1344cbac53475cc8",
+  "implementationPlanAmendmentCommit": "c2883ee8b2f2e71a88f62ec5c2ea0edbd037e3f3",
+  "independentImplementationPlanReviewCommit": "04bfd7bd2b929f0174d415e5b8fe370e8504d4bf",
+  "workPackageAuthorizationCommit": "40fbfa0bd5146bcd97daff534cd000a485f37428",
   "documents": {
     "design": "docs/superpowers/specs/2026-08-02-yance-architecture-closure-v2-design.md",
     "designAmendment": "docs/superpowers/specs/2026-08-02-yance-architecture-closure-v2-independent-review-amendment.md",
@@ -30,7 +36,11 @@
     "rootCauseMigrationMatrixAmendment": "docs/architecture/YANCE_ARCHITECTURE_CLOSURE_V2_ROOT_CAUSE_MIGRATION_MATRIX_AMENDMENT_1_ZH.md",
     "independentDesignReview": "docs/architecture/YANCE_ARCHITECTURE_CLOSURE_V2_INDEPENDENT_DESIGN_REVIEW_ZH.md",
     "gate0RepairPlan": "docs/superpowers/plans/2026-08-02-gate0-sealed-export-canonical-path-repair.md",
-    "gate0IndependentSourceReview": "docs/architecture/GATE0_SEALED_EXPORT_CANONICAL_PATH_REPAIR_REVIEW_ZH.md"
+    "gate0IndependentSourceReview": "docs/architecture/GATE0_SEALED_EXPORT_CANONICAL_PATH_REPAIR_REVIEW_ZH.md",
+    "implementationPlan": "docs/superpowers/plans/2026-08-02-yance-architecture-closure-v2-implementation.md",
+    "implementationPlanAmendment": "docs/superpowers/plans/2026-08-02-yance-architecture-closure-v2-implementation-amendment-1.md",
+    "independentImplementationPlanReview": "docs/architecture/YANCE_ARCHITECTURE_CLOSURE_V2_IMPLEMENTATION_PLAN_REVIEW_ZH.md",
+    "workPackageAuthorization": "governance/architecture-closure-v2/implementation-plan-authorization.json"
   },
   "governance": {
     "prMustRemainDraft": true,
@@ -38,19 +48,33 @@
     "architectureDesignClosed": true,
     "allPreImplementationBlockersClosed": true,
     "implementationPlanAllowed": true,
-    "independentImplementationPlanReviewRequired": true,
-    "productionCodeChangesAllowed": false,
-    "wpAImplementationAllowed": false,
+    "independentImplementationPlanReviewApproved": true,
+    "implementationPlanClosed": true,
+    "productionCodeChangesAllowed": true,
+    "productionCodeScope": "WP_A_ONLY",
+    "currentAuthorizedWorkPackage": "WP-A",
+    "wpAImplementationAllowed": true,
+    "wpBImplementationAllowed": false,
+    "wpCImplementationAllowed": false,
+    "wpDImplementationAllowed": false,
+    "wpEImplementationAllowed": false,
+    "wpFImplementationAllowed": false,
+    "wpGImplementationAllowed": false,
+    "wpHImplementationAllowed": false,
+    "automaticNextWorkPackageAuthorization": false,
     "gate1MayStart": false,
     "readyForPromotion": false,
     "formalRelease": false,
     "candidatePackageGenerated": false,
-    "independentSourceReviewRequiredBeforeWpA": true,
+    "independentSourceReviewRequiredBeforeNextWorkPackage": true,
     "independentSourceReviewRequiredAfterImplementation": true,
     "realWindowsUatRequired": true,
-    "realThreePlatformUatRequired": true
+    "realThreePlatformUatRequired": true,
+    "realProviderUatRequired": true
   },
   "normativePrecedence": [
+    "implementationPlanAmendment",
+    "implementationPlan",
     "designAmendment",
     "design",
     "rootCauseMigrationMatrixAmendment",
@@ -60,6 +84,7 @@
     "ONE_FACT_ONE_AUTHORITY_WRITER",
     "ONE_COMMAND_ONE_LEDGER_TRANSACTION",
     "ONE_PHYSICAL_SQLITE_WRITE_HOST",
+    "LIVE_PRIMARY_SQLITE_ACCESS_HOST_ONLY",
     "NO_LEGACY_NEW_DUAL_WRITE",
     "NO_NETWORK_OR_EXTERNAL_IO_INSIDE_SQLITE_WRITE_TRANSACTION",
     "EXTERNAL_ACTION_INTENT_ATTEMPT_RECEIPT_RECONCILIATION",
@@ -98,6 +123,14 @@
     "DR-P1-04_SHADOW_CANONICALIZATION",
     "DR-P1-05_LEASE_CLOCK_FENCING"
   ],
+  "closedImplementationPlanReviewFindings": [
+    "IPR-P0-01_AUTHORITY_WRITE_HOST_BOOTSTRAP_ORDER",
+    "IPR-P0-02_LIVE_PRIMARY_DB_ACCESS_BOUNDARY",
+    "IPR-P1-01_EXTERNAL_IO_TRANSACTION_ENFORCEMENT",
+    "IPR-P1-02_MACHINE_READABLE_SINGLE_WP_AUTHORIZATION",
+    "IPR-P1-03_COMPATIBILITY_PROJECTOR_PROTOCOL",
+    "IPR-P1-04_MIGRATION_VERIFICATION_MATRIX"
+  ],
   "preImplementationBlockers": [
     {
       "id": "GATE0-SEALED-EXPORT-CANONICAL-PATH",
@@ -131,8 +164,19 @@
       }
     }
   ],
-  "nextAuthorizedStage": "ARCHITECTURE_CLOSURE_V2_IMPLEMENTATION_PLAN_AND_INDEPENDENT_PLAN_REVIEW",
-  "implementationStartCondition": "INDEPENDENT_IMPLEMENTATION_PLAN_REVIEW_APPROVED",
+  "workPackageAuthorization": {
+    "status": "WP_A_IMPLEMENTATION_AUTHORIZED",
+    "currentAuthorizedWorkPackage": "WP-A",
+    "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
+    "requiredBaseRef": "rebuild/windows-release-closure-20260802-gate0-wp0-fix",
+    "approvedParentHead": "04bfd7bd2b929f0174d415e5b8fe370e8504d4bf",
+    "authorizationCommit": "40fbfa0bd5146bcd97daff534cd000a485f37428",
+    "firstAuthorizedTask": "A0_FREEZE_WRITER_READ_RECOVERY_FALLBACK_INVENTORY_AND_ADD_RED_TESTS",
+    "redEvidenceRequiredBeforeProductionCode": true,
+    "lockedWorkPackages": ["WP-B", "WP-C", "WP-D", "WP-E", "WP-F", "WP-G", "WP-H"]
+  },
+  "nextAuthorizedStage": "WP_A_TASK_A0_CREATE_STACKED_DRAFT_BRANCH_FREEZE_INVENTORY_AND_OBTAIN_RED_RUN",
+  "implementationStartCondition": "WP_A_BRANCH_MATCHES_AUTHORIZATION_AND_TASK_A0_RED_TEST_COMMIT_PRECEDES_PRODUCTION_CODE",
   "prohibitedCompletionSignals": [
     "TEST_COUNT_ONLY",
     "COVERAGE_ONLY",
@@ -143,6 +187,8 @@
     "EVIDENCE_OBSERVATION_USED_AS_DOMAIN_SUCCESS",
     "NO_MISMATCH_OBSERVED_WITH_INSUFFICIENT_SAMPLES",
     "NEW_AUTHORITY_ADDED_WITH_OLD_WRITER_RETAINED",
-    "READ_CUTOVER_WITHOUT_LEGACY_REMOVAL_CLOSURE"
+    "READ_CUTOVER_WITHOUT_LEGACY_REMOVAL_CLOSURE",
+    "WP_A_STARTED_WITHOUT_A0_RED_EVIDENCE",
+    "MULTIPLE_WORK_PACKAGES_IMPLEMENTED_UNDER_ONE_AUTHORIZATION"
   ]
 }
