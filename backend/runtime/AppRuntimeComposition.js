@@ -237,6 +237,7 @@ class RuntimeAuthorityCommandGateway {
       sealed: false
     });
     this.assertAuthorityCurrent();
+    Object.freeze(this);
   }
 
   assertAuthorityCurrent() {
@@ -326,6 +327,7 @@ class RuntimeAuthorityCommandGateway {
     });
   }
 }
+Object.freeze(RuntimeAuthorityCommandGateway.prototype);
 
 function createAppRuntimeComposition(runtime) {
   const authorityWriteHostCapability = runtime.authorityWriteHostCapability;
