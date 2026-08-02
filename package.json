@@ -24,6 +24,8 @@
     "evidence:wp0": "node tools/wp0/generate-evidence.js",
     "verify:wp0:gate": "node tools/wp0/verify-gate.js",
     "verify:wp0": "npm run test:wp0 && npm run verify:wp0:gate && npm run evidence:wp0",
+    "security:scan-staged": "node scripts/security/scan-staged-secrets.js",
+    "test:security-scan": "node --test --test-concurrency=1 tests/security/staged-secret-scanner.test.js",
     "verify:m1": "node tools/m1/verify.js",
     "build": "node tools/wp0/run-protected-command.js build",
     "package": "node tools/wp0/run-protected-command.js package",
