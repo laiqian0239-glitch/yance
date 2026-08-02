@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 13,
+  "schemaVersion": 14,
   "documentType": "YANCE_ACV2_WP_A_BASELINE",
-  "status": "A3_CLOSED_A4_TEST_FIRST_RED_AUTHORIZED",
+  "status": "A4_RED_RECORDED_PRODUCTION_IMPLEMENTATION_AUTHORIZED",
   "workPackage": "WP-A",
   "completedTasks": [
     "A0_FREEZE_WRITER_READ_RECOVERY_FALLBACK_INVENTORY_AND_ADD_RED_TESTS",
@@ -10,7 +10,7 @@
     "A3_AUTHORITY_TRANSACTION_COORDINATOR_PROJECTOR_CAPABILITY"
   ],
   "reopenedTasks": [],
-  "currentAuthorizedTask": "A4_TEST_FIRST_RED",
+  "currentAuthorizedTask": "A4_PRODUCTION_IMPLEMENTATION",
   "repository": "laiqian0239-glitch/yance",
   "parentPullRequest": 4,
   "stackedPullRequest": 5,
@@ -18,7 +18,7 @@
   "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
   "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
   "prMustRemainDraft": true,
-  "productionCodeScope": "NONE_A4_TESTS_ONLY",
+  "productionCodeScope": "WP_A_A4_EXACT_THREE_FILES_ONLY",
   "automaticNextTaskAuthorization": false,
   "automaticNextWorkPackageAuthorization": false,
   "sourceClosure": {
@@ -99,20 +99,13 @@
       "windowsJobId": 91470284793,
       "result": "0_OF_18_PASS_PER_PLATFORM_MISSING_PUBLIC_MODULES"
     },
-    "initialGreenEvidence": {
-      "head": "06e2459a97dcacfd68d70f4a48b9b831cc065263",
-      "workflowRunId": 30738349501,
-      "result": "18_OF_18_PASS_PER_PLATFORM",
-      "supersededAsFinalEvidence": true
-    },
     "reviewRedEvidence": {
       "document": "governance/architecture-closure-v2/wp-a-a3-review-red-evidence.json",
       "head": "30972cb025a5d059b5e2e7376156e3dd5571978a",
       "workflowRunId": 30738506985,
       "ubuntuJobId": 91471561304,
       "windowsJobId": 91471561296,
-      "result": "18_PASS_6_EXPECTED_FAIL_PER_PLATFORM",
-      "implementationStartConditionSatisfied": true
+      "result": "18_PASS_6_EXPECTED_FAIL_PER_PLATFORM"
     },
     "finalGreenEvidence": {
       "document": "governance/architecture-closure-v2/wp-a-a3-evidence.json",
@@ -128,20 +121,30 @@
       "decision": "APPROVED_AFTER_LEDGER_SEQUENCE_AND_GOVERNANCE_CONTRACT_ROOT_REPAIR",
       "openP0": 0,
       "openP1": 0
-    },
-    "codeRabbit": {
-      "formalReviewExecuted": false,
-      "outcome": "NOT_EXECUTED_PRO_SEAT_NOT_ASSIGNED",
-      "invocationCommentId": 5156916790,
-      "responseCommentId": 5156917299
     }
   },
   "a4": {
-    "status": "TEST_FIRST_RED_AUTHORIZED",
+    "status": "RED_RECORDED_PRODUCTION_IMPLEMENTATION_AUTHORIZED",
     "testCodeAllowed": true,
-    "productionCodeAllowed": false,
-    "implementationStartConditionSatisfied": false,
+    "productionCodeAllowed": true,
+    "implementationStartConditionSatisfied": true,
     "task": "UPGRADE_DOMAIN_EVENT_LOG_AUTHORITY_IN_PLACE_TO_CANONICAL_EVENT_LEDGER_AUTHORITY",
+    "redEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a4-red-evidence.json",
+      "redHead": "ae43ede5c096ec6438969294d9c8248ad3196be0",
+      "workflowRunId": 30742811474,
+      "ubuntuJobId": 91483141685,
+      "windowsJobId": 91483141676,
+      "result": "0_OF_8_PASS_8_OF_8_EXPECTED_FAIL_PER_PLATFORM",
+      "wp0WorkflowRunId": 30742811486
+    },
+    "codeRabbit": {
+      "invocationCommentId": 5157036292,
+      "responseCommentId": 5157036779,
+      "formalReviewExecuted": false,
+      "outcome": "NOT_EXECUTED_PRO_SEAT_NOT_ASSIGNED",
+      "issuesClaimed": null
+    },
     "allowedTestFiles": [
       "backend/tests/architectureClosureV2/wpA/canonicalEventLedgerAuthority.test.js",
       "backend/tests/architectureClosureV2/wpA/domainEventCompatibilityFacade.test.js"
@@ -149,19 +152,12 @@
     "allowedEvidenceHarnessFiles": [
       ".github/workflows/acv2-wp-a.yml"
     ],
-    "redEvidenceRequired": true,
-    "redEvidenceDocument": "governance/architecture-closure-v2/wp-a-a4-red-evidence.json",
-    "redWorkflow": {
-      "stepName": "Run A4 canonical ledger and compatibility facade RED contracts",
-      "requiredPlatforms": ["ubuntu-latest", "windows-latest"],
-      "expectedConclusion": "FAILURE_BEFORE_PRODUCTION_IMPLEMENTATION"
-    },
-    "productionFilesLocked": [
+    "allowedProductionFiles": [
       "backend/services/canonicalEventLedgerAuthority.js",
       "backend/services/domainEventLogService.js",
       "backend/repositories/platformCoreRepository.js"
     ],
-    "requiredRedInvariants": [
+    "requiredGreenInvariants": [
       "EXACTLY_ONE_LEDGER_IMPLEMENTATION_AND_ONE_APPEND_PATH",
       "DOMAIN_EVENT_LOG_SERVICE_HAS_NO_INDEPENDENT_PERSISTENCE",
       "HEADER_PAYLOAD_HASH_MISMATCH_FAILS_CLOSED",
@@ -169,14 +165,17 @@
       "COMMITTED_EVENT_MUTATION_FAILS_CLOSED",
       "DIRECT_REPOSITORY_APPEND_FAILS_CLOSED",
       "BUSINESS_PAYLOAD_REMAINS_REPLAYABLE_WITHOUT_COPYING_BUSINESS_BODY_TO_EVIDENCE"
-    ]
+    ],
+    "greenEvidenceRequired": true,
+    "independentSourceReviewRequired": true
   },
   "prohibitedActions": [
-    "IMPLEMENT_A4_PRODUCTION_BEFORE_TRUSTED_RED_EVIDENCE",
+    "CHANGE_A4_RED_EXPECTATIONS_TO_MATCH_OLD_IMPLEMENTATION",
     "ADD_SECOND_LEDGER_IMPLEMENTATION",
     "ADD_SECOND_APPEND_PATH",
     "KEEP_INDEPENDENT_DOMAIN_EVENT_LOG_PERSISTENCE",
     "ADD_CALLER_BYPASS_OR_WARNING_ONLY_GUARD",
+    "MODIFY_PRODUCTION_CODE_OUTSIDE_A4_EXACT_THREE_FILES",
     "IMPLEMENT_A5_OR_LATER",
     "IMPLEMENT_WP_B_OR_LATER",
     "OPEN_ACV2_BRANCH_WILDCARD",
