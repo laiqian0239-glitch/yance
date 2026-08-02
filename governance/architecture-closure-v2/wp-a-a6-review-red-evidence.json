@@ -1,15 +1,17 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "documentType": "YANCE_ACV2_WP_A_A6_INDEPENDENT_REVIEW_EVIDENCE",
-  "status": "IMPLEMENTATION_REPAIRED_VALIDATION_BLOCKED",
+  "status": "IMPLEMENTATION_AND_SCOPE_GATES_REPAIRED_VALIDATION_BLOCKED",
   "workPackage": "WP-A",
   "task": "A6_WIRE_SINGLE_WRITE_HOST_LEDGER_AND_IDENTITY_AUTHORITY_INTO_RUNTIME_STARTUP",
-  "reviewedImplementationHead": "c02f00fe69319d80468eae786f227959bb4b85af",
+  "reviewedRuntimeImplementationHead": "c02f00fe69319d80468eae786f227959bb4b85af",
+  "reviewedGovernanceImplementationHead": "f5a263ad5004fa3707a22058bad969575a9876ad",
   "reviewMode": "INDEPENDENT_SOURCE_REVIEW_WITH_ADVERSARIAL_CONTRACTS",
   "externalReviewer": {
     "codeRabbitUsed": false,
     "reason": "NO_PAID_SEAT",
-    "robotApprovalClaimed": false
+    "robotApprovalClaimed": false,
+    "externalCryptographicSignaturePresent": false
   },
   "trustedEarlierReviewRed": {
     "head": "5025eaab08570432e5a01fc30f5da120b5e3d653",
@@ -30,7 +32,9 @@
     "FACTORY_READ_PRIVATE_GATEWAY_BINDINGS_THROUGH_OBSOLETE_PUBLIC_FIELDS",
     "GATEWAY_READINESS_EVIDENCE_METHODS_COULD_BE_SHADOWED",
     "RUNTIME_STATE_STORE_COULD_OMIT_DB_AND_BYPASS_PRIMARY_DATABASE_IDENTITY_CHECK",
-    "ACV2_PULL_REQUEST_WORKFLOW_FILTER_DID_NOT_MATCH_THE_CURRENT_MAIN_BASE"
+    "ACV2_PULL_REQUEST_WORKFLOW_FILTER_DID_NOT_MATCH_THE_CURRENT_MAIN_BASE",
+    "WP0_DECLARED_ALLOWED_PRODUCTION_PATHS_BUT_DID_NOT_ENFORCE_CHANGED_FILE_SCOPE",
+    "A6_BASELINE_EXCLUDED_REQUIRED_BOTTOM_LAYER_RUNTIME_ROOT_REPAIR_FILES"
   ],
   "implementationProperties": [
     "CORE_BUSINESS_COMMAND_ENTRYPOINT_PRESERVED",
@@ -44,14 +48,17 @@
     "STARTUP_HANDLER_MAP_IS_FROZEN_NULL_PROTOTYPE_OWN_FUNCTION_MAP",
     "STARTUP_GATEWAY_INSTANCE_AND_PROTOTYPE_ARE_FROZEN_BEFORE_EXTERNAL_OBSERVATION",
     "STARTUP_GATEWAY_HAS_ONE_WAY_SEAL_BEFORE_BACKEND_READINESS",
-    "DESKTOP_TRANSPORT_REJECTS_OWN_AND_INHERITED_WRITE_HOST_CAPABILITY_INJECTION"
+    "DESKTOP_TRANSPORT_REJECTS_OWN_AND_INHERITED_WRITE_HOST_CAPABILITY_INJECTION",
+    "WORK_PACKAGE_SCOPE_IS_ENFORCED_BY_SORTED_CHANGED_FILE_SET_HASH_AND_EXACT_PATHS",
+    "SCOPE_AMENDMENT_REJECTS_WILDCARDS_WRONG_PARENT_WRONG_PR_WRONG_COUNT_AND_UNKNOWN_PATHS"
   ],
-  "adversarialContracts": [
+  "runtimeAdversarialContracts": [
     "backend/tests/architectureClosureV2/wpA/runtimeComposition.test.js",
     "backend/tests/architectureClosureV2/wpA/runtimeGatewaySurface.test.js",
     "backend/tests/architectureClosureV2/wpA/runtimeStateStoreBinding.test.js",
     "backend/tests/architectureClosureV2/wpA/startupOrdering.test.js"
   ],
+  "governanceAdversarialContract": "tests/wp0/implementation-branch-policy.test.js",
   "productionScope": [
     "backend/runtime/AppRuntime.js",
     "backend/runtime/AppRuntimeFactory.js",
@@ -59,18 +66,34 @@
     "backend/server.js",
     "electron/desktopHost/ApiV2RuntimeClient.js"
   ],
+  "scopeClosure": {
+    "amendmentDocument": "governance/architecture-closure-v2/wp-a-a6-scope-amendment.json",
+    "baseAuthorizationDocument": "governance/architecture-closure-v2/implementation-plan-authorization.json",
+    "baseAuthorizationBlobSha": "203697b36c06e0dc72c92113ef58f1a8f2394312",
+    "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
+    "pullRequest": 5,
+    "approvedChangedFileCount": 78,
+    "approvedChangedFileSetSha256": "09ea0728cb5677d5b4f6d970f1b9dd8e85abff94d9d736fbabc5da83d24e2bf6",
+    "additionalExactPathCount": 13,
+    "wildcardExpansionAllowed": false,
+    "automaticNextTaskAuthorization": false,
+    "automaticNextWorkPackageAuthorization": false,
+    "repositoryContainedIndependentReviewRecord": true,
+    "externallySignedAuthorizationClaimed": false
+  },
   "latestValidationAttempt": {
-    "acv2WorkflowRunId": 30751003960,
+    "reviewedHead": "f5a263ad5004fa3707a22058bad969575a9876ad",
+    "acv2WorkflowRunId": 30751671994,
     "acv2Jobs": {
-      "ubuntu": 91504918322,
-      "windows": 91504918328,
-      "sourceClosure": 91504918306
+      "ubuntu": 91506694494,
+      "windows": 91506694509,
+      "sourceClosure": 91506694470
     },
-    "wp0WorkflowRunId": 30751003941,
+    "wp0WorkflowRunId": 30751671984,
     "wp0Jobs": {
-      "wp0": 91504918242,
-      "sealedExportUbuntu": 91504918203,
-      "sealedExportWindows": 91504918237
+      "wp0": 91506694474,
+      "sealedExportUbuntu": 91506694506,
+      "sealedExportWindows": 91506694453
     },
     "allJobsHadSteps": false,
     "allJobsHadLogs": false,
@@ -89,7 +112,8 @@
   "scopeBoundary": {
     "durableStartupCommandReceipts": "DEFERRED_TO_WP_G",
     "crashRecoveryAndCrossProcessIdempotency": "DEFERRED_TO_WP_G",
-    "inMemoryReceiptMapClaimedAsDurable": false
+    "inMemoryReceiptMapClaimedAsDurable": false,
+    "sourceClosureScannerExpectedToRemainOpenUntil": "A8"
   },
   "testsRelaxed": false,
   "temporaryBypassUsed": false,
