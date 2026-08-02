@@ -1,6 +1,12 @@
 'use strict';
 
-const { CURRENT_STAGE, currentCommit, git, verifyWp0Gate } = require('./lib');
+const {
+  ACV2_WP_A_PARENT_GOVERNANCE_HEAD,
+  evaluateAuthorizedWorkPackageScope,
+  loadWorkPackageAuthorization,
+  loadWorkPackageScopeAmendment
+} = require('../../shared/release/implementationBranchPolicy');
+const { CURRENT_STAGE, currentBranch, currentCommit, git, verifyWp0Gate } = require('./lib');
 
 function argValue(name, fallback) {
   const index = process.argv.indexOf(name);
@@ -40,12 +46,80 @@ function resolveReviewedBranch(branch) {
   return branch;
 }
 
+function evaluateWorkPackageScopeForGate(branch) {
+  const authorization = loadWorkPackageAuthorization();
+  if (!authorization || branch !== authorization.authorizedBranch) {
+    return Object.freeze({
+      applicable: false,
+      pass: true,
+      reasonCode: null,
+      parentGovernanceHead: ACV2_WP_A_PARENT_GOVERNANCE_HEAD,
+      changedFileCount: 0,
+      unauthorizedPaths: []
+    });
+  }
+
+  try {
+    git(['cat-file', '-e', `${ACV2_WP_A_PARENT_GOVERNANCE_HEAD}^{commit}`]);
+    git(['merge-base', '--is-ancestor', ACV2_WP_A_PARENT_GOVERNANCE_HEAD, 'HEAD']);
+  } catch (cause) {
+    return Object.freeze({
+      applicable: true,
+      pass: false,
+      reasonCode: 'ACV2_WORK_PACKAGE_SCOPE_PARENT_UNAVAILABLE',
+      parentGovernanceHead: ACV2_WP_A_PARENT_GOVERNANCE_HEAD,
+      changedFileCount: 0,
+      unauthorizedPaths: [],
+      error: cause?.message || String(cause)
+    });
+  }
+
+  let changedFiles;
+  try {
+    const raw = git(['diff', '--name-only', ACV2_WP_A_PARENT_GOVERNANCE_HEAD, 'HEAD']);
+    changedFiles = raw ? raw.split(/\r?\n/u).map(value => value.trim()).filter(Boolean).sort() : [];
+  } catch (cause) {
+    return Object.freeze({
+      applicable: true,
+      pass: false,
+      reasonCode: 'ACV2_WORK_PACKAGE_SCOPE_DIFF_FAILED',
+      parentGovernanceHead: ACV2_WP_A_PARENT_GOVERNANCE_HEAD,
+      changedFileCount: 0,
+      unauthorizedPaths: [],
+      error: cause?.message || String(cause)
+    });
+  }
+
+  const amendment = loadWorkPackageScopeAmendment();
+  const evaluation = evaluateAuthorizedWorkPackageScope({
+    branch,
+    changedFiles,
+    authorization,
+    amendment
+  });
+  return Object.freeze({
+    applicable: true,
+    parentGovernanceHead: ACV2_WP_A_PARENT_GOVERNANCE_HEAD,
+    changedFileCount: changedFiles.length,
+    ...evaluation
+  });
+}
+
 function main() {
   const targetStage = argValue('--target-stage', CURRENT_STAGE);
   const reviewedBranch = resolveReviewedBranch(argValue('--branch', ''));
+  const branch = reviewedBranch || currentBranch();
   const options = { targetStage };
   if (reviewedBranch) options.branch = reviewedBranch;
-  const result = verifyWp0Gate(options);
+  const wp0 = verifyWp0Gate(options);
+  const workPackageScope = evaluateWorkPackageScopeForGate(branch);
+  const status = wp0.status === 'PASS' && workPackageScope.pass ? 'PASS' : 'FAIL';
+  const result = Object.freeze({
+    ...wp0,
+    status,
+    reasonCode: wp0.status !== 'PASS' ? wp0.reasonCode : workPackageScope.reasonCode,
+    workPackageScope
+  });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   if (result.status !== 'PASS') process.exitCode = 1;
 }
