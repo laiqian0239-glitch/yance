@@ -52,12 +52,14 @@ jobs:
           backend/tests/architectureClosureV2/wpA/eventTypeRegistryReplay.test.js
           backend/tests/architectureClosureV2/wpA/upcasterSandboxEscape.test.js
           backend/tests/architectureClosureV2/wpA/prototypePollutionBoundary.test.js
-      - name: Run A3 command coordinator and external IO RED contracts
+      - name: Run A3 command coordinator, schema and adversarial contracts
         run: >-
           node --test --test-concurrency=1
           backend/tests/architectureClosureV2/wpA/authorityCommandProtocol.test.js
           backend/tests/architectureClosureV2/wpA/noExternalIoInTransaction.test.js
           backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinator.test.js
+          backend/tests/architectureClosureV2/wpA/schema21AuthorityContract.test.js
+          backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinatorAdversarial.test.js
       - name: Install locked dependencies for legacy regressions
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run existing SQLite ownership and fencing regressions
