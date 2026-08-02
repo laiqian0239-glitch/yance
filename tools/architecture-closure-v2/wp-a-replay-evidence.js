@@ -22,6 +22,11 @@ function event(sequence, value) {
 
 function generateReplayArchiveEvidence() {
   const events = Object.freeze([event(1, 2), event(2, 3)]);
+  const snapshot = Object.freeze({
+    segmentId: 'wp-a-a7-contract-segment',
+    snapshotToken: 'snapshot:wp-a-a7-contract-segment:v1',
+    events
+  });
   const evidenceRecords = [];
 
   const replay = new LedgerReplayAuthority({
@@ -30,7 +35,10 @@ function generateReplayArchiveEvidence() {
     )),
     upcastEvent: value => value,
     reduceEvent: (state, value) => ({ count: state.count + value.payload.value }),
-    evidenceRecorder: record => evidenceRecords.push(record)
+    evidenceRecorder: record => {
+      evidenceRecords.push(record);
+      return Object.freeze({ recorded: true, evidenceSha256: canonicalHash(record) });
+    }
   }).replay({
     fromSequence: 1,
     toSequence: 2,
@@ -40,19 +48,28 @@ function generateReplayArchiveEvidence() {
   let storedCanonicalJson = null;
   let retiredReceipt = null;
   const archive = new LedgerArchiveAuthority({
-    readSegment: () => events,
+    readSegment: () => snapshot,
     writeArchive: record => {
       storedCanonicalJson = record.canonicalJson;
       return Object.freeze({ archiveId: record.archiveId });
     },
     readArchive: () => storedCanonicalJson,
-    retireSegment: receipt => {
-      retiredReceipt = receipt;
-      return Object.freeze({ retired: true });
+    evidenceRecorder: record => {
+      evidenceRecords.push(record);
+      return Object.freeze({ recorded: true, evidenceSha256: canonicalHash(record) });
     },
-    evidenceRecorder: record => evidenceRecords.push(record)
+    retireSegment: receipt => {
+      retiredReceipt = Object.freeze({
+        retired: true,
+        segmentId: receipt.segmentId,
+        snapshotToken: receipt.snapshotToken,
+        archiveId: receipt.archiveId,
+        archiveSha256: receipt.archiveSha256
+      });
+      return retiredReceipt;
+    }
   }).archiveSegment({
-    segmentId: 'wp-a-a7-contract-segment',
+    segmentId: snapshot.segmentId,
     expectedFirstSequence: 1,
     expectedLastSequence: 2,
     expectedEventCount: 2
@@ -74,10 +91,12 @@ function generateReplayArchiveEvidence() {
     archive: {
       archiveId: archive.archiveId,
       segmentId: archive.segmentId,
+      snapshotToken: archive.snapshotToken,
       firstSequence: archive.firstSequence,
       lastSequence: archive.lastSequence,
       eventCount: archive.eventCount,
       archiveSha256: archive.archiveSha256,
+      evidenceSha256: archive.evidenceSha256,
       retired: archive.retired,
       retirementReceiptSha256: canonicalHash(retiredReceipt)
     },
