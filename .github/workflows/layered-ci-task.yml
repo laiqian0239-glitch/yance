@@ -7,6 +7,11 @@ on:
         description: Exact frozen candidate commit
         required: true
         type: string
+      candidate_branch:
+        description: Authorized remote branch required by branch-bound WP0 suites
+        required: false
+        default: ''
+        type: string
       required_level:
         description: Verification layer to execute
         required: true
@@ -21,6 +26,10 @@ on:
         description: Exact frozen candidate commit
         required: true
         type: string
+      candidate_branch:
+        description: Authorized remote branch for wp0/full_work_package
+        required: false
+        type: string
       required_level:
         description: Verification layer to execute
         required: true
@@ -33,6 +42,7 @@ on:
         required: true
         type: choice
         options:
+          - layered_governance
           - acv2_wp_a_a6
           - wp0
           - full_work_package
@@ -42,29 +52,50 @@ permissions:
 
 env:
   CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+  CANDIDATE_BRANCH: ${{ inputs.candidate_branch }}
   SELECTED_SUITE: ${{ inputs.suite }}
+  BASELINE_ANCHOR_COMMIT: 570823e722f6db475066d6ef80ba900ac5c6cb39
 
 jobs:
   validate-candidate-input:
     name: layered-ci-candidate-input
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
       - name: Checkout candidate history
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
           fetch-tags: false
-      - name: Validate exact candidate object
+      - name: Validate exact candidate, level and suite
         shell: bash
         run: |
           set -euo pipefail
           [[ "${CANDIDATE_SHA}" =~ ^[0-9a-f]{40}$ ]]
           git fetch --no-tags --force origin "${CANDIDATE_SHA}"
           git cat-file -e "${CANDIDATE_SHA}^{commit}"
+          case '${{ inputs.required_level }}' in
+            L1|L2) ;;
+            *) echo 'invalid required_level' >&2; exit 1 ;;
+          esac
+          case "${SELECTED_SUITE}" in
+            layered_governance|acv2_wp_a_a6|wp0|full_work_package) ;;
+            *) echo 'invalid predefined suite' >&2; exit 1 ;;
+          esac
+      - name: Validate branch-bound WP0 candidate
+        if: ${{ inputs.suite == 'wp0' || inputs.suite == 'full_work_package' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${CANDIDATE_BRANCH}" =~ ^(stage/6\.4\.5\.9-architecture-closure|rebuild/windows-release-closure-[0-9]{8}(-[A-Za-z0-9._-]+)?)$ ]]
+          git fetch --no-tags --force origin "${CANDIDATE_BRANCH}:refs/remotes/origin/${CANDIDATE_BRANCH}"
+          test "$(git rev-parse refs/remotes/origin/${CANDIDATE_BRANCH})" = "${CANDIDATE_SHA}"
+          git cat-file -e "${BASELINE_ANCHOR_COMMIT}^{commit}"
+          git merge-base --is-ancestor "${BASELINE_ANCHOR_COMMIT}" "${CANDIDATE_SHA}"
 
-  l1-task-ubuntu:
-    name: layered-ci-l1-task-ubuntu
+  l1-portable-ubuntu:
+    name: layered-ci-l1-portable-ubuntu
+    if: ${{ inputs.suite == 'layered_governance' || inputs.suite == 'acv2_wp_a_a6' }}
     needs: validate-candidate-input
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -82,8 +113,14 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
+      - name: Run layered governance contracts
+        if: ${{ inputs.suite == 'layered_governance' }}
+        run: >-
+          node --test --test-concurrency=1
+          tests/layered-ci/*.test.js
+          tests/independent-review/chatgpt-review-contract.test.js
       - name: Run A6 task contracts
-        if: ${{ inputs.suite == 'acv2_wp_a_a6' || inputs.suite == 'full_work_package' }}
+        if: ${{ inputs.suite == 'acv2_wp_a_a6' }}
         run: >-
           node --test --test-concurrency=1
           backend/tests/architectureClosureV2/wpA/runtimeComposition.test.js
@@ -91,11 +128,38 @@ jobs:
           backend/tests/architectureClosureV2/wpA/runtimeStateStoreBinding.test.js
           backend/tests/architectureClosureV2/wpA/runtimeProcessSingleton.test.js
           backend/tests/architectureClosureV2/wpA/startupOrdering.test.js
+
+  l1-branch-bound-wp0-ubuntu:
+    name: layered-ci-l1-branch-bound-wp0-ubuntu
+    if: ${{ inputs.suite == 'wp0' || inputs.suite == 'full_work_package' }}
+    needs: validate-candidate-input
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact branch-bound candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+      - name: Establish authorized local branch and anchor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --force origin "${CANDIDATE_BRANCH}:refs/remotes/origin/${CANDIDATE_BRANCH}"
+          test "$(git rev-parse refs/remotes/origin/${CANDIDATE_BRANCH})" = "${CANDIDATE_SHA}"
+          git cat-file -e "${BASELINE_ANCHOR_COMMIT}^{commit}"
+          git merge-base --is-ancestor "${BASELINE_ANCHOR_COMMIT}" "${CANDIDATE_SHA}"
+          git switch --force-create "${CANDIDATE_BRANCH}" "${CANDIDATE_SHA}"
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
       - name: Install locked dependencies for WP0 and work-package tests
-        if: ${{ inputs.suite == 'wp0' || inputs.suite == 'full_work_package' }}
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run WP0 task contracts
-        if: ${{ inputs.suite == 'wp0' || inputs.suite == 'full_work_package' }}
         run: npm run test:wp0
       - name: Run full work-package legacy regressions
         if: ${{ inputs.suite == 'full_work_package' }}
@@ -105,12 +169,12 @@ jobs:
           tests/wp4/application-matrix-temp-path.test.js
           tests/wp3/stale-fencing-token-outbox-denied.test.js
 
-  l2-platform-matrix:
-    name: layered-ci-l2-${{ matrix.os }}
-    if: ${{ inputs.required_level == 'L2' }}
+  l2-portable-platform-matrix:
+    name: layered-ci-l2-portable-${{ matrix.os }}
+    if: ${{ inputs.required_level == 'L2' && (inputs.suite == 'layered_governance' || inputs.suite == 'acv2_wp_a_a6') }}
     needs:
       - validate-candidate-input
-      - l1-task-ubuntu
+      - l1-portable-ubuntu
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -133,19 +197,57 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
+      - name: Run cross-platform layered governance contracts
+        if: ${{ inputs.suite == 'layered_governance' }}
+        run: node --test --test-concurrency=1 tests/layered-ci/*.test.js
       - name: Run cross-platform A6 contracts
-        if: ${{ inputs.suite == 'acv2_wp_a_a6' || inputs.suite == 'full_work_package' }}
+        if: ${{ inputs.suite == 'acv2_wp_a_a6' }}
         run: >-
           node --test --test-concurrency=1
           backend/tests/architectureClosureV2/wpA/windowsRuntimeMutexPowerShell.test.js
           backend/tests/architectureClosureV2/wpA/authorityWriteHostProcessMatrix.test.js
           backend/tests/architectureClosureV2/wpA/runtimeComposition.test.js
           backend/tests/architectureClosureV2/wpA/runtimeProcessSingleton.test.js
+
+  l2-branch-bound-wp0-platform-matrix:
+    name: layered-ci-l2-branch-bound-wp0-${{ matrix.os }}
+    if: ${{ inputs.required_level == 'L2' && (inputs.suite == 'wp0' || inputs.suite == 'full_work_package') }}
+    needs:
+      - validate-candidate-input
+      - l1-branch-bound-wp0-ubuntu
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact branch-bound candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+      - name: Establish authorized local branch and anchor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --force origin "${CANDIDATE_BRANCH}:refs/remotes/origin/${CANDIDATE_BRANCH}"
+          test "$(git rev-parse refs/remotes/origin/${CANDIDATE_BRANCH})" = "${CANDIDATE_SHA}"
+          git cat-file -e "${BASELINE_ANCHOR_COMMIT}^{commit}"
+          git merge-base --is-ancestor "${BASELINE_ANCHOR_COMMIT}" "${CANDIDATE_SHA}"
+          git switch --force-create "${CANDIDATE_BRANCH}" "${CANDIDATE_SHA}"
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
       - name: Install locked dependencies for WP0 and work-package tests
-        if: ${{ inputs.suite == 'wp0' || inputs.suite == 'full_work_package' }}
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run cross-platform sealed source identity
-        if: ${{ inputs.suite == 'wp0' || inputs.suite == 'full_work_package' }}
         run: node --test --test-concurrency=1 tests/runtime-delivery/repository-source-identity-authority.test.js
       - name: Run L2 legacy regression matrix
         if: ${{ inputs.suite == 'full_work_package' }}
