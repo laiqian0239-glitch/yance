@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { DatabaseSync } = require('node:sqlite');
 
 const { acquireAuthorityWriteHost } = require('../../../services/authorityWriteHost');
 const { SqliteConnectionBroker } = require('../../../lib/sqliteConnectionBroker');
@@ -55,6 +56,47 @@ test('legacy projection receipt foreign key is rebuilt without deleting historic
     assert.equal(legacy.projector_name, 'legacy-projector');
     assert.equal(legacy.ledger_sequence, 0);
   });
+});
+
+test('zero-valued canonical receipt sequences are backfilled from canonical headers', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-a8-projection-backfill-'));
+  const dbPath = path.join(root, 'legacy.db');
+  const db = new DatabaseSync(dbPath);
+  try {
+    db.exec(`
+      PRAGMA foreign_keys=ON;
+      CREATE TABLE canonical_event_headers (
+        event_id TEXT PRIMARY KEY,
+        ledger_sequence INTEGER NOT NULL UNIQUE
+      ) STRICT;
+      CREATE TABLE domain_events (
+        event_id TEXT PRIMARY KEY
+      ) STRICT;
+      CREATE TABLE domain_projection_receipts (
+        projector_name TEXT NOT NULL, projector_version TEXT NOT NULL, event_id TEXT NOT NULL,
+        ledger_sequence INTEGER NOT NULL DEFAULT 0, projection_status TEXT NOT NULL,
+        projection_hash TEXT NOT NULL DEFAULT '', target_refs_json TEXT NOT NULL DEFAULT '[]',
+        failure_code TEXT NOT NULL DEFAULT '', failure_reason TEXT NOT NULL DEFAULT '', attempt INTEGER NOT NULL DEFAULT 1,
+        projected_at TEXT NOT NULL, PRIMARY KEY(projector_name, projector_version, event_id),
+        FOREIGN KEY(event_id) REFERENCES domain_events(event_id) ON DELETE CASCADE
+      ) STRICT;
+      INSERT INTO canonical_event_headers(event_id,ledger_sequence) VALUES('canonical:event',7);
+      INSERT INTO domain_events(event_id) VALUES('canonical:event');
+      INSERT INTO domain_projection_receipts(
+        projector_name,projector_version,event_id,ledger_sequence,projection_status,projected_at
+      ) VALUES('canonical-projector','v1','canonical:event',0,'applied','2026-08-03T00:00:00.000Z');
+    `);
+
+    ensureCanonicalProjectionReceiptSchema(db);
+    const migrated = db.prepare(`
+      SELECT ledger_sequence FROM domain_projection_receipts
+      WHERE projector_name='canonical-projector' AND event_id='canonical:event'
+    `).get();
+    assert.equal(migrated.ledger_sequence, 7);
+  } finally {
+    try { db.close(); } catch (_) {}
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  }
 });
 
 test('new projection receipts require the committed canonical event and exact ledger sequence', () => {

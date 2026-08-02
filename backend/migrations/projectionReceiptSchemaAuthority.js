@@ -63,7 +63,7 @@ function createCanonicalTableSql(tableName) {
 function rebuildCanonicalTable(db, hasLedgerSequence) {
   const replacement = 'domain_projection_receipts_acv2_next';
   const sequence = hasLedgerSequence
-    ? `COALESCE(old.ledger_sequence, (SELECT ledger_sequence FROM canonical_event_headers WHERE event_id=old.event_id), 0)`
+    ? `CASE WHEN old.ledger_sequence > 0 THEN old.ledger_sequence ELSE COALESCE((SELECT ledger_sequence FROM canonical_event_headers WHERE event_id=old.event_id), 0) END`
     : `COALESCE((SELECT ledger_sequence FROM canonical_event_headers WHERE event_id=old.event_id), 0)`;
   db.exec('SAVEPOINT acv2_projection_receipt_schema');
   try {
