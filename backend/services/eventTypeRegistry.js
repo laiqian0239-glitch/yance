@@ -1,6 +1,8 @@
 'use strict';
 
+const vm = require('node:vm');
 const { canonicalSerialize } = require('./canonicalSerialization');
+const { CLASSIFICATIONS } = require('./dataClassificationRegistry');
 
 const REQUIRED_DESCRIPTOR_FIELDS = Object.freeze([
   'eventType',
@@ -12,6 +14,9 @@ const REQUIRED_DESCRIPTOR_FIELDS = Object.freeze([
   'projectionCompatibility',
   'retentionClass'
 ]);
+const ALLOWED_DESCRIPTOR_FIELDS = new Set([...REQUIRED_DESCRIPTOR_FIELDS, 'upcasters']);
+const ALLOWED_UPCASTER_FIELDS = new Set(['fromVersion', 'toVersion', 'transform']);
+const CLASSIFICATION_VALUES = new Set(Object.values(CLASSIFICATIONS));
 
 const NONDETERMINISTIC_UPCASTER_PATTERNS = Object.freeze([
   { pattern: /\bDate\s*\.\s*now\s*\(/, primitive: 'Date.now' },
@@ -24,17 +29,31 @@ const NONDETERMINISTIC_UPCASTER_PATTERNS = Object.freeze([
   { pattern: /\b(?:http|https|net|tls)\s*\./, primitive: 'network' },
   { pattern: /\brandomUUID\s*\(/, primitive: 'randomUUID' },
   { pattern: /\brandomBytes\s*\(/, primitive: 'randomBytes' },
-  { pattern: /\bperformance\s*\.\s*now\s*\(/, primitive: 'performance.now' }
+  { pattern: /\bperformance\s*\.\s*now\s*\(/, primitive: 'performance.now' },
+  { pattern: /\bIntl\s*\./, primitive: 'Intl' },
+  { pattern: /\bTemporal\s*\./, primitive: 'Temporal' }
 ]);
 
 function registryError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
 }
 
+function codeUnitCompare(leftInput, rightInput) {
+  const left = String(leftInput);
+  const right = String(rightInput);
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 function isPlainObject(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
+}
+
+function assertNoSymbols(value, fieldPath) {
+  if (value && typeof value === 'object' && Object.getOwnPropertySymbols(value).length) {
+    throw registryError('EVENT_DESCRIPTOR_VALUE_UNSAFE', 'Event registry values cannot contain symbol-keyed state', { fieldPath });
+  }
 }
 
 function clonePlain(value, path = '$', seen = new WeakSet()) {
@@ -48,11 +67,25 @@ function clonePlain(value, path = '$', seen = new WeakSet()) {
   if (seen.has(value)) throw registryError('EVENT_DESCRIPTOR_VALUE_UNSAFE', 'Event registry values cannot contain cycles', { fieldPath: path });
   seen.add(value);
   try {
-    if (Array.isArray(value)) return value.map((item, index) => clonePlain(item, `${path}[${index}]`, seen));
+    assertNoSymbols(value, path);
+    if (Array.isArray(value)) {
+      const ownNames = Object.getOwnPropertyNames(value);
+      const unexpected = ownNames.find(name => name !== 'length' && !/^(?:0|[1-9][0-9]*)$/.test(name));
+      if (unexpected) throw registryError('EVENT_DESCRIPTOR_VALUE_UNSAFE', 'Event registry arrays cannot contain custom properties', { fieldPath: `${path}.${unexpected}` });
+      const result = [];
+      for (let index = 0; index < value.length; index += 1) {
+        const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+        if (!descriptor || typeof descriptor.get === 'function' || typeof descriptor.set === 'function') {
+          throw registryError('EVENT_DESCRIPTOR_VALUE_UNSAFE', 'Event registry arrays must be dense data arrays', { fieldPath: `${path}[${index}]` });
+        }
+        result.push(clonePlain(descriptor.value, `${path}[${index}]`, seen));
+      }
+      return result;
+    }
     if (!isPlainObject(value)) throw registryError('EVENT_DESCRIPTOR_VALUE_UNSAFE', 'Event registry values must use plain objects', { fieldPath: path });
     const result = {};
     const descriptors = Object.getOwnPropertyDescriptors(value);
-    for (const key of Object.keys(descriptors).sort((left, right) => left.localeCompare(right))) {
+    for (const key of Object.getOwnPropertyNames(value).sort(codeUnitCompare)) {
       const descriptor = descriptors[key];
       if (typeof descriptor.get === 'function' || typeof descriptor.set === 'function') {
         throw registryError('EVENT_DESCRIPTOR_VALUE_UNSAFE', 'Event registry values cannot contain accessors', { fieldPath: `${path}.${key}` });
@@ -62,6 +95,18 @@ function clonePlain(value, path = '$', seen = new WeakSet()) {
     return result;
   } finally {
     seen.delete(value);
+  }
+}
+
+function cloneSandboxValue(value, details) {
+  try {
+    return structuredClone(value);
+  } catch (error) {
+    throw registryError('EVENT_UPCASTER_OUTPUT_UNSAFE', 'Upcaster output is not structured-cloneable plain data', {
+      ...details,
+      causeCode: error?.code || '',
+      causeMessage: error?.message || String(error)
+    });
   }
 }
 
@@ -79,6 +124,15 @@ function functionSource(transform) {
   return Function.prototype.toString.call(transform).replace(/\r\n/g, '\n').trim();
 }
 
+function functionExpression(source) {
+  if (/^async\s+function\b/.test(source) || /^function\b/.test(source) || /^(?:async\s+)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>/.test(source)) {
+    return source;
+  }
+  if (/^async\s+[A-Za-z_$][\w$]*\s*\(/.test(source)) return source.replace(/^async\s+/, 'async function ');
+  if (/^[A-Za-z_$][\w$]*\s*\(/.test(source)) return `function ${source}`;
+  throw registryError('EVENT_UPCASTER_CHAIN_INVALID', 'Unsupported upcaster function syntax');
+}
+
 function assertDeterministicSource(source, eventType, fromVersion, toVersion) {
   for (const { pattern, primitive } of NONDETERMINISTIC_UPCASTER_PATTERNS) {
     if (pattern.test(source)) {
@@ -92,28 +146,85 @@ function assertDeterministicSource(source, eventType, fromVersion, toVersion) {
   }
 }
 
+function compileUpcasterExpression(source, details) {
+  const expression = functionExpression(source);
+  try {
+    new vm.Script(`(${expression})`, {
+      filename: `yance-upcaster-${details.eventType}-${details.fromVersion}-${details.toVersion}.js`
+    });
+  } catch (error) {
+    throw registryError('EVENT_UPCASTER_CHAIN_INVALID', 'Upcaster source cannot be compiled as an isolated function', {
+      ...details,
+      causeMessage: error?.message || String(error)
+    });
+  }
+  return expression;
+}
+
+function executeSandboxedUpcaster(expression, input, details) {
+  const sandbox = Object.create(null);
+  sandbox.__input = cloneSandboxValue(input, details);
+  sandbox.__output = undefined;
+  for (const forbidden of [
+    'Date', 'process', 'require', 'fetch', 'performance', 'Intl', 'Temporal',
+    'setTimeout', 'setInterval', 'setImmediate', 'queueMicrotask', 'crypto',
+    'WebAssembly', 'SharedArrayBuffer', 'Atomics', 'console', 'Buffer'
+  ]) sandbox[forbidden] = undefined;
+
+  const context = vm.createContext(sandbox, {
+    name: `yance-upcaster-${details.eventType}-${details.fromVersion}-${details.toVersion}`,
+    codeGeneration: { strings: false, wasm: false }
+  });
+  try {
+    new vm.Script(`Object.defineProperty(Math, 'random', { value: undefined, configurable: false, writable: false }); Object.freeze(Math);`).runInContext(context, { timeout: 20 });
+    new vm.Script(`'use strict'; globalThis.__output = (${expression})(globalThis.__input);`, {
+      filename: `yance-upcaster-${details.eventType}-${details.fromVersion}-${details.toVersion}.js`
+    }).runInContext(context, { timeout: 50 });
+  } catch (error) {
+    throw registryError('EVENT_UPCASTER_SANDBOX_VIOLATION', 'Upcaster attempted to use an unavailable host capability or exceeded its deterministic execution budget', {
+      ...details,
+      causeName: error?.name || '',
+      causeMessage: error?.message || String(error)
+    });
+  }
+  return {
+    inputAfter: cloneSandboxValue(sandbox.__input, details),
+    output: sandbox.__output
+  };
+}
+
 function normalizeUpcasters(value, schemaVersion, eventType) {
   const input = value == null ? [] : value;
   if (!Array.isArray(input)) {
     throw registryError('EVENT_UPCASTER_CHAIN_INVALID', 'upcasters must be an array', { eventType });
   }
   const normalized = input.map((entry, index) => {
-    if (!isPlainObject(entry)) {
-      throw registryError('EVENT_UPCASTER_CHAIN_INVALID', 'Each upcaster must be a plain object', { eventType, index });
+    if (!isPlainObject(entry) || Object.getOwnPropertySymbols(entry).length) {
+      throw registryError('EVENT_UPCASTER_CHAIN_INVALID', 'Each upcaster must be a plain object without symbol keys', { eventType, index });
     }
-    const fromVersion = Number(entry.fromVersion);
-    const toVersion = Number(entry.toVersion);
+    const unknownField = Object.getOwnPropertyNames(entry).find(field => !ALLOWED_UPCASTER_FIELDS.has(field));
+    if (unknownField) {
+      throw registryError('EVENT_UPCASTER_CHAIN_INVALID', 'Upcaster contains an unregistered field', { eventType, index, field: unknownField });
+    }
+    const descriptors = Object.getOwnPropertyDescriptors(entry);
+    if (Object.values(descriptors).some(descriptor => typeof descriptor.get === 'function' || typeof descriptor.set === 'function')) {
+      throw registryError('EVENT_UPCASTER_CHAIN_INVALID', 'Upcaster descriptors cannot contain accessors', { eventType, index });
+    }
+    const fromVersion = Number(descriptors.fromVersion?.value);
+    const toVersion = Number(descriptors.toVersion?.value);
     if (!Number.isInteger(fromVersion) || fromVersion < 1 || !Number.isInteger(toVersion) || toVersion !== fromVersion + 1) {
       throw registryError('EVENT_UPCASTER_CHAIN_INVALID', 'Upcasters must advance exactly one positive schema version', {
         eventType,
         index,
-        fromVersion: entry.fromVersion,
-        toVersion: entry.toVersion
+        fromVersion: descriptors.fromVersion?.value,
+        toVersion: descriptors.toVersion?.value
       });
     }
-    const transformSource = functionSource(entry.transform);
+    const transform = descriptors.transform?.value;
+    const transformSource = functionSource(transform);
     assertDeterministicSource(transformSource, eventType, fromVersion, toVersion);
-    return { fromVersion, toVersion, transform: entry.transform, transformSource };
+    const expression = compileUpcasterExpression(transformSource, { eventType, fromVersion, toVersion });
+    return { fromVersion, toVersion, transformSource, expression };
   }).sort((left, right) => left.fromVersion - right.fromVersion);
 
   if (schemaVersion === 1 && normalized.length !== 0) {
@@ -163,9 +274,39 @@ function descriptorFingerprint(descriptor) {
 }
 
 function assertRequiredDescriptorFields(input) {
+  const descriptors = Object.getOwnPropertyDescriptors(input);
   for (const field of REQUIRED_DESCRIPTOR_FIELDS) {
-    if (!Object.prototype.hasOwnProperty.call(input, field) || input[field] === undefined || input[field] === null || input[field] === '') {
+    const value = descriptors[field]?.value;
+    if (!Object.prototype.hasOwnProperty.call(descriptors, field) || value === undefined || value === null || value === '') {
       throw registryError('EVENT_TYPE_DESCRIPTOR_INCOMPLETE', `Event descriptor is missing ${field}`, { field });
+    }
+  }
+}
+
+function assertDescriptorShape(input) {
+  if (Object.getOwnPropertySymbols(input).length) {
+    throw registryError('EVENT_TYPE_DESCRIPTOR_FIELD_UNREGISTERED', 'Event descriptor cannot contain symbol-keyed state', { field: '[symbol]' });
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(input);
+  const accessor = Object.getOwnPropertyNames(input).find(field => typeof descriptors[field]?.get === 'function' || typeof descriptors[field]?.set === 'function');
+  if (accessor) throw registryError('EVENT_TYPE_DESCRIPTOR_FIELD_UNREGISTERED', 'Event descriptor cannot contain accessors', { field: accessor });
+  const unknown = Object.getOwnPropertyNames(input).find(field => !ALLOWED_DESCRIPTOR_FIELDS.has(field));
+  if (unknown) throw registryError('EVENT_TYPE_DESCRIPTOR_FIELD_UNREGISTERED', `Event descriptor field ${unknown} is not registered`, { field: unknown });
+}
+
+function assertClassificationCoverage(payloadSchema, classificationSchema) {
+  const required = Array.isArray(payloadSchema.required) ? payloadSchema.required : [];
+  for (const field of required) {
+    if (typeof field !== 'string' || !Object.prototype.hasOwnProperty.call(classificationSchema, field)) {
+      throw registryError('EVENT_CLASSIFICATION_SCHEMA_INCOMPLETE', `Required payload field ${String(field)} has no classification`, { field });
+    }
+  }
+  for (const field of Object.getOwnPropertyNames(classificationSchema)) {
+    if (!CLASSIFICATION_VALUES.has(classificationSchema[field])) {
+      throw registryError('EVENT_CLASSIFICATION_SCHEMA_INVALID', `Payload field ${field} has an invalid classification`, {
+        field,
+        classification: classificationSchema[field]
+      });
     }
   }
 }
@@ -182,13 +323,18 @@ class EventTypeRegistry {
 
   register(input = {}) {
     if (!isPlainObject(input)) throw registryError('EVENT_TYPE_DESCRIPTOR_INVALID', 'Event descriptor must be a plain object');
+    assertDescriptorShape(input);
     assertRequiredDescriptorFields(input);
 
-    const eventType = String(input.eventType).trim();
-    const aggregateType = String(input.aggregateType).trim();
-    const schemaVersion = Number(input.schemaVersion);
-    const canonicalizationVersion = Number(input.canonicalizationVersion);
-    const retentionClass = String(input.retentionClass).trim();
+    const descriptors = Object.getOwnPropertyDescriptors(input);
+    const eventType = String(descriptors.eventType.value).trim();
+    const aggregateType = String(descriptors.aggregateType.value).trim();
+    const schemaVersion = Number(descriptors.schemaVersion.value);
+    const canonicalizationVersion = Number(descriptors.canonicalizationVersion.value);
+    const retentionClass = String(descriptors.retentionClass.value).trim();
+    const payloadSchemaInput = descriptors.payloadSchema.value;
+    const classificationSchemaInput = descriptors.classificationSchema.value;
+    const projectionCompatibilityInput = descriptors.projectionCompatibility.value;
     if (!eventType || !aggregateType || !retentionClass || !Number.isInteger(schemaVersion) || schemaVersion < 1) {
       throw registryError('EVENT_TYPE_DESCRIPTOR_INVALID', 'Event descriptor identifiers and schemaVersion are invalid', { eventType });
     }
@@ -199,22 +345,25 @@ class EventTypeRegistry {
         actual: canonicalizationVersion
       });
     }
-    if (!isPlainObject(input.payloadSchema) || !isPlainObject(input.classificationSchema)) {
+    if (!isPlainObject(payloadSchemaInput) || !isPlainObject(classificationSchemaInput)) {
       throw registryError('EVENT_TYPE_DESCRIPTOR_INVALID', 'payloadSchema and classificationSchema must be plain objects', { eventType });
     }
-    if (!Array.isArray(input.projectionCompatibility)) {
+    if (!Array.isArray(projectionCompatibilityInput)) {
       throw registryError('EVENT_TYPE_DESCRIPTOR_INVALID', 'projectionCompatibility must be an array', { eventType });
     }
 
-    const upcasters = normalizeUpcasters(input.upcasters, schemaVersion, eventType);
+    const payloadSchema = deepFreeze(clonePlain(payloadSchemaInput, '$.payloadSchema'));
+    const classificationSchema = deepFreeze(clonePlain(classificationSchemaInput, '$.classificationSchema'));
+    assertClassificationCoverage(payloadSchema, classificationSchema);
+    const upcasters = normalizeUpcasters(descriptors.upcasters?.value, schemaVersion, eventType);
     const normalized = {
       eventType,
       schemaVersion,
       aggregateType,
-      payloadSchema: deepFreeze(clonePlain(input.payloadSchema, '$.payloadSchema')),
-      classificationSchema: deepFreeze(clonePlain(input.classificationSchema, '$.classificationSchema')),
+      payloadSchema,
+      classificationSchema,
       canonicalizationVersion,
-      projectionCompatibility: Object.freeze(input.projectionCompatibility.map(value => String(value).trim())),
+      projectionCompatibility: Object.freeze(projectionCompatibilityInput.map(value => String(value).trim())),
       retentionClass,
       upcasters
     };
@@ -239,7 +388,7 @@ class EventTypeRegistry {
       upcasters: Object.freeze(upcasters.map(item => Object.freeze({
         fromVersion: item.fromVersion,
         toVersion: item.toVersion,
-        transform: item.transform
+        transformSource: item.transformSource
       })))
     });
     this.events.set(eventType, {
@@ -281,50 +430,30 @@ class EventTypeRegistry {
           currentVersion
         });
       }
-
+      const details = { eventType, fromVersion: version, toVersion: version + 1 };
       const firstInput = clonePlain(payload, '$.payload');
       const firstBefore = canonicalSerialize(firstInput);
-      const firstOutput = upcaster.transform(firstInput);
-      if (firstOutput && typeof firstOutput.then === 'function') {
-        throw registryError('EVENT_UPCASTER_ASYNC_FORBIDDEN', 'Event upcasters must be synchronous pure functions', {
-          eventType,
-          fromVersion: version,
-          toVersion: version + 1
-        });
+      const firstExecution = executeSandboxedUpcaster(upcaster.expression, firstInput, details);
+      if (firstExecution.output && typeof firstExecution.output.then === 'function') {
+        throw registryError('EVENT_UPCASTER_ASYNC_FORBIDDEN', 'Event upcasters must be synchronous pure functions', details);
       }
-      if (canonicalSerialize(firstInput) !== firstBefore) {
-        throw registryError('EVENT_UPCASTER_MUTATED_INPUT', 'Event upcaster mutated its input payload', {
-          eventType,
-          fromVersion: version,
-          toVersion: version + 1
-        });
+      if (canonicalSerialize(firstExecution.inputAfter) !== firstBefore) {
+        throw registryError('EVENT_UPCASTER_MUTATED_INPUT', 'Event upcaster mutated its input payload', details);
       }
-      const normalizedFirstOutput = clonePlain(firstOutput, '$.upcastOutput');
+      const normalizedFirstOutput = clonePlain(cloneSandboxValue(firstExecution.output, details), '$.upcastOutput');
 
       const secondInput = clonePlain(payload, '$.payload');
       const secondBefore = canonicalSerialize(secondInput);
-      const secondOutput = upcaster.transform(secondInput);
-      if (secondOutput && typeof secondOutput.then === 'function') {
-        throw registryError('EVENT_UPCASTER_ASYNC_FORBIDDEN', 'Event upcasters must be synchronous pure functions', {
-          eventType,
-          fromVersion: version,
-          toVersion: version + 1
-        });
+      const secondExecution = executeSandboxedUpcaster(upcaster.expression, secondInput, details);
+      if (secondExecution.output && typeof secondExecution.output.then === 'function') {
+        throw registryError('EVENT_UPCASTER_ASYNC_FORBIDDEN', 'Event upcasters must be synchronous pure functions', details);
       }
-      if (canonicalSerialize(secondInput) !== secondBefore) {
-        throw registryError('EVENT_UPCASTER_MUTATED_INPUT', 'Event upcaster mutated its input payload', {
-          eventType,
-          fromVersion: version,
-          toVersion: version + 1
-        });
+      if (canonicalSerialize(secondExecution.inputAfter) !== secondBefore) {
+        throw registryError('EVENT_UPCASTER_MUTATED_INPUT', 'Event upcaster mutated its input payload', details);
       }
-      const normalizedSecondOutput = clonePlain(secondOutput, '$.upcastOutput');
+      const normalizedSecondOutput = clonePlain(cloneSandboxValue(secondExecution.output, details), '$.upcastOutput');
       if (canonicalSerialize(normalizedFirstOutput) !== canonicalSerialize(normalizedSecondOutput)) {
-        throw registryError('EVENT_UPCASTER_NONDETERMINISTIC', 'Event upcaster returned different outputs for the same input', {
-          eventType,
-          fromVersion: version,
-          toVersion: version + 1
-        });
+        throw registryError('EVENT_UPCASTER_NONDETERMINISTIC', 'Event upcaster returned different outputs for the same input', details);
       }
 
       payload = normalizedFirstOutput;
