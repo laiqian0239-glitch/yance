@@ -30,7 +30,7 @@
 - [x] Add a fixture proving `INDEPENDENT_AUDIT_DELIVERY/FULL_SOURCE_FILE_MANIFEST.json` is classified `REFERENCE_ONLY_AUDIT_DELIVERY`.
 - [x] Add an active `tools/` control fixture proving the same rejected-stage text is still blocked.
 - [x] Validate policy paths, classifications, duplicates, and protected active-root overlap.
-- [ ] Execute `node --test tests/wp0/forbidden-hotfix-entrypoints.test.js` and capture fresh output.
+- [x] Execute the WP0 test suite containing `forbidden-hotfix-entrypoints.test.js`; final remote result: PASS.
 
 ### Task 2: Portable rejected-baseline archive authority
 
@@ -52,7 +52,7 @@
 - [x] Declare `originalVcsHistoryAvailable=false` and fail if the absent provenance object is incorrectly treated as repository history.
 - [x] Keep the historical tag name only as a label, not as an unverifiable live ref claim.
 - [x] Add a blob-mismatch fail-closed regression.
-- [ ] Execute `node --test tests/wp0/freeze-rejected-baseline.test.js` and capture fresh output.
+- [x] Execute the WP0 test suite containing `freeze-rejected-baseline.test.js`; final remote result: PASS.
 
 ### Task 3: Reviewed PR branch identity
 
@@ -66,7 +66,7 @@
 - [x] Check out the reviewed PR head rather than the synthetic merge commit.
 - [x] Fetch the reviewed branch into the trusted `origin` namespace.
 - [x] Add matching-tip and mismatched-tip regressions.
-- [ ] Confirm a fresh GitHub Actions run completes successfully.
+- [x] Confirm a fresh GitHub Actions run completes successfully.
 
 ### Task 4: Electron archive tracking authority
 
@@ -78,7 +78,9 @@
 - [x] Add the narrow `!vendor/electron/*.zip` ignore exception.
 - [x] Keep unrelated ZIP files ignored.
 - [x] Require `filter=lfs diff=lfs merge=lfs -text` through `git check-attr`.
-- [ ] Execute the focused runtime-delivery test and capture fresh output.
+- [x] Seed the previously missing remote LFS object only after verifying the official archive SHA-256 and byte size.
+- [x] Remove the one-time write-enabled seeding workflow after the object was proven remotely retrievable.
+- [x] Execute the focused Electron tracking regression; final remote result: PASS.
 
 ### Task 5: Mutable repository versus sealed export identity
 
@@ -95,13 +97,32 @@
 - [x] Keep all release and promotion flags false.
 - [x] Reject derived identity CLI generation in any root containing `.git`.
 - [x] Preserve derived identity generation for git-free source exports.
-- [ ] Execute `node --test tests/runtime-delivery/repository-source-identity-authority.test.js` and the existing derived-identity regressions.
+- [x] Execute repository identity and existing export-derived identity regressions; final remote result: PASS.
 
 ### Task 6: Verification and review
 
-- [ ] Run `npm run test:wp0`.
-- [ ] Run `npm run verify:wp0:gate -- --branch rebuild/windows-release-closure-20260802-gate0-wp0-fix` with the trusted remote branch ref present.
-- [ ] Run the focused runtime-delivery identity and LFS tests.
-- [ ] Verify `tools/protocol/validate-v3-protocols.js` accepts the repository descriptor.
-- [ ] Inspect the fresh GitHub Actions job log and record its run ID and conclusion.
-- [ ] Keep PR #4 Draft until all fresh evidence is available; do not claim promotion or formal release readiness.
+- [x] Run `npm run test:wp0`: 13 passed, 0 failed.
+- [x] Run `npm run verify:wp0:gate -- --branch rebuild/windows-release-closure-20260802-gate0-wp0-fix`: 4/4 checks passed.
+- [x] Run focused runtime-delivery identity, LFS, and export tests: 10 passed, 0 failed.
+- [x] Verify `tools/protocol/validate-v3-protocols.js`: `protocols=PASS`.
+- [x] Verify the remote Electron LFS object: SHA-256 `d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34`, size `136644393` bytes, clean Git status after smudge.
+- [x] Inspect fresh GitHub Actions evidence: final head `1201c1d95802700966788b7c19828cd64dee8a96`, workflow run `30730625819`, job `91450284619`, conclusion `success`.
+- [x] Keep PR #4 Draft; do not claim Gate 1 authorization, promotion readiness, candidate package generation, or formal release readiness.
+
+## Final verified state
+
+```text
+sourceCommit=1201c1d95802700966788b7c19828cd64dee8a96
+workflowRunId=30730625819
+workflowJobId=91450284619
+wp0Tests=13/13 PASS
+focusedIdentityLfsExportTests=10/10 PASS
+protocols=PASS
+executableWp0Gate=4/4 PASS
+repositoryReleaseSurfaceViolations=0
+prState=DRAFT
+gate1MayStart=false
+readyForPromotion=false
+formalRelease=false
+candidatePackageGenerated=false
+```
