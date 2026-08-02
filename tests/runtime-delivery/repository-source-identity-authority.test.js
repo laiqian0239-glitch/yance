@@ -7,6 +7,7 @@ const { execFileSync, spawnSync } = require('node:child_process');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const delivery = require('../../tools/runtime-delivery/source-uat-delivery');
+const { assertSealedExportRoot } = require('../../tools/runtime-delivery/sealed-export-authority');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const DERIVED_IDENTITY = 'YANCE_DERIVED_SOURCE_IDENTITY.json';
@@ -26,6 +27,11 @@ function createMinimalExport(root) {
   fs.mkdirSync(root, { recursive: true });
   fs.writeFileSync(path.join(root, 'payload.txt'), 'sealed payload\n', 'utf8');
   return root;
+}
+
+function createDirectoryLink(target, linkPath) {
+  fs.symlinkSync(target, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
+  return linkPath;
 }
 
 function derivedIdentityCliArgs(exportRoot, derivedVersion) {
@@ -157,25 +163,28 @@ test('derived identity API rejects a root-level .git file even when its target i
   }
 });
 
-test('derived identity CLI rejects Git context supplied through GIT_DIR and GIT_WORK_TREE', () => {
+test('derived identity CLI isolates Git discovery from inherited GIT environment', () => {
   const repositoryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-derived-env-git-'));
   const exportRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-derived-env-export-'));
   try {
     execFileSync('git', ['init', '--quiet', repositoryRoot], { encoding: 'utf8' });
     createMinimalExport(exportRoot);
-    const child = spawnSync(process.execPath, derivedIdentityCliArgs(exportRoot, 'ENV_GIT_CONTEXT_MUST_BE_REJECTED'), {
+    const child = spawnSync(process.execPath, derivedIdentityCliArgs(exportRoot, 'ENV_GIT_CONTEXT_MUST_BE_IGNORED'), {
       cwd: exportRoot,
       encoding: 'utf8',
       env: {
         ...process.env,
         GIT_DIR: path.join(repositoryRoot, '.git'),
-        GIT_WORK_TREE: repositoryRoot
+        GIT_WORK_TREE: repositoryRoot,
+        GIT_COMMON_DIR: path.join(repositoryRoot, '.git'),
+        GIT_CEILING_DIRECTORIES: exportRoot,
+        GIT_DISCOVERY_ACROSS_FILESYSTEM: '0',
+        git_index_file: path.join(repositoryRoot, '.git', 'index')
       }
     });
-    assert.notEqual(child.status, 0);
-    const error = JSON.parse(child.stderr);
-    assert.equal(error.reasonCode, 'SOURCE_UAT_DERIVED_IDENTITY_GIT_ROOT_FORBIDDEN');
-    assert.equal(error.details?.relation, 'GIT_REV_PARSE_CONTEXT');
+    assert.equal(child.status, 0, child.stderr || child.stdout);
+    assert.ok(fs.existsSync(path.join(exportRoot, DERIVED_IDENTITY)));
+    assert.equal(delivery.resolveSourceIdentity(exportRoot).source, DERIVED_IDENTITY);
   } finally {
     fs.rmSync(repositoryRoot, { recursive: true, force: true });
     fs.rmSync(exportRoot, { recursive: true, force: true });
@@ -197,5 +206,76 @@ test('derived identity API rejects embedded Git metadata below the export root',
     );
   } finally {
     fs.rmSync(exportRoot, { recursive: true, force: true });
+  }
+});
+
+test('derived identity API rejects a root symlink or Windows junction before any export mutation', () => {
+  const targetRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-derived-link-target-'));
+  const linkParent = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-derived-link-parent-'));
+  const linkedRoot = path.join(linkParent, 'candidate');
+  try {
+    createMinimalExport(targetRoot);
+    createDirectoryLink(targetRoot, linkedRoot);
+    assert.throws(
+      () => delivery.createDerivedSourceIdentity(linkedRoot, VALID_IDENTITY_OPTIONS),
+      error => error?.reasonCode === 'SOURCE_UAT_DERIVED_IDENTITY_ROOT_LINK_FORBIDDEN'
+        && error?.details?.relation === 'ROOT_SYMBOLIC_LINK_OR_REPARSE_POINT'
+        && path.resolve(error?.details?.logicalRoot || '') === path.resolve(linkedRoot)
+        && path.resolve(error?.details?.canonicalRoot || '') === fs.realpathSync.native(linkedRoot),
+      'root links and Windows junctions must be rejected by the shared authority'
+    );
+    assert.equal(fs.existsSync(path.join(targetRoot, DERIVED_IDENTITY)), false);
+    assert.equal(fs.existsSync(path.join(targetRoot, 'YANCE_ARTIFACT_DESCRIPTOR.json')), false);
+  } finally {
+    fs.rmSync(linkParent, { recursive: true, force: true });
+    fs.rmSync(targetRoot, { recursive: true, force: true });
+  }
+});
+
+test('derived identity CLI rejects a linked Git subtree even when GIT_CEILING_DIRECTORIES hides discovery', () => {
+  const repositoryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-derived-linked-worktree-'));
+  const linkParent = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-derived-linked-worktree-alias-'));
+  const linkedRoot = path.join(linkParent, 'candidate');
+  try {
+    execFileSync('git', ['init', '--quiet', repositoryRoot], { encoding: 'utf8' });
+    const physicalExport = createMinimalExport(path.join(repositoryRoot, 'exports', 'candidate'));
+    createDirectoryLink(physicalExport, linkedRoot);
+    const child = spawnSync(process.execPath, derivedIdentityCliArgs(linkedRoot, 'LINKED_WORKTREE_MUST_BE_REJECTED'), {
+      cwd: linkParent,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        GIT_CEILING_DIRECTORIES: physicalExport,
+        GIT_DISCOVERY_ACROSS_FILESYSTEM: '0'
+      }
+    });
+    assert.notEqual(child.status, 0);
+    const error = JSON.parse(child.stderr);
+    assert.equal(error.reasonCode, 'SOURCE_UAT_DERIVED_IDENTITY_ROOT_LINK_FORBIDDEN');
+    assert.equal(error.details?.relation, 'ROOT_SYMBOLIC_LINK_OR_REPARSE_POINT');
+    assert.equal(path.resolve(error.details?.canonicalRoot || ''), fs.realpathSync.native(linkedRoot));
+  } finally {
+    fs.rmSync(linkParent, { recursive: true, force: true });
+    fs.rmSync(repositoryRoot, { recursive: true, force: true });
+  }
+});
+
+test('sealed export authority returns one physical canonical root for linked parent components', () => {
+  const physicalParent = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-derived-physical-parent-'));
+  const aliasContainer = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-derived-parent-alias-'));
+  const aliasParent = path.join(aliasContainer, 'physical-parent');
+  try {
+    const physicalExport = createMinimalExport(path.join(physicalParent, 'candidate'));
+    createDirectoryLink(physicalParent, aliasParent);
+    const logicalExport = path.join(aliasParent, 'candidate');
+    const canonicalExport = fs.realpathSync.native(logicalExport);
+    assert.equal(assertSealedExportRoot(logicalExport), canonicalExport);
+    delivery.createDerivedSourceIdentity(logicalExport, VALID_IDENTITY_OPTIONS);
+    assert.ok(fs.existsSync(path.join(canonicalExport, DERIVED_IDENTITY)));
+    assert.ok(fs.existsSync(path.join(canonicalExport, 'YANCE_ARTIFACT_DESCRIPTOR.json')));
+    assert.equal(canonicalExport, fs.realpathSync.native(physicalExport));
+  } finally {
+    fs.rmSync(aliasContainer, { recursive: true, force: true });
+    fs.rmSync(physicalParent, { recursive: true, force: true });
   }
 });
