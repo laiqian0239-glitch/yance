@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "documentType": "YANCE_ACV2_WP_A_BASELINE",
-  "status": "A1_CLOSED_A2_TEST_FIRST_AUTHORIZED",
+  "status": "A2_VALID_RED_RECORDED_IMPLEMENTATION_AUTHORIZED",
   "workPackage": "WP-A",
   "completedTasks": [
     "A0_FREEZE_WRITER_READ_RECOVERY_FALLBACK_INVENTORY_AND_ADD_RED_TESTS",
@@ -17,9 +17,9 @@
   "prMustRemainDraft": true,
   "productionCodeScope": "WP_A_ONLY",
   "a2TestCodeAllowed": true,
-  "a2ProductionCodeAllowed": false,
-  "a2ProductionCodeStartCondition": "A2_REQUIRED_RED_EVIDENCE_RECORDED",
-  "a2FirstRequiredAction": "ADD_FAILING_CANONICAL_SERIALIZATION_CLASSIFICATION_AND_UPCASTER_TESTS",
+  "a2ProductionCodeAllowed": true,
+  "a2ProductionCodeStartCondition": "SATISFIED_BY_VALID_A2_RED_EVIDENCE",
+  "a2FirstRequiredAction": "IMPLEMENT_A2_PUBLIC_MODULES_ONLY",
   "automaticNextTaskAuthorization": false,
   "automaticNextWorkPackageAuthorization": false,
   "sourceClosure": {
@@ -105,6 +105,22 @@
       "MUTEX_TIMEOUT_POLICY_UNCHANGED"
     ]
   },
+  "a2": {
+    "status": "RED_RECORDED_IMPLEMENTATION_AUTHORIZED",
+    "redEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a2-red-evidence.json",
+      "head": "81d92f05ce061c984c5936047bced1863337e585",
+      "workflowRunId": 30736818711,
+      "ubuntuJobId": 91466991439,
+      "windowsJobId": 91466991449,
+      "conclusion": "EXPECTED_FAILURE",
+      "a1Prerequisites": "12_OF_12_PASS_PER_PLATFORM",
+      "a2Contract": "0_OF_21_PASS_PER_PLATFORM_MISSING_PUBLIC_MODULES"
+    },
+    "implementationStartConditionSatisfied": true,
+    "greenEvidenceRequired": true,
+    "independentSourceReviewRequired": true
+  },
   "a2AllowedFiles": [
     "backend/services/canonicalSerialization.js",
     "backend/services/dataClassificationRegistry.js",
@@ -118,7 +134,6 @@
     "package.json"
   ],
   "a2ProhibitedActions": [
-    "IMPLEMENT_A2_PRODUCTION_CODE_BEFORE_VALID_RED",
     "IMPLEMENT_A3_OR_LATER",
     "IMPLEMENT_WP_B_OR_LATER",
     "OPEN_ACV2_BRANCH_WILDCARD",
