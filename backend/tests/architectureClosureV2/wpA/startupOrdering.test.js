@@ -46,6 +46,21 @@ test('startup recovery uses a dedicated versioned dispatcher and never replaces 
   assert.doesNotMatch(compositionText, /runtime\.executeBusinessCommand\s*=/);
 });
 
+test('startup dispatcher is sealed before mutable production modules are loaded', () => {
+  const text = source(serverPath);
+  const seal = text.indexOf('RUNTIME_COMPOSITION.authorityCommandGateway.seal()');
+  const mutableImports = [
+    "require('./routes/messages')",
+    "require('./routes/accounts')",
+    "require('./services/sendQueueService')",
+    "require('./services/runtimeRecoveryService')",
+    "require('./services/aiReplyOutboxService')"
+  ].map(marker => text.indexOf(marker)).filter(index => index >= 0);
+  assert.ok(seal >= 0, 'startup dispatcher must be explicitly sealed');
+  assert.ok(mutableImports.length > 0, 'mutable production import inventory must remain observable');
+  assert.ok(mutableImports.every(index => seal < index), 'startup dispatcher must be sealed before mutable modules load');
+});
+
 test('production composition is enabled before mutable routes, queues and recovery services are loaded', () => {
   const text = source(serverPath);
   const configure = text.indexOf('APP_RUNTIME.configureProductionServices()');
