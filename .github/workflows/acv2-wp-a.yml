@@ -74,6 +74,7 @@ jobs:
           backend/tests/architectureClosureV2/wpA/runtimeComposition.test.js
           backend/tests/architectureClosureV2/wpA/runtimeGatewaySurface.test.js
           backend/tests/architectureClosureV2/wpA/runtimeStateStoreBinding.test.js
+          backend/tests/architectureClosureV2/wpA/runtimeProcessSingleton.test.js
           backend/tests/architectureClosureV2/wpA/startupOrdering.test.js
       - name: Install locked dependencies for legacy regressions
         run: npm ci --ignore-scripts --no-audit --no-fund
