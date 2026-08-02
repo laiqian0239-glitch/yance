@@ -1,0 +1,140 @@
+name: Layered CI Task and Work Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact frozen candidate commit
+        required: true
+        type: string
+      required_level:
+        description: Verification layer to execute
+        required: true
+        type: choice
+        options:
+          - L1
+          - L2
+      suite:
+        description: Predefined test suite
+        required: true
+        type: choice
+        options:
+          - acv2_wp_a_a6
+          - wp0
+          - full_work_package
+
+permissions:
+  contents: read
+
+env:
+  CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+  SELECTED_SUITE: ${{ inputs.suite }}
+
+jobs:
+  validate-candidate-input:
+    name: layered-ci-candidate-input
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout candidate history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+      - name: Validate exact candidate object
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${CANDIDATE_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --no-tags --force origin "${CANDIDATE_SHA}"
+          git cat-file -e "${CANDIDATE_SHA}^{commit}"
+
+  l1-task-ubuntu:
+    name: layered-ci-l1-task-ubuntu
+    needs: validate-candidate-input
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact frozen candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Run A6 task contracts
+        if: ${{ inputs.suite == 'acv2_wp_a_a6' || inputs.suite == 'full_work_package' }}
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/runtimeComposition.test.js
+          backend/tests/architectureClosureV2/wpA/runtimeGatewaySurface.test.js
+          backend/tests/architectureClosureV2/wpA/runtimeStateStoreBinding.test.js
+          backend/tests/architectureClosureV2/wpA/runtimeProcessSingleton.test.js
+          backend/tests/architectureClosureV2/wpA/startupOrdering.test.js
+      - name: Run WP0 task contracts
+        if: ${{ inputs.suite == 'wp0' || inputs.suite == 'full_work_package' }}
+        run: npm run test:wp0
+      - name: Install locked dependencies for full work-package regressions
+        if: ${{ inputs.suite == 'full_work_package' }}
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run full work-package legacy regressions
+        if: ${{ inputs.suite == 'full_work_package' }}
+        run: >-
+          node --test --test-concurrency=1
+          tests/wp5/m5-sqlite-ownership.test.js
+          tests/wp4/application-matrix-temp-path.test.js
+          tests/wp3/stale-fencing-token-outbox-denied.test.js
+
+  l2-platform-matrix:
+    name: layered-ci-l2-${{ matrix.os }}
+    if: ${{ inputs.required_level == 'L2' }}
+    needs:
+      - validate-candidate-input
+      - l1-task-ubuntu
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact frozen candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Run cross-platform A6 contracts
+        if: ${{ inputs.suite == 'acv2_wp_a_a6' || inputs.suite == 'full_work_package' }}
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/windowsRuntimeMutexPowerShell.test.js
+          backend/tests/architectureClosureV2/wpA/authorityWriteHostProcessMatrix.test.js
+          backend/tests/architectureClosureV2/wpA/runtimeComposition.test.js
+          backend/tests/architectureClosureV2/wpA/runtimeProcessSingleton.test.js
+      - name: Run cross-platform sealed source identity
+        if: ${{ inputs.suite == 'wp0' || inputs.suite == 'full_work_package' }}
+        run: node --test --test-concurrency=1 tests/runtime-delivery/repository-source-identity-authority.test.js
+      - name: Install locked dependencies for L2 legacy regressions
+        if: ${{ inputs.suite == 'full_work_package' }}
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run L2 legacy regression matrix
+        if: ${{ inputs.suite == 'full_work_package' }}
+        run: >-
+          node --test --test-concurrency=1
+          tests/wp5/m5-sqlite-ownership.test.js
+          tests/wp4/application-matrix-temp-path.test.js
+          tests/wp3/stale-fencing-token-outbox-denied.test.js
