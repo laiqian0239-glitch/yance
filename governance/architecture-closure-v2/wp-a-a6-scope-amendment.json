@@ -10,8 +10,8 @@
   "baseAuthorizationPath": "governance/architecture-closure-v2/implementation-plan-authorization.json",
   "baseAuthorizationBlobSha": "203697b36c06e0dc72c92113ef58f1a8f2394312",
   "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
-  "approvedChangedFileCount": 82,
-  "approvedChangedFileSetSha256": "024e5b4db507f1526085af9dc2dd6ef71755d1e7063f0cdd418a3c1896229866",
+  "approvedChangedFileCount": 83,
+  "approvedChangedFileSetSha256": "d2cac11bd6864b02e09fa68015dbdba5c41bb2777bf79e821f00a846b651702a",
   "additionalAllowedPaths": [
     "backend/runtime/AppRuntime.js",
     "backend/runtime/NamedRuntimeMutex.js",
@@ -70,6 +70,13 @@
         "tools/wp0/work-package-scope-gate.js"
       ],
       "reason": "One shared fail-closed scope gate now protects both verify:wp0:gate and the build/package/release wrapper. It validates a clean worktree, the frozen authorization blob, the fixed parent Head and the exact reviewed changed-file set."
+    },
+    {
+      "class": "A6_PROCESS_LIFETIME_SINGLETON",
+      "paths": [
+        "backend/tests/architectureClosureV2/wpA/runtimeProcessSingleton.test.js"
+      ],
+      "reason": "AppRuntimeFactory and the canonical ledger must share one process-lifetime construction boundary; production clear cannot silently authorize a second runtime graph, while explicit test reset must clear both authorities."
     }
   ],
   "governance": {
