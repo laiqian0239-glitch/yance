@@ -50,6 +50,7 @@ jobs:
           backend/tests/architectureClosureV2/wpA/canonicalSerialization.test.js
           backend/tests/architectureClosureV2/wpA/dataClassificationRegistry.test.js
           backend/tests/architectureClosureV2/wpA/eventTypeRegistryReplay.test.js
+          backend/tests/architectureClosureV2/wpA/upcasterSandboxEscape.test.js
       - name: Install locked dependencies for legacy regressions
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run existing SQLite ownership and fencing regressions
