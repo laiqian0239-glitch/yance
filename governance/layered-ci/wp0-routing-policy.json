@@ -8,9 +8,14 @@
     ".github/workflows/reviewed-candidate-a6.yml",
     ".github/workflows/reviewed-candidate-a6-sqlite.yml",
     ".github/workflows/stage-6459-wp0-gates.yml",
+    ".github/workflows/wp-a-post-merge-validation.yml",
     ".github/workflows/wp-a-promotion-authorization.yml",
+    "governance/architecture-closure-v2/wp-a-post-merge-validation-policy.json",
     "governance/architecture-closure-v2/wp-a-promotion-authorization.json",
+    "tests/wp0/wp-a-post-merge-validation.test.js",
     "tests/wp0/wp-a-promotion-authorization.test.js",
+    "tools/architecture-closure-v2/run-wp-a-post-merge-contracts.js",
+    "tools/architecture-closure-v2/verify-wp-a-post-merge.js",
     "tools/architecture-closure-v2/verify-wp-a-promotion-authorization.js"
   ],
   "governancePrefixes": [
