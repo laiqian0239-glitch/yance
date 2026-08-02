@@ -1,10 +1,11 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "documentType": "YANCE_ACV2_WP_A_A3_EVIDENCE",
-  "status": "A3_GREEN_RECORDED_AND_INDEPENDENT_REVIEW_READY",
+  "status": "A3_GREEN_RECORDED_AND_INDEPENDENT_REVIEW_APPROVED",
   "workPackage": "WP-A",
   "task": "A3_AUTHORITY_TRANSACTION_COORDINATOR",
   "reviewedCodeHead": "d559c8e76a1f67717da2146151fd552fec51539c",
+  "verifiedGovernanceHead": "4c432f7f13f66ab0f7c895e591ad1e14cc6a2f34",
   "productionScope": [
     "backend/services/authorityTransactionCoordinator.js"
   ],
@@ -18,51 +19,45 @@
       "purpose": "ALIGN_A0_MONOTONIC_AUTHORIZATION_WITH_REOPENED_TASK_MODEL"
     }
   ],
-  "acv2Workflow": {
-    "runId": 30742117971,
+  "codeHeadVerification": {
+    "acv2RunId": 30742117971,
     "overallConclusion": "EXPECTED_FAILURE_DUE_TO_A8_SOURCE_CLOSURE_ONLY",
-    "ubuntu": {
-      "jobId": 91481252161,
-      "conclusion": "SUCCESS",
-      "tests": {
-        "windowsRuntimeMutexHelper": "3_OF_3_PASS",
-        "authorityWriteHostAndSchema21": "7_OF_7_PASS",
-        "realProcessOwnershipAndTakeover": "2_OF_2_PASS",
-        "a2CanonicalClassificationReplay": "33_OF_33_PASS",
-        "a3CoordinatorSchemaAndAdversarial": "24_OF_24_PASS",
-        "legacySqliteOwnershipPathAndFencing": "22_OF_22_PASS"
-      }
-    },
-    "windows": {
-      "jobId": 91481252158,
-      "conclusion": "SUCCESS",
-      "requiredSteps": [
-        "WINDOWS_RUNTIME_MUTEX_HELPER_SUCCESS",
-        "AUTHORITY_WRITE_HOST_AND_SCHEMA21_SUCCESS",
-        "REAL_PROCESS_OWNERSHIP_AND_TAKEOVER_SUCCESS",
-        "A2_CANONICAL_CLASSIFICATION_REPLAY_SUCCESS",
-        "A3_COORDINATOR_SCHEMA_AND_ADVERSARIAL_SUCCESS",
-        "LEGACY_SQLITE_OWNERSHIP_PATH_AND_FENCING_SUCCESS"
-      ]
-    },
-    "sourceClosure": {
-      "jobId": 91481252131,
-      "a0RegistryAndOpenStateContract": "SUCCESS",
-      "finalScanner": "EXPECTED_FAILURE_UNTIL_A8",
-      "gateWeakened": false
-    }
-  },
-  "wp0Workflow": {
-    "runId": 30742117979,
-    "overallConclusion": "SUCCESS",
+    "ubuntuJobId": 91481252161,
+    "ubuntuConclusion": "SUCCESS",
+    "windowsJobId": 91481252158,
+    "windowsConclusion": "SUCCESS",
+    "sourceClosureJobId": 91481252131,
+    "a0RegistryAndOpenStateContract": "SUCCESS",
+    "finalSourceClosureScanner": "EXPECTED_FAILURE_UNTIL_A8",
+    "wp0RunId": 30742117979,
+    "wp0Conclusion": "SUCCESS",
     "wp0JobId": 91481252166,
-    "wp0RequiredTests": "SUCCESS",
-    "stagedSecretScanner": "SUCCESS",
-    "sourceIdentityAndElectronTracking": "SUCCESS",
-    "protocolDescriptor": "SUCCESS",
-    "localEquivalentGate": "SUCCESS",
     "sealedExportUbuntuJobId": 91481252192,
     "sealedExportWindowsJobId": 91481252177
+  },
+  "governanceHeadVerification": {
+    "acv2RunId": 30742356643,
+    "overallConclusion": "EXPECTED_FAILURE_DUE_TO_A8_SOURCE_CLOSURE_ONLY",
+    "ubuntuJobId": 91481900311,
+    "ubuntuConclusion": "SUCCESS",
+    "windowsJobId": 91481900362,
+    "windowsConclusion": "SUCCESS",
+    "sourceClosureJobId": 91481900309,
+    "a0RegistryAndOpenStateContract": "SUCCESS",
+    "finalSourceClosureScanner": "EXPECTED_FAILURE_UNTIL_A8",
+    "wp0RunId": 30742356634,
+    "wp0Conclusion": "SUCCESS",
+    "wp0JobId": 91481900193,
+    "sealedExportUbuntuJobId": 91481900260,
+    "sealedExportWindowsJobId": 91481900228
+  },
+  "perPlatformTests": {
+    "windowsRuntimeMutexHelper": "3_OF_3_PASS",
+    "authorityWriteHostAndSchema21": "7_OF_7_PASS",
+    "realProcessOwnershipAndTakeover": "2_OF_2_PASS",
+    "a2CanonicalClassificationReplay": "33_OF_33_PASS",
+    "a3CoordinatorSchemaAndAdversarial": "24_OF_24_PASS",
+    "legacySqliteOwnershipPathAndFencing": "22_OF_22_PASS"
   },
   "verifiedInvariants": [
     "LEDGER_SEQUENCE_ALLOCATED_AND_INSERTED_INSIDE_THE_SAME_BEGIN_IMMEDIATE_TRANSACTION",
@@ -79,13 +74,11 @@
     "EXTERNAL_IO_INSIDE_AUTHORITY_TRANSACTION_FAILS_CLOSED",
     "EVENT_NOTIFICATION_OCCURS_ONLY_AFTER_COMMIT"
   ],
-  "governanceRepair": {
-    "a0EvidenceImmutable": true,
-    "reopenedTaskModelValidated": true,
-    "a4ThroughA8LockedDuringRepair": true,
-    "wpBThroughWpHLocked": true,
-    "gate1Locked": true,
-    "releaseLocked": true
+  "independentSourceReview": {
+    "document": "docs/architecture/YANCE_ACV2_WP_A_A3_SOURCE_REVIEW_ZH.md",
+    "decision": "APPROVED_AFTER_LEDGER_SEQUENCE_AND_GOVERNANCE_CONTRACT_ROOT_REPAIR",
+    "openP0": 0,
+    "openP1": 0
   },
   "codeRabbit": {
     "invocationCommentId": 5156916790,
