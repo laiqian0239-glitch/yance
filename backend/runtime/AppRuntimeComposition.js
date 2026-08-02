@@ -77,6 +77,25 @@ function hasStartupCommandHandler(commandType) {
     && typeof STARTUP_COMMAND_HANDLERS[commandType] === 'function';
 }
 
+function lockAuthorityBinding(target, key, expected) {
+  const descriptor = Object.getOwnPropertyDescriptor(target, key);
+  if (!descriptor || descriptor.get || descriptor.set || descriptor.value !== expected) {
+    throw gatewayError(
+      'APP_RUNTIME_CANONICAL_AUTHORITY_BINDING_INVALID',
+      `Canonical authority binding ${key} is missing or inconsistent`,
+      503,
+      { key }
+    );
+  }
+  Object.defineProperty(target, key, {
+    value: expected,
+    enumerable: descriptor.enumerable === true,
+    writable: false,
+    configurable: false
+  });
+  return expected;
+}
+
 function snapshotStartupPayload(value) {
   if (value == null) return Object.freeze({});
   if (typeof value !== 'object' || Array.isArray(value)) {
@@ -257,13 +276,22 @@ function createAppRuntimeComposition(runtime) {
     store: authorityStore,
     eventBus
   });
+  lockAuthorityBinding(authorityTransactionCoordinator, 'store', authorityStore);
+  lockAuthorityBinding(authorityTransactionCoordinator, 'db', authorityStore.db);
+
   const platformCoreRepository = createPlatformCoreRepository({ storeProvider: () => authorityStore });
   const canonicalEventLedgerAuthority = new CanonicalEventLedgerAuthority({
     coordinator: authorityTransactionCoordinator,
     store: authorityStore,
     compatibilityRepository: platformCoreRepository
   });
+  lockAuthorityBinding(canonicalEventLedgerAuthority, 'coordinator', authorityTransactionCoordinator);
+  lockAuthorityBinding(canonicalEventLedgerAuthority, 'store', authorityStore);
+  lockAuthorityBinding(canonicalEventLedgerAuthority, 'db', authorityStore.db);
+
   const identityAuthority = new IdentityAuthority({ repository: platformCoreRepository });
+  lockAuthorityBinding(identityAuthority, 'repository', platformCoreRepository);
+
   const authorityCommandGateway = new RuntimeAuthorityCommandGateway({
     runtime,
     authorityWriteHostCapability,
