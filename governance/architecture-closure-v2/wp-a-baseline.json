@@ -1,17 +1,16 @@
 {
-  "schemaVersion": 11,
+  "schemaVersion": 12,
   "documentType": "YANCE_ACV2_WP_A_BASELINE",
-  "status": "A1_SCHEMA_FOUNDATION_AND_A3_COORDINATOR_REOPENED_FOR_REVIEW_REPAIR",
+  "status": "A3_CLOSED_A4_TEST_FIRST_RED_AUTHORIZED",
   "workPackage": "WP-A",
   "completedTasks": [
     "A0_FREEZE_WRITER_READ_RECOVERY_FALLBACK_INVENTORY_AND_ADD_RED_TESTS",
-    "A2_VERSIONED_CANONICAL_SERIALIZATION_AND_DATA_CLASSIFICATION"
-  ],
-  "reopenedTasks": [
     "A1_SCHEMA_21_LEDGER_AND_PROJECTOR_SEMANTIC_CONTRACT",
+    "A2_VERSIONED_CANONICAL_SERIALIZATION_AND_DATA_CLASSIFICATION",
     "A3_AUTHORITY_TRANSACTION_COORDINATOR_PROJECTOR_CAPABILITY"
   ],
-  "currentAuthorizedTask": "A3_INDEPENDENT_REVIEW_ROOT_REPAIR",
+  "reopenedTasks": [],
+  "currentAuthorizedTask": "A4_TEST_FIRST_RED",
   "repository": "laiqian0239-glitch/yance",
   "parentPullRequest": 4,
   "stackedPullRequest": 5,
@@ -19,7 +18,7 @@
   "parentGovernanceHead": "d81599d8a3f3de891da369b6f1ddbd01e264c78d",
   "authorizedBranch": "acv2/wp-a-identity-ledger-write-host",
   "prMustRemainDraft": true,
-  "productionCodeScope": "WP_A_A1_SCHEMA_FOUNDATION_AND_A3_COORDINATOR_ONLY",
+  "productionCodeScope": "NONE_A4_TESTS_ONLY",
   "automaticNextTaskAuthorization": false,
   "automaticNextWorkPackageAuthorization": false,
   "sourceClosure": {
@@ -50,7 +49,7 @@
     }
   },
   "a1": {
-    "status": "REOPENED_BY_A3_INDEPENDENT_REVIEW",
+    "status": "CLOSED_AFTER_A3_INDEPENDENT_REVIEW_ROOT_REPAIR",
     "originalGreenEvidence": {
       "document": "governance/architecture-closure-v2/wp-a-a1-evidence.json",
       "verifiedCodeHead": "22485f03bc52739b79bf3a5e354c2f7ffc67cf9d",
@@ -60,10 +59,17 @@
       "result": "12_OF_12_AND_22_OF_22_PASS_PER_PLATFORM"
     },
     "reopenReason": "SCHEMA_21_DDL_DID_NOT_CARRY_FROZEN_LEDGER_SEQUENCE_TRACE_SOURCE_PAYLOAD_HASH_WRITER_OR_PROJECTOR_LEASE_FENCING_SEMANTICS",
-    "unreleasedSchemaRewriteAuthorized": true,
+    "finalRepairEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a3-evidence.json",
+      "reviewedCodeHead": "d559c8e76a1f67717da2146151fd552fec51539c",
+      "workflowRunId": 30742117971,
+      "ubuntuJobId": 91481252161,
+      "windowsJobId": 91481252158,
+      "result": "SCHEMA21_AND_A3_AND_LEGACY_REGRESSIONS_PASS_PER_PLATFORM"
+    },
     "historicalMigrationsOneThroughTwentyImmutable": true,
-    "compatibilityColumnPatchForbidden": true,
-    "semanticColumnReuseForbidden": true
+    "compatibilityColumnPatchUsed": false,
+    "semanticColumnReuseUsed": false
   },
   "a2": {
     "status": "CLOSED",
@@ -84,7 +90,7 @@
     }
   },
   "a3": {
-    "status": "REOPENED_BY_INDEPENDENT_REVIEW_RED",
+    "status": "CLOSED",
     "initialRedEvidence": {
       "document": "governance/architecture-closure-v2/wp-a-a3-red-evidence.json",
       "head": "749da0b06227c95e7471149b4af78e4ab3ef465e",
@@ -108,36 +114,60 @@
       "result": "18_PASS_6_EXPECTED_FAIL_PER_PLATFORM",
       "implementationStartConditionSatisfied": true
     },
-    "rootRepairAuthorized": true,
-    "greenEvidenceRequired": true,
-    "independentSourceReviewRequired": true
+    "finalGreenEvidence": {
+      "document": "governance/architecture-closure-v2/wp-a-a3-evidence.json",
+      "reviewedCodeHead": "d559c8e76a1f67717da2146151fd552fec51539c",
+      "workflowRunId": 30742117971,
+      "ubuntuJobId": 91481252161,
+      "windowsJobId": 91481252158,
+      "wp0WorkflowRunId": 30742117979,
+      "result": "24_OF_24_A3_AND_22_OF_22_LEGACY_PASS_PER_PLATFORM"
+    },
+    "independentSourceReview": {
+      "document": "docs/architecture/YANCE_ACV2_WP_A_A3_SOURCE_REVIEW_ZH.md",
+      "decision": "APPROVED_AFTER_LEDGER_SEQUENCE_AND_GOVERNANCE_CONTRACT_ROOT_REPAIR",
+      "openP0": 0,
+      "openP1": 0
+    },
+    "codeRabbit": {
+      "formalReviewExecuted": false,
+      "outcome": "NOT_EXECUTED_PRO_SEAT_NOT_ASSIGNED",
+      "invocationCommentId": 5156916790,
+      "responseCommentId": 5156917299
+    }
   },
-  "reviewRepairAllowedFiles": [
-    "backend/migrations/architectureClosureV2WpA.js",
-    "backend/services/authorityTransactionCoordinator.js",
-    "backend/tests/architectureClosureV2/wpA/schema21AuthorityContract.test.js",
-    "backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinatorAdversarial.test.js",
-    "governance/architecture-closure-v2/wp-a-*.json",
-    "docs/architecture/YANCE_ACV2_WP_A_*.md",
-    ".github/workflows/*acv2*"
-  ],
-  "requiredRootRepair": [
-    "COMPLETE_CANONICAL_EVENT_HEADER_SCHEMA",
-    "GLOBAL_LEDGER_SEQUENCE_UNIQUE_AND_MONOTONIC",
-    "COMPLETE_PROJECTOR_CHECKPOINT_LEASE_GENERATION_FENCING_OUTPUT_HASH_AND_LAG",
-    "MIGRATION_CHECKSUM_PINNED_TO_COMPLETE_SCHEMA",
-    "TRANSACTION_SCOPED_REVOKABLE_PROJECTOR_DATABASE_CAPABILITY",
-    "PROJECTOR_TRANSACTION_CONTROL_AND_AUTHORITY_TABLE_ACCESS_REJECTED",
-    "RETAINED_DATABASE_AND_STATEMENT_CAPABILITIES_EXPIRE_AFTER_CALLBACK",
-    "PROJECTOR_PAYLOAD_DEEPLY_IMMUTABLE",
-    "TRACE_SOURCE_HASH_WRITER_AND_SEGMENT_METADATA_PERSISTED"
-  ],
+  "a4": {
+    "status": "TEST_FIRST_RED_AUTHORIZED",
+    "testCodeAllowed": true,
+    "productionCodeAllowed": false,
+    "implementationStartConditionSatisfied": false,
+    "task": "UPGRADE_DOMAIN_EVENT_LOG_AUTHORITY_IN_PLACE_TO_CANONICAL_EVENT_LEDGER_AUTHORITY",
+    "allowedTestFiles": [
+      "backend/tests/architectureClosureV2/wpA/canonicalEventLedgerAuthority.test.js",
+      "backend/tests/architectureClosureV2/wpA/domainEventCompatibilityFacade.test.js"
+    ],
+    "productionFilesLocked": [
+      "backend/services/canonicalEventLedgerAuthority.js",
+      "backend/services/domainEventLogService.js",
+      "backend/repositories/platformCoreRepository.js"
+    ],
+    "requiredRedInvariants": [
+      "EXACTLY_ONE_LEDGER_IMPLEMENTATION_AND_ONE_APPEND_PATH",
+      "DOMAIN_EVENT_LOG_SERVICE_HAS_NO_INDEPENDENT_PERSISTENCE",
+      "HEADER_PAYLOAD_HASH_MISMATCH_FAILS_CLOSED",
+      "DUPLICATE_AGGREGATE_VERSION_FAILS_CLOSED",
+      "COMMITTED_EVENT_MUTATION_FAILS_CLOSED",
+      "DIRECT_REPOSITORY_APPEND_FAILS_CLOSED",
+      "BUSINESS_PAYLOAD_REMAINS_REPLAYABLE_WITHOUT_COPYING_BUSINESS_BODY_TO_EVIDENCE"
+    ]
+  },
   "prohibitedActions": [
-    "ADD_COMPATIBILITY_COLUMNS_INSTEAD_OF_REDEFINING_UNRELEASED_SCHEMA_21",
-    "REUSE_AGGREGATE_VERSION_AS_LEDGER_SEQUENCE",
-    "PASS_RAW_PRIMARY_DATABASE_TO_PROJECTOR",
-    "ALLOW_PROJECTOR_TRANSACTION_CONTROL",
-    "IMPLEMENT_A4_OR_LATER",
+    "IMPLEMENT_A4_PRODUCTION_BEFORE_TRUSTED_RED_EVIDENCE",
+    "ADD_SECOND_LEDGER_IMPLEMENTATION",
+    "ADD_SECOND_APPEND_PATH",
+    "KEEP_INDEPENDENT_DOMAIN_EVENT_LOG_PERSISTENCE",
+    "ADD_CALLER_BYPASS_OR_WARNING_ONLY_GUARD",
+    "IMPLEMENT_A5_OR_LATER",
     "IMPLEMENT_WP_B_OR_LATER",
     "OPEN_ACV2_BRANCH_WILDCARD",
     "REMOVE_OR_DOWNGRADE_SOURCE_CLOSURE_GATE",
@@ -148,6 +178,6 @@
   "candidatePackageGenerated": false,
   "readyForPromotion": false,
   "formalRelease": false,
-  "lockedTasks": ["A4", "A5", "A6", "A7", "A8"],
+  "lockedTasks": ["A5", "A6", "A7", "A8"],
   "lockedWorkPackages": ["WP-B", "WP-C", "WP-D", "WP-E", "WP-F", "WP-G", "WP-H"]
 }
