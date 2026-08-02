@@ -64,6 +64,7 @@ function validateSequence(events, fromSequence, toSequence) {
     });
   }
 
+  const sequences = [];
   const seen = new Set();
   let previous = null;
   for (let index = 0; index < events.length; index += 1) {
@@ -74,22 +75,27 @@ function validateSequence(events, fromSequence, toSequence) {
     if (seen.has(sequence)) {
       throw fail('LEDGER_REPLAY_SEQUENCE_DUPLICATE', 'ledger replay contains a duplicate sequence', { sequence });
     }
-    seen.add(sequence);
     if (previous !== null && sequence < previous) {
       throw fail('LEDGER_REPLAY_ORDER_INVALID', 'ledger replay events are reordered', {
         previousSequence: previous,
         sequence
       });
     }
-    const expected = fromSequence + index;
-    if (sequence !== expected) {
-      throw fail(
-        sequence > expected ? 'LEDGER_REPLAY_SEQUENCE_GAP' : 'LEDGER_REPLAY_ORDER_INVALID',
-        'ledger replay sequence does not match the requested canonical range',
-        { index, expectedSequence: expected, actualSequence: sequence }
-      );
-    }
+    seen.add(sequence);
+    sequences.push(sequence);
     previous = sequence;
+  }
+
+  for (let index = 0; index < sequences.length; index += 1) {
+    const expected = fromSequence + index;
+    const sequence = sequences[index];
+    if (sequence !== expected) {
+      throw fail('LEDGER_REPLAY_SEQUENCE_GAP', 'ledger replay sequence does not match the requested canonical range', {
+        index,
+        expectedSequence: expected,
+        actualSequence: sequence
+      });
+    }
   }
 }
 
