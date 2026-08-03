@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_AUTHORITY_REGISTRY_EXTENSION",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-B",
+  "status": "ACTIVE_IMPLEMENTATION",
+  "baseRegistryPath": "governance/architecture-closure-v2/authority-registry.json",
+  "entries": [
+    {
+      "registryId": "WP-B-A0-R32-STORE-ENGINE",
+      "sourcePath": "backend/lib/r32SqliteStoreEngine.js",
+      "authoritativeOwner": "AuthorityWriteHost",
+      "classification": "REGISTERED_INTERNAL_AUTHORITY_SOURCE",
+      "allowedCapabilities": [
+        "PRIMARY_DB_CONSTRUCTOR"
+      ],
+      "publicEntryPoint": "backend/lib/r32SqliteStore.js",
+      "temporaryBypassAllowed": false
+    }
+  ],
+  "governance": {
+    "exactPathsOnly": true,
+    "wildcardPathsAllowed": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyAllowed": false,
+    "formalRelease": false,
+    "publish": false
+  }
+}
