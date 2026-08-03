@@ -59,10 +59,7 @@ jobs:
           node --check tools/architecture-closure-v2/discover-wp-b-operation-call-sites.js
 
       - name: Run WP-B governance contracts
-        run: |
-          node --test --test-concurrency=1 \
-            backend/tests/architectureClosureV2/wpB/openSourceAdoptionGate.test.js \
-            backend/tests/architectureClosureV2/wpB/operationInventoryDiscovery.test.js
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/openSourceAdoptionGate.test.js backend/tests/architectureClosureV2/wpB/operationInventoryDiscovery.test.js
 
       - name: Verify fail-closed open-source gate
         run: node tools/architecture-closure-v2/verify-wp-b-open-source-adoption.js
