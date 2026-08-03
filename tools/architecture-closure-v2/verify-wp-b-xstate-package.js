@@ -13,55 +13,142 @@ const PACKAGE_SPEC = `${PACKAGE_NAME}@${EXACT_VERSION}`;
 const EXPECTED_LICENSE = 'MIT';
 const EXPECTED_RUNTIME_DEPENDENCY_COUNT = 0;
 const UPSTREAM_REPOSITORY = 'statelyai/xstate';
-const UPSTREAM_TAG_CANDIDATES = Object.freeze([
-  `xstate@${EXACT_VERSION}`,
-  `core@${EXACT_VERSION}`,
-  `v${EXACT_VERSION}`
-]);
+const UPSTREAM_REPOSITORY_URL = `https://github.com/${UPSTREAM_REPOSITORY}.git`;
+const EXACT_UPSTREAM_TAG = `xstate@${EXACT_VERSION}`;
+const UPSTREAM_TAG_CANDIDATES = Object.freeze([EXACT_UPSTREAM_TAG]);
 const INSTALL_LIFECYCLE_SCRIPTS = Object.freeze(['preinstall', 'install', 'postinstall']);
 const SUSPICIOUS_PACKAGE_FILE_PATTERN = /(?:^|\/)(?:[^/]+\.(?:node|dll|exe|ps1|bat|cmd)|install\.sh)$/iu;
+const MAX_DIAGNOSTIC_BYTES = 64 * 1024;
+const COMMAND_TIMEOUTS = Object.freeze({
+  GIT_INIT: 30_000,
+  GIT_REMOTE: 30_000,
+  GIT_FETCH: 120_000,
+  GIT_CHECKOUT: 60_000,
+  GIT_REV_PARSE: 30_000,
+  NPM_METADATA: 60_000,
+  NPM_PACK: 120_000,
+  NPM_LOCK_INSTALL: 180_000,
+  NPM_AUDIT: 120_000
+});
 
 function npmCommand() {
   return process.platform === 'win32' ? 'npm.cmd' : 'npm';
 }
 
-function run(command, args, options = {}) {
-  const result = spawnSync(command, args, {
+function boundedText(value) {
+  const text = String(value || '');
+  if (Buffer.byteLength(text, 'utf8') <= MAX_DIAGNOSTIC_BYTES) return text;
+  return `${text.slice(0, MAX_DIAGNOSTIC_BYTES)}\n[TRUNCATED_BY_WP_B_GOVERNANCE]`;
+}
+
+function createGovernanceError(code, message, details = {}) {
+  const error = new Error(message);
+  error.code = code;
+  for (const [key, value] of Object.entries(details)) error[key] = value;
+  return error;
+}
+
+function isRateLimited(text) {
+  return /(?:\b429\b|E429|too many requests|rate limit exceeded|secondary rate limit)/iu.test(String(text || ''));
+}
+
+function runGovernedCommand(command, args, options = {}) {
+  const timeoutMs = Number(options.timeoutMs);
+  const commandKind = String(options.commandKind || 'UPSTREAM_COMMAND');
+  if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
+    throw createGovernanceError(
+      'WP_B_UPSTREAM_TIMEOUT_POLICY_INVALID',
+      `A positive hard timeout is required for ${commandKind}`,
+      { commandKind, timeoutMs }
+    );
+  }
+
+  const spawnSyncImpl = options.spawnSyncImpl || spawnSync;
+  const useShell = options.shell === undefined
+    ? (process.platform === 'win32' && /\.(?:cmd|bat)$/iu.test(command))
+    : Boolean(options.shell);
+  const result = spawnSyncImpl(command, args, {
     cwd: options.cwd,
     encoding: 'utf8',
     env: {
       ...process.env,
       npm_config_fund: 'false',
       npm_config_audit: 'false',
-      npm_config_update_notifier: 'false'
+      npm_config_update_notifier: 'false',
+      ...(options.env || {})
     },
     maxBuffer: 32 * 1024 * 1024,
-    shell: process.platform === 'win32'
-  });
-  if (result.error) throw result.error;
-  if (!options.allowFailure && result.status !== 0) {
-    const error = new Error(`${command} ${args.join(' ')} exited with ${result.status}`);
-    error.code = 'WP_B_UPSTREAM_COMMAND_FAILED';
-    error.stdout = result.stdout;
-    error.stderr = result.stderr;
-    throw error;
+    timeout: timeoutMs,
+    killSignal: 'SIGKILL',
+    shell: useShell
+  }) || {};
+
+  const stdout = boundedText(result.stdout);
+  const stderr = boundedText(result.stderr);
+  const combined = `${stdout}\n${stderr}\n${result.error && result.error.message ? result.error.message : ''}`;
+  const details = {
+    commandKind,
+    timeoutMs,
+    status: Number.isInteger(result.status) ? result.status : null,
+    signal: result.signal || null,
+    stdout,
+    stderr
+  };
+
+  if (result.error) {
+    if (result.error.code === 'ETIMEDOUT' || result.signal) {
+      throw createGovernanceError(
+        'WP_B_UPSTREAM_COMMAND_TIMEOUT',
+        `${commandKind} exceeded its ${timeoutMs}ms hard timeout`,
+        details
+      );
+    }
+    if (result.error.code === 'ENOENT') {
+      throw createGovernanceError(
+        'WP_B_UPSTREAM_TOOL_UNAVAILABLE',
+        `${commandKind} could not start because the required tool is unavailable`,
+        details
+      );
+    }
+    throw createGovernanceError(
+      'WP_B_UPSTREAM_COMMAND_EXECUTION_FAILED',
+      `${commandKind} could not be executed`,
+      details
+    );
   }
+
+  if (isRateLimited(combined)) {
+    throw createGovernanceError(
+      'WP_B_UPSTREAM_RATE_LIMITED',
+      `${commandKind} was rejected by an upstream rate limit`,
+      details
+    );
+  }
+
+  if (!options.allowFailure && result.status !== 0) {
+    throw createGovernanceError(
+      'WP_B_UPSTREAM_COMMAND_FAILED',
+      `${commandKind} exited with status ${result.status}`,
+      details
+    );
+  }
+
   return Object.freeze({
-    status: result.status,
-    stdout: String(result.stdout || ''),
-    stderr: String(result.stderr || '')
+    status: Number.isInteger(result.status) ? result.status : null,
+    stdout,
+    stderr
   });
 }
 
 function parseJsonOutput(result, label) {
   try {
     return JSON.parse(result.stdout);
-  } catch (error) {
-    const wrapped = new Error(`${label} did not return valid JSON: ${error.message}`);
-    wrapped.code = 'WP_B_UPSTREAM_JSON_INVALID';
-    wrapped.stdout = result.stdout;
-    wrapped.stderr = result.stderr;
-    throw wrapped;
+  } catch (_) {
+    throw createGovernanceError(
+      'WP_B_UPSTREAM_JSON_INVALID',
+      `${label} did not return valid JSON`,
+      { stdout: boundedText(result.stdout), stderr: boundedText(result.stderr) }
+    );
   }
 }
 
@@ -77,64 +164,62 @@ function sha1(value) {
   return crypto.createHash('sha1').update(value).digest('hex');
 }
 
-async function fetchResponse(url, accept) {
-  return fetch(url, {
-    headers: {
-      accept,
-      'user-agent': 'yance-wp-b-open-source-gate'
-    },
-    redirect: 'follow'
+function checkoutExactUpstreamTag(options = {}) {
+  const checkoutRoot = path.resolve(options.checkoutRoot || fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp-b-xstate-source-')));
+  const runCommand = options.runCommand || runGovernedCommand;
+  fs.mkdirSync(checkoutRoot, { recursive: true });
+
+  runCommand('git', ['init', '--quiet'], {
+    cwd: checkoutRoot,
+    commandKind: 'GIT_INIT',
+    timeoutMs: COMMAND_TIMEOUTS.GIT_INIT
+  });
+  runCommand('git', ['remote', 'add', 'origin', UPSTREAM_REPOSITORY_URL], {
+    cwd: checkoutRoot,
+    commandKind: 'GIT_REMOTE',
+    timeoutMs: COMMAND_TIMEOUTS.GIT_REMOTE
+  });
+  runCommand('git', ['fetch', '--depth=1', '--no-tags', 'origin', `refs/tags/${EXACT_UPSTREAM_TAG}`], {
+    cwd: checkoutRoot,
+    commandKind: 'GIT_FETCH',
+    timeoutMs: COMMAND_TIMEOUTS.GIT_FETCH
+  });
+  runCommand('git', ['checkout', '--detach', '--force', 'FETCH_HEAD'], {
+    cwd: checkoutRoot,
+    commandKind: 'GIT_CHECKOUT',
+    timeoutMs: COMMAND_TIMEOUTS.GIT_CHECKOUT
+  });
+  const revision = runCommand('git', ['rev-parse', 'HEAD^{commit}'], {
+    cwd: checkoutRoot,
+    commandKind: 'GIT_REV_PARSE',
+    timeoutMs: COMMAND_TIMEOUTS.GIT_REV_PARSE
+  });
+  const commitSha = String(revision.stdout || '').trim().toLowerCase();
+  if (!/^[0-9a-f]{40}$/u.test(commitSha)) {
+    throw createGovernanceError(
+      'WP_B_XSTATE_TAG_TARGET_INVALID',
+      `Exact upstream tag ${EXACT_UPSTREAM_TAG} did not resolve to a commit`,
+      { tagName: EXACT_UPSTREAM_TAG }
+    );
+  }
+
+  return Object.freeze({
+    root: checkoutRoot,
+    tagName: EXACT_UPSTREAM_TAG,
+    commitSha,
+    repositoryUrl: UPSTREAM_REPOSITORY_URL
   });
 }
 
-async function fetchText(url) {
-  const response = await fetchResponse(url, 'text/plain');
-  if (!response.ok) {
-    const error = new Error(`GET ${url} returned ${response.status}`);
-    error.code = 'WP_B_UPSTREAM_FETCH_FAILED';
-    error.status = response.status;
-    throw error;
+function resolveUpstreamTagCommit(options = {}) {
+  const ownedRoot = !options.checkoutRoot;
+  const checkoutRoot = options.checkoutRoot || fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp-b-xstate-tag-'));
+  try {
+    const checkout = checkoutExactUpstreamTag({ ...options, checkoutRoot });
+    return Object.freeze({ tagName: checkout.tagName, commitSha: checkout.commitSha });
+  } finally {
+    if (ownedRoot) fs.rmSync(checkoutRoot, { recursive: true, force: true });
   }
-  return response.text();
-}
-
-async function fetchJson(url) {
-  const response = await fetchResponse(url, 'application/vnd.github+json');
-  if (!response.ok) {
-    const error = new Error(`GET ${url} returned ${response.status}`);
-    error.code = 'WP_B_UPSTREAM_FETCH_FAILED';
-    error.status = response.status;
-    throw error;
-  }
-  return response.json();
-}
-
-async function resolveUpstreamTagCommit() {
-  for (const tagName of UPSTREAM_TAG_CANDIDATES) {
-    let reference;
-    try {
-      reference = await fetchJson(`https://api.github.com/repos/${UPSTREAM_REPOSITORY}/git/ref/tags/${encodeURIComponent(tagName)}`);
-    } catch (error) {
-      if (error.status === 404) continue;
-      throw error;
-    }
-
-    let object = reference.object || {};
-    if (object.type === 'tag') {
-      const annotated = await fetchJson(`https://api.github.com/repos/${UPSTREAM_REPOSITORY}/git/tags/${object.sha}`);
-      object = annotated.object || {};
-    }
-    if (object.type !== 'commit' || !/^[0-9a-f]{40}$/iu.test(String(object.sha || ''))) {
-      const error = new Error(`Upstream tag ${tagName} did not resolve to a commit`);
-      error.code = 'WP_B_XSTATE_TAG_TARGET_INVALID';
-      throw error;
-    }
-    return Object.freeze({ tagName, commitSha: object.sha });
-  }
-
-  const error = new Error(`No exact upstream tag found for ${PACKAGE_SPEC}`);
-  error.code = 'WP_B_XSTATE_EXACT_TAG_MISSING';
-  throw error;
 }
 
 function normalizeRepository(repository) {
@@ -157,12 +242,28 @@ function auditCounts(audit) {
   });
 }
 
-async function verify() {
+function readLicenseText(upstreamCheckout) {
+  const licensePath = path.join(upstreamCheckout.root, 'LICENSE');
+  try {
+    return fs.readFileSync(licensePath, 'utf8');
+  } catch (_) {
+    throw createGovernanceError(
+      'WP_B_XSTATE_LICENSE_FILE_MISSING',
+      'The exact XState upstream checkout does not contain the required LICENSE file',
+      { tagName: upstreamCheckout.tagName, commitSha: upstreamCheckout.commitSha }
+    );
+  }
+}
+
+async function verify(options = {}) {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp-b-xstate-'));
   const violations = [];
   try {
     const metadata = parseJsonOutput(
-      run(npmCommand(), ['view', PACKAGE_SPEC, '--json']),
+      runGovernedCommand(npmCommand(), ['view', PACKAGE_SPEC, '--json'], {
+        commandKind: 'NPM_METADATA',
+        timeoutMs: COMMAND_TIMEOUTS.NPM_METADATA
+      }),
       'npm view'
     );
 
@@ -187,7 +288,12 @@ async function verify() {
       violations.push({ code: 'WP_B_XSTATE_DIST_DIGEST_MISSING' });
     }
 
-    const upstream = await resolveUpstreamTagCommit();
+    const upstream = options.upstreamCheckout || checkoutExactUpstreamTag({
+      checkoutRoot: path.join(tempRoot, 'upstream')
+    });
+    if (upstream.tagName !== EXACT_UPSTREAM_TAG) {
+      violations.push({ code: 'WP_B_XSTATE_EXACT_TAG_MISSING', actual: upstream.tagName || '' });
+    }
     if (metadata.gitHead && metadata.gitHead !== upstream.commitSha) {
       violations.push({
         code: 'WP_B_XSTATE_NPM_GIT_HEAD_TAG_MISMATCH',
@@ -197,7 +303,11 @@ async function verify() {
     }
 
     const packResult = parseJsonOutput(
-      run(npmCommand(), ['pack', PACKAGE_SPEC, '--json', '--ignore-scripts'], { cwd: tempRoot }),
+      runGovernedCommand(npmCommand(), ['pack', PACKAGE_SPEC, '--json', '--ignore-scripts'], {
+        cwd: tempRoot,
+        commandKind: 'NPM_PACK',
+        timeoutMs: COMMAND_TIMEOUTS.NPM_PACK
+      }),
       'npm pack'
     );
     const packed = Array.isArray(packResult) ? packResult[0] : null;
@@ -233,7 +343,7 @@ async function verify() {
       version: '1.0.0',
       private: true
     }, null, 2)}\n`);
-    run(npmCommand(), [
+    runGovernedCommand(npmCommand(), [
       'install',
       '--package-lock-only',
       '--ignore-scripts',
@@ -241,15 +351,24 @@ async function verify() {
       '--no-fund',
       '--no-audit',
       PACKAGE_SPEC
-    ], { cwd: auditRoot });
-    const auditResult = run(npmCommand(), ['audit', '--omit=dev', '--json'], { cwd: auditRoot, allowFailure: true });
+    ], {
+      cwd: auditRoot,
+      commandKind: 'NPM_LOCK_INSTALL',
+      timeoutMs: COMMAND_TIMEOUTS.NPM_LOCK_INSTALL
+    });
+    const auditResult = runGovernedCommand(npmCommand(), ['audit', '--omit=dev', '--json'], {
+      cwd: auditRoot,
+      allowFailure: true,
+      commandKind: 'NPM_AUDIT',
+      timeoutMs: COMMAND_TIMEOUTS.NPM_AUDIT
+    });
     const audit = parseJsonOutput(auditResult, 'npm audit');
     const vulnerabilities = auditCounts(audit);
     if (vulnerabilities.high !== 0 || vulnerabilities.critical !== 0) {
       violations.push({ code: 'WP_B_XSTATE_HIGH_OR_CRITICAL_VULNERABILITY', vulnerabilities });
     }
 
-    const licenseText = await fetchText(`https://raw.githubusercontent.com/${UPSTREAM_REPOSITORY}/${upstream.commitSha}/LICENSE`);
+    const licenseText = readLicenseText(upstream);
     if (!/MIT License/iu.test(licenseText)) {
       violations.push({ code: 'WP_B_XSTATE_LICENSE_TEXT_INVALID' });
     }
@@ -264,7 +383,7 @@ async function verify() {
     }
 
     return Object.freeze({
-      schemaVersion: 2,
+      schemaVersion: 3,
       documentType: 'YANCE_ACV2_WP_B_XSTATE_UPSTREAM_VERIFICATION',
       ok: violations.length === 0,
       package: {
@@ -321,6 +440,10 @@ async function main() {
       ok: false,
       code: error.code || 'WP_B_XSTATE_UPSTREAM_VERIFICATION_FAILED',
       message: error.message,
+      commandKind: error.commandKind || '',
+      timeoutMs: error.timeoutMs || 0,
+      status: error.status === undefined ? null : error.status,
+      signal: error.signal || null,
       stdout: error.stdout || '',
       stderr: error.stderr || ''
     }, null, 2)}\n`);
@@ -328,16 +451,20 @@ async function main() {
   }
 }
 
-if (require.main === module) {
-  main();
-}
+if (require.main === module) main();
 
 module.exports = {
+  COMMAND_TIMEOUTS,
+  EXACT_UPSTREAM_TAG,
   EXACT_VERSION,
   PACKAGE_NAME,
   PACKAGE_SPEC,
+  UPSTREAM_REPOSITORY,
+  UPSTREAM_REPOSITORY_URL,
   UPSTREAM_TAG_CANDIDATES,
   auditCounts,
+  checkoutExactUpstreamTag,
   resolveUpstreamTagCommit,
+  runGovernedCommand,
   verify
 };
