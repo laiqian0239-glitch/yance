@@ -59,6 +59,7 @@
     "backend/runtime/AppRuntimeFactory.js",
     "backend/server.js",
     "backend/services/accountManager.js",
+    "backend/services/accountManagerCore.js",
     "backend/services/aiGateway.js",
     "backend/services/asyncOperationLifecycleAuthority.js",
     "backend/services/authorityTransactionCoordinator.js",
@@ -68,6 +69,7 @@
     "backend/services/channelAdapterRuntime.js",
     "backend/services/channelRuntimeEngine.js",
     "backend/services/communicationAuthority.js",
+    "backend/services/communicationAuthorityHistoryEngine.js",
     "backend/services/durableExecutionAuthority.js",
     "backend/services/durableExecutionLifecycle.js",
     "backend/services/durableExecutionRecoveryAuthority.js",
@@ -225,6 +227,17 @@
       "addedPaths": [
         "backend/services/canonicalChannelStateEngine.js",
         "backend/services/channelRuntimeEngine.js"
+      ]
+    },
+    {
+      "amendmentId": "WP-B-M2-SCOPE-006",
+      "authorizedAt": "2026-08-04T06:28:00+07:00",
+      "approvedBy": "PROJECT_OWNER",
+      "approvalSource": "Project owner full authorization in the 独立软件工程审计 conversation",
+      "reasonCode": "WP_B_M2_SESSION_AUTHORITY_FACADE_ENGINE_SPLIT",
+      "addedPaths": [
+        "backend/services/accountManagerCore.js",
+        "backend/services/communicationAuthorityHistoryEngine.js"
       ]
     }
   ],
