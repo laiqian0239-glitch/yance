@@ -15,7 +15,7 @@
       "runtimeDependencyCount": 0,
       "targetCapability": "PURE_DURABLE_EXECUTION_LIFECYCLE_AND_MODEL_PATHS",
       "adoptionMode": "DIRECT_DEPENDENCY",
-      "status": "READY_FOR_MODULE_INTRODUCTION",
+      "status": "ORIGINAL_MODULE_INTRODUCED_AWAITING_UPSTREAM_TESTS",
       "productionUseAuthorized": false,
       "allowedResponsibilities": [
         "PURE_LIFECYCLE_GRAPH",
@@ -49,14 +49,43 @@
         "verifiedOnUbuntu": true,
         "verifiedOnWindows": true
       },
+      "originalModuleIntroduction": {
+        "introducedAtHead": "df384158be81a3cf133207f6c122d5452d50517e",
+        "packageManifestPath": "package.json",
+        "packageManifestBlobSha": "f4a1c15316cc451a2979acf5e9a6c7f9eb5f12bc",
+        "packageLockPath": "package-lock.json",
+        "packageLockBlobSha": "467c23fa24b94a256f733c02315d4b6e79258dbe",
+        "packageLockSha256": "ce962941efa555d782e17909efad33db2f04e02c2aded0a585ae199698978dc5",
+        "introducedPackageOrSourcePaths": [
+          "package.json#/dependencies/xstate",
+          "package-lock.json#/packages//dependencies/xstate",
+          "package-lock.json#/packages/node_modules~1xstate"
+        ],
+        "upstreamToYanceFileMap": [
+          {
+            "upstream": "npm:xstate@5.32.5",
+            "yance": "package.json#/dependencies/xstate"
+          },
+          {
+            "upstream": "npm:xstate@5.32.5",
+            "yance": "package-lock.json#/packages/node_modules~1xstate"
+          }
+        ],
+        "localPatchManifest": [],
+        "restrictedPathExclusionProof": {
+          "vendoredSourceFileCount": 0,
+          "enterpriseOrRestrictedPathCount": 0,
+          "onlyRegistryPackageUsed": true
+        }
+      },
       "gateSteps": {
         "CANDIDATE_IDENTIFICATION": "COMPLETE",
         "EXACT_VERSION_AND_LICENSE_REVIEW": "COMPLETE",
         "DEPENDENCY_AND_SECURITY_SCAN": "COMPLETE",
         "ADOPTION_MODE_DECISION": "COMPLETE",
         "YANCE_RED_CONTRACT_FIRST": "COMPLETE",
-        "INTRODUCE_ORIGINAL_MODULE": "NOT_STARTED",
-        "UPSTREAM_TESTS_PASS": "NOT_STARTED",
+        "INTRODUCE_ORIGINAL_MODULE": "COMPLETE",
+        "UPSTREAM_TESTS_PASS": "IN_PROGRESS",
         "YANCE_ADAPTER_BOUNDARY": "NOT_STARTED",
         "CROSS_PLATFORM_AND_FAULT_VALIDATION": "NOT_STARTED",
         "COPYRIGHT_NOTICE_SBOM_PROVENANCE": "NOT_STARTED",
