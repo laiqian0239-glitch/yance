@@ -1,0 +1,109 @@
+name: WP-B M1 Independent Review Integrity Refactor
+
+on:
+  push:
+    branches:
+      - acv2/wp-b-durable-execution-outbox
+    paths:
+      - .github/workflows/wp-b-m1-independent-review-integrity-refactor.yml
+      - tools/architecture-closure-v2/refactor-wp-b-m1-independent-review-integrity.py
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wp-b-m1-independent-review-integrity-refactor
+  cancel-in-progress: false
+
+env:
+  TARGET_BRANCH: acv2/wp-b-durable-execution-outbox
+
+jobs:
+  refactor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact refactor source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Establish exact implementation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" = "${TARGET_BRANCH}"
+          git switch --force-create "${TARGET_BRANCH}" "${GITHUB_SHA}"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+
+      - name: Apply structural integrity refactor
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/architecture-closure-v2/refactor-wp-b-m1-independent-review-integrity.py
+          rm -rf tools/architecture-closure-v2/__pycache__
+          python3 tools/architecture-closure-v2/refactor-wp-b-m1-independent-review-integrity.py
+
+      - name: Validate generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check backend/migrations/architectureClosureV2WpBEngine.js
+          node --check backend/migrations/architectureClosureV2WpB.js
+          node --check backend/services/externalActionOutboxAuthority.js
+          node --check backend/services/externalOutcomeReconciliation.js
+          node --check backend/tests/architectureClosureV2/wpB/m1IndependentReviewIntegrity.test.js
+          node --check backend/tests/architectureClosureV2/wpB/externalActionOutbox.test.js
+          node --check backend/tests/architectureClosureV2/wpB/uncertainOutcomeReconciliation.test.js
+          node --check backend/tests/architectureClosureV2/wpB/schema23StartupRegistration.test.js
+          git diff --check
+
+      - name: Run independent review and Schema 23 contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-concurrency=1 \
+            backend/tests/architectureClosureV2/wpB/m1IndependentReviewIntegrity.test.js \
+            backend/tests/architectureClosureV2/wpB/externalActionOutbox.test.js \
+            backend/tests/architectureClosureV2/wpB/uncertainOutcomeReconciliation.test.js
+          node --test --test-concurrency=1 \
+            backend/tests/architectureClosureV2/wpB/schema23Migration.test.js \
+            backend/tests/architectureClosureV2/wpB/schema23StartupRegistration.test.js \
+            backend/tests/architectureClosureV2/wpB/schema23SqliteIntegration.test.js \
+            backend/tests/architectureClosureV2/wpB/durableExecutionCas.test.js
+          node --test --test-concurrency=1 \
+            backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js \
+            backend/tests/architectureClosureV2/wpA/sourceClosureFinal.test.js
+
+      - name: Commit exact verified refactor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            backend/migrations/architectureClosureV2WpBEngine.js \
+            backend/migrations/architectureClosureV2WpB.js \
+            backend/services/externalActionOutboxAuthority.js \
+            backend/services/externalOutcomeReconciliation.js \
+            backend/tests/architectureClosureV2/wpB/externalActionOutbox.test.js \
+            backend/tests/architectureClosureV2/wpB/uncertainOutcomeReconciliation.test.js \
+            backend/tests/architectureClosureV2/wpB/schema23StartupRegistration.test.js
+          git commit -m 'fix(acv2): bind outbox reconciliation to exact attempts'
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Push verified refactor commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin "HEAD:${TARGET_BRANCH}"
