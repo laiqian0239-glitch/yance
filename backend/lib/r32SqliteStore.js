@@ -4,6 +4,7 @@ const { assertStorageAccess } = require('./runtimeRoleGuard');
 assertStorageAccess('R32SqliteStore');
 
 const engine = require('./r32SqliteStoreEngine');
+const { assertCurrentAuthorityWriteHostToken } = require('../services/authorityWriteHost');
 const {
   applyArchitectureClosureV2WpB,
   TARGET_SCHEMA_VERSION: ACV2_WP_B_SCHEMA_VERSION
@@ -29,7 +30,9 @@ function ensureSchema23(store) {
 
 function R32SqliteStore(options = {}) {
   if (!(this instanceof R32SqliteStore)) return new R32SqliteStore(options);
-  return engine.R32SqliteStore.call(this, options);
+  const store = engine.R32SqliteStore.call(this, options);
+  assertCurrentAuthorityWriteHostToken(store.authorityWriteHostCapability, store.db);
+  return store;
 }
 
 R32SqliteStore.prototype = Object.create(ENGINE_PROTOTYPE);

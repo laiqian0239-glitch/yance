@@ -12,6 +12,7 @@ on:
       - backend/lib/deepFreeze.js
       - backend/lib/r32SqliteStore.js
       - backend/lib/r32SqliteStoreEngine.js
+      - backend/lib/r32SqliteStoreEngineLegacy.js
       - backend/migrations/**
       - backend/services/authorityTimestamp.js
       - backend/services/authorityTransactionCoordinator.js
@@ -25,6 +26,7 @@ on:
       - backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js
       - backend/tests/architectureClosureV2/wpB/**
       - governance/architecture-closure-v2/wp-b-*.json
+      - release/architecture-closure-v2/wp-b-governance-package.json
       - shared/release/acv2ActiveWorkPackageAuthority.js
       - shared/release/implementationBranchPolicy.js
       - shared/release/implementationBranchPolicyLegacy.js
@@ -49,6 +51,7 @@ on:
       - backend/lib/deepFreeze.js
       - backend/lib/r32SqliteStore.js
       - backend/lib/r32SqliteStoreEngine.js
+      - backend/lib/r32SqliteStoreEngineLegacy.js
       - backend/migrations/**
       - backend/services/authorityTimestamp.js
       - backend/services/authorityTransactionCoordinator.js
@@ -62,6 +65,7 @@ on:
       - backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js
       - backend/tests/architectureClosureV2/wpB/**
       - governance/architecture-closure-v2/wp-b-*.json
+      - release/architecture-closure-v2/wp-b-governance-package.json
       - shared/release/acv2ActiveWorkPackageAuthority.js
       - shared/release/implementationBranchPolicy.js
       - shared/release/implementationBranchPolicyLegacy.js

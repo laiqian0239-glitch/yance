@@ -263,3 +263,43 @@ test('active task chain evaluation reports A8 and cannot claim promotion readine
   assert.equal(result.activeTask, 'A8');
   assert.equal(result.readyForPromotion, false);
 });
+
+test('WP-B authority keeps exact internal engines and packaged evidence without adjacent expansion', () => {
+  const {
+    ADDITIONAL_WP_B_AUTHORITY_PATHS,
+    evaluateAuthorizedWpBScope,
+    resolveWpBImplementationAuthority
+  } = require('../../shared/release/implementationBranchPolicy');
+  const authority = resolveWpBImplementationAuthority();
+  assert.ok(authority, 'active WP-B authority must resolve');
+  const exactPaths = [
+    'backend/lib/r32SqliteStoreEngineLegacy.js',
+    'backend/migrations/architectureClosureV2WpBEngine.js',
+    'release/architecture-closure-v2/wp-b-governance-package.json',
+    'shared/release/acv2ActiveWorkPackageAuthorityEngine.js'
+  ];
+  assert.deepEqual([...ADDITIONAL_WP_B_AUTHORITY_PATHS].sort(), exactPaths);
+
+  const exact = evaluateAuthorizedWpBScope({
+    authority,
+    branch: authority.authorizedBranch,
+    changedFiles: exactPaths
+  });
+  assert.equal(exact.pass, true, JSON.stringify(exact));
+  assert.deepEqual(exact.unauthorizedPaths, []);
+
+  const adjacent = [
+    'backend/lib/r32SqliteStoreEngineLegacyCopy.js',
+    'backend/migrations/architectureClosureV2WpCEngine.js',
+    'release/architecture-closure-v2/wp-c-governance-package.json',
+    'shared/release/anotherAuthorityEngine.js'
+  ];
+  const rejected = evaluateAuthorizedWpBScope({
+    authority,
+    branch: authority.authorizedBranch,
+    changedFiles: adjacent
+  });
+  assert.equal(rejected.pass, false);
+  assert.equal(rejected.reasonCode, 'ACV2_WP_B_SCOPE_VIOLATION');
+  assert.deepEqual(rejected.unauthorizedPaths, adjacent.sort());
+});

@@ -3,11 +3,7 @@
 const { assertStorageAccess } = require('./runtimeRoleGuard');
 assertStorageAccess('R32SqliteStore');
 
-const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
-const { DatabaseSync } = require('node:sqlite');
-const { createCompactSnapshotTarget } = require('../migrations/migrationSnapshotManifest');
 const {
   applyStage634ArchitectureClosure,
   TARGET_SCHEMA_VERSION: STAGE634_SCHEMA_VERSION
@@ -62,12 +58,8 @@ const {
 } = require('../migrations/architectureClosureV2WpA');
 const { ensureCanonicalProjectionReceiptSchema } = require('../migrations/projectionReceiptSchemaAuthority');
 const {
-  acquireAuthorityWriteHost,
-  assertCurrentAuthorityWriteHostToken,
-  requireAuthorityWriteHostCapability
+  assertCurrentAuthorityWriteHostToken
 } = require('../services/authorityWriteHost');
-const { claimOwnership, SqliteOwnershipError } = require('./sqliteOwnership');
-const { SqliteTransactionCoordinator } = require('../store/sqliteTransactionCoordinator');
 
 // M5 — schema-version governance. Bump this only when a forward migration is
 // shipped; an older binary opening a newer DB must fail fast (downgrade risk),
@@ -184,227 +176,7 @@ function staleQueueCompletion(id, current, claim, code = 'SEND_QUEUE_STALE_COMPL
   });
 }
 
-class R32SqliteStore {
-  constructor(options = {}) {
-    const dbPath = path.resolve(options.dbPath || path.join(process.cwd(), 'data', 'database', 'yance-r32.db'));
-    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-    this.dbPath = dbPath;
-    this.ownership = null;
-    this.db = null;
-    this.transactions = null;
-    this.ownershipHeartbeatTimer = null;
-    this.ownershipLostError = null;
-    this.ownedAuthorityWriteHost = null;
-    if (options.authorityWriteHostCapability) {
-      this.authorityWriteHostCapability = requireAuthorityWriteHostCapability(options.authorityWriteHostCapability);
-    } else {
-      this.ownedAuthorityWriteHost = acquireAuthorityWriteHost({
-        dbPath,
-        instanceId: options.instanceId,
-        ownershipStaleMs: options.ownershipStaleMs,
-        ownershipPid: options.ownershipPid,
-        ownershipPidAlive: options.ownershipPidAlive,
-        ownershipProcessIdentity: options.ownershipProcessIdentity,
-        ownershipCapturePidIdentity: options.ownershipCapturePidIdentity,
-        ownershipFsProvider: options.ownershipFsProvider,
-        clock: options.ownershipClock
-      });
-      this.authorityWriteHostCapability = this.ownedAuthorityWriteHost.capability;
-    }
-    if (path.resolve(this.authorityWriteHostCapability.dbPath) !== dbPath) {
-      throw Object.assign(new Error('AuthorityWriteHost capability path mismatch'), { code: 'AUTHORITY_WRITE_HOST_CAPABILITY_PATH_MISMATCH' });
-    }
-    this.ownershipStaleMs = Math.max(1000, Number(options.ownershipStaleMs || 30000));
-    this.ownershipHeartbeatMs = Math.max(250, Math.min(
-      Math.floor(this.ownershipStaleMs / 3),
-      Number(options.ownershipHeartbeatMs || Math.floor(this.ownershipStaleMs / 4))
-    ));
-    try {
-      // M5 — claim single-instance ownership BEFORE opening the db file, so a
-      // second live owner fails fast instead of corrupting / hanging on locks.
-      this.ownership = claimOwnership({
-        dbPath,
-        staleMs: this.ownershipStaleMs,
-        schemaVersion: SCHEMA_VERSION,
-        // Allow tests / integrators to simulate a different owner PID and/or
-        // inject a custom PID-liveness probe (e.g. to assert cross-process
-        // conflict guards without actually spawning a second OS process).
-        pid: options.ownershipPid,
-        pidAlive: options.ownershipPidAlive,
-        clock: options.ownershipClock,
-        fsProvider: options.ownershipFsProvider,
-        capturePidIdentity: options.ownershipCapturePidIdentity
-      });
-      this.db = new DatabaseSync(dbPath);
-      this.transactions = new SqliteTransactionCoordinator(this.db);
-      this.db.exec(`
-        PRAGMA journal_mode = WAL;
-        PRAGMA synchronous = FULL;
-        PRAGMA foreign_keys = ON;
-        PRAGMA busy_timeout = 8000;
-        PRAGMA temp_store = MEMORY;
-      `);
-      const schemaPreflight = this.preflightSchemaVersion();
-      this.schemaMigrationBackup = this.prepareSchemaMigrationBackup(schemaPreflight);
-      this.ensureSchema();
-      this.governSchemaVersion(schemaPreflight);
-      this.commitSchemaMigrationReceipt(schemaPreflight);
-      this.authorityWriteHostCapability.attachStore(this);
-      this.startOwnershipHeartbeat();
-    } catch (error) {
-      // A constructor that rejects the database (for example, because its
-      // schema is newer than this binary) must not leak the SQLite handle or
-      // its ownership sidecar. Windows otherwise keeps the file locked and
-      // subsequent cleanup/recovery fails with EBUSY.
-      let closeError = null;
-      if (this.db) {
-        try {
-          this.db.close();
-          this.db = null;
-        } catch (candidate) {
-          closeError = candidate;
-        }
-      }
-      if (!closeError) {
-        try { this.ownership?.release(); } catch (_) {}
-      }
-      if (!closeError && this.schemaMigrationBackup?.path) {
-        try {
-          for (const suffix of ['-wal', '-shm']) fs.rmSync(`${this.dbPath}${suffix}`, { force: true });
-          fs.copyFileSync(this.schemaMigrationBackup.path, this.dbPath);
-          error.schemaMigrationRollback = { restored: true, backupPath: this.schemaMigrationBackup.path };
-        } catch (rollbackError) {
-          error.schemaMigrationRollback = { restored: false, backupPath: this.schemaMigrationBackup.path, error: rollbackError.message || String(rollbackError) };
-        }
-      }
-      if (closeError && error && typeof error === 'object') {
-        error.sqliteCloseError = {
-          code: closeError.code || '',
-          message: closeError.message || String(closeError)
-        };
-      }
-      try { this.ownedAuthorityWriteHost?.close(); } catch (_) {}
-      try { this.authorityWriteHostCapability?.close(); } catch (_) {}
-      throw error;
-    }
-  }
-
-  startOwnershipHeartbeat() {
-    if (!this.ownership || this.ownershipHeartbeatTimer) return;
-    const loseOwnership = () => {
-      if (this.ownershipLostError) return;
-      this.ownershipLostError = Object.assign(new Error('SQLite write ownership heartbeat was lost; store is fail-closed'), {
-        code: 'SQLITE_OWNERSHIP_HEARTBEAT_LOST', dbPath: this.dbPath
-      });
-      if (this.ownershipHeartbeatTimer) clearInterval(this.ownershipHeartbeatTimer);
-      this.ownershipHeartbeatTimer = null;
-      // Stop all further writes immediately. Closing may fail if a synchronous
-      // statement is active; query_only is the conservative fallback.
-      try { this.db?.exec('PRAGMA query_only = ON'); } catch (_) {}
-      try { this.db?.close(); this.db = null; } catch (_) {}
-    };
-    this.ownershipHeartbeatTimer = setInterval(() => {
-      let ok = false;
-      try { ok = this.authorityWriteHostCapability.heartbeat() === true; } catch (error) { this.ownershipLostError = error; ok = false; }
-      if (!ok) loseOwnership();
-    }, this.ownershipHeartbeatMs);
-    this.ownershipHeartbeatTimer.unref?.();
-  }
-
-  assertOwnership() {
-    if (this.ownershipLostError) throw this.ownershipLostError;
-    if (!this.db) throw Object.assign(new Error('SQLite store is closed'), { code: 'SQLITE_STORE_CLOSED', dbPath: this.dbPath });
-    assertCurrentAuthorityWriteHostToken(this.authorityWriteHostCapability, this.db);
-    return true;
-  }
-
-  existingSchemaVersion() {
-    const tables = new Set(this.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(row => String(row.name || '')));
-    if (!tables.has('r32_meta')) return null;
-    const rows = this.db.prepare("SELECT key, value_json FROM r32_meta WHERE key IN ('schema_version','schemaVersion')").all();
-    if (!rows.length) return null;
-    const versions = [];
-    for (const row of rows) {
-      const parsed = parseJson(row.value_json, row.value_json);
-      const number = Number(parsed);
-      if (!Number.isInteger(number) || number < 0) {
-        throw new SqliteOwnershipError(
-          'SCHEMA_VERSION_INVALID',
-          `Database schema version metadata ${row.key} is invalid`,
-          { key: row.key, value: row.value_json, dbPath: this.dbPath }
-        );
-      }
-      versions.push(number);
-    }
-    // Historical migrations wrote camelCase while M5 wrote snake_case. During
-    // convergence they may differ; the highest value is authoritative so an
-    // older binary can never hide a newer schema behind the legacy key.
-    return Math.max(...versions);
-  }
-
-  preflightSchemaVersion() {
-    const current = this.existingSchemaVersion();
-    if (current != null && current > SCHEMA_VERSION) {
-      throw new SqliteOwnershipError(
-        'SCHEMA_VERSION_AHEAD',
-        `Database schema version ${current} is newer than supported version ${SCHEMA_VERSION}; refusing to open (downgrade risk)`,
-        { databaseVersion: current, supportedVersion: SCHEMA_VERSION, dbPath: this.dbPath }
-      );
-    }
-    const userTables = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all().map(row => String(row.name || ''));
-    return { current, target: SCHEMA_VERSION, needsMigration: current == null ? userTables.length > 0 : current < SCHEMA_VERSION, userTables };
-  }
-
-  prepareSchemaMigrationBackup(preflight = {}) {
-    if (!preflight.needsMigration) return null;
-    const from = preflight.current == null ? 'unversioned' : `v${preflight.current}`;
-    const generation = crypto.randomUUID();
-    const { targetPath: backupPath } = createCompactSnapshotTarget({
-      root: path.dirname(this.dbPath),
-      dbPath: this.dbPath,
-      migrationId: `schema-adoption-${from}-to-v${SCHEMA_VERSION}`,
-      processGeneration: generation,
-      extension: 'bak'
-    });
-    const escaped = backupPath.replace(/'/g, "''");
-    this.db.exec(`PRAGMA wal_checkpoint(FULL); VACUUM INTO '${escaped}';`);
-    const stat = fs.statSync(backupPath);
-    if (!stat.isFile() || stat.size <= 0) throw new SqliteOwnershipError('SCHEMA_MIGRATION_BACKUP_FAILED', 'Database pre-migration backup is empty', { backupPath, dbPath: this.dbPath });
-    const verification = new DatabaseSync(backupPath, { readOnly: true });
-    try {
-      const integrity = String(verification.prepare('PRAGMA integrity_check').get()?.integrity_check || '');
-      if (integrity.toLowerCase() !== 'ok') throw new Error(`integrity_check=${integrity}`);
-    } finally { verification.close(); }
-    return { path: backupPath, from: preflight.current, to: SCHEMA_VERSION, createdAt: new Date().toISOString(), size: stat.size };
-  }
-
-  // M5 — record/verify the schema version so a downgrade (newer DB, older
-  // binary) is refused instead of silently corrupting data.
-  governSchemaVersion(preflight = {}) {
-    const current = preflight.current ?? this.getMeta('schema_version', null);
-    if (current != null && Number(current) > SCHEMA_VERSION) {
-      throw new SqliteOwnershipError(
-        'SCHEMA_VERSION_AHEAD',
-        `Database schema version ${current} is newer than supported version ${SCHEMA_VERSION}; refusing to open (downgrade risk)`,
-        { databaseVersion: Number(current), supportedVersion: SCHEMA_VERSION, dbPath: this.dbPath }
-      );
-    }
-    this.setMeta('schema_version', SCHEMA_VERSION);
-    this.setMeta('schemaVersion', SCHEMA_VERSION);
-  }
-
-  commitSchemaMigrationReceipt(preflight = {}) {
-    if (!preflight.needsMigration) return;
-    this.setMeta('schema_migration_last_receipt', {
-      status: 'COMMITTED',
-      fromVersion: preflight.current,
-      toVersion: SCHEMA_VERSION,
-      backupPath: this.schemaMigrationBackup?.path || '',
-      backupSize: Number(this.schemaMigrationBackup?.size || 0),
-      completedAt: new Date().toISOString()
-    });
-  }
-
+class R32SqliteStoreOperations {
   ensureSchema() {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS r32_meta (
@@ -2155,25 +1927,11 @@ class R32SqliteStore {
     `).run(clean(status), json(report || {}), nowIso(), clean(id));
   }
 
-  close() {
-    // Keep ownership until SQLite has actually released the file handles. This
-    // prevents another process from acquiring the sidecar during the small
-    // window in which the previous connection is still open.
-    if (this.ownershipHeartbeatTimer) clearInterval(this.ownershipHeartbeatTimer);
-    this.ownershipHeartbeatTimer = null;
-    if (this.db) {
-      this.db.close();
-      this.db = null;
-    }
-    try { this.ownership?.release(); } catch (_) {}
-    try { this.ownedAuthorityWriteHost?.close(); } catch (_) {}
-    try { this.authorityWriteHostCapability?.close(); } catch (_) {}
-  }
 }
 
-module.exports = {
-  R32SqliteStore,
+module.exports = Object.freeze({
+  R32SqliteStoreOperations,
   SCHEMA_VERSION,
   stableId,
   parseJson
-};
+});

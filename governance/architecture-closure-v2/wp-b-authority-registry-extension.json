@@ -14,7 +14,7 @@
       "classification": "REGISTERED_INTERNAL_AUTHORITY_SOURCE",
       "allowedCapabilities": [
         "PRIMARY_DB_CONSTRUCTOR",
-        "BUSINESS_SQL_MUTATION"
+        "PRIMARY_STORE_CONSTRUCTOR"
       ],
       "publicEntryPoint": "backend/lib/r32SqliteStore.js",
       "temporaryBypassAllowed": false

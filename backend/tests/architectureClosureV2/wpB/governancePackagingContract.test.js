@@ -53,3 +53,14 @@ test('governance source mutation cannot retain a stale packaged binding', () => 
   assert.equal(report.ok, false);
   assert.ok(report.violations.some(item => item.code === 'WP_B_GOVERNANCE_SOURCE_BINDING_MISMATCH'));
 });
+
+test('WP-B validation permanently watches internal SQLite authority and packaged governance evidence', () => {
+  const workflow = fs.readFileSync(path.join(REPO_ROOT, '.github', 'workflows', 'wp-b-validation.yml'), 'utf8');
+  for (const watchedPath of [
+    'backend/lib/r32SqliteStoreEngineLegacy.js',
+    'release/architecture-closure-v2/wp-b-governance-package.json'
+  ]) {
+    const line = `      - ${watchedPath}`;
+    assert.equal(workflow.split(line).length - 1, 2, `${watchedPath} must trigger both pull_request and push validation`);
+  }
+});
