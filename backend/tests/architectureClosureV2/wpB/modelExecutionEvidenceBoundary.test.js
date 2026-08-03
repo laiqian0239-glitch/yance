@@ -3,7 +3,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const evidenceStore = require('../../../services/modelExecutionEvidenceStore');
+const {
+  createModelExecutionEvidenceStore
+} = require('../../../services/modelExecutionEvidenceStore');
 
 const RECEIPT = Object.freeze({
   executionId: 'execution-evidence-boundary-1',
@@ -20,13 +22,25 @@ const RECEIPT = Object.freeze({
 });
 
 test('M2-AI-009 evidence append preserves an asynchronous failure boundary', async () => {
+  assert.equal(typeof createModelExecutionEvidenceStore, 'function');
+  const isolatedStore = createModelExecutionEvidenceStore({
+    persistenceCapability: Object.freeze({})
+  });
+
   let appendResult;
   assert.doesNotThrow(() => {
-    appendResult = evidenceStore.append(RECEIPT);
+    appendResult = isolatedStore.append(RECEIPT);
   });
   assert.equal(typeof appendResult?.then, 'function');
-  await assert.rejects(
-    appendResult,
-    error => error?.code === 'DOCUMENT_PERSISTENCE_CAPABILITY_REQUIRED'
+
+  let rejection = null;
+  try {
+    await appendResult;
+  } catch (error) {
+    rejection = error;
+  }
+  assert.deepEqual(
+    { code: rejection?.code || null },
+    { code: 'DOCUMENT_PERSISTENCE_CAPABILITY_REQUIRED' }
   );
 });
