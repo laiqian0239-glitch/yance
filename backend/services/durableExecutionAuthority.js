@@ -176,7 +176,7 @@ function normalizeTransitionCommand(input = {}) {
     generation: safeInteger(input.generation, 'generation', 1),
     ownerId,
     claimId: requiredString(input.claimId, 'claimId'),
-    hostId: optionalString(input.hostId, 'hostId') || ownerId,
+    hostId: requiredString(input.hostId, 'hostId'),
     hostGeneration: safeInteger(input.hostGeneration, 'hostGeneration', 1),
     fencingToken: safeInteger(input.fencingToken, 'fencingToken', 1),
     authorityTimestamp: normalizedTimestamp(input.authorityTimestamp),
@@ -205,7 +205,7 @@ function normalizeCasFacts(input = {}) {
     generation: safeInteger(input.generation, 'generation', 1),
     ownerId,
     claimId: requiredString(input.claimId, 'claimId'),
-    hostId: optionalString(input.hostId, 'hostId') || ownerId,
+    hostId: requiredString(input.hostId, 'hostId'),
     hostGeneration: safeInteger(input.hostGeneration, 'hostGeneration', 1),
     fencingToken: safeInteger(input.fencingToken, 'fencingToken', 1),
     authorityTimestamp: normalizedTimestamp(input.authorityTimestamp)
@@ -259,7 +259,7 @@ function normalizeClaimFacts(input = {}) {
     generation: safeInteger(input.generation, 'generation'),
     ownerId,
     claimId: requiredString(input.claimId, 'claimId'),
-    hostId: optionalString(input.hostId, 'hostId') || ownerId,
+    hostId: requiredString(input.hostId, 'hostId'),
     hostGeneration: safeInteger(input.hostGeneration, 'hostGeneration', 1),
     fencingToken: safeInteger(input.fencingToken, 'fencingToken', 1),
     leaseStartedAt,
@@ -433,13 +433,20 @@ function executeExecutionClaimCas(db, input = {}) {
   });
 }
 
+function isMissingSchema23MigrationTable(error) {
+  return /no such table:\s*(?:main\.)?r32_schema_migrations\b/iu.test(
+    String(error?.message || '')
+  );
+}
+
 function schema23Applied(store) {
   try {
     const row = store.db.prepare(`SELECT status FROM r32_schema_migrations
       WHERE migration_id='023_architecture_closure_v2_wp_b'`).get();
     return String(row?.status || '') === 'completed';
-  } catch (_) {
-    return false;
+  } catch (error) {
+    if (isMissingSchema23MigrationTable(error)) return false;
+    throw error;
   }
 }
 
@@ -788,6 +795,7 @@ module.exports.executeExecutionClaimCas = executeExecutionClaimCas;
 module.exports.executeExecutionTransitionCas = executeExecutionTransitionCas;
 module.exports.executeUnownedExecutionTransitionCas = executeUnownedExecutionTransitionCas;
 module.exports.executionError = executionError;
+module.exports.isMissingSchema23MigrationTable = isMissingSchema23MigrationTable;
 module.exports.milestoneTwoOperationNotAuthorized = milestoneTwoOperationNotAuthorized;
 module.exports.normalizeExecutionCommand = normalizeExecutionCommand;
 module.exports.normalizeTransitionCommand = normalizeTransitionCommand;

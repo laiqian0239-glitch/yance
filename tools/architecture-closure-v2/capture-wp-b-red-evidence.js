@@ -5,47 +5,13 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { EXPECTED_CONTRACTS } = require('../../shared/release/wpBM1RedEvidenceAuthority');
 
-const CONTRACTS = Object.freeze([
-  Object.freeze({
-    id: 'LIFECYCLE',
-    testPath: 'backend/tests/architectureClosureV2/wpB/lifecycleContract.test.js',
-    expectedMissingIndicators: Object.freeze(['durableExecutionLifecycle'])
-  }),
-  Object.freeze({
-    id: 'DEEP_FREEZE_AND_AUTHORITY_TIME',
-    testPath: 'backend/tests/architectureClosureV2/wpB/deepFreezeAndTimestamp.test.js',
-    expectedMissingIndicators: Object.freeze(['/lib/deepFreeze', 'authorityTimestamp'])
-  }),
-  Object.freeze({
-    id: 'SCHEMA_23',
-    testPath: 'backend/tests/architectureClosureV2/wpB/schema23Migration.test.js',
-    expectedMissingIndicators: Object.freeze([
-      'architectureClosureV2WpB',
-      'Schema 23 and the pure lifecycle share one exact state authority'
-    ])
-  }),
-  Object.freeze({
-    id: 'DURABLE_EXECUTION_CAS',
-    testPath: 'backend/tests/architectureClosureV2/wpB/durableExecutionCas.test.js',
-    expectedMissingIndicators: Object.freeze(['durableExecutionAuthority'])
-  }),
-  Object.freeze({
-    id: 'EXTERNAL_ACTION_OUTBOX',
-    testPath: 'backend/tests/architectureClosureV2/wpB/externalActionOutbox.test.js',
-    expectedMissingIndicators: Object.freeze(['externalActionOutboxAuthority', 'externalActionDispatcher'])
-  }),
-  Object.freeze({
-    id: 'TRANSACTION_IO_BOUNDARY',
-    testPath: 'backend/tests/architectureClosureV2/wpB/transactionIoBoundary.test.js',
-    expectedMissingIndicators: Object.freeze(['WP_B_CREATE_TRANSACTION_IO_GUARD_MISSING'])
-  }),
-  Object.freeze({
-    id: 'UNCERTAIN_OUTCOME_RECONCILIATION',
-    testPath: 'backend/tests/architectureClosureV2/wpB/uncertainOutcomeReconciliation.test.js',
-    expectedMissingIndicators: Object.freeze(['externalOutcomeReconciliation'])
-  })
-]);
+const CONTRACTS = Object.freeze(EXPECTED_CONTRACTS.map(contract => Object.freeze({
+  id: contract.id,
+  testPath: contract.testPath,
+  expectedMissingIndicators: Object.freeze([...contract.matchedIndicators])
+})));
 
 const TEST_PATHS = Object.freeze(CONTRACTS.map(contract => contract.testPath));
 
@@ -157,10 +123,10 @@ if (require.main === module) {
       : 2;
 }
 
-module.exports = {
+module.exports = Object.freeze({
   CONTRACTS,
   TEST_PATHS,
   classifyContract,
   normalizeOutput,
   runRedContracts
-};
+});

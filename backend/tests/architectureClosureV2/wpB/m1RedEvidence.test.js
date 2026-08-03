@@ -7,6 +7,9 @@ const {
   verifyEvidence,
   verifyFile
 } = require('../../../../tools/architecture-closure-v2/verify-wp-b-m1-red-evidence');
+const {
+  CONTRACTS: CAPTURE_CONTRACTS
+} = require('../../../../tools/architecture-closure-v2/capture-wp-b-red-evidence');
 
 function evidenceFixture() {
   return require('../../../../governance/architecture-closure-v2/wp-b-m1-red-evidence.json');
@@ -73,4 +76,22 @@ test('release, publish, WP-C or bypass expansion invalidates the evidence', () =
     assert.equal(report.schema23StartupRegistrationAuthorized, false, field);
     assert.ok(report.violations.some(item => item.code === 'WP_B_M1_RED_GOVERNANCE_INVALID'), field);
   }
+});
+
+
+test('RED capture derives every indicator from the immutable verifier contract', () => {
+  assert.deepEqual(
+    CAPTURE_CONTRACTS.map(contract => ({
+      id: contract.id,
+      testPath: contract.testPath,
+      matchedIndicators: [...contract.expectedMissingIndicators]
+    })),
+    EXPECTED_CONTRACTS.map(contract => ({
+      id: contract.id,
+      testPath: contract.testPath,
+      matchedIndicators: [...contract.matchedIndicators]
+    }))
+  );
+  const schema23 = CAPTURE_CONTRACTS.find(contract => contract.id === 'SCHEMA_23');
+  assert.deepEqual(schema23.expectedMissingIndicators, ['architectureClosureV2WpB']);
 });
