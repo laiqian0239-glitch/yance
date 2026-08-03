@@ -43,6 +43,7 @@
     "MILESTONE_2_SEAL"
   ],
   "allowedPaths": [
+    ".github/workflows/wp-b-m1-independent-review-integrity.yml",
     ".github/workflows/wp-b-m2-authorization.yml",
     ".github/workflows/wp-b-m2-independent-review-integrity.yml",
     ".github/workflows/wp-b-m2-red.yml",
