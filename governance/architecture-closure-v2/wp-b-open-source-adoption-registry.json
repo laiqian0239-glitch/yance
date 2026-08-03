@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "documentType": "YANCE_ACV2_WP_B_OPEN_SOURCE_ADOPTION_REGISTRY",
   "workPackage": "WP-B",
   "orderedGatePath": "governance/architecture-closure-v2/wp-b-open-source-adoption-gate.json",
@@ -16,7 +16,7 @@
       "runtimeDependencyCount": 0,
       "targetCapability": "PURE_DURABLE_EXECUTION_LIFECYCLE_AND_MODEL_PATHS",
       "adoptionMode": "DIRECT_DEPENDENCY",
-      "status": "ADAPTER_IMPLEMENTATION_IN_PROGRESS",
+      "status": "ADAPTER_BOUNDARY_COMPLETE_PLATFORM_FAULT_PENDING",
       "productionUseAuthorized": false,
       "allowedResponsibilities": [
         "PURE_LIFECYCLE_GRAPH",
@@ -40,7 +40,8 @@
         "github:statelyai/xstate@c25dba07a2b68565edbe83d83c5d679dd85e00b2",
         "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
         "governance/architecture-closure-v2/wp-b-open-source-adoption-evidence-xstate-5.32.5.json",
-        "governance/architecture-closure-v2/wp-b-xstate-adapter-red-evidence.json"
+        "governance/architecture-closure-v2/wp-b-xstate-adapter-red-evidence.json",
+        "governance/architecture-closure-v2/wp-b-xstate-adapter-green-evidence.json"
       ],
       "verifiedPackageEvidence": {
         "distIntegrity": "sha512-ULazi1oe6wGrXl0Frb6otSlkm5HLifbbVTkMk5kkSKqz4TkxJaVpnl6jOJwKeid3ORPxYyZQgNLUSYX9q65SIA==",
@@ -127,6 +128,17 @@
         "failureCode": "MODULE_NOT_FOUND",
         "normalizedFailureSha256": "06eb384582f663da87d53a7172491c29fbb87b171fcba84e9247bb140a4b3e07"
       },
+      "adapterGreenEvidence": {
+        "path": "governance/architecture-closure-v2/wp-b-xstate-adapter-green-evidence.json",
+        "reviewedImplementationHead": "f8442e3c7f3b4569b51da201568411734e7ca8d4",
+        "workflowRunId": 30792959633,
+        "ubuntuJobId": 91620203645,
+        "windowsJobId": 91620203592,
+        "passCountPerPlatform": 4,
+        "productionXStateImportPaths": [
+          "backend/services/xstateLifecycleAdapter.js"
+        ]
+      },
       "gateSteps": {
         "CANDIDATE_IDENTIFICATION": "COMPLETE",
         "EXACT_VERSION_AND_LICENSE_REVIEW": "COMPLETE",
@@ -135,13 +147,12 @@
         "YANCE_RED_CONTRACT_FIRST": "COMPLETE",
         "INTRODUCE_ORIGINAL_MODULE": "COMPLETE",
         "UPSTREAM_TESTS_PASS": "COMPLETE",
-        "YANCE_ADAPTER_BOUNDARY": "IN_PROGRESS",
+        "YANCE_ADAPTER_BOUNDARY": "COMPLETE",
         "CROSS_PLATFORM_AND_FAULT_VALIDATION": "NOT_STARTED",
         "COPYRIGHT_NOTICE_SBOM_PROVENANCE": "NOT_STARTED",
         "INDEPENDENT_REVIEW": "NOT_STARTED"
       },
       "pendingEvidence": [
-        "adapterGreenEvidence",
         "ubuntuWindowsFaultEvidence",
         "noticeSbomProvenance",
         "independentReview"
