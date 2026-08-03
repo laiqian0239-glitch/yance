@@ -6,15 +6,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const scanner = require('../../../../tools/architecture-closure-v2/source-closure-scan');
+const {
+  verifyRegistryExtensionCapabilities
+} = require('../../../../tools/architecture-closure-v2/registry-extension-capability-authority');
 const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
-const KNOWN_SOURCE_CAPABILITIES = new Set([
-  'PRIMARY_DB_CONSTRUCTOR',
-  'PRIMARY_STORE_CONSTRUCTOR',
-  'PRIMARY_BROKER_ACQUISITION',
-  'PRIMARY_STORE_ACQUISITION',
-  'BUSINESS_SQL_MUTATION',
-  'RECOVERY_OR_FALLBACK_ENTRYPOINT'
-]);
 
 function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(repoRoot, relativePath), 'utf8'));
@@ -119,7 +114,7 @@ test('WP-B extends the frozen registry with one exact AuthorityWriteHost Engine 
       sourcePath: 'backend/lib/r32SqliteStoreEngine.js',
       authoritativeOwner: 'AuthorityWriteHost',
       classification: 'REGISTERED_INTERNAL_AUTHORITY_SOURCE',
-      allowedCapabilities: ['PRIMARY_DB_CONSTRUCTOR'],
+      allowedCapabilities: ['PRIMARY_DB_CONSTRUCTOR', 'BUSINESS_SQL_MUTATION'],
       publicEntryPoint: 'backend/lib/r32SqliteStore.js',
       temporaryBypassAllowed: false
     }
@@ -130,24 +125,45 @@ test('WP-B extends the frozen registry with one exact AuthorityWriteHost Engine 
   assert.equal(extension.governance.warningOnlyAllowed, false);
 });
 
-test('registry extension capabilities are an exact allowlist for detected source facts', () => {
+test('registry extension capabilities exactly match detected source facts', () => {
   const extensions = scanner.loadRegistryExtensions();
   for (const extension of extensions) {
-    for (const entry of extension.document.entries) {
-      const source = fs.readFileSync(path.join(repoRoot, entry.sourcePath), 'utf8');
-      const detected = scanner.detectSourceCapabilities(source);
-      assert.deepEqual(
-        detected.filter(capability => !entry.allowedCapabilities.includes(capability)),
-        [],
-        `${entry.sourcePath} detected=${JSON.stringify(detected)} allowed=${JSON.stringify(entry.allowedCapabilities)}`
-      );
-      assert.deepEqual(
-        entry.allowedCapabilities.filter(capability => !KNOWN_SOURCE_CAPABILITIES.has(capability)),
-        [],
-        `${entry.sourcePath} declares unknown capabilities`
-      );
+    const report = verifyRegistryExtensionCapabilities(extension.document, {
+      repositoryRoot: repoRoot
+    });
+    assert.equal(report.ok, true);
+    assert.equal(report.entryCount, extension.document.entries.length);
+    for (const entry of report.entries) {
+      assert.deepEqual(entry.declared, entry.detected, entry.sourcePath);
     }
   }
+});
+
+test('registry capability authority rejects unknown, missing and unused declarations', () => {
+  const extension = structuredClone(scanner.loadRegistryExtensions()[0].document);
+  extension.entries[0].allowedCapabilities = ['UNKNOWN_CAPABILITY'];
+  assert.throws(
+    () => verifyRegistryExtensionCapabilities(extension, { repositoryRoot: repoRoot }),
+    error => error?.code === 'REGISTRY_EXTENSION_CAPABILITY_UNKNOWN'
+  );
+
+  extension.entries[0].allowedCapabilities = ['PRIMARY_DB_CONSTRUCTOR'];
+  assert.throws(
+    () => verifyRegistryExtensionCapabilities(extension, { repositoryRoot: repoRoot }),
+    error => error?.code === 'REGISTRY_EXTENSION_CAPABILITY_MISMATCH'
+      && error?.undeclared?.includes('BUSINESS_SQL_MUTATION')
+  );
+
+  extension.entries[0].allowedCapabilities = [
+    'PRIMARY_DB_CONSTRUCTOR',
+    'BUSINESS_SQL_MUTATION',
+    'RECOVERY_OR_FALLBACK_ENTRYPOINT'
+  ];
+  assert.throws(
+    () => verifyRegistryExtensionCapabilities(extension, { repositoryRoot: repoRoot }),
+    error => error?.code === 'REGISTRY_EXTENSION_CAPABILITY_MISMATCH'
+      && error?.unused?.includes('RECOVERY_OR_FALLBACK_ENTRYPOINT')
+  );
 });
 
 test('scanner rejects an unregistered writable primary-store acquisition', () => {
