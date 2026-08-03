@@ -22,6 +22,26 @@ const INFRASTRUCTURE_FAILURE_PATTERNS = Object.freeze([
   /Could not resolve host/iu,
   /npm ERR!/u
 ]);
+const SAFE_DIAGNOSTIC_FIELDS = Object.freeze(new Set([
+  'code',
+  'terminationClass',
+  'providerRequestId',
+  'attemptId',
+  'executionId',
+  'intentId',
+  'dispatchAttemptId',
+  'status',
+  'ownerId',
+  'generation',
+  'fencingToken'
+]));
+const SAFE_ENUM_PATTERN = /^[A-Z][A-Z0-9_]{1,63}$/u;
+const SAFE_FIXTURE_ID_PATTERN = /^(?:attempt|execution|intent|provider-req|dispatch|claim|owner|host|lease|fence|generation)-[a-z0-9][a-z0-9-]{0,95}$/u;
+const SAFE_NUMBER_PATTERN = /^-?\d{1,18}$/u;
+const SAFE_METADATA_PATTERN = /^[A-Za-z][A-Za-z0-9]{0,63}$/u;
+const MAX_FAILURE_DIAGNOSTICS = 32;
+const MAX_FAILURE_BLOCK_LINES = 160;
+const MAX_DIAGNOSTIC_FACTS = 8;
 
 function normalizeOutput(value) {
   return String(value || '')
@@ -43,6 +63,108 @@ function summaryCount(output, label) {
 function failureContractIds(output) {
   return Object.freeze([...new Set([...output.matchAll(/^not ok \d+ - (M2-[A-Z]+-\d{3})\b/gmu)]
     .map(match => match[1]))].sort());
+}
+
+function unquoteScalar(value) {
+  const scalar = String(value || '').trim();
+  if (scalar.length >= 2 && (
+    (scalar[0] === "'" && scalar.at(-1) === "'")
+    || (scalar[0] === '"' && scalar.at(-1) === '"')
+  )) {
+    return scalar.slice(1, -1);
+  }
+  return scalar;
+}
+
+function isUnsafeDiagnosticScalar(value) {
+  return value.length === 0
+    || value.length > 128
+    || value.includes('@')
+    || /^https?:/iu.test(value)
+    || /^bearer\b/iu.test(value)
+    || /^sk-/iu.test(value);
+}
+
+function safeDiagnosticScalar(value) {
+  const scalar = unquoteScalar(value);
+  if (isUnsafeDiagnosticScalar(scalar)) return null;
+  return SAFE_ENUM_PATTERN.test(scalar)
+    || SAFE_FIXTURE_ID_PATTERN.test(scalar)
+    || SAFE_NUMBER_PATTERN.test(scalar)
+    ? scalar
+    : null;
+}
+
+function safeMetadataScalar(value) {
+  const scalar = unquoteScalar(value);
+  if (isUnsafeDiagnosticScalar(scalar)) return null;
+  return SAFE_METADATA_PATTERN.test(scalar) ? scalar : null;
+}
+
+function repositoryLocation(value) {
+  const scalar = unquoteScalar(value)
+    .replace(/\\/gu, '/')
+    .replace(/^\(/u, '')
+    .replace(/\)$/u, '');
+  const match = scalar.match(/(?:^|\/)((?:backend|tools|electron|shared|governance|\.github)\/[A-Za-z0-9_.\/-]+:\d+:\d+)$/u);
+  return match ? match[1] : null;
+}
+
+function topLevelScalar(block, key, parser = safeDiagnosticScalar) {
+  const match = block.match(new RegExp(`^  ${key}:\\s*(.+)$`, 'mu'));
+  return match ? parser(match[1]) : null;
+}
+
+function sectionFacts(block, section) {
+  const lines = block.split('\n');
+  const start = lines.findIndex(line => line === `  ${section}:`);
+  if (start < 0) return Object.freeze({});
+
+  const facts = {};
+  for (let index = start + 1; index < lines.length && Object.keys(facts).length < MAX_DIAGNOSTIC_FACTS; index += 1) {
+    const line = lines[index];
+    if (/^  \S/u.test(line)) break;
+    const match = line.match(/^    ([A-Za-z][A-Za-z0-9]*):\s*(.+)$/u);
+    if (!match || !SAFE_DIAGNOSTIC_FIELDS.has(match[1])) continue;
+    const scalar = safeDiagnosticScalar(match[2]);
+    if (scalar !== null) facts[match[1]] = scalar;
+  }
+  return Object.freeze(facts);
+}
+
+function failureDiagnostics(output) {
+  const lines = normalizeOutput(output).split('\n');
+  const diagnostics = [];
+
+  for (let index = 0; index < lines.length && diagnostics.length < MAX_FAILURE_DIAGNOSTICS; index += 1) {
+    const match = lines[index].match(/^not ok \d+ - (M2-[A-Z]+-\d{3})\b/u);
+    if (!match) continue;
+
+    let end = index + 1;
+    while (
+      end < lines.length
+      && end - index <= MAX_FAILURE_BLOCK_LINES
+      && !/^(?:not ok|ok) \d+ - /u.test(lines[end])
+      && !/^1\.\.\d+$/u.test(lines[end])
+    ) {
+      end += 1;
+    }
+
+    const block = lines.slice(index, end).join('\n');
+    const locationMatch = block.match(/^  location:\s*(.+)$/mu);
+    diagnostics.push(Object.freeze({
+      contractId: match[1],
+      errorCode: topLevelScalar(block, 'code'),
+      errorName: topLevelScalar(block, 'name', safeMetadataScalar),
+      operator: topLevelScalar(block, 'operator', safeMetadataScalar),
+      location: locationMatch ? repositoryLocation(locationMatch[1]) : null,
+      expected: sectionFacts(block, 'expected'),
+      actual: sectionFacts(block, 'actual')
+    }));
+    index = end - 1;
+  }
+
+  return Object.freeze(diagnostics);
 }
 
 function writeReport(report, reportPath = process.env.WP_B_M2_REPORT_PATH) {
@@ -82,6 +204,7 @@ function runWpBM2Contracts(options = {}) {
     passCount: summaryCount(normalizedOutput, 'pass'),
     failCount: summaryCount(normalizedOutput, 'fail'),
     failureContractIds: failureContractIds(normalizedOutput),
+    failureDiagnostics: failureDiagnostics(normalizedOutput),
     normalizedOutputSha256: sha256(normalizedOutput),
     matchedInfrastructurePattern: infrastructurePattern ? String(infrastructurePattern) : null,
     secretLeakCount: 0,
@@ -105,6 +228,7 @@ function publicReport(report) {
     passCount: report.passCount,
     failCount: report.failCount,
     failureContractIds: report.failureContractIds,
+    failureDiagnostics: report.failureDiagnostics || Object.freeze([]),
     normalizedOutputSha256: report.normalizedOutputSha256,
     matchedInfrastructurePattern: report.matchedInfrastructurePattern,
     secretLeakCount: report.secretLeakCount,
@@ -139,6 +263,7 @@ module.exports = Object.freeze({
   INFRASTRUCTURE_FAILURE_PATTERNS,
   TEST_FILES,
   failureContractIds,
+  failureDiagnostics,
   normalizeOutput,
   publicReport,
   runWpBM2Contracts,
