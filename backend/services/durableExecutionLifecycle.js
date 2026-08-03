@@ -98,7 +98,7 @@ const TRANSITIONS = deepFreeze({
 const STATE_VALUES = new Set(Object.values(STATES));
 const EVENT_VALUES = new Set(Object.values(EVENTS));
 const TERMINAL_STATE_VALUES = new Set(TERMINAL_STATES);
-const lifecycleAdapter = createLifecycleAdapter({
+const LIFECYCLE_ADAPTER_CONFIG = deepFreeze({
   id: 'yanceDurableExecutionLifecycle',
   initial: STATES.CREATED,
   states: Object.fromEntries(
@@ -111,6 +111,15 @@ const lifecycleAdapter = createLifecycleAdapter({
     ])
   )
 });
+
+let lifecycleAdapterInstance = null;
+
+function getLifecycleAdapter() {
+  if (!lifecycleAdapterInstance) {
+    lifecycleAdapterInstance = createLifecycleAdapter(LIFECYCLE_ADAPTER_CONFIG);
+  }
+  return lifecycleAdapterInstance;
+}
 
 function lifecycleError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
@@ -154,6 +163,7 @@ function nextLifecycleState(state, event) {
     );
   }
 
+  const lifecycleAdapter = getLifecycleAdapter();
   const adapterTarget = lifecycleAdapter.transition(state, event);
   if (adapterTarget !== targetState) {
     throw lifecycleError(
