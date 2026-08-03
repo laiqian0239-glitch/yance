@@ -21,6 +21,7 @@ const SUSPICIOUS_PACKAGE_FILE_PATTERN = /(?:^|\/)(?:[^/]+\.(?:node|dll|exe|ps1|b
 const MAX_DIAGNOSTIC_BYTES = 64 * 1024;
 const COMMAND_TIMEOUTS = Object.freeze({
   GIT_INIT: 30_000,
+  GIT_CONFIG: 30_000,
   GIT_REMOTE: 30_000,
   GIT_FETCH: 120_000,
   GIT_CHECKOUT: 60_000,
@@ -72,6 +73,8 @@ function runGovernedCommand(command, args, options = {}) {
     encoding: 'utf8',
     env: {
       ...process.env,
+      CI: process.env.CI || '1',
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0',
       npm_config_fund: 'false',
       npm_config_audit: 'false',
       npm_config_update_notifier: 'false',
@@ -164,15 +167,52 @@ function sha1(value) {
   return crypto.createHash('sha1').update(value).digest('hex');
 }
 
+function governedJoin(baseDirectory, child) {
+  return /^[A-Za-z]:[\\/]/u.test(baseDirectory)
+    ? path.win32.join(baseDirectory, child)
+    : path.join(baseDirectory, child);
+}
+
+function createGovernedScratchDirectory(options = {}) {
+  const baseDirectory = String(options.baseDirectory || process.env.RUNNER_TEMP || os.tmpdir());
+  const realpathImpl = options.realpathImpl || fs.realpathSync.native || fs.realpathSync;
+  const mkdtempImpl = options.mkdtempImpl || fs.mkdtempSync;
+  let canonicalBase;
+  try {
+    canonicalBase = realpathImpl(baseDirectory);
+  } catch (_) {
+    throw createGovernanceError(
+      'WP_B_UPSTREAM_SCRATCH_ROOT_INVALID',
+      'The governed upstream scratch root could not be canonicalized',
+      { baseDirectory }
+    );
+  }
+  const prefix = String(options.prefix || 'yance-wp-b-xstate-');
+  return mkdtempImpl(governedJoin(String(canonicalBase), prefix));
+}
+
 function checkoutExactUpstreamTag(options = {}) {
-  const checkoutRoot = path.resolve(options.checkoutRoot || fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp-b-xstate-source-')));
+  const checkoutRoot = path.resolve(options.checkoutRoot || createGovernedScratchDirectory({
+    prefix: 'yance-wp-b-xstate-source-'
+  }));
   const runCommand = options.runCommand || runGovernedCommand;
-  fs.mkdirSync(checkoutRoot, { recursive: true });
+  const mkdirImpl = options.mkdirImpl || fs.mkdirSync;
+  mkdirImpl(checkoutRoot, { recursive: true });
 
   runCommand('git', ['init', '--quiet'], {
     cwd: checkoutRoot,
     commandKind: 'GIT_INIT',
     timeoutMs: COMMAND_TIMEOUTS.GIT_INIT
+  });
+  runCommand('git', ['config', 'core.autocrlf', 'false'], {
+    cwd: checkoutRoot,
+    commandKind: 'GIT_CONFIG_AUTOCRLF',
+    timeoutMs: COMMAND_TIMEOUTS.GIT_CONFIG
+  });
+  runCommand('git', ['config', 'core.eol', 'lf'], {
+    cwd: checkoutRoot,
+    commandKind: 'GIT_CONFIG_EOL',
+    timeoutMs: COMMAND_TIMEOUTS.GIT_CONFIG
   });
   runCommand('git', ['remote', 'add', 'origin', UPSTREAM_REPOSITORY_URL], {
     cwd: checkoutRoot,
@@ -213,7 +253,9 @@ function checkoutExactUpstreamTag(options = {}) {
 
 function resolveUpstreamTagCommit(options = {}) {
   const ownedRoot = !options.checkoutRoot;
-  const checkoutRoot = options.checkoutRoot || fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp-b-xstate-tag-'));
+  const checkoutRoot = options.checkoutRoot || createGovernedScratchDirectory({
+    prefix: 'yance-wp-b-xstate-tag-'
+  });
   try {
     const checkout = checkoutExactUpstreamTag({ ...options, checkoutRoot });
     return Object.freeze({ tagName: checkout.tagName, commitSha: checkout.commitSha });
@@ -256,7 +298,7 @@ function readLicenseText(upstreamCheckout) {
 }
 
 async function verify(options = {}) {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp-b-xstate-'));
+  const tempRoot = createGovernedScratchDirectory({ prefix: 'yance-wp-b-xstate-package-' });
   const violations = [];
   try {
     const metadata = parseJsonOutput(
@@ -383,7 +425,7 @@ async function verify(options = {}) {
     }
 
     return Object.freeze({
-      schemaVersion: 3,
+      schemaVersion: 4,
       documentType: 'YANCE_ACV2_WP_B_XSTATE_UPSTREAM_VERIFICATION',
       ok: violations.length === 0,
       package: {
@@ -464,6 +506,7 @@ module.exports = {
   UPSTREAM_TAG_CANDIDATES,
   auditCounts,
   checkoutExactUpstreamTag,
+  createGovernedScratchDirectory,
   resolveUpstreamTagCommit,
   runGovernedCommand,
   verify
