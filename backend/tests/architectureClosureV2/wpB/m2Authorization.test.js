@@ -18,6 +18,18 @@ const verifierPath = path.join(
   'architecture-closure-v2',
   'verify-wp-b-m2-authorization.js'
 );
+const redEvidenceReceiptPath = path.join(
+  repoRoot,
+  'governance',
+  'architecture-closure-v2',
+  'wp-b-m2-red-evidence.json'
+);
+const redEvidenceVerifierPath = path.join(
+  repoRoot,
+  'tools',
+  'architecture-closure-v2',
+  'capture-wp-b-m2-red-evidence.js'
+);
 const authorityModulePath = path.join(
   repoRoot,
   'shared',
@@ -26,6 +38,9 @@ const authorityModulePath = path.join(
 );
 
 const EXPECTED_PARENT_SEAL_HEAD = '1e3d600f0647af35e737ff92a200c67e69224c82';
+const EXPECTED_RED_EVIDENCE_HEAD = '636d6feebaad4a49171750f4ec5f64bde12872fc';
+const EXPECTED_RED_WORKFLOW_RUN_ID = 30837837145;
+const EXPECTED_RED_FILE_SET_SHA256 = '46e2eb53e00e777dc3a6ce3a61fb22b4d5d6e4feb87ae78e12ed6c4870209e7d';
 const EXPECTED_OPERATION_KINDS = Object.freeze([
   'AI_PROVIDER_EXECUTION',
   'OUTBOUND_MESSAGE_SEND',
@@ -33,6 +48,34 @@ const EXPECTED_OPERATION_KINDS = Object.freeze([
   'MEDIA_TRANSFER',
   'HISTORY_SYNCHRONIZATION',
   'SESSION_RESTORE'
+]);
+const EXPECTED_RED_FAILURE_IDS = Object.freeze([
+  'M2-FAULT-001',
+  'M2-FAULT-002',
+  'M2-FAULT-003',
+  'M2-FAULT-004',
+  'M2-FAULT-005',
+  'M2-LEAK-001',
+  'M2-LEAK-002',
+  'M2-LEAK-003',
+  'M2-LEAK-004',
+  'M2-OPS-001',
+  'M2-OPS-002',
+  'M2-OPS-003',
+  'M2-OPS-004',
+  'M2-OPS-005',
+  'M2-OPS-006',
+  'M2-OPS-007',
+  'M2-OPS-008',
+  'M2-OPS-009',
+  'M2-OPS-010',
+  'M2-OPS-011',
+  'M2-REC-001',
+  'M2-REC-002',
+  'M2-REC-003',
+  'M2-REC-004',
+  'M2-REC-005',
+  'M2-REC-006'
 ]);
 const CLOSED_GOVERNANCE_FIELDS = Object.freeze([
   'milestone3Authorized',
@@ -59,9 +102,20 @@ function loadVerifier() {
   return require(verifierPath);
 }
 
+function loadRedEvidenceVerifier() {
+  requireArtifact(redEvidenceVerifierPath, 'WP_B_M2_RED_EVIDENCE_VERIFIER_REQUIRED');
+  delete require.cache[require.resolve(redEvidenceVerifierPath)];
+  return require(redEvidenceVerifierPath);
+}
+
 function readReceipt() {
   requireArtifact(receiptPath, 'WP_B_M2_AUTHORIZATION_RECEIPT_REQUIRED');
   return JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
+}
+
+function readRedEvidenceReceipt() {
+  requireArtifact(redEvidenceReceiptPath, 'WP_B_M2_RED_EVIDENCE_RECEIPT_REQUIRED');
+  return JSON.parse(fs.readFileSync(redEvidenceReceiptPath, 'utf8'));
 }
 
 function clone(value) {
@@ -171,4 +225,63 @@ test('active authority resolves Milestone 2 only from a valid exact authorizatio
   assert.equal(Object.isFrozen(authority), true);
   assert.equal(Object.isFrozen(authority.operationKinds), true);
   assert.equal(Object.isFrozen(authority.allowedProductionPaths), true);
+});
+
+test('credible Milestone 2 RED evidence is bound to one exact Head, workflow and two platform reports', () => {
+  const receipt = readRedEvidenceReceipt();
+  const { validateReceipt: validateRedEvidenceReceipt } = loadRedEvidenceVerifier();
+  const result = validateRedEvidenceReceipt(receipt);
+  assert.equal(result.ok, true);
+  assert.equal(receipt.redHead, EXPECTED_RED_EVIDENCE_HEAD);
+  assert.equal(receipt.workflowRunId, EXPECTED_RED_WORKFLOW_RUN_ID);
+  assert.equal(receipt.changedFileSet.sha256, EXPECTED_RED_FILE_SET_SHA256);
+  assert.deepEqual(receipt.expectedFailureContractIds, EXPECTED_RED_FAILURE_IDS);
+  assert.equal(receipt.platforms.ubuntu.status, 'RED');
+  assert.equal(receipt.platforms.windows.status, 'RED');
+  assert.equal(receipt.platforms.ubuntu.testCount, 26);
+  assert.equal(receipt.platforms.windows.testCount, 26);
+  assert.equal(receipt.platforms.ubuntu.passCount, 0);
+  assert.equal(receipt.platforms.windows.passCount, 0);
+  assert.equal(receipt.platforms.ubuntu.failCount, 26);
+  assert.equal(receipt.platforms.windows.failCount, 26);
+});
+
+test('Milestone 2 RED verifier rejects transfer to another Head, run, platform hash or failure set', () => {
+  const receipt = readRedEvidenceReceipt();
+  const { validateReceipt: validateRedEvidenceReceipt } = loadRedEvidenceVerifier();
+
+  const wrongHead = clone(receipt);
+  wrongHead.redHead = '0'.repeat(40);
+  assert.throws(
+    () => validateRedEvidenceReceipt(wrongHead),
+    error => error?.code === 'WP_B_M2_RED_EVIDENCE_HEAD_INVALID'
+  );
+
+  const wrongRun = clone(receipt);
+  wrongRun.workflowRunId += 1;
+  assert.throws(
+    () => validateRedEvidenceReceipt(wrongRun),
+    error => error?.code === 'WP_B_M2_RED_EVIDENCE_RUN_INVALID'
+  );
+
+  const wrongHash = clone(receipt);
+  wrongHash.platforms.windows.normalizedOutputSha256 = '0'.repeat(64);
+  assert.throws(
+    () => validateRedEvidenceReceipt(wrongHash),
+    error => error?.code === 'WP_B_M2_RED_EVIDENCE_PLATFORM_INVALID'
+  );
+
+  const missingFailure = clone(receipt);
+  missingFailure.expectedFailureContractIds.pop();
+  assert.throws(
+    () => validateRedEvidenceReceipt(missingFailure),
+    error => error?.code === 'WP_B_M2_RED_EVIDENCE_FAILURE_SET_INVALID'
+  );
+
+  const opened = clone(receipt);
+  opened.governance.mergeAuthorized = true;
+  assert.throws(
+    () => validateRedEvidenceReceipt(opened),
+    error => error?.code === 'WP_B_M2_RED_EVIDENCE_GOVERNANCE_OPEN' && error?.field === 'mergeAuthorized'
+  );
 });
