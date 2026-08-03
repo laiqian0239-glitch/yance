@@ -13,7 +13,8 @@
       "authoritativeOwner": "AuthorityWriteHost",
       "classification": "REGISTERED_INTERNAL_AUTHORITY_SOURCE",
       "allowedCapabilities": [
-        "PRIMARY_DB_CONSTRUCTOR"
+        "PRIMARY_DB_CONSTRUCTOR",
+        "BUSINESS_SQL_MUTATION"
       ],
       "publicEntryPoint": "backend/lib/r32SqliteStore.js",
       "temporaryBypassAllowed": false
