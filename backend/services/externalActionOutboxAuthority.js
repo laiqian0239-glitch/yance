@@ -318,6 +318,78 @@ class ExternalActionOutboxAuthority {
     });
   }
 
+  reclaimExpiredClaim(input = {}) {
+    const intentId = requiredString(input.intentId, 'intentId');
+    const stateVersion = safeInteger(input.stateVersion ?? input.expectedStateVersion, 'stateVersion');
+    const generation = safeInteger(input.generation ?? input.expectedGeneration, 'generation', 1);
+    const expiredOwnerId = requiredString(input.expiredOwnerId, 'expiredOwnerId');
+    const expiredClaimId = requiredString(input.expiredClaimId, 'expiredClaimId');
+    const expiredHostGeneration = safeInteger(input.expiredHostGeneration, 'expiredHostGeneration', 1);
+    const expiredFencingToken = safeInteger(input.expiredFencingToken, 'expiredFencingToken', 1);
+    const hostId = requiredString(input.hostId, 'hostId');
+    const hostGeneration = safeInteger(input.hostGeneration, 'hostGeneration', 1);
+    const fencingToken = safeInteger(input.fencingToken, 'fencingToken', 1);
+    const authorityTimestamp = normalizedTimestamp(input.authorityTimestamp, 'authorityTimestamp');
+    const store = this.store();
+    this.assertSchema23(store);
+    return store.transaction(() => {
+      const result = store.db.prepare(`UPDATE external_action_claims SET
+          state='READY',state_version=state_version+1,generation=generation+1,
+          owner_id='',claim_id='',host_generation=0,fencing_token=0,
+          lease_started_at='',lease_expires_at='',updated_at=?
+        WHERE intent_id=? AND state='CLAIMED' AND state_version=? AND generation=?
+          AND owner_id=? AND claim_id=? AND host_generation=? AND fencing_token=?
+          AND lease_expires_at<?
+          AND EXISTS(
+            SELECT 1 FROM authority_write_host_lease
+            WHERE singleton_id=1 AND owner_instance_id=? AND host_generation=?
+              AND fencing_token=? AND state='ACTIVE'
+          )`).run(
+        authorityTimestamp,
+        intentId,
+        stateVersion,
+        generation,
+        expiredOwnerId,
+        expiredClaimId,
+        expiredHostGeneration,
+        expiredFencingToken,
+        authorityTimestamp,
+        hostId,
+        hostGeneration,
+        fencingToken
+      );
+      if (Number(result.changes || 0) !== 1) {
+        throw outboxError(
+          'WP_B_OUTBOX_RECLAIM_CAS_REJECTED',
+          'Expired external action claim reclaim CAS rejected',
+          {
+            intentId,
+            stateVersion,
+            generation,
+            expiredClaimId,
+            expiredHostGeneration,
+            expiredFencingToken
+          }
+        );
+      }
+      return deepFreeze({
+        schemaVersion: 1,
+        authority: AUTHORITY,
+        intentId,
+        state: 'READY',
+        stateVersion: stateVersion + 1,
+        generation: generation + 1,
+        ownerId: '',
+        claimId: '',
+        hostGeneration: 0,
+        fencingToken: 0,
+        leaseStartedAt: '',
+        leaseExpiresAt: '',
+        authorityTimestamp
+      });
+    });
+  }
+
   startAttempt(input = {}) {
     const facts = this.normalizeClaimFacts(input, 'startAttempt');
     const request = canonicalPlainData(input.request || {}, 'request');
