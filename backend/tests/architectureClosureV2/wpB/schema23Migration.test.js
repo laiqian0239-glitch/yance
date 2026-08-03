@@ -7,6 +7,10 @@ function migration() {
   return require('../../../migrations/architectureClosureV2WpB');
 }
 
+function lifecycle() {
+  return require('../../../services/durableExecutionLifecycle');
+}
+
 test('WP-B owns a new forward-only Schema 23 migration', () => {
   const {
     MIGRATION_ID,
@@ -28,6 +32,15 @@ test('Schema 23 declares every durable execution concurrency fact', () => {
     'owner_id', 'claim_id', 'host_generation', 'fencing_token', 'lease_started_at',
     'lease_expires_at', 'heartbeat_sequence', 'deadline_at', 'terminal_receipt_id'
   ]) assert.equal(columns.has(column), true, `missing ${column}`);
+});
+
+test('Schema 23 and the pure lifecycle share one exact state authority', () => {
+  const { WP_B_SCHEMA_CONTRACT } = migration();
+  const { STATES } = lifecycle();
+  assert.deepEqual(
+    [...WP_B_SCHEMA_CONTRACT.durableExecutionStates].sort(),
+    Object.values(STATES).sort()
+  );
 });
 
 test('Schema 23 declares append-only intent, attempt, receipt, reconciliation and checkpoint facts', () => {
