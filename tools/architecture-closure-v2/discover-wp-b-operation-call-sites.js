@@ -10,12 +10,24 @@ const EXTENSIONS = new Set(['.js', '.cjs', '.mjs']);
 const DETECTORS = Object.freeze([
   Object.freeze({ id: 'CHILD_PROCESS_EXTERNAL_EXECUTION', expression: /\b(?:fork|spawn|execFile)\s*\(/u }),
   Object.freeze({ id: 'NETWORK_CLIENT_CALL', expression: /\b(?:fetch\s*\(|https?\.(?:get|request)\s*\(|axios\.[a-z]+\s*\()/u }),
-  Object.freeze({ id: 'PLATFORM_OR_PROVIDER_CALL', expression: /\b(?:sendMessage|sendMedia|invokeProvider|executeModel|restoreSession|fetchHistory|downloadMedia|uploadMedia|callProvider|createChatCompletion)\s*\(/u }),
-  Object.freeze({ id: 'RECOVERY_ENTRYPOINT', expression: /\b(?:recover|resume|restore|reconcile|repair)[A-Za-z0-9_]*\s*\(/u })
+  Object.freeze({
+    id: 'PLATFORM_OR_PROVIDER_CALL',
+    expression: /(?:\.|\?\.)\s*(?:sendMessage|sendMedia|invokeProvider|executeModel|restoreSession|fetchHistory|downloadMedia|uploadMedia|callProvider|createChatCompletion)\s*\(/u
+  }),
+  Object.freeze({
+    id: 'RECOVERY_ENTRYPOINT',
+    expression: /(?:(?:\.|\?\.)\s*(?:recover|resume|restore|reconcile|repair)[A-Za-z0-9_]*|\b(?:recoverInterrupted|migrateAtStartup|runBootPhase0Restore|canonicalizeWhatsAppAccounts|repairRoutes|initializeDataPipelines))\s*\(/u
+  })
 ]);
 const TIMER_PATTERN = /\b(?:setTimeout|setInterval)\s*\(/u;
 const OPERATIONAL_TIMER_CONTEXT = /\b(?:retry[A-Za-z0-9_]*|backoff[A-Za-z0-9_]*|heartbeat[A-Za-z0-9_]*|lease[A-Za-z0-9_]*|queue[A-Za-z0-9_]*|sync[A-Za-z0-9_]*|execution[A-Za-z0-9_]*|session[A-Za-z0-9_]*|message[A-Za-z0-9_]*|media[A-Za-z0-9_]*|provider[A-Za-z0-9_]*|platform[A-Za-z0-9_]*|reconnect[A-Za-z0-9_]*|recovery[A-Za-z0-9_]*)\b/iu;
-const WP_B_PATH_SCOPE = /(?:model|provider|ollama|openai|aigateway|execution|asyncoperation|backgroundjob|jobqueue|sendqueue|message|communication|channel|adapter|platform|facebook|telegram|whatsapp|media|history|sync|session|ownerrecovery|runtimerecovery|durablechanneloperation|accountmanager|gateway|relay|backendprocesshost|backendstartupsupervisor)/iu;
+const STRONG_CAPABILITIES = new Set([
+  'CHILD_PROCESS_EXTERNAL_EXECUTION',
+  'NETWORK_CLIENT_CALL',
+  'PLATFORM_OR_PROVIDER_CALL'
+]);
+const WP_B_IO_PATH_SCOPE = /(?:modelExecution|modelExecutor|provider|ollama|openAi|aiGateway|transcription|facebook|telegram|whatsapp|communication|channelAdapter|platformMessaging|platformAdapter|platformDriver|mediaPipeline|BackendProcessHost)/iu;
+const WP_B_STATEFUL_PATH_SCOPE = /(?:executionDeadline|asyncOperation|backgroundJob|jobQueue|sendQueue|messageRepository|syncCheckpoint|durableChannelOperation|runtimeRecovery|ownerRecovery|accountManager|mediaPipeline|whatsappAccountReconciliation|whatsappHistoryMediaRecovery|routes\/models|facebook-gateway\/gateway)/iu;
 
 function normalizePath(value) {
   return String(value || '').split(path.sep).join('/').replace(/^\.\//u, '');
@@ -66,10 +78,13 @@ function detectCapabilities(source) {
   return [...new Set(capabilities)];
 }
 
-function discoveryClass(relativePath) {
+function discoveryClass(relativePath, capabilities) {
   const normalized = normalizePath(relativePath);
   if (normalized.startsWith('tools/')) return 'NON_PRODUCTION_HARNESS';
-  if (WP_B_PATH_SCOPE.test(normalized)) return 'WP_B_PRODUCTION_SCOPE';
+  const hasStrongCapability = capabilities.some(capability => STRONG_CAPABILITIES.has(capability));
+  if (hasStrongCapability && WP_B_IO_PATH_SCOPE.test(normalized)) return 'WP_B_PRODUCTION_SCOPE';
+  if (!hasStrongCapability && WP_B_STATEFUL_PATH_SCOPE.test(normalized)) return 'WP_B_PRODUCTION_SCOPE';
+  if (hasStrongCapability && WP_B_STATEFUL_PATH_SCOPE.test(normalized)) return 'WP_B_PRODUCTION_SCOPE';
   return 'OUTSIDE_WP_B_OPERATION_SCOPE';
 }
 
@@ -99,7 +114,7 @@ function discoverCallSites(repositoryRoot = path.resolve(__dirname, '..', '..'))
       allDetected.push(Object.freeze({
         path: relativePath,
         capabilities,
-        discoveryClass: discoveryClass(relativePath)
+        discoveryClass: discoveryClass(relativePath, capabilities)
       }));
     }
   }
@@ -110,7 +125,7 @@ function discoverCallSites(repositoryRoot = path.resolve(__dirname, '..', '..'))
   const unregistered = discovered.filter(row => !registeredPaths.has(row.path));
   const registered = discovered.filter(row => registeredPaths.has(row.path));
   return Object.freeze({
-    schemaVersion: 2,
+    schemaVersion: 3,
     documentType: 'YANCE_ACV2_WP_B_OPERATION_CALL_SITE_DISCOVERY',
     workPackage: 'WP-B',
     branch: baseline.authorizedBranch,
@@ -155,7 +170,9 @@ module.exports = {
   BASELINE_PATH,
   DETECTORS,
   INVENTORY_PATH,
-  WP_B_PATH_SCOPE,
+  STRONG_CAPABILITIES,
+  WP_B_IO_PATH_SCOPE,
+  WP_B_STATEFUL_PATH_SCOPE,
   detectCapabilities,
   discoverCallSites,
   discoveryClass,
