@@ -8,6 +8,9 @@ const channelAdapterContract = require('./channelAdapterContract');
 const { canonicalHash } = require('./canonicalSerialization');
 const { deepFreeze } = require('../lib/deepFreeze');
 
+const MIGRATION_MODE = 'durable-outbox-only';
+const PHYSICAL_ATTEMPT_FIELDS = Object.freeze(['attemptId', 'fencingToken']);
+
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function historyRuntimeError(code, message, status = 400, details = {}) {
   return Object.assign(new Error(message), { code, status, ...details });
@@ -21,6 +24,19 @@ function positiveInteger(value, fallback) {
 }
 
 class ChannelAdapterRuntime extends core.ChannelAdapterRuntime {
+  describe() {
+    const description = super.describe();
+    if (description?.migrationMode !== MIGRATION_MODE) {
+      throw historyRuntimeError(
+        'WP_B_CHANNEL_MIGRATION_MODE_INVALID',
+        'Channel runtime must remain durable-outbox-only',
+        500,
+        { migrationMode: clean(description?.migrationMode) }
+      );
+    }
+    return description;
+  }
+
   async backfillContacts(input = {}) { return this.prepareHistorySynchronization('contacts', input); }
   async backfillConversations(input = {}) { return this.prepareHistorySynchronization('conversations', input); }
   async backfillMessages(input = {}) { return this.prepareHistorySynchronization('messages', input); }
@@ -134,6 +150,8 @@ const singleton = new ChannelAdapterRuntimeRegistry();
 module.exports = singleton;
 module.exports.ChannelAdapterRuntime = ChannelAdapterRuntime;
 module.exports.ChannelAdapterRuntimeRegistry = ChannelAdapterRuntimeRegistry;
+module.exports.MIGRATION_MODE = MIGRATION_MODE;
+module.exports.PHYSICAL_ATTEMPT_FIELDS = PHYSICAL_ATTEMPT_FIELDS;
 module.exports.PLATFORMS = core.PLATFORMS;
 module.exports.createChannelPhysicalClient = core.createChannelPhysicalClient;
 module.exports.validatePhysicalEnvelope = core.validatePhysicalEnvelope;

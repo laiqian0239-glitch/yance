@@ -64,7 +64,9 @@
     "backend/services/authorityTransactionCoordinator.js",
     "backend/services/authorityTransactionCoordinatorEngine.js",
     "backend/services/backgroundJobAuthority.js",
+    "backend/services/canonicalChannelStateEngine.js",
     "backend/services/channelAdapterRuntime.js",
+    "backend/services/channelRuntimeEngine.js",
     "backend/services/communicationAuthority.js",
     "backend/services/durableExecutionAuthority.js",
     "backend/services/durableExecutionLifecycle.js",
@@ -212,6 +214,17 @@
       "reasonCode": "WP_B_M2_TRANSCRIPTION_ASYNC_BOUNDARY_SPLIT",
       "addedPaths": [
         "backend/services/transcriptionServiceCore.js"
+      ]
+    },
+    {
+      "amendmentId": "WP-B-M2-SCOPE-005",
+      "authorizedAt": "2026-08-04T05:26:00+07:00",
+      "approvedBy": "PROJECT_OWNER",
+      "approvalSource": "Project owner full authorization in the 独立软件工程审计 conversation",
+      "reasonCode": "WP_B_M2_HISTORY_AUTHORITY_FACADE_ENGINE_SPLIT",
+      "addedPaths": [
+        "backend/services/canonicalChannelStateEngine.js",
+        "backend/services/channelRuntimeEngine.js"
       ]
     }
   ],

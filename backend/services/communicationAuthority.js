@@ -3,7 +3,17 @@
 const core = require('./canonicalChannelStateEngine');
 const { canonicalHash, canonicalSerialize } = require('./canonicalSerialization');
 const { deepFreeze } = require('../lib/deepFreeze');
-const { OPERATION_KINDS } = require('./durableOperationRegistry');
+const {
+  OPERATION_KINDS,
+  assertReferenceOnlyEnvelope
+} = require('./durableOperationRegistry');
+
+const COMMUNICATION_OPERATION_KINDS = Object.freeze([
+  OPERATION_KINDS.OUTBOUND_MESSAGE_SEND,
+  OPERATION_KINDS.DELIVERY_RECEIPT_RECONCILIATION,
+  OPERATION_KINDS.MEDIA_TRANSFER,
+  OPERATION_KINDS.HISTORY_SYNCHRONIZATION
+]);
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function historyAuthorityError(code, message, details = {}) {
@@ -102,11 +112,48 @@ class CommunicationAuthority extends core.CommunicationAuthority {
   }
 
   prepareHistorySynchronization(input = {}) {
-    return this.prepareExternalAction({
-      ...input,
-      operationKind: OPERATION_KINDS.HISTORY_SYNCHRONIZATION,
-      executionTimestampPurpose: 'history-synchronization-execution',
-      intentTimestampPurpose: 'history-synchronization-intent'
+    const operationKind = OPERATION_KINDS.HISTORY_SYNCHRONIZATION;
+    if (!COMMUNICATION_OPERATION_KINDS.includes(operationKind)) {
+      throw historyAuthorityError('WP_B_HISTORY_OPERATION_KIND_UNREGISTERED', 'History operation kind is not registered');
+    }
+    const idempotencyKey = requiredString(input.idempotencyKey, 'idempotencyKey');
+    const command = assertReferenceOnlyEnvelope(input.command);
+    if (!this.durableExecutionAuthority || typeof this.durableExecutionAuthority.createExecution !== 'function') {
+      throw new TypeError('CommunicationAuthority requires DurableExecutionAuthority.createExecution');
+    }
+    if (!this.outboxAuthority || typeof this.outboxAuthority.createIntent !== 'function') {
+      throw new TypeError('CommunicationAuthority requires ExternalActionOutboxAuthority.createIntent');
+    }
+    const executionTimestamp = normalizedTimestamp(
+      this.issueTimestamp('history-synchronization-execution'),
+      'history-synchronization-execution'
+    );
+    const execution = this.durableExecutionAuthority.createExecution({
+      operationKind,
+      idempotencyKey,
+      traceId: clean(input.traceId),
+      command,
+      deadlineAt: clean(input.deadlineAt),
+      maxAttempts: Math.max(1, Number(input.maxAttempts || 3)),
+      authorityTimestamp: executionTimestamp
+    });
+    const executionId = requiredString(execution?.executionId, 'execution.executionId');
+    const intentTimestamp = normalizedTimestamp(
+      this.issueTimestamp('history-synchronization-intent'),
+      'history-synchronization-intent'
+    );
+    const intent = this.outboxAuthority.createIntent({
+      executionId,
+      actionKind: operationKind,
+      idempotencyKey,
+      payload: command,
+      authorityTimestamp: intentTimestamp
+    });
+    return Object.freeze({
+      executionId,
+      intentId: requiredString(intent?.intentId, 'intent.intentId'),
+      operationKind,
+      idempotencyKey
     });
   }
 
@@ -124,7 +171,17 @@ class CommunicationAuthority extends core.CommunicationAuthority {
   }
 
   recordHistoryCheckpointObservation(input = {}, store = this.store()) {
-    const claim = historyExecutionClaim(input);
+    const claim = historyExecutionClaim(Object.freeze({
+      executionId: input.executionId,
+      stateVersion: input.stateVersion,
+      generation: input.generation,
+      ownerId: input.ownerId,
+      claimId: input.claimId,
+      hostId: input.hostId,
+      hostGeneration: input.hostGeneration,
+      fencingToken: input.fencingToken,
+      allowedStates: Object.freeze([...(input.allowedStates || [])])
+    }));
     const authorityTimestamp = normalizedTimestamp(input.authorityTimestamp, 'authorityTimestamp');
     const observation = deepFreeze({
       schemaVersion: 1,
@@ -167,7 +224,17 @@ class CommunicationAuthority extends core.CommunicationAuthority {
   }
 
   advanceHistoryCheckpoint(input = {}, store = this.store()) {
-    const claim = historyExecutionClaim(input);
+    const claim = historyExecutionClaim(Object.freeze({
+      executionId: input.executionId,
+      stateVersion: input.stateVersion,
+      generation: input.generation,
+      ownerId: input.ownerId,
+      claimId: input.claimId,
+      hostId: input.hostId,
+      hostGeneration: input.hostGeneration,
+      fencingToken: input.fencingToken,
+      allowedStates: Object.freeze([...(input.allowedStates || [])])
+    }));
     const checkpoint = Object.freeze({
       checkpointId: requiredString(input.checkpointId, 'checkpointId'),
       platform: requiredString(input.platform, 'platform', 64).toLowerCase(),
@@ -339,6 +406,7 @@ module.exports = communicationAuthority;
 module.exports.CommunicationAuthority = CommunicationAuthority;
 module.exports.AUTHORITY = core.AUTHORITY;
 module.exports.SCHEMA_VERSION = core.SCHEMA_VERSION;
+module.exports.COMMUNICATION_OPERATION_KINDS = COMMUNICATION_OPERATION_KINDS;
 module.exports.normalizeContent = core.normalizeContent;
 module.exports.renderProjection = core.renderProjection;
 module.exports.historyAuthorityError = historyAuthorityError;
