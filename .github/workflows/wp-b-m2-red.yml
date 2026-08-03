@@ -1,0 +1,156 @@
+name: WP-B M2 Contracts
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/wp-b-m2-red.yml
+      - backend/runtime/AppRuntimeComposition.js
+      - backend/runtime/AppRuntimeFactory.js
+      - backend/server.js
+      - backend/services/accountManager.js
+      - backend/services/channelAdapterRuntime.js
+      - backend/services/communicationAuthority.js
+      - backend/services/durableExecutionRecoveryAuthority.js
+      - backend/services/durableOperationRegistry.js
+      - backend/services/durableOperations/aiProviderExecutionOperation.js
+      - backend/services/durableOperations/outboundMessageSendOperation.js
+      - backend/services/durableOperations/deliveryReceiptReconciliationOperation.js
+      - backend/services/durableOperations/mediaTransferOperation.js
+      - backend/services/durableOperations/historySynchronizationOperation.js
+      - backend/services/durableOperations/sessionRestoreOperation.js
+      - backend/services/modelExecutionHost.js
+      - backend/services/ownerRecovery.js
+      - backend/services/runtimeRecoveryService.js
+      - backend/tests/architectureClosureV2/wpB/m2MandatoryOperationsRed.test.js
+      - backend/tests/architectureClosureV2/wpB/m2RecoveryRed.test.js
+      - backend/tests/architectureClosureV2/wpB/m2ProcessFaultRed.test.js
+      - backend/tests/architectureClosureV2/wpB/m2LeakBoundaryRed.test.js
+      - electron/backendStartupSupervisor.js
+      - electron/desktopHost/BackendProcessHost.js
+      - electron/main.js
+      - governance/architecture-closure-v2/wp-b-m2-authorization.json
+      - governance/architecture-closure-v2/wp-b-m2-red-evidence.json
+      - tools/architecture-closure-v2/run-wp-b-m2-contracts.js
+      - tools/architecture-closure-v2/wp-b-process-fault-matrix.js
+      - tools/architecture-closure-v2/fixtures/wp-b-fake-remote.js
+      - tools/architecture-closure-v2/fixtures/wp-b-dispatcher-process.js
+  push:
+    branches:
+      - acv2/wp-b-durable-execution-outbox
+    paths:
+      - .github/workflows/wp-b-m2-red.yml
+      - backend/runtime/AppRuntimeComposition.js
+      - backend/runtime/AppRuntimeFactory.js
+      - backend/server.js
+      - backend/services/accountManager.js
+      - backend/services/channelAdapterRuntime.js
+      - backend/services/communicationAuthority.js
+      - backend/services/durableExecutionRecoveryAuthority.js
+      - backend/services/durableOperationRegistry.js
+      - backend/services/durableOperations/aiProviderExecutionOperation.js
+      - backend/services/durableOperations/outboundMessageSendOperation.js
+      - backend/services/durableOperations/deliveryReceiptReconciliationOperation.js
+      - backend/services/durableOperations/mediaTransferOperation.js
+      - backend/services/durableOperations/historySynchronizationOperation.js
+      - backend/services/durableOperations/sessionRestoreOperation.js
+      - backend/services/modelExecutionHost.js
+      - backend/services/ownerRecovery.js
+      - backend/services/runtimeRecoveryService.js
+      - backend/tests/architectureClosureV2/wpB/m2MandatoryOperationsRed.test.js
+      - backend/tests/architectureClosureV2/wpB/m2RecoveryRed.test.js
+      - backend/tests/architectureClosureV2/wpB/m2ProcessFaultRed.test.js
+      - backend/tests/architectureClosureV2/wpB/m2LeakBoundaryRed.test.js
+      - electron/backendStartupSupervisor.js
+      - electron/desktopHost/BackendProcessHost.js
+      - electron/main.js
+      - governance/architecture-closure-v2/wp-b-m2-authorization.json
+      - governance/architecture-closure-v2/wp-b-m2-red-evidence.json
+      - tools/architecture-closure-v2/run-wp-b-m2-contracts.js
+      - tools/architecture-closure-v2/wp-b-process-fault-matrix.js
+      - tools/architecture-closure-v2/fixtures/wp-b-fake-remote.js
+      - tools/architecture-closure-v2/fixtures/wp-b-dispatcher-process.js
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  IMPLEMENTATION_BRANCH: ${{ github.head_ref || github.ref_name }}
+  VALIDATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  milestone-two-contracts:
+    name: wp-b-m2-contracts-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact contract commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.VALIDATION_SHA }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Establish exact trusted implementation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${IMPLEMENTATION_BRANCH}" = "acv2/wp-b-durable-execution-outbox"
+          test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
+          git fetch --no-tags --force origin "${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
+          test "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})" = "${VALIDATION_SHA}"
+          git switch --force-create "${IMPLEMENTATION_BRANCH}" "${VALIDATION_SHA}"
+          test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
+
+      - name: Validate M2 contract syntax
+        shell: bash
+        run: |
+          node --check tools/architecture-closure-v2/run-wp-b-m2-contracts.js
+          node --check backend/tests/architectureClosureV2/wpB/m2MandatoryOperationsRed.test.js
+          node --check backend/tests/architectureClosureV2/wpB/m2RecoveryRed.test.js
+          node --check backend/tests/architectureClosureV2/wpB/m2ProcessFaultRed.test.js
+          node --check backend/tests/architectureClosureV2/wpB/m2LeakBoundaryRed.test.js
+
+      - name: Run Milestone 2 contracts
+        shell: bash
+        run: node tools/architecture-closure-v2/run-wp-b-m2-contracts.js --mode contract
+
+      - name: Confirm clean contract workspace
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+  gate:
+    name: wp-b-m2-contracts-gate
+    if: ${{ always() }}
+    needs:
+      - milestone-two-contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Enforce Milestone 2 contracts
+        shell: bash
+        env:
+          CONTRACT_RESULT: ${{ needs.milestone-two-contracts.result }}
+        run: |
+          set -euo pipefail
+          test "${CONTRACT_RESULT}" = "success"
