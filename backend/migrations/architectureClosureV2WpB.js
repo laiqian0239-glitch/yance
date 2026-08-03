@@ -4,24 +4,11 @@ const crypto = require('node:crypto');
 const {
   isArchitectureClosureV2WpAIntegrityApplied
 } = require('./architectureClosureV2WpAIntegrity');
+const { STATES } = require('../services/durableExecutionLifecycle');
 
 const MIGRATION_ID = '023_architecture_closure_v2_wp_b';
 const TARGET_SCHEMA_VERSION = 23;
-const DURABLE_EXECUTION_STATES = Object.freeze([
-  'CREATED',
-  'SCHEDULED',
-  'CLAIMED',
-  'RUNNING',
-  'WAITING_REMOTE',
-  'REMOTE_RESULT_UNKNOWN',
-  'RECONCILING',
-  'RETRY_SCHEDULED',
-  'CANCEL_REQUESTED',
-  'CANCELLED',
-  'SUCCEEDED',
-  'FAILED',
-  'DEAD_LETTERED'
-]);
+const DURABLE_EXECUTION_STATES = Object.freeze(Object.values(STATES));
 const DURABLE_EXECUTION_COLUMNS = Object.freeze([
   'execution_id',
   'trace_id',
@@ -61,6 +48,7 @@ const APPEND_ONLY_TABLES = Object.freeze([
   'external_outcome_reconciliations',
   'durable_execution_checkpoints'
 ]);
+const MUTABLE_CAS_TABLES = Object.freeze(['external_action_claims']);
 const WP_B_SCHEMA_CONTRACT = Object.freeze({
   authority: 'DurableExecutionAuthorityV2',
   schemaVersion: TARGET_SCHEMA_VERSION,
@@ -68,14 +56,15 @@ const WP_B_SCHEMA_CONTRACT = Object.freeze({
   durableExecutionColumns: DURABLE_EXECUTION_COLUMNS,
   durableExecutionStates: DURABLE_EXECUTION_STATES,
   appendOnlyTables: APPEND_ONLY_TABLES,
+  mutableCasTables: MUTABLE_CAS_TABLES,
   timeAuthority: 'APPLICATION_ASSIGNED_ONLY',
   legacyExecutionHashPolicy: 'VERSION_ZERO_EMPTY_HASH_ONLY',
-  newExecutionHashPolicy: 'VERSION_ONE_SHA256_REQUIRED'
+  newExecutionHashPolicy: 'VERSION_ONE_SHA256_REQUIRED',
+  externalActionIntentPolicy: 'IMMUTABLE_INTENT_WITH_SEPARATE_MUTABLE_CAS_CLAIM'
 });
 const MIGRATION_CHECKSUM = crypto.createHash('sha256')
   .update(JSON.stringify({ migrationId: MIGRATION_ID, contract: WP_B_SCHEMA_CONTRACT }))
   .digest('hex');
-const HASH_PATTERN_SQL = "length(%s)=64 AND lower(%s)=%s AND %s NOT GLOB '*[^0-9a-f]*'";
 
 function migrationError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
@@ -126,6 +115,17 @@ function ensureMetaTable(db) {
     value_json TEXT NOT NULL,
     updated_at TEXT NOT NULL
   ) STRICT;`);
+}
+
+function currentSchemaVersion(db) {
+  if (!tableExists(db, 'r32_meta')) return 0;
+  const rows = db.prepare(
+    "SELECT value_json FROM r32_meta WHERE key IN ('schema_version','schemaVersion')"
+  ).all();
+  const versions = rows.map(row => {
+    try { return Number(JSON.parse(row.value_json)); } catch (_) { return Number(row.value_json); }
+  }).filter(Number.isSafeInteger);
+  return versions.length ? Math.max(...versions) : 0;
 }
 
 function setSchemaVersion(db, value, at) {
@@ -287,6 +287,17 @@ function createWpBFactTables(db) {
       intent_content_sha256 TEXT NOT NULL CHECK(length(intent_content_sha256)=64),
       content_hash_version INTEGER NOT NULL CHECK(content_hash_version=1),
       payload_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(execution_id) REFERENCES durable_executions(execution_id) ON DELETE RESTRICT,
+      CHECK(lower(intent_content_sha256)=intent_content_sha256),
+      CHECK(intent_content_sha256 NOT GLOB '*[^0-9a-f]*'),
+      UNIQUE(action_kind,idempotency_key)
+    ) STRICT;
+    CREATE INDEX idx_external_action_intents_execution
+      ON external_action_intents(execution_id,created_at,intent_id);
+
+    CREATE TABLE external_action_claims(
+      intent_id TEXT PRIMARY KEY,
       state TEXT NOT NULL CHECK(state IN (
         'READY','CLAIMED','ATTEMPTED','COMPLETED','FAILED','UNCERTAIN','CANCELLED'
       )),
@@ -298,17 +309,16 @@ function createWpBFactTables(db) {
       fencing_token INTEGER NOT NULL DEFAULT 0 CHECK(fencing_token>=0),
       lease_started_at TEXT NOT NULL DEFAULT '',
       lease_expires_at TEXT NOT NULL DEFAULT '',
-      created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
-      FOREIGN KEY(execution_id) REFERENCES durable_executions(execution_id) ON DELETE RESTRICT,
-      CHECK(lower(intent_content_sha256)=intent_content_sha256),
-      CHECK(intent_content_sha256 NOT GLOB '*[^0-9a-f]*'),
-      UNIQUE(action_kind,idempotency_key)
+      FOREIGN KEY(intent_id) REFERENCES external_action_intents(intent_id) ON DELETE RESTRICT,
+      CHECK(
+        (state='READY' AND claim_id='' AND owner_id='' AND host_generation=0 AND fencing_token=0)
+        OR
+        (state<>'READY' AND claim_id<>'' AND owner_id<>'' AND host_generation>=1 AND fencing_token>=1)
+      )
     ) STRICT;
-    CREATE INDEX idx_external_action_intents_ready
-      ON external_action_intents(state,lease_expires_at,created_at,intent_id);
-    CREATE INDEX idx_external_action_intents_execution
-      ON external_action_intents(execution_id,created_at,intent_id);
+    CREATE INDEX idx_external_action_claims_ready
+      ON external_action_claims(state,lease_expires_at,updated_at,intent_id);
 
     CREATE TABLE external_action_attempts(
       attempt_id TEXT PRIMARY KEY,
@@ -395,6 +405,7 @@ function createWpBFactTables(db) {
     CREATE INDEX idx_durable_execution_checkpoints_execution
       ON durable_execution_checkpoints(execution_id,sequence);
   `);
+
   for (const table of APPEND_ONLY_TABLES) ensureAppendOnlyTriggers(db, table);
 }
 
@@ -411,10 +422,14 @@ function ensureExactColumns(db, table, expected) {
 
 function ensureConsistency(db) {
   ensureExactColumns(db, 'durable_executions', DURABLE_EXECUTION_COLUMNS);
-  for (const table of APPEND_ONLY_TABLES) {
+
+  for (const table of [...APPEND_ONLY_TABLES, ...MUTABLE_CAS_TABLES]) {
     if (!tableExists(db, table)) {
       throw migrationError('ACV2_WP_B_TABLE_MISSING', `Schema 23 table ${table} is missing`, { table });
     }
+  }
+
+  for (const table of APPEND_ONLY_TABLES) {
     for (const operation of ['update', 'delete']) {
       const trigger = appendOnlyTriggerName(table, operation);
       if (!triggerExists(db, trigger, table)) {
@@ -426,13 +441,26 @@ function ensureConsistency(db) {
       }
     }
   }
+
+  for (const operation of ['update', 'delete']) {
+    const forbidden = appendOnlyTriggerName('external_action_claims', operation);
+    if (triggerExists(db, forbidden, 'external_action_claims')) {
+      throw migrationError(
+        'ACV2_WP_B_CAS_TABLE_IMMUTABLY_BLOCKED',
+        'External action claims must remain mutable only through predicate-complete CAS',
+        { operation }
+      );
+    }
+  }
+
   if (!triggerExists(db, 'trg_durable_executions_v23_hash_insert', 'durable_executions')) {
     throw migrationError(
       'ACV2_WP_B_EXECUTION_HASH_TRIGGER_MISSING',
       'Schema 23 new execution hash trigger is missing'
     );
   }
-  const invalidLegacy = db.prepare(`SELECT execution_id FROM durable_executions
+
+  const invalidExecution = db.prepare(`SELECT execution_id FROM durable_executions
     WHERE NOT (
       (content_hash_version=0 AND command_content_sha256='')
       OR
@@ -440,11 +468,11 @@ function ensureConsistency(db) {
         AND lower(command_content_sha256)=command_content_sha256
         AND command_content_sha256 NOT GLOB '*[^0-9a-f]*')
     ) LIMIT 1`).get();
-  if (invalidLegacy) {
+  if (invalidExecution) {
     throw migrationError(
       'ACV2_WP_B_EXECUTION_HASH_INVALID',
       'Schema 23 contains an unverifiable durable execution command hash',
-      { executionId: String(invalidLegacy.execution_id || '') }
+      { executionId: String(invalidExecution.execution_id || '') }
     );
   }
 }
@@ -455,7 +483,8 @@ function migrationResult() {
     targetSchemaVersion: TARGET_SCHEMA_VERSION,
     checksum: MIGRATION_CHECKSUM,
     authority: WP_B_SCHEMA_CONTRACT.authority,
-    appendOnlyTableCount: APPEND_ONLY_TABLES.length
+    appendOnlyTableCount: APPEND_ONLY_TABLES.length,
+    mutableCasTableCount: MUTABLE_CAS_TABLES.length
   });
 }
 
@@ -487,12 +516,21 @@ function applyArchitectureClosureV2WpB(db, options = {}) {
     throw new TypeError('Schema 23 WP-B migration requires a SQLite database');
   }
   const at = requiredTimestamp(options.at, 'options.at');
+  const schemaVersion = currentSchemaVersion(db);
+  if (schemaVersion > TARGET_SCHEMA_VERSION) {
+    throw migrationError(
+      'ACV2_WP_B_FUTURE_SCHEMA_UNSUPPORTED',
+      'Schema 23 migration refuses a future database schema',
+      { schemaVersion, targetSchemaVersion: TARGET_SCHEMA_VERSION }
+    );
+  }
   if (!isArchitectureClosureV2WpAIntegrityApplied(db)) {
     throw migrationError(
       'ACV2_WP_B_SCHEMA_22_REQUIRED',
       'Schema 23 requires completed Schema 22 WP-A integrity migration'
     );
   }
+
   ensureMigrationTable(db);
   const existing = db.prepare('SELECT * FROM r32_schema_migrations WHERE migration_id=?').get(MIGRATION_ID);
   if (existing && String(existing.checksum || '') !== MIGRATION_CHECKSUM) {
@@ -506,6 +544,12 @@ function applyArchitectureClosureV2WpB(db, options = {}) {
     ensureConsistency(db);
     setSchemaVersion(db, TARGET_SCHEMA_VERSION, at);
     return migrationResult();
+  }
+  if (existing) {
+    throw migrationError(
+      'ACV2_WP_B_MIGRATION_INCOMPLETE',
+      'Schema 23 migration row exists without completed status'
+    );
   }
   if (!tableExists(db, 'durable_executions') || !tableExists(db, 'durable_execution_events')) {
     throw migrationError(
@@ -528,6 +572,7 @@ function applyArchitectureClosureV2WpB(db, options = {}) {
       migrationChecksum: MIGRATION_CHECKSUM,
       durableExecutionColumns: DURABLE_EXECUTION_COLUMNS.length,
       appendOnlyTables: APPEND_ONLY_TABLES.length,
+      mutableCasTables: MUTABLE_CAS_TABLES.length,
       schema23Applied: true
     });
     db.prepare(`INSERT INTO r32_schema_migrations(
@@ -551,6 +596,7 @@ module.exports = Object.freeze({
   DURABLE_EXECUTION_STATES,
   DURABLE_EXECUTION_COLUMNS,
   APPEND_ONLY_TABLES,
+  MUTABLE_CAS_TABLES,
   appendOnlyTriggerName,
   createDurableExecutionV23Tables,
   createWpBFactTables,
