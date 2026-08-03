@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_B_XSTATE_ADAPTER_GREEN_EVIDENCE",
+  "workPackage": "WP-B",
+  "candidateId": "XSTATE_CORE_5_32_5",
+  "reviewedImplementationHead": "f8442e3c7f3b4569b51da201568411734e7ca8d4",
+  "workflowRun": {
+    "id": 30792959633,
+    "name": "WP-B Validation",
+    "exactHeadCheckoutEnforced": true,
+    "ubuntu": {
+      "jobId": 91620203645,
+      "status": "PASSED",
+      "passCount": 4,
+      "failCount": 0,
+      "skipCount": 0
+    },
+    "windows": {
+      "jobId": 91620203592,
+      "status": "PASSED",
+      "passCount": 4,
+      "failCount": 0,
+      "skipCount": 0
+    }
+  },
+  "sourceBinding": {
+    "adapterPath": "backend/services/xstateLifecycleAdapter.js",
+    "adapterBlobSha": "42e0682ea2a0c7e58fe49719c787de630594f8c4",
+    "lifecyclePath": "backend/services/durableExecutionLifecycle.js",
+    "lifecycleBlobSha": "2ee02b5c57e2c8473a0573961de3b94ff8e4bfaf",
+    "testPath": "backend/tests/architectureClosureV2/wpB/xstateLifecycleAdapter.test.js",
+    "testBlobSha": "8dc31dace4668ba03220f138a57cf986758439ba",
+    "productionXStateImportCount": 1,
+    "productionXStateImportPaths": [
+      "backend/services/xstateLifecycleAdapter.js"
+    ]
+  },
+  "validatedCapabilities": [
+    "SINGLE_XSTATE_IMPORT_BOUNDARY",
+    "YANCE_GRAPH_PARITY",
+    "FAIL_CLOSED_ILLEGAL_TRANSITIONS",
+    "CONFIGURATION_SNAPSHOT_ISOLATION",
+    "ZERO_DATABASE_TIME_OR_EXTERNAL_IO_AUTHORITY"
+  ],
+  "authorization": {
+    "adapterBoundaryComplete": true,
+    "crossPlatformAndFaultValidationComplete": false,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "temporaryBypassAllowed": false
+  }
+}
