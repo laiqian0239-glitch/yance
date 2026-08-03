@@ -49,12 +49,18 @@ test('normalized observations are exact, canonical and deeply immutable', () => 
   );
 });
 
-test('remote success records one trusted receipt before terminal transition', () => {
+test('remote success records one trusted receipt before terminal transition in one transaction', () => {
   const { reconcileExternalOutcome } = reconciliationModule();
   const calls = [];
   const result = reconcileExternalOutcome({
     observation: provenSuccess(),
     authorityTimestamp: '2026-08-03T02:45:01.000Z',
+    transaction(callback) {
+      calls.push(['transaction-begin']);
+      const value = callback();
+      calls.push(['transaction-commit']);
+      return value;
+    },
     recordReceipt(receipt) {
       calls.push(['recordReceipt', receipt]);
       return { receiptId: 'trusted-receipt-1' };
@@ -65,9 +71,14 @@ test('remote success records one trusted receipt before terminal transition', ()
     }
   });
 
-  assert.deepEqual(calls.map(([name]) => name), ['recordReceipt', 'transitionExecution']);
-  assert.equal(calls[1][1].state, 'SUCCEEDED');
-  assert.equal(calls[1][1].trustedReceiptId, 'trusted-receipt-1');
+  assert.deepEqual(calls.map(([name]) => name), [
+    'transaction-begin',
+    'recordReceipt',
+    'transitionExecution',
+    'transaction-commit'
+  ]);
+  assert.equal(calls[2][1].state, 'SUCCEEDED');
+  assert.equal(calls[2][1].trustedReceiptId, 'trusted-receipt-1');
   assert.equal(result.state, 'SUCCEEDED');
   assert.equal(Object.isFrozen(result), true);
 });
@@ -79,6 +90,7 @@ test('receipt persistence failure prevents a terminal transition', () => {
     () => reconcileExternalOutcome({
       observation: provenSuccess(),
       authorityTimestamp: '2026-08-03T02:45:01.000Z',
+      transaction(callback) { return callback(); },
       recordReceipt() {
         throw Object.assign(new Error('storage failed'), { code: 'STORAGE_FAILED' });
       },
