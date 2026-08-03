@@ -9,6 +9,8 @@ const crypto = require('crypto');
 const { DatabaseSync } = require('node:sqlite');
 const legacy = require('./r32SqliteStoreEngineLegacy');
 const { createCompactSnapshotTarget } = require('../migrations/migrationSnapshotManifest');
+const { applyArchitectureClosureV2WpA } = require('../migrations/architectureClosureV2WpA');
+const { ensureCanonicalProjectionReceiptSchema } = require('../migrations/projectionReceiptSchemaAuthority');
 const {
   acquireAuthorityWriteHost,
   requireAuthorityWriteHostCapability
@@ -272,6 +274,11 @@ R32SqliteStore.prototype.preflightSchemaVersion = function preflightSchemaVersio
 };
 R32SqliteStore.prototype.prepareSchemaMigrationBackup = function prepareSchemaMigrationBackupMethod(preflight) {
   return prepareSchemaMigrationBackup(this, preflight);
+};
+R32SqliteStore.prototype.ensureSchema = function ensureSchema() {
+  LEGACY_ENGINE_PROTOTYPE.ensureSchema.call(this);
+  applyArchitectureClosureV2WpA(this.db);
+  ensureCanonicalProjectionReceiptSchema(this.db);
 };
 R32SqliteStore.prototype.governSchemaVersion = function governSchemaVersionMethod(preflight) {
   return governSchemaVersion(this, preflight);
