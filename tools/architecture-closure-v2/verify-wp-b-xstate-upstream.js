@@ -1,163 +1,101 @@
 #!/usr/bin/env node
 'use strict';
 
-const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createRequire } = require('node:module');
-const { spawnSync } = require('node:child_process');
 const packageVerifier = require('./verify-wp-b-xstate-package');
 const SUPPLY_CHAIN_LOCK = require('../../governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json');
 
-const UPSTREAM_TEST_SELECTION = Object.freeze([
-  'PACKAGE_EXPORTS_PRESENT',
-  'INITIAL_SNAPSHOT',
-  'UNHANDLED_EVENT_STABILITY',
-  'ACTOR_TRANSITION_SEQUENCE',
-  'FINAL_STATE_STATUS'
-]);
+const UPSTREAM_TEST_SELECTION = Object.freeze(['XSTATE_PNPM_TEST_CORE']);
+const UPSTREAM_TEST_COMMAND = 'corepack pnpm test:core';
+const UPSTREAM_INSTALL_TIMEOUT_MS = 8 * 60 * 1000;
+const UPSTREAM_TEST_TIMEOUT_MS = 8 * 60 * 1000;
 
-function npmCommand() {
-  return process.platform === 'win32' ? 'npm.cmd' : 'npm';
-}
-
-function run(command, args, options = {}) {
-  const result = spawnSync(command, args, {
-    cwd: options.cwd,
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      npm_config_fund: 'false',
-      npm_config_audit: 'false',
-      npm_config_update_notifier: 'false'
-    },
-    maxBuffer: 32 * 1024 * 1024,
-    shell: process.platform === 'win32'
-  });
-  if (result.error) throw result.error;
-  if (result.status !== 0) {
-    const error = new Error(`${command} ${args.join(' ')} exited with ${result.status}`);
-    error.code = 'WP_B_XSTATE_CONFORMANCE_COMMAND_FAILED';
-    error.stdout = result.stdout;
-    error.stderr = result.stderr;
-    throw error;
-  }
-  return Object.freeze({
-    status: result.status,
-    stdout: String(result.stdout || ''),
-    stderr: String(result.stderr || '')
-  });
+function corepackCommand() {
+  return process.platform === 'win32' ? 'corepack.cmd' : 'corepack';
 }
 
 function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
 }
 
-function machineDefinition(createMachine) {
-  return createMachine({
-    id: 'yance-wp-b-xstate-conformance',
-    initial: 'idle',
-    states: {
-      idle: { on: { START: 'running' } },
-      running: { on: { SUCCEED: 'done' } },
-      done: { type: 'final' }
-    }
+function readUpstreamManifest(checkoutRoot) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(checkoutRoot, 'package.json'), 'utf8'));
+  } catch (_) {
+    const error = new Error('The exact XState upstream checkout has no valid root package.json');
+    error.code = 'WP_B_XSTATE_UPSTREAM_MANIFEST_INVALID';
+    throw error;
+  }
+}
+
+function runUpstreamCoreTests(options = {}) {
+  const checkoutRoot = path.resolve(options.checkoutRoot || '');
+  const commitSha = String(options.commitSha || '').toLowerCase();
+  const runCommand = options.runCommand || packageVerifier.runGovernedCommand;
+  const expectedCommit = String(SUPPLY_CHAIN_LOCK.artifact.upstreamCommit || '').toLowerCase();
+  if (!checkoutRoot || !fs.existsSync(checkoutRoot)) {
+    const error = new Error('The exact XState upstream checkout is required');
+    error.code = 'WP_B_XSTATE_UPSTREAM_CHECKOUT_MISSING';
+    throw error;
+  }
+  if (commitSha !== expectedCommit) {
+    const error = new Error('The checked-out XState commit does not match the supply-chain authority');
+    error.code = 'WP_B_XSTATE_UPSTREAM_COMMIT_MISMATCH';
+    error.expectedCommit = expectedCommit;
+    error.actualCommit = commitSha;
+    throw error;
+  }
+
+  const manifest = readUpstreamManifest(checkoutRoot);
+  if (manifest?.scripts?.['test:core'] !== 'vitest run --project xstate') {
+    const error = new Error('The exact XState source does not expose the reviewed test:core command');
+    error.code = 'WP_B_XSTATE_UPSTREAM_CORE_SCRIPT_INVALID';
+    throw error;
+  }
+  if (!/^pnpm@9\.15\.9(?:\+|$)/u.test(String(manifest.packageManager || ''))) {
+    const error = new Error('The exact XState source does not bind the reviewed pnpm 9.15.9 toolchain');
+    error.code = 'WP_B_XSTATE_UPSTREAM_PACKAGE_MANAGER_INVALID';
+    throw error;
+  }
+
+  const install = runCommand(corepackCommand(), ['pnpm', 'install', '--frozen-lockfile'], {
+    cwd: checkoutRoot,
+    commandKind: 'XSTATE_PNPM_INSTALL',
+    timeoutMs: UPSTREAM_INSTALL_TIMEOUT_MS
   });
-}
+  const coreTest = runCommand(corepackCommand(), ['pnpm', 'test:core'], {
+    cwd: checkoutRoot,
+    commandKind: 'XSTATE_PNPM_TEST_CORE',
+    timeoutMs: UPSTREAM_TEST_TIMEOUT_MS
+  });
+  const testLogSha256 = sha256(JSON.stringify({
+    upstreamCommit: commitSha,
+    command: UPSTREAM_TEST_COMMAND,
+    stdout: coreTest.stdout,
+    stderr: coreTest.stderr
+  }));
 
-function executeCase(results, name, assertion) {
-  try {
-    assertion();
-    results.push(Object.freeze({ name, status: 'PASS', message: '' }));
-  } catch (error) {
-    results.push(Object.freeze({
-      name,
-      status: 'FAIL',
-      message: String(error && error.message ? error.message : error)
-    }));
-  }
-}
-
-function runUpstreamConformance() {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp-b-xstate-conformance-'));
-  try {
-    fs.writeFileSync(path.join(tempRoot, 'package.json'), `${JSON.stringify({
-      name: 'yance-wp-b-xstate-conformance',
-      version: '1.0.0',
-      private: true
-    }, null, 2)}\n`);
-    run(npmCommand(), [
-      'install',
-      '--ignore-scripts',
-      '--save-exact',
-      '--no-fund',
-      '--no-audit',
-      packageVerifier.PACKAGE_SPEC
-    ], { cwd: tempRoot });
-
-    const requireFromSandbox = createRequire(path.join(tempRoot, 'package.json'));
-    const xstate = requireFromSandbox('xstate');
-    const results = [];
-
-    executeCase(results, 'PACKAGE_EXPORTS_PRESENT', () => {
-      assert.equal(typeof xstate.createMachine, 'function');
-      assert.equal(typeof xstate.createActor, 'function');
-    });
-    executeCase(results, 'INITIAL_SNAPSHOT', () => {
-      const actor = xstate.createActor(machineDefinition(xstate.createMachine));
-      actor.start();
-      const snapshot = actor.getSnapshot();
-      assert.equal(snapshot.value, 'idle');
-      assert.equal(snapshot.status, 'active');
-      actor.stop();
-    });
-    executeCase(results, 'UNHANDLED_EVENT_STABILITY', () => {
-      const actor = xstate.createActor(machineDefinition(xstate.createMachine));
-      actor.start();
-      actor.send({ type: 'UNKNOWN' });
-      const snapshot = actor.getSnapshot();
-      assert.equal(snapshot.value, 'idle');
-      assert.equal(snapshot.status, 'active');
-      actor.stop();
-    });
-    executeCase(results, 'ACTOR_TRANSITION_SEQUENCE', () => {
-      const actor = xstate.createActor(machineDefinition(xstate.createMachine));
-      actor.start();
-      actor.send({ type: 'START' });
-      assert.equal(actor.getSnapshot().value, 'running');
-      actor.send({ type: 'SUCCEED' });
-      assert.equal(actor.getSnapshot().value, 'done');
-      actor.stop();
-    });
-    executeCase(results, 'FINAL_STATE_STATUS', () => {
-      const actor = xstate.createActor(machineDefinition(xstate.createMachine));
-      actor.start();
-      actor.send({ type: 'START' });
-      actor.send({ type: 'SUCCEED' });
-      const snapshot = actor.getSnapshot();
-      assert.equal(snapshot.value, 'done');
-      assert.equal(snapshot.status, 'done');
-      actor.stop();
-    });
-
-    const passCount = results.filter(result => result.status === 'PASS').length;
-    const failCount = results.filter(result => result.status === 'FAIL').length;
-    const skipCount = 0;
-    return Object.freeze({
-      upstreamTestSelection: [...UPSTREAM_TEST_SELECTION],
-      upstreamTestCommand: 'node tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js',
-      runtimeVersion: 'node@22',
-      passCount,
-      failCount,
-      skipCount,
-      testLogSha256: sha256(JSON.stringify(results)),
-      results
-    });
-  } finally {
-    fs.rmSync(tempRoot, { recursive: true, force: true });
-  }
+  return Object.freeze({
+    upstreamTestSelection: [...UPSTREAM_TEST_SELECTION],
+    upstreamTestCommand: UPSTREAM_TEST_COMMAND,
+    runtimeVersion: 'node@22',
+    packageManager: manifest.packageManager,
+    upstreamCommit: commitSha,
+    installLogSha256: sha256(JSON.stringify({ stdout: install.stdout, stderr: install.stderr })),
+    passCount: 1,
+    failCount: 0,
+    skipCount: 0,
+    testLogSha256,
+    results: [Object.freeze({
+      name: 'XSTATE_PNPM_TEST_CORE',
+      status: 'PASS',
+      command: UPSTREAM_TEST_COMMAND,
+      testLogSha256
+    })]
+  });
 }
 
 function validatePhysicalArtifactAuthority(packageReport) {
@@ -197,46 +135,61 @@ function validatePhysicalArtifactAuthority(packageReport) {
 }
 
 async function verify() {
-  const packageReport = await packageVerifier.verify();
-  const violations = [...packageReport.violations];
-  const authorityReasons = validatePhysicalArtifactAuthority(packageReport);
-  if (authorityReasons.length !== 0) {
-    violations.push({
-      code: 'WP_B_XSTATE_PHYSICAL_ARTIFACT_AUTHORITY_MISMATCH',
-      reasons: authorityReasons
-    });
-  }
-
-  let upstreamTests = null;
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp-b-xstate-upstream-'));
   try {
-    upstreamTests = runUpstreamConformance();
-    if (upstreamTests.failCount !== 0 || upstreamTests.skipCount !== 0
-        || upstreamTests.passCount !== UPSTREAM_TEST_SELECTION.length) {
+    const upstreamCheckout = packageVerifier.checkoutExactUpstreamTag({
+      checkoutRoot: path.join(tempRoot, 'xstate')
+    });
+    const packageReport = await packageVerifier.verify({ upstreamCheckout });
+    const violations = [...packageReport.violations];
+    const authorityReasons = validatePhysicalArtifactAuthority(packageReport);
+    if (authorityReasons.length !== 0) {
       violations.push({
-        code: 'WP_B_XSTATE_UPSTREAM_CONFORMANCE_FAILED',
-        passCount: upstreamTests.passCount,
-        failCount: upstreamTests.failCount,
-        skipCount: upstreamTests.skipCount,
-        results: upstreamTests.results
+        code: 'WP_B_XSTATE_PHYSICAL_ARTIFACT_AUTHORITY_MISMATCH',
+        reasons: authorityReasons
       });
     }
-  } catch (error) {
-    violations.push({
-      code: error.code || 'WP_B_XSTATE_UPSTREAM_CONFORMANCE_FAILED',
-      message: error.message,
-      stdout: error.stdout || '',
-      stderr: error.stderr || ''
-    });
-  }
 
-  return Object.freeze({
-    ...packageReport,
-    schemaVersion: 4,
-    ok: violations.length === 0,
-    supplyChainAuthorityPath: 'governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json',
-    upstreamTests,
-    violations
-  });
+    let upstreamTests = null;
+    try {
+      upstreamTests = runUpstreamCoreTests({
+        checkoutRoot: upstreamCheckout.root,
+        commitSha: upstreamCheckout.commitSha
+      });
+      if (upstreamTests.failCount !== 0 || upstreamTests.skipCount !== 0
+          || upstreamTests.passCount !== UPSTREAM_TEST_SELECTION.length) {
+        violations.push({
+          code: 'WP_B_XSTATE_UPSTREAM_CORE_TEST_FAILED',
+          passCount: upstreamTests.passCount,
+          failCount: upstreamTests.failCount,
+          skipCount: upstreamTests.skipCount,
+          results: upstreamTests.results
+        });
+      }
+    } catch (error) {
+      violations.push({
+        code: error.code || 'WP_B_XSTATE_UPSTREAM_CORE_TEST_FAILED',
+        message: error.message,
+        commandKind: error.commandKind || '',
+        timeoutMs: error.timeoutMs || 0,
+        status: error.status === undefined ? null : error.status,
+        signal: error.signal || null,
+        stdout: error.stdout || '',
+        stderr: error.stderr || ''
+      });
+    }
+
+    return Object.freeze({
+      ...packageReport,
+      schemaVersion: 5,
+      ok: violations.length === 0,
+      supplyChainAuthorityPath: 'governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json',
+      upstreamTests,
+      violations
+    });
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
 }
 
 async function main() {
@@ -256,6 +209,10 @@ async function main() {
       ok: false,
       code: error.code || 'WP_B_XSTATE_UPSTREAM_VERIFICATION_FAILED',
       message: error.message,
+      commandKind: error.commandKind || '',
+      timeoutMs: error.timeoutMs || 0,
+      status: error.status === undefined ? null : error.status,
+      signal: error.signal || null,
       stdout: error.stdout || '',
       stderr: error.stderr || ''
     }, null, 2)}\n`);
@@ -268,8 +225,12 @@ if (require.main === module) main();
 module.exports = {
   ...packageVerifier,
   SUPPLY_CHAIN_LOCK,
+  UPSTREAM_INSTALL_TIMEOUT_MS,
+  UPSTREAM_TEST_COMMAND,
   UPSTREAM_TEST_SELECTION,
-  runUpstreamConformance,
+  UPSTREAM_TEST_TIMEOUT_MS,
+  runUpstreamConformance: runUpstreamCoreTests,
+  runUpstreamCoreTests,
   validatePhysicalArtifactAuthority,
   verify
 };
