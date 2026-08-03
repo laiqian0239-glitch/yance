@@ -228,7 +228,7 @@ jobs:
   milestone-one-contracts:
     name: wp-b-m1-contracts-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -255,11 +255,21 @@ jobs:
         shell: bash
         run: test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
 
+      - name: Install exact locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
       - name: Run complete Milestone 1 contracts
         run: node tools/architecture-closure-v2/capture-wp-b-red-evidence.js
 
       - name: Run real Schema 23 SQLite integration contracts
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/schema23SqliteIntegration.test.js backend/tests/architectureClosureV2/wpB/schema23StartupRegistration.test.js
+
+      - name: Confirm clean tracked workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain=v1 --untracked-files=no)"
 
   gate:
     name: wp-b-validation-gate
