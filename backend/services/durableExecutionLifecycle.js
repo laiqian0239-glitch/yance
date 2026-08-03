@@ -1,6 +1,6 @@
 'use strict';
 
-const { deepFreeze } = require('./immutableSnapshot');
+const { deepFreeze } = require('../lib/deepFreeze');
 
 const STATES = deepFreeze({
   CREATED: 'CREATED',
