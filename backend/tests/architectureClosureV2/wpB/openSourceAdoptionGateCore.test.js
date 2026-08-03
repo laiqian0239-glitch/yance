@@ -95,7 +95,7 @@ test('XState and Temporal adoption boundaries remain explicit before Adapter aut
   assert.equal(xstate.adoptionMode, 'DIRECT_DEPENDENCY');
   assert.equal(xstate.productionUseAuthorized, false);
   assert.equal(xstate.gateSteps.INTRODUCE_ORIGINAL_MODULE, 'COMPLETE');
-  assert.equal(xstate.gateSteps.UPSTREAM_TESTS_PASS, 'IN_PROGRESS');
+  assert.equal(xstate.gateSteps.UPSTREAM_TESTS_PASS, 'COMPLETE');
   assert.equal(xstate.gateSteps.YANCE_ADAPTER_BOUNDARY, 'NOT_STARTED');
   assert.deepEqual(findXStateImports(REPO_ROOT), []);
   assert.equal(temporal.adoptionMode, 'REFERENCE_ONLY');
