@@ -10,8 +10,10 @@ on:
       - backend/tests/architectureClosureV2/wpB/m2Authorization.test.js
       - governance/architecture-closure-v2/wp-b-m1-review.json
       - governance/architecture-closure-v2/wp-b-m2-authorization.json
+      - governance/architecture-closure-v2/wp-b-m2-red-evidence.json
       - shared/release/acv2ActiveWorkPackageAuthority.js
       - shared/release/acv2ActiveWorkPackageAuthorityEngine.js
+      - tools/architecture-closure-v2/capture-wp-b-m2-red-evidence.js
       - tools/architecture-closure-v2/verify-wp-b-m1-review.js
       - tools/architecture-closure-v2/verify-wp-b-m2-authorization.js
       - tests/wp0/acv2-work-package-scope-wiring.test.js
@@ -25,8 +27,10 @@ on:
       - backend/tests/architectureClosureV2/wpB/m2Authorization.test.js
       - governance/architecture-closure-v2/wp-b-m1-review.json
       - governance/architecture-closure-v2/wp-b-m2-authorization.json
+      - governance/architecture-closure-v2/wp-b-m2-red-evidence.json
       - shared/release/acv2ActiveWorkPackageAuthority.js
       - shared/release/acv2ActiveWorkPackageAuthorityEngine.js
+      - tools/architecture-closure-v2/capture-wp-b-m2-red-evidence.js
       - tools/architecture-closure-v2/verify-wp-b-m1-review.js
       - tools/architecture-closure-v2/verify-wp-b-m2-authorization.js
       - tests/wp0/acv2-work-package-scope-wiring.test.js
@@ -34,6 +38,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
 
 env:
@@ -84,6 +89,7 @@ jobs:
         run: |
           node --check tools/architecture-closure-v2/verify-wp-b-m1-review.js
           node --check tools/architecture-closure-v2/verify-wp-b-m2-authorization.js
+          node --check tools/architecture-closure-v2/capture-wp-b-m2-red-evidence.js
           node --check backend/tests/architectureClosureV2/wpB/m1SealContinuation.test.js
           node --check backend/tests/architectureClosureV2/wpB/m2Authorization.test.js
           node --check shared/release/acv2ActiveWorkPackageAuthority.js
@@ -104,10 +110,15 @@ jobs:
             tests/wp0/acv2-work-package-scope-wiring.test.js \
             tests/wp0/implementation-branch-policy.test.js
 
-      - name: Verify standalone M2 authorization when implementation exists
-        if: ${{ hashFiles('tools/architecture-closure-v2/verify-wp-b-m2-authorization.js') != '' }}
+      - name: Verify standalone M2 authorization
         shell: bash
         run: node tools/architecture-closure-v2/verify-wp-b-m2-authorization.js
+
+      - name: Verify immutable M2 RED evidence locally and remotely
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/architecture-closure-v2/capture-wp-b-m2-red-evidence.js --remote
 
       - name: Confirm clean validation workspace
         shell: bash
