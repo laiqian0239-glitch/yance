@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 'use strict';
 
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const core = require('./verify-wp-b-open-source-adoption-core');
 
+const EVIDENCE_PATH = 'governance/architecture-closure-v2/wp-b-open-source-adoption-evidence-xstate-5.32.5.json';
 const EXPECTED_UPSTREAM_TEST_SELECTION = Object.freeze([
   'PACKAGE_EXPORTS_PRESENT',
   'INITIAL_SNAPSHOT',
@@ -21,12 +23,22 @@ function readJson(root, relativePath) {
   return JSON.parse(fs.readFileSync(path.join(root, relativePath), 'utf8'));
 }
 
+function sha256(value) {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function gitBlobSha(value) {
+  const buffer = Buffer.isBuffer(value) ? value : Buffer.from(value);
+  return crypto.createHash('sha1').update(Buffer.concat([
+    Buffer.from(`blob ${buffer.length}\0`),
+    buffer
+  ])).digest('hex');
+}
+
 function validateUpstreamTestEvidence(candidate) {
   const evidence = candidate && candidate.upstreamTestEvidence;
   const reasons = [];
-  if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) {
-    return ['EVIDENCE_MISSING'];
-  }
+  if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) return ['EVIDENCE_MISSING'];
 
   if (JSON.stringify(evidence.upstreamTestSelection || []) !== JSON.stringify(EXPECTED_UPSTREAM_TEST_SELECTION)) {
     reasons.push('SELECTION_INVALID');
@@ -58,8 +70,72 @@ function validateUpstreamTestEvidence(candidate) {
       reasons.push(`${platformName.toUpperCase()}_LOG_DIGEST_INVALID`);
     }
   }
-
   return reasons;
+}
+
+function compareArtifactBindings({ repositoryRoot, registry, evidence }) {
+  const violations = [];
+  const authority = core.SUPPLY_CHAIN_LOCK;
+  const artifact = authority.artifact;
+  const xstate = (registry.candidates || []).find(candidate => candidate.project === 'XState');
+  const packageJson = readJson(repositoryRoot, 'package.json');
+  const packageLock = readJson(repositoryRoot, 'package-lock.json');
+  const lockEntry = packageLock?.packages?.['node_modules/xstate'];
+  const lockBytes = fs.readFileSync(path.join(repositoryRoot, 'package-lock.json'));
+
+  const expectedLockEntry = {
+    version: artifact.version,
+    resolved: artifact.resolved,
+    integrity: artifact.integrity,
+    license: artifact.license
+  };
+  if (packageJson?.dependencies?.xstate !== artifact.version
+      || packageLock?.packages?.['']?.dependencies?.xstate !== artifact.version
+      || JSON.stringify(lockEntry) !== JSON.stringify(expectedLockEntry)) {
+    violations.push({ code: 'WP_B_XSTATE_PHYSICAL_LOCK_MISMATCH', actual: lockEntry || null, expected: expectedLockEntry });
+  }
+  if (gitBlobSha(lockBytes) !== authority.repositoryBinding.expectedPackageLockBlobSha
+      || sha256(lockBytes) !== authority.repositoryBinding.expectedPackageLockSha256) {
+    violations.push({
+      code: 'WP_B_XSTATE_PACKAGE_LOCK_DIGEST_MISMATCH',
+      actualBlobSha: gitBlobSha(lockBytes),
+      expectedBlobSha: authority.repositoryBinding.expectedPackageLockBlobSha,
+      actualSha256: sha256(lockBytes),
+      expectedSha256: authority.repositoryBinding.expectedPackageLockSha256
+    });
+  }
+
+  const registryFacts = xstate && xstate.verifiedPackageEvidence;
+  if (!registryFacts
+      || registryFacts.distIntegrity !== artifact.integrity
+      || registryFacts.distShasum !== artifact.shasum
+      || registryFacts.upstreamCommit !== artifact.upstreamCommit
+      || registryFacts.licenseTextSha256 !== artifact.licenseTextSha256
+      || Number(xstate.runtimeDependencyCount) !== Number(artifact.runtimeDependencyCount)) {
+    violations.push({ code: 'WP_B_XSTATE_REGISTRY_SUPPLY_CHAIN_MISMATCH' });
+  }
+
+  if (evidence?.exactVersionAndLicenseReview?.exactVersion !== artifact.version
+      || evidence?.exactVersionAndLicenseReview?.license !== artifact.license
+      || evidence?.exactVersionAndLicenseReview?.upstreamCommit !== artifact.upstreamCommit
+      || evidence?.exactVersionAndLicenseReview?.licenseTextSha256 !== artifact.licenseTextSha256
+      || Number(evidence?.dependencyAndSecurityScan?.runtimeDependencyCount) !== Number(artifact.runtimeDependencyCount)
+      || Number(evidence?.dependencyAndSecurityScan?.packageFileCount) !== Number(artifact.packageFileCount)
+      || evidence?.dependencyAndSecurityScan?.distIntegrity !== artifact.integrity
+      || evidence?.dependencyAndSecurityScan?.distShasum !== artifact.shasum
+      || Number(evidence?.dependencyAndSecurityScan?.npmAudit?.total) !== Number(artifact.npmAudit.total)) {
+    violations.push({ code: 'WP_B_XSTATE_EVIDENCE_SUPPLY_CHAIN_MISMATCH' });
+  }
+
+  if (authority.status !== 'LOCKED') {
+    violations.push({ code: 'WP_B_XSTATE_SUPPLY_CHAIN_NOT_LOCKED', status: authority.status });
+  }
+  if (authority.governance.temporaryBypassAllowed !== false
+      || authority.governance.productionUseAuthorized !== false
+      || authority.governance.adapterIntroductionAuthorized !== false) {
+    violations.push({ code: 'WP_B_XSTATE_SUPPLY_CHAIN_GOVERNANCE_INVALID' });
+  }
+  return violations;
 }
 
 function verifyRegistry(options) {
@@ -68,14 +144,8 @@ function verifyRegistry(options) {
   const xstate = base.candidates && base.candidates.xstate;
   if (xstate && xstate.gateSteps && xstate.gateSteps.UPSTREAM_TESTS_PASS === 'COMPLETE') {
     const reasons = validateUpstreamTestEvidence(xstate);
-    if (reasons.length !== 0) {
-      violations.push({
-        code: 'WP_B_XSTATE_UPSTREAM_TEST_EVIDENCE_INVALID',
-        reasons
-      });
-    }
+    if (reasons.length !== 0) violations.push({ code: 'WP_B_XSTATE_UPSTREAM_TEST_EVIDENCE_INVALID', reasons });
   }
-
   return Object.freeze({
     ...base,
     ok: violations.length === 0,
@@ -85,12 +155,29 @@ function verifyRegistry(options) {
 }
 
 function verifyFiles(repositoryRoot = path.resolve(__dirname, '..', '..')) {
-  return verifyRegistry({
+  const registry = readJson(repositoryRoot, core.REGISTRY_PATH);
+  const report = verifyRegistry({
     gate: readJson(repositoryRoot, core.GATE_PATH),
-    registry: readJson(repositoryRoot, core.REGISTRY_PATH),
+    registry,
     baseline: readJson(repositoryRoot, core.BASELINE_PATH),
     authorization: readJson(repositoryRoot, core.AUTHORIZATION_PATH),
     repositoryRoot
+  });
+  const violations = [
+    ...report.violations,
+    ...compareArtifactBindings({
+      repositoryRoot,
+      registry,
+      evidence: readJson(repositoryRoot, EVIDENCE_PATH)
+    })
+  ];
+  return Object.freeze({
+    ...report,
+    schemaVersion: 4,
+    ok: violations.length === 0,
+    productionUseAuthorized: report.productionUseAuthorized && violations.length === 0,
+    supplyChainAuthorityPath: core.SUPPLY_CHAIN_LOCK_PATH,
+    violations
   });
 }
 
@@ -113,9 +200,11 @@ if (require.main === module) {
 
 module.exports = {
   ...core,
+  EVIDENCE_PATH,
   EXPECTED_RUNTIME_VERSION,
   EXPECTED_UPSTREAM_TEST_COMMAND,
   EXPECTED_UPSTREAM_TEST_SELECTION,
+  compareArtifactBindings,
   validateUpstreamTestEvidence,
   verifyFiles,
   verifyRegistry
