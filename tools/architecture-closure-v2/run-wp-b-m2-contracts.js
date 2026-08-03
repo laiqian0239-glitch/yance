@@ -11,7 +11,9 @@ const TEST_FILES = Object.freeze([
   'backend/tests/architectureClosureV2/wpB/m2MandatoryOperationsRed.test.js',
   'backend/tests/architectureClosureV2/wpB/m2RecoveryRed.test.js',
   'backend/tests/architectureClosureV2/wpB/m2ProcessFaultRed.test.js',
-  'backend/tests/architectureClosureV2/wpB/m2LeakBoundaryRed.test.js'
+  'backend/tests/architectureClosureV2/wpB/m2LeakBoundaryRed.test.js',
+  'backend/tests/architectureClosureV2/wpB/mandatoryOperationAdapters.test.js',
+  'backend/tests/architectureClosureV2/wpB/aiProviderDurableMigration.test.js'
 ]);
 const INFRASTRUCTURE_FAILURE_PATTERNS = Object.freeze([
   /MODULE_NOT_FOUND/u,
