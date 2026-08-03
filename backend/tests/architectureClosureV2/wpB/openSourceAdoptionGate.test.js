@@ -2,6 +2,7 @@
 
 require('./openSourceAdoptionGateCore.test');
 require('./xstateUpstreamEvidenceGate.test');
+require('./xstateUpstreamCoreEvidenceContract.test');
 require('./xstateSupplyChainBinding.test');
 require('./xstateAdapterRedEvidence.test');
 require('./xstateAdapterGreenEvidence.test');
