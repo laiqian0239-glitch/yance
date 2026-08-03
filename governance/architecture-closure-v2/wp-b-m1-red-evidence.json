@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_B_M1_RED_EVIDENCE",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-B",
+  "milestone": "M1_DURABLE_EXECUTION_EXTERNAL_ACTION_OUTBOX",
+  "status": "RECORDED_VALID_CAPABILITY_RED",
+  "sourceCommit": "da773d5b29c1f54c6c14f6024c38b53ab7ca10bb",
+  "recordedAt": "2026-08-03T02:33:54.590Z",
+  "workflow": {
+    "workflowId": 325869061,
+    "workflowName": "WP-B Validation",
+    "workflowRunId": 30779566915,
+    "workflowConclusion": "failure",
+    "expectedFailureReason": "MILESTONE_ONE_CONTRACTS_RECORDED_RED",
+    "governanceJobsPassed": true,
+    "xstateUpstreamGateJobsPassed": true
+  },
+  "contractSet": {
+    "schemaVersion": 2,
+    "documentType": "YANCE_ACV2_WP_B_M1_CONTRACT_EXECUTION",
+    "productionImplementationExpectedAbsent": true,
+    "testPaths": [
+      "backend/tests/architectureClosureV2/wpB/lifecycleContract.test.js",
+      "backend/tests/architectureClosureV2/wpB/deepFreezeAndTimestamp.test.js",
+      "backend/tests/architectureClosureV2/wpB/schema23Migration.test.js",
+      "backend/tests/architectureClosureV2/wpB/durableExecutionCas.test.js",
+      "backend/tests/architectureClosureV2/wpB/externalActionOutbox.test.js",
+      "backend/tests/architectureClosureV2/wpB/transactionIoBoundary.test.js",
+      "backend/tests/architectureClosureV2/wpB/uncertainOutcomeReconciliation.test.js"
+    ]
+  },
+  "platforms": {
+    "ubuntu-latest": {
+      "jobId": 91581416455,
+      "status": "VALID_CAPABILITY_RED",
+      "counts": {
+        "green": 0,
+        "validCapabilityRed": 7,
+        "invalidRedInfrastructure": 0
+      },
+      "contracts": [
+        {
+          "id": "LIFECYCLE",
+          "testPath": "backend/tests/architectureClosureV2/wpB/lifecycleContract.test.js",
+          "matchedIndicators": ["durableExecutionLifecycle"],
+          "outputSha256": "a4020d1df3ab384e3bc432866c5c5f0cd1fea122812f009b37a50be3158301c8"
+        },
+        {
+          "id": "DEEP_FREEZE_AND_AUTHORITY_TIME",
+          "testPath": "backend/tests/architectureClosureV2/wpB/deepFreezeAndTimestamp.test.js",
+          "matchedIndicators": ["/lib/deepFreeze", "authorityTimestamp"],
+          "outputSha256": "4f064904eaaed8fa96b3ef6c4dae59d491a56c0591bc7ee82e6c9e7cb4398339"
+        },
+        {
+          "id": "SCHEMA_23",
+          "testPath": "backend/tests/architectureClosureV2/wpB/schema23Migration.test.js",
+          "matchedIndicators": ["architectureClosureV2WpB"],
+          "outputSha256": "891de6289531f382cebc53f401b1f77d2240404e5ca5acae06e2afa3fa6bb6f1"
+        },
+        {
+          "id": "DURABLE_EXECUTION_CAS",
+          "testPath": "backend/tests/architectureClosureV2/wpB/durableExecutionCas.test.js",
+          "matchedIndicators": ["durableExecutionAuthority"],
+          "outputSha256": "36178248e275f41fa940f8c4aa9712009a726ee1a6f982abd972d11803b6f5a8"
+        },
+        {
+          "id": "EXTERNAL_ACTION_OUTBOX",
+          "testPath": "backend/tests/architectureClosureV2/wpB/externalActionOutbox.test.js",
+          "matchedIndicators": ["externalActionOutboxAuthority", "externalActionDispatcher"],
+          "outputSha256": "d0fd4b85c8c5bff05aa1f31fb0a458982b4f134df4e63f6e72708e8e1e8e7013"
+        },
+        {
+          "id": "TRANSACTION_IO_BOUNDARY",
+          "testPath": "backend/tests/architectureClosureV2/wpB/transactionIoBoundary.test.js",
+          "matchedIndicators": ["WP_B_CREATE_TRANSACTION_IO_GUARD_MISSING"],
+          "outputSha256": "4697bd928d5e93e4166ccb19d737e046a1078f85d5cb1319e6d8b59cc1072cc6"
+        },
+        {
+          "id": "UNCERTAIN_OUTCOME_RECONCILIATION",
+          "testPath": "backend/tests/architectureClosureV2/wpB/uncertainOutcomeReconciliation.test.js",
+          "matchedIndicators": ["externalOutcomeReconciliation"],
+          "outputSha256": "5b23057c74f6432f26c9640948547b1f6517473e551b957b6bd4a4af0b936385"
+        }
+      ]
+    },
+    "windows-latest": {
+      "jobId": 91581416474,
+      "status": "VALID_CAPABILITY_RED",
+      "counts": {
+        "green": 0,
+        "validCapabilityRed": 7,
+        "invalidRedInfrastructure": 0
+      },
+      "contracts": [
+        {
+          "id": "LIFECYCLE",
+          "testPath": "backend/tests/architectureClosureV2/wpB/lifecycleContract.test.js",
+          "matchedIndicators": ["durableExecutionLifecycle"],
+          "outputSha256": "ffec44b5f367709241450f7f210b074497b45f3044b88040692b3cd906208393"
+        },
+        {
+          "id": "DEEP_FREEZE_AND_AUTHORITY_TIME",
+          "testPath": "backend/tests/architectureClosureV2/wpB/deepFreezeAndTimestamp.test.js",
+          "matchedIndicators": ["/lib/deepFreeze", "authorityTimestamp"],
+          "outputSha256": "38748033bf7eb7e6bff8b00078b2c4cbb343e8f2fd707b40b1614eb6b13e8eec"
+        },
+        {
+          "id": "SCHEMA_23",
+          "testPath": "backend/tests/architectureClosureV2/wpB/schema23Migration.test.js",
+          "matchedIndicators": ["architectureClosureV2WpB"],
+          "outputSha256": "bb8f176d40f8c5c36ab950b8fcaf8d81db223c19eb1e6d4725b634c312995847"
+        },
+        {
+          "id": "DURABLE_EXECUTION_CAS",
+          "testPath": "backend/tests/architectureClosureV2/wpB/durableExecutionCas.test.js",
+          "matchedIndicators": ["durableExecutionAuthority"],
+          "outputSha256": "4482e6dc3b7adf536450f26bf3badb20dd9a45a5d400149d68fad93b1a8eba94"
+        },
+        {
+          "id": "EXTERNAL_ACTION_OUTBOX",
+          "testPath": "backend/tests/architectureClosureV2/wpB/externalActionOutbox.test.js",
+          "matchedIndicators": ["externalActionOutboxAuthority", "externalActionDispatcher"],
+          "outputSha256": "566d4df5a8c8ba348ab5136fc55d93bd889ffa89db4ebabdc4d68b2044f87330"
+        },
+        {
+          "id": "TRANSACTION_IO_BOUNDARY",
+          "testPath": "backend/tests/architectureClosureV2/wpB/transactionIoBoundary.test.js",
+          "matchedIndicators": ["WP_B_CREATE_TRANSACTION_IO_GUARD_MISSING"],
+          "outputSha256": "51e0c2618f77d6925be89e0b51066482aa1fe190efa5669d9ae22257383c173a"
+        },
+        {
+          "id": "UNCERTAIN_OUTCOME_RECONCILIATION",
+          "testPath": "backend/tests/architectureClosureV2/wpB/uncertainOutcomeReconciliation.test.js",
+          "matchedIndicators": ["externalOutcomeReconciliation"],
+          "outputSha256": "444c4b3b227be929a30e9b2289df7bbcde4a1ea37c8dafa1c3b6be8fd6bff896"
+        }
+      ]
+    }
+  },
+  "authorization": {
+    "redRecorded": true,
+    "productionImplementationAuthorizedAfterRecordedRed": true,
+    "schema23StartupRegistrationAuthorized": true,
+    "automaticMilestoneClosureAuthorized": false,
+    "independentReviewRequired": true
+  },
+  "governance": {
+    "wpBImplementationAuthorized": true,
+    "schema23AppliedToProductionStartup": false,
+    "thirdPartyProductionUseAuthorized": false,
+    "wpCAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false
+  }
+}
