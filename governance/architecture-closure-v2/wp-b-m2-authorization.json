@@ -85,6 +85,7 @@
     "backend/services/facebookRelayClient.js",
     "backend/services/jobQueue.js",
     "backend/services/mediaPipeline.js",
+    "backend/services/modelExecutionEvidenceStore.js",
     "backend/services/modelExecutionHost.js",
     "backend/services/modelExecutionWorker.js",
     "backend/services/ollamaClient.js",
@@ -103,11 +104,13 @@
     "backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js",
     "backend/tests/architectureClosureV2/wpB/aiProviderDurableMigration.test.js",
     "backend/tests/architectureClosureV2/wpB/deliveryReceiptDurableMigration.test.js",
+    "backend/tests/architectureClosureV2/wpB/deliveryReceiptReconciliationOperation.test.js",
     "backend/tests/architectureClosureV2/wpB/historySynchronizationDurableMigration.test.js",
     "backend/tests/architectureClosureV2/wpB/m1ReviewSeal.test.js",
     "backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js",
     "backend/tests/architectureClosureV2/wpB/m1SealContinuation.test.js",
     "backend/tests/architectureClosureV2/wpB/m2Authorization.test.js",
+    "backend/tests/architectureClosureV2/wpB/m2ContractEvidenceDiagnostics.test.js",
     "backend/tests/architectureClosureV2/wpB/m2IndependentReviewIntegrity.test.js",
     "backend/tests/architectureClosureV2/wpB/m2LeakBoundaryRed.test.js",
     "backend/tests/architectureClosureV2/wpB/m2MandatoryOperationsRed.test.js",
@@ -116,6 +119,7 @@
     "backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js",
     "backend/tests/architectureClosureV2/wpB/mandatoryOperationAdapters.test.js",
     "backend/tests/architectureClosureV2/wpB/mediaTransferDurableMigration.test.js",
+    "backend/tests/architectureClosureV2/wpB/modelExecutionEvidenceBoundary.test.js",
     "backend/tests/architectureClosureV2/wpB/outboundMessageDurableMigration.test.js",
     "backend/tests/architectureClosureV2/wpB/processFaultMatrixContract.test.js",
     "backend/tests/architectureClosureV2/wpB/recoveryFaultMatrix.test.js",
@@ -160,6 +164,21 @@
     "tools/architecture-closure-v2/wp-b-process-fault-matrix.js",
     "tools/wp0/lib.js",
     "tools/wp0/work-package-scope-gate.js"
+  ],
+  "authorizationAmendments": [
+    {
+      "amendmentId": "WP-B-M2-SCOPE-001",
+      "authorizedAt": "2026-08-04T03:21:00+07:00",
+      "approvedBy": "PROJECT_OWNER",
+      "approvalSource": "Project owner continuation instruction in the 独立软件工程审计 conversation",
+      "reasonCode": "WP_B_M2_EXACT_PATH_SCOPE_CLOSURE",
+      "addedPaths": [
+        "backend/services/modelExecutionEvidenceStore.js",
+        "backend/tests/architectureClosureV2/wpB/deliveryReceiptReconciliationOperation.test.js",
+        "backend/tests/architectureClosureV2/wpB/m2ContractEvidenceDiagnostics.test.js",
+        "backend/tests/architectureClosureV2/wpB/modelExecutionEvidenceBoundary.test.js"
+      ]
+    }
   ],
   "authorization": {
     "redContractsMayBeWritten": true,
