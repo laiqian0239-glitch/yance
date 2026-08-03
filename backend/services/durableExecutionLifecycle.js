@@ -1,6 +1,7 @@
 'use strict';
 
 const { deepFreeze } = require('../lib/deepFreeze');
+const { createLifecycleAdapter } = require('./xstateLifecycleAdapter');
 
 const STATES = deepFreeze({
   CREATED: 'CREATED',
@@ -97,6 +98,19 @@ const TRANSITIONS = deepFreeze({
 const STATE_VALUES = new Set(Object.values(STATES));
 const EVENT_VALUES = new Set(Object.values(EVENTS));
 const TERMINAL_STATE_VALUES = new Set(TERMINAL_STATES);
+const lifecycleAdapter = createLifecycleAdapter({
+  id: 'yanceDurableExecutionLifecycle',
+  initial: STATES.CREATED,
+  states: Object.fromEntries(
+    Object.values(STATES).map(state => [
+      state,
+      {
+        terminal: TERMINAL_STATE_VALUES.has(state),
+        on: TRANSITIONS[state]
+      }
+    ])
+  )
+});
 
 function lifecycleError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
@@ -139,7 +153,16 @@ function nextLifecycleState(state, event) {
       { state, event }
     );
   }
-  return targetState;
+
+  const adapterTarget = lifecycleAdapter.transition(state, event);
+  if (adapterTarget !== targetState) {
+    throw lifecycleError(
+      'WP_B_LIFECYCLE_ADAPTER_PARITY_VIOLATION',
+      'XState Adapter target differs from the Yance lifecycle authority',
+      { state, event, targetState, adapterTarget }
+    );
+  }
+  return adapterTarget;
 }
 
 function canTransition(state, event) {
