@@ -78,6 +78,7 @@ const EXPECTED_RED_FAILURE_IDS = Object.freeze([
   'M2-REC-006'
 ]);
 const CLOSED_GOVERNANCE_FIELDS = Object.freeze([
+  'readyForPromotion',
   'milestone3Authorized',
   'mergeAuthorized',
   'productionUseAuthorized',
@@ -222,9 +223,11 @@ test('active authority resolves Milestone 2 only from a valid exact authorizatio
   assert.equal(authority.parentMilestone1SealHead, EXPECTED_PARENT_SEAL_HEAD);
   assert.deepEqual(authority.operationKinds, EXPECTED_OPERATION_KINDS);
   assert.equal(authority.authorizedBranch, 'acv2/wp-b-durable-execution-outbox');
+  assert.equal(authority.governance.readyForPromotion, false);
   assert.equal(Object.isFrozen(authority), true);
   assert.equal(Object.isFrozen(authority.operationKinds), true);
   assert.equal(Object.isFrozen(authority.allowedProductionPaths), true);
+  assert.equal(Object.isFrozen(authority.governance), true);
 });
 
 test('credible Milestone 2 RED evidence is bound to one exact Head, workflow and two platform reports', () => {
