@@ -4,6 +4,7 @@ const core = require('./externalActionOutboxAuthorityCore');
 
 const WP_B_INTENT_IDEMPOTENCY_CONFLICT = 'WP_B_INTENT_IDEMPOTENCY_CONFLICT';
 const LATE_RESULT = core.RECEIPT_TYPES.LATE_RESULT;
+const contentHashVersion = core.HASH_VERSION;
 const externalActionOutboxAuthority = new core.ExternalActionOutboxAuthority();
 
 function intentContentSha256(input = {}) {
@@ -44,6 +45,12 @@ Object.defineProperties(module.exports, {
   },
   LATE_RESULT: {
     value: LATE_RESULT,
+    enumerable: true,
+    writable: false,
+    configurable: false
+  },
+  contentHashVersion: {
+    value: contentHashVersion,
     enumerable: true,
     writable: false,
     configurable: false
