@@ -109,11 +109,15 @@ test('executable transition CAS binds all stale-writer facts and returns an immu
 });
 
 test('unconditional execution update is forbidden', () => {
-  const text = source();
-  assert.doesNotMatch(
-    text,
-    /UPDATE\s+durable_executions[\s\S]*?WHERE\s+execution_id\s*=\s*\?\s*`/iu
-  );
+  const updates = source().match(/UPDATE\s+durable_executions[\s\S]*?`/giu) || [];
+  assert.ok(updates.length > 0, 'durable execution UPDATE missing');
+  for (const update of updates) {
+    assert.doesNotMatch(
+      update,
+      /WHERE\s+execution_id\s*=\s*\?\s*`$/iu,
+      `unconditional execution update found:\n${update}`
+    );
+  }
 });
 
 test('CAS rejection is based on affected row count', () => {
