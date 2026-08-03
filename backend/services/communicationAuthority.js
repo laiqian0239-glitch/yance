@@ -3,6 +3,12 @@
 const crypto = require('node:crypto');
 const { getStore } = require('../repositories/storeProvider');
 const channelAdapterContract = require('./channelAdapterContract');
+const defaultDurableExecutionAuthority = require('./durableExecutionAuthority');
+const defaultOutboxAuthority = require('./externalActionOutboxAuthority');
+const {
+  OPERATION_KINDS,
+  assertReferenceOnlyEnvelope
+} = require('./durableOperationRegistry');
 
 const AUTHORITY = 'CommunicationAuthority';
 const SCHEMA_VERSION = 1;
@@ -17,9 +23,6 @@ const MEDIA_TRANSITIONS = Object.freeze({
   FAILED_RETRYABLE: new Set(['FETCH_SCHEDULED', 'FETCHING', 'FAILED_PERMANENT']),
   FAILED_PERMANENT: new Set([])
 });
-const SUCCESS_DELIVERY_STATES = new Set(['ACCEPTED', 'DELIVERED', 'READ']);
-const DELIVERY_STATES = new Set(['ACCEPTED', 'DELIVERED', 'READ', 'FAILED', 'UNKNOWN']);
-const DELIVERY_RANK = Object.freeze({ CREATED: 0, UNKNOWN: 1, ACCEPTED: 2, DELIVERED: 3, READ: 4 });
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function defaultClock() { return new Date().toISOString(); }
@@ -27,6 +30,31 @@ function defaultIdFactory(prefix) { return `${prefix}-${crypto.randomUUID()}`; }
 function parse(value, fallback = {}) { try { return value == null || value === '' ? fallback : JSON.parse(value); } catch (_) { return fallback; } }
 function stableId(prefix, parts) {
   return `${prefix}-${crypto.createHash('sha256').update(parts.map(clean).join('\u001f')).digest('hex').slice(0, 32)}`;
+}
+function communicationError(code, message, details = {}) {
+  return Object.assign(new Error(message), { code, ...details });
+}
+function requiredString(value, field, maximum = 2048) {
+  const result = clean(value);
+  if (!result) throw communicationError('WP_B_COMMUNICATION_FIELD_REQUIRED', `${field} is required`, { field });
+  if (result.length > maximum || /[\u0000-\u001f\u007f]/u.test(result)) {
+    throw communicationError('WP_B_COMMUNICATION_FIELD_INVALID', `${field} is invalid`, { field, maximum });
+  }
+  return result;
+}
+function normalizedTimestamp(value, field) {
+  const source = String(value == null ? '' : value);
+  const milliseconds = Date.parse(source);
+  if (!Number.isFinite(milliseconds) || new Date(milliseconds).toISOString() !== source) {
+    throw communicationError('WP_B_COMMUNICATION_AUTHORITY_TIMESTAMP_INVALID', `${field} must be normalized UTC ISO-8601`, { field });
+  }
+  return source;
+}
+function issueAuthorityTimestamp(issuer, purpose) {
+  if (typeof issuer !== 'function') {
+    throw new TypeError('CommunicationAuthority requires an authority timestamp issuer');
+  }
+  return normalizedTimestamp(issuer(purpose), purpose);
 }
 function assertDirection(value) {
   const direction = clean(value).toLowerCase();
@@ -46,9 +74,7 @@ function normalizeRawEventRef(value = {}) {
 function normalizeContent(value = {}) {
   channelAdapterContract.assertPlainData(value);
   const kind = clean(value.kind).toLowerCase();
-  if (!CONTENT_KINDS.has(kind)) {
-    return { kind: 'unsupported', platformType: kind || 'unknown', rawSummary: clean(value.rawSummary) };
-  }
+  if (!CONTENT_KINDS.has(kind)) return { kind: 'unsupported', platformType: kind || 'unknown', rawSummary: clean(value.rawSummary) };
   if (kind === 'text') {
     const text = String(value.text == null ? '' : value.text);
     if (!text.trim()) return { kind: 'unsupported', platformType: 'empty-text', rawSummary: '' };
@@ -93,24 +119,6 @@ function mediaRow(row = {}) {
     failureCode: clean(row.failure_code), nextRetryAt: clean(row.next_retry_at), metadata: parse(row.metadata_json, {}), createdAt: clean(row.created_at), updatedAt: clean(row.updated_at)
   };
 }
-function attemptRow(row = {}) {
-  if (!row) return null;
-  return {
-    authority: AUTHORITY, schemaVersion: SCHEMA_VERSION,
-    attemptId: clean(row.attempt_id), traceId: clean(row.trace_id), messageId: clean(row.message_id), platform: clean(row.platform), sourceAccountId: clean(row.source_account_id),
-    idempotencyKey: clean(row.idempotency_key), state: clean(row.state), platformMessageId: clean(row.platform_message_id), providerRequestId: clean(row.provider_request_id),
-    failureCode: clean(row.failure_code), createdAt: clean(row.created_at), updatedAt: clean(row.updated_at)
-  };
-}
-function receiptRow(row = {}) {
-  if (!row) return null;
-  return {
-    authority: AUTHORITY, schemaVersion: SCHEMA_VERSION,
-    receiptId: clean(row.receipt_id), attemptId: clean(row.attempt_id), sequence: Number(row.sequence || 0), status: clean(row.status),
-    platformMessageId: clean(row.platform_message_id), providerRequestId: clean(row.provider_request_id), failureCode: clean(row.failure_code),
-    payload: parse(row.payload_json, {}), createdAt: clean(row.created_at)
-  };
-}
 function checkpointRow(row = {}, scope = {}) {
   if (!row) return {
     authority: AUTHORITY, schemaVersion: SCHEMA_VERSION,
@@ -127,12 +135,66 @@ function checkpointRow(row = {}, scope = {}) {
 }
 
 class CommunicationAuthority {
-  constructor({ storeProvider = getStore, idFactory = defaultIdFactory, clock = defaultClock } = {}) {
+  constructor({
+    storeProvider = getStore,
+    idFactory = defaultIdFactory,
+    clock = defaultClock,
+    durableExecutionAuthority = defaultDurableExecutionAuthority,
+    outboxAuthority = defaultOutboxAuthority,
+    issueTimestamp = clock
+  } = {}) {
     this.storeProvider = storeProvider;
     this.idFactory = idFactory;
     this.clock = clock;
+    this.durableExecutionAuthority = durableExecutionAuthority;
+    this.outboxAuthority = outboxAuthority;
+    this.issueTimestamp = issueTimestamp;
   }
+
   store() { return this.storeProvider(); }
+
+  prepareOutboundMessageSend(input = {}) {
+    const idempotencyKey = requiredString(input.idempotencyKey, 'idempotencyKey');
+    const command = assertReferenceOnlyEnvelope(input.command);
+    if (!this.durableExecutionAuthority || typeof this.durableExecutionAuthority.createExecution !== 'function') {
+      throw new TypeError('CommunicationAuthority requires DurableExecutionAuthority.createExecution');
+    }
+    if (!this.outboxAuthority || typeof this.outboxAuthority.createIntent !== 'function') {
+      throw new TypeError('CommunicationAuthority requires ExternalActionOutboxAuthority.createIntent');
+    }
+    const execution = this.durableExecutionAuthority.createExecution({
+      operationKind: OPERATION_KINDS.OUTBOUND_MESSAGE_SEND,
+      idempotencyKey,
+      traceId: clean(input.traceId),
+      command,
+      deadlineAt: clean(input.deadlineAt),
+      maxAttempts: Math.max(1, Number(input.maxAttempts || 3)),
+      authorityTimestamp: issueAuthorityTimestamp(this.issueTimestamp, 'outbound-message-execution')
+    });
+    const executionId = requiredString(execution?.executionId, 'execution.executionId');
+    const intent = this.outboxAuthority.createIntent({
+      executionId,
+      actionKind: OPERATION_KINDS.OUTBOUND_MESSAGE_SEND,
+      idempotencyKey,
+      payload: command,
+      authorityTimestamp: issueAuthorityTimestamp(this.issueTimestamp, 'outbound-message-intent')
+    });
+    return Object.freeze({
+      executionId,
+      intentId: requiredString(intent?.intentId, 'intent.intentId'),
+      operationKind: OPERATION_KINDS.OUTBOUND_MESSAGE_SEND,
+      idempotencyKey
+    });
+  }
+
+  readOutboundMessageState(input = {}) {
+    const intentId = requiredString(input.intentId || input.attemptId, 'intentId');
+    if (!this.outboxAuthority || typeof this.outboxAuthority.intent !== 'function') {
+      throw new TypeError('CommunicationAuthority requires ExternalActionOutboxAuthority.intent');
+    }
+    return this.outboxAuthority.intent(intentId);
+  }
+
   assertAccount(platform, sourceAccountId, store = this.store()) {
     const row = store.db.prepare('SELECT id,platform,state FROM r32_accounts WHERE id=?').get(clean(sourceAccountId));
     if (!row) throw Object.assign(new Error('Channel account is not persisted'), { code: 'COMMUNICATION_ACCOUNT_NOT_FOUND', status: 409, platform: clean(platform), sourceAccountId: clean(sourceAccountId) });
@@ -170,7 +232,9 @@ class CommunicationAuthority {
     return messageRow(store.db.prepare('SELECT * FROM communication_canonical_messages WHERE message_id=?').get(messageId));
   }
 
-  getMessage(messageId) { return messageRow(this.store().db.prepare('SELECT * FROM communication_canonical_messages WHERE message_id=?').get(clean(messageId))); }
+  getMessage(messageId) {
+    return messageRow(this.store().db.prepare('SELECT * FROM communication_canonical_messages WHERE message_id=?').get(clean(messageId)));
+  }
 
   registerMedia(input = {}) {
     const platform = clean(input.platform).toLowerCase();
@@ -212,76 +276,6 @@ class CommunicationAuthority {
       store.db.prepare(`UPDATE communication_media_assets SET state=?,version=version+1,local_path=?,thumbnail_path=?,sha256=?,failure_code=?,next_retry_at=?,updated_at=? WHERE media_id=?`)
         .run(state, clean(input.localPath || row.local_path), clean(input.thumbnailPath || row.thumbnail_path), clean(input.sha256 || row.sha256), clean(input.failureCode), clean(input.nextRetryAt), at, clean(input.mediaId));
       return mediaRow(store.db.prepare('SELECT * FROM communication_media_assets WHERE media_id=?').get(clean(input.mediaId)));
-    });
-  }
-
-  getDeliveryAttempt(attemptId) {
-    const row = this.store().db.prepare('SELECT * FROM communication_delivery_attempts WHERE attempt_id=?').get(clean(attemptId));
-    if (!row) return null;
-    const attempt = attemptRow(row);
-    attempt.receipts = this.store().db.prepare('SELECT * FROM communication_delivery_receipts WHERE attempt_id=? ORDER BY sequence').all(clean(attemptId)).map(receiptRow);
-    return attempt;
-  }
-
-  createDeliveryAttempt(input = {}) {
-    const store = this.store();
-    const message = store.db.prepare('SELECT * FROM communication_canonical_messages WHERE message_id=?').get(clean(input.messageId));
-    if (!message) throw Object.assign(new Error('Delivery message not found'), { code: 'DELIVERY_MESSAGE_NOT_FOUND', status: 404, messageId: clean(input.messageId) });
-    const platform = clean(input.platform || message.platform).toLowerCase();
-    const sourceAccountId = clean(input.sourceAccountId || message.source_account_id);
-    this.assertAccount(platform, sourceAccountId, store);
-    if (platform !== clean(message.platform) || sourceAccountId !== clean(message.source_account_id)) throw Object.assign(new Error('Delivery scope conflicts with canonical message'), { code: 'DELIVERY_SCOPE_MISMATCH', status: 409 });
-    const idempotencyKey = clean(input.idempotencyKey);
-    if (!idempotencyKey) throw Object.assign(new Error('Delivery idempotency key is required'), { code: 'DELIVERY_IDEMPOTENCY_REQUIRED', status: 400 });
-    const existing = store.db.prepare('SELECT * FROM communication_delivery_attempts WHERE idempotency_key=?').get(idempotencyKey);
-    if (existing) return attemptRow(existing);
-    const attemptId = clean(input.attemptId) || this.idFactory('delivery-attempt');
-    const at = this.clock();
-    store.db.prepare(`INSERT INTO communication_delivery_attempts(attempt_id,trace_id,message_id,platform,source_account_id,idempotency_key,state,created_at,updated_at)
-      VALUES(?,?,?,?,?,?,'CREATED',?,?)`).run(attemptId, clean(input.traceId), clean(input.messageId), platform, sourceAccountId, idempotencyKey, at, at);
-    return attemptRow(store.db.prepare('SELECT * FROM communication_delivery_attempts WHERE attempt_id=?').get(attemptId));
-  }
-
-  recordDeliveryReceipt(input = {}) {
-    const store = this.store();
-    return store.transaction(() => {
-      const attempt = store.db.prepare('SELECT * FROM communication_delivery_attempts WHERE attempt_id=?').get(clean(input.attemptId));
-      if (!attempt) throw Object.assign(new Error('Delivery attempt not found'), { code: 'DELIVERY_ATTEMPT_NOT_FOUND', status: 404, attemptId: clean(input.attemptId) });
-      const status = clean(input.status).toUpperCase();
-      if (!DELIVERY_STATES.has(status)) throw Object.assign(new Error(`Unsupported delivery status: ${status}`), { code: 'DELIVERY_STATUS_INVALID', status: 400 });
-      const platformMessageId = clean(input.platformMessageId);
-      if (SUCCESS_DELIVERY_STATES.has(status) && !platformMessageId) throw Object.assign(new Error('Platform acceptance evidence is required'), { code: 'DELIVERY_PLATFORM_EVIDENCE_REQUIRED', status: 409, deliveryStatus: status });
-      const providerRequestId = clean(input.providerRequestId);
-      const currentPlatformMessageId = clean(attempt.platform_message_id);
-      if (platformMessageId && currentPlatformMessageId && platformMessageId !== currentPlatformMessageId) {
-        throw Object.assign(new Error('Delivery receipt conflicts with the persisted platform message identity'), {
-          code: 'DELIVERY_PLATFORM_MESSAGE_CONFLICT', status: 409, attemptId: clean(input.attemptId),
-          expectedPlatformMessageId: currentPlatformMessageId, receivedPlatformMessageId: platformMessageId
-        });
-      }
-      const existing = store.db.prepare(`SELECT * FROM communication_delivery_receipts WHERE attempt_id=? AND status=? AND platform_message_id=? AND provider_request_id=?`)
-        .get(clean(input.attemptId), status, platformMessageId, providerRequestId);
-      if (existing) return receiptRow(existing);
-      const sequence = Number(store.db.prepare('SELECT COALESCE(MAX(sequence),0)+1 AS next FROM communication_delivery_receipts WHERE attempt_id=?').get(clean(input.attemptId))?.next || 1);
-      const receiptId = clean(input.receiptId) || this.idFactory('delivery-receipt');
-      const at = this.clock();
-      channelAdapterContract.assertPlainData(input.payload || {});
-      store.db.prepare(`INSERT INTO communication_delivery_receipts(receipt_id,attempt_id,sequence,status,platform_message_id,provider_request_id,failure_code,payload_json,created_at)
-        VALUES(?,?,?,?,?,?,?,?,?)`).run(receiptId, clean(input.attemptId), sequence, status, platformMessageId, providerRequestId, clean(input.failureCode), JSON.stringify(input.payload || {}), at);
-      const currentState = clean(attempt.state) || 'CREATED';
-      let convergedState = currentState;
-      if (SUCCESS_DELIVERY_STATES.has(status)) {
-        const currentRank = Number(DELIVERY_RANK[currentState] ?? 0);
-        const nextRank = Number(DELIVERY_RANK[status] ?? 0);
-        if (!SUCCESS_DELIVERY_STATES.has(currentState) || nextRank >= currentRank) convergedState = status;
-      } else if (status === 'FAILED') {
-        if (!SUCCESS_DELIVERY_STATES.has(currentState)) convergedState = 'FAILED';
-      } else if (status === 'UNKNOWN') {
-        if (currentState === 'CREATED' || currentState === 'UNKNOWN') convergedState = 'UNKNOWN';
-      }
-      store.db.prepare(`UPDATE communication_delivery_attempts SET state=?,platform_message_id=?,provider_request_id=?,failure_code=?,updated_at=? WHERE attempt_id=?`)
-        .run(convergedState, platformMessageId || currentPlatformMessageId, providerRequestId || clean(attempt.provider_request_id), convergedState === 'FAILED' ? clean(input.failureCode) : clean(attempt.failure_code), at, clean(input.attemptId));
-      return receiptRow(store.db.prepare('SELECT * FROM communication_delivery_receipts WHERE receipt_id=?').get(receiptId));
     });
   }
 
