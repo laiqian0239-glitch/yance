@@ -23,6 +23,8 @@ on:
       - backend/services/modelExecutionHost.js
       - backend/services/ownerRecovery.js
       - backend/services/runtimeRecoveryService.js
+      - backend/tests/architectureClosureV2/wpB/aiProviderDurableMigration.test.js
+      - backend/tests/architectureClosureV2/wpB/mandatoryOperationAdapters.test.js
       - backend/tests/architectureClosureV2/wpB/m2MandatoryOperationsRed.test.js
       - backend/tests/architectureClosureV2/wpB/m2RecoveryRed.test.js
       - backend/tests/architectureClosureV2/wpB/m2ProcessFaultRed.test.js
@@ -58,6 +60,8 @@ on:
       - backend/services/modelExecutionHost.js
       - backend/services/ownerRecovery.js
       - backend/services/runtimeRecoveryService.js
+      - backend/tests/architectureClosureV2/wpB/aiProviderDurableMigration.test.js
+      - backend/tests/architectureClosureV2/wpB/mandatoryOperationAdapters.test.js
       - backend/tests/architectureClosureV2/wpB/m2MandatoryOperationsRed.test.js
       - backend/tests/architectureClosureV2/wpB/m2RecoveryRed.test.js
       - backend/tests/architectureClosureV2/wpB/m2ProcessFaultRed.test.js
@@ -126,6 +130,8 @@ jobs:
           node --check backend/tests/architectureClosureV2/wpB/m2RecoveryRed.test.js
           node --check backend/tests/architectureClosureV2/wpB/m2ProcessFaultRed.test.js
           node --check backend/tests/architectureClosureV2/wpB/m2LeakBoundaryRed.test.js
+          node --check backend/tests/architectureClosureV2/wpB/mandatoryOperationAdapters.test.js
+          node --check backend/tests/architectureClosureV2/wpB/aiProviderDurableMigration.test.js
 
       - name: Run Milestone 2 contracts
         shell: bash
