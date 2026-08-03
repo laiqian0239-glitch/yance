@@ -13,12 +13,20 @@ const GOVERNANCE_INVARIANTS = Object.freeze({
   publish: false
 });
 const INTERNAL_ENGINE_PATHS = Object.freeze([
+  'backend/lib/r32SqliteStoreEngineLegacy.js',
   'backend/migrations/architectureClosureV2WpBEngine.js',
   'shared/release/acv2ActiveWorkPackageAuthorityEngine.js'
 ]);
+const APPLICATION_EVIDENCE_PATHS = Object.freeze([
+  'release/architecture-closure-v2/wp-b-governance-package.json'
+]);
+const ADDITIONAL_WP_B_AUTHORITY_PATHS = Object.freeze([
+  ...INTERNAL_ENGINE_PATHS,
+  ...APPLICATION_EVIDENCE_PATHS
+]);
 const WP_B_CORE_SCOPE_PATTERNS = Object.freeze([
   ...engine.WP_B_CORE_SCOPE_PATTERNS,
-  ...INTERNAL_ENGINE_PATHS
+  ...ADDITIONAL_WP_B_AUTHORITY_PATHS
 ]);
 
 function extendAuthority(authority) {
@@ -28,7 +36,7 @@ function extendAuthority(authority) {
   }
   const allowedProductionPaths = Object.freeze([...new Set([
     ...authority.allowedProductionPaths,
-    ...INTERNAL_ENGINE_PATHS
+    ...ADDITIONAL_WP_B_AUTHORITY_PATHS
   ])]);
   return Object.freeze({ ...authority, allowedProductionPaths });
 }
@@ -51,6 +59,8 @@ function evaluateAuthorizedWpBScope(options = {}) {
 
 module.exports = Object.freeze({
   ...engine,
+  ADDITIONAL_WP_B_AUTHORITY_PATHS,
+  APPLICATION_EVIDENCE_PATHS,
   AUTHORITY_DOCUMENT_PATHS,
   GOVERNANCE_INVARIANTS,
   INTERNAL_ENGINE_PATHS,
