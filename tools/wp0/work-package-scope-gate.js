@@ -34,6 +34,15 @@ function gitFailure(reasonCode, cause, details = {}) {
   });
 }
 
+function hasExplicitLegacyContext(options = {}) {
+  return [
+    'authorization',
+    'postMergeDefect',
+    'taskScopeChain',
+    'amendment'
+  ].some(key => Object.prototype.hasOwnProperty.call(options, key));
+}
+
 function evaluateWpBScopeForGate(options, authority) {
   const branch = String(options.branch || '');
   const git = options.git;
@@ -150,6 +159,10 @@ function evaluateWpBScopeForGate(options, authority) {
 }
 
 function evaluateWorkPackageScopeForGate(options = {}) {
+  if (hasExplicitLegacyContext(options)
+      && !Object.prototype.hasOwnProperty.call(options, 'wpBAuthority')) {
+    return legacy.evaluateWorkPackageScopeForGate(options);
+  }
   const authority = Object.prototype.hasOwnProperty.call(options, 'wpBAuthority')
     ? options.wpBAuthority
     : resolveWpBImplementationAuthority(options);
