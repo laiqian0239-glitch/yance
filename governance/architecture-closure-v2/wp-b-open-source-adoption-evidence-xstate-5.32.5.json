@@ -1,20 +1,28 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "documentType": "YANCE_ACV2_WP_B_XSTATE_ADOPTION_EVIDENCE",
   "workPackage": "WP-B",
   "candidateId": "XSTATE_CORE_5_32_5",
-  "capturedAtHead": "da773d5b29c1f54c6c14f6024c38b53ab7ca10bb",
+  "supplyChainAuthorityPath": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+  "capturedAtHead": "c3d9ba7c63960a22e9995969a909b9ba27b337fa",
+  "supersedes": {
+    "capturedAtHead": "da773d5b29c1f54c6c14f6024c38b53ab7ca10bb",
+    "reason": "RECORDED_PACKAGE_FACTS_DID_NOT_MATCH_THE_PHYSICAL_NPM_ARTIFACT_FETCHED_IDENTICALLY_ON_UBUNTU_AND_WINDOWS",
+    "preservedIn": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json#/supersededObservation"
+  },
   "workflowRun": {
-    "id": 30779566915,
+    "id": 30790076174,
     "name": "WP-B Validation",
     "exactHeadCheckoutEnforced": true,
     "ubuntu": {
-      "upstreamJobId": 91581416459,
-      "redContractJobId": 91581416455
+      "upstreamJobId": 91611534958,
+      "status": "PASSED",
+      "testLogSha256": "726c53eb82f1b1458632858b41b892b102b6bd4c04aa0f3f88431266f382aaeb"
     },
     "windows": {
-      "upstreamJobId": 91581416415,
-      "redContractJobId": 91581416474
+      "upstreamJobId": 91611534957,
+      "status": "PASSED",
+      "testLogSha256": "726c53eb82f1b1458632858b41b892b102b6bd4c04aa0f3f88431266f382aaeb"
     }
   },
   "exactVersionAndLicenseReview": {
@@ -24,17 +32,17 @@
     "license": "MIT",
     "repository": "git+https://github.com/statelyai/xstate.git",
     "upstreamTag": "xstate@5.32.5",
-    "upstreamCommit": "42716670a050711f816aa24b6de4127965bc9f4c",
-    "licenseTextSha256": "f5c97f62cc1e6c5cbd759d6230958ace177d10ec0be6ca028d5e88915a43b6b4"
+    "upstreamCommit": "c25dba07a2b68565edbe83d83c5d679dd85e00b2",
+    "licenseTextSha256": "542d926d7bbb099785e322d1d5574c539d51942e52ec8adce2be4629ba81fc7f"
   },
   "dependencyAndSecurityScan": {
     "status": "COMPLETE",
     "runtimeDependencyCount": 0,
     "installLifecycleScripts": [],
-    "packageFileCount": 31,
+    "packageFileCount": 132,
     "suspiciousPackageFiles": [],
-    "distIntegrity": "sha512-631+ENa9BCjf/Rn/aWthqY8CWnHT6LHAANtB9zTHb9Tz6SgoI8NA+IWjG3qfIcnEubyksdYGhWCOle4eA/pP4A==",
-    "distShasum": "f83e61ea539ba224affe937218bc2afdee87cc77",
+    "distIntegrity": "sha512-ULazi1oe6wGrXl0Frb6otSlkm5HLifbbVTkMk5kkSKqz4TkxJaVpnl6jOJwKeid3ORPxYyZQgNLUSYX9q65SIA==",
+    "distShasum": "0594075f9fb7d5a12791296c5c798c394b66e823",
     "tarballDigestMatchedOnUbuntu": true,
     "tarballDigestMatchedOnWindows": true,
     "sandboxLockIntegrityMatched": true,
@@ -46,6 +54,21 @@
       "critical": 0,
       "total": 0
     }
+  },
+  "upstreamConformance": {
+    "status": "PASSED_AWAITING_REPAIRED_REPOSITORY_LOCK_BINDING",
+    "runtimeVersion": "node@22",
+    "selection": [
+      "PACKAGE_EXPORTS_PRESENT",
+      "INITIAL_SNAPSHOT",
+      "UNHANDLED_EVENT_STABILITY",
+      "ACTOR_TRANSITION_SEQUENCE",
+      "FINAL_STATE_STATUS"
+    ],
+    "passCount": 5,
+    "failCount": 0,
+    "skipCount": 0,
+    "ubuntuAndWindowsOutputSha256": "726c53eb82f1b1458632858b41b892b102b6bd4c04aa0f3f88431266f382aaeb"
   },
   "adoptionModeDecision": {
     "status": "COMPLETE",
@@ -63,41 +86,28 @@
   },
   "yanceRedContractFirst": {
     "status": "COMPLETE",
+    "authorityPath": "governance/architecture-closure-v2/wp-b-m1-red-evidence.json",
+    "reviewedRedHead": "da773d5b29c1f54c6c14f6024c38b53ab7ca10bb",
     "ubuntu": {
       "status": "VALID_CAPABILITY_RED",
       "green": 0,
       "validCapabilityRed": 7,
-      "invalidRedInfrastructure": 0,
-      "outputSha256ByContract": {
-        "LIFECYCLE": "a4020d1df3ab384e3bc432866c5c5f0cd1fea122812f009b37a50be3158301c8",
-        "DEEP_FREEZE_AND_AUTHORITY_TIME": "4f064904eaaed8fa96b3ef6c4dae59d491a56c0591bc7ee82e6c9e7cb4398339",
-        "SCHEMA_23": "891de6289531f382cebc53f401b1f77d2240404e5ca5acae06e2afa3fa6bb6f1",
-        "DURABLE_EXECUTION_CAS": "36178248e275f41fa940f8c4aa9712009a726ee1a6f982abd972d11803b6f5a8",
-        "EXTERNAL_ACTION_OUTBOX": "d0fd4b85c8c5bff05aa1f31fb0a458982b4f134df4e63f6e72708e8e1e8e7013",
-        "TRANSACTION_IO_BOUNDARY": "4697bd928d5e93e4166ccb19d737e046a1078f85d5cb1319e6d8b59cc1072cc6",
-        "UNCERTAIN_OUTCOME_RECONCILIATION": "5b23057c74f6432f26c9640948547b1f6517473e551b957b6bd4a4af0b936385"
-      }
+      "invalidRedInfrastructure": 0
     },
     "windows": {
       "status": "VALID_CAPABILITY_RED",
       "green": 0,
       "validCapabilityRed": 7,
-      "invalidRedInfrastructure": 0,
-      "outputSha256ByContract": {
-        "LIFECYCLE": "ffec44b5f367709241450f7f210b074497b45f3044b88040692b3cd906208393",
-        "DEEP_FREEZE_AND_AUTHORITY_TIME": "38748033bf7eb7e6bff8b00078b2c4cbb343e8f2fd707b40b1614eb6b13e8eec",
-        "SCHEMA_23": "bb8f176d40f8c5c36ab950b8fcaf8d81db223c19eb1e6d4725b634c312995847",
-        "DURABLE_EXECUTION_CAS": "4482e6dc3b7adf536450f26bf3badb20dd9a45a5d400149d68fad93b1a8eba94",
-        "EXTERNAL_ACTION_OUTBOX": "566d4df5a8c8ba348ab5136fc55d93bd889ffa89db4ebabdc4d68b2044f87330",
-        "TRANSACTION_IO_BOUNDARY": "51e0c2618f77d6925be89e0b51066482aa1fe190efa5669d9ae22257383c173a",
-        "UNCERTAIN_OUTCOME_RECONCILIATION": "444c4b3b227be929a30e9b2289df7bbcde4a1ea37c8dafa1c3b6be8fd6bff896"
-      }
+      "invalidRedInfrastructure": 0
     }
   },
   "authorization": {
-    "introduceOriginalModuleNext": true,
+    "originalModuleIntroduced": true,
+    "repairedPackageLockRequired": true,
+    "upstreamTestsComplete": false,
+    "adapterIntroductionAuthorized": false,
     "productionUseAuthorized": false,
-    "schema23Applied": false,
+    "schema23Applied": true,
     "formalRelease": false,
     "publish": false,
     "temporaryBypassAllowed": false
