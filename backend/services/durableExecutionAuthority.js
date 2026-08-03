@@ -199,6 +199,61 @@ function normalizeCasFacts(input = {}) {
   });
 }
 
+function normalizeUnownedCasFacts(input = {}) {
+  const fromState = requiredString(input.fromState, 'fromState', 64);
+  const targetState = requiredString(input.targetState, 'targetState', 64);
+  if (!STATE_VALUES.has(fromState) || !STATE_VALUES.has(targetState)) {
+    throw executionError('WP_B_EXECUTION_STATE_INVALID', 'Unowned CAS state is not registered', {
+      fromState,
+      targetState
+    });
+  }
+  return Object.freeze({
+    executionId: requiredString(input.executionId, 'executionId'),
+    fromState,
+    targetState,
+    stateVersion: safeInteger(input.stateVersion, 'stateVersion'),
+    generation: safeInteger(input.generation, 'generation'),
+    hostId: requiredString(input.hostId, 'hostId'),
+    hostGeneration: safeInteger(input.hostGeneration, 'hostGeneration', 1),
+    fencingToken: safeInteger(input.fencingToken, 'fencingToken', 1),
+    authorityTimestamp: normalizedTimestamp(input.authorityTimestamp)
+  });
+}
+
+function normalizeClaimFacts(input = {}) {
+  const fromState = requiredString(input.fromState, 'fromState', 64);
+  if (fromState !== LIFECYCLE_STATES.SCHEDULED) {
+    throw executionError('WP_B_EXECUTION_CLAIM_STATE_INVALID', 'Only a scheduled execution can be claimed', {
+      fromState
+    });
+  }
+  const ownerId = requiredString(input.ownerId, 'ownerId');
+  const leaseStartedAt = normalizedTimestamp(input.leaseStartedAt, 'leaseStartedAt');
+  const leaseExpiresAt = normalizedTimestamp(input.leaseExpiresAt, 'leaseExpiresAt');
+  if (Date.parse(leaseExpiresAt) <= Date.parse(leaseStartedAt)) {
+    throw executionError(
+      'WP_B_EXECUTION_CLAIM_LEASE_INVALID',
+      'First-claim lease expiry must be later than its start',
+      { leaseStartedAt, leaseExpiresAt }
+    );
+  }
+  return Object.freeze({
+    executionId: requiredString(input.executionId, 'executionId'),
+    fromState,
+    targetState: LIFECYCLE_STATES.CLAIMED,
+    stateVersion: safeInteger(input.stateVersion, 'stateVersion'),
+    generation: safeInteger(input.generation, 'generation'),
+    ownerId,
+    claimId: requiredString(input.claimId, 'claimId'),
+    hostId: optionalString(input.hostId, 'hostId') || ownerId,
+    hostGeneration: safeInteger(input.hostGeneration, 'hostGeneration', 1),
+    fencingToken: safeInteger(input.fencingToken, 'fencingToken', 1),
+    leaseStartedAt,
+    leaseExpiresAt
+  });
+}
+
 function executeExecutionTransitionCas(db, input = {}) {
   if (!db || typeof db.prepare !== 'function') {
     throw new TypeError('Execution transition CAS requires a SQLite database capability');
@@ -257,6 +312,114 @@ function executeExecutionTransitionCas(db, input = {}) {
   });
 }
 
+function executeUnownedExecutionTransitionCas(db, input = {}) {
+  if (!db || typeof db.prepare !== 'function') {
+    throw new TypeError('Unowned execution transition CAS requires a SQLite database capability');
+  }
+  const facts = normalizeUnownedCasFacts(input);
+  const result = db.prepare(`UPDATE durable_executions SET
+      state=?,state_version=state_version+1,updated_at=?
+    WHERE execution_id=? AND state=? AND state_version=? AND generation=?
+      AND owner_id='' AND claim_id='' AND host_generation=0 AND fencing_token=0
+      AND EXISTS(
+        SELECT 1 FROM authority_write_host_lease
+        WHERE singleton_id=1 AND owner_instance_id=? AND host_generation=?
+          AND fencing_token=? AND state='ACTIVE'
+      )`).run(
+    facts.targetState,
+    facts.authorityTimestamp,
+    facts.executionId,
+    facts.fromState,
+    facts.stateVersion,
+    facts.generation,
+    facts.hostId,
+    facts.hostGeneration,
+    facts.fencingToken
+  );
+  if (Number(result.changes || 0) !== 1) {
+    throw executionError(
+      'WP_B_EXECUTION_UNOWNED_CAS_REJECTED',
+      'Unowned durable execution transition CAS rejected',
+      {
+        executionId: facts.executionId,
+        fromState: facts.fromState,
+        targetState: facts.targetState,
+        stateVersion: facts.stateVersion,
+        generation: facts.generation,
+        hostGeneration: facts.hostGeneration,
+        fencingToken: facts.fencingToken
+      }
+    );
+  }
+  return deepFreeze({
+    executionId: facts.executionId,
+    fromState: facts.fromState,
+    targetState: facts.targetState,
+    stateVersion: facts.stateVersion + 1,
+    generation: facts.generation,
+    authorityTimestamp: facts.authorityTimestamp
+  });
+}
+
+function executeExecutionClaimCas(db, input = {}) {
+  if (!db || typeof db.prepare !== 'function') {
+    throw new TypeError('Execution claim CAS requires a SQLite database capability');
+  }
+  const facts = normalizeClaimFacts(input);
+  const result = db.prepare(`UPDATE durable_executions SET
+      state=?,state_version=state_version+1,generation=generation+1,
+      owner_id=?,claim_id=?,lease_sequence=lease_sequence+1,
+      host_generation=?,fencing_token=?,lease_started_at=?,lease_expires_at=?,
+      heartbeat_sequence=0,last_heartbeat_at=?,updated_at=?
+    WHERE execution_id=? AND state=? AND state_version=? AND generation=?
+      AND owner_id='' AND claim_id='' AND host_generation=0 AND fencing_token=0
+      AND EXISTS(
+        SELECT 1 FROM authority_write_host_lease
+        WHERE singleton_id=1 AND owner_instance_id=? AND host_generation=?
+          AND fencing_token=? AND state='ACTIVE'
+      )`).run(
+    facts.targetState,
+    facts.ownerId,
+    facts.claimId,
+    facts.hostGeneration,
+    facts.fencingToken,
+    facts.leaseStartedAt,
+    facts.leaseExpiresAt,
+    facts.leaseStartedAt,
+    facts.leaseStartedAt,
+    facts.executionId,
+    facts.fromState,
+    facts.stateVersion,
+    facts.generation,
+    facts.hostId,
+    facts.hostGeneration,
+    facts.fencingToken
+  );
+  if (Number(result.changes || 0) !== 1) {
+    throw executionError('WP_B_EXECUTION_CLAIM_CAS_REJECTED', 'Durable execution first-claim CAS rejected', {
+      executionId: facts.executionId,
+      stateVersion: facts.stateVersion,
+      generation: facts.generation,
+      claimId: facts.claimId,
+      hostGeneration: facts.hostGeneration,
+      fencingToken: facts.fencingToken
+    });
+  }
+  return deepFreeze({
+    executionId: facts.executionId,
+    fromState: facts.fromState,
+    targetState: facts.targetState,
+    stateVersion: facts.stateVersion + 1,
+    generation: facts.generation + 1,
+    ownerId: facts.ownerId,
+    claimId: facts.claimId,
+    hostGeneration: facts.hostGeneration,
+    fencingToken: facts.fencingToken,
+    leaseStartedAt: facts.leaseStartedAt,
+    leaseExpiresAt: facts.leaseExpiresAt
+  });
+}
+
 function schema23Applied(store) {
   try {
     const row = store.db.prepare(`SELECT status FROM r32_schema_migrations
@@ -305,6 +468,27 @@ function executionSnapshotV2(row, history = []) {
     completedAt: String(row.completed_at || ''),
     history
   });
+}
+
+function appendV2Event(store, input = {}) {
+  const sequence = Number(store.db.prepare(`SELECT COALESCE(MAX(sequence),0)+1 AS next
+    FROM durable_execution_events WHERE execution_id=?`).get(input.executionId)?.next || 1);
+  store.db.prepare(`INSERT INTO durable_execution_events(
+      event_id,execution_id,sequence,event_type,from_state,to_state,generation,
+      owner_id,reason_code,payload_json,created_at
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?)`).run(
+    optionalString(input.eventId, 'eventId') || `execution-event-${crypto.randomUUID()}`,
+    input.executionId,
+    sequence,
+    optionalString(input.eventType, 'eventType', 128) || 'transition',
+    input.fromState,
+    input.toState,
+    input.generation,
+    optionalString(input.ownerId, 'ownerId'),
+    optionalString(input.reasonCode, 'reasonCode', 256),
+    canonicalSerialize(canonicalPlainData(input.payload || {}, 'payload')),
+    normalizedTimestamp(input.authorityTimestamp)
+  );
 }
 
 class DurableExecutionAuthority extends legacy.DurableExecutionAuthority {
@@ -387,6 +571,70 @@ class DurableExecutionAuthority extends legacy.DurableExecutionAuthority {
         authorityTimestamp
       );
       return this.get(executionId, store);
+    });
+  }
+
+  schedule(input = {}) {
+    const store = this.store();
+    if (!schema23Applied(store)) return super.schedule(input);
+    return store.transaction(() => {
+      const result = executeUnownedExecutionTransitionCas(store.db, {
+        executionId: input.executionId,
+        fromState: LIFECYCLE_STATES.CREATED,
+        targetState: LIFECYCLE_STATES.SCHEDULED,
+        stateVersion: input.expectedStateVersion ?? input.stateVersion,
+        generation: input.generation ?? input.expectedGeneration,
+        hostId: input.hostId,
+        hostGeneration: input.hostGeneration,
+        fencingToken: input.fencingToken,
+        authorityTimestamp: input.authorityTimestamp
+      });
+      appendV2Event(store, {
+        eventId: input.eventId,
+        executionId: result.executionId,
+        eventType: 'scheduled',
+        fromState: result.fromState,
+        toState: result.targetState,
+        generation: result.generation,
+        ownerId: '',
+        reasonCode: input.reasonCode,
+        payload: { operationKind: optionalString(input.operationKind, 'operationKind', 128) },
+        authorityTimestamp: result.authorityTimestamp
+      });
+      return this.get(result.executionId, store);
+    });
+  }
+
+  claim(input = {}) {
+    const store = this.store();
+    if (!schema23Applied(store)) return super.claim(input);
+    return store.transaction(() => {
+      const result = executeExecutionClaimCas(store.db, {
+        executionId: input.executionId,
+        fromState: LIFECYCLE_STATES.SCHEDULED,
+        stateVersion: input.expectedStateVersion ?? input.stateVersion,
+        generation: input.generation ?? input.expectedGeneration,
+        ownerId: input.ownerId,
+        claimId: input.claimId,
+        hostId: input.hostId,
+        hostGeneration: input.hostGeneration,
+        fencingToken: input.fencingToken,
+        leaseStartedAt: input.leaseStartedAt ?? input.authorityTimestamp,
+        leaseExpiresAt: input.leaseExpiresAt
+      });
+      appendV2Event(store, {
+        eventId: input.eventId,
+        executionId: result.executionId,
+        eventType: 'claimed',
+        fromState: result.fromState,
+        toState: result.targetState,
+        generation: result.generation,
+        ownerId: result.ownerId,
+        reasonCode: input.reasonCode,
+        payload: { claimId: result.claimId },
+        authorityTimestamp: result.leaseStartedAt
+      });
+      return this.get(result.executionId, store);
     });
   }
 
@@ -475,7 +723,9 @@ module.exports.WP_B_SCHEMA_VERSION = WP_B_SCHEMA_VERSION;
 module.exports.STATES = legacy.STATES;
 module.exports.WP_B_STATES = LIFECYCLE_STATES;
 module.exports.assertExecutionIdempotency = assertExecutionIdempotency;
+module.exports.executeExecutionClaimCas = executeExecutionClaimCas;
 module.exports.executeExecutionTransitionCas = executeExecutionTransitionCas;
+module.exports.executeUnownedExecutionTransitionCas = executeUnownedExecutionTransitionCas;
 module.exports.executionError = executionError;
 module.exports.normalizeExecutionCommand = normalizeExecutionCommand;
 module.exports.normalizeTransitionCommand = normalizeTransitionCommand;
