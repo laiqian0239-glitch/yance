@@ -32,6 +32,7 @@ const EXPECTED_OPERATION_KINDS = Object.freeze([
   'SESSION_RESTORE'
 ]);
 const REQUIRED_CLOSED_GOVERNANCE_FIELDS = Object.freeze([
+  'readyForPromotion',
   'milestone3Authorized',
   'mergeAuthorized',
   'productionUseAuthorized',
