@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_B_DESIGN_AUTHORIZATION",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-B",
+  "status": "APPROVED_FOR_IMPLEMENTATION_PLANNING",
+  "approvedBy": "PROJECT_OWNER",
+  "approvedAt": "2026-08-03T08:04:00+07:00",
+  "approvedDesignHead": "7762e2e6e9ac17888917d829fd7e85897a3e5e51",
+  "implementationBranch": "acv2/wp-b-durable-execution-outbox",
+  "designDocuments": [
+    "docs/superpowers/specs/2026-08-03-yance-acv2-wp-b-three-milestone-design.md",
+    "docs/superpowers/specs/2026-08-03-yance-acv2-open-source-adoption-gate.md",
+    "governance/architecture-closure-v2/wp-b-open-source-adoption-gate.json"
+  ],
+  "authorization": {
+    "implementationPlanMayBeWritten": true,
+    "productionCodeMayBeChanged": false,
+    "schema23MayBeApplied": false,
+    "thirdPartyProductionCodeMayBeIntroduced": false,
+    "implementationPlanReviewRequired": true
+  },
+  "governance": {
+    "wpBImplementationAuthorized": false,
+    "wpCAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "temporaryBypassAllowed": false
+  }
+}
