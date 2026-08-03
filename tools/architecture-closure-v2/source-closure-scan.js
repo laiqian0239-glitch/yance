@@ -3,6 +3,11 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const {
+  compareDeclaredCapabilities,
+  detectSourceCapabilities,
+  normalizePath
+} = require('./source-capability-authority');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const BASELINE_PATH = 'governance/architecture-closure-v2/wp-a-baseline.json';
@@ -17,21 +22,8 @@ const REQUIRED_ENTRY_FIELDS = Object.freeze([
   'blockingWorkPackage', 'closureState', 'requiredSourceMarkers',
   'forbiddenSourceMarkers'
 ]);
-const ACQUISITION_PATTERNS = Object.freeze([
-  { capability: 'PRIMARY_DB_CONSTRUCTOR', expression: /new\s+DatabaseSync\s*\(/u },
-  { capability: 'PRIMARY_STORE_CONSTRUCTOR', expression: /new\s+R32SqliteStore\s*\(/u },
-  { capability: 'PRIMARY_BROKER_ACQUISITION', expression: /createSqliteConnectionBroker\s*\(/u },
-  { capability: 'PRIMARY_STORE_ACQUISITION', expression: /getR32Store\s*\(/u }
-]);
-const BUSINESS_MUTATION_PATTERN = /\b(?:INSERT\s+INTO|UPDATE\s+[A-Za-z_][A-Za-z0-9_]*|DELETE\s+FROM)\b/iu;
-const RECOVERY_PATTERN = /\b(?:recoverInterrupted|migrateAtStartup|runBootPhase0Restore|canonicalizeWhatsAppAccounts|repairRoutes|initializeDataPipelines)\s*\(/u;
-
 function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8'));
-}
-
-function normalizePath(value) {
-  return String(value || '').split(path.sep).join('/').replace(/^\.\//u, '');
 }
 
 function sourceClosureConfig(baseline) {
@@ -81,17 +73,6 @@ function walkJavaScript(relativeRoot, excludes = []) {
     }
   }
   return output.sort();
-}
-
-function detectSourceCapabilities(source) {
-  const text = String(source || '');
-  const capabilities = [];
-  for (const pattern of ACQUISITION_PATTERNS) {
-    if (pattern.expression.test(text)) capabilities.push(pattern.capability);
-  }
-  if (BUSINESS_MUTATION_PATTERN.test(text)) capabilities.push('BUSINESS_SQL_MUTATION');
-  if (RECOVERY_PATTERN.test(text)) capabilities.push('RECOVERY_OR_FALLBACK_ENTRYPOINT');
-  return [...new Set(capabilities)];
 }
 
 function validateRegistry(registry, baseline) {
@@ -186,8 +167,33 @@ function validateRegistryExtension(extension, extensionPath) {
 }
 
 function loadRegistryExtensions(paths = REGISTRY_EXTENSION_PATHS) {
-  return paths.filter(relativePath => fs.existsSync(path.join(REPO_ROOT, relativePath)))
-    .map(relativePath => ({ path: relativePath, document: readJson(relativePath) }));
+  return paths.map(relativePath => {
+    const normalizedPath = normalizePath(relativePath);
+    const absolutePath = path.join(REPO_ROOT, normalizedPath);
+    if (!fs.existsSync(absolutePath)) {
+      return Object.freeze({
+        path: normalizedPath,
+        document: null,
+        loadError: Object.freeze({
+          code: 'REGISTRY_EXTENSION_DOCUMENT_MISSING',
+          path: normalizedPath
+        })
+      });
+    }
+    try {
+      return Object.freeze({ path: normalizedPath, document: readJson(normalizedPath), loadError: null });
+    } catch (error) {
+      return Object.freeze({
+        path: normalizedPath,
+        document: null,
+        loadError: Object.freeze({
+          code: 'REGISTRY_EXTENSION_DOCUMENT_UNREADABLE',
+          path: normalizedPath,
+          causeCode: String(error?.code || error?.name || 'UNKNOWN')
+        })
+      });
+    }
+  });
 }
 
 function combinedRegisteredSourcePaths(registry, registryExtensions = []) {
@@ -209,14 +215,48 @@ function violationClassFor(entry) {
 
 function findUnregisteredSourceCapabilities(sourceRows, registry, registryExtensions = []) {
   const registered = combinedRegisteredSourcePaths(registry, registryExtensions);
+  const extensionEntries = new Map();
+  for (const extension of registryExtensions) {
+    for (const entry of extension.document?.entries || []) {
+      extensionEntries.set(normalizePath(entry.sourcePath), entry);
+    }
+  }
   const violations = [];
   for (const row of sourceRows) {
-    const capabilities = detectSourceCapabilities(row.source).filter(capability => capability !== 'BUSINESS_SQL_MUTATION' && capability !== 'RECOVERY_OR_FALLBACK_ENTRYPOINT');
-    if (capabilities.length && !registered.has(normalizePath(row.path))) {
+    const rowPath = normalizePath(row.path);
+    const detectedCapabilities = [...detectSourceCapabilities(row.source)];
+    const extensionEntry = extensionEntries.get(rowPath);
+    if (extensionEntry) {
+      try {
+        compareDeclaredCapabilities({
+          source: row.source,
+          declared: extensionEntry.allowedCapabilities,
+          registryId: String(extensionEntry.registryId || ''),
+          sourcePath: rowPath
+        });
+      } catch (error) {
+        violations.push({
+          violationClass: 'REGISTRY_INVALID',
+          code: error?.code || 'REGISTRY_EXTENSION_CAPABILITY_MISMATCH',
+          path: rowPath,
+          registryId: String(extensionEntry.registryId || ''),
+          declared: error?.declared || extensionEntry.allowedCapabilities || [],
+          detected: error?.detected || detectedCapabilities,
+          undeclared: error?.undeclared || [],
+          unused: error?.unused || []
+        });
+      }
+      continue;
+    }
+    const capabilities = detectedCapabilities.filter(
+      capability => capability !== 'BUSINESS_SQL_MUTATION'
+        && capability !== 'RECOVERY_OR_FALLBACK_ENTRYPOINT'
+    );
+    if (capabilities.length && !registered.has(rowPath)) {
       violations.push({
         violationClass: 'UNREGISTERED_PRIMARY_DB_ACCESS',
         code: 'UNREGISTERED_PRIMARY_DB_ACCESS',
-        path: normalizePath(row.path),
+        path: rowPath,
         capabilities
       });
     }
@@ -232,7 +272,8 @@ function scanRegisteredSources({
 } = {}) {
   const registryErrors = validateRegistry(registry, baseline);
   for (const extension of registryExtensions) {
-    registryErrors.push(...validateRegistryExtension(extension.document, extension.path));
+    if (extension.loadError) registryErrors.push(extension.loadError);
+    else registryErrors.push(...validateRegistryExtension(extension.document, extension.path));
   }
   const combinedIds = new Set((registry.entries || []).map(entry => String(entry.id || '')));
   const combinedPaths = new Set((registry.entries || []).map(entry => normalizePath(entry.path)));
