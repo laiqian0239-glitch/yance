@@ -4,8 +4,10 @@ const platformAdapters = require('./platformAdapterPorts');
 const accountStore = require('./accountStore');
 const communicationAuthority = require('./communicationAuthority');
 const channelAdapterContract = require('./channelAdapterContract');
+const { deepFreeze } = require('../lib/deepFreeze');
 
 const PLATFORMS = Object.freeze(['whatsapp', 'telegram', 'facebook']);
+const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function fail(code, message, status = 400, details = {}) { return Object.assign(new Error(message), { code, status, ...details }); }
@@ -18,6 +20,51 @@ function plain(input, name) {
   channelAdapterContract.assertPlainData(input || {});
   return input || {};
 }
+function requiredPhysicalString(value, field, maximum = 2048) {
+  const result = clean(value);
+  if (!result || result.length > maximum || /[\u0000-\u001f\u007f]/u.test(result)) {
+    throw fail('WP_B_CHANNEL_PHYSICAL_IDENTITY_REQUIRED', `Physical channel field ${field} is required`, 409, { field });
+  }
+  return result;
+}
+function requiredPhysicalInteger(value, field) {
+  const result = Number(value);
+  if (!Number.isSafeInteger(result) || result < 1) {
+    throw fail('WP_B_CHANNEL_PHYSICAL_IDENTITY_REQUIRED', `Physical channel field ${field} is required`, 409, { field });
+  }
+  return result;
+}
+function validatePhysicalEnvelope(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input) || !Object.isFrozen(input)) {
+    throw fail('WP_B_CHANNEL_PHYSICAL_IDENTITY_REQUIRED', 'Physical channel attempt envelope must be frozen', 409);
+  }
+  const requestContentSha256 = requiredPhysicalString(input.requestContentSha256, 'requestContentSha256', 64);
+  if (!SHA256_PATTERN.test(requestContentSha256)) {
+    throw fail('WP_B_CHANNEL_PHYSICAL_IDENTITY_REQUIRED', 'Physical channel requestContentSha256 is invalid', 409, { field: 'requestContentSha256' });
+  }
+  if (!input.command || typeof input.command !== 'object' || !Object.isFrozen(input.command)
+      || !input.credential || typeof input.credential !== 'object' || !Object.isFrozen(input.credential)) {
+    throw fail('WP_B_CHANNEL_PHYSICAL_IDENTITY_REQUIRED', 'Physical channel custody capabilities must be frozen', 409);
+  }
+  return Object.freeze({
+    executionId: requiredPhysicalString(input.executionId, 'executionId'),
+    intentId: requiredPhysicalString(input.intentId, 'intentId'),
+    attemptId: requiredPhysicalString(input.attemptId, 'attemptId'),
+    claimId: requiredPhysicalString(input.claimId, 'claimId'),
+    ownerId: requiredPhysicalString(input.ownerId, 'ownerId'),
+    generation: requiredPhysicalInteger(input.generation, 'generation'),
+    hostGeneration: requiredPhysicalInteger(input.hostGeneration, 'hostGeneration'),
+    fencingToken: requiredPhysicalInteger(input.fencingToken, 'fencingToken'),
+    idempotencyKey: requiredPhysicalString(input.idempotencyKey, 'idempotencyKey'),
+    requestContentSha256,
+    platform: clean(input.platform).toLowerCase(),
+    accountReference: clean(input.accountReference),
+    providerRequestId: clean(input.providerRequestId),
+    platformMessageId: clean(input.platformMessageId),
+    command: input.command,
+    credential: input.credential
+  });
+}
 function accountProjection(platform, accountId, row = {}) {
   if (!row) return null;
   return {
@@ -27,11 +74,61 @@ function accountProjection(platform, accountId, row = {}) {
     state: clean(row.state || row.lifecycleState || row.lifecycle_state || 'not-configured')
   };
 }
-function deliveryStatus(result = {}) {
-  const raw = clean(result.ackStatus || result.deliveryStatus || result.status || 'ACCEPTED').toUpperCase();
-  if (raw === 'SENT') return 'ACCEPTED';
-  if (['ACCEPTED', 'DELIVERED', 'READ'].includes(raw)) return raw;
-  return 'ACCEPTED';
+
+function createChannelPhysicalClient({ platform, facade } = {}) {
+  const normalizedPlatform = requirePlatform(platform);
+  if (!facade || facade.platform !== normalizedPlatform
+      || typeof facade.egress?.execute !== 'function'
+      || typeof facade.reconcile?.execute !== 'function') {
+    throw fail('WP_B_CHANNEL_PHYSICAL_CLIENT_INVALID', 'Physical channel client requires exact egress and reconciliation ports', 500, { platform: normalizedPlatform });
+  }
+  return Object.freeze({
+    async perform(input = {}) {
+      const attempt = validatePhysicalEnvelope(input);
+      if (attempt.platform && attempt.platform !== normalizedPlatform) {
+        throw fail('WP_B_CHANNEL_PHYSICAL_SCOPE_MISMATCH', 'Physical channel platform scope mismatch', 409, { platform: normalizedPlatform, receivedPlatform: attempt.platform });
+      }
+      return facade.egress.execute(Object.freeze({
+        executionId: attempt.executionId,
+        intentId: attempt.intentId,
+        attemptId: attempt.attemptId,
+        claimId: attempt.claimId,
+        ownerId: attempt.ownerId,
+        generation: attempt.generation,
+        hostGeneration: attempt.hostGeneration,
+        fencingToken: attempt.fencingToken,
+        idempotencyKey: attempt.idempotencyKey,
+        requestContentSha256: attempt.requestContentSha256,
+        platform: normalizedPlatform,
+        accountReference: attempt.accountReference,
+        command: attempt.command,
+        credential: attempt.credential
+      }));
+    },
+    async lookup(input = {}) {
+      const attempt = validatePhysicalEnvelope(input);
+      if (attempt.platform && attempt.platform !== normalizedPlatform) {
+        throw fail('WP_B_CHANNEL_PHYSICAL_SCOPE_MISMATCH', 'Physical channel platform scope mismatch', 409, { platform: normalizedPlatform, receivedPlatform: attempt.platform });
+      }
+      return facade.reconcile.execute(Object.freeze({
+        executionId: attempt.executionId,
+        intentId: attempt.intentId,
+        attemptId: attempt.attemptId,
+        claimId: attempt.claimId,
+        ownerId: attempt.ownerId,
+        generation: attempt.generation,
+        hostGeneration: attempt.hostGeneration,
+        fencingToken: attempt.fencingToken,
+        idempotencyKey: attempt.idempotencyKey,
+        requestContentSha256: attempt.requestContentSha256,
+        platform: normalizedPlatform,
+        accountReference: attempt.accountReference,
+        providerRequestId: attempt.providerRequestId,
+        platformMessageId: attempt.platformMessageId,
+        credential: attempt.credential
+      }));
+    }
+  });
 }
 
 class ChannelAdapterRuntime {
@@ -52,7 +149,7 @@ class ChannelAdapterRuntime {
       methods: [...channelAdapterContract.REQUIRED_METHODS],
       legacyFourPortBindings: { ...contract.bindings },
       boundaries: { ...contract.boundaries },
-      migrationMode: 'dual-write-shadow'
+      migrationMode: 'durable-outbox-only'
     };
   }
 
@@ -103,9 +200,7 @@ class ChannelAdapterRuntime {
     return this.facade.ingress.normalize({ ...input, platform: this.platform, sourceAccountId: clean(input.sourceAccountId || input.accountId) });
   }
 
-  async fetchAvatar(input = {}) {
-    return this.fetchMedia({ ...input, mediaKind: 'avatar' });
-  }
+  async fetchAvatar(input = {}) { return this.fetchMedia({ ...input, mediaKind: 'avatar' }); }
 
   async fetchMedia(input = {}) {
     plain(input, 'FetchMediaRequest');
@@ -124,40 +219,40 @@ class ChannelAdapterRuntime {
   async sendMessage(input = {}) {
     plain(input, 'ChannelSendRequest');
     const command = plain(input.command || {}, 'ChannelSendCommand');
-    const accountId = clean(input.accountId || command.accountId);
-    if (clean(command.platform).toLowerCase() !== this.platform || clean(command.accountId) !== accountId) {
+    const accountId = clean(input.accountId || command.accountId || command.accountReference);
+    if (clean(command.platform).toLowerCase() !== this.platform
+        || clean(command.accountId || command.accountReference) !== accountId) {
       throw fail('CHANNEL_SEND_SCOPE_MISMATCH', 'Send command platform/account scope mismatch', 409, { platform: this.platform, accountId });
     }
-    const attempt = this.communication.createDeliveryAttempt({
-      traceId: clean(input.traceId), messageId: clean(input.messageId), platform: this.platform,
-      sourceAccountId: accountId, idempotencyKey: clean(input.idempotencyKey || command.idempotencyKey || command.commandId)
-    });
-    try {
-      const result = await this.facade.egress.execute(command);
-      const receipt = this.communication.recordDeliveryReceipt({
-        attemptId: attempt.attemptId,
-        status: deliveryStatus(result),
-        platformMessageId: clean(result.platformMessageId || result.messageId || result.id || result.key?.id),
-        providerRequestId: clean(result.providerRequestId || result.requestId),
-        payload: { ackStatus: clean(result.ackStatus || result.deliveryStatus || result.status), source: 'ChannelAdapterRuntime.sendMessage' }
-      });
-      return { ...result, attempt: this.communication.getDeliveryAttempt(attempt.attemptId), deliveryReceipt: receipt };
-    } catch (error) {
-      const receipt = this.communication.recordDeliveryReceipt({
-        attemptId: attempt.attemptId, status: 'FAILED', providerRequestId: clean(error.providerRequestId || error.requestId),
-        failureCode: clean(error.code || 'CHANNEL_SEND_FAILED'), payload: { source: 'ChannelAdapterRuntime.sendMessage' }
-      });
-      error.attemptId = attempt.attemptId;
-      error.deliveryReceipt = receipt;
-      throw error;
+    if (!this.communication || typeof this.communication.prepareOutboundMessageSend !== 'function') {
+      throw fail('WP_B_OUTBOUND_MESSAGE_AUTHORITY_REQUIRED', 'Channel send requires CommunicationAuthority durable preparation', 503);
     }
+    const durableCommand = deepFreeze({
+      schemaVersion: 1,
+      platform: this.platform,
+      accountReference: accountId,
+      commandReference: clean(command.commandReference),
+      credentialReference: clean(command.credentialReference),
+      requestContentSha256: clean(command.requestContentSha256)
+    });
+    return this.communication.prepareOutboundMessageSend({
+      traceId: clean(input.traceId),
+      idempotencyKey: clean(input.idempotencyKey || command.idempotencyKey || command.commandId),
+      deadlineAt: clean(input.deadlineAt),
+      maxAttempts: Number(input.maxAttempts || 3),
+      command: durableCommand
+    });
   }
 
   async queryDelivery(input = {}) {
     plain(input, 'QueryDeliveryRequest');
-    const attempt = this.communication.getDeliveryAttempt(clean(input.attemptId));
-    if (!attempt) throw fail('DELIVERY_ATTEMPT_NOT_FOUND', 'Delivery attempt not found', 404, { attemptId: clean(input.attemptId) });
-    return attempt;
+    if (!this.communication || typeof this.communication.readOutboundMessageState !== 'function') {
+      throw fail('WP_B_OUTBOUND_MESSAGE_AUTHORITY_REQUIRED', 'Delivery query requires CommunicationAuthority outbox projection', 503);
+    }
+    return this.communication.readOutboundMessageState({
+      intentId: clean(input.intentId),
+      attemptId: clean(input.attemptId)
+    });
   }
 
   async disconnect(input = {}) {
@@ -168,8 +263,12 @@ class ChannelAdapterRuntime {
 
 class ChannelAdapterRuntimeRegistry {
   constructor({ facadeRegistry = platformAdapters.singleton, communication = communicationAuthority, accountReader = accountStore.get.bind(accountStore) } = {}) {
+    this.facadeRegistry = facadeRegistry;
     this.adapters = new Map(PLATFORMS.map(platform => [platform, new ChannelAdapterRuntime({
       platform, facade: facadeRegistry.get(platform), communicationAuthority: communication, accountReader
+    })]));
+    this.physicalClients = new Map(PLATFORMS.map(platform => [platform, createChannelPhysicalClient({
+      platform, facade: facadeRegistry.get(platform)
     })]));
   }
   get(platform) {
@@ -177,6 +276,12 @@ class ChannelAdapterRuntimeRegistry {
     const adapter = this.adapters.get(id);
     if (!adapter) throw fail('CHANNEL_ADAPTER_NOT_REGISTERED', `Channel adapter not registered: ${id}`, 500);
     return adapter;
+  }
+  physicalClient(platform) {
+    const id = requirePlatform(platform);
+    const client = this.physicalClients.get(id);
+    if (!client) throw fail('WP_B_CHANNEL_PHYSICAL_CLIENT_INVALID', `Physical channel client not registered: ${id}`, 500);
+    return client;
   }
   describe() { return Object.fromEntries([...this.adapters].map(([platform, adapter]) => [platform, adapter.describe()])); }
 }
@@ -187,3 +292,5 @@ module.exports = singleton;
 module.exports.ChannelAdapterRuntime = ChannelAdapterRuntime;
 module.exports.ChannelAdapterRuntimeRegistry = ChannelAdapterRuntimeRegistry;
 module.exports.PLATFORMS = PLATFORMS;
+module.exports.createChannelPhysicalClient = createChannelPhysicalClient;
+module.exports.validatePhysicalEnvelope = validatePhysicalEnvelope;
