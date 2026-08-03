@@ -249,8 +249,11 @@ test('remote success reconciliation requires one caller-supplied authority trans
 
   assert.throws(
     () => reconcileExternalOutcome({
+      intentId: 'intent-review-transaction',
+      attemptId: 'attempt-review-transaction',
       observation,
       authorityTimestamp: '2026-08-03T05:10:01.000Z',
+      recordReconciliation: () => ({ reconciliationId: 'reconciliation-review-transaction' }),
       recordReceipt: () => ({ receiptId: 'receipt-review-transaction' }),
       transitionExecution: () => ({ state: 'SUCCEEDED' })
     }),
@@ -259,6 +262,8 @@ test('remote success reconciliation requires one caller-supplied authority trans
 
   const calls = [];
   const result = reconcileExternalOutcome({
+    intentId: 'intent-review-transaction',
+    attemptId: 'attempt-review-transaction',
     observation,
     authorityTimestamp: '2026-08-03T05:10:01.000Z',
     transaction(callback) {
@@ -266,6 +271,10 @@ test('remote success reconciliation requires one caller-supplied authority trans
       const value = callback();
       calls.push('transaction-commit');
       return value;
+    },
+    recordReconciliation() {
+      calls.push('recordReconciliation');
+      return { reconciliationId: 'reconciliation-review-transaction' };
     },
     recordReceipt() {
       calls.push('recordReceipt');
@@ -278,25 +287,34 @@ test('remote success reconciliation requires one caller-supplied authority trans
   });
   assert.deepEqual(calls, [
     'transaction-begin',
+    'recordReconciliation',
     'recordReceipt',
     'transitionExecution',
     'transaction-commit'
   ]);
+  assert.equal(result.reconciliationId, 'reconciliation-review-transaction');
   assert.equal(result.state, 'SUCCEEDED');
 
-  const durable = { receipt: false };
+  const durable = { reconciliation: false, receipt: false };
   assert.throws(
     () => reconcileExternalOutcome({
+      intentId: 'intent-review-transaction',
+      attemptId: 'attempt-review-transaction',
       observation,
       authorityTimestamp: '2026-08-03T05:10:01.000Z',
       transaction(callback) {
-        const before = durable.receipt;
+        const before = { ...durable };
         try {
           return callback();
         } catch (error) {
-          durable.receipt = before;
+          durable.reconciliation = before.reconciliation;
+          durable.receipt = before.receipt;
           throw error;
         }
+      },
+      recordReconciliation() {
+        durable.reconciliation = true;
+        return { reconciliationId: 'reconciliation-review-rollback' };
       },
       recordReceipt() {
         durable.receipt = true;
@@ -308,7 +326,7 @@ test('remote success reconciliation requires one caller-supplied authority trans
     }),
     error => error?.code === 'TRANSITION_REJECTED'
   );
-  assert.equal(durable.receipt, false);
+  assert.deepEqual(durable, { reconciliation: false, receipt: false });
 });
 
 test('real SQLite reclaim invalidates the expired claimant and permits one fresh claim', () => withStore(store => {
@@ -500,9 +518,12 @@ test('real SQLite rolls back a reconciliation receipt when the terminal transiti
 
   assert.throws(
     () => reconcileExternalOutcome({
+      intentId: intent.intentId,
+      attemptId: attempt.attemptId,
       observation,
       authorityTimestamp: '2026-08-03T06:10:09.000Z',
       transaction: callback => store.transaction(callback),
+      recordReconciliation: reconciliation => outbox.recordReconciliation(reconciliation),
       recordReceipt: trusted => outbox.recordReceipt({
         intentId: attempt.intentId,
         attemptId: attempt.attemptId,
@@ -539,15 +560,20 @@ test('real SQLite rolls back a reconciliation receipt when the terminal transiti
 
   assert.equal(store.db.prepare(`SELECT COUNT(*) AS count FROM external_action_receipts
     WHERE intent_id=?`).get(intent.intentId).count, 0);
+  assert.equal(store.db.prepare(`SELECT COUNT(*) AS count FROM external_outcome_reconciliations
+    WHERE intent_id=?`).get(intent.intentId).count, 0);
   const claimAfterRollback = store.db.prepare(`SELECT state,state_version FROM external_action_claims
     WHERE intent_id=?`).get(intent.intentId);
   assert.deepEqual({ ...claimAfterRollback }, { state: 'ATTEMPTED', state_version: 2 });
   assert.equal(executionAuthority.get(waiting.executionId).state, 'WAITING_REMOTE');
 
   const success = reconcileExternalOutcome({
+    intentId: intent.intentId,
+    attemptId: attempt.attemptId,
     observation,
     authorityTimestamp: '2026-08-03T06:10:10.000Z',
     transaction: callback => store.transaction(callback),
+    recordReconciliation: reconciliation => outbox.recordReconciliation(reconciliation),
     recordReceipt: trusted => outbox.recordReceipt({
       intentId: attempt.intentId,
       attemptId: attempt.attemptId,
@@ -581,6 +607,8 @@ test('real SQLite rolls back a reconciliation receipt when the terminal transiti
   });
   assert.equal(success.state, 'SUCCEEDED');
   assert.equal(store.db.prepare(`SELECT COUNT(*) AS count FROM external_action_receipts
+    WHERE intent_id=?`).get(intent.intentId).count, 1);
+  assert.equal(store.db.prepare(`SELECT COUNT(*) AS count FROM external_outcome_reconciliations
     WHERE intent_id=?`).get(intent.intentId).count, 1);
   assert.equal(store.db.prepare(`SELECT state FROM external_action_claims
     WHERE intent_id=?`).get(intent.intentId).state, 'COMPLETED');

@@ -41,6 +41,32 @@ const DURABLE_EXECUTION_COLUMNS = Object.freeze([
   'updated_at',
   'completed_at'
 ]);
+const EXTERNAL_ACTION_RECEIPT_COLUMNS = Object.freeze([
+  'receipt_id',
+  'intent_id',
+  'attempt_id',
+  'receipt_type',
+  'provider_receipt_id',
+  'evidence_reference',
+  'receipt_content_sha256',
+  'result_json',
+  'authority_timestamp',
+  'created_at'
+]);
+const EXTERNAL_OUTCOME_RECONCILIATION_COLUMNS = Object.freeze([
+  'reconciliation_id',
+  'intent_id',
+  'attempt_id',
+  'observation_outcome',
+  'evidence_reference',
+  'remote_receipt_id',
+  'observation_json',
+  'reconciliation_content_sha256',
+  'content_hash_version',
+  'observed_at',
+  'authority_timestamp',
+  'created_at'
+]);
 const APPEND_ONLY_TABLES = Object.freeze([
   'external_action_intents',
   'external_action_attempts',
@@ -55,6 +81,10 @@ const WP_B_SCHEMA_CONTRACT = Object.freeze({
   durableExecutionTable: 'durable_executions',
   durableExecutionColumns: DURABLE_EXECUTION_COLUMNS,
   durableExecutionStates: DURABLE_EXECUTION_STATES,
+  externalActionReceiptColumns: EXTERNAL_ACTION_RECEIPT_COLUMNS,
+  externalOutcomeReconciliationColumns: EXTERNAL_OUTCOME_RECONCILIATION_COLUMNS,
+  attemptIntentBindingPolicy: 'COMPOSITE_ATTEMPT_INTENT_FOREIGN_KEY',
+  reconciliationHashPolicy: 'VERSION_ONE_SHA256_REQUIRED',
   appendOnlyTables: APPEND_ONLY_TABLES,
   mutableCasTables: MUTABLE_CAS_TABLES,
   timeAuthority: 'APPLICATION_ASSIGNED_ONLY',
@@ -335,7 +365,8 @@ function createWpBFactTables(db) {
       CHECK(lower(request_content_sha256)=request_content_sha256),
       CHECK(request_content_sha256 NOT GLOB '*[^0-9a-f]*'),
       UNIQUE(intent_id,attempt_sequence),
-      UNIQUE(intent_id,claim_id,generation)
+      UNIQUE(intent_id,claim_id,generation),
+      UNIQUE(attempt_id,intent_id)
     ) STRICT;
     CREATE INDEX idx_external_action_attempts_intent
       ON external_action_attempts(intent_id,attempt_sequence);
@@ -343,7 +374,7 @@ function createWpBFactTables(db) {
     CREATE TABLE external_action_receipts(
       receipt_id TEXT PRIMARY KEY,
       intent_id TEXT NOT NULL,
-      attempt_id TEXT NOT NULL DEFAULT '',
+      attempt_id TEXT,
       receipt_type TEXT NOT NULL CHECK(receipt_type IN (
         'SUCCESS','FAILURE','UNKNOWN','LATE_RESULT','MANUAL_RESOLUTION'
       )),
@@ -354,14 +385,21 @@ function createWpBFactTables(db) {
       authority_timestamp TEXT NOT NULL,
       created_at TEXT NOT NULL,
       FOREIGN KEY(intent_id) REFERENCES external_action_intents(intent_id) ON DELETE RESTRICT,
+      FOREIGN KEY(attempt_id,intent_id)
+        REFERENCES external_action_attempts(attempt_id,intent_id) ON DELETE RESTRICT,
       CHECK(lower(receipt_content_sha256)=receipt_content_sha256),
       CHECK(receipt_content_sha256 NOT GLOB '*[^0-9a-f]*'),
+      CHECK(
+        (receipt_type='MANUAL_RESOLUTION' AND attempt_id IS NULL)
+        OR
+        (receipt_type<>'MANUAL_RESOLUTION' AND attempt_id IS NOT NULL)
+      ),
       UNIQUE(intent_id,receipt_content_sha256)
     ) STRICT;
     CREATE INDEX idx_external_action_receipts_intent
       ON external_action_receipts(intent_id,created_at,receipt_id);
     CREATE INDEX idx_external_action_receipts_attempt
-      ON external_action_receipts(attempt_id,created_at,receipt_id) WHERE attempt_id<>'';
+      ON external_action_receipts(attempt_id,created_at,receipt_id) WHERE attempt_id IS NOT NULL;
 
     CREATE TABLE external_outcome_reconciliations(
       reconciliation_id TEXT PRIMARY KEY,
@@ -373,11 +411,17 @@ function createWpBFactTables(db) {
       evidence_reference TEXT NOT NULL,
       remote_receipt_id TEXT NOT NULL DEFAULT '',
       observation_json TEXT NOT NULL DEFAULT '{}',
+      reconciliation_content_sha256 TEXT NOT NULL CHECK(length(reconciliation_content_sha256)=64),
+      content_hash_version INTEGER NOT NULL CHECK(content_hash_version=1),
       observed_at TEXT NOT NULL,
       authority_timestamp TEXT NOT NULL,
       created_at TEXT NOT NULL,
       FOREIGN KEY(intent_id) REFERENCES external_action_intents(intent_id) ON DELETE RESTRICT,
-      FOREIGN KEY(attempt_id) REFERENCES external_action_attempts(attempt_id) ON DELETE RESTRICT
+      FOREIGN KEY(attempt_id,intent_id)
+        REFERENCES external_action_attempts(attempt_id,intent_id) ON DELETE RESTRICT,
+      CHECK(lower(reconciliation_content_sha256)=reconciliation_content_sha256),
+      CHECK(reconciliation_content_sha256 NOT GLOB '*[^0-9a-f]*'),
+      UNIQUE(intent_id,reconciliation_content_sha256)
     ) STRICT;
     CREATE INDEX idx_external_outcome_reconciliations_intent
       ON external_outcome_reconciliations(intent_id,created_at,reconciliation_id);
@@ -422,6 +466,12 @@ function ensureExactColumns(db, table, expected) {
 
 function ensureConsistency(db) {
   ensureExactColumns(db, 'durable_executions', DURABLE_EXECUTION_COLUMNS);
+  ensureExactColumns(db, 'external_action_receipts', EXTERNAL_ACTION_RECEIPT_COLUMNS);
+  ensureExactColumns(
+    db,
+    'external_outcome_reconciliations',
+    EXTERNAL_OUTCOME_RECONCILIATION_COLUMNS
+  );
 
   for (const table of [...APPEND_ONLY_TABLES, ...MUTABLE_CAS_TABLES]) {
     if (!tableExists(db, table)) {
@@ -595,6 +645,8 @@ module.exports = Object.freeze({
   WP_B_SCHEMA_CONTRACT,
   DURABLE_EXECUTION_STATES,
   DURABLE_EXECUTION_COLUMNS,
+  EXTERNAL_ACTION_RECEIPT_COLUMNS,
+  EXTERNAL_OUTCOME_RECONCILIATION_COLUMNS,
   APPEND_ONLY_TABLES,
   MUTABLE_CAS_TABLES,
   appendOnlyTriggerName,

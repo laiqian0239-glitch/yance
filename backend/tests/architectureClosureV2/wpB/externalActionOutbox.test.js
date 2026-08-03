@@ -15,7 +15,7 @@ test('external action outbox exposes immutable intent, claim, attempt and receip
   const { ExternalActionOutboxAuthority } = outboxModule();
   for (const method of [
     'createIntent', 'claimIntent', 'startAttempt', 'recordReceipt',
-    'recordFailureReceipt', 'markUncertain', 'recordLateResult'
+    'recordFailureReceipt', 'markUncertain', 'recordReconciliation', 'recordLateResult'
   ]) assert.equal(typeof ExternalActionOutboxAuthority.prototype[method], 'function', method);
 });
 

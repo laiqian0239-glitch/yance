@@ -176,6 +176,16 @@ function reconcileExternalOutcome(options = {}) {
       'Reconciliation options must be a plain object'
     );
   }
+  const intentId = requiredString(
+    options.intentId,
+    'intentId',
+    'WP_B_RECONCILIATION_FIELD_REQUIRED'
+  );
+  const attemptId = requiredString(
+    options.attemptId,
+    'attemptId',
+    'WP_B_RECONCILIATION_FIELD_REQUIRED'
+  );
   const observation = normalizeReconciliationObservation(options.observation);
   const authorityTimestamp = normalizeTimestamp(
     options.authorityTimestamp,
@@ -183,55 +193,88 @@ function reconcileExternalOutcome(options = {}) {
     'WP_B_RECONCILIATION_AUTHORITY_TIMESTAMP_INVALID'
   );
 
-  if (observation.outcome !== OUTCOMES.REMOTE_SUCCESS_PROVEN) {
-    return deepFreeze({
-      schemaVersion: 1,
-      authority: 'ExternalOutcomeReconciliation',
-      operationId: observation.operationId,
-      outcome: observation.outcome,
-      terminal: false,
-      state: observation.outcome === OUTCOMES.REMOTE_RESULT_UNKNOWN
-        ? 'REMOTE_RESULT_UNKNOWN'
-        : 'REMOTE_ABSENCE_PROVEN',
-      retryAllowed: canScheduleAnotherAttempt(observation.outcome),
-      authorityTimestamp
-    });
-  }
-
   if (typeof options.transaction !== 'function') {
     throw reconciliationError(
       'WP_B_RECONCILIATION_TRANSACTION_REQUIRED',
-      'Remote success requires one Authority transaction for receipt and terminal transition'
+      'Reconciliation requires one Authority transaction for its durable observation'
     );
   }
-  if (typeof options.recordReceipt !== 'function') {
+  if (typeof options.recordReconciliation !== 'function') {
     throw reconciliationError(
-      'WP_B_RECONCILIATION_RECORD_RECEIPT_REQUIRED',
-      'Remote success requires the durable recordReceipt authority'
+      'WP_B_RECONCILIATION_RECORD_REQUIRED',
+      'Reconciliation requires the durable recordReconciliation authority'
     );
   }
-  if (typeof options.transitionExecution !== 'function') {
-    throw reconciliationError(
-      'WP_B_RECONCILIATION_TRANSITION_REQUIRED',
-      'Remote success requires the durable execution transition authority'
-    );
+  if (observation.outcome === OUTCOMES.REMOTE_SUCCESS_PROVEN) {
+    if (typeof options.recordReceipt !== 'function') {
+      throw reconciliationError(
+        'WP_B_RECONCILIATION_RECORD_RECEIPT_REQUIRED',
+        'Remote success requires the durable recordReceipt authority'
+      );
+    }
+    if (typeof options.transitionExecution !== 'function') {
+      throw reconciliationError(
+        'WP_B_RECONCILIATION_TRANSITION_REQUIRED',
+        'Remote success requires the durable execution transition authority'
+      );
+    }
   }
-
-  const trustedReceipt = deepFreeze({
-    schemaVersion: 1,
-    receiptType: 'REMOTE_SUCCESS_PROVEN',
-    authority: 'ExternalOutcomeReconciliation',
-    operationId: observation.operationId,
-    provider: observation.provider,
-    remoteReceiptId: observation.remoteReceiptId,
-    evidenceReference: observation.evidenceReference,
-    observedAt: observation.observedAt,
-    authorityTimestamp,
-    result: observation.result,
-    appendOnly: true
-  });
 
   return assertSynchronous(options.transaction(() => {
+    const persistedReconciliation = assertSynchronous(
+      options.recordReconciliation(deepFreeze({
+        schemaVersion: 1,
+        authority: 'ExternalOutcomeReconciliation',
+        intentId,
+        attemptId,
+        observationOutcome: observation.outcome,
+        evidenceReference: observation.evidenceReference,
+        remoteReceiptId: observation.remoteReceiptId,
+        observation: deepFreeze({
+          provider: observation.provider,
+          operationId: observation.operationId,
+          result: observation.result
+        }),
+        observedAt: observation.observedAt,
+        authorityTimestamp
+      })),
+      'recordReconciliation'
+    );
+    const reconciliationId = requiredString(
+      persistedReconciliation?.reconciliationId,
+      'recordReconciliation.reconciliationId',
+      'WP_B_RECONCILIATION_TRUSTED_RECORD_INVALID'
+    );
+
+    if (observation.outcome !== OUTCOMES.REMOTE_SUCCESS_PROVEN) {
+      return deepFreeze({
+        schemaVersion: 1,
+        authority: 'ExternalOutcomeReconciliation',
+        operationId: observation.operationId,
+        outcome: observation.outcome,
+        terminal: false,
+        state: observation.outcome === OUTCOMES.REMOTE_RESULT_UNKNOWN
+          ? 'REMOTE_RESULT_UNKNOWN'
+          : 'REMOTE_ABSENCE_PROVEN',
+        retryAllowed: canScheduleAnotherAttempt(observation.outcome),
+        reconciliationId,
+        authorityTimestamp
+      });
+    }
+
+    const trustedReceipt = deepFreeze({
+      schemaVersion: 1,
+      receiptType: 'REMOTE_SUCCESS_PROVEN',
+      authority: 'ExternalOutcomeReconciliation',
+      operationId: observation.operationId,
+      provider: observation.provider,
+      remoteReceiptId: observation.remoteReceiptId,
+      evidenceReference: observation.evidenceReference,
+      observedAt: observation.observedAt,
+      authorityTimestamp,
+      result: observation.result,
+      appendOnly: true
+    });
     const persisted = assertSynchronous(options.recordReceipt(trustedReceipt), 'recordReceipt');
     const trustedReceiptId = requiredString(
       persisted?.receiptId,
@@ -256,6 +299,7 @@ function reconcileExternalOutcome(options = {}) {
       terminal: true,
       state: 'SUCCEEDED',
       retryAllowed: false,
+      reconciliationId,
       trustedReceiptId,
       authorityTimestamp
     });

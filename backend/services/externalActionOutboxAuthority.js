@@ -8,6 +8,12 @@ const { deepFreeze } = require('../lib/deepFreeze');
 const AUTHORITY = 'ExternalActionOutboxAuthority';
 const HASH_VERSION = 1;
 const HASH_PATTERN = /^[a-f0-9]{64}$/u;
+const RECONCILIATION_OUTCOMES = Object.freeze({
+  REMOTE_SUCCESS_PROVEN: 'REMOTE_SUCCESS_PROVEN',
+  REMOTE_ABSENCE_PROVEN: 'REMOTE_ABSENCE_PROVEN',
+  REMOTE_RESULT_UNKNOWN: 'REMOTE_RESULT_UNKNOWN'
+});
+const RECONCILIATION_OUTCOME_VALUES = new Set(Object.values(RECONCILIATION_OUTCOMES));
 const RECEIPT_TYPES = Object.freeze({
   SUCCESS: 'SUCCESS',
   FAILURE: 'FAILURE',
@@ -177,6 +183,28 @@ function receiptSnapshot(row = {}) {
     evidenceReference: String(row.evidence_reference || ''),
     receiptContentSha256: String(row.receipt_content_sha256 || ''),
     result: canonicalPlainData(parseJson(row.result_json, {}), 'persistedReceipt.result'),
+    authorityTimestamp: String(row.authority_timestamp || ''),
+    createdAt: String(row.created_at || '')
+  });
+}
+
+function reconciliationSnapshot(row = {}) {
+  return deepFreeze({
+    schemaVersion: 1,
+    authority: AUTHORITY,
+    reconciliationId: String(row.reconciliation_id || ''),
+    intentId: String(row.intent_id || ''),
+    attemptId: String(row.attempt_id || ''),
+    observationOutcome: String(row.observation_outcome || ''),
+    evidenceReference: String(row.evidence_reference || ''),
+    remoteReceiptId: String(row.remote_receipt_id || ''),
+    observation: canonicalPlainData(
+      parseJson(row.observation_json, {}),
+      'persistedReconciliation.observation'
+    ),
+    reconciliationContentSha256: String(row.reconciliation_content_sha256 || ''),
+    contentHashVersion: Number(row.content_hash_version || 0),
+    observedAt: String(row.observed_at || ''),
     authorityTimestamp: String(row.authority_timestamp || ''),
     createdAt: String(row.created_at || '')
   });
@@ -511,26 +539,16 @@ class ExternalActionOutboxAuthority {
         WHERE intent_id=? AND receipt_content_sha256=?`).get(facts.intentId, receiptContentSha256);
       if (existing) return receiptSnapshot(existing);
 
-      const receiptId = optionalString(input.receiptId, 'receiptId') || this.idFactory('external-receipt');
-      store.db.prepare(`INSERT INTO external_action_receipts(
-        receipt_id,intent_id,attempt_id,receipt_type,provider_receipt_id,evidence_reference,
-        receipt_content_sha256,result_json,authority_timestamp,created_at
-      ) VALUES(?,?,?,?,?,?,?,?,?,?)`).run(
-        receiptId,
-        facts.intentId,
-        attemptId,
-        receiptType,
-        providerReceiptId,
-        evidenceReference,
-        receiptContentSha256,
-        canonicalSerialize(resultDocument),
-        authorityTimestamp,
-        authorityTimestamp
-      );
       const update = store.db.prepare(`UPDATE external_action_claims SET
           state=?,state_version=state_version+1,updated_at=?
         WHERE intent_id=? AND state='ATTEMPTED' AND state_version=? AND generation=?
           AND owner_id=? AND claim_id=? AND host_generation=? AND fencing_token=?
+          AND lease_expires_at>=?
+          AND EXISTS(
+            SELECT 1 FROM external_action_attempts
+            WHERE attempt_id=? AND intent_id=? AND claim_id=? AND generation=?
+              AND host_generation=? AND fencing_token=?
+          )
           AND EXISTS(
             SELECT 1 FROM authority_write_host_lease
             WHERE singleton_id=1 AND owner_instance_id=? AND host_generation=?
@@ -545,6 +563,13 @@ class ExternalActionOutboxAuthority {
         facts.claimId,
         facts.hostGeneration,
         facts.fencingToken,
+        authorityTimestamp,
+        attemptId,
+        facts.intentId,
+        facts.claimId,
+        facts.generation,
+        facts.hostGeneration,
+        facts.fencingToken,
         facts.hostId,
         facts.hostGeneration,
         facts.fencingToken
@@ -552,12 +577,114 @@ class ExternalActionOutboxAuthority {
       if (Number(update.changes || 0) !== 1) {
         throw outboxError('WP_B_OUTBOX_RECEIPT_CAS_REJECTED', 'External action receipt CAS rejected', {
           intentId: facts.intentId,
+          attemptId,
           receiptType
         });
+      }
+
+      const receiptId = optionalString(input.receiptId, 'receiptId') || this.idFactory('external-receipt');
+      const inserted = store.db.prepare(`INSERT INTO external_action_receipts(
+          receipt_id,intent_id,attempt_id,receipt_type,provider_receipt_id,evidence_reference,
+          receipt_content_sha256,result_json,authority_timestamp,created_at
+        )
+        SELECT ?,a.intent_id,a.attempt_id,?,?,?,?,?,?,?
+        FROM external_action_attempts a
+        WHERE a.attempt_id=? AND a.intent_id=?`).run(
+        receiptId,
+        receiptType,
+        providerReceiptId,
+        evidenceReference,
+        receiptContentSha256,
+        canonicalSerialize(resultDocument),
+        authorityTimestamp,
+        authorityTimestamp,
+        attemptId,
+        facts.intentId
+      );
+      if (Number(inserted.changes || 0) !== 1) {
+        throw outboxError(
+          'WP_B_OUTBOX_ATTEMPT_BINDING_REJECTED',
+          'External action receipt attempt does not belong to the claimed intent',
+          { intentId: facts.intentId, attemptId }
+        );
       }
       return receiptSnapshot(store.db.prepare(
         'SELECT * FROM external_action_receipts WHERE receipt_id=?'
       ).get(receiptId));
+    });
+  }
+
+  recordReconciliation(input = {}) {
+    const reconciliationId = optionalString(input.reconciliationId, 'reconciliationId')
+      || this.idFactory('external-reconciliation');
+    const intentId = requiredString(input.intentId, 'intentId');
+    const attemptId = requiredString(input.attemptId, 'attemptId');
+    const observationOutcome = requiredString(
+      input.observationOutcome || input.outcome,
+      'observationOutcome',
+      64
+    );
+    if (!RECONCILIATION_OUTCOME_VALUES.has(observationOutcome)) {
+      throw outboxError(
+        'WP_B_RECONCILIATION_OUTCOME_INVALID',
+        'External outcome reconciliation has an unregistered outcome',
+        { observationOutcome }
+      );
+    }
+    const evidenceReference = requiredString(input.evidenceReference, 'evidenceReference');
+    const remoteReceiptId = optionalString(input.remoteReceiptId, 'remoteReceiptId');
+    const observation = canonicalPlainData(input.observation || {}, 'observation');
+    const observedAt = normalizedTimestamp(input.observedAt, 'observedAt');
+    const authorityTimestamp = normalizedTimestamp(input.authorityTimestamp, 'authorityTimestamp');
+    const reconciliationContentSha256 = canonicalHash({
+      schemaVersion: 1,
+      intentId,
+      attemptId,
+      observationOutcome,
+      evidenceReference,
+      remoteReceiptId,
+      observation,
+      observedAt,
+      authorityTimestamp
+    });
+    const store = this.store();
+    this.assertSchema23(store);
+    return store.transaction(() => {
+      const existing = store.db.prepare(`SELECT * FROM external_outcome_reconciliations
+        WHERE intent_id=? AND reconciliation_content_sha256=?`)
+        .get(intentId, reconciliationContentSha256);
+      if (existing) return reconciliationSnapshot(existing);
+
+      const inserted = store.db.prepare(`INSERT INTO external_outcome_reconciliations(
+          reconciliation_id,intent_id,attempt_id,observation_outcome,evidence_reference,
+          remote_receipt_id,observation_json,reconciliation_content_sha256,
+          content_hash_version,observed_at,authority_timestamp,created_at
+        )
+        SELECT ?,a.intent_id,a.attempt_id,?,?,?,?,?,1,?,?,?
+        FROM external_action_attempts a
+        WHERE a.attempt_id=? AND a.intent_id=?`).run(
+        reconciliationId,
+        observationOutcome,
+        evidenceReference,
+        remoteReceiptId,
+        canonicalSerialize(observation),
+        reconciliationContentSha256,
+        observedAt,
+        authorityTimestamp,
+        authorityTimestamp,
+        attemptId,
+        intentId
+      );
+      if (Number(inserted.changes || 0) !== 1) {
+        throw outboxError(
+          'WP_B_RECONCILIATION_ATTEMPT_BINDING_REJECTED',
+          'External outcome reconciliation attempt does not belong to its intent',
+          { intentId, attemptId }
+        );
+      }
+      return reconciliationSnapshot(store.db.prepare(
+        'SELECT * FROM external_outcome_reconciliations WHERE reconciliation_id=?'
+      ).get(reconciliationId));
     });
   }
 
@@ -585,21 +712,31 @@ class ExternalActionOutboxAuthority {
         WHERE intent_id=? AND receipt_content_sha256=?`).get(intentId, receiptContentSha256);
       if (existing) return receiptSnapshot(existing);
       const receiptId = optionalString(input.receiptId, 'receiptId') || this.idFactory('external-late-result');
-      store.db.prepare(`INSERT INTO external_action_receipts(
-        receipt_id,intent_id,attempt_id,receipt_type,provider_receipt_id,evidence_reference,
-        receipt_content_sha256,result_json,authority_timestamp,created_at
-      ) VALUES(?,?,?,?,?,?,?,?,?,?)`).run(
+      const inserted = store.db.prepare(`INSERT INTO external_action_receipts(
+          receipt_id,intent_id,attempt_id,receipt_type,provider_receipt_id,evidence_reference,
+          receipt_content_sha256,result_json,authority_timestamp,created_at
+        )
+        SELECT ?,a.intent_id,a.attempt_id,?,?,?,?,?,?,?
+        FROM external_action_attempts a
+        WHERE a.attempt_id=? AND a.intent_id=?`).run(
         receiptId,
-        intentId,
-        attemptId,
         RECEIPT_TYPES.LATE_RESULT,
         providerReceiptId,
         evidenceReference,
         receiptContentSha256,
         canonicalSerialize(resultDocument),
         authorityTimestamp,
-        authorityTimestamp
+        authorityTimestamp,
+        attemptId,
+        intentId
       );
+      if (Number(inserted.changes || 0) !== 1) {
+        throw outboxError(
+          'WP_B_OUTBOX_ATTEMPT_BINDING_REJECTED',
+          'Late-result attempt does not belong to the supplied intent',
+          { intentId, attemptId }
+        );
+      }
       return receiptSnapshot(store.db.prepare(
         'SELECT * FROM external_action_receipts WHERE receipt_id=?'
       ).get(receiptId));
@@ -611,6 +748,7 @@ module.exports = Object.freeze({
   AUTHORITY,
   HASH_VERSION,
   RECEIPT_TYPES,
+  RECONCILIATION_OUTCOMES,
   ExternalActionOutboxAuthority,
   normalizeIntentCommand,
   outboxError

@@ -49,10 +49,12 @@ test('normalized observations are exact, canonical and deeply immutable', () => 
   );
 });
 
-test('remote success records one trusted receipt before terminal transition in one transaction', () => {
+test('remote success persists reconciliation and receipt before terminal transition in one transaction', () => {
   const { reconcileExternalOutcome } = reconciliationModule();
   const calls = [];
   const result = reconcileExternalOutcome({
+    intentId: 'intent-1',
+    attemptId: 'attempt-1',
     observation: provenSuccess(),
     authorityTimestamp: '2026-08-03T02:45:01.000Z',
     transaction(callback) {
@@ -60,6 +62,10 @@ test('remote success records one trusted receipt before terminal transition in o
       const value = callback();
       calls.push(['transaction-commit']);
       return value;
+    },
+    recordReconciliation(reconciliation) {
+      calls.push(['recordReconciliation', reconciliation]);
+      return { reconciliationId: 'reconciliation-1' };
     },
     recordReceipt(receipt) {
       calls.push(['recordReceipt', receipt]);
@@ -73,12 +79,14 @@ test('remote success records one trusted receipt before terminal transition in o
 
   assert.deepEqual(calls.map(([name]) => name), [
     'transaction-begin',
+    'recordReconciliation',
     'recordReceipt',
     'transitionExecution',
     'transaction-commit'
   ]);
-  assert.equal(calls[2][1].state, 'SUCCEEDED');
-  assert.equal(calls[2][1].trustedReceiptId, 'trusted-receipt-1');
+  assert.equal(calls[3][1].state, 'SUCCEEDED');
+  assert.equal(calls[3][1].trustedReceiptId, 'trusted-receipt-1');
+  assert.equal(result.reconciliationId, 'reconciliation-1');
   assert.equal(result.state, 'SUCCEEDED');
   assert.equal(Object.isFrozen(result), true);
 });
@@ -88,9 +96,12 @@ test('receipt persistence failure prevents a terminal transition', () => {
   let transitionCount = 0;
   assert.throws(
     () => reconcileExternalOutcome({
+      intentId: 'intent-1',
+      attemptId: 'attempt-1',
       observation: provenSuccess(),
       authorityTimestamp: '2026-08-03T02:45:01.000Z',
       transaction(callback) { return callback(); },
+      recordReconciliation() { return { reconciliationId: 'reconciliation-1' }; },
       recordReceipt() {
         throw Object.assign(new Error('storage failed'), { code: 'STORAGE_FAILED' });
       },
@@ -114,15 +125,16 @@ test('remote absence is the only observation that permits another physical attem
   );
 });
 
-test('absence and unknown outcomes remain nonterminal and side-effect free', () => {
+test('absence and unknown outcomes persist one reconciliation and remain nonterminal', () => {
   const { reconcileExternalOutcome, OUTCOMES } = reconciliationModule();
   for (const [outcome, retryAllowed] of [
     [OUTCOMES.REMOTE_ABSENCE_PROVEN, true],
     [OUTCOMES.REMOTE_RESULT_UNKNOWN, false]
   ]) {
-    let receiptCount = 0;
-    let transitionCount = 0;
+    const calls = [];
     const result = reconcileExternalOutcome({
+      intentId: 'intent-1',
+      attemptId: 'attempt-1',
       observation: {
         outcome,
         provider: 'facebook',
@@ -132,13 +144,27 @@ test('absence and unknown outcomes remain nonterminal and side-effect free', () 
         result: {}
       },
       authorityTimestamp: '2026-08-03T02:45:01.000Z',
-      recordReceipt() { receiptCount += 1; },
-      transitionExecution() { transitionCount += 1; }
+      transaction(callback) {
+        calls.push('transaction-begin');
+        const value = callback();
+        calls.push('transaction-commit');
+        return value;
+      },
+      recordReconciliation() {
+        calls.push('recordReconciliation');
+        return { reconciliationId: `reconciliation-${outcome}` };
+      },
+      recordReceipt() { calls.push('recordReceipt'); },
+      transitionExecution() { calls.push('transitionExecution'); }
     });
+    assert.deepEqual(calls, [
+      'transaction-begin',
+      'recordReconciliation',
+      'transaction-commit'
+    ]);
     assert.equal(result.terminal, false);
     assert.equal(result.retryAllowed, retryAllowed);
-    assert.equal(receiptCount, 0);
-    assert.equal(transitionCount, 0);
+    assert.equal(result.reconciliationId, `reconciliation-${outcome}`);
   }
 });
 
