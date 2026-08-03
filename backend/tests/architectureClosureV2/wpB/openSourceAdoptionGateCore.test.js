@@ -25,6 +25,14 @@ function fixture() {
   };
 }
 
+function resetStepsAfter(candidate, lastCompletedStepId) {
+  const lastCompletedIndex = EXPECTED_STEP_IDS.indexOf(lastCompletedStepId);
+  assert.notEqual(lastCompletedIndex, -1, `unknown gate step: ${lastCompletedStepId}`);
+  for (let index = lastCompletedIndex + 1; index < EXPECTED_STEP_IDS.length; index += 1) {
+    candidate.gateSteps[EXPECTED_STEP_IDS[index]] = 'NOT_STARTED';
+  }
+}
+
 function exactPackageJson() {
   return {
     name: 'xstate-admission-fixture',
@@ -110,6 +118,7 @@ test('XState cross-platform fault validation is complete while provenance and pr
 test('a candidate cannot complete step 6 while step 5 is incomplete', () => {
   const { registry } = fixture();
   const changed = structuredClone(registry);
+  resetStepsAfter(changed.candidates[0], 'INTRODUCE_ORIGINAL_MODULE');
   changed.candidates[0].gateSteps.YANCE_RED_CONTRACT_FIRST = 'NOT_STARTED';
   changed.candidates[0].gateSteps.INTRODUCE_ORIGINAL_MODULE = 'COMPLETE';
   withSyntheticRepository({ packageJson: exactPackageJson(), packageLock: exactPackageLock() }, repositoryRoot => {
@@ -122,7 +131,7 @@ test('a candidate cannot complete step 6 while step 5 is incomplete', () => {
 test('XState production import before gate step 6 fails closed', () => {
   const { registry } = fixture();
   const changed = structuredClone(registry);
-  changed.candidates[0].gateSteps.INTRODUCE_ORIGINAL_MODULE = 'NOT_STARTED';
+  resetStepsAfter(changed.candidates[0], 'YANCE_RED_CONTRACT_FIRST');
   withSyntheticRepository({
     packageJson: exactPackageJson(),
     packageLock: exactPackageLock(),
@@ -131,13 +140,14 @@ test('XState production import before gate step 6 fails closed', () => {
     const report = verifyChangedRegistry(changed, repositoryRoot);
     assert.equal(report.ok, false);
     assert.ok(report.violations.some(item => item.code === 'WP_B_XSTATE_IMPORTED_BEFORE_GATE_STEP_6'));
+    assert.equal(report.violations.some(item => item.code === 'WP_B_OPEN_SOURCE_STEP_COMPLETED_OUT_OF_ORDER'), false);
   });
 });
 
 test('step 6 admits the exact physical package while keeping production imports at zero', () => {
   const { registry } = fixture();
   const changed = structuredClone(registry);
-  changed.candidates[0].gateSteps.YANCE_ADAPTER_BOUNDARY = 'NOT_STARTED';
+  resetStepsAfter(changed.candidates[0], 'INTRODUCE_ORIGINAL_MODULE');
   withSyntheticRepository({ packageJson: exactPackageJson(), packageLock: exactPackageLock() }, repositoryRoot => {
     const report = verifyChangedRegistry(changed, repositoryRoot);
     assert.equal(report.ok, true, JSON.stringify(report.violations, null, 2));
@@ -149,13 +159,15 @@ test('step 6 admits the exact physical package while keeping production imports 
 
 test('step 6 rejects missing manifest or physical lock binding', () => {
   const { registry } = fixture();
+  const changed = structuredClone(registry);
+  resetStepsAfter(changed.candidates[0], 'INTRODUCE_ORIGINAL_MODULE');
   withSyntheticRepository({ packageJson: { private: true }, packageLock: exactPackageLock() }, repositoryRoot => {
-    const report = verifyChangedRegistry(structuredClone(registry), repositoryRoot);
+    const report = verifyChangedRegistry(changed, repositoryRoot);
     assert.equal(report.ok, false);
     assert.ok(report.violations.some(item => item.code === 'WP_B_XSTATE_PACKAGE_MANIFEST_INVALID'));
   });
   withSyntheticRepository({ packageJson: exactPackageJson(), packageLock: { lockfileVersion: 3, packages: {} } }, repositoryRoot => {
-    const report = verifyChangedRegistry(structuredClone(registry), repositoryRoot);
+    const report = verifyChangedRegistry(changed, repositoryRoot);
     assert.equal(report.ok, false);
     assert.ok(report.violations.some(item => item.code === 'WP_B_XSTATE_LOCK_BINDING_INVALID'));
   });
@@ -164,7 +176,7 @@ test('step 6 rejects missing manifest or physical lock binding', () => {
 test('production import remains forbidden until the Adapter boundary step is complete', () => {
   const { registry } = fixture();
   const changed = structuredClone(registry);
-  changed.candidates[0].gateSteps.YANCE_ADAPTER_BOUNDARY = 'NOT_STARTED';
+  resetStepsAfter(changed.candidates[0], 'UPSTREAM_TESTS_PASS');
   withSyntheticRepository({
     packageJson: exactPackageJson(),
     packageLock: exactPackageLock(),
@@ -173,5 +185,6 @@ test('production import remains forbidden until the Adapter boundary step is com
     const report = verifyChangedRegistry(changed, repositoryRoot);
     assert.equal(report.ok, false);
     assert.ok(report.violations.some(item => item.code === 'WP_B_XSTATE_IMPORTED_BEFORE_ADAPTER_GATE'));
+    assert.equal(report.violations.some(item => item.code === 'WP_B_OPEN_SOURCE_STEP_COMPLETED_OUT_OF_ORDER'), false);
   });
 });
