@@ -11,7 +11,7 @@ function canonicalSha256(value) {
     expectedCode: item.expectedCode,
     id: item.id,
     phase: item.phase
-  })).sort((left, right) => left.id.localeCompare(right.id)))).digest('hex');
+  })))).digest('hex');
 }
 
 test('XState fault RED evidence is exact-head, dual-platform and capability-only', () => {
