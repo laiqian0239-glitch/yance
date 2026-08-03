@@ -113,6 +113,32 @@ function createMediaTransferScheduler({
   });
 }
 
+function persistedMediaAttempt(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !Object.isFrozen(value)) {
+    throw mediaTransferError('WP_B_MEDIA_TRANSFER_ATTEMPT_REQUIRED', 'Media materialization requires one frozen persisted attempt');
+  }
+  for (const field of ['executionId', 'intentId', 'attemptId', 'claimId', 'ownerId', 'idempotencyKey']) {
+    try { requiredString(value[field], `persistedAttempt.${field}`); }
+    catch (error) {
+      throw mediaTransferError('WP_B_MEDIA_TRANSFER_ATTEMPT_REQUIRED', error.message, { field });
+    }
+  }
+  for (const field of ['generation', 'hostGeneration', 'fencingToken']) {
+    const number = Number(value[field]);
+    if (!Number.isSafeInteger(number) || number < 1) {
+      throw mediaTransferError('WP_B_MEDIA_TRANSFER_ATTEMPT_REQUIRED', `persistedAttempt.${field} is required`, { field });
+    }
+  }
+  if (!value.request || typeof value.request !== 'object' || Array.isArray(value.request) || !Object.isFrozen(value.request)) {
+    throw mediaTransferError('WP_B_MEDIA_TRANSFER_ATTEMPT_REQUIRED', 'Persisted media request is required');
+  }
+  assertReferenceOnlyEnvelope(value);
+  if (String(value.request.transferKind || '').toUpperCase() !== 'FETCH') {
+    throw mediaTransferError('WP_B_MEDIA_TRANSFER_ATTEMPT_REQUIRED', 'Media materialization requires a FETCH attempt');
+  }
+  return value;
+}
+
 function mediaDirectory(accountId, conversationId) {
   const dir = path.join(PATHS.media, safePart(accountId, 'account'), safePart(conversationId, 'conversation'));
   ensureDir(dir);
@@ -208,9 +234,7 @@ function saveFile({ accountId, conversationId, messageId, filePath, descriptor =
   };
   eventBus.publish('media:ready', { accountId, conversationId, messageId, attachment: row });
   return row;
-
 }
-
 
 function canonicalBaileysMediaInfo(info = {}) {
   const chatJid = stableJid(info);
@@ -221,7 +245,8 @@ function canonicalBaileysMediaInfo(info = {}) {
   };
 }
 
-async function materializeBaileys({ accountId, conversationId, messageId, info, socket, descriptor, timeoutMs = 45000 }) {
+async function materializeBaileys({ accountId, conversationId, messageId, info, socket, descriptor, persistedAttempt, timeoutMs = 45000 }) {
+  persistedMediaAttempt(persistedAttempt);
   if (descriptor?.downloadable === false) {
     return { ...descriptor, downloadStatus: 'unsupported', cachedAt: new Date().toISOString() };
   }
@@ -303,6 +328,7 @@ module.exports = {
   saveFile,
   canonicalBaileysMediaInfo,
   materializeBaileys,
+  persistedMediaAttempt,
   resolveFile,
   cleanup,
   verifyBuffer,
