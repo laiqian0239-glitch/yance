@@ -141,12 +141,20 @@ test('scanner rejects an unregistered writable primary-store acquisition', () =>
 });
 
 test('WP-A source closure report is globally closed across frozen and active registry layers', () => {
+  const registry = readJson(scanner.REGISTRY_PATH);
+  const extensions = scanner.loadRegistryExtensions();
+  const extensionEntries = extensions.flatMap(extension => extension.document.entries || []);
+  const registeredPaths = new Set([
+    ...registry.entries.map(entry => scanner.normalizePath(entry.path)),
+    ...extensionEntries.map(entry => scanner.normalizePath(entry.sourcePath))
+  ]);
   const report = scanner.scanRegisteredSources({ wp: 'A' });
+
   assert.equal(report.schemaVersion, 3);
   assert.ok(report.scannedSourceFiles > 0, 'source closure must scan real backend source files');
-  assert.equal(report.registryEntries, 11);
-  assert.equal(report.registryExtensionEntries, 1);
-  assert.equal(report.totalRegisteredSourcePaths, 12);
+  assert.equal(report.registryEntries, registry.entries.length);
+  assert.equal(report.registryExtensionEntries, extensionEntries.length);
+  assert.equal(report.totalRegisteredSourcePaths, registeredPaths.size);
   assert.equal(report.counts.REGISTRY_INVALID || 0, 0, 'governance registry/configuration must remain valid');
   assert.deepEqual(report.violations, []);
   assert.equal(report.violationCount, 0);
