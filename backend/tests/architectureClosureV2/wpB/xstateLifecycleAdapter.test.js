@@ -73,7 +73,9 @@ test('Schema and store metadata load without eagerly loading the XState runtime'
       lifecycle.nextLifecycleState(lifecycle.STATES.CREATED, lifecycle.EVENTS.SCHEDULE);
       process.exit(33);
     } catch (error) {
-      if (error.code !== 'WP_B_XSTATE_EAGER_LOAD_FORBIDDEN') throw error;
+      if (error.code !== 'WP_B_XSTATE_RUNTIME_UNAVAILABLE') throw error;
+      if (error.phase !== 'LOAD_RUNTIME') throw error;
+      if (error.causeCode !== 'WP_B_XSTATE_EAGER_LOAD_FORBIDDEN') throw error;
     }
   `;
   const result = spawnSync(process.execPath, ['-e', script], {
