@@ -105,6 +105,7 @@ function safeMetadataScalar(value) {
 function repositoryLocation(value) {
   const scalar = unquoteScalar(value)
     .replace(/\\/gu, '/')
+    .replace(/\/+/gu, '/')
     .replace(/^\(/u, '')
     .replace(/\)$/u, '');
   const match = scalar.match(/(?:^|\/)((?:backend|tools|electron|shared|governance|\.github)\/[A-Za-z0-9_.\/-]+:\d+:\d+)$/u);
