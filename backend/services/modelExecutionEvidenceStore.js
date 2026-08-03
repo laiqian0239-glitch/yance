@@ -50,12 +50,14 @@ function sanitize(receipt = {}) {
 }
 function append(receipt = {}) {
   const row = sanitize(receipt);
-  return store.update(document => {
-    document.schemaVersion = SCHEMA_VERSION;
-    document.authority = AUTHORITY;
-    document.recent = [row, ...(Array.isArray(document.recent) ? document.recent : []).filter(existing => existing.executionId !== row.executionId)].slice(0, MAX_RECENT);
-    return document;
-  }).then(() => row);
+  return Promise.resolve()
+    .then(() => store.update(document => {
+      document.schemaVersion = SCHEMA_VERSION;
+      document.authority = AUTHORITY;
+      document.recent = [row, ...(Array.isArray(document.recent) ? document.recent : []).filter(existing => existing.executionId !== row.executionId)].slice(0, MAX_RECENT);
+      return document;
+    }))
+    .then(() => row);
 }
 function readRecent(limit = 50) {
   const document = store.read();
