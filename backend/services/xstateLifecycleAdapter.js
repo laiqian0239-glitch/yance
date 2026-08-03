@@ -8,16 +8,49 @@ function adapterError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
 }
 
+function causeDetails(error) {
+  return {
+    causeCode: String(error?.code || error?.name || 'XSTATE_RUNTIME_ERROR'),
+    causeName: String(error?.name || 'Error')
+  };
+}
+
+function runtimeFailure(phase, error) {
+  return adapterError(
+    'WP_B_XSTATE_RUNTIME_FAILURE',
+    `XState runtime operation failed: ${phase}`,
+    { phase, ...causeDetails(error) }
+  );
+}
+
+function invokeRuntime(phase, operation) {
+  try {
+    return operation();
+  } catch (error) {
+    throw runtimeFailure(phase, error);
+  }
+}
+
 function loadXStateRuntime() {
   if (cachedXStateRuntime) return cachedXStateRuntime;
 
-  const runtime = require('xstate');
+  let runtime;
+  try {
+    runtime = require('xstate');
+  } catch (error) {
+    throw adapterError(
+      'WP_B_XSTATE_RUNTIME_UNAVAILABLE',
+      'XState runtime is unavailable at the lifecycle transition boundary',
+      { phase: 'LOAD_RUNTIME', ...causeDetails(error) }
+    );
+  }
+
   for (const exportName of ['createMachine', 'getInitialSnapshot', 'getNextSnapshot']) {
     if (typeof runtime?.[exportName] !== 'function') {
       throw adapterError(
         'WP_B_XSTATE_RUNTIME_INVALID',
         `XState runtime export is missing: ${exportName}`,
-        { exportName }
+        { phase: 'VALIDATE_RUNTIME_EXPORTS', exportName }
       );
     }
   }
@@ -152,9 +185,9 @@ function createLifecycleAdapter(inputConfig) {
     getInitialSnapshot,
     getNextSnapshot
   } = loadXStateRuntime();
-  const machine = createMachine(toMachineConfig(config));
-  const initialSnapshot = getInitialSnapshot(machine);
-  const initialStateValue = String(initialSnapshot.value);
+  const machine = invokeRuntime('CREATE_MACHINE', () => createMachine(toMachineConfig(config)));
+  const initialSnapshot = invokeRuntime('INITIAL_SNAPSHOT', () => getInitialSnapshot(machine));
+  const initialStateValue = invokeRuntime('INITIAL_SNAPSHOT_RESULT', () => String(initialSnapshot.value));
 
   if (initialStateValue !== config.initial) {
     throw adapterError(
@@ -197,9 +230,15 @@ function createLifecycleAdapter(inputConfig) {
         );
       }
 
-      const currentSnapshot = machine.resolveState({ value: state, context: {} });
-      const nextSnapshot = getNextSnapshot(machine, currentSnapshot, { type: eventType });
-      const actualTarget = String(nextSnapshot.value);
+      const currentSnapshot = invokeRuntime(
+        'RESOLVE_STATE',
+        () => machine.resolveState({ value: state, context: {} })
+      );
+      const nextSnapshot = invokeRuntime(
+        'TRANSITION',
+        () => getNextSnapshot(machine, currentSnapshot, { type: eventType })
+      );
+      const actualTarget = invokeRuntime('TRANSITION_RESULT', () => String(nextSnapshot.value));
       if (actualTarget !== expectedTarget) {
         throw adapterError(
           'WP_B_XSTATE_TRANSITION_PARITY_VIOLATION',
