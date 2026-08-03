@@ -26,11 +26,25 @@ fs.writeFileSync(registryPath, `${JSON.stringify(registry, null, 2)}\n`, 'utf8')
 
 const sourceClosurePath = path.join(repoRoot, 'backend', 'tests', 'architectureClosureV2', 'wpA', 'sourceClosureInventory.test.js');
 let sourceClosure = fs.readFileSync(sourceClosurePath, 'utf8');
-const staleCapabilities = "      allowedCapabilities: ['PRIMARY_DB_CONSTRUCTOR', 'BUSINESS_SQL_MUTATION'],\n";
-const governedCapabilities = "      allowedCapabilities: ['PRIMARY_DB_CONSTRUCTOR', 'PRIMARY_STORE_CONSTRUCTOR'],\n";
-const capabilityCount = sourceClosure.split(staleCapabilities).length - 1;
-if (capabilityCount !== 1) throw new Error(`expected one stale registry capability expectation, found ${capabilityCount}`);
-sourceClosure = sourceClosure.replace(staleCapabilities, governedCapabilities);
+const replacements = [
+  [
+    "      allowedCapabilities: ['PRIMARY_DB_CONSTRUCTOR', 'BUSINESS_SQL_MUTATION'],\n",
+    "      allowedCapabilities: ['PRIMARY_DB_CONSTRUCTOR', 'PRIMARY_STORE_CONSTRUCTOR'],\n"
+  ],
+  [
+    "      && error?.undeclared?.includes('BUSINESS_SQL_MUTATION')\n",
+    "      && error?.undeclared?.includes('PRIMARY_STORE_CONSTRUCTOR')\n"
+  ],
+  [
+    "    'PRIMARY_DB_CONSTRUCTOR',\n    'BUSINESS_SQL_MUTATION',\n    'RECOVERY_OR_FALLBACK_ENTRYPOINT'\n",
+    "    'PRIMARY_DB_CONSTRUCTOR',\n    'PRIMARY_STORE_CONSTRUCTOR',\n    'RECOVERY_OR_FALLBACK_ENTRYPOINT'\n"
+  ]
+];
+for (const [before, after] of replacements) {
+  const count = sourceClosure.split(before).length - 1;
+  if (count !== 1) throw new Error(`expected one stale source-closure fragment, found ${count}: ${before}`);
+  sourceClosure = sourceClosure.replace(before, after);
+}
 fs.writeFileSync(sourceClosurePath, sourceClosure, 'utf8');
 
 process.stdout.write('PR17_REFACTOR_CONTRACTS_PATCHED\n');
