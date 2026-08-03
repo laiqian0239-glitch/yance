@@ -215,8 +215,8 @@ jobs:
       - name: Install exact locked dependencies without lifecycle scripts
         run: npm ci --ignore-scripts --no-audit --no-fund
 
-      - name: Run XState Adapter contracts
-        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/xstateLifecycleAdapter.test.js
+      - name: Run XState Adapter and fault-injection contracts
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/xstateLifecycleAdapter.test.js backend/tests/architectureClosureV2/wpB/xstateLifecycleAdapterFaults.test.js
 
       - name: Confirm clean tracked workspace
         shell: bash
