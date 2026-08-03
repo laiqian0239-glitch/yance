@@ -182,3 +182,28 @@ test('production import remains forbidden until the Adapter boundary step is com
     assert.ok(report.violations.some(item => item.code === 'WP_B_XSTATE_IMPORTED_BEFORE_ADAPTER_GATE'));
   });
 });
+
+test('repository admits the exact XState original module without enabling production use', () => {
+  const { report, registry } = fixture();
+  const xstate = registry.candidates.find(candidate => candidate.project === 'XState');
+
+  assert.equal(xstate.gateSteps.INTRODUCE_ORIGINAL_MODULE, 'COMPLETE');
+  assert.equal(xstate.gateSteps.UPSTREAM_TESTS_PASS, 'COMPLETE');
+  assert.equal(xstate.gateSteps.YANCE_ADAPTER_BOUNDARY, 'NOT_STARTED');
+  assert.equal(xstate.status, 'ORIGINAL_MODULE_INTRODUCED');
+  assert.equal(xstate.productionUseAuthorized, false);
+  assert.equal(report.ok, true, JSON.stringify(report.violations, null, 2));
+  assert.equal(report.xstateOriginalModuleIntroduced, true);
+  assert.deepEqual(report.xstatePackageBinding, {
+    packageMentioned: true,
+    manifestVersion: XSTATE_VERSION,
+    rootLockVersion: XSTATE_VERSION,
+    manifestExact: true,
+    lockExact: true,
+    runtimeDependencyCount: 0,
+    exact: true
+  });
+  assert.equal(report.xstateProductionImportCount, 0);
+  assert.deepEqual(report.xstateProductionImportPaths, []);
+  assert.equal(report.productionUseAuthorized, false);
+});
