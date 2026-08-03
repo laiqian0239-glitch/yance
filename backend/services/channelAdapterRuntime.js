@@ -246,8 +246,36 @@ class ChannelAdapterRuntime {
 
   async queryDelivery(input = {}) {
     plain(input, 'QueryDeliveryRequest');
+    if (!this.communication || typeof this.communication.prepareDeliveryReceiptReconciliation !== 'function') {
+      throw fail('WP_B_DELIVERY_RECEIPT_AUTHORITY_REQUIRED', 'Delivery query requires durable reconciliation preparation', 503);
+    }
+    const accountReference = clean(input.accountId || input.accountReference);
+    const durableCommand = deepFreeze({
+      schemaVersion: 1,
+      platform: this.platform,
+      accountReference,
+      deliveryAttemptReference: clean(input.deliveryAttemptReference || input.targetAttemptId),
+      credentialReference: clean(input.credentialReference),
+      requestContentSha256: clean(input.requestContentSha256),
+      targetExecutionId: clean(input.targetExecutionId),
+      targetIntentId: clean(input.targetIntentId),
+      targetAttemptId: clean(input.targetAttemptId),
+      providerRequestId: clean(input.providerRequestId),
+      platformMessageId: clean(input.platformMessageId)
+    });
+    return this.communication.prepareDeliveryReceiptReconciliation({
+      traceId: clean(input.traceId),
+      idempotencyKey: clean(input.idempotencyKey),
+      deadlineAt: clean(input.deadlineAt),
+      maxAttempts: Number(input.maxAttempts || 3),
+      command: durableCommand
+    });
+  }
+
+  async readDeliveryState(input = {}) {
+    plain(input, 'ReadDeliveryStateRequest');
     if (!this.communication || typeof this.communication.readOutboundMessageState !== 'function') {
-      throw fail('WP_B_OUTBOUND_MESSAGE_AUTHORITY_REQUIRED', 'Delivery query requires CommunicationAuthority outbox projection', 503);
+      throw fail('WP_B_OUTBOUND_MESSAGE_AUTHORITY_REQUIRED', 'Delivery state requires CommunicationAuthority outbox projection', 503);
     }
     return this.communication.readOutboundMessageState({
       intentId: clean(input.intentId),
