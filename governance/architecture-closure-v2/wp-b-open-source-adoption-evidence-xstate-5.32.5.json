@@ -1,28 +1,46 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "documentType": "YANCE_ACV2_WP_B_XSTATE_ADOPTION_EVIDENCE",
   "workPackage": "WP-B",
   "candidateId": "XSTATE_CORE_5_32_5",
   "supplyChainAuthorityPath": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
-  "capturedAtHead": "84fbbfdea6524dfa4a74dd0a9b40b9ae9ca0805d",
+  "capturedAtHead": "48961a5efc21e23b512988a3beb22b08ca8894d6",
   "supersedes": {
-    "capturedAtHead": "c3d9ba7c63960a22e9995969a909b9ba27b337fa",
-    "reason": "REPAIRED_REPOSITORY_LOCK_NOW_MATCHES_THE_PHYSICAL_NPM_ARTIFACT_ON_UBUNTU_AND_WINDOWS",
+    "capturedAtHead": "84fbbfdea6524dfa4a74dd0a9b40b9ae9ca0805d",
+    "reason": "REPLACED_YANCE_AUTHORED_CONFORMANCE_WITH_REAL_XSTATE_PNPM_TEST_CORE_AND_CANONICAL_CROSS_PLATFORM_SOURCE_BYTES",
     "preservedHistoricalObservation": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json#/supersededObservation"
   },
   "workflowRun": {
-    "id": 30791436313,
+    "id": 30809421417,
     "name": "WP-B Validation",
     "exactHeadCheckoutEnforced": true,
     "ubuntu": {
-      "upstreamJobId": 91615614489,
+      "upstreamJobId": 91672352461,
       "status": "PASSED",
-      "testLogSha256": "726c53eb82f1b1458632858b41b892b102b6bd4c04aa0f3f88431266f382aaeb"
+      "installLogSha256": "81df163ff138e68140c9926526319f949b0b952646ad1987283c4c1e59f53528",
+      "testLogSha256": "b7ab83518fe8248f0e318fcfa88e2a47317cae6caefedc43fb20fbe5b0e0edec",
+      "testSummary": {
+        "testFilePassCount": 75,
+        "testFileFailCount": 0,
+        "testPassCount": 1747,
+        "testFailCount": 0,
+        "skipCount": 13,
+        "todoCount": 1
+      }
     },
     "windows": {
-      "upstreamJobId": 91615614428,
+      "upstreamJobId": 91672352425,
       "status": "PASSED",
-      "testLogSha256": "726c53eb82f1b1458632858b41b892b102b6bd4c04aa0f3f88431266f382aaeb"
+      "installLogSha256": "43562ebd282ce1e8e607b5f66bfff6e2e1172135090ffbe83c107716acb1801d",
+      "testLogSha256": "733b4a9a1252115859d776f8ed6111b1a503856f15ba1cad57148ea510a84a42",
+      "testSummary": {
+        "testFilePassCount": 75,
+        "testFileFailCount": 0,
+        "testPassCount": 1747,
+        "testFailCount": 0,
+        "skipCount": 13,
+        "todoCount": 1
+      }
     }
   },
   "repositoryBinding": {
@@ -66,17 +84,43 @@
   "upstreamConformance": {
     "status": "COMPLETE",
     "runtimeVersion": "node@22",
+    "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531",
+    "upstreamCommit": "c25dba07a2b68565edbe83d83c5d679dd85e00b2",
     "selection": [
-      "PACKAGE_EXPORTS_PRESENT",
-      "INITIAL_SNAPSHOT",
-      "UNHANDLED_EVENT_STABILITY",
-      "ACTOR_TRANSITION_SEQUENCE",
-      "FINAL_STATE_STATUS"
+      "XSTATE_PNPM_TEST_CORE"
     ],
-    "passCount": 5,
+    "command": "corepack pnpm test:core",
+    "passCount": 1,
     "failCount": 0,
-    "skipCount": 0,
-    "ubuntuAndWindowsOutputSha256": "726c53eb82f1b1458632858b41b892b102b6bd4c04aa0f3f88431266f382aaeb"
+    "commandSkipCount": 0,
+    "ubuntu": {
+      "upstreamJobId": 91672352461,
+      "status": "PASSED",
+      "installLogSha256": "81df163ff138e68140c9926526319f949b0b952646ad1987283c4c1e59f53528",
+      "testLogSha256": "b7ab83518fe8248f0e318fcfa88e2a47317cae6caefedc43fb20fbe5b0e0edec",
+      "testSummary": {
+        "testFilePassCount": 75,
+        "testFileFailCount": 0,
+        "testPassCount": 1747,
+        "testFailCount": 0,
+        "skipCount": 13,
+        "todoCount": 1
+      }
+    },
+    "windows": {
+      "upstreamJobId": 91672352425,
+      "status": "PASSED",
+      "installLogSha256": "43562ebd282ce1e8e607b5f66bfff6e2e1172135090ffbe83c107716acb1801d",
+      "testLogSha256": "733b4a9a1252115859d776f8ed6111b1a503856f15ba1cad57148ea510a84a42",
+      "testSummary": {
+        "testFilePassCount": 75,
+        "testFileFailCount": 0,
+        "testPassCount": 1747,
+        "testFailCount": 0,
+        "skipCount": 13,
+        "todoCount": 1
+      }
+    }
   },
   "adoptionModeDecision": {
     "status": "COMPLETE",

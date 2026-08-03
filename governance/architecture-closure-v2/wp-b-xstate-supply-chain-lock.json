@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "documentType": "YANCE_ACV2_WP_B_XSTATE_SUPPLY_CHAIN_LOCK",
   "workPackage": "WP-B",
   "candidateId": "XSTATE_CORE_5_32_5",
@@ -41,18 +41,47 @@
     }
   },
   "observation": {
-    "reviewedHead": "84fbbfdea6524dfa4a74dd0a9b40b9ae9ca0805d",
-    "workflowRunId": 30791436313,
+    "reviewedHead": "48961a5efc21e23b512988a3beb22b08ca8894d6",
+    "workflowRunId": 30809421417,
     "runtimeVersion": "node@22.23.1",
+    "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531",
+    "exactTagResolution": "git fetch refs/tags/xstate@5.32.5",
+    "sourceBytePolicy": {
+      "coreAutocrlf": false,
+      "coreEol": "lf",
+      "canonicalScratchRoot": true
+    },
+    "upstreamTestSelection": [
+      "XSTATE_PNPM_TEST_CORE"
+    ],
+    "upstreamTestCommand": "corepack pnpm test:core",
     "ubuntu": {
-      "jobId": 91615614489,
       "status": "PASSED",
-      "testLogSha256": "726c53eb82f1b1458632858b41b892b102b6bd4c04aa0f3f88431266f382aaeb"
+      "jobId": 91672352461,
+      "installLogSha256": "81df163ff138e68140c9926526319f949b0b952646ad1987283c4c1e59f53528",
+      "testLogSha256": "b7ab83518fe8248f0e318fcfa88e2a47317cae6caefedc43fb20fbe5b0e0edec",
+      "testSummary": {
+        "testFilePassCount": 75,
+        "testFileFailCount": 0,
+        "testPassCount": 1747,
+        "testFailCount": 0,
+        "skipCount": 13,
+        "todoCount": 1
+      }
     },
     "windows": {
-      "jobId": 91615614428,
       "status": "PASSED",
-      "testLogSha256": "726c53eb82f1b1458632858b41b892b102b6bd4c04aa0f3f88431266f382aaeb"
+      "jobId": 91672352425,
+      "installLogSha256": "43562ebd282ce1e8e607b5f66bfff6e2e1172135090ffbe83c107716acb1801d",
+      "testLogSha256": "733b4a9a1252115859d776f8ed6111b1a503856f15ba1cad57148ea510a84a42",
+      "testSummary": {
+        "testFilePassCount": 75,
+        "testFileFailCount": 0,
+        "testPassCount": 1747,
+        "testFailCount": 0,
+        "skipCount": 13,
+        "todoCount": 1
+      }
     }
   },
   "repositoryBinding": {

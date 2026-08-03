@@ -10,6 +10,7 @@ const EVIDENCE_PATH = 'governance/architecture-closure-v2/wp-b-open-source-adopt
 const EXPECTED_UPSTREAM_TEST_SELECTION = Object.freeze(['XSTATE_PNPM_TEST_CORE']);
 const EXPECTED_UPSTREAM_TEST_COMMAND = 'corepack pnpm test:core';
 const EXPECTED_RUNTIME_VERSION = 'node@22';
+const EXPECTED_PACKAGE_MANAGER_PATTERN = /^pnpm@9\.15\.9(?:\+|$)/u;
 const HEAD_PATTERN = /^[0-9a-f]{40}$/u;
 const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
 
@@ -29,6 +30,25 @@ function gitBlobSha(value) {
   ])).digest('hex');
 }
 
+function validateTestSummary(summary, prefix, reasons) {
+  if (!summary || typeof summary !== 'object' || Array.isArray(summary)) {
+    reasons.push(`${prefix}_TEST_SUMMARY_MISSING`);
+    return;
+  }
+  const positive = ['testFilePassCount', 'testPassCount'];
+  const zero = ['testFileFailCount', 'testFailCount'];
+  const nonNegative = ['skipCount', 'todoCount'];
+  for (const field of positive) {
+    if (!Number.isInteger(summary[field]) || summary[field] <= 0) reasons.push(`${prefix}_${field.toUpperCase()}_INVALID`);
+  }
+  for (const field of zero) {
+    if (summary[field] !== 0) reasons.push(`${prefix}_${field.toUpperCase()}_NONZERO`);
+  }
+  for (const field of nonNegative) {
+    if (!Number.isInteger(summary[field]) || summary[field] < 0) reasons.push(`${prefix}_${field.toUpperCase()}_INVALID`);
+  }
+}
+
 function validateUpstreamTestEvidence(candidate) {
   const evidence = candidate && candidate.upstreamTestEvidence;
   const reasons = [];
@@ -39,30 +59,36 @@ function validateUpstreamTestEvidence(candidate) {
   }
   if (evidence.upstreamTestCommand !== EXPECTED_UPSTREAM_TEST_COMMAND) reasons.push('COMMAND_INVALID');
   if (evidence.runtimeVersion !== EXPECTED_RUNTIME_VERSION) reasons.push('RUNTIME_VERSION_INVALID');
+  if (!EXPECTED_PACKAGE_MANAGER_PATTERN.test(String(evidence.packageManager || ''))) reasons.push('PACKAGE_MANAGER_INVALID');
+  if (evidence.upstreamCommit !== core.SUPPLY_CHAIN_LOCK.artifact.upstreamCommit) reasons.push('UPSTREAM_COMMIT_INVALID');
   if (Number(evidence.passCount) !== EXPECTED_UPSTREAM_TEST_SELECTION.length) reasons.push('PASS_COUNT_INVALID');
   if (Number(evidence.failCount) !== 0) reasons.push('FAIL_COUNT_NONZERO');
   if (Number(evidence.skipCount) !== 0) reasons.push('SKIP_COUNT_NONZERO');
   if (!HEAD_PATTERN.test(String(evidence.reviewedHead || ''))) reasons.push('REVIEWED_HEAD_INVALID');
 
+  const platformSummaries = [];
   for (const platformName of ['ubuntu', 'windows']) {
+    const prefix = platformName.toUpperCase();
     const platform = evidence.platforms && evidence.platforms[platformName];
     if (!platform || typeof platform !== 'object' || Array.isArray(platform)) {
-      reasons.push(`${platformName.toUpperCase()}_EVIDENCE_MISSING`);
+      reasons.push(`${prefix}_EVIDENCE_MISSING`);
       continue;
     }
-    if (platform.status !== 'PASSED') reasons.push(`${platformName.toUpperCase()}_STATUS_INVALID`);
+    if (platform.status !== 'PASSED') reasons.push(`${prefix}_STATUS_INVALID`);
     if (platform.reviewedHead !== evidence.reviewedHead || !HEAD_PATTERN.test(String(platform.reviewedHead || ''))) {
-      reasons.push(`${platformName.toUpperCase()}_HEAD_INVALID`);
+      reasons.push(`${prefix}_HEAD_INVALID`);
     }
-    if (!Number.isInteger(platform.workflowRunId) || platform.workflowRunId <= 0) {
-      reasons.push(`${platformName.toUpperCase()}_RUN_ID_INVALID`);
+    if (!Number.isInteger(platform.workflowRunId) || platform.workflowRunId <= 0) reasons.push(`${prefix}_RUN_ID_INVALID`);
+    if (!Number.isInteger(platform.jobId) || platform.jobId <= 0) reasons.push(`${prefix}_JOB_ID_INVALID`);
+    if (!SHA256_PATTERN.test(String(platform.installLogSha256 || ''))) reasons.push(`${prefix}_INSTALL_LOG_DIGEST_INVALID`);
+    if (!SHA256_PATTERN.test(String(platform.testLogSha256 || ''))) reasons.push(`${prefix}_LOG_DIGEST_INVALID`);
+    validateTestSummary(platform.testSummary, prefix, reasons);
+    if (platform.testSummary && typeof platform.testSummary === 'object' && !Array.isArray(platform.testSummary)) {
+      platformSummaries.push(JSON.stringify(platform.testSummary));
     }
-    if (!Number.isInteger(platform.jobId) || platform.jobId <= 0) {
-      reasons.push(`${platformName.toUpperCase()}_JOB_ID_INVALID`);
-    }
-    if (!SHA256_PATTERN.test(String(platform.testLogSha256 || ''))) {
-      reasons.push(`${platformName.toUpperCase()}_LOG_DIGEST_INVALID`);
-    }
+  }
+  if (platformSummaries.length === 2 && platformSummaries[0] !== platformSummaries[1]) {
+    reasons.push('CROSS_PLATFORM_TEST_SUMMARY_MISMATCH');
   }
   return reasons;
 }
@@ -121,9 +147,7 @@ function compareArtifactBindings({ repositoryRoot, registry, evidence }) {
     violations.push({ code: 'WP_B_XSTATE_EVIDENCE_SUPPLY_CHAIN_MISMATCH' });
   }
 
-  if (authority.status !== 'LOCKED') {
-    violations.push({ code: 'WP_B_XSTATE_SUPPLY_CHAIN_NOT_LOCKED', status: authority.status });
-  }
+  if (authority.status !== 'LOCKED') violations.push({ code: 'WP_B_XSTATE_SUPPLY_CHAIN_NOT_LOCKED', status: authority.status });
   if (authority.governance.temporaryBypassAllowed !== false
       || authority.governance.productionUseAuthorized !== false
       || authority.governance.adapterIntroductionAuthorized !== false) {
@@ -159,15 +183,11 @@ function verifyFiles(repositoryRoot = path.resolve(__dirname, '..', '..')) {
   });
   const violations = [
     ...report.violations,
-    ...compareArtifactBindings({
-      repositoryRoot,
-      registry,
-      evidence: readJson(repositoryRoot, EVIDENCE_PATH)
-    })
+    ...compareArtifactBindings({ repositoryRoot, registry, evidence: readJson(repositoryRoot, EVIDENCE_PATH) })
   ];
   return Object.freeze({
     ...report,
-    schemaVersion: 5,
+    schemaVersion: 6,
     ok: violations.length === 0,
     productionUseAuthorized: report.productionUseAuthorized && violations.length === 0,
     supplyChainAuthorityPath: core.SUPPLY_CHAIN_LOCK_PATH,
@@ -199,6 +219,7 @@ module.exports = {
   EXPECTED_UPSTREAM_TEST_COMMAND,
   EXPECTED_UPSTREAM_TEST_SELECTION,
   compareArtifactBindings,
+  validateTestSummary,
   validateUpstreamTestEvidence,
   verifyFiles,
   verifyRegistry
