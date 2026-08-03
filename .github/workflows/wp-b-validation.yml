@@ -57,6 +57,7 @@ jobs:
         run: |
           node --check tools/architecture-closure-v2/verify-wp-b-open-source-adoption.js
           node --check tools/architecture-closure-v2/discover-wp-b-operation-call-sites.js
+          node --check tools/architecture-closure-v2/capture-wp-b-red-evidence.js
 
       - name: Run WP-B governance contracts
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/openSourceAdoptionGate.test.js backend/tests/architectureClosureV2/wpB/operationInventoryDiscovery.test.js
@@ -74,11 +75,41 @@ jobs:
           git diff --check
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
 
+  milestone-one-contracts:
+    name: wp-b-m1-contracts-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact validation commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Run complete Milestone 1 contracts
+        run: node tools/architecture-closure-v2/capture-wp-b-red-evidence.js
+
   gate:
     name: wp-b-validation-gate
     if: ${{ always() }}
     needs:
       - governance-and-discovery
+      - milestone-one-contracts
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -86,9 +117,11 @@ jobs:
         shell: bash
         env:
           GOVERNANCE_RESULT: ${{ needs.governance-and-discovery.result }}
+          CONTRACT_RESULT: ${{ needs.milestone-one-contracts.result }}
         run: |
           set -euo pipefail
           test "${GOVERNANCE_RESULT}" = "success"
+          test "${CONTRACT_RESULT}" = "success"
           {
             echo '### WP-B validation'
             echo ''
