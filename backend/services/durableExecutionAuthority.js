@@ -21,6 +21,19 @@ function executionError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
 }
 
+function milestoneTwoOperationNotAuthorized(operation) {
+  throw executionError(
+    'WP_B_M2_OPERATION_NOT_YET_AUTHORIZED',
+    `Schema 23 operation ${operation} is reserved for WP-B Milestone 2`,
+    {
+      operation,
+      workPackage: 'WP-B',
+      milestone: 'M2',
+      status: 409
+    }
+  );
+}
+
 function requiredString(value, field, maximum = 1024) {
   const result = String(value == null ? '' : value).trim();
   if (!result) throw executionError('WP_B_EXECUTION_FIELD_REQUIRED', `${field} is required`, { field });
@@ -638,6 +651,54 @@ class DurableExecutionAuthority extends legacy.DurableExecutionAuthority {
     });
   }
 
+  heartbeat(input = {}) {
+    const store = this.store();
+    if (!schema23Applied(store)) return super.heartbeat(input);
+    return milestoneTwoOperationNotAuthorized('heartbeat');
+  }
+
+  waitRemote(input = {}) {
+    const store = this.store();
+    if (!schema23Applied(store)) return super.waitRemote(input);
+    return milestoneTwoOperationNotAuthorized('waitRemote');
+  }
+
+  succeed(input = {}) {
+    const store = this.store();
+    if (!schema23Applied(store)) return super.succeed(input);
+    return milestoneTwoOperationNotAuthorized('succeed');
+  }
+
+  fail(input = {}) {
+    const store = this.store();
+    if (!schema23Applied(store)) return super.fail(input);
+    return milestoneTwoOperationNotAuthorized('fail');
+  }
+
+  requestCancel(input = {}) {
+    const store = this.store();
+    if (!schema23Applied(store)) return super.requestCancel(input);
+    return milestoneTwoOperationNotAuthorized('requestCancel');
+  }
+
+  acknowledgeCancel(input = {}) {
+    const store = this.store();
+    if (!schema23Applied(store)) return super.acknowledgeCancel(input);
+    return milestoneTwoOperationNotAuthorized('acknowledgeCancel');
+  }
+
+  retry(input = {}) {
+    const store = this.store();
+    if (!schema23Applied(store)) return super.retry(input);
+    return milestoneTwoOperationNotAuthorized('retry');
+  }
+
+  deadLetter(input = {}) {
+    const store = this.store();
+    if (!schema23Applied(store)) return super.deadLetter(input);
+    return milestoneTwoOperationNotAuthorized('deadLetter');
+  }
+
   transition(input = {}) {
     const store = this.store();
     if (!schema23Applied(store)) return super.transition(input);
@@ -727,6 +788,7 @@ module.exports.executeExecutionClaimCas = executeExecutionClaimCas;
 module.exports.executeExecutionTransitionCas = executeExecutionTransitionCas;
 module.exports.executeUnownedExecutionTransitionCas = executeUnownedExecutionTransitionCas;
 module.exports.executionError = executionError;
+module.exports.milestoneTwoOperationNotAuthorized = milestoneTwoOperationNotAuthorized;
 module.exports.normalizeExecutionCommand = normalizeExecutionCommand;
 module.exports.normalizeTransitionCommand = normalizeTransitionCommand;
 module.exports.schema23Applied = schema23Applied;
