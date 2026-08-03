@@ -1,29 +1,37 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "documentType": "YANCE_ACV2_WP_B_XSTATE_ADOPTION_EVIDENCE",
   "workPackage": "WP-B",
   "candidateId": "XSTATE_CORE_5_32_5",
   "supplyChainAuthorityPath": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
-  "capturedAtHead": "c3d9ba7c63960a22e9995969a909b9ba27b337fa",
+  "capturedAtHead": "84fbbfdea6524dfa4a74dd0a9b40b9ae9ca0805d",
   "supersedes": {
-    "capturedAtHead": "da773d5b29c1f54c6c14f6024c38b53ab7ca10bb",
-    "reason": "RECORDED_PACKAGE_FACTS_DID_NOT_MATCH_THE_PHYSICAL_NPM_ARTIFACT_FETCHED_IDENTICALLY_ON_UBUNTU_AND_WINDOWS",
-    "preservedIn": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json#/supersededObservation"
+    "capturedAtHead": "c3d9ba7c63960a22e9995969a909b9ba27b337fa",
+    "reason": "REPAIRED_REPOSITORY_LOCK_NOW_MATCHES_THE_PHYSICAL_NPM_ARTIFACT_ON_UBUNTU_AND_WINDOWS",
+    "preservedHistoricalObservation": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json#/supersededObservation"
   },
   "workflowRun": {
-    "id": 30790076174,
+    "id": 30791436313,
     "name": "WP-B Validation",
     "exactHeadCheckoutEnforced": true,
     "ubuntu": {
-      "upstreamJobId": 91611534958,
+      "upstreamJobId": 91615614489,
       "status": "PASSED",
       "testLogSha256": "726c53eb82f1b1458632858b41b892b102b6bd4c04aa0f3f88431266f382aaeb"
     },
     "windows": {
-      "upstreamJobId": 91611534957,
+      "upstreamJobId": 91615614428,
       "status": "PASSED",
       "testLogSha256": "726c53eb82f1b1458632858b41b892b102b6bd4c04aa0f3f88431266f382aaeb"
     }
+  },
+  "repositoryBinding": {
+    "packageManifestPath": "package.json",
+    "packageManifestBlobSha": "f4a1c15316cc451a2979acf5e9a6c7f9eb5f12bc",
+    "packageLockPath": "package-lock.json",
+    "packageLockBlobSha": "ccdab1bd849589a49f3dd2ce096c2579724bc291",
+    "packageLockSha256": "c85637bf92a6886acbc43eb9a540b04d937d5b9f4cebe4a77e4fedb81a5a81b7",
+    "bindingStatus": "LOCKED"
   },
   "exactVersionAndLicenseReview": {
     "status": "COMPLETE",
@@ -56,7 +64,7 @@
     }
   },
   "upstreamConformance": {
-    "status": "PASSED_AWAITING_REPAIRED_REPOSITORY_LOCK_BINDING",
+    "status": "COMPLETE",
     "runtimeVersion": "node@22",
     "selection": [
       "PACKAGE_EXPORTS_PRESENT",
@@ -103,8 +111,8 @@
   },
   "authorization": {
     "originalModuleIntroduced": true,
-    "repairedPackageLockRequired": true,
-    "upstreamTestsComplete": false,
+    "repairedPackageLockRequired": false,
+    "upstreamTestsComplete": true,
     "adapterIntroductionAuthorized": false,
     "productionUseAuthorized": false,
     "schema23Applied": true,
