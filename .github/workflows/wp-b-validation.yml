@@ -10,6 +10,8 @@ on:
       - backend/db/**
       - backend/execution/**
       - backend/lib/deepFreeze.js
+      - backend/lib/r32SqliteStore.js
+      - backend/lib/r32SqliteStoreEngine.js
       - backend/migrations/**
       - backend/services/authorityTimestamp.js
       - backend/services/authorityTransactionCoordinator.js
@@ -24,6 +26,7 @@ on:
       - shared/release/acv2ActiveWorkPackageAuthority.js
       - shared/release/implementationBranchPolicy.js
       - shared/release/implementationBranchPolicyLegacy.js
+      - shared/release/wpBM1RedEvidenceAuthority.js
       - tests/wp0/acv2-work-package-scope-wiring.test.js
       - tests/wp0/implementation-branch-policy.test.js
       - tools/architecture-closure-v2/**
@@ -42,6 +45,8 @@ on:
       - backend/db/**
       - backend/execution/**
       - backend/lib/deepFreeze.js
+      - backend/lib/r32SqliteStore.js
+      - backend/lib/r32SqliteStoreEngine.js
       - backend/migrations/**
       - backend/services/authorityTimestamp.js
       - backend/services/authorityTransactionCoordinator.js
@@ -56,6 +61,7 @@ on:
       - shared/release/acv2ActiveWorkPackageAuthority.js
       - shared/release/implementationBranchPolicy.js
       - shared/release/implementationBranchPolicyLegacy.js
+      - shared/release/wpBM1RedEvidenceAuthority.js
       - tests/wp0/acv2-work-package-scope-wiring.test.js
       - tests/wp0/implementation-branch-policy.test.js
       - tools/architecture-closure-v2/**
@@ -114,6 +120,7 @@ jobs:
           node --check shared/release/acv2ActiveWorkPackageAuthority.js
           node --check shared/release/implementationBranchPolicy.js
           node --check shared/release/implementationBranchPolicyLegacy.js
+          node --check shared/release/wpBM1RedEvidenceAuthority.js
           node --check tools/wp0/work-package-scope-gate.js
           node --check tools/wp0/work-package-scope-gate-legacy.js
 
@@ -205,7 +212,7 @@ jobs:
         run: node tools/architecture-closure-v2/capture-wp-b-red-evidence.js
 
       - name: Run real Schema 23 SQLite integration contracts
-        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/schema23SqliteIntegration.test.js
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/schema23SqliteIntegration.test.js backend/tests/architectureClosureV2/wpB/schema23StartupRegistration.test.js
 
   gate:
     name: wp-b-validation-gate
