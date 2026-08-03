@@ -11,6 +11,7 @@ const sendQueue = require('../services/sendQueueService');
 const platformMessaging = require('../services/platformMessagingService');
 const platformCapabilities = require('../services/platformCapabilities');
 const platformDrivers = require('../services/platformDriverRegistry');
+const platformAdapterPorts = require('../services/platformAdapterPorts');
 const canonicalIdentity = require('../services/canonicalIdentityService');
 const updatePreflight = require('../services/updatePreflightService');
 const workspaceData = require('../services/workspaceDataService');
@@ -53,6 +54,13 @@ const {
 } = require('../services/authorityWriteHost');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
 const { canonicalHash } = require('../services/canonicalSerialization');
+const {
+  createDurableOperationRegistry,
+  OPERATION_KINDS
+} = require('../services/durableOperationRegistry');
+const {
+  createSessionRestoreOperation
+} = require('../services/durableOperations/sessionRestoreOperation');
 const { AppRuntimeError } = require('./errors');
 
 const STARTUP_COMMAND_FIELDS = new Set(['contractVersion', 'commandId', 'commandType', 'expectedStateVersion', 'issuedAtUtc', 'payload']);
@@ -79,6 +87,7 @@ function createStartupCommandHandlers(options = {}) {
     'startup.recoverBackgroundJobs': payload => backgroundJobAuthority.recoverInterrupted({
       retryDelayMs: Math.max(0, Number(payload?.retryDelayMs || 30_000))
     }),
+    'startup.requestSessionRestores': payload => accountManager.requestPersistedSessionRestores(payload || {}),
     'startup.canonicalizeIdentity': payload => identityAuthority.canonicalizeWhatsAppAccounts({
       dryRun: payload?.dryRun === true
     }),
@@ -334,6 +343,53 @@ class RuntimeAuthorityCommandGateway {
 
 Object.freeze(RuntimeAuthorityCommandGateway.prototype);
 
+function createSessionRestoreOperationRegistry({ securityGuard, facadeRegistry = platformAdapterPorts.singleton } = {}) {
+  if (!securityGuard?.credentials || typeof securityGuard.credentials.get !== 'function') {
+    throw gatewayError(
+      'SESSION_RESTORE_CUSTODY_AUTHORITY_REQUIRED',
+      'Session restore registry requires the runtime security custody authority',
+      503
+    );
+  }
+  const resolveSessionCapability = reference => {
+    const capability = securityGuard.credentials.get(String(reference || '').trim());
+    if (!capability || typeof capability !== 'object' || Array.isArray(capability)) {
+      throw gatewayError(
+        'SESSION_RESTORE_CAPABILITY_NOT_FOUND',
+        'Session restore credential reference could not be resolved',
+        409
+      );
+    }
+    return Object.freeze({ ...capability });
+  };
+  const sessionClient = Object.freeze({
+    async restore(input) {
+      const facade = facadeRegistry.get(input.platform);
+      return facade.auth.execute(Object.freeze({
+        ...input,
+        operation: 'reconnect',
+        accountId: input.accountReference
+      }));
+    },
+    async probe(input) {
+      const facade = facadeRegistry.get(input.platform);
+      return facade.auth.execute(Object.freeze({
+        ...input,
+        operation: 'status',
+        accountId: input.accountReference
+      }));
+    }
+  });
+  const sessionRestoreOperation = createSessionRestoreOperation({
+    resolveSessionCapability,
+    sessionClient
+  });
+  const durableOperationRegistry = createDurableOperationRegistry();
+  durableOperationRegistry.register(OPERATION_KINDS.SESSION_RESTORE, sessionRestoreOperation);
+  durableOperationRegistry.seal();
+  return Object.freeze({ durableOperationRegistry, sessionRestoreOperation });
+}
+
 function createAppRuntimeComposition(runtime) {
   const authorityWriteHostCapability = runtime.authorityWriteHostCapability;
   const authorityStore = runtime.primaryAuthorityStore;
@@ -369,8 +425,14 @@ function createAppRuntimeComposition(runtime) {
   const startupCommandHandlers = createStartupCommandHandlers({ identityAuthority });
   const authorityCommandGateway = new RuntimeAuthorityCommandGateway({ runtime, authorityWriteHostCapability, authorityStore, commandHandlers: startupCommandHandlers });
   const commandSubmitter = envelope => authorityCommandGateway.execute(envelope);
+  const sessionRestoreStartupReceipt = authorityCommandGateway.submit(
+    'startup.requestSessionRestores',
+    { traceId: 'runtime-composition-startup' }
+  );
 
   const securityGuard = getSecurityGuard();
+  const sessionRestoreRuntime = createSessionRestoreOperationRegistry({ securityGuard });
+  const requestSessionRestore = input => accountManager.requestSessionRestore(input);
   const accountContext = new AccountContext({ securityGuard, accountManager, accountStore, accountMigration, messageStore, sendQueue, platformMessaging, platformCapabilities, platformDrivers, canonicalIdentity, eventBus });
   const updateManager = new UpdateManager({ securityGuard, lifecycleManager: runtime, updatePreflight, eventBus });
   const artifactRegistry = getRuntimeArtifactRegistryService();
@@ -389,6 +451,10 @@ function createAppRuntimeComposition(runtime) {
     authorities: Object.freeze({ authorityWriteHostCapability, authorityTransactionCoordinator, canonicalEventLedgerAuthority, identityAuthority, platformCoreRepository, workspaceIdentityCommandFacade, migrationAuthority }),
     authorityCommandGateway,
     commandSubmitter,
+    durableOperationRegistry: sessionRestoreRuntime.durableOperationRegistry,
+    sessionRestoreOperation: sessionRestoreRuntime.sessionRestoreOperation,
+    requestSessionRestore,
+    sessionRestoreStartupReceipt,
     accountContext,
     updateManager,
     recoveryManager,
@@ -414,4 +480,9 @@ function createAppRuntimeComposition(runtime) {
   });
 }
 
-module.exports = { RuntimeAuthorityCommandGateway, createStartupCommandHandlers, createAppRuntimeComposition };
+module.exports = {
+  RuntimeAuthorityCommandGateway,
+  createStartupCommandHandlers,
+  createSessionRestoreOperationRegistry,
+  createAppRuntimeComposition
+};
