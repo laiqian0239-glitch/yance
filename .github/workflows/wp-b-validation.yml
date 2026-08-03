@@ -181,6 +181,9 @@ jobs:
       - name: Run complete Milestone 1 contracts
         run: node tools/architecture-closure-v2/capture-wp-b-red-evidence.js
 
+      - name: Run real Schema 23 SQLite integration contracts
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/schema23SqliteIntegration.test.js
+
   gate:
     name: wp-b-validation-gate
     if: ${{ always() }}
