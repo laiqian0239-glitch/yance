@@ -17,13 +17,20 @@ const MIGRATION_MODE = RUNTIME_MIGRATION_CONTRACT.migrationMode;
 const PHYSICAL_ATTEMPT_FIELDS = Object.freeze(['attemptId', 'fencingToken']);
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
-function historyRuntimeError(code, message, status = 400, details = {}) {
+function runtimeError(code, message, status = 400, details = {}) {
   return Object.assign(new Error(message), { code, status, ...details });
 }
 function positiveInteger(value, fallback) {
   const result = Number(value == null || value === '' ? fallback : value);
   if (!Number.isSafeInteger(result) || result < 1) {
-    throw historyRuntimeError('WP_B_HISTORY_PAGE_SIZE_INVALID', 'History pageSize must be one positive integer', 400);
+    throw runtimeError('WP_B_DURABLE_OPERATION_INTEGER_INVALID', 'Durable operation integer must be positive');
+  }
+  return result;
+}
+function nonnegativeInteger(value, fallback = 0) {
+  const result = Number(value == null || value === '' ? fallback : value);
+  if (!Number.isSafeInteger(result) || result < 0) {
+    throw runtimeError('WP_B_DURABLE_OPERATION_INTEGER_INVALID', 'Durable operation integer must be nonnegative');
   }
   return result;
 }
@@ -32,7 +39,7 @@ class ChannelAdapterRuntime extends core.ChannelAdapterRuntime {
   describe() {
     const description = super.describe();
     if (description?.migrationMode !== RUNTIME_MIGRATION_CONTRACT.migrationMode) {
-      throw historyRuntimeError(
+      throw runtimeError(
         'WP_B_CHANNEL_MIGRATION_MODE_INVALID',
         'Channel runtime must remain durable-outbox-only',
         500,
@@ -42,6 +49,67 @@ class ChannelAdapterRuntime extends core.ChannelAdapterRuntime {
     return description;
   }
 
+  async restoreSession(input = {}) {
+    channelAdapterContract.assertPlainData(input || {});
+    if (!this.communication || typeof this.communication.prepareSessionRestore !== 'function') {
+      throw runtimeError(
+        'WP_B_SESSION_RESTORE_AUTHORITY_REQUIRED',
+        'Session restore requires durable preparation',
+        503
+      );
+    }
+    const accountReference = clean(input.accountId || input.accountReference);
+    if (!accountReference) {
+      throw runtimeError('WP_B_SESSION_ACCOUNT_REFERENCE_REQUIRED', 'Session account reference is required');
+    }
+    const account = typeof this.accountReader === 'function' ? this.accountReader(accountReference) : null;
+    if (account && clean(account.platform).toLowerCase() !== this.platform) {
+      throw runtimeError(
+        'WP_B_SESSION_ACCOUNT_SCOPE_MISMATCH',
+        'Session account platform does not match channel runtime',
+        409,
+        { platform: this.platform, accountReference }
+      );
+    }
+    const requestedSessionGeneration = positiveInteger(input.requestedSessionGeneration, 1);
+    const credentialReference = clean(
+      input.credentialReference
+      || account?.credentialRef
+      || account?.credential_ref
+    );
+    if (!credentialReference) {
+      throw runtimeError(
+        'WP_B_SESSION_CREDENTIAL_REFERENCE_REQUIRED',
+        'Session credential reference is required'
+      );
+    }
+    const sessionReference = clean(
+      input.sessionReference
+      || account?.sessionReference
+      || account?.metadata?.sessionReference
+      || `session:${this.platform}:${accountReference}:${requestedSessionGeneration}`
+    );
+    const referencePayload = Object.freeze({
+      schemaVersion: 1,
+      platform: this.platform,
+      accountReference,
+      requestedSessionGeneration,
+      sessionReference,
+      credentialReference
+    });
+    const command = deepFreeze({
+      ...referencePayload,
+      commandContentSha256: clean(input.commandContentSha256) || canonicalHash(referencePayload)
+    });
+    return this.communication.prepareSessionRestore({
+      traceId: clean(input.traceId),
+      idempotencyKey: clean(input.idempotencyKey),
+      deadlineAt: clean(input.deadlineAt),
+      maxAttempts: positiveInteger(input.maxAttempts, 3),
+      command
+    });
+  }
+
   async backfillContacts(input = {}) { return this.prepareHistorySynchronization('contacts', input); }
   async backfillConversations(input = {}) { return this.prepareHistorySynchronization('conversations', input); }
   async backfillMessages(input = {}) { return this.prepareHistorySynchronization('messages', input); }
@@ -49,7 +117,7 @@ class ChannelAdapterRuntime extends core.ChannelAdapterRuntime {
   async prepareHistorySynchronization(streamKind, input = {}) {
     channelAdapterContract.assertPlainData(input || {});
     if (!this.communication || typeof this.communication.prepareHistorySynchronization !== 'function') {
-      throw historyRuntimeError(
+      throw runtimeError(
         'WP_B_HISTORY_SYNCHRONIZATION_AUTHORITY_REQUIRED',
         'History backfill requires CommunicationAuthority durable preparation',
         503
@@ -57,7 +125,7 @@ class ChannelAdapterRuntime extends core.ChannelAdapterRuntime {
     }
     const accountReference = clean(input.accountId || input.accountReference);
     if (!accountReference) {
-      throw historyRuntimeError('WP_B_HISTORY_ACCOUNT_REFERENCE_REQUIRED', 'History account reference is required');
+      throw runtimeError('WP_B_HISTORY_ACCOUNT_REFERENCE_REQUIRED', 'History account reference is required');
     }
     const scopeReference = clean(
       input.scopeReference
@@ -66,10 +134,7 @@ class ChannelAdapterRuntime extends core.ChannelAdapterRuntime {
     );
     const checkpointReference = clean(input.checkpointReference)
       || `checkpoint:${this.platform}:${accountReference}:${streamKind}:${scopeReference}`;
-    const checkpointVersion = Number(input.checkpointVersion || 0);
-    if (!Number.isSafeInteger(checkpointVersion) || checkpointVersion < 0) {
-      throw historyRuntimeError('WP_B_HISTORY_CHECKPOINT_VERSION_INVALID', 'History checkpointVersion is invalid');
-    }
+    const checkpointVersion = nonnegativeInteger(input.checkpointVersion, 0);
     const account = typeof this.accountReader === 'function' ? this.accountReader(accountReference) : null;
     const credentialReference = clean(
       input.credentialReference
@@ -77,7 +142,7 @@ class ChannelAdapterRuntime extends core.ChannelAdapterRuntime {
       || account?.credential_ref
     );
     if (!credentialReference) {
-      throw historyRuntimeError('WP_B_HISTORY_CREDENTIAL_REFERENCE_REQUIRED', 'History credential reference is required');
+      throw runtimeError('WP_B_HISTORY_CREDENTIAL_REFERENCE_REQUIRED', 'History credential reference is required');
     }
     const referencePayload = Object.freeze({
       schemaVersion: 1,
@@ -129,20 +194,20 @@ class ChannelAdapterRuntimeRegistry {
   get(platform) {
     const id = clean(platform).toLowerCase();
     if (!core.PLATFORMS.includes(id)) {
-      throw historyRuntimeError('CHANNEL_ADAPTER_PLATFORM_UNSUPPORTED', `Unsupported channel adapter: ${id || 'unknown'}`, 404);
+      throw runtimeError('CHANNEL_ADAPTER_PLATFORM_UNSUPPORTED', `Unsupported channel adapter: ${id || 'unknown'}`, 404);
     }
     const adapter = this.adapters.get(id);
-    if (!adapter) throw historyRuntimeError('CHANNEL_ADAPTER_NOT_REGISTERED', `Channel adapter not registered: ${id}`, 500);
+    if (!adapter) throw runtimeError('CHANNEL_ADAPTER_NOT_REGISTERED', `Channel adapter not registered: ${id}`, 500);
     return adapter;
   }
 
   physicalClient(platform) {
     const id = clean(platform).toLowerCase();
     if (!core.PLATFORMS.includes(id)) {
-      throw historyRuntimeError('CHANNEL_ADAPTER_PLATFORM_UNSUPPORTED', `Unsupported channel adapter: ${id || 'unknown'}`, 404);
+      throw runtimeError('CHANNEL_ADAPTER_PLATFORM_UNSUPPORTED', `Unsupported channel adapter: ${id || 'unknown'}`, 404);
     }
     const client = this.physicalClients.get(id);
-    if (!client) throw historyRuntimeError('WP_B_CHANNEL_PHYSICAL_CLIENT_INVALID', `Physical channel client not registered: ${id}`, 500);
+    if (!client) throw runtimeError('WP_B_CHANNEL_PHYSICAL_CLIENT_INVALID', `Physical channel client not registered: ${id}`, 500);
     return client;
   }
 
