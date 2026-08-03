@@ -1,0 +1,104 @@
+name: WP-B Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/wp-b-validation.yml
+      - backend/tests/architectureClosureV2/wpB/**
+      - governance/architecture-closure-v2/wp-b-*.json
+      - tools/architecture-closure-v2/**
+      - docs/superpowers/plans/2026-08-03-yance-acv2-wp-b-implementation*.md
+      - docs/superpowers/specs/2026-08-03-yance-acv2-*.md
+  push:
+    branches:
+      - acv2/wp-b-durable-execution-outbox
+    paths:
+      - .github/workflows/wp-b-validation.yml
+      - backend/tests/architectureClosureV2/wpB/**
+      - governance/architecture-closure-v2/wp-b-*.json
+      - tools/architecture-closure-v2/**
+      - docs/superpowers/plans/2026-08-03-yance-acv2-wp-b-implementation*.md
+      - docs/superpowers/specs/2026-08-03-yance-acv2-*.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  governance-and-discovery:
+    name: wp-b-governance-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact validation commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Validate tool syntax
+        run: |
+          node --check tools/architecture-closure-v2/verify-wp-b-open-source-adoption.js
+          node --check tools/architecture-closure-v2/discover-wp-b-operation-call-sites.js
+
+      - name: Run WP-B governance contracts
+        run: |
+          node --test --test-concurrency=1 \
+            backend/tests/architectureClosureV2/wpB/openSourceAdoptionGate.test.js \
+            backend/tests/architectureClosureV2/wpB/operationInventoryDiscovery.test.js
+
+      - name: Verify fail-closed open-source gate
+        run: node tools/architecture-closure-v2/verify-wp-b-open-source-adoption.js
+
+      - name: Enforce exact operation inventory
+        run: node tools/architecture-closure-v2/discover-wp-b-operation-call-sites.js
+
+      - name: Confirm clean validation workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+  gate:
+    name: wp-b-validation-gate
+    if: ${{ always() }}
+    needs:
+      - governance-and-discovery
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Enforce all WP-B validation results
+        shell: bash
+        env:
+          GOVERNANCE_RESULT: ${{ needs.governance-and-discovery.result }}
+        run: |
+          set -euo pipefail
+          test "${GOVERNANCE_RESULT}" = "success"
+          {
+            echo '### WP-B validation'
+            echo ''
+            echo '- wpBImplementationAuthorized=true'
+            echo '- schema23Applied=false'
+            echo '- thirdPartyProductionUseAuthorized=false'
+            echo '- wpCAuthorized=false'
+            echo '- formalRelease=false'
+            echo '- publish=false'
+          } >> "${GITHUB_STEP_SUMMARY}"
