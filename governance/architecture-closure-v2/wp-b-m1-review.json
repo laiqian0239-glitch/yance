@@ -103,6 +103,7 @@
   },
   "seal": {
     "status": "SEALED",
+    "head": "1e3d600f0647af35e737ff92a200c67e69224c82",
     "allowedPostReviewPaths": [
       ".github/workflows/wp-b-m1-independent-review-integrity.yml",
       "backend/tests/architectureClosureV2/wpB/m1ReviewSeal.test.js",
