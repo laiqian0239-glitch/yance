@@ -95,6 +95,33 @@ test('authority registry is complete, single-classified, and bound to real sourc
   }
 });
 
+test('WP-B extends the frozen registry with one exact AuthorityWriteHost Engine source', () => {
+  assert.deepEqual(scanner.REGISTRY_EXTENSION_PATHS, [
+    'governance/architecture-closure-v2/wp-b-authority-registry-extension.json'
+  ]);
+  const extensions = scanner.loadRegistryExtensions();
+  assert.equal(extensions.length, 1);
+  assert.deepEqual(scanner.validateRegistryExtension(extensions[0].document, extensions[0].path), []);
+  const extension = extensions[0].document;
+  assert.equal(extension.workPackage, 'WP-B');
+  assert.equal(extension.status, 'ACTIVE_IMPLEMENTATION');
+  assert.deepEqual(extension.entries, [
+    {
+      registryId: 'WP-B-A0-R32-STORE-ENGINE',
+      sourcePath: 'backend/lib/r32SqliteStoreEngine.js',
+      authoritativeOwner: 'AuthorityWriteHost',
+      classification: 'REGISTERED_INTERNAL_AUTHORITY_SOURCE',
+      allowedCapabilities: ['PRIMARY_DB_CONSTRUCTOR'],
+      publicEntryPoint: 'backend/lib/r32SqliteStore.js',
+      temporaryBypassAllowed: false
+    }
+  ]);
+  assert.equal(extension.governance.exactPathsOnly, true);
+  assert.equal(extension.governance.wildcardPathsAllowed, false);
+  assert.equal(extension.governance.temporaryBypassAllowed, false);
+  assert.equal(extension.governance.warningOnlyAllowed, false);
+});
+
 test('scanner rejects an unregistered writable primary-store acquisition', () => {
   const registry = readJson(scanner.REGISTRY_PATH);
   const violations = scanner.findUnregisteredSourceCapabilities([
@@ -113,9 +140,13 @@ test('scanner rejects an unregistered writable primary-store acquisition', () =>
   ]);
 });
 
-test('WP-A source closure report is globally closed without weakening discovery', () => {
+test('WP-A source closure report is globally closed across frozen and active registry layers', () => {
   const report = scanner.scanRegisteredSources({ wp: 'A' });
+  assert.equal(report.schemaVersion, 3);
   assert.ok(report.scannedSourceFiles > 0, 'source closure must scan real backend source files');
+  assert.equal(report.registryEntries, 11);
+  assert.equal(report.registryExtensionEntries, 1);
+  assert.equal(report.totalRegisteredSourcePaths, 12);
   assert.equal(report.counts.REGISTRY_INVALID || 0, 0, 'governance registry/configuration must remain valid');
   assert.deepEqual(report.violations, []);
   assert.equal(report.violationCount, 0);
