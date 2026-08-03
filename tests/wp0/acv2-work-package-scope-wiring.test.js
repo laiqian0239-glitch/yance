@@ -194,6 +194,38 @@ test('current WP-B detached evidence uses the exact active baseline and cannot c
   assert.equal(result.readyForPromotion, false);
 });
 
+test('WP-B authorizes only the two exact WP-A regression contracts needed by Schema 23 integration', () => {
+  const {
+    evaluateAuthorizedWpBScope,
+    resolveWpBImplementationAuthority
+  } = require('../../shared/release/implementationBranchPolicy');
+  const authority = resolveWpBImplementationAuthority();
+  assert.ok(authority, 'active WP-B authority must resolve');
+
+  const exactRegressionContracts = [
+    'backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js',
+    'backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js'
+  ];
+  const exactResult = evaluateAuthorizedWpBScope({
+    authority,
+    branch: authority.authorizedBranch,
+    changedFiles: exactRegressionContracts
+  });
+  assert.equal(exactResult.pass, true, JSON.stringify(exactResult));
+  assert.deepEqual(exactResult.unauthorizedPaths, []);
+
+  const unrelatedWpAContract = 'backend/tests/architectureClosureV2/wpA/schema22PostMergeIntegrityMigration.test.js';
+  const unrelatedResult = evaluateAuthorizedWpBScope({
+    authority,
+    branch: authority.authorizedBranch,
+    changedFiles: [unrelatedWpAContract]
+  });
+  assert.equal(unrelatedResult.pass, false);
+  assert.equal(unrelatedResult.reasonCode, 'ACV2_WP_B_SCOPE_VIOLATION');
+  assert.deepEqual(unrelatedResult.unauthorizedPaths, [unrelatedWpAContract]);
+  assert.equal(authority.allowedProductionPaths.includes('backend/tests/architectureClosureV2/wpA/**'), false);
+});
+
 test('active task chain evaluation reports A8 and cannot claim promotion readiness', () => {
   const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
   const authorization = JSON.parse(fs.readFileSync(authorizationPath, 'utf8'));
