@@ -85,3 +85,4 @@ test('M2-OPS-011 startup session restoration is a durable request rather than di
 // The mandatory-operation gate explicitly activates focused migration contracts.
 require('./outboundMessageDurableMigration.test');
 require('./deliveryReceiptDurableMigration.test');
+require('./mediaTransferDurableMigration.test');
