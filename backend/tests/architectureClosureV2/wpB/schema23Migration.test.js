@@ -2,6 +2,10 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { removePathWithRetries } = require('../../../../tests/test-support/windows-cleanup');
 
 function migration() {
   return require('../../../migrations/architectureClosureV2WpB');
@@ -9,6 +13,24 @@ function migration() {
 
 function lifecycle() {
   return require('../../../services/durableExecutionLifecycle');
+}
+
+function withStore(work) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp-b-schema23-fk-'));
+  const dbPath = path.join(root, 'yance-r32.db');
+  let store = null;
+  try {
+    const { R32SqliteStore } = require('../../../lib/r32SqliteStore');
+    store = new R32SqliteStore({
+      dbPath,
+      ownershipPid: 9877,
+      ownershipPidAlive: pid => pid === 9877
+    });
+    return work(store);
+  } finally {
+    try { store?.close(); } catch (_) {}
+    removePathWithRetries(root);
+  }
 }
 
 test('WP-B owns a new forward-only Schema 23 migration', () => {
@@ -59,3 +81,32 @@ test('Schema 23 never uses implicit SQLite business time', () => {
   assert.doesNotMatch(source, /CURRENT_TIMESTAMP/iu);
   assert.doesNotMatch(source, /DEFAULT\s*\(\s*datetime\s*\(/iu);
 });
+
+test('Schema 23 rebuilt event foreign key targets the final durable execution table', () => withStore(store => {
+  const foreignKeys = store.db.prepare('PRAGMA foreign_key_list(durable_execution_events)').all();
+  assert.equal(foreignKeys.length, 1);
+  assert.equal(String(foreignKeys[0].table), 'durable_executions');
+  assert.equal(String(foreignKeys[0].from), 'execution_id');
+  assert.equal(String(foreignKeys[0].to), 'execution_id');
+  assert.doesNotMatch(String(foreignKeys[0].table), /_v23_new/u);
+}));
+
+test('Schema 23 consistency validation rejects persisted foreign-key violations', () => withStore(store => {
+  const { isArchitectureClosureV2WpBApplied } = migration();
+  store.db.exec('PRAGMA foreign_keys=OFF');
+  store.db.prepare(`INSERT INTO external_action_claims(
+    intent_id,state,state_version,generation,owner_id,claim_id,host_generation,
+    fencing_token,lease_started_at,lease_expires_at,updated_at
+  ) VALUES(?,'READY',0,0,'','',0,0,'','',?)`).run(
+    'orphan-intent-review-gate',
+    '2026-08-03T06:30:00.000Z'
+  );
+  store.db.exec('PRAGMA foreign_keys=ON');
+  assert.ok(store.db.prepare('PRAGMA foreign_key_check').all().length > 0);
+  assert.throws(
+    () => isArchitectureClosureV2WpBApplied(store.db),
+    error => error?.code === 'ACV2_WP_B_FOREIGN_KEY_INTEGRITY_FAILED'
+      && Array.isArray(error?.violations)
+      && error.violations.length > 0
+  );
+}));
