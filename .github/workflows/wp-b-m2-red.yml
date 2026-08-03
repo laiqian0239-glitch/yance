@@ -85,6 +85,8 @@ jobs:
     name: wp-b-m2-contracts-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
+    env:
+      WP_B_M2_REPORT_PATH: ${{ runner.temp }}/wp-b-m2-contract-report.json
     strategy:
       fail-fast: false
       matrix:
@@ -130,6 +132,12 @@ jobs:
       - name: Run Milestone 2 contracts
         shell: bash
         run: node tools/architecture-closure-v2/run-wp-b-m2-contracts.js --mode contract
+
+      - name: Print normalized contract evidence
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          node -e "const fs=require('node:fs');const p=process.env.WP_B_M2_REPORT_PATH;if(!fs.existsSync(p))process.exit(2);const r=JSON.parse(fs.readFileSync(p,'utf8'));delete r.stdout;delete r.stderr;console.log('WP_B_M2_EVIDENCE='+JSON.stringify(r));"
 
       - name: Confirm clean contract workspace
         if: ${{ success() }}
