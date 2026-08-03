@@ -108,6 +108,63 @@ test('executable transition CAS binds all stale-writer facts and returns an immu
   assert.equal(Object.isFrozen(result), true);
 });
 
+test('V2 unowned transition CAS schedules an execution without inventing a worker lease', () => {
+  const { executeUnownedExecutionTransitionCas } = authorityModule();
+  assert.equal(
+    typeof executeUnownedExecutionTransitionCas,
+    'function',
+    'durableExecutionAuthority V2 unowned transition CAS missing'
+  );
+  const calls = [];
+  const db = {
+    prepare(sql) {
+      return {
+        run(...parameters) {
+          calls.push({ sql, parameters });
+          return { changes: 1 };
+        }
+      };
+    }
+  };
+  const result = executeUnownedExecutionTransitionCas(db, {
+    executionId: 'execution-unowned-schedule',
+    fromState: 'CREATED',
+    targetState: 'SCHEDULED',
+    stateVersion: 0,
+    generation: 0,
+    hostId: 'write-host-schedule',
+    hostGeneration: 9,
+    fencingToken: 27,
+    authorityTimestamp: '2026-08-03T03:59:00.000Z'
+  });
+
+  assert.equal(calls.length, 1);
+  const sql = calls[0].sql.replace(/\s+/gu, ' ');
+  for (const marker of [
+    'state=?',
+    'state_version=state_version+1',
+    'execution_id=?',
+    'state=?',
+    'state_version=?',
+    'generation=?',
+    "owner_id=''",
+    "claim_id=''",
+    'host_generation=0',
+    'fencing_token=0',
+    'authority_write_host_lease'
+  ]) assert.match(sql, new RegExp(marker.replace(/[?]/gu, '\\?'), 'u'), marker);
+  assert.doesNotMatch(sql, /lease_expires_at\s*>=\s*\?/u);
+  assert.deepEqual(result, {
+    executionId: 'execution-unowned-schedule',
+    fromState: 'CREATED',
+    targetState: 'SCHEDULED',
+    stateVersion: 1,
+    generation: 0,
+    authorityTimestamp: '2026-08-03T03:59:00.000Z'
+  });
+  assert.equal(Object.isFrozen(result), true);
+});
+
 test('V2 first-claim CAS atomically assigns ownership and starts a lease', () => {
   const { executeExecutionClaimCas } = authorityModule();
   assert.equal(
@@ -179,13 +236,15 @@ test('V2 first-claim CAS atomically assigns ownership and starts a lease', () =>
   assert.equal(Object.isFrozen(result), true);
 });
 
-test('Schema 23 authority owns the claim facade instead of inheriting the legacy command shape', () => {
+test('Schema 23 authority owns schedule and claim facades instead of inheriting legacy command shapes', () => {
   const { DurableExecutionAuthority } = authorityModule();
-  assert.equal(
-    Object.prototype.hasOwnProperty.call(DurableExecutionAuthority.prototype, 'claim'),
-    true,
-    'durableExecutionAuthority Schema 23 claim facade missing'
-  );
+  for (const method of ['schedule', 'claim']) {
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(DurableExecutionAuthority.prototype, method),
+      true,
+      `durableExecutionAuthority Schema 23 ${method} facade missing`
+    );
+  }
 });
 
 test('unconditional execution update is forbidden', () => {
