@@ -36,6 +36,19 @@ function stableFailureCode(error) {
   return code && /^[A-Z0-9_:-]{1,128}$/u.test(code) ? code : 'WP_B_EXTERNAL_ACTION_FAILED';
 }
 
+function receiptIdentity(input, attempt) {
+  return {
+    ...input,
+    intentId: attempt.intentId || input.intentId,
+    attemptId: attempt.attemptId,
+    stateVersion: Number.isSafeInteger(attempt.stateVersion)
+      ? attempt.stateVersion
+      : Number(input.stateVersion || 0) + 1,
+    generation: attempt.generation || input.generation,
+    ownerId: attempt.ownerId || input.ownerId
+  };
+}
+
 class ExternalActionDispatcher {
   constructor(options = {}) {
     if (!options.outboxAuthority || typeof options.outboxAuthority.startAttempt !== 'function') {
@@ -63,40 +76,18 @@ class ExternalActionDispatcher {
       request,
       authorityTimestamp: this.issue('external-action-attempt')
     });
+    const identity = receiptIdentity(input, attempt);
 
+    let physicalResult;
     try {
-      const physicalResult = await this.adapter.perform(deepFreeze({
-        intentId: attempt.intentId || input.intentId,
-        attemptId: attempt.attemptId,
+      physicalResult = await this.adapter.perform(deepFreeze({
+        intentId: identity.intentId,
+        attemptId: identity.attemptId,
         request
       }));
-      const result = canonicalSnapshot(physicalResult?.result || {}, 'physicalResult.result');
-      return this.outboxAuthority.recordReceipt({
-        ...input,
-        intentId: attempt.intentId || input.intentId,
-        attemptId: attempt.attemptId,
-        stateVersion: Number.isSafeInteger(attempt.stateVersion)
-          ? attempt.stateVersion
-          : Number(input.stateVersion || 0) + 1,
-        generation: attempt.generation || input.generation,
-        ownerId: attempt.ownerId || input.ownerId,
-        providerReceiptId: String(physicalResult?.providerReceiptId || ''),
-        evidenceReference: String(
-          physicalResult?.evidenceReference || `adapter:${attempt.attemptId}:success`
-        ),
-        result,
-        authorityTimestamp: this.issue('external-action-success-receipt')
-      });
     } catch (error) {
       const receiptInput = {
-        ...input,
-        intentId: attempt.intentId || input.intentId,
-        attemptId: attempt.attemptId,
-        stateVersion: Number.isSafeInteger(attempt.stateVersion)
-          ? attempt.stateVersion
-          : Number(input.stateVersion || 0) + 1,
-        generation: attempt.generation || input.generation,
-        ownerId: attempt.ownerId || input.ownerId,
+        ...identity,
         evidenceReference: String(
           error?.evidenceReference || `adapter:${attempt.attemptId}:${stableFailureCode(error)}`
         ),
@@ -111,6 +102,33 @@ class ExternalActionDispatcher {
         return this.outboxAuthority.markUncertain(receiptInput);
       }
       return this.outboxAuthority.recordFailureReceipt(receiptInput);
+    }
+
+    try {
+      const result = canonicalSnapshot(physicalResult?.result || {}, 'physicalResult.result');
+      return this.outboxAuthority.recordReceipt({
+        ...identity,
+        providerReceiptId: String(physicalResult?.providerReceiptId || ''),
+        evidenceReference: String(
+          physicalResult?.evidenceReference || `adapter:${attempt.attemptId}:success`
+        ),
+        result,
+        authorityTimestamp: this.issue('external-action-success-receipt')
+      });
+    } catch (error) {
+      const causeCode = stableFailureCode(error);
+      return this.outboxAuthority.markUncertain({
+        ...identity,
+        evidenceReference: String(
+          physicalResult?.evidenceReference
+            || `adapter:${attempt.attemptId}:post-call:${causeCode}`
+        ),
+        result: canonicalSnapshot({
+          failureCode: 'WP_B_POST_CALL_PERSISTENCE_UNCERTAIN',
+          causeCode
+        }, 'postCallUnknownResult'),
+        authorityTimestamp: this.issue('external-action-post-call-unknown-receipt')
+      });
     }
   }
 }
