@@ -182,6 +182,49 @@ jobs:
           WP_B_EVIDENCE_PATH: ${{ runner.temp }}/wp-b-xstate-upstream.json
         run: node tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js
 
+  xstate-adapter-contracts:
+    name: wp-b-xstate-adapter-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact validation commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.VALIDATION_SHA }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Validate exact checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
+
+      - name: Install exact locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run XState Adapter contracts
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/xstateLifecycleAdapter.test.js
+
+      - name: Confirm clean tracked workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain=v1 --untracked-files=no)"
+
   milestone-one-contracts:
     name: wp-b-m1-contracts-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -224,6 +267,7 @@ jobs:
     needs:
       - governance-and-discovery
       - xstate-upstream-gate
+      - xstate-adapter-contracts
       - milestone-one-contracts
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -233,11 +277,13 @@ jobs:
         env:
           GOVERNANCE_RESULT: ${{ needs.governance-and-discovery.result }}
           XSTATE_UPSTREAM_RESULT: ${{ needs.xstate-upstream-gate.result }}
+          XSTATE_ADAPTER_RESULT: ${{ needs.xstate-adapter-contracts.result }}
           CONTRACT_RESULT: ${{ needs.milestone-one-contracts.result }}
         run: |
           set -euo pipefail
           test "${GOVERNANCE_RESULT}" = "success"
           test "${XSTATE_UPSTREAM_RESULT}" = "success"
+          test "${XSTATE_ADAPTER_RESULT}" = "success"
           test "${CONTRACT_RESULT}" = "success"
           {
             echo '### WP-B validation'
