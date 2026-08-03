@@ -86,7 +86,7 @@ test('WP-B open-source sequence and fail-closed policy remain frozen', () => {
   assert.equal(gate.enforcement.warningOnlyAllowed, false);
 });
 
-test('XState Adapter is complete while production use remains unauthorized', () => {
+test('XState Adapter is complete while fault validation is in progress and production use remains unauthorized', () => {
   const { registry } = fixture();
   const xstate = registry.candidates.find(candidate => candidate.project === 'XState');
   const temporal = registry.candidates.find(candidate => candidate.project === 'Temporal');
@@ -98,7 +98,7 @@ test('XState Adapter is complete while production use remains unauthorized', () 
   assert.equal(xstate.gateSteps.INTRODUCE_ORIGINAL_MODULE, 'COMPLETE');
   assert.equal(xstate.gateSteps.UPSTREAM_TESTS_PASS, 'COMPLETE');
   assert.equal(xstate.gateSteps.YANCE_ADAPTER_BOUNDARY, 'COMPLETE');
-  assert.equal(xstate.gateSteps.CROSS_PLATFORM_AND_FAULT_VALIDATION, 'NOT_STARTED');
+  assert.equal(xstate.gateSteps.CROSS_PLATFORM_AND_FAULT_VALIDATION, 'IN_PROGRESS');
   assert.deepEqual(findXStateImports(REPO_ROOT), [ADAPTER_PATH]);
   assert.equal(temporal.adoptionMode, 'REFERENCE_ONLY');
   assert.equal(temporal.importedPackageCount, 0);
