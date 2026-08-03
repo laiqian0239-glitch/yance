@@ -48,6 +48,7 @@ const FORBIDDEN_SCOPE_PATTERNS = Object.freeze([
   'electron/**'
 ]);
 const REQUIRED_PATHS = Object.freeze([
+  '.github/workflows/wp-b-m1-independent-review-integrity.yml',
   '.github/workflows/wp-b-m2-authorization.yml',
   'backend/tests/architectureClosureV2/wpB/m1SealContinuation.test.js',
   'backend/tests/architectureClosureV2/wpB/m2Authorization.test.js',
