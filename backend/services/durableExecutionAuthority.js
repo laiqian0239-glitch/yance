@@ -119,6 +119,61 @@ function assertExecutionIdempotency(existing, command) {
   return existing;
 }
 
+function normalizeAllowedStates(input = {}) {
+  const source = Array.isArray(input.allowedStates)
+    ? input.allowedStates
+    : input.fromState == null
+      ? []
+      : [input.fromState];
+  if (source.length < 1 || source.length > STATE_VALUES.size) {
+    throw executionError(
+      'WP_B_EXECUTION_ALLOWED_STATES_INVALID',
+      'allowedStates must contain at least one registered lifecycle state'
+    );
+  }
+  const unique = [];
+  const seen = new Set();
+  for (const value of source) {
+    const state = requiredString(value, 'allowedStates', 64);
+    if (!STATE_VALUES.has(state)) {
+      throw executionError('WP_B_EXECUTION_STATE_INVALID', 'Allowed CAS state is not registered', { state });
+    }
+    if (!seen.has(state)) {
+      unique.push(state);
+      seen.add(state);
+    }
+  }
+  return Object.freeze(unique);
+}
+
+function normalizeTransitionCommand(input = {}) {
+  const targetState = requiredString(input.targetState, 'targetState', 64);
+  if (!STATE_VALUES.has(targetState)) {
+    throw executionError('WP_B_EXECUTION_STATE_INVALID', 'Target CAS state is not registered', { targetState });
+  }
+  const ownerId = requiredString(input.ownerId, 'ownerId');
+  return deepFreeze({
+    executionId: requiredString(input.executionId, 'executionId'),
+    allowedStates: normalizeAllowedStates(input),
+    targetState,
+    stateVersion: safeInteger(
+      input.expectedStateVersion ?? input.stateVersion,
+      'expectedStateVersion'
+    ),
+    generation: safeInteger(input.generation, 'generation', 1),
+    ownerId,
+    claimId: requiredString(input.claimId, 'claimId'),
+    hostId: optionalString(input.hostId, 'hostId') || ownerId,
+    hostGeneration: safeInteger(input.hostGeneration, 'hostGeneration', 1),
+    fencingToken: safeInteger(input.fencingToken, 'fencingToken', 1),
+    authorityTimestamp: normalizedTimestamp(input.authorityTimestamp),
+    eventId: optionalString(input.eventId, 'eventId') || `execution-event-${crypto.randomUUID()}`,
+    eventType: optionalString(input.eventType, 'eventType', 128) || 'transition',
+    reasonCode: optionalString(input.reasonCode, 'reasonCode', 256),
+    payload: canonicalPlainData(input.payload || {}, 'payload')
+  });
+}
+
 function normalizeCasFacts(input = {}) {
   const fromState = requiredString(input.fromState, 'fromState', 64);
   const targetState = requiredString(input.targetState, 'targetState', 64);
@@ -338,27 +393,74 @@ class DurableExecutionAuthority extends legacy.DurableExecutionAuthority {
   transition(input = {}) {
     const store = this.store();
     if (!schema23Applied(store)) return super.transition(input);
+    const command = normalizeTransitionCommand(input);
     return store.transaction(() => {
-      const result = executeExecutionTransitionCas(store.db, input);
       const sequence = Number(store.db.prepare(`SELECT COALESCE(MAX(sequence),0)+1 AS next
-        FROM durable_execution_events WHERE execution_id=?`).get(result.executionId)?.next || 1);
-      store.db.prepare(`INSERT INTO durable_execution_events(
-        event_id,execution_id,sequence,event_type,from_state,to_state,generation,
-        owner_id,reason_code,payload_json,created_at
-      ) VALUES(?,?,?,?,?,?,?,?,?,?,?)`).run(
-        optionalString(input.eventId, 'eventId') || `execution-event-${crypto.randomUUID()}`,
-        result.executionId,
+        FROM durable_execution_events WHERE execution_id=?`).get(command.executionId)?.next || 1);
+      const statePlaceholders = command.allowedStates.map(() => '?').join(',');
+      const eventInsert = store.db.prepare(`INSERT INTO durable_execution_events(
+          event_id,execution_id,sequence,event_type,from_state,to_state,generation,
+          owner_id,reason_code,payload_json,created_at
+        )
+        SELECT ?,execution_id,?,?,state,?,generation,owner_id,?,?,?
+        FROM durable_executions
+        WHERE execution_id=? AND state IN (${statePlaceholders}) AND state_version=? AND generation=?
+          AND owner_id=? AND claim_id=? AND host_generation=? AND fencing_token=?
+          AND lease_expires_at>=?
+          AND EXISTS(
+            SELECT 1 FROM authority_write_host_lease
+            WHERE singleton_id=1 AND owner_instance_id=? AND host_generation=?
+              AND fencing_token=? AND state='ACTIVE'
+          )`).run(
+        command.eventId,
         sequence,
-        optionalString(input.eventType, 'eventType', 128) || 'transition',
-        result.fromState,
-        result.targetState,
-        result.generation,
-        result.ownerId,
-        optionalString(input.reasonCode, 'reasonCode', 256),
-        canonicalSerialize(canonicalPlainData(input.payload || {}, 'payload')),
-        result.authorityTimestamp
+        command.eventType,
+        command.targetState,
+        command.reasonCode,
+        canonicalSerialize(command.payload),
+        command.authorityTimestamp,
+        command.executionId,
+        ...command.allowedStates,
+        command.stateVersion,
+        command.generation,
+        command.ownerId,
+        command.claimId,
+        command.hostGeneration,
+        command.fencingToken,
+        command.authorityTimestamp,
+        command.hostId,
+        command.hostGeneration,
+        command.fencingToken
       );
-      return this.get(result.executionId, store);
+      if (Number(eventInsert.changes || 0) !== 1) {
+        throw executionError('WP_B_EXECUTION_CAS_REJECTED', 'Durable execution transition event CAS rejected', {
+          executionId: command.executionId,
+          allowedStates: command.allowedStates,
+          stateVersion: command.stateVersion,
+          generation: command.generation,
+          claimId: command.claimId,
+          hostGeneration: command.hostGeneration,
+          fencingToken: command.fencingToken
+        });
+      }
+      const eventRow = store.db.prepare(
+        'SELECT from_state FROM durable_execution_events WHERE event_id=?'
+      ).get(command.eventId);
+      const fromState = requiredString(eventRow?.from_state, 'event.fromState', 64);
+      executeExecutionTransitionCas(store.db, {
+        executionId: command.executionId,
+        fromState,
+        targetState: command.targetState,
+        stateVersion: command.stateVersion,
+        generation: command.generation,
+        ownerId: command.ownerId,
+        claimId: command.claimId,
+        hostId: command.hostId,
+        hostGeneration: command.hostGeneration,
+        fencingToken: command.fencingToken,
+        authorityTimestamp: command.authorityTimestamp
+      });
+      return this.get(command.executionId, store);
     });
   }
 }
@@ -376,4 +478,5 @@ module.exports.assertExecutionIdempotency = assertExecutionIdempotency;
 module.exports.executeExecutionTransitionCas = executeExecutionTransitionCas;
 module.exports.executionError = executionError;
 module.exports.normalizeExecutionCommand = normalizeExecutionCommand;
+module.exports.normalizeTransitionCommand = normalizeTransitionCommand;
 module.exports.schema23Applied = schema23Applied;
