@@ -81,3 +81,6 @@ test('M2-OPS-011 startup session restoration is a durable request rather than di
   assert.match(accountManager, /createExecution|createIntent/u);
   assert.match(composition, /durableOperationRegistry|sessionRestoreOperation/u);
 });
+
+// The mandatory-operation gate explicitly activates focused outbound migration contracts.
+require('./outboundMessageDurableMigration.test');
