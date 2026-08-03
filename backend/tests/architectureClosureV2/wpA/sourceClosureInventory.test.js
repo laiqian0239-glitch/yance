@@ -205,3 +205,36 @@ test('WP-A source closure report is globally closed across frozen and active reg
   assert.deepEqual(report.counts, {});
   assert.equal(report.ok, true);
 });
+
+test('source closure scan itself rejects capability drift and missing extension documents', () => {
+  const registry = readJson(scanner.REGISTRY_PATH);
+  const loaded = scanner.loadRegistryExtensions();
+  const extension = structuredClone(loaded[0].document);
+  extension.entries[0].allowedCapabilities = ['PRIMARY_DB_CONSTRUCTOR'];
+  const sourcePath = extension.entries[0].sourcePath;
+  const violations = scanner.findUnregisteredSourceCapabilities([
+    {
+      path: sourcePath,
+      source: fs.readFileSync(path.join(repoRoot, sourcePath), 'utf8')
+    }
+  ], registry, [{ path: loaded[0].path, document: extension, loadError: null }]);
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].violationClass, 'REGISTRY_INVALID');
+  assert.equal(violations[0].code, 'REGISTRY_EXTENSION_CAPABILITY_MISMATCH');
+  assert.deepEqual(violations[0].undeclared, ['PRIMARY_STORE_CONSTRUCTOR']);
+
+  const missingPath = 'governance/architecture-closure-v2/definitely-missing-registry-extension.json';
+  const missing = scanner.loadRegistryExtensions([missingPath]);
+  assert.equal(missing.length, 1);
+  assert.equal(missing[0].document, null);
+  assert.deepEqual(missing[0].loadError, {
+    code: 'REGISTRY_EXTENSION_DOCUMENT_MISSING',
+    path: missingPath
+  });
+  const report = scanner.scanRegisteredSources({ wp: 'A', registryExtensions: missing });
+  assert.equal(report.ok, false);
+  assert.ok(report.violations.some(violation =>
+    violation.code === 'REGISTRY_EXTENSION_DOCUMENT_MISSING'
+      && violation.path === missingPath
+  ));
+});

@@ -3,47 +3,17 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { detectSourceCapabilities, normalizePath } = require('./source-closure-scan');
+const {
+  KNOWN_CAPABILITIES,
+  compareDeclaredCapabilities,
+  exactCapabilityList,
+  normalizePath
+} = require('./source-capability-authority');
 
 const REPOSITORY_ROOT = path.resolve(__dirname, '..', '..');
-const KNOWN_CAPABILITIES = Object.freeze([
-  'PRIMARY_DB_CONSTRUCTOR',
-  'PRIMARY_STORE_CONSTRUCTOR',
-  'PRIMARY_BROKER_ACQUISITION',
-  'PRIMARY_STORE_ACQUISITION',
-  'BUSINESS_SQL_MUTATION',
-  'RECOVERY_OR_FALLBACK_ENTRYPOINT'
-]);
-const KNOWN_CAPABILITY_SET = new Set(KNOWN_CAPABILITIES);
 
 function capabilityError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
-}
-
-function exactCapabilityList(values, registryId) {
-  if (!Array.isArray(values) || values.length === 0) {
-    throw capabilityError(
-      'REGISTRY_EXTENSION_CAPABILITIES_REQUIRED',
-      'Registry extension capabilities must be a non-empty array',
-      { registryId }
-    );
-  }
-  const normalized = values.map(value => String(value || '').trim());
-  if (normalized.some(value => !KNOWN_CAPABILITY_SET.has(value))) {
-    throw capabilityError(
-      'REGISTRY_EXTENSION_CAPABILITY_UNKNOWN',
-      'Registry extension declares an unknown capability',
-      { registryId, declared: normalized }
-    );
-  }
-  if (new Set(normalized).size !== normalized.length) {
-    throw capabilityError(
-      'REGISTRY_EXTENSION_CAPABILITY_DUPLICATE',
-      'Registry extension capabilities must be unique',
-      { registryId, declared: normalized }
-    );
-  }
-  return Object.freeze([...normalized].sort());
 }
 
 function verifyRegistryExtensionCapabilities(extension, options = {}) {
@@ -80,20 +50,12 @@ function verifyRegistryExtensionCapabilities(extension, options = {}) {
         { registryId, sourcePath }
       );
     }
-    const declared = exactCapabilityList(entry.allowedCapabilities, registryId);
-    const detected = Object.freeze([
-      ...detectSourceCapabilities(fs.readFileSync(absolutePath, 'utf8'))
-    ].sort());
-    const undeclared = detected.filter(capability => !declared.includes(capability));
-    const unused = declared.filter(capability => !detected.includes(capability));
-    if (undeclared.length > 0 || unused.length > 0) {
-      throw capabilityError(
-        'REGISTRY_EXTENSION_CAPABILITY_MISMATCH',
-        'Registry extension capabilities must exactly match detected source facts',
-        { registryId, sourcePath, declared, detected, undeclared, unused }
-      );
-    }
-    return Object.freeze({ registryId, sourcePath, declared, detected });
+    return compareDeclaredCapabilities({
+      source: fs.readFileSync(absolutePath, 'utf8'),
+      declared: entry.allowedCapabilities,
+      registryId,
+      sourcePath
+    });
   });
 
   return Object.freeze({
