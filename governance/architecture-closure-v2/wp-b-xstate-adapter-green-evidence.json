@@ -1,35 +1,39 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "documentType": "YANCE_ACV2_WP_B_XSTATE_ADAPTER_GREEN_EVIDENCE",
   "workPackage": "WP-B",
   "candidateId": "XSTATE_CORE_5_32_5",
-  "reviewedImplementationHead": "f8442e3c7f3b4569b51da201568411734e7ca8d4",
+  "reviewedImplementationHead": "ce2de6e3ddb26d6f830ed5ed8696fe007a98c612",
+  "supersedes": {
+    "reviewedImplementationHead": "f8442e3c7f3b4569b51da201568411734e7ca8d4",
+    "reason": "LAZY_RUNTIME_BOUNDARY_REMOVED_SCHEMA_AND_STORE_LOAD_COUPLING"
+  },
   "workflowRun": {
-    "id": 30792959633,
+    "id": 30794133328,
     "name": "WP-B Validation",
     "exactHeadCheckoutEnforced": true,
     "ubuntu": {
-      "jobId": 91620203645,
+      "jobId": 91623786172,
       "status": "PASSED",
-      "passCount": 4,
+      "passCount": 5,
       "failCount": 0,
       "skipCount": 0
     },
     "windows": {
-      "jobId": 91620203592,
+      "jobId": 91623786262,
       "status": "PASSED",
-      "passCount": 4,
+      "passCount": 5,
       "failCount": 0,
       "skipCount": 0
     }
   },
   "sourceBinding": {
     "adapterPath": "backend/services/xstateLifecycleAdapter.js",
-    "adapterBlobSha": "42e0682ea2a0c7e58fe49719c787de630594f8c4",
+    "adapterBlobSha": "854683be464da1834cb418b945710c7a2bed5684",
     "lifecyclePath": "backend/services/durableExecutionLifecycle.js",
-    "lifecycleBlobSha": "2ee02b5c57e2c8473a0573961de3b94ff8e4bfaf",
+    "lifecycleBlobSha": "4087b36b400ef59fbb9f80559245a90765fbed87",
     "testPath": "backend/tests/architectureClosureV2/wpB/xstateLifecycleAdapter.test.js",
-    "testBlobSha": "8dc31dace4668ba03220f138a57cf986758439ba",
+    "testBlobSha": "4237ab368a8b99f74585db2d4ba225d31b2febec",
     "productionXStateImportCount": 1,
     "productionXStateImportPaths": [
       "backend/services/xstateLifecycleAdapter.js"
@@ -37,11 +41,20 @@
   },
   "validatedCapabilities": [
     "SINGLE_XSTATE_IMPORT_BOUNDARY",
+    "LAZY_RUNTIME_LOAD_BOUNDARY",
     "YANCE_GRAPH_PARITY",
     "FAIL_CLOSED_ILLEGAL_TRANSITIONS",
     "CONFIGURATION_SNAPSHOT_ISOLATION",
     "ZERO_DATABASE_TIME_OR_EXTERNAL_IO_AUTHORITY"
   ],
+  "crossWorkPackageRegression": {
+    "wp0RunId": 30794133098,
+    "wp0Status": "PASSED",
+    "wpAArchitectureRunId": 30794133166,
+    "wpAArchitectureStatus": "PASSED",
+    "wpAPostMergeRunId": 30794133268,
+    "wpAPostMergeStatus": "PASSED"
+  },
   "authorization": {
     "adapterBoundaryComplete": true,
     "crossPlatformAndFaultValidationComplete": false,
