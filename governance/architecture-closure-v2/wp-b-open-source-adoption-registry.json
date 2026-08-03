@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "documentType": "YANCE_ACV2_WP_B_OPEN_SOURCE_ADOPTION_REGISTRY",
   "workPackage": "WP-B",
   "orderedGatePath": "governance/architecture-closure-v2/wp-b-open-source-adoption-gate.json",
@@ -16,7 +16,7 @@
       "runtimeDependencyCount": 0,
       "targetCapability": "PURE_DURABLE_EXECUTION_LIFECYCLE_AND_MODEL_PATHS",
       "adoptionMode": "DIRECT_DEPENDENCY",
-      "status": "FAULT_BOUNDARY_IMPLEMENTATION_IN_PROGRESS",
+      "status": "CROSS_PLATFORM_FAULT_COMPLETE_PROVENANCE_PENDING",
       "productionUseAuthorized": false,
       "allowedResponsibilities": [
         "PURE_LIFECYCLE_GRAPH",
@@ -42,7 +42,8 @@
         "governance/architecture-closure-v2/wp-b-open-source-adoption-evidence-xstate-5.32.5.json",
         "governance/architecture-closure-v2/wp-b-xstate-adapter-red-evidence.json",
         "governance/architecture-closure-v2/wp-b-xstate-adapter-green-evidence.json",
-        "governance/architecture-closure-v2/wp-b-xstate-fault-red-evidence.json"
+        "governance/architecture-closure-v2/wp-b-xstate-fault-red-evidence.json",
+        "governance/architecture-closure-v2/wp-b-xstate-fault-green-evidence.json"
       ],
       "verifiedPackageEvidence": {
         "distIntegrity": "sha512-ULazi1oe6wGrXl0Frb6otSlkm5HLifbbVTkMk5kkSKqz4TkxJaVpnl6jOJwKeid3ORPxYyZQgNLUSYX9q65SIA==",
@@ -157,6 +158,21 @@
         "invalidRedInfrastructurePerPlatform": 0,
         "normalizedFailureSha256": "058a961de053e2e391d8f0af9ac359db6dbfb1316775dc5d1b90bf9ca7140c50"
       },
+      "faultGreenEvidence": {
+        "path": "governance/architecture-closure-v2/wp-b-xstate-fault-green-evidence.json",
+        "reviewedImplementationHead": "b807603162606d79e74d1180f7cad15cfd58d338",
+        "workflowRunId": 30796337742,
+        "ubuntuJobId": 91630658913,
+        "windowsJobId": 91630658908,
+        "passCountPerPlatform": 12,
+        "failCountPerPlatform": 0,
+        "skipCountPerPlatform": 0,
+        "crossWorkPackageRegression": {
+          "wp0RunId": 30796337410,
+          "wpAArchitectureRunId": 30796337419,
+          "wpAPostMergeRunId": 30796337547
+        }
+      },
       "gateSteps": {
         "CANDIDATE_IDENTIFICATION": "COMPLETE",
         "EXACT_VERSION_AND_LICENSE_REVIEW": "COMPLETE",
@@ -166,12 +182,11 @@
         "INTRODUCE_ORIGINAL_MODULE": "COMPLETE",
         "UPSTREAM_TESTS_PASS": "COMPLETE",
         "YANCE_ADAPTER_BOUNDARY": "COMPLETE",
-        "CROSS_PLATFORM_AND_FAULT_VALIDATION": "IN_PROGRESS",
+        "CROSS_PLATFORM_AND_FAULT_VALIDATION": "COMPLETE",
         "COPYRIGHT_NOTICE_SBOM_PROVENANCE": "NOT_STARTED",
         "INDEPENDENT_REVIEW": "NOT_STARTED"
       },
       "pendingEvidence": [
-        "ubuntuWindowsFaultGreenEvidence",
         "noticeSbomProvenance",
         "independentReview"
       ]
