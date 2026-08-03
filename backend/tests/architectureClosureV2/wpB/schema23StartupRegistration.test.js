@@ -39,6 +39,32 @@ function withStore(work) {
   }
 }
 
+function activeHost(store) {
+  const row = store.db.prepare(`SELECT owner_instance_id,host_generation,fencing_token
+    FROM authority_write_host_lease WHERE singleton_id=1 AND state='ACTIVE'`).get();
+  assert.ok(row, 'active AuthorityWriteHost lease required');
+  return Object.freeze({
+    hostId: String(row.owner_instance_id),
+    hostGeneration: Number(row.host_generation),
+    fencingToken: Number(row.fencing_token)
+  });
+}
+
+function createExecution(authority, overrides = {}) {
+  return authority.createExecution({
+    executionId: 'review-execution-1',
+    operationKind: 'OUTBOUND_MESSAGE_SEND',
+    idempotencyKey: 'review-execution-key-1',
+    traceId: 'review-trace-1',
+    command: { recipientReference: 'recipient-review-1', bodyReference: 'body-review-1' },
+    metadata: { reviewGate: 1 },
+    maxAttempts: 3,
+    deadlineAt: '2026-08-03T08:00:00.000Z',
+    authorityTimestamp: '2026-08-03T06:00:00.000Z',
+    ...overrides
+  });
+}
+
 test('immutable RED authority explicitly permits Schema 23 startup registration', () => {
   const report = requireSchema23StartupRegistration();
   assert.equal(report.ok, true, JSON.stringify(report.violations, null, 2));
@@ -284,3 +310,280 @@ test('remote success reconciliation requires one caller-supplied authority trans
   );
   assert.equal(durable.receipt, false);
 });
+
+test('real SQLite reclaim invalidates the expired claimant and permits one fresh claim', () => withStore(store => {
+  const { DurableExecutionAuthority } = require('../../../services/durableExecutionAuthority');
+  const { ExternalActionOutboxAuthority } = require('../../../services/externalActionOutboxAuthority');
+  const executionAuthority = new DurableExecutionAuthority({ storeProvider: () => store });
+  const outbox = new ExternalActionOutboxAuthority({ storeProvider: () => store });
+  const host = activeHost(store);
+  const execution = createExecution(executionAuthority, {
+    executionId: 'review-reclaim-execution',
+    idempotencyKey: 'review-reclaim-execution-key'
+  });
+  const intent = outbox.createIntent({
+    intentId: 'review-reclaim-intent',
+    executionId: execution.executionId,
+    actionKind: 'MESSAGE_SEND',
+    idempotencyKey: 'review-reclaim-intent-key',
+    payload: { recipientReference: 'recipient-review-reclaim' },
+    authorityTimestamp: '2026-08-03T06:00:01.000Z'
+  });
+  const oldClaim = outbox.claimIntent({
+    intentId: intent.intentId,
+    stateVersion: intent.claim.stateVersion,
+    generation: intent.claim.generation,
+    ownerId: 'worker-review-old',
+    claimId: 'claim-review-old',
+    hostId: host.hostId,
+    hostGeneration: host.hostGeneration,
+    fencingToken: host.fencingToken,
+    leaseStartedAt: '2026-08-03T06:00:02.000Z',
+    leaseExpiresAt: '2026-08-03T06:05:00.000Z'
+  });
+
+  const reclaimed = outbox.reclaimExpiredClaim({
+    intentId: intent.intentId,
+    stateVersion: oldClaim.claim.stateVersion,
+    generation: oldClaim.claim.generation,
+    expiredOwnerId: oldClaim.claim.ownerId,
+    expiredClaimId: oldClaim.claim.claimId,
+    expiredHostGeneration: oldClaim.claim.hostGeneration,
+    expiredFencingToken: oldClaim.claim.fencingToken,
+    hostId: host.hostId,
+    hostGeneration: host.hostGeneration,
+    fencingToken: host.fencingToken,
+    authorityTimestamp: '2026-08-03T06:05:01.000Z'
+  });
+  assert.equal(reclaimed.state, 'READY');
+  assert.equal(reclaimed.stateVersion, 2);
+  assert.equal(reclaimed.generation, 2);
+
+  const freshClaim = outbox.claimIntent({
+    intentId: intent.intentId,
+    stateVersion: reclaimed.stateVersion,
+    generation: reclaimed.generation,
+    ownerId: 'worker-review-new',
+    claimId: 'claim-review-new',
+    hostId: host.hostId,
+    hostGeneration: host.hostGeneration,
+    fencingToken: host.fencingToken,
+    leaseStartedAt: '2026-08-03T06:05:02.000Z',
+    leaseExpiresAt: '2026-08-03T06:15:00.000Z'
+  });
+  assert.equal(freshClaim.claim.state, 'CLAIMED');
+  assert.equal(freshClaim.claim.stateVersion, 3);
+  assert.equal(freshClaim.claim.generation, 3);
+  assert.equal(freshClaim.claim.ownerId, 'worker-review-new');
+
+  assert.throws(
+    () => outbox.startAttempt({
+      intentId: intent.intentId,
+      stateVersion: oldClaim.claim.stateVersion,
+      generation: oldClaim.claim.generation,
+      ownerId: oldClaim.claim.ownerId,
+      claimId: oldClaim.claim.claimId,
+      hostId: host.hostId,
+      hostGeneration: oldClaim.claim.hostGeneration,
+      fencingToken: oldClaim.claim.fencingToken,
+      request: { bodyReference: 'stale-body' },
+      authorityTimestamp: '2026-08-03T06:06:00.000Z'
+    }),
+    error => error?.code === 'WP_B_OUTBOX_ATTEMPT_CAS_REJECTED'
+  );
+  assert.equal(store.db.prepare(`SELECT COUNT(*) AS count FROM external_action_attempts
+    WHERE intent_id=?`).get(intent.intentId).count, 0);
+}));
+
+test('real SQLite rolls back a reconciliation receipt when the terminal transition fails', () => withStore(store => {
+  const { DurableExecutionAuthority } = require('../../../services/durableExecutionAuthority');
+  const { ExternalActionOutboxAuthority } = require('../../../services/externalActionOutboxAuthority');
+  const { reconcileExternalOutcome } = require('../../../services/externalOutcomeReconciliation');
+  const executionAuthority = new DurableExecutionAuthority({ storeProvider: () => store });
+  const outbox = new ExternalActionOutboxAuthority({ storeProvider: () => store });
+  const host = activeHost(store);
+  const created = createExecution(executionAuthority, {
+    executionId: 'review-reconciliation-execution',
+    idempotencyKey: 'review-reconciliation-execution-key'
+  });
+  const scheduled = executionAuthority.schedule({
+    executionId: created.executionId,
+    expectedStateVersion: created.stateVersion,
+    generation: created.generation,
+    hostId: host.hostId,
+    hostGeneration: host.hostGeneration,
+    fencingToken: host.fencingToken,
+    authorityTimestamp: '2026-08-03T06:10:01.000Z'
+  });
+  const claimed = executionAuthority.claim({
+    executionId: scheduled.executionId,
+    expectedStateVersion: scheduled.stateVersion,
+    generation: scheduled.generation,
+    ownerId: 'worker-review-reconciliation',
+    claimId: 'claim-review-reconciliation',
+    hostId: host.hostId,
+    hostGeneration: host.hostGeneration,
+    fencingToken: host.fencingToken,
+    leaseStartedAt: '2026-08-03T06:10:02.000Z',
+    leaseExpiresAt: '2026-08-03T07:00:00.000Z'
+  });
+  const running = executionAuthority.transition({
+    executionId: claimed.executionId,
+    expectedStateVersion: claimed.stateVersion,
+    allowedStates: ['CLAIMED'],
+    targetState: 'RUNNING',
+    generation: claimed.generation,
+    ownerId: claimed.ownerId,
+    claimId: claimed.claimId,
+    hostId: host.hostId,
+    hostGeneration: host.hostGeneration,
+    fencingToken: host.fencingToken,
+    authorityTimestamp: '2026-08-03T06:10:03.000Z',
+    eventType: 'started'
+  });
+  const waiting = executionAuthority.transition({
+    executionId: running.executionId,
+    expectedStateVersion: running.stateVersion,
+    allowedStates: ['RUNNING'],
+    targetState: 'WAITING_REMOTE',
+    generation: running.generation,
+    ownerId: running.ownerId,
+    claimId: running.claimId,
+    hostId: host.hostId,
+    hostGeneration: host.hostGeneration,
+    fencingToken: host.fencingToken,
+    authorityTimestamp: '2026-08-03T06:10:04.000Z',
+    eventType: 'waiting-remote'
+  });
+
+  const intent = outbox.createIntent({
+    intentId: 'review-reconciliation-intent',
+    executionId: waiting.executionId,
+    actionKind: 'MESSAGE_SEND',
+    idempotencyKey: 'review-reconciliation-intent-key',
+    payload: { recipientReference: 'recipient-review-reconciliation' },
+    authorityTimestamp: '2026-08-03T06:10:05.000Z'
+  });
+  const outboxClaim = outbox.claimIntent({
+    intentId: intent.intentId,
+    stateVersion: intent.claim.stateVersion,
+    generation: intent.claim.generation,
+    ownerId: 'worker-review-reconciliation',
+    claimId: 'outbox-claim-review-reconciliation',
+    hostId: host.hostId,
+    hostGeneration: host.hostGeneration,
+    fencingToken: host.fencingToken,
+    leaseStartedAt: '2026-08-03T06:10:06.000Z',
+    leaseExpiresAt: '2026-08-03T07:00:00.000Z'
+  });
+  const attempt = outbox.startAttempt({
+    intentId: intent.intentId,
+    stateVersion: outboxClaim.claim.stateVersion,
+    generation: outboxClaim.claim.generation,
+    ownerId: outboxClaim.claim.ownerId,
+    claimId: outboxClaim.claim.claimId,
+    hostId: host.hostId,
+    hostGeneration: host.hostGeneration,
+    fencingToken: host.fencingToken,
+    request: { bodyReference: 'review-reconciliation-body' },
+    authorityTimestamp: '2026-08-03T06:10:07.000Z'
+  });
+  const observation = {
+    outcome: 'REMOTE_SUCCESS_PROVEN',
+    provider: 'facebook',
+    operationId: waiting.executionId,
+    evidenceReference: 'provider-receipt:review-reconciliation',
+    remoteReceiptId: 'remote-review-reconciliation',
+    observedAt: '2026-08-03T06:10:08.000Z',
+    result: { postId: 'post-review-reconciliation' }
+  };
+
+  assert.throws(
+    () => reconcileExternalOutcome({
+      observation,
+      authorityTimestamp: '2026-08-03T06:10:09.000Z',
+      transaction: callback => store.transaction(callback),
+      recordReceipt: trusted => outbox.recordReceipt({
+        intentId: attempt.intentId,
+        attemptId: attempt.attemptId,
+        stateVersion: attempt.stateVersion,
+        generation: attempt.generation,
+        ownerId: attempt.ownerId,
+        claimId: attempt.claimId,
+        hostId: host.hostId,
+        hostGeneration: attempt.hostGeneration,
+        fencingToken: attempt.fencingToken,
+        providerReceiptId: trusted.remoteReceiptId,
+        evidenceReference: trusted.evidenceReference,
+        result: trusted.result,
+        authorityTimestamp: trusted.authorityTimestamp
+      }),
+      transitionExecution: transition => executionAuthority.transition({
+        executionId: waiting.executionId,
+        expectedStateVersion: waiting.stateVersion,
+        allowedStates: ['WAITING_REMOTE'],
+        targetState: 'SUCCEEDED',
+        generation: waiting.generation,
+        ownerId: 'stale-worker-review-reconciliation',
+        claimId: waiting.claimId,
+        hostId: host.hostId,
+        hostGeneration: host.hostGeneration,
+        fencingToken: host.fencingToken,
+        authorityTimestamp: transition.authorityTimestamp,
+        eventType: 'remote-success',
+        payload: { trustedReceiptId: transition.trustedReceiptId }
+      })
+    }),
+    error => error?.code === 'WP_B_EXECUTION_CAS_REJECTED'
+  );
+
+  assert.equal(store.db.prepare(`SELECT COUNT(*) AS count FROM external_action_receipts
+    WHERE intent_id=?`).get(intent.intentId).count, 0);
+  const claimAfterRollback = store.db.prepare(`SELECT state,state_version FROM external_action_claims
+    WHERE intent_id=?`).get(intent.intentId);
+  assert.deepEqual({ ...claimAfterRollback }, { state: 'ATTEMPTED', state_version: 2 });
+  assert.equal(executionAuthority.get(waiting.executionId).state, 'WAITING_REMOTE');
+
+  const success = reconcileExternalOutcome({
+    observation,
+    authorityTimestamp: '2026-08-03T06:10:10.000Z',
+    transaction: callback => store.transaction(callback),
+    recordReceipt: trusted => outbox.recordReceipt({
+      intentId: attempt.intentId,
+      attemptId: attempt.attemptId,
+      stateVersion: attempt.stateVersion,
+      generation: attempt.generation,
+      ownerId: attempt.ownerId,
+      claimId: attempt.claimId,
+      hostId: host.hostId,
+      hostGeneration: attempt.hostGeneration,
+      fencingToken: attempt.fencingToken,
+      providerReceiptId: trusted.remoteReceiptId,
+      evidenceReference: trusted.evidenceReference,
+      result: trusted.result,
+      authorityTimestamp: trusted.authorityTimestamp
+    }),
+    transitionExecution: transition => executionAuthority.transition({
+      executionId: waiting.executionId,
+      expectedStateVersion: waiting.stateVersion,
+      allowedStates: ['WAITING_REMOTE'],
+      targetState: 'SUCCEEDED',
+      generation: waiting.generation,
+      ownerId: waiting.ownerId,
+      claimId: waiting.claimId,
+      hostId: host.hostId,
+      hostGeneration: host.hostGeneration,
+      fencingToken: host.fencingToken,
+      authorityTimestamp: transition.authorityTimestamp,
+      eventType: 'remote-success',
+      payload: { trustedReceiptId: transition.trustedReceiptId }
+    })
+  });
+  assert.equal(success.state, 'SUCCEEDED');
+  assert.equal(store.db.prepare(`SELECT COUNT(*) AS count FROM external_action_receipts
+    WHERE intent_id=?`).get(intent.intentId).count, 1);
+  assert.equal(store.db.prepare(`SELECT state FROM external_action_claims
+    WHERE intent_id=?`).get(intent.intentId).state, 'COMPLETED');
+  assert.equal(executionAuthority.get(waiting.executionId).state, 'SUCCEEDED');
+  assert.deepEqual(store.db.prepare('PRAGMA foreign_key_check').all(), []);
+}));
