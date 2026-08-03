@@ -28,13 +28,34 @@ const EXPECTED_PLATFORMS = Object.freeze({
   'windows-latest': Object.freeze({ jobId: 91581416474 })
 });
 
-function same(left, right) { return JSON.stringify(left) === JSON.stringify(right); }
+function canonical(value) {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === 'object') {
+    return Object.keys(value).sort().reduce((output, key) => {
+      output[key] = canonical(value[key]);
+      return output;
+    }, {});
+  }
+  return value;
+}
+
+function same(left, right) { return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right)); }
 function addViolation(violations, code, details = {}) { violations.push(Object.freeze({ code, ...details })); }
+
+function failedVerification(code, details = {}) {
+  return Object.freeze({
+    schemaVersion: 1,
+    documentType: 'YANCE_ACV2_WP_B_M1_RED_EVIDENCE_VERIFICATION',
+    ok: false,
+    schema23StartupRegistrationAuthorized: false,
+    violations: Object.freeze([Object.freeze({ code, ...details })])
+  });
+}
 
 function verifyEvidence(evidence) {
   const violations = [];
   if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) {
-    return Object.freeze({ schemaVersion: 1, documentType: 'YANCE_ACV2_WP_B_M1_RED_EVIDENCE_VERIFICATION', ok: false, schema23StartupRegistrationAuthorized: false, violations: Object.freeze([{ code: 'WP_B_M1_RED_EVIDENCE_NOT_OBJECT' }]) });
+    return failedVerification('WP_B_M1_RED_EVIDENCE_NOT_OBJECT');
   }
   if (evidence.schemaVersion !== 1) addViolation(violations, 'WP_B_M1_RED_SCHEMA_VERSION_INVALID');
   if (evidence.documentType !== 'YANCE_ACV2_WP_B_M1_RED_EVIDENCE') addViolation(violations, 'WP_B_M1_RED_DOCUMENT_TYPE_INVALID');
@@ -113,8 +134,19 @@ function verifyEvidence(evidence) {
 }
 
 function verifyFile(repositoryRoot = path.resolve(__dirname, '..', '..')) {
-  const evidence = JSON.parse(fs.readFileSync(path.join(repositoryRoot, EVIDENCE_PATH), 'utf8'));
-  return verifyEvidence(evidence);
+  const absolutePath = path.resolve(repositoryRoot, EVIDENCE_PATH);
+  const expectedRoot = path.resolve(repositoryRoot);
+  if (absolutePath !== path.join(expectedRoot, EVIDENCE_PATH)) {
+    return failedVerification('WP_B_M1_RED_EVIDENCE_PATH_INVALID', { path: EVIDENCE_PATH });
+  }
+  try {
+    return verifyEvidence(JSON.parse(fs.readFileSync(absolutePath, 'utf8')));
+  } catch (error) {
+    return failedVerification('WP_B_M1_RED_EVIDENCE_UNREADABLE', {
+      path: EVIDENCE_PATH,
+      causeCode: String(error?.code || error?.name || 'UNKNOWN')
+    });
+  }
 }
 
 function requireSchema23StartupRegistration(repositoryRoot) {
@@ -134,6 +166,8 @@ module.exports = Object.freeze({
   EXPECTED_PLATFORMS,
   EXPECTED_SOURCE_COMMIT,
   EXPECTED_WORKFLOW,
+  canonical,
+  same,
   verifyEvidence,
   verifyFile,
   requireSchema23StartupRegistration
