@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "documentType": "YANCE_ACV2_WP_B_OPEN_SOURCE_ADOPTION_REGISTRY",
   "workPackage": "WP-B",
   "orderedGatePath": "governance/architecture-closure-v2/wp-b-open-source-adoption-gate.json",
@@ -16,7 +16,7 @@
       "runtimeDependencyCount": 0,
       "targetCapability": "PURE_DURABLE_EXECUTION_LIFECYCLE_AND_MODEL_PATHS",
       "adoptionMode": "DIRECT_DEPENDENCY",
-      "status": "UPSTREAM_TESTS_COMPLETE_ADAPTER_PENDING",
+      "status": "ADAPTER_IMPLEMENTATION_IN_PROGRESS",
       "productionUseAuthorized": false,
       "allowedResponsibilities": [
         "PURE_LIFECYCLE_GRAPH",
@@ -39,7 +39,8 @@
         "npm:xstate@5.32.5",
         "github:statelyai/xstate@c25dba07a2b68565edbe83d83c5d679dd85e00b2",
         "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
-        "governance/architecture-closure-v2/wp-b-open-source-adoption-evidence-xstate-5.32.5.json"
+        "governance/architecture-closure-v2/wp-b-open-source-adoption-evidence-xstate-5.32.5.json",
+        "governance/architecture-closure-v2/wp-b-xstate-adapter-red-evidence.json"
       ],
       "verifiedPackageEvidence": {
         "distIntegrity": "sha512-ULazi1oe6wGrXl0Frb6otSlkm5HLifbbVTkMk5kkSKqz4TkxJaVpnl6jOJwKeid3ORPxYyZQgNLUSYX9q65SIA==",
@@ -117,6 +118,15 @@
           }
         }
       },
+      "adapterRedEvidence": {
+        "path": "governance/architecture-closure-v2/wp-b-xstate-adapter-red-evidence.json",
+        "redHead": "224ffcace1ddc0507462ebfb08b8737020918c34",
+        "workflowRunId": 30792421897,
+        "ubuntuJobId": 91618586643,
+        "windowsJobId": 91618586679,
+        "failureCode": "MODULE_NOT_FOUND",
+        "normalizedFailureSha256": "06eb384582f663da87d53a7172491c29fbb87b171fcba84e9247bb140a4b3e07"
+      },
       "gateSteps": {
         "CANDIDATE_IDENTIFICATION": "COMPLETE",
         "EXACT_VERSION_AND_LICENSE_REVIEW": "COMPLETE",
@@ -125,13 +135,13 @@
         "YANCE_RED_CONTRACT_FIRST": "COMPLETE",
         "INTRODUCE_ORIGINAL_MODULE": "COMPLETE",
         "UPSTREAM_TESTS_PASS": "COMPLETE",
-        "YANCE_ADAPTER_BOUNDARY": "NOT_STARTED",
+        "YANCE_ADAPTER_BOUNDARY": "IN_PROGRESS",
         "CROSS_PLATFORM_AND_FAULT_VALIDATION": "NOT_STARTED",
         "COPYRIGHT_NOTICE_SBOM_PROVENANCE": "NOT_STARTED",
         "INDEPENDENT_REVIEW": "NOT_STARTED"
       },
       "pendingEvidence": [
-        "adapterEvidence",
+        "adapterGreenEvidence",
         "ubuntuWindowsFaultEvidence",
         "noticeSbomProvenance",
         "independentReview"
