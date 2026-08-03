@@ -1,0 +1,55 @@
+name: WP-B M1 Independent Review Integrity
+
+on:
+  push:
+    branches:
+      - acv2/wp-b-durable-execution-outbox
+    paths:
+      - .github/workflows/wp-b-m1-independent-review-integrity.yml
+      - backend/lib/r32SqliteStore*.js
+      - backend/migrations/architectureClosureV2WpB*.js
+      - backend/services/durableExecutionAuthority*.js
+      - backend/services/externalAction*.js
+      - backend/services/externalOutcomeReconciliation.js
+      - backend/tests/architectureClosureV2/wpB/m1IndependentReviewIntegrity.test.js
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  VALIDATION_SHA: ${{ github.sha }}
+
+jobs:
+  independent-review-integrity:
+    name: wp-b-m1-review-integrity-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact review commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.VALIDATION_SHA }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Validate exact checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
+
+      - name: Run independent-review integrity contracts
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m1IndependentReviewIntegrity.test.js
