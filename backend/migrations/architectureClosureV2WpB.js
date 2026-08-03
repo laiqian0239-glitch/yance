@@ -1,6 +1,6 @@
 'use strict';
 
-const engine = require('../db/architectureClosureV2WpBEngine');
+const engine = require('./architectureClosureV2WpBEngine');
 
 const REQUIRED_FOREIGN_KEYS = Object.freeze([
   Object.freeze({ table: 'durable_execution_events', from: 'execution_id', target: 'durable_executions', to: 'execution_id' }),
