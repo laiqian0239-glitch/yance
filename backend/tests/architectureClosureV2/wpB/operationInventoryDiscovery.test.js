@@ -7,6 +7,11 @@ const {
   detectCapabilities,
   discoverCallSites
 } = require('../../../../tools/architecture-closure-v2/discover-wp-b-operation-call-sites');
+const {
+  loadWpBBaseline,
+  loadWpBOperationInventory,
+  isValidWpBOperationInventory
+} = require('../../../../shared/release/acv2ActiveWorkPackageAuthority');
 
 const REPO_ROOT = path.resolve(__dirname, '../../../..');
 
@@ -36,6 +41,26 @@ test('method declarations are not mistaken for physical invocations', () => {
     }
   `);
   assert.deepEqual(capabilities, []);
+});
+
+test('operation inventory paths are exact and reject glob metacharacters', () => {
+  const baseline = loadWpBBaseline();
+  const inventory = loadWpBOperationInventory();
+  assert.equal(isValidWpBOperationInventory(inventory, baseline), true);
+
+  for (const wildcardPath of [
+    'backend/services/*.js',
+    'backend/services/adapter?.js',
+    'backend/services/[ab].js'
+  ]) {
+    const candidate = JSON.parse(JSON.stringify(inventory));
+    candidate.entries[0].path = wildcardPath;
+    assert.equal(
+      isValidWpBOperationInventory(candidate, baseline),
+      false,
+      wildcardPath
+    );
+  }
 });
 
 test('every discovered WP-B production call site has an exact inventory row', () => {
