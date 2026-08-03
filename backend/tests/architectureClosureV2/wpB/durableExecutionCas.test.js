@@ -15,6 +15,10 @@ function source() {
   return fs.readFileSync(SOURCE_PATH, 'utf8');
 }
 
+function literalPattern(value) {
+  return new RegExp(String(value).replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u');
+}
+
 test('durable execution rows carry content hash, state version, claim and host fencing facts', () => {
   const text = source();
   for (const marker of [
@@ -92,7 +96,7 @@ test('executable transition CAS binds all stale-writer facts and returns an immu
   for (const marker of [
     'execution_id=?', 'state_version=?', 'generation=?', 'owner_id=?', 'claim_id=?',
     'host_generation=?', 'fencing_token=?', 'authority_write_host_lease'
-  ]) assert.match(calls[0].sql.replace(/\s+/gu, ' '), new RegExp(marker.replace(/[?]/gu, '\\?'), 'u'));
+  ]) assert.match(calls[0].sql.replace(/\s+/gu, ' '), literalPattern(marker));
   assert.deepEqual(result, {
     executionId: 'execution-1',
     fromState: 'RUNNING',
@@ -152,7 +156,7 @@ test('V2 unowned transition CAS schedules an execution without inventing a worke
     'host_generation=0',
     'fencing_token=0',
     'authority_write_host_lease'
-  ]) assert.match(sql, new RegExp(marker.replace(/[?]/gu, '\\?'), 'u'), marker);
+  ]) assert.match(sql, literalPattern(marker), marker);
   assert.doesNotMatch(sql, /lease_expires_at\s*>=\s*\?/u);
   assert.deepEqual(result, {
     executionId: 'execution-unowned-schedule',
@@ -218,7 +222,7 @@ test('V2 first-claim CAS atomically assigns ownership and starts a lease', () =>
     'host_generation=0',
     'fencing_token=0',
     'authority_write_host_lease'
-  ]) assert.match(sql, new RegExp(marker.replace(/[?]/gu, '\\?'), 'u'), marker);
+  ]) assert.match(sql, literalPattern(marker), marker);
   assert.doesNotMatch(sql, /lease_expires_at\s*>=\s*\?/u);
   assert.deepEqual(result, {
     executionId: 'execution-first-claim',
