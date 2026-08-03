@@ -37,6 +37,7 @@ permissions:
   contents: read
 
 env:
+  IMPLEMENTATION_BRANCH: ${{ github.head_ref || github.ref_name }}
   VALIDATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
@@ -66,14 +67,23 @@ jobs:
           node-version: '22'
           package-manager-cache: false
 
-      - name: Validate exact checkout
+      - name: Establish exact trusted implementation branch
         shell: bash
-        run: test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
+        run: |
+          set -euo pipefail
+          test "${IMPLEMENTATION_BRANCH}" = "acv2/wp-b-durable-execution-outbox"
+          test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
+          git fetch --no-tags --force origin "${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
+          test "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})" = "${VALIDATION_SHA}"
+          git switch --force-create "${IMPLEMENTATION_BRANCH}" "${VALIDATION_SHA}"
+          test "$(git branch --show-current)" = "${IMPLEMENTATION_BRANCH}"
+          test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
 
       - name: Validate existing and contract syntax
         shell: bash
         run: |
           node --check tools/architecture-closure-v2/verify-wp-b-m1-review.js
+          node --check tools/architecture-closure-v2/verify-wp-b-m2-authorization.js
           node --check backend/tests/architectureClosureV2/wpB/m1SealContinuation.test.js
           node --check backend/tests/architectureClosureV2/wpB/m2Authorization.test.js
           node --check shared/release/acv2ActiveWorkPackageAuthority.js
