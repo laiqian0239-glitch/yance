@@ -108,6 +108,86 @@ test('executable transition CAS binds all stale-writer facts and returns an immu
   assert.equal(Object.isFrozen(result), true);
 });
 
+test('V2 first-claim CAS atomically assigns ownership and starts a lease', () => {
+  const { executeExecutionClaimCas } = authorityModule();
+  assert.equal(
+    typeof executeExecutionClaimCas,
+    'function',
+    'durableExecutionAuthority V2 claim CAS missing'
+  );
+  const calls = [];
+  const db = {
+    prepare(sql) {
+      return {
+        run(...parameters) {
+          calls.push({ sql, parameters });
+          return { changes: 1 };
+        }
+      };
+    }
+  };
+  const result = executeExecutionClaimCas(db, {
+    executionId: 'execution-first-claim',
+    fromState: 'SCHEDULED',
+    stateVersion: 2,
+    generation: 0,
+    ownerId: 'host-first-claim',
+    claimId: 'claim-first-claim',
+    hostId: 'host-first-claim',
+    hostGeneration: 9,
+    fencingToken: 27,
+    leaseStartedAt: '2026-08-03T04:00:00.000Z',
+    leaseExpiresAt: '2026-08-03T04:05:00.000Z'
+  });
+
+  assert.equal(calls.length, 1);
+  const sql = calls[0].sql.replace(/\s+/gu, ' ');
+  for (const marker of [
+    'state=?',
+    'state_version=state_version+1',
+    'generation=generation+1',
+    'owner_id=?',
+    'claim_id=?',
+    'host_generation=?',
+    'fencing_token=?',
+    'lease_started_at=?',
+    'lease_expires_at=?',
+    'execution_id=?',
+    'state=?',
+    'state_version=?',
+    'generation=?',
+    "owner_id=''",
+    "claim_id=''",
+    'host_generation=0',
+    'fencing_token=0',
+    'authority_write_host_lease'
+  ]) assert.match(sql, new RegExp(marker.replace(/[?]/gu, '\\?'), 'u'), marker);
+  assert.doesNotMatch(sql, /lease_expires_at\s*>=\s*\?/u);
+  assert.deepEqual(result, {
+    executionId: 'execution-first-claim',
+    fromState: 'SCHEDULED',
+    targetState: 'CLAIMED',
+    stateVersion: 3,
+    generation: 1,
+    ownerId: 'host-first-claim',
+    claimId: 'claim-first-claim',
+    hostGeneration: 9,
+    fencingToken: 27,
+    leaseStartedAt: '2026-08-03T04:00:00.000Z',
+    leaseExpiresAt: '2026-08-03T04:05:00.000Z'
+  });
+  assert.equal(Object.isFrozen(result), true);
+});
+
+test('Schema 23 authority owns the claim facade instead of inheriting the legacy command shape', () => {
+  const { DurableExecutionAuthority } = authorityModule();
+  assert.equal(
+    Object.prototype.hasOwnProperty.call(DurableExecutionAuthority.prototype, 'claim'),
+    true,
+    'durableExecutionAuthority Schema 23 claim facade missing'
+  );
+});
+
 test('unconditional execution update is forbidden', () => {
   const updates = source().match(/UPDATE\s+durable_executions[\s\S]*?`/giu) || [];
   assert.ok(updates.length > 0, 'durable execution UPDATE missing');
