@@ -1,9 +1,9 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "documentType": "YANCE_ACV2_WP_B_XSTATE_SUPPLY_CHAIN_LOCK",
   "workPackage": "WP-B",
   "candidateId": "XSTATE_CORE_5_32_5",
-  "status": "LOCK_REPAIR_IN_PROGRESS",
+  "status": "LOCKED",
   "authority": {
     "singleSourceOfTruth": true,
     "failClosed": true,
@@ -41,16 +41,16 @@
     }
   },
   "observation": {
-    "reviewedHead": "c3d9ba7c63960a22e9995969a909b9ba27b337fa",
-    "workflowRunId": 30790076174,
+    "reviewedHead": "84fbbfdea6524dfa4a74dd0a9b40b9ae9ca0805d",
+    "workflowRunId": 30791436313,
     "runtimeVersion": "node@22.23.1",
     "ubuntu": {
-      "jobId": 91611534958,
+      "jobId": 91615614489,
       "status": "PASSED",
       "testLogSha256": "726c53eb82f1b1458632858b41b892b102b6bd4c04aa0f3f88431266f382aaeb"
     },
     "windows": {
-      "jobId": 91611534957,
+      "jobId": 91615614428,
       "status": "PASSED",
       "testLogSha256": "726c53eb82f1b1458632858b41b892b102b6bd4c04aa0f3f88431266f382aaeb"
     }
@@ -59,11 +59,14 @@
     "packageManifestPath": "package.json",
     "packageManifestBlobSha": "f4a1c15316cc451a2979acf5e9a6c7f9eb5f12bc",
     "packageLockPath": "package-lock.json",
+    "packageLockBlobSha": "ccdab1bd849589a49f3dd2ce096c2579724bc291",
+    "packageLockSha256": "c85637bf92a6886acbc43eb9a540b04d937d5b9f4cebe4a77e4fedb81a5a81b7",
     "expectedPackageLockBlobSha": "ccdab1bd849589a49f3dd2ce096c2579724bc291",
     "expectedPackageLockSha256": "c85637bf92a6886acbc43eb9a540b04d937d5b9f4cebe4a77e4fedb81a5a81b7",
-    "currentRejectedPackageLockBlobSha": "467c23fa24b94a256f733c02315d4b6e79258dbe",
-    "currentRejectedPackageLockSha256": "ce962941efa555d782e17909efad33db2f04e02c2aded0a585ae199698978dc5",
-    "differencePolicy": "ONLY_XSTATE_INTEGRITY_FIELD_MAY_CHANGE_DURING_REPAIR"
+    "repairedAtHead": "84fbbfdea6524dfa4a74dd0a9b40b9ae9ca0805d",
+    "rejectedPackageLockBlobSha": "467c23fa24b94a256f733c02315d4b6e79258dbe",
+    "rejectedPackageLockSha256": "ce962941efa555d782e17909efad33db2f04e02c2aded0a585ae199698978dc5",
+    "differencePolicy": "ONLY_XSTATE_INTEGRITY_FIELD_CHANGED_DURING_REPAIR"
   },
   "supersededObservation": {
     "reason": "RECORDED_FACTS_DID_NOT_MATCH_THE_PHYSICAL_ARTIFACT_FETCHED_IDENTICALLY_ON_UBUNTU_AND_WINDOWS",
@@ -75,7 +78,7 @@
   },
   "governance": {
     "step6OriginalModuleIntroductionComplete": true,
-    "step7UpstreamTestsComplete": false,
+    "step7UpstreamTestsComplete": true,
     "adapterIntroductionAuthorized": false,
     "productionUseAuthorized": false,
     "wpCAuthorized": false,
