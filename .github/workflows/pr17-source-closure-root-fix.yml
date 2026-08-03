@@ -1,0 +1,68 @@
+name: PR17 Source Closure Root Fix
+
+on:
+  push:
+    branches:
+      - work/pr17-source-closure-root-fix
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr17-source-closure-root-fix
+  cancel-in-progress: false
+
+jobs:
+  refactor-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout isolated branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: work/pr17-source-closure-root-fix
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Apply source capability authority refactor
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/refactor-source-capability-authority.py
+          node --check tools/architecture-closure-v2/source-capability-authority.js
+          node --check tools/architecture-closure-v2/source-closure-scan.js
+          node --check tools/architecture-closure-v2/registry-extension-capability-authority.js
+          node --check backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run source closure and cross-work-package regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js
+          node tools/architecture-closure-v2/source-closure-scan.js --wp A
+          node tools/architecture-closure-v2/source-closure-scan.js --wp B
+          node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/sqliteStoreSingleAuthority.test.js
+          node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/operationInventoryDiscovery.test.js
+
+      - name: Commit verified root fix and remove executor
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/scripts/refactor-source-capability-authority.py
+          rm -f .github/workflows/pr17-source-closure-root-fix.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          test -n "$(git status --porcelain=v1)"
+          git commit -m "refactor(governance): enforce source capabilities in closure scan"
+          git push origin HEAD:work/pr17-source-closure-root-fix
