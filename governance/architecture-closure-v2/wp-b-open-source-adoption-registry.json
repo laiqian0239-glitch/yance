@@ -15,7 +15,7 @@
       "runtimeDependencyCount": 0,
       "targetCapability": "PURE_DURABLE_EXECUTION_LIFECYCLE_AND_MODEL_PATHS",
       "adoptionMode": "DIRECT_DEPENDENCY",
-      "status": "CANDIDATE_REVIEW_IN_PROGRESS",
+      "status": "READY_FOR_MODULE_INTRODUCTION",
       "productionUseAuthorized": false,
       "allowedResponsibilities": [
         "PURE_LIFECYCLE_GRAPH",
@@ -36,14 +36,25 @@
       "authorityBoundary": "backend/services/xstateLifecycleAdapter.js",
       "officialEvidence": [
         "npm:xstate@5.32.5",
-        "github:statelyai/xstate"
+        "github:statelyai/xstate@42716670a050711f816aa24b6de4127965bc9f4c",
+        "governance/architecture-closure-v2/wp-b-open-source-adoption-evidence-xstate-5.32.5.json"
       ],
+      "verifiedPackageEvidence": {
+        "distIntegrity": "sha512-631+ENa9BCjf/Rn/aWthqY8CWnHT6LHAANtB9zTHb9Tz6SgoI8NA+IWjG3qfIcnEubyksdYGhWCOle4eA/pP4A==",
+        "distShasum": "f83e61ea539ba224affe937218bc2afdee87cc77",
+        "licenseTextSha256": "f5c97f62cc1e6c5cbd759d6230958ace177d10ec0be6ca028d5e88915a43b6b4",
+        "upstreamTag": "xstate@5.32.5",
+        "upstreamCommit": "42716670a050711f816aa24b6de4127965bc9f4c",
+        "npmAuditTotal": 0,
+        "verifiedOnUbuntu": true,
+        "verifiedOnWindows": true
+      },
       "gateSteps": {
         "CANDIDATE_IDENTIFICATION": "COMPLETE",
-        "EXACT_VERSION_AND_LICENSE_REVIEW": "IN_PROGRESS",
-        "DEPENDENCY_AND_SECURITY_SCAN": "NOT_STARTED",
-        "ADOPTION_MODE_DECISION": "NOT_STARTED",
-        "YANCE_RED_CONTRACT_FIRST": "NOT_STARTED",
+        "EXACT_VERSION_AND_LICENSE_REVIEW": "COMPLETE",
+        "DEPENDENCY_AND_SECURITY_SCAN": "COMPLETE",
+        "ADOPTION_MODE_DECISION": "COMPLETE",
+        "YANCE_RED_CONTRACT_FIRST": "COMPLETE",
         "INTRODUCE_ORIGINAL_MODULE": "NOT_STARTED",
         "UPSTREAM_TESTS_PASS": "NOT_STARTED",
         "YANCE_ADAPTER_BOUNDARY": "NOT_STARTED",
@@ -52,11 +63,6 @@
         "INDEPENDENT_REVIEW": "NOT_STARTED"
       },
       "pendingEvidence": [
-        "npmDistIntegrity",
-        "licenseTextSha256",
-        "exactUpstreamTagCommit",
-        "dependencySecurityScan",
-        "redEvidence",
         "upstreamTestEvidence",
         "adapterEvidence",
         "ubuntuWindowsFaultEvidence",
