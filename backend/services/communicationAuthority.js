@@ -1,52 +1,33 @@
 'use strict';
 
-const crypto = require('node:crypto');
-const { getStore } = require('../repositories/storeProvider');
-const channelAdapterContract = require('./channelAdapterContract');
-const defaultDurableExecutionAuthority = require('./durableExecutionAuthority');
-const defaultOutboxAuthority = require('./externalActionOutboxAuthority');
-const { reconcileExternalOutcome } = require('./externalOutcomeReconciliation');
-const {
-  OPERATION_KINDS,
-  assertReferenceOnlyEnvelope
-} = require('./durableOperationRegistry');
-
-const AUTHORITY = 'CommunicationAuthority';
-const SCHEMA_VERSION = 1;
-const CONTENT_KINDS = new Set(['text', 'image', 'video', 'audio', 'file', 'sticker', 'gif', 'unsupported']);
-const MEDIA_STATES = new Set(['REMOTE_DISCOVERED', 'FETCH_SCHEDULED', 'FETCHING', 'AVAILABLE', 'EXPIRED', 'FAILED_RETRYABLE', 'FAILED_PERMANENT']);
-const MEDIA_TRANSITIONS = Object.freeze({
-  REMOTE_DISCOVERED: new Set(['FETCH_SCHEDULED', 'FETCHING', 'FAILED_RETRYABLE', 'FAILED_PERMANENT']),
-  FETCH_SCHEDULED: new Set(['FETCHING', 'FAILED_RETRYABLE', 'FAILED_PERMANENT']),
-  FETCHING: new Set(['AVAILABLE', 'FAILED_RETRYABLE', 'FAILED_PERMANENT']),
-  AVAILABLE: new Set(['EXPIRED']),
-  EXPIRED: new Set(['FETCH_SCHEDULED', 'FETCHING', 'FAILED_PERMANENT']),
-  FAILED_RETRYABLE: new Set(['FETCH_SCHEDULED', 'FETCHING', 'FAILED_PERMANENT']),
-  FAILED_PERMANENT: new Set([])
-});
+const core = require('./canonicalChannelStateEngine');
+const { canonicalHash, canonicalSerialize } = require('./canonicalSerialization');
+const { deepFreeze } = require('../lib/deepFreeze');
+const { OPERATION_KINDS } = require('./durableOperationRegistry');
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
-function defaultClock() { return new Date().toISOString(); }
-function defaultIdFactory(prefix) { return `${prefix}-${crypto.randomUUID()}`; }
-function parse(value, fallback = {}) { try { return value == null || value === '' ? fallback : JSON.parse(value); } catch (_) { return fallback; } }
-function stableId(prefix, parts) {
-  return `${prefix}-${crypto.createHash('sha256').update(parts.map(clean).join('\u001f')).digest('hex').slice(0, 32)}`;
-}
-function communicationError(code, message, details = {}) {
+function historyAuthorityError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
 }
 function requiredString(value, field, maximum = 2048) {
   const result = clean(value);
-  if (!result) throw communicationError('WP_B_COMMUNICATION_FIELD_REQUIRED', `${field} is required`, { field });
+  if (!result) throw historyAuthorityError('WP_B_HISTORY_CHECKPOINT_FIELD_REQUIRED', `${field} is required`, { field });
   if (result.length > maximum || /[\u0000-\u001f\u007f]/u.test(result)) {
-    throw communicationError('WP_B_COMMUNICATION_FIELD_INVALID', `${field} is invalid`, { field, maximum });
+    throw historyAuthorityError('WP_B_HISTORY_CHECKPOINT_FIELD_INVALID', `${field} is invalid`, { field, maximum });
+  }
+  return result;
+}
+function optionalString(value, field, maximum = 2048) {
+  const result = clean(value);
+  if (result.length > maximum || /[\u0000-\u001f\u007f]/u.test(result)) {
+    throw historyAuthorityError('WP_B_HISTORY_CHECKPOINT_FIELD_INVALID', `${field} is invalid`, { field, maximum });
   }
   return result;
 }
 function safeInteger(value, field, minimum = 0) {
   const result = Number(value);
   if (!Number.isSafeInteger(result) || result < minimum) {
-    throw communicationError('WP_B_COMMUNICATION_INTEGER_INVALID', `${field} must be a safe integer >= ${minimum}`, { field });
+    throw historyAuthorityError('WP_B_HISTORY_CHECKPOINT_INTEGER_INVALID', `${field} must be a safe integer >= ${minimum}`, { field });
   }
   return result;
 }
@@ -54,388 +35,301 @@ function normalizedTimestamp(value, field) {
   const source = String(value == null ? '' : value);
   const milliseconds = Date.parse(source);
   if (!Number.isFinite(milliseconds) || new Date(milliseconds).toISOString() !== source) {
-    throw communicationError('WP_B_COMMUNICATION_AUTHORITY_TIMESTAMP_INVALID', `${field} must be normalized UTC ISO-8601`, { field });
+    throw historyAuthorityError('WP_B_HISTORY_CHECKPOINT_TIMESTAMP_INVALID', `${field} must be normalized UTC ISO-8601`, { field });
   }
   return source;
 }
-function issueAuthorityTimestamp(issuer, purpose) {
-  if (typeof issuer !== 'function') {
-    throw new TypeError('CommunicationAuthority requires an authority timestamp issuer');
-  }
-  return normalizedTimestamp(issuer(purpose), purpose);
-}
-function assertDirection(value) {
-  const direction = clean(value).toLowerCase();
-  if (!['inbound', 'outbound', 'system'].includes(direction)) {
-    throw Object.assign(new Error(`Unsupported message direction: ${direction}`), { code: 'CANONICAL_MESSAGE_DIRECTION_INVALID', status: 400, direction });
-  }
-  return direction;
-}
-function normalizeRawEventRef(value = {}) {
-  channelAdapterContract.assertPlainData(value);
-  return {
-    eventId: clean(value.eventId),
-    payloadSha256: clean(value.payloadSha256),
-    redactionVersion: clean(value.redactionVersion || 'v1')
-  };
-}
-function normalizeContent(value = {}) {
-  channelAdapterContract.assertPlainData(value);
-  const kind = clean(value.kind).toLowerCase();
-  if (!CONTENT_KINDS.has(kind)) return { kind: 'unsupported', platformType: kind || 'unknown', rawSummary: clean(value.rawSummary) };
-  if (kind === 'text') {
-    const text = String(value.text == null ? '' : value.text);
-    if (!text.trim()) return { kind: 'unsupported', platformType: 'empty-text', rawSummary: '' };
-    return { kind, text };
-  }
-  if (['image', 'video'].includes(kind)) return { kind, mediaId: clean(value.mediaId), caption: String(value.caption == null ? '' : value.caption) };
-  if (kind === 'audio') return { kind, mediaId: clean(value.mediaId), durationMs: Number(value.durationMs || 0) };
-  if (kind === 'file') return { kind, mediaId: clean(value.mediaId), filename: clean(value.filename) };
-  if (kind === 'sticker') return { kind, mediaId: clean(value.mediaId), nativeReference: clean(value.nativeReference), animated: value.animated === true };
-  if (kind === 'gif') return { kind, mediaId: clean(value.mediaId), nativeReference: clean(value.nativeReference) };
-  return { kind: 'unsupported', platformType: clean(value.platformType || 'unknown'), rawSummary: clean(value.rawSummary) };
-}
-function renderProjection(content = {}) {
-  if (content.kind === 'text') return { kind: 'text', text: content.text };
-  if (content.kind === 'image') return { kind: 'image', mediaId: content.mediaId, caption: content.caption || '', fallbackText: content.caption || '[图片]' };
-  if (content.kind === 'video') return { kind: 'video', mediaId: content.mediaId, caption: content.caption || '', fallbackText: content.caption || '[视频]' };
-  if (content.kind === 'audio') return { kind: 'audio', mediaId: content.mediaId, durationMs: content.durationMs || 0, fallbackText: '[语音]' };
-  if (content.kind === 'file') return { kind: 'file', mediaId: content.mediaId, filename: content.filename || '', fallbackText: content.filename || '[文件]' };
-  if (content.kind === 'sticker') return { kind: 'sticker', mediaId: content.mediaId || '', nativeReference: content.nativeReference || '', animated: content.animated === true, fallbackText: content.animated ? '[动态贴纸]' : '[贴纸]' };
-  if (content.kind === 'gif') return { kind: 'gif', mediaId: content.mediaId || '', nativeReference: content.nativeReference || '', fallbackText: '[GIF 动图]' };
-  return { kind: 'unsupported', platformType: content.platformType || 'unknown', fallbackText: `暂不支持的消息类型：${content.platformType || 'unknown'}` };
-}
-function messageRow(row = {}) {
-  if (!row) return null;
-  return {
-    authority: AUTHORITY,
-    schemaVersion: SCHEMA_VERSION,
-    messageId: clean(row.message_id), traceId: clean(row.trace_id), platform: clean(row.platform), sourceAccountId: clean(row.source_account_id),
-    externalConversationId: clean(row.external_conversation_id), externalMessageId: clean(row.external_message_id), direction: clean(row.direction),
-    senderExternalId: clean(row.sender_external_id), occurredAt: clean(row.occurred_at), contentKind: clean(row.content_kind),
-    rawEventRef: parse(row.raw_event_ref_json, {}), normalizedContent: parse(row.normalized_content_json, {}), renderProjection: parse(row.render_projection_json, {}),
-    idempotencyKey: clean(row.idempotency_key), createdAt: clean(row.created_at), updatedAt: clean(row.updated_at)
-  };
-}
-function mediaRow(row = {}) {
-  if (!row) return null;
-  return {
-    authority: AUTHORITY, schemaVersion: SCHEMA_VERSION,
-    mediaId: clean(row.media_id), traceId: clean(row.trace_id), platform: clean(row.platform), sourceAccountId: clean(row.source_account_id),
-    externalReference: clean(row.external_reference), mediaKind: clean(row.media_kind), mimeType: clean(row.mime_type), animated: Number(row.animated || 0) === 1,
-    state: clean(row.state), version: Number(row.version || 0), localPath: clean(row.local_path), thumbnailPath: clean(row.thumbnail_path), sha256: clean(row.sha256),
-    failureCode: clean(row.failure_code), nextRetryAt: clean(row.next_retry_at), metadata: parse(row.metadata_json, {}), createdAt: clean(row.created_at), updatedAt: clean(row.updated_at)
-  };
-}
-function checkpointRow(row = {}, scope = {}) {
-  if (!row) return {
-    authority: AUTHORITY, schemaVersion: SCHEMA_VERSION,
-    checkpointId: stableId('checkpoint', [scope.platform, scope.sourceAccountId, scope.streamKind, scope.externalConversationId]),
-    platform: clean(scope.platform), sourceAccountId: clean(scope.sourceAccountId), streamKind: clean(scope.streamKind), externalConversationId: clean(scope.externalConversationId),
-    version: 0, cursor: '', highWatermark: '', gapClosed: true, updatedAt: ''
-  };
-  return {
-    authority: AUTHORITY, schemaVersion: SCHEMA_VERSION,
-    checkpointId: clean(row.checkpoint_id), platform: clean(row.platform), sourceAccountId: clean(row.source_account_id), streamKind: clean(row.stream_kind),
-    externalConversationId: clean(row.external_conversation_id), version: Number(row.version || 0), cursor: clean(row.cursor), highWatermark: clean(row.high_watermark),
-    gapClosed: Number(row.gap_closed || 0) === 1, updatedAt: clean(row.updated_at)
-  };
-}
-function claimFacts(value = {}, field = 'claim') {
+function requireFrozen(value, field) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || !Object.isFrozen(value)) {
-    throw communicationError('WP_B_COMMUNICATION_CLAIM_REQUIRED', `${field} must be one frozen claim snapshot`, { field });
+    throw historyAuthorityError('WP_B_HISTORY_CHECKPOINT_SNAPSHOT_REQUIRED', `${field} must be one frozen snapshot`, { field });
+  }
+  return value;
+}
+function historyExecutionClaim(value) {
+  const snapshot = requireFrozen(value, 'executionClaim');
+  const allowedStates = Array.isArray(snapshot.allowedStates)
+    ? Object.freeze([...new Set(snapshot.allowedStates.map(state => requiredString(state, 'executionClaim.allowedStates', 64)))])
+    : Object.freeze([]);
+  if (allowedStates.length < 1) {
+    throw historyAuthorityError(
+      'WP_B_HISTORY_EXECUTION_STATES_REQUIRED',
+      'executionClaim.allowedStates must contain the current durable states'
+    );
   }
   return Object.freeze({
-    stateVersion: safeInteger(value.stateVersion, `${field}.stateVersion`),
-    generation: safeInteger(value.generation, `${field}.generation`, 1),
-    ownerId: requiredString(value.ownerId, `${field}.ownerId`),
-    claimId: requiredString(value.claimId, `${field}.claimId`),
-    hostId: requiredString(value.hostId, `${field}.hostId`),
-    hostGeneration: safeInteger(value.hostGeneration, `${field}.hostGeneration`, 1),
-    fencingToken: safeInteger(value.fencingToken, `${field}.fencingToken`, 1),
-    allowedStates: Array.isArray(value.allowedStates) ? Object.freeze([...value.allowedStates]) : Object.freeze([])
+    executionId: requiredString(snapshot.executionId, 'executionClaim.executionId'),
+    stateVersion: safeInteger(snapshot.stateVersion, 'executionClaim.stateVersion'),
+    generation: safeInteger(snapshot.generation, 'executionClaim.generation', 1),
+    ownerId: requiredString(snapshot.ownerId, 'executionClaim.ownerId'),
+    claimId: requiredString(snapshot.claimId, 'executionClaim.claimId'),
+    hostId: requiredString(snapshot.hostId, 'executionClaim.hostId'),
+    hostGeneration: safeInteger(snapshot.hostGeneration, 'executionClaim.hostGeneration', 1),
+    fencingToken: safeInteger(snapshot.fencingToken, 'executionClaim.fencingToken', 1),
+    allowedStates
+  });
+}
+function checkpointFacts(value) {
+  const snapshot = requireFrozen(value, 'checkpoint');
+  return Object.freeze({
+    checkpointId: requiredString(snapshot.checkpointId, 'checkpoint.checkpointId'),
+    platform: requiredString(snapshot.platform, 'checkpoint.platform', 64).toLowerCase(),
+    sourceAccountId: requiredString(snapshot.sourceAccountId, 'checkpoint.sourceAccountId'),
+    streamKind: requiredString(snapshot.streamKind, 'checkpoint.streamKind', 64).toLowerCase(),
+    externalConversationId: requiredString(snapshot.externalConversationId, 'checkpoint.externalConversationId'),
+    expectedVersion: safeInteger(snapshot.expectedVersion, 'checkpoint.expectedVersion')
+  });
+}
+function observationFacts(value) {
+  const snapshot = requireFrozen(value, 'observation');
+  const outcome = requiredString(snapshot.outcome, 'observation.outcome', 64);
+  if (!['PAGE_OBSERVED', 'REMOTE_RESULT_UNKNOWN'].includes(outcome)) {
+    throw historyAuthorityError('WP_B_HISTORY_OBSERVATION_OUTCOME_INVALID', 'History observation outcome is unsupported', { outcome });
+  }
+  return Object.freeze({
+    outcome,
+    segmentReference: optionalString(snapshot.segmentReference, 'observation.segmentReference'),
+    cursorReference: optionalString(snapshot.cursorReference, 'observation.cursorReference'),
+    highWatermarkReference: optionalString(snapshot.highWatermarkReference, 'observation.highWatermarkReference'),
+    gapClosed: snapshot.gapClosed === true,
+    evidenceReference: requiredString(snapshot.evidenceReference, 'observation.evidenceReference')
   });
 }
 
-class CommunicationAuthority {
-  constructor({
-    storeProvider = getStore,
-    idFactory = defaultIdFactory,
-    clock = defaultClock,
-    durableExecutionAuthority = defaultDurableExecutionAuthority,
-    outboxAuthority = defaultOutboxAuthority,
-    issueTimestamp = clock,
-    deliveryReceiptTransactionCapability = null
-  } = {}) {
-    this.storeProvider = storeProvider;
-    this.idFactory = idFactory;
-    this.clock = clock;
-    this.durableExecutionAuthority = durableExecutionAuthority;
-    this.outboxAuthority = outboxAuthority;
-    this.issueTimestamp = issueTimestamp;
-    this.deliveryReceiptTransactionCapability = deliveryReceiptTransactionCapability;
+class CommunicationAuthority extends core.CommunicationAuthority {
+  constructor(options = {}) {
+    super(options);
+    this.historyCheckpointTransactionCapability = options.historyCheckpointTransactionCapability || null;
   }
 
-  store() { return this.storeProvider(); }
-
-  prepareOutboundMessageSend(input = {}) {
+  prepareHistorySynchronization(input = {}) {
     return this.prepareExternalAction({
       ...input,
-      operationKind: OPERATION_KINDS.OUTBOUND_MESSAGE_SEND,
-      executionTimestampPurpose: 'outbound-message-execution',
-      intentTimestampPurpose: 'outbound-message-intent'
+      operationKind: OPERATION_KINDS.HISTORY_SYNCHRONIZATION,
+      executionTimestampPurpose: 'history-synchronization-execution',
+      intentTimestampPurpose: 'history-synchronization-intent'
     });
   }
 
-  prepareDeliveryReceiptReconciliation(input = {}) {
-    return this.prepareExternalAction({
-      ...input,
-      operationKind: OPERATION_KINDS.DELIVERY_RECEIPT_RECONCILIATION,
-      executionTimestampPurpose: 'delivery-receipt-reconciliation-execution',
-      intentTimestampPurpose: 'delivery-receipt-reconciliation-intent'
-    });
-  }
-
-  prepareExternalAction(input = {}) {
-    const operationKind = requiredString(input.operationKind, 'operationKind', 128);
-    const idempotencyKey = requiredString(input.idempotencyKey, 'idempotencyKey');
-    const command = assertReferenceOnlyEnvelope(input.command);
-    if (!this.durableExecutionAuthority || typeof this.durableExecutionAuthority.createExecution !== 'function') {
-      throw new TypeError('CommunicationAuthority requires DurableExecutionAuthority.createExecution');
-    }
-    if (!this.outboxAuthority || typeof this.outboxAuthority.createIntent !== 'function') {
-      throw new TypeError('CommunicationAuthority requires ExternalActionOutboxAuthority.createIntent');
-    }
-    const execution = this.durableExecutionAuthority.createExecution({
-      operationKind,
-      idempotencyKey,
-      traceId: clean(input.traceId),
-      command,
-      deadlineAt: clean(input.deadlineAt),
-      maxAttempts: Math.max(1, Number(input.maxAttempts || 3)),
-      authorityTimestamp: issueAuthorityTimestamp(this.issueTimestamp, input.executionTimestampPurpose)
-    });
-    const executionId = requiredString(execution?.executionId, 'execution.executionId');
-    const intent = this.outboxAuthority.createIntent({
-      executionId,
-      actionKind: operationKind,
-      idempotencyKey,
-      payload: command,
-      authorityTimestamp: issueAuthorityTimestamp(this.issueTimestamp, input.intentTimestampPurpose)
-    });
-    return Object.freeze({
-      executionId,
-      intentId: requiredString(intent?.intentId, 'intent.intentId'),
-      operationKind,
-      idempotencyKey
-    });
-  }
-
-  readOutboundMessageState(input = {}) {
-    const intentId = requiredString(input.intentId || input.attemptId, 'intentId');
-    if (!this.outboxAuthority || typeof this.outboxAuthority.intent !== 'function') {
-      throw new TypeError('CommunicationAuthority requires ExternalActionOutboxAuthority.intent');
-    }
-    return this.outboxAuthority.intent(intentId);
-  }
-
-  deliveryReceiptCapability() {
-    if (this.deliveryReceiptTransactionCapability) return this.deliveryReceiptTransactionCapability;
+  historyCheckpointCapability() {
+    if (this.historyCheckpointTransactionCapability) return this.historyCheckpointTransactionCapability;
     const store = this.store();
-    if (!store || typeof store.transaction !== 'function') {
-      throw new TypeError('Delivery receipt reconciliation requires the primary store transaction capability');
-    }
-    for (const [authority, method] of [
-      [this.outboxAuthority, 'recordReconciliation'],
-      [this.outboxAuthority, 'recordReceipt'],
-      [this.durableExecutionAuthority, 'transition']
-    ]) {
-      if (!authority || typeof authority[method] !== 'function') {
-        throw new TypeError(`Delivery receipt reconciliation requires ${method}`);
-      }
+    if (!store?.db || typeof store.transaction !== 'function') {
+      throw new TypeError('History synchronization requires the primary store transaction capability');
     }
     return Object.freeze({
       transaction: work => store.transaction(work),
-      recordReconciliation: input => this.outboxAuthority.recordReconciliation(input),
-      recordReceipt: input => this.outboxAuthority.recordReceipt(input),
-      transitionExecution: input => this.durableExecutionAuthority.transition(input)
+      recordObservation: input => this.recordHistoryCheckpointObservation(input, store),
+      advanceCheckpoint: input => this.advanceHistoryCheckpoint(input, store)
     });
   }
 
-  applyDeliveryReceiptObservation(input = {}) {
-    const targetExecutionId = requiredString(input.targetExecutionId, 'targetExecutionId');
-    const targetIntentId = requiredString(input.targetIntentId, 'targetIntentId');
-    const targetAttemptId = requiredString(input.targetAttemptId, 'targetAttemptId');
-    const observation = input.observation;
-    const authorityTimestamp = issueAuthorityTimestamp(
-      this.issueTimestamp,
-      'delivery-receipt-observation'
-    );
-    const capability = this.deliveryReceiptCapability();
-    for (const method of ['transaction', 'recordReconciliation', 'recordReceipt', 'transitionExecution']) {
-      if (typeof capability?.[method] !== 'function') {
-        throw new TypeError(`Delivery receipt transaction capability requires ${method}`);
-      }
-    }
-
-    return capability.transaction(() => reconcileExternalOutcome({
-      intentId: targetIntentId,
-      attemptId: targetAttemptId,
-      observation,
+  recordHistoryCheckpointObservation(input = {}, store = this.store()) {
+    const claim = historyExecutionClaim(input);
+    const authorityTimestamp = normalizedTimestamp(input.authorityTimestamp, 'authorityTimestamp');
+    const observation = deepFreeze({
+      schemaVersion: 1,
+      observationType: 'HISTORY_CHECKPOINT_OBSERVATION',
+      checkpointId: requiredString(input.checkpointId, 'checkpointId'),
+      expectedVersion: safeInteger(input.expectedVersion, 'expectedVersion'),
+      outcome: requiredString(input.outcome, 'outcome', 64),
+      segmentReference: optionalString(input.segmentReference, 'segmentReference'),
+      cursorReference: optionalString(input.cursorReference, 'cursorReference'),
+      highWatermarkReference: optionalString(input.highWatermarkReference, 'highWatermarkReference'),
+      gapClosed: input.gapClosed === true,
+      evidenceReference: requiredString(input.evidenceReference, 'evidenceReference')
+    });
+    const sequence = Number(store.db.prepare(
+      'SELECT COALESCE(MAX(sequence),0)+1 AS sequence FROM durable_execution_checkpoints WHERE execution_id=?'
+    ).get(claim.executionId)?.sequence || 1);
+    const checkpointId = this.idFactory('history-observation');
+    const snapshotJson = canonicalSerialize(observation);
+    const snapshotSha256 = canonicalHash(observation);
+    store.db.prepare(`INSERT INTO durable_execution_checkpoints(
+      checkpoint_id,execution_id,sequence,state,state_version,generation,owner_id,claim_id,
+      host_generation,fencing_token,snapshot_json,snapshot_sha256,authority_timestamp,created_at
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+      checkpointId,
+      claim.executionId,
+      sequence,
+      observation.outcome,
+      claim.stateVersion,
+      claim.generation,
+      claim.ownerId,
+      claim.claimId,
+      claim.hostGeneration,
+      claim.fencingToken,
+      snapshotJson,
+      snapshotSha256,
       authorityTimestamp,
-      transaction: work => work(),
-      recordReconciliation: command => capability.recordReconciliation(command),
-      recordReceipt: receipt => {
-        const facts = claimFacts(input.outboxClaim, 'outboxClaim');
-        return capability.recordReceipt({
-          ...facts,
-          intentId: targetIntentId,
-          attemptId: targetAttemptId,
-          providerReceiptId: receipt.remoteReceiptId,
-          evidenceReference: receipt.evidenceReference,
-          result: receipt.result,
-          authorityTimestamp
-        });
-      },
-      transitionExecution: transition => {
-        const facts = claimFacts(input.executionClaim, 'executionClaim');
-        if (facts.allowedStates.length < 1) {
-          throw communicationError(
-            'WP_B_COMMUNICATION_EXECUTION_STATES_REQUIRED',
-            'executionClaim.allowedStates must contain the current durable states'
-          );
-        }
-        return capability.transitionExecution({
-          ...facts,
-          executionId: targetExecutionId,
-          allowedStates: facts.allowedStates,
-          targetState: 'SUCCEEDED',
-          authorityTimestamp,
-          eventType: 'delivery-receipt-reconciled',
-          reasonCode: 'REMOTE_SUCCESS_PROVEN',
-          payload: Object.freeze({
-            targetIntentId,
-            targetAttemptId,
-            trustedReceiptId: transition.trustedReceiptId
-          })
-        });
-      }
-    }));
-  }
-
-  assertAccount(platform, sourceAccountId, store = this.store()) {
-    const row = store.db.prepare('SELECT id,platform,state FROM r32_accounts WHERE id=?').get(clean(sourceAccountId));
-    if (!row) throw Object.assign(new Error('Channel account is not persisted'), { code: 'COMMUNICATION_ACCOUNT_NOT_FOUND', status: 409, platform: clean(platform), sourceAccountId: clean(sourceAccountId) });
-    if (clean(row.platform) !== clean(platform)) throw Object.assign(new Error('Channel account platform scope mismatch'), { code: 'COMMUNICATION_ACCOUNT_SCOPE_MISMATCH', status: 409, platform: clean(platform), sourceAccountId: clean(sourceAccountId) });
-    return row;
-  }
-
-  ingestMessage(input = {}) {
-    const platform = clean(input.platform).toLowerCase();
-    const sourceAccountId = clean(input.sourceAccountId);
-    const externalConversationId = clean(input.externalConversationId);
-    const externalMessageId = clean(input.externalMessageId);
-    if (!platform || !sourceAccountId || !externalConversationId || !externalMessageId) {
-      throw Object.assign(new Error('Canonical message scope is incomplete'), { code: 'CANONICAL_MESSAGE_SCOPE_INCOMPLETE', status: 400 });
-    }
-    const store = this.store();
-    this.assertAccount(platform, sourceAccountId, store);
-    const idempotencyKey = `${platform}:${sourceAccountId}:${externalConversationId}:${externalMessageId}`;
-    const existing = store.db.prepare('SELECT * FROM communication_canonical_messages WHERE idempotency_key=?').get(idempotencyKey);
-    if (existing) return messageRow(existing);
-    const content = normalizeContent(input.content || {});
-    const render = renderProjection(content);
-    const rawRef = normalizeRawEventRef(input.rawEventRef || {});
-    const messageId = clean(input.messageId) || stableId('message', [platform, sourceAccountId, externalConversationId, externalMessageId]);
-    const at = this.clock();
-    store.db.prepare(`
-      INSERT INTO communication_canonical_messages(
-        message_id,trace_id,platform,source_account_id,external_conversation_id,external_message_id,direction,sender_external_id,
-        occurred_at,content_kind,raw_event_ref_json,normalized_content_json,render_projection_json,idempotency_key,created_at,updated_at
-      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    `).run(
-      messageId, clean(input.traceId), platform, sourceAccountId, externalConversationId, externalMessageId, assertDirection(input.direction), clean(input.senderExternalId),
-      clean(input.occurredAt), content.kind, JSON.stringify(rawRef), JSON.stringify(content), JSON.stringify(render), idempotencyKey, at, at
+      authorityTimestamp
     );
-    return messageRow(store.db.prepare('SELECT * FROM communication_canonical_messages WHERE message_id=?').get(messageId));
+    return Object.freeze({ checkpointId, executionId: claim.executionId, sequence, snapshotSha256 });
   }
 
-  getMessage(messageId) {
-    return messageRow(this.store().db.prepare('SELECT * FROM communication_canonical_messages WHERE message_id=?').get(clean(messageId)));
-  }
-
-  registerMedia(input = {}) {
-    const platform = clean(input.platform).toLowerCase();
-    const sourceAccountId = clean(input.sourceAccountId);
-    const externalReference = clean(input.externalReference);
-    const mediaKind = clean(input.mediaKind).toLowerCase();
-    if (!platform || !sourceAccountId || !externalReference || !mediaKind) throw Object.assign(new Error('Media asset scope is incomplete'), { code: 'MEDIA_ASSET_SCOPE_INCOMPLETE', status: 400 });
-    const store = this.store();
-    this.assertAccount(platform, sourceAccountId, store);
-    const existing = store.db.prepare('SELECT * FROM communication_media_assets WHERE platform=? AND source_account_id=? AND external_reference=? AND media_kind=?').get(platform, sourceAccountId, externalReference, mediaKind);
-    if (existing) return mediaRow(existing);
-    const mediaId = clean(input.mediaId) || stableId('media', [platform, sourceAccountId, externalReference, mediaKind]);
-    const at = this.clock();
-    channelAdapterContract.assertPlainData(input.metadata || {});
-    store.db.prepare(`
-      INSERT INTO communication_media_assets(
-        media_id,trace_id,platform,source_account_id,external_reference,media_kind,mime_type,animated,state,version,
-        local_path,thumbnail_path,sha256,failure_code,next_retry_at,metadata_json,created_at,updated_at
-      ) VALUES(?,?,?,?,?,?,?,?, 'REMOTE_DISCOVERED',1,'','','','','',?,?,?)
-    `).run(mediaId, clean(input.traceId), platform, sourceAccountId, externalReference, mediaKind, clean(input.mimeType), input.animated === true ? 1 : 0, JSON.stringify(input.metadata || {}), at, at);
-    return mediaRow(store.db.prepare('SELECT * FROM communication_media_assets WHERE media_id=?').get(mediaId));
-  }
-
-  transitionMedia(input = {}) {
-    const store = this.store();
-    return store.transaction(() => {
-      const row = store.db.prepare('SELECT * FROM communication_media_assets WHERE media_id=?').get(clean(input.mediaId));
-      if (!row) throw Object.assign(new Error('Media asset not found'), { code: 'MEDIA_ASSET_NOT_FOUND', status: 404, mediaId: clean(input.mediaId) });
-      const expectedVersion = Number(input.expectedVersion);
-      if (!Number.isInteger(expectedVersion) || expectedVersion !== Number(row.version || 0)) {
-        throw Object.assign(new Error('Media asset stale version rejected'), { code: 'MEDIA_ASSET_STALE_VERSION', status: 409, expectedVersion: Number(row.version || 0), receivedVersion: Number.isFinite(expectedVersion) ? expectedVersion : null });
-      }
-      const state = clean(input.state).toUpperCase();
-      if (!MEDIA_STATES.has(state) || !MEDIA_TRANSITIONS[clean(row.state)]?.has(state)) {
-        throw Object.assign(new Error(`Invalid media transition ${clean(row.state)} -> ${state}`), { code: 'MEDIA_ASSET_TRANSITION_INVALID', status: 409, fromState: clean(row.state), toState: state });
-      }
-      if (state === 'AVAILABLE' && !clean(input.localPath)) throw Object.assign(new Error('Available media requires local path'), { code: 'MEDIA_ASSET_LOCAL_PATH_REQUIRED', status: 409 });
-      const at = this.clock();
-      store.db.prepare(`UPDATE communication_media_assets SET state=?,version=version+1,local_path=?,thumbnail_path=?,sha256=?,failure_code=?,next_retry_at=?,updated_at=? WHERE media_id=?`)
-        .run(state, clean(input.localPath || row.local_path), clean(input.thumbnailPath || row.thumbnail_path), clean(input.sha256 || row.sha256), clean(input.failureCode), clean(input.nextRetryAt), at, clean(input.mediaId));
-      return mediaRow(store.db.prepare('SELECT * FROM communication_media_assets WHERE media_id=?').get(clean(input.mediaId)));
+  advanceHistoryCheckpoint(input = {}, store = this.store()) {
+    const claim = historyExecutionClaim(input);
+    const checkpoint = Object.freeze({
+      checkpointId: requiredString(input.checkpointId, 'checkpointId'),
+      platform: requiredString(input.platform, 'platform', 64).toLowerCase(),
+      sourceAccountId: requiredString(input.sourceAccountId, 'sourceAccountId'),
+      streamKind: requiredString(input.streamKind, 'streamKind', 64).toLowerCase(),
+      externalConversationId: requiredString(input.externalConversationId, 'externalConversationId'),
+      expectedVersion: safeInteger(input.expectedVersion, 'expectedVersion'),
+      cursorReference: optionalString(input.cursorReference, 'cursorReference'),
+      highWatermarkReference: optionalString(input.highWatermarkReference, 'highWatermarkReference'),
+      gapClosed: input.gapClosed === true,
+      authorityTimestamp: normalizedTimestamp(input.authorityTimestamp, 'authorityTimestamp')
+    });
+    this.assertAccount(checkpoint.platform, checkpoint.sourceAccountId, store);
+    const statePlaceholders = claim.allowedStates.map(() => '?').join(',');
+    const executionGuard = `EXISTS(
+      SELECT 1 FROM durable_executions execution
+      WHERE execution.execution_id=?
+        AND execution.state_version=?
+        AND execution.generation=?
+        AND execution.owner_id=?
+        AND execution.claim_id=?
+        AND execution.host_generation=?
+        AND execution.fencing_token=?
+        AND execution.lease_expires_at>=?
+        AND execution.state IN (${statePlaceholders})
+        AND EXISTS(
+          SELECT 1 FROM authority_write_host_lease host
+          WHERE host.singleton_id=1
+            AND host.owner_instance_id=?
+            AND host.host_generation=?
+            AND host.fencing_token=?
+            AND host.state='ACTIVE'
+        )
+    )`;
+    const guardValues = [
+      claim.executionId,
+      claim.stateVersion,
+      claim.generation,
+      claim.ownerId,
+      claim.claimId,
+      claim.hostGeneration,
+      claim.fencingToken,
+      checkpoint.authorityTimestamp,
+      ...claim.allowedStates,
+      claim.hostId,
+      claim.hostGeneration,
+      claim.fencingToken
+    ];
+    let result;
+    if (checkpoint.expectedVersion === 0) {
+      result = store.db.prepare(`INSERT INTO communication_sync_checkpoints(
+        checkpoint_id,platform,source_account_id,stream_kind,external_conversation_id,
+        version,cursor,high_watermark,gap_closed,updated_at
+      ) SELECT ?,?,?,?,?,1,?,?,?,?
+        WHERE NOT EXISTS(
+          SELECT 1 FROM communication_sync_checkpoints
+          WHERE platform=? AND source_account_id=? AND stream_kind=? AND external_conversation_id=?
+        ) AND ${executionGuard}`).run(
+        checkpoint.checkpointId,
+        checkpoint.platform,
+        checkpoint.sourceAccountId,
+        checkpoint.streamKind,
+        checkpoint.externalConversationId,
+        checkpoint.cursorReference,
+        checkpoint.highWatermarkReference,
+        checkpoint.gapClosed ? 1 : 0,
+        checkpoint.authorityTimestamp,
+        checkpoint.platform,
+        checkpoint.sourceAccountId,
+        checkpoint.streamKind,
+        checkpoint.externalConversationId,
+        ...guardValues
+      );
+    } else {
+      result = store.db.prepare(`UPDATE communication_sync_checkpoints SET
+        version=version+1,cursor=?,high_watermark=?,gap_closed=?,updated_at=?
+        WHERE checkpoint_id=? AND platform=? AND source_account_id=?
+          AND stream_kind=? AND external_conversation_id=? AND version=?
+          AND ${executionGuard}`).run(
+        checkpoint.cursorReference,
+        checkpoint.highWatermarkReference,
+        checkpoint.gapClosed ? 1 : 0,
+        checkpoint.authorityTimestamp,
+        checkpoint.checkpointId,
+        checkpoint.platform,
+        checkpoint.sourceAccountId,
+        checkpoint.streamKind,
+        checkpoint.externalConversationId,
+        checkpoint.expectedVersion,
+        ...guardValues
+      );
+    }
+    if (Number(result.changes || 0) !== 1) {
+      throw historyAuthorityError(
+        'WP_B_HISTORY_CHECKPOINT_CAS_REJECTED',
+        'History checkpoint CAS rejected stale ownership, version, lease, generation or fencing facts',
+        {
+          checkpointId: checkpoint.checkpointId,
+          executionId: claim.executionId,
+          expectedVersion: checkpoint.expectedVersion,
+          stateVersion: claim.stateVersion,
+          generation: claim.generation,
+          claimId: claim.claimId,
+          hostGeneration: claim.hostGeneration,
+          fencingToken: claim.fencingToken
+        }
+      );
+    }
+    return this.getSyncCheckpoint({
+      platform: checkpoint.platform,
+      sourceAccountId: checkpoint.sourceAccountId,
+      streamKind: checkpoint.streamKind,
+      externalConversationId: checkpoint.externalConversationId
     });
   }
 
-  getSyncCheckpoint(input = {}) {
-    const scope = { platform: clean(input.platform).toLowerCase(), sourceAccountId: clean(input.sourceAccountId), streamKind: clean(input.streamKind), externalConversationId: clean(input.externalConversationId) };
-    const row = this.store().db.prepare(`SELECT * FROM communication_sync_checkpoints WHERE platform=? AND source_account_id=? AND stream_kind=? AND external_conversation_id=?`)
-      .get(scope.platform, scope.sourceAccountId, scope.streamKind, scope.externalConversationId);
-    return checkpointRow(row, scope);
-  }
-
-  commitSyncCheckpoint(input = {}) {
-    if (input.gapClosed !== true) throw Object.assign(new Error('Sync checkpoint cannot advance before gap closure'), { code: 'SYNC_GAP_NOT_CLOSED', status: 409 });
-    const platform = clean(input.platform).toLowerCase();
-    const sourceAccountId = clean(input.sourceAccountId);
-    const streamKind = clean(input.streamKind);
-    const externalConversationId = clean(input.externalConversationId);
-    const store = this.store();
-    this.assertAccount(platform, sourceAccountId, store);
-    return store.transaction(() => {
-      const current = store.db.prepare(`SELECT * FROM communication_sync_checkpoints WHERE platform=? AND source_account_id=? AND stream_kind=? AND external_conversation_id=?`)
-        .get(platform, sourceAccountId, streamKind, externalConversationId);
-      const version = Number(current?.version || 0);
-      const expectedVersion = Number(input.expectedVersion);
-      if (!Number.isInteger(expectedVersion) || expectedVersion !== version) throw Object.assign(new Error('Sync checkpoint stale version rejected'), { code: 'SYNC_CHECKPOINT_STALE_VERSION', status: 409, expectedVersion: version, receivedVersion: Number.isFinite(expectedVersion) ? expectedVersion : null });
-      const checkpointId = clean(current?.checkpoint_id) || stableId('checkpoint', [platform, sourceAccountId, streamKind, externalConversationId]);
-      const at = this.clock();
-      store.db.prepare(`INSERT INTO communication_sync_checkpoints(checkpoint_id,platform,source_account_id,stream_kind,external_conversation_id,version,cursor,high_watermark,gap_closed,updated_at)
-        VALUES(?,?,?,?,?,?,?,?,1,?)
-        ON CONFLICT(platform,source_account_id,stream_kind,external_conversation_id) DO UPDATE SET
-          version=excluded.version,cursor=excluded.cursor,high_watermark=excluded.high_watermark,gap_closed=1,updated_at=excluded.updated_at`)
-        .run(checkpointId, platform, sourceAccountId, streamKind, externalConversationId, version + 1, clean(input.cursor), clean(input.highWatermark), at);
-      return this.getSyncCheckpoint({ platform, sourceAccountId, streamKind, externalConversationId });
+  applyHistoryCheckpointObservation(input = {}) {
+    const claim = historyExecutionClaim(input.executionClaim);
+    const checkpoint = checkpointFacts(input.checkpoint);
+    const observation = observationFacts(input.observation);
+    const authorityTimestamp = normalizedTimestamp(
+      this.issueTimestamp('history-checkpoint-observation'),
+      'history-checkpoint-observation'
+    );
+    const capability = this.historyCheckpointCapability();
+    for (const method of ['transaction', 'recordObservation', 'advanceCheckpoint']) {
+      if (typeof capability?.[method] !== 'function') {
+        throw new TypeError(`History checkpoint transaction capability requires ${method}`);
+      }
+    }
+    return capability.transaction(() => {
+      capability.recordObservation({
+        ...claim,
+        checkpointId: checkpoint.checkpointId,
+        expectedVersion: checkpoint.expectedVersion,
+        ...observation,
+        authorityTimestamp
+      });
+      if (observation.outcome === 'REMOTE_RESULT_UNKNOWN') {
+        return Object.freeze({
+          state: 'REMOTE_RESULT_UNKNOWN',
+          checkpointAdvanced: false,
+          retryAllowed: false,
+          terminal: false
+        });
+      }
+      const advanced = capability.advanceCheckpoint({
+        ...claim,
+        ...checkpoint,
+        cursorReference: observation.cursorReference,
+        highWatermarkReference: observation.highWatermarkReference,
+        gapClosed: observation.gapClosed,
+        authorityTimestamp
+      });
+      return Object.freeze({
+        state: observation.gapClosed ? 'GAP_CLOSED' : 'SEGMENT_COMMITTED',
+        checkpoint: advanced,
+        checkpointAdvanced: true,
+        nextSegmentRequired: observation.gapClosed !== true,
+        retryAllowed: false,
+        terminal: observation.gapClosed === true
+      });
     });
   }
 }
@@ -443,7 +337,9 @@ class CommunicationAuthority {
 const communicationAuthority = new CommunicationAuthority();
 module.exports = communicationAuthority;
 module.exports.CommunicationAuthority = CommunicationAuthority;
-module.exports.AUTHORITY = AUTHORITY;
-module.exports.SCHEMA_VERSION = SCHEMA_VERSION;
-module.exports.normalizeContent = normalizeContent;
-module.exports.renderProjection = renderProjection;
+module.exports.AUTHORITY = core.AUTHORITY;
+module.exports.SCHEMA_VERSION = core.SCHEMA_VERSION;
+module.exports.normalizeContent = core.normalizeContent;
+module.exports.renderProjection = core.renderProjection;
+module.exports.historyAuthorityError = historyAuthorityError;
+module.exports.historyExecutionClaim = historyExecutionClaim;
