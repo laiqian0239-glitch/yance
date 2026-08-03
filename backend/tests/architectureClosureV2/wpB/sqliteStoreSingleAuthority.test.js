@@ -28,48 +28,62 @@ function walkJavaScriptFiles(root) {
   return output.sort();
 }
 
-test('public SQLite Engine owns one version-parametric schema lifecycle', () => {
-  assert.equal(fs.existsSync(LEGACY_ENGINE_PATH), true, 'internal legacy engine base must be preserved explicitly');
+test('public SQLite Engine owns one version-parametric startup lifecycle', () => {
+  assert.equal(fs.existsSync(LEGACY_ENGINE_PATH), true, 'internal legacy operation base must be preserved explicitly');
   const source = fs.readFileSync(ENGINE_PATH, 'utf8');
 
-  assert.match(source, /class R32SqliteStore extends legacy\.R32SqliteStore/u);
-  assert.match(source, /supportedSchemaVersion\(\)\s*\{[\s\S]*legacy\.SCHEMA_VERSION/u);
-  assert.match(source, /schemaMigrationId\(\)\s*\{[\s\S]*legacy\.SCHEMA_MIGRATION_ID/u);
-  assert.match(source, /schemaMigrationChecksum\(\)\s*\{[\s\S]*legacy\.SCHEMA_MIGRATION_CHECKSUM/u);
+  assert.match(source, /const legacy = require\('\.\/r32SqliteStoreEngineLegacy'\)/u);
+  assert.match(source, /function R32SqliteStore\(options = \{\}\)/u);
+  assert.match(source, /R32SqliteStore\.prototype = Object\.create\(LEGACY_ENGINE_PROTOTYPE\)/u);
+  assert.match(source, /const targetSchemaVersion = supportedSchemaVersion\(store\)/u);
+  assert.match(source, /schemaVersion: targetSchemaVersion/u);
+  assert.doesNotMatch(source, /schemaVersion: SCHEMA_VERSION/u);
+
   for (const method of [
+    'supportedSchemaVersion',
     'preflightSchemaVersion',
     'prepareSchemaMigrationBackup',
-    'restoreSchemaMigrationBackup',
-    'verifyRestoredSchemaVersion',
-    'governSchemaVersionAfterMigration',
-    'commitSchemaMigrationBackup'
+    'governSchemaVersion',
+    'commitSchemaMigrationReceipt',
+    'restoreMigrationBackup',
+    'initializeStore'
   ]) {
     assert.match(source, new RegExp(`\\b${method}\\s*\\(`, 'u'), method);
   }
-  assert.doesNotMatch(source, /new WriterOwnership|claimOwnership\s*\(|startOwnershipHeartbeat\s*\(|assertOwnership\s*\(/u);
+  for (const authority of [
+    'acquireAuthorityWriteHost',
+    'claimOwnership',
+    'SqliteTransactionCoordinator',
+    'startOwnershipHeartbeat'
+  ]) {
+    assert.equal(source.includes(authority), true, `${authority} must be owned by the public Engine startup pipeline`);
+  }
 });
 
-test('Schema 23 Facade extends the public Engine without duplicating ownership or migration backup', () => {
+test('Schema 23 Facade declares only version and additive migration', () => {
   const source = fs.readFileSync(FACADE_PATH, 'utf8');
-  assert.match(source, /class R32SqliteStore extends engine\.R32SqliteStore/u);
-  assert.match(source, /supportedSchemaVersion\(\)\s*\{[\s\S]*SCHEMA_VERSION/u);
-  assert.match(source, /schemaMigrationId\(\)\s*\{[\s\S]*WPB_MIGRATION_ID/u);
-  assert.match(source, /schemaMigrationChecksum\(\)\s*\{[\s\S]*WPB_MIGRATION_CHECKSUM/u);
+  assert.match(source, /return engine\.R32SqliteStore\.call\(this, options\)/u);
+  assert.match(source, /R32SqliteStore\.prototype = Object\.create\(ENGINE_PROTOTYPE\)/u);
+  assert.match(source, /supportedSchemaVersion\(\)\s*\{[\s\S]*return SCHEMA_VERSION/u);
   assert.match(source, /ENGINE_PROTOTYPE\.ensureSchema\.call\(store\)/u);
+  assert.match(source, /requireSchema23StartupRegistration\(\)/u);
+  assert.match(source, /applyArchitectureClosureV2WpB\(store\.db/u);
+  assert.match(source, /ensureCanonicalProjectionReceiptSchema\(store\.db\)/u);
 
   for (const forbidden of [
-    'openSqliteDatabase',
-    'createSqliteAdapter',
-    'WriterOwnership',
+    'DatabaseSync',
+    'createCompactSnapshotTarget',
+    'acquireAuthorityWriteHost',
+    'requireAuthorityWriteHostCapability',
     'claimOwnership',
+    'SqliteTransactionCoordinator',
     'startOwnershipHeartbeat',
     'assertOwnership',
     'preflightSchemaVersion',
     'prepareSchemaMigrationBackup',
-    'restoreSchemaMigrationBackup',
-    'verifyRestoredSchemaVersion',
-    'governSchemaVersionAfterMigration',
-    'commitSchemaMigrationBackup',
+    'restoreMigrationBackup',
+    'governSchemaVersion',
+    'commitSchemaMigrationReceipt',
     'initializeStore'
   ]) {
     assert.equal(source.includes(forbidden), false, `${forbidden} must not be implemented by the Schema 23 Facade`);
@@ -81,7 +95,7 @@ test('internal legacy Engine has exactly one production importer', () => {
   for (const absolutePath of walkJavaScriptFiles(path.join(REPOSITORY_ROOT, 'backend'))) {
     if (absolutePath === LEGACY_ENGINE_PATH) continue;
     const source = fs.readFileSync(absolutePath, 'utf8');
-    if (source.includes('r32SqliteStoreEngineLegacy')) {
+    if (source.includes("require('./r32SqliteStoreEngineLegacy')")) {
       importers.push(path.relative(REPOSITORY_ROOT, absolutePath).split(path.sep).join('/'));
     }
   }
