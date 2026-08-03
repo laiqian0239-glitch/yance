@@ -20,7 +20,10 @@ const CONTRACTS = Object.freeze([
   Object.freeze({
     id: 'SCHEMA_23',
     testPath: 'backend/tests/architectureClosureV2/wpB/schema23Migration.test.js',
-    expectedMissingIndicators: Object.freeze(['architectureClosureV2WpB'])
+    expectedMissingIndicators: Object.freeze([
+      'architectureClosureV2WpB',
+      'Schema 23 and the pure lifecycle share one exact state authority'
+    ])
   }),
   Object.freeze({
     id: 'DURABLE_EXECUTION_CAS',
