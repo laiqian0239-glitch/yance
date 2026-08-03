@@ -12,6 +12,12 @@ const EXACT_VERSION = '5.32.5';
 const PACKAGE_SPEC = `${PACKAGE_NAME}@${EXACT_VERSION}`;
 const EXPECTED_LICENSE = 'MIT';
 const EXPECTED_RUNTIME_DEPENDENCY_COUNT = 0;
+const UPSTREAM_REPOSITORY = 'statelyai/xstate';
+const UPSTREAM_TAG_CANDIDATES = Object.freeze([
+  `xstate@${EXACT_VERSION}`,
+  `core@${EXACT_VERSION}`,
+  `v${EXACT_VERSION}`
+]);
 const INSTALL_LIFECYCLE_SCRIPTS = Object.freeze(['preinstall', 'install', 'postinstall']);
 const SUSPICIOUS_PACKAGE_FILE_PATTERN = /(?:^|\/)(?:[^/]+\.(?:node|dll|exe|ps1|bat|cmd)|install\.sh)$/iu;
 
@@ -71,20 +77,64 @@ function sha1(value) {
   return crypto.createHash('sha1').update(value).digest('hex');
 }
 
-async function fetchText(url) {
-  const response = await fetch(url, {
+async function fetchResponse(url, accept) {
+  return fetch(url, {
     headers: {
-      accept: 'text/plain, application/json',
+      accept,
       'user-agent': 'yance-wp-b-open-source-gate'
     },
     redirect: 'follow'
   });
+}
+
+async function fetchText(url) {
+  const response = await fetchResponse(url, 'text/plain');
   if (!response.ok) {
     const error = new Error(`GET ${url} returned ${response.status}`);
     error.code = 'WP_B_UPSTREAM_FETCH_FAILED';
+    error.status = response.status;
     throw error;
   }
   return response.text();
+}
+
+async function fetchJson(url) {
+  const response = await fetchResponse(url, 'application/vnd.github+json');
+  if (!response.ok) {
+    const error = new Error(`GET ${url} returned ${response.status}`);
+    error.code = 'WP_B_UPSTREAM_FETCH_FAILED';
+    error.status = response.status;
+    throw error;
+  }
+  return response.json();
+}
+
+async function resolveUpstreamTagCommit() {
+  for (const tagName of UPSTREAM_TAG_CANDIDATES) {
+    let reference;
+    try {
+      reference = await fetchJson(`https://api.github.com/repos/${UPSTREAM_REPOSITORY}/git/ref/tags/${encodeURIComponent(tagName)}`);
+    } catch (error) {
+      if (error.status === 404) continue;
+      throw error;
+    }
+
+    let object = reference.object || {};
+    if (object.type === 'tag') {
+      const annotated = await fetchJson(`https://api.github.com/repos/${UPSTREAM_REPOSITORY}/git/tags/${object.sha}`);
+      object = annotated.object || {};
+    }
+    if (object.type !== 'commit' || !/^[0-9a-f]{40}$/iu.test(String(object.sha || ''))) {
+      const error = new Error(`Upstream tag ${tagName} did not resolve to a commit`);
+      error.code = 'WP_B_XSTATE_TAG_TARGET_INVALID';
+      throw error;
+    }
+    return Object.freeze({ tagName, commitSha: object.sha });
+  }
+
+  const error = new Error(`No exact upstream tag found for ${PACKAGE_SPEC}`);
+  error.code = 'WP_B_XSTATE_EXACT_TAG_MISSING';
+  throw error;
 }
 
 function normalizeRepository(repository) {
@@ -136,8 +186,14 @@ async function verify() {
     if (!metadata.dist || typeof metadata.dist.integrity !== 'string' || typeof metadata.dist.shasum !== 'string') {
       violations.push({ code: 'WP_B_XSTATE_DIST_DIGEST_MISSING' });
     }
-    if (!/^[0-9a-f]{40}$/iu.test(String(metadata.gitHead || ''))) {
-      violations.push({ code: 'WP_B_XSTATE_GIT_HEAD_MISSING', actual: metadata.gitHead || '' });
+
+    const upstream = await resolveUpstreamTagCommit();
+    if (metadata.gitHead && metadata.gitHead !== upstream.commitSha) {
+      violations.push({
+        code: 'WP_B_XSTATE_NPM_GIT_HEAD_TAG_MISMATCH',
+        npmGitHead: metadata.gitHead,
+        upstreamCommit: upstream.commitSha
+      });
     }
 
     const packResult = parseJsonOutput(
@@ -193,12 +249,9 @@ async function verify() {
       violations.push({ code: 'WP_B_XSTATE_HIGH_OR_CRITICAL_VULNERABILITY', vulnerabilities });
     }
 
-    let licenseText = '';
-    if (/^[0-9a-f]{40}$/iu.test(String(metadata.gitHead || ''))) {
-      licenseText = await fetchText(`https://raw.githubusercontent.com/statelyai/xstate/${metadata.gitHead}/LICENSE`);
-      if (!/MIT License/iu.test(licenseText)) {
-        violations.push({ code: 'WP_B_XSTATE_LICENSE_TEXT_INVALID' });
-      }
+    const licenseText = await fetchText(`https://raw.githubusercontent.com/${UPSTREAM_REPOSITORY}/${upstream.commitSha}/LICENSE`);
+    if (!/MIT License/iu.test(licenseText)) {
+      violations.push({ code: 'WP_B_XSTATE_LICENSE_TEXT_INVALID' });
     }
 
     const lock = JSON.parse(fs.readFileSync(path.join(auditRoot, 'package-lock.json'), 'utf8'));
@@ -211,7 +264,7 @@ async function verify() {
     }
 
     return Object.freeze({
-      schemaVersion: 1,
+      schemaVersion: 2,
       documentType: 'YANCE_ACV2_WP_B_XSTATE_UPSTREAM_VERIFICATION',
       ok: violations.length === 0,
       package: {
@@ -219,7 +272,9 @@ async function verify() {
         version: metadata.version || '',
         license: metadata.license || '',
         repository: normalizeRepository(metadata.repository),
-        gitHead: metadata.gitHead || '',
+        npmGitHead: metadata.gitHead || '',
+        upstreamTag: upstream.tagName,
+        upstreamCommit: upstream.commitSha,
         runtimeDependencyCount: Object.keys(dependencies).length,
         runtimeDependencies: dependencies,
         installLifecycleScripts,
@@ -229,7 +284,7 @@ async function verify() {
         tarballSha1,
         packageFileCount,
         suspiciousPackageFiles,
-        licenseTextSha256: licenseText ? sha256(licenseText) : '',
+        licenseTextSha256: sha256(licenseText),
         sandboxLockEntry: lockEntry || null
       },
       security: {
@@ -281,6 +336,8 @@ module.exports = {
   EXACT_VERSION,
   PACKAGE_NAME,
   PACKAGE_SPEC,
+  UPSTREAM_TAG_CANDIDATES,
   auditCounts,
+  resolveUpstreamTagCommit,
   verify
 };
