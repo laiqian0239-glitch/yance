@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const {
   EVENTS,
   STATES,
@@ -47,6 +48,39 @@ test('Adapter is the only production XState import and has no authority capabili
   const lifecycleSource = fs.readFileSync(path.join(REPO_ROOT, LIFECYCLE_PATH), 'utf8');
   assert.match(lifecycleSource, /require\(\s*['"]\.\/xstateLifecycleAdapter['"]\s*\)/u);
   assert.match(lifecycleSource, /lifecycleAdapter\.transition\(/u);
+});
+
+test('Schema and store metadata load without eagerly loading the XState runtime', () => {
+  const script = String.raw`
+    const Module = require('node:module');
+    const originalLoad = Module._load;
+    Module._load = function guardedLoad(request, parent, isMain) {
+      if (request === 'xstate') {
+        const error = new Error('XState runtime load blocked by regression contract');
+        error.code = 'WP_B_XSTATE_EAGER_LOAD_FORBIDDEN';
+        throw error;
+      }
+      return originalLoad.call(this, request, parent, isMain);
+    };
+
+    const migration = require('./backend/migrations/architectureClosureV2WpB');
+    const lifecycle = require('./backend/services/durableExecutionLifecycle');
+    require('./backend/lib/r32SqliteStore');
+    if (migration.TARGET_SCHEMA_VERSION !== 23) process.exit(31);
+    if (lifecycle.STATES.CREATED !== 'CREATED') process.exit(32);
+
+    try {
+      lifecycle.nextLifecycleState(lifecycle.STATES.CREATED, lifecycle.EVENTS.SCHEDULE);
+      process.exit(33);
+    } catch (error) {
+      if (error.code !== 'WP_B_XSTATE_EAGER_LOAD_FORBIDDEN') throw error;
+    }
+  `;
+  const result = spawnSync(process.execPath, ['-e', script], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8'
+  });
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
 });
 
 test('Adapter owns no state names and preserves the complete Yance transition graph', () => {
