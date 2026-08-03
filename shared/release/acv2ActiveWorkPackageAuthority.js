@@ -43,6 +43,8 @@ const WP_B_CORE_SCOPE_PATTERNS = Object.freeze([
   'backend/services/externalActionOutboxAuthority.js',
   'backend/services/externalOutcomeReconciliation.js',
   'backend/services/xstateLifecycleAdapter.js',
+  'backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js',
+  'backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js',
   'backend/tests/architectureClosureV2/wpB/**',
   'governance/architecture-closure-v2/wp-b-*.json',
   'tools/architecture-closure-v2/**',
