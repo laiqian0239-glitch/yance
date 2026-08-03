@@ -101,6 +101,7 @@
     "backend/services/syncCheckpointService.js",
     "backend/services/telegramAdapter.js",
     "backend/services/transcriptionService.js",
+    "backend/services/transcriptionServiceCore.js",
     "backend/services/whatsappAdapter.js",
     "backend/services/whatsappHistoryMediaRecovery.js",
     "backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js",
@@ -201,6 +202,16 @@
       "reasonCode": "WP_B_M2_CANONICAL_OUTBOX_SINGLETON_SPLIT",
       "addedPaths": [
         "backend/services/externalActionOutboxAuthorityCore.js"
+      ]
+    },
+    {
+      "amendmentId": "WP-B-M2-SCOPE-004",
+      "authorizedAt": "2026-08-04T04:31:00+07:00",
+      "approvedBy": "PROJECT_OWNER",
+      "approvalSource": "Project owner continuation instruction in the 独立软件工程审计 conversation",
+      "reasonCode": "WP_B_M2_TRANSCRIPTION_ASYNC_BOUNDARY_SPLIT",
+      "addedPaths": [
+        "backend/services/transcriptionServiceCore.js"
       ]
     }
   ],
