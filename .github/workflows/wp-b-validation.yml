@@ -21,7 +21,14 @@ on:
       - backend/services/xstateLifecycleAdapter.js
       - backend/tests/architectureClosureV2/wpB/**
       - governance/architecture-closure-v2/wp-b-*.json
+      - shared/release/acv2ActiveWorkPackageAuthority.js
+      - shared/release/implementationBranchPolicy.js
+      - shared/release/implementationBranchPolicyLegacy.js
+      - tests/wp0/acv2-work-package-scope-wiring.test.js
+      - tests/wp0/implementation-branch-policy.test.js
       - tools/architecture-closure-v2/**
+      - tools/wp0/work-package-scope-gate.js
+      - tools/wp0/work-package-scope-gate-legacy.js
       - docs/superpowers/plans/2026-08-03-yance-acv2-wp-b-implementation*.md
       - docs/superpowers/specs/2026-08-03-yance-acv2-*.md
       - package.json
@@ -46,7 +53,14 @@ on:
       - backend/services/xstateLifecycleAdapter.js
       - backend/tests/architectureClosureV2/wpB/**
       - governance/architecture-closure-v2/wp-b-*.json
+      - shared/release/acv2ActiveWorkPackageAuthority.js
+      - shared/release/implementationBranchPolicy.js
+      - shared/release/implementationBranchPolicyLegacy.js
+      - tests/wp0/acv2-work-package-scope-wiring.test.js
+      - tests/wp0/implementation-branch-policy.test.js
       - tools/architecture-closure-v2/**
+      - tools/wp0/work-package-scope-gate.js
+      - tools/wp0/work-package-scope-gate-legacy.js
       - docs/superpowers/plans/2026-08-03-yance-acv2-wp-b-implementation*.md
       - docs/superpowers/specs/2026-08-03-yance-acv2-*.md
       - package.json
@@ -96,6 +110,11 @@ jobs:
           node --check tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js
           node --check tools/architecture-closure-v2/discover-wp-b-operation-call-sites.js
           node --check tools/architecture-closure-v2/capture-wp-b-red-evidence.js
+          node --check shared/release/acv2ActiveWorkPackageAuthority.js
+          node --check shared/release/implementationBranchPolicy.js
+          node --check shared/release/implementationBranchPolicyLegacy.js
+          node --check tools/wp0/work-package-scope-gate.js
+          node --check tools/wp0/work-package-scope-gate-legacy.js
 
       - name: Run WP-B governance contracts
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/openSourceAdoptionGate.test.js backend/tests/architectureClosureV2/wpB/operationInventoryDiscovery.test.js
