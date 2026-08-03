@@ -54,6 +54,7 @@
     "backend/repositories/sendQueueRepository.js",
     "backend/repositories/syncCheckpointRepository.js",
     "backend/routes/models.js",
+    "backend/routes/system.js",
     "backend/runtime/AppRuntimeComposition.js",
     "backend/runtime/AppRuntimeFactory.js",
     "backend/server.js",
@@ -84,6 +85,7 @@
     "backend/services/facebookPersonalMessengerExperimentalAdapter.js",
     "backend/services/facebookRelayClient.js",
     "backend/services/jobQueue.js",
+    "backend/services/mediaIntelligenceService.js",
     "backend/services/mediaPipeline.js",
     "backend/services/modelExecutionEvidenceStore.js",
     "backend/services/modelExecutionHost.js",
@@ -177,6 +179,17 @@
         "backend/tests/architectureClosureV2/wpB/deliveryReceiptReconciliationOperation.test.js",
         "backend/tests/architectureClosureV2/wpB/m2ContractEvidenceDiagnostics.test.js",
         "backend/tests/architectureClosureV2/wpB/modelExecutionEvidenceBoundary.test.js"
+      ]
+    },
+    {
+      "amendmentId": "WP-B-M2-SCOPE-002",
+      "authorizedAt": "2026-08-04T04:16:00+07:00",
+      "approvedBy": "PROJECT_OWNER",
+      "approvalSource": "Project owner continuation instruction in the 独立软件工程审计 conversation",
+      "reasonCode": "WP_B_M2_MEDIA_PUBLIC_ENTRYPOINT_SCOPE",
+      "addedPaths": [
+        "backend/routes/system.js",
+        "backend/services/mediaIntelligenceService.js"
       ]
     }
   ],
