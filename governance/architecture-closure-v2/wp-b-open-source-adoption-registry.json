@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "documentType": "YANCE_ACV2_WP_B_OPEN_SOURCE_ADOPTION_REGISTRY",
   "workPackage": "WP-B",
   "orderedGatePath": "governance/architecture-closure-v2/wp-b-open-source-adoption-gate.json",
@@ -130,11 +130,17 @@
       },
       "adapterGreenEvidence": {
         "path": "governance/architecture-closure-v2/wp-b-xstate-adapter-green-evidence.json",
-        "reviewedImplementationHead": "f8442e3c7f3b4569b51da201568411734e7ca8d4",
-        "workflowRunId": 30792959633,
-        "ubuntuJobId": 91620203645,
-        "windowsJobId": 91620203592,
-        "passCountPerPlatform": 4,
+        "reviewedImplementationHead": "ce2de6e3ddb26d6f830ed5ed8696fe007a98c612",
+        "workflowRunId": 30794133328,
+        "ubuntuJobId": 91623786172,
+        "windowsJobId": 91623786262,
+        "passCountPerPlatform": 5,
+        "lazyRuntimeLoadBoundary": true,
+        "crossWorkPackageRegression": {
+          "wp0RunId": 30794133098,
+          "wpAArchitectureRunId": 30794133166,
+          "wpAPostMergeRunId": 30794133268
+        },
         "productionXStateImportPaths": [
           "backend/services/xstateLifecycleAdapter.js"
         ]
