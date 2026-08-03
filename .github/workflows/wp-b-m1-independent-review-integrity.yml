@@ -12,10 +12,15 @@ on:
       - backend/services/externalAction*.js
       - backend/services/externalOutcomeReconciliation.js
       - backend/tests/architectureClosureV2/wpB/m1IndependentReviewIntegrity.test.js
+      - backend/tests/architectureClosureV2/wpB/m1ReviewSeal.test.js
+      - backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js
       - backend/tests/architectureClosureV2/wpB/externalActionOutbox.test.js
       - backend/tests/architectureClosureV2/wpB/uncertainOutcomeReconciliation.test.js
       - backend/tests/architectureClosureV2/wpB/schema23Migration.test.js
       - backend/tests/architectureClosureV2/wpB/schema23StartupRegistration.test.js
+      - governance/architecture-closure-v2/wp-b-m1-review.json
+      - shared/release/acv2ActiveWorkPackageAuthority.js
+      - tools/architecture-closure-v2/verify-wp-b-m1-review.js
   push:
     branches:
       - acv2/wp-b-durable-execution-outbox
@@ -27,13 +32,19 @@ on:
       - backend/services/externalAction*.js
       - backend/services/externalOutcomeReconciliation.js
       - backend/tests/architectureClosureV2/wpB/m1IndependentReviewIntegrity.test.js
+      - backend/tests/architectureClosureV2/wpB/m1ReviewSeal.test.js
+      - backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js
       - backend/tests/architectureClosureV2/wpB/externalActionOutbox.test.js
       - backend/tests/architectureClosureV2/wpB/uncertainOutcomeReconciliation.test.js
       - backend/tests/architectureClosureV2/wpB/schema23Migration.test.js
       - backend/tests/architectureClosureV2/wpB/schema23StartupRegistration.test.js
+      - governance/architecture-closure-v2/wp-b-m1-review.json
+      - shared/release/acv2ActiveWorkPackageAuthority.js
+      - tools/architecture-closure-v2/verify-wp-b-m1-review.js
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
 
 env:
@@ -55,7 +66,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ env.VALIDATION_SHA }}
-          fetch-depth: 1
+          fetch-depth: 0
           fetch-tags: false
           lfs: false
           persist-credentials: false
@@ -70,11 +81,20 @@ jobs:
         shell: bash
         run: test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
 
+      - name: Validate review and seal verifier syntax
+        shell: bash
+        run: |
+          node --check tools/architecture-closure-v2/verify-wp-b-m1-review.js
+          node --check backend/tests/architectureClosureV2/wpB/m1IndependentReviewIntegrity.test.js
+          node --check backend/tests/architectureClosureV2/wpB/m1ReviewSeal.test.js
+          node --check backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js
+
       - name: Run independent-review integrity contracts
         shell: bash
         run: |
           node --test --test-concurrency=1 \
             backend/tests/architectureClosureV2/wpB/m1IndependentReviewIntegrity.test.js \
+            backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js \
             backend/tests/architectureClosureV2/wpB/externalActionOutbox.test.js \
             backend/tests/architectureClosureV2/wpB/uncertainOutcomeReconciliation.test.js
 
@@ -84,6 +104,17 @@ jobs:
           node --test --test-concurrency=1 \
             backend/tests/architectureClosureV2/wpB/schema23Migration.test.js \
             backend/tests/architectureClosureV2/wpB/schema23StartupRegistration.test.js
+
+      - name: Verify local Milestone 1 review seal
+        shell: bash
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m1ReviewSeal.test.js
+
+      - name: Verify authenticated formal workflow evidence
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/architecture-closure-v2/verify-wp-b-m1-review.js --remote
 
       - name: Confirm clean validation workspace
         shell: bash
