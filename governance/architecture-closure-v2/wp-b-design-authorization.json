@@ -1,31 +1,51 @@
 {
-  "schemaVersion": 1,
-  "documentType": "YANCE_ACV2_WP_B_DESIGN_AUTHORIZATION",
+  "schemaVersion": 2,
+  "documentType": "YANCE_ACV2_WP_B_IMPLEMENTATION_AUTHORIZATION",
   "program": "Architecture Closure V2",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "WP-B",
-  "status": "APPROVED_FOR_IMPLEMENTATION_PLANNING",
+  "status": "APPROVED_FOR_CONTINUOUS_IMPLEMENTATION",
   "approvedBy": "PROJECT_OWNER",
-  "approvedAt": "2026-08-03T08:04:00+07:00",
+  "designApprovedAt": "2026-08-03T08:04:00+07:00",
+  "continuousImplementationAuthorizedAt": "2026-08-03T08:04:00+07:00",
   "approvedDesignHead": "7762e2e6e9ac17888917d829fd7e85897a3e5e51",
+  "approvedPlanHead": "2d38147aeacd4367b133394610e98a3791ecd7c1",
   "implementationBranch": "acv2/wp-b-durable-execution-outbox",
   "designDocuments": [
     "docs/superpowers/specs/2026-08-03-yance-acv2-wp-b-three-milestone-design.md",
     "docs/superpowers/specs/2026-08-03-yance-acv2-open-source-adoption-gate.md",
     "governance/architecture-closure-v2/wp-b-open-source-adoption-gate.json"
   ],
+  "implementationPlanDocuments": [
+    "docs/superpowers/plans/2026-08-03-yance-acv2-wp-b-implementation.md",
+    "docs/superpowers/plans/2026-08-03-yance-acv2-wp-b-implementation-amendment-1.md"
+  ],
   "authorization": {
-    "implementationPlanMayBeWritten": true,
-    "productionCodeMayBeChanged": false,
-    "schema23MayBeApplied": false,
-    "thirdPartyProductionCodeMayBeIntroduced": false,
-    "implementationPlanReviewRequired": true
+    "continuousExecutionAuthorized": true,
+    "manualStepApprovalRequired": false,
+    "productionCodeMayBeChanged": true,
+    "schema23MayBeAppliedAfterRecordedRed": true,
+    "thirdPartyAssetsMayBeIntroducedAfterOrderedGateSteps": true,
+    "ciAndFaultInjectionMayBeRun": true,
+    "independentReviewRemediationMayBeApplied": true,
+    "legacyWpBPathsMayBeDeletedAfterInventoryAndRed": true,
+    "draftPullRequestMayBeUpdatedContinuously": true
   },
-  "governance": {
-    "wpBImplementationAuthorized": false,
+  "nonWaivableGates": {
+    "testFirstRequired": true,
+    "recordedRedRequiredBeforeProductionImplementation": true,
+    "openSourceElevenStepSequenceRequired": true,
+    "databaseCasAndFencingRequired": true,
+    "ubuntuWindowsFaultMatrixRequired": true,
+    "independentReviewRequired": true,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false
+  },
+  "scopeBoundary": {
+    "wpBImplementationAuthorized": true,
+    "wpBMergeAuthorizedOnlyAfterAllClosureGates": true,
     "wpCAuthorized": false,
     "formalRelease": false,
-    "publish": false,
-    "temporaryBypassAllowed": false
+    "publish": false
   }
 }
