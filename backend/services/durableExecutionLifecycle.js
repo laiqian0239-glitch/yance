@@ -1,0 +1,165 @@
+'use strict';
+
+const { deepFreeze } = require('./immutableSnapshot');
+
+const STATES = deepFreeze({
+  CREATED: 'CREATED',
+  SCHEDULED: 'SCHEDULED',
+  CLAIMED: 'CLAIMED',
+  RUNNING: 'RUNNING',
+  WAITING_REMOTE: 'WAITING_REMOTE',
+  UNCERTAIN_REMOTE_OUTCOME: 'UNCERTAIN_REMOTE_OUTCOME',
+  RETRY_SCHEDULED: 'RETRY_SCHEDULED',
+  CANCEL_REQUESTED: 'CANCEL_REQUESTED',
+  CANCELLED: 'CANCELLED',
+  SUCCEEDED: 'SUCCEEDED',
+  FAILED: 'FAILED',
+  DEAD_LETTERED: 'DEAD_LETTERED'
+});
+
+const EVENTS = deepFreeze({
+  SCHEDULE: 'SCHEDULE',
+  CLAIM: 'CLAIM',
+  START: 'START',
+  WAIT_FOR_REMOTE: 'WAIT_FOR_REMOTE',
+  COMPLETE_LOCAL: 'COMPLETE_LOCAL',
+  REMOTE_SUCCESS: 'REMOTE_SUCCESS',
+  REMOTE_FAILURE_RETRYABLE: 'REMOTE_FAILURE_RETRYABLE',
+  REMOTE_FAILURE_PERMANENT: 'REMOTE_FAILURE_PERMANENT',
+  REMOTE_RESULT_LOST: 'REMOTE_RESULT_LOST',
+  RETRY: 'RETRY',
+  RETRY_DUE: 'RETRY_DUE',
+  REQUEST_CANCEL: 'REQUEST_CANCEL',
+  CANCEL_CONFIRMED: 'CANCEL_CONFIRMED',
+  RETRIES_EXHAUSTED: 'RETRIES_EXHAUSTED',
+  RECONCILIATION_REMOTE_SUCCESS: 'RECONCILIATION_REMOTE_SUCCESS',
+  RECONCILIATION_REMOTE_ABSENCE: 'RECONCILIATION_REMOTE_ABSENCE',
+  RECONCILIATION_MANUAL_FAILURE: 'RECONCILIATION_MANUAL_FAILURE'
+});
+
+const TERMINAL_STATES = deepFreeze([
+  STATES.CANCELLED,
+  STATES.SUCCEEDED,
+  STATES.FAILED,
+  STATES.DEAD_LETTERED
+]);
+
+const TRANSITIONS = deepFreeze({
+  [STATES.CREATED]: {
+    [EVENTS.SCHEDULE]: STATES.SCHEDULED,
+    [EVENTS.REQUEST_CANCEL]: STATES.CANCEL_REQUESTED
+  },
+  [STATES.SCHEDULED]: {
+    [EVENTS.CLAIM]: STATES.CLAIMED,
+    [EVENTS.REQUEST_CANCEL]: STATES.CANCEL_REQUESTED,
+    [EVENTS.RETRIES_EXHAUSTED]: STATES.DEAD_LETTERED
+  },
+  [STATES.CLAIMED]: {
+    [EVENTS.START]: STATES.RUNNING,
+    [EVENTS.RETRY]: STATES.RETRY_SCHEDULED,
+    [EVENTS.REQUEST_CANCEL]: STATES.CANCEL_REQUESTED
+  },
+  [STATES.RUNNING]: {
+    [EVENTS.WAIT_FOR_REMOTE]: STATES.WAITING_REMOTE,
+    [EVENTS.COMPLETE_LOCAL]: STATES.SUCCEEDED,
+    [EVENTS.REMOTE_FAILURE_RETRYABLE]: STATES.RETRY_SCHEDULED,
+    [EVENTS.REMOTE_FAILURE_PERMANENT]: STATES.FAILED,
+    [EVENTS.REQUEST_CANCEL]: STATES.CANCEL_REQUESTED
+  },
+  [STATES.WAITING_REMOTE]: {
+    [EVENTS.REMOTE_SUCCESS]: STATES.SUCCEEDED,
+    [EVENTS.REMOTE_FAILURE_RETRYABLE]: STATES.RETRY_SCHEDULED,
+    [EVENTS.REMOTE_FAILURE_PERMANENT]: STATES.FAILED,
+    [EVENTS.REMOTE_RESULT_LOST]: STATES.UNCERTAIN_REMOTE_OUTCOME,
+    [EVENTS.REQUEST_CANCEL]: STATES.CANCEL_REQUESTED
+  },
+  [STATES.UNCERTAIN_REMOTE_OUTCOME]: {
+    [EVENTS.RECONCILIATION_REMOTE_SUCCESS]: STATES.SUCCEEDED,
+    [EVENTS.RECONCILIATION_REMOTE_ABSENCE]: STATES.RETRY_SCHEDULED,
+    [EVENTS.RECONCILIATION_MANUAL_FAILURE]: STATES.FAILED
+  },
+  [STATES.RETRY_SCHEDULED]: {
+    [EVENTS.RETRY_DUE]: STATES.SCHEDULED,
+    [EVENTS.REQUEST_CANCEL]: STATES.CANCEL_REQUESTED,
+    [EVENTS.RETRIES_EXHAUSTED]: STATES.DEAD_LETTERED
+  },
+  [STATES.CANCEL_REQUESTED]: {
+    [EVENTS.CANCEL_CONFIRMED]: STATES.CANCELLED,
+    [EVENTS.REMOTE_SUCCESS]: STATES.SUCCEEDED,
+    [EVENTS.REMOTE_RESULT_LOST]: STATES.UNCERTAIN_REMOTE_OUTCOME
+  },
+  [STATES.CANCELLED]: {},
+  [STATES.SUCCEEDED]: {},
+  [STATES.FAILED]: {},
+  [STATES.DEAD_LETTERED]: {}
+});
+
+const STATE_VALUES = new Set(Object.values(STATES));
+const EVENT_VALUES = new Set(Object.values(EVENTS));
+const TERMINAL_STATE_VALUES = new Set(TERMINAL_STATES);
+
+function lifecycleError(code, message, details = {}) {
+  return Object.assign(new Error(message), { code, ...details });
+}
+
+function assertKnownState(state) {
+  if (!STATE_VALUES.has(state)) {
+    throw lifecycleError('WP_B_LIFECYCLE_STATE_INVALID', 'Unknown durable execution lifecycle state', { state });
+  }
+}
+
+function assertKnownEvent(event) {
+  if (!EVENT_VALUES.has(event)) {
+    throw lifecycleError('WP_B_LIFECYCLE_EVENT_INVALID', 'Unknown durable execution lifecycle event', { event });
+  }
+}
+
+function isTerminalState(state) {
+  assertKnownState(state);
+  return TERMINAL_STATE_VALUES.has(state);
+}
+
+function nextLifecycleState(state, event) {
+  assertKnownState(state);
+  assertKnownEvent(event);
+
+  if (state === STATES.UNCERTAIN_REMOTE_OUTCOME && event === EVENTS.RETRY) {
+    throw lifecycleError(
+      'WP_B_RECONCILIATION_REQUIRED',
+      'Uncertain remote outcome must be reconciled before another physical attempt',
+      { state, event }
+    );
+  }
+
+  const targetState = TRANSITIONS[state][event];
+  if (!targetState) {
+    throw lifecycleError(
+      'WP_B_LIFECYCLE_TRANSITION_INVALID',
+      `Illegal durable execution lifecycle transition: ${state} + ${event}`,
+      { state, event }
+    );
+  }
+  return targetState;
+}
+
+function canTransition(state, event) {
+  try {
+    nextLifecycleState(state, event);
+    return true;
+  } catch (error) {
+    if (error?.code === 'WP_B_LIFECYCLE_TRANSITION_INVALID'
+        || error?.code === 'WP_B_RECONCILIATION_REQUIRED') return false;
+    throw error;
+  }
+}
+
+module.exports = {
+  EVENTS,
+  STATES,
+  TERMINAL_STATES,
+  TRANSITIONS,
+  canTransition,
+  isTerminalState,
+  lifecycleError,
+  nextLifecycleState
+};
