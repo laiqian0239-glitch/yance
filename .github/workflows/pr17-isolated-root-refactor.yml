@@ -37,6 +37,8 @@ jobs:
           set -euo pipefail
           node --check .github/scripts/refactor-pr17-sqlite-authority.js
           node .github/scripts/refactor-pr17-sqlite-authority.js
+          node --check .github/scripts/patch-pr17-refactor-contract.js
+          node .github/scripts/patch-pr17-refactor-contract.js
           node --check backend/lib/r32SqliteStoreEngineLegacy.js
           node --check backend/lib/r32SqliteStoreEngine.js
           node --check backend/lib/r32SqliteStore.js
@@ -58,6 +60,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -f .github/scripts/refactor-pr17-sqlite-authority.js
+          rm -f .github/scripts/patch-pr17-refactor-contract.js
           rm -f .github/workflows/pr17-isolated-root-refactor.yml
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
