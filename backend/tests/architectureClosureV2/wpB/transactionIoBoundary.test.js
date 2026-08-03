@@ -21,7 +21,11 @@ function coordinatorModule() {
 
 test('authority coordinator exports a fail-closed transaction I/O guard', () => {
   const { createTransactionIoGuard } = coordinatorModule();
-  assert.equal(typeof createTransactionIoGuard, 'function');
+  assert.equal(
+    typeof createTransactionIoGuard,
+    'function',
+    'WP_B_CREATE_TRANSACTION_IO_GUARD_MISSING'
+  );
   const guard = createTransactionIoGuard();
   for (const capability of [
     'network', 'providerSdk', 'platformSdk', 'filesystemTransfer',
