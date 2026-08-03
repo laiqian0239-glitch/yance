@@ -9,7 +9,15 @@ on:
       - backend/automation/execution/**
       - backend/db/**
       - backend/execution/**
+      - backend/lib/deepFreeze.js
       - backend/migrations/**
+      - backend/services/authorityTimestamp.js
+      - backend/services/authorityTransactionCoordinator.js
+      - backend/services/durableExecutionAuthority.js
+      - backend/services/durableExecutionLifecycle.js
+      - backend/services/externalActionDispatcher.js
+      - backend/services/externalActionOutboxAuthority.js
+      - backend/services/externalOutcomeReconciliation.js
       - backend/services/xstateLifecycleAdapter.js
       - backend/tests/architectureClosureV2/wpB/**
       - governance/architecture-closure-v2/wp-b-*.json
@@ -26,7 +34,15 @@ on:
       - backend/automation/execution/**
       - backend/db/**
       - backend/execution/**
+      - backend/lib/deepFreeze.js
       - backend/migrations/**
+      - backend/services/authorityTimestamp.js
+      - backend/services/authorityTransactionCoordinator.js
+      - backend/services/durableExecutionAuthority.js
+      - backend/services/durableExecutionLifecycle.js
+      - backend/services/externalActionDispatcher.js
+      - backend/services/externalActionOutboxAuthority.js
+      - backend/services/externalOutcomeReconciliation.js
       - backend/services/xstateLifecycleAdapter.js
       - backend/tests/architectureClosureV2/wpB/**
       - governance/architecture-closure-v2/wp-b-*.json
