@@ -9,7 +9,9 @@ const { deepFreeze } = require('../../../lib/deepFreeze');
 const { OPERATION_KINDS } = require('../../../services/durableOperationRegistry');
 const mediaPipeline = require('../../../services/mediaPipeline');
 const transcriptionService = require('../../../services/transcriptionService');
+const mediaIntelligence = require('../../../services/mediaIntelligenceService');
 
+const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
 const operationPath = path.join(
   __dirname,
   '..',
@@ -261,4 +263,64 @@ test('M2-MED-006 transcription public entry schedules durable work and never spa
     error => error?.code === 'WP_B_MEDIA_TRANSFER_ATTEMPT_REQUIRED'
   );
   assert.equal(physicalRuns, 0);
+});
+
+test('M2-MED-007 direct media materialization rejects before descriptor handling without a persisted attempt', async () => {
+  await assert.rejects(
+    () => mediaPipeline.materializeBaileys({
+      accountId: 'account-media-public-1',
+      conversationId: 'conversation-media-public-1',
+      messageId: 'message-media-public-1',
+      descriptor: Object.freeze({
+        downloadable: false,
+        kind: 'image',
+        mimeType: 'image/jpeg'
+      })
+    }),
+    error => error?.code === 'WP_B_MEDIA_TRANSFER_ATTEMPT_REQUIRED'
+  );
+});
+
+test('M2-MED-008 speech HTTP entry returns an accepted durable scheduling receipt', () => {
+  const source = fs.readFileSync(
+    path.join(repoRoot, 'backend', 'routes', 'system.js'),
+    'utf8'
+  );
+  const block = source.match(/router\.post\('\/speech\/transcribe'[\s\S]*?\n\}\);/u)?.[0] || '';
+  assert.match(block, /res\.status\(202\)\.json/u);
+  assert.doesNotMatch(block, /res\.json\(await\s+transcription\.transcribe/u);
+});
+
+test('M2-MED-009 media intelligence persists a scheduled state instead of a synthetic synchronous transcript', async () => {
+  assert.equal(typeof mediaIntelligence.createMediaIntelligenceService, 'function');
+  const scheduled = [];
+  const service = mediaIntelligence.createMediaIntelligenceService({
+    transcriptionService: Object.freeze({
+      async transcribe(input) {
+        scheduled.push(input);
+        return Object.freeze({
+          executionId: 'execution-media-intelligence-1',
+          intentId: 'intent-media-intelligence-1',
+          operationKind: OPERATION_KINDS.MEDIA_TRANSFER,
+          idempotencyKey: 'media-intelligence-idempotency-1'
+        });
+      }
+    }),
+    persistAnalysis(_key, value) {
+      return Object.freeze({ ...value });
+    }
+  });
+
+  const result = await service.analyzeFile({
+    filePath: 'media-reference-intelligence-1',
+    kind: 'audio',
+    mimeType: 'audio/ogg',
+    key: 'analysis-media-intelligence-1'
+  });
+  assert.equal(scheduled.length, 1);
+  assert.equal(result.status, 'scheduled');
+  assert.equal(result.executionId, 'execution-media-intelligence-1');
+  assert.equal(result.intentId, 'intent-media-intelligence-1');
+  assert.equal(Object.hasOwn(result, 'transcript'), false);
+  assert.equal(Object.hasOwn(result, 'translation'), false);
 });
