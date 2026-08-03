@@ -54,6 +54,11 @@ not ok 1 - M2-AI-008 preserves uncertain remote outcome
 # fail 1
 `;
 
+const WINDOWS_TAP_OUTPUT = TAP_OUTPUT.replace(
+  "'/home/runner/work/yance/yance/backend/tests/architectureClosureV2/wpB/aiProviderDurableMigration.test.js:430:12'",
+  "'D:\\\\a\\\\yance\\\\yance\\\\backend\\\\tests\\\\architectureClosureV2\\\\wpB\\\\aiProviderDurableMigration.test.js:430:12'"
+);
+
 test('M2 evidence diagnostics expose only bounded allowlisted assertion facts', () => {
   assert.equal(typeof failureDiagnostics, 'function');
   const diagnostics = failureDiagnostics(TAP_OUTPUT);
@@ -64,6 +69,10 @@ test('M2 evidence diagnostics expose only bounded allowlisted assertion facts', 
   assert.equal(serialized.includes('different-business-content'), false);
   assert.equal(serialized.includes('example.invalid'), false);
   assert.ok(serialized.length <= 1024);
+});
+
+test('M2 evidence diagnostics canonicalize Windows paths to one repository form', () => {
+  assert.deepEqual(failureDiagnostics(WINDOWS_TAP_OUTPUT), [EXPECTED_DIAGNOSTIC]);
 });
 
 test('M2 public evidence includes diagnostics but never raw process output', () => {
