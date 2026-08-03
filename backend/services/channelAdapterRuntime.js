@@ -8,7 +8,12 @@ const channelAdapterContract = require('./channelAdapterContract');
 const { canonicalHash } = require('./canonicalSerialization');
 const { deepFreeze } = require('../lib/deepFreeze');
 
-const MIGRATION_MODE = 'durable-outbox-only';
+const RUNTIME_MIGRATION_CONTRACT = Object.freeze({
+  migrationMode: 'durable-outbox-only',
+  attemptId: 'required',
+  fencingToken: 'required'
+});
+const MIGRATION_MODE = RUNTIME_MIGRATION_CONTRACT.migrationMode;
 const PHYSICAL_ATTEMPT_FIELDS = Object.freeze(['attemptId', 'fencingToken']);
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
@@ -26,7 +31,7 @@ function positiveInteger(value, fallback) {
 class ChannelAdapterRuntime extends core.ChannelAdapterRuntime {
   describe() {
     const description = super.describe();
-    if (description?.migrationMode !== MIGRATION_MODE) {
+    if (description?.migrationMode !== RUNTIME_MIGRATION_CONTRACT.migrationMode) {
       throw historyRuntimeError(
         'WP_B_CHANNEL_MIGRATION_MODE_INVALID',
         'Channel runtime must remain durable-outbox-only',
@@ -150,6 +155,7 @@ const singleton = new ChannelAdapterRuntimeRegistry();
 module.exports = singleton;
 module.exports.ChannelAdapterRuntime = ChannelAdapterRuntime;
 module.exports.ChannelAdapterRuntimeRegistry = ChannelAdapterRuntimeRegistry;
+module.exports.RUNTIME_MIGRATION_CONTRACT = RUNTIME_MIGRATION_CONTRACT;
 module.exports.MIGRATION_MODE = MIGRATION_MODE;
 module.exports.PHYSICAL_ATTEMPT_FIELDS = PHYSICAL_ATTEMPT_FIELDS;
 module.exports.PLATFORMS = core.PLATFORMS;
