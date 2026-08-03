@@ -3,7 +3,6 @@
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
 const packageVerifier = require('./verify-wp-b-xstate-package');
 const SUPPLY_CHAIN_LOCK = require('../../governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json');
@@ -12,6 +11,7 @@ const UPSTREAM_TEST_SELECTION = Object.freeze(['XSTATE_PNPM_TEST_CORE']);
 const UPSTREAM_TEST_COMMAND = 'corepack pnpm test:core';
 const UPSTREAM_INSTALL_TIMEOUT_MS = 8 * 60 * 1000;
 const UPSTREAM_TEST_TIMEOUT_MS = 8 * 60 * 1000;
+const ANSI_ESCAPE_PATTERN = /\u001b\[[0-?]*[ -/]*[@-~]/gu;
 
 function corepackCommand() {
   return process.platform === 'win32' ? 'corepack.cmd' : 'corepack';
@@ -29,6 +29,39 @@ function readUpstreamManifest(checkoutRoot) {
     error.code = 'WP_B_XSTATE_UPSTREAM_MANIFEST_INVALID';
     throw error;
   }
+}
+
+function metric(line, name) {
+  const match = String(line || '').match(new RegExp(`(?:^|\\|\\s)(\\d+)\\s+${name}(?:\\s|\\||$)`, 'iu'));
+  return match ? Number(match[1]) : 0;
+}
+
+function parseVitestSummary(output) {
+  const clean = String(output || '').replace(ANSI_ESCAPE_PATTERN, '');
+  const lines = clean.split(/\r?\n/u);
+  const testFilesLine = lines.find(line => /Test Files/iu.test(line));
+  const testsLine = lines.find(line => /^\s*Tests\s/iu.test(line));
+  if (!testFilesLine || !testsLine) {
+    const error = new Error('The XState test:core output does not contain a complete Vitest summary');
+    error.code = 'WP_B_XSTATE_UPSTREAM_TEST_SUMMARY_MISSING';
+    throw error;
+  }
+
+  const summary = Object.freeze({
+    testFilePassCount: metric(testFilesLine, 'passed'),
+    testFileFailCount: metric(testFilesLine, 'failed'),
+    testPassCount: metric(testsLine, 'passed'),
+    testFailCount: metric(testsLine, 'failed'),
+    skipCount: metric(testsLine, 'skipped'),
+    todoCount: metric(testsLine, 'todo')
+  });
+  if (summary.testFilePassCount <= 0 || summary.testPassCount <= 0) {
+    const error = new Error('The XState test:core Vitest summary has no passing files or tests');
+    error.code = 'WP_B_XSTATE_UPSTREAM_TEST_SUMMARY_INVALID';
+    error.summary = summary;
+    throw error;
+  }
+  return summary;
 }
 
 function runUpstreamCoreTests(options = {}) {
@@ -71,6 +104,13 @@ function runUpstreamCoreTests(options = {}) {
     commandKind: 'XSTATE_PNPM_TEST_CORE',
     timeoutMs: UPSTREAM_TEST_TIMEOUT_MS
   });
+  const testSummary = parseVitestSummary(`${coreTest.stdout}\n${coreTest.stderr}`);
+  if (testSummary.testFileFailCount !== 0 || testSummary.testFailCount !== 0) {
+    const error = new Error('The XState test:core summary contains failed files or tests');
+    error.code = 'WP_B_XSTATE_UPSTREAM_CORE_TEST_FAILED';
+    error.summary = testSummary;
+    throw error;
+  }
   const testLogSha256 = sha256(JSON.stringify({
     upstreamCommit: commitSha,
     command: UPSTREAM_TEST_COMMAND,
@@ -88,11 +128,13 @@ function runUpstreamCoreTests(options = {}) {
     passCount: 1,
     failCount: 0,
     skipCount: 0,
+    testSummary,
     testLogSha256,
     results: [Object.freeze({
       name: 'XSTATE_PNPM_TEST_CORE',
       status: 'PASS',
       command: UPSTREAM_TEST_COMMAND,
+      testSummary,
       testLogSha256
     })]
   });
@@ -135,7 +177,9 @@ function validatePhysicalArtifactAuthority(packageReport) {
 }
 
 async function verify() {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp-b-xstate-upstream-'));
+  const tempRoot = packageVerifier.createGovernedScratchDirectory({
+    prefix: 'yance-wp-b-xstate-upstream-'
+  });
   try {
     const upstreamCheckout = packageVerifier.checkoutExactUpstreamTag({
       checkoutRoot: path.join(tempRoot, 'xstate')
@@ -170,6 +214,7 @@ async function verify() {
       violations.push({
         code: error.code || 'WP_B_XSTATE_UPSTREAM_CORE_TEST_FAILED',
         message: error.message,
+        summary: error.summary || null,
         commandKind: error.commandKind || '',
         timeoutMs: error.timeoutMs || 0,
         status: error.status === undefined ? null : error.status,
@@ -181,7 +226,7 @@ async function verify() {
 
     return Object.freeze({
       ...packageReport,
-      schemaVersion: 5,
+      schemaVersion: 6,
       ok: violations.length === 0,
       supplyChainAuthorityPath: 'governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json',
       upstreamTests,
@@ -229,6 +274,7 @@ module.exports = {
   UPSTREAM_TEST_COMMAND,
   UPSTREAM_TEST_SELECTION,
   UPSTREAM_TEST_TIMEOUT_MS,
+  parseVitestSummary,
   runUpstreamConformance: runUpstreamCoreTests,
   runUpstreamCoreTests,
   validatePhysicalArtifactAuthority,
