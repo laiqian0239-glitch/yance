@@ -7,14 +7,8 @@ const path = require('node:path');
 const core = require('./verify-wp-b-open-source-adoption-core');
 
 const EVIDENCE_PATH = 'governance/architecture-closure-v2/wp-b-open-source-adoption-evidence-xstate-5.32.5.json';
-const EXPECTED_UPSTREAM_TEST_SELECTION = Object.freeze([
-  'PACKAGE_EXPORTS_PRESENT',
-  'INITIAL_SNAPSHOT',
-  'UNHANDLED_EVENT_STABILITY',
-  'ACTOR_TRANSITION_SEQUENCE',
-  'FINAL_STATE_STATUS'
-]);
-const EXPECTED_UPSTREAM_TEST_COMMAND = 'node tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js';
+const EXPECTED_UPSTREAM_TEST_SELECTION = Object.freeze(['XSTATE_PNPM_TEST_CORE']);
+const EXPECTED_UPSTREAM_TEST_COMMAND = 'corepack pnpm test:core';
 const EXPECTED_RUNTIME_VERSION = 'node@22';
 const HEAD_PATTERN = /^[0-9a-f]{40}$/u;
 const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
@@ -173,7 +167,7 @@ function verifyFiles(repositoryRoot = path.resolve(__dirname, '..', '..')) {
   ];
   return Object.freeze({
     ...report,
-    schemaVersion: 4,
+    schemaVersion: 5,
     ok: violations.length === 0,
     productionUseAuthorized: report.productionUseAuthorized && violations.length === 0,
     supplyChainAuthorityPath: core.SUPPLY_CHAIN_LOCK_PATH,
