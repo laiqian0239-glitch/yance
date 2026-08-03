@@ -41,7 +41,7 @@ for (const [operationKind, fileName] of REQUIRED_OPERATIONS) {
     const text = source(relativePath);
     assert.match(text, /\bperform\s*\(/u);
     assert.match(text, /\breconcile\s*\(/u);
-    assert.match(text, new RegExp(`['"]${operationKind}['"]`, 'u'));
+    assert.match(text, new RegExp(`OPERATION_KINDS\\.${operationKind}\\b`, 'u'));
   });
 }
 
