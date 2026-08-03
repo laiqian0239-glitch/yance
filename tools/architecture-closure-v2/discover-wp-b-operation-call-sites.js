@@ -14,7 +14,8 @@ const DETECTORS = Object.freeze([
   Object.freeze({ id: 'RECOVERY_ENTRYPOINT', expression: /\b(?:recover|resume|restore|reconcile|repair)[A-Za-z0-9_]*\s*\(/u })
 ]);
 const TIMER_PATTERN = /\b(?:setTimeout|setInterval)\s*\(/u;
-const OPERATIONAL_TIMER_CONTEXT = /\b(?:retry|backoff|heartbeat|lease|queue|sync|execution|session|message|media|provider|platform|reconnect|recovery)\b/iu;
+const OPERATIONAL_TIMER_CONTEXT = /\b(?:retry[A-Za-z0-9_]*|backoff[A-Za-z0-9_]*|heartbeat[A-Za-z0-9_]*|lease[A-Za-z0-9_]*|queue[A-Za-z0-9_]*|sync[A-Za-z0-9_]*|execution[A-Za-z0-9_]*|session[A-Za-z0-9_]*|message[A-Za-z0-9_]*|media[A-Za-z0-9_]*|provider[A-Za-z0-9_]*|platform[A-Za-z0-9_]*|reconnect[A-Za-z0-9_]*|recovery[A-Za-z0-9_]*)\b/iu;
+const WP_B_PATH_SCOPE = /(?:model|provider|ollama|openai|aigateway|execution|asyncoperation|backgroundjob|jobqueue|sendqueue|message|communication|channel|adapter|platform|facebook|telegram|whatsapp|media|history|sync|session|ownerrecovery|runtimerecovery|durablechanneloperation|accountmanager|gateway|relay|backendprocesshost|backendstartupsupervisor)/iu;
 
 function normalizePath(value) {
   return String(value || '').split(path.sep).join('/').replace(/^\.\//u, '');
@@ -65,6 +66,13 @@ function detectCapabilities(source) {
   return [...new Set(capabilities)];
 }
 
+function discoveryClass(relativePath) {
+  const normalized = normalizePath(relativePath);
+  if (normalized.startsWith('tools/')) return 'NON_PRODUCTION_HARNESS';
+  if (WP_B_PATH_SCOPE.test(normalized)) return 'WP_B_PRODUCTION_SCOPE';
+  return 'OUTSIDE_WP_B_OPERATION_SCOPE';
+}
+
 function discoverCallSites(repositoryRoot = path.resolve(__dirname, '..', '..')) {
   const baseline = readJson(repositoryRoot, BASELINE_PATH);
   const inventory = readJson(repositoryRoot, INVENTORY_PATH);
@@ -72,8 +80,9 @@ function discoverCallSites(repositoryRoot = path.resolve(__dirname, '..', '..'))
   const roots = Array.isArray(config.roots) ? config.roots.map(normalizePath) : [];
   const excludes = Array.isArray(config.excludes) ? config.excludes.map(normalizePath) : [];
   const registeredPaths = new Set((inventory.entries || []).map(entry => normalizePath(entry.path)));
-  const discovered = [];
+  const allDetected = [];
   const missingInventoryPaths = [];
+  let scannedFileCount = 0;
 
   for (const entry of inventory.entries || []) {
     const relativePath = normalizePath(entry.path);
@@ -81,30 +90,45 @@ function discoverCallSites(repositoryRoot = path.resolve(__dirname, '..', '..'))
   }
 
   for (const root of roots) {
-    for (const relativePath of walkSourceFiles(repositoryRoot, root, excludes)) {
+    const files = walkSourceFiles(repositoryRoot, root, excludes);
+    scannedFileCount += files.length;
+    for (const relativePath of files) {
       const source = fs.readFileSync(path.join(repositoryRoot, relativePath), 'utf8');
       const capabilities = detectCapabilities(source);
-      if (capabilities.length) discovered.push(Object.freeze({ path: relativePath, capabilities }));
+      if (!capabilities.length) continue;
+      allDetected.push(Object.freeze({
+        path: relativePath,
+        capabilities,
+        discoveryClass: discoveryClass(relativePath)
+      }));
     }
   }
 
+  const discovered = allDetected.filter(row => row.discoveryClass === 'WP_B_PRODUCTION_SCOPE');
+  const harnessDetected = allDetected.filter(row => row.discoveryClass === 'NON_PRODUCTION_HARNESS');
+  const outsideScopeDetected = allDetected.filter(row => row.discoveryClass === 'OUTSIDE_WP_B_OPERATION_SCOPE');
   const unregistered = discovered.filter(row => !registeredPaths.has(row.path));
   const registered = discovered.filter(row => registeredPaths.has(row.path));
   return Object.freeze({
-    schemaVersion: 1,
+    schemaVersion: 2,
     documentType: 'YANCE_ACV2_WP_B_OPERATION_CALL_SITE_DISCOVERY',
     workPackage: 'WP-B',
     branch: baseline.authorizedBranch,
     roots,
     excludes,
-    scannedFileCount: roots.reduce((count, root) => count + walkSourceFiles(repositoryRoot, root, excludes).length, 0),
+    scannedFileCount,
+    allDetectedCount: allDetected.length,
     discoveredCount: discovered.length,
+    harnessDetectedCount: harnessDetected.length,
+    outsideScopeDetectedCount: outsideScopeDetected.length,
     registeredCount: registered.length,
     unregisteredCount: unregistered.length,
     missingInventoryPathCount: missingInventoryPaths.length,
     discovered,
     registered,
     unregistered,
+    harnessDetected,
+    outsideScopeDetected,
     missingInventoryPaths,
     ok: unregistered.length === 0 && missingInventoryPaths.length === 0
   });
@@ -131,8 +155,10 @@ module.exports = {
   BASELINE_PATH,
   DETECTORS,
   INVENTORY_PATH,
+  WP_B_PATH_SCOPE,
   detectCapabilities,
   discoverCallSites,
+  discoveryClass,
   normalizePath,
   stripComments,
   walkSourceFiles
