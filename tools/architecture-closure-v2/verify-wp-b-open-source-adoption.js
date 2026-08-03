@@ -8,6 +8,12 @@ const GATE_PATH = 'governance/architecture-closure-v2/wp-b-open-source-adoption-
 const REGISTRY_PATH = 'governance/architecture-closure-v2/wp-b-open-source-adoption-registry.json';
 const BASELINE_PATH = 'governance/architecture-closure-v2/wp-b-baseline.json';
 const AUTHORIZATION_PATH = 'governance/architecture-closure-v2/wp-b-design-authorization.json';
+const EXPECTED_XSTATE = Object.freeze({
+  version: '5.32.5',
+  resolved: 'https://registry.npmjs.org/xstate/-/xstate-5.32.5.tgz',
+  integrity: 'sha512-631+ENa9BCjf/Rn/aWthqY8CWnHT6LHAANtB9zTHb9Tz6SgoI8NA+IWjG3qfIcnEubyksdYGhWCOle4eA/pP4A==',
+  license: 'MIT'
+});
 const EXPECTED_STEP_IDS = Object.freeze([
   'CANDIDATE_IDENTIFICATION',
   'EXACT_VERSION_AND_LICENSE_REVIEW',
@@ -31,11 +37,20 @@ const PRODUCTION_EXCLUDES = Object.freeze([
 ]);
 
 function normalizePath(value) {
-  return String(value || '').split(path.sep).join('/').replace(/^\.\//u, '');
+  return String(value || '').replace(/\\/gu, '/').replace(/^\.\//u, '');
 }
 
 function readJson(root, relativePath) {
   return JSON.parse(fs.readFileSync(path.join(root, relativePath), 'utf8'));
+}
+
+function readJsonOrNull(root, relativePath) {
+  try {
+    const value = readJson(root, relativePath);
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : null;
+  } catch (_) {
+    return null;
+  }
 }
 
 function isExcluded(relativePath) {
@@ -71,6 +86,43 @@ function findXStateImports(root) {
     }
   }
   return paths.sort();
+}
+
+function inspectXStatePackageBinding(repositoryRoot) {
+  const packageJson = readJsonOrNull(repositoryRoot, 'package.json');
+  const packageLock = readJsonOrNull(repositoryRoot, 'package-lock.json');
+  const manifestVersion = String(packageJson?.dependencies?.xstate || '');
+  const rootLockVersion = String(packageLock?.packages?.['']?.dependencies?.xstate || '');
+  const moduleLock = packageLock?.packages?.['node_modules/xstate'];
+  const runtimeDependencies = moduleLock?.dependencies;
+  const runtimeDependencyCount = runtimeDependencies && typeof runtimeDependencies === 'object'
+    ? Object.keys(runtimeDependencies).length
+    : 0;
+  const packageMentioned = Boolean(
+    manifestVersion
+    || rootLockVersion
+    || moduleLock
+  );
+  const manifestExact = manifestVersion === EXPECTED_XSTATE.version;
+  const lockExact = Boolean(
+    Number(packageLock?.lockfileVersion) === 3
+    && rootLockVersion === EXPECTED_XSTATE.version
+    && moduleLock
+    && moduleLock.version === EXPECTED_XSTATE.version
+    && moduleLock.resolved === EXPECTED_XSTATE.resolved
+    && moduleLock.integrity === EXPECTED_XSTATE.integrity
+    && moduleLock.license === EXPECTED_XSTATE.license
+    && runtimeDependencyCount === 0
+  );
+  return Object.freeze({
+    packageMentioned,
+    manifestVersion,
+    rootLockVersion,
+    manifestExact,
+    lockExact,
+    runtimeDependencyCount,
+    exact: manifestExact && lockExact
+  });
 }
 
 function candidateMap(registry) {
@@ -115,8 +167,8 @@ function verifyRegistry({ gate, registry, baseline, authorization, repositoryRoo
   if (!temporal) violations.push({ code: 'WP_B_TEMPORAL_CANDIDATE_MISSING' });
 
   if (xstate) {
-    if (xstate.exactVersion !== '5.32.5') violations.push({ code: 'WP_B_XSTATE_VERSION_NOT_PINNED' });
-    if (xstate.license !== 'MIT') violations.push({ code: 'WP_B_XSTATE_LICENSE_INVALID' });
+    if (xstate.exactVersion !== EXPECTED_XSTATE.version) violations.push({ code: 'WP_B_XSTATE_VERSION_NOT_PINNED' });
+    if (xstate.license !== EXPECTED_XSTATE.license) violations.push({ code: 'WP_B_XSTATE_LICENSE_INVALID' });
     if (Number(xstate.runtimeDependencyCount) !== 0) violations.push({ code: 'WP_B_XSTATE_RUNTIME_DEPENDENCY_COUNT_INVALID' });
     if (xstate.adoptionMode !== 'DIRECT_DEPENDENCY') violations.push({ code: 'WP_B_XSTATE_ADOPTION_MODE_INVALID' });
     const forbidden = new Set(xstate.forbiddenResponsibilities || []);
@@ -148,12 +200,41 @@ function verifyRegistry({ gate, registry, baseline, authorization, repositoryRoo
     }
   }
 
+  const packageBinding = inspectXStatePackageBinding(repositoryRoot);
   const xstateProductionImportPaths = findXStateImports(repositoryRoot);
-  const introduced = xstate?.gateSteps?.INTRODUCE_ORIGINAL_MODULE === 'COMPLETE';
-  if (!introduced && xstateProductionImportPaths.length !== 0) {
-    violations.push({ code: 'WP_B_XSTATE_IMPORTED_BEFORE_GATE_STEP_6', paths: xstateProductionImportPaths });
+  const originalModuleStepComplete = xstate?.gateSteps?.INTRODUCE_ORIGINAL_MODULE === 'COMPLETE';
+  const adapterBoundaryStepComplete = xstate?.gateSteps?.YANCE_ADAPTER_BOUNDARY === 'COMPLETE';
+
+  if (!originalModuleStepComplete) {
+    if (packageBinding.packageMentioned) {
+      violations.push({ code: 'WP_B_XSTATE_PACKAGE_INTRODUCED_BEFORE_GATE_STEP_6' });
+    }
+    if (xstateProductionImportPaths.length !== 0) {
+      violations.push({ code: 'WP_B_XSTATE_IMPORTED_BEFORE_GATE_STEP_6', paths: xstateProductionImportPaths });
+    }
+  } else {
+    if (!packageBinding.manifestExact) {
+      violations.push({
+        code: 'WP_B_XSTATE_PACKAGE_MANIFEST_INVALID',
+        actual: packageBinding.manifestVersion
+      });
+    }
+    if (!packageBinding.lockExact) {
+      violations.push({
+        code: 'WP_B_XSTATE_LOCK_BINDING_INVALID',
+        rootLockVersion: packageBinding.rootLockVersion,
+        runtimeDependencyCount: packageBinding.runtimeDependencyCount
+      });
+    }
   }
-  if (introduced) {
+
+  if (originalModuleStepComplete && !adapterBoundaryStepComplete && xstateProductionImportPaths.length !== 0) {
+    violations.push({ code: 'WP_B_XSTATE_IMPORTED_BEFORE_ADAPTER_GATE', paths: xstateProductionImportPaths });
+  }
+  if (adapterBoundaryStepComplete) {
+    if (!packageBinding.exact) {
+      violations.push({ code: 'WP_B_XSTATE_ADAPTER_WITHOUT_EXACT_PACKAGE' });
+    }
     if (xstateProductionImportPaths.length !== 1
         || xstateProductionImportPaths[0] !== 'backend/services/xstateLifecycleAdapter.js') {
       violations.push({ code: 'WP_B_XSTATE_IMPORT_BOUNDARY_INVALID', paths: xstateProductionImportPaths });
@@ -166,11 +247,13 @@ function verifyRegistry({ gate, registry, baseline, authorization, repositoryRoo
     && violations.length === 0;
 
   return Object.freeze({
-    schemaVersion: 1,
+    schemaVersion: 2,
     documentType: 'YANCE_ACV2_WP_B_OPEN_SOURCE_ADOPTION_VERIFICATION',
     ok: violations.length === 0,
     orderedStepIds,
     candidates,
+    xstateOriginalModuleIntroduced: originalModuleStepComplete && packageBinding.exact,
+    xstatePackageBinding: packageBinding,
     xstateProductionImportCount: xstateProductionImportPaths.length,
     xstateProductionImportPaths,
     productionUseAuthorized,
@@ -209,9 +292,11 @@ module.exports = {
   AUTHORIZATION_PATH,
   BASELINE_PATH,
   EXPECTED_STEP_IDS,
+  EXPECTED_XSTATE,
   GATE_PATH,
   REGISTRY_PATH,
   findXStateImports,
+  inspectXStatePackageBinding,
   verifyFiles,
   verifyRegistry
 };
