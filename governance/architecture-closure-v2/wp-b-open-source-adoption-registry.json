@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "documentType": "YANCE_ACV2_WP_B_OPEN_SOURCE_ADOPTION_REGISTRY",
   "workPackage": "WP-B",
   "orderedGatePath": "governance/architecture-closure-v2/wp-b-open-source-adoption-gate.json",
@@ -16,7 +16,7 @@
       "runtimeDependencyCount": 0,
       "targetCapability": "PURE_DURABLE_EXECUTION_LIFECYCLE_AND_MODEL_PATHS",
       "adoptionMode": "DIRECT_DEPENDENCY",
-      "status": "SUPPLY_CHAIN_LOCK_REPAIR_IN_PROGRESS",
+      "status": "UPSTREAM_TESTS_COMPLETE_ADAPTER_PENDING",
       "productionUseAuthorized": false,
       "allowedResponsibilities": [
         "PURE_LIFECYCLE_GRAPH",
@@ -51,18 +51,19 @@
         "npmAuditTotal": 0,
         "verifiedOnUbuntu": true,
         "verifiedOnWindows": true,
-        "reviewedHead": "c3d9ba7c63960a22e9995969a909b9ba27b337fa",
-        "workflowRunId": 30790076174
+        "reviewedHead": "84fbbfdea6524dfa4a74dd0a9b40b9ae9ca0805d",
+        "workflowRunId": 30791436313
       },
       "originalModuleIntroduction": {
         "introducedAtHead": "df384158be81a3cf133207f6c122d5452d50517e",
+        "repairedAtHead": "84fbbfdea6524dfa4a74dd0a9b40b9ae9ca0805d",
         "packageManifestPath": "package.json",
         "packageManifestBlobSha": "f4a1c15316cc451a2979acf5e9a6c7f9eb5f12bc",
         "packageLockPath": "package-lock.json",
-        "introducedPackageLockBlobSha": "467c23fa24b94a256f733c02315d4b6e79258dbe",
-        "introducedPackageLockSha256": "ce962941efa555d782e17909efad33db2f04e02c2aded0a585ae199698978dc5",
-        "requiredRepairedPackageLockBlobSha": "ccdab1bd849589a49f3dd2ce096c2579724bc291",
-        "requiredRepairedPackageLockSha256": "c85637bf92a6886acbc43eb9a540b04d937d5b9f4cebe4a77e4fedb81a5a81b7",
+        "packageLockBlobSha": "ccdab1bd849589a49f3dd2ce096c2579724bc291",
+        "packageLockSha256": "c85637bf92a6886acbc43eb9a540b04d937d5b9f4cebe4a77e4fedb81a5a81b7",
+        "rejectedPackageLockBlobSha": "467c23fa24b94a256f733c02315d4b6e79258dbe",
+        "rejectedPackageLockSha256": "ce962941efa555d782e17909efad33db2f04e02c2aded0a585ae199698978dc5",
         "introducedPackageOrSourcePaths": [
           "package.json#/dependencies/xstate",
           "package-lock.json#/packages//dependencies/xstate",
@@ -85,6 +86,37 @@
           "onlyRegistryPackageUsed": true
         }
       },
+      "upstreamTestEvidence": {
+        "upstreamTestSelection": [
+          "PACKAGE_EXPORTS_PRESENT",
+          "INITIAL_SNAPSHOT",
+          "UNHANDLED_EVENT_STABILITY",
+          "ACTOR_TRANSITION_SEQUENCE",
+          "FINAL_STATE_STATUS"
+        ],
+        "upstreamTestCommand": "node tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js",
+        "runtimeVersion": "node@22",
+        "passCount": 5,
+        "failCount": 0,
+        "skipCount": 0,
+        "reviewedHead": "84fbbfdea6524dfa4a74dd0a9b40b9ae9ca0805d",
+        "platforms": {
+          "ubuntu": {
+            "status": "PASSED",
+            "reviewedHead": "84fbbfdea6524dfa4a74dd0a9b40b9ae9ca0805d",
+            "workflowRunId": 30791436313,
+            "jobId": 91615614489,
+            "testLogSha256": "726c53eb82f1b1458632858b41b892b102b6bd4c04aa0f3f88431266f382aaeb"
+          },
+          "windows": {
+            "status": "PASSED",
+            "reviewedHead": "84fbbfdea6524dfa4a74dd0a9b40b9ae9ca0805d",
+            "workflowRunId": 30791436313,
+            "jobId": 91615614428,
+            "testLogSha256": "726c53eb82f1b1458632858b41b892b102b6bd4c04aa0f3f88431266f382aaeb"
+          }
+        }
+      },
       "gateSteps": {
         "CANDIDATE_IDENTIFICATION": "COMPLETE",
         "EXACT_VERSION_AND_LICENSE_REVIEW": "COMPLETE",
@@ -92,15 +124,13 @@
         "ADOPTION_MODE_DECISION": "COMPLETE",
         "YANCE_RED_CONTRACT_FIRST": "COMPLETE",
         "INTRODUCE_ORIGINAL_MODULE": "COMPLETE",
-        "UPSTREAM_TESTS_PASS": "IN_PROGRESS",
+        "UPSTREAM_TESTS_PASS": "COMPLETE",
         "YANCE_ADAPTER_BOUNDARY": "NOT_STARTED",
         "CROSS_PLATFORM_AND_FAULT_VALIDATION": "NOT_STARTED",
         "COPYRIGHT_NOTICE_SBOM_PROVENANCE": "NOT_STARTED",
         "INDEPENDENT_REVIEW": "NOT_STARTED"
       },
       "pendingEvidence": [
-        "repairedPackageLockBinding",
-        "upstreamTestEvidenceBoundToRepairedHead",
         "adapterEvidence",
         "ubuntuWindowsFaultEvidence",
         "noticeSbomProvenance",
