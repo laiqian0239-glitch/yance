@@ -37,7 +37,9 @@ jobs:
           set -euo pipefail
           python3 .github/scripts/patch-pr17-xstate-status-refactor.py
           python3 .github/scripts/refactor-pr17-xstate-status.py
+          python3 .github/scripts/patch-pr17-xstate-status-wrapper.py
           node --check tools/architecture-closure-v2/verify-wp-b-open-source-adoption-core.js
+          node --check tools/architecture-closure-v2/verify-wp-b-open-source-adoption.js
           node --check backend/tests/architectureClosureV2/wpB/xstateAdoptionCurrentStatus.test.js
           node --check backend/tests/architectureClosureV2/wpB/openSourceAdoptionGate.test.js
 
@@ -59,6 +61,7 @@ jobs:
           set -euo pipefail
           rm -f .github/scripts/refactor-pr17-xstate-status.py
           rm -f .github/scripts/patch-pr17-xstate-status-refactor.py
+          rm -f .github/scripts/patch-pr17-xstate-status-wrapper.py
           rm -f .github/workflows/pr17-xstate-status-root-fix.yml
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
