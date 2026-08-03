@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 'use strict';
 
 const crypto = require('node:crypto');
@@ -53,25 +54,26 @@ function git(args) {
 }
 
 function readReceipt(receiptPath = RECEIPT_PATH) {
-  let document;
   try {
-    document = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
+    const value = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
+    assertCondition(
+      value && typeof value === 'object' && !Array.isArray(value),
+      'WP_B_M1_REVIEW_RECEIPT_INVALID',
+      'Milestone 1 review receipt must be one JSON object'
+    );
+    return value;
   } catch (cause) {
+    if (cause?.code?.startsWith?.('WP_B_M1_REVIEW_')) throw cause;
     throw governanceError(
       'WP_B_M1_REVIEW_RECEIPT_UNREADABLE',
       'Milestone 1 review receipt must be readable canonical JSON',
       { receiptPath, cause: cause?.message || String(cause) }
     );
   }
-  return document;
 }
 
 function validateReceipt(document) {
-  assertCondition(
-    document && typeof document === 'object' && !Array.isArray(document),
-    'WP_B_M1_REVIEW_RECEIPT_INVALID',
-    'Milestone 1 review receipt must be one JSON object'
-  );
+  assertCondition(document && typeof document === 'object' && !Array.isArray(document), 'WP_B_M1_REVIEW_RECEIPT_INVALID', 'Milestone 1 review receipt must be one JSON object');
   assertCondition(document.schemaVersion === 1, 'WP_B_M1_REVIEW_SCHEMA_INVALID', 'Unexpected receipt schema version');
   assertCondition(document.documentType === EXPECTED_DOCUMENT_TYPE, 'WP_B_M1_REVIEW_TYPE_INVALID', 'Unexpected receipt document type');
   assertCondition(document.program === 'Architecture Closure V2', 'WP_B_M1_REVIEW_PROGRAM_INVALID', 'Unexpected program');
@@ -89,7 +91,7 @@ function validateReceipt(document) {
   assertCondition(review.humanApprovalClaimed === false, 'WP_B_M1_REVIEW_HUMAN_CLAIM_INVALID', 'Receipt cannot claim human approval');
   assertCondition(review.reviewGate1 === 'APPROVED', 'WP_B_M1_REVIEW_GATE_NOT_APPROVED', 'Review Gate 1 is not approved');
   assertCondition(review.milestone1 === 'SEALED', 'WP_B_M1_REVIEW_MILESTONE_NOT_SEALED', 'Milestone 1 is not sealed');
-  assertCondition(review.milestone2 === 'NOT_STARTED', 'WP_B_M1_REVIEW_MILESTONE2_INVALID', 'Milestone 2 must remain not started');
+  assertCondition(review.milestone2 === 'NOT_STARTED', 'WP_B_M1_REVIEW_MILESTONE2_INVALID', 'Milestone 1 receipt must preserve the historical Milestone 2 state at sealing time');
 
   assertCondition(Array.isArray(document.findings) && document.findings.length === 4, 'WP_B_M1_REVIEW_FINDINGS_INVALID', 'Receipt must preserve the four independent-review findings');
   assertCondition(document.findings.every(item => item && typeof item.id === 'string' && typeof item.resolution === 'string'), 'WP_B_M1_REVIEW_FINDING_SHAPE_INVALID', 'Every finding must have an id and resolution');
@@ -126,6 +128,7 @@ function validateReceipt(document) {
 
   const seal = document.seal || {};
   assertCondition(seal.status === 'SEALED', 'WP_B_M1_REVIEW_SEAL_STATUS_INVALID', 'Seal status must be SEALED');
+  assertCondition(FULL_SHA.test(String(seal.head || '')), 'WP_B_M1_REVIEW_SEAL_HEAD_INVALID', 'Seal Head must be one full commit SHA');
   assertCondition(JSON.stringify(sortedUnique(seal.allowedPostReviewPaths)) === JSON.stringify(EXPECTED_SEAL_PATHS), 'WP_B_M1_REVIEW_SEAL_PATHS_INVALID', 'Post-review path set must be exact', { expected: EXPECTED_SEAL_PATHS, actual: sortedUnique(seal.allowedPostReviewPaths) });
   assertCondition(seal.temporaryBypassAllowed === false && seal.warningOnlyClosureAllowed === false, 'WP_B_M1_REVIEW_SEAL_POLICY_INVALID', 'Seal cannot permit bypass or warning-only closure');
 
@@ -143,21 +146,31 @@ function validateReceipt(document) {
   for (const field of requiredFalse) {
     assertCondition(governance[field] === false, 'WP_B_M1_REVIEW_GOVERNANCE_OPEN', `Governance field ${field} must remain false`, { field });
   }
-  return Object.freeze({ ok: true, reviewedHead: reviewed.head, baselineHead: reviewed.baselineHead });
+  return Object.freeze({
+    ok: true,
+    reviewedHead: reviewed.head,
+    baselineHead: reviewed.baselineHead,
+    sealHead: seal.head
+  });
 }
 
 function verifyLocalRepository(document) {
   validateReceipt(document);
   const reviewed = document.reviewedImplementation;
+  const sealHead = document.seal.head;
+  let currentHead;
   try {
-    git(['cat-file', '-e', `${reviewed.baselineHead}^{commit}`]);
-    git(['cat-file', '-e', `${reviewed.head}^{commit}`]);
+    for (const commit of [reviewed.baselineHead, reviewed.head, sealHead]) {
+      git(['cat-file', '-e', `${commit}^{commit}`]);
+    }
+    currentHead = git(['rev-parse', 'HEAD']);
     git(['merge-base', '--is-ancestor', reviewed.baselineHead, reviewed.head]);
-    git(['merge-base', '--is-ancestor', reviewed.head, 'HEAD']);
+    git(['merge-base', '--is-ancestor', reviewed.head, sealHead]);
+    git(['merge-base', '--is-ancestor', sealHead, currentHead]);
   } catch (cause) {
     throw governanceError(
       'WP_B_M1_REVIEW_GIT_ANCESTRY_INVALID',
-      'Baseline, reviewed Head, and seal Head must form one monotonic ancestry chain',
+      'Baseline, reviewed Head, fixed Seal Head, and current Head must form one monotonic ancestry chain',
       { cause: cause?.message || String(cause) }
     );
   }
@@ -169,10 +182,10 @@ function verifyLocalRepository(document) {
   assertCondition(reviewedFiles.length === reviewed.changedFileCount, 'WP_B_M1_REVIEW_FILE_COUNT_MISMATCH', 'Reviewed changed-file count does not match Git', { expected: reviewed.changedFileCount, actual: reviewedFiles.length });
   assertCondition(reviewedDigest === reviewed.changedFileSetSha256, 'WP_B_M1_REVIEW_FILE_DIGEST_MISMATCH', 'Reviewed changed-file digest does not match Git', { expected: reviewed.changedFileSetSha256, actual: reviewedDigest });
 
-  const postReviewFiles = sortedUnique(git([
-    '-c', 'core.quotePath=false', 'diff', '--name-only', reviewed.head, 'HEAD', '--'
+  const sealFiles = sortedUnique(git([
+    '-c', 'core.quotePath=false', 'diff', '--name-only', reviewed.head, sealHead, '--'
   ]).split(/\r?\n/u));
-  assertCondition(JSON.stringify(postReviewFiles) === JSON.stringify(EXPECTED_SEAL_PATHS), 'WP_B_M1_REVIEW_POST_REVIEW_SCOPE_INVALID', 'Only the four exact seal paths may change after the reviewed implementation Head', { expected: EXPECTED_SEAL_PATHS, actual: postReviewFiles });
+  assertCondition(JSON.stringify(sealFiles) === JSON.stringify(EXPECTED_SEAL_PATHS), 'WP_B_M1_REVIEW_POST_REVIEW_SCOPE_INVALID', 'Only the four exact seal paths may change between reviewed implementation and fixed Seal Head', { expected: EXPECTED_SEAL_PATHS, actual: sealFiles });
 
   for (const [filePath, expectedBlob] of Object.entries(document.reviewedBlobs)) {
     let actualBlob;
@@ -189,10 +202,12 @@ function verifyLocalRepository(document) {
   return Object.freeze({
     ok: true,
     reviewedHead: reviewed.head,
-    sealHead: git(['rev-parse', 'HEAD']),
+    sealHead,
+    currentHead,
+    currentHeadDescendsFromSeal: true,
     reviewedFileCount: reviewedFiles.length,
     reviewedFileSetSha256: reviewedDigest,
-    postReviewFiles: Object.freeze(postReviewFiles)
+    postReviewFiles: Object.freeze(sealFiles)
   });
 }
 
@@ -226,14 +241,14 @@ async function verifyRemoteRuns(document, options = {}) {
   assertCondition(token.length > 0, 'WP_B_M1_REVIEW_REMOTE_TOKEN_REQUIRED', 'Authenticated GitHub token is required for remote run verification');
   assertCondition(repository === document.repository, 'WP_B_M1_REVIEW_REMOTE_REPOSITORY_INVALID', 'Remote repository must match the receipt', { repository, expected: document.repository });
 
-  const results = [];
+  const formalRuns = [];
   for (const expected of document.formalValidation) {
     const actual = await fetchWorkflowRun(repository, expected.workflowRunId, token);
     assertCondition(actual.name === expected.workflowName, 'WP_B_M1_REVIEW_REMOTE_NAME_MISMATCH', 'Workflow run name does not match receipt', { runId: expected.workflowRunId, expected: expected.workflowName, actual: actual.name });
     assertCondition(actual.head_sha === expected.expectedHead, 'WP_B_M1_REVIEW_REMOTE_HEAD_MISMATCH', 'Workflow run is not bound to the reviewed Head', { runId: expected.workflowRunId, expected: expected.expectedHead, actual: actual.head_sha });
     assertCondition(actual.status === 'completed' && actual.conclusion === expected.expectedConclusion, 'WP_B_M1_REVIEW_REMOTE_CONCLUSION_MISMATCH', 'Workflow run is not completed with the required conclusion', { runId: expected.workflowRunId, status: actual.status, conclusion: actual.conclusion });
     assertCondition(Number(actual.run_number) === expected.runNumber, 'WP_B_M1_REVIEW_REMOTE_RUN_NUMBER_MISMATCH', 'Workflow run number does not match receipt', { runId: expected.workflowRunId, expected: expected.runNumber, actual: actual.run_number });
-    results.push(Object.freeze({ runId: expected.workflowRunId, name: actual.name, head: actual.head_sha, conclusion: actual.conclusion }));
+    formalRuns.push(Object.freeze({ runId: expected.workflowRunId, name: actual.name, head: actual.head_sha, conclusion: actual.conclusion }));
   }
 
   const red = document.redEvidence;
@@ -241,22 +256,23 @@ async function verifyRemoteRuns(document, options = {}) {
   assertCondition(redRun.name === red.workflowName, 'WP_B_M1_REVIEW_REMOTE_RED_NAME_MISMATCH', 'RED workflow name does not match receipt');
   assertCondition(redRun.head_sha === red.head, 'WP_B_M1_REVIEW_REMOTE_RED_HEAD_MISMATCH', 'RED workflow does not bind the recorded RED Head');
   assertCondition(redRun.status === 'completed' && redRun.conclusion === red.expectedConclusion, 'WP_B_M1_REVIEW_REMOTE_RED_CONCLUSION_MISMATCH', 'RED workflow must remain a completed failure');
-  return Object.freeze({ ok: true, formalRuns: Object.freeze(results), redRunId: red.workflowRunId });
+  return Object.freeze({ ok: true, formalRuns: Object.freeze(formalRuns), redRunId: red.workflowRunId });
 }
 
 async function main() {
   const document = readReceipt();
   const local = verifyLocalRepository(document);
-  const output = { status: 'PASS', reasonCode: null, local };
-  if (process.argv.includes('--remote')) output.remote = await verifyRemoteRuns(document);
-  process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
+  const remote = process.argv.includes('--remote')
+    ? await verifyRemoteRuns(document)
+    : null;
+  process.stdout.write(`${JSON.stringify({ status: 'PASS', local, remote }, null, 2)}\n`);
 }
 
 if (require.main === module) {
   main().catch(error => {
-    process.stdout.write(`${JSON.stringify({
+    process.stderr.write(`${JSON.stringify({
       status: 'FAIL',
-      reasonCode: error?.code || 'WP_B_M1_REVIEW_VERIFICATION_FAILED',
+      code: error?.code || 'WP_B_M1_REVIEW_UNKNOWN_FAILURE',
       message: error?.message || String(error),
       details: Object.fromEntries(Object.entries(error || {}).filter(([key]) => !['name', 'message', 'stack'].includes(key)))
     }, null, 2)}\n`);
