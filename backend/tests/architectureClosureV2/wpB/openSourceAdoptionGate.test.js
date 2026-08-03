@@ -47,10 +47,11 @@ test('Temporal remains reference-only with zero imported assets', () => {
   assert.equal(report.candidates.temporal.importedSourceFileCount, 0);
 });
 
-test('a candidate cannot complete a later step before an earlier incomplete step', () => {
+test('a candidate cannot complete step 6 while step 5 is incomplete', () => {
   const { gate, registry, baseline, authorization } = fixture();
   const changed = structuredClone(registry);
-  changed.candidates[0].gateSteps.ADOPTION_MODE_DECISION = 'COMPLETE';
+  changed.candidates[0].gateSteps.YANCE_RED_CONTRACT_FIRST = 'NOT_STARTED';
+  changed.candidates[0].gateSteps.INTRODUCE_ORIGINAL_MODULE = 'COMPLETE';
   const report = verifyRegistry({
     gate,
     registry: changed,
