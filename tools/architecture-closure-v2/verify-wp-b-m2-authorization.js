@@ -51,8 +51,12 @@ const FORBIDDEN_SCOPE_PATTERNS = Object.freeze([
 const REQUIRED_PATHS = Object.freeze([
   '.github/workflows/wp-b-m1-independent-review-integrity.yml',
   '.github/workflows/wp-b-m2-authorization.yml',
+  'backend/services/modelExecutionEvidenceStore.js',
+  'backend/tests/architectureClosureV2/wpB/deliveryReceiptReconciliationOperation.test.js',
   'backend/tests/architectureClosureV2/wpB/m1SealContinuation.test.js',
   'backend/tests/architectureClosureV2/wpB/m2Authorization.test.js',
+  'backend/tests/architectureClosureV2/wpB/m2ContractEvidenceDiagnostics.test.js',
+  'backend/tests/architectureClosureV2/wpB/modelExecutionEvidenceBoundary.test.js',
   'governance/architecture-closure-v2/wp-b-m1-review.json',
   'governance/architecture-closure-v2/wp-b-m2-authorization.json',
   'shared/release/acv2ActiveWorkPackageAuthority.js',
