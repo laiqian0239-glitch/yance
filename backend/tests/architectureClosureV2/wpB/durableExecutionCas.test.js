@@ -56,6 +56,7 @@ test('authoritative transition SQL predicates every stale-writer fact in one UPD
   const text = source();
   const update = text.match(/UPDATE\s+durable_executions[\s\S]*?WHERE[\s\S]*?`/iu)?.[0] || '';
   assert.match(update, /execution_id\s*=\s*\?/iu);
+  assert.match(update, /\bstate\s*=\s*\?/iu);
   assert.match(update, /state_version\s*=\s*\?/iu);
   assert.match(update, /generation\s*=\s*\?/iu);
   assert.match(update, /owner_id\s*=\s*\?/iu);
@@ -94,7 +95,7 @@ test('executable transition CAS binds all stale-writer facts and returns an immu
   });
   assert.equal(calls.length, 1);
   for (const marker of [
-    'execution_id=?', 'state_version=?', 'generation=?', 'owner_id=?', 'claim_id=?',
+    'execution_id=?', 'state=?', 'state_version=?', 'generation=?', 'owner_id=?', 'claim_id=?',
     'host_generation=?', 'fencing_token=?', 'authority_write_host_lease'
   ]) assert.match(calls[0].sql.replace(/\s+/gu, ' '), literalPattern(marker));
   assert.deepEqual(result, {
@@ -145,7 +146,6 @@ test('V2 unowned transition CAS schedules an execution without inventing a worke
   assert.equal(calls.length, 1);
   const sql = calls[0].sql.replace(/\s+/gu, ' ');
   for (const marker of [
-    'state=?',
     'state_version=state_version+1',
     'execution_id=?',
     'state=?',
@@ -158,6 +158,17 @@ test('V2 unowned transition CAS schedules an execution without inventing a worke
     'authority_write_host_lease'
   ]) assert.match(sql, literalPattern(marker), marker);
   assert.doesNotMatch(sql, /lease_expires_at\s*>=\s*\?/u);
+  assert.deepEqual(calls[0].parameters, [
+    'SCHEDULED',
+    '2026-08-03T03:59:00.000Z',
+    'execution-unowned-schedule',
+    'CREATED',
+    0,
+    0,
+    'write-host-schedule',
+    9,
+    27
+  ]);
   assert.deepEqual(result, {
     executionId: 'execution-unowned-schedule',
     fromState: 'CREATED',
@@ -238,6 +249,72 @@ test('V2 first-claim CAS atomically assigns ownership and starts a lease', () =>
     leaseExpiresAt: '2026-08-03T04:05:00.000Z'
   });
   assert.equal(Object.isFrozen(result), true);
+});
+
+test('Schema 23 CAS requires an explicit write-host identity before preparing SQL', () => {
+  const {
+    executeExecutionClaimCas,
+    executeExecutionTransitionCas
+  } = authorityModule();
+  const db = {
+    prepare() {
+      throw new Error('SQL must not be prepared when hostId is absent');
+    }
+  };
+  assert.throws(
+    () => executeExecutionClaimCas(db, {
+      executionId: 'execution-host-required-claim',
+      fromState: 'SCHEDULED',
+      stateVersion: 0,
+      generation: 0,
+      ownerId: 'owner-not-host',
+      claimId: 'claim-host-required',
+      hostGeneration: 1,
+      fencingToken: 1,
+      leaseStartedAt: '2026-08-03T04:00:00.000Z',
+      leaseExpiresAt: '2026-08-03T04:05:00.000Z'
+    }),
+    error => error?.code === 'WP_B_EXECUTION_FIELD_REQUIRED'
+      && error?.field === 'hostId'
+  );
+  assert.throws(
+    () => executeExecutionTransitionCas(db, {
+      executionId: 'execution-host-required-transition',
+      fromState: 'RUNNING',
+      targetState: 'WAITING_REMOTE',
+      stateVersion: 1,
+      generation: 1,
+      ownerId: 'owner-not-host',
+      claimId: 'claim-host-required',
+      hostGeneration: 1,
+      fencingToken: 1,
+      authorityTimestamp: '2026-08-03T04:01:00.000Z'
+    }),
+    error => error?.code === 'WP_B_EXECUTION_FIELD_REQUIRED'
+      && error?.field === 'hostId'
+  );
+});
+
+test('Schema 23 detection treats only the absent migration table as not applied', () => {
+  const { schema23Applied } = authorityModule();
+  const missingTable = Object.assign(
+    new Error('no such table: r32_schema_migrations'),
+    { code: 'ERR_SQLITE_ERROR' }
+  );
+  assert.equal(schema23Applied({
+    db: { prepare: () => ({ get: () => { throw missingTable; } }) }
+  }), false);
+
+  const closedDatabase = Object.assign(
+    new Error('database is not open'),
+    { code: 'ERR_SQLITE_ERROR' }
+  );
+  assert.throws(
+    () => schema23Applied({
+      db: { prepare: () => ({ get: () => { throw closedDatabase; } }) }
+    }),
+    error => error === closedDatabase
+  );
 });
 
 test('Schema 23 authority owns schedule and claim facades instead of inheriting legacy command shapes', () => {
