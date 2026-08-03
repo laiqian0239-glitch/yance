@@ -14,6 +14,7 @@ const {
 const REPO_ROOT = path.resolve(__dirname, '../../../..');
 const XSTATE_VERSION = '5.32.5';
 const XSTATE_INTEGRITY = 'sha512-ULazi1oe6wGrXl0Frb6otSlkm5HLifbbVTkMk5kkSKqz4TkxJaVpnl6jOJwKeid3ORPxYyZQgNLUSYX9q65SIA==';
+const ADAPTER_PATH = 'backend/services/xstateLifecycleAdapter.js';
 
 function fixture() {
   return {
@@ -61,7 +62,7 @@ function withSyntheticRepository(options, work) {
     fs.writeFileSync(path.join(root, 'package.json'), `${JSON.stringify(options.packageJson || {}, null, 2)}\n`);
     fs.writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(options.packageLock || {}, null, 2)}\n`);
     if (typeof options.adapterSource === 'string') {
-      const adapterPath = path.join(root, 'backend', 'services', 'xstateLifecycleAdapter.js');
+      const adapterPath = path.join(root, ADAPTER_PATH);
       fs.mkdirSync(path.dirname(adapterPath), { recursive: true });
       fs.writeFileSync(adapterPath, options.adapterSource);
     }
@@ -85,7 +86,7 @@ test('WP-B open-source sequence and fail-closed policy remain frozen', () => {
   assert.equal(gate.enforcement.warningOnlyAllowed, false);
 });
 
-test('XState and Temporal adoption boundaries remain explicit before Adapter authorization', () => {
+test('XState Adapter is complete while production use remains unauthorized', () => {
   const { registry } = fixture();
   const xstate = registry.candidates.find(candidate => candidate.project === 'XState');
   const temporal = registry.candidates.find(candidate => candidate.project === 'Temporal');
@@ -96,8 +97,9 @@ test('XState and Temporal adoption boundaries remain explicit before Adapter aut
   assert.equal(xstate.productionUseAuthorized, false);
   assert.equal(xstate.gateSteps.INTRODUCE_ORIGINAL_MODULE, 'COMPLETE');
   assert.equal(xstate.gateSteps.UPSTREAM_TESTS_PASS, 'COMPLETE');
-  assert.equal(xstate.gateSteps.YANCE_ADAPTER_BOUNDARY, 'NOT_STARTED');
-  assert.deepEqual(findXStateImports(REPO_ROOT), []);
+  assert.equal(xstate.gateSteps.YANCE_ADAPTER_BOUNDARY, 'COMPLETE');
+  assert.equal(xstate.gateSteps.CROSS_PLATFORM_AND_FAULT_VALIDATION, 'NOT_STARTED');
+  assert.deepEqual(findXStateImports(REPO_ROOT), [ADAPTER_PATH]);
   assert.equal(temporal.adoptionMode, 'REFERENCE_ONLY');
   assert.equal(temporal.importedPackageCount, 0);
   assert.equal(temporal.importedSourceFileCount, 0);
@@ -133,6 +135,7 @@ test('XState production import before gate step 6 fails closed', () => {
 test('step 6 admits the exact physical package while keeping production imports at zero', () => {
   const { registry } = fixture();
   const changed = structuredClone(registry);
+  changed.candidates[0].gateSteps.YANCE_ADAPTER_BOUNDARY = 'NOT_STARTED';
   withSyntheticRepository({ packageJson: exactPackageJson(), packageLock: exactPackageLock() }, repositoryRoot => {
     const report = verifyChangedRegistry(changed, repositoryRoot);
     assert.equal(report.ok, true, JSON.stringify(report.violations, null, 2));
@@ -159,7 +162,6 @@ test('step 6 rejects missing manifest or physical lock binding', () => {
 test('production import remains forbidden until the Adapter boundary step is complete', () => {
   const { registry } = fixture();
   const changed = structuredClone(registry);
-  changed.candidates[0].gateSteps.UPSTREAM_TESTS_PASS = 'COMPLETE';
   changed.candidates[0].gateSteps.YANCE_ADAPTER_BOUNDARY = 'NOT_STARTED';
   withSyntheticRepository({
     packageJson: exactPackageJson(),
