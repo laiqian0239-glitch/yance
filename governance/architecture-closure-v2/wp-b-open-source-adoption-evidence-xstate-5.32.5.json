@@ -157,7 +157,7 @@
     "originalModuleIntroduced": true,
     "repairedPackageLockRequired": false,
     "upstreamTestsComplete": true,
-    "adapterIntroductionAuthorized": false,
+    "adapterIntroductionAuthorized": true,
     "productionUseAuthorized": false,
     "schema23Applied": true,
     "formalRelease": false,

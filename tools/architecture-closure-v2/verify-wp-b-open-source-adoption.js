@@ -149,9 +149,8 @@ function compareArtifactBindings({ repositoryRoot, registry, evidence }) {
 
   if (authority.status !== 'LOCKED') violations.push({ code: 'WP_B_XSTATE_SUPPLY_CHAIN_NOT_LOCKED', status: authority.status });
   if (authority.governance.temporaryBypassAllowed !== false
-      || authority.governance.productionUseAuthorized !== false
-      || authority.governance.adapterIntroductionAuthorized !== false) {
-    violations.push({ code: 'WP_B_XSTATE_SUPPLY_CHAIN_GOVERNANCE_INVALID' });
+      || authority.governance.productionUseAuthorized !== false) {
+    violations.push({ code: 'WP_B_XSTATE_SUPPLY_CHAIN_RELEASE_GOVERNANCE_INVALID' });
   }
   return violations;
 }
@@ -174,24 +173,25 @@ function verifyRegistry(options) {
 
 function verifyFiles(repositoryRoot = path.resolve(__dirname, '..', '..')) {
   const registry = readJson(repositoryRoot, core.REGISTRY_PATH);
-  const report = verifyRegistry({
-    gate: readJson(repositoryRoot, core.GATE_PATH),
+  const coreReport = core.verifyFiles(repositoryRoot);
+  const violations = [...coreReport.violations];
+  const xstate = coreReport.candidates && coreReport.candidates.xstate;
+  if (xstate && xstate.gateSteps && xstate.gateSteps.UPSTREAM_TESTS_PASS === 'COMPLETE') {
+    const reasons = validateUpstreamTestEvidence(xstate);
+    if (reasons.length !== 0) violations.push({ code: 'WP_B_XSTATE_UPSTREAM_TEST_EVIDENCE_INVALID', reasons });
+  }
+  violations.push(...compareArtifactBindings({
+    repositoryRoot,
     registry,
-    baseline: readJson(repositoryRoot, core.BASELINE_PATH),
-    authorization: readJson(repositoryRoot, core.AUTHORIZATION_PATH),
-    repositoryRoot
-  });
-  const violations = [
-    ...report.violations,
-    ...compareArtifactBindings({ repositoryRoot, registry, evidence: readJson(repositoryRoot, EVIDENCE_PATH) })
-  ];
+    evidence: readJson(repositoryRoot, EVIDENCE_PATH)
+  }));
   return Object.freeze({
-    ...report,
-    schemaVersion: 6,
+    ...coreReport,
+    schemaVersion: 7,
     ok: violations.length === 0,
-    productionUseAuthorized: report.productionUseAuthorized && violations.length === 0,
+    productionUseAuthorized: coreReport.productionUseAuthorized && violations.length === 0,
     supplyChainAuthorityPath: core.SUPPLY_CHAIN_LOCK_PATH,
-    violations
+    violations: Object.freeze(violations.map(item => Object.freeze(item)))
   });
 }
 

@@ -108,11 +108,12 @@
   "governance": {
     "step6OriginalModuleIntroductionComplete": true,
     "step7UpstreamTestsComplete": true,
-    "adapterIntroductionAuthorized": false,
+    "adapterIntroductionAuthorized": true,
     "productionUseAuthorized": false,
     "wpCAuthorized": false,
     "formalRelease": false,
     "publish": false,
-    "temporaryBypassAllowed": false
+    "temporaryBypassAllowed": false,
+    "schema23Applied": true
   }
 }

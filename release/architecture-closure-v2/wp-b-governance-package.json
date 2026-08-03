@@ -28,12 +28,12 @@
     {
       "path": "governance/architecture-closure-v2/wp-b-open-source-adoption-evidence-xstate-5.32.5.json",
       "documentType": "YANCE_ACV2_WP_B_XSTATE_ADOPTION_EVIDENCE",
-      "gitBlobSha": "6d1f9e356f64950eeb48af4d33f1811ba581ae0d"
+      "gitBlobSha": "0afe0ba776c317f11436ca101cb865c14908a023"
     },
     {
       "path": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
       "documentType": "YANCE_ACV2_WP_B_XSTATE_SUPPLY_CHAIN_LOCK",
-      "gitBlobSha": "75b5335af336858aab123d5131a101b2a564e1dc"
+      "gitBlobSha": "c4365287954eb0af1821e68e38cc7fadfcc19346"
     }
   ],
   "packaging": {
