@@ -12,6 +12,14 @@ const {
 
 const STORE_PATH = require.resolve('../../../lib/r32SqliteStore');
 const STORE_ENGINE_PATH = require.resolve('../../../lib/r32SqliteStoreEngine');
+const REPOSITORY_ROOT = path.resolve(__dirname, '../../../..');
+const WORKFLOW_PATH = path.join(REPOSITORY_ROOT, '.github', 'workflows', 'wp-b-validation.yml');
+const HISTORICAL_RED_PATH = path.join(
+  REPOSITORY_ROOT,
+  'governance',
+  'architecture-closure-v2',
+  'wp-b-m1-red-evidence.json'
+);
 
 function withStore(work) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp-b-startup-v23-'));
@@ -88,4 +96,21 @@ test('startup assembly verifies RED evidence after the Engine WP-A chain and bef
   assert.ok(wpBCall > evidenceCall, 'Schema 23 must run only after RED authority');
   assert.ok(projectionCall > wpBCall, 'projection schema finalization must run after Schema 23');
   assert.match(source.slice(wpBCall, projectionCall), /at:\s*nowIso\(\)/u);
+});
+
+test('current WP-B validation truth records Schema 23 applied without rewriting historical RED evidence', () => {
+  const workflow = fs.readFileSync(WORKFLOW_PATH, 'utf8');
+  const historicalRed = JSON.parse(fs.readFileSync(HISTORICAL_RED_PATH, 'utf8'));
+
+  assert.equal(
+    historicalRed.governance.schema23AppliedToProductionStartup,
+    false,
+    'historical RED evidence must remain immutable'
+  );
+  assert.match(workflow, /echo '- schema23Applied=true'/u);
+  assert.doesNotMatch(workflow, /echo '- schema23Applied=false'/u);
+  assert.match(workflow, /echo '- thirdPartyProductionUseAuthorized=false'/u);
+  assert.match(workflow, /echo '- wpCAuthorized=false'/u);
+  assert.match(workflow, /echo '- formalRelease=false'/u);
+  assert.match(workflow, /echo '- publish=false'/u);
 });
