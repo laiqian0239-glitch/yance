@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_OPEN_SOURCE_ADOPTION_GATE",
+  "program": "Architecture Closure V2",
+  "workPackage": "WP-B",
+  "repository": "laiqian0239-glitch/yance",
+  "baselineHead": "e53bf933a8f4e3273e515587d917433df24d6feb",
+  "status": "PROPOSED_FOR_USER_REVIEW",
+  "enforcement": {
+    "ordered": true,
+    "failClosed": true,
+    "noProductionIntroductionBeforeStep": 6,
+    "redContractRequiredBeforeIntroduction": true,
+    "independentReviewRequiredForCompletion": true,
+    "temporaryBypassAllowed": false,
+    "warningOnlyAllowed": false,
+    "manualOrderOverrideAllowed": false
+  },
+  "adoptionModes": [
+    "DIRECT_DEPENDENCY",
+    "SOURCE_TRANSPLANT",
+    "REFERENCE_ONLY"
+  ],
+  "requiredSequence": [
+    {
+      "step": 1,
+      "id": "CANDIDATE_IDENTIFICATION",
+      "name": "候选项目",
+      "requiredEvidence": [
+        "upstreamRepository",
+        "projectPurpose",
+        "targetYanceCapability",
+        "targetWorkPackage",
+        "maintainerAndReleaseActivityAssessment"
+      ]
+    },
+    {
+      "step": 2,
+      "id": "EXACT_VERSION_AND_LICENSE_REVIEW",
+      "name": "精确版本和许可证审查",
+      "requiredEvidence": [
+        "exactVersionOrCommit",
+        "sourceTreeOrPackageDigest",
+        "licenseIdentifier",
+        "licenseTextDigest",
+        "fileOrDirectoryLicenseExceptions",
+        "enterpriseOrRestrictedPathsExcluded",
+        "redistributionAndNoticeObligations"
+      ]
+    },
+    {
+      "step": 3,
+      "id": "DEPENDENCY_AND_SECURITY_SCAN",
+      "name": "依赖与安全扫描",
+      "requiredEvidence": [
+        "dependencyGraph",
+        "knownVulnerabilityScan",
+        "malwareOrSuspiciousLifecycleScriptReview",
+        "transitiveLicenseScan",
+        "runtimeAndWindowsCompatibilityAssessment",
+        "unresolvedCriticalOrHighCount"
+      ],
+      "acceptance": {
+        "unresolvedCriticalOrHighCount": 0
+      }
+    },
+    {
+      "step": 4,
+      "id": "ADOPTION_MODE_DECISION",
+      "name": "确定直接依赖 / 源码移植 / 仅参考",
+      "requiredEvidence": [
+        "selectedAdoptionMode",
+        "decisionRationale",
+        "allowedResponsibilities",
+        "forbiddenResponsibilities",
+        "authorityBoundary",
+        "upgradeAndRemovalPlan"
+      ]
+    },
+    {
+      "step": 5,
+      "id": "YANCE_RED_CONTRACT_FIRST",
+      "name": "先写言策 RED 合同",
+      "requiredEvidence": [
+        "redTestPaths",
+        "redCommand",
+        "redExitCode",
+        "redLogDigest",
+        "failureProvesMissingCapability",
+        "noThirdPartyProductionCodePresent"
+      ]
+    },
+    {
+      "step": 6,
+      "id": "INTRODUCE_ORIGINAL_MODULE",
+      "name": "引入原始模块",
+      "requiredEvidence": [
+        "introducedPackageOrSourcePaths",
+        "exactPackageLockOrSourceBlobDigests",
+        "upstreamToYanceFileMap",
+        "localPatchManifest",
+        "restrictedPathExclusionProof"
+      ]
+    },
+    {
+      "step": 7,
+      "id": "UPSTREAM_TESTS_PASS",
+      "name": "通过上游测试",
+      "requiredEvidence": [
+        "upstreamTestSelection",
+        "upstreamTestCommand",
+        "runtimeVersion",
+        "passCount",
+        "failCount",
+        "skipCount",
+        "testLogDigest"
+      ],
+      "acceptance": {
+        "failCount": 0,
+        "unexplainedSkipCount": 0
+      }
+    },
+    {
+      "step": 8,
+      "id": "YANCE_ADAPTER_BOUNDARY",
+      "name": "增加言策 Adapter",
+      "requiredEvidence": [
+        "adapterPaths",
+        "authorityBoundaryTests",
+        "forbiddenResponsibilityTests",
+        "noSecondBusinessAuthorityProof",
+        "upgradeIsolationProof"
+      ]
+    },
+    {
+      "step": 9,
+      "id": "CROSS_PLATFORM_AND_FAULT_VALIDATION",
+      "name": "通过 Ubuntu、Windows、故障注入",
+      "requiredEvidence": [
+        "ubuntuRun",
+        "windowsRun",
+        "faultInjectionMatrix",
+        "affectedRegressionRuns",
+        "zeroCriticalFailureCount",
+        "artifactDigests"
+      ],
+      "acceptance": {
+        "zeroCriticalFailureCount": 0
+      }
+    },
+    {
+      "step": 10,
+      "id": "COPYRIGHT_NOTICE_SBOM_PROVENANCE",
+      "name": "记录版权、NOTICE、SBOM 和源码来源",
+      "requiredEvidence": [
+        "copyrightRecord",
+        "noticeDisposition",
+        "sbomEntry",
+        "sourceProvenanceRecord",
+        "exactVersionOrCommit",
+        "licenseFilesIncludedWhereRequired",
+        "modificationAndPatchDisclosure"
+      ]
+    },
+    {
+      "step": 11,
+      "id": "INDEPENDENT_REVIEW",
+      "name": "独立复审",
+      "requiredEvidence": [
+        "reviewedHead",
+        "reviewerIdentity",
+        "reviewScope",
+        "licenseReviewConclusion",
+        "securityReviewConclusion",
+        "authorityBoundaryConclusion",
+        "testEvidenceConclusion",
+        "blockerCount",
+        "highCount",
+        "approvalReceipt"
+      ],
+      "acceptance": {
+        "blockerCount": 0,
+        "highCount": 0,
+        "conclusion": "APPROVED"
+      }
+    }
+  ],
+  "candidateRecords": [
+    {
+      "project": "XState",
+      "targetCapability": "pure durable-execution lifecycle and model-based tests",
+      "proposedAdoptionMode": "DIRECT_DEPENDENCY",
+      "status": "CANDIDATE_ONLY",
+      "productionUseAuthorized": false
+    },
+    {
+      "project": "Temporal",
+      "targetCapability": "durable workflow, activity, heartbeat, cancellation, retry and uncertain-outcome semantics",
+      "proposedAdoptionMode": "REFERENCE_ONLY",
+      "status": "CANDIDATE_ONLY",
+      "productionUseAuthorized": false
+    }
+  ],
+  "closureConditions": {
+    "allStepsCompleteInOrder": true,
+    "allEvidenceBoundToExactHead": true,
+    "unresolvedCriticalOrHighCount": 0,
+    "blockerCount": 0,
+    "highCount": 0,
+    "thirdPartyIntroducedWithoutRedCount": 0,
+    "unregisteredThirdPartySourceCount": 0,
+    "restrictedLicensePathCount": 0,
+    "noticeOrSbomOmissionCount": 0
+  },
+  "governance": {
+    "wpBImplementationAuthorized": false,
+    "wpCAuthorized": false,
+    "formalRelease": false,
+    "publish": false
+  }
+}
