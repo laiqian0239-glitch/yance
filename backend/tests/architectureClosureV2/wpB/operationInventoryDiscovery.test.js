@@ -32,6 +32,44 @@ test('operation discovery recognizes physical invocations, recovery and operatio
   ]);
 });
 
+test('operation discovery recognizes bare request, platform, recovery and retry/backoff calls', () => {
+  const capabilities = detectCapabilities(`
+    const { request } = require('node:https');
+    await request(options);
+    await sendMessage({ text: 'x' });
+    await restoreSession(accountId);
+    await retryWithBackoff(dispatchAttempt);
+  `);
+  assert.deepEqual(capabilities.sort(), [
+    'NETWORK_CLIENT_CALL',
+    'OPERATIONAL_RETRY_OR_TIMER',
+    'PLATFORM_OR_PROVIDER_CALL',
+    'RECOVERY_ENTRYPOINT'
+  ]);
+});
+
+test('call-like declarations and string/comment examples are not physical invocations', () => {
+  const capabilities = detectCapabilities(`
+    function request() {}
+    async function sendMessage() {}
+    const restoreSession = () => {};
+    class Adapter {
+      sendMessage() {}
+      restoreSession() {}
+      retryWithBackoff() {}
+    }
+    const port = {
+      request() {},
+      sendMedia() {},
+      recoverInterrupted() {},
+      exponentialBackoff() {}
+    };
+    // request(options); sendMessage(payload); restoreSession(accountId);
+    const example = 'retryWithBackoff(operation)';
+  `);
+  assert.deepEqual(capabilities, []);
+});
+
 test('method declarations are not mistaken for physical invocations', () => {
   const capabilities = detectCapabilities(`
     class Adapter {
