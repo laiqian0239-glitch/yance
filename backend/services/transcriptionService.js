@@ -4,8 +4,11 @@ const { spawn, spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const crypto = require('crypto');
 const aiGateway = require('./aiGateway');
 const logger = require('./logger');
+const mediaPipeline = require('./mediaPipeline');
+const { deepFreeze } = require('../lib/deepFreeze');
 const { PATHS } = require('../config');
 
 function tokenizeCommand(command) {
@@ -65,7 +68,6 @@ function discoverModel() {
   ].filter(Boolean);
   return firstExisting(candidates);
 }
-
 
 function cleanupTemporaryDirectory(directory, operation) {
   if (!directory) return;
@@ -194,7 +196,7 @@ async function executeEngine(engine, full, language) {
       try {
         await runCommand(ffmpeg, ['-nostdin', '-y', '-i', full, '-vn', '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', inputFile], 120000);
       } catch (error) {
-        cleanupTemporaryDirectory(conversionDir, 'transcription.convert.rollback')
+        cleanupTemporaryDirectory(conversionDir, 'transcription.convert.rollback');
         const wrapped = new Error(`WhatsApp 语音转换失败：${error.message}`);
         wrapped.code = 'AUDIO_CONVERSION_FAILED';
         throw wrapped;
@@ -205,9 +207,7 @@ async function executeEngine(engine, full, language) {
       const result = await runCommand(engine.command, args);
       return { transcript: result.stdout, command: engine.command };
     } finally {
-      if (conversionDir) {
-        cleanupTemporaryDirectory(conversionDir, 'transcription.convert.finalize')
-      }
+      if (conversionDir) cleanupTemporaryDirectory(conversionDir, 'transcription.convert.finalize');
     }
   }
 
@@ -223,13 +223,13 @@ async function executeEngine(engine, full, language) {
       const transcript = fs.existsSync(expected) ? fs.readFileSync(expected, 'utf8').trim() : result.stdout;
       return { transcript, command: engine.command };
     } finally {
-      cleanupTemporaryDirectory(outputDir, 'transcription.whisper-output.finalize')
+      cleanupTemporaryDirectory(outputDir, 'transcription.whisper-output.finalize');
     }
   }
   throw Object.assign(new Error('不支持的语音转写引擎'), { code: 'TRANSCRIPTION_ENGINE_UNSUPPORTED' });
 }
 
-async function transcribe({ filePath, language = 'auto', translateToChinese = true }) {
+async function executeTranscriptionPhysical({ filePath, language = 'auto', translateToChinese = true }) {
   const full = path.resolve(String(filePath || ''));
   if (!fs.existsSync(full) || !fs.statSync(full).isFile()) throw Object.assign(new Error('语音文件尚未恢复到本地'), { code: 'AUDIO_FILE_NOT_FOUND' });
   const engine = discoverEngine();
@@ -287,4 +287,110 @@ async function transcribe({ filePath, language = 'auto', translateToChinese = tr
   return payload;
 }
 
-module.exports = { transcribe, runCommand, tokenizeCommand, discoverEngine, discoverModel, discoverFfmpeg, engineStatus, executableOnPath, executeEngine, sourceRoot };
+function transcriptionError(code, message, details = {}) {
+  return Object.assign(new Error(message), { code, ...details });
+}
+
+function requiredString(value, field, maximum = 4096) {
+  const result = String(value == null ? '' : value).trim();
+  if (!result || result.length > maximum || /[\u0000-\u001f\u007f]/u.test(result)) {
+    throw transcriptionError('WP_B_MEDIA_TRANSFER_FIELD_REQUIRED', `${field} is required`, { field });
+  }
+  return result;
+}
+
+function sha256Text(value) {
+  return crypto.createHash('sha256').update(String(value), 'utf8').digest('hex');
+}
+
+function publicTranscriptionCommand(input = {}) {
+  const mediaReference = requiredString(input.mediaReference || input.filePath, 'mediaReference');
+  const language = String(input.language || 'auto').trim() || 'auto';
+  const translateToChinese = input.translateToChinese !== false;
+  const mediaDigest = sha256Text(mediaReference);
+  const metadataSha256 = String(input.metadataSha256 || '').trim()
+    || sha256Text(JSON.stringify({ language, translateToChinese }));
+  const command = deepFreeze({
+    transferKind: 'TRANSCRIBE',
+    mediaReference,
+    sourceScopeReference: String(input.sourceScopeReference || `local-media:${mediaDigest.slice(0, 32)}`).trim(),
+    destinationScopeReference: String(input.destinationScopeReference || `local-transcription:${mediaDigest.slice(0, 32)}`).trim(),
+    metadataSha256,
+    custodyReference: String(input.custodyReference || `local-file-custody:${mediaDigest.slice(0, 32)}`).trim(),
+    language,
+    translateToChinese
+  });
+  return Object.freeze({
+    command,
+    idempotencyKey: String(input.idempotencyKey || `transcription:${sha256Text(JSON.stringify(command))}`).trim(),
+    traceId: String(input.traceId || '').trim(),
+    deadlineAt: String(input.deadlineAt || '').trim(),
+    maxAttempts: Math.max(1, Number(input.maxAttempts || 2))
+  });
+}
+
+function persistedTranscriptionAttempt(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !Object.isFrozen(value)) {
+    throw transcriptionError('WP_B_MEDIA_TRANSFER_ATTEMPT_REQUIRED', 'Transcription requires one frozen persisted attempt');
+  }
+  for (const field of ['executionId', 'intentId', 'attemptId', 'claimId', 'ownerId']) {
+    requiredString(value[field], `persistedAttempt.${field}`);
+  }
+  for (const field of ['generation', 'hostGeneration', 'fencingToken']) {
+    const number = Number(value[field]);
+    if (!Number.isSafeInteger(number) || number < 1) {
+      throw transcriptionError('WP_B_MEDIA_TRANSFER_ATTEMPT_REQUIRED', `persistedAttempt.${field} is required`, { field });
+    }
+  }
+  const request = value.request;
+  if (!request || typeof request !== 'object' || !Object.isFrozen(request)
+      || String(request.transferKind || '').toUpperCase() !== 'TRANSCRIBE') {
+    throw transcriptionError('WP_B_MEDIA_TRANSFER_ATTEMPT_REQUIRED', 'Persisted transcription attempt request is invalid');
+  }
+  return value;
+}
+
+function createTranscriptionService({
+  mediaTransferScheduler = Object.freeze({ prepare: input => mediaPipeline.prepareMediaTransfer(input) }),
+  physicalRunner = executeTranscriptionPhysical
+} = {}) {
+  if (!mediaTransferScheduler || typeof mediaTransferScheduler.prepare !== 'function') {
+    throw new TypeError('Transcription service requires a media transfer scheduler');
+  }
+  if (typeof physicalRunner !== 'function') {
+    throw new TypeError('Transcription service requires a physical runner');
+  }
+  return Object.freeze({
+    transcribe(input = {}) {
+      return Promise.resolve(mediaTransferScheduler.prepare(publicTranscriptionCommand(input)));
+    },
+    executePersistedTranscription(input = {}) {
+      const attempt = persistedTranscriptionAttempt(input.persistedAttempt);
+      return Promise.resolve(physicalRunner({
+        filePath: String(input.filePath || attempt.request.mediaReference || ''),
+        language: String(input.language || attempt.request.language || 'auto'),
+        translateToChinese: input.translateToChinese ?? attempt.request.translateToChinese,
+        persistedAttempt: attempt
+      }));
+    }
+  });
+}
+
+const defaultTranscriptionService = createTranscriptionService();
+
+module.exports = {
+  transcribe: input => defaultTranscriptionService.transcribe(input),
+  executePersistedTranscription: input => defaultTranscriptionService.executePersistedTranscription(input),
+  createTranscriptionService,
+  persistedTranscriptionAttempt,
+  publicTranscriptionCommand,
+  runCommand,
+  tokenizeCommand,
+  discoverEngine,
+  discoverModel,
+  discoverFfmpeg,
+  engineStatus,
+  executableOnPath,
+  executeEngine,
+  sourceRoot
+};
