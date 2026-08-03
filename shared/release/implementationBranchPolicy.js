@@ -3,8 +3,18 @@
 const legacy = require('./implementationBranchPolicyLegacy');
 const active = require('./acv2ActiveWorkPackageAuthority');
 
+function hasExplicitLegacyAuthorizationContext(options = {}) {
+  return [
+    'authorization',
+    'postMergeDefect',
+    'taskScopeChain',
+    'amendment'
+  ].some(key => Object.prototype.hasOwnProperty.call(options, key));
+}
+
 function resolveWpBAuthority(options = {}) {
   if (Object.prototype.hasOwnProperty.call(options, 'wpBAuthority')) return options.wpBAuthority;
+  if (hasExplicitLegacyAuthorizationContext(options)) return null;
   return active.resolveWpBImplementationAuthority(options);
 }
 
