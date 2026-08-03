@@ -11,6 +11,7 @@ const {
 } = require('../../../../shared/release/wpBM1RedEvidenceAuthority');
 
 const STORE_PATH = require.resolve('../../../lib/r32SqliteStore');
+const STORE_ENGINE_PATH = require.resolve('../../../lib/r32SqliteStoreEngine');
 
 function withStore(work) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp-b-startup-v23-'));
@@ -66,20 +67,25 @@ test('R32SqliteStore registers Schema 23 in the one startup migration chain', ()
   });
 });
 
-test('startup source verifies RED evidence before applying WP-B and preserves migration order', () => {
+test('startup assembly verifies RED evidence after the Engine WP-A chain and before WP-B', () => {
   const source = fs.readFileSync(STORE_PATH, 'utf8');
+  const engineSource = fs.readFileSync(STORE_ENGINE_PATH, 'utf8');
+  const engineCall = source.indexOf('ENGINE_PROTOTYPE.ensureSchema.call(store)');
   const evidenceImport = source.indexOf('requireSchema23StartupRegistration');
   const wpBImport = source.indexOf('applyArchitectureClosureV2WpB');
-  const wpACall = source.indexOf('applyArchitectureClosureV2WpA(this.db)');
-  const evidenceCall = source.indexOf('requireSchema23StartupRegistration(');
-  const wpBCall = source.indexOf('applyArchitectureClosureV2WpB(this.db');
-  const projectionCall = source.indexOf('ensureCanonicalProjectionReceiptSchema(this.db)');
+  const evidenceCall = source.lastIndexOf('requireSchema23StartupRegistration(');
+  const wpBCall = source.indexOf('applyArchitectureClosureV2WpB(store.db');
+  const projectionCall = source.indexOf('ensureCanonicalProjectionReceiptSchema(store.db)');
+  const wpACall = engineSource.indexOf('applyArchitectureClosureV2WpA(this.db)');
+  const engineProjectionCall = engineSource.indexOf('ensureCanonicalProjectionReceiptSchema(this.db)');
 
   assert.ok(evidenceImport >= 0, 'RED authority import missing');
   assert.ok(wpBImport >= 0, 'Schema 23 migration import missing');
-  assert.ok(wpACall >= 0, 'Schema 22 call missing');
-  assert.ok(evidenceCall > wpACall, 'RED authority must be checked after Schema 22');
+  assert.ok(wpACall >= 0, 'Engine Schema 22 call missing');
+  assert.ok(engineProjectionCall > wpACall, 'Engine projection finalization must follow Schema 22');
+  assert.ok(engineCall >= 0, 'Engine startup chain call missing');
+  assert.ok(evidenceCall > engineCall, 'RED authority must be checked after the Engine WP-A chain');
   assert.ok(wpBCall > evidenceCall, 'Schema 23 must run only after RED authority');
-  assert.ok(projectionCall > wpBCall, 'projection schema finalization must remain after Schema 23');
+  assert.ok(projectionCall > wpBCall, 'projection schema finalization must run after Schema 23');
   assert.match(source.slice(wpBCall, projectionCall), /at:\s*nowIso\(\)/u);
 });
