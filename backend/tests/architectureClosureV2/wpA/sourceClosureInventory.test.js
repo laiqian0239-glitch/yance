@@ -122,6 +122,27 @@ test('WP-B extends the frozen registry with one exact AuthorityWriteHost Engine 
   assert.equal(extension.governance.warningOnlyAllowed, false);
 });
 
+test('registry extension capabilities are an exact allowlist for detected source facts', () => {
+  const extensions = scanner.loadRegistryExtensions();
+  const knownCapabilities = new Set(scanner.SOURCE_CAPABILITIES);
+  for (const extension of extensions) {
+    for (const entry of extension.document.entries) {
+      const source = fs.readFileSync(path.join(repoRoot, entry.sourcePath), 'utf8');
+      const detected = scanner.detectSourceCapabilities(source);
+      assert.deepEqual(
+        detected.filter(capability => !entry.allowedCapabilities.includes(capability)),
+        [],
+        `${entry.sourcePath} detected=${JSON.stringify(detected)} allowed=${JSON.stringify(entry.allowedCapabilities)}`
+      );
+      assert.deepEqual(
+        entry.allowedCapabilities.filter(capability => !knownCapabilities.has(capability)),
+        [],
+        `${entry.sourcePath} declares unknown capabilities`
+      );
+    }
+  }
+});
+
 test('scanner rejects an unregistered writable primary-store acquisition', () => {
   const registry = readJson(scanner.REGISTRY_PATH);
   const violations = scanner.findUnregisteredSourceCapabilities([
