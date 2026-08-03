@@ -8,6 +8,12 @@ const eventBus = require('./eventBus');
 const logger = require('./logger');
 const { reconstructBaileysMessageInfo } = require('./whatsappMediaEnvelope');
 const { unwrap, stableJid } = require('./messageNormalizer');
+const defaultDurableExecutionAuthority = require('./durableExecutionAuthority');
+const defaultOutboxAuthority = require('./externalActionOutboxAuthority');
+const {
+  OPERATION_KINDS,
+  assertReferenceOnlyEnvelope
+} = require('./durableOperationRegistry');
 
 function ensureDir(dir) { fs.mkdirSync(dir, { recursive: true }); }
 function safePart(value, fallback = 'item') {
@@ -43,6 +49,68 @@ function extension(mimeType = '', kind = '') {
   if (mime === 'audio/mp4') return 'm4a';
   if (mime === 'application/pdf') return 'pdf';
   return (mime.split('/')[1] || 'bin').replace(/[^a-z0-9]/g, '') || 'bin';
+}
+
+function mediaTransferError(code, message, details = {}) {
+  return Object.assign(new Error(message), { code, ...details });
+}
+function requiredString(value, field, maximum = 2048) {
+  const result = String(value == null ? '' : value).trim();
+  if (!result) throw mediaTransferError('WP_B_MEDIA_TRANSFER_FIELD_REQUIRED', `${field} is required`, { field });
+  if (result.length > maximum || /[\u0000-\u001f\u007f]/u.test(result)) {
+    throw mediaTransferError('WP_B_MEDIA_TRANSFER_FIELD_INVALID', `${field} is invalid`, { field, maximum });
+  }
+  return result;
+}
+function authorityTimestamp(issuer, purpose) {
+  if (typeof issuer !== 'function') throw new TypeError('Media transfer scheduler requires an authority timestamp issuer');
+  const source = String(issuer(purpose) || '');
+  const milliseconds = Date.parse(source);
+  if (!Number.isFinite(milliseconds) || new Date(milliseconds).toISOString() !== source) {
+    throw mediaTransferError('WP_B_MEDIA_TRANSFER_TIMESTAMP_INVALID', `${purpose} must be normalized UTC ISO-8601`);
+  }
+  return source;
+}
+function createMediaTransferScheduler({
+  durableExecutionAuthority = defaultDurableExecutionAuthority,
+  outboxAuthority = defaultOutboxAuthority,
+  issueTimestamp = () => new Date().toISOString()
+} = {}) {
+  if (!durableExecutionAuthority || typeof durableExecutionAuthority.createExecution !== 'function') {
+    throw new TypeError('Media transfer scheduler requires DurableExecutionAuthority.createExecution');
+  }
+  if (!outboxAuthority || typeof outboxAuthority.createIntent !== 'function') {
+    throw new TypeError('Media transfer scheduler requires ExternalActionOutboxAuthority.createIntent');
+  }
+  return Object.freeze({
+    prepare(input = {}) {
+      const idempotencyKey = requiredString(input.idempotencyKey, 'idempotencyKey');
+      const command = assertReferenceOnlyEnvelope(input.command);
+      const execution = durableExecutionAuthority.createExecution({
+        operationKind: OPERATION_KINDS.MEDIA_TRANSFER,
+        idempotencyKey,
+        traceId: String(input.traceId || '').trim(),
+        command,
+        deadlineAt: String(input.deadlineAt || '').trim(),
+        maxAttempts: Math.max(1, Number(input.maxAttempts || 3)),
+        authorityTimestamp: authorityTimestamp(issueTimestamp, 'media-transfer-execution')
+      });
+      const executionId = requiredString(execution?.executionId, 'execution.executionId');
+      const intent = outboxAuthority.createIntent({
+        executionId,
+        actionKind: OPERATION_KINDS.MEDIA_TRANSFER,
+        idempotencyKey,
+        payload: command,
+        authorityTimestamp: authorityTimestamp(issueTimestamp, 'media-transfer-intent')
+      });
+      return Object.freeze({
+        executionId,
+        intentId: requiredString(intent?.intentId, 'intent.intentId'),
+        operationKind: OPERATION_KINDS.MEDIA_TRANSFER,
+        idempotencyKey
+      });
+    }
+  });
 }
 
 function mediaDirectory(accountId, conversationId) {
@@ -223,4 +291,24 @@ function cleanup({ olderThanDays = 45, dryRun = true } = {}) {
   return { scanned: files.length, removable: removable.length, removed: dryRun ? 0 : removable.length, dryRun };
 }
 
-module.exports = { safePart, sha256, sha256File, isAnimatedWebp, extension, saveBuffer, saveFile, canonicalBaileysMediaInfo, materializeBaileys, resolveFile, cleanup, verifyBuffer, verifyFile, publicUrl, mediaFailureRetryable };
+const defaultMediaTransferScheduler = createMediaTransferScheduler();
+
+module.exports = {
+  safePart,
+  sha256,
+  sha256File,
+  isAnimatedWebp,
+  extension,
+  saveBuffer,
+  saveFile,
+  canonicalBaileysMediaInfo,
+  materializeBaileys,
+  resolveFile,
+  cleanup,
+  verifyBuffer,
+  verifyFile,
+  publicUrl,
+  mediaFailureRetryable,
+  createMediaTransferScheduler,
+  prepareMediaTransfer: input => defaultMediaTransferScheduler.prepare(input)
+};
