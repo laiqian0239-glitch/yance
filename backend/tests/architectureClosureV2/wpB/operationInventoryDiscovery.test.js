@@ -10,11 +10,13 @@ const {
 
 const REPO_ROOT = path.resolve(__dirname, '../../../..');
 
-test('operation discovery recognizes physical calls, recovery and operational timers', () => {
+test('operation discovery recognizes physical invocations, recovery and operational timers', () => {
   const capabilities = detectCapabilities(`
-    async function restoreSession() { return fetch('https://example.invalid'); }
-    const timer = setTimeout(() => retryQueue(), 50);
-    const child = fork('worker.js');
+    client.restoreSession();
+    client.sendMessage({ text: 'x' });
+    fetch('https://example.invalid');
+    setTimeout(() => retryQueue(), 50);
+    fork('worker.js');
   `);
   assert.deepEqual(capabilities.sort(), [
     'CHILD_PROCESS_EXTERNAL_EXECUTION',
@@ -23,6 +25,17 @@ test('operation discovery recognizes physical calls, recovery and operational ti
     'PLATFORM_OR_PROVIDER_CALL',
     'RECOVERY_ENTRYPOINT'
   ]);
+});
+
+test('method declarations are not mistaken for physical invocations', () => {
+  const capabilities = detectCapabilities(`
+    class Adapter {
+      sendMessage() {}
+      restoreSession() {}
+      recoverState() {}
+    }
+  `);
+  assert.deepEqual(capabilities, []);
 });
 
 test('every discovered WP-B production call site has an exact inventory row', () => {
