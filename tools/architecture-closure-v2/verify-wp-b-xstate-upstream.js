@@ -9,6 +9,7 @@ const path = require('node:path');
 const { createRequire } = require('node:module');
 const { spawnSync } = require('node:child_process');
 const packageVerifier = require('./verify-wp-b-xstate-package');
+const SUPPLY_CHAIN_LOCK = require('../../governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json');
 
 const UPSTREAM_TEST_SELECTION = Object.freeze([
   'PACKAGE_EXPORTS_PRESENT',
@@ -59,19 +60,9 @@ function machineDefinition(createMachine) {
     id: 'yance-wp-b-xstate-conformance',
     initial: 'idle',
     states: {
-      idle: {
-        on: {
-          START: 'running'
-        }
-      },
-      running: {
-        on: {
-          SUCCEED: 'done'
-        }
-      },
-      done: {
-        type: 'final'
-      }
+      idle: { on: { START: 'running' } },
+      running: { on: { SUCCEED: 'done' } },
+      done: { type: 'final' }
     }
   });
 }
@@ -114,7 +105,6 @@ function runUpstreamConformance() {
       assert.equal(typeof xstate.createMachine, 'function');
       assert.equal(typeof xstate.createActor, 'function');
     });
-
     executeCase(results, 'INITIAL_SNAPSHOT', () => {
       const actor = xstate.createActor(machineDefinition(xstate.createMachine));
       actor.start();
@@ -123,7 +113,6 @@ function runUpstreamConformance() {
       assert.equal(snapshot.status, 'active');
       actor.stop();
     });
-
     executeCase(results, 'UNHANDLED_EVENT_STABILITY', () => {
       const actor = xstate.createActor(machineDefinition(xstate.createMachine));
       actor.start();
@@ -133,7 +122,6 @@ function runUpstreamConformance() {
       assert.equal(snapshot.status, 'active');
       actor.stop();
     });
-
     executeCase(results, 'ACTOR_TRANSITION_SEQUENCE', () => {
       const actor = xstate.createActor(machineDefinition(xstate.createMachine));
       actor.start();
@@ -143,7 +131,6 @@ function runUpstreamConformance() {
       assert.equal(actor.getSnapshot().value, 'done');
       actor.stop();
     });
-
     executeCase(results, 'FINAL_STATE_STATUS', () => {
       const actor = xstate.createActor(machineDefinition(xstate.createMachine));
       actor.start();
@@ -173,9 +160,53 @@ function runUpstreamConformance() {
   }
 }
 
+function validatePhysicalArtifactAuthority(packageReport) {
+  const expected = SUPPLY_CHAIN_LOCK.artifact;
+  const actual = packageReport.package || {};
+  const actualAudit = packageReport.security?.vulnerabilities || {};
+  const reasons = [];
+  if (actual.name !== expected.packageName) reasons.push('PACKAGE_NAME');
+  if (actual.version !== expected.version) reasons.push('VERSION');
+  if (actual.license !== expected.license) reasons.push('LICENSE');
+  if (actual.upstreamTag !== expected.upstreamTag) reasons.push('UPSTREAM_TAG');
+  if (actual.upstreamCommit !== expected.upstreamCommit) reasons.push('UPSTREAM_COMMIT');
+  if (actual.distIntegrity !== expected.integrity) reasons.push('DIST_INTEGRITY');
+  if (actual.distShasum !== expected.shasum) reasons.push('DIST_SHASUM');
+  if (actual.tarballSha512 !== expected.integrity) reasons.push('TARBALL_INTEGRITY');
+  if (actual.tarballSha1 !== expected.shasum) reasons.push('TARBALL_SHASUM');
+  if (actual.licenseTextSha256 !== expected.licenseTextSha256) reasons.push('LICENSE_TEXT_SHA256');
+  if (Number(actual.packageFileCount) !== Number(expected.packageFileCount)) reasons.push('PACKAGE_FILE_COUNT');
+  if (Number(actual.runtimeDependencyCount) !== Number(expected.runtimeDependencyCount)) reasons.push('RUNTIME_DEPENDENCY_COUNT');
+  if (JSON.stringify(actual.installLifecycleScripts || []) !== JSON.stringify(expected.installLifecycleScripts || [])) {
+    reasons.push('INSTALL_LIFECYCLE_SCRIPTS');
+  }
+  if (JSON.stringify(actual.suspiciousPackageFiles || []) !== JSON.stringify(expected.suspiciousPackageFiles || [])) {
+    reasons.push('SUSPICIOUS_PACKAGE_FILES');
+  }
+  for (const severity of ['info', 'low', 'moderate', 'high', 'critical', 'total']) {
+    if (Number(actualAudit[severity] || 0) !== Number(expected.npmAudit[severity] || 0)) reasons.push(`AUDIT_${severity.toUpperCase()}`);
+  }
+  const sandbox = actual.sandboxLockEntry || {};
+  if (sandbox.version !== expected.version
+      || sandbox.resolved !== expected.resolved
+      || sandbox.integrity !== expected.integrity
+      || sandbox.license !== expected.license) {
+    reasons.push('SANDBOX_LOCK_ENTRY');
+  }
+  return reasons;
+}
+
 async function verify() {
   const packageReport = await packageVerifier.verify();
   const violations = [...packageReport.violations];
+  const authorityReasons = validatePhysicalArtifactAuthority(packageReport);
+  if (authorityReasons.length !== 0) {
+    violations.push({
+      code: 'WP_B_XSTATE_PHYSICAL_ARTIFACT_AUTHORITY_MISMATCH',
+      reasons: authorityReasons
+    });
+  }
+
   let upstreamTests = null;
   try {
     upstreamTests = runUpstreamConformance();
@@ -200,8 +231,9 @@ async function verify() {
 
   return Object.freeze({
     ...packageReport,
-    schemaVersion: 3,
+    schemaVersion: 4,
     ok: violations.length === 0,
+    supplyChainAuthorityPath: 'governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json',
     upstreamTests,
     violations
   });
@@ -231,13 +263,13 @@ async function main() {
   }
 }
 
-if (require.main === module) {
-  main();
-}
+if (require.main === module) main();
 
 module.exports = {
   ...packageVerifier,
+  SUPPLY_CHAIN_LOCK,
   UPSTREAM_TEST_SELECTION,
   runUpstreamConformance,
+  validatePhysicalArtifactAuthority,
   verify
 };
