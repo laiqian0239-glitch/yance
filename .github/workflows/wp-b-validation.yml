@@ -108,6 +108,7 @@ jobs:
         run: |
           node --check tools/architecture-closure-v2/verify-wp-b-open-source-adoption.js
           node --check tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js
+          node --check tools/architecture-closure-v2/verify-wp-b-m1-red-evidence.js
           node --check tools/architecture-closure-v2/discover-wp-b-operation-call-sites.js
           node --check tools/architecture-closure-v2/capture-wp-b-red-evidence.js
           node --check shared/release/acv2ActiveWorkPackageAuthority.js
@@ -117,7 +118,10 @@ jobs:
           node --check tools/wp0/work-package-scope-gate-legacy.js
 
       - name: Run WP-B governance contracts
-        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/openSourceAdoptionGate.test.js backend/tests/architectureClosureV2/wpB/operationInventoryDiscovery.test.js
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/openSourceAdoptionGate.test.js backend/tests/architectureClosureV2/wpB/operationInventoryDiscovery.test.js backend/tests/architectureClosureV2/wpB/m1RedEvidence.test.js
+
+      - name: Verify immutable Milestone 1 RED evidence
+        run: node tools/architecture-closure-v2/verify-wp-b-m1-red-evidence.js
 
       - name: Verify fail-closed open-source gate
         run: node tools/architecture-closure-v2/verify-wp-b-open-source-adoption.js
