@@ -46,14 +46,15 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
 
-      - name: Run focused authority and WP0 gates
+      - name: Run branch-independent authority regressions
         shell: bash
         run: |
           set -euo pipefail
           node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/sqliteStoreSingleAuthority.test.js
           node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js
           node --test --test-concurrency=1 tests/wp0/acv2-work-package-scope-wiring.test.js
-          npm run test:wp0
+          node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/schema23Migration.test.js
+          node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/schema23SqliteIntegration.test.js
 
       - name: Commit verified refactor and remove executor
         shell: bash
