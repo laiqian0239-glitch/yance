@@ -35,7 +35,7 @@ const CONTRACTS = Object.freeze([
   Object.freeze({
     id: 'TRANSACTION_IO_BOUNDARY',
     testPath: 'backend/tests/architectureClosureV2/wpB/transactionIoBoundary.test.js',
-    expectedMissingIndicators: Object.freeze(['authorityTransactionCoordinator.js'])
+    expectedMissingIndicators: Object.freeze(['WP_B_CREATE_TRANSACTION_IO_GUARD_MISSING'])
   }),
   Object.freeze({
     id: 'UNCERTAIN_OUTCOME_RECONCILIATION',
