@@ -13,13 +13,14 @@ const { applyArchitectureClosureV2WpA } = require('../migrations/architectureClo
 const { ensureCanonicalProjectionReceiptSchema } = require('../migrations/projectionReceiptSchemaAuthority');
 const {
   acquireAuthorityWriteHost,
+  assertCurrentAuthorityWriteHostToken,
   requireAuthorityWriteHostCapability
 } = require('../services/authorityWriteHost');
 const { claimOwnership, SqliteOwnershipError } = require('./sqliteOwnership');
 const { SqliteTransactionCoordinator } = require('../store/sqliteTransactionCoordinator');
 
 const SCHEMA_VERSION = legacy.SCHEMA_VERSION;
-const LEGACY_ENGINE_PROTOTYPE = legacy.R32SqliteStore.prototype;
+const LEGACY_ENGINE_PROTOTYPE = legacy.R32SqliteStoreOperations.prototype;
 
 function nowIso() {
   return new Date().toISOString();
@@ -43,7 +44,7 @@ function supportedSchemaVersion(store) {
 
 function preflightSchemaVersion(store) {
   const target = supportedSchemaVersion(store);
-  const current = LEGACY_ENGINE_PROTOTYPE.existingSchemaVersion.call(store);
+  const current = existingSchemaVersion(store);
   if (current != null && current > target) {
     throw new SqliteOwnershipError(
       'SCHEMA_VERSION_AHEAD',
@@ -154,6 +155,82 @@ function restoreMigrationBackup(store, error) {
       error: rollbackError.message || String(rollbackError)
     };
   }
+}
+
+function startOwnershipHeartbeat(store) {
+  if (!store.ownership || store.ownershipHeartbeatTimer) return;
+  const loseOwnership = () => {
+    if (store.ownershipLostError) return;
+    store.ownershipLostError = Object.assign(
+      new Error('SQLite write ownership heartbeat was lost; store is fail-closed'),
+      { code: 'SQLITE_OWNERSHIP_HEARTBEAT_LOST', dbPath: store.dbPath }
+    );
+    if (store.ownershipHeartbeatTimer) clearInterval(store.ownershipHeartbeatTimer);
+    store.ownershipHeartbeatTimer = null;
+    try { store.db?.exec('PRAGMA query_only = ON'); } catch (_) {}
+    try { store.db?.close(); store.db = null; } catch (_) {}
+  };
+  store.ownershipHeartbeatTimer = setInterval(() => {
+    let ok = false;
+    try {
+      ok = store.authorityWriteHostCapability.heartbeat() === true;
+    } catch (error) {
+      store.ownershipLostError = error;
+      ok = false;
+    }
+    if (!ok) loseOwnership();
+  }, store.ownershipHeartbeatMs);
+  store.ownershipHeartbeatTimer.unref?.();
+}
+
+function assertOwnership(store) {
+  if (store.ownershipLostError) throw store.ownershipLostError;
+  if (!store.db) {
+    throw Object.assign(
+      new Error('SQLite store is closed'),
+      { code: 'SQLITE_STORE_CLOSED', dbPath: store.dbPath }
+    );
+  }
+  assertCurrentAuthorityWriteHostToken(store.authorityWriteHostCapability, store.db);
+  return true;
+}
+
+function existingSchemaVersion(store) {
+  const tables = new Set(
+    store.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()
+      .map(row => String(row.name || ''))
+  );
+  if (!tables.has('r32_meta')) return null;
+  const rows = store.db.prepare(
+    "SELECT key, value_json FROM r32_meta WHERE key IN ('schema_version','schemaVersion')"
+  ).all();
+  if (!rows.length) return null;
+  const versions = [];
+  for (const row of rows) {
+    const parsed = legacy.parseJson(row.value_json, row.value_json);
+    const number = Number(parsed);
+    if (!Number.isInteger(number) || number < 0) {
+      throw new SqliteOwnershipError(
+        'SCHEMA_VERSION_INVALID',
+        `Database schema version metadata ${row.key} is invalid`,
+        { key: row.key, value: row.value_json, dbPath: store.dbPath }
+      );
+    }
+    versions.push(number);
+  }
+  return Math.max(...versions);
+}
+
+function closeStore(store) {
+  if (store.ownershipHeartbeatTimer) clearInterval(store.ownershipHeartbeatTimer);
+  store.ownershipHeartbeatTimer = null;
+  if (store.db) {
+    store.db.close();
+    store.db = null;
+  }
+  try { store.ownership?.release(); } catch (_) {}
+  try { store.ownedAuthorityWriteHost?.close(); } catch (_) {}
+  try { store.authorityWriteHostCapability?.close(); } catch (_) {}
 }
 
 function initializeStore(store, options = {}) {
@@ -268,6 +345,18 @@ Object.defineProperty(R32SqliteStore.prototype, 'constructor', {
 
 R32SqliteStore.prototype.supportedSchemaVersion = function supportedSchemaVersionMethod() {
   return SCHEMA_VERSION;
+};
+R32SqliteStore.prototype.startOwnershipHeartbeat = function startOwnershipHeartbeatMethod() {
+  return startOwnershipHeartbeat(this);
+};
+R32SqliteStore.prototype.assertOwnership = function assertOwnershipMethod() {
+  return assertOwnership(this);
+};
+R32SqliteStore.prototype.existingSchemaVersion = function existingSchemaVersionMethod() {
+  return existingSchemaVersion(this);
+};
+R32SqliteStore.prototype.close = function closeMethod() {
+  return closeStore(this);
 };
 R32SqliteStore.prototype.preflightSchemaVersion = function preflightSchemaVersionMethod() {
   return preflightSchemaVersion(this);

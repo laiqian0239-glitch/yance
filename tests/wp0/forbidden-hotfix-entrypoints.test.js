@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const { execFileSync } = require('node:child_process');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
@@ -23,30 +23,12 @@ test('local build package and release commands are guarded by executable WP0 gat
   const policy = checkProtectedCommandPolicy();
   assert.equal(policy.pass, true, JSON.stringify(policy));
   for (const command of ['build', 'package', 'release']) {
-    const execution = spawnSync(process.execPath, ['tools/wp0/run-protected-command.js', command, '--gate-only'], {
+    const stdout = execFileSync(process.execPath, ['tools/wp0/run-protected-command.js', command, '--gate-only'], {
       cwd: REPO_ROOT,
       encoding: 'utf8'
     });
-    let result;
-    try {
-      result = JSON.parse(String(execution.stdout || ''));
-    } catch (error) {
-      assert.fail(JSON.stringify({
-        command,
-        status: execution.status,
-        signal: execution.signal,
-        stdout: execution.stdout,
-        stderr: execution.stderr,
-        parseError: error.message
-      }));
-    }
-    assert.equal(result.status, 'PASS', JSON.stringify({
-      command,
-      processStatus: execution.status,
-      processSignal: execution.signal,
-      stderr: execution.stderr,
-      result
-    }));
+    const result = JSON.parse(stdout);
+    assert.equal(result.status, 'PASS', JSON.stringify(result));
     assert.equal(result.gateStatus, 'PASS');
   }
 });

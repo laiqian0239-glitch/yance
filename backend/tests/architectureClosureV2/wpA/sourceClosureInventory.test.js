@@ -114,7 +114,7 @@ test('WP-B extends the frozen registry with one exact AuthorityWriteHost Engine 
       sourcePath: 'backend/lib/r32SqliteStoreEngine.js',
       authoritativeOwner: 'AuthorityWriteHost',
       classification: 'REGISTERED_INTERNAL_AUTHORITY_SOURCE',
-      allowedCapabilities: ['PRIMARY_DB_CONSTRUCTOR', 'BUSINESS_SQL_MUTATION'],
+      allowedCapabilities: ['PRIMARY_DB_CONSTRUCTOR', 'PRIMARY_STORE_CONSTRUCTOR'],
       publicEntryPoint: 'backend/lib/r32SqliteStore.js',
       temporaryBypassAllowed: false
     }
@@ -151,12 +151,12 @@ test('registry capability authority rejects unknown, missing and unused declarat
   assert.throws(
     () => verifyRegistryExtensionCapabilities(extension, { repositoryRoot: repoRoot }),
     error => error?.code === 'REGISTRY_EXTENSION_CAPABILITY_MISMATCH'
-      && error?.undeclared?.includes('BUSINESS_SQL_MUTATION')
+      && error?.undeclared?.includes('PRIMARY_STORE_CONSTRUCTOR')
   );
 
   extension.entries[0].allowedCapabilities = [
     'PRIMARY_DB_CONSTRUCTOR',
-    'BUSINESS_SQL_MUTATION',
+    'PRIMARY_STORE_CONSTRUCTOR',
     'RECOVERY_OR_FALLBACK_ENTRYPOINT'
   ];
   assert.throws(

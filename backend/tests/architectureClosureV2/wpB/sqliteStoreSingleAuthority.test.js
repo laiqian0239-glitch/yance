@@ -33,6 +33,7 @@ test('public SQLite Engine owns one version-parametric startup lifecycle', () =>
   const source = fs.readFileSync(ENGINE_PATH, 'utf8');
 
   assert.match(source, /const legacy = require\('\.\/r32SqliteStoreEngineLegacy'\)/u);
+  assert.match(source, /legacy\.R32SqliteStoreOperations\.prototype/u);
   assert.match(source, /function R32SqliteStore\(options = \{\}\)/u);
   assert.match(source, /R32SqliteStore\.prototype = Object\.create\(LEGACY_ENGINE_PROTOTYPE\)/u);
   assert.match(source, /const targetSchemaVersion = supportedSchemaVersion\(store\)/u);
@@ -46,6 +47,10 @@ test('public SQLite Engine owns one version-parametric startup lifecycle', () =>
     'governSchemaVersion',
     'commitSchemaMigrationReceipt',
     'restoreMigrationBackup',
+    'startOwnershipHeartbeat',
+    'assertOwnership',
+    'existingSchemaVersion',
+    'closeStore',
     'initializeStore'
   ]) {
     assert.match(source, new RegExp(`\\b${method}\\s*\\(`, 'u'), method);
@@ -62,13 +67,15 @@ test('public SQLite Engine owns one version-parametric startup lifecycle', () =>
 
 test('Schema 23 Facade declares only version and additive migration', () => {
   const source = fs.readFileSync(FACADE_PATH, 'utf8');
-  assert.match(source, /return engine\.R32SqliteStore\.call\(this, options\)/u);
+  assert.match(source, /const store = engine\.R32SqliteStore\.call\(this, options\)/u);
+  assert.match(source, /return store/u);
   assert.match(source, /R32SqliteStore\.prototype = Object\.create\(ENGINE_PROTOTYPE\)/u);
   assert.match(source, /supportedSchemaVersion\(\)\s*\{[\s\S]*return SCHEMA_VERSION/u);
   assert.match(source, /ENGINE_PROTOTYPE\.ensureSchema\.call\(store\)/u);
   assert.match(source, /requireSchema23StartupRegistration\(\)/u);
   assert.match(source, /applyArchitectureClosureV2WpB\(store\.db/u);
   assert.match(source, /ensureCanonicalProjectionReceiptSchema\(store\.db\)/u);
+  assert.match(source, /assertCurrentAuthorityWriteHostToken\(store\.authorityWriteHostCapability, store\.db\)/u);
 
   for (const forbidden of [
     'DatabaseSync',
@@ -87,6 +94,40 @@ test('Schema 23 Facade declares only version and additive migration', () => {
     'initializeStore'
   ]) {
     assert.equal(source.includes(forbidden), false, `${forbidden} must not be implemented by the Schema 23 Facade`);
+  }
+});
+
+test('internal legacy Engine is a pure operation base with no startup authority', () => {
+  const source = fs.readFileSync(LEGACY_ENGINE_PATH, 'utf8');
+  assert.match(source, /class R32SqliteStoreOperations \{/u);
+  assert.match(source, /transaction\(callback\)/u);
+  assert.match(source, /transactionAsync\(callback\)/u);
+  assert.match(source, /assertCurrentAuthorityWriteHostToken/u);
+  assert.match(source, /ensureSchema\(\)/u);
+
+  for (const forbidden of [
+    'DatabaseSync',
+    'createCompactSnapshotTarget',
+    'acquireAuthorityWriteHost',
+    'requireAuthorityWriteHostCapability',
+    'claimOwnership',
+    'SqliteOwnershipError',
+    'SqliteTransactionCoordinator'
+  ]) {
+    assert.equal(source.includes(forbidden), false, `${forbidden} must remain in the public Engine lifecycle`);
+  }
+  for (const forbiddenMethod of [
+    'constructor',
+    'startOwnershipHeartbeat',
+    'assertOwnership',
+    'existingSchemaVersion',
+    'preflightSchemaVersion',
+    'prepareSchemaMigrationBackup',
+    'governSchemaVersion',
+    'commitSchemaMigrationReceipt',
+    'close'
+  ]) {
+    assert.doesNotMatch(source, new RegExp(`^  ${forbiddenMethod}\\([^\\n]*\\) \\{`, 'mu'));
   }
 });
 
