@@ -254,7 +254,7 @@ The exact Milestone 2 candidate Head must pass:
 - Windows matrix;
 - WP-A architecture and post-merge regressions;
 - WP0 scope, packaging, product, ownership, and evidence gates;
-- source-scope and legacy-callability scan;
+- source-scope and mandatory-operation legacy-callability scan;
 - secret and business-content leak scan;
 - dependency and lockfile integrity checks;
 - clean-worktree and generated-artifact checks.
@@ -271,7 +271,7 @@ The independent reviewer examines the exact candidate Head and verifies:
 - restart decisions are based on persisted facts rather than lifecycle labels alone;
 - duplicate dispatchers, expired leases, and stale fencing tokens fail closed;
 - deadline and cancellation semantics remain distinct;
-- legacy physical-call and recovery paths are deleted or structurally delegated;
+- legacy physical-call and recovery paths for the six mandatory operations are deleted or structurally delegated;
 - evidence contains no secrets or business content;
 - the changed-file set remains inside the exact authorization.
 
@@ -314,7 +314,7 @@ mandatoryOperationMigrationCount=6
 physicalCallWithoutPersistedAttemptCount=0
 uncertainOutcomeBlindRetryCount=0
 duplicateExternalSideEffectCount=0
-legacyWpBCallablePathCount=0
+mandatoryOperationLegacyCallablePathCount=0
 ubuntuMilestone2Green=true
 windowsMilestone2Green=true
 wpARegressionGreen=true
