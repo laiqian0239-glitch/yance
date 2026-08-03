@@ -181,6 +181,7 @@
   "governance": {
     "prMustRemainDraft": true,
     "milestone2Authorized": true,
+    "readyForPromotion": false,
     "milestone3Authorized": false,
     "mergeAuthorized": false,
     "productionUseAuthorized": false,
