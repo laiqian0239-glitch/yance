@@ -1,11 +1,12 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "documentType": "YANCE_ACV2_OPEN_SOURCE_ADOPTION_GATE",
   "program": "Architecture Closure V2",
   "workPackage": "WP-B",
   "repository": "laiqian0239-glitch/yance",
   "baselineHead": "e53bf933a8f4e3273e515587d917433df24d6feb",
-  "status": "PROPOSED_FOR_USER_REVIEW",
+  "implementationAuthorizationHead": "f58789dd0559d2cb29e2f0aaa47e55ade8e99e04",
+  "status": "ACTIVE_IMPLEMENTATION_GATE",
   "enforcement": {
     "ordered": true,
     "failClosed": true,
@@ -188,13 +189,18 @@
   "candidateRecords": [
     {
       "project": "XState",
+      "exactVersion": "5.32.5",
+      "license": "MIT",
+      "runtimeDependencyCount": 0,
       "targetCapability": "pure durable-execution lifecycle and model-based tests",
       "proposedAdoptionMode": "DIRECT_DEPENDENCY",
-      "status": "CANDIDATE_ONLY",
+      "status": "CANDIDATE_REVIEW_IN_PROGRESS",
       "productionUseAuthorized": false
     },
     {
       "project": "Temporal",
+      "exactVersion": "",
+      "license": "",
       "targetCapability": "durable workflow, activity, heartbeat, cancellation, retry and uncertain-outcome semantics",
       "proposedAdoptionMode": "REFERENCE_ONLY",
       "status": "CANDIDATE_ONLY",
@@ -213,7 +219,7 @@
     "noticeOrSbomOmissionCount": 0
   },
   "governance": {
-    "wpBImplementationAuthorized": false,
+    "wpBImplementationAuthorized": true,
     "wpCAuthorized": false,
     "formalRelease": false,
     "publish": false
