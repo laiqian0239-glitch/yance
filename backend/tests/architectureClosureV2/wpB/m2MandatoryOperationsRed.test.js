@@ -87,3 +87,4 @@ require('./outboundMessageDurableMigration.test');
 require('./deliveryReceiptDurableMigration.test');
 require('./mediaTransferDurableMigration.test');
 require('./historySynchronizationDurableMigration.test');
+require('./sessionRestoreDurableMigration.test');
