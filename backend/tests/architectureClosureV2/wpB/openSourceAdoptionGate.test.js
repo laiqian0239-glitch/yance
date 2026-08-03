@@ -183,15 +183,17 @@ test('production import remains forbidden until the Adapter boundary step is com
   });
 });
 
-test('repository admits the exact XState original module without enabling production use', () => {
+test('repository records the exact XState original module while upstream tests remain in progress', () => {
   const { report, registry } = fixture();
   const xstate = registry.candidates.find(candidate => candidate.project === 'XState');
 
   assert.equal(xstate.gateSteps.INTRODUCE_ORIGINAL_MODULE, 'COMPLETE');
-  assert.equal(xstate.gateSteps.UPSTREAM_TESTS_PASS, 'COMPLETE');
+  assert.equal(xstate.gateSteps.UPSTREAM_TESTS_PASS, 'IN_PROGRESS');
   assert.equal(xstate.gateSteps.YANCE_ADAPTER_BOUNDARY, 'NOT_STARTED');
-  assert.equal(xstate.status, 'ORIGINAL_MODULE_INTRODUCED');
+  assert.equal(xstate.status, 'ORIGINAL_MODULE_INTRODUCED_AWAITING_UPSTREAM_TESTS');
   assert.equal(xstate.productionUseAuthorized, false);
+  assert.equal(xstate.originalModuleIntroduction.introducedAtHead, 'df384158be81a3cf133207f6c122d5452d50517e');
+  assert.equal(xstate.originalModuleIntroduction.packageLockBlobSha, '467c23fa24b94a256f733c02315d4b6e79258dbe');
   assert.equal(report.ok, true, JSON.stringify(report.violations, null, 2));
   assert.equal(report.xstateOriginalModuleIntroduced, true);
   assert.deepEqual(report.xstatePackageBinding, {
