@@ -142,6 +142,120 @@ test('unknown physical outcome is never converted to an ordinary failure receipt
   assert.equal(result.receiptType, 'UNKNOWN');
 });
 
+test('post-call canonicalization failure is marked uncertain and never recorded as failure', async () => {
+  const { ExternalActionDispatcher } = dispatcherModule();
+  const calls = [];
+  const dispatcher = new ExternalActionDispatcher({
+    outboxAuthority: {
+      startAttempt(input) {
+        calls.push('startAttempt');
+        return Object.freeze({
+          attemptId: 'attempt-post-call-canonical',
+          intentId: input.intentId,
+          stateVersion: 2,
+          generation: 1,
+          ownerId: input.ownerId
+        });
+      },
+      recordReceipt() {
+        calls.push('recordReceipt');
+        throw new Error('recordReceipt must not run after canonicalization failure');
+      },
+      recordFailureReceipt() {
+        calls.push('recordFailureReceipt');
+        throw new Error('post-call canonicalization failure must not become ordinary failure');
+      },
+      markUncertain(input) {
+        calls.push('markUncertain');
+        return Object.freeze({ receiptType: 'UNKNOWN', evidenceReference: input.evidenceReference });
+      }
+    },
+    adapter: {
+      async perform() {
+        calls.push('perform');
+        return {
+          providerReceiptId: 'provider-post-call-canonical',
+          evidenceReference: 'provider:post-call-canonical',
+          result: { unsupported: 1n }
+        };
+      }
+    },
+    issueTimestamp: () => '2026-08-03T03:11:30.000Z'
+  });
+
+  const result = await dispatcher.dispatch({
+    intentId: 'intent-post-call-canonical',
+    ownerId: 'dispatcher-1',
+    claimId: 'claim-post-call-canonical',
+    generation: 1,
+    hostGeneration: 2,
+    fencingToken: 3,
+    stateVersion: 1,
+    request: { bodyReference: 'body-ref-post-call-canonical' }
+  });
+
+  assert.deepEqual(calls, ['startAttempt', 'perform', 'markUncertain']);
+  assert.equal(result.receiptType, 'UNKNOWN');
+});
+
+test('success receipt persistence failure is marked uncertain and never recorded as failure', async () => {
+  const { ExternalActionDispatcher } = dispatcherModule();
+  const calls = [];
+  const dispatcher = new ExternalActionDispatcher({
+    outboxAuthority: {
+      startAttempt(input) {
+        calls.push('startAttempt');
+        return Object.freeze({
+          attemptId: 'attempt-post-call-receipt',
+          intentId: input.intentId,
+          stateVersion: 2,
+          generation: 1,
+          ownerId: input.ownerId
+        });
+      },
+      recordReceipt() {
+        calls.push('recordReceipt');
+        throw Object.assign(new Error('success receipt CAS rejected'), {
+          code: 'WP_B_OUTBOX_RECEIPT_CAS_REJECTED'
+        });
+      },
+      recordFailureReceipt() {
+        calls.push('recordFailureReceipt');
+        throw new Error('post-call receipt failure must not become ordinary failure');
+      },
+      markUncertain(input) {
+        calls.push('markUncertain');
+        return Object.freeze({ receiptType: 'UNKNOWN', evidenceReference: input.evidenceReference });
+      }
+    },
+    adapter: {
+      async perform() {
+        calls.push('perform');
+        return {
+          providerReceiptId: 'provider-post-call-receipt',
+          evidenceReference: 'provider:post-call-receipt',
+          result: { accepted: true }
+        };
+      }
+    },
+    issueTimestamp: () => '2026-08-03T03:11:45.000Z'
+  });
+
+  const result = await dispatcher.dispatch({
+    intentId: 'intent-post-call-receipt',
+    ownerId: 'dispatcher-1',
+    claimId: 'claim-post-call-receipt',
+    generation: 1,
+    hostGeneration: 2,
+    fencingToken: 3,
+    stateVersion: 1,
+    request: { bodyReference: 'body-ref-post-call-receipt' }
+  });
+
+  assert.deepEqual(calls, ['startAttempt', 'perform', 'recordReceipt', 'markUncertain']);
+  assert.equal(result.receiptType, 'UNKNOWN');
+});
+
 test('attempt persistence failure prevents physical I/O', async () => {
   const { ExternalActionDispatcher } = dispatcherModule();
   let performed = false;
