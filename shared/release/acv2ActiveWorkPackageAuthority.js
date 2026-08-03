@@ -2,6 +2,16 @@
 
 const engine = require('./acv2ActiveWorkPackageAuthorityEngine');
 
+const AUTHORITY_DOCUMENT_PATHS = Object.freeze({
+  design: 'governance/architecture-closure-v2/wp-b-design-authorization.json',
+  baseline: 'governance/architecture-closure-v2/wp-b-baseline.json',
+  inventory: 'governance/architecture-closure-v2/wp-b-operation-inventory.json'
+});
+const GOVERNANCE_INVARIANTS = Object.freeze({
+  temporaryBypassAllowed: false,
+  formalRelease: false,
+  publish: false
+});
 const INTERNAL_ENGINE_PATHS = Object.freeze([
   'backend/migrations/architectureClosureV2WpBEngine.js',
   'shared/release/acv2ActiveWorkPackageAuthorityEngine.js'
@@ -13,6 +23,9 @@ const WP_B_CORE_SCOPE_PATTERNS = Object.freeze([
 
 function extendAuthority(authority) {
   if (!authority) return null;
+  for (const [field, expected] of Object.entries(GOVERNANCE_INVARIANTS)) {
+    if (authority.governance?.[field] !== expected) return null;
+  }
   const allowedProductionPaths = Object.freeze([...new Set([
     ...authority.allowedProductionPaths,
     ...INTERNAL_ENGINE_PATHS
@@ -38,6 +51,8 @@ function evaluateAuthorizedWpBScope(options = {}) {
 
 module.exports = Object.freeze({
   ...engine,
+  AUTHORITY_DOCUMENT_PATHS,
+  GOVERNANCE_INVARIANTS,
   INTERNAL_ENGINE_PATHS,
   WP_B_CORE_SCOPE_PATTERNS,
   resolveWpBImplementationAuthority,
