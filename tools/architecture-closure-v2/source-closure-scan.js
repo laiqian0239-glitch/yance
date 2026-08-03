@@ -7,6 +7,9 @@ const path = require('node:path');
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const BASELINE_PATH = 'governance/architecture-closure-v2/wp-a-baseline.json';
 const REGISTRY_PATH = 'governance/architecture-closure-v2/authority-registry.json';
+const REGISTRY_EXTENSION_PATHS = Object.freeze([
+  'governance/architecture-closure-v2/wp-b-authority-registry-extension.json'
+]);
 const REQUIRED_ENTRY_FIELDS = Object.freeze([
   'id', 'path', 'classification', 'authorityOwner', 'commandEntrypoint',
   'eventTypes', 'aggregate', 'versionStrategy', 'idempotencyKey',
@@ -123,6 +126,78 @@ function validateRegistry(registry, baseline) {
   return errors;
 }
 
+function validateRegistryExtension(extension, extensionPath) {
+  const errors = [];
+  if (extension?.schemaVersion !== 1) errors.push({ code: 'REGISTRY_EXTENSION_SCHEMA_UNSUPPORTED', path: extensionPath });
+  if (extension?.documentType !== 'YANCE_ACV2_AUTHORITY_REGISTRY_EXTENSION') {
+    errors.push({ code: 'REGISTRY_EXTENSION_DOCUMENT_TYPE_INVALID', path: extensionPath });
+  }
+  if (extension?.program !== 'Architecture Closure V2'
+      || extension?.repository !== 'laiqian0239-glitch/yance'
+      || extension?.workPackage !== 'WP-B'
+      || extension?.status !== 'ACTIVE_IMPLEMENTATION'
+      || extension?.baseRegistryPath !== REGISTRY_PATH) {
+    errors.push({ code: 'REGISTRY_EXTENSION_METADATA_INVALID', path: extensionPath });
+  }
+  const governance = extension?.governance || {};
+  if (governance.exactPathsOnly !== true
+      || governance.wildcardPathsAllowed !== false
+      || governance.temporaryBypassAllowed !== false
+      || governance.warningOnlyAllowed !== false
+      || governance.formalRelease !== false
+      || governance.publish !== false) {
+    errors.push({ code: 'REGISTRY_EXTENSION_GOVERNANCE_INVALID', path: extensionPath });
+  }
+  const ids = new Set();
+  const paths = new Set();
+  if (!Array.isArray(extension?.entries) || extension.entries.length === 0) {
+    errors.push({ code: 'REGISTRY_EXTENSION_ENTRIES_REQUIRED', path: extensionPath });
+  }
+  for (const [index, entry] of (extension?.entries || []).entries()) {
+    const sourcePath = normalizePath(entry?.sourcePath);
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)
+        || !String(entry.registryId || '').trim()
+        || !sourcePath
+        || sourcePath !== entry.sourcePath
+        || !String(entry.authoritativeOwner || '').trim()
+        || entry.classification !== 'REGISTERED_INTERNAL_AUTHORITY_SOURCE'
+        || !Array.isArray(entry.allowedCapabilities)
+        || entry.allowedCapabilities.length === 0
+        || !String(entry.publicEntryPoint || '').trim()
+        || entry.temporaryBypassAllowed !== false) {
+      errors.push({ code: 'REGISTRY_EXTENSION_ENTRY_INVALID', path: extensionPath, index });
+      continue;
+    }
+    if (/[?*[]/u.test(sourcePath) || /[?*[]/u.test(entry.publicEntryPoint)) {
+      errors.push({ code: 'REGISTRY_EXTENSION_PATH_NOT_EXACT', path: extensionPath, sourcePath });
+    }
+    if (ids.has(entry.registryId)) errors.push({ code: 'REGISTRY_EXTENSION_ID_DUPLICATE', id: entry.registryId });
+    if (paths.has(sourcePath)) errors.push({ code: 'REGISTRY_EXTENSION_PATH_DUPLICATE', sourcePath });
+    ids.add(entry.registryId);
+    paths.add(sourcePath);
+    if (!fs.existsSync(path.join(REPO_ROOT, sourcePath))) {
+      errors.push({ code: 'REGISTRY_EXTENSION_SOURCE_MISSING', sourcePath });
+    }
+    if (!fs.existsSync(path.join(REPO_ROOT, normalizePath(entry.publicEntryPoint)))) {
+      errors.push({ code: 'REGISTRY_EXTENSION_PUBLIC_ENTRY_MISSING', publicEntryPoint: entry.publicEntryPoint });
+    }
+  }
+  return errors;
+}
+
+function loadRegistryExtensions(paths = REGISTRY_EXTENSION_PATHS) {
+  return paths.filter(relativePath => fs.existsSync(path.join(REPO_ROOT, relativePath)))
+    .map(relativePath => ({ path: relativePath, document: readJson(relativePath) }));
+}
+
+function combinedRegisteredSourcePaths(registry, registryExtensions = []) {
+  const paths = new Set((registry.entries || []).map(entry => normalizePath(entry.path)));
+  for (const extension of registryExtensions) {
+    for (const entry of extension.document?.entries || []) paths.add(normalizePath(entry.sourcePath));
+  }
+  return paths;
+}
+
 function violationClassFor(entry) {
   const id = String(entry?.id || '');
   if (id === 'A0-LOCAL-STORE-FALLBACK') return 'PRIMARY_DB_FALLBACK_PRESENT';
@@ -132,8 +207,8 @@ function violationClassFor(entry) {
   return 'REGISTERED_OPEN_PATH';
 }
 
-function findUnregisteredSourceCapabilities(sourceRows, registry) {
-  const registered = new Set((registry.entries || []).map(entry => normalizePath(entry.path)));
+function findUnregisteredSourceCapabilities(sourceRows, registry, registryExtensions = []) {
+  const registered = combinedRegisteredSourcePaths(registry, registryExtensions);
   const violations = [];
   for (const row of sourceRows) {
     const capabilities = detectSourceCapabilities(row.source).filter(capability => capability !== 'BUSINESS_SQL_MUTATION' && capability !== 'RECOVERY_OR_FALLBACK_ENTRYPOINT');
@@ -149,8 +224,31 @@ function findUnregisteredSourceCapabilities(sourceRows, registry) {
   return violations;
 }
 
-function scanRegisteredSources({ baseline = readJson(BASELINE_PATH), registry = readJson(REGISTRY_PATH), wp = 'A' } = {}) {
+function scanRegisteredSources({
+  baseline = readJson(BASELINE_PATH),
+  registry = readJson(REGISTRY_PATH),
+  registryExtensions = loadRegistryExtensions(),
+  wp = 'A'
+} = {}) {
   const registryErrors = validateRegistry(registry, baseline);
+  for (const extension of registryExtensions) {
+    registryErrors.push(...validateRegistryExtension(extension.document, extension.path));
+  }
+  const combinedIds = new Set((registry.entries || []).map(entry => String(entry.id || '')));
+  const combinedPaths = new Set((registry.entries || []).map(entry => normalizePath(entry.path)));
+  for (const extension of registryExtensions) {
+    for (const entry of extension.document?.entries || []) {
+      if (combinedIds.has(entry.registryId)) {
+        registryErrors.push({ code: 'REGISTRY_COMBINED_ID_DUPLICATE', id: entry.registryId });
+      }
+      if (combinedPaths.has(normalizePath(entry.sourcePath))) {
+        registryErrors.push({ code: 'REGISTRY_COMBINED_PATH_DUPLICATE', path: normalizePath(entry.sourcePath) });
+      }
+      combinedIds.add(entry.registryId);
+      combinedPaths.add(normalizePath(entry.sourcePath));
+    }
+  }
+
   const violations = registryErrors.map(error => ({ violationClass: 'REGISTRY_INVALID', ...error }));
   const targetWorkPackage = `WP-${String(wp || 'A').toUpperCase()}`;
   const config = sourceClosureConfig(baseline);
@@ -191,12 +289,16 @@ function scanRegisteredSources({ baseline = readJson(BASELINE_PATH), registry = 
       sourceRows.push({ path: relativePath, source: fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8') });
     }
   }
-  violations.push(...findUnregisteredSourceCapabilities(sourceRows, registry));
+  violations.push(...findUnregisteredSourceCapabilities(sourceRows, registry, registryExtensions));
 
   const counts = {};
   for (const violation of violations) counts[violation.violationClass] = (counts[violation.violationClass] || 0) + 1;
+  const extensionEntryCount = registryExtensions.reduce(
+    (total, extension) => total + (extension.document?.entries?.length || 0),
+    0
+  );
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     documentType: 'YANCE_ACV2_SOURCE_CLOSURE_SCAN',
     workPackage: targetWorkPackage,
     branch: baseline.authorizedBranch,
@@ -205,6 +307,8 @@ function scanRegisteredSources({ baseline = readJson(BASELINE_PATH), registry = 
     initialViolationClasses: config.initialViolationClasses,
     ok: violations.length === 0,
     registryEntries: registry.entries?.length || 0,
+    registryExtensionEntries: extensionEntryCount,
+    totalRegisteredSourcePaths: combinedRegisteredSourcePaths(registry, registryExtensions).size,
     scannedSourceFiles: sourceRows.length,
     violationCount: violations.length,
     counts,
@@ -240,13 +344,17 @@ if (require.main === module) {
 module.exports = {
   BASELINE_PATH,
   REGISTRY_PATH,
+  REGISTRY_EXTENSION_PATHS,
   REQUIRED_ENTRY_FIELDS,
+  combinedRegisteredSourcePaths,
   detectSourceCapabilities,
   findUnregisteredSourceCapabilities,
+  loadRegistryExtensions,
   normalizePath,
   readJson,
   scanRegisteredSources,
   sourceClosureConfig,
   validateRegistry,
+  validateRegistryExtension,
   walkJavaScript
 };
