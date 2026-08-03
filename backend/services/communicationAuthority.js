@@ -5,6 +5,7 @@ const { getStore } = require('../repositories/storeProvider');
 const channelAdapterContract = require('./channelAdapterContract');
 const defaultDurableExecutionAuthority = require('./durableExecutionAuthority');
 const defaultOutboxAuthority = require('./externalActionOutboxAuthority');
+const { reconcileExternalOutcome } = require('./externalOutcomeReconciliation');
 const {
   OPERATION_KINDS,
   assertReferenceOnlyEnvelope
@@ -39,6 +40,13 @@ function requiredString(value, field, maximum = 2048) {
   if (!result) throw communicationError('WP_B_COMMUNICATION_FIELD_REQUIRED', `${field} is required`, { field });
   if (result.length > maximum || /[\u0000-\u001f\u007f]/u.test(result)) {
     throw communicationError('WP_B_COMMUNICATION_FIELD_INVALID', `${field} is invalid`, { field, maximum });
+  }
+  return result;
+}
+function safeInteger(value, field, minimum = 0) {
+  const result = Number(value);
+  if (!Number.isSafeInteger(result) || result < minimum) {
+    throw communicationError('WP_B_COMMUNICATION_INTEGER_INVALID', `${field} must be a safe integer >= ${minimum}`, { field });
   }
   return result;
 }
@@ -133,6 +141,21 @@ function checkpointRow(row = {}, scope = {}) {
     gapClosed: Number(row.gap_closed || 0) === 1, updatedAt: clean(row.updated_at)
   };
 }
+function claimFacts(value = {}, field = 'claim') {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !Object.isFrozen(value)) {
+    throw communicationError('WP_B_COMMUNICATION_CLAIM_REQUIRED', `${field} must be one frozen claim snapshot`, { field });
+  }
+  return Object.freeze({
+    stateVersion: safeInteger(value.stateVersion, `${field}.stateVersion`),
+    generation: safeInteger(value.generation, `${field}.generation`, 1),
+    ownerId: requiredString(value.ownerId, `${field}.ownerId`),
+    claimId: requiredString(value.claimId, `${field}.claimId`),
+    hostId: requiredString(value.hostId, `${field}.hostId`),
+    hostGeneration: safeInteger(value.hostGeneration, `${field}.hostGeneration`, 1),
+    fencingToken: safeInteger(value.fencingToken, `${field}.fencingToken`, 1),
+    allowedStates: Array.isArray(value.allowedStates) ? Object.freeze([...value.allowedStates]) : Object.freeze([])
+  });
+}
 
 class CommunicationAuthority {
   constructor({
@@ -141,7 +164,8 @@ class CommunicationAuthority {
     clock = defaultClock,
     durableExecutionAuthority = defaultDurableExecutionAuthority,
     outboxAuthority = defaultOutboxAuthority,
-    issueTimestamp = clock
+    issueTimestamp = clock,
+    deliveryReceiptTransactionCapability = null
   } = {}) {
     this.storeProvider = storeProvider;
     this.idFactory = idFactory;
@@ -149,11 +173,31 @@ class CommunicationAuthority {
     this.durableExecutionAuthority = durableExecutionAuthority;
     this.outboxAuthority = outboxAuthority;
     this.issueTimestamp = issueTimestamp;
+    this.deliveryReceiptTransactionCapability = deliveryReceiptTransactionCapability;
   }
 
   store() { return this.storeProvider(); }
 
   prepareOutboundMessageSend(input = {}) {
+    return this.prepareExternalAction({
+      ...input,
+      operationKind: OPERATION_KINDS.OUTBOUND_MESSAGE_SEND,
+      executionTimestampPurpose: 'outbound-message-execution',
+      intentTimestampPurpose: 'outbound-message-intent'
+    });
+  }
+
+  prepareDeliveryReceiptReconciliation(input = {}) {
+    return this.prepareExternalAction({
+      ...input,
+      operationKind: OPERATION_KINDS.DELIVERY_RECEIPT_RECONCILIATION,
+      executionTimestampPurpose: 'delivery-receipt-reconciliation-execution',
+      intentTimestampPurpose: 'delivery-receipt-reconciliation-intent'
+    });
+  }
+
+  prepareExternalAction(input = {}) {
+    const operationKind = requiredString(input.operationKind, 'operationKind', 128);
     const idempotencyKey = requiredString(input.idempotencyKey, 'idempotencyKey');
     const command = assertReferenceOnlyEnvelope(input.command);
     if (!this.durableExecutionAuthority || typeof this.durableExecutionAuthority.createExecution !== 'function') {
@@ -163,26 +207,26 @@ class CommunicationAuthority {
       throw new TypeError('CommunicationAuthority requires ExternalActionOutboxAuthority.createIntent');
     }
     const execution = this.durableExecutionAuthority.createExecution({
-      operationKind: OPERATION_KINDS.OUTBOUND_MESSAGE_SEND,
+      operationKind,
       idempotencyKey,
       traceId: clean(input.traceId),
       command,
       deadlineAt: clean(input.deadlineAt),
       maxAttempts: Math.max(1, Number(input.maxAttempts || 3)),
-      authorityTimestamp: issueAuthorityTimestamp(this.issueTimestamp, 'outbound-message-execution')
+      authorityTimestamp: issueAuthorityTimestamp(this.issueTimestamp, input.executionTimestampPurpose)
     });
     const executionId = requiredString(execution?.executionId, 'execution.executionId');
     const intent = this.outboxAuthority.createIntent({
       executionId,
-      actionKind: OPERATION_KINDS.OUTBOUND_MESSAGE_SEND,
+      actionKind: operationKind,
       idempotencyKey,
       payload: command,
-      authorityTimestamp: issueAuthorityTimestamp(this.issueTimestamp, 'outbound-message-intent')
+      authorityTimestamp: issueAuthorityTimestamp(this.issueTimestamp, input.intentTimestampPurpose)
     });
     return Object.freeze({
       executionId,
       intentId: requiredString(intent?.intentId, 'intent.intentId'),
-      operationKind: OPERATION_KINDS.OUTBOUND_MESSAGE_SEND,
+      operationKind,
       idempotencyKey
     });
   }
@@ -193,6 +237,90 @@ class CommunicationAuthority {
       throw new TypeError('CommunicationAuthority requires ExternalActionOutboxAuthority.intent');
     }
     return this.outboxAuthority.intent(intentId);
+  }
+
+  deliveryReceiptCapability() {
+    if (this.deliveryReceiptTransactionCapability) return this.deliveryReceiptTransactionCapability;
+    const store = this.store();
+    if (!store || typeof store.transaction !== 'function') {
+      throw new TypeError('Delivery receipt reconciliation requires the primary store transaction capability');
+    }
+    for (const [authority, method] of [
+      [this.outboxAuthority, 'recordReconciliation'],
+      [this.outboxAuthority, 'recordReceipt'],
+      [this.durableExecutionAuthority, 'transition']
+    ]) {
+      if (!authority || typeof authority[method] !== 'function') {
+        throw new TypeError(`Delivery receipt reconciliation requires ${method}`);
+      }
+    }
+    return Object.freeze({
+      transaction: work => store.transaction(work),
+      recordReconciliation: input => this.outboxAuthority.recordReconciliation(input),
+      recordReceipt: input => this.outboxAuthority.recordReceipt(input),
+      transitionExecution: input => this.durableExecutionAuthority.transition(input)
+    });
+  }
+
+  applyDeliveryReceiptObservation(input = {}) {
+    const targetExecutionId = requiredString(input.targetExecutionId, 'targetExecutionId');
+    const targetIntentId = requiredString(input.targetIntentId, 'targetIntentId');
+    const targetAttemptId = requiredString(input.targetAttemptId, 'targetAttemptId');
+    const observation = input.observation;
+    const authorityTimestamp = issueAuthorityTimestamp(
+      this.issueTimestamp,
+      'delivery-receipt-observation'
+    );
+    const capability = this.deliveryReceiptCapability();
+    for (const method of ['transaction', 'recordReconciliation', 'recordReceipt', 'transitionExecution']) {
+      if (typeof capability?.[method] !== 'function') {
+        throw new TypeError(`Delivery receipt transaction capability requires ${method}`);
+      }
+    }
+
+    return capability.transaction(() => reconcileExternalOutcome({
+      intentId: targetIntentId,
+      attemptId: targetAttemptId,
+      observation,
+      authorityTimestamp,
+      transaction: work => work(),
+      recordReconciliation: command => capability.recordReconciliation(command),
+      recordReceipt: receipt => {
+        const facts = claimFacts(input.outboxClaim, 'outboxClaim');
+        return capability.recordReceipt({
+          ...facts,
+          intentId: targetIntentId,
+          attemptId: targetAttemptId,
+          providerReceiptId: receipt.remoteReceiptId,
+          evidenceReference: receipt.evidenceReference,
+          result: receipt.result,
+          authorityTimestamp
+        });
+      },
+      transitionExecution: transition => {
+        const facts = claimFacts(input.executionClaim, 'executionClaim');
+        if (facts.allowedStates.length < 1) {
+          throw communicationError(
+            'WP_B_COMMUNICATION_EXECUTION_STATES_REQUIRED',
+            'executionClaim.allowedStates must contain the current durable states'
+          );
+        }
+        return capability.transitionExecution({
+          ...facts,
+          executionId: targetExecutionId,
+          allowedStates: facts.allowedStates,
+          targetState: 'SUCCEEDED',
+          authorityTimestamp,
+          eventType: 'delivery-receipt-reconciled',
+          reasonCode: 'REMOTE_SUCCESS_PROVEN',
+          payload: Object.freeze({
+            targetIntentId,
+            targetAttemptId,
+            trustedReceiptId: transition.trustedReceiptId
+          })
+        });
+      }
+    }));
   }
 
   assertAccount(platform, sourceAccountId, store = this.store()) {
