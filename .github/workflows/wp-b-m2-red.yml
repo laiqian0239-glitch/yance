@@ -20,6 +20,7 @@ on:
       - backend/services/durableOperations/mediaTransferOperation.js
       - backend/services/durableOperations/historySynchronizationOperation.js
       - backend/services/durableOperations/sessionRestoreOperation.js
+      - backend/services/modelExecutionEvidenceStore.js
       - backend/services/modelExecutionHost.js
       - backend/services/ownerRecovery.js
       - backend/services/runtimeRecoveryService.js
@@ -30,6 +31,7 @@ on:
       - backend/tests/architectureClosureV2/wpB/m2RecoveryRed.test.js
       - backend/tests/architectureClosureV2/wpB/m2ProcessFaultRed.test.js
       - backend/tests/architectureClosureV2/wpB/m2LeakBoundaryRed.test.js
+      - backend/tests/architectureClosureV2/wpB/modelExecutionEvidenceBoundary.test.js
       - electron/backendStartupSupervisor.js
       - electron/desktopHost/BackendProcessHost.js
       - electron/main.js
@@ -58,6 +60,7 @@ on:
       - backend/services/durableOperations/mediaTransferOperation.js
       - backend/services/durableOperations/historySynchronizationOperation.js
       - backend/services/durableOperations/sessionRestoreOperation.js
+      - backend/services/modelExecutionEvidenceStore.js
       - backend/services/modelExecutionHost.js
       - backend/services/ownerRecovery.js
       - backend/services/runtimeRecoveryService.js
@@ -68,6 +71,7 @@ on:
       - backend/tests/architectureClosureV2/wpB/m2RecoveryRed.test.js
       - backend/tests/architectureClosureV2/wpB/m2ProcessFaultRed.test.js
       - backend/tests/architectureClosureV2/wpB/m2LeakBoundaryRed.test.js
+      - backend/tests/architectureClosureV2/wpB/modelExecutionEvidenceBoundary.test.js
       - electron/backendStartupSupervisor.js
       - electron/desktopHost/BackendProcessHost.js
       - electron/main.js
@@ -128,6 +132,7 @@ jobs:
         shell: bash
         run: |
           node --check tools/architecture-closure-v2/run-wp-b-m2-contracts.js
+          node --check backend/services/modelExecutionEvidenceStore.js
           node --check backend/tests/architectureClosureV2/wpB/m2ContractEvidenceDiagnostics.test.js
           node --check backend/tests/architectureClosureV2/wpB/m2MandatoryOperationsRed.test.js
           node --check backend/tests/architectureClosureV2/wpB/m2RecoveryRed.test.js
@@ -135,6 +140,7 @@ jobs:
           node --check backend/tests/architectureClosureV2/wpB/m2LeakBoundaryRed.test.js
           node --check backend/tests/architectureClosureV2/wpB/mandatoryOperationAdapters.test.js
           node --check backend/tests/architectureClosureV2/wpB/aiProviderDurableMigration.test.js
+          node --check backend/tests/architectureClosureV2/wpB/modelExecutionEvidenceBoundary.test.js
 
       - name: Validate bounded M2 evidence diagnostics
         shell: bash
