@@ -8,11 +8,13 @@ const GATE_PATH = 'governance/architecture-closure-v2/wp-b-open-source-adoption-
 const REGISTRY_PATH = 'governance/architecture-closure-v2/wp-b-open-source-adoption-registry.json';
 const BASELINE_PATH = 'governance/architecture-closure-v2/wp-b-baseline.json';
 const AUTHORIZATION_PATH = 'governance/architecture-closure-v2/wp-b-design-authorization.json';
+const SUPPLY_CHAIN_LOCK_PATH = 'governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json';
+const SUPPLY_CHAIN_LOCK = require('../../governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json');
 const EXPECTED_XSTATE = Object.freeze({
-  version: '5.32.5',
-  resolved: 'https://registry.npmjs.org/xstate/-/xstate-5.32.5.tgz',
-  integrity: 'sha512-631+ENa9BCjf/Rn/aWthqY8CWnHT6LHAANtB9zTHb9Tz6SgoI8NA+IWjG3qfIcnEubyksdYGhWCOle4eA/pP4A==',
-  license: 'MIT'
+  version: SUPPLY_CHAIN_LOCK.artifact.version,
+  resolved: SUPPLY_CHAIN_LOCK.artifact.resolved,
+  integrity: SUPPLY_CHAIN_LOCK.artifact.integrity,
+  license: SUPPLY_CHAIN_LOCK.artifact.license
 });
 const EXPECTED_STEP_IDS = Object.freeze([
   'CANDIDATE_IDENTIFICATION',
@@ -28,6 +30,7 @@ const EXPECTED_STEP_IDS = Object.freeze([
   'INDEPENDENT_REVIEW'
 ]);
 const TERMINAL_STEP_STATES = new Set(['COMPLETE', 'NOT_APPLICABLE_REFERENCE_ONLY']);
+const VALID_STEP_STATES = new Set(['NOT_STARTED', 'IN_PROGRESS', 'COMPLETE', 'NOT_APPLICABLE_REFERENCE_ONLY']);
 const PRODUCTION_ROOTS = Object.freeze(['backend', 'electron', 'services']);
 const PRODUCTION_EXCLUDES = Object.freeze([
   'backend/tests',
@@ -98,11 +101,7 @@ function inspectXStatePackageBinding(repositoryRoot) {
   const runtimeDependencyCount = runtimeDependencies && typeof runtimeDependencies === 'object'
     ? Object.keys(runtimeDependencies).length
     : 0;
-  const packageMentioned = Boolean(
-    manifestVersion
-    || rootLockVersion
-    || moduleLock
-  );
+  const packageMentioned = Boolean(manifestVersion || rootLockVersion || moduleLock);
   const manifestExact = manifestVersion === EXPECTED_XSTATE.version;
   const lockExact = Boolean(
     Number(packageLock?.lockfileVersion) === 3
@@ -112,7 +111,7 @@ function inspectXStatePackageBinding(repositoryRoot) {
     && moduleLock.resolved === EXPECTED_XSTATE.resolved
     && moduleLock.integrity === EXPECTED_XSTATE.integrity
     && moduleLock.license === EXPECTED_XSTATE.license
-    && runtimeDependencyCount === 0
+    && runtimeDependencyCount === Number(SUPPLY_CHAIN_LOCK.artifact.runtimeDependencyCount)
   );
   return Object.freeze({
     packageMentioned,
@@ -135,6 +134,20 @@ function firstIncompleteStep(candidate, stepIds) {
     if (!TERMINAL_STEP_STATES.has(state)) return stepId;
   }
   return '';
+}
+
+function verifyStepOrdering(candidate, orderedStepIds, violations) {
+  let incompleteSeen = false;
+  for (const stepId of orderedStepIds) {
+    const state = String(candidate?.gateSteps?.[stepId] || 'MISSING');
+    if (!VALID_STEP_STATES.has(state)) {
+      violations.push({ code: 'WP_B_OPEN_SOURCE_STEP_STATE_INVALID', candidateId: candidate.candidateId, stepId, state });
+    }
+    if (incompleteSeen && state === 'COMPLETE') {
+      violations.push({ code: 'WP_B_OPEN_SOURCE_STEP_COMPLETED_OUT_OF_ORDER', candidateId: candidate.candidateId, stepId });
+    }
+    if (!TERMINAL_STEP_STATES.has(state)) incompleteSeen = true;
+  }
 }
 
 function verifyRegistry({ gate, registry, baseline, authorization, repositoryRoot }) {
@@ -169,7 +182,9 @@ function verifyRegistry({ gate, registry, baseline, authorization, repositoryRoo
   if (xstate) {
     if (xstate.exactVersion !== EXPECTED_XSTATE.version) violations.push({ code: 'WP_B_XSTATE_VERSION_NOT_PINNED' });
     if (xstate.license !== EXPECTED_XSTATE.license) violations.push({ code: 'WP_B_XSTATE_LICENSE_INVALID' });
-    if (Number(xstate.runtimeDependencyCount) !== 0) violations.push({ code: 'WP_B_XSTATE_RUNTIME_DEPENDENCY_COUNT_INVALID' });
+    if (Number(xstate.runtimeDependencyCount) !== Number(SUPPLY_CHAIN_LOCK.artifact.runtimeDependencyCount)) {
+      violations.push({ code: 'WP_B_XSTATE_RUNTIME_DEPENDENCY_COUNT_INVALID' });
+    }
     if (xstate.adoptionMode !== 'DIRECT_DEPENDENCY') violations.push({ code: 'WP_B_XSTATE_ADOPTION_MODE_INVALID' });
     const forbidden = new Set(xstate.forbiddenResponsibilities || []);
     for (const responsibility of [
@@ -186,19 +201,7 @@ function verifyRegistry({ gate, registry, baseline, authorization, repositoryRoo
     }
   }
 
-  for (const candidate of registry.candidates || []) {
-    let incompleteSeen = false;
-    for (const stepId of orderedStepIds) {
-      const state = String(candidate?.gateSteps?.[stepId] || 'MISSING');
-      if (!['NOT_STARTED', 'IN_PROGRESS', 'COMPLETE', 'NOT_APPLICABLE_REFERENCE_ONLY'].includes(state)) {
-        violations.push({ code: 'WP_B_OPEN_SOURCE_STEP_STATE_INVALID', candidateId: candidate.candidateId, stepId, state });
-      }
-      if (incompleteSeen && state === 'COMPLETE') {
-        violations.push({ code: 'WP_B_OPEN_SOURCE_STEP_COMPLETED_OUT_OF_ORDER', candidateId: candidate.candidateId, stepId });
-      }
-      if (!TERMINAL_STEP_STATES.has(state)) incompleteSeen = true;
-    }
-  }
+  for (const candidate of registry.candidates || []) verifyStepOrdering(candidate, orderedStepIds, violations);
 
   const packageBinding = inspectXStatePackageBinding(repositoryRoot);
   const xstateProductionImportPaths = findXStateImports(repositoryRoot);
@@ -206,18 +209,13 @@ function verifyRegistry({ gate, registry, baseline, authorization, repositoryRoo
   const adapterBoundaryStepComplete = xstate?.gateSteps?.YANCE_ADAPTER_BOUNDARY === 'COMPLETE';
 
   if (!originalModuleStepComplete) {
-    if (packageBinding.packageMentioned) {
-      violations.push({ code: 'WP_B_XSTATE_PACKAGE_INTRODUCED_BEFORE_GATE_STEP_6' });
-    }
+    if (packageBinding.packageMentioned) violations.push({ code: 'WP_B_XSTATE_PACKAGE_INTRODUCED_BEFORE_GATE_STEP_6' });
     if (xstateProductionImportPaths.length !== 0) {
       violations.push({ code: 'WP_B_XSTATE_IMPORTED_BEFORE_GATE_STEP_6', paths: xstateProductionImportPaths });
     }
   } else {
     if (!packageBinding.manifestExact) {
-      violations.push({
-        code: 'WP_B_XSTATE_PACKAGE_MANIFEST_INVALID',
-        actual: packageBinding.manifestVersion
-      });
+      violations.push({ code: 'WP_B_XSTATE_PACKAGE_MANIFEST_INVALID', actual: packageBinding.manifestVersion });
     }
     if (!packageBinding.lockExact) {
       violations.push({
@@ -232,9 +230,7 @@ function verifyRegistry({ gate, registry, baseline, authorization, repositoryRoo
     violations.push({ code: 'WP_B_XSTATE_IMPORTED_BEFORE_ADAPTER_GATE', paths: xstateProductionImportPaths });
   }
   if (adapterBoundaryStepComplete) {
-    if (!packageBinding.exact) {
-      violations.push({ code: 'WP_B_XSTATE_ADAPTER_WITHOUT_EXACT_PACKAGE' });
-    }
+    if (!packageBinding.exact) violations.push({ code: 'WP_B_XSTATE_ADAPTER_WITHOUT_EXACT_PACKAGE' });
     if (xstateProductionImportPaths.length !== 1
         || xstateProductionImportPaths[0] !== 'backend/services/xstateLifecycleAdapter.js') {
       violations.push({ code: 'WP_B_XSTATE_IMPORT_BOUNDARY_INVALID', paths: xstateProductionImportPaths });
@@ -247,7 +243,7 @@ function verifyRegistry({ gate, registry, baseline, authorization, repositoryRoo
     && violations.length === 0;
 
   return Object.freeze({
-    schemaVersion: 2,
+    schemaVersion: 3,
     documentType: 'YANCE_ACV2_WP_B_OPEN_SOURCE_ADOPTION_VERIFICATION',
     ok: violations.length === 0,
     orderedStepIds,
@@ -271,23 +267,6 @@ function verifyFiles(repositoryRoot = path.resolve(__dirname, '..', '..')) {
   });
 }
 
-if (require.main === module) {
-  try {
-    const report = verifyFiles();
-    process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-    if (!report.ok) process.exitCode = 1;
-  } catch (error) {
-    process.stderr.write(`${JSON.stringify({
-      schemaVersion: 1,
-      documentType: 'YANCE_ACV2_WP_B_OPEN_SOURCE_ADOPTION_VERIFICATION_FAILURE',
-      ok: false,
-      code: error.code || 'WP_B_OPEN_SOURCE_VERIFICATION_FAILED',
-      message: error.message
-    }, null, 2)}\n`);
-    process.exitCode = 1;
-  }
-}
-
 module.exports = {
   AUTHORIZATION_PATH,
   BASELINE_PATH,
@@ -295,6 +274,8 @@ module.exports = {
   EXPECTED_XSTATE,
   GATE_PATH,
   REGISTRY_PATH,
+  SUPPLY_CHAIN_LOCK,
+  SUPPLY_CHAIN_LOCK_PATH,
   findXStateImports,
   inspectXStatePackageBinding,
   verifyFiles,
