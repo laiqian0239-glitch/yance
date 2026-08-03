@@ -45,7 +45,10 @@ function receiptIdentity(input, attempt) {
       ? attempt.stateVersion
       : Number(input.stateVersion || 0) + 1,
     generation: attempt.generation || input.generation,
-    ownerId: attempt.ownerId || input.ownerId
+    ownerId: attempt.ownerId || input.ownerId,
+    claimId: attempt.claimId || input.claimId,
+    hostGeneration: attempt.hostGeneration || input.hostGeneration,
+    fencingToken: attempt.fencingToken || input.fencingToken
   };
 }
 
@@ -81,8 +84,16 @@ class ExternalActionDispatcher {
     let physicalResult;
     try {
       physicalResult = await this.adapter.perform(deepFreeze({
+        executionId: String(identity.executionId || ''),
         intentId: identity.intentId,
         attemptId: identity.attemptId,
+        idempotencyKey: String(identity.idempotencyKey || ''),
+        ownerId: String(identity.ownerId || ''),
+        claimId: String(identity.claimId || ''),
+        generation: Number(identity.generation || 0),
+        hostGeneration: Number(identity.hostGeneration || 0),
+        fencingToken: Number(identity.fencingToken || 0),
+        leaseExpiresAt: String(identity.leaseExpiresAt || ''),
         request
       }));
     } catch (error) {
