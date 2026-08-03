@@ -25,6 +25,7 @@ on:
       - backend/services/runtimeRecoveryService.js
       - backend/tests/architectureClosureV2/wpB/aiProviderDurableMigration.test.js
       - backend/tests/architectureClosureV2/wpB/mandatoryOperationAdapters.test.js
+      - backend/tests/architectureClosureV2/wpB/m2ContractEvidenceDiagnostics.test.js
       - backend/tests/architectureClosureV2/wpB/m2MandatoryOperationsRed.test.js
       - backend/tests/architectureClosureV2/wpB/m2RecoveryRed.test.js
       - backend/tests/architectureClosureV2/wpB/m2ProcessFaultRed.test.js
@@ -62,6 +63,7 @@ on:
       - backend/services/runtimeRecoveryService.js
       - backend/tests/architectureClosureV2/wpB/aiProviderDurableMigration.test.js
       - backend/tests/architectureClosureV2/wpB/mandatoryOperationAdapters.test.js
+      - backend/tests/architectureClosureV2/wpB/m2ContractEvidenceDiagnostics.test.js
       - backend/tests/architectureClosureV2/wpB/m2MandatoryOperationsRed.test.js
       - backend/tests/architectureClosureV2/wpB/m2RecoveryRed.test.js
       - backend/tests/architectureClosureV2/wpB/m2ProcessFaultRed.test.js
@@ -126,12 +128,17 @@ jobs:
         shell: bash
         run: |
           node --check tools/architecture-closure-v2/run-wp-b-m2-contracts.js
+          node --check backend/tests/architectureClosureV2/wpB/m2ContractEvidenceDiagnostics.test.js
           node --check backend/tests/architectureClosureV2/wpB/m2MandatoryOperationsRed.test.js
           node --check backend/tests/architectureClosureV2/wpB/m2RecoveryRed.test.js
           node --check backend/tests/architectureClosureV2/wpB/m2ProcessFaultRed.test.js
           node --check backend/tests/architectureClosureV2/wpB/m2LeakBoundaryRed.test.js
           node --check backend/tests/architectureClosureV2/wpB/mandatoryOperationAdapters.test.js
           node --check backend/tests/architectureClosureV2/wpB/aiProviderDurableMigration.test.js
+
+      - name: Validate bounded M2 evidence diagnostics
+        shell: bash
+        run: node --test backend/tests/architectureClosureV2/wpB/m2ContractEvidenceDiagnostics.test.js
 
       - name: Run Milestone 2 contracts
         shell: bash
