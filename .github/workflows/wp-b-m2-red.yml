@@ -133,13 +133,23 @@ jobs:
           WP_B_M2_REPORT_PATH: ${{ runner.temp }}/wp-b-m2-contract-report.json
         run: node tools/architecture-closure-v2/run-wp-b-m2-contracts.js --mode contract
 
-      - name: Print normalized contract evidence
+      - name: Build normalized contract evidence
         if: ${{ always() }}
         shell: bash
         env:
           WP_B_M2_REPORT_PATH: ${{ runner.temp }}/wp-b-m2-contract-report.json
+          WP_B_M2_PUBLIC_EVIDENCE_PATH: ${{ runner.temp }}/wp-b-m2-contract-evidence.json
         run: |
-          node -e "const fs=require('node:fs');const p=process.env.WP_B_M2_REPORT_PATH;if(!fs.existsSync(p))process.exit(2);const r=JSON.parse(fs.readFileSync(p,'utf8'));delete r.stdout;delete r.stderr;console.log('WP_B_M2_EVIDENCE='+JSON.stringify(r));"
+          node -e "const fs=require('node:fs');const p=process.env.WP_B_M2_REPORT_PATH;const o=process.env.WP_B_M2_PUBLIC_EVIDENCE_PATH;if(!fs.existsSync(p))process.exit(2);const r=JSON.parse(fs.readFileSync(p,'utf8'));delete r.stdout;delete r.stderr;fs.writeFileSync(o,JSON.stringify(r,null,2)+'\n','utf8');console.log('WP_B_M2_EVIDENCE='+JSON.stringify(r));"
+
+      - name: Upload normalized contract evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: wp-b-m2-contract-evidence-${{ matrix.os }}
+          path: ${{ runner.temp }}/wp-b-m2-contract-evidence.json
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Confirm clean contract workspace
         if: ${{ success() }}
