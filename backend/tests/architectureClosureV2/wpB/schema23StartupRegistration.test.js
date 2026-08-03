@@ -114,3 +114,173 @@ test('current WP-B validation truth records Schema 23 applied without rewriting 
   assert.match(workflow, /echo '- formalRelease=false'/u);
   assert.match(workflow, /echo '- publish=false'/u);
 });
+
+test('Schema 23 remaining lifecycle facades fail closed with an explicit Milestone 2 boundary', () => {
+  const modulePath = require.resolve('../../../services/durableExecutionAuthority');
+  delete require.cache[modulePath];
+  const { DurableExecutionAuthority } = require(modulePath);
+  const store = {
+    db: {
+      prepare(sql) {
+        assert.match(sql, /r32_schema_migrations/u);
+        return { get: () => ({ status: 'completed' }) };
+      }
+    }
+  };
+  const authority = new DurableExecutionAuthority({ storeProvider: () => store });
+  for (const operation of [
+    'heartbeat',
+    'waitRemote',
+    'succeed',
+    'fail',
+    'requestCancel',
+    'acknowledgeCancel',
+    'retry',
+    'deadLetter'
+  ]) {
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(DurableExecutionAuthority.prototype, operation),
+      true,
+      `${operation} must be owned by the Schema 23 facade`
+    );
+    assert.throws(
+      () => authority[operation]({ executionId: 'execution-review-gate' }),
+      error => error?.code === 'WP_B_M2_OPERATION_NOT_YET_AUTHORIZED'
+        && error?.operation === operation
+    );
+  }
+});
+
+test('expired external action claims expose one fenced reclaim CAS', () => {
+  const modulePath = require.resolve('../../../services/externalActionOutboxAuthority');
+  delete require.cache[modulePath];
+  const { ExternalActionOutboxAuthority } = require(modulePath);
+  const calls = [];
+  const store = {
+    db: {
+      prepare(sql) {
+        if (/r32_schema_migrations/u.test(sql)) {
+          return { get: () => ({ status: 'completed' }) };
+        }
+        return {
+          run(...parameters) {
+            calls.push({ sql, parameters });
+            return { changes: 1 };
+          }
+        };
+      }
+    },
+    transaction(callback) { return callback(); }
+  };
+  const authority = new ExternalActionOutboxAuthority({ storeProvider: () => store });
+  assert.equal(typeof authority.reclaimExpiredClaim, 'function');
+  const result = authority.reclaimExpiredClaim({
+    intentId: 'intent-review-reclaim',
+    stateVersion: 4,
+    generation: 2,
+    expiredOwnerId: 'worker-old',
+    expiredClaimId: 'claim-old',
+    expiredHostGeneration: 7,
+    expiredFencingToken: 19,
+    hostId: 'authority-host-new',
+    hostGeneration: 8,
+    fencingToken: 20,
+    authorityTimestamp: '2026-08-03T05:00:00.000Z'
+  });
+
+  assert.equal(calls.length, 1);
+  const sql = calls[0].sql.replace(/\s+/gu, ' ');
+  for (const marker of [
+    "state='READY'",
+    'state_version=state_version+1',
+    'generation=generation+1',
+    "owner_id=''",
+    "claim_id=''",
+    'host_generation=0',
+    'fencing_token=0',
+    'lease_expires_at<?',
+    'authority_write_host_lease'
+  ]) assert.ok(sql.includes(marker), marker);
+  assert.equal(result.state, 'READY');
+  assert.equal(result.stateVersion, 5);
+  assert.equal(result.generation, 3);
+  assert.equal(Object.isFrozen(result), true);
+});
+
+test('remote success reconciliation requires one caller-supplied authority transaction', () => {
+  const modulePath = require.resolve('../../../services/externalOutcomeReconciliation');
+  delete require.cache[modulePath];
+  const { reconcileExternalOutcome } = require(modulePath);
+  const observation = {
+    outcome: 'REMOTE_SUCCESS_PROVEN',
+    provider: 'facebook',
+    operationId: 'operation-review-transaction',
+    evidenceReference: 'provider-receipt:review-transaction',
+    remoteReceiptId: 'remote-review-transaction',
+    observedAt: '2026-08-03T05:10:00.000Z',
+    result: { postId: 'post-review-transaction' }
+  };
+
+  assert.throws(
+    () => reconcileExternalOutcome({
+      observation,
+      authorityTimestamp: '2026-08-03T05:10:01.000Z',
+      recordReceipt: () => ({ receiptId: 'receipt-review-transaction' }),
+      transitionExecution: () => ({ state: 'SUCCEEDED' })
+    }),
+    error => error?.code === 'WP_B_RECONCILIATION_TRANSACTION_REQUIRED'
+  );
+
+  const calls = [];
+  const result = reconcileExternalOutcome({
+    observation,
+    authorityTimestamp: '2026-08-03T05:10:01.000Z',
+    transaction(callback) {
+      calls.push('transaction-begin');
+      const value = callback();
+      calls.push('transaction-commit');
+      return value;
+    },
+    recordReceipt() {
+      calls.push('recordReceipt');
+      return { receiptId: 'receipt-review-transaction' };
+    },
+    transitionExecution() {
+      calls.push('transitionExecution');
+      return { state: 'SUCCEEDED' };
+    }
+  });
+  assert.deepEqual(calls, [
+    'transaction-begin',
+    'recordReceipt',
+    'transitionExecution',
+    'transaction-commit'
+  ]);
+  assert.equal(result.state, 'SUCCEEDED');
+
+  const durable = { receipt: false };
+  assert.throws(
+    () => reconcileExternalOutcome({
+      observation,
+      authorityTimestamp: '2026-08-03T05:10:01.000Z',
+      transaction(callback) {
+        const before = durable.receipt;
+        try {
+          return callback();
+        } catch (error) {
+          durable.receipt = before;
+          throw error;
+        }
+      },
+      recordReceipt() {
+        durable.receipt = true;
+        return { receiptId: 'receipt-review-rollback' };
+      },
+      transitionExecution() {
+        throw Object.assign(new Error('transition rejected'), { code: 'TRANSITION_REJECTED' });
+      }
+    }),
+    error => error?.code === 'TRANSITION_REJECTED'
+  );
+  assert.equal(durable.receipt, false);
+});
