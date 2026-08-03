@@ -9,7 +9,6 @@ const { verifyRegistry } = require('../../../../tools/architecture-closure-v2/ve
 const packageVerifier = require('../../../../tools/architecture-closure-v2/verify-wp-b-xstate-package');
 const upstreamVerifier = require('../../../../tools/architecture-closure-v2/verify-wp-b-xstate-upstream');
 
-const REPO_ROOT = path.resolve(__dirname, '../../../..');
 const XSTATE_VERSION = '5.32.5';
 const XSTATE_INTEGRITY = 'sha512-631+ENa9BCjf/Rn/aWthqY8CWnHT6LHAANtB9zTHb9Tz6SgoI8NA+IWjG3qfIcnEubyksdYGhWCOle4eA/pP4A==';
 const XSTATE_COMMIT = 'c25dba07a2b68565edbe83d83c5d679dd85e00b2';
@@ -85,15 +84,19 @@ test('step 7 rejects failures, skips, missing platforms and unbound log digests'
   const xstate = registry.candidates.find(candidate => candidate.project === 'XState');
   xstate.gateSteps.UPSTREAM_TESTS_PASS = 'COMPLETE';
   xstate.upstreamTestEvidence = {
-    selection: ['ACTOR_TRANSITION_SEQUENCE'],
-    command: 'node tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js',
+    upstreamTestSelection: ['XSTATE_PNPM_TEST_CORE'],
+    upstreamTestCommand: 'corepack pnpm test:core',
+    runtimeVersion: 'node@22',
     passCount: 1,
     failCount: 1,
     skipCount: 1,
+    reviewedHead: 'not-a-head',
     platforms: {
       ubuntu: {
         status: 'FAILED',
         reviewedHead: 'not-a-head',
+        workflowRunId: 1,
+        jobId: 1,
         testLogSha256: ''
       }
     }
@@ -191,7 +194,11 @@ test('upstream verification runs the real XState pnpm test:core command', () => 
       runCommand(command, args, options) {
         calls.push({ command, args: [...args], options: { ...options } });
         if (args.includes('test:core')) {
-          return Object.freeze({ status: 0, stdout: 'Tests 142 passed\n', stderr: '' });
+          return Object.freeze({
+            status: 0,
+            stdout: 'Test Files  75 passed (75)\nTests  1721 passed | 13 skipped | 1 todo (1735)\n',
+            stderr: ''
+          });
         }
         return Object.freeze({ status: 0, stdout: 'Lockfile is up to date\n', stderr: '' });
       }
@@ -202,6 +209,14 @@ test('upstream verification runs the real XState pnpm test:core command', () => 
     assert.equal(report.passCount, 1);
     assert.equal(report.failCount, 0);
     assert.equal(report.skipCount, 0);
+    assert.deepEqual(report.testSummary, {
+      testFilePassCount: 75,
+      testFileFailCount: 0,
+      testPassCount: 1721,
+      testFailCount: 0,
+      skipCount: 13,
+      todoCount: 1
+    });
     assert.match(report.testLogSha256, /^[0-9a-f]{64}$/u);
     assert.ok(calls.some(call => call.args[0] === 'pnpm' && call.args[1] === 'install' && call.args.includes('--frozen-lockfile')));
     assert.ok(calls.some(call => call.args[0] === 'pnpm' && call.args[1] === 'test:core'));
