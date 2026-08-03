@@ -491,3 +491,111 @@ test('ExternalActionOutboxAuthority commits intent, claim, attempt and receipt w
     WHERE intent_id=?`).get(intent.intentId).count, 1);
   assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
 }));
+
+test('DurableExecutionAuthority V2 performs create, schedule, first claim and start without manual SQL', () => withDatabase(db => {
+  const host = createSchema23(db);
+  const store = createStore(db);
+  const authority = new DurableExecutionAuthority({ storeProvider: () => store });
+  const created = authority.createExecution(executionCommand({
+    executionId: 'execution-first-claim-integration',
+    idempotencyKey: 'execution-first-claim-integration-key'
+  }));
+
+  const scheduled = authority.schedule({
+    executionId: created.executionId,
+    expectedStateVersion: created.stateVersion,
+    generation: created.generation,
+    hostId: host.hostId,
+    hostGeneration: host.hostGeneration,
+    fencingToken: host.fencingToken,
+    operationKind: created.operationKind,
+    authorityTimestamp: '2026-08-03T03:43:00.000Z'
+  });
+  assert.equal(scheduled.state, 'SCHEDULED');
+  assert.equal(scheduled.stateVersion, 1);
+  assert.equal(scheduled.generation, 0);
+  assert.equal(scheduled.ownerId, '');
+  assert.equal(scheduled.claimId, '');
+  assert.equal(scheduled.hostGeneration, 0);
+  assert.equal(scheduled.fencingToken, 0);
+  assert.equal(scheduled.history.at(-1).eventType, 'scheduled');
+
+  const claimed = authority.claim({
+    executionId: scheduled.executionId,
+    expectedStateVersion: scheduled.stateVersion,
+    generation: scheduled.generation,
+    ownerId: host.hostId,
+    claimId: 'execution-first-claim-integration-claim',
+    hostId: host.hostId,
+    hostGeneration: host.hostGeneration,
+    fencingToken: host.fencingToken,
+    leaseStartedAt: '2026-08-03T03:44:00.000Z',
+    leaseExpiresAt: '2026-08-03T03:54:00.000Z'
+  });
+  assert.equal(claimed.state, 'CLAIMED');
+  assert.equal(claimed.stateVersion, 2);
+  assert.equal(claimed.generation, 1);
+  assert.equal(claimed.ownerId, host.hostId);
+  assert.equal(claimed.claimId, 'execution-first-claim-integration-claim');
+  assert.equal(claimed.hostGeneration, host.hostGeneration);
+  assert.equal(claimed.fencingToken, host.fencingToken);
+  assert.equal(claimed.leaseStartedAt, '2026-08-03T03:44:00.000Z');
+  assert.equal(claimed.leaseExpiresAt, '2026-08-03T03:54:00.000Z');
+  assert.equal(claimed.history.at(-1).eventType, 'claimed');
+
+  const running = authority.transition({
+    executionId: claimed.executionId,
+    expectedStateVersion: claimed.stateVersion,
+    allowedStates: ['CLAIMED'],
+    targetState: 'RUNNING',
+    generation: claimed.generation,
+    ownerId: claimed.ownerId,
+    claimId: claimed.claimId,
+    hostId: host.hostId,
+    hostGeneration: host.hostGeneration,
+    fencingToken: host.fencingToken,
+    authorityTimestamp: '2026-08-03T03:45:00.000Z',
+    eventType: 'started'
+  });
+  assert.equal(running.state, 'RUNNING');
+  assert.equal(running.stateVersion, 3);
+  assert.equal(running.generation, 1);
+  assert.deepEqual(
+    running.history.map(event => event.eventType),
+    ['created', 'scheduled', 'claimed', 'started']
+  );
+
+  assert.throws(
+    () => authority.claim({
+      executionId: running.executionId,
+      expectedStateVersion: running.stateVersion,
+      generation: running.generation,
+      ownerId: host.hostId,
+      claimId: 'duplicate-first-claim',
+      hostId: host.hostId,
+      hostGeneration: host.hostGeneration,
+      fencingToken: host.fencingToken,
+      leaseStartedAt: '2026-08-03T03:46:00.000Z',
+      leaseExpiresAt: '2026-08-03T03:56:00.000Z'
+    }),
+    error => error?.code === 'WP_B_EXECUTION_CLAIM_CAS_REJECTED'
+  );
+
+  const persisted = db.prepare(`SELECT state,state_version,generation,owner_id,claim_id,
+      host_generation,fencing_token,lease_started_at,lease_expires_at
+    FROM durable_executions WHERE execution_id=?`).get(running.executionId);
+  assert.deepEqual({ ...persisted }, {
+    state: 'RUNNING',
+    state_version: 3,
+    generation: 1,
+    owner_id: host.hostId,
+    claim_id: 'execution-first-claim-integration-claim',
+    host_generation: host.hostGeneration,
+    fencing_token: host.fencingToken,
+    lease_started_at: '2026-08-03T03:44:00.000Z',
+    lease_expires_at: '2026-08-03T03:54:00.000Z'
+  });
+  assert.equal(db.prepare(`SELECT COUNT(*) AS count FROM durable_execution_events
+    WHERE execution_id=?`).get(running.executionId).count, 4);
+  assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
+}));
