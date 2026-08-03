@@ -89,6 +89,11 @@ function normalizeRepositoryPath(value) {
   return normalized;
 }
 
+function isExactRepositoryPath(value) {
+  const normalized = normalizeRepositoryPath(value);
+  return Boolean(normalized && normalized === value && !/[?*[]/u.test(normalized));
+}
+
 function normalizeChangedFiles(values) {
   return [...new Set((Array.isArray(values) ? values : [])
     .map(normalizeRepositoryPath)
@@ -185,7 +190,7 @@ function isValidWpBOperationInventory(inventory, baseline) {
   for (const entry of inventory.entries) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false;
     const entryPath = normalizeRepositoryPath(entry.path);
-    if (!entryPath || entryPath !== entry.path) return false;
+    if (!isExactRepositoryPath(entry.path) || entryPath !== entry.path) return false;
     if (!inventory.allowedClassifications.includes(entry.classification)) return false;
     if (!Array.isArray(entry.operationKinds)) return false;
     paths.push(entryPath);
