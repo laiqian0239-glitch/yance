@@ -20,11 +20,12 @@ test('operation discovery recognizes physical calls, recovery and operational ti
     'CHILD_PROCESS_EXTERNAL_EXECUTION',
     'NETWORK_CLIENT_CALL',
     'OPERATIONAL_RETRY_OR_TIMER',
+    'PLATFORM_OR_PROVIDER_CALL',
     'RECOVERY_ENTRYPOINT'
   ]);
 });
 
-test('every discovered WP-B call site has an exact inventory row', () => {
+test('every discovered WP-B production call site has an exact inventory row', () => {
   const report = discoverCallSites(REPO_ROOT);
   assert.equal(
     report.unregisteredCount,
@@ -36,5 +37,7 @@ test('every discovered WP-B call site has an exact inventory row', () => {
     0,
     `Missing inventory paths:\n${JSON.stringify(report.missingInventoryPaths, null, 2)}`
   );
+  assert.ok(Array.isArray(report.harnessDetected));
+  assert.ok(Array.isArray(report.outsideScopeDetected));
   assert.equal(report.ok, true);
 });
