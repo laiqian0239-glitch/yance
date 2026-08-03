@@ -9,6 +9,8 @@ const REGISTRY_PATH = 'governance/architecture-closure-v2/wp-b-open-source-adopt
 const BASELINE_PATH = 'governance/architecture-closure-v2/wp-b-baseline.json';
 const AUTHORIZATION_PATH = 'governance/architecture-closure-v2/wp-b-design-authorization.json';
 const SUPPLY_CHAIN_LOCK_PATH = 'governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json';
+const XSTATE_EVIDENCE_PATH = 'governance/architecture-closure-v2/wp-b-open-source-adoption-evidence-xstate-5.32.5.json';
+const HISTORICAL_RED_EVIDENCE_PATH = 'governance/architecture-closure-v2/wp-b-m1-red-evidence.json';
 const SUPPLY_CHAIN_LOCK = require('../../governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json');
 const EXPECTED_XSTATE = Object.freeze({
   version: SUPPLY_CHAIN_LOCK.artifact.version,
@@ -124,6 +126,129 @@ function inspectXStatePackageBinding(repositoryRoot) {
   });
 }
 
+function inspectSchema23StartupBinding(repositoryRoot) {
+  const storeRelativePath = 'backend/lib/r32SqliteStore.js';
+  const migrationRelativePath = 'backend/migrations/architectureClosureV2WpB.js';
+  const migrationEngineRelativePath = 'backend/migrations/architectureClosureV2WpBEngine.js';
+  const storePath = path.join(repositoryRoot, storeRelativePath);
+  const migrationPath = path.join(repositoryRoot, migrationRelativePath);
+  const migrationEnginePath = path.join(repositoryRoot, migrationEngineRelativePath);
+  if (!fs.existsSync(storePath) || !fs.existsSync(migrationPath) || !fs.existsSync(migrationEnginePath)) {
+    return Object.freeze({
+      applied: false,
+      storePath: storeRelativePath,
+      migrationPath: migrationRelativePath,
+      migrationEnginePath: migrationEngineRelativePath
+    });
+  }
+  const storeSource = fs.readFileSync(storePath, 'utf8');
+  const migrationSource = fs.readFileSync(migrationPath, 'utf8');
+  const migrationEngineSource = fs.readFileSync(migrationEnginePath, 'utf8');
+  const applied = /requireSchema23StartupRegistration\(\)/u.test(storeSource)
+    && /applyArchitectureClosureV2WpB\(store\.db/u.test(storeSource)
+    && /const engine = require\('\.\/architectureClosureV2WpBEngine'\)/u.test(migrationSource)
+    && /engine\.applyArchitectureClosureV2WpB\(db, options\)/u.test(migrationSource)
+    && /TARGET_SCHEMA_VERSION\s*=\s*23\b/u.test(migrationEngineSource)
+    && /MIGRATION_ID\s*=\s*'023_architecture_closure_v2_wp_b'/u.test(migrationEngineSource);
+  return Object.freeze({
+    applied,
+    storePath: storeRelativePath,
+    migrationPath: migrationRelativePath,
+    migrationEnginePath: migrationEngineRelativePath
+  });
+}
+
+function verifyCurrentXStateStatus({
+  registry,
+  repositoryRoot,
+  packageBinding,
+  xstateProductionImportPaths,
+  productionUseAuthorized,
+  evidence,
+  supplyChainLock,
+  historicalRedEvidence
+}) {
+  const violations = [];
+  const xstate = candidateMap(registry).xstate;
+  const gateSteps = xstate?.gateSteps || {};
+  const schema23StartupBinding = inspectSchema23StartupBinding(repositoryRoot);
+  const upstreamObservation = supplyChainLock?.observation || {};
+  const upstreamTestsComplete = gateSteps.UPSTREAM_TESTS_PASS === 'COMPLETE'
+    && upstreamObservation?.ubuntu?.status === 'PASSED'
+    && upstreamObservation?.windows?.status === 'PASSED'
+    && Number(upstreamObservation?.ubuntu?.testSummary?.testFailCount) === 0
+    && Number(upstreamObservation?.windows?.testSummary?.testFailCount) === 0;
+  const adapterIntroductionAuthorized = gateSteps.YANCE_ADAPTER_BOUNDARY === 'COMPLETE'
+    && packageBinding?.exact === true
+    && xstateProductionImportPaths.length === 1
+    && xstateProductionImportPaths[0] === 'backend/services/xstateLifecycleAdapter.js';
+  const expected = Object.freeze({
+    originalModuleIntroduced: gateSteps.INTRODUCE_ORIGINAL_MODULE === 'COMPLETE'
+      && packageBinding?.exact === true,
+    upstreamTestsComplete,
+    adapterIntroductionAuthorized,
+    productionUseAuthorized: productionUseAuthorized === true,
+    schema23Applied: schema23StartupBinding.applied === true,
+    formalRelease: false,
+    publish: false,
+    temporaryBypassAllowed: false
+  });
+
+  const evidenceAuthorization = evidence?.authorization || {};
+  for (const [field, expectedValue] of Object.entries(expected)) {
+    if (evidenceAuthorization[field] !== expectedValue) {
+      violations.push({
+        code: 'WP_B_XSTATE_ADOPTION_EVIDENCE_STATUS_MISMATCH',
+        field,
+        expected: expectedValue,
+        actual: evidenceAuthorization[field]
+      });
+    }
+  }
+
+  const expectedLock = Object.freeze({
+    step6OriginalModuleIntroductionComplete: expected.originalModuleIntroduced,
+    step7UpstreamTestsComplete: expected.upstreamTestsComplete,
+    adapterIntroductionAuthorized: expected.adapterIntroductionAuthorized,
+    productionUseAuthorized: expected.productionUseAuthorized,
+    schema23Applied: expected.schema23Applied,
+    wpCAuthorized: false,
+    formalRelease: false,
+    publish: false,
+    temporaryBypassAllowed: false
+  });
+  const lockGovernance = supplyChainLock?.governance || {};
+  for (const [field, expectedValue] of Object.entries(expectedLock)) {
+    if (lockGovernance[field] !== expectedValue) {
+      violations.push({
+        code: 'WP_B_XSTATE_SUPPLY_CHAIN_STATUS_MISMATCH',
+        field,
+        expected: expectedValue,
+        actual: lockGovernance[field]
+      });
+    }
+  }
+
+  if (historicalRedEvidence?.governance?.schema23AppliedToProductionStartup !== false) {
+    violations.push({ code: 'WP_B_M1_HISTORICAL_SCHEMA23_RED_MUTATED' });
+  }
+  if (expected.schema23Applied !== true) {
+    violations.push({
+      code: 'WP_B_SCHEMA23_CURRENT_STARTUP_BINDING_MISSING',
+      ...schema23StartupBinding
+    });
+  }
+
+  return Object.freeze({
+    ok: violations.length === 0,
+    expected,
+    expectedLock,
+    schema23StartupBinding,
+    historicalSchema23AppliedToProductionStartup: historicalRedEvidence?.governance?.schema23AppliedToProductionStartup,
+    violations: Object.freeze(violations.map(item => Object.freeze(item)))
+  });
+}
+
 function candidateMap(registry) {
   return Object.fromEntries((registry.candidates || []).map(candidate => [String(candidate.project || '').toLowerCase(), candidate]));
 }
@@ -150,7 +275,7 @@ function verifyStepOrdering(candidate, orderedStepIds, violations) {
   }
 }
 
-function verifyRegistry({ gate, registry, baseline, authorization, repositoryRoot }) {
+function verifyRegistry({ gate, registry, baseline, authorization, repositoryRoot, currentStatusDocuments = null }) {
   const violations = [];
   const orderedStepIds = (gate.requiredSequence || []).map(step => String(step.id || ''));
   if (JSON.stringify(orderedStepIds) !== JSON.stringify(EXPECTED_STEP_IDS)) {
@@ -241,6 +366,19 @@ function verifyRegistry({ gate, registry, baseline, authorization, repositoryRoo
   const productionUseAuthorized = allCandidatesComplete
     && registry?.closure?.independentReviewApproved === true
     && violations.length === 0;
+  const xstateCurrentStatus = currentStatusDocuments
+    ? verifyCurrentXStateStatus({
+        registry,
+        repositoryRoot,
+        packageBinding,
+        xstateProductionImportPaths,
+        productionUseAuthorized,
+        evidence: currentStatusDocuments.evidence,
+        supplyChainLock: currentStatusDocuments.supplyChainLock,
+        historicalRedEvidence: currentStatusDocuments.historicalRedEvidence
+      })
+    : null;
+  if (xstateCurrentStatus) violations.push(...xstateCurrentStatus.violations);
 
   return Object.freeze({
     schemaVersion: 3,
@@ -253,6 +391,7 @@ function verifyRegistry({ gate, registry, baseline, authorization, repositoryRoo
     xstateProductionImportCount: xstateProductionImportPaths.length,
     xstateProductionImportPaths,
     productionUseAuthorized,
+    xstateCurrentStatus,
     violations
   });
 }
@@ -263,7 +402,12 @@ function verifyFiles(repositoryRoot = path.resolve(__dirname, '..', '..')) {
     registry: readJson(repositoryRoot, REGISTRY_PATH),
     baseline: readJson(repositoryRoot, BASELINE_PATH),
     authorization: readJson(repositoryRoot, AUTHORIZATION_PATH),
-    repositoryRoot
+    repositoryRoot,
+    currentStatusDocuments: Object.freeze({
+      evidence: readJson(repositoryRoot, XSTATE_EVIDENCE_PATH),
+      supplyChainLock: readJson(repositoryRoot, SUPPLY_CHAIN_LOCK_PATH),
+      historicalRedEvidence: readJson(repositoryRoot, HISTORICAL_RED_EVIDENCE_PATH)
+    })
   });
 }
 
@@ -273,11 +417,15 @@ module.exports = {
   EXPECTED_STEP_IDS,
   EXPECTED_XSTATE,
   GATE_PATH,
+  HISTORICAL_RED_EVIDENCE_PATH,
   REGISTRY_PATH,
   SUPPLY_CHAIN_LOCK,
   SUPPLY_CHAIN_LOCK_PATH,
+  XSTATE_EVIDENCE_PATH,
   findXStateImports,
+  inspectSchema23StartupBinding,
   inspectXStatePackageBinding,
+  verifyCurrentXStateStatus,
   verifyFiles,
   verifyRegistry
 };
