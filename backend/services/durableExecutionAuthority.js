@@ -279,14 +279,9 @@ class DurableExecutionAuthority extends legacy.DurableExecutionAuthority {
       }
       const executionId = optionalString(input.executionId, 'executionId')
         || `execution-${crypto.randomUUID()}`;
-      store.db.prepare(`INSERT INTO durable_executions(
-        execution_id,trace_id,operation_kind,idempotency_key,command_content_sha256,
-        content_hash_version,state,state_version,generation,owner_id,claim_id,lease_sequence,
-        host_generation,fencing_token,lease_started_at,lease_expires_at,heartbeat_sequence,
-        last_heartbeat_at,deadline_at,cancellation_requested_at,cancellation_actor,retry_count,
-        max_attempts,next_attempt_at,failure_code,terminal_receipt_id,metadata_json,created_at,
-        updated_at,completed_at
-      ) VALUES(?,?,?,?,?,?,?,0,0,'','',0,0,0,'','',0,'',?,'','',0,?,'','','','',?,?,?,'')`).run(
+      const metadataJson = canonicalSerialize(canonicalPlainData(input.metadata || {}, 'metadata'));
+      const deadlineAt = optionalString(input.deadlineAt, 'deadlineAt');
+      const values = [
         executionId,
         command.traceId,
         command.operationKind,
@@ -294,12 +289,38 @@ class DurableExecutionAuthority extends legacy.DurableExecutionAuthority {
         command.commandContentSha256,
         HASH_VERSION,
         LIFECYCLE_STATES.CREATED,
-        optionalString(input.deadlineAt, 'deadlineAt'),
+        0,
+        0,
+        '',
+        '',
+        0,
+        0,
+        0,
+        '',
+        '',
+        0,
+        '',
+        deadlineAt,
+        '',
+        '',
+        0,
         maxAttempts,
-        canonicalSerialize(canonicalPlainData(input.metadata || {}, 'metadata')),
+        '',
+        '',
+        '',
+        metadataJson,
         authorityTimestamp,
-        authorityTimestamp
-      );
+        authorityTimestamp,
+        ''
+      ];
+      store.db.prepare(`INSERT INTO durable_executions(
+        execution_id,trace_id,operation_kind,idempotency_key,command_content_sha256,
+        content_hash_version,state,state_version,generation,owner_id,claim_id,lease_sequence,
+        host_generation,fencing_token,lease_started_at,lease_expires_at,heartbeat_sequence,
+        last_heartbeat_at,deadline_at,cancellation_requested_at,cancellation_actor,retry_count,
+        max_attempts,next_attempt_at,failure_code,terminal_receipt_id,metadata_json,created_at,
+        updated_at,completed_at
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(...values);
       store.db.prepare(`INSERT INTO durable_execution_events(
         event_id,execution_id,sequence,event_type,from_state,to_state,generation,
         owner_id,reason_code,payload_json,created_at
