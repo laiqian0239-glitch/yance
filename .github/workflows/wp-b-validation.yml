@@ -40,6 +40,9 @@ on:
 permissions:
   contents: read
 
+env:
+  VALIDATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   governance-and-discovery:
     name: wp-b-governance-${{ matrix.os }}
@@ -55,7 +58,7 @@ jobs:
       - name: Checkout exact validation commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.VALIDATION_SHA }}
           fetch-depth: 1
           fetch-tags: false
           lfs: false
@@ -66,6 +69,10 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
+
+      - name: Validate exact checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
 
       - name: Validate tool syntax
         run: |
@@ -104,7 +111,7 @@ jobs:
       - name: Checkout exact validation commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.VALIDATION_SHA }}
           fetch-depth: 1
           fetch-tags: false
           lfs: false
@@ -115,6 +122,10 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
+
+      - name: Validate exact checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
 
       - name: Verify exact XState package, license, tarball and audit
         env:
@@ -135,7 +146,7 @@ jobs:
       - name: Checkout exact validation commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.VALIDATION_SHA }}
           fetch-depth: 1
           fetch-tags: false
           lfs: false
@@ -146,6 +157,10 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
+
+      - name: Validate exact checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
 
       - name: Run complete Milestone 1 contracts
         run: node tools/architecture-closure-v2/capture-wp-b-red-evidence.js
