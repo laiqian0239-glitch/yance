@@ -198,6 +198,12 @@ function reconcileExternalOutcome(options = {}) {
     });
   }
 
+  if (typeof options.transaction !== 'function') {
+    throw reconciliationError(
+      'WP_B_RECONCILIATION_TRANSACTION_REQUIRED',
+      'Remote success requires one Authority transaction for receipt and terminal transition'
+    );
+  }
   if (typeof options.recordReceipt !== 'function') {
     throw reconciliationError(
       'WP_B_RECONCILIATION_RECORD_RECEIPT_REQUIRED',
@@ -224,33 +230,36 @@ function reconcileExternalOutcome(options = {}) {
     result: observation.result,
     appendOnly: true
   });
-  const persisted = assertSynchronous(options.recordReceipt(trustedReceipt), 'recordReceipt');
-  const trustedReceiptId = requiredString(
-    persisted?.receiptId,
-    'recordReceipt.receiptId',
-    'WP_B_RECONCILIATION_TRUSTED_RECEIPT_INVALID'
-  );
-  const transition = deepFreeze({
-    schemaVersion: 1,
-    authority: 'DurableExecutionAuthority',
-    operationId: observation.operationId,
-    state: 'SUCCEEDED',
-    trustedReceiptId,
-    authorityTimestamp
-  });
-  assertSynchronous(options.transitionExecution(transition), 'transitionExecution');
 
-  return deepFreeze({
-    schemaVersion: 1,
-    authority: 'ExternalOutcomeReconciliation',
-    operationId: observation.operationId,
-    outcome: observation.outcome,
-    terminal: true,
-    state: 'SUCCEEDED',
-    retryAllowed: false,
-    trustedReceiptId,
-    authorityTimestamp
-  });
+  return assertSynchronous(options.transaction(() => {
+    const persisted = assertSynchronous(options.recordReceipt(trustedReceipt), 'recordReceipt');
+    const trustedReceiptId = requiredString(
+      persisted?.receiptId,
+      'recordReceipt.receiptId',
+      'WP_B_RECONCILIATION_TRUSTED_RECEIPT_INVALID'
+    );
+    const transition = deepFreeze({
+      schemaVersion: 1,
+      authority: 'DurableExecutionAuthority',
+      operationId: observation.operationId,
+      state: 'SUCCEEDED',
+      trustedReceiptId,
+      authorityTimestamp
+    });
+    assertSynchronous(options.transitionExecution(transition), 'transitionExecution');
+
+    return deepFreeze({
+      schemaVersion: 1,
+      authority: 'ExternalOutcomeReconciliation',
+      operationId: observation.operationId,
+      outcome: observation.outcome,
+      terminal: true,
+      state: 'SUCCEEDED',
+      retryAllowed: false,
+      trustedReceiptId,
+      authorityTimestamp
+    });
+  }), 'transaction');
 }
 
 function createManualResolutionReceipt(input) {
