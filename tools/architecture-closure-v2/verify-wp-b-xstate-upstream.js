@@ -32,7 +32,7 @@ function readUpstreamManifest(checkoutRoot) {
 }
 
 function metric(line, name) {
-  const match = String(line || '').match(new RegExp(`(?:^|\\|\\s)(\\d+)\\s+${name}(?:\\s|\\||$)`, 'iu'));
+  const match = String(line || '').match(new RegExp(`\\b(\\d+)\\s+${name}\\b`, 'iu'));
   return match ? Number(match[1]) : 0;
 }
 
