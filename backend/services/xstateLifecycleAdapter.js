@@ -1,14 +1,33 @@
 'use strict';
 
-const {
-  createMachine,
-  getInitialSnapshot,
-  getNextSnapshot
-} = require('xstate');
 const { deepFreeze } = require('../lib/deepFreeze');
+
+let cachedXStateRuntime = null;
 
 function adapterError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
+}
+
+function loadXStateRuntime() {
+  if (cachedXStateRuntime) return cachedXStateRuntime;
+
+  const runtime = require('xstate');
+  for (const exportName of ['createMachine', 'getInitialSnapshot', 'getNextSnapshot']) {
+    if (typeof runtime?.[exportName] !== 'function') {
+      throw adapterError(
+        'WP_B_XSTATE_RUNTIME_INVALID',
+        `XState runtime export is missing: ${exportName}`,
+        { exportName }
+      );
+    }
+  }
+
+  cachedXStateRuntime = Object.freeze({
+    createMachine: runtime.createMachine,
+    getInitialSnapshot: runtime.getInitialSnapshot,
+    getNextSnapshot: runtime.getNextSnapshot
+  });
+  return cachedXStateRuntime;
 }
 
 function assertRecord(value, code, message) {
@@ -128,6 +147,11 @@ function createLifecycleAdapter(inputConfig) {
   const config = normalizeConfig(inputConfig);
   const stateNames = new Set(Object.keys(config.states));
   const eventNames = new Set(config.eventNames);
+  const {
+    createMachine,
+    getInitialSnapshot,
+    getNextSnapshot
+  } = loadXStateRuntime();
   const machine = createMachine(toMachineConfig(config));
   const initialSnapshot = getInitialSnapshot(machine);
   const initialStateValue = String(initialSnapshot.value);
