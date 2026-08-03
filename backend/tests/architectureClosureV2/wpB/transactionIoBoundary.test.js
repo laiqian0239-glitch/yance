@@ -2,9 +2,21 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
+const COORDINATOR_PATH = path.join(
+  REPO_ROOT,
+  'backend',
+  'services',
+  'authorityTransactionCoordinator.js'
+);
 
 function coordinatorModule() {
-  return require('../../../services/authorityTransactionCoordinator');
+  assert.equal(fs.existsSync(COORDINATOR_PATH), true, COORDINATOR_PATH);
+  delete require.cache[require.resolve(COORDINATOR_PATH)];
+  return require(COORDINATOR_PATH);
 }
 
 test('authority coordinator exports a fail-closed transaction I/O guard', () => {
@@ -23,10 +35,7 @@ test('authority coordinator exports a fail-closed transaction I/O guard', () => 
 });
 
 test('projector context exposes no external I/O capability', () => {
-  const source = require('node:fs').readFileSync(
-    require.resolve('../../../services/authorityTransactionCoordinator'),
-    'utf8'
-  );
+  const source = fs.readFileSync(COORDINATOR_PATH, 'utf8');
   assert.match(source, /createTransactionIoGuard/u);
   assert.doesNotMatch(source, /projector\.apply\([\s\S]*?\bfetch\b/iu);
   assert.doesNotMatch(source, /projector\.apply\([\s\S]*?providerSdk/iu);
@@ -34,9 +43,6 @@ test('projector context exposes no external I/O capability', () => {
 });
 
 test('a Promise returned from a transaction projector remains forbidden', () => {
-  const source = require('node:fs').readFileSync(
-    require.resolve('../../../services/authorityTransactionCoordinator'),
-    'utf8'
-  );
+  const source = fs.readFileSync(COORDINATOR_PATH, 'utf8');
   assert.match(source, /AUTHORITY_TRANSACTION_ASYNC_CALLBACK_FORBIDDEN/u);
 });
