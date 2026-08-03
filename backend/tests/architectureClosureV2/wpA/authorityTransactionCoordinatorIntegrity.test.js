@@ -10,7 +10,8 @@ const { acquireAuthorityWriteHost } = require('../../../services/authorityWriteH
 const { SqliteConnectionBroker } = require('../../../lib/sqliteConnectionBroker');
 const {
   AuthorityTransactionCoordinator,
-  createProjectorDatabaseCapability
+  createProjectorDatabaseCapability,
+  eventContentSha256
 } = require('../../../services/authorityTransactionCoordinator');
 const { createAuthorityCommandEnvelope } = require('../../../services/authorityCommandProtocol');
 
@@ -104,9 +105,10 @@ test('event classification and retention policy are part of the idempotent event
   try {
     const first = h.coordinator.execute({ command: command(), event: event(), projector: projector() });
     assert.equal(first.replayed, false);
-    const receipt = h.store.db.prepare('SELECT command_content_sha256,event_content_sha256 FROM authority_command_receipts WHERE command_id=?').get('cmd-integrity-1');
+    const receipt = h.store.db.prepare('SELECT command_content_sha256,event_content_sha256,content_hash_version FROM authority_command_receipts WHERE command_id=?').get('cmd-integrity-1');
     assert.match(receipt.command_content_sha256, /^[a-f0-9]{64}$/);
     assert.match(receipt.event_content_sha256, /^[a-f0-9]{64}$/);
+    assert.equal(receipt.content_hash_version, 1);
 
     for (const changedEvent of [
       event({ payloadClassification: 'PUBLIC_METADATA' }),
@@ -120,6 +122,63 @@ test('event classification and retention policy are part of the idempotent event
     }
     assert.equal(h.store.db.prepare('SELECT COUNT(*) AS count FROM canonical_event_headers').get().count, 1);
   } finally { h.close(); }
+});
+
+test('legacy receipts without a versioned event content hash fail closed instead of guessing historical semantics', () => {
+  const h = harness();
+  try {
+    const envelope = command();
+    const existing = {
+      command_id: envelope.commandId,
+      authority_scope: envelope.authorityScope,
+      idempotency_key: envelope.idempotencyKey,
+      command_content_sha256: envelope.contentSha256,
+      event_content_sha256: '',
+      content_hash_version: 0,
+      result_json: JSON.stringify({ commandContentSha256: envelope.contentSha256, receipt: { status: 'COMMITTED' } })
+    };
+    assert.throws(
+      () => h.coordinator.assertIdempotency(existing, envelope, 'c'.repeat(64)),
+      error => error?.code === 'AUTHORITY_COMMAND_EVENT_CONTENT_UNVERIFIABLE'
+        && error?.existingEventContentSha256 === ''
+        && error?.existingContentHashVersion === 0
+        && error?.incomingEventContentSha256 === 'c'.repeat(64)
+    );
+    assert.equal(h.store.db.prepare('SELECT COUNT(*) AS count FROM canonical_event_headers').get().count, 0);
+  } finally { h.close(); }
+});
+
+test('authority-assigned event time has stable idempotent semantics across concurrent clock values', () => {
+  const base = {
+    eventId: 'event-time-stability',
+    eventType: 'integrity.time.assigned',
+    schemaVersion: 1,
+    payloadClassification: 'BUSINESS_CONTENT',
+    payloadSha256: 'd'.repeat(64),
+    platform: 'integrity-platform',
+    sourceAccountId: 'source-integrity-1',
+    generation: 1,
+    redactionVersion: 'classification-v1',
+    retentionClass: 'ACTIVE_REPLAY',
+    ledgerSegmentId: 'segment-active-v1'
+  };
+  const first = eventContentSha256({
+    ...base,
+    occurredAt: '2026-08-03T00:00:00.000Z',
+    occurredAtAuthorityAssigned: true
+  });
+  const concurrent = eventContentSha256({
+    ...base,
+    occurredAt: '2026-08-03T00:00:01.000Z',
+    occurredAtAuthorityAssigned: true
+  });
+  const explicit = eventContentSha256({
+    ...base,
+    occurredAt: '2026-08-03T00:00:01.000Z',
+    occurredAtAuthorityAssigned: false
+  });
+  assert.equal(concurrent, first);
+  assert.notEqual(explicit, first);
 });
 
 test('projector SQL capability rejects nondeterministic functions extension loading and SQLite internal tables', () => {

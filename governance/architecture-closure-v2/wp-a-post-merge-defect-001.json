@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_POST_MERGE_DEFECT",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-A",
+  "defectId": "WP-A-POST-MERGE-DEFECT-001",
+  "status": "CLOSED",
+  "discoveredBy": {
+    "workflow": "WP-A Main Post-Merge Validation",
+    "runId": 30770982540,
+    "ubuntuJobId": 91557975079,
+    "validatedMainHead": "36631c1856b957c75d9fcf6359833a6169b093fc",
+    "testCount": 187,
+    "passed": 183,
+    "failed": 4
+  },
+  "rootCauses": [
+    "AUTHORITY_COMMAND_RECEIPTS_LACK_EXPLICIT_COMMAND_AND_EVENT_CONTENT_HASH_COLUMNS",
+    "EVENT_RETENTION_CLASS_IS_NOT_PERSISTED_IN_CANONICAL_HEADERS",
+    "CANONICAL_PAYLOAD_IDENTIFIER_IS_NOT_ONE_TO_ONE",
+    "IMMUTABLE_SCHEMA_AUTHORITIES_LACK_MIGRATION_LEVEL_UPDATE_AND_DELETE_BLOCKERS"
+  ],
+  "repair": {
+    "targetBranch": "stage/6.4.5.9-architecture-closure",
+    "targetSchemaVersion": 22,
+    "migrationId": "022_architecture_closure_v2_wp_a_integrity",
+    "legacyReceiptPolicy": "FAIL_CLOSED_WHEN_EVENT_CONTENT_HASH_IS_UNAVAILABLE",
+    "requiredPaths": [
+      ".github/workflows/wp-a-post-merge-validation.yml",
+      "backend/migrations/architectureClosureV2WpA.js",
+      "backend/migrations/architectureClosureV2WpAIntegrity.js",
+      "backend/services/authorityTransactionCoordinator.js",
+      "backend/services/canonicalEventLedgerAuthority.js",
+      "backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinatorIntegrity.test.js",
+      "backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js",
+      "backend/tests/architectureClosureV2/wpA/canonicalEventLedgerAuthority.test.js",
+      "backend/tests/architectureClosureV2/wpA/schema22PostMergeIntegrityMigration.test.js",
+      "backend/tests/round12PlatformCoreAuthorities.test.js",
+      "governance/architecture-closure-v2/authority-registry.json",
+      "governance/architecture-closure-v2/wp-a-post-merge-defect-001.json",
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/acv2-work-package-scope-wiring.test.js",
+      "tests/wp0/implementation-branch-policy.test.js",
+      "tests/wp0/wp-a-post-merge-validation.test.js",
+      "tools/wp0/work-package-scope-gate.js"
+    ]
+  },
+  "closureConditions": [
+    "ALL_FOUR_DISCOVERED_ASSERTIONS_PASS",
+    "SCHEMA_21_TO_22_MIGRATION_PRESERVES_EXISTING_ROWS",
+    "UNVERIFIABLE_LEGACY_EVENT_CONTENT_FAILS_CLOSED",
+    "SOURCE_CLOSURE_VIOLATION_COUNT_IS_ZERO",
+    "PRE_MERGE_UBUNTU_AND_WINDOWS_FULL_MATRIX_GREEN",
+    "INDEPENDENT_REVIEW_P0_AND_P1_ARE_ZERO",
+    "MAIN_POST_MERGE_IDENTITY_UBUNTU_WINDOWS_AND_AGGREGATE_GATE_GREEN"
+  ],
+  "closureReceipt": {
+    "protocol": "yance-chatgpt-independent-review:v1",
+    "reviewId": 4840060266,
+    "reviewerMode": "CHATGPT_GITHUB_CONNECTED_SESSION",
+    "decision": "ALLOW_MERGE",
+    "reviewedCodeHead": "5bb961f91bfdb0ea481ea15e2ed0eb383801033e",
+    "closedAt": "2026-08-03T00:07:56.000Z",
+    "openP0": 0,
+    "openP1": 0,
+    "temporaryBypassDetected": false,
+    "missingEvidence": [],
+    "blockers": [],
+    "verifiedRuns": {
+      "acv2": {
+        "runId": 30773444249,
+        "ubuntuJobId": 91564489864,
+        "windowsJobId": 91564489852,
+        "sourceClosureJobId": 91564489853,
+        "conclusion": "success"
+      },
+      "wp0": {
+        "runId": 30773444262,
+        "productJobId": 91564515466,
+        "sealedExportUbuntuJobId": 91564515513,
+        "sealedExportWindowsJobId": 91564515468,
+        "aggregateJobId": 91564641937,
+        "conclusion": "success"
+      },
+      "wpAIntegration": {
+        "runId": 30773444239,
+        "identitySourceClosureJobId": 91564489910,
+        "ubuntuJobId": 91564489814,
+        "windowsJobId": 91564489856,
+        "aggregateJobId": 91564846224,
+        "conclusion": "success"
+      }
+    },
+    "scopeEvidence": {
+      "baseHead": "36631c1856b957c75d9fcf6359833a6169b093fc",
+      "reviewedChangedFileCount": 17,
+      "reviewedChangedFileSetSha256": "c329eee82384fa502342a6d11495019a41e86145a47ff8497e359215f7cf1f34",
+      "closedA8TaskScopeRemainsImmutable": true,
+      "detachedEvidenceUsesSameExactScope": true,
+      "sourceClosureViolationCount": 0
+    },
+    "verifiedInvariants": [
+      "NEW_RECEIPTS_REQUIRE_VERSIONED_COMMAND_AND_EVENT_CONTENT_HASHES_AT_DATABASE_BOUNDARY",
+      "HISTORICAL_UNVERIFIABLE_EVENT_CONTENT_FAILS_CLOSED",
+      "CANONICAL_RETENTION_CLASS_IS_PERSISTED_AND_RETURNED_BY_READ_MODEL",
+      "CANONICAL_PAYLOAD_IDENTIFIER_IS_ONE_TO_ONE",
+      "FOUR_IMMUTABLE_AUTHORITY_TABLES_REJECT_UPDATE_AND_DELETE",
+      "AUTHORITY_ASSIGNED_EVENT_TIME_HAS_STABLE_IDEMPOTENT_CONTENT_SEMANTICS",
+      "COMPLETED_SCHEMA_22_REENTRY_NEVER_WRITES_SCHEMA_21",
+      "A8_R1_EXACT_SCOPE_DOES_NOT_REOPEN_OR_EXPAND_CLOSED_A8_SCOPE",
+      "NO_TEST_REMOVAL_NO_MATRIX_REDUCTION_NO_SCANNER_WEAKENING_NO_TEMPORARY_BYPASS"
+    ],
+    "nextRequiredAction": "REVALIDATE_EXACT_CLOSURE_HEAD_BEFORE_READY_AND_MERGE"
+  },
+  "governance": {
+    "readyForPromotion": true,
+    "formalRelease": false,
+    "publish": false,
+    "wpBAuthorized": false,
+    "temporaryBypassAllowed": false,
+    "testRemovalAllowed": false,
+    "matrixReductionAllowed": false,
+    "scannerWeakeningAllowed": false
+  },
+  "scope": {
+    "mode": "POST_CLOSE_DEFECT_EXACT_FILES",
+    "parentClosedTask": "A8",
+    "parentClosureReceiptPath": "governance/architecture-closure-v2/wp-a-a8-closure.json",
+    "targetBranch": "stage/6.4.5.9-architecture-closure",
+    "baseHead": "36631c1856b957c75d9fcf6359833a6169b093fc",
+    "approvedChangedFileCount": 17,
+    "approvedChangedFileSetSha256": "c329eee82384fa502342a6d11495019a41e86145a47ff8497e359215f7cf1f34",
+    "exactPaths": [
+      ".github/workflows/wp-a-post-merge-validation.yml",
+      "backend/migrations/architectureClosureV2WpA.js",
+      "backend/migrations/architectureClosureV2WpAIntegrity.js",
+      "backend/services/authorityTransactionCoordinator.js",
+      "backend/services/canonicalEventLedgerAuthority.js",
+      "backend/tests/architectureClosureV2/wpA/authorityTransactionCoordinatorIntegrity.test.js",
+      "backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js",
+      "backend/tests/architectureClosureV2/wpA/canonicalEventLedgerAuthority.test.js",
+      "backend/tests/architectureClosureV2/wpA/schema22PostMergeIntegrityMigration.test.js",
+      "backend/tests/round12PlatformCoreAuthorities.test.js",
+      "governance/architecture-closure-v2/authority-registry.json",
+      "governance/architecture-closure-v2/wp-a-post-merge-defect-001.json",
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/acv2-work-package-scope-wiring.test.js",
+      "tests/wp0/implementation-branch-policy.test.js",
+      "tests/wp0/wp-a-post-merge-validation.test.js",
+      "tools/wp0/work-package-scope-gate.js"
+    ],
+    "detachedEvidenceUsesSameExactScope": true,
+    "closedA8TaskScopeRemainsImmutable": true
+  },
+  "independentReviewFindings": [
+    "DATABASE_MUST_REJECT_NEW_UNVERSIONED_OR_UNHASHED_RECEIPTS",
+    "AUTHORITY_ASSIGNED_EVENT_TIME_MUST_HAVE_CONCURRENTLY_STABLE_IDEMPOTENT_SEMANTICS",
+    "CLOSED_A8_SCOPE_MUST_REMAIN_IMMUTABLE_WHILE_POST_CLOSE_DEFECT_USES_A8_R1_SCOPE",
+    "COMPLETED_SCHEMA_22_REENTRY_MUST_NEVER_WRITE_SCHEMA_21",
+    "CANONICAL_EVENT_READ_MODEL_MUST_RETURN_PERSISTED_RETENTION_CLASS"
+  ]
+}

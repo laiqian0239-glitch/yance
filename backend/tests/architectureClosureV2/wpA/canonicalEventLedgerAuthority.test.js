@@ -119,6 +119,7 @@ test('canonical authority is the only append path and keeps business payload rep
     assert.equal(Object.isFrozen(replayable.payload.metadata), true);
     assert.throws(() => { replayable.payload.metadata.locale = 'en'; }, TypeError);
     assert.match(replayable.payloadSha256, /^[a-f0-9]{64}$/);
+    assert.equal(replayable.retentionClass, input.retentionClass);
 
     assert.equal(harness.evidence.length, 1);
     const evidenceText = JSON.stringify(harness.evidence[0]);

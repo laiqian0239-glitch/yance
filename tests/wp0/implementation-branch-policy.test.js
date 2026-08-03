@@ -12,10 +12,13 @@ const {
   authorizedImplementationBranchDescription,
   loadWorkPackageScopeAmendment,
   loadWorkPackageTaskScopeChain,
+  loadWorkPackagePostMergeDefect,
   isValidWorkPackageScopeAmendment,
   validateWorkPackageTaskScopeChain,
+  isValidWorkPackagePostMergeDefect,
   evaluateAuthorizedWorkPackageScope,
   evaluateAuthorizedWorkPackageTaskScope,
+  evaluateAuthorizedPostMergeDefectScope,
   workPackageChangedFilesSha256
 } = require('../../shared/release/implementationBranchPolicy');
 const { CURRENT_STAGE, currentBranch, checkRuntimeTargetGate } = require('../../tools/wp0/lib');
@@ -30,13 +33,13 @@ function authorization() {
   return JSON.parse(fs.readFileSync(AUTHORIZATION_PATH, 'utf8'));
 }
 
-function actualWorkPackageChangedFiles() {
+function changedFilesFrom(baseHead) {
   const output = execFileSync('git', [
     '-c',
     'core.quotePath=false',
     'diff',
     '--name-only',
-    PARENT_GOVERNANCE_HEAD,
+    baseHead,
     'HEAD',
     '--'
   ], {
@@ -44,6 +47,10 @@ function actualWorkPackageChangedFiles() {
     encoding: 'utf8'
   });
   return output.split(/\r?\n/u).map(value => value.trim()).filter(Boolean).sort();
+}
+
+function actualWorkPackageChangedFiles() {
+  return changedFilesFrom(PARENT_GOVERNANCE_HEAD);
 }
 
 function scopeAmendment(document, changedFiles) {
@@ -194,17 +201,36 @@ test('work-package scope requires an exact independently reviewed amendment', ()
   assert.equal(wrongCount.reasonCode, 'ACV2_CHANGED_FILE_SET_MISMATCH');
 });
 
-test('checked-out WP-A diff matches the exact active A8 task scope chain', () => {
+test('checked-out scope preserves immutable A8 closure and validates an exact post-close defect when present', () => {
   const document = authorization();
   const chain = loadWorkPackageTaskScopeChain();
   assert.ok(chain, 'task scope chain must exist and parse as JSON');
   assert.equal(validateWorkPackageTaskScopeChain(chain, document), true);
+  assert.equal(chain.activeTask, 'A8');
+  assert.equal(chain.status, 'A8_CLOSED');
 
   const closure = JSON.parse(fs.readFileSync(A6_CLOSURE_PATH, 'utf8'));
   assert.equal(closure.task, 'A6');
   assert.equal(closure.status, 'CLOSED');
   assert.equal(closure.frozenEvidenceBranchTip, chain.tasks[0].evidenceBranchTip);
   assert.equal(closure.governance.readyForPromotion, false);
+
+  const defect = loadWorkPackagePostMergeDefect();
+  if (defect && isValidWorkPackagePostMergeDefect(defect)) {
+    const changedFiles = changedFilesFrom(defect.scope.baseHead);
+    const result = evaluateAuthorizedPostMergeDefectScope({
+      branch: defect.scope.targetBranch,
+      changedFiles,
+      defect
+    });
+    assert.equal(result.pass, true, JSON.stringify(result));
+    assert.equal(result.defectId, 'WP-A-POST-MERGE-DEFECT-001');
+    assert.equal(result.changedFileSetSha256, defect.scope.approvedChangedFileSetSha256);
+    assert.equal(changedFiles.length, defect.scope.approvedChangedFileCount);
+    assert.deepEqual(result.unauthorizedPaths, []);
+    assert.equal(result.readyForPromotion, true);
+    return;
+  }
 
   const changedFiles = actualWorkPackageChangedFiles();
   const result = evaluateAuthorizedWorkPackageTaskScope({

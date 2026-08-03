@@ -1,6 +1,11 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const {
+  applyArchitectureClosureV2WpAIntegrity,
+  isArchitectureClosureV2WpAIntegrityApplied,
+  TARGET_SCHEMA_VERSION: INTEGRITY_TARGET_SCHEMA_VERSION
+} = require('./architectureClosureV2WpAIntegrity');
 
 const MIGRATION_ID = '021_architecture_closure_v2_wp_a';
 const TARGET_SCHEMA_VERSION = 21;
@@ -272,6 +277,20 @@ function ensureConsistency(db) {
   }
 }
 
+function architectureClosureResult(integrity) {
+  return {
+    migrationId: integrity.migrationId,
+    baseMigrationId: MIGRATION_ID,
+    targetSchemaVersion: integrity.targetSchemaVersion,
+    baseTargetSchemaVersion: TARGET_SCHEMA_VERSION,
+    checksum: integrity.checksum,
+    baseChecksum: MIGRATION_CHECKSUM,
+    bootstrapChecksum: BOOTSTRAP_CHECKSUM,
+    schemaContractVersion: 3,
+    legacyReceiptPolicy: integrity.legacyReceiptPolicy
+  };
+}
+
 function applyArchitectureClosureV2WpA(db) {
   ensureMigrationTable(db);
   const existing = db.prepare('SELECT * FROM r32_schema_migrations WHERE migration_id=?').get(MIGRATION_ID);
@@ -281,6 +300,10 @@ function applyArchitectureClosureV2WpA(db) {
     error.expectedChecksum = MIGRATION_CHECKSUM;
     error.actualChecksum = String(existing.checksum || '');
     throw error;
+  }
+  const integrityApplied = isArchitectureClosureV2WpAIntegrityApplied(db);
+  if (integrityApplied) {
+    return architectureClosureResult(applyArchitectureClosureV2WpAIntegrity(db));
   }
   ensureObjects(db);
   ensureConsistency(db);
@@ -303,18 +326,13 @@ function applyArchitectureClosureV2WpA(db) {
       SET target_schema_version=?,status='completed',checksum=?,completed_at=?,report_json=?
       WHERE migration_id=?`).run(TARGET_SCHEMA_VERSION,MIGRATION_CHECKSUM,at,report,MIGRATION_ID);
   }
-  return {
-    migrationId: MIGRATION_ID,
-    targetSchemaVersion: TARGET_SCHEMA_VERSION,
-    checksum: MIGRATION_CHECKSUM,
-    bootstrapChecksum: BOOTSTRAP_CHECKSUM,
-    schemaContractVersion: 2
-  };
+  return architectureClosureResult(applyArchitectureClosureV2WpAIntegrity(db));
 }
 
 module.exports = {
   MIGRATION_ID,
-  TARGET_SCHEMA_VERSION,
+  BASE_TARGET_SCHEMA_VERSION: TARGET_SCHEMA_VERSION,
+  TARGET_SCHEMA_VERSION: INTEGRITY_TARGET_SCHEMA_VERSION,
   BOOTSTRAP_DEFINITION,
   BOOTSTRAP_CHECKSUM,
   SCHEMA_CONTRACT,
