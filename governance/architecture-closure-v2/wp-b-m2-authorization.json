@@ -79,6 +79,7 @@
     "backend/services/executionDeadline.js",
     "backend/services/externalActionDispatcher.js",
     "backend/services/externalActionOutboxAuthority.js",
+    "backend/services/externalActionOutboxAuthorityCore.js",
     "backend/services/externalOutcomeReconciliation.js",
     "backend/services/facebookAdapter.js",
     "backend/services/facebookOAuthService.js",
@@ -190,6 +191,16 @@
       "addedPaths": [
         "backend/routes/system.js",
         "backend/services/mediaIntelligenceService.js"
+      ]
+    },
+    {
+      "amendmentId": "WP-B-M2-SCOPE-003",
+      "authorizedAt": "2026-08-04T04:27:00+07:00",
+      "approvedBy": "PROJECT_OWNER",
+      "approvalSource": "Project owner continuation instruction in the 独立软件工程审计 conversation",
+      "reasonCode": "WP_B_M2_CANONICAL_OUTBOX_SINGLETON_SPLIT",
+      "addedPaths": [
+        "backend/services/externalActionOutboxAuthorityCore.js"
       ]
     }
   ],
