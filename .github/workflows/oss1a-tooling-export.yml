@@ -9,7 +9,7 @@ on:
       - tests/wp0/oss1a-generate-minimal-ready-authority-blob.test.js
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   export:
@@ -19,7 +19,8 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
-          persist-credentials: false
+          fetch-depth: 0
+          persist-credentials: true
       - name: Generate and verify audited Backend host blob
         shell: bash
         run: |
@@ -44,3 +45,21 @@ jobs:
           path: artifact/
           if-no-files-found: error
           retention-days: 1
+      - name: Publish isolated candidate commit
+        shell: bash
+        env:
+          IMPLEMENTATION_PARENT: a24a8710d441cae37f6c6e9e5f04867a51abb00e
+          CANDIDATE_BRANCH: work/oss1a-backend-ready-authority-candidate
+        run: |
+          set -euo pipefail
+          test -z "$(git ls-remote --heads origin "refs/heads/${CANDIDATE_BRANCH}")"
+          git cat-file -e "${IMPLEMENTATION_PARENT}^{commit}"
+          git checkout --detach "${IMPLEMENTATION_PARENT}"
+          cp artifact/BackendProcessHost.js electron/desktopHost/BackendProcessHost.js
+          git add electron/desktopHost/BackendProcessHost.js
+          test "$(git diff --cached --name-only)" = "electron/desktopHost/BackendProcessHost.js"
+          git diff --cached --check
+          git config user.name "Yance OSS1A Tooling"
+          git config user.email "oss1a-tooling@users.noreply.github.com"
+          git commit -m "fix(oss1a): validate pre-ready FD6 authority in backend host"
+          git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
