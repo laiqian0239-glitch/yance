@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const {
   REPO_ROOT,
+  ALLOWED_BRANCH,
   EXPECTED_BASELINE_PROVENANCE_COMMIT,
   EXPECTED_BASELINE_ANCHOR_COMMIT,
   EXPECTED_BASELINE_ANCHOR_PATH,
@@ -15,8 +16,9 @@ const {
 } = require('../../tools/wp0/lib');
 
 test('freeze-rejected-baseline.test', () => {
-  const result = checkFreezePolicy();
+  const result = checkFreezePolicy({ branch: ALLOWED_BRANCH });
   assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.details.runtimeTargetGate.branch, ALLOWED_BRANCH);
 });
 
 test('portable repository archive anchor preserves the rejected baseline decision', () => {
