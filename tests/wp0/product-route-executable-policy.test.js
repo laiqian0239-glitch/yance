@@ -12,6 +12,11 @@ const OSS1A_BRANCH = 'oss/1a-baileys-lifecycle';
 const OSS1A_GOVERNANCE_BRANCH = 'governance/oss-1a-implementation-authorization';
 const OSS1A_DERIVED_GOVERNANCE_BRANCH = 'governance/oss1a-detached-evidence-binding';
 const OSS1A_IMPLEMENTATION_TIP = '1'.repeat(40);
+const DERIVED_GOVERNANCE_FILES = Object.freeze([
+  'tests/wp0/helpers/reviewedImplementationFixture.js',
+  'tests/wp0/product-route-executable-policy.test.js',
+  'tools/wp0/product-route-executable-policy.js'
+]);
 
 function registry(entries) {
   return {
@@ -62,11 +67,7 @@ function derivedGovernanceRecords(overrides = {}) {
     resolveRemoteTip: branch => branch === OSS1A_BRANCH ? OSS1A_IMPLEMENTATION_TIP : null,
     isAncestor: (base, head) => base === OSS1A_IMPLEMENTATION_TIP && head === 'HEAD',
     changedFilesFromBase: base => base === OSS1A_IMPLEMENTATION_TIP
-      ? [
-        'tests/wp0/helpers/reviewedImplementationFixture.js',
-        'tests/wp0/product-route-executable-policy.test.js',
-        'tools/wp0/product-route-executable-policy.js'
-      ]
+      ? [...DERIVED_GOVERNANCE_FILES]
       : [],
     ...overrides
   });
@@ -88,7 +89,7 @@ test('exact registered implementation and governance branches receive distinct r
   assert.equal(unknown.reasonCode, 'WP0_PRODUCT_ROUTE_BRANCH_ROLE_UNKNOWN');
 });
 
-test('derived governance verification branch requires one sealed work package and WP0-only diff', () => {
+test('derived governance verification branch requires one sealed work package and exact profile diff', () => {
   const derived = classifyProductRouteBranchRole(
     OSS1A_DERIVED_GOVERNANCE_BRANCH,
     derivedGovernanceRecords()
@@ -97,11 +98,7 @@ test('derived governance verification branch requires one sealed work package an
   assert.equal(derived.role, 'GOVERNANCE_NEGATIVE_PROOF');
   assert.equal(derived.workPackage, 'OSS-1A');
   assert.equal(derived.governanceBaseCommit, OSS1A_IMPLEMENTATION_TIP);
-  assert.deepEqual(derived.changedFiles, [
-    'tests/wp0/helpers/reviewedImplementationFixture.js',
-    'tests/wp0/product-route-executable-policy.test.js',
-    'tools/wp0/product-route-executable-policy.js'
-  ]);
+  assert.deepEqual(derived.changedFiles, [...DERIVED_GOVERNANCE_FILES]);
 
   const wrongToken = classifyProductRouteBranchRole(
     'governance/oss2-detached-evidence-binding',
@@ -125,6 +122,36 @@ test('derived governance verification branch requires one sealed work package an
   );
   assert.equal(unrelated.pass, false);
   assert.equal(unrelated.reasonCode, 'WP0_PRODUCT_ROUTE_BRANCH_ROLE_UNKNOWN');
+});
+
+test('derived governance profile rejects missing, extra executable, and wrong-purpose changes', () => {
+  const missing = classifyProductRouteBranchRole(
+    OSS1A_DERIVED_GOVERNANCE_BRANCH,
+    derivedGovernanceRecords({
+      changedFilesFromBase: () => DERIVED_GOVERNANCE_FILES.slice(0, 2)
+    })
+  );
+  assert.equal(missing.pass, false);
+  assert.equal(missing.reasonCode, 'WP0_PRODUCT_ROUTE_GOVERNANCE_SCOPE_INVALID');
+
+  const executableSurface = classifyProductRouteBranchRole(
+    OSS1A_DERIVED_GOVERNANCE_BRANCH,
+    derivedGovernanceRecords({
+      changedFilesFromBase: () => [
+        ...DERIVED_GOVERNANCE_FILES,
+        'tools/wp0/run-protected-command.js'
+      ]
+    })
+  );
+  assert.equal(executableSurface.pass, false);
+  assert.equal(executableSurface.reasonCode, 'WP0_PRODUCT_ROUTE_GOVERNANCE_SCOPE_INVALID');
+
+  const wrongPurpose = classifyProductRouteBranchRole(
+    'governance/oss1a-unrelated-policy-change',
+    derivedGovernanceRecords()
+  );
+  assert.equal(wrongPurpose.pass, false);
+  assert.equal(wrongPurpose.reasonCode, 'WP0_PRODUCT_ROUTE_BRANCH_ROLE_UNKNOWN');
 });
 
 test('invalid duplicate work-package registry fails before derived governance selection', () => {
