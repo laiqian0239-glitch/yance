@@ -20,13 +20,33 @@
   "approvedChangedFileCount": 29,
   "approvedChangedFileSetSha256": "90f97cbeb7021b9e2bbb80e5bb519c02c07f44df85ab905d619787af3308abe7",
   "verificationEvidence": {
-    "status": "PENDING_FINAL_RECEIPT_HEAD_VALIDATION",
+    "status": "PROVISIONAL_HEAD_VALIDATED",
+    "validatedGovernanceHead": "4e06641a5b22c1b1afba2b1a2185327809c6a772",
+    "receiptOnlyValidationPolicy": "REQUIRE_GITHUB_CHECKS_ON_FINAL_RECEIPT_COMMIT",
     "sourceSchema23Head": "12e6626a54866eeeab51281208579aa1292e123c",
     "schema23RuntimeTests": {
       "total": 13,
       "passed": 13,
       "failed": 0
     },
+    "oss1aWorkflowRunId": 30937408551,
+    "governanceContractJobId": 92086920329,
+    "runtimeJobDisposition": "SKIPPED_ON_GOVERNANCE_BRANCH",
+    "aggregateJobId": 92086994079,
+    "workflowContractTests": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    },
+    "permanentWp0RunId": 30937410415,
+    "wp0RouteJobId": 92086925896,
+    "productWp0JobId": 92087148473,
+    "sealedExportUbuntuJobId": 92087148457,
+    "sealedExportWindowsJobId": 92087148559,
+    "productWp0AggregateJobId": 92087444477,
+    "provenanceRunId": 30937410260,
+    "provenanceUbuntuJobId": 92086925482,
+    "provenanceWindowsJobId": 92086925551,
     "detachedEvidenceDiagnosticRunId": 30935944650,
     "detachedEvidenceDiagnosticReasonCode": "OSS_WORK_PACKAGE_CHANGED_FILE_SET_MISMATCH",
     "runtimeBehaviorChangedByGovernanceBaseline": false
