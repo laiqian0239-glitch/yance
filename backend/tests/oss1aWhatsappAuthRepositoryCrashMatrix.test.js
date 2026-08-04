@@ -220,3 +220,5 @@ test('writer promotion makes all prior writer calls stale with zero changes', ()
     assert.deepEqual(accountHash(store), beforeAccount);
   });
 });
+
+require('./oss1aWhatsappAuthStateStore.test');
