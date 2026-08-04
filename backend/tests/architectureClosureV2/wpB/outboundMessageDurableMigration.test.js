@@ -143,8 +143,8 @@ test('M2-OUT-003 physical channel client is frozen and fail-closed before a comp
     platform: 'telegram',
     facade: facadeFixture({
       egress: {
-        async execute(input) {
-          calls.push(input);
+        async execute(command, persistedContext) {
+          calls.push({ command, persistedContext });
           return {
             accepted: true,
             platformMessageId: 'platform-message-1',
@@ -193,8 +193,13 @@ test('M2-OUT-003 physical channel client is frozen and fail-closed before a comp
   }));
 
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].attemptId, 'attempt-outbound-3');
-  assert.equal(calls[0].fencingToken, 1);
+  assert.equal(Object.isFrozen(calls[0].command), true);
+  assert.equal(Object.isFrozen(calls[0].persistedContext), true);
+  assert.equal(calls[0].command.commandReference, 'command-ref-3');
+  assert.equal(Object.hasOwn(calls[0].command, 'attemptId'), false);
+  assert.equal(Object.hasOwn(calls[0].command, 'fencingToken'), false);
+  assert.equal(calls[0].persistedContext.attemptId, 'attempt-outbound-3');
+  assert.equal(calls[0].persistedContext.fencingToken, 1);
   assert.equal(result.platformMessageId, 'platform-message-1');
 });
 
