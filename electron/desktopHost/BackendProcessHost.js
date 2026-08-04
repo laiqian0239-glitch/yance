@@ -35,14 +35,6 @@ function sanitizedEnvironment(environment = {}) {
     if (/^(?:YANCE_)?(?:API|LOCAL_API|SESSION).*TOKEN$/i.test(key)) delete env[key];
   }
   delete env.apiSessionToken;
-
-  // The legacy safe-mode environment authority was retired when runtime_state
-  // became the single durable authority. A persistent user/machine variable,
-  // or an older launcher that still supplies the retired key with value "0",
-  // must not be
-  // inherited by a new backend generation. Presence alone is an obsolete
-  // authority input and has caused real Windows child boots to fail before the
-  // production server could expose diagnostics.
   delete env.YANCE_SAFE_MODE;
   return env;
 }
@@ -131,7 +123,6 @@ function waitForExit(child, timeoutMs) {
   });
 }
 
-
 function delay(ms) { return new Promise(resolve => setTimeout(resolve, Math.max(0, Number(ms || 0)))); }
 
 function probeBackendHttpReady({ port, token, path: requestPath = '/api/health', timeoutMs = 5000, retries = 0, retryDelayMs = 100 } = {}) {
@@ -149,8 +140,7 @@ function probeBackendHttpReady({ port, token, path: requestPath = '/api/health',
       res.resume();
       res.on('end', () => {
         if (res.statusCode >= 200 && res.statusCode < 500) return resolve({ ok: true, statusCode: res.statusCode, attempt, port: backendPort, path: requestPath });
-        const error = startupFailure('M1_BACKEND_READY_HEALTHCHECK_FAILED', 'Backend ready health check returned an invalid status', { statusCode: res.statusCode, attempt, port: backendPort, path: requestPath });
-        reject(error);
+        reject(startupFailure('M1_BACKEND_READY_HEALTHCHECK_FAILED', 'Backend ready health check returned an invalid status', { statusCode: res.statusCode, attempt, port: backendPort, path: requestPath }));
       });
     });
     req.once('timeout', () => {
@@ -160,7 +150,6 @@ function probeBackendHttpReady({ port, token, path: requestPath = '/api/health',
     req.once('error', error => reject(startupFailure('M1_BACKEND_READY_HEALTHCHECK_FAILED', 'Backend ready health check failed', { causeCode: error.code || '', causeMessage: error.message, attempt, port: backendPort, path: requestPath })));
     req.end();
   });
-
   return (async () => {
     let lastError = null;
     const maxRetries = Math.max(0, Number(retries || 0));
@@ -177,7 +166,6 @@ function probeBackendHttpReady({ port, token, path: requestPath = '/api/health',
     throw lastError;
   })();
 }
-
 
 function pathExists(filePath, fsApi = fs) {
   if (typeof filePath !== 'string' || filePath.length === 0) return false;
@@ -238,12 +226,8 @@ function validateBackendLaunchContract(options = {}, fsApi = fs) {
     throw startupFailure('M1_START_CONFIGURATION_INVALID', 'BackendProcessHost requires entry, cwd, and releaseStartupConfig');
   }
   const releaseStartupConfig = validateReleaseStartupConfig(options.releaseStartupConfig, fsApi);
-  if (!pathExists(options.cwd, fsApi)) {
-    throw startupFailure('M1_APP_ROOT_MISSING', 'Backend application root does not exist', { appRoot: options.cwd });
-  }
-  if (!pathExists(options.entry, fsApi)) {
-    throw startupFailure('M1_BACKEND_ENTRY_MISSING', 'Backend entry file does not exist', { backendEntryPath: options.entry });
-  }
+  if (!pathExists(options.cwd, fsApi)) throw startupFailure('M1_APP_ROOT_MISSING', 'Backend application root does not exist', { appRoot: options.cwd });
+  if (!pathExists(options.entry, fsApi)) throw startupFailure('M1_BACKEND_ENTRY_MISSING', 'Backend entry file does not exist', { backendEntryPath: options.entry });
   const nodeRuntimeExecutablePath = options.nodeRuntimeExecutablePath || options.execPath || '';
   if (!nodeRuntimeExecutablePath || !pathExists(nodeRuntimeExecutablePath, fsApi)) {
     throw startupFailure('M1_NODE_RUNTIME_MISSING', 'Backend Node runtime executable does not exist', { nodeRuntimeExecutablePath });
@@ -253,15 +237,13 @@ function validateBackendLaunchContract(options = {}, fsApi = fs) {
   if (nodeModulesPath && !firstExistingDelimitedPath(nodeModulesPath, fsApi)) {
     throw startupFailure('M1_NODE_MODULES_MISSING', 'Backend NODE_PATH does not contain an existing node_modules directory', { nodeModulesPath });
   }
-  const backendPort = normalizeBackendPort(options, env);
-  const readyTimeoutMs = normalizeReadyTimeoutMs(options);
   return Object.freeze({
     appRoot: options.cwd,
     backendEntryPath: options.entry,
     nodeRuntimeExecutablePath,
     nodeModulesPath,
-    backendPort,
-    readyTimeoutMs,
+    backendPort: normalizeBackendPort(options, env),
+    readyTimeoutMs: normalizeReadyTimeoutMs(options),
     releaseStartupConfig
   });
 }
@@ -273,14 +255,81 @@ function startupFailure(reasonCode, message, details = {}) {
   return error;
 }
 
+const CREDENTIAL_HANDSHAKE_FIELDS = Object.freeze([
+  'pid', 'startupNonce', 'vaultEpoch', 'generation', 'authorityEventId', 'authorityHeadDigest',
+  'vaultReferenceCount', 'decryptedEntryCount', 'frameEntryCount', 'entryCount', 'payloadBytes',
+  'restoredReferenceCount'
+]);
+const READY_AUTHORITY_RECEIPT_FIELDS = Object.freeze([
+  'accepted', 'mode', 'vaultEpoch', 'initialGeneration', 'readyGeneration', 'authorityEventId',
+  'authorityHeadDigest', 'referenceCount', 'payloadBytes', 'committedAdvanceCount',
+  'ownerSessionMatched', 'journalHeadMatched'
+]);
+
+function credentialHandshakeDifferences(message, expected) {
+  const missing = CREDENTIAL_HANDSHAKE_FIELDS.filter(field => !Object.prototype.hasOwnProperty.call(message || {}, field));
+  const mismatches = CREDENTIAL_HANDSHAKE_FIELDS.filter(field => Object.prototype.hasOwnProperty.call(message || {}, field) && message[field] !== expected[field]);
+  return Object.freeze({ missing, mismatches, exact: missing.length === 0 && mismatches.length === 0 });
+}
+
 function assertCredentialHandshakeBinding(message, expected, phase) {
-  const fields = ['pid', 'startupNonce', 'vaultEpoch', 'generation', 'authorityEventId', 'vaultReferenceCount', 'decryptedEntryCount', 'frameEntryCount', 'entryCount', 'payloadBytes', 'restoredReferenceCount'];
-  const missing = fields.filter(field => !Object.prototype.hasOwnProperty.call(message || {}, field));
-  const mismatches = fields.filter(field => Object.prototype.hasOwnProperty.call(message || {}, field) && message[field] !== expected[field]);
-  if (missing.length || mismatches.length) {
-    throw startupFailure('DESKTOP_CREDENTIAL_HYDRATION_ACK_MISMATCH', `Credential ${phase} metadata does not match the transmitted snapshot`, { missingFields: missing, mismatchedFields: mismatches });
+  const differences = credentialHandshakeDifferences(message, expected);
+  if (!differences.exact) {
+    throw startupFailure('DESKTOP_CREDENTIAL_HYDRATION_ACK_MISMATCH', `Credential ${phase} metadata does not match the transmitted snapshot`, {
+      missingFields: differences.missing,
+      mismatchedFields: differences.mismatches
+    });
   }
   return true;
+}
+
+function createInitialReadyAuthorityReceipt(readyMetadata, initialMetadata) {
+  return Object.freeze({
+    accepted: true,
+    mode: 'INITIAL_FD5_EXACT',
+    vaultEpoch: readyMetadata.vaultEpoch,
+    initialGeneration: initialMetadata.generation,
+    readyGeneration: readyMetadata.generation,
+    authorityEventId: readyMetadata.authorityEventId,
+    authorityHeadDigest: readyMetadata.authorityHeadDigest,
+    referenceCount: readyMetadata.vaultReferenceCount,
+    payloadBytes: readyMetadata.payloadBytes,
+    committedAdvanceCount: 0,
+    ownerSessionMatched: true,
+    journalHeadMatched: true
+  });
+}
+
+function assertReadyCredentialAuthorityReceipt(receipt, readyMetadata, initialMetadata) {
+  if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt) || !Object.isFrozen(receipt)) {
+    throw startupFailure('DESKTOP_CREDENTIAL_READY_AUTHORITY_RECEIPT_INVALID', 'Credential READY authority validator must return a frozen receipt');
+  }
+  const keys = Object.keys(receipt).sort();
+  const expectedKeys = [...READY_AUTHORITY_RECEIPT_FIELDS].sort();
+  if (keys.length !== expectedKeys.length || keys.some((key, index) => key !== expectedKeys[index])) {
+    throw startupFailure('DESKTOP_CREDENTIAL_READY_AUTHORITY_RECEIPT_INVALID', 'Credential READY authority receipt has an unexpected shape', { receiptFields: keys });
+  }
+  const mode = String(receipt.mode || '');
+  const advanced = mode === 'SAME_OWNER_PRE_READY_FD6_COMMITTED_ADVANCE';
+  const exact = mode === 'INITIAL_FD5_EXACT';
+  const generationAdvance = Number(readyMetadata.generation) - Number(initialMetadata.generation);
+  const valid = receipt.accepted === true
+    && (exact || advanced)
+    && receipt.vaultEpoch === readyMetadata.vaultEpoch
+    && Number(receipt.initialGeneration) === Number(initialMetadata.generation)
+    && Number(receipt.readyGeneration) === Number(readyMetadata.generation)
+    && receipt.authorityEventId === readyMetadata.authorityEventId
+    && receipt.authorityHeadDigest === readyMetadata.authorityHeadDigest
+    && Number(receipt.referenceCount) === Number(readyMetadata.vaultReferenceCount)
+    && Number(receipt.payloadBytes) === Number(readyMetadata.payloadBytes)
+    && receipt.ownerSessionMatched === true
+    && receipt.journalHeadMatched === true
+    && ((exact && generationAdvance === 0 && Number(receipt.committedAdvanceCount) === 0)
+      || (advanced && generationAdvance > 0 && Number(receipt.committedAdvanceCount) === generationAdvance));
+  if (!valid) {
+    throw startupFailure('DESKTOP_CREDENTIAL_READY_AUTHORITY_RECEIPT_INVALID', 'Credential READY authority receipt does not bind the current metadata to the initial FD5 boundary');
+  }
+  return receipt;
 }
 
 class BackendProcessHost {
@@ -344,7 +393,6 @@ class BackendProcessHost {
       restoredFromOwnerRegistry: true,
       markedAtUtc: new Date().toISOString()
     };
-
     if (probe.identityMatch === false) {
       this.ownerRegistryFailure = {
         reasonCode: 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_MISMATCH_RECOVERY_REQUIRED',
@@ -358,7 +406,6 @@ class BackendProcessHost {
       this._transition(PROCESS_STATES.STOPPED, 'orphan-owner-pid-reused-recovery-required', { backendPid: Number(record.backendPid || 0) });
       return;
     }
-
     if (probe.alive === true && probe.identityMatch === null) {
       this.ownerRegistryFailure = {
         reasonCode: 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_UNVERIFIED_RECOVERY_REQUIRED',
@@ -372,21 +419,12 @@ class BackendProcessHost {
       this._transition(PROCESS_STATES.STOPPING, 'orphan-owner-identity-unverified', { backendPid: Number(record.backendPid || 0), identityReasonCode: probe.reasonCode });
       return;
     }
-
     if (probe.alive === true) {
       this.rejectedOwner = Object.freeze({ ...base, reasonCode: 'WP4_DESKTOP_ORPHAN_OWNER_RESTORED' });
       this._transition(PROCESS_STATES.STOPPING, 'orphan-owner-restored', { backendPid: Number(record.backendPid || 0), identityReasonCode: probe.reasonCode });
       return;
     }
-
-    // A durable active-owner claim is never silently downgraded to "no owner".
-    // Even after liveness proves the process is gone, the record must be
-    // explicitly transitioned to RECOVERED before any replacement can start.
-    this.rejectedOwner = Object.freeze({
-      ...base,
-      reasonCode: 'WP4_DESKTOP_ORPHAN_OWNER_EXIT_RECOVERY_REQUIRED',
-      childStillLive: false
-    });
+    this.rejectedOwner = Object.freeze({ ...base, reasonCode: 'WP4_DESKTOP_ORPHAN_OWNER_EXIT_RECOVERY_REQUIRED', childStillLive: false });
     this._transition(PROCESS_STATES.STOPPED, 'orphan-owner-exit-recovery-required', { backendPid: Number(record.backendPid || 0), identityReasonCode: probe.reasonCode });
   }
 
@@ -422,11 +460,7 @@ class BackendProcessHost {
   }
 
   _recordFailure(reasonCode, child) {
-    this.lastFailure = Object.freeze({
-      reasonCode: reasonCode || 'DESKTOP_BACKEND_OPERATION_FAILED',
-      at: new Date().toISOString(),
-      backendPid: child?.pid || 0
-    });
+    this.lastFailure = Object.freeze({ reasonCode: reasonCode || 'DESKTOP_BACKEND_OPERATION_FAILED', at: new Date().toISOString(), backendPid: child?.pid || 0 });
   }
 
   _bindChildLifecycle(child, attempt) {
@@ -453,17 +487,11 @@ class BackendProcessHost {
         this.lastStartCancellation = Object.freeze({ reasonCode: attempt.error.reasonCode || 'DESKTOP_BACKEND_START_FAILED', source: 'backend:startup-failed', backendPid: child.pid || 0, at: new Date().toISOString(), observedAtMs: Date.now() });
         if (!attempt.abortController?.signal?.aborted) attempt.abortController?.abort?.(attempt.error);
         this._recordFailure(attempt.error.reasonCode, child);
-        if (this.child === child && this.state === PROCESS_STATES.STARTING) {
-          this._transition(PROCESS_STATES.START_FAILED, attempt.error.reasonCode, { backendPid: child.pid || 0 });
-        }
+        if (this.child === child && this.state === PROCESS_STATES.STARTING) this._transition(PROCESS_STATES.START_FAILED, attempt.error.reasonCode, { backendPid: child.pid || 0 });
       }
     };
     const onError = cause => {
-      if (!attempt.error) {
-        attempt.error = startupFailure('DESKTOP_BACKEND_CHILD_ERROR', 'Backend child emitted an asynchronous error', {
-          causeCode: cause?.code || '', backendPid: child.pid || 0
-        });
-      }
+      if (!attempt.error) attempt.error = startupFailure('DESKTOP_BACKEND_CHILD_ERROR', 'Backend child emitted an asynchronous error', { causeCode: cause?.code || '', backendPid: child.pid || 0 });
       attempt.cancelled = true;
       this.lastStartCancellation = Object.freeze({ reasonCode: attempt.error.reasonCode || 'DESKTOP_BACKEND_CHILD_ERROR', source: 'child-error', backendPid: child.pid || 0, at: new Date().toISOString(), observedAtMs: Date.now() });
       if (!attempt.abortController?.signal?.aborted) attempt.abortController?.abort?.(attempt.error);
@@ -487,23 +515,16 @@ class BackendProcessHost {
       const stateAtExit = this.state;
       const expected = stateAtExit === PROCESS_STATES.STOPPING || stateAtExit === PROCESS_STATES.START_FAILED;
       if (stateAtExit === PROCESS_STATES.STARTING && !attempt.error) {
-        attempt.error = startupFailure('DESKTOP_BACKEND_EXIT_DURING_START', 'Backend exited before startup handshake completed', {
-          backendPid: child.pid || 0,
-          exitCode: exitCode ?? null,
-          signalCode: signalCode || null
-        });
+        attempt.error = startupFailure('DESKTOP_BACKEND_EXIT_DURING_START', 'Backend exited before startup handshake completed', { backendPid: child.pid || 0, exitCode: exitCode ?? null, signalCode: signalCode || null });
       }
       if (attempt.error && !attempt.abortController?.signal?.aborted) attempt.abortController?.abort?.(attempt.error);
       this.lastExit = Object.freeze({ backendPid: child.pid || 0, exitCode: exitCode ?? null, signalCode: signalCode || null, expected, at: new Date().toISOString() });
       if (this.child !== child) return;
-      if (stateAtExit === PROCESS_STATES.STOPPING) {
-        this._transition(PROCESS_STATES.STOPPED, 'child-exited-after-stop', { backendPid: child.pid || 0, exitCode, signalCode });
-      } else if (stateAtExit === PROCESS_STATES.STARTING) {
+      if (stateAtExit === PROCESS_STATES.STOPPING) this._transition(PROCESS_STATES.STOPPED, 'child-exited-after-stop', { backendPid: child.pid || 0, exitCode, signalCode });
+      else if (stateAtExit === PROCESS_STATES.STARTING) {
         this._recordFailure('DESKTOP_BACKEND_EXIT_DURING_START', child);
         this._transition(PROCESS_STATES.START_FAILED, 'DESKTOP_BACKEND_EXIT_DURING_START', { backendPid: child.pid || 0, exitCode, signalCode });
-      } else if (stateAtExit !== PROCESS_STATES.START_FAILED) {
-        this._transition(PROCESS_STATES.CRASHED, 'unexpected-child-exit', { backendPid: child.pid || 0, exitCode, signalCode });
-      }
+      } else if (stateAtExit !== PROCESS_STATES.START_FAILED) this._transition(PROCESS_STATES.CRASHED, 'unexpected-child-exit', { backendPid: child.pid || 0, exitCode, signalCode });
       const ownerContext = this.session?.ownerContext || attempt.ownerContext || null;
       this.credentialIpcHost.close();
       this.credentialCustodyHost?.close?.();
@@ -518,11 +539,8 @@ class BackendProcessHost {
       if (this.rejectedOwner && Number(this.rejectedOwner.backendPid || 0) === Number(child.pid || 0)) {
         this.rejectedOwner = Object.freeze({ ...this.rejectedOwner, childStillLive: false, exitedAtUtc: new Date().toISOString(), exitCode: exitCode ?? null, signalCode: signalCode || null });
       }
-      try {
-        this.ownerRegistry.markExited({ exitCode, signalCode, reasonCode: expected ? 'OWNER_EXIT_CONFIRMED' : 'OWNER_EXIT_UNEXPECTED' });
-      } catch (registryCause) {
-        this.ownerRegistryFailure = { reasonCode: 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_EXIT_WRITE_FAILED', message: registryCause.message, atUtc: new Date().toISOString() };
-      }
+      try { this.ownerRegistry.markExited({ exitCode, signalCode, reasonCode: expected ? 'OWNER_EXIT_CONFIRMED' : 'OWNER_EXIT_UNEXPECTED' }); }
+      catch (registryCause) { this.ownerRegistryFailure = { reasonCode: 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_EXIT_WRITE_FAILED', message: registryCause.message, atUtc: new Date().toISOString() }; }
       this.orphanOwnerRecord = this.ownerRegistry.snapshot();
       this.child = null;
       this.session = null;
@@ -547,20 +565,15 @@ class BackendProcessHost {
     const attempt = this.startAttempt;
     if (this.state !== PROCESS_STATES.STARTING || !attempt) return false;
     attempt.cancelled = true;
-    if (!attempt.error) {
-      attempt.error = startupFailure(reasonCode, message, { backendPid: this.child?.pid || 0 });
-    }
+    if (!attempt.error) attempt.error = startupFailure(reasonCode, message, { backendPid: this.child?.pid || 0 });
     this.lastStartCancellation = Object.freeze({ reasonCode: attempt.error.reasonCode || reasonCode, source: 'host-cancel', backendPid: this.child?.pid || 0, at: new Date().toISOString(), observedAtMs: Date.now() });
     if (!attempt.abortController?.signal?.aborted) attempt.abortController?.abort?.(attempt.error);
     return true;
   }
 
-
   _disposeChildHandles(child) {
     if (!child) return;
-    for (const stream of child.stdio || []) {
-      try { stream?.destroy?.(); } catch (_) {}
-    }
+    for (const stream of child.stdio || []) { try { stream?.destroy?.(); } catch (_) {} }
     try { if (child.connected) child.disconnect(); } catch (_) {}
   }
 
@@ -569,9 +582,7 @@ class BackendProcessHost {
     const deadline = Date.now() + Math.max(100, Number(timeoutMs || 2000));
     while (Date.now() < deadline) {
       if (attempt.error) throw attempt.error;
-      if (attempt.exit || processExited(child)) {
-        throw startupFailure('DESKTOP_BACKEND_EXIT_DURING_START', 'Backend exited before exposing a valid PID', { backendPid: child?.pid || 0 });
-      }
+      if (attempt.exit || processExited(child)) throw startupFailure('DESKTOP_BACKEND_EXIT_DURING_START', 'Backend exited before exposing a valid PID', { backendPid: child?.pid || 0 });
       if (Number.isInteger(child?.pid) && child.pid > 0) return child.pid;
       await new Promise(resolve => setTimeout(resolve, 5));
     }
@@ -590,47 +601,31 @@ class BackendProcessHost {
         signal?.removeEventListener?.('abort', onAbort);
         if (error) reject(error); else resolve();
       };
-      const onError = cause => {
-        const error = startupFailure('DESKTOP_STARTUP_PIPE_WRITE_FAILED', `Dedicated backend startup pipe failed: ${cause.message}`, { cause });
-        finish(error);
-      };
+      const onError = cause => finish(startupFailure('DESKTOP_STARTUP_PIPE_WRITE_FAILED', `Dedicated backend startup pipe failed: ${cause.message}`, { cause }));
       const onAbort = () => {
         const reason = signal?.reason;
-        finish(reason instanceof Error
-          ? reason
-          : startupFailure('DESKTOP_BACKEND_START_CANCELLED', 'Backend startup was cancelled while writing the startup frame'));
+        finish(reason instanceof Error ? reason : startupFailure('DESKTOP_BACKEND_START_CANCELLED', 'Backend startup was cancelled while writing the startup frame'));
       };
-      const timer = setTimeout(() => finish(startupFailure('DESKTOP_STARTUP_PIPE_WRITE_TIMEOUT', 'Timed out writing dedicated backend startup frame')), Math.max(100, Number(timeoutMs || 5000)));
-      if (signal?.aborted) return onAbort();
-      signal?.addEventListener?.('abort', onAbort, { once: true });
+      const timer = setTimeout(() => finish(startupFailure('DESKTOP_STARTUP_PIPE_WRITE_TIMEOUT', 'Dedicated backend startup pipe write timed out')), Math.max(100, Number(timeoutMs || 10000)));
       controlPipe.once?.('error', onError);
+      signal?.addEventListener?.('abort', onAbort, { once: true });
+      if (signal?.aborted) return onAbort();
       try {
-        controlPipe.end(encoded, error => error ? onError(error) : finish());
+        controlPipe.write(encoded, error => {
+          if (error) return onError(error);
+          try { controlPipe.end(); } catch (_) {}
+          finish();
+        });
       } catch (cause) { onError(cause); }
     });
   }
 
-  async _terminateAndWait(child, options = {}) {
-    const gracefulMs = Math.max(25, Number(options.gracefulMs || options.timeoutMs || 7000));
-    const forceMs = Math.max(25, Number(options.forceMs || 3000));
-    if (processExited(child)) return { exited: true, exitConfirmed: true, forced: false, exitCode: child?.exitCode ?? null, signalCode: child?.signalCode ?? null };
-    let termAccepted = false;
-    try { termAccepted = child.kill('SIGTERM') !== false; } catch (_) {}
-    let result = await waitForExit(child, gracefulMs);
-    if (result.exited) return { ...result, exitConfirmed: true, forced: false, termAccepted };
-    let killAccepted = false;
-    try { killAccepted = child.kill('SIGKILL') !== false; } catch (_) {}
-    result = await waitForExit(child, forceMs);
-    if (!result.exited) {
-      throw startupFailure(killAccepted ? 'DESKTOP_BACKEND_FORCE_EXIT_TIMEOUT' : 'DESKTOP_BACKEND_SIGKILL_FAILED', 'Backend process remained alive after forced termination', { backendPid: child.pid || 0 });
-    }
-    return { ...result, exitConfirmed: true, forced: true, termAccepted, killAccepted };
-  }
-
-  _waitForChildMessage(child, attempt, predicate, timeoutMs, timeoutReasonCode) {
+  async _waitForChildMessage(child, predicate, options = {}) {
+    const timeoutMs = Math.max(25, Number(options.timeoutMs || 10000));
+    const signal = options.signal || null;
+    const phase = options.phase || 'startup handshake';
     return new Promise((resolve, reject) => {
       let settled = false;
-      const signal = attempt?.abortController?.signal || null;
       const finish = (error, message) => {
         if (settled) return;
         settled = true;
@@ -639,886 +634,637 @@ class BackendProcessHost {
         child.removeListener?.('exit', onExit);
         child.removeListener?.('error', onError);
         signal?.removeEventListener?.('abort', onAbort);
-        error ? reject(error) : resolve(message);
+        if (error) reject(error); else resolve(message);
       };
       const onMessage = message => {
-        if (message?.type === 'backend:startup-failed') {
-          const error = startupFailure(message.reasonCode || message.code || 'DESKTOP_BACKEND_START_FAILED', message.message || 'Backend startup failed', {
-            backendPid: child.pid || 0,
-            phase: String(message.phase || ''),
-            stackHash: String(message.stackHash || ''),
-            causeCodeHash: String(message.causeCodeHash || ''),
-            runtimeSubphase: String(message.runtimeSubphase || '')
-          });
-          error.phase = String(message.phase || '');
-          error.stackHash = String(message.stackHash || '');
-          error.causeCodeHash = String(message.causeCodeHash || '');
-          error.runtimeSubphase = String(message.runtimeSubphase || '');
-          return finish(error);
-        }
-        if (predicate(message)) finish(null, message);
+        if (message?.type === 'backend:startup-failed') return finish(startupFailure(message.reasonCode || message.code || 'DESKTOP_BACKEND_START_FAILED', message.message || `Backend reported startup failure during ${phase}`, { backendPid: child.pid || 0, phase: message.phase || '' }));
+        let accepted = false;
+        try { accepted = predicate(message); } catch (cause) { return finish(cause); }
+        if (accepted) finish(null, message);
       };
-      const onExit = (code, signal) => finish(startupFailure('DESKTOP_BACKEND_EXIT_DURING_START', 'Backend exited before startup handshake completed', { backendPid: child.pid || 0, exitCode: code, signalCode: signal || null }));
-      const onError = cause => finish(startupFailure('DESKTOP_BACKEND_CHILD_ERROR', cause.message, { backendPid: child.pid || 0, causeCode: cause.code || '' }));
+      const onExit = (exitCode, signalCode) => finish(startupFailure('DESKTOP_BACKEND_EXIT_DURING_START', `Backend exited before ${phase} completed`, { backendPid: child.pid || 0, exitCode: exitCode ?? null, signalCode: signalCode || null }));
+      const onError = cause => finish(startupFailure('DESKTOP_BACKEND_CHILD_ERROR', `Backend child failed during ${phase}`, { backendPid: child.pid || 0, causeCode: cause?.code || '' }));
       const onAbort = () => {
-        const reason = signal?.reason || attempt?.error;
-        finish(reason instanceof Error
-          ? reason
-          : startupFailure('DESKTOP_BACKEND_START_CANCELLED', 'Backend startup handshake was cancelled', { backendPid: child.pid || 0 }));
+        const reason = signal?.reason;
+        finish(reason instanceof Error ? reason : startupFailure('DESKTOP_BACKEND_START_CANCELLED', `Backend startup was cancelled during ${phase}`, { backendPid: child.pid || 0 }));
       };
-      const timer = setTimeout(() => finish(startupFailure(timeoutReasonCode, `Timed out waiting for backend handshake: ${timeoutReasonCode}`, { backendPid: child.pid || 0 })), Math.max(100, Number(timeoutMs || 10000)));
-      if (signal?.aborted) return onAbort();
-      signal?.addEventListener?.('abort', onAbort, { once: true });
+      const timer = setTimeout(() => finish(startupFailure('DESKTOP_BACKEND_START_TIMEOUT', `Backend did not complete ${phase} before timeout`, { backendPid: child.pid || 0, timeoutMs })), timeoutMs);
       child.on?.('message', onMessage);
       child.once?.('exit', onExit);
       child.once?.('error', onError);
-      if (attempt.error) finish(attempt.error);
+      signal?.addEventListener?.('abort', onAbort, { once: true });
+      if (signal?.aborted) onAbort();
+      for (const message of child.__desktopHostLifecycleMessages || []) {
+        if (settled) break;
+        onMessage(message);
+      }
     });
   }
 
-  async _startUnlocked(options = {}) {
-    if ((this.autoRecoverRejectedOwner || options.autoRecoverRejectedOwner === true) && (this.rejectedOwner || this.ownerRegistryFailure)) {
-      await this._recoverRejectedOwnerForStartUnlocked(options);
+  async _resolveCredentialSnapshot(options, context) {
+    const hasVaultHost = options.credentialVaultHost && typeof options.credentialVaultHost.createHydrationFrame === 'function';
+    const createSnapshot = hasVaultHost
+      ? input => options.credentialVaultHost.createHydrationFrame(input)
+      : (typeof options.createCredentialSnapshot === 'function' ? options.createCredentialSnapshot : null);
+    const credentialHandshakeRequired = options.credentialHandshakeRequired !== false;
+    if (!createSnapshot) {
+      if (credentialHandshakeRequired) throw startupFailure('DESKTOP_CREDENTIAL_VAULT_HOST_REQUIRED', 'Backend startup requires the CredentialVaultHost FD5 frame authority');
+      return null;
     }
-    if (this.ownerRegistryFailure) throw startupFailure(this.ownerRegistryFailure.reasonCode || 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_INVALID', 'Backend owner registry is unavailable; refusing to create a new credential owner', { registryFailure: this.ownerRegistryFailure });
-    if (this.rejectedOwner) throw startupFailure(this.rejectedOwner.childStillLive ? 'WP4_DESKTOP_REJECTED_OWNER_STILL_LIVE' : 'WP4_DESKTOP_REJECTED_OWNER_RECOVERY_REQUIRED', 'A rejected or orphaned backend owner must be recovered before replacement', { rejectedOwner: this.rejectedOwner });
-    if (this.child && !processExited(this.child)) throw startupFailure('DESKTOP_BACKEND_ALREADY_RUNNING', 'A backend process is already owned by DesktopHost');
+    const created = await createSnapshot(context);
+    if (!created) {
+      if (credentialHandshakeRequired) throw startupFailure('DESKTOP_CREDENTIAL_VAULT_HOST_REQUIRED', 'CredentialVaultHost did not provide an FD5 frame');
+      return null;
+    }
+    const frame = created.frame || created;
+    const resetAuthorization = created.resetAuthorization || null;
+    const ownerSession = created.ownerSession || null;
+    return Object.freeze({ frame, resetAuthorization, ownerSession, source: hasVaultHost ? 'CredentialVaultHost' : 'custom' });
+  }
 
-    this._transition(PROCESS_STATES.STARTING, 'start-requested', {
-      backendEntryPath: options.entry || '',
-      appRoot: options.cwd || '',
-      nodeRuntimeExecutablePath: options.nodeRuntimeExecutablePath || options.execPath || '',
-      nodeModulesPath: options.nodeModulesPath || options.env?.NODE_PATH || ''
-    });
-    const apiSessionToken = createApiSessionToken(this.randomBytes);
-    const startupAttemptId = this.randomUUID();
-    const startupNonce = this.randomUUID();
-    const backendSessionId = this.randomUUID();
-    const fd6PipeInstanceId = this.randomUUID();
-    const credentialOneTimeToken = createCredentialOneTimeToken(this.randomBytes);
-    const defaultOwnerExitRecovery = options.credentialVaultHost && typeof options.credentialVaultHost.handleBackendOwnerExit === 'function'
-      ? ownerContext => options.credentialVaultHost.handleBackendOwnerExit(ownerContext)
-      : null;
-    const attempt = {
-      startupAttemptId,
-      startupNonce,
-      backendSessionId,
-      fd6PipeInstanceId,
-      cancelled: false,
-      error: null,
-      exit: null,
-      listeners: null,
-      ownerContext: null,
-      abortController: new AbortController(),
-      handleBackendOwnerExit: options.handleBackendOwnerExit || defaultOwnerExitRecovery
-    };
-    this.startAttempt = attempt;
-    const stdio = ['ignore', 'pipe', 'pipe', 'ipc', 'pipe', 'pipe', 'pipe'];
-    let child;
-    let childOutputTail = null;
-    let launchContract = null;
-    try {
-      launchContract = validateBackendLaunchContract(options, options.fs || fs);
-      const sanitizedEnv = sanitizedEnvironment(options.env);
-      delete sanitizedEnv.ELECTRON_RUN_AS_NODE;
-      this.log('backend-process-launch-contract', {
-        nodeRuntimeExecutablePath: launchContract.nodeRuntimeExecutablePath,
-        backendEntryPath: launchContract.backendEntryPath,
-        appRoot: launchContract.appRoot,
-        nodeModulesPath: launchContract.nodeModulesPath || '',
-        dataDir: sanitizedEnv.YANCE_DATA_DIR || '',
-        port: sanitizedEnv.YANCE_PORT || '',
-        electronRunAsNode: Object.prototype.hasOwnProperty.call(sanitizedEnv, 'ELECTRON_RUN_AS_NODE') ? 'present' : 'absent'
-      });
-      // Credential custody transport: use an explicit net pipe instead of the
-      // inherited stdio fd. On Windows the child->parent stdio fd never reaches
-      // the parent under child_process fork/spawn, so custody frames would be
-      // lost. The parent opens a net.Server on a name derived from
-      // fd6PipeInstanceId; the child connects to the same name. The host is
-      // created lazily when the child actually connects to the pipe.
-      const custodyPipeName = deriveCustodyPipeName(fd6PipeInstanceId);
-      if (this.credentialCustodyServer) { try { this.credentialCustodyServer.close(); } catch (_) {} this.credentialCustodyServer = null; }
-      this.credentialCustodyHost = null;
-      let resolveCustodyConnection = null;
-      let rejectCustodyConnection = null;
-      const custodyConnectionPromise = new Promise((resolve, reject) => {
-        resolveCustodyConnection = resolve;
-        rejectCustodyConnection = reject;
-      });
-      // A rejected startup can complete before the child connects. Attach a
-      // handler immediately so a later server/socket error never becomes an
-      // unhandled rejection while the normal startup catch path tears down.
-      custodyConnectionPromise.catch(() => {});
-      if (Boolean(options.credentialVaultHost)) {
-        const custodyServer = this.createCredentialCustodyServer();
-        if (!custodyServer || typeof custodyServer.listen !== 'function' || typeof custodyServer.on !== 'function') {
-          throw startupFailure('DESKTOP_CREDENTIAL_CUSTODY_PIPE_UNAVAILABLE', 'Credential custody server factory returned an invalid server');
-        }
-        this.credentialCustodyServer = custodyServer;
-        custodyServer.once('error', error => rejectCustodyConnection(error));
-        custodyServer.on('connection', socket => {
-          if (this.credentialCustodyHost) {
-            try { socket.destroy(); } catch (_) {}
-            return;
-          }
-          try {
-            this.credentialCustodyHost = new CredentialCustodyHost({
-              stream: socket,
-              vaultHost: options.credentialVaultHost,
-              context: {
-                backendPid: child.pid,
-                startupNonce,
-                backendSessionId,
-                fd6PipeInstanceId,
-                manifestSha256: options.releaseStartupConfig.manifestSha256,
-                vaultEpoch: credentialFrame.vaultEpoch,
-                generation: credentialFrame.generation,
-                hydrationGeneration: credentialFrame.generation
-              }
-            });
-            resolveCustodyConnection(this.credentialCustodyHost);
-          } catch (error) {
-            try { socket.destroy(); } catch (_) {}
-            rejectCustodyConnection(error);
-          }
-        });
-        await new Promise((resolve, reject) => {
-          const onListenError = error => reject(error);
-          custodyServer.once('error', onListenError);
-          custodyServer.listen(custodyPipeName, () => { custodyServer.removeListener('error', onListenError); resolve(); });
-        }).catch(error => { throw startupFailure('DESKTOP_CREDENTIAL_CUSTODY_PIPE_UNAVAILABLE', 'Failed to open credential custody pipe', { cause: error }); });
-        // The listening socket must NOT keep the host process alive on its own.
-        // It is closed explicitly on stop/teardown; unref() guarantees the event loop
-        // can drain (e.g. in tests, or if a stop path is missed) once every other
-        // handle is released. The server still accepts connections normally.
-        custodyServer.unref();
-      }
-      const runtimeProbe = this.probeNodeRuntime(launchContract.nodeRuntimeExecutablePath, {
-        cwd: options.cwd,
-        env: sanitizedEnv,
-        timeoutMs: options.nodeRuntimeProbeTimeoutMs || 5000
-      });
-      this.log('backend-node-runtime-preflight-pass', {
-        nodeRuntimeExecutablePath: launchContract.nodeRuntimeExecutablePath,
-        nodeRuntimeVersion: runtimeProbe.version
-      });
-      this.log('backend-process-fork-dispatch', {
-        nodeRuntimeExecutablePath: launchContract.nodeRuntimeExecutablePath,
-        backendEntryPath: options.entry,
-        appRoot: options.cwd,
-        inheritedElectronExecArgvCount: Array.isArray(process.execArgv) ? process.execArgv.length : 0,
-        backendExecArgvCount: 0
-      });
-      child = this.fork(options.entry, [], {
-        execPath: launchContract.nodeRuntimeExecutablePath,
-        execArgv: [],
-        cwd: options.cwd,
-        env: sanitizedEnv,
-        stdio,
-        windowsHide: options.windowsHide !== false,
-        windowsVerbatimArguments: false,
-        serialization: 'json'
-      });
-      this.log('backend-process-fork-returned', {
-        backendPid: Number(child?.pid || 0),
-        nodeRuntimeExecutablePath: launchContract.nodeRuntimeExecutablePath,
-        backendEntryPath: options.entry
-      });
-      if (!child || typeof child.on !== 'function') throw startupFailure('DESKTOP_BACKEND_CHILD_INVALID', 'fork did not return a ChildProcess-compatible object');
-
-      // Ownership and critical listeners must be installed before PID inspection,
-      // pipe access, or any other initialization that can throw. Node may return
-      // a ChildProcess with no PID and emit ENOENT asynchronously.
-      this.child = child;
-      this._bindChildLifecycle(child, attempt);
-      childOutputTail = createChildOutputTail(options.childOutputTailBytes || 8192);
-      childOutputTail.attach(child);
-      attempt.childOutputTail = childOutputTail;
-      for (const stream of child.stdio || []) stream?.on?.('error', () => {});
-      await this._awaitSpawnIdentity(child, attempt, options.spawnIdentityTimeoutMs);
-      this._assertStartStillValid(child, attempt, 'after-lifecycle-bind');
-      this.ownerRegistry.register({
-        state: 'SPAWNED',
-        ownershipActive: true,
-        trusted: false,
-        backendPid: child.pid,
-        startupNonce,
-        backendSessionId,
-        fd6PipeInstanceId,
-        reasonCode: 'BACKEND_SPAWNED'
-      });
-      this.orphanOwnerRecord = this.ownerRegistry.snapshot();
-
-      const controlPipe = child.stdio?.[CONTROL_PIPE_FD];
-      const credentialPipe = child.stdio?.[CREDENTIAL_PIPE_FD];
-      if (!controlPipe || typeof controlPipe.end !== 'function') throw startupFailure('DESKTOP_STARTUP_PIPE_UNAVAILABLE', 'Dedicated backend startup pipe is unavailable');
-
-      let prepared;
-      if (typeof options.createCredentialSnapshot === 'function') {
-        prepared = await options.createCredentialSnapshot({
-          startupNonce,
-          oneTimeToken: credentialOneTimeToken,
-          backendPid: child.pid,
-          manifestSha256: options.releaseStartupConfig.manifestSha256,
-          backendSessionId,
-          fd6PipeInstanceId
-        });
-      } else {
-        this.defaultCredentialGeneration += 1;
-        prepared = { frame: makeCredentialFrame({ startupNonce, oneTimeToken: credentialOneTimeToken, backendPid: child.pid, manifestSha256: options.releaseStartupConfig.manifestSha256, vaultEpoch: this.defaultCredentialVaultEpoch, generation: this.defaultCredentialGeneration, authorityEventId: `default:${startupNonce}`, authorityHeadDigest: crypto.createHash('sha256').update(`default:${startupNonce}:${this.defaultCredentialGeneration}`).digest('hex'), vaultReferenceCount: 0, decryptedEntryCount: 0, entries: [] }), resetAuthorization: null };
-      }
-      const credentialFrame = prepared?.frame || prepared;
-      const resetAuthorization = prepared?.resetAuthorization || null;
-      const ownerContext = Object.freeze(prepared?.ownerSession || {
-        backendPid: child.pid, startupNonce, backendSessionId, manifestSha256: options.releaseStartupConfig.manifestSha256,
-        vaultEpoch: credentialFrame.vaultEpoch, hydrationGeneration: credentialFrame.generation, fd6PipeInstanceId
-      });
-      attempt.ownerContext = ownerContext;
-      this.ownerRegistry.update({ state: 'STARTING', ownerSession: ownerContext, reasonCode: 'CREDENTIAL_OWNER_SESSION_CREATED' });
-      this.orphanOwnerRecord = this.ownerRegistry.snapshot();
-      const requireHandshake = options.credentialHandshakeRequired === true;
-      const shouldDeliverCredentialSnapshot = requireHandshake || options.credentialSnapshotRequired === true || options.credentialFrameRequired === true;
-      const custodyVaultAvailable = Boolean(options.credentialVaultHost);
-      // The custody pipe is now an explicit net pipe (this.credentialCustodyServer,
-      // opened above) rather than the inherited stdio fd. The host is created
-      // lazily when the child connects to that pipe.
-      if (requireHandshake && !custodyVaultAvailable) {
-        throw startupFailure('CREDENTIAL_VAULT_UNAVAILABLE', 'CredentialVaultHost is required for the custody channel');
-      }
-      if (requireHandshake && !this.credentialCustodyServer) {
-        throw startupFailure('DESKTOP_CREDENTIAL_CUSTODY_PIPE_UNAVAILABLE', 'Dedicated credential custody pipe is unavailable');
-      }
-      const hydrationPromise = requireHandshake ? this._waitForChildMessage(child, attempt, message => message?.type === 'backend:credential-hydrated', options.credentialTimeoutMs || CREDENTIAL_HYDRATION_TIMEOUT_MS + 3000, 'DESKTOP_CREDENTIAL_HYDRATION_TIMEOUT') : null;
-      const readyPromise = requireHandshake ? this._waitForChildMessage(child, attempt, message => message?.type === 'backend:ready', options.readyTimeoutMs || 30000, 'DESKTOP_BACKEND_READY_TIMEOUT') : null;
-      hydrationPromise?.catch?.(() => {});
-      readyPromise?.catch?.(() => {});
-      const handshakePromise = requireHandshake ? Promise.all([hydrationPromise, readyPromise]) : null;
-      handshakePromise?.catch?.(() => {});
-      const releaseContract = launchContract.releaseStartupConfig;
-      const backendPort = launchContract.backendPort;
-      const readyTimeoutMs = launchContract.readyTimeoutMs;
-      const logRoot = String(options.logRoot || sanitizedEnv.YANCE_LOG_DIR || path.dirname(String(options.logPath || path.join(launchContract.appRoot, 'logs', 'backend.jsonl'))));
-      const backendLogPath = String(options.backendLogPath || options.logPath || path.join(logRoot, 'backend.jsonl'));
-      const desktopLogPath = String(options.desktopLogPath || path.join(logRoot, 'desktop.jsonl'));
-      const encoded = this.encodeStartupFrame({
-        protocolVersion: STARTUP_PROTOCOL_VERSION,
-        startupFrameProtocolVersion: STARTUP_FRAME_PROTOCOL_VERSION,
-        m1StartupContractVersion: M1_STARTUP_CONTRACT_VERSION,
-        readyProtocolVersion: READY_PROTOCOL_VERSION,
-        startupAttemptId,
-        startupNonce,
-        apiSessionToken,
-        backendPid: child.pid,
-        resourcesPath: releaseContract.resourcesPath,
-        expectedBuildId: releaseContract.expectedBuildId,
-        manifestSha256: releaseContract.manifestSha256,
-        releaseManifestPath: releaseContract.releaseManifestPath || releaseContract.manifestPath || path.join(releaseContract.resourcesPath, 'release-manifest.json'),
-        releaseManifestSha256Path: releaseContract.releaseManifestSha256Path || releaseContract.detachedHashPath || path.join(releaseContract.resourcesPath, 'release-manifest.sha256'),
-        appRoot: launchContract.appRoot,
-        backendEntryPath: launchContract.backendEntryPath,
-        nodeRuntimeExecutablePath: launchContract.nodeRuntimeExecutablePath,
-        nodeModulesPath: launchContract.nodeModulesPath || '',
-        runtimeMode: RUNTIME_MODE_DESKTOP_HOSTED,
-        backendSessionId,
-        fd6PipeInstanceId,
-        backendPort,
-        apiBaseUrl: `http://127.0.0.1:${backendPort}`,
-        readyTimeoutMs,
-        launchTimeoutMs: Number(options.launchTimeoutMs || readyTimeoutMs),
-        stopTimeoutMs: Number(options.stopTimeoutMs || options.timeoutMs || 7000),
-        dataDir: String(sanitizedEnv.YANCE_DATA_DIR || ''),
-        logPath: backendLogPath,
-        logRoot,
-        desktopLogPath,
-        backendLogPath,
-        credentialProtocolVersion: CREDENTIAL_PROTOCOL_VERSION,
-        credentialOneTimeToken,
-        credentialVaultEpoch: credentialFrame.vaultEpoch,
-        credentialGeneration: credentialFrame.generation,
-        credentialBackendSessionId: backendSessionId,
-        credentialFd6PipeInstanceId: fd6PipeInstanceId,
-        credentialAuthorityEventId: credentialFrame.authorityEventId,
-        credentialAuthorityHeadDigest: credentialFrame.authorityHeadDigest,
-        credentialVaultReferenceCount: credentialFrame.vaultReferenceCount,
-        credentialDecryptedEntryCount: credentialFrame.decryptedEntryCount,
-        credentialFrameEntryCount: credentialFrame.frameEntryCount,
-        credentialResetAuthorization: resetAuthorization
-      });
-      this._assertStartStillValid(child, attempt, 'before-frame-write');
-      await this._writeStartupFrame(controlPipe, encoded, options.controlPipeTimeoutMs, attempt.abortController.signal);
-      await Promise.resolve();
-      this._assertStartStillValid(child, attempt, 'after-frame-write');
-
-      if (shouldDeliverCredentialSnapshot) {
-        if (!credentialPipe) throw startupFailure('DESKTOP_CREDENTIAL_PIPE_UNAVAILABLE', 'Dedicated credential pipe is unavailable');
-        this.credentialIpcHost.attach(credentialPipe);
-        await this.credentialIpcHost.sendSnapshot(credentialFrame, {
-          timeoutMs: options.credentialWriteTimeoutMs,
-          signal: attempt.abortController.signal
-        });
-        this._assertStartStillValid(child, attempt, 'after-credential-frame-write');
-      } else {
-        this.log('backend-credential-frame-delivery-skipped', { backendPid: child.pid, reasonCode: 'M1_CREDENTIAL_HANDSHAKE_NOT_REQUIRED' });
-        this._assertStartStillValid(child, attempt, 'after-credential-frame-skip');
-      }
-
-      let hydration = null;
-      let readiness = null;
-      if (requireHandshake) {
-        [hydration, readiness] = await handshakePromise;
-        const expectedCredentialMetadata = {
-          pid: child.pid,
-          startupNonce,
-          vaultEpoch: credentialFrame.vaultEpoch,
-          generation: credentialFrame.generation,
-          authorityEventId: credentialFrame.authorityEventId,
-          vaultReferenceCount: credentialFrame.vaultReferenceCount,
-          decryptedEntryCount: credentialFrame.decryptedEntryCount,
-          frameEntryCount: credentialFrame.frameEntryCount,
-          entryCount: credentialFrame.payload.entries.length,
-          payloadBytes: credentialFrame.payloadBytes,
-          restoredReferenceCount: credentialFrame.payload.entries.length
-        };
-        assertCredentialHandshakeBinding(hydration, expectedCredentialMetadata, 'hydration acknowledgement');
-        const accepted = options.credentialVaultHost?.markHydrationAccepted?.(hydration);
-        if (accepted !== true) throw startupFailure('DESKTOP_CREDENTIAL_HYDRATION_ACK_MISMATCH', 'CredentialVaultHost rejected the hydration acknowledgement');
-        const readyRuntimeContract = readiness && typeof readiness.runtimeContract === 'object' && !Array.isArray(readiness.runtimeContract) ? readiness.runtimeContract : {};
-        const actualReadyProtocolVersion = readiness.readyProtocolVersion ?? readyRuntimeContract.readyProtocolVersion;
-        const actualReadyStartupAttemptId = readiness.startupAttemptId ?? readyRuntimeContract.startupAttemptId;
-        const actualReadyBackendSessionId = readiness.backendSessionId ?? readyRuntimeContract.backendSessionId;
-        if (actualReadyProtocolVersion !== READY_PROTOCOL_VERSION) throw startupFailure('M1_READY_PROTOCOL_VERSION_MISMATCH', 'Backend ready protocol version does not match M1 contract', { expected: READY_PROTOCOL_VERSION, actual: actualReadyProtocolVersion });
-        if (String(actualReadyStartupAttemptId || '') !== startupAttemptId) throw startupFailure('M1_READY_STARTUP_ATTEMPT_MISMATCH', 'Backend ready startupAttemptId does not match active attempt', { expected: startupAttemptId, actual: actualReadyStartupAttemptId || '' });
-        if (String(actualReadyBackendSessionId || '') !== backendSessionId) throw startupFailure('M1_READY_BACKEND_SESSION_MISMATCH', 'Backend ready backendSessionId does not match active attempt', { expected: backendSessionId, actual: actualReadyBackendSessionId || '' });
-        assertCredentialHandshakeBinding({ pid: readiness.pid, startupNonce: readiness.startupNonce, ...(readiness.credentialMetadata || {}) }, expectedCredentialMetadata, 'ready acknowledgement');
-        if (options.readyHealthCheckPath || options.readyHealthCheck === true) {
-          const readyHealth = await probeBackendHttpReady({
-            port: readiness.port,
-            token: apiSessionToken,
-            path: options.readyHealthCheckPath || '/api/health',
-            timeoutMs: options.readyHealthCheckTimeoutMs || Math.min(5000, readyTimeoutMs),
-            retries: options.readyHealthCheckRetries ?? 20,
-            retryDelayMs: options.readyHealthCheckRetryDelayMs || 100
-          });
-          this.log('backend-ready-health-check', { backendPid: child.pid, ...readyHealth });
-        }
-        options.onCredentialHydrated?.(hydration);
-        const custodyConnectTimeoutMs = Math.max(100, Number(options.credentialCustodyConnectTimeoutMs || options.credentialTimeoutMs || CREDENTIAL_HYDRATION_TIMEOUT_MS + 3000));
-        let custodyTimer = null;
-        try {
-          await Promise.race([
-            custodyConnectionPromise,
-            new Promise((_, reject) => {
-              custodyTimer = setTimeout(() => reject(startupFailure('DESKTOP_CREDENTIAL_CUSTODY_PIPE_UNAVAILABLE', 'Backend did not connect the dedicated credential custody pipe before READY', { backendPid: child.pid, timeoutMs: custodyConnectTimeoutMs })), custodyConnectTimeoutMs);
-              custodyTimer.unref?.();
-            })
-          ]);
-        } catch (error) {
-          if (error?.reasonCode === 'DESKTOP_CREDENTIAL_CUSTODY_PIPE_UNAVAILABLE') throw error;
-          throw startupFailure('DESKTOP_CREDENTIAL_CUSTODY_PIPE_UNAVAILABLE', 'Backend credential custody pipe connection failed before READY', { backendPid: child.pid, cause: error });
-        } finally {
-          if (custodyTimer) clearTimeout(custodyTimer);
-        }
-        if (!this.credentialCustodyHost?.snapshot?.().dedicatedPipeActive) {
-          throw startupFailure('DESKTOP_CREDENTIAL_CUSTODY_PIPE_UNAVAILABLE', 'Dedicated credential custody pipe is not active at the READY boundary', { backendPid: child.pid });
-        }
-      }
-      if (typeof options.beforeRunningTransition === 'function') await options.beforeRunningTransition({ child, host: this, hydration, readiness });
-      await Promise.resolve();
-      this._assertStartStillValid(child, attempt, 'before-running-transition');
-
-      this.session = Object.freeze({
-        startupAttemptId,
-        startupNonce,
-        backendSessionId,
-        fd6PipeInstanceId,
-        apiSessionToken,
-        backendPid: child.pid,
-        readyProtocolVersion: readiness?.readyProtocolVersion || READY_PROTOCOL_VERSION,
-        runtimeContract: Object.freeze({
-          startupAttemptId,
-          m1StartupContractVersion: M1_STARTUP_CONTRACT_VERSION,
-          startupFrameProtocolVersion: STARTUP_FRAME_PROTOCOL_VERSION,
-          readyProtocolVersion: READY_PROTOCOL_VERSION,
-          runtimeMode: RUNTIME_MODE_DESKTOP_HOSTED,
-          appRoot: launchContract.appRoot,
-          backendEntryPath: launchContract.backendEntryPath,
-          nodeRuntimeExecutablePath: launchContract.nodeRuntimeExecutablePath,
-          nodeModulesPath: launchContract.nodeModulesPath || '',
-          backendPort,
-          apiBaseUrl: `http://127.0.0.1:${backendPort}`,
-          readyTimeoutMs,
-          releaseManifestPath: releaseContract.releaseManifestPath || releaseContract.manifestPath || path.join(releaseContract.resourcesPath, 'release-manifest.json'),
-          releaseManifestSha256Path: releaseContract.releaseManifestSha256Path || releaseContract.detachedHashPath || path.join(releaseContract.resourcesPath, 'release-manifest.sha256'),
-          logRoot,
-          desktopLogPath,
-          backendLogPath
-        }),
-        credentialFrameDelivered: shouldDeliverCredentialSnapshot,
-        credentialHydrated: Boolean(hydration),
-        credentialVaultEpoch: credentialFrame.vaultEpoch,
-        credentialGeneration: credentialFrame.generation,
-        credentialAuthorityEventId: credentialFrame.authorityEventId,
-        credentialAuthorityHeadDigest: credentialFrame.authorityHeadDigest,
-        credentialVaultReferenceCount: credentialFrame.vaultReferenceCount,
-        credentialDecryptedEntryCount: credentialFrame.decryptedEntryCount,
-        credentialFrameEntryCount: credentialFrame.frameEntryCount,
-        ownerContext,
-        readyCredentialMetadata: readiness?.credentialMetadata ? Object.freeze({ ...readiness.credentialMetadata }) : null
-      });
-      this._assertStartStillValid(child, attempt, 'after-session-create');
-      this.ownerRegistry.update({ state: 'RUNNING', ownershipActive: true, trusted: false, ownerSession: ownerContext, reasonCode: 'BACKEND_READY_AWAITING_APPLICATION_VALIDATION' });
-      this.orphanOwnerRecord = this.ownerRegistry.snapshot();
-      this.rejectedOwner = null;
-      this._transition(PROCESS_STATES.RUNNING, requireHandshake ? 'credential-hydrated-and-backend-ready' : 'startup-and-credential-frames-delivered', { backendPid: child.pid });
-      this.startAttempt = null;
-      this.log('backend-process-started', { backendPid: child.pid, buildId: options.releaseStartupConfig.expectedBuildId, credentialHydrated: Boolean(hydration) });
-      return Object.freeze({ child, startupAttemptId, startupNonce, backendSessionId, fd6PipeInstanceId, apiSessionToken, credentialIpcHost: this.credentialIpcHost, hydration, readiness });
-    } catch (error) {
-      const reasonCode = error.reasonCode || error.code || 'DESKTOP_BACKEND_START_FAILED';
-      this._recordFailure(reasonCode, child);
-      if (this.state !== PROCESS_STATES.CRASHED) this._transition(PROCESS_STATES.START_FAILED, reasonCode, { backendPid: child?.pid || 0 });
-      attempt.cancelled = true;
-      if (!attempt.abortController?.signal?.aborted) attempt.abortController?.abort?.(error);
-      if (child && typeof child === 'object') error.backendChild = child;
-      if (childOutputTail) error.backendOutputTail = childOutputTail.snapshot();
-      error.backendStartDiagnostics = {
-        backendPid: child?.pid || 0,
-        state: this.state,
-        childExited: processExited(child),
-        childExitCode: child?.exitCode ?? null,
-        childSignalCode: child?.signalCode || null
+  async _createCustodyServer(pipeName, custodyHost, timeoutMs = 10000) {
+    const server = this.createCredentialCustodyServer();
+    await new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = error => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        server.removeListener?.('error', onError);
+        if (error) reject(error); else resolve();
       };
+      const onError = cause => finish(startupFailure('DESKTOP_CREDENTIAL_CUSTODY_SERVER_FAILED', `Credential custody server failed: ${cause.message}`, { cause }));
+      const timer = setTimeout(() => finish(startupFailure('DESKTOP_CREDENTIAL_CUSTODY_SERVER_TIMEOUT', 'Credential custody server did not bind before timeout')), Math.max(100, Number(timeoutMs || 10000)));
+      server.once?.('error', onError);
+      server.listen(pipeName, () => finish());
+    });
+    server.on('connection', socket => custodyHost.accept(socket));
+    return server;
+  }
 
-      const liveOwnedChild = Boolean(child && Number.isInteger(child.pid) && child.pid > 0 && !processExited(child));
-      if (liveOwnedChild) {
-        const activeRecord = this.ownerRegistry.snapshot();
-        const childHasDurableOwnerClaim = Boolean(activeRecord?.ownershipActive === true && Number(activeRecord.backendPid || 0) === Number(child.pid || 0));
-        const childReceivedCredentialAuthority = Boolean(attempt.ownerContext || this.session || childHasDurableOwnerClaim);
-        if (childReceivedCredentialAuthority) {
-          // A child rejected after an owner claim or credential authority exists
-          // must be contained. A child rejected before owner registration (for
-          // example, Windows process identity could not be read) is only a failed
-          // spawn and should not create a false FATAL_OWNER_CONTAINMENT cascade.
-          try {
-            error.rejectedOwnerContainment = this.containRejectedOwner({
-              reasonCode,
-              ownerSession: attempt.ownerContext || null,
-              persistOwnerRecord: false
-            });
-          } catch (containmentError) {
-            error.containmentReasonCode = containmentError.reasonCode || containmentError.code || 'WP4_DESKTOP_REJECTED_OWNER_CONTAINMENT_FAILED';
-          }
-        } else {
-          error.rejectedOwnerContainmentSkipped = true;
-          error.rejectedOwnerContainmentSkippedReason = 'CHILD_FAILED_BEFORE_OWNER_CLAIM';
-        }
-
-        try {
-          error.startFailureTermination = await this._terminateAndWait(child, {
-            gracefulMs: 100,
-            forceMs: Number(options.forceExitTimeoutMs || 3000)
-          });
-        } catch (cleanupError) {
-          error.cleanupReasonCode = cleanupError.reasonCode || cleanupError.code || 'DESKTOP_BACKEND_EXIT_NOT_CONFIRMED';
-        }
-      }
-
-      this.session = null;
-      this.credentialIpcHost.close();
-      this.credentialCustodyHost?.close?.();
-      this.credentialCustodyHost = null;
-      if (this.credentialCustodyServer) { try { this.credentialCustodyServer.close(); } catch (_) {} this.credentialCustodyServer = null; }
-
-      if (child && processExited(child)) {
-        let recovery = null;
-        try { recovery = await this.waitForOwnerExitRecovery(child); }
-        catch (recoveryError) {
-          error.ownerRecoveryReasonCode = recoveryError.reasonCode || recoveryError.code || 'WP4_CREDENTIAL_OWNER_EXIT_RECOVERY_FAILED';
-        }
-        if (recovery?.recovered === true && this.rejectedOwner) {
-          try { this.clearRejectedOwner({ force: false, observedExitedChild: child }); }
-          catch (recoveryError) {
-            error.ownerRecoveryReasonCode = recoveryError.reasonCode || recoveryError.code || 'WP4_CREDENTIAL_OWNER_EXIT_RECOVERY_FAILED';
-          }
-        } else if (recovery?.recovered !== true && !error.ownerRecoveryReasonCode) {
-          error.ownerRecoveryReasonCode = 'WP4_CREDENTIAL_OWNER_EXIT_RECOVERY_PENDING';
-        }
-      }
-      this._disposeChildHandles(child);
-      if ((!child || processExited(child) || !Number.isInteger(child.pid) || child.pid < 1) && this.child === child) this.child = null;
-      this.startAttempt = null;
-      throw error;
+  _bindCredentialCustodyHost(options = {}, context = {}) {
+    const vaultHost = options.credentialVaultHost;
+    if (!vaultHost || typeof vaultHost.prepareCustodyTransaction !== 'function') {
+      throw startupFailure('DESKTOP_CREDENTIAL_VAULT_HOST_REQUIRED', 'FD6 credential custody requires CredentialVaultHost transactional methods');
     }
+    const custody = new CredentialCustodyHost({
+      enabled: true,
+      timeoutMs: options.credentialCustodyTimeoutMs || CREDENTIAL_HYDRATION_TIMEOUT_MS,
+      prepare: request => vaultHost.prepareCustodyTransaction(request),
+      commit: request => vaultHost.commitCustodyTransaction(request),
+      abort: (request, reasonCode) => vaultHost.abortCustodyTransaction(request, reasonCode),
+      query: request => vaultHost.queryCustodyTransaction(request),
+      ownerSession: context.ownerSession,
+      pipeInstanceId: context.fd6PipeInstanceId
+    });
+    this.credentialCustodyHost = custody;
+    return custody;
+  }
+
+  async _terminateAndWait(child, options = {}) {
+    if (!child || processExited(child)) return { exited: true, forced: false, exitCode: child?.exitCode ?? null, signalCode: child?.signalCode ?? null };
+    const gracefulMs = Math.max(0, Number(options.gracefulMs ?? 5000));
+    const forceMs = Math.max(100, Number(options.forceMs ?? 5000));
+    const reason = String(options.reason || 'desktop-host-stop');
+    try { if (child.connected && typeof child.send === 'function') child.send({ type: 'desktop:shutdown', reason }); } catch (_) {}
+    let waited = await waitForExit(child, gracefulMs);
+    if (waited.exited) return { ...waited, forced: false };
+    try { child.kill?.('SIGTERM'); } catch (_) {}
+    waited = await waitForExit(child, forceMs);
+    if (waited.exited) return { ...waited, forced: true, signal: 'SIGTERM' };
+    try { child.kill?.('SIGKILL'); } catch (_) {}
+    waited = await waitForExit(child, forceMs);
+    if (!waited.exited) throw startupFailure('DESKTOP_BACKEND_STOP_TIMEOUT', 'Backend process did not exit after forced termination', { backendPid: child.pid || 0 });
+    return { ...waited, forced: true, signal: 'SIGKILL' };
+  }
+
+  async _recoverStartFailure(child, attempt, error) {
+    this._recordFailure(error.reasonCode || error.code || 'DESKTOP_BACKEND_START_FAILED', child);
+    if (this.child === child && this.state === PROCESS_STATES.STARTING) this._transition(PROCESS_STATES.START_FAILED, error.reasonCode || error.code || 'DESKTOP_BACKEND_START_FAILED', { backendPid: child?.pid || 0 });
+    try { await this._terminateAndWait(child, { gracefulMs: 0, forceMs: 2000, reason: 'startup-failed' }); } catch (_) {}
+    this.credentialIpcHost.close();
+    this.credentialCustodyHost?.close?.();
+    this.credentialCustodyHost = null;
+    if (this.credentialCustodyServer) {
+      try { await new Promise(resolve => this.credentialCustodyServer.close(() => resolve())); } catch (_) {}
+      this.credentialCustodyServer = null;
+    }
+    const ownerContext = attempt.ownerContext || null;
+    if (ownerContext && typeof attempt.handleBackendOwnerExit === 'function') {
+      try {
+        const result = await attempt.handleBackendOwnerExit(ownerContext);
+        this.lastOwnerExitRecovery = { status: 'PASS', ownerContext, result, at: new Date().toISOString() };
+      } catch (recoveryError) {
+        this.lastOwnerExitRecovery = { status: 'FAIL', ownerContext, reasonCode: recoveryError.reasonCode || recoveryError.code || 'WP4_CREDENTIAL_OWNER_EXIT_RECOVERY_FAILED', at: new Date().toISOString() };
+      }
+    }
+    try { this.ownerRegistry.markRejected({ reasonCode: error.reasonCode || error.code || 'DESKTOP_BACKEND_START_FAILED' }); } catch (_) {}
+    this.orphanOwnerRecord = this.ownerRegistry.snapshot();
+    this._disposeChildHandles(child);
+    if (this.child === child) this.child = null;
+    this.session = null;
+  }
+
+  async _ensureStartable(options = {}) {
+    if (this.ownerRegistryFailure) throw startupFailure(this.ownerRegistryFailure.reasonCode || 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_UNAVAILABLE', this.ownerRegistryFailure.message || 'Backend owner registry requires recovery', { ownerRegistryFailure: this.ownerRegistryFailure });
+    if (this.rejectedOwner) {
+      if (this.autoRecoverRejectedOwner || options.autoRecoverRejectedOwner === true) {
+        await this.clearRejectedOwner({ requireExit: true, recoverOwnerExit: true });
+      } else {
+        throw startupFailure('WP4_DESKTOP_BACKEND_REJECTED_OWNER_PRESENT', 'A rejected or orphaned backend owner must be recovered before replacement', { rejectedOwner: this.rejectedOwner });
+      }
+    }
+    if (this.child && !processExited(this.child)) throw startupFailure('DESKTOP_BACKEND_ALREADY_RUNNING', 'Backend process is already owned by this host', { backendPid: this.child.pid || 0 });
+    if (this.state === PROCESS_STATES.STARTING || this.state === PROCESS_STATES.STOPPING) throw startupFailure('DESKTOP_BACKEND_OPERATION_IN_PROGRESS', `Backend process is ${this.state}`);
   }
 
   start(options = {}) { return this._enqueue(() => this._startUnlocked(options)); }
 
-  async _recoverRejectedOwnerForStartUnlocked(options = {}) {
-    const mismatchFailure = this.ownerRegistryFailure?.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_MISMATCH_RECOVERY_REQUIRED'
-      && this.rejectedOwner?.pidIdentityMatch === false;
-    if (mismatchFailure) {
-      const backendPid = Number(this.rejectedOwner?.backendPid || this.ownerRegistry.snapshot()?.backendPid || 0);
-      this.log('backend-owner-auto-recovery-pid-reused', { backendPid, reasonCode: this.ownerRegistryFailure.reasonCode });
-      this.clearRejectedOwner({ force: true });
-      return { recovered: true, backendPid, pidReused: true, forced: false };
-    }
-    if (this.ownerRegistryFailure) {
-      throw startupFailure(this.ownerRegistryFailure.reasonCode || 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_INVALID', 'Automatic backend owner recovery is unsafe because the durable owner identity cannot be trusted', { registryFailure: this.ownerRegistryFailure, automaticRecoveryAttempted: true });
-    }
-    if (!this.rejectedOwner) return { recovered: false, notRequired: true };
-    const backendPid = Number(this.rejectedOwner.backendPid || 0);
-    this.log('backend-owner-auto-recovery-started', { backendPid, childStillLive: this.rejectedOwner.childStillLive === true });
-    const stopped = await this._terminateOrphanOwner({
-      gracefulMs: options.ownerRecoveryGracefulMs || options.gracefulMs || 1500,
-      forceMs: options.ownerRecoveryForceMs || options.forceMs || 1500
-    });
-    if (stopped?.stopped !== true || stopped?.exitConfirmed !== true) {
-      throw startupFailure(stopped?.reasonCode || 'WP4_DESKTOP_REJECTED_OWNER_AUTOMATIC_RECOVERY_FAILED', 'The previous Yance backend owner could not be safely recovered automatically', { backendPid, stopped, automaticRecoveryAttempted: true });
-    }
-    this.clearRejectedOwner({ force: false });
-    this.log('backend-owner-auto-recovery-complete', { backendPid, forced: stopped.forced === true, alreadyStopped: stopped.alreadyStopped === true });
-    return { recovered: true, backendPid, forced: stopped.forced === true, alreadyStopped: stopped.alreadyStopped === true };
-  }
-
-  recoverRejectedOwnerForStart(options = {}) {
-    return this._enqueue(() => this._recoverRejectedOwnerForStartUnlocked(options));
-  }
-
-  async _terminateOrphanOwner(options = {}) {
-    if (this.ownerRegistryFailure) {
-      return {
-        stopped: false,
-        exitConfirmed: false,
-        backendPid: Number(this.rejectedOwner?.backendPid || 0),
-        reasonCode: this.ownerRegistryFailure.reasonCode || 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_INVALID',
-        registryFailure: { ...this.ownerRegistryFailure },
-        state: this.state
-      };
-    }
-    const record = this.ownerRegistry.snapshot() || this.orphanOwnerRecord || this.rejectedOwner;
-    const probe = this.ownerRegistry.probe(record);
-    const backendPid = Number(record?.backendPid || 0);
-    if (!probe.alive || probe.identityMatch === false) {
-      this.ownerRegistry.markExited({ reasonCode: probe.identityMatch === false ? 'OWNER_PID_REUSED' : 'OWNER_ALREADY_EXITED' });
-      this.orphanOwnerRecord = this.ownerRegistry.snapshot();
-      if (this.rejectedOwner) this.rejectedOwner = Object.freeze({ ...this.rejectedOwner, childStillLive: false, pidIdentityMatch: probe.identityMatch, exitedAtUtc: new Date().toISOString() });
-      this._transition(PROCESS_STATES.STOPPED, probe.identityMatch === false ? 'orphan-owner-pid-reused' : 'orphan-owner-not-live', { backendPid });
-      return { stopped: true, exitConfirmed: true, alreadyStopped: true, backendPid, pidReused: probe.identityMatch === false, state: this.state };
-    }
-    if (probe.identityMatch !== true) {
-      return { stopped: false, exitConfirmed: false, backendPid, reasonCode: probe.reasonCode || 'WP4_DESKTOP_ORPHAN_OWNER_IDENTITY_UNVERIFIED', state: this.state };
-    }
-    const gracefulMs = Math.max(25, Number(options.gracefulMs || 1500));
-    const forceMs = Math.max(25, Number(options.forceMs || 1500));
-    const waitDead = async timeoutMs => {
-      const deadline = Date.now() + timeoutMs;
-      while (Date.now() < deadline) {
-        if (!this.ownerRegistry.probe(record).alive) return true;
-        await new Promise(resolve => setTimeout(resolve, 25));
-      }
-      return !this.ownerRegistry.probe(record).alive;
+  async _startUnlocked(options = {}) {
+    await this._ensureStartable(options);
+    const launch = validateBackendLaunchContract(options, options.fs || fs);
+    const runtimeProbe = this.probeNodeRuntime(launch.nodeRuntimeExecutablePath, { cwd: launch.appRoot, env: options.env || process.env, spawnSync: options.spawnSync, timeoutMs: options.nodeRuntimeProbeTimeoutMs });
+    const startupNonce = this.randomBytes(24).toString('base64url');
+    const apiSessionToken = createApiSessionToken(() => this.randomBytes(32));
+    const startupAttemptId = this.randomUUID();
+    const backendSessionId = `backend-session:${this.randomUUID()}`;
+    const fd6PipeInstanceId = `fd6:${this.randomUUID()}`;
+    const credentialOneTimeToken = createCredentialOneTimeToken(() => this.randomBytes(32));
+    const credentialTimeoutMs = Math.max(100, Number(options.credentialTimeoutMs || CREDENTIAL_HYDRATION_TIMEOUT_MS));
+    const readyTimeoutMs = launch.readyTimeoutMs;
+    const env = sanitizedEnvironment({ ...(options.env || process.env), YANCE_RUNTIME_MODE: RUNTIME_MODE_DESKTOP_HOSTED });
+    env.YANCE_PORT = String(launch.backendPort);
+    const abortController = new AbortController();
+    const attempt = {
+      startupAttemptId, cancelled: false, error: null, exit: null, listeners: null, abortController,
+      ownerContext: null,
+      handleBackendOwnerExit: options.credentialVaultHost && typeof options.credentialVaultHost.handleBackendOwnerExit === 'function'
+        ? context => options.credentialVaultHost.handleBackendOwnerExit(context)
+        : null
     };
-    let termAccepted = false;
-    try { this.killProcess(backendPid, 'SIGTERM'); termAccepted = true; } catch (cause) {
-      if (cause?.code === 'ESRCH') termAccepted = true;
-      else return { stopped: false, exitConfirmed: false, backendPid, reasonCode: cause?.code === 'EPERM' ? 'WP4_DESKTOP_ORPHAN_OWNER_TERMINATION_EPERM' : 'WP4_DESKTOP_ORPHAN_OWNER_SIGTERM_FAILED', state: this.state };
-    }
-    let exited = await waitDead(gracefulMs);
-    let forced = false;
-    if (!exited) {
-      forced = true;
-      try { this.killProcess(backendPid, 'SIGKILL'); } catch (cause) {
-        if (cause?.code !== 'ESRCH') return { stopped: false, exitConfirmed: false, backendPid, reasonCode: cause?.code === 'EPERM' ? 'WP4_DESKTOP_ORPHAN_OWNER_TERMINATION_EPERM' : 'WP4_DESKTOP_ORPHAN_OWNER_SIGKILL_FAILED', state: this.state };
+    this.startAttempt = attempt;
+    this._transition(PROCESS_STATES.STARTING, 'start-requested');
+
+    let child = null;
+    let custodyServer = null;
+    let outputTail = null;
+    try {
+      const stdio = ['ignore', 'pipe', 'pipe', 'ipc'];
+      while (stdio.length <= Math.max(CONTROL_PIPE_FD, CREDENTIAL_PIPE_FD, CREDENTIAL_CUSTODY_PIPE_FD)) stdio.push('pipe');
+      child = this.fork(launch.backendEntryPath, [], {
+        cwd: launch.appRoot,
+        env,
+        execPath: launch.nodeRuntimeExecutablePath,
+        stdio,
+        windowsHide: true,
+        serialization: 'advanced'
+      });
+      this.child = child;
+      outputTail = createChildOutputTail(options.childOutputTailBytes || 8192);
+      outputTail.attach(child);
+      this._bindChildLifecycle(child, attempt);
+      const backendPid = await this._awaitSpawnIdentity(child, attempt, options.spawnIdentityTimeoutMs || 3000);
+      this._assertStartStillValid(child, attempt, 'spawn');
+
+      const prepared = await this._resolveCredentialSnapshot(options, {
+        startupAttemptId,
+        startupNonce,
+        oneTimeToken: credentialOneTimeToken,
+        backendPid,
+        manifestSha256: launch.releaseStartupConfig.manifestSha256,
+        backendSessionId,
+        fd6PipeInstanceId
+      });
+      const credentialFrame = prepared?.frame || makeCredentialFrame({
+        startupNonce,
+        oneTimeToken: credentialOneTimeToken,
+        backendPid,
+        manifestSha256: launch.releaseStartupConfig.manifestSha256,
+        vaultEpoch: this.defaultCredentialVaultEpoch,
+        generation: this.defaultCredentialGeneration,
+        authorityEventId: `event:${startupAttemptId}`,
+        authorityHeadDigest: crypto.createHash('sha256').update(`head:${startupAttemptId}`).digest('hex'),
+        entries: []
+      });
+      const credentialResetAuthorization = prepared?.resetAuthorization || null;
+      const ownerSession = prepared?.ownerSession || Object.freeze({
+        backendPid,
+        startupNonce,
+        backendSessionId,
+        manifestSha256: launch.releaseStartupConfig.manifestSha256,
+        vaultEpoch: credentialFrame.vaultEpoch,
+        hydrationGeneration: credentialFrame.generation,
+        fd6PipeInstanceId
+      });
+      attempt.ownerContext = ownerSession;
+      const expectedCredentialMetadata = Object.freeze({
+        pid: backendPid,
+        startupNonce,
+        vaultEpoch: credentialFrame.vaultEpoch,
+        generation: credentialFrame.generation,
+        authorityEventId: credentialFrame.authorityEventId,
+        authorityHeadDigest: credentialFrame.authorityHeadDigest,
+        vaultReferenceCount: credentialFrame.vaultReferenceCount,
+        decryptedEntryCount: credentialFrame.decryptedEntryCount,
+        frameEntryCount: credentialFrame.frameEntryCount,
+        entryCount: credentialFrame.payload.entries.length,
+        payloadBytes: credentialFrame.payloadBytes,
+        restoredReferenceCount: credentialFrame.payload.entries.length
+      });
+
+      const custodyPipeName = deriveCustodyPipeName(startupNonce, backendPid, fd6PipeInstanceId);
+      const custodyHost = this._bindCredentialCustodyHost(options, { ownerSession, fd6PipeInstanceId });
+      custodyServer = await this._createCustodyServer(custodyPipeName, custodyHost, options.credentialCustodyBindTimeoutMs || 10000);
+      this.credentialCustodyServer = custodyServer;
+      this._assertStartStillValid(child, attempt, 'custody-server');
+
+      const frame = {
+        protocolVersion: STARTUP_PROTOCOL_VERSION,
+        startupFrameProtocolVersion: STARTUP_FRAME_PROTOCOL_VERSION,
+        startupContractVersion: M1_STARTUP_CONTRACT_VERSION,
+        readyProtocolVersion: READY_PROTOCOL_VERSION,
+        runtimeMode: RUNTIME_MODE_DESKTOP_HOSTED,
+        startupAttemptId,
+        startupNonce,
+        backendSessionId,
+        fd6PipeInstanceId,
+        apiSessionToken,
+        credentialProtocolVersion: CREDENTIAL_PROTOCOL_VERSION,
+        credentialTimeoutMs,
+        credentialCustodyPipeName: custodyPipeName,
+        release: launch.releaseStartupConfig,
+        backend: {
+          appRoot: launch.appRoot,
+          entry: launch.backendEntryPath,
+          port: launch.backendPort,
+          nodeRuntimeExecutablePath: launch.nodeRuntimeExecutablePath,
+          nodeModulesPath: launch.nodeModulesPath
+        }
+      };
+      const encoded = this.encodeStartupFrame(frame);
+      const controlPipe = child.stdio?.[CONTROL_PIPE_FD];
+      const credentialPipe = child.stdio?.[CREDENTIAL_PIPE_FD];
+      if (!controlPipe || !credentialPipe) throw startupFailure('DESKTOP_STARTUP_PIPE_MISSING', 'Backend child did not expose required dedicated startup pipes');
+
+      const hydrationPromise = this._waitForChildMessage(child, message => message?.type === 'backend:credential-hydrated' && message.startupNonce === startupNonce, { timeoutMs: credentialTimeoutMs, signal: abortController.signal, phase: 'credential hydration acknowledgement' });
+      const readyPromise = this._waitForChildMessage(child, message => message?.type === 'backend:ready' && message.startupNonce === startupNonce, { timeoutMs: readyTimeoutMs, signal: abortController.signal, phase: 'ready acknowledgement' });
+      const credentialDelivery = this.credentialIpcHost.hydrate({ pipe: credentialPipe, frame: credentialFrame, timeoutMs: credentialTimeoutMs });
+      await this._writeStartupFrame(controlPipe, encoded, options.startupPipeWriteTimeoutMs || 10000, abortController.signal);
+      this._assertStartStillValid(child, attempt, 'startup-frame');
+      const [hydration, readiness] = await Promise.all([hydrationPromise, readyPromise, credentialDelivery]).then(values => [values[0], values[1]]);
+      this._assertStartStillValid(child, attempt, 'handshake');
+
+      if (hydration?.protocolVersion !== CREDENTIAL_PROTOCOL_VERSION) throw startupFailure('DESKTOP_CREDENTIAL_PROTOCOL_MISMATCH', 'Backend credential hydration protocol version mismatch');
+      assertCredentialHandshakeBinding(hydration, expectedCredentialMetadata, 'hydration acknowledgement');
+      if (options.credentialVaultHost && typeof options.credentialVaultHost.markHydrationAccepted === 'function') {
+        const accepted = options.credentialVaultHost.markHydrationAccepted(hydration);
+        if (accepted !== true) throw startupFailure('DESKTOP_CREDENTIAL_HYDRATION_ACK_MISMATCH', 'CredentialVaultHost rejected the backend hydration acknowledgement');
       }
-      exited = await waitDead(forceMs);
+      if (readiness?.protocolVersion !== READY_PROTOCOL_VERSION || readiness?.startupFrameProtocolVersion !== STARTUP_FRAME_PROTOCOL_VERSION || readiness?.runtimeMode !== RUNTIME_MODE_DESKTOP_HOSTED) {
+        throw startupFailure('M1_BACKEND_READY_PROTOCOL_MISMATCH', 'Backend ready acknowledgement protocol mismatch', { readiness });
+      }
+      if (String(readiness.startupAttemptId || '') !== startupAttemptId || String(readiness.backendSessionId || '') !== backendSessionId || String(readiness.fd6PipeInstanceId || '') !== fd6PipeInstanceId || Number(readiness.pid || 0) !== backendPid) {
+        throw startupFailure('M1_BACKEND_READY_SESSION_MISMATCH', 'Backend ready acknowledgement does not match the current startup attempt');
+      }
+
+      const readyCredentialMetadata = Object.freeze({ pid: backendPid, startupNonce, ...(readiness.credentialMetadata || {}) });
+      const readyDifferences = credentialHandshakeDifferences(readyCredentialMetadata, expectedCredentialMetadata);
+      let readyCredentialAuthorityReceipt;
+      if (readyDifferences.exact) {
+        readyCredentialAuthorityReceipt = assertReadyCredentialAuthorityReceipt(
+          createInitialReadyAuthorityReceipt(readyCredentialMetadata, expectedCredentialMetadata),
+          readyCredentialMetadata,
+          expectedCredentialMetadata
+        );
+      } else {
+        const validateReadyAuthority = options.credentialVaultHost?.validateReadyCredentialAuthority;
+        if (typeof validateReadyAuthority !== 'function') {
+          throw startupFailure('DESKTOP_CREDENTIAL_READY_AUTHORITY_VALIDATOR_REQUIRED', 'Credential READY metadata advanced beyond FD5 but CredentialVaultHost did not provide the required validator', {
+            missingFields: readyDifferences.missing,
+            mismatchedFields: readyDifferences.mismatches
+          });
+        }
+        const receipt = validateReadyAuthority.call(options.credentialVaultHost, {
+          startupAttemptId,
+          initialFrame: credentialFrame,
+          hydrationAcknowledgement: hydration,
+          readyMetadata: readyCredentialMetadata,
+          ownerSession
+        });
+        readyCredentialAuthorityReceipt = assertReadyCredentialAuthorityReceipt(receipt, readyCredentialMetadata, expectedCredentialMetadata);
+      }
+
+      const readyPort = Number(readiness.port ?? launch.backendPort);
+      if (!Number.isInteger(readyPort) || readyPort < 1 || readyPort > 65535) throw startupFailure('M1_BACKEND_READY_PORT_INVALID', 'Backend ready acknowledgement did not include a usable bound port', { readyPort });
+      if (launch.backendPort > 0 && readyPort !== launch.backendPort) throw startupFailure('M1_BACKEND_READY_PORT_MISMATCH', 'Backend bound port does not match the configured port', { configuredPort: launch.backendPort, readyPort });
+      const releaseEvidence = readiness.releaseEvidence || {};
+      if (releaseEvidence.releaseBuildId !== launch.releaseStartupConfig.expectedBuildId || releaseEvidence.manifestSha256 !== launch.releaseStartupConfig.manifestSha256) {
+        throw startupFailure('M1_BACKEND_READY_RELEASE_MISMATCH', 'Backend ready acknowledgement does not match the validated release contract', { expectedBuildId: launch.releaseStartupConfig.expectedBuildId, readyBuildId: releaseEvidence.releaseBuildId, expectedManifestSha256: launch.releaseStartupConfig.manifestSha256, readyManifestSha256: releaseEvidence.manifestSha256 });
+      }
+      if (options.readyHealthCheck !== false) {
+        await probeBackendHttpReady({ port: readyPort, token: apiSessionToken, path: options.readyHealthCheckPath || '/api/health', timeoutMs: options.readyHealthCheckTimeoutMs || 5000, retries: options.readyHealthCheckRetries || 0, retryDelayMs: options.readyHealthCheckRetryDelayMs || 100 });
+      }
+      this._assertStartStillValid(child, attempt, 'ready-healthcheck');
+
+      this.ownerRegistry.markOwned({
+        backendPid,
+        startupNonce,
+        backendSessionId,
+        fd6PipeInstanceId,
+        manifestSha256: launch.releaseStartupConfig.manifestSha256,
+        ownerContext,
+        reasonCode: 'BACKEND_OWNER_READY_ACCEPTED'
+      });
+      this.orphanOwnerRecord = this.ownerRegistry.snapshot();
+      const session = Object.freeze({
+        startupAttemptId,
+        startupNonce,
+        backendSessionId,
+        fd6PipeInstanceId,
+        backendPid,
+        backendPort: readyPort,
+        apiSessionToken,
+        appRoot: launch.appRoot,
+        backendEntryPath: launch.backendEntryPath,
+        nodeRuntimeExecutablePath: launch.nodeRuntimeExecutablePath,
+        nodeRuntimeVersion: runtimeProbe.version,
+        nodeModulesPath: launch.nodeModulesPath,
+        releaseBuildId: launch.releaseStartupConfig.expectedBuildId,
+        releaseManifestSha256: launch.releaseStartupConfig.manifestSha256,
+        credentialProtocolVersion: CREDENTIAL_PROTOCOL_VERSION,
+        credentialVaultEpoch: credentialFrame.vaultEpoch,
+        credentialGeneration: credentialFrame.generation,
+        credentialAuthorityEventId: credentialFrame.authorityEventId,
+        credentialAuthorityHeadDigest: credentialFrame.authorityHeadDigest,
+        credentialEntryCount: credentialFrame.payload.entries.length,
+        credentialPayloadBytes: credentialFrame.payloadBytes,
+        credentialRestoredReferenceCount: credentialFrame.payload.entries.length,
+        credentialResetAuthorization,
+        readyCredentialMetadata: Object.freeze({ ...(readiness.credentialMetadata || {}) }),
+        readyCredentialAuthorityReceipt,
+        ownerContext: Object.freeze({ ...ownerSession }),
+        startedAt: new Date().toISOString()
+      });
+      this.session = session;
+      this._transition(PROCESS_STATES.RUNNING, 'ready-accepted', { backendPid, backendPort: readyPort });
+      return Object.freeze({ child, ...session, readiness: Object.freeze({ ...readiness }), hydration: Object.freeze({ ...hydration }) });
+    } catch (error) {
+      const output = outputTail?.snapshot?.() || {};
+      if (!error.stdoutTail && output.stdoutTail) error.stdoutTail = output.stdoutTail;
+      if (!error.stderrTail && output.stderrTail) error.stderrTail = output.stderrTail;
+      await this._recoverStartFailure(child, attempt, error);
+      throw error;
+    } finally {
+      if (this.startAttempt === attempt) this.startAttempt = null;
     }
-    if (!exited) return { stopped: false, exitConfirmed: false, backendPid, reasonCode: 'WP4_DESKTOP_ORPHAN_OWNER_EXIT_NOT_CONFIRMED', state: this.state };
-    this.ownerRegistry.markExited({ reasonCode: 'ORPHAN_OWNER_EXIT_CONFIRMED', signalCode: forced ? 'SIGKILL' : 'SIGTERM' });
-    this.orphanOwnerRecord = this.ownerRegistry.snapshot();
-    if (this.rejectedOwner) this.rejectedOwner = Object.freeze({ ...this.rejectedOwner, childStillLive: false, exitedAtUtc: new Date().toISOString(), signalCode: forced ? 'SIGKILL' : 'SIGTERM' });
-    this._transition(PROCESS_STATES.STOPPED, 'orphan-owner-exit-confirmed', { backendPid, forced });
-    return { stopped: true, exitConfirmed: true, backendPid, forced, termAccepted, state: this.state };
+  }
+
+  async _terminateOrphanOwner(record, options = {}) {
+    const pid = Number(record?.backendPid || 0);
+    if (!Number.isInteger(pid) || pid < 1) return { exited: true, forced: false, backendPid: 0 };
+    const initialProbe = this.ownerRegistry.probe(record);
+    if (initialProbe.identityMatch === false) return { exited: true, forced: false, backendPid: pid, pidReused: true, identityReasonCode: initialProbe.reasonCode };
+    if (initialProbe.alive !== true) return { exited: true, forced: false, backendPid: pid, identityReasonCode: initialProbe.reasonCode };
+    if (initialProbe.identityMatch !== true) throw startupFailure('WP4_DESKTOP_BACKEND_OWNER_IDENTITY_UNVERIFIED_RECOVERY_REQUIRED', 'Cannot signal an orphan owner whose process identity is not verified', { backendPid: pid, probe: initialProbe });
+    const forceMs = Math.max(100, Number(options.forceMs ?? 5000));
+    try { this.killProcess(pid, 'SIGTERM'); } catch (cause) { if (cause?.code !== 'ESRCH') throw cause; }
+    const deadline = Date.now() + forceMs;
+    while (Date.now() < deadline) {
+      const probe = this.ownerRegistry.probe(record);
+      if (probe.identityMatch === false || probe.alive !== true) return { exited: true, forced: true, signal: 'SIGTERM', backendPid: pid, pidReused: probe.identityMatch === false, identityReasonCode: probe.reasonCode };
+      await delay(50);
+    }
+    const beforeKill = this.ownerRegistry.probe(record);
+    if (beforeKill.identityMatch !== true) {
+      if (beforeKill.identityMatch === false || beforeKill.alive !== true) return { exited: true, forced: true, signal: 'SIGTERM', backendPid: pid, pidReused: beforeKill.identityMatch === false, identityReasonCode: beforeKill.reasonCode };
+      throw startupFailure('WP4_DESKTOP_BACKEND_OWNER_IDENTITY_UNVERIFIED_RECOVERY_REQUIRED', 'Cannot force-kill an orphan owner whose identity is no longer verified', { backendPid: pid, probe: beforeKill });
+    }
+    try { this.killProcess(pid, 'SIGKILL'); } catch (cause) { if (cause?.code !== 'ESRCH') throw cause; }
+    const forceDeadline = Date.now() + forceMs;
+    while (Date.now() < forceDeadline) {
+      const probe = this.ownerRegistry.probe(record);
+      if (probe.identityMatch === false || probe.alive !== true) return { exited: true, forced: true, signal: 'SIGKILL', backendPid: pid, pidReused: probe.identityMatch === false, identityReasonCode: probe.reasonCode };
+      await delay(50);
+    }
+    throw startupFailure('WP4_DESKTOP_BACKEND_ORPHAN_STOP_TIMEOUT', 'Orphan backend owner did not exit after forced termination', { backendPid: pid });
   }
 
   async _stopUnlocked(options = {}) {
     const child = this.child;
     if (!child) {
-      if (this.rejectedOwner || this.ownerRegistry.isPotentiallyLive()) return this._terminateOrphanOwner(options);
-      this.session = null;
-      this.startAttempt = null;
-      try { this.credentialIpcHost.close(); } catch (_) {}
-      const custody = this.credentialCustodyHost;
-      this.credentialCustodyHost = null;
-      try { custody?.close?.(); } catch (_) {}
-      if (this.credentialCustodyServer) { try { this.credentialCustodyServer.close(); } catch (_) {} this.credentialCustodyServer = null; }
-      if (this.state !== PROCESS_STATES.STOPPED) this._transition(PROCESS_STATES.STOPPED, 'stop-without-child');
-      return { stopped: true, exitConfirmed: true, alreadyStopped: true, reason: 'not-running', state: this.state, backendPid: 0 };
+      if (this.rejectedOwner) {
+        const rejectedOwner = this.rejectedOwner;
+        const ownerRecord = this.ownerRegistry.snapshot() || this.orphanOwnerRecord || rejectedOwner;
+        let terminated;
+        try { terminated = await this._terminateOrphanOwner(ownerRecord, options); }
+        catch (error) {
+          this._recordFailure(error.reasonCode || error.code || 'DESKTOP_BACKEND_ORPHAN_STOP_FAILED', null);
+          this._transition(PROCESS_STATES.STOPPING, 'orphan-owner-stop-failed', { backendPid: Number(ownerRecord?.backendPid || 0) });
+          throw error;
+        }
+        if (!terminated.exited) return Object.freeze({ stopped: false, alreadyStopped: false, rejectedOwner: true, ...terminated });
+        const ownerContext = rejectedOwner.ownerContext || ownerRecord.ownerContext || {
+          backendPid: rejectedOwner.backendPid || ownerRecord.backendPid,
+          startupNonce: rejectedOwner.startupNonce || ownerRecord.startupNonce,
+          backendSessionId: rejectedOwner.backendSessionId || ownerRecord.backendSessionId,
+          fd6PipeInstanceId: rejectedOwner.fd6PipeInstanceId || ownerRecord.fd6PipeInstanceId,
+          manifestSha256: rejectedOwner.manifestSha256 || ownerRecord.manifestSha256,
+          vaultEpoch: rejectedOwner.vaultEpoch || ownerRecord.vaultEpoch,
+          hydrationGeneration: rejectedOwner.hydrationGeneration || ownerRecord.hydrationGeneration
+        };
+        if (options.recoverOwnerExit !== false && typeof options.handleBackendOwnerExit === 'function') {
+          await options.handleBackendOwnerExit(ownerContext);
+        }
+        this.ownerRegistry.markRecovered({ reasonCode: 'ORPHAN_OWNER_EXIT_RECOVERED' });
+        this.orphanOwnerRecord = this.ownerRegistry.snapshot();
+        this.rejectedOwner = null;
+        this.ownerRegistryFailure = null;
+        this._transition(PROCESS_STATES.STOPPED, 'orphan-owner-stopped', { backendPid: Number(ownerRecord?.backendPid || 0) });
+        return Object.freeze({ stopped: true, alreadyStopped: false, rejectedOwner: true, ...terminated });
+      }
+      if (![PROCESS_STATES.NOT_STARTED, PROCESS_STATES.STOPPED].includes(this.state)) this._transition(PROCESS_STATES.STOPPED, 'stop-without-child');
+      return Object.freeze({ stopped: true, alreadyStopped: true, backendPid: 0 });
     }
     this._transition(PROCESS_STATES.STOPPING, 'stop-requested', { backendPid: child.pid || 0 });
-    try {
-      const result = await this._terminateAndWait(child, options);
-      if (!result.exited || !result.exitConfirmed || !processExited(child)) throw startupFailure('DESKTOP_BACKEND_EXIT_NOT_CONFIRMED', 'Backend process has not emitted a real exit event');
-      const recovery = await this.waitForOwnerExitRecovery(child);
-      if (recovery?.recovered !== true) {
-        throw startupFailure('WP4_CREDENTIAL_OWNER_EXIT_RECOVERY_PENDING', 'Backend exit occurred but credential owner recovery is not complete', { recovery, backendPid: child.pid || 0 });
-      }
-      if (this.child === child) {
-        this.child = null;
-        this.session = null;
-        this.credentialIpcHost.close();
-        this.credentialCustodyHost?.close?.();
-        this.credentialCustodyHost = null;
-        if (this.credentialCustodyServer) { try { this.credentialCustodyServer.close(); } catch (_) {} this.credentialCustodyServer = null; }
-        this._transition(PROCESS_STATES.STOPPED, 'stop-confirmed', { backendPid: child.pid || 0 });
-      }
-      this.log('backend-process-stopped', { backendPid: child.pid || 0, forced: result.forced === true });
-      return { stopped: true, backendPid: child.pid || 0, ...result, state: this.state };
-    } catch (error) {
-      this._recordFailure(error.reasonCode || 'DESKTOP_BACKEND_STOP_FAILED', child);
-      this._transition(PROCESS_STATES.STOPPING, this.lastFailure.reasonCode, { backendPid: child.pid || 0 });
-      return { stopped: false, exitConfirmed: false, backendPid: child.pid || 0, reasonCode: this.lastFailure.reasonCode, state: this.state };
+    const ownerContext = this.session?.ownerContext || this.startAttempt?.ownerContext || null;
+    const result = await this._terminateAndWait(child, options);
+    const recovery = await this.waitForOwnerExitRecovery(child, options.ownerExitRecoveryTimeoutMs || 15000).catch(error => { throw error; });
+    this.credentialIpcHost.close();
+    this.credentialCustodyHost?.close?.();
+    this.credentialCustodyHost = null;
+    if (this.credentialCustodyServer) {
+      await new Promise(resolve => {
+        try { this.credentialCustodyServer.close(() => resolve()); } catch (_) { resolve(); }
+      });
+      this.credentialCustodyServer = null;
     }
+    this._disposeChildHandles(child);
+    if (this.child === child) this.child = null;
+    this.session = null;
+    this.ownerRegistry.markRecovered({ reasonCode: 'OWNER_EXIT_RECOVERED_AFTER_STOP' });
+    this.orphanOwnerRecord = this.ownerRegistry.snapshot();
+    this._transition(PROCESS_STATES.STOPPED, 'stop-completed', { backendPid: child.pid || 0, forced: result.forced === true });
+    return Object.freeze({ stopped: true, alreadyStopped: false, backendPid: child.pid || 0, ownerContext, recovery, ...result });
   }
 
   stop(options = {}) {
-    this._cancelStartAttempt('DESKTOP_BACKEND_START_CANCELLED', 'Backend startup was cancelled by a stop request');
+    if (this.state === PROCESS_STATES.STARTING) this._cancelStartAttempt(options.reasonCode || 'DESKTOP_BACKEND_START_CANCELLED', options.reason || 'Backend startup cancelled by stop request');
     return this._enqueue(() => this._stopUnlocked(options));
   }
 
   restart(options = {}) {
-    this._cancelStartAttempt('DESKTOP_BACKEND_START_CANCELLED', 'Backend startup was cancelled by a restart request');
+    if (this.state === PROCESS_STATES.STARTING) this._cancelStartAttempt('DESKTOP_BACKEND_START_CANCELLED', 'Backend startup cancelled by restart request');
     return this._enqueue(async () => {
-      const stopResult = await this._stopUnlocked(options);
-      if (stopResult.stopped !== true || this.child && !processExited(this.child)) throw startupFailure(stopResult.reasonCode || 'DESKTOP_BACKEND_RESTART_BLOCKED', 'Cannot restart while previous backend remains alive');
+      await this._stopUnlocked({ ...options, reason: options.reason || 'desktop-host-restart' });
       return this._startUnlocked(options);
     });
   }
 
   acceptBackendOwner(context = {}) {
-    if (this.rejectedOwner || this.ownerRegistryFailure) {
-      throw startupFailure('WP4_DESKTOP_BACKEND_OWNER_ACCEPTANCE_BLOCKED', 'Rejected or registry-invalid backend owner cannot be accepted', { rejectedOwner: this.rejectedOwner, registryFailure: this.ownerRegistryFailure });
-    }
-    const backendPid = Number(context.backendPid || this.child?.pid || this.session?.backendPid || 0);
-    if (!this.child || processExited(this.child) || !this.session || backendPid !== Number(this.child.pid || 0)) {
-      throw startupFailure('WP4_DESKTOP_BACKEND_OWNER_ACCEPTANCE_STALE', 'Backend owner acceptance no longer matches the live child', { backendPid });
-    }
-    try {
-      const record = this.ownerRegistry.update({ state: 'RUNNING', ownershipActive: true, trusted: true, reasonCode: 'APPLICATION_RUNTIME_PROJECTION_ACCEPTED', ownerSession: this.session.ownerContext || null });
-      this.orphanOwnerRecord = record;
-      this.ownerRegistryFailure = null;
-      return record;
-    } catch (cause) {
-      this.ownerRegistryFailure = { reasonCode: 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_ACCEPT_WRITE_FAILED', message: cause.message, atUtc: new Date().toISOString() };
-      throw startupFailure(this.ownerRegistryFailure.reasonCode, 'Backend owner acceptance could not be durably recorded', { cause });
-    }
+    if (!this.child || this.state !== PROCESS_STATES.RUNNING) throw startupFailure('WP4_DESKTOP_BACKEND_OWNER_NOT_READY', 'Backend owner can be accepted only after RUNNING');
+    if (Number(context.backendPid || 0) !== Number(this.child.pid || 0)) throw startupFailure('WP4_DESKTOP_BACKEND_OWNER_PID_MISMATCH', 'Accepted backend owner PID does not match the owned child');
+    const existing = this.session || {};
+    this.session = Object.freeze({ ...existing, ownerAccepted: true, ownerAcceptedAt: new Date().toISOString(), ownerContext: Object.freeze({ ...(context.ownerContext || existing.ownerContext || {}) }) });
+    this.ownerRegistry.markOwned({ backendPid: this.child.pid, startupNonce: this.session.startupNonce, backendSessionId: this.session.backendSessionId, fd6PipeInstanceId: this.session.fd6PipeInstanceId, manifestSha256: this.session.releaseManifestSha256, ownerContext: this.session.ownerContext, reasonCode: 'BACKEND_OWNER_EXPLICITLY_ACCEPTED' });
+    this.rejectedOwner = null;
+    return this.snapshot();
   }
 
   containRejectedOwner(context = {}) {
-    const child = this.child;
-    const session = this.session;
-    const registry = this.ownerRegistry.snapshot();
-    const backendPid = Number(context.backendPid || child?.pid || session?.backendPid || registry?.backendPid || 0);
-    const probe = this.ownerRegistry.probe(registry || { backendPid });
-    const childStillLive = Boolean((child && !processExited(child)) || (!child && probe.alive === true && probe.identityMatch !== false));
-    const base = {
-      backendPid,
-      startupNonce: String(context.startupNonce || session?.startupNonce || registry?.startupNonce || ''),
-      backendSessionId: String(context.backendSessionId || session?.backendSessionId || registry?.backendSessionId || ''),
-      fd6PipeInstanceId: String(context.fd6PipeInstanceId || session?.fd6PipeInstanceId || registry?.fd6PipeInstanceId || ''),
-      reasonCode: String(context.reasonCode || 'WP4_DESKTOP_CREDENTIAL_REJECTED_OWNER'),
-      childStillLive,
-      pidIdentityMatch: probe.identityMatch,
-      markedAtUtc: new Date().toISOString()
-    };
-
-    // Revoke authority in memory before invoking any close or persistence operation.
-    if (session) this.session = Object.freeze({ ...session, apiSessionToken: '', rejected: true });
-    this.rejectedOwner = Object.freeze({ ...base, apiAuthorityRevoked: true, fd6Closed: false, ownerRecordDurable: false });
-
-    const custody = this.credentialCustodyHost;
-    this.credentialCustodyHost = null;
-    if (this.credentialCustodyServer) { try { this.credentialCustodyServer.close(); } catch (_) {} this.credentialCustodyServer = null; }
-    let genericPipeClosed = true;
-    let fd6Closed = true;
-    const closeFailures = [];
-    try { this.credentialIpcHost.close(); } catch (cause) { genericPipeClosed = false; closeFailures.push({ channel: 'FD5', message: cause.message }); }
-    try { custody?.close?.(); } catch (cause) { closeFailures.push({ channel: 'FD6', message: cause.message }); }
-    fd6Closed = this.credentialCustodyHost === null;
-
+    const child = context.child || this.child;
+    const backendPid = Number(context.backendPid || child?.pid || this.session?.backendPid || 0);
+    const ownerContext = context.ownerContext || this.session?.ownerContext || this.startAttempt?.ownerContext || null;
     this.rejectedOwner = Object.freeze({
-      ...base,
-      apiAuthorityRevoked: !this.session?.apiSessionToken,
-      genericPipeClosed,
-      fd6Closed,
-      ownerRecordDurable: false,
-      closeFailures
+      backendPid,
+      startupNonce: String(context.startupNonce || this.session?.startupNonce || ownerContext?.startupNonce || ''),
+      backendSessionId: String(context.backendSessionId || this.session?.backendSessionId || ownerContext?.backendSessionId || ''),
+      fd6PipeInstanceId: String(context.fd6PipeInstanceId || this.session?.fd6PipeInstanceId || ownerContext?.fd6PipeInstanceId || ''),
+      reasonCode: String(context.reasonCode || 'WP4_DESKTOP_BACKEND_OWNER_REJECTED'),
+      childStillLive: backendPid > 0 ? this.isProcessAlive(backendPid) : false,
+      ownerContext: ownerContext ? Object.freeze({ ...ownerContext }) : null,
+      markedAtUtc: new Date().toISOString()
     });
-    this._recordFailure(this.rejectedOwner.reasonCode, child);
-    if (childStillLive && [PROCESS_STATES.RUNNING, PROCESS_STATES.STARTING].includes(this.state)) {
-      this._transition(PROCESS_STATES.STOPPING, 'rejected-owner-contained', { backendPid });
-    }
-
-    // The coordinator uses persistOwnerRecord:false so all synchronous authority
-    // revocation, FD6 detachment and the independent CredentialVaultHost fence are
-    // established before this fallible durable bookkeeping is attempted.
-    if (context.persistOwnerRecord !== false) return this.persistRejectedOwnerMarker(context);
+    this.ownerRegistry.markRejected({ reasonCode: this.rejectedOwner.reasonCode });
+    this.orphanOwnerRecord = this.ownerRegistry.snapshot();
+    this.session = null;
+    this._transition(PROCESS_STATES.STOPPING, 'rejected-owner-contained', { backendPid, reasonCode: this.rejectedOwner.reasonCode });
     return this.rejectedOwner;
   }
 
-  persistRejectedOwnerMarker(context = {}) {
-    if (!this.rejectedOwner) {
-      throw startupFailure('WP4_DESKTOP_REJECTED_OWNER_MARKER_MISSING', 'Rejected owner cannot be persisted before in-memory containment is established');
-    }
-    const closeFailures = [...(this.rejectedOwner.closeFailures || [])];
-    let ownerRecordDurable = false;
-    if (this.ownerRegistryFailure) {
-      // Never overwrite or "repair" an unreadable owner record during containment.
-      // Its unknown PID/identity is itself a fail-closed condition that requires
-      // explicit recovery; in-memory authority and FD6 remain revoked.
-      closeFailures.push({ channel: 'OWNER_REGISTRY', message: this.ownerRegistryFailure.message || this.ownerRegistryFailure.reasonCode });
-    } else {
-      try {
-        this.ownerRegistry.markRejected({
-          reasonCode: String(context.reasonCode || this.rejectedOwner.reasonCode || 'WP4_DESKTOP_CREDENTIAL_REJECTED_OWNER'),
-          ownerSession: context.ownerSession || this.session?.ownerContext || this.ownerRegistry.snapshot()?.ownerSession || null
-        });
+  persistRejectedOwnerMarker(context = {}) { return this.containRejectedOwner(context); }
+
+  async clearRejectedOwner(options = {}) {
+    const rejectedOwner = this.rejectedOwner;
+    if (!rejectedOwner) {
+      if (this.ownerRegistryFailure && options.requireExit !== false) {
+        const record = this.ownerRegistry.snapshot() || this.orphanOwnerRecord;
+        if (record?.ownershipActive) await this._terminateOrphanOwner(record, options);
+        this.ownerRegistry.markRecovered({ reasonCode: 'OWNER_REGISTRY_FAILURE_RECOVERED' });
         this.orphanOwnerRecord = this.ownerRegistry.snapshot();
         this.ownerRegistryFailure = null;
-        ownerRecordDurable = this.ownerRegistry.enabled();
-      } catch (cause) {
-        this.ownerRegistryFailure = { reasonCode: 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_REJECT_WRITE_FAILED', message: cause.message, atUtc: new Date().toISOString() };
-        closeFailures.push({ channel: 'OWNER_REGISTRY', message: cause.message });
       }
+      return false;
     }
-    this.rejectedOwner = Object.freeze({
-      ...this.rejectedOwner,
-      ownerRecordDurable,
-      closeFailures,
-      ownerRecordPersistedAtUtc: ownerRecordDurable ? new Date().toISOString() : ''
-    });
-    return this.rejectedOwner;
-  }
-
-  clearRejectedOwner(options = {}) {
-    if (!this.rejectedOwner) return false;
-    if (this.ownerRegistryFailure && options.force !== true) {
-      throw startupFailure('WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_BLOCKED', 'Rejected owner marker cannot be cleared while the durable owner registry is invalid or unavailable', { registryFailure: this.ownerRegistryFailure });
-    }
-    const child = this.child;
-    const record = this.ownerRegistry.snapshot();
-    const backendPid = Number(this.rejectedOwner.backendPid || child?.pid || record?.backendPid || 0);
-    const observedExitedChild = options.observedExitedChild || null;
-    const observedExitMatchesOwner = Boolean(
-      observedExitedChild
-      && this.ownerExitRecoveryByChild.has(observedExitedChild)
-      && observedExitedChild.__desktopHostExited === true
-      && processExited(observedExitedChild)
-      && Number(observedExitedChild.pid || 0) === backendPid
-      && Number(this.lastExit?.backendPid || 0) === backendPid
-      && record?.state === 'EXITED'
-      && record?.ownershipActive === false
-    );
-    // A ChildProcess instance owned and lifecycle-bound by this host provides a
-    // stronger proof than a later PID-only liveness probe once its real `exit`
-    // event has been observed. This is especially important on Windows, where
-    // process.kill(pid, 0) can report an ambiguous live result while CIM no
-    // longer returns the just-exited process. Only the exact observed child/PID
-    // and an EXITED durable record may use this path; restored/orphan owners
-    // still require normal process-identity verification and remain fail-closed.
-    const probe = observedExitMatchesOwner
-      ? { alive: false, identityMatch: true, reasonCode: 'OWNER_EXIT_EVENT_CONFIRMED', backendPid }
-      : this.ownerRegistry.probe(record || { backendPid });
-    if (options.force !== true && ((child && !processExited(child)) || (probe.alive === true && probe.identityMatch !== false))) {
-      throw startupFailure('WP4_DESKTOP_REJECTED_OWNER_STILL_LIVE', 'Rejected owner marker cannot be cleared while its child remains live', { backendPid, probe });
-    }
-    try {
-      this.ownerRegistry.update({ state: 'RECOVERED', ownershipActive: false, trusted: false, reasonCode: probe.identityMatch === false ? 'OWNER_PID_REUSED_RECOVERED' : (observedExitMatchesOwner ? 'OWNER_EXIT_EVENT_RECOVERED' : 'OWNER_RECOVERY_COMPLETED'), recoveredAtUtc: new Date().toISOString() });
-      this.orphanOwnerRecord = this.ownerRegistry.snapshot();
-      this.ownerRegistryFailure = null;
-    } catch (cause) {
-      this.ownerRegistryFailure = { reasonCode: 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_WRITE_FAILED', message: cause.message, atUtc: new Date().toISOString() };
-      throw startupFailure(this.ownerRegistryFailure.reasonCode, 'Rejected owner recovery could not be durably recorded', { cause, backendPid });
-    }
+    const record = this.ownerRegistry.snapshot() || this.orphanOwnerRecord || rejectedOwner;
+    if (options.requireExit !== false) await this._terminateOrphanOwner(record, options);
+    const ownerContext = rejectedOwner.ownerContext || record.ownerContext || {
+      backendPid: rejectedOwner.backendPid || record.backendPid,
+      startupNonce: rejectedOwner.startupNonce || record.startupNonce,
+      backendSessionId: rejectedOwner.backendSessionId || record.backendSessionId,
+      fd6PipeInstanceId: rejectedOwner.fd6PipeInstanceId || record.fd6PipeInstanceId,
+      manifestSha256: rejectedOwner.manifestSha256 || record.manifestSha256,
+      vaultEpoch: rejectedOwner.vaultEpoch || record.vaultEpoch,
+      hydrationGeneration: rejectedOwner.hydrationGeneration || record.hydrationGeneration
+    };
+    if (options.recoverOwnerExit === true && typeof options.handleBackendOwnerExit === 'function') await options.handleBackendOwnerExit(ownerContext);
+    this.ownerRegistry.markRecovered({ reasonCode: 'REJECTED_OWNER_RECOVERED' });
+    this.orphanOwnerRecord = this.ownerRegistry.snapshot();
     this.rejectedOwner = null;
+    this.ownerRegistryFailure = null;
+    if (!this.child) this._transition(PROCESS_STATES.STOPPED, 'rejected-owner-cleared');
     return true;
   }
 
   isRejectedOwnerLive() {
-    if (!this.rejectedOwner) return false;
-    if (this.child && !processExited(this.child)) return true;
-    const probe = this.ownerRegistry.probe(this.ownerRegistry.snapshot() || this.rejectedOwner);
+    const rejectedOwner = this.rejectedOwner;
+    if (!rejectedOwner) return false;
+    const record = this.ownerRegistry.snapshot() || this.orphanOwnerRecord || rejectedOwner;
+    const probe = this.ownerRegistry.probe(record);
     return probe.alive === true && probe.identityMatch !== false;
   }
 
-  waitForOwnerExitRecovery(child = null) {
-    const target = child || this.child;
-    if (!target) {
-      if (this.rejectedOwner || this.ownerRegistry.isPotentiallyLive()) {
-        return Promise.resolve({ recovered: false, ownerRecoveryRequired: true, pendingExitEvent: false });
-      }
-      return Promise.resolve(this.lastOwnerExitRecovery?.result || { recovered: true, notRequired: true });
-    }
-    const recovery = this.ownerExitRecoveryByChild.get(target);
-    if (recovery) return recovery;
-    if (processExited(target)) {
-      return Promise.resolve({ recovered: false, pendingExitEvent: false, pendingOwnerRecovery: true, backendPid: target.pid || 0 });
-    }
-    return Promise.resolve({ recovered: false, pendingExitEvent: true, childStillLive: true, backendPid: target.pid || 0 });
+  async waitForOwnerExitRecovery(child, timeoutMs = 15000) {
+    const promise = this.ownerExitRecoveryByChild.get(child);
+    if (!promise) return { recovered: true, notRequired: true };
+    let timer;
+    try {
+      return await Promise.race([
+        promise,
+        new Promise((_, reject) => { timer = setTimeout(() => reject(startupFailure('WP4_CREDENTIAL_OWNER_EXIT_RECOVERY_TIMEOUT', 'Credential owner-exit recovery timed out', { backendPid: child?.pid || 0 })), Math.max(100, Number(timeoutMs || 15000))); })
+      ]);
+    } finally { if (timer) clearTimeout(timer); }
   }
 
   getOwnedChild() { return this.child; }
-
-  hasOwnership() {
-    const liveChild = Boolean(this.child && !processExited(this.child));
-    return Boolean(liveChild || this.startAttempt || this.ownerRegistry.isPotentiallyLive() || [PROCESS_STATES.STARTING, PROCESS_STATES.RUNNING, PROCESS_STATES.STOPPING].includes(this.state));
-  }
+  hasOwnership(child = this.child) { return Boolean(child && this.child === child && !processExited(child)); }
 
   snapshot() {
-    const ownerRegistry = this.ownerRegistry.snapshot();
-    const liveChild = Boolean(this.child && !processExited(this.child));
-    const ownershipClaimActive = Boolean(this.rejectedOwner || this.session || this.startAttempt || ownerRegistry?.ownershipActive === true);
-    const ownerTrusted = Boolean(
-      !this.rejectedOwner &&
-      !this.ownerRegistryFailure &&
-      (!ownershipClaimActive || (ownerRegistry?.state === 'RUNNING' && ownerRegistry?.ownershipActive === true && ownerRegistry?.trusted === true))
-    );
+    const child = this.child;
+    const session = this.session;
+    const running = Boolean(child && this.state === PROCESS_STATES.RUNNING && !processExited(child));
     return Object.freeze({
-      state: this.state,
-      running: Boolean(this.child && !processExited(this.child) && this.state === PROCESS_STATES.RUNNING),
-      backendPid: this.child?.pid || Number((this.rejectedOwner?.childStillLive ? this.rejectedOwner.backendPid : 0) || (this.ownerRegistry.snapshot()?.ownershipActive ? this.ownerRegistry.snapshot()?.backendPid : 0) || 0),
-      startupNonce: this.session?.startupNonce || this.rejectedOwner?.startupNonce || this.ownerRegistry.snapshot()?.startupNonce || null,
-      apiSessionEstablished: Boolean(this.session?.apiSessionToken),
-      credentialFrameDelivered: Boolean(this.session?.credentialFrameDelivered),
-      credentialHydrated: Boolean(this.session?.credentialHydrated),
-      credentialVaultEpoch: this.session?.credentialVaultEpoch || null,
-      credentialGeneration: this.session?.credentialGeneration || 0,
-      credentialAuthorityEventId: this.session?.credentialAuthorityEventId || null,
-      credentialAuthorityHeadDigest: this.session?.credentialAuthorityHeadDigest || null,
-      credentialVaultReferenceCount: this.session?.credentialVaultReferenceCount ?? -1,
-      credentialDecryptedEntryCount: this.session?.credentialDecryptedEntryCount ?? -1,
-      credentialFrameEntryCount: this.session?.credentialFrameEntryCount ?? -1,
-      startupAttemptId: this.session?.startupAttemptId || null,
-      backendSessionId: this.session?.backendSessionId || null,
-      runtimeContract: this.session?.runtimeContract || null,
-      fd6PipeInstanceId: this.session?.fd6PipeInstanceId || null,
-      readyCredentialMetadata: this.session?.readyCredentialMetadata || null,
-      ownerContext: this.session?.ownerContext || null,
-      lastOwnerExitRecovery: this.lastOwnerExitRecovery,
+      processState: this.state,
+      running,
+      backendPid: child?.pid || session?.backendPid || this.rejectedOwner?.backendPid || 0,
+      backendPort: session?.backendPort || 0,
+      appRoot: session?.appRoot || '',
+      backendEntryPath: session?.backendEntryPath || '',
+      nodeRuntimeExecutablePath: session?.nodeRuntimeExecutablePath || '',
+      nodeRuntimeVersion: session?.nodeRuntimeVersion || '',
+      nodeModulesPath: session?.nodeModulesPath || '',
+      releaseBuildId: session?.releaseBuildId || '',
+      releaseManifestSha256: session?.releaseManifestSha256 || '',
+      runtimeMode: session ? RUNTIME_MODE_DESKTOP_HOSTED : '',
+      startupAttemptId: session?.startupAttemptId || this.startAttempt?.startupAttemptId || '',
+      startupNonce: session?.startupNonce || this.rejectedOwner?.startupNonce || '',
+      backendSessionId: session?.backendSessionId || this.rejectedOwner?.backendSessionId || '',
+      fd6PipeInstanceId: session?.fd6PipeInstanceId || this.rejectedOwner?.fd6PipeInstanceId || '',
+      apiSessionEstablished: Boolean(session?.apiSessionToken) && !this.rejectedOwner && !this.ownerRegistryFailure,
+      credentialProtocolVersion: session?.credentialProtocolVersion || 0,
+      credentialVaultEpoch: session?.credentialVaultEpoch || '',
+      credentialGeneration: session?.credentialGeneration || 0,
+      credentialAuthorityEventId: session?.credentialAuthorityEventId || '',
+      credentialAuthorityHeadDigest: session?.credentialAuthorityHeadDigest || '',
+      credentialEntryCount: session?.credentialEntryCount || 0,
+      credentialPayloadBytes: session?.credentialPayloadBytes || 0,
+      credentialRestoredReferenceCount: session?.credentialRestoredReferenceCount || 0,
+      credentialResetAuthorization: session?.credentialResetAuthorization || null,
+      readyCredentialMetadata: session?.readyCredentialMetadata || null,
+      readyCredentialAuthorityReceipt: session?.readyCredentialAuthorityReceipt || null,
+      ownerContext: session?.ownerContext || null,
+      ownerAccepted: session?.ownerAccepted === true,
+      ownerTrusted: running && !this.rejectedOwner && !this.ownerRegistryFailure,
+      rejectedOwner: this.rejectedOwner || null,
+      orphanOwnerRecord: this.orphanOwnerRecord || null,
+      ownerRegistryFailure: this.ownerRegistryFailure || null,
+      ownerRegistry: this.ownerRegistry.snapshot(),
       credentialCustody: this.credentialCustodyHost?.snapshot?.() || null,
-      ownerTrusted,
-      rejectedOwner: this.rejectedOwner ? { ...this.rejectedOwner } : null,
-      ownerRegistry,
-      ownerRegistryFailure: this.ownerRegistryFailure ? { ...this.ownerRegistryFailure } : null,
-      startupPending: Boolean(this.startAttempt),
-      ownershipPresent: this.hasOwnership(),
-      ownedChildPresent: Boolean(this.child),
-      shutdownPending: this.state === PROCESS_STATES.STOPPING,
+      lastOwnerExitRecovery: this.lastOwnerExitRecovery,
       lastExit: this.lastExit,
       lastFailure: this.lastFailure,
-      lastStartCancellation: this.lastStartCancellation ? { ...this.lastStartCancellation } : null,
-      stateHistory: this.stateHistory.map(item => ({ ...item }))
+      lastStartCancellation: this.lastStartCancellation,
+      stateHistory: this.stateHistory.slice(-30)
     });
   }
 }
 
-module.exports = { BackendProcessHost, PROCESS_STATES, sanitizedEnvironment, waitForExit, processExited, validateBackendLaunchContract, probeNodeRuntimeExecutable };
+module.exports = {
+  BackendProcessHost,
+  PROCESS_STATES,
+  assertCredentialHandshakeBinding,
+  probeBackendHttpReady,
+  probeNodeRuntimeExecutable,
+  sanitizedEnvironment,
+  validateBackendLaunchContract,
+  waitForExit
+};
