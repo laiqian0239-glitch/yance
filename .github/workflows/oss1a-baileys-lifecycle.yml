@@ -1,0 +1,96 @@
+name: OSS-1A Baileys Lifecycle
+
+on:
+  pull_request:
+    branches:
+      - governance/oss-1a-implementation-authorization
+      - governance/oss-1a-runtime-ci-authorization
+  push:
+    branches:
+      - governance/oss-1a-runtime-ci-authorization
+      - oss/1a-baileys-lifecycle
+
+permissions:
+  contents: read
+
+env:
+  REVIEWED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  governance-contract:
+    name: oss1a-governance-contract
+    if: ${{ (github.event_name == 'pull_request' && github.head_ref == 'governance/oss-1a-runtime-ci-authorization') || (github.event_name == 'push' && github.ref == 'refs/heads/governance/oss-1a-runtime-ci-authorization') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact reviewed governance head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Validate exact OSS-1A runtime workflow contract
+        run: node --test --test-concurrency=1 tests/wp0/oss1a-runtime-workflow.test.js
+
+  runtime-tests:
+    name: oss1a-runtime-tests
+    if: ${{ (github.event_name == 'pull_request' && github.head_ref == 'oss/1a-baileys-lifecycle') || (github.event_name == 'push' && github.ref == 'refs/heads/oss/1a-baileys-lifecycle') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact reviewed implementation head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run Schema 23 RED GREEN contract
+        run: node --test --test-concurrency=1 backend/tests/oss1aWhatsappAuthSchema.test.js
+
+  oss1a-gates:
+    name: oss1a-gates
+    if: ${{ always() }}
+    needs:
+      - governance-contract
+      - runtime-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Enforce exact OSS-1A workflow branch role
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_REF: ${{ github.head_ref }}
+          GIT_REF: ${{ github.ref }}
+          RUNTIME_RESULT: ${{ needs.runtime-tests.result }}
+          GOVERNANCE_RESULT: ${{ needs.governance-contract.result }}
+        run: |
+          set -euo pipefail
+          if { test "${EVENT_NAME}" = "pull_request" && test "${HEAD_REF}" = "governance/oss-1a-runtime-ci-authorization"; } \
+            || { test "${EVENT_NAME}" = "push" && test "${GIT_REF}" = "refs/heads/governance/oss-1a-runtime-ci-authorization"; }; then
+            test "${GOVERNANCE_RESULT}" = "success"
+            test "${RUNTIME_RESULT}" = "skipped"
+          elif { test "${EVENT_NAME}" = "pull_request" && test "${HEAD_REF}" = "oss/1a-baileys-lifecycle"; } \
+            || { test "${EVENT_NAME}" = "push" && test "${GIT_REF}" = "refs/heads/oss/1a-baileys-lifecycle"; }; then
+            test "${GOVERNANCE_RESULT}" = "skipped"
+            test "${RUNTIME_RESULT}" = "success"
+          else
+            echo "unknown OSS-1A workflow branch role" >&2
+            exit 1
+          fi
