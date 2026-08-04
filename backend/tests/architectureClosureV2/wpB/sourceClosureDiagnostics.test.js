@@ -1,0 +1,83 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const {
+  scanRegisteredSources
+} = require('../../../../tools/architecture-closure-v2/source-closure-scan');
+
+const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
+const baselinePath = path.join(
+  repoRoot,
+  'governance',
+  'architecture-closure-v2',
+  'wp-b-source-closure-baseline.json'
+);
+const inventoryPath = path.join(
+  repoRoot,
+  'governance',
+  'architecture-closure-v2',
+  'wp-b-operation-inventory.json'
+);
+
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+function report() {
+  return scanRegisteredSources({ wp: 'B' });
+}
+
+test('M3-SC-DIAG-001 report declares the stable WP-B diagnostic schema', () => {
+  const value = report();
+  assert.equal(value.diagnosticsSchemaVersion, 1, 'M3-SC-DIAG-001');
+  assert.equal(value.diagnosticRecordType, 'YANCE_ACV2_WP_B_SOURCE_CLOSURE_VIOLATION', 'M3-SC-DIAG-001');
+});
+
+test('M3-SC-DIAG-002 classified violation count is explicit and matches the record set', () => {
+  const value = report();
+  assert.equal(Number.isSafeInteger(value.classifiedViolationCount), true, 'M3-SC-DIAG-002:INTEGER_REQUIRED');
+  assert.equal(value.classifiedViolationCount, value.violations.length, 'M3-SC-DIAG-002:COUNT_MISMATCH');
+  assert.ok(value.classifiedViolationCount > 0, 'M3-SC-DIAG-002:CREDIBLE_RED_REQUIRED');
+});
+
+test('M3-SC-DIAG-003 every nonterminal inventory row has an exact classified violation', () => {
+  const baseline = readJson(baselinePath);
+  const inventory = readJson(inventoryPath);
+  const value = report();
+  const productionTerminal = new Set(baseline.productionTerminalStates);
+  const nonProductionTerminal = new Set(baseline.nonProductionTerminalStates);
+  const openRows = inventory.entries.filter(entry => {
+    if (entry.classification === 'NON_PRODUCTION_HARNESS') {
+      return !nonProductionTerminal.has(entry.closureState);
+    }
+    return !productionTerminal.has(entry.closureState);
+  });
+  assert.ok(openRows.length > 0, 'M3-SC-DIAG-003:OPEN_INVENTORY_REQUIRED');
+  for (const entry of openRows) {
+    const matches = value.violations.filter(violation => (
+      violation.inventoryId === entry.id && violation.path === entry.path
+    ));
+    assert.equal(matches.length, 1, `M3-SC-DIAG-003:${entry.id}:${entry.path}`);
+  }
+});
+
+test('M3-SC-DIAG-004 each violation contains exact path, capability, reason and callable facts', () => {
+  const baseline = readJson(baselinePath);
+  const value = report();
+  assert.ok(value.violations.length > 0, 'M3-SC-DIAG-004:CREDIBLE_RED_REQUIRED');
+  for (const [index, violation] of value.violations.entries()) {
+    for (const field of baseline.requiredDiagnosticFields) {
+      assert.equal(Object.hasOwn(violation, field), true, `M3-SC-DIAG-004:${index}:${field}`);
+    }
+    assert.match(violation.inventoryId, /^WPB-[A-Z0-9-]+$/u, `M3-SC-DIAG-004:${index}:inventoryId`);
+    assert.equal(typeof violation.path, 'string', `M3-SC-DIAG-004:${index}:path`);
+    assert.equal(violation.path.startsWith('/'), false, `M3-SC-DIAG-004:${index}:path`);
+    assert.equal(violation.path.includes('*'), false, `M3-SC-DIAG-004:${index}:path`);
+    assert.match(violation.capabilityClass, /^[A-Z][A-Z0-9_]+$/u, `M3-SC-DIAG-004:${index}:capabilityClass`);
+    assert.match(violation.reasonCode, /^WP_B_SOURCE_CLOSURE_[A-Z0-9_]+$/u, `M3-SC-DIAG-004:${index}:reasonCode`);
+    assert.equal(typeof violation.callable, 'boolean', `M3-SC-DIAG-004:${index}:callable`);
+  }
+});
