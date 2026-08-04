@@ -562,10 +562,327 @@ class WhatsAppAuthStateRepository {
     });
   }
 
-  importLegacySnapshot() {
+  importLegacySnapshot(input = {}) {
+    const state = privateState(this);
+    const store = storeFor(this);
+    const phase = nonEmptyString(String(input.phase || '').toUpperCase(), 'phase');
+
+    const hex64 = (value, field) => {
+      const normalized = nonEmptyString(value, field);
+      if (!/^[a-f0-9]{64}$/u.test(normalized)) {
+        throw repositoryError('WHATSAPP_AUTH_REPOSITORY_INPUT_INVALID', `${field} is invalid`, { field });
+      }
+      return normalized;
+    };
+    const readReceipt = criteria => {
+      if (criteria.receiptId) {
+        return store.db.prepare(`SELECT receipt_id,account_key,source_directory_hmac,
+          manifest_a_sha256,manifest_b_sha256,manifest_c_sha256,staged_epoch,state,
+          activation_sha256,failure_code,cleanup_reference_hmac,created_at,updated_at,
+          activated_at,completed_at
+          FROM whatsapp_auth_import_receipts WHERE receipt_id=?`).get(criteria.receiptId) || null;
+      }
+      if (criteria.sourceDirectoryHmac) {
+        return store.db.prepare(`SELECT receipt_id,account_key,source_directory_hmac,
+          manifest_a_sha256,manifest_b_sha256,manifest_c_sha256,staged_epoch,state,
+          activation_sha256,failure_code,cleanup_reference_hmac,created_at,updated_at,
+          activated_at,completed_at
+          FROM whatsapp_auth_import_receipts
+          WHERE source_directory_hmac=? AND state<>'FAILED'
+          ORDER BY created_at,receipt_id LIMIT 1`).get(criteria.sourceDirectoryHmac) || null;
+      }
+      return null;
+    };
+    const publicReceipt = row => row ? Object.freeze({
+      receiptId: String(row.receipt_id),
+      accountKey: String(row.account_key),
+      sourceDirectoryHmac: String(row.source_directory_hmac),
+      manifestASha256: String(row.manifest_a_sha256),
+      manifestBSha256: String(row.manifest_b_sha256 || ''),
+      manifestCSha256: String(row.manifest_c_sha256 || ''),
+      stagedEpoch: Number(row.staged_epoch),
+      epoch: Number(row.staged_epoch),
+      state: String(row.state),
+      activationSha256: String(row.activation_sha256 || ''),
+      failureCode: String(row.failure_code || ''),
+      cleanupReferenceHmac: String(row.cleanup_reference_hmac || ''),
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at),
+      activatedAt: String(row.activated_at || ''),
+      completedAt: String(row.completed_at || '')
+    }) : null;
+
+    if (phase === 'LOOKUP') {
+      const receiptId = input.receiptId ? nonEmptyString(input.receiptId, 'receiptId') : '';
+      const sourceDirectoryHmac = input.sourceDirectoryHmac
+        ? hex64(input.sourceDirectoryHmac, 'sourceDirectoryHmac')
+        : '';
+      if (!receiptId && !sourceDirectoryHmac) {
+        throw repositoryError('WHATSAPP_AUTH_REPOSITORY_INPUT_INVALID', 'Legacy import lookup requires a receipt or source HMAC');
+      }
+      return publicReceipt(readReceipt({ receiptId, sourceDirectoryHmac }));
+    }
+
+    if (phase === 'PREPARE') {
+      const receiptId = nonEmptyString(input.receiptId, 'receiptId');
+      const accountId = nonEmptyString(input.accountId, 'accountId');
+      const accountKey = nonEmptyString(input.accountKey, 'accountKey');
+      const sourceDirectoryHmac = hex64(input.sourceDirectoryHmac, 'sourceDirectoryHmac');
+      const manifestASha256 = hex64(input.manifestASha256, 'manifestASha256');
+      const generation = nonNegativeInteger(input.generation, 'generation');
+      const socketToken = nonEmptyString(input.socketToken, 'socketToken');
+      const at = nonEmptyString(input.at, 'at');
+      return store.transaction(() => {
+        const existingReceipt = readReceipt({ receiptId, sourceDirectoryHmac });
+        if (existingReceipt) return publicReceipt(existingReceipt);
+        const account = readAccountRow(store.db, accountKey);
+        if (account && [LOGGED_OUT, QUARANTINED].includes(String(account.state))) {
+          throw repositoryError(
+            'WHATSAPP_LEGACY_AUTH_RESURRECTION_BLOCKED',
+            'Terminal WhatsApp auth authority blocks legacy resurrection',
+            { accountKey, state: String(account.state) }
+          );
+        }
+        if (account && String(account.state) === ACTIVE) {
+          throw repositoryError(
+            'WHATSAPP_LEGACY_AUTH_ACCOUNT_ALREADY_ACTIVE',
+            'An active WhatsApp auth authority already exists',
+            { accountKey }
+          );
+        }
+        const stagedEpoch = account ? Number(account.current_epoch) : 1;
+        if (!account) {
+          store.db.prepare(`INSERT INTO whatsapp_auth_accounts(
+            account_key,account_id,current_epoch,state,creds_cipher_version,creds_key_version,
+            creds_nonce,creds_ciphertext,creds_auth_tag,creds_ciphertext_sha256,registered,
+            identity_jid_hmac,writer_generation,writer_socket_token,created_at,updated_at,
+            logged_out_at,quarantine_reason
+          ) VALUES(?,?,?,?,NULL,NULL,NULL,NULL,NULL,'',0,'',?,?,?,?,?,'','')`).run(
+            accountKey, accountId, stagedEpoch, IMPORT_PENDING,
+            generation, socketToken, at, at
+          );
+        } else {
+          if (String(account.account_id) !== accountId
+            || String(account.state) !== IMPORT_PENDING
+            || Number(account.writer_generation) !== generation
+            || String(account.writer_socket_token) !== socketToken) {
+            throw repositoryError(
+              'WHATSAPP_AUTH_GENERATION_STALE',
+              'Pending legacy import writer authority is stale',
+              { accountKey }
+            );
+          }
+        }
+        store.db.prepare(`INSERT INTO whatsapp_auth_import_receipts(
+          receipt_id,account_key,source_directory_hmac,manifest_a_sha256,
+          manifest_b_sha256,manifest_c_sha256,staged_epoch,state,activation_sha256,
+          failure_code,cleanup_reference_hmac,created_at,updated_at,activated_at,completed_at
+        ) VALUES(?,?,?,?,'','',?,'IMPORT_PENDING','','','',?,?,'','')`).run(
+          receiptId, accountKey, sourceDirectoryHmac, manifestASha256,
+          stagedEpoch, at, at
+        );
+        return publicReceipt(readReceipt({ receiptId }));
+      });
+    }
+
+    if (phase === 'RECORD_MANIFEST_B' || phase === 'RECORD_MANIFEST_C') {
+      const receiptId = nonEmptyString(input.receiptId, 'receiptId');
+      const at = nonEmptyString(input.at, 'at');
+      const field = phase === 'RECORD_MANIFEST_B' ? 'manifestBSha256' : 'manifestCSha256';
+      const manifestSha256 = hex64(input[field], field);
+      return store.transaction(() => {
+        const receipt = readReceipt({ receiptId });
+        if (!receipt || !['IMPORT_PENDING', 'STAGED'].includes(String(receipt.state))) {
+          throw repositoryError(
+            'WHATSAPP_LEGACY_AUTH_RECEIPT_STATE_INVALID',
+            'Legacy import manifest cannot advance from the current receipt state',
+            { receiptId, state: String(receipt?.state || '') }
+          );
+        }
+        if (phase === 'RECORD_MANIFEST_B') {
+          store.db.prepare(`UPDATE whatsapp_auth_import_receipts
+            SET manifest_b_sha256=?,state='IMPORT_PENDING',updated_at=?
+            WHERE receipt_id=?`).run(manifestSha256, at, receiptId);
+        } else {
+          const nextState = String(receipt.manifest_a_sha256) === String(receipt.manifest_b_sha256)
+            && String(receipt.manifest_b_sha256) === manifestSha256
+            ? 'STAGED'
+            : 'IMPORT_PENDING';
+          store.db.prepare(`UPDATE whatsapp_auth_import_receipts
+            SET manifest_c_sha256=?,state=?,updated_at=?
+            WHERE receipt_id=?`).run(manifestSha256, nextState, at, receiptId);
+        }
+        return publicReceipt(readReceipt({ receiptId }));
+      });
+    }
+
+    if (phase === 'ACTIVATE') {
+      const receiptId = nonEmptyString(input.receiptId, 'receiptId');
+      const accountId = nonEmptyString(input.accountId, 'accountId');
+      const accountKey = nonEmptyString(input.accountKey, 'accountKey');
+      const manifestASha256 = hex64(input.manifestASha256, 'manifestASha256');
+      const manifestBSha256 = hex64(input.manifestBSha256, 'manifestBSha256');
+      const manifestCSha256 = hex64(input.manifestCSha256, 'manifestCSha256');
+      const activationSha256 = hex64(input.activationSha256, 'activationSha256');
+      const generation = nonNegativeInteger(input.generation, 'generation');
+      const socketToken = nonEmptyString(input.socketToken, 'socketToken');
+      const at = nonEmptyString(input.at, 'at');
+      if (manifestASha256 !== manifestBSha256 || manifestBSha256 !== manifestCSha256) {
+        throw repositoryError(
+          'WHATSAPP_LEGACY_AUTH_MANIFEST_CHANGED',
+          'Legacy import manifests do not match'
+        );
+      }
+      if (!isPlainObject(input.creds) || !Array.isArray(input.keys)) {
+        throw repositoryError('WHATSAPP_AUTH_REPOSITORY_INPUT_INVALID', 'Legacy import snapshot is invalid');
+      }
+      const receiptBefore = readReceipt({ receiptId });
+      const accountBefore = readAccountRow(store.db, accountKey);
+      if (!receiptBefore || String(receiptBefore.state) !== 'STAGED'
+        || !accountBefore || String(accountBefore.state) !== IMPORT_PENDING) {
+        throw repositoryError(
+          'WHATSAPP_LEGACY_AUTH_RECEIPT_STATE_INVALID',
+          'Legacy import is not staged for activation',
+          { receiptId }
+        );
+      }
+      if (String(accountBefore.account_id) !== accountId
+        || Number(accountBefore.writer_generation) !== generation
+        || String(accountBefore.writer_socket_token) !== socketToken) {
+        throw repositoryError('WHATSAPP_AUTH_GENERATION_STALE', 'Legacy import writer authority is stale');
+      }
+      const stagedEpoch = Number(receiptBefore.staged_epoch);
+      const aadBase = {
+        schemaVersion: SCHEMA_VERSION,
+        accountKey,
+        accountId,
+        currentEpoch: stagedEpoch
+      };
+      const credsEnvelope = state.cipher.encrypt('AUTH_CREDS', aadBase, encodeValue(input.creds));
+      const identity = String(input.creds?.me?.id || input.creds?.me?.lid || '');
+      const identityJidHmac = identity ? state.cipher.hmacIndex('IDENTITY_JID', identity) : '';
+      const preparedKeys = input.keys.map(candidate => {
+        const category = nonEmptyString(candidate?.category, 'category');
+        const keyId = nonEmptyString(candidate?.keyId, 'keyId');
+        if (candidate.value == null) {
+          throw repositoryError('WHATSAPP_AUTH_REPOSITORY_INPUT_INVALID', 'Imported key value is missing');
+        }
+        return Object.freeze({
+          category,
+          keyId,
+          envelope: state.cipher.encrypt('AUTH_KEY', {
+            ...aadBase,
+            category,
+            keyId
+          }, encodeValue(candidate.value))
+        });
+      });
+      return store.transaction(() => {
+        const receipt = readReceipt({ receiptId });
+        const account = readAccountRow(store.db, accountKey);
+        if (!receipt || String(receipt.state) !== 'STAGED'
+          || String(receipt.manifest_a_sha256) !== manifestASha256
+          || String(receipt.manifest_b_sha256) !== manifestBSha256
+          || String(receipt.manifest_c_sha256) !== manifestCSha256) {
+          throw repositoryError(
+            'WHATSAPP_LEGACY_AUTH_RECEIPT_STATE_INVALID',
+            'Legacy import receipt changed before activation',
+            { receiptId }
+          );
+        }
+        if (!account || String(account.state) !== IMPORT_PENDING
+          || Number(account.current_epoch) !== stagedEpoch
+          || Number(account.writer_generation) !== generation
+          || String(account.writer_socket_token) !== socketToken) {
+          throw repositoryError('WHATSAPP_AUTH_GENERATION_STALE', 'Legacy import account changed before activation');
+        }
+        const accountResult = store.db.prepare(`UPDATE whatsapp_auth_accounts SET
+          state='ACTIVE',creds_cipher_version=?,creds_key_version=?,creds_nonce=?,
+          creds_ciphertext=?,creds_auth_tag=?,creds_ciphertext_sha256=?,registered=?,
+          identity_jid_hmac=?,updated_at=?,logged_out_at='',quarantine_reason=''
+          WHERE account_key=? AND current_epoch=? AND state='IMPORT_PENDING'
+            AND writer_generation=? AND writer_socket_token=?`).run(
+          credsEnvelope.cipherVersion, credsEnvelope.keyVersion, credsEnvelope.nonce,
+          credsEnvelope.ciphertext, credsEnvelope.authTag, credsEnvelope.ciphertextSha256,
+          input.creds.registered === true ? 1 : 0, identityJidHmac, at,
+          accountKey, stagedEpoch, generation, socketToken
+        );
+        if (Number(accountResult.changes) !== 1) {
+          throw repositoryError('WHATSAPP_AUTH_GENERATION_STALE', 'Legacy import activation lost writer authority');
+        }
+        store.db.prepare('DELETE FROM whatsapp_auth_keys WHERE account_key=?').run(accountKey);
+        for (const key of preparedKeys) {
+          store.db.prepare(`INSERT INTO whatsapp_auth_keys(
+            account_key,category,key_id,value_present,cipher_version,key_version,nonce,
+            ciphertext,auth_tag,ciphertext_sha256,epoch,updated_at
+          ) VALUES(?,?,?,1,?,?,?,?,?,?,?,?)`).run(
+            accountKey, key.category, key.keyId,
+            key.envelope.cipherVersion, key.envelope.keyVersion, key.envelope.nonce,
+            key.envelope.ciphertext, key.envelope.authTag,
+            key.envelope.ciphertextSha256, stagedEpoch, at
+          );
+        }
+        const receiptResult = store.db.prepare(`UPDATE whatsapp_auth_import_receipts SET
+          state='ACTIVATED',activation_sha256=?,failure_code='',cleanup_reference_hmac='',
+          updated_at=?,activated_at=?
+          WHERE receipt_id=? AND state='STAGED'`).run(
+          activationSha256, at, at, receiptId
+        );
+        if (Number(receiptResult.changes) !== 1) {
+          throw repositoryError('WHATSAPP_LEGACY_AUTH_RECEIPT_STATE_INVALID', 'Legacy import receipt activation failed');
+        }
+        return publicReceipt(readReceipt({ receiptId }));
+      });
+    }
+
+    if (phase === 'CLEANUP_REQUIRED') {
+      const receiptId = nonEmptyString(input.receiptId, 'receiptId');
+      const cleanupReferenceHmac = hex64(input.cleanupReferenceHmac, 'cleanupReferenceHmac');
+      const failureCode = nonEmptyString(input.failureCode, 'failureCode');
+      const at = nonEmptyString(input.at, 'at');
+      return store.transaction(() => {
+        const receipt = readReceipt({ receiptId });
+        if (!receipt || !['ACTIVATED', 'CLEANUP_REQUIRED'].includes(String(receipt.state))) {
+          throw repositoryError(
+            'WHATSAPP_LEGACY_AUTH_RECEIPT_STATE_INVALID',
+            'Legacy import cleanup cannot advance from the current receipt state',
+            { receiptId, state: String(receipt?.state || '') }
+          );
+        }
+        store.db.prepare(`UPDATE whatsapp_auth_import_receipts SET
+          state='CLEANUP_REQUIRED',failure_code=?,cleanup_reference_hmac=?,updated_at=?
+          WHERE receipt_id=?`).run(failureCode, cleanupReferenceHmac, at, receiptId);
+        return publicReceipt(readReceipt({ receiptId }));
+      });
+    }
+
+    if (phase === 'COMPLETE') {
+      const receiptId = nonEmptyString(input.receiptId, 'receiptId');
+      const at = nonEmptyString(input.at, 'at');
+      return store.transaction(() => {
+        const receipt = readReceipt({ receiptId });
+        if (!receipt) {
+          throw repositoryError('WHATSAPP_LEGACY_AUTH_RECEIPT_NOT_FOUND', 'Legacy import receipt is missing');
+        }
+        if (String(receipt.state) === 'COMPLETED') return publicReceipt(receipt);
+        if (String(receipt.state) !== 'ACTIVATED') {
+          throw repositoryError(
+            'WHATSAPP_LEGACY_AUTH_RECEIPT_STATE_INVALID',
+            'Legacy import completion requires an activated receipt',
+            { receiptId, state: String(receipt.state) }
+          );
+        }
+        store.db.prepare(`UPDATE whatsapp_auth_import_receipts SET
+          state='COMPLETED',failure_code='',cleanup_reference_hmac='',updated_at=?,completed_at=?
+          WHERE receipt_id=? AND state='ACTIVATED'`).run(at, at, receiptId);
+        return publicReceipt(readReceipt({ receiptId }));
+      });
+    }
+
     throw repositoryError(
-      'WHATSAPP_AUTH_LEGACY_IMPORT_NOT_AUTHORIZED',
-      'Legacy import requires the separately tested two-phase importer authority'
+      'WHATSAPP_AUTH_LEGACY_IMPORT_PHASE_INVALID',
+      'Legacy import phase is not recognized',
+      { phase }
     );
   }
 }
