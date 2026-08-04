@@ -15,6 +15,7 @@ const {
   CredentialVaultHost
 } = require('../../electron/desktopHost/CredentialVaultHost');
 const { CredentialVault } = require('../../electron/credentialVault');
+const { makeCredentialFrame } = require('../../shared/credentialProtocol');
 const { createInstalledResources } = require('../wp2/helpers');
 
 const KEY_REFERENCE = 'whatsapp-auth-data-key:v1';
@@ -65,6 +66,70 @@ function collectFiles(root) {
   return files;
 }
 
+function createVaultFixture(prefix = 'yance-oss1a-ready-authority-') {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  const secureRoot = path.join(root, 'secure');
+  const paths = {
+    vault: path.join(secureRoot, 'credentials.safe.json'),
+    metadata: path.join(secureRoot, 'vault-meta.json'),
+    journal: path.join(secureRoot, 'credential-authority-journal.json'),
+    lifecycleIntent: path.join(secureRoot, 'credential-authority-lifecycle-intent.json'),
+    lifecycleCompleted: path.join(secureRoot, 'credential-authority-completed.json')
+  };
+  const vault = new CredentialVault(paths.vault, { safeStorage: createSafeStorage() });
+  const vaultHost = new CredentialVaultHost({
+    vault,
+    metadataPath: paths.metadata,
+    transactionPath: paths.journal,
+    lifecycleIntentPath: paths.lifecycleIntent,
+    lifecycleCompletedPath: paths.lifecycleCompleted
+  });
+  return Object.freeze({ root, paths, vaultHost });
+}
+
+function metadataFromFrame(frame) {
+  return Object.freeze({
+    pid: frame.backendPid,
+    startupNonce: frame.startupNonce,
+    vaultEpoch: frame.vaultEpoch,
+    generation: frame.generation,
+    authorityEventId: frame.authorityEventId,
+    authorityHeadDigest: frame.authorityHeadDigest,
+    vaultReferenceCount: frame.vaultReferenceCount,
+    decryptedEntryCount: frame.decryptedEntryCount,
+    frameEntryCount: frame.frameEntryCount,
+    entryCount: frame.payload.entries.length,
+    payloadBytes: frame.payloadBytes,
+    restoredReferenceCount: frame.payload.entries.length
+  });
+}
+
+function currentReadyMetadata(vaultHost, initialFrame) {
+  const metadata = vaultHost.snapshotMetadata();
+  const entries = vaultHost.entriesStrict();
+  const frame = makeCredentialFrame({
+    startupNonce: initialFrame.startupNonce,
+    oneTimeToken: initialFrame.oneTimeToken,
+    backendPid: initialFrame.backendPid,
+    manifestSha256: initialFrame.manifestSha256,
+    vaultEpoch: metadata.vaultEpoch,
+    generation: metadata.generation,
+    authorityEventId: metadata.authorityEventId,
+    authorityHeadDigest: metadata.authorityHeadDigest,
+    vaultReferenceCount: metadata.referenceCount,
+    decryptedEntryCount: entries.length,
+    entries: entries.map(([ref, value]) => ({ ref, value }))
+  });
+  return metadataFromFrame(frame);
+}
+
+function expectReason(reasonCode) {
+  return error => {
+    assert.equal(error?.reasonCode || error?.code, reasonCode, error?.stack || String(error));
+    return true;
+  };
+}
+
 function keyAuthoritySnapshot(health) {
   const participant = health?.productionServices?.participants?.find(
     row => row?.name === 'whatsapp-auth-key-authority'
@@ -110,6 +175,150 @@ function dekTransactions(journal) {
       && row?.ref === KEY_REFERENCE
   );
 }
+
+test('CredentialVaultHost READY validator accepts only exact initial or same-owner committed FD6 authority', async () => {
+  const fixture = createVaultFixture();
+  const context = Object.freeze({
+    startupAttemptId: 'oss1a-ready-attempt-1',
+    startupNonce: 'oss1a-ready-nonce-1',
+    oneTimeToken: Buffer.alloc(32, 0x31).toString('base64url'),
+    backendPid: 4242,
+    manifestSha256: 'a'.repeat(64),
+    backendSessionId: 'oss1a-ready-session-1',
+    fd6PipeInstanceId: 'oss1a-ready-fd6-1'
+  });
+
+  try {
+    const prepared = fixture.vaultHost.createHydrationFrame(context);
+    const hydration = Object.freeze({
+      type: 'backend:credential-hydrated',
+      ...metadataFromFrame(prepared.frame)
+    });
+    assert.equal(fixture.vaultHost.markHydrationAccepted(hydration), true);
+    assert.equal(
+      typeof fixture.vaultHost.validateReadyCredentialAuthority,
+      'function',
+      'CredentialVaultHost must expose a no-secret READY authority validator'
+    );
+
+    const exactReceipt = fixture.vaultHost.validateReadyCredentialAuthority({
+      startupAttemptId: context.startupAttemptId,
+      initialFrame: prepared.frame,
+      hydrationAcknowledgement: hydration,
+      readyMetadata: metadataFromFrame(prepared.frame),
+      ownerSession: prepared.ownerSession
+    });
+    assert.equal(Object.isFrozen(exactReceipt), true);
+    assert.equal(exactReceipt.mode, 'INITIAL_FD5_EXACT');
+    assert.equal(exactReceipt.initialGeneration, prepared.frame.generation);
+    assert.equal(exactReceipt.readyGeneration, prepared.frame.generation);
+    assert.equal(JSON.stringify(exactReceipt).includes(KEY_REFERENCE), false);
+
+    const dekRecord = Object.freeze({
+      algorithm: 'AES-256-GCM',
+      keyVersion: 1,
+      keyBase64: Buffer.alloc(32, 0x5c).toString('base64'),
+      createdAt: '2026-08-05T00:00:00.000Z',
+      purpose: KEY_PURPOSE
+    });
+    const committed = await fixture.vaultHost.applyCustodyMutation({
+      requestId: 'oss1a-ready-fd6-persist-1',
+      operation: 'persist',
+      vaultEpoch: prepared.frame.vaultEpoch,
+      generation: prepared.frame.generation,
+      backendPid: context.backendPid,
+      startupNonce: context.startupNonce,
+      backendSessionId: context.backendSessionId,
+      manifestSha256: context.manifestSha256,
+      hydrationGeneration: prepared.frame.generation,
+      fd6PipeInstanceId: context.fd6PipeInstanceId,
+      payload: { ref: KEY_REFERENCE, value: dekRecord }
+    });
+    assert.equal(committed.persisted, true);
+
+    const advancedReady = currentReadyMetadata(fixture.vaultHost, prepared.frame);
+    const advancedReceipt = fixture.vaultHost.validateReadyCredentialAuthority({
+      startupAttemptId: context.startupAttemptId,
+      initialFrame: prepared.frame,
+      hydrationAcknowledgement: hydration,
+      readyMetadata: advancedReady,
+      ownerSession: prepared.ownerSession
+    });
+    assert.equal(Object.isFrozen(advancedReceipt), true);
+    assert.equal(advancedReceipt.mode, 'SAME_OWNER_PRE_READY_FD6_COMMITTED_ADVANCE');
+    assert.equal(advancedReceipt.initialGeneration, prepared.frame.generation);
+    assert.equal(advancedReceipt.readyGeneration, committed.generation);
+    assert.equal(advancedReceipt.ownerSessionMatched, true);
+    assert.equal(advancedReceipt.journalHeadMatched, true);
+    assert.equal(JSON.stringify(advancedReceipt).includes(dekRecord.keyBase64), false);
+
+    for (const corrupt of [
+      { ...advancedReady, generation: advancedReady.generation + 1 },
+      { ...advancedReady, authorityEventId: 'event:forged' },
+      { ...advancedReady, authorityHeadDigest: '0'.repeat(64) },
+      { ...advancedReady, entryCount: advancedReady.entryCount + 1 },
+      { ...advancedReady, payloadBytes: advancedReady.payloadBytes + 1 }
+    ]) {
+      assert.throws(
+        () => fixture.vaultHost.validateReadyCredentialAuthority({
+          startupAttemptId: context.startupAttemptId,
+          initialFrame: prepared.frame,
+          hydrationAcknowledgement: hydration,
+          readyMetadata: corrupt,
+          ownerSession: prepared.ownerSession
+        }),
+        expectReason('WP4_CREDENTIAL_READY_AUTHORITY_METADATA_MISMATCH')
+      );
+    }
+
+    fixture.vaultHost.setApplicationFence({
+      reasonCode: APPLICATION_CONTAINED,
+      backendPid: context.backendPid,
+      ownerSession: prepared.ownerSession,
+      retryable: false,
+      fatal: true
+    });
+    assert.throws(
+      () => fixture.vaultHost.validateReadyCredentialAuthority({
+        startupAttemptId: context.startupAttemptId,
+        initialFrame: prepared.frame,
+        hydrationAcknowledgement: hydration,
+        readyMetadata: advancedReady,
+        ownerSession: prepared.ownerSession
+      }),
+      expectReason(APPLICATION_CONTAINED)
+    );
+    fixture.vaultHost.clearApplicationFence({ force: true });
+
+    const pendingRequest = {
+      requestId: 'oss1a-ready-fd6-pending-1',
+      operation: 'persist',
+      vaultEpoch: advancedReady.vaultEpoch,
+      generation: advancedReady.generation,
+      backendPid: context.backendPid,
+      startupNonce: context.startupNonce,
+      backendSessionId: context.backendSessionId,
+      manifestSha256: context.manifestSha256,
+      hydrationGeneration: prepared.frame.generation,
+      fd6PipeInstanceId: context.fd6PipeInstanceId,
+      payload: { ref: 'oss1a-ready-pending-ref', value: { pending: true } }
+    };
+    await fixture.vaultHost.prepareCustodyTransaction(pendingRequest);
+    assert.throws(
+      () => fixture.vaultHost.validateReadyCredentialAuthority({
+        startupAttemptId: context.startupAttemptId,
+        initialFrame: prepared.frame,
+        hydrationAcknowledgement: hydration,
+        readyMetadata: advancedReady,
+        ownerSession: prepared.ownerSession
+      }),
+      expectReason('WP4_CREDENTIAL_READY_AUTHORITY_PENDING')
+    );
+    await fixture.vaultHost.abortCustodyTransaction(pendingRequest, 'OSS1A_READY_TEST_ABORT');
+  } finally {
+    fs.rmSync(fixture.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  }
+});
 
 test('real FD6 custody persists the WhatsApp DEK and the next backend owner restores it through FD5', { timeout: 180000 }, async () => {
   const repoRoot = path.resolve(__dirname, '../..');
