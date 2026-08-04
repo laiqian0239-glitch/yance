@@ -140,3 +140,5 @@ test('CredentialVault key authority single-flights creation and never exposes th
   assert.equal(serializedSnapshot.includes('keyBase64'), false);
   assert.equal(serializedSnapshot.includes(stored.keyBase64), false);
 });
+
+require('./oss1aWhatsappAuthCipher.test');
