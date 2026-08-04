@@ -58,6 +58,11 @@ function outboundAttemptEnvelope(overrides = {}) {
     executionId: 'execution-message-1',
     intentId: 'intent-message-1',
     attemptId: 'attempt-message-1',
+    claimId: 'claim-message-1',
+    ownerId: 'owner-message-1',
+    generation: 1,
+    hostGeneration: 1,
+    fencingToken: 1,
     idempotencyKey: 'idempotency-message-1',
     request,
     ...Object.fromEntries(
