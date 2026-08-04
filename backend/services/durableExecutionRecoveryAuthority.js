@@ -360,6 +360,15 @@ class DurableExecutionRecoveryAuthority {
   constructor(options = {}) {
     const storeProvider = typeof options.storeProvider === 'function' ? options.storeProvider : getStore;
     const sqliteReaders = createSqliteReaders(storeProvider);
+    Object.defineProperties(this, {
+      storeProvider: { value: storeProvider, enumerable: false, writable: false, configurable: false },
+      authorityWriteHostCapability: {
+        value: options.authorityWriteHostCapability || null,
+        enumerable: false,
+        writable: false,
+        configurable: false
+      }
+    });
     this.clock = typeof options.clock === 'function' ? options.clock : () => new Date().toISOString();
     this.executionReader = typeof options.executionReader === 'function'
       ? options.executionReader
@@ -429,11 +438,29 @@ class DurableExecutionRecoveryAuthority {
   }
 }
 
+function currentRuntimeRecoveryAuthority() {
+  const { AppRuntimeFactory } = require('../runtime/AppRuntimeFactory');
+  const authority = AppRuntimeFactory.current()?.composition?.authorities?.durableExecutionRecoveryAuthority;
+  if (!authority || typeof authority.recoverNonterminalExecutions !== 'function') {
+    throw recoveryError(
+      'WP_B_RUNTIME_RECOVERY_AUTHORITY_REQUIRED',
+      'The current AppRuntime has not composed DurableExecutionRecoveryAuthority'
+    );
+  }
+  return authority;
+}
+
+function recoverNonterminalExecutions(options = {}) {
+  return currentRuntimeRecoveryAuthority().recoverNonterminalExecutions(options);
+}
+
 module.exports = {
   DECISIONS,
   DurableExecutionRecoveryAuthority,
   createSqliteDecisionWriter,
   createSqliteReaders,
+  currentRuntimeRecoveryAuthority,
   decideRecovery,
+  recoverNonterminalExecutions,
   recoveryError
 };
