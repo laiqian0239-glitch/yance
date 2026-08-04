@@ -15,8 +15,13 @@
 //                                        |
 //                                        +--(recovery window expires)--> EXPIRED -> onRecoveryExpired (SIGTERM fallback)
 //
-// It is a pure, zero-dependency state machine so it can be unit-tested without
-// Electron, a real pipe, or an actual process exit.
+// Process ownership recovery deliberately does not infer or mutate business
+// execution truth. Callers that need business recovery must explicitly delegate
+// to the single Runtime DurableExecutionRecoveryAuthority.
+
+const {
+  recoverNonterminalExecutions
+} = require('./durableExecutionRecoveryAuthority');
 
 const STATES = Object.freeze({
   ACTIVE: 'ACTIVE',
@@ -115,6 +120,10 @@ class OwnerRecovery {
     return Object.freeze({ accepted: true, state: this.state, ownerContext: this.ownerContext });
   }
 
+  recoverDurableExecutions(options = {}) {
+    return recoverNonterminalExecutions(options);
+  }
+
   snapshot() {
     return Object.freeze({
       state: this.state,
@@ -131,4 +140,9 @@ class OwnerRecovery {
   }
 }
 
-module.exports = { DEFAULT_WINDOW_MS, OwnerRecovery, STATES };
+module.exports = {
+  DEFAULT_WINDOW_MS,
+  OwnerRecovery,
+  STATES,
+  recoverNonterminalExecutions
+};
