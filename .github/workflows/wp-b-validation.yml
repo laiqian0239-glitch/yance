@@ -18,6 +18,7 @@ on:
       - backend/services/authorityTransactionCoordinator.js
       - backend/services/durableExecutionAuthority.js
       - backend/services/durableExecutionLifecycle.js
+      - backend/services/durableInternalOperationAuthority.js
       - backend/services/externalActionDispatcher.js
       - backend/services/externalActionOutboxAuthority.js
       - backend/services/externalOutcomeReconciliation.js
@@ -57,6 +58,7 @@ on:
       - backend/services/authorityTransactionCoordinator.js
       - backend/services/durableExecutionAuthority.js
       - backend/services/durableExecutionLifecycle.js
+      - backend/services/durableInternalOperationAuthority.js
       - backend/services/externalActionDispatcher.js
       - backend/services/externalActionOutboxAuthority.js
       - backend/services/externalOutcomeReconciliation.js
@@ -126,6 +128,7 @@ jobs:
           node --check tools/architecture-closure-v2/discover-wp-b-operation-call-sites.js
           node --check tools/architecture-closure-v2/capture-wp-b-red-evidence.js
           node --check tools/architecture-closure-v2/source-closure-scan.js
+          node --check backend/services/durableInternalOperationAuthority.js
           node --check backend/tests/architectureClosureV2/wpB/sourceClosureFinal.test.js
           node --check backend/tests/architectureClosureV2/wpB/sourceClosureDiagnostics.test.js
           node --check shared/release/acv2ActiveWorkPackageAuthority.js
@@ -139,7 +142,26 @@ jobs:
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/openSourceAdoptionGate.test.js backend/tests/architectureClosureV2/wpB/operationInventoryDiscovery.test.js backend/tests/architectureClosureV2/wpB/m1RedEvidence.test.js
 
       - name: Run WP-B source-closure credible RED contracts
-        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/sourceClosureFinal.test.js backend/tests/architectureClosureV2/wpB/sourceClosureDiagnostics.test.js
+        shell: bash
+        run: |
+          set +e
+          OUTPUT_PATH="${RUNNER_TEMP}/wp-b-source-closure-${RUNNER_OS}.tap"
+          node --test --test-concurrency=1 \
+            backend/tests/architectureClosureV2/wpB/sourceClosureFinal.test.js \
+            backend/tests/architectureClosureV2/wpB/sourceClosureDiagnostics.test.js \
+            > "${OUTPUT_PATH}" 2>&1
+          STATUS=$?
+          cat "${OUTPUT_PATH}"
+          exit "${STATUS}"
+
+      - name: Upload source-closure diagnostic evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: wp-b-source-closure-${{ matrix.os }}-${{ env.VALIDATION_SHA }}
+          path: ${{ runner.temp }}/wp-b-source-closure-${{ runner.os }}.tap
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Verify immutable Milestone 1 RED evidence
         run: node tools/architecture-closure-v2/verify-wp-b-m1-red-evidence.js
