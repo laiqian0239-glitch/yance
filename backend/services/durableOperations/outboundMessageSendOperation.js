@@ -49,6 +49,18 @@ function optionalString(value, field, maximum = 2048) {
   return result;
 }
 
+function requiredPositiveInteger(value, field) {
+  const result = Number(value);
+  if (!Number.isSafeInteger(result) || result < 1) {
+    throw outboundMessageOperationError(
+      'WP_B_OUTBOUND_MESSAGE_INTEGER_INVALID',
+      `${field} must be a safe integer >= 1`,
+      { field }
+    );
+  }
+  return result;
+}
+
 function requiredSha256(value) {
   const result = requiredString(value, 'requestContentSha256', 64);
   if (!/^[a-f0-9]{64}$/u.test(result)) {
@@ -73,6 +85,11 @@ function validateAttemptEnvelope(envelope) {
     executionId: requiredString(envelope.executionId, 'executionId'),
     intentId: requiredString(envelope.intentId, 'intentId'),
     attemptId: requiredString(envelope.attemptId, 'attemptId'),
+    claimId: requiredString(envelope.claimId, 'claimId'),
+    ownerId: requiredString(envelope.ownerId, 'ownerId'),
+    generation: requiredPositiveInteger(envelope.generation, 'generation'),
+    hostGeneration: requiredPositiveInteger(envelope.hostGeneration, 'hostGeneration'),
+    fencingToken: requiredPositiveInteger(envelope.fencingToken, 'fencingToken'),
     idempotencyKey: requiredString(envelope.idempotencyKey, 'idempotencyKey'),
     platform: requiredString(request.platform, 'platform', 64).toLowerCase(),
     accountReference: requiredString(request.accountReference, 'accountReference'),
@@ -120,9 +137,34 @@ function physicalContext(attempt, custody) {
     executionId: attempt.executionId,
     intentId: attempt.intentId,
     attemptId: attempt.attemptId,
+    claimId: attempt.claimId,
+    ownerId: attempt.ownerId,
+    generation: attempt.generation,
+    hostGeneration: attempt.hostGeneration,
+    fencingToken: attempt.fencingToken,
     operationKind: OPERATION_KIND,
     platform: attempt.platform,
     custody
+  });
+}
+
+function physicalInput(attempt, capabilities = {}) {
+  return Object.freeze({
+    executionId: attempt.executionId,
+    intentId: attempt.intentId,
+    attemptId: attempt.attemptId,
+    claimId: attempt.claimId,
+    ownerId: attempt.ownerId,
+    generation: attempt.generation,
+    hostGeneration: attempt.hostGeneration,
+    fencingToken: attempt.fencingToken,
+    idempotencyKey: attempt.idempotencyKey,
+    platform: attempt.platform,
+    accountReference: attempt.accountReference,
+    requestContentSha256: attempt.requestContentSha256,
+    providerRequestId: attempt.providerRequestId,
+    platformMessageId: attempt.platformMessageId,
+    ...capabilities
   });
 }
 
@@ -176,17 +218,9 @@ function createOutboundMessageSendOperation(options = {}) {
         'WP_B_OUTBOUND_MESSAGE_CREDENTIAL_CAPABILITY_INVALID',
         'Credential custody'
       );
-      const observation = await dependencies.channelClient.perform(Object.freeze({
-        executionId: attempt.executionId,
-        intentId: attempt.intentId,
-        attemptId: attempt.attemptId,
-        idempotencyKey: attempt.idempotencyKey,
-        platform: attempt.platform,
-        accountReference: attempt.accountReference,
-        requestContentSha256: attempt.requestContentSha256,
-        command,
-        credential
-      }));
+      const observation = await dependencies.channelClient.perform(
+        physicalInput(attempt, { command, credential })
+      );
       return redactedPhysicalObservation(observation);
     },
 
@@ -200,18 +234,9 @@ function createOutboundMessageSendOperation(options = {}) {
         'WP_B_OUTBOUND_MESSAGE_CREDENTIAL_CAPABILITY_INVALID',
         'Credential custody'
       );
-      const observation = await dependencies.channelClient.lookup(Object.freeze({
-        executionId: attempt.executionId,
-        intentId: attempt.intentId,
-        attemptId: attempt.attemptId,
-        idempotencyKey: attempt.idempotencyKey,
-        platform: attempt.platform,
-        accountReference: attempt.accountReference,
-        requestContentSha256: attempt.requestContentSha256,
-        providerRequestId: attempt.providerRequestId,
-        platformMessageId: attempt.platformMessageId,
-        credential
-      }));
+      const observation = await dependencies.channelClient.lookup(
+        physicalInput(attempt, { command: Object.freeze({ lookupOnly: true }), credential })
+      );
       return redactedReconciliationObservation(observation);
     }
   };
@@ -223,6 +248,7 @@ module.exports = Object.freeze({
   OPERATION_KIND,
   createOutboundMessageSendOperation,
   outboundMessageOperationError,
+  physicalInput,
   redactedPhysicalObservation,
   redactedReconciliationObservation,
   validateAttemptEnvelope
