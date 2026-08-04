@@ -30,9 +30,9 @@
     "humanApprovalClaimed": false,
     "reviewGate2": "APPROVED",
     "milestone1": "SEALED",
-    "milestone2": "REVIEWED_NOT_SEALED",
+    "milestone2": "SEALED",
     "milestone3": "NOT_STARTED",
-    "conclusion": "Milestone 2 implementation is independently reviewed and approved for seal-only evidence work. This receipt does not authorize Milestone 3, merge, production use, WP-C, release, or publish."
+    "conclusion": "Milestone 2 is independently reviewed and sealed at the exact staging Head after eight same-Head workflow groups completed successfully. This seal does not authorize Milestone 3, merge, production use, WP-C, formal release, or publish."
   },
   "redEvidence": {
     "workflowName": "WP-B M2 Contracts",
@@ -215,13 +215,120 @@
     "tools/architecture-closure-v2/wp-b-process-fault-matrix.js": "06a3eb4abc5b965528d8517518a50d484817ad5a"
   },
   "seal": {
-    "status": "PENDING",
-    "head": "",
+    "status": "SEALED",
+    "head": "5f08a5a75aeae4d3baeb5a1d34a470f21ac0180d",
+    "sealedAt": "2026-08-04T07:30:47Z",
     "allowedPostReviewPaths": [
       ".github/workflows/wp-b-m2-independent-review-integrity.yml",
       "backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js",
       "governance/architecture-closure-v2/wp-b-m2-review.json",
       "tools/architecture-closure-v2/verify-wp-b-m2-review.js"
+    ],
+    "formalValidation": [
+      {
+        "workflowName": "WP-B M2 Independent Review Integrity",
+        "workflowRunId": 30887526194,
+        "runNumber": 33,
+        "expectedHead": "5f08a5a75aeae4d3baeb5a1d34a470f21ac0180d",
+        "expectedConclusion": "success",
+        "jobs": [
+          { "jobId": 91921920929, "name": "wp-b-m2-review-integrity-ubuntu-latest" },
+          { "jobId": 91921920958, "name": "wp-b-m2-review-integrity-windows-latest" },
+          { "jobId": 91922610316, "name": "wp-b-m2-independent-review-gate" }
+        ]
+      },
+      {
+        "workflowName": "WP-B M2 Contracts",
+        "workflowRunId": 30887526258,
+        "runNumber": 201,
+        "expectedHead": "5f08a5a75aeae4d3baeb5a1d34a470f21ac0180d",
+        "expectedConclusion": "success",
+        "jobs": [
+          { "jobId": 91921921053, "name": "wp-b-m2-contracts-ubuntu-latest" },
+          { "jobId": 91921920997, "name": "wp-b-m2-contracts-windows-latest" },
+          { "jobId": 91922308360, "name": "wp-b-m2-contracts-gate" }
+        ]
+      },
+      {
+        "workflowName": "WP-B Validation",
+        "workflowRunId": 30887526165,
+        "runNumber": 666,
+        "expectedHead": "5f08a5a75aeae4d3baeb5a1d34a470f21ac0180d",
+        "expectedConclusion": "success",
+        "jobs": [
+          { "jobId": 91921920777, "name": "wp-b-governance-ubuntu-latest" },
+          { "jobId": 91921920778, "name": "wp-b-governance-windows-latest" },
+          { "jobId": 91921920784, "name": "wp-b-xstate-adapter-ubuntu-latest" },
+          { "jobId": 91921920765, "name": "wp-b-xstate-adapter-windows-latest" },
+          { "jobId": 91921920716, "name": "wp-b-m1-contracts-ubuntu-latest" },
+          { "jobId": 91921920852, "name": "wp-b-m1-contracts-windows-latest" },
+          { "jobId": 91921920793, "name": "wp-b-xstate-upstream-ubuntu-latest" },
+          { "jobId": 91921920738, "name": "wp-b-xstate-upstream-windows-latest" },
+          { "jobId": 91922295739, "name": "wp-b-validation-gate" }
+        ]
+      },
+      {
+        "workflowName": "Stage 6.4.5.9 WP0 Architecture Gates",
+        "workflowRunId": 30887526270,
+        "runNumber": 863,
+        "expectedHead": "5f08a5a75aeae4d3baeb5a1d34a470f21ac0180d",
+        "expectedConclusion": "success",
+        "jobs": [
+          { "jobId": 91921921113, "name": "wp0-route" },
+          { "jobId": 91921983872, "name": "wp0-product" },
+          { "jobId": 91921983812, "name": "sealed-export-windows-latest" },
+          { "jobId": 91921983833, "name": "sealed-export-ubuntu-latest" },
+          { "jobId": 91922282644, "name": "wp0-gates" }
+        ]
+      },
+      {
+        "workflowName": "WP-B M1 Independent Review Integrity",
+        "workflowRunId": 30887526198,
+        "runNumber": 165,
+        "expectedHead": "5f08a5a75aeae4d3baeb5a1d34a470f21ac0180d",
+        "expectedConclusion": "success",
+        "jobs": [
+          { "jobId": 91921920959, "name": "wp-b-m1-review-integrity-ubuntu-latest" },
+          { "jobId": 91921920922, "name": "wp-b-m1-review-integrity-windows-latest" }
+        ]
+      },
+      {
+        "workflowName": "WP-B M2 Authorization",
+        "workflowRunId": 30887526273,
+        "runNumber": 163,
+        "expectedHead": "5f08a5a75aeae4d3baeb5a1d34a470f21ac0180d",
+        "expectedConclusion": "success",
+        "jobs": [
+          { "jobId": 91921921187, "name": "wp-b-m2-authorization-ubuntu-latest" },
+          { "jobId": 91921921248, "name": "wp-b-m2-authorization-windows-latest" },
+          { "jobId": 91922172102, "name": "wp-b-m2-authorization-gate" }
+        ]
+      },
+      {
+        "workflowName": "ACV2 WP-A Architecture Gates",
+        "workflowRunId": 30887526298,
+        "runNumber": 901,
+        "expectedHead": "5f08a5a75aeae4d3baeb5a1d34a470f21ac0180d",
+        "expectedConclusion": "success",
+        "jobs": [
+          { "jobId": 91921921282, "name": "acv2-wp-a-source-closure" },
+          { "jobId": 91921921471, "name": "acv2-wp-a-windows-latest" },
+          { "jobId": 91921921295, "name": "acv2-wp-a-ubuntu-latest" }
+        ]
+      },
+      {
+        "workflowName": "WP-A Main Post-Merge Validation",
+        "workflowRunId": 30887526264,
+        "runNumber": 395,
+        "expectedHead": "5f08a5a75aeae4d3baeb5a1d34a470f21ac0180d",
+        "expectedConclusion": "success",
+        "jobs": [
+          { "jobId": 91921921469, "name": "wp-a-post-merge-identity-source-closure" },
+          { "jobId": 91921921211, "name": "wp-a-post-merge-ubuntu-latest" },
+          { "jobId": 91921921096, "name": "wp-a-post-merge-windows-latest" },
+          { "jobId": 91922500444, "name": "wp-a-post-merge-gate" }
+        ]
+      }
     ],
     "temporaryBypassAllowed": false,
     "warningOnlyClosureAllowed": false
@@ -231,7 +338,7 @@
     "milestone2Authorized": true,
     "credibleM2RedRecorded": true,
     "milestone2Reviewed": true,
-    "milestone2Sealed": false,
+    "milestone2Sealed": true,
     "readyForPromotion": false,
     "milestone3Authorized": false,
     "mergeAuthorized": false,
