@@ -5,18 +5,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const OSS_AUTHORIZATION_PATH = path.join(
-  REPO_ROOT,
-  'governance',
-  'open-source-acceleration',
-  'oss-0-implementation-authorization.json'
-);
-const OSS_AUTHORIZATION_RECEIPT_PATH = path.join(
-  REPO_ROOT,
-  'governance',
-  'open-source-acceleration',
-  'oss-0-authorization-receipt.json'
-);
+const OSS_AUTHORIZATION_REPOSITORY_PATH = 'governance/open-source-acceleration/oss-0-implementation-authorization.json';
+const OSS_AUTHORIZATION_RECEIPT_REPOSITORY_PATH = 'governance/open-source-acceleration/oss-0-authorization-receipt.json';
+const OSS_AUTHORIZATION_PATH = path.join(REPO_ROOT, ...OSS_AUTHORIZATION_REPOSITORY_PATH.split('/'));
+const OSS_AUTHORIZATION_RECEIPT_PATH = path.join(REPO_ROOT, ...OSS_AUTHORIZATION_RECEIPT_REPOSITORY_PATH.split('/'));
+const OSS_PARENT_GOVERNANCE_PATHS = Object.freeze([
+  OSS_AUTHORIZATION_REPOSITORY_PATH,
+  OSS_AUTHORIZATION_RECEIPT_REPOSITORY_PATH
+]);
 
 function loadJsonObject(filePath) {
   try {
@@ -41,7 +37,10 @@ function normalizeRepositoryPath(value) {
     .replace(/\\/gu, '/')
     .replace(/^\.\//u, '')
     .replace(/\/$/u, '');
-  if (!normalized || normalized.startsWith('/') || /^[A-Za-z]:\//u.test(normalized)) return '';
+  if (!normalized
+    || normalized.startsWith('/')
+    || /^[A-Za-z]:\//u.test(normalized)
+    || /[\r\n]/u.test(normalized)) return '';
   const segments = normalized.split('/');
   if (segments.some(segment => !segment || segment === '.' || segment === '..')) return '';
   return normalized;
@@ -55,6 +54,12 @@ function isExactRepositoryPath(value) {
 function normalizeChangedFiles(values) {
   if (!Array.isArray(values)) return [];
   return [...new Set(values.map(normalizeRepositoryPath).filter(Boolean))].sort();
+}
+
+function filterOpenSourceImplementationChangedFiles(values) {
+  if (!Array.isArray(values)) return [];
+  const parentGovernancePaths = new Set(OSS_PARENT_GOVERNANCE_PATHS);
+  return values.filter(value => !parentGovernancePaths.has(value));
 }
 
 function changedFileSetSha256(values) {
@@ -206,11 +211,15 @@ function evaluateAuthorizedOpenSourceWorkPackageScope(options = {}) {
 }
 
 module.exports = {
+  OSS_AUTHORIZATION_REPOSITORY_PATH,
+  OSS_AUTHORIZATION_RECEIPT_REPOSITORY_PATH,
   OSS_AUTHORIZATION_PATH,
   OSS_AUTHORIZATION_RECEIPT_PATH,
+  OSS_PARENT_GOVERNANCE_PATHS,
   loadOpenSourceWorkPackageAuthorization,
   loadOpenSourceWorkPackageAuthorizationReceipt,
   normalizeRepositoryPath,
+  filterOpenSourceImplementationChangedFiles,
   changedFileSetSha256,
   isValidOpenSourceWorkPackageAuthorization,
   isValidOpenSourceWorkPackageAuthorizationReceipt,
