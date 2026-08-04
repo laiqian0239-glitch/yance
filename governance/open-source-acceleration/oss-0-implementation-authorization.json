@@ -9,8 +9,8 @@
   "requiredBaseRef": "plan/open-source-acceleration",
   "approvedParentHead": "e7c4d441f9c028e8fbb4e5c61d18100dac44a19a",
   "approvedPlanPath": "docs/superpowers/plans/2026-08-04-yance-oss0-provenance-foundation.md",
-  "approvedChangedFileCount": 15,
-  "approvedChangedFileSetSha256": "18942a9eed9f4c8ba7c603c2a113f64d974b995925da2fbbdd270ac5c3070065",
+  "approvedChangedFileCount": 16,
+  "approvedChangedFileSetSha256": "b2ec285ade33b6093d17752a5a0ff69cf37c2b87f94e57f564d909071d644afc",
   "exactPaths": [
     ".github/workflows/oss-provenance.yml",
     "THIRD_PARTY_NOTICES.md",
@@ -26,6 +26,7 @@
     "third_party/provenance.json",
     "tools/third-party/provenance.js",
     "tools/third-party/verify-provenance.js",
+    "tools/wp0/lib-core.js",
     "tools/wp0/lib.js"
   ],
   "governance": {
