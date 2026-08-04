@@ -103,6 +103,7 @@ function oss1aReceipt(authorization) {
     authorizationCommit: 'c'.repeat(40),
     authorizationBlobSha: 'd'.repeat(40),
     authorizationFileSha256: 'e'.repeat(64),
+    implementationBaseCommit: 'f'.repeat(40),
     approvedChangedFileCount: authorization.approvedChangedFileCount,
     approvedChangedFileSetSha256: authorization.approvedChangedFileSetSha256,
     governance: closedGovernance({ authorizationPredatesImplementation: true })
