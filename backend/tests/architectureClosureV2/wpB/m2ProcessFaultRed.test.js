@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
 const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
@@ -34,6 +35,13 @@ const REQUIRED_SCENARIOS = Object.freeze([
 function requireFile(filePath, code) {
   assert.equal(fs.existsSync(filePath), true, `${code}: ${path.relative(repoRoot, filePath)}`);
   return fs.readFileSync(filePath, 'utf8');
+}
+
+function withTempRoot(prefix, work) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  return Promise.resolve()
+    .then(() => work(root))
+    .finally(() => fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 50 }));
 }
 
 test('M2-FAULT-001 real process-fault matrix defines all eighteen required scenarios', () => {
@@ -84,3 +92,73 @@ test('M2-FAULT-005 matrix proves duplicate external side effects remain zero', (
   assert.match(text, /UNCERTAIN_REMOTE_OUTCOME/u);
   assert.match(text, /REMOTE_ABSENCE_PROVEN/u);
 });
+
+test('M2-FAULT-006 key crash windows execute in child processes against real SQLite', async () => withTempRoot(
+  'yance-wp-b-process-fault-',
+  async workspaceRoot => {
+    const { runFaultMatrix } = require(matrixPath);
+    const scenarios = [
+      'KILL_BEFORE_PHYSICAL_CALL',
+      'KILL_AFTER_ATTEMPT_BEFORE_CALL',
+      'REMOTE_SUCCESS_BEFORE_RECEIPT',
+      'DUPLICATE_DISPATCHERS'
+    ];
+    const report = await runFaultMatrix({ workspaceRoot, scenarios, timeoutMs: 20_000 });
+    assert.equal(report.scenarioCount, scenarios.length);
+    assert.deepEqual(report.results.map(row => row.scenario), scenarios);
+    assert.equal(report.results.every(row => Number.isInteger(row.processId) && row.processId > 0), true);
+    assert.equal(report.results.every(row => row.executionId && row.intentId && row.claimId), true);
+    assert.equal(report.results.every(row => row.duplicateExternalSideEffectCount === 0), true);
+    assert.equal(report.results.find(row => row.scenario === 'KILL_BEFORE_PHYSICAL_CALL').physicalSideEffectCount, 0);
+    assert.equal(report.results.find(row => row.scenario === 'KILL_AFTER_ATTEMPT_BEFORE_CALL').attemptCount, 1);
+    assert.equal(report.results.find(row => row.scenario === 'REMOTE_SUCCESS_BEFORE_RECEIPT').physicalSideEffectCount, 1);
+    assert.equal(report.results.find(row => row.scenario === 'REMOTE_SUCCESS_BEFORE_RECEIPT').receiptCount, 0);
+    assert.equal(report.results.find(row => row.scenario === 'DUPLICATE_DISPATCHERS').physicalSideEffectCount, 1);
+  }
+));
+
+test('M2-FAULT-007 fake remote lookup and idempotency survive a process restart', async () => withTempRoot(
+  'yance-wp-b-remote-restart-',
+  async workspaceRoot => {
+    const { runFakeRemoteRestartProbe } = require(matrixPath);
+    const receipt = await runFakeRemoteRestartProbe({ workspaceRoot, timeoutMs: 10_000 });
+    assert.equal(receipt.firstPhysicalSideEffectCount, 1);
+    assert.equal(receipt.secondPhysicalSideEffectCount, 1);
+    assert.equal(receipt.lookupOutcome, 'REMOTE_SUCCESS_PROVEN');
+    assert.equal(receipt.requestIdBeforeRestart, receipt.requestIdAfterRestart);
+  }
+));
+
+test('M2-FAULT-008 normalized process evidence is bounded and contains no business content', async () => withTempRoot(
+  'yance-wp-b-process-evidence-',
+  async workspaceRoot => {
+    const { runFaultMatrix } = require(matrixPath);
+    const report = await runFaultMatrix({
+      workspaceRoot,
+      scenarios: ['REMOTE_SUCCESS_BEFORE_RECEIPT'],
+      timeoutMs: 15_000
+    });
+    const encoded = JSON.stringify(report);
+    for (const forbidden of ['messageBody', 'promptBody', 'oauthToken', 'apiKey', 'cookie', 'binaryPayload']) {
+      assert.equal(encoded.includes(forbidden), false, forbidden);
+    }
+    const row = report.results[0];
+    assert.deepEqual(Object.keys(row).sort(), [
+      'attemptCount',
+      'attemptId',
+      'claimId',
+      'duplicateExternalSideEffectCount',
+      'executionId',
+      'fencingToken',
+      'finalState',
+      'generation',
+      'hostGeneration',
+      'intentId',
+      'physicalSideEffectCount',
+      'processId',
+      'receiptCount',
+      'reconciliationCount',
+      'scenario'
+    ].sort());
+  }
+));
