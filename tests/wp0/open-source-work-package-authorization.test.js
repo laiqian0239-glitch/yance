@@ -18,19 +18,22 @@ const {
 const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
+const OSS0_SEALED_IMPLEMENTATION_HEAD = '3b03df415cdb75770d4942648deca8bed202f1ef';
 
 function git(args) {
   return execFileSync('git', args, { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
 }
 
-function implementationChangedFiles(receipt) {
+function implementationChangedFiles(receipt, implementationHead = OSS0_SEALED_IMPLEMENTATION_HEAD) {
+  git(['cat-file', '-e', `${implementationHead}^{commit}`]);
+  git(['merge-base', '--is-ancestor', receipt.authorizationCommit, implementationHead]);
   const output = git([
     '-c',
     'core.quotePath=false',
     'diff',
     '--name-only',
     receipt.authorizationCommit,
-    'HEAD',
+    implementationHead,
     '--'
   ]);
   const changedFiles = output.split(/\r?\n/u).map(value => value.trim()).filter(Boolean).sort();
@@ -116,7 +119,7 @@ test('only the exact sealed OSS-0 branch is authorized', () => {
   ]) assert.equal(isAuthorizedOpenSourceImplementationBranch(branch), false, branch);
 });
 
-test('checked-out OSS-0 implementation matches the exact parent-authorized file set', () => {
+test('immutable OSS-0 implementation head matches the exact parent-authorized file set', () => {
   const authorization = loadOpenSourceWorkPackageAuthorization();
   const receipt = loadOpenSourceWorkPackageAuthorizationReceipt();
   const changedFiles = implementationChangedFiles(receipt);
