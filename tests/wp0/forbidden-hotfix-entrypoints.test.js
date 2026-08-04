@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { execFileSync } = require('node:child_process');
+const { execFileSync, spawnSync } = require('node:child_process');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
@@ -11,9 +11,11 @@ const {
   checkProtectedCommandPolicy,
   checkRepositoryScope,
   classifyScanPath,
+  currentBranch,
   isThirdPartyProvenanceMetadataPath,
   referenceOnlyRootPolicies
 } = require('../../tools/wp0/lib');
+const { createReviewedImplementationClone } = require('./helpers/reviewedImplementationFixture');
 
 test('forbidden-hotfix-entrypoints.test', () => {
   const result = checkForbiddenHotfixEntrypoints();
@@ -41,17 +43,35 @@ test('third-party provenance metadata is non-executable while imported source re
   }
 });
 
-test('local build package and release commands are guarded by executable WP0 gate', () => {
+test('local build package and release commands require an exact reviewed implementation branch', t => {
   const policy = checkProtectedCommandPolicy();
   assert.equal(policy.pass, true, JSON.stringify(policy));
+
+  const activeBranch = currentBranch();
+  if (activeBranch === 'governance/oss-1a-implementation-authorization') {
+    for (const command of ['build', 'package', 'release']) {
+      const denied = spawnSync(process.execPath, ['tools/wp0/run-protected-command.js', command, '--gate-only'], {
+        cwd: REPO_ROOT,
+        encoding: 'utf8'
+      });
+      assert.notEqual(denied.status, 0, `${command} unexpectedly passed on governance branch`);
+      const result = JSON.parse(denied.stdout);
+      assert.equal(result.status, 'FAIL');
+      assert.equal(result.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');
+    }
+  }
+
+  const fixture = createReviewedImplementationClone();
+  t.after(() => fixture.cleanup());
   for (const command of ['build', 'package', 'release']) {
     const stdout = execFileSync(process.execPath, ['tools/wp0/run-protected-command.js', command, '--gate-only'], {
-      cwd: REPO_ROOT,
+      cwd: fixture.repo,
       encoding: 'utf8'
     });
     const result = JSON.parse(stdout);
     assert.equal(result.status, 'PASS', JSON.stringify(result));
     assert.equal(result.gateStatus, 'PASS');
+    assert.equal(result.workPackageScope.applicable, false);
   }
 });
 
