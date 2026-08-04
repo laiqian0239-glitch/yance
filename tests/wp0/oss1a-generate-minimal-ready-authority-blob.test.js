@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const childProcess = require('node:child_process');
+const crypto = require('node:crypto');
 
 const target = path.resolve(__dirname, '..', '..', 'electron', 'desktopHost', 'BackendProcessHost.js');
 
@@ -15,29 +16,19 @@ function replaceOnce(source, before, after, label) {
   return source.slice(0, first) + after + source.slice(first + before.length);
 }
 
+function replaceRegexOnce(source, pattern, after, label) {
+  const matches = [...source.matchAll(pattern)];
+  assert.equal(matches.length, 1, `${label}: expected one match, found ${matches.length}`);
+  return source.replace(pattern, after);
+}
+
 test('generate exact minimal BackendProcessHost READY authority blob', () => {
   const original = fs.readFileSync(target, 'utf8');
   let patched = original;
 
-  patched = replaceOnce(patched,
-`const CREDENTIAL_HANDSHAKE_FIELDS = Object.freeze([
-  'pid', 'startupNonce', 'vaultEpoch', 'generation', 'authorityEventId',
-  'vaultReferenceCount', 'decryptedEntryCount', 'frameEntryCount', 'entryCount', 'payloadBytes',
-  'restoredReferenceCount'
-]);
-
-function assertCredentialHandshakeBinding(message, expected, phase) {
-  const missing = CREDENTIAL_HANDSHAKE_FIELDS.filter(field => !Object.prototype.hasOwnProperty.call(message || {}, field));
-  const mismatches = CREDENTIAL_HANDSHAKE_FIELDS.filter(field => Object.prototype.hasOwnProperty.call(message || {}, field) && message[field] !== expected[field]);
-  if (missing.length || mismatches.length) {
-    throw startupFailure('DESKTOP_CREDENTIAL_HYDRATION_ACK_MISMATCH', \`Credential \${phase} metadata does not match the transmitted snapshot\`, {
-      missingFields: missing,
-      mismatchedFields: mismatches
-    });
-  }
-  return true;
-}
-`,
+  patched = replaceRegexOnce(
+    patched,
+    /function assertCredentialHandshakeBinding\(message, expected, phase\) \{[\s\S]*?\n\}\n\n(?=class BackendProcessHost)/gu,
 `const CREDENTIAL_HANDSHAKE_FIELDS = Object.freeze([
   'pid', 'startupNonce', 'vaultEpoch', 'generation', 'authorityEventId', 'authorityHeadDigest',
   'vaultReferenceCount', 'decryptedEntryCount', 'frameEntryCount', 'entryCount', 'payloadBytes',
@@ -114,81 +105,103 @@ function assertReadyCredentialAuthorityReceipt(receipt, readyMetadata, initialMe
   }
   return receipt;
 }
-`, 'handshake helpers');
 
-  patched = replaceOnce(patched,
-`    let readiness = null;
 `,
-`    let readiness = null;
-    let readyCredentialAuthorityReceipt = null;
-`, 'receipt local');
+    'handshake helpers'
+  );
 
-  patched = replaceOnce(patched,
-`      const created = await options.createCredentialSnapshot({
-        startupNonce,
+  patched = replaceOnce(
+    patched,
+`      let hydration = null;
+      let readiness = null;
 `,
-`      const created = await options.createCredentialSnapshot({
-        startupAttemptId,
-        startupNonce,
-`, 'snapshot attempt binding');
+`      let hydration = null;
+      let readiness = null;
+      let readyCredentialAuthorityReceipt = null;
+`,
+    'receipt local'
+  );
 
-  patched = replaceOnce(patched,
-`        authorityEventId: credentialFrame.authorityEventId,
-        vaultReferenceCount: credentialFrame.vaultReferenceCount,
+  patched = replaceOnce(
+    patched,
+`        prepared = await options.createCredentialSnapshot({
+          startupNonce,
 `,
-`        authorityEventId: credentialFrame.authorityEventId,
-        authorityHeadDigest: credentialFrame.authorityHeadDigest,
-        vaultReferenceCount: credentialFrame.vaultReferenceCount,
-`, 'expected head digest');
-
-  patched = replaceOnce(patched,
-`      const readyCredentialMetadata = Object.freeze({ pid: backendPid, startupNonce, ...(readiness.credentialMetadata || {}) });
-      assertCredentialHandshakeBinding(readyCredentialMetadata, expectedCredentialMetadata, 'ready acknowledgement');
-`,
-`      const readyCredentialMetadata = Object.freeze({ pid: backendPid, startupNonce, ...(readiness.credentialMetadata || {}) });
-      const readyDifferences = credentialHandshakeDifferences(readyCredentialMetadata, expectedCredentialMetadata);
-      if (readyDifferences.exact) {
-        readyCredentialAuthorityReceipt = assertReadyCredentialAuthorityReceipt(
-          createInitialReadyAuthorityReceipt(readyCredentialMetadata, expectedCredentialMetadata),
-          readyCredentialMetadata,
-          expectedCredentialMetadata
-        );
-      } else {
-        const validateReadyAuthority = options.credentialVaultHost?.validateReadyCredentialAuthority;
-        if (typeof validateReadyAuthority !== 'function') {
-          throw startupFailure('DESKTOP_CREDENTIAL_READY_AUTHORITY_VALIDATOR_REQUIRED', 'Credential READY metadata advanced beyond FD5 but CredentialVaultHost did not provide the required validator', {
-            missingFields: readyDifferences.missing,
-            mismatchedFields: readyDifferences.mismatches
-          });
-        }
-        const receipt = validateReadyAuthority.call(options.credentialVaultHost, {
+`        prepared = await options.createCredentialSnapshot({
           startupAttemptId,
-          initialFrame: credentialFrame,
-          hydrationAcknowledgement: hydration,
-          readyMetadata: readyCredentialMetadata,
-          ownerSession
-        });
-        readyCredentialAuthorityReceipt = assertReadyCredentialAuthorityReceipt(receipt, readyCredentialMetadata, expectedCredentialMetadata);
-      }
-`, 'ready authority delegation');
-
-  patched = replaceOnce(patched,
-`        readyCredentialMetadata: Object.freeze({ ...(readiness.credentialMetadata || {}) }),
-        ownerContext: Object.freeze({ ...ownerSession }),
+          startupNonce,
 `,
-`        readyCredentialMetadata: Object.freeze({ ...(readiness.credentialMetadata || {}) }),
-        readyCredentialAuthorityReceipt,
-        ownerContext: Object.freeze({ ...ownerSession }),
-`, 'session receipt');
+    'snapshot attempt binding'
+  );
 
-  patched = replaceOnce(patched,
-`      readyCredentialMetadata: session?.readyCredentialMetadata || null,
-      ownerContext: session?.ownerContext || null,
+  patched = replaceOnce(
+    patched,
+`          authorityEventId: credentialFrame.authorityEventId,
+          vaultReferenceCount: credentialFrame.vaultReferenceCount,
 `,
-`      readyCredentialMetadata: session?.readyCredentialMetadata || null,
-      readyCredentialAuthorityReceipt: session?.readyCredentialAuthorityReceipt || null,
-      ownerContext: session?.ownerContext || null,
-`, 'snapshot receipt');
+`          authorityEventId: credentialFrame.authorityEventId,
+          authorityHeadDigest: credentialFrame.authorityHeadDigest,
+          vaultReferenceCount: credentialFrame.vaultReferenceCount,
+`,
+    'expected head digest'
+  );
+
+  patched = replaceOnce(
+    patched,
+`        assertCredentialHandshakeBinding({ pid: readiness.pid, startupNonce: readiness.startupNonce, ...(readiness.credentialMetadata || {}) }, expectedCredentialMetadata, 'ready acknowledgement');
+`,
+`        const readyCredentialMetadata = Object.freeze({ pid: readiness.pid, startupNonce: readiness.startupNonce, ...(readiness.credentialMetadata || {}) });
+        const readyDifferences = credentialHandshakeDifferences(readyCredentialMetadata, expectedCredentialMetadata);
+        if (readyDifferences.exact) {
+          readyCredentialAuthorityReceipt = assertReadyCredentialAuthorityReceipt(
+            createInitialReadyAuthorityReceipt(readyCredentialMetadata, expectedCredentialMetadata),
+            readyCredentialMetadata,
+            expectedCredentialMetadata
+          );
+        } else {
+          const validateReadyAuthority = options.credentialVaultHost?.validateReadyCredentialAuthority;
+          if (typeof validateReadyAuthority !== 'function') {
+            throw startupFailure('DESKTOP_CREDENTIAL_READY_AUTHORITY_VALIDATOR_REQUIRED', 'Credential READY metadata advanced beyond FD5 but CredentialVaultHost did not provide the required validator', {
+              missingFields: readyDifferences.missing,
+              mismatchedFields: readyDifferences.mismatches
+            });
+          }
+          const receipt = validateReadyAuthority.call(options.credentialVaultHost, {
+            startupAttemptId,
+            initialFrame: credentialFrame,
+            hydrationAcknowledgement: hydration,
+            readyMetadata: readyCredentialMetadata,
+            ownerSession: ownerContext
+          });
+          readyCredentialAuthorityReceipt = assertReadyCredentialAuthorityReceipt(receipt, readyCredentialMetadata, expectedCredentialMetadata);
+        }
+`,
+    'ready authority delegation'
+  );
+
+  patched = replaceOnce(
+    patched,
+`        ownerContext,
+        readyCredentialMetadata: readiness?.credentialMetadata ? Object.freeze({ ...readiness.credentialMetadata }) : null
+`,
+`        ownerContext,
+        readyCredentialMetadata: readiness?.credentialMetadata ? Object.freeze({ ...readiness.credentialMetadata }) : null,
+        readyCredentialAuthorityReceipt
+`,
+    'session receipt'
+  );
+
+  patched = replaceOnce(
+    patched,
+`      readyCredentialMetadata: this.session?.readyCredentialMetadata || null,
+      ownerContext: this.session?.ownerContext || null,
+`,
+`      readyCredentialMetadata: this.session?.readyCredentialMetadata || null,
+      readyCredentialAuthorityReceipt: this.session?.readyCredentialAuthorityReceipt || null,
+      ownerContext: this.session?.ownerContext || null,
+`,
+    'snapshot receipt'
+  );
 
   assert.notEqual(patched, original);
   const generated = path.join(path.dirname(target), 'BackendProcessHost.generated.js');
@@ -197,7 +210,6 @@ function assertReadyCredentialAuthorityReceipt(receipt, readyMetadata, initialMe
   fs.rmSync(generated, { force: true });
   assert.equal(syntax.status, 0, syntax.stderr || syntax.stdout);
 
-  const encoded = Buffer.from(patched, 'utf8').toString('base64');
-  process.stdout.write(`OSS1A_PATCH_BLOB_SHA256=${require('node:crypto').createHash('sha256').update(patched).digest('hex')}\n`);
-  process.stdout.write(`OSS1A_PATCH_BASE64=${encoded}\n`);
+  process.stdout.write(`OSS1A_PATCH_BLOB_SHA256=${crypto.createHash('sha256').update(patched).digest('hex')}\n`);
+  process.stdout.write(`OSS1A_PATCH_BASE64=${Buffer.from(patched, 'utf8').toString('base64')}\n`);
 });
