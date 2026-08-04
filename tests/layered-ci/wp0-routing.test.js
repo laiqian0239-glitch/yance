@@ -82,6 +82,22 @@ test('product, release, architecture review docs and existing WP0 implementation
   }
 });
 
+test('OSS provenance and license files select PRODUCT_WP0', () => {
+  const result = classifyWp0Route(policy, [
+    '.github/workflows/oss-provenance.yml',
+    'THIRD_PARTY_NOTICES.md',
+    'package.json',
+    'tests/third-party/provenance.test.js',
+    'third_party/licenses/baileys-MIT.txt',
+    'third_party/provenance.json',
+    'tools/third-party/provenance.js',
+    'tools/third-party/verify-provenance.js'
+  ]);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.route, ROUTES.PRODUCT);
+  assert.equal(result.productChangesPresent, true);
+});
+
 test('specific layered governance documents retain governance priority over the general docs product route', () => {
   const result = classifyWp0Route(policy, [
     'docs/superpowers/specs/2026-08-02-layered-ci-reviewed-candidate-design.md'
