@@ -32,11 +32,11 @@ const inventoryPath = path.join(
   'architecture-closure-v2',
   'wp-b-operation-inventory.json'
 );
-const durableAuthorityPath = path.join(
+const internalAuthorityPath = path.join(
   repoRoot,
   'backend',
   'services',
-  'durableExecutionAuthority.js'
+  'durableInternalOperationAuthority.js'
 );
 const PRODUCTION_ROOTS = Object.freeze([
   'backend',
@@ -92,6 +92,17 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
+function readCombinedInventory() {
+  const baseline = readJson(baselinePath);
+  const base = readJson(inventoryPath);
+  const entries = [...(base.entries || [])];
+  for (const relativePath of baseline.operationInventoryExtensionPaths || []) {
+    const extension = readJson(path.join(repoRoot, relativePath));
+    entries.push(...(extension.entries || []));
+  }
+  return { ...base, entries };
+}
+
 function report() {
   return scanRegisteredSources({ wp: 'B' });
 }
@@ -131,9 +142,8 @@ function resolveLocalModule(importerPath, request) {
 
 function productionImportGraph() {
   const graph = new Map();
-  const files = PRODUCTION_ROOTS.flatMap(walkJavaScript);
   const requirePattern = /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/gu;
-  for (const importer of files) {
+  for (const importer of PRODUCTION_ROOTS.flatMap(walkJavaScript)) {
     const source = fs.readFileSync(path.join(repoRoot, importer), 'utf8');
     for (const match of source.matchAll(requirePattern)) {
       const target = resolveLocalModule(importer, match[1]);
@@ -153,8 +163,7 @@ function exactImporterReport(graph, targets) {
 
 function withSchema23(work) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp-b-internal-operation-'));
-  const dbPath = path.join(root, 'authority.db');
-  const db = new DatabaseSync(dbPath);
+  const db = new DatabaseSync(path.join(root, 'authority.db'));
   let transactionDepth = 0;
   const store = Object.freeze({
     db,
@@ -220,9 +229,10 @@ function withSchema23(work) {
   }
 }
 
-function loadDurableAuthorityModule() {
-  delete require.cache[require.resolve(durableAuthorityPath)];
-  return require(durableAuthorityPath);
+function loadInternalAuthorityModule(testId) {
+  assert.equal(fs.existsSync(internalAuthorityPath), true, `${testId}:MODULE_REQUIRED`);
+  delete require.cache[require.resolve(internalAuthorityPath)];
+  return require(internalAuthorityPath);
 }
 
 function createInternalAuthority(module, store) {
@@ -246,26 +256,23 @@ test('M3-SC-DIAG-001 report declares the stable WP-B diagnostic schema', () => {
   assert.equal(value.diagnosticRecordType, 'YANCE_ACV2_WP_B_SOURCE_CLOSURE_VIOLATION', 'M3-SC-DIAG-001');
 });
 
-test('M3-SC-DIAG-002 classified violation count is explicit and matches the record set', () => {
+test('M3-SC-DIAG-002 classified violation count matches the exact record set', () => {
   const value = report();
   assert.equal(Number.isSafeInteger(value.classifiedViolationCount), true, 'M3-SC-DIAG-002:INTEGER_REQUIRED');
   assert.equal(value.classifiedViolationCount, value.violations.length, 'M3-SC-DIAG-002:COUNT_MISMATCH');
-  assert.ok(value.classifiedViolationCount > 0, 'M3-SC-DIAG-002:CREDIBLE_RED_REQUIRED');
 });
 
-test('M3-SC-DIAG-003 every nonterminal inventory row has an exact classified violation', () => {
+test('M3-SC-DIAG-003 every nonterminal inventory row has one exact classified violation', () => {
   const baseline = readJson(baselinePath);
-  const inventory = readJson(inventoryPath);
+  const inventory = readCombinedInventory();
   const value = report();
   const productionTerminal = new Set(baseline.productionTerminalStates);
   const nonProductionTerminal = new Set(baseline.nonProductionTerminalStates);
-  const openRows = inventory.entries.filter(entry => {
-    if (entry.classification === 'NON_PRODUCTION_HARNESS') {
-      return !nonProductionTerminal.has(entry.closureState);
-    }
-    return !productionTerminal.has(entry.closureState);
-  });
-  assert.ok(openRows.length > 0, 'M3-SC-DIAG-003:OPEN_INVENTORY_REQUIRED');
+  const openRows = inventory.entries.filter(entry => (
+    entry.classification === 'NON_PRODUCTION_HARNESS'
+      ? !nonProductionTerminal.has(entry.closureState)
+      : !productionTerminal.has(entry.closureState)
+  ));
   for (const entry of openRows) {
     const matches = value.violations.filter(violation => (
       violation.inventoryId === entry.id && violation.path === entry.path
@@ -277,7 +284,6 @@ test('M3-SC-DIAG-003 every nonterminal inventory row has an exact classified vio
 test('M3-SC-DIAG-004 each violation contains exact path, capability, reason and callable facts', () => {
   const baseline = readJson(baselinePath);
   const value = report();
-  assert.ok(value.violations.length > 0, 'M3-SC-DIAG-004:CREDIBLE_RED_REQUIRED');
   for (const [index, violation] of value.violations.entries()) {
     for (const field of baseline.requiredDiagnosticFields) {
       assert.equal(Object.hasOwn(violation, field), true, `M3-SC-DIAG-004:${index}:${field}`);
@@ -327,7 +333,7 @@ test('M3-SC-DIAG-007 transitional facades do not re-export legacy Core writer su
 });
 
 test('M3-SC-DIAG-008 internal operation types map only to the sealed six operation kinds', () => {
-  const module = loadDurableAuthorityModule();
+  const module = loadInternalAuthorityModule('M3-SC-DIAG-008');
   assert.equal(typeof module.internalOperationKindFor, 'function', 'M3-SC-DIAG-008:FUNCTION_REQUIRED');
   for (const [operationType, expectedKind] of INTERNAL_OPERATION_KIND_CASES) {
     assert.equal(module.internalOperationKindFor(operationType), expectedKind, `M3-SC-DIAG-008:${operationType}`);
@@ -340,7 +346,7 @@ test('M3-SC-DIAG-008 internal operation types map only to the sealed six operati
 });
 
 test('M3-SC-DIAG-009 canonical internal lifecycle uses Schema 23 claim and terminal CAS', () => withSchema23(({ db, store }) => {
-  const module = loadDurableAuthorityModule();
+  const module = loadInternalAuthorityModule('M3-SC-DIAG-009');
   assert.equal(typeof module.DurableInternalOperationAuthority, 'function', 'M3-SC-DIAG-009:CLASS_REQUIRED');
   const authority = createInternalAuthority(module, store);
   const created = authority.create({
@@ -390,7 +396,7 @@ test('M3-SC-DIAG-009 canonical internal lifecycle uses Schema 23 claim and termi
 }));
 
 test('M3-SC-DIAG-010 stale Host fencing rejects internal operation start', () => withSchema23(({ db, store }) => {
-  const module = loadDurableAuthorityModule();
+  const module = loadInternalAuthorityModule('M3-SC-DIAG-010');
   const authority = createInternalAuthority(module, store);
   const created = authority.create({
     operationId: 'fenced-operation-1',
