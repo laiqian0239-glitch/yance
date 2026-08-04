@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OPEN_SOURCE_WORK_PACKAGE_AUTHORIZATION_RECEIPT",
+  "program": "Open Source Acceleration",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-1A",
+  "status": "SEALED_FOR_IMPLEMENTATION",
+  "authorizationVersion": 3,
+  "supersedesReceiptPath": "governance/open-source-acceleration/oss-1a-authorization-receipt-v2.json",
+  "requiredBaseRef": "governance/oss-1a-detached-evidence-baseline-v3",
+  "approvedParentHead": "dcb8f9894c3465256bdac694e4b3099aa01c70d4",
+  "implementationBaseCommit": "4ecf16b467b198022c41a4141a2acfc31933200a",
+  "approvedPlanPath": "docs/superpowers/plans/2026-08-04-yance-oss-1a-review-closure-amendment.md",
+  "approvedPlanHead": "c6f5ebe8474e2c47042f38daf525770c61cabd0a",
+  "authorizedBranch": "oss/1a-baileys-lifecycle",
+  "authorizationPath": "governance/open-source-acceleration/oss-1a-implementation-authorization-v3.json",
+  "authorizationCommit": "fbad91513bf8d9e13cd34de49c7d1138a6d1317c",
+  "authorizationBlobSha": "4cbbca291bb60d593bc3ed5190232468c33d3ccf",
+  "authorizationFileSha256": "95bd752f84428f6d2f3649a07062234c075b46ed5694114f5511a1f3054b9bcd",
+  "approvedChangedFileCount": 29,
+  "approvedChangedFileSetSha256": "90f97cbeb7021b9e2bbb80e5bb519c02c07f44df85ab905d619787af3308abe7",
+  "verificationEvidence": {
+    "status": "PENDING_FINAL_RECEIPT_HEAD_VALIDATION",
+    "sourceSchema23Head": "12e6626a54866eeeab51281208579aa1292e123c",
+    "schema23RuntimeTests": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0
+    },
+    "detachedEvidenceDiagnosticRunId": 30935944650,
+    "detachedEvidenceDiagnosticReasonCode": "OSS_WORK_PACKAGE_CHANGED_FILE_SET_MISMATCH",
+    "runtimeBehaviorChangedByGovernanceBaseline": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "implementationBasePredatesReceiptSeal": true,
+    "exactPathScopeOnly": true,
+    "wildcardExpansionAllowed": false,
+    "prMustRemainDraft": true,
+    "mergeIntoMainAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "automaticNextWorkPackageAuthorization": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "readyForPromotion": false
+  }
+}
