@@ -5,9 +5,11 @@ on:
     branches:
       - governance/oss-1a-implementation-authorization
       - governance/oss-1a-runtime-ci-authorization
+      - governance/oss-1a-detached-evidence-baseline-v3
   push:
     branches:
       - governance/oss-1a-runtime-ci-authorization
+      - governance/oss-1a-detached-evidence-baseline-v3
       - oss/1a-baileys-lifecycle
 
 permissions:
@@ -19,7 +21,7 @@ env:
 jobs:
   governance-contract:
     name: oss1a-governance-contract
-    if: ${{ (github.event_name == 'pull_request' && github.head_ref == 'governance/oss-1a-runtime-ci-authorization') || (github.event_name == 'push' && github.ref == 'refs/heads/governance/oss-1a-runtime-ci-authorization') }}
+    if: ${{ (github.event_name == 'pull_request' && (github.head_ref == 'governance/oss-1a-runtime-ci-authorization' || github.head_ref == 'governance/oss-1a-detached-evidence-baseline-v3')) || (github.event_name == 'push' && (github.ref == 'refs/heads/governance/oss-1a-runtime-ci-authorization' || github.ref == 'refs/heads/governance/oss-1a-detached-evidence-baseline-v3')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -82,8 +84,8 @@ jobs:
           GOVERNANCE_RESULT: ${{ needs.governance-contract.result }}
         run: |
           set -euo pipefail
-          if { test "${EVENT_NAME}" = "pull_request" && test "${HEAD_REF}" = "governance/oss-1a-runtime-ci-authorization"; } \
-            || { test "${EVENT_NAME}" = "push" && test "${GIT_REF}" = "refs/heads/governance/oss-1a-runtime-ci-authorization"; }; then
+          if { test "${EVENT_NAME}" = "pull_request" && { test "${HEAD_REF}" = "governance/oss-1a-runtime-ci-authorization" || test "${HEAD_REF}" = "governance/oss-1a-detached-evidence-baseline-v3"; }; } \
+            || { test "${EVENT_NAME}" = "push" && { test "${GIT_REF}" = "refs/heads/governance/oss-1a-runtime-ci-authorization" || test "${GIT_REF}" = "refs/heads/governance/oss-1a-detached-evidence-baseline-v3"; }; }; then
             test "${GOVERNANCE_RESULT}" = "success"
             test "${RUNTIME_RESULT}" = "skipped"
           elif { test "${EVENT_NAME}" = "pull_request" && test "${HEAD_REF}" = "oss/1a-baileys-lifecycle"; } \
