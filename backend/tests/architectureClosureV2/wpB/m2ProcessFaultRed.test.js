@@ -168,3 +168,21 @@ test('M2-FAULT-008 normalized process evidence is bounded and contains no busine
     ].sort());
   }
 ));
+
+test('M2-FAULT-009 receipt persistence path completes without a fault barrier', async () => withTempRoot(
+  'yance-wp-b-receipt-before-terminal-',
+  async workspaceRoot => {
+    const { runFaultMatrix } = matrixModule();
+    const report = await runFaultMatrix({
+      workspaceRoot,
+      scenarios: ['RECEIPT_BEFORE_TERMINAL'],
+      timeoutMs: 15_000
+    });
+    assert.equal(report.scenarioCount, 1);
+    assert.equal(report.results[0].scenario, 'RECEIPT_BEFORE_TERMINAL');
+    assert.equal(report.results[0].attemptCount, 1);
+    assert.equal(report.results[0].physicalSideEffectCount, 1);
+    assert.equal(report.results[0].receiptCount, 1);
+    assert.equal(report.results[0].duplicateExternalSideEffectCount, 0);
+  }
+));
