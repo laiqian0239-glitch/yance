@@ -10,6 +10,8 @@ const {
 
 const OSS1A_BRANCH = 'oss/1a-baileys-lifecycle';
 const OSS1A_GOVERNANCE_BRANCH = 'governance/oss-1a-implementation-authorization';
+const OSS1A_DERIVED_GOVERNANCE_BRANCH = 'governance/oss1a-detached-evidence-binding';
+const OSS1A_IMPLEMENTATION_TIP = '1'.repeat(40);
 
 function registry(entries) {
   return {
@@ -55,6 +57,21 @@ function records(overrides = {}) {
   };
 }
 
+function derivedGovernanceRecords(overrides = {}) {
+  return records({
+    resolveRemoteTip: branch => branch === OSS1A_BRANCH ? OSS1A_IMPLEMENTATION_TIP : null,
+    isAncestor: (base, head) => base === OSS1A_IMPLEMENTATION_TIP && head === 'HEAD',
+    changedFilesFromBase: base => base === OSS1A_IMPLEMENTATION_TIP
+      ? [
+        'tests/wp0/helpers/reviewedImplementationFixture.js',
+        'tests/wp0/product-route-executable-policy.test.js',
+        'tools/wp0/product-route-executable-policy.js'
+      ]
+      : [],
+    ...overrides
+  });
+}
+
 test('exact registered implementation and governance branches receive distinct roles', () => {
   const implementation = classifyProductRouteBranchRole(OSS1A_BRANCH, records());
   assert.equal(implementation.pass, true);
@@ -69,6 +86,76 @@ test('exact registered implementation and governance branches receive distinct r
   const unknown = classifyProductRouteBranchRole('feature/unreviewed-product-change', records());
   assert.equal(unknown.pass, false);
   assert.equal(unknown.reasonCode, 'WP0_PRODUCT_ROUTE_BRANCH_ROLE_UNKNOWN');
+});
+
+test('derived governance verification branch requires one sealed work package and WP0-only diff', () => {
+  const derived = classifyProductRouteBranchRole(
+    OSS1A_DERIVED_GOVERNANCE_BRANCH,
+    derivedGovernanceRecords()
+  );
+  assert.equal(derived.pass, true, JSON.stringify(derived));
+  assert.equal(derived.role, 'GOVERNANCE_NEGATIVE_PROOF');
+  assert.equal(derived.workPackage, 'OSS-1A');
+  assert.equal(derived.governanceBaseCommit, OSS1A_IMPLEMENTATION_TIP);
+  assert.deepEqual(derived.changedFiles, [
+    'tests/wp0/helpers/reviewedImplementationFixture.js',
+    'tests/wp0/product-route-executable-policy.test.js',
+    'tools/wp0/product-route-executable-policy.js'
+  ]);
+
+  const wrongToken = classifyProductRouteBranchRole(
+    'governance/oss2-detached-evidence-binding',
+    derivedGovernanceRecords()
+  );
+  assert.equal(wrongToken.pass, false);
+  assert.equal(wrongToken.reasonCode, 'WP0_PRODUCT_ROUTE_BRANCH_ROLE_UNKNOWN');
+
+  const runtimeLeak = classifyProductRouteBranchRole(
+    OSS1A_DERIVED_GOVERNANCE_BRANCH,
+    derivedGovernanceRecords({
+      changedFilesFromBase: () => ['backend/lib/r32SqliteStore.js']
+    })
+  );
+  assert.equal(runtimeLeak.pass, false);
+  assert.equal(runtimeLeak.reasonCode, 'WP0_PRODUCT_ROUTE_GOVERNANCE_SCOPE_INVALID');
+
+  const unrelated = classifyProductRouteBranchRole(
+    OSS1A_DERIVED_GOVERNANCE_BRANCH,
+    derivedGovernanceRecords({ isAncestor: () => false })
+  );
+  assert.equal(unrelated.pass, false);
+  assert.equal(unrelated.reasonCode, 'WP0_PRODUCT_ROUTE_BRANCH_ROLE_UNKNOWN');
+});
+
+test('derived governance verification role fails closed on ambiguous implementation ancestry', () => {
+  const secondEntry = {
+    workPackage: 'OSS-1A',
+    authorizedBranch: 'oss/1a-baileys-lifecycle-shadow',
+    authorizationPath: 'governance/open-source-acceleration/oss-1a-shadow-authorization.json',
+    receiptPath: 'governance/open-source-acceleration/oss-1a-shadow-receipt.json'
+  };
+  const ambiguous = classifyProductRouteBranchRole(
+    OSS1A_DERIVED_GOVERNANCE_BRANCH,
+    derivedGovernanceRecords({
+      registry: registry([entry, secondEntry]),
+      authorizationByPath: {
+        [entry.authorizationPath]: authorization,
+        [secondEntry.authorizationPath]: {
+          workPackage: 'OSS-1A',
+          authorizedBranch: secondEntry.authorizedBranch,
+          requiredBaseRef: 'governance/oss-1a-shadow-authorization'
+        }
+      },
+      receiptByPath: {
+        [entry.receiptPath]: { workPackage: 'OSS-1A' },
+        [secondEntry.receiptPath]: { workPackage: 'OSS-1A' }
+      },
+      resolveRemoteTip: () => OSS1A_IMPLEMENTATION_TIP,
+      isAncestor: () => true
+    })
+  );
+  assert.equal(ambiguous.pass, false);
+  assert.equal(ambiguous.reasonCode, 'WP0_PRODUCT_ROUTE_GOVERNANCE_ROLE_AMBIGUOUS');
 });
 
 test('ambiguous governance ownership and invalid sealed records fail closed', () => {
