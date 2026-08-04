@@ -15,6 +15,16 @@ const EXPECTED_OPERATION_KINDS = Object.freeze([
   'HISTORY_SYNCHRONIZATION',
   'SESSION_RESTORE'
 ]);
+const IDENTITY_FIELDS = Object.freeze([
+  'executionId',
+  'intentId',
+  'attemptId',
+  'claimId',
+  'ownerId',
+  'generation',
+  'hostGeneration',
+  'fencingToken'
+]);
 
 function frozenAttemptEnvelope(overrides = {}) {
   return Object.freeze({
@@ -36,6 +46,23 @@ function frozenAttemptEnvelope(overrides = {}) {
     }),
     ...overrides
   });
+}
+
+function identityOf(value = {}) {
+  return Object.fromEntries(IDENTITY_FIELDS.map(field => [field, value[field]]));
+}
+
+function expectedIdentity() {
+  return {
+    executionId: 'm2-review-execution-1',
+    intentId: 'm2-review-intent-1',
+    attemptId: 'm2-review-attempt-1',
+    claimId: 'm2-review-claim-1',
+    ownerId: 'm2-review-owner-1',
+    generation: 3,
+    hostGeneration: 7,
+    fencingToken: 11
+  };
 }
 
 function frozenAdapter(operationKind) {
@@ -84,28 +111,7 @@ test('M2-IR-001 outbound Adapter preserves the complete persisted fencing identi
   const receipt = await adapter.perform(frozenAttemptEnvelope());
   assert.equal(receipt.accepted, true);
   assert.equal(physicalCalls.length, 1);
-  assert.deepEqual(
-    Object.fromEntries([
-      'executionId',
-      'intentId',
-      'attemptId',
-      'claimId',
-      'ownerId',
-      'generation',
-      'hostGeneration',
-      'fencingToken'
-    ].map(field => [field, physicalCalls[0][field]])),
-    {
-      executionId: 'm2-review-execution-1',
-      intentId: 'm2-review-intent-1',
-      attemptId: 'm2-review-attempt-1',
-      claimId: 'm2-review-claim-1',
-      ownerId: 'm2-review-owner-1',
-      generation: 3,
-      hostGeneration: 7,
-      fencingToken: 11
-    }
-  );
+  assert.deepEqual(identityOf(physicalCalls[0]), expectedIdentity());
 });
 
 test('M2-IR-002 production composition builds one sealed registry containing all six mandatory Adapters', () => {
@@ -240,4 +246,76 @@ test('M2-IR-004 persisted attempts and uncertain states never enter blind recove
     authorityTimestamp
   );
   assert.equal(safe.decision, DECISIONS.REQUEUE_SAFE);
+});
+
+test('M2-IR-005 AI Adapter preserves the complete persisted fencing identity at provider perform and lookup boundaries', async () => {
+  const { createAiProviderExecutionOperation } = require('../../../services/durableOperations/aiProviderExecutionOperation');
+  const calls = [];
+  const credential = Object.freeze({ apiKey: 'ephemeral-review-key' });
+  const adapter = createAiProviderExecutionOperation({
+    resolveCredentialReference() { return credential; },
+    providerClient: Object.freeze({
+      async perform(input) {
+        calls.push(['perform', identityOf(input)]);
+        return Object.freeze({ accepted: true, providerRequestId: 'provider-review-ai-1' });
+      },
+      async lookup(input) {
+        calls.push(['lookup', identityOf(input)]);
+        return Object.freeze({ outcome: 'REMOTE_RESULT_UNKNOWN' });
+      }
+    })
+  });
+  const envelope = frozenAttemptEnvelope({
+    request: Object.freeze({
+      modelReference: 'model-review-1',
+      promptReference: 'prompt-review-1',
+      credentialReference: 'credential-review-1',
+      requestContentSha256: 'b'.repeat(64)
+    }),
+    providerRequestId: 'provider-review-ai-1'
+  });
+  await adapter.perform(envelope);
+  await adapter.reconcile(envelope);
+  assert.deepEqual(calls, [
+    ['perform', expectedIdentity()],
+    ['lookup', expectedIdentity()]
+  ]);
+});
+
+test('M2-IR-006 delivery Adapter preserves the complete persisted fencing identity at query and lookup boundaries', async () => {
+  const { createDeliveryReceiptReconciliationOperation } = require('../../../services/durableOperations/deliveryReceiptReconciliationOperation');
+  const calls = [];
+  const credential = Object.freeze({ session: 'ephemeral-review-session' });
+  const adapter = createDeliveryReceiptReconciliationOperation({
+    resolveCredentialReference() { return credential; },
+    deliveryClient: Object.freeze({
+      async query(input) {
+        calls.push(['query', identityOf(input)]);
+        return Object.freeze({
+          deliveryStatus: 'delivered',
+          providerRequestId: 'provider-review-delivery-1'
+        });
+      },
+      async lookup(input) {
+        calls.push(['lookup', identityOf(input)]);
+        return Object.freeze({ outcome: 'REMOTE_SUCCESS_PROVEN', deliveryStatus: 'delivered' });
+      }
+    })
+  });
+  const envelope = frozenAttemptEnvelope({
+    request: Object.freeze({
+      platform: 'whatsapp',
+      accountReference: 'account-review-1',
+      deliveryAttemptReference: 'delivery-attempt-review-1',
+      credentialReference: 'credential-review-1',
+      requestContentSha256: 'c'.repeat(64)
+    }),
+    providerRequestId: 'provider-review-delivery-1'
+  });
+  await adapter.perform(envelope);
+  await adapter.reconcile(envelope);
+  assert.deepEqual(calls, [
+    ['query', expectedIdentity()],
+    ['lookup', expectedIdentity()]
+  ]);
 });
