@@ -231,7 +231,9 @@ function isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(receipt, autho
   if (!/^[a-f0-9]{40}$/u.test(String(receipt.authorizationBlobSha || ''))) return false;
   if (!/^[a-f0-9]{64}$/u.test(String(receipt.authorizationFileSha256 || ''))) return false;
 
-  const expectedFileSha256 = Object.prototype.hasOwnProperty.call(options, 'authorizationFileSha256')
+  const explicitAuthorizationSha = Object.prototype.hasOwnProperty.call(options, 'authorizationFileSha256')
+    && options.authorizationFileSha256 !== undefined;
+  const expectedFileSha256 = explicitAuthorizationSha
     ? options.authorizationFileSha256
     : sha256File(options.authorizationPath || repositoryFilePath(entry.authorizationPath));
   if (receipt.authorizationFileSha256 !== expectedFileSha256) return false;
