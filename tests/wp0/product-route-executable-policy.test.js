@@ -127,14 +127,14 @@ test('derived governance verification branch requires one sealed work package an
   assert.equal(unrelated.reasonCode, 'WP0_PRODUCT_ROUTE_BRANCH_ROLE_UNKNOWN');
 });
 
-test('derived governance verification role fails closed on ambiguous implementation ancestry', () => {
+test('invalid duplicate work-package registry fails before derived governance selection', () => {
   const secondEntry = {
     workPackage: 'OSS-1A',
     authorizedBranch: 'oss/1a-baileys-lifecycle-shadow',
     authorizationPath: 'governance/open-source-acceleration/oss-1a-shadow-authorization.json',
     receiptPath: 'governance/open-source-acceleration/oss-1a-shadow-receipt.json'
   };
-  const ambiguous = classifyProductRouteBranchRole(
+  const invalidRegistry = classifyProductRouteBranchRole(
     OSS1A_DERIVED_GOVERNANCE_BRANCH,
     derivedGovernanceRecords({
       registry: registry([entry, secondEntry]),
@@ -149,13 +149,11 @@ test('derived governance verification role fails closed on ambiguous implementat
       receiptByPath: {
         [entry.receiptPath]: { workPackage: 'OSS-1A' },
         [secondEntry.receiptPath]: { workPackage: 'OSS-1A' }
-      },
-      resolveRemoteTip: () => OSS1A_IMPLEMENTATION_TIP,
-      isAncestor: () => true
+      }
     })
   );
-  assert.equal(ambiguous.pass, false);
-  assert.equal(ambiguous.reasonCode, 'WP0_PRODUCT_ROUTE_GOVERNANCE_ROLE_AMBIGUOUS');
+  assert.equal(invalidRegistry.pass, false);
+  assert.equal(invalidRegistry.reasonCode, 'WP0_PRODUCT_ROUTE_REGISTRY_INVALID');
 });
 
 test('ambiguous governance ownership and invalid sealed records fail closed', () => {
