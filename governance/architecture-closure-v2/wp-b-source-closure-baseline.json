@@ -8,6 +8,9 @@
   "authorizationHead": "9977e081abcaf3dfe1a7b5a309b872b0a4660114",
   "parentMilestone2EvidenceHead": "9f82377119e16f8e02d3b83f0795b452e36f769e",
   "operationInventoryPath": "governance/architecture-closure-v2/wp-b-operation-inventory.json",
+  "operationInventoryExtensionPaths": [
+    "governance/architecture-closure-v2/wp-b-operation-inventory-m3-extension.json"
+  ],
   "operationInventoryAnchorBlobSha": "c564fd0c225ddc24317ac2f10c46aa0ad52db691",
   "discovery": {
     "roots": [
