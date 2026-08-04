@@ -22,7 +22,7 @@ function replaceRegexOnce(source, pattern, after, label) {
   return source.replace(pattern, after);
 }
 
-test('generate exact minimal BackendProcessHost READY authority blob', () => {
+function generatePatchedBackendProcessHost() {
   const original = fs.readFileSync(target, 'utf8');
   let patched = original;
 
@@ -210,6 +210,18 @@ function assertReadyCredentialAuthorityReceipt(receipt, readyMetadata, initialMe
   fs.rmSync(generated, { force: true });
   assert.equal(syntax.status, 0, syntax.stderr || syntax.stdout);
 
-  process.stdout.write(`OSS1A_PATCH_BLOB_SHA256=${crypto.createHash('sha256').update(patched).digest('hex')}\n`);
-  process.stdout.write(`OSS1A_PATCH_BASE64=${Buffer.from(patched, 'utf8').toString('base64')}\n`);
+  return Object.freeze({
+    code: Buffer.from(patched, 'utf8'),
+    sha256: crypto.createHash('sha256').update(patched).digest('hex'),
+    base64: Buffer.from(patched, 'utf8').toString('base64')
+  });
+}
+
+test('generate exact minimal BackendProcessHost READY authority blob', () => {
+  const result = generatePatchedBackendProcessHost();
+  assert.match(result.sha256, /^[a-f0-9]{64}$/u);
+  assert.ok(result.base64.length > 1000);
+  assert.equal(crypto.createHash('sha256').update(result.code).digest('hex'), result.sha256);
 });
+
+module.exports = { generatePatchedBackendProcessHost };
