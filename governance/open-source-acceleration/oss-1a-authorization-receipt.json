@@ -14,6 +14,7 @@
   "authorizationCommit": "570ec836590b85839be3d5dafc215a08c0b32eb2",
   "authorizationBlobSha": "8087685ee2e71dc6eb42b1941fc193e054ad4100",
   "authorizationFileSha256": "e68cf5eb3c8dc4e533d4fc7daa39af683e2613c2aca5b5ca83903e302e1fb86d",
+  "implementationBaseCommit": "5ec99ad60384ddf0857285ce0fa7f3346528216e",
   "approvedChangedFileCount": 29,
   "approvedChangedFileSetSha256": "90f97cbeb7021b9e2bbb80e5bb519c02c07f44df85ab905d619787af3308abe7",
   "governance": {
