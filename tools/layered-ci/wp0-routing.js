@@ -6,6 +6,8 @@ const ROUTES = Object.freeze({
   PRODUCT: 'PRODUCT_WP0'
 });
 
+const PATH_CONTROL_OR_GLOB = /[\u0000-\u001F\u007F*?\[\]]/u;
+
 function outcome(values = {}) {
   return Object.freeze({
     pass: false,
@@ -31,7 +33,9 @@ function fail(reasonCode, details = {}) {
 }
 
 function normalizePath(value) {
-  const normalized = String(value || '')
+  const raw = String(value || '');
+  if (!raw || PATH_CONTROL_OR_GLOB.test(raw)) return '';
+  const normalized = raw
     .trim()
     .replace(/\\/gu, '/')
     .replace(/^\.\//u, '')
@@ -40,7 +44,6 @@ function normalizePath(value) {
     !normalized
     || normalized.startsWith('/')
     || /^[A-Za-z]:\//u.test(normalized)
-    || /[\r\n*?[\]]/u.test(normalized)
   ) return '';
   const segments = normalized.split('/');
   if (segments.some(segment => !segment || segment === '.' || segment === '..')) return '';
@@ -52,8 +55,10 @@ function validRules(values) {
     && values.length > 0
     && new Set(values).size === values.length
     && values.every(value => {
-      const raw = String(value || '').trim().replace(/\\/gu, '/').replace(/^\.\//u, '');
-      if (!raw || /[\r\n*?[\]]/u.test(raw) || raw.startsWith('/') || /^[A-Za-z]:\//u.test(raw)) return false;
+      const rawValue = String(value || '');
+      if (!rawValue || PATH_CONTROL_OR_GLOB.test(rawValue)) return false;
+      const raw = rawValue.trim().replace(/\\/gu, '/').replace(/^\.\//u, '');
+      if (!raw || raw.startsWith('/') || /^[A-Za-z]:\//u.test(raw)) return false;
       const normalized = raw.replace(/\/$/u, '');
       return normalized.split('/').every(segment => segment && segment !== '.' && segment !== '..');
     });
