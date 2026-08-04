@@ -1,9 +1,8 @@
 'use strict';
 
 const core = require('./accountManagerCore');
-const accountStore = require('./accountStore');
-const durableExecutionAuthority = require('./durableExecutionAuthority');
-const outboxAuthority = require('./externalActionOutboxAuthority');
+const { DurableExecutionAuthority } = require('./durableExecutionAuthority');
+const { ExternalActionOutboxAuthority } = require('./externalActionOutboxAuthorityCore');
 const { canonicalHash } = require('./canonicalSerialization');
 const { deepFreeze } = require('../lib/deepFreeze');
 const {
@@ -12,6 +11,7 @@ const {
 } = require('./durableOperations/sessionRestoreOperation');
 
 const SESSION_STATES = new WeakMap();
+const RUNTIME_SESSION_AUTHORITIES = new WeakMap();
 
 function clean(value) {
   return String(value == null ? '' : value).trim();
@@ -49,22 +49,103 @@ function defaultAuthorityTimestamp() {
   return new Date().toISOString();
 }
 
+function parseMetadata(value) {
+  try {
+    const parsed = JSON.parse(String(value || '{}'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function currentRuntimeAuthorityStore() {
+  const { AppRuntimeFactory } = require('../runtime/AppRuntimeFactory');
+  const store = AppRuntimeFactory.current()?.primaryAuthorityStore;
+  if (!store?.db || typeof store.transaction !== 'function') {
+    throw sessionManagerError(
+      'APP_RUNTIME_CANONICAL_AUTHORITY_STORE_REQUIRED',
+      'Session restore requires the current AppRuntime broker-owned authority store',
+      503
+    );
+  }
+  return store;
+}
+
+function runtimeAccountList() {
+  const store = currentRuntimeAuthorityStore();
+  let rows;
+  try {
+    rows = store.db.prepare(`SELECT
+      id, platform, credential_ref, paused, lifecycle_state, metadata_json
+      FROM r32_accounts
+      WHERE COALESCE(lifecycle_state, '') <> 'tombstoned'
+      ORDER BY platform, id`).all();
+  } catch (error) {
+    throw sessionManagerError(
+      'APP_RUNTIME_ACCOUNT_PROJECTION_REQUIRED',
+      'Session restore requires the canonical persisted account projection',
+      503,
+      { causeCode: clean(error?.code), causeMessage: clean(error?.message) }
+    );
+  }
+  return Object.freeze(rows.map(row => {
+    const metadata = Object.freeze(parseMetadata(row.metadata_json));
+    return Object.freeze({
+      id: clean(row.id),
+      platform: clean(row.platform).toLowerCase(),
+      credentialRef: clean(row.credential_ref),
+      paused: Number(row.paused || 0) === 1,
+      lifecycleState: clean(row.lifecycle_state),
+      sessionGeneration: Number(metadata.sessionGeneration || 0),
+      sessionReference: clean(metadata.sessionReference),
+      metadata
+    });
+  }));
+}
+
+function runtimeAccountReader(accountId) {
+  const normalized = clean(accountId);
+  return runtimeAccountList().find(account => account.id === normalized) || null;
+}
+
+function runtimeSessionAuthorities() {
+  const store = currentRuntimeAuthorityStore();
+  let authorities = RUNTIME_SESSION_AUTHORITIES.get(store);
+  if (!authorities) {
+    const storeProvider = () => store;
+    authorities = Object.freeze({
+      durableExecutionAuthority: new DurableExecutionAuthority({ storeProvider }),
+      outboxAuthority: new ExternalActionOutboxAuthority({ storeProvider })
+    });
+    RUNTIME_SESSION_AUTHORITIES.set(store, authorities);
+  }
+  return authorities;
+}
+
+function constantProvider(value) {
+  return () => value;
+}
+
 function configureSessionState(target, options = {}) {
+  const injectedExecutionAuthority = options.durableExecutionAuthority || null;
+  const injectedOutboxAuthority = options.outboxAuthority || null;
   const state = Object.freeze({
-    accountReader: options.accountReader || accountStore.get.bind(accountStore),
-    accountList: options.accountList || accountStore.listAll.bind(accountStore),
-    durableExecutionAuthority: options.durableExecutionAuthority || durableExecutionAuthority,
-    outboxAuthority: options.outboxAuthority || outboxAuthority,
+    accountReader: options.accountReader || runtimeAccountReader,
+    accountList: options.accountList || runtimeAccountList,
+    durableExecutionAuthorityProvider: injectedExecutionAuthority
+      ? constantProvider(injectedExecutionAuthority)
+      : () => runtimeSessionAuthorities().durableExecutionAuthority,
+    outboxAuthorityProvider: injectedOutboxAuthority
+      ? constantProvider(injectedOutboxAuthority)
+      : () => runtimeSessionAuthorities().outboxAuthority,
     issueTimestamp: options.issueTimestamp || defaultAuthorityTimestamp
   });
   if (typeof state.accountReader !== 'function' || typeof state.accountList !== 'function') {
     throw new TypeError('AccountManager session restoration requires persisted account readers');
   }
-  if (typeof state.durableExecutionAuthority?.createExecution !== 'function') {
-    throw new TypeError('AccountManager SESSION_RESTORE requires DurableExecutionAuthority.createExecution');
-  }
-  if (typeof state.outboxAuthority?.createIntent !== 'function') {
-    throw new TypeError('AccountManager SESSION_RESTORE requires ExternalActionOutboxAuthority.createIntent');
+  if (typeof state.durableExecutionAuthorityProvider !== 'function'
+      || typeof state.outboxAuthorityProvider !== 'function') {
+    throw new TypeError('AccountManager session restoration requires authority providers');
   }
   SESSION_STATES.set(target, state);
   return target;
@@ -74,6 +155,18 @@ function sessionState(target) {
   const state = SESSION_STATES.get(target);
   if (!state) throw new TypeError('AccountManager session restoration state is unavailable');
   return state;
+}
+
+function resolveSessionAuthorities(state) {
+  const durableExecutionAuthority = state.durableExecutionAuthorityProvider();
+  const outboxAuthority = state.outboxAuthorityProvider();
+  if (typeof durableExecutionAuthority?.createExecution !== 'function') {
+    throw new TypeError('AccountManager SESSION_RESTORE requires DurableExecutionAuthority.createExecution');
+  }
+  if (typeof outboxAuthority?.createIntent !== 'function') {
+    throw new TypeError('AccountManager SESSION_RESTORE requires ExternalActionOutboxAuthority.createIntent');
+  }
+  return Object.freeze({ durableExecutionAuthority, outboxAuthority });
 }
 
 function requestSessionRestore(input = {}) {
@@ -110,9 +203,10 @@ function requestSessionRestore(input = {}) {
     );
   }
   const command = deepFreeze({ ...hashBase, commandContentSha256 });
+  const authorities = resolveSessionAuthorities(state);
   return prepareSessionRestore({
-    durableExecutionAuthority: state.durableExecutionAuthority,
-    outboxAuthority: state.outboxAuthority,
+    durableExecutionAuthority: authorities.durableExecutionAuthority,
+    outboxAuthority: authorities.outboxAuthority,
     issueTimestamp: state.issueTimestamp,
     traceId: clean(input.traceId),
     idempotencyKey: clean(input.idempotencyKey),
@@ -181,3 +275,5 @@ module.exports = accountManager;
 module.exports.AccountManager = AccountManager;
 module.exports.CAPABILITY_MATRIX = core.CAPABILITY_MATRIX;
 module.exports.SESSION_RESTORE = SESSION_RESTORE;
+module.exports.currentRuntimeAuthorityStore = currentRuntimeAuthorityStore;
+module.exports.RuntimeAccountList = runtimeAccountList;
