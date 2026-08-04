@@ -273,14 +273,81 @@ function startupFailure(reasonCode, message, details = {}) {
   return error;
 }
 
+const CREDENTIAL_HANDSHAKE_FIELDS = Object.freeze([
+  'pid', 'startupNonce', 'vaultEpoch', 'generation', 'authorityEventId', 'authorityHeadDigest',
+  'vaultReferenceCount', 'decryptedEntryCount', 'frameEntryCount', 'entryCount', 'payloadBytes',
+  'restoredReferenceCount'
+]);
+const READY_AUTHORITY_RECEIPT_FIELDS = Object.freeze([
+  'accepted', 'mode', 'vaultEpoch', 'initialGeneration', 'readyGeneration', 'authorityEventId',
+  'authorityHeadDigest', 'referenceCount', 'payloadBytes', 'committedAdvanceCount',
+  'ownerSessionMatched', 'journalHeadMatched'
+]);
+
+function credentialHandshakeDifferences(message, expected) {
+  const missing = CREDENTIAL_HANDSHAKE_FIELDS.filter(field => !Object.prototype.hasOwnProperty.call(message || {}, field));
+  const mismatches = CREDENTIAL_HANDSHAKE_FIELDS.filter(field => Object.prototype.hasOwnProperty.call(message || {}, field) && message[field] !== expected[field]);
+  return Object.freeze({ missing, mismatches, exact: missing.length === 0 && mismatches.length === 0 });
+}
+
 function assertCredentialHandshakeBinding(message, expected, phase) {
-  const fields = ['pid', 'startupNonce', 'vaultEpoch', 'generation', 'authorityEventId', 'vaultReferenceCount', 'decryptedEntryCount', 'frameEntryCount', 'entryCount', 'payloadBytes', 'restoredReferenceCount'];
-  const missing = fields.filter(field => !Object.prototype.hasOwnProperty.call(message || {}, field));
-  const mismatches = fields.filter(field => Object.prototype.hasOwnProperty.call(message || {}, field) && message[field] !== expected[field]);
-  if (missing.length || mismatches.length) {
-    throw startupFailure('DESKTOP_CREDENTIAL_HYDRATION_ACK_MISMATCH', `Credential ${phase} metadata does not match the transmitted snapshot`, { missingFields: missing, mismatchedFields: mismatches });
+  const differences = credentialHandshakeDifferences(message, expected);
+  if (!differences.exact) {
+    throw startupFailure('DESKTOP_CREDENTIAL_HYDRATION_ACK_MISMATCH', `Credential ${phase} metadata does not match the transmitted snapshot`, {
+      missingFields: differences.missing,
+      mismatchedFields: differences.mismatches
+    });
   }
   return true;
+}
+
+function createInitialReadyAuthorityReceipt(readyMetadata, initialMetadata) {
+  return Object.freeze({
+    accepted: true,
+    mode: 'INITIAL_FD5_EXACT',
+    vaultEpoch: readyMetadata.vaultEpoch,
+    initialGeneration: initialMetadata.generation,
+    readyGeneration: readyMetadata.generation,
+    authorityEventId: readyMetadata.authorityEventId,
+    authorityHeadDigest: readyMetadata.authorityHeadDigest,
+    referenceCount: readyMetadata.vaultReferenceCount,
+    payloadBytes: readyMetadata.payloadBytes,
+    committedAdvanceCount: 0,
+    ownerSessionMatched: true,
+    journalHeadMatched: true
+  });
+}
+
+function assertReadyCredentialAuthorityReceipt(receipt, readyMetadata, initialMetadata) {
+  if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt) || !Object.isFrozen(receipt)) {
+    throw startupFailure('DESKTOP_CREDENTIAL_READY_AUTHORITY_RECEIPT_INVALID', 'Credential READY authority validator must return a frozen receipt');
+  }
+  const keys = Object.keys(receipt).sort();
+  const expectedKeys = [...READY_AUTHORITY_RECEIPT_FIELDS].sort();
+  if (keys.length !== expectedKeys.length || keys.some((key, index) => key !== expectedKeys[index])) {
+    throw startupFailure('DESKTOP_CREDENTIAL_READY_AUTHORITY_RECEIPT_INVALID', 'Credential READY authority receipt has an unexpected shape', { receiptFields: keys });
+  }
+  const mode = String(receipt.mode || '');
+  const generationAdvance = Number(readyMetadata.generation) - Number(initialMetadata.generation);
+  const exact = mode === 'INITIAL_FD5_EXACT';
+  const advanced = mode === 'SAME_OWNER_PRE_READY_FD6_COMMITTED_ADVANCE';
+  const valid = receipt.accepted === true
+    && (exact || advanced)
+    && receipt.vaultEpoch === readyMetadata.vaultEpoch
+    && Number(receipt.initialGeneration) === Number(initialMetadata.generation)
+    && Number(receipt.readyGeneration) === Number(readyMetadata.generation)
+    && receipt.authorityEventId === readyMetadata.authorityEventId
+    && receipt.authorityHeadDigest === readyMetadata.authorityHeadDigest
+    && Number(receipt.referenceCount) === Number(readyMetadata.vaultReferenceCount)
+    && Number(receipt.payloadBytes) === Number(readyMetadata.payloadBytes)
+    && receipt.ownerSessionMatched === true
+    && receipt.journalHeadMatched === true
+    && ((exact && generationAdvance === 0 && Number(receipt.committedAdvanceCount) === 0)
+      || (advanced && generationAdvance > 0 && Number(receipt.committedAdvanceCount) === generationAdvance));
+  if (!valid) {
+    throw startupFailure('DESKTOP_CREDENTIAL_READY_AUTHORITY_RECEIPT_INVALID', 'Credential READY authority receipt does not bind current metadata to the initial FD5 boundary');
+  }
+  return receipt;
 }
 
 class BackendProcessHost {
@@ -856,6 +923,7 @@ class BackendProcessHost {
       let prepared;
       if (typeof options.createCredentialSnapshot === 'function') {
         prepared = await options.createCredentialSnapshot({
+          startupAttemptId,
           startupNonce,
           oneTimeToken: credentialOneTimeToken,
           backendPid: child.pid,
@@ -964,6 +1032,7 @@ class BackendProcessHost {
 
       let hydration = null;
       let readiness = null;
+      let readyCredentialAuthorityReceipt = null;
       if (requireHandshake) {
         [hydration, readiness] = await handshakePromise;
         const expectedCredentialMetadata = {
@@ -972,6 +1041,7 @@ class BackendProcessHost {
           vaultEpoch: credentialFrame.vaultEpoch,
           generation: credentialFrame.generation,
           authorityEventId: credentialFrame.authorityEventId,
+          authorityHeadDigest: credentialFrame.authorityHeadDigest,
           vaultReferenceCount: credentialFrame.vaultReferenceCount,
           decryptedEntryCount: credentialFrame.decryptedEntryCount,
           frameEntryCount: credentialFrame.frameEntryCount,
@@ -989,7 +1059,31 @@ class BackendProcessHost {
         if (actualReadyProtocolVersion !== READY_PROTOCOL_VERSION) throw startupFailure('M1_READY_PROTOCOL_VERSION_MISMATCH', 'Backend ready protocol version does not match M1 contract', { expected: READY_PROTOCOL_VERSION, actual: actualReadyProtocolVersion });
         if (String(actualReadyStartupAttemptId || '') !== startupAttemptId) throw startupFailure('M1_READY_STARTUP_ATTEMPT_MISMATCH', 'Backend ready startupAttemptId does not match active attempt', { expected: startupAttemptId, actual: actualReadyStartupAttemptId || '' });
         if (String(actualReadyBackendSessionId || '') !== backendSessionId) throw startupFailure('M1_READY_BACKEND_SESSION_MISMATCH', 'Backend ready backendSessionId does not match active attempt', { expected: backendSessionId, actual: actualReadyBackendSessionId || '' });
-        assertCredentialHandshakeBinding({ pid: readiness.pid, startupNonce: readiness.startupNonce, ...(readiness.credentialMetadata || {}) }, expectedCredentialMetadata, 'ready acknowledgement');
+        const readyCredentialMetadata = Object.freeze({ pid: readiness.pid, startupNonce: readiness.startupNonce, ...(readiness.credentialMetadata || {}) });
+        const readyDifferences = credentialHandshakeDifferences(readyCredentialMetadata, expectedCredentialMetadata);
+        if (readyDifferences.exact) {
+          readyCredentialAuthorityReceipt = assertReadyCredentialAuthorityReceipt(
+            createInitialReadyAuthorityReceipt(readyCredentialMetadata, expectedCredentialMetadata),
+            readyCredentialMetadata,
+            expectedCredentialMetadata
+          );
+        } else {
+          const validateReadyAuthority = options.credentialVaultHost?.validateReadyCredentialAuthority;
+          if (typeof validateReadyAuthority !== 'function') {
+            throw startupFailure('DESKTOP_CREDENTIAL_READY_AUTHORITY_VALIDATOR_REQUIRED', 'Credential READY metadata advanced beyond FD5 but CredentialVaultHost did not provide the required validator', {
+              missingFields: readyDifferences.missing,
+              mismatchedFields: readyDifferences.mismatches
+            });
+          }
+          const receipt = validateReadyAuthority.call(options.credentialVaultHost, {
+            startupAttemptId,
+            initialFrame: credentialFrame,
+            hydrationAcknowledgement: hydration,
+            readyMetadata: readyCredentialMetadata,
+            ownerSession: ownerContext
+          });
+          readyCredentialAuthorityReceipt = assertReadyCredentialAuthorityReceipt(receipt, readyCredentialMetadata, expectedCredentialMetadata);
+        }
         if (options.readyHealthCheckPath || options.readyHealthCheck === true) {
           const readyHealth = await probeBackendHttpReady({
             port: readiness.port,
@@ -1063,7 +1157,8 @@ class BackendProcessHost {
         credentialDecryptedEntryCount: credentialFrame.decryptedEntryCount,
         credentialFrameEntryCount: credentialFrame.frameEntryCount,
         ownerContext,
-        readyCredentialMetadata: readiness?.credentialMetadata ? Object.freeze({ ...readiness.credentialMetadata }) : null
+        readyCredentialMetadata: readiness?.credentialMetadata ? Object.freeze({ ...readiness.credentialMetadata }) : null,
+        readyCredentialAuthorityReceipt
       });
       this._assertStartStillValid(child, attempt, 'after-session-create');
       this.ownerRegistry.update({ state: 'RUNNING', ownershipActive: true, trusted: false, ownerSession: ownerContext, reasonCode: 'BACKEND_READY_AWAITING_APPLICATION_VALIDATION' });
@@ -1502,6 +1597,7 @@ class BackendProcessHost {
       runtimeContract: this.session?.runtimeContract || null,
       fd6PipeInstanceId: this.session?.fd6PipeInstanceId || null,
       readyCredentialMetadata: this.session?.readyCredentialMetadata || null,
+      readyCredentialAuthorityReceipt: this.session?.readyCredentialAuthorityReceipt || null,
       ownerContext: this.session?.ownerContext || null,
       lastOwnerExitRecovery: this.lastOwnerExitRecovery,
       credentialCustody: this.credentialCustodyHost?.snapshot?.() || null,
