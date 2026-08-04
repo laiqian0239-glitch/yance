@@ -21,6 +21,27 @@ const inventoryPath = path.join(
   'architecture-closure-v2',
   'wp-b-operation-inventory.json'
 );
+const PRODUCTION_ROOTS = Object.freeze([
+  'backend',
+  'electron',
+  'services',
+  'shared/release'
+]);
+const EXCLUDED_PREFIXES = Object.freeze([
+  'backend/tests/',
+  'services/facebook-gateway/tests/',
+  'services/facebook-worker/tests/'
+]);
+const LEGACY_FACADES = Object.freeze([
+  'backend/services/asyncOperationLifecycleAuthority.js',
+  'backend/services/backgroundJobAuthority.js',
+  'backend/services/jobQueue.js'
+]);
+const CORE_TO_FACADE = Object.freeze({
+  'backend/services/asyncOperationLifecycleAuthorityCore.js': 'backend/services/asyncOperationLifecycleAuthority.js',
+  'backend/services/backgroundJobAuthorityCore.js': 'backend/services/backgroundJobAuthority.js',
+  'backend/services/jobQueueCore.js': 'backend/services/jobQueue.js'
+});
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -28,6 +49,56 @@ function readJson(filePath) {
 
 function report() {
   return scanRegisteredSources({ wp: 'B' });
+}
+
+function normalize(relativePath) {
+  return String(relativePath || '').replace(/\\/gu, '/').replace(/^\.\//u, '');
+}
+
+function walkJavaScript(relativeRoot) {
+  const output = [];
+  const pending = [path.join(repoRoot, relativeRoot)];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (!fs.existsSync(current)) continue;
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const absolute = path.join(current, entry.name);
+      const relative = normalize(path.relative(repoRoot, absolute));
+      if (EXCLUDED_PREFIXES.some(prefix => relative.startsWith(prefix))) continue;
+      if (entry.isDirectory()) pending.push(absolute);
+      else if (entry.isFile() && /\.(?:c?js|mjs)$/u.test(entry.name)) output.push(relative);
+    }
+  }
+  return output.sort();
+}
+
+function resolveLocalModule(importerPath, request) {
+  if (!String(request || '').startsWith('.')) return '';
+  const importerDirectory = path.dirname(path.join(repoRoot, importerPath));
+  const candidate = path.resolve(importerDirectory, request);
+  for (const absolute of [candidate, `${candidate}.js`, path.join(candidate, 'index.js')]) {
+    if (fs.existsSync(absolute) && fs.statSync(absolute).isFile()) {
+      return normalize(path.relative(repoRoot, absolute));
+    }
+  }
+  return '';
+}
+
+function productionImportGraph() {
+  const graph = new Map();
+  const files = PRODUCTION_ROOTS.flatMap(walkJavaScript);
+  const requirePattern = /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/gu;
+  for (const importer of files) {
+    const source = fs.readFileSync(path.join(repoRoot, importer), 'utf8');
+    for (const match of source.matchAll(requirePattern)) {
+      const target = resolveLocalModule(importer, match[1]);
+      if (!target) continue;
+      if (!graph.has(target)) graph.set(target, []);
+      graph.get(target).push(importer);
+    }
+  }
+  for (const importers of graph.values()) importers.sort();
+  return graph;
 }
 
 test('M3-SC-DIAG-001 report declares the stable WP-B diagnostic schema', () => {
@@ -79,5 +150,45 @@ test('M3-SC-DIAG-004 each violation contains exact path, capability, reason and 
     assert.match(violation.capabilityClass, /^[A-Z][A-Z0-9_]+$/u, `M3-SC-DIAG-004:${index}:capabilityClass`);
     assert.match(violation.reasonCode, /^WP_B_SOURCE_CLOSURE_[A-Z0-9_]+$/u, `M3-SC-DIAG-004:${index}:reasonCode`);
     assert.equal(typeof violation.callable, 'boolean', `M3-SC-DIAG-004:${index}:callable`);
+  }
+});
+
+test('M3-SC-DIAG-005 legacy lifecycle and job facades have zero production importers', () => {
+  const graph = productionImportGraph();
+  for (const facade of LEGACY_FACADES) {
+    assert.deepEqual(graph.get(facade) || [], [], `M3-SC-DIAG-005:${facade}`);
+  }
+});
+
+test('M3-SC-DIAG-006 legacy Core modules are reachable only from their exact transitional facade', () => {
+  const graph = productionImportGraph();
+  for (const [corePath, facadePath] of Object.entries(CORE_TO_FACADE)) {
+    assert.deepEqual(graph.get(corePath) || [], [facadePath], `M3-SC-DIAG-006:${corePath}`);
+  }
+});
+
+test('M3-SC-DIAG-007 transitional facades do not re-export legacy Core writer surfaces', () => {
+  for (const facade of LEGACY_FACADES) {
+    const source = fs.readFileSync(path.join(repoRoot, facade), 'utf8');
+    assert.equal(source.includes('...core'), false, `M3-SC-DIAG-007:${facade}:CORE_SPREAD_FORBIDDEN`);
+    const exported = require(path.join(repoRoot, facade));
+    for (const field of [
+      'authority',
+      'AsyncOperationLifecycleAuthority',
+      'BackgroundJobAuthority',
+      'JobQueue',
+      'create',
+      'enqueue',
+      'begin',
+      'start',
+      'progress',
+      'settle',
+      'succeed',
+      'fail',
+      'cancel',
+      'retry'
+    ]) {
+      assert.equal(Object.hasOwn(exported, field), false, `M3-SC-DIAG-007:${facade}:${field}`);
+    }
   }
 });
