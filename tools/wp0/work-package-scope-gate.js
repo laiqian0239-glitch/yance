@@ -19,7 +19,11 @@ const {
   filterOpenSourceImplementationChangedFiles,
   isAuthorizedOpenSourceImplementationBranch,
   loadOpenSourceWorkPackageAuthorization,
-  loadOpenSourceWorkPackageAuthorizationReceipt
+  loadOpenSourceWorkPackageAuthorizationReceipt,
+  loadOpenSourceWorkPackageRegistry,
+  resolveOpenSourceAuthorizationForBranch,
+  selectOpenSourceWorkPackageRegistryEntry,
+  validateOpenSourceWorkPackageRegistry
 } = require('../../shared/release/openSourceWorkPackagePolicy');
 
 function scopeResult(values) {
@@ -205,10 +209,20 @@ function verifyOpenSourceAuthorizationAnchor(git, authorization, receipt) {
   }
 }
 
-function implementationFilesSinceAuthorization(git, receipt, effectiveBranch) {
-  const changed = readChangedFiles(git, receipt.authorizationCommit, effectiveBranch, 'OSS');
+function openSourceImplementationBase(authorization, receipt) {
+  const explicit = String(receipt?.implementationBaseCommit || '');
+  if (/^[0-9a-f]{40}$/u.test(explicit)) return explicit;
+  if (authorization?.workPackage === 'OSS-0'
+    && /^[0-9a-f]{40}$/u.test(String(receipt?.authorizationCommit || ''))) {
+    return receipt.authorizationCommit;
+  }
+  return '';
+}
+
+function implementationFilesSinceBase(git, baseHead, effectiveBranch, registry) {
+  const changed = readChangedFiles(git, baseHead, effectiveBranch, 'OSS');
   return Array.isArray(changed)
-    ? filterOpenSourceImplementationChangedFiles(changed)
+    ? filterOpenSourceImplementationChangedFiles(changed, { registry })
     : changed;
 }
 
@@ -216,6 +230,9 @@ function evaluateOpenSourceWorkPackageScope(options) {
   const {
     authorization,
     receipt,
+    entry,
+    registry,
+    authorizationFileSha256,
     detachedEvidence,
     evidenceSourceCommit,
     git
@@ -229,7 +246,13 @@ function evaluateOpenSourceWorkPackageScope(options) {
   if (typeof git !== 'function') {
     return fail('OSS_WORK_PACKAGE_SCOPE_GIT_REQUIRED', { effectiveBranch, ...details });
   }
-  if (!isAuthorizedOpenSourceImplementationBranch(effectiveBranch, { authorization, receipt })) {
+  if (!isAuthorizedOpenSourceImplementationBranch(effectiveBranch, {
+    authorization,
+    receipt,
+    entry,
+    registry,
+    authorizationFileSha256
+  })) {
     return fail('OSS_WORK_PACKAGE_AUTHORIZATION_INVALID', { effectiveBranch, ...details });
   }
   if (detachedEvidence) {
@@ -241,18 +264,26 @@ function evaluateOpenSourceWorkPackageScope(options) {
   const anchorFailure = verifyOpenSourceAuthorizationAnchor(git, authorization, receipt);
   if (anchorFailure) return anchorFailure;
 
-  const changedFiles = implementationFilesSinceAuthorization(git, receipt, effectiveBranch);
+  const baseHead = openSourceImplementationBase(authorization, receipt);
+  if (!baseHead) return fail('OSS_WORK_PACKAGE_AUTHORIZATION_INVALID', { effectiveBranch, ...details });
+  const unavailable = requireAncestor(git, baseHead, effectiveBranch, details, 'OSS');
+  if (unavailable) return unavailable;
+
+  const changedFiles = implementationFilesSinceBase(git, baseHead, effectiveBranch, registry);
   if (!Array.isArray(changedFiles)) return changedFiles;
 
   const evaluation = evaluateAuthorizedOpenSourceWorkPackageScope({
     branch: effectiveBranch,
     changedFiles,
     authorization,
-    receipt
+    receipt,
+    entry,
+    registry,
+    authorizationFileSha256
   });
   return scopeResult({
     ...evaluation,
-    parentGovernanceHead: receipt.authorizationCommit,
+    parentGovernanceHead: baseHead,
     effectiveBranch,
     changedFileCount: changedFiles.length,
     taskScopeChainApplied: false,
@@ -263,6 +294,52 @@ function evaluateOpenSourceWorkPackageScope(options) {
     workPackage: authorization.workPackage,
     readyForPromotion: false
   });
+}
+
+function openSourceRecordForBranch(branch, options, registry) {
+  const explicitAuthorization = Object.prototype.hasOwnProperty.call(options, 'openSourceAuthorization');
+  const explicitReceipt = Object.prototype.hasOwnProperty.call(options, 'openSourceReceipt');
+  const entry = options.openSourceRegistryEntry
+    || selectOpenSourceWorkPackageRegistryEntry(registry, branch)
+    || (explicitAuthorization
+      ? selectOpenSourceWorkPackageRegistryEntry(registry, options.openSourceAuthorization?.authorizedBranch)
+      : null);
+
+  if (explicitAuthorization || explicitReceipt) {
+    return {
+      registry,
+      entry,
+      authorization: options.openSourceAuthorization,
+      receipt: options.openSourceReceipt
+    };
+  }
+  return resolveOpenSourceAuthorizationForBranch(branch, {
+    registry,
+    authorizationByPath: options.openSourceAuthorizationByPath,
+    receiptByPath: options.openSourceReceiptByPath
+  });
+}
+
+function detachedOpenSourceRecord(git, evidenceSourceCommit, options, registry) {
+  if (!validateOpenSourceWorkPackageRegistry(registry)) return null;
+  const matches = registry.entries.filter(entry => detachedEvidenceBelongsToBranch(
+    git,
+    entry.authorizedBranch,
+    evidenceSourceCommit
+  ));
+  if (matches.length !== 1) return matches.length > 1 ? { ambiguous: true } : null;
+  return openSourceRecordForBranch(matches[0].authorizedBranch, {
+    ...options,
+    openSourceRegistryEntry: matches[0]
+  }, registry);
+}
+
+function authorizationFileShaForEntry(options, entry) {
+  if (!entry) return undefined;
+  if (options.openSourceAuthorizationFileSha256ByPath) {
+    return options.openSourceAuthorizationFileSha256ByPath[entry.authorizationPath];
+  }
+  return options.openSourceAuthorizationFileSha256;
 }
 
 function evaluateWorkPackageScopeForGate(options = {}) {
@@ -278,30 +355,59 @@ function evaluateWorkPackageScopeForGate(options = {}) {
   const defect = defectWasProvided
     ? options.postMergeDefect
     : loadWorkPackagePostMergeDefect();
-  const openSourceAuthorization = openSourceAuthorizationWasProvided
-    ? options.openSourceAuthorization
-    : loadOpenSourceWorkPackageAuthorization();
-  const openSourceReceipt = openSourceReceiptWasProvided
-    ? options.openSourceReceipt
-    : loadOpenSourceWorkPackageAuthorizationReceipt();
+  const openSourceRegistry = Object.prototype.hasOwnProperty.call(options, 'openSourceRegistry')
+    ? options.openSourceRegistry
+    : loadOpenSourceWorkPackageRegistry();
   const detachedEvidence = !branch
     && options.evidenceMode === true
     && typeof options.evidenceSourceCommit === 'string'
     && /^[0-9a-f]{40}$/u.test(options.evidenceSourceCommit);
 
+  let openSourceRecord = branch
+    ? openSourceRecordForBranch(branch, options, openSourceRegistry)
+    : null;
+  if (detachedEvidence) {
+    if (openSourceAuthorizationWasProvided || openSourceReceiptWasProvided) {
+      const explicitBranch = String(options.openSourceAuthorization?.authorizedBranch || '');
+      openSourceRecord = openSourceRecordForBranch(explicitBranch, options, openSourceRegistry);
+    } else {
+      openSourceRecord = detachedOpenSourceRecord(git, options.evidenceSourceCommit, options, openSourceRegistry);
+    }
+  }
+  if (openSourceRecord?.ambiguous) {
+    return fail('OSS_WORK_PACKAGE_AUTHORIZATION_AMBIGUOUS', {
+      effectiveBranch: branch,
+      openSourceWorkPackageScopeApplied: true
+    });
+  }
+
+  const openSourceAuthorization = openSourceRecord?.authorization
+    || (openSourceAuthorizationWasProvided ? options.openSourceAuthorization : null);
+  const openSourceReceipt = openSourceRecord?.receipt
+    || (openSourceReceiptWasProvided ? options.openSourceReceipt : null);
+  const openSourceEntry = openSourceRecord?.entry || null;
   const openSourceBranch = String(openSourceAuthorization?.authorizedBranch || '');
-  const openSourceApplies = isAuthorizedOpenSourceImplementationBranch(openSourceBranch, {
-    authorization: openSourceAuthorization,
-    receipt: openSourceReceipt
-  }) && (
-    branch === openSourceBranch
-    || (detachedEvidence && detachedEvidenceBelongsToBranch(git, openSourceBranch, options.evidenceSourceCommit))
-    || (detachedEvidence && openSourceAuthorizationWasProvided && openSourceReceiptWasProvided)
-  );
+  const openSourceAuthorizationFileSha256 = authorizationFileShaForEntry(options, openSourceEntry);
+  const openSourceApplies = Boolean(openSourceEntry)
+    && isAuthorizedOpenSourceImplementationBranch(openSourceBranch, {
+      authorization: openSourceAuthorization,
+      receipt: openSourceReceipt,
+      entry: openSourceEntry,
+      registry: openSourceRegistry,
+      authorizationFileSha256: openSourceAuthorizationFileSha256
+    })
+    && (
+      branch === openSourceBranch
+      || (detachedEvidence && detachedEvidenceBelongsToBranch(git, openSourceBranch, options.evidenceSourceCommit))
+      || (detachedEvidence && openSourceAuthorizationWasProvided && openSourceReceiptWasProvided)
+    );
   if (openSourceApplies) {
     return evaluateOpenSourceWorkPackageScope({
       authorization: openSourceAuthorization,
       receipt: openSourceReceipt,
+      entry: openSourceEntry,
+      registry: openSourceRegistry,
+      authorizationFileSha256: openSourceAuthorizationFileSha256,
       detachedEvidence,
       evidenceSourceCommit: options.evidenceSourceCommit,
       git
