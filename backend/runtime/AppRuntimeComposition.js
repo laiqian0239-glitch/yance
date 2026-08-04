@@ -59,6 +59,22 @@ const {
   createDurableOperationRegistry,
   OPERATION_KINDS
 } = require('../services/durableOperationRegistry');
+const { deepFreeze } = require('../lib/deepFreeze');
+const {
+  createAiProviderExecutionOperation
+} = require('../services/durableOperations/aiProviderExecutionOperation');
+const {
+  createOutboundMessageSendOperation
+} = require('../services/durableOperations/outboundMessageSendOperation');
+const {
+  createDeliveryReceiptReconciliationOperation
+} = require('../services/durableOperations/deliveryReceiptReconciliationOperation');
+const {
+  createMediaTransferOperation
+} = require('../services/durableOperations/mediaTransferOperation');
+const {
+  createHistorySynchronizationOperation
+} = require('../services/durableOperations/historySynchronizationOperation');
 const {
   createSessionRestoreOperation
 } = require('../services/durableOperations/sessionRestoreOperation');
@@ -357,25 +373,285 @@ class RuntimeAuthorityCommandGateway {
 
 Object.freeze(RuntimeAuthorityCommandGateway.prototype);
 
-function createSessionRestoreOperationRegistry({ securityGuard, facadeRegistry = platformAdapterPorts.singleton } = {}) {
+function frozenCapabilityCopy(value, code, message) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw gatewayError(code, message, 409);
+  }
+  let copy;
+  try {
+    copy = typeof structuredClone === 'function'
+      ? structuredClone(value)
+      : JSON.parse(JSON.stringify(value));
+  } catch (cause) {
+    throw gatewayError(code, message, 409, { cause: cause?.message || String(cause) });
+  }
+  return deepFreeze(copy);
+}
+
+function resolveCredentialCapability(securityGuard, reference, code) {
   if (!securityGuard?.credentials || typeof securityGuard.credentials.get !== 'function') {
     throw gatewayError(
-      'SESSION_RESTORE_CUSTODY_AUTHORITY_REQUIRED',
-      'Session restore registry requires the runtime security custody authority',
+      'WP_B_RUNTIME_CREDENTIAL_CUSTODY_REQUIRED',
+      'Durable operation runtime requires the SecurityGuard credential custody authority',
       503
     );
   }
-  const resolveSessionCapability = reference => {
-    const capability = securityGuard.credentials.get(String(reference || '').trim());
-    if (!capability || typeof capability !== 'object' || Array.isArray(capability)) {
-      throw gatewayError(
-        'SESSION_RESTORE_CAPABILITY_NOT_FOUND',
-        'Session restore credential reference could not be resolved',
-        409
-      );
+  const normalized = String(reference || '').trim();
+  const capability = securityGuard.credentials.get(normalized);
+  return frozenCapabilityCopy(
+    capability,
+    code,
+    'Durable operation credential reference could not be resolved'
+  );
+}
+
+function queueCommandCapability(reference) {
+  const queueRepository = require('../repositories/sendQueueRepository');
+  const normalized = String(reference || '').trim();
+  const row = queueRepository.get(normalized);
+  let payload = row?.payload || null;
+  if (!payload && row?.payload_json) {
+    try { payload = JSON.parse(row.payload_json); } catch (_) { payload = null; }
+  }
+  const command = payload?.outboxCommand || row?.outboxCommand || null;
+  return frozenCapabilityCopy(
+    command,
+    'WP_B_OUTBOUND_COMMAND_REFERENCE_NOT_FOUND',
+    'Outbound command reference could not be resolved from the authoritative send queue'
+  );
+}
+
+function promptCapability(reference) {
+  const normalized = String(reference || '').trim();
+  const snapshot = messageStore.read();
+  const messages = snapshot?.messages && typeof snapshot.messages === 'object'
+    ? snapshot.messages
+    : {};
+  const row = messages[normalized]
+    || Object.values(messages).find(candidate => [
+      candidate?.id,
+      candidate?.dedupeKey,
+      candidate?.externalMessageId
+    ].some(value => String(value || '').trim() === normalized));
+  const content = String(
+    row?.text
+    || row?.content
+    || row?.translatedZh
+    || row?.translationZh
+    || ''
+  ).trim();
+  if (!content) {
+    throw gatewayError(
+      'WP_B_AI_PROMPT_REFERENCE_NOT_FOUND',
+      'AI prompt reference could not be resolved from the authoritative message store',
+      409,
+      { promptReference: normalized }
+    );
+  }
+  return content;
+}
+
+function reconciliationOutcome(value = {}) {
+  const explicit = String(value.outcome || '').trim();
+  if (['REMOTE_SUCCESS_PROVEN', 'REMOTE_ABSENCE_PROVEN', 'REMOTE_RESULT_UNKNOWN'].includes(explicit)) {
+    return explicit;
+  }
+  if (value.accepted === true || value.completed === true || value.success === true) {
+    return 'REMOTE_SUCCESS_PROVEN';
+  }
+  if (value.absent === true || value.notFound === true) return 'REMOTE_ABSENCE_PROVEN';
+  return 'REMOTE_RESULT_UNKNOWN';
+}
+
+function createAiProviderClient() {
+  return Object.freeze({
+    async perform(input) {
+      const prompt = promptCapability(input.promptReference);
+      const result = await aiGateway.execute({
+        task: 'reply',
+        modelId: input.modelReference,
+        messages: [{ role: 'user', content: prompt }],
+        options: {
+          correlationId: input.executionId,
+          persistedAttemptId: input.attemptId
+        },
+        context: {
+          scopeKey: input.executionId,
+          generation: String(input.generation)
+        }
+      });
+      return Object.freeze({
+        accepted: true,
+        providerRequestId: String(result?.providerRequestId || result?.requestId || '').trim(),
+        providerReceiptId: String(result?.providerReceiptId || '').trim(),
+        evidenceReference: 'model-execution:' + input.executionId
+      });
+    },
+    async lookup(input) {
+      return Object.freeze({
+        outcome: 'REMOTE_RESULT_UNKNOWN',
+        providerRequestId: String(input.providerRequestId || '').trim(),
+        evidenceReference: 'model-execution-reconciliation:' + input.executionId
+      });
     }
-    return Object.freeze({ ...capability });
+  });
+}
+
+function createMultiplexChannelClient() {
+  return Object.freeze({
+    perform(input) {
+      const runtime = require('../services/channelAdapterRuntime');
+      return runtime.physicalClient(input.platform).perform(input);
+    },
+    lookup(input) {
+      const runtime = require('../services/channelAdapterRuntime');
+      return runtime.physicalClient(input.platform).lookup(input);
+    }
+  });
+}
+
+function deliveryPhysicalEnvelope(input) {
+  return Object.freeze({
+    ...input,
+    command: Object.freeze({ lookupOnly: true }),
+    credential: input.credential
+  });
+}
+
+function createDeliveryClient() {
+  const channels = createMultiplexChannelClient();
+  const query = async input => {
+    const result = await channels.lookup(deliveryPhysicalEnvelope(input));
+    return Object.freeze({
+      deliveryStatus: String(result?.deliveryStatus || result?.status || 'UNKNOWN').trim(),
+      platformMessageId: String(result?.platformMessageId || input.platformMessageId || '').trim(),
+      providerRequestId: String(result?.providerRequestId || input.providerRequestId || '').trim(),
+      evidenceReference: String(result?.evidenceReference || ('delivery:' + input.attemptId)).trim(),
+      failureCode: String(result?.failureCode || '').trim(),
+      outcome: reconciliationOutcome(result)
+    });
   };
+  return Object.freeze({
+    query,
+    lookup: query
+  });
+}
+
+function platformReconciliationPort(platform) {
+  return platformAdapterPorts.singleton.get(String(platform || '').trim().toLowerCase()).reconcile;
+}
+
+function createHistoryClient() {
+  return Object.freeze({
+    async fetchPage(input) {
+      const result = await platformReconciliationPort(input.platform).execute(Object.freeze({
+        ...input,
+        operation: 'sync',
+        accountId: input.accountReference
+      }));
+      return Object.freeze({
+        status: String(result?.status || 'completed').trim(),
+        segmentReference: String(result?.segmentReference || '').trim(),
+        nextCursorReference: String(result?.nextCursorReference || result?.cursorReference || '').trim(),
+        remoteHighWatermark: String(result?.remoteHighWatermark || '').trim(),
+        gapClosed: result?.gapClosed === true,
+        providerRequestId: String(result?.providerRequestId || '').trim(),
+        evidenceReference: String(result?.evidenceReference || ('history:' + input.attemptId)).trim(),
+        failureCode: String(result?.failureCode || '').trim(),
+        uncertain: result?.uncertain === true
+      });
+    },
+    async compareCursor(input) {
+      return Object.freeze({
+        outcome: 'REMOTE_RESULT_UNKNOWN',
+        remoteCursorReference: '',
+        remoteHighWatermark: '',
+        evidenceReference: 'history-reconciliation:' + input.attemptId,
+        failureCode: ''
+      });
+    }
+  });
+}
+
+function persistedMediaAttempt(input) {
+  return deepFreeze({
+    executionId: input.executionId,
+    intentId: input.intentId,
+    attemptId: input.attemptId,
+    claimId: input.claimId,
+    ownerId: input.ownerId,
+    generation: input.generation,
+    hostGeneration: input.hostGeneration,
+    fencingToken: input.fencingToken,
+    idempotencyKey: input.idempotencyKey,
+    request: {
+      transferKind: input.transferKind,
+      mediaReference: input.mediaReference,
+      sourceScopeReference: input.sourceScopeReference,
+      destinationScopeReference: input.destinationScopeReference,
+      metadataSha256: input.metadataSha256
+    }
+  });
+}
+
+function createMediaClient() {
+  return Object.freeze({
+    async transfer(input) {
+      const platform = String(input.custody?.platform || '').trim().toLowerCase();
+      if (!platform) {
+        throw gatewayError(
+          'WP_B_MEDIA_PLATFORM_CAPABILITY_REQUIRED',
+          'Media transfer custody must identify one registered platform capability',
+          409
+        );
+      }
+      const result = await platformReconciliationPort(platform).execute(Object.freeze({
+        ...input,
+        operation: 'media-transfer'
+      }));
+      return Object.freeze({
+        status: String(result?.status || '').trim(),
+        remoteTransferId: String(result?.remoteTransferId || '').trim(),
+        providerRequestId: String(result?.providerRequestId || '').trim(),
+        outputReference: String(result?.outputReference || '').trim(),
+        evidenceReference: String(result?.evidenceReference || ('media:' + input.attemptId)).trim(),
+        failureCode: String(result?.failureCode || '').trim(),
+        uncertain: result?.uncertain === true
+      });
+    },
+    async transcribe(input) {
+      const transcriptionService = require('../services/transcriptionService');
+      const result = await transcriptionService.executePersistedTranscription({
+        persistedAttempt: persistedMediaAttempt(input),
+        filePath: input.mediaReference
+      });
+      return Object.freeze({
+        status: result?.ok === true ? 'completed' : 'failed',
+        outputReference: 'transcription:' + input.attemptId,
+        evidenceReference: 'transcription:' + input.executionId,
+        failureCode: result?.ok === true ? '' : 'TRANSCRIPTION_FAILED',
+        uncertain: false
+      });
+    },
+    async lookup(input) {
+      return Object.freeze({
+        outcome: 'REMOTE_RESULT_UNKNOWN',
+        remoteTransferId: '',
+        providerRequestId: '',
+        outputReference: '',
+        evidenceReference: 'media-reconciliation:' + input.attemptId,
+        failureCode: ''
+      });
+    }
+  });
+}
+
+function createSessionRestoreAdapter({ securityGuard, facadeRegistry = platformAdapterPorts.singleton } = {}) {
+  const resolveSessionCapability = reference => resolveCredentialCapability(
+    securityGuard,
+    reference,
+    'SESSION_RESTORE_CAPABILITY_NOT_FOUND'
+  );
   const sessionClient = Object.freeze({
     async restore(input) {
       const facade = facadeRegistry.get(input.platform);
@@ -394,10 +670,88 @@ function createSessionRestoreOperationRegistry({ securityGuard, facadeRegistry =
       }));
     }
   });
-  const sessionRestoreOperation = createSessionRestoreOperation({
-    resolveSessionCapability,
-    sessionClient
+  return createSessionRestoreOperation({ resolveSessionCapability, sessionClient });
+}
+
+function createDurableOperationRuntimeRegistry({ adapters } = {}) {
+  if (!adapters || typeof adapters !== 'object' || Array.isArray(adapters)) {
+    throw gatewayError(
+      'WP_B_OPERATION_ADAPTER_SET_REQUIRED',
+      'Durable operation runtime requires one exact Adapter set',
+      503
+    );
+  }
+  const operationKinds = Object.values(OPERATION_KINDS);
+  const keys = Object.keys(adapters);
+  if (JSON.stringify(keys) !== JSON.stringify(operationKinds)) {
+    throw gatewayError(
+      'WP_B_OPERATION_ADAPTER_SET_INVALID',
+      'Durable operation Adapter set must contain the exact six kinds in canonical order',
+      503,
+      { expected: operationKinds, actual: keys }
+    );
+  }
+  const registry = createDurableOperationRegistry();
+  for (const operationKind of operationKinds) registry.register(operationKind, adapters[operationKind]);
+  registry.seal();
+  return Object.freeze({
+    registry,
+    adapters: Object.freeze({ ...adapters })
   });
+}
+
+function createProductionDurableOperationRuntime({
+  securityGuard,
+  facadeRegistry = platformAdapterPorts.singleton
+} = {}) {
+  const resolveCredentialReference = (reference, context = {}) => resolveCredentialCapability(
+    securityGuard,
+    reference,
+    'WP_B_' + String(context.operationKind || 'OPERATION') + '_CREDENTIAL_NOT_FOUND'
+  );
+  const channelClient = createMultiplexChannelClient();
+  const adapters = Object.freeze({
+    [OPERATION_KINDS.AI_PROVIDER_EXECUTION]: createAiProviderExecutionOperation({
+      resolveCredentialReference,
+      providerClient: createAiProviderClient()
+    }),
+    [OPERATION_KINDS.OUTBOUND_MESSAGE_SEND]: createOutboundMessageSendOperation({
+      resolveCommandReference: queueCommandCapability,
+      resolveCredentialReference,
+      channelClient
+    }),
+    [OPERATION_KINDS.DELIVERY_RECEIPT_RECONCILIATION]: createDeliveryReceiptReconciliationOperation({
+      resolveCredentialReference,
+      deliveryClient: createDeliveryClient()
+    }),
+    [OPERATION_KINDS.MEDIA_TRANSFER]: createMediaTransferOperation({
+      resolveCustodyReference(reference) {
+        const credential = securityGuard?.credentials?.get?.(String(reference || '').trim());
+        if (credential && typeof credential === 'object') return frozenCapabilityCopy(
+          credential,
+          'WP_B_MEDIA_CUSTODY_NOT_FOUND',
+          'Media custody reference could not be resolved'
+        );
+        const parts = String(reference || '').trim().split(':');
+        const platform = parts.length > 1 ? String(parts[0] || '').trim().toLowerCase() : '';
+        return Object.freeze({ reference: String(reference || '').trim(), platform });
+      },
+      mediaClient: createMediaClient()
+    }),
+    [OPERATION_KINDS.HISTORY_SYNCHRONIZATION]: createHistorySynchronizationOperation({
+      resolveCredentialReference,
+      historyClient: createHistoryClient()
+    }),
+    [OPERATION_KINDS.SESSION_RESTORE]: createSessionRestoreAdapter({
+      securityGuard,
+      facadeRegistry
+    })
+  });
+  return createDurableOperationRuntimeRegistry({ adapters });
+}
+
+function createSessionRestoreOperationRegistry({ securityGuard, facadeRegistry = platformAdapterPorts.singleton } = {}) {
+  const sessionRestoreOperation = createSessionRestoreAdapter({ securityGuard, facadeRegistry });
   const durableOperationRegistry = createDurableOperationRegistry();
   durableOperationRegistry.register(OPERATION_KINDS.SESSION_RESTORE, sessionRestoreOperation);
   durableOperationRegistry.seal();
@@ -460,7 +814,7 @@ function createAppRuntimeComposition(runtime) {
   );
 
   const securityGuard = getSecurityGuard();
-  const sessionRestoreRuntime = createSessionRestoreOperationRegistry({ securityGuard });
+  const durableOperationRuntime = createProductionDurableOperationRuntime({ securityGuard });
   const requestSessionRestore = input => accountManager.requestSessionRestore(input);
   const accountContext = new AccountContext({ securityGuard, accountManager, accountStore, accountMigration, messageStore, sendQueue, platformMessaging, platformCapabilities, platformDrivers, canonicalIdentity, eventBus });
   const updateManager = new UpdateManager({ securityGuard, lifecycleManager: runtime, updatePreflight, eventBus });
@@ -480,8 +834,9 @@ function createAppRuntimeComposition(runtime) {
     authorities: Object.freeze({ authorityWriteHostCapability, authorityTransactionCoordinator, canonicalEventLedgerAuthority, identityAuthority, durableExecutionRecoveryAuthority, platformCoreRepository, workspaceIdentityCommandFacade, migrationAuthority }),
     authorityCommandGateway,
     commandSubmitter,
-    durableOperationRegistry: sessionRestoreRuntime.durableOperationRegistry,
-    sessionRestoreOperation: sessionRestoreRuntime.sessionRestoreOperation,
+    durableOperationRuntime,
+    durableOperationRegistry: durableOperationRuntime.registry,
+    sessionRestoreOperation: durableOperationRuntime.adapters[OPERATION_KINDS.SESSION_RESTORE],
     requestSessionRestore,
     sessionRestoreStartupReceipt,
     accountContext,
@@ -512,6 +867,8 @@ function createAppRuntimeComposition(runtime) {
 module.exports = {
   RuntimeAuthorityCommandGateway,
   createStartupCommandHandlers,
+  createDurableOperationRuntimeRegistry,
+  createProductionDurableOperationRuntime,
   createSessionRestoreOperationRegistry,
   createAppRuntimeComposition
 };
