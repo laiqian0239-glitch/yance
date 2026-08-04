@@ -4,9 +4,20 @@ const fs = require('node:fs');
 const { evaluateWorkPackageScopeForGate } = require('./work-package-scope-gate');
 const { CURRENT_STAGE, currentBranch, git, verifyWp0Gate } = require('./lib');
 
+function writeAllSync(fd, value) {
+  const bytes = Buffer.from(value, 'utf8');
+  let offset = 0;
+  while (offset < bytes.length) {
+    const written = fs.writeSync(fd, bytes, offset, bytes.length - offset);
+    if (!Number.isInteger(written) || written <= 0) {
+      throw new Error('WP0_PROTECTED_COMMAND_DIAGNOSTIC_WRITE_FAILED');
+    }
+    offset += written;
+  }
+}
+
 function emit(payload, exitCode) {
-  const output = `${JSON.stringify(payload, null, 2)}\n`;
-  fs.writeSync(process.stdout.fd, output, null, 'utf8');
+  writeAllSync(process.stdout.fd, `${JSON.stringify(payload, null, 2)}\n`);
   process.exitCode = exitCode;
   return payload;
 }
