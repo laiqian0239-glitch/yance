@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { BufferJSON } = require('@whiskeysockets/baileys');
 const { PATHS } = require('../config');
 
 function safeKey(value) {
@@ -50,18 +51,50 @@ function resolveStableAccountKey(accountOrKey, options = {}) {
   throw error;
 }
 
+function isKeyPair(value) {
+  return Boolean(value && typeof value === 'object'
+    && (Buffer.isBuffer(value.public) || value.public instanceof Uint8Array)
+    && (Buffer.isBuffer(value.private) || value.private instanceof Uint8Array)
+    && value.public.length > 0
+    && value.private.length > 0);
+}
+
+function hasCriticalSignalState(credentials) {
+  if (!credentials || typeof credentials !== 'object') return false;
+  const signedPreKey = credentials.signedPreKey;
+  return Boolean(
+    (credentials.me?.id || credentials.me?.lid)
+    && credentials.registered === true
+    && Number.isInteger(credentials.registrationId)
+    && credentials.registrationId > 0
+    && isKeyPair(credentials.noiseKey)
+    && isKeyPair(credentials.signedIdentityKey)
+    && signedPreKey
+    && isKeyPair(signedPreKey.keyPair)
+    && (Buffer.isBuffer(signedPreKey.signature) || signedPreKey.signature instanceof Uint8Array)
+    && signedPreKey.signature.length > 0
+    && typeof credentials.advSecretKey === 'string'
+    && credentials.advSecretKey.length > 0
+  );
+}
+
 function readCredentialState(directory) {
   const file = path.join(directory, 'creds.json');
   try {
-    const credentials = JSON.parse(fs.readFileSync(file, 'utf8') || '{}');
+    const credentials = JSON.parse(fs.readFileSync(file, 'utf8') || '{}', BufferJSON.reviver);
     const hasIdentity = Boolean(credentials?.me?.id || credentials?.me?.lid);
+    const importable = hasCriticalSignalState(credentials);
     return {
       directory: path.resolve(directory),
       file,
       exists: true,
-      usable: hasIdentity,
+      usable: importable,
+      importable,
       hasIdentity,
       registered: credentials?.registered === true,
+      reasonCode: importable
+        ? ''
+        : (hasIdentity ? 'WHATSAPP_LEGACY_SIGNAL_STATE_INCOMPLETE' : 'WHATSAPP_LEGACY_IDENTITY_MISSING'),
       credentials
     };
   } catch (error) {
@@ -70,8 +103,12 @@ function readCredentialState(directory) {
       file,
       exists: fs.existsSync(file),
       usable: false,
+      importable: false,
       hasIdentity: false,
       registered: false,
+      reasonCode: error.code === 'ENOENT'
+        ? 'WHATSAPP_LEGACY_CREDS_MISSING'
+        : 'WHATSAPP_LEGACY_CREDS_INVALID',
       credentials: null,
       error: error.code === 'ENOENT' ? '' : error.message
     };
@@ -109,9 +146,9 @@ function copyDirectoryAtomically(source, destination) {
   }
 
   const sourceState = readCredentialState(resolvedSource);
-  if (!sourceState.usable) {
-    const error = new Error('旧 WhatsApp 凭据目录缺少可识别身份');
-    error.code = 'WHATSAPP_LEGACY_CREDENTIALS_UNUSABLE';
+  if (!sourceState.importable) {
+    const error = new Error('旧 WhatsApp 凭据目录缺少完整 Signal 认证状态');
+    error.code = sourceState.reasonCode || 'WHATSAPP_LEGACY_CREDENTIALS_UNUSABLE';
     throw error;
   }
 
@@ -121,7 +158,7 @@ function copyDirectoryAtomically(source, destination) {
   try {
     fs.cpSync(resolvedSource, temporary, { recursive: true, force: false, errorOnExist: true });
     const copiedState = readCredentialState(temporary);
-    if (!copiedState.usable) {
+    if (!copiedState.importable) {
       const error = new Error('复制后的 WhatsApp 凭据校验失败');
       error.code = 'WHATSAPP_COPIED_CREDENTIALS_UNUSABLE';
       throw error;
@@ -129,7 +166,7 @@ function copyDirectoryAtomically(source, destination) {
 
     if (fs.existsSync(resolvedDestination)) {
       const destinationState = readCredentialState(resolvedDestination);
-      if (destinationState.usable) {
+      if (destinationState.importable) {
         fs.rmSync(temporary, { recursive: true, force: true });
         return { copied: false, destination: resolvedDestination, backup: '', source: resolvedSource };
       }
@@ -156,7 +193,7 @@ function resolveAuthLocation(accountOrKey, options = {}) {
   const legacy = readCredentialState(legacyDirectory);
   let migration = { performed: false, copied: false, source: '', destination: currentDirectory, backup: '' };
 
-  if (!current.usable && legacy.usable && options.migrate !== false) {
+  if (!current.importable && legacy.importable && options.migrate !== false) {
     const copied = copyDirectoryAtomically(legacyDirectory, currentDirectory);
     migration = {
       performed: true,
@@ -174,10 +211,11 @@ function resolveAuthLocation(accountOrKey, options = {}) {
     current,
     legacy,
     migration,
-    usable: current.usable || legacy.usable,
-    registered: current.usable ? current.registered : legacy.registered,
+    usable: current.importable || legacy.importable,
+    importable: current.importable || legacy.importable,
+    registered: current.importable ? current.registered : legacy.registered,
     fileCount: options.includeFileCount === true
-      ? (current.usable ? countFiles(currentDirectory) : (legacy.usable ? countFiles(legacyDirectory) : 0))
+      ? (current.importable ? countFiles(currentDirectory) : (legacy.importable ? countFiles(legacyDirectory) : 0))
       : 0
   };
 }
@@ -187,6 +225,7 @@ module.exports = {
   isNumericKey,
   accountKeyCandidates,
   resolveStableAccountKey,
+  hasCriticalSignalState,
   readCredentialState,
   countFiles,
   copyDirectoryAtomically,
