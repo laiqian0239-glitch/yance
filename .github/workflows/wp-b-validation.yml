@@ -125,6 +125,9 @@ jobs:
           node --check tools/architecture-closure-v2/verify-wp-b-m1-red-evidence.js
           node --check tools/architecture-closure-v2/discover-wp-b-operation-call-sites.js
           node --check tools/architecture-closure-v2/capture-wp-b-red-evidence.js
+          node --check tools/architecture-closure-v2/source-closure-scan.js
+          node --check backend/tests/architectureClosureV2/wpB/sourceClosureFinal.test.js
+          node --check backend/tests/architectureClosureV2/wpB/sourceClosureDiagnostics.test.js
           node --check shared/release/acv2ActiveWorkPackageAuthority.js
           node --check shared/release/implementationBranchPolicy.js
           node --check shared/release/implementationBranchPolicyLegacy.js
@@ -134,6 +137,9 @@ jobs:
 
       - name: Run WP-B governance contracts
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/openSourceAdoptionGate.test.js backend/tests/architectureClosureV2/wpB/operationInventoryDiscovery.test.js backend/tests/architectureClosureV2/wpB/m1RedEvidence.test.js
+
+      - name: Run WP-B source-closure credible RED contracts
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/sourceClosureFinal.test.js backend/tests/architectureClosureV2/wpB/sourceClosureDiagnostics.test.js
 
       - name: Verify immutable Milestone 1 RED evidence
         run: node tools/architecture-closure-v2/verify-wp-b-m1-red-evidence.js
