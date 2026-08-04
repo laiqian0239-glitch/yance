@@ -18,7 +18,7 @@
     {
       "path": "governance/architecture-closure-v2/wp-b-operation-inventory.json",
       "documentType": "YANCE_ACV2_WP_B_OPERATION_INVENTORY",
-      "gitBlobSha": "35586a02d1d1ac0708136974b00598d35c83c3ad"
+      "gitBlobSha": "c564fd0c225ddc24317ac2f10c46aa0ad52db691"
     },
     {
       "path": "governance/architecture-closure-v2/wp-b-open-source-adoption-registry.json",
