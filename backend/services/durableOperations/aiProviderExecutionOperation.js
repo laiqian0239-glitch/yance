@@ -49,6 +49,18 @@ function optionalString(value, field, maximum = 2048) {
   return result;
 }
 
+function requiredPositiveInteger(value, field) {
+  const result = Number(value);
+  if (!Number.isSafeInteger(result) || result < 1) {
+    throw aiProviderOperationError(
+      'WP_B_AI_PROVIDER_INTEGER_INVALID',
+      `${field} must be a safe integer >= 1`,
+      { field }
+    );
+  }
+  return result;
+}
+
 function validateAttemptEnvelope(envelope) {
   assertReferenceOnlyEnvelope(envelope);
   const request = envelope.request;
@@ -62,6 +74,11 @@ function validateAttemptEnvelope(envelope) {
     executionId: requiredString(envelope.executionId, 'executionId'),
     intentId: requiredString(envelope.intentId, 'intentId'),
     attemptId: requiredString(envelope.attemptId, 'attemptId'),
+    claimId: requiredString(envelope.claimId, 'claimId'),
+    ownerId: requiredString(envelope.ownerId, 'ownerId'),
+    generation: requiredPositiveInteger(envelope.generation, 'generation'),
+    hostGeneration: requiredPositiveInteger(envelope.hostGeneration, 'hostGeneration'),
+    fencingToken: requiredPositiveInteger(envelope.fencingToken, 'fencingToken'),
     idempotencyKey: requiredString(envelope.idempotencyKey, 'idempotencyKey'),
     modelReference: requiredString(request.modelReference, 'modelReference'),
     promptReference: requiredString(request.promptReference, 'promptReference'),
@@ -84,6 +101,40 @@ function validateDependencies(options = {}) {
   return Object.freeze({
     providerClient,
     resolveCredentialReference: options.resolveCredentialReference
+  });
+}
+
+function custodyContext(attempt, custody) {
+  return Object.freeze({
+    executionId: attempt.executionId,
+    intentId: attempt.intentId,
+    attemptId: attempt.attemptId,
+    claimId: attempt.claimId,
+    ownerId: attempt.ownerId,
+    generation: attempt.generation,
+    hostGeneration: attempt.hostGeneration,
+    fencingToken: attempt.fencingToken,
+    operationKind: OPERATION_KIND,
+    custody
+  });
+}
+
+function physicalInput(attempt, credential) {
+  return Object.freeze({
+    executionId: attempt.executionId,
+    intentId: attempt.intentId,
+    attemptId: attempt.attemptId,
+    claimId: attempt.claimId,
+    ownerId: attempt.ownerId,
+    generation: attempt.generation,
+    hostGeneration: attempt.hostGeneration,
+    fencingToken: attempt.fencingToken,
+    idempotencyKey: attempt.idempotencyKey,
+    providerRequestId: attempt.providerRequestId,
+    modelReference: attempt.modelReference,
+    promptReference: attempt.promptReference,
+    requestContentSha256: attempt.requestContentSha256,
+    credential
   });
 }
 
@@ -123,13 +174,7 @@ function createAiProviderExecutionOperation(options = {}) {
       const attempt = validateAttemptEnvelope(attemptEnvelope);
       const credential = await dependencies.resolveCredentialReference(
         attempt.credentialReference,
-        Object.freeze({
-          executionId: attempt.executionId,
-          intentId: attempt.intentId,
-          attemptId: attempt.attemptId,
-          operationKind: OPERATION_KIND,
-          custody: 'EPHEMERAL_PHYSICAL_BOUNDARY'
-        })
+        custodyContext(attempt, 'EPHEMERAL_PHYSICAL_BOUNDARY')
       );
       if (!credential || typeof credential !== 'object' || !Object.isFrozen(credential)) {
         throw aiProviderOperationError(
@@ -137,16 +182,9 @@ function createAiProviderExecutionOperation(options = {}) {
           'Credential custody resolver must return one frozen ephemeral capability'
         );
       }
-      const physicalResult = await dependencies.providerClient.perform(Object.freeze({
-        executionId: attempt.executionId,
-        intentId: attempt.intentId,
-        attemptId: attempt.attemptId,
-        idempotencyKey: attempt.idempotencyKey,
-        modelReference: attempt.modelReference,
-        promptReference: attempt.promptReference,
-        requestContentSha256: attempt.requestContentSha256,
-        credential
-      }));
+      const physicalResult = await dependencies.providerClient.perform(
+        physicalInput(attempt, credential)
+      );
       return redactedPhysicalObservation(physicalResult);
     },
 
@@ -154,13 +192,7 @@ function createAiProviderExecutionOperation(options = {}) {
       const attempt = validateAttemptEnvelope(reconciliationEnvelope);
       const credential = await dependencies.resolveCredentialReference(
         attempt.credentialReference,
-        Object.freeze({
-          executionId: attempt.executionId,
-          intentId: attempt.intentId,
-          attemptId: attempt.attemptId,
-          operationKind: OPERATION_KIND,
-          custody: 'EPHEMERAL_RECONCILIATION_BOUNDARY'
-        })
+        custodyContext(attempt, 'EPHEMERAL_RECONCILIATION_BOUNDARY')
       );
       if (!credential || typeof credential !== 'object' || !Object.isFrozen(credential)) {
         throw aiProviderOperationError(
@@ -168,16 +200,9 @@ function createAiProviderExecutionOperation(options = {}) {
           'Credential custody resolver must return one frozen ephemeral capability'
         );
       }
-      const observation = await dependencies.providerClient.lookup(Object.freeze({
-        executionId: attempt.executionId,
-        intentId: attempt.intentId,
-        attemptId: attempt.attemptId,
-        idempotencyKey: attempt.idempotencyKey,
-        providerRequestId: attempt.providerRequestId,
-        modelReference: attempt.modelReference,
-        requestContentSha256: attempt.requestContentSha256,
-        credential
-      }));
+      const observation = await dependencies.providerClient.lookup(
+        physicalInput(attempt, credential)
+      );
       return redactedReconciliationObservation(observation);
     }
   };
@@ -189,6 +214,8 @@ module.exports = Object.freeze({
   OPERATION_KIND,
   aiProviderOperationError,
   createAiProviderExecutionOperation,
+  custodyContext,
+  physicalInput,
   redactedPhysicalObservation,
   redactedReconciliationObservation,
   validateAttemptEnvelope
