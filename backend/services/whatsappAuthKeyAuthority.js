@@ -30,6 +30,23 @@ function stateFor(instance) {
   return state;
 }
 
+function stoppedError() {
+  return authorityError(
+    'WHATSAPP_AUTH_KEY_AUTHORITY_STOPPED',
+    'WhatsApp auth key authority owner has been permanently stopped'
+  );
+}
+
+function assertOperational(state) {
+  if (state.stopped) throw stoppedError();
+  if (state.terminalErrorCode) {
+    throw authorityError(
+      state.terminalErrorCode,
+      'WhatsApp auth key authority is in a terminal failed state'
+    );
+  }
+}
+
 function secureStorageAvailable(securityGuard) {
   if (!securityGuard || securityGuard.available !== true) return false;
   if (typeof securityGuard.snapshot !== 'function') return true;
@@ -38,6 +55,7 @@ function secureStorageAvailable(securityGuard) {
 }
 
 function assertDependencies(state) {
+  assertOperational(state);
   if (!secureStorageAvailable(state.securityGuard)) {
     throw authorityError(
       'WHATSAPP_AUTH_KEY_SECURE_STORAGE_UNAVAILABLE',
@@ -98,9 +116,14 @@ function validateVaultRecord(record) {
 }
 
 function publicSnapshot(state) {
+  let lifecycleState = 'created';
+  if (state.stopped) lifecycleState = 'stopped';
+  else if (state.terminalErrorCode) lifecycleState = 'failed';
+  else if (state.cipher) lifecycleState = 'started';
+  else if (state.prepared) lifecycleState = 'prepared';
   return Object.freeze({
     module: 'WhatsAppAuthKeyAuthority',
-    state: state.cipher ? 'started' : (state.prepared ? 'prepared' : 'created'),
+    state: lifecycleState,
     prepared: state.prepared,
     started: Boolean(state.cipher),
     keyReference: KEY_REFERENCE,
@@ -108,8 +131,26 @@ function publicSnapshot(state) {
     purpose: KEY_PURPOSE,
     keyVersion: state.keyVersion,
     createdAt: state.createdAt,
-    startInFlight: Boolean(state.startPromise)
+    startInFlight: Boolean(state.startPromise),
+    terminalReasonCode: state.terminalErrorCode || ''
   });
+}
+
+function digestKey(key) {
+  return crypto.createHash('sha256').update(key).digest();
+}
+
+function sameCandidate(expected, validated) {
+  if (!expected) return true;
+  const actualDigest = digestKey(validated.key);
+  try {
+    return expected.keyVersion === validated.keyVersion
+      && expected.createdAt === validated.createdAt
+      && expected.keyDigest.length === actualDigest.length
+      && crypto.timingSafeEqual(expected.keyDigest, actualDigest);
+  } finally {
+    actualDigest.fill(0);
+  }
 }
 
 class WhatsAppAuthKeyAuthority {
@@ -120,6 +161,8 @@ class WhatsAppAuthKeyAuthority {
       securityGuard,
       credentials,
       prepared: false,
+      stopped: false,
+      terminalErrorCode: '',
       cipher: null,
       keyVersion: null,
       createdAt: '',
@@ -137,6 +180,7 @@ class WhatsAppAuthKeyAuthority {
 
   async start() {
     const state = stateFor(this);
+    assertOperational(state);
     if (state.cipher) return publicSnapshot(state);
     if (state.startPromise) return state.startPromise;
 
@@ -144,39 +188,55 @@ class WhatsAppAuthKeyAuthority {
       if (!state.prepared) await this.prepare();
       assertDependencies(state);
 
-      let record = state.credentials.get(KEY_REFERENCE, ACTOR_CONTEXT);
-      if (record == null) {
-        const generatedKey = crypto.randomBytes(KEY_BYTES);
-        let keyBase64 = '';
-        try {
-          keyBase64 = generatedKey.toString('base64');
-          const createdAt = new Date().toISOString();
-          const persisted = await state.credentials.persist(
-            KEY_REFERENCE,
-            Object.freeze({
-              algorithm: KEY_ALGORITHM,
-              keyVersion: INITIAL_KEY_VERSION,
-              keyBase64,
-              createdAt,
-              purpose: KEY_PURPOSE
-            }),
-            ACTOR_CONTEXT
-          );
-          if (persisted !== true) {
-            throw authorityError(
-              'WHATSAPP_AUTH_KEY_PERSIST_FAILED',
-              'CredentialVault did not persist the WhatsApp auth key'
-            );
-          }
-        } finally {
-          generatedKey.fill(0);
-          keyBase64 = '';
-        }
-      }
-
-      record = state.credentials.get(KEY_REFERENCE, ACTOR_CONTEXT);
-      const validated = validateVaultRecord(record);
+      let expectedCandidate = null;
+      let validated = null;
       try {
+        let record = state.credentials.get(KEY_REFERENCE, ACTOR_CONTEXT);
+        if (record == null) {
+          const generatedKey = crypto.randomBytes(KEY_BYTES);
+          let keyBase64 = '';
+          try {
+            keyBase64 = generatedKey.toString('base64');
+            const createdAt = new Date().toISOString();
+            expectedCandidate = {
+              keyVersion: INITIAL_KEY_VERSION,
+              createdAt,
+              keyDigest: digestKey(generatedKey)
+            };
+            const persisted = await state.credentials.persist(
+              KEY_REFERENCE,
+              Object.freeze({
+                algorithm: KEY_ALGORITHM,
+                keyVersion: INITIAL_KEY_VERSION,
+                keyBase64,
+                createdAt,
+                purpose: KEY_PURPOSE
+              }),
+              ACTOR_CONTEXT
+            );
+            if (persisted !== true) {
+              throw authorityError(
+                'WHATSAPP_AUTH_KEY_PERSIST_FAILED',
+                'CredentialVault did not persist the WhatsApp auth key'
+              );
+            }
+          } finally {
+            generatedKey.fill(0);
+            keyBase64 = '';
+          }
+        }
+
+        assertOperational(state);
+        record = state.credentials.get(KEY_REFERENCE, ACTOR_CONTEXT);
+        validated = validateVaultRecord(record);
+        if (!sameCandidate(expectedCandidate, validated)) {
+          state.terminalErrorCode = 'WHATSAPP_AUTH_KEY_AUTHORITY_CONFLICT';
+          throw authorityError(
+            'WHATSAPP_AUTH_KEY_AUTHORITY_CONFLICT',
+            'CredentialVault authoritative reread conflicts with the persisted candidate'
+          );
+        }
+        assertOperational(state);
         state.cipher = createWhatsAppAuthCipher({
           key: validated.key,
           keyVersion: validated.keyVersion,
@@ -184,10 +244,11 @@ class WhatsAppAuthKeyAuthority {
         });
         state.keyVersion = validated.keyVersion;
         state.createdAt = validated.createdAt;
+        return publicSnapshot(state);
       } finally {
-        validated.key.fill(0);
+        if (validated?.key) validated.key.fill(0);
+        if (expectedCandidate?.keyDigest) expectedCandidate.keyDigest.fill(0);
       }
-      return publicSnapshot(state);
     })();
 
     state.startPromise = operation;
@@ -210,6 +271,8 @@ class WhatsAppAuthKeyAuthority {
   }
 
   async rotate() {
+    const state = stateFor(this);
+    assertOperational(state);
     throw authorityError(
       'WHATSAPP_AUTH_KEY_ROTATION_REQUIRES_KEYRING',
       'WhatsApp auth key rotation requires a versioned keyring migration'
@@ -218,13 +281,17 @@ class WhatsAppAuthKeyAuthority {
 
   async stop() {
     const state = stateFor(this);
-    if (state.startPromise) {
-      try { await state.startPromise; } catch (_) {}
+    if (state.stopped) return publicSnapshot(state);
+    state.stopped = true;
+    const inFlight = state.startPromise;
+    if (inFlight) {
+      try { await inFlight; } catch (_) {}
     }
     if (state.cipher) state.cipher.close();
     state.cipher = null;
     state.keyVersion = null;
     state.createdAt = '';
+    state.prepared = false;
     return publicSnapshot(state);
   }
 
