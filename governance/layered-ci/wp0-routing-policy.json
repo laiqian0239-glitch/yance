@@ -32,7 +32,8 @@
     "package-lock.json",
     ".gitattributes",
     ".gitignore",
-    "yance_artifact_descriptor.json"
+    "yance_artifact_descriptor.json",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "productPrefixes": [
     ".github/",
@@ -48,7 +49,8 @@
     "shared/",
     "tests/",
     "tools/",
-    "vendor/"
+    "vendor/",
+    "third_party/"
   ],
   "mixedChangesEscalateToProduct": true,
   "unknownPathFailsClosed": true,
