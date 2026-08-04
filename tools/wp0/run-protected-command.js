@@ -1,24 +1,20 @@
 'use strict';
 
-const fs = require('node:fs');
 const { evaluateWorkPackageScopeForGate } = require('./work-package-scope-gate');
 const { CURRENT_STAGE, currentBranch, git, verifyWp0Gate } = require('./lib');
 
-function writeAllSync(fd, value) {
-  const bytes = Buffer.from(value, 'utf8');
-  let offset = 0;
-  while (offset < bytes.length) {
-    const written = fs.writeSync(fd, bytes, offset, bytes.length - offset);
-    if (!Number.isInteger(written) || written <= 0) {
-      throw new Error('WP0_PROTECTED_COMMAND_DIAGNOSTIC_WRITE_FAILED');
-    }
-    offset += written;
-  }
-}
-
 function emit(payload, exitCode) {
-  writeAllSync(process.stdout.fd, `${JSON.stringify(payload, null, 2)}\n`);
+  const output = `${JSON.stringify(payload, null, 2)}\n`;
   process.exitCode = exitCode;
+  process.stdout.write(output, 'utf8', (error) => {
+    if (!error) return;
+    process.stderr.write(`${JSON.stringify({
+      status: 'FAIL',
+      reasonCode: 'WP0_PROTECTED_COMMAND_DIAGNOSTIC_WRITE_FAILED',
+      message: error.message
+    })}\n`);
+    process.exitCode = 5;
+  });
   return payload;
 }
 
