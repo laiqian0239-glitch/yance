@@ -78,3 +78,5 @@ test('M2-REC-006 unknown remote outcomes cannot enter automatic retry', () => {
   assert.match(recovery, /RECONCILE_REQUIRED/u);
   assert.doesNotMatch(recovery, /UNCERTAIN_REMOTE_OUTCOME[^\n]+REQUEUE_SAFE/iu);
 });
+
+require('./durableExecutionRecoveryAuthority.test');
