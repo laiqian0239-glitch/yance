@@ -29,3 +29,4 @@ Yance project license decision: **UNRESOLVED**
   - Retain the Baileys copyright and MIT permission notice in distributed copies or substantial portions.
   - Preserve the upstream disclaimer that Baileys is unofficial and usage remains subject to WhatsApp terms and account risk.
 - Review: `APPROVED` on `2026-08-04`
+
