@@ -38,6 +38,16 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
+function readCombinedInventory() {
+  const baseline = readJson(baselinePath);
+  const base = readJson(inventoryPath);
+  const entries = [...(base.entries || [])];
+  for (const relativePath of baseline.operationInventoryExtensionPaths || []) {
+    entries.push(...(readJson(path.join(repoRoot, relativePath)).entries || []));
+  }
+  return { ...base, entries };
+}
+
 function scan() {
   return scanRegisteredSources({ wp: 'B' });
 }
@@ -52,6 +62,11 @@ test('M3-SC-001 WP-B source-closure baseline is exact and keeps downstream autho
   assert.equal(baseline.authorizationHead, EXPECTED_AUTHORIZATION_HEAD, 'M3-SC-001');
   assert.equal(baseline.parentMilestone2EvidenceHead, EXPECTED_M2_EVIDENCE_HEAD, 'M3-SC-001');
   assert.deepEqual(baseline.discovery.roots, ['backend', 'electron', 'services', 'shared/release'], 'M3-SC-001');
+  assert.deepEqual(
+    baseline.operationInventoryExtensionPaths,
+    ['governance/architecture-closure-v2/wp-b-operation-inventory-m3-extension.json'],
+    'M3-SC-001'
+  );
   assert.equal(baseline.governance.exactPathsOnly, true, 'M3-SC-001');
   assert.equal(baseline.governance.wildcardPathsAllowed, false, 'M3-SC-001');
   for (const field of [
@@ -72,6 +87,12 @@ test('M3-SC-002 scanner selects the dedicated durable-operation WP-B mode', () =
   assert.equal(report.mode, 'DURABLE_OPERATION_SOURCE_CLOSURE', 'M3-SC-002');
   assert.equal(report.baselinePath, 'governance/architecture-closure-v2/wp-b-source-closure-baseline.json', 'M3-SC-002');
   assert.equal(report.registryPath, 'governance/architecture-closure-v2/wp-b-operation-inventory.json', 'M3-SC-002');
+  assert.deepEqual(
+    report.inventoryExtensionPaths,
+    ['governance/architecture-closure-v2/wp-b-operation-inventory-m3-extension.json'],
+    'M3-SC-002'
+  );
+  assert.equal(report.registryExtensionEntries, 1, 'M3-SC-002');
 });
 
 for (const [id, field] of COUNTERS) {
@@ -84,7 +105,7 @@ for (const [id, field] of COUNTERS) {
 
 test('M3-SC-011 every production inventory row has one valid terminal closure state', () => {
   const baseline = readJson(baselinePath);
-  const inventory = readJson(inventoryPath);
+  const inventory = readCombinedInventory();
   const allowed = new Set(baseline.productionTerminalStates);
   const open = inventory.entries
     .filter(entry => entry.classification !== 'NON_PRODUCTION_HARNESS')
