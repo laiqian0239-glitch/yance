@@ -30,13 +30,17 @@
       },
       "sourcePaths": [
         "package.json",
-        "LICENSE"
+        "LICENSE",
+        "src/Utils/use-multi-file-auth-state.ts",
+        "src/Types/Auth.ts"
       ],
       "yancePaths": [
-        "scripts/dependencies/apply-baileys-profile-picture-token-fix.js"
+        "scripts/dependencies/apply-baileys-profile-picture-token-fix.js",
+        "backend/services/whatsappAuthStateStore.js"
       ],
       "modifications": [
-        "Yance applies a deterministic postinstall compatibility patch to the installed Baileys package; the patch is maintained in Yance and does not replace the upstream package authority."
+        "Yance applies a deterministic postinstall compatibility patch to the installed Baileys package; the patch is maintained in Yance and does not replace the upstream package authority.",
+        "Yance implements a primary-Store AuthenticationState adapter against the pinned Baileys auth interfaces, BufferJSON contract and AppStateSyncKeyData restoration behavior without copying the upstream multi-file implementation."
       ],
       "obligations": [
         "Retain the Baileys copyright and MIT permission notice in distributed copies or substantial portions.",
