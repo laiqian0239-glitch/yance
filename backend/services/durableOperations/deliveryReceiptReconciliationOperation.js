@@ -49,6 +49,18 @@ function optionalString(value, field, maximum = 2048) {
   return result;
 }
 
+function requiredPositiveInteger(value, field) {
+  const result = Number(value);
+  if (!Number.isSafeInteger(result) || result < 1) {
+    throw deliveryReceiptOperationError(
+      'WP_B_DELIVERY_RECEIPT_INTEGER_INVALID',
+      `${field} must be a safe integer >= 1`,
+      { field }
+    );
+  }
+  return result;
+}
+
 function requiredSha256(value) {
   const result = requiredString(value, 'requestContentSha256', 64);
   if (!/^[a-f0-9]{64}$/u.test(result)) {
@@ -81,6 +93,11 @@ function validateReconciliationEnvelope(envelope) {
     executionId: requiredString(envelope.executionId, 'executionId'),
     intentId: requiredString(envelope.intentId, 'intentId'),
     attemptId: requiredString(envelope.attemptId, 'attemptId'),
+    claimId: requiredString(envelope.claimId, 'claimId'),
+    ownerId: requiredString(envelope.ownerId, 'ownerId'),
+    generation: requiredPositiveInteger(envelope.generation, 'generation'),
+    hostGeneration: requiredPositiveInteger(envelope.hostGeneration, 'hostGeneration'),
+    fencingToken: requiredPositiveInteger(envelope.fencingToken, 'fencingToken'),
     idempotencyKey: requiredString(envelope.idempotencyKey, 'idempotencyKey'),
     platform: requiredString(request.platform, 'platform', 64).toLowerCase(),
     accountReference: requiredString(request.accountReference, 'accountReference'),
@@ -124,9 +141,35 @@ function custodyContext(attempt, custody) {
     executionId: attempt.executionId,
     intentId: attempt.intentId,
     attemptId: attempt.attemptId,
+    claimId: attempt.claimId,
+    ownerId: attempt.ownerId,
+    generation: attempt.generation,
+    hostGeneration: attempt.hostGeneration,
+    fencingToken: attempt.fencingToken,
     operationKind: OPERATION_KIND,
     platform: attempt.platform,
     custody
+  });
+}
+
+function physicalInput(attempt, credential) {
+  return Object.freeze({
+    executionId: attempt.executionId,
+    intentId: attempt.intentId,
+    attemptId: attempt.attemptId,
+    claimId: attempt.claimId,
+    ownerId: attempt.ownerId,
+    generation: attempt.generation,
+    hostGeneration: attempt.hostGeneration,
+    fencingToken: attempt.fencingToken,
+    idempotencyKey: attempt.idempotencyKey,
+    platform: attempt.platform,
+    accountReference: attempt.accountReference,
+    deliveryAttemptReference: attempt.deliveryAttemptReference,
+    requestContentSha256: attempt.requestContentSha256,
+    providerRequestId: attempt.providerRequestId,
+    platformMessageId: attempt.platformMessageId,
+    credential
   });
 }
 
@@ -173,19 +216,9 @@ function createDeliveryReceiptReconciliationOperation(options = {}) {
           custodyContext(attempt, 'EPHEMERAL_DELIVERY_QUERY_BOUNDARY')
         )
       );
-      const observation = await dependencies.deliveryClient.query(Object.freeze({
-        executionId: attempt.executionId,
-        intentId: attempt.intentId,
-        attemptId: attempt.attemptId,
-        idempotencyKey: attempt.idempotencyKey,
-        platform: attempt.platform,
-        accountReference: attempt.accountReference,
-        deliveryAttemptReference: attempt.deliveryAttemptReference,
-        requestContentSha256: attempt.requestContentSha256,
-        providerRequestId: attempt.providerRequestId,
-        platformMessageId: attempt.platformMessageId,
-        credential
-      }));
+      const observation = await dependencies.deliveryClient.query(
+        physicalInput(attempt, credential)
+      );
       return redactedDeliveryObservation(observation);
     },
 
@@ -197,19 +230,9 @@ function createDeliveryReceiptReconciliationOperation(options = {}) {
           custodyContext(attempt, 'EPHEMERAL_RECONCILIATION_BOUNDARY')
         )
       );
-      const observation = await dependencies.deliveryClient.lookup(Object.freeze({
-        executionId: attempt.executionId,
-        intentId: attempt.intentId,
-        attemptId: attempt.attemptId,
-        idempotencyKey: attempt.idempotencyKey,
-        platform: attempt.platform,
-        accountReference: attempt.accountReference,
-        deliveryAttemptReference: attempt.deliveryAttemptReference,
-        requestContentSha256: attempt.requestContentSha256,
-        providerRequestId: attempt.providerRequestId,
-        platformMessageId: attempt.platformMessageId,
-        credential
-      }));
+      const observation = await dependencies.deliveryClient.lookup(
+        physicalInput(attempt, credential)
+      );
       return redactedReconciliationObservation(observation);
     }
   };
@@ -220,7 +243,9 @@ function createDeliveryReceiptReconciliationOperation(options = {}) {
 module.exports = Object.freeze({
   OPERATION_KIND,
   createDeliveryReceiptReconciliationOperation,
+  custodyContext,
   deliveryReceiptOperationError,
+  physicalInput,
   redactedDeliveryObservation,
   redactedReconciliationObservation,
   validateReconciliationEnvelope
