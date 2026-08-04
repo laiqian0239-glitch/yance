@@ -46,17 +46,34 @@
   ],
   "inventoryAuthority": {
     "path": "governance/architecture-closure-v2/wp-b-operation-inventory.json",
+    "extensionPaths": [
+      "governance/architecture-closure-v2/wp-b-operation-inventory-m3-extension.json"
+    ],
     "anchorHead": "9f82377119e16f8e02d3b83f0795b452e36f769e",
     "anchorBlobSha": "c564fd0c225ddc24317ac2f10c46aa0ad52db691",
     "authorizedPathCount": 45,
     "authorizedPathSetSha256": "579cc85774c1c26a433b4ed167a153df1a8a4bbabc7159a8f9925cacddfd2990",
     "authorizationAmendmentRequiredForNewPath": true
   },
+  "authorizationAmendments": [
+    {
+      "amendmentId": "WP-B-M3-SCOPE-001",
+      "authorizedAt": "2026-08-04T16:05:00+07:00",
+      "approvedBy": "PROJECT_OWNER",
+      "approvalSource": "Project owner full Milestone 3 execution authorization in the 独立软件工程审计 conversation",
+      "reasonCode": "WP_B_M3_CANONICAL_INTERNAL_OPERATION_AUTHORITY",
+      "addedPaths": [
+        "backend/services/durableInternalOperationAuthority.js",
+        "governance/architecture-closure-v2/wp-b-operation-inventory-m3-extension.json"
+      ]
+    }
+  ],
   "allowedPaths": [
     ".github/workflows/wp-b-m3-authorization.yml",
     ".github/workflows/wp-b-post-merge-validation.yml",
     ".github/workflows/wp-b-validation.yml",
     "THIRD_PARTY_NOTICES_WP_B.md",
+    "backend/services/durableInternalOperationAuthority.js",
     "backend/tests/architectureClosureV2/wpA/sourceClosureFinal.test.js",
     "backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js",
     "backend/tests/architectureClosureV2/wpB/finalClosureIntegrity.test.js",
@@ -74,6 +91,7 @@
     "governance/architecture-closure-v2/wp-b-m3-authorization.json",
     "governance/architecture-closure-v2/wp-b-open-source-adoption-gate.json",
     "governance/architecture-closure-v2/wp-b-open-source-adoption-registry.json",
+    "governance/architecture-closure-v2/wp-b-operation-inventory-m3-extension.json",
     "governance/architecture-closure-v2/wp-b-operation-inventory.json",
     "governance/architecture-closure-v2/wp-b-provenance.json",
     "governance/architecture-closure-v2/wp-b-sbom.spdx.json",
