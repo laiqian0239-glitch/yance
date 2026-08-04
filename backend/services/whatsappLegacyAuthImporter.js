@@ -268,7 +268,7 @@ class WhatsAppLegacyAuthImporter {
     }
 
     const sourceDirectoryHmac = state.cipher.hmacIndex(
-      'LEGACY_AUTH_SOURCE_DIRECTORY',
+      'SOURCE_DIRECTORY',
       normalized.sourceDirectory
     );
     const receiptId = `${RECEIPT_PREFIX}${sourceDirectoryHmac.slice(0, 32)}`;
@@ -358,7 +358,7 @@ class WhatsAppLegacyAuthImporter {
       state.renameDirectory(normalized.sourceDirectory, archiveDirectory);
     } catch (error) {
       const cleanupReferenceHmac = state.cipher.hmacIndex(
-        'LEGACY_AUTH_CLEANUP_REFERENCE',
+        'CLEANUP_REFERENCE',
         normalized.sourceDirectory
       );
       const cleanup = await Promise.resolve(state.repository.importLegacySnapshot({
