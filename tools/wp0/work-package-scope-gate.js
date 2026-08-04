@@ -16,13 +16,11 @@ const {
 } = require('../../shared/release/implementationBranchPolicy');
 const {
   evaluateAuthorizedOpenSourceWorkPackageScope,
+  filterOpenSourceImplementationChangedFiles,
   isAuthorizedOpenSourceImplementationBranch,
   loadOpenSourceWorkPackageAuthorization,
   loadOpenSourceWorkPackageAuthorizationReceipt
 } = require('../../shared/release/openSourceWorkPackagePolicy');
-
-const OSS_AUTHORIZATION_REPOSITORY_PATH = 'governance/open-source-acceleration/oss-0-implementation-authorization.json';
-const OSS_AUTHORIZATION_RECEIPT_REPOSITORY_PATH = 'governance/open-source-acceleration/oss-0-authorization-receipt.json';
 
 function scopeResult(values) {
   return Object.freeze({
@@ -69,13 +67,15 @@ function readChangedFiles(git, baseHead, effectiveBranch, failurePrefix = 'ACV2'
   }
 }
 
-function readHead(git) {
+function readHead(git, effectiveBranch, details = {}, failurePrefix = 'ACV2') {
   try {
     return { pass: true, head: git(['rev-parse', 'HEAD']) };
   } catch (cause) {
     return {
       pass: false,
-      result: fail('WORK_PACKAGE_SCOPE_EVIDENCE_HEAD_UNAVAILABLE', {
+      result: fail(`${failurePrefix}_WORK_PACKAGE_SCOPE_EVIDENCE_HEAD_UNAVAILABLE`, {
+        effectiveBranch,
+        ...details,
         error: cause?.message || String(cause)
       })
     };
@@ -130,7 +130,7 @@ function requireAncestor(git, baseHead, effectiveBranch, details = {}, failurePr
 }
 
 function requireEvidenceHead(git, effectiveBranch, evidenceSourceCommit, details = {}, failurePrefix = 'ACV2') {
-  const resolved = readHead(git);
+  const resolved = readHead(git, effectiveBranch, details, failurePrefix);
   if (!resolved.pass) return resolved.result;
   if (resolved.head === evidenceSourceCommit) return null;
   return fail(`${failurePrefix}_WORK_PACKAGE_SCOPE_EVIDENCE_COMMIT_MISMATCH`, {
@@ -207,12 +207,9 @@ function verifyOpenSourceAuthorizationAnchor(git, authorization, receipt) {
 
 function implementationFilesSinceAuthorization(git, receipt, effectiveBranch) {
   const changed = readChangedFiles(git, receipt.authorizationCommit, effectiveBranch, 'OSS');
-  if (!Array.isArray(changed)) return changed;
-  const parentGovernancePaths = new Set([
-    OSS_AUTHORIZATION_REPOSITORY_PATH,
-    OSS_AUTHORIZATION_RECEIPT_REPOSITORY_PATH
-  ]);
-  return changed.filter(relativePath => !parentGovernancePaths.has(relativePath));
+  return Array.isArray(changed)
+    ? filterOpenSourceImplementationChangedFiles(changed)
+    : changed;
 }
 
 function evaluateOpenSourceWorkPackageScope(options) {
