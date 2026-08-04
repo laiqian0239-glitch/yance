@@ -73,7 +73,7 @@ function frozenAdapter(operationKind) {
   });
 }
 
-test('M2-IR-001 outbound Adapter preserves the complete persisted fencing identity at the physical client boundary', async () => {
+test('M2-IR-001 outbound Adapter preserves persisted fencing and canonical OutboxCommand shape at the physical boundary', async () => {
   const { createOutboundMessageSendOperation } = require('../../../services/durableOperations/outboundMessageSendOperation');
   const { createChannelPhysicalClient } = require('../../../services/channelRuntimeEngine');
   const physicalCalls = [];
@@ -100,7 +100,19 @@ test('M2-IR-001 outbound Adapter preserves the complete persisted fencing identi
       }
     })
   });
-  const command = Object.freeze({ body: 'ephemeral-command-capability' });
+  const command = Object.freeze({
+    schemaVersion: 1,
+    commandType: 'OutboxCommand',
+    commandId: 'command-review-1',
+    outboxId: 'outbox-review-1',
+    platform: 'whatsapp',
+    accountId: 'account-review-1',
+    operation: 'text',
+    idempotencyKey: 'm2-review-idempotency-1',
+    contentFrozen: true,
+    conversationTarget: 'review@example.net',
+    finalText: 'ephemeral-command-capability'
+  });
   const credential = Object.freeze({ session: 'ephemeral-credential-capability' });
   const adapter = createOutboundMessageSendOperation({
     resolveCommandReference() { return command; },
@@ -112,6 +124,10 @@ test('M2-IR-001 outbound Adapter preserves the complete persisted fencing identi
   assert.equal(receipt.accepted, true);
   assert.equal(physicalCalls.length, 1);
   assert.deepEqual(identityOf(physicalCalls[0]), expectedIdentity());
+  assert.equal(physicalCalls[0].commandType, 'OutboxCommand');
+  assert.equal(physicalCalls[0].contentFrozen, true);
+  assert.equal(physicalCalls[0].commandId, 'command-review-1');
+  assert.equal(Object.hasOwn(physicalCalls[0], 'command'), false);
 });
 
 test('M2-IR-002 production composition builds one sealed registry containing all six mandatory Adapters', () => {
