@@ -42,6 +42,22 @@ const CORE_TO_FACADE = Object.freeze({
   'backend/services/backgroundJobAuthorityCore.js': 'backend/services/backgroundJobAuthority.js',
   'backend/services/jobQueueCore.js': 'backend/services/jobQueue.js'
 });
+const FORBIDDEN_LEGACY_EXPORTS = Object.freeze([
+  'authority',
+  'AsyncOperationLifecycleAuthority',
+  'BackgroundJobAuthority',
+  'JobQueue',
+  'create',
+  'enqueue',
+  'begin',
+  'start',
+  'progress',
+  'settle',
+  'succeed',
+  'fail',
+  'cancel',
+  'retry'
+]);
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -93,12 +109,17 @@ function productionImportGraph() {
     for (const match of source.matchAll(requirePattern)) {
       const target = resolveLocalModule(importer, match[1]);
       if (!target) continue;
-      if (!graph.has(target)) graph.set(target, []);
-      graph.get(target).push(importer);
+      if (!graph.has(target)) graph.set(target, new Set());
+      graph.get(target).add(importer);
     }
   }
-  for (const importers of graph.values()) importers.sort();
-  return graph;
+  return new Map(
+    [...graph.entries()].map(([target, importers]) => [target, [...importers].sort()])
+  );
+}
+
+function exactImporterReport(graph, targets) {
+  return Object.fromEntries(targets.map(target => [target, graph.get(target) || []]));
 }
 
 test('M3-SC-DIAG-001 report declares the stable WP-B diagnostic schema', () => {
@@ -155,40 +176,34 @@ test('M3-SC-DIAG-004 each violation contains exact path, capability, reason and 
 
 test('M3-SC-DIAG-005 legacy lifecycle and job facades have zero production importers', () => {
   const graph = productionImportGraph();
-  for (const facade of LEGACY_FACADES) {
-    assert.deepEqual(graph.get(facade) || [], [], `M3-SC-DIAG-005:${facade}`);
-  }
+  const actual = exactImporterReport(graph, LEGACY_FACADES);
+  const expected = Object.fromEntries(LEGACY_FACADES.map(facade => [facade, []]));
+  assert.deepEqual(actual, expected, `M3-SC-DIAG-005:${JSON.stringify(actual)}`);
 });
 
 test('M3-SC-DIAG-006 legacy Core modules are reachable only from their exact transitional facade', () => {
   const graph = productionImportGraph();
-  for (const [corePath, facadePath] of Object.entries(CORE_TO_FACADE)) {
-    assert.deepEqual(graph.get(corePath) || [], [facadePath], `M3-SC-DIAG-006:${corePath}`);
-  }
+  const corePaths = Object.keys(CORE_TO_FACADE);
+  const actual = exactImporterReport(graph, corePaths);
+  const expected = Object.fromEntries(
+    Object.entries(CORE_TO_FACADE).map(([corePath, facadePath]) => [corePath, [facadePath]])
+  );
+  assert.deepEqual(actual, expected, `M3-SC-DIAG-006:${JSON.stringify(actual)}`);
 });
 
 test('M3-SC-DIAG-007 transitional facades do not re-export legacy Core writer surfaces', () => {
+  const violations = {};
   for (const facade of LEGACY_FACADES) {
     const source = fs.readFileSync(path.join(repoRoot, facade), 'utf8');
-    assert.equal(source.includes('...core'), false, `M3-SC-DIAG-007:${facade}:CORE_SPREAD_FORBIDDEN`);
+    delete require.cache[require.resolve(path.join(repoRoot, facade))];
     const exported = require(path.join(repoRoot, facade));
-    for (const field of [
-      'authority',
-      'AsyncOperationLifecycleAuthority',
-      'BackgroundJobAuthority',
-      'JobQueue',
-      'create',
-      'enqueue',
-      'begin',
-      'start',
-      'progress',
-      'settle',
-      'succeed',
-      'fail',
-      'cancel',
-      'retry'
-    ]) {
-      assert.equal(Object.hasOwn(exported, field), false, `M3-SC-DIAG-007:${facade}:${field}`);
-    }
+    violations[facade] = {
+      spreadsCore: source.includes('...core'),
+      forbiddenExports: FORBIDDEN_LEGACY_EXPORTS.filter(field => Object.hasOwn(exported, field))
+    };
   }
+  const expected = Object.fromEntries(
+    LEGACY_FACADES.map(facade => [facade, { spreadsCore: false, forbiddenExports: [] }])
+  );
+  assert.deepEqual(violations, expected, `M3-SC-DIAG-007:${JSON.stringify(violations)}`);
 });
