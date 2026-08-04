@@ -65,6 +65,22 @@ function validatePhysicalEnvelope(input = {}) {
     credential: input.credential
   });
 }
+function persistedAttemptContext(attempt, platform) {
+  return Object.freeze({
+    executionId: attempt.executionId,
+    intentId: attempt.intentId,
+    attemptId: attempt.attemptId,
+    claimId: attempt.claimId,
+    ownerId: attempt.ownerId,
+    generation: attempt.generation,
+    hostGeneration: attempt.hostGeneration,
+    fencingToken: attempt.fencingToken,
+    idempotencyKey: attempt.idempotencyKey,
+    requestContentSha256: attempt.requestContentSha256,
+    platform,
+    accountReference: attempt.accountReference
+  });
+}
 function accountProjection(platform, accountId, row = {}) {
   if (!row) return null;
   return {
@@ -88,22 +104,10 @@ function createChannelPhysicalClient({ platform, facade } = {}) {
       if (attempt.platform && attempt.platform !== normalizedPlatform) {
         throw fail('WP_B_CHANNEL_PHYSICAL_SCOPE_MISMATCH', 'Physical channel platform scope mismatch', 409, { platform: normalizedPlatform, receivedPlatform: attempt.platform });
       }
-      return facade.egress.execute(Object.freeze({
-        executionId: attempt.executionId,
-        intentId: attempt.intentId,
-        attemptId: attempt.attemptId,
-        claimId: attempt.claimId,
-        ownerId: attempt.ownerId,
-        generation: attempt.generation,
-        hostGeneration: attempt.hostGeneration,
-        fencingToken: attempt.fencingToken,
-        idempotencyKey: attempt.idempotencyKey,
-        requestContentSha256: attempt.requestContentSha256,
-        platform: normalizedPlatform,
-        accountReference: attempt.accountReference,
-        command: attempt.command,
-        credential: attempt.credential
-      }));
+      return facade.egress.execute(
+        attempt.command,
+        persistedAttemptContext(attempt, normalizedPlatform)
+      );
     },
     async lookup(input = {}) {
       const attempt = validatePhysicalEnvelope(input);
@@ -124,8 +128,7 @@ function createChannelPhysicalClient({ platform, facade } = {}) {
         platform: normalizedPlatform,
         accountReference: attempt.accountReference,
         providerRequestId: attempt.providerRequestId,
-        platformMessageId: attempt.platformMessageId,
-        credential: attempt.credential
+        platformMessageId: attempt.platformMessageId
       }));
     }
   });
@@ -321,4 +324,5 @@ module.exports.ChannelAdapterRuntime = ChannelAdapterRuntime;
 module.exports.ChannelAdapterRuntimeRegistry = ChannelAdapterRuntimeRegistry;
 module.exports.PLATFORMS = PLATFORMS;
 module.exports.createChannelPhysicalClient = createChannelPhysicalClient;
+module.exports.persistedAttemptContext = persistedAttemptContext;
 module.exports.validatePhysicalEnvelope = validatePhysicalEnvelope;
