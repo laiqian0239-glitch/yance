@@ -322,3 +322,4 @@ test('Schema 23 records one exact completed migration receipt and remains idempo
 });
 
 registerFaultMatrix();
+require('./oss1aWhatsappAuthKeyAuthority.test');
