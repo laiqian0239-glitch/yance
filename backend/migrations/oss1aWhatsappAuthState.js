@@ -459,16 +459,59 @@ function applyOss1aWhatsappAuthState(db, options = {}) {
     verifyExistingReceipt(db, existing);
     ensureConsistency(db);
     const persistedVersion = readSchemaVersion(db);
-    if (persistedVersion !== TARGET_SCHEMA_VERSION) {
+
+    // Legacy migrations are replayed on every Store open and some historical
+    // modules still write their own lower schema version. The latest completed
+    // migration is responsible for re-establishing the final monotonic version,
+    // but only after revalidating the immutable receipt and every frozen object
+    // inside one write transaction. Newer metadata still fails above.
+    let metadataReasserted = false;
+    if (persistedVersion < TARGET_SCHEMA_VERSION) {
+      const at = nowIso();
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        const lockedReceipt = db.prepare(
+          'SELECT * FROM r32_schema_migrations WHERE migration_id=?'
+        ).get(MIGRATION_ID);
+        if (!lockedReceipt) {
+          throw migrationError(
+            'OSS1A_WHATSAPP_AUTH_MIGRATION_RECEIPT_MISSING',
+            'Completed Schema 23 receipt disappeared during reopen validation'
+          );
+        }
+        verifyExistingReceipt(db, lockedReceipt);
+        ensureConsistency(db);
+        const lockedVersion = readSchemaVersion(db);
+        if (lockedVersion > TARGET_SCHEMA_VERSION) {
+          throw migrationError(
+            'OSS1A_WHATSAPP_AUTH_SCHEMA_AHEAD',
+            `Database schema ${lockedVersion} is newer than OSS-1A Schema ${TARGET_SCHEMA_VERSION}`,
+            { databaseVersion: lockedVersion, supportedVersion: TARGET_SCHEMA_VERSION }
+          );
+        }
+        if (lockedVersion < TARGET_SCHEMA_VERSION) {
+          setSchemaVersion(db, TARGET_SCHEMA_VERSION, at);
+          metadataReasserted = true;
+        }
+        db.exec('COMMIT');
+      } catch (error) {
+        try { db.exec('ROLLBACK'); } catch (_) {}
+        throw error;
+      }
+    }
+
+    const finalVersion = readSchemaVersion(db);
+    if (finalVersion !== TARGET_SCHEMA_VERSION) {
       throw migrationError(
         'OSS1A_WHATSAPP_AUTH_SCHEMA_METADATA_MISMATCH',
         'Completed Schema 23 receipt is not bound to exact schema metadata',
-        { databaseVersion: persistedVersion, supportedVersion: TARGET_SCHEMA_VERSION }
+        { databaseVersion: finalVersion, supportedVersion: TARGET_SCHEMA_VERSION }
       );
     }
     return {
       ok: true,
       executed: false,
+      metadataReasserted,
       migrationId: MIGRATION_ID,
       targetSchemaVersion: TARGET_SCHEMA_VERSION,
       checksum: MIGRATION_CHECKSUM
