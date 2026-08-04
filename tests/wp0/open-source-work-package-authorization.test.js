@@ -8,6 +8,7 @@ const {
   loadOpenSourceWorkPackageAuthorization,
   loadOpenSourceWorkPackageAuthorizationReceipt,
   normalizeRepositoryPath,
+  filterOpenSourceImplementationChangedFiles,
   changedFileSetSha256,
   isValidOpenSourceWorkPackageAuthorization,
   isValidOpenSourceWorkPackageAuthorizationReceipt,
@@ -22,12 +23,18 @@ function git(args) {
   return execFileSync('git', args, { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
 }
 
-function implementationChangedFiles(authorization) {
-  const remoteBase = `refs/remotes/origin/${authorization.requiredBaseRef}`;
-  git(['cat-file', '-e', `${remoteBase}^{commit}`]);
-  const mergeBase = git(['merge-base', remoteBase, 'HEAD']);
-  const output = git(['-c', 'core.quotePath=false', 'diff', '--name-only', mergeBase, 'HEAD', '--']);
-  return output.split(/\r?\n/u).map(value => value.trim()).filter(Boolean).sort();
+function implementationChangedFiles(receipt) {
+  const output = git([
+    '-c',
+    'core.quotePath=false',
+    'diff',
+    '--name-only',
+    receipt.authorizationCommit,
+    'HEAD',
+    '--'
+  ]);
+  const changedFiles = output.split(/\r?\n/u).map(value => value.trim()).filter(Boolean).sort();
+  return filterOpenSourceImplementationChangedFiles(changedFiles);
 }
 
 test('sealed OSS-0 authorization and receipt are internally consistent', () => {
@@ -111,12 +118,13 @@ test('only the exact sealed OSS-0 branch is authorized', () => {
 
 test('checked-out OSS-0 implementation matches the exact parent-authorized file set', () => {
   const authorization = loadOpenSourceWorkPackageAuthorization();
-  const changedFiles = implementationChangedFiles(authorization);
+  const receipt = loadOpenSourceWorkPackageAuthorizationReceipt();
+  const changedFiles = implementationChangedFiles(receipt);
   const result = evaluateAuthorizedOpenSourceWorkPackageScope({
     branch: authorization.authorizedBranch,
     changedFiles,
     authorization,
-    receipt: loadOpenSourceWorkPackageAuthorizationReceipt()
+    receipt
   });
   assert.equal(result.pass, true, JSON.stringify(result));
   assert.equal(result.changedFileCount, authorization.approvedChangedFileCount);
