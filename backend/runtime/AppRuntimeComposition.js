@@ -31,6 +31,7 @@ const cacheGcService = require('../services/cacheGcService');
 const workspaceService = require('../services/workspaceService');
 const { runProductionDataGuard } = require('../migrations/legacyDemoCleanup');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
+const { createWhatsAppAuthKeyAuthority } = require('../services/whatsappAuthKeyAuthority');
 const { AccountContext } = require('../core/accountContext');
 const { UpdateManager } = require('../core/updateManager');
 const { StoreProjectionCoordinator } = require('../core/projections/storeProjectionCoordinator');
@@ -371,6 +372,10 @@ function createAppRuntimeComposition(runtime) {
   const commandSubmitter = envelope => authorityCommandGateway.execute(envelope);
 
   const securityGuard = getSecurityGuard();
+  const whatsappAuthKeyAuthority = createWhatsAppAuthKeyAuthority({
+    securityGuard,
+    credentials: securityGuard.credentials
+  });
   const accountContext = new AccountContext({ securityGuard, accountManager, accountStore, accountMigration, messageStore, sendQueue, platformMessaging, platformCapabilities, platformDrivers, canonicalIdentity, eventBus });
   const updateManager = new UpdateManager({ securityGuard, lifecycleManager: runtime, updatePreflight, eventBus });
   const artifactRegistry = getRuntimeArtifactRegistryService();
@@ -393,10 +398,12 @@ function createAppRuntimeComposition(runtime) {
     updateManager,
     recoveryManager,
     securityGuard,
+    whatsappAuthKeyAuthority,
     storeProjectionCoordinator,
     runtimeSafetySupervisor,
     participants: Object.freeze([
       { name: 'security-guard', service: securityGuard, critical: true },
+      { name: 'whatsapp-auth-key-authority', service: whatsappAuthKeyAuthority, critical: true },
       { name: 'ai-gateway', service: aiGateway, critical: true },
       { name: 'recovery-manager', service: recoveryManager, critical: true },
       { name: 'account-lifecycle-saga', service: accountLifecycleSaga, critical: true },
