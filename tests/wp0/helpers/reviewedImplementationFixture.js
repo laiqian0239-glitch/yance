@@ -18,6 +18,27 @@ function git(cwd, args) {
   }).trim();
 }
 
+function reviewedRemoteRefs(repo) {
+  const output = git(repo, ['for-each-ref', '--format=%(refname)', 'refs/remotes/origin']);
+  return output ? output.split(/\r?\n/u).filter(Boolean).sort() : [];
+}
+
+function isolateReviewedRemoteRefs(repo, branch, sourceCommit) {
+  const targetRef = `refs/remotes/origin/${branch}`;
+  git(repo, ['update-ref', targetRef, sourceCommit]);
+  for (const remoteRef of reviewedRemoteRefs(repo)) {
+    if (remoteRef !== targetRef) git(repo, ['update-ref', '-d', remoteRef]);
+  }
+  const remaining = reviewedRemoteRefs(repo);
+  const targetTip = git(repo, ['rev-parse', targetRef]);
+  if (targetTip !== sourceCommit
+    || remaining.length !== 1
+    || remaining[0] !== targetRef) {
+    throw new Error('reviewed implementation fixture remote identity isolation failed');
+  }
+  return remaining;
+}
+
 function createReviewedImplementationClone(options = {}) {
   const sourceRoot = path.resolve(options.sourceRoot || REPO_ROOT);
   const sourceCommit = options.sourceCommit || git(sourceRoot, ['rev-parse', 'HEAD']);
@@ -40,12 +61,15 @@ function createReviewedImplementationClone(options = {}) {
   ], { encoding: 'utf8', env: LFS_POINTER_ENV });
 
   git(repo, ['checkout', '--quiet', '--force', '-B', branch, sourceCommit]);
-  git(repo, ['update-ref', `refs/remotes/origin/${branch}`, sourceCommit]);
+  const remoteRefs = isolateReviewedRemoteRefs(repo, branch, sourceCommit);
 
   const head = git(repo, ['rev-parse', 'HEAD']);
   const currentBranch = git(repo, ['branch', '--show-current']);
   const remoteTip = git(repo, ['rev-parse', `refs/remotes/origin/${branch}`]);
-  if (head !== sourceCommit || currentBranch !== branch || remoteTip !== sourceCommit) {
+  if (head !== sourceCommit
+    || currentBranch !== branch
+    || remoteTip !== sourceCommit
+    || remoteRefs.length !== 1) {
     fs.rmSync(root, { recursive: true, force: true });
     throw new Error('reviewed implementation fixture identity binding failed');
   }
@@ -60,6 +84,7 @@ function createReviewedImplementationClone(options = {}) {
     repo,
     branch,
     sourceCommit,
+    remoteRefs,
     cleanup() {
       fs.rmSync(root, { recursive: true, force: true });
     }
@@ -70,5 +95,7 @@ module.exports = {
   LFS_POINTER_ENV,
   REVIEWED_FIXTURE_BRANCH,
   createReviewedImplementationClone,
-  git
+  git,
+  isolateReviewedRemoteRefs,
+  reviewedRemoteRefs
 };
