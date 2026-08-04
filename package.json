@@ -166,6 +166,8 @@
     "test:batch21-root-cause": "node --test --test-concurrency=1 backend/tests/f25WindowsUatRepairBatch21RootAuthority.test.js backend/tests/f25WindowsUatRepairBatch21DesignSystemAuthority.test.js",
     "test:batch22-root-cause": "node --test --test-concurrency=1 backend/tests/f25WindowsUatRepairBatch22RootAuthority.test.js backend/tests/f25WindowsUatRepairBatch21RootAuthority.test.js backend/tests/f25WindowsUatRepairBatch21DesignSystemAuthority.test.js",
     "verify:windows-explorer-source-paths": "node tools/runtime-delivery/verify-windows-explorer-source-paths.js",
+    "test:third-party": "node --test --test-concurrency=1 tests/third-party/provenance.test.js",
+    "verify:third-party": "npm run test:third-party && node tools/third-party/verify-provenance.js",
     "verify:clean-windows-install": "node tools/uat/verify-clean-windows-install.js"
   },
   "releaseIdentitySource": "release/release-source.json",

@@ -10,6 +10,8 @@ const {
   checkForbiddenHotfixEntrypoints,
   checkProtectedCommandPolicy,
   checkRepositoryScope,
+  classifyScanPath,
+  isThirdPartyProvenanceMetadataPath,
   referenceOnlyRootPolicies
 } = require('../../tools/wp0/lib');
 
@@ -17,6 +19,26 @@ test('forbidden-hotfix-entrypoints.test', () => {
   const result = checkForbiddenHotfixEntrypoints();
   assert.equal(result.pass, true, JSON.stringify(result));
   assert.equal(result.details.enumerationMethod, 'git ls-files -z');
+});
+
+test('third-party provenance metadata is non-executable while imported source remains active', () => {
+  for (const file of [
+    'third_party/provenance.json',
+    'third_party/licenses/baileys-MIT.txt',
+    'third_party/licenses/LICENSE.baileys'
+  ]) {
+    assert.equal(isThirdPartyProvenanceMetadataPath(file), true, file);
+    assert.equal(classifyScanPath(file), 'THIRD_PARTY_PROVENANCE_METADATA', file);
+  }
+
+  for (const file of [
+    'third_party/baileys/runtime.js',
+    'third_party/licenses/untrusted.js',
+    'third_party/provenance-helper.js'
+  ]) {
+    assert.equal(isThirdPartyProvenanceMetadataPath(file), false, file);
+    assert.equal(classifyScanPath(file), 'ACTIVE_SOURCE_OR_AUTOMATION', file);
+  }
 });
 
 test('local build package and release commands are guarded by executable WP0 gate', () => {

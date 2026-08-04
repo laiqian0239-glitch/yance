@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "projectLicenseDecision": {
+    "status": "UNRESOLVED",
+    "approvedSpdx": null
+  },
+  "policy": {
+    "exactCommitRequired": true,
+    "approvedRecordRequired": true,
+    "allowedIntegrationModes": [
+      "dependency",
+      "patched_dependency",
+      "sidecar",
+      "controlled_fork",
+      "source_port",
+      "reference_only"
+    ]
+  },
+  "projects": [
+    {
+      "id": "baileys-7.0.0-rc13",
+      "name": "WhiskeySockets Baileys",
+      "upstreamRepository": "https://github.com/WhiskeySockets/Baileys",
+      "upstreamCommit": "8053b086ecc97ec3f78299561de11959bab05d39",
+      "upstreamVersion": "7.0.0-rc13",
+      "integrationMode": "patched_dependency",
+      "license": {
+        "spdx": "MIT",
+        "evidenceFile": "third_party/licenses/baileys-MIT.txt"
+      },
+      "sourcePaths": [
+        "package.json",
+        "LICENSE"
+      ],
+      "yancePaths": [
+        "scripts/dependencies/apply-baileys-profile-picture-token-fix.js"
+      ],
+      "modifications": [
+        "Yance applies a deterministic postinstall compatibility patch to the installed Baileys package; the patch is maintained in Yance and does not replace the upstream package authority."
+      ],
+      "obligations": [
+        "Retain the Baileys copyright and MIT permission notice in distributed copies or substantial portions.",
+        "Preserve the upstream disclaimer that Baileys is unofficial and usage remains subject to WhatsApp terms and account risk."
+      ],
+      "review": {
+        "status": "APPROVED",
+        "reviewedAt": "2026-08-04",
+        "evidence": [
+          "official-release-v7.0.0-rc13",
+          "official-license-at-8053b086ecc97ec3f78299561de11959bab05d39",
+          "existing-yance-postinstall-patch"
+        ]
+      }
+    }
+  ]
+}
