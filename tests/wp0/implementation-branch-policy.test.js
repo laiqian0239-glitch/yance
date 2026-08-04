@@ -30,6 +30,7 @@ const { CURRENT_STAGE, currentBranch, checkRuntimeTargetGate } = require('../../
 const REPO_ROOT = path.join(__dirname, '..', '..');
 const AUTHORIZATION_PATH = path.join(REPO_ROOT, 'governance', 'architecture-closure-v2', 'implementation-plan-authorization.json');
 const A6_CLOSURE_PATH = path.join(REPO_ROOT, 'governance', 'architecture-closure-v2', 'wp-a-a6-closure.json');
+const TASK_SCOPE_CHAIN_REPOSITORY_PATH = 'governance/architecture-closure-v2/wp-a-task-scope-chain.json';
 const PARENT_GOVERNANCE_HEAD = 'd81599d8a3f3de891da369b6f1ddbd01e264c78d';
 const A6_FROZEN_DIGEST = 'd2cac11bd6864b02e09fa68015dbdba5c41bb2777bf79e821f00a846b651702a';
 const OSS1A_BRANCH = 'oss/1a-baileys-lifecycle';
@@ -37,6 +38,10 @@ const OSS1A_GOVERNANCE_BRANCH = 'governance/oss-1a-implementation-authorization'
 
 function authorization() {
   return JSON.parse(fs.readFileSync(AUTHORIZATION_PATH, 'utf8'));
+}
+
+function gitText(args) {
+  return execFileSync('git', args, { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
 }
 
 function changedFilesFrom(baseHead, targetHead = 'HEAD') {
@@ -203,7 +208,7 @@ test('work-package scope requires an exact independently reviewed amendment', ()
   assert.equal(wrongCount.reasonCode, 'ACV2_CHANGED_FILE_SET_MISMATCH');
 });
 
-test('immutable A8 evidence head preserves the active scope independently of the current checkout', () => {
+test('task-scope chain seal commit preserves the active A8 scope independently of the current checkout', () => {
   const document = authorization();
   const chain = loadWorkPackageTaskScopeChain();
   assert.ok(chain, 'task scope chain must exist and parse as JSON');
@@ -222,15 +227,23 @@ test('immutable A8 evidence head preserves the active scope independently of the
   assert.equal(isValidWorkPackagePostMergeDefect(defect), true);
 
   const a8 = chain.tasks.find(task => task.task === chain.activeTask);
-  assert.ok(a8?.evidenceBranchTip, 'A8 immutable evidence head must be present');
-  const changedFiles = changedFilesFrom(chain.parentGovernanceHead, a8.evidenceBranchTip);
+  assert.ok(a8?.reviewedCodeHead, 'A8 reviewed code head must be present');
+  const chainSealHead = gitText(['log', '-n', '1', '--format=%H', '--', TASK_SCOPE_CHAIN_REPOSITORY_PATH]);
+  assert.match(chainSealHead, /^[0-9a-f]{40}$/u);
+  gitText(['merge-base', '--is-ancestor', a8.reviewedCodeHead, chainSealHead]);
+  assert.equal(
+    gitText(['rev-parse', `HEAD:${TASK_SCOPE_CHAIN_REPOSITORY_PATH}`]),
+    gitText(['rev-parse', `${chainSealHead}:${TASK_SCOPE_CHAIN_REPOSITORY_PATH}`])
+  );
+
+  const changedFiles = changedFilesFrom(chain.parentGovernanceHead, chainSealHead);
   const result = evaluateAuthorizedWorkPackageTaskScope({
     branch: document.authorizedBranch,
     changedFiles,
     authorization: document,
     taskScopeChain: chain
   });
-  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.pass, true, JSON.stringify({ ...result, chainSealHead }));
   assert.equal(result.activeTask, 'A8');
   assert.equal(result.changedFileSetSha256, chain.approvedChangedFileSetSha256);
   assert.equal(changedFiles.length, chain.approvedChangedFileCount);
