@@ -284,7 +284,7 @@ async function dispatch(input = {}) {
   const externalActionDispatcher = new ExternalActionDispatcher({
     outboxAuthority,
     adapter,
-    issueTimestamp: timestamp
+    issueTimestamp: () => timestamp()
   });
   return externalActionDispatcher.dispatch({
     ...dispatchContext,
