@@ -44,6 +44,17 @@ function runGenerator(repo, args = []) {
   return { ...result, json };
 }
 
+function generatedFailureDetails(outputDir) {
+  const details = {};
+  for (const name of ['required-tests.json', 'local-command-gates.json', 'freeze-policy.json']) {
+    const filePath = path.join(outputDir, name);
+    if (!fs.existsSync(filePath)) continue;
+    try { details[name] = JSON.parse(fs.readFileSync(filePath, 'utf8')); }
+    catch (error) { details[name] = { parseError: error.message }; }
+  }
+  return JSON.stringify(details, null, 2);
+}
+
 function fileMap(root) {
   const map = new Map();
   for (const name of fs.readdirSync(root).sort()) {
@@ -121,7 +132,11 @@ test('historical evidence succeeds only when tests and generator run inside a de
   assertPointerPreserved(worktree);
   const out = path.join(root, 'historical-evidence');
   const result = runGenerator(worktree, ['--source-commit', historical, '--generated-at-utc', FIXED_TIME, '--output-dir', out]);
-  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.equal(
+    result.status,
+    0,
+    `${result.stdout}${result.stderr}\n${generatedFailureDetails(out)}`
+  );
   const required = JSON.parse(fs.readFileSync(path.join(out, 'required-tests.json'), 'utf8'));
   assert.equal(required.sourceCommit, historical);
   assert.equal(required.sourceTree, git(worktree, ['rev-parse', 'HEAD^{tree}']));
