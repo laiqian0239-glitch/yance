@@ -2,6 +2,7 @@
 
 const ROUTES = Object.freeze({
   GOVERNANCE: 'GOVERNANCE_WP0',
+  PRODUCT_DOCUMENTATION: 'PRODUCT_DOCUMENTATION_WP0',
   PRODUCT: 'PRODUCT_WP0'
 });
 
@@ -10,8 +11,17 @@ function outcome(values = {}) {
     pass: false,
     reasonCode: 'WP0_ROUTE_INVALID',
     route: null,
+    changedFiles: [],
+    governanceChangesPresent: false,
+    productDocumentationChangesPresent: false,
+    productChangesPresent: false,
     ...values,
-    // Pinned after the spread so no caller can claim promotion readiness.
+    executionAuthorized: false,
+    buildAuthorized: false,
+    packageAuthorized: false,
+    releaseAuthorized: false,
+    publishAuthorized: false,
+    productionUseAuthorized: false,
     readyForPromotion: false
   });
 }
@@ -30,7 +40,7 @@ function normalizePath(value) {
     !normalized
     || normalized.startsWith('/')
     || /^[A-Za-z]:\//u.test(normalized)
-    || /[*?[\]]/u.test(normalized)
+    || /[\r\n*?[\]]/u.test(normalized)
   ) return '';
   const segments = normalized.split('/');
   if (segments.some(segment => !segment || segment === '.' || segment === '..')) return '';
@@ -43,19 +53,35 @@ function validRules(values) {
     && new Set(values).size === values.length
     && values.every(value => {
       const raw = String(value || '').trim().replace(/\\/gu, '/').replace(/^\.\//u, '');
-      if (!raw || /[*?[\]]/u.test(raw) || raw.startsWith('/') || /^[A-Za-z]:\//u.test(raw)) return false;
+      if (!raw || /[\r\n*?[\]]/u.test(raw) || raw.startsWith('/') || /^[A-Za-z]:\//u.test(raw)) return false;
       const normalized = raw.replace(/\/$/u, '');
       return normalized.split('/').every(segment => segment && segment !== '.' && segment !== '..');
     });
 }
 
+function validExtensions(values) {
+  return Array.isArray(values)
+    && values.length > 0
+    && new Set(values).size === values.length
+    && values.every(value => /^\.[a-z0-9]+$/u.test(String(value || '')));
+}
+
 function validateWp0RoutingPolicy(policy) {
   if (!policy || typeof policy !== 'object' || Array.isArray(policy)) return fail('WP0_ROUTE_POLICY_INVALID');
-  if (policy.schemaVersion !== 1 || policy.documentType !== 'YANCE_WP0_SCOPE_ROUTING_POLICY') {
+  if (policy.schemaVersion !== 2 || policy.documentType !== 'YANCE_WP0_SCOPE_ROUTING_POLICY') {
     return fail('WP0_ROUTE_POLICY_SCHEMA_INVALID');
   }
-  for (const field of ['governanceExactPaths', 'governancePrefixes', 'productExactPaths', 'productPrefixes']) {
+  for (const field of [
+    'governanceExactPaths',
+    'governancePrefixes',
+    'productDocumentationPrefixes',
+    'productExactPaths',
+    'productPrefixes'
+  ]) {
     if (!validRules(policy[field])) return fail('WP0_ROUTE_RULE_INVALID', { field });
+  }
+  if (!validExtensions(policy.productDocumentationExtensions)) {
+    return fail('WP0_ROUTE_EXTENSION_RULE_INVALID', { field: 'productDocumentationExtensions' });
   }
   if (policy.mixedChangesEscalateToProduct !== true || policy.unknownPathFailsClosed !== true) {
     return fail('WP0_ROUTE_FAIL_CLOSED_INVALID');
@@ -69,6 +95,11 @@ function matchesExactOrPrefix(file, exact, prefixes) {
   return prefixes.some(prefix => file.startsWith(prefix));
 }
 
+function matchesProductDocumentation(file, policy) {
+  return policy.productDocumentationPrefixes.some(prefix => file.startsWith(prefix))
+    && policy.productDocumentationExtensions.some(extension => file.endsWith(extension));
+}
+
 function classifyWp0Route(policy, changedFiles = []) {
   const validation = validateWp0RoutingPolicy(policy);
   if (!validation.pass) return validation;
@@ -78,11 +109,17 @@ function classifyWp0Route(policy, changedFiles = []) {
   if (invalidIndex >= 0) return fail('WP0_ROUTE_PATH_INVALID', { path: changedFiles[invalidIndex] });
   const files = [...new Set(normalized)].sort();
   let governance = false;
+  let productDocumentation = false;
   let product = false;
   const unknown = [];
+
   for (const file of files) {
     if (matchesExactOrPrefix(file, policy.governanceExactPaths, policy.governancePrefixes)) {
       governance = true;
+      continue;
+    }
+    if (matchesProductDocumentation(file, policy)) {
+      productDocumentation = true;
       continue;
     }
     if (matchesExactOrPrefix(file, policy.productExactPaths, policy.productPrefixes)) {
@@ -91,15 +128,23 @@ function classifyWp0Route(policy, changedFiles = []) {
     }
     unknown.push(file);
   }
+
   if (unknown.length) return fail('WP0_ROUTE_UNKNOWN_PATH', { unknownPaths: unknown });
-  const route = product ? ROUTES.PRODUCT : ROUTES.GOVERNANCE;
+  const mixedDocumentationAndGovernance = productDocumentation && governance;
+  const route = product || mixedDocumentationAndGovernance
+    ? ROUTES.PRODUCT
+    : productDocumentation
+      ? ROUTES.PRODUCT_DOCUMENTATION
+      : ROUTES.GOVERNANCE;
+
   return outcome({
     pass: true,
     reasonCode: null,
     route,
     changedFiles: files,
     governanceChangesPresent: governance,
-    productChangesPresent: product
+    productDocumentationChangesPresent: productDocumentation,
+    productChangesPresent: product || mixedDocumentationAndGovernance
   });
 }
 
