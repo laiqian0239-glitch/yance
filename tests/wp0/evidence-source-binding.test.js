@@ -24,6 +24,7 @@ function assertPointerPreserved(repo) {
 function makeCleanClone(t) {
   const fixture = createReviewedImplementationClone();
   t.after(() => fixture.cleanup());
+  git(fixture.repo, ['update-ref', 'refs/remotes/origin/oss/1a-baileys-lifecycle', fixture.sourceCommit]);
   assertPointerPreserved(fixture.repo);
   return {
     root: fixture.root,
