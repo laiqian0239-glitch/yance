@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OPEN_SOURCE_WORK_PACKAGE_AUTHORIZATION_RECEIPT",
+  "program": "Open Source Acceleration",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-0",
+  "status": "SEALED_FOR_IMPLEMENTATION",
+  "requiredBaseRef": "plan/open-source-acceleration",
+  "approvedParentHead": "e7c4d441f9c028e8fbb4e5c61d18100dac44a19a",
+  "authorizedBranch": "oss/0-provenance-foundation",
+  "authorizationPath": "governance/open-source-acceleration/oss-0-implementation-authorization.json",
+  "authorizationCommit": "8c7ce757b7d7a436435edd01f1b022c9166f69a7",
+  "authorizationBlobSha": "4a8f8cf6123f600ddbabd37b396f981b3892990f",
+  "authorizationFileSha256": "f702aa8fa6a0a9dce34cfc6b0db48304d9aa87e6189e69ad681848ddae11fc08",
+  "approvedChangedFileCount": 15,
+  "approvedChangedFileSetSha256": "18942a9eed9f4c8ba7c603c2a113f64d974b995925da2fbbdd270ac5c3070065",
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "wildcardExpansionAllowed": false,
+    "prMustRemainDraft": true,
+    "mergeIntoMainAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "automaticNextWorkPackageAuthorization": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "readyForPromotion": false
+  }
+}
