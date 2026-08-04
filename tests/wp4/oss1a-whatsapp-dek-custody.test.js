@@ -16,6 +16,7 @@ const {
 } = require('../../electron/desktopHost/CredentialVaultHost');
 const { CredentialVault } = require('../../electron/credentialVault');
 const { makeCredentialFrame } = require('../../shared/credentialProtocol');
+const { mutationSha256 } = require('../../shared/credentialCustodyProtocol');
 const { createInstalledResources } = require('../wp2/helpers');
 
 const KEY_REFERENCE = 'whatsapp-auth-data-key:v1';
@@ -290,6 +291,8 @@ test('CredentialVaultHost READY validator accepts only exact initial or same-own
     );
     fixture.vaultHost.clearApplicationFence({ force: true });
 
+    const pendingRef = 'oss1a-ready-pending-ref';
+    const pendingValue = Object.freeze({ pending: true });
     const pendingRequest = {
       requestId: 'oss1a-ready-fd6-pending-1',
       operation: 'persist',
@@ -301,7 +304,11 @@ test('CredentialVaultHost READY validator accepts only exact initial or same-own
       manifestSha256: context.manifestSha256,
       hydrationGeneration: prepared.frame.generation,
       fd6PipeInstanceId: context.fd6PipeInstanceId,
-      payload: { ref: 'oss1a-ready-pending-ref', value: { pending: true } }
+      payload: {
+        ref: pendingRef,
+        value: pendingValue,
+        mutationSha256: mutationSha256('persist', pendingRef, pendingValue)
+      }
     };
     await fixture.vaultHost.prepareCustodyTransaction(pendingRequest);
     assert.throws(
@@ -454,12 +461,7 @@ test('real FD6 custody persists the WhatsApp DEK and the next backend owner rest
     const secondMetadata = vaultHost.snapshotMetadata();
     assert.equal(secondMetadata.generation, 3);
     assert.equal(secondMetadata.referenceCount, 1);
-    assertCredentialCounts(
-      secondState,
-      3,
-      1,
-      secondOwner.hydration.payloadBytes
-    );
+    assertCredentialCounts(secondState, 3, 1, secondOwner.hydration.payloadBytes);
 
     const secondDek = vaultHost.get(KEY_REFERENCE);
     assert.deepEqual(secondDek, firstDek, 'next owner must restore the exact authoritative DEK record');
