@@ -37,6 +37,12 @@ function requireFile(filePath, code) {
   return fs.readFileSync(filePath, 'utf8');
 }
 
+function matrixModule() {
+  requireFile(matrixPath, 'WP_B_M2_PROCESS_FAULT_MATRIX_REQUIRED');
+  delete require.cache[require.resolve(matrixPath)];
+  return require(matrixPath);
+}
+
 function withTempRoot(prefix, work) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   return Promise.resolve()
@@ -96,7 +102,7 @@ test('M2-FAULT-005 matrix proves duplicate external side effects remain zero', (
 test('M2-FAULT-006 key crash windows execute in child processes against real SQLite', async () => withTempRoot(
   'yance-wp-b-process-fault-',
   async workspaceRoot => {
-    const { runFaultMatrix } = require(matrixPath);
+    const { runFaultMatrix } = matrixModule();
     const scenarios = [
       'KILL_BEFORE_PHYSICAL_CALL',
       'KILL_AFTER_ATTEMPT_BEFORE_CALL',
@@ -120,7 +126,7 @@ test('M2-FAULT-006 key crash windows execute in child processes against real SQL
 test('M2-FAULT-007 fake remote lookup and idempotency survive a process restart', async () => withTempRoot(
   'yance-wp-b-remote-restart-',
   async workspaceRoot => {
-    const { runFakeRemoteRestartProbe } = require(matrixPath);
+    const { runFakeRemoteRestartProbe } = matrixModule();
     const receipt = await runFakeRemoteRestartProbe({ workspaceRoot, timeoutMs: 10_000 });
     assert.equal(receipt.firstPhysicalSideEffectCount, 1);
     assert.equal(receipt.secondPhysicalSideEffectCount, 1);
@@ -132,7 +138,7 @@ test('M2-FAULT-007 fake remote lookup and idempotency survive a process restart'
 test('M2-FAULT-008 normalized process evidence is bounded and contains no business content', async () => withTempRoot(
   'yance-wp-b-process-evidence-',
   async workspaceRoot => {
-    const { runFaultMatrix } = require(matrixPath);
+    const { runFaultMatrix } = matrixModule();
     const report = await runFaultMatrix({
       workspaceRoot,
       scenarios: ['REMOTE_SUCCESS_BEFORE_RECEIPT'],
