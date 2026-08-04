@@ -7,7 +7,11 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
-const { SqliteConnectionBroker } = require('../lib/sqliteConnectionBroker');
+const {
+  SqliteConnectionBroker,
+  configureSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
 
 const KEY_REFERENCE = 'whatsapp-auth-data-key:v1';
 
@@ -42,11 +46,14 @@ async function withAuthorityStore(callback) {
     dbPath,
     authorityWriteHostCapability: host.capability
   });
+  resetSqliteConnectionBrokerForTests();
+  configureSqliteConnectionBroker(broker);
   const authorityStore = broker.open();
   try {
     return await callback({ host, authorityStore });
   } finally {
     try { broker.checkpointAndClose(); } catch (_) {}
+    try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
     try { host.release(); } catch (_) {}
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
@@ -60,12 +67,15 @@ function expectCode(code) {
 }
 
 test('real AppRuntimeComposition places the critical key authority before account startup and fails closed without vault custody', async () => {
-  const previousReset = process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
+  const previousRuntimeReset = process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
+  const previousBrokerReset = process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
   process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
+  process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
   const { AppRuntimeFactory } = require('../runtime/AppRuntimeFactory');
 
   try {
     AppRuntimeFactory.resetForTests();
+    resetSqliteConnectionBrokerForTests();
     await withAuthorityStore(async ({ host, authorityStore }) => {
       const dependencies = minimalRuntimeDependencies(authorityStore.db);
       const runtime = AppRuntimeFactory.create({
@@ -127,7 +137,10 @@ test('real AppRuntimeComposition places the critical key authority before accoun
     });
   } finally {
     AppRuntimeFactory.resetForTests();
-    if (previousReset == null) delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
-    else process.env.YANCE_TEST_ONLY_RUNTIME_RESET = previousReset;
+    try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+    if (previousRuntimeReset == null) delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
+    else process.env.YANCE_TEST_ONLY_RUNTIME_RESET = previousRuntimeReset;
+    if (previousBrokerReset == null) delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+    else process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = previousBrokerReset;
   }
 });
