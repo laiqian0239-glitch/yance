@@ -186,3 +186,19 @@ test('M2-FAULT-009 receipt persistence path completes without a fault barrier', 
     assert.equal(report.results[0].duplicateExternalSideEffectCount, 0);
   }
 ));
+
+test('M2-FAULT-010 all eighteen scenarios execute and emit zero-leak zero-duplicate evidence', async () => withTempRoot(
+  'yance-wp-b-all-process-faults-',
+  async workspaceRoot => {
+    const { runFaultMatrix } = matrixModule();
+    const report = await runFaultMatrix({ workspaceRoot, timeoutMs: 30_000 });
+    assert.equal(report.scenarioCount, REQUIRED_SCENARIOS.length);
+    assert.deepEqual(report.results.map(row => row.scenario), REQUIRED_SCENARIOS);
+    assert.equal(report.duplicateExternalSideEffectCount, 0);
+    assert.equal(report.secretLeakCount, 0);
+    assert.equal(report.businessContentLeakCount, 0);
+    assert.equal(report.results.every(row => Number.isInteger(row.processId) && row.processId > 0), true);
+    assert.equal(report.results.every(row => row.executionId && row.intentId), true);
+    assert.equal(report.results.every(row => row.duplicateExternalSideEffectCount === 0), true);
+  }
+));
