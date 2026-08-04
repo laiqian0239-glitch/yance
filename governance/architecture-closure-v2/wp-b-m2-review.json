@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_B_M2_REVIEW",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-B",
+  "pullRequest": 17,
+  "branch": "acv2/wp-b-durable-execution-outbox",
+  "reviewedImplementation": {
+    "head": "3e5d71f68afccb64d0f61a776170d815fed77747",
+    "baselineHead": "e53bf933a8f4e3273e515587d917433df24d6feb",
+    "parentMilestone1SealHead": "1e3d600f0647af35e737ff92a200c67e69224c82",
+    "changedFileCount": 156,
+    "changedFileSetSha256": "47624308f63d4f32aed4b9d280b4015c3c3e654c43e34befdb3c80089c01fe6f",
+    "operationKinds": [
+      "AI_PROVIDER_EXECUTION",
+      "OUTBOUND_MESSAGE_SEND",
+      "DELIVERY_RECEIPT_RECONCILIATION",
+      "MEDIA_TRANSFER",
+      "HISTORY_SYNCHRONIZATION",
+      "SESSION_RESTORE"
+    ]
+  },
+  "review": {
+    "reviewedAt": "2026-08-04T06:30:00Z",
+    "reviewerType": "INDEPENDENT_SOFTWARE_AUDIT_AGENT",
+    "reviewerIdentity": "OpenAI GPT-5.6 Thinking",
+    "reviewContext": "独立软件工程审计",
+    "reviewMode": "POST_REMEDIATION_SEPARATE_REVIEW_PASS",
+    "humanApprovalClaimed": false,
+    "reviewGate2": "APPROVED",
+    "milestone1": "SEALED",
+    "milestone2": "REVIEWED_NOT_SEALED",
+    "milestone3": "NOT_STARTED",
+    "conclusion": "Milestone 2 implementation is independently reviewed and approved for seal-only evidence work. This receipt does not authorize Milestone 3, merge, production use, WP-C, release, or publish."
+  },
+  "redEvidence": {
+    "workflowName": "WP-B M2 Contracts",
+    "workflowRunId": 30837837145,
+    "head": "636d6feebaad4a49171750f4ec5f64bde12872fc",
+    "expectedConclusion": "failure",
+    "contractResult": "0_OF_26_PASS",
+    "ubuntuJobId": 91767246534,
+    "windowsJobId": 91767246437,
+    "ubuntuArtifactId": 8865542262,
+    "windowsArtifactId": 8865572044,
+    "secretLeakCount": 0,
+    "businessContentLeakCount": 0
+  },
+  "findings": [
+    {
+      "id": "WP-B-M2-IR-001",
+      "severity": "P0",
+      "invariant": "EXACT_SIX_OPERATION_RUNTIME_GRAPH",
+      "title": "Production composition sealed a registry containing only SESSION_RESTORE",
+      "reproducibleContract": "M2-IR-002",
+      "resolution": "AppRuntimeComposition now constructs one exact-six Adapter map, registers every mandatory operation once, seals the registry, and exposes that registry as the production runtime binding."
+    },
+    {
+      "id": "WP-B-M2-IR-002",
+      "severity": "P0",
+      "invariant": "COMPLETE_PERSISTED_FENCING_IDENTITY_AT_PHYSICAL_BOUNDARY",
+      "title": "AI, outbound, and delivery physical clients did not all receive the complete persisted claim and fencing identity",
+      "reproducibleContract": "M2-IR-001,M2-IR-005,M2-IR-006",
+      "resolution": "The three Adapters now validate and propagate execution, intent, attempt, claim, owner, generation, host generation, and fencing token before any physical call or lookup; missing fields fail closed."
+    },
+    {
+      "id": "WP-B-M2-IR-003",
+      "severity": "P0",
+      "invariant": "CANONICAL_COMMAND_BYTES_SEPARATE_FROM_PERSISTED_ATTEMPT_CONTEXT",
+      "title": "Outbound physical dispatch wrapped or mixed canonical OutboxCommand bytes with persisted attempt identity",
+      "reproducibleContract": "M2-IR-001,M2-OUT-003",
+      "resolution": "The physical channel boundary now receives the frozen canonical command as its first argument and a separate frozen content-free persisted fencing context as its second argument; command bytes and hashes remain unchanged."
+    }
+  ],
+  "formalValidation": [
+    {
+      "workflowName": "WP-B M2 Independent Review Integrity",
+      "workflowRunId": 30883704903,
+      "runNumber": 21,
+      "expectedHead": "3e5d71f68afccb64d0f61a776170d815fed77747",
+      "expectedConclusion": "success",
+      "jobs": [
+        { "jobId": 91910234934, "name": "wp-b-m2-review-integrity-ubuntu-latest" },
+        { "jobId": 91910235008, "name": "wp-b-m2-review-integrity-windows-latest" },
+        { "jobId": 91910669351, "name": "wp-b-m2-independent-review-gate" }
+      ]
+    },
+    {
+      "workflowName": "WP-B M2 Contracts",
+      "workflowRunId": 30883704889,
+      "runNumber": 194,
+      "expectedHead": "3e5d71f68afccb64d0f61a776170d815fed77747",
+      "expectedConclusion": "success",
+      "jobs": [
+        { "jobId": 91910235110, "name": "wp-b-m2-contracts-ubuntu-latest" },
+        { "jobId": 91910234977, "name": "wp-b-m2-contracts-windows-latest" },
+        { "jobId": 91910618003, "name": "wp-b-m2-contracts-gate" }
+      ],
+      "artifacts": [
+        {
+          "artifactId": 8882246393,
+          "name": "wp-b-m2-contract-evidence-ubuntu-latest",
+          "digest": "sha256:b8950343db5cb5fe0b9726deb499be5ff83a7331eab59930d681a76caddecf4b",
+          "normalizedOutputSha256": "fc8d12d057c11df3c1e981c7c19d8db46823c340e51f0911bb1bde5a51bffc2b"
+        },
+        {
+          "artifactId": 8882282133,
+          "name": "wp-b-m2-contract-evidence-windows-latest",
+          "digest": "sha256:b72761766b5260b88941ce1d2a4fe50019caf347652b51778954d22cfebd7855",
+          "normalizedOutputSha256": "12c0eda9099502c58d029c62254fa8b8773d2af07e0a201527efc3f9f8cf6a1c"
+        }
+      ],
+      "contractEvidence": {
+        "testCount": 89,
+        "passCount": 89,
+        "failCount": 0,
+        "matchedInfrastructurePattern": null,
+        "secretLeakCount": 0,
+        "businessContentLeakCount": 0
+      }
+    },
+    {
+      "workflowName": "WP-B Validation",
+      "workflowRunId": 30883704901,
+      "runNumber": 654,
+      "expectedHead": "3e5d71f68afccb64d0f61a776170d815fed77747",
+      "expectedConclusion": "success",
+      "jobs": [
+        { "jobId": 91910235161, "name": "wp-b-governance-ubuntu-latest" },
+        { "jobId": 91910235277, "name": "wp-b-governance-windows-latest" },
+        { "jobId": 91910235218, "name": "wp-b-xstate-adapter-ubuntu-latest" },
+        { "jobId": 91910235227, "name": "wp-b-xstate-adapter-windows-latest" },
+        { "jobId": 91910235276, "name": "wp-b-m1-contracts-ubuntu-latest" },
+        { "jobId": 91910235234, "name": "wp-b-m1-contracts-windows-latest" },
+        { "jobId": 91910235235, "name": "wp-b-xstate-upstream-ubuntu-latest" },
+        { "jobId": 91910235244, "name": "wp-b-xstate-upstream-windows-latest" },
+        { "jobId": 91910615670, "name": "wp-b-validation-gate" }
+      ]
+    },
+    {
+      "workflowName": "Stage 6.4.5.9 WP0 Architecture Gates",
+      "workflowRunId": 30883704959,
+      "runNumber": 856,
+      "expectedHead": "3e5d71f68afccb64d0f61a776170d815fed77747",
+      "expectedConclusion": "success",
+      "jobs": [
+        { "jobId": 91910235262, "name": "wp0-route" },
+        { "jobId": 91910322973, "name": "wp0-product" },
+        { "jobId": 91910322993, "name": "sealed-export-windows-latest" },
+        { "jobId": 91910322997, "name": "sealed-export-ubuntu-latest" },
+        { "jobId": 91910527348, "name": "wp0-gates" }
+      ]
+    },
+    {
+      "workflowName": "WP-B M1 Independent Review Integrity",
+      "workflowRunId": 30883704890,
+      "runNumber": 158,
+      "expectedHead": "3e5d71f68afccb64d0f61a776170d815fed77747",
+      "expectedConclusion": "success",
+      "jobs": [
+        { "jobId": 91910234828, "name": "wp-b-m1-review-integrity-ubuntu-latest" },
+        { "jobId": 91910234876, "name": "wp-b-m1-review-integrity-windows-latest" }
+      ]
+    },
+    {
+      "workflowName": "WP-B M2 Authorization",
+      "workflowRunId": 30883704923,
+      "runNumber": 156,
+      "expectedHead": "3e5d71f68afccb64d0f61a776170d815fed77747",
+      "expectedConclusion": "success",
+      "jobs": [
+        { "jobId": 91910234959, "name": "wp-b-m2-authorization-ubuntu-latest" },
+        { "jobId": 91910234979, "name": "wp-b-m2-authorization-windows-latest" },
+        { "jobId": 91910318326, "name": "wp-b-m2-authorization-gate" }
+      ]
+    },
+    {
+      "workflowName": "ACV2 WP-A Architecture Gates",
+      "workflowRunId": 30883704878,
+      "runNumber": 894,
+      "expectedHead": "3e5d71f68afccb64d0f61a776170d815fed77747",
+      "expectedConclusion": "success",
+      "jobs": [
+        { "jobId": 91910234808, "name": "acv2-wp-a-source-closure" },
+        { "jobId": 91910234877, "name": "acv2-wp-a-windows-latest" },
+        { "jobId": 91910234880, "name": "acv2-wp-a-ubuntu-latest" }
+      ]
+    },
+    {
+      "workflowName": "WP-A Main Post-Merge Validation",
+      "workflowRunId": 30883704884,
+      "runNumber": 388,
+      "expectedHead": "3e5d71f68afccb64d0f61a776170d815fed77747",
+      "expectedConclusion": "success",
+      "jobs": [
+        { "jobId": 91910234732, "name": "wp-a-post-merge-identity-source-closure" },
+        { "jobId": 91910234799, "name": "wp-a-post-merge-ubuntu-latest" },
+        { "jobId": 91910234818, "name": "wp-a-post-merge-windows-latest" },
+        { "jobId": 91910769185, "name": "wp-a-post-merge-gate" }
+      ]
+    }
+  ],
+  "reviewedBlobs": {
+    ".github/workflows/wp-b-m2-independent-review-integrity.yml": "223dc0a1f52f99d06e652d8c1ce5d3153d1fc39f",
+    "backend/runtime/AppRuntimeComposition.js": "9497773deb19cec415de51744e39f3e4c08d3dae",
+    "backend/services/channelRuntimeEngine.js": "657ade6128fa0f05a9997ccccb7f72c3068d726e",
+    "backend/services/durableExecutionRecoveryAuthority.js": "33c72217139afcd3b8fc9807d6a18e9c89bf5657",
+    "backend/services/durableOperationRegistry.js": "8baa08a43a04b19ddac40da4b24e9eadfe31b30b",
+    "backend/services/durableOperations/outboundMessageSendOperation.js": "5dd4b86b65c6248838f303b91d3451e0049cb22d",
+    "backend/services/externalActionDispatcher.js": "4bb5a5d4c8d57f4e1abf52f6932c50c941216773",
+    "backend/tests/architectureClosureV2/wpB/m2IndependentReviewIntegrity.test.js": "d5d6c8e1f1ee3c2f3b1e8254f730b290c4110b18",
+    "backend/tests/architectureClosureV2/wpB/outboundMessageDurableMigration.test.js": "84cdc28450ab72557924a9d4e366d48b8bfc719a",
+    "governance/architecture-closure-v2/wp-b-m2-red-evidence.json": "d688e46568099703abb885720e6c3f1666768ca5",
+    "tools/architecture-closure-v2/wp-b-process-fault-matrix.js": "06a3eb4abc5b965528d8517518a50d484817ad5a"
+  },
+  "seal": {
+    "status": "PENDING",
+    "head": "",
+    "allowedPostReviewPaths": [
+      ".github/workflows/wp-b-m2-independent-review-integrity.yml",
+      "backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js",
+      "governance/architecture-closure-v2/wp-b-m2-review.json",
+      "tools/architecture-closure-v2/verify-wp-b-m2-review.js"
+    ],
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false
+  },
+  "governance": {
+    "prMustRemainDraft": true,
+    "milestone2Authorized": true,
+    "credibleM2RedRecorded": true,
+    "milestone2Reviewed": true,
+    "milestone2Sealed": false,
+    "readyForPromotion": false,
+    "milestone3Authorized": false,
+    "mergeAuthorized": false,
+    "productionUseAuthorized": false,
+    "wpCAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false
+  }
+}
