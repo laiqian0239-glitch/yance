@@ -10,6 +10,18 @@ const KNOWN_CAPABILITIES = Object.freeze([
   'RECOVERY_OR_FALLBACK_ENTRYPOINT'
 ]);
 const KNOWN_CAPABILITY_SET = new Set(KNOWN_CAPABILITIES);
+const WP_B_CAPABILITY_CLASSES = Object.freeze([
+  'LEGACY_CALLABLE_ENTRYPOINT',
+  'LEGACY_WRITER_AUTHORITY',
+  'LEGACY_RECOVERY_AUTHORITY',
+  'TIMER_OR_RECONNECT_AUTHORITY',
+  'PHYSICAL_IO_BOUNDARY_OPEN',
+  'PROCESS_SUPERVISOR_BUSINESS_BOUNDARY_OPEN',
+  'NON_PRODUCTION_HARNESS_RUNTIME_REACHABILITY',
+  'UNREGISTERED_WP_B_SOURCE',
+  'WP_B_INVENTORY_GOVERNANCE'
+]);
+const WP_B_CAPABILITY_CLASS_SET = new Set(WP_B_CAPABILITY_CLASSES);
 const ACQUISITION_PATTERNS = Object.freeze([
   { capability: 'PRIMARY_DB_CONSTRUCTOR', expression: /new\s+DatabaseSync\s*\(/u },
   { capability: 'PRIMARY_STORE_CONSTRUCTOR', expression: /new\s+R32SqliteStore\s*\(/u },
@@ -18,6 +30,10 @@ const ACQUISITION_PATTERNS = Object.freeze([
 ]);
 const BUSINESS_MUTATION_PATTERN = /\b(?:INSERT\s+INTO|UPDATE\s+[A-Za-z_][A-Za-z0-9_]*|DELETE\s+FROM)\b/iu;
 const RECOVERY_PATTERN = /\b(?:recoverInterrupted|migrateAtStartup|runBootPhase0Restore|canonicalizeWhatsAppAccounts|repairRoutes|initializeDataPipelines)\s*\(/u;
+const WP_B_BLIND_RETRY_RESPONSIBILITY = /(?:RETRY|BACKOFF|RECONNECT)/u;
+const WP_B_TIMER_RESPONSIBILITY = /(?:TIMER|RECONNECT)/u;
+const WP_B_RECOVERY_RESPONSIBILITY = /(?:RECOVERY|RESTORE|RECONCILIATION|LEASE_TAKEOVER)/u;
+const WP_B_WRITER_RESPONSIBILITY = /(?:MUTATION|QUEUE_STATE|MESSAGE_STATE|MEDIA_STATE|DELIVERY_ATTEMPT|SYNC_CHECKPOINT|EVIDENCE_WRITE|LEGACY_[A-Z0-9_]*STATE)/u;
 
 function capabilityError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
@@ -91,10 +107,60 @@ function compareDeclaredCapabilities({ source, declared, registryId = '', source
   });
 }
 
+function wpBResponsibilityFacts(entry = {}) {
+  const responsibilities = Object.freeze((Array.isArray(entry.currentResponsibilities)
+    ? entry.currentResponsibilities
+    : []).map(value => String(value || '').trim()).filter(Boolean));
+  const joined = responsibilities.join('|');
+  const classification = String(entry.classification || '');
+  return Object.freeze({
+    responsibilities,
+    callable: classification !== 'NON_PRODUCTION_HARNESS',
+    directExternal: classification === 'PHYSICAL_IO_ADAPTER',
+    blindRetry: WP_B_BLIND_RETRY_RESPONSIBILITY.test(joined),
+    timerOrReconnect: WP_B_TIMER_RESPONSIBILITY.test(joined),
+    recovery: classification === 'RECOVERY_OR_SCHEDULER'
+      || WP_B_RECOVERY_RESPONSIBILITY.test(joined),
+    writer: WP_B_WRITER_RESPONSIBILITY.test(joined)
+  });
+}
+
+function classifyWpBInventoryEntry(entry = {}) {
+  const classification = String(entry.classification || '');
+  const facts = wpBResponsibilityFacts(entry);
+  let capabilityClass;
+  if (classification === 'NON_PRODUCTION_HARNESS') {
+    capabilityClass = 'NON_PRODUCTION_HARNESS_RUNTIME_REACHABILITY';
+  } else if (classification === 'PHYSICAL_IO_ADAPTER') {
+    capabilityClass = 'PHYSICAL_IO_BOUNDARY_OPEN';
+  } else if (classification === 'PROCESS_SUPERVISOR') {
+    capabilityClass = 'PROCESS_SUPERVISOR_BUSINESS_BOUNDARY_OPEN';
+  } else if (facts.timerOrReconnect) {
+    capabilityClass = 'TIMER_OR_RECONNECT_AUTHORITY';
+  } else if (facts.recovery) {
+    capabilityClass = 'LEGACY_RECOVERY_AUTHORITY';
+  } else if (facts.writer) {
+    capabilityClass = 'LEGACY_WRITER_AUTHORITY';
+  } else {
+    capabilityClass = 'LEGACY_CALLABLE_ENTRYPOINT';
+  }
+  if (!WP_B_CAPABILITY_CLASS_SET.has(capabilityClass)) {
+    throw capabilityError(
+      'WP_B_SOURCE_CLOSURE_CAPABILITY_UNKNOWN',
+      'WP-B capability classification is not registered',
+      { capabilityClass, inventoryId: String(entry.id || '') }
+    );
+  }
+  return Object.freeze({ capabilityClass, ...facts });
+}
+
 module.exports = Object.freeze({
   KNOWN_CAPABILITIES,
+  WP_B_CAPABILITY_CLASSES,
+  classifyWpBInventoryEntry,
   compareDeclaredCapabilities,
   detectSourceCapabilities,
   exactCapabilityList,
-  normalizePath
+  normalizePath,
+  wpBResponsibilityFacts
 });
