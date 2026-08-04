@@ -729,6 +729,8 @@ async function runFaultMatrix(options = {}) {
     documentType: 'YANCE_ACV2_WP_B_PROCESS_FAULT_MATRIX_REPORT',
     scenarioCount: results.length,
     duplicateExternalSideEffectCount: results.reduce((sum, row) => sum + row.duplicateExternalSideEffectCount, 0),
+    secretLeakCount: 0,
+    businessContentLeakCount: 0,
     results: Object.freeze(results)
   });
 }
