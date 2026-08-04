@@ -312,3 +312,5 @@ test('writer rejection is propagated before any AuthenticationState lease is pub
   assert.equal(fixture.calls.commitCreds, 0);
   assert.equal(fixture.calls.setKeys, 0);
 });
+
+require('./oss1aWhatsappLegacyAuthImport.test');
