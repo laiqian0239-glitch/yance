@@ -144,3 +144,5 @@ test('real AppRuntimeComposition places the critical key authority before accoun
     else process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = previousBrokerReset;
   }
 });
+
+require('../../tests/wp4/oss1a-whatsapp-dek-custody.test');
