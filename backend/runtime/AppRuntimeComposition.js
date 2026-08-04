@@ -48,6 +48,7 @@ const { AuthorityTransactionCoordinator } = require('../services/authorityTransa
 const canonicalEventLedgerModule = require('../services/canonicalEventLedgerAuthority');
 const { CanonicalEventLedgerAuthority } = canonicalEventLedgerModule;
 const { IdentityAuthority } = require('../services/identityAuthority');
+const { DurableExecutionRecoveryAuthority } = require('../services/durableExecutionRecoveryAuthority');
 const {
   isAuthorityWriteHostCapability,
   assertCurrentAuthorityWriteHostToken
@@ -81,7 +82,7 @@ function createStartupCommandHandlers(options = {}) {
       503
     );
   }
-  const handlers = Object.freeze(Object.assign(Object.create(null), {
+  const handlerEntries = Object.assign(Object.create(null), {
     'startup.migrate': () => migrationService.migrateAtStartup(),
     'startup.recoverSync': () => syncCheckpointService.recoverInterrupted(),
     'startup.recoverBackgroundJobs': payload => backgroundJobAuthority.recoverInterrupted({
@@ -94,7 +95,20 @@ function createStartupCommandHandlers(options = {}) {
     'startup.purgeCache': () => cacheGcService.purge(),
     'startup.productionDataGuard': () => runProductionDataGuard(),
     'startup.initializeWorkspacePipelines': () => workspaceService.initializeDataPipelines()
-  }));
+  });
+  const durableExecutionRecoveryAuthority = options.durableExecutionRecoveryAuthority;
+  if (durableExecutionRecoveryAuthority != null) {
+    if (typeof durableExecutionRecoveryAuthority.recoverNonterminalExecutions !== 'function') {
+      throw gatewayError(
+        'STARTUP_DURABLE_RECOVERY_AUTHORITY_REQUIRED',
+        'Startup durable recovery requires DurableExecutionRecoveryAuthority',
+        503
+      );
+    }
+    handlerEntries['startup.recoverDurableExecutions'] = payload =>
+      durableExecutionRecoveryAuthority.recoverNonterminalExecutions(payload || {});
+  }
+  const handlers = Object.freeze(handlerEntries);
   STARTUP_HANDLER_AUTHORITIES.set(handlers, identityAuthority);
   return handlers;
 }
@@ -422,7 +436,22 @@ function createAppRuntimeComposition(runtime) {
   lockAuthorityBinding(identityAuthority, 'eventRecorder', identityAuthority.eventRecorder);
   lockAuthorityBinding(identityAuthority, 'legacyCanonicalIdentity', identityAuthority.legacyCanonicalIdentity);
 
-  const startupCommandHandlers = createStartupCommandHandlers({ identityAuthority });
+  const recoveryStoreProvider = () => authorityStore;
+  const durableExecutionRecoveryAuthority = new DurableExecutionRecoveryAuthority({
+    storeProvider: recoveryStoreProvider,
+    authorityWriteHostCapability
+  });
+  lockAuthorityBinding(durableExecutionRecoveryAuthority, 'storeProvider', recoveryStoreProvider);
+  lockAuthorityBinding(
+    durableExecutionRecoveryAuthority,
+    'authorityWriteHostCapability',
+    authorityWriteHostCapability
+  );
+
+  const startupCommandHandlers = createStartupCommandHandlers({
+    identityAuthority,
+    durableExecutionRecoveryAuthority
+  });
   const authorityCommandGateway = new RuntimeAuthorityCommandGateway({ runtime, authorityWriteHostCapability, authorityStore, commandHandlers: startupCommandHandlers });
   const commandSubmitter = envelope => authorityCommandGateway.execute(envelope);
   const sessionRestoreStartupReceipt = authorityCommandGateway.submit(
@@ -448,7 +477,7 @@ function createAppRuntimeComposition(runtime) {
   });
   securityGuard.setPolicyProviders({ safeModeProvider: () => runtime.operatingMode === 'safeMode', lifecycleStateProvider: () => runtime.state, productionDiagnostics });
   return Object.freeze({
-    authorities: Object.freeze({ authorityWriteHostCapability, authorityTransactionCoordinator, canonicalEventLedgerAuthority, identityAuthority, platformCoreRepository, workspaceIdentityCommandFacade, migrationAuthority }),
+    authorities: Object.freeze({ authorityWriteHostCapability, authorityTransactionCoordinator, canonicalEventLedgerAuthority, identityAuthority, durableExecutionRecoveryAuthority, platformCoreRepository, workspaceIdentityCommandFacade, migrationAuthority }),
     authorityCommandGateway,
     commandSubmitter,
     durableOperationRegistry: sessionRestoreRuntime.durableOperationRegistry,
