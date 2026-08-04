@@ -21,6 +21,7 @@ function isNonEmptyString(value) {
 function isSafeRepositoryPath(value) {
   if (!isNonEmptyString(value) || path.isAbsolute(value)) return false;
   const normalized = value.replaceAll('\\', '/');
+  if (normalized.startsWith('/') || /^[A-Za-z]:\//u.test(normalized) || /[\r\n]/u.test(normalized)) return false;
   const segments = normalized.split('/');
   return !segments.includes('..') && !segments.includes('') && normalized !== '.';
 }
