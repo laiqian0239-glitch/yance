@@ -18,12 +18,27 @@ function git(cwd, args) {
   }).trim();
 }
 
+function resolveSourceIdentityBranch(sourceRoot, sourceCommit, options = {}) {
+  const candidate = Object.prototype.hasOwnProperty.call(options, 'sourceIdentityBranch')
+    ? String(options.sourceIdentityBranch || '')
+    : git(sourceRoot, ['branch', '--show-current']);
+  if (!candidate) return null;
+  try {
+    git(sourceRoot, ['check-ref-format', '--branch', candidate]);
+    const tip = git(sourceRoot, ['rev-parse', `refs/heads/${candidate}`]);
+    return tip === sourceCommit ? candidate : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 function createReviewedImplementationClone(options = {}) {
   const sourceRoot = path.resolve(options.sourceRoot || REPO_ROOT);
   const sourceCommit = options.sourceCommit || git(sourceRoot, ['rev-parse', 'HEAD']);
   if (!/^[0-9a-f]{40}$/u.test(sourceCommit)) {
     throw new Error('reviewed implementation fixture requires an exact source commit');
   }
+  const sourceIdentityBranch = resolveSourceIdentityBranch(sourceRoot, sourceCommit, options);
   const branch = options.branch || REVIEWED_FIXTURE_BRANCH;
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp0-reviewed-fixture-'));
   const repo = path.join(root, 'repo');
@@ -41,11 +56,20 @@ function createReviewedImplementationClone(options = {}) {
 
   git(repo, ['checkout', '--quiet', '--force', '-B', branch, sourceCommit]);
   git(repo, ['update-ref', `refs/remotes/origin/${branch}`, sourceCommit]);
+  if (sourceIdentityBranch && sourceIdentityBranch !== branch) {
+    git(repo, ['update-ref', `refs/remotes/origin/${sourceIdentityBranch}`, sourceCommit]);
+  }
 
   const head = git(repo, ['rev-parse', 'HEAD']);
   const currentBranch = git(repo, ['branch', '--show-current']);
   const remoteTip = git(repo, ['rev-parse', `refs/remotes/origin/${branch}`]);
-  if (head !== sourceCommit || currentBranch !== branch || remoteTip !== sourceCommit) {
+  const sourceIdentityTip = sourceIdentityBranch
+    ? git(repo, ['rev-parse', `refs/remotes/origin/${sourceIdentityBranch}`])
+    : null;
+  if (head !== sourceCommit
+    || currentBranch !== branch
+    || remoteTip !== sourceCommit
+    || (sourceIdentityBranch && sourceIdentityTip !== sourceCommit)) {
     fs.rmSync(root, { recursive: true, force: true });
     throw new Error('reviewed implementation fixture identity binding failed');
   }
@@ -60,6 +84,7 @@ function createReviewedImplementationClone(options = {}) {
     repo,
     branch,
     sourceCommit,
+    sourceIdentityBranch,
     cleanup() {
       fs.rmSync(root, { recursive: true, force: true });
     }
