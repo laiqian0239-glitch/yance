@@ -2,24 +2,12 @@
 
 const crypto = require('node:crypto');
 const path = require('node:path');
-const {
-  acquireAuthorityWriteHost
-} = require('../../../backend/services/authorityWriteHost');
-const {
-  SqliteConnectionBroker
-} = require('../../../backend/lib/sqliteConnectionBroker');
-const {
-  DurableExecutionAuthority
-} = require('../../../backend/services/durableExecutionAuthority');
-const {
-  DurableExecutionRecoveryAuthority
-} = require('../../../backend/services/durableExecutionRecoveryAuthority');
-const {
-  ExternalActionOutboxAuthority
-} = require('../../../backend/services/externalActionOutboxAuthorityCore');
-const {
-  ExternalActionDispatcher
-} = require('../../../backend/services/externalActionDispatcher');
+const { acquireAuthorityWriteHost } = require('../../../backend/services/authorityWriteHost');
+const { SqliteConnectionBroker } = require('../../../backend/lib/sqliteConnectionBroker');
+const { DurableExecutionAuthority } = require('../../../backend/services/durableExecutionAuthority');
+const { DurableExecutionRecoveryAuthority } = require('../../../backend/services/durableExecutionRecoveryAuthority');
+const { ExternalActionOutboxAuthority } = require('../../../backend/services/externalActionOutboxAuthorityCore');
+const { ExternalActionDispatcher } = require('../../../backend/services/externalActionDispatcher');
 const { canonicalHash, canonicalSerialize } = require('../../../backend/services/canonicalSerialization');
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
@@ -34,6 +22,18 @@ function errorPayload(error) {
 }
 function parsedOptions() {
   try { return JSON.parse(String(process.argv[4] || '{}')); } catch (_) { return {}; }
+}
+function requireClaim(snapshot, purpose) {
+  const claim = snapshot?.claim;
+  if (!claim
+      || !Number.isSafeInteger(claim.stateVersion)
+      || !Number.isSafeInteger(claim.generation)) {
+    throw Object.assign(new Error(`${purpose} did not return canonical claim facts`), {
+      code: 'WP_B_FIXTURE_CLAIM_SNAPSHOT_INVALID',
+      purpose
+    });
+  }
+  return claim;
 }
 
 const dbPath = path.resolve(process.argv[2] || 'wp-b-dispatcher.db');
@@ -118,7 +118,10 @@ function prepare(input = {}) {
     operationKind: 'OUTBOUND_MESSAGE_SEND',
     idempotencyKey: `execution:${idempotencyKey}`,
     traceId: `trace:${suffix}`,
-    command: { destinationReference: `destination:${suffix}`, contentReference: `content:${suffix}` },
+    command: {
+      destinationReference: `destination:${suffix}`,
+      contentReference: `content:${suffix}`
+    },
     metadata: { platform: 'fault-matrix' },
     maxAttempts: 3,
     deadlineAt,
@@ -129,25 +132,28 @@ function prepare(input = {}) {
     executionId,
     actionKind: 'OUTBOUND_MESSAGE_SEND',
     idempotencyKey,
-    payload: { destinationReference: `destination:${suffix}`, contentReference: `content:${suffix}` },
+    payload: {
+      destinationReference: `destination:${suffix}`,
+      contentReference: `content:${suffix}`
+    },
     authorityTimestamp: timestamp()
   });
-  let claimed = intent;
+  const initialClaim = requireClaim(intent, 'createIntent');
+  let claim = initialClaim;
   if (input.claimIntent !== false) {
-    const leaseStartedAt = timestamp(input.leaseStartedAt);
-    const leaseExpiresAt = clean(input.leaseExpiresAt) || '2026-08-04T03:59:00.000Z';
-    claimed = outboxAuthority.claimIntent({
+    const claimed = outboxAuthority.claimIntent({
       intentId,
       ownerId: token.instanceId,
       hostId: token.instanceId,
       claimId,
-      stateVersion: intent.stateVersion,
-      generation: intent.generation,
+      stateVersion: initialClaim.stateVersion,
+      generation: initialClaim.generation,
       hostGeneration: token.hostGeneration,
       fencingToken: token.fencingToken,
-      leaseStartedAt,
-      leaseExpiresAt
+      leaseStartedAt: timestamp(input.leaseStartedAt),
+      leaseExpiresAt: clean(input.leaseExpiresAt) || '2026-08-04T03:59:00.000Z'
     });
+    claim = requireClaim(claimed, 'claimIntent');
   }
   context = Object.freeze({
     executionId,
@@ -156,11 +162,11 @@ function prepare(input = {}) {
     ownerId: input.claimIntent === false ? '' : token.instanceId,
     hostId: token.instanceId,
     claimId: input.claimIntent === false ? '' : claimId,
-    stateVersion: claimed.stateVersion,
-    generation: claimed.generation,
+    stateVersion: claim.stateVersion,
+    generation: claim.generation,
     hostGeneration: input.claimIntent === false ? 0 : token.hostGeneration,
     fencingToken: input.claimIntent === false ? 0 : token.fencingToken,
-    leaseExpiresAt: claimed.leaseExpiresAt || ''
+    leaseExpiresAt: claim.leaseExpiresAt || ''
   });
   return Object.freeze({ processId: process.pid, ...context });
 }
@@ -186,10 +192,18 @@ function inspect(input = {}) {
     generation: Number(claim?.generation || execution?.generation || input.generation || 0),
     hostGeneration: Number(claim?.host_generation || execution?.host_generation || input.hostGeneration || 0),
     fencingToken: Number(claim?.fencing_token || execution?.fencing_token || input.fencingToken || 0),
-    attemptCount: intentId ? Number(store.db.prepare('SELECT COUNT(*) AS count FROM external_action_attempts WHERE intent_id=?').get(intentId).count || 0) : 0,
-    receiptCount: intentId ? Number(store.db.prepare('SELECT COUNT(*) AS count FROM external_action_receipts WHERE intent_id=?').get(intentId).count || 0) : 0,
-    reconciliationCount: intentId ? Number(store.db.prepare('SELECT COUNT(*) AS count FROM external_outcome_reconciliations WHERE intent_id=?').get(intentId).count || 0) : 0,
-    checkpointCount: executionId ? Number(store.db.prepare('SELECT COUNT(*) AS count FROM durable_execution_checkpoints WHERE execution_id=?').get(executionId).count || 0) : 0,
+    attemptCount: intentId
+      ? Number(store.db.prepare('SELECT COUNT(*) AS count FROM external_action_attempts WHERE intent_id=?').get(intentId).count || 0)
+      : 0,
+    receiptCount: intentId
+      ? Number(store.db.prepare('SELECT COUNT(*) AS count FROM external_action_receipts WHERE intent_id=?').get(intentId).count || 0)
+      : 0,
+    reconciliationCount: intentId
+      ? Number(store.db.prepare('SELECT COUNT(*) AS count FROM external_outcome_reconciliations WHERE intent_id=?').get(intentId).count || 0)
+      : 0,
+    checkpointCount: executionId
+      ? Number(store.db.prepare('SELECT COUNT(*) AS count FROM durable_execution_checkpoints WHERE execution_id=?').get(executionId).count || 0)
+      : 0,
     finalState: clean(execution?.state || claim?.state),
     claimState: clean(claim?.state),
     executionStateVersion: Number(execution?.state_version || 0)
@@ -201,16 +215,28 @@ function startAttemptOnly(input = {}) {
   const attempt = outboxAuthority.startAttempt({
     ...facts,
     attemptId: clean(input.attemptId) || `fault-attempt-${crypto.randomUUID()}`,
-    request: { destinationReference: 'destination:fixture', contentReference: 'content:fixture' },
+    request: {
+      destinationReference: 'destination:fixture',
+      contentReference: 'content:fixture'
+    },
     authorityTimestamp: timestamp(input.authorityTimestamp)
   });
-  context = Object.freeze({ ...facts, stateVersion: attempt.stateVersion, attemptId: attempt.attemptId });
+  context = Object.freeze({
+    ...facts,
+    stateVersion: attempt.stateVersion,
+    generation: attempt.generation,
+    attemptId: attempt.attemptId
+  });
   return attempt;
 }
 
 async function dispatch(input = {}) {
   const dispatchContext = Object.freeze({ ...(context || {}), ...(input.context || {}) });
-  if (!dispatchContext.intentId) throw Object.assign(new Error('dispatcher context required'), { code: 'WP_B_DISPATCHER_CONTEXT_REQUIRED' });
+  if (!dispatchContext.intentId) {
+    throw Object.assign(new Error('dispatcher context required'), {
+      code: 'WP_B_DISPATCHER_CONTEXT_REQUIRED'
+    });
+  }
   const faultPoint = clean(input.faultPoint);
   const remoteBehavior = clean(input.remoteBehavior || 'SUCCESS');
   const remoteDelayMs = Math.max(0, Math.min(5000, Number(input.remoteDelayMs || 0)));
@@ -225,13 +251,21 @@ async function dispatch(input = {}) {
         authorityTimestamp: timestamp()
       });
       if (!remote.ok) {
-        throw Object.assign(new Error(remote.error?.code || 'REMOTE_CALL_FAILED'), remote.error || {});
+        throw Object.assign(
+          new Error(remote.error?.code || 'REMOTE_CALL_FAILED'),
+          remote.error || {}
+        );
       }
-      if (faultPoint === 'AFTER_REMOTE_SUCCESS_BEFORE_RECEIPT') await faultBarrier(faultPoint);
+      if (faultPoint === 'AFTER_REMOTE_SUCCESS_BEFORE_RECEIPT') {
+        await faultBarrier(faultPoint);
+      }
       return Object.freeze({
         providerReceiptId: clean(remote.result?.providerReceiptId),
         evidenceReference: `fake-remote:${clean(remote.result?.requestId)}`,
-        result: { status: 'accepted', receiptId: clean(remote.result?.providerReceiptId) }
+        result: {
+          status: 'accepted',
+          receiptId: clean(remote.result?.providerReceiptId)
+        }
       });
     }
   });
@@ -242,12 +276,18 @@ async function dispatch(input = {}) {
   });
   return externalActionDispatcher.dispatch({
     ...dispatchContext,
-    request: { destinationReference: 'destination:fixture', contentReference: 'content:fixture' }
+    request: {
+      destinationReference: 'destination:fixture',
+      contentReference: 'content:fixture'
+    }
   });
 }
 
 function releaseStartupClaim() {
-  return Object.freeze({ released: host.releaseStartupClaimForTests(), token: host.tokenSnapshot() });
+  return Object.freeze({
+    released: host.releaseStartupClaimForTests(),
+    token: host.tokenSnapshot()
+  });
 }
 
 function reclaim(input = {}) {
@@ -264,7 +304,9 @@ function reclaim(input = {}) {
     hostId: token.instanceId,
     hostGeneration: token.hostGeneration,
     fencingToken: token.fencingToken,
-    authorityTimestamp: timestamp(input.authorityTimestamp || '2026-08-04T03:30:00.000Z')
+    authorityTimestamp: timestamp(
+      input.authorityTimestamp || '2026-08-04T03:30:00.000Z'
+    )
   });
   context = Object.freeze({
     ...expired,
@@ -283,17 +325,32 @@ function seedExecutionState(input = {}) {
   const executionId = clean(input.executionId || context?.executionId);
   const targetState = clean(input.state);
   const authorityTimestamp = timestamp(input.authorityTimestamp);
-  if (!executionId || !targetState) throw Object.assign(new Error('execution state seed requires identity and state'), { code: 'WP_B_FIXTURE_STATE_REQUIRED' });
+  if (!executionId || !targetState) {
+    throw Object.assign(
+      new Error('execution state seed requires identity and state'),
+      { code: 'WP_B_FIXTURE_STATE_REQUIRED' }
+    );
+  }
   return store.transaction(() => {
-    const current = store.db.prepare('SELECT * FROM durable_executions WHERE execution_id=?').get(executionId);
-    if (!current) throw Object.assign(new Error('execution missing'), { code: 'WP_B_FIXTURE_EXECUTION_NOT_FOUND' });
+    const current = store.db
+      .prepare('SELECT * FROM durable_executions WHERE execution_id=?')
+      .get(executionId);
+    if (!current) {
+      throw Object.assign(new Error('execution missing'), {
+        code: 'WP_B_FIXTURE_EXECUTION_NOT_FOUND'
+      });
+    }
     const withOwnership = input.withOwnership === true;
     const token = host.tokenSnapshot();
     const ownerId = withOwnership ? token.instanceId : '';
-    const claimId = withOwnership ? (clean(input.claimId) || `execution-claim-${crypto.randomUUID()}`) : '';
+    const claimId = withOwnership
+      ? (clean(input.claimId) || `execution-claim-${crypto.randomUUID()}`)
+      : '';
     const hostGeneration = withOwnership ? token.hostGeneration : 0;
     const fencingToken = withOwnership ? token.fencingToken : 0;
-    const leaseExpiresAt = withOwnership ? (clean(input.leaseExpiresAt) || '2026-08-04T03:59:00.000Z') : '';
+    const leaseExpiresAt = withOwnership
+      ? (clean(input.leaseExpiresAt) || '2026-08-04T03:59:00.000Z')
+      : '';
     store.db.prepare(`UPDATE durable_executions SET
       state=?,state_version=state_version+1,generation=generation+1,
       owner_id=?,claim_id=?,host_generation=?,fencing_token=?,
@@ -311,7 +368,11 @@ function seedExecutionState(input = {}) {
       authorityTimestamp,
       executionId
     );
-    const sequence = Number(store.db.prepare('SELECT COALESCE(MAX(sequence),0)+1 AS next FROM durable_execution_events WHERE execution_id=?').get(executionId)?.next || 1);
+    const sequence = Number(
+      store.db
+        .prepare('SELECT COALESCE(MAX(sequence),0)+1 AS next FROM durable_execution_events WHERE execution_id=?')
+        .get(executionId)?.next || 1
+    );
     store.db.prepare(`INSERT INTO durable_execution_events(
       event_id,execution_id,sequence,event_type,from_state,to_state,generation,
       owner_id,reason_code,payload_json,created_at
@@ -328,7 +389,10 @@ function seedExecutionState(input = {}) {
       '{}',
       authorityTimestamp
     );
-    return inspect({ executionId, intentId: clean(input.intentId || context?.intentId) });
+    return inspect({
+      executionId,
+      intentId: clean(input.intentId || context?.intentId)
+    });
   });
 }
 
@@ -341,7 +405,9 @@ function recoverExecution(input = {}) {
 
 function recordReconciliation(input = {}) {
   const facts = Object.freeze({ ...(context || {}), ...(input.context || {}) });
-  const attemptId = clean(input.attemptId || facts.attemptId || inspect(facts).attemptId);
+  const attemptId = clean(
+    input.attemptId || facts.attemptId || inspect(facts).attemptId
+  );
   const outcome = clean(input.outcome);
   const authorityTimestamp = timestamp(input.authorityTimestamp);
   const remoteReceiptId = clean(input.remoteReceiptId);
@@ -349,9 +415,13 @@ function recordReconciliation(input = {}) {
     intentId: facts.intentId,
     attemptId,
     observationOutcome: outcome,
-    evidenceReference: clean(input.evidenceReference) || `fault-matrix:${outcome.toLowerCase()}`,
+    evidenceReference: clean(input.evidenceReference)
+      || `fault-matrix:${outcome.toLowerCase()}`,
     remoteReceiptId,
-    observation: { provider: 'fake-remote', status: clean(input.status || outcome) },
+    observation: {
+      provider: 'fake-remote',
+      status: clean(input.status || outcome)
+    },
     observedAt: authorityTimestamp,
     authorityTimestamp
   });
@@ -362,7 +432,10 @@ function recordReconciliation(input = {}) {
       attemptId,
       providerReceiptId: remoteReceiptId,
       evidenceReference: `fault-matrix:late-result:${clean(reconciliation.reconciliationId)}`,
-      result: { status: 'accepted', receiptId: remoteReceiptId },
+      result: {
+        status: 'accepted',
+        receiptId: remoteReceiptId
+      },
       authorityTimestamp: timestamp()
     });
   }
@@ -373,9 +446,19 @@ function appendCheckpoints(input = {}) {
   const executionId = clean(input.executionId || context?.executionId);
   const count = Math.max(1, Math.min(20, Number(input.count || 1)));
   return store.transaction(() => {
-    const execution = store.db.prepare('SELECT * FROM durable_executions WHERE execution_id=?').get(executionId);
-    if (!execution) throw Object.assign(new Error('execution missing'), { code: 'WP_B_FIXTURE_EXECUTION_NOT_FOUND' });
-    let sequence = Number(store.db.prepare('SELECT COALESCE(MAX(sequence),0) AS current FROM durable_execution_checkpoints WHERE execution_id=?').get(executionId)?.current || 0);
+    const execution = store.db
+      .prepare('SELECT * FROM durable_executions WHERE execution_id=?')
+      .get(executionId);
+    if (!execution) {
+      throw Object.assign(new Error('execution missing'), {
+        code: 'WP_B_FIXTURE_EXECUTION_NOT_FOUND'
+      });
+    }
+    let sequence = Number(
+      store.db
+        .prepare('SELECT COALESCE(MAX(sequence),0) AS current FROM durable_execution_checkpoints WHERE execution_id=?')
+        .get(executionId)?.current || 0
+    );
     for (let index = 0; index < count; index += 1) {
       sequence += 1;
       const authorityTimestamp = timestamp();
@@ -426,10 +509,14 @@ async function handle(message = {}) {
     else if (message.type === 'recover-execution') result = recoverExecution(message);
     else if (message.type === 'record-reconciliation') result = recordReconciliation(message);
     else if (message.type === 'append-checkpoints') result = appendCheckpoints(message);
-    else if (message.type === 'token') result = Object.freeze({ processId: process.pid, ...host.tokenSnapshot() });
-    else if (message.type === 'continue') {
+    else if (message.type === 'token') {
+      result = Object.freeze({ processId: process.pid, ...host.tokenSnapshot() });
+    } else if (message.type === 'continue') {
       const resolve = pendingFaultContinues.get(clean(message.barrierId));
-      if (resolve) { pendingFaultContinues.delete(clean(message.barrierId)); resolve(true); }
+      if (resolve) {
+        pendingFaultContinues.delete(clean(message.barrierId));
+        resolve(true);
+      }
       result = { continued: Boolean(resolve) };
     } else if (message.type === 'shutdown') {
       result = { closed: true, processId: process.pid };
@@ -438,10 +525,19 @@ async function handle(message = {}) {
       try { host?.close(); } catch (_) {}
       process.disconnect?.();
       return;
-    } else throw Object.assign(new Error('invalid dispatcher command'), { code: 'WP_B_DISPATCHER_COMMAND_INVALID' });
+    } else {
+      throw Object.assign(new Error('invalid dispatcher command'), {
+        code: 'WP_B_DISPATCHER_COMMAND_INVALID'
+      });
+    }
     send({ type: 'response', correlationId, ok: true, result });
   } catch (error) {
-    send({ type: 'response', correlationId, ok: false, error: errorPayload(error) });
+    send({
+      type: 'response',
+      correlationId,
+      ok: false,
+      error: errorPayload(error)
+    });
   }
 }
 
@@ -454,9 +550,19 @@ process.on('message', message => {
     pending.resolve(message);
     return;
   }
-  handle(message).catch(error => send({ type: 'fatal', processId: process.pid, error: errorPayload(error) }));
+  handle(message).catch(error => {
+    send({
+      type: 'fatal',
+      processId: process.pid,
+      error: errorPayload(error)
+    });
+  });
 });
-process.on('disconnect', () => { try { broker?.close(); } catch (_) {} try { host?.close(); } catch (_) {} process.exit(0); });
+process.on('disconnect', () => {
+  try { broker?.close(); } catch (_) {}
+  try { host?.close(); } catch (_) {}
+  process.exit(0);
+});
 
 try {
   initialize();
@@ -470,7 +576,11 @@ try {
     token: host.tokenSnapshot()
   });
 } catch (error) {
-  send({ type: 'fatal', processId: process.pid, error: errorPayload(error) });
+  send({
+    type: 'fatal',
+    processId: process.pid,
+    error: errorPayload(error)
+  });
   setTimeout(() => process.exit(1), 10).unref?.();
 }
 
