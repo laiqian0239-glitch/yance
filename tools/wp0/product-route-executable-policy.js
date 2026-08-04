@@ -18,11 +18,14 @@ const {
 const { evaluateWorkPackageScopeForGate } = require('./work-package-scope-gate');
 const { CURRENT_STAGE, REPO_ROOT, git, verifyWp0Gate } = require('./lib');
 
-const DERIVED_GOVERNANCE_BRANCH = /^governance\/[a-z0-9][a-z0-9-]*$/u;
-const GOVERNANCE_VERIFICATION_PATHS = Object.freeze([
-  /^tests\/wp0\/(?:[A-Za-z0-9._-]+\/)*[A-Za-z0-9._-]+\.js$/u,
-  /^tools\/wp0\/(?:[A-Za-z0-9._-]+\/)*[A-Za-z0-9._-]+\.js$/u
-]);
+const DERIVED_GOVERNANCE_PROFILE = Object.freeze({
+  branchSuffix: 'detached-evidence-binding',
+  exactPaths: Object.freeze([
+    'tests/wp0/helpers/reviewedImplementationFixture.js',
+    'tests/wp0/product-route-executable-policy.test.js',
+    'tools/wp0/product-route-executable-policy.js'
+  ])
+});
 
 function result(values) {
   return Object.freeze({
@@ -57,12 +60,13 @@ function workPackageBranchToken(workPackage) {
   return String(workPackage || '').toLowerCase().replace(/[^a-z0-9]/gu, '');
 }
 
-function derivedGovernanceBranchMatches(branch, workPackage) {
+function derivedGovernanceBranchName(workPackage) {
   const token = workPackageBranchToken(workPackage);
-  return Boolean(token
-    && DERIVED_GOVERNANCE_BRANCH.test(branch)
-    && branch.startsWith(`governance/${token}-`)
-    && branch.length > `governance/${token}-`.length);
+  return token ? `governance/${token}-${DERIVED_GOVERNANCE_PROFILE.branchSuffix}` : '';
+}
+
+function derivedGovernanceBranchMatches(branch, workPackage) {
+  return Boolean(branch && branch === derivedGovernanceBranchName(workPackage));
 }
 
 function defaultResolveRemoteTip(branch) {
@@ -117,11 +121,16 @@ function normalizeGovernanceChangedFiles(values) {
 }
 
 function isGovernanceVerificationPath(repositoryPath) {
-  return GOVERNANCE_VERIFICATION_PATHS.some(pattern => pattern.test(repositoryPath));
+  return DERIVED_GOVERNANCE_PROFILE.exactPaths.includes(repositoryPath);
+}
+
+function isExactGovernanceVerificationProfile(changedFiles) {
+  return Array.isArray(changedFiles)
+    && JSON.stringify(changedFiles) === JSON.stringify(DERIVED_GOVERNANCE_PROFILE.exactPaths);
 }
 
 function classifyDerivedGovernanceVerificationRole(branch, registry, options = {}) {
-  if (!DERIVED_GOVERNANCE_BRANCH.test(branch)) return null;
+  if (!branch.startsWith('governance/')) return null;
 
   const resolveRemoteTip = options.resolveRemoteTip ?? defaultResolveRemoteTip;
   const isAncestor = options.isAncestor ?? defaultIsAncestor;
@@ -159,11 +168,12 @@ function classifyDerivedGovernanceVerificationRole(branch, registry, options = {
   }
 
   const changedFiles = normalizeGovernanceChangedFiles(changedFilesFromBase(implementationTip));
-  if (!changedFiles || changedFiles.some(file => !isGovernanceVerificationPath(file))) {
+  if (!isExactGovernanceVerificationProfile(changedFiles)) {
     return fail('WP0_PRODUCT_ROUTE_GOVERNANCE_SCOPE_INVALID', {
       branch,
       workPackage: entry.workPackage,
       governanceBaseCommit: implementationTip,
+      expectedChangedFiles: [...DERIVED_GOVERNANCE_PROFILE.exactPaths],
       changedFiles: changedFiles || []
     });
   }
@@ -313,10 +323,13 @@ function main(argv = process.argv.slice(2)) {
 if (require.main === module) main();
 
 module.exports = {
+  DERIVED_GOVERNANCE_PROFILE,
   classifyDerivedGovernanceVerificationRole,
   classifyProductRouteBranchRole,
+  derivedGovernanceBranchName,
   evaluateProductRouteExecutablePolicy,
   exactNegativeGateProof,
+  isExactGovernanceVerificationProfile,
   isGovernanceVerificationPath,
   normalizeGovernanceChangedFiles,
   workPackageBranchToken
