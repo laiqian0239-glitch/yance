@@ -20,9 +20,10 @@
   "approvedChangedFileCount": 31,
   "approvedChangedFileSetSha256": "7005808b4f0a2bdb883685cf8691f643d2df8322e5863d5878cdf0a3be810577",
   "verificationEvidence": {
-    "status": "PRE_RECEIPT_COMPOSITION_VALIDATED",
+    "status": "FINAL_RECEIPT_ANCHOR_VALIDATED",
     "validatedGovernanceHead": "be53f22fd4f3d0c2077fd517dbd02abef304dc7e",
-    "receiptOnlyValidationPolicy": "REQUIRE_GITHUB_CHECKS_ON_FINAL_RECEIPT_COMMIT",
+    "validatedReceiptHead": "e30ab970153f84e40a4c7ca936add9f0c102f02f",
+    "receiptOnlyValidationPolicy": "REQUIRE_GITHUB_CHECKS_ON_EACH_RECEIPT_ONLY_COMMIT",
     "implementationRedHead": "a33e6e9a20659714b2516cc5ec8265472b3c994b",
     "implementationRedWorkflowRunId": 30951977457,
     "implementationRedRuntimeJobId": 92135997239,
@@ -57,6 +58,34 @@
     "preReceiptProvenanceRunId": 30953216688,
     "preReceiptProvenanceUbuntuJobId": 92140102983,
     "preReceiptProvenanceWindowsJobId": 92140103119,
+    "validatedReceiptOss1aWorkflowRunId": 30953593762,
+    "validatedReceiptGovernanceContractJobId": 92141356726,
+    "validatedReceiptRuntimeJobDisposition": "SKIPPED_ON_GOVERNANCE_BRANCH",
+    "validatedReceiptAggregateJobId": 92141768284,
+    "validatedReceiptWorkflowContractTests": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    },
+    "validatedReceiptPermanentWp0RunId": 30953593816,
+    "validatedReceiptWp0RouteJobId": 92141356908,
+    "validatedReceiptProductWp0JobId": 92141357050,
+    "validatedReceiptWp0RequiredTests": {
+      "total": 86,
+      "passed": 86,
+      "failed": 0,
+      "skipped": 0
+    },
+    "validatedReceiptStagedSecretScan": "SUCCESS",
+    "validatedReceiptSourceIdentityAndElectronTracking": "SUCCESS",
+    "validatedReceiptRepositoryProtocol": "SUCCESS",
+    "validatedReceiptExecutableBranchRole": "GOVERNANCE_NEGATIVE_PROOF",
+    "validatedReceiptSealedExportUbuntuJobId": 92141450348,
+    "validatedReceiptSealedExportWindowsJobId": 92141450350,
+    "validatedReceiptWp0AggregateJobId": 92142213514,
+    "validatedReceiptProvenanceRunId": 30953593748,
+    "validatedReceiptProvenanceUbuntuJobId": 92141356622,
+    "validatedReceiptProvenanceWindowsJobId": 92141356782,
     "runtimeBehaviorChangedByGovernanceSuccessor": false
   },
   "governance": {
