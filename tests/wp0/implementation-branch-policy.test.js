@@ -21,6 +21,12 @@ const {
   evaluateAuthorizedPostMergeDefectScope,
   workPackageChangedFilesSha256
 } = require('../../shared/release/implementationBranchPolicy');
+const {
+  loadOpenSourceWorkPackageAuthorization,
+  loadOpenSourceWorkPackageAuthorizationReceipt,
+  isAuthorizedOpenSourceImplementationBranch,
+  evaluateAuthorizedOpenSourceWorkPackageScope
+} = require('../../shared/release/openSourceWorkPackagePolicy');
 const { CURRENT_STAGE, currentBranch, checkRuntimeTargetGate } = require('../../tools/wp0/lib');
 
 const REPO_ROOT = path.join(__dirname, '..', '..');
@@ -47,6 +53,16 @@ function changedFilesFrom(baseHead) {
     encoding: 'utf8'
   });
   return output.split(/\r?\n/u).map(value => value.trim()).filter(Boolean).sort();
+}
+
+function changedFilesFromBaseRef(baseRef) {
+  const remoteBase = `refs/remotes/origin/${baseRef}`;
+  execFileSync('git', ['cat-file', '-e', `${remoteBase}^{commit}`], { cwd: REPO_ROOT });
+  const mergeBase = execFileSync('git', ['merge-base', remoteBase, 'HEAD'], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8'
+  }).trim();
+  return changedFilesFrom(mergeBase);
 }
 
 function actualWorkPackageChangedFiles() {
@@ -201,7 +217,7 @@ test('work-package scope requires an exact independently reviewed amendment', ()
   assert.equal(wrongCount.reasonCode, 'ACV2_CHANGED_FILE_SET_MISMATCH');
 });
 
-test('checked-out scope preserves immutable A8 closure and validates an exact post-close defect when present', () => {
+test('checked-out scope preserves immutable A8 closure and validates only its active authority', () => {
   const document = authorization();
   const chain = loadWorkPackageTaskScopeChain();
   assert.ok(chain, 'task scope chain must exist and parse as JSON');
@@ -216,19 +232,34 @@ test('checked-out scope preserves immutable A8 closure and validates an exact po
   assert.equal(closure.governance.readyForPromotion, false);
 
   const defect = loadWorkPackagePostMergeDefect();
-  if (defect && isValidWorkPackagePostMergeDefect(defect)) {
+  assert.ok(defect, 'post-merge defect receipt must remain present');
+  assert.equal(isValidWorkPackagePostMergeDefect(defect), true);
+
+  const branch = currentBranch();
+  if (branch === defect.scope.targetBranch) {
     const changedFiles = changedFilesFrom(defect.scope.baseHead);
-    const result = evaluateAuthorizedPostMergeDefectScope({
-      branch: defect.scope.targetBranch,
-      changedFiles,
-      defect
-    });
+    const result = evaluateAuthorizedPostMergeDefectScope({ branch, changedFiles, defect });
     assert.equal(result.pass, true, JSON.stringify(result));
     assert.equal(result.defectId, 'WP-A-POST-MERGE-DEFECT-001');
     assert.equal(result.changedFileSetSha256, defect.scope.approvedChangedFileSetSha256);
     assert.equal(changedFiles.length, defect.scope.approvedChangedFileCount);
     assert.deepEqual(result.unauthorizedPaths, []);
     assert.equal(result.readyForPromotion, true);
+    return;
+  }
+
+  const ossAuthorization = loadOpenSourceWorkPackageAuthorization();
+  if (isAuthorizedOpenSourceImplementationBranch(branch)) {
+    const changedFiles = changedFilesFromBaseRef(ossAuthorization.requiredBaseRef);
+    const result = evaluateAuthorizedOpenSourceWorkPackageScope({
+      branch,
+      changedFiles,
+      authorization: ossAuthorization,
+      receipt: loadOpenSourceWorkPackageAuthorizationReceipt()
+    });
+    assert.equal(result.pass, true, JSON.stringify(result));
+    assert.equal(result.workPackage, 'OSS-0');
+    assert.equal(result.readyForPromotion, false);
     return;
   }
 
@@ -257,8 +288,13 @@ test('malformed, impossible-date and arbitrary branches remain denied', () => {
   ]) assert.equal(isAuthorizedImplementationBranch(branch, CURRENT_STAGE), false, branch);
 });
 
-test('current repository branch is authorized and an arbitrary branch fails the WP0 gate', () => {
-  assert.equal(checkRuntimeTargetGate({ branch: currentBranch(), changedFiles: [] }).pass, true);
+test('current repository branch is authorized by its own sealed program and arbitrary branch fails', () => {
+  const current = checkRuntimeTargetGate({ branch: currentBranch(), changedFiles: [] });
+  assert.equal(current.pass, true, JSON.stringify(current));
+  if (isAuthorizedOpenSourceImplementationBranch(currentBranch())) {
+    assert.equal(current.authorizationMode, 'SEALED_OPEN_SOURCE_WORK_PACKAGE');
+  }
+
   const denied = checkRuntimeTargetGate({ branch: 'feature/unreviewed-release', changedFiles: [] });
   assert.equal(denied.pass, false);
   assert.equal(denied.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');
