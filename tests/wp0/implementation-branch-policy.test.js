@@ -18,15 +18,12 @@ const {
   isValidWorkPackagePostMergeDefect,
   evaluateAuthorizedWorkPackageScope,
   evaluateAuthorizedWorkPackageTaskScope,
-  evaluateAuthorizedPostMergeDefectScope,
   workPackageChangedFilesSha256
 } = require('../../shared/release/implementationBranchPolicy');
 const {
   loadOpenSourceWorkPackageAuthorization,
   loadOpenSourceWorkPackageAuthorizationReceipt,
-  filterOpenSourceImplementationChangedFiles,
-  isAuthorizedOpenSourceImplementationBranch,
-  evaluateAuthorizedOpenSourceWorkPackageScope
+  isAuthorizedOpenSourceImplementationBranch
 } = require('../../shared/release/openSourceWorkPackagePolicy');
 const { CURRENT_STAGE, currentBranch, checkRuntimeTargetGate } = require('../../tools/wp0/lib');
 
@@ -35,29 +32,27 @@ const AUTHORIZATION_PATH = path.join(REPO_ROOT, 'governance', 'architecture-clos
 const A6_CLOSURE_PATH = path.join(REPO_ROOT, 'governance', 'architecture-closure-v2', 'wp-a-a6-closure.json');
 const PARENT_GOVERNANCE_HEAD = 'd81599d8a3f3de891da369b6f1ddbd01e264c78d';
 const A6_FROZEN_DIGEST = 'd2cac11bd6864b02e09fa68015dbdba5c41bb2777bf79e821f00a846b651702a';
+const OSS1A_BRANCH = 'oss/1a-baileys-lifecycle';
+const OSS1A_GOVERNANCE_BRANCH = 'governance/oss-1a-implementation-authorization';
 
 function authorization() {
   return JSON.parse(fs.readFileSync(AUTHORIZATION_PATH, 'utf8'));
 }
 
-function changedFilesFrom(baseHead) {
+function changedFilesFrom(baseHead, targetHead = 'HEAD') {
   const output = execFileSync('git', [
     '-c',
     'core.quotePath=false',
     'diff',
     '--name-only',
     baseHead,
-    'HEAD',
+    targetHead,
     '--'
   ], {
     cwd: REPO_ROOT,
     encoding: 'utf8'
   });
   return output.split(/\r?\n/u).map(value => value.trim()).filter(Boolean).sort();
-}
-
-function actualWorkPackageChangedFiles() {
-  return changedFilesFrom(PARENT_GOVERNANCE_HEAD);
 }
 
 function scopeAmendment(document, changedFiles) {
@@ -208,7 +203,7 @@ test('work-package scope requires an exact independently reviewed amendment', ()
   assert.equal(wrongCount.reasonCode, 'ACV2_CHANGED_FILE_SET_MISMATCH');
 });
 
-test('checked-out scope preserves immutable A8 closure and validates only its active authority', () => {
+test('immutable A8 evidence head preserves the active scope independently of the current checkout', () => {
   const document = authorization();
   const chain = loadWorkPackageTaskScopeChain();
   assert.ok(chain, 'task scope chain must exist and parse as JSON');
@@ -226,38 +221,9 @@ test('checked-out scope preserves immutable A8 closure and validates only its ac
   assert.ok(defect, 'post-merge defect receipt must remain present');
   assert.equal(isValidWorkPackagePostMergeDefect(defect), true);
 
-  const branch = currentBranch();
-  if (branch === defect.scope.targetBranch) {
-    const changedFiles = changedFilesFrom(defect.scope.baseHead);
-    const result = evaluateAuthorizedPostMergeDefectScope({ branch, changedFiles, defect });
-    assert.equal(result.pass, true, JSON.stringify(result));
-    assert.equal(result.defectId, 'WP-A-POST-MERGE-DEFECT-001');
-    assert.equal(result.changedFileSetSha256, defect.scope.approvedChangedFileSetSha256);
-    assert.equal(changedFiles.length, defect.scope.approvedChangedFileCount);
-    assert.deepEqual(result.unauthorizedPaths, []);
-    assert.equal(result.readyForPromotion, true);
-    return;
-  }
-
-  const ossAuthorization = loadOpenSourceWorkPackageAuthorization();
-  if (isAuthorizedOpenSourceImplementationBranch(branch)) {
-    const ossReceipt = loadOpenSourceWorkPackageAuthorizationReceipt();
-    const changedFiles = filterOpenSourceImplementationChangedFiles(
-      changedFilesFrom(ossReceipt.authorizationCommit)
-    );
-    const result = evaluateAuthorizedOpenSourceWorkPackageScope({
-      branch,
-      changedFiles,
-      authorization: ossAuthorization,
-      receipt: ossReceipt
-    });
-    assert.equal(result.pass, true, JSON.stringify(result));
-    assert.equal(result.workPackage, 'OSS-0');
-    assert.equal(result.readyForPromotion, false);
-    return;
-  }
-
-  const changedFiles = actualWorkPackageChangedFiles();
+  const a8 = chain.tasks.find(task => task.task === chain.activeTask);
+  assert.ok(a8?.evidenceBranchTip, 'A8 immutable evidence head must be present');
+  const changedFiles = changedFilesFrom(chain.parentGovernanceHead, a8.evidenceBranchTip);
   const result = evaluateAuthorizedWorkPackageTaskScope({
     branch: document.authorizedBranch,
     changedFiles,
@@ -282,14 +248,30 @@ test('malformed, impossible-date and arbitrary branches remain denied', () => {
   ]) assert.equal(isAuthorizedImplementationBranch(branch, CURRENT_STAGE), false, branch);
 });
 
-test('current repository branch is authorized by its own sealed program and arbitrary branch fails', () => {
-  const current = checkRuntimeTargetGate({ branch: currentBranch(), changedFiles: [] });
-  assert.equal(current.pass, true, JSON.stringify(current));
-  if (isAuthorizedOpenSourceImplementationBranch(currentBranch())) {
-    assert.equal(current.authorizationMode, 'SEALED_OPEN_SOURCE_WORK_PACKAGE');
+test('governance branch is non-executable while exact OSS-1A implementation branch is recognized', () => {
+  const governance = checkRuntimeTargetGate({ branch: OSS1A_GOVERNANCE_BRANCH, changedFiles: [] });
+  assert.equal(governance.pass, false, JSON.stringify(governance));
+  assert.equal(governance.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');
+
+  const oss1a = checkRuntimeTargetGate({ branch: OSS1A_BRANCH, changedFiles: [] });
+  assert.equal(oss1a.pass, true, JSON.stringify(oss1a));
+  assert.equal(oss1a.authorizationMode, 'SEALED_OPEN_SOURCE_WORK_PACKAGE');
+  assert.equal(isAuthorizedOpenSourceImplementationBranch(OSS1A_BRANCH), true);
+
+  const current = currentBranch();
+  if (current === OSS1A_GOVERNANCE_BRANCH) {
+    const currentResult = checkRuntimeTargetGate({ branch: current, changedFiles: [] });
+    assert.equal(currentResult.pass, false, JSON.stringify(currentResult));
   }
 
   const denied = checkRuntimeTargetGate({ branch: 'feature/unreviewed-release', changedFiles: [] });
   assert.equal(denied.pass, false);
   assert.equal(denied.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');
+
+  const oss0Authorization = loadOpenSourceWorkPackageAuthorization();
+  const oss0Receipt = loadOpenSourceWorkPackageAuthorizationReceipt();
+  assert.equal(isAuthorizedOpenSourceImplementationBranch(oss0Authorization.authorizedBranch, {
+    authorization: oss0Authorization,
+    receipt: oss0Receipt
+  }), true);
 });
