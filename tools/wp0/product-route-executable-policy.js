@@ -31,7 +31,7 @@ function result(values) {
 }
 
 function fail(reasonCode, details = {}) {
-  return result({ pass: false, reasonCode, ...details });
+  return result({ ...details, pass: false, reasonCode });
 }
 
 function repositoryFile(repositoryPath) {
