@@ -128,3 +128,5 @@ test('WhatsAppAuthCipher enforces AEAD, typed AAD, purpose-separated HMAC and cl
     expectCode('WHATSAPP_AUTH_CIPHER_CLOSED')
   );
 });
+
+require('./oss1aWhatsappAuthKeyRuntimeOrder.test');
