@@ -6,14 +6,12 @@ on:
       - work/oss1a-legacy-import-repository-patch
     paths:
       - .github/workflows/oss1a-legacy-import-tooling.yml
-      - tools/oss1a/generate-legacy-import-repository-patch.js
-      - tools/oss1a/legacy-import-repository-method.txt
 
 permissions:
   contents: write
 
 jobs:
-  publish-repository-candidate:
+  publish-purpose-fix-candidate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout tooling head
@@ -22,25 +20,37 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: true
-      - name: Build and publish exact repository candidate
+      - name: Build and publish exact importer purpose fix
         shell: bash
         env:
-          IMPLEMENTATION_PARENT: 5710bc88e904993a5172fa515da15798c032a20d
-          CANDIDATE_BRANCH: work/oss1a-legacy-import-repository-candidate
+          IMPLEMENTATION_PARENT: 963452d8e898db4abd5ff54f7d53e77ead6202dd
+          CANDIDATE_BRANCH: work/oss1a-legacy-import-purpose-candidate
         run: |
           set -euo pipefail
           test -z "$(git ls-remote --heads origin "refs/heads/${CANDIDATE_BRANCH}")"
-          git show "${IMPLEMENTATION_PARENT}:backend/repositories/whatsappAuthStateRepository.js" > /tmp/whatsappAuthStateRepository.original.js
-          node tools/oss1a/generate-legacy-import-repository-patch.js \
-            /tmp/whatsappAuthStateRepository.original.js \
-            /tmp/whatsappAuthStateRepository.generated.js
-          node --check /tmp/whatsappAuthStateRepository.generated.js
+          git show "${IMPLEMENTATION_PARENT}:backend/services/whatsappLegacyAuthImporter.js" > /tmp/importer.js
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = '/tmp/importer.js';
+          let source = fs.readFileSync(file, 'utf8');
+          function replaceOnce(before, after, label) {
+            const first = source.indexOf(before);
+            if (first < 0 || source.indexOf(before, first + before.length) >= 0) {
+              throw new Error(`${label}: expected one exact match`);
+            }
+            source = source.slice(0, first) + after + source.slice(first + before.length);
+          }
+          replaceOnce("'LEGACY_AUTH_SOURCE_DIRECTORY'", "'SOURCE_DIRECTORY'", 'source purpose');
+          replaceOnce("'LEGACY_AUTH_CLEANUP_REFERENCE'", "'CLEANUP_REFERENCE'", 'cleanup purpose');
+          fs.writeFileSync(file, source, 'utf8');
+          NODE
+          node --check /tmp/importer.js
           git checkout --detach "${IMPLEMENTATION_PARENT}"
-          cp /tmp/whatsappAuthStateRepository.generated.js backend/repositories/whatsappAuthStateRepository.js
-          git add backend/repositories/whatsappAuthStateRepository.js
-          test "$(git diff --cached --name-only)" = "backend/repositories/whatsappAuthStateRepository.js"
+          cp /tmp/importer.js backend/services/whatsappLegacyAuthImporter.js
+          git add backend/services/whatsappLegacyAuthImporter.js
+          test "$(git diff --cached --name-only)" = "backend/services/whatsappLegacyAuthImporter.js"
           git diff --cached --check
           git config user.name "Yance OSS1A Tooling"
           git config user.email "oss1a-tooling@users.noreply.github.com"
-          git commit -m "feat(oss1a): add two-phase legacy import repository authority"
+          git commit -m "fix(oss1a): use frozen legacy import HMAC domains"
           git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
