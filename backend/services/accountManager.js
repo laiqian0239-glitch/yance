@@ -49,7 +49,7 @@ function defaultAuthorityTimestamp() {
   return new Date().toISOString();
 }
 
-function parseMetadata(value) {
+function parseCanonicalAccountPayload(value) {
   try {
     const parsed = JSON.parse(String(value || '{}'));
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
@@ -76,10 +76,11 @@ function runtimeAccountList() {
   let rows;
   try {
     rows = store.db.prepare(`SELECT
-      id, platform, credential_ref, paused, lifecycle_state, metadata_json
+      id, platform, state, lifecycle_state, payload_json
       FROM r32_accounts
-      WHERE COALESCE(lifecycle_state, '') <> 'tombstoned'
-      ORDER BY platform, id`).all();
+      WHERE COALESCE(lifecycle_state, 'active') NOT IN ('merged','tombstoned','deleted')
+        AND COALESCE(merged_into_id, '') = ''
+      ORDER BY created_at ASC, id ASC`).all();
   } catch (error) {
     throw sessionManagerError(
       'APP_RUNTIME_ACCOUNT_PROJECTION_REQUIRED',
@@ -89,15 +90,26 @@ function runtimeAccountList() {
     );
   }
   return Object.freeze(rows.map(row => {
-    const metadata = Object.freeze(parseMetadata(row.metadata_json));
+    const payload = Object.freeze(parseCanonicalAccountPayload(row.payload_json));
+    const metadata = Object.freeze(
+      payload.metadata && typeof payload.metadata === 'object' && !Array.isArray(payload.metadata)
+        ? { ...payload.metadata }
+        : {}
+    );
     return Object.freeze({
+      ...payload,
       id: clean(row.id),
-      platform: clean(row.platform).toLowerCase(),
-      credentialRef: clean(row.credential_ref),
-      paused: Number(row.paused || 0) === 1,
-      lifecycleState: clean(row.lifecycle_state),
-      sessionGeneration: Number(metadata.sessionGeneration || 0),
-      sessionReference: clean(metadata.sessionReference),
+      platform: clean(row.platform || payload.platform).toLowerCase(),
+      credentialRef: clean(payload.credentialRef || payload.credential_ref),
+      paused: payload.paused === true || clean(row.state).toLowerCase() === 'paused',
+      lifecycleState: clean(row.lifecycle_state || payload.lifecycleState || 'active'),
+      sessionGeneration: Number(
+        payload.sessionGeneration
+        || payload.session_generation
+        || metadata.sessionGeneration
+        || 0
+      ),
+      sessionReference: clean(payload.sessionReference || metadata.sessionReference),
       metadata
     });
   }));
