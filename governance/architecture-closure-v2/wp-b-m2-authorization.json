@@ -62,9 +62,11 @@
     "backend/services/accountManagerCore.js",
     "backend/services/aiGateway.js",
     "backend/services/asyncOperationLifecycleAuthority.js",
+    "backend/services/asyncOperationLifecycleAuthorityCore.js",
     "backend/services/authorityTransactionCoordinator.js",
     "backend/services/authorityTransactionCoordinatorEngine.js",
     "backend/services/backgroundJobAuthority.js",
+    "backend/services/backgroundJobAuthorityCore.js",
     "backend/services/canonicalChannelStateEngine.js",
     "backend/services/channelAdapterRuntime.js",
     "backend/services/channelRuntimeEngine.js",
@@ -90,6 +92,7 @@
     "backend/services/facebookPersonalMessengerExperimentalAdapter.js",
     "backend/services/facebookRelayClient.js",
     "backend/services/jobQueue.js",
+    "backend/services/jobQueueCore.js",
     "backend/services/mediaIntelligenceService.js",
     "backend/services/mediaPipeline.js",
     "backend/services/modelExecutionEvidenceStore.js",
@@ -238,6 +241,18 @@
       "addedPaths": [
         "backend/services/accountManagerCore.js",
         "backend/services/communicationAuthorityHistoryEngine.js"
+      ]
+    },
+    {
+      "amendmentId": "WP-B-M2-SCOPE-007",
+      "authorizedAt": "2026-08-04T09:08:00+07:00",
+      "approvedBy": "PROJECT_OWNER",
+      "approvalSource": "Project owner full authorization in the 独立软件工程审计 conversation",
+      "reasonCode": "WP_B_M2_RECOVERY_LEGACY_FACADE_ENGINE_SPLIT",
+      "addedPaths": [
+        "backend/services/asyncOperationLifecycleAuthorityCore.js",
+        "backend/services/backgroundJobAuthorityCore.js",
+        "backend/services/jobQueueCore.js"
       ]
     }
   ],
