@@ -9,6 +9,7 @@ on:
       - backend/tests/architectureClosureV2/wpB/m3Authorization.test.js
       - governance/architecture-closure-v2/wp-b-m2-review.json
       - governance/architecture-closure-v2/wp-b-m3-authorization.json
+      - governance/architecture-closure-v2/wp-b-operation-inventory.json
       - shared/release/acv2ActiveWorkPackageAuthority.js
       - tools/architecture-closure-v2/verify-wp-b-m2-review.js
       - tools/architecture-closure-v2/verify-wp-b-m3-authorization.js
@@ -22,6 +23,7 @@ on:
       - backend/tests/architectureClosureV2/wpB/m3Authorization.test.js
       - governance/architecture-closure-v2/wp-b-m2-review.json
       - governance/architecture-closure-v2/wp-b-m3-authorization.json
+      - governance/architecture-closure-v2/wp-b-operation-inventory.json
       - shared/release/acv2ActiveWorkPackageAuthority.js
       - tools/architecture-closure-v2/verify-wp-b-m2-review.js
       - tools/architecture-closure-v2/verify-wp-b-m3-authorization.js
@@ -30,7 +32,9 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
+  pull-requests: read
 
 env:
   IMPLEMENTATION_BRANCH: ${{ github.head_ref || github.ref_name }}
@@ -40,7 +44,7 @@ jobs:
   authorization-contracts:
     name: wp-b-m3-authorization-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -75,13 +79,26 @@ jobs:
           test "$(git branch --show-current)" = "${IMPLEMENTATION_BRANCH}"
           test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
 
-      - name: Validate authorization contract syntax
+      - name: Validate authorization syntax
         shell: bash
-        run: node --check backend/tests/architectureClosureV2/wpB/m3Authorization.test.js
+        run: |
+          node --check backend/tests/architectureClosureV2/wpB/m3Authorization.test.js
+          node --check tools/architecture-closure-v2/verify-wp-b-m3-authorization.js
+          node --check shared/release/acv2ActiveWorkPackageAuthority.js
 
-      - name: Run Milestone 3 authorization contracts
+      - name: Run Milestone 3 authorization and WP0 wiring contracts
         shell: bash
-        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m3Authorization.test.js
+        run: |
+          node --test --test-concurrency=1 \
+            backend/tests/architectureClosureV2/wpB/m3Authorization.test.js \
+            tests/wp0/acv2-work-package-scope-wiring.test.js \
+            tests/wp0/implementation-branch-policy.test.js
+
+      - name: Verify standalone Milestone 3 authorization locally and remotely
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/architecture-closure-v2/verify-wp-b-m3-authorization.js --remote
 
       - name: Confirm clean validation workspace
         shell: bash
