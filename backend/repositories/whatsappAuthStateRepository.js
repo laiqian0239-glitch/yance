@@ -657,7 +657,7 @@ class WhatsAppAuthStateRepository {
             creds_nonce,creds_ciphertext,creds_auth_tag,creds_ciphertext_sha256,registered,
             identity_jid_hmac,writer_generation,writer_socket_token,created_at,updated_at,
             logged_out_at,quarantine_reason
-          ) VALUES(?,?,?,?,NULL,NULL,NULL,NULL,NULL,'',0,'',?,?,?,?,?,'','')`).run(
+          ) VALUES(?,?,?,?,NULL,NULL,NULL,NULL,NULL,'',0,'',?,?,?,?,'','')`).run(
             accountKey, accountId, stagedEpoch, IMPORT_PENDING,
             generation, socketToken, at, at
           );
