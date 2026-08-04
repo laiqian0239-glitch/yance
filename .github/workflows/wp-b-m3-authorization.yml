@@ -6,11 +6,16 @@ on:
       - main
     paths:
       - .github/workflows/wp-b-m3-authorization.yml
+      - backend/services/durableInternalOperationAuthority.js
       - backend/tests/architectureClosureV2/wpB/m3Authorization.test.js
       - governance/architecture-closure-v2/wp-b-m2-review.json
       - governance/architecture-closure-v2/wp-b-m3-authorization.json
+      - governance/architecture-closure-v2/wp-b-operation-inventory-m3-extension.json
       - governance/architecture-closure-v2/wp-b-operation-inventory.json
+      - governance/architecture-closure-v2/wp-b-source-closure-baseline.json
       - shared/release/acv2ActiveWorkPackageAuthority.js
+      - tools/architecture-closure-v2/discover-wp-b-operation-call-sites.js
+      - tools/architecture-closure-v2/source-closure-scan.js
       - tools/architecture-closure-v2/verify-wp-b-m2-review.js
       - tools/architecture-closure-v2/verify-wp-b-m3-authorization.js
       - tests/wp0/acv2-work-package-scope-wiring.test.js
@@ -20,11 +25,16 @@ on:
       - acv2/wp-b-durable-execution-outbox
     paths:
       - .github/workflows/wp-b-m3-authorization.yml
+      - backend/services/durableInternalOperationAuthority.js
       - backend/tests/architectureClosureV2/wpB/m3Authorization.test.js
       - governance/architecture-closure-v2/wp-b-m2-review.json
       - governance/architecture-closure-v2/wp-b-m3-authorization.json
+      - governance/architecture-closure-v2/wp-b-operation-inventory-m3-extension.json
       - governance/architecture-closure-v2/wp-b-operation-inventory.json
+      - governance/architecture-closure-v2/wp-b-source-closure-baseline.json
       - shared/release/acv2ActiveWorkPackageAuthority.js
+      - tools/architecture-closure-v2/discover-wp-b-operation-call-sites.js
+      - tools/architecture-closure-v2/source-closure-scan.js
       - tools/architecture-closure-v2/verify-wp-b-m2-review.js
       - tools/architecture-closure-v2/verify-wp-b-m3-authorization.js
       - tests/wp0/acv2-work-package-scope-wiring.test.js
@@ -83,6 +93,8 @@ jobs:
         shell: bash
         run: |
           node --check backend/tests/architectureClosureV2/wpB/m3Authorization.test.js
+          node --check tools/architecture-closure-v2/discover-wp-b-operation-call-sites.js
+          node --check tools/architecture-closure-v2/source-closure-scan.js
           node --check tools/architecture-closure-v2/verify-wp-b-m3-authorization.js
           node --check shared/release/acv2ActiveWorkPackageAuthority.js
 
