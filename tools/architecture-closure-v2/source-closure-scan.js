@@ -10,7 +10,8 @@ const {
   normalizePath
 } = require('./source-capability-authority');
 const {
-  discoverCallSites
+  discoverCallSites,
+  loadInventoryEntries
 } = require('./discover-wp-b-operation-call-sites');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
@@ -41,14 +42,8 @@ const REQUIRED_ENTRY_FIELDS = Object.freeze([
   'forbiddenSourceMarkers'
 ]);
 const WP_B_REQUIRED_ENTRY_FIELDS = Object.freeze([
-  'id',
-  'path',
-  'classification',
-  'operationKinds',
-  'currentResponsibilities',
-  'targetAuthority',
-  'closureState',
-  'removalCondition'
+  'id', 'path', 'classification', 'operationKinds', 'currentResponsibilities',
+  'targetAuthority', 'closureState', 'removalCondition'
 ]);
 const WP_B_DIAGNOSTIC_RECORD_TYPE = 'YANCE_ACV2_WP_B_SOURCE_CLOSURE_VIOLATION';
 
@@ -198,9 +193,7 @@ function validateRegistryExtension(extension, extensionPath) {
     if (paths.has(sourcePath)) errors.push({ code: 'REGISTRY_EXTENSION_PATH_DUPLICATE', sourcePath });
     ids.add(entry.registryId);
     paths.add(sourcePath);
-    if (!fs.existsSync(path.join(REPO_ROOT, sourcePath))) {
-      errors.push({ code: 'REGISTRY_EXTENSION_SOURCE_MISSING', sourcePath });
-    }
+    if (!fs.existsSync(path.join(REPO_ROOT, sourcePath))) errors.push({ code: 'REGISTRY_EXTENSION_SOURCE_MISSING', sourcePath });
     if (!fs.existsSync(path.join(REPO_ROOT, normalizePath(entry.publicEntryPoint)))) {
       errors.push({ code: 'REGISTRY_EXTENSION_PUBLIC_ENTRY_MISSING', publicEntryPoint: entry.publicEntryPoint });
     }
@@ -216,10 +209,7 @@ function loadRegistryExtensions(paths = REGISTRY_EXTENSION_PATHS) {
       return Object.freeze({
         path: normalizedPath,
         document: null,
-        loadError: Object.freeze({
-          code: 'REGISTRY_EXTENSION_DOCUMENT_MISSING',
-          path: normalizedPath
-        })
+        loadError: Object.freeze({ code: 'REGISTRY_EXTENSION_DOCUMENT_MISSING', path: normalizedPath })
       });
     }
     try {
@@ -316,12 +306,8 @@ function scanWpA({ baseline, registry, registryExtensions }) {
   const combinedPaths = new Set((registry.entries || []).map(entry => normalizePath(entry.path)));
   for (const extension of registryExtensions) {
     for (const entry of extension.document?.entries || []) {
-      if (combinedIds.has(entry.registryId)) {
-        registryErrors.push({ code: 'REGISTRY_COMBINED_ID_DUPLICATE', id: entry.registryId });
-      }
-      if (combinedPaths.has(normalizePath(entry.sourcePath))) {
-        registryErrors.push({ code: 'REGISTRY_COMBINED_PATH_DUPLICATE', path: normalizePath(entry.sourcePath) });
-      }
+      if (combinedIds.has(entry.registryId)) registryErrors.push({ code: 'REGISTRY_COMBINED_ID_DUPLICATE', id: entry.registryId });
+      if (combinedPaths.has(normalizePath(entry.sourcePath))) registryErrors.push({ code: 'REGISTRY_COMBINED_PATH_DUPLICATE', path: normalizePath(entry.sourcePath) });
       combinedIds.add(entry.registryId);
       combinedPaths.add(normalizePath(entry.sourcePath));
     }
@@ -329,7 +315,6 @@ function scanWpA({ baseline, registry, registryExtensions }) {
 
   const violations = registryErrors.map(error => ({ violationClass: 'REGISTRY_INVALID', ...error }));
   const config = sourceClosureConfig(baseline);
-
   for (const entry of registry.entries || []) {
     const sourcePath = path.join(REPO_ROOT, normalizePath(entry.path));
     if (!fs.existsSync(sourcePath)) continue;
@@ -337,26 +322,10 @@ function scanWpA({ baseline, registry, registryExtensions }) {
     if (entry.blockingWorkPackage !== 'WP-A') continue;
     const violationClass = violationClassFor(entry);
     for (const marker of entry.requiredSourceMarkers || []) {
-      if (!source.includes(marker)) {
-        violations.push({
-          violationClass,
-          code: 'REQUIRED_MARKER_MISSING',
-          id: entry.id,
-          path: normalizePath(entry.path),
-          marker
-        });
-      }
+      if (!source.includes(marker)) violations.push({ violationClass, code: 'REQUIRED_MARKER_MISSING', id: entry.id, path: normalizePath(entry.path), marker });
     }
     for (const marker of entry.forbiddenSourceMarkers || []) {
-      if (source.includes(marker)) {
-        violations.push({
-          violationClass,
-          code: 'FORBIDDEN_MARKER_PRESENT',
-          id: entry.id,
-          path: normalizePath(entry.path),
-          marker
-        });
-      }
+      if (source.includes(marker)) violations.push({ violationClass, code: 'FORBIDDEN_MARKER_PRESENT', id: entry.id, path: normalizePath(entry.path), marker });
     }
   }
 
@@ -367,13 +336,9 @@ function scanWpA({ baseline, registry, registryExtensions }) {
     }
   }
   violations.push(...findUnregisteredSourceCapabilities(sourceRows, registry, registryExtensions));
-
   const counts = {};
   for (const violation of violations) counts[violation.violationClass] = (counts[violation.violationClass] || 0) + 1;
-  const extensionEntryCount = registryExtensions.reduce(
-    (total, extension) => total + (extension.document?.entries?.length || 0),
-    0
-  );
+  const extensionEntryCount = registryExtensions.reduce((total, extension) => total + (extension.document?.entries?.length || 0), 0);
   return {
     schemaVersion: 3,
     documentType: 'YANCE_ACV2_SOURCE_CLOSURE_SCAN',
@@ -398,24 +363,21 @@ function validateWpBBaseline(baseline) {
   if (baseline?.schemaVersion !== 1) errors.push({ code: 'WP_B_BASELINE_SCHEMA_INVALID' });
   if (baseline?.documentType !== 'YANCE_ACV2_WP_B_SOURCE_CLOSURE_BASELINE'
       || baseline?.repository !== 'laiqian0239-glitch/yance'
-      || baseline?.workPackage !== 'WP-B') {
-    errors.push({ code: 'WP_B_BASELINE_IDENTITY_INVALID' });
-  }
+      || baseline?.workPackage !== 'WP-B') errors.push({ code: 'WP_B_BASELINE_IDENTITY_INVALID' });
   if (baseline?.status !== 'FROZEN_FOR_CREDIBLE_RED') errors.push({ code: 'WP_B_BASELINE_STATUS_INVALID' });
-  if (!Array.isArray(baseline?.discovery?.roots) || baseline.discovery.roots.length === 0) {
-    errors.push({ code: 'WP_B_BASELINE_DISCOVERY_ROOTS_REQUIRED' });
-  }
+  if (!Array.isArray(baseline?.discovery?.roots) || baseline.discovery.roots.length === 0) errors.push({ code: 'WP_B_BASELINE_DISCOVERY_ROOTS_REQUIRED' });
   if (!Array.isArray(baseline?.discovery?.excludes)) errors.push({ code: 'WP_B_BASELINE_DISCOVERY_EXCLUDES_REQUIRED' });
-  for (const listName of [
-    'requiredReportFields',
-    'requiredDiagnosticFields',
-    'productionTerminalStates',
-    'nonProductionTerminalStates',
-    'forbiddenTerminalStates'
-  ]) {
-    if (!Array.isArray(baseline?.[listName]) || baseline[listName].length === 0) {
-      errors.push({ code: 'WP_B_BASELINE_LIST_REQUIRED', listName });
+  if (!Array.isArray(baseline?.operationInventoryExtensionPaths)) errors.push({ code: 'WP_B_BASELINE_INVENTORY_EXTENSIONS_REQUIRED' });
+  else {
+    const normalized = baseline.operationInventoryExtensionPaths.map(normalizePath);
+    if (normalized.some(value => !value || value.includes('*'))
+        || new Set(normalized).size !== normalized.length
+        || normalized.some((value, index) => value !== baseline.operationInventoryExtensionPaths[index])) {
+      errors.push({ code: 'WP_B_BASELINE_INVENTORY_EXTENSIONS_INVALID' });
     }
+  }
+  for (const listName of ['requiredReportFields', 'requiredDiagnosticFields', 'productionTerminalStates', 'nonProductionTerminalStates', 'forbiddenTerminalStates']) {
+    if (!Array.isArray(baseline?.[listName]) || baseline[listName].length === 0) errors.push({ code: 'WP_B_BASELINE_LIST_REQUIRED', listName });
   }
   const governance = baseline?.governance || {};
   if (governance.exactPathsOnly !== true
@@ -428,19 +390,14 @@ function validateWpBBaseline(baseline) {
       || governance.productionUseAuthorized !== false
       || governance.wpCAuthorized !== false
       || governance.formalRelease !== false
-      || governance.publish !== false) {
-    errors.push({ code: 'WP_B_BASELINE_GOVERNANCE_INVALID' });
-  }
+      || governance.publish !== false) errors.push({ code: 'WP_B_BASELINE_GOVERNANCE_INVALID' });
   return errors;
 }
 
 function validateWpBInventory(inventory, baseline) {
   const errors = [];
   if (inventory?.schemaVersion !== 2) errors.push({ code: 'WP_B_INVENTORY_SCHEMA_INVALID' });
-  if (inventory?.documentType !== 'YANCE_ACV2_WP_B_OPERATION_INVENTORY'
-      || inventory?.workPackage !== 'WP-B') {
-    errors.push({ code: 'WP_B_INVENTORY_IDENTITY_INVALID' });
-  }
+  if (inventory?.documentType !== 'YANCE_ACV2_WP_B_OPERATION_INVENTORY' || inventory?.workPackage !== 'WP-B') errors.push({ code: 'WP_B_INVENTORY_IDENTITY_INVALID' });
   if (!Array.isArray(inventory?.entries) || inventory.entries.length === 0) {
     errors.push({ code: 'WP_B_INVENTORY_ENTRIES_REQUIRED' });
     return errors;
@@ -448,7 +405,7 @@ function validateWpBInventory(inventory, baseline) {
   const allowedClassifications = new Set(inventory.allowedClassifications || []);
   const ids = new Set();
   const paths = new Set();
-  const deleted = new Set(baseline?.productionTerminalStates || []);
+  const terminalStates = new Set(baseline?.productionTerminalStates || []);
   for (const [index, entry] of inventory.entries.entries()) {
     for (const field of WP_B_REQUIRED_ENTRY_FIELDS) {
       if (!(field in entry)) errors.push({ code: 'WP_B_INVENTORY_FIELD_MISSING', index, inventoryId: entry?.id || '', field });
@@ -456,27 +413,30 @@ function validateWpBInventory(inventory, baseline) {
     const inventoryId = String(entry?.id || '');
     const sourcePath = normalizePath(entry?.path);
     if (!/^WPB-[A-Z0-9-]+$/u.test(inventoryId)) errors.push({ code: 'WP_B_INVENTORY_ID_INVALID', inventoryId, index });
-    if (!sourcePath || sourcePath !== entry.path || sourcePath.includes('*')) {
-      errors.push({ code: 'WP_B_INVENTORY_PATH_INVALID', inventoryId, path: entry?.path || '' });
-    }
+    if (!sourcePath || sourcePath !== entry.path || sourcePath.includes('*')) errors.push({ code: 'WP_B_INVENTORY_PATH_INVALID', inventoryId, path: entry?.path || '' });
     if (ids.has(inventoryId)) errors.push({ code: 'WP_B_INVENTORY_ID_DUPLICATE', inventoryId });
     if (paths.has(sourcePath)) errors.push({ code: 'WP_B_INVENTORY_PATH_DUPLICATE', inventoryId, path: sourcePath });
     ids.add(inventoryId);
     paths.add(sourcePath);
-    if (!allowedClassifications.has(entry.classification)) {
-      errors.push({ code: 'WP_B_INVENTORY_CLASSIFICATION_INVALID', inventoryId, classification: entry.classification });
-    }
-    if (!Array.isArray(entry.operationKinds) || !Array.isArray(entry.currentResponsibilities)) {
-      errors.push({ code: 'WP_B_INVENTORY_ARRAY_FIELD_INVALID', inventoryId });
-    }
-    if (!String(entry.targetAuthority || '').trim() || !String(entry.removalCondition || '').trim()) {
-      errors.push({ code: 'WP_B_INVENTORY_AUTHORITY_CONTRACT_INVALID', inventoryId });
-    }
-    if (!fs.existsSync(path.join(REPO_ROOT, sourcePath)) && !(entry.closureState === 'DELETED' && deleted.has('DELETED'))) {
+    if (!allowedClassifications.has(entry.classification)) errors.push({ code: 'WP_B_INVENTORY_CLASSIFICATION_INVALID', inventoryId, classification: entry.classification });
+    if (!Array.isArray(entry.operationKinds) || !Array.isArray(entry.currentResponsibilities)) errors.push({ code: 'WP_B_INVENTORY_ARRAY_FIELD_INVALID', inventoryId });
+    if (!String(entry.targetAuthority || '').trim() || !String(entry.removalCondition || '').trim()) errors.push({ code: 'WP_B_INVENTORY_AUTHORITY_CONTRACT_INVALID', inventoryId });
+    if (!fs.existsSync(path.join(REPO_ROOT, sourcePath)) && !(entry.closureState === 'DELETED' && terminalStates.has('DELETED'))) {
       errors.push({ code: 'WP_B_INVENTORY_SOURCE_MISSING', inventoryId, path: sourcePath });
     }
   }
   return errors;
+}
+
+function combinedWpBInventory(baseline, baseInventory) {
+  const authority = loadInventoryEntries(REPO_ROOT, baseline);
+  return Object.freeze({
+    ...baseInventory,
+    entries: authority.entries,
+    extensionPaths: authority.extensionPaths,
+    baseEntryCount: baseInventory.entries?.length || 0,
+    extensionEntryCount: authority.entries.length - (baseInventory.entries?.length || 0)
+  });
 }
 
 function wpBInventoryViolation(entry) {
@@ -522,21 +482,12 @@ function wpBUnregisteredViolation(row) {
   });
 }
 
-function countBy(violations, field) {
-  return violations.reduce((total, violation) => total + (violation[field] === true ? 1 : 0), 0);
-}
-
 function scanWpB({ baseline, inventory }) {
-  const validationErrors = [
-    ...validateWpBBaseline(baseline),
-    ...validateWpBInventory(inventory, baseline)
-  ];
+  const validationErrors = [...validateWpBBaseline(baseline), ...validateWpBInventory(inventory, baseline)];
   const productionTerminal = new Set(baseline.productionTerminalStates || []);
   const nonProductionTerminal = new Set(baseline.nonProductionTerminalStates || []);
   const nonterminalEntries = (inventory.entries || []).filter(entry => {
-    if (entry.classification === 'NON_PRODUCTION_HARNESS') {
-      return !nonProductionTerminal.has(entry.closureState);
-    }
+    if (entry.classification === 'NON_PRODUCTION_HARNESS') return !nonProductionTerminal.has(entry.closureState);
     return !productionTerminal.has(entry.closureState);
   });
   const facts = nonterminalEntries.map(entry => ({ entry, facts: classifyWpBInventoryEntry(entry) }));
@@ -545,18 +496,11 @@ function scanWpB({ baseline, inventory }) {
     ...validationErrors.map(wpBGovernanceViolation),
     ...nonterminalEntries.map(wpBInventoryViolation),
     ...discovery.unregistered.map(wpBUnregisteredViolation)
-  ].sort((left, right) => (
-    left.path.localeCompare(right.path)
-      || left.inventoryId.localeCompare(right.inventoryId)
-      || left.reasonCode.localeCompare(right.reasonCode)
-  ));
+  ].sort((left, right) => left.path.localeCompare(right.path) || left.inventoryId.localeCompare(right.inventoryId) || left.reasonCode.localeCompare(right.reasonCode));
   const counts = {};
-  for (const violation of violations) {
-    counts[violation.capabilityClass] = (counts[violation.capabilityClass] || 0) + 1;
-  }
+  for (const violation of violations) counts[violation.capabilityClass] = (counts[violation.capabilityClass] || 0) + 1;
   const productionNonterminal = facts.filter(({ entry }) => entry.classification !== 'NON_PRODUCTION_HARNESS');
-  const legacyCallablePathCount = productionNonterminal.filter(({ facts: value }) => value.callable).length
-    + discovery.unregistered.length;
+  const legacyCallablePathCount = productionNonterminal.filter(({ facts: value }) => value.callable).length + discovery.unregistered.length;
   const directExternalCallOutsideAdapterCount = productionNonterminal.filter(({ facts: value }) => value.directExternal).length;
   const blindRetryPathCount = productionNonterminal.filter(({ facts: value }) => value.blindRetry).length;
   const legacyWriterPathCount = productionNonterminal.filter(({ facts: value }) => value.writer).length;
@@ -577,11 +521,13 @@ function scanWpB({ baseline, inventory }) {
     mode: WORK_PACKAGE_CONFIG.B.mode,
     baselinePath: WP_B_BASELINE_PATH,
     registryPath: WP_B_INVENTORY_PATH,
+    inventoryExtensionPaths: inventory.extensionPaths || [],
+    baseRegistryEntries: inventory.baseEntryCount ?? inventory.entries?.length ?? 0,
+    registryExtensionEntries: inventory.extensionEntryCount || 0,
     branch: baseline.authorizationHead,
     parentGovernanceHead: baseline.parentMilestone2EvidenceHead,
     ok: violations.length === 0 && discoveryComplete,
     registryEntries: inventory.entries?.length || 0,
-    registryExtensionEntries: 0,
     totalRegisteredSourcePaths: new Set((inventory.entries || []).map(entry => normalizePath(entry.path))).size,
     scannedSourceFiles: discovery.scannedFileCount,
     violationCount: violations.length,
@@ -608,10 +554,9 @@ function scanRegisteredSources(options = {}) {
       registryExtensions: options.registryExtensions || loadRegistryExtensions()
     });
   }
-  return scanWpB({
-    baseline: options.baseline || readJson(selected.baselinePath),
-    inventory: options.inventory || options.registry || readJson(selected.registryPath)
-  });
+  const baseline = options.baseline || readJson(selected.baselinePath);
+  const baseInventory = options.inventory || options.registry || readJson(selected.registryPath);
+  return scanWpB({ baseline, inventory: combinedWpBInventory(baseline, baseInventory) });
 }
 
 function parseArguments(argv) {
@@ -650,6 +595,7 @@ module.exports = {
   WP_B_INVENTORY_PATH,
   WP_B_REQUIRED_ENTRY_FIELDS,
   combinedRegisteredSourcePaths,
+  combinedWpBInventory,
   detectSourceCapabilities,
   findUnregisteredSourceCapabilities,
   loadRegistryExtensions,
