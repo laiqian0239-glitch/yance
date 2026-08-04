@@ -65,8 +65,14 @@ function makeProject(id = 'sample') {
   };
 }
 
-function writeTempRepository(registry = makeRegistry({ projects: [makeProject()] })) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-provenance-'));
+function makeTempRoot(t, prefix) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  return root;
+}
+
+function writeTempRepository(t, registry = makeRegistry({ projects: [makeProject()] })) {
+  const root = makeTempRoot(t, 'yance-provenance-');
   fs.mkdirSync(path.join(root, 'third_party', 'licenses'), { recursive: true });
   fs.mkdirSync(path.join(root, 'backend'), { recursive: true });
   fs.writeFileSync(path.join(root, 'third_party', 'provenance.json'), `${JSON.stringify(registry, null, 2)}\n`, 'utf8');
@@ -125,23 +131,36 @@ test('notice ordering is stable regardless of project input order', () => {
   assert.ok(first.indexOf('ALPHA') < first.indexOf('ZETA'));
 });
 
-test('safe repository path rejects absolute, traversal, empty-segment and dot paths', () => {
+test('empty registry notice remains a deterministic newline-terminated file', t => {
+  const registry = makeRegistry();
+  const root = writeTempRepository(t, registry);
+  const report = verifyRepository(root);
+  assert.equal(report.ok, true, JSON.stringify(report.errors, null, 2));
+  assert.equal(report.notice, renderNotice(registry));
+  assert.equal(report.notice.endsWith('\n'), true);
+  assert.equal(report.notice.endsWith('\n\n'), false);
+});
+
+test('safe repository path rejects absolute, traversal, drive-letter, control-character, empty-segment and dot paths', () => {
   assert.equal(isSafeRepositoryPath('backend/example.js'), true);
   assert.equal(isSafeRepositoryPath('../backend/example.js'), false);
   assert.equal(isSafeRepositoryPath('/backend/example.js'), false);
+  assert.equal(isSafeRepositoryPath('C:/Windows/system32/example.js'), false);
+  assert.equal(isSafeRepositoryPath('C:\\Windows\\system32\\example.js'), false);
+  assert.equal(isSafeRepositoryPath('backend/example\nfile.js'), false);
   assert.equal(isSafeRepositoryPath('backend//example.js'), false);
   assert.equal(isSafeRepositoryPath('.'), false);
 });
 
-test('repository verifier reports missing registry without throwing', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-provenance-missing-'));
+test('repository verifier reports missing registry without throwing', t => {
+  const root = makeTempRoot(t, 'yance-provenance-missing-');
   const report = verifyRepository(root);
   assert.equal(report.ok, false);
   assert.equal(report.errors[0].code, 'REGISTRY_MISSING');
 });
 
-test('repository verifier reports invalid JSON without throwing', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-provenance-json-'));
+test('repository verifier reports invalid JSON without throwing', t => {
+  const root = makeTempRoot(t, 'yance-provenance-json-');
   fs.mkdirSync(path.join(root, 'third_party'), { recursive: true });
   fs.writeFileSync(path.join(root, 'third_party', 'provenance.json'), '{', 'utf8');
   const report = verifyRepository(root);
@@ -149,17 +168,17 @@ test('repository verifier reports invalid JSON without throwing', () => {
   assert.equal(report.errors[0].code, 'REGISTRY_JSON_INVALID');
 });
 
-test('repository verifier detects notice drift', () => {
-  const root = writeTempRepository();
+test('repository verifier detects notice drift', t => {
+  const root = writeTempRepository(t);
   fs.appendFileSync(path.join(root, 'THIRD_PARTY_NOTICES.md'), 'manual change\n', 'utf8');
   const report = verifyRepository(root);
   assert.equal(report.ok, false);
   assert.ok(report.errors.some(error => error.code === 'NOTICE_DRIFT'));
 });
 
-test('repository verifier detects missing license evidence and Yance path', () => {
+test('repository verifier detects missing license evidence and Yance path', t => {
   const registry = makeRegistry({ projects: [makeProject()] });
-  const root = writeTempRepository(registry);
+  const root = writeTempRepository(t, registry);
   fs.rmSync(path.join(root, registry.projects[0].license.evidenceFile));
   fs.rmSync(path.join(root, registry.projects[0].yancePaths[0]));
   const report = verifyRepository(root);
@@ -189,11 +208,19 @@ test('strict CLI exits zero for canonical repository and supports JSON output', 
   assert.deepEqual(parsed.errors, []);
 });
 
-test('strict CLI exits non-zero for a structurally invalid registry', () => {
+test('strict CLI exits non-zero in text and JSON modes for a structurally invalid registry', t => {
   const project = makeProject('pending');
   project.review.status = 'PENDING';
-  const root = writeTempRepository(makeRegistry({ projects: [project] }));
-  const result = runCli(root);
-  assert.equal(result.status, 1);
-  assert.match(result.stderr, /\[REVIEW_NOT_APPROVED\]/u);
+  const root = writeTempRepository(t, makeRegistry({ projects: [project] }));
+
+  const text = runCli(root);
+  assert.equal(text.status, 1);
+  assert.match(text.stderr, /\[REVIEW_NOT_APPROVED\]/u);
+
+  const json = runCli(root, ['--json']);
+  assert.equal(json.status, 1);
+  assert.equal(json.stderr, '');
+  const parsed = JSON.parse(json.stdout);
+  assert.equal(parsed.ok, false);
+  assert.ok(parsed.errors.some(error => error.code === 'REVIEW_NOT_APPROVED'));
 });
