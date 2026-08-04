@@ -92,6 +92,10 @@ function resolveWpBM3ImplementationAuthority(options = {}) {
   const authority = m3Authorization.resolveImplementationAuthority(options);
   const inheritedMilestone2 = resolveWpBM2ImplementationAuthority(options);
   if (!hasRequiredGovernanceInvariants(authority) || !inheritedMilestone2) return null;
+  const allowedProductionPaths = Object.freeze([...new Set([
+    ...inheritedMilestone2.allowedProductionPaths,
+    ...authority.allowedProductionPaths
+  ])]);
   return Object.freeze({
     schemaVersion: 3,
     documentType: 'YANCE_ACV2_ACTIVE_WORK_PACKAGE_AUTHORITY',
@@ -110,7 +114,7 @@ function resolveWpBM3ImplementationAuthority(options = {}) {
     targetMigrationId: inheritedMilestone2.targetMigrationId,
     targetSchemaVersion: inheritedMilestone2.targetSchemaVersion,
     operationKinds: inheritedMilestone2.operationKinds,
-    allowedProductionPaths: authority.allowedProductionPaths,
+    allowedProductionPaths,
     governance: authority.governance
   });
 }
