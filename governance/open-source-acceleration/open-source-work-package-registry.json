@@ -13,8 +13,8 @@
     {
       "workPackage": "OSS-1A",
       "authorizedBranch": "oss/1a-baileys-lifecycle",
-      "authorizationPath": "governance/open-source-acceleration/oss-1a-implementation-authorization-v2.json",
-      "receiptPath": "governance/open-source-acceleration/oss-1a-authorization-receipt-v2.json"
+      "authorizationPath": "governance/open-source-acceleration/oss-1a-implementation-authorization-v3.json",
+      "receiptPath": "governance/open-source-acceleration/oss-1a-authorization-receipt-v3.json"
     }
   ],
   "governance": {
