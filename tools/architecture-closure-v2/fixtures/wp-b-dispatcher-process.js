@@ -75,8 +75,20 @@ function parentRequest(type, payload = {}) {
 function faultBarrier(faultPoint) {
   const barrierId = `fault-${crypto.randomUUID()}`;
   return new Promise(resolve => {
-    pendingFaultContinues.set(barrierId, resolve);
-    send({ type: 'fault-point', faultPoint, barrierId, processId: process.pid });
+    const announce = () => send({
+      type: 'fault-point',
+      faultPoint,
+      barrierId,
+      processId: process.pid
+    });
+    const retransmit = setInterval(announce, 25);
+    retransmit.unref?.();
+    pendingFaultContinues.set(barrierId, () => {
+      clearInterval(retransmit);
+      pendingFaultContinues.delete(barrierId);
+      resolve(true);
+    });
+    announce();
   });
 }
 
@@ -513,10 +525,7 @@ async function handle(message = {}) {
       result = Object.freeze({ processId: process.pid, ...host.tokenSnapshot() });
     } else if (message.type === 'continue') {
       const resolve = pendingFaultContinues.get(clean(message.barrierId));
-      if (resolve) {
-        pendingFaultContinues.delete(clean(message.barrierId));
-        resolve(true);
-      }
+      if (resolve) resolve(true);
       result = { continued: Boolean(resolve) };
     } else if (message.type === 'shutdown') {
       result = { closed: true, processId: process.pid };
