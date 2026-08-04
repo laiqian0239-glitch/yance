@@ -80,7 +80,7 @@ function writeValidLegacyDirectory(directory) {
   return creds;
 }
 
-function withFixture(callback, options = {}) {
+async function withFixture(callback, options = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-oss1a-legacy-import-'));
   const sourceDirectory = path.join(root, 'legacy-auth', 'account');
   const archiveRoot = path.join(root, 'legacy-auth-imported');
@@ -103,7 +103,7 @@ function withFixture(callback, options = {}) {
       adapterAccountId: 'legacy-import-device'
     });
     if (options.writeValid !== false) writeValidLegacyDirectory(sourceDirectory);
-    return callback({ root, sourceDirectory, archiveRoot, store, cipher, repository });
+    return await callback({ root, sourceDirectory, archiveRoot, store, cipher, repository });
   } finally {
     try { cipher.close(); } catch (_) {}
     try { store.close(); } catch (_) {}
@@ -180,8 +180,8 @@ function seedTerminalAuthority(store, cipher, state) {
   );
 }
 
-test('resolver does not classify me.id-only legacy credentials as usable auth state', () => {
-  withFixture(({ sourceDirectory }) => {
+test('resolver does not classify me.id-only legacy credentials as usable auth state', async () => {
+  await withFixture(({ sourceDirectory }) => {
     fs.rmSync(sourceDirectory, { recursive: true, force: true });
     writeJson(path.join(sourceDirectory, 'creds.json'), {
       registered: true,
