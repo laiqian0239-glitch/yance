@@ -1,0 +1,57 @@
+name: OSS1A Legacy Import Tooling
+
+on:
+  push:
+    branches:
+      - work/oss1a-legacy-import-repository-patch
+    paths:
+      - .github/workflows/oss1a-legacy-import-tooling.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish-test-fixture-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tooling head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Build exact async fixture patch
+        shell: bash
+        env:
+          IMPLEMENTATION_PARENT: 426a2da28cbd0fd0bfefd7c878d6cc4f8a70a46b
+          CANDIDATE_BRANCH: work/oss1a-legacy-import-test-fixture-candidate
+        run: |
+          set -euo pipefail
+          test -z "$(git ls-remote --heads origin "refs/heads/${CANDIDATE_BRANCH}")"
+          git show "${IMPLEMENTATION_PARENT}:backend/tests/oss1aWhatsappLegacyAuthImport.test.js" > /tmp/legacy-test.js
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = '/tmp/legacy-test.js';
+          let source = fs.readFileSync(file, 'utf8');
+          function replaceOnce(before, after, label) {
+            const first = source.indexOf(before);
+            if (first < 0 || source.indexOf(before, first + before.length) >= 0) {
+              throw new Error(`${label}: expected one exact match`);
+            }
+            source = source.slice(0, first) + after + source.slice(first + before.length);
+          }
+          replaceOnce('function withFixture(callback, options = {}) {', 'async function withFixture(callback, options = {}) {', 'async fixture');
+          replaceOnce('    return callback({ root, sourceDirectory, archiveRoot, store, cipher, repository });', '    return await callback({ root, sourceDirectory, archiveRoot, store, cipher, repository });', 'await callback');
+          replaceOnce("test('resolver does not classify me.id-only legacy credentials as usable auth state', () => {\n  withFixture(({ sourceDirectory }) => {", "test('resolver does not classify me.id-only legacy credentials as usable auth state', async () => {\n  await withFixture(({ sourceDirectory }) => {", 'resolver awaits fixture');
+          fs.writeFileSync(file, source, 'utf8');
+          NODE
+          node --check /tmp/legacy-test.js
+          git checkout --detach "${IMPLEMENTATION_PARENT}"
+          cp /tmp/legacy-test.js backend/tests/oss1aWhatsappLegacyAuthImport.test.js
+          git add backend/tests/oss1aWhatsappLegacyAuthImport.test.js
+          test "$(git diff --cached --name-only)" = "backend/tests/oss1aWhatsappLegacyAuthImport.test.js"
+          git diff --cached --check
+          git config user.name "Yance OSS1A Tooling"
+          git config user.email "oss1a-tooling@users.noreply.github.com"
+          git commit -m "test(oss1a): retain legacy import fixtures across awaits"
+          git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
