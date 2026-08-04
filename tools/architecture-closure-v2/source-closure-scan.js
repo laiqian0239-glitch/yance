@@ -4,14 +4,32 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const {
+  classifyWpBInventoryEntry,
   compareDeclaredCapabilities,
   detectSourceCapabilities,
   normalizePath
 } = require('./source-capability-authority');
+const {
+  discoverCallSites
+} = require('./discover-wp-b-operation-call-sites');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const BASELINE_PATH = 'governance/architecture-closure-v2/wp-a-baseline.json';
 const REGISTRY_PATH = 'governance/architecture-closure-v2/authority-registry.json';
+const WP_B_BASELINE_PATH = 'governance/architecture-closure-v2/wp-b-source-closure-baseline.json';
+const WP_B_INVENTORY_PATH = 'governance/architecture-closure-v2/wp-b-operation-inventory.json';
+const WORK_PACKAGE_CONFIG = Object.freeze({
+  A: Object.freeze({
+    baselinePath: BASELINE_PATH,
+    registryPath: REGISTRY_PATH,
+    mode: 'AUTHORITY_SOURCE_CLOSURE'
+  }),
+  B: Object.freeze({
+    baselinePath: WP_B_BASELINE_PATH,
+    registryPath: WP_B_INVENTORY_PATH,
+    mode: 'DURABLE_OPERATION_SOURCE_CLOSURE'
+  })
+});
 const REGISTRY_EXTENSION_PATHS = Object.freeze([
   'governance/architecture-closure-v2/wp-b-authority-registry-extension.json'
 ]);
@@ -22,8 +40,32 @@ const REQUIRED_ENTRY_FIELDS = Object.freeze([
   'blockingWorkPackage', 'closureState', 'requiredSourceMarkers',
   'forbiddenSourceMarkers'
 ]);
+const WP_B_REQUIRED_ENTRY_FIELDS = Object.freeze([
+  'id',
+  'path',
+  'classification',
+  'operationKinds',
+  'currentResponsibilities',
+  'targetAuthority',
+  'closureState',
+  'removalCondition'
+]);
+const WP_B_DIAGNOSTIC_RECORD_TYPE = 'YANCE_ACV2_WP_B_SOURCE_CLOSURE_VIOLATION';
+
 function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8'));
+}
+
+function workPackageConfig(wp = 'A') {
+  const key = String(wp || 'A').toUpperCase();
+  const config = WORK_PACKAGE_CONFIG[key];
+  if (!config) {
+    const error = new Error(`Unsupported source-closure work package ${key}`);
+    error.code = 'SOURCE_CLOSURE_WORK_PACKAGE_UNSUPPORTED';
+    error.workPackage = key;
+    throw error;
+  }
+  return config;
 }
 
 function sourceClosureConfig(baseline) {
@@ -264,12 +306,7 @@ function findUnregisteredSourceCapabilities(sourceRows, registry, registryExtens
   return violations;
 }
 
-function scanRegisteredSources({
-  baseline = readJson(BASELINE_PATH),
-  registry = readJson(REGISTRY_PATH),
-  registryExtensions = loadRegistryExtensions(),
-  wp = 'A'
-} = {}) {
+function scanWpA({ baseline, registry, registryExtensions }) {
   const registryErrors = validateRegistry(registry, baseline);
   for (const extension of registryExtensions) {
     if (extension.loadError) registryErrors.push(extension.loadError);
@@ -291,14 +328,13 @@ function scanRegisteredSources({
   }
 
   const violations = registryErrors.map(error => ({ violationClass: 'REGISTRY_INVALID', ...error }));
-  const targetWorkPackage = `WP-${String(wp || 'A').toUpperCase()}`;
   const config = sourceClosureConfig(baseline);
 
   for (const entry of registry.entries || []) {
     const sourcePath = path.join(REPO_ROOT, normalizePath(entry.path));
     if (!fs.existsSync(sourcePath)) continue;
     const source = fs.readFileSync(sourcePath, 'utf8');
-    if (entry.blockingWorkPackage !== targetWorkPackage) continue;
+    if (entry.blockingWorkPackage !== 'WP-A') continue;
     const violationClass = violationClassFor(entry);
     for (const marker of entry.requiredSourceMarkers || []) {
       if (!source.includes(marker)) {
@@ -341,7 +377,7 @@ function scanRegisteredSources({
   return {
     schemaVersion: 3,
     documentType: 'YANCE_ACV2_SOURCE_CLOSURE_SCAN',
-    workPackage: targetWorkPackage,
+    workPackage: 'WP-A',
     branch: baseline.authorizedBranch,
     parentGovernanceHead: baseline.parentGovernanceHead,
     a0EvidenceDocument: config.a0EvidenceDocument,
@@ -355,6 +391,227 @@ function scanRegisteredSources({
     counts,
     violations
   };
+}
+
+function validateWpBBaseline(baseline) {
+  const errors = [];
+  if (baseline?.schemaVersion !== 1) errors.push({ code: 'WP_B_BASELINE_SCHEMA_INVALID' });
+  if (baseline?.documentType !== 'YANCE_ACV2_WP_B_SOURCE_CLOSURE_BASELINE'
+      || baseline?.repository !== 'laiqian0239-glitch/yance'
+      || baseline?.workPackage !== 'WP-B') {
+    errors.push({ code: 'WP_B_BASELINE_IDENTITY_INVALID' });
+  }
+  if (baseline?.status !== 'FROZEN_FOR_CREDIBLE_RED') errors.push({ code: 'WP_B_BASELINE_STATUS_INVALID' });
+  if (!Array.isArray(baseline?.discovery?.roots) || baseline.discovery.roots.length === 0) {
+    errors.push({ code: 'WP_B_BASELINE_DISCOVERY_ROOTS_REQUIRED' });
+  }
+  if (!Array.isArray(baseline?.discovery?.excludes)) errors.push({ code: 'WP_B_BASELINE_DISCOVERY_EXCLUDES_REQUIRED' });
+  for (const listName of [
+    'requiredReportFields',
+    'requiredDiagnosticFields',
+    'productionTerminalStates',
+    'nonProductionTerminalStates',
+    'forbiddenTerminalStates'
+  ]) {
+    if (!Array.isArray(baseline?.[listName]) || baseline[listName].length === 0) {
+      errors.push({ code: 'WP_B_BASELINE_LIST_REQUIRED', listName });
+    }
+  }
+  const governance = baseline?.governance || {};
+  if (governance.exactPathsOnly !== true
+      || governance.wildcardPathsAllowed !== false
+      || governance.scannerExclusionForSourceAllowed !== false
+      || governance.temporaryBypassAllowed !== false
+      || governance.warningOnlyClosureAllowed !== false
+      || governance.readyForPromotion !== false
+      || governance.mergeAuthorized !== false
+      || governance.productionUseAuthorized !== false
+      || governance.wpCAuthorized !== false
+      || governance.formalRelease !== false
+      || governance.publish !== false) {
+    errors.push({ code: 'WP_B_BASELINE_GOVERNANCE_INVALID' });
+  }
+  return errors;
+}
+
+function validateWpBInventory(inventory, baseline) {
+  const errors = [];
+  if (inventory?.schemaVersion !== 2) errors.push({ code: 'WP_B_INVENTORY_SCHEMA_INVALID' });
+  if (inventory?.documentType !== 'YANCE_ACV2_WP_B_OPERATION_INVENTORY'
+      || inventory?.workPackage !== 'WP-B') {
+    errors.push({ code: 'WP_B_INVENTORY_IDENTITY_INVALID' });
+  }
+  if (!Array.isArray(inventory?.entries) || inventory.entries.length === 0) {
+    errors.push({ code: 'WP_B_INVENTORY_ENTRIES_REQUIRED' });
+    return errors;
+  }
+  const allowedClassifications = new Set(inventory.allowedClassifications || []);
+  const ids = new Set();
+  const paths = new Set();
+  const deleted = new Set(baseline?.productionTerminalStates || []);
+  for (const [index, entry] of inventory.entries.entries()) {
+    for (const field of WP_B_REQUIRED_ENTRY_FIELDS) {
+      if (!(field in entry)) errors.push({ code: 'WP_B_INVENTORY_FIELD_MISSING', index, inventoryId: entry?.id || '', field });
+    }
+    const inventoryId = String(entry?.id || '');
+    const sourcePath = normalizePath(entry?.path);
+    if (!/^WPB-[A-Z0-9-]+$/u.test(inventoryId)) errors.push({ code: 'WP_B_INVENTORY_ID_INVALID', inventoryId, index });
+    if (!sourcePath || sourcePath !== entry.path || sourcePath.includes('*')) {
+      errors.push({ code: 'WP_B_INVENTORY_PATH_INVALID', inventoryId, path: entry?.path || '' });
+    }
+    if (ids.has(inventoryId)) errors.push({ code: 'WP_B_INVENTORY_ID_DUPLICATE', inventoryId });
+    if (paths.has(sourcePath)) errors.push({ code: 'WP_B_INVENTORY_PATH_DUPLICATE', inventoryId, path: sourcePath });
+    ids.add(inventoryId);
+    paths.add(sourcePath);
+    if (!allowedClassifications.has(entry.classification)) {
+      errors.push({ code: 'WP_B_INVENTORY_CLASSIFICATION_INVALID', inventoryId, classification: entry.classification });
+    }
+    if (!Array.isArray(entry.operationKinds) || !Array.isArray(entry.currentResponsibilities)) {
+      errors.push({ code: 'WP_B_INVENTORY_ARRAY_FIELD_INVALID', inventoryId });
+    }
+    if (!String(entry.targetAuthority || '').trim() || !String(entry.removalCondition || '').trim()) {
+      errors.push({ code: 'WP_B_INVENTORY_AUTHORITY_CONTRACT_INVALID', inventoryId });
+    }
+    if (!fs.existsSync(path.join(REPO_ROOT, sourcePath)) && !(entry.closureState === 'DELETED' && deleted.has('DELETED'))) {
+      errors.push({ code: 'WP_B_INVENTORY_SOURCE_MISSING', inventoryId, path: sourcePath });
+    }
+  }
+  return errors;
+}
+
+function wpBInventoryViolation(entry) {
+  const facts = classifyWpBInventoryEntry(entry);
+  return Object.freeze({
+    violationClass: facts.capabilityClass,
+    code: 'WP_B_SOURCE_CLOSURE_NONTERMINAL_PATH',
+    inventoryId: entry.id,
+    path: entry.path,
+    capabilityClass: facts.capabilityClass,
+    reasonCode: 'WP_B_SOURCE_CLOSURE_NONTERMINAL_PATH',
+    callable: facts.callable,
+    closureState: entry.closureState,
+    classification: entry.classification,
+    currentResponsibilities: Object.freeze([...facts.responsibilities])
+  });
+}
+
+function wpBGovernanceViolation(error, index) {
+  return Object.freeze({
+    violationClass: 'WP_B_INVENTORY_GOVERNANCE',
+    code: error.code || 'WP_B_SOURCE_CLOSURE_INVENTORY_INVALID',
+    inventoryId: 'WPB-INVENTORY-GOVERNANCE',
+    path: error.path || WP_B_INVENTORY_PATH,
+    capabilityClass: 'WP_B_INVENTORY_GOVERNANCE',
+    reasonCode: 'WP_B_SOURCE_CLOSURE_INVENTORY_INVALID',
+    callable: false,
+    diagnosticIndex: index,
+    details: Object.freeze({ ...error })
+  });
+}
+
+function wpBUnregisteredViolation(row) {
+  return Object.freeze({
+    violationClass: 'UNREGISTERED_WP_B_SOURCE',
+    code: 'WP_B_SOURCE_CLOSURE_UNREGISTERED_SOURCE_PATH',
+    inventoryId: 'WPB-UNREGISTERED-SOURCE',
+    path: normalizePath(row.path),
+    capabilityClass: 'UNREGISTERED_WP_B_SOURCE',
+    reasonCode: 'WP_B_SOURCE_CLOSURE_UNREGISTERED_SOURCE_PATH',
+    callable: true,
+    detectedCapabilities: Object.freeze([...(row.capabilities || [])])
+  });
+}
+
+function countBy(violations, field) {
+  return violations.reduce((total, violation) => total + (violation[field] === true ? 1 : 0), 0);
+}
+
+function scanWpB({ baseline, inventory }) {
+  const validationErrors = [
+    ...validateWpBBaseline(baseline),
+    ...validateWpBInventory(inventory, baseline)
+  ];
+  const productionTerminal = new Set(baseline.productionTerminalStates || []);
+  const nonProductionTerminal = new Set(baseline.nonProductionTerminalStates || []);
+  const nonterminalEntries = (inventory.entries || []).filter(entry => {
+    if (entry.classification === 'NON_PRODUCTION_HARNESS') {
+      return !nonProductionTerminal.has(entry.closureState);
+    }
+    return !productionTerminal.has(entry.closureState);
+  });
+  const facts = nonterminalEntries.map(entry => ({ entry, facts: classifyWpBInventoryEntry(entry) }));
+  const discovery = discoverCallSites(REPO_ROOT);
+  const violations = [
+    ...validationErrors.map(wpBGovernanceViolation),
+    ...nonterminalEntries.map(wpBInventoryViolation),
+    ...discovery.unregistered.map(wpBUnregisteredViolation)
+  ].sort((left, right) => (
+    left.path.localeCompare(right.path)
+      || left.inventoryId.localeCompare(right.inventoryId)
+      || left.reasonCode.localeCompare(right.reasonCode)
+  ));
+  const counts = {};
+  for (const violation of violations) {
+    counts[violation.capabilityClass] = (counts[violation.capabilityClass] || 0) + 1;
+  }
+  const productionNonterminal = facts.filter(({ entry }) => entry.classification !== 'NON_PRODUCTION_HARNESS');
+  const legacyCallablePathCount = productionNonterminal.filter(({ facts: value }) => value.callable).length
+    + discovery.unregistered.length;
+  const directExternalCallOutsideAdapterCount = productionNonterminal.filter(({ facts: value }) => value.directExternal).length;
+  const blindRetryPathCount = productionNonterminal.filter(({ facts: value }) => value.blindRetry).length;
+  const legacyWriterPathCount = productionNonterminal.filter(({ facts: value }) => value.writer).length;
+  const legacyRecoveryPathCount = productionNonterminal.filter(({ facts: value }) => value.recovery).length;
+  const timerOrReconnectAuthorityPathCount = productionNonterminal.filter(({ facts: value }) => value.timerOrReconnect).length;
+  const unregisteredSourcePathCount = discovery.unregistered.length;
+  const discoveryComplete = inventory?.closure?.discoveryComplete === true
+    && discovery.unregistered.length === 0
+    && discovery.missingInventoryPathCount === 0
+    && nonterminalEntries.length === 0
+    && validationErrors.length === 0;
+  return {
+    schemaVersion: 4,
+    documentType: 'YANCE_ACV2_SOURCE_CLOSURE_SCAN',
+    diagnosticsSchemaVersion: 1,
+    diagnosticRecordType: WP_B_DIAGNOSTIC_RECORD_TYPE,
+    workPackage: 'WP-B',
+    mode: WORK_PACKAGE_CONFIG.B.mode,
+    baselinePath: WP_B_BASELINE_PATH,
+    registryPath: WP_B_INVENTORY_PATH,
+    branch: baseline.authorizationHead,
+    parentGovernanceHead: baseline.parentMilestone2EvidenceHead,
+    ok: violations.length === 0 && discoveryComplete,
+    registryEntries: inventory.entries?.length || 0,
+    registryExtensionEntries: 0,
+    totalRegisteredSourcePaths: new Set((inventory.entries || []).map(entry => normalizePath(entry.path))).size,
+    scannedSourceFiles: discovery.scannedFileCount,
+    violationCount: violations.length,
+    classifiedViolationCount: violations.length,
+    legacyCallablePathCount,
+    directExternalCallOutsideAdapterCount,
+    blindRetryPathCount,
+    legacyWriterPathCount,
+    legacyRecoveryPathCount,
+    timerOrReconnectAuthorityPathCount,
+    unregisteredSourcePathCount,
+    discoveryComplete,
+    counts,
+    violations
+  };
+}
+
+function scanRegisteredSources(options = {}) {
+  const selected = workPackageConfig(options.wp || 'A');
+  if (selected.mode === 'AUTHORITY_SOURCE_CLOSURE') {
+    return scanWpA({
+      baseline: options.baseline || readJson(selected.baselinePath),
+      registry: options.registry || readJson(selected.registryPath),
+      registryExtensions: options.registryExtensions || loadRegistryExtensions()
+    });
+  }
+  return scanWpB({
+    baseline: options.baseline || readJson(selected.baselinePath),
+    inventory: options.inventory || options.registry || readJson(selected.registryPath)
+  });
 }
 
 function parseArguments(argv) {
@@ -387,6 +644,11 @@ module.exports = {
   REGISTRY_PATH,
   REGISTRY_EXTENSION_PATHS,
   REQUIRED_ENTRY_FIELDS,
+  WORK_PACKAGE_CONFIG,
+  WP_B_BASELINE_PATH,
+  WP_B_DIAGNOSTIC_RECORD_TYPE,
+  WP_B_INVENTORY_PATH,
+  WP_B_REQUIRED_ENTRY_FIELDS,
   combinedRegisteredSourcePaths,
   detectSourceCapabilities,
   findUnregisteredSourceCapabilities,
@@ -397,5 +659,8 @@ module.exports = {
   sourceClosureConfig,
   validateRegistry,
   validateRegistryExtension,
-  walkJavaScript
+  validateWpBBaseline,
+  validateWpBInventory,
+  walkJavaScript,
+  workPackageConfig
 };
