@@ -136,9 +136,17 @@ test('unknown or invalid paths fail closed rather than selecting a cheaper route
   assert.equal(unknown.pass, false);
   assert.equal(unknown.reasonCode, 'WP0_ROUTE_UNKNOWN_PATH');
 
-  const invalid = classifyWp0Route(policy, ['../escape.js']);
-  assert.equal(invalid.pass, false);
-  assert.equal(invalid.reasonCode, 'WP0_ROUTE_PATH_INVALID');
+  for (const invalidPath of [
+    '../escape.js',
+    'docs/superpowers/plans/tab\tname.md',
+    'docs/superpowers/plans/bell\u0007name.md',
+    'docs/superpowers/plans/del\u007fname.md',
+    'docs/superpowers/plans/line\nbreak.md'
+  ]) {
+    const invalid = classifyWp0Route(policy, [invalidPath]);
+    assert.equal(invalid.pass, false, JSON.stringify(invalidPath));
+    assert.equal(invalid.reasonCode, 'WP0_ROUTE_PATH_INVALID', JSON.stringify(invalidPath));
+  }
 });
 
 test('Stage WP0 workflow has separate product, documentation and governance routes behind one aggregate gate', () => {
