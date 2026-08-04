@@ -1,15 +1,14 @@
 'use strict';
 
-const accountManager = require('./accountManager');
-const accountStore = require('./accountStore');
 const sendQueue = require('./sendQueueService');
 const eventBus = require('./eventBus');
 const logger = require('./logger');
 const safeModeService = require('./safeModeService');
 const systemPolicy = require('./systemPolicy');
 const settingsRepository = require('../repositories/settingsRepository');
-const { eligibility } = require('./accountLifecycle');
-const platformAdapters = require('./platformAdapterPorts').singleton;
+const {
+  recoverNonterminalExecutions
+} = require('./durableExecutionRecoveryAuthority');
 
 function nowIso(clock = Date) { return new clock().toISOString(); }
 function clean(value) { return String(value == null ? '' : value).trim(); }
@@ -18,17 +17,17 @@ function clamp(value, min, max) { return Math.max(min, Math.min(max, Number(valu
 
 class RuntimeRecoveryService {
   constructor(options = {}) {
-    this.accountManager = options.accountManager || accountManager;
-    this.accountStore = options.accountStore || accountStore;
     this.sendQueue = options.sendQueue || sendQueue;
     this.eventBus = options.eventBus || eventBus;
-    this.platformAdapters = options.platformAdapters || platformAdapters;
+    this.recoverNonterminalExecutions = options.recoverNonterminalExecutions || recoverNonterminalExecutions;
     this.safeModeService = options.safeModeService || safeModeService;
     this.systemPolicy = options.systemPolicy || systemPolicy;
     this.repository = options.repository || settingsRepository;
     this.clock = options.clock || Date;
     this.initialBackoffMs = clamp(options.initialBackoffMs || process.env.YANCE_RUNTIME_RECOVERY_INITIAL_BACKOFF_MS || 30000, 1000, 30 * 60 * 1000);
     this.maximumBackoffMs = clamp(options.maximumBackoffMs || process.env.YANCE_RUNTIME_RECOVERY_MAX_BACKOFF_MS || 30 * 60 * 1000, this.initialBackoffMs, 24 * 60 * 60 * 1000);
+    // Retained as a read-compatible projection for existing diagnostics. It no
+    // longer authorizes platform reconnect calls or business retry decisions.
     this.accountAttempts = new Map();
     this.attemptStateLoaded = false;
     this.attemptStateError = '';
@@ -219,57 +218,39 @@ class RuntimeRecoveryService {
   }
 
   async recover(reason = 'manual') {
-    const manual = clean(reason).toLowerCase() === 'manual';
     if (this.state.recovering || this.state.suspended || !this.state.online) return this.status();
     const gate = this.recoveryGate();
     if (!gate.allowed) return this.blocked(reason, gate);
 
     this.state.recovering = true;
     this.state.lastRecoveryBlocked = null;
-    this.eventBus.publish('runtime:recovery-started', { reason, at: this.timestamp() });
-    const results = [];
+    const authorityTimestamp = this.timestamp();
+    this.eventBus.publish('runtime:recovery-started', { reason, authorityTimestamp });
     try {
-      const publicAccounts = this.accountManager.list().accounts;
-      for (const row of publicAccounts) {
-        const stored = this.accountStore.get(row.id);
-        if (!stored || !eligibility(stored, { manual: false }).eligible) continue;
-        if (['connected', 'limited', 'connecting', 'waiting-verification', 'reauthorize'].includes(row.state)) continue;
-        if (row.state === 'unconfigured' && row.credentialReady !== true) continue;
-
-        const attempt = this.attemptState(row.id);
-        if (attempt.inFlight) {
-          results.push({ accountId: row.id, platform: row.platform, ok: false, skipped: true, code: 'ACCOUNT_RECOVERY_ALREADY_IN_FLIGHT' });
-          continue;
-        }
-        if (!manual && Number(attempt.nextEligibleAt || 0) > this.epoch()) {
-          results.push({ accountId: row.id, platform: row.platform, ok: false, skipped: true, code: 'ACCOUNT_RECOVERY_BACKOFF', retryAt: new Date(attempt.nextEligibleAt).toISOString(), failureCount: attempt.failureCount });
-          continue;
-        }
-        attempt.inFlight = true;
-        try {
-          const account = await this.platformAdapters.executeAuth({
-            schemaVersion: 1,
-            platform: row.platform,
-            accountId: row.id,
-            operation: 'connect',
-            reason: cleanRecoveryReason(reason)
-          });
-          this.markSuccess(row.id);
-          results.push({ accountId: row.id, platform: row.platform, ok: true, account });
-        } catch (error) {
-          const backoff = this.markFailure(row.id, error);
-          results.push({ accountId: row.id, platform: row.platform, ok: false, error: clean(error.message), code: clean(error.code), ...backoff });
-        } finally {
-          const current = this.accountAttempts.get(row.id);
-          if (current) current.inFlight = false;
-        }
-      }
+      const receipts = this.recoverNonterminalExecutions({
+        authorityTimestamp,
+        reasonCode: cleanRecoveryReason(reason)
+      });
+      const results = (Array.isArray(receipts) ? receipts : []).map(receipt => ({
+        executionId: clean(receipt.executionId),
+        fromState: clean(receipt.fromState),
+        targetState: clean(receipt.targetState),
+        decision: clean(receipt.decision),
+        reasonCode: clean(receipt.reasonCode),
+        persistedAttemptCount: Number(receipt.persistedAttemptCount || 0),
+        authorityTimestamp: clean(receipt.authorityTimestamp)
+      }));
       const postGate = this.recoveryGate();
       if (postGate.allowed) this.sendQueue.resume(reason);
       else this.state.lastRecoveryBlocked = { reason: cleanRecoveryReason(reason), code: clean(postGate.code), detail: clean(postGate.detail), at: this.timestamp() };
-      this.state.lastRecoveryAt = this.timestamp();
+      this.state.lastRecoveryAt = authorityTimestamp;
       this.state.lastRecovery = results.slice(-50);
-      this.eventBus.publish('runtime:recovery-completed', { reason, results, blocked: this.state.lastRecoveryBlocked, at: this.state.lastRecoveryAt });
+      this.eventBus.publish('runtime:recovery-completed', {
+        reason,
+        results,
+        blocked: this.state.lastRecoveryBlocked,
+        authorityTimestamp
+      });
       return this.status();
     } finally {
       this.state.recovering = false;

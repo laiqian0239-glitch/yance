@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_B_OPERATION_INVENTORY_EXTENSION",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-B",
+  "milestone": 3,
+  "status": "ACTIVE_SOURCE_CLOSURE",
+  "baseInventoryPath": "governance/architecture-closure-v2/wp-b-operation-inventory.json",
+  "authorizationAmendmentId": "WP-B-M3-SCOPE-001",
+  "entries": [
+    {
+      "id": "WPB-DURABLE-INTERNAL-OPERATION-AUTHORITY",
+      "path": "backend/services/durableInternalOperationAuthority.js",
+      "classification": "RUNTIME_COMPOSITION",
+      "operationKinds": [
+        "AI_PROVIDER_EXECUTION",
+        "OUTBOUND_MESSAGE_SEND",
+        "DELIVERY_RECEIPT_RECONCILIATION",
+        "MEDIA_TRANSFER",
+        "HISTORY_SYNCHRONIZATION",
+        "SESSION_RESTORE"
+      ],
+      "currentResponsibilities": [
+        "DURABLE_INTERNAL_OPERATION_LIFECYCLE",
+        "SCHEMA_23_EXECUTION_DELEGATION",
+        "HOST_FENCED_COMPATIBILITY_PROJECTION"
+      ],
+      "targetAuthority": "DurableExecutionAuthorityV2",
+      "closureState": "OPEN",
+      "removalCondition": "All legacy async/background lifecycle consumers delegate to this single Schema 23 authority; legacy tables and callable writer facades are absent."
+    }
+  ],
+  "governance": {
+    "exactPathsOnly": true,
+    "wildcardPathsAllowed": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "readyForPromotion": false,
+    "mergeAuthorized": false,
+    "productionUseAuthorized": false,
+    "wpCAuthorized": false,
+    "formalRelease": false,
+    "publish": false
+  }
+}

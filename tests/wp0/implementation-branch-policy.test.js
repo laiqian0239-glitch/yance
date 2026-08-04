@@ -33,14 +33,14 @@ function authorization() {
   return JSON.parse(fs.readFileSync(AUTHORIZATION_PATH, 'utf8'));
 }
 
-function changedFilesFrom(baseHead) {
+function changedFilesFrom(baseHead, head = 'HEAD') {
   const output = execFileSync('git', [
     '-c',
     'core.quotePath=false',
     'diff',
     '--name-only',
     baseHead,
-    'HEAD',
+    head,
     '--'
   ], {
     cwd: REPO_ROOT,
@@ -201,7 +201,7 @@ test('work-package scope requires an exact independently reviewed amendment', ()
   assert.equal(wrongCount.reasonCode, 'ACV2_CHANGED_FILE_SET_MISMATCH');
 });
 
-test('checked-out scope preserves immutable A8 closure and validates an exact post-close defect when present', () => {
+test('checked-out scope preserves immutable A8 closure and validates its sealed post-close defect head', () => {
   const document = authorization();
   const chain = loadWorkPackageTaskScopeChain();
   assert.ok(chain, 'task scope chain must exist and parse as JSON');
@@ -217,7 +217,13 @@ test('checked-out scope preserves immutable A8 closure and validates an exact po
 
   const defect = loadWorkPackagePostMergeDefect();
   if (defect && isValidWorkPackagePostMergeDefect(defect)) {
-    const changedFiles = changedFilesFrom(defect.scope.baseHead);
+    const reviewedHead = String(defect.closureReceipt?.reviewedCodeHead || '');
+    assert.match(reviewedHead, /^[a-f0-9]{40}$/u);
+    execFileSync('git', ['cat-file', '-e', `${reviewedHead}^{commit}`], { cwd: REPO_ROOT });
+    execFileSync('git', ['merge-base', '--is-ancestor', defect.scope.baseHead, reviewedHead], {
+      cwd: REPO_ROOT
+    });
+    const changedFiles = changedFilesFrom(defect.scope.baseHead, reviewedHead);
     const result = evaluateAuthorizedPostMergeDefectScope({
       branch: defect.scope.targetBranch,
       changedFiles,

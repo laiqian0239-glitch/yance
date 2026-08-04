@@ -13,6 +13,10 @@ const migrationPath = path.join(repoRoot, 'backend', 'migrations', 'architecture
 const { SqliteConnectionBroker } = require('../../../lib/sqliteConnectionBroker');
 const roleGuard = require('../../../lib/runtimeRoleGuard');
 const { SCHEMA_VERSION } = require('../../../lib/r32SqliteStore');
+const {
+  BASE_TARGET_SCHEMA_VERSION: WP_A_BASE_SCHEMA_VERSION,
+  TARGET_SCHEMA_VERSION: WP_A_INTEGRITY_SCHEMA_VERSION
+} = require('../../../migrations/architectureClosureV2WpA');
 
 function tempDb(prefix = 'yance-acv2-a1-') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -56,11 +60,14 @@ function requireA1() {
   return authority;
 }
 
-test('A1 base migration plus post-merge integrity migration expose Schema 22 and the AuthorityWriteHost boundary', () => {
+test('A1 migrations remain Schema 21/22 while the current product startup target advances monotonically', () => {
   const authority = loadHostModule();
   assert.ok(fs.existsSync(migrationPath), 'WP-A schema migration entrypoint is missing');
   assert.ok(authority, 'AuthorityWriteHost service is missing');
-  assert.equal(SCHEMA_VERSION, 22);
+  assert.equal(WP_A_BASE_SCHEMA_VERSION, 21);
+  assert.equal(WP_A_INTEGRITY_SCHEMA_VERSION, 22);
+  assert.equal(SCHEMA_VERSION, 23);
+  assert.ok(SCHEMA_VERSION > WP_A_INTEGRITY_SCHEMA_VERSION);
   assert.equal(typeof authority?.acquireAuthorityWriteHost, 'function');
   assert.equal(typeof authority?.assertCurrentAuthorityWriteHostToken, 'function');
 });
@@ -113,7 +120,7 @@ test('SqliteConnectionBroker requires a genuine externally acquired host capabil
   }
 });
 
-test('fresh database bootstrap and Schema 20 upgrade both converge to the complete Schema 22 object set', () => {
+test('fresh bootstrap and Schema 20 upgrade preserve the complete WP-A object set within Schema 23 startup', () => {
   const authority = requireA1();
   const required = new Set([
     'authority_write_host_lease',
@@ -149,16 +156,22 @@ test('fresh database bootstrap and Schema 20 upgrade both converge to the comple
       host = authority.acquireAuthorityWriteHost({ dbPath, instanceId: `host-${mode}` });
       broker = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: host.capability });
       const store = broker.open();
-      assert.equal(store.getMeta('schema_version'), 22);
+      assert.equal(store.getMeta('schema_version'), 23);
+      assert.equal(store.getMeta('schemaVersion'), 23);
       const names = tableNames(store.db);
       for (const name of required) assert.equal(names.has(name), true, `${mode}:${name}`);
-      const baseMigration = store.db.prepare("SELECT status,checksum FROM r32_schema_migrations WHERE migration_id='021_architecture_closure_v2_wp_a'").get();
+      const baseMigration = store.db.prepare("SELECT status,checksum,target_schema_version FROM r32_schema_migrations WHERE migration_id='021_architecture_closure_v2_wp_a'").get();
       assert.equal(baseMigration?.status, 'completed');
+      assert.equal(baseMigration?.target_schema_version, 21);
       assert.match(String(baseMigration?.checksum || ''), /^[a-f0-9]{64}$/);
       const integrityMigration = store.db.prepare("SELECT status,checksum,target_schema_version FROM r32_schema_migrations WHERE migration_id='022_architecture_closure_v2_wp_a_integrity'").get();
       assert.equal(integrityMigration?.status, 'completed');
       assert.equal(integrityMigration?.target_schema_version, 22);
       assert.match(String(integrityMigration?.checksum || ''), /^[a-f0-9]{64}$/);
+      const wpBMigration = store.db.prepare("SELECT status,checksum,target_schema_version FROM r32_schema_migrations WHERE migration_id='023_architecture_closure_v2_wp_b'").get();
+      assert.equal(wpBMigration?.status, 'completed');
+      assert.equal(wpBMigration?.target_schema_version, 23);
+      assert.match(String(wpBMigration?.checksum || ''), /^[a-f0-9]{64}$/);
     } finally {
       try { broker?.close(); } catch (_) {}
       try { host?.close(); } catch (_) {}

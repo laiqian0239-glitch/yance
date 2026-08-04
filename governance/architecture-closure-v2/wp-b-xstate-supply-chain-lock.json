@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 3,
+  "documentType": "YANCE_ACV2_WP_B_XSTATE_SUPPLY_CHAIN_LOCK",
+  "workPackage": "WP-B",
+  "candidateId": "XSTATE_CORE_5_32_5",
+  "status": "LOCKED",
+  "authority": {
+    "singleSourceOfTruth": true,
+    "failClosed": true,
+    "mutableVersionTagAloneIsInsufficient": true,
+    "requiredBindings": [
+      "package.json",
+      "package-lock.json",
+      "wp-b-open-source-adoption-registry.json",
+      "wp-b-open-source-adoption-evidence-xstate-5.32.5.json",
+      "ubuntu-upstream-verification",
+      "windows-upstream-verification"
+    ]
+  },
+  "artifact": {
+    "packageName": "xstate",
+    "version": "5.32.5",
+    "resolved": "https://registry.npmjs.org/xstate/-/xstate-5.32.5.tgz",
+    "integrity": "sha512-ULazi1oe6wGrXl0Frb6otSlkm5HLifbbVTkMk5kkSKqz4TkxJaVpnl6jOJwKeid3ORPxYyZQgNLUSYX9q65SIA==",
+    "shasum": "0594075f9fb7d5a12791296c5c798c394b66e823",
+    "license": "MIT",
+    "upstreamTag": "xstate@5.32.5",
+    "upstreamCommit": "c25dba07a2b68565edbe83d83c5d679dd85e00b2",
+    "licenseTextSha256": "542d926d7bbb099785e322d1d5574c539d51942e52ec8adce2be4629ba81fc7f",
+    "packageFileCount": 132,
+    "runtimeDependencyCount": 0,
+    "installLifecycleScripts": [],
+    "suspiciousPackageFiles": [],
+    "npmAudit": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    }
+  },
+  "observation": {
+    "reviewedHead": "48961a5efc21e23b512988a3beb22b08ca8894d6",
+    "workflowRunId": 30809421417,
+    "runtimeVersion": "node@22.23.1",
+    "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531",
+    "exactTagResolution": "git fetch refs/tags/xstate@5.32.5",
+    "sourceBytePolicy": {
+      "coreAutocrlf": false,
+      "coreEol": "lf",
+      "canonicalScratchRoot": true
+    },
+    "upstreamTestSelection": [
+      "XSTATE_PNPM_TEST_CORE"
+    ],
+    "upstreamTestCommand": "corepack pnpm test:core",
+    "ubuntu": {
+      "status": "PASSED",
+      "jobId": 91672352461,
+      "installLogSha256": "81df163ff138e68140c9926526319f949b0b952646ad1987283c4c1e59f53528",
+      "testLogSha256": "b7ab83518fe8248f0e318fcfa88e2a47317cae6caefedc43fb20fbe5b0e0edec",
+      "testSummary": {
+        "testFilePassCount": 75,
+        "testFileFailCount": 0,
+        "testPassCount": 1747,
+        "testFailCount": 0,
+        "skipCount": 13,
+        "todoCount": 1
+      }
+    },
+    "windows": {
+      "status": "PASSED",
+      "jobId": 91672352425,
+      "installLogSha256": "43562ebd282ce1e8e607b5f66bfff6e2e1172135090ffbe83c107716acb1801d",
+      "testLogSha256": "733b4a9a1252115859d776f8ed6111b1a503856f15ba1cad57148ea510a84a42",
+      "testSummary": {
+        "testFilePassCount": 75,
+        "testFileFailCount": 0,
+        "testPassCount": 1747,
+        "testFailCount": 0,
+        "skipCount": 13,
+        "todoCount": 1
+      }
+    }
+  },
+  "repositoryBinding": {
+    "packageManifestPath": "package.json",
+    "packageManifestBlobSha": "f4a1c15316cc451a2979acf5e9a6c7f9eb5f12bc",
+    "packageLockPath": "package-lock.json",
+    "packageLockBlobSha": "ccdab1bd849589a49f3dd2ce096c2579724bc291",
+    "packageLockSha256": "c85637bf92a6886acbc43eb9a540b04d937d5b9f4cebe4a77e4fedb81a5a81b7",
+    "expectedPackageLockBlobSha": "ccdab1bd849589a49f3dd2ce096c2579724bc291",
+    "expectedPackageLockSha256": "c85637bf92a6886acbc43eb9a540b04d937d5b9f4cebe4a77e4fedb81a5a81b7",
+    "repairedAtHead": "84fbbfdea6524dfa4a74dd0a9b40b9ae9ca0805d",
+    "rejectedPackageLockBlobSha": "467c23fa24b94a256f733c02315d4b6e79258dbe",
+    "rejectedPackageLockSha256": "ce962941efa555d782e17909efad33db2f04e02c2aded0a585ae199698978dc5",
+    "differencePolicy": "ONLY_XSTATE_INTEGRITY_FIELD_CHANGED_DURING_REPAIR"
+  },
+  "supersededObservation": {
+    "reason": "RECORDED_FACTS_DID_NOT_MATCH_THE_PHYSICAL_ARTIFACT_FETCHED_IDENTICALLY_ON_UBUNTU_AND_WINDOWS",
+    "upstreamCommit": "42716670a050711f816aa24b6de4127965bc9f4c",
+    "integrity": "sha512-631+ENa9BCjf/Rn/aWthqY8CWnHT6LHAANtB9zTHb9Tz6SgoI8NA+IWjG3qfIcnEubyksdYGhWCOle4eA/pP4A==",
+    "shasum": "f83e61ea539ba224affe937218bc2afdee87cc77",
+    "licenseTextSha256": "f5c97f62cc1e6c5cbd759d6230958ace177d10ec0be6ca028d5e88915a43b6b4",
+    "packageFileCount": 31
+  },
+  "governance": {
+    "step6OriginalModuleIntroductionComplete": true,
+    "step7UpstreamTestsComplete": true,
+    "adapterIntroductionAuthorized": true,
+    "productionUseAuthorized": false,
+    "wpCAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "temporaryBypassAllowed": false,
+    "schema23Applied": true
+  }
+}

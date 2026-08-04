@@ -1,450 +1,802 @@
 'use strict';
 
 const crypto = require('node:crypto');
-const { getStore } = require('../repositories/storeProvider');
+const legacy = require('./durableExecutionAuthorityLegacy');
+const { canonicalHash, canonicalSerialize } = require('./canonicalSerialization');
+const { deepFreeze } = require('../lib/deepFreeze');
+const { STATES: LIFECYCLE_STATES } = require('./durableExecutionLifecycle');
 
-const AUTHORITY = 'DurableExecutionAuthority';
-const SCHEMA_VERSION = 1;
-const STATES = Object.freeze({
-  CREATED: 'CREATED',
-  SCHEDULED: 'SCHEDULED',
-  RUNNING: 'RUNNING',
-  WAITING_REMOTE: 'WAITING_REMOTE',
-  RETRY_SCHEDULED: 'RETRY_SCHEDULED',
-  CANCEL_REQUESTED: 'CANCEL_REQUESTED',
-  CANCELLED: 'CANCELLED',
-  SUCCEEDED: 'SUCCEEDED',
-  FAILED: 'FAILED',
-  DEAD_LETTERED: 'DEAD_LETTERED'
-});
-const TERMINAL = new Set([STATES.CANCELLED, STATES.SUCCEEDED, STATES.FAILED, STATES.DEAD_LETTERED]);
-const SAFE_KEYS = new Set([
-  'platform', 'checkpoint', 'receiptId', 'providerRequestId', 'routeReceiptId',
-  'deliveryReceiptId', 'learningReceiptId', 'reasonCode', 'reasonCodes', 'status',
-  'progress', 'counts', 'attempt', 'retryable', 'nextAttemptAt', 'operationKind',
-  'modelId', 'provider', 'messageKind', 'mediaState', 'syncState', 'page',
-  'offset', 'total', 'completed', 'failed', 'warning', 'skipped',
-  'accountId', 'sourceAccountId', 'streamKind', 'externalConversationId', 'mediaId',
-  'messageId', 'attemptId', 'cursor', 'highWatermark', 'traceId'
+const WP_B_AUTHORITY = 'DurableExecutionAuthorityV2';
+const WP_B_SCHEMA_VERSION = 2;
+const HASH_VERSION = 1;
+const TERMINAL_STATES = new Set([
+  LIFECYCLE_STATES.CANCELLED,
+  LIFECYCLE_STATES.SUCCEEDED,
+  LIFECYCLE_STATES.FAILED,
+  LIFECYCLE_STATES.DEAD_LETTERED
 ]);
+const STATE_VALUES = new Set(Object.values(LIFECYCLE_STATES));
 
-function clean(value) { return String(value == null ? '' : value).trim(); }
-function defaultClock() { return new Date().toISOString(); }
-function defaultIdFactory(prefix) { return `${prefix}-${crypto.randomUUID()}`; }
-function parse(value, fallback = {}) { try { return value == null || value === '' ? fallback : JSON.parse(value); } catch (_) { return fallback; } }
-function boundedAttempts(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? Math.max(1, Math.min(100, Math.floor(n))) : 3;
+function executionError(code, message, details = {}) {
+  return Object.assign(new Error(message), { code, ...details });
 }
-function sanitize(value, depth = 0) {
-  if (depth > 4) return undefined;
-  if (value == null || typeof value === 'boolean' || typeof value === 'number') return value;
-  if (typeof value === 'string') return value.slice(0, 500);
-  if (Array.isArray(value)) return value.slice(0, 50).map(item => sanitize(item, depth + 1)).filter(item => item !== undefined);
-  if (typeof value === 'object') {
-    const result = {};
-    for (const [key, item] of Object.entries(value)) {
-      if (!SAFE_KEYS.has(key)) continue;
-      const safe = sanitize(item, depth + 1);
-      if (safe !== undefined) result[key] = safe;
+
+function milestoneTwoOperationNotAuthorized(operation) {
+  throw executionError(
+    'WP_B_M2_OPERATION_NOT_YET_AUTHORIZED',
+    `Schema 23 operation ${operation} is reserved for WP-B Milestone 2`,
+    {
+      operation,
+      workPackage: 'WP-B',
+      milestone: 'M2',
+      status: 409
     }
-    return result;
+  );
+}
+
+function requiredString(value, field, maximum = 1024) {
+  const result = String(value == null ? '' : value).trim();
+  if (!result) throw executionError('WP_B_EXECUTION_FIELD_REQUIRED', `${field} is required`, { field });
+  if (result.length > maximum || /[\u0000-\u001f\u007f]/u.test(result)) {
+    throw executionError('WP_B_EXECUTION_FIELD_INVALID', `${field} is invalid`, { field, maximum });
   }
-  return undefined;
+  return result;
 }
-function eventRow(row = {}) {
-  return {
-    eventId: clean(row.event_id),
-    executionId: clean(row.execution_id),
-    sequence: Number(row.sequence || 0),
-    eventType: clean(row.event_type),
-    fromState: clean(row.from_state),
-    toState: clean(row.to_state),
-    generation: Number(row.generation || 0),
-    ownerId: clean(row.owner_id),
-    reasonCode: clean(row.reason_code),
-    payload: parse(row.payload_json, {}),
-    createdAt: clean(row.created_at)
-  };
+
+function optionalString(value, field, maximum = 2048) {
+  const result = String(value == null ? '' : value).trim();
+  if (result.length > maximum || /[\u0000-\u001f\u007f]/u.test(result)) {
+    throw executionError('WP_B_EXECUTION_FIELD_INVALID', `${field} is invalid`, { field, maximum });
+  }
+  return result;
 }
-function executionRow(row = {}, history = []) {
+
+function safeInteger(value, field, minimum = 0) {
+  const result = Number(value);
+  if (!Number.isSafeInteger(result) || result < minimum) {
+    throw executionError('WP_B_EXECUTION_INTEGER_INVALID', `${field} must be a safe integer >= ${minimum}`, { field });
+  }
+  return result;
+}
+
+function normalizedTimestamp(value, field = 'authorityTimestamp') {
+  const source = String(value == null ? '' : value);
+  const milliseconds = Date.parse(source);
+  if (!Number.isFinite(milliseconds) || new Date(milliseconds).toISOString() !== source) {
+    throw executionError(
+      'WP_B_EXECUTION_AUTHORITY_TIMESTAMP_INVALID',
+      `${field} must be an explicit normalized UTC ISO-8601 timestamp`,
+      { field }
+    );
+  }
+  return source;
+}
+
+function canonicalPlainData(value, field) {
+  try {
+    return deepFreeze(JSON.parse(canonicalSerialize(value == null ? {} : value)));
+  } catch (error) {
+    throw executionError('WP_B_EXECUTION_COMMAND_INVALID', `${field} must be canonical plain data`, {
+      field,
+      causeCode: String(error?.code || ''),
+      causeMessage: String(error?.message || error)
+    });
+  }
+}
+
+function normalizeExecutionCommand(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw executionError('WP_B_EXECUTION_COMMAND_INVALID', 'Durable execution command must be an object');
+  }
+  const operationKind = requiredString(input.operationKind, 'operationKind', 128);
+  const idempotencyKey = requiredString(input.idempotencyKey, 'idempotencyKey');
+  const traceId = optionalString(input.traceId, 'traceId');
+  const command = canonicalPlainData(input.command || {}, 'command');
+  const commandContentSha256 = canonicalHash({
+    schemaVersion: WP_B_SCHEMA_VERSION,
+    operationKind,
+    idempotencyKey,
+    traceId,
+    command
+  });
+  return deepFreeze({
+    schemaVersion: WP_B_SCHEMA_VERSION,
+    authority: WP_B_AUTHORITY,
+    operationKind,
+    idempotencyKey,
+    traceId,
+    commandContentSha256,
+    contentHashVersion: HASH_VERSION,
+    command
+  });
+}
+
+function assertExecutionIdempotency(existing, command) {
+  if (!existing) return null;
+  const existingHash = String(existing.command_content_sha256 || '');
+  const existingVersion = Number(existing.content_hash_version || 0);
+  if (existingVersion !== HASH_VERSION || existingHash !== command.commandContentSha256) {
+    throw executionError(
+      'WP_B_EXECUTION_IDEMPOTENCY_CONFLICT',
+      'The durable execution idempotency key is already bound to different canonical content',
+      {
+        existingExecutionId: String(existing.execution_id || ''),
+        operationKind: command.operationKind,
+        idempotencyKey: command.idempotencyKey,
+        existingCommandContentSha256: existingHash,
+        incomingCommandContentSha256: command.commandContentSha256,
+        existingContentHashVersion: existingVersion
+      }
+    );
+  }
+  return existing;
+}
+
+function normalizeAllowedStates(input = {}) {
+  const source = Array.isArray(input.allowedStates)
+    ? input.allowedStates
+    : input.fromState == null
+      ? []
+      : [input.fromState];
+  if (source.length < 1 || source.length > STATE_VALUES.size) {
+    throw executionError(
+      'WP_B_EXECUTION_ALLOWED_STATES_INVALID',
+      'allowedStates must contain at least one registered lifecycle state'
+    );
+  }
+  const unique = [];
+  const seen = new Set();
+  for (const value of source) {
+    const state = requiredString(value, 'allowedStates', 64);
+    if (!STATE_VALUES.has(state)) {
+      throw executionError('WP_B_EXECUTION_STATE_INVALID', 'Allowed CAS state is not registered', { state });
+    }
+    if (!seen.has(state)) {
+      unique.push(state);
+      seen.add(state);
+    }
+  }
+  return Object.freeze(unique);
+}
+
+function normalizeTransitionCommand(input = {}) {
+  const targetState = requiredString(input.targetState, 'targetState', 64);
+  if (!STATE_VALUES.has(targetState)) {
+    throw executionError('WP_B_EXECUTION_STATE_INVALID', 'Target CAS state is not registered', { targetState });
+  }
+  const ownerId = requiredString(input.ownerId, 'ownerId');
+  return deepFreeze({
+    executionId: requiredString(input.executionId, 'executionId'),
+    allowedStates: normalizeAllowedStates(input),
+    targetState,
+    stateVersion: safeInteger(
+      input.expectedStateVersion ?? input.stateVersion,
+      'expectedStateVersion'
+    ),
+    generation: safeInteger(input.generation, 'generation', 1),
+    ownerId,
+    claimId: requiredString(input.claimId, 'claimId'),
+    hostId: requiredString(input.hostId, 'hostId'),
+    hostGeneration: safeInteger(input.hostGeneration, 'hostGeneration', 1),
+    fencingToken: safeInteger(input.fencingToken, 'fencingToken', 1),
+    authorityTimestamp: normalizedTimestamp(input.authorityTimestamp),
+    eventId: optionalString(input.eventId, 'eventId') || `execution-event-${crypto.randomUUID()}`,
+    eventType: optionalString(input.eventType, 'eventType', 128) || 'transition',
+    reasonCode: optionalString(input.reasonCode, 'reasonCode', 256),
+    payload: canonicalPlainData(input.payload || {}, 'payload')
+  });
+}
+
+function normalizeCasFacts(input = {}) {
+  const fromState = requiredString(input.fromState, 'fromState', 64);
+  const targetState = requiredString(input.targetState, 'targetState', 64);
+  if (!STATE_VALUES.has(fromState) || !STATE_VALUES.has(targetState)) {
+    throw executionError('WP_B_EXECUTION_STATE_INVALID', 'CAS state is not registered', {
+      fromState,
+      targetState
+    });
+  }
+  const ownerId = requiredString(input.ownerId, 'ownerId');
+  return Object.freeze({
+    executionId: requiredString(input.executionId, 'executionId'),
+    fromState,
+    targetState,
+    stateVersion: safeInteger(input.stateVersion, 'stateVersion'),
+    generation: safeInteger(input.generation, 'generation', 1),
+    ownerId,
+    claimId: requiredString(input.claimId, 'claimId'),
+    hostId: requiredString(input.hostId, 'hostId'),
+    hostGeneration: safeInteger(input.hostGeneration, 'hostGeneration', 1),
+    fencingToken: safeInteger(input.fencingToken, 'fencingToken', 1),
+    authorityTimestamp: normalizedTimestamp(input.authorityTimestamp)
+  });
+}
+
+function normalizeUnownedCasFacts(input = {}) {
+  const fromState = requiredString(input.fromState, 'fromState', 64);
+  const targetState = requiredString(input.targetState, 'targetState', 64);
+  if (!STATE_VALUES.has(fromState) || !STATE_VALUES.has(targetState)) {
+    throw executionError('WP_B_EXECUTION_STATE_INVALID', 'Unowned CAS state is not registered', {
+      fromState,
+      targetState
+    });
+  }
+  return Object.freeze({
+    executionId: requiredString(input.executionId, 'executionId'),
+    fromState,
+    targetState,
+    stateVersion: safeInteger(input.stateVersion, 'stateVersion'),
+    generation: safeInteger(input.generation, 'generation'),
+    hostId: requiredString(input.hostId, 'hostId'),
+    hostGeneration: safeInteger(input.hostGeneration, 'hostGeneration', 1),
+    fencingToken: safeInteger(input.fencingToken, 'fencingToken', 1),
+    authorityTimestamp: normalizedTimestamp(input.authorityTimestamp)
+  });
+}
+
+function normalizeClaimFacts(input = {}) {
+  const fromState = requiredString(input.fromState, 'fromState', 64);
+  if (fromState !== LIFECYCLE_STATES.SCHEDULED) {
+    throw executionError('WP_B_EXECUTION_CLAIM_STATE_INVALID', 'Only a scheduled execution can be claimed', {
+      fromState
+    });
+  }
+  const ownerId = requiredString(input.ownerId, 'ownerId');
+  const leaseStartedAt = normalizedTimestamp(input.leaseStartedAt, 'leaseStartedAt');
+  const leaseExpiresAt = normalizedTimestamp(input.leaseExpiresAt, 'leaseExpiresAt');
+  if (Date.parse(leaseExpiresAt) <= Date.parse(leaseStartedAt)) {
+    throw executionError(
+      'WP_B_EXECUTION_CLAIM_LEASE_INVALID',
+      'First-claim lease expiry must be later than its start',
+      { leaseStartedAt, leaseExpiresAt }
+    );
+  }
+  return Object.freeze({
+    executionId: requiredString(input.executionId, 'executionId'),
+    fromState,
+    targetState: LIFECYCLE_STATES.CLAIMED,
+    stateVersion: safeInteger(input.stateVersion, 'stateVersion'),
+    generation: safeInteger(input.generation, 'generation'),
+    ownerId,
+    claimId: requiredString(input.claimId, 'claimId'),
+    hostId: requiredString(input.hostId, 'hostId'),
+    hostGeneration: safeInteger(input.hostGeneration, 'hostGeneration', 1),
+    fencingToken: safeInteger(input.fencingToken, 'fencingToken', 1),
+    leaseStartedAt,
+    leaseExpiresAt
+  });
+}
+
+function executeExecutionTransitionCas(db, input = {}) {
+  if (!db || typeof db.prepare !== 'function') {
+    throw new TypeError('Execution transition CAS requires a SQLite database capability');
+  }
+  const facts = normalizeCasFacts(input);
+  const completedAt = TERMINAL_STATES.has(facts.targetState) ? facts.authorityTimestamp : '';
+  const result = db.prepare(`UPDATE durable_executions SET
+      state=?,state_version=state_version+1,updated_at=?,
+      completed_at=CASE WHEN ?<>'' THEN ? ELSE completed_at END
+    WHERE execution_id=? AND state=? AND state_version=? AND generation=?
+      AND owner_id=? AND claim_id=? AND host_generation=? AND fencing_token=?
+      AND lease_expires_at>=?
+      AND EXISTS(
+        SELECT 1 FROM authority_write_host_lease
+        WHERE singleton_id=1 AND owner_instance_id=? AND host_generation=?
+          AND fencing_token=? AND state='ACTIVE'
+      )`).run(
+    facts.targetState,
+    facts.authorityTimestamp,
+    completedAt,
+    completedAt,
+    facts.executionId,
+    facts.fromState,
+    facts.stateVersion,
+    facts.generation,
+    facts.ownerId,
+    facts.claimId,
+    facts.hostGeneration,
+    facts.fencingToken,
+    facts.authorityTimestamp,
+    facts.hostId,
+    facts.hostGeneration,
+    facts.fencingToken
+  );
+  if (Number(result.changes || 0) !== 1) {
+    throw executionError('WP_B_EXECUTION_CAS_REJECTED', 'Durable execution transition CAS rejected', {
+      executionId: facts.executionId,
+      stateVersion: facts.stateVersion,
+      generation: facts.generation,
+      claimId: facts.claimId,
+      hostGeneration: facts.hostGeneration,
+      fencingToken: facts.fencingToken
+    });
+  }
+  return deepFreeze({
+    executionId: facts.executionId,
+    fromState: facts.fromState,
+    targetState: facts.targetState,
+    stateVersion: facts.stateVersion + 1,
+    generation: facts.generation,
+    ownerId: facts.ownerId,
+    claimId: facts.claimId,
+    hostGeneration: facts.hostGeneration,
+    fencingToken: facts.fencingToken,
+    authorityTimestamp: facts.authorityTimestamp
+  });
+}
+
+function executeUnownedExecutionTransitionCas(db, input = {}) {
+  if (!db || typeof db.prepare !== 'function') {
+    throw new TypeError('Unowned execution transition CAS requires a SQLite database capability');
+  }
+  const facts = normalizeUnownedCasFacts(input);
+  const result = db.prepare(`UPDATE durable_executions SET
+      state=?,state_version=state_version+1,updated_at=?
+    WHERE execution_id=? AND state=? AND state_version=? AND generation=?
+      AND owner_id='' AND claim_id='' AND host_generation=0 AND fencing_token=0
+      AND EXISTS(
+        SELECT 1 FROM authority_write_host_lease
+        WHERE singleton_id=1 AND owner_instance_id=? AND host_generation=?
+          AND fencing_token=? AND state='ACTIVE'
+      )`).run(
+    facts.targetState,
+    facts.authorityTimestamp,
+    facts.executionId,
+    facts.fromState,
+    facts.stateVersion,
+    facts.generation,
+    facts.hostId,
+    facts.hostGeneration,
+    facts.fencingToken
+  );
+  if (Number(result.changes || 0) !== 1) {
+    throw executionError(
+      'WP_B_EXECUTION_UNOWNED_CAS_REJECTED',
+      'Unowned durable execution transition CAS rejected',
+      {
+        executionId: facts.executionId,
+        fromState: facts.fromState,
+        targetState: facts.targetState,
+        stateVersion: facts.stateVersion,
+        generation: facts.generation,
+        hostGeneration: facts.hostGeneration,
+        fencingToken: facts.fencingToken
+      }
+    );
+  }
+  return deepFreeze({
+    executionId: facts.executionId,
+    fromState: facts.fromState,
+    targetState: facts.targetState,
+    stateVersion: facts.stateVersion + 1,
+    generation: facts.generation,
+    authorityTimestamp: facts.authorityTimestamp
+  });
+}
+
+function executeExecutionClaimCas(db, input = {}) {
+  if (!db || typeof db.prepare !== 'function') {
+    throw new TypeError('Execution claim CAS requires a SQLite database capability');
+  }
+  const facts = normalizeClaimFacts(input);
+  const result = db.prepare(`UPDATE durable_executions SET
+      state=?,state_version=state_version+1,generation=generation+1,
+      owner_id=?,claim_id=?,lease_sequence=lease_sequence+1,
+      host_generation=?,fencing_token=?,lease_started_at=?,lease_expires_at=?,
+      heartbeat_sequence=0,last_heartbeat_at=?,updated_at=?
+    WHERE execution_id=? AND state=? AND state_version=? AND generation=?
+      AND owner_id='' AND claim_id='' AND host_generation=0 AND fencing_token=0
+      AND EXISTS(
+        SELECT 1 FROM authority_write_host_lease
+        WHERE singleton_id=1 AND owner_instance_id=? AND host_generation=?
+          AND fencing_token=? AND state='ACTIVE'
+      )`).run(
+    facts.targetState,
+    facts.ownerId,
+    facts.claimId,
+    facts.hostGeneration,
+    facts.fencingToken,
+    facts.leaseStartedAt,
+    facts.leaseExpiresAt,
+    facts.leaseStartedAt,
+    facts.leaseStartedAt,
+    facts.executionId,
+    facts.fromState,
+    facts.stateVersion,
+    facts.generation,
+    facts.hostId,
+    facts.hostGeneration,
+    facts.fencingToken
+  );
+  if (Number(result.changes || 0) !== 1) {
+    throw executionError('WP_B_EXECUTION_CLAIM_CAS_REJECTED', 'Durable execution first-claim CAS rejected', {
+      executionId: facts.executionId,
+      stateVersion: facts.stateVersion,
+      generation: facts.generation,
+      claimId: facts.claimId,
+      hostGeneration: facts.hostGeneration,
+      fencingToken: facts.fencingToken
+    });
+  }
+  return deepFreeze({
+    executionId: facts.executionId,
+    fromState: facts.fromState,
+    targetState: facts.targetState,
+    stateVersion: facts.stateVersion + 1,
+    generation: facts.generation + 1,
+    ownerId: facts.ownerId,
+    claimId: facts.claimId,
+    hostGeneration: facts.hostGeneration,
+    fencingToken: facts.fencingToken,
+    leaseStartedAt: facts.leaseStartedAt,
+    leaseExpiresAt: facts.leaseExpiresAt
+  });
+}
+
+function isMissingSchema23MigrationTable(error) {
+  return /no such table:\s*(?:main\.)?r32_schema_migrations\b/iu.test(
+    String(error?.message || '')
+  );
+}
+
+function schema23Applied(store) {
+  try {
+    const row = store.db.prepare(`SELECT status FROM r32_schema_migrations
+      WHERE migration_id='023_architecture_closure_v2_wp_b'`).get();
+    return String(row?.status || '') === 'completed';
+  } catch (error) {
+    if (isMissingSchema23MigrationTable(error)) return false;
+    throw error;
+  }
+}
+
+function parseJson(value, fallback = {}) {
+  try { return value == null || value === '' ? fallback : JSON.parse(value); } catch (_) { return fallback; }
+}
+
+function executionSnapshotV2(row, history = []) {
   if (!row) return null;
-  return {
-    authority: AUTHORITY,
-    schemaVersion: SCHEMA_VERSION,
-    executionId: clean(row.execution_id),
-    traceId: clean(row.trace_id),
-    operationKind: clean(row.operation_kind),
-    idempotencyKey: clean(row.idempotency_key),
-    state: clean(row.state),
+  return deepFreeze({
+    authority: WP_B_AUTHORITY,
+    schemaVersion: WP_B_SCHEMA_VERSION,
+    executionId: String(row.execution_id || ''),
+    traceId: String(row.trace_id || ''),
+    operationKind: String(row.operation_kind || ''),
+    idempotencyKey: String(row.idempotency_key || ''),
+    commandContentSha256: String(row.command_content_sha256 || ''),
+    contentHashVersion: Number(row.content_hash_version || 0),
+    state: String(row.state || ''),
+    stateVersion: Number(row.state_version || 0),
     generation: Number(row.generation || 0),
-    ownerId: clean(row.owner_id),
-    leaseSequence: Number(row.lease_sequence || 0),
-    lastHeartbeatAt: clean(row.last_heartbeat_at),
-    cancellationRequestedAt: clean(row.cancellation_requested_at),
-    cancellationActor: clean(row.cancellation_actor),
+    ownerId: String(row.owner_id || ''),
+    claimId: String(row.claim_id || ''),
+    hostGeneration: Number(row.host_generation || 0),
+    fencingToken: Number(row.fencing_token || 0),
+    leaseStartedAt: String(row.lease_started_at || ''),
+    leaseExpiresAt: String(row.lease_expires_at || ''),
+    heartbeatSequence: Number(row.heartbeat_sequence || 0),
+    lastHeartbeatAt: String(row.last_heartbeat_at || ''),
+    deadlineAt: String(row.deadline_at || ''),
+    terminalReceiptId: String(row.terminal_receipt_id || ''),
     retryCount: Number(row.retry_count || 0),
     maxAttempts: Number(row.max_attempts || 0),
-    nextAttemptAt: clean(row.next_attempt_at),
-    failureCode: clean(row.failure_code),
-    metadata: parse(row.metadata_json, {}),
-    createdAt: clean(row.created_at),
-    updatedAt: clean(row.updated_at),
-    completedAt: clean(row.completed_at),
+    nextAttemptAt: String(row.next_attempt_at || ''),
+    failureCode: String(row.failure_code || ''),
+    metadata: canonicalPlainData(parseJson(row.metadata_json, {}), 'persistedExecution.metadata'),
+    createdAt: String(row.created_at || ''),
+    updatedAt: String(row.updated_at || ''),
+    completedAt: String(row.completed_at || ''),
     history
-  };
+  });
 }
 
-class DurableExecutionAuthority {
-  constructor({ storeProvider = getStore, idFactory = defaultIdFactory, clock = defaultClock } = {}) {
-    this.storeProvider = storeProvider;
-    this.idFactory = idFactory;
-    this.clock = clock;
+function appendV2Event(store, input = {}) {
+  const sequence = Number(store.db.prepare(`SELECT COALESCE(MAX(sequence),0)+1 AS next
+    FROM durable_execution_events WHERE execution_id=?`).get(input.executionId)?.next || 1);
+  store.db.prepare(`INSERT INTO durable_execution_events(
+      event_id,execution_id,sequence,event_type,from_state,to_state,generation,
+      owner_id,reason_code,payload_json,created_at
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?)`).run(
+    optionalString(input.eventId, 'eventId') || `execution-event-${crypto.randomUUID()}`,
+    input.executionId,
+    sequence,
+    optionalString(input.eventType, 'eventType', 128) || 'transition',
+    input.fromState,
+    input.toState,
+    input.generation,
+    optionalString(input.ownerId, 'ownerId'),
+    optionalString(input.reasonCode, 'reasonCode', 256),
+    canonicalSerialize(canonicalPlainData(input.payload || {}, 'payload')),
+    normalizedTimestamp(input.authorityTimestamp)
+  );
+}
+
+class DurableExecutionAuthority extends legacy.DurableExecutionAuthority {
+  schema23Applied(store = this.store()) {
+    return schema23Applied(store);
   }
 
-  store() { return this.storeProvider(); }
-  row(executionId, store = this.store()) {
-    return store.db.prepare('SELECT * FROM durable_executions WHERE execution_id=?').get(clean(executionId));
-  }
-  history(executionId, store = this.store()) {
-    return store.db.prepare('SELECT * FROM durable_execution_events WHERE execution_id=? ORDER BY sequence ASC').all(clean(executionId)).map(eventRow);
-  }
   get(executionId, store = this.store()) {
-    const row = this.row(executionId, store);
-    return row ? executionRow(row, this.history(executionId, store)) : null;
-  }
-
-  appendEvent(store, input = {}) {
-    const executionId = clean(input.executionId);
-    const sequence = Number(store.db.prepare('SELECT COALESCE(MAX(sequence),0)+1 AS next FROM durable_execution_events WHERE execution_id=?').get(executionId)?.next || 1);
-    const eventId = clean(input.eventId) || this.idFactory('execution-event');
-    const at = clean(input.createdAt) || this.clock();
-    store.db.prepare(`
-      INSERT INTO durable_execution_events(
-        event_id,execution_id,sequence,event_type,from_state,to_state,generation,owner_id,reason_code,payload_json,created_at
-      ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
-    `).run(
-      eventId,
-      executionId,
-      sequence,
-      clean(input.eventType) || 'transition',
-      clean(input.fromState),
-      clean(input.toState),
-      Number(input.generation || 0),
-      clean(input.ownerId),
-      clean(input.reasonCode),
-      JSON.stringify(sanitize(input.payload || {}) || {}),
-      at
-    );
-    return eventRow(store.db.prepare('SELECT * FROM durable_execution_events WHERE event_id=?').get(eventId));
+    if (!schema23Applied(store)) return super.get(executionId, store);
+    const id = requiredString(executionId, 'executionId');
+    const row = store.db.prepare('SELECT * FROM durable_executions WHERE execution_id=?').get(id);
+    return executionSnapshotV2(row, row ? this.history(id, store) : []);
   }
 
   createExecution(input = {}) {
-    const operationKind = clean(input.operationKind);
-    const idempotencyKey = clean(input.idempotencyKey);
-    if (!operationKind) throw Object.assign(new Error('Durable execution operation kind is required'), { code: 'DURABLE_EXECUTION_OPERATION_REQUIRED', status: 400 });
-    if (!idempotencyKey) throw Object.assign(new Error('Durable execution idempotency key is required'), { code: 'DURABLE_EXECUTION_IDEMPOTENCY_REQUIRED', status: 400 });
     const store = this.store();
+    if (!schema23Applied(store)) return super.createExecution(input);
+    const command = normalizeExecutionCommand(input);
+    const authorityTimestamp = normalizedTimestamp(input.authorityTimestamp);
+    const maxAttempts = Math.max(1, Math.min(100, safeInteger(input.maxAttempts ?? 3, 'maxAttempts', 1)));
     return store.transaction(() => {
-      const existing = store.db.prepare('SELECT * FROM durable_executions WHERE operation_kind=? AND idempotency_key=?').get(operationKind, idempotencyKey);
-      if (existing) return this.get(existing.execution_id, store);
-      const executionId = clean(input.executionId) || this.idFactory('execution');
-      const at = this.clock();
-      store.db.prepare(`
-        INSERT INTO durable_executions(
-          execution_id,trace_id,operation_kind,idempotency_key,state,generation,owner_id,lease_sequence,last_heartbeat_at,
-          cancellation_requested_at,cancellation_actor,retry_count,max_attempts,next_attempt_at,failure_code,metadata_json,
-          created_at,updated_at,completed_at
-        ) VALUES(?,?,?,?,?,0,'',0,'','','',0,?,'','',?,?,?,'')
-      `).run(
+      const existing = store.db.prepare(`SELECT * FROM durable_executions
+        WHERE operation_kind=? AND idempotency_key=?`).get(command.operationKind, command.idempotencyKey);
+      if (existing) {
+        assertExecutionIdempotency(existing, command);
+        return this.get(existing.execution_id, store);
+      }
+      const executionId = optionalString(input.executionId, 'executionId')
+        || `execution-${crypto.randomUUID()}`;
+      const metadataJson = canonicalSerialize(canonicalPlainData(input.metadata || {}, 'metadata'));
+      const deadlineAt = optionalString(input.deadlineAt, 'deadlineAt');
+      const values = [
         executionId,
-        clean(input.traceId),
-        operationKind,
-        idempotencyKey,
-        STATES.CREATED,
-        boundedAttempts(input.maxAttempts),
-        JSON.stringify(sanitize(input.metadata || {}) || {}),
-        at,
-        at
+        command.traceId,
+        command.operationKind,
+        command.idempotencyKey,
+        command.commandContentSha256,
+        HASH_VERSION,
+        LIFECYCLE_STATES.CREATED,
+        0,
+        0,
+        '',
+        '',
+        0,
+        0,
+        0,
+        '',
+        '',
+        0,
+        '',
+        deadlineAt,
+        '',
+        '',
+        0,
+        maxAttempts,
+        '',
+        '',
+        '',
+        metadataJson,
+        authorityTimestamp,
+        authorityTimestamp,
+        ''
+      ];
+      store.db.prepare(`INSERT INTO durable_executions(
+        execution_id,trace_id,operation_kind,idempotency_key,command_content_sha256,
+        content_hash_version,state,state_version,generation,owner_id,claim_id,lease_sequence,
+        host_generation,fencing_token,lease_started_at,lease_expires_at,heartbeat_sequence,
+        last_heartbeat_at,deadline_at,cancellation_requested_at,cancellation_actor,retry_count,
+        max_attempts,next_attempt_at,failure_code,terminal_receipt_id,metadata_json,created_at,
+        updated_at,completed_at
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(...values);
+      store.db.prepare(`INSERT INTO durable_execution_events(
+        event_id,execution_id,sequence,event_type,from_state,to_state,generation,
+        owner_id,reason_code,payload_json,created_at
+      ) VALUES(?,?,1,'created','',?,0,'','',?,?)`).run(
+        `execution-event-${crypto.randomUUID()}`,
+        executionId,
+        LIFECYCLE_STATES.CREATED,
+        canonicalSerialize({ commandContentSha256: command.commandContentSha256 }),
+        authorityTimestamp
       );
-      this.appendEvent(store, {
-        executionId,
-        eventType: 'created',
-        fromState: '',
-        toState: STATES.CREATED,
-        generation: 0,
-        payload: { operationKind }
-      });
-      return this.get(executionId, store);
-    });
-  }
-
-  assertGeneration(row, received) {
-    const actual = Number(row.generation || 0);
-    const expected = Number(received);
-    if (!Number.isInteger(expected) || expected !== actual) {
-      throw Object.assign(new Error('Durable execution stale generation rejected'), {
-        code: 'DURABLE_EXECUTION_STALE_GENERATION', status: 409,
-        executionId: clean(row.execution_id), expectedGeneration: actual, receivedGeneration: Number.isFinite(expected) ? expected : null
-      });
-    }
-  }
-  assertOwner(row, ownerId) {
-    const current = clean(row.owner_id);
-    const received = clean(ownerId);
-    if (current && current !== received) {
-      throw Object.assign(new Error('Durable execution owner mismatch'), {
-        code: 'DURABLE_EXECUTION_OWNER_MISMATCH', status: 409,
-        executionId: clean(row.execution_id), expectedOwnerId: current, receivedOwnerId: received
-      });
-    }
-  }
-  assertState(row, allowed, target) {
-    if (!allowed.includes(clean(row.state))) {
-      throw Object.assign(new Error(`Invalid durable execution transition ${clean(row.state)} -> ${target}`), {
-        code: 'DURABLE_EXECUTION_TRANSITION_INVALID', status: 409,
-        executionId: clean(row.execution_id), fromState: clean(row.state), toState: target
-      });
-    }
-  }
-
-  transition(input = {}) {
-    const executionId = clean(input.executionId);
-    const store = this.store();
-    return store.transaction(() => {
-      const row = this.row(executionId, store);
-      if (!row) throw Object.assign(new Error('Durable execution not found'), { code: 'DURABLE_EXECUTION_NOT_FOUND', status: 404, executionId });
-      this.assertState(row, input.allowedStates || [], input.targetState);
-      if (input.expectedGeneration !== undefined) this.assertGeneration(row, input.expectedGeneration);
-      if (input.requireOwner) this.assertOwner(row, input.ownerId);
-      const fromState = clean(row.state);
-      const generation = input.incrementGeneration ? Number(row.generation || 0) + 1 : Number(row.generation || 0);
-      const ownerId = input.clearOwner ? '' : (input.ownerId !== undefined ? clean(input.ownerId) : clean(row.owner_id));
-      const leaseSequence = input.incrementLease ? Number(row.lease_sequence || 0) + 1 : Number(row.lease_sequence || 0);
-      const at = this.clock();
-      const targetState = clean(input.targetState);
-      const completedAt = TERMINAL.has(targetState) ? at : '';
-      const retryCount = input.retryCount !== undefined ? Number(input.retryCount) : Number(row.retry_count || 0);
-      const nextAttemptAt = input.nextAttemptAt !== undefined ? clean(input.nextAttemptAt) : clean(row.next_attempt_at);
-      const failureCode = input.failureCode !== undefined ? clean(input.failureCode) : clean(row.failure_code);
-      const cancellationRequestedAt = input.cancellationRequestedAt !== undefined ? clean(input.cancellationRequestedAt) : clean(row.cancellation_requested_at);
-      const cancellationActor = input.cancellationActor !== undefined ? clean(input.cancellationActor) : clean(row.cancellation_actor);
-      const heartbeatAt = input.heartbeat ? at : clean(row.last_heartbeat_at);
-      store.db.prepare(`
-        UPDATE durable_executions SET
-          state=?,generation=?,owner_id=?,lease_sequence=?,last_heartbeat_at=?,
-          cancellation_requested_at=?,cancellation_actor=?,retry_count=?,next_attempt_at=?,failure_code=?,
-          updated_at=?,completed_at=?
-        WHERE execution_id=?
-      `).run(
-        targetState,
-        generation,
-        ownerId,
-        leaseSequence,
-        heartbeatAt,
-        cancellationRequestedAt,
-        cancellationActor,
-        retryCount,
-        nextAttemptAt,
-        failureCode,
-        at,
-        completedAt,
-        executionId
-      );
-      this.appendEvent(store, {
-        executionId,
-        eventType: clean(input.eventType) || 'transition',
-        fromState,
-        toState: targetState,
-        generation,
-        ownerId,
-        reasonCode: clean(input.reasonCode),
-        payload: input.payload || {},
-        createdAt: at
-      });
       return this.get(executionId, store);
     });
   }
 
   schedule(input = {}) {
-    return this.transition({
-      executionId: input.executionId,
-      allowedStates: [STATES.CREATED],
-      targetState: STATES.SCHEDULED,
-      expectedGeneration: input.expectedGeneration,
-      eventType: 'scheduled',
-      reasonCode: input.reasonCode,
-      payload: { operationKind: input.operationKind }
+    const store = this.store();
+    if (!schema23Applied(store)) return super.schedule(input);
+    return store.transaction(() => {
+      const result = executeUnownedExecutionTransitionCas(store.db, {
+        executionId: input.executionId,
+        fromState: LIFECYCLE_STATES.CREATED,
+        targetState: LIFECYCLE_STATES.SCHEDULED,
+        stateVersion: input.expectedStateVersion ?? input.stateVersion,
+        generation: input.generation ?? input.expectedGeneration,
+        hostId: input.hostId,
+        hostGeneration: input.hostGeneration,
+        fencingToken: input.fencingToken,
+        authorityTimestamp: input.authorityTimestamp
+      });
+      appendV2Event(store, {
+        eventId: input.eventId,
+        executionId: result.executionId,
+        eventType: 'scheduled',
+        fromState: result.fromState,
+        toState: result.targetState,
+        generation: result.generation,
+        ownerId: '',
+        reasonCode: input.reasonCode,
+        payload: { operationKind: optionalString(input.operationKind, 'operationKind', 128) },
+        authorityTimestamp: result.authorityTimestamp
+      });
+      return this.get(result.executionId, store);
     });
   }
 
   claim(input = {}) {
-    const ownerId = clean(input.ownerId);
-    if (!ownerId) throw Object.assign(new Error('Durable execution owner is required'), { code: 'DURABLE_EXECUTION_OWNER_REQUIRED', status: 400 });
-    return this.transition({
-      executionId: input.executionId,
-      allowedStates: [STATES.SCHEDULED, STATES.RETRY_SCHEDULED],
-      targetState: STATES.RUNNING,
-      expectedGeneration: input.expectedGeneration,
-      incrementGeneration: true,
-      ownerId,
-      heartbeat: true,
-      eventType: 'claimed',
-      reasonCode: input.reasonCode,
-      nextAttemptAt: '',
-      failureCode: ''
+    const store = this.store();
+    if (!schema23Applied(store)) return super.claim(input);
+    return store.transaction(() => {
+      const result = executeExecutionClaimCas(store.db, {
+        executionId: input.executionId,
+        fromState: LIFECYCLE_STATES.SCHEDULED,
+        stateVersion: input.expectedStateVersion ?? input.stateVersion,
+        generation: input.generation ?? input.expectedGeneration,
+        ownerId: input.ownerId,
+        claimId: input.claimId,
+        hostId: input.hostId,
+        hostGeneration: input.hostGeneration,
+        fencingToken: input.fencingToken,
+        leaseStartedAt: input.leaseStartedAt ?? input.authorityTimestamp,
+        leaseExpiresAt: input.leaseExpiresAt
+      });
+      appendV2Event(store, {
+        eventId: input.eventId,
+        executionId: result.executionId,
+        eventType: 'claimed',
+        fromState: result.fromState,
+        toState: result.targetState,
+        generation: result.generation,
+        ownerId: result.ownerId,
+        reasonCode: input.reasonCode,
+        payload: { claimId: result.claimId },
+        authorityTimestamp: result.leaseStartedAt
+      });
+      return this.get(result.executionId, store);
     });
   }
 
   heartbeat(input = {}) {
-    return this.transition({
-      executionId: input.executionId,
-      allowedStates: [STATES.RUNNING, STATES.WAITING_REMOTE],
-      targetState: this.row(input.executionId)?.state,
-      expectedGeneration: input.generation,
-      requireOwner: true,
-      ownerId: input.ownerId,
-      incrementLease: true,
-      heartbeat: true,
-      eventType: 'heartbeat',
-      reasonCode: input.reasonCode,
-      payload: input.progress || {}
-    });
+    const store = this.store();
+    if (!schema23Applied(store)) return super.heartbeat(input);
+    return milestoneTwoOperationNotAuthorized('heartbeat');
   }
 
   waitRemote(input = {}) {
-    return this.transition({
-      executionId: input.executionId,
-      allowedStates: [STATES.RUNNING],
-      targetState: STATES.WAITING_REMOTE,
-      expectedGeneration: input.generation,
-      requireOwner: true,
-      ownerId: input.ownerId,
-      heartbeat: true,
-      eventType: 'waiting-remote',
-      reasonCode: input.reasonCode,
-      payload: input.progress || {}
-    });
+    const store = this.store();
+    if (!schema23Applied(store)) return super.waitRemote(input);
+    return milestoneTwoOperationNotAuthorized('waitRemote');
   }
 
   succeed(input = {}) {
-    return this.transition({
-      executionId: input.executionId,
-      allowedStates: [STATES.RUNNING, STATES.WAITING_REMOTE],
-      targetState: STATES.SUCCEEDED,
-      expectedGeneration: input.generation,
-      requireOwner: true,
-      ownerId: input.ownerId,
-      eventType: 'succeeded',
-      reasonCode: input.reasonCode,
-      payload: { receiptId: clean(input.receiptId), providerRequestId: clean(input.providerRequestId) }
-    });
+    const store = this.store();
+    if (!schema23Applied(store)) return super.succeed(input);
+    return milestoneTwoOperationNotAuthorized('succeed');
   }
 
   fail(input = {}) {
     const store = this.store();
-    const row = this.row(input.executionId, store);
-    if (!row) throw Object.assign(new Error('Durable execution not found'), { code: 'DURABLE_EXECUTION_NOT_FOUND', status: 404, executionId: clean(input.executionId) });
-    this.assertGeneration(row, input.generation);
-    this.assertOwner(row, input.ownerId);
-    this.assertState(row, [STATES.RUNNING, STATES.WAITING_REMOTE], 'failure');
-    const retryCount = Number(row.retry_count || 0) + 1;
-    const retryable = input.retryable === true;
-    const targetState = retryable
-      ? (retryCount >= Number(row.max_attempts || 1) ? STATES.DEAD_LETTERED : STATES.RETRY_SCHEDULED)
-      : STATES.FAILED;
-    return this.transition({
-      executionId: input.executionId,
-      allowedStates: [STATES.RUNNING, STATES.WAITING_REMOTE],
-      targetState,
-      expectedGeneration: input.generation,
-      requireOwner: true,
-      ownerId: input.ownerId,
-      clearOwner: targetState === STATES.RETRY_SCHEDULED || targetState === STATES.DEAD_LETTERED || targetState === STATES.FAILED,
-      retryCount,
-      nextAttemptAt: targetState === STATES.RETRY_SCHEDULED ? clean(input.nextAttemptAt) : '',
-      failureCode: clean(input.reasonCode || input.failureCode),
-      eventType: targetState === STATES.RETRY_SCHEDULED ? 'retry-scheduled' : (targetState === STATES.DEAD_LETTERED ? 'dead-lettered' : 'failed'),
-      reasonCode: input.reasonCode || input.failureCode,
-      payload: { retryable, nextAttemptAt: clean(input.nextAttemptAt), attempt: retryCount }
-    });
+    if (!schema23Applied(store)) return super.fail(input);
+    return milestoneTwoOperationNotAuthorized('fail');
   }
 
   requestCancel(input = {}) {
-    const at = this.clock();
-    return this.transition({
-      executionId: input.executionId,
-      allowedStates: [STATES.CREATED, STATES.SCHEDULED, STATES.RUNNING, STATES.WAITING_REMOTE, STATES.RETRY_SCHEDULED],
-      targetState: STATES.CANCEL_REQUESTED,
-      expectedGeneration: input.generation,
-      requireOwner: Boolean(clean(this.row(input.executionId)?.owner_id)),
-      ownerId: input.ownerId,
-      cancellationRequestedAt: at,
-      cancellationActor: clean(input.actor),
-      eventType: 'cancel-requested',
-      reasonCode: input.reasonCode,
-      payload: { status: 'cancel-requested' }
-    });
+    const store = this.store();
+    if (!schema23Applied(store)) return super.requestCancel(input);
+    return milestoneTwoOperationNotAuthorized('requestCancel');
   }
 
   acknowledgeCancel(input = {}) {
-    return this.transition({
-      executionId: input.executionId,
-      allowedStates: [STATES.CANCEL_REQUESTED],
-      targetState: STATES.CANCELLED,
-      expectedGeneration: input.generation,
-      requireOwner: Boolean(clean(this.row(input.executionId)?.owner_id)),
-      ownerId: input.ownerId,
-      clearOwner: true,
-      eventType: 'cancelled',
-      reasonCode: input.reasonCode,
-      payload: { status: 'cancelled' }
-    });
+    const store = this.store();
+    if (!schema23Applied(store)) return super.acknowledgeCancel(input);
+    return milestoneTwoOperationNotAuthorized('acknowledgeCancel');
   }
 
   retry(input = {}) {
-    return this.transition({
-      executionId: input.executionId,
-      allowedStates: [STATES.FAILED],
-      targetState: STATES.RETRY_SCHEDULED,
-      expectedGeneration: input.expectedGeneration,
-      clearOwner: true,
-      nextAttemptAt: clean(input.nextAttemptAt),
-      eventType: 'retry-scheduled',
-      reasonCode: input.reasonCode,
-      payload: { nextAttemptAt: clean(input.nextAttemptAt) }
-    });
+    const store = this.store();
+    if (!schema23Applied(store)) return super.retry(input);
+    return milestoneTwoOperationNotAuthorized('retry');
   }
 
   deadLetter(input = {}) {
-    return this.transition({
-      executionId: input.executionId,
-      allowedStates: [STATES.CREATED, STATES.SCHEDULED, STATES.RUNNING, STATES.WAITING_REMOTE, STATES.RETRY_SCHEDULED, STATES.CANCEL_REQUESTED, STATES.FAILED],
-      targetState: STATES.DEAD_LETTERED,
-      expectedGeneration: input.expectedGeneration,
-      ownerId: input.ownerId,
-      requireOwner: Boolean(clean(this.row(input.executionId)?.owner_id)),
-      clearOwner: true,
-      failureCode: clean(input.reasonCode || input.failureCode),
-      eventType: 'dead-lettered',
-      reasonCode: input.reasonCode || input.failureCode,
-      payload: { status: 'dead-lettered' }
-    });
+    const store = this.store();
+    if (!schema23Applied(store)) return super.deadLetter(input);
+    return milestoneTwoOperationNotAuthorized('deadLetter');
   }
 
-  listActive(limit = 100) {
+  transition(input = {}) {
     const store = this.store();
-    const bounded = Math.max(1, Math.min(1000, Number(limit || 100)));
-    const placeholders = [STATES.CREATED, STATES.SCHEDULED, STATES.RUNNING, STATES.WAITING_REMOTE, STATES.RETRY_SCHEDULED, STATES.CANCEL_REQUESTED].map(() => '?').join(',');
-    return store.db.prepare(`SELECT * FROM durable_executions WHERE state IN (${placeholders}) ORDER BY updated_at ASC LIMIT ?`)
-      .all(STATES.CREATED, STATES.SCHEDULED, STATES.RUNNING, STATES.WAITING_REMOTE, STATES.RETRY_SCHEDULED, STATES.CANCEL_REQUESTED, bounded)
-      .map(row => executionRow(row, this.history(row.execution_id, store)));
+    if (!schema23Applied(store)) return super.transition(input);
+    const command = normalizeTransitionCommand(input);
+    return store.transaction(() => {
+      const sequence = Number(store.db.prepare(`SELECT COALESCE(MAX(sequence),0)+1 AS next
+        FROM durable_execution_events WHERE execution_id=?`).get(command.executionId)?.next || 1);
+      const statePlaceholders = command.allowedStates.map(() => '?').join(',');
+      const eventInsert = store.db.prepare(`INSERT INTO durable_execution_events(
+          event_id,execution_id,sequence,event_type,from_state,to_state,generation,
+          owner_id,reason_code,payload_json,created_at
+        )
+        SELECT ?,execution_id,?,?,state,?,generation,owner_id,?,?,?
+        FROM durable_executions
+        WHERE execution_id=? AND state IN (${statePlaceholders}) AND state_version=? AND generation=?
+          AND owner_id=? AND claim_id=? AND host_generation=? AND fencing_token=?
+          AND lease_expires_at>=?
+          AND EXISTS(
+            SELECT 1 FROM authority_write_host_lease
+            WHERE singleton_id=1 AND owner_instance_id=? AND host_generation=?
+              AND fencing_token=? AND state='ACTIVE'
+          )`).run(
+        command.eventId,
+        sequence,
+        command.eventType,
+        command.targetState,
+        command.reasonCode,
+        canonicalSerialize(command.payload),
+        command.authorityTimestamp,
+        command.executionId,
+        ...command.allowedStates,
+        command.stateVersion,
+        command.generation,
+        command.ownerId,
+        command.claimId,
+        command.hostGeneration,
+        command.fencingToken,
+        command.authorityTimestamp,
+        command.hostId,
+        command.hostGeneration,
+        command.fencingToken
+      );
+      if (Number(eventInsert.changes || 0) !== 1) {
+        throw executionError('WP_B_EXECUTION_CAS_REJECTED', 'Durable execution transition event CAS rejected', {
+          executionId: command.executionId,
+          allowedStates: command.allowedStates,
+          stateVersion: command.stateVersion,
+          generation: command.generation,
+          claimId: command.claimId,
+          hostGeneration: command.hostGeneration,
+          fencingToken: command.fencingToken
+        });
+      }
+      const eventRow = store.db.prepare(
+        'SELECT from_state FROM durable_execution_events WHERE event_id=?'
+      ).get(command.eventId);
+      const fromState = requiredString(eventRow?.from_state, 'event.fromState', 64);
+      executeExecutionTransitionCas(store.db, {
+        executionId: command.executionId,
+        fromState,
+        targetState: command.targetState,
+        stateVersion: command.stateVersion,
+        generation: command.generation,
+        ownerId: command.ownerId,
+        claimId: command.claimId,
+        hostId: command.hostId,
+        hostGeneration: command.hostGeneration,
+        fencingToken: command.fencingToken,
+        authorityTimestamp: command.authorityTimestamp
+      });
+      return this.get(command.executionId, store);
+    });
   }
 }
 
 const durableExecutionAuthority = new DurableExecutionAuthority();
 module.exports = durableExecutionAuthority;
 module.exports.DurableExecutionAuthority = DurableExecutionAuthority;
-module.exports.AUTHORITY = AUTHORITY;
-module.exports.SCHEMA_VERSION = SCHEMA_VERSION;
-module.exports.STATES = STATES;
+module.exports.AUTHORITY = legacy.AUTHORITY;
+module.exports.WP_B_AUTHORITY = WP_B_AUTHORITY;
+module.exports.SCHEMA_VERSION = legacy.SCHEMA_VERSION;
+module.exports.WP_B_SCHEMA_VERSION = WP_B_SCHEMA_VERSION;
+module.exports.STATES = legacy.STATES;
+module.exports.WP_B_STATES = LIFECYCLE_STATES;
+module.exports.assertExecutionIdempotency = assertExecutionIdempotency;
+module.exports.executeExecutionClaimCas = executeExecutionClaimCas;
+module.exports.executeExecutionTransitionCas = executeExecutionTransitionCas;
+module.exports.executeUnownedExecutionTransitionCas = executeUnownedExecutionTransitionCas;
+module.exports.executionError = executionError;
+module.exports.isMissingSchema23MigrationTable = isMissingSchema23MigrationTable;
+module.exports.milestoneTwoOperationNotAuthorized = milestoneTwoOperationNotAuthorized;
+module.exports.normalizeExecutionCommand = normalizeExecutionCommand;
+module.exports.normalizeTransitionCommand = normalizeTransitionCommand;
+module.exports.schema23Applied = schema23Applied;
