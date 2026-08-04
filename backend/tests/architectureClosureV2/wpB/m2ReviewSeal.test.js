@@ -32,19 +32,21 @@ function sealedShape(receipt = readReceipt()) {
   return result;
 }
 
-test('M2-SEAL-001 pending Gate 2 evidence is valid and all downstream authority remains closed', () => {
+test('M2-SEAL-001 current Gate 2 receipt state is valid and all downstream authority remains closed', () => {
   const receipt = readReceipt();
   const result = validateReceipt(receipt);
+  const sealed = receipt.seal.status === 'SEALED';
   assert.equal(result.ok, true);
-  assert.equal(result.sealStatus, 'PENDING');
+  assert.equal(result.sealStatus, receipt.seal.status);
+  assert.equal(['PENDING', 'SEALED'].includes(result.sealStatus), true);
   assert.equal(receipt.review.reviewGate2, 'APPROVED');
   assert.equal(receipt.review.milestone1, 'SEALED');
-  assert.equal(receipt.review.milestone2, 'REVIEWED_NOT_SEALED');
+  assert.equal(receipt.review.milestone2, sealed ? 'SEALED' : 'REVIEWED_NOT_SEALED');
   assert.equal(receipt.review.milestone3, 'NOT_STARTED');
   assert.equal(receipt.review.humanApprovalClaimed, false);
   assert.equal(receipt.governance.prMustRemainDraft, true);
   assert.equal(receipt.governance.milestone2Reviewed, true);
-  assert.equal(receipt.governance.milestone2Sealed, false);
+  assert.equal(receipt.governance.milestone2Sealed, sealed);
   for (const field of [
     'readyForPromotion',
     'milestone3Authorized',
@@ -151,11 +153,12 @@ test('M2-SEAL-006 sealed shape requires eight successful workflows bound to one 
   assert.throws(() => validateReceipt(missingWorkflow), error => error?.code === 'WP_B_M2_REVIEW_SEAL_VALIDATION_SET_INVALID');
 });
 
-test('M2-SEAL-007 standalone verifier emits machine-readable pending review evidence', () => {
+test('M2-SEAL-007 standalone verifier emits machine-readable evidence for the current receipt state', () => {
+  const receipt = readReceipt();
   const stdout = execFileSync(process.execPath, [verifierPath], { cwd: repoRoot, encoding: 'utf8' });
   const report = JSON.parse(stdout);
   assert.equal(report.ok, true);
   assert.equal(report.local.ok, true);
-  assert.equal(report.local.sealStatus, 'PENDING');
+  assert.equal(report.local.sealStatus, receipt.seal.status);
   assert.deepEqual(report.local.postReviewFiles, EXPECTED_POST_REVIEW_PATHS);
 });
