@@ -24,6 +24,7 @@ const {
 const {
   loadOpenSourceWorkPackageAuthorization,
   loadOpenSourceWorkPackageAuthorizationReceipt,
+  filterOpenSourceImplementationChangedFiles,
   isAuthorizedOpenSourceImplementationBranch,
   evaluateAuthorizedOpenSourceWorkPackageScope
 } = require('../../shared/release/openSourceWorkPackagePolicy');
@@ -53,16 +54,6 @@ function changedFilesFrom(baseHead) {
     encoding: 'utf8'
   });
   return output.split(/\r?\n/u).map(value => value.trim()).filter(Boolean).sort();
-}
-
-function changedFilesFromBaseRef(baseRef) {
-  const remoteBase = `refs/remotes/origin/${baseRef}`;
-  execFileSync('git', ['cat-file', '-e', `${remoteBase}^{commit}`], { cwd: REPO_ROOT });
-  const mergeBase = execFileSync('git', ['merge-base', remoteBase, 'HEAD'], {
-    cwd: REPO_ROOT,
-    encoding: 'utf8'
-  }).trim();
-  return changedFilesFrom(mergeBase);
 }
 
 function actualWorkPackageChangedFiles() {
@@ -250,12 +241,15 @@ test('checked-out scope preserves immutable A8 closure and validates only its ac
 
   const ossAuthorization = loadOpenSourceWorkPackageAuthorization();
   if (isAuthorizedOpenSourceImplementationBranch(branch)) {
-    const changedFiles = changedFilesFromBaseRef(ossAuthorization.requiredBaseRef);
+    const ossReceipt = loadOpenSourceWorkPackageAuthorizationReceipt();
+    const changedFiles = filterOpenSourceImplementationChangedFiles(
+      changedFilesFrom(ossReceipt.authorizationCommit)
+    );
     const result = evaluateAuthorizedOpenSourceWorkPackageScope({
       branch,
       changedFiles,
       authorization: ossAuthorization,
-      receipt: loadOpenSourceWorkPackageAuthorizationReceipt()
+      receipt: ossReceipt
     });
     assert.equal(result.pass, true, JSON.stringify(result));
     assert.equal(result.workPackage, 'OSS-0');
