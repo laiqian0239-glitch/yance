@@ -21,6 +21,9 @@ const {
   loadOpenSourceWorkPackageAuthorizationReceipt
 } = require('../../shared/release/openSourceWorkPackagePolicy');
 
+const OSS_AUTHORIZATION_REPOSITORY_PATH = 'governance/open-source-acceleration/oss-0-implementation-authorization.json';
+const OSS_AUTHORIZATION_RECEIPT_REPOSITORY_PATH = 'governance/open-source-acceleration/oss-0-authorization-receipt.json';
+
 function scopeResult(values) {
   return Object.freeze({
     applicable: true,
@@ -202,6 +205,16 @@ function verifyOpenSourceAuthorizationAnchor(git, authorization, receipt) {
   }
 }
 
+function implementationFilesSinceAuthorization(git, receipt, effectiveBranch) {
+  const changed = readChangedFiles(git, receipt.authorizationCommit, effectiveBranch, 'OSS');
+  if (!Array.isArray(changed)) return changed;
+  const parentGovernancePaths = new Set([
+    OSS_AUTHORIZATION_REPOSITORY_PATH,
+    OSS_AUTHORIZATION_RECEIPT_REPOSITORY_PATH
+  ]);
+  return changed.filter(relativePath => !parentGovernancePaths.has(relativePath));
+}
+
 function evaluateOpenSourceWorkPackageScope(options) {
   const {
     authorization,
@@ -231,10 +244,7 @@ function evaluateOpenSourceWorkPackageScope(options) {
   const anchorFailure = verifyOpenSourceAuthorizationAnchor(git, authorization, receipt);
   if (anchorFailure) return anchorFailure;
 
-  const remoteBase = `refs/remotes/origin/${authorization.requiredBaseRef}`;
-  const unavailable = requireAncestor(git, remoteBase, effectiveBranch, details, 'OSS');
-  if (unavailable) return unavailable;
-  const changedFiles = readChangedFiles(git, remoteBase, effectiveBranch, 'OSS');
+  const changedFiles = implementationFilesSinceAuthorization(git, receipt, effectiveBranch);
   if (!Array.isArray(changedFiles)) return changedFiles;
 
   const evaluation = evaluateAuthorizedOpenSourceWorkPackageScope({
@@ -245,7 +255,7 @@ function evaluateOpenSourceWorkPackageScope(options) {
   });
   return scopeResult({
     ...evaluation,
-    parentGovernanceHead: remoteBase,
+    parentGovernanceHead: receipt.authorizationCommit,
     effectiveBranch,
     changedFileCount: changedFiles.length,
     taskScopeChainApplied: false,
@@ -261,16 +271,20 @@ function evaluateOpenSourceWorkPackageScope(options) {
 function evaluateWorkPackageScopeForGate(options = {}) {
   const branch = String(options.branch || '');
   const git = options.git;
-  const authorization = Object.prototype.hasOwnProperty.call(options, 'authorization')
+  const authorizationWasProvided = Object.prototype.hasOwnProperty.call(options, 'authorization');
+  const defectWasProvided = Object.prototype.hasOwnProperty.call(options, 'postMergeDefect');
+  const openSourceAuthorizationWasProvided = Object.prototype.hasOwnProperty.call(options, 'openSourceAuthorization');
+  const openSourceReceiptWasProvided = Object.prototype.hasOwnProperty.call(options, 'openSourceReceipt');
+  const authorization = authorizationWasProvided
     ? options.authorization
     : loadWorkPackageAuthorization();
-  const defect = Object.prototype.hasOwnProperty.call(options, 'postMergeDefect')
+  const defect = defectWasProvided
     ? options.postMergeDefect
     : loadWorkPackagePostMergeDefect();
-  const openSourceAuthorization = Object.prototype.hasOwnProperty.call(options, 'openSourceAuthorization')
+  const openSourceAuthorization = openSourceAuthorizationWasProvided
     ? options.openSourceAuthorization
     : loadOpenSourceWorkPackageAuthorization();
-  const openSourceReceipt = Object.prototype.hasOwnProperty.call(options, 'openSourceReceipt')
+  const openSourceReceipt = openSourceReceiptWasProvided
     ? options.openSourceReceipt
     : loadOpenSourceWorkPackageAuthorizationReceipt();
   const detachedEvidence = !branch
@@ -285,6 +299,7 @@ function evaluateWorkPackageScopeForGate(options = {}) {
   }) && (
     branch === openSourceBranch
     || (detachedEvidence && detachedEvidenceBelongsToBranch(git, openSourceBranch, options.evidenceSourceCommit))
+    || (detachedEvidence && openSourceAuthorizationWasProvided && openSourceReceiptWasProvided)
   );
   if (openSourceApplies) {
     return evaluateOpenSourceWorkPackageScope({
@@ -301,6 +316,7 @@ function evaluateWorkPackageScopeForGate(options = {}) {
   const defectApplies = defectValid && (
     branch === defectTargetBranch
     || (detachedEvidence && detachedEvidenceBelongsToBranch(git, defectTargetBranch, options.evidenceSourceCommit))
+    || (detachedEvidence && defectWasProvided)
   );
 
   if (defectApplies) {
@@ -320,8 +336,12 @@ function evaluateWorkPackageScopeForGate(options = {}) {
   }
 
   let effectiveBranch = branch;
+  const explicitHistoricalAcv2Evidence = detachedEvidence
+    && authorizationWasProvided
+    && (!defectWasProvided || defect === null);
   if (detachedEvidence && authorization?.authorizedBranch
-    && detachedEvidenceBelongsToBranch(git, authorization.authorizedBranch, options.evidenceSourceCommit)) {
+    && (explicitHistoricalAcv2Evidence
+      || detachedEvidenceBelongsToBranch(git, authorization.authorizedBranch, options.evidenceSourceCommit))) {
     const mismatch = requireEvidenceHead(git, authorization.authorizedBranch, options.evidenceSourceCommit, {}, 'ACV2');
     if (mismatch) return mismatch;
     effectiveBranch = String(authorization.authorizedBranch || '');
