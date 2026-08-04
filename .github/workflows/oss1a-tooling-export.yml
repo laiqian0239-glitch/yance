@@ -1,0 +1,46 @@
+name: OSS1A Tooling Export
+
+on:
+  push:
+    branches:
+      - work/oss1a-minimal-ready-authority-patch
+    paths:
+      - .github/workflows/oss1a-tooling-export.yml
+      - tests/wp0/oss1a-generate-minimal-ready-authority-blob.test.js
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact tooling head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Generate and verify audited Backend host blob
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifact
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const { generatePatchedBackendProcessHost } = require('./tests/wp0/oss1a-generate-minimal-ready-authority-blob.test.js');
+          const result = generatePatchedBackendProcessHost();
+          const actual = crypto.createHash('sha256').update(result.code).digest('hex');
+          if (actual !== result.sha256) throw new Error(`generated SHA mismatch: ${actual} != ${result.sha256}`);
+          fs.writeFileSync('artifact/BackendProcessHost.js', result.code);
+          fs.writeFileSync('artifact/SHA256SUMS', `${result.sha256}  BackendProcessHost.js\n`, 'utf8');
+          NODE
+          (cd artifact && sha256sum --check --strict SHA256SUMS)
+          node --check artifact/BackendProcessHost.js
+      - name: Upload exact generated blob
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: oss1a-backend-process-host-minimal-patch
+          path: artifact/
+          if-no-files-found: error
+          retention-days: 1
