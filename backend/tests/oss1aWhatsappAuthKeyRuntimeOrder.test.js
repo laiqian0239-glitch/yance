@@ -146,3 +146,4 @@ test('real AppRuntimeComposition places the critical key authority before accoun
 });
 
 require('../../tests/wp4/oss1a-whatsapp-dek-custody.test');
+require('./oss1aWhatsappAuthRepository.test');
