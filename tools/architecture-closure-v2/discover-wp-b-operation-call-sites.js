@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const BASELINE_PATH = 'governance/architecture-closure-v2/wp-b-baseline.json';
+const SOURCE_CLOSURE_BASELINE_PATH = 'governance/architecture-closure-v2/wp-b-source-closure-baseline.json';
 const INVENTORY_PATH = 'governance/architecture-closure-v2/wp-b-operation-inventory.json';
 const EXTENSIONS = new Set(['.js', '.cjs', '.mjs']);
 const DETECTORS = Object.freeze([
@@ -33,7 +34,7 @@ const STRONG_CAPABILITIES = new Set([
   'OPERATIONAL_RETRY_OR_TIMER'
 ]);
 const WP_B_IO_PATH_SCOPE = /(?:modelExecution|modelExecutor|provider|ollama|openAi|aiGateway|transcription|facebook|telegram|whatsapp|communication|channelAdapter|platformMessaging|platformAdapter|platformDriver|mediaPipeline|BackendProcessHost)/iu;
-const WP_B_STATEFUL_PATH_SCOPE = /(?:executionDeadline|asyncOperation|backgroundJob|jobQueue|sendQueue|messageRepository|syncCheckpoint|durableChannelOperation|runtimeRecovery|ownerRecovery|accountManager|mediaPipeline|whatsappAccountReconciliation|whatsappHistoryMediaRecovery|routes\/models|facebook-gateway\/gateway)/iu;
+const WP_B_STATEFUL_PATH_SCOPE = /(?:executionDeadline|asyncOperation|backgroundJob|jobQueue|sendQueue|messageRepository|syncCheckpoint|durableChannelOperation|durableInternalOperation|runtimeRecovery|ownerRecovery|accountManager|mediaPipeline|whatsappAccountReconciliation|whatsappHistoryMediaRecovery|routes\/models|facebook-gateway\/gateway)/iu;
 
 function normalizePath(value) {
   return String(value || '').split(path.sep).join('/').replace(/^\.\//u, '');
@@ -41,6 +42,61 @@ function normalizePath(value) {
 
 function readJson(root, relativePath) {
   return JSON.parse(fs.readFileSync(path.join(root, relativePath), 'utf8'));
+}
+
+function exactExtensionPaths(sourceClosureBaseline) {
+  const paths = Array.isArray(sourceClosureBaseline?.operationInventoryExtensionPaths)
+    ? sourceClosureBaseline.operationInventoryExtensionPaths.map(normalizePath)
+    : [];
+  if (paths.some(value => !value || value.includes('*')) || new Set(paths).size !== paths.length) {
+    const error = new Error('WP-B inventory extension paths must be exact and unique');
+    error.code = 'WP_B_OPERATION_DISCOVERY_EXTENSION_PATH_INVALID';
+    throw error;
+  }
+  return Object.freeze(paths);
+}
+
+function loadInventoryEntries(repositoryRoot, sourceClosureBaseline = null) {
+  const baseInventory = readJson(repositoryRoot, INVENTORY_PATH);
+  const closureBaseline = sourceClosureBaseline
+    || readJson(repositoryRoot, SOURCE_CLOSURE_BASELINE_PATH);
+  const extensionPaths = exactExtensionPaths(closureBaseline);
+  const documents = extensionPaths.map(relativePath => ({
+    relativePath,
+    document: readJson(repositoryRoot, relativePath)
+  }));
+  const entries = [...(baseInventory.entries || [])];
+  const ids = new Set(entries.map(entry => String(entry.id || '')));
+  const paths = new Set(entries.map(entry => normalizePath(entry.path)));
+  for (const { relativePath, document } of documents) {
+    if (document?.schemaVersion !== 1
+        || document?.documentType !== 'YANCE_ACV2_WP_B_OPERATION_INVENTORY_EXTENSION'
+        || document?.workPackage !== 'WP-B'
+        || document?.milestone !== 3
+        || !Array.isArray(document.entries)) {
+      const error = new Error(`Invalid WP-B inventory extension ${relativePath}`);
+      error.code = 'WP_B_OPERATION_DISCOVERY_EXTENSION_INVALID';
+      throw error;
+    }
+    for (const entry of document.entries) {
+      const id = String(entry?.id || '');
+      const sourcePath = normalizePath(entry?.path);
+      if (!id || !sourcePath || sourcePath.includes('*') || ids.has(id) || paths.has(sourcePath)) {
+        const error = new Error(`Duplicate or invalid WP-B inventory extension entry ${id || sourcePath}`);
+        error.code = 'WP_B_OPERATION_DISCOVERY_EXTENSION_ENTRY_INVALID';
+        throw error;
+      }
+      ids.add(id);
+      paths.add(sourcePath);
+      entries.push(entry);
+    }
+  }
+  return Object.freeze({
+    baseInventory,
+    extensionPaths,
+    extensionDocuments: Object.freeze(documents.map(value => Object.freeze(value))),
+    entries: Object.freeze(entries)
+  });
 }
 
 function isExcluded(relativePath, excludes) {
@@ -105,9 +161,7 @@ function stripComments(source) {
         index += 2;
         continue;
       }
-      if ((mode === 'single-quote' && character === "'") || (mode === 'double-quote' && character === '"')) {
-        mode = 'code';
-      }
+      if ((mode === 'single-quote' && character === "'") || (mode === 'double-quote' && character === '"')) mode = 'code';
       index += 1;
       continue;
     }
@@ -207,9 +261,7 @@ function maskCallLikeDeclarations(source) {
     while (/\s/u.test(text[nextIndex] || '')) nextIndex += 1;
     if (text[nextIndex] !== '{') continue;
     const nameEnd = match.index + match[0].search(/\s*\(/u);
-    for (let index = match.index; index < nameEnd; index += 1) {
-      blankCharacter(output, text, index);
-    }
+    for (let index = match.index; index < nameEnd; index += 1) blankCharacter(output, text, index);
   }
   return output.join('');
 }
@@ -243,18 +295,21 @@ function discoveryClass(relativePath, capabilities, registeredPaths = new Set())
 
 function discoverCallSites(repositoryRoot = path.resolve(__dirname, '..', '..')) {
   const baseline = readJson(repositoryRoot, BASELINE_PATH);
-  const inventory = readJson(repositoryRoot, INVENTORY_PATH);
+  const sourceClosureBaseline = readJson(repositoryRoot, SOURCE_CLOSURE_BASELINE_PATH);
+  const inventoryAuthority = loadInventoryEntries(repositoryRoot, sourceClosureBaseline);
   const config = baseline.sourceDiscovery || {};
   const roots = Array.isArray(config.roots) ? config.roots.map(normalizePath) : [];
   const excludes = Array.isArray(config.excludes) ? config.excludes.map(normalizePath) : [];
-  const registeredPaths = new Set((inventory.entries || []).map(entry => normalizePath(entry.path)));
+  const registeredPaths = new Set(inventoryAuthority.entries.map(entry => normalizePath(entry.path)));
   const allDetected = [];
   const missingInventoryPaths = [];
   let scannedFileCount = 0;
 
-  for (const entry of inventory.entries || []) {
+  for (const entry of inventoryAuthority.entries) {
     const relativePath = normalizePath(entry.path);
-    if (!fs.existsSync(path.join(repositoryRoot, relativePath))) missingInventoryPaths.push(relativePath);
+    if (!fs.existsSync(path.join(repositoryRoot, relativePath))) {
+      if (entry.closureState !== 'DELETED') missingInventoryPaths.push(relativePath);
+    }
   }
 
   for (const root of roots) {
@@ -278,12 +333,14 @@ function discoverCallSites(repositoryRoot = path.resolve(__dirname, '..', '..'))
   const unregistered = discovered.filter(row => !registeredPaths.has(row.path));
   const registered = discovered.filter(row => registeredPaths.has(row.path));
   return Object.freeze({
-    schemaVersion: 4,
+    schemaVersion: 5,
     documentType: 'YANCE_ACV2_WP_B_OPERATION_CALL_SITE_DISCOVERY',
     workPackage: 'WP-B',
     branch: baseline.authorizedBranch,
     roots,
     excludes,
+    inventoryExtensionPaths: inventoryAuthority.extensionPaths,
+    inventoryEntryCount: inventoryAuthority.entries.length,
     scannedFileCount,
     allDetectedCount: allDetected.length,
     discoveredCount: discovered.length,
@@ -324,13 +381,16 @@ module.exports = {
   DETECTORS,
   INVENTORY_PATH,
   OPERATIONAL_RETRY_CALL,
+  SOURCE_CLOSURE_BASELINE_PATH,
   STRONG_CAPABILITIES,
   WP_B_IO_PATH_SCOPE,
   WP_B_STATEFUL_PATH_SCOPE,
   detectCapabilities,
   discoverCallSites,
   discoveryClass,
+  exactExtensionPaths,
   executableSource,
+  loadInventoryEntries,
   maskCallLikeDeclarations,
   normalizePath,
   stripComments,
