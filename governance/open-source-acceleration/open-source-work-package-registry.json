@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OPEN_SOURCE_WORK_PACKAGE_REGISTRY",
+  "program": "Open Source Acceleration",
+  "repository": "laiqian0239-glitch/yance",
+  "entries": [
+    {
+      "workPackage": "OSS-0",
+      "authorizedBranch": "oss/0-provenance-foundation",
+      "authorizationPath": "governance/open-source-acceleration/oss-0-implementation-authorization.json",
+      "receiptPath": "governance/open-source-acceleration/oss-0-authorization-receipt.json"
+    },
+    {
+      "workPackage": "OSS-1A",
+      "authorizedBranch": "oss/1a-baileys-lifecycle",
+      "authorizationPath": "governance/open-source-acceleration/oss-1a-implementation-authorization.json",
+      "receiptPath": "governance/open-source-acceleration/oss-1a-authorization-receipt.json"
+    }
+  ],
+  "governance": {
+    "explicitEntriesOnly": true,
+    "directoryAutoDiscoveryAllowed": false,
+    "exactBranchSelectionOnly": true,
+    "multipleMatchesFailClosed": true,
+    "automaticNextWorkPackageAuthorization": false,
+    "readyForPromotion": false
+  }
+}

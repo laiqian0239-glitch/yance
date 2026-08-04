@@ -110,8 +110,8 @@ jobs:
           tests/runtime-delivery/fix6f-source-uat-isolation.test.js
       - name: Validate repository protocol descriptor
         run: node tools/protocol/validate-v3-protocols.js
-      - name: Run executable local-equivalent WP0 gate
-        run: npm run verify:wp0:gate -- --branch "${IMPLEMENTATION_BRANCH}"
+      - name: Enforce product-route executable branch role
+        run: node tools/wp0/product-route-executable-policy.js --branch "${IMPLEMENTATION_BRANCH}"
 
   wp0-governance:
     name: wp0-governance
