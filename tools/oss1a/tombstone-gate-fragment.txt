@@ -1,0 +1,12 @@
+
+
+test('isolated orphan reconciliation suite enforces legacy tombstones', () => {
+  const childProcess = require('node:child_process');
+  const suite = path.resolve(__dirname, 'whatsappOrphanAccountReconciliation.test.js');
+  const result = childProcess.spawnSync(process.execPath, ['--test', '--test-concurrency=1', suite], {
+    encoding: 'utf8',
+    maxBuffer: 16 * 1024 * 1024,
+    env: { ...process.env, YANCE_TEST_ONLY_SQLITE_BROKER_RESET: '1' }
+  });
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+});
