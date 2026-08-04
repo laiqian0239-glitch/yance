@@ -73,15 +73,15 @@ function frozenAdapter(operationKind) {
   });
 }
 
-test('M2-IR-001 outbound Adapter preserves persisted fencing and canonical OutboxCommand shape at the physical boundary', async () => {
+test('M2-IR-001 outbound physical boundary keeps canonical command bytes separate from persisted fencing context', async () => {
   const { createOutboundMessageSendOperation } = require('../../../services/durableOperations/outboundMessageSendOperation');
   const { createChannelPhysicalClient } = require('../../../services/channelRuntimeEngine');
   const physicalCalls = [];
   const facade = Object.freeze({
     platform: 'whatsapp',
     egress: Object.freeze({
-      async execute(input) {
-        physicalCalls.push(input);
+      async execute(command, persistedAttempt) {
+        physicalCalls.push({ command, persistedAttempt });
         return Object.freeze({
           accepted: true,
           platformMessageId: 'platform-review-1',
@@ -92,7 +92,7 @@ test('M2-IR-001 outbound Adapter preserves persisted fencing and canonical Outbo
     }),
     reconcile: Object.freeze({
       async execute(input) {
-        physicalCalls.push(input);
+        physicalCalls.push({ command: input, persistedAttempt: input });
         return Object.freeze({
           outcome: 'REMOTE_RESULT_UNKNOWN',
           evidenceReference: 'review:outbound:lookup:1'
@@ -123,11 +123,11 @@ test('M2-IR-001 outbound Adapter preserves persisted fencing and canonical Outbo
   const receipt = await adapter.perform(frozenAttemptEnvelope());
   assert.equal(receipt.accepted, true);
   assert.equal(physicalCalls.length, 1);
-  assert.deepEqual(identityOf(physicalCalls[0]), expectedIdentity());
-  assert.equal(physicalCalls[0].commandType, 'OutboxCommand');
-  assert.equal(physicalCalls[0].contentFrozen, true);
-  assert.equal(physicalCalls[0].commandId, 'command-review-1');
-  assert.equal(Object.hasOwn(physicalCalls[0], 'command'), false);
+  assert.deepEqual(physicalCalls[0].command, command);
+  assert.deepEqual(identityOf(physicalCalls[0].persistedAttempt), expectedIdentity());
+  assert.equal(physicalCalls[0].persistedAttempt.requestContentSha256, 'a'.repeat(64));
+  assert.equal(Object.hasOwn(physicalCalls[0].command, 'claimId'), false);
+  assert.equal(Object.hasOwn(physicalCalls[0].persistedAttempt, 'credential'), false);
 });
 
 test('M2-IR-002 production composition builds one sealed registry containing all six mandatory Adapters', () => {
