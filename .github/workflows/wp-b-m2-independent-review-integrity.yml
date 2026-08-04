@@ -101,6 +101,7 @@ jobs:
         shell: bash
         run: |
           node --check backend/tests/architectureClosureV2/wpB/m2IndependentReviewIntegrity.test.js
+          node --check backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js
           node --check tools/architecture-closure-v2/run-wp-b-m2-contracts.js
           node --check tools/architecture-closure-v2/verify-wp-b-m2-review.js
           node --check tools/architecture-closure-v2/wp-b-process-fault-matrix.js
@@ -108,6 +109,10 @@ jobs:
       - name: Run independent source-bound integrity contracts
         shell: bash
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m2IndependentReviewIntegrity.test.js
+
+      - name: Run seal mutation and exact-delta contracts
+        shell: bash
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js
 
       - name: Run complete Milestone 2 contracts
         shell: bash
