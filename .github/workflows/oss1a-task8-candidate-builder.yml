@@ -51,6 +51,7 @@ jobs:
           python ../tooling/tools/oss1a/patch_task8_transaction_and_fixtures.py
           python ../tooling/tools/oss1a/patch_task8_canonical_parent_authority.py
           python ../tooling/tools/oss1a/patch_task8_schema_contract.py
+          python ../tooling/tools/oss1a/patch_task8_canonical_payload_digest.py
 
       - name: Verify syntax and targeted dependency contracts
         working-directory: candidate
