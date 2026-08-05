@@ -1,0 +1,87 @@
+name: OSS-1A Task 8 Candidate Builder
+
+on:
+  push:
+    branches:
+      - work/oss1a-task8-generator
+
+permissions:
+  contents: write
+
+jobs:
+  build-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact tooling head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: tooling
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Checkout exact Task 7 implementation head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: b2a233ccea46a3233d1ea6d8f97b473e04dd2e29
+          path: candidate
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Install locked dependencies
+        working-directory: candidate
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Generate Task 8 persistent retry and exact lookup implementation
+        working-directory: candidate
+        run: |
+          python ../tooling/tools/oss1a/generate_task8_candidate.py
+          python ../tooling/tools/oss1a/patch_task8_retry_repository.py
+
+      - name: Verify syntax and targeted dependency contracts
+        working-directory: candidate
+        run: |
+          node --check backend/repositories/whatsappMessageKeyIndexRepository.js
+          node --check backend/repositories/whatsappMessageRetryRepository.js
+          node --check backend/repositories/messageRepository.js
+          node --check backend/services/whatsappMessageRetryStore.js
+          node --check backend/services/whatsappAdapter.js
+          node --check backend/runtime/AppRuntimeComposition.js
+          node --test --test-concurrency=1 \
+            backend/tests/oss1aWhatsappRetryStore.test.js \
+            backend/tests/oss1aWhatsappGetMessage.test.js \
+            backend/tests/oss1aWhatsappDisconnectPolicy.test.js \
+            backend/tests/oss1aWhatsappReconnectOwnership.test.js \
+            backend/tests/accountLifecycleRegression.test.js
+
+      - name: Commit isolated Task 8 candidate
+        working-directory: candidate
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c work/oss1a-task8-candidate
+          git add \
+            backend/repositories/whatsappMessageKeyIndexRepository.js \
+            backend/repositories/whatsappMessageRetryRepository.js \
+            backend/repositories/messageRepository.js \
+            backend/services/whatsappMessageRetryStore.js \
+            backend/services/whatsappAdapter.js \
+            backend/runtime/AppRuntimeComposition.js \
+            backend/tests/oss1aWhatsappRetryStore.test.js \
+            backend/tests/oss1aWhatsappGetMessage.test.js
+          git diff --cached --check
+          test "$(git diff --cached --name-only | wc -l | tr -d ' ')" = "8"
+          git commit -m 'feat(oss1a): persist retry counters and exact message lookup'
+          git push origin HEAD:refs/heads/work/oss1a-task8-candidate
