@@ -4,12 +4,7 @@ const fs = require('node:fs');
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
 const BRANCH_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/u;
-const ROLES = Object.freeze({
-  GOVERNANCE: 'GOVERNANCE',
-  IMPLEMENTATION: 'IMPLEMENTATION',
-  REVIEWED_CANDIDATE: 'REVIEWED_CANDIDATE',
-  UNKNOWN: 'UNKNOWN'
-});
+const ROLES = Object.freeze({ GOVERNANCE: 'GOVERNANCE', IMPLEMENTATION: 'IMPLEMENTATION', REVIEWED_CANDIDATE: 'REVIEWED_CANDIDATE', UNKNOWN: 'UNKNOWN' });
 const GOVERNANCE_BRANCHES = new Set([
   'governance/oss-1a-runtime-ci-authorization',
   'governance/oss-1a-detached-evidence-baseline-v3',
@@ -18,7 +13,8 @@ const GOVERNANCE_BRANCHES = new Set([
   'governance/oss-1a-lifecycle-milestone-authorization',
   'governance/oss-1a-async-store-capability-authorization',
   'governance/oss-1a-canonical-projection-checkpoint-authorization',
-  'governance/oss1a-reviewed-candidate-registration'
+  'governance/oss1a-reviewed-candidate-registration',
+  'governance/oss1a-reviewed-candidate-tip-binding'
 ]);
 
 function normalizeBranch(value) {
@@ -29,10 +25,13 @@ function normalizeBranch(value) {
 
 function branchFromContext({ eventName, headRef, gitRef } = {}) {
   if (eventName === 'pull_request') return normalizeBranch(headRef);
-  if (eventName === 'push' && String(gitRef || '').startsWith('refs/heads/')) {
-    return normalizeBranch(String(gitRef).slice('refs/heads/'.length));
-  }
+  if (eventName === 'push' && String(gitRef || '').startsWith('refs/heads/')) return normalizeBranch(String(gitRef).slice(11));
   return '';
+}
+
+function exactPath(value) {
+  const path = String(value || '');
+  return Boolean(path && path === path.trim() && !path.startsWith('/') && !path.includes('..') && !/[*?[\]]/u.test(path));
 }
 
 function validateReviewedCandidateManifest(manifest) {
@@ -46,58 +45,38 @@ function validateReviewedCandidateManifest(manifest) {
   if (!Number.isSafeInteger(manifest.continuationPullRequest) || manifest.continuationPullRequest < 1) errors.push('CONTINUATION_PULL_REQUEST_INVALID');
   if (!normalizeBranch(manifest.sourceBranch)) errors.push('SOURCE_BRANCH_INVALID');
   if (!normalizeBranch(manifest.reviewedCandidateBranch)) errors.push('REVIEWED_CANDIDATE_BRANCH_INVALID');
-  if (!SHA_PATTERN.test(String(manifest.governanceBase || ''))) errors.push('GOVERNANCE_BASE_INVALID');
-  if (!SHA_PATTERN.test(String(manifest.reviewedHead || ''))) errors.push('REVIEWED_HEAD_INVALID');
+  for (const field of ['governanceBase', 'reviewedHead', 'branchTip']) if (!SHA_PATTERN.test(String(manifest[field] || ''))) errors.push(`${field.toUpperCase()}_INVALID`);
+  if (manifest.reviewedHead === manifest.branchTip) errors.push('EVIDENCE_TIP_REQUIRED');
   if (!Number.isSafeInteger(manifest.reviewedChangedFileCount) || manifest.reviewedChangedFileCount < 1) errors.push('REVIEWED_FILE_COUNT_INVALID');
+  if (!Array.isArray(manifest.postReviewEvidencePaths) || manifest.postReviewEvidencePaths.length !== 4 || !manifest.postReviewEvidencePaths.every(exactPath) || new Set(manifest.postReviewEvidencePaths).size !== manifest.postReviewEvidencePaths.length) errors.push('POST_REVIEW_EVIDENCE_PATHS_INVALID');
   if (!Number.isSafeInteger(manifest.review?.id) || manifest.review.id < 1) errors.push('REVIEW_ID_INVALID');
-  if (manifest.review?.protocolVersion !== 1) errors.push('REVIEW_PROTOCOL_INVALID');
-  if (manifest.review?.reviewerMode !== 'CHATGPT_GITHUB_CONNECTED_SESSION') errors.push('REVIEWER_MODE_INVALID');
-  if (manifest.review?.decision !== 'ALLOW_MERGE') errors.push('REVIEW_DECISION_INVALID');
-  if (manifest.review?.p0Count !== 0 || manifest.review?.p1Count !== 0) errors.push('REVIEW_BLOCKERS_PRESENT');
-  if (manifest.review?.temporaryBypassDetected !== false) errors.push('TEMPORARY_BYPASS_DETECTED');
-  if (!Array.isArray(manifest.review?.missingEvidence) || manifest.review.missingEvidence.length !== 0) errors.push('MISSING_EVIDENCE_PRESENT');
-  if (!Array.isArray(manifest.review?.blockers) || manifest.review.blockers.length !== 0) errors.push('BLOCKERS_PRESENT');
-  if (manifest.governance?.wildcardAuthorizationAllowed !== false) errors.push('WILDCARD_AUTHORIZATION_FORBIDDEN');
-  if (manifest.governance?.temporaryBypassAllowed !== false) errors.push('TEMPORARY_BYPASS_FORBIDDEN');
-  if (manifest.governance?.warningOnlyClosureAllowed !== false) errors.push('WARNING_ONLY_CLOSURE_FORBIDDEN');
-  if (manifest.governance?.sourceMergeOnly !== true) errors.push('SOURCE_MERGE_SCOPE_INVALID');
-  if (manifest.governance?.productionUseAuthorized !== false) errors.push('PRODUCTION_USE_MUST_REMAIN_FALSE');
-  if (manifest.governance?.formalRelease !== false) errors.push('FORMAL_RELEASE_MUST_REMAIN_FALSE');
-  if (manifest.governance?.automaticNextWorkPackageAuthorization !== false) errors.push('NEXT_WORK_PACKAGE_AUTHORIZATION_FORBIDDEN');
-  if (manifest.readyForPromotion !== false) errors.push('PROMOTION_MUST_REMAIN_FALSE');
+  if (manifest.review?.protocolVersion !== 1 || manifest.review?.reviewerMode !== 'CHATGPT_GITHUB_CONNECTED_SESSION' || manifest.review?.decision !== 'ALLOW_MERGE') errors.push('REVIEW_IDENTITY_INVALID');
+  if (manifest.review?.p0Count !== 0 || manifest.review?.p1Count !== 0 || manifest.review?.temporaryBypassDetected !== false) errors.push('REVIEW_BLOCKERS_PRESENT');
+  if (!Array.isArray(manifest.review?.missingEvidence) || manifest.review.missingEvidence.length || !Array.isArray(manifest.review?.blockers) || manifest.review.blockers.length) errors.push('REVIEW_EVIDENCE_INVALID');
+  if (manifest.governance?.exactPostReviewEvidenceOnly !== true || manifest.governance?.wildcardAuthorizationAllowed !== false || manifest.governance?.temporaryBypassAllowed !== false || manifest.governance?.warningOnlyClosureAllowed !== false) errors.push('GOVERNANCE_FAIL_CLOSED_INVALID');
+  if (manifest.governance?.sourceMergeOnly !== true || manifest.governance?.productionUseAuthorized !== false || manifest.governance?.formalRelease !== false || manifest.governance?.automaticNextWorkPackageAuthorization !== false || manifest.readyForPromotion !== false) errors.push('RELEASE_SEPARATION_INVALID');
   return errors;
 }
 
 function resolveWorkflowBranchRole(context = {}, manifest = null) {
   const branch = branchFromContext(context);
-  const reviewedHead = String(context.reviewedHead || '');
-  if (!branch || !SHA_PATTERN.test(reviewedHead)) return Object.freeze({ role: ROLES.UNKNOWN, branch, errors: ['CONTEXT_INVALID'] });
+  const currentHead = String(context.reviewedHead || '');
+  if (!branch || !SHA_PATTERN.test(currentHead)) return Object.freeze({ role: ROLES.UNKNOWN, branch, errors: ['CONTEXT_INVALID'] });
   if (GOVERNANCE_BRANCHES.has(branch)) return Object.freeze({ role: ROLES.GOVERNANCE, branch, errors: [] });
   if (branch === 'oss/1a-baileys-lifecycle') return Object.freeze({ role: ROLES.IMPLEMENTATION, branch, errors: [] });
-
   const errors = validateReviewedCandidateManifest(manifest);
   if (errors.length) return Object.freeze({ role: ROLES.UNKNOWN, branch, errors: Object.freeze(errors) });
-  if (branch !== manifest.reviewedCandidateBranch || reviewedHead !== manifest.reviewedHead) {
-    return Object.freeze({ role: ROLES.UNKNOWN, branch, errors: ['REVIEWED_CANDIDATE_IDENTITY_MISMATCH'] });
-  }
+  if (branch !== manifest.reviewedCandidateBranch || currentHead !== manifest.branchTip) return Object.freeze({ role: ROLES.UNKNOWN, branch, errors: ['REVIEWED_CANDIDATE_IDENTITY_MISMATCH'] });
   return Object.freeze({ role: ROLES.REVIEWED_CANDIDATE, branch, errors: [] });
 }
 
 function main() {
-  const [eventName, headRef, gitRef, reviewedHead, manifestPath] = process.argv.slice(2);
+  const [eventName, headRef, gitRef, currentHead, manifestPath] = process.argv.slice(2);
   const manifest = manifestPath ? JSON.parse(fs.readFileSync(manifestPath, 'utf8')) : null;
-  const result = resolveWorkflowBranchRole({ eventName, headRef, gitRef, reviewedHead }, manifest);
+  const result = resolveWorkflowBranchRole({ eventName, headRef, gitRef, reviewedHead: currentHead }, manifest);
   process.stdout.write(`${JSON.stringify(result)}\n`);
   if (result.role === ROLES.UNKNOWN) process.exitCode = 1;
 }
 
 if (require.main === module) main();
-
-module.exports = Object.freeze({
-  GOVERNANCE_BRANCHES,
-  ROLES,
-  branchFromContext,
-  normalizeBranch,
-  resolveWorkflowBranchRole,
-  validateReviewedCandidateManifest
-});
+module.exports = Object.freeze({ GOVERNANCE_BRANCHES, ROLES, branchFromContext, normalizeBranch, resolveWorkflowBranchRole, validateReviewedCandidateManifest });
