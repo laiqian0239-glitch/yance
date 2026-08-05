@@ -251,6 +251,39 @@ test('receipt cannot select a hidden implementation baseline or an untrusted aut
   ), false, 'authorization commit first parent must equal approvedParentHead');
 });
 
+test('scope exception removes only the current work-package receipt', () => {
+  const policy = loadPolicy();
+  const { entry, registry } = fixture();
+  const otherEntry = Object.freeze({
+    workPackage: 'OSS-B',
+    authorizedBranch: 'oss/b-example',
+    authorizationPath: 'governance/open-source-acceleration/oss-b-authorization.json',
+    receiptPath: 'governance/open-source-acceleration/oss-b-authorization-receipt.json'
+  });
+  const expandedRegistry = Object.freeze({
+    ...registry,
+    entries: [entry, otherEntry]
+  });
+  const changedFiles = [
+    'governance/open-source-acceleration/open-source-work-package-registry.json',
+    entry.authorizationPath,
+    entry.receiptPath,
+    otherEntry.authorizationPath,
+    otherEntry.receiptPath,
+    'third_party/sbom.cdx.json'
+  ];
+  assert.deepEqual(policy.filterOpenSourceImplementationChangedFiles(changedFiles, {
+    registry: expandedRegistry,
+    entry
+  }), [
+    'governance/open-source-acceleration/open-source-work-package-registry.json',
+    entry.authorizationPath,
+    otherEntry.authorizationPath,
+    otherEntry.receiptPath,
+    'third_party/sbom.cdx.json'
+  ]);
+});
+
 test('repository authority files register OSS-A but do not self-create an implementation receipt', () => {
   const policy = loadPolicy();
   assert.equal(fs.existsSync(REGISTRY_PATH), true, 'registry must exist');
