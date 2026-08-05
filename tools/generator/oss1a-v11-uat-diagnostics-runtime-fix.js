@@ -2,6 +2,16 @@
 
 const fs = require('node:fs');
 
+const WORKFLOW_PATH = '.github/workflows/oss1a-whatsapp-lifecycle.yml';
+const RUNTIME_PATHS = Object.freeze([
+  'requirements/uat-playwright.txt',
+  'tests/uat/f25WindowsUatRepairBatch20AiUxReadability.test.js',
+  'tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js',
+  'tests/uat/fix6dRuntimeAuthorityRepair.test.js',
+  'tests/uat/helpers/authoritySqliteTestHost.js',
+  'tests/uat/modelRegistryFactSeparation.test.js'
+]);
+
 function replaceExact(source, before, after, label) {
   const first = source.indexOf(before);
   if (first < 0) throw new Error(`${label}: source block not found`);
@@ -16,11 +26,14 @@ function updateFile(filePath, transform) {
   fs.writeFileSync(filePath, after, 'utf8');
 }
 
-fs.mkdirSync('requirements', { recursive: true });
-fs.writeFileSync('requirements/uat-playwright.txt', 'playwright==1.61.0\n', 'utf8');
+function writeRuntimeRequirements() {
+  fs.mkdirSync('requirements', { recursive: true });
+  fs.writeFileSync('requirements/uat-playwright.txt', 'playwright==1.61.0\n', 'utf8');
+}
 
-fs.mkdirSync('tests/uat/helpers', { recursive: true });
-fs.writeFileSync('tests/uat/helpers/authoritySqliteTestHost.js', `'use strict';
+function writeAuthoritySqliteTestHost() {
+  fs.mkdirSync('tests/uat/helpers', { recursive: true });
+  fs.writeFileSync('tests/uat/helpers/authoritySqliteTestHost.js', `'use strict';
 
 const fs = require('node:fs');
 const os = require('node:os');
@@ -93,6 +106,7 @@ function installAuthoritySqliteTestHost(name) {
 
 module.exports = { installAuthoritySqliteTestHost };
 `, 'utf8');
+}
 
 function installHostBeforeProjectImports(filePath, name, firstProjectImport) {
   updateFile(filePath, source => {
@@ -113,69 +127,95 @@ function installHostBeforeProjectImports(filePath, name, firstProjectImport) {
   });
 }
 
-installHostBeforeProjectImports(
-  'tests/uat/f25WindowsUatRepairBatch20AiUxReadability.test.js',
-  'f25-ai-ux-readability',
-  "const smoke = require('../../backend/services/openRouterOnboardingSmokeService');"
-);
-installHostBeforeProjectImports(
-  'tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js',
-  'fix6d-runtime-authority-independent-audit',
-  "const credentialReceipt = require('../../frontend/js/r32-credential-mutation-receipt');"
-);
-installHostBeforeProjectImports(
-  'tests/uat/fix6dRuntimeAuthorityRepair.test.js',
-  'fix6d-runtime-authority-repair',
-  "const credentialReceipt = require('../../frontend/js/r32-credential-mutation-receipt');"
-);
+function applyRuntimeFix() {
+  writeRuntimeRequirements();
+  writeAuthoritySqliteTestHost();
 
-updateFile('tests/uat/modelRegistryFactSeparation.test.js', source => {
-  source = replaceExact(
-    source,
-    `const fs = require('node:fs');\nconst os = require('node:os');\nconst path = require('node:path');\n\nconst dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-model-fact-separation-'));\nprocess.env.YANCE_DATA_DIR = dataRoot;\n\nconst { closeR32Store } = require('../../backend/lib/r32StoreSingleton');\nconst registry = require('../../backend/services/modelRegistry');\n`,
-    `const { installAuthoritySqliteTestHost } = require('./helpers/authoritySqliteTestHost');\nconst authoritySqliteTestHost = installAuthoritySqliteTestHost('model-registry-fact-separation');\n\nconst registry = require('../../backend/services/modelRegistry');\n`,
-    'model registry test: replace direct temporary store with broker host'
+  installHostBeforeProjectImports(
+    'tests/uat/f25WindowsUatRepairBatch20AiUxReadability.test.js',
+    'f25-ai-ux-readability',
+    "const smoke = require('../../backend/services/openRouterOnboardingSmokeService');"
   );
-  source = replaceExact(
-    source,
-    `test.after(() => {\n  closeR32Store();\n  fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });\n});\n`,
-    `test.after(() => authoritySqliteTestHost.close());\n`,
-    'model registry test: close broker host'
+  installHostBeforeProjectImports(
+    'tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js',
+    'fix6d-runtime-authority-independent-audit',
+    "const credentialReceipt = require('../../frontend/js/r32-credential-mutation-receipt');"
   );
-  return source;
-});
+  installHostBeforeProjectImports(
+    'tests/uat/fix6dRuntimeAuthorityRepair.test.js',
+    'fix6d-runtime-authority-repair',
+    "const credentialReceipt = require('../../frontend/js/r32-credential-mutation-receipt');"
+  );
 
-updateFile('.github/workflows/oss1a-whatsapp-lifecycle.yml', source => {
-  source = replaceExact(
-    source,
-    `    branches:\n      - governance/oss-1a-canonical-projection-checkpoint-authorization\n`,
-    `    branches:\n      - governance/oss-1a-uat-diagnostics-runtime-authorization\n`,
-    'workflow: current governance base'
-  );
-  source = replaceExact(
-    source,
-    `    timeout-minutes: 30\n`,
-    `    timeout-minutes: 45\n`,
-    'workflow: diagnostics timeout budget'
-  );
-  source = replaceExact(
-    source,
-    `      - name: Run UAT diagnostics contracts\n        run: npm run test:uat-diagnostics\n`,
-    `      - name: Install pinned Python UAT browser runtime\n        shell: bash\n        run: |\n          set -euo pipefail\n          python3 --version\n          python3 -m pip install --disable-pip-version-check --requirement requirements/uat-playwright.txt\n          python3 -m playwright install --with-deps chromium\n      - name: Run UAT diagnostics contracts\n        run: npm run test:uat-diagnostics\n`,
-    'workflow: install real Chromium diagnostics runtime'
-  );
-  if (source.includes('continue-on-error')) throw new Error('workflow must not use continue-on-error');
-  return source;
-});
+  updateFile('tests/uat/modelRegistryFactSeparation.test.js', source => {
+    source = replaceExact(
+      source,
+      `const fs = require('node:fs');\nconst os = require('node:os');\nconst path = require('node:path');\n\nconst dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-model-fact-separation-'));\nprocess.env.YANCE_DATA_DIR = dataRoot;\n\nconst { closeR32Store } = require('../../backend/lib/r32StoreSingleton');\nconst registry = require('../../backend/services/modelRegistry');\n`,
+      `const { installAuthoritySqliteTestHost } = require('./helpers/authoritySqliteTestHost');\nconst authoritySqliteTestHost = installAuthoritySqliteTestHost('model-registry-fact-separation');\n\nconst registry = require('../../backend/services/modelRegistry');\n`,
+      'model registry test: replace direct temporary store with broker host'
+    );
+    source = replaceExact(
+      source,
+      `test.after(() => {\n  closeR32Store();\n  fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });\n});\n`,
+      `test.after(() => authoritySqliteTestHost.close());\n`,
+      'model registry test: close broker host'
+    );
+    return source;
+  });
 
-for (const filePath of [
-  '.github/workflows/oss1a-whatsapp-lifecycle.yml',
-  'requirements/uat-playwright.txt',
-  'tests/uat/f25WindowsUatRepairBatch20AiUxReadability.test.js',
-  'tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js',
-  'tests/uat/fix6dRuntimeAuthorityRepair.test.js',
-  'tests/uat/helpers/authoritySqliteTestHost.js',
-  'tests/uat/modelRegistryFactSeparation.test.js'
-]) {
-  if (!fs.existsSync(filePath)) throw new Error(`candidate path missing: ${filePath}`);
+  for (const filePath of RUNTIME_PATHS) {
+    if (!fs.existsSync(filePath)) throw new Error(`runtime candidate path missing: ${filePath}`);
+  }
 }
+
+function applyWorkflowFix() {
+  updateFile(WORKFLOW_PATH, source => {
+    source = replaceExact(
+      source,
+      `    branches:\n      - governance/oss-1a-canonical-projection-checkpoint-authorization\n`,
+      `    branches:\n      - governance/oss-1a-uat-diagnostics-runtime-authorization\n`,
+      'workflow: current governance base'
+    );
+    source = replaceExact(
+      source,
+      `    timeout-minutes: 30\n`,
+      `    timeout-minutes: 45\n`,
+      'workflow: diagnostics timeout budget'
+    );
+    source = replaceExact(
+      source,
+      `      - name: Run UAT diagnostics contracts\n        run: npm run test:uat-diagnostics\n`,
+      `      - name: Install pinned Python UAT browser runtime\n        shell: bash\n        run: |\n          set -euo pipefail\n          python3 --version\n          python3 -m pip install --disable-pip-version-check --requirement requirements/uat-playwright.txt\n          python3 -m playwright install --with-deps chromium\n      - name: Run UAT diagnostics contracts\n        run: npm run test:uat-diagnostics\n`,
+      'workflow: install real Chromium diagnostics runtime'
+    );
+    if (source.includes('continue-on-error')) throw new Error('workflow must not use continue-on-error');
+    return source;
+  });
+  if (!fs.existsSync(WORKFLOW_PATH)) throw new Error(`workflow candidate path missing: ${WORKFLOW_PATH}`);
+}
+
+function readScope(argv) {
+  const direct = argv.find(value => value.startsWith('--scope='));
+  if (direct) return direct.slice('--scope='.length);
+  const index = argv.indexOf('--scope');
+  if (index >= 0) return argv[index + 1];
+  return null;
+}
+
+function main(argv = process.argv.slice(2)) {
+  const scope = readScope(argv);
+  if (scope === 'workflow') applyWorkflowFix();
+  else if (scope === 'runtime') applyRuntimeFix();
+  else throw new Error('usage: node oss1a-v11-uat-diagnostics-runtime-fix.js --scope workflow|runtime');
+}
+
+if (require.main === module) main();
+
+module.exports = {
+  WORKFLOW_PATH,
+  RUNTIME_PATHS,
+  applyWorkflowFix,
+  applyRuntimeFix,
+  readScope,
+  main
+};
