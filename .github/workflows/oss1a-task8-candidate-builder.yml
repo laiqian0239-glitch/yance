@@ -48,6 +48,7 @@ jobs:
         run: |
           python ../tooling/tools/oss1a/generate_task8_candidate.py
           python ../tooling/tools/oss1a/patch_task8_retry_repository.py
+          python ../tooling/tools/oss1a/patch_task8_transaction_and_fixtures.py
 
       - name: Verify syntax and targeted dependency contracts
         working-directory: candidate
