@@ -23,6 +23,19 @@ const sqliteBroker = createSqliteConnectionBroker({
 });
 const authorityStore = sqliteBroker.open();
 
+const eventBus = require('../services/eventBus');
+const { AuthorityTransactionCoordinator } = require('../services/authorityTransactionCoordinator');
+const canonicalEventLedger = require('../services/canonicalEventLedgerAuthority');
+const authorityTransactionCoordinator = new AuthorityTransactionCoordinator({
+  store: authorityStore,
+  eventBus
+});
+const canonicalEventLedgerAuthority = new canonicalEventLedger.CanonicalEventLedgerAuthority({
+  coordinator: authorityTransactionCoordinator,
+  store: authorityStore
+});
+canonicalEventLedger.configureSingleton(canonicalEventLedgerAuthority);
+
 const messageStore = require('../services/messageStore');
 const { getStore, closeStore } = require('../repositories/storeProvider');
 
@@ -30,6 +43,7 @@ const store = getStore();
 store.upsertAccount({ id: 'page-identity-order', accountId: 'page-identity-order', adapterAccountId: 'page-identity-order', platform: 'facebook', state: 'online', canSend: false, canReceive: true });
 
 test.after(() => {
+  try { canonicalEventLedger.resetSingletonForTests(); } catch (_) {}
   try { closeStore(); } catch (_) {}
   try { authorityWriteHost.close(); } catch (_) {}
   fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
