@@ -6,20 +6,20 @@ const crypto = require('crypto');
 const { PATHS } = require('../config');
 const accountStore = require('./accountStore');
 const settingsRepository = require('../repositories/settingsRepository');
+const { getPrimaryStoreCapability } = require('../repositories/storeProvider');
 const {
   safeKey,
   isNumericKey,
   resolveStableAccountKey,
-  readCredentialState,
-  copyDirectoryAtomically,
-  resolveAuthLocation
+  readCredentialState
 } = require('./whatsappAuthResolver');
 
 const SKIP_DIRS = new Set(['node_modules', 'backups', 'legacy-json', 'logs', 'media', 'tmp', 'dist', 'build']);
+const TERMINAL_AUTH_STATES = new Set(['LOGGED_OUT', 'QUARANTINED']);
 
 function readValidCredentials(directory) {
   const state = readCredentialState(directory);
-  return state.usable ? state.credentials : null;
+  return state.importable ? state.credentials : null;
 }
 
 function discoverCredentialDirectories(root = PATHS.root, maxDepth = 4) {
@@ -30,7 +30,7 @@ function discoverCredentialDirectories(root = PATHS.root, maxDepth = 4) {
     if (visited.has(resolved) || depth > maxDepth) return;
     visited.add(resolved);
     const credentialState = readCredentialState(resolved);
-    if (credentialState.usable) {
+    if (credentialState.importable) {
       result.push({ directory: resolved, credentials: credentialState.credentials, credentialState });
       return;
     }
@@ -76,52 +76,35 @@ function findExistingAccount(stableKey) {
     || null;
 }
 
-async function disableDuplicateAliases(stableKey, canonicalId, report) {
-  for (const account of accountStore.list().filter(row => row.platform === 'whatsapp' && row.id !== canonicalId && accountStableKey(row) === stableKey)) {
-    const updated = await accountStore.update(account.id, {
-      paused: true,
-      autoReconnect: false,
-      metadata: {
-        authAliasOf: canonicalId,
-        resolvedAuthAccountKey: stableKey,
-        validationState: 'duplicate-auth-alias-disabled'
-      }
-    });
-    report.aliasesDisabled.push({ accountId: updated.id, adapterAccountId: updated.adapterAccountId, canonicalId, stableKey });
-  }
+function readAuthAuthority(store, accountKey, accountId = '') {
+  return store.db.prepare(`SELECT account_key,account_id,state,current_epoch,
+    writer_generation,writer_socket_token,logged_out_at,quarantine_reason
+    FROM whatsapp_auth_accounts
+    WHERE account_key=? OR account_id=?
+    ORDER BY CASE WHEN account_key=? THEN 0 ELSE 1 END
+    LIMIT 1`).get(accountKey, String(accountId || ''), accountKey) || null;
 }
 
-async function reconcileExistingAccount(existing, stableKey, destination, candidate, report) {
-  let account = existing;
-  const conflict = accountStore.list().find(row => row.platform === 'whatsapp' && row.id !== account.id && row.adapterAccountId === stableKey);
-  const patch = {
-    autoReconnect: true,
-    paused: false,
-    identityLabel: account.identityLabel || '本机认证凭据已恢复，等待连接验证',
-    metadata: {
-      recoveredFrom: candidate.directory,
-      credentialDirectory: destination,
-      resolvedAuthAccountKey: stableKey,
-      recoveredAt: report.at,
-      validationState: account.metadata?.validationState === 'live-validated' ? 'live-validated' : 'pending-live-connect',
-      filesystemValidated: true,
-      registeredFlag: candidate.credentialState?.registered === true,
-      recoveryCreatedAccount: false
-    }
-  };
-  if (account.adapterAccountId !== stableKey && !conflict) patch.adapterAccountId = stableKey;
-  account = await accountStore.update(account.id, patch);
-  report.reconciled.push({
-    accountId: account.id,
-    previousAdapterAccountId: existing.adapterAccountId,
-    adapterAccountId: account.adapterAccountId,
+function tombstoneReport(authority, existing, stableKey, directory) {
+  return {
+    accountId: String(authority.account_id || existing?.id || ''),
+    accountKey: String(authority.account_key),
     stableKey,
-    directory: destination,
-    rebindApplied: account.adapterAccountId === stableKey,
-    conflictAccountId: conflict?.id || ''
-  });
-  await disableDuplicateAliases(stableKey, account.id, report);
-  return account;
+    state: String(authority.state),
+    directory: path.resolve(directory),
+    reasonCode: 'WHATSAPP_LEGACY_AUTH_RESURRECTION_BLOCKED'
+  };
+}
+
+function importRequiredReport(authority, existing, accountKey, stableKey, directory) {
+  return {
+    accountId: String(authority?.account_id || existing?.id || ''),
+    accountKey,
+    stableKey,
+    state: String(authority?.state || ''),
+    directory: path.resolve(directory),
+    reasonCode: 'WHATSAPP_LEGACY_AUTH_IMPORT_REQUIRED'
+  };
 }
 
 async function recoverAtStartup(options = {}) {
@@ -133,13 +116,13 @@ async function recoverAtStartup(options = {}) {
   if (options.scanDataRoot !== false) roots.push(PATHS.root);
 
   const candidates = [];
-  const seen = new Set();
+  const seenDirectories = new Set();
   for (const root of roots) {
     if (!root || !fs.existsSync(root)) continue;
     for (const candidate of discoverCredentialDirectories(root, root === PATHS.root ? 4 : Number(options.extraRootDepth || 4))) {
       const resolved = path.resolve(candidate.directory);
-      if (seen.has(resolved)) continue;
-      seen.add(resolved);
+      if (seenDirectories.has(resolved)) continue;
+      seenDirectories.add(resolved);
       candidates.push(candidate);
     }
   }
@@ -151,88 +134,66 @@ async function recoverAtStartup(options = {}) {
     reconciled: [],
     copied: [],
     aliasesDisabled: [],
+    importRequired: [],
+    tombstones: [],
     skipped: [],
     failed: [],
     at: new Date().toISOString()
   };
 
+  const processedKeys = new Set();
+  const store = getPrimaryStoreCapability();
   for (const candidate of candidates) {
     try {
       const stableKey = keyForCandidate(candidate);
-      let destination = path.join(PATHS.whatsappAuth, stableKey);
-      let copied = false;
-      let migrationBackup = '';
-
-      const fromKnownLegacy = path.resolve(path.dirname(candidate.directory)) === path.resolve(PATHS.baileysAuthLegacy);
-      if (fromKnownLegacy) {
-        const resolved = resolveAuthLocation(stableKey, { migrate: true });
-        destination = resolved.directory;
-        copied = resolved.migration.copied;
-        migrationBackup = resolved.migration.backup;
-      } else if (path.resolve(candidate.directory) !== path.resolve(destination)) {
-        const result = copyDirectoryAtomically(candidate.directory, destination);
-        copied = result.copied;
-        migrationBackup = result.backup;
-      }
-
-      const destinationState = readCredentialState(destination);
-      if (!destinationState.usable) {
-        const error = new Error('复制后的 WhatsApp 凭据缺少 me.id/me.lid，无法进入连接验证');
-        error.code = 'COPIED_CREDENTIAL_VALIDATION_FAILED';
-        throw error;
-      }
-      if (copied) {
-        report.copied.push({
-          source: candidate.directory,
-          destination,
-          backup: migrationBackup,
-          validationState: 'filesystem-validated',
-          registeredFlag: destinationState.registered,
-          recoveryCreatedAccount: true
+      if (processedKeys.has(stableKey)) {
+        report.skipped.push({
+          directory: path.resolve(candidate.directory),
+          stableKey,
+          reason: 'duplicate-legacy-auth-candidate'
         });
+        continue;
       }
+      processedKeys.add(stableKey);
 
       const existing = findExistingAccount(stableKey);
-      if (existing) {
-        const account = await reconcileExistingAccount(existing, stableKey, destination, candidate, report);
+      const accountKey = `whatsapp-auth-account:${stableKey}`;
+      const authority = readAuthAuthority(store, accountKey, existing?.id || '');
+
+      if (authority && TERMINAL_AUTH_STATES.has(String(authority.state))) {
+        report.tombstones.push(tombstoneReport(
+          authority,
+          existing,
+          stableKey,
+          candidate.directory
+        ));
+        continue;
+      }
+
+      if (authority && String(authority.state) === 'ACTIVE') {
         report.skipped.push({
-          directory: candidate.directory,
-          reason: 'account-reconciled',
-          accountId: account.id,
-          credentialRestored: copied,
-          stableKey
+          accountId: String(authority.account_id || existing?.id || ''),
+          accountKey: String(authority.account_key),
+          stableKey,
+          directory: path.resolve(candidate.directory),
+          reason: 'database-auth-authority-active'
         });
         continue;
       }
 
-      const identity = String(candidate.credentials?.me?.name || candidate.credentials?.me?.id || candidate.credentials?.me?.lid || stableKey);
-      const account = await accountStore.create({
-        platform: 'whatsapp',
-        adapterAccountId: stableKey,
-        displayName: identity,
-        identityLabel: '本机认证凭据已恢复，等待连接验证',
-        autoReconnect: true,
-        source: 'automatic-credential-recovery',
-        metadata: {
-          recoveredFrom: candidate.directory,
-          credentialDirectory: destination,
-          resolvedAuthAccountKey: stableKey,
-          recoveredAt: report.at,
-          validationState: 'pending-live-connect',
-          filesystemValidated: true,
-          registeredFlag: destinationState.registered,
-          recoveryCreatedAccount: true
-        }
-      });
-      report.registered.push({
-        accountId: account.id,
-        adapterAccountId: stableKey,
-        directory: destination,
-        validationState: 'pending-live-connect',
-        registeredFlag: destinationState.registered
-      });
+      report.importRequired.push(importRequiredReport(
+        authority,
+        existing,
+        accountKey,
+        stableKey,
+        candidate.directory
+      ));
     } catch (error) {
-      report.failed.push({ directory: candidate.directory, error: error.message, code: error.code || '' });
+      report.failed.push({
+        directory: path.resolve(candidate.directory),
+        error: error.message,
+        code: error.code || ''
+      });
     }
   }
 
@@ -246,5 +207,6 @@ module.exports = {
   discoverCredentialDirectories,
   readValidCredentials,
   keyForCandidate,
-  accountStableKey
+  accountStableKey,
+  readAuthAuthority
 };

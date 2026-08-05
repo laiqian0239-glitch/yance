@@ -35,7 +35,7 @@ const outboxRouteAuthority = require('../services/outboxRouteAuthority').singlet
 process.on('exit', () => {
   try { closeStore(); } catch (error) { process.stderr.write(`closeStore failed: ${error.message}\n`); }
   try { resetSqliteConnectionBrokerForTests(); } catch (error) { process.stderr.write(`broker reset failed: ${error.message}\n`); }
-  try { testWriteHost.release(); } catch (error) { process.stderr.write(`write host release failed: ${error.message}\n`); }
+  try { testWriteHost.close(); } catch (error) { process.stderr.write(`write host release failed: ${error.message}\n`); }
   try { fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (error) { process.stderr.write(`cleanup failed: ${error.message}\n`); }
 });
 

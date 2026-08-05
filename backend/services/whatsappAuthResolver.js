@@ -187,35 +187,40 @@ function copyDirectoryAtomically(source, destination) {
 
 function resolveAuthLocation(accountOrKey, options = {}) {
   const key = resolveStableAccountKey(accountOrKey, options);
+  const accountKey = `whatsapp-auth-account:${key}`;
   const currentDirectory = path.join(PATHS.whatsappAuth, key);
   const legacyDirectory = path.join(PATHS.baileysAuthLegacy, key);
-  let current = readCredentialState(currentDirectory);
+  const current = readCredentialState(currentDirectory);
   const legacy = readCredentialState(legacyDirectory);
-  let migration = { performed: false, copied: false, source: '', destination: currentDirectory, backup: '' };
-
-  if (!current.importable && legacy.importable && options.migrate !== false) {
-    const copied = copyDirectoryAtomically(legacyDirectory, currentDirectory);
-    migration = {
-      performed: true,
-      copied: copied.copied,
-      source: copied.source,
-      destination: copied.destination,
-      backup: copied.backup
-    };
-    current = readCredentialState(currentDirectory);
-  }
+  const importSource = legacy.importable ? legacy : (current.importable ? current : null);
+  const importDirectory = importSource?.directory || '';
+  const reasonCode = importSource
+    ? 'WHATSAPP_LEGACY_AUTH_IMPORT_REQUIRED'
+    : (legacy.reasonCode || current.reasonCode || 'WHATSAPP_LEGACY_CREDS_MISSING');
 
   return {
     key,
+    accountKey,
     directory: currentDirectory,
     current,
     legacy,
-    migration,
-    usable: current.importable || legacy.importable,
-    importable: current.importable || legacy.importable,
-    registered: current.importable ? current.registered : legacy.registered,
-    fileCount: options.includeFileCount === true
-      ? (current.importable ? countFiles(currentDirectory) : (legacy.importable ? countFiles(legacyDirectory) : 0))
+    discoveryOnly: true,
+    runtimeAuthState: null,
+    importDirectory,
+    migration: {
+      performed: false,
+      copied: false,
+      source: '',
+      destination: currentDirectory,
+      backup: '',
+      reasonCode
+    },
+    usable: false,
+    importable: Boolean(importSource),
+    registered: importSource?.registered === true,
+    reasonCode,
+    fileCount: options.includeFileCount === true && importSource
+      ? countFiles(importDirectory)
       : 0
   };
 }
