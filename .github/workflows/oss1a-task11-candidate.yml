@@ -1,4 +1,4 @@
-name: OSS-1A Task 11 Candidate Generator
+name: OSS-1A Task 11 Exact Candidate
 
 on:
   push:
@@ -10,40 +10,53 @@ permissions:
   statuses: write
 
 concurrency:
-  group: oss1a-task11-candidate-c0cf81de
+  group: oss1a-task11-exact-candidate-c0cf81de
   cancel-in-progress: false
 
 jobs:
-  generate-and-verify:
+  build-test-and-fast-forward:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       BASE_SHA: c0cf81de7a0350f2faa1af8877ec4ea16d01e496
       IMPLEMENTATION_BRANCH: oss/1a-baileys-lifecycle
+      SEALED_NODE_VERSION: 22.23.1
     steps:
       - name: Checkout isolated orchestration source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
+          fetch-tags: false
+          lfs: false
           persist-credentials: false
 
-      - name: Set up sealed Node runtime
-        uses: actions/setup-node@v4
+      - name: Set up proven FTS5 Node runtime
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
-          node-version: 22.14.0
-          cache: npm
+          node-version: ${{ env.SEALED_NODE_VERSION }}
+          package-manager-cache: false
 
-      - name: Verify exact baseline and generator
+      - name: Seal runtime, exact baseline, and generator
         shell: bash
         run: |
           set -euo pipefail
+          test "$(node -p 'process.versions.node')" = "$SEALED_NODE_VERSION"
+          node <<'NODE'
+          const { DatabaseSync } = require('node:sqlite');
+          const db = new DatabaseSync(':memory:');
+          db.exec('CREATE VIRTUAL TABLE task11_fts5_probe USING fts5(value)');
+          db.prepare('INSERT INTO task11_fts5_probe(value) VALUES (?)').run('sealed');
+          const row = db.prepare("SELECT value FROM task11_fts5_probe WHERE task11_fts5_probe MATCH 'sealed'").get();
+          if (row?.value !== 'sealed') throw new Error('FTS5 runtime probe failed');
+          db.close();
+          NODE
           git cat-file -e "${BASE_SHA}^{commit}"
           git fetch --no-tags origin \
             "refs/heads/${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
           test "$(git rev-parse "refs/remotes/origin/${IMPLEMENTATION_BRANCH}")" = "$BASE_SHA"
           node --check tools/oss1a/generate-task11-auth-lease-candidate.js
 
-      - name: Create two exact detached worktrees
+      - name: Create two exact detached baseline worktrees
         shell: bash
         run: |
           set -euo pipefail
@@ -58,120 +71,38 @@ jobs:
             echo "CLEAN_WORKTREE=$clean_worktree"
             echo "IMPLEMENTATION_WORKTREE=$implementation_worktree"
             echo "TASK11_PATCH=${RUNNER_TEMP}/task11.patch"
+            echo "EXPECTED_PATHS=${RUNNER_TEMP}/task11-expected-paths.txt"
           } >> "$GITHUB_ENV"
 
-      - name: Install exact dependencies in both baseline worktrees
+      - name: Install exact dependencies in both worktrees
         shell: bash
         run: |
           set -euo pipefail
-          (
-            cd "$CLEAN_WORKTREE"
-            npm ci
-          )
-          (
-            cd "$IMPLEMENTATION_WORKTREE"
-            npm ci
-          )
+          (cd "$CLEAN_WORKTREE" && npm ci --no-audit --no-fund)
+          (cd "$IMPLEMENTATION_WORKTREE" && npm ci --no-audit --no-fund)
 
-      - name: Run clean exact-baseline regression
-        id: baseline_clean
-        continue-on-error: true
+      - name: Prove exact baseline GREEN in clean worktree
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           cd "$CLEAN_WORKTREE"
-          npm run test:oss1a 2>&1 | tee "${RUNNER_TEMP}/baseline-clean.log"
+          npm run test:oss1a
 
-      - name: Run implementation exact-baseline regression
-        id: baseline_implementation
-        continue-on-error: true
+      - name: Prove exact baseline GREEN in implementation worktree
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           cd "$IMPLEMENTATION_WORKTREE"
-          npm run test:oss1a 2>&1 | tee "${RUNNER_TEMP}/baseline-implementation.log"
+          npm run test:oss1a
 
-      - name: Publish exact-baseline diagnostics
-        if: always()
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CLEAN_OUTCOME: ${{ steps.baseline_clean.outcome }}
-          IMPLEMENTATION_OUTCOME: ${{ steps.baseline_implementation.outcome }}
-        run: |
-          set -euo pipefail
-          repository_api="/repos/${GITHUB_REPOSITORY}"
-
-          summarize_log() {
-            local log_file="$1"
-            local fallback="$2"
-            local summary
-            summary="$(
-              grep -E '^(not ok|# Subtest:)|AssertionError|ERR_[A-Z_]+|Error:' "$log_file" \
-                | tail -n 1 \
-                | tr '\n' ' ' \
-                | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//' \
-                | cut -c1-132 \
-                || true
-            )"
-            printf '%s' "${summary:-$fallback}"
-          }
-
-          publish_status() {
-            local context="$1"
-            local outcome="$2"
-            local log_file="$3"
-            local state description
-            if [[ "$outcome" == "success" ]]; then
-              state=success
-              description="exact ${BASE_SHA:0:12} regression GREEN"
-            else
-              state=failure
-              description="$(summarize_log "$log_file" "exact ${BASE_SHA:0:12} regression failed")"
-            fi
-            gh api --method POST "${repository_api}/statuses/${GITHUB_SHA}" \
-              -f state="$state" \
-              -f context="$context" \
-              -f description="$description" \
-              -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
-              >/dev/null
-          }
-
-          publish_status \
-            "oss1a/task11/baseline-clean" \
-            "$CLEAN_OUTCOME" \
-            "${RUNNER_TEMP}/baseline-clean.log"
-          publish_status \
-            "oss1a/task11/baseline-implementation" \
-            "$IMPLEMENTATION_OUTCOME" \
-            "${RUNNER_TEMP}/baseline-implementation.log"
-
-          {
-            echo "### Exact baseline regression"
-            echo
-            echo "- Base: \`$BASE_SHA\`"
-            echo "- Clean worktree: \`$CLEAN_OUTCOME\`"
-            echo "- Implementation worktree: \`$IMPLEMENTATION_OUTCOME\`"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Require exact baseline GREEN in both worktrees
-        shell: bash
-        env:
-          CLEAN_OUTCOME: ${{ steps.baseline_clean.outcome }}
-          IMPLEMENTATION_OUTCOME: ${{ steps.baseline_implementation.outcome }}
-        run: |
-          set -euo pipefail
-          test "$CLEAN_OUTCOME" = success
-          test "$IMPLEMENTATION_OUTCOME" = success
-
-      - name: Generate candidate only in clean worktree
+      - name: Generate candidate only against clean exact baseline
         shell: bash
         run: |
           set -euo pipefail
           TASK11_TARGET_ROOT="$CLEAN_WORKTREE" \
             node tools/oss1a/generate-task11-auth-lease-candidate.js
 
-      - name: Freeze clean four-file patch
+      - name: Freeze exact four-file patch
         shell: bash
         run: |
           set -euo pipefail
@@ -181,16 +112,16 @@ jobs:
             backend/services/whatsappAuthStateStore.js
             backend/services/whatsappSocketFactory.js
           )
-          printf '%s\n' "${authorized_paths[@]}" | sort > "${RUNNER_TEMP}/expected-paths.txt"
+          printf '%s\n' "${authorized_paths[@]}" | sort > "$EXPECTED_PATHS"
           git -C "$CLEAN_WORKTREE" diff --name-only | sort > "${RUNNER_TEMP}/clean-paths.txt"
-          diff -u "${RUNNER_TEMP}/expected-paths.txt" "${RUNNER_TEMP}/clean-paths.txt"
+          diff -u "$EXPECTED_PATHS" "${RUNNER_TEMP}/clean-paths.txt"
           test -z "$(git -C "$CLEAN_WORKTREE" ls-files --others --exclude-standard)"
           git -C "$CLEAN_WORKTREE" diff --check
           git -C "$CLEAN_WORKTREE" diff --binary -- "${authorized_paths[@]}" > "$TASK11_PATCH"
           test -s "$TASK11_PATCH"
           sha256sum "$TASK11_PATCH" | awk '{print $1}' > "${RUNNER_TEMP}/task11-patch-sha256.txt"
 
-      - name: Apply clean patch to implementation worktree
+      - name: Apply identical patch to second exact worktree
         shell: bash
         run: |
           set -euo pipefail
@@ -203,149 +134,45 @@ jobs:
           git -C "$IMPLEMENTATION_WORKTREE" apply --index --whitespace=error-all "$TASK11_PATCH"
           git -C "$IMPLEMENTATION_WORKTREE" diff --cached --name-only | sort \
             > "${RUNNER_TEMP}/implementation-paths.txt"
-          diff -u "${RUNNER_TEMP}/expected-paths.txt" "${RUNNER_TEMP}/implementation-paths.txt"
+          diff -u "$EXPECTED_PATHS" "${RUNNER_TEMP}/implementation-paths.txt"
           git -C "$IMPLEMENTATION_WORKTREE" diff --cached --check
           git -C "$IMPLEMENTATION_WORKTREE" diff --cached --binary -- "${authorized_paths[@]}" \
             > "${RUNNER_TEMP}/implementation.patch"
           cmp "$TASK11_PATCH" "${RUNNER_TEMP}/implementation.patch"
 
-      - name: Run clean candidate Task 11 contracts
-        id: candidate_clean_targeted
-        continue-on-error: true
+      - name: Test clean candidate Task 11 contracts
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           cd "$CLEAN_WORKTREE"
           node --test --test-concurrency=1 \
             backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
-            backend/tests/oss1aWhatsappAuthLeaseLifecycle.test.js \
-            2>&1 | tee "${RUNNER_TEMP}/candidate-clean-targeted.log"
+            backend/tests/oss1aWhatsappAuthLeaseLifecycle.test.js
 
-      - name: Run clean candidate full OSS-1A regression
-        id: candidate_clean_full
-        continue-on-error: true
+      - name: Test clean candidate full OSS-1A regression
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           cd "$CLEAN_WORKTREE"
-          npm run test:oss1a 2>&1 | tee "${RUNNER_TEMP}/candidate-clean-full.log"
+          npm run test:oss1a
 
-      - name: Run implementation candidate Task 11 contracts
-        id: candidate_implementation_targeted
-        continue-on-error: true
+      - name: Test implementation candidate Task 11 contracts
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           cd "$IMPLEMENTATION_WORKTREE"
           node --test --test-concurrency=1 \
             backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
-            backend/tests/oss1aWhatsappAuthLeaseLifecycle.test.js \
-            2>&1 | tee "${RUNNER_TEMP}/candidate-implementation-targeted.log"
+            backend/tests/oss1aWhatsappAuthLeaseLifecycle.test.js
 
-      - name: Run implementation candidate full OSS-1A regression
-        id: candidate_implementation_full
-        continue-on-error: true
+      - name: Test implementation candidate full OSS-1A regression
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           cd "$IMPLEMENTATION_WORKTREE"
-          npm run test:oss1a 2>&1 | tee "${RUNNER_TEMP}/candidate-implementation-full.log"
+          npm run test:oss1a
 
-      - name: Publish candidate diagnostics
-        if: always()
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CLEAN_TARGETED_OUTCOME: ${{ steps.candidate_clean_targeted.outcome }}
-          CLEAN_FULL_OUTCOME: ${{ steps.candidate_clean_full.outcome }}
-          IMPLEMENTATION_TARGETED_OUTCOME: ${{ steps.candidate_implementation_targeted.outcome }}
-          IMPLEMENTATION_FULL_OUTCOME: ${{ steps.candidate_implementation_full.outcome }}
-        run: |
-          set -euo pipefail
-          repository_api="/repos/${GITHUB_REPOSITORY}"
-
-          summarize_log() {
-            local log_file="$1"
-            local fallback="$2"
-            local summary
-            summary="$(
-              grep -E '^(not ok|# Subtest:)|AssertionError|ERR_[A-Z_]+|Error:' "$log_file" \
-                | tail -n 1 \
-                | tr '\n' ' ' \
-                | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//' \
-                | cut -c1-132 \
-                || true
-            )"
-            printf '%s' "${summary:-$fallback}"
-          }
-
-          publish_status() {
-            local context="$1"
-            local outcome="$2"
-            local log_file="$3"
-            local green_description="$4"
-            local state description
-            if [[ "$outcome" == "success" ]]; then
-              state=success
-              description="$green_description"
-            else
-              state=failure
-              description="$(summarize_log "$log_file" "${context} failed")"
-            fi
-            gh api --method POST "${repository_api}/statuses/${GITHUB_SHA}" \
-              -f state="$state" \
-              -f context="$context" \
-              -f description="$description" \
-              -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
-              >/dev/null
-          }
-
-          publish_status \
-            "oss1a/task11/candidate-clean-targeted" \
-            "$CLEAN_TARGETED_OUTCOME" \
-            "${RUNNER_TEMP}/candidate-clean-targeted.log" \
-            "clean Task 11 contracts GREEN"
-          publish_status \
-            "oss1a/task11/candidate-clean-full" \
-            "$CLEAN_FULL_OUTCOME" \
-            "${RUNNER_TEMP}/candidate-clean-full.log" \
-            "clean full OSS-1A regression GREEN"
-          publish_status \
-            "oss1a/task11/candidate-implementation-targeted" \
-            "$IMPLEMENTATION_TARGETED_OUTCOME" \
-            "${RUNNER_TEMP}/candidate-implementation-targeted.log" \
-            "implementation Task 11 contracts GREEN"
-          publish_status \
-            "oss1a/task11/candidate-implementation-full" \
-            "$IMPLEMENTATION_FULL_OUTCOME" \
-            "${RUNNER_TEMP}/candidate-implementation-full.log" \
-            "implementation full OSS-1A regression GREEN"
-
-          {
-            echo
-            echo "### Candidate regression"
-            echo
-            echo "- Clean targeted: \`$CLEAN_TARGETED_OUTCOME\`"
-            echo "- Clean full: \`$CLEAN_FULL_OUTCOME\`"
-            echo "- Implementation targeted: \`$IMPLEMENTATION_TARGETED_OUTCOME\`"
-            echo "- Implementation full: \`$IMPLEMENTATION_FULL_OUTCOME\`"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Require candidate GREEN in both worktrees
-        shell: bash
-        env:
-          CLEAN_TARGETED_OUTCOME: ${{ steps.candidate_clean_targeted.outcome }}
-          CLEAN_FULL_OUTCOME: ${{ steps.candidate_clean_full.outcome }}
-          IMPLEMENTATION_TARGETED_OUTCOME: ${{ steps.candidate_implementation_targeted.outcome }}
-          IMPLEMENTATION_FULL_OUTCOME: ${{ steps.candidate_implementation_full.outcome }}
-        run: |
-          set -euo pipefail
-          test "$CLEAN_TARGETED_OUTCOME" = success
-          test "$CLEAN_FULL_OUTCOME" = success
-          test "$IMPLEMENTATION_TARGETED_OUTCOME" = success
-          test "$IMPLEMENTATION_FULL_OUTCOME" = success
-
-      - name: Reverify identical candidate after both test runs
+      - name: Reprove immutable identical four-file candidate
         shell: bash
         run: |
           set -euo pipefail
@@ -355,111 +182,73 @@ jobs:
             backend/services/whatsappAuthStateStore.js
             backend/services/whatsappSocketFactory.js
           )
-          git -C "$CLEAN_WORKTREE" diff --name-only | sort \
-            > "${RUNNER_TEMP}/clean-paths-after.txt"
+          git -C "$CLEAN_WORKTREE" diff --name-only | sort > "${RUNNER_TEMP}/clean-after-paths.txt"
           git -C "$IMPLEMENTATION_WORKTREE" diff --cached --name-only | sort \
-            > "${RUNNER_TEMP}/implementation-paths-after.txt"
-          diff -u "${RUNNER_TEMP}/expected-paths.txt" "${RUNNER_TEMP}/clean-paths-after.txt"
-          diff -u "${RUNNER_TEMP}/expected-paths.txt" "${RUNNER_TEMP}/implementation-paths-after.txt"
+            > "${RUNNER_TEMP}/implementation-after-paths.txt"
+          diff -u "$EXPECTED_PATHS" "${RUNNER_TEMP}/clean-after-paths.txt"
+          diff -u "$EXPECTED_PATHS" "${RUNNER_TEMP}/implementation-after-paths.txt"
           test -z "$(git -C "$CLEAN_WORKTREE" ls-files --others --exclude-standard)"
           test -z "$(git -C "$IMPLEMENTATION_WORKTREE" ls-files --others --exclude-standard)"
+          git -C "$CLEAN_WORKTREE" diff --check
+          git -C "$IMPLEMENTATION_WORKTREE" diff --cached --check
           git -C "$CLEAN_WORKTREE" diff --binary -- "${authorized_paths[@]}" \
             > "${RUNNER_TEMP}/clean-after.patch"
           git -C "$IMPLEMENTATION_WORKTREE" diff --cached --binary -- "${authorized_paths[@]}" \
             > "${RUNNER_TEMP}/implementation-after.patch"
           cmp "$TASK11_PATCH" "${RUNNER_TEMP}/clean-after.patch"
           cmp "$TASK11_PATCH" "${RUNNER_TEMP}/implementation-after.patch"
-          git -C "$IMPLEMENTATION_WORKTREE" write-tree > "${RUNNER_TEMP}/task11-tree-sha.txt"
 
-      - name: Create verified remote candidate object without a branch
+      - name: Create exact four-file candidate commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C "$IMPLEMENTATION_WORKTREE" config user.name "Yance OSS-1A Task 11"
+          git -C "$IMPLEMENTATION_WORKTREE" config user.email "oss1a-task11@users.noreply.github.com"
+          git -C "$IMPLEMENTATION_WORKTREE" commit \
+            -m "feat(oss1a): bind production auth to repository lease"
+          candidate_sha="$(git -C "$IMPLEMENTATION_WORKTREE" rev-parse HEAD)"
+          test "$(git -C "$IMPLEMENTATION_WORKTREE" rev-parse HEAD^)" = "$BASE_SHA"
+          git -C "$IMPLEMENTATION_WORKTREE" diff --name-only "$BASE_SHA" "$candidate_sha" \
+            | sort > "${RUNNER_TEMP}/candidate-paths.txt"
+          diff -u "$EXPECTED_PATHS" "${RUNNER_TEMP}/candidate-paths.txt"
+          echo "CANDIDATE_SHA=$candidate_sha" >> "$GITHUB_ENV"
+
+      - name: Non-force fast-forward implementation branch
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           repository_api="/repos/${GITHUB_REPOSITORY}"
-          base_tree="$(git rev-parse "${BASE_SHA}^{tree}")"
-          local_tree="$(cat "${RUNNER_TEMP}/task11-tree-sha.txt")"
-
-          create_blob() {
-            local path="$1"
-            jq -Rs '{content: ., encoding: "utf-8"}' \
-              < "${IMPLEMENTATION_WORKTREE}/${path}" \
-              | gh api --method POST "${repository_api}/git/blobs" --input - --jq '.sha'
-          }
-
-          repository_blob="$(create_blob backend/repositories/whatsappAuthStateRepository.js)"
-          adapter_blob="$(create_blob backend/services/whatsappAdapter.js)"
-          state_store_blob="$(create_blob backend/services/whatsappAuthStateStore.js)"
-          socket_factory_blob="$(create_blob backend/services/whatsappSocketFactory.js)"
-
-          remote_tree="$(
-            jq -n \
-              --arg base_tree "$base_tree" \
-              --arg repository_blob "$repository_blob" \
-              --arg adapter_blob "$adapter_blob" \
-              --arg state_store_blob "$state_store_blob" \
-              --arg socket_factory_blob "$socket_factory_blob" \
-              '{
-                base_tree: $base_tree,
-                tree: [
-                  {
-                    path: "backend/repositories/whatsappAuthStateRepository.js",
-                    mode: "100644",
-                    type: "blob",
-                    sha: $repository_blob
-                  },
-                  {
-                    path: "backend/services/whatsappAdapter.js",
-                    mode: "100644",
-                    type: "blob",
-                    sha: $adapter_blob
-                  },
-                  {
-                    path: "backend/services/whatsappAuthStateStore.js",
-                    mode: "100644",
-                    type: "blob",
-                    sha: $state_store_blob
-                  },
-                  {
-                    path: "backend/services/whatsappSocketFactory.js",
-                    mode: "100644",
-                    type: "blob",
-                    sha: $socket_factory_blob
-                  }
-                ]
-              }' \
-              | gh api --method POST "${repository_api}/git/trees" --input - --jq '.sha'
+          remote_before="$(
+            gh api "${repository_api}/git/ref/heads/${IMPLEMENTATION_BRANCH}" --jq '.object.sha'
           )"
-          test "$remote_tree" = "$local_tree"
+          test "$remote_before" = "$BASE_SHA"
 
-          candidate_sha="$(
-            jq -n \
-              --arg message "feat(oss1a): bind production auth to repository lease" \
-              --arg tree "$remote_tree" \
-              --arg parent "$BASE_SHA" \
-              '{message: $message, tree: $tree, parents: [$parent]}' \
-              | gh api --method POST "${repository_api}/git/commits" --input - --jq '.sha'
+          authenticated_remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git -C "$IMPLEMENTATION_WORKTREE" push --porcelain \
+            "$authenticated_remote" \
+            "$CANDIDATE_SHA:refs/heads/$IMPLEMENTATION_BRANCH"
+
+          remote_after="$(
+            gh api "${repository_api}/git/ref/heads/${IMPLEMENTATION_BRANCH}" --jq '.object.sha'
           )"
+          test "$remote_after" = "$CANDIDATE_SHA"
 
           patch_sha="$(cat "${RUNNER_TEMP}/task11-patch-sha256.txt")"
-          description="tree=${remote_tree} patch=${patch_sha}"
-          context="oss1a/task11-candidate/${candidate_sha}"
-          target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-
           gh api --method POST "${repository_api}/statuses/${GITHUB_SHA}" \
             -f state=success \
-            -f context="$context" \
-            -f description="$description" \
-            -f target_url="$target_url" >/dev/null
+            -f context="oss1a/task11/exact-four-file-fast-forward" \
+            -f description="candidate ${CANDIDATE_SHA:0:12}; patch ${patch_sha:0:16}; Node ${SEALED_NODE_VERSION}" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            >/dev/null
 
           {
-            echo
-            echo "### Task 11 verified candidate"
+            echo "### Task 11 exact four-file candidate"
             echo
             echo "- Base: \`$BASE_SHA\`"
-            echo "- Candidate: \`$candidate_sha\`"
-            echo "- Tree: \`$remote_tree\`"
+            echo "- Candidate: \`$CANDIDATE_SHA\`"
             echo "- Patch SHA-256: \`$patch_sha\`"
-            echo "- Implementation branch was not updated by this workflow."
+            echo "- Runtime: Node \`$SEALED_NODE_VERSION\` with proven FTS5"
+            echo "- Implementation update: ordinary non-force fast-forward"
           } >> "$GITHUB_STEP_SUMMARY"
