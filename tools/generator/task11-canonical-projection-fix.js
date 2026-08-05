@@ -61,6 +61,28 @@ replaceExact(
   'remove legacy applied checkpoint'
 );
 
+replaceExact(
+  `      } catch (receiptError) {
+        logger.error('domain-event', 'projection-failure-receipt-write-failed', {
+          eventId: authoritativeDomainEvent.event.eventId,
+          messageId: message.id,
+          code: receiptError.code || 'PROJECTION_FAILURE_RECEIPT_FAILED',
+          error: receiptError.message
+        });
+      }
+`,
+  `      } catch (receiptError) {
+        throw Object.assign(receiptError, {
+          code: receiptError.code || 'PROJECTION_FAILURE_RECEIPT_FAILED',
+          projectionCause: cause,
+          eventId: authoritativeDomainEvent.event.eventId,
+          messageId: message.id
+        });
+      }
+`,
+  'fail closed when canonical failure receipt cannot commit'
+);
+
 const catchStart = source.indexOf("    if (authoritativeDomainEvent?.event?.eventId && projectionClaim && !projectionClaim.applied) {");
 const pendingMarker = source.indexOf('      const pending = {', catchStart);
 if (catchStart < 0 || pendingMarker <= catchStart) {
