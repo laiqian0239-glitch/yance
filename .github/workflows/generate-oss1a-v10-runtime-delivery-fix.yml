@@ -12,6 +12,7 @@ env:
   IMPLEMENTATION_HEAD: 349291d34c6a5cbebec54147c3325e6861403433
   GOVERNANCE_HEAD: 82bc44d648c16eb7c454063a1bd36636bfa53d75
   CANDIDATE_BRANCH: candidate/oss1a-v10-runtime-delivery-green-v1
+  CLEAN_WORKTREE: /tmp/oss1a-v10-runtime-delivery-clean
 
 jobs:
   build-candidate:
@@ -47,8 +48,6 @@ jobs:
         run: |
           set -euo pipefail
           node /tmp/oss1a-v10-runtime-delivery-fix.js
-          git add .gitattributes
-          git checkout -- RUN_FIX6O_GATE0_WINDOWS_UAT.cmd
           node --check tools/runtime-delivery/source-uat-delivery.js
           node --check tests/runtime-delivery/fix6d-v5-source-checkpoint-identity.test.js
           node --check tests/runtime-delivery/source-uat-delivery.test.js
@@ -77,16 +76,49 @@ jobs:
           const unauthorized = changed.filter(file => !authorization.exactPaths.includes(file));
           if (unauthorized.length) throw new Error(`unauthorized candidate paths: ${unauthorized.join(', ')}`);
           NODE
+      - name: Commit exact candidate locally before verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add .gitattributes \
+            tests/runtime-delivery/fix6d-v5-source-checkpoint-identity.test.js \
+            tests/runtime-delivery/source-uat-delivery.test.js \
+            tools/runtime-delivery/source-uat-delivery.js
+          test "$(git diff --cached --name-only | sort | tr '\n' ' ')" = ".gitattributes tests/runtime-delivery/fix6d-v5-source-checkpoint-identity.test.js tests/runtime-delivery/source-uat-delivery.test.js tools/runtime-delivery/source-uat-delivery.js "
+          git commit -m "fix(oss1a): separate runtime delivery authorities"
+          git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Create fresh candidate verification worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "${CLEAN_WORKTREE}"
+          git worktree add --detach "${CLEAN_WORKTREE}" HEAD
+          test "$(git -C "${CLEAN_WORKTREE}" rev-parse HEAD)" = "$(git rev-parse HEAD)"
+          test -z "$(git -C "${CLEAN_WORKTREE}" status --porcelain=v1 --untracked-files=all)"
+          node - "${CLEAN_WORKTREE}/RUN_FIX6O_GATE0_WINDOWS_UAT.cmd" <<'NODE'
+          const fs = require('node:fs');
+          const file = process.argv[2];
+          const bytes = fs.readFileSync(file);
+          const text = bytes.toString('utf8');
+          if (!text.includes('\r\n') || /(^|[^\r])\n/u.test(text)) {
+            throw new Error('fresh candidate worktree did not materialize the Windows launcher as CRLF');
+          }
+          NODE
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
           package-manager-cache: false
-      - name: Install locked dependencies
+      - name: Install locked dependencies in fresh worktree
+        working-directory: /tmp/oss1a-v10-runtime-delivery-clean
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Prove all Source UAT delivery contracts GREEN on Ubuntu
+        working-directory: /tmp/oss1a-v10-runtime-delivery-clean
         run: npm run test:source-uat-delivery
       - name: Prove OSS-1A and related regressions remain GREEN
+        working-directory: /tmp/oss1a-v10-runtime-delivery-clean
         run: >-
           npm run test:oss1a &&
           node --test --test-concurrency=1
@@ -101,16 +133,11 @@ jobs:
           backend/tests/messageIdentityEvidenceOrdering.test.js
           backend/tests/platformProductionReadinessAuthority.test.js
           tests/uat/sourceUatP0Preflight.test.js
-      - name: Commit and push isolated candidate
+      - name: Push isolated candidate only after clean-worktree verification
         shell: bash
         run: |
           set -euo pipefail
-          git add .gitattributes \
-            tests/runtime-delivery/fix6d-v5-source-checkpoint-identity.test.js \
-            tests/runtime-delivery/source-uat-delivery.test.js \
-            tools/runtime-delivery/source-uat-delivery.js
-          test "$(git diff --cached --name-only | sort | tr '\n' ' ')" = ".gitattributes tests/runtime-delivery/fix6d-v5-source-checkpoint-identity.test.js tests/runtime-delivery/source-uat-delivery.test.js tools/runtime-delivery/source-uat-delivery.js "
-          git commit -m "fix(oss1a): separate runtime delivery authorities"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
           git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
           git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
           git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
