@@ -1,0 +1,68 @@
+name: Generate Task 11 v8 Canonical Projection GREEN Candidate
+
+on:
+  push:
+    branches:
+      - generator/task11-v8-canonical-root-fix
+
+permissions:
+  contents: write
+
+env:
+  RED_HEAD: f74305d27586006f6455a6a5569a0960dffb49d3
+  CANDIDATE_BRANCH: candidate/task11-v8-canonical-root-green-v1
+
+jobs:
+  generate-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact generator head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: true
+      - name: Preserve generator outside candidate tree
+        shell: bash
+        run: cp tools/generator/task11-v8-canonical-root-fix.js /tmp/task11-v8-canonical-root-fix.js
+      - name: Build exact two-file candidate from RED head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "${RED_HEAD}"
+          git switch -c "${CANDIDATE_BRANCH}"
+          node /tmp/task11-v8-canonical-root-fix.js
+          test "$(git diff --name-only | sort)" = $'backend/repositories/messageRepository.js\nbackend/repositories/platformCoreRepository.js'
+          node --check backend/repositories/messageRepository.js
+          node --check backend/repositories/platformCoreRepository.js
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Prove canonical failed projection and checkpoint hash GREEN
+        run: node --test --test-concurrency=1 backend/tests/messageIdentityEvidenceOrdering.test.js
+      - name: Prove canonical ledger and projection receipt contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/domainEventCompatibilityFacade.test.js
+          backend/tests/architectureClosureV2/wpA/projectionReceiptSchemaAuthority.test.js
+          backend/tests/f25WindowsUatRepairBatch24DomainProjectionRecovery.test.js
+          backend/tests/f25WindowsUatRepairBatch24StateTransactionConsistency.test.js
+      - name: Prove complete OSS-1A suite
+        run: npm run test:oss1a
+      - name: Commit exact candidate without history rewrite
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git diff --name-only | sort)" = $'backend/repositories/messageRepository.js\nbackend/repositories/platformCoreRepository.js'
+          git config user.name "Yance OSS-1A Task 11 v8 Root Fix"
+          git config user.email "oss1a-task11-v8-root-fix@users.noreply.github.com"
+          git add backend/repositories/messageRepository.js backend/repositories/platformCoreRepository.js
+          git commit -m "fix(oss1a): canonicalize failed projection checkpoints"
+          git push origin "${CANDIDATE_BRANCH}"
