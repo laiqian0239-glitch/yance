@@ -1,4 +1,4 @@
-name: Validate OSS-1A v12 Playwright Browser Runtime
+name: Generate and Validate OSS-1A v12 Playwright Browser Runtime
 
 on:
   push:
@@ -6,26 +6,250 @@ on:
       - generator/oss1a-v12-playwright-browser-runtime-fix
 
 permissions:
-  contents: read
+  contents: write
 
 env:
-  VALIDATED_CANDIDATE_HEAD: 5d567fcf7359b138ae81a586db4ee18c687169ff
+  PREVIOUS_CANDIDATE_HEAD: 85923eb77d28af9b88452b9b7d6c32c897fcc4e2
+  GOVERNANCE_HEAD: 054e499bdf9a24cd3e6a4c367d38349c23c6ce10
+  GOVERNANCE_MERGE_HEAD: 8ca59f623c2510d4c0f88144095e6dda876442e3
+  RED_CANDIDATE_HEAD: 5d567fcf7359b138ae81a586db4ee18c687169ff
+  CANDIDATE_BRANCH: candidate/oss1a-v11-uat-diagnostics-green-v2
+  CLEAN_WORKTREE: /tmp/oss1a-v12-playwright-browser-runtime-clean
 
 jobs:
-  browser-runtime-contract:
+  build-candidate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 90
+    outputs:
+      candidate_head: ${{ steps.publish.outputs.candidate_head }}
     steps:
-      - name: Checkout exact candidate head
+      - name: Checkout exact generator head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ env.VALIDATED_CANDIDATE_HEAD }}
-          fetch-depth: 1
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: true
+      - name: Preserve root-repair generator outside candidate tree
+        shell: bash
+        run: cp tools/generator/oss1a-v12-playwright-browser-runtime-fix.js /tmp/oss1a-v12-playwright-browser-runtime-fix.js
+      - name: Verify sealed v12 governance and exact RED candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/heads/${CANDIDATE_BRANCH}:refs/remotes/origin/${CANDIDATE_BRANCH}"
+          remote_candidate_head="$(git rev-parse "refs/remotes/origin/${CANDIDATE_BRANCH}")"
+          test "${remote_candidate_head}" = "${RED_CANDIDATE_HEAD}"
+          git cat-file -e "${PREVIOUS_CANDIDATE_HEAD}^{commit}"
+          git cat-file -e "${GOVERNANCE_HEAD}^{commit}"
+          git cat-file -e "${GOVERNANCE_MERGE_HEAD}^{commit}"
+          git cat-file -e "${RED_CANDIDATE_HEAD}^{commit}"
+          test "$(git rev-parse "${GOVERNANCE_MERGE_HEAD}^1")" = "${PREVIOUS_CANDIDATE_HEAD}"
+          test "$(git rev-parse "${GOVERNANCE_MERGE_HEAD}^2")" = "${GOVERNANCE_HEAD}"
+          test "$(git rev-parse "${RED_CANDIDATE_HEAD}^")" = "${GOVERNANCE_MERGE_HEAD}"
+          test "$(git diff --name-only "${GOVERNANCE_MERGE_HEAD}" "${RED_CANDIDATE_HEAD}" | tr '\n' ' ')" = "tests/uat/fix6dPlaywrightBrowserRuntime.test.js "
+          git merge-base --is-ancestor "${PREVIOUS_CANDIDATE_HEAD}" "${RED_CANDIDATE_HEAD}"
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" "${RED_CANDIDATE_HEAD}"
+          git checkout --detach "${RED_CANDIDATE_HEAD}"
+          git switch -c runtime/oss1a-v12-playwright-browser-runtime
+          git config user.name "Yance OSS-1A v12 Browser Runtime"
+          git config user.email "oss1a-v12-browser-runtime@users.noreply.github.com"
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const authorization = JSON.parse(fs.readFileSync('governance/open-source-acceleration/oss-1a-implementation-authorization-v12.json', 'utf8'));
+          const receipt = JSON.parse(fs.readFileSync('governance/open-source-acceleration/oss-1a-authorization-receipt-v12.json', 'utf8'));
+          const roots = [
+            'tests/uat/fix6dPlaywrightBrowserRuntime.test.js',
+            'tools/uat/fix6d_computed_style_probe.py',
+            'tools/uat/fix6d_global_typography_matrix_probe.py',
+            'tools/uat/playwright_browser_runtime.py'
+          ];
+          assert.equal(authorization.authorizationVersion, 12);
+          assert.equal(authorization.approvedParentHead, process.env.PREVIOUS_CANDIDATE_HEAD);
+          assert.equal(authorization.approvedChangedFileCount, authorization.exactPaths.length);
+          assert.deepEqual([...authorization.exactPaths].sort(), authorization.exactPaths);
+          assert.equal(crypto.createHash('sha256').update(`${authorization.exactPaths.join('\n')}\n`).digest('hex'), authorization.approvedChangedFileSetSha256);
+          for (const root of roots) assert.ok(authorization.exactPaths.includes(root), `missing authorized root: ${root}`);
+          assert.equal(receipt.authorizationVersion, 12);
+          assert.equal(receipt.approvedParentHead, process.env.PREVIOUS_CANDIDATE_HEAD);
+          assert.equal(receipt.authorizationCommit, 'bf6ed1b6cb18ff547ea465880e863a4a38154a12');
+          assert.equal(receipt.governance.temporaryBypassAllowed, false);
+          assert.equal(receipt.governance.warningOnlyClosureAllowed, false);
+          NODE
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Build centralized cross-platform browser runtime repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          node /tmp/oss1a-v12-playwright-browser-runtime-fix.js
+          python3 -m py_compile \
+            tools/uat/playwright_browser_runtime.py \
+            tools/uat/fix6d_computed_style_probe.py \
+            tools/uat/fix6d_global_typography_matrix_probe.py
+          node --test --test-concurrency=1 tests/uat/fix6dPlaywrightBrowserRuntime.test.js
+          git diff --exit-code -- tests/uat/fix6dPlaywrightBrowserRuntime.test.js
+          git diff --check
+      - name: Verify exact three-path implementation scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { execFileSync } = require('node:child_process');
+          const authorization = JSON.parse(fs.readFileSync('governance/open-source-acceleration/oss-1a-implementation-authorization-v12.json', 'utf8'));
+          const outputs = [
+            execFileSync('git', ['diff', '--name-only', 'HEAD', '--'], { encoding: 'utf8' }),
+            execFileSync('git', ['diff', '--cached', '--name-only', 'HEAD', '--'], { encoding: 'utf8' }),
+            execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { encoding: 'utf8' })
+          ];
+          const changed = [...new Set(outputs.join('\n').split(/\r?\n/u).map(value => value.trim()).filter(Boolean))].sort();
+          const expected = [
+            'tools/uat/fix6d_computed_style_probe.py',
+            'tools/uat/fix6d_global_typography_matrix_probe.py',
+            'tools/uat/playwright_browser_runtime.py'
+          ];
+          if (JSON.stringify(changed) !== JSON.stringify(expected)) throw new Error(`unexpected implementation paths: ${JSON.stringify(changed)}`);
+          const unauthorized = changed.filter(file => !authorization.exactPaths.includes(file));
+          if (unauthorized.length) throw new Error(`unauthorized implementation paths: ${unauthorized.join(', ')}`);
+          NODE
+      - name: Commit exact root repair locally before verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            tools/uat/fix6d_computed_style_probe.py \
+            tools/uat/fix6d_global_typography_matrix_probe.py \
+            tools/uat/playwright_browser_runtime.py
+          test "$(git diff --cached --name-only | sort | tr '\n' ' ')" = "tools/uat/fix6d_computed_style_probe.py tools/uat/fix6d_global_typography_matrix_probe.py tools/uat/playwright_browser_runtime.py "
+          git commit -m "fix(oss1a): centralize cross-platform Playwright browser launch"
+          git merge-base --is-ancestor "${PREVIOUS_CANDIDATE_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_MERGE_HEAD}" HEAD
+          git merge-base --is-ancestor "${RED_CANDIDATE_HEAD}" HEAD
+          test "$(git diff --name-only "${GOVERNANCE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = "tests/uat/fix6dPlaywrightBrowserRuntime.test.js tools/uat/fix6d_computed_style_probe.py tools/uat/fix6d_global_typography_matrix_probe.py tools/uat/playwright_browser_runtime.py "
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Create fresh candidate verification worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "${CLEAN_WORKTREE}"
+          git worktree add --detach "${CLEAN_WORKTREE}" HEAD
+          test "$(git -C "${CLEAN_WORKTREE}" rev-parse HEAD)" = "$(git rev-parse HEAD)"
+          test -z "$(git -C "${CLEAN_WORKTREE}" status --porcelain=v1 --untracked-files=all)"
+      - name: Install pinned Python Chromium runtime
+        working-directory: /tmp/oss1a-v12-playwright-browser-runtime-clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 --version
+          python3 -m pip install --disable-pip-version-check --requirement requirements/uat-playwright.txt
+          python3 -m playwright install --with-deps chromium
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install locked Node dependencies
+        working-directory: /tmp/oss1a-v12-playwright-browser-runtime-clean
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Prove all UAT diagnostics GREEN on Ubuntu
+        working-directory: /tmp/oss1a-v12-playwright-browser-runtime-clean
+        run: npm run test:uat-diagnostics
+      - name: Prove existing OSS-1A and delivery contracts remain GREEN
+        working-directory: /tmp/oss1a-v12-playwright-browser-runtime-clean
+        run: >-
+          npm run test:oss1a &&
+          npm run test:source-uat-delivery &&
+          node --test --test-concurrency=1
+          backend/tests/batch39WhatsappSessionFence.test.js
+          backend/tests/batch40ChannelAbortPropagation.test.js
+          backend/tests/whatsappReceiptRecoveryRegression.test.js
+          backend/tests/whatsappQrChallenge.test.js
+          backend/tests/whatsappCanonicalGuardRegression.test.js
+          backend/tests/whatsappMediaRecoveryClosure.test.js
+          backend/tests/whatsappOrphanAccountReconciliation.test.js
+          backend/tests/accountLifecycleRegression.test.js
+          backend/tests/messageIdentityEvidenceOrdering.test.js
+          backend/tests/platformProductionReadinessAuthority.test.js
+          tests/uat/sourceUatP0Preflight.test.js
+      - name: Verify exact third-party provenance
+        working-directory: /tmp/oss1a-v12-playwright-browser-runtime-clean
+        run: node tools/third-party/verify-provenance.js
+      - name: Fast-forward candidate and verify remote exact head
+        id: publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate_head="$(git rev-parse HEAD)"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          git diff --exit-code
+          git diff --cached --exit-code
+          git fetch --no-tags origin "refs/heads/${CANDIDATE_BRANCH}:refs/remotes/origin/${CANDIDATE_BRANCH}"
+          remote_candidate_head="$(git rev-parse "refs/remotes/origin/${CANDIDATE_BRANCH}")"
+          test "${remote_candidate_head}" = "${RED_CANDIDATE_HEAD}"
+          git push --verbose origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
+          git fetch --no-tags origin "refs/heads/${CANDIDATE_BRANCH}:refs/remotes/origin/${CANDIDATE_BRANCH}"
+          published_head="$(git rev-parse "refs/remotes/origin/${CANDIDATE_BRANCH}")"
+          test "${published_head}" = "${candidate_head}"
+          echo "candidate_head=${candidate_head}" >> "${GITHUB_OUTPUT}"
+
+  verify-windows:
+    needs: build-candidate
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact isolated candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ needs.build-candidate.outputs.candidate_head }}
+          fetch-depth: 0
           fetch-tags: false
           lfs: false
           persist-credentials: false
-      - name: Verify exact candidate identity
+      - name: Verify candidate identity, ancestry and four-path scope
         shell: bash
-        run: test "$(git rev-parse HEAD)" = "${VALIDATED_CANDIDATE_HEAD}"
-      - name: Prove cross-platform Playwright browser runtime contract
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ needs.build-candidate.outputs.candidate_head }}"
+          git merge-base --is-ancestor "${PREVIOUS_CANDIDATE_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_MERGE_HEAD}" HEAD
+          git merge-base --is-ancestor "${RED_CANDIDATE_HEAD}" HEAD
+          test "$(git diff --name-only "${GOVERNANCE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = "tests/uat/fix6dPlaywrightBrowserRuntime.test.js tools/uat/fix6d_computed_style_probe.py tools/uat/fix6d_global_typography_matrix_probe.py tools/uat/playwright_browser_runtime.py "
+      - name: Install pinned Python Chromium runtime
+        shell: pwsh
+        run: |
+          python --version
+          python -m pip install --disable-pip-version-check --requirement requirements/uat-playwright.txt
+          python -m playwright install chromium
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install locked Node dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Prove browser runtime contract GREEN on Windows
         run: node --test --test-concurrency=1 tests/uat/fix6dPlaywrightBrowserRuntime.test.js
+      - name: Prove all UAT diagnostics GREEN on Windows
+        run: npm run test:uat-diagnostics
+
+  candidate-gate:
+    if: ${{ always() }}
+    needs:
+      - build-candidate
+      - verify-windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce dual-platform browser runtime verification
+        shell: bash
+        env:
+          BUILD_RESULT: ${{ needs.build-candidate.result }}
+          WINDOWS_RESULT: ${{ needs.verify-windows.result }}
+        run: |
+          set -euo pipefail
+          test "${BUILD_RESULT}" = "success"
+          test "${WINDOWS_RESULT}" = "success"
