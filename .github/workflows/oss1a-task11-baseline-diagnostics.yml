@@ -1,0 +1,285 @@
+name: OSS-1A Task 11 Exact-Base Diagnostics
+
+on:
+  push:
+    branches:
+      - codex/oss1a-task11-generator-c0cf81de
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oss1a-task11-exact-base-diagnostics-c0cf81de
+  cancel-in-progress: false
+
+jobs:
+  diagnose-exact-base:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      BASE_SHA: c0cf81de7a0350f2faa1af8877ec4ea16d01e496
+      IMPLEMENTATION_BRANCH: oss/1a-baileys-lifecycle
+    steps:
+      - name: Checkout diagnostic orchestration
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up sealed Node runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+
+      - name: Verify exact implementation baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "${BASE_SHA}^{commit}"
+          git fetch --no-tags origin \
+            "refs/heads/${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
+          actual_sha="$(git rev-parse "refs/remotes/origin/${IMPLEMENTATION_BRANCH}")"
+          test "$actual_sha" = "$BASE_SHA"
+
+      - name: Create two independent exact-base worktrees
+        shell: bash
+        run: |
+          set -euo pipefail
+          baseline_a="${RUNNER_TEMP}/task11-baseline-a"
+          baseline_b="${RUNNER_TEMP}/task11-baseline-b"
+          rm -rf "$baseline_a" "$baseline_b"
+          git worktree add --detach "$baseline_a" "$BASE_SHA"
+          git worktree add --detach "$baseline_b" "$BASE_SHA"
+          test "$(git -C "$baseline_a" rev-parse HEAD)" = "$BASE_SHA"
+          test "$(git -C "$baseline_b" rev-parse HEAD)" = "$BASE_SHA"
+          {
+            echo "BASELINE_A=$baseline_a"
+            echo "BASELINE_B=$baseline_b"
+          } >> "$GITHUB_ENV"
+
+      - name: Install exact dependencies in baseline A
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$BASELINE_A"
+          npm ci
+
+      - name: Install exact dependencies in baseline B
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$BASELINE_B"
+          npm ci
+
+      - name: Probe baseline A test-by-test and combined
+        id: baseline_a_probe
+        shell: bash
+        run: |
+          set -uo pipefail
+          worktree="$BASELINE_A"
+          label="baseline A"
+          log_dir="${RUNNER_TEMP}/task11-baseline-a-logs"
+          mkdir -p "$log_dir"
+          cd "$worktree"
+
+          mapfile -t test_files < <(
+            {
+              find backend/tests -maxdepth 1 -type f -name 'oss1a*.test.js' -print
+              find tests/oss1a -maxdepth 1 -type f -name '*.test.js' -print
+            } | LC_ALL=C sort
+          )
+
+          status=0
+          phase="none"
+          failed_test=""
+          if [ "${#test_files[@]}" -eq 0 ]; then
+            status=90
+            phase="discovery"
+          fi
+
+          if [ "$status" -eq 0 ]; then
+            for test_file in "${test_files[@]}"; do
+              safe_name="$(printf '%s' "$test_file" | tr '/ ' '__')"
+              log_file="$log_dir/${safe_name}.log"
+              echo "::group::${label}: ${test_file}"
+              node --test --test-concurrency=1 "$test_file" 2>&1 | tee "$log_file"
+              rc=${PIPESTATUS[0]}
+              echo "::endgroup::"
+              if [ "$rc" -ne 0 ]; then
+                status="$rc"
+                phase="individual"
+                failed_test="$test_file"
+                {
+                  echo "### Task 11 exact-base failure: ${label}"
+                  echo
+                  echo "- Base: \`$BASE_SHA\`"
+                  echo "- Phase: individual test file"
+                  echo "- Test: \`$test_file\`"
+                  echo "- Exit: \`$rc\`"
+                  echo
+                  echo '```text'
+                  tail -n 200 "$log_file"
+                  echo '```'
+                } >> "$GITHUB_STEP_SUMMARY"
+                break
+              fi
+            done
+          fi
+
+          if [ "$status" -eq 0 ]; then
+            combined_log="$log_dir/combined-npm-test-oss1a.log"
+            echo "::group::${label}: npm run test:oss1a"
+            npm run test:oss1a 2>&1 | tee "$combined_log"
+            rc=${PIPESTATUS[0]}
+            echo "::endgroup::"
+            if [ "$rc" -ne 0 ]; then
+              status="$rc"
+              phase="combined"
+              failed_test="npm run test:oss1a"
+              {
+                echo "### Task 11 exact-base failure: ${label}"
+                echo
+                echo "- Base: \`$BASE_SHA\`"
+                echo "- Phase: exact combined regression"
+                echo "- Command: \`npm run test:oss1a\`"
+                echo "- Exit: \`$rc\`"
+                echo
+                echo '```text'
+                tail -n 200 "$combined_log"
+                echo '```'
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+
+          if [ "$phase" = "discovery" ]; then
+            {
+              echo "### Task 11 exact-base failure: ${label}"
+              echo
+              echo "No OSS-1A test files were discovered at \`$BASE_SHA\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          {
+            echo "status=$status"
+            echo "phase=$phase"
+            echo "failed_test=$failed_test"
+          } >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Probe baseline B test-by-test and combined
+        id: baseline_b_probe
+        shell: bash
+        run: |
+          set -uo pipefail
+          worktree="$BASELINE_B"
+          label="baseline B"
+          log_dir="${RUNNER_TEMP}/task11-baseline-b-logs"
+          mkdir -p "$log_dir"
+          cd "$worktree"
+
+          mapfile -t test_files < <(
+            {
+              find backend/tests -maxdepth 1 -type f -name 'oss1a*.test.js' -print
+              find tests/oss1a -maxdepth 1 -type f -name '*.test.js' -print
+            } | LC_ALL=C sort
+          )
+
+          status=0
+          phase="none"
+          failed_test=""
+          if [ "${#test_files[@]}" -eq 0 ]; then
+            status=90
+            phase="discovery"
+          fi
+
+          if [ "$status" -eq 0 ]; then
+            for test_file in "${test_files[@]}"; do
+              safe_name="$(printf '%s' "$test_file" | tr '/ ' '__')"
+              log_file="$log_dir/${safe_name}.log"
+              echo "::group::${label}: ${test_file}"
+              node --test --test-concurrency=1 "$test_file" 2>&1 | tee "$log_file"
+              rc=${PIPESTATUS[0]}
+              echo "::endgroup::"
+              if [ "$rc" -ne 0 ]; then
+                status="$rc"
+                phase="individual"
+                failed_test="$test_file"
+                {
+                  echo "### Task 11 exact-base failure: ${label}"
+                  echo
+                  echo "- Base: \`$BASE_SHA\`"
+                  echo "- Phase: individual test file"
+                  echo "- Test: \`$test_file\`"
+                  echo "- Exit: \`$rc\`"
+                  echo
+                  echo '```text'
+                  tail -n 200 "$log_file"
+                  echo '```'
+                } >> "$GITHUB_STEP_SUMMARY"
+                break
+              fi
+            done
+          fi
+
+          if [ "$status" -eq 0 ]; then
+            combined_log="$log_dir/combined-npm-test-oss1a.log"
+            echo "::group::${label}: npm run test:oss1a"
+            npm run test:oss1a 2>&1 | tee "$combined_log"
+            rc=${PIPESTATUS[0]}
+            echo "::endgroup::"
+            if [ "$rc" -ne 0 ]; then
+              status="$rc"
+              phase="combined"
+              failed_test="npm run test:oss1a"
+              {
+                echo "### Task 11 exact-base failure: ${label}"
+                echo
+                echo "- Base: \`$BASE_SHA\`"
+                echo "- Phase: exact combined regression"
+                echo "- Command: \`npm run test:oss1a\`"
+                echo "- Exit: \`$rc\`"
+                echo
+                echo '```text'
+                tail -n 200 "$combined_log"
+                echo '```'
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+
+          if [ "$phase" = "discovery" ]; then
+            {
+              echo "### Task 11 exact-base failure: ${label}"
+              echo
+              echo "No OSS-1A test files were discovered at \`$BASE_SHA\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          {
+            echo "status=$status"
+            echo "phase=$phase"
+            echo "failed_test=$failed_test"
+          } >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Enforce exact-base diagnostic gate
+        shell: bash
+        env:
+          BASELINE_A_STATUS: ${{ steps.baseline_a_probe.outputs.status }}
+          BASELINE_A_PHASE: ${{ steps.baseline_a_probe.outputs.phase }}
+          BASELINE_A_TEST: ${{ steps.baseline_a_probe.outputs.failed_test }}
+          BASELINE_B_STATUS: ${{ steps.baseline_b_probe.outputs.status }}
+          BASELINE_B_PHASE: ${{ steps.baseline_b_probe.outputs.phase }}
+          BASELINE_B_TEST: ${{ steps.baseline_b_probe.outputs.failed_test }}
+        run: |
+          set -euo pipefail
+          {
+            echo "### Task 11 exact-base diagnostic matrix"
+            echo
+            echo "| Worktree | Status | Phase | First failure |"
+            echo "|---|---:|---|---|"
+            echo "| A | \`$BASELINE_A_STATUS\` | \`$BASELINE_A_PHASE\` | \`$BASELINE_A_TEST\` |"
+            echo "| B | \`$BASELINE_B_STATUS\` | \`$BASELINE_B_PHASE\` | \`$BASELINE_B_TEST\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          test "$BASELINE_A_STATUS" = "0"
+          test "$BASELINE_B_STATUS" = "0"
