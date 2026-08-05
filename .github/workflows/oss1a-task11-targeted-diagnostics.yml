@@ -39,7 +39,7 @@ jobs:
           node-version: ${{ env.SEALED_NODE_VERSION }}
           package-manager-cache: false
 
-      - name: Generate exact candidate quietly
+      - name: Generate and syntax-check exact candidate
         shell: bash
         run: |
           set -euo pipefail
@@ -48,6 +48,7 @@ jobs:
           git worktree add --detach "$worktree" "$BASE_SHA" >/dev/null
           (cd "$worktree" && npm ci --no-audit --no-fund >/tmp/task11-npm-${{ matrix.name }}.log 2>&1)
           TASK11_TARGET_ROOT="$worktree" node tools/oss1a/generate-task11-auth-lease-candidate.js >/dev/null
+          node --check "$worktree/backend/services/whatsappAdapter.js"
           echo "WORKTREE=$worktree" >> "$GITHUB_ENV"
 
       - name: Run exact ${{ matrix.name }} contract
