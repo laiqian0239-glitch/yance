@@ -65,6 +65,10 @@ jobs:
     needs: wp0-route
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      TRUSTED_POLICY_SHA: ${{ needs.wp0-route.outputs.base }}
+      TRUSTED_POLICY_ROOT: ${{ runner.temp }}/yance-wp0-trusted-policy
+      YANCE_EVALUATED_REPOSITORY_ROOT: ${{ github.workspace }}
     steps:
       - name: Checkout reviewed product source head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -73,17 +77,25 @@ jobs:
           fetch-depth: 0
           fetch-tags: false
           lfs: false
-      - name: Establish trusted branch and archive anchor refs
+          persist-credentials: false
+      - name: Establish exact candidate and base-owned policy roots
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --no-tags --force origin "main:refs/remotes/origin/main"
-          git fetch --no-tags --force origin "${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
+          git cat-file -e "${TRUSTED_POLICY_SHA}^{commit}"
+          test "$(git rev-parse "${TRUSTED_POLICY_SHA}^{commit}")" = "${TRUSTED_POLICY_SHA}"
+          git merge-base --is-ancestor "${TRUSTED_POLICY_SHA}" "${REVIEWED_HEAD_SHA}"
           git cat-file -e "${BASELINE_ANCHOR_COMMIT}^{commit}"
           git merge-base --is-ancestor "${BASELINE_ANCHOR_COMMIT}" "${REVIEWED_HEAD_SHA}"
           test "$(git rev-parse "${BASELINE_ANCHOR_COMMIT}:${BASELINE_ANCHOR_PATH}")" = "${BASELINE_ANCHOR_BLOB}"
           git switch --force-create "${IMPLEMENTATION_BRANCH}" "${REVIEWED_HEAD_SHA}"
+          test "$(git rev-parse HEAD)" = "${REVIEWED_HEAD_SHA}"
           test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})"
+          rm -rf "${TRUSTED_POLICY_ROOT}"
+          git worktree prune
+          git worktree add --detach "${TRUSTED_POLICY_ROOT}" "${TRUSTED_POLICY_SHA}"
+          test "$(git -C "${TRUSTED_POLICY_ROOT}" rev-parse HEAD)" = "${TRUSTED_POLICY_SHA}"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
@@ -112,8 +124,10 @@ jobs:
           tests/runtime-delivery/fix6f-source-uat-isolation.test.js
       - name: Validate repository protocol descriptor
         run: node tools/protocol/validate-v3-protocols.js
-      - name: Run executable local-equivalent WP0 gate
-        run: npm run verify:wp0:gate -- --branch "${IMPLEMENTATION_BRANCH}"
+      - name: Run base-owned executable WP0 gate
+        run: >-
+          node "${TRUSTED_POLICY_ROOT}/tools/wp0/verify-gate.js"
+          --branch "${IMPLEMENTATION_BRANCH}"
 
   wp0-product-documentation:
     name: wp0-product-documentation
