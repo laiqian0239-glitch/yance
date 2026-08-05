@@ -26,7 +26,7 @@ jobs:
       - name: Checkout exact implementation milestone head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 4a42395b56d730c82cd82774398d46ea0d5f3617
+          ref: d8bd8fbdf6e00e407566c56982d9898586d183fc
           path: candidate
           fetch-depth: 0
           fetch-tags: false
@@ -48,10 +48,12 @@ jobs:
         run: |
           python ../tooling/tools/oss1a/generate_task7_candidate.py
           python ../tooling/tools/oss1a/patch_task7_account_lifecycle_harness.py
+          python ../tooling/tools/oss1a/patch_task7_async_store_capability.py
 
       - name: Verify generated candidate
         working-directory: candidate
         run: |
+          node --check backend/repositories/storeProvider.js
           node --check backend/services/whatsappDisconnectPolicy.js
           node --check backend/services/whatsappAdapter.js
           node --check backend/services/platformDriverRegistry.js
@@ -69,6 +71,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git switch -c work/oss1a-task7-candidate
           git add \
+            backend/repositories/storeProvider.js \
             backend/services/whatsappDisconnectPolicy.js \
             backend/services/whatsappAdapter.js \
             backend/services/platformDriverRegistry.js \
@@ -77,6 +80,6 @@ jobs:
             backend/tests/oss1aWhatsappReconnectOwnership.test.js \
             backend/tests/accountLifecycleRegression.test.js
           git diff --cached --check
-          test "$(git diff --cached --name-only | wc -l | tr -d ' ')" = "7"
-          git commit -m 'fix(oss1a): classify every Baileys disconnect outcome'
+          test "$(git diff --cached --name-only | wc -l | tr -d ' ')" = "8"
+          git commit -m 'fix(oss1a): classify disconnects and preserve async store capabilities'
           git push origin HEAD:refs/heads/work/oss1a-task7-candidate
