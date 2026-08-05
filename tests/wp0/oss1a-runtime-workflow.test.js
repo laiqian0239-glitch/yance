@@ -12,13 +12,15 @@ const V5_GOVERNANCE_BRANCH = 'governance/oss-1a-event-batch-authorization';
 const V6_GOVERNANCE_BRANCH = 'governance/oss-1a-lifecycle-milestone-authorization';
 const V7_GOVERNANCE_BRANCH = 'governance/oss-1a-async-store-capability-authorization';
 const V8_GOVERNANCE_BRANCH = 'governance/oss-1a-canonical-projection-checkpoint-authorization';
+const V9_GOVERNANCE_BRANCH = 'governance/oss-1a-test-fixture-authorization';
 const GOVERNANCE_BRANCHES = Object.freeze([
   V3_GOVERNANCE_BRANCH,
   V4_GOVERNANCE_BRANCH,
   V5_GOVERNANCE_BRANCH,
   V6_GOVERNANCE_BRANCH,
   V7_GOVERNANCE_BRANCH,
-  V8_GOVERNANCE_BRANCH
+  V8_GOVERNANCE_BRANCH,
+  V9_GOVERNANCE_BRANCH
 ]);
 
 function workflowText() {

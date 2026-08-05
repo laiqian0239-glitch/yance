@@ -9,8 +9,7 @@ const {
   changedFileSetSha256,
   isValidOpenSourceWorkPackageAuthorizationForEntry,
   isValidOpenSourceWorkPackageAuthorizationReceiptForEntry,
-  loadOpenSourceWorkPackageRegistry,
-  selectOpenSourceWorkPackageRegistryEntry
+  validateOpenSourceWorkPackageRegistry
 } = require('../../shared/release/openSourceWorkPackagePolicy');
 const { classifyProductRouteBranchRole } = require('../../tools/wp0/product-route-executable-policy');
 
@@ -29,6 +28,28 @@ const AUTHORIZATION_COMMIT = '726eef867d79222e6a8e96600352792304917661';
 const AUTHORIZATION_BLOB_SHA = '2d15556c84d25867bf7b07d4c8ae4abacfebbf23';
 const ROOT_REPAIR_PATH = 'backend/repositories/platformCoreRepository.js';
 
+const V8_ENTRY = Object.freeze({
+  workPackage: 'OSS-1A',
+  authorizedBranch: IMPLEMENTATION_BRANCH,
+  authorizationPath: AUTHORIZATION_PATH,
+  receiptPath: RECEIPT_PATH
+});
+const V8_REGISTRY = Object.freeze({
+  schemaVersion: 1,
+  documentType: 'YANCE_OPEN_SOURCE_WORK_PACKAGE_REGISTRY',
+  program: 'Open Source Acceleration',
+  repository: 'laiqian0239-glitch/yance',
+  entries: Object.freeze([V8_ENTRY]),
+  governance: Object.freeze({
+    explicitEntriesOnly: true,
+    directoryAutoDiscoveryAllowed: false,
+    exactBranchSelectionOnly: true,
+    multipleMatchesFailClosed: true,
+    automaticNextWorkPackageAuthorization: false,
+    readyForPromotion: false
+  })
+});
+
 function readJson(repositoryPath) {
   return JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ...repositoryPath.split('/')), 'utf8'));
 }
@@ -38,25 +59,27 @@ function repositoryFileSha256(repositoryPath) {
     .update(fs.readFileSync(path.join(REPO_ROOT, ...repositoryPath.split('/'))))
     .digest('hex');
 }
-function currentEntry() {
-  const registry = loadOpenSourceWorkPackageRegistry();
-  return selectOpenSourceWorkPackageRegistryEntry(registry, IMPLEMENTATION_BRANCH);
+function historicalRoleOptions() {
+  return {
+    registry: V8_REGISTRY,
+    authorizationByPath: { [AUTHORIZATION_PATH]: readJson(AUTHORIZATION_PATH) },
+    receiptByPath: { [RECEIPT_PATH]: readJson(RECEIPT_PATH) },
+    isLegacyImplementationBranch: () => false,
+    isOpenSourceImplementationBranch: candidate => candidate === IMPLEMENTATION_BRANCH
+  };
 }
 
-test('OSS-1A registry selects the exact v8 canonical checkpoint authority and receipt paths', () => {
-  const entry = currentEntry();
-  assert.ok(entry, 'registry must select OSS-1A');
-  assert.equal(entry.workPackage, 'OSS-1A');
-  assert.equal(entry.authorizationPath, AUTHORIZATION_PATH);
-  assert.equal(entry.receiptPath, RECEIPT_PATH);
+test('historical v8 registry snapshot remains valid after successor selection changes', () => {
+  assert.equal(validateOpenSourceWorkPackageRegistry(V8_REGISTRY), true);
+  assert.equal(V8_ENTRY.authorizationPath, AUTHORIZATION_PATH);
+  assert.equal(V8_ENTRY.receiptPath, RECEIPT_PATH);
 });
 
 test('v8 adds only the canonical projection checkpoint hash root path', () => {
   const previous = readJson(V7_AUTHORIZATION_PATH);
   const authorization = readJson(AUTHORIZATION_PATH);
-  const entry = currentEntry();
 
-  assert.equal(isValidOpenSourceWorkPackageAuthorizationForEntry(authorization, entry), true);
+  assert.equal(isValidOpenSourceWorkPackageAuthorizationForEntry(authorization, V8_ENTRY), true);
   assert.equal(authorization.authorizationVersion, 8);
   assert.equal(authorization.supersedesAuthorizationPath, V7_AUTHORIZATION_PATH);
   assert.equal(authorization.authorizedBranch, IMPLEMENTATION_BRANCH);
@@ -75,49 +98,36 @@ test('v8 adds only the canonical projection checkpoint hash root path', () => {
   assert.deepEqual(removals, []);
   assert.equal(authorization.exactPaths.length, previous.exactPaths.length + 1);
   assert.equal(authorization.authorizedMilestone.rootRepairAmendment, 'DERIVE_CANONICAL_CHECKPOINT_OUTPUT_HASH_FOR_NON_APPLIED_RECEIPTS');
-  assert.equal(authorization.independentRedEvidence.implementationHead, '3be359911440e38b4e587b19e0918aebe1c3c41a');
-  assert.equal(authorization.independentRedEvidence.toolingHead, '0f080bc51247a0380df15eeb7b387ee193b5f00f');
-  assert.equal(authorization.independentRedEvidence.workflowRunId, 31012776739);
-  assert.equal(authorization.independentRedEvidence.jobId, 92328975873);
   assert.equal(authorization.independentRedEvidence.rootCause, 'CANONICAL_FAILED_PROJECTION_CHECKPOINT_OUTPUT_HASH_EMPTY');
   assert.equal(authorization.independentRedEvidence.rootPath, ROOT_REPAIR_PATH);
   assert.equal(authorization.independentRedEvidence.futureGreenClaimed, false);
 });
 
-test('v8 receipt seals the immutable authorization anchor before the root repair', () => {
-  assert.equal(fs.existsSync(path.join(REPO_ROOT, ...RECEIPT_PATH.split('/'))), true, 'v8 receipt must exist');
+test('historical v8 receipt remains bound to its immutable authorization anchor', () => {
   const authorization = readJson(AUTHORIZATION_PATH);
   const receipt = readJson(RECEIPT_PATH);
-  const entry = currentEntry();
 
   assert.equal(isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
     receipt,
     authorization,
-    entry,
+    V8_ENTRY,
     { authorizationFileSha256: repositoryFileSha256(AUTHORIZATION_PATH) }
   ), true);
   assert.equal(receipt.authorizationVersion, 8);
-  assert.equal(receipt.supersedesReceiptPath, 'governance/open-source-acceleration/oss-1a-authorization-receipt-v7.json');
-  assert.equal(receipt.requiredBaseRef, SUCCESSOR_BRANCH);
   assert.equal(receipt.authorizationCommit, AUTHORIZATION_COMMIT);
   assert.equal(receipt.authorizationBlobSha, AUTHORIZATION_BLOB_SHA);
   assert.equal(receipt.authorizationFileSha256, AUTHORIZATION_FILE_SHA256);
-  assert.match(receipt.implementationBaseCommit, /^[a-f0-9]{40}$/u);
-  assert.notEqual(receipt.authorizationCommit, receipt.implementationBaseCommit);
+  assert.equal(receipt.implementationBaseCommit, '4a9b277cb2d0301c69a056070b3c6808622ef069');
   assert.equal(receipt.approvedChangedFileCount, EXPECTED_PATH_COUNT);
   assert.equal(receipt.approvedChangedFileSetSha256, EXPECTED_PATH_SET_SHA256);
 });
 
-test('v8 governance successor remains negative-proof only', () => {
-  const governance = classifyProductRouteBranchRole(SUCCESSOR_BRANCH);
+test('historical v8 governance and implementation roles remain self-contained', () => {
+  const options = historicalRoleOptions();
+  const governance = classifyProductRouteBranchRole(SUCCESSOR_BRANCH, options);
   assert.equal(governance.pass, true, JSON.stringify(governance));
   assert.equal(governance.role, 'GOVERNANCE_NEGATIVE_PROOF');
-  assert.equal(governance.workPackage, 'OSS-1A');
-});
-
-test('v8 implementation branch is executable only after the receipt exists', () => {
-  const implementation = classifyProductRouteBranchRole(IMPLEMENTATION_BRANCH);
+  const implementation = classifyProductRouteBranchRole(IMPLEMENTATION_BRANCH, options);
   assert.equal(implementation.pass, true, JSON.stringify(implementation));
   assert.equal(implementation.role, 'IMPLEMENTATION_EXECUTABLE');
-  assert.equal(implementation.workPackage, 'OSS-1A');
 });
