@@ -1171,7 +1171,12 @@ class WhatsAppAdapter {
     };
     row.sessionFence = createSessionGenerationFence(
       () => this.accounts.get(accountId) === row && this.generations.get(accountId) === row.generation,
-      { prefix: `whatsapp:${databaseAccountId}` }
+      {
+        prefix: `whatsapp:${databaseAccountId}`,
+        generation: row.generation,
+        epoch: Number.isInteger(options.authEpoch) ? options.authEpoch : 0,
+        socketToken: typeof options.socketToken === 'string' ? options.socketToken : ''
+      }
     );
     this.accounts.set(accountId, row);
     const onOperationAbort = () => {
@@ -1235,9 +1240,13 @@ class WhatsAppAdapter {
     row.startupTimer.unref?.();
 
     onSocket('creds.update', async update => {
-      await saveCreds(update);
-      socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'creds.update' });
+      const writeResult = await socketGuard.runWrite(
+        { accountId: databaseAccountId, eventName: 'creds.update' },
+        () => saveCreds(update)
+      );
+      if (!writeResult.ok) return writeResult;
       this.invalidateCredentialState(reference);
+      return writeResult;
     });
     onSocket('connection.update', async update => {
       if (options.signal?.aborted || this.accounts.get(accountId) !== row || this.generations.get(accountId) !== row.generation) return;
