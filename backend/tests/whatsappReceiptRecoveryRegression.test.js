@@ -2,6 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { shouldSkipDuplicateReceipt } = require('../services/whatsappAdapter');
 
 const baseMessage = Object.freeze({
@@ -43,4 +45,24 @@ test('WhatsApp reaction and revoke receipts remain replayable because their hand
     }), false);
     assert.equal(checked, false);
   }
+});
+
+test('WhatsApp adapter registers one Baileys batch processor and no independent event listeners', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../services/whatsappAdapter.js'), 'utf8');
+  assert.match(source, /createWhatsAppBaileysEventProcessor/u);
+  assert.match(source, /socket\.ev\.process\(/u);
+  assert.equal(source.includes('socketGuard.bind(socket.ev'), false);
+  assert.equal(source.includes('socket.ev.on('), false);
+  assert.match(source, /const\s+eventHandlers\s*=\s*new Map\(\)/u);
+});
+
+test('messages.upsert remains one handler payload so existing per-message receipt logic stays authoritative', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../services/whatsappAdapter.js'), 'utf8');
+  const start = source.indexOf("onSocket('messages.upsert'");
+  const end = source.indexOf("onSocket('lid-mapping.update'", start);
+  assert.ok(start >= 0 && end > start, 'messages.upsert handler block is missing');
+  const block = source.slice(start, end);
+  assert.match(block, /for\s*\(const\s+message\s+of\s+upsert\.messages\s*\|\|\s*\[\]\)/u);
+  assert.match(block, /claimInboundReceipt/u);
+  assert.match(block, /completeInboundReceipt/u);
 });
