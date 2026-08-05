@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OSS_REVIEWED_CANDIDATE",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-1A",
+  "task": 11,
+  "pullRequest": 24,
+  "continuationPullRequest": 51,
+  "sourceBranch": "oss/1a-baileys-lifecycle",
+  "reviewedCandidateBranch": "reviewed-candidate/oss1a-task11",
+  "governanceBase": "87a855ce63ac1c00c1414fc234234b070a66376c",
+  "reviewedHead": "3e3a52ed9dd255ca5ba027a3b12704b5e281448d",
+  "reviewedChangedFileCount": 98,
+  "review": {
+    "id": 4868185392,
+    "protocolVersion": 1,
+    "reviewerMode": "CHATGPT_GITHUB_CONNECTED_SESSION",
+    "decision": "ALLOW_MERGE",
+    "p0Count": 0,
+    "p1Count": 0,
+    "temporaryBypassDetected": false,
+    "missingEvidence": [],
+    "blockers": []
+  },
+  "requiredEvidence": {
+    "task11DualPlatformRunId": 31037900425,
+    "wp0RoutingRepairRunId": 31039773665,
+    "implementationExactHeadWp0RunId": 31039985555,
+    "implementationExactHeadOss1aRunId": 31039985632,
+    "implementationExactHeadProvenanceRunId": 31039985881
+  },
+  "governance": {
+    "wildcardAuthorizationAllowed": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "sourceMergeOnly": true,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "automaticNextWorkPackageAuthorization": false
+  },
+  "readyForPromotion": false
+}
