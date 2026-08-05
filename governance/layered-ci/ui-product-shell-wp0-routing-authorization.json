@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_UI_PRODUCT_SHELL_WP0_ROUTING_AUTHORIZATION",
+  "status": "EXACT_ROUTING_REPAIR_AUTHORIZED",
+  "repository": "laiqian0239-glitch/yance",
+  "createdAt": "2026-08-06",
+  "base": {
+    "branch": "main",
+    "commit": "e53bf933a8f4e3273e515587d917433df24d6feb",
+    "tree": "03e15ef74cc65163fbc196565139d968d9ddcaeb"
+  },
+  "triggeringUiAuthorization": {
+    "pullRequest": 50,
+    "branch": "governance/ui-product-shell-wp1-authorization",
+    "commit": "a11a0bbf62df35a1929259ce22b07a3538535820",
+    "tree": "d8023e34236140e48d4367e94254ce19bfad2aa1",
+    "changedFileCount": 3,
+    "changedFileSetSha256": "66e258e8327549025d2799e73e4ad31507008c41c3b51317405e712b0d10af27"
+  },
+  "independentRed": {
+    "workflow": "Stage 6.4.5.9 WP0 Architecture Gates",
+    "workflowRunId": 31041289640,
+    "job": "wp0-product",
+    "jobId": 92426038438,
+    "reviewedHead": "a11a0bbf62df35a1929259ce22b07a3538535820",
+    "routeSelected": "PRODUCT_WP0",
+    "requiredTestsPassed": 54,
+    "requiredTestsFailed": 6,
+    "rootReason": "The routing policy classifies the general docs prefix as product and does not contain exact governance precedence for the three sealed UI authorization documents. PRODUCT_WP0 then correctly applies implementation-branch and evidence-generation contracts to a documentation-only governance branch.",
+    "notAFlake": true,
+    "blindRerunForbidden": true
+  },
+  "authorizationBranch": {
+    "name": "governance/ui-product-shell-wp0-routing-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/ui-product-shell-wp0-routing-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "5433362ba0b929cf057912a1088b2e2d5147a12a0ca33e5dd4d3b2faeb49b03a"
+  },
+  "implementation": {
+    "branch": "fix/ui-product-shell-wp0-exact-routing",
+    "requiredParent": "the exact authorization Head produced by the authorization branch",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/wp0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "d0bf4c9815a9d6a8ba8045d37741c4799a69a6b065e5332506f42f1703e9f887"
+  },
+  "requiredRedContracts": [
+    {
+      "id": "UI-WP0-ROUTE-RED-001",
+      "requirement": "The exact three paths docs/ui-migration/UI_ASSET_BASELINE.json, docs/ui-migration/UI_WP1_AUTHORIZATION.md and docs/ui-migration/UPSTREAM_PINS.yaml select GOVERNANCE_WP0 when changed alone."
+    },
+    {
+      "id": "UI-WP0-ROUTE-RED-002",
+      "requirement": "Each of the three exact paths selects GOVERNANCE_WP0 individually, proving the route does not depend on an all-files coincidence."
+    },
+    {
+      "id": "UI-WP0-ROUTE-RED-003",
+      "requirement": "Any one of the three exact paths mixed with a product path selects PRODUCT_WP0."
+    },
+    {
+      "id": "UI-WP0-ROUTE-RED-004",
+      "requirement": "Other docs/ui-migration paths remain PRODUCT_WP0 through the general docs rule; no prefix or wildcard exception is introduced."
+    },
+    {
+      "id": "UI-WP0-ROUTE-RED-005",
+      "requirement": "General architecture documentation remains PRODUCT_WP0, and unknown or invalid paths remain fail closed."
+    }
+  ],
+  "rootFix": {
+    "method": "Add the three exact UI authorization document paths to governanceExactPaths and add direct behavioral tests before changing policy.",
+    "workflowModificationRequired": false,
+    "implementationBranchPolicyModificationRequired": false,
+    "wildcardExpansionAllowed": false,
+    "docsPrefixWeakeningAllowed": false,
+    "productRouteWeakeningAllowed": false,
+    "mixedChangeEscalationMustRemain": true,
+    "unknownPathFailClosedMustRemain": true
+  },
+  "verification": {
+    "redMustFailBecause": "The exact paths are absent from governanceExactPaths.",
+    "redInfrastructureErrorsAllowed": 0,
+    "greenRequiredCommands": [
+      "node --test --test-concurrency=1 tests/layered-ci/wp0-routing.test.js",
+      "node --test --test-concurrency=1 tests/layered-ci/*.test.js",
+      "node --test --test-concurrency=1 tests/independent-review/chatgpt-review-contract.test.js",
+      "npm run test:security-scan",
+      "node tools/protocol/validate-v3-protocols.js"
+    ],
+    "pr50MustBeReevaluatedAfterMainContainsFix": true
+  },
+  "governance": {
+    "prMustRemainDraft": true,
+    "mainMergeAuthorized": false,
+    "uiRedBranchCreationAuthorized": false,
+    "productShellImplementationAuthorized": false,
+    "legacyWriterCutoverAuthorized": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "automaticNextWorkPackageAuthorization": false
+  }
+}
