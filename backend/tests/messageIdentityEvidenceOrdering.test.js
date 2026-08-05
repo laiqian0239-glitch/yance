@@ -7,7 +7,21 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-identity-evidence-order-'));
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
 process.env.YANCE_DATA_DIR = dataRoot;
+process.env.YANCE_PRIMARY_SQLITE_PATH = dbPath;
+
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const { createSqliteConnectionBroker } = require('../lib/sqliteConnectionBroker');
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `message-identity-evidence-order:${process.pid}`
+});
+const sqliteBroker = createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
+const authorityStore = sqliteBroker.open();
 
 const messageStore = require('../services/messageStore');
 const { getStore, closeStore } = require('../repositories/storeProvider');
@@ -17,17 +31,18 @@ store.upsertAccount({ id: 'page-identity-order', accountId: 'page-identity-order
 
 test.after(() => {
   try { closeStore(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
   fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 });
 
 test('failed message projection cannot create identity evidence for a nonexistent message', async t => {
-  const originalTouch = store.touchConversationFromMessage;
-  store.touchConversationFromMessage = () => {
+  const originalTouch = authorityStore.touchConversationFromMessage;
+  authorityStore.touchConversationFromMessage = () => {
     const error = new Error('forced message persistence failure');
     error.code = 'FORCED_MESSAGE_PERSISTENCE_FAILURE';
     throw error;
   };
-  t.after(() => { store.touchConversationFromMessage = originalTouch; });
+  t.after(() => { authorityStore.touchConversationFromMessage = originalTouch; });
 
   const result = await messageStore.upsert({
     id: 'identity-order-mid-1',
