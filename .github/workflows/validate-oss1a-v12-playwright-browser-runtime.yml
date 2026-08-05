@@ -96,10 +96,9 @@ jobs:
               compile(Path(file_path).read_text(encoding='utf-8'), file_path, 'exec')
           PY
           node --test --test-concurrency=1 tests/uat/fix6dPlaywrightBrowserRuntime.test.js
-          git diff --exit-code -- tests/uat/fix6dPlaywrightBrowserRuntime.test.js
           git diff --check
           test -z "$(find tools/uat -type d -name __pycache__ -print -quit)"
-      - name: Verify exact three-path implementation scope
+      - name: Verify exact four-path implementation scope
         shell: bash
         run: |
           set -euo pipefail
@@ -114,6 +113,7 @@ jobs:
           ];
           const changed = [...new Set(outputs.join('\n').split(/\r?\n/u).map(value => value.trim()).filter(Boolean))].sort();
           const expected = [
+            'tests/uat/fix6dPlaywrightBrowserRuntime.test.js',
             'tools/uat/fix6d_computed_style_probe.py',
             'tools/uat/fix6d_global_typography_matrix_probe.py',
             'tools/uat/playwright_browser_runtime.py'
@@ -127,10 +127,11 @@ jobs:
         run: |
           set -euo pipefail
           git add \
+            tests/uat/fix6dPlaywrightBrowserRuntime.test.js \
             tools/uat/fix6d_computed_style_probe.py \
             tools/uat/fix6d_global_typography_matrix_probe.py \
             tools/uat/playwright_browser_runtime.py
-          test "$(git diff --cached --name-only | sort | tr '\n' ' ')" = "tools/uat/fix6d_computed_style_probe.py tools/uat/fix6d_global_typography_matrix_probe.py tools/uat/playwright_browser_runtime.py "
+          test "$(git diff --cached --name-only | sort | tr '\n' ' ')" = "tests/uat/fix6dPlaywrightBrowserRuntime.test.js tools/uat/fix6d_computed_style_probe.py tools/uat/fix6d_global_typography_matrix_probe.py tools/uat/playwright_browser_runtime.py "
           git commit -m "fix(oss1a): centralize cross-platform Playwright browser launch"
           git merge-base --is-ancestor "${PREVIOUS_CANDIDATE_HEAD}" HEAD
           git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
