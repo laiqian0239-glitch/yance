@@ -14,6 +14,7 @@ import sys
 from typing import Any
 
 from playwright.sync_api import sync_playwright
+from playwright_browser_runtime import launch_chromium, write_json_stdout
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 FRONTEND = ROOT / "frontend"
@@ -508,7 +509,7 @@ def main() -> None:
     document = production_document(css)
     templates = runtime_templates()
     with sync_playwright() as p:
-        browser = p.chromium.launch(executable_path="/usr/bin/chromium", headless=True, args=["--no-sandbox", "--disable-gpu"])
+        browser = launch_chromium(p.chromium)
         try:
             results = [probe_viewport(browser, int(row["width"]), int(row["height"]), document, templates, theme_ids) for row in viewports]
         finally:
@@ -521,7 +522,7 @@ def main() -> None:
         "viewportResults": results,
         "failureCount": sum(row["failureCount"] + len(row["missingRoles"]) for row in results),
     }
-    print(json.dumps(output, ensure_ascii=False))
+    write_json_stdout(output)
 
 
 if __name__ == "__main__":

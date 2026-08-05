@@ -100,6 +100,8 @@ function oss1aReceipt(authorization) {
     approvedParentHead: authorization.approvedParentHead,
     authorizedBranch: authorization.authorizedBranch,
     authorizationPath: OSS1A_ENTRY.authorizationPath,
+    approvedPlanPath: authorization.approvedPlanPath,
+    approvedPlanHead: authorization.approvedPlanHead,
     authorizationCommit: 'c'.repeat(40),
     authorizationBlobSha: 'd'.repeat(40),
     authorizationFileSha256: 'e'.repeat(64),

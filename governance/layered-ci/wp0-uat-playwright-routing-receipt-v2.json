@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_WP0_ROUTING_REPAIR_AUTHORIZATION_RECEIPT",
+  "program": "Layered CI",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-1A Task 11",
+  "status": "SEALED_FOR_IMPLEMENTATION",
+  "authorizationVersion": 2,
+  "supersedesReceiptPath": "governance/layered-ci/wp0-uat-playwright-routing-receipt.json",
+  "requiredBaseRef": "governance/wp0-uat-playwright-routing-authorization-v2",
+  "approvedParentHead": "7e2a6d62710e6b69a95ea07a8b4076a25c2ab321",
+  "authorizationPath": "governance/layered-ci/wp0-uat-playwright-routing-authorization-v2.json",
+  "authorizationCommit": "7c7d9b4e4423081568e39abd04676bcc8403cd43",
+  "authorizationBlobSha": "01b059b79331ab39d0b576ca9a1648a59dd2dc0f",
+  "approvedChangedFileCount": 3,
+  "approvedChangedFileSetSha256": "864f6e8b6c5639166728391a43841fd7255956fe049640b2dcb1399de373e415",
+  "exactPaths": [
+    "governance/layered-ci/wp0-routing-policy.json",
+    "tests/layered-ci/open-source-work-package-registry.test.js",
+    "tests/layered-ci/wp0-routing.test.js"
+  ],
+  "verificationEvidence": {
+    "routingRedWorkflowRunId": 31038966590,
+    "routingRedJobId": 92418244264,
+    "layeredSuiteRedWorkflowRunId": 31039212010,
+    "layeredSuiteRedJobId": 92419074467,
+    "rootCause": "TEST_RECEIPT_FIXTURE_MISSING_APPROVED_PLAN_BINDING",
+    "futureImplementationGreenClaimed": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "wildcardExpansionAllowed": false,
+    "requirementsDirectoryPrefixAuthorizationAllowed": false,
+    "validationWeakeningAllowed": false,
+    "prMustRemainDraft": true,
+    "mergeIntoMainAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "readyForPromotion": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false
+  }
+}

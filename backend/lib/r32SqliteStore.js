@@ -60,6 +60,10 @@ const {
   applyArchitectureClosureV2WpA,
   TARGET_SCHEMA_VERSION: ACV2_WP_A_SCHEMA_VERSION
 } = require('../migrations/architectureClosureV2WpA');
+const {
+  applyOss1aWhatsappAuthState,
+  TARGET_SCHEMA_VERSION: OSS1A_WHATSAPP_AUTH_SCHEMA_VERSION
+} = require('../migrations/oss1aWhatsappAuthState');
 const { ensureCanonicalProjectionReceiptSchema } = require('../migrations/projectionReceiptSchemaAuthority');
 const {
   acquireAuthorityWriteHost,
@@ -72,7 +76,7 @@ const { SqliteTransactionCoordinator } = require('../store/sqliteTransactionCoor
 // M5 — schema-version governance. Bump this only when a forward migration is
 // shipped; an older binary opening a newer DB must fail fast (downgrade risk),
 // never silently corrupt.
-const SCHEMA_VERSION = Math.max(STAGE634_SCHEMA_VERSION, ROUND12_SCHEMA_VERSION, ROUND12_13_HARDENING_SCHEMA_VERSION, ROUND12_13_REMAINING_SCHEMA_VERSION, ROUND12_13_FINAL_GOVERNANCE_SCHEMA_VERSION, ROUND12_13_FINAL_SEVEN_SCHEMA_VERSION, BATCH22_IDENTITY_ROUTE_SCHEMA_VERSION, BATCH24_STATE_TRANSACTION_SCHEMA_VERSION, BATCH26_PLATFORM_AI_LEARNING_SCHEMA_VERSION, BATCH27_DEVELOPER_HANDOFF_SCHEMA_VERSION, BATCH41_FIX6M_SCHEMA_VERSION, BATCH42_FIX6O_SCHEMA_VERSION, ACV2_WP_A_SCHEMA_VERSION);
+const SCHEMA_VERSION = Math.max(STAGE634_SCHEMA_VERSION, ROUND12_SCHEMA_VERSION, ROUND12_13_HARDENING_SCHEMA_VERSION, ROUND12_13_REMAINING_SCHEMA_VERSION, ROUND12_13_FINAL_GOVERNANCE_SCHEMA_VERSION, ROUND12_13_FINAL_SEVEN_SCHEMA_VERSION, BATCH22_IDENTITY_ROUTE_SCHEMA_VERSION, BATCH24_STATE_TRANSACTION_SCHEMA_VERSION, BATCH26_PLATFORM_AI_LEARNING_SCHEMA_VERSION, BATCH27_DEVELOPER_HANDOFF_SCHEMA_VERSION, BATCH41_FIX6M_SCHEMA_VERSION, BATCH42_FIX6O_SCHEMA_VERSION, ACV2_WP_A_SCHEMA_VERSION, OSS1A_WHATSAPP_AUTH_SCHEMA_VERSION);
 
 function nowIso() {
   return new Date().toISOString();
@@ -1145,6 +1149,7 @@ class R32SqliteStore {
     applyBatch41Fix6MArchitectureReferenceClosure(this.db);
     applyBatch42Fix6OScopedSafetyAndOmnichannelRuntime(this.db);
     applyArchitectureClosureV2WpA(this.db);
+    applyOss1aWhatsappAuthState(this.db);
     ensureCanonicalProjectionReceiptSchema(this.db);
   }
 

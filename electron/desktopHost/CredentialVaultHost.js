@@ -26,6 +26,16 @@ const TERMINAL_JOURNAL_MISMATCH = 'WP4_CREDENTIAL_TERMINAL_JOURNAL_MISMATCH';
 const HYDRATION_REFERENCE_MISMATCH = 'WP4_CREDENTIAL_HYDRATION_REFERENCE_MISMATCH';
 const APPLICATION_BUSY = 'WP4_DESKTOP_CREDENTIAL_APPLICATION_BUSY_RETRY';
 const APPLICATION_CONTAINED = 'WP4_DESKTOP_CREDENTIAL_REJECTED_OWNER_CONTAINMENT';
+const READY_AUTHORITY_INVALID = 'WP4_CREDENTIAL_READY_AUTHORITY_INVALID';
+const READY_AUTHORITY_PENDING = 'WP4_CREDENTIAL_READY_AUTHORITY_PENDING';
+const READY_AUTHORITY_OWNER_MISMATCH = 'WP4_CREDENTIAL_READY_AUTHORITY_OWNER_MISMATCH';
+const READY_AUTHORITY_METADATA_MISMATCH = 'WP4_CREDENTIAL_READY_AUTHORITY_METADATA_MISMATCH';
+const READY_AUTHORITY_HISTORY_MISMATCH = 'WP4_CREDENTIAL_READY_AUTHORITY_HISTORY_MISMATCH';
+const READY_METADATA_FIELDS = Object.freeze([
+  'pid', 'startupNonce', 'vaultEpoch', 'generation', 'authorityEventId', 'authorityHeadDigest',
+  'vaultReferenceCount', 'decryptedEntryCount', 'frameEntryCount', 'entryCount', 'payloadBytes',
+  'restoredReferenceCount'
+]);
 
 function atomicWriteJson(file, value, fsApi = fs) {
   fsApi.mkdirSync(path.dirname(file), { recursive: true });
@@ -43,6 +53,30 @@ function atomicWriteJson(file, value, fsApi = fs) {
     try { fsApi.rmSync(temp, { force: true }); } catch (_) {}
     throw error;
   }
+}
+
+function readyMetadataFromFrame(frame = {}) {
+  const entries = Array.isArray(frame?.payload?.entries) ? frame.payload.entries : [];
+  return Object.freeze({
+    pid: Number(frame.backendPid || 0),
+    startupNonce: String(frame.startupNonce || ''),
+    vaultEpoch: String(frame.vaultEpoch || ''),
+    generation: Number(frame.generation || 0),
+    authorityEventId: String(frame.authorityEventId || ''),
+    authorityHeadDigest: String(frame.authorityHeadDigest || ''),
+    vaultReferenceCount: Number(frame.vaultReferenceCount || 0),
+    decryptedEntryCount: Number(frame.decryptedEntryCount || 0),
+    frameEntryCount: Number(frame.frameEntryCount ?? entries.length),
+    entryCount: entries.length,
+    payloadBytes: Number(frame.payloadBytes || 0),
+    restoredReferenceCount: entries.length
+  });
+}
+
+function readyMetadataDifferences(actual = {}, expected = {}) {
+  const missing = READY_METADATA_FIELDS.filter(field => !Object.prototype.hasOwnProperty.call(actual || {}, field));
+  const mismatched = READY_METADATA_FIELDS.filter(field => Object.prototype.hasOwnProperty.call(actual || {}, field) && actual[field] !== expected[field]);
+  return Object.freeze({ missing, mismatched, exact: missing.length === 0 && mismatched.length === 0 });
 }
 
 class CredentialVaultHost {
@@ -63,6 +97,7 @@ class CredentialVaultHost {
     this.pendingOperations = 0;
     this.activeTransactionId = null;
     this.pendingHydration = null;
+    this.activeHydration = null;
     this.pendingOwnerSession = null;
     this.activeOwnerSession = null;
     this.applicationLease = null;
@@ -156,9 +191,6 @@ class CredentialVaultHost {
     return this.applicationCoordinatorRequired;
   }
   _assertApplicationCoordinatorLease(applicationLeaseToken = null, operation = 'credential-operation') {
-    // A persistent containment fence is the stronger application boundary. Check it
-    // before coordinator ownership so releasing a short-lived lease can never mask
-    // the rejected-owner denial reason or reopen a credential operation.
     if (this.applicationFence) this._assertApplicationAccess(applicationLeaseToken);
     if (!this.applicationCoordinatorRequired) return;
     if (this.applicationLease && applicationLeaseToken === this.applicationLease.token) return;
@@ -691,7 +723,23 @@ class CredentialVaultHost {
       fd6PipeInstanceId: context.fd6PipeInstanceId
     });
     this.pendingOwnerSession = ownerSession;
-    this.pendingHydration = Object.freeze({ startupNonce: String(context.startupNonce || ''), authorityEventId: made.event.eventId, vaultEpoch: frame.vaultEpoch, generation: frame.generation, vaultReferenceCount, decryptedEntryCount, frameEntryCount: frame.payload.entries.length, payloadBytes: frame.payloadBytes, ownerSession });
+    this.pendingHydration = Object.freeze({
+      startupAttemptId: String(context.startupAttemptId || ''),
+      pid: frame.backendPid,
+      startupNonce: frame.startupNonce,
+      manifestSha256: frame.manifestSha256,
+      authorityEventId: made.event.eventId,
+      authorityHeadDigest: made.event.eventDigest,
+      vaultEpoch: frame.vaultEpoch,
+      generation: frame.generation,
+      vaultReferenceCount,
+      decryptedEntryCount,
+      frameEntryCount: frame.payload.entries.length,
+      entryCount: frame.payload.entries.length,
+      payloadBytes: frame.payloadBytes,
+      restoredReferenceCount: frame.payload.entries.length,
+      ownerSession
+    });
     return Object.freeze({ frame, ownerSession, resetAuthorization: this.metadata.pendingReset ? Object.freeze({ ...this.metadata.pendingReset }) : null });
   }
 
@@ -699,13 +747,195 @@ class CredentialVaultHost {
     this._assertOperational();
     const expected = this.pendingHydration;
     if (!expected) return false;
-    const matches = String(result.startupNonce || '') === expected.startupNonce && String(result.authorityEventId || '') === expected.authorityEventId && String(result.vaultEpoch || '') === expected.vaultEpoch && Number(result.generation) === expected.generation && Number(result.vaultReferenceCount) === expected.vaultReferenceCount && Number(result.decryptedEntryCount) === expected.decryptedEntryCount && Number(result.frameEntryCount ?? result.entryCount) === expected.frameEntryCount && Number(result.restoredReferenceCount) === expected.frameEntryCount && Number(result.payloadBytes) === expected.payloadBytes;
+    const matches = String(result.startupNonce || '') === expected.startupNonce
+      && Number(result.pid || 0) === expected.pid
+      && String(result.authorityEventId || '') === expected.authorityEventId
+      && String(result.authorityHeadDigest || '') === expected.authorityHeadDigest
+      && String(result.vaultEpoch || '') === expected.vaultEpoch
+      && Number(result.generation) === expected.generation
+      && Number(result.vaultReferenceCount) === expected.vaultReferenceCount
+      && Number(result.decryptedEntryCount) === expected.decryptedEntryCount
+      && Number(result.frameEntryCount ?? result.entryCount) === expected.frameEntryCount
+      && Number(result.entryCount) === expected.entryCount
+      && Number(result.restoredReferenceCount) === expected.restoredReferenceCount
+      && Number(result.payloadBytes) === expected.payloadBytes;
     if (!matches) return false;
     this.pendingHydration = null;
+    this.activeHydration = expected;
     this.activeOwnerSession = expected.ownerSession || this.pendingOwnerSession;
     this.pendingOwnerSession = null;
     if (this.metadata.pendingReset) this._saveMetadata({ ...this.metadata, pendingReset: null });
     return true;
+  }
+
+  validateReadyCredentialAuthority(input = {}) {
+    this._assertApplicationAccess();
+    this._assertOperational();
+    validateJournal(this.journal);
+    if (this.activeTransactionId || this.pendingOperations > 0 || this._nonTerminalTransactions().length > 0) {
+      throw this._error(READY_AUTHORITY_PENDING, 'READY credential authority cannot be verified while a credential transaction is pending', {
+        activeTransactionId: this.activeTransactionId || '',
+        pendingOperations: this.pendingOperations,
+        nonTerminalTransactionCount: this._nonTerminalTransactions().length
+      });
+    }
+
+    const initialFrame = input.initialFrame;
+    const hydrationAcknowledgement = input.hydrationAcknowledgement;
+    const readyMetadata = input.readyMetadata;
+    const activeHydration = this.activeHydration;
+    if (!initialFrame || !hydrationAcknowledgement || !readyMetadata || !activeHydration) {
+      throw this._error(READY_AUTHORITY_INVALID, 'READY credential authority requires an accepted FD5 hydration boundary');
+    }
+
+    let suppliedOwner;
+    try {
+      suppliedOwner = Object.freeze(clone(input.ownerSession || {}));
+      validateOwnerSession(suppliedOwner);
+    } catch (cause) {
+      throw Object.assign(this._error(READY_AUTHORITY_OWNER_MISMATCH, 'READY credential authority owner session is invalid'), { cause });
+    }
+    if (!this.activeOwnerSession || !sameOwnerSession(this.activeOwnerSession, suppliedOwner) || !sameOwnerSession(activeHydration.ownerSession, suppliedOwner)) {
+      throw this._error(READY_AUTHORITY_OWNER_MISMATCH, 'READY credential authority owner does not match the accepted FD5/FD6 owner');
+    }
+    if (String(input.startupAttemptId || '') !== String(activeHydration.startupAttemptId || '')) {
+      throw this._error(READY_AUTHORITY_OWNER_MISMATCH, 'READY credential authority startup attempt does not match the accepted hydration');
+    }
+
+    const initialMetadata = readyMetadataFromFrame(initialFrame);
+    const acceptedMetadata = Object.freeze({
+      pid: Number(activeHydration.pid || 0),
+      startupNonce: String(activeHydration.startupNonce || ''),
+      vaultEpoch: String(activeHydration.vaultEpoch || ''),
+      generation: Number(activeHydration.generation || 0),
+      authorityEventId: String(activeHydration.authorityEventId || ''),
+      authorityHeadDigest: String(activeHydration.authorityHeadDigest || ''),
+      vaultReferenceCount: Number(activeHydration.vaultReferenceCount || 0),
+      decryptedEntryCount: Number(activeHydration.decryptedEntryCount || 0),
+      frameEntryCount: Number(activeHydration.frameEntryCount || 0),
+      entryCount: Number(activeHydration.entryCount || 0),
+      payloadBytes: Number(activeHydration.payloadBytes || 0),
+      restoredReferenceCount: Number(activeHydration.restoredReferenceCount || 0)
+    });
+    const initialDiff = readyMetadataDifferences(initialMetadata, acceptedMetadata);
+    const hydrationDiff = readyMetadataDifferences(hydrationAcknowledgement, acceptedMetadata);
+    if (!initialDiff.exact || !hydrationDiff.exact) {
+      throw this._error(READY_AUTHORITY_METADATA_MISMATCH, 'Initial FD5 frame or hydration acknowledgement no longer matches the accepted boundary', {
+        initialMissingFields: initialDiff.missing,
+        initialMismatchedFields: initialDiff.mismatched,
+        hydrationMissingFields: hydrationDiff.missing,
+        hydrationMismatchedFields: hydrationDiff.mismatched
+      });
+    }
+    if (String(initialFrame.manifestSha256 || '') !== String(activeHydration.manifestSha256 || '')) {
+      throw this._error(READY_AUTHORITY_OWNER_MISMATCH, 'Initial FD5 manifest does not match the accepted hydration');
+    }
+
+    const initialEventIndex = this.journal.authorityEvents.findIndex(row => row.eventId === acceptedMetadata.authorityEventId);
+    if (initialEventIndex < 0) throw this._error(READY_AUTHORITY_HISTORY_MISMATCH, 'Accepted FD5 authority event is missing from the journal');
+    const initialEvent = this.journal.authorityEvents[initialEventIndex];
+    if (initialEvent.eventType !== 'HYDRATION_ISSUED'
+      || initialEvent.eventDigest !== acceptedMetadata.authorityHeadDigest
+      || initialEvent.generation !== acceptedMetadata.generation
+      || initialEvent.vaultEpoch !== acceptedMetadata.vaultEpoch
+      || initialEvent.referenceCount !== acceptedMetadata.vaultReferenceCount
+      || String(initialEvent.startupNonce || '') !== acceptedMetadata.startupNonce) {
+      throw this._error(READY_AUTHORITY_HISTORY_MISMATCH, 'Accepted FD5 boundary does not match its durable hydration event');
+    }
+
+    const currentHead = headEvent(this.journal);
+    const expectedMetadata = metadataFromEvent(currentHead, this.clock());
+    const raw = this.vault.snapshotRaw();
+    if (!sameMetadataAuthority(this.metadata, expectedMetadata)
+      || digestRaw(raw) !== currentHead.vaultDigest
+      || referenceCount(raw) !== currentHead.referenceCount) {
+      throw this._error(READY_AUTHORITY_HISTORY_MISMATCH, 'READY authority is not the current journal, metadata and vault projection');
+    }
+
+    let entries;
+    try { entries = this.entriesStrict(); }
+    catch (cause) { throw Object.assign(this._error(READY_AUTHORITY_HISTORY_MISMATCH, 'READY authority requires every current credential to decrypt'), { cause }); }
+    if (entries.length !== currentHead.referenceCount) {
+      throw this._error(READY_AUTHORITY_HISTORY_MISMATCH, 'READY authority decrypted entry count does not match the journal reference count');
+    }
+    const currentFrame = makeCredentialFrame({
+      startupNonce: initialFrame.startupNonce,
+      oneTimeToken: initialFrame.oneTimeToken,
+      backendPid: initialFrame.backendPid,
+      manifestSha256: initialFrame.manifestSha256,
+      vaultEpoch: currentHead.vaultEpoch,
+      generation: currentHead.generation,
+      authorityEventId: currentHead.eventId,
+      authorityHeadDigest: currentHead.eventDigest,
+      vaultReferenceCount: currentHead.referenceCount,
+      decryptedEntryCount: entries.length,
+      issuedAtUtc: this.clock(),
+      entries: entries.map(([ref, value]) => ({ ref, value }))
+    });
+    const currentReadyMetadata = readyMetadataFromFrame(currentFrame);
+    const readyDiff = readyMetadataDifferences(readyMetadata, currentReadyMetadata);
+    if (!readyDiff.exact) {
+      throw this._error(READY_AUTHORITY_METADATA_MISMATCH, 'READY credential metadata does not match the independently reconstructed CredentialVault authority', {
+        missingFields: readyDiff.missing,
+        mismatchedFields: readyDiff.mismatched
+      });
+    }
+
+    let mode = 'INITIAL_FD5_EXACT';
+    let committedAdvanceCount = 0;
+    if (currentHead.generation < initialEvent.generation || currentHead.vaultEpoch !== initialEvent.vaultEpoch) {
+      throw this._error(READY_AUTHORITY_HISTORY_MISMATCH, 'READY credential authority regressed or changed vault epoch after FD5 hydration');
+    }
+    if (currentHead.generation === initialEvent.generation) {
+      if (currentHead.eventId !== initialEvent.eventId || currentHead.eventDigest !== initialEvent.eventDigest) {
+        throw this._error(READY_AUTHORITY_HISTORY_MISMATCH, 'READY authority changed journal head without a generation advance');
+      }
+    } else {
+      mode = 'SAME_OWNER_PRE_READY_FD6_COMMITTED_ADVANCE';
+      let expectedGeneration = initialEvent.generation;
+      const advancedEvents = this.journal.authorityEvents.slice(initialEventIndex + 1);
+      if (!advancedEvents.length) throw this._error(READY_AUTHORITY_HISTORY_MISMATCH, 'READY authority generation advanced without durable events');
+      for (const event of advancedEvents) {
+        if (event.eventType !== 'TRANSACTION_COMMITTED'
+          || event.vaultEpoch !== initialEvent.vaultEpoch
+          || event.previousGeneration !== expectedGeneration
+          || event.generation !== expectedGeneration + 1) {
+          throw this._error(READY_AUTHORITY_HISTORY_MISMATCH, 'READY authority contains a non-contiguous or non-FD6 pre-READY event', { eventId: event.eventId, eventType: event.eventType });
+        }
+        const tx = this.transactions[event.transactionId];
+        if (!tx) throw this._error(READY_AUTHORITY_HISTORY_MISMATCH, 'READY authority event references a missing FD6 transaction', { eventId: event.eventId });
+        validateTransaction(tx, tx.requestId);
+        if (tx.state !== STATES.COMMITTED
+          || tx.source !== 'FD6'
+          || tx.commitEventId !== event.eventId
+          || tx.previousGeneration !== expectedGeneration
+          || tx.generation !== event.generation
+          || !tx.ownerSession
+          || !sameOwnerSession(tx.ownerSession, suppliedOwner)) {
+          throw this._error(READY_AUTHORITY_HISTORY_MISMATCH, 'READY authority transaction is not a terminal same-owner FD6 commit', { requestId: tx.requestId });
+        }
+        expectedGeneration = event.generation;
+        committedAdvanceCount += 1;
+      }
+      if (expectedGeneration !== currentHead.generation || advancedEvents[advancedEvents.length - 1].eventId !== currentHead.eventId) {
+        throw this._error(READY_AUTHORITY_HISTORY_MISMATCH, 'READY authority progression does not terminate at the current journal head');
+      }
+    }
+
+    return Object.freeze({
+      accepted: true,
+      mode,
+      vaultEpoch: currentHead.vaultEpoch,
+      initialGeneration: initialEvent.generation,
+      readyGeneration: currentHead.generation,
+      authorityEventId: currentHead.eventId,
+      authorityHeadDigest: currentHead.eventDigest,
+      referenceCount: currentHead.referenceCount,
+      payloadBytes: currentFrame.payloadBytes,
+      committedAdvanceCount,
+      ownerSessionMatched: true,
+      journalHeadMatched: true
+    });
   }
 
   handleBackendOwnerExit(ownerContext = {}) {
@@ -733,6 +963,7 @@ class CredentialVaultHost {
         this.activeOwnerSession = null;
         this.pendingOwnerSession = null;
         this.pendingHydration = null;
+        this.activeHydration = null;
         this.lifecycleCoordinator.completeOwnerExitRecovery();
         return Object.freeze({ recovered: true, staleOwnerIgnored: false, activeTransactionId: '', authorityState: this.lifecycleCoordinator.lifecycle.state, actions });
       } catch (cause) {
@@ -780,6 +1011,15 @@ class CredentialVaultHost {
       metadataPath: this.metadataPath, transactionPath: this.transactionPath, lifecycleIntentPath: this.lifecycleIntentPath, lifecycleCompletedPath: this.lifecycleCompletedPath, activeTransactionId: this.activeTransactionId || '',
       activeOwnerSession: this.activeOwnerSession ? clone(this.activeOwnerSession) : null,
       pendingOwnerSession: this.pendingOwnerSession ? clone(this.pendingOwnerSession) : null,
+      activeHydration: this.activeHydration ? Object.freeze({
+        startupAttemptId: this.activeHydration.startupAttemptId,
+        pid: this.activeHydration.pid,
+        startupNonce: this.activeHydration.startupNonce,
+        vaultEpoch: this.activeHydration.vaultEpoch,
+        generation: this.activeHydration.generation,
+        authorityEventId: this.activeHydration.authorityEventId,
+        authorityHeadDigest: this.activeHydration.authorityHeadDigest
+      }) : null,
       applicationLease: this.applicationLeaseSnapshot(), applicationFence: this.applicationFenceSnapshot(), applicationCoordinatorRequired: this.applicationCoordinatorRequired === true,
       pendingOperations: this.pendingOperations, journalTransactionCount: Object.keys(this.transactions || {}).length,
       lifecycle: this.lifecycleCoordinator?.snapshot?.() || null,
@@ -790,6 +1030,8 @@ class CredentialVaultHost {
 
 module.exports = {
   APPLICATION_CONTAINED, AUTHORITY_HISTORY_MISMATCH, CONCURRENT_MUTATION, CredentialVaultHost, DURABLE_HISTORY_LOST,
-  HYDRATION_REFERENCE_MISMATCH, JOURNAL_INVALID, JOURNAL_MISSING, RECOVERY_AMBIGUOUS,
-  TERMINAL_JOURNAL_MISMATCH, TRANSACTION_BUSY, atomicWriteJson, digestRaw
+  HYDRATION_REFERENCE_MISMATCH, JOURNAL_INVALID, JOURNAL_MISSING, READY_AUTHORITY_HISTORY_MISMATCH,
+  READY_AUTHORITY_INVALID, READY_AUTHORITY_METADATA_MISMATCH, READY_AUTHORITY_OWNER_MISMATCH,
+  READY_AUTHORITY_PENDING, RECOVERY_AMBIGUOUS, TERMINAL_JOURNAL_MISMATCH, TRANSACTION_BUSY,
+  atomicWriteJson, digestRaw
 };

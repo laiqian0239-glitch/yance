@@ -1,7 +1,8 @@
 'use strict';
 
-const crypto = require('node:crypto');
 const { getStore } = require('./storeProvider');
+const { createWhatsAppMessageKeyIndexRepository, hashRawMessage } = require('./whatsappMessageKeyIndexRepository');
+const communicationAuthority = require('../services/communicationAuthority');
 const { parseJson, stableId } = require('../lib/r32SqliteStore');
 const eventBus = require('../services/eventBus');
 const performancePolicy = require('../services/performancePolicy');
@@ -15,6 +16,114 @@ const operationalProjectionReceipts = require('../services/operationalProjection
 const externalIdentityAuthority = require('../services/externalIdentityAuthority').singleton;
 const identityDomainEventOutbox = require('../services/identityDomainEventOutboxService').singleton;
 const backgroundJobAuthority = require('../services/backgroundJobAuthority');
+
+const whatsappMessageIndexTransactionAuthority = Symbol('whatsapp-message-index-transaction-authority');
+let whatsappMessageKeyIndexRepository = null;
+
+function configureWhatsAppMessageKeyIndex(options = {}) {
+  whatsappMessageKeyIndexRepository = createWhatsAppMessageKeyIndexRepository({
+    ...options,
+    transactionAuthority: whatsappMessageIndexTransactionAuthority
+  });
+  return whatsappMessageKeyIndexRepository;
+}
+
+function getWhatsAppMessageByKey(input = {}) {
+  return whatsappMessageKeyIndexRepository ? whatsappMessageKeyIndexRepository.lookup(input) : undefined;
+}
+
+
+function canonicalCommunicationContent(message = {}) {
+  const type = String(message.messageType || message.type || '').trim().toLowerCase();
+  if (type === 'text' || (!type && String(message.text || '').trim())) {
+    return { kind: 'text', text: String(message.text || '') };
+  }
+  const media = message.rawMeta?.mediaEnvelope || message.mediaEnvelope || message.media || {};
+  const mediaId = String(media.mediaId || media.id || message.attachmentId || '').trim();
+  if (type === 'image' || type === 'video') {
+    return { kind: type, mediaId, caption: String(message.text || media.caption || '') };
+  }
+  if (type === 'audio' || type === 'voice') {
+    return { kind: 'audio', mediaId, durationMs: Number(media.durationMs || message.durationMs || 0) };
+  }
+  if (type === 'file' || type === 'document') {
+    return { kind: 'file', mediaId, filename: String(media.filename || message.filename || '') };
+  }
+  if (type === 'sticker') {
+    return {
+      kind: 'sticker',
+      mediaId,
+      nativeReference: String(media.nativeReference || ''),
+      animated: media.animated === true
+    };
+  }
+  if (type === 'gif') {
+    return { kind: 'gif', mediaId, nativeReference: String(media.nativeReference || '') };
+  }
+  return {
+    kind: 'unsupported',
+    platformType: type || 'unknown',
+    rawSummary: String(message.text || '')
+  };
+}
+
+function ensureCanonicalCommunicationParent(message = {}) {
+  const canonicalMessageId = String(message.id || message.dedupeKey || '').trim();
+  const platform = String(message.platform || '').trim().toLowerCase();
+  if (platform !== 'whatsapp' || !canonicalMessageId) return null;
+  const sourceAccountId = String(message.sourceAccountId || message.accountId || '').trim();
+  const externalConversationId = String(
+    message.rawMeta?.canonicalJid
+      || message.rawMeta?.remoteJid
+      || message.chatJid
+      || message.conversationId
+      || message.sessionKey
+      || ''
+  ).trim();
+  const externalMessageId = String(
+    message.externalMessageId
+      || message.rawMeta?.messageId
+      || canonicalMessageId
+  ).trim();
+  const rawMeta = message.rawMeta || {};
+  const rawMessageSha256 = message.rawMessage && typeof message.rawMessage === 'object'
+    ? hashRawMessage(message.rawMessage)
+    : '';
+  const canonical = communicationAuthority.ingestMessage({
+    messageId: canonicalMessageId,
+    traceId: String(message.traceId || rawMeta.traceId || ''),
+    platform,
+    sourceAccountId,
+    externalConversationId,
+    externalMessageId,
+    direction: String(message.direction || (message.fromMe === true ? 'outbound' : 'inbound')),
+    senderExternalId: String(message.senderId || rawMeta.participant || rawMeta.remoteJid || ''),
+    occurredAt: String(message.timestamp || message.sentAt || message.createdAt || new Date().toISOString()),
+    rawEventRef: {
+      eventId: String(rawMeta.eventId || externalMessageId),
+      payloadSha256: rawMessageSha256,
+      redactionVersion: String(rawMeta.redactionVersion || 'v1')
+    },
+    content: canonicalCommunicationContent(message)
+  });
+  if (String(canonical?.messageId || '') !== canonicalMessageId) {
+    const error = new Error('Canonical communication message identity does not match the R32 message identity');
+    error.code = 'WHATSAPP_CANONICAL_MESSAGE_ID_MISMATCH';
+    error.reasonCode = error.code;
+    error.expectedMessageId = canonicalMessageId;
+    error.actualMessageId = String(canonical?.messageId || '');
+    throw error;
+  }
+  const canonicalDigest = String(canonical?.rawEventRef?.payloadSha256 || '').trim().toLowerCase();
+  if (rawMessageSha256 && canonicalDigest !== rawMessageSha256) {
+    const error = new Error('Canonical communication payload digest does not match the WhatsApp raw message');
+    error.code = 'WHATSAPP_CANONICAL_MESSAGE_DIGEST_MISMATCH';
+    error.reasonCode = error.code;
+    error.messageId = canonicalMessageId;
+    throw error;
+  }
+  return canonical;
+}
 
 const platformCoreRepository = createPlatformCoreRepository({ storeProvider: getStore });
 const domainEventLog = new DomainEventLogService({ repository: platformCoreRepository });
@@ -62,88 +171,15 @@ function recordOperationalFailure(created, cause, targetRefs = []) {
 }
 
 function now() { return new Date().toISOString(); }
-function projectionRetry(attempts) { return new Date(Date.now() + Math.min(300, Math.max(5, 2 ** Math.min(8, Number(attempts || 0)))) * 1000).toISOString(); }
-function appendInboundEventWithProjectionJob(store, input = {}) {
-  return store.transaction(() => {
-    const created = domainEventLog.append(input);
-    const eventId = String(created?.event?.eventId || '').trim();
-    if (!eventId) throw Object.assign(new Error('Domain event append did not return eventId'), { code: 'DOMAIN_EVENT_ID_MISSING' });
-    const at = now();
-    store.db.prepare(`INSERT INTO domain_event_projection_jobs(
-      job_id,event_id,projector_name,state,attempts,claim_token,lease_expires_at,next_attempt_at,last_error,created_at,updated_at
-    ) VALUES(?,?,?,'pending',0,'','','','',?,?)
-    ON CONFLICT(event_id) DO NOTHING`).run(`project-${eventId}`, eventId, 'message-projection', at, at);
-    return created;
-  });
-}
 function existingAuthoritativeDomainEvent(eventId) {
-  const row = platformCoreRepository.getDomainEvent(String(eventId || '').trim());
-  if (!row) throw Object.assign(new Error('Authoritative domain event for projection replay was not found'), {
-    code: 'DOMAIN_EVENT_NOT_FOUND', status: 404, eventId: String(eventId || '').trim()
+  const canonicalEventId = String(eventId || '').trim();
+  const event = domainEventLog.readEvent(canonicalEventId);
+  if (!event) throw Object.assign(new Error('Authoritative canonical event for projection replay was not found'), {
+    code: 'DOMAIN_EVENT_NOT_FOUND', status: 404, eventId: canonicalEventId
   });
-  return {
-    created: false,
-    event: {
-      eventId: row.event_id,
-      schemaVersion: Number(row.schema_version || 1),
-      platform: row.platform,
-      sourceAccountId: row.source_account_id,
-      externalEventId: row.external_event_id,
-      eventType: row.event_type,
-      idempotencyKey: row.idempotency_key,
-      correlationId: row.correlation_id,
-      causationId: row.causation_id,
-      occurredAt: row.occurred_at,
-      receivedAt: row.received_at,
-      redactionVersion: row.redaction_version,
-      payload: row.payload || {},
-      payloadSha256: row.payload_sha256,
-      retentionUntil: row.retention_until,
-      replayState: row.replay_state
-    }
-  };
+  return { created: false, event };
 }
 
-function recoverExpiredProjectionJob(store, eventId = '') {
-  const at = now();
-  const params = [at, at, at];
-  let sql = `UPDATE domain_event_projection_jobs
-    SET state='failed',claim_token='',lease_expires_at='',last_error='PROCESSING_LEASE_EXPIRED',next_attempt_at=?,updated_at=?
-    WHERE state='processing' AND lease_expires_at<>'' AND lease_expires_at<=?`;
-  if (eventId) { sql += ' AND event_id=?'; params.push(eventId); }
-  return Number(store.db.prepare(sql).run(...params).changes || 0);
-}
-function claimProjectionJob(store, eventId) {
-  recoverExpiredProjectionJob(store, eventId);
-  const token = crypto.randomUUID();
-  const at = now();
-  const lease = new Date(Date.now() + 60000).toISOString();
-  const updated = store.db.prepare(`UPDATE domain_event_projection_jobs
-    SET state='processing',attempts=attempts+1,claim_token=?,lease_expires_at=?,updated_at=?
-    WHERE event_id=? AND state IN ('pending','failed') AND (next_attempt_at='' OR next_attempt_at<=?)`)
-    .run(token, lease, at, eventId, at);
-  if (Number(updated.changes || 0) !== 1) {
-    const row = store.db.prepare('SELECT * FROM domain_event_projection_jobs WHERE event_id=?').get(eventId);
-    if (row?.state === 'applied') return { eventId, applied: true, token: '' };
-    throw Object.assign(new Error('Domain event projection job is not claimable'), {
-      code: row?.state === 'processing' ? 'DOMAIN_EVENT_PROJECTION_JOB_BUSY' : 'DOMAIN_EVENT_PROJECTION_JOB_NOT_CLAIMABLE',
-      status: 409, eventId, state: row?.state || 'missing'
-    });
-  }
-  return { eventId, token, applied: false };
-}
-function settleProjectionJobWithinTransaction(store, claim, state, error = null) {
-  if (!claim || claim.applied) return;
-  const at = now();
-  const target = state === 'applied' ? 'applied' : 'failed';
-  const row = store.db.prepare('SELECT attempts FROM domain_event_projection_jobs WHERE event_id=?').get(claim.eventId);
-  const nextAttemptAt = target === 'failed' ? projectionRetry(Number(row?.attempts || 1)) : '';
-  const updated = store.db.prepare(`UPDATE domain_event_projection_jobs
-    SET state=?,claim_token='',lease_expires_at='',next_attempt_at=?,last_error=?,updated_at=?
-    WHERE event_id=? AND state='processing' AND claim_token=?`)
-    .run(target, nextAttemptAt, target === 'failed' ? String(error?.message || error?.code || 'DOMAIN_EVENT_PROJECTION_FAILED').slice(0, 2000) : '', at, claim.eventId, claim.token);
-  if (Number(updated.changes || 0) !== 1) throw Object.assign(new Error('Stale projection completion rejected'), { code: 'DOMAIN_EVENT_PROJECTION_STALE_COMPLETION', eventId: claim.eventId });
-}
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 
 function normalizeMessage(message = {}) {
@@ -431,7 +467,7 @@ async function upsert(input) {
     const expectedProjection = projectMessage(message);
     authoritativeDomainEvent = projectionReplayEventId
       ? existingAuthoritativeDomainEvent(projectionReplayEventId)
-      : appendInboundEventWithProjectionJob(store, {
+      : domainEventLog.append({
         platform: ingressPlatform,
         sourceAccountId: ingressAccountId,
         externalEventId: message.externalMessageId || message.id,
@@ -466,11 +502,7 @@ async function upsert(input) {
   let identityObservation = null;
   let saved = null;
   let projectionReceipt = null;
-  let projectionClaim = null;
   const identityScope = inboundIdentityScope(message);
-  if (authoritativeDomainEvent?.event?.eventId) {
-    projectionClaim = store.transaction(() => claimProjectionJob(store, authoritativeDomainEvent.event.eventId));
-  }
   try {
     store.transaction(() => {
       inserted = !store.db.prepare('SELECT 1 FROM r32_messages WHERE id=?').get(message.id);
@@ -503,7 +535,15 @@ async function upsert(input) {
         message.externalIdentityId = externalIdentity.externalIdentityId;
       }
       store.touchConversationFromMessage(message);
+      ensureCanonicalCommunicationParent(message);
       store.upsertMessage(message);
+      if (whatsappMessageKeyIndexRepository && String(message.platform || '').toLowerCase() === 'whatsapp') {
+        whatsappMessageKeyIndexRepository.upsertWithinTransaction(
+          store,
+          message,
+          whatsappMessageIndexTransactionAuthority
+        );
+      }
       conversation = mergeConversationPayload(store, message, inserted);
       if (message.personId && message.conversationId) {
         store.db.prepare('UPDATE r32_conversations SET person_id=?,updated_at=? WHERE session_key=?').run(message.personId, now(), message.conversationId);
@@ -555,7 +595,6 @@ async function upsert(input) {
           projection: savedProjection,
           targetRefs: [{ table: 'r32_messages', id: saved.id }]
         });
-        settleProjectionJobWithinTransaction(store, projectionClaim, 'applied');
       }
     });
   } catch (cause) {
@@ -570,23 +609,16 @@ async function upsert(input) {
           targetRefs: [{ table: 'r32_messages', id: message.id }]
         });
       } catch (receiptError) {
-        logger.error('domain-event', 'projection-failure-receipt-write-failed', {
-          eventId: authoritativeDomainEvent.event.eventId,
-          messageId: message.id,
+        throw Object.assign(receiptError, {
           code: receiptError.code || 'PROJECTION_FAILURE_RECEIPT_FAILED',
-          error: receiptError.message
+          projectionCause: cause,
+          eventId: authoritativeDomainEvent.event.eventId,
+          messageId: message.id
         });
       }
     }
     if (outboundEchoDomainEvent?.event?.eventId) recordOperationalFailure(outboundEchoDomainEvent, cause, [{ table: 'r32_messages', id: message.id }]);
-    if (authoritativeDomainEvent?.event?.eventId && projectionClaim && !projectionClaim.applied) {
-      try {
-        store.transaction(() => settleProjectionJobWithinTransaction(store, projectionClaim, 'failed', cause));
-      } catch (jobError) {
-        logger.error('domain-event', 'projection-job-failure-checkpoint-failed', {
-          eventId: authoritativeDomainEvent.event.eventId, code: jobError.code || 'PROJECTION_JOB_FAILURE_CHECKPOINT_FAILED', error: jobError.message
-        });
-      }
+    if (authoritativeDomainEvent?.event?.eventId) {
       const pending = {
         inserted: false,
         committed: true,
@@ -926,6 +958,11 @@ async function revoke({ accountId, chatJid, targetId }) {
   try {
     store.transaction(() => {
       store.upsertMessage({ ...payload, id: found.row.id, sessionKey: found.row.session_key, sentAt: found.row.sent_at });
+      if (whatsappMessageKeyIndexRepository) whatsappMessageKeyIndexRepository.deleteWithinTransaction(
+        store,
+        found.row.id,
+        whatsappMessageIndexTransactionAuthority
+      );
       const messageIds = [targetId, found.row.id, found.payload.externalMessageId, found.payload.platformMessageId, found.payload.messageId]
         .map(value => String(value || '').trim()).filter(Boolean);
       retraction = require('./workspaceRepository').retractMessageEvidence(found.row.session_key, messageIds, { store, at: updatedAt, publish: false });
@@ -1255,4 +1292,4 @@ function read() {
   return { schemaVersion: 3, messages: messageMap, conversations: conversationMap, contacts: {}, updatedAt: now() };
 }
 
-module.exports = { read, upsert, getMessageByDedupeKey, listPendingTelegramEnrichment, getExternalMessage, hasExternalMessage, collapseDuplicateUnsupportedMobileEchoes, applyReaction, revoke, markRead, updateReceipt, updateReceiptsThrough, updateConversationMetadata, bindConversationAccount, search, listConversations, listMessages, listMessagePage, listMessagesForExport, encodeCursor, decodeCursor, resolveMergedConversationKey: id => resolveMergedConversationKey(getStore(), id), getConversation: id => getConversation(getStore(), id), _identityLinkAuthority: identityLinkAuthority };
+module.exports = { read, upsert, configureWhatsAppMessageKeyIndex, getWhatsAppMessageByKey, getMessageByDedupeKey, listPendingTelegramEnrichment, getExternalMessage, hasExternalMessage, collapseDuplicateUnsupportedMobileEchoes, applyReaction, revoke, markRead, updateReceipt, updateReceiptsThrough, updateConversationMetadata, bindConversationAccount, search, listConversations, listMessages, listMessagePage, listMessagesForExport, encodeCursor, decodeCursor, resolveMergedConversationKey: id => resolveMergedConversationKey(getStore(), id), getConversation: id => getConversation(getStore(), id), _identityLinkAuthority: identityLinkAuthority };

@@ -33,7 +33,8 @@
     ".gitattributes",
     ".gitignore",
     "yance_artifact_descriptor.json",
-    "THIRD_PARTY_NOTICES.md"
+    "THIRD_PARTY_NOTICES.md",
+    "requirements/uat-playwright.txt"
   ],
   "productPrefixes": [
     ".github/",

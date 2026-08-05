@@ -29,6 +29,12 @@ const { getBackendReleaseIdentity } = require('../releaseIdentity');
 const releaseSource = require('../../release/release-source.json');
 const { getStore } = require('../repositories/storeProvider');
 const { createSessionGenerationFence, createSocketGenerationGuard } = require('./sessionGenerationFence');
+const { createWhatsAppBaileysEventProcessor } = require('./whatsappBaileysEventProcessor');
+const { AUTH_EPOCH_ACTION, classifyDisconnect, shouldExecuteReconnect } = require('./whatsappDisconnectPolicy');
+const { createWhatsAppMessageRetryStore } = require('./whatsappMessageRetryStore');
+const { createWhatsAppSocketFactory } = require('./whatsappSocketFactory');
+const { createWhatsAppAuthStateStore } = require('./whatsappAuthStateStore');
+const { createWhatsAppAuthStateRepository } = require('../repositories/whatsappAuthStateRepository');
 
 let qrCodeRenderer = null;
 function loadQRCodeDependency(moduleLoader = require) {
@@ -93,6 +99,25 @@ async function discoverBaileysVersion(baileys, timeoutMs = WHATSAPP_VERSION_DISC
 function clearStartupWatchdog(row) {
   if (row?.startupTimer) clearTimeout(row.startupTimer);
   if (row) row.startupTimer = null;
+}
+
+async function closeWhatsAppAuthLease(row, reason = 'WHATSAPP_AUTH_LEASE_CLOSED') {
+  if (!row?.authLease || row.authLeaseClosed) return false;
+  if (row.authLeaseClosePromise) return row.authLeaseClosePromise;
+  const closeReason = String(reason || 'WHATSAPP_AUTH_LEASE_CLOSED');
+  if (!row.authLeaseCloseReason) row.authLeaseCloseReason = closeReason;
+  const closePromise = Promise.resolve()
+    .then(() => row.authLease.close(row.authLeaseCloseReason))
+    .then(result => {
+      row.authLeaseClosed = true;
+      return result !== false;
+    })
+    .catch(error => {
+      row.authLeaseClosePromise = null;
+      throw error;
+    });
+  row.authLeaseClosePromise = closePromise;
+  return closePromise;
 }
 
 
@@ -672,6 +697,20 @@ class WhatsAppAdapter {
     this.reconnectTimers = new Map();
     this.credentialStateCache = new Map();
     this.credentialStateTtlMs = 3000;
+    this.whatsappAuthKeyAuthority = null;
+    this.runtimeStoreProvider = null;
+  }
+
+  configureRuntimeAuthorities(options = {}) {
+    if (!options.whatsappAuthKeyAuthority || typeof options.whatsappAuthKeyAuthority.getCipher !== 'function') {
+      throw Object.assign(new Error('WhatsApp auth key authority is required'), { code: 'WHATSAPP_RUNTIME_KEY_AUTHORITY_REQUIRED' });
+    }
+    if (typeof options.storeProvider !== 'function') {
+      throw Object.assign(new Error('WhatsApp runtime Store provider is required'), { code: 'WHATSAPP_RUNTIME_STORE_PROVIDER_REQUIRED' });
+    }
+    this.whatsappAuthKeyAuthority = options.whatsappAuthKeyAuthority;
+    this.runtimeStoreProvider = options.storeProvider;
+    return true;
   }
 
   status() {
@@ -1079,8 +1118,8 @@ class WhatsAppAdapter {
       const canonicalAccountId = canonicalIdentity.resolveCanonicalAccountId(reference.id);
       if (canonicalAccountId !== reference.id) throw Object.assign(new Error('重复WhatsApp账号已合并，禁止启动旧运行实例'), { code: 'ACCOUNT_IDENTITY_ALIAS', status: 409, canonicalAccountId });
     }
-    const auth = resolveAuthLocation(reference, { migrate: true, includeFileCount: true });
-    accountId = auth.key;
+    const accountKey = resolveStableAccountKey(reference);
+    accountId = accountKey;
     const databaseAccountId = reference && typeof reference === 'object' ? reference.id : (this.accountByAdapterId(accountId)?.id || accountId);
     this.cancelReconnect(accountId);
     const existing = this.accounts.get(accountId);
@@ -1089,25 +1128,15 @@ class WhatsAppAdapter {
     if (preparation.reused) return this.publicAccount(accountId, preparation.row);
     const generation = preparation.generation;
 
-    logger.rateLimited('whatsapp', 'info', 'auth-location-resolved', {
-      accountId,
-      databaseAccountId: reference && typeof reference === 'object' ? reference.id || '' : '',
-      databaseAdapterAccountId: reference && typeof reference === 'object' ? reference.adapterAccountId || '' : '',
-      currentAuthDirectory: auth.directory,
-      legacyAuthDirectory: auth.legacy.directory,
-      currentCredentialsUsable: auth.current.usable,
-      legacyCredentialsUsable: auth.legacy.usable,
-      registeredFlag: auth.registered,
-      migrationPerformed: auth.migration.performed,
-      credentialFileCount: auth.fileCount
-    }, { key: `auth-location-resolved:${accountId}`, intervalMs: 30000 });
 
     const baileys = await import('@whiskeysockets/baileys');
     assertOperationActive(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId, attemptId: String(options.attemptId || '') });
-    const authDir = auth.directory;
-    fs.mkdirSync(authDir, { recursive: true });
-    const { state, saveCreds } = await baileys.useMultiFileAuthState(authDir);
-    assertOperationActive(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId, attemptId: String(options.attemptId || '') });
+    if (!this.whatsappAuthKeyAuthority || !this.runtimeStoreProvider) {
+      throw Object.assign(new Error('WhatsApp repository auth authorities are unavailable'), {
+        code: 'WHATSAPP_RUNTIME_AUTH_AUTHORITIES_REQUIRED'
+      });
+    }
+    const socketToken = String(options.socketToken || crypto.randomUUID());
     const discoveryDecision = whatsappVersionDiscoveryAuthority.beforeAttempt();
     let versionInfo;
     if (discoveryDecision.attempt) {
@@ -1122,7 +1151,7 @@ class WhatsAppAdapter {
             accountId,
             reasonCode,
             timeoutMs: WHATSAPP_VERSION_DISCOVERY_TIMEOUT_MS,
-            fallback: Array.isArray(authorityState.version) ? 'cached-version' : 'baileys-default-version',
+            fallback: Array.isArray(authorityState.version) ? 'cached-version' : 'sealed-compatible-version',
             cachedVersion: authorityState.version || null,
             consecutiveFailures: authorityState.consecutiveFailures,
             nextRetryAt: authorityState.nextAttemptAt
@@ -1156,12 +1185,19 @@ class WhatsAppAdapter {
       connectedAt: '',
       user: null,
       retryCount: 0,
+      restartRequiredRebuilds: Number(options.restartRequiredRebuilds || 0),
       presenceSubscriptions: new Set(),
       databaseAccountId,
       startedAtMs: Date.now(),
       startupTimer: null,
       startupTimedOut: false,
       generation,
+      socketToken,
+      authLease: null,
+      authLeaseClosed: false,
+      authLeaseCloseReason: '',
+      authLeaseClosePromise: null,
+      operationAbortPromise: null,
       attemptId: String(options.attemptId || ''),
       identityReconciliationRunning: false,
       identityReconciliationLastAt: '',
@@ -1171,53 +1207,122 @@ class WhatsAppAdapter {
     };
     row.sessionFence = createSessionGenerationFence(
       () => this.accounts.get(accountId) === row && this.generations.get(accountId) === row.generation,
-      { prefix: `whatsapp:${databaseAccountId}` }
+      {
+        prefix: `whatsapp:${databaseAccountId}`,
+        generation: row.generation,
+        epoch: Number.isInteger(options.authEpoch) ? options.authEpoch : 0,
+        socketToken
+      }
     );
     this.accounts.set(accountId, row);
     const onOperationAbort = () => {
-      if (this.accounts.get(accountId) !== row) return;
-      row.startupTimedOut = true;
-      row.lastError = operationAbortError(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId }).message;
-      clearStartupWatchdog(row);
-      try { row.socket?.end?.(operationAbortError(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId })); }
-      catch (error) { logger.warn('whatsapp', 'connect-abort-socket-close-failed', { accountId: databaseAccountId, adapterAccountId: accountId, reasonCode: error?.code || 'WHATSAPP_CONNECT_ABORT_SOCKET_CLOSE_FAILED', error: error?.message || String(error) }); }
-      this.generations.set(accountId, Number(this.generations.get(accountId) || row.generation || 0) + 1);
-      row.sessionFence.invalidate('WHATSAPP_CONNECT_ABORTED');
-      this.accounts.delete(accountId);
+      if (row.operationAbortPromise) return row.operationAbortPromise;
+      row.operationAbortPromise = (async () => {
+        if (this.accounts.get(accountId) !== row) return false;
+        row.startupTimedOut = true;
+        row.lastError = operationAbortError(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId }).message;
+        clearStartupWatchdog(row);
+        try { row.socket?.end?.(operationAbortError(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId })); }
+        catch (error) { logger.warn('whatsapp', 'connect-abort-socket-close-failed', { accountId: databaseAccountId, adapterAccountId: accountId, reasonCode: error?.code || 'WHATSAPP_CONNECT_ABORT_SOCKET_CLOSE_FAILED', error: error?.message || String(error) }); }
+        this.generations.set(accountId, Number(this.generations.get(accountId) || row.generation || 0) + 1);
+        await closeWhatsAppAuthLease(row, 'WHATSAPP_CONNECT_ABORTED')
+          .catch(error => logger.warn('whatsapp', 'auth-lease-close-failed', { accountId: databaseAccountId, reasonCode: error.code || 'WHATSAPP_AUTH_LEASE_CLOSE_FAILED' }));
+        row.sessionFence.invalidate('WHATSAPP_CONNECT_ABORTED');
+        if (this.accounts.get(accountId) === row) this.accounts.delete(accountId);
+        return true;
+      })().catch(error => {
+        logger.error('whatsapp', 'connect-abort-cleanup-failed', { accountId: databaseAccountId, reasonCode: error.code || 'WHATSAPP_CONNECT_ABORT_CLEANUP_FAILED', error: error.message });
+        return false;
+      });
+      return row.operationAbortPromise;
     };
     options.signal?.addEventListener?.('abort', onOperationAbort, { once: true });
     eventBus.publish('whatsapp:state', { accountId, databaseAccountId, state: 'connecting', attemptId: String(options.attemptId || '') });
 
-    const socketOptions = {
-      auth: state,
-      printQRInTerminal: false,
-      markOnlineOnConnect: false,
-      syncFullHistory: true,
-      shouldSyncHistoryMessage: () => true,
-      generateHighQualityLinkPreview: true,
-      browser: whatsappBrowserIdentity(),
-      getMessage: async key => {
-        const rawConversationId = `${databaseAccountId}:${key.remoteJid}`;
-        const target = canonicalWhatsAppTarget(databaseAccountId, key.remoteJid, rawConversationId);
-        const conversationIds = [...new Set([target.conversationId, rawConversationId].filter(Boolean))];
-        let found = null;
-        for (const conversationId of conversationIds) {
-          found = messageStore.listMessages(conversationId, { limit: 5000 }).find(message => (
-            String(message.externalMessageId || '') === String(key.id || '') || String(message.id || '') === String(key.id || '')
-          ));
-          if (found) break;
+    const messageRetryStore = this.whatsappAuthKeyAuthority && this.runtimeStoreProvider
+      ? createWhatsAppMessageRetryStore({
+        accountKey,
+        cipherProvider: () => this.whatsappAuthKeyAuthority.getCipher(),
+        storeProvider: this.runtimeStoreProvider
+      })
+      : null;
+    row.messageRetryStore = messageRetryStore;
+
+    const authRepository = createWhatsAppAuthStateRepository({
+      storeProvider: this.runtimeStoreProvider,
+      cipher: this.whatsappAuthKeyAuthority.getCipher()
+    });
+    const authStateStore = createWhatsAppAuthStateStore({ repository: authRepository, baileys });
+    const authLease = await authStateStore.open({
+      accountId: databaseAccountId,
+      accountKey,
+      generation,
+      socketToken
+    });
+    row.authLease = authLease;
+    if (options.signal?.aborted) {
+      await closeWhatsAppAuthLease(row, 'WHATSAPP_CONNECT_ABORTED')
+        .catch(error => logger.warn('whatsapp', 'auth-lease-close-failed', { accountId: databaseAccountId, reasonCode: error.code || 'WHATSAPP_AUTH_LEASE_CLOSE_FAILED' }));
+      assertOperationActive(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId, attemptId: row.attemptId });
+    }
+
+    const socketFactory = createWhatsAppSocketFactory({ baileys, logger });
+    const socketInitLease = Object.freeze({
+      close: async receipt => {
+        try {
+          await closeWhatsAppAuthLease(row, 'WHATSAPP_SOCKET_INIT_FAILED');
+        } finally {
+          row.sessionFence.invalidate(receipt?.reasonCode || 'WHATSAPP_SOCKET_INIT_FAILED');
+          await messageRetryStore?.close?.();
+          if (this.accounts.get(accountId) === row) this.accounts.delete(accountId);
         }
-        if (found?.rawMessage) return found.rawMessage;
-        const envelope = mediaAttachment(found || {})?.mediaEnvelope;
-        return reconstructBaileysMessageInfo(envelope)?.message || undefined;
       }
-    };
-    if (Array.isArray(versionInfo.version)) socketOptions.version = versionInfo.version;
+    });
     assertOperationActive(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId, attemptId: row.attemptId });
-    const socket = baileys.default(socketOptions);
+    let socketBuild;
+    try {
+      socketBuild = await socketFactory.create({
+        auth: {
+          creds: authLease.state.creds,
+          keys: authLease.state.keys
+        },
+        saveCreds: authLease.saveCreds,
+        msgRetryCounterCache: messageRetryStore || undefined,
+        getMessage: async key => messageStore.getWhatsAppMessageByKey({
+          accountId: databaseAccountId,
+          remoteJid: key.remoteJid,
+          id: key.id,
+          fromMe: key.fromMe === true,
+          participant: key.participant || ''
+        }),
+        versionInfo,
+        browser: whatsappBrowserIdentity(),
+        syncFullHistory: true,
+        shouldSyncHistoryMessage: () => true,
+        generateHighQualityLinkPreview: true,
+        authLease: socketInitLease
+      });
+    } catch (error) {
+      await closeWhatsAppAuthLease(row, 'WHATSAPP_SOCKET_INIT_FAILED')
+        .catch(closeError => logger.error('whatsapp', 'auth-lease-close-failed', {
+          accountId: databaseAccountId,
+          reasonCode: closeError.code || 'WHATSAPP_AUTH_LEASE_CLOSE_FAILED',
+          error: closeError.message
+        }));
+      throw error;
+    }
+    if (socketBuild.versionDecision.diagnosticRequired) {
+      logger.warn('whatsapp', 'sealed-compatible-version-fallback', {
+        accountId: databaseAccountId,
+        reasonCode: socketBuild.versionDecision.reasonCode,
+        versionSource: socketBuild.versionDecision.source,
+        version: [...socketBuild.versionDecision.version]
+      });
+    }
+    const socket = socketBuild.socket;
     row.socket = socket;
     const socketGuard = createSocketGenerationGuard(row.sessionFence, () => row.socket === socket);
-    const onSocket = (eventName, handler) => socketGuard.bind(socket.ev, eventName, handler);
+    const eventHandlers = new Map();
     row.startupTimer = setTimeout(() => {
       if (this.accounts.get(accountId) !== row || row.state !== 'connecting') return;
       row.state = 'offline';
@@ -1234,12 +1339,16 @@ class WhatsAppAdapter {
     }, WHATSAPP_QR_STARTUP_TIMEOUT_MS);
     row.startupTimer.unref?.();
 
-    onSocket('creds.update', async update => {
-      await saveCreds(update);
-      socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'creds.update' });
+    eventHandlers.set('creds.update', async update => {
+      const writeResult = await socketGuard.runWrite(
+        { accountId: databaseAccountId, eventName: 'creds.update' },
+        () => authLease.saveCreds()
+      );
+      if (!writeResult.ok) return writeResult;
       this.invalidateCredentialState(reference);
+      return writeResult;
     });
-    onSocket('connection.update', async update => {
+    eventHandlers.set('connection.update', async update => {
       if (options.signal?.aborted || this.accounts.get(accountId) !== row || this.generations.get(accountId) !== row.generation) return;
       const { connection, lastDisconnect, qr } = update;
       if (qr) {
@@ -1333,46 +1442,125 @@ class WhatsAppAdapter {
           timer.unref?.();
         }
       }
-      if (connection === 'close') {
-        clearStartupWatchdog(row);
-        const statusCode = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.statusCode || 0;
-        const loggedOut = statusCode === baileys.DisconnectReason.loggedOut;
-        const closeError = lastDisconnect?.error?.message || `连接关闭（${statusCode || 'unknown'}）`;
-        await this.recordConnectionFailure(accountId, closeError, loggedOut).catch(error => logger.error('whatsapp', 'account-connection-failure-update-failed', { accountId, error: error.message }));
-        socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'connection.update', phase: 'close-recorded' });
-        row.state = loggedOut ? 'logged-out' : 'offline';
-        row.lastError = closeError;
-        row.sessionFence.invalidate(loggedOut ? 'WHATSAPP_LOGGED_OUT' : 'WHATSAPP_CONNECTION_CLOSED');
-        row.socket = null;
-        if (loggedOut) authChallenges.clear(databaseAccountId);
-        const reasonCode = loggedOut ? 'WHATSAPP_LOGGED_OUT' : 'WHATSAPP_CONNECTION_CLOSED';
-        eventBus.publish('whatsapp:state', { accountId, databaseAccountId, state: row.state, error: row.lastError, lastError: row.lastError, code: reasonCode, reasonCode, attemptId: String(options.attemptId || '') });
-        logger.warn('whatsapp', 'connection-closed', { accountId, statusCode, loggedOut, error: row.lastError });
-        if (!loggedOut && !this.stopping.has(accountId) && !this.stoppedAccounts.has(accountId) && !row.startupTimedOut && this.generations.get(accountId) === row.generation) {
-          const currentAccount = accountStore.getRaw(databaseAccountId) || this.accountByAdapterId(accountId);
-          const gate = currentAccount ? accountLifecycle.eligibility(currentAccount, { manual: false }) : { eligible: false, reasons: ['account-missing'] };
-          if (!gate.eligible) {
-            logger.warn('whatsapp', 'reconnect-blocked-by-lifecycle', { accountId, databaseAccountId, reasons: gate.reasons });
-            this.cancelReconnect(accountId);
-            return;
-          }
-          row.retryCount += 1;
-          const delay = Math.min(30000, 1200 * 2 ** Math.min(row.retryCount, 5));
-          const timer = setTimeout(() => {
-            this.reconnectTimers.delete(accountId);
-            if (this.stoppedAccounts.has(accountId) || this.generations.get(accountId) !== row.generation) return;
-            const latest = accountStore.getRaw(databaseAccountId) || this.accountByAdapterId(accountId);
-            const latestGate = latest ? accountLifecycle.eligibility(latest, { manual: false }) : { eligible: false, reasons: ['account-missing'] };
-            if (!latestGate.eligible) return logger.warn('whatsapp', 'reconnect-cancelled-by-lifecycle', { accountId, databaseAccountId, reasons: latestGate.reasons });
-            this.start(latest).catch(error => logger.error('whatsapp', 'reconnect-failed', { accountId, databaseAccountId, error: error.message }));
-          }, delay);
-          timer.unref?.();
-          this.reconnectTimers.set(accountId, timer);
-        }
-      }
+
+if (connection === 'close') {
+  clearStartupWatchdog(row);
+  const closeErrorObject = lastDisconnect?.error || null;
+  const statusCode = closeErrorObject?.output?.statusCode || closeErrorObject?.statusCode || 0;
+  const stopping = this.stopping.has(accountId) || this.stoppedAccounts.has(accountId);
+  const policy = classifyDisconnect({
+    statusCode,
+    error: closeErrorObject,
+    stopping,
+    startupTimedOut: row.startupTimedOut,
+    restartRequiredRebuilds: row.restartRequiredRebuilds,
+    disconnectReasons: baileys.DisconnectReason
+  });
+  const closeError = closeErrorObject?.message || `连接关闭（${statusCode || 'unknown'}）`;
+  const invalidCredentials = policy.authEpochAction === AUTH_EPOCH_ACTION.REVOKE;
+  await this.recordConnectionFailure(accountId, closeError, invalidCredentials)
+    .catch(error => logger.error('whatsapp', 'account-connection-failure-update-failed', { accountId, error: error.message }));
+  socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'connection.update', phase: 'close-recorded' });
+
+  this.cancelReconnect(accountId);
+  row.state = policy.adapterState;
+  row.lastError = closeError;
+  row.disconnectDisposition = policy.disposition;
+  row.reasonCode = policy.reasonCode;
+  row.authEpochAction = policy.authEpochAction;
+  row.manualReviewRequired = policy.manualReviewRequired;
+  row.ownershipLost = policy.ownershipLost;
+  row.canAttemptSend = false;
+  row.canReceive = false;
+  await closeWhatsAppAuthLease(row, policy.reasonCode);
+  row.sessionFence.invalidate(policy.reasonCode);
+  row.socket = null;
+  if (invalidCredentials) {
+    authChallenges.clear(databaseAccountId);
+    this.invalidateCredentialState(reference);
+  }
+  eventBus.publish('whatsapp:state', {
+    accountId,
+    databaseAccountId,
+    state: row.state,
+    publicState: policy.publicState,
+    error: row.lastError,
+    lastError: row.lastError,
+    code: policy.reasonCode,
+    reasonCode: policy.reasonCode,
+    disposition: policy.disposition,
+    authEpochAction: policy.authEpochAction,
+    manualReviewRequired: policy.manualReviewRequired,
+    ownershipLost: policy.ownershipLost,
+    canAttemptSend: false,
+    canReceive: false,
+    attemptId: String(options.attemptId || '')
+  });
+  logger.warn('whatsapp', 'connection-closed', {
+    accountId,
+    statusCode: policy.statusCode,
+    disposition: policy.disposition,
+    reasonCode: policy.reasonCode,
+    authEpochAction: policy.authEpochAction,
+    manualReviewRequired: policy.manualReviewRequired
+  });
+
+  if (!policy.autoReconnect) return;
+  const currentAccount = accountStore.getRaw(databaseAccountId) || this.accountByAdapterId(accountId);
+  const gate = currentAccount
+    ? accountLifecycle.eligibility(currentAccount, { manual: false })
+    : { eligible: false, reasons: ['account-missing'] };
+  if (!gate.eligible) {
+    logger.warn('whatsapp', 'reconnect-blocked-by-lifecycle', { accountId, databaseAccountId, reasons: gate.reasons });
+    return;
+  }
+
+  const expectedGeneration = row.generation;
+  const expectedEpoch = Number(socketGuard.details?.epoch || 0);
+  const nextRestartRequiredRebuilds = policy.restartRequired
+    ? row.restartRequiredRebuilds + 1
+    : row.restartRequiredRebuilds;
+  row.retryCount += 1;
+  const delay = policy.retryClass === 'IMMEDIATE_ONCE'
+    ? 0
+    : Math.min(30000, 1200 * 2 ** Math.min(row.retryCount, 5));
+  const timer = setTimeout(() => {
+    if (this.reconnectTimers.get(accountId) === timer) this.reconnectTimers.delete(accountId);
+    const currentRow = this.accounts.get(accountId);
+    const currentEpoch = Number(currentRow?.sessionFence?.details?.epoch || 0);
+    if (!shouldExecuteReconnect({
+      policy,
+      expectedGeneration,
+      currentGeneration: this.generations.get(accountId),
+      expectedEpoch,
+      currentEpoch,
+      stopped: this.stoppedAccounts.has(accountId) || this.stopping.has(accountId),
+      accountPresent: currentRow === row
+    })) return;
+    const latest = accountStore.getRaw(databaseAccountId) || this.accountByAdapterId(accountId);
+    const latestGate = latest
+      ? accountLifecycle.eligibility(latest, { manual: false })
+      : { eligible: false, reasons: ['account-missing'] };
+    if (!latestGate.eligible) {
+      logger.warn('whatsapp', 'reconnect-cancelled-by-lifecycle', { accountId, databaseAccountId, reasons: latestGate.reasons });
+      return;
+    }
+    this.start(latest, {
+      authEpoch: expectedEpoch,
+      restartRequiredRebuilds: nextRestartRequiredRebuilds
+    }).catch(error => logger.error('whatsapp', 'reconnect-failed', {
+      accountId,
+      databaseAccountId,
+      reasonCode: policy.reasonCode,
+      error: error.message
+    }));
+  }, delay);
+  timer.unref?.();
+  this.reconnectTimers.set(accountId, timer);
+}
     });
 
-    onSocket('messaging-history.set', async payload => {
+    eventHandlers.set('messaging-history.set', async payload => {
       const startedAt = Date.now();
       try {
         const directoryStats = persistWhatsAppDirectorySnapshot({
@@ -1408,10 +1596,11 @@ class WhatsAppAdapter {
         if (!socketGuard.isCurrent() || error?.code === 'SOCKET_GENERATION_STALE') return;
         logger.error('whatsapp', 'history-sync-failed', { accountId: databaseAccountId, errorCode: error.code || error.message });
         eventBus.publish('whatsapp:ingest-error', { accountId: databaseAccountId, scope: 'history', error: error.message });
+        throw error;
       }
     });
 
-    onSocket('messages.upsert', async payload => {
+    eventHandlers.set('messages.upsert', async payload => {
       const batch = syncCheckpoint.begin({ platform: 'whatsapp', accountId: databaseAccountId, scopeId: 'messages', payload: { source: payload.type || 'unknown' } });
       let lastRemoteMessageId = '';
       let lastRemoteTimestamp = '';
@@ -1579,7 +1768,7 @@ class WhatsAppAdapter {
       }
     });
 
-    onSocket('lid-mapping.update', async mapping => {
+    eventHandlers.set('lid-mapping.update', async mapping => {
       const lid = historyJid(mapping?.lid || '');
       const pn = historyJid(mapping?.pn || '');
       if (!lid || !pn) return;
@@ -1603,7 +1792,7 @@ class WhatsAppAdapter {
       }
     });
 
-    onSocket('presence.update', payload => {
+    eventHandlers.set('presence.update', payload => {
       const chatJid = String(payload?.id || '').trim();
       if (!chatJid) return;
       const presences = payload?.presences && typeof payload.presences === 'object' ? payload.presences : {};
@@ -1654,7 +1843,7 @@ class WhatsAppAdapter {
       }
     });
 
-    onSocket('messages.update', async rows => {
+    eventHandlers.set('messages.update', async rows => {
       for (const rowUpdate of Array.isArray(rows) ? rows : []) {
         const id = rowUpdate.key?.id;
         const remoteJid = rowUpdate.key?.remoteJid;
@@ -1666,30 +1855,59 @@ class WhatsAppAdapter {
       }
     });
 
-    onSocket('message-receipt.update', rows => {
+    eventHandlers.set('message-receipt.update', rows => {
       eventBus.publish('message:receipt-batch', { accountId: databaseAccountId, rows: Array.isArray(rows) ? rows.length : 0 });
     });
 
-    onSocket('chats.upsert', rows => {
+    eventHandlers.set('chats.upsert', rows => {
       const persisted = persistWhatsAppDirectorySnapshot({ databaseAccountId, chats: rows, source: 'chats.upsert' });
       eventBus.publish('conversations:upsert', { accountId: databaseAccountId, platform: 'whatsapp', rows, persisted });
       this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'chats.upsert').catch(error => logger.warn('whatsapp', 'avatar-chat-upsert-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
     });
-    onSocket('chats.update', rows => {
+    eventHandlers.set('chats.update', rows => {
       const persisted = persistWhatsAppDirectorySnapshot({ databaseAccountId, chats: rows, source: 'chats.update' });
       eventBus.publish('conversations:update', { accountId: databaseAccountId, platform: 'whatsapp', rows, persisted });
       this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'chats.update').catch(error => logger.warn('whatsapp', 'avatar-chat-update-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
     });
-    onSocket('contacts.upsert', rows => {
+    eventHandlers.set('contacts.upsert', rows => {
       const persisted = persistWhatsAppDirectorySnapshot({ databaseAccountId, contacts: rows, source: 'contacts.upsert' });
       eventBus.publish('contacts:upsert', { accountId: databaseAccountId, rows, persisted });
       this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'contacts.upsert').catch(error => logger.warn('whatsapp', 'avatar-contact-upsert-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
     });
-    onSocket('contacts.update', rows => {
+    eventHandlers.set('contacts.update', rows => {
       const persisted = persistWhatsAppDirectorySnapshot({ databaseAccountId, contacts: rows, source: 'contacts.update' });
       eventBus.publish('contacts:update', { accountId: databaseAccountId, rows, persisted });
       this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'contacts.update').catch(error => logger.warn('whatsapp', 'avatar-contact-update-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
     });
+
+const eventProcessor = createWhatsAppBaileysEventProcessor({
+  guard: socketGuard,
+  handlers: eventHandlers,
+  createContext: ({ batchSequence }) => Object.freeze({
+    batchSequence,
+    accountId: databaseAccountId,
+    adapterAccountId: accountId,
+    generation: row.generation,
+    epoch: Number(socketGuard.details?.epoch || 0),
+    socketToken: String(socketGuard.details?.socketToken || '')
+  })
+});
+socket.ev.process(async events => {
+  const result = await eventProcessor.process(events);
+  if (!result.ok && !result.quarantined) {
+    logger.warn('whatsapp', 'baileys-event-batch-replay-required', {
+      accountId: databaseAccountId,
+      batchSequence: result.context.batchSequence,
+      reasonCode: result.reasonCode,
+      failedStages: result.stages.filter(stage => !stage.ok).map(stage => ({
+        eventName: stage.eventName,
+        reasonCode: stage.reasonCode,
+        replayRequired: stage.replayRequired
+      }))
+    });
+  }
+  return result;
+});
 
     assertOperationActive(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId, attemptId: row.attemptId });
     options.signal?.removeEventListener?.('abort', onOperationAbort);
@@ -1785,22 +2003,54 @@ class WhatsAppAdapter {
     this.cancelReconnect(accountId);
     const row = this.accounts.get(accountId);
     this.stoppedAccounts.add(accountId);
-    this.generations.set(accountId, Number(this.generations.get(accountId) || 0) + 1);
-    if (!row) return { ok: true, state: 'stopped' };
+    if (!row) {
+      this.generations.set(accountId, Number(this.generations.get(accountId) || 0) + 1);
+      return { ok: true, state: 'stopped' };
+    }
+
+    const terminalReason = logout ? 'WHATSAPP_LOGOUT' : 'WHATSAPP_STOP';
     this.stopping.add(accountId);
     clearStartupWatchdog(row);
-    row.sessionFence?.invalidate?.(logout ? 'WHATSAPP_LOGOUT' : 'WHATSAPP_STOP');
-    try {
-      if (logout && row.socket?.logout) await row.socket.logout();
-      else row.socket?.end?.(new Error('YANCE_STOP'));
-    } catch (error) {
-      logger.warn('whatsapp', 'account-stop-failed', { operation: logout ? 'socket.logout' : 'socket.end', accountId: row.databaseAccountId || accountId, reasonCode: error.code || 'WHATSAPP_ACCOUNT_STOP_FAILED', httpStatus: Number(error.status || 0), attempt: 1, nextRetryAt: '' });
+
+    if (logout) {
+      try {
+        if (row.socket?.logout) await row.socket.logout();
+      } catch (error) {
+        logger.warn('whatsapp', 'account-stop-failed', {
+          operation: 'socket.logout',
+          accountId: row.databaseAccountId || accountId,
+          reasonCode: error.code || 'WHATSAPP_ACCOUNT_STOP_FAILED',
+          httpStatus: Number(error.status || 0),
+          attempt: 1,
+          nextRetryAt: ''
+        });
+      } finally {
+        await closeWhatsAppAuthLease(row, logout ? 'WHATSAPP_LOGOUT' : 'WHATSAPP_STOP');
+      }
+    } else {
+      this.generations.set(accountId, Number(this.generations.get(accountId) || row.generation || 0) + 1);
+      await closeWhatsAppAuthLease(row, logout ? 'WHATSAPP_LOGOUT' : 'WHATSAPP_STOP');
+      try {
+        row.socket?.end?.(new Error('YANCE_STOP'));
+      } catch (error) {
+        logger.warn('whatsapp', 'account-stop-failed', {
+          operation: 'socket.end',
+          accountId: row.databaseAccountId || accountId,
+          reasonCode: error.code || 'WHATSAPP_ACCOUNT_STOP_FAILED',
+          httpStatus: Number(error.status || 0),
+          attempt: 1,
+          nextRetryAt: ''
+        });
+      }
     }
+
+    if (logout) {
+      this.generations.set(accountId, Number(this.generations.get(accountId) || row.generation || 0) + 1);
+    }
+    row.sessionFence?.invalidate?.(terminalReason);
     authChallenges.clear(row.databaseAccountId || accountId);
     this.invalidateCredentialState(row.databaseAccountId || accountId);
     this.accounts.delete(accountId);
-    // Keep the stop marker until an explicit start clears it. This invalidates
-    // delayed close events emitted after socket.end().
     eventBus.publish('whatsapp:state', { accountId, state: 'stopped' });
     return { ok: true, state: 'stopped' };
   }
@@ -2160,6 +2410,7 @@ module.exports.discoverBaileysVersion = discoverBaileysVersion;
 module.exports.WHATSAPP_VERSION_DISCOVERY_TIMEOUT_MS = WHATSAPP_VERSION_DISCOVERY_TIMEOUT_MS;
 module.exports.WHATSAPP_QR_STARTUP_TIMEOUT_MS = WHATSAPP_QR_STARTUP_TIMEOUT_MS;
 module.exports.loadQRCodeDependency = loadQRCodeDependency;
+module.exports.closeWhatsAppAuthLease = closeWhatsAppAuthLease;
 
 module.exports.historyJid = historyJid;
 module.exports.canonicalWhatsAppTarget = canonicalWhatsAppTarget;

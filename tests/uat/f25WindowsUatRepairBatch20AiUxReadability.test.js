@@ -5,12 +5,17 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
+const { installAuthoritySqliteTestHost } = require('./helpers/authoritySqliteTestHost');
+const authoritySqliteTestHost = installAuthoritySqliteTestHost('f25-ai-ux-readability');
+
 const smoke = require('../../backend/services/openRouterOnboardingSmokeService');
 const diagnostics = require('../../backend/services/diagnosticsService');
 const routingIntegrity = require('../../backend/services/modelRoutingIntegrityService');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const source = file => fs.readFileSync(path.join(ROOT, file), 'utf8');
+
+test.after(() => authoritySqliteTestHost.close());
 
 function fakeRegistry() {
   const state = {

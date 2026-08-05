@@ -2,12 +2,29 @@
 
 const { getStore } = require('./storeProvider');
 const { parseJson } = require('../lib/r32SqliteStore');
+const { canonicalHash } = require('../services/canonicalSerialization');
 const { assertCoordinatorRepositoryCapability } = require('../services/authorityTransactionCoordinator');
 const { ensureCanonicalProjectionReceiptSchema } = require('../migrations/projectionReceiptSchemaAuthority');
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function json(value, fallback = '{}') {
   try { return JSON.stringify(value == null ? JSON.parse(fallback) : value); } catch (_) { return fallback; }
+}
+function projectionCheckpointOutputHash(input = {}, ledgerSequence) {
+  const explicitHash = clean(input.projectionHash).toLowerCase();
+  if (/^[a-f0-9]{64}$/u.test(explicitHash)) return explicitHash;
+  return canonicalHash({
+    contractVersion: 1,
+    projectorName: clean(input.projectorName),
+    projectorVersion: clean(input.projectorVersion),
+    eventId: clean(input.eventId),
+    ledgerSequence,
+    projectionStatus: clean(input.projectionStatus),
+    failureCode: clean(input.failureCode),
+    failureReason: clean(input.failureReason),
+    targetRefs: input.targetRefs == null ? [] : input.targetRefs,
+    attempt: Number(input.attempt || 1)
+  });
 }
 function rowJson(row, fields = []) {
   if (!row) return null;
@@ -588,7 +605,7 @@ class PlatformCoreRepository {
         WHERE projection_checkpoints_v2.ledger_sequence<=excluded.ledger_sequence
       `).run(
         clean(input.projectorName), clean(input.projectorVersion), ledgerSequence, token.hostId, token.hostGeneration, token.fencingToken,
-        clean(input.projectionHash), 0, clean(input.projectedAt)
+        projectionCheckpointOutputHash(input, ledgerSequence), 0, clean(input.projectedAt)
       );
       return rowJson(db.prepare(`
         SELECT * FROM domain_projection_receipts WHERE projector_name=? AND projector_version=? AND event_id=?

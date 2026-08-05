@@ -9,6 +9,24 @@ const path = require('node:path');
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wa-account-reconcile-'));
 process.env.YANCE_DATA_DIR = dataRoot;
 
+const { PATHS } = require('../config');
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  SqliteConnectionBroker,
+  configureSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+resetSqliteConnectionBrokerForTests();
+const testWriteHost = acquireAuthorityWriteHost({
+  dbPath: PATHS.sqlite,
+  instanceId: 'oss1a-orphan-reconciliation-test-host'
+});
+const testBroker = new SqliteConnectionBroker({
+  dbPath: PATHS.sqlite,
+  authorityWriteHostCapability: testWriteHost.capability
+});
+configureSqliteConnectionBroker(testBroker);
+testBroker.open();
 const { getStore, closeStore } = require('../repositories/storeProvider');
 const { stableId } = require('../lib/r32SqliteStore');
 const service = require('../services/whatsappAccountReconciliationService');
@@ -16,6 +34,8 @@ const outboxRouteAuthority = require('../services/outboxRouteAuthority').singlet
 
 process.on('exit', () => {
   try { closeStore(); } catch (error) { process.stderr.write(`closeStore failed: ${error.message}\n`); }
+  try { resetSqliteConnectionBrokerForTests(); } catch (error) { process.stderr.write(`broker reset failed: ${error.message}\n`); }
+  try { testWriteHost.close(); } catch (error) { process.stderr.write(`write host release failed: ${error.message}\n`); }
   try { fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (error) { process.stderr.write(`cleanup failed: ${error.message}\n`); }
 });
 
@@ -235,4 +255,79 @@ test('ambiguous orphan account evidence is reported but never merged across acti
   assert.equal(count(db, "SELECT COUNT(*) AS n FROM r32_conversations WHERE account_id=? AND COALESCE(merged_into,'')=''", sourceAccountId), 2);
   assert.equal(count(db, 'SELECT COUNT(*) AS n FROM r32_messages WHERE account_id=?', sourceAccountId), 2);
   assert.equal(count(db, "SELECT COUNT(*) AS n FROM identity_aliases WHERE platform='whatsapp' AND alias_type='account-id' AND alias_value=?", sourceAccountId), 0);
+});
+
+test('legacy auth discovery stays diagnostic and database tombstone blocks filesystem resurrection', async () => {
+  const baileys = require('@whiskeysockets/baileys');
+  const { PATHS } = require('../config');
+  const resolver = require('../services/whatsappAuthResolver');
+  const recovery = require('../services/credentialRecoveryService');
+  const store = getStore();
+  const db = store.db;
+  const accountId = 'wh-legacy-tombstone-recovery';
+  const stableKey = 'legacy-tombstone-recovery';
+  const accountKey = `whatsapp-auth-account:${stableKey}`;
+  const sourceDirectory = path.join(PATHS.baileysAuthLegacy, stableKey);
+  const runtimeDirectory = path.join(PATHS.whatsappAuth, stableKey);
+  fs.mkdirSync(sourceDirectory, { recursive: true });
+  const creds = baileys.initAuthCreds();
+  creds.registered = true;
+  creds.me = { id: '15559990000:1@s.whatsapp.net', name: 'Tombstoned Legacy' };
+  fs.writeFileSync(path.join(sourceDirectory, 'creds.json'), JSON.stringify(creds, baileys.BufferJSON.replacer), 'utf8');
+  fs.writeFileSync(path.join(sourceDirectory, 'session-live.json'), JSON.stringify({ chainKey: Buffer.from([1, 2, 3]) }, baileys.BufferJSON.replacer), 'utf8');
+
+  store.upsertAccount({
+    id: accountId,
+    accountId,
+    adapterAccountId: stableKey,
+    platform: 'whatsapp',
+    displayName: 'Tombstoned WhatsApp',
+    state: 'logged-out',
+    lifecycleState: 'tombstoned',
+    tombstonedAt: iso(-1000),
+    canSend: false,
+    canReceive: false
+  });
+  db.prepare(`INSERT INTO whatsapp_auth_accounts(
+    account_key,account_id,current_epoch,state,creds_cipher_version,creds_key_version,
+    creds_nonce,creds_ciphertext,creds_auth_tag,creds_ciphertext_sha256,registered,
+    identity_jid_hmac,writer_generation,writer_socket_token,created_at,updated_at,
+    logged_out_at,quarantine_reason
+  ) VALUES(?,?,?,?,NULL,NULL,NULL,NULL,NULL,'',0,'',?,?,?,? ,?,'')`).run(
+    accountKey, accountId, 4, 'LOGGED_OUT', 22, 'tombstone-token', iso(-1000), iso(-1000), iso(-1000)
+  );
+
+  const discovered = resolver.resolveAuthLocation(stableKey, { migrate: true, includeFileCount: true });
+  assert.equal(discovered.discoveryOnly, true);
+  assert.equal(discovered.runtimeAuthState, null);
+  assert.equal(discovered.migration.performed, false);
+  assert.equal(fs.existsSync(runtimeDirectory), false, 'resolver must never copy legacy auth into a runtime directory');
+  assert.equal(fs.existsSync(sourceDirectory), true);
+
+  const accountBefore = db.prepare('SELECT state,can_send,can_receive,payload_json,updated_at FROM r32_accounts WHERE id=?').get(accountId);
+  const authorityBefore = db.prepare('SELECT state,current_epoch,writer_generation,writer_socket_token,logged_out_at FROM whatsapp_auth_accounts WHERE account_key=?').get(accountKey);
+  const report = await recovery.recoverAtStartup({ scanDataRoot: false });
+
+  assert.equal(report.registered.length, 0);
+  assert.equal(report.reconciled.length, 0);
+  assert.equal(report.copied.length, 0);
+  assert.equal(report.importRequired.length, 0);
+  assert.deepEqual(report.tombstones, [{
+    accountId,
+    accountKey,
+    stableKey,
+    state: 'LOGGED_OUT',
+    directory: path.resolve(sourceDirectory),
+    reasonCode: 'WHATSAPP_LEGACY_AUTH_RESURRECTION_BLOCKED'
+  }]);
+  assert.deepEqual(
+    db.prepare('SELECT state,can_send,can_receive,payload_json,updated_at FROM r32_accounts WHERE id=?').get(accountId),
+    accountBefore
+  );
+  assert.deepEqual(
+    db.prepare('SELECT state,current_epoch,writer_generation,writer_socket_token,logged_out_at FROM whatsapp_auth_accounts WHERE account_key=?').get(accountKey),
+    authorityBefore
+  );
+  assert.equal(fs.existsSync(runtimeDirectory), false);
+  assert.equal(fs.existsSync(sourceDirectory), true);
 });

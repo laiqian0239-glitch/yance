@@ -66,7 +66,7 @@ test('late async WhatsApp callback completion is quarantined without an unhandle
   assert.equal(effects, 0);
 });
 
-test('every WhatsApp Baileys event category is registered through the guarded binder', () => {
+test('every WhatsApp Baileys event category is registered through the single ordered processor', () => {
   const source = fs.readFileSync(path.join(__dirname, '../services/whatsappAdapter.js'), 'utf8');
   const expectedEvents = [
     'creds.update',
@@ -84,7 +84,26 @@ test('every WhatsApp Baileys event category is registered through the guarded bi
   ];
 
   assert.equal(source.includes('socket.ev.on('), false);
+  assert.equal(source.includes('socketGuard.bind(socket.ev'), false);
+  assert.match(source, /const\s+eventHandlers\s*=\s*new Map\(\)/u);
+  assert.match(source, /socket\.ev\.process\(/u);
   for (const eventName of expectedEvents) {
-    assert.match(source, new RegExp(`onSocket\\('${eventName.replace('.', '\\.')}[^']*'`));
+    assert.match(source, new RegExp(`eventHandlers\\.set\\('${eventName.replace('.', '\\.')}[^']*'`));
   }
+});
+test('creds.update enters runWrite before saveCreds and never uses the old write-then-assert order', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../services/whatsappAdapter.js'), 'utf8');
+  const start = source.indexOf("eventHandlers.set('creds.update'");
+  const end = source.indexOf("eventHandlers.set('connection.update'", start);
+  assert.ok(start >= 0 && end > start, 'creds.update handler block is missing');
+  const block = source.slice(start, end);
+  const runWriteIndex = block.indexOf('socketGuard.runWrite(');
+  const saveCredsIndex = block.indexOf('saveCreds(');
+  assert.ok(runWriteIndex >= 0, 'creds.update must use socketGuard.runWrite');
+  assert.ok(saveCredsIndex > runWriteIndex, 'saveCreds must execute only inside runWrite');
+  assert.doesNotMatch(
+    block,
+    /await\s+saveCreds\(update\);[\s\S]*socketGuard\.assertCurrent/u,
+    'legacy write-then-assert ordering must be removed'
+  );
 });

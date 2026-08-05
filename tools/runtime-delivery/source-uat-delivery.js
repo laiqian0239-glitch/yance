@@ -634,6 +634,24 @@ function expectedElectronArtifact(repoRoot, platform = process.platform, arch = 
   };
 }
 
+function readGitLfsPointer(filePath) {
+  try {
+    const resolvedPath = path.resolve(filePath);
+    const stat = fs.statSync(resolvedPath);
+    if (!stat.isFile() || stat.size > 1024) return null;
+    const text = fs.readFileSync(resolvedPath, 'utf8').replace(/\r\n/gu, '\n');
+    const match = /^version https:\/\/git-lfs\.github\.com\/spec\/v1\noid sha256:([0-9a-f]{64})\nsize ([1-9][0-9]*)\n?$/u.exec(text);
+    if (!match) return null;
+    return Object.freeze({
+      path: resolvedPath,
+      oidSha256: match[1],
+      objectSize: Number(match[2])
+    });
+  } catch (_) {
+    return null;
+  }
+}
+
 function discoverElectronArchive(repoRoot, options = {}) {
   const artifact = expectedElectronArtifact(repoRoot, options.platform || process.platform, options.arch || process.arch);
   const candidates = [
@@ -643,17 +661,33 @@ function discoverElectronArchive(repoRoot, options = {}) {
     path.join(repoRoot, 'dependencies', artifact.fileName),
     path.join(repoRoot, 'vendor', 'electron', artifact.fileName)
   ].filter(Boolean).map(value => path.resolve(value));
-  const archivePath = candidates.find(candidate => fs.existsSync(candidate) && fs.statSync(candidate).isFile()) || '';
-  if (!archivePath) return { artifact, archivePath: '', candidates };
-  const actualSha256 = sha256File(archivePath);
-  if (actualSha256 !== artifact.sha256) {
-    throw deliveryError('SOURCE_UAT_ELECTRON_ARCHIVE_HASH_MISMATCH', '本地 Electron ZIP 未通过仓库信任 SHA-256 校验', {
-      archivePath,
-      expectedSha256: artifact.sha256,
-      actualSha256
-    });
+  let lfsPointer = null;
+  for (const candidate of candidates) {
+    if (!fs.existsSync(candidate) || !fs.statSync(candidate).isFile()) continue;
+    const pointer = readGitLfsPointer(candidate);
+    if (pointer) {
+      if (pointer.oidSha256 !== artifact.sha256) {
+        throw deliveryError('SOURCE_UAT_ELECTRON_LFS_POINTER_HASH_MISMATCH', 'Electron Git LFS pointer is not bound to the reviewed archive SHA-256', {
+          pointerPath: pointer.path,
+          expectedSha256: artifact.sha256,
+          actualSha256: pointer.oidSha256,
+          objectSize: pointer.objectSize
+        });
+      }
+      lfsPointer ||= pointer;
+      continue;
+    }
+    const actualSha256 = sha256File(candidate);
+    if (actualSha256 !== artifact.sha256) {
+      throw deliveryError('SOURCE_UAT_ELECTRON_ARCHIVE_HASH_MISMATCH', '本地 Electron ZIP 未通过仓库信任 SHA-256 校验', {
+        archivePath: candidate,
+        expectedSha256: artifact.sha256,
+        actualSha256
+      });
+    }
+    return { artifact, archivePath: candidate, candidates, actualSha256, lfsPointer };
   }
-  return { artifact, archivePath, candidates, actualSha256 };
+  return { artifact, archivePath: '', candidates, lfsPointer };
 }
 
 function runNpmCi(repoRoot, env = {}, options = {}) {
@@ -945,6 +979,7 @@ module.exports = {
   payloadIdentity,
   portAvailable,
   prepareSourceUat,
+  readGitLfsPointer,
   resolveDataRoot,
   resolveSourceIdentity,
   runNpmCi,

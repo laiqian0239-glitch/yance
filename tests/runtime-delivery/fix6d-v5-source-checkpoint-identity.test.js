@@ -9,15 +9,8 @@ const repoRoot = path.resolve(__dirname, '..', '..');
 const checkpointPath = path.join(repoRoot, 'YANCE_SOURCE_CHECKPOINT.json');
 const descriptorPath = path.join(repoRoot, 'YANCE_ARTIFACT_DESCRIPTOR.json');
 
-const EXPECTED = Object.freeze({
-  branch: 'fix6d-runtime-authority-v1',
-  commit: '91096c2eb1a9e289b1a68b351a326166cf9c379d',
-  tree: 'de013fcf1f2547cdc48874976f2a719f9c73f57c',
-  upstreamCommit: '514dc7a45e4891ed96c00a9046702676b9fe6d2c',
-  upstreamTree: 'c594b6848c6bf588ec72eba6308eef21090cc5ec'
-});
-
-test('source ZIP binds Windows source UAT to its authoritative identity contract', () => {
+test('mutable repository and exported Windows source ZIP keep distinct source identity authorities', () => {
+  const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8'));
   const derivedPath = path.join(repoRoot, 'YANCE_DERIVED_SOURCE_IDENTITY.json');
   if (fs.existsSync(derivedPath)) {
     const derived = JSON.parse(fs.readFileSync(derivedPath, 'utf8'));
@@ -31,7 +24,6 @@ test('source ZIP binds Windows source UAT to its authoritative identity contract
     assert.equal(derived.releaseGates.formalRelease, false);
     assert.equal(derived.releaseGates.candidatePackageGenerated, false);
 
-    const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8'));
     assert.equal(descriptor.artifactType, 'WINDOWS_SOURCE_UAT_HANDOFF');
     assert.match(descriptor.artifactClass, new RegExp(`^BATCH\\d+_${derived.derivedVersion}_WINDOWS_SOURCE_UAT$`, 'u'));
     const releaseBatch = descriptor.artifactClass.split('_')[0].toLowerCase();
@@ -50,30 +42,19 @@ test('source ZIP binds Windows source UAT to its authoritative identity contract
     return;
   }
 
-  const checkpoint = JSON.parse(fs.readFileSync(checkpointPath, 'utf8'));
-  assert.equal(checkpoint.documentType, 'YANCE_SOURCE_CHECKPOINT');
-  assert.equal(checkpoint.branch, EXPECTED.branch);
-  assert.equal(checkpoint.commit, EXPECTED.commit);
-  assert.equal(checkpoint.tree, EXPECTED.tree);
-  assert.equal(checkpoint.upstream?.commit, EXPECTED.upstreamCommit);
-  assert.equal(checkpoint.upstream?.tree, EXPECTED.upstreamTree);
-  assert.equal(checkpoint.artifactClass, 'BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_WINDOWS_SOURCE_UAT');
-  assert.equal(checkpoint.windowsUiUat, false);
-  assert.equal(checkpoint.readyForPromotion, false);
-  assert.equal(checkpoint.formalRelease, false);
-  assert.equal(checkpoint.candidatePackageGenerated, false);
-
-  const descriptor = JSON.parse(fs.readFileSync(descriptorPath, 'utf8'));
-  assert.equal(descriptor.artifactType, 'WINDOWS_SOURCE_UAT_HANDOFF');
-  assert.equal(descriptor.artifactClass, 'BATCH40_FIX6D_RUNTIME_AUTHORITY_V1_WINDOWS_SOURCE_UAT');
-  assert.deepEqual(descriptor.sourceIdentity, {
-    branch: EXPECTED.branch,
-    commit: EXPECTED.commit,
-    tree: EXPECTED.tree,
-    parent: '514dc7a45e4891ed96c00a9046702676b9fe6d2c'
-  });
+  assert.equal(descriptor.documentType, 'YANCE_ARTIFACT_DESCRIPTOR');
+  assert.equal(descriptor.artifactType, 'MUTABLE_GIT_IMPLEMENTATION_REPOSITORY');
+  assert.equal(descriptor.sourceIdentity.authority, 'GIT_HEAD_AT_RUNTIME');
+  assert.equal(descriptor.sourceIdentity.trackedDerivedIdentity, false);
+  assert.equal(descriptor.sourceIdentity.sealedExport, false);
+  assert.equal(descriptor.identityProtocol.trackedDerivedIdentityForbidden, true);
+  assert.equal(descriptor.identityProtocol.derivedIdentityGeneratedAtExport, true);
   assert.equal(descriptor.governance.windowsUiUat, false);
   assert.equal(descriptor.governance.readyForPromotion, false);
   assert.equal(descriptor.governance.formalRelease, false);
   assert.equal(descriptor.governance.candidatePackageGenerated, false);
+
+  const historicalCheckpoint = JSON.parse(fs.readFileSync(checkpointPath, 'utf8'));
+  assert.equal(historicalCheckpoint.documentType, 'YANCE_SOURCE_CHECKPOINT');
+  assert.notEqual(descriptor.sourceIdentity.authority, 'YANCE_SOURCE_CHECKPOINT.json');
 });
