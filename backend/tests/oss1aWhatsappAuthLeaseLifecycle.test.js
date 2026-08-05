@@ -42,6 +42,42 @@ test('auth lease close primitive is idempotent and records one terminal reason',
   assert.equal(row.authLeaseCloseReason, 'WHATSAPP_STOP');
 });
 
+test('logout keeps the auth lease writable until Baileys finishes its terminal credential mutation', async () => {
+  const { WhatsAppAdapter } = require('../services/whatsappAdapter');
+  const adapter = new WhatsAppAdapter();
+  const events = [];
+  adapter.accounts.set('wa-logout-order', {
+    databaseAccountId: 'wa-logout-order',
+    authLease: {
+      async close(reason) {
+        events.push(`lease-close:${reason}`);
+        return true;
+      }
+    },
+    authLeaseClosed: false,
+    authLeaseCloseReason: '',
+    socket: {
+      async logout() {
+        events.push('socket-logout');
+      }
+    },
+    sessionFence: {
+      invalidate(reason) {
+        events.push(`fence:${reason}`);
+      }
+    }
+  });
+
+  await adapter.stop('wa-logout-order', true);
+
+  assert.deepEqual(events.slice(0, 2), [
+    'socket-logout',
+    'lease-close:WHATSAPP_LOGOUT'
+  ]);
+  assert.equal(events.at(-1), 'fence:WHATSAPP_LOGOUT');
+  assert.equal(adapter.accounts.has('wa-logout-order'), false);
+});
+
 test('socket initialization failure closes the unpublished auth lease exactly once', () => {
   const source = adapterSource();
   const start = methodBlock(source, 'start', 'sync');
