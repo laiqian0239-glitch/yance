@@ -11,7 +11,7 @@ permissions:
 env:
   IMPLEMENTATION_HEAD: fbb59fa305399596df53a665663669cf45272f8d
   GOVERNANCE_HEAD: 0f06ee23d6c64907b0fea0ce0d2239f34ffc452e
-  CANDIDATE_BRANCH: candidate/oss1a-v11-uat-diagnostics-green-v1
+  CANDIDATE_BRANCH: candidate/oss1a-v11-uat-diagnostics-green-v2
   CLEAN_WORKTREE: /tmp/oss1a-v11-uat-diagnostics-clean
 
 jobs:
@@ -146,10 +146,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          echo "candidate_head=$(git rev-parse HEAD)"
+          echo "candidate_status_begin"
+          git status --porcelain=v1 --untracked-files=all
+          echo "candidate_status_end"
+          if test -n "$(git status --porcelain=v1 --untracked-files=all)"; then
+            echo "candidate construction worktree is dirty after isolated verification" >&2
+            exit 1
+          fi
+          git diff --exit-code
+          git diff --cached --exit-code
           git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
           git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
-          git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
+          git remote -v
+          git push --verbose origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
 
   verify-windows:
     needs: build-candidate
