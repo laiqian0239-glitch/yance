@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const { execFileSync } = require('node:child_process');
+const { TextDecoder } = require('node:util');
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
 
@@ -19,6 +20,25 @@ function splitFileList(value) {
 
 function cliError(message, reasonCode) {
   return Object.assign(new Error(message), { reasonCode });
+}
+
+function parseNulFileList(value, reasonCode = 'CI_DIFF_PATH_LIST_INVALID') {
+  if (!Buffer.isBuffer(value) || value.length === 0 || value[value.length - 1] !== 0) {
+    throw cliError('trusted git path list must be a non-empty NUL-terminated byte sequence', reasonCode);
+  }
+
+  let decoded;
+  try {
+    decoded = new TextDecoder('utf-8', { fatal: true }).decode(value.subarray(0, -1));
+  } catch {
+    throw cliError('trusted git path list must be valid UTF-8', reasonCode);
+  }
+
+  const files = decoded.split('\0');
+  if (files.length === 0 || files.some(file => file.length === 0)) {
+    throw cliError('trusted git path list contains an empty record', reasonCode);
+  }
+  return files;
 }
 
 function assertCommitObject(repoRoot, sha, reasonCode) {
@@ -41,14 +61,15 @@ function diffChangedFiles({ repoRoot, base, head, reasonCode }) {
   assertCommitObject(repoRoot, head, reasonCode);
   const output = execFileSync(
     'git',
-    ['-c', 'core.quotePath=false', 'diff', '--name-only', base, head, '--'],
+    ['diff', '--name-only', '-z', base, head, '--'],
     {
       cwd: repoRoot,
-      encoding: 'utf8',
+      encoding: null,
       stdio: ['ignore', 'pipe', 'pipe']
     }
   );
-  return splitFileList(output);
+  if (output.length === 0) return [];
+  return parseNulFileList(output, reasonCode);
 }
 
 function appendGithubOutputs(values) {
@@ -79,6 +100,7 @@ module.exports = {
   appendGithubOutputs,
   argValue,
   diffChangedFiles,
+  parseNulFileList,
   runJsonCli,
   splitFileList
 };

@@ -9,15 +9,46 @@ const {
   appendGithubOutputs,
   argValue,
   diffChangedFiles,
+  parseNulFileList,
   splitFileList
 } = require('../../tools/layered-ci/cli-support');
+const {
+  parseLsTreeMode
+} = require('../../tools/layered-ci/verify-product-documentation');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 
-test('CLI argument and file-list parsing are centralized and deterministic', () => {
+test('CLI argument and human file-list parsing remain centralized and deterministic', () => {
   assert.equal(argValue(['node', 'tool', '--base', 'abc'], '--base'), 'abc');
   assert.equal(argValue(['node', 'tool'], '--base'), '');
   assert.deepEqual(splitFileList('b.js\na.js,b.js\r\n'), ['b.js', 'a.js', 'b.js']);
+});
+
+test('trusted git path parsing uses NUL records and preserves commas and newlines atomically', () => {
+  const raw = Buffer.from(
+    'docs/superpowers/plans/comma,name.md\0docs/superpowers/plans/line\nbreak.md\0',
+    'utf8'
+  );
+  assert.deepEqual(parseNulFileList(raw), [
+    'docs/superpowers/plans/comma,name.md',
+    'docs/superpowers/plans/line\nbreak.md'
+  ]);
+  assert.throws(
+    () => parseNulFileList(Buffer.from('unterminated.md', 'utf8')),
+    error => error.reasonCode === 'CI_DIFF_PATH_LIST_INVALID'
+  );
+});
+
+test('ls-tree mode parsing consumes exactly one NUL-delimited record', () => {
+  const raw = Buffer.from(
+    '100644 blob 0123456789abcdef0123456789abcdef01234567\tdocs/superpowers/plans/comma,name.md\0',
+    'utf8'
+  );
+  assert.equal(parseLsTreeMode(raw), '100644');
+  assert.throws(
+    () => parseLsTreeMode(Buffer.from('100644 blob invalid\tfile.md\n', 'utf8')),
+    error => error.reasonCode === 'WP0_PRODUCT_DOCUMENTATION_TREE_ENTRY_INVALID'
+  );
 });
 
 test('diff range rejects non-exact commit IDs before invoking git diff', () => {

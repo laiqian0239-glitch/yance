@@ -27,6 +27,8 @@ jobs:
     timeout-minutes: 6
     outputs:
       route: ${{ steps.route.outputs.route }}
+      base: ${{ steps.range.outputs.base }}
+      head: ${{ steps.range.outputs.head }}
     steps:
       - name: Checkout pull-request merge or pushed branch history
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -113,6 +115,42 @@ jobs:
       - name: Run executable local-equivalent WP0 gate
         run: npm run verify:wp0:gate -- --branch "${IMPLEMENTATION_BRANCH}"
 
+  wp0-product-documentation:
+    name: wp0-product-documentation
+    if: ${{ needs.wp0-route.outputs.route == 'PRODUCT_DOCUMENTATION_WP0' }}
+    needs: wp0-route
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout reviewed product documentation head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify exact non-executable product documentation diff
+        env:
+          BASE_SHA: ${{ needs.wp0-route.outputs.base }}
+          HEAD_SHA: ${{ needs.wp0-route.outputs.head }}
+        run: node tools/layered-ci/verify-product-documentation.js --base "${BASE_SHA}" --head "${HEAD_SHA}"
+      - name: Run documentation routing contracts
+        run: >-
+          node --test --test-concurrency=1
+          tests/layered-ci/cli-support.test.js
+          tests/layered-ci/product-documentation.test.js
+          tests/layered-ci/wp0-routing.test.js
+      - name: Run staged-secret scanner regressions
+        run: npm run test:security-scan
+      - name: Validate repository protocol descriptor
+        run: node tools/protocol/validate-v3-protocols.js
+
   wp0-governance:
     name: wp0-governance
     if: ${{ needs.wp0-route.outputs.route == 'GOVERNANCE_WP0' }}
@@ -148,6 +186,7 @@ jobs:
     needs:
       - wp0-route
       - wp0-product
+      - wp0-product-documentation
       - wp0-governance
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -158,6 +197,7 @@ jobs:
           ROUTE: ${{ needs.wp0-route.outputs.route }}
           ROUTE_RESULT: ${{ needs.wp0-route.result }}
           PRODUCT_RESULT: ${{ needs.wp0-product.result }}
+          DOCUMENTATION_RESULT: ${{ needs.wp0-product-documentation.result }}
           GOVERNANCE_RESULT: ${{ needs.wp0-governance.result }}
         run: |
           set -euo pipefail
@@ -165,10 +205,17 @@ jobs:
           case "${ROUTE}" in
             PRODUCT_WP0)
               test "${PRODUCT_RESULT}" = "success"
+              test "${DOCUMENTATION_RESULT}" = "skipped"
+              test "${GOVERNANCE_RESULT}" = "skipped"
+              ;;
+            PRODUCT_DOCUMENTATION_WP0)
+              test "${PRODUCT_RESULT}" = "skipped"
+              test "${DOCUMENTATION_RESULT}" = "success"
               test "${GOVERNANCE_RESULT}" = "skipped"
               ;;
             GOVERNANCE_WP0)
               test "${PRODUCT_RESULT}" = "skipped"
+              test "${DOCUMENTATION_RESULT}" = "skipped"
               test "${GOVERNANCE_RESULT}" = "success"
               ;;
             *)
