@@ -235,8 +235,11 @@ test('legacy implementation policy delegates OSS branches without path normaliza
   assert.doesNotMatch(source, /String\(value \|\| ''\)\.trim\(\)\.replace\(\/\\\\\/gu/u);
 });
 
-test('permanent product WP0 executes base-owned policy against the candidate repository', () => {
+test('permanent WP0 routes and executes product authority from exact base-owned policy', () => {
   const workflow = fs.readFileSync(WORKFLOW_PATH, 'utf8');
+  assert.match(workflow, /TRUSTED_ROUTE_POLICY_ROOT:\s*\$\{\{ runner\.temp \}\}\/yance-wp0-trusted-route/u);
+  assert.match(workflow, /node "\$\{TRUSTED_ROUTE_POLICY_ROOT\}\/tools\/layered-ci\/select-wp0-route\.js"/u);
+  assert.doesNotMatch(workflow, /uses:\s*\.\/\.github\/actions\/resolve-diff-range/u);
   assert.match(workflow, /TRUSTED_POLICY_SHA:\s*\$\{\{ needs\.wp0-route\.outputs\.base \}\}/u);
   assert.match(workflow, /TRUSTED_POLICY_ROOT:\s*\$\{\{ runner\.temp \}\}\/yance-wp0-trusted-policy/u);
   assert.match(workflow, /YANCE_EVALUATED_REPOSITORY_ROOT:\s*\$\{\{ github\.workspace \}\}/u);
