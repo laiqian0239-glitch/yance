@@ -3,10 +3,32 @@ import textwrap
 
 store_path = Path('backend/repositories/storeProvider.js')
 source = store_path.read_text(encoding='utf-8')
-old = """        const result = Reflect.apply(value, store, args);
+
+old_immutable = """function immutableValue(value) {
+  if (value == null || typeof value !== 'object') return value;
+  try { return Object.freeze(JSON.parse(JSON.stringify(value))); }
+  catch (_) { return value; }
+}
+"""
+new_immutable = """function deepFreeze(value) {
+  if (value == null || typeof value !== 'object' || Object.isFrozen(value)) return value;
+  for (const child of Object.values(value)) deepFreeze(child);
+  return Object.freeze(value);
+}
+
+function immutableValue(value) {
+  if (value == null || typeof value !== 'object') return value;
+  try { return deepFreeze(JSON.parse(JSON.stringify(value))); }
+  catch (_) { return value; }
+}
+"""
+assert source.count(old_immutable) == 1
+source = source.replace(old_immutable, new_immutable, 1)
+
+old_wrapper = """        const result = Reflect.apply(value, store, args);
         return result === store ? capability : immutableValue(result);
 """
-new = """        const result = Reflect.apply(value, store, args);
+new_wrapper = """        const result = Reflect.apply(value, store, args);
         if (result && typeof result.then === 'function') {
           return Promise.resolve(result).then(resolved =>
             resolved === store ? capability : immutableValue(resolved)
@@ -14,8 +36,8 @@ new = """        const result = Reflect.apply(value, store, args);
         }
         return result === store ? capability : immutableValue(result);
 """
-assert source.count(old) == 1
-source = source.replace(old, new, 1)
+assert source.count(old_wrapper) == 1
+source = source.replace(old_wrapper, new_wrapper, 1)
 store_path.write_text(source, encoding='utf-8')
 
 test_path = Path('backend/tests/accountLifecycleRegression.test.js')
@@ -32,16 +54,23 @@ test('primary store capability preserves Promise settlement and immutable resolv
     assert.ok(tx);
     await Promise.resolve();
     callbackSettled = true;
-    return { changes: 1, nested: { status: 'committed' } };
+    return { changes: 1, nested: { status: 'committed' }, items: [{ id: 1 }] };
   });
 
   assert.equal(typeof pending?.then, 'function');
   assert.equal(callbackSettled, false);
   const result = await pending;
   assert.equal(callbackSettled, true);
-  assert.deepEqual(result, { changes: 1, nested: { status: 'committed' } });
+  assert.deepEqual(result, {
+    changes: 1,
+    nested: { status: 'committed' },
+    items: [{ id: 1 }]
+  });
   assert.equal(Object.isFrozen(result), true);
   assert.equal(Object.isFrozen(result.nested), true);
+  assert.equal(Object.isFrozen(result.items), true);
+  assert.equal(Object.isFrozen(result.items[0]), true);
+  assert.throws(() => { result.nested.status = 'mutated'; }, TypeError);
 
   await assert.rejects(
     store.transactionAsync(async () => {
@@ -53,5 +82,6 @@ test('primary store capability preserves Promise settlement and immutable resolv
 ''')
 test_path.write_text(test_source, encoding='utf-8')
 
+assert "function deepFreeze(value)" in source
 assert "typeof result.then === 'function'" in source
 assert marker in test_source
