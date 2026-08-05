@@ -1,0 +1,95 @@
+name: OSS-1A Canonical Fixture Diagnostics
+
+on:
+  push:
+    branches:
+      - diagnostic/oss1a-canonical-fixtures-7ff80495
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolate-failures:
+    runs-on: ubuntu-24.04
+    env:
+      CANDIDATE_HEAD: 7ff804950fe9528f555a100189134cf1358e1cc5
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.CANDIDATE_HEAD }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact candidate
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${CANDIDATE_HEAD}"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22.23.1
+          package-manager-cache: false
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run each OSS-1A suite independently
+        shell: bash
+        run: |
+          set -uo pipefail
+          mapfile -t suites < <(git ls-files 'backend/tests/oss1a*.test.js' 'tests/oss1a/*.test.js' | sort)
+          failures=0
+          : > /tmp/oss1a-failures.txt
+          for suite in "${suites[@]}"; do
+            log="/tmp/$(echo "${suite}" | tr '/.' '__').log"
+            echo "BEGIN_SUITE=${suite}"
+            set +e
+            node --test --test-concurrency=1 "${suite}" >"${log}" 2>&1
+            status=$?
+            set -e
+            if [ "${status}" -ne 0 ]; then
+              failures=$((failures + 1))
+              echo "FAILED_FILE=${suite} STATUS=${status}" | tee -a /tmp/oss1a-failures.txt
+              echo "BEGIN_FAILURE_OUTPUT=${suite}"
+              cat "${log}"
+              echo "END_FAILURE_OUTPUT=${suite}"
+            else
+              echo "PASSED_FILE=${suite}"
+            fi
+            echo "END_SUITE=${suite}"
+          done
+          echo "FAILURE_COUNT=${failures}"
+          cat /tmp/oss1a-failures.txt
+          test "${failures}" -eq 0
+
+      - name: Run implicated non-glob regressions independently
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          failures=0
+          for suite in \
+            backend/tests/whatsappOrphanAccountReconciliation.test.js \
+            backend/tests/messageIdentityEvidenceOrdering.test.js \
+            backend/tests/platformProductionReadinessAuthority.test.js; do
+            log="/tmp/explicit-$(basename "${suite}").log"
+            echo "BEGIN_EXPLICIT_SUITE=${suite}"
+            set +e
+            node --test --test-concurrency=1 "${suite}" >"${log}" 2>&1
+            status=$?
+            set -e
+            if [ "${status}" -ne 0 ]; then
+              failures=$((failures + 1))
+              echo "FAILED_EXPLICIT_FILE=${suite} STATUS=${status}"
+              echo "BEGIN_EXPLICIT_FAILURE_OUTPUT=${suite}"
+              cat "${log}"
+              echo "END_EXPLICIT_FAILURE_OUTPUT=${suite}"
+            else
+              echo "PASSED_EXPLICIT_FILE=${suite}"
+            fi
+            echo "END_EXPLICIT_SUITE=${suite}"
+          done
+          echo "EXPLICIT_FAILURE_COUNT=${failures}"
+          test "${failures}" -eq 0
