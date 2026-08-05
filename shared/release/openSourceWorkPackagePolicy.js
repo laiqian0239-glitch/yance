@@ -9,16 +9,16 @@ const TRUSTED_POLICY_ROOT = path.resolve(__dirname, '..', '..');
 const EVALUATED_REPOSITORY_ROOT = process.env.YANCE_EVALUATED_REPOSITORY_ROOT
   ? path.resolve(process.env.YANCE_EVALUATED_REPOSITORY_ROOT)
   : TRUSTED_POLICY_ROOT;
+const SHA40 = /^[0-9a-f]{40}$/u;
+const SHA64 = /^[0-9a-f]{64}$/u;
+const WORK_PACKAGE = /^OSS-(?:[0-9]+[A-Z]?|[A-Z])$/u;
+const PATH_CONTROL_OR_GLOB = /[\u0000-\u001f\u007f*?[\]]/u;
 const OPEN_SOURCE_WORK_PACKAGE_REGISTRY_REPOSITORY_PATH =
   'governance/open-source-acceleration/open-source-work-package-registry.json';
 const OPEN_SOURCE_WORK_PACKAGE_REGISTRY_PATH = repositoryFilePath(
   OPEN_SOURCE_WORK_PACKAGE_REGISTRY_REPOSITORY_PATH,
   TRUSTED_POLICY_ROOT
 );
-const SHA40 = /^[0-9a-f]{40}$/u;
-const SHA64 = /^[0-9a-f]{64}$/u;
-const WORK_PACKAGE = /^OSS-(?:[0-9]+[A-Z]?|[A-Z])$/u;
-const PATH_CONTROL_OR_GLOB = /[\u0000-\u001f\u007f*?[\]]/u;
 
 function loadJsonObject(filePath) {
   try {
