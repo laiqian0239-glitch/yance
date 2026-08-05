@@ -1,0 +1,162 @@
+name: Generate OSS-1A v10 Runtime Delivery Candidate
+
+on:
+  push:
+    branches:
+      - generator/oss1a-v10-runtime-delivery-fix
+
+permissions:
+  contents: write
+
+env:
+  IMPLEMENTATION_HEAD: 349291d34c6a5cbebec54147c3325e6861403433
+  GOVERNANCE_HEAD: 82bc44d648c16eb7c454063a1bd36636bfa53d75
+  CANDIDATE_BRANCH: candidate/oss1a-v10-runtime-delivery-green-v1
+
+jobs:
+  build-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout exact generator head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: true
+      - name: Preserve generator outside candidate tree
+        shell: bash
+        run: cp tools/generator/oss1a-v10-runtime-delivery-fix.js /tmp/oss1a-v10-runtime-delivery-fix.js
+      - name: Compose exact implementation and v10 governance histories
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "${IMPLEMENTATION_HEAD}^{commit}"
+          git cat-file -e "${GOVERNANCE_HEAD}^{commit}"
+          git checkout --detach "${IMPLEMENTATION_HEAD}"
+          git switch -c "${CANDIDATE_BRANCH}"
+          git config user.name "Yance OSS-1A v10 Runtime Delivery"
+          git config user.email "oss1a-v10-runtime-delivery@users.noreply.github.com"
+          git merge --no-ff "${GOVERNANCE_HEAD}" -m "governance(oss1a): compose v10 runtime delivery authority"
+          git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+      - name: Build exact four-path root candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node /tmp/oss1a-v10-runtime-delivery-fix.js
+          git add .gitattributes
+          git checkout -- RUN_FIX6O_GATE0_WINDOWS_UAT.cmd
+          node --check tools/runtime-delivery/source-uat-delivery.js
+          node --check tests/runtime-delivery/fix6d-v5-source-checkpoint-identity.test.js
+          node --check tests/runtime-delivery/source-uat-delivery.test.js
+          git diff --check
+      - name: Verify exact v10 candidate scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { execFileSync } = require('node:child_process');
+          const authorization = JSON.parse(fs.readFileSync('governance/open-source-acceleration/oss-1a-implementation-authorization-v10.json', 'utf8'));
+          const outputs = [
+            execFileSync('git', ['diff', '--name-only', 'HEAD', '--'], { encoding: 'utf8' }),
+            execFileSync('git', ['diff', '--cached', '--name-only', 'HEAD', '--'], { encoding: 'utf8' }),
+            execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { encoding: 'utf8' })
+          ];
+          const changed = [...new Set(outputs.join('\n').split(/\r?\n/u).map(value => value.trim()).filter(Boolean))].sort();
+          const expected = [
+            '.gitattributes',
+            'tests/runtime-delivery/fix6d-v5-source-checkpoint-identity.test.js',
+            'tests/runtime-delivery/source-uat-delivery.test.js',
+            'tools/runtime-delivery/source-uat-delivery.js'
+          ];
+          if (JSON.stringify(changed) !== JSON.stringify(expected)) throw new Error(`unexpected candidate paths: ${JSON.stringify(changed)}`);
+          const unauthorized = changed.filter(file => !authorization.exactPaths.includes(file));
+          if (unauthorized.length) throw new Error(`unauthorized candidate paths: ${unauthorized.join(', ')}`);
+          NODE
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Prove all Source UAT delivery contracts GREEN on Ubuntu
+        run: npm run test:source-uat-delivery
+      - name: Prove OSS-1A and related regressions remain GREEN
+        run: >-
+          npm run test:oss1a &&
+          node --test --test-concurrency=1
+          backend/tests/batch39WhatsappSessionFence.test.js
+          backend/tests/batch40ChannelAbortPropagation.test.js
+          backend/tests/whatsappReceiptRecoveryRegression.test.js
+          backend/tests/whatsappQrChallenge.test.js
+          backend/tests/whatsappCanonicalGuardRegression.test.js
+          backend/tests/whatsappMediaRecoveryClosure.test.js
+          backend/tests/whatsappOrphanAccountReconciliation.test.js
+          backend/tests/accountLifecycleRegression.test.js
+          backend/tests/messageIdentityEvidenceOrdering.test.js
+          backend/tests/platformProductionReadinessAuthority.test.js
+          tests/uat/sourceUatP0Preflight.test.js
+      - name: Commit and push isolated candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add .gitattributes \
+            tests/runtime-delivery/fix6d-v5-source-checkpoint-identity.test.js \
+            tests/runtime-delivery/source-uat-delivery.test.js \
+            tools/runtime-delivery/source-uat-delivery.js
+          test "$(git diff --cached --name-only | sort | tr '\n' ' ')" = ".gitattributes tests/runtime-delivery/fix6d-v5-source-checkpoint-identity.test.js tests/runtime-delivery/source-uat-delivery.test.js tools/runtime-delivery/source-uat-delivery.js "
+          git commit -m "fix(oss1a): separate runtime delivery authorities"
+          git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+          git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
+
+  verify-windows:
+    needs: build-candidate
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact isolated candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.CANDIDATE_BRANCH }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Verify candidate ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Prove all Source UAT delivery contracts GREEN on Windows
+        run: npm run test:source-uat-delivery
+
+  candidate-gate:
+    if: ${{ always() }}
+    needs:
+      - build-candidate
+      - verify-windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce dual-platform candidate verification
+        shell: bash
+        env:
+          BUILD_RESULT: ${{ needs.build-candidate.result }}
+          WINDOWS_RESULT: ${{ needs.verify-windows.result }}
+        run: |
+          set -euo pipefail
+          test "${BUILD_RESULT}" = "success"
+          test "${WINDOWS_RESULT}" = "success"
