@@ -8,6 +8,7 @@ const assert = require('node:assert/strict');
 const workflowPath = path.resolve(__dirname, '..', '..', '.github', 'workflows', 'oss1a-baileys-lifecycle.yml');
 const V3_GOVERNANCE_BRANCH = 'governance/oss-1a-detached-evidence-baseline-v3';
 const V4_GOVERNANCE_BRANCH = 'governance/oss-1a-pre-ready-fd6-authorization';
+const V5_GOVERNANCE_BRANCH = 'governance/oss-1a-event-batch-authorization';
 
 function workflowText() {
   assert.equal(fs.existsSync(workflowPath), true, 'OSS-1A runtime workflow must exist');
@@ -24,10 +25,12 @@ test('OSS-1A workflow uses exact branch roles and never pull_request_target', ()
   assert.match(workflow, /governance\/oss-1a-runtime-ci-authorization/u);
   assert.match(workflow, /governance\/oss-1a-detached-evidence-baseline-v3/u);
   assert.match(workflow, /governance\/oss-1a-pre-ready-fd6-authorization/u);
+  assert.match(workflow, /governance\/oss-1a-event-batch-authorization/u);
   assert.match(workflow, /refs\/heads\/oss\/1a-baileys-lifecycle/u);
   assert.match(workflow, /refs\/heads\/governance\/oss-1a-runtime-ci-authorization/u);
   assert.match(workflow, /refs\/heads\/governance\/oss-1a-detached-evidence-baseline-v3/u);
   assert.match(workflow, /refs\/heads\/governance\/oss-1a-pre-ready-fd6-authorization/u);
+  assert.match(workflow, /refs\/heads\/governance\/oss-1a-event-batch-authorization/u);
   assert.doesNotMatch(workflow, /oss\/\*/u);
   assert.doesNotMatch(workflow, /governance\/oss-1a-\*/u);
   assert.doesNotMatch(workflow, /continue-on-error/u);
@@ -52,19 +55,14 @@ test('runtime role executes the exact Schema 23 RED/GREEN command on the reviewe
 test('governance roles validate the workflow contract without executing runtime tests', () => {
   const workflow = workflowText();
   assert.match(workflow, /name: oss1a-governance-contract/u);
-  assert.match(workflow, /github\.head_ref == 'governance\/oss-1a-runtime-ci-authorization'/u);
-  assert.match(workflow, /github\.ref == 'refs\/heads\/governance\/oss-1a-runtime-ci-authorization'/u);
-  assert.match(workflow, /github\.head_ref == 'governance\/oss-1a-detached-evidence-baseline-v3'/u);
-  assert.match(workflow, /github\.ref == 'refs\/heads\/governance\/oss-1a-detached-evidence-baseline-v3'/u);
-  assert.match(workflow, /github\.head_ref == 'governance\/oss-1a-pre-ready-fd6-authorization'/u);
-  assert.match(workflow, /github\.ref == 'refs\/heads\/governance\/oss-1a-pre-ready-fd6-authorization'/u);
+  for (const branch of [V3_GOVERNANCE_BRANCH, V4_GOVERNANCE_BRANCH, V5_GOVERNANCE_BRANCH]) {
+    assert.match(workflow, new RegExp(`github\\.head_ref == '${branch.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}'`, 'u'));
+    assert.match(workflow, new RegExp(`github\\.ref == 'refs/heads/${branch.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}'`, 'u'));
+  }
   assert.match(
     workflow,
     /node --test --test-concurrency=1 tests\/wp0\/oss1a-runtime-workflow\.test\.js/u
   );
-  for (const branch of [V3_GOVERNANCE_BRANCH, V4_GOVERNANCE_BRANCH]) {
-    assert.match(workflow, new RegExp(branch.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
-  }
 });
 
 test('aggregate job fails closed unless exactly the selected role succeeds', () => {
