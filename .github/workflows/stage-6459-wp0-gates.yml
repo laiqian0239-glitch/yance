@@ -67,7 +67,6 @@ jobs:
     timeout-minutes: 25
     env:
       TRUSTED_POLICY_SHA: ${{ needs.wp0-route.outputs.base }}
-      TRUSTED_POLICY_ROOT: ${{ runner.temp }}/yance-wp0-trusted-policy
       YANCE_EVALUATED_REPOSITORY_ROOT: ${{ github.workspace }}
     steps:
       - name: Checkout reviewed product source head
@@ -80,6 +79,8 @@ jobs:
           persist-credentials: false
       - name: Establish exact candidate and base-owned policy roots
         shell: bash
+        env:
+          TRUSTED_POLICY_ROOT: ${{ runner.temp }}/yance-wp0-trusted-policy
         run: |
           set -euo pipefail
           git cat-file -e "${TRUSTED_POLICY_SHA}^{commit}"
@@ -95,6 +96,7 @@ jobs:
           git worktree prune
           git worktree add --detach "${TRUSTED_POLICY_ROOT}" "${TRUSTED_POLICY_SHA}"
           test "$(git -C "${TRUSTED_POLICY_ROOT}" rev-parse HEAD)" = "${TRUSTED_POLICY_SHA}"
+          printf 'TRUSTED_POLICY_ROOT=%s\n' "${TRUSTED_POLICY_ROOT}" >> "${GITHUB_ENV}"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
