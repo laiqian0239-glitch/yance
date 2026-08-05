@@ -10,6 +10,7 @@ const {
   evaluateProductRouteExecutablePolicy
 } = require('../../tools/wp0/product-route-executable-policy');
 const workPackagePolicy = require('../../shared/release/openSourceWorkPackagePolicy');
+const sourceMergePolicy = require('../../shared/release/openSourceSourceMergePolicy');
 
 const TARGET_BRANCH = 'governance/oss-1a-canonical-projection-checkpoint-authorization';
 const SOURCE_BRANCH = 'oss/1a-baileys-lifecycle';
@@ -27,8 +28,6 @@ const POST_MERGE_PATHS = Object.freeze([
   'governance/open-source-acceleration/open-source-work-package-registry.json',
   SOURCE_MERGE_RECEIPT_PATH,
   'shared/release/openSourceSourceMergePolicy.js',
-  'shared/release/openSourceWorkPackagePolicy.js',
-  'tests/layered-ci/open-source-work-package-registry.test.js',
   'tests/wp0/open-source-source-merge-baseline-role.test.js',
   'tools/wp0/product-route-executable-policy.js'
 ]);
@@ -148,7 +147,12 @@ const sourceMergeReceipt = Object.freeze({
     postMergeProvenanceRunId: 31045333414,
     postMergeWp0RunId: 31045338002,
     postMergeWp0ProductJobId: 92439521538,
-    observedPostMergeReasonCode: 'WP0_PRODUCT_ROUTE_BRANCH_ROLE_UNKNOWN'
+    observedPostMergeReasonCode: 'WP0_PRODUCT_ROUTE_BRANCH_ROLE_UNKNOWN',
+    redContractRunId: 31046382637,
+    redContractJobId: 92442871467,
+    redContractTests: 3,
+    redContractPassed: 0,
+    redContractFailed: 3
   },
   governance: {
     exactParentOrderRequired: true,
@@ -234,6 +238,11 @@ test('registry and product route share an explicit source-merge receipt authorit
   );
   assert.equal(fs.existsSync(sharedPolicyPath), true, 'shared source-merge policy must exist');
   assert.equal(workPackagePolicy.validateOpenSourceWorkPackageRegistry(registry), true);
+  assert.deepEqual(sourceMergePolicy.validateOpenSourceSourceMergeReceipt(sourceMergeReceipt, entry), []);
+  assert.notDeepEqual(sourceMergePolicy.validateOpenSourceSourceMergeReceipt(sourceMergeReceipt, {
+    ...entry,
+    sourceMergeReceiptPath: 'governance/open-source-acceleration/*.json'
+  }), []);
   assert.match(productPolicy, /openSourceSourceMergePolicy/u);
   assert.doesNotMatch(productPolicy, /governance\/oss-1a-canonical-projection-checkpoint-authorization/u);
 });
