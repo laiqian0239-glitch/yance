@@ -89,6 +89,7 @@ jobs:
           backend/tests/whatsappMediaRecoveryClosure.test.js
           backend/tests/whatsappOrphanAccountReconciliation.test.js
           backend/tests/accountLifecycleRegression.test.js
+          backend/tests/messageIdentityEvidenceOrdering.test.js
           backend/tests/platformProductionReadinessAuthority.test.js
       - name: Run Source UAT P0 preflight
         run: npm run preflight:source-uat:p0
