@@ -85,15 +85,21 @@ function updateContractHarness() {
     );
     source = replaceExact(
       source,
+      `const PROBE_PATHS = [\n  path.join(ROOT, 'tools', 'uat', 'fix6d_computed_style_probe.py'),\n  path.join(ROOT, 'tools', 'uat', 'fix6d_global_typography_matrix_probe.py')\n];\n`,
+      `const PROBE_PATHS = [\n  path.join(ROOT, 'tools', 'uat', 'fix6d_computed_style_probe.py'),\n  path.join(ROOT, 'tools', 'uat', 'fix6d_global_typography_matrix_probe.py')\n];\n\nfunction snapshotBytecodeCache() {\n  if (!fs.existsSync(BYTECODE_CACHE_PATH)) return [];\n  return fs.readdirSync(BYTECODE_CACHE_PATH, { withFileTypes: true })\n    .filter(entry => entry.isFile())\n    .map(entry => {\n      const filePath = path.join(BYTECODE_CACHE_PATH, entry.name);\n      return [entry.name, fs.readFileSync(filePath).toString('base64')];\n    })\n    .sort((left, right) => left[0].localeCompare(right[0]));\n}\n`,
+      'browser runtime contract: snapshot pre-existing bytecode cache precisely'
+    );
+    source = replaceExact(
+      source,
       "  const output = execFileSync(python, ['-c', script], {",
-      "  const output = execFileSync(python, ['-B', '-c', script], {",
-      'browser runtime contract: disable bytecode writes at the Python process boundary'
+      "  const bytecodeCacheBefore = snapshotBytecodeCache();\n  const output = execFileSync(python, ['-B', '-c', script], {",
+      'browser runtime contract: disable and measure bytecode writes at the Python process boundary'
     );
     source = replaceExact(
       source,
       '  const payload = JSON.parse(output);\n',
-      "  const payload = JSON.parse(output);\n  assert.equal(fs.existsSync(BYTECODE_CACHE_PATH), false, 'contract execution must not create Python bytecode cache');\n",
-      'browser runtime contract: prove zero bytecode side effects'
+      "  const payload = JSON.parse(output);\n  assert.deepEqual(snapshotBytecodeCache(), bytecodeCacheBefore, 'contract execution must not add or mutate Python bytecode cache files');\n",
+      'browser runtime contract: prove zero bytecode side effects without order dependence'
     );
     return source;
   });
