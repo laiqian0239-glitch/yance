@@ -14,6 +14,11 @@ const {
   loadWorkPackageTaskScopeChain,
   validateWorkPackageTaskScopeChain
 } = require('../../shared/release/implementationBranchPolicy');
+const {
+  evaluateAuthorizedOpenSourceWorkPackageScope,
+  filterOpenSourceImplementationChangedFiles,
+  resolveOpenSourceAuthorizationForBranch
+} = require('../../shared/release/openSourceWorkPackagePolicy');
 
 function scopeResult(values) {
   return Object.freeze({
@@ -24,6 +29,7 @@ function scopeResult(values) {
     unauthorizedPaths: [],
     taskScopeChainApplied: false,
     postMergeDefectScopeApplied: false,
+    openSourceWorkPackageScopeApplied: false,
     activeTask: null,
     defectId: null,
     readyForPromotion: false,
@@ -42,13 +48,21 @@ function readChangedFiles(git, baseHead, effectiveBranch) {
       'core.quotePath=false',
       'diff',
       '--name-only',
+      '-z',
       baseHead,
       'HEAD',
       '--'
-    ]);
-    return raw
-      ? [...new Set(raw.split(/\r?\n/u).map(value => value.trim()).filter(Boolean))].sort()
-      : [];
+    ], { encoding: null });
+    const buffer = Buffer.isBuffer(raw) ? raw : Buffer.from(String(raw || ''), 'utf8');
+    const values = buffer.toString('utf8').split('\0').filter(Boolean);
+    if (values.some(value => value !== value.trim())) {
+      return fail('WORK_PACKAGE_SCOPE_PATH_IDENTITY_INVALID', {
+        effectiveBranch,
+        parentGovernanceHead: baseHead,
+        changedFiles: values
+      });
+    }
+    return [...new Set(values)].sort();
   } catch (cause) {
     return fail('ACV2_WORK_PACKAGE_SCOPE_DIFF_FAILED', {
       effectiveBranch,
@@ -145,8 +159,60 @@ function evaluatePostMergeDefectScope(options) {
     changedFileCount: changedFiles.length,
     taskScopeChainApplied: false,
     postMergeDefectScopeApplied: true,
+    openSourceWorkPackageScopeApplied: false,
     activeTask: null,
     defectId: defect.defectId
+  });
+}
+
+function evaluateOpenSourceScope(options) {
+  const { branch, git } = options;
+  if (typeof git !== 'function') {
+    return fail('OSS_WORK_PACKAGE_SCOPE_GIT_REQUIRED', {
+      effectiveBranch: branch,
+      openSourceWorkPackageScopeApplied: true
+    });
+  }
+  const resolved = resolveOpenSourceAuthorizationForBranch(branch, options.openSource || {});
+  if (!resolved.entry || !resolved.authorization || !resolved.receipt) {
+    return fail('OSS_WORK_PACKAGE_AUTHORIZATION_INVALID', {
+      effectiveBranch: branch,
+      openSourceWorkPackageScopeApplied: true
+    });
+  }
+  const dirty = requireCleanWorktree(git, branch, {
+    workPackage: resolved.entry.workPackage,
+    openSourceWorkPackageScopeApplied: true
+  });
+  if (dirty) return dirty;
+  const baseHead = String(resolved.receipt.implementationBaseCommit || '');
+  const unavailable = requireAncestor(git, baseHead, branch, {
+    workPackage: resolved.entry.workPackage,
+    openSourceWorkPackageScopeApplied: true
+  });
+  if (unavailable) return unavailable;
+  const allChangedFiles = readChangedFiles(git, baseHead, branch);
+  if (!Array.isArray(allChangedFiles)) return allChangedFiles;
+  const changedFiles = filterOpenSourceImplementationChangedFiles(allChangedFiles, {
+    registry: resolved.registry
+  });
+  const evaluation = evaluateAuthorizedOpenSourceWorkPackageScope({
+    branch,
+    changedFiles,
+    ...resolved,
+    ...(options.openSource || {})
+  });
+  return scopeResult({
+    ...evaluation,
+    parentGovernanceHead: baseHead,
+    effectiveBranch: branch,
+    changedFileCount: changedFiles.length,
+    allChangedFileCount: allChangedFiles.length,
+    taskScopeChainApplied: false,
+    postMergeDefectScopeApplied: false,
+    openSourceWorkPackageScopeApplied: true,
+    activeTask: null,
+    defectId: null
   });
 }
 
@@ -182,6 +248,10 @@ function evaluateWorkPackageScopeForGate(options = {}) {
     });
   }
 
+  if (/^oss\//u.test(branch)) {
+    return evaluateOpenSourceScope({ ...options, branch, git });
+  }
+
   let effectiveBranch = branch;
   if (detachedEvidence && authorization?.authorizedBranch) {
     if (typeof git !== 'function') return fail('ACV2_WORK_PACKAGE_SCOPE_GIT_REQUIRED');
@@ -207,6 +277,7 @@ function evaluateWorkPackageScopeForGate(options = {}) {
       unauthorizedPaths: [],
       taskScopeChainApplied: false,
       postMergeDefectScopeApplied: false,
+      openSourceWorkPackageScopeApplied: false,
       activeTask: null,
       defectId: null,
       readyForPromotion: false
@@ -264,6 +335,7 @@ function evaluateWorkPackageScopeForGate(options = {}) {
       changedFileCount: changedFiles.length,
       taskScopeChainApplied: true,
       postMergeDefectScopeApplied: false,
+      openSourceWorkPackageScopeApplied: false,
       activeTask: taskScopeChain.activeTask
     });
   }
@@ -283,6 +355,7 @@ function evaluateWorkPackageScopeForGate(options = {}) {
     changedFileCount: changedFiles.length,
     taskScopeChainApplied: false,
     postMergeDefectScopeApplied: false,
+    openSourceWorkPackageScopeApplied: false,
     activeTask: null
   });
 }
