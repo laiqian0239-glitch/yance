@@ -12,6 +12,11 @@ const {
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const policy = JSON.parse(fs.readFileSync(path.join(ROOT, 'governance/layered-ci/wp0-routing-policy.json'), 'utf8'));
+const UI_PRODUCT_SHELL_AUTHORIZATION_DOCUMENTS = Object.freeze([
+  'docs/ui-migration/UI_ASSET_BASELINE.json',
+  'docs/ui-migration/UI_WP1_AUTHORIZATION.md',
+  'docs/ui-migration/UPSTREAM_PINS.yaml'
+]);
 
 test('routing policy is exact, fail closed and contains no wildcard authorization', () => {
   const result = validateWp0RoutingPolicy(policy);
@@ -88,6 +93,60 @@ test('specific layered governance documents retain governance priority over the 
   ]);
   assert.equal(result.pass, true, JSON.stringify(result));
   assert.equal(result.route, ROUTES.GOVERNANCE);
+});
+
+test('exact UI Product Shell authorization documents select GOVERNANCE_WP0 together', () => {
+  const result = classifyWp0Route(policy, UI_PRODUCT_SHELL_AUTHORIZATION_DOCUMENTS);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.route, ROUTES.GOVERNANCE, JSON.stringify(result));
+  assert.equal(result.governanceChangesPresent, true);
+  assert.equal(result.productChangesPresent, false);
+});
+
+test('each exact UI Product Shell authorization document independently selects GOVERNANCE_WP0', () => {
+  for (const file of UI_PRODUCT_SHELL_AUTHORIZATION_DOCUMENTS) {
+    const result = classifyWp0Route(policy, [file]);
+    assert.equal(result.pass, true, file);
+    assert.equal(result.route, ROUTES.GOVERNANCE, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.governanceChangesPresent, true, file);
+    assert.equal(result.productChangesPresent, false, file);
+  }
+});
+
+test('mixing an exact UI authorization document with product source escalates to PRODUCT_WP0', () => {
+  for (const file of UI_PRODUCT_SHELL_AUTHORIZATION_DOCUMENTS) {
+    const result = classifyWp0Route(policy, [file, 'frontend/index.html']);
+    assert.equal(result.pass, true, file);
+    assert.equal(result.route, ROUTES.PRODUCT, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.governanceChangesPresent, true, file);
+    assert.equal(result.productChangesPresent, true, file);
+  }
+});
+
+test('unlisted UI migration documentation remains on PRODUCT_WP0', () => {
+  const result = classifyWp0Route(policy, [
+    'docs/ui-migration/FUTURE_PRODUCT_IMPLEMENTATION.md'
+  ]);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.route, ROUTES.PRODUCT, JSON.stringify(result));
+  assert.equal(result.governanceChangesPresent, false);
+  assert.equal(result.productChangesPresent, true);
+});
+
+test('UI exact-route authorization does not weaken general docs or fail-closed behavior', () => {
+  const architecture = classifyWp0Route(policy, [
+    'docs/architecture/YANCE_ACV2_WP_A_A5_SOURCE_REVIEW_ZH.md'
+  ]);
+  assert.equal(architecture.pass, true, JSON.stringify(architecture));
+  assert.equal(architecture.route, ROUTES.PRODUCT);
+
+  const unknown = classifyWp0Route(policy, ['unclassified/ui-product-shell.bin']);
+  assert.equal(unknown.pass, false);
+  assert.equal(unknown.reasonCode, 'WP0_ROUTE_UNKNOWN_PATH');
+
+  const invalid = classifyWp0Route(policy, ['../ui-product-shell-escape.md']);
+  assert.equal(invalid.pass, false);
+  assert.equal(invalid.reasonCode, 'WP0_ROUTE_PATH_INVALID');
 });
 
 test('mixed governance and product changes escalate to PRODUCT_WP0', () => {
