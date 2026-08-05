@@ -1,0 +1,64 @@
+name: Generate Task 11 Logout Ordering GREEN Candidate
+
+on:
+  push:
+    branches:
+      - generator/task11-logout-order-fix
+
+permissions:
+  contents: write
+
+env:
+  RED_HEAD: e2071e2349f73ef75f5c6ccf45da8b98a8517cec
+  CANDIDATE_BRANCH: candidate/task11-logout-order-green-v1
+
+jobs:
+  generate-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact generator head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: true
+      - name: Preserve generator outside candidate tree
+        shell: bash
+        run: cp tools/generator/task11-logout-order-fix.js /tmp/task11-logout-order-fix.js
+      - name: Build exact one-file candidate from RED head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "${RED_HEAD}"
+          git switch -c "${CANDIDATE_BRANCH}"
+          node /tmp/task11-logout-order-fix.js
+          test "$(git diff --name-only)" = "backend/services/whatsappAdapter.js"
+          node --check backend/services/whatsappAdapter.js
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Prove Task 11 logout lifecycle GREEN
+        run: node --test --test-concurrency=1 backend/tests/oss1aWhatsappAuthLeaseLifecycle.test.js
+      - name: Prove related generation and production auth regressions
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/oss1aWhatsappProductionAuthIntegration.test.js
+          backend/tests/batch39WhatsappSessionFence.test.js
+          backend/tests/oss1aWhatsappAuthStateStore.test.js
+      - name: Commit exact candidate without history rewrite
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git diff --name-only)" = "backend/services/whatsappAdapter.js"
+          git config user.name "Yance OSS-1A Task 11 Root Fix"
+          git config user.email "oss1a-task11-root-fix@users.noreply.github.com"
+          git add backend/services/whatsappAdapter.js
+          git commit -m "fix(oss1a): preserve auth writer through logout"
+          git push origin "${CANDIDATE_BRANCH}"
