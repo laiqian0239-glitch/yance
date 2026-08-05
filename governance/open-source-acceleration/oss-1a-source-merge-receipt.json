@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OPEN_SOURCE_SOURCE_MERGE_RECEIPT",
+  "program": "Open Source Acceleration",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-1A",
+  "status": "SOURCE_MERGED_BASELINE_SEALED",
+  "sourcePullRequest": 51,
+  "sourceBranch": "reviewed-candidate/oss1a-task11",
+  "targetBranch": "governance/oss-1a-canonical-projection-checkpoint-authorization",
+  "reviewedCandidateManifestPath": "governance/open-source-acceleration/oss-1a-reviewed-candidate-task11.json",
+  "authorizationPath": "governance/open-source-acceleration/oss-1a-implementation-authorization-v11.json",
+  "authorizationReceiptPath": "governance/open-source-acceleration/oss-1a-authorization-receipt-v11.json",
+  "reviewedHead": "3e3a52ed9dd255ca5ba027a3b12704b5e281448d",
+  "reviewedCandidateTip": "e01a93edc10de165681c4a419f00421ec28788fd",
+  "trustedBase": "df10c3059b5cd1f69b8cbca6aaf75ef640c6d914",
+  "sourceMergeCommit": "51f924079c020fb165409da9d03d4184d8d2d787",
+  "sourceMergeParents": [
+    "df10c3059b5cd1f69b8cbca6aaf75ef640c6d914",
+    "e01a93edc10de165681c4a419f00421ec28788fd"
+  ],
+  "postMergeGovernancePaths": [
+    "governance/open-source-acceleration/open-source-work-package-registry.json",
+    "governance/open-source-acceleration/oss-1a-source-merge-receipt.json",
+    "shared/release/openSourceSourceMergePolicy.js",
+    "tests/wp0/open-source-source-merge-baseline-role.test.js",
+    "tools/wp0/product-route-executable-policy.js"
+  ],
+  "evidence": {
+    "preMergeOss1aRunId": 31045078454,
+    "preMergeProvenanceRunId": 31045083619,
+    "preMergeWp0RunId": 31045078580,
+    "postMergeOss1aRunId": 31045336834,
+    "postMergeProvenanceRunId": 31045333414,
+    "postMergeWp0RunId": 31045338002,
+    "postMergeWp0ProductJobId": 92439521538,
+    "observedPostMergeReasonCode": "WP0_PRODUCT_ROUTE_BRANCH_ROLE_UNKNOWN",
+    "redContractRunId": 31046382637,
+    "redContractJobId": 92442871467,
+    "redContractTests": 3,
+    "redContractPassed": 0,
+    "redContractFailed": 3
+  },
+  "governance": {
+    "exactParentOrderRequired": true,
+    "exactPostMergeGovernancePathsOnly": true,
+    "sourceMergeOnly": true,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "automaticNextWorkPackageAuthorization": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "readyForPromotion": false
+  },
+  "readyForPromotion": false
+}

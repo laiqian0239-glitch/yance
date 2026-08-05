@@ -18,6 +18,9 @@ const {
 const openSourceReviewedCandidatePolicy = require(
   '../../shared/release/openSourceReviewedCandidatePolicy'
 );
+const openSourceSourceMergePolicy = require(
+  '../../shared/release/openSourceSourceMergePolicy'
+);
 const { evaluateWorkPackageScopeForGate } = require('./work-package-scope-gate');
 const { CURRENT_STAGE, REPO_ROOT, git, verifyWp0Gate } = require('./lib');
 
@@ -47,15 +50,19 @@ function fail(reasonCode, details = {}) {
   return result({ ...details, pass: false, reasonCode });
 }
 
-function repositoryFile(repositoryPath) {
-  return path.join(REPO_ROOT, ...String(repositoryPath || '').split('/'));
+function repositoryFile(repositoryPath, repositoryRoot = REPO_ROOT) {
+  return path.join(path.resolve(repositoryRoot), ...String(repositoryPath || '').split('/'));
 }
 
-function recordForEntry(entry, options = {}) {
+function recordForEntry(entry, options = {}, repositoryRoot = REPO_ROOT) {
   const authorization = options.authorizationByPath?.[entry.authorizationPath]
-    ?? loadOpenSourceWorkPackageAuthorization(repositoryFile(entry.authorizationPath));
+    ?? loadOpenSourceWorkPackageAuthorization(
+      repositoryFile(entry.authorizationPath, repositoryRoot)
+    );
   const receipt = options.receiptByPath?.[entry.receiptPath]
-    ?? loadOpenSourceWorkPackageAuthorizationReceipt(repositoryFile(entry.receiptPath));
+    ?? loadOpenSourceWorkPackageAuthorizationReceipt(
+      repositoryFile(entry.receiptPath, repositoryRoot)
+    );
   return { entry, authorization, receipt };
 }
 
@@ -187,7 +194,7 @@ function classifyDerivedGovernanceVerificationRole(branch, registry, options = {
     const implementationTip = resolveRemoteTip(entry.authorizedBranch);
     if (!/^[0-9a-f]{40}$/u.test(String(implementationTip || ''))) continue;
     if (!isAncestor(implementationTip, 'HEAD')) continue;
-    candidates.push({ ...recordForEntry(entry, options), implementationTip });
+    candidates.push({ ...recordForEntry(entry, options, repositoryRoot), implementationTip });
   }
 
   if (candidates.length > 1) {
@@ -256,10 +263,10 @@ function classifyReviewedCandidateRole(branch, registry, options = {}) {
       authorizationByPath: options.authorizationByPath,
       receiptByPath: options.receiptByPath,
       loadAuthorization: entry => loadOpenSourceWorkPackageAuthorization(
-        repositoryFile(entry.authorizationPath)
+        repositoryFile(entry.authorizationPath, repositoryRoot)
       ),
       loadReceipt: entry => loadOpenSourceWorkPackageAuthorizationReceipt(
-        repositoryFile(entry.receiptPath)
+        repositoryFile(entry.receiptPath, repositoryRoot)
       ),
       validateAuthorization: options.validateAuthorization,
       validateReceipt: options.validateReceipt,
@@ -290,6 +297,94 @@ function classifyReviewedCandidateRole(branch, registry, options = {}) {
   });
 }
 
+function sourceMergeReceiptForEntry(entry, options, repositoryRoot) {
+  if (!entry.sourceMergeReceiptPath) return null;
+  return options.sourceMergeReceiptByPath?.[entry.sourceMergeReceiptPath]
+    ?? openSourceSourceMergePolicy.loadOpenSourceSourceMergeReceipt(
+      entry.sourceMergeReceiptPath,
+      repositoryRoot
+    );
+}
+
+function classifySourceMergedBaselineRole(branch, registry, options = {}) {
+  const repositoryRoot = options.repositoryRoot || REPO_ROOT;
+  const candidates = registry.entries
+    .map(entry => ({
+      entry,
+      sourceMergeReceipt: sourceMergeReceiptForEntry(entry, options, repositoryRoot)
+    }))
+    .filter(record => record.sourceMergeReceipt?.targetBranch === branch);
+  if (candidates.length > 1) {
+    return fail('WP0_PRODUCT_ROUTE_SOURCE_MERGE_AMBIGUOUS', {
+      branch,
+      matchingWorkPackages: candidates.map(record => record.entry.workPackage).sort()
+    });
+  }
+  if (candidates.length === 0) return null;
+
+  const [{ entry, sourceMergeReceipt }] = candidates;
+  const { authorization, receipt: authorizationReceipt } = recordForEntry(
+    entry,
+    options,
+    repositoryRoot
+  );
+  const reviewedCandidateManifest = Object.prototype.hasOwnProperty.call(
+    options,
+    'reviewedCandidateManifest'
+  )
+    ? options.reviewedCandidateManifest
+    : options.reviewedCandidateManifestByPath?.[
+      sourceMergeReceipt.reviewedCandidateManifestPath
+    ] ?? openSourceReviewedCandidatePolicy.loadOpenSourceReviewedCandidateManifest(
+      repositoryFile(sourceMergeReceipt.reviewedCandidateManifestPath, repositoryRoot)
+    );
+  const currentHead = Object.prototype.hasOwnProperty.call(options, 'currentHead')
+    ? options.currentHead
+    : defaultCurrentHead(repositoryRoot);
+  const resolveRemoteTip = options.resolveRemoteTip
+    ?? (candidate => defaultResolveRemoteTip(candidate, repositoryRoot));
+  const resolveCommitParents = options.resolveCommitParents
+    ?? (commit => defaultResolveCommitParents(commit, repositoryRoot));
+  const isAncestor = options.isAncestor
+    ?? ((base, head) => defaultIsAncestor(base, head, repositoryRoot));
+  const changedFilesBetween = options.changedFilesBetween
+    ?? ((base, head) => defaultChangedFilesBetween(base, head, repositoryRoot));
+
+  const identity = openSourceSourceMergePolicy.evaluateOpenSourceSourceMergeIdentity({
+    registry,
+    entry,
+    sourceMergeReceipt,
+    authorization,
+    authorizationReceipt,
+    reviewedCandidateManifest,
+    branch,
+    currentHead,
+    validateAuthorization: options.validateAuthorization,
+    validateReceipt: options.validateReceipt,
+    resolveRemoteTip,
+    resolveCommitParents,
+    isAncestor,
+    changedFilesBetween
+  });
+  if (!identity.pass) {
+    return fail('WP0_PRODUCT_ROUTE_SOURCE_MERGE_INVALID', {
+      branch,
+      workPackage: identity.workPackage,
+      sourceMergeReasonCode: identity.reasonCode,
+      sourceMergeErrors: identity.errors,
+      sourceMergeCommit: identity.sourceMergeCommit,
+      changedFiles: identity.changedFiles
+    });
+  }
+  return result({
+    ...identity,
+    pass: true,
+    role: 'SOURCE_MERGED_BASELINE',
+    branch,
+    readyForPromotion: false
+  });
+}
+
 function classifyProductRouteBranchRole(branch, options = {}) {
   const normalizedBranch = String(branch || '');
   const registry = options.registry ?? loadOpenSourceWorkPackageRegistry();
@@ -316,8 +411,15 @@ function classifyProductRouteBranchRole(branch, options = {}) {
   const reviewedCandidate = classifyReviewedCandidateRole(normalizedBranch, registry, options);
   if (reviewedCandidate) return reviewedCandidate;
 
+  const sourceMergedBaseline = classifySourceMergedBaselineRole(
+    normalizedBranch,
+    registry,
+    options
+  );
+  if (sourceMergedBaseline) return sourceMergedBaseline;
+
   const matches = registry.entries
-    .map(entry => recordForEntry(entry, options))
+    .map(entry => recordForEntry(entry, options, options.repositoryRoot || REPO_ROOT))
     .filter(record => record.authorization?.requiredBaseRef === normalizedBranch);
   if (matches.length > 1) {
     return fail('WP0_PRODUCT_ROUTE_GOVERNANCE_ROLE_AMBIGUOUS', {
@@ -382,6 +484,26 @@ function evaluateProductRouteExecutablePolicy(options = {}) {
         pass: true,
         applicable: true,
         reviewedCandidateScopeApplied: true,
+        changedFiles: role.changedFiles
+      })
+    });
+  }
+
+  if (role.role === 'SOURCE_MERGED_BASELINE') {
+    return result({
+      ...role,
+      pass: true,
+      mode: 'SOURCE_MERGED_BASELINE',
+      gate: Object.freeze({
+        status: 'PASS',
+        authorizationMode: 'SEALED_SOURCE_MERGE_BASELINE',
+        sourceMergeCommit: role.sourceMergeCommit,
+        currentHead: role.currentHead
+      }),
+      scope: Object.freeze({
+        pass: true,
+        applicable: true,
+        sourceMergeBaselineApplied: true,
         changedFiles: role.changedFiles
       })
     });
@@ -458,6 +580,7 @@ module.exports = {
   classifyDerivedGovernanceVerificationRole,
   classifyProductRouteBranchRole,
   classifyReviewedCandidateRole,
+  classifySourceMergedBaselineRole,
   defaultChangedFilesBetween,
   defaultCurrentHead,
   defaultResolveCommitParents,
