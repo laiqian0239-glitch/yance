@@ -13,6 +13,7 @@ permissions:
 env:
   IMPLEMENTATION_BRANCH: ${{ github.head_ref || github.ref_name }}
   REVIEWED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  TRUSTED_POLICY_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
   BASELINE_ANCHOR_COMMIT: 570823e722f6db475066d6ef80ba900ac5c6cb39
   BASELINE_ANCHOR_PATH: governance/rejected-baselines/stage-6.4.5.8.json
   BASELINE_ANCHOR_BLOB: 6a5ffc68e76baf6a477668c6c2faf61934e94720
@@ -110,8 +111,31 @@ jobs:
           tests/runtime-delivery/fix6f-source-uat-isolation.test.js
       - name: Validate repository protocol descriptor
         run: node tools/protocol/validate-v3-protocols.js
+      - name: Export trusted product-route policy bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          TRUSTED_POLICY_ROOT="${RUNNER_TEMP}/yance-wp0-trusted-policy"
+          rm -rf "${TRUSTED_POLICY_ROOT}"
+          git worktree prune
+          git cat-file -e "${TRUSTED_POLICY_SHA}^{commit}"
+          GIT_LFS_SKIP_SMUDGE=1 git worktree add --detach "${TRUSTED_POLICY_ROOT}" "${TRUSTED_POLICY_SHA}"
+          test "$(git -C "${TRUSTED_POLICY_ROOT}" rev-parse HEAD)" = "${TRUSTED_POLICY_SHA}"
+          echo "TRUSTED_POLICY_ROOT=${TRUSTED_POLICY_ROOT}" >> "${GITHUB_ENV}"
       - name: Enforce product-route executable branch role
-        run: node tools/wp0/product-route-executable-policy.js --branch "${IMPLEMENTATION_BRANCH}"
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${IMPLEMENTATION_BRANCH}" in
+            reviewed-candidate/*)
+              node "${TRUSTED_POLICY_ROOT}/tools/wp0/product-route-executable-policy.js" \
+                --branch "${IMPLEMENTATION_BRANCH}" \
+                --repository-root "${GITHUB_WORKSPACE}"
+              ;;
+            *)
+              node tools/wp0/product-route-executable-policy.js --branch "${IMPLEMENTATION_BRANCH}"
+              ;;
+          esac
 
   wp0-governance:
     name: wp0-governance
