@@ -4,7 +4,7 @@
 
 Yance adopts **Scheme C: provenance-controlled hybrid strangler migration**.
 
-This authorization is rebuilt independently from current `main`; PR #50 and its exact Head remain immutable historical evidence only. A separate Vue 3.5 Product Shell boundary may be exercised through the first RED contract package after this authorization is sealed. This document does not authorize Product Shell implementation, Chatwoot source copying, sound redistribution, legacy writer cutover, production use or main merge.
+This authorization is rebuilt independently from current `main`. PR #50 and its exact Head remain immutable historical evidence only. After this exact authorization Head is sealed by all required gates and independent review, it authorizes only the first UI-WP1 RED contract package. It does not authorize Product Shell implementation, Chatwoot source copying, sound redistribution, legacy writer cutover, production use, publication, release, promotion or merge to `main`.
 
 ## Immutable current-main base
 
@@ -47,11 +47,11 @@ Exactly these paths are allowed on this authorization branch:
 ```text
 approvedGovernanceChangedFileCount=4
 approvedGovernanceChangedFileSetSha256=b2e34101d388f52b1e1cfdcb3c443e67350320fd4a28cee1bb04286d559a7b5e
-chatwootManifestFileSha256=2e5f6c3e802d757898da0b4b9104f3b32cc46dc347ad357a24dfcacb99808f3b
+chatwootManifestFileSha256=ac19e47b302e5a95f5ab072ca4001d77ca4f590067c24f7f9c2d9cf3c3408d67
 assetBaselineFileSha256=61832a83f9a049399219049bbb30e1d95bd5ccf1ba83ef97e0c3b87d9d5c6045
 upstreamPinsFileSha256=743101b089e0827151e76f36def579aab7005a992840743774939400eba93423
-authorizationNormalizedSha256=be37d47845ad68e73d10df202d4556092b0fe0d6e501d6c9467b961b1ee1b4b6
-sealedPackageDigestSha256=9269cbfca284069d0743d6acdcb9ccddf4ce216f7b9b949779decd8567dde1dd
+authorizationNormalizedSha256=9b55467bb02d9663b476c4e63e9ed2ea23e8b4fa8483673cc17e5153fbe780cd
+sealedPackageDigestSha256=66371bf12695a05d3a15d5b8a6f8e0e013bd11a582bfe4f3856a9e42b72182a4
 ```
 
 Digest rules:
@@ -73,39 +73,48 @@ Digest rules:
 - spacing and density appearance profile;
 - `typography.fontScale`.
 
-`YanceDesktopLayoutAdapter` owns left/right sidebar modes and widths, layout version, window/panel layout and restart-safe layout persistence. It may expose font scale only as a read-only projection. It may not persist or mutate font scale.
+`YanceDesktopLayoutAdapter` owns left/right sidebar mode and width, layout version, window/panel layout and restart-safe layout persistence. It may expose font scale only as a read-only projection and may not persist or mutate it.
 
-The existing `typography.fontScale` remains the only field. Expanding 90–120 to 80–160 requires a versioned appearance migration.
+The existing `typography.fontScale` remains the only field. Expanding 90–120 to 80–160 requires a versioned migration in the appearance authority.
 
 ### Strict patch allowlist
 
-Unknown fields already present in an older persisted document may be retained as opaque migration data. Unknown fields supplied by a new UI patch must be rejected. A generic merge, passthrough object or writable `unknownFields` map is forbidden.
+Unknown fields already present in an older persisted document may be preserved as opaque migration data. Unknown fields supplied by a new UI patch must be rejected by the authoritative allowlist.
+
+A generic merge, passthrough object, writable `unknownFields` map or arbitrary patch channel is forbidden. Business-setting prohibitions remain fail closed.
 
 ### Sound distribution rights
 
-Stable sound IDs and user-local assets remain preserved, but preservation does not grant redistribution:
+Stable sound IDs and local assets remain preserved, but preservation does not grant redistribution:
 
-- 11 Yance original sounds ship only after authored-or-licensed evidence is verified;
-- 125 imported sounds remain `licenseStatus=unverified`, `shipInInstaller=false`, `localMigrationOnly=true`;
-- custom sounds remain user-local and never become redistributable automatically.
+- 11 Yance original sounds: installer inclusion remains false until authored-or-licensed evidence is verified;
+- 125 imported sounds: `licenseStatus=unverified`, `shipInInstaller=false`, `localMigrationOnly=true`;
+- user custom sounds: user-local only and never automatically redistributable.
 
-No sound public redistribution is authorized by this document.
+No deletion of local assets or stable IDs is authorized. No public or European installer redistribution is authorized.
 
-### Exact Chatwoot transplant manifest
+### Exact Chatwoot manifest
 
-`CHATWOOT_TRANSPLANT_MANIFEST.yaml` freezes the first seven UI slices at Chatwoot commit `a9468409fb9d5778b847bf93f215140fc357a36b`. Every entry records upstream path and blob, local path, license, source-copy candidate or behavior port, excluded imports, local modifications, upstream-test status and Yance adapter boundary.
+`CHATWOOT_TRANSPLANT_MANIFEST.yaml` freezes ten upstream files at Chatwoot commit `a9468409fb9d5778b847bf93f215140fc357a36b` and covers all seven required slices.
 
-The manifest is planning and provenance evidence only. Every source copy still requires a separate exact authorization. `enterprise/**`, Chatwoot API/state/account/inbox/notification/send authority and unresolved Chatwoot runtime imports remain forbidden.
+Every entry contains `upstreamPath`, `upstreamCommit`, `localPath`, `license`, `copiedOrBehaviorPort`, `excludedImports`, `localModifications`, `upstreamTests` and `YanceAdapterBoundary`, plus the exact upstream blob SHA.
+
+The manifest is provenance and design evidence only. Every copy candidate still requires a separate exact source-copy authorization, archive SHA-256, license notice, file-level provenance and a GREEN local dependency closure. `enterprise/**` and all Chatwoot API, state, account, inbox, notification and send authority remain forbidden.
 
 ### Translation capability is partial
 
-Existing Yance evidence proves translation before durable enqueue, unresolved-target blocking, no queue row after translation failure, and durable storage of translated payload and metadata.
+Existing evidence proves:
 
-It does not yet prove stable `translationId`, immutable frozen bytes/hash, preview-to-freeze generation fencing, crash/restart translation invocation count of one, or retry reuse of exact identity and bytes. UI-RED-011 and UI-RED-012 must fail causally until these capabilities are implemented.
+- Chinese outbound text is translated before durable enqueue;
+- unresolved target language blocks send;
+- translation failure creates no durable queue row;
+- the durable queue stores target-language text and translation metadata.
+
+Existing evidence does not yet prove stable `translationId`, immutable frozen bytes and hash, preview-to-freeze generation fencing, crash/restart translation invocation count of one, or retry reuse of exact identity and bytes. UI-RED-011 and UI-RED-012 must therefore fail causally until those capabilities exist.
 
 ### Explicit surface states
 
-Every Product Shell surface must expose exactly one state:
+Every Product Shell surface must expose exactly one of:
 
 ```text
 FIXTURE
@@ -115,31 +124,31 @@ CONNECTED_READ_ONLY
 CONNECTED_PRODUCTION
 ```
 
-An unlabeled or falsely connected surface fails closed. Only a separately authorized real adapter and integration proof can promote a surface to `CONNECTED_READ_ONLY` or `CONNECTED_PRODUCTION`.
+An unlabeled or falsely connected surface fails closed. Only separately authorized adapter and integration evidence may promote a surface to a connected state.
 
 ## Product Shell architecture boundary
 
 - Vue `3.5.17` and Vite `6.4.2` form an independent ESM renderer boundary under `apps/yance-desktop-ui`.
 - The existing Electron host remains the desktop host.
-- Migration is feature-surface strangler, never big-bang replacement.
+- Migration is feature-surface strangler, never a big-bang replacement.
 - The shell renders Yance projections and dispatches typed Yance commands only.
-- The shell may not write SQLite, document stores, business files or authoritative localStorage directly.
+- The shell may not write SQLite, document stores, business files or authoritative `localStorage` directly.
 - Reka UI, VueUse and Howler are exact dependencies.
 - shadcn-vue is tracked local source only after separate file-level copy authorization.
 - Yance remains the sole product, data, settings, notification, translation and send authority.
 
 ## Single-writer cutover rule
 
-Legacy and Vue surfaces may temporarily coexist for presentation only. For each feature surface:
+Legacy and Vue surfaces may coexist for presentation only. For every feature surface:
 
 1. ownership is resolved by a Yance authority;
 2. the legacy writer is disabled before the Vue writer is enabled;
 3. ownership is persisted and restart-safe;
 4. rollback restores exactly one writer;
-5. direct persistence writes, dual dispatch, shadow mutation and last-write-wins reconciliation are forbidden;
-6. cutover requires evidence that only one surface issued business-state commands.
+5. direct persistence writes, dual command dispatch, shadow mutation and last-write-wins reconciliation are forbidden;
+6. cutover requires evidence that exactly one surface issued business-state commands.
 
-This authorization does not permit any cutover.
+This authorization permits no cutover.
 
 ## First RED work package
 
@@ -187,25 +196,25 @@ No `src/shell/**`, `src/components/**`, adapter implementation, source transplan
 ## Exact RED contracts
 
 - **UI-RED-001** — Preserve the exact 29-theme catalog, stable IDs, defaults, tokens and metadata through `YanceAppearanceAdapter`.
-- **UI-RED-002** — Preserve all 136 stable built-in sound IDs and custom UUIDs while enforcing distribution class, license status, installer exclusion and user-local rules.
+- **UI-RED-002** — Preserve all 136 stable built-in sound IDs and custom UUIDs while enforcing distribution class, license status and installer exclusion.
 - **UI-RED-003** — Preserve known settings and opaque older unknown fields across crash/restart; reject every unknown field in a new UI patch.
 - **UI-RED-004** — Preserve mute, priority, DND, privacy, focus, dedupe and merge notification semantics.
 - **UI-RED-005** — Left sidebar supports expanded, collapsed, hidden, pointer resize and keyboard resize.
 - **UI-RED-006** — Right sidebar independently supports expanded, collapsed, hidden, pointer resize and keyboard resize.
-- **UI-RED-007** — Font scales 80%, 100%, 125% and 160% plus compact, comfortable and spacious density do not clip critical controls; only `YanceAppearanceAdapter` may mutate font scale.
+- **UI-RED-007** — 80%, 100%, 125% and 160% font scales plus three density profiles do not clip critical controls; only appearance authority mutates font scale.
 - **UI-RED-008** — Layout survives normal exit, renderer crash and application restart through `YanceDesktopLayoutAdapter`.
 - **UI-RED-009** — Foreign-language incoming messages expose Chinese understanding while preserving accessible original text.
-- **UI-RED-010** — Chinese composer input previews a target language; stale generations cannot overwrite newer previews.
+- **UI-RED-010** — Chinese input previews a target language and stale generations cannot overwrite newer previews.
 - **UI-RED-011** — Final translation freezes exactly once before enqueue with stable identity, immutable bytes and immutable hash.
-- **UI-RED-012** — Failure, crash, restart and retry reuse the same translation identity and exact bytes with translation invocation count one.
+- **UI-RED-012** — Failure, crash, restart and retry reuse the same identity and bytes with translation invocation count one.
 - **UI-RED-013** — Offline, timeout and cancellation preserve draft and language state and block unfrozen sends.
 - **UI-RED-014** — All platforms project into one Yance conversation center without a platform-specific business store.
 - **UI-RED-015** — Sound playback failure cannot mutate notification decisions, send outcomes or delivery state.
 - **UI-RED-016** — Windows 100%, 125%, 150% and 200% DPI have no critical overlap, clipping or unreachable controls.
 - **UI-RED-017** — Keyboard-only operation covers sidebars, settings, themes, sounds, composer and send with visible restorable focus.
-- **UI-RED-018** — Offline, crash and restart restore layout, appearance, draft and frozen retry state without automatic send; every rendered surface has an explicit allowed surface-state label.
+- **UI-RED-018** — Offline, crash and restart restore layout, appearance, draft and frozen retry state without automatic send; every rendered surface has an allowed explicit state label.
 
-The RED Head must fail only because the authorized behavior is absent. Syntax errors, missing dependencies, broken test discovery, unavailable infrastructure, skipped tests or expected-failure markers are invalid RED evidence.
+The RED Head must fail only because authorized behavior is absent. Syntax errors, missing dependencies, broken discovery, unavailable infrastructure, skipped tests and expected-failure markers are invalid evidence.
 
 The workflow must run on Ubuntu and Windows and prove:
 
@@ -218,7 +227,7 @@ provenanceAndLicenseValidation=GREEN
 
 ## Promotion and non-authorization
 
-The authorization Head must pass exact WP0 routing, layered governance contracts, independent review, secret scanning, protocol validation and applicable architecture gates before a RED branch exists.
+The authorization Head must pass exact WP0 routing, layered governance contracts, independent review, secret scanning, protocol validation and applicable architecture gates before a RED branch may exist.
 
 ```text
 uiWP1RedBranchAuthorized=true-only-after-exact-authorization-seal
@@ -235,4 +244,4 @@ forcePush=false
 historyRewrite=false
 ```
 
-A separate exact authorization is required for Product Shell GREEN implementation, source copying, real adapter connection, feature-surface cutover and any main merge.
+A separate exact authorization is required for Product Shell GREEN implementation, source copying, real adapter connection, feature-surface cutover and any merge to `main`.
