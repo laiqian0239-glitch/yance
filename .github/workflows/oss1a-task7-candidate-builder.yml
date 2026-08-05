@@ -45,7 +45,9 @@ jobs:
 
       - name: Generate root Task 7 implementation
         working-directory: candidate
-        run: python ../tooling/tools/oss1a/generate_task7_candidate.py
+        run: |
+          python ../tooling/tools/oss1a/generate_task7_candidate.py
+          python ../tooling/tools/oss1a/patch_task7_account_lifecycle_harness.py
 
       - name: Verify generated candidate
         working-directory: candidate
