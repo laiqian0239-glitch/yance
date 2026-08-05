@@ -304,7 +304,7 @@ test('legacy auth discovery stays diagnostic and database tombstone blocks files
   assert.equal(fs.existsSync(runtimeDirectory), false, 'resolver must never copy legacy auth into a runtime directory');
   assert.equal(fs.existsSync(sourceDirectory), true);
 
-  const accountBefore = db.prepare('SELECT state,lifecycle_state,tombstoned_at,auto_reconnect,paused FROM r32_accounts WHERE id=?').get(accountId);
+  const accountBefore = db.prepare('SELECT state,can_send,can_receive,payload_json,updated_at FROM r32_accounts WHERE id=?').get(accountId);
   const authorityBefore = db.prepare('SELECT state,current_epoch,writer_generation,writer_socket_token,logged_out_at FROM whatsapp_auth_accounts WHERE account_key=?').get(accountKey);
   const report = await recovery.recoverAtStartup({ scanDataRoot: false });
 
@@ -321,7 +321,7 @@ test('legacy auth discovery stays diagnostic and database tombstone blocks files
     reasonCode: 'WHATSAPP_LEGACY_AUTH_RESURRECTION_BLOCKED'
   }]);
   assert.deepEqual(
-    db.prepare('SELECT state,lifecycle_state,tombstoned_at,auto_reconnect,paused FROM r32_accounts WHERE id=?').get(accountId),
+    db.prepare('SELECT state,can_send,can_receive,payload_json,updated_at FROM r32_accounts WHERE id=?').get(accountId),
     accountBefore
   );
   assert.deepEqual(
