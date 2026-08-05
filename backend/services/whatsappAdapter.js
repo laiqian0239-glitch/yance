@@ -31,6 +31,7 @@ const { getStore } = require('../repositories/storeProvider');
 const { createSessionGenerationFence, createSocketGenerationGuard } = require('./sessionGenerationFence');
 const { createWhatsAppBaileysEventProcessor } = require('./whatsappBaileysEventProcessor');
 const { AUTH_EPOCH_ACTION, classifyDisconnect, shouldExecuteReconnect } = require('./whatsappDisconnectPolicy');
+const { createWhatsAppMessageRetryStore } = require('./whatsappMessageRetryStore');
 
 let qrCodeRenderer = null;
 function loadQRCodeDependency(moduleLoader = require) {
@@ -674,6 +675,20 @@ class WhatsAppAdapter {
     this.reconnectTimers = new Map();
     this.credentialStateCache = new Map();
     this.credentialStateTtlMs = 3000;
+    this.whatsappAuthKeyAuthority = null;
+    this.runtimeStoreProvider = null;
+  }
+
+  configureRuntimeAuthorities(options = {}) {
+    if (!options.whatsappAuthKeyAuthority || typeof options.whatsappAuthKeyAuthority.getCipher !== 'function') {
+      throw Object.assign(new Error('WhatsApp auth key authority is required'), { code: 'WHATSAPP_RUNTIME_KEY_AUTHORITY_REQUIRED' });
+    }
+    if (typeof options.storeProvider !== 'function') {
+      throw Object.assign(new Error('WhatsApp runtime Store provider is required'), { code: 'WHATSAPP_RUNTIME_STORE_PROVIDER_REQUIRED' });
+    }
+    this.whatsappAuthKeyAuthority = options.whatsappAuthKeyAuthority;
+    this.runtimeStoreProvider = options.storeProvider;
+    return true;
   }
 
   status() {
@@ -1196,29 +1211,31 @@ class WhatsAppAdapter {
     options.signal?.addEventListener?.('abort', onOperationAbort, { once: true });
     eventBus.publish('whatsapp:state', { accountId, databaseAccountId, state: 'connecting', attemptId: String(options.attemptId || '') });
 
+    const messageRetryStore = this.whatsappAuthKeyAuthority && this.runtimeStoreProvider
+      ? createWhatsAppMessageRetryStore({
+        accountKey: auth.key,
+        cipherProvider: () => this.whatsappAuthKeyAuthority.getCipher(),
+        storeProvider: this.runtimeStoreProvider
+      })
+      : null;
+    row.messageRetryStore = messageRetryStore;
+
     const socketOptions = {
       auth: state,
+      ...(messageRetryStore ? { msgRetryCounterCache: messageRetryStore } : {}),
       printQRInTerminal: false,
       markOnlineOnConnect: false,
       syncFullHistory: true,
       shouldSyncHistoryMessage: () => true,
       generateHighQualityLinkPreview: true,
       browser: whatsappBrowserIdentity(),
-      getMessage: async key => {
-        const rawConversationId = `${databaseAccountId}:${key.remoteJid}`;
-        const target = canonicalWhatsAppTarget(databaseAccountId, key.remoteJid, rawConversationId);
-        const conversationIds = [...new Set([target.conversationId, rawConversationId].filter(Boolean))];
-        let found = null;
-        for (const conversationId of conversationIds) {
-          found = messageStore.listMessages(conversationId, { limit: 5000 }).find(message => (
-            String(message.externalMessageId || '') === String(key.id || '') || String(message.id || '') === String(key.id || '')
-          ));
-          if (found) break;
-        }
-        if (found?.rawMessage) return found.rawMessage;
-        const envelope = mediaAttachment(found || {})?.mediaEnvelope;
-        return reconstructBaileysMessageInfo(envelope)?.message || undefined;
-      }
+      getMessage: async key => messageStore.getWhatsAppMessageByKey({
+        accountId: databaseAccountId,
+        remoteJid: key.remoteJid,
+        id: key.id,
+        fromMe: key.fromMe === true,
+        participant: key.participant || ''
+      })
     };
     if (Array.isArray(versionInfo.version)) socketOptions.version = versionInfo.version;
     assertOperationActive(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId, attemptId: row.attemptId });

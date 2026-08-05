@@ -7,6 +7,7 @@ const accountManager = require('../services/accountManager');
 const accountStore = require('../services/accountStore');
 const accountMigration = require('../services/accountMigrationService');
 const messageStore = require('../services/messageStore');
+const whatsappAdapter = require('../services/whatsappAdapter');
 const sendQueue = require('../services/sendQueueService');
 const platformMessaging = require('../services/platformMessagingService');
 const platformCapabilities = require('../services/platformCapabilities');
@@ -375,6 +376,15 @@ function createAppRuntimeComposition(runtime) {
   const whatsappAuthKeyAuthority = createWhatsAppAuthKeyAuthority({
     securityGuard,
     credentials: securityGuard.credentials
+  });
+  const whatsappStoreProvider = () => authorityStore;
+  messageStore.configureWhatsAppMessageKeyIndex({
+    cipherProvider: () => whatsappAuthKeyAuthority.getCipher(),
+    storeProvider: whatsappStoreProvider
+  });
+  whatsappAdapter.configureRuntimeAuthorities({
+    whatsappAuthKeyAuthority,
+    storeProvider: whatsappStoreProvider
   });
   const accountContext = new AccountContext({ securityGuard, accountManager, accountStore, accountMigration, messageStore, sendQueue, platformMessaging, platformCapabilities, platformDrivers, canonicalIdentity, eventBus });
   const updateManager = new UpdateManager({ securityGuard, lifecycleManager: runtime, updatePreflight, eventBus });

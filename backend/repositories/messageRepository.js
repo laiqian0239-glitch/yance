@@ -2,6 +2,8 @@
 
 const crypto = require('node:crypto');
 const { getStore } = require('./storeProvider');
+const { createWhatsAppMessageKeyIndexRepository, hashRawMessage } = require('./whatsappMessageKeyIndexRepository');
+const communicationAuthority = require('../services/communicationAuthority');
 const { parseJson, stableId } = require('../lib/r32SqliteStore');
 const eventBus = require('../services/eventBus');
 const performancePolicy = require('../services/performancePolicy');
@@ -15,6 +17,114 @@ const operationalProjectionReceipts = require('../services/operationalProjection
 const externalIdentityAuthority = require('../services/externalIdentityAuthority').singleton;
 const identityDomainEventOutbox = require('../services/identityDomainEventOutboxService').singleton;
 const backgroundJobAuthority = require('../services/backgroundJobAuthority');
+
+const whatsappMessageIndexTransactionAuthority = Symbol('whatsapp-message-index-transaction-authority');
+let whatsappMessageKeyIndexRepository = null;
+
+function configureWhatsAppMessageKeyIndex(options = {}) {
+  whatsappMessageKeyIndexRepository = createWhatsAppMessageKeyIndexRepository({
+    ...options,
+    transactionAuthority: whatsappMessageIndexTransactionAuthority
+  });
+  return whatsappMessageKeyIndexRepository;
+}
+
+function getWhatsAppMessageByKey(input = {}) {
+  return whatsappMessageKeyIndexRepository ? whatsappMessageKeyIndexRepository.lookup(input) : undefined;
+}
+
+
+function canonicalCommunicationContent(message = {}) {
+  const type = String(message.messageType || message.type || '').trim().toLowerCase();
+  if (type === 'text' || (!type && String(message.text || '').trim())) {
+    return { kind: 'text', text: String(message.text || '') };
+  }
+  const media = message.rawMeta?.mediaEnvelope || message.mediaEnvelope || message.media || {};
+  const mediaId = String(media.mediaId || media.id || message.attachmentId || '').trim();
+  if (type === 'image' || type === 'video') {
+    return { kind: type, mediaId, caption: String(message.text || media.caption || '') };
+  }
+  if (type === 'audio' || type === 'voice') {
+    return { kind: 'audio', mediaId, durationMs: Number(media.durationMs || message.durationMs || 0) };
+  }
+  if (type === 'file' || type === 'document') {
+    return { kind: 'file', mediaId, filename: String(media.filename || message.filename || '') };
+  }
+  if (type === 'sticker') {
+    return {
+      kind: 'sticker',
+      mediaId,
+      nativeReference: String(media.nativeReference || ''),
+      animated: media.animated === true
+    };
+  }
+  if (type === 'gif') {
+    return { kind: 'gif', mediaId, nativeReference: String(media.nativeReference || '') };
+  }
+  return {
+    kind: 'unsupported',
+    platformType: type || 'unknown',
+    rawSummary: String(message.text || '')
+  };
+}
+
+function ensureCanonicalCommunicationParent(message = {}) {
+  const canonicalMessageId = String(message.id || message.dedupeKey || '').trim();
+  const platform = String(message.platform || '').trim().toLowerCase();
+  if (platform !== 'whatsapp' || !canonicalMessageId) return null;
+  const sourceAccountId = String(message.sourceAccountId || message.accountId || '').trim();
+  const externalConversationId = String(
+    message.rawMeta?.canonicalJid
+      || message.rawMeta?.remoteJid
+      || message.chatJid
+      || message.conversationId
+      || message.sessionKey
+      || ''
+  ).trim();
+  const externalMessageId = String(
+    message.externalMessageId
+      || message.rawMeta?.messageId
+      || canonicalMessageId
+  ).trim();
+  const rawMeta = message.rawMeta || {};
+  const rawMessageSha256 = message.rawMessage && typeof message.rawMessage === 'object'
+    ? hashRawMessage(message.rawMessage)
+    : '';
+  const canonical = communicationAuthority.ingestMessage({
+    messageId: canonicalMessageId,
+    traceId: String(message.traceId || rawMeta.traceId || ''),
+    platform,
+    sourceAccountId,
+    externalConversationId,
+    externalMessageId,
+    direction: String(message.direction || (message.fromMe === true ? 'outbound' : 'inbound')),
+    senderExternalId: String(message.senderId || rawMeta.participant || rawMeta.remoteJid || ''),
+    occurredAt: String(message.timestamp || message.sentAt || message.createdAt || new Date().toISOString()),
+    rawEventRef: {
+      eventId: String(rawMeta.eventId || externalMessageId),
+      payloadSha256: rawMessageSha256,
+      redactionVersion: String(rawMeta.redactionVersion || 'v1')
+    },
+    content: canonicalCommunicationContent(message)
+  });
+  if (String(canonical?.messageId || '') !== canonicalMessageId) {
+    const error = new Error('Canonical communication message identity does not match the R32 message identity');
+    error.code = 'WHATSAPP_CANONICAL_MESSAGE_ID_MISMATCH';
+    error.reasonCode = error.code;
+    error.expectedMessageId = canonicalMessageId;
+    error.actualMessageId = String(canonical?.messageId || '');
+    throw error;
+  }
+  const canonicalDigest = String(canonical?.rawEventRef?.payloadSha256 || '').trim().toLowerCase();
+  if (rawMessageSha256 && canonicalDigest !== rawMessageSha256) {
+    const error = new Error('Canonical communication payload digest does not match the WhatsApp raw message');
+    error.code = 'WHATSAPP_CANONICAL_MESSAGE_DIGEST_MISMATCH';
+    error.reasonCode = error.code;
+    error.messageId = canonicalMessageId;
+    throw error;
+  }
+  return canonical;
+}
 
 const platformCoreRepository = createPlatformCoreRepository({ storeProvider: getStore });
 const domainEventLog = new DomainEventLogService({ repository: platformCoreRepository });
@@ -503,7 +613,15 @@ async function upsert(input) {
         message.externalIdentityId = externalIdentity.externalIdentityId;
       }
       store.touchConversationFromMessage(message);
+      ensureCanonicalCommunicationParent(message);
       store.upsertMessage(message);
+      if (whatsappMessageKeyIndexRepository && String(message.platform || '').toLowerCase() === 'whatsapp') {
+        whatsappMessageKeyIndexRepository.upsertWithinTransaction(
+          store,
+          message,
+          whatsappMessageIndexTransactionAuthority
+        );
+      }
       conversation = mergeConversationPayload(store, message, inserted);
       if (message.personId && message.conversationId) {
         store.db.prepare('UPDATE r32_conversations SET person_id=?,updated_at=? WHERE session_key=?').run(message.personId, now(), message.conversationId);
@@ -926,6 +1044,11 @@ async function revoke({ accountId, chatJid, targetId }) {
   try {
     store.transaction(() => {
       store.upsertMessage({ ...payload, id: found.row.id, sessionKey: found.row.session_key, sentAt: found.row.sent_at });
+      if (whatsappMessageKeyIndexRepository) whatsappMessageKeyIndexRepository.deleteWithinTransaction(
+        store,
+        found.row.id,
+        whatsappMessageIndexTransactionAuthority
+      );
       const messageIds = [targetId, found.row.id, found.payload.externalMessageId, found.payload.platformMessageId, found.payload.messageId]
         .map(value => String(value || '').trim()).filter(Boolean);
       retraction = require('./workspaceRepository').retractMessageEvidence(found.row.session_key, messageIds, { store, at: updatedAt, publish: false });
@@ -1255,4 +1378,4 @@ function read() {
   return { schemaVersion: 3, messages: messageMap, conversations: conversationMap, contacts: {}, updatedAt: now() };
 }
 
-module.exports = { read, upsert, getMessageByDedupeKey, listPendingTelegramEnrichment, getExternalMessage, hasExternalMessage, collapseDuplicateUnsupportedMobileEchoes, applyReaction, revoke, markRead, updateReceipt, updateReceiptsThrough, updateConversationMetadata, bindConversationAccount, search, listConversations, listMessages, listMessagePage, listMessagesForExport, encodeCursor, decodeCursor, resolveMergedConversationKey: id => resolveMergedConversationKey(getStore(), id), getConversation: id => getConversation(getStore(), id), _identityLinkAuthority: identityLinkAuthority };
+module.exports = { read, upsert, configureWhatsAppMessageKeyIndex, getWhatsAppMessageByKey, getMessageByDedupeKey, listPendingTelegramEnrichment, getExternalMessage, hasExternalMessage, collapseDuplicateUnsupportedMobileEchoes, applyReaction, revoke, markRead, updateReceipt, updateReceiptsThrough, updateConversationMetadata, bindConversationAccount, search, listConversations, listMessages, listMessagePage, listMessagesForExport, encodeCursor, decodeCursor, resolveMergedConversationKey: id => resolveMergedConversationKey(getStore(), id), getConversation: id => getConversation(getStore(), id), _identityLinkAuthority: identityLinkAuthority };
