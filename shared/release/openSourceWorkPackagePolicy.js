@@ -113,6 +113,24 @@ function defaultResolveCommitBlobSha(commit, repositoryPath, repositoryRoot) {
   }
 }
 
+function defaultResolveCommitFirstParent(commit, repositoryRoot) {
+  try {
+    const value = repositoryGit(repositoryRoot, ['rev-parse', `${commit}^1`]).trim();
+    return SHA40.test(value) ? value : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function defaultCurrentCommit(repositoryRoot) {
+  try {
+    const value = repositoryGit(repositoryRoot, ['rev-parse', 'HEAD']).trim();
+    return SHA40.test(value) ? value : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 function defaultIsAncestor(base, head, repositoryRoot) {
   try {
     repositoryGit(repositoryRoot, ['merge-base', '--is-ancestor', base, head]);
@@ -267,28 +285,44 @@ function isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
     || !SHA40.test(String(receipt.authorizationBlobSha || ''))
     || !SHA64.test(String(receipt.authorizationFileSha256 || ''))
     || !SHA40.test(String(receipt.implementationBaseCommit || ''))
+    || receipt.implementationBaseCommit !== receipt.authorizationCommit
     || receipt.approvedChangedFileCount !== authorization.approvedChangedFileCount
     || receipt.approvedChangedFileSetSha256 !== authorization.approvedChangedFileSetSha256
     || receipt.governance?.authorizationPredatesImplementation !== true
     || !exactGovernanceClosed(receipt.governance)) return false;
 
+  const trustedPolicyRoot = options.trustedPolicyRoot || TRUSTED_POLICY_ROOT;
+  const trustedPolicyHead = Object.prototype.hasOwnProperty.call(options, 'trustedPolicyHead')
+    ? options.trustedPolicyHead
+    : defaultCurrentCommit(trustedPolicyRoot);
+  if (!SHA40.test(String(trustedPolicyHead || ''))) return false;
+
+  const resolveCommitFirstParent = options.resolveCommitFirstParent
+    || (commit => defaultResolveCommitFirstParent(commit, trustedPolicyRoot));
+  if (resolveCommitFirstParent(receipt.authorizationCommit)
+    !== authorization.approvedParentHead) return false;
+
+  const isTrustedAncestor = options.isTrustedAncestor
+    || ((base, head) => defaultIsAncestor(base, head, trustedPolicyRoot));
+  if (isTrustedAncestor(receipt.authorizationCommit, trustedPolicyHead) !== true) return false;
+
   const trustedAuthorizationPath = options.authorizationPath
-    || repositoryFilePath(entry.authorizationPath, options.trustedPolicyRoot || TRUSTED_POLICY_ROOT);
+    || repositoryFilePath(entry.authorizationPath, trustedPolicyRoot);
   const expectedFileSha = Object.prototype.hasOwnProperty.call(options, 'authorizationFileSha256')
     ? options.authorizationFileSha256
     : sha256File(trustedAuthorizationPath);
   if (receipt.authorizationFileSha256 !== expectedFileSha) return false;
 
-  const repositoryRoot = options.repositoryRoot || EVALUATED_REPOSITORY_ROOT;
   const resolveCommitBlobSha = options.resolveCommitBlobSha
     || ((commit, repositoryPath) => defaultResolveCommitBlobSha(
       commit,
       repositoryPath,
-      repositoryRoot
+      trustedPolicyRoot
     ));
   if (resolveCommitBlobSha(receipt.authorizationCommit, entry.authorizationPath)
     !== receipt.authorizationBlobSha) return false;
 
+  const repositoryRoot = options.repositoryRoot || EVALUATED_REPOSITORY_ROOT;
   const isAncestor = options.isAncestor
     || ((base, head) => defaultIsAncestor(base, head, repositoryRoot));
   return isAncestor(receipt.authorizationCommit, receipt.implementationBaseCommit) === true;
