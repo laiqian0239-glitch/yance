@@ -1,4 +1,4 @@
-name: Validate WP0 UAT Playwright Routing Contract
+name: Generate and Validate WP0 UAT Playwright Routing Repair
 
 on:
   push:
@@ -6,26 +6,252 @@ on:
       - generator/wp0-uat-playwright-routing-fix
 
 permissions:
-  contents: read
+  contents: write
 
 env:
-  VALIDATED_CANDIDATE_HEAD: 7e2a6d62710e6b69a95ea07a8b4076a25c2ab321
+  PREVIOUS_CANDIDATE_HEAD: 87f3ea0ba6ac4856d4e1b701c75d0740c9f4fc3b
+  GOVERNANCE_HEAD: 7d4296bd1158ff787b92b383e9c37bc431df4b3f
+  GOVERNANCE_MERGE_HEAD: 8c0344044eb728566a4e0133aa30bbae01c9dfda
+  RED_CANDIDATE_HEAD: 7e2a6d62710e6b69a95ea07a8b4076a25c2ab321
+  PR_BASE_HEAD: 87a855ce63ac1c00c1414fc234234b070a66376c
+  CANDIDATE_BRANCH: candidate/oss1a-v11-uat-diagnostics-green-v2
+  CLEAN_WORKTREE: /tmp/wp0-uat-playwright-routing-clean
+  ELECTRON_LFS_PATH: vendor/electron/electron-v39.8.5-win32-x64.zip
+  ELECTRON_LFS_OID: d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34
+  ELECTRON_LFS_SIZE: '136644393'
 
 jobs:
-  wp0-routing-contract:
+  build-candidate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 60
+    outputs:
+      candidate_head: ${{ steps.publish.outputs.candidate_head }}
     steps:
-      - name: Checkout exact RED candidate head
+      - name: Checkout exact generator head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ env.VALIDATED_CANDIDATE_HEAD }}
-          fetch-depth: 1
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: true
+      - name: Preserve exact routing generator outside candidate tree
+        shell: bash
+        run: cp tools/generator/wp0-uat-playwright-routing-fix.js /tmp/wp0-uat-playwright-routing-fix.js
+      - name: Verify sealed two-path authority and exact RED candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/heads/${CANDIDATE_BRANCH}:refs/remotes/origin/${CANDIDATE_BRANCH}"
+          remote_candidate_head="$(git rev-parse "refs/remotes/origin/${CANDIDATE_BRANCH}")"
+          test "${remote_candidate_head}" = "${RED_CANDIDATE_HEAD}"
+          test "$(git rev-parse "${GOVERNANCE_MERGE_HEAD}^1")" = "${PREVIOUS_CANDIDATE_HEAD}"
+          test "$(git rev-parse "${GOVERNANCE_MERGE_HEAD}^2")" = "${GOVERNANCE_HEAD}"
+          test "$(git rev-parse "${RED_CANDIDATE_HEAD}^")" = "${GOVERNANCE_MERGE_HEAD}"
+          test "$(git diff --name-only "${GOVERNANCE_MERGE_HEAD}" "${RED_CANDIDATE_HEAD}" | tr '\n' ' ')" = "tests/layered-ci/wp0-routing.test.js "
+          git merge-base --is-ancestor "${PREVIOUS_CANDIDATE_HEAD}" "${RED_CANDIDATE_HEAD}"
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" "${RED_CANDIDATE_HEAD}"
+          git checkout --detach "${RED_CANDIDATE_HEAD}"
+          git switch -c runtime/wp0-uat-playwright-routing
+          git config user.name "Yance WP0 Routing Repair"
+          git config user.email "wp0-routing-repair@users.noreply.github.com"
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const authorization = JSON.parse(fs.readFileSync('governance/layered-ci/wp0-uat-playwright-routing-authorization.json', 'utf8'));
+          const receipt = JSON.parse(fs.readFileSync('governance/layered-ci/wp0-uat-playwright-routing-receipt.json', 'utf8'));
+          const expected = [
+            'governance/layered-ci/wp0-routing-policy.json',
+            'tests/layered-ci/wp0-routing.test.js'
+          ];
+          assert.equal(authorization.status, 'IMPLEMENTATION_AUTHORIZED');
+          assert.equal(authorization.approvedParentHead, process.env.PREVIOUS_CANDIDATE_HEAD);
+          assert.deepEqual(authorization.authorizedRootRepair.exactPaths, expected);
+          assert.equal(
+            crypto.createHash('sha256').update(`${expected.join('\n')}\n`).digest('hex'),
+            authorization.authorizedRootRepair.approvedChangedFileSetSha256
+          );
+          assert.equal(authorization.governance.requirementsDirectoryPrefixAuthorizationAllowed, false);
+          assert.equal(receipt.status, 'SEALED_FOR_IMPLEMENTATION');
+          assert.equal(receipt.authorizationCommit, '2292d913b7985b3e7b766b2b45f1b797ad089737');
+          assert.deepEqual(receipt.exactPaths, expected);
+          assert.equal(receipt.governance.temporaryBypassAllowed, false);
+          assert.equal(receipt.governance.warningOnlyClosureAllowed, false);
+          NODE
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Build exact policy data repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          node /tmp/wp0-uat-playwright-routing-fix.js
+          node --test --test-concurrency=1 tests/layered-ci/wp0-routing.test.js
+          node --test --test-concurrency=1 tests/layered-ci/*.test.js
+          git diff --check
+      - name: Verify exact one-path implementation scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { execFileSync } = require('node:child_process');
+          const authorization = JSON.parse(fs.readFileSync('governance/layered-ci/wp0-uat-playwright-routing-authorization.json', 'utf8'));
+          const outputs = [
+            execFileSync('git', ['diff', '--name-only', 'HEAD', '--'], { encoding: 'utf8' }),
+            execFileSync('git', ['diff', '--cached', '--name-only', 'HEAD', '--'], { encoding: 'utf8' }),
+            execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { encoding: 'utf8' })
+          ];
+          const changed = [...new Set(outputs.join('\n').split(/\r?\n/u).map(value => value.trim()).filter(Boolean))].sort();
+          const expected = ['governance/layered-ci/wp0-routing-policy.json'];
+          assertEqual(changed, expected, 'unexpected implementation paths');
+          const allowed = authorization.authorizedRootRepair.exactPaths;
+          assertEqual(changed.filter(file => !allowed.includes(file)), [], 'unauthorized implementation paths');
+
+          function assertEqual(actual, expectedValue, label) {
+            if (JSON.stringify(actual) !== JSON.stringify(expectedValue)) {
+              throw new Error(`${label}: ${JSON.stringify(actual)}`);
+            }
+          }
+          NODE
+      - name: Commit exact policy repair locally
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add governance/layered-ci/wp0-routing-policy.json
+          test "$(git diff --cached --name-only | tr '\n' ' ')" = "governance/layered-ci/wp0-routing-policy.json "
+          git commit -m "fix(wp0): route pinned UAT Playwright requirement as product"
+          git merge-base --is-ancestor "${PREVIOUS_CANDIDATE_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_MERGE_HEAD}" HEAD
+          git merge-base --is-ancestor "${RED_CANDIDATE_HEAD}" HEAD
+          test "$(git diff --name-only "${GOVERNANCE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = "governance/layered-ci/wp0-routing-policy.json tests/layered-ci/wp0-routing.test.js "
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Prove full PR diff selects PRODUCT_WP0 without prefix expansion
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const { execFileSync } = require('node:child_process');
+          const { ROUTES, classifyWp0Route } = require('./tools/layered-ci/wp0-routing');
+          const policy = JSON.parse(fs.readFileSync('governance/layered-ci/wp0-routing-policy.json', 'utf8'));
+          const changed = execFileSync('git', ['diff', '--name-only', process.env.PR_BASE_HEAD, 'HEAD', '--'], { encoding: 'utf8' })
+            .split(/\r?\n/u).filter(Boolean);
+          const result = classifyWp0Route(policy, changed);
+          assert.equal(result.pass, true, JSON.stringify(result));
+          assert.equal(result.route, ROUTES.PRODUCT, JSON.stringify(result));
+          assert.ok(changed.includes('requirements/uat-playwright.txt'));
+          assert.ok(policy.productExactPaths.includes('requirements/uat-playwright.txt'));
+          assert.equal(policy.productPrefixes.includes('requirements/'), false);
+          const sibling = classifyWp0Route(policy, ['requirements/unreviewed.txt']);
+          assert.equal(sibling.pass, false);
+          assert.equal(sibling.reasonCode, 'WP0_ROUTE_UNKNOWN_PATH');
+          NODE
+      - name: Create fresh candidate verification worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "${CLEAN_WORKTREE}"
+          git worktree add --detach "${CLEAN_WORKTREE}" HEAD
+          test "$(git -C "${CLEAN_WORKTREE}" rev-parse HEAD)" = "$(git rev-parse HEAD)"
+          test -z "$(git -C "${CLEAN_WORKTREE}" status --porcelain=v1 --untracked-files=all)"
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Fetch and verify trusted Electron LFS object
+        working-directory: /tmp/wp0-uat-playwright-routing-clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          git lfs install --local
+          git lfs pull origin --include="${ELECTRON_LFS_PATH}" --exclude=""
+          echo "${ELECTRON_LFS_OID}  ${ELECTRON_LFS_PATH}" | sha256sum --check --strict
+          test "$(stat --format='%s' "${ELECTRON_LFS_PATH}")" = "${ELECTRON_LFS_SIZE}"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Install locked dependencies
+        working-directory: /tmp/wp0-uat-playwright-routing-clean
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run WP0 required tests
+        working-directory: /tmp/wp0-uat-playwright-routing-clean
+        run: npm run test:wp0
+      - name: Run staged-secret scanner regressions
+        working-directory: /tmp/wp0-uat-playwright-routing-clean
+        run: npm run test:security-scan
+      - name: Run source identity and Electron tracking regressions
+        working-directory: /tmp/wp0-uat-playwright-routing-clean
+        run: >-
+          node --test --test-concurrency=1
+          tests/runtime-delivery/electron-archive-tracking-authority.test.js
+          tests/runtime-delivery/repository-source-identity-authority.test.js
+          tests/runtime-delivery/fix6f-source-uat-isolation.test.js
+      - name: Validate repository protocol descriptor
+        working-directory: /tmp/wp0-uat-playwright-routing-clean
+        run: node tools/protocol/validate-v3-protocols.js
+      - name: Fast-forward candidate and verify remote exact head
+        id: publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate_head="$(git rev-parse HEAD)"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          git fetch --no-tags origin "refs/heads/${CANDIDATE_BRANCH}:refs/remotes/origin/${CANDIDATE_BRANCH}"
+          remote_candidate_head="$(git rev-parse "refs/remotes/origin/${CANDIDATE_BRANCH}")"
+          test "${remote_candidate_head}" = "${RED_CANDIDATE_HEAD}"
+          git push --verbose origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
+          git fetch --no-tags origin "refs/heads/${CANDIDATE_BRANCH}:refs/remotes/origin/${CANDIDATE_BRANCH}"
+          published_head="$(git rev-parse "refs/remotes/origin/${CANDIDATE_BRANCH}")"
+          test "${published_head}" = "${candidate_head}"
+          echo "candidate_head=${candidate_head}" >> "${GITHUB_OUTPUT}"
+
+  verify-windows:
+    needs: build-candidate
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact isolated candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ needs.build-candidate.outputs.candidate_head }}
+          fetch-depth: 0
           fetch-tags: false
           lfs: false
           persist-credentials: false
-      - name: Verify exact RED candidate identity
+      - name: Verify candidate identity, ancestry and two-path scope
         shell: bash
-        run: test "$(git rev-parse HEAD)" = "${VALIDATED_CANDIDATE_HEAD}"
-      - name: Prove exact UAT Playwright routing contract
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ needs.build-candidate.outputs.candidate_head }}"
+          git merge-base --is-ancestor "${PREVIOUS_CANDIDATE_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_MERGE_HEAD}" HEAD
+          git merge-base --is-ancestor "${RED_CANDIDATE_HEAD}" HEAD
+          test "$(git diff --name-only "${GOVERNANCE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = "governance/layered-ci/wp0-routing-policy.json tests/layered-ci/wp0-routing.test.js "
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Prove exact routing contract on Windows
         run: node --test --test-concurrency=1 tests/layered-ci/wp0-routing.test.js
+      - name: Prove sealed export source identity on Windows
+        run: node --test --test-concurrency=1 tests/runtime-delivery/repository-source-identity-authority.test.js
+
+  candidate-gate:
+    if: ${{ always() }}
+    needs:
+      - build-candidate
+      - verify-windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce dual-platform exact routing repair verification
+        shell: bash
+        env:
+          BUILD_RESULT: ${{ needs.build-candidate.result }}
+          WINDOWS_RESULT: ${{ needs.verify-windows.result }}
+        run: |
+          set -euo pipefail
+          test "${BUILD_RESULT}" = "success"
+          test "${WINDOWS_RESULT}" = "success"
