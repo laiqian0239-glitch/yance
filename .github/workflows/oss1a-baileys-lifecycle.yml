@@ -11,6 +11,7 @@ on:
       - governance/oss-1a-lifecycle-milestone-authorization
       - governance/oss-1a-async-store-capability-authorization
       - governance/oss-1a-canonical-projection-checkpoint-authorization
+      - governance/oss-1a-source-uat-ci-contract-authorization
   push:
     branches:
       - governance/oss-1a-runtime-ci-authorization
@@ -20,6 +21,7 @@ on:
       - governance/oss-1a-lifecycle-milestone-authorization
       - governance/oss-1a-async-store-capability-authorization
       - governance/oss-1a-canonical-projection-checkpoint-authorization
+      - governance/oss-1a-source-uat-ci-contract-authorization
       - oss/1a-baileys-lifecycle
 
 permissions:
@@ -31,7 +33,7 @@ env:
 jobs:
   governance-contract:
     name: oss1a-governance-contract
-    if: ${{ (github.event_name == 'pull_request' && (github.head_ref == 'governance/oss-1a-runtime-ci-authorization' || github.head_ref == 'governance/oss-1a-detached-evidence-baseline-v3' || github.head_ref == 'governance/oss-1a-pre-ready-fd6-authorization' || github.head_ref == 'governance/oss-1a-event-batch-authorization' || github.head_ref == 'governance/oss-1a-lifecycle-milestone-authorization' || github.head_ref == 'governance/oss-1a-async-store-capability-authorization' || github.head_ref == 'governance/oss-1a-canonical-projection-checkpoint-authorization')) || (github.event_name == 'push' && (github.ref == 'refs/heads/governance/oss-1a-runtime-ci-authorization' || github.ref == 'refs/heads/governance/oss-1a-detached-evidence-baseline-v3' || github.ref == 'refs/heads/governance/oss-1a-pre-ready-fd6-authorization' || github.ref == 'refs/heads/governance/oss-1a-event-batch-authorization' || github.ref == 'refs/heads/governance/oss-1a-lifecycle-milestone-authorization' || github.ref == 'refs/heads/governance/oss-1a-async-store-capability-authorization' || github.ref == 'refs/heads/governance/oss-1a-canonical-projection-checkpoint-authorization')) }}
+    if: ${{ (github.event_name == 'pull_request' && (github.head_ref == 'governance/oss-1a-runtime-ci-authorization' || github.head_ref == 'governance/oss-1a-detached-evidence-baseline-v3' || github.head_ref == 'governance/oss-1a-pre-ready-fd6-authorization' || github.head_ref == 'governance/oss-1a-event-batch-authorization' || github.head_ref == 'governance/oss-1a-lifecycle-milestone-authorization' || github.head_ref == 'governance/oss-1a-async-store-capability-authorization' || github.head_ref == 'governance/oss-1a-canonical-projection-checkpoint-authorization' || github.head_ref == 'governance/oss-1a-source-uat-ci-contract-authorization')) || (github.event_name == 'push' && (github.ref == 'refs/heads/governance/oss-1a-runtime-ci-authorization' || github.ref == 'refs/heads/governance/oss-1a-detached-evidence-baseline-v3' || github.ref == 'refs/heads/governance/oss-1a-pre-ready-fd6-authorization' || github.ref == 'refs/heads/governance/oss-1a-event-batch-authorization' || github.ref == 'refs/heads/governance/oss-1a-lifecycle-milestone-authorization' || github.ref == 'refs/heads/governance/oss-1a-async-store-capability-authorization' || github.ref == 'refs/heads/governance/oss-1a-canonical-projection-checkpoint-authorization' || github.ref == 'refs/heads/governance/oss-1a-source-uat-ci-contract-authorization')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -94,8 +96,8 @@ jobs:
           GOVERNANCE_RESULT: ${{ needs.governance-contract.result }}
         run: |
           set -euo pipefail
-          if { test "${EVENT_NAME}" = "pull_request" && { test "${HEAD_REF}" = "governance/oss-1a-runtime-ci-authorization" || test "${HEAD_REF}" = "governance/oss-1a-detached-evidence-baseline-v3" || test "${HEAD_REF}" = "governance/oss-1a-pre-ready-fd6-authorization" || test "${HEAD_REF}" = "governance/oss-1a-event-batch-authorization" || test "${HEAD_REF}" = "governance/oss-1a-lifecycle-milestone-authorization" || test "${HEAD_REF}" = "governance/oss-1a-async-store-capability-authorization" || test "${HEAD_REF}" = "governance/oss-1a-canonical-projection-checkpoint-authorization"; }; } \
-            || { test "${EVENT_NAME}" = "push" && { test "${GIT_REF}" = "refs/heads/governance/oss-1a-runtime-ci-authorization" || test "${GIT_REF}" = "refs/heads/governance/oss-1a-detached-evidence-baseline-v3" || test "${GIT_REF}" = "refs/heads/governance/oss-1a-pre-ready-fd6-authorization" || test "${GIT_REF}" = "refs/heads/governance/oss-1a-event-batch-authorization" || test "${GIT_REF}" = "refs/heads/governance/oss-1a-lifecycle-milestone-authorization" || test "${GIT_REF}" = "refs/heads/governance/oss-1a-async-store-capability-authorization" || test "${GIT_REF}" = "refs/heads/governance/oss-1a-canonical-projection-checkpoint-authorization"; }; }; then
+          if { test "${EVENT_NAME}" = "pull_request" && { test "${HEAD_REF}" = "governance/oss-1a-runtime-ci-authorization" || test "${HEAD_REF}" = "governance/oss-1a-detached-evidence-baseline-v3" || test "${HEAD_REF}" = "governance/oss-1a-pre-ready-fd6-authorization" || test "${HEAD_REF}" = "governance/oss-1a-event-batch-authorization" || test "${HEAD_REF}" = "governance/oss-1a-lifecycle-milestone-authorization" || test "${HEAD_REF}" = "governance/oss-1a-async-store-capability-authorization" || test "${HEAD_REF}" = "governance/oss-1a-canonical-projection-checkpoint-authorization" || test "${HEAD_REF}" = "governance/oss-1a-source-uat-ci-contract-authorization"; }; } \
+            || { test "${EVENT_NAME}" = "push" && { test "${GIT_REF}" = "refs/heads/governance/oss-1a-runtime-ci-authorization" || test "${GIT_REF}" = "refs/heads/governance/oss-1a-detached-evidence-baseline-v3" || test "${GIT_REF}" = "refs/heads/governance/oss-1a-pre-ready-fd6-authorization" || test "${GIT_REF}" = "refs/heads/governance/oss-1a-event-batch-authorization" || test "${GIT_REF}" = "refs/heads/governance/oss-1a-lifecycle-milestone-authorization" || test "${GIT_REF}" = "refs/heads/governance/oss-1a-async-store-capability-authorization" || test "${GIT_REF}" = "refs/heads/governance/oss-1a-canonical-projection-checkpoint-authorization" || test "${GIT_REF}" = "refs/heads/governance/oss-1a-source-uat-ci-contract-authorization"; }; }; then
             test "${GOVERNANCE_RESULT}" = "success"
             test "${RUNTIME_RESULT}" = "skipped"
           elif { test "${EVENT_NAME}" = "pull_request" && test "${HEAD_REF}" = "oss/1a-baileys-lifecycle"; } \
