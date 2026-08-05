@@ -1,0 +1,31 @@
+name: Validate OSS-1A v13 Playwright Probe UTF-8 Contract
+
+on:
+  push:
+    branches:
+      - generator/oss1a-v13-playwright-probe-utf8-fix
+
+permissions:
+  contents: read
+
+env:
+  VALIDATED_CANDIDATE_HEAD: 6044e01fbc478b984b30c7b8ae9c121869ea2e7a
+
+jobs:
+  probe-utf8-contract:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact RED candidate head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.VALIDATED_CANDIDATE_HEAD }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Verify exact RED candidate identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${VALIDATED_CANDIDATE_HEAD}"
+      - name: Prove UTF-8 Playwright probe transport contract
+        run: node --test --test-concurrency=1 tests/uat/fix6dPlaywrightBrowserRuntime.test.js
