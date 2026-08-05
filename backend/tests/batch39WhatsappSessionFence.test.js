@@ -88,3 +88,20 @@ test('every WhatsApp Baileys event category is registered through the guarded bi
     assert.match(source, new RegExp(`onSocket\\('${eventName.replace('.', '\\.')}[^']*'`));
   }
 });
+
+test('creds.update enters runWrite before saveCreds and never uses the old write-then-assert order', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../services/whatsappAdapter.js'), 'utf8');
+  const start = source.indexOf("onSocket('creds.update'");
+  const end = source.indexOf("onSocket('connection.update'", start);
+  assert.ok(start >= 0 && end > start, 'creds.update handler block is missing');
+  const block = source.slice(start, end);
+  const runWriteIndex = block.indexOf('socketGuard.runWrite(');
+  const saveCredsIndex = block.indexOf('saveCreds(');
+  assert.ok(runWriteIndex >= 0, 'creds.update must use socketGuard.runWrite');
+  assert.ok(saveCredsIndex > runWriteIndex, 'saveCreds must execute only inside runWrite');
+  assert.doesNotMatch(
+    block,
+    /await\s+saveCreds\(update\);[\s\S]*socketGuard\.assertCurrent/u,
+    'legacy write-then-assert ordering must be removed'
+  );
+});
