@@ -1,5 +1,9 @@
 'use strict';
 
+if (!process.env.NODE_TEST_CONTEXT && !process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'test';
+}
+
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
