@@ -35,9 +35,24 @@ const PARENT_GOVERNANCE_HEAD = 'd81599d8a3f3de891da369b6f1ddbd01e264c78d';
 const A6_FROZEN_DIGEST = 'd2cac11bd6864b02e09fa68015dbdba5c41bb2777bf79e821f00a846b651702a';
 const OSS1A_BRANCH = 'oss/1a-baileys-lifecycle';
 const OSS1A_GOVERNANCE_BRANCH = 'governance/oss-1a-implementation-authorization';
+const OSS1A_V6_AUTHORIZATION_REPOSITORY_PATH = 'governance/open-source-acceleration/oss-1a-implementation-authorization-v6.json';
+const OSS1A_V6_RECEIPT_REPOSITORY_PATH = 'governance/open-source-acceleration/oss-1a-authorization-receipt-v6.json';
+const OSS1A_V6_ENTRY = Object.freeze({
+  workPackage: 'OSS-1A',
+  authorizedBranch: OSS1A_BRANCH,
+  authorizationPath: OSS1A_V6_AUTHORIZATION_REPOSITORY_PATH,
+  receiptPath: OSS1A_V6_RECEIPT_REPOSITORY_PATH
+});
 
 function authorization() {
   return JSON.parse(fs.readFileSync(AUTHORIZATION_PATH, 'utf8'));
+}
+
+function historicalOss1aV6Authority() {
+  return {
+    authorization: JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ...OSS1A_V6_AUTHORIZATION_REPOSITORY_PATH.split('/')), 'utf8')),
+    receipt: JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ...OSS1A_V6_RECEIPT_REPOSITORY_PATH.split('/')), 'utf8'))
+  };
 }
 
 function gitText(args) {
@@ -261,15 +276,17 @@ test('malformed, impossible-date and arbitrary branches remain denied', () => {
   ]) assert.equal(isAuthorizedImplementationBranch(branch, CURRENT_STAGE), false, branch);
 });
 
-test('governance branch is non-executable while exact OSS-1A implementation branch is recognized', () => {
+test('governance branch is non-executable while the frozen OSS-1A implementation authority remains recognized', () => {
   const governance = checkRuntimeTargetGate({ branch: OSS1A_GOVERNANCE_BRANCH, changedFiles: [] });
   assert.equal(governance.pass, false, JSON.stringify(governance));
   assert.equal(governance.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');
 
-  const oss1a = checkRuntimeTargetGate({ branch: OSS1A_BRANCH, changedFiles: [] });
-  assert.equal(oss1a.pass, true, JSON.stringify(oss1a));
-  assert.equal(oss1a.authorizationMode, 'SEALED_OPEN_SOURCE_WORK_PACKAGE');
-  assert.equal(isAuthorizedOpenSourceImplementationBranch(OSS1A_BRANCH), true);
+  const historicalV6 = historicalOss1aV6Authority();
+  assert.equal(isAuthorizedOpenSourceImplementationBranch(OSS1A_BRANCH, {
+    authorization: historicalV6.authorization,
+    receipt: historicalV6.receipt,
+    entry: OSS1A_V6_ENTRY
+  }), true);
 
   const current = currentBranch();
   if (current === OSS1A_GOVERNANCE_BRANCH) {
