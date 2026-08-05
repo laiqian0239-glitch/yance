@@ -1,0 +1,31 @@
+name: Validate OSS-1A v12 Playwright Browser Runtime
+
+on:
+  push:
+    branches:
+      - generator/oss1a-v12-playwright-browser-runtime-fix
+
+permissions:
+  contents: read
+
+env:
+  VALIDATED_CANDIDATE_HEAD: 5d567fcf7359b138ae81a586db4ee18c687169ff
+
+jobs:
+  browser-runtime-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.VALIDATED_CANDIDATE_HEAD }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Verify exact candidate identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${VALIDATED_CANDIDATE_HEAD}"
+      - name: Prove cross-platform Playwright browser runtime contract
+        run: node --test --test-concurrency=1 tests/uat/fix6dPlaywrightBrowserRuntime.test.js
