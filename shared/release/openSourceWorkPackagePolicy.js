@@ -103,10 +103,6 @@ function defaultBlob(commit, repositoryPath, root) {
   return gitSha(root, ['rev-parse', `${commit}:${repositoryPath}`]);
 }
 
-function defaultFirstParent(commit, root) {
-  return gitSha(root, ['rev-parse', `${commit}^1`]);
-}
-
 function defaultParents(commit, root) {
   try {
     const row = repositoryGit(root, ['rev-list', '--parents', '-n', '1', commit])
@@ -267,12 +263,6 @@ function isValidOpenSourceWorkPackageAuthorizationForEntry(authorization, entry)
     && exactGovernanceClosed(authorization.governance));
 }
 
-function explicitLegacyFixture(options) {
-  return ['authorizationFileSha256', 'trustedPolicyHead', 'resolveCommitBlobSha',
-    'resolveCommitFirstParent', 'isTrustedAncestor', 'isAncestor']
-    .every(key => Object.prototype.hasOwnProperty.call(options, key));
-}
-
 function isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(receipt, authorization, entry, options = {}) {
   if (!isValidOpenSourceWorkPackageAuthorizationForEntry(authorization, entry)
     || !receipt
@@ -291,41 +281,34 @@ function isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(receipt, autho
     || !SHA40.test(String(receipt.authorizationCommit || ''))
     || !SHA40.test(String(receipt.authorizationBlobSha || ''))
     || !SHA64.test(String(receipt.authorizationFileSha256 || ''))
-    || receipt.implementationBaseCommit !== receipt.authorizationCommit
+    || !SHA40.test(String(receipt.implementationBaseCommit || ''))
     || receipt.approvedChangedFileCount !== authorization.approvedChangedFileCount
     || receipt.approvedChangedFileSetSha256 !== authorization.approvedChangedFileSetSha256
     || receipt.governance?.authorizationPredatesImplementation !== true
     || !exactGovernanceClosed(receipt.governance)) return false;
 
   const seal = validAuthorizationSeal(authorization.seal) ? authorization.seal : null;
-  if (seal) {
-    if (receipt.authorizationCommit !== seal.authorizationCommit
-      || receipt.authorizationBlobSha !== seal.authorizationBlobSha) return false;
-  } else if (!explicitLegacyFixture(options)) return false;
+  if (!seal
+    || receipt.authorizationCommit !== seal.authorizationCommit
+    || receipt.authorizationBlobSha !== seal.authorizationBlobSha) return false;
 
   const trustedRoot = options.trustedPolicyRoot || TRUSTED_POLICY_ROOT;
   const trustedHead = Object.prototype.hasOwnProperty.call(options, 'trustedPolicyHead')
     ? options.trustedPolicyHead
     : defaultHead(trustedRoot);
-  if (!SHA40.test(String(trustedHead || ''))) return false;
+  if (!SHA40.test(String(trustedHead || ''))
+    || receipt.implementationBaseCommit !== trustedHead) return false;
+
   const trustedAncestor = options.isTrustedAncestor
     || ((base, head) => defaultAncestor(base, head, trustedRoot));
-
-  if (seal) {
-    const parents = (options.resolveCommitParents
-      || (commit => defaultParents(commit, trustedRoot)))(seal.authorizationCommit);
-    if (!Array.isArray(parents)
-      || parents.length !== 2
-      || parents[0] !== seal.mergeFirstParent
-      || parents[1] !== seal.mergeSecondParent
-      || trustedAncestor(authorization.approvedParentHead, seal.authorizationCommit) !== true
-      || trustedAncestor(seal.authorizationCommit, trustedHead) !== true) return false;
-  } else {
-    const firstParent = (options.resolveCommitFirstParent
-      || (commit => defaultFirstParent(commit, trustedRoot)))(receipt.authorizationCommit);
-    if (firstParent !== authorization.approvedParentHead
-      || trustedAncestor(receipt.authorizationCommit, trustedHead) !== true) return false;
-  }
+  const parents = (options.resolveCommitParents
+    || (commit => defaultParents(commit, trustedRoot)))(seal.authorizationCommit);
+  if (!Array.isArray(parents)
+    || parents.length !== 2
+    || parents[0] !== seal.mergeFirstParent
+    || parents[1] !== seal.mergeSecondParent
+    || trustedAncestor(authorization.approvedParentHead, seal.authorizationCommit) !== true
+    || trustedAncestor(seal.authorizationCommit, trustedHead) !== true) return false;
 
   const authPath = options.authorizationPath
     || repositoryFilePath(entry.authorizationPath, trustedRoot);
@@ -333,15 +316,21 @@ function isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(receipt, autho
     ? options.authorizationFileSha256
     : sha256File(authPath);
   if (receipt.authorizationFileSha256 !== fileSha) return false;
+
   const blob = (options.resolveCommitBlobSha
     || ((commit, repositoryPath) => defaultBlob(commit, repositoryPath, trustedRoot)))(
     receipt.authorizationCommit,
     entry.authorizationPath
   );
-  if (blob !== (seal ? seal.authorizationBlobSha : receipt.authorizationBlobSha)) return false;
+  if (blob !== seal.authorizationBlobSha) return false;
+
   const candidateRoot = options.repositoryRoot || EVALUATED_REPOSITORY_ROOT;
+  const candidateHead = Object.prototype.hasOwnProperty.call(options, 'candidateHead')
+    ? options.candidateHead
+    : defaultHead(candidateRoot);
+  if (!SHA40.test(String(candidateHead || ''))) return false;
   const ancestor = options.isAncestor || ((base, head) => defaultAncestor(base, head, candidateRoot));
-  return ancestor(receipt.authorizationCommit, receipt.implementationBaseCommit) === true;
+  return ancestor(receipt.implementationBaseCommit, candidateHead) === true;
 }
 
 function loadRecord(entry, options = {}) {
@@ -413,24 +402,44 @@ function evaluateAuthorizedOpenSourceWorkPackageScope(options = {}) {
     : resolveOpenSourceAuthorizationForBranch(branch, options);
   const digest = changedFiles ? changedFileSetSha256(changedFiles) : null;
   if (!changedFiles || raw.length !== changedFiles.length) {
-    return Object.freeze({ pass: false, reasonCode: 'OSS_WORK_PACKAGE_CHANGED_PATH_INVALID',
-      changedFileSetSha256: digest, unauthorizedPaths: raw, readyForPromotion: false });
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'OSS_WORK_PACKAGE_CHANGED_PATH_INVALID',
+      changedFileSetSha256: digest,
+      unauthorizedPaths: raw,
+      readyForPromotion: false
+    });
   }
   if (!isAuthorizedOpenSourceImplementationBranch(branch, { ...options, ...resolved })) {
-    return Object.freeze({ pass: false, reasonCode: 'OSS_WORK_PACKAGE_AUTHORIZATION_INVALID',
-      changedFileSetSha256: digest, unauthorizedPaths: changedFiles, readyForPromotion: false });
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'OSS_WORK_PACKAGE_AUTHORIZATION_INVALID',
+      changedFileSetSha256: digest,
+      unauthorizedPaths: changedFiles,
+      readyForPromotion: false
+    });
   }
   const unauthorizedPaths = changedFiles.filter(file => !resolved.authorization.exactPaths.includes(file));
   if (changedFiles.length !== resolved.authorization.approvedChangedFileCount
     || digest !== resolved.authorization.approvedChangedFileSetSha256) {
-    return Object.freeze({ pass: false, reasonCode: 'OSS_WORK_PACKAGE_CHANGED_FILE_SET_MISMATCH',
-      changedFileSetSha256: digest, unauthorizedPaths, readyForPromotion: false });
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'OSS_WORK_PACKAGE_CHANGED_FILE_SET_MISMATCH',
+      changedFileSetSha256: digest,
+      unauthorizedPaths,
+      readyForPromotion: false
+    });
   }
-  return Object.freeze({ pass: unauthorizedPaths.length === 0,
+  return Object.freeze({
+    pass: unauthorizedPaths.length === 0,
     reasonCode: unauthorizedPaths.length ? 'OSS_WORK_PACKAGE_SCOPE_VIOLATION' : null,
-    workPackage: resolved.authorization.workPackage, branch,
-    changedFileSetSha256: digest, changedFileCount: changedFiles.length,
-    unauthorizedPaths, readyForPromotion: false });
+    workPackage: resolved.authorization.workPackage,
+    branch,
+    changedFileSetSha256: digest,
+    changedFileCount: changedFiles.length,
+    unauthorizedPaths,
+    readyForPromotion: false
+  });
 }
 
 module.exports = Object.freeze({
