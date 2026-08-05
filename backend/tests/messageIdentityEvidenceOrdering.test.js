@@ -38,6 +38,16 @@ canonicalEventLedger.configureSingleton(canonicalEventLedger.createCanonicalEven
   eventBus
 }));
 const messageStore = require('../services/messageStore');
+const projectionJobSchema = messageStore.ensureCanonicalProjectionJobSchema(store);
+assert.equal(projectionJobSchema.authority, 'CanonicalDomainProjectionJobSchemaAuthority');
+assert.equal(projectionJobSchema.ledgerSequence, true);
+assert.equal(projectionJobSchema.legacyForeignKeyRemoved, true);
+const projectionJobColumns = store.db.prepare('PRAGMA table_info(domain_event_projection_jobs)').all();
+assert.equal(projectionJobColumns.some(row => row.name === 'ledger_sequence'), true);
+const projectionJobForeignKeys = store.db.prepare('PRAGMA foreign_key_list(domain_event_projection_jobs)').all();
+assert.equal(projectionJobForeignKeys.some(row => row.table === 'canonical_event_headers' && row.from === 'event_id'), true);
+assert.equal(projectionJobForeignKeys.some(row => row.table === 'domain_events'), false);
+
 const cipher = createWhatsAppAuthCipher({ key: Buffer.alloc(32, 0x6d), keyVersion: 1 });
 messageStore.configureWhatsAppMessageKeyIndex({
   cipherProvider: () => cipher,
@@ -89,7 +99,7 @@ test('failed message projection cannot create identity evidence for a nonexisten
   assert.equal(result.projectionStatus, 'pending');
   assert.equal(result.repairRequired, true);
   assert.equal(result.failure.code, 'FORCED_MESSAGE_PERSISTENCE_FAILURE');
-  assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM domain_events WHERE event_id=?').get(result.eventId).count, 1);
+  assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM canonical_event_headers WHERE event_id=?').get(result.eventId).count, 1);
   assert.equal(store.db.prepare('SELECT state FROM domain_event_projection_jobs WHERE event_id=?').get(result.eventId).state, 'failed');
   assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM r32_messages WHERE id=?').get('identity-order-mid-1').count, 0);
   assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM persons').get().count, 0);
@@ -135,6 +145,7 @@ test('failed WhatsApp message projection cannot leave an auth-key lookup index o
   assert.equal(result.projectionStatus, 'pending');
   assert.equal(result.repairRequired, true);
   assert.equal(result.failure.code, 'FORCED_WHATSAPP_MESSAGE_PERSISTENCE_FAILURE');
+  assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM canonical_event_headers WHERE event_id=?').get(result.eventId).count, 1);
   assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM r32_messages WHERE id=?').get('identity-order-wa-mid-1').count, 0);
   assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM whatsapp_message_key_index').get().count, 0);
   assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM whatsapp_message_retry_payloads').get().count, 0);
