@@ -14,7 +14,8 @@ const GOVERNANCE_BRANCHES = Object.freeze([
   'governance/oss-1a-async-store-capability-authorization',
   'governance/oss-1a-canonical-projection-checkpoint-authorization',
   'governance/oss-1a-test-fixture-authorization',
-  'governance/oss-1a-runtime-delivery-contract-authorization'
+  'governance/oss-1a-runtime-delivery-contract-authorization',
+  'governance/oss-1a-uat-diagnostics-runtime-authorization'
 ]);
 
 function workflowText() {
