@@ -44,9 +44,15 @@ source = source.replace(validation_tail, validated_replace, 1)
 method_start = source.index('  upsertWithinTransaction(')
 method_end = source.index('\n  deleteWithinTransaction(', method_start)
 method = source[method_start:method_end]
+index_delete = "store.db.prepare('DELETE FROM whatsapp_message_key_index"
+payload_delete = "store.db.prepare('DELETE FROM whatsapp_message_retry_payloads"
 validate_position = method.index('canonicalPayloadSha256(store, canonicalMessageId)')
-replace_position = method.index("store.db.prepare('DELETE FROM whatsapp_message_key_index")
-assert validate_position < replace_position
-assert method.count("DELETE FROM whatsapp_message_key_index") == 2
-assert method.count("DELETE FROM whatsapp_message_retry_payloads") == 2
+revoked_index_delete_position = method.index(index_delete)
+replacement_index_delete_position = method.rindex(index_delete)
+replacement_payload_delete_position = method.rindex(payload_delete)
+assert revoked_index_delete_position < validate_position
+assert validate_position < replacement_index_delete_position
+assert validate_position < replacement_payload_delete_position
+assert method.count('DELETE FROM whatsapp_message_key_index') == 2
+assert method.count('DELETE FROM whatsapp_message_retry_payloads') == 2
 path.write_text(source, encoding='utf-8')
