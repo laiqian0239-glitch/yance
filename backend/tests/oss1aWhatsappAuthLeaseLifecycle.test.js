@@ -45,10 +45,17 @@ test('auth lease close primitive is idempotent and records one terminal reason',
 test('logout keeps the writer generation and auth lease live through Baileys terminal credential mutation', async () => {
   const { WhatsAppAdapter } = require('../services/whatsappAdapter');
   const adapter = new WhatsAppAdapter();
-  Object.defineProperty(adapter, 'resolveAccountKey', {
-    value: value => value,
-    writable: false,
-    configurable: false
+  Object.defineProperties(adapter, {
+    resolveAccountReference: {
+      value: value => value,
+      writable: false,
+      configurable: false
+    },
+    resolveAccountKey: {
+      value: value => value,
+      writable: false,
+      configurable: false
+    }
   });
   const accountKey = 'wa-logout-order';
   const generation = 7;
