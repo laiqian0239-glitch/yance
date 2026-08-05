@@ -3,7 +3,7 @@ name: OSS-1A WhatsApp Lifecycle Fault Matrix
 on:
   pull_request:
     branches:
-      - governance/oss-1a-canonical-projection-checkpoint-authorization
+      - governance/oss-1a-uat-diagnostics-runtime-authorization
   push:
     branches:
       - oss/1a-baileys-lifecycle
@@ -54,7 +54,7 @@ jobs:
   task11-production-contracts:
     name: task11-production-contracts
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Checkout exact reviewed implementation head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -98,6 +98,13 @@ jobs:
         run: node --test --test-concurrency=1 tests/uat/sourceUatP0Preflight.test.js
       - name: Run Source UAT delivery contracts
         run: npm run test:source-uat-delivery
+      - name: Install pinned Python UAT browser runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 --version
+          python3 -m pip install --disable-pip-version-check --requirement requirements/uat-playwright.txt
+          python3 -m playwright install --with-deps chromium
       - name: Run UAT diagnostics contracts
         run: npm run test:uat-diagnostics
       - name: Verify exact third-party provenance
