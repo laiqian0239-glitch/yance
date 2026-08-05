@@ -2,6 +2,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const { SqliteTransactionCoordinator } = require('../store/sqliteTransactionCoordinator');
 const lifecycle = require('../services/accountLifecycleCommands');
@@ -18,6 +21,37 @@ const securityGuard = getSecurityGuard();
 const accountLifecycleSaga = require('../services/accountLifecycleSagaService').singleton;
 
 const { getStore } = require('../repositories/storeProvider');
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+
+let regressionSqliteRoot = '';
+let regressionAuthorityWriteHost = null;
+
+test.before(() => {
+  process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+  resetSqliteConnectionBrokerForTests();
+  regressionSqliteRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-account-lifecycle-regression-'));
+  const dbPath = path.join(regressionSqliteRoot, 'database', 'yance.db');
+  regressionAuthorityWriteHost = acquireAuthorityWriteHost({
+    dbPath,
+    instanceId: `account-lifecycle-regression-${process.pid}`
+  });
+  const broker = createSqliteConnectionBroker({
+    dbPath,
+    authorityWriteHostCapability: regressionAuthorityWriteHost.capability
+  });
+  broker.open();
+});
+
+test.after(() => {
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { regressionAuthorityWriteHost?.close(); } catch (_) {}
+  if (regressionSqliteRoot) fs.rmSync(regressionSqliteRoot, { recursive: true, force: true });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+});
 
 function persistSagaFixture(t, account) {
   const store = getStore();
@@ -443,4 +477,58 @@ test('server startup schedules immediate account recovery only when auto-connect
   const source = require('fs').readFileSync(require('path').join(__dirname, '..', 'server.js'), 'utf8');
   assert.match(source, /runtimeSettings\.read\(\)\.autoConnectAccounts/);
   assert.match(source, /runtimeRecovery\.scheduleRecovery\('startup-auto-connect',\s*250\)/);
+});
+
+
+
+test('WhatsApp manual-review disconnect states remain send and receive blocked', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const platformDrivers = require('../services/platformDriverRegistry');
+  const managerSource = fs.readFileSync(path.join(__dirname, '../services/accountManager.js'), 'utf8');
+
+  for (const runtimeState of ['replaced', 'quarantined', 'blocked', 'manual-review', 'unknown-disconnect']) {
+    assert.equal(platformDrivers.mapWhatsAppState(runtimeState), 'manual-review', runtimeState);
+  }
+  assert.equal(platformDrivers.mapWhatsAppState('reconnecting'), 'recovering');
+  assert.equal(platformDrivers.mapWhatsAppState('restarting'), 'recovering');
+  assert.equal(platformDrivers.mapWhatsAppState('unrecognized-state'), 'manual-review');
+  assert.match(managerSource, /manualReviewRequired/u);
+  assert.match(managerSource, /authorityPending \|\| manualReviewRequired \|\| !messagingSupported/u);
+  assert.match(managerSource, /ownershipLost: runtime\.ownershipLost === true/u);
+});
+
+
+
+test('primary store capability preserves Promise settlement and immutable resolved values', async () => {
+  const store = getStore();
+  let callbackSettled = false;
+  const pending = store.transactionAsync(async tx => {
+    assert.ok(tx);
+    await Promise.resolve();
+    callbackSettled = true;
+    return { changes: 1, nested: { status: 'committed' }, items: [{ id: 1 }] };
+  });
+
+  assert.equal(typeof pending?.then, 'function');
+  assert.equal(callbackSettled, false);
+  const result = await pending;
+  assert.equal(callbackSettled, true);
+  assert.deepEqual(result, {
+    changes: 1,
+    nested: { status: 'committed' },
+    items: [{ id: 1 }]
+  });
+  assert.equal(Object.isFrozen(result), true);
+  assert.equal(Object.isFrozen(result.nested), true);
+  assert.equal(Object.isFrozen(result.items), true);
+  assert.equal(Object.isFrozen(result.items[0]), true);
+  assert.throws(() => { result.nested.status = 'mutated'; }, TypeError);
+
+  await assert.rejects(
+    store.transactionAsync(async () => {
+      throw new Error('ASYNC_STORE_CAPABILITY_REJECTION');
+    }),
+    /ASYNC_STORE_CAPABILITY_REJECTION/u
+  );
 });

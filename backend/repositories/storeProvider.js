@@ -29,6 +29,18 @@ function immutableValue(value) {
   catch (_) { return value; }
 }
 
+function deepFreeze(value) {
+  if (value == null || typeof value !== 'object' || Object.isFrozen(value)) return value;
+  for (const child of Object.values(value)) deepFreeze(child);
+  return Object.freeze(value);
+}
+
+function immutableAsyncValue(value) {
+  if (value == null || typeof value !== 'object') return value;
+  try { return deepFreeze(JSON.parse(JSON.stringify(value))); }
+  catch (_) { return value; }
+}
+
 function wrapStatement(store, statement) {
   if (!statement || typeof statement !== 'object') return statement;
   if (statementCapabilities.has(statement)) return statementCapabilities.get(statement);
@@ -88,6 +100,11 @@ function createStoreCapability(store) {
       return (...args) => {
         assertCurrentStore(store);
         const result = Reflect.apply(value, store, args);
+        if (result && typeof result.then === 'function') {
+          return Promise.resolve(result).then(resolved =>
+            resolved === store ? capability : immutableAsyncValue(resolved)
+          );
+        }
         return result === store ? capability : immutableValue(result);
       };
     },

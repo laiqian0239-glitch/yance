@@ -29,7 +29,22 @@ function normalizePlatform(value) {
   return platform;
 }
 function mapWhatsAppState(value) {
-  return ({ online: 'connected', qr: 'waiting-verification', connecting: 'connecting', offline: 'error', 'logged-out': 'logged-out', stopped: 'logged-out' })[value] || 'logged-out';
+  return ({
+    online: 'connected',
+    qr: 'waiting-verification',
+    connecting: 'connecting',
+    reconnecting: 'recovering',
+    restarting: 'recovering',
+    offline: 'error',
+    'startup-timeout': 'error',
+    replaced: 'manual-review',
+    quarantined: 'manual-review',
+    blocked: 'manual-review',
+    'manual-review': 'manual-review',
+    'unknown-disconnect': 'manual-review',
+    'logged-out': 'logged-out',
+    stopped: 'logged-out'
+  })[String(value || '').trim().toLowerCase()] || 'manual-review';
 }
 
 const drivers = Object.freeze({

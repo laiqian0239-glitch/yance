@@ -192,11 +192,17 @@ class AccountManager {
       ? directChallenge
       : authChallenges.status(this.whatsappAuthKey(account));
     const connectedNow = state === 'connected' || state === 'limited';
+    const manualReviewRequired = runtime.manualReviewRequired === true
+      || ['manual-review', 'replaced', 'quarantined', 'blocked', 'unknown-disconnect'].includes(state);
     const runtimeSendReady = typeof runtime.canAttemptSend === 'boolean'
       ? runtime.canAttemptSend
       : (typeof runtime.canSend === 'boolean' ? runtime.canSend : connectedNow);
-    const canAttemptSend = authorityPending || !messagingSupported ? false : Boolean(runtimeSendReady && credentialReady && connectedNow);
-    const canReceive = authorityPending || !messagingSupported ? false : (typeof runtime.canReceive === 'boolean' ? runtime.canReceive : connectedNow);
+    const canAttemptSend = authorityPending || manualReviewRequired || !messagingSupported
+      ? false
+      : Boolean(runtimeSendReady && credentialReady && connectedNow);
+    const canReceive = authorityPending || manualReviewRequired || !messagingSupported
+      ? false
+      : (typeof runtime.canReceive === 'boolean' ? runtime.canReceive : connectedNow);
     const deliveryTruth = platformDeliveryAuthority.accountTruth({ platform: account.platform, accountId: account.id });
     const sendVerified = Boolean(canAttemptSend && deliveryTruth.sendVerified === true);
     const canSend = sendVerified;
@@ -220,10 +226,14 @@ class AccountManager {
       isolationModel: driver.isolationModel || '',
       authorizationPending,
       authorityPending,
+      manualReviewRequired,
+      disconnectDisposition: runtime.disconnectDisposition || runtime.disposition || '',
+      authEpochAction: runtime.authEpochAction || '',
+      ownershipLost: runtime.ownershipLost === true,
       lifecycleAuthorityPending,
       lifecycleOperation: latestSaga ? { operationId: latestSaga.operation_id, operationType: latestSaga.operation_type, phase: latestSaga.phase, state: latestSaga.state, lastError: latestSaga.last_error || '' } : null,
       state,
-      stateLabel: authorizationPending ? '等待平台授权' : latestSaga?.state === 'manual_review' ? '账号状态需要人工恢复' : lifecycleAuthorityPending ? '正在恢复账号状态' : stateLabel(state),
+      stateLabel: authorizationPending ? '等待平台授权' : manualReviewRequired || latestSaga?.state === 'manual_review' ? '账号状态需要人工恢复' : lifecycleAuthorityPending ? '正在恢复账号状态' : stateLabel(state),
       health: healthFromState(state),
       lastError: runtime.lastError || runtime.error || '',
       reasonCode: runtime.reasonCode || runtime.code || '',
