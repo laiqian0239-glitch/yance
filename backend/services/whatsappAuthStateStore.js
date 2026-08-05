@@ -149,6 +149,7 @@ class WhatsAppAuthStateStore {
     let account = await Promise.resolve(state.repository.loadAccount(accountKey));
     let creds;
     let epoch;
+    let writerActivated = false;
 
     if (!account) {
       epoch = 1;
@@ -177,10 +178,22 @@ class WhatsAppAuthStateStore {
       }
       epoch = positiveInteger(Number(account.currentEpoch), 'currentEpoch');
       creds = mutableCreds(account.creds, state.baileys);
+      if (typeof state.repository.activateWriter === 'function') {
+        await Promise.resolve(state.repository.activateWriter({
+          accountId,
+          accountKey,
+          expectedEpoch: epoch,
+          writerGeneration: generation,
+          socketToken
+        }));
+        writerActivated = true;
+      }
     }
 
     const binding = Object.freeze({ accountId, accountKey, epoch, generation, socketToken });
-    await Promise.resolve(state.repository.assertWriter(writerInput(binding)));
+    if (!writerActivated) {
+      await Promise.resolve(state.repository.assertWriter(writerInput(binding)));
+    }
 
     const leaseState = {
       binding,
@@ -236,9 +249,10 @@ class WhatsAppAuthStateStore {
         assertOpen(leaseState);
         return result;
       },
-      async close() {
+      async close(reason = 'WHATSAPP_AUTH_LEASE_CLOSED') {
         if (leaseState.closed) return false;
         leaseState.closed = true;
+        leaseState.closeReason = String(reason || 'WHATSAPP_AUTH_LEASE_CLOSED');
         return true;
       }
     });

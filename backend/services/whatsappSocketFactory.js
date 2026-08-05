@@ -94,14 +94,18 @@ function validateDependencies(baileys) {
 }
 
 function validateCreateInput(input = {}) {
-  if (!input.authState || typeof input.authState !== 'object') {
+  const authState = input.auth || input.authState;
+  if (!authState || typeof authState !== 'object') {
     throw factoryError('WHATSAPP_SOCKET_AUTH_STATE_INVALID', 'WhatsApp auth state is required');
   }
-  if (!input.authState.creds || typeof input.authState.creds !== 'object') {
+  if (!authState.creds || typeof authState.creds !== 'object') {
     throw factoryError('WHATSAPP_SOCKET_CREDS_INVALID', 'WhatsApp auth credentials are required');
   }
-  if (!input.authState.keys || typeof input.authState.keys !== 'object') {
+  if (!authState.keys || typeof authState.keys !== 'object') {
     throw factoryError('WHATSAPP_SOCKET_KEYS_INVALID', 'WhatsApp Signal key capability is required');
+  }
+  if (input.saveCreds != null && typeof input.saveCreds !== 'function') {
+    throw factoryError('WHATSAPP_SOCKET_SAVE_CREDS_INVALID', 'WhatsApp credential persistence capability is invalid');
   }
   if (typeof input.getMessage !== 'function') {
     throw factoryError('WHATSAPP_SOCKET_GET_MESSAGE_INVALID', 'The exact getMessage capability is required');
@@ -109,6 +113,7 @@ function validateCreateInput(input = {}) {
   if (!Array.isArray(input.browser) || input.browser.length !== 3) {
     throw factoryError('WHATSAPP_SOCKET_BROWSER_INVALID', 'The sealed browser identity is required');
   }
+  return authState;
 }
 
 function createWhatsAppSocketFactory(options = {}) {
@@ -122,13 +127,13 @@ function createWhatsAppSocketFactory(options = {}) {
 
   return Object.freeze({
     async create(input = {}) {
-      validateCreateInput(input);
+      const authState = validateCreateInput(input);
       const redactedLogger = createRedactedBaileysLogger(appLogger);
       const versionDecision = resolveVersion(input.versionInfo, sealedVersion);
-      const cachedKeys = baileys.makeCacheableSignalKeyStore(input.authState.keys, redactedLogger);
+      const cachedKeys = baileys.makeCacheableSignalKeyStore(authState.keys, redactedLogger);
       const socketOptions = {
         auth: {
-          creds: input.authState.creds,
+          creds: authState.creds,
           keys: cachedKeys
         },
         ...(input.msgRetryCounterCache ? { msgRetryCounterCache: input.msgRetryCounterCache } : {}),
@@ -149,7 +154,11 @@ function createWhatsAppSocketFactory(options = {}) {
         if (!socket || typeof socket !== 'object') {
           throw factoryError('WHATSAPP_SOCKET_CONSTRUCTOR_INVALID_RESULT', 'Baileys returned an invalid socket');
         }
-        return Object.freeze({ socket, versionDecision });
+        return Object.freeze({
+          socket,
+          versionDecision,
+          saveCreds: typeof input.saveCreds === 'function' ? input.saveCreds : null
+        });
       } catch (cause) {
         const receipt = Object.freeze({
           reasonCode: 'WHATSAPP_SOCKET_CREATE_FAILED',

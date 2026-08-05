@@ -360,6 +360,83 @@ class WhatsAppAuthStateRepository {
     });
   }
 
+  activateWriter(input = {}) {
+    const state = privateState(this);
+    const store = storeFor(this);
+    const accountKey = nonEmptyString(input.accountKey, 'accountKey');
+    const accountId = nonEmptyString(input.accountId, 'accountId');
+    const expectedEpoch = positiveInteger(
+      input.expectedEpoch ?? input.currentEpoch ?? input.epoch,
+      'expectedEpoch'
+    );
+    const writerGeneration = nonNegativeInteger(
+      input.writerGeneration ?? input.expectedWriterGeneration,
+      'writerGeneration'
+    );
+    const socketToken = nonEmptyString(
+      input.socketToken ?? input.expectedSocketToken ?? input.writerSocketToken,
+      'socketToken'
+    );
+    const at = String(state.clock());
+
+    return store.transaction(() => {
+      const row = readAccountRow(store.db, accountKey);
+      if (!row) {
+        throw repositoryError('WHATSAPP_AUTH_ACCOUNT_NOT_FOUND', 'WhatsApp auth account is missing', { accountKey });
+      }
+      if (String(row.account_id) !== accountId) {
+        throw repositoryError(
+          'WHATSAPP_AUTH_ACCOUNT_MISMATCH',
+          'WhatsApp auth account does not match the requested account',
+          { accountKey, expectedAccountId: accountId, actualAccountId: String(row.account_id) }
+        );
+      }
+      if (Number(row.current_epoch) !== expectedEpoch) {
+        throw repositoryError('WHATSAPP_AUTH_GENERATION_STALE', 'WhatsApp auth epoch is stale', {
+          accountKey,
+          expectedEpoch,
+          actualEpoch: Number(row.current_epoch)
+        });
+      }
+      if (String(row.state) !== ACTIVE) {
+        throw repositoryError('WHATSAPP_AUTH_STATE_NOT_ACTIVE', 'WhatsApp auth account is not active', {
+          accountKey,
+          state: String(row.state)
+        });
+      }
+
+      const currentGeneration = Number(row.writer_generation);
+      const currentSocketToken = String(row.writer_socket_token);
+      if (currentGeneration === writerGeneration && currentSocketToken === socketToken) {
+        return Object.freeze({ committed: false, changes: 0, ...publicWriter(row) });
+      }
+      if (writerGeneration <= currentGeneration) {
+        throw repositoryError(
+          'WHATSAPP_AUTH_GENERATION_STALE',
+          'WhatsApp auth writer generation cannot move backwards or change token in place',
+          { accountKey, currentGeneration, requestedGeneration: writerGeneration }
+        );
+      }
+
+      const result = store.db.prepare(`UPDATE whatsapp_auth_accounts SET
+        writer_generation=?,writer_socket_token=?,updated_at=?
+        WHERE account_key=? AND current_epoch=? AND state='ACTIVE'
+          AND writer_generation=? AND writer_socket_token=?`).run(
+        writerGeneration, socketToken, at, accountKey, expectedEpoch,
+        currentGeneration, currentSocketToken
+      );
+      if (Number(result.changes) !== 1) {
+        throw repositoryError('WHATSAPP_AUTH_GENERATION_STALE', 'WhatsApp auth writer changed during activation', {
+          accountKey,
+          expectedEpoch,
+          writerGeneration
+        });
+      }
+      invokeFault(state, 'after-writer-activation', { accountKey, writerGeneration });
+      return Object.freeze({ committed: true, changes: 1, ...publicWriter(readAccountRow(store.db, accountKey)) });
+    });
+  }
+
   assertWriter(input = {}) {
     const store = storeFor(this);
     return publicWriter(assertWriterRow(store.db, input));
