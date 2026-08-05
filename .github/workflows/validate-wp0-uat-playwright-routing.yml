@@ -134,7 +134,7 @@ jobs:
           git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
           git merge-base --is-ancestor "${GOVERNANCE_MERGE_HEAD}" HEAD
           test "$(git diff --name-only "${GOVERNANCE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = "governance/layered-ci/wp0-routing-policy.json tests/layered-ci/open-source-work-package-registry.test.js "
-          test "$(git diff --name-only "${V1_GOVERNANCE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = "governance/layered-ci/wp0-routing-policy.json tests/layered-ci/open-source-work-package-registry.test.js tests/layered-ci/wp0-routing.test.js "
+          test "$(git diff --name-only "${V1_GOVERNANCE_MERGE_HEAD}" "${AUTHORIZED_PARENT_HEAD}" | sort | tr '\n' ' ')" = "tests/layered-ci/wp0-routing.test.js "
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - name: Prove full PR diff selects PRODUCT_WP0 without prefix expansion
         shell: bash
@@ -229,7 +229,7 @@ jobs:
           fetch-tags: false
           lfs: false
           persist-credentials: false
-      - name: Verify candidate identity, ancestry and cumulative three-path scope
+      - name: Verify candidate identity, ancestry and authorized repair layers
         shell: bash
         run: |
           set -euo pipefail
@@ -239,7 +239,7 @@ jobs:
           git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
           git merge-base --is-ancestor "${GOVERNANCE_MERGE_HEAD}" HEAD
           test "$(git diff --name-only "${GOVERNANCE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = "governance/layered-ci/wp0-routing-policy.json tests/layered-ci/open-source-work-package-registry.test.js "
-          test "$(git diff --name-only "${V1_GOVERNANCE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = "governance/layered-ci/wp0-routing-policy.json tests/layered-ci/open-source-work-package-registry.test.js tests/layered-ci/wp0-routing.test.js "
+          test "$(git diff --name-only "${V1_GOVERNANCE_MERGE_HEAD}" "${AUTHORIZED_PARENT_HEAD}" | sort | tr '\n' ' ')" = "tests/layered-ci/wp0-routing.test.js "
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
