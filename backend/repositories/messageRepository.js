@@ -1,6 +1,5 @@
 'use strict';
 
-const crypto = require('node:crypto');
 const { getStore } = require('./storeProvider');
 const { createWhatsAppMessageKeyIndexRepository, hashRawMessage } = require('./whatsappMessageKeyIndexRepository');
 const communicationAuthority = require('../services/communicationAuthority');
@@ -172,88 +171,15 @@ function recordOperationalFailure(created, cause, targetRefs = []) {
 }
 
 function now() { return new Date().toISOString(); }
-function projectionRetry(attempts) { return new Date(Date.now() + Math.min(300, Math.max(5, 2 ** Math.min(8, Number(attempts || 0)))) * 1000).toISOString(); }
-function appendInboundEventWithProjectionJob(store, input = {}) {
-  return store.transaction(() => {
-    const created = domainEventLog.append(input);
-    const eventId = String(created?.event?.eventId || '').trim();
-    if (!eventId) throw Object.assign(new Error('Domain event append did not return eventId'), { code: 'DOMAIN_EVENT_ID_MISSING' });
-    const at = now();
-    store.db.prepare(`INSERT INTO domain_event_projection_jobs(
-      job_id,event_id,projector_name,state,attempts,claim_token,lease_expires_at,next_attempt_at,last_error,created_at,updated_at
-    ) VALUES(?,?,?,'pending',0,'','','','',?,?)
-    ON CONFLICT(event_id) DO NOTHING`).run(`project-${eventId}`, eventId, 'message-projection', at, at);
-    return created;
-  });
-}
 function existingAuthoritativeDomainEvent(eventId) {
-  const row = platformCoreRepository.getDomainEvent(String(eventId || '').trim());
-  if (!row) throw Object.assign(new Error('Authoritative domain event for projection replay was not found'), {
-    code: 'DOMAIN_EVENT_NOT_FOUND', status: 404, eventId: String(eventId || '').trim()
+  const canonicalEventId = String(eventId || '').trim();
+  const event = domainEventLog.readEvent(canonicalEventId);
+  if (!event) throw Object.assign(new Error('Authoritative canonical event for projection replay was not found'), {
+    code: 'DOMAIN_EVENT_NOT_FOUND', status: 404, eventId: canonicalEventId
   });
-  return {
-    created: false,
-    event: {
-      eventId: row.event_id,
-      schemaVersion: Number(row.schema_version || 1),
-      platform: row.platform,
-      sourceAccountId: row.source_account_id,
-      externalEventId: row.external_event_id,
-      eventType: row.event_type,
-      idempotencyKey: row.idempotency_key,
-      correlationId: row.correlation_id,
-      causationId: row.causation_id,
-      occurredAt: row.occurred_at,
-      receivedAt: row.received_at,
-      redactionVersion: row.redaction_version,
-      payload: row.payload || {},
-      payloadSha256: row.payload_sha256,
-      retentionUntil: row.retention_until,
-      replayState: row.replay_state
-    }
-  };
+  return { created: false, event };
 }
 
-function recoverExpiredProjectionJob(store, eventId = '') {
-  const at = now();
-  const params = [at, at, at];
-  let sql = `UPDATE domain_event_projection_jobs
-    SET state='failed',claim_token='',lease_expires_at='',last_error='PROCESSING_LEASE_EXPIRED',next_attempt_at=?,updated_at=?
-    WHERE state='processing' AND lease_expires_at<>'' AND lease_expires_at<=?`;
-  if (eventId) { sql += ' AND event_id=?'; params.push(eventId); }
-  return Number(store.db.prepare(sql).run(...params).changes || 0);
-}
-function claimProjectionJob(store, eventId) {
-  recoverExpiredProjectionJob(store, eventId);
-  const token = crypto.randomUUID();
-  const at = now();
-  const lease = new Date(Date.now() + 60000).toISOString();
-  const updated = store.db.prepare(`UPDATE domain_event_projection_jobs
-    SET state='processing',attempts=attempts+1,claim_token=?,lease_expires_at=?,updated_at=?
-    WHERE event_id=? AND state IN ('pending','failed') AND (next_attempt_at='' OR next_attempt_at<=?)`)
-    .run(token, lease, at, eventId, at);
-  if (Number(updated.changes || 0) !== 1) {
-    const row = store.db.prepare('SELECT * FROM domain_event_projection_jobs WHERE event_id=?').get(eventId);
-    if (row?.state === 'applied') return { eventId, applied: true, token: '' };
-    throw Object.assign(new Error('Domain event projection job is not claimable'), {
-      code: row?.state === 'processing' ? 'DOMAIN_EVENT_PROJECTION_JOB_BUSY' : 'DOMAIN_EVENT_PROJECTION_JOB_NOT_CLAIMABLE',
-      status: 409, eventId, state: row?.state || 'missing'
-    });
-  }
-  return { eventId, token, applied: false };
-}
-function settleProjectionJobWithinTransaction(store, claim, state, error = null) {
-  if (!claim || claim.applied) return;
-  const at = now();
-  const target = state === 'applied' ? 'applied' : 'failed';
-  const row = store.db.prepare('SELECT attempts FROM domain_event_projection_jobs WHERE event_id=?').get(claim.eventId);
-  const nextAttemptAt = target === 'failed' ? projectionRetry(Number(row?.attempts || 1)) : '';
-  const updated = store.db.prepare(`UPDATE domain_event_projection_jobs
-    SET state=?,claim_token='',lease_expires_at='',next_attempt_at=?,last_error=?,updated_at=?
-    WHERE event_id=? AND state='processing' AND claim_token=?`)
-    .run(target, nextAttemptAt, target === 'failed' ? String(error?.message || error?.code || 'DOMAIN_EVENT_PROJECTION_FAILED').slice(0, 2000) : '', at, claim.eventId, claim.token);
-  if (Number(updated.changes || 0) !== 1) throw Object.assign(new Error('Stale projection completion rejected'), { code: 'DOMAIN_EVENT_PROJECTION_STALE_COMPLETION', eventId: claim.eventId });
-}
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 
 function normalizeMessage(message = {}) {
@@ -541,7 +467,7 @@ async function upsert(input) {
     const expectedProjection = projectMessage(message);
     authoritativeDomainEvent = projectionReplayEventId
       ? existingAuthoritativeDomainEvent(projectionReplayEventId)
-      : appendInboundEventWithProjectionJob(store, {
+      : domainEventLog.append({
         platform: ingressPlatform,
         sourceAccountId: ingressAccountId,
         externalEventId: message.externalMessageId || message.id,
@@ -576,11 +502,7 @@ async function upsert(input) {
   let identityObservation = null;
   let saved = null;
   let projectionReceipt = null;
-  let projectionClaim = null;
   const identityScope = inboundIdentityScope(message);
-  if (authoritativeDomainEvent?.event?.eventId) {
-    projectionClaim = store.transaction(() => claimProjectionJob(store, authoritativeDomainEvent.event.eventId));
-  }
   try {
     store.transaction(() => {
       inserted = !store.db.prepare('SELECT 1 FROM r32_messages WHERE id=?').get(message.id);
@@ -673,7 +595,6 @@ async function upsert(input) {
           projection: savedProjection,
           targetRefs: [{ table: 'r32_messages', id: saved.id }]
         });
-        settleProjectionJobWithinTransaction(store, projectionClaim, 'applied');
       }
     });
   } catch (cause) {
@@ -688,23 +609,16 @@ async function upsert(input) {
           targetRefs: [{ table: 'r32_messages', id: message.id }]
         });
       } catch (receiptError) {
-        logger.error('domain-event', 'projection-failure-receipt-write-failed', {
-          eventId: authoritativeDomainEvent.event.eventId,
-          messageId: message.id,
+        throw Object.assign(receiptError, {
           code: receiptError.code || 'PROJECTION_FAILURE_RECEIPT_FAILED',
-          error: receiptError.message
+          projectionCause: cause,
+          eventId: authoritativeDomainEvent.event.eventId,
+          messageId: message.id
         });
       }
     }
     if (outboundEchoDomainEvent?.event?.eventId) recordOperationalFailure(outboundEchoDomainEvent, cause, [{ table: 'r32_messages', id: message.id }]);
-    if (authoritativeDomainEvent?.event?.eventId && projectionClaim && !projectionClaim.applied) {
-      try {
-        store.transaction(() => settleProjectionJobWithinTransaction(store, projectionClaim, 'failed', cause));
-      } catch (jobError) {
-        logger.error('domain-event', 'projection-job-failure-checkpoint-failed', {
-          eventId: authoritativeDomainEvent.event.eventId, code: jobError.code || 'PROJECTION_JOB_FAILURE_CHECKPOINT_FAILED', error: jobError.message
-        });
-      }
+    if (authoritativeDomainEvent?.event?.eventId) {
       const pending = {
         inserted: false,
         committed: true,
