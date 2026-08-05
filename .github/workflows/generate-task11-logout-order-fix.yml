@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 env:
-  RED_HEAD: e2071e2349f73ef75f5c6ccf45da8b98a8517cec
-  CANDIDATE_BRANCH: candidate/task11-logout-order-green-v1
+  RED_HEAD: 27f54872f11a6938873df0d7ee2194367efd88a6
+  CANDIDATE_BRANCH: candidate/task11-logout-order-green-v2
 
 jobs:
   generate-and-verify:
