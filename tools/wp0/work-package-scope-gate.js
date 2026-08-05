@@ -1,5 +1,6 @@
 'use strict';
 
+const { TextDecoder } = require('node:util');
 const {
   ACV2_AUTHORIZATION_BLOB_SHA,
   ACV2_AUTHORIZATION_REPOSITORY_PATH,
@@ -17,8 +18,11 @@ const {
 const {
   evaluateAuthorizedOpenSourceWorkPackageScope,
   filterOpenSourceImplementationChangedFiles,
+  normalizeRepositoryPath,
   resolveOpenSourceAuthorizationForBranch
 } = require('../../shared/release/openSourceWorkPackagePolicy');
+
+const FATAL_UTF8_DECODER = new TextDecoder('utf-8', { fatal: true });
 
 function scopeResult(values) {
   return Object.freeze({
@@ -41,6 +45,25 @@ function fail(reasonCode, details = {}) {
   return scopeResult({ pass: false, reasonCode, ...details, readyForPromotion: false });
 }
 
+function decodeChangedFileBuffer(raw) {
+  if (!Buffer.isBuffer(raw)) {
+    throw new TypeError('work-package scope Git transport must return a Buffer');
+  }
+  if (raw.length === 0) return [];
+  if (raw[raw.length - 1] !== 0) {
+    throw new Error('work-package scope Git path stream must end with NUL');
+  }
+  const text = FATAL_UTF8_DECODER.decode(raw);
+  const values = text.slice(0, -1).split('\0');
+  if (values.some(value => normalizeRepositoryPath(value) !== value)) {
+    throw new Error('work-package scope Git path identity is invalid');
+  }
+  if (new Set(values).size !== values.length) {
+    throw new Error('work-package scope Git path stream contains duplicates');
+  }
+  return [...values].sort();
+}
+
 function readChangedFiles(git, baseHead, effectiveBranch) {
   try {
     const raw = git([
@@ -52,17 +75,8 @@ function readChangedFiles(git, baseHead, effectiveBranch) {
       baseHead,
       'HEAD',
       '--'
-    ], { encoding: null });
-    const buffer = Buffer.isBuffer(raw) ? raw : Buffer.from(String(raw || ''), 'utf8');
-    const values = buffer.toString('utf8').split('\0').filter(Boolean);
-    if (values.some(value => value !== value.trim())) {
-      return fail('WORK_PACKAGE_SCOPE_PATH_IDENTITY_INVALID', {
-        effectiveBranch,
-        parentGovernanceHead: baseHead,
-        changedFiles: values
-      });
-    }
-    return [...new Set(values)].sort();
+    ], { encoding: null, trim: false });
+    return decodeChangedFileBuffer(raw);
   } catch (cause) {
     return fail('ACV2_WORK_PACKAGE_SCOPE_DIFF_FAILED', {
       effectiveBranch,
@@ -360,4 +374,7 @@ function evaluateWorkPackageScopeForGate(options = {}) {
   });
 }
 
-module.exports = { evaluateWorkPackageScopeForGate };
+module.exports = {
+  decodeChangedFileBuffer,
+  evaluateWorkPackageScopeForGate
+};
