@@ -10,7 +10,7 @@ permissions:
   statuses: write
 
 concurrency:
-  group: oss1a-task11-exact-candidate-c0cf81de
+  group: oss1a-task11-exact-candidate-62387c01
   cancel-in-progress: false
 
 jobs:
@@ -18,9 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
-      BASE_SHA: c0cf81de7a0350f2faa1af8877ec4ea16d01e496
+      BASE_SHA: 62387c011c11c0924ae763f357ce351214e114ce
       IMPLEMENTATION_BRANCH: oss/1a-baileys-lifecycle
       SEALED_NODE_VERSION: 22.23.1
+      TASK11_LEASE_TEST: backend/tests/oss1aWhatsappAuthLeaseLifecycle.test.js
+      TASK11_PRODUCTION_TEST: backend/tests/oss1aWhatsappProductionAuthIntegration.test.js
     steps:
       - name: Checkout isolated orchestration source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -55,6 +57,8 @@ jobs:
             "refs/heads/${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
           test "$(git rev-parse "refs/remotes/origin/${IMPLEMENTATION_BRANCH}")" = "$BASE_SHA"
           node --check tools/oss1a/generate-task11-auth-lease-candidate.js
+          test -f "$TASK11_LEASE_TEST"
+          test -f "$TASK11_PRODUCTION_TEST"
 
       - name: Create two exact detached baseline worktrees
         shell: bash
@@ -81,19 +85,90 @@ jobs:
           (cd "$CLEAN_WORKTREE" && npm ci --no-audit --no-fund)
           (cd "$IMPLEMENTATION_WORKTREE" && npm ci --no-audit --no-fund)
 
-      - name: Prove exact baseline GREEN in clean worktree
+      - name: Build stage-aware baseline gates
         shell: bash
         run: |
           set -euo pipefail
-          cd "$CLEAN_WORKTREE"
-          npm run test:oss1a
+          pre_task11_runner="${RUNNER_TEMP}/run-pre-task11-oss1a.sh"
+          task11_red_runner="${RUNNER_TEMP}/prove-task11-red.sh"
 
-      - name: Prove exact baseline GREEN in implementation worktree
+          cat > "$pre_task11_runner" <<'BASH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          worktree="$1"
+          log_file="$2"
+          cd "$worktree"
+          mapfile -t test_files < <(
+            {
+              find backend/tests -maxdepth 1 -type f -name 'oss1a*.test.js' -print
+              find tests/oss1a -maxdepth 1 -type f -name '*.test.js' -print
+            } | LC_ALL=C sort \
+              | grep -Fvx 'backend/tests/oss1aWhatsappAuthLeaseLifecycle.test.js' \
+              | grep -Fvx 'backend/tests/oss1aWhatsappProductionAuthIntegration.test.js'
+          )
+          test "${#test_files[@]}" -gt 0
+          node --test --test-concurrency=1 "${test_files[@]}" > "$log_file" 2>&1
+          cat "$log_file"
+          grep -Fxq '# tests 294' "$log_file"
+          grep -Fxq '# pass 294' "$log_file"
+          grep -Fxq '# fail 0' "$log_file"
+          BASH
+
+          cat > "$task11_red_runner" <<'BASH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          worktree="$1"
+          log_file="$2"
+          cd "$worktree"
+          set +e
+          node --test --test-concurrency=1 \
+            backend/tests/oss1aWhatsappAuthLeaseLifecycle.test.js \
+            backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
+            > "$log_file" 2>&1
+          rc=$?
+          set -e
+          cat "$log_file"
+          test "$rc" -ne 0
+          grep -Fxq '# tests 8' "$log_file"
+          grep -Fxq '# pass 1' "$log_file"
+          grep -Fxq '# fail 7' "$log_file"
+          grep -Eq '^not ok [0-9]+ - auth lease close primitive is idempotent and records one terminal reason$' "$log_file"
+          grep -Eq '^not ok [0-9]+ - socket initialization failure closes the unpublished auth lease exactly once$' "$log_file"
+          grep -Eq '^not ok [0-9]+ - replacement, stop and logout close the old lease before removing the runtime row$' "$log_file"
+          grep -Eq '^not ok [0-9]+ - terminal disconnect closes the lease while retryable transport rebuilds never reuse it$' "$log_file"
+          grep -Eq '^not ok [0-9]+ - all required lifecycle paths converge on the single close primitive$' "$log_file"
+          grep -Eq '^not ok [0-9]+ - production WhatsApp socket uses only repository-backed AuthenticationState$' "$log_file"
+          grep -Eq '^not ok [0-9]+ - socket receives the exact creds and keys returned by one auth lease with no fallback$' "$log_file"
+          grep -Eq '^ok [0-9]+ - production composition injects the key and primary Store authorities used to open auth leases$' "$log_file"
+          BASH
+
+          chmod 0755 "$pre_task11_runner" "$task11_red_runner"
+          {
+            echo "PRE_TASK11_RUNNER=$pre_task11_runner"
+            echo "TASK11_RED_RUNNER=$task11_red_runner"
+          } >> "$GITHUB_ENV"
+
+      - name: Prove clean exact baseline pre-Task11 regression GREEN
         shell: bash
         run: |
           set -euo pipefail
-          cd "$IMPLEMENTATION_WORKTREE"
-          npm run test:oss1a
+          "$PRE_TASK11_RUNNER" "$CLEAN_WORKTREE" "${RUNNER_TEMP}/clean-pre-task11.log"
+
+      - name: Prove implementation exact baseline pre-Task11 regression GREEN
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$PRE_TASK11_RUNNER" "$IMPLEMENTATION_WORKTREE" "${RUNNER_TEMP}/implementation-pre-task11.log"
+
+      - name: Prove exact Task 11 RED contract in both baselines
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$TASK11_RED_RUNNER" "$CLEAN_WORKTREE" "${RUNNER_TEMP}/clean-task11-red.log"
+          "$TASK11_RED_RUNNER" "$IMPLEMENTATION_WORKTREE" "${RUNNER_TEMP}/implementation-task11-red.log"
+          clean_summary="$(grep -E '^# (tests|pass|fail) ' "${RUNNER_TEMP}/clean-task11-red.log")"
+          implementation_summary="$(grep -E '^# (tests|pass|fail) ' "${RUNNER_TEMP}/implementation-task11-red.log")"
+          test "$clean_summary" = "$implementation_summary"
 
       - name: Generate candidate only against clean exact baseline
         shell: bash
@@ -146,8 +221,8 @@ jobs:
           set -euo pipefail
           cd "$CLEAN_WORKTREE"
           node --test --test-concurrency=1 \
-            backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
-            backend/tests/oss1aWhatsappAuthLeaseLifecycle.test.js
+            "$TASK11_PRODUCTION_TEST" \
+            "$TASK11_LEASE_TEST"
 
       - name: Test clean candidate full OSS-1A regression
         shell: bash
@@ -162,8 +237,8 @@ jobs:
           set -euo pipefail
           cd "$IMPLEMENTATION_WORKTREE"
           node --test --test-concurrency=1 \
-            backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
-            backend/tests/oss1aWhatsappAuthLeaseLifecycle.test.js
+            "$TASK11_PRODUCTION_TEST" \
+            "$TASK11_LEASE_TEST"
 
       - name: Test implementation candidate full OSS-1A regression
         shell: bash
@@ -249,6 +324,9 @@ jobs:
             echo "- Base: \`$BASE_SHA\`"
             echo "- Candidate: \`$CANDIDATE_SHA\`"
             echo "- Patch SHA-256: \`$patch_sha\`"
+            echo "- Baseline pre-Task 11 regression: \`294/294 GREEN\` in both worktrees"
+            echo "- Baseline Task 11 contract: \`8 tests / 1 pass / 7 expected RED\` in both worktrees"
+            echo "- Candidate Task 11 and full OSS-1A regressions: GREEN in both worktrees"
             echo "- Runtime: Node \`$SEALED_NODE_VERSION\` with proven FTS5"
             echo "- Implementation update: ordinary non-force fast-forward"
           } >> "$GITHUB_STEP_SUMMARY"
