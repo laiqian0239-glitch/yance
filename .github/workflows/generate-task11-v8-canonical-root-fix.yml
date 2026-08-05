@@ -10,12 +10,12 @@ permissions:
 
 env:
   RED_HEAD: f74305d27586006f6455a6a5569a0960dffb49d3
-  CANDIDATE_BRANCH: candidate/task11-v8-canonical-root-green-v1
+  CANDIDATE_BRANCH: candidate/task11-v8-canonical-root-green-v2
 
 jobs:
   generate-and-verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - name: Checkout exact generator head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -47,13 +47,23 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Prove canonical failed projection and checkpoint hash GREEN
         run: node --test --test-concurrency=1 backend/tests/messageIdentityEvidenceOrdering.test.js
-      - name: Prove canonical ledger and projection receipt contracts
+      - name: Prove current canonical ledger and receipt authorities
         run: >-
           node --test --test-concurrency=1
           backend/tests/architectureClosureV2/wpA/domainEventCompatibilityFacade.test.js
           backend/tests/architectureClosureV2/wpA/projectionReceiptSchemaAuthority.test.js
-          backend/tests/f25WindowsUatRepairBatch24DomainProjectionRecovery.test.js
-          backend/tests/f25WindowsUatRepairBatch24StateTransactionConsistency.test.js
+      - name: Prove exact Task 11 related regressions
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/batch39WhatsappSessionFence.test.js
+          backend/tests/batch40ChannelAbortPropagation.test.js
+          backend/tests/whatsappReceiptRecoveryRegression.test.js
+          backend/tests/whatsappQrChallenge.test.js
+          backend/tests/whatsappCanonicalGuardRegression.test.js
+          backend/tests/whatsappMediaRecoveryClosure.test.js
+          backend/tests/whatsappOrphanAccountReconciliation.test.js
+          backend/tests/accountLifecycleRegression.test.js
+          backend/tests/platformProductionReadinessAuthority.test.js
       - name: Prove complete OSS-1A suite
         run: npm run test:oss1a
       - name: Commit exact candidate without history rewrite
