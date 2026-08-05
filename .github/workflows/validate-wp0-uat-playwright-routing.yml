@@ -9,10 +9,12 @@ permissions:
   contents: write
 
 env:
-  PREVIOUS_CANDIDATE_HEAD: 87f3ea0ba6ac4856d4e1b701c75d0740c9f4fc3b
-  GOVERNANCE_HEAD: 7d4296bd1158ff787b92b383e9c37bc431df4b3f
-  GOVERNANCE_MERGE_HEAD: 8c0344044eb728566a4e0133aa30bbae01c9dfda
-  RED_CANDIDATE_HEAD: 7e2a6d62710e6b69a95ea07a8b4076a25c2ab321
+  ORIGINAL_CANDIDATE_HEAD: 87f3ea0ba6ac4856d4e1b701c75d0740c9f4fc3b
+  AUTHORIZED_PARENT_HEAD: 7e2a6d62710e6b69a95ea07a8b4076a25c2ab321
+  V1_GOVERNANCE_MERGE_HEAD: 8c0344044eb728566a4e0133aa30bbae01c9dfda
+  GOVERNANCE_HEAD: f72334fe39ce42866a964578f47aa63942973981
+  GOVERNANCE_MERGE_HEAD: 839dbdc851c5bb51c96646190edd2fee5e010119
+  RED_CANDIDATE_HEAD: 839dbdc851c5bb51c96646190edd2fee5e010119
   PR_BASE_HEAD: 87a855ce63ac1c00c1414fc234234b070a66376c
   CANDIDATE_BRANCH: candidate/oss1a-v11-uat-diagnostics-green-v2
   CLEAN_WORKTREE: /tmp/wp0-uat-playwright-routing-clean
@@ -38,18 +40,17 @@ jobs:
       - name: Preserve exact routing generator outside candidate tree
         shell: bash
         run: cp tools/generator/wp0-uat-playwright-routing-fix.js /tmp/wp0-uat-playwright-routing-fix.js
-      - name: Verify sealed two-path authority and exact RED candidate
+      - name: Verify sealed three-path authority and exact RED candidate
         shell: bash
         run: |
           set -euo pipefail
           git fetch --no-tags origin "refs/heads/${CANDIDATE_BRANCH}:refs/remotes/origin/${CANDIDATE_BRANCH}"
           remote_candidate_head="$(git rev-parse "refs/remotes/origin/${CANDIDATE_BRANCH}")"
           test "${remote_candidate_head}" = "${RED_CANDIDATE_HEAD}"
-          test "$(git rev-parse "${GOVERNANCE_MERGE_HEAD}^1")" = "${PREVIOUS_CANDIDATE_HEAD}"
+          test "$(git rev-parse "${GOVERNANCE_MERGE_HEAD}^1")" = "${AUTHORIZED_PARENT_HEAD}"
           test "$(git rev-parse "${GOVERNANCE_MERGE_HEAD}^2")" = "${GOVERNANCE_HEAD}"
-          test "$(git rev-parse "${RED_CANDIDATE_HEAD}^")" = "${GOVERNANCE_MERGE_HEAD}"
-          test "$(git diff --name-only "${GOVERNANCE_MERGE_HEAD}" "${RED_CANDIDATE_HEAD}" | tr '\n' ' ')" = "tests/layered-ci/wp0-routing.test.js "
-          git merge-base --is-ancestor "${PREVIOUS_CANDIDATE_HEAD}" "${RED_CANDIDATE_HEAD}"
+          git merge-base --is-ancestor "${ORIGINAL_CANDIDATE_HEAD}" "${RED_CANDIDATE_HEAD}"
+          git merge-base --is-ancestor "${AUTHORIZED_PARENT_HEAD}" "${RED_CANDIDATE_HEAD}"
           git merge-base --is-ancestor "${GOVERNANCE_HEAD}" "${RED_CANDIDATE_HEAD}"
           git checkout --detach "${RED_CANDIDATE_HEAD}"
           git switch -c runtime/wp0-uat-playwright-routing
@@ -59,28 +60,31 @@ jobs:
           const assert = require('node:assert/strict');
           const crypto = require('node:crypto');
           const fs = require('node:fs');
-          const authorization = JSON.parse(fs.readFileSync('governance/layered-ci/wp0-uat-playwright-routing-authorization.json', 'utf8'));
-          const receipt = JSON.parse(fs.readFileSync('governance/layered-ci/wp0-uat-playwright-routing-receipt.json', 'utf8'));
+          const authorization = JSON.parse(fs.readFileSync('governance/layered-ci/wp0-uat-playwright-routing-authorization-v2.json', 'utf8'));
+          const receipt = JSON.parse(fs.readFileSync('governance/layered-ci/wp0-uat-playwright-routing-receipt-v2.json', 'utf8'));
           const expected = [
             'governance/layered-ci/wp0-routing-policy.json',
+            'tests/layered-ci/open-source-work-package-registry.test.js',
             'tests/layered-ci/wp0-routing.test.js'
           ];
           assert.equal(authorization.status, 'IMPLEMENTATION_AUTHORIZED');
-          assert.equal(authorization.approvedParentHead, process.env.PREVIOUS_CANDIDATE_HEAD);
+          assert.equal(authorization.authorizationVersion, 2);
+          assert.equal(authorization.approvedParentHead, process.env.AUTHORIZED_PARENT_HEAD);
           assert.deepEqual(authorization.authorizedRootRepair.exactPaths, expected);
           assert.equal(
             crypto.createHash('sha256').update(`${expected.join('\n')}\n`).digest('hex'),
             authorization.authorizedRootRepair.approvedChangedFileSetSha256
           );
           assert.equal(authorization.governance.requirementsDirectoryPrefixAuthorizationAllowed, false);
+          assert.equal(authorization.governance.validationWeakeningAllowed, false);
           assert.equal(receipt.status, 'SEALED_FOR_IMPLEMENTATION');
-          assert.equal(receipt.authorizationCommit, '2292d913b7985b3e7b766b2b45f1b797ad089737');
+          assert.equal(receipt.authorizationCommit, '7c7d9b4e4423081568e39abd04676bcc8403cd43');
           assert.deepEqual(receipt.exactPaths, expected);
           assert.equal(receipt.governance.temporaryBypassAllowed, false);
           assert.equal(receipt.governance.warningOnlyClosureAllowed, false);
           NODE
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
-      - name: Build exact policy data repair
+      - name: Build exact routing and receipt-fixture repairs
         shell: bash
         run: |
           set -euo pipefail
@@ -88,21 +92,24 @@ jobs:
           node --test --test-concurrency=1 tests/layered-ci/wp0-routing.test.js
           node --test --test-concurrency=1 tests/layered-ci/*.test.js
           git diff --check
-      - name: Verify exact one-path implementation scope
+      - name: Verify exact two-path implementation scope
         shell: bash
         run: |
           set -euo pipefail
           node <<'NODE'
           const fs = require('node:fs');
           const { execFileSync } = require('node:child_process');
-          const authorization = JSON.parse(fs.readFileSync('governance/layered-ci/wp0-uat-playwright-routing-authorization.json', 'utf8'));
+          const authorization = JSON.parse(fs.readFileSync('governance/layered-ci/wp0-uat-playwright-routing-authorization-v2.json', 'utf8'));
           const outputs = [
             execFileSync('git', ['diff', '--name-only', 'HEAD', '--'], { encoding: 'utf8' }),
             execFileSync('git', ['diff', '--cached', '--name-only', 'HEAD', '--'], { encoding: 'utf8' }),
             execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { encoding: 'utf8' })
           ];
           const changed = [...new Set(outputs.join('\n').split(/\r?\n/u).map(value => value.trim()).filter(Boolean))].sort();
-          const expected = ['governance/layered-ci/wp0-routing-policy.json'];
+          const expected = [
+            'governance/layered-ci/wp0-routing-policy.json',
+            'tests/layered-ci/open-source-work-package-registry.test.js'
+          ];
           assertEqual(changed, expected, 'unexpected implementation paths');
           const allowed = authorization.authorizedRootRepair.exactPaths;
           assertEqual(changed.filter(file => !allowed.includes(file)), [], 'unauthorized implementation paths');
@@ -113,18 +120,21 @@ jobs:
             }
           }
           NODE
-      - name: Commit exact policy repair locally
+      - name: Commit exact repairs locally
         shell: bash
         run: |
           set -euo pipefail
-          git add governance/layered-ci/wp0-routing-policy.json
-          test "$(git diff --cached --name-only | tr '\n' ' ')" = "governance/layered-ci/wp0-routing-policy.json "
-          git commit -m "fix(wp0): route pinned UAT Playwright requirement as product"
-          git merge-base --is-ancestor "${PREVIOUS_CANDIDATE_HEAD}" HEAD
+          git add \
+            governance/layered-ci/wp0-routing-policy.json \
+            tests/layered-ci/open-source-work-package-registry.test.js
+          test "$(git diff --cached --name-only | sort | tr '\n' ' ')" = "governance/layered-ci/wp0-routing-policy.json tests/layered-ci/open-source-work-package-registry.test.js "
+          git commit -m "fix(wp0): route pinned requirement and bind receipt fixture"
+          git merge-base --is-ancestor "${ORIGINAL_CANDIDATE_HEAD}" HEAD
+          git merge-base --is-ancestor "${AUTHORIZED_PARENT_HEAD}" HEAD
           git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
           git merge-base --is-ancestor "${GOVERNANCE_MERGE_HEAD}" HEAD
-          git merge-base --is-ancestor "${RED_CANDIDATE_HEAD}" HEAD
-          test "$(git diff --name-only "${GOVERNANCE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = "governance/layered-ci/wp0-routing-policy.json tests/layered-ci/wp0-routing.test.js "
+          test "$(git diff --name-only "${GOVERNANCE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = "governance/layered-ci/wp0-routing-policy.json tests/layered-ci/open-source-work-package-registry.test.js "
+          test "$(git diff --name-only "${V1_GOVERNANCE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = "governance/layered-ci/wp0-routing-policy.json tests/layered-ci/open-source-work-package-registry.test.js tests/layered-ci/wp0-routing.test.js "
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - name: Prove full PR diff selects PRODUCT_WP0 without prefix expansion
         shell: bash
@@ -219,23 +229,24 @@ jobs:
           fetch-tags: false
           lfs: false
           persist-credentials: false
-      - name: Verify candidate identity, ancestry and two-path scope
+      - name: Verify candidate identity, ancestry and cumulative three-path scope
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${{ needs.build-candidate.outputs.candidate_head }}"
-          git merge-base --is-ancestor "${PREVIOUS_CANDIDATE_HEAD}" HEAD
+          git merge-base --is-ancestor "${ORIGINAL_CANDIDATE_HEAD}" HEAD
+          git merge-base --is-ancestor "${AUTHORIZED_PARENT_HEAD}" HEAD
           git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
           git merge-base --is-ancestor "${GOVERNANCE_MERGE_HEAD}" HEAD
-          git merge-base --is-ancestor "${RED_CANDIDATE_HEAD}" HEAD
-          test "$(git diff --name-only "${GOVERNANCE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = "governance/layered-ci/wp0-routing-policy.json tests/layered-ci/wp0-routing.test.js "
+          test "$(git diff --name-only "${GOVERNANCE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = "governance/layered-ci/wp0-routing-policy.json tests/layered-ci/open-source-work-package-registry.test.js "
+          test "$(git diff --name-only "${V1_GOVERNANCE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = "governance/layered-ci/wp0-routing-policy.json tests/layered-ci/open-source-work-package-registry.test.js tests/layered-ci/wp0-routing.test.js "
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
           package-manager-cache: false
-      - name: Prove exact routing contract on Windows
-        run: node --test --test-concurrency=1 tests/layered-ci/wp0-routing.test.js
+      - name: Prove layered-CI contracts on Windows
+        run: node --test --test-concurrency=1 tests/layered-ci/*.test.js
       - name: Prove sealed export source identity on Windows
         run: node --test --test-concurrency=1 tests/runtime-delivery/repository-source-identity-authority.test.js
 
