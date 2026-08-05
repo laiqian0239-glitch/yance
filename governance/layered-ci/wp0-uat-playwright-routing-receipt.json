@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_WP0_ROUTING_REPAIR_AUTHORIZATION_RECEIPT",
+  "program": "Layered CI",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-1A Task 11",
+  "status": "SEALED_FOR_IMPLEMENTATION",
+  "authorizationVersion": 1,
+  "requiredBaseRef": "governance/wp0-uat-playwright-routing-authorization",
+  "approvedParentHead": "87f3ea0ba6ac4856d4e1b701c75d0740c9f4fc3b",
+  "authorizationPath": "governance/layered-ci/wp0-uat-playwright-routing-authorization.json",
+  "authorizationCommit": "2292d913b7985b3e7b766b2b45f1b797ad089737",
+  "authorizationBlobSha": "2afe09279e03922918442e66c4bb45d5d591e2c0",
+  "approvedChangedFileCount": 2,
+  "approvedChangedFileSetSha256": "d0bf4c9815a9d6a8ba8045d37741c4799a69a6b065e5332506f42f1703e9f887",
+  "exactPaths": [
+    "governance/layered-ci/wp0-routing-policy.json",
+    "tests/layered-ci/wp0-routing.test.js"
+  ],
+  "verificationEvidence": {
+    "workflowRunId": 31038503107,
+    "jobId": 92416692110,
+    "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "unknownPath": "requirements/uat-playwright.txt",
+    "negativeSiblingMustRemainUnknown": "requirements/unreviewed.txt",
+    "futureImplementationGreenClaimed": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "wildcardExpansionAllowed": false,
+    "requirementsDirectoryPrefixAuthorizationAllowed": false,
+    "prMustRemainDraft": true,
+    "mergeIntoMainAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "readyForPromotion": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false
+  }
+}
