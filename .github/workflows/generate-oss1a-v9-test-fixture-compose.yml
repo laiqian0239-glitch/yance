@@ -1,0 +1,104 @@
+name: Generate OSS-1A v9 Test Fixture Candidate
+
+on:
+  push:
+    branches:
+      - generator/oss1a-v9-test-fixture-compose
+
+permissions:
+  contents: write
+
+env:
+  IMPLEMENTATION_HEAD: 5fda6d3af60c919bb5c4ea5a1a4289762445c9aa
+  GOVERNANCE_HEAD: 136ae6b356b9cfa0fa2cb4b11aced2eba17996b1
+  CANDIDATE_BRANCH: candidate/oss1a-v9-test-fixtures-green-v1
+
+jobs:
+  compose-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact generator head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: true
+      - name: Compose exact implementation and v9 governance histories
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "${IMPLEMENTATION_HEAD}^{commit}"
+          git cat-file -e "${GOVERNANCE_HEAD}^{commit}"
+          git checkout --detach "${IMPLEMENTATION_HEAD}"
+          git switch -c "${CANDIDATE_BRANCH}"
+          git config user.name "Yance OSS-1A v9 Composition"
+          git config user.email "oss1a-v9-compose@users.noreply.github.com"
+          git merge --no-ff "${GOVERNANCE_HEAD}" -m "governance(oss1a): compose v9 test fixture authority"
+          git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+      - name: Reintroduce only the two sealed test fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show 62387c011c11c0924ae763f357ce351214e114ce:backend/tests/oss1aWhatsappRegistrationIdZero.test.js > backend/tests/oss1aWhatsappRegistrationIdZero.test.js
+          git show 9b7220c18792cc13deff90955b83cb1fb4b24b05:backend/tests/whatsappCanonicalGuardRegression.test.js > backend/tests/whatsappCanonicalGuardRegression.test.js
+          test "$(git status --short | wc -l | tr -d ' ')" = "2"
+          git status --short | grep -F 'backend/tests/oss1aWhatsappRegistrationIdZero.test.js'
+          git status --short | grep -F 'backend/tests/whatsappCanonicalGuardRegression.test.js'
+      - name: Verify exact v9 scope subset
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { execFileSync } = require('node:child_process');
+          const authorization = JSON.parse(fs.readFileSync('governance/open-source-acceleration/oss-1a-implementation-authorization-v9.json', 'utf8'));
+          const changed = execFileSync('git', ['diff', '--name-only', process.env.GOVERNANCE_HEAD, '--'], { encoding: 'utf8' })
+            .split(/\r?\n/u).map(value => value.trim()).filter(Boolean).sort();
+          const unauthorized = changed.filter(file => !authorization.exactPaths.includes(file));
+          if (unauthorized.length) throw new Error(`unauthorized candidate paths: ${unauthorized.join(', ')}`);
+          for (const required of [
+            'backend/tests/oss1aWhatsappRegistrationIdZero.test.js',
+            'backend/tests/whatsappCanonicalGuardRegression.test.js'
+          ]) if (!changed.includes(required)) throw new Error(`sealed test path missing: ${required}`);
+          process.stdout.write(`${JSON.stringify({ changedFileCount: changed.length, unauthorized }, null, 2)}\n`);
+          NODE
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Prove sealed fixtures GREEN
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/oss1aWhatsappRegistrationIdZero.test.js
+          backend/tests/whatsappCanonicalGuardRegression.test.js
+          tests/uat/sourceUatP0Preflight.test.js
+      - name: Prove full OSS-1A and related regressions GREEN
+        run: >-
+          npm run test:oss1a &&
+          node --test --test-concurrency=1
+          backend/tests/batch39WhatsappSessionFence.test.js
+          backend/tests/batch40ChannelAbortPropagation.test.js
+          backend/tests/whatsappReceiptRecoveryRegression.test.js
+          backend/tests/whatsappQrChallenge.test.js
+          backend/tests/whatsappCanonicalGuardRegression.test.js
+          backend/tests/whatsappMediaRecoveryClosure.test.js
+          backend/tests/whatsappOrphanAccountReconciliation.test.js
+          backend/tests/accountLifecycleRegression.test.js
+          backend/tests/messageIdentityEvidenceOrdering.test.js
+          backend/tests/platformProductionReadinessAuthority.test.js
+      - name: Commit and push exact candidate without history rewrite
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add backend/tests/oss1aWhatsappRegistrationIdZero.test.js backend/tests/whatsappCanonicalGuardRegression.test.js
+          git commit -m "test(oss1a): restore sealed Task 11 fixtures"
+          git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+          git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
