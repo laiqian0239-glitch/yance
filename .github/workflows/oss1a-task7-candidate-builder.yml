@@ -1,0 +1,80 @@
+name: OSS-1A Task 7 Candidate Builder
+
+on:
+  push:
+    branches:
+      - work/oss1a-task7-generator
+
+permissions:
+  contents: write
+
+jobs:
+  build-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact tooling head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: tooling
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Checkout exact implementation milestone head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 4a42395b56d730c82cd82774398d46ea0d5f3617
+          path: candidate
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Install locked dependencies
+        working-directory: candidate
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Generate root Task 7 implementation
+        working-directory: candidate
+        run: python ../tooling/tools/oss1a/generate_task7_candidate.py
+
+      - name: Verify generated candidate
+        working-directory: candidate
+        run: |
+          node --check backend/services/whatsappDisconnectPolicy.js
+          node --check backend/services/whatsappAdapter.js
+          node --check backend/services/platformDriverRegistry.js
+          node --check backend/services/accountManager.js
+          node --test --test-concurrency=1 \
+            backend/tests/oss1aWhatsappDisconnectPolicy.test.js \
+            backend/tests/oss1aWhatsappReconnectOwnership.test.js \
+            backend/tests/accountLifecycleRegression.test.js
+
+      - name: Commit isolated candidate
+        working-directory: candidate
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c work/oss1a-task7-candidate
+          git add \
+            backend/services/whatsappDisconnectPolicy.js \
+            backend/services/whatsappAdapter.js \
+            backend/services/platformDriverRegistry.js \
+            backend/services/accountManager.js \
+            backend/tests/oss1aWhatsappDisconnectPolicy.test.js \
+            backend/tests/oss1aWhatsappReconnectOwnership.test.js \
+            backend/tests/accountLifecycleRegression.test.js
+          git diff --cached --check
+          test "$(git diff --cached --name-only | wc -l | tr -d ' ')" = "7"
+          git commit -m 'fix(oss1a): classify every Baileys disconnect outcome'
+          git push origin HEAD:refs/heads/work/oss1a-task7-candidate
