@@ -159,6 +159,7 @@ function rawKeys(store) {
 function assertRepositoryInterface(repository) {
   for (const method of [
     'loadAccount',
+    'inspectAccount',
     'initializeAccount',
     'commitCreds',
     'getKeys',
@@ -193,6 +194,54 @@ test('encrypted auth repository loads through the cipher and exposes the frozen 
     assert.equal(serializedRaw.includes('15551234567'), false);
     assert.equal(serializedRaw.includes('noiseKey'), false);
     assert.equal(Object.isFrozen(loaded), true);
+  });
+});
+
+test('read-only auth authority projection exposes readiness without decrypting credential material', () => {
+  const repositoryModule = loadRepositoryModule();
+  withFixture(({ store, cipher }) => {
+    let decryptCalls = 0;
+    const countingCipher = Object.freeze({
+      encrypt: (...args) => cipher.encrypt(...args),
+      decrypt(...args) {
+        decryptCalls += 1;
+        return cipher.decrypt(...args);
+      },
+      hmacIndex: (...args) => cipher.hmacIndex(...args),
+      snapshot: () => cipher.snapshot()
+    });
+    const repository = createRepository(repositoryModule, { store, cipher: countingCipher });
+
+    const active = repository.inspectAccount(ACCOUNT_KEY);
+    assert.deepEqual(active, {
+      accountKey: ACCOUNT_KEY,
+      accountId: ACCOUNT_ID,
+      currentEpoch: EPOCH,
+      state: 'ACTIVE',
+      registered: true,
+      hasIdentity: true,
+      credentialMaterialPresent: true,
+      usable: true,
+      reasonCode: ''
+    });
+    assert.equal(Object.isFrozen(active), true);
+    assert.equal(decryptCalls, 0, 'readiness projection must not decrypt auth material');
+    assert.equal(repository.inspectAccount('missing-auth-account'), null);
+
+    repository.markLoggedOut({
+      ...writer(),
+      nextEpoch: EPOCH + 1,
+      loggedOutAt: AT
+    });
+    const loggedOut = repository.inspectAccount(ACCOUNT_KEY);
+    assert.equal(loggedOut.state, 'LOGGED_OUT');
+    assert.equal(loggedOut.currentEpoch, EPOCH + 1);
+    assert.equal(loggedOut.registered, false);
+    assert.equal(loggedOut.hasIdentity, false);
+    assert.equal(loggedOut.credentialMaterialPresent, false);
+    assert.equal(loggedOut.usable, false);
+    assert.equal(loggedOut.reasonCode, 'WHATSAPP_AUTH_LOGGED_OUT');
+    assert.equal(decryptCalls, 0, 'terminal readiness projection must remain metadata-only');
   });
 });
 

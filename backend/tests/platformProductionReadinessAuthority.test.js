@@ -92,6 +92,85 @@ test('WhatsApp adapter status exposes the latest identity reconciliation evidenc
   assert.equal(status.identityReconciliationLastResult.resolved, 3);
 });
 
+
+test('WhatsApp runtime authority configuration requires one auth repository capability', () => {
+  const adapter = new WhatsAppAdapter();
+  assert.throws(
+    () => adapter.configureRuntimeAuthorities({
+      whatsappAuthKeyAuthority: { getCipher() { return null; } },
+      storeProvider() { return null; }
+    }),
+    error => error?.code === 'WHATSAPP_RUNTIME_AUTH_REPOSITORY_REQUIRED'
+  );
+});
+
+test('WhatsApp credential readiness reads the configured SQLite auth authority without filesystem fallback', () => {
+  const inspectedKeys = [];
+  let projection = Object.freeze({
+    accountKey: 'wa-authority-device',
+    accountId: 'wa-authority-account',
+    currentEpoch: 4,
+    state: 'ACTIVE',
+    registered: true,
+    hasIdentity: true,
+    credentialMaterialPresent: true,
+    usable: true,
+    reasonCode: ''
+  });
+  const authRepository = Object.freeze({
+    inspectAccount(accountKey) {
+      inspectedKeys.push(accountKey);
+      return projection;
+    },
+    loadAccount() { assert.fail('credential readiness must not decrypt or load auth creds'); }
+  });
+  const adapter = new WhatsAppAdapter();
+  adapter.configureRuntimeAuthorities({
+    whatsappAuthKeyAuthority: {
+      getCipher() { assert.fail('credential readiness must not request the auth cipher'); }
+    },
+    storeProvider() { assert.fail('credential readiness must not query the raw Store directly'); },
+    authRepository
+  });
+  const account = Object.freeze({
+    id: 'wa-authority-account',
+    adapterAccountId: 'wa-authority-device',
+    platform: 'whatsapp'
+  });
+
+  const active = adapter.credentialState(account, { force: true });
+  assert.deepEqual(inspectedKeys, ['wa-authority-device']);
+  assert.equal(active.authority, 'sqlite-primary-store');
+  assert.equal(active.accountKey, 'wa-authority-device');
+  assert.equal(active.currentEpoch, 4);
+  assert.equal(active.state, 'ACTIVE');
+  assert.equal(active.registered, true);
+  assert.equal(active.hasIdentity, true);
+  assert.equal(active.usable, true);
+  assert.equal(active.reasonCode, '');
+  assert.equal(active.directory, '');
+  assert.equal(active.legacyDirectory, '');
+  assert.equal(active.fileCount, 0);
+
+  projection = Object.freeze({
+    ...projection,
+    currentEpoch: 5,
+    state: 'LOGGED_OUT',
+    registered: false,
+    hasIdentity: false,
+    credentialMaterialPresent: false,
+    usable: false,
+    reasonCode: 'WHATSAPP_AUTH_LOGGED_OUT'
+  });
+  adapter.invalidateCredentialState(account);
+  const loggedOut = adapter.credentialState(account, { force: true });
+  assert.equal(loggedOut.currentEpoch, 5);
+  assert.equal(loggedOut.state, 'LOGGED_OUT');
+  assert.equal(loggedOut.usable, false);
+  assert.equal(loggedOut.reasonCode, 'WHATSAPP_AUTH_LOGGED_OUT');
+  assert.deepEqual(inspectedKeys, ['wa-authority-device', 'wa-authority-device']);
+});
+
 test('Telegram adapter status exposes history synchronization evidence', () => {
   const adapter = new TelegramAdapter();
   adapter.sessions.set('tg-adapter', {

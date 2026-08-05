@@ -195,6 +195,45 @@ test('resolver does not classify me.id-only legacy credentials as usable auth st
   }, { writeValid: false });
 });
 
+
+test('Baileys 14-bit registration ID endpoints remain importable complete Signal state', async () => {
+  await withFixture(({ sourceDirectory }) => {
+    for (const registrationId of [0, 0x3fff]) {
+      fs.rmSync(sourceDirectory, { recursive: true, force: true });
+      const creds = baileys.initAuthCreds();
+      creds.registrationId = registrationId;
+      creds.registered = true;
+      creds.me = { id: '15551234567:7@s.whatsapp.net', name: 'Legacy Yance' };
+      writeJson(path.join(sourceDirectory, 'creds.json'), creds);
+      const state = readCredentialState(sourceDirectory);
+      assert.equal(state.exists, true);
+      assert.equal(state.hasIdentity, true);
+      assert.equal(state.registered, true);
+      assert.equal(state.importable, true, `registrationId=${registrationId}; reason=${state.reasonCode}`);
+      assert.equal(state.usable, true);
+      assert.equal(state.reasonCode, '');
+    }
+  }, { writeValid: false });
+});
+
+test('registration IDs outside the Baileys 14-bit domain remain non-importable', async () => {
+  await withFixture(({ sourceDirectory }) => {
+    fs.rmSync(sourceDirectory, { recursive: true, force: true });
+    const creds = baileys.initAuthCreds();
+    creds.registrationId = 0x4000;
+    creds.registered = true;
+    creds.me = { id: '15551234567:7@s.whatsapp.net', name: 'Legacy Yance' };
+    writeJson(path.join(sourceDirectory, 'creds.json'), creds);
+    const state = readCredentialState(sourceDirectory);
+    assert.equal(state.exists, true);
+    assert.equal(state.hasIdentity, true);
+    assert.equal(state.registered, true);
+    assert.equal(state.importable, false);
+    assert.equal(state.usable, false);
+    assert.equal(state.reasonCode, 'WHATSAPP_LEGACY_SIGNAL_STATE_INCOMPLETE');
+  }, { writeValid: false });
+});
+
 test('stable legacy directory imports once, activates encrypted authority and archives the source', async () => {
   const importerModule = loadImporterModule();
   await withFixture(async ({ sourceDirectory, archiveRoot, store, cipher, repository }) => {
