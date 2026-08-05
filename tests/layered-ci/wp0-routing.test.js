@@ -152,11 +152,16 @@ test('unknown or invalid paths fail closed rather than selecting a cheaper route
   }
 });
 
-test('Stage WP0 workflow has separate product, documentation and governance routes behind one aggregate gate', () => {
+test('Stage WP0 workflow has base-owned routing and separate routes behind one aggregate gate', () => {
   const text = fs.readFileSync(path.join(ROOT, '.github/workflows/stage-6459-wp0-gates.yml'), 'utf8');
   assert.match(text, /wp0-route:/u);
-  assert.match(text, /select-wp0-route\.js/u);
-  assert.match(text, /\.\/\.github\/actions\/resolve-diff-range/u);
+  assert.match(text, /Resolve exact event diff range/u);
+  assert.match(text, /TRUSTED_ROUTE_POLICY_ROOT:\s*\$\{\{ runner\.temp \}\}\/yance-wp0-trusted-route/u);
+  assert.match(text, /git worktree add --detach "\$\{TRUSTED_ROUTE_POLICY_ROOT\}" "\$\{BASE_SHA\}"/u);
+  assert.match(text, /node "\$\{TRUSTED_ROUTE_POLICY_ROOT\}\/tools\/layered-ci\/select-wp0-route\.js"/u);
+  assert.doesNotMatch(text, /uses:\s*\.\/\.github\/actions\/resolve-diff-range/u);
+  assert.match(text, /TRUSTED_POLICY_SHA:\s*\$\{\{ needs\.wp0-route\.outputs\.base \}\}/u);
+  assert.match(text, /node "\$\{TRUSTED_POLICY_ROOT\}\/tools\/wp0\/verify-gate\.js"/u);
   assert.match(text, /wp0-product:/u);
   assert.match(text, /wp0-product-documentation:/u);
   assert.match(text, /verify-product-documentation\.js/u);
