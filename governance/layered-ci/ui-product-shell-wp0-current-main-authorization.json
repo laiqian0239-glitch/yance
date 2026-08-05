@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_UI_PRODUCT_SHELL_WP0_CURRENT_MAIN_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-06T05:11:00+07:00",
+  "userAuthorization": {
+    "scope": "Operate the four exact UI governance routes and superseded PRs when required by project rules",
+    "authorizationPrMainMergeAuthorizedAfterExactGreenAndIndependentAllow": true,
+    "implementationPrMainMergeAuthorizedAfterExactGreenAndIndependentAllow": true,
+    "automaticUiWp1Authorization": false,
+    "productShellImplementationAuthorized": false
+  },
+  "base": {
+    "branch": "main",
+    "commit": "e7f7b530893689d2ed5fcc20a7583c8619ed7c91",
+    "tree": "8c25d1dd7e937e90b9236dfaef7921ee7c1aaf79",
+    "routingPolicySchemaVersion": 2,
+    "routingPolicyBlob": "fd5d4a30db2cfc0fddc7ced2ced20a306491c3d1",
+    "sharedRoutingTestBlob": "12013668abcf18315da7dae7df09435daa4d0ba8"
+  },
+  "supersededHistoricalEvidence": {
+    "authorizationPr": {
+      "number": 58,
+      "head": "b5f46b8d0be46840365678f07f01500546f3fb3b",
+      "mayBeMerged": false,
+      "mayBeRebasedOrForceUpdated": false
+    },
+    "implementationPr": {
+      "number": 59,
+      "redHead": "b55b1d540c12d98bef2966baad6ea4d39eb85e50",
+      "greenHead": "4045cbf6a91772bb56b8dfa21ff657b56126cb78",
+      "mayBeMerged": false,
+      "mayBeRebasedOrForceUpdated": false,
+      "historicalRedGreenEvidenceReusable": true
+    },
+    "reason": "Current main independently changed the same routing policy and shared routing test while installing OSS-A exact authority paths. The old branches therefore remain evidence only."
+  },
+  "exactUiGovernancePaths": [
+    "docs/ui-migration/CHATWOOT_TRANSPLANT_MANIFEST.yaml",
+    "docs/ui-migration/UI_ASSET_BASELINE.json",
+    "docs/ui-migration/UI_WP1_AUTHORIZATION.md",
+    "docs/ui-migration/UPSTREAM_PINS.yaml"
+  ],
+  "authorizationBranch": {
+    "name": "governance/ui-product-shell-wp0-current-main-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/ui-product-shell-wp0-current-main-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/ui-product-shell-wp0-current-main-exact-routing",
+    "requiredBase": "the exact main merge commit containing this authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/ui-product-shell-wp0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "f44a7579ffd65d2217850d9d5279ff7e24819c7a397d7f82e97cc472843f4dfd",
+    "sharedRoutingTestMayChange": false,
+    "workflowMayChange": false,
+    "selectorImplementationMayChange": false,
+    "productDocumentationRouteMayChange": false
+  },
+  "mandatoryRedContracts": [
+    "All four exact UI governance paths together select GOVERNANCE_WP0",
+    "Each exact UI governance path independently selects GOVERNANCE_WP0",
+    "Any exact UI governance path mixed with product source selects PRODUCT_WP0 and records both governance and product classes",
+    "Any exact UI governance path mixed with PRODUCT_DOCUMENTATION_WP0 Markdown selects PRODUCT_WP0 and records governance, product-documentation and escalation",
+    "Unlisted docs/ui-migration paths remain PRODUCT_WP0",
+    "The existing OSS-A exact governance paths remain GOVERNANCE_WP0",
+    "Pure Superpowers plan/spec Markdown remains non-executable PRODUCT_DOCUMENTATION_WP0",
+    "Unknown and invalid paths remain fail closed",
+    "schemaVersion remains 2 and readyForPromotion remains false"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes all applicable gates",
+    "Independent review returns ALLOW with zero P0 and P1 blockers",
+    "Authorization PR merges to current main without rebase, squash, force push or history rewrite",
+    "Exact post-merge main validation passes",
+    "Implementation branch is created from that exact main commit",
+    "Independent test file is committed first and produces causal RED",
+    "Only the four literal paths are added to governanceExactPaths",
+    "Implementation exact Head passes all applicable gates and independent review",
+    "Implementation PR merges to main only if main has not changed the authorized files or a new authorization is issued",
+    "Exact post-merge main validation passes"
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "wildcardOrPrefixAuthorization": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "productShellSource": true,
+    "chatwootSourceCopy": true,
+    "soundPublicRedistribution": true,
+    "legacyWriterCutover": true,
+    "automaticNextWorkPackageAuthorization": true
+  },
+  "readyForPromotion": false
+}
