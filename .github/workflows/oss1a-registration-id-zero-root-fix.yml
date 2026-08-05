@@ -1,0 +1,223 @@
+name: OSS-1A Registration ID Zero Root Fix
+
+on:
+  push:
+    branches:
+      - work/oss1a-registration-id-zero-root-fix
+
+permissions:
+  contents: write
+  statuses: write
+
+concurrency:
+  group: oss1a-registration-id-zero-root-fix
+  cancel-in-progress: false
+
+jobs:
+  test-and-promote-exact-two-file-fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      BASE_SHA: c0cf81de7a0350f2faa1af8877ec4ea16d01e496
+      IMPLEMENTATION_BRANCH: oss/1a-baileys-lifecycle
+      SEALED_NODE_VERSION: 22.23.1
+      TEST_PATH: backend/tests/oss1aWhatsappRegistrationIdZero.test.js
+      RESOLVER_PATH: backend/services/whatsappAuthResolver.js
+    steps:
+      - name: Checkout isolated root-fix source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up proven FTS5 Node runtime
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: ${{ env.SEALED_NODE_VERSION }}
+          package-manager-cache: false
+
+      - name: Seal runtime and exact implementation baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p 'process.versions.node')" = "$SEALED_NODE_VERSION"
+          node <<'NODE'
+          const { DatabaseSync } = require('node:sqlite');
+          const db = new DatabaseSync(':memory:');
+          db.exec('CREATE VIRTUAL TABLE registration_id_zero_fts5 USING fts5(value)');
+          db.prepare('INSERT INTO registration_id_zero_fts5(value) VALUES (?)').run('sealed');
+          const row = db.prepare("SELECT value FROM registration_id_zero_fts5 WHERE registration_id_zero_fts5 MATCH 'sealed'").get();
+          if (row?.value !== 'sealed') throw new Error('FTS5 runtime probe failed');
+          db.close();
+          NODE
+          git cat-file -e "${BASE_SHA}^{commit}"
+          git fetch --no-tags origin \
+            "refs/heads/${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
+          test "$(git rev-parse "refs/remotes/origin/${IMPLEMENTATION_BRANCH}")" = "$BASE_SHA"
+          test -f "$TEST_PATH"
+          test -f "$RESOLVER_PATH"
+
+      - name: Create two exact detached baseline worktrees
+        shell: bash
+        run: |
+          set -euo pipefail
+          clean_worktree="${RUNNER_TEMP}/registration-id-zero-clean"
+          implementation_worktree="${RUNNER_TEMP}/registration-id-zero-implementation"
+          rm -rf "$clean_worktree" "$implementation_worktree"
+          git worktree add --detach "$clean_worktree" "$BASE_SHA"
+          git worktree add --detach "$implementation_worktree" "$BASE_SHA"
+          test "$(git -C "$clean_worktree" rev-parse HEAD)" = "$BASE_SHA"
+          test "$(git -C "$implementation_worktree" rev-parse HEAD)" = "$BASE_SHA"
+          {
+            echo "SOURCE_ROOT=$GITHUB_WORKSPACE"
+            echo "CLEAN_WORKTREE=$clean_worktree"
+            echo "IMPLEMENTATION_WORKTREE=$implementation_worktree"
+            echo "FIX_PATCH=${RUNNER_TEMP}/registration-id-zero.patch"
+            echo "EXPECTED_PATHS=${RUNNER_TEMP}/registration-id-zero-expected-paths.txt"
+          } >> "$GITHUB_ENV"
+
+      - name: Install exact dependencies in both worktrees
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd "$CLEAN_WORKTREE" && npm ci --no-audit --no-fund)
+          (cd "$IMPLEMENTATION_WORKTREE" && npm ci --no-audit --no-fund)
+
+      - name: Overlay root-fix source onto clean exact baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -D -m 0644 "$SOURCE_ROOT/$TEST_PATH" "$CLEAN_WORKTREE/$TEST_PATH"
+          install -D -m 0644 "$SOURCE_ROOT/$RESOLVER_PATH" "$CLEAN_WORKTREE/$RESOLVER_PATH"
+          git -C "$CLEAN_WORKTREE" add -- "$TEST_PATH" "$RESOLVER_PATH"
+
+      - name: Prove deterministic RED or GREEN contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$CLEAN_WORKTREE"
+          node --test --test-concurrency=1 "$TEST_PATH"
+
+      - name: Freeze exact two-file patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$RESOLVER_PATH" "$TEST_PATH" | sort > "$EXPECTED_PATHS"
+          git -C "$CLEAN_WORKTREE" diff --cached --name-only | sort > "${RUNNER_TEMP}/clean-paths.txt"
+          diff -u "$EXPECTED_PATHS" "${RUNNER_TEMP}/clean-paths.txt"
+          test -z "$(git -C "$CLEAN_WORKTREE" ls-files --others --exclude-standard)"
+          git -C "$CLEAN_WORKTREE" diff --cached --check
+          git -C "$CLEAN_WORKTREE" diff --cached --binary -- "$RESOLVER_PATH" "$TEST_PATH" > "$FIX_PATCH"
+          test -s "$FIX_PATCH"
+          sha256sum "$FIX_PATCH" | awk '{print $1}' > "${RUNNER_TEMP}/registration-id-zero-patch-sha256.txt"
+
+      - name: Apply identical patch to second exact worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C "$IMPLEMENTATION_WORKTREE" apply --index --whitespace=error-all "$FIX_PATCH"
+          git -C "$IMPLEMENTATION_WORKTREE" diff --cached --name-only | sort \
+            > "${RUNNER_TEMP}/implementation-paths.txt"
+          diff -u "$EXPECTED_PATHS" "${RUNNER_TEMP}/implementation-paths.txt"
+          git -C "$IMPLEMENTATION_WORKTREE" diff --cached --check
+          git -C "$IMPLEMENTATION_WORKTREE" diff --cached --binary -- "$RESOLVER_PATH" "$TEST_PATH" \
+            > "${RUNNER_TEMP}/implementation.patch"
+          cmp "$FIX_PATCH" "${RUNNER_TEMP}/implementation.patch"
+
+      - name: Test targeted contract in second worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$IMPLEMENTATION_WORKTREE"
+          node --test --test-concurrency=1 "$TEST_PATH"
+
+      - name: Test clean candidate full OSS-1A regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$CLEAN_WORKTREE"
+          npm run test:oss1a
+
+      - name: Test implementation candidate full OSS-1A regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$IMPLEMENTATION_WORKTREE"
+          npm run test:oss1a
+
+      - name: Reprove immutable identical two-file candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C "$CLEAN_WORKTREE" diff --cached --name-only | sort > "${RUNNER_TEMP}/clean-after-paths.txt"
+          git -C "$IMPLEMENTATION_WORKTREE" diff --cached --name-only | sort \
+            > "${RUNNER_TEMP}/implementation-after-paths.txt"
+          diff -u "$EXPECTED_PATHS" "${RUNNER_TEMP}/clean-after-paths.txt"
+          diff -u "$EXPECTED_PATHS" "${RUNNER_TEMP}/implementation-after-paths.txt"
+          test -z "$(git -C "$CLEAN_WORKTREE" ls-files --others --exclude-standard)"
+          test -z "$(git -C "$IMPLEMENTATION_WORKTREE" ls-files --others --exclude-standard)"
+          git -C "$CLEAN_WORKTREE" diff --cached --check
+          git -C "$IMPLEMENTATION_WORKTREE" diff --cached --check
+          git -C "$CLEAN_WORKTREE" diff --cached --binary -- "$RESOLVER_PATH" "$TEST_PATH" \
+            > "${RUNNER_TEMP}/clean-after.patch"
+          git -C "$IMPLEMENTATION_WORKTREE" diff --cached --binary -- "$RESOLVER_PATH" "$TEST_PATH" \
+            > "${RUNNER_TEMP}/implementation-after.patch"
+          cmp "$FIX_PATCH" "${RUNNER_TEMP}/clean-after.patch"
+          cmp "$FIX_PATCH" "${RUNNER_TEMP}/implementation-after.patch"
+
+      - name: Create exact two-file root-fix candidate commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C "$IMPLEMENTATION_WORKTREE" config user.name "Yance OSS-1A Root Fix"
+          git -C "$IMPLEMENTATION_WORKTREE" config user.email "oss1a-root-fix@users.noreply.github.com"
+          git -C "$IMPLEMENTATION_WORKTREE" commit \
+            -m "fix(oss1a): accept zero registration id in Signal state"
+          candidate_sha="$(git -C "$IMPLEMENTATION_WORKTREE" rev-parse HEAD)"
+          test "$(git -C "$IMPLEMENTATION_WORKTREE" rev-parse HEAD^)" = "$BASE_SHA"
+          git -C "$IMPLEMENTATION_WORKTREE" diff --name-only "$BASE_SHA" "$candidate_sha" \
+            | sort > "${RUNNER_TEMP}/candidate-paths.txt"
+          diff -u "$EXPECTED_PATHS" "${RUNNER_TEMP}/candidate-paths.txt"
+          echo "CANDIDATE_SHA=$candidate_sha" >> "$GITHUB_ENV"
+
+      - name: Non-force fast-forward implementation branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repository_api="/repos/${GITHUB_REPOSITORY}"
+          remote_before="$(
+            gh api "${repository_api}/git/ref/heads/${IMPLEMENTATION_BRANCH}" --jq '.object.sha'
+          )"
+          test "$remote_before" = "$BASE_SHA"
+
+          authenticated_remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git -C "$IMPLEMENTATION_WORKTREE" push --porcelain \
+            "$authenticated_remote" \
+            "$CANDIDATE_SHA:refs/heads/$IMPLEMENTATION_BRANCH"
+
+          remote_after="$(
+            gh api "${repository_api}/git/ref/heads/${IMPLEMENTATION_BRANCH}" --jq '.object.sha'
+          )"
+          test "$remote_after" = "$CANDIDATE_SHA"
+
+          patch_sha="$(cat "${RUNNER_TEMP}/registration-id-zero-patch-sha256.txt")"
+          gh api --method POST "${repository_api}/statuses/${GITHUB_SHA}" \
+            -f state=success \
+            -f context="oss1a/baseline/registration-id-zero-fast-forward" \
+            -f description="candidate ${CANDIDATE_SHA:0:12}; patch ${patch_sha:0:16}; Node ${SEALED_NODE_VERSION}" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            >/dev/null
+
+          {
+            echo "### OSS-1A registration ID zero root fix"
+            echo
+            echo "- Base: \`$BASE_SHA\`"
+            echo "- Candidate: \`$CANDIDATE_SHA\`"
+            echo "- Patch SHA-256: \`$patch_sha\`"
+            echo "- Runtime: Node \`$SEALED_NODE_VERSION\` with proven FTS5"
+            echo "- Implementation update: ordinary non-force fast-forward"
+          } >> "$GITHUB_STEP_SUMMARY"
