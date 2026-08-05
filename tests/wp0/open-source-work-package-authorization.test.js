@@ -248,8 +248,8 @@ test('trusted WP0 git transport preserves NUL-framed repository paths', () => {
   assert.match(lib, /encoding:\s*options\.encoding/u);
   assert.match(scope, /'--name-only',\s*'-z'/u);
   assert.match(scope, /split\('\\0'\)/u);
-  assert.doesNotMatch(scope, /split\(\/\\r\?\\n\/u);
-  assert.doesNotMatch(scope, /value => value\.trim\(\)/u);
+  assert.equal(scope.includes('split(/\\r?\\n/u)'), false);
+  assert.equal(scope.includes('value => value.trim()'), false);
 });
 
 test('fixture authorization document has a deterministic exact scope digest', () => {
