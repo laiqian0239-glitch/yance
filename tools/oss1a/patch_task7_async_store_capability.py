@@ -10,13 +10,19 @@ old_immutable = """function immutableValue(value) {
   catch (_) { return value; }
 }
 """
-new_immutable = """function deepFreeze(value) {
+new_immutable = """function immutableValue(value) {
+  if (value == null || typeof value !== 'object') return value;
+  try { return Object.freeze(JSON.parse(JSON.stringify(value))); }
+  catch (_) { return value; }
+}
+
+function deepFreeze(value) {
   if (value == null || typeof value !== 'object' || Object.isFrozen(value)) return value;
   for (const child of Object.values(value)) deepFreeze(child);
   return Object.freeze(value);
 }
 
-function immutableValue(value) {
+function immutableAsyncValue(value) {
   if (value == null || typeof value !== 'object') return value;
   try { return deepFreeze(JSON.parse(JSON.stringify(value))); }
   catch (_) { return value; }
@@ -31,7 +37,7 @@ old_wrapper = """        const result = Reflect.apply(value, store, args);
 new_wrapper = """        const result = Reflect.apply(value, store, args);
         if (result && typeof result.then === 'function') {
           return Promise.resolve(result).then(resolved =>
-            resolved === store ? capability : immutableValue(resolved)
+            resolved === store ? capability : immutableAsyncValue(resolved)
           );
         }
         return result === store ? capability : immutableValue(result);
@@ -82,6 +88,6 @@ test('primary store capability preserves Promise settlement and immutable resolv
 ''')
 test_path.write_text(test_source, encoding='utf-8')
 
-assert "function deepFreeze(value)" in source
-assert "typeof result.then === 'function'" in source
+assert "function immutableAsyncValue(value)" in source
+assert "immutableAsyncValue(resolved)" in source
 assert marker in test_source
