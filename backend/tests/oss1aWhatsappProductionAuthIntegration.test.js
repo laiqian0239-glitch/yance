@@ -61,6 +61,15 @@ test('production composition creates and injects exactly one auth repository aut
   assert.match(compositionSource, /storeProvider/u);
 });
 
+test('production composition upgrades durable projection jobs to canonical event authority before runtime services', () => {
+  const compositionSource = source(compositionPath);
+  assert.match(compositionSource, /ensureCanonicalProjectionJobSchema\s*\(\s*authorityStore\s*\)/u);
+  const schemaPosition = compositionSource.search(/ensureCanonicalProjectionJobSchema\s*\(\s*authorityStore\s*\)/u);
+  const accountContextPosition = compositionSource.indexOf('new AccountContext(');
+  assert.ok(schemaPosition >= 0);
+  assert.ok(accountContextPosition > schemaPosition, 'canonical projection job schema must be ready before runtime participants');
+});
+
 test('socket receives the exact creds and keys returned by one auth lease with no fallback', () => {
   const adapterSource = source(adapterPath);
   const block = startBlock(adapterSource);
