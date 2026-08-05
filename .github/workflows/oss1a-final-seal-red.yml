@@ -1,0 +1,88 @@
+name: OSS-1A Final Authorization Seal RED
+
+on:
+  push:
+    branches:
+      - generator/oss1a-final-seal-a4f0fdb8
+
+permissions:
+  contents: read
+
+env:
+  IMPLEMENTATION_HEAD: a4f0fdb8b8a66b99e4b0efb56d756b25b197735f
+
+jobs:
+  exact-red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout control plane
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: control
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Checkout exact implementation head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.IMPLEMENTATION_HEAD }}
+          path: candidate
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Verify exact head and generator syntax
+        shell: bash
+        run: |
+          test "$(git -C candidate rev-parse HEAD)" = "${IMPLEMENTATION_HEAD}"
+          node --check control/tools/oss1a/generate-final-seal-red.js
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22.23.1'
+          package-manager-cache: false
+      - name: Install locked dependencies
+        working-directory: candidate
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Generate tests only
+        run: node control/tools/oss1a/generate-final-seal-red.js candidate
+      - name: Verify exact RED path set
+        shell: bash
+        run: |
+          cat > /tmp/expected <<'EOF'
+          backend/tests/messageIdentityEvidenceOrdering.test.js
+          backend/tests/oss1aWhatsappAuthRepository.test.js
+          backend/tests/oss1aWhatsappLegacyAuthImport.test.js
+          backend/tests/oss1aWhatsappRegistrationIdZero.test.js
+          backend/tests/platformProductionReadinessAuthority.test.js
+          EOF
+          git -C candidate diff --name-only | sort > /tmp/actual
+          diff -u /tmp/expected /tmp/actual
+      - name: Prove fixture and relocation repairs are GREEN
+        working-directory: candidate
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/oss1aWhatsappLegacyAuthImport.test.js
+          backend/tests/messageIdentityEvidenceOrdering.test.js
+      - name: Prove missing repository authority is exact RED
+        working-directory: candidate
+        shell: bash
+        run: |
+          set +e
+          node --test --test-concurrency=1 backend/tests/oss1aWhatsappAuthRepository.test.js > /tmp/repository-red.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/repository-red.log
+          test "$status" -ne 0
+          grep -E "inspectAccount|readiness inspection" /tmp/repository-red.log
+      - name: Prove production readiness still uses the wrong authority
+        working-directory: candidate
+        shell: bash
+        run: |
+          set +e
+          node --test --test-concurrency=1 backend/tests/platformProductionReadinessAuthority.test.js > /tmp/readiness-red.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/readiness-red.log
+          test "$status" -ne 0
+          grep -E "sqlite-primary-store|shared SQLite auth repository|wa-authority" /tmp/readiness-red.log
