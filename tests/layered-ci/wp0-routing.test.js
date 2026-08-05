@@ -140,6 +140,8 @@ test('unknown or invalid paths fail closed rather than selecting a cheaper route
     '../escape.js',
     ' docs/superpowers/plans/leading-space.md',
     'docs/superpowers/plans/trailing-space.md ',
+    './docs/superpowers/plans/dot-prefix.md',
+    'docs\\superpowers\\plans\\backslash.md',
     'docs/superpowers/plans/tab\tname.md',
     'docs/superpowers/plans/bell\u0007name.md',
     'docs/superpowers/plans/del\u007fname.md',
