@@ -1,0 +1,65 @@
+name: Generate Task 11 Canonical Projection GREEN Candidate
+
+on:
+  push:
+    branches:
+      - generator/task11-canonical-projection-fix
+
+permissions:
+  contents: write
+
+env:
+  RED_HEAD: 3be359911440e38b4e587b19e0918aebe1c3c41a
+  CANDIDATE_BRANCH: candidate/task11-canonical-projection-green-v1
+
+jobs:
+  generate-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact generator head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: true
+      - name: Preserve generator outside candidate tree
+        shell: bash
+        run: cp tools/generator/task11-canonical-projection-fix.js /tmp/task11-canonical-projection-fix.js
+      - name: Build exact one-file candidate from RED head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "${RED_HEAD}"
+          git switch -c "${CANDIDATE_BRANCH}"
+          node /tmp/task11-canonical-projection-fix.js
+          test "$(git diff --name-only)" = "backend/repositories/messageRepository.js"
+          node --check backend/repositories/messageRepository.js
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Prove canonical failed projection and identity ordering GREEN
+        run: node --test --test-concurrency=1 backend/tests/messageIdentityEvidenceOrdering.test.js
+      - name: Prove canonical ledger and projection receipt contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/architectureClosureV2/wpA/domainEventCompatibilityFacade.test.js
+          backend/tests/architectureClosureV2/wpA/projectionReceiptSchemaAuthority.test.js
+          backend/tests/f25WindowsUatRepairBatch24DomainProjectionRecovery.test.js
+          backend/tests/f25WindowsUatRepairBatch24StateTransactionConsistency.test.js
+      - name: Commit exact candidate without history rewrite
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git diff --name-only)" = "backend/repositories/messageRepository.js"
+          git config user.name "Yance OSS-1A Task 11 Canonical Projection Fix"
+          git config user.email "oss1a-task11-canonical-projection@users.noreply.github.com"
+          git add backend/repositories/messageRepository.js
+          git commit -m "fix(oss1a): retire legacy inbound projection jobs"
+          git push origin "${CANDIDATE_BRANCH}"
