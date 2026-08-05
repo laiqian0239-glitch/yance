@@ -8,7 +8,8 @@ const PROBE_PATHS = Object.freeze([
   'tools/uat/fix6d_computed_style_probe.py',
   'tools/uat/fix6d_global_typography_matrix_probe.py'
 ]);
-const IMPLEMENTATION_PATHS = Object.freeze([TEST_PATH, AUTHORITY_PATH, ...PROBE_PATHS].sort());
+const PORTABLE_SOURCE_PATHS = Object.freeze([AUTHORITY_PATH, ...PROBE_PATHS].sort());
+const IMPLEMENTATION_PATHS = Object.freeze([TEST_PATH, ...PORTABLE_SOURCE_PATHS].sort());
 
 function replaceExact(source, before, after, label) {
   const first = source.indexOf(before);
@@ -99,7 +100,7 @@ function updateContractHarness() {
 }
 
 function assertPortableSources() {
-  for (const filePath of IMPLEMENTATION_PATHS) {
+  for (const filePath of PORTABLE_SOURCE_PATHS) {
     const source = fs.readFileSync(filePath, 'utf8');
     if (source.includes('/usr/bin/chromium')) throw new Error(`${filePath}: Linux-only Chromium path remains`);
     if (source.includes('executable_path')) throw new Error(`${filePath}: executable selection remains outside Playwright authority`);
@@ -120,6 +121,7 @@ module.exports = {
   TEST_PATH,
   AUTHORITY_PATH,
   PROBE_PATHS,
+  PORTABLE_SOURCE_PATHS,
   IMPLEMENTATION_PATHS,
   replaceExact,
   main
