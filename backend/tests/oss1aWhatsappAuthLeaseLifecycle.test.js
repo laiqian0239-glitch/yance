@@ -42,12 +42,16 @@ test('auth lease close primitive is idempotent and records one terminal reason',
   assert.equal(row.authLeaseCloseReason, 'WHATSAPP_STOP');
 });
 
-test('logout keeps the auth lease writable until Baileys finishes its terminal credential mutation', async () => {
+test('logout keeps the writer generation and auth lease live through Baileys terminal credential mutation', async () => {
   const { WhatsAppAdapter } = require('../services/whatsappAdapter');
   const adapter = new WhatsAppAdapter();
+  const accountKey = 'wa-logout-order';
+  const generation = 7;
   const events = [];
-  adapter.accounts.set('wa-logout-order', {
-    databaseAccountId: 'wa-logout-order',
+  adapter.generations.set(accountKey, generation);
+  adapter.accounts.set(accountKey, {
+    databaseAccountId: accountKey,
+    generation,
     authLease: {
       async close(reason) {
         events.push(`lease-close:${reason}`);
@@ -58,6 +62,11 @@ test('logout keeps the auth lease writable until Baileys finishes its terminal c
     authLeaseCloseReason: '',
     socket: {
       async logout() {
+        assert.equal(
+          adapter.generations.get(accountKey),
+          generation,
+          'logout must retain the current writer generation until Baileys completes'
+        );
         events.push('socket-logout');
       }
     },
@@ -68,14 +77,15 @@ test('logout keeps the auth lease writable until Baileys finishes its terminal c
     }
   });
 
-  await adapter.stop('wa-logout-order', true);
+  await adapter.stop(accountKey, true);
 
   assert.deepEqual(events.slice(0, 2), [
     'socket-logout',
     'lease-close:WHATSAPP_LOGOUT'
   ]);
   assert.equal(events.at(-1), 'fence:WHATSAPP_LOGOUT');
-  assert.equal(adapter.accounts.has('wa-logout-order'), false);
+  assert.equal(adapter.generations.get(accountKey), generation + 1);
+  assert.equal(adapter.accounts.has(accountKey), false);
 });
 
 test('socket initialization failure closes the unpublished auth lease exactly once', () => {
