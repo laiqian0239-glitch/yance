@@ -1,0 +1,63 @@
+name: OSS-1A Targeted Group Diagnostics
+
+on:
+  push:
+    branches:
+      - diagnostic/oss1a-production-regex-fdefafd
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose-group:
+    runs-on: ubuntu-24.04
+    env:
+      CANDIDATE_HEAD: fdefafd095787477f044f5e791cb95e0aad176f9
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.CANDIDATE_HEAD }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22.23.1
+          package-manager-cache: false
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run exact targeted group and preserve evidence
+        shell: bash
+        run: |
+          set -uo pipefail
+          before_test="$(sha256sum backend/tests/oss1aWhatsappProductionAuthIntegration.test.js | awk '{print $1}')"
+          before_source="$(sha256sum backend/runtime/AppRuntimeComposition.js | awk '{print $1}')"
+          set +e
+          node --test --test-concurrency=1 \
+            backend/tests/oss1aWhatsappAuthKeyRuntimeOrder.test.js \
+            backend/tests/messageIdentityEvidenceOrdering.test.js \
+            backend/tests/oss1aWhatsappAuthRepository.test.js \
+            backend/tests/oss1aWhatsappAuthStateStore.test.js \
+            backend/tests/oss1aWhatsappLegacyAuthImport.test.js \
+            backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
+            backend/tests/platformProductionReadinessAuthority.test.js \
+            > /tmp/group.log 2>&1
+          group_status=$?
+          set -e
+          after_test="$(sha256sum backend/tests/oss1aWhatsappProductionAuthIntegration.test.js | awk '{print $1}')"
+          after_source="$(sha256sum backend/runtime/AppRuntimeComposition.js | awk '{print $1}')"
+          echo "GROUP_STATUS=${group_status}"
+          echo "TEST_SHA_BEFORE=${before_test} TEST_SHA_AFTER=${after_test}"
+          echo "SOURCE_SHA_BEFORE=${before_source} SOURCE_SHA_AFTER=${after_source}"
+          cat /tmp/group.log
+          echo 'BEGIN_STANDALONE_RETRY'
+          set +e
+          node --test --test-concurrency=1 backend/tests/oss1aWhatsappProductionAuthIntegration.test.js
+          standalone_status=$?
+          set -e
+          echo "STANDALONE_STATUS=${standalone_status}"
+          echo 'END_STANDALONE_RETRY'
+          git status --short
+          test "${before_test}" = "${after_test}"
+          test "${before_source}" = "${after_source}"
+          test "${group_status}" -eq 0
+          test "${standalone_status}" -eq 0
