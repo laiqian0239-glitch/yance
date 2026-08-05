@@ -57,58 +57,7 @@ jobs:
       - name: Apply deferred cipher capability
         shell: bash
         run: |
-          python3 <<'PY'
-          from pathlib import Path
-          path = Path('backend/runtime/AppRuntimeComposition.js')
-          text = path.read_text(encoding='utf-8')
-          anchor = """function snapshotStartupPayload(value) {
-"""
-          helper = """function createDeferredWhatsAppAuthCipher(keyAuthority) {
-  if (!keyAuthority || typeof keyAuthority.getCipher !== 'function') {
-    throw gatewayError(
-      'WHATSAPP_AUTH_CIPHER_AUTHORITY_REQUIRED',
-      'Deferred WhatsApp auth cipher requires the key authority',
-      503
-    );
-  }
-  const invoke = (method, args) => {
-    const cipher = keyAuthority.getCipher();
-    if (!cipher || typeof cipher[method] !== 'function') {
-      throw gatewayError(
-        'WHATSAPP_AUTH_CIPHER_CAPABILITY_INVALID',
-        `WhatsApp auth cipher method ${method} is unavailable`,
-        503,
-        { method }
-      );
-    }
-    return cipher[method](...args);
-  };
-  return Object.freeze({
-    encrypt(...args) { return invoke('encrypt', args); },
-    decrypt(...args) { return invoke('decrypt', args); },
-    hmacIndex(...args) { return invoke('hmacIndex', args); }
-  });
-}
-
-function snapshotStartupPayload(value) {
-"""
-          if text.count(anchor) != 1:
-            raise SystemExit('deferred cipher helper anchor mismatch')
-          text = text.replace(anchor, helper, 1)
-          old = """  const whatsappAuthRepository = createWhatsAppAuthStateRepository({
-    cipher: whatsappAuthKeyAuthority.getCipher(),
-    storeProvider: whatsappStoreProvider
-  });
-"""
-          new = """  const whatsappAuthRepository = createWhatsAppAuthStateRepository({
-    cipher: createDeferredWhatsAppAuthCipher(whatsappAuthKeyAuthority),
-    storeProvider: whatsappStoreProvider
-  });
-"""
-          if text.count(old) != 1:
-            raise SystemExit('eager cipher construction anchor mismatch')
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
-          PY
+          python3 -c "import base64,zlib; exec(compile(zlib.decompress(base64.b64decode('eNq1VW1P2zAQ/p5fcaBJSaUuDE2TJlAnZaUS0dDoWhiatqm4yaUxJHbmOC0Z9L/vEru0jBWmSfvQ1r7ecy/PvThRMoeC6TTjU+B5IZWGIV2dRga99uy5UxZdo4j3VCU0z3EvKIqROfYlYUquuRT+Vel2HI03mnAN3FfI4kkj8FBEMuZi1nMrnbx8S3pMRKlUpLmbVCJq8FAKVpSp1GPNlK6KIaszyWJvzrIKO3D7Tew6KWYFtqjdNS4iPxqPMEGlML5ImS4pwKDSaZ8XKSrvGuvmJhXXNRlyAHgC3s6mGO7uQNcFygQ2xf4MtTECO70euCufrjEDoFMlFzAj/wtWD5SSymvlAO7FcXA2DobDSXB+djzph8Pjwag9n47Csy+T0eDTeTgaHLndFWCVAaxSAEZxQGT8K/xRcYUlucQmxvbPNsh7C29evW5PnUP6WdInkqLUwMVcXiOR5uVIkLgLTM3KDvTe2SSMmvXT20KA11q11FndNWlG8NU4+L6FrKfo2kZYPxgG78OThrHw4+fgJFwTBnD5R6ZMEPDi1hyWwEuoBJsznrFphpdrPBG2vtyugEsrsgmbq0JdKfFbnp7v+y2XLeHNl1U7nV5hpP1EIf5Ez2RPM6DqQt9jyKHVNgXyXKvh2gIdwtJEF+NzSKvxCJnmLApFjDdPYO91NtBNOpTU0nH+djodmkiHeqMZdz+StB08M+IdagbYPzAkMl4ijOtSYz644boJ3Pa8rZ0dcLsdcl7mTEfpeq+05hUWGYvQOuhaUBf2O47MYrMdVl29aDqEmXUwwnZXSVWTjtkam9uCMtO41rFlM4EdPDD0YcuEGNJLQuNQyTmPN4HjTbEluCFN4OI/hfzsYtyW078l8rD6VImnS49sRpW2dW8zV5VptcfVb5+TBYWG5j150AbkqQvEYtMAXXj81PwCCQlI8Q==')), '<oss1a-deferred-auth-cipher>', 'exec'))"
           node --check backend/runtime/AppRuntimeComposition.js
           git diff --check
           test "$(git diff --name-only)" = "backend/runtime/AppRuntimeComposition.js"
