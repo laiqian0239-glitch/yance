@@ -91,10 +91,14 @@ test('failed message projection persists only canonical repair evidence and crea
   assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM canonical_event_headers WHERE event_id=?').get(result.eventId).count, 1);
   assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM domain_events WHERE event_id=?').get(result.eventId).count, 0);
   assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM domain_event_projection_jobs WHERE event_id=?').get(result.eventId).count, 0);
-  const receipt = store.db.prepare(`SELECT projection_status,failure_code FROM domain_projection_receipts
+  const receipt = store.db.prepare(`SELECT ledger_sequence,projection_status,failure_code FROM domain_projection_receipts
     WHERE projector_name='message-projection' AND projector_version='round12-v2' AND event_id=?`).get(result.eventId);
   assert.equal(receipt.projection_status, 'failed');
   assert.equal(receipt.failure_code, 'FORCED_MESSAGE_PERSISTENCE_FAILURE');
+  const checkpoint = store.db.prepare(`SELECT ledger_sequence,output_hash FROM projection_checkpoints_v2
+    WHERE projector_id='message-projection'`).get();
+  assert.equal(checkpoint.ledger_sequence, receipt.ledger_sequence);
+  assert.match(checkpoint.output_hash, /^[a-f0-9]{64}$/u);
   assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM r32_messages WHERE id=?').get('identity-order-mid-1').count, 0);
   assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM persons').get().count, 0);
   assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM identity_links').get().count, 0);
