@@ -56,8 +56,10 @@ jobs:
           const fs = require('node:fs');
           const { execFileSync } = require('node:child_process');
           const authorization = JSON.parse(fs.readFileSync('governance/open-source-acceleration/oss-1a-implementation-authorization-v9.json', 'utf8'));
-          const changed = execFileSync('git', ['diff', '--name-only', process.env.GOVERNANCE_HEAD, '--'], { encoding: 'utf8' })
-            .split(/\r?\n/u).map(value => value.trim()).filter(Boolean).sort();
+          const tracked = execFileSync('git', ['diff', '--name-only', process.env.GOVERNANCE_HEAD, '--'], { encoding: 'utf8' });
+          const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { encoding: 'utf8' });
+          const changed = [...new Set(`${tracked}\n${untracked}`
+            .split(/\r?\n/u).map(value => value.trim()).filter(Boolean))].sort();
           const unauthorized = changed.filter(file => !authorization.exactPaths.includes(file));
           if (unauthorized.length) throw new Error(`unauthorized candidate paths: ${unauthorized.join(', ')}`);
           for (const required of [
