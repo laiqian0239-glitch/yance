@@ -25,14 +25,20 @@ const authorityStore = sqliteBroker.open();
 
 const eventBus = require('../services/eventBus');
 const { AuthorityTransactionCoordinator } = require('../services/authorityTransactionCoordinator');
+const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
 const canonicalEventLedger = require('../services/canonicalEventLedgerAuthority');
 const authorityTransactionCoordinator = new AuthorityTransactionCoordinator({
   store: authorityStore,
   eventBus
 });
+const platformCoreRepository = createPlatformCoreRepository({
+  storeProvider: () => authorityStore,
+  coordinatorCapability: authorityTransactionCoordinator.repositoryCapability()
+});
 const canonicalEventLedgerAuthority = new canonicalEventLedger.CanonicalEventLedgerAuthority({
   coordinator: authorityTransactionCoordinator,
-  store: authorityStore
+  store: authorityStore,
+  compatibilityRepository: platformCoreRepository
 });
 canonicalEventLedger.configureSingleton(canonicalEventLedgerAuthority);
 
