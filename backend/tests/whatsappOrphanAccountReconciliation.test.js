@@ -9,6 +9,24 @@ const path = require('node:path');
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wa-account-reconcile-'));
 process.env.YANCE_DATA_DIR = dataRoot;
 
+const { PATHS } = require('../config');
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  SqliteConnectionBroker,
+  configureSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+resetSqliteConnectionBrokerForTests();
+const testWriteHost = acquireAuthorityWriteHost({
+  dbPath: PATHS.sqlite,
+  instanceId: 'oss1a-orphan-reconciliation-test-host'
+});
+const testBroker = new SqliteConnectionBroker({
+  dbPath: PATHS.sqlite,
+  authorityWriteHostCapability: testWriteHost.capability
+});
+configureSqliteConnectionBroker(testBroker);
+testBroker.open();
 const { getStore, closeStore } = require('../repositories/storeProvider');
 const { stableId } = require('../lib/r32SqliteStore');
 const service = require('../services/whatsappAccountReconciliationService');
@@ -16,6 +34,8 @@ const outboxRouteAuthority = require('../services/outboxRouteAuthority').singlet
 
 process.on('exit', () => {
   try { closeStore(); } catch (error) { process.stderr.write(`closeStore failed: ${error.message}\n`); }
+  try { resetSqliteConnectionBrokerForTests(); } catch (error) { process.stderr.write(`broker reset failed: ${error.message}\n`); }
+  try { testWriteHost.release(); } catch (error) { process.stderr.write(`write host release failed: ${error.message}\n`); }
   try { fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (error) { process.stderr.write(`cleanup failed: ${error.message}\n`); }
 });
 
