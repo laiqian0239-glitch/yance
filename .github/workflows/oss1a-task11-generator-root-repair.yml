@@ -1,0 +1,82 @@
+name: OSS-1A Task 11 Generator Root Repair
+
+on:
+  push:
+    branches:
+      - diagnostic/oss1a-task11-targeted-695cf920
+
+permissions:
+  contents: write
+
+jobs:
+  repair-generator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GENERATOR_BRANCH: codex/oss1a-task11-generator-c0cf81de
+      EXPECTED_HEAD: 695cf9209838eb199fcb6eb4e7c8015d4872583d
+    steps:
+      - name: Checkout exact generator branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.GENERATOR_BRANCH }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: true
+
+      - name: Refactor abort lease lifecycle in generator
+        shell: bash
+        run: |
+          set -euo pipefail
+          current="$(git rev-parse HEAD)"
+          if [ "$current" != "$EXPECTED_HEAD" ]; then
+            echo "Generator already advanced to $current; no stale rewrite attempted."
+            exit 0
+          fi
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('tools/oss1a/generate-task11-auth-lease-candidate.js')
+          source = path.read_text()
+
+          def replace_exact(before, after, label):
+              global source
+              count = source.count(before)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one match, found {count}')
+              source = source.replace(before, after, 1)
+
+          replace_exact(
+              "      authLeaseClosePromise: null,\\n      attemptId:",
+              "      authLeaseClosePromise: null,\\n      operationAbortPromise: null,\\n      attemptId:",
+              'row abort promise state'
+          )
+
+          old_abort_patch = r'''  source = replaceOnce(
+              source,
+              `      row.sessionFence.invalidate('WHATSAPP_CONNECT_ABORTED');\n      this.accounts.delete(accountId);`,
+              `      await closeWhatsAppAuthLease(row, 'WHATSAPP_CONNECT_ABORTED')\n        .catch(error => logger.warn('whatsapp', 'auth-lease-close-failed', { accountId: databaseAccountId, reasonCode: error.code || 'WHATSAPP_AUTH_LEASE_CLOSE_FAILED' }));\n      row.sessionFence.invalidate('WHATSAPP_CONNECT_ABORTED');\n      this.accounts.delete(accountId);`,
+              'adapter aborted start lease close'
+            );'''
+          new_abort_patch = r'''  const operationAbortPattern = /    const onOperationAbort = \(\) => \{[\s\S]*?\n    \};\n    options\.signal\?\.addEventListener\?\.\('abort', onOperationAbort, \{ once: true \}\);/u;
+            const operationAbortReplacement = `    const onOperationAbort = () => {\n      if (row.operationAbortPromise) return row.operationAbortPromise;\n      row.operationAbortPromise = (async () => {\n        if (this.accounts.get(accountId) !== row) return false;\n        row.startupTimedOut = true;\n        row.lastError = operationAbortError(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId }).message;\n        clearStartupWatchdog(row);\n        try { row.socket?.end?.(operationAbortError(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId })); }\n        catch (error) { logger.warn('whatsapp', 'connect-abort-socket-close-failed', { accountId: databaseAccountId, adapterAccountId: accountId, reasonCode: error?.code || 'WHATSAPP_CONNECT_ABORT_SOCKET_CLOSE_FAILED', error: error?.message || String(error) }); }\n        this.generations.set(accountId, Number(this.generations.get(accountId) || row.generation || 0) + 1);\n        await closeWhatsAppAuthLease(row, 'WHATSAPP_CONNECT_ABORTED')\n          .catch(error => logger.warn('whatsapp', 'auth-lease-close-failed', { accountId: databaseAccountId, reasonCode: error.code || 'WHATSAPP_AUTH_LEASE_CLOSE_FAILED' }));\n        row.sessionFence.invalidate('WHATSAPP_CONNECT_ABORTED');\n        if (this.accounts.get(accountId) === row) this.accounts.delete(accountId);\n        return true;\n      })().catch(error => {\n        logger.error('whatsapp', 'connect-abort-cleanup-failed', { accountId: databaseAccountId, reasonCode: error.code || 'WHATSAPP_CONNECT_ABORT_CLEANUP_FAILED', error: error.message });\n        return false;\n      });\n      return row.operationAbortPromise;\n    };\n    options.signal?.addEventListener?.('abort', onOperationAbort, { once: true });`;
+            source = replaceRegexOnce(source, operationAbortPattern, operationAbortReplacement, 'adapter abort cleanup state machine');'''
+          replace_exact(old_abort_patch, new_abort_patch, 'abort cleanup generator patch')
+
+          replace_exact(
+              r'''    row.authLease = authLease;\n\n    const socketFactory''',
+              r'''    row.authLease = authLease;\n    if (options.signal?.aborted) {\n      await closeWhatsAppAuthLease(row, 'WHATSAPP_CONNECT_ABORTED')\n        .catch(error => logger.warn('whatsapp', 'auth-lease-close-failed', { accountId: databaseAccountId, reasonCode: error.code || 'WHATSAPP_AUTH_LEASE_CLOSE_FAILED' }));\n      assertOperationActive(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId, attemptId: row.attemptId });\n    }\n\n    const socketFactory''',
+              'abort after auth lease open'
+          )
+
+          path.write_text(source)
+          PY
+          node --check tools/oss1a/generate-task11-auth-lease-candidate.js
+          git diff --check
+          test "$(git diff --name-only)" = "tools/oss1a/generate-task11-auth-lease-candidate.js"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/oss1a/generate-task11-auth-lease-candidate.js
+          git commit -m "fix(oss1a): serialize auth abort lease cleanup"
+          git push origin "HEAD:refs/heads/${GENERATOR_BRANCH}"
