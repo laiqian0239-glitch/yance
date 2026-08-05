@@ -8,9 +8,16 @@
   "continuationPullRequest": 51,
   "sourceBranch": "oss/1a-baileys-lifecycle",
   "reviewedCandidateBranch": "reviewed-candidate/oss1a-task11",
-  "governanceBase": "87a855ce63ac1c00c1414fc234234b070a66376c",
+  "governanceBase": "14d6cb6b8c0328d66a1dac4a3ea71f85f8fd7fd0",
   "reviewedHead": "3e3a52ed9dd255ca5ba027a3b12704b5e281448d",
+  "branchTip": "e01a93edc10de165681c4a419f00421ec28788fd",
   "reviewedChangedFileCount": 98,
+  "postReviewEvidencePaths": [
+    ".github/workflows/oss1a-baileys-lifecycle.yml",
+    "governance/open-source-acceleration/oss-1a-reviewed-candidate-task11.json",
+    "tests/wp0/oss1a-runtime-workflow.test.js",
+    "tools/oss1a/workflow-branch-role.js"
+  ],
   "review": {
     "id": 4868185392,
     "protocolVersion": 1,
@@ -27,9 +34,11 @@
     "wp0RoutingRepairRunId": 31039773665,
     "implementationExactHeadWp0RunId": 31039985555,
     "implementationExactHeadOss1aRunId": 31039985632,
-    "implementationExactHeadProvenanceRunId": 31039985881
+    "implementationExactHeadProvenanceRunId": 31039985881,
+    "registrationGovernanceRunId": 31042007637
   },
   "governance": {
+    "exactPostReviewEvidenceOnly": true,
     "wildcardAuthorizationAllowed": false,
     "temporaryBypassAllowed": false,
     "warningOnlyClosureAllowed": false,
