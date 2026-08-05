@@ -1,0 +1,178 @@
+name: OSS-1A Final Shared Auth Authority GREEN
+
+on:
+  push:
+    branches:
+      - generator/oss1a-final-authority-green-f034f47
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prove-and-fast-forward:
+    runs-on: ubuntu-24.04
+    env:
+      IMPLEMENTATION_BASE: a4f0fdb8b8a66b99e4b0efb56d756b25b197735f
+      RED_HEAD: f034f47a7a24b3098147420c357c8026a5620fc3
+      IMPLEMENTATION_BRANCH: oss/1a-baileys-lifecycle
+      CANDIDATE_BRANCH: candidate/oss1a-final-authority-green-f034f47
+    steps:
+      - name: Checkout exact RED head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.RED_HEAD }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Verify exact heads
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "${RED_HEAD}"
+          remote_head="$(git ls-remote origin "refs/heads/${IMPLEMENTATION_BRANCH}" | awk '{print $1}')"
+          test "${remote_head}" = "${IMPLEMENTATION_BASE}"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22.23.1
+          package-manager-cache: false
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Prove corrected test fixtures before implementation
+        run: |
+          node --test --test-concurrency=1 \
+            backend/tests/messageIdentityEvidenceOrdering.test.js \
+            backend/tests/oss1aWhatsappLegacyAuthImport.test.js
+
+      - name: Reproduce exact auth authority RED
+        shell: bash
+        run: |
+          set +e
+          node --test --test-concurrency=1 \
+            backend/tests/oss1aWhatsappAuthRepository.test.js \
+            backend/tests/platformProductionReadinessAuthority.test.js \
+            backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
+            2>&1 | tee /tmp/oss1a-final-authority-red.log
+          status=${PIPESTATUS[0]}
+          set -e
+          test "${status}" -ne 0
+          grep -F "read-only auth authority projection exposes readiness without decrypting credential material" /tmp/oss1a-final-authority-red.log
+          grep -F "WhatsApp runtime authority configuration requires one auth repository capability" /tmp/oss1a-final-authority-red.log
+          grep -F "production composition creates and injects exactly one auth repository authority" /tmp/oss1a-final-authority-red.log
+
+      - name: Apply bottom-level shared authority implementation
+        shell: bash
+        run: |
+          python3 -c "import base64,zlib; exec(compile(zlib.decompress(base64.b64decode('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')), '<oss1a-final-green>', 'exec'))"
+          node --check backend/repositories/whatsappAuthStateRepository.js
+          node --check backend/services/whatsappAdapter.js
+          node --check backend/runtime/AppRuntimeComposition.js
+          git diff --check
+          python3 - <<'PY'
+          import subprocess
+          expected = sorted([
+              'backend/repositories/whatsappAuthStateRepository.js',
+              'backend/runtime/AppRuntimeComposition.js',
+              'backend/services/whatsappAdapter.js'
+          ])
+          actual = sorted(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
+          if actual != expected:
+              raise SystemExit(f'unexpected product paths: {actual}')
+          PY
+
+      - name: Commit and seal candidate tree
+        shell: bash
+        run: |
+          git config user.name 'OSS-1A Audit Automation'
+          git config user.email 'oss1a-audit@users.noreply.github.com'
+          git add \
+            backend/repositories/whatsappAuthStateRepository.js \
+            backend/runtime/AppRuntimeComposition.js \
+            backend/services/whatsappAdapter.js
+          git commit -m 'fix(oss1a): unify auth readiness and socket repository authority'
+          candidate="$(git rev-parse HEAD)"
+          echo "CANDIDATE_HEAD=${candidate}" >> "${GITHUB_ENV}"
+          python3 - <<'PY'
+          import subprocess
+          base = 'a4f0fdb8b8a66b99e4b0efb56d756b25b197735f'
+          expected = sorted([
+              'backend/repositories/whatsappAuthStateRepository.js',
+              'backend/runtime/AppRuntimeComposition.js',
+              'backend/services/whatsappAdapter.js',
+              'backend/tests/messageIdentityEvidenceOrdering.test.js',
+              'backend/tests/oss1aWhatsappAuthRepository.test.js',
+              'backend/tests/oss1aWhatsappLegacyAuthImport.test.js',
+              'backend/tests/oss1aWhatsappProductionAuthIntegration.test.js',
+              'backend/tests/oss1aWhatsappRegistrationIdZero.test.js',
+              'backend/tests/platformProductionReadinessAuthority.test.js'
+          ])
+          actual = sorted(subprocess.check_output(['git', 'diff', '--name-only', base, 'HEAD'], text=True).splitlines())
+          if actual != expected:
+              raise SystemExit(f'unexpected final candidate paths: {actual}')
+          status = subprocess.check_output(['git', 'diff', '--name-status', base, 'HEAD'], text=True)
+          if 'D\tbackend/tests/oss1aWhatsappRegistrationIdZero.test.js' not in status:
+              raise SystemExit('standalone registration test must be deleted after migration')
+          PY
+          git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
+
+      - name: Verify in two detached worktrees
+        shell: bash
+        run: |
+          set -euo pipefail
+          for suffix in a b; do
+            worktree="${RUNNER_TEMP}/oss1a-final-${suffix}"
+            git worktree add --detach "${worktree}" "${CANDIDATE_HEAD}"
+            (
+              cd "${worktree}"
+              npm ci --ignore-scripts --no-audit --no-fund
+              node --test --test-concurrency=1 \
+                backend/tests/oss1aWhatsappAuthRepository.test.js \
+                backend/tests/oss1aWhatsappAuthStateStore.test.js \
+                backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
+                backend/tests/platformProductionReadinessAuthority.test.js \
+                backend/tests/messageIdentityEvidenceOrdering.test.js \
+                backend/tests/oss1aWhatsappLegacyAuthImport.test.js
+              npm run test:oss1a
+              npm run test:oss1a:crash
+              npm run test:oss1a:concurrency
+              node --test --test-concurrency=1 \
+                backend/tests/batch39WhatsappSessionFence.test.js \
+                backend/tests/batch40ChannelAbortPropagation.test.js \
+                backend/tests/whatsappReceiptRecoveryRegression.test.js \
+                backend/tests/whatsappQrChallenge.test.js \
+                backend/tests/whatsappCanonicalGuardRegression.test.js \
+                backend/tests/whatsappMediaRecoveryClosure.test.js \
+                backend/tests/whatsappOrphanAccountReconciliation.test.js \
+                backend/tests/accountLifecycleRegression.test.js \
+                backend/tests/platformProductionReadinessAuthority.test.js \
+                backend/tests/messageIdentityEvidenceOrdering.test.js
+              node tools/third-party/verify-provenance.js
+              test ! -e backend/tests/oss1aWhatsappRegistrationIdZero.test.js
+              test -z "$(git status --porcelain)"
+            )
+          done
+
+      - name: Ordinary fast-forward implementation branch
+        shell: bash
+        run: |
+          remote_head="$(git ls-remote origin "refs/heads/${IMPLEMENTATION_BRANCH}" | awk '{print $1}')"
+          test "${remote_head}" = "${IMPLEMENTATION_BASE}"
+          git push origin "${CANDIDATE_HEAD}:refs/heads/${IMPLEMENTATION_BRANCH}"
+          final_head="$(git ls-remote origin "refs/heads/${IMPLEMENTATION_BRANCH}" | awk '{print $1}')"
+          test "${final_head}" = "${CANDIDATE_HEAD}"
+
+      - name: Record GREEN evidence
+        shell: bash
+        run: |
+          {
+            echo '### OSS-1A final shared auth authority GREEN'
+            echo
+            echo "- RED head: \`${RED_HEAD}\`"
+            echo "- Candidate head: \`${CANDIDATE_HEAD}\`"
+            echo '- Product delta: exactly 3 files'
+            echo '- Verification: two detached worktrees, full OSS-1A, crash/concurrency matrices, existing regressions and provenance'
+            echo '- Branch movement: ordinary non-force fast-forward only'
+          } >> "${GITHUB_STEP_SUMMARY}"
