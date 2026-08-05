@@ -3,10 +3,18 @@
 const fs = require('node:fs');
 
 const POLICY_PATH = 'governance/layered-ci/wp0-routing-policy.json';
+const REGISTRY_TEST_PATH = 'tests/layered-ci/open-source-work-package-registry.test.js';
 const TARGET_PATH = 'requirements/uat-playwright.txt';
 const FORBIDDEN_PREFIX = 'requirements/';
 
-function main() {
+function replaceExact(source, before, after, label) {
+  const first = source.indexOf(before);
+  if (first < 0) throw new Error(`${label}: source block not found`);
+  if (source.indexOf(before, first + before.length) !== -1) throw new Error(`${label}: source block is ambiguous`);
+  return `${source.slice(0, first)}${after}${source.slice(first + before.length)}`;
+}
+
+function updateRoutingPolicy() {
   const policy = JSON.parse(fs.readFileSync(POLICY_PATH, 'utf8'));
   if (!Array.isArray(policy.productExactPaths) || !Array.isArray(policy.productPrefixes)) {
     throw new Error('WP0 routing policy product rules are malformed');
@@ -28,11 +36,28 @@ function main() {
   fs.writeFileSync(POLICY_PATH, `${JSON.stringify(policy, null, 2)}\n`, 'utf8');
 }
 
+function repairRegistryReceiptFixture() {
+  const before = fs.readFileSync(REGISTRY_TEST_PATH, 'utf8');
+  const sourceBlock = "    authorizationPath: OSS1A_ENTRY.authorizationPath,\n    authorizationCommit: 'c'.repeat(40),\n";
+  const replacement = "    authorizationPath: OSS1A_ENTRY.authorizationPath,\n    approvedPlanPath: authorization.approvedPlanPath,\n    approvedPlanHead: authorization.approvedPlanHead,\n    authorizationCommit: 'c'.repeat(40),\n";
+  const after = replaceExact(before, sourceBlock, replacement, 'registry receipt fixture: bind approved plan identity');
+  fs.writeFileSync(REGISTRY_TEST_PATH, after, 'utf8');
+}
+
+function main() {
+  updateRoutingPolicy();
+  repairRegistryReceiptFixture();
+}
+
 if (require.main === module) main();
 
 module.exports = {
   POLICY_PATH,
+  REGISTRY_TEST_PATH,
   TARGET_PATH,
   FORBIDDEN_PREFIX,
+  replaceExact,
+  updateRoutingPolicy,
+  repairRegistryReceiptFixture,
   main
 };
