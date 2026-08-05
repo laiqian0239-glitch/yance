@@ -20,7 +20,7 @@ function startBlock(adapterSource) {
   return adapterSource.slice(start, stop);
 }
 
-test('production WhatsApp socket uses only repository-backed AuthenticationState', () => {
+test('production WhatsApp socket uses only the composition-owned repository AuthenticationState', () => {
   const adapterSource = source(adapterPath);
   const block = startBlock(adapterSource);
 
@@ -29,8 +29,13 @@ test('production WhatsApp socket uses only repository-backed AuthenticationState
     /useMultiFileAuthState\s*\(/u,
     'production code must not retain a callable multi-file auth authority'
   );
-  assert.match(adapterSource, /createWhatsAppAuthStateRepository/u);
+  assert.doesNotMatch(
+    adapterSource,
+    /createWhatsAppAuthStateRepository/u,
+    'adapter must consume the composition-owned auth repository instead of creating another authority'
+  );
   assert.match(adapterSource, /createWhatsAppAuthStateStore/u);
+  assert.match(block, /createWhatsAppAuthStateStore\(\{\s*repository:\s*this\.authRepository/u);
   assert.match(block, /authStateStore\.open\s*\(/u);
 
   const openPosition = block.search(/authStateStore\.open\s*\(/u);
@@ -40,14 +45,18 @@ test('production WhatsApp socket uses only repository-backed AuthenticationState
   assert.doesNotMatch(block, /authDir|mkdirSync\s*\([^)]*auth/u);
 });
 
-test('production composition injects the key and primary Store authorities used to open auth leases', () => {
+test('production composition creates and injects exactly one auth repository authority', () => {
   const adapterSource = source(adapterPath);
   const compositionSource = source(compositionPath);
 
   assert.match(adapterSource, /configureRuntimeAuthorities/u);
-  assert.match(adapterSource, /whatsappAuthKeyAuthority/u);
-  assert.match(adapterSource, /runtimeStoreProvider/u);
-  assert.match(compositionSource, /configureRuntimeAuthorities\s*\(/u);
+  assert.match(adapterSource, /this\.authRepository/u);
+  assert.match(compositionSource, /createWhatsAppAuthStateRepository/u);
+  assert.match(
+    compositionSource,
+    /const\s+whatsappAuthRepository\s*=\s*createWhatsAppAuthStateRepository\s*\(/u
+  );
+  assert.match(compositionSource, /authRepository:\s*whatsappAuthRepository/u);
   assert.match(compositionSource, /whatsappAuthKeyAuthority/u);
   assert.match(compositionSource, /storeProvider/u);
 });
