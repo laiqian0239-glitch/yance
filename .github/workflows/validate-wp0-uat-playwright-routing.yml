@@ -1,0 +1,31 @@
+name: Validate WP0 UAT Playwright Routing Contract
+
+on:
+  push:
+    branches:
+      - generator/wp0-uat-playwright-routing-fix
+
+permissions:
+  contents: read
+
+env:
+  VALIDATED_CANDIDATE_HEAD: 7e2a6d62710e6b69a95ea07a8b4076a25c2ab321
+
+jobs:
+  wp0-routing-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact RED candidate head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.VALIDATED_CANDIDATE_HEAD }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Verify exact RED candidate identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${VALIDATED_CANDIDATE_HEAD}"
+      - name: Prove exact UAT Playwright routing contract
+        run: node --test --test-concurrency=1 tests/layered-ci/wp0-routing.test.js
