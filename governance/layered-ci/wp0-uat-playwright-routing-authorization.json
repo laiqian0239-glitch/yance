@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_WP0_ROUTING_REPAIR_AUTHORIZATION",
+  "program": "Layered CI",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-1A Task 11",
+  "status": "IMPLEMENTATION_AUTHORIZED",
+  "authorizationVersion": 1,
+  "authorizedBranch": "oss/1a-baileys-lifecycle",
+  "requiredBaseRef": "governance/wp0-uat-playwright-routing-authorization",
+  "approvedParentHead": "87f3ea0ba6ac4856d4e1b701c75d0740c9f4fc3b",
+  "independentRedEvidence": {
+    "workflowRunId": 31038503107,
+    "jobId": 92416692110,
+    "reviewedHead": "87f3ea0ba6ac4856d4e1b701c75d0740c9f4fc3b",
+    "pullRequest": 24,
+    "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "unknownPaths": [
+      "requirements/uat-playwright.txt"
+    ],
+    "futureGreenClaimed": false
+  },
+  "authorizedRootRepair": {
+    "name": "WP0_EXACT_UAT_PLAYWRIGHT_REQUIREMENTS_PRODUCT_ROUTE",
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "d0bf4c9815a9d6a8ba8045d37741c4799a69a6b065e5332506f42f1703e9f887",
+    "exactPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/wp0-routing.test.js"
+    ],
+    "requiredBehavior": {
+      "requirements/uat-playwright.txt": "PRODUCT_WP0",
+      "requirements/unreviewed.txt": "WP0_ROUTE_UNKNOWN_PATH"
+    }
+  },
+  "governance": {
+    "exactPathScopeOnly": true,
+    "wildcardExpansionAllowed": false,
+    "requirementsDirectoryPrefixAuthorizationAllowed": false,
+    "prMustRemainDraft": true,
+    "mergeIntoMainAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "readyForPromotion": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false
+  }
+}
