@@ -33,6 +33,8 @@ const EXPECTED_SEAL = Object.freeze({
   p0Count: 0,
   p1Count: 0
 });
+const TRUSTED_POLICY_HEAD = 'f'.repeat(40);
+const CANDIDATE_HEAD = 'e'.repeat(40);
 
 function loadPolicy() {
   delete require.cache[require.resolve(POLICY_PATH)];
@@ -62,7 +64,7 @@ function receiptFor(authorization, entry) {
     authorizationCommit: authorization.seal.authorizationCommit,
     authorizationBlobSha: authorization.seal.authorizationBlobSha,
     authorizationFileSha256: 'c'.repeat(64),
-    implementationBaseCommit: authorization.seal.authorizationCommit,
+    implementationBaseCommit: TRUSTED_POLICY_HEAD,
     approvedChangedFileCount: authorization.approvedChangedFileCount,
     approvedChangedFileSetSha256: authorization.approvedChangedFileSetSha256,
     governance: {
@@ -83,10 +85,10 @@ function receiptFor(authorization, entry) {
 }
 
 function validOptions(authorization, receipt) {
-  const trustedPolicyHead = 'f'.repeat(40);
   return {
     authorizationFileSha256: receipt.authorizationFileSha256,
-    trustedPolicyHead,
+    trustedPolicyHead: TRUSTED_POLICY_HEAD,
+    candidateHead: CANDIDATE_HEAD,
     resolveCommitBlobSha: commit => commit === authorization.seal.authorizationCommit
       ? authorization.seal.authorizationBlobSha
       : null,
@@ -98,10 +100,10 @@ function validOptions(authorization, receipt) {
         && head === authorization.seal.authorizationCommit
     ) || (
       base === authorization.seal.authorizationCommit
-        && head === trustedPolicyHead
+        && head === TRUSTED_POLICY_HEAD
     ),
-    isAncestor: (base, head) => base === authorization.seal.authorizationCommit
-      && head === receipt.implementationBaseCommit
+    isAncestor: (base, head) => base === receipt.implementationBaseCommit
+      && head === CANDIDATE_HEAD
   };
 }
 
@@ -121,7 +123,7 @@ test('repository OSS-A authorization records the exact post-merge seal', () => {
   ), true);
 });
 
-test('receipt authority is derived from the sealed merge rather than guessed from the pre-merge base', () => {
+test('receipt uses the exact trusted policy head as the candidate implementation baseline', () => {
   const policy = loadPolicy();
   const { registry, authorization } = loadRepositoryAuthority();
   const entry = policy.selectOpenSourceWorkPackageRegistryEntry(
@@ -139,8 +141,9 @@ test('receipt authority is derived from the sealed merge rather than guessed fro
   ), true);
 
   for (const mutation of [
-    { authorizationCommit: '0'.repeat(40), implementationBaseCommit: '0'.repeat(40) },
+    { authorizationCommit: '0'.repeat(40) },
     { authorizationBlobSha: '1'.repeat(40) },
+    { implementationBaseCommit: authorization.seal.authorizationCommit },
     { implementationBaseCommit: '2'.repeat(40) }
   ]) {
     assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
@@ -155,14 +158,39 @@ test('receipt authority is derived from the sealed merge rather than guessed fro
     receipt,
     authorization,
     entry,
-    { ...options, resolveCommitParents: () => ['3'.repeat(40), authorization.seal.mergeSecondParent] }
+    { ...options, trustedPolicyHead: '3'.repeat(40) }
+  ), false, 'receipt baseline must move with the exact trusted PR base');
+
+  assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
+    receipt,
+    authorization,
+    entry,
+    { ...options, candidateHead: '4'.repeat(40), isAncestor: () => false }
+  ), false, 'candidate head must descend from the exact implementation base');
+});
+
+test('sealed authorization topology and trusted-history ancestry fail closed on drift', () => {
+  const policy = loadPolicy();
+  const { registry, authorization } = loadRepositoryAuthority();
+  const entry = policy.selectOpenSourceWorkPackageRegistryEntry(
+    registry,
+    authorization.authorizedBranch
+  );
+  const receipt = receiptFor(authorization, entry);
+  const options = validOptions(authorization, receipt);
+
+  assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
+    receipt,
+    authorization,
+    entry,
+    { ...options, resolveCommitParents: () => ['5'.repeat(40), authorization.seal.mergeSecondParent] }
   ), false, 'first parent drift must fail closed');
 
   assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
     receipt,
     authorization,
     entry,
-    { ...options, resolveCommitParents: () => [authorization.seal.mergeFirstParent, '4'.repeat(40)] }
+    { ...options, resolveCommitParents: () => [authorization.seal.mergeFirstParent, '6'.repeat(40)] }
   ), false, 'reviewed-head parent drift must fail closed');
 
   assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
