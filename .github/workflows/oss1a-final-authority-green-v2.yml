@@ -1,0 +1,186 @@
+name: OSS-1A Canonical Shared Authority GREEN v2
+
+on:
+  push:
+    branches:
+      - generator/oss1a-final-authority-green-v2-1881d693
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prove-and-fast-forward:
+    runs-on: ubuntu-24.04
+    env:
+      IMPLEMENTATION_BASE: a4f0fdb8b8a66b99e4b0efb56d756b25b197735f
+      RED_HEAD: 1881d69317f45a08a7c80bd162aacb8711dd5cb7
+      IMPLEMENTATION_BRANCH: oss/1a-baileys-lifecycle
+      CANDIDATE_BRANCH: candidate/oss1a-final-authority-green-v2-1881d693
+    steps:
+      - name: Checkout exact RED head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.RED_HEAD }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Verify exact heads
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "${RED_HEAD}"
+          remote_head="$(git ls-remote origin "refs/heads/${IMPLEMENTATION_BRANCH}" | awk '{print $1}')"
+          test "${remote_head}" = "${IMPLEMENTATION_BASE}"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22.23.1
+          package-manager-cache: false
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Prove canonical projection job RED
+        shell: bash
+        run: |
+          set +e
+          node --test --test-concurrency=1 backend/tests/messageIdentityEvidenceOrdering.test.js 2>&1 | tee /tmp/projection-job-red.log
+          status=${PIPESTATUS[0]}
+          set -e
+          test "${status}" -ne 0
+          grep -F "ensureCanonicalProjectionJobSchema is not a function" /tmp/projection-job-red.log
+
+      - name: Prove shared auth authority RED
+        shell: bash
+        run: |
+          set +e
+          node --test --test-concurrency=1 \
+            backend/tests/oss1aWhatsappAuthRepository.test.js \
+            backend/tests/platformProductionReadinessAuthority.test.js \
+            backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
+            2>&1 | tee /tmp/shared-auth-red.log
+          status=${PIPESTATUS[0]}
+          set -e
+          test "${status}" -ne 0
+          grep -F "read-only auth authority projection exposes readiness without decrypting credential material" /tmp/shared-auth-red.log
+          grep -F "WhatsApp runtime authority configuration requires one auth repository capability" /tmp/shared-auth-red.log
+          grep -F "production composition creates and injects exactly one auth repository authority" /tmp/shared-auth-red.log
+
+      - name: Apply bottom-level canonical shared authority implementation
+        shell: bash
+        run: |
+          python3 -c "import base64,zlib; exec(compile(zlib.decompress(base64.b64decode('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')), '<oss1a-final-green-v2>', 'exec'))"
+          node --check backend/repositories/messageRepository.js
+          node --check backend/repositories/whatsappAuthStateRepository.js
+          node --check backend/services/whatsappAdapter.js
+          node --check backend/runtime/AppRuntimeComposition.js
+          git diff --check
+          python3 - <<'PY'
+          import subprocess
+          expected = sorted([
+              'backend/repositories/messageRepository.js',
+              'backend/repositories/whatsappAuthStateRepository.js',
+              'backend/runtime/AppRuntimeComposition.js',
+              'backend/services/whatsappAdapter.js'
+          ])
+          actual = sorted(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
+          if actual != expected:
+              raise SystemExit(f'unexpected product paths: {actual}')
+          PY
+
+      - name: Commit and seal candidate tree
+        shell: bash
+        run: |
+          git config user.name 'OSS-1A Audit Automation'
+          git config user.email 'oss1a-audit@users.noreply.github.com'
+          git add \
+            backend/repositories/messageRepository.js \
+            backend/repositories/whatsappAuthStateRepository.js \
+            backend/runtime/AppRuntimeComposition.js \
+            backend/services/whatsappAdapter.js
+          git commit -m 'fix(oss1a): unify canonical projection and auth authorities'
+          candidate="$(git rev-parse HEAD)"
+          echo "CANDIDATE_HEAD=${candidate}" >> "${GITHUB_ENV}"
+          python3 - <<'PY'
+          import subprocess
+          base = 'a4f0fdb8b8a66b99e4b0efb56d756b25b197735f'
+          expected = sorted([
+              'backend/repositories/messageRepository.js',
+              'backend/repositories/whatsappAuthStateRepository.js',
+              'backend/runtime/AppRuntimeComposition.js',
+              'backend/services/whatsappAdapter.js',
+              'backend/tests/messageIdentityEvidenceOrdering.test.js',
+              'backend/tests/oss1aWhatsappAuthRepository.test.js',
+              'backend/tests/oss1aWhatsappLegacyAuthImport.test.js',
+              'backend/tests/oss1aWhatsappProductionAuthIntegration.test.js',
+              'backend/tests/oss1aWhatsappRegistrationIdZero.test.js',
+              'backend/tests/platformProductionReadinessAuthority.test.js'
+          ])
+          actual = sorted(subprocess.check_output(['git', 'diff', '--name-only', base, 'HEAD'], text=True).splitlines())
+          if actual != expected:
+              raise SystemExit(f'unexpected final candidate paths: {actual}')
+          status = subprocess.check_output(['git', 'diff', '--name-status', base, 'HEAD'], text=True)
+          if 'D\tbackend/tests/oss1aWhatsappRegistrationIdZero.test.js' not in status:
+              raise SystemExit('standalone registration test must be deleted after migration')
+          PY
+          git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
+
+      - name: Verify in two detached worktrees
+        shell: bash
+        run: |
+          set -euo pipefail
+          for suffix in a b; do
+            worktree="${RUNNER_TEMP}/oss1a-final-v2-${suffix}"
+            git worktree add --detach "${worktree}" "${CANDIDATE_HEAD}"
+            (
+              cd "${worktree}"
+              npm ci --ignore-scripts --no-audit --no-fund
+              node --test --test-concurrency=1 \
+                backend/tests/messageIdentityEvidenceOrdering.test.js \
+                backend/tests/oss1aWhatsappAuthRepository.test.js \
+                backend/tests/oss1aWhatsappAuthStateStore.test.js \
+                backend/tests/oss1aWhatsappLegacyAuthImport.test.js \
+                backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
+                backend/tests/platformProductionReadinessAuthority.test.js
+              npm run test:oss1a
+              npm run test:oss1a:crash
+              npm run test:oss1a:concurrency
+              node --test --test-concurrency=1 \
+                backend/tests/batch39WhatsappSessionFence.test.js \
+                backend/tests/batch40ChannelAbortPropagation.test.js \
+                backend/tests/whatsappReceiptRecoveryRegression.test.js \
+                backend/tests/whatsappQrChallenge.test.js \
+                backend/tests/whatsappCanonicalGuardRegression.test.js \
+                backend/tests/whatsappMediaRecoveryClosure.test.js \
+                backend/tests/whatsappOrphanAccountReconciliation.test.js \
+                backend/tests/accountLifecycleRegression.test.js \
+                backend/tests/platformProductionReadinessAuthority.test.js \
+                backend/tests/messageIdentityEvidenceOrdering.test.js
+              node tools/third-party/verify-provenance.js
+              test ! -e backend/tests/oss1aWhatsappRegistrationIdZero.test.js
+              test -z "$(git status --porcelain)"
+            )
+          done
+
+      - name: Ordinary fast-forward implementation branch
+        shell: bash
+        run: |
+          remote_head="$(git ls-remote origin "refs/heads/${IMPLEMENTATION_BRANCH}" | awk '{print $1}')"
+          test "${remote_head}" = "${IMPLEMENTATION_BASE}"
+          git push origin "${CANDIDATE_HEAD}:refs/heads/${IMPLEMENTATION_BRANCH}"
+          final_head="$(git ls-remote origin "refs/heads/${IMPLEMENTATION_BRANCH}" | awk '{print $1}')"
+          test "${final_head}" = "${CANDIDATE_HEAD}"
+
+      - name: Record GREEN evidence
+        shell: bash
+        run: |
+          {
+            echo '### OSS-1A canonical shared authority GREEN v2'
+            echo
+            echo "- RED head: \`${RED_HEAD}\`"
+            echo "- Candidate head: \`${CANDIDATE_HEAD}\`"
+            echo '- Product delta: exactly 4 authorized files'
+            echo '- Verification: two detached worktrees, full OSS-1A, crash/concurrency matrices, existing regressions and provenance'
+            echo '- Branch movement: ordinary non-force fast-forward only'
+          } >> "${GITHUB_STEP_SUMMARY}"
