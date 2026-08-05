@@ -12,11 +12,19 @@
     ".github/workflows/wp-a-promotion-authorization.yml",
     "governance/architecture-closure-v2/wp-a-post-merge-validation-policy.json",
     "governance/architecture-closure-v2/wp-a-promotion-authorization.json",
+    "governance/open-source-acceleration/open-source-work-package-registry.json",
+    "governance/open-source-acceleration/oss-a-supply-chain-authorization.json",
+    "shared/release/implementationBranchPolicy.js",
+    "shared/release/openSourceWorkPackagePolicy.js",
+    "tests/wp0/implementation-branch-policy.test.js",
+    "tests/wp0/open-source-work-package-authorization.test.js",
     "tests/wp0/wp-a-post-merge-validation.test.js",
     "tests/wp0/wp-a-promotion-authorization.test.js",
     "tools/architecture-closure-v2/run-wp-a-post-merge-contracts.js",
     "tools/architecture-closure-v2/verify-wp-a-post-merge.js",
-    "tools/architecture-closure-v2/verify-wp-a-promotion-authorization.js"
+    "tools/architecture-closure-v2/verify-wp-a-promotion-authorization.js",
+    "tools/wp0/lib.js",
+    "tools/wp0/work-package-scope-gate.js"
   ],
   "governancePrefixes": [
     ".github/actions/resolve-diff-range/",
