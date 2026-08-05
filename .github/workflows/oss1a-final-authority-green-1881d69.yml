@@ -1,0 +1,664 @@
+name: OSS-1A Canonical Projection and Shared Auth Authority GREEN
+
+on:
+  push:
+    branches:
+      - generator/oss1a-final-authority-green-1881d69
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prove-build-verify-fast-forward:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      IMPLEMENTATION_BASE: a4f0fdb8b8a66b99e4b0efb56d756b25b197735f
+      RED_HEAD: 1881d69317f45a08a7c80bd162aacb8711dd5cb7
+      RED_BRANCH: red/oss1a-final-authority-seal-a4f0fdb8
+      IMPLEMENTATION_BRANCH: oss/1a-baileys-lifecycle
+      CANDIDATE_BRANCH: candidate/oss1a-final-authority-green-1881d69
+    steps:
+      - name: Checkout exact RED head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.RED_HEAD }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Verify exact immutable inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${RED_HEAD}"
+          implementation_head="$(git ls-remote origin "refs/heads/${IMPLEMENTATION_BRANCH}" | awk '{print $1}')"
+          red_head="$(git ls-remote origin "refs/heads/${RED_BRANCH}" | awk '{print $1}')"
+          test "${implementation_head}" = "${IMPLEMENTATION_BASE}"
+          test "${red_head}" = "${RED_HEAD}"
+          test "$(git merge-base "${IMPLEMENTATION_BASE}" "${RED_HEAD}")" = "${IMPLEMENTATION_BASE}"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22.23.1
+          package-manager-cache: false
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Reproduce exact canonical projection and auth authority RED
+        shell: bash
+        run: |
+          set -o pipefail
+          set +e
+          node --test --test-concurrency=1 \
+            backend/tests/messageIdentityEvidenceOrdering.test.js \
+            backend/tests/oss1aWhatsappAuthRepository.test.js \
+            backend/tests/platformProductionReadinessAuthority.test.js \
+            backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
+            2>&1 | tee /tmp/oss1a-final-authority-red.log
+          status=${PIPESTATUS[0]}
+          set -e
+          test "${status}" -ne 0
+          grep -F "ensureCanonicalProjectionJobSchema" /tmp/oss1a-final-authority-red.log
+          grep -F "read-only auth authority projection exposes readiness without decrypting credential material" /tmp/oss1a-final-authority-red.log
+          grep -F "WhatsApp runtime authority configuration requires one auth repository capability" /tmp/oss1a-final-authority-red.log
+          grep -F "production composition creates and injects exactly one auth repository authority" /tmp/oss1a-final-authority-red.log
+
+      - name: Apply bottom-level canonical authority refactor
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              target = Path(path)
+              text = target.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one replacement, found {count}')
+              target.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          message_path = 'backend/repositories/messageRepository.js'
+          old_projection_block = r'''function now() { return new Date().toISOString(); }
+          function projectionRetry(attempts) { return new Date(Date.now() + Math.min(300, Math.max(5, 2 ** Math.min(8, Number(attempts || 0)))) * 1000).toISOString(); }
+          function appendInboundEventWithProjectionJob(store, input = {}) {
+            return store.transaction(() => {
+              const created = domainEventLog.append(input);
+              const eventId = String(created?.event?.eventId || '').trim();
+              if (!eventId) throw Object.assign(new Error('Domain event append did not return eventId'), { code: 'DOMAIN_EVENT_ID_MISSING' });
+              const at = now();
+              store.db.prepare(`INSERT INTO domain_event_projection_jobs(
+                job_id,event_id,projector_name,state,attempts,claim_token,lease_expires_at,next_attempt_at,last_error,created_at,updated_at
+              ) VALUES(?,?,?,'pending',0,'','','','',?,?)
+              ON CONFLICT(event_id) DO NOTHING`).run(`project-${eventId}`, eventId, 'message-projection', at, at);
+              return created;
+            });
+          }
+          function existingAuthoritativeDomainEvent(eventId) {
+            const row = platformCoreRepository.getDomainEvent(String(eventId || '').trim());
+            if (!row) throw Object.assign(new Error('Authoritative domain event for projection replay was not found'), {
+              code: 'DOMAIN_EVENT_NOT_FOUND', status: 404, eventId: String(eventId || '').trim()
+            });
+            return {
+              created: false,
+              event: {
+                eventId: row.event_id,
+                schemaVersion: Number(row.schema_version || 1),
+                platform: row.platform,
+                sourceAccountId: row.source_account_id,
+                externalEventId: row.external_event_id,
+                eventType: row.event_type,
+                idempotencyKey: row.idempotency_key,
+                correlationId: row.correlation_id,
+                causationId: row.causation_id,
+                occurredAt: row.occurred_at,
+                receivedAt: row.received_at,
+                redactionVersion: row.redaction_version,
+                payload: row.payload || {},
+                payloadSha256: row.payload_sha256,
+                retentionUntil: row.retention_until,
+                replayState: row.replay_state
+              }
+            };
+          }
+          '''
+          new_projection_block = r'''function now() { return new Date().toISOString(); }
+          function projectionRetry(attempts) { return new Date(Date.now() + Math.min(300, Math.max(5, 2 ** Math.min(8, Number(attempts || 0)))) * 1000).toISOString(); }
+
+          const CANONICAL_PROJECTION_JOB_SCHEMA_AUTHORITY = 'CanonicalDomainProjectionJobSchemaAuthority';
+          const canonicalProjectionJobSchemaReceipts = new WeakMap();
+          function projectionJobSchemaError(code, message, details = {}) {
+            return Object.assign(new Error(message), { code, ...details });
+          }
+          function projectionJobTableExists(db, table) {
+            return Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(table));
+          }
+          function projectionJobColumns(db) {
+            return db.prepare('PRAGMA table_info(domain_event_projection_jobs)').all();
+          }
+          function projectionJobForeignKeys(db) {
+            return db.prepare('PRAGMA foreign_key_list(domain_event_projection_jobs)').all();
+          }
+          function createCanonicalProjectionJobTable(db, table) {
+            if (!['domain_event_projection_jobs', 'domain_event_projection_jobs__canonical'].includes(table)) {
+              throw projectionJobSchemaError('CANONICAL_PROJECTION_JOB_TABLE_INVALID', 'Projection job migration table is invalid', { table });
+            }
+            db.exec(`CREATE TABLE ${table}(
+              job_id TEXT PRIMARY KEY,
+              event_id TEXT NOT NULL UNIQUE,
+              ledger_sequence INTEGER NOT NULL UNIQUE CHECK(ledger_sequence>=1),
+              projector_name TEXT NOT NULL,
+              state TEXT NOT NULL CHECK(state IN ('pending','processing','applied','failed','quarantined')),
+              attempts INTEGER NOT NULL DEFAULT 0 CHECK(attempts>=0),
+              claim_token TEXT NOT NULL DEFAULT '',
+              lease_expires_at TEXT NOT NULL DEFAULT '',
+              next_attempt_at TEXT NOT NULL DEFAULT '',
+              last_error TEXT NOT NULL DEFAULT '',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              FOREIGN KEY(event_id) REFERENCES canonical_event_headers(event_id) ON DELETE CASCADE
+            ) STRICT;`);
+          }
+          function ensureCanonicalProjectionJobSchema(store = getStore()) {
+            if (!store || typeof store !== 'object' || !store.db || typeof store.transaction !== 'function') {
+              throw projectionJobSchemaError(
+                'CANONICAL_PROJECTION_JOB_STORE_REQUIRED',
+                'Canonical projection job schema requires the primary Store capability'
+              );
+            }
+            const cached = canonicalProjectionJobSchemaReceipts.get(store);
+            if (cached) return cached;
+            const db = store.db;
+            if (!projectionJobTableExists(db, 'canonical_event_headers')) {
+              throw projectionJobSchemaError(
+                'CANONICAL_EVENT_HEADERS_REQUIRED',
+                'Canonical event headers must exist before projection job authority migration'
+              );
+            }
+            const receipt = store.transaction(() => {
+              const existed = projectionJobTableExists(db, 'domain_event_projection_jobs');
+              const beforeCount = existed
+                ? Number(db.prepare('SELECT COUNT(*) AS count FROM domain_event_projection_jobs').get()?.count || 0)
+                : 0;
+              const columns = existed ? projectionJobColumns(db) : [];
+              const foreignKeys = existed ? projectionJobForeignKeys(db) : [];
+              const hasLedgerSequence = columns.some(row => String(row.name) === 'ledger_sequence');
+              const hasCanonicalForeignKey = foreignKeys.some(row => (
+                String(row.table) === 'canonical_event_headers'
+                && String(row.from) === 'event_id'
+                && String(row.to) === 'event_id'
+              ));
+              const hasLegacyForeignKey = foreignKeys.some(row => String(row.table) === 'domain_events');
+              const alreadyCanonical = existed && hasLedgerSequence && hasCanonicalForeignKey && !hasLegacyForeignKey;
+              let executed = false;
+              if (!alreadyCanonical) {
+                if (projectionJobTableExists(db, 'domain_event_projection_jobs__canonical')) {
+                  throw projectionJobSchemaError(
+                    'CANONICAL_PROJECTION_JOB_MIGRATION_COLLISION',
+                    'A stale canonical projection job migration table already exists'
+                  );
+                }
+                if (existed && beforeCount > 0) {
+                  const orphan = db.prepare(`SELECT j.job_id,j.event_id
+                    FROM domain_event_projection_jobs j
+                    LEFT JOIN canonical_event_headers h ON h.event_id=j.event_id
+                    WHERE h.event_id IS NULL
+                    ORDER BY j.created_at,j.job_id LIMIT 1`).get();
+                  if (orphan) {
+                    throw projectionJobSchemaError(
+                      'CANONICAL_PROJECTION_JOB_PARENT_MISSING',
+                      'Legacy projection job has no canonical event parent',
+                      { jobId: String(orphan.job_id || ''), eventId: String(orphan.event_id || '') }
+                    );
+                  }
+                }
+                createCanonicalProjectionJobTable(db, 'domain_event_projection_jobs__canonical');
+                if (existed) {
+                  db.exec(`INSERT INTO domain_event_projection_jobs__canonical(
+                    job_id,event_id,ledger_sequence,projector_name,state,attempts,claim_token,
+                    lease_expires_at,next_attempt_at,last_error,created_at,updated_at
+                  )
+                  SELECT j.job_id,j.event_id,h.ledger_sequence,j.projector_name,j.state,j.attempts,
+                    j.claim_token,j.lease_expires_at,j.next_attempt_at,j.last_error,j.created_at,j.updated_at
+                  FROM domain_event_projection_jobs j
+                  JOIN canonical_event_headers h ON h.event_id=j.event_id
+                  ORDER BY h.ledger_sequence,j.job_id`);
+                  db.exec('DROP TABLE domain_event_projection_jobs');
+                }
+                db.exec('ALTER TABLE domain_event_projection_jobs__canonical RENAME TO domain_event_projection_jobs');
+                executed = true;
+              }
+              db.exec('DROP INDEX IF EXISTS idx_domain_event_projection_jobs_claim');
+              db.exec(`CREATE INDEX idx_domain_event_projection_jobs_claim
+                ON domain_event_projection_jobs(state,next_attempt_at,ledger_sequence,created_at)`);
+
+              const finalColumns = projectionJobColumns(db);
+              const finalForeignKeys = projectionJobForeignKeys(db);
+              const finalCount = Number(db.prepare('SELECT COUNT(*) AS count FROM domain_event_projection_jobs').get()?.count || 0);
+              const invalidSequence = db.prepare(`SELECT j.job_id,j.event_id,j.ledger_sequence,h.ledger_sequence AS canonical_sequence
+                FROM domain_event_projection_jobs j
+                LEFT JOIN canonical_event_headers h ON h.event_id=j.event_id
+                WHERE h.event_id IS NULL OR j.ledger_sequence<>h.ledger_sequence OR j.ledger_sequence<1
+                ORDER BY j.ledger_sequence,j.job_id LIMIT 1`).get();
+              const foreignKeyFailure = db.prepare('PRAGMA foreign_key_check(domain_event_projection_jobs)').all()[0] || null;
+              const ledgerSequenceReady = finalColumns.some(row => String(row.name) === 'ledger_sequence');
+              const canonicalForeignKeyReady = finalForeignKeys.some(row => (
+                String(row.table) === 'canonical_event_headers'
+                && String(row.from) === 'event_id'
+                && String(row.to) === 'event_id'
+              ));
+              const legacyForeignKeyRemoved = !finalForeignKeys.some(row => String(row.table) === 'domain_events');
+              if (finalCount !== beforeCount
+                || !ledgerSequenceReady
+                || !canonicalForeignKeyReady
+                || !legacyForeignKeyRemoved
+                || invalidSequence
+                || foreignKeyFailure) {
+                throw projectionJobSchemaError(
+                  'CANONICAL_PROJECTION_JOB_SCHEMA_INTEGRITY_FAILED',
+                  'Canonical projection job schema integrity verification failed',
+                  { beforeCount, finalCount, invalidSequence: invalidSequence || null, foreignKeyFailure }
+                );
+              }
+              return Object.freeze({
+                authority: CANONICAL_PROJECTION_JOB_SCHEMA_AUTHORITY,
+                executed,
+                migratedRows: finalCount,
+                ledgerSequence: ledgerSequenceReady,
+                legacyForeignKeyRemoved
+              });
+            });
+            canonicalProjectionJobSchemaReceipts.set(store, receipt);
+            return receipt;
+          }
+          function appendInboundEventWithProjectionJob(store, input = {}) {
+            ensureCanonicalProjectionJobSchema(store);
+            return store.transaction(() => {
+              const created = domainEventLog.append(input);
+              const eventId = String(created?.event?.eventId || '').trim();
+              const ledgerSequence = Number(created?.event?.ledgerSequence || 0);
+              if (!eventId) throw Object.assign(new Error('Domain event append did not return eventId'), { code: 'DOMAIN_EVENT_ID_MISSING' });
+              if (!Number.isSafeInteger(ledgerSequence) || ledgerSequence < 1) {
+                throw Object.assign(new Error('Domain event append did not return a canonical ledgerSequence'), {
+                  code: 'CANONICAL_LEDGER_SEQUENCE_REQUIRED', eventId, ledgerSequence
+                });
+              }
+              const at = now();
+              store.db.prepare(`INSERT INTO domain_event_projection_jobs(
+                job_id,event_id,ledger_sequence,projector_name,state,attempts,claim_token,lease_expires_at,next_attempt_at,last_error,created_at,updated_at
+              ) VALUES(?,?,?,?,'pending',0,'','','','',?,?)
+              ON CONFLICT(event_id) DO NOTHING`).run(
+                `project-${eventId}`, eventId, ledgerSequence, 'message-projection', at, at
+              );
+              return created;
+            });
+          }
+          function existingAuthoritativeDomainEvent(eventId) {
+            const normalizedEventId = String(eventId || '').trim();
+            const event = normalizedEventId ? domainEventLog.readEvent(normalizedEventId) : null;
+            if (!event) throw Object.assign(new Error('Authoritative domain event for projection replay was not found'), {
+              code: 'DOMAIN_EVENT_NOT_FOUND', status: 404, eventId: normalizedEventId
+            });
+            return Object.freeze({ created: false, event });
+          }
+          '''
+          replace_once(message_path, old_projection_block, new_projection_block)
+          old_exports = "module.exports = { read, upsert, configureWhatsAppMessageKeyIndex, getWhatsAppMessageByKey, getMessageByDedupeKey, listPendingTelegramEnrichment, getExternalMessage, hasExternalMessage, collapseDuplicateUnsupportedMobileEchoes, applyReaction, revoke, markRead, updateReceipt, updateReceiptsThrough, updateConversationMetadata, bindConversationAccount, search, listConversations, listMessages, listMessagePage, listMessagesForExport, encodeCursor, decodeCursor, resolveMergedConversationKey: id => resolveMergedConversationKey(getStore(), id), getConversation: id => getConversation(getStore(), id), _identityLinkAuthority: identityLinkAuthority };"
+          new_exports = "module.exports = { read, upsert, ensureCanonicalProjectionJobSchema, configureWhatsAppMessageKeyIndex, getWhatsAppMessageByKey, getMessageByDedupeKey, listPendingTelegramEnrichment, getExternalMessage, hasExternalMessage, collapseDuplicateUnsupportedMobileEchoes, applyReaction, revoke, markRead, updateReceipt, updateReceiptsThrough, updateConversationMetadata, bindConversationAccount, search, listConversations, listMessages, listMessagePage, listMessagesForExport, encodeCursor, decodeCursor, resolveMergedConversationKey: id => resolveMergedConversationKey(getStore(), id), getConversation: id => getConversation(getStore(), id), _identityLinkAuthority: identityLinkAuthority };"
+          replace_once(message_path, old_exports, new_exports)
+
+          auth_repository_path = 'backend/repositories/whatsappAuthStateRepository.js'
+          inspect_method = r'''
+            inspectAccount(accountKey) {
+              const store = storeFor(this);
+              const normalizedAccountKey = nonEmptyString(accountKey, 'accountKey');
+              const row = readAccountRow(store.db, normalizedAccountKey);
+              if (!row) return null;
+              const accountState = String(row.state);
+              const registered = Boolean(row.registered);
+              const hasIdentity = Boolean(String(row.identity_jid_hmac || ''));
+              const hasBytes = value => (
+                (Buffer.isBuffer(value) || value instanceof Uint8Array)
+                && Number(value.byteLength || value.length || 0) > 0
+              );
+              const credentialMaterialPresent = Number(row.creds_cipher_version) > 0
+                && Number(row.creds_key_version) > 0
+                && hasBytes(row.creds_nonce)
+                && hasBytes(row.creds_ciphertext)
+                && hasBytes(row.creds_auth_tag)
+                && String(row.creds_ciphertext_sha256 || '').length === 64;
+              const usable = accountState === ACTIVE
+                && registered
+                && hasIdentity
+                && credentialMaterialPresent;
+              let reasonCode = '';
+              if (accountState === LOGGED_OUT) reasonCode = 'WHATSAPP_AUTH_LOGGED_OUT';
+              else if (accountState === QUARANTINED) reasonCode = String(row.quarantine_reason || 'WHATSAPP_AUTH_QUARANTINED');
+              else if (accountState === IMPORT_PENDING) reasonCode = 'WHATSAPP_AUTH_IMPORT_PENDING';
+              else if (accountState !== ACTIVE) reasonCode = 'WHATSAPP_AUTH_STATE_NOT_ACTIVE';
+              else if (!registered) reasonCode = 'WHATSAPP_AUTH_NOT_REGISTERED';
+              else if (!hasIdentity) reasonCode = 'WHATSAPP_AUTH_IDENTITY_MISSING';
+              else if (!credentialMaterialPresent) reasonCode = 'WHATSAPP_AUTH_CREDENTIAL_MATERIAL_MISSING';
+              return Object.freeze({
+                accountKey: String(row.account_key),
+                accountId: String(row.account_id),
+                currentEpoch: Number(row.current_epoch),
+                state: accountState,
+                registered,
+                hasIdentity,
+                credentialMaterialPresent,
+                usable,
+                reasonCode
+              });
+            }
+          '''
+          replace_once(
+              auth_repository_path,
+              "\n  initializeAccount(input = {}) {",
+              inspect_method + "\n  initializeAccount(input = {}) {"
+          )
+
+          adapter_path = 'backend/services/whatsappAdapter.js'
+          replace_once(
+              adapter_path,
+              "const { resolveStableAccountKey, resolveAuthLocation } = require('./whatsappAuthResolver');",
+              "const { resolveStableAccountKey } = require('./whatsappAuthResolver');"
+          )
+          replace_once(
+              adapter_path,
+              "const { createWhatsAppAuthStateRepository } = require('../repositories/whatsappAuthStateRepository');\n",
+              ""
+          )
+          replace_once(
+              adapter_path,
+              "    this.whatsappAuthKeyAuthority = null;\n    this.runtimeStoreProvider = null;",
+              "    this.whatsappAuthKeyAuthority = null;\n    this.runtimeStoreProvider = null;\n    this.authRepository = null;"
+          )
+          old_config = r'''  configureRuntimeAuthorities(options = {}) {
+            if (!options.whatsappAuthKeyAuthority || typeof options.whatsappAuthKeyAuthority.getCipher !== 'function') {
+              throw Object.assign(new Error('WhatsApp auth key authority is required'), { code: 'WHATSAPP_RUNTIME_KEY_AUTHORITY_REQUIRED' });
+            }
+            if (typeof options.storeProvider !== 'function') {
+              throw Object.assign(new Error('WhatsApp runtime Store provider is required'), { code: 'WHATSAPP_RUNTIME_STORE_PROVIDER_REQUIRED' });
+            }
+            this.whatsappAuthKeyAuthority = options.whatsappAuthKeyAuthority;
+            this.runtimeStoreProvider = options.storeProvider;
+            return true;
+          }'''
+          new_config = r'''  configureRuntimeAuthorities(options = {}) {
+            if (!options.whatsappAuthKeyAuthority || typeof options.whatsappAuthKeyAuthority.getCipher !== 'function') {
+              throw Object.assign(new Error('WhatsApp auth key authority is required'), { code: 'WHATSAPP_RUNTIME_KEY_AUTHORITY_REQUIRED' });
+            }
+            if (typeof options.storeProvider !== 'function') {
+              throw Object.assign(new Error('WhatsApp runtime Store provider is required'), { code: 'WHATSAPP_RUNTIME_STORE_PROVIDER_REQUIRED' });
+            }
+            if (!options.authRepository
+              || typeof options.authRepository.inspectAccount !== 'function'
+              || typeof options.authRepository.loadAccount !== 'function') {
+              throw Object.assign(new Error('WhatsApp runtime auth repository is required'), {
+                code: 'WHATSAPP_RUNTIME_AUTH_REPOSITORY_REQUIRED'
+              });
+            }
+            this.whatsappAuthKeyAuthority = options.whatsappAuthKeyAuthority;
+            this.runtimeStoreProvider = options.storeProvider;
+            this.authRepository = options.authRepository;
+            return true;
+          }'''
+          replace_once(adapter_path, old_config, new_config)
+          old_credential = r'''  credentialState(accountOrId = 'account-a', options = {}) {
+            const reference = this.resolveAccountReference(accountOrId);
+            const cacheKey = typeof reference === 'object' ? String(reference.id || reference.adapterAccountId || '') : String(reference || 'account-a');
+            const cached = this.credentialStateCache.get(cacheKey);
+            if (options.force !== true && cached && Date.now() - cached.at < this.credentialStateTtlMs) return { ...cached.value };
+            try {
+              const resolved = resolveAuthLocation(reference, { migrate: true });
+              const value = {
+                accountKey: resolved.key,
+                directory: resolved.directory,
+                legacyDirectory: resolved.legacy.directory,
+                usable: resolved.usable,
+                registered: resolved.registered,
+                hasIdentity: Boolean(resolved.current.hasIdentity || resolved.legacy.hasIdentity),
+                migrated: resolved.migration.performed,
+                fileCount: resolved.fileCount,
+                error: ''
+              };
+              this.credentialStateCache.set(cacheKey, { at: Date.now(), value });
+              return { ...value };
+            } catch (error) {
+              const value = { accountKey: '', directory: '', legacyDirectory: '', usable: false, registered: false, hasIdentity: false, migrated: false, fileCount: 0, error: error.message, code: error.code || '' };
+              this.credentialStateCache.set(cacheKey, { at: Date.now(), value });
+              return { ...value };
+            }
+          }'''
+          new_credential = r'''  credentialState(accountOrId = 'account-a', options = {}) {
+            const reference = this.resolveAccountReference(accountOrId);
+            const cacheKey = typeof reference === 'object' ? String(reference.id || reference.adapterAccountId || '') : String(reference || 'account-a');
+            const cached = this.credentialStateCache.get(cacheKey);
+            if (options.force !== true && cached && Date.now() - cached.at < this.credentialStateTtlMs) return { ...cached.value };
+            try {
+              if (!this.authRepository || typeof this.authRepository.inspectAccount !== 'function') {
+                throw Object.assign(new Error('WhatsApp runtime auth repository is unavailable'), {
+                  code: 'WHATSAPP_RUNTIME_AUTH_REPOSITORY_REQUIRED'
+                });
+              }
+              const accountKey = this.resolveAccountKey(reference);
+              const inspected = this.authRepository.inspectAccount(accountKey);
+              const value = {
+                authority: 'sqlite-primary-store',
+                accountKey,
+                accountId: String(inspected?.accountId || (typeof reference === 'object' ? reference.id || '' : '')),
+                currentEpoch: Number(inspected?.currentEpoch || 0),
+                state: String(inspected?.state || 'MISSING'),
+                directory: '',
+                legacyDirectory: '',
+                usable: inspected?.usable === true,
+                registered: inspected?.registered === true,
+                hasIdentity: inspected?.hasIdentity === true,
+                credentialMaterialPresent: inspected?.credentialMaterialPresent === true,
+                migrated: false,
+                fileCount: 0,
+                reasonCode: String(inspected?.reasonCode || (inspected ? '' : 'WHATSAPP_AUTH_ACCOUNT_NOT_FOUND')),
+                error: ''
+              };
+              this.credentialStateCache.set(cacheKey, { at: Date.now(), value });
+              return { ...value };
+            } catch (error) {
+              const value = {
+                authority: 'sqlite-primary-store',
+                accountKey: '',
+                accountId: '',
+                currentEpoch: 0,
+                state: 'UNAVAILABLE',
+                directory: '',
+                legacyDirectory: '',
+                usable: false,
+                registered: false,
+                hasIdentity: false,
+                credentialMaterialPresent: false,
+                migrated: false,
+                fileCount: 0,
+                reasonCode: String(error.code || 'WHATSAPP_AUTH_REPOSITORY_UNAVAILABLE'),
+                error: error.message,
+                code: error.code || ''
+              };
+              this.credentialStateCache.set(cacheKey, { at: Date.now(), value });
+              return { ...value };
+            }
+          }'''
+          replace_once(adapter_path, old_credential, new_credential)
+          replace_once(
+              adapter_path,
+              "    if (!this.whatsappAuthKeyAuthority || !this.runtimeStoreProvider) {",
+              "    if (!this.whatsappAuthKeyAuthority || !this.runtimeStoreProvider || !this.authRepository) {"
+          )
+          old_auth_creation = r'''    const authRepository = createWhatsAppAuthStateRepository({
+              storeProvider: this.runtimeStoreProvider,
+              cipher: this.whatsappAuthKeyAuthority.getCipher()
+            });
+            const authStateStore = createWhatsAppAuthStateStore({ repository: authRepository, baileys });'''
+          new_auth_creation = r'''    const authStateStore = createWhatsAppAuthStateStore({
+              repository: this.authRepository,
+              baileys
+            });'''
+          replace_once(adapter_path, old_auth_creation, new_auth_creation)
+
+          composition_path = 'backend/runtime/AppRuntimeComposition.js'
+          replace_once(
+              composition_path,
+              "const { createWhatsAppAuthKeyAuthority } = require('../services/whatsappAuthKeyAuthority');",
+              "const { createWhatsAppAuthKeyAuthority } = require('../services/whatsappAuthKeyAuthority');\nconst { createWhatsAppAuthStateRepository } = require('../repositories/whatsappAuthStateRepository');"
+          )
+          replace_once(
+              composition_path,
+              "  canonicalEventLedgerModule.configureSingleton(canonicalEventLedgerAuthority);",
+              "  canonicalEventLedgerModule.configureSingleton(canonicalEventLedgerAuthority);\n  messageStore.ensureCanonicalProjectionJobSchema(authorityStore);"
+          )
+          old_store_setup = r'''  const whatsappStoreProvider = () => authorityStore;
+            messageStore.configureWhatsAppMessageKeyIndex({
+              cipherProvider: () => whatsappAuthKeyAuthority.getCipher(),
+              storeProvider: whatsappStoreProvider
+            });'''
+          new_store_setup = r'''  const whatsappStoreProvider = () => authorityStore;
+            const whatsappAuthCipherCapability = Object.freeze({
+              encrypt: (...args) => whatsappAuthKeyAuthority.getCipher().encrypt(...args),
+              decrypt: (...args) => whatsappAuthKeyAuthority.getCipher().decrypt(...args),
+              hmacIndex: (...args) => whatsappAuthKeyAuthority.getCipher().hmacIndex(...args),
+              snapshot: () => whatsappAuthKeyAuthority.getCipher().snapshot()
+            });
+            const whatsappAuthRepository = createWhatsAppAuthStateRepository({
+              cipher: whatsappAuthCipherCapability,
+              storeProvider: whatsappStoreProvider
+            });
+            messageStore.configureWhatsAppMessageKeyIndex({
+              cipherProvider: () => whatsappAuthKeyAuthority.getCipher(),
+              storeProvider: whatsappStoreProvider
+            });'''
+          replace_once(composition_path, old_store_setup, new_store_setup)
+          old_adapter_config = r'''  whatsappAdapter.configureRuntimeAuthorities({
+              whatsappAuthKeyAuthority,
+              storeProvider: whatsappStoreProvider
+            });'''
+          new_adapter_config = r'''  whatsappAdapter.configureRuntimeAuthorities({
+              whatsappAuthKeyAuthority,
+              storeProvider: whatsappStoreProvider,
+              authRepository: whatsappAuthRepository
+            });'''
+          replace_once(composition_path, old_adapter_config, new_adapter_config)
+          PY
+
+          node --check backend/repositories/messageRepository.js
+          node --check backend/repositories/whatsappAuthStateRepository.js
+          node --check backend/services/whatsappAdapter.js
+          node --check backend/runtime/AppRuntimeComposition.js
+          git diff --check
+          python3 - <<'PY'
+          import subprocess
+          expected = sorted([
+              'backend/repositories/messageRepository.js',
+              'backend/repositories/whatsappAuthStateRepository.js',
+              'backend/runtime/AppRuntimeComposition.js',
+              'backend/services/whatsappAdapter.js'
+          ])
+          actual = sorted(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
+          if actual != expected:
+              raise SystemExit(f'unexpected product paths: {actual}')
+          PY
+
+      - name: Run focused GREEN contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/messageIdentityEvidenceOrdering.test.js
+          backend/tests/oss1aWhatsappAuthRepository.test.js
+          backend/tests/oss1aWhatsappAuthStateStore.test.js
+          backend/tests/oss1aWhatsappLegacyAuthImport.test.js
+          backend/tests/oss1aWhatsappProductionAuthIntegration.test.js
+          backend/tests/platformProductionReadinessAuthority.test.js
+
+      - name: Commit and seal candidate tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'OSS-1A Audit Automation'
+          git config user.email 'oss1a-audit@users.noreply.github.com'
+          git add \
+            backend/repositories/messageRepository.js \
+            backend/repositories/whatsappAuthStateRepository.js \
+            backend/runtime/AppRuntimeComposition.js \
+            backend/services/whatsappAdapter.js
+          git commit -m 'fix(oss1a): canonicalize projection jobs and share auth authority'
+          candidate="$(git rev-parse HEAD)"
+          echo "CANDIDATE_HEAD=${candidate}" >> "${GITHUB_ENV}"
+          python3 - <<'PY'
+          import subprocess
+          base = 'a4f0fdb8b8a66b99e4b0efb56d756b25b197735f'
+          expected = sorted([
+              'backend/repositories/messageRepository.js',
+              'backend/repositories/whatsappAuthStateRepository.js',
+              'backend/runtime/AppRuntimeComposition.js',
+              'backend/services/whatsappAdapter.js',
+              'backend/tests/messageIdentityEvidenceOrdering.test.js',
+              'backend/tests/oss1aWhatsappAuthRepository.test.js',
+              'backend/tests/oss1aWhatsappLegacyAuthImport.test.js',
+              'backend/tests/oss1aWhatsappProductionAuthIntegration.test.js',
+              'backend/tests/oss1aWhatsappRegistrationIdZero.test.js',
+              'backend/tests/platformProductionReadinessAuthority.test.js'
+          ])
+          actual = sorted(subprocess.check_output(['git', 'diff', '--name-only', base, 'HEAD'], text=True).splitlines())
+          if actual != expected:
+              raise SystemExit(f'unexpected final candidate paths: {actual}')
+          status = subprocess.check_output(['git', 'diff', '--name-status', base, 'HEAD'], text=True)
+          if 'D\tbackend/tests/oss1aWhatsappRegistrationIdZero.test.js' not in status:
+              raise SystemExit('standalone registration test must remain deleted after consolidation')
+          PY
+          git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
+
+      - name: Verify candidate in two detached worktrees
+        shell: bash
+        run: |
+          set -euo pipefail
+          for suffix in a b; do
+            worktree="${RUNNER_TEMP}/oss1a-final-${suffix}"
+            git worktree add --detach "${worktree}" "${CANDIDATE_HEAD}"
+            (
+              cd "${worktree}"
+              npm ci --ignore-scripts --no-audit --no-fund
+              node --test --test-concurrency=1 \
+                backend/tests/messageIdentityEvidenceOrdering.test.js \
+                backend/tests/oss1aWhatsappAuthRepository.test.js \
+                backend/tests/oss1aWhatsappAuthStateStore.test.js \
+                backend/tests/oss1aWhatsappLegacyAuthImport.test.js \
+                backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
+                backend/tests/platformProductionReadinessAuthority.test.js
+              npm run test:oss1a
+              npm run test:oss1a:crash
+              npm run test:oss1a:concurrency
+              node --test --test-concurrency=1 \
+                backend/tests/batch39WhatsappSessionFence.test.js \
+                backend/tests/batch40ChannelAbortPropagation.test.js \
+                backend/tests/whatsappReceiptRecoveryRegression.test.js \
+                backend/tests/whatsappQrChallenge.test.js \
+                backend/tests/whatsappCanonicalGuardRegression.test.js \
+                backend/tests/whatsappMediaRecoveryClosure.test.js \
+                backend/tests/whatsappOrphanAccountReconciliation.test.js \
+                backend/tests/accountLifecycleRegression.test.js
+              npm run preflight:source-uat:p0
+              npm run test:source-uat-delivery
+              npm run test:uat-diagnostics
+              node tools/third-party/verify-provenance.js
+            )
+            git worktree remove --force "${worktree}"
+          done
+
+      - name: Non-force fast-forward implementation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_head="$(git ls-remote origin "refs/heads/${IMPLEMENTATION_BRANCH}" | awk '{print $1}')"
+          test "${remote_head}" = "${IMPLEMENTATION_BASE}"
+          test "$(git merge-base "${IMPLEMENTATION_BASE}" "${CANDIDATE_HEAD}")" = "${IMPLEMENTATION_BASE}"
+          git push origin "${CANDIDATE_HEAD}:refs/heads/${IMPLEMENTATION_BRANCH}"
+          updated_head="$(git ls-remote origin "refs/heads/${IMPLEMENTATION_BRANCH}" | awk '{print $1}')"
+          test "${updated_head}" = "${CANDIDATE_HEAD}"
