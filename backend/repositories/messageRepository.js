@@ -173,16 +173,174 @@ function recordOperationalFailure(created, cause, targetRefs = []) {
 
 function now() { return new Date().toISOString(); }
 function projectionRetry(attempts) { return new Date(Date.now() + Math.min(300, Math.max(5, 2 ** Math.min(8, Number(attempts || 0)))) * 1000).toISOString(); }
+
+const PROJECTION_JOB_TABLE = 'domain_event_projection_jobs';
+const PROJECTION_JOB_INSERT_TRIGGER = 'canonical_projection_job_event_insert';
+const PROJECTION_JOB_UPDATE_TRIGGER = 'canonical_projection_job_event_update';
+
+function projectionJobSchemaError(code, message, details = {}) {
+  return Object.assign(new Error(message), { code, reasonCode: code, ...details });
+}
+
+function projectionJobTableExists(db, table) {
+  return Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(table));
+}
+
+function createCanonicalProjectionJobTableSql(tableName) {
+  return `
+    CREATE TABLE ${tableName}(
+      job_id TEXT PRIMARY KEY,
+      event_id TEXT NOT NULL UNIQUE,
+      ledger_sequence INTEGER NOT NULL CHECK(ledger_sequence>=1),
+      projector_name TEXT NOT NULL,
+      state TEXT NOT NULL CHECK(state IN ('pending','processing','applied','failed','quarantined')),
+      attempts INTEGER NOT NULL DEFAULT 0,
+      claim_token TEXT NOT NULL DEFAULT '',
+      lease_expires_at TEXT NOT NULL DEFAULT '',
+      next_attempt_at TEXT NOT NULL DEFAULT '',
+      last_error TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(event_id) REFERENCES canonical_event_headers(event_id) ON DELETE CASCADE
+    ) STRICT;
+  `;
+}
+
+function installCanonicalProjectionJobGuards(db) {
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_domain_event_projection_jobs_claim
+      ON ${PROJECTION_JOB_TABLE}(state,next_attempt_at,created_at);
+    DROP TRIGGER IF EXISTS ${PROJECTION_JOB_INSERT_TRIGGER};
+    DROP TRIGGER IF EXISTS ${PROJECTION_JOB_UPDATE_TRIGGER};
+    CREATE TRIGGER ${PROJECTION_JOB_INSERT_TRIGGER}
+    BEFORE INSERT ON ${PROJECTION_JOB_TABLE}
+    WHEN NOT EXISTS(
+      SELECT 1 FROM canonical_event_headers
+      WHERE event_id=NEW.event_id AND ledger_sequence=NEW.ledger_sequence
+    )
+    BEGIN SELECT RAISE(ABORT,'CANONICAL_PROJECTION_JOB_EVENT_REQUIRED'); END;
+    CREATE TRIGGER ${PROJECTION_JOB_UPDATE_TRIGGER}
+    BEFORE UPDATE OF event_id,ledger_sequence ON ${PROJECTION_JOB_TABLE}
+    WHEN NOT EXISTS(
+      SELECT 1 FROM canonical_event_headers
+      WHERE event_id=NEW.event_id AND ledger_sequence=NEW.ledger_sequence
+    )
+    BEGIN SELECT RAISE(ABORT,'CANONICAL_PROJECTION_JOB_EVENT_REQUIRED'); END;
+  `);
+}
+
+function ensureCanonicalProjectionJobSchema(storeValue = getStore()) {
+  const store = storeValue;
+  if (!store?.db || typeof store.transaction !== 'function') {
+    throw projectionJobSchemaError(
+      'CANONICAL_PROJECTION_JOB_STORE_REQUIRED',
+      'Canonical projection job schema requires the primary Store capability'
+    );
+  }
+  const db = store.db;
+  if (!projectionJobTableExists(db, 'canonical_event_headers')) {
+    throw projectionJobSchemaError(
+      'CANONICAL_PROJECTION_JOB_EVENT_SCHEMA_NOT_READY',
+      'Canonical event headers must exist before projection job migration'
+    );
+  }
+
+  if (!projectionJobTableExists(db, PROJECTION_JOB_TABLE)) {
+    store.transaction(() => {
+      db.exec(createCanonicalProjectionJobTableSql(PROJECTION_JOB_TABLE));
+      installCanonicalProjectionJobGuards(db);
+    });
+  } else {
+    const columns = db.prepare(`PRAGMA table_info(${PROJECTION_JOB_TABLE})`).all();
+    const foreignKeys = db.prepare(`PRAGMA foreign_key_list(${PROJECTION_JOB_TABLE})`).all();
+    const hasLedgerSequence = columns.some(row => String(row.name) === 'ledger_sequence');
+    const canonicalForeignKey = foreignKeys.some(row =>
+      String(row.table) === 'canonical_event_headers' && String(row.from) === 'event_id'
+    );
+    const legacyForeignKey = foreignKeys.some(row => String(row.table) === 'domain_events');
+
+    if (!hasLedgerSequence || !canonicalForeignKey || legacyForeignKey) {
+      const orphanCount = Number(db.prepare(`
+        SELECT COUNT(*) AS count
+        FROM ${PROJECTION_JOB_TABLE} job
+        LEFT JOIN canonical_event_headers event ON event.event_id=job.event_id
+        WHERE event.event_id IS NULL
+      `).get()?.count || 0);
+      if (orphanCount > 0) {
+        throw projectionJobSchemaError(
+          'CANONICAL_PROJECTION_JOB_ORPHANED_LEGACY_EVENT',
+          'Legacy projection jobs cannot be migrated because canonical events are missing',
+          { orphanCount }
+        );
+      }
+      const replacement = `${PROJECTION_JOB_TABLE}_canonical_next`;
+      store.transaction(() => {
+        db.exec(`DROP TABLE IF EXISTS ${replacement};`);
+        db.exec(createCanonicalProjectionJobTableSql(replacement));
+        db.exec(`
+          INSERT INTO ${replacement}(
+            job_id,event_id,ledger_sequence,projector_name,state,attempts,claim_token,
+            lease_expires_at,next_attempt_at,last_error,created_at,updated_at
+          )
+          SELECT
+            job.job_id,job.event_id,event.ledger_sequence,job.projector_name,job.state,
+            job.attempts,job.claim_token,job.lease_expires_at,job.next_attempt_at,
+            job.last_error,job.created_at,job.updated_at
+          FROM ${PROJECTION_JOB_TABLE} job
+          JOIN canonical_event_headers event ON event.event_id=job.event_id;
+          DROP TABLE ${PROJECTION_JOB_TABLE};
+          ALTER TABLE ${replacement} RENAME TO ${PROJECTION_JOB_TABLE};
+        `);
+        installCanonicalProjectionJobGuards(db);
+      });
+    } else {
+      installCanonicalProjectionJobGuards(db);
+    }
+  }
+
+  const finalColumns = db.prepare(`PRAGMA table_info(${PROJECTION_JOB_TABLE})`).all();
+  const finalForeignKeys = db.prepare(`PRAGMA foreign_key_list(${PROJECTION_JOB_TABLE})`).all();
+  const ledgerSequence = finalColumns.some(row => String(row.name) === 'ledger_sequence');
+  const canonicalEventForeignKey = finalForeignKeys.some(row =>
+    String(row.table) === 'canonical_event_headers' && String(row.from) === 'event_id'
+  );
+  const legacyForeignKeyRemoved = !finalForeignKeys.some(row => String(row.table) === 'domain_events');
+  if (!ledgerSequence || !canonicalEventForeignKey || !legacyForeignKeyRemoved) {
+    throw projectionJobSchemaError(
+      'CANONICAL_PROJECTION_JOB_SCHEMA_INVALID',
+      'Projection job schema remains detached from canonical event authority'
+    );
+  }
+  return Object.freeze({
+    authority: 'CanonicalDomainProjectionJobSchemaAuthority',
+    table: PROJECTION_JOB_TABLE,
+    ledgerSequence,
+    canonicalEventForeignKey,
+    legacyForeignKeyRemoved,
+    triggers: Object.freeze([PROJECTION_JOB_INSERT_TRIGGER, PROJECTION_JOB_UPDATE_TRIGGER])
+  });
+}
+
 function appendInboundEventWithProjectionJob(store, input = {}) {
   return store.transaction(() => {
     const created = domainEventLog.append(input);
     const eventId = String(created?.event?.eventId || '').trim();
     if (!eventId) throw Object.assign(new Error('Domain event append did not return eventId'), { code: 'DOMAIN_EVENT_ID_MISSING' });
+    const ledgerSequence = Number(created?.event?.ledgerSequence || created?.event?.ledger_sequence || 0);
+    if (!Number.isSafeInteger(ledgerSequence) || ledgerSequence < 1) {
+      throw Object.assign(new Error('Domain event append did not return canonical ledgerSequence'), {
+        code: 'CANONICAL_LEDGER_SEQUENCE_REQUIRED',
+        eventId
+      });
+    }
+    ensureCanonicalProjectionJobSchema(store);
     const at = now();
     store.db.prepare(`INSERT INTO domain_event_projection_jobs(
-      job_id,event_id,projector_name,state,attempts,claim_token,lease_expires_at,next_attempt_at,last_error,created_at,updated_at
-    ) VALUES(?,?,?,'pending',0,'','','','',?,?)
-    ON CONFLICT(event_id) DO NOTHING`).run(`project-${eventId}`, eventId, 'message-projection', at, at);
+      job_id,event_id,ledger_sequence,projector_name,state,attempts,claim_token,lease_expires_at,next_attempt_at,last_error,created_at,updated_at
+    ) VALUES(?,?,?,?,'pending',0,'','','','',?,?)
+    ON CONFLICT(event_id) DO NOTHING`).run(
+      `project-${eventId}`, eventId, ledgerSequence, 'message-projection', at, at
+    );
     return created;
   });
 }
@@ -1378,4 +1536,4 @@ function read() {
   return { schemaVersion: 3, messages: messageMap, conversations: conversationMap, contacts: {}, updatedAt: now() };
 }
 
-module.exports = { read, upsert, configureWhatsAppMessageKeyIndex, getWhatsAppMessageByKey, getMessageByDedupeKey, listPendingTelegramEnrichment, getExternalMessage, hasExternalMessage, collapseDuplicateUnsupportedMobileEchoes, applyReaction, revoke, markRead, updateReceipt, updateReceiptsThrough, updateConversationMetadata, bindConversationAccount, search, listConversations, listMessages, listMessagePage, listMessagesForExport, encodeCursor, decodeCursor, resolveMergedConversationKey: id => resolveMergedConversationKey(getStore(), id), getConversation: id => getConversation(getStore(), id), _identityLinkAuthority: identityLinkAuthority };
+module.exports = { read, upsert, ensureCanonicalProjectionJobSchema, configureWhatsAppMessageKeyIndex, getWhatsAppMessageByKey, getMessageByDedupeKey, listPendingTelegramEnrichment, getExternalMessage, hasExternalMessage, collapseDuplicateUnsupportedMobileEchoes, applyReaction, revoke, markRead, updateReceipt, updateReceiptsThrough, updateConversationMetadata, bindConversationAccount, search, listConversations, listMessages, listMessagePage, listMessagesForExport, encodeCursor, decodeCursor, resolveMergedConversationKey: id => resolveMergedConversationKey(getStore(), id), getConversation: id => getConversation(getStore(), id), _identityLinkAuthority: identityLinkAuthority };

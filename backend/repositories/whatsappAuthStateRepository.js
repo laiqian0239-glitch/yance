@@ -234,6 +234,46 @@ function publicWriter(row) {
   });
 }
 
+function authReadinessReason(row) {
+  const state = String(row.state || '');
+  if (state === LOGGED_OUT) return 'WHATSAPP_AUTH_LOGGED_OUT';
+  if (state === QUARANTINED) return 'WHATSAPP_AUTH_QUARANTINED';
+  if (state === IMPORT_PENDING) return 'WHATSAPP_AUTH_IMPORT_PENDING';
+  if (state !== ACTIVE) return 'WHATSAPP_AUTH_STATE_INVALID';
+  const materialPresent = row.creds_cipher_version != null
+    && row.creds_key_version != null
+    && row.creds_nonce != null
+    && row.creds_ciphertext != null
+    && row.creds_auth_tag != null
+    && /^[a-f0-9]{64}$/u.test(String(row.creds_ciphertext_sha256 || ''));
+  if (!materialPresent) return 'WHATSAPP_AUTH_CREDENTIAL_MATERIAL_MISSING';
+  if (!Boolean(row.registered)) return 'WHATSAPP_AUTH_NOT_REGISTERED';
+  if (!/^[a-f0-9]{64}$/u.test(String(row.identity_jid_hmac || ''))) {
+    return 'WHATSAPP_AUTH_IDENTITY_MISSING';
+  }
+  return '';
+}
+
+function publicReadiness(row) {
+  const reasonCode = authReadinessReason(row);
+  return Object.freeze({
+    accountKey: String(row.account_key),
+    accountId: String(row.account_id),
+    currentEpoch: Number(row.current_epoch),
+    state: String(row.state),
+    registered: Boolean(row.registered),
+    hasIdentity: /^[a-f0-9]{64}$/u.test(String(row.identity_jid_hmac || '')),
+    credentialMaterialPresent: row.creds_cipher_version != null
+      && row.creds_key_version != null
+      && row.creds_nonce != null
+      && row.creds_ciphertext != null
+      && row.creds_auth_tag != null
+      && /^[a-f0-9]{64}$/u.test(String(row.creds_ciphertext_sha256 || '')),
+    usable: reasonCode === '',
+    reasonCode
+  });
+}
+
 function normalizeUpdates(updates) {
   if (!isPlainObject(updates)) {
     throw repositoryError('WHATSAPP_AUTH_REPOSITORY_INPUT_INVALID', 'updates must be a plain object');
@@ -285,6 +325,13 @@ class WhatsAppAuthStateRepository {
       faultInjector: options.faultInjector || null
     }));
     Object.freeze(this);
+  }
+
+  inspectAccount(accountKey) {
+    const store = storeFor(this);
+    const normalizedAccountKey = nonEmptyString(accountKey, 'accountKey');
+    const row = readAccountRow(store.db, normalizedAccountKey);
+    return row ? publicReadiness(row) : null;
   }
 
   loadAccount(accountKey) {

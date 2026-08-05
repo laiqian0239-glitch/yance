@@ -16,7 +16,7 @@ const avatarService = require('./avatarService');
 const accountStore = require('./accountStore');
 const settingsRepository = require('../repositories/settingsRepository');
 const whatsappVersionDiscoveryAuthority = require('./whatsappVersionDiscoveryAuthority');
-const { resolveStableAccountKey, resolveAuthLocation } = require('./whatsappAuthResolver');
+const { resolveStableAccountKey } = require('./whatsappAuthResolver');
 const accountLifecycle = require('./accountLifecycle');
 const canonicalIdentity = require('./canonicalIdentityService');
 const { safeDisplayName, normalizeJid, normalizePhone } = require('./whatsappIdentity');
@@ -34,7 +34,6 @@ const { AUTH_EPOCH_ACTION, classifyDisconnect, shouldExecuteReconnect } = requir
 const { createWhatsAppMessageRetryStore } = require('./whatsappMessageRetryStore');
 const { createWhatsAppSocketFactory } = require('./whatsappSocketFactory');
 const { createWhatsAppAuthStateStore } = require('./whatsappAuthStateStore');
-const { createWhatsAppAuthStateRepository } = require('../repositories/whatsappAuthStateRepository');
 
 let qrCodeRenderer = null;
 function loadQRCodeDependency(moduleLoader = require) {
@@ -699,6 +698,7 @@ class WhatsAppAdapter {
     this.credentialStateTtlMs = 3000;
     this.whatsappAuthKeyAuthority = null;
     this.runtimeStoreProvider = null;
+    this.authRepository = null;
   }
 
   configureRuntimeAuthorities(options = {}) {
@@ -708,8 +708,16 @@ class WhatsAppAdapter {
     if (typeof options.storeProvider !== 'function') {
       throw Object.assign(new Error('WhatsApp runtime Store provider is required'), { code: 'WHATSAPP_RUNTIME_STORE_PROVIDER_REQUIRED' });
     }
+    if (!options.authRepository
+      || typeof options.authRepository.inspectAccount !== 'function'
+      || typeof options.authRepository.loadAccount !== 'function') {
+      throw Object.assign(new Error('WhatsApp runtime auth repository is required'), {
+        code: 'WHATSAPP_RUNTIME_AUTH_REPOSITORY_REQUIRED'
+      });
+    }
     this.whatsappAuthKeyAuthority = options.whatsappAuthKeyAuthority;
     this.runtimeStoreProvider = options.storeProvider;
+    this.authRepository = options.authRepository;
     return true;
   }
 
@@ -748,26 +756,77 @@ class WhatsAppAdapter {
 
   credentialState(accountOrId = 'account-a', options = {}) {
     const reference = this.resolveAccountReference(accountOrId);
-    const cacheKey = typeof reference === 'object' ? String(reference.id || reference.adapterAccountId || '') : String(reference || 'account-a');
+    let accountKey = '';
+    try { accountKey = resolveStableAccountKey(reference); }
+    catch (_) { accountKey = typeof reference === 'object' ? String(reference.adapterAccountId || reference.id || '') : String(reference || ''); }
+    const cacheKey = accountKey || (typeof reference === 'object'
+      ? String(reference.id || reference.adapterAccountId || '')
+      : String(reference || 'account-a'));
     const cached = this.credentialStateCache.get(cacheKey);
-    if (options.force !== true && cached && Date.now() - cached.at < this.credentialStateTtlMs) return { ...cached.value };
+    if (options.force !== true && cached && Date.now() - cached.at < this.credentialStateTtlMs) {
+      return { ...cached.value };
+    }
     try {
-      const resolved = resolveAuthLocation(reference, { migrate: true });
-      const value = {
-        accountKey: resolved.key,
-        directory: resolved.directory,
-        legacyDirectory: resolved.legacy.directory,
-        usable: resolved.usable,
-        registered: resolved.registered,
-        hasIdentity: Boolean(resolved.current.hasIdentity || resolved.legacy.hasIdentity),
-        migrated: resolved.migration.performed,
-        fileCount: resolved.fileCount,
+      if (!this.authRepository || typeof this.authRepository.inspectAccount !== 'function') {
+        throw Object.assign(new Error('WhatsApp runtime auth repository is unavailable'), {
+          code: 'WHATSAPP_RUNTIME_AUTH_REPOSITORY_REQUIRED'
+        });
+      }
+      const authority = this.authRepository.inspectAccount(accountKey);
+      const value = authority ? {
+        authority: 'sqlite-primary-store',
+        accountKey: authority.accountKey,
+        accountId: authority.accountId,
+        currentEpoch: authority.currentEpoch,
+        state: authority.state,
+        usable: authority.usable === true,
+        registered: authority.registered === true,
+        hasIdentity: authority.hasIdentity === true,
+        credentialMaterialPresent: authority.credentialMaterialPresent === true,
+        reasonCode: String(authority.reasonCode || ''),
+        directory: '',
+        legacyDirectory: '',
+        migrated: false,
+        fileCount: 0,
+        error: ''
+      } : {
+        authority: 'sqlite-primary-store',
+        accountKey,
+        accountId: typeof reference === 'object' ? String(reference.id || '') : '',
+        currentEpoch: 0,
+        state: 'MISSING',
+        usable: false,
+        registered: false,
+        hasIdentity: false,
+        credentialMaterialPresent: false,
+        reasonCode: 'WHATSAPP_AUTH_ACCOUNT_NOT_FOUND',
+        directory: '',
+        legacyDirectory: '',
+        migrated: false,
+        fileCount: 0,
         error: ''
       };
       this.credentialStateCache.set(cacheKey, { at: Date.now(), value });
       return { ...value };
     } catch (error) {
-      const value = { accountKey: '', directory: '', legacyDirectory: '', usable: false, registered: false, hasIdentity: false, migrated: false, fileCount: 0, error: error.message, code: error.code || '' };
+      const value = {
+        authority: 'sqlite-primary-store',
+        accountKey,
+        accountId: typeof reference === 'object' ? String(reference.id || '') : '',
+        currentEpoch: 0,
+        state: 'UNAVAILABLE',
+        usable: false,
+        registered: false,
+        hasIdentity: false,
+        credentialMaterialPresent: false,
+        reasonCode: String(error.code || 'WHATSAPP_AUTH_AUTHORITY_UNAVAILABLE'),
+        directory: '',
+        legacyDirectory: '',
+        migrated: false,
+        fileCount: 0,
+        error: String(error.message || error),
+        code: String(error.code || '')
+      };
       this.credentialStateCache.set(cacheKey, { at: Date.now(), value });
       return { ...value };
     }
@@ -1248,11 +1307,10 @@ class WhatsAppAdapter {
       : null;
     row.messageRetryStore = messageRetryStore;
 
-    const authRepository = createWhatsAppAuthStateRepository({
-      storeProvider: this.runtimeStoreProvider,
-      cipher: this.whatsappAuthKeyAuthority.getCipher()
+    const authStateStore = createWhatsAppAuthStateStore({
+      repository: this.authRepository,
+      baileys
     });
-    const authStateStore = createWhatsAppAuthStateStore({ repository: authRepository, baileys });
     const authLease = await authStateStore.open({
       accountId: databaseAccountId,
       accountKey,

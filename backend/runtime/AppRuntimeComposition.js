@@ -33,6 +33,7 @@ const workspaceService = require('../services/workspaceService');
 const { runProductionDataGuard } = require('../migrations/legacyDemoCleanup');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
 const { createWhatsAppAuthKeyAuthority } = require('../services/whatsappAuthKeyAuthority');
+const { createWhatsAppAuthStateRepository } = require('../repositories/whatsappAuthStateRepository');
 const { AccountContext } = require('../core/accountContext');
 const { UpdateManager } = require('../core/updateManager');
 const { StoreProjectionCoordinator } = require('../core/projections/storeProjectionCoordinator');
@@ -378,13 +379,19 @@ function createAppRuntimeComposition(runtime) {
     credentials: securityGuard.credentials
   });
   const whatsappStoreProvider = () => authorityStore;
+  const whatsappAuthRepository = createWhatsAppAuthStateRepository({
+    cipher: whatsappAuthKeyAuthority.getCipher(),
+    storeProvider: whatsappStoreProvider
+  });
+  messageStore.ensureCanonicalProjectionJobSchema(authorityStore);
   messageStore.configureWhatsAppMessageKeyIndex({
     cipherProvider: () => whatsappAuthKeyAuthority.getCipher(),
     storeProvider: whatsappStoreProvider
   });
   whatsappAdapter.configureRuntimeAuthorities({
     whatsappAuthKeyAuthority,
-    storeProvider: whatsappStoreProvider
+    storeProvider: whatsappStoreProvider,
+    authRepository: whatsappAuthRepository
   });
   const accountContext = new AccountContext({ securityGuard, accountManager, accountStore, accountMigration, messageStore, sendQueue, platformMessaging, platformCapabilities, platformDrivers, canonicalIdentity, eventBus });
   const updateManager = new UpdateManager({ securityGuard, lifecycleManager: runtime, updatePreflight, eventBus });
