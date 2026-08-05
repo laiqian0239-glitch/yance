@@ -32,11 +32,14 @@ function fail(reasonCode, details = {}) {
   return outcome({ reasonCode, ...details });
 }
 
+function hasOuterWhitespace(value) {
+  return value !== value.trim();
+}
+
 function normalizePath(value) {
   const raw = String(value || '');
-  if (!raw || PATH_CONTROL_OR_GLOB.test(raw)) return '';
+  if (!raw || hasOuterWhitespace(raw) || PATH_CONTROL_OR_GLOB.test(raw)) return '';
   const normalized = raw
-    .trim()
     .replace(/\\/gu, '/')
     .replace(/^\.\//u, '')
     .replace(/\/$/u, '');
@@ -56,8 +59,10 @@ function validRules(values) {
     && new Set(values).size === values.length
     && values.every(value => {
       const rawValue = String(value || '');
-      if (!rawValue || PATH_CONTROL_OR_GLOB.test(rawValue)) return false;
-      const raw = rawValue.trim().replace(/\\/gu, '/').replace(/^\.\//u, '');
+      if (!rawValue
+        || hasOuterWhitespace(rawValue)
+        || PATH_CONTROL_OR_GLOB.test(rawValue)) return false;
+      const raw = rawValue.replace(/\\/gu, '/').replace(/^\.\//u, '');
       if (!raw || raw.startsWith('/') || /^[A-Za-z]:\//u.test(raw)) return false;
       const normalized = raw.replace(/\/$/u, '');
       return normalized.split('/').every(segment => segment && segment !== '.' && segment !== '..');
