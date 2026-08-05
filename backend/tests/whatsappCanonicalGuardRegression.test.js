@@ -8,20 +8,7 @@ const path = require('node:path');
 const Module = require('node:module');
 
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wa-canonical-guard-'));
-const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
 process.env.YANCE_DATA_DIR = dataRoot;
-process.env.YANCE_PRIMARY_SQLITE_PATH = dbPath;
-
-const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
-const { createSqliteConnectionBroker } = require('../lib/sqliteConnectionBroker');
-const authorityWriteHost = acquireAuthorityWriteHost({
-  dbPath,
-  instanceId: `whatsapp-canonical-guard:${process.pid}`
-});
-createSqliteConnectionBroker({
-  dbPath,
-  authorityWriteHostCapability: authorityWriteHost.capability
-}).open();
 
 const originalLoad = Module._load;
 Module._load = function patchedLoad(request, parent, isMain) {
@@ -35,7 +22,6 @@ const merger = require('../services/whatsappConversationMergeService');
 
 process.on('exit', () => {
   try { closeStore(); } catch (_) {}
-  try { authorityWriteHost.close(); } catch (_) {}
   try { fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (_) {}
 });
 
