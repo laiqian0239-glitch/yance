@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json, pathlib, re, sys
 from playwright.sync_api import sync_playwright
+from playwright_browser_runtime import launch_chromium
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 INDEX = ROOT / 'frontend' / 'index.html'
@@ -231,7 +232,7 @@ def main():
     fixture_html = FIXTURE.read_text(encoding='utf-8').replace('</head>', f'<style>{css}</style></head>')
     production_html = production_document(css)
     with sync_playwright() as p:
-        browser = p.chromium.launch(executable_path='/usr/bin/chromium', headless=True, args=['--no-sandbox', '--disable-gpu'])
+        browser = launch_chromium(p.chromium)
         try:
             results = [run_scenario(browser, scenario, css, fixture_html, production_html) for scenario in scenarios]
         finally:
