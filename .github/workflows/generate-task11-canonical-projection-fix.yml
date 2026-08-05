@@ -10,7 +10,7 @@ permissions:
 
 env:
   RED_HEAD: 3be359911440e38b4e587b19e0918aebe1c3c41a
-  CANDIDATE_BRANCH: candidate/task11-canonical-projection-green-v1
+  CANDIDATE_BRANCH: candidate/task11-canonical-projection-green-v2
 
 jobs:
   generate-and-verify:
