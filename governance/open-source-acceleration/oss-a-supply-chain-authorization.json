@@ -37,14 +37,18 @@
     "tools/third-party/verify-provenance.js",
     "tools/third-party/verify-sbom.js"
   ],
-  "evidence": {
-    "planPullRequest": 60,
-    "planMergeCommit": "098aa4d0bdb7a8e059c06b6114bc35595feba6d4",
-    "routeBootstrapPullRequest": 61,
-    "routeBootstrapBaseHead": "e7f7b530893689d2ed5fcc20a7583c8619ed7c91",
-    "oss0ReviewedHead": "3b03df415cdb75770d4942648deca8bed202f1ef",
-    "oss0Wp0RunId": 30907183230,
-    "oss0ProvenanceRunId": 30907183140
+  "seal": {
+    "status": "SEALED_AFTER_TRUSTED_MERGE",
+    "pullRequest": 62,
+    "authorizationCommit": "2f777096738571643d7e15bb9b331699c3ec948c",
+    "mergeFirstParent": "bdcc04017fd79a494ba66fad83f762a1c714ff1a",
+    "mergeSecondParent": "6d8eaae13f902e2186323774778d4d76ee1e9d2f",
+    "reviewedHead": "6d8eaae13f902e2186323774778d4d76ee1e9d2f",
+    "authorizationBlobSha": "9901cb3002a0e1d196cb84c7d928764c49220745",
+    "independentReviewId": 4869624356,
+    "independentReviewDecision": "ALLOW_MERGE",
+    "p0Count": 0,
+    "p1Count": 0
   },
   "governance": {
     "exactPathScopeOnly": true,

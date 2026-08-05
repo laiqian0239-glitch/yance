@@ -62,6 +62,8 @@ const IMPLEMENTATION_PATHS = Object.freeze([
   'tools/third-party/verify-sbom.js'
 ]);
 const EXPECTED_SCOPE_SHA = 'fb99d7c9b090a0c8b92b5655c401b80f0e0674c6e6f5725bad8264c9ec19a175';
+const TRUSTED_POLICY_HEAD = 'f'.repeat(40);
+const CANDIDATE_HEAD = 'e'.repeat(40);
 
 function loadPolicy() {
   assert.equal(fs.existsSync(POLICY_PATH), true, 'generic open-source policy must exist');
@@ -96,6 +98,9 @@ function fixture() {
       readyForPromotion: false
     }
   });
+  const authorizationCommit = 'a'.repeat(40);
+  const authorizationBlobSha = 'b'.repeat(40);
+  const reviewedHead = 'c'.repeat(40);
   const authorization = Object.freeze({
     schemaVersion: 1,
     documentType: 'YANCE_OPEN_SOURCE_WORK_PACKAGE_AUTHORIZATION',
@@ -111,6 +116,19 @@ function fixture() {
     approvedChangedFileCount: IMPLEMENTATION_PATHS.length,
     approvedChangedFileSetSha256: EXPECTED_SCOPE_SHA,
     exactPaths: [...IMPLEMENTATION_PATHS],
+    seal: {
+      status: 'SEALED_AFTER_TRUSTED_MERGE',
+      pullRequest: 62,
+      authorizationCommit,
+      mergeFirstParent: 'd'.repeat(40),
+      mergeSecondParent: reviewedHead,
+      reviewedHead,
+      authorizationBlobSha,
+      independentReviewId: 4869624356,
+      independentReviewDecision: 'ALLOW_MERGE',
+      p0Count: 0,
+      p1Count: 0
+    },
     governance: {
       exactPathScopeOnly: true,
       wildcardExpansionAllowed: false,
@@ -125,7 +143,6 @@ function fixture() {
       readyForPromotion: false
     }
   });
-  const authorizationCommit = 'a'.repeat(40);
   const receipt = Object.freeze({
     schemaVersion: 1,
     documentType: 'YANCE_OPEN_SOURCE_WORK_PACKAGE_AUTHORIZATION_RECEIPT',
@@ -140,9 +157,9 @@ function fixture() {
     approvedPlanPath: authorization.approvedPlanPath,
     approvedPlanHead: authorization.approvedPlanHead,
     authorizationCommit,
-    authorizationBlobSha: 'b'.repeat(40),
-    authorizationFileSha256: 'c'.repeat(64),
-    implementationBaseCommit: authorizationCommit,
+    authorizationBlobSha,
+    authorizationFileSha256: '1'.repeat(64),
+    implementationBaseCommit: TRUSTED_POLICY_HEAD,
     approvedChangedFileCount: authorization.approvedChangedFileCount,
     approvedChangedFileSetSha256: authorization.approvedChangedFileSetSha256,
     governance: {
@@ -164,16 +181,24 @@ function fixture() {
 }
 
 function validReceiptOptions(receipt, authorization) {
-  const trustedPolicyHead = 'f'.repeat(40);
   return {
     authorizationFileSha256: receipt.authorizationFileSha256,
-    trustedPolicyHead,
-    resolveCommitBlobSha: () => receipt.authorizationBlobSha,
-    resolveCommitFirstParent: () => authorization.approvedParentHead,
-    isAncestor: (base, head) => base === receipt.authorizationCommit
-      && head === receipt.implementationBaseCommit,
-    isTrustedAncestor: (base, head) => base === receipt.authorizationCommit
-      && head === trustedPolicyHead
+    trustedPolicyHead: TRUSTED_POLICY_HEAD,
+    candidateHead: CANDIDATE_HEAD,
+    resolveCommitBlobSha: () => authorization.seal.authorizationBlobSha,
+    resolveCommitParents: () => [
+      authorization.seal.mergeFirstParent,
+      authorization.seal.mergeSecondParent
+    ],
+    isTrustedAncestor: (base, head) => (
+      base === authorization.approvedParentHead
+        && head === authorization.seal.authorizationCommit
+    ) || (
+      base === authorization.seal.authorizationCommit
+        && head === TRUSTED_POLICY_HEAD
+    ),
+    isAncestor: (base, head) => base === receipt.implementationBaseCommit
+      && head === CANDIDATE_HEAD
   };
 }
 
@@ -207,48 +232,62 @@ test('generic OSS-A registry, authorization and receipt are exact and zero-norma
     entry,
     {
       ...validReceiptOptions(receipt, authorization),
-      resolveCommitBlobSha: () => 'e'.repeat(40)
+      resolveCommitBlobSha: () => '2'.repeat(40)
     }
   ), false, 'authorization blob drift must fail closed');
 });
 
-test('receipt cannot select a hidden implementation baseline or an untrusted authorization commit', () => {
+test('unsealed or non-exact-base receipts fail even when callers inject Git adapters', () => {
   const policy = loadPolicy();
   const { entry, authorization, receipt } = fixture();
+  const options = validReceiptOptions(receipt, authorization);
+  const { seal, ...unsealedAuthorization } = authorization;
 
-  const descendantBase = {
-    ...receipt,
-    implementationBaseCommit: 'd'.repeat(40)
-  };
+  assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationForEntry(
+    unsealedAuthorization,
+    entry
+  ), true, 'pre-authorization remains a valid non-executable governance document');
   assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
-    descendantBase,
-    authorization,
+    receipt,
+    unsealedAuthorization,
     entry,
-    {
-      ...validReceiptOptions(descendantBase, authorization),
-      isAncestor: () => true
-    }
-  ), false, 'implementation base must equal the canonical authorization commit');
+    options
+  ), false, 'function adapters cannot replace the required post-merge seal');
+
+  for (const mutation of [
+    { implementationBaseCommit: authorization.seal.authorizationCommit },
+    { implementationBaseCommit: '3'.repeat(40) },
+    { authorizationCommit: '4'.repeat(40) },
+    { authorizationBlobSha: '5'.repeat(40) }
+  ]) {
+    assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
+      { ...receipt, ...mutation },
+      authorization,
+      entry,
+      options
+    ), false, JSON.stringify(mutation));
+  }
 
   assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
     receipt,
     authorization,
     entry,
-    {
-      ...validReceiptOptions(receipt, authorization),
-      isTrustedAncestor: () => false
-    }
-  ), false, 'authorization commit must be an ancestor of the trusted policy head');
+    { ...options, trustedPolicyHead: '6'.repeat(40) }
+  ), false, 'receipt baseline must equal the exact trusted policy head');
 
   assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
     receipt,
     authorization,
     entry,
-    {
-      ...validReceiptOptions(receipt, authorization),
-      resolveCommitFirstParent: () => '0'.repeat(40)
-    }
-  ), false, 'authorization commit first parent must equal approvedParentHead');
+    { ...options, isTrustedAncestor: () => false }
+  ), false, 'authorization and seal ancestry must remain trusted');
+
+  assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
+    receipt,
+    authorization,
+    entry,
+    { ...options, resolveCommitParents: () => ['7'.repeat(40), authorization.seal.mergeSecondParent] }
+  ), false, 'sealed merge parent drift must fail closed');
 });
 
 test('scope exception removes only the current work-package receipt', () => {
@@ -284,7 +323,7 @@ test('scope exception removes only the current work-package receipt', () => {
   ]);
 });
 
-test('repository authority files register OSS-A but do not self-create an implementation receipt', () => {
+test('repository authority files register sealed OSS-A but do not create an implementation receipt', () => {
   const policy = loadPolicy();
   assert.equal(fs.existsSync(REGISTRY_PATH), true, 'registry must exist');
   assert.equal(fs.existsSync(AUTHORIZATION_PATH), true, 'authorization must exist');
@@ -298,6 +337,7 @@ test('repository authority files register OSS-A but do not self-create an implem
   );
   assert.ok(entry);
   assert.equal(policy.validateOpenSourceWorkPackageRegistry(registry), true);
+  assert.equal(policy.validAuthorizationSeal(authorization.seal), true);
   assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationForEntry(authorization, entry), true);
   assert.equal(authorization.approvedChangedFileCount, 23);
   assert.equal(authorization.approvedChangedFileSetSha256, EXPECTED_SCOPE_SHA);
