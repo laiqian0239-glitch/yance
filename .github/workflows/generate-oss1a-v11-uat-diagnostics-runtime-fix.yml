@@ -1,0 +1,204 @@
+name: Generate OSS-1A v11 UAT Diagnostics Candidate
+
+on:
+  push:
+    branches:
+      - generator/oss1a-v11-uat-diagnostics-runtime-fix
+
+permissions:
+  contents: write
+
+env:
+  IMPLEMENTATION_HEAD: fbb59fa305399596df53a665663669cf45272f8d
+  GOVERNANCE_HEAD: 0f06ee23d6c64907b0fea0ce0d2239f34ffc452e
+  CANDIDATE_BRANCH: candidate/oss1a-v11-uat-diagnostics-green-v1
+  CLEAN_WORKTREE: /tmp/oss1a-v11-uat-diagnostics-clean
+
+jobs:
+  build-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact generator head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: true
+      - name: Preserve generator outside candidate tree
+        shell: bash
+        run: cp tools/generator/oss1a-v11-uat-diagnostics-runtime-fix.js /tmp/oss1a-v11-uat-diagnostics-runtime-fix.js
+      - name: Compose exact implementation and v11 governance histories
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "${IMPLEMENTATION_HEAD}^{commit}"
+          git cat-file -e "${GOVERNANCE_HEAD}^{commit}"
+          git checkout --detach "${IMPLEMENTATION_HEAD}"
+          git switch -c "${CANDIDATE_BRANCH}"
+          git config user.name "Yance OSS-1A v11 UAT Diagnostics"
+          git config user.email "oss1a-v11-uat-diagnostics@users.noreply.github.com"
+          git merge --no-ff "${GOVERNANCE_HEAD}" -m "governance(oss1a): compose v11 UAT diagnostics authority"
+          git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+      - name: Build exact seven-path runtime candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node /tmp/oss1a-v11-uat-diagnostics-runtime-fix.js
+          node --check tests/uat/helpers/authoritySqliteTestHost.js
+          node --check tests/uat/f25WindowsUatRepairBatch20AiUxReadability.test.js
+          node --check tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js
+          node --check tests/uat/fix6dRuntimeAuthorityRepair.test.js
+          node --check tests/uat/modelRegistryFactSeparation.test.js
+          git diff --check
+      - name: Verify exact v11 candidate scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { execFileSync } = require('node:child_process');
+          const authorization = JSON.parse(fs.readFileSync('governance/open-source-acceleration/oss-1a-implementation-authorization-v11.json', 'utf8'));
+          const outputs = [
+            execFileSync('git', ['diff', '--name-only', 'HEAD', '--'], { encoding: 'utf8' }),
+            execFileSync('git', ['diff', '--cached', '--name-only', 'HEAD', '--'], { encoding: 'utf8' }),
+            execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { encoding: 'utf8' })
+          ];
+          const changed = [...new Set(outputs.join('\n').split(/\r?\n/u).map(value => value.trim()).filter(Boolean))].sort();
+          const expected = [
+            '.github/workflows/oss1a-whatsapp-lifecycle.yml',
+            'requirements/uat-playwright.txt',
+            'tests/uat/f25WindowsUatRepairBatch20AiUxReadability.test.js',
+            'tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js',
+            'tests/uat/fix6dRuntimeAuthorityRepair.test.js',
+            'tests/uat/helpers/authoritySqliteTestHost.js',
+            'tests/uat/modelRegistryFactSeparation.test.js'
+          ];
+          if (JSON.stringify(changed) !== JSON.stringify(expected)) throw new Error(`unexpected candidate paths: ${JSON.stringify(changed)}`);
+          const unauthorized = changed.filter(file => !authorization.exactPaths.includes(file));
+          if (unauthorized.length) throw new Error(`unauthorized candidate paths: ${unauthorized.join(', ')}`);
+          NODE
+      - name: Commit exact candidate locally before verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            .github/workflows/oss1a-whatsapp-lifecycle.yml \
+            requirements/uat-playwright.txt \
+            tests/uat/f25WindowsUatRepairBatch20AiUxReadability.test.js \
+            tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js \
+            tests/uat/fix6dRuntimeAuthorityRepair.test.js \
+            tests/uat/helpers/authoritySqliteTestHost.js \
+            tests/uat/modelRegistryFactSeparation.test.js
+          test "$(git diff --cached --name-only | sort | tr '\n' ' ')" = ".github/workflows/oss1a-whatsapp-lifecycle.yml requirements/uat-playwright.txt tests/uat/f25WindowsUatRepairBatch20AiUxReadability.test.js tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js tests/uat/fix6dRuntimeAuthorityRepair.test.js tests/uat/helpers/authoritySqliteTestHost.js tests/uat/modelRegistryFactSeparation.test.js "
+          git commit -m "fix(oss1a): bootstrap real UAT diagnostics runtime"
+          git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Create fresh candidate verification worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "${CLEAN_WORKTREE}"
+          git worktree add --detach "${CLEAN_WORKTREE}" HEAD
+          test "$(git -C "${CLEAN_WORKTREE}" rev-parse HEAD)" = "$(git rev-parse HEAD)"
+          test -z "$(git -C "${CLEAN_WORKTREE}" status --porcelain=v1 --untracked-files=all)"
+      - name: Install pinned Python Chromium runtime
+        working-directory: /tmp/oss1a-v11-uat-diagnostics-clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 --version
+          python3 -m pip install --disable-pip-version-check --requirement requirements/uat-playwright.txt
+          python3 -m playwright install --with-deps chromium
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install locked Node dependencies
+        working-directory: /tmp/oss1a-v11-uat-diagnostics-clean
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Prove all UAT diagnostics GREEN on Ubuntu
+        working-directory: /tmp/oss1a-v11-uat-diagnostics-clean
+        run: npm run test:uat-diagnostics
+      - name: Prove existing OSS-1A and delivery contracts remain GREEN
+        working-directory: /tmp/oss1a-v11-uat-diagnostics-clean
+        run: >-
+          npm run test:oss1a &&
+          npm run test:source-uat-delivery &&
+          node --test --test-concurrency=1
+          backend/tests/batch39WhatsappSessionFence.test.js
+          backend/tests/batch40ChannelAbortPropagation.test.js
+          backend/tests/whatsappReceiptRecoveryRegression.test.js
+          backend/tests/whatsappQrChallenge.test.js
+          backend/tests/whatsappCanonicalGuardRegression.test.js
+          backend/tests/whatsappMediaRecoveryClosure.test.js
+          backend/tests/whatsappOrphanAccountReconciliation.test.js
+          backend/tests/accountLifecycleRegression.test.js
+          backend/tests/messageIdentityEvidenceOrdering.test.js
+          backend/tests/platformProductionReadinessAuthority.test.js
+          tests/uat/sourceUatP0Preflight.test.js
+      - name: Push isolated candidate only after clean-worktree verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+          git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
+
+  verify-windows:
+    needs: build-candidate
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact isolated candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.CANDIDATE_BRANCH }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Verify candidate ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+      - name: Install pinned Python Chromium runtime
+        shell: pwsh
+        run: |
+          python --version
+          python -m pip install --disable-pip-version-check --requirement requirements/uat-playwright.txt
+          python -m playwright install chromium
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install locked Node dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Prove all UAT diagnostics GREEN on Windows
+        run: npm run test:uat-diagnostics
+
+  candidate-gate:
+    if: ${{ always() }}
+    needs:
+      - build-candidate
+      - verify-windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce dual-platform diagnostics verification
+        shell: bash
+        env:
+          BUILD_RESULT: ${{ needs.build-candidate.result }}
+          WINDOWS_RESULT: ${{ needs.verify-windows.result }}
+        run: |
+          set -euo pipefail
+          test "${BUILD_RESULT}" = "success"
+          test "${WINDOWS_RESULT}" = "success"
