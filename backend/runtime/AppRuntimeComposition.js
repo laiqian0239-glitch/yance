@@ -149,6 +149,33 @@ function lockAuthorityBinding(target, key, expected) {
   return expected;
 }
 
+function createDeferredWhatsAppAuthCipher(keyAuthority) {
+  if (!keyAuthority || typeof keyAuthority.getCipher !== 'function') {
+    throw gatewayError(
+      'WHATSAPP_AUTH_CIPHER_AUTHORITY_REQUIRED',
+      'Deferred WhatsApp auth cipher requires the key authority',
+      503
+    );
+  }
+  const invoke = (method, args) => {
+    const cipher = keyAuthority.getCipher();
+    if (!cipher || typeof cipher[method] !== 'function') {
+      throw gatewayError(
+        'WHATSAPP_AUTH_CIPHER_CAPABILITY_INVALID',
+        `WhatsApp auth cipher method ${method} is unavailable`,
+        503,
+        { method }
+      );
+    }
+    return cipher[method](...args);
+  };
+  return Object.freeze({
+    encrypt(...args) { return invoke('encrypt', args); },
+    decrypt(...args) { return invoke('decrypt', args); },
+    hmacIndex(...args) { return invoke('hmacIndex', args); }
+  });
+}
+
 function snapshotStartupPayload(value) {
   if (value == null) return Object.freeze({});
   if (typeof value !== 'object' || Array.isArray(value)) {
@@ -380,7 +407,7 @@ function createAppRuntimeComposition(runtime) {
   });
   const whatsappStoreProvider = () => authorityStore;
   const whatsappAuthRepository = createWhatsAppAuthStateRepository({
-    cipher: whatsappAuthKeyAuthority.getCipher(),
+    cipher: createDeferredWhatsAppAuthCipher(whatsappAuthKeyAuthority),
     storeProvider: whatsappStoreProvider
   });
   messageStore.ensureCanonicalProjectionJobSchema(authorityStore);
