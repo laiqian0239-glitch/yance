@@ -32,6 +32,7 @@ const { createSessionGenerationFence, createSocketGenerationGuard } = require('.
 const { createWhatsAppBaileysEventProcessor } = require('./whatsappBaileysEventProcessor');
 const { AUTH_EPOCH_ACTION, classifyDisconnect, shouldExecuteReconnect } = require('./whatsappDisconnectPolicy');
 const { createWhatsAppMessageRetryStore } = require('./whatsappMessageRetryStore');
+const { createWhatsAppSocketFactory } = require('./whatsappSocketFactory');
 
 let qrCodeRenderer = null;
 function loadQRCodeDependency(moduleLoader = require) {
@@ -1139,7 +1140,7 @@ class WhatsAppAdapter {
             accountId,
             reasonCode,
             timeoutMs: WHATSAPP_VERSION_DISCOVERY_TIMEOUT_MS,
-            fallback: Array.isArray(authorityState.version) ? 'cached-version' : 'baileys-default-version',
+            fallback: Array.isArray(authorityState.version) ? 'cached-version' : 'sealed-compatible-version',
             cachedVersion: authorityState.version || null,
             consecutiveFailures: authorityState.consecutiveFailures,
             nextRetryAt: authorityState.nextAttemptAt
@@ -1220,26 +1221,43 @@ class WhatsAppAdapter {
       : null;
     row.messageRetryStore = messageRetryStore;
 
-    const socketOptions = {
-      auth: state,
-      ...(messageRetryStore ? { msgRetryCounterCache: messageRetryStore } : {}),
-      printQRInTerminal: false,
-      markOnlineOnConnect: false,
-      syncFullHistory: true,
-      shouldSyncHistoryMessage: () => true,
-      generateHighQualityLinkPreview: true,
-      browser: whatsappBrowserIdentity(),
+    const socketFactory = createWhatsAppSocketFactory({ baileys, logger });
+    const authLease = Object.freeze({
+      close: async receipt => {
+        row.sessionFence.invalidate(receipt?.reasonCode || 'WHATSAPP_SOCKET_CREATE_FAILED');
+        try { await messageRetryStore?.close?.(); }
+        finally {
+          if (this.accounts.get(accountId) === row) this.accounts.delete(accountId);
+        }
+      }
+    });
+    assertOperationActive(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId, attemptId: row.attemptId });
+    const socketBuild = await socketFactory.create({
+      authState: state,
+      msgRetryCounterCache: messageRetryStore || undefined,
       getMessage: async key => messageStore.getWhatsAppMessageByKey({
         accountId: databaseAccountId,
         remoteJid: key.remoteJid,
         id: key.id,
         fromMe: key.fromMe === true,
         participant: key.participant || ''
-      })
-    };
-    if (Array.isArray(versionInfo.version)) socketOptions.version = versionInfo.version;
-    assertOperationActive(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId, attemptId: row.attemptId });
-    const socket = baileys.default(socketOptions);
+      }),
+      versionInfo,
+      browser: whatsappBrowserIdentity(),
+      syncFullHistory: true,
+      shouldSyncHistoryMessage: () => true,
+      generateHighQualityLinkPreview: true,
+      authLease
+    });
+    if (socketBuild.versionDecision.diagnosticRequired) {
+      logger.warn('whatsapp', 'sealed-compatible-version-fallback', {
+        accountId: databaseAccountId,
+        reasonCode: socketBuild.versionDecision.reasonCode,
+        versionSource: socketBuild.versionDecision.source,
+        version: [...socketBuild.versionDecision.version]
+      });
+    }
+    const socket = socketBuild.socket;
     row.socket = socket;
     const socketGuard = createSocketGenerationGuard(row.sessionFence, () => row.socket === socket);
     const eventHandlers = new Map();

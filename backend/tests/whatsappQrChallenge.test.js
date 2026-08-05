@@ -10,6 +10,7 @@ const accountStore = require('../services/accountStore');
 const whatsapp = require('../services/whatsappAdapter');
 const telegram = require('../services/telegramAdapter');
 const messageStore = require('../services/messageStore');
+const accountLifecycleSaga = require('../services/accountLifecycleSagaService').singleton;
 
 const SECRET_QR = 'data:image/png;base64,TOP_SECRET_QR_BYTES';
 
@@ -43,6 +44,7 @@ test('generic account list exposes only QR readiness metadata, never QR bytes', 
   patch(whatsapp, 'status', () => [{ accountId: 'wa-adapter', state: 'qr', qrReady: true, qrExpiresAt: '2099-01-01T00:00:00.000Z', qrVersion: 1 }]);
   patch(whatsapp, 'credentialState', () => ({ usable: false, accountKey: 'wa-adapter', registered: false }));
   patch(messageStore, 'listConversations', () => []);
+  patch(accountLifecycleSaga, 'latest', () => null);
   challenges.issue({ accountId: 'wa-db', aliases: ['wa-adapter'], dataUrl: SECRET_QR });
   const manager = new AccountManager();
   manager.hydration = { phase: 'ready', ready: true, startedAt: '', completedAt: new Date().toISOString(), errorCode: '' };
@@ -66,6 +68,7 @@ test('Telegram QR bytes stay out of account listings and are readable only throu
   patch(accountStore, 'read', () => ({ schemaVersion: 4, accounts: [account], defaults: {}, bindings: {}, audit: [] }));
   patch(telegram, 'status', () => ({ state: 'waiting-verification', step: 'qr', qrReady: true, qrExpiresAt: '2099-01-01T00:00:00.000Z', qrVersion: 1 }));
   patch(messageStore, 'listConversations', () => []);
+  patch(accountLifecycleSaga, 'latest', () => null);
   challenges.issue({ accountId: 'tg-db', type: 'telegram-qr', dataUrl: SECRET_QR });
   const manager = new AccountManager();
   manager.hydration = { phase: 'ready', ready: true, startedAt: '', completedAt: new Date().toISOString(), errorCode: '' };
@@ -144,7 +147,9 @@ test('WhatsApp QR startup has a hard timeout, stale-socket replacement and a use
   assert.match(adapter, /version-discovery-timeout/);
   assert.match(adapter, /stale-startup-replaced/);
   assert.match(adapter, /WHATSAPP_QR_START_TIMEOUT/);
-  assert.match(adapter, /!row\.startupTimedOut/);
+  assert.match(adapter, /startupTimedOut: row\.startupTimedOut/);
+  assert.match(adapter, /if \(!policy\.autoReconnect\) return;/);
+  assert.match(adapter, /shouldExecuteReconnect/);
   assert.match(frontend, /state\.awaitingQrAccountId = ''[\s\S]*renderWorkbench\(\)[\s\S]*return false/);
   assert.match(frontend, /WhatsApp 未生成二维码。连接已停止，请检查网络后点击重试。/);
 });
