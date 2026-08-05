@@ -19,6 +19,7 @@ const {
   normalizePort,
   payloadIdentity,
   prepareSourceUat,
+  readGitLfsPointer,
   resolveDataRoot,
   runNpmCi,
   runNpmCiWithRetry,
@@ -285,15 +286,43 @@ test('npm ci retry records every failed attempt and succeeds without hiding inst
   assert.equal(fs.existsSync(result.attempts[0].stderrPath), true);
 });
 
-test('Electron local archive recovery is bound to the reviewed Windows SHA-256', () => {
+test('Electron source-control pointer and hydrated archive remain distinct trusted states', () => {
   const artifact = expectedElectronArtifact(repoRoot, 'win32', 'x64');
   assert.equal(artifact.fileName, 'electron-v39.8.5-win32-x64.zip');
   assert.match(artifact.sha256, /^[0-9a-f]{64}$/u);
   const expectedArchive = path.join(repoRoot, 'vendor', 'electron', artifact.fileName);
-  const discovered = discoverElectronArchive(repoRoot, { platform: 'win32', arch: 'x64', electronZip: path.join(tempRoot(), 'missing.zip') });
-  assert.equal(discovered.archivePath, expectedArchive);
-  assert.equal(discovered.actualSha256, artifact.sha256);
-  assert.equal(discovered.artifact.sha256, artifact.sha256);
+  const pointer = readGitLfsPointer(expectedArchive);
+  const discovered = discoverElectronArchive(repoRoot, {
+    platform: 'win32',
+    arch: 'x64',
+    electronZip: path.join(tempRoot(), 'missing.zip')
+  });
+  if (pointer) {
+    assert.equal(discovered.archivePath, '');
+    assert.equal(discovered.lfsPointer.path, expectedArchive);
+    assert.equal(discovered.lfsPointer.oidSha256, artifact.sha256);
+    assert.equal(discovered.lfsPointer.objectSize, 136644393);
+  } else {
+    assert.equal(discovered.archivePath, expectedArchive);
+    assert.equal(discovered.actualSha256, artifact.sha256);
+    assert.equal(discovered.artifact.sha256, artifact.sha256);
+  }
+
+  const fixtureRoot = tempRoot();
+  fs.mkdirSync(path.join(fixtureRoot, 'release'), { recursive: true });
+  fs.mkdirSync(path.join(fixtureRoot, 'vendor', 'electron'), { recursive: true });
+  fs.copyFileSync(path.join(repoRoot, 'release', 'electron-distribution-trust.json'), path.join(fixtureRoot, 'release', 'electron-distribution-trust.json'));
+  const fixtureArchive = path.join(fixtureRoot, 'vendor', 'electron', artifact.fileName);
+  fs.writeFileSync(fixtureArchive, `version https://git-lfs.github.com/spec/v1\noid sha256:${'0'.repeat(64)}\nsize 136644393\n`, 'utf8');
+  assert.throws(
+    () => discoverElectronArchive(fixtureRoot, { platform: 'win32', arch: 'x64' }),
+    error => error?.reasonCode === 'SOURCE_UAT_ELECTRON_LFS_POINTER_HASH_MISMATCH'
+  );
+  fs.writeFileSync(fixtureArchive, 'not-a-reviewed-electron-archive', 'utf8');
+  assert.throws(
+    () => discoverElectronArchive(fixtureRoot, { platform: 'win32', arch: 'x64' }),
+    error => error?.reasonCode === 'SOURCE_UAT_ELECTRON_ARCHIVE_HASH_MISMATCH'
+  );
 });
 
 test('Electron ZIP extraction rejects traversal and absolute entries', () => {
