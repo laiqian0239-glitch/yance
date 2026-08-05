@@ -11,6 +11,8 @@ permissions:
 env:
   IMPLEMENTATION_HEAD: fbb59fa305399596df53a665663669cf45272f8d
   GOVERNANCE_HEAD: 0f06ee23d6c64907b0fea0ce0d2239f34ffc452e
+  CANDIDATE_MERGE_HEAD: d1ee575e281e169a0db1f837cef197df5f7a5f58
+  CANDIDATE_SEED_HEAD: 5a9092f1cde325aa05e130eaf3dd14c86ad2678c
   CANDIDATE_BRANCH: candidate/oss1a-v11-uat-diagnostics-green-v2
   CLEAN_WORKTREE: /tmp/oss1a-v11-uat-diagnostics-clean
 
@@ -18,6 +20,8 @@ jobs:
   build-candidate:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    outputs:
+      candidate_head: ${{ steps.publish.outputs.candidate_head }}
     steps:
       - name: Checkout exact generator head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -27,34 +31,46 @@ jobs:
           fetch-tags: false
           lfs: false
           persist-credentials: true
-      - name: Preserve generator outside candidate tree
+      - name: Prove two-stage candidate publication contract
+        run: node --test --test-concurrency=1 tests/oss1a/v11CandidatePublicationContract.test.js
+      - name: Preserve runtime generator outside candidate tree
         shell: bash
         run: cp tools/generator/oss1a-v11-uat-diagnostics-runtime-fix.js /tmp/oss1a-v11-uat-diagnostics-runtime-fix.js
-      - name: Compose exact implementation and v11 governance histories
+      - name: Verify controlled seed and create isolated runtime build
         shell: bash
         run: |
           set -euo pipefail
+          git fetch --no-tags origin "refs/heads/${CANDIDATE_BRANCH}:refs/remotes/origin/${CANDIDATE_BRANCH}"
+          remote_candidate_head="$(git rev-parse "refs/remotes/origin/${CANDIDATE_BRANCH}")"
+          test "${remote_candidate_head}" = "${CANDIDATE_SEED_HEAD}"
           git cat-file -e "${IMPLEMENTATION_HEAD}^{commit}"
           git cat-file -e "${GOVERNANCE_HEAD}^{commit}"
-          git checkout --detach "${IMPLEMENTATION_HEAD}"
-          git switch -c "${CANDIDATE_BRANCH}"
+          git cat-file -e "${CANDIDATE_MERGE_HEAD}^{commit}"
+          git cat-file -e "${CANDIDATE_SEED_HEAD}^{commit}"
+          test "$(git rev-parse "${CANDIDATE_SEED_HEAD}^")" = "${CANDIDATE_MERGE_HEAD}"
+          test "$(git rev-parse "${CANDIDATE_MERGE_HEAD}^1")" = "${IMPLEMENTATION_HEAD}"
+          test "$(git rev-parse "${CANDIDATE_MERGE_HEAD}^2")" = "${GOVERNANCE_HEAD}"
+          test "$(git diff --name-only "${CANDIDATE_MERGE_HEAD}" "${CANDIDATE_SEED_HEAD}" | tr '\n' ' ')" = ".github/workflows/oss1a-whatsapp-lifecycle.yml "
+          git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" "${CANDIDATE_SEED_HEAD}"
+          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" "${CANDIDATE_SEED_HEAD}"
+          git checkout --detach "${CANDIDATE_SEED_HEAD}"
+          git switch -c runtime/oss1a-v11-uat-diagnostics
           git config user.name "Yance OSS-1A v11 UAT Diagnostics"
           git config user.email "oss1a-v11-uat-diagnostics@users.noreply.github.com"
-          git merge --no-ff "${GOVERNANCE_HEAD}" -m "governance(oss1a): compose v11 UAT diagnostics authority"
-          git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
-          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
-      - name: Build exact seven-path runtime candidate
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Build exact six-path runtime candidate
         shell: bash
         run: |
           set -euo pipefail
-          node /tmp/oss1a-v11-uat-diagnostics-runtime-fix.js
+          node /tmp/oss1a-v11-uat-diagnostics-runtime-fix.js --scope runtime
           node --check tests/uat/helpers/authoritySqliteTestHost.js
           node --check tests/uat/f25WindowsUatRepairBatch20AiUxReadability.test.js
           node --check tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js
           node --check tests/uat/fix6dRuntimeAuthorityRepair.test.js
           node --check tests/uat/modelRegistryFactSeparation.test.js
+          git diff --exit-code -- .github/workflows/oss1a-whatsapp-lifecycle.yml
           git diff --check
-      - name: Verify exact v11 candidate scope
+      - name: Verify exact authorized runtime scope
         shell: bash
         run: |
           set -euo pipefail
@@ -69,7 +85,6 @@ jobs:
           ];
           const changed = [...new Set(outputs.join('\n').split(/\r?\n/u).map(value => value.trim()).filter(Boolean))].sort();
           const expected = [
-            '.github/workflows/oss1a-whatsapp-lifecycle.yml',
             'requirements/uat-playwright.txt',
             'tests/uat/f25WindowsUatRepairBatch20AiUxReadability.test.js',
             'tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js',
@@ -77,26 +92,27 @@ jobs:
             'tests/uat/helpers/authoritySqliteTestHost.js',
             'tests/uat/modelRegistryFactSeparation.test.js'
           ];
-          if (JSON.stringify(changed) !== JSON.stringify(expected)) throw new Error(`unexpected candidate paths: ${JSON.stringify(changed)}`);
+          if (JSON.stringify(changed) !== JSON.stringify(expected)) throw new Error(`unexpected runtime candidate paths: ${JSON.stringify(changed)}`);
           const unauthorized = changed.filter(file => !authorization.exactPaths.includes(file));
-          if (unauthorized.length) throw new Error(`unauthorized candidate paths: ${unauthorized.join(', ')}`);
+          if (unauthorized.length) throw new Error(`unauthorized runtime candidate paths: ${unauthorized.join(', ')}`);
           NODE
-      - name: Commit exact candidate locally before verification
+      - name: Commit exact runtime candidate locally before verification
         shell: bash
         run: |
           set -euo pipefail
           git add \
-            .github/workflows/oss1a-whatsapp-lifecycle.yml \
             requirements/uat-playwright.txt \
             tests/uat/f25WindowsUatRepairBatch20AiUxReadability.test.js \
             tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js \
             tests/uat/fix6dRuntimeAuthorityRepair.test.js \
             tests/uat/helpers/authoritySqliteTestHost.js \
             tests/uat/modelRegistryFactSeparation.test.js
-          test "$(git diff --cached --name-only | sort | tr '\n' ' ')" = ".github/workflows/oss1a-whatsapp-lifecycle.yml requirements/uat-playwright.txt tests/uat/f25WindowsUatRepairBatch20AiUxReadability.test.js tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js tests/uat/fix6dRuntimeAuthorityRepair.test.js tests/uat/helpers/authoritySqliteTestHost.js tests/uat/modelRegistryFactSeparation.test.js "
+          test "$(git diff --cached --name-only | sort | tr '\n' ' ')" = "requirements/uat-playwright.txt tests/uat/f25WindowsUatRepairBatch20AiUxReadability.test.js tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js tests/uat/fix6dRuntimeAuthorityRepair.test.js tests/uat/helpers/authoritySqliteTestHost.js tests/uat/modelRegistryFactSeparation.test.js "
           git commit -m "fix(oss1a): bootstrap real UAT diagnostics runtime"
           git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
           git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+          git merge-base --is-ancestor "${CANDIDATE_SEED_HEAD}" HEAD
+          test "$(git diff --name-only "${CANDIDATE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = ".github/workflows/oss1a-whatsapp-lifecycle.yml requirements/uat-playwright.txt tests/uat/f25WindowsUatRepairBatch20AiUxReadability.test.js tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js tests/uat/fix6dRuntimeAuthorityRepair.test.js tests/uat/helpers/authoritySqliteTestHost.js tests/uat/modelRegistryFactSeparation.test.js "
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - name: Create fresh candidate verification worktree
         shell: bash
@@ -142,24 +158,23 @@ jobs:
           backend/tests/messageIdentityEvidenceOrdering.test.js
           backend/tests/platformProductionReadinessAuthority.test.js
           tests/uat/sourceUatP0Preflight.test.js
-      - name: Push isolated candidate only after clean-worktree verification
+      - name: Fast-forward controlled candidate and verify remote exact head
+        id: publish
         shell: bash
         run: |
           set -euo pipefail
-          echo "candidate_head=$(git rev-parse HEAD)"
-          echo "candidate_status_begin"
-          git status --porcelain=v1 --untracked-files=all
-          echo "candidate_status_end"
-          if test -n "$(git status --porcelain=v1 --untracked-files=all)"; then
-            echo "candidate construction worktree is dirty after isolated verification" >&2
-            exit 1
-          fi
+          candidate_head="$(git rev-parse HEAD)"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
           git diff --exit-code
           git diff --cached --exit-code
-          git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
-          git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
-          git remote -v
+          git fetch --no-tags origin "refs/heads/${CANDIDATE_BRANCH}:refs/remotes/origin/${CANDIDATE_BRANCH}"
+          remote_candidate_head="$(git rev-parse "refs/remotes/origin/${CANDIDATE_BRANCH}")"
+          test "${remote_candidate_head}" = "${CANDIDATE_SEED_HEAD}"
           git push --verbose origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
+          git fetch --no-tags origin "refs/heads/${CANDIDATE_BRANCH}:refs/remotes/origin/${CANDIDATE_BRANCH}"
+          published_head="$(git rev-parse "refs/remotes/origin/${CANDIDATE_BRANCH}")"
+          test "${published_head}" = "${candidate_head}"
+          echo "candidate_head=${candidate_head}" >> "${GITHUB_OUTPUT}"
 
   verify-windows:
     needs: build-candidate
@@ -169,17 +184,20 @@ jobs:
       - name: Checkout exact isolated candidate
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ env.CANDIDATE_BRANCH }}
+          ref: ${{ needs.build-candidate.outputs.candidate_head }}
           fetch-depth: 0
           fetch-tags: false
           lfs: false
           persist-credentials: false
-      - name: Verify candidate ancestry
+      - name: Verify candidate identity and ancestry
         shell: bash
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ needs.build-candidate.outputs.candidate_head }}"
           git merge-base --is-ancestor "${IMPLEMENTATION_HEAD}" HEAD
           git merge-base --is-ancestor "${GOVERNANCE_HEAD}" HEAD
+          git merge-base --is-ancestor "${CANDIDATE_SEED_HEAD}" HEAD
+          test "$(git diff --name-only "${CANDIDATE_MERGE_HEAD}" HEAD | sort | tr '\n' ' ')" = ".github/workflows/oss1a-whatsapp-lifecycle.yml requirements/uat-playwright.txt tests/uat/f25WindowsUatRepairBatch20AiUxReadability.test.js tests/uat/fix6dRuntimeAuthorityIndependentAudit.test.js tests/uat/fix6dRuntimeAuthorityRepair.test.js tests/uat/helpers/authoritySqliteTestHost.js tests/uat/modelRegistryFactSeparation.test.js "
       - name: Install pinned Python Chromium runtime
         shell: pwsh
         run: |
