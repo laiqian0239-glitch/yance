@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json, pathlib, re, sys
 from playwright.sync_api import sync_playwright
-from playwright_browser_runtime import launch_chromium
+from playwright_browser_runtime import launch_chromium, write_json_stdout
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 INDEX = ROOT / 'frontend' / 'index.html'
@@ -238,7 +238,7 @@ def main():
         finally:
             browser.close()
     payload = results if is_batch else results[0]
-    print(json.dumps(payload, ensure_ascii=False))
+    write_json_stdout(payload)
 
 
 if __name__ == '__main__':

@@ -14,7 +14,7 @@ import sys
 from typing import Any
 
 from playwright.sync_api import sync_playwright
-from playwright_browser_runtime import launch_chromium
+from playwright_browser_runtime import launch_chromium, write_json_stdout
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 FRONTEND = ROOT / "frontend"
@@ -522,7 +522,7 @@ def main() -> None:
         "viewportResults": results,
         "failureCount": sum(row["failureCount"] + len(row["missingRoles"]) for row in results),
     }
-    print(json.dumps(output, ensure_ascii=False))
+    write_json_stdout(output)
 
 
 if __name__ == "__main__":
