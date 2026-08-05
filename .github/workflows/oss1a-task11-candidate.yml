@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  statuses: write
 
 concurrency:
   group: oss1a-task11-candidate-c0cf81de
@@ -15,15 +16,16 @@ concurrency:
 jobs:
   generate-and-verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     env:
       BASE_SHA: c0cf81de7a0350f2faa1af8877ec4ea16d01e496
-      OUTPUT_BRANCH: codex/oss1a-task11-candidate-c0cf81de
+      IMPLEMENTATION_BRANCH: oss/1a-baileys-lifecycle
     steps:
-      - name: Checkout isolated generator branch
+      - name: Checkout isolated orchestration source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up sealed Node runtime
         uses: actions/setup-node@v4
@@ -31,72 +33,221 @@ jobs:
           node-version: 22.14.0
           cache: npm
 
-      - name: Install exact dependencies
-        run: npm ci
-
-      - name: Normalize isolated generator literals
+      - name: Verify exact baseline and generator
         shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          path = Path('tools/oss1a/generate-task11-auth-lease-candidate.js')
-          source = path.read_text()
-          source = source.replace(
-              "const result = store.db.prepare(`UPDATE whatsapp_auth_accounts SET",
-              "const result = store.db.prepare(\\`UPDATE whatsapp_auth_accounts SET",
-          )
-          source = source.replace(
-              "AND writer_generation=? AND writer_socket_token=?`).run(",
-              "AND writer_generation=? AND writer_socket_token=?\\`).run(",
-          )
-          path.write_text(source)
-          PY
+          set -euo pipefail
+          git cat-file -e "${BASE_SHA}^{commit}"
+          git fetch --no-tags origin \
+            "refs/heads/${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
+          test "$(git rev-parse "refs/remotes/origin/${IMPLEMENTATION_BRANCH}")" = "$BASE_SHA"
           node --check tools/oss1a/generate-task11-auth-lease-candidate.js
 
-      - name: Generate repository-backed auth lease candidate
+      - name: Create two exact detached worktrees
         shell: bash
         run: |
           set -euo pipefail
-          node tools/oss1a/generate-task11-auth-lease-candidate.js
-          git checkout -- tools/oss1a/generate-task11-auth-lease-candidate.js
+          implementation_worktree="${RUNNER_TEMP}/task11-implementation"
+          clean_worktree="${RUNNER_TEMP}/task11-clean"
+          rm -rf "$implementation_worktree" "$clean_worktree"
+          git worktree add --detach "$implementation_worktree" "$BASE_SHA"
+          git worktree add --detach "$clean_worktree" "$BASE_SHA"
+          test "$(git -C "$implementation_worktree" rev-parse HEAD)" = "$BASE_SHA"
+          test "$(git -C "$clean_worktree" rev-parse HEAD)" = "$BASE_SHA"
+          {
+            echo "IMPLEMENTATION_WORKTREE=$implementation_worktree"
+            echo "CLEAN_WORKTREE=$clean_worktree"
+            echo "TASK11_PATCH=${RUNNER_TEMP}/task11.patch"
+          } >> "$GITHUB_ENV"
 
-      - name: Verify authorized production paths only
+      - name: Generate candidate only in clean worktree
         shell: bash
         run: |
           set -euo pipefail
-          git diff --name-only | sort > /tmp/actual-paths.txt
-          cat > /tmp/expected-paths.txt <<'EOF'
-          backend/repositories/whatsappAuthStateRepository.js
-          backend/services/whatsappAdapter.js
-          backend/services/whatsappAuthStateStore.js
-          backend/services/whatsappSocketFactory.js
-          EOF
-          diff -u /tmp/expected-paths.txt /tmp/actual-paths.txt
+          TASK11_TARGET_ROOT="$CLEAN_WORKTREE" \
+            node tools/oss1a/generate-task11-auth-lease-candidate.js
 
-      - name: Run Task 11 contracts first
-        run: >-
-          node --test --test-concurrency=1
-          backend/tests/oss1aWhatsappProductionAuthIntegration.test.js
-          backend/tests/oss1aWhatsappAuthLeaseLifecycle.test.js
-
-      - name: Run full OSS-1A regression suite
-        run: npm run test:oss1a
-
-      - name: Build clean single-parent candidate commit
+      - name: Freeze clean four-file patch
         shell: bash
         run: |
           set -euo pipefail
-          git diff --binary -- \
-            backend/repositories/whatsappAuthStateRepository.js \
-            backend/services/whatsappAdapter.js \
-            backend/services/whatsappAuthStateStore.js \
-            backend/services/whatsappSocketFactory.js \
-            > /tmp/task11.patch
-          test -s /tmp/task11.patch
-          git reset --hard "$BASE_SHA"
-          git apply --index /tmp/task11.patch
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "feat(oss1a): bind production auth to repository lease"
-          test "$(git rev-parse HEAD^)" = "$BASE_SHA"
-          git push origin "HEAD:refs/heads/$OUTPUT_BRANCH"
+          authorized_paths=(
+            backend/repositories/whatsappAuthStateRepository.js
+            backend/services/whatsappAdapter.js
+            backend/services/whatsappAuthStateStore.js
+            backend/services/whatsappSocketFactory.js
+          )
+          printf '%s\n' "${authorized_paths[@]}" | sort > "${RUNNER_TEMP}/expected-paths.txt"
+          git -C "$CLEAN_WORKTREE" diff --name-only | sort > "${RUNNER_TEMP}/clean-paths.txt"
+          diff -u "${RUNNER_TEMP}/expected-paths.txt" "${RUNNER_TEMP}/clean-paths.txt"
+          test -z "$(git -C "$CLEAN_WORKTREE" ls-files --others --exclude-standard)"
+          git -C "$CLEAN_WORKTREE" diff --check
+          git -C "$CLEAN_WORKTREE" diff --binary -- "${authorized_paths[@]}" > "$TASK11_PATCH"
+          test -s "$TASK11_PATCH"
+          sha256sum "$TASK11_PATCH" | awk '{print $1}' > "${RUNNER_TEMP}/task11-patch-sha256.txt"
+
+      - name: Apply clean patch to implementation worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          authorized_paths=(
+            backend/repositories/whatsappAuthStateRepository.js
+            backend/services/whatsappAdapter.js
+            backend/services/whatsappAuthStateStore.js
+            backend/services/whatsappSocketFactory.js
+          )
+          git -C "$IMPLEMENTATION_WORKTREE" apply --index --whitespace=error-all "$TASK11_PATCH"
+          git -C "$IMPLEMENTATION_WORKTREE" diff --cached --name-only | sort > "${RUNNER_TEMP}/implementation-paths.txt"
+          diff -u "${RUNNER_TEMP}/expected-paths.txt" "${RUNNER_TEMP}/implementation-paths.txt"
+          git -C "$IMPLEMENTATION_WORKTREE" diff --cached --check
+          git -C "$IMPLEMENTATION_WORKTREE" diff --cached --binary -- "${authorized_paths[@]}" \
+            > "${RUNNER_TEMP}/implementation.patch"
+          cmp "$TASK11_PATCH" "${RUNNER_TEMP}/implementation.patch"
+
+      - name: Install exact dependencies in both worktrees
+        shell: bash
+        run: |
+          set -euo pipefail
+          (
+            cd "$CLEAN_WORKTREE"
+            npm ci
+          )
+          (
+            cd "$IMPLEMENTATION_WORKTREE"
+            npm ci
+          )
+
+      - name: Run clean worktree Task 11 contracts and regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$CLEAN_WORKTREE"
+          node --test --test-concurrency=1 \
+            backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
+            backend/tests/oss1aWhatsappAuthLeaseLifecycle.test.js
+          npm run test:oss1a
+
+      - name: Run implementation worktree Task 11 contracts and regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$IMPLEMENTATION_WORKTREE"
+          node --test --test-concurrency=1 \
+            backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
+            backend/tests/oss1aWhatsappAuthLeaseLifecycle.test.js
+          npm run test:oss1a
+
+      - name: Reverify identical candidate after both test runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          authorized_paths=(
+            backend/repositories/whatsappAuthStateRepository.js
+            backend/services/whatsappAdapter.js
+            backend/services/whatsappAuthStateStore.js
+            backend/services/whatsappSocketFactory.js
+          )
+          git -C "$CLEAN_WORKTREE" diff --name-only | sort > "${RUNNER_TEMP}/clean-paths-after.txt"
+          git -C "$IMPLEMENTATION_WORKTREE" diff --cached --name-only | sort \
+            > "${RUNNER_TEMP}/implementation-paths-after.txt"
+          diff -u "${RUNNER_TEMP}/expected-paths.txt" "${RUNNER_TEMP}/clean-paths-after.txt"
+          diff -u "${RUNNER_TEMP}/expected-paths.txt" "${RUNNER_TEMP}/implementation-paths-after.txt"
+          git -C "$CLEAN_WORKTREE" diff --binary -- "${authorized_paths[@]}" \
+            > "${RUNNER_TEMP}/clean-after.patch"
+          git -C "$IMPLEMENTATION_WORKTREE" diff --cached --binary -- "${authorized_paths[@]}" \
+            > "${RUNNER_TEMP}/implementation-after.patch"
+          cmp "$TASK11_PATCH" "${RUNNER_TEMP}/clean-after.patch"
+          cmp "$TASK11_PATCH" "${RUNNER_TEMP}/implementation-after.patch"
+          git -C "$IMPLEMENTATION_WORKTREE" write-tree > "${RUNNER_TEMP}/task11-tree-sha.txt"
+
+      - name: Create verified remote candidate object without a branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repository_api="/repos/${GITHUB_REPOSITORY}"
+          base_tree="$(git rev-parse "${BASE_SHA}^{tree}")"
+          local_tree="$(cat "${RUNNER_TEMP}/task11-tree-sha.txt")"
+
+          create_blob() {
+            local path="$1"
+            jq -Rs '{content: ., encoding: "utf-8"}' \
+              < "${IMPLEMENTATION_WORKTREE}/${path}" \
+              | gh api --method POST "${repository_api}/git/blobs" --input - --jq '.sha'
+          }
+
+          repository_blob="$(create_blob backend/repositories/whatsappAuthStateRepository.js)"
+          adapter_blob="$(create_blob backend/services/whatsappAdapter.js)"
+          state_store_blob="$(create_blob backend/services/whatsappAuthStateStore.js)"
+          socket_factory_blob="$(create_blob backend/services/whatsappSocketFactory.js)"
+
+          remote_tree="$(
+            jq -n \
+              --arg base_tree "$base_tree" \
+              --arg repository_blob "$repository_blob" \
+              --arg adapter_blob "$adapter_blob" \
+              --arg state_store_blob "$state_store_blob" \
+              --arg socket_factory_blob "$socket_factory_blob" \
+              '{
+                base_tree: $base_tree,
+                tree: [
+                  {
+                    path: "backend/repositories/whatsappAuthStateRepository.js",
+                    mode: "100644",
+                    type: "blob",
+                    sha: $repository_blob
+                  },
+                  {
+                    path: "backend/services/whatsappAdapter.js",
+                    mode: "100644",
+                    type: "blob",
+                    sha: $adapter_blob
+                  },
+                  {
+                    path: "backend/services/whatsappAuthStateStore.js",
+                    mode: "100644",
+                    type: "blob",
+                    sha: $state_store_blob
+                  },
+                  {
+                    path: "backend/services/whatsappSocketFactory.js",
+                    mode: "100644",
+                    type: "blob",
+                    sha: $socket_factory_blob
+                  }
+                ]
+              }' \
+              | gh api --method POST "${repository_api}/git/trees" --input - --jq '.sha'
+          )"
+          test "$remote_tree" = "$local_tree"
+
+          candidate_sha="$(
+            jq -n \
+              --arg message "feat(oss1a): bind production auth to repository lease" \
+              --arg tree "$remote_tree" \
+              --arg parent "$BASE_SHA" \
+              '{message: $message, tree: $tree, parents: [$parent]}' \
+              | gh api --method POST "${repository_api}/git/commits" --input - --jq '.sha'
+          )"
+
+          patch_sha="$(cat "${RUNNER_TEMP}/task11-patch-sha256.txt")"
+          description="tree=${remote_tree} patch=${patch_sha}"
+          context="oss1a/task11-candidate/${candidate_sha}"
+          target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          gh api --method POST "${repository_api}/statuses/${GITHUB_SHA}" \
+            -f state=success \
+            -f context="$context" \
+            -f description="$description" \
+            -f target_url="$target_url" >/dev/null
+
+          {
+            echo "### Task 11 verified candidate"
+            echo
+            echo "- Base: \`$BASE_SHA\`"
+            echo "- Candidate: \`$candidate_sha\`"
+            echo "- Tree: \`$remote_tree\`"
+            echo "- Patch SHA-256: \`$patch_sha\`"
+            echo "- Implementation branch was not updated by this workflow."
+          } >> "$GITHUB_STEP_SUMMARY"
