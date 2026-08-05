@@ -6,14 +6,12 @@ on:
       - work/oss1a-legacy-import-repository-patch
     paths:
       - .github/workflows/oss1a-legacy-import-tooling.yml
-      - tools/oss1a/whatsappAuthResolver.discovery-only.js
-      - tools/oss1a/credentialRecoveryService.database-authority.js
 
 permissions:
   contents: write
 
 jobs:
-  publish-recovery-root-candidate:
+  publish-account-snapshot-test-candidate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout tooling head
@@ -22,48 +20,33 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: true
-      - name: Build database-authority recovery candidate
+      - name: Align tombstone snapshot with canonical account columns
         shell: bash
         env:
-          IMPLEMENTATION_PARENT: 363194064a5b05881ada067349644f9a97591c8c
-          CANDIDATE_BRANCH: work/oss1a-legacy-recovery-root-candidate
+          IMPLEMENTATION_PARENT: 5120347ee57f6ae9808616c8693ca6dfb8b45ada
+          CANDIDATE_BRANCH: work/oss1a-tombstone-account-snapshot-candidate
         run: |
           set -euo pipefail
           test -z "$(git ls-remote --heads origin "refs/heads/${CANDIDATE_BRANCH}")"
-          cp tools/oss1a/whatsappAuthResolver.discovery-only.js /tmp/whatsappAuthResolver.js
-          cp tools/oss1a/credentialRecoveryService.database-authority.js /tmp/credentialRecoveryService.js
           git show "${IMPLEMENTATION_PARENT}:backend/tests/whatsappOrphanAccountReconciliation.test.js" > /tmp/orphan.test.js
           node <<'NODE'
           const fs = require('node:fs');
           const file = '/tmp/orphan.test.js';
           let source = fs.readFileSync(file, 'utf8');
-          const before = 'try { testWriteHost.release(); }';
-          const after = 'try { testWriteHost.close(); }';
-          const first = source.indexOf(before);
-          if (first < 0 || source.indexOf(before, first + before.length) >= 0) {
-            throw new Error('expected one exact AuthorityWriteHost cleanup call');
-          }
-          source = source.slice(0, first) + after + source.slice(first + before.length);
+          const before = "SELECT state,lifecycle_state,tombstoned_at,auto_reconnect,paused FROM r32_accounts WHERE id=?";
+          const after = "SELECT state,can_send,can_receive,payload_json,updated_at FROM r32_accounts WHERE id=?";
+          const matches = source.split(before).length - 1;
+          if (matches !== 2) throw new Error(`expected two canonical account snapshot queries, found ${matches}`);
+          source = source.split(before).join(after);
           fs.writeFileSync(file, source, 'utf8');
           NODE
-          node --check /tmp/whatsappAuthResolver.js
-          node --check /tmp/credentialRecoveryService.js
           node --check /tmp/orphan.test.js
           git checkout --detach "${IMPLEMENTATION_PARENT}"
-          cp /tmp/whatsappAuthResolver.js backend/services/whatsappAuthResolver.js
-          cp /tmp/credentialRecoveryService.js backend/services/credentialRecoveryService.js
           cp /tmp/orphan.test.js backend/tests/whatsappOrphanAccountReconciliation.test.js
-          git add \
-            backend/services/credentialRecoveryService.js \
-            backend/services/whatsappAuthResolver.js \
-            backend/tests/whatsappOrphanAccountReconciliation.test.js
-          expected="$(printf '%s\n' \
-            backend/services/credentialRecoveryService.js \
-            backend/services/whatsappAuthResolver.js \
-            backend/tests/whatsappOrphanAccountReconciliation.test.js)"
-          test "$(git diff --cached --name-only)" = "${expected}"
+          git add backend/tests/whatsappOrphanAccountReconciliation.test.js
+          test "$(git diff --cached --name-only)" = "backend/tests/whatsappOrphanAccountReconciliation.test.js"
           git diff --cached --check
           git config user.name "Yance OSS1A Tooling"
           git config user.email "oss1a-tooling@users.noreply.github.com"
-          git commit -m "fix(oss1a): make legacy recovery database-authoritative"
+          git commit -m "test(oss1a): snapshot canonical account tombstone columns"
           git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
