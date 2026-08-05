@@ -1,0 +1,226 @@
+name: OSS-1A Final Authority GREEN v2
+
+on:
+  push:
+    branches:
+      - generator/oss1a-final-authority-green-1881d69-v2
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prove-build-verify-fast-forward:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      IMPLEMENTATION_BASE: a4f0fdb8b8a66b99e4b0efb56d756b25b197735f
+      RED_HEAD: 1881d69317f45a08a7c80bd162aacb8711dd5cb7
+      RED_BRANCH: red/oss1a-final-authority-seal-a4f0fdb8
+      IMPLEMENTATION_BRANCH: oss/1a-baileys-lifecycle
+      CANDIDATE_BRANCH: candidate/oss1a-final-authority-green-1881d69-v2
+      PATCH_SOURCE: caeeb67e62bb228daba0c684513eb156ebd81983
+      PATCH_WORKFLOW: .github/workflows/oss1a-final-authority-green-1881d69.yml
+    steps:
+      - name: Checkout exact RED head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.RED_HEAD }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Verify exact immutable inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${RED_HEAD}"
+          implementation_head="$(git ls-remote origin "refs/heads/${IMPLEMENTATION_BRANCH}" | awk '{print $1}')"
+          red_head="$(git ls-remote origin "refs/heads/${RED_BRANCH}" | awk '{print $1}')"
+          test "${implementation_head}" = "${IMPLEMENTATION_BASE}"
+          test "${red_head}" = "${RED_HEAD}"
+          test "$(git merge-base "${IMPLEMENTATION_BASE}" "${RED_HEAD}")" = "${IMPLEMENTATION_BASE}"
+          git fetch --no-tags origin "${PATCH_SOURCE}"
+          test "$(git rev-parse "${PATCH_SOURCE}")" = "${PATCH_SOURCE}"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22.23.1
+          package-manager-cache: false
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Prove each exact RED contract independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            backend/tests/messageIdentityEvidenceOrdering.test.js
+            backend/tests/oss1aWhatsappAuthRepository.test.js
+            backend/tests/platformProductionReadinessAuthority.test.js
+            backend/tests/oss1aWhatsappProductionAuthIntegration.test.js
+          )
+          for file in "${files[@]}"; do
+            log="/tmp/$(basename "${file}").red.log"
+            set +e
+            node --test --test-concurrency=1 "${file}" >"${log}" 2>&1
+            status=$?
+            set -e
+            cat "${log}"
+            if [ "${status}" -eq 0 ]; then
+              echo "Expected RED contract unexpectedly passed: ${file}" >&2
+              exit 1
+            fi
+          done
+          grep -F "ensureCanonicalProjectionJobSchema is not a function" /tmp/messageIdentityEvidenceOrdering.test.js.red.log
+          grep -F "repository.inspectAccount is not a function" /tmp/oss1aWhatsappAuthRepository.test.js.red.log
+
+      - name: Apply immutable bottom-level authority refactor
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'EXTRACTOR'
+          from pathlib import Path
+          import hashlib
+          import subprocess
+          import sys
+          import textwrap
+
+          source_commit = 'caeeb67e62bb228daba0c684513eb156ebd81983'
+          source_path = '.github/workflows/oss1a-final-authority-green-1881d69.yml'
+          text = subprocess.check_output(
+              ['git', 'show', f'{source_commit}:{source_path}'],
+              text=True,
+          )
+          section = text.split(
+              '      - name: Apply bottom-level canonical authority refactor', 1
+          )[1].split(
+              '      - name: Run focused GREEN contracts', 1
+          )[0]
+          start_marker = "          python3 - <<'PY'\n"
+          end_marker = "\n          PY\n\n          node --check"
+          start = section.index(start_marker) + len(start_marker)
+          end = section.index(end_marker, start)
+          script = textwrap.dedent(section[start:end])
+          digest = hashlib.sha256(script.encode('utf-8')).hexdigest()
+          print(f'patch-source={source_commit}:{source_path}')
+          print(f'patch-sha256={digest}')
+          patch_file = Path('/tmp/oss1a-final-authority-refactor.py')
+          patch_file.write_text(script, encoding='utf-8')
+          subprocess.run([sys.executable, str(patch_file)], check=True)
+          EXTRACTOR
+
+          node --check backend/repositories/messageRepository.js
+          node --check backend/repositories/whatsappAuthStateRepository.js
+          node --check backend/services/whatsappAdapter.js
+          node --check backend/runtime/AppRuntimeComposition.js
+          git diff --check
+          python3 - <<'PY'
+          import subprocess
+          expected = sorted([
+              'backend/repositories/messageRepository.js',
+              'backend/repositories/whatsappAuthStateRepository.js',
+              'backend/runtime/AppRuntimeComposition.js',
+              'backend/services/whatsappAdapter.js'
+          ])
+          actual = sorted(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
+          if actual != expected:
+              raise SystemExit(f'unexpected product paths: {actual}')
+          PY
+
+      - name: Run focused GREEN contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/messageIdentityEvidenceOrdering.test.js
+          backend/tests/oss1aWhatsappAuthRepository.test.js
+          backend/tests/oss1aWhatsappAuthStateStore.test.js
+          backend/tests/oss1aWhatsappLegacyAuthImport.test.js
+          backend/tests/oss1aWhatsappProductionAuthIntegration.test.js
+          backend/tests/platformProductionReadinessAuthority.test.js
+
+      - name: Commit and seal candidate tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'OSS-1A Audit Automation'
+          git config user.email 'oss1a-audit@users.noreply.github.com'
+          git add \
+            backend/repositories/messageRepository.js \
+            backend/repositories/whatsappAuthStateRepository.js \
+            backend/runtime/AppRuntimeComposition.js \
+            backend/services/whatsappAdapter.js
+          git commit -m 'fix(oss1a): canonicalize projection jobs and share auth authority'
+          candidate="$(git rev-parse HEAD)"
+          echo "CANDIDATE_HEAD=${candidate}" >> "${GITHUB_ENV}"
+          python3 - <<'PY'
+          import subprocess
+          base = 'a4f0fdb8b8a66b99e4b0efb56d756b25b197735f'
+          expected = sorted([
+              'backend/repositories/messageRepository.js',
+              'backend/repositories/whatsappAuthStateRepository.js',
+              'backend/runtime/AppRuntimeComposition.js',
+              'backend/services/whatsappAdapter.js',
+              'backend/tests/messageIdentityEvidenceOrdering.test.js',
+              'backend/tests/oss1aWhatsappAuthRepository.test.js',
+              'backend/tests/oss1aWhatsappLegacyAuthImport.test.js',
+              'backend/tests/oss1aWhatsappProductionAuthIntegration.test.js',
+              'backend/tests/oss1aWhatsappRegistrationIdZero.test.js',
+              'backend/tests/platformProductionReadinessAuthority.test.js'
+          ])
+          actual = sorted(subprocess.check_output(['git', 'diff', '--name-only', base, 'HEAD'], text=True).splitlines())
+          if actual != expected:
+              raise SystemExit(f'unexpected final candidate paths: {actual}')
+          status = subprocess.check_output(['git', 'diff', '--name-status', base, 'HEAD'], text=True)
+          if 'D\tbackend/tests/oss1aWhatsappRegistrationIdZero.test.js' not in status:
+              raise SystemExit('standalone registration test must remain deleted after consolidation')
+          PY
+          git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
+
+      - name: Verify candidate in two detached worktrees
+        shell: bash
+        run: |
+          set -euo pipefail
+          for suffix in a b; do
+            worktree="${RUNNER_TEMP}/oss1a-final-${suffix}"
+            git worktree add --detach "${worktree}" "${CANDIDATE_HEAD}"
+            (
+              cd "${worktree}"
+              npm ci --ignore-scripts --no-audit --no-fund
+              node --test --test-concurrency=1 \
+                backend/tests/messageIdentityEvidenceOrdering.test.js \
+                backend/tests/oss1aWhatsappAuthRepository.test.js \
+                backend/tests/oss1aWhatsappAuthStateStore.test.js \
+                backend/tests/oss1aWhatsappLegacyAuthImport.test.js \
+                backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
+                backend/tests/platformProductionReadinessAuthority.test.js
+              npm run test:oss1a
+              npm run test:oss1a:crash
+              npm run test:oss1a:concurrency
+              node --test --test-concurrency=1 \
+                backend/tests/batch39WhatsappSessionFence.test.js \
+                backend/tests/batch40ChannelAbortPropagation.test.js \
+                backend/tests/whatsappReceiptRecoveryRegression.test.js \
+                backend/tests/whatsappQrChallenge.test.js \
+                backend/tests/whatsappCanonicalGuardRegression.test.js \
+                backend/tests/whatsappMediaRecoveryClosure.test.js \
+                backend/tests/whatsappOrphanAccountReconciliation.test.js \
+                backend/tests/accountLifecycleRegression.test.js
+              npm run preflight:source-uat:p0
+              npm run test:source-uat-delivery
+              npm run test:uat-diagnostics
+              node tools/third-party/verify-provenance.js
+            )
+            git worktree remove --force "${worktree}"
+          done
+
+      - name: Non-force fast-forward implementation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_head="$(git ls-remote origin "refs/heads/${IMPLEMENTATION_BRANCH}" | awk '{print $1}')"
+          test "${remote_head}" = "${IMPLEMENTATION_BASE}"
+          test "$(git merge-base "${IMPLEMENTATION_BASE}" "${CANDIDATE_HEAD}")" = "${IMPLEMENTATION_BASE}"
+          git push origin "${CANDIDATE_HEAD}:refs/heads/${IMPLEMENTATION_BRANCH}"
+          updated_head="$(git ls-remote origin "refs/heads/${IMPLEMENTATION_BRANCH}" | awk '{print $1}')"
+          test "${updated_head}" = "${CANDIDATE_HEAD}"
