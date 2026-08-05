@@ -69,6 +69,11 @@ function loadPolicy() {
   return require(POLICY_PATH);
 }
 
+function loadScopeGate() {
+  delete require.cache[require.resolve(SCOPE_GATE_PATH)];
+  return require(SCOPE_GATE_PATH);
+}
+
 function fixture() {
   const entry = Object.freeze({
     workPackage: 'OSS-A',
@@ -232,24 +237,60 @@ test('legacy implementation policy delegates OSS branches without path normaliza
 
 test('permanent product WP0 executes base-owned policy against the candidate repository', () => {
   const workflow = fs.readFileSync(WORKFLOW_PATH, 'utf8');
-  assert.match(workflow, /TRUSTED_POLICY_SHA:/u);
+  assert.match(workflow, /TRUSTED_POLICY_SHA:\s*\$\{\{ needs\.wp0-route\.outputs\.base \}\}/u);
+  assert.match(workflow, /TRUSTED_POLICY_ROOT:\s*\$\{\{ runner\.temp \}\}\/yance-wp0-trusted-policy/u);
+  assert.match(workflow, /YANCE_EVALUATED_REPOSITORY_ROOT:\s*\$\{\{ github\.workspace \}\}/u);
   assert.match(workflow, /persist-credentials:\s*false/u);
-  assert.match(workflow, /git worktree add --detach/u);
-  assert.match(workflow, /YANCE_EVALUATED_REPOSITORY_ROOT/u);
-  assert.match(workflow, /TRUSTED_POLICY_ROOT/u);
-  assert.match(workflow, /tools\/wp0\/verify-gate\.js/u);
+  assert.match(workflow, /git cat-file -e "\$\{TRUSTED_POLICY_SHA\}\^\{commit\}"/u);
+  assert.match(workflow, /git worktree add --detach "\$\{TRUSTED_POLICY_ROOT\}" "\$\{TRUSTED_POLICY_SHA\}"/u);
+  assert.match(workflow, /node "\$\{TRUSTED_POLICY_ROOT\}\/tools\/wp0\/verify-gate\.js"/u);
+  assert.match(workflow, /--branch "\$\{IMPLEMENTATION_BRANCH\}"/u);
   assert.doesNotMatch(workflow, /npm run verify:wp0:gate -- --branch/u);
   assert.match(workflow, /tests\/wp0\/open-source-work-package-authorization\.test\.js/u);
 });
 
-test('trusted WP0 git transport preserves NUL-framed repository paths', () => {
+test('trusted WP0 Git transport preserves exact NUL-framed paths and fails closed', () => {
   const lib = fs.readFileSync(LIB_PATH, 'utf8');
-  const scope = fs.readFileSync(SCOPE_GATE_PATH, 'utf8');
-  assert.match(lib, /encoding:\s*options\.encoding/u);
-  assert.match(scope, /'--name-only',\s*'-z'/u);
-  assert.match(scope, /split\('\\0'\)/u);
-  assert.equal(scope.includes('split(/\\r?\\n/u)'), false);
-  assert.equal(scope.includes('value => value.trim()'), false);
+  assert.match(lib, /Object\.prototype\.hasOwnProperty\.call\(options, 'encoding'\)/u);
+  assert.match(lib, /Buffer\.isBuffer\(output\)/u);
+
+  const { decodeChangedFileBuffer } = loadScopeGate();
+  assert.deepEqual(
+    decodeChangedFileBuffer(Buffer.from(
+      'third_party/sbom.cdx.json\0THIRD_PARTY_NOTICES.md\0',
+      'utf8'
+    )),
+    ['THIRD_PARTY_NOTICES.md', 'third_party/sbom.cdx.json']
+  );
+  assert.deepEqual(decodeChangedFileBuffer(Buffer.alloc(0)), []);
+  assert.throws(
+    () => decodeChangedFileBuffer('third_party/sbom.cdx.json\0'),
+    /must return a Buffer/u
+  );
+  assert.throws(
+    () => decodeChangedFileBuffer(Buffer.from('third_party/sbom.cdx.json', 'utf8')),
+    /must end with NUL/u
+  );
+  assert.throws(() => decodeChangedFileBuffer(Buffer.from([0xff, 0x00])), TypeError);
+  for (const invalid of [
+    ' third_party/sbom.cdx.json\0',
+    './third_party/sbom.cdx.json\0',
+    'third_party\\sbom.cdx.json\0',
+    'third_party/sbom.cdx.json/\0'
+  ]) {
+    assert.throws(
+      () => decodeChangedFileBuffer(Buffer.from(invalid, 'utf8')),
+      /path identity is invalid/u,
+      invalid
+    );
+  }
+  assert.throws(
+    () => decodeChangedFileBuffer(Buffer.from(
+      'third_party/sbom.cdx.json\0third_party/sbom.cdx.json\0',
+      'utf8'
+    )),
+    /contains duplicates/u
+  );
 });
 
 test('fixture authorization document has a deterministic exact scope digest', () => {
