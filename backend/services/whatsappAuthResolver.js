@@ -66,7 +66,8 @@ function hasCriticalSignalState(credentials) {
     (credentials.me?.id || credentials.me?.lid)
     && credentials.registered === true
     && Number.isInteger(credentials.registrationId)
-    && credentials.registrationId > 0
+    && credentials.registrationId >= 0
+    && credentials.registrationId <= 0x3fff
     && isKeyPair(credentials.noiseKey)
     && isKeyPair(credentials.signedIdentityKey)
     && signedPreKey
