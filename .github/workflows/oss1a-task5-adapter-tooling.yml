@@ -6,6 +6,7 @@ on:
       - work/oss1a-task5-adapter-patch
     paths:
       - .github/workflows/oss1a-task5-adapter-tooling.yml
+      - tools/oss1a/generate-task5-adapter-patch.js
 
 permissions:
   contents: write
@@ -28,56 +29,13 @@ jobs:
         run: |
           set -euo pipefail
           test -z "$(git ls-remote --heads origin "refs/heads/${CANDIDATE_BRANCH}")"
-          git show "${IMPLEMENTATION_PARENT}:backend/services/whatsappAdapter.js" > /tmp/whatsappAdapter.js
-          node <<'NODE'
-          const fs = require('node:fs');
-          const file = '/tmp/whatsappAdapter.js';
-          let source = fs.readFileSync(file, 'utf8');
-          function replaceOnce(before, after, label) {
-            const first = source.indexOf(before);
-            if (first < 0 || source.indexOf(before, first + before.length) >= 0) {
-              throw new Error(`${label}: expected one exact match`);
-            }
-            source = source.slice(0, first) + after + source.slice(first + before.length);
-          }
-          replaceOnce(
-`    row.sessionFence = createSessionGenerationFence(
-      () => this.accounts.get(accountId) === row && this.generations.get(accountId) === row.generation,
-      { prefix: \`whatsapp:${databaseAccountId}\` }
-    );`,
-`    row.sessionFence = createSessionGenerationFence(
-      () => this.accounts.get(accountId) === row && this.generations.get(accountId) === row.generation,
-      {
-        prefix: \`whatsapp:${databaseAccountId}\`,
-        generation: row.generation,
-        epoch: Number.isInteger(options.authEpoch) ? options.authEpoch : 0,
-        socketToken: typeof options.socketToken === 'string' ? options.socketToken : ''
-      }
-    );`,
-            'session fence authority details'
-          );
-          replaceOnce(
-`    onSocket('creds.update', async update => {
-      await saveCreds(update);
-      socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'creds.update' });
-      this.invalidateCredentialState(reference);
-    });`,
-`    onSocket('creds.update', async update => {
-      const writeResult = await socketGuard.runWrite(
-        { accountId: databaseAccountId, eventName: 'creds.update' },
-        () => saveCreds(update)
-      );
-      if (!writeResult.ok) return writeResult;
-      this.invalidateCredentialState(reference);
-      return writeResult;
-    });`,
-            'creds update write fence'
-          );
-          fs.writeFileSync(file, source, 'utf8');
-          NODE
-          node --check /tmp/whatsappAdapter.js
+          git show "${IMPLEMENTATION_PARENT}:backend/services/whatsappAdapter.js" > /tmp/whatsappAdapter.input.js
+          node tools/oss1a/generate-task5-adapter-patch.js \
+            /tmp/whatsappAdapter.input.js \
+            /tmp/whatsappAdapter.output.js
+          node --check /tmp/whatsappAdapter.output.js
           git checkout --detach "${IMPLEMENTATION_PARENT}"
-          cp /tmp/whatsappAdapter.js backend/services/whatsappAdapter.js
+          cp /tmp/whatsappAdapter.output.js backend/services/whatsappAdapter.js
           git add backend/services/whatsappAdapter.js
           test "$(git diff --cached --name-only)" = "backend/services/whatsappAdapter.js"
           git diff --cached --check
