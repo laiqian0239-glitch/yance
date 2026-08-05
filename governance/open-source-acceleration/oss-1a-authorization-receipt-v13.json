@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OPEN_SOURCE_WORK_PACKAGE_AUTHORIZATION_RECEIPT",
+  "program": "Open Source Acceleration",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-1A",
+  "status": "SEALED_FOR_IMPLEMENTATION",
+  "authorizationVersion": 13,
+  "supersedesReceiptPath": "governance/open-source-acceleration/oss-1a-authorization-receipt-v12.json",
+  "requiredBaseRef": "governance/oss-1a-playwright-probe-utf8-authorization",
+  "approvedParentHead": "8f96c1ad716b6aa6bf962e6ab28792b9738f6cd8",
+  "implementationBaseCommit": "8f96c1ad716b6aa6bf962e6ab28792b9738f6cd8",
+  "approvedPlanPath": "docs/superpowers/plans/2026-08-04-yance-oss-1a-baileys-lifecycle-implementation.md",
+  "approvedPlanHead": "c4117bc80b824f0531366c37a0f20bfa9ee0b543",
+  "authorizedBranch": "oss/1a-baileys-lifecycle",
+  "authorizationPath": "governance/open-source-acceleration/oss-1a-implementation-authorization-v13.json",
+  "authorizationCommit": "b0549378eda8d9c41faaa98e14156dfb58f6c7e6",
+  "authorizationBlobSha": "7bd88f5e0cc9dfb565a516824c5c392b8554dd32",
+  "approvedChangedFileCount": 75,
+  "approvedChangedFileSetSha256": "394287d24153d6248af364f2b77501d38be30864344b609ef915e73ccdf10ed7",
+  "verificationEvidence": {
+    "status": "INDEPENDENT_WINDOWS_RED_AND_AUTHORIZATION_COMPOSITION_VALIDATED",
+    "independentRedWorkflowRunId": 31036680510,
+    "independentRedJobId": 92411277812,
+    "independentRedTests": {
+      "total": 247,
+      "passed": 238,
+      "failed": 9
+    },
+    "rootCause": "WINDOWS_STDOUT_CP1252_UNICODE_JSON_TRANSPORT",
+    "rootPaths": [
+      "tests/uat/fix6dPlaywrightBrowserRuntime.test.js",
+      "tools/uat/fix6d_computed_style_probe.py",
+      "tools/uat/fix6d_global_typography_matrix_probe.py",
+      "tools/uat/playwright_browser_runtime.py"
+    ],
+    "ubuntuBuildCandidateJobId": 92410409591,
+    "ubuntuBuildCandidateDisposition": "GREEN",
+    "candidatePublishedHead": "8f96c1ad716b6aa6bf962e6ab28792b9738f6cd8",
+    "windowsBrowserRuntimeContractDisposition": "GREEN",
+    "candidateGateJobId": 92412342955,
+    "candidateGateDisposition": "RED_DUE_TO_WINDOWS_UTF8_TRANSPORT",
+    "futureImplementationGreenClaimed": false,
+    "runtimeBehaviorChangedByGovernanceSuccessor": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "implementationBasePredatesReceiptSeal": true,
+    "exactPathScopeOnly": true,
+    "wildcardExpansionAllowed": false,
+    "prMustRemainDraft": true,
+    "mergeIntoMainAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "automaticNextWorkPackageAuthorization": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "readyForPromotion": false
+  }
+}
