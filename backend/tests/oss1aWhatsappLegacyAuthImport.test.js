@@ -333,10 +333,12 @@ for (const terminalState of ['LOGGED_OUT', 'QUARANTINED']) {
 test('isolated orphan reconciliation suite enforces legacy tombstones', () => {
   const childProcess = require('node:child_process');
   const suite = path.resolve(__dirname, 'whatsappOrphanAccountReconciliation.test.js');
+  const childEnv = { ...process.env, YANCE_TEST_ONLY_SQLITE_BROKER_RESET: '1' };
+  delete childEnv.NODE_TEST_CONTEXT;
   const result = childProcess.spawnSync(process.execPath, ['--test', '--test-concurrency=1', suite], {
     encoding: 'utf8',
     maxBuffer: 16 * 1024 * 1024,
-    env: { ...process.env, YANCE_TEST_ONLY_SQLITE_BROKER_RESET: '1' }
+    env: childEnv
   });
   assert.equal(result.error, undefined, result.error?.stack || String(result.error || ''));
   assert.notEqual(result.status, null, `${result.stdout}\n${result.stderr}`);
