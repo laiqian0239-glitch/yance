@@ -1,1 +1,153 @@
-{}
+{
+  "schemaVersion": 2,
+  "documentType": "YANCE_UI_PRODUCT_SHELL_WP0_SCHEMA_V2_ROUTING_AUTHORIZATION",
+  "status": "EXACT_SCHEMA_V2_ROUTING_REPAIR_AUTHORIZED",
+  "repository": "laiqian0239-glitch/yance",
+  "createdAt": "2026-08-06",
+  "base": {
+    "branch": "main",
+    "commit": "14c08b24439f0d105e8b0a969b91e4dc89b3dd37",
+    "tree": "b369be81851f8220f74b2f62cd24ff26ef3bb9c0",
+    "routingPolicySchemaVersion": 2,
+    "routingPolicyBlob": "d9d8d23389466b006b2e7dde0fe3558f3f460ec2"
+  },
+  "designAuthority": {
+    "activeHandoffCommitObserved": "3ca129b3ae4136c78ad215362831ec8aad0bdba8",
+    "requiredDocumentsRead": [
+      "START_HERE.md",
+      "PROJECT_CONTINUATION.md",
+      "YANCE_IMPLEMENTATION_MASTER_PLAN.md",
+      "YANCE_UNIFIED_UI_OPEN_SOURCE_MIGRATION_PLAN.md"
+    ],
+    "uiProductShellMayProceedInParallelWithOssBToG": true,
+    "unintegratedSurfacesMustRemainFixtureOrIntegrationPending": true
+  },
+  "historicalEvidence": {
+    "blockedUiAuthorizationPullRequest": 50,
+    "blockedUiAuthorizationHead": "a11a0bbf62df35a1929259ce22b07a3538535820",
+    "supersededAuthorizationPullRequest": 53,
+    "supersededAuthorizationHead": "34fb619aaf8bd0cb8122d1a65c360af1a239e2ac",
+    "supersededImplementationPullRequest": 54,
+    "supersededImplementationHead": "94e612d31d0fb56b9dc26ad291994d7772558722",
+    "supersededReason": "The prior repair was based on routing-policy schemaVersion 1. Main now owns schemaVersion 2 and a separate PRODUCT_DOCUMENTATION_WP0 route, so the repair must be rebuilt from the current root authority without replaying the stale patch.",
+    "oldHistoryMayBeRewritten": false,
+    "oldPullRequestsMayBeUsedAsCurrentAuthorization": false
+  },
+  "authorizationBranch": {
+    "name": "governance/ui-product-shell-wp0-schema-v2-authorization",
+    "createdFrom": "14c08b24439f0d105e8b0a969b91e4dc89b3dd37",
+    "allowedChangedPaths": [
+      "governance/layered-ci/ui-product-shell-wp0-schema-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "96142da4ff8fb92cbdeeb491c41f94f494eba34e29d537158d6712882981c698",
+    "initialPlaceholderCommit": "37ae639f2935c07ced6c72158ace112917b19fbc",
+    "initialPlaceholderWasAuthorization": false,
+    "effectiveAuthorizationBeginsAt": "the exact descendant commit containing this complete document",
+    "historyRewriteUsed": false,
+    "forcePushUsed": false
+  },
+  "implementation": {
+    "branch": "fix/ui-product-shell-wp0-schema-v2-exact-routing",
+    "requiredParent": "the exact GREEN authorization Head produced by this authorization branch",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/wp0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "d0bf4c9815a9d6a8ba8045d37741c4799a69a6b065e5332506f42f1703e9f887",
+    "workflowFilesMayChange": false,
+    "routingImplementationFilesMayChange": false,
+    "implementationBranchPolicyMayChange": false
+  },
+  "exactGovernancePaths": [
+    "docs/ui-migration/CHATWOOT_TRANSPLANT_MANIFEST.yaml",
+    "docs/ui-migration/UI_ASSET_BASELINE.json",
+    "docs/ui-migration/UI_WP1_AUTHORIZATION.md",
+    "docs/ui-migration/UPSTREAM_PINS.yaml"
+  ],
+  "requiredRedContracts": [
+    {
+      "id": "UI-WP0-V2-RED-001",
+      "requirement": "All four exact UI governance documents select GOVERNANCE_WP0 when changed together."
+    },
+    {
+      "id": "UI-WP0-V2-RED-002",
+      "requirement": "Each exact UI governance document independently selects GOVERNANCE_WP0."
+    },
+    {
+      "id": "UI-WP0-V2-RED-003",
+      "requirement": "Any exact UI governance document mixed with product source selects PRODUCT_WP0 and records both governance and product change classes."
+    },
+    {
+      "id": "UI-WP0-V2-RED-004",
+      "requirement": "Any exact UI governance document mixed with PRODUCT_DOCUMENTATION_WP0 Markdown selects PRODUCT_WP0 and records governance, product-documentation and product escalation."
+    },
+    {
+      "id": "UI-WP0-V2-RED-005",
+      "requirement": "Unlisted docs/ui-migration paths remain PRODUCT_WP0 through the general docs prefix; no docs/ui-migration prefix or wildcard is introduced."
+    },
+    {
+      "id": "UI-WP0-V2-RED-006",
+      "requirement": "Existing pure docs/superpowers plans and specs Markdown continue to select non-executable PRODUCT_DOCUMENTATION_WP0."
+    },
+    {
+      "id": "UI-WP0-V2-RED-007",
+      "requirement": "Routing policy schemaVersion remains 2, unknown paths fail closed, invalid path identities fail closed, and readyForPromotion remains false."
+    }
+  ],
+  "rootFix": {
+    "method": "After the RED commit proves the missing exact-path behavior, add only the four literal UI governance paths to governanceExactPaths.",
+    "schemaVersionMustRemain": 2,
+    "productDocumentationRouteMustRemain": true,
+    "productDocumentationPrefixesMustRemain": [
+      "docs/superpowers/plans/",
+      "docs/superpowers/specs/"
+    ],
+    "productDocumentationExtensionsMustRemain": [
+      ".md"
+    ],
+    "wildcardExpansionAllowed": false,
+    "uiMigrationPrefixAllowed": false,
+    "docsPrefixWeakeningAllowed": false,
+    "mixedChangeEscalationMustRemain": true,
+    "unknownPathFailClosedMustRemain": true,
+    "readyForPromotionMustRemain": false
+  },
+  "tddSequence": [
+    "Create the implementation branch from the exact GREEN authorization Head.",
+    "Modify only tests/layered-ci/wp0-routing.test.js and commit RED.",
+    "Run the exact routing test and prove failure is caused by the four missing governanceExactPaths.",
+    "Modify only governance/layered-ci/wp0-routing-policy.json and commit GREEN.",
+    "Run the exact routing test, all layered-CI tests, independent-review contract, staged-secret scanner and protocol validation.",
+    "Verify the implementation diff contains exactly the two authorized paths and is a non-forced descendant of the authorization Head."
+  ],
+  "verification": {
+    "redMustFailBecause": "The four exact UI governance paths are absent from schemaVersion 2 governanceExactPaths.",
+    "redInfrastructureErrorsAllowed": 0,
+    "greenRequiredCommands": [
+      "node --test --test-concurrency=1 tests/layered-ci/wp0-routing.test.js",
+      "node --test --test-concurrency=1 tests/layered-ci/*.test.js",
+      "node --test --test-concurrency=1 tests/independent-review/chatgpt-review-contract.test.js",
+      "npm run test:security-scan",
+      "node tools/protocol/validate-v3-protocols.js"
+    ],
+    "requiredWorkflow": "Stage 6.4.5.9 WP0 Architecture Gates",
+    "exactHeadBindingRequired": true,
+    "mainPostMergeReverificationRequired": true
+  },
+  "governance": {
+    "prMustRemainDraft": true,
+    "mainMergeAuthorized": false,
+    "uiWP1RedBranchAuthorized": false,
+    "productShellImplementationAuthorized": false,
+    "chatwootSourceCopyAuthorized": false,
+    "soundPublicRedistributionAuthorized": false,
+    "legacyWriterCutoverAuthorized": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "automaticNextWorkPackageAuthorization": false
+  }
+}
