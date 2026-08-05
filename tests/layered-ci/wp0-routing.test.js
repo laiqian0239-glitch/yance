@@ -12,10 +12,17 @@ const {
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const policy = JSON.parse(fs.readFileSync(path.join(ROOT, 'governance/layered-ci/wp0-routing-policy.json'), 'utf8'));
+const UI_PRODUCT_SHELL_GOVERNANCE_PATHS = Object.freeze([
+  'docs/ui-migration/CHATWOOT_TRANSPLANT_MANIFEST.yaml',
+  'docs/ui-migration/UI_ASSET_BASELINE.json',
+  'docs/ui-migration/UI_WP1_AUTHORIZATION.md',
+  'docs/ui-migration/UPSTREAM_PINS.yaml'
+]);
 
 test('routing policy is exact, fail closed and contains no wildcard authorization', () => {
   const result = validateWp0RoutingPolicy(policy);
   assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(policy.schemaVersion, 2);
   assert.equal(policy.unknownPathFailsClosed, true);
   assert.equal(policy.readyForPromotion, false);
   assert.equal(JSON.stringify(policy).includes('*'), false);
@@ -128,6 +135,68 @@ test('mixed governance/documentation or source/documentation changes escalate to
     const result = classifyWp0Route(policy, changedFiles);
     assert.equal(result.pass, true, JSON.stringify(result));
     assert.equal(result.route, ROUTES.PRODUCT);
+  }
+});
+
+test('all exact UI Product Shell governance documents select GOVERNANCE_WP0 together', () => {
+  const result = classifyWp0Route(policy, UI_PRODUCT_SHELL_GOVERNANCE_PATHS);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.route, ROUTES.GOVERNANCE);
+  assert.equal(result.governanceChangesPresent, true);
+  assert.equal(result.productDocumentationChangesPresent, false);
+  assert.equal(result.productChangesPresent, false);
+});
+
+test('each exact UI Product Shell governance document selects GOVERNANCE_WP0 independently', () => {
+  for (const file of UI_PRODUCT_SHELL_GOVERNANCE_PATHS) {
+    const result = classifyWp0Route(policy, [file]);
+    assert.equal(result.pass, true, JSON.stringify(result));
+    assert.equal(result.route, ROUTES.GOVERNANCE, file);
+    assert.equal(result.governanceChangesPresent, true, file);
+    assert.equal(result.productDocumentationChangesPresent, false, file);
+    assert.equal(result.productChangesPresent, false, file);
+  }
+});
+
+test('exact UI governance documents mixed with product source escalate to PRODUCT_WP0', () => {
+  for (const file of UI_PRODUCT_SHELL_GOVERNANCE_PATHS) {
+    const result = classifyWp0Route(policy, [file, 'backend/runtime/AppRuntime.js']);
+    assert.equal(result.pass, true, JSON.stringify(result));
+    assert.equal(result.route, ROUTES.PRODUCT, file);
+    assert.equal(result.governanceChangesPresent, true, file);
+    assert.equal(result.productDocumentationChangesPresent, false, file);
+    assert.equal(result.productChangesPresent, true, file);
+  }
+});
+
+test('exact UI governance documents mixed with product documentation escalate to PRODUCT_WP0', () => {
+  for (const file of UI_PRODUCT_SHELL_GOVERNANCE_PATHS) {
+    const result = classifyWp0Route(policy, [
+      file,
+      'docs/superpowers/plans/2026-08-06-ui-product-shell-plan.md'
+    ]);
+    assert.equal(result.pass, true, JSON.stringify(result));
+    assert.equal(result.route, ROUTES.PRODUCT, file);
+    assert.equal(result.governanceChangesPresent, true, file);
+    assert.equal(result.productDocumentationChangesPresent, true, file);
+    assert.equal(result.productChangesPresent, true, file);
+  }
+});
+
+test('unlisted UI migration documents remain PRODUCT_WP0 without prefix or wildcard authorization', () => {
+  assert.equal(policy.governanceExactPaths.includes('docs/ui-migration/'), false);
+  assert.equal(policy.governancePrefixes.includes('docs/ui-migration/'), false);
+
+  for (const file of [
+    'docs/ui-migration/UNLISTED.md',
+    'docs/ui-migration/nested/UNLISTED.yaml'
+  ]) {
+    const result = classifyWp0Route(policy, [file]);
+    assert.equal(result.pass, true, JSON.stringify(result));
+    assert.equal(result.route, ROUTES.PRODUCT, file);
+    assert.equal(result.governanceChangesPresent, false, file);
+    assert.equal(result.productDocumentationChangesPresent, false, file);
+    assert.equal(result.productChangesPresent, true, file);
   }
 });
 
