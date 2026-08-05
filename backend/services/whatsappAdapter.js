@@ -29,6 +29,7 @@ const { getBackendReleaseIdentity } = require('../releaseIdentity');
 const releaseSource = require('../../release/release-source.json');
 const { getStore } = require('../repositories/storeProvider');
 const { createSessionGenerationFence, createSocketGenerationGuard } = require('./sessionGenerationFence');
+const { createWhatsAppBaileysEventProcessor } = require('./whatsappBaileysEventProcessor');
 
 let qrCodeRenderer = null;
 function loadQRCodeDependency(moduleLoader = require) {
@@ -1222,7 +1223,7 @@ class WhatsAppAdapter {
     const socket = baileys.default(socketOptions);
     row.socket = socket;
     const socketGuard = createSocketGenerationGuard(row.sessionFence, () => row.socket === socket);
-    const onSocket = (eventName, handler) => socketGuard.bind(socket.ev, eventName, handler);
+    const eventHandlers = new Map();
     row.startupTimer = setTimeout(() => {
       if (this.accounts.get(accountId) !== row || row.state !== 'connecting') return;
       row.state = 'offline';
@@ -1239,7 +1240,7 @@ class WhatsAppAdapter {
     }, WHATSAPP_QR_STARTUP_TIMEOUT_MS);
     row.startupTimer.unref?.();
 
-    onSocket('creds.update', async update => {
+    eventHandlers.set('creds.update', async update => {
       const writeResult = await socketGuard.runWrite(
         { accountId: databaseAccountId, eventName: 'creds.update' },
         () => saveCreds(update)
@@ -1248,7 +1249,7 @@ class WhatsAppAdapter {
       this.invalidateCredentialState(reference);
       return writeResult;
     });
-    onSocket('connection.update', async update => {
+    eventHandlers.set('connection.update', async update => {
       if (options.signal?.aborted || this.accounts.get(accountId) !== row || this.generations.get(accountId) !== row.generation) return;
       const { connection, lastDisconnect, qr } = update;
       if (qr) {
@@ -1381,7 +1382,7 @@ class WhatsAppAdapter {
       }
     });
 
-    onSocket('messaging-history.set', async payload => {
+    eventHandlers.set('messaging-history.set', async payload => {
       const startedAt = Date.now();
       try {
         const directoryStats = persistWhatsAppDirectorySnapshot({
@@ -1417,10 +1418,11 @@ class WhatsAppAdapter {
         if (!socketGuard.isCurrent() || error?.code === 'SOCKET_GENERATION_STALE') return;
         logger.error('whatsapp', 'history-sync-failed', { accountId: databaseAccountId, errorCode: error.code || error.message });
         eventBus.publish('whatsapp:ingest-error', { accountId: databaseAccountId, scope: 'history', error: error.message });
+        throw error;
       }
     });
 
-    onSocket('messages.upsert', async payload => {
+    eventHandlers.set('messages.upsert', async payload => {
       const batch = syncCheckpoint.begin({ platform: 'whatsapp', accountId: databaseAccountId, scopeId: 'messages', payload: { source: payload.type || 'unknown' } });
       let lastRemoteMessageId = '';
       let lastRemoteTimestamp = '';
@@ -1588,7 +1590,7 @@ class WhatsAppAdapter {
       }
     });
 
-    onSocket('lid-mapping.update', async mapping => {
+    eventHandlers.set('lid-mapping.update', async mapping => {
       const lid = historyJid(mapping?.lid || '');
       const pn = historyJid(mapping?.pn || '');
       if (!lid || !pn) return;
@@ -1612,7 +1614,7 @@ class WhatsAppAdapter {
       }
     });
 
-    onSocket('presence.update', payload => {
+    eventHandlers.set('presence.update', payload => {
       const chatJid = String(payload?.id || '').trim();
       if (!chatJid) return;
       const presences = payload?.presences && typeof payload.presences === 'object' ? payload.presences : {};
@@ -1663,7 +1665,7 @@ class WhatsAppAdapter {
       }
     });
 
-    onSocket('messages.update', async rows => {
+    eventHandlers.set('messages.update', async rows => {
       for (const rowUpdate of Array.isArray(rows) ? rows : []) {
         const id = rowUpdate.key?.id;
         const remoteJid = rowUpdate.key?.remoteJid;
@@ -1675,30 +1677,59 @@ class WhatsAppAdapter {
       }
     });
 
-    onSocket('message-receipt.update', rows => {
+    eventHandlers.set('message-receipt.update', rows => {
       eventBus.publish('message:receipt-batch', { accountId: databaseAccountId, rows: Array.isArray(rows) ? rows.length : 0 });
     });
 
-    onSocket('chats.upsert', rows => {
+    eventHandlers.set('chats.upsert', rows => {
       const persisted = persistWhatsAppDirectorySnapshot({ databaseAccountId, chats: rows, source: 'chats.upsert' });
       eventBus.publish('conversations:upsert', { accountId: databaseAccountId, platform: 'whatsapp', rows, persisted });
       this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'chats.upsert').catch(error => logger.warn('whatsapp', 'avatar-chat-upsert-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
     });
-    onSocket('chats.update', rows => {
+    eventHandlers.set('chats.update', rows => {
       const persisted = persistWhatsAppDirectorySnapshot({ databaseAccountId, chats: rows, source: 'chats.update' });
       eventBus.publish('conversations:update', { accountId: databaseAccountId, platform: 'whatsapp', rows, persisted });
       this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'chats.update').catch(error => logger.warn('whatsapp', 'avatar-chat-update-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
     });
-    onSocket('contacts.upsert', rows => {
+    eventHandlers.set('contacts.upsert', rows => {
       const persisted = persistWhatsAppDirectorySnapshot({ databaseAccountId, contacts: rows, source: 'contacts.upsert' });
       eventBus.publish('contacts:upsert', { accountId: databaseAccountId, rows, persisted });
       this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'contacts.upsert').catch(error => logger.warn('whatsapp', 'avatar-contact-upsert-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
     });
-    onSocket('contacts.update', rows => {
+    eventHandlers.set('contacts.update', rows => {
       const persisted = persistWhatsAppDirectorySnapshot({ databaseAccountId, contacts: rows, source: 'contacts.update' });
       eventBus.publish('contacts:update', { accountId: databaseAccountId, rows, persisted });
       this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'contacts.update').catch(error => logger.warn('whatsapp', 'avatar-contact-update-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
     });
+
+const eventProcessor = createWhatsAppBaileysEventProcessor({
+  guard: socketGuard,
+  handlers: eventHandlers,
+  createContext: ({ batchSequence }) => Object.freeze({
+    batchSequence,
+    accountId: databaseAccountId,
+    adapterAccountId: accountId,
+    generation: row.generation,
+    epoch: Number(socketGuard.details?.epoch || 0),
+    socketToken: String(socketGuard.details?.socketToken || '')
+  })
+});
+socket.ev.process(async events => {
+  const result = await eventProcessor.process(events);
+  if (!result.ok && !result.quarantined) {
+    logger.warn('whatsapp', 'baileys-event-batch-replay-required', {
+      accountId: databaseAccountId,
+      batchSequence: result.context.batchSequence,
+      reasonCode: result.reasonCode,
+      failedStages: result.stages.filter(stage => !stage.ok).map(stage => ({
+        eventName: stage.eventName,
+        reasonCode: stage.reasonCode,
+        replayRequired: stage.replayRequired
+      }))
+    });
+  }
+  return result;
+});
 
     assertOperationActive(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId, attemptId: row.attemptId });
     options.signal?.removeEventListener?.('abort', onOperationAbort);
