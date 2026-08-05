@@ -34,8 +34,31 @@ jobs:
       - name: Install exact dependencies
         run: npm ci
 
+      - name: Normalize isolated generator literals
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tools/oss1a/generate-task11-auth-lease-candidate.js')
+          source = path.read_text()
+          source = source.replace(
+              "const result = store.db.prepare(`UPDATE whatsapp_auth_accounts SET",
+              "const result = store.db.prepare(\\`UPDATE whatsapp_auth_accounts SET",
+          )
+          source = source.replace(
+              "AND writer_generation=? AND writer_socket_token=?`).run(",
+              "AND writer_generation=? AND writer_socket_token=?\\`).run(",
+          )
+          path.write_text(source)
+          PY
+          node --check tools/oss1a/generate-task11-auth-lease-candidate.js
+
       - name: Generate repository-backed auth lease candidate
-        run: node tools/oss1a/generate-task11-auth-lease-candidate.js
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/oss1a/generate-task11-auth-lease-candidate.js
+          git checkout -- tools/oss1a/generate-task11-auth-lease-candidate.js
 
       - name: Verify authorized production paths only
         shell: bash
