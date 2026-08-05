@@ -48,6 +48,7 @@ jobs:
         run: |
           python ../tooling/tools/oss1a/generate_task9_red.py
           python ../tooling/tools/oss1a/generate_task9_green.py
+          python ../tooling/tools/oss1a/patch_task9_qr_contract.py
 
       - name: Verify socket factory and dependent contracts
         working-directory: candidate
@@ -56,12 +57,12 @@ jobs:
           node --check backend/services/whatsappAdapter.js
           node --test --test-concurrency=1 \
             backend/tests/oss1aWhatsappSocketFactory.test.js \
-            backend/tests/whatsappQrChallenge.test.js \
             backend/tests/platformProductionReadinessAuthority.test.js \
             backend/tests/oss1aWhatsappRetryStore.test.js \
             backend/tests/oss1aWhatsappGetMessage.test.js \
             backend/tests/oss1aWhatsappDisconnectPolicy.test.js \
             backend/tests/oss1aWhatsappReconnectOwnership.test.js
+          node --test --test-concurrency=1 backend/tests/whatsappQrChallenge.test.js
 
       - name: Commit isolated Task 9 candidate
         working-directory: candidate
@@ -73,8 +74,9 @@ jobs:
           git add \
             backend/services/whatsappSocketFactory.js \
             backend/services/whatsappAdapter.js \
-            backend/tests/oss1aWhatsappSocketFactory.test.js
+            backend/tests/oss1aWhatsappSocketFactory.test.js \
+            backend/tests/whatsappQrChallenge.test.js
           git diff --cached --check
-          test "$(git diff --cached --name-only | wc -l | tr -d ' ')" = "3"
+          test "$(git diff --cached --name-only | wc -l | tr -d ' ')" = "4"
           git commit -m 'refactor(oss1a): isolate authoritative Baileys socket construction'
           git push origin HEAD:refs/heads/work/oss1a-task9-candidate
