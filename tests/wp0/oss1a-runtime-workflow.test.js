@@ -28,8 +28,14 @@ function workflowText() {
   return fs.readFileSync(workflowPath, 'utf8');
 }
 
+function rolePolicyText() {
+  assert.equal(fs.existsSync(rolePolicyPath), true, 'OSS-1A role resolver must exist');
+  return fs.readFileSync(rolePolicyPath, 'utf8');
+}
+
 test('OSS-1A workflow uses exact branch roles and never pull_request_target', () => {
   const workflow = workflowText();
+  const rolePolicy = rolePolicyText();
   assert.match(workflow, /^name: OSS-1A Baileys Lifecycle$/mu);
   assert.match(workflow, /^on:\s*$/mu);
   assert.match(workflow, /^  pull_request:\s*$/mu);
@@ -37,12 +43,11 @@ test('OSS-1A workflow uses exact branch roles and never pull_request_target', ()
   assert.match(workflow, /governance\/oss-1a-implementation-authorization/u);
   assert.match(workflow, /governance\/oss-1a-runtime-ci-authorization/u);
   for (const branch of GOVERNANCE_BRANCHES) {
-    assert.match(workflow, new RegExp(branch.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
-    assert.match(workflow, new RegExp(`refs/heads/${branch.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}`, 'u'));
+    assert.match(rolePolicy, new RegExp(`'${branch.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}'`, 'u'));
   }
-  assert.match(workflow, /refs\/heads\/oss\/1a-baileys-lifecycle/u);
-  assert.doesNotMatch(workflow, /oss\/\*/u);
-  assert.doesNotMatch(workflow, /governance\/oss-1a-\*/u);
+  assert.match(rolePolicy, /'oss\/1a-baileys-lifecycle'/u);
+  assert.doesNotMatch(rolePolicy, /oss\/\*/u);
+  assert.doesNotMatch(rolePolicy, /governance\/oss-1a-\*/u);
   assert.doesNotMatch(workflow, /continue-on-error/u);
 });
 
@@ -60,9 +65,7 @@ test('runtime role executes the exact Schema 23 RED/GREEN command on the reviewe
 test('governance roles validate the workflow contract without executing runtime tests', () => {
   const workflow = workflowText();
   assert.match(workflow, /name: oss1a-governance-contract/u);
-  for (const branch of GOVERNANCE_BRANCHES) {
-    assert.match(workflow, new RegExp(branch.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
-  }
+  assert.match(workflow, /needs\.role\.outputs\.role == 'GOVERNANCE'/u);
   assert.match(workflow, /node --test --test-concurrency=1 tests\/wp0\/oss1a-runtime-workflow\.test\.js/u);
 });
 
@@ -70,6 +73,7 @@ test('aggregate job fails closed unless exactly the selected role succeeds', () 
   const workflow = workflowText();
   assert.match(workflow, /name: oss1a-gates/u);
   assert.match(workflow, /if: \$\{\{ always\(\) \}\}/u);
+  assert.match(workflow, /ROLE_RESULT/u);
   assert.match(workflow, /RUNTIME_RESULT/u);
   assert.match(workflow, /GOVERNANCE_RESULT/u);
   assert.match(workflow, /unknown OSS-1A workflow branch role/u);
@@ -79,7 +83,7 @@ test('reviewed-candidate role is resolved by exact manifest identity rather than
   assert.equal(fs.existsSync(rolePolicyPath), true, 'shared OSS-1A workflow branch-role resolver must exist');
   assert.equal(fs.existsSync(reviewedCandidatePath), true, 'reviewed candidate manifest must exist');
   const workflow = workflowText();
-  const rolePolicy = fs.readFileSync(rolePolicyPath, 'utf8');
+  const rolePolicy = rolePolicyText();
   const manifest = JSON.parse(fs.readFileSync(reviewedCandidatePath, 'utf8'));
 
   assert.equal(manifest.documentType, 'YANCE_OSS_REVIEWED_CANDIDATE');
