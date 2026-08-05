@@ -37,27 +37,66 @@ jobs:
           fetch-tags: false
           lfs: false
           persist-credentials: false
+      - name: Resolve exact event diff range
+        id: range
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PULL_REQUEST_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PULL_REQUEST_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+          PUSH_HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          case "${EVENT_NAME}" in
+            pull_request)
+              BASE_SHA="${PULL_REQUEST_BASE_SHA}"
+              HEAD_SHA="${PULL_REQUEST_HEAD_SHA}"
+              ;;
+            push)
+              BASE_SHA="${PUSH_BASE_SHA}"
+              HEAD_SHA="${PUSH_HEAD_SHA}"
+              ;;
+            *)
+              echo "unsupported WP0 event: ${EVENT_NAME}" >&2
+              exit 1
+              ;;
+          esac
+          [[ "${BASE_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${HEAD_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          test "${BASE_SHA}" != "0000000000000000000000000000000000000000"
+          git cat-file -e "${BASE_SHA}^{commit}"
+          git cat-file -e "${HEAD_SHA}^{commit}"
+          git merge-base --is-ancestor "${BASE_SHA}" "${HEAD_SHA}"
+          printf 'base=%s\n' "${BASE_SHA}" >> "${GITHUB_OUTPUT}"
+          printf 'head=%s\n' "${HEAD_SHA}" >> "${GITHUB_OUTPUT}"
+      - name: Establish exact base-owned route policy
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.range.outputs.base }}
+          TRUSTED_ROUTE_POLICY_ROOT: ${{ runner.temp }}/yance-wp0-trusted-route
+        run: |
+          set -euo pipefail
+          rm -rf "${TRUSTED_ROUTE_POLICY_ROOT}"
+          git worktree prune
+          git worktree add --detach "${TRUSTED_ROUTE_POLICY_ROOT}" "${BASE_SHA}"
+          test "$(git -C "${TRUSTED_ROUTE_POLICY_ROOT}" rev-parse HEAD)" = "${BASE_SHA}"
+          printf 'TRUSTED_ROUTE_POLICY_ROOT=%s\n' "${TRUSTED_ROUTE_POLICY_ROOT}" >> "${GITHUB_ENV}"
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
           package-manager-cache: false
-      - name: Resolve trusted diff range
-        id: range
-        uses: ./.github/actions/resolve-diff-range
-        with:
-          event-name: ${{ github.event_name }}
-          pull-request-base-sha: ${{ github.event.pull_request.base.sha }}
-          pull-request-head-sha: ${{ github.event.pull_request.head.sha }}
-          push-base-sha: ${{ github.event.before }}
-          push-head-sha: ${{ github.sha }}
-      - name: Classify protected WP0 route
+      - name: Classify protected WP0 route from base-owned policy
         id: route
         shell: bash
         env:
           BASE_SHA: ${{ steps.range.outputs.base }}
           HEAD_SHA: ${{ steps.range.outputs.head }}
-        run: node tools/layered-ci/select-wp0-route.js --base "${BASE_SHA}" --head "${HEAD_SHA}"
+        run: >-
+          node "${TRUSTED_ROUTE_POLICY_ROOT}/tools/layered-ci/select-wp0-route.js"
+          --base "${BASE_SHA}"
+          --head "${HEAD_SHA}"
 
   wp0-product:
     name: wp0-product
