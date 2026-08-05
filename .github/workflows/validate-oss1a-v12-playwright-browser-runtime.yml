@@ -85,13 +85,20 @@ jobs:
         run: |
           set -euo pipefail
           node /tmp/oss1a-v12-playwright-browser-runtime-fix.js
-          python3 -m py_compile \
-            tools/uat/playwright_browser_runtime.py \
-            tools/uat/fix6d_computed_style_probe.py \
-            tools/uat/fix6d_global_typography_matrix_probe.py
+          python3 - <<'PY'
+          from pathlib import Path
+
+          for file_path in (
+              'tools/uat/playwright_browser_runtime.py',
+              'tools/uat/fix6d_computed_style_probe.py',
+              'tools/uat/fix6d_global_typography_matrix_probe.py',
+          ):
+              compile(Path(file_path).read_text(encoding='utf-8'), file_path, 'exec')
+          PY
           node --test --test-concurrency=1 tests/uat/fix6dPlaywrightBrowserRuntime.test.js
           git diff --exit-code -- tests/uat/fix6dPlaywrightBrowserRuntime.test.js
           git diff --check
+          test -z "$(find tools/uat -type d -name __pycache__ -print -quit)"
       - name: Verify exact three-path implementation scope
         shell: bash
         run: |
