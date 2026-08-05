@@ -9,8 +9,8 @@ const {
   changedFileSetSha256,
   isValidOpenSourceWorkPackageAuthorizationForEntry,
   isValidOpenSourceWorkPackageAuthorizationReceiptForEntry,
-  loadOpenSourceWorkPackageRegistry,
-  selectOpenSourceWorkPackageRegistryEntry
+  selectOpenSourceWorkPackageRegistryEntry,
+  validateOpenSourceWorkPackageRegistry
 } = require('../../shared/release/openSourceWorkPackagePolicy');
 const {
   classifyProductRouteBranchRole
@@ -31,6 +31,29 @@ const EXPECTED_ADDITIONS = Object.freeze([
 const EXPECTED_PATH_COUNT = 31;
 const EXPECTED_PATH_SET_SHA256 = '7005808b4f0a2bdb883685cf8691f643d2df8322e5863d5878cdf0a3be810577';
 
+const V4_ENTRY = Object.freeze({
+  workPackage: 'OSS-1A',
+  authorizedBranch: IMPLEMENTATION_BRANCH,
+  authorizationPath: AUTHORIZATION_PATH,
+  receiptPath: RECEIPT_PATH
+});
+
+const V4_REGISTRY = Object.freeze({
+  schemaVersion: 1,
+  documentType: 'YANCE_OPEN_SOURCE_WORK_PACKAGE_REGISTRY',
+  program: 'Open Source Acceleration',
+  repository: 'laiqian0239-glitch/yance',
+  entries: Object.freeze([V4_ENTRY]),
+  governance: Object.freeze({
+    explicitEntriesOnly: true,
+    directoryAutoDiscoveryAllowed: false,
+    exactBranchSelectionOnly: true,
+    multipleMatchesFailClosed: true,
+    automaticNextWorkPackageAuthorization: false,
+    readyForPromotion: false
+  })
+});
+
 function readJson(repositoryPath) {
   return JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ...repositoryPath.split('/')), 'utf8'));
 }
@@ -42,11 +65,22 @@ function repositoryFileSha256(repositoryPath) {
     .digest('hex');
 }
 
-test('OSS-1A successor registry selects exact v4 authority and receipt paths', () => {
-  const registry = loadOpenSourceWorkPackageRegistry();
-  const entry = selectOpenSourceWorkPackageRegistryEntry(registry, IMPLEMENTATION_BRANCH);
-  assert.ok(entry, 'registry must select OSS-1A');
-  assert.equal(entry.workPackage, 'OSS-1A');
+function frozenV4PolicyOptions() {
+  const authorization = readJson(AUTHORIZATION_PATH);
+  const receipt = readJson(RECEIPT_PATH);
+  return {
+    registry: V4_REGISTRY,
+    authorizationByPath: Object.freeze({ [AUTHORIZATION_PATH]: authorization }),
+    receiptByPath: Object.freeze({ [RECEIPT_PATH]: receipt }),
+    isLegacyImplementationBranch: () => false,
+    isOpenSourceImplementationBranch: branch => branch === IMPLEMENTATION_BRANCH
+  };
+}
+
+test('historical v4 registry entry remains exact and independent of the current successor registry', () => {
+  assert.equal(validateOpenSourceWorkPackageRegistry(V4_REGISTRY), true);
+  const entry = selectOpenSourceWorkPackageRegistryEntry(V4_REGISTRY, IMPLEMENTATION_BRANCH);
+  assert.deepEqual(entry, V4_ENTRY);
   assert.equal(entry.authorizationPath, AUTHORIZATION_PATH);
   assert.equal(entry.receiptPath, RECEIPT_PATH);
 });
@@ -54,10 +88,8 @@ test('OSS-1A successor registry selects exact v4 authority and receipt paths', (
 test('v4 authorization adds only the two independently proven handshake core paths', () => {
   const previous = readJson(V3_AUTHORIZATION_PATH);
   const authorization = readJson(AUTHORIZATION_PATH);
-  const registry = loadOpenSourceWorkPackageRegistry();
-  const entry = selectOpenSourceWorkPackageRegistryEntry(registry, IMPLEMENTATION_BRANCH);
 
-  assert.equal(isValidOpenSourceWorkPackageAuthorizationForEntry(authorization, entry), true);
+  assert.equal(isValidOpenSourceWorkPackageAuthorizationForEntry(authorization, V4_ENTRY), true);
   assert.equal(authorization.authorizationVersion, 4);
   assert.equal(authorization.supersedesAuthorizationPath, V3_AUTHORIZATION_PATH);
   assert.equal(authorization.authorizedBranch, IMPLEMENTATION_BRANCH);
@@ -89,16 +121,14 @@ test('v4 authorization adds only the two independently proven handshake core pat
   ]) assert.equal(authorization.exactPaths.includes(forbidden), false, forbidden);
 });
 
-test('v4 receipt seals the authorization anchor before implementation continuation', () => {
-  const registry = loadOpenSourceWorkPackageRegistry();
-  const entry = selectOpenSourceWorkPackageRegistryEntry(registry, IMPLEMENTATION_BRANCH);
+test('v4 receipt seals its historical authorization anchor independently of later registry selection', () => {
   const authorization = readJson(AUTHORIZATION_PATH);
   const receipt = readJson(RECEIPT_PATH);
 
   assert.equal(isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
     receipt,
     authorization,
-    entry,
+    V4_ENTRY,
     { authorizationFileSha256: repositoryFileSha256(AUTHORIZATION_PATH) }
   ), true);
   assert.equal(receipt.authorizationVersion, 4);
@@ -115,13 +145,14 @@ test('v4 receipt seals the authorization anchor before implementation continuati
   assert.equal(receipt.governance.implementationBasePredatesReceiptSeal, true);
 });
 
-test('successor governance is negative-proof only while implementation branch remains executable', () => {
-  const governance = classifyProductRouteBranchRole(SUCCESSOR_BRANCH);
+test('historical v4 governance remains negative-proof while its exact implementation branch is executable', () => {
+  const options = frozenV4PolicyOptions();
+  const governance = classifyProductRouteBranchRole(SUCCESSOR_BRANCH, options);
   assert.equal(governance.pass, true, JSON.stringify(governance));
   assert.equal(governance.role, 'GOVERNANCE_NEGATIVE_PROOF');
   assert.equal(governance.workPackage, 'OSS-1A');
 
-  const implementation = classifyProductRouteBranchRole(IMPLEMENTATION_BRANCH);
+  const implementation = classifyProductRouteBranchRole(IMPLEMENTATION_BRANCH, options);
   assert.equal(implementation.pass, true, JSON.stringify(implementation));
   assert.equal(implementation.role, 'IMPLEMENTATION_EXECUTABLE');
   assert.equal(implementation.workPackage, 'OSS-1A');
