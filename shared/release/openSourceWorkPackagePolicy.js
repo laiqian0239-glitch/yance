@@ -213,10 +213,19 @@ function openSourceParentGovernancePaths(registry = loadOpenSourceWorkPackageReg
   return Object.freeze([...paths].sort());
 }
 
+function registryContainsExactEntry(registry, entry) {
+  return validateOpenSourceWorkPackageRegistry(registry)
+    && validRegistryEntry(entry)
+    && registry.entries.some(candidate => candidate.workPackage === entry.workPackage
+      && candidate.authorizedBranch === entry.authorizedBranch
+      && candidate.authorizationPath === entry.authorizationPath
+      && candidate.receiptPath === entry.receiptPath);
+}
+
 function filterOpenSourceImplementationChangedFiles(values, options = {}) {
   if (!Array.isArray(values)) return [];
-  const parentPaths = new Set(openSourceParentGovernancePaths(options.registry));
-  return values.filter(value => !parentPaths.has(value));
+  if (!registryContainsExactEntry(options.registry, options.entry)) return [...values];
+  return values.filter(value => value !== options.entry.receiptPath);
 }
 
 function exactGovernanceClosed(governance) {
