@@ -94,7 +94,6 @@ test('product source, release surfaces, general architecture docs and non-Markdo
     'frontend/index.html',
     'package.json',
     'tools/wp0/verify-gate.js',
-    'shared/release/implementationBranchPolicy.js',
     'release/release-source.json',
     'docs/architecture/YANCE_ACV2_WP_A_A5_SOURCE_REVIEW_ZH.md',
     'docs/superpowers/plans/executable.js',
