@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OPEN_SOURCE_WORK_PACKAGE_AUTHORIZATION_RECEIPT",
+  "program": "Open Source Acceleration",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-1A",
+  "status": "SEALED_FOR_IMPLEMENTATION",
+  "authorizationVersion": 10,
+  "supersedesReceiptPath": "governance/open-source-acceleration/oss-1a-authorization-receipt-v9.json",
+  "requiredBaseRef": "governance/oss-1a-runtime-delivery-contract-authorization",
+  "approvedParentHead": "136ae6b356b9cfa0fa2cb4b11aced2eba17996b1",
+  "implementationBaseCommit": "9059cbf1ac94da9f810d6701cb14fd9bceaf3bb5",
+  "approvedPlanPath": "docs/superpowers/plans/2026-08-04-yance-oss-1a-baileys-lifecycle-implementation.md",
+  "approvedPlanHead": "c4117bc80b824f0531366c37a0f20bfa9ee0b543",
+  "authorizedBranch": "oss/1a-baileys-lifecycle",
+  "authorizationPath": "governance/open-source-acceleration/oss-1a-implementation-authorization-v10.json",
+  "authorizationCommit": "04eaa4f03fec1ee5e1ac53c59afc2aa2a5d44985",
+  "authorizationBlobSha": "23a25d565cc0e5fa3df576de5e87379bb97739dd",
+  "authorizationFileSha256": "4ba008c5ba823025ca1935e22e8c56880ec6139f9bcd971ad42a853cbd71f6d4",
+  "approvedChangedFileCount": 65,
+  "approvedChangedFileSetSha256": "fc827fcf2329b91072065b2276164c76283e65c959e65699dabbe28988e6599e",
+  "verificationEvidence": {
+    "status": "PRE_RECEIPT_COMPOSITION_VALIDATED",
+    "validatedGovernanceHead": "9059cbf1ac94da9f810d6701cb14fd9bceaf3bb5",
+    "receiptOnlyValidationPolicy": "REQUIRE_GITHUB_CHECKS_ON_FINAL_RECEIPT_COMMIT",
+    "rootPaths": [
+      ".gitattributes",
+      "tests/runtime-delivery/fix6d-v5-source-checkpoint-identity.test.js",
+      "tests/runtime-delivery/source-uat-delivery.test.js",
+      "tools/runtime-delivery/source-uat-delivery.js"
+    ],
+    "independentRedWorkflowRunId": 31018130943,
+    "independentRedJobId": 92347506880,
+    "independentRedTests": {
+      "total": 72,
+      "passed": 69,
+      "failed": 3
+    },
+    "preReceiptOss1aWorkflowRunId": 31019100869,
+    "preReceiptOss1aDisposition": "GOVERNANCE_GREEN_RUNTIME_SKIPPED",
+    "preReceiptPermanentWp0RunId": 31019101378,
+    "preReceiptWp0ProductJobId": 92350967692,
+    "preReceiptWp0RequiredTests": {
+      "total": 111,
+      "passed": 108,
+      "failed": 3,
+      "remainingReason": "V10_RECEIPT_ABSENT"
+    },
+    "preReceiptSealedExportUbuntuJobId": 92350967547,
+    "preReceiptSealedExportWindowsJobId": 92350967593,
+    "preReceiptProvenanceRunId": 31019101071,
+    "preReceiptProvenanceDisposition": "UBUNTU_AND_WINDOWS_GREEN",
+    "historicalV9ContractsSelfContained": true,
+    "futureImplementationGreenClaimed": false,
+    "runtimeBehaviorChangedByGovernanceSuccessor": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "implementationBasePredatesReceiptSeal": true,
+    "exactPathScopeOnly": true,
+    "wildcardExpansionAllowed": false,
+    "prMustRemainDraft": true,
+    "mergeIntoMainAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "automaticNextWorkPackageAuthorization": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "readyForPromotion": false
+  }
+}
