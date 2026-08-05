@@ -1,0 +1,79 @@
+name: OSS-1A Task 11 Candidate Generator
+
+on:
+  push:
+    branches:
+      - codex/oss1a-task11-generator-c0cf81de
+
+permissions:
+  contents: write
+
+concurrency:
+  group: oss1a-task11-candidate-c0cf81de
+  cancel-in-progress: false
+
+jobs:
+  generate-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BASE_SHA: c0cf81de7a0350f2faa1af8877ec4ea16d01e496
+      OUTPUT_BRANCH: codex/oss1a-task11-candidate-c0cf81de
+    steps:
+      - name: Checkout isolated generator branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up sealed Node runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+
+      - name: Install exact dependencies
+        run: npm ci
+
+      - name: Generate repository-backed auth lease candidate
+        run: node tools/oss1a/generate-task11-auth-lease-candidate.js
+
+      - name: Verify authorized production paths only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only | sort > /tmp/actual-paths.txt
+          cat > /tmp/expected-paths.txt <<'EOF'
+          backend/repositories/whatsappAuthStateRepository.js
+          backend/services/whatsappAdapter.js
+          backend/services/whatsappAuthStateStore.js
+          backend/services/whatsappSocketFactory.js
+          EOF
+          diff -u /tmp/expected-paths.txt /tmp/actual-paths.txt
+
+      - name: Run Task 11 contracts first
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/oss1aWhatsappProductionAuthIntegration.test.js
+          backend/tests/oss1aWhatsappAuthLeaseLifecycle.test.js
+
+      - name: Run full OSS-1A regression suite
+        run: npm run test:oss1a
+
+      - name: Build clean single-parent candidate commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --binary -- \
+            backend/repositories/whatsappAuthStateRepository.js \
+            backend/services/whatsappAdapter.js \
+            backend/services/whatsappAuthStateStore.js \
+            backend/services/whatsappSocketFactory.js \
+            > /tmp/task11.patch
+          test -s /tmp/task11.patch
+          git reset --hard "$BASE_SHA"
+          git apply --index /tmp/task11.patch
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat(oss1a): bind production auth to repository lease"
+          test "$(git rev-parse HEAD^)" = "$BASE_SHA"
+          git push origin "HEAD:refs/heads/$OUTPUT_BRANCH"
