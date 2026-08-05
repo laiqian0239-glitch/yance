@@ -136,6 +136,13 @@ get_test = get_test.replace(
     "assert.match(messageSource, /whatsappMessageIndexTransactionAuthority/u);\n  assert.match(messageSource, /upsertWithinTransaction/u);",
     1
 )
+get_test = get_test.replace(
+    "assert.match(messageSource, /deleteWithinTransaction\\(store, found\\.row\\.id\\)/u);",
+    "assert.match(\n    messageSource,\n    /deleteWithinTransaction\\(\\s*store,\\s*found\\.row\\.id,\\s*whatsappMessageIndexTransactionAuthority\\s*\\)/u\n  );",
+    1
+)
+assert "deleteWithinTransaction\\(\\s*store" in get_test
+assert get_test.count("whatsappMessageIndexTransactionAuthority") >= 2
 assert get_test.count("transactionAuthority") >= 8
 get_test_path.write_text(get_test, encoding='utf-8')
 
