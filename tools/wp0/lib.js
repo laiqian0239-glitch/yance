@@ -11,7 +11,10 @@ const {
   authorizedImplementationBranchDescription
 } = require('../../shared/release/implementationBranchPolicy');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
+const TRUSTED_POLICY_ROOT = path.resolve(__dirname, '..', '..');
+const REPO_ROOT = process.env.YANCE_EVALUATED_REPOSITORY_ROOT
+  ? path.resolve(process.env.YANCE_EVALUATED_REPOSITORY_ROOT)
+  : TRUSTED_POLICY_ROOT;
 const RELEASE_SOURCE_PATH = path.join(REPO_ROOT, 'release', 'release-source.json');
 const POLICY_PATH = path.join(REPO_ROOT, 'governance', 'stage-policy.json');
 const REJECTED_BASELINE_PATH = path.join(REPO_ROOT, 'governance', 'rejected-baselines', 'stage-6.4.5.8.json');
@@ -117,11 +120,14 @@ function sha256File(filePath) {
 }
 
 function git(args, options = {}) {
-  return execFileSync('git', args, {
+  const output = execFileSync('git', args, {
     cwd: options.cwd || REPO_ROOT,
-    encoding: 'utf8',
+    encoding: Object.prototype.hasOwnProperty.call(options, 'encoding')
+      ? options.encoding
+      : 'utf8',
     stdio: options.stdio || ['ignore', 'pipe', 'pipe']
-  }).trim();
+  });
+  return Buffer.isBuffer(output) || options.trim === false ? output : output.trim();
 }
 
 function currentCommit() {
@@ -607,6 +613,7 @@ function writeJson(filePath, value) {
 }
 
 module.exports = {
+  TRUSTED_POLICY_ROOT,
   REPO_ROOT,
   POLICY_PATH,
   REJECTED_BASELINE_PATH,
