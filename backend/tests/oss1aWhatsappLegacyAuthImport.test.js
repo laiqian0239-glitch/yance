@@ -338,7 +338,10 @@ test('isolated orphan reconciliation suite enforces legacy tombstones', () => {
     maxBuffer: 16 * 1024 * 1024,
     env: { ...process.env, YANCE_TEST_ONLY_SQLITE_BROKER_RESET: '1' }
   });
-  assert.match(result.stdout, /legacy auth discovery stays diagnostic and database tombstone blocks filesystem resurrection/u, result.stdout);
-  assert.match(result.stdout, /# tests 4(?:\r?\n|$)/u, result.stdout);
-  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.equal(result.error, undefined, result.error?.stack || String(result.error || ''));
+  assert.notEqual(result.status, null, `${result.stdout}\n${result.stderr}`);
+  const childOutput = `${result.stdout}\n${result.stderr}`;
+  assert.match(childOutput, /legacy auth discovery stays diagnostic and database tombstone blocks filesystem resurrection/u, childOutput);
+  assert.match(childOutput, /# tests 4(?:\r?\n|$)/u, childOutput);
+  assert.equal(result.status, 0, childOutput);
 });
