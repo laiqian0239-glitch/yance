@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OPEN_SOURCE_WORK_PACKAGE_AUTHORIZATION_RECEIPT",
+  "program": "Open Source Acceleration",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-1A",
+  "status": "SEALED_FOR_IMPLEMENTATION",
+  "authorizationVersion": 12,
+  "supersedesReceiptPath": "governance/open-source-acceleration/oss-1a-authorization-receipt-v11.json",
+  "requiredBaseRef": "governance/oss-1a-playwright-browser-runtime-authorization",
+  "approvedParentHead": "85923eb77d28af9b88452b9b7d6c32c897fcc4e2",
+  "implementationBaseCommit": "85923eb77d28af9b88452b9b7d6c32c897fcc4e2",
+  "approvedPlanPath": "docs/superpowers/plans/2026-08-04-yance-oss-1a-baileys-lifecycle-implementation.md",
+  "approvedPlanHead": "c4117bc80b824f0531366c37a0f20bfa9ee0b543",
+  "authorizedBranch": "oss/1a-baileys-lifecycle",
+  "authorizationPath": "governance/open-source-acceleration/oss-1a-implementation-authorization-v12.json",
+  "authorizationCommit": "bf6ed1b6cb18ff547ea465880e863a4a38154a12",
+  "authorizationBlobSha": "671b056577d8def72d209ff4179e178e2274f624",
+  "authorizationFileSha256": "66ca5c5ea93f2837d5a57ea629fc40837f10ac7d5d61af0126ac8a83471daa07",
+  "approvedChangedFileCount": 75,
+  "approvedChangedFileSetSha256": "394287d24153d6248af364f2b77501d38be30864344b609ef915e73ccdf10ed7",
+  "verificationEvidence": {
+    "status": "INDEPENDENT_WINDOWS_RED_AND_AUTHORIZATION_COMPOSITION_VALIDATED",
+    "validatedGovernanceHead": "bf6ed1b6cb18ff547ea465880e863a4a38154a12",
+    "receiptOnlyValidationPolicy": "REQUIRE_GITHUB_CHECKS_ON_FINAL_RECEIPT_COMMIT",
+    "rootPaths": [
+      "tests/uat/fix6dPlaywrightBrowserRuntime.test.js",
+      "tools/uat/fix6d_computed_style_probe.py",
+      "tools/uat/fix6d_global_typography_matrix_probe.py",
+      "tools/uat/playwright_browser_runtime.py"
+    ],
+    "independentRedWorkflowRunId": 31034432886,
+    "independentRedJobId": 92403987483,
+    "independentRedTests": {
+      "total": 245,
+      "passed": 225,
+      "failed": 20
+    },
+    "ubuntuBuildCandidateJobId": 92402856327,
+    "ubuntuBuildCandidateDisposition": "GREEN",
+    "candidatePublishedHead": "85923eb77d28af9b88452b9b7d6c32c897fcc4e2",
+    "candidateGateJobId": 92404563683,
+    "candidateGateDisposition": "RED_DUE_TO_WINDOWS_RUNTIME",
+    "historicalV11ContractsSelfContained": true,
+    "futureImplementationGreenClaimed": false,
+    "runtimeBehaviorChangedByGovernanceSuccessor": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "implementationBasePredatesReceiptSeal": true,
+    "exactPathScopeOnly": true,
+    "wildcardExpansionAllowed": false,
+    "prMustRemainDraft": true,
+    "mergeIntoMainAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "automaticNextWorkPackageAuthorization": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "readyForPromotion": false
+  }
+}
