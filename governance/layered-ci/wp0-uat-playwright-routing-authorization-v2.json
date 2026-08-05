@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_WP0_ROUTING_REPAIR_AUTHORIZATION",
+  "program": "Layered CI",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-1A Task 11",
+  "status": "IMPLEMENTATION_AUTHORIZED",
+  "authorizationVersion": 2,
+  "supersedesAuthorizationPath": "governance/layered-ci/wp0-uat-playwright-routing-authorization.json",
+  "authorizedBranch": "oss/1a-baileys-lifecycle",
+  "requiredBaseRef": "governance/wp0-uat-playwright-routing-authorization-v2",
+  "approvedParentHead": "7e2a6d62710e6b69a95ea07a8b4076a25c2ab321",
+  "independentRedEvidence": {
+    "workflowRunId": 31039212010,
+    "jobId": 92419074467,
+    "reviewedHead": "7e2a6d62710e6b69a95ea07a8b4076a25c2ab321",
+    "failedTest": "OSS-1A authorization and receipt validation are entry-bound rather than hard-coded to OSS-0",
+    "rootCause": "TEST_RECEIPT_FIXTURE_MISSING_APPROVED_PLAN_BINDING",
+    "futureGreenClaimed": false
+  },
+  "authorizedRootRepair": {
+    "name": "WP0_EXACT_UAT_PLAYWRIGHT_ROUTE_AND_REGISTRY_FIXTURE_BINDING",
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "864f6e8b6c5639166728391a43841fd7255956fe049640b2dcb1399de373e415",
+    "exactPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/open-source-work-package-registry.test.js",
+      "tests/layered-ci/wp0-routing.test.js"
+    ],
+    "requiredBehavior": {
+      "requirements/uat-playwright.txt": "PRODUCT_WP0",
+      "requirements/unreviewed.txt": "WP0_ROUTE_UNKNOWN_PATH",
+      "registryReceiptFixture": "BIND_APPROVED_PLAN_PATH_AND_HEAD"
+    }
+  },
+  "governance": {
+    "exactPathScopeOnly": true,
+    "wildcardExpansionAllowed": false,
+    "requirementsDirectoryPrefixAuthorizationAllowed": false,
+    "validationWeakeningAllowed": false,
+    "prMustRemainDraft": true,
+    "mergeIntoMainAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "readyForPromotion": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false
+  }
+}
