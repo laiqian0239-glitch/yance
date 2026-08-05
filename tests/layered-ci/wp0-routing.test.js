@@ -138,6 +138,8 @@ test('unknown or invalid paths fail closed rather than selecting a cheaper route
 
   for (const invalidPath of [
     '../escape.js',
+    ' docs/superpowers/plans/leading-space.md',
+    'docs/superpowers/plans/trailing-space.md ',
     'docs/superpowers/plans/tab\tname.md',
     'docs/superpowers/plans/bell\u0007name.md',
     'docs/superpowers/plans/del\u007fname.md',
