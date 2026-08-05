@@ -5,6 +5,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
+const { installAuthoritySqliteTestHost } = require('./helpers/authoritySqliteTestHost');
+const authoritySqliteTestHost = installAuthoritySqliteTestHost('fix6d-runtime-authority-independent-audit');
+
 const credentialReceipt = require('../../frontend/js/r32-credential-mutation-receipt');
 const capabilityAuthority = require('../../backend/services/modelCapabilityAuthority');
 const onboarding = require('../../backend/services/openRouterOnboardingSmokeService');
@@ -16,6 +19,8 @@ const { createAuthorityHarness, envelope } = require('../wp5/helpers');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const source = file => fs.readFileSync(path.join(ROOT, file), 'utf8');
+
+test.after(() => authoritySqliteTestHost.close());
 
 function validInference(model, overrides = {}) {
   return {

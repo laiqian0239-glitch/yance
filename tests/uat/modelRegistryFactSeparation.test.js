@@ -2,22 +2,14 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
+const { installAuthoritySqliteTestHost } = require('./helpers/authoritySqliteTestHost');
+const authoritySqliteTestHost = installAuthoritySqliteTestHost('model-registry-fact-separation');
 
-const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-model-fact-separation-'));
-process.env.YANCE_DATA_DIR = dataRoot;
-
-const { closeR32Store } = require('../../backend/lib/r32StoreSingleton');
 const registry = require('../../backend/services/modelRegistry');
 
 const modelId = 'cloud-authority-test';
 
-test.after(() => {
-  closeR32Store();
-  fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
-});
+test.after(() => authoritySqliteTestHost.close());
 
 test('qualification and business invocation facts remain independent in real SQLite registry', async () => {
   await registry.write({
