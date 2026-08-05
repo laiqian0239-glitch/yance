@@ -1,0 +1,130 @@
+name: OSS-1A Task 11 Generated Test Origin
+
+on:
+  push:
+    branches:
+      - diagnostic/oss1a-task11-generated-tests-b7064cd
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oss1a-task11-generated-test-origin
+  cancel-in-progress: false
+
+jobs:
+  trace-origin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      BASE_SHA: 62387c011c11c0924ae763f357ce351214e114ce
+      SEALED_NODE_VERSION: 22.23.1
+    steps:
+      - name: Checkout diagnostic source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up proven runtime
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: ${{ env.SEALED_NODE_VERSION }}
+          package-manager-cache: false
+
+      - name: Build exact four-file diagnostic candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p 'process.versions.node')" = "$SEALED_NODE_VERSION"
+          worktree="${RUNNER_TEMP}/task11-generated-test-origin"
+          rm -rf "$worktree"
+          git worktree add --detach "$worktree" "$BASE_SHA"
+          test "$(git -C "$worktree" rev-parse HEAD)" = "$BASE_SHA"
+          (cd "$worktree" && npm ci --no-audit --no-fund)
+          TASK11_TARGET_ROOT="$worktree" node tools/oss1a/generate-task11-auth-lease-candidate.js
+          printf '%s\n' \
+            backend/repositories/whatsappAuthStateRepository.js \
+            backend/services/whatsappAdapter.js \
+            backend/services/whatsappAuthStateStore.js \
+            backend/services/whatsappSocketFactory.js \
+            | sort > "${RUNNER_TEMP}/expected-paths.txt"
+          git -C "$worktree" diff --name-only | sort > "${RUNNER_TEMP}/actual-paths.txt"
+          diff -u "${RUNNER_TEMP}/expected-paths.txt" "${RUNNER_TEMP}/actual-paths.txt"
+          echo "DIAGNOSTIC_WORKTREE=$worktree" >> "$GITHUB_ENV"
+
+      - name: Trace each committed OSS-1A parent test
+        shell: bash
+        run: |
+          set -uo pipefail
+          cd "$DIAGNOSTIC_WORKTREE"
+          targets=(
+            backend/tests/oss1aWhatsappAuthLeaseRuntime.test.js
+            backend/tests/oss1aWhatsappLegacyAuthTombstoneChild.test.js
+          )
+          mapfile -t test_files < <(
+            {
+              find backend/tests -maxdepth 1 -type f -name 'oss1a*.test.js' -print
+              find tests/oss1a -maxdepth 1 -type f -name '*.test.js' -print
+            } | LC_ALL=C sort
+          )
+          creators=0
+          for test_file in "${test_files[@]}"; do
+            rm -f "${targets[@]}"
+            log_file="${RUNNER_TEMP}/$(basename "$test_file").origin.log"
+            set +e
+            node --test --test-concurrency=1 "$test_file" > "$log_file" 2>&1
+            rc=$?
+            set -e
+            for target in "${targets[@]}"; do
+              if [ -f "$target" ]; then
+                creators=$((creators + 1))
+                echo "===== GENERATED TEST ORIGIN ====="
+                echo "creator=$test_file"
+                echo "creator_exit=$rc"
+                echo "target=$target"
+                stat "$target"
+                sha256sum "$target"
+                echo "----- generated content -----"
+                cat "$target"
+                echo "----- creator test tail -----"
+                tail -n 80 "$log_file"
+              fi
+            done
+          done
+          echo "INDIVIDUAL_CREATOR_COUNT=$creators"
+
+          rm -f "${targets[@]}"
+          aggregate_log="${RUNNER_TEMP}/oss1a-generated-test-origin-aggregate.log"
+          set +e
+          node --test --test-concurrency=1 "${test_files[@]}" > "$aggregate_log" 2>&1
+          aggregate_rc=$?
+          set -e
+          echo "AGGREGATE_EXIT=$aggregate_rc"
+          aggregate_targets=0
+          for target in "${targets[@]}"; do
+            if [ -f "$target" ]; then
+              aggregate_targets=$((aggregate_targets + 1))
+              echo "===== AGGREGATE GENERATED TEST ====="
+              echo "target=$target"
+              stat "$target"
+              sha256sum "$target"
+              cat "$target"
+            fi
+          done
+          echo "AGGREGATE_TARGET_COUNT=$aggregate_targets"
+          echo "----- untracked -----"
+          git status --short --untracked-files=all
+          echo "----- ignored -----"
+          git status --short --ignored --untracked-files=all
+          echo "----- aggregate tail -----"
+          tail -n 120 "$aggregate_log"
+
+          if [ "$creators" -eq 0 ] && [ "$aggregate_targets" -eq 0 ]; then
+            echo "::error::No generated child contract survived; creation may be transient and requires syscall tracing"
+          else
+            echo "::error::Generated child contract origin captured"
+          fi
+          exit 1
