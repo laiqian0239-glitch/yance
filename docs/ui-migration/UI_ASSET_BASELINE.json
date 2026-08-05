@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "authority": "YanceUnifiedUIAssetBaseline",
+  "capturedAt": "2026-08-06",
+  "capturedFrom": {
+    "repository": "laiqian0239-glitch/yance",
+    "branch": "main",
+    "commit": "e53bf933a8f4e3273e515587d917433df24d6feb",
+    "tree": "03e15ef74cc65163fbc196565139d968d9ddcaeb"
+  },
+  "freezeRule": {
+    "meaning": "Counts and behavior are contractual; complete bytes are frozen by each source blob SHA.",
+    "zeroRegressionRequired": true,
+    "unknownFieldsMustRoundTrip": true,
+    "noSecondBusinessStateWriter": true
+  },
+  "currentFrontend": {
+    "entryPath": "frontend/index.html",
+    "entryBlobSha": "668213f47794b609dd3c0447e0636207bfea3f90",
+    "runtime": "Electron renderer with legacy HTML/CommonJS/JavaScript/CSS surfaces",
+    "migration": "feature-surface strangler",
+    "singleWriterCutover": "A legacy and Vue surface may coexist for display only. For each business capability, exactly one surface may issue writes through Yance ports at a time."
+  },
+  "themes": {
+    "catalogPath": "frontend/theme-catalog.json",
+    "catalogBlobSha": "8394e389818aae72f1ef046807c77ca0fbf09ebb",
+    "catalogVersion": 2,
+    "themeCount": 29,
+    "defaultThemeId": "midnight-cyan",
+    "lightDefaultThemeId": "jade-paper",
+    "darkDefaultThemeId": "midnight-cyan",
+    "minimumLightThemes": 8,
+    "minimumDarkThemes": 15,
+    "requiredStyles": [
+      "商务",
+      "科技",
+      "人文",
+      "时尚"
+    ],
+    "requiredScenes": [
+      "办公",
+      "阅读",
+      "监控",
+      "客服",
+      "运营",
+      "创作"
+    ],
+    "requiredAccessibilityModes": [
+      "high-contrast",
+      "colorblind",
+      "eye-care"
+    ],
+    "requiredKnownIds": [
+      "jade-paper",
+      "mist-atelier",
+      "pure-black-code",
+      "white-paper-reading",
+      "wabi-earth",
+      "cyber-pulse",
+      "morandi-cloud",
+      "data-operations",
+      "service-warm",
+      "creative-pop",
+      "high-contrast-dark",
+      "high-contrast-light",
+      "colorblind-signal",
+      "eye-care-paper"
+    ],
+    "appearanceAuthorityPath": "backend/store/themeAppearancePolicy.js",
+    "appearanceAuthorityBlobSha": "941c5365552d1484e5c4e7ea8924a9c5cfd6a34c",
+    "existingFontScaleRangePercent": [
+      90,
+      120
+    ],
+    "authorizedMigrationTargetRangePercent": [
+      80,
+      160
+    ],
+    "preservedState": [
+      "themeId",
+      "previewThemeId",
+      "motionLevel",
+      "backgroundEffect",
+      "themeMode",
+      "lightThemeId",
+      "darkThemeId",
+      "scheduleDayStart",
+      "scheduleNightStart",
+      "favoriteThemeIds",
+      "recentThemeIds",
+      "themeTuning",
+      "typography",
+      "customThemePresets",
+      "activeCustomThemePresetId"
+    ]
+  },
+  "notificationSounds": {
+    "libraryPath": "shared/notificationSoundLibrary.json",
+    "libraryBlobSha": "602bca1841ecfaa712a21dac50fd4fc7e8060811",
+    "catalogPath": "shared/notificationSoundCatalog.js",
+    "catalogBlobSha": "5f70df332a3a45e31599cb7397496b854c10b058",
+    "catalogSchemaVersion": 3,
+    "originalBuiltInCount": 11,
+    "importedValidUniqueCount": 125,
+    "totalBuiltInCount": 136,
+    "inputArchiveEntries": 271,
+    "exactUniqueEntries": 128,
+    "rejectedEntries": 3,
+    "duplicatesRemoved": 143,
+    "customIdPattern": "^custom-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+    "acceptedExtensions": [
+      "wav",
+      "mp3",
+      "m4a",
+      "aac"
+    ],
+    "maxUploadBytes": 8388608,
+    "eventIds": [
+      "incoming",
+      "outgoing",
+      "failure",
+      "presence-online",
+      "presence-offline"
+    ]
+  },
+  "notifications": {
+    "authorityPath": "backend/services/notificationPolicy.js",
+    "authorityBlobSha": "669803f1c04cd287b9e17681309f6e5718ef2c0b",
+    "schemaVersion": 6,
+    "preservedRules": [
+      "global enable",
+      "desktop enable",
+      "sound enable",
+      "pause",
+      "per-event enable and sound pattern",
+      "background notifications",
+      "privacy preview/sender-only/hidden",
+      "active-conversation suppression",
+      "focused-window suppression",
+      "muted conversations",
+      "priority conversations",
+      "muted accounts",
+      "muted platforms",
+      "DND schedule",
+      "dedupe window",
+      "merge window"
+    ],
+    "soundFailureIsolation": "Playback failure must not mutate notification allow/suppress decisions or message delivery state."
+  },
+  "desktopSettings": {
+    "authorityPath": "electron/desktopSettingsSchema.js",
+    "authorityBlobSha": "da09ed2abe3df1e7bf744861d4d372726f638949",
+    "schemaVersion": 2,
+    "preservedKeys": [
+      "windowX",
+      "windowY",
+      "windowWidth",
+      "windowHeight",
+      "windowMaximized",
+      "autoLaunch",
+      "minimizeToTray",
+      "closeToTray",
+      "startMinimized",
+      "theme",
+      "gifAutoplay",
+      "stickerAutoplay",
+      "pauseAnimationWhenHidden",
+      "autoCheckUpdates",
+      "autoDownloadUpdates"
+    ],
+    "businessKeysRemainForbidden": true,
+    "newUiEnvelopeRequirements": [
+      "versioned schema",
+      "left sidebar mode and width",
+      "right sidebar mode and width",
+      "font scale",
+      "density",
+      "layout version",
+      "unknown field round-trip"
+    ],
+    "localStorageAuthorityAllowed": false
+  },
+  "translation": {
+    "authorityPath": "backend/services/outboundTranslationAuthority.js",
+    "authorityBlobSha": "216eef29fa28564c31e0754411c01f0492a00116",
+    "invariants": [
+      "Incoming foreign-language content can be projected with Chinese understanding while original text remains accessible.",
+      "Chinese composer input may produce live target-language preview with generation fencing.",
+      "Target language must be resolved before send.",
+      "Numbers, URLs, protected terms and language integrity must be validated.",
+      "Final translated text must be frozen before enqueue.",
+      "Retry must reuse the same frozen translation identity and bytes and must not call translation again."
+    ]
+  },
+  "send": {
+    "authorityPath": "backend/services/sendQueueService.js",
+    "authorityBlobSha": "74f4ed4b1c1b4d6b7cf6351579d9a67a1364c3c9",
+    "invariants": [
+      "Only Yance send authorities may enqueue or dispatch platform messages.",
+      "The Vue shell cannot call platform APIs directly.",
+      "A send retry cannot regenerate translated content.",
+      "Offline, crash and restart recovery must never trigger an unconfirmed automatic send."
+    ]
+  }
+}
