@@ -1,0 +1,25 @@
+name: Validate OSS-1A v11 Candidate Publication Contract
+
+on:
+  push:
+    branches:
+      - generator/oss1a-v11-uat-diagnostics-runtime-fix
+
+permissions:
+  contents: read
+
+jobs:
+  publication-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact generator head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Prove two-stage candidate publication contract
+        run: node --test --test-concurrency=1 tests/oss1a/v11CandidatePublicationContract.test.js
