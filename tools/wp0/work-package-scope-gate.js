@@ -208,7 +208,8 @@ function evaluateOpenSourceScope(options) {
   const allChangedFiles = readChangedFiles(git, baseHead, branch);
   if (!Array.isArray(allChangedFiles)) return allChangedFiles;
   const changedFiles = filterOpenSourceImplementationChangedFiles(allChangedFiles, {
-    registry: resolved.registry
+    registry: resolved.registry,
+    entry: resolved.entry
   });
   const evaluation = evaluateAuthorizedOpenSourceWorkPackageScope({
     branch,
