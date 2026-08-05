@@ -36,36 +36,43 @@ function hasOuterWhitespace(value) {
   return value !== value.trim();
 }
 
-function normalizePath(value) {
-  const raw = String(value || '');
-  if (!raw || hasOuterWhitespace(raw) || PATH_CONTROL_OR_GLOB.test(raw)) return '';
-  const normalized = raw
-    .replace(/\\/gu, '/')
-    .replace(/^\.\//u, '')
-    .replace(/\/$/u, '');
-  if (
-    !normalized
-    || normalized.startsWith('/')
-    || /^[A-Za-z]:\//u.test(normalized)
-  ) return '';
-  const segments = normalized.split('/');
-  if (segments.some(segment => !segment || segment === '.' || segment === '..')) return '';
-  return normalized;
+function hasInvalidPathIdentity(value) {
+  return !value
+    || hasOuterWhitespace(value)
+    || PATH_CONTROL_OR_GLOB.test(value)
+    || value.includes('\\')
+    || value.startsWith('./')
+    || value.startsWith('/')
+    || value.endsWith('/')
+    || /^[A-Za-z]:\//u.test(value);
 }
 
-function validRules(values) {
+function hasInvalidSegments(value) {
+  return value.split('/').some(segment => !segment || segment === '.' || segment === '..');
+}
+
+function normalizePath(value) {
+  const raw = String(value || '');
+  if (hasInvalidPathIdentity(raw) || hasInvalidSegments(raw)) return '';
+  return raw;
+}
+
+function validRules(values, { prefixRules = false } = {}) {
   return Array.isArray(values)
     && values.length > 0
     && new Set(values).size === values.length
     && values.every(value => {
-      const rawValue = String(value || '');
-      if (!rawValue
-        || hasOuterWhitespace(rawValue)
-        || PATH_CONTROL_OR_GLOB.test(rawValue)) return false;
-      const raw = rawValue.replace(/\\/gu, '/').replace(/^\.\//u, '');
-      if (!raw || raw.startsWith('/') || /^[A-Za-z]:\//u.test(raw)) return false;
-      const normalized = raw.replace(/\/$/u, '');
-      return normalized.split('/').every(segment => segment && segment !== '.' && segment !== '..');
+      const raw = String(value || '');
+      if (!raw
+        || hasOuterWhitespace(raw)
+        || PATH_CONTROL_OR_GLOB.test(raw)
+        || raw.includes('\\')
+        || raw.startsWith('./')
+        || raw.startsWith('/')
+        || /^[A-Za-z]:\//u.test(raw)) return false;
+      if (!prefixRules && raw.endsWith('/')) return false;
+      const segmentsValue = prefixRules && raw.endsWith('/') ? raw.slice(0, -1) : raw;
+      return Boolean(segmentsValue) && !hasInvalidSegments(segmentsValue);
     });
 }
 
@@ -81,14 +88,17 @@ function validateWp0RoutingPolicy(policy) {
   if (policy.schemaVersion !== 2 || policy.documentType !== 'YANCE_WP0_SCOPE_ROUTING_POLICY') {
     return fail('WP0_ROUTE_POLICY_SCHEMA_INVALID');
   }
+  for (const field of ['governanceExactPaths', 'productExactPaths']) {
+    if (!validRules(policy[field])) return fail('WP0_ROUTE_RULE_INVALID', { field });
+  }
   for (const field of [
-    'governanceExactPaths',
     'governancePrefixes',
     'productDocumentationPrefixes',
-    'productExactPaths',
     'productPrefixes'
   ]) {
-    if (!validRules(policy[field])) return fail('WP0_ROUTE_RULE_INVALID', { field });
+    if (!validRules(policy[field], { prefixRules: true })) {
+      return fail('WP0_ROUTE_RULE_INVALID', { field });
+    }
   }
   if (!validExtensions(policy.productDocumentationExtensions)) {
     return fail('WP0_ROUTE_EXTENSION_RULE_INVALID', { field: 'productDocumentationExtensions' });
