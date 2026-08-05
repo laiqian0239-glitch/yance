@@ -9,25 +9,11 @@ const TRUSTED_POLICY_ROOT = path.resolve(__dirname, '..', '..');
 const EVALUATED_REPOSITORY_ROOT = process.env.YANCE_EVALUATED_REPOSITORY_ROOT
   ? path.resolve(process.env.YANCE_EVALUATED_REPOSITORY_ROOT)
   : TRUSTED_POLICY_ROOT;
+const REGISTRY_REPOSITORY_PATH = 'governance/open-source-acceleration/open-source-work-package-registry.json';
 const SHA40 = /^[0-9a-f]{40}$/u;
 const SHA64 = /^[0-9a-f]{64}$/u;
 const WORK_PACKAGE = /^OSS-(?:[0-9]+[A-Z]?|[A-Z])$/u;
 const PATH_CONTROL_OR_GLOB = /[\u0000-\u001f\u007f*?[\]]/u;
-const OPEN_SOURCE_WORK_PACKAGE_REGISTRY_REPOSITORY_PATH =
-  'governance/open-source-acceleration/open-source-work-package-registry.json';
-const OPEN_SOURCE_WORK_PACKAGE_REGISTRY_PATH = repositoryFilePath(
-  OPEN_SOURCE_WORK_PACKAGE_REGISTRY_REPOSITORY_PATH,
-  TRUSTED_POLICY_ROOT
-);
-
-function loadJsonObject(filePath) {
-  try {
-    const value = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    return value && typeof value === 'object' && !Array.isArray(value) ? value : null;
-  } catch (_) {
-    return null;
-  }
-}
 
 function normalizeRepositoryPath(value) {
   const candidate = String(value || '');
@@ -39,50 +25,53 @@ function normalizeRepositoryPath(value) {
     || candidate.includes('\\')
     || /^[A-Za-z]:\//u.test(candidate)
     || PATH_CONTROL_OR_GLOB.test(candidate)) return '';
-  const segments = candidate.split('/');
-  if (segments.some(segment => !segment || segment === '.' || segment === '..')) return '';
-  return candidate;
+  const parts = candidate.split('/');
+  return parts.some(part => !part || part === '.' || part === '..') ? '' : candidate;
 }
 
-function isExactRepositoryPath(value) {
-  return Boolean(normalizeRepositoryPath(value));
+function repositoryFilePath(repositoryPath, root = TRUSTED_POLICY_ROOT) {
+  const exact = normalizeRepositoryPath(repositoryPath);
+  return exact ? path.join(path.resolve(root), ...exact.split('/')) : '';
 }
 
-function isExactBranchName(value) {
+const OPEN_SOURCE_WORK_PACKAGE_REGISTRY_REPOSITORY_PATH = REGISTRY_REPOSITORY_PATH;
+const OPEN_SOURCE_WORK_PACKAGE_REGISTRY_PATH = repositoryFilePath(
+  REGISTRY_REPOSITORY_PATH,
+  TRUSTED_POLICY_ROOT
+);
+
+function loadJson(filePath) {
+  try {
+    const value = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function exactBranch(value) {
   const branch = String(value || '');
-  if (!branch
-    || branch !== branch.trim()
-    || branch.startsWith('/')
-    || branch.endsWith('/')
-    || branch.includes('//')
-    || /[\u0000-\u0020\u007f~^:?*[\]\\]/u.test(branch)) return false;
-  return branch.split('/').every(segment => segment
-    && segment !== '.'
-    && segment !== '..'
-    && !segment.endsWith('.lock'));
-}
-
-function repositoryFilePath(repositoryPath, repositoryRoot = TRUSTED_POLICY_ROOT) {
-  const normalized = normalizeRepositoryPath(repositoryPath);
-  return normalized
-    ? path.join(path.resolve(repositoryRoot), ...normalized.split('/'))
-    : '';
+  return Boolean(branch
+    && branch === branch.trim()
+    && !branch.startsWith('/')
+    && !branch.endsWith('/')
+    && !branch.includes('//')
+    && !/[\u0000-\u0020\u007f~^:?*[\]\\]/u.test(branch)
+    && branch.split('/').every(part => part && part !== '.' && part !== '..' && !part.endsWith('.lock')));
 }
 
 function normalizeChangedFiles(values) {
   if (!Array.isArray(values) || values.length === 0) return null;
-  if (values.some(value => !isExactRepositoryPath(value))) return null;
+  if (values.some(value => normalizeRepositoryPath(value) !== value)) return null;
   if (new Set(values).size !== values.length) return null;
   return [...values].sort();
 }
 
 function changedFileSetSha256(values) {
-  const normalized = normalizeChangedFiles(values);
-  if (!normalized) return null;
-  return crypto
-    .createHash('sha256')
-    .update(`${normalized.join('\n')}\n`, 'utf8')
-    .digest('hex');
+  const exact = normalizeChangedFiles(values);
+  return exact
+    ? crypto.createHash('sha256').update(`${exact.join('\n')}\n`, 'utf8').digest('hex')
+    : null;
 }
 
 function sha256File(filePath) {
@@ -93,84 +82,84 @@ function sha256File(filePath) {
   }
 }
 
-function repositoryGit(repositoryRoot, args, options = {}) {
+function repositoryGit(root, args, options = {}) {
   return execFileSync('git', args, {
-    cwd: path.resolve(repositoryRoot || EVALUATED_REPOSITORY_ROOT),
+    cwd: path.resolve(root || EVALUATED_REPOSITORY_ROOT),
     encoding: options.encoding === null ? null : options.encoding || 'utf8',
     stdio: ['ignore', 'pipe', 'pipe']
   });
 }
 
-function defaultResolveCommitBlobSha(commit, repositoryPath, repositoryRoot) {
+function gitSha(root, args) {
   try {
-    const value = repositoryGit(
-      repositoryRoot,
-      ['rev-parse', `${commit}:${repositoryPath}`]
-    ).trim();
+    const value = repositoryGit(root, args).trim();
     return SHA40.test(value) ? value : null;
   } catch (_) {
     return null;
   }
 }
 
-function defaultResolveCommitFirstParent(commit, repositoryRoot) {
+function defaultBlob(commit, repositoryPath, root) {
+  return gitSha(root, ['rev-parse', `${commit}:${repositoryPath}`]);
+}
+
+function defaultFirstParent(commit, root) {
+  return gitSha(root, ['rev-parse', `${commit}^1`]);
+}
+
+function defaultParents(commit, root) {
   try {
-    const value = repositoryGit(repositoryRoot, ['rev-parse', `${commit}^1`]).trim();
-    return SHA40.test(value) ? value : null;
+    const row = repositoryGit(root, ['rev-list', '--parents', '-n', '1', commit])
+      .trim()
+      .split(/\s+/u);
+    return row.length === 3 && row[0] === commit && row.slice(1).every(value => SHA40.test(value))
+      ? row.slice(1)
+      : [];
   } catch (_) {
-    return null;
+    return [];
   }
 }
 
-function defaultCurrentCommit(repositoryRoot) {
-  try {
-    const value = repositoryGit(repositoryRoot, ['rev-parse', 'HEAD']).trim();
-    return SHA40.test(value) ? value : null;
-  } catch (_) {
-    return null;
-  }
+function defaultHead(root) {
+  return gitSha(root, ['rev-parse', 'HEAD']);
 }
 
-function defaultIsAncestor(base, head, repositoryRoot) {
+function defaultAncestor(base, head, root) {
   try {
-    repositoryGit(repositoryRoot, ['merge-base', '--is-ancestor', base, head]);
+    repositoryGit(root, ['merge-base', '--is-ancestor', base, head]);
     return true;
   } catch (_) {
     return false;
   }
 }
 
-function loadOpenSourceWorkPackageRegistry(
-  filePath = OPEN_SOURCE_WORK_PACKAGE_REGISTRY_PATH
-) {
-  return loadJsonObject(filePath);
+function loadOpenSourceWorkPackageRegistry(filePath = OPEN_SOURCE_WORK_PACKAGE_REGISTRY_PATH) {
+  return loadJson(filePath);
 }
-
 function loadOpenSourceWorkPackageAuthorization(filePath) {
-  return filePath ? loadJsonObject(filePath) : null;
+  return filePath ? loadJson(filePath) : null;
 }
-
 function loadOpenSourceWorkPackageAuthorizationReceipt(filePath) {
-  return filePath ? loadJsonObject(filePath) : null;
+  return filePath ? loadJson(filePath) : null;
 }
 
-function registryGovernanceClosed(governance) {
-  return governance?.explicitEntriesOnly === true
-    && governance?.directoryAutoDiscoveryAllowed === false
-    && governance?.exactBranchSelectionOnly === true
-    && governance?.multipleMatchesFailClosed === true
-    && governance?.automaticNextWorkPackageAuthorization === false
-    && governance?.readyForPromotion === false;
+function registryGovernanceClosed(value) {
+  return value?.explicitEntriesOnly === true
+    && value?.directoryAutoDiscoveryAllowed === false
+    && value?.exactBranchSelectionOnly === true
+    && value?.multipleMatchesFailClosed === true
+    && value?.automaticNextWorkPackageAuthorization === false
+    && value?.readyForPromotion === false;
 }
 
-function validRegistryEntry(entry) {
+function validEntry(entry) {
   return Boolean(entry
     && typeof entry === 'object'
     && !Array.isArray(entry)
     && WORK_PACKAGE.test(String(entry.workPackage || ''))
-    && isExactBranchName(entry.authorizedBranch)
-    && isExactRepositoryPath(entry.authorizationPath)
-    && isExactRepositoryPath(entry.receiptPath)
+    && exactBranch(entry.authorizedBranch)
+    && normalizeRepositoryPath(entry.authorizationPath) === entry.authorizationPath
+    && normalizeRepositoryPath(entry.receiptPath) === entry.receiptPath
     && entry.authorizationPath.startsWith('governance/open-source-acceleration/')
     && entry.receiptPath.startsWith('governance/open-source-acceleration/')
     && entry.authorizationPath.endsWith('.json')
@@ -179,106 +168,115 @@ function validRegistryEntry(entry) {
 }
 
 function validateOpenSourceWorkPackageRegistry(registry) {
-  if (!registry || typeof registry !== 'object' || Array.isArray(registry)) return false;
-  if (registry.schemaVersion !== 1
+  if (!registry
+    || registry.schemaVersion !== 1
     || registry.documentType !== 'YANCE_OPEN_SOURCE_WORK_PACKAGE_REGISTRY'
     || registry.program !== 'Open Source Acceleration'
     || registry.repository !== 'laiqian0239-glitch/yance'
     || !Array.isArray(registry.entries)
     || registry.entries.length === 0
-    || !registry.entries.every(validRegistryEntry)
+    || !registry.entries.every(validEntry)
     || !registryGovernanceClosed(registry.governance)) return false;
-  const unique = field => new Set(registry.entries.map(entry => entry[field])).size
-    === registry.entries.length;
-  return unique('workPackage')
-    && unique('authorizedBranch')
-    && unique('authorizationPath')
-    && unique('receiptPath');
+  return ['workPackage', 'authorizedBranch', 'authorizationPath', 'receiptPath']
+    .every(field => new Set(registry.entries.map(entry => entry[field])).size === registry.entries.length);
 }
 
 function selectOpenSourceWorkPackageRegistryEntry(registry, branch) {
-  if (!validateOpenSourceWorkPackageRegistry(registry) || !isExactBranchName(branch)) return null;
+  if (!validateOpenSourceWorkPackageRegistry(registry) || !exactBranch(branch)) return null;
   const matches = registry.entries.filter(entry => entry.authorizedBranch === branch);
   return matches.length === 1 ? matches[0] : null;
 }
 
 function openSourceParentGovernancePaths(registry = loadOpenSourceWorkPackageRegistry()) {
-  const paths = new Set([OPEN_SOURCE_WORK_PACKAGE_REGISTRY_REPOSITORY_PATH]);
+  const values = new Set([REGISTRY_REPOSITORY_PATH]);
   if (validateOpenSourceWorkPackageRegistry(registry)) {
     for (const entry of registry.entries) {
-      paths.add(entry.authorizationPath);
-      paths.add(entry.receiptPath);
+      values.add(entry.authorizationPath);
+      values.add(entry.receiptPath);
     }
   }
-  return Object.freeze([...paths].sort());
+  return Object.freeze([...values].sort());
 }
 
-function registryContainsExactEntry(registry, entry) {
+function registryContains(registry, entry) {
   return validateOpenSourceWorkPackageRegistry(registry)
-    && validRegistryEntry(entry)
-    && registry.entries.some(candidate => candidate.workPackage === entry.workPackage
-      && candidate.authorizedBranch === entry.authorizedBranch
-      && candidate.authorizationPath === entry.authorizationPath
-      && candidate.receiptPath === entry.receiptPath);
+    && validEntry(entry)
+    && registry.entries.some(value => ['workPackage', 'authorizedBranch', 'authorizationPath', 'receiptPath']
+      .every(field => value[field] === entry[field]));
 }
 
 function filterOpenSourceImplementationChangedFiles(values, options = {}) {
   if (!Array.isArray(values)) return [];
-  if (!registryContainsExactEntry(options.registry, options.entry)) return [...values];
+  if (!registryContains(options.registry, options.entry)) return [...values];
   return values.filter(value => value !== options.entry.receiptPath);
 }
 
-function exactGovernanceClosed(governance) {
-  return governance?.exactPathScopeOnly === true
-    && governance?.wildcardExpansionAllowed === false
-    && governance?.prMustRemainDraft === true
-    && governance?.mergeIntoMainAuthorized === false
-    && governance?.productionUseAuthorized === false
-    && governance?.formalRelease === false
-    && governance?.publish === false
-    && governance?.automaticNextWorkPackageAuthorization === false
-    && governance?.temporaryBypassAllowed === false
-    && governance?.warningOnlyClosureAllowed === false
-    && governance?.readyForPromotion === false;
+function exactGovernanceClosed(value) {
+  return value?.exactPathScopeOnly === true
+    && value?.wildcardExpansionAllowed === false
+    && value?.prMustRemainDraft === true
+    && value?.mergeIntoMainAuthorized === false
+    && value?.productionUseAuthorized === false
+    && value?.formalRelease === false
+    && value?.publish === false
+    && value?.automaticNextWorkPackageAuthorization === false
+    && value?.temporaryBypassAllowed === false
+    && value?.warningOnlyClosureAllowed === false
+    && value?.readyForPromotion === false;
+}
+
+function validAuthorizationSeal(seal) {
+  return Boolean(seal
+    && typeof seal === 'object'
+    && !Array.isArray(seal)
+    && seal.status === 'SEALED_AFTER_TRUSTED_MERGE'
+    && Number.isInteger(seal.pullRequest)
+    && seal.pullRequest > 0
+    && [seal.authorizationCommit, seal.mergeFirstParent, seal.mergeSecondParent,
+      seal.reviewedHead, seal.authorizationBlobSha].every(value => SHA40.test(String(value || '')))
+    && seal.mergeSecondParent === seal.reviewedHead
+    && seal.mergeFirstParent !== seal.mergeSecondParent
+    && Number.isInteger(seal.independentReviewId)
+    && seal.independentReviewId > 0
+    && seal.independentReviewDecision === 'ALLOW_MERGE'
+    && seal.p0Count === 0
+    && seal.p1Count === 0);
 }
 
 function isValidOpenSourceWorkPackageAuthorizationForEntry(authorization, entry) {
-  if (!validRegistryEntry(entry)
+  if (!validEntry(entry)
     || !authorization
-    || typeof authorization !== 'object'
-    || Array.isArray(authorization)) return false;
-  if (authorization.schemaVersion !== 1
+    || authorization.schemaVersion !== 1
     || authorization.documentType !== 'YANCE_OPEN_SOURCE_WORK_PACKAGE_AUTHORIZATION'
     || authorization.program !== 'Open Source Acceleration'
     || authorization.repository !== 'laiqian0239-glitch/yance'
     || authorization.workPackage !== entry.workPackage
     || authorization.status !== 'IMPLEMENTATION_AUTHORIZED'
     || authorization.authorizedBranch !== entry.authorizedBranch
-    || !isExactBranchName(authorization.requiredBaseRef)
+    || !exactBranch(authorization.requiredBaseRef)
     || !SHA40.test(String(authorization.approvedParentHead || ''))
-    || !isExactRepositoryPath(authorization.approvedPlanPath)
+    || normalizeRepositoryPath(authorization.approvedPlanPath) !== authorization.approvedPlanPath
     || !SHA40.test(String(authorization.approvedPlanHead || ''))
-    || !Array.isArray(authorization.exactPaths)
-    || authorization.exactPaths.length === 0) return false;
-  const exactPaths = normalizeChangedFiles(authorization.exactPaths);
-  if (!exactPaths
-    || JSON.stringify(exactPaths) !== JSON.stringify(authorization.exactPaths)
-    || authorization.approvedChangedFileCount !== exactPaths.length
-    || authorization.approvedChangedFileSetSha256 !== changedFileSetSha256(exactPaths)) return false;
-  return exactGovernanceClosed(authorization.governance);
+    || (Object.prototype.hasOwnProperty.call(authorization, 'seal')
+      && !validAuthorizationSeal(authorization.seal))) return false;
+  const exact = normalizeChangedFiles(authorization.exactPaths);
+  return Boolean(exact
+    && JSON.stringify(exact) === JSON.stringify(authorization.exactPaths)
+    && authorization.approvedChangedFileCount === exact.length
+    && authorization.approvedChangedFileSetSha256 === changedFileSetSha256(exact)
+    && exactGovernanceClosed(authorization.governance));
 }
 
-function isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
-  receipt,
-  authorization,
-  entry,
-  options = {}
-) {
+function explicitLegacyFixture(options) {
+  return ['authorizationFileSha256', 'trustedPolicyHead', 'resolveCommitBlobSha',
+    'resolveCommitFirstParent', 'isTrustedAncestor', 'isAncestor']
+    .every(key => Object.prototype.hasOwnProperty.call(options, key));
+}
+
+function isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(receipt, authorization, entry, options = {}) {
   if (!isValidOpenSourceWorkPackageAuthorizationForEntry(authorization, entry)
     || !receipt
-    || typeof receipt !== 'object'
-    || Array.isArray(receipt)) return false;
-  if (receipt.schemaVersion !== 1
+    || receipt.schemaVersion !== 1
     || receipt.documentType !== 'YANCE_OPEN_SOURCE_WORK_PACKAGE_AUTHORIZATION_RECEIPT'
     || receipt.program !== authorization.program
     || receipt.repository !== authorization.repository
@@ -293,80 +291,82 @@ function isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
     || !SHA40.test(String(receipt.authorizationCommit || ''))
     || !SHA40.test(String(receipt.authorizationBlobSha || ''))
     || !SHA64.test(String(receipt.authorizationFileSha256 || ''))
-    || !SHA40.test(String(receipt.implementationBaseCommit || ''))
     || receipt.implementationBaseCommit !== receipt.authorizationCommit
     || receipt.approvedChangedFileCount !== authorization.approvedChangedFileCount
     || receipt.approvedChangedFileSetSha256 !== authorization.approvedChangedFileSetSha256
     || receipt.governance?.authorizationPredatesImplementation !== true
     || !exactGovernanceClosed(receipt.governance)) return false;
 
-  const trustedPolicyRoot = options.trustedPolicyRoot || TRUSTED_POLICY_ROOT;
-  const trustedPolicyHead = Object.prototype.hasOwnProperty.call(options, 'trustedPolicyHead')
+  const seal = validAuthorizationSeal(authorization.seal) ? authorization.seal : null;
+  if (seal) {
+    if (receipt.authorizationCommit !== seal.authorizationCommit
+      || receipt.authorizationBlobSha !== seal.authorizationBlobSha) return false;
+  } else if (!explicitLegacyFixture(options)) return false;
+
+  const trustedRoot = options.trustedPolicyRoot || TRUSTED_POLICY_ROOT;
+  const trustedHead = Object.prototype.hasOwnProperty.call(options, 'trustedPolicyHead')
     ? options.trustedPolicyHead
-    : defaultCurrentCommit(trustedPolicyRoot);
-  if (!SHA40.test(String(trustedPolicyHead || ''))) return false;
+    : defaultHead(trustedRoot);
+  if (!SHA40.test(String(trustedHead || ''))) return false;
+  const trustedAncestor = options.isTrustedAncestor
+    || ((base, head) => defaultAncestor(base, head, trustedRoot));
 
-  const resolveCommitFirstParent = options.resolveCommitFirstParent
-    || (commit => defaultResolveCommitFirstParent(commit, trustedPolicyRoot));
-  if (resolveCommitFirstParent(receipt.authorizationCommit)
-    !== authorization.approvedParentHead) return false;
+  if (seal) {
+    const parents = (options.resolveCommitParents
+      || (commit => defaultParents(commit, trustedRoot)))(seal.authorizationCommit);
+    if (!Array.isArray(parents)
+      || parents.length !== 2
+      || parents[0] !== seal.mergeFirstParent
+      || parents[1] !== seal.mergeSecondParent
+      || trustedAncestor(authorization.approvedParentHead, seal.authorizationCommit) !== true
+      || trustedAncestor(seal.authorizationCommit, trustedHead) !== true) return false;
+  } else {
+    const firstParent = (options.resolveCommitFirstParent
+      || (commit => defaultFirstParent(commit, trustedRoot)))(receipt.authorizationCommit);
+    if (firstParent !== authorization.approvedParentHead
+      || trustedAncestor(receipt.authorizationCommit, trustedHead) !== true) return false;
+  }
 
-  const isTrustedAncestor = options.isTrustedAncestor
-    || ((base, head) => defaultIsAncestor(base, head, trustedPolicyRoot));
-  if (isTrustedAncestor(receipt.authorizationCommit, trustedPolicyHead) !== true) return false;
-
-  const trustedAuthorizationPath = options.authorizationPath
-    || repositoryFilePath(entry.authorizationPath, trustedPolicyRoot);
-  const expectedFileSha = Object.prototype.hasOwnProperty.call(options, 'authorizationFileSha256')
+  const authPath = options.authorizationPath
+    || repositoryFilePath(entry.authorizationPath, trustedRoot);
+  const fileSha = Object.prototype.hasOwnProperty.call(options, 'authorizationFileSha256')
     ? options.authorizationFileSha256
-    : sha256File(trustedAuthorizationPath);
-  if (receipt.authorizationFileSha256 !== expectedFileSha) return false;
-
-  const resolveCommitBlobSha = options.resolveCommitBlobSha
-    || ((commit, repositoryPath) => defaultResolveCommitBlobSha(
-      commit,
-      repositoryPath,
-      trustedPolicyRoot
-    ));
-  if (resolveCommitBlobSha(receipt.authorizationCommit, entry.authorizationPath)
-    !== receipt.authorizationBlobSha) return false;
-
-  const repositoryRoot = options.repositoryRoot || EVALUATED_REPOSITORY_ROOT;
-  const isAncestor = options.isAncestor
-    || ((base, head) => defaultIsAncestor(base, head, repositoryRoot));
-  return isAncestor(receipt.authorizationCommit, receipt.implementationBaseCommit) === true;
+    : sha256File(authPath);
+  if (receipt.authorizationFileSha256 !== fileSha) return false;
+  const blob = (options.resolveCommitBlobSha
+    || ((commit, repositoryPath) => defaultBlob(commit, repositoryPath, trustedRoot)))(
+    receipt.authorizationCommit,
+    entry.authorizationPath
+  );
+  if (blob !== (seal ? seal.authorizationBlobSha : receipt.authorizationBlobSha)) return false;
+  const candidateRoot = options.repositoryRoot || EVALUATED_REPOSITORY_ROOT;
+  const ancestor = options.isAncestor || ((base, head) => defaultAncestor(base, head, candidateRoot));
+  return ancestor(receipt.authorizationCommit, receipt.implementationBaseCommit) === true;
 }
 
-function loadRegistryEntryRecord(entry, options = {}) {
-  if (!validRegistryEntry(entry)) return { entry: null, authorization: null, receipt: null };
-  const trustedPolicyRoot = options.trustedPolicyRoot || TRUSTED_POLICY_ROOT;
-  const evaluatedRepositoryRoot = options.repositoryRoot || EVALUATED_REPOSITORY_ROOT;
-  const authorization = options.authorizationByPath?.[entry.authorizationPath]
-    ?? options.loadAuthorization?.(entry)
-    ?? loadOpenSourceWorkPackageAuthorization(
-      repositoryFilePath(entry.authorizationPath, trustedPolicyRoot)
-    );
-  const receipt = options.receiptByPath?.[entry.receiptPath]
-    ?? options.loadReceipt?.(entry)
-    ?? loadOpenSourceWorkPackageAuthorizationReceipt(
-      repositoryFilePath(entry.receiptPath, evaluatedRepositoryRoot)
-    );
-  return { entry, authorization, receipt };
+function loadRecord(entry, options = {}) {
+  if (!validEntry(entry)) return { entry: null, authorization: null, receipt: null };
+  const trustedRoot = options.trustedPolicyRoot || TRUSTED_POLICY_ROOT;
+  const candidateRoot = options.repositoryRoot || EVALUATED_REPOSITORY_ROOT;
+  return {
+    entry,
+    authorization: options.authorizationByPath?.[entry.authorizationPath]
+      ?? options.loadAuthorization?.(entry)
+      ?? loadOpenSourceWorkPackageAuthorization(repositoryFilePath(entry.authorizationPath, trustedRoot)),
+    receipt: options.receiptByPath?.[entry.receiptPath]
+      ?? options.loadReceipt?.(entry)
+      ?? loadOpenSourceWorkPackageAuthorizationReceipt(repositoryFilePath(entry.receiptPath, candidateRoot))
+  };
 }
 
 function resolveOpenSourceAuthorizationForBranch(branch, options = {}) {
   const registry = Object.prototype.hasOwnProperty.call(options, 'registry')
     ? options.registry
-    : loadOpenSourceWorkPackageRegistry(
-      options.registryPath
-      || repositoryFilePath(
-        OPEN_SOURCE_WORK_PACKAGE_REGISTRY_REPOSITORY_PATH,
-        options.trustedPolicyRoot || TRUSTED_POLICY_ROOT
-      )
-    );
+    : loadOpenSourceWorkPackageRegistry(options.registryPath
+      || repositoryFilePath(REGISTRY_REPOSITORY_PATH, options.trustedPolicyRoot || TRUSTED_POLICY_ROOT));
   const entry = selectOpenSourceWorkPackageRegistryEntry(registry, branch);
-  if (!entry) return { registry, entry: null, authorization: null, receipt: null };
-  return { registry, ...loadRegistryEntryRecord(entry, options) };
+  return entry ? { registry, ...loadRecord(entry, options) }
+    : { registry, entry: null, authorization: null, receipt: null };
 }
 
 function isAuthorizedOpenSourceImplementationBranch(branch, options = {}) {
@@ -374,18 +374,14 @@ function isAuthorizedOpenSourceImplementationBranch(branch, options = {}) {
     || Object.prototype.hasOwnProperty.call(options, 'receipt')
     ? {
       registry: options.registry,
-      entry: options.entry
-        || selectOpenSourceWorkPackageRegistryEntry(options.registry, branch),
+      entry: options.entry || selectOpenSourceWorkPackageRegistryEntry(options.registry, branch),
       authorization: options.authorization,
       receipt: options.receipt
     }
     : resolveOpenSourceAuthorizationForBranch(branch, options);
   return typeof branch === 'string'
     && branch === resolved.authorization?.authorizedBranch
-    && isValidOpenSourceWorkPackageAuthorizationForEntry(
-      resolved.authorization,
-      resolved.entry
-    )
+    && isValidOpenSourceWorkPackageAuthorizationForEntry(resolved.authorization, resolved.entry)
     && isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
       resolved.receipt,
       resolved.authorization,
@@ -397,73 +393,44 @@ function isAuthorizedOpenSourceImplementationBranch(branch, options = {}) {
 function authorizedOpenSourceImplementationBranchDescription(options = {}) {
   const branch = String(options.branch || '');
   const resolved = resolveOpenSourceAuthorizationForBranch(branch, options);
-  return isAuthorizedOpenSourceImplementationBranch(branch, {
-    ...options,
-    ...resolved
-  })
+  return isAuthorizedOpenSourceImplementationBranch(branch, { ...options, ...resolved })
     ? `exact sealed open-source work-package branch ${branch}`
     : 'no sealed open-source work-package branch';
 }
 
 function evaluateAuthorizedOpenSourceWorkPackageScope(options = {}) {
   const branch = String(options.branch || '');
-  const rawChangedFiles = Array.isArray(options.changedFiles) ? options.changedFiles : [];
-  const changedFiles = normalizeChangedFiles(rawChangedFiles);
+  const raw = Array.isArray(options.changedFiles) ? options.changedFiles : [];
+  const changedFiles = normalizeChangedFiles(raw);
   const resolved = Object.prototype.hasOwnProperty.call(options, 'authorization')
     || Object.prototype.hasOwnProperty.call(options, 'receipt')
     ? {
       registry: options.registry,
-      entry: options.entry
-        || selectOpenSourceWorkPackageRegistryEntry(options.registry, branch),
+      entry: options.entry || selectOpenSourceWorkPackageRegistryEntry(options.registry, branch),
       authorization: options.authorization,
       receipt: options.receipt
     }
     : resolveOpenSourceAuthorizationForBranch(branch, options);
   const digest = changedFiles ? changedFileSetSha256(changedFiles) : null;
-
-  if (!changedFiles || rawChangedFiles.length !== changedFiles.length) {
-    return Object.freeze({
-      pass: false,
-      reasonCode: 'OSS_WORK_PACKAGE_CHANGED_PATH_INVALID',
-      changedFileSetSha256: digest,
-      unauthorizedPaths: rawChangedFiles,
-      readyForPromotion: false
-    });
+  if (!changedFiles || raw.length !== changedFiles.length) {
+    return Object.freeze({ pass: false, reasonCode: 'OSS_WORK_PACKAGE_CHANGED_PATH_INVALID',
+      changedFileSetSha256: digest, unauthorizedPaths: raw, readyForPromotion: false });
   }
-  if (!isAuthorizedOpenSourceImplementationBranch(branch, {
-    ...options,
-    ...resolved
-  })) {
-    return Object.freeze({
-      pass: false,
-      reasonCode: 'OSS_WORK_PACKAGE_AUTHORIZATION_INVALID',
-      changedFileSetSha256: digest,
-      unauthorizedPaths: changedFiles,
-      readyForPromotion: false
-    });
+  if (!isAuthorizedOpenSourceImplementationBranch(branch, { ...options, ...resolved })) {
+    return Object.freeze({ pass: false, reasonCode: 'OSS_WORK_PACKAGE_AUTHORIZATION_INVALID',
+      changedFileSetSha256: digest, unauthorizedPaths: changedFiles, readyForPromotion: false });
   }
-  const authorization = resolved.authorization;
-  const unauthorizedPaths = changedFiles.filter(file => !authorization.exactPaths.includes(file));
-  if (changedFiles.length !== authorization.approvedChangedFileCount
-    || digest !== authorization.approvedChangedFileSetSha256) {
-    return Object.freeze({
-      pass: false,
-      reasonCode: 'OSS_WORK_PACKAGE_CHANGED_FILE_SET_MISMATCH',
-      changedFileSetSha256: digest,
-      unauthorizedPaths,
-      readyForPromotion: false
-    });
+  const unauthorizedPaths = changedFiles.filter(file => !resolved.authorization.exactPaths.includes(file));
+  if (changedFiles.length !== resolved.authorization.approvedChangedFileCount
+    || digest !== resolved.authorization.approvedChangedFileSetSha256) {
+    return Object.freeze({ pass: false, reasonCode: 'OSS_WORK_PACKAGE_CHANGED_FILE_SET_MISMATCH',
+      changedFileSetSha256: digest, unauthorizedPaths, readyForPromotion: false });
   }
-  return Object.freeze({
-    pass: unauthorizedPaths.length === 0,
+  return Object.freeze({ pass: unauthorizedPaths.length === 0,
     reasonCode: unauthorizedPaths.length ? 'OSS_WORK_PACKAGE_SCOPE_VIOLATION' : null,
-    workPackage: authorization.workPackage,
-    branch,
-    changedFileSetSha256: digest,
-    changedFileCount: changedFiles.length,
-    unauthorizedPaths,
-    readyForPromotion: false
-  });
+    workPackage: resolved.authorization.workPackage, branch,
+    changedFileSetSha256: digest, changedFileCount: changedFiles.length,
+    unauthorizedPaths, readyForPromotion: false });
 }
 
 module.exports = Object.freeze({
@@ -482,6 +449,7 @@ module.exports = Object.freeze({
   selectOpenSourceWorkPackageRegistryEntry,
   openSourceParentGovernancePaths,
   filterOpenSourceImplementationChangedFiles,
+  validAuthorizationSeal,
   isValidOpenSourceWorkPackageAuthorizationForEntry,
   isValidOpenSourceWorkPackageAuthorizationReceiptForEntry,
   resolveOpenSourceAuthorizationForBranch,
