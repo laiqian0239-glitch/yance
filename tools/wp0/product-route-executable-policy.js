@@ -15,6 +15,9 @@ const {
   selectOpenSourceWorkPackageRegistryEntry,
   validateOpenSourceWorkPackageRegistry
 } = require('../../shared/release/openSourceWorkPackagePolicy');
+const openSourceReviewedCandidatePolicy = require(
+  '../../shared/release/openSourceReviewedCandidatePolicy'
+);
 const { evaluateWorkPackageScopeForGate } = require('./work-package-scope-gate');
 const { CURRENT_STAGE, REPO_ROOT, git, verifyWp0Gate } = require('./lib');
 
@@ -69,38 +72,71 @@ function derivedGovernanceBranchMatches(branch, workPackage) {
   return Boolean(branch && branch === derivedGovernanceBranchName(workPackage));
 }
 
-function defaultResolveRemoteTip(branch) {
+function repositoryGit(repositoryRoot, args, options = {}) {
+  return execFileSync('git', args, {
+    cwd: path.resolve(repositoryRoot || REPO_ROOT),
+    encoding: options.encoding === null ? null : 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe']
+  });
+}
+
+function defaultCurrentHead(repositoryRoot = REPO_ROOT) {
   try {
-    const tip = git(['rev-parse', `refs/remotes/origin/${branch}`]);
+    const head = repositoryGit(repositoryRoot, ['rev-parse', 'HEAD']).trim();
+    return /^[0-9a-f]{40}$/u.test(head) ? head : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function defaultResolveRemoteTip(branch, repositoryRoot = REPO_ROOT) {
+  try {
+    const tip = repositoryGit(
+      repositoryRoot,
+      ['rev-parse', `refs/remotes/origin/${branch}`]
+    ).trim();
     return /^[0-9a-f]{40}$/u.test(tip) ? tip : null;
   } catch (_) {
     return null;
   }
 }
 
-function defaultIsAncestor(base, head = 'HEAD') {
+function defaultResolveCommitParents(commit, repositoryRoot = REPO_ROOT) {
   try {
-    git(['merge-base', '--is-ancestor', base, head]);
+    const line = repositoryGit(
+      repositoryRoot,
+      ['rev-list', '--parents', '-n', '1', commit]
+    ).trim();
+    const values = line.split(/\s+/u);
+    return values[0] === commit ? values.slice(1) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function defaultChangedFilesBetween(base, head, repositoryRoot = REPO_ROOT) {
+  try {
+    const raw = repositoryGit(repositoryRoot, [
+      '-c', 'core.quotePath=false',
+      'diff', '--name-only', '-z', base, head, '--'
+    ], { encoding: null });
+    return raw.toString('utf8').split('\0').filter(Boolean);
+  } catch (_) {
+    return null;
+  }
+}
+
+function defaultIsAncestor(base, head = 'HEAD', repositoryRoot = REPO_ROOT) {
+  try {
+    repositoryGit(repositoryRoot, ['merge-base', '--is-ancestor', base, head]);
     return true;
   } catch (_) {
     return false;
   }
 }
 
-function defaultChangedFilesFromBase(base) {
-  try {
-    const raw = execFileSync('git', [
-      '-c', 'core.quotePath=false',
-      'diff', '--name-only', '-z', base, 'HEAD', '--'
-    ], {
-      cwd: REPO_ROOT,
-      encoding: null,
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
-    return raw.toString('utf8').split('\0').filter(Boolean);
-  } catch (_) {
-    return null;
-  }
+function defaultChangedFilesFromBase(base, repositoryRoot = REPO_ROOT) {
+  return defaultChangedFilesBetween(base, 'HEAD', repositoryRoot);
 }
 
 function normalizeGovernanceChangedFiles(values) {
@@ -113,7 +149,9 @@ function normalizeGovernanceChangedFiles(values) {
       || candidate.startsWith('/')
       || /^[A-Za-z]:\//u.test(candidate)
       || /[\x00-\x1f\x7f\\]/u.test(candidate)
-      || candidate.split('/').some(segment => !segment || segment === '.' || segment === '..')) return null;
+      || candidate.split('/').some(segment => !segment || segment === '.' || segment === '..')) {
+      return null;
+    }
     normalized.push(candidate);
   }
   const unique = [...new Set(normalized)].sort();
@@ -131,10 +169,13 @@ function isExactGovernanceVerificationProfile(changedFiles) {
 
 function classifyDerivedGovernanceVerificationRole(branch, registry, options = {}) {
   if (!branch.startsWith('governance/')) return null;
-
-  const resolveRemoteTip = options.resolveRemoteTip ?? defaultResolveRemoteTip;
-  const isAncestor = options.isAncestor ?? defaultIsAncestor;
-  const changedFilesFromBase = options.changedFilesFromBase ?? defaultChangedFilesFromBase;
+  const repositoryRoot = options.repositoryRoot || REPO_ROOT;
+  const resolveRemoteTip = options.resolveRemoteTip
+    ?? (candidate => defaultResolveRemoteTip(candidate, repositoryRoot));
+  const isAncestor = options.isAncestor
+    ?? ((base, head) => defaultIsAncestor(base, head, repositoryRoot));
+  const changedFilesFromBase = options.changedFilesFromBase
+    ?? (base => defaultChangedFilesFromBase(base, repositoryRoot));
   const validateAuthorization = options.validateAuthorization
     ?? isValidOpenSourceWorkPackageAuthorizationForEntry;
   const validateReceipt = options.validateReceipt
@@ -188,6 +229,67 @@ function classifyDerivedGovernanceVerificationRole(branch, registry, options = {
   });
 }
 
+function classifyReviewedCandidateRole(branch, registry, options = {}) {
+  if (!branch.startsWith('reviewed-candidate/')) return null;
+  const repositoryRoot = options.repositoryRoot || REPO_ROOT;
+  const manifest = Object.prototype.hasOwnProperty.call(options, 'reviewedCandidateManifest')
+    ? options.reviewedCandidateManifest
+    : openSourceReviewedCandidatePolicy.loadOpenSourceReviewedCandidateManifest();
+  const currentHead = Object.prototype.hasOwnProperty.call(options, 'currentHead')
+    ? options.currentHead
+    : defaultCurrentHead(repositoryRoot);
+  const resolveRemoteTip = options.resolveRemoteTip
+    ?? (candidate => defaultResolveRemoteTip(candidate, repositoryRoot));
+  const resolveCommitParents = options.resolveCommitParents
+    ?? (commit => defaultResolveCommitParents(commit, repositoryRoot));
+  const changedFilesBetween = options.changedFilesBetween
+    ?? ((base, head) => defaultChangedFilesBetween(base, head, repositoryRoot));
+
+  const identity = openSourceReviewedCandidatePolicy
+    .evaluateOpenSourceReviewedCandidateIdentity({
+      manifest,
+      registry,
+      branch,
+      currentHead,
+      authorization: options.authorization,
+      receipt: options.receipt,
+      authorizationByPath: options.authorizationByPath,
+      receiptByPath: options.receiptByPath,
+      loadAuthorization: entry => loadOpenSourceWorkPackageAuthorization(
+        repositoryFile(entry.authorizationPath)
+      ),
+      loadReceipt: entry => loadOpenSourceWorkPackageAuthorizationReceipt(
+        repositoryFile(entry.receiptPath)
+      ),
+      validateAuthorization: options.validateAuthorization,
+      validateReceipt: options.validateReceipt,
+      resolveRemoteTip,
+      resolveCommitParents,
+      changedFilesBetween
+    });
+  if (!identity.pass) {
+    return fail('WP0_PRODUCT_ROUTE_REVIEWED_CANDIDATE_INVALID', {
+      branch,
+      workPackage: identity.workPackage,
+      reviewedCandidateReasonCode: identity.reasonCode,
+      reviewedCandidateErrors: identity.errors,
+      changedFiles: identity.changedFiles
+    });
+  }
+  return result({
+    pass: true,
+    role: 'REVIEWED_CANDIDATE_EXECUTABLE',
+    workPackage: identity.workPackage,
+    branch,
+    reviewedHead: identity.reviewedHead,
+    branchTip: identity.branchTip,
+    governanceBase: identity.governanceBase,
+    reviewId: identity.reviewId,
+    sourceMergeOnly: true,
+    changedFiles: identity.changedFiles
+  });
+}
+
 function classifyProductRouteBranchRole(branch, options = {}) {
   const normalizedBranch = String(branch || '');
   const registry = options.registry ?? loadOpenSourceWorkPackageRegistry();
@@ -201,7 +303,8 @@ function classifyProductRouteBranchRole(branch, options = {}) {
     ?? (candidate => isAuthorizedOpenSourceImplementationBranch(candidate));
 
   const registryEntry = selectOpenSourceWorkPackageRegistryEntry(registry, normalizedBranch);
-  if (isLegacyImplementationBranch(normalizedBranch) || isOpenSourceImplementationBranch(normalizedBranch)) {
+  if (isLegacyImplementationBranch(normalizedBranch)
+    || isOpenSourceImplementationBranch(normalizedBranch)) {
     return result({
       pass: true,
       role: 'IMPLEMENTATION_EXECUTABLE',
@@ -209,6 +312,9 @@ function classifyProductRouteBranchRole(branch, options = {}) {
       branch: normalizedBranch
     });
   }
+
+  const reviewedCandidate = classifyReviewedCandidateRole(normalizedBranch, registry, options);
+  if (reviewedCandidate) return reviewedCandidate;
 
   const matches = registry.entries
     .map(entry => recordForEntry(entry, options))
@@ -247,7 +353,8 @@ function classifyProductRouteBranchRole(branch, options = {}) {
 }
 
 function exactNegativeGateProof(gate) {
-  if (gate?.status !== 'FAIL' || gate?.reasonCode !== 'WP0_REJECTED_STAGE_TARGET_DENIED') return false;
+  if (gate?.status !== 'FAIL'
+    || gate?.reasonCode !== 'WP0_REJECTED_STAGE_TARGET_DENIED') return false;
   if (Array.isArray(gate.failedReasonCodes)) {
     return gate.failedReasonCodes.length === 1
       && gate.failedReasonCodes[0] === 'WP0_REJECTED_STAGE_TARGET_DENIED';
@@ -259,6 +366,26 @@ function evaluateProductRouteExecutablePolicy(options = {}) {
   const branch = String(options.branch || '');
   const role = classifyProductRouteBranchRole(branch, options);
   if (!role.pass) return role;
+
+  if (role.role === 'REVIEWED_CANDIDATE_EXECUTABLE') {
+    return result({
+      ...role,
+      pass: true,
+      mode: 'REVIEWED_CANDIDATE_EXECUTABLE',
+      gate: Object.freeze({
+        status: 'PASS',
+        authorizationMode: 'SEALED_REVIEWED_CANDIDATE',
+        reviewedHead: role.reviewedHead,
+        branchTip: role.branchTip
+      }),
+      scope: Object.freeze({
+        pass: true,
+        applicable: true,
+        reviewedCandidateScopeApplied: true,
+        changedFiles: role.changedFiles
+      })
+    });
+  }
 
   const verifyGate = options.verifyGate
     ?? (() => verifyWp0Gate({ targetStage: CURRENT_STAGE, branch }));
@@ -315,7 +442,11 @@ function argumentValue(argv, name) {
 
 function main(argv = process.argv.slice(2)) {
   const branch = argumentValue(argv, '--branch');
-  const evaluation = evaluateProductRouteExecutablePolicy({ branch });
+  const repositoryRootArgument = argumentValue(argv, '--repository-root');
+  const repositoryRoot = repositoryRootArgument
+    ? path.resolve(repositoryRootArgument)
+    : REPO_ROOT;
+  const evaluation = evaluateProductRouteExecutablePolicy({ branch, repositoryRoot });
   process.stdout.write(`${JSON.stringify(evaluation, null, 2)}\n`);
   process.exitCode = evaluation.pass ? 0 : 1;
 }
@@ -326,6 +457,11 @@ module.exports = {
   DERIVED_GOVERNANCE_PROFILE,
   classifyDerivedGovernanceVerificationRole,
   classifyProductRouteBranchRole,
+  classifyReviewedCandidateRole,
+  defaultChangedFilesBetween,
+  defaultCurrentHead,
+  defaultResolveCommitParents,
+  defaultResolveRemoteTip,
   derivedGovernanceBranchName,
   evaluateProductRouteExecutablePolicy,
   exactNegativeGateProof,

@@ -11,10 +11,20 @@ test('Product WP0 uses the branch-role executable policy instead of assuming eve
   const workflow = fs.readFileSync(workflowPath, 'utf8');
   assert.match(
     workflow,
-    /node tools\/wp0\/product-route-executable-policy\.js --branch "\$\{IMPLEMENTATION_BRANCH\}"/u
+    /product-route-executable-policy\.js --branch "\$\{IMPLEMENTATION_BRANCH\}"/u
   );
   assert.doesNotMatch(
     workflow,
     /npm run verify:wp0:gate -- --branch "\$\{IMPLEMENTATION_BRANCH\}"/u
   );
+});
+
+test('reviewed-candidate role is evaluated by a policy bundle exported from the trusted PR base', () => {
+  const workflow = fs.readFileSync(workflowPath, 'utf8');
+  assert.match(workflow, /TRUSTED_POLICY_SHA: \$\{\{ github\.event\.pull_request\.base\.sha \|\| github\.sha \}\}/u);
+  assert.match(workflow, /git worktree add --detach "\$\{TRUSTED_POLICY_ROOT\}" "\$\{TRUSTED_POLICY_SHA\}"/u);
+  assert.match(workflow, /reviewed-candidate\/\*/u);
+  assert.match(workflow, /"\$\{TRUSTED_POLICY_ROOT\}\/tools\/wp0\/product-route-executable-policy\.js"/u);
+  assert.match(workflow, /--repository-root "\$\{GITHUB_WORKSPACE\}"/u);
+  assert.doesNotMatch(workflow, /reviewed-candidate\/oss1a-task11/u);
 });
