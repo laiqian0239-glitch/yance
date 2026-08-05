@@ -51,18 +51,69 @@ jobs:
       - name: Run real generation concurrency matrix
         run: node tools/oss1a/whatsapp-generation-concurrency-matrix.js
 
-  task10-gate:
-    name: task10-gate
+  task11-production-contracts:
+    name: task11-production-contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact reviewed implementation head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run production AuthenticationState and lease lifecycle contracts
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/oss1aWhatsappProductionAuthIntegration.test.js
+          backend/tests/oss1aWhatsappAuthLeaseLifecycle.test.js
+      - name: Run complete OSS-1A test suite
+        run: npm run test:oss1a
+      - name: Run related existing regressions
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/batch39WhatsappSessionFence.test.js
+          backend/tests/batch40ChannelAbortPropagation.test.js
+          backend/tests/whatsappReceiptRecoveryRegression.test.js
+          backend/tests/whatsappQrChallenge.test.js
+          backend/tests/whatsappCanonicalGuardRegression.test.js
+          backend/tests/whatsappMediaRecoveryClosure.test.js
+          backend/tests/whatsappOrphanAccountReconciliation.test.js
+          backend/tests/accountLifecycleRegression.test.js
+          backend/tests/platformProductionReadinessAuthority.test.js
+      - name: Run Source UAT P0 preflight
+        run: npm run preflight:source-uat:p0
+      - name: Run Source UAT delivery contracts
+        run: npm run test:source-uat-delivery
+      - name: Run UAT diagnostics contracts
+        run: npm run test:uat-diagnostics
+      - name: Verify exact third-party provenance
+        run: node tools/third-party/verify-provenance.js
+
+  task11-gate:
+    name: task11-gate
     if: ${{ always() }}
     needs:
       - task10-fault-matrix
+      - task11-production-contracts
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Enforce both platform matrices
+      - name: Enforce Task 10 and Task 11 contracts
         shell: bash
         env:
-          MATRIX_RESULT: ${{ needs.task10-fault-matrix.result }}
+          TASK10_RESULT: ${{ needs.task10-fault-matrix.result }}
+          TASK11_RESULT: ${{ needs.task11-production-contracts.result }}
         run: |
           set -euo pipefail
-          test "${MATRIX_RESULT}" = "success"
+          test "${TASK10_RESULT}" = "success"
+          test "${TASK11_RESULT}" = "success"
