@@ -125,6 +125,7 @@ function fixture() {
       readyForPromotion: false
     }
   });
+  const authorizationCommit = 'a'.repeat(40);
   const receipt = Object.freeze({
     schemaVersion: 1,
     documentType: 'YANCE_OPEN_SOURCE_WORK_PACKAGE_AUTHORIZATION_RECEIPT',
@@ -138,10 +139,10 @@ function fixture() {
     authorizationPath: entry.authorizationPath,
     approvedPlanPath: authorization.approvedPlanPath,
     approvedPlanHead: authorization.approvedPlanHead,
-    authorizationCommit: 'a'.repeat(40),
+    authorizationCommit,
     authorizationBlobSha: 'b'.repeat(40),
     authorizationFileSha256: 'c'.repeat(64),
-    implementationBaseCommit: 'd'.repeat(40),
+    implementationBaseCommit: authorizationCommit,
     approvedChangedFileCount: authorization.approvedChangedFileCount,
     approvedChangedFileSetSha256: authorization.approvedChangedFileSetSha256,
     governance: {
@@ -160,6 +161,20 @@ function fixture() {
     }
   });
   return { entry, registry, authorization, receipt };
+}
+
+function validReceiptOptions(receipt, authorization) {
+  const trustedPolicyHead = 'f'.repeat(40);
+  return {
+    authorizationFileSha256: receipt.authorizationFileSha256,
+    trustedPolicyHead,
+    resolveCommitBlobSha: () => receipt.authorizationBlobSha,
+    resolveCommitFirstParent: () => authorization.approvedParentHead,
+    isAncestor: (base, head) => base === receipt.authorizationCommit
+      && head === receipt.implementationBaseCommit,
+    isTrustedAncestor: (base, head) => base === receipt.authorizationCommit
+      && head === trustedPolicyHead
+  };
 }
 
 test('generic OSS-A registry, authorization and receipt are exact and zero-normalizing', () => {
@@ -183,12 +198,7 @@ test('generic OSS-A registry, authorization and receipt are exact and zero-norma
     receipt,
     authorization,
     entry,
-    {
-      authorizationFileSha256: receipt.authorizationFileSha256,
-      resolveCommitBlobSha: () => receipt.authorizationBlobSha,
-      isAncestor: (base, head) => base === receipt.authorizationCommit
-        && head === receipt.implementationBaseCommit
-    }
+    validReceiptOptions(receipt, authorization)
   ), true);
 
   assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
@@ -196,11 +206,49 @@ test('generic OSS-A registry, authorization and receipt are exact and zero-norma
     authorization,
     entry,
     {
-      authorizationFileSha256: receipt.authorizationFileSha256,
-      resolveCommitBlobSha: () => 'f'.repeat(40),
-      isAncestor: () => true
+      ...validReceiptOptions(receipt, authorization),
+      resolveCommitBlobSha: () => 'e'.repeat(40)
     }
   ), false, 'authorization blob drift must fail closed');
+});
+
+test('receipt cannot select a hidden implementation baseline or an untrusted authorization commit', () => {
+  const policy = loadPolicy();
+  const { entry, authorization, receipt } = fixture();
+
+  const descendantBase = {
+    ...receipt,
+    implementationBaseCommit: 'd'.repeat(40)
+  };
+  assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
+    descendantBase,
+    authorization,
+    entry,
+    {
+      ...validReceiptOptions(descendantBase, authorization),
+      isAncestor: () => true
+    }
+  ), false, 'implementation base must equal the canonical authorization commit');
+
+  assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
+    receipt,
+    authorization,
+    entry,
+    {
+      ...validReceiptOptions(receipt, authorization),
+      isTrustedAncestor: () => false
+    }
+  ), false, 'authorization commit must be an ancestor of the trusted policy head');
+
+  assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
+    receipt,
+    authorization,
+    entry,
+    {
+      ...validReceiptOptions(receipt, authorization),
+      resolveCommitFirstParent: () => '0'.repeat(40)
+    }
+  ), false, 'authorization commit first parent must equal approvedParentHead');
 });
 
 test('repository authority files register OSS-A but do not self-create an implementation receipt', () => {
