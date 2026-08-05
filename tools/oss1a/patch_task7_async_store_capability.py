@@ -3,16 +3,16 @@ import textwrap
 
 store_path = Path('backend/repositories/storeProvider.js')
 source = store_path.read_text(encoding='utf-8')
-old = """          const result = Reflect.apply(value, store, args);
-          return result === store ? capability : immutableValue(result);
+old = """        const result = Reflect.apply(value, store, args);
+        return result === store ? capability : immutableValue(result);
 """
-new = """          const result = Reflect.apply(value, store, args);
-          if (result && typeof result.then === 'function') {
-            return Promise.resolve(result).then(resolved =>
-              resolved === store ? capability : immutableValue(resolved)
-            );
-          }
-          return result === store ? capability : immutableValue(result);
+new = """        const result = Reflect.apply(value, store, args);
+        if (result && typeof result.then === 'function') {
+          return Promise.resolve(result).then(resolved =>
+            resolved === store ? capability : immutableValue(resolved)
+          );
+        }
+        return result === store ? capability : immutableValue(result);
 """
 assert source.count(old) == 1
 source = source.replace(old, new, 1)
