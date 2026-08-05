@@ -1,0 +1,328 @@
+schemaVersion: 1
+authority: YanceChatwootTransplantManifest
+frozenAt: '2026-08-06'
+capturedFrom:
+  yanceRepository: laiqian0239-glitch/yance
+  yanceBaseCommit: bdcc04017fd79a494ba66fad83f762a1c714ff1a
+  yanceBaseTree: f0d24bed8ca3ca132e47777a8a4dedd3cd521d09
+  chatwootRepository: chatwoot/chatwoot
+  chatwootTag: v4.14.2
+  chatwootCommit: a9468409fb9d5778b847bf93f215140fc357a36b
+  license: MIT-Expat outside enterprise/**
+decision: controlled-source-copy-or-behavior-port
+sourceCopyAuthorizedByThisManifest: false
+enterpriseSourceAllowed: false
+unresolvedChatwootRuntimeImportsAllowed: false
+requiredSlices:
+- conversation split-pane shell
+- conversation list and virtual scrolling
+- message timeline and scroll anchoring
+- message bubbles and attachment presentation
+- reply composer
+- contact sidebar
+- loading, empty, offline and error states
+entries:
+- sliceId: conversation-split-pane
+  upstreamPath: app/javascript/dashboard/components/widgets/conversation/ConversationBox.vue
+  upstreamBlobSha: 7d04470edb5e9541844d8dbce403d9798e6c93f0
+  localPath: apps/yance-desktop-ui/src/shell/conversations/ConversationSplitPane.vue
+  license: MIT-Expat
+  copiedOrBehaviorPort: behavior-port
+  excludedImports:
+  - vuex
+  - ./ConversationHeader.vue
+  - ../DashboardApp/Frame.vue
+  - ./EmptyState/EmptyState.vue
+  - ./MessagesView.vue
+  - Chatwoot store dispatch/getters
+  - woot-tabs
+  localModifications:
+  - Reconstruct split-pane behavior from typed Yance projections.
+  - Remove dashboard-app, account, inbox and label-fetch authority.
+  - Use YanceUIAdapter and YanceDesktopLayoutAdapter only.
+  upstreamTests:
+    directTestFiles: []
+    status: no-direct-file-test-copied
+    preservationTargets:
+    - selected-conversation empty/active states
+    - contact-panel visibility
+    - expanded/collapsed layout
+  YanceAdapterBoundary:
+  - YanceUIAdapter
+  - YanceDesktopLayoutAdapter
+  decisionReason: The component directly reads and mutates Vuex account, inbox, labels and dashboard-app state.
+- sliceId: conversation-list-virtual-scroll
+  upstreamPath: app/javascript/dashboard/components/ConversationList.vue
+  upstreamBlobSha: f02a0b80177bf88438de07fa8fa4287aa20cfdc6
+  localPath: apps/yance-desktop-ui/src/shell/conversations/ConversationListViewport.vue
+  license: MIT-Expat
+  copiedOrBehaviorPort: behavior-port
+  excludedImports:
+  - dashboard/composables/chatlist/useChatListKeyboardEvents
+  - ./ConversationItem.vue
+  - dashboard/components-next/spinner/Spinner.vue
+  - dashboard/components/IntersectionObserver.vue
+  - dashboard/constants/globals
+  - Chatwoot CSS tokens and i18n keys
+  localModifications:
+  - Retain virtual-list, load-more and keyboard-navigation behavior behind Yance projections.
+  - Replace Chatwoot item, breakpoints, spinner and intersection components with local shell primitives.
+  - No Chatwoot state or account metadata.
+  upstreamTests:
+    directTestFiles: []
+    status: no-direct-file-test-copied
+    preservationTargets:
+    - virtual scrolling
+    - load-more threshold
+    - keyboard list navigation
+    - loading and end-of-list states
+  YanceAdapterBoundary:
+  - YanceUIAdapter
+  - YanceDesktopLayoutAdapter
+  decisionReason: The reusable virtualization idea is separable, but the file imports Chatwoot item, keyboard, constants,
+    i18n and presentation infrastructure.
+- sliceId: contact-sidebar
+  upstreamPath: app/javascript/dashboard/components/widgets/conversation/ConversationSidebar.vue
+  upstreamBlobSha: 89b01cb8d85c1866e08eaefd3359dd63171c2a6d
+  localPath: apps/yance-desktop-ui/src/shell/contacts/ContactSidebar.vue
+  license: MIT-Expat
+  copiedOrBehaviorPort: behavior-port
+  excludedImports:
+  - dashboard/routes/dashboard/conversation/ContactPanel.vue
+  - dashboard/composables/useUISettings
+  - dashboard/constants/globals
+  - Chatwoot UI settings mutation
+  localModifications:
+  - Reconstruct responsive open/close behavior and outside-click handling.
+  - Persist mode and width only through YanceDesktopLayoutAdapter.
+  - Project contact data read-only through YanceUIAdapter until OSS-C integration.
+  upstreamTests:
+    directTestFiles: []
+    status: no-direct-file-test-copied
+    preservationTargets:
+    - responsive overlay
+    - outside-click close
+    - independent sidebar state
+  YanceAdapterBoundary:
+  - YanceUIAdapter
+  - YanceDesktopLayoutAdapter
+  decisionReason: The file mutates Chatwoot UI settings and renders the Chatwoot contact authority.
+- sliceId: message-timeline-scroll-anchor
+  upstreamPath: app/javascript/dashboard/components/widgets/conversation/MessagesView.vue
+  upstreamBlobSha: 6b6e3d2b29ac52340c5038f93b9b609c65e49ded
+  localPath: apps/yance-desktop-ui/src/shell/messages/ConversationTimelineViewport.vue
+  license: MIT-Expat
+  copiedOrBehaviorPort: behavior-port
+  excludedImports:
+  - vuex
+  - dashboard/composables/useLabelSuggestions
+  - dashboard/composables/useTransformKeys
+  - shared/mixins/inboxMixin
+  - shared/helpers/mitt
+  - shared/helpers/localStorage
+  - dashboard/helper/conversationHelper
+  - dashboard constants and inbox policy
+  - ReplyBox.vue
+  - MessageList.vue
+  - ResizableEditorWrapper.vue
+  localModifications:
+  - Rebuild scroll anchoring, previous-page loading and unread separation as pure projection behavior.
+  - Remove labels, inbox policy, typing, localStorage and Chatwoot event authority.
+  - Use YanceUIAdapter immutable timeline projections.
+  upstreamTests:
+    directTestFiles: []
+    status: no-direct-file-test-copied
+    preservationTargets:
+    - scroll anchoring
+    - load previous messages
+    - read/unread split
+    - loading and offline states
+  YanceAdapterBoundary:
+  - YanceUIAdapter
+  decisionReason: The file combines presentation with Chatwoot stores, inbox policy, localStorage, business events
+    and API-derived state.
+- sliceId: reply-composer
+  upstreamPath: app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue
+  upstreamBlobSha: fc93ff2c79439f83635518e4a5d725c54ce27c52
+  localPath: apps/yance-desktop-ui/src/shell/composer/ReplyComposer.vue
+  license: MIT-Expat
+  copiedOrBehaviorPort: behavior-port
+  excludedImports:
+  - vuex
+  - dashboard/composables/useUISettings
+  - dashboard/composables/useTrack
+  - Chatwoot editor components
+  - WhatsApp and content template modules
+  - fileUploadMixin
+  - inboxMixin
+  - localStorage
+  - Chatwoot analytics and bus events
+  - Copilot components and authority
+  localModifications:
+  - Reconstruct keyboard, attachment-preview and draft interaction only.
+  - Chinese source text, translation preview, freeze and enqueue remain behind TranslationComposerPort and Yance
+    send authority.
+  - No direct platform, template, AI or upload authority.
+  upstreamTests:
+    directTestFiles: []
+    status: no-direct-file-test-copied
+    preservationTargets:
+    - draft preservation
+    - keyboard submit
+    - attachment presentation
+    - blocked send without frozen translation
+  YanceAdapterBoundary:
+  - TranslationComposerPort
+  - YanceUIAdapter
+  decisionReason: The component is deeply coupled to Chatwoot stores, templates, uploads, AI, analytics, localStorage
+    and send semantics.
+- sliceId: composer-resize
+  upstreamPath: app/javascript/dashboard/components/widgets/conversation/ResizableEditorWrapper.vue
+  upstreamBlobSha: 4d5c041ac7997ef3ad6ac4f8bae3f9ded8c57659
+  localPath: apps/yance-desktop-ui/src/shell/composer/ResizableComposerShell.vue
+  license: MIT-Expat
+  copiedOrBehaviorPort: copy-candidate
+  excludedImports:
+  - shared/helpers/mitt
+  - shared/constants/busEvents
+  - Chatwoot CSS tokens
+  localModifications:
+  - Replace Chatwoot MESSAGE_SENT event with a typed local presentation event.
+  - Add keyboard resize, ARIA separator semantics and DPI contract coverage.
+  - Keep all sizing state non-authoritative and presentation-local.
+  upstreamTests:
+    directTestFiles: []
+    status: copy-requires-new-local-tests
+    preservationTargets:
+    - pointer resize
+    - touch resize
+    - clamping
+    - expand/reset
+    - cleanup on blur and unmount
+  YanceAdapterBoundary:
+  - YanceDesktopLayoutAdapter
+  decisionReason: The core sizing algorithm is presentation-only and can be detached after replacing two Chatwoot
+    event imports.
+- sliceId: message-list-grouping
+  upstreamPath: app/javascript/dashboard/components-next/message/MessageList.vue
+  upstreamBlobSha: a579208e8a813ffbe347b9f63339b8f1dd5be551
+  localPath: apps/yance-desktop-ui/src/shell/messages/MessageList.vue
+  license: MIT-Expat
+  copiedOrBehaviorPort: behavior-port
+  excludedImports:
+  - dashboard/composables/useTransformKeys
+  - dashboard/composables/store
+  - dashboard/api/inbox/message.js
+  - Chatwoot selected-chat store
+  - Message.vue
+  localModifications:
+  - Reconstruct deterministic grouping and reply-reference presentation from already-complete Yance projections.
+  - Remove API fallback and store cache.
+  - Missing reply targets render a typed unavailable state rather than fetching Chatwoot APIs.
+  upstreamTests:
+    directTestFiles: []
+    status: no-direct-file-test-copied
+    preservationTargets:
+    - stable ordering
+    - same-sender grouping
+    - unread marker
+    - reply reference without API authority
+  YanceAdapterBoundary:
+  - YanceUIAdapter
+  decisionReason: The component performs API fallback and reads selected-chat state; only grouping behavior is reusable.
+- sliceId: message-bubbles-attachments
+  upstreamPath: app/javascript/dashboard/components-next/message/Message.vue
+  upstreamBlobSha: 0ef64eedffce6c47276bfdfdaf4f36ebde8fd354
+  localPath: apps/yance-desktop-ui/src/shell/messages/MessagePresentation.vue
+  license: MIT-Expat
+  copiedOrBehaviorPort: behavior-port
+  excludedImports:
+  - vue-router
+  - vue-i18n
+  - dashboard store composables
+  - shared localStorage
+  - Chatwoot analytics
+  - Chatwoot branding
+  - Chatwoot context menu
+  - all Chatwoot bubble components
+  - Chatwoot bus events
+  localModifications:
+  - Reconstruct message variant, grouping and attachment presentation from Yance canonical message types.
+  - Remove route, account, inbox, branding, analytics and localStorage authority.
+  - Retry dispatches a typed Yance command only.
+  upstreamTests:
+    directTestFiles: []
+    status: no-direct-file-test-copied
+    preservationTargets:
+    - incoming/outgoing/activity/private/failed variants
+    - attachment type presentation
+    - retry affordance
+    - original and translated text access
+  YanceAdapterBoundary:
+  - YanceUIAdapter
+  decisionReason: The component is a dependency hub for Chatwoot routing, stores, branding, localStorage, analytics
+    and many business-specific bubbles.
+- sliceId: required-empty-state
+  upstreamPath: app/javascript/dashboard/components-next/Conversation/ConversationRequiredEmpty.vue
+  upstreamBlobSha: 36687245e8619dbcc2a976c5c3fd678a4a44ea5f
+  localPath: apps/yance-desktop-ui/src/shell/states/ConversationRequiredEmpty.vue
+  license: MIT-Expat
+  copiedOrBehaviorPort: copy-candidate
+  excludedImports:
+  - vue-i18n Chatwoot translation key
+  - Chatwoot CSS tokens
+  localModifications:
+  - Replace translation key and design tokens with Yance-owned copy and tokens.
+  - Add explicit surface-state label.
+  - No business authority or persistence.
+  upstreamTests:
+    directTestFiles: []
+    status: copy-requires-new-local-tests
+    preservationTargets:
+    - empty required-attributes presentation
+    - accessible status text
+  YanceAdapterBoundary:
+  - YanceUIAdapter
+  decisionReason: The component is pure presentation after replacing one i18n key and local classes.
+- sliceId: loading-empty-offline-error
+  upstreamPath: app/javascript/dashboard/components-next/EmptyStateLayout.vue
+  upstreamBlobSha: f782886e8cc19935dc1ea3c3f3ff44fa28e4344d
+  localPath: apps/yance-desktop-ui/src/shell/states/ConversationStateLayout.vue
+  license: MIT-Expat
+  copiedOrBehaviorPort: behavior-port
+  excludedImports:
+  - dashboard/components/policy.vue
+  - Chatwoot permission policy
+  - Chatwoot CSS tokens
+  localModifications:
+  - Reconstruct layout and backdrop behavior with Yance state labels.
+  - Action visibility is supplied as a read-only capability projection, not evaluated by copied policy code.
+  - Add loading, offline, timeout and error variants.
+  upstreamTests:
+    directTestFiles: []
+    status: no-direct-file-test-copied
+    preservationTargets:
+    - empty backdrop
+    - title/subtitle/actions layout
+    - loading/offline/error state distinction
+    - keyboard reachable recovery action
+  YanceAdapterBoundary:
+  - YanceUIAdapter
+  decisionReason: The layout is visually reusable, but its Policy component would import Chatwoot authorization
+    semantics.
+globalExclusions:
+- enterprise/**
+- Chatwoot API clients and endpoints
+- Rails and ActionCable
+- Vuex, Pinia, router, cache and persistence state
+- account, inbox, workspace, tenant, identity and authentication authority
+- notification policy and desktop notification authority
+- message enqueue, retry, send, delivery reconciliation and platform authority
+copyPromotionGate:
+  separateExactAuthorizationRequired: true
+  archiveSha256Required: true
+  thirdPartyNoticeRequired: true
+  fileLevelLicenseHeaderRequired: true
+  localDependencyClosureMustBeGreen: true
+  upstreamTestsOrReplacementContractsRequired: true
+  yanceAdapterBoundaryMustBeEnforced: true

@@ -1,0 +1,180 @@
+schemaVersion: 2
+authority: YanceUnifiedUIUpstreamPins
+frozenAt: "2026-08-06"
+capturedFrom:
+  repository: laiqian0239-glitch/yance
+  branch: main
+  commit: bdcc04017fd79a494ba66fad83f762a1c714ff1a
+  tree: f0d24bed8ca3ca132e47777a8a4dedd3cd521d09
+  activeHandoffObserved: 89056a4466aa46fe282787980cf5029531fe76d6
+  observationSemantics: historical-observation-require-fresh-remote-ref-read
+decision: provenance-controlled-hybrid-strangler
+
+shellRuntime:
+  framework: Vue
+  frameworkVersion: "3.5.17"
+  buildBoundary: apps/yance-desktop-ui
+  buildTool: Vite
+  buildToolVersion: "6.4.2"
+  moduleBoundary: ESM-inside-shell
+  hostBoundary: Electron
+  packageManager: npm
+  exactVersionsOnly: true
+  lockfileRequired: true
+
+upstreams:
+  chatwoot:
+    repository: https://github.com/chatwoot/chatwoot
+    tag: v4.14.2
+    tagObjectSha: a2797a8cf35592de547983d172e6b1556d40c418
+    commit: a9468409fb9d5778b847bf93f215140fc357a36b
+    license: MIT-Expat-outside-enterprise
+    adoption: controlled-source-copy-or-behavior-port
+    manifestPath: docs/ui-migration/CHATWOOT_TRANSPLANT_MANIFEST.yaml
+    manifestRequiredBeforeAnyCopy: true
+    allowedCapability:
+      - conversation split-pane presentation
+      - conversation list and virtual scrolling behavior
+      - message timeline and scroll anchoring behavior
+      - message and attachment presentation
+      - composer interaction behavior
+      - contact-sidebar presentation
+      - loading, empty, offline and error states
+      - non-business keyboard and accessibility behavior
+    deniedSource:
+      - enterprise/**
+    deniedAuthority:
+      - API clients and endpoints
+      - Rails or ActionCable integration
+      - Vuex, Pinia, router, cache or persistence state
+      - account, inbox, workspace, tenant, identity or authentication authority
+      - notification policy or desktop notification authority
+      - message enqueue, retry, send, delivery reconciliation or platform authority
+    copyGate:
+      fileLevelProvenanceRequired: true
+      exactUpstreamBlobShaRequired: true
+      upstreamPathRequired: true
+      localPathRequired: true
+      localModificationRecordRequired: true
+      excludedImportClosureRequired: true
+      upstreamTestRecordRequired: true
+      yanceAdapterBoundaryRequired: true
+      licenseNoticeRequired: true
+      archiveSha256RequiredBeforeFirstCopy: true
+      noUnresolvedChatwootRuntimeImports: true
+      sourceCopyAuthorizedByThisDocument: false
+
+  shadcnVue:
+    repository: https://github.com/unovue/shadcn-vue
+    tag: v2.7.3
+    tagObjectSha: c44d9e99e6902a56675f74bb7b24e6a647b34c1e
+    commit: 0840c07ac18bbb2de1d5be8a4bde717595ada013
+    license: MIT
+    adoption: tracked-local-source
+    dependencyAllowed: false
+    copyGate:
+      fileLevelProvenanceRequired: true
+      exactUpstreamBlobShaRequired: true
+      upstreamPathRequired: true
+      localModificationRecordRequired: true
+      licenseNoticeRequired: true
+      archiveSha256RequiredBeforeFirstCopy: true
+      copiedComponentsBecomeYanceOwnedSource: true
+      sourceCopyAuthorizedByThisDocument: false
+
+  rekaUi:
+    repository: https://github.com/unovue/reka-ui
+    tag: v2.9.7
+    tagObjectSha: 1d62f8df74feeeead677159e26fd21e7a4b36bd2
+    commit: edbeb9348dba6eb7e9af208953f6c6a9e502fa9b
+    package: reka-ui
+    version: "2.9.7"
+    license: MIT
+    adoption: exact-dependency
+    versionRangeAllowed: false
+
+  vueUse:
+    repository: https://github.com/vueuse/vueuse
+    tag: v14.4.0
+    commit: 24160f9a8f1dcc576f1234008134ed47491c8183
+    packages:
+      "@vueuse/core": "14.4.0"
+      "@vueuse/shared": "14.4.0"
+    license: MIT
+    adoption: exact-dependency
+    versionRangeAllowed: false
+    importRule: named-functions-only
+
+  howler:
+    repository: https://github.com/goldfire/howler.js
+    tag: v2.2.4
+    commit: 003b917c40cb41cf382ba47ae0ed7a35ca2abe76
+    package: howler
+    version: "2.2.4"
+    license: MIT
+    adoption: exact-dependency
+    versionRangeAllowed: false
+    boundary: NotificationSoundPort
+    authorityAllowed: false
+
+yanceAuthority:
+  productData: YanceUIAdapter
+  sessions: YanceUIAdapter
+  appearance: YanceAppearanceAdapter
+  desktopLayout: YanceDesktopLayoutAdapter
+  translation: TranslationComposerPort
+  notificationSoundPlayback: NotificationSoundPort
+  notifications: existing-Yance-notification-authority
+  send: existing-Yance-outbox-and-send-queue-authorities
+  fontScale:
+    field: typography.fontScale
+    writeAuthority: YanceAppearanceAdapter
+    layoutProjection: read-only
+
+patchPolicy:
+  olderPersistedUnknownFields: preserve-as-opaque-migration-data
+  newUiPatchUnknownFields: reject
+  genericMergeAllowed: false
+  arbitraryUnknownFieldsMapAllowed: false
+
+surfaceStateLabels:
+  allowed:
+    - FIXTURE
+    - CONTRACT_HARNESS
+    - INTEGRATION_PENDING
+    - CONNECTED_READ_ONLY
+    - CONNECTED_PRODUCTION
+  unlabeledSurfaceAllowed: false
+
+singleWriterRule:
+  statement: >-
+    Legacy and Vue renderers may temporarily coexist for presentation, but for each
+    migrated feature surface exactly one renderer may issue commands through Yance
+    ports. Direct shared persistence writes, dual command dispatch, shadow mutation
+    and last-write-wins reconciliation are forbidden.
+  cutoverRequires:
+    - explicit feature-surface ownership flag from a Yance authority
+    - legacy writer disabled before Vue writer enabled
+    - restart-safe persisted ownership
+    - rollback that restores one writer, never two
+    - audit evidence proving no direct business-state writes from either renderer
+
+forbidden:
+  - Chatwoot runtime dependency
+  - Chatwoot enterprise source
+  - Chatwoot API, state tree, account, notification or send authority
+  - direct platform API calls from the Vue shell
+  - direct SQLite, document-store or business-file writes from the Vue shell
+  - localStorage as authoritative settings storage
+  - a second appearance, layout, translation, notification or send authority
+  - unverified sound redistribution
+  - temporary bypass, warning-only closure or weakened gate
+
+authorizationBoundary:
+  uiWp1RedContracts: true-after-exact-authorization-seal
+  productShellImplementation: false
+  chatwootSourceCopy: false
+  soundPublicRedistribution: false
+  legacyWriterCutover: false
+  productionUse: false
+  mainMerge: false

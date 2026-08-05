@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 2,
+  "authority": "YanceUnifiedUIAssetBaseline",
+  "capturedAt": "2026-08-06",
+  "capturedFrom": {
+    "repository": "laiqian0239-glitch/yance",
+    "branch": "main",
+    "commit": "bdcc04017fd79a494ba66fad83f762a1c714ff1a",
+    "tree": "f0d24bed8ca3ca132e47777a8a4dedd3cd521d09",
+    "activeHandoffObserved": "89056a4466aa46fe282787980cf5029531fe76d6",
+    "observationSemantics": "Historical observation only. Every branch, test, review and promotion action must freshly read remote refs."
+  },
+  "freezeRule": {
+    "meaning": "Stable IDs, accepted authoritative fields and proved behavior are contractual. Bytes are frozen by exact source blob SHA.",
+    "zeroRegressionRequired": true,
+    "noSecondBusinessStateWriter": true,
+    "persistedUnknownFieldRule": {
+      "olderPersistedDocument": "May be preserved as opaque migration data without becoming writable UI schema.",
+      "newUiPatch": "Reject every field not present in the authoritative patch allowlist.",
+      "genericMergeAllowed": false,
+      "arbitraryUnknownFieldsMapAllowed": false
+    }
+  },
+  "currentFrontend": {
+    "entryPath": "frontend/index.html",
+    "entryBlobSha": "668213f47794b609dd3c0447e0636207bfea3f90",
+    "runtime": "Electron renderer with legacy HTML/CommonJS/JavaScript/CSS surfaces",
+    "migration": "feature-surface strangler",
+    "singleWriterCutover": "Legacy and Vue surfaces may coexist for presentation only. Exactly one renderer may issue business commands for each feature surface.",
+    "requiredSurfaceStateLabels": [
+      "FIXTURE",
+      "CONTRACT_HARNESS",
+      "INTEGRATION_PENDING",
+      "CONNECTED_READ_ONLY",
+      "CONNECTED_PRODUCTION"
+    ],
+    "unlabeledSurfaceAllowed": false
+  },
+  "appearance": {
+    "adapter": "YanceAppearanceAdapter",
+    "soleWriteAuthority": true,
+    "catalogPath": "frontend/theme-catalog.json",
+    "catalogBlobSha": "8394e389818aae72f1ef046807c77ca0fbf09ebb",
+    "policyPath": "backend/store/themeAppearancePolicy.js",
+    "policyBlobSha": "941c5365552d1484e5c4e7ea8924a9c5cfd6a34c",
+    "catalogVersion": 2,
+    "themeCount": 29,
+    "defaultThemeId": "midnight-cyan",
+    "lightDefaultThemeId": "jade-paper",
+    "darkDefaultThemeId": "midnight-cyan",
+    "existingFontScaleRangePercent": [
+      90,
+      120
+    ],
+    "authorizedMigrationTargetRangePercent": [
+      80,
+      160
+    ],
+    "fontScaleAuthorityField": "typography.fontScale",
+    "versionedMigrationRequired": true,
+    "owns": [
+      "theme catalog",
+      "theme selection",
+      "preview",
+      "theme tuning",
+      "typography",
+      "line height",
+      "spacing and density appearance profile",
+      "typography.fontScale"
+    ],
+    "preservedState": [
+      "themeId",
+      "previewThemeId",
+      "motionLevel",
+      "backgroundEffect",
+      "themeMode",
+      "lightThemeId",
+      "darkThemeId",
+      "scheduleDayStart",
+      "scheduleNightStart",
+      "favoriteThemeIds",
+      "recentThemeIds",
+      "themeTuning",
+      "typography",
+      "customThemePresets",
+      "activeCustomThemePresetId"
+    ]
+  },
+  "desktopLayout": {
+    "adapter": "YanceDesktopLayoutAdapter",
+    "authorityPath": "electron/desktopSettingsSchema.js",
+    "authorityBlobSha": "da09ed2abe3df1e7bf744861d4d372726f638949",
+    "schemaVersion": 2,
+    "owns": [
+      "left sidebar mode and width",
+      "right sidebar mode and width",
+      "layout version",
+      "window and panel layout",
+      "restart-safe layout persistence"
+    ],
+    "fontScaleProjection": "read-only",
+    "fontScaleMutationAllowed": false,
+    "businessKeysRemainForbidden": true,
+    "localStorageAuthorityAllowed": false,
+    "newUiPatchAllowlist": [
+      "version",
+      "leftSidebar.mode",
+      "leftSidebar.width",
+      "rightSidebar.mode",
+      "rightSidebar.width",
+      "layoutVersion",
+      "windowLayout",
+      "panelLayout"
+    ]
+  },
+  "notificationSounds": {
+    "libraryPath": "shared/notificationSoundLibrary.json",
+    "libraryBlobSha": "602bca1841ecfaa712a21dac50fd4fc7e8060811",
+    "catalogPath": "shared/notificationSoundCatalog.js",
+    "catalogBlobSha": "5f70df332a3a45e31599cb7397496b854c10b058",
+    "catalogSchemaVersion": 3,
+    "stableIdPreservationRequired": true,
+    "classes": [
+      {
+        "name": "yance-original",
+        "count": 11,
+        "distributionClass": "original-evidence-required",
+        "licenseStatus": "evidence-pending",
+        "shipInInstaller": false,
+        "shipCondition": "Only after authored-or-licensed evidence is verified.",
+        "localMigrationOnly": false
+      },
+      {
+        "name": "imported-user-provided-audio-archive",
+        "count": 125,
+        "distributionClass": "local-migration-only",
+        "licenseStatus": "unverified",
+        "shipInInstaller": false,
+        "localMigrationOnly": true
+      },
+      {
+        "name": "user-custom",
+        "count": null,
+        "distributionClass": "user-local-only",
+        "licenseStatus": "not-product-redistribution-evidence",
+        "shipInInstaller": false,
+        "localMigrationOnly": true
+      }
+    ],
+    "publicRedistributionAuthorized": false,
+    "deletionOfLocalAssetsAuthorized": false
+  },
+  "notifications": {
+    "authorityPath": "backend/services/notificationPolicy.js",
+    "authorityBlobSha": "669803f1c04cd287b9e17681309f6e5718ef2c0b",
+    "schemaVersion": 6,
+    "preservedRules": [
+      "global enable",
+      "desktop enable",
+      "sound enable",
+      "pause",
+      "per-event enable and sound pattern",
+      "background notifications",
+      "privacy preview/sender-only/hidden",
+      "active-conversation suppression",
+      "focused-window suppression",
+      "muted conversations",
+      "priority conversations",
+      "muted accounts",
+      "muted platforms",
+      "DND schedule",
+      "dedupe window",
+      "merge window"
+    ],
+    "soundFailureIsolation": "Playback failure must not mutate notification allow/suppress decisions, send outcomes or delivery state."
+  },
+  "translation": {
+    "authorityPath": "backend/services/outboundTranslationAuthority.js",
+    "authorityBlobSha": "216eef29fa28564c31e0754411c01f0492a00116",
+    "provedCapabilities": [
+      "Chinese outbound text is translated before durable enqueue.",
+      "Unresolved target language blocks send.",
+      "Translation failure creates no durable send-queue row.",
+      "The durable queue stores target-language text and translation metadata."
+    ],
+    "missingProofsRequiredByWp1": [
+      "stable translationId",
+      "immutable frozen text bytes",
+      "immutable frozen-text hash",
+      "preview-to-freeze generation fencing",
+      "crash/restart retry translation invocation count equals one",
+      "retry reuses the same translation identity and exact bytes"
+    ],
+    "missingProofsMayBeClaimedExisting": false
+  },
+  "send": {
+    "authorityPath": "backend/services/sendQueueService.js",
+    "authorityBlobSha": "74f4ed4b1c1b4d6b7cf6351579d9a67a1364c3c9",
+    "invariants": [
+      "Only Yance send authorities may enqueue or dispatch platform messages.",
+      "The Vue shell cannot call platform APIs directly.",
+      "Offline, crash and restart recovery must never trigger an unconfirmed automatic send."
+    ]
+  },
+  "authorizationBoundary": {
+    "uiWp1RedAuthorizedByThisPackageAfterSeal": true,
+    "productShellImplementation": false,
+    "chatwootSourceCopy": false,
+    "soundPublicRedistribution": false,
+    "legacyWriterCutover": false,
+    "productionUse": false,
+    "mainMerge": false
+  }
+}
