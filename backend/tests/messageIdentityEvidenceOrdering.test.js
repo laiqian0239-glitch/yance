@@ -9,15 +9,20 @@ const assert = require('node:assert/strict');
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-identity-evidence-order-'));
 process.env.YANCE_DATA_DIR = dataRoot;
 process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
 
 const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
 const {
   createSqliteConnectionBroker,
   resetSqliteConnectionBrokerForTests
 } = require('../lib/sqliteConnectionBroker');
+const { AuthorityTransactionCoordinator } = require('../services/authorityTransactionCoordinator');
+const canonicalEventLedger = require('../services/canonicalEventLedgerAuthority');
+const eventBus = require('../services/eventBus');
 const { createWhatsAppAuthCipher } = require('../security/whatsappAuthCipher');
 
 resetSqliteConnectionBrokerForTests();
+canonicalEventLedger.resetSingletonForTests();
 const dbPath = path.join(dataRoot, 'database', 'yance.db');
 const authorityHost = acquireAuthorityWriteHost({ dbPath, instanceId: 'identity-evidence-order-host' });
 const broker = createSqliteConnectionBroker({
@@ -26,6 +31,12 @@ const broker = createSqliteConnectionBroker({
   storeOptions: { ownershipHeartbeatMs: 60000, ownershipStaleMs: 120000 }
 });
 const store = broker.open();
+const coordinator = new AuthorityTransactionCoordinator({ store, eventBus });
+canonicalEventLedger.configureSingleton(canonicalEventLedger.createCanonicalEventLedgerAuthority({
+  store,
+  coordinator,
+  eventBus
+}));
 const messageStore = require('../services/messageStore');
 const cipher = createWhatsAppAuthCipher({ key: Buffer.alloc(32, 0x6d), keyVersion: 1 });
 messageStore.configureWhatsAppMessageKeyIndex({
@@ -37,6 +48,7 @@ store.upsertAccount({ id: 'page-identity-order', accountId: 'page-identity-order
 store.upsertAccount({ id: 'wa-identity-order', accountId: 'wa-identity-order', adapterAccountId: 'wa-identity-order', platform: 'whatsapp', state: 'online', canSend: false, canReceive: true });
 
 test.after(() => {
+  try { canonicalEventLedger.resetSingletonForTests(); } catch (_) {}
   try { cipher.close(); } catch (_) {}
   try { broker.checkpointAndClose(); } catch (_) {}
   try { authorityHost.close(); } catch (_) {}
@@ -84,7 +96,6 @@ test('failed message projection cannot create identity evidence for a nonexisten
   assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM identity_links').get().count, 0);
   assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM identity_link_audit').get().count, 0);
 });
-
 
 test('failed WhatsApp message projection cannot leave an auth-key lookup index or identity evidence', async t => {
   const originalTouch = store.touchConversationFromMessage;
