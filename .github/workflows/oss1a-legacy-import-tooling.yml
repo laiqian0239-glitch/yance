@@ -6,12 +6,14 @@ on:
       - work/oss1a-legacy-import-repository-patch
     paths:
       - .github/workflows/oss1a-legacy-import-tooling.yml
+      - tools/oss1a/whatsappAuthResolver.discovery-only.js
+      - tools/oss1a/credentialRecoveryService.database-authority.js
 
 permissions:
   contents: write
 
 jobs:
-  publish-orphan-broker-fixture-candidate:
+  publish-recovery-root-candidate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout tooling head
@@ -20,45 +22,48 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: true
-      - name: Build self-contained orphan Store fixture
+      - name: Build database-authority recovery candidate
         shell: bash
         env:
-          IMPLEMENTATION_PARENT: a0248b436bf426147115b4e258517de3427446bc
-          CANDIDATE_BRANCH: work/oss1a-orphan-broker-fixture-candidate
+          IMPLEMENTATION_PARENT: 363194064a5b05881ada067349644f9a97591c8c
+          CANDIDATE_BRANCH: work/oss1a-legacy-recovery-root-candidate
         run: |
           set -euo pipefail
           test -z "$(git ls-remote --heads origin "refs/heads/${CANDIDATE_BRANCH}")"
+          cp tools/oss1a/whatsappAuthResolver.discovery-only.js /tmp/whatsappAuthResolver.js
+          cp tools/oss1a/credentialRecoveryService.database-authority.js /tmp/credentialRecoveryService.js
           git show "${IMPLEMENTATION_PARENT}:backend/tests/whatsappOrphanAccountReconciliation.test.js" > /tmp/orphan.test.js
           node <<'NODE'
           const fs = require('node:fs');
           const file = '/tmp/orphan.test.js';
           let source = fs.readFileSync(file, 'utf8');
-          function replaceOnce(before, after, label) {
-            const first = source.indexOf(before);
-            if (first < 0 || source.indexOf(before, first + before.length) >= 0) {
-              throw new Error(`${label}: expected one exact match`);
-            }
-            source = source.slice(0, first) + after + source.slice(first + before.length);
+          const before = 'try { testWriteHost.release(); }';
+          const after = 'try { testWriteHost.close(); }';
+          const first = source.indexOf(before);
+          if (first < 0 || source.indexOf(before, first + before.length) >= 0) {
+            throw new Error('expected one exact AuthorityWriteHost cleanup call');
           }
-          replaceOnce(
-            "const { getStore, closeStore } = require('../repositories/storeProvider');\nconst { stableId } = require('../lib/r32SqliteStore');",
-            "const { PATHS } = require('../config');\nconst { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');\nconst {\n  SqliteConnectionBroker,\n  configureSqliteConnectionBroker,\n  resetSqliteConnectionBrokerForTests\n} = require('../lib/sqliteConnectionBroker');\nresetSqliteConnectionBrokerForTests();\nconst testWriteHost = acquireAuthorityWriteHost({\n  dbPath: PATHS.sqlite,\n  instanceId: 'oss1a-orphan-reconciliation-test-host'\n});\nconst testBroker = new SqliteConnectionBroker({\n  dbPath: PATHS.sqlite,\n  authorityWriteHostCapability: testWriteHost.capability\n});\nconfigureSqliteConnectionBroker(testBroker);\ntestBroker.open();\nconst { getStore, closeStore } = require('../repositories/storeProvider');\nconst { stableId } = require('../lib/r32SqliteStore');",
-            'broker initialization'
-          );
-          replaceOnce(
-            "process.on('exit', () => {\n  try { closeStore(); } catch (error) { process.stderr.write(`closeStore failed: ${error.message}\\n`); }\n  try { fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (error) { process.stderr.write(`cleanup failed: ${error.message}\\n`); }\n});",
-            "process.on('exit', () => {\n  try { closeStore(); } catch (error) { process.stderr.write(`closeStore failed: ${error.message}\\n`); }\n  try { resetSqliteConnectionBrokerForTests(); } catch (error) { process.stderr.write(`broker reset failed: ${error.message}\\n`); }\n  try { testWriteHost.release(); } catch (error) { process.stderr.write(`write host release failed: ${error.message}\\n`); }\n  try { fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (error) { process.stderr.write(`cleanup failed: ${error.message}\\n`); }\n});",
-            'broker cleanup'
-          );
+          source = source.slice(0, first) + after + source.slice(first + before.length);
           fs.writeFileSync(file, source, 'utf8');
           NODE
+          node --check /tmp/whatsappAuthResolver.js
+          node --check /tmp/credentialRecoveryService.js
           node --check /tmp/orphan.test.js
           git checkout --detach "${IMPLEMENTATION_PARENT}"
+          cp /tmp/whatsappAuthResolver.js backend/services/whatsappAuthResolver.js
+          cp /tmp/credentialRecoveryService.js backend/services/credentialRecoveryService.js
           cp /tmp/orphan.test.js backend/tests/whatsappOrphanAccountReconciliation.test.js
-          git add backend/tests/whatsappOrphanAccountReconciliation.test.js
-          test "$(git diff --cached --name-only)" = "backend/tests/whatsappOrphanAccountReconciliation.test.js"
+          git add \
+            backend/services/credentialRecoveryService.js \
+            backend/services/whatsappAuthResolver.js \
+            backend/tests/whatsappOrphanAccountReconciliation.test.js
+          expected="$(printf '%s\n' \
+            backend/services/credentialRecoveryService.js \
+            backend/services/whatsappAuthResolver.js \
+            backend/tests/whatsappOrphanAccountReconciliation.test.js)"
+          test "$(git diff --cached --name-only)" = "${expected}"
           git diff --cached --check
           git config user.name "Yance OSS1A Tooling"
           git config user.email "oss1a-tooling@users.noreply.github.com"
-          git commit -m "test(oss1a): self-host orphan reconciliation Store"
+          git commit -m "fix(oss1a): make legacy recovery database-authoritative"
           git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
