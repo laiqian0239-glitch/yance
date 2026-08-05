@@ -1,0 +1,207 @@
+name: OSS-1A Deferred Auth Cipher GREEN
+
+on:
+  push:
+    branches:
+      - generator/oss1a-deferred-auth-cipher-7ff80495
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prove-and-fast-forward:
+    runs-on: ubuntu-24.04
+    env:
+      IMPLEMENTATION_BASE: a4f0fdb8b8a66b99e4b0efb56d756b25b197735f
+      CANDIDATE_BASE: 7ff804950fe9528f555a100189134cf1358e1cc5
+      IMPLEMENTATION_BRANCH: oss/1a-baileys-lifecycle
+      CANDIDATE_BRANCH: candidate/oss1a-final-authority-green-v3-7ff80495
+    steps:
+      - name: Checkout exact failed candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.CANDIDATE_BASE }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Verify exact heads
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "${CANDIDATE_BASE}"
+          remote_head="$(git ls-remote origin "refs/heads/${IMPLEMENTATION_BRANCH}" | awk '{print $1}')"
+          test "${remote_head}" = "${IMPLEMENTATION_BASE}"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22.23.1
+          package-manager-cache: false
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Reproduce exact startup-order RED
+        shell: bash
+        run: |
+          set +e
+          node --test --test-concurrency=1 backend/tests/oss1aWhatsappAuthKeyRuntimeOrder.test.js \
+            > /tmp/deferred-auth-cipher-red.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/deferred-auth-cipher-red.log
+          test "${status}" -ne 0
+          grep -F "WHATSAPP_AUTH_KEY_AUTHORITY_NOT_STARTED" /tmp/deferred-auth-cipher-red.log
+          grep -F "real AppRuntimeComposition places the critical key authority before account startup" /tmp/deferred-auth-cipher-red.log
+
+      - name: Apply deferred cipher capability
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path('backend/runtime/AppRuntimeComposition.js')
+          text = path.read_text(encoding='utf-8')
+          anchor = """function snapshotStartupPayload(value) {
+"""
+          helper = """function createDeferredWhatsAppAuthCipher(keyAuthority) {
+  if (!keyAuthority || typeof keyAuthority.getCipher !== 'function') {
+    throw gatewayError(
+      'WHATSAPP_AUTH_CIPHER_AUTHORITY_REQUIRED',
+      'Deferred WhatsApp auth cipher requires the key authority',
+      503
+    );
+  }
+  const invoke = (method, args) => {
+    const cipher = keyAuthority.getCipher();
+    if (!cipher || typeof cipher[method] !== 'function') {
+      throw gatewayError(
+        'WHATSAPP_AUTH_CIPHER_CAPABILITY_INVALID',
+        `WhatsApp auth cipher method ${method} is unavailable`,
+        503,
+        { method }
+      );
+    }
+    return cipher[method](...args);
+  };
+  return Object.freeze({
+    encrypt(...args) { return invoke('encrypt', args); },
+    decrypt(...args) { return invoke('decrypt', args); },
+    hmacIndex(...args) { return invoke('hmacIndex', args); }
+  });
+}
+
+function snapshotStartupPayload(value) {
+"""
+          if text.count(anchor) != 1:
+            raise SystemExit('deferred cipher helper anchor mismatch')
+          text = text.replace(anchor, helper, 1)
+          old = """  const whatsappAuthRepository = createWhatsAppAuthStateRepository({
+    cipher: whatsappAuthKeyAuthority.getCipher(),
+    storeProvider: whatsappStoreProvider
+  });
+"""
+          new = """  const whatsappAuthRepository = createWhatsAppAuthStateRepository({
+    cipher: createDeferredWhatsAppAuthCipher(whatsappAuthKeyAuthority),
+    storeProvider: whatsappStoreProvider
+  });
+"""
+          if text.count(old) != 1:
+            raise SystemExit('eager cipher construction anchor mismatch')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          node --check backend/runtime/AppRuntimeComposition.js
+          git diff --check
+          test "$(git diff --name-only)" = "backend/runtime/AppRuntimeComposition.js"
+
+      - name: Commit corrected candidate
+        shell: bash
+        run: |
+          git config user.name 'OSS-1A Audit Automation'
+          git config user.email 'oss1a-audit@users.noreply.github.com'
+          git add backend/runtime/AppRuntimeComposition.js
+          git commit -m 'fix(oss1a): defer auth cipher resolution until key custody starts'
+          candidate="$(git rev-parse HEAD)"
+          echo "CANDIDATE_HEAD=${candidate}" >> "${GITHUB_ENV}"
+          python3 <<'PY'
+          import subprocess
+          base = 'a4f0fdb8b8a66b99e4b0efb56d756b25b197735f'
+          expected = sorted([
+              'backend/repositories/messageRepository.js',
+              'backend/repositories/whatsappAuthStateRepository.js',
+              'backend/runtime/AppRuntimeComposition.js',
+              'backend/services/whatsappAdapter.js',
+              'backend/tests/messageIdentityEvidenceOrdering.test.js',
+              'backend/tests/oss1aWhatsappAuthRepository.test.js',
+              'backend/tests/oss1aWhatsappLegacyAuthImport.test.js',
+              'backend/tests/oss1aWhatsappProductionAuthIntegration.test.js',
+              'backend/tests/oss1aWhatsappRegistrationIdZero.test.js',
+              'backend/tests/platformProductionReadinessAuthority.test.js'
+          ])
+          actual = sorted(subprocess.check_output(['git', 'diff', '--name-only', base, 'HEAD'], text=True).splitlines())
+          if actual != expected:
+              raise SystemExit(f'unexpected final paths: {actual}')
+          status = subprocess.check_output(['git', 'diff', '--name-status', base, 'HEAD'], text=True)
+          if 'D\tbackend/tests/oss1aWhatsappRegistrationIdZero.test.js' not in status:
+              raise SystemExit('registration boundary test relocation is not sealed')
+          PY
+          git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
+
+      - name: Verify in two detached worktrees
+        shell: bash
+        run: |
+          set -euo pipefail
+          for suffix in a b; do
+            worktree="${RUNNER_TEMP}/oss1a-final-v3-${suffix}"
+            git worktree add --detach "${worktree}" "${CANDIDATE_HEAD}"
+            (
+              cd "${worktree}"
+              npm ci --ignore-scripts --no-audit --no-fund
+              node --test --test-concurrency=1 \
+                backend/tests/oss1aWhatsappAuthKeyRuntimeOrder.test.js \
+                backend/tests/messageIdentityEvidenceOrdering.test.js \
+                backend/tests/oss1aWhatsappAuthRepository.test.js \
+                backend/tests/oss1aWhatsappAuthStateStore.test.js \
+                backend/tests/oss1aWhatsappLegacyAuthImport.test.js \
+                backend/tests/oss1aWhatsappProductionAuthIntegration.test.js \
+                backend/tests/platformProductionReadinessAuthority.test.js
+              npm run test:oss1a
+              npm run test:oss1a:crash
+              npm run test:oss1a:concurrency
+              node --test --test-concurrency=1 \
+                backend/tests/batch39WhatsappSessionFence.test.js \
+                backend/tests/batch40ChannelAbortPropagation.test.js \
+                backend/tests/whatsappReceiptRecoveryRegression.test.js \
+                backend/tests/whatsappQrChallenge.test.js \
+                backend/tests/whatsappCanonicalGuardRegression.test.js \
+                backend/tests/whatsappMediaRecoveryClosure.test.js \
+                backend/tests/whatsappOrphanAccountReconciliation.test.js \
+                backend/tests/accountLifecycleRegression.test.js \
+                backend/tests/platformProductionReadinessAuthority.test.js \
+                backend/tests/messageIdentityEvidenceOrdering.test.js
+              node tools/third-party/verify-provenance.js
+              test ! -e backend/tests/oss1aWhatsappRegistrationIdZero.test.js
+              test -z "$(git status --porcelain)"
+            )
+          done
+
+      - name: Ordinary fast-forward implementation branch
+        shell: bash
+        run: |
+          remote_head="$(git ls-remote origin "refs/heads/${IMPLEMENTATION_BRANCH}" | awk '{print $1}')"
+          test "${remote_head}" = "${IMPLEMENTATION_BASE}"
+          git push origin "${CANDIDATE_HEAD}:refs/heads/${IMPLEMENTATION_BRANCH}"
+          final_head="$(git ls-remote origin "refs/heads/${IMPLEMENTATION_BRANCH}" | awk '{print $1}')"
+          test "${final_head}" = "${CANDIDATE_HEAD}"
+
+      - name: Record exact GREEN evidence
+        shell: bash
+        run: |
+          {
+            echo '### OSS-1A final authority seal GREEN v3'
+            echo
+            echo "- Failed candidate base: \`${CANDIDATE_BASE}\`"
+            echo "- Corrected candidate: \`${CANDIDATE_HEAD}\`"
+            echo '- Root fix: repository construction uses a deferred cipher capability; key material is resolved only after critical key custody starts'
+            echo '- Verification: two detached worktrees, full OSS-1A, crash/concurrency matrices, existing regressions and provenance'
+            echo '- Branch movement: ordinary non-force fast-forward only'
+          } >> "${GITHUB_STEP_SUMMARY}"
