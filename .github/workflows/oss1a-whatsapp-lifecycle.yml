@@ -3,7 +3,7 @@ name: OSS-1A WhatsApp Lifecycle Fault Matrix
 on:
   pull_request:
     branches:
-      - governance/oss-1a-async-store-capability-authorization
+      - governance/oss-1a-canonical-projection-checkpoint-authorization
   push:
     branches:
       - oss/1a-baileys-lifecycle
@@ -91,8 +91,11 @@ jobs:
           backend/tests/accountLifecycleRegression.test.js
           backend/tests/messageIdentityEvidenceOrdering.test.js
           backend/tests/platformProductionReadinessAuthority.test.js
-      - name: Run Source UAT P0 preflight
-        run: npm run preflight:source-uat:p0
+      # The real P0 preflight reads a sealed local SQLite database, a source
+      # checkpoint and the deployed worker. Hosted CI validates that authority's
+      # deterministic contract but must not claim workstation acceptance.
+      - name: Validate Source UAT P0 preflight contract
+        run: node --test --test-concurrency=1 tests/uat/sourceUatP0Preflight.test.js
       - name: Run Source UAT delivery contracts
         run: npm run test:source-uat-delivery
       - name: Run UAT diagnostics contracts
