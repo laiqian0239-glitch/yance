@@ -3,6 +3,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const openSourceWorkPackagePolicy = require('./openSourceWorkPackagePolicy');
 
 const REBUILD_BRANCH_PATTERN_SOURCE = '^rebuild/windows-release-closure-([0-9]{4})([0-9]{2})([0-9]{2})(?:-[a-z0-9][a-z0-9._-]*)?$';
 const REBUILD_BRANCH_PATTERN = new RegExp(REBUILD_BRANCH_PATTERN_SOURCE);
@@ -18,6 +19,7 @@ const ACV2_WP_A_PULL_REQUEST = 5;
 const ACV2_SCOPE_AMENDMENT_TASK = 'A6_INDEPENDENT_ROOT_REPAIR_AND_GOVERNANCE_SCOPE_CLOSURE';
 const ACV2_TASK_PATTERN = /^A([0-8])$/u;
 const ACV2_TASK_STATES = new Set(['RED_LOCKED', 'IMPLEMENTING', 'GREEN_PROVISIONAL', 'INDEPENDENT_REVIEW', 'CLOSED']);
+const PATH_CONTROL = /[\u0000-\u001f\u007f]/u;
 
 function canonicalStageBranch(stageVersion) {
   if (typeof stageVersion !== 'string' || !/^\d+\.\d+\.\d+\.\d+$/.test(stageVersion)) {
@@ -105,23 +107,35 @@ function isAuthorizedAcv2WorkPackageBranch(branch, authorization) {
 function isAuthorizedImplementationBranch(branch, stageVersion, options = {}) {
   if (typeof branch !== 'string' || branch.length === 0) return false;
   if (branch === canonicalStageBranch(stageVersion) || isReleaseClosureRebuildBranch(branch)) return true;
-  return isAuthorizedAcv2WorkPackageBranch(branch, resolveAuthorization(options));
+  if (isAuthorizedAcv2WorkPackageBranch(branch, resolveAuthorization(options))) return true;
+  return openSourceWorkPackagePolicy.isAuthorizedOpenSourceImplementationBranch(
+    branch,
+    options.openSource || {}
+  );
 }
 
 function authorizedImplementationBranchDescription(stageVersion, options = {}) {
   const base = `${canonicalStageBranch(stageVersion)} or rebuild/windows-release-closure-YYYYMMDD[-suffix]`;
   const authorization = resolveAuthorization(options);
-  return isValidWorkPackageAuthorization(authorization)
+  const acv2 = isValidWorkPackageAuthorization(authorization)
     ? `${base} or exact machine-authorized branch ${authorization.authorizedBranch}`
     : base;
+  return `${acv2} or an exact sealed open-source work-package branch`;
 }
 
 function normalizeRepositoryPath(value) {
-  const normalized = String(value || '').trim().replace(/\\/gu, '/').replace(/^\.\//u, '').replace(/\/$/u, '');
-  if (!normalized || normalized.startsWith('/') || /^[A-Za-z]:\//u.test(normalized)) return '';
-  const segments = normalized.split('/');
+  const candidate = String(value || '');
+  if (!candidate
+    || candidate !== candidate.trim()
+    || candidate.startsWith('/')
+    || candidate.startsWith('./')
+    || candidate.endsWith('/')
+    || candidate.includes('\\')
+    || /^[A-Za-z]:\//u.test(candidate)
+    || PATH_CONTROL.test(candidate)) return '';
+  const segments = candidate.split('/');
   if (segments.some(segment => !segment || segment === '.' || segment === '..')) return '';
-  return normalized;
+  return candidate;
 }
 
 function globPatternToRegExp(pattern) {
@@ -409,5 +423,9 @@ module.exports = {
   effectiveTaskScopePaths,
   evaluateAuthorizedWorkPackageScope,
   evaluateAuthorizedWorkPackageTaskScope,
-  evaluateAuthorizedPostMergeDefectScope
+  evaluateAuthorizedPostMergeDefectScope,
+  isAuthorizedOpenSourceImplementationBranch:
+    openSourceWorkPackagePolicy.isAuthorizedOpenSourceImplementationBranch,
+  evaluateAuthorizedOpenSourceWorkPackageScope:
+    openSourceWorkPackagePolicy.evaluateAuthorizedOpenSourceWorkPackageScope
 };
