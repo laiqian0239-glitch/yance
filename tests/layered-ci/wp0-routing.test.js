@@ -82,6 +82,19 @@ test('product, release, architecture review docs and existing WP0 implementation
   }
 });
 
+test('the pinned UAT Playwright requirement selects PRODUCT_WP0 while sibling requirements remain fail-closed', () => {
+  const approved = classifyWp0Route(policy, ['requirements/uat-playwright.txt']);
+  assert.equal(approved.pass, true, JSON.stringify(approved));
+  assert.equal(approved.route, ROUTES.PRODUCT);
+  assert.equal(approved.productChangesPresent, true);
+
+  const unreviewed = classifyWp0Route(policy, ['requirements/unreviewed.txt']);
+  assert.equal(unreviewed.pass, false, JSON.stringify(unreviewed));
+  assert.equal(unreviewed.reasonCode, 'WP0_ROUTE_UNKNOWN_PATH');
+  assert.deepEqual(unreviewed.unknownPaths, ['requirements/unreviewed.txt']);
+  assert.equal(policy.productPrefixes.includes('requirements/'), false);
+});
+
 test('OSS provenance and license files select PRODUCT_WP0', () => {
   const result = classifyWp0Route(policy, [
     '.github/workflows/oss-provenance.yml',
