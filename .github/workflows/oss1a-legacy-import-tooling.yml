@@ -6,15 +6,12 @@ on:
       - work/oss1a-legacy-import-repository-patch
     paths:
       - .github/workflows/oss1a-legacy-import-tooling.yml
-      - tools/oss1a/generate-tombstone-red.js
-      - tools/oss1a/tombstone-orphan-test-fragment.txt
-      - tools/oss1a/tombstone-gate-fragment.txt
 
 permissions:
   contents: write
 
 jobs:
-  publish-tombstone-red-candidate:
+  publish-tombstone-coverage-red-candidate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout tooling head
@@ -23,28 +20,35 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: true
-      - name: Build isolated resolver and recovery RED
+      - name: Build exact child-suite coverage assertion
         shell: bash
         env:
-          IMPLEMENTATION_PARENT: 3c57d8c95809a6782786a2f0892b9f58a3c24114
-          CANDIDATE_BRANCH: work/oss1a-legacy-tombstone-red-candidate
+          IMPLEMENTATION_PARENT: eac8b385f7cbae7cbde9b82fbeae9da93d030f45
+          CANDIDATE_BRANCH: work/oss1a-legacy-tombstone-coverage-red-candidate
         run: |
           set -euo pipefail
           test -z "$(git ls-remote --heads origin "refs/heads/${CANDIDATE_BRANCH}")"
-          git show "${IMPLEMENTATION_PARENT}:backend/tests/whatsappOrphanAccountReconciliation.test.js" > /tmp/orphan.input.js
-          git show "${IMPLEMENTATION_PARENT}:backend/tests/oss1aWhatsappLegacyAuthImport.test.js" > /tmp/legacy.input.js
-          node tools/oss1a/generate-tombstone-red.js \
-            /tmp/orphan.input.js \
-            /tmp/legacy.input.js \
-            /tmp/orphan.output.js \
-            /tmp/legacy.output.js
+          git show "${IMPLEMENTATION_PARENT}:backend/tests/oss1aWhatsappLegacyAuthImport.test.js" > /tmp/legacy.test.js
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = '/tmp/legacy.test.js';
+          let source = fs.readFileSync(file, 'utf8');
+          const before = "  assert.equal(result.status, 0, `${result.stdout}\\n${result.stderr}`);\n});";
+          const after = "  assert.match(result.stdout, /legacy auth discovery stays diagnostic and database tombstone blocks filesystem resurrection/u, result.stdout);\n  assert.match(result.stdout, /# tests 4(?:\\r?\\n|$)/u, result.stdout);\n  assert.equal(result.status, 0, `${result.stdout}\\n${result.stderr}`);\n});";
+          const first = source.indexOf(before);
+          if (first < 0 || source.indexOf(before, first + before.length) >= 0) {
+            throw new Error('expected one exact child-suite status assertion');
+          }
+          source = source.slice(0, first) + after + source.slice(first + before.length);
+          fs.writeFileSync(file, source, 'utf8');
+          NODE
+          node --check /tmp/legacy.test.js
           git checkout --detach "${IMPLEMENTATION_PARENT}"
-          cp /tmp/orphan.output.js backend/tests/whatsappOrphanAccountReconciliation.test.js
-          cp /tmp/legacy.output.js backend/tests/oss1aWhatsappLegacyAuthImport.test.js
-          git add backend/tests/whatsappOrphanAccountReconciliation.test.js backend/tests/oss1aWhatsappLegacyAuthImport.test.js
-          test "$(git diff --cached --name-only | wc -l)" = "2"
+          cp /tmp/legacy.test.js backend/tests/oss1aWhatsappLegacyAuthImport.test.js
+          git add backend/tests/oss1aWhatsappLegacyAuthImport.test.js
+          test "$(git diff --cached --name-only)" = "backend/tests/oss1aWhatsappLegacyAuthImport.test.js"
           git diff --cached --check
           git config user.name "Yance OSS1A Tooling"
           git config user.email "oss1a-tooling@users.noreply.github.com"
-          git commit -m "test(oss1a): forbid legacy resurrection during recovery"
+          git commit -m "test(oss1a): prove orphan tombstone suite coverage"
           git push origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
