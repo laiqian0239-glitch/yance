@@ -2,12 +2,13 @@
 
 const fs = require('node:fs');
 
+const TEST_PATH = 'tests/uat/fix6dPlaywrightBrowserRuntime.test.js';
 const AUTHORITY_PATH = 'tools/uat/playwright_browser_runtime.py';
 const PROBE_PATHS = Object.freeze([
   'tools/uat/fix6d_computed_style_probe.py',
   'tools/uat/fix6d_global_typography_matrix_probe.py'
 ]);
-const IMPLEMENTATION_PATHS = Object.freeze([AUTHORITY_PATH, ...PROBE_PATHS].sort());
+const IMPLEMENTATION_PATHS = Object.freeze([TEST_PATH, AUTHORITY_PATH, ...PROBE_PATHS].sort());
 
 function replaceExact(source, before, after, label) {
   const first = source.indexOf(before);
@@ -73,6 +74,30 @@ function updateTypographyMatrixProbe() {
   });
 }
 
+function updateContractHarness() {
+  updateFile(TEST_PATH, source => {
+    source = replaceExact(
+      source,
+      "const AUTHORITY_PATH = path.join(ROOT, 'tools', 'uat', 'playwright_browser_runtime.py');\n",
+      "const AUTHORITY_PATH = path.join(ROOT, 'tools', 'uat', 'playwright_browser_runtime.py');\nconst BYTECODE_CACHE_PATH = path.join(ROOT, 'tools', 'uat', '__pycache__');\n",
+      'browser runtime contract: identify bytecode cache path'
+    );
+    source = replaceExact(
+      source,
+      "  const output = execFileSync(python, ['-c', script], {",
+      "  const output = execFileSync(python, ['-B', '-c', script], {",
+      'browser runtime contract: disable bytecode writes at the Python process boundary'
+    );
+    source = replaceExact(
+      source,
+      '  const payload = JSON.parse(output);\n',
+      "  const payload = JSON.parse(output);\n  assert.equal(fs.existsSync(BYTECODE_CACHE_PATH), false, 'contract execution must not create Python bytecode cache');\n",
+      'browser runtime contract: prove zero bytecode side effects'
+    );
+    return source;
+  });
+}
+
 function assertPortableSources() {
   for (const filePath of IMPLEMENTATION_PATHS) {
     const source = fs.readFileSync(filePath, 'utf8');
@@ -85,12 +110,14 @@ function main() {
   writeBrowserRuntimeAuthority();
   updateComputedStyleProbe();
   updateTypographyMatrixProbe();
+  updateContractHarness();
   assertPortableSources();
 }
 
 if (require.main === module) main();
 
 module.exports = {
+  TEST_PATH,
   AUTHORITY_PATH,
   PROBE_PATHS,
   IMPLEMENTATION_PATHS,
