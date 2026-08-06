@@ -27,6 +27,8 @@ node tools/verification/run-command-set.js \
 
 The runner uses direct argv spawning with `shell:false`, validates clean tracked/untracked state, records stdout/stderr digests, and emits an unsigned candidate. An unsigned candidate is never a final verification fact.
 
+When no ACTIVE executor is enrolled for the command-set platform, the CLI emits the candidate under the reserved `pvep-unenrolled-<platform>-selftest` producer namespace. That namespace is forbidden in the trusted-executor registry, so portability candidates cannot become trusted evidence by enrollment collision. If exactly one ACTIVE executor exists, its public producer identity is used; private-key custody remains outside the runner.
+
 ## Detached signing
 
 Runner code must not possess the Ed25519 private key. The signer must be privilege-isolated according to `PVEP_EXECUTOR_ENROLLMENT.md`. Sign the raw RFC 8785 canonical payload bytes, not the hexadecimal payload digest. Provide only the raw 64-byte detached signature to the repository assembler:

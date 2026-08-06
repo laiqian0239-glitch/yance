@@ -87,5 +87,6 @@ test('production CLI can emit an explicitly unenrolled unsigned portability cand
   assert.equal(candidate.authenticity, null);
   assert.equal(candidate.receiptSha256, null);
   assert.match(candidate.producer.executorId, /^pvep-unenrolled-linux-/u);
+  assert.equal(candidate.gateId, 'pvep-linux-fixture');
   assert.equal(validateUnsignedCandidate(candidate).pass, true);
 });
