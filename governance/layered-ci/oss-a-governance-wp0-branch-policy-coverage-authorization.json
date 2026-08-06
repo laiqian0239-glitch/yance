@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OSS_A_GOVERNANCE_WP0_BRANCH_POLICY_COVERAGE_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-06T15:45:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-A",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #86 changes the shared implementation-branch authority and its exact regression contract, but the base-owned GOVERNANCE_WP0 job runs layered routing tests and the generic open-source authorization test without executing tests/wp0/implementation-branch-policy.test.js. The Stage, ACV2 and post-merge GREEN results therefore cannot be represented as direct evidence for the changed branch-policy contract. The governance route must execute that contract before PR #86 may merge.",
+  "base": {
+    "branch": "main",
+    "commit": "8311cd15572bdc89316c47485459017613b2e2c8"
+  },
+  "evidence": {
+    "sourcePullRequest": 86,
+    "sourceHead": "9a4b30872a0990c6283b6ce0efcc17acf62ab10c",
+    "stageWp0RunId": 31092502384,
+    "route": "GOVERNANCE_WP0",
+    "governanceJobConclusion": "success",
+    "productJobConclusion": "skipped",
+    "missingExecutedContract": "tests/wp0/implementation-branch-policy.test.js",
+    "workflowPath": ".github/workflows/stage-6459-wp0-gates.yml",
+    "workflowBlobAtBase": "af6017be198e6c09a22a56a95c37681014ecbeb8",
+    "routingContractPath": "tests/layered-ci/wp0-routing.test.js",
+    "routingContractBlobAtBase": "496f779b072a2bcdae27617c0428710d4e466fc7"
+  },
+  "authorizationBranch": {
+    "name": "governance/oss-a-governance-wp0-branch-policy-coverage",
+    "allowedChangedPaths": [
+      "governance/layered-ci/oss-a-governance-wp0-branch-policy-coverage-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/oss-a-governance-wp0-branch-policy-coverage",
+    "requiredBase": "the exact ordinary main merge commit containing this authorization",
+    "allowedChangedPaths": [
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      "tests/layered-ci/wp0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "d8f8e35d06c915ebc12d98e91287a1440b18de85f14a60a710cab8a3fadd57a8",
+    "newDependencyAllowed": false,
+    "routeClassificationChangeAllowed": false,
+    "productGateChangeAllowed": false,
+    "testRemovalAllowed": false,
+    "testGlobBroadeningAllowed": false,
+    "warningOnlyExecutionAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "The current Stage governance job fails a structural workflow contract because it does not execute tests/wp0/implementation-branch-policy.test.js",
+    "The exact contract must run as a separate named governance step or an exact explicit argument, not through a new broad tests/wp0 wildcard",
+    "The workflow contract rejects continue-on-error, shell error suppression, conditional skip and duplicate ambiguous execution",
+    "PRODUCT_WP0, PRODUCT_DOCUMENTATION_WP0 and route selection semantics remain unchanged"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes Stage WP0, Layered CI and ACV2",
+    "Independent review returns ALLOW_MERGE with zero P0 and P1 findings",
+    "Authorization PR merges to main by ordinary two-parent merge commit",
+    "Implementation branch starts from that exact authorization merge commit",
+    "A test-only commit adds the exact governance workflow execution contract and records causal RED",
+    "The Stage governance job adds one explicit fail-fast execution of tests/wp0/implementation-branch-policy.test.js",
+    "Implementation exact Head proves the new contract and the actual test command GREEN",
+    "Implementation PR passes Stage WP0, Layered CI, ACV2 and independent review and merges ordinarily",
+    "Fresh main is ordinarily merged into PR #86 and its two-path scope remains unchanged",
+    "PR #86 reruns the now-covered implementation branch contract before merge"
+  ],
+  "prohibitions": {
+    "booleanSemantics": "TRUE_MEANS_FORBIDDEN",
+    "temporaryManualCheck": true,
+    "futurePrOnlyEvidence": true,
+    "continueOnError": true,
+    "shellErrorSuppression": true,
+    "testSkip": true,
+    "assertionWeakening": true,
+    "broadTestsWp0Wildcard": true,
+    "routeReclassification": true,
+    "productGateWeakening": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "directMergeOfPr86BeforeCoverage": true,
+    "sourceMergeAuthorization": true,
+    "productionUse": true,
+    "formalRelease": true,
+    "publish": true,
+    "readyForPromotion": true,
+    "automaticNextWorkPackageAuthorization": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "pr86MergeBlockedUntilCoverageMerged": true,
+    "pr82MustRemainDraft": true,
+    "pr67MustRemainDraft": true,
+    "sourceMergeAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "readyForPromotion": false,
+    "automaticNextWorkPackageAuthorization": false
+  }
+}
