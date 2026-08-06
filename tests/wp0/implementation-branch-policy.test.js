@@ -10,6 +10,7 @@ const {
   isReleaseClosureRebuildBranch,
   isAuthorizedImplementationBranch,
   authorizedImplementationBranchDescription,
+  buildTrustedGitEnvironment,
   loadWorkPackageScopeAmendment,
   loadWorkPackageTaskScopeChain,
   loadWorkPackagePostMergeDefect,
@@ -47,6 +48,10 @@ function authorization() {
 
 function readRepositoryJson(repositoryPath) {
   return JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ...repositoryPath.split('/')), 'utf8'));
+}
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
 function changedFilesFrom(baseHead) {
@@ -108,6 +113,7 @@ function delegatedGovernanceOptions(overrides = {}) {
     [BRANCH_REPAIR_AUTHORIZATION_PATH]: repairAuthorization,
     ...(overrides.authorizationByPath || {})
   };
+  const trustedAuthorizationByPath = overrides.trustedAuthorizationByPath || authorizationByPath;
   const parentsByCommit = {
     [SOURCE_AUTH_MERGE]: [SOURCE_AUTH_PARENT, SOURCE_AUTH_HEAD],
     [REPAIR_AUTH_MERGE]: [REPAIR_AUTH_PARENT, REPAIR_AUTH_HEAD],
@@ -121,6 +127,7 @@ function delegatedGovernanceOptions(overrides = {}) {
   return {
     trustedPolicyHead: overrides.trustedPolicyHead || REPAIR_AUTH_MERGE,
     authorizationByPath,
+    loadAuthorization: authority => trustedAuthorizationByPath[authority.authorizationPath] || null,
     resolveCommitParents: commit => parentsByCommit[commit] || [],
     resolveCommitBlobSha: (commit, repositoryPath) => blobByIdentity[`${commit}:${repositoryPath}`] || null,
     isTrustedAncestor: overrides.isTrustedAncestor || ((base, head) => (
@@ -305,6 +312,45 @@ test('checked-out scope preserves immutable A8 closure and validates an exact po
   assert.equal(result.readyForPromotion, false);
 });
 
+test('trusted Git child environment strips repository and configuration overrides', () => {
+  assert.equal(typeof buildTrustedGitEnvironment, 'function');
+  const controlled = buildTrustedGitEnvironment({
+    PATH: '/trusted/bin',
+    SystemRoot: 'C:\\Windows',
+    COMSPEC: 'C:\\Windows\\System32\\cmd.exe',
+    PATHEXT: '.COM;.EXE;.BAT;.CMD',
+    TEMP: '/trusted/tmp',
+    GIT_DIR: '/attacker/repository',
+    GIT_WORK_TREE: '/attacker/worktree',
+    GIT_OBJECT_DIRECTORY: '/attacker/objects',
+    GIT_ALTERNATE_OBJECT_DIRECTORIES: '/attacker/alternate',
+    GIT_NAMESPACE: 'attacker',
+    GIT_CEILING_DIRECTORIES: '/',
+    GIT_CONFIG_COUNT: '1',
+    GIT_CONFIG_KEY_0: 'alias.show',
+    GIT_CONFIG_VALUE_0: '!false',
+    GIT_CONFIG_GLOBAL: '/attacker/gitconfig',
+    GIT_CONFIG_SYSTEM: '/attacker/system-gitconfig',
+    HOME: '/attacker/home'
+  });
+  assert.equal(controlled.PATH, '/trusted/bin');
+  assert.equal(controlled.SystemRoot, 'C:\\Windows');
+  assert.equal(controlled.GIT_DIR, undefined);
+  assert.equal(controlled.GIT_WORK_TREE, undefined);
+  assert.equal(controlled.GIT_OBJECT_DIRECTORY, undefined);
+  assert.equal(controlled.GIT_ALTERNATE_OBJECT_DIRECTORIES, undefined);
+  assert.equal(controlled.GIT_NAMESPACE, undefined);
+  assert.equal(controlled.GIT_CEILING_DIRECTORIES, undefined);
+  assert.equal(controlled.GIT_CONFIG_COUNT, undefined);
+  assert.equal(controlled.GIT_CONFIG_KEY_0, undefined);
+  assert.equal(controlled.GIT_CONFIG_VALUE_0, undefined);
+  assert.equal(controlled.GIT_CONFIG_SYSTEM, undefined);
+  assert.equal(controlled.HOME, undefined);
+  assert.equal(controlled.GIT_CONFIG_NOSYSTEM, '1');
+  assert.ok(['/dev/null', 'NUL'].includes(controlled.GIT_CONFIG_GLOBAL));
+  assert.equal(controlled.GIT_TERMINAL_PROMPT, '0');
+});
+
 test('trusted-main delegated governance authorization is exact and fails closed on graph or document drift', () => {
   const exact = delegatedGovernanceOptions();
   assert.equal(isAuthorizedImplementationBranch(BRANCH_REPAIR_BRANCH, CURRENT_STAGE, {
@@ -336,20 +382,34 @@ test('trusted-main delegated governance authorization is exact and fails closed 
 
   const tampered = readRepositoryJson(BRANCH_REPAIR_AUTHORIZATION_PATH);
   tampered.implementation.branch = 'governance/arbitrary-policy';
-  const candidateOwned = delegatedGovernanceOptions({
+  const structurallyInvalid = delegatedGovernanceOptions({
     authorizationByPath: { [BRANCH_REPAIR_AUTHORIZATION_PATH]: tampered }
   });
   assert.equal(isAuthorizedImplementationBranch('governance/arbitrary-policy', CURRENT_STAGE, {
-    delegatedGovernance: candidateOwned
+    delegatedGovernance: structurallyInvalid
   }), false);
 
   const widened = readRepositoryJson(BRANCH_REPAIR_AUTHORIZATION_PATH);
   widened.implementation.allowedChangedPaths.push('shared/release/parallel-authority.js');
-  const scopeDrift = delegatedGovernanceOptions({
+  const digestInvalid = delegatedGovernanceOptions({
     authorizationByPath: { [BRANCH_REPAIR_AUTHORIZATION_PATH]: widened }
   });
   assert.equal(isAuthorizedImplementationBranch(BRANCH_REPAIR_BRANCH, CURRENT_STAGE, {
-    delegatedGovernance: scopeDrift
+    delegatedGovernance: digestInvalid
+  }), false);
+
+  const originalRepair = readRepositoryJson(BRANCH_REPAIR_AUTHORIZATION_PATH);
+  const candidateMismatch = clone(originalRepair);
+  candidateMismatch.reason = `${candidateMismatch.reason} candidate-owned drift`;
+  const crossCheckInvalid = delegatedGovernanceOptions({
+    authorizationByPath: { [BRANCH_REPAIR_AUTHORIZATION_PATH]: candidateMismatch },
+    trustedAuthorizationByPath: {
+      [SOURCE_MERGE_AUTHORIZATION_PATH]: readRepositoryJson(SOURCE_MERGE_AUTHORIZATION_PATH),
+      [BRANCH_REPAIR_AUTHORIZATION_PATH]: originalRepair
+    }
+  });
+  assert.equal(isAuthorizedImplementationBranch(BRANCH_REPAIR_BRANCH, CURRENT_STAGE, {
+    delegatedGovernance: crossCheckInvalid
   }), false);
 });
 
