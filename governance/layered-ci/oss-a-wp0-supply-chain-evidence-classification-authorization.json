@@ -90,6 +90,7 @@
     "PR #67 exact Head is reverified through permanent WP0, Layered CI, OSS Provenance, ACV2, post-merge validation and independent review"
   ],
   "prohibitions": {
+    "booleanSemantics": "TRUE_MEANS_FORBIDDEN",
     "temporaryBypass": true,
     "warningOnlyClosure": true,
     "continueOnError": true,
