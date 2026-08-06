@@ -13,7 +13,7 @@ const {
   referenceOnlyRootPolicies
 } = require('../../tools/wp0/lib');
 
-const FIXTURE_BRANCH = 'stage/6.4.5.9-architecture-closure';
+const FIXTURE_BRANCH = 'rebuild/windows-release-closure-20260806-wp0-fixture';
 const FIXTURE_ENV = Object.freeze({ ...process.env, GIT_LFS_SKIP_SMUDGE: '1' });
 
 function makeAuthorizedFixture() {
@@ -52,7 +52,7 @@ test('forbidden-hotfix-entrypoints.test', () => {
   assert.equal(result.details.enumerationMethod, 'git ls-files -z');
 });
 
-test('local build package and release commands are guarded by executable WP0 gate on an isolated authorized branch', () => {
+test('local build package and release commands are guarded by executable WP0 gate on an isolated authorized rebuild branch', () => {
   const policy = checkProtectedCommandPolicy();
   assert.equal(policy.pass, true, JSON.stringify(policy));
   const { root, repo } = makeAuthorizedFixture();
