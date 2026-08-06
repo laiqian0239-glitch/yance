@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const { isDeepStrictEqual } = require('node:util');
 
 const SHA40 = /^[0-9a-f]{40}$/u;
 const SHA256 = /^[0-9a-f]{64}$/u;
@@ -10,6 +11,7 @@ const AUTHORIZATION_PATH = 'governance/layered-ci/oss-a-source-merge-authorizati
 const AUTHORIZATION_DOCUMENT_TYPE = 'YANCE_OSS_A_SOURCE_MERGE_POLICY_AUTHORIZATION';
 const AUTHORIZATION_STATUS = 'POLICY_AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE_AND_SEAL';
 const AUTHORIZATION_SEAL_STATUS = 'SEALED';
+const POLICY_PULL_REQUEST = 82;
 const POLICY_BRANCH = 'governance/oss-a-source-merge-policy';
 const SOURCE_PULL_REQUEST = 67;
 const SOURCE_BRANCH = 'oss/a-supply-chain-foundation';
@@ -71,6 +73,15 @@ function sameArray(left, right) {
     && Array.isArray(right)
     && left.length === right.length
     && left.every((value, index) => value === right[index]);
+}
+
+function isExactPathSet(values, expected) {
+  if (!Array.isArray(values)
+    || !Array.isArray(expected)
+    || values.length !== expected.length
+    || !values.every(isExactRepositoryPath)
+    || new Set(values).size !== values.length) return false;
+  return sameArray([...values].sort(), [...expected].sort());
 }
 
 function changedFileSetSha256(values) {
@@ -247,6 +258,7 @@ function evaluatePolicyImplementation({ authorization, graph, evidence } = {}) {
     || typeof graph.commitParents !== 'function'
     || typeof graph.blobAt !== 'function'
     || typeof graph.fileSha256At !== 'function'
+    || typeof graph.jsonAt !== 'function'
     || typeof graph.isAncestor !== 'function'
     || typeof graph.remoteTip !== 'function'
     || typeof graph.changedFilesBetween !== 'function'
@@ -269,12 +281,12 @@ function evaluatePolicyImplementation({ authorization, graph, evidence } = {}) {
   if (graph.isAncestor(seal.authorizationMergeCommit, binding.reviewedHead) !== true) {
     return fail('POLICY_REVIEWED_HEAD_ANCESTRY_INVALID');
   }
-  const implementationPaths = normalizePaths(graph.changedFilesBetween(
+  const implementationPaths = graph.changedFilesBetween(
     seal.authorizationMergeCommit,
     binding.reviewedHead
-  ));
-  if (!sameArray(implementationPaths, POLICY_IMPLEMENTATION_PATHS)
-    || !sameArray(implementationPaths, authorization.implementation.allowedChangedPaths)) {
+  );
+  if (!isExactPathSet(implementationPaths, POLICY_IMPLEMENTATION_PATHS)
+    || !isExactPathSet(implementationPaths, authorization.implementation.allowedChangedPaths)) {
     return fail('POLICY_IMPLEMENTATION_SCOPE_INVALID');
   }
   const policyTip = graph.remoteTip(binding.branch);
@@ -283,13 +295,16 @@ function evaluatePolicyImplementation({ authorization, graph, evidence } = {}) {
     || graph.isAncestor(binding.reviewedHead, policyTip) !== true) {
     return fail('POLICY_BRANCH_TIP_INVALID');
   }
-  const postReviewPaths = normalizePaths(graph.changedFilesBetween(binding.reviewedHead, policyTip));
+  const postReviewPaths = graph.changedFilesBetween(binding.reviewedHead, policyTip);
   const postReviewCommits = graph.commitsBetween(binding.reviewedHead, policyTip);
-  if (!sameArray(postReviewPaths, binding.allowedPostReviewPaths)
+  if (!isExactPathSet(postReviewPaths, binding.allowedPostReviewPaths)
     || !Array.isArray(postReviewCommits)
     || postReviewCommits.length !== 1
     || postReviewCommits[0] !== policyTip) {
     return fail('POLICY_POST_REVIEW_SCOPE_INVALID');
+  }
+  if (!isDeepStrictEqual(graph.jsonAt(policyTip, AUTHORIZATION_PATH), authorization)) {
+    return fail('POLICY_DOCUMENT_SOURCE_INVALID');
   }
   return pass('POLICY_IMPLEMENTATION_AUTHORIZED', {
     policyReviewedHead: binding.reviewedHead,
@@ -325,6 +340,13 @@ function validateFinalCandidateSeal(seal, authorization) {
     || seal.status !== 'FINAL_CANDIDATE_SEALED'
     || seal.authorizationPath !== AUTHORIZATION_PATH
     || seal.authorizationMergeCommit !== authorization.requiredAuthorizationSeal.authorizationMergeCommit
+    || seal.policyPullRequest !== POLICY_PULL_REQUEST
+    || seal.policyBranch !== POLICY_BRANCH
+    || seal.policyReviewedHead !== authorization.requiredAuthorizationSeal.policyReviewedHead
+    || !SHA40.test(String(seal.policyBranchTip || ''))
+    || seal.policyBranchTip === seal.policyReviewedHead
+    || !SHA40.test(String(seal.policyMergeFirstParent || ''))
+    || seal.policyMergeFirstParent === seal.policyBranchTip
     || !SHA40.test(String(seal.policyMainCommit || ''))
     || seal.trustedMain !== seal.policyMainCommit
     || seal.sourcePullRequest !== SOURCE_PULL_REQUEST
@@ -369,13 +391,22 @@ function validateSealPullRequest(sealPullRequest, finalSeal, graph) {
     || sealPullRequest.branch !== FINAL_SEAL_BRANCH
     || sealPullRequest.base !== finalSeal.trustedMain
     || !SHA40.test(String(sealPullRequest.exactHead || ''))
-    || !sameArray(normalizePaths(sealPullRequest.changedFiles), [FINAL_SEAL_PATH])
+    || !isExactPathSet(sealPullRequest.changedFiles, [FINAL_SEAL_PATH])
     || sealPullRequest.merged !== false
     || sealPullRequest.state !== 'open'
     || sealPullRequest.explicitUserApproval !== true
     || graph.remoteTip(FINAL_SEAL_BRANCH) !== sealPullRequest.exactHead
-    || !sameArray(normalizePaths(graph.changedFilesBetween(finalSeal.trustedMain, sealPullRequest.exactHead)), [FINAL_SEAL_PATH])) {
+    || !isExactPathSet(
+      graph.changedFilesBetween(finalSeal.trustedMain, sealPullRequest.exactHead),
+      [FINAL_SEAL_PATH]
+    )) {
     return fail('FINAL_CANDIDATE_SEAL_PR_INVALID');
+  }
+  if (!isDeepStrictEqual(
+    graph.jsonAt(sealPullRequest.exactHead, FINAL_SEAL_PATH),
+    finalSeal
+  )) {
+    return fail('FINAL_CANDIDATE_SEAL_SOURCE_INVALID');
   }
   return pass('FINAL_CANDIDATE_SEAL_PR_VALID');
 }
@@ -391,6 +422,8 @@ function evaluateSourceMergeReadiness({
   const sealResult = validateFinalCandidateSeal(finalSeal, authorization);
   if (!sealResult.pass) return sealResult;
   if (!isObject(graph)
+    || typeof graph.commitParents !== 'function'
+    || typeof graph.jsonAt !== 'function'
     || typeof graph.remoteTip !== 'function'
     || typeof graph.changedFilesBetween !== 'function'
     || typeof graph.isAncestor !== 'function') {
@@ -398,6 +431,19 @@ function evaluateSourceMergeReadiness({
   }
   const prResult = validateSealPullRequest(sealPullRequest, finalSeal, graph);
   if (!prResult.pass) return prResult;
+  if (graph.remoteTip(POLICY_BRANCH) !== finalSeal.policyBranchTip
+    || graph.isAncestor(finalSeal.policyReviewedHead, finalSeal.policyBranchTip) !== true) {
+    return fail('POLICY_BRANCH_TIP_DRIFT');
+  }
+  if (!sameArray(
+    graph.commitParents(finalSeal.policyMainCommit),
+    [finalSeal.policyMergeFirstParent, finalSeal.policyBranchTip]
+  ) || graph.isAncestor(
+    authorization.requiredAuthorizationSeal.authorizationMergeCommit,
+    finalSeal.policyMergeFirstParent
+  ) !== true) {
+    return fail('POLICY_MAIN_MERGE_IDENTITY_INVALID');
+  }
   if (!sameArray(proposedMergeParents, [finalSeal.trustedMain, finalSeal.sourceHead])) {
     return fail('SOURCE_MERGE_PARENT_ORDER_INVALID');
   }
