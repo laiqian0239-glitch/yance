@@ -6,7 +6,7 @@ const path = require('node:path');
 const REGISTRY_PATH = path.join('third_party', 'provenance.json');
 const NOTICE_PATH = 'THIRD_PARTY_NOTICES.md';
 const SHA40 = /^[0-9a-f]{40}$/u;
-const PROJECT_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
+const PROJECT_ID = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/u;
 const SUPPORTED_MODES = new Set([
   'dependency',
   'patched_dependency',
