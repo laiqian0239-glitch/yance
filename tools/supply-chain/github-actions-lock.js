@@ -74,8 +74,8 @@ function validateLock(lock) {
 }
 
 function parseUsesLine(line) {
-  const exact = /^(\s*)(?:-\s+)?uses:\s*(.*?)\s*$/u.exec(line);
-  if (exact) return { indent: exact[1].length, value: exact[2] };
+  const exact = /^(\s*)(?:(-\s+))?uses:\s*(.*?)\s*$/u.exec(line);
+  if (exact) return { indent: exact[1].length, listItem: Boolean(exact[2]), value: exact[3] };
   const trimmed = line.trimStart();
   if (/^(?:-\s+)?uses\s*:/u.test(trimmed)) return { invalid: true };
   return null;
@@ -86,25 +86,75 @@ function stripInlineComment(value) {
   return (commentIndex === -1 ? value : value.slice(0, commentIndex)).trim();
 }
 
-function checkoutPersistCredentials(lines, startIndex, baseIndent) {
-  let withIndent = null;
-  let value;
-  for (let index = startIndex + 1; index < lines.length; index += 1) {
-    const raw = lines[index];
-    if (raw.trim() === '' || raw.trimStart().startsWith('#')) continue;
-    const indent = raw.length - raw.trimStart().length;
-    const trimmed = raw.trim();
-    if (indent <= baseIndent && (/^-\s+/u.test(trimmed) || /^[A-Za-z0-9_.-]+:/u.test(trimmed))) break;
-    if (/^with:\s*(?:#.*)?$/u.test(trimmed)) {
-      withIndent = indent;
-      continue;
-    }
-    if (withIndent !== null && indent > withIndent) {
-      const match = /^persist-credentials:\s*(false|true)\s*(?:#.*)?$/iu.exec(trimmed);
-      if (match) value = match[1].toLowerCase() === 'false';
+function yamlIndent(line) {
+  return line.length - line.trimStart().length;
+}
+
+function checkoutStepBounds(lines, usesIndex, parsed) {
+  let stepStart = usesIndex;
+  let stepIndent = parsed.indent;
+  let propertyIndent = parsed.listItem ? null : parsed.indent;
+
+  if (!parsed.listItem) {
+    for (let index = usesIndex - 1; index >= 0; index -= 1) {
+      const raw = lines[index];
+      if (raw.trim() === '' || raw.trimStart().startsWith('#')) continue;
+      const indent = yamlIndent(raw);
+      const trimmed = raw.trim();
+      if (indent >= parsed.indent) continue;
+      if (/^-\s+/u.test(trimmed)) {
+        stepStart = index;
+        stepIndent = indent;
+      }
+      break;
     }
   }
-  return value === true ? false : value === false ? true : undefined;
+
+  let stepEnd = lines.length;
+  for (let index = stepStart + 1; index < lines.length; index += 1) {
+    const raw = lines[index];
+    if (raw.trim() === '' || raw.trimStart().startsWith('#')) continue;
+    const indent = yamlIndent(raw);
+    const trimmed = raw.trim();
+    if (indent < stepIndent || (indent === stepIndent && /^-\s+/u.test(trimmed))) {
+      stepEnd = index;
+      break;
+    }
+    if (propertyIndent === null && indent > stepIndent && /^[A-Za-z0-9_.-]+:/u.test(trimmed)) {
+      propertyIndent = indent;
+    }
+  }
+
+  return { stepStart, stepEnd, stepIndent, propertyIndent };
+}
+
+function checkoutPersistCredentials(lines, usesIndex, parsed) {
+  const { stepStart, stepEnd, propertyIndent } = checkoutStepBounds(lines, usesIndex, parsed);
+  if (!Number.isInteger(propertyIndent)) return undefined;
+
+  let withIndex = -1;
+  let withIndent = null;
+  for (let index = stepStart; index < stepEnd; index += 1) {
+    const raw = lines[index];
+    if (raw.trim() === '' || raw.trimStart().startsWith('#')) continue;
+    if (yamlIndent(raw) !== propertyIndent) continue;
+    if (/^with:\s*(?:#.*)?$/u.test(raw.trim())) {
+      withIndex = index;
+      withIndent = propertyIndent;
+      break;
+    }
+  }
+  if (withIndex === -1) return undefined;
+
+  for (let index = withIndex + 1; index < stepEnd; index += 1) {
+    const raw = lines[index];
+    if (raw.trim() === '' || raw.trimStart().startsWith('#')) continue;
+    const indent = yamlIndent(raw);
+    if (indent <= withIndent) break;
+    const match = /^persist-credentials:\s*(false|true)\s*(?:#.*)?$/iu.exec(raw.trim());
+    if (match) return match[1].toLowerCase() === 'true';
+  }
+  return undefined;
 }
 
 function inspectWorkflowText(text, options = {}) {
@@ -159,7 +209,7 @@ function inspectWorkflowText(text, options = {}) {
     externalReferences.push(identity);
     if (!entries.has(identity)) errors.push(issue('ACTION_NOT_LOCKED', workflowPath, `${identity} is not registered in the action lock`, index + 1));
     if (repository === 'actions/checkout') {
-      const persistCredentials = checkoutPersistCredentials(lines, index, parsed.indent);
+      const persistCredentials = checkoutPersistCredentials(lines, index, parsed);
       checkoutSteps.push({ path: workflowPath, line: index + 1, reference: identity, persistCredentials });
       if (persistCredentials !== false) {
         errors.push(issue('CHECKOUT_PERSIST_CREDENTIALS_NOT_FALSE', workflowPath, 'actions/checkout must explicitly set persist-credentials: false', index + 1));
