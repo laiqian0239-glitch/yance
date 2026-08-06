@@ -16,6 +16,13 @@ const {
 const FIXTURE_BRANCH = 'rebuild/windows-release-closure-20260806-wp0-fixture';
 const FIXTURE_ENV = Object.freeze({ ...process.env, GIT_LFS_SKIP_SMUDGE: '1' });
 
+function evaluatedRepositoryEnv(repo) {
+  return {
+    ...FIXTURE_ENV,
+    YANCE_EVALUATED_REPOSITORY_ROOT: repo
+  };
+}
+
 function makeAuthorizedFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp0-command-fixture-'));
   const repo = path.join(root, 'repo');
@@ -61,12 +68,12 @@ test('local build package and release commands are guarded by executable WP0 gat
       const stdout = execFileSync(process.execPath, ['tools/wp0/run-protected-command.js', command, '--gate-only'], {
         cwd: repo,
         encoding: 'utf8',
-        env: FIXTURE_ENV
+        env: evaluatedRepositoryEnv(repo)
       });
       const result = JSON.parse(stdout);
       assert.equal(result.status, 'PASS', JSON.stringify(result));
       assert.equal(result.gateStatus, 'PASS');
-      assert.equal(result.branch, FIXTURE_BRANCH);
+      assert.equal(result.workPackageScope.effectiveBranch, FIXTURE_BRANCH);
     }
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
