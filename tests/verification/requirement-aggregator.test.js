@@ -54,7 +54,7 @@ test('missing, platform mismatch and command-set drift never satisfy a requireme
   const onlyLinux = aggregateRequirementSet({ requirements: requirements(), facts: [fact()], expectedBaseCommit: BASE, expectedHeadCommit: HEAD });
   assert.equal(onlyLinux.reasonCode, 'EVIDENCE_REQUIREMENT_SET_INCOMPLETE');
 
-  const wrongPlatform = fact({ gateId: 'pvep-windows-selftest', commandSetDigest: WINDOWS_DIGEST });
+  const wrongPlatform = fact({ gateId: 'pvep-windows-selftest', commandSetDigest: WINDOWS_DIGEST, receiptSha256: '9'.repeat(64), producerIdentity: 'executor:wrong-platform' });
   assert.equal(aggregateRequirementSet({ requirements: requirements(), facts: [fact(), wrongPlatform], expectedBaseCommit: BASE, expectedHeadCommit: HEAD }).reasonCode, 'EVIDENCE_REQUIREMENT_SET_INCOMPLETE');
 
   const drift = fact({ gateId: 'pvep-windows-selftest', platform: 'windows', commandSetDigest: 'e'.repeat(64), commandSetId: 'pvep-windows-selftest-v1', receiptSha256: 'e'.repeat(64) });
