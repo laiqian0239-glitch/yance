@@ -20,20 +20,22 @@
     "tools/"
   ],
   "l2ExactPaths": [
-    "package.json",
-    "package-lock.json"
+    "THIRD_PARTY_NOTICES.md",
+    "package-lock.json",
+    "package.json"
   ],
   "l2Prefixes": [
     ".github/",
     "backend/lib/sqlite",
-    "backend/runtime/",
     "backend/migrations/",
+    "backend/runtime/",
     "backend/services/authority",
     "backend/services/backup",
     "backend/services/recovery",
     "electron/",
     "governance/",
     "shared/release/",
+    "third_party/",
     "tools/layered-ci/",
     "tools/wp0/"
   ],
