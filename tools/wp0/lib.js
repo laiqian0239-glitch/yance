@@ -28,6 +28,16 @@ const EXPECTED_BASELINE_ANCHOR_BLOB = '6a5ffc68e76baf6a477668c6c2faf61934e94720'
 const APPROVED_REFERENCE_ONLY_AUTHORITIES = new Map([
   ['independent_audit_delivery', 'REFERENCE_ONLY_AUDIT_DELIVERY']
 ]);
+const APPROVED_SUPPLY_CHAIN_EVIDENCE_PATHS = new Set([
+  'third_party_notices.md',
+  'third_party/github-actions-lock.json',
+  'third_party/licenses/actions-checkout-mit.txt',
+  'third_party/licenses/actions-setup-node-mit.txt',
+  'third_party/licenses/actions-upload-artifact-mit.txt',
+  'third_party/licenses/baileys-mit.txt',
+  'third_party/provenance.json',
+  'third_party/sbom.cdx.json'
+]);
 const PROTECTED_ACTIVE_AUTHORITY_PATHS = Object.freeze([
   '.github',
   '.gitattributes',
@@ -169,6 +179,7 @@ function isScanCandidate(relativePath) {
 function classifyScanPath(relativePath, scopePolicy = readJson(REPOSITORY_SCOPE_POLICY_PATH)) {
   const normalized = normalizeRepositoryRelativePath(relativePath, 'relativePath');
   const lower = normalized.toLowerCase();
+  if (APPROVED_SUPPLY_CHAIN_EVIDENCE_PATHS.has(lower)) return 'SUPPLY_CHAIN_EVIDENCE';
   if (lower.startsWith('governance/')) return 'POLICY_REFERENCE';
   if (lower.startsWith('tests/wp0/')) return 'TEST_FIXTURE_OR_ASSERTION';
   if (lower.startsWith('tools/wp0/')) return 'WP0_GATE_IMPLEMENTATION';
