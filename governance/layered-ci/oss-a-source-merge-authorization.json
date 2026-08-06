@@ -78,13 +78,13 @@
     "authorizationReviewedHead": "f50590181e19cdc134c35d91ae9421af5b532ce8",
     "authorizationOriginalBlobSha": "99ee3e5243d07fed5cea6661cb6ad82123771bc8",
     "authorizationOriginalFileSha256": "a9c6022c7a59e49dd3c4c957d6e7e56de70697b84609f338d00a4cc5c07fe0fd",
-    "policyReviewedHead": "00b186224998ea3c3e52d9cf1fb332fbeb248efb",
+    "policyReviewedHead": "7926dd003d00c80a1feb1dc17e42dea3ab8009b7",
     "exactTwoParentOrderRequired": true,
     "sealMayNotChangeCheckpointIdentityOrImplementationScope": true
   },
   "policyBinding": {
     "redHead": "5117b03d25b8cae87db39cb4445c322dc01405d9",
-    "reviewedHead": "00b186224998ea3c3e52d9cf1fb332fbeb248efb",
+    "reviewedHead": "7926dd003d00c80a1feb1dc17e42dea3ab8009b7",
     "branch": "governance/oss-a-source-merge-policy",
     "allowedPostReviewCommitsClassification": "GOVERNANCE_METADATA_ONLY",
     "allowedPostReviewPaths": [
