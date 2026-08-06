@@ -9,7 +9,14 @@ const assert = require('node:assert/strict');
 const { REPO_ROOT } = require('../../tools/wp0/lib');
 
 const FIXED_TIME = '2026-07-03T00:00:00Z';
+const FIXTURE_BRANCH = 'stage/6.4.5.9-architecture-closure';
 const ELECTRON_LFS_PATH = 'vendor/electron/electron-v39.8.5-win32-x64.zip';
+const POST_MERGE_DEFECT_PATH = path.join(
+  REPO_ROOT,
+  'governance',
+  'architecture-closure-v2',
+  'wp-a-post-merge-defect-001.json'
+);
 const LFS_POINTER_ENV = Object.freeze({ ...process.env, GIT_LFS_SKIP_SMUDGE: '1' });
 
 function git(cwd, args) {
@@ -27,15 +34,27 @@ function makeCleanClone() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp0-source-binding-'));
   const repo = path.join(root, 'repo');
   const sourceCommit = git(REPO_ROOT, ['rev-parse', 'HEAD']);
-  const sourceBranch = git(REPO_ROOT, ['branch', '--show-current']);
-  const args = ['-c', 'core.autocrlf=false', '-c', 'core.eol=lf', 'clone', '--config', 'core.autocrlf=false', '--config', 'core.eol=lf', '--quiet', '--no-local'];
-  if (sourceBranch) args.push('--branch', sourceBranch);
-  args.push(REPO_ROOT, repo);
+  const args = [
+    '-c', 'core.autocrlf=false',
+    '-c', 'core.eol=lf',
+    'clone',
+    '--config', 'core.autocrlf=false',
+    '--config', 'core.eol=lf',
+    '--quiet',
+    '--no-local',
+    REPO_ROOT,
+    repo
+  ];
   execFileSync('git', args, { encoding: 'utf8', env: LFS_POINTER_ENV });
-  if (!sourceBranch) execFileSync('git', ['checkout', '--quiet', '--detach', sourceCommit], { cwd: repo, env: LFS_POINTER_ENV });
-  assert.equal(git(repo, ['rev-parse', 'HEAD']), sourceCommit, 'WP0 evidence fixture must clone the tested HEAD');
+  execFileSync('git', ['switch', '--force-create', FIXTURE_BRANCH, sourceCommit], {
+    cwd: repo,
+    encoding: 'utf8',
+    env: LFS_POINTER_ENV
+  });
+  assert.equal(git(repo, ['rev-parse', 'HEAD']), sourceCommit, 'WP0 evidence fixture must use the tested HEAD');
+  assert.equal(git(repo, ['branch', '--show-current']), FIXTURE_BRANCH);
   assertPointerPreserved(repo);
-  return { root, repo, sourceBranch, sourceCommit };
+  return { root, repo, sourceBranch: FIXTURE_BRANCH, sourceCommit };
 }
 
 function runGenerator(repo, args = []) {
@@ -74,7 +93,7 @@ test('evidence generator rejects a nonexistent sourceCommit', () => {
   assert.equal(result.json?.reasonCode, 'WP0_EVIDENCE_SOURCE_COMMIT_NOT_FOUND');
 });
 
-test('evidence generator rejects a dirty worktree', () => {
+test('evidence generator rejects a dirty worktree before executing any branch gate', () => {
   const { repo } = makeCleanClone();
   const head = git(repo, ['rev-parse', 'HEAD']);
   fs.appendFileSync(path.join(repo, 'governance', 'stage-policy.json'), '\n');
@@ -84,7 +103,7 @@ test('evidence generator rejects a dirty worktree', () => {
   assert.equal(result.json?.repositoryClean, false);
 });
 
-test('correct clean HEAD records commit tree and produces byte-identical evidence in different temporary directories', () => {
+test('correct clean HEAD records commit tree and produces byte-identical evidence in isolated canonical-stage fixtures', () => {
   const { root, repo } = makeCleanClone();
   const head = git(repo, ['rev-parse', 'HEAD']);
   const tree = git(repo, ['rev-parse', 'HEAD^{tree}']);
@@ -99,6 +118,7 @@ test('correct clean HEAD records commit tree and produces byte-identical evidenc
   assert.equal(required.sourceCommit, head);
   assert.equal(required.sourceTree, tree);
   assert.equal(required.repositoryClean, true);
+  assert.equal(required.branch, FIXTURE_BRANCH);
   const index = JSON.parse(fs.readFileSync(path.join(outA, 'evidence-index.json'), 'utf8'));
   assert.equal(index.evidenceOutputDirectory, '.');
   assert.equal(JSON.stringify(index).includes(outA), false);
@@ -109,13 +129,12 @@ test('correct clean HEAD records commit tree and produces byte-identical evidenc
   for (const [name, bytes] of mapA) assert.deepEqual(bytes, mapB.get(name), `${name} differs across output directories`);
 });
 
-test('historical evidence succeeds only when tests and generator run inside a detached worktree at that commit', () => {
+test('historical detached evidence succeeds only at the frozen post-merge defect closure commit', () => {
   const { root, repo } = makeCleanClone();
-  const historical = git(repo, ['rev-parse', 'HEAD']);
-  execFileSync('git', ['config', 'user.name', 'WP0 Test'], { cwd: repo, env: LFS_POINTER_ENV });
-  execFileSync('git', ['config', 'user.email', 'wp0-test@example.invalid'], { cwd: repo, env: LFS_POINTER_ENV });
-  execFileSync('git', ['commit', '--allow-empty', '--quiet', '-m', 'temporary newer commit'], { cwd: repo, env: LFS_POINTER_ENV });
+  const defect = JSON.parse(fs.readFileSync(POST_MERGE_DEFECT_PATH, 'utf8'));
+  const historical = defect.scope.closedHead;
   assert.notEqual(git(repo, ['rev-parse', 'HEAD']), historical);
+  git(repo, ['cat-file', '-e', `${historical}^{commit}`]);
   const worktree = path.join(root, 'historical-worktree');
   execFileSync('git', ['-c', 'core.autocrlf=false', '-c', 'core.eol=lf', 'worktree', 'add', '--quiet', '--detach', worktree, historical], {
     cwd: repo,
