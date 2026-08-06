@@ -220,3 +220,22 @@ test('Stage WP0 workflow has base-owned routing and separate routes behind one a
   assert.doesNotMatch(text, /governance\/layered-ci-reviewed-candidate\s*$/mu);
   assert.doesNotMatch(text, /continue-on-error:\s*true/u);
 });
+
+test('GOVERNANCE_WP0 executes the implementation branch policy contract exactly once and fail fast', () => {
+  const text = fs.readFileSync(path.join(ROOT, '.github/workflows/stage-6459-wp0-gates.yml'), 'utf8');
+  const lines = text.split('\n');
+  const start = lines.findIndex(line => line === '  wp0-governance:');
+  assert.notEqual(start, -1, 'wp0-governance job must exist');
+  const nextJobOffset = lines.slice(start + 1).findIndex(line => /^  [a-z0-9][a-z0-9_-]*:$/u.test(line));
+  assert.notEqual(nextJobOffset, -1, 'wp0-governance job must have a following top-level job boundary');
+  const job = lines.slice(start, start + 1 + nextJobOffset).join('\n');
+  const command = 'node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js';
+  assert.equal(job.split(command).length - 1, 1, 'branch-policy contract must run exactly once');
+  assert.match(
+    job,
+    /- name: Run implementation branch policy contract\n\s+run: node --test --test-concurrency=1 tests\/wp0\/implementation-branch-policy\.test\.js/u
+  );
+  assert.doesNotMatch(job, /tests\/wp0\/\*\.test\.js/u);
+  assert.doesNotMatch(job, /continue-on-error:\s*true/u);
+  assert.doesNotMatch(job, /implementation-branch-policy\.test\.js\s*(?:\|\||;).*true/u);
+});

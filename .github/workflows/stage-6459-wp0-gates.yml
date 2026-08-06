@@ -230,6 +230,8 @@ jobs:
         run: node --test --test-concurrency=1 tests/layered-ci/*.test.js
       - name: Run generic open-source authorization contracts
         run: node --test --test-concurrency=1 tests/wp0/open-source-work-package-authorization.test.js
+      - name: Run implementation branch policy contract
+        run: node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js
       - name: Run independent review contract
         run: node --test --test-concurrency=1 tests/independent-review/chatgpt-review-contract.test.js
       - name: Run staged-secret scanner regressions

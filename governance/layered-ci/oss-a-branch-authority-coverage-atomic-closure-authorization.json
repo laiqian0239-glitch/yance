@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OSS_A_BRANCH_AUTHORITY_COVERAGE_ATOMIC_CLOSURE_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-06T17:49:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-A",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "The delegated governance branch-authority implementation and its base-owned GOVERNANCE_WP0 execution coverage form one atomic dependency. PR #86 cannot obtain direct Stage evidence until the workflow executes tests/wp0/implementation-branch-policy.test.js. PR #88 cannot pass that newly executed contract until PR #86's delegated authority implementation recognizes the already authorized exact governance branch. Merging either half alone would leave an unverified or failing main. The only non-circular closure is one exact four-path candidate on the already authorized PR #86 implementation branch.",
+  "base": {
+    "branch": "main",
+    "commit": "450f6402fafad7b21cef2a70a6b35c293565f2a8"
+  },
+  "predecessorEvidence": {
+    "branchAuthorityAuthorizationMerge": "8311cd15572bdc89316c47485459017613b2e2c8",
+    "coverageAuthorizationMerge": "450f6402fafad7b21cef2a70a6b35c293565f2a8",
+    "branchAuthorityPullRequest": 86,
+    "branchAuthorityReviewedHead": "9a4b30872a0990c6283b6ce0efcc17acf62ab10c",
+    "coveragePullRequest": 88,
+    "coverageRedHead": "a16b37ea77621f383efc5581e447d9815a03a8f7",
+    "coverageImplementationHead": "39d36a78ffed2337220cb2cff1a03e038edb937f",
+    "coverageFailureRun": 31094892575,
+    "coverageFailureJob": 92594462142,
+    "coverageFailureStep": "Run implementation branch policy contract",
+    "failureMeaning": "The new workflow step executed the exact contract and failed because the branch-authority implementation was not present in the same candidate tree."
+  },
+  "authorizationBranch": {
+    "name": "governance/oss-a-branch-authority-coverage-atomic-closure",
+    "allowedChangedPaths": [
+      "governance/layered-ci/oss-a-branch-authority-coverage-atomic-closure-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "runtimeBranchAuthority": {
+    "documentPath": "governance/layered-ci/oss-a-source-merge-policy-branch-authority-authorization.json",
+    "mergeCommit": "8311cd15572bdc89316c47485459017613b2e2c8",
+    "mergeFirstParent": "fac7d298f182043f4ecc6e41a780248ce3a03132",
+    "reviewedHead": "97e6ebc2d83d7e775879603e2383dd1f321fa868",
+    "blobSha": "5c675b30e71de55e524bf8ce5c0ac6d60718d11b",
+    "implementationBranchField": "implementation.branch",
+    "exactImplementationBranch": "fix/oss-a-source-merge-policy-branch-authority",
+    "consumedBy": "shared/release/implementationBranchPolicy.js",
+    "thisDocumentGrantsRuntimeBranchAuthority": false,
+    "thisDocumentPurpose": "exact four-path atomic scope composition only"
+  },
+  "implementation": {
+    "branch": "fix/oss-a-source-merge-policy-branch-authority",
+    "pullRequest": 86,
+    "requiredBase": "the exact ordinary main merge commit containing this authorization",
+    "allowedChangedPaths": [
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      "shared/release/implementationBranchPolicy.js",
+      "tests/layered-ci/wp0-routing.test.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "9e6dd7483bb698814dc7294690932cddb5f956dc0afeacc19166de739f701cd4",
+    "newDependencyAllowed": false,
+    "registryModificationAllowed": false,
+    "routeClassificationChangeAllowed": false,
+    "productGateChangeAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationLimit": "one exact fail-fast governance step",
+    "testRemovalAllowed": false,
+    "assertionWeakeningAllowed": false
+  },
+  "atomicComposition": {
+    "branchAuthoritySourcePaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "coverageSourcePaths": [
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      "tests/layered-ci/wp0-routing.test.js"
+    ],
+    "sourceBranchesAreEvidenceOnly": true,
+    "ordinaryMergeOfSourcePrsIndividuallyAuthorized": false,
+    "combinedCandidateRequired": true,
+    "combinedCandidateMustUseExistingAuthorizedImplementationBranch": true,
+    "combinedCandidateMustPreserveExactSourceBlobsUnlessReviewFixIsRequired": true
+  },
+  "mandatoryContracts": [
+    "The implementation branch is accepted only from the exact trusted-main runtimeBranchAuthority document and never from this scope-composition document or candidate-owned self-authorization",
+    "Git subprocesses discard repository, object database, replacement object and config override environment variables",
+    "Wrong merge parent order, wrong authorization blob, widened paths, document tampering and arbitrary governance branches fail closed",
+    "GOVERNANCE_WP0 executes node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js exactly once",
+    "The workflow execution has no continue-on-error, conditional skip, shell suppression, broad tests/wp0 wildcard or duplicate invocation",
+    "The exact Stage run proves both the workflow structure contract and the actual implementation branch policy contract GREEN on the same Head",
+    "PRODUCT_WP0, PRODUCT_DOCUMENTATION_WP0, route selection, registry contents and OSS-A product receipt remain unchanged"
+  ],
+  "requiredSequence": [
+    "This single-file authorization passes Stage WP0, Layered CI and ACV2 on its exact Head",
+    "Independent review returns ALLOW_MERGE with zero P0 and P1 findings",
+    "Authorization merges to main by ordinary two-parent merge commit",
+    "PR #86 is advanced from that exact main by ordinary merge topology without force push or history rewrite",
+    "The two exact PR #88 coverage paths are composed into PR #86 together with its two branch-authority paths",
+    "The combined four-path set and digest are verified before moving the PR #86 ref",
+    "The combined exact Head runs Stage WP0, Layered CI, ACV2 and CodeRabbit/independent review",
+    "Stage WP0 proves the implementation branch policy contract step GREEN on the same exact Head",
+    "PR #88 is closed unmerged after its RED and source blobs are recorded",
+    "Only the combined PR #86 may merge ordinarily after all exact-Head evidence is complete",
+    "Fresh main is then ordinarily merged into Draft PR #82 for its PRODUCT_WP0 proof"
+  ],
+  "prohibitions": {
+    "booleanSemantics": "TRUE_MEANS_FORBIDDEN",
+    "mergePr86BeforeAtomicCoverage": true,
+    "mergePr88Individually": true,
+    "temporaryBranchAlias": true,
+    "localBranchRenameToPassTests": true,
+    "skipCurrentBranchAssertion": true,
+    "baseOnlyTestExecutionAsFinalProof": true,
+    "broadTestsWp0Wildcard": true,
+    "continueOnError": true,
+    "conditionalSkip": true,
+    "shellErrorSuppression": true,
+    "registryWidening": true,
+    "candidateSelfAuthorization": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "sourceMergeAuthorization": true,
+    "productionUse": true,
+    "formalRelease": true,
+    "publish": true,
+    "readyForPromotion": true,
+    "automaticNextWorkPackageAuthorization": true
+  },
+  "governance": {
+    "booleanSemantics": "TRUE_MEANS_AUTHORIZED_OR_REQUIRED",
+    "authorizationPredatesCombinedImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "atomicClosureRequired": true,
+    "pr82MustRemainDraft": true,
+    "pr67MustRemainDraft": true,
+    "uiPr85MustRemainFrozen": true,
+    "sourceMergeAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationGranted": false
+  }
+}
