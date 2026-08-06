@@ -136,6 +136,20 @@ test('reviewed provenance evidence is not interpreted as an executable legacy re
   }
 });
 
+test('a case-variant evidence path remains active and fails closed', () => {
+  const relativePath = 'third_party/PROVENANCE.JSON';
+  const root = makeReleaseSurfaceFixture(relativePath, JSON.stringify({ action: REVIEWED_PROVENANCE_TOKEN }));
+  try {
+    assert.equal(classifyScanPath(relativePath), 'ACTIVE_SOURCE_OR_AUTOMATION');
+    const scan = scanRepositoryReleaseSurfaces(root);
+    assert.equal(scan.violationCount, 1, JSON.stringify(scan));
+    assert.equal(scan.violations[0]?.reasonCode, 'WP0_FORBIDDEN_LEGACY_RELEASE_MECHANISM');
+    assert.equal(scan.violations[0]?.file, relativePath);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('an unknown future third-party file remains active and fails closed on a legacy release token', () => {
   const relativePath = 'third_party/future-release-plan.json';
   const root = makeReleaseSurfaceFixture(relativePath, JSON.stringify({ action: REVIEWED_PROVENANCE_TOKEN }));
