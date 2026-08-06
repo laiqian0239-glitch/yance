@@ -23,6 +23,18 @@ const ACV2_TASK_STATES = new Set(['RED_LOCKED', 'IMPLEMENTING', 'GREEN_PROVISION
 const PATH_CONTROL = /[\u0000-\u001f\u007f]/u;
 const SHA40 = /^[a-f0-9]{40}$/u;
 const TRUSTED_POLICY_ROOT = path.resolve(__dirname, '..', '..');
+const TRUSTED_GIT_ENVIRONMENT_KEYS = Object.freeze([
+  'PATH',
+  'Path',
+  'SystemRoot',
+  'SYSTEMROOT',
+  'WINDIR',
+  'COMSPEC',
+  'PATHEXT',
+  'TEMP',
+  'TMP',
+  'TMPDIR'
+]);
 const DELEGATED_GOVERNANCE_AUTHORITIES = Object.freeze([
   Object.freeze({
     authorizationPath: 'governance/layered-ci/oss-a-source-merge-authorization.json',
@@ -140,11 +152,34 @@ function isExactBranch(value) {
     && branch.split('/').every(part => part && part !== '.' && part !== '..' && !part.endsWith('.lock')));
 }
 
+function buildTrustedGitEnvironment(sourceEnv = process.env) {
+  const environment = {};
+  for (const key of TRUSTED_GIT_ENVIRONMENT_KEYS) {
+    if (typeof sourceEnv?.[key] === 'string' && sourceEnv[key].length > 0) {
+      environment[key] = sourceEnv[key];
+    }
+  }
+  environment.GIT_CONFIG_NOSYSTEM = '1';
+  environment.GIT_CONFIG_GLOBAL = process.platform === 'win32' ? 'NUL' : '/dev/null';
+  environment.GIT_TERMINAL_PROMPT = '0';
+  environment.GCM_INTERACTIVE = 'Never';
+  environment.GIT_OPTIONAL_LOCKS = '0';
+  environment.GIT_NO_REPLACE_OBJECTS = '1';
+  environment.GIT_NO_LAZY_FETCH = '1';
+  environment.LANG = 'C';
+  environment.LC_ALL = 'C';
+  return environment;
+}
+
 function trustedGit(args, options = {}) {
   return execFileSync('git', args, {
     cwd: path.resolve(options.trustedPolicyRoot || TRUSTED_POLICY_ROOT),
     encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe']
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: buildTrustedGitEnvironment(options.environment || process.env),
+    timeout: 10000,
+    maxBuffer: 4 * 1024 * 1024,
+    windowsHide: true
   }).trim();
 }
 
@@ -583,6 +618,7 @@ module.exports = {
   DELEGATED_GOVERNANCE_AUTHORITIES,
   canonicalStageBranch,
   isReleaseClosureRebuildBranch,
+  buildTrustedGitEnvironment,
   loadWorkPackageAuthorization,
   loadWorkPackageScopeAmendment,
   loadWorkPackageTaskScopeChain,
