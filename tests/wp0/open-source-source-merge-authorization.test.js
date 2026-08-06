@@ -417,6 +417,20 @@ test('policy and final-seal documents must be loaded from their exact remote com
   }).reasonCode, 'FINAL_CANDIDATE_SEAL_SOURCE_INVALID');
 });
 
+test('source-merge readiness rejects an authorization not loaded from the exact policy evidence tip', () => {
+  const { evaluateSourceMergeReadiness } = loadPolicy();
+  const forgedAuthorization = sealedAuthorization();
+  forgedAuthorization.untrustedAnnotation = 'not committed';
+  assert.equal(evaluateSourceMergeReadiness({
+    authorization: forgedAuthorization,
+    finalSeal: finalCandidateSeal(),
+    sealPullRequest: validSealPullRequest(),
+    proposedMergeParents: [POLICY_MAIN, FINAL_HEAD],
+    graph: validGraph(),
+    evidence: validEvidence()
+  }).reasonCode, 'POLICY_DOCUMENT_SOURCE_INVALID');
+});
+
 test('policy evidence tip may contain only the authorization metadata path', () => {
   const { evaluatePolicyImplementation } = loadPolicy();
   const graph = validGraph();
