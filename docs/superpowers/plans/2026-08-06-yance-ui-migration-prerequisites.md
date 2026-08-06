@@ -39,7 +39,7 @@ This is not a temporary bypass. It removes the bootstrap and self-trust cycle at
 ## Branch and commit topology
 
 ```text
-fresh main after PR #90
+fresh main after replacement PR #91
   |
   +-- governance/ui-migration-prerequisite-routes
   |     -> test-only exact-route RED
@@ -104,34 +104,38 @@ Any need to change a path outside these sets must stop implementation and revise
 
 ---
 
-## Task 0: Lock current refs and verify the approved design merge
+## Task 0: Lock current refs and verify the approved replacement design merge
 
 **Files:** None.
 
 **Step 1: Fetch exact remote refs**
 
 ```bash
-git fetch --prune origin main design/unified-ui-open-source-migration-2026-08-06
+git fetch --prune origin main design/unified-ui-open-source-migration-2026-08-06-clean
 git rev-parse refs/remotes/origin/main
-git rev-parse refs/remotes/origin/design/unified-ui-open-source-migration-2026-08-06
+git rev-parse refs/remotes/origin/design/unified-ui-open-source-migration-2026-08-06-clean
 ```
 
 Expected: two exact 40-character commits. Never copy a stale SHA from this plan.
 
-**Step 2: Verify PR #90 was ordinarily merged**
+**Step 2: Verify PR #90 closure and replacement PR #91 ordinary merge**
 
 ```bash
-gh pr view 90 --json state,mergedAt,mergeCommit,headRefOid,baseRefOid
+gh pr view 90 --json state,mergedAt,headRefOid
+gh pr view 91 --json state,mergedAt,mergeCommit,headRefOid,baseRefOid
 ```
 
 Expected:
 
-- `state` is `CLOSED`;
-- `mergedAt` is non-null;
-- `mergeCommit` is non-null;
-- the merge commit has two parents in the expected order.
+- PR #90 `state` is `CLOSED`;
+- PR #90 `mergedAt` is null;
+- PR #90 remains the frozen historical branch and is not an implementation parent;
+- PR #91 `state` is `CLOSED`;
+- PR #91 `mergedAt` is non-null;
+- PR #91 `mergeCommit` is non-null;
+- the PR #91 merge commit has two parents in the expected order.
 
-If PR #90 is not ordinarily merged, stop. The design branch itself grants no implementation authority.
+If PR #90 was merged, or PR #91 was not ordinarily merged, stop. Neither an unmerged design branch nor the closed historical PR grants implementation authority.
 
 **Step 3: Establish a clean baseline**
 
@@ -938,7 +942,8 @@ No Product Shell GREEN source, Chatwoot source copy, sound distribution or busin
 
 The prerequisite is complete only when:
 
-- PR #90 is ordinarily merged;
+- PR #90 remains closed and unmerged as historical evidence;
+- replacement PR #91 is ordinarily merged;
 - the exact-route bootstrap is ordinarily merged before any new prerequisite path is created;
 - one static root-agnostic authorization package exists in `main`;
 - no executable current-main or active-handoff SHA exists in that static package;
