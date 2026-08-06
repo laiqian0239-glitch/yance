@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OSS_A_WP0_SUPPLY_CHAIN_EVIDENCE_CLASSIFICATION_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-06T12:42:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-A",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #67 exact-Head permanent WP0 verification proved that approved checked-in supply-chain evidence is still classified by the legacy release-surface scanner as active automation. The legal provenance evidence token existing-yance-postinstall-patch therefore triggers the forbidden legacy release mechanism detector and blocks isolated evidence generation and protected commands. The repair must classify only the exact reviewed evidence paths, without excluding arbitrary future third_party files from scanning.",
+  "base": {
+    "branch": "main",
+    "commit": "885685504bf5c9e48e51d7d36f367356ff07d4e3"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresExactHeadGreen": true,
+    "requiresIndependentAllowMerge": true,
+    "requiresOrdinaryMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true
+  },
+  "evidence": {
+    "sourcePullRequest": 67,
+    "sourceExactHead": "a7068a1de0efd6c0f675aa2af5e91a4f54284e82",
+    "stageWp0Run": 31079487492,
+    "stageWp0ProductJob": 92544865096,
+    "failedStep": "Run WP0 required tests",
+    "failedContracts": [
+      "evidence-source-binding.test.js / correct clean HEAD records commit tree and produces byte-identical evidence in isolated rebuild fixtures",
+      "forbidden-hotfix-entrypoints.test.js / forbidden-hotfix-entrypoints.test",
+      "forbidden-hotfix-entrypoints.test.js / local build package and release commands are guarded by executable WP0 gate on an isolated authorized rebuild branch"
+    ],
+    "rootCause": {
+      "path": "third_party/provenance.json",
+      "currentClassification": "ACTIVE_SOURCE_OR_AUTOMATION",
+      "evidenceToken": "existing-yance-postinstall-patch",
+      "incorrectDetector": "WP0_FORBIDDEN_LEGACY_RELEASE_MECHANISM",
+      "requiredClassification": "SUPPLY_CHAIN_EVIDENCE"
+    }
+  },
+  "authorizationBranch": {
+    "name": "governance/oss-a-wp0-supply-chain-evidence-classification",
+    "allowedChangedPaths": [
+      "governance/layered-ci/oss-a-wp0-supply-chain-evidence-classification-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/oss-a-wp0-supply-chain-evidence-classification",
+    "requiredBase": "the exact main merge commit containing this authorization",
+    "allowedChangedPaths": [
+      "tests/wp0/forbidden-hotfix-entrypoints.test.js",
+      "tools/wp0/lib.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "585b5a8de644fa85165291e8cb54fe9b59e46b4c9a8c31f6a0500f18674b46bd",
+    "runtimeProductBehaviorChanged": false,
+    "newDependencyAllowed": false,
+    "releaseSurfaceScannerMayOnlyNarrowForExactReviewedEvidence": true,
+    "arbitraryThirdPartyPrefixExclusionAllowed": false
+  },
+  "approvedSupplyChainEvidencePaths": [
+    "THIRD_PARTY_NOTICES.md",
+    "third_party/github-actions-lock.json",
+    "third_party/licenses/actions-checkout-MIT.txt",
+    "third_party/licenses/actions-setup-node-MIT.txt",
+    "third_party/licenses/actions-upload-artifact-MIT.txt",
+    "third_party/licenses/baileys-MIT.txt",
+    "third_party/provenance.json",
+    "third_party/sbom.cdx.json"
+  ],
+  "mandatoryFailureFirstContracts": [
+    "Before implementation classifyScanPath(third_party/provenance.json) returns ACTIVE_SOURCE_OR_AUTOMATION rather than SUPPLY_CHAIN_EVIDENCE",
+    "A fixture containing the reviewed provenance evidence token existing-yance-postinstall-patch under third_party/provenance.json is rejected before implementation",
+    "After implementation each of the eight exact reviewed paths classifies as SUPPLY_CHAIN_EVIDENCE",
+    "An unapproved future path such as third_party/future-release-plan.json remains ACTIVE_SOURCE_OR_AUTOMATION",
+    "The same forbidden legacy release token under an active tools path continues to fail closed",
+    "Repository scan enumeration, release-pattern detection, reference-only policy and protected-command requirements remain unchanged",
+    "PR #67 evidence-source-binding and protected-command isolation contracts pass after normal main integration"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes all applicable governance gates",
+    "Independent review returns ALLOW_MERGE with zero P0 and P1 findings",
+    "Authorization PR merges to main by ordinary merge without history rewrite",
+    "Implementation branch is created from that exact authorization merge commit",
+    "A test-only commit records causal RED for exact evidence classification and future-path fail-closed behavior",
+    "Only the exact approved evidence path set and SUPPLY_CHAIN_EVIDENCE classification are added to tools/wp0/lib.js",
+    "Implementation exact Head passes Layered CI, permanent WP0, ACV2 and independent review",
+    "Implementation PR merges to main by ordinary merge",
+    "The resulting main is merged normally into PR #67",
+    "PR #67 receipt is rebound to the resulting exact main without changing its 23-path count or digest",
+    "PR #67 exact Head is reverified through permanent WP0, Layered CI, OSS Provenance, ACV2, post-merge validation and independent review"
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "excludeEntireThirdPartyPrefixFromScanning": true,
+    "classifyUnknownFutureThirdPartyFilesAsEvidence": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "directModificationOfPr67OutsideItsSealedScope": true,
+    "candidateScopeReduction": true,
+    "productionUse": true,
+    "formalRelease": true,
+    "publish": true,
+    "automaticNextWorkPackageAuthorization": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "pr67MustRemainDraft": true,
+    "readyForPromotion": false
+  }
+}
