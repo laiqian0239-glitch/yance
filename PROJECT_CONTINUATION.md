@@ -2,228 +2,110 @@
 
 > **新聊天必须先读本文件，再执行任何仓库修改。**
 >
-> 本文件是跨聊天的持续执行索引，不替代治理授权、授权凭据、精确 Head 工作流结果或正式审计证据。所有安全与发布判定仍以仓库内治理文件及 GitHub Actions 精确结果为准。
+> 本文件是跨聊天持续执行索引，不替代正式授权、receipt、精确 Head 工作流结果或审计证据。远端 refs、仓库内治理凭据与 exact-Head Actions 证据始终高于本文件。
 
 ## 0. 固定修复规则
 
 1. 禁止临时绕过，必须进行底层重构。
 2. 失败测试先行；不得通过跳过测试、关闭测试、`continue-on-error`、弱化断言或修改门禁口径制造 GREEN。
-3. 不得强推，不得改写历史；所有分支更新只能使用可证明的非强制快进或普通 merge commit。
+3. 不得强推，不得改写历史；分支更新只能使用可证明的非强制快进或普通 merge commit。
 4. 所有阶段结论必须绑定精确 commit SHA、workflow run/job 和精确路径集合。
-5. 不得把本接续文档当成授权扩展；任何新增实施路径必须先完成正式授权与 receipt。
+5. 本文件不授予任何新增权限；新增实施路径、source merge、promotion、production、release、publish 与下一工作包均须独立正式授权。
 
-## 1. 当前时间点与目标
+## 1. 当前时间点与精确状态
 
-- 记录时间：2026-08-06 05:30（UTC+07:00）。
-- 当前 `main` 精确 Head：`bdcc04017fd79a494ba66fad83f762a1c714ff1a`。
-- OSS-1A Task 11 已完成 reviewed-candidate、source merge、source-merged baseline 与永久 WP0 收口。
-- PR #22 非执行产品文档 WP0 路由已完成独立审查并合入 `main`。
-- PR #19 开源加速总设计已完成最终审查并以 design-only 形式合入 `main`。
-- PR #60 OSS-A 供应链工作包设计与 PR #61 OSS-A 精确授权基础路由已合入 `main`；这不等于 OSS-A 实施完成。
-- UI Product Shell 的四个精确治理文档路径已通过 current-main 授权、RED→GREEN、独立审查与根合并进入 `main`。
-- UI-WP1 RED、Product Shell 源码、Chatwoot 源码复制、声音公共再分发和旧前端 writer cutover 仍未授权。
-- “设计合并”“路由合并”和“源码已合并”都不等于生产发布、正式 Release、publish、promotion 或下一工作包自动授权。
+- 记录时间：2026-08-06 15:45（UTC+07:00）。
+- 当前 `main`：`ad195d8497ec61fbe3387c606692110f5645fba0`。
+- 当前 OSS-A 实施分支：`oss/a-supply-chain-foundation`。
+- PR #67 exact Head：`028535eb6c092c47ad92bce3f0675c7d7b23f22d`。
+- PR #67：open、Draft、`mergeable=true`、未合并。
+- PR #67 相对 `main`：精确 24 路径；排除当前 receipt 后为精确 23 个实施路径。
+- 23 路径集合 SHA-256：`fb99d7c9b090a0c8b92b5655c401b80f0e0674c6e6f5725bad8264c9ec19a175`。
+- receipt 的 `implementationBaseCommit`：`ad195d8497ec61fbe3387c606692110f5645fba0`。
+- PR #67 结构化独立审查：review ID `4872646973`，`ALLOW_MERGE`，P0/P1=`0/0`；该结论只表示代码审查闭环，不授予 source merge 或 promotion。
+- PR #67 unresolved review threads：`0`。
 
 ## 2. OSS-1A 最终权威状态
 
-### 已评审实施代码
+OSS-1A Task 11 已完成 reviewed-candidate、source merge、source-merged baseline 与永久 WP0 收口。
 
-- 实施分支：`oss/1a-baileys-lifecycle`
-- 已评审实施 Head：`3e3a52ed9dd255ca5ba027a3b12704b5e281448d`
-- 结构化独立评审：PR #24 review ID `4868185392`
-- 评审决定：`ALLOW_MERGE`
-- P0/P1：`0/0`
-- temporary bypass / missing evidence / blockers：均无
+- 已评审实施 Head：`3e3a52ed9dd255ca5ba027a3b12704b5e281448d`。
+- reviewed-candidate evidence tip：`e01a93edc10de165681c4a419f00421ec28788fd`。
+- reviewed-candidate source merge PR：#51。
+- source merge commit：`51f924079c020fb165409da9d03d4184d8d2d787`。
+- 长期受信分支：`governance/oss-1a-canonical-projection-checkpoint-authorization`。
+- source-merged baseline Head：`1cf757964a220ad2c28137ba9c7829581e7b78ab`。
+- 永久角色：`SOURCE_MERGED_BASELINE`。
+- source-merge receipt：`governance/open-source-acceleration/oss-1a-source-merge-receipt.json`。
+- `readyForPromotion=false`、`productionUseAuthorized=false`、`formalRelease=false`、`publish=false`、`automaticNextWorkPackageAuthorization=false`。
 
-### Reviewed candidate
+OSS-1A source-merge 通用化注意事项：
 
-- 分支：`reviewed-candidate/oss1a-task11`
-- reviewed code Head：`3e3a52ed9dd255ca5ba027a3b12704b5e281448d`
-- evidence tip：`e01a93edc10de165681c4a419f00421ec28788fd`
-- reviewed-candidate source merge PR：#51
-- source merge commit：`51f924079c020fb165409da9d03d4184d8d2d787`
+- `shared/release/openSourceSourceMergePolicy.js` 与对应 source-merge receipt/role 合同目前存在于 OSS-1A 长期受信分支，不在当前 `main`。
+- 不得假设当前 `main` 已具备通用 OSS source-merge 能力。
+- OSS-A source merge 前必须建立独立、current-main、失败测试先行的治理授权链；不得直接复制旧文件或把 PR #67 的实施 receipt 改成 merge 权限。
 
-### Source-merged baseline
+## 3. OSS-A 技术候选最终状态
 
-- 长期受信分支：`governance/oss-1a-canonical-projection-checkpoint-authorization`
-- 精确 Head：`1cf757964a220ad2c28137ba9c7829581e7b78ab`
-- source-merge baseline role PR：#57
-- source-merge receipt：`governance/open-source-acceleration/oss-1a-source-merge-receipt.json`
-- 永久角色：`SOURCE_MERGED_BASELINE`
-- `readyForPromotion=false`
-- `productionUseAuthorized=false`
-- `formalRelease=false`
-- `publish=false`
-- `automaticNextWorkPackageAuthorization=false`
+PR #67 已完成供应链底座实现：
 
-## 3. OSS-1A 最终验证证据
+- 确定性 provenance registry 与第三方 notices；
+- 基于已提交 npm lockfile 的 canonical CycloneDX 1.7 SBOM；
+- 所有外部 GitHub Actions 的精确 commit lock；
+- lock、provenance 与 notices 的 exact reviewed release tag 一致性；
+- checkout `persist-credentials: false` 强制；
+- 浮动 ref、表达式、Docker Action、flow mapping、quoted/anchored `uses` 与 malformed lock entry 的 fail-closed 合同；
+- Ubuntu/Windows provenance、SBOM 与 Action lock 验证；
+- base-owned WP0 route、L2 risk 与供应链 evidence 分类。
 
-精确 Head：`1cf757964a220ad2c28137ba9c7829581e7b78ab`
+固定 Action 身份：
 
-### 永久 WP0
+```text
+actions/checkout@11d5960a326750d5838078e36cf38b85af677262 -> v4.2.2
+actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e -> v6.4.0
+actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 -> v4.6.2
+```
 
-- workflow run：`31047121428`
-- route、product、Ubuntu/Windows sealed export、final role 和 aggregate：GREEN
-- WP0 contracts：`123/123 GREEN`
-- ACV2 A0：`4/4 GREEN`
-- staged-secret scanner、source identity、Electron tracking、protocol：GREEN
+失败测试链包括：
 
-### OSS-1A
+- `9d968f2ee58299c8fd0335b67e850a5ec9f5d0ae`：SBOM path、exact tag、flow mapping、malformed entry RED；
+- `9167b98de49b1ca4b459e8d5d6b1bb000937e292`：最小 SBOM path 修复后暴露 Action-lock RED；
+- `fc997c6b7b7fca140fa914f742ee31d6b67bef32`：provenance/lock exact-version binding RED；
+- `3ee2bd8ec77654ee9776ec4e1c4d6c5d4cbae601`：quoted/anchored `uses` RED；
+- `028535eb6c092c47ad92bce3f0675c7d7b23f22d`：最终 GREEN。
 
-- workflow run：`31047119634`
-- branch role、governance contract、aggregate：GREEN
-- runtime 对治理基线按设计 skipped
+## 4. PR #67 exact-Head 最终门禁
 
-### Provenance
+全部证据绑定 `028535eb6c092c47ad92bce3f0675c7d7b23f22d`：
 
-- workflow run：`31047120955`
-- Ubuntu：GREEN
-- Windows：GREEN
+- OSS Provenance run `31084829850`：Ubuntu/Windows GREEN；provenance、SBOM、11 个 Action-lock 合同与三个严格 verifier 全通过。
+- Stage WP0 run `31084829808`：`PRODUCT_WP0`、required tests、staged-secret、source identity、protocol、executable gate、Ubuntu/Windows sealed export 与 aggregate GREEN。
+- Layered CI run `31084830046`：policy/risk、Ubuntu/Windows L2 GREEN。
+- ACV2 run `31084829997`：Ubuntu、Windows、source closure GREEN。
+- WP-A post-merge validation run `31084829858`：Ubuntu、Windows、identity/source closure GREEN。
+- WP-A Promotion Authorization Gate run `31084829813`：按设计 skipped。
 
-## 4. 已完成的 reviewed-candidate / source-merge 底层治理重构
+最终 CodeRabbit 请求因 PR 为 Draft 被明确跳过；其 success context 不作为实质审查结论。此前所有 finding 均已逐项修复、回归测试并关闭。
 
-1. reviewed-candidate 角色不依赖 YAML 分支白名单；必须匹配 manifest 中的精确分支和 SHA。
-2. manifest 同时封印 reviewed code Head、evidence tip、评审 ID、双父顺序和精确治理路径。
-3. 永久 WP0 角色策略由 PR base SHA 导出的受信 policy worktree 执行；候选代码不能决定自身角色。
-4. source merge 后使用独立 `SOURCE_MERGED_BASELINE` 身份，不回退 v11 implementation registry。
-5. source-merge receipt 精确绑定 PR #51、source merge commit、父提交顺序、reviewed-candidate manifest、当前 v11 authorization/receipt、远端 tip、祖先关系和 post-merge 路径。
-6. 错误 tip、父顺序、额外路径、授权漂移和未注册角色均 fail closed。
+## 5. 已合入 `main` 的 OSS-A base-owned 根修复
 
-## 5. 非执行文档 WP0 路由
+以下修复均通过独立授权、RED→GREEN、精确路径、普通 merge 与 exact-Head 验证进入 `main`：
 
-### PR #22
+- PR #68/#69：OSS-A receipt 与 WP0 frozen-scope 测试基础设施修复；
+- PR #70/#71/#72/#73：隔离分支、fixture root、evidence 与 protected-command 身份修复；
+- PR #75/#76：全局 checkout credential 与 Layered CI 供应链 L2 分类修复；
+- PR #77/#78：当前 main 的八个供应链字面路径 PRODUCT_WP0 bootstrap；
+- PR #79/#80：八个已审查供应链证据路径的精确 `SUPPLY_CHAIN_EVIDENCE` 分类；未知未来 `third_party` 路径仍 fail closed。
 
-- 分支：`governance/wp0-product-documentation-route`
-- reviewed Head：`56ba8aaca5b82945df11fd3d5abc92a52ba16a2c`
-- independent review ID：`4868855671`
-- decision：`ALLOW_MERGE`
-- P0/P1：`0/0`
-- main merge commit：`14c08b24439f0d105e8b0a969b91e4dc89b3dd37`
+这些修复不构成 PR #67 source merge、production、release、publish 或下一工作包授权。
 
-### 已修复的独立审查发现
+## 6. UI Product Shell 并行线
 
-- trusted Git path 首尾空白被静默 `trim()`；
-- `./` 前缀和反斜杠被静默改写。
+已完成：
 
-最终策略对受信 changed path 做零归一化，拒绝首尾空白、`./`、反斜杠、尾随 `/`、控制字符、glob、盘符、遍历与空 segment。
-
-### 精确验证
-
-- Stage WP0：`31048092060` GREEN
-- Layered CI：`31048092727` GREEN（Ubuntu/Windows L2）
-- ACV2 WP-A：`31048092105` GREEN
-- WP-A post-merge：`31048090918` GREEN
-- main push post-merge validation：`31048366456` GREEN
-
-文档路线只验证 `docs/superpowers/plans/*.md` 与 `docs/superpowers/specs/*.md` 的非执行 Markdown；不授权 runtime、build、package、release、publish、production 或 promotion。
-
-## 6. PR #19 开源加速总设计
-
-- 最终 Head：`efabd9a7a36d2d01e5f1c0dd183f1860d99e5bc9`
-- base：`main@14c08b24439f0d105e8b0a969b91e4dc89b3dd37`
-- main merge commit：`48e465fe741fd91c80c22ddd20c547de2727f7f5`
-- final diff：精确五个 Markdown 文件
-- structured review ID：`4868962978`
-- decision：`ALLOW_MERGE`
-- P0/P1：`0/0`
-
-### 基线同步
-
-设计分支通过普通双父 merge commit 接入 PR #22 的受信 `main`：
-
-- merge commit：`efabd9a7a36d2d01e5f1c0dd183f1860d99e5bc9`
-- first parent：`2e4132adaeadf95b69f9882e35e87716deaaa2d8`
-- second parent：`14c08b24439f0d105e8b0a969b91e4dc89b3dd37`
-- relative to main：只含五份 Markdown
-- 未强推、未改写历史
-
-### 精确验证
-
-- documentation WP0 run：`31048843165` GREEN
-  - route：`PRODUCT_DOCUMENTATION_WP0`
-  - exact Markdown diff、安全扫描、协议、aggregate：GREEN
-  - product、governance、sealed export：按设计 skipped
-- ACV2 WP-A run：`31048842839` GREEN
-  - Ubuntu：GREEN
-  - Windows：GREEN
-  - source closure：GREEN
-
-### 绑定状态修订
-
-`docs/superpowers/specs/2026-08-06-yance-open-source-acceleration-status-amendment.md`：
-
-- 记录 OSS-0 已完成，但最终项目许可证仍未决；
-- 记录 OSS-1A reviewed/source-merged baseline 完成；
-- 澄清统一 Product Shell 可替换 UI 实现层，但言策保持唯一产品、数据、设置、通知和发送权威；
-- 不授权任何 Chatwoot/SillyTavern/copyleft 源码移植、生产、发布或下一工作包。
-
-## 7. OSS-A 设计与精确权威路由
-
-### PR #60：设计工作包
-
-- 标题：`docs(oss-a): freeze supply-chain foundation work package`
-- Head：`7ebeb5085e0a57dfbefd47c858ac45d2c24d660f`
-- 已合入 `main`。
-- 仅冻结 OSS-A 剩余来源、许可证、SBOM、依赖与 GitHub Actions 供应链范围；不授权实现、runtime、release、publish 或 promotion。
-
-### PR #61：精确授权基础路由
-
-- reviewed Head：`a0e5978901638112265df51927df85616c266ca4`
-- main merge commit：`e7f7b530893689d2ed5fcc20a7583c8619ed7c91`
-- RED Head：`ee0a23e097a92cc6b659cd2f93c1e705ba2b2ad7`
-- RED：`57/58`，唯一失败为 OSS-A 精确权威路径错误选择 `PRODUCT_WP0`。
-- GREEN：只把既有九路径集合中的八个未登记路径加入 `governanceExactPaths`；不添加目录前缀、通配符或执行权限。
-- Stage WP0：`31050711856` GREEN。
-- Layered CI：`31050712055` GREEN。
-- ACV2 WP-A：`31050711558` GREEN。
-- 结构化独立评审 ID：`4869151155`，`ALLOW_MERGE`，P0/P1=`0/0`。
-
-该路由只为 OSS-A 正式授权基础设施提供治理路径，不代表 OSS-A 产品实施已经完成。
-
-## 8. UI Product Shell WP0 根路由收口
-
-### 历史链
-
-- PR #53/#54：schema v1 路由历史证据，仍不得作为 current-main 执行链。
-- PR #58：旧 schema v2 授权，Head `b5f46b8d0be46840365678f07f01500546f3fb3b`，已关闭、未合并，历史保留。
-- PR #59：旧 schema v2 RED/GREEN，RED `b55b1d540c12d98bef2966baad6ea4d39eb85e50`，GREEN `4045cbf6a91772bb56b8dfa21ff657b56126cb78`，已关闭、未合并，历史保留。
-- 上述旧分支不得直接 merge、rebase、force-update 或改写历史。
-
-### PR #63：current-main 授权
-
-- 授权分支：`governance/ui-product-shell-wp0-current-main-authorization`
-- 授权 Head：`2a264738f5d38940cd21809ed9cece64e8d054b5`
-- 授权文件：`governance/layered-ci/ui-product-shell-wp0-current-main-authorization.json`
-- 精确基线：`main@e7f7b530893689d2ed5fcc20a7583c8619ed7c91`
-- WP0：`31051950195` GREEN。
-- Layered CI：`31051950473` GREEN。
-- ACV2：`31051949800` GREEN。
-- 独立评审 ID：`4869269547`，`ALLOW_MERGE`，P0/P1=`0/0`。
-- 普通 merge commit：`4be95a404f64d223833d0d00c44e97bd42c83506`。
-- 合并后根树与受审 Head 树均为 `7909e0b949279cb37f376d80a52c297309cef09a`。
-
-### PR #64：RED→GREEN 根修复
-
-- 实施分支：`fix/ui-product-shell-wp0-current-main-exact-routing`
-- 授权根：`4be95a404f64d223833d0d00c44e97bd42c83506`
-- RED Head：`dbe59b50f5106786c97da7fdb2c3c9bafa7a83a8`
-- RED run：`31052539983`，policy job `92462785012`。
-- RED 结果：`63/67`，仅四项新增 UI 路由合同失败；OSS-A、产品文档路线、schema v2 与 fail-closed 合同保持 GREEN。
-- GREEN Head：`3d7872618d48fcd9c22e18b9b399682b5e225a1a`。
-- GREEN policy blob：`e8d38025870543ff7d756e968666ac0fae211ba4`。
-- 精确变更仅为：
-  - `governance/layered-ci/wp0-routing-policy.json`：新增四个字面路径；
-  - `tests/layered-ci/ui-product-shell-wp0-routing.test.js`：独立 UI 路由合同。
-- WP0：`31052610603` GREEN。
-- Layered CI：`31052610704` GREEN。
-- ACV2：`31052610592` GREEN（Ubuntu、Windows、source closure）。
-- 独立评审 ID：`4869325417`，`ALLOW_MERGE`，P0/P1=`0/0`。
-- 普通 merge commit：`bdcc04017fd79a494ba66fad83f762a1c714ff1a`。
-- 合并后根树与受审 GREEN Head 树均为 `f0d24bed8ca3ca132e47777a8a4dedd3cd521d09`。
-- 合并提交 first parent：`4be95a404f64d223833d0d00c44e97bd42c83506`。
-- 合并提交 second parent：`3d7872618d48fcd9c22e18b9b399682b5e225a1a`。
-
-### 当前四个精确治理路径
+- PR #63：四个 UI 治理路径 current-main 精确授权；
+- PR #64：四路径 WP0 route RED→GREEN 根修复；
+- 四个精确治理路径在 `main` 选择 `GOVERNANCE_WP0`：
 
 ```text
 docs/ui-migration/CHATWOOT_TRANSPLANT_MANIFEST.yaml
@@ -232,9 +114,13 @@ docs/ui-migration/UI_WP1_AUTHORIZATION.md
 docs/ui-migration/UPSTREAM_PINS.yaml
 ```
 
-这些路径现在在 `main` 上精确选择 `GOVERNANCE_WP0`。未登记的 `docs/ui-migration/**` 仍选择 `PRODUCT_WP0`；没有前缀或通配符授权。与产品源码或产品文档混合时仍升级到 `PRODUCT_WP0` 并保留变更类别证据。
+当前开放 PR #65 是旧基线上的四文件 UI-WP1 授权候选：
 
-### 未授权边界
+- base 仍记录 `main@bdcc04017fd79a494ba66fad83f762a1c714ff1a`；
+- Head：`c2e9de32ffd9f0da52540c068d7c467734d1f6d4`；
+- 不得把旧 base 观察值当成当前执行权威；任何继续动作必须先重新核验并按普通 merge/current-main 规则重建封印。
+
+未授权边界保持：
 
 ```text
 uiWP1RedAuthorized=false
@@ -246,66 +132,66 @@ automaticNextWorkPackageAuthorization=false
 readyForPromotion=false
 ```
 
-## 9. Pull Request 状态
+## 7. 当前 PR 状态
 
-- PR #19：总设计，已合并到 `main`。
-- PR #22：文档 WP0 路由，已合并到 `main`。
-- PR #24：OSS-1A 实施历史，已合并；正文已更新为最终事实。
-- PR #39：旧 canonical projection 授权，已被正式链路取代并关闭，历史保留。
-- PR #51：reviewed-candidate source merge，已合并。
-- PR #52、#55、#56、#57：治理底层重构，均已合并。
-- PR #60：OSS-A design-only 工作包，已合并。
-- PR #61：OSS-A 精确权威路由，已合并。
-- PR #63：UI WP0 current-main 授权，已合并。
-- PR #64：UI WP0 current-main RED→GREEN 根修复，已合并。
-- PR #58/#59：已关闭、未合并，历史证据保留。
-- PR #50：第一版 UI-WP1 授权快照，仍为 BLOCKED 历史证据，不可直接创建 RED 分支。
+- PR #19：总设计，已合并。
+- PR #22：非执行产品文档 WP0 route，已合并。
+- PR #24：OSS-1A 实施历史，已合并并更新最终事实。
+- PR #51：OSS-1A reviewed-candidate source merge，已合并。
+- PR #52/#55/#56/#57：OSS-1A source-merge 治理底层重构，已合并到长期受信分支。
+- PR #60/#61/#62/#66：OSS-A 设计、route、通用 authorization 与 seal，已合并。
+- PR #63/#64：UI current-main route 授权与修复，已合并。
+- PR #65：开放、旧 base 的 UI-WP1 四文件授权候选，尚未形成 current-main 执行权限。
+- PR #67：开放、Draft、技术候选全 GREEN；source merge 未授权。
+- PR #68-#80：PR #67 暴露的 base-owned 根修复链，已按各自权限普通合并或明确关闭。
 
-## 10. 下一步严格执行顺序
+## 8. 下一步严格执行顺序
 
 ### OSS-A 主线
 
-1. 继续按已合入的 OSS-A 设计和精确授权基础设施执行供应链缺口工作包。
-2. 先提交失败合同证明真实 SBOM、锁文件、Action 固定、artifact/source identity、依赖完整性或许可证缺口，再做底层实现。
-3. 不重复开发 OSS-0 已存在的 provenance foundation。
-4. OSS-A exact Head 全门禁 GREEN、独立审查和 source merge 后，再从 PR #17 精确提取 WP-B 持久执行核心。
-5. WP-B 只允许 DurableTask、OutboxRecord、ExternalAttempt、LeaseFence、ReconciliationCase 及其最小权威边界；不得带入 PR #17 的 UI、未来平台或未授权 AI 学习范围。
+1. 冻结 `main@ad195d8497ec61fbe3387c606692110f5645fba0`、PR #67 Head `028535eb6c092c47ad92bce3f0675c7d7b23f22d`、24/23 路径集合和 exact workflow evidence。
+2. 建立独立 source-merge 治理设计与授权包；先证明当前 `main` 缺少通用 source-merge authority 时必须 fail closed。
+3. 授权包必须明确选择并证明以下方案之一：
+   - 将 OSS-1A 已验证的 source-merge policy 抽象为 current-main 通用能力；或
+   - 建立最小 OSS-A 专用 source-merge authority，但不得复制形成第二套相互竞争的权威。
+4. source-merge authorization 必须绑定 PR #67、exact Head、base、24/23 路径、digest、workflow runs、review ID、预期普通 merge 父顺序和 post-merge path set。
+5. `productionUseAuthorized=false`、`formalRelease=false`、`publish=false`、`readyForPromotion=false`、`automaticNextWorkPackageAuthorization=false` 必须保持。
+6. 授权 exact Head 全门禁 GREEN、独立审查、普通合入 `main` 后，才可改变 PR #67 Draft/merge 状态。
+7. PR #67 普通 source merge 与 new-main post-merge 全验证完成后，建立 OSS-A source-merged baseline receipt。
+8. 只有 OSS-A source-merged baseline 完成后，才从 PR #17 提取 WP-B：`DurableTask`、`OutboxRecord`、`ExternalAttempt`、`LeaseFence`、`ReconciliationCase`。
 
 ### UI 并行治理线
 
-1. 四条 UI 治理路径已在 `main` 根权威中生效。
-2. 下一项必须是新的四文件 UI-WP1 授权修订，而不是复用 PR #50 或旧 PR #58/#59。
-3. 新授权必须重新计算路径集合和内容 digest，并纳入：单一 Appearance authority、严格 patch allowlist、声音分发权分类、Chatwoot 精确移植清单、翻译缺失证明与明确 surface 状态标签。
-4. 在新的 UI-WP1 授权明确生效前，不创建 UI-WP1 RED 分支，不添加 Product Shell 源码，不复制 Chatwoot 源码。
-5. 该状态文档不授予上述下一工作包权限。
+1. 不直接复用 PR #50、旧 PR #58/#59 或 PR #65 的旧 base 观察值。
+2. 先把四文件 UI-WP1 授权候选重建/同步到 fresh current main，并重新计算路径和内容 digest。
+3. 授权必须继续包含：唯一 `YanceAppearanceAdapter` writer、严格 patch allowlist、声音分发权分类、Chatwoot file-level manifest、翻译缺失证明和 surface 状态标签。
+4. fresh UI-WP1 授权明确生效前，不创建 RED 分支，不添加 Product Shell/adapter 源码，不复制 Chatwoot 源码。
 
-## 11. 完成与发布边界
+## 9. 完成与发布边界
 
 已完成：
 
 - OSS-0 provenance foundation；
-- OSS-1A Task 11 reviewed-candidate/source merge/source-merged baseline；
-- PR #22 非执行文档路线；
-- PR #19 design-only merge；
-- OSS-A design-only 工作包与精确授权基础路由；
-- UI Product Shell 四路径 WP0 current-main 授权与根修复；
-- 上述阶段 exact-Head 门禁和独立审查。
+- OSS-1A reviewed-candidate/source merge/source-merged baseline；
+- PR #19 design-only 总计划；
+- OSS-A design、authorization seal、23 路径实施候选及全部技术门禁；
+- PR #67 暴露的 base-owned WP0/CI/security 根修复；
+- UI 四个治理路径 current-main route。
 
 尚未完成且不得声称完成：
 
-- OSS-A 剩余供应链实现；
-- 新四文件 UI-WP1 授权修订；
-- UI-WP1 RED 与 Product Shell 实施；
+- OSS-A source-merge authorization；
+- PR #67 source merge 与 source-merged baseline；
 - WP-B 持久执行核心提取；
-- 产品实现合并到 `main` 的正式发布链；
-- 正式 tag / GitHub Release；
-- 可下载发布资产最终验证；
-- production promotion；
+- fresh current-main UI-WP1 授权；
+- UI-WP1 RED 与 Product Shell 实施；
+- 正式 tag / GitHub Release / 可下载发布资产验证；
+- production promotion、formal release、publish；
 - 自动授权下一工作包。
 
-## 12. 本接续记录维护协议
+## 10. 本接续记录维护协议
 
-- 固定分支：`project-state/active-handoff`
-- 固定文件：`PROJECT_CONTINUATION.md`
-- 每个实际里程碑后用普通新提交完整更新本文件，不 amend、不 rebase、不 force push。
-- 新聊天恢复时先读取本文件，再核验 GitHub 当前 refs 与 Actions；若冲突，以远端 refs、治理凭据和精确 Actions 结果为准，并立即修订本文件。
+- 固定分支：`project-state/active-handoff`。
+- 固定文件：`PROJECT_CONTINUATION.md`。
+- 每个实际里程碑后使用普通新提交完整更新，不 amend、不 rebase、不 force push。
+- 新聊天恢复时先读本文件，再核验远端 refs、PR、receipt 与 Actions；发生冲突时以远端事实为准并立即修订本文件。
