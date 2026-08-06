@@ -9,7 +9,7 @@ const assert = require('node:assert/strict');
 const { REPO_ROOT } = require('../../tools/wp0/lib');
 
 const FIXED_TIME = '2026-07-03T00:00:00Z';
-const FIXTURE_BRANCH = 'stage/6.4.5.9-architecture-closure';
+const FIXTURE_BRANCH = 'rebuild/windows-release-closure-20260806-wp0-fixture';
 const ELECTRON_LFS_PATH = 'vendor/electron/electron-v39.8.5-win32-x64.zip';
 const POST_MERGE_DEFECT_PATH = path.join(
   REPO_ROOT,
@@ -103,7 +103,7 @@ test('evidence generator rejects a dirty worktree before executing any branch ga
   assert.equal(result.json?.repositoryClean, false);
 });
 
-test('correct clean HEAD records commit tree and produces byte-identical evidence in isolated canonical-stage fixtures', () => {
+test('correct clean HEAD records commit tree and produces byte-identical evidence in isolated rebuild fixtures', () => {
   const { root, repo } = makeCleanClone();
   const head = git(repo, ['rev-parse', 'HEAD']);
   const tree = git(repo, ['rev-parse', 'HEAD^{tree}']);
@@ -129,10 +129,11 @@ test('correct clean HEAD records commit tree and produces byte-identical evidenc
   for (const [name, bytes] of mapA) assert.deepEqual(bytes, mapB.get(name), `${name} differs across output directories`);
 });
 
-test('historical detached evidence succeeds only at the frozen post-merge defect closure commit', () => {
+test('historical detached evidence succeeds only at the sealed post-merge defect review head', () => {
   const { root, repo } = makeCleanClone();
   const defect = JSON.parse(fs.readFileSync(POST_MERGE_DEFECT_PATH, 'utf8'));
-  const historical = defect.scope.closedHead;
+  const historical = defect.closureReceipt.reviewedCodeHead;
+  assert.match(historical, /^[0-9a-f]{40}$/u);
   assert.notEqual(git(repo, ['rev-parse', 'HEAD']), historical);
   git(repo, ['cat-file', '-e', `${historical}^{commit}`]);
   const worktree = path.join(root, 'historical-worktree');
