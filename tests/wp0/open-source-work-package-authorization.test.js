@@ -393,6 +393,7 @@ test('permanent WP0 routes and executes product authority from exact base-owned 
   assert.match(workflow, /node "\$\{TRUSTED_POLICY_ROOT\}\/tools\/wp0\/verify-gate\.js"/u);
   assert.match(workflow, /--branch "\$\{IMPLEMENTATION_BRANCH\}"/u);
   assert.doesNotMatch(workflow, /npm run verify:wp0:gate -- --branch/u);
+  assert.match(workflow, /tests\/wp0\/open-source-work-package-authorization\.test\.js/u);
 });
 
 test('trusted WP0 Git transport preserves exact NUL-framed paths and fails closed', () => {
