@@ -83,6 +83,19 @@ test('exact OSS-A WP0 contract repair scope selects GOVERNANCE_WP0', () => {
   assert.equal(result.productChangesPresent, false);
 });
 
+test('exact OSS-A WP0 isolation repair scope selects GOVERNANCE_WP0', () => {
+  const result = classifyWp0Route(policy, [
+    'tests/wp0/acv2-work-package-scope-wiring.test.js',
+    'tests/wp0/evidence-source-binding.test.js',
+    'tests/wp0/forbidden-hotfix-entrypoints.test.js',
+    'tests/wp0/freeze-rejected-baseline.test.js'
+  ]);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.route, ROUTES.GOVERNANCE);
+  assert.equal(result.governanceChangesPresent, true);
+  assert.equal(result.productChangesPresent, false);
+});
+
 test('pure Superpowers product plan/spec Markdown selects non-executable PRODUCT_DOCUMENTATION_WP0', () => {
   for (const file of [
     'docs/superpowers/plans/2026-08-04-yance-oss-1a-baileys-lifecycle-implementation.md',
