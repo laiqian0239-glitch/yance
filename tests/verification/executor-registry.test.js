@@ -71,3 +71,11 @@ test('production registry may be intentionally empty but duplicate identities ar
   const entry = activeEntry();
   assert.equal(validateExecutorRegistry({ schemaVersion: 1, executors: [entry, structuredClone(entry)] }).reasonCode, 'EVIDENCE_SCHEMA_INVALID');
 });
+
+
+test('reserved unenrolled portability identities can never be enrolled as trusted executors', () => {
+  assert.equal(
+    validateExecutorRegistry(registry(activeEntry({ executorId: 'pvep-unenrolled-linux-selftest' }))).reasonCode,
+    'EVIDENCE_SCHEMA_INVALID'
+  );
+});

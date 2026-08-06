@@ -67,3 +67,25 @@ test('production CLI rejects arbitrary commands, registry paths and unknown flag
     assert.notEqual(result.status, 0); assert.match(`${result.stdout}${result.stderr}`, /EVIDENCE_CLI_ARGUMENT_INVALID/u);
   }
 });
+
+
+test('production CLI can emit an explicitly unenrolled unsigned portability candidate when registry is empty', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pvep-cli-unenrolled-'));
+  fs.mkdirSync(path.join(root, 'governance/verification/command-sets'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'governance/verification/trusted-executors.json'), '{"schemaVersion":1,"executors":[]}\n');
+  fs.writeFileSync(path.join(root, 'governance/verification/command-sets/pvep-linux-fixture-v1.json'), JSON.stringify({
+    schemaVersion: 1,
+    commandSetId: 'pvep-linux-fixture-v1',
+    platform: 'linux',
+    commands: [{ commandId: 'fixture-command', executable: 'node', argv: ['pass.js'], expectedExitCode: 0, generatedRoots: ['.pvep-output'], artifacts: [] }]
+  }, null, 2) + '\n');
+  fs.writeFileSync(path.join(root, 'pass.js'), "process.stdout.write('ok\\n');\n");
+  git(root, ['init']); git(root, ['config', 'user.email', 'pvep@example.invalid']); git(root, ['config', 'user.name', 'PVEP Test']); git(root, ['add', '.']); git(root, ['commit', '-m', 'fixture']);
+  const head = git(root, ['rev-parse', 'HEAD']);
+  const { main } = require('../../tools/verification/run-command-set');
+  const candidate = main(['--command-set-id', 'pvep-linux-fixture-v1', '--base', head, '--head', head, '--output', '.pvep-output/unsigned.json'], root);
+  assert.equal(candidate.authenticity, null);
+  assert.equal(candidate.receiptSha256, null);
+  assert.match(candidate.producer.executorId, /^pvep-unenrolled-linux-/u);
+  assert.equal(validateUnsignedCandidate(candidate).pass, true);
+});
