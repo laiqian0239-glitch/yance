@@ -113,7 +113,10 @@ function delegatedGovernanceOptions(overrides = {}) {
     [BRANCH_REPAIR_AUTHORIZATION_PATH]: repairAuthorization,
     ...(overrides.authorizationByPath || {})
   };
-  const trustedAuthorizationByPath = overrides.trustedAuthorizationByPath || authorizationByPath;
+  const trustedAuthorizationByPath = overrides.trustedAuthorizationByPath || {
+    [SOURCE_MERGE_AUTHORIZATION_PATH]: sourceAuthorization,
+    [BRANCH_REPAIR_AUTHORIZATION_PATH]: repairAuthorization
+  };
   const parentsByCommit = {
     [SOURCE_AUTH_MERGE]: [SOURCE_AUTH_PARENT, SOURCE_AUTH_HEAD],
     [REPAIR_AUTH_MERGE]: [REPAIR_AUTH_PARENT, REPAIR_AUTH_HEAD],
@@ -424,7 +427,8 @@ test('malformed, impossible-date and arbitrary branches remain denied', () => {
 });
 
 test('current repository branch uses local authority only when locally provable and arbitrary branches fail', () => {
-  const branch = currentBranch();
+  const branch = process.env.IMPLEMENTATION_BRANCH || currentBranch();
+  assert.ok(branch, 'current repository branch must come from the trusted workflow identity or an attached local branch');
   const current = checkRuntimeTargetGate({ branch, changedFiles: [] });
   if (branch === 'oss/a-supply-chain-foundation') {
     assert.equal(current.pass, false, 'candidate-owned policy must not self-authorize the sealed OSS receipt');
