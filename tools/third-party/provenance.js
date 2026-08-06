@@ -5,7 +5,7 @@ const path = require('node:path');
 
 const FULL_SHA = /^[0-9a-f]{40}$/u;
 const PROJECT_ID = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/u;
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/u;
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/u;
 const GITHUB_HTTPS_REPOSITORY = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/?$/u;
 const SUPPORTED_SCHEMA_VERSION = 1;
 const APPROVED_REVIEW_STATUS = 'APPROVED';
@@ -25,6 +25,19 @@ function isSafeRepositoryPath(value) {
   if (normalized.startsWith('/') || /^[A-Za-z]:\//u.test(normalized) || /[\r\n\0-\x1f\x7f]/u.test(normalized)) return false;
   const segments = normalized.split('/');
   return !segments.includes('..') && !segments.includes('.') && !segments.includes('');
+}
+
+function isRealIsoDate(value) {
+  if (!isNonEmptyString(value)) return false;
+  const match = ISO_DATE.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1) return false;
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day <= daysInMonth[month - 1];
 }
 
 function validateStringArray(value, issuePath, code, errors, options = {}) {
@@ -129,8 +142,8 @@ function validateRegistry(registry) {
       errors.push(issue('REVIEW_INVALID', `${base}.review`, 'must be an object'));
     } else {
       if (project.review.status !== APPROVED_REVIEW_STATUS) errors.push(issue('REVIEW_NOT_APPROVED', `${base}.review.status`, 'must be APPROVED'));
-      if (!isNonEmptyString(project.review.reviewedAt) || !ISO_DATE.test(project.review.reviewedAt)) {
-        errors.push(issue('REVIEW_DATE_INVALID', `${base}.review.reviewedAt`, 'must use YYYY-MM-DD'));
+      if (!isRealIsoDate(project.review.reviewedAt)) {
+        errors.push(issue('REVIEW_DATE_INVALID', `${base}.review.reviewedAt`, 'must be a real YYYY-MM-DD Gregorian calendar date'));
       }
       validateStringArray(project.review.evidence, `${base}.review.evidence`, 'REVIEW_EVIDENCE_REQUIRED', errors);
     }
