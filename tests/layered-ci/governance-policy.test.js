@@ -146,3 +146,17 @@ test('syntactically valid but unclassified paths fail closed', () => {
   assert.equal(result.reasonCode, 'CI_UNKNOWN_PATH');
   assert.deepEqual(result.unknownPaths, ['unclassified/new-gate.js']);
 });
+
+test('checked-in supply-chain inventories always escalate to L2', () => {
+  for (const file of [
+    'THIRD_PARTY_NOTICES.md',
+    'third_party/github-actions-lock.json',
+    'third_party/licenses/actions-checkout-MIT.txt',
+    'third_party/provenance.json',
+    'third_party/sbom.cdx.json'
+  ]) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, true, file);
+    assert.equal(result.requiredLevel, 'L2', file);
+  }
+});
