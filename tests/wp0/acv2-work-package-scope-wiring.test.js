@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 
 const repoRoot = path.join(__dirname, '..', '..');
 const verifyGatePath = path.join(repoRoot, 'tools', 'wp0', 'verify-gate.js');
@@ -15,6 +16,22 @@ const postMergeDefectPath = path.join(repoRoot, 'governance', 'architecture-clos
 
 function nulPathBuffer(paths) {
   return paths.length ? Buffer.from(`${paths.join('\0')}\0`, 'utf8') : Buffer.alloc(0);
+}
+
+function frozenTaskChainChangedFiles(chain) {
+  const activeTask = chain.tasks.find(task => task.task === chain.activeTask);
+  assert.ok(activeTask?.evidenceBranchTip, 'active task must have a frozen evidence branch tip');
+  const raw = execFileSync('git', [
+    '-c',
+    'core.quotePath=false',
+    'diff',
+    '--name-only',
+    '-z',
+    chain.parentGovernanceHead,
+    activeTask.evidenceBranchTip,
+    '--'
+  ], { cwd: repoRoot, encoding: null });
+  return raw.toString('utf8').split('\0').filter(Boolean).sort();
 }
 
 test('every executable WP0 entrypoint consumes one shared ACV2 work-package scope gate', () => {
@@ -139,17 +156,15 @@ test('historical detached evidence without an A8-R1 document retains the prior A
   assert.equal(result.readyForPromotion, false);
 });
 
-test('active task chain evaluation reports A8 and cannot claim promotion readiness', () => {
+test('active task chain evaluation uses the frozen A8 evidence diff and cannot claim promotion readiness', () => {
   const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
+  const { workPackageChangedFilesSha256 } = require('../../shared/release/implementationBranchPolicy');
   const authorization = JSON.parse(fs.readFileSync(authorizationPath, 'utf8'));
   const chain = JSON.parse(fs.readFileSync(taskScopeChainPath, 'utf8'));
-  const changedFiles = [
-    ...authorization.allowedProductionPaths,
-    ...chain.tasks.flatMap(task => task.additionalAllowedPaths)
-  ].filter((value, index, values) => values.indexOf(value) === index).sort();
-  const calls = [];
+  const changedFiles = frozenTaskChainChangedFiles(chain);
+  assert.equal(changedFiles.length, chain.approvedChangedFileCount);
+  assert.equal(workPackageChangedFilesSha256(changedFiles), chain.approvedChangedFileSetSha256);
   const git = args => {
-    calls.push([...args]);
     if (args[0] === 'status') return '';
     if (args[0] === 'rev-parse' && String(args[1]).startsWith('HEAD:')) {
       return '203697b36c06e0dc72c92113ef58f1a8f2394312';
@@ -158,17 +173,11 @@ test('active task chain evaluation reports A8 and cannot claim promotion readine
     if (args.includes('diff')) return nulPathBuffer(changedFiles);
     throw new Error(`unexpected git command: ${args.join(' ')}`);
   };
-  const testChain = {
-    ...chain,
-    approvedChangedFileCount: changedFiles.length,
-    approvedChangedFileSetSha256: require('../../shared/release/implementationBranchPolicy')
-      .workPackageChangedFilesSha256(changedFiles)
-  };
 
   const result = evaluateWorkPackageScopeForGate({
     branch: authorization.authorizedBranch,
     authorization,
-    taskScopeChain: testChain,
+    taskScopeChain: chain,
     git
   });
   assert.equal(result.pass, true, JSON.stringify(result));
