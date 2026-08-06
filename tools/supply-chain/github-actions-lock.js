@@ -83,12 +83,10 @@ function parseUsesLine(line) {
   if (exact) return { indent: exact[1].length, listItem: Boolean(exact[2]), value: exact[3] };
   const trimmed = line.trimStart();
   const flowCandidate = trimmed.replace(/^-\s+/u, '');
+  const unsupportedUsesKey = /(?:^|[{,])\s*(?:uses|["']uses["'])\s*:/u;
   if (
     /^(?:-\s+)?uses\s*:/u.test(trimmed)
-    || (
-      flowCandidate.startsWith('{')
-      && /(?:^|[{,])\s*(?:uses|["']uses["'])\s*:/u.test(flowCandidate)
-    )
+    || unsupportedUsesKey.test(flowCandidate)
   ) return { invalid: true };
   return null;
 }
