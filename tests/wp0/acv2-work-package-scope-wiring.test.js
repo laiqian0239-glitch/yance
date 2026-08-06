@@ -21,6 +21,7 @@ function nulPathBuffer(paths) {
 function frozenTaskChainChangedFiles(chain) {
   const activeTask = chain.tasks.find(task => task.task === chain.activeTask);
   assert.ok(activeTask?.evidenceBranchTip, 'active task must have a frozen evidence branch tip');
+  assert.ok(activeTask?.closureReceiptPath, 'closed active task must have a closure receipt path');
   const raw = execFileSync('git', [
     '-c',
     'core.quotePath=false',
@@ -31,7 +32,8 @@ function frozenTaskChainChangedFiles(chain) {
     activeTask.evidenceBranchTip,
     '--'
   ], { cwd: repoRoot, encoding: null });
-  return raw.toString('utf8').split('\0').filter(Boolean).sort();
+  const codePaths = raw.toString('utf8').split('\0').filter(Boolean);
+  return [...new Set([...codePaths, activeTask.closureReceiptPath])].sort();
 }
 
 test('every executable WP0 entrypoint consumes one shared ACV2 work-package scope gate', () => {
@@ -156,12 +158,14 @@ test('historical detached evidence without an A8-R1 document retains the prior A
   assert.equal(result.readyForPromotion, false);
 });
 
-test('active task chain evaluation uses the frozen A8 evidence diff and cannot claim promotion readiness', () => {
+test('active task chain evaluation includes the frozen A8 closure receipt and cannot claim promotion readiness', () => {
   const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
   const { workPackageChangedFilesSha256 } = require('../../shared/release/implementationBranchPolicy');
   const authorization = JSON.parse(fs.readFileSync(authorizationPath, 'utf8'));
   const chain = JSON.parse(fs.readFileSync(taskScopeChainPath, 'utf8'));
+  const activeTask = chain.tasks.find(task => task.task === chain.activeTask);
   const changedFiles = frozenTaskChainChangedFiles(chain);
+  assert.equal(changedFiles.includes(activeTask.closureReceiptPath), true);
   assert.equal(changedFiles.length, chain.approvedChangedFileCount);
   assert.equal(workPackageChangedFilesSha256(changedFiles), chain.approvedChangedFileSetSha256);
   const git = args => {
