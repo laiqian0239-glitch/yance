@@ -5,6 +5,7 @@ const path = require('node:path');
 
 const FULL_SHA = /^[0-9a-f]{40}$/u;
 const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
+const EXACT_RELEASE_TAG = /^v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u;
 const YAML_FILE = /\.ya?ml$/iu;
 
 function issue(code, issuePath, message, line) {
@@ -58,7 +59,11 @@ function validateLock(lock) {
       if (seen.has(identity)) errors.push(issue('ACTION_LOCK_DUPLICATE', base, `duplicate action identity ${identity}`));
       seen.add(identity);
     }
-    if (!isNonEmptyString(entry.reviewedTag)) errors.push(issue('ACTION_REVIEWED_TAG_REQUIRED', `${base}.reviewedTag`, 'must be a non-empty string'));
+    if (!isNonEmptyString(entry.reviewedTag)) {
+      errors.push(issue('ACTION_REVIEWED_TAG_REQUIRED', `${base}.reviewedTag`, 'must be a non-empty string'));
+    } else if (!EXACT_RELEASE_TAG.test(entry.reviewedTag)) {
+      errors.push(issue('ACTION_REVIEWED_TAG_NOT_EXACT', `${base}.reviewedTag`, 'must be an exact vMAJOR.MINOR.PATCH release tag'));
+    }
     if (!isNonEmptyString(entry.license)) errors.push(issue('ACTION_LICENSE_REQUIRED', `${base}.license`, 'must be a non-empty SPDX identifier'));
     if (!isSafeRepositoryPath(entry.licenseEvidence) || !entry.licenseEvidence.startsWith('third_party/licenses/')) {
       errors.push(issue('LICENSE_PATH_INVALID', `${base}.licenseEvidence`, 'must be a safe path under third_party/licenses/'));
@@ -77,7 +82,14 @@ function parseUsesLine(line) {
   const exact = /^(\s*)(?:(-\s+))?uses:\s*(.*?)\s*$/u.exec(line);
   if (exact) return { indent: exact[1].length, listItem: Boolean(exact[2]), value: exact[3] };
   const trimmed = line.trimStart();
-  if (/^(?:-\s+)?uses\s*:/u.test(trimmed)) return { invalid: true };
+  const flowCandidate = trimmed.replace(/^-\s+/u, '');
+  if (
+    /^(?:-\s+)?uses\s*:/u.test(trimmed)
+    || (
+      flowCandidate.startsWith('{')
+      && /(?:^|[{,])\s*(?:uses|["']uses["'])\s*:/u.test(flowCandidate)
+    )
+  ) return { invalid: true };
   return null;
 }
 
@@ -163,6 +175,7 @@ function inspectWorkflowText(text, options = {}) {
   const errors = validateLock(lock);
   const entries = new Map();
   for (const entry of Array.isArray(lock?.actions) ? lock.actions : []) {
+    if (!isObject(entry)) continue;
     if (isNonEmptyString(entry.repository) && isNonEmptyString(entry.commit)) {
       entries.set(`${entry.repository}@${entry.commit}`, entry);
     }
@@ -257,16 +270,31 @@ function verifyRepository(repoRoot) {
 
   const externalReferences = [];
   const checkoutSteps = [];
+  const lockValidationCodes = new Set([
+    'ACTION_LOCK_SCHEMA_UNSUPPORTED',
+    'ACTION_LOCK_DOCUMENT_TYPE_INVALID',
+    'ACTION_LOCK_ENTRIES_INVALID',
+    'ACTION_LOCK_ENTRY_INVALID',
+    'ACTION_REPOSITORY_INVALID',
+    'ACTION_COMMIT_INVALID',
+    'ACTION_LOCK_DUPLICATE',
+    'ACTION_REVIEWED_TAG_REQUIRED',
+    'ACTION_REVIEWED_TAG_NOT_EXACT',
+    'ACTION_LICENSE_REQUIRED',
+    'LICENSE_PATH_INVALID',
+    'ACTION_UPSTREAM_REPOSITORY_INVALID'
+  ]);
   for (const absolute of listWorkflowFiles(repoRoot)) {
     const workflowPath = path.relative(repoRoot, absolute).replaceAll(path.sep, '/');
     const report = inspectWorkflowText(fs.readFileSync(absolute, 'utf8'), { lock, workflowPath });
-    errors.push(...report.errors.filter(error => !['ACTION_LOCK_SCHEMA_UNSUPPORTED', 'ACTION_LOCK_DOCUMENT_TYPE_INVALID', 'ACTION_LOCK_ENTRIES_INVALID', 'ACTION_LOCK_ENTRY_INVALID', 'ACTION_REPOSITORY_INVALID', 'ACTION_COMMIT_INVALID', 'ACTION_LOCK_DUPLICATE', 'ACTION_REVIEWED_TAG_REQUIRED', 'ACTION_LICENSE_REQUIRED', 'LICENSE_PATH_INVALID', 'ACTION_UPSTREAM_REPOSITORY_INVALID'].includes(error.code)));
+    errors.push(...report.errors.filter(error => !lockValidationCodes.has(error.code)));
     externalReferences.push(...report.externalReferences);
     checkoutSteps.push(...report.checkoutSteps);
   }
 
   const used = new Set(externalReferences);
   for (const [index, entry] of (Array.isArray(lock.actions) ? lock.actions : []).entries()) {
+    if (!isObject(entry)) continue;
     const identity = `${entry.repository}@${entry.commit}`;
     if (FULL_SHA.test(entry.commit || '') && REPOSITORY.test(entry.repository || '') && !used.has(identity)) {
       errors.push(issue('ACTION_LOCK_ENTRY_UNUSED', `actions[${index}]`, `${identity} is not used by any workflow`));
