@@ -139,6 +139,14 @@ test('flow-mapping uses syntax is rejected instead of skipped', () => {
   assert.ok(report.errors.some(error => error.code === 'USES_SYNTAX_INVALID'));
 });
 
+test('quoted and anchored uses keys are rejected instead of skipped', () => {
+  const quoted = inspect('steps:\n  - "uses": actions/checkout@v4\n');
+  assert.ok(quoted.errors.some(error => error.code === 'USES_SYNTAX_INVALID'));
+
+  const anchored = inspect('steps:\n  - &checkout {uses: actions/checkout@v4}\n');
+  assert.ok(anchored.errors.some(error => error.code === 'USES_SYNTAX_INVALID'));
+});
+
 test('ambiguous uses syntax, duplicate lock identities, unsafe evidence paths and unused entries fail closed', () => {
   const ambiguous = inspect('steps:\n  - uses : actions/checkout@v4\n');
   assert.ok(ambiguous.errors.some(error => error.code === 'USES_SYNTAX_INVALID'));
