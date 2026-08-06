@@ -445,6 +445,12 @@ function evaluateSourceMergeReadiness({
     || typeof graph.isAncestor !== 'function') {
     return fail('SOURCE_MERGE_GRAPH_ADAPTER_INVALID');
   }
+  if (!isDeepStrictEqual(
+    graph.jsonAt(finalSeal.policyBranchTip, AUTHORIZATION_PATH),
+    authorization
+  )) {
+    return fail('POLICY_DOCUMENT_SOURCE_INVALID');
+  }
   const prResult = validateSealPullRequest(sealPullRequest, finalSeal, graph);
   if (!prResult.pass) return prResult;
   if (graph.remoteTip(POLICY_BRANCH) !== finalSeal.policyBranchTip
