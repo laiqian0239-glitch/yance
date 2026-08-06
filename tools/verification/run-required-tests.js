@@ -7,7 +7,11 @@ const { spawnSync } = require('node:child_process');
 const REQUIRED_TESTS = Object.freeze([
   'tests/verification/jcs.test.js',
   'tests/verification/canonical-evidence-receipt.test.js',
-  'tests/verification/command-set-registry.test.js'
+  'tests/verification/command-set-registry.test.js',
+  'tests/verification/executor-registry.test.js',
+  'tests/verification/signed-executor-verifier.test.js',
+  'tests/verification/runner.test.js',
+  'tests/verification/cli.test.js'
 ]);
 
 function runRequiredTests({ repoRoot = path.resolve(__dirname, '..', '..') } = {}) {
