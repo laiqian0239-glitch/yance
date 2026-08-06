@@ -245,6 +245,24 @@ test('keeps runtime authority identity stable while evidence seal state is ortho
   assert.equal(sealed.requiredAuthorizationSeal.status, AUTHORIZATION_SEAL_STATUS);
 });
 
+test('rejects the legacy top-level seal state and a missing evidence seal marker', () => {
+  const { validatePolicyAuthorization } = loadPolicy();
+
+  const legacyTopLevelSeal = sealedAuthorization();
+  legacyTopLevelSeal.status = 'POLICY_AUTHORIZATION_SEALED';
+  assert.equal(
+    validatePolicyAuthorization(legacyTopLevelSeal).reasonCode,
+    'POLICY_AUTHORIZATION_IDENTITY_INVALID'
+  );
+
+  const missingSealMarker = sealedAuthorization();
+  delete missingSealMarker.requiredAuthorizationSeal.status;
+  assert.equal(
+    validatePolicyAuthorization(missingSealMarker).reasonCode,
+    'POLICY_AUTHORIZATION_UNSEALED'
+  );
+});
+
 test('unsealed policy authorization fails closed', () => {
   const { validatePolicyAuthorization } = loadPolicy();
   const result = validatePolicyAuthorization(unsealedAuthorization());
