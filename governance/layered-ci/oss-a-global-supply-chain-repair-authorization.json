@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OSS_A_GLOBAL_SUPPLY_CHAIN_REPAIR_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-06T12:42:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-A",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #67 exact-Head verification proved that three pre-existing checkout steps retain credentials and that the Layered CI risk policy does not classify the checked-in supply-chain inventory paths. These defects are global baseline defects outside the sealed 23-path OSS-A implementation scope and must be repaired on main through an independent branch and PR.",
+  "base": {
+    "branch": "main",
+    "commit": "5cf56b9122ca7ded63e108a7d74f47c7132d252f"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresExactHeadGreen": true,
+    "requiresIndependentAllowMerge": true,
+    "requiresOrdinaryMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true
+  },
+  "evidence": {
+    "sourcePullRequest": 67,
+    "sourceExactHead": "95286bbc5abb27d5ee01e33bb1c0cce7dd51b9fb",
+    "ossProvenanceRun": 31074680445,
+    "retainedCredentialFindings": [
+      {
+        "path": ".github/workflows/layered-ci-task.yml",
+        "checkoutUsesLines": [141, 231]
+      },
+      {
+        "path": ".github/workflows/reviewed-candidate-a6.yml",
+        "checkoutUsesLines": [155]
+      }
+    ],
+    "unclassifiedSupplyChainPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "third_party/github-actions-lock.json",
+      "third_party/licenses/actions-checkout-MIT.txt",
+      "third_party/licenses/actions-setup-node-MIT.txt",
+      "third_party/licenses/actions-upload-artifact-MIT.txt",
+      "third_party/licenses/baileys-MIT.txt",
+      "third_party/provenance.json",
+      "third_party/sbom.cdx.json"
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/oss-a-global-supply-chain-repair-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/oss-a-global-supply-chain-repair-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/oss-a-global-supply-chain-security-baseline",
+    "requiredBase": "the exact main merge commit containing this authorization",
+    "allowedChangedPaths": [
+      ".github/workflows/layered-ci-task.yml",
+      ".github/workflows/reviewed-candidate-a6.yml",
+      "governance/layered-ci/risk-policy.json",
+      "tests/layered-ci/github-actions-workflow.test.js",
+      "tests/layered-ci/governance-policy.test.js",
+      "tools/layered-ci/github-actions-workflow.js"
+    ],
+    "approvedChangedFileCount": 6,
+    "approvedChangedFileSetSha256": "1293d326a2aa5f39efaf0f1a9b923de08e900865da2586a8869dcbfad002f70d",
+    "runtimeProductBehaviorChanged": false,
+    "newDependencyAllowed": false,
+    "workflowCredentialPersistenceMayOnlyBecomeStricter": true,
+    "riskClassificationMayOnlyEscalateSupplyChainPathsToL2": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "A repository scanner reports exactly the three evidenced checkout steps as missing explicit persist-credentials: false on the authorization base",
+    "The scanner accepts an explicitly false checkout input and rejects missing, true, expression, duplicate and malformed credential inputs",
+    "THIRD_PARTY_NOTICES.md and every path under third_party/ classify as L2 supply-chain changes",
+    "Unknown paths and malformed repository paths continue to fail closed",
+    "No workflow fetch, branch ancestry, candidate identity or reviewed-head semantics change",
+    "No Action commit pin, lock entry, license record or SBOM byte changes are introduced"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes all applicable governance gates",
+    "Independent review returns ALLOW_MERGE with zero P0 and P1 findings",
+    "Authorization PR merges to main with an ordinary merge commit and no history rewrite",
+    "Implementation branch is created from that exact main merge commit",
+    "Failure-first tests are committed and exact RED evidence is recorded before implementation",
+    "The shared workflow scanner is implemented once under tools/layered-ci and consumed by its permanent tests",
+    "Only the three evidenced checkout steps receive persist-credentials: false",
+    "Only the literal THIRD_PARTY_NOTICES.md path and third_party/ prefix are added to L2 risk classification",
+    "Implementation exact Head passes Layered CI, permanent WP0, ACV2 and independent review",
+    "Implementation PR merges to main only through ordinary merge after exact-Head verification",
+    "The new main is merged normally into PR #67 and PR #67 is reverified without changing its sealed 23-path authority"
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "directModificationOfPr67OutsideItsSealedScope": true,
+    "productionUse": true,
+    "formalRelease": true,
+    "publish": true,
+    "automaticNextWorkPackageAuthorization": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "pr67MustRemainDraft": true,
+    "readyForPromotion": false
+  }
+}
