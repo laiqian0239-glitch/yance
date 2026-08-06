@@ -61,7 +61,7 @@ test('authorized baseline has no checkout step retaining repository credentials'
   assert.deepEqual(findings, [], JSON.stringify(findings, null, 2));
 });
 
-test('shared workflow parser fails closed for missing, enabled, expression, duplicate and malformed inputs', () => {
+test('shared workflow parser fails closed for missing, enabled, expression, nested, duplicate and malformed inputs', () => {
   assert.equal(
     fs.existsSync(TOOL_PATH),
     true,
@@ -82,6 +82,7 @@ test('shared workflow parser fails closed for missing, enabled, expression, dupl
     ['missing', `steps:\n  - uses: ${CHECKOUT_REF}\n`, 'CHECKOUT_PERSIST_CREDENTIALS_NOT_FALSE'],
     ['enabled', `steps:\n  - uses: ${CHECKOUT_REF}\n    with:\n      persist-credentials: true\n`, 'CHECKOUT_PERSIST_CREDENTIALS_NOT_FALSE'],
     ['expression', `steps:\n  - uses: ${CHECKOUT_REF}\n    with:\n      persist-credentials: \${{ github.event.repository.private }}\n`, 'CHECKOUT_PERSIST_CREDENTIALS_NOT_FALSE'],
+    ['nested', `steps:\n  - uses: ${CHECKOUT_REF}\n    with:\n      wrapper:\n        persist-credentials: false\n`, 'CHECKOUT_PERSIST_CREDENTIALS_NOT_FALSE'],
     ['duplicate', `steps:\n  - uses: ${CHECKOUT_REF}\n    with:\n      persist-credentials: false\n      persist-credentials: false\n`, 'CHECKOUT_PERSIST_CREDENTIALS_DUPLICATE'],
     ['malformed', `steps:\n  - uses: ${CHECKOUT_REF}\n    with:\n      persist-credentials : false\n`, 'CHECKOUT_PERSIST_CREDENTIALS_SYNTAX_INVALID']
   ]) {
