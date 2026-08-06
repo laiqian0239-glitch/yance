@@ -17,6 +17,8 @@ const BASE = 'ad195d8497ec61fbe3387c606692110f5645fba0';
 const AUTH_HEAD = 'f50590181e19cdc134c35d91ae9421af5b532ce8';
 const AUTH_MERGE = 'fac7d298f182043f4ecc6e41a780248ce3a03132';
 const AUTH_BLOB = '99ee3e5243d07fed5cea6661cb6ad82123771bc8';
+const AUTHORIZATION_STATUS = 'POLICY_AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE_AND_SEAL';
+const AUTHORIZATION_SEAL_STATUS = 'SEALED';
 const PRE_SEAL_AUTHORIZATION_FILE_SHA256 = 'a9c6022c7a59e49dd3c4c957d6e7e56de70697b84609f338d00a4cc5c07fe0fd';
 const RED_HEAD = '1111111111111111111111111111111111111111';
 const POLICY_HEAD = '2222222222222222222222222222222222222222';
@@ -44,7 +46,7 @@ function clone(value) {
 
 function unsealedAuthorization() {
   const value = clone(authorizationTemplate);
-  value.status = 'POLICY_AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE_AND_SEAL';
+  value.status = AUTHORIZATION_STATUS;
   value.requiredAuthorizationSeal = {
     ...value.requiredAuthorizationSeal,
     authorizationMergeCommit: 'TO_BE_SEALED_AFTER_ORDINARY_MAIN_MERGE',
@@ -54,15 +56,17 @@ function unsealedAuthorization() {
     authorizationOriginalFileSha256: 'TO_BE_SEALED_FROM_THIS_FILE_AT_FINAL_EXACT_HEAD',
     policyReviewedHead: 'TO_BE_RECORDED_BY_LATER_EVIDENCE_COMMIT'
   };
+  delete value.requiredAuthorizationSeal.status;
   delete value.policyBinding;
   return value;
 }
 
 function sealedAuthorization() {
   const value = clone(authorizationTemplate);
-  value.status = 'POLICY_AUTHORIZATION_SEALED';
+  value.status = AUTHORIZATION_STATUS;
   value.requiredAuthorizationSeal = {
     ...value.requiredAuthorizationSeal,
+    status: AUTHORIZATION_SEAL_STATUS,
     authorizationMergeCommit: AUTH_MERGE,
     authorizationMergeFirstParent: BASE,
     authorizationReviewedHead: AUTH_HEAD,
@@ -218,17 +222,27 @@ function validSealPullRequest() {
 
 test('preserves the exact pre-seal authorization identity across the evidence commit', () => {
   assert.match(PRE_SEAL_AUTHORIZATION_FILE_SHA256, /^[0-9a-f]{64}$/u);
-  if (authorizationTemplate.status === 'POLICY_AUTHORIZATION_SEALED') {
+  assert.equal(authorizationTemplate.status, AUTHORIZATION_STATUS);
+  if (authorizationTemplate.requiredAuthorizationSeal?.status === AUTHORIZATION_SEAL_STATUS) {
     assert.equal(
       authorizationTemplate.requiredAuthorizationSeal.authorizationOriginalFileSha256,
       PRE_SEAL_AUTHORIZATION_FILE_SHA256
     );
     assert.notEqual(checkedInAuthorizationFileSha256, PRE_SEAL_AUTHORIZATION_FILE_SHA256);
   } else {
-    assert.equal(authorizationTemplate.status, 'POLICY_AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE_AND_SEAL');
+    assert.equal(authorizationTemplate.requiredAuthorizationSeal?.status, undefined);
     assert.equal(checkedInAuthorizationFileSha256, PRE_SEAL_AUTHORIZATION_FILE_SHA256);
   }
   console.log(`# authorization_file_sha256 ${PRE_SEAL_AUTHORIZATION_FILE_SHA256}`);
+});
+
+test('keeps runtime authority identity stable while evidence seal state is orthogonal', () => {
+  const unsealed = unsealedAuthorization();
+  const sealed = sealedAuthorization();
+  assert.equal(unsealed.status, AUTHORIZATION_STATUS);
+  assert.equal(sealed.status, AUTHORIZATION_STATUS);
+  assert.equal(unsealed.requiredAuthorizationSeal.status, undefined);
+  assert.equal(sealed.requiredAuthorizationSeal.status, AUTHORIZATION_SEAL_STATUS);
 });
 
 test('unsealed policy authorization fails closed', () => {
