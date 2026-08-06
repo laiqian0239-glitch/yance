@@ -75,4 +75,8 @@ test('duplicates, traversal, wildcard expansion and controlled-root overlap fail
   const wrongPlatform = validSet();
   wrongPlatform.platform = 'darwin';
   assert.equal(validateCommandSet(wrongPlatform).reasonCode, 'EVIDENCE_COMMAND_SET_INVALID');
+
+  const artifactEscape = validSet();
+  artifactEscape.commands[0].artifacts = ['shared/verification/report.json'];
+  assert.equal(validateCommandSet(artifactEscape).reasonCode, 'EVIDENCE_COMMAND_SET_INVALID');
 });
