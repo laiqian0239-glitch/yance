@@ -20,6 +20,10 @@
   "packageManager": "npm@10.9.2",
   "allowScripts": {},
   "scripts": {
+    "verify:provenance": "node tools/third-party/verify-provenance.js",
+    "verify:sbom": "node tools/third-party/verify-sbom.js",
+    "verify:github-actions-lock": "node tools/supply-chain/verify-github-actions-lock.js",
+    "test:supply-chain": "node --test --test-concurrency=1 tests/third-party/provenance.test.js tests/third-party/sbom.test.js tests/supply-chain/github-actions-pinning.test.js",
     "test:wp0": "node tools/wp0/run-tests.js && npm run test:acv2:wp-a:a0",
     "evidence:wp0": "node tools/wp0/generate-evidence.js",
     "verify:wp0:gate": "node tools/wp0/verify-gate.js",

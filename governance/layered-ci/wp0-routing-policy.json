@@ -55,6 +55,7 @@
     "package-lock.json",
     ".gitattributes",
     ".gitignore",
+    "THIRD_PARTY_NOTICES.md",
     "yance_artifact_descriptor.json"
   ],
   "productPrefixes": [
@@ -70,6 +71,7 @@
     "services/",
     "shared/",
     "tests/",
+    "third_party/",
     "tools/",
     "vendor/"
   ],

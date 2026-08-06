@@ -31,6 +31,15 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci --ignore-scripts
+      - name: Generate deterministic SBOM evidence
+        run: node -e "const fs=require('node:fs');const path=require('node:path');const {buildSbom,serializeSbom}=require('./tools/third-party/sbom');const packageJson=require('./package.json');const packageLock=require('./package-lock.json');fs.writeFileSync(path.join(process.env.RUNNER_TEMP,'yance-sbom.cdx.json'),serializeSbom(buildSbom({packageJson,packageLock})));"
+      - name: Upload deterministic SBOM evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: yance-deterministic-sbom-${{ matrix.os }}
+          path: ${{ runner.temp }}/yance-sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Run provenance contracts
         run: node --test --test-concurrency=1 tests/third-party/provenance.test.js
       - name: Run deterministic SBOM contracts

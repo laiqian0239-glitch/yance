@@ -120,8 +120,28 @@ test('ambiguous uses syntax, duplicate lock identities, unsafe evidence paths an
   assert.ok(errors.some(error => error.code === 'ACTION_LOCK_DUPLICATE'));
   assert.ok(errors.some(error => error.code === 'LICENSE_PATH_INVALID'));
 
-  const unused = inspect(`steps:\n  - uses: ${LOCKED_REFS[0]}\n    with:\n      persist-credentials: false\n`, makeLock());
-  assert.ok(unused.errors.some(error => error.code === 'ACTION_LOCK_ENTRY_UNUSED'));
+  const { verifyRepository } = loadActionsLock();
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-actions-lock-unused-'));
+  try {
+    fs.mkdirSync(path.join(root, '.github', 'workflows'), { recursive: true });
+    fs.mkdirSync(path.join(root, 'third_party', 'licenses'), { recursive: true });
+    const lock = makeLock();
+    fs.writeFileSync(
+      path.join(root, 'third_party', 'github-actions-lock.json'),
+      `${JSON.stringify(lock, null, 2)}\n`
+    );
+    for (const entry of lock.actions) {
+      fs.writeFileSync(path.join(root, entry.licenseEvidence), 'MIT License\n');
+    }
+    fs.writeFileSync(
+      path.join(root, '.github', 'workflows', 'checkout-only.yml'),
+      `steps:\n  - uses: ${LOCKED_REFS[0]}\n    with:\n      persist-credentials: false\n`
+    );
+    const unused = verifyRepository(root);
+    assert.ok(unused.errors.some(error => error.code === 'ACTION_LOCK_ENTRY_UNUSED'));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('repository verifier detects a retained checkout credential and reports the exact workflow path', t => {

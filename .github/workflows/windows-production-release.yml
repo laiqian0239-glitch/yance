@@ -40,14 +40,15 @@ jobs:
           git config --global core.eol lf
 
       - name: Checkout exact source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          persist-credentials: false
           ref: ${{ inputs.source_ref }}
           fetch-depth: 0
           fetch-tags: true
 
       - name: Set up reviewed Node runtime
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -181,7 +182,7 @@ jobs:
           }
 
       - name: Upload signed release evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: yance-signed-windows-release
           path: ${{ runner.temp }}\yance-release-evidence\**

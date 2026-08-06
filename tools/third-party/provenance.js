@@ -3,202 +3,222 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const REGISTRY_PATH = path.join('third_party', 'provenance.json');
-const NOTICE_PATH = 'THIRD_PARTY_NOTICES.md';
-const SHA40 = /^[0-9a-f]{40}$/u;
-const PROJECT_ID = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/u;
-const SUPPORTED_MODES = new Set([
-  'dependency',
-  'patched_dependency',
-  'sidecar',
-  'controlled_fork',
-  'source_port',
-  'reference_only'
-]);
+const FULL_SHA = /^[0-9a-f]{40}$/u;
+const PROJECT_ID = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/u;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/u;
+const GITHUB_HTTPS_REPOSITORY = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/?$/u;
+const SUPPORTED_SCHEMA_VERSION = 1;
+const APPROVED_REVIEW_STATUS = 'APPROVED';
 
-function issue(code, detail = {}) {
-  return { code, ...detail };
+function issue(code, issuePath, message) {
+  return { code, path: issuePath, message };
+}
+
+function isNonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
 }
 
 function isSafeRepositoryPath(value) {
-  if (typeof value !== 'string' || value.length === 0 || value !== value.trim()) return false;
-  if (value.includes('\\') || value.includes('\0') || path.posix.isAbsolute(value)) return false;
-  return value.split('/').every(segment => segment && segment !== '.' && segment !== '..');
+  if (!isNonEmptyString(value) || path.isAbsolute(value)) return false;
+  if (value !== value.trim()) return false;
+  const normalized = value.replaceAll('\\', '/');
+  if (normalized.startsWith('/') || /^[A-Za-z]:\//u.test(normalized) || /[\r\n\0-\x1f\x7f]/u.test(normalized)) return false;
+  const segments = normalized.split('/');
+  return !segments.includes('..') && !segments.includes('.') && !segments.includes('');
 }
 
-function normalizedStrings(values) {
-  return [...new Set((Array.isArray(values) ? values : []).filter(value => typeof value === 'string'))].sort();
+function validateStringArray(value, issuePath, code, errors, options = {}) {
+  if (!Array.isArray(value) || (!options.allowEmpty && value.length === 0)) {
+    errors.push(issue(code, issuePath, options.allowEmpty ? 'must be an array' : 'must be a non-empty array'));
+    return;
+  }
+  value.forEach((entry, index) => {
+    if (!isNonEmptyString(entry)) errors.push(issue(code, `${issuePath}[${index}]`, 'must be a non-empty string'));
+  });
+}
+
+function validatePathArray(value, issuePath, code, errors, options = {}) {
+  validateStringArray(value, issuePath, code, errors, options);
+  if (!Array.isArray(value)) return;
+  value.forEach((entry, index) => {
+    if (isNonEmptyString(entry) && !isSafeRepositoryPath(entry)) {
+      errors.push(issue(code, `${issuePath}[${index}]`, 'must be a safe repository-relative path'));
+    }
+  });
 }
 
 function validateRegistry(registry) {
   const errors = [];
   if (!registry || typeof registry !== 'object' || Array.isArray(registry)) {
-    return [issue('REGISTRY_INVALID')];
+    return [issue('REGISTRY_INVALID', '$', 'must be a JSON object')];
   }
-  if (registry.schemaVersion !== 1) errors.push(issue('SCHEMA_VERSION_UNSUPPORTED'));
-  if (!registry.projectLicenseDecision
-      || registry.projectLicenseDecision.status !== 'UNRESOLVED'
-      || registry.projectLicenseDecision.approvedSpdx !== null) {
-    errors.push(issue('PROJECT_LICENSE_DECISION_INVALID'));
+  if (registry.schemaVersion !== SUPPORTED_SCHEMA_VERSION) {
+    errors.push(issue('SCHEMA_VERSION_UNSUPPORTED', 'schemaVersion', `must equal ${SUPPORTED_SCHEMA_VERSION}`));
   }
-  const policyModes = registry.policy?.allowedIntegrationModes;
-  if (!Array.isArray(policyModes)
-      || policyModes.some(mode => !SUPPORTED_MODES.has(mode))
-      || registry.policy?.exactCommitRequired !== true
-      || registry.policy?.approvedRecordRequired !== true) {
-    errors.push(issue('POLICY_INVALID'));
+
+  const licenseDecision = registry.projectLicenseDecision;
+  if (!licenseDecision || typeof licenseDecision !== 'object' || Array.isArray(licenseDecision)) {
+    errors.push(issue('PROJECT_LICENSE_DECISION_INVALID', 'projectLicenseDecision', 'must be an object'));
+  } else {
+    if (!['UNRESOLVED', 'APPROVED'].includes(licenseDecision.status)) {
+      errors.push(issue('PROJECT_LICENSE_STATUS_INVALID', 'projectLicenseDecision.status', 'must be UNRESOLVED or APPROVED'));
+    }
+    if (licenseDecision.status === 'APPROVED' && !isNonEmptyString(licenseDecision.approvedSpdx)) {
+      errors.push(issue('PROJECT_LICENSE_SPDX_REQUIRED', 'projectLicenseDecision.approvedSpdx', 'is required when project license is approved'));
+    }
+    if (licenseDecision.status === 'UNRESOLVED' && licenseDecision.approvedSpdx !== null) {
+      errors.push(issue('PROJECT_LICENSE_SPDX_MUST_BE_NULL', 'projectLicenseDecision.approvedSpdx', 'must be null while unresolved'));
+    }
   }
+
+  const policy = registry.policy;
+  if (!policy || typeof policy !== 'object' || Array.isArray(policy)) {
+    errors.push(issue('POLICY_INVALID', 'policy', 'must be an object'));
+  }
+  const allowedModes = new Set(Array.isArray(policy?.allowedIntegrationModes) ? policy.allowedIntegrationModes : []);
+  if (policy?.exactCommitRequired !== true) errors.push(issue('EXACT_COMMIT_POLICY_REQUIRED', 'policy.exactCommitRequired', 'must be true'));
+  if (policy?.approvedRecordRequired !== true) errors.push(issue('APPROVED_RECORD_POLICY_REQUIRED', 'policy.approvedRecordRequired', 'must be true'));
+  validateStringArray(policy?.allowedIntegrationModes, 'policy.allowedIntegrationModes', 'INTEGRATION_MODES_INVALID', errors);
+
   if (!Array.isArray(registry.projects)) {
-    errors.push(issue('PROJECTS_INVALID'));
+    errors.push(issue('PROJECTS_INVALID', 'projects', 'must be an array'));
     return errors;
   }
 
-  const ids = new Set();
-  for (const [index, project] of registry.projects.entries()) {
-    const context = { projectIndex: index, projectId: project?.id ?? null };
+  const seenIds = new Set();
+  registry.projects.forEach((project, index) => {
+    const base = `projects[${index}]`;
     if (!project || typeof project !== 'object' || Array.isArray(project)) {
-      errors.push(issue('PROJECT_INVALID', context));
-      continue;
+      errors.push(issue('PROJECT_INVALID', base, 'must be an object'));
+      return;
     }
-    if (typeof project.id !== 'string' || !PROJECT_ID.test(project.id)) {
-      errors.push(issue('PROJECT_ID_INVALID', context));
-    } else if (ids.has(project.id)) {
-      errors.push(issue('PROJECT_ID_DUPLICATE', context));
+    if (!isNonEmptyString(project.id) || !PROJECT_ID.test(project.id)) {
+      errors.push(issue('PROJECT_ID_INVALID', `${base}.id`, 'must match lowercase project ID syntax'));
+    } else if (seenIds.has(project.id)) {
+      errors.push(issue('PROJECT_ID_DUPLICATE', `${base}.id`, `duplicate project id ${project.id}`));
     } else {
-      ids.add(project.id);
+      seenIds.add(project.id);
     }
-    if (typeof project.name !== 'string' || project.name.trim().length === 0) {
-      errors.push(issue('PROJECT_NAME_INVALID', context));
+    if (!isNonEmptyString(project.name)) errors.push(issue('PROJECT_NAME_REQUIRED', `${base}.name`, 'must be a non-empty string'));
+    if (!isNonEmptyString(project.upstreamRepository) || !GITHUB_HTTPS_REPOSITORY.test(project.upstreamRepository)) {
+      errors.push(issue('UPSTREAM_REPOSITORY_INVALID', `${base}.upstreamRepository`, 'must be an HTTPS GitHub repository URL'));
     }
-    if (typeof project.upstreamRepository !== 'string'
-        || !/^https:\/\/github\.com\/[^/\s]+\/[^/\s]+(?:\.git)?$/u.test(project.upstreamRepository)) {
-      errors.push(issue('UPSTREAM_REPOSITORY_INVALID', context));
+    if (!isNonEmptyString(project.upstreamCommit) || !FULL_SHA.test(project.upstreamCommit)) {
+      errors.push(issue('UPSTREAM_COMMIT_INVALID', `${base}.upstreamCommit`, 'must be a lowercase 40-character hexadecimal commit'));
     }
-    if (typeof project.upstreamCommit !== 'string' || !SHA40.test(project.upstreamCommit)) {
-      errors.push(issue('UPSTREAM_COMMIT_INVALID', context));
+    if (!isNonEmptyString(project.upstreamVersion)) errors.push(issue('UPSTREAM_VERSION_REQUIRED', `${base}.upstreamVersion`, 'must be a non-empty string'));
+    if (!isNonEmptyString(project.integrationMode) || !allowedModes.has(project.integrationMode)) {
+      errors.push(issue('INTEGRATION_MODE_UNSUPPORTED', `${base}.integrationMode`, 'must be listed in policy.allowedIntegrationModes'));
     }
-    if (typeof project.upstreamVersion !== 'string' || project.upstreamVersion.trim().length === 0) {
-      errors.push(issue('UPSTREAM_VERSION_INVALID', context));
-    }
-    if (!SUPPORTED_MODES.has(project.integrationMode)
-        || !registry.policy?.allowedIntegrationModes?.includes(project.integrationMode)) {
-      errors.push(issue('INTEGRATION_MODE_UNSUPPORTED', context));
-    }
-    if (!project.license || typeof project.license.spdx !== 'string' || project.license.spdx.length === 0) {
-      errors.push(issue('LICENSE_INVALID', context));
-    }
-    if (!isSafeRepositoryPath(project.license?.evidenceFile)) {
-      errors.push(issue('LICENSE_PATH_INVALID', context));
-    }
-    for (const [field, prefix] of [['sourcePaths', 'SOURCE'], ['yancePaths', 'YANCE']]) {
-      if (!Array.isArray(project[field]) || project[field].length === 0) {
-        errors.push(issue(`${prefix}_PATHS_INVALID`, context));
-        continue;
-      }
-      for (const value of project[field]) {
-        if (!isSafeRepositoryPath(value)) {
-          errors.push(issue(`${prefix}_PATH_INVALID`, { ...context, path: value }));
-        }
+
+    if (!project.license || typeof project.license !== 'object' || Array.isArray(project.license)) {
+      errors.push(issue('LICENSE_INVALID', `${base}.license`, 'must be an object'));
+    } else {
+      if (!isNonEmptyString(project.license.spdx)) errors.push(issue('LICENSE_SPDX_REQUIRED', `${base}.license.spdx`, 'must be a non-empty SPDX identifier'));
+      if (!isSafeRepositoryPath(project.license.evidenceFile) || !project.license.evidenceFile.startsWith('third_party/licenses/')) {
+        errors.push(issue('LICENSE_PATH_INVALID', `${base}.license.evidenceFile`, 'must be a safe path under third_party/licenses/'));
       }
     }
-    if (!Array.isArray(project.modifications) || project.modifications.length === 0) {
-      errors.push(issue('MODIFICATIONS_INVALID', context));
+
+    validatePathArray(project.sourcePaths, `${base}.sourcePaths`, 'SOURCE_PATH_INVALID', errors, { allowEmpty: project.integrationMode === 'dependency' });
+    validatePathArray(project.yancePaths, `${base}.yancePaths`, 'YANCE_PATH_INVALID', errors, { allowEmpty: project.integrationMode === 'reference_only' });
+    validateStringArray(project.modifications, `${base}.modifications`, 'MODIFICATIONS_REQUIRED', errors);
+    validateStringArray(project.obligations, `${base}.obligations`, 'OBLIGATIONS_REQUIRED', errors);
+
+    if (!project.review || typeof project.review !== 'object' || Array.isArray(project.review)) {
+      errors.push(issue('REVIEW_INVALID', `${base}.review`, 'must be an object'));
+    } else {
+      if (project.review.status !== APPROVED_REVIEW_STATUS) errors.push(issue('REVIEW_NOT_APPROVED', `${base}.review.status`, 'must be APPROVED'));
+      if (!isNonEmptyString(project.review.reviewedAt) || !ISO_DATE.test(project.review.reviewedAt)) {
+        errors.push(issue('REVIEW_DATE_INVALID', `${base}.review.reviewedAt`, 'must use YYYY-MM-DD'));
+      }
+      validateStringArray(project.review.evidence, `${base}.review.evidence`, 'REVIEW_EVIDENCE_REQUIRED', errors);
     }
-    if (!Array.isArray(project.obligations) || project.obligations.length === 0) {
-      errors.push(issue('OBLIGATIONS_INVALID', context));
-    }
-    if (project.review?.status !== 'APPROVED') {
-      errors.push(issue('REVIEW_NOT_APPROVED', context));
-    }
-    if (!Array.isArray(project.review?.evidence) || project.review.evidence.length === 0) {
-      errors.push(issue('REVIEW_EVIDENCE_MISSING', context));
-    }
-  }
+  });
   return errors;
 }
 
+function loadRegistry(repoRoot) {
+  return JSON.parse(fs.readFileSync(path.join(repoRoot, 'third_party', 'provenance.json'), 'utf8'));
+}
+
 function renderNotice(registry) {
-  const projects = [...(Array.isArray(registry?.projects) ? registry.projects : [])]
-    .sort((left, right) => String(left.id).localeCompare(String(right.id)));
   const lines = [
     '# Third-Party Notices',
     '',
-    'This file is generated deterministically from `third_party/provenance.json`.',
-    'The Yance project license decision remains unresolved; this notice records upstream attribution only.',
+    'This file is generated from `third_party/provenance.json`.',
+    'Do not edit it manually.',
+    '',
+    `Yance project license decision: **${registry.projectLicenseDecision.status}**`,
     ''
   ];
+  const projects = [...registry.projects].sort((left, right) => left.id.localeCompare(right.id, 'en'));
+  if (projects.length === 0) lines.push('No third-party source integrations are registered.');
   for (const project of projects) {
-    lines.push(`## ${project.name}`);
-    lines.push('');
-    lines.push(`- Registry ID: \`${project.id}\``);
-    lines.push(`- Upstream: ${project.upstreamRepository}`);
-    lines.push(`- Version: \`${project.upstreamVersion}\``);
-    lines.push(`- Commit: \`${project.upstreamCommit}\``);
-    lines.push(`- Integration mode: \`${project.integrationMode}\``);
-    lines.push(`- License: \`${project.license.spdx}\``);
-    lines.push(`- License evidence: \`${project.license.evidenceFile}\``);
-    lines.push(`- Modifications: ${normalizedStrings(project.modifications).join(' ')}`);
-    lines.push(`- Obligations: ${normalizedStrings(project.obligations).join(' ')}`);
-    lines.push('');
+    lines.push(
+      `## ${project.name}`,
+      '',
+      `- Registry ID: \`${project.id}\``,
+      `- Upstream: ${project.upstreamRepository}`,
+      `- Version: \`${project.upstreamVersion}\``,
+      `- Commit: \`${project.upstreamCommit}\``,
+      `- Integration mode: \`${project.integrationMode}\``,
+      `- License: \`${project.license.spdx}\``,
+      `- License evidence: \`${project.license.evidenceFile}\``,
+      '- Upstream source paths:'
+    );
+    if (project.sourcePaths.length === 0) lines.push('  - None recorded for dependency-only integration.');
+    else project.sourcePaths.forEach(value => lines.push(`  - \`${value}\``));
+    lines.push('- Yance integration paths:');
+    if (project.yancePaths.length === 0) lines.push('  - None; reference-only integration.');
+    else project.yancePaths.forEach(value => lines.push(`  - \`${value}\``));
+    lines.push('- Modifications:');
+    project.modifications.forEach(value => lines.push(`  - ${value}`));
+    lines.push('- Distribution obligations:');
+    project.obligations.forEach(value => lines.push(`  - ${value}`));
+    lines.push(`- Review: \`${project.review.status}\` on \`${project.review.reviewedAt}\``, '');
   }
-  return `${lines.join('\n').trimEnd()}\n`;
+  return `${lines.join('\n').replace(/\n+$/u, '')}\n`;
 }
 
-function loadRegistry(root) {
-  const registryPath = path.join(root, REGISTRY_PATH);
-  if (!fs.existsSync(registryPath)) {
-    return { registry: null, errors: [issue('REGISTRY_MISSING', { path: REGISTRY_PATH })] };
-  }
+function verifyRepository(repoRoot) {
+  const errors = [];
+  let registry;
   try {
-    return { registry: JSON.parse(fs.readFileSync(registryPath, 'utf8')), errors: [] };
+    registry = loadRegistry(repoRoot);
   } catch (error) {
-    return {
-      registry: null,
-      errors: [issue('REGISTRY_JSON_INVALID', { path: REGISTRY_PATH, message: error.message })]
-    };
+    const code = error instanceof SyntaxError ? 'REGISTRY_JSON_INVALID' : 'REGISTRY_MISSING';
+    errors.push(issue(code, 'third_party/provenance.json', error.message));
+    return { ok: false, errors, warnings: [], projects: [], registry: null, notice: null };
   }
-}
+  errors.push(...validateRegistry(registry));
+  const projects = Array.isArray(registry.projects)
+    ? registry.projects.filter(project => project && typeof project.id === 'string').map(project => project.id).sort()
+    : [];
+  if (errors.length > 0) return { ok: false, errors, warnings: [], projects, registry, notice: null };
 
-function verifyRepository(root = process.cwd()) {
-  const absoluteRoot = path.resolve(root);
-  const loaded = loadRegistry(absoluteRoot);
-  if (!loaded.registry) {
-    return { ok: false, errors: loaded.errors, registry: null, projects: [], notice: null };
-  }
-  const registry = loaded.registry;
-  const errors = [...validateRegistry(registry)];
-  const registryProjects = Array.isArray(registry.projects) ? registry.projects : [];
-  const projects = registryProjects.map(project => project.id).sort();
-  for (const project of registryProjects) {
-    if (isSafeRepositoryPath(project.license?.evidenceFile)
-        && !fs.existsSync(path.join(absoluteRoot, project.license.evidenceFile))) {
-      errors.push(issue('LICENSE_EVIDENCE_MISSING', {
-        projectId: project.id,
-        path: project.license.evidenceFile
-      }));
+  registry.projects.forEach((project, index) => {
+    const licensePath = path.join(repoRoot, project.license.evidenceFile);
+    if (!fs.existsSync(licensePath) || !fs.statSync(licensePath).isFile()) {
+      errors.push(issue('LICENSE_EVIDENCE_MISSING', `projects[${index}].license.evidenceFile`, project.license.evidenceFile));
     }
-    for (const relativePath of Array.isArray(project.yancePaths) ? project.yancePaths : []) {
-      if (isSafeRepositoryPath(relativePath) && !fs.existsSync(path.join(absoluteRoot, relativePath))) {
-        errors.push(issue('YANCE_PATH_MISSING', { projectId: project.id, path: relativePath }));
-      }
-    }
-  }
+    project.yancePaths.forEach((relativePath, pathIndex) => {
+      const targetPath = path.join(repoRoot, relativePath);
+      if (!fs.existsSync(targetPath)) errors.push(issue('YANCE_PATH_MISSING', `projects[${index}].yancePaths[${pathIndex}]`, relativePath));
+    });
+  });
   const notice = renderNotice(registry);
-  const noticePath = path.join(absoluteRoot, NOTICE_PATH);
-  if (!fs.existsSync(noticePath)) {
-    errors.push(issue('NOTICE_MISSING', { path: NOTICE_PATH }));
-  } else if (fs.readFileSync(noticePath, 'utf8') !== notice) {
-    errors.push(issue('NOTICE_DRIFT', { path: NOTICE_PATH }));
+  const noticePath = path.join(repoRoot, 'THIRD_PARTY_NOTICES.md');
+  let committedNotice = null;
+  try {
+    committedNotice = fs.readFileSync(noticePath, 'utf8');
+  } catch (error) {
+    errors.push(issue('NOTICE_MISSING', 'THIRD_PARTY_NOTICES.md', error.message));
   }
-  return { ok: errors.length === 0, errors, registry, projects, notice };
+  if (committedNotice !== null && committedNotice !== notice) {
+    errors.push(issue('NOTICE_DRIFT', 'THIRD_PARTY_NOTICES.md', 'must exactly match the deterministic registry projection'));
+  }
+  return { ok: errors.length === 0, errors, warnings: [], projects, registry, notice };
 }
 
-module.exports = {
-  NOTICE_PATH,
-  REGISTRY_PATH,
-  isSafeRepositoryPath,
-  loadRegistry,
-  renderNotice,
-  validateRegistry,
-  verifyRepository
-};
+module.exports = { loadRegistry, validateRegistry, renderNotice, verifyRepository, isSafeRepositoryPath };

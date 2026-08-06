@@ -14,14 +14,16 @@ jobs:
   windows-named-mutex:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22.16.0'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: node tools/wp3/windows-named-mutex-evidence.js
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: wp3-windows-named-mutex-evidence
           path: evidence/wp3/windows-named-mutex-real.json
