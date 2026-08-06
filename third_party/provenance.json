@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "projectLicenseDecision": {
+    "status": "UNRESOLVED",
+    "approvedSpdx": null
+  },
+  "policy": {
+    "exactCommitRequired": true,
+    "approvedRecordRequired": true,
+    "allowedIntegrationModes": [
+      "dependency",
+      "patched_dependency",
+      "sidecar",
+      "controlled_fork",
+      "source_port",
+      "reference_only"
+    ]
+  },
+  "projects": [
+    {
+      "id": "actions-checkout",
+      "name": "actions/checkout",
+      "upstreamRepository": "https://github.com/actions/checkout",
+      "upstreamCommit": "11d5960a326750d5838078e36cf38b85af677262",
+      "upstreamVersion": "v4.2.2",
+      "integrationMode": "reference_only",
+      "license": {
+        "spdx": "MIT",
+        "evidenceFile": "third_party/licenses/actions-checkout-MIT.txt"
+      },
+      "sourcePaths": [
+        "action.yml"
+      ],
+      "yancePaths": [
+        ".github/workflows/oss-provenance.yml",
+        ".github/workflows/windows-production-release.yml"
+      ],
+      "modifications": [
+        "No upstream source is vendored; workflows invoke the reviewed exact commit."
+      ],
+      "obligations": [
+        "Retain the upstream MIT license and exact commit attribution."
+      ],
+      "review": {
+        "status": "APPROVED",
+        "reviewedAt": "2026-08-06",
+        "evidence": [
+          "upstream-license-at-exact-commit",
+          "workflow-action-lock-review"
+        ]
+      }
+    },
+    {
+      "id": "actions-setup-node",
+      "name": "actions/setup-node",
+      "upstreamRepository": "https://github.com/actions/setup-node",
+      "upstreamCommit": "48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+      "upstreamVersion": "v4",
+      "integrationMode": "reference_only",
+      "license": {
+        "spdx": "MIT",
+        "evidenceFile": "third_party/licenses/actions-setup-node-MIT.txt"
+      },
+      "sourcePaths": [
+        "action.yml"
+      ],
+      "yancePaths": [
+        ".github/workflows/oss-provenance.yml",
+        ".github/workflows/windows-production-release.yml"
+      ],
+      "modifications": [
+        "No upstream source is vendored; workflows invoke the reviewed exact commit."
+      ],
+      "obligations": [
+        "Retain the upstream MIT license and exact commit attribution."
+      ],
+      "review": {
+        "status": "APPROVED",
+        "reviewedAt": "2026-08-06",
+        "evidence": [
+          "upstream-license-at-exact-commit",
+          "workflow-action-lock-review"
+        ]
+      }
+    },
+    {
+      "id": "actions-upload-artifact",
+      "name": "actions/upload-artifact",
+      "upstreamRepository": "https://github.com/actions/upload-artifact",
+      "upstreamCommit": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "upstreamVersion": "v4",
+      "integrationMode": "reference_only",
+      "license": {
+        "spdx": "MIT",
+        "evidenceFile": "third_party/licenses/actions-upload-artifact-MIT.txt"
+      },
+      "sourcePaths": [
+        "action.yml"
+      ],
+      "yancePaths": [
+        ".github/workflows/windows-production-release.yml"
+      ],
+      "modifications": [
+        "No upstream source is vendored; workflows invoke the reviewed exact commit."
+      ],
+      "obligations": [
+        "Retain the upstream MIT license and exact commit attribution."
+      ],
+      "review": {
+        "status": "APPROVED",
+        "reviewedAt": "2026-08-06",
+        "evidence": [
+          "upstream-license-at-exact-commit",
+          "workflow-action-lock-review"
+        ]
+      }
+    },
+    {
+      "id": "baileys-7.0.0-rc13",
+      "name": "@whiskeysockets/baileys",
+      "upstreamRepository": "https://github.com/WhiskeySockets/Baileys",
+      "upstreamCommit": "8053b086ecc97ec3f78299561de11959bab05d39",
+      "upstreamVersion": "7.0.0-rc13",
+      "integrationMode": "patched_dependency",
+      "license": {
+        "spdx": "MIT",
+        "evidenceFile": "third_party/licenses/baileys-MIT.txt"
+      },
+      "sourcePaths": [
+        "src/index.ts"
+      ],
+      "yancePaths": [
+        "package.json",
+        "package-lock.json"
+      ],
+      "modifications": [
+        "Installed from the npm lockfile and patched only by the governed postinstall compatibility script."
+      ],
+      "obligations": [
+        "Retain the upstream MIT license and exact release commit attribution."
+      ],
+      "review": {
+        "status": "APPROVED",
+        "reviewedAt": "2026-08-06",
+        "evidence": [
+          "upstream-v7.0.0-rc13-tag",
+          "npm-lockfile-review",
+          "upstream-license-at-exact-commit"
+        ]
+      }
+    }
+  ]
+}
