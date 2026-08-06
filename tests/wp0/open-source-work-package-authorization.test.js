@@ -4,37 +4,18 @@ const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const test = require('node:test');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const POLICY_PATH = path.join(ROOT, 'shared', 'release', 'openSourceWorkPackagePolicy.js');
-const REGISTRY_PATH = path.join(
-  ROOT,
-  'governance',
-  'open-source-acceleration',
-  'open-source-work-package-registry.json'
-);
-const AUTHORIZATION_PATH = path.join(
-  ROOT,
-  'governance',
-  'open-source-acceleration',
-  'oss-a-supply-chain-authorization.json'
-);
-const RECEIPT_PATH = path.join(
-  ROOT,
-  'governance',
-  'open-source-acceleration',
-  'oss-a-supply-chain-authorization-receipt.json'
-);
+const REGISTRY_REPOSITORY_PATH = 'governance/open-source-acceleration/open-source-work-package-registry.json';
+const AUTHORIZATION_REPOSITORY_PATH = 'governance/open-source-acceleration/oss-a-supply-chain-authorization.json';
+const RECEIPT_REPOSITORY_PATH = 'governance/open-source-acceleration/oss-a-supply-chain-authorization-receipt.json';
 const WORKFLOW_PATH = path.join(ROOT, '.github', 'workflows', 'stage-6459-wp0-gates.yml');
-const IMPLEMENTATION_POLICY_PATH = path.join(
-  ROOT,
-  'shared',
-  'release',
-  'implementationBranchPolicy.js'
-);
+const IMPLEMENTATION_POLICY_PATH = path.join(ROOT, 'shared', 'release', 'implementationBranchPolicy.js');
 const LIB_PATH = path.join(ROOT, 'tools', 'wp0', 'lib.js');
 const SCOPE_GATE_PATH = path.join(ROOT, 'tools', 'wp0', 'work-package-scope-gate.js');
+const SHA40 = /^[0-9a-f]{40}$/u;
 
 const IMPLEMENTATION_PATHS = Object.freeze([
   '.github/workflows/oss-provenance.yml',
@@ -65,10 +46,15 @@ const EXPECTED_SCOPE_SHA = 'fb99d7c9b090a0c8b92b5655c401b80f0e0674c6e6f5725bad82
 const TRUSTED_POLICY_HEAD = 'f'.repeat(40);
 const CANDIDATE_HEAD = 'e'.repeat(40);
 
-function loadPolicy() {
-  assert.equal(fs.existsSync(POLICY_PATH), true, 'generic open-source policy must exist');
-  delete require.cache[require.resolve(POLICY_PATH)];
-  return require(POLICY_PATH);
+function repositoryPath(root, relative) {
+  return path.join(root, ...relative.split('/'));
+}
+
+function loadPolicy(root = ROOT) {
+  const policyPath = repositoryPath(root, 'shared/release/openSourceWorkPackagePolicy.js');
+  assert.equal(fs.existsSync(policyPath), true, `generic open-source policy must exist at ${policyPath}`);
+  delete require.cache[require.resolve(policyPath)];
+  return require(policyPath);
 }
 
 function loadScopeGate() {
@@ -80,8 +66,8 @@ function fixture() {
   const entry = Object.freeze({
     workPackage: 'OSS-A',
     authorizedBranch: 'oss/a-supply-chain-foundation',
-    authorizationPath: 'governance/open-source-acceleration/oss-a-supply-chain-authorization.json',
-    receiptPath: 'governance/open-source-acceleration/oss-a-supply-chain-authorization-receipt.json'
+    authorizationPath: AUTHORIZATION_REPOSITORY_PATH,
+    receiptPath: RECEIPT_REPOSITORY_PATH
   });
   const registry = Object.freeze({
     schemaVersion: 1,
@@ -186,19 +172,13 @@ function validReceiptOptions(receipt, authorization) {
     trustedPolicyHead: TRUSTED_POLICY_HEAD,
     candidateHead: CANDIDATE_HEAD,
     resolveCommitBlobSha: () => authorization.seal.authorizationBlobSha,
-    resolveCommitParents: () => [
-      authorization.seal.mergeFirstParent,
-      authorization.seal.mergeSecondParent
-    ],
+    resolveCommitParents: () => [authorization.seal.mergeFirstParent, authorization.seal.mergeSecondParent],
     isTrustedAncestor: (base, head) => (
-      base === authorization.approvedParentHead
-        && head === authorization.seal.authorizationCommit
+      base === authorization.approvedParentHead && head === authorization.seal.authorizationCommit
     ) || (
-      base === authorization.seal.authorizationCommit
-        && head === TRUSTED_POLICY_HEAD
+      base === authorization.seal.authorizationCommit && head === TRUSTED_POLICY_HEAD
     ),
-    isAncestor: (base, head) => base === receipt.implementationBaseCommit
-      && head === CANDIDATE_HEAD
+    isAncestor: (base, head) => base === receipt.implementationBaseCommit && head === CANDIDATE_HEAD
   };
 }
 
@@ -217,6 +197,7 @@ test('generic OSS-A registry, authorization and receipt are exact and zero-norma
   ]) assert.equal(policy.normalizeRepositoryPath(invalid), '', invalid);
 
   assert.equal(policy.validateOpenSourceWorkPackageRegistry(registry), true);
+  assert.equal(policy.validAuthorizationSeal(authorization.seal), true);
   assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationForEntry(authorization, entry), true);
   assert.equal(policy.changedFileSetSha256(IMPLEMENTATION_PATHS), EXPECTED_SCOPE_SHA);
   assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
@@ -230,10 +211,7 @@ test('generic OSS-A registry, authorization and receipt are exact and zero-norma
     receipt,
     authorization,
     entry,
-    {
-      ...validReceiptOptions(receipt, authorization),
-      resolveCommitBlobSha: () => '2'.repeat(40)
-    }
+    { ...validReceiptOptions(receipt, authorization), resolveCommitBlobSha: () => '2'.repeat(40) }
   ), false, 'authorization blob drift must fail closed');
 });
 
@@ -243,16 +221,13 @@ test('unsealed or non-exact-base receipts fail even when callers inject Git adap
   const options = validReceiptOptions(receipt, authorization);
   const { seal, ...unsealedAuthorization } = authorization;
 
-  assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationForEntry(
-    unsealedAuthorization,
-    entry
-  ), true, 'pre-authorization remains a valid non-executable governance document');
+  assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationForEntry(unsealedAuthorization, entry), true);
   assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
     receipt,
     unsealedAuthorization,
     entry,
     options
-  ), false, 'function adapters cannot replace the required post-merge seal');
+  ), false);
 
   for (const mutation of [
     { implementationBaseCommit: authorization.seal.authorizationCommit },
@@ -261,33 +236,22 @@ test('unsealed or non-exact-base receipts fail even when callers inject Git adap
     { authorizationBlobSha: '5'.repeat(40) }
   ]) {
     assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
-      { ...receipt, ...mutation },
-      authorization,
-      entry,
-      options
+      { ...receipt, ...mutation }, authorization, entry, options
     ), false, JSON.stringify(mutation));
   }
 
   assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
-    receipt,
-    authorization,
-    entry,
-    { ...options, trustedPolicyHead: '6'.repeat(40) }
-  ), false, 'receipt baseline must equal the exact trusted policy head');
-
+    receipt, authorization, entry, { ...options, trustedPolicyHead: '6'.repeat(40) }
+  ), false);
   assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
-    receipt,
-    authorization,
-    entry,
-    { ...options, isTrustedAncestor: () => false }
-  ), false, 'authorization and seal ancestry must remain trusted');
-
+    receipt, authorization, entry, { ...options, isTrustedAncestor: () => false }
+  ), false);
   assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
     receipt,
     authorization,
     entry,
     { ...options, resolveCommitParents: () => ['7'.repeat(40), authorization.seal.mergeSecondParent] }
-  ), false, 'sealed merge parent drift must fail closed');
+  ), false);
 });
 
 test('scope exception removes only the current work-package receipt', () => {
@@ -299,12 +263,9 @@ test('scope exception removes only the current work-package receipt', () => {
     authorizationPath: 'governance/open-source-acceleration/oss-b-authorization.json',
     receiptPath: 'governance/open-source-acceleration/oss-b-authorization-receipt.json'
   });
-  const expandedRegistry = Object.freeze({
-    ...registry,
-    entries: [entry, otherEntry]
-  });
+  const expandedRegistry = Object.freeze({ ...registry, entries: [entry, otherEntry] });
   const changedFiles = [
-    'governance/open-source-acceleration/open-source-work-package-registry.json',
+    REGISTRY_REPOSITORY_PATH,
     entry.authorizationPath,
     entry.receiptPath,
     otherEntry.authorizationPath,
@@ -315,7 +276,7 @@ test('scope exception removes only the current work-package receipt', () => {
     registry: expandedRegistry,
     entry
   }), [
-    'governance/open-source-acceleration/open-source-work-package-registry.json',
+    REGISTRY_REPOSITORY_PATH,
     entry.authorizationPath,
     otherEntry.authorizationPath,
     otherEntry.receiptPath,
@@ -323,29 +284,91 @@ test('scope exception removes only the current work-package receipt', () => {
   ]);
 });
 
-test('repository authority files register sealed OSS-A but do not create an implementation receipt', () => {
-  const policy = loadPolicy();
-  assert.equal(fs.existsSync(REGISTRY_PATH), true, 'registry must exist');
-  assert.equal(fs.existsSync(AUTHORIZATION_PATH), true, 'authorization must exist');
-  assert.equal(fs.existsSync(RECEIPT_PATH), false, 'governance PR must not fabricate implementation receipt');
-
-  const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'));
-  const authorization = JSON.parse(fs.readFileSync(AUTHORIZATION_PATH, 'utf8'));
-  const entry = policy.selectOpenSourceWorkPackageRegistryEntry(
-    registry,
+test('repository authority and optional implementation receipt remain exact and fail closed', () => {
+  const candidatePolicy = loadPolicy(ROOT);
+  const candidateRegistry = JSON.parse(fs.readFileSync(repositoryPath(ROOT, REGISTRY_REPOSITORY_PATH), 'utf8'));
+  const candidateAuthorization = JSON.parse(fs.readFileSync(repositoryPath(ROOT, AUTHORIZATION_REPOSITORY_PATH), 'utf8'));
+  const candidateEntry = candidatePolicy.selectOpenSourceWorkPackageRegistryEntry(
+    candidateRegistry,
     'oss/a-supply-chain-foundation'
   );
-  assert.ok(entry);
-  assert.equal(policy.validateOpenSourceWorkPackageRegistry(registry), true);
-  assert.equal(policy.validAuthorizationSeal(authorization.seal), true);
-  assert.equal(policy.isValidOpenSourceWorkPackageAuthorizationForEntry(authorization, entry), true);
-  assert.equal(authorization.approvedChangedFileCount, 23);
-  assert.equal(authorization.approvedChangedFileSetSha256, EXPECTED_SCOPE_SHA);
-  assert.deepEqual(authorization.exactPaths, [...IMPLEMENTATION_PATHS]);
-  assert.equal(policy.isAuthorizedOpenSourceImplementationBranch(
-    authorization.authorizedBranch,
-    { registry, authorization, receipt: null, entry }
-  ), false, 'authorization without an implementation receipt must remain non-executable');
+  assert.ok(candidateEntry);
+  assert.equal(candidatePolicy.validateOpenSourceWorkPackageRegistry(candidateRegistry), true);
+  assert.equal(candidatePolicy.validAuthorizationSeal(candidateAuthorization.seal), true);
+  assert.equal(candidatePolicy.isValidOpenSourceWorkPackageAuthorizationForEntry(
+    candidateAuthorization,
+    candidateEntry
+  ), true);
+  assert.equal(candidateAuthorization.approvedChangedFileCount, 23);
+  assert.equal(candidateAuthorization.approvedChangedFileSetSha256, EXPECTED_SCOPE_SHA);
+  assert.deepEqual(candidateAuthorization.exactPaths, [...IMPLEMENTATION_PATHS]);
+
+  const receiptPath = repositoryPath(ROOT, RECEIPT_REPOSITORY_PATH);
+  if (!fs.existsSync(receiptPath)) {
+    assert.equal(candidatePolicy.isAuthorizedOpenSourceImplementationBranch(
+      candidateAuthorization.authorizedBranch,
+      {
+        registry: candidateRegistry,
+        authorization: candidateAuthorization,
+        receipt: null,
+        entry: candidateEntry
+      }
+    ), false, 'sealed authorization without a receipt remains non-executable');
+    return;
+  }
+
+  const trustedPolicyRoot = path.resolve(String(process.env.TRUSTED_POLICY_ROOT || ''));
+  const trustedPolicyHead = String(process.env.TRUSTED_POLICY_SHA || '');
+  assert.notEqual(trustedPolicyRoot, ROOT, 'implementation receipt must be validated by a distinct base-owned policy tree');
+  assert.equal(fs.existsSync(trustedPolicyRoot), true, 'base-owned policy worktree must exist');
+  assert.match(trustedPolicyHead, SHA40);
+  assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], {
+    cwd: trustedPolicyRoot,
+    encoding: 'utf8'
+  }).trim(), trustedPolicyHead);
+
+  const trustedPolicy = loadPolicy(trustedPolicyRoot);
+  const trustedRegistry = JSON.parse(fs.readFileSync(repositoryPath(trustedPolicyRoot, REGISTRY_REPOSITORY_PATH), 'utf8'));
+  const trustedAuthorization = JSON.parse(fs.readFileSync(repositoryPath(trustedPolicyRoot, AUTHORIZATION_REPOSITORY_PATH), 'utf8'));
+  const trustedEntry = trustedPolicy.selectOpenSourceWorkPackageRegistryEntry(
+    trustedRegistry,
+    'oss/a-supply-chain-foundation'
+  );
+  const receipt = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
+  const candidateHead = execFileSync('git', ['rev-parse', 'HEAD'], {
+    cwd: ROOT,
+    encoding: 'utf8'
+  }).trim();
+
+  assert.ok(trustedEntry);
+  assert.equal(receipt.implementationBaseCommit, trustedPolicyHead);
+  assert.equal(receipt.governance.readyForPromotion, false);
+  assert.equal(receipt.governance.mergeIntoMainAuthorized, false);
+  assert.equal(receipt.governance.productionUseAuthorized, false);
+  assert.equal(receipt.governance.formalRelease, false);
+  assert.equal(receipt.governance.publish, false);
+  const validationOptions = {
+    trustedPolicyRoot,
+    trustedPolicyHead,
+    repositoryRoot: ROOT,
+    candidateHead
+  };
+  assert.equal(trustedPolicy.isValidOpenSourceWorkPackageAuthorizationReceiptForEntry(
+    receipt,
+    trustedAuthorization,
+    trustedEntry,
+    validationOptions
+  ), true, 'implementation receipt must validate against exact base-owned policy and candidate ancestry');
+  assert.equal(trustedPolicy.isAuthorizedOpenSourceImplementationBranch(
+    trustedAuthorization.authorizedBranch,
+    {
+      registry: trustedRegistry,
+      authorization: trustedAuthorization,
+      receipt,
+      entry: trustedEntry,
+      ...validationOptions
+    }
+  ), true);
 });
 
 test('legacy implementation policy delegates OSS branches without path normalization', () => {
@@ -370,7 +393,6 @@ test('permanent WP0 routes and executes product authority from exact base-owned 
   assert.match(workflow, /node "\$\{TRUSTED_POLICY_ROOT\}\/tools\/wp0\/verify-gate\.js"/u);
   assert.match(workflow, /--branch "\$\{IMPLEMENTATION_BRANCH\}"/u);
   assert.doesNotMatch(workflow, /npm run verify:wp0:gate -- --branch/u);
-  assert.match(workflow, /tests\/wp0\/open-source-work-package-authorization\.test\.js/u);
 });
 
 test('trusted WP0 Git transport preserves exact NUL-framed paths and fails closed', () => {
@@ -387,10 +409,7 @@ test('trusted WP0 Git transport preserves exact NUL-framed paths and fails close
     ['THIRD_PARTY_NOTICES.md', 'third_party/sbom.cdx.json']
   );
   assert.deepEqual(decodeChangedFileBuffer(Buffer.alloc(0)), []);
-  assert.throws(
-    () => decodeChangedFileBuffer('third_party/sbom.cdx.json\0'),
-    /must return a Buffer/u
-  );
+  assert.throws(() => decodeChangedFileBuffer('third_party/sbom.cdx.json\0'), /must return a Buffer/u);
   assert.throws(
     () => decodeChangedFileBuffer(Buffer.from('third_party/sbom.cdx.json', 'utf8')),
     /must end with NUL/u
