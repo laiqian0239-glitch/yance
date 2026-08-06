@@ -12,6 +12,16 @@ const {
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const policy = JSON.parse(fs.readFileSync(path.join(ROOT, 'governance/layered-ci/wp0-routing-policy.json'), 'utf8'));
+const OSS_A_CURRENT_MAIN_BOOTSTRAP_PATHS = Object.freeze([
+  'THIRD_PARTY_NOTICES.md',
+  'third_party/github-actions-lock.json',
+  'third_party/licenses/actions-checkout-MIT.txt',
+  'third_party/licenses/actions-setup-node-MIT.txt',
+  'third_party/licenses/actions-upload-artifact-MIT.txt',
+  'third_party/licenses/baileys-MIT.txt',
+  'third_party/provenance.json',
+  'third_party/sbom.cdx.json'
+]);
 
 test('routing policy is exact, fail closed and contains no wildcard authorization', () => {
   const result = validateWp0RoutingPolicy(policy);
@@ -127,6 +137,17 @@ test('product source, release surfaces, general architecture docs and non-Markdo
     const result = classifyWp0Route(policy, [file]);
     assert.equal(result.pass, true, file);
     assert.equal(result.route, ROUTES.PRODUCT, file);
+  }
+});
+
+test('current-main OSS-A supply-chain bootstrap uses exact PRODUCT_WP0 paths without a third_party prefix', () => {
+  assert.equal(policy.productPrefixes.includes('third_party/'), false);
+  for (const file of OSS_A_CURRENT_MAIN_BOOTSTRAP_PATHS) {
+    const result = classifyWp0Route(policy, [file]);
+    assert.equal(result.pass, true, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.route, ROUTES.PRODUCT, file);
+    assert.equal(result.productChangesPresent, true, file);
+    assert.equal(policy.productExactPaths.includes(file), true, file);
   }
 });
 
