@@ -67,6 +67,21 @@ function findStepEnd(lines, startIndex, stepIndent) {
   return lines.length;
 }
 
+function directWithEntries(lines, startIndex, endIndex, keyIndent) {
+  const entries = [];
+  for (let index = startIndex + 1; index < endIndex; index += 1) {
+    const raw = lines[index];
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const indent = indentation(raw);
+    if (indent <= keyIndent) break;
+    entries.push({ indent, trimmed });
+  }
+  if (entries.length === 0) return [];
+  const directIndent = Math.min(...entries.map(entry => entry.indent));
+  return entries.filter(entry => entry.indent === directIndent);
+}
+
 function inspectCheckoutCredentials(text, options = {}) {
   const workflowPath = repositoryPath(options.workflowPath || '.github/workflows/unknown.yml')
     || '.github/workflows/unknown.yml';
@@ -90,14 +105,9 @@ function inspectCheckoutCredentials(text, options = {}) {
       if (indent !== use.keyIndent) continue;
       if (/^with:\s*(?:#.*)?$/u.test(trimmed)) {
         withCount += 1;
-        for (let child = cursor + 1; child < endIndex; child += 1) {
-          const childRaw = lines[child];
-          const childTrimmed = childRaw.trim();
-          if (!childTrimmed || childTrimmed.startsWith('#')) continue;
-          const childIndent = indentation(childRaw);
-          if (childIndent <= use.keyIndent) break;
-          if (!/^persist-credentials/u.test(childTrimmed)) continue;
-          const exact = /^persist-credentials:\s*(.*?)\s*$/u.exec(childTrimmed);
+        for (const entry of directWithEntries(lines, cursor, endIndex, use.keyIndent)) {
+          if (!/^persist-credentials/u.test(entry.trimmed)) continue;
+          const exact = /^persist-credentials:\s*(.*?)\s*$/u.exec(entry.trimmed);
           if (!exact) {
             malformed = true;
             continue;
