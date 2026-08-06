@@ -28,9 +28,25 @@ const AUTHORIZATION_PATH = path.join(REPO_ROOT, 'governance', 'architecture-clos
 const A6_CLOSURE_PATH = path.join(REPO_ROOT, 'governance', 'architecture-closure-v2', 'wp-a-a6-closure.json');
 const PARENT_GOVERNANCE_HEAD = 'd81599d8a3f3de891da369b6f1ddbd01e264c78d';
 const A6_FROZEN_DIGEST = 'd2cac11bd6864b02e09fa68015dbdba5c41bb2777bf79e821f00a846b651702a';
+const SOURCE_MERGE_AUTHORIZATION_PATH = 'governance/layered-ci/oss-a-source-merge-authorization.json';
+const BRANCH_REPAIR_AUTHORIZATION_PATH = 'governance/layered-ci/oss-a-source-merge-policy-branch-authority-authorization.json';
+const SOURCE_MERGE_POLICY_BRANCH = 'governance/oss-a-source-merge-policy';
+const BRANCH_REPAIR_BRANCH = 'fix/oss-a-source-merge-policy-branch-authority';
+const SOURCE_AUTH_MERGE = 'fac7d298f182043f4ecc6e41a780248ce3a03132';
+const SOURCE_AUTH_PARENT = 'ad195d8497ec61fbe3387c606692110f5645fba0';
+const SOURCE_AUTH_HEAD = 'f50590181e19cdc134c35d91ae9421af5b532ce8';
+const SOURCE_AUTH_BLOB = '99ee3e5243d07fed5cea6661cb6ad82123771bc8';
+const REPAIR_AUTH_MERGE = '8311cd15572bdc89316c47485459017613b2e2c8';
+const REPAIR_AUTH_PARENT = SOURCE_AUTH_MERGE;
+const REPAIR_AUTH_HEAD = '97e6ebc2d83d7e775879603e2383dd1f321fa868';
+const REPAIR_AUTH_BLOB = '5c675b30e71de55e524bf8ce5c0ac6d60718d11b';
 
 function authorization() {
   return JSON.parse(fs.readFileSync(AUTHORIZATION_PATH, 'utf8'));
+}
+
+function readRepositoryJson(repositoryPath) {
+  return JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ...repositoryPath.split('/')), 'utf8'));
 }
 
 function changedFilesFrom(baseHead) {
@@ -81,6 +97,36 @@ function scopeAmendment(document, changedFiles) {
       automaticNextWorkPackageAuthorization: false,
       readyForPromotion: false
     }
+  };
+}
+
+function delegatedGovernanceOptions(overrides = {}) {
+  const sourceAuthorization = readRepositoryJson(SOURCE_MERGE_AUTHORIZATION_PATH);
+  const repairAuthorization = readRepositoryJson(BRANCH_REPAIR_AUTHORIZATION_PATH);
+  const authorizationByPath = {
+    [SOURCE_MERGE_AUTHORIZATION_PATH]: sourceAuthorization,
+    [BRANCH_REPAIR_AUTHORIZATION_PATH]: repairAuthorization,
+    ...(overrides.authorizationByPath || {})
+  };
+  const parentsByCommit = {
+    [SOURCE_AUTH_MERGE]: [SOURCE_AUTH_PARENT, SOURCE_AUTH_HEAD],
+    [REPAIR_AUTH_MERGE]: [REPAIR_AUTH_PARENT, REPAIR_AUTH_HEAD],
+    ...(overrides.parentsByCommit || {})
+  };
+  const blobByIdentity = {
+    [`${SOURCE_AUTH_MERGE}:${SOURCE_MERGE_AUTHORIZATION_PATH}`]: SOURCE_AUTH_BLOB,
+    [`${REPAIR_AUTH_MERGE}:${BRANCH_REPAIR_AUTHORIZATION_PATH}`]: REPAIR_AUTH_BLOB,
+    ...(overrides.blobByIdentity || {})
+  };
+  return {
+    trustedPolicyHead: overrides.trustedPolicyHead || REPAIR_AUTH_MERGE,
+    authorizationByPath,
+    resolveCommitParents: commit => parentsByCommit[commit] || [],
+    resolveCommitBlobSha: (commit, repositoryPath) => blobByIdentity[`${commit}:${repositoryPath}`] || null,
+    isTrustedAncestor: overrides.isTrustedAncestor || ((base, head) => (
+      base === head
+      || (base === SOURCE_AUTH_MERGE && head === REPAIR_AUTH_MERGE)
+    ))
   };
 }
 
@@ -257,6 +303,54 @@ test('checked-out scope preserves immutable A8 closure and validates an exact po
   assert.equal(changedFiles.length, chain.approvedChangedFileCount);
   assert.deepEqual(result.unauthorizedPaths, []);
   assert.equal(result.readyForPromotion, false);
+});
+
+test('trusted-main delegated governance authorization is exact and fails closed on graph or document drift', () => {
+  const exact = delegatedGovernanceOptions();
+  assert.equal(isAuthorizedImplementationBranch(BRANCH_REPAIR_BRANCH, CURRENT_STAGE, {
+    delegatedGovernance: exact
+  }), true);
+  assert.equal(isAuthorizedImplementationBranch(SOURCE_MERGE_POLICY_BRANCH, CURRENT_STAGE, {
+    delegatedGovernance: exact
+  }), true);
+  assert.equal(isAuthorizedImplementationBranch(`${SOURCE_MERGE_POLICY_BRANCH}-copy`, CURRENT_STAGE, {
+    delegatedGovernance: exact
+  }), false);
+  assert.equal(isAuthorizedImplementationBranch('governance/arbitrary-policy', CURRENT_STAGE, {
+    delegatedGovernance: exact
+  }), false);
+
+  const wrongParents = delegatedGovernanceOptions({
+    parentsByCommit: { [REPAIR_AUTH_MERGE]: [REPAIR_AUTH_HEAD, REPAIR_AUTH_PARENT] }
+  });
+  assert.equal(isAuthorizedImplementationBranch(BRANCH_REPAIR_BRANCH, CURRENT_STAGE, {
+    delegatedGovernance: wrongParents
+  }), false);
+
+  const wrongBlob = delegatedGovernanceOptions({
+    blobByIdentity: { [`${SOURCE_AUTH_MERGE}:${SOURCE_MERGE_AUTHORIZATION_PATH}`]: 'f'.repeat(40) }
+  });
+  assert.equal(isAuthorizedImplementationBranch(SOURCE_MERGE_POLICY_BRANCH, CURRENT_STAGE, {
+    delegatedGovernance: wrongBlob
+  }), false);
+
+  const tampered = readRepositoryJson(BRANCH_REPAIR_AUTHORIZATION_PATH);
+  tampered.implementation.branch = 'governance/arbitrary-policy';
+  const candidateOwned = delegatedGovernanceOptions({
+    authorizationByPath: { [BRANCH_REPAIR_AUTHORIZATION_PATH]: tampered }
+  });
+  assert.equal(isAuthorizedImplementationBranch('governance/arbitrary-policy', CURRENT_STAGE, {
+    delegatedGovernance: candidateOwned
+  }), false);
+
+  const widened = readRepositoryJson(BRANCH_REPAIR_AUTHORIZATION_PATH);
+  widened.implementation.allowedChangedPaths.push('shared/release/parallel-authority.js');
+  const scopeDrift = delegatedGovernanceOptions({
+    authorizationByPath: { [BRANCH_REPAIR_AUTHORIZATION_PATH]: widened }
+  });
+  assert.equal(isAuthorizedImplementationBranch(BRANCH_REPAIR_BRANCH, CURRENT_STAGE, {
+    delegatedGovernance: scopeDrift
+  }), false);
 });
 
 test('malformed, impossible-date and arbitrary branches remain denied', () => {
