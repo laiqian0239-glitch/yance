@@ -26,6 +26,7 @@ const POLICY_TIP = '3333333333333333333333333333333333333333';
 const POLICY_MAIN = '4444444444444444444444444444444444444444';
 const FINAL_HEAD = '5555555555555555555555555555555555555555';
 const SEAL_TIP = '6666666666666666666666666666666666666666';
+const POLICY_BASE = '7777777777777777777777777777777777777777';
 const CHECKPOINT_HEAD = '028535eb6c092c47ad92bce3f0675c7d7b23f22d';
 const IMPLEMENTATION_DIGEST = 'fb99d7c9b090a0c8b92b5655c401b80f0e0674c6e6f5725bad8264c9ec19a175';
 const IMPLEMENTATION_PATHS = [
@@ -33,6 +34,8 @@ const IMPLEMENTATION_PATHS = [
   'shared/release/openSourceSourceMergeAuthorizationPolicy.js',
   'tests/wp0/open-source-source-merge-authorization.test.js'
 ];
+const POLICY_BRANCH = 'governance/oss-a-source-merge-policy';
+const SEAL_BRANCH = 'governance/oss-a-source-merge-candidate-seal';
 const SEAL_PATH = 'governance/layered-ci/oss-a-source-merge-candidate-seal.json';
 
 function loadPolicy() {
@@ -77,7 +80,7 @@ function sealedAuthorization() {
   value.policyBinding = {
     redHead: RED_HEAD,
     reviewedHead: POLICY_HEAD,
-    branch: 'governance/oss-a-source-merge-policy',
+    branch: POLICY_BRANCH,
     allowedPostReviewCommitsClassification: 'GOVERNANCE_METADATA_ONLY',
     allowedPostReviewPaths: [authorizationPath]
   };
@@ -121,7 +124,7 @@ function validGraph() {
   return {
     commitParents(sha) {
       if (sha === AUTH_MERGE) return [BASE, AUTH_HEAD];
-      if (sha === POLICY_MAIN) return [AUTH_MERGE, POLICY_TIP];
+      if (sha === POLICY_MAIN) return [POLICY_BASE, POLICY_TIP];
       return [];
     },
     blobAt(commit, repositoryPath) {
@@ -132,8 +135,14 @@ function validGraph() {
         ? PRE_SEAL_AUTHORIZATION_FILE_SHA256
         : null;
     },
+    jsonAt(commit, repositoryPath) {
+      if (commit === POLICY_TIP && repositoryPath === authorizationPath) return sealedAuthorization();
+      if (commit === SEAL_TIP && repositoryPath === SEAL_PATH) return finalCandidateSeal();
+      return null;
+    },
     isAncestor(ancestor, descendant) {
       const valid = new Set([
+        `${AUTH_MERGE}:${POLICY_BASE}`,
         `${AUTH_MERGE}:${POLICY_HEAD}`,
         `${POLICY_HEAD}:${POLICY_TIP}`,
         `${CHECKPOINT_HEAD}:${FINAL_HEAD}`,
@@ -142,8 +151,8 @@ function validGraph() {
       return ancestor === descendant || valid.has(`${ancestor}:${descendant}`);
     },
     remoteTip(branch) {
-      if (branch === 'governance/oss-a-source-merge-policy') return POLICY_TIP;
-      if (branch === 'governance/oss-a-source-merge-candidate-seal') return SEAL_TIP;
+      if (branch === POLICY_BRANCH) return POLICY_TIP;
+      if (branch === SEAL_BRANCH) return SEAL_TIP;
       if (branch === 'oss/a-supply-chain-foundation') return FINAL_HEAD;
       if (branch === 'main') return POLICY_MAIN;
       return null;
@@ -170,6 +179,11 @@ function finalCandidateSeal() {
     status: 'FINAL_CANDIDATE_SEALED',
     authorizationPath,
     authorizationMergeCommit: AUTH_MERGE,
+    policyPullRequest: 82,
+    policyBranch: POLICY_BRANCH,
+    policyReviewedHead: POLICY_HEAD,
+    policyBranchTip: POLICY_TIP,
+    policyMergeFirstParent: POLICY_BASE,
     policyMainCommit: POLICY_MAIN,
     trustedMain: POLICY_MAIN,
     sourcePullRequest: 67,
@@ -210,7 +224,7 @@ function finalCandidateSeal() {
 
 function validSealPullRequest() {
   return {
-    branch: 'governance/oss-a-source-merge-candidate-seal',
+    branch: SEAL_BRANCH,
     exactHead: SEAL_TIP,
     base: POLICY_MAIN,
     changedFiles: [SEAL_PATH],
@@ -311,6 +325,72 @@ test('policy implementation authority verifies merge identity, trusted evidence 
   assert.equal(evaluatePolicyImplementation({ authorization, graph: validGraph(), evidence: untrustedEvidence }).reasonCode, 'CHECKPOINT_EVIDENCE_INVALID');
 });
 
+test('adapter path sets reject invalid or duplicate entries instead of normalizing them away', () => {
+  const { evaluatePolicyImplementation, evaluateSourceMergeReadiness } = loadPolicy();
+
+  const invalidImplementationPath = validGraph();
+  invalidImplementationPath.changedFilesBetween = (base, head) => (
+    base === AUTH_MERGE && head === POLICY_HEAD
+      ? [...IMPLEMENTATION_PATHS, '../ignored']
+      : base === POLICY_HEAD && head === POLICY_TIP
+        ? [authorizationPath]
+        : []
+  );
+  assert.equal(evaluatePolicyImplementation({
+    authorization: sealedAuthorization(),
+    graph: invalidImplementationPath,
+    evidence: validEvidence()
+  }).reasonCode, 'POLICY_IMPLEMENTATION_SCOPE_INVALID');
+
+  const duplicatePostReviewPath = validGraph();
+  duplicatePostReviewPath.changedFilesBetween = (base, head) => (
+    base === AUTH_MERGE && head === POLICY_HEAD
+      ? [...IMPLEMENTATION_PATHS]
+      : base === POLICY_HEAD && head === POLICY_TIP
+        ? [authorizationPath, authorizationPath]
+        : []
+  );
+  assert.equal(evaluatePolicyImplementation({
+    authorization: sealedAuthorization(),
+    graph: duplicatePostReviewPath,
+    evidence: validEvidence()
+  }).reasonCode, 'POLICY_POST_REVIEW_SCOPE_INVALID');
+
+  const invalidSealPath = validSealPullRequest();
+  invalidSealPath.changedFiles = [SEAL_PATH, '../ignored'];
+  assert.equal(evaluateSourceMergeReadiness({
+    authorization: sealedAuthorization(),
+    finalSeal: finalCandidateSeal(),
+    sealPullRequest: invalidSealPath,
+    proposedMergeParents: [POLICY_MAIN, FINAL_HEAD],
+    graph: validGraph(),
+    evidence: validEvidence()
+  }).reasonCode, 'FINAL_CANDIDATE_SEAL_PR_INVALID');
+});
+
+test('policy and final-seal documents must be loaded from their exact remote commit', () => {
+  const { evaluatePolicyImplementation, evaluateSourceMergeReadiness } = loadPolicy();
+
+  const forgedAuthorization = sealedAuthorization();
+  forgedAuthorization.untrustedAnnotation = 'not committed';
+  assert.equal(evaluatePolicyImplementation({
+    authorization: forgedAuthorization,
+    graph: validGraph(),
+    evidence: validEvidence()
+  }).reasonCode, 'POLICY_DOCUMENT_SOURCE_INVALID');
+
+  const forgedFinalSeal = finalCandidateSeal();
+  forgedFinalSeal.untrustedAnnotation = 'not committed';
+  assert.equal(evaluateSourceMergeReadiness({
+    authorization: sealedAuthorization(),
+    finalSeal: forgedFinalSeal,
+    sealPullRequest: validSealPullRequest(),
+    proposedMergeParents: [POLICY_MAIN, FINAL_HEAD],
+    graph: validGraph(),
+    evidence: validEvidence()
+  }).reasonCode, 'FINAL_CANDIDATE_SEAL_SOURCE_INVALID');
+});
+
 test('policy evidence tip may contain only the authorization metadata path', () => {
   const { evaluatePolicyImplementation } = loadPolicy();
   const graph = validGraph();
@@ -324,7 +404,7 @@ test('policy evidence tip may contain only the authorization metadata path', () 
   assert.equal(evaluatePolicyImplementation({ authorization: sealedAuthorization(), graph, evidence: validEvidence() }).reasonCode, 'POLICY_POST_REVIEW_SCOPE_INVALID');
 });
 
-test('final candidate seal preserves refreshed main, receipt base, 23-path digest and non-production closure', () => {
+test('final candidate seal preserves refreshed main, policy merge, receipt base, 23-path digest and non-production closure', () => {
   const { validateFinalCandidateSeal } = loadPolicy();
   assert.equal(validateFinalCandidateSeal(finalCandidateSeal(), sealedAuthorization()).pass, true);
 
@@ -336,12 +416,16 @@ test('final candidate seal preserves refreshed main, receipt base, 23-path diges
   wrongBase.receiptImplementationBaseCommit = BASE;
   assert.equal(validateFinalCandidateSeal(wrongBase, sealedAuthorization()).reasonCode, 'FINAL_CANDIDATE_BASE_INVALID');
 
+  const wrongPolicyHead = finalCandidateSeal();
+  wrongPolicyHead.policyReviewedHead = RED_HEAD;
+  assert.equal(validateFinalCandidateSeal(wrongPolicyHead, sealedAuthorization()).reasonCode, 'FINAL_CANDIDATE_SEAL_INVALID');
+
   const release = finalCandidateSeal();
   release.governance.formalRelease = true;
   assert.equal(validateFinalCandidateSeal(release, sealedAuthorization()).reasonCode, 'FINAL_CANDIDATE_GOVERNANCE_CLOSURE_INVALID');
 });
 
-test('source-merge readiness requires an open unmerged one-file seal, trusted evidence and exact parent order', () => {
+test('source-merge readiness proves the policy ordinary merge and exact source parent order', () => {
   const { evaluateSourceMergeReadiness } = loadPolicy();
   const options = {
     authorization: sealedAuthorization(),
@@ -352,6 +436,17 @@ test('source-merge readiness requires an open unmerged one-file seal, trusted ev
     evidence: validEvidence()
   };
   assert.equal(evaluateSourceMergeReadiness(options).pass, true);
+
+  const wrongPolicyMerge = validGraph();
+  wrongPolicyMerge.commitParents = sha => (
+    sha === AUTH_MERGE ? [BASE, AUTH_HEAD]
+      : sha === POLICY_MAIN ? [POLICY_TIP, POLICY_BASE]
+        : []
+  );
+  assert.equal(evaluateSourceMergeReadiness({
+    ...options,
+    graph: wrongPolicyMerge
+  }).reasonCode, 'POLICY_MAIN_MERGE_IDENTITY_INVALID');
 
   assert.equal(evaluateSourceMergeReadiness({
     ...options,
