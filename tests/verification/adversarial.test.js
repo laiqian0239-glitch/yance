@@ -157,3 +157,18 @@ test('offline CLIs expose no private-key, registry override or success-override 
   ]) assert.throws(() => verifyReceipt.parse(args), /EVIDENCE_CLI_ARGUMENT_INVALID/u);
   assert.throws(() => verifySet.parse(['--manifest', 'm.json', '--receipts', 'out', '--expected-base', BASE, '--expected-head', HEAD, '--registry', 'other.json']), /EVIDENCE_CLI_ARGUMENT_INVALID/u);
 });
+
+
+test('self-test requirement manifest is exactly bound to checked-in command-set digests', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { validateRequirementManifest } = require('../../tools/verification/verify-requirement-set');
+  const repoRoot = path.resolve(__dirname, '..', '..');
+  const manifest = JSON.parse(fs.readFileSync(path.join(repoRoot, 'governance/verification/requirements/pvep-selftest-v1.json'), 'utf8'));
+  const valid = validateRequirementManifest({ manifest, repoRoot });
+  assert.equal(valid.pass, true);
+  assert.equal(valid.requirements.length, 2);
+  const tampered = structuredClone(manifest);
+  tampered.requirements[0].commandSetDigest = 'f'.repeat(64);
+  assert.equal(validateRequirementManifest({ manifest: tampered, repoRoot }).reasonCode, 'EVIDENCE_COMMAND_SET_DIGEST_MISMATCH');
+});
