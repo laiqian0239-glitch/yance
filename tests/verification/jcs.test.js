@@ -46,11 +46,12 @@ test('non-I-JSON values fail closed', () => {
   );
 });
 
-test('canonicalize dependency is exactly pinned and lock-bound', () => {
+test('canonicalize implementation is exact provenance-bound', () => {
   const result = verifyJcsDependency({
     repoRoot: path.resolve(__dirname, '..', '..')
   });
   assert.equal(result.pass, true);
   assert.equal(result.packageVersion, '2.1.0');
   assert.match(result.integrity, /^sha512-/u);
+  assert.equal(result.sourceMode, 'vendored-upstream-tag');
 });

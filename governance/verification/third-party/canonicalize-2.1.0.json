@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "package": "canonicalize",
+  "version": "2.1.0",
+  "license": "Apache-2.0",
+  "sourceRepository": "https://github.com/erdtman/canonicalize",
+  "sourceTag": "v2.1.0",
+  "sourcePath": "lib/canonicalize.js",
+  "moduleFormat": "commonjs",
+  "runtimeDependencyCount": 0,
+  "distributionTarball": "https://registry.npmjs.org/canonicalize/-/canonicalize-2.1.0.tgz",
+  "distributionIntegrity": "sha512-F705O3xrsUtgt98j7leetNhTWPe+5S72rlL5O4jA1pKqBVQ/dT1O1D6PFxmSXvc0SUOinWS57DKx0I3CHrXJHQ==",
+  "vendoredPath": "shared/verification/vendor/canonicalize-2.1.0.js",
+  "vendoredSha256": "8a22f6848f00747463146fbfb11619944fc5800cf8f1ff0dfb9eb6489a05fe21"
+}
