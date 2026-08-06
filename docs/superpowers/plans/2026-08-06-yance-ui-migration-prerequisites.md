@@ -16,9 +16,70 @@
 - Every work package uses an independent branch, independent pull request, exact Head verification, and ordinary two-parent merge.
 - Yance remains the sole product, data, settings, notification, translation, identity, and send authority.
 - This plan grants no Product Shell implementation, Chatwoot source copy, shadcn-vue source copy, sound redistribution, legacy writer cutover, production, release, publish, promotion, or automatic next-work-package authority.
-- Repository path identity is exact UTF-8 text. No trimming, case folding, slash conversion, globbing, prefix inference, or separator normalization is permitted.
+- Repository path identity is exact canonical UTF-8 text. No trimming, case folding, slash conversion, globbing, prefix inference, or normalization is permitted; non-canonical inputs are rejected rather than transformed.
 - Historical PR #90 and PR #91 remain closed and unmerged. Their branches are evidence only and are never execution parents.
-- The approved design snapshot remains unchanged at `docs/superpowers/specs/2026-08-06-yance-unified-ui-open-source-migration-design-snapshot.md`.
+- The approved design snapshot is bound by both path and content:
+
+```text
+approvedDesignSnapshotPath=docs/superpowers/specs/2026-08-06-yance-unified-ui-open-source-migration-design-snapshot.md
+approvedDesignSnapshotSha256=b9849d8d3bf0cbda867b32565bc465db0c7eb70c4d7e1d929c725a39c6b58ba9
+```
+
+A file at the same path with different bytes is not the approved snapshot. Any digest change requires a separately reviewed design revision and explicit user approval.
+
+## Normative NUL-Framed Path Evidence
+
+Every exact Git path-set check in this plan must use raw `Buffer` output with `-z`, split on NUL bytes, and decode each field with fatal UTF-8. Newline-delimited output, `encoding: 'utf8'` on the Git call, implicit `core.quotePath`, trimming, normalization, and locale sorting are forbidden.
+
+Use this procedure for `git diff`, `git ls-tree`, `git ls-files`, and staged/worktree scope checks:
+
+```js
+'use strict';
+const { execFileSync } = require('node:child_process');
+const { TextDecoder } = require('node:util');
+const decoder = new TextDecoder('utf-8', { fatal: true });
+
+function decodeGitPathList(buffer) {
+  if (!Buffer.isBuffer(buffer)) throw new TypeError('expected Buffer');
+  if (buffer.length === 0) return [];
+  if (buffer[buffer.length - 1] !== 0) throw new Error('missing terminal NUL');
+
+  const paths = [];
+  let start = 0;
+  for (let index = 0; index < buffer.length; index += 1) {
+    if (buffer[index] !== 0) continue;
+    if (index === start) throw new Error('empty Git path field');
+    paths.push(decoder.decode(buffer.subarray(start, index)));
+    start = index + 1;
+  }
+  return paths;
+}
+
+function bytewiseSort(paths) {
+  return [...paths].sort((left, right) =>
+    Buffer.compare(Buffer.from(left, 'utf8'), Buffer.from(right, 'utf8'))
+  );
+}
+
+function gitPaths(args, options = {}) {
+  return decodeGitPathList(execFileSync('git', args, {
+    ...options,
+    encoding: 'buffer',
+    maxBuffer: 16 * 1024 * 1024
+  }));
+}
+
+function assertExactPathSet(actual, expected) {
+  const sortedActual = bytewiseSort(actual);
+  const sortedExpected = bytewiseSort(expected);
+  if (actual.length !== new Set(actual).size) throw new Error('duplicate actual path');
+  if (JSON.stringify(sortedActual) !== JSON.stringify(sortedExpected)) {
+    throw new Error(`unexpected path set: ${JSON.stringify(sortedActual)}`);
+  }
+}
+```
+
+All later references to “the NUL-framed verifier” mean this exact procedure. Tests must include filenames containing spaces, tabs, quotes, backslashes, and newlines, plus invalid UTF-8 bytes, proving distinct or invalid paths cannot be silently accepted.
 
 ---
 
@@ -143,40 +204,65 @@ gh pr view 91 --json state,mergedAt,headRefOid
 
 Expected for both PRs: `state=CLOSED` and `mergedAt=null`.
 
-- [ ] **Step 3: Resolve the merged replacement PR without hard-coding its number**
+- [ ] **Step 3: Resolve and capture the merged replacement PR without hard-coding its number**
 
 ```bash
-gh pr list \
+MERGED_JSON="$(gh pr list \
   --state merged \
   --head design/unified-ui-open-source-migration-2026-08-07-clean \
-  --json number,mergedAt,mergeCommit,headRefOid,baseRefOid
+  --json number,mergedAt,mergeCommit,headRefOid,baseRefOid)"
+
+test "$(jq 'length' <<<"$MERGED_JSON")" -eq 1
+DESIGN_MERGE="$(jq -r '.[0].mergeCommit.oid' <<<"$MERGED_JSON")"
+MERGED_HEAD="$(jq -r '.[0].headRefOid' <<<"$MERGED_JSON")"
+MERGED_BASE="$(jq -r '.[0].baseRefOid' <<<"$MERGED_JSON")"
+
+test "$MERGED_HEAD" = "$REPLACEMENT_HEAD"
+git merge-base --is-ancestor "$DESIGN_MERGE" "$MAIN"
+printf 'design_merge=%s\nmerged_head=%s\nmerged_base=%s\n' \
+  "$DESIGN_MERGE" "$MERGED_HEAD" "$MERGED_BASE"
 ```
 
-Expected: exactly one merged PR; `headRefOid` equals `REPLACEMENT_HEAD`; `mergeCommit.oid` equals current `MAIN` or is an ancestor of current `MAIN`.
+Expected: exactly one merged PR; `MERGED_HEAD` equals `REPLACEMENT_HEAD`; `DESIGN_MERGE` equals current `MAIN` or is an ancestor of current `MAIN`.
 
-- [ ] **Step 4: Verify the replacement commit topology and scope**
+- [ ] **Step 4: Verify merge parents, replacement topology, and exact scope**
 
 ```bash
-git log --format='%H %T %P %s' \
-  "$(git merge-base "$MAIN" "$REPLACEMENT_HEAD")".."$REPLACEMENT_HEAD"
+read -r DESIGN_BASE DESIGN_SECOND EXTRA \
+  <<<"$(git show --no-patch --format='%P' "$DESIGN_MERGE")"
 
-git diff --name-only \
-  "$(git merge-base "$MAIN" "$REPLACEMENT_HEAD")"..."$REPLACEMENT_HEAD"
+test -n "$DESIGN_BASE"
+test -n "$DESIGN_SECOND"
+test -z "${EXTRA:-}"
+test "$DESIGN_SECOND" = "$REPLACEMENT_HEAD"
+test "$MERGED_BASE" = "$DESIGN_BASE"
+
+test "$(git rev-list --count "$DESIGN_BASE..$REPLACEMENT_HEAD")" -eq 2
+git log --format='%H %T %P %s' "$DESIGN_BASE..$REPLACEMENT_HEAD"
 ```
 
-Expected before continuing:
+Then use the NUL-framed verifier with:
 
-```text
-docs/superpowers/specs/2026-08-06-yance-unified-ui-open-source-migration-design-snapshot.md
-docs/superpowers/plans/2026-08-06-yance-ui-migration-prerequisites.md
+```js
+const base = process.argv[2];
+const head = process.argv[3];
+const expected = [
+  'docs/superpowers/plans/2026-08-06-yance-ui-migration-prerequisites.md',
+  'docs/superpowers/specs/2026-08-06-yance-unified-ui-open-source-migration-design-snapshot.md'
+];
+assertExactPathSet(
+  gitPaths(['diff', '--no-renames', '-z', '--name-only', base, head]),
+  expected
+);
 ```
 
-The replacement branch must contain exactly two commits with distinct trees. If either commit is content-identical to its parent, stop.
+Invoke it as `node - "$DESIGN_BASE" "$REPLACEMENT_HEAD"`. Do not use `git merge-base` as the comparison point after merge.
+
+For each of the two commits, verify its tree differs from its first parent's tree. Any extra parent, wrong second parent, missing path, extra path, invalid UTF-8 path, duplicate path, or content-identical commit stops execution.
 
 - [ ] **Step 5: Establish the hardening worktree**
 
 ```bash
-DESIGN_MERGE="$MAIN"
 git worktree add ../yance-wp0-exact-routing \
   -b governance/wp0-exact-route-hardening \
   "$DESIGN_MERGE"
@@ -201,13 +287,15 @@ npm ci --ignore-scripts --no-audit --no-fund
 
 - [ ] **Step 1: Capture the exact legacy-prefix inventory from the immutable base**
 
-Run from the clean hardening worktree before editing:
+Run from the clean hardening worktree before editing. Use the NUL-framed verifier's decoder; do not request string encoding from Git:
 
 ```bash
 BASE="$(git rev-parse HEAD)"
 node - "$BASE" <<'NODE'
 'use strict';
 const { execFileSync } = require('node:child_process');
+const { TextDecoder } = require('node:util');
+const decoder = new TextDecoder('utf-8', { fatal: true });
 const base = process.argv[2];
 const prefixes = [
   '.github/actions/resolve-diff-range/',
@@ -218,12 +306,23 @@ const prefixes = [
   'docs/superpowers/specs/2026-08-02-layered-ci-reviewed-candidate',
   'docs/superpowers/plans/2026-08-02-layered-ci-reviewed-candidate'
 ];
-const text = execFileSync(
+const buffer = execFileSync(
   'git',
-  ['ls-tree', '-r', '--name-only', base, '--', ...prefixes],
-  { encoding: 'utf8', maxBuffer: 1024 * 1024 }
+  ['ls-tree', '-r', '-z', '--name-only', base, '--', ...prefixes],
+  { encoding: 'buffer', maxBuffer: 16 * 1024 * 1024 }
 );
-const paths = text.split('\n').filter(Boolean).sort();
+if (buffer.length === 0 || buffer[buffer.length - 1] !== 0) process.exit(1);
+const paths = [];
+let start = 0;
+for (let index = 0; index < buffer.length; index += 1) {
+  if (buffer[index] !== 0) continue;
+  if (index === start) process.exit(1);
+  paths.push(decoder.decode(buffer.subarray(start, index)));
+  start = index + 1;
+}
+paths.sort((left, right) =>
+  Buffer.compare(Buffer.from(left, 'utf8'), Buffer.from(right, 'utf8'))
+);
 if (paths.length === 0 || new Set(paths).size !== paths.length) process.exit(1);
 process.stdout.write(`${JSON.stringify(paths, null, 2)}\n`);
 NODE
@@ -267,7 +366,7 @@ for (const file of [
 }
 ```
 
-Also preserve fail-closed invalid-path tests for traversal, backslashes, controls, globs, drive letters, empty segments, and outer whitespace.
+Also preserve fail-closed invalid-path tests for traversal, backslashes, controls, globs, drive letters, empty segments, outer whitespace, non-NFC Unicode, lone UTF-16 surrogates, and invalid UTF-8 Git evidence.
 
 - [ ] **Step 4: Run and confirm causal RED**
 
@@ -315,7 +414,7 @@ In `governance/layered-ci/wp0-routing-policy.json`:
 }
 ```
 
-Remove the `governancePrefixes` field entirely. Merge every path from `LEGACY_GOVERNANCE_EXACT_PATHS` into `governanceExactPaths`, sort lexicographically, and reject duplicates. Do not change `productDocumentationPrefixes`, `productDocumentationExtensions`, `productExactPaths`, `productPrefixes`, `mixedChangesEscalateToProduct`, `unknownPathFailsClosed`, or `readyForPromotion` in this work package.
+Remove the `governancePrefixes` field entirely. Merge every path from `LEGACY_GOVERNANCE_EXACT_PATHS` into `governanceExactPaths`, sort by raw UTF-8 bytes, and reject duplicates. Do not change `productDocumentationPrefixes`, `productDocumentationExtensions`, `productExactPaths`, `productPrefixes`, `mixedChangesEscalateToProduct`, `unknownPathFailsClosed`, or `readyForPromotion` in this work package.
 
 - [ ] **Step 2: Split exact governance matching from product prefix matching**
 
@@ -366,19 +465,37 @@ node --test --test-concurrency=1 \
 
 Expected: GREEN; every reviewed baseline governance path still selects `GOVERNANCE_WP0`, and every unregistered near match selects `PRODUCT_WP0` or fails closed but never governance.
 
-- [ ] **Step 5: Run repository-level governance verification**
+- [ ] **Step 5: Run repository-level governance verification and compare the complete change set**
 
 ```bash
 npm run test:wp0
 npm run test:security-scan
 node tools/protocol/validate-v3-protocols.js
 git diff --check
-test -z "$(git status --porcelain=v1 --untracked-files=all | grep '^??' || true)"
 ```
 
-Expected: GREEN.
+Use the NUL-framed verifier to union all paths from:
 
-- [ ] **Step 6: Commit the GREEN implementation**
+```js
+gitPaths(['diff', '--no-renames', '-z', '--name-only'])
+gitPaths(['diff', '--no-renames', '-z', '--cached', '--name-only'])
+gitPaths(['ls-files', '-z', '--others', '--exclude-standard'])
+```
+
+Compare that complete union exactly with:
+
+```js
+[
+  'governance/layered-ci/wp0-routing-policy.json',
+  'tests/layered-ci/ui-product-shell-wp0-routing.test.js',
+  'tests/layered-ci/wp0-routing.test.js',
+  'tools/layered-ci/wp0-routing.js'
+]
+```
+
+This check must detect tracked modifications, deletions, renames as delete/add via `--no-renames`, staged files, and untracked files. Any extra path stops execution.
+
+- [ ] **Step 6: Stage, verify the staged set, and commit the GREEN implementation**
 
 ```bash
 git add \
@@ -386,6 +503,25 @@ git add \
   tools/layered-ci/wp0-routing.js \
   tests/layered-ci/wp0-routing.test.js \
   tests/layered-ci/ui-product-shell-wp0-routing.test.js
+```
+
+Before committing, use the NUL-framed verifier and require:
+
+```js
+assertExactPathSet(
+  gitPaths(['diff', '--no-renames', '-z', '--cached', '--name-only']),
+  [
+    'governance/layered-ci/wp0-routing-policy.json',
+    'tests/layered-ci/ui-product-shell-wp0-routing.test.js',
+    'tests/layered-ci/wp0-routing.test.js',
+    'tools/layered-ci/wp0-routing.js'
+  ]
+);
+```
+
+Also require the unstaged tracked and untracked path sets to be empty after staging. Then commit:
+
+```bash
 git commit -m "fix(wp0): replace governance prefixes with exact routes"
 ```
 
@@ -401,19 +537,20 @@ Record this commit as `EXACT_ROUTE_GREEN`.
 - Consumes: `EXACT_ROUTE_RED`, `EXACT_ROUTE_GREEN`.
 - Produces: trusted main merge `EXACT_ROUTE_MERGE` whose base-owned router has no governance prefix authority.
 
-- [ ] **Step 1: Verify the PR path set**
+- [ ] **Step 1: Verify the PR path set with NUL-framed evidence**
 
-```bash
-git diff --name-only "$DESIGN_MERGE"...HEAD
-```
+Use the NUL-framed verifier:
 
-Expected exactly:
-
-```text
-governance/layered-ci/wp0-routing-policy.json
-tools/layered-ci/wp0-routing.js
-tests/layered-ci/wp0-routing.test.js
-tests/layered-ci/ui-product-shell-wp0-routing.test.js
+```js
+assertExactPathSet(
+  gitPaths(['diff', '--no-renames', '-z', '--name-only', DESIGN_MERGE, 'HEAD']),
+  [
+    'governance/layered-ci/wp0-routing-policy.json',
+    'tests/layered-ci/ui-product-shell-wp0-routing.test.js',
+    'tests/layered-ci/wp0-routing.test.js',
+    'tools/layered-ci/wp0-routing.js'
+  ]
+);
 ```
 
 - [ ] **Step 2: Require exact-Head CI and independent review**
@@ -526,7 +663,7 @@ Record as `UI_ROUTE_RED`.
 
 - [ ] **Step 1: Add the nine literal paths**
 
-Insert all nine paths individually into `governanceExactPaths`, maintaining lexicographic order and uniqueness. Do not add a prefix, glob, branch rule, or generic UI exception. The receipt path is registered but not created on this branch.
+Insert all nine paths individually into `governanceExactPaths`, maintaining raw-UTF-8 byte order and uniqueness. Do not add a prefix, glob, branch rule, or generic UI exception. The receipt path is registered but not created on this branch.
 
 - [ ] **Step 2: Run focused routing tests**
 
@@ -571,13 +708,20 @@ Record as `UI_ROUTE_GREEN`.
 - Consumes: `UI_ROUTE_RED`, `UI_ROUTE_GREEN`.
 - Produces: trusted `UI_ROUTE_MERGE` used as the sole base of the prerequisite capability branch.
 
-- [ ] **Step 1: Verify exact three-file scope**
+- [ ] **Step 1: Verify exact three-file scope with NUL-framed evidence**
 
-```bash
-git diff --name-only "$EXACT_ROUTE_MERGE"...HEAD
+Use the NUL-framed verifier:
+
+```js
+assertExactPathSet(
+  gitPaths(['diff', '--no-renames', '-z', '--name-only', EXACT_ROUTE_MERGE, 'HEAD']),
+  [
+    'governance/layered-ci/wp0-routing-policy.json',
+    'tests/layered-ci/ui-product-shell-wp0-routing.test.js',
+    'tests/layered-ci/wp0-routing.test.js'
+  ]
+);
 ```
-
-Expected exactly the policy and two routing-test files listed in Task 5.
 
 - [ ] **Step 2: Require review and exact-Head CI**
 
@@ -655,9 +799,13 @@ workPackage=UI-WP1
 redBranch=feat/unified-ui-product-shell-wp1-red-contracts-v2
 redChangedFileCount=28
 redChangedFileSetSha256=da83c59da1f9e4f483cde355340f83d0f193e3872f5f534e662672f959f231dd
+approvedDesignSnapshotPath=docs/superpowers/specs/2026-08-06-yance-unified-ui-open-source-migration-design-snapshot.md
+approvedDesignSnapshotSha256=b9849d8d3bf0cbda867b32565bc465db0c7eb70c4d7e1d929c725a39c6b58ba9
 ```
 
-The test must require exact identities for the four companion documents, the approved design snapshot path, the 28 RED paths, the nine prerequisite paths, Yance authority boundaries, single-writer closure, and all non-production flags.
+The test must read the approved design snapshot bytes from the trusted base, hash those exact bytes with SHA-256, and require both the path and digest. A mutation at the same path must fail. Candidate-tree bytes cannot satisfy this check.
+
+The test must also require exact identities for the four companion documents, the 28 RED paths, the nine prerequisite paths, Yance authority boundaries, single-writer closure, and all non-production flags.
 
 It must reject executable authority from any of these fields:
 
@@ -710,15 +858,17 @@ git commit -m "test(ui): define root-agnostic static package contracts"
 
 Preserve the approved Scheme C design, 29 themes, 136 stable sound IDs, Chatwoot commit/blob evidence, adapter authority boundaries, surface-state labels, exact RED branch, exact 28-path set, and non-authorization fields. Remove current-main, active-handoff, authorization-parent, run-ID, and candidate-Head requirements from executable identity.
 
+The authorization document must carry both `approvedDesignSnapshotPath` and `approvedDesignSnapshotSha256`. Before generating package digests, read the snapshot from the trusted base with Git plumbing, hash the returned raw bytes, and fail unless it equals `b9849d8d3bf0cbda867b32565bc465db0c7eb70c4d7e1d929c725a39c6b58ba9`.
+
 - [ ] **Step 2: Define deterministic package hashing**
 
-Use UTF-8 LF bytes, lexicographic path order, and records:
+Validate every package path as canonical exact UTF-8, reject duplicates, sort by raw UTF-8 bytes, and use records:
 
 ```text
 path + NUL + sha256(fileBytes) + "\n"
 ```
 
-The authorization's self-referential digest fields are zeroed exactly as specified by the tests before hashing. Historical observations are not included.
+Use UTF-8 LF bytes. The authorization's self-referential digest fields are zeroed exactly as specified by the tests before hashing. Historical observations are not included.
 
 - [ ] **Step 3: Run focused tests**
 
@@ -744,6 +894,31 @@ git commit -m "docs(ui): freeze root-agnostic migration package"
 
 ---
 
+## Canonical `changedFileSetSha256` Contract
+
+The `changedFileSetSha256(paths)` input and bytes are frozen as follows:
+
+1. Every item must be a JavaScript string containing valid Unicode scalar values and must pass the exact repository-relative path validator.
+2. Reject empty paths, absolute paths, drive-letter paths, backslashes, `.` or `..` segments, empty segments, controls, NUL, glob metacharacters, outer whitespace, lone UTF-16 surrogates, and any string for which `path.normalize('NFC') !== path`. Never normalize an input into acceptance.
+3. Reject exact duplicates before sorting.
+4. Encode each validated path as UTF-8 and sort records with `Buffer.compare` over those raw bytes.
+5. Serialize each sorted path as `utf8(path) + NUL`. There is no LF, no length prefix, and no extra terminator beyond each record's NUL.
+6. The empty set serializes to zero bytes, so its digest is the SHA-256 of the empty byte string.
+
+Independent known-answer vectors:
+
+```text
+input paths (deliberately unsorted): ["docs/β.md", "a.txt"]
+canonical serialized hex: 612e74787400646f63732fceb22e6d6400
+changedFileSetSha256: a771219a44bcc69ae441eaceb4398eb5e8d4cb867b2bca9db8a69f9a8292dd14
+
+input paths: []
+canonical serialized hex: <empty>
+changedFileSetSha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+```
+
+Tests must compute these expected digests from literal fixture bytes independent of the production helper and must include duplicate, non-NFC, newline, invalid path, and order-permutation mutations.
+
 ### Task 10: Define the Pure UI Migration Policy RED
 
 **Files:**
@@ -761,7 +936,9 @@ changedFileSetSha256(paths)
 
 - [ ] **Step 1: Write policy contracts**
 
-Require exact repository-path validation, canonical path-set/package digests, static authority independent of active-handoff and current main, trusted graph/file adapters for receipts, candidate-self-authorization rejection, immutable results, mandatory non-production closure, and distinct reason codes for static identity, scope, receipt, graph, and closure failures.
+Require exact repository-path validation, the normative `changedFileSetSha256` serialization above, canonical package digests, static authority independent of active-handoff and current main, trusted graph/file adapters for receipts, candidate-self-authorization rejection, immutable results, mandatory non-production closure, and distinct reason codes for static identity, scope, receipt, graph, and closure failures.
+
+The test must use the independent known-answer vectors above and prove duplicate, non-canonical, normalized-but-different, reordered, newline-containing, and empty inputs behave exactly as specified.
 
 - [ ] **Step 2: Run and confirm causal RED**
 
@@ -789,16 +966,16 @@ git commit -m "test(ui): define migration policy contracts"
 - Modify: `tests/layered-ci/ui-migration-static-package.test.js`
 
 **Interfaces:**
-- Consumes: Task 10 signatures.
+- Consumes: Task 10 signatures and the frozen canonical digest contract.
 - Produces: network-free, deterministic, dependency-injected policy evaluation.
 
 - [ ] **Step 1: Implement strict validation primitives**
 
-Use CommonJS, exact UTF-8 paths, duplicate/normalization rejection, deterministic SHA-256, immutable return values, and dependency injection for Git graph and file evidence. The module must not read `project-state/active-handoff` or remote refs.
+Use CommonJS, exact canonical UTF-8 paths, duplicate/normalization rejection, raw-byte sorting, the exact NUL serialization defined above, deterministic SHA-256, immutable return values, and dependency injection for Git graph and file evidence. The module must not read `project-state/active-handoff` or remote refs.
 
 - [ ] **Step 2: Keep independent known-answer fixtures**
 
-The static-package test may call production digest helpers but must retain independent fixed vectors so a broken helper cannot pass by agreeing with itself.
+The static-package and policy tests may call production digest helpers but must retain the literal known-answer bytes and fixed hashes from this plan so a broken helper cannot pass by agreeing with itself.
 
 - [ ] **Step 3: Run focused GREEN tests**
 
@@ -821,6 +998,37 @@ git commit -m "feat(ui): implement root-agnostic migration policy"
 
 ---
 
+## Canonical Receipt JSON Bytes
+
+Receipt generation and `--check` byte equality use one frozen serializer:
+
+1. Accept JSON primitives, arrays, and plain objects only. Reject `undefined`, functions, symbols, `BigInt`, non-finite numbers, sparse arrays, cycles, custom prototypes, and lone UTF-16 surrogates.
+2. Object keys must be canonical Unicode scalar strings. Recursively sort object keys by raw UTF-8 bytes with `Buffer.compare`; array element order is preserved.
+3. Serialize with standard JSON string escaping and two-space indentation. Non-ASCII characters remain Unicode characters encoded as UTF-8; no BOM is permitted.
+4. Line endings are LF only. Emit exactly one final LF after the closing token; no trailing spaces or extra blank line are allowed.
+5. The generator and verifier must share this serializer. `--check` regenerates bytes in memory and compares exact buffers without rewriting the file.
+
+Independent known-answer receipt fixture:
+
+```json
+{
+  "allowedPostReviewPaths": [
+    "governance/ui-migration/ui-wp1-current-main-receipt.json"
+  ],
+  "documentType": "YANCE_UI_WP1_CURRENT_MAIN_RECEIPT",
+  "productionAuthorized": false,
+  "repository": "laiqian0239-glitch/yance"
+}
+```
+
+The code block's bytes include one LF after `}`. Its SHA-256 is:
+
+```text
+88322aef4564dd7d48e1cf75de2029773d495b99b6a3fbb5e3cec40cf39b70a1
+```
+
+Tests must keep the literal expected bytes or their literal hex independent of the implementation under test and must mutate key insertion order, CRLF, indentation, escaping, final newline, and invalid JSON values.
+
 ### Task 12: Define Deterministic Current-Main Receipt RED
 
 **Files:**
@@ -842,7 +1050,7 @@ branch=feat/unified-ui-product-shell-wp1-red-contracts-v2
 
 It must also bind trusted base commit, reviewed code Head, ancestry, static-authorization blob from the trusted base, exact implementation path count/digest excluding only the receipt path, static package digest, and an allowed post-review set containing only the receipt path. All production/release/publish/promotion/automatic-next-package flags remain false.
 
-Reject stale or fabricated base, wrong ancestry, self-reference, dirty worktree, wrong branch, candidate-owned authority/policy, widened paths, extra post-review commit/path, CRLF drift, Git replacement, config/environment injection, and non-deterministic bytes. Active-handoff mutation must not change receipt bytes.
+The test must freeze the canonical receipt serializer and independent known-answer fixture above before the generator exists. It must reject stale or fabricated base, wrong ancestry, self-reference, dirty worktree, wrong branch, candidate-owned authority/policy, widened paths, extra post-review commit/path, CRLF drift, wrong key order or indentation, missing/extra final LF, Git replacement, config/environment injection, and non-deterministic bytes. Active-handoff mutation must not change receipt bytes.
 
 - [ ] **Step 2: Run and confirm causal RED**
 
@@ -891,11 +1099,11 @@ node tools/ui-migration/verify-ui-wp1-current-main-receipt.js \
 
 - [ ] **Step 1: Implement trusted Git adapters**
 
-Use `execFileSync('git', args, options)` only, explicit repository root, `GIT_NO_REPLACE_OBJECTS=1`, `GIT_TERMINAL_PROMPT=0`, stripped repository/object/config override variables, bounded timeout/buffer, no shell interpolation, NUL-framed changed-file transport, and fatal UTF-8 decoding.
+Use `execFileSync('git', args, options)` only, explicit repository root, `GIT_NO_REPLACE_OBJECTS=1`, `GIT_TERMINAL_PROMPT=0`, stripped repository/object/config override variables, bounded timeout/buffer, no shell interpolation, NUL-framed changed-file transport, and fatal UTF-8 decoding through the normative path procedure.
 
 - [ ] **Step 2: Implement deterministic generation and `--check` verification**
 
-Generation refuses dirty worktrees, missing ancestry, altered trusted static authority, wrong branch, out-of-scope paths, and receipt self-inclusion. `--check` regenerates in memory and compares exact UTF-8 LF bytes without rewriting.
+Generation refuses dirty worktrees, missing ancestry, altered trusted static authority or approved design snapshot bytes, wrong branch, out-of-scope paths, and receipt self-inclusion. Both generation and `--check` use the canonical receipt JSON serializer above. `--check` regenerates in memory and compares exact UTF-8/LF buffers without rewriting.
 
 - [ ] **Step 3: Run GREEN tests**
 
@@ -937,7 +1145,7 @@ Require the permanent workflow to resolve exact PR base and Head, create a detac
 
 - [ ] **Step 2: Add delegated-authority contracts**
 
-Recognize only `feat/unified-ui-product-shell-wp1-red-contracts-v2`; verify static authority from the PR base; verify receipt bytes, trusted-base ancestry, exact path digest; exclude only `governance/ui-migration/ui-wp1-current-main-receipt.json`; deny near-match branches; deny candidate mutation of policy/static authority/workflow/verifier; return `readyForPromotion=false`.
+Recognize only `feat/unified-ui-product-shell-wp1-red-contracts-v2`; verify static authority and approved design snapshot bytes from the PR base; verify receipt bytes, trusted-base ancestry, exact path digest; exclude only `governance/ui-migration/ui-wp1-current-main-receipt.json`; deny near-match branches; deny candidate mutation of policy/static authority/workflow/verifier; return `readyForPromotion=false`.
 
 - [ ] **Step 3: Run and confirm causal RED**
 
@@ -982,11 +1190,11 @@ Add one UI migration authority descriptor. Do not create a parallel generic bran
 
 - [ ] **Step 2: Isolate candidate evidence from base-owned semantics**
 
-`tools/wp0/work-package-scope-gate.js` reads policy and static authority from the base worktree. It reads only candidate receipt bytes and candidate changed-file evidence from the candidate tree. Use strict Buffer/NUL-framed Git evidence, verify clean worktree and ancestry, exclude exactly the receipt path, delegate semantics to `uiMigrationWorkPackagePolicy.js`, and deny promotion/production.
+`tools/wp0/work-package-scope-gate.js` reads policy, static authority, and approved design snapshot bytes from the base worktree. It reads only candidate receipt bytes and candidate changed-file evidence from the candidate tree. Use strict Buffer/NUL-framed Git evidence, verify clean worktree and ancestry, exclude exactly the receipt path, delegate semantics to `uiMigrationWorkPackagePolicy.js`, and deny promotion/production.
 
 - [ ] **Step 3: Update the permanent workflow**
 
-Applicable future UI branches execute the base-owned evaluator. Candidate changes to workflow, policy, static authority, or verifier cannot change the evaluator used for that run.
+Applicable future UI branches execute the base-owned evaluator. Candidate changes to workflow, policy, static authority, design snapshot, or verifier cannot change the evaluator or authority used for that run.
 
 - [ ] **Step 4: Run focused GREEN tests**
 
@@ -1072,11 +1280,11 @@ if (git status --porcelain=v1 --untracked-files=all) { throw 'worktree is dirty'
 
 - [ ] **Step 3: Run mutation controls**
 
-Mutate base SHA, branch name, static authority blob, companion digest, duplicate path, extra post-review path, candidate-owned verifier, Git replacement/config injection, and active-handoff observation. Every authority mutation must fail; active-handoff-only mutation must leave static authorization and receipt bytes unchanged.
+Mutate base SHA, branch name, static authority blob, approved design snapshot digest/bytes, companion digest, duplicate path, non-canonical path, extra post-review path, candidate-owned verifier, receipt key order/CRLF/final-LF, Git replacement/config injection, and active-handoff observation. Every authority or canonical-byte mutation must fail; active-handoff-only mutation must leave static authorization and receipt bytes unchanged.
 
 - [ ] **Step 4: Open the prerequisite capability PR**
 
-The PR records every test-only RED Head, causal failure, reviewed code Head, exact path set/digest, Linux/Windows results, confirmation that no real receipt exists, and confirmation that no Product Shell/source copy/distribution/cutover authority exists.
+The PR records every test-only RED Head, causal failure, reviewed code Head, exact path set/digest, approved design snapshot path/digest, Linux/Windows results, confirmation that no real receipt exists, and confirmation that no Product Shell/source copy/distribution/cutover authority exists.
 
 - [ ] **Step 5: Require independent review and explicit user approval**
 
@@ -1084,7 +1292,7 @@ All P0/P1 findings and unresolved threads must be zero. Merge only through an or
 
 - [ ] **Step 6: Verify merged main**
 
-Run the focused contracts and permanent WP0 suite at the exact merge commit. Confirm the exact router, UI routes, static authority, pure policy, receipt tools, and evaluator are now base-owned.
+Run the focused contracts and permanent WP0 suite at the exact merge commit. Confirm the exact router, UI routes, static authority, approved design bytes, pure policy, receipt tools, and evaluator are now base-owned.
 
 - [ ] **Step 7: Close superseded historical UI authorization PRs**
 
@@ -1110,9 +1318,10 @@ The prerequisite is complete only when:
 - every reviewed governance path is literal and every unregistered near match is denied governance routing;
 - the nine-path UI route bootstrap is ordinarily merged after exact-route hardening;
 - one root-agnostic static package exists in `main`;
+- the approved design snapshot is bound by exact trusted-base path and SHA-256 bytes;
 - no executable current-main or active-handoff identity exists in that static package;
 - deterministic receipt generation and verification pass real temporary-repository tests on Linux and Windows;
-- candidate-owned policy, authority, verifier, and workflow changes cannot authorize a future candidate;
+- candidate-owned policy, authority, design snapshot, verifier, and workflow changes cannot authorize a future candidate;
 - permanent WP0 evaluates the exact future branch using policy and authority from the exact PR base;
 - full WP0, security, protocol, and focused suites are GREEN;
 - no UI implementation, source copy, distribution, cutover, production, release, publish, or promotion authority has been granted.
