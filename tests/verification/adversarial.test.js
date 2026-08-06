@@ -172,3 +172,19 @@ test('self-test requirement manifest is exactly bound to checked-in command-set 
   tampered.requirements[0].commandSetDigest = 'f'.repeat(64);
   assert.equal(validateRequirementManifest({ manifest: tampered, repoRoot }).reasonCode, 'EVIDENCE_COMMAND_SET_DIGEST_MISMATCH');
 });
+
+
+test('offline signed-receipt core verifies a complete detached receipt without private-key access', async () => {
+  const { verifyReceiptObject } = require('../../tools/verification/verify-receipt');
+  const context = createContext();
+  const result = await verifyReceiptObject({
+    receipt: context.receipt,
+    expectedBaseCommit: BASE,
+    expectedHeadCommit: HEAD,
+    executorRegistry: context.executorRegistry,
+    commandSetRegistry: context.commandSetRegistry,
+    artifactResolver: () => context.artifactBytes
+  });
+  assert.equal(result.pass, true);
+  assert.equal(result.fact.verificationStatus, 'VERIFIED_PASS');
+});
