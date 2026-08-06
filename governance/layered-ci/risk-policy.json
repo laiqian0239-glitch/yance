@@ -21,14 +21,14 @@
   ],
   "l2ExactPaths": [
     "THIRD_PARTY_NOTICES.md",
-    "package-lock.json",
-    "package.json"
+    "package.json",
+    "package-lock.json"
   ],
   "l2Prefixes": [
     ".github/",
     "backend/lib/sqlite",
-    "backend/migrations/",
     "backend/runtime/",
+    "backend/migrations/",
     "backend/services/authority",
     "backend/services/backup",
     "backend/services/recovery",
