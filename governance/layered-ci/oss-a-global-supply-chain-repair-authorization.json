@@ -4,11 +4,18 @@
   "requestedByUserAt": "2026-08-06T12:42:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "OSS-A",
-  "status": "AUTHORIZATION_CANDIDATE",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "PR #67 exact-Head verification proved that three pre-existing checkout steps retain credentials and that the Layered CI risk policy does not classify the checked-in supply-chain inventory paths. These defects are global baseline defects outside the sealed 23-path OSS-A implementation scope and must be repaired on main through an independent branch and PR.",
   "base": {
     "branch": "main",
     "commit": "5cf56b9122ca7ded63e108a7d74f47c7132d252f"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresExactHeadGreen": true,
+    "requiresIndependentAllowMerge": true,
+    "requiresOrdinaryMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true
   },
   "evidence": {
     "sourcePullRequest": 67,
