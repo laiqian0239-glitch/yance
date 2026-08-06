@@ -55,8 +55,15 @@
     "package-lock.json",
     ".gitattributes",
     ".gitignore",
+    "yance_artifact_descriptor.json",
     "THIRD_PARTY_NOTICES.md",
-    "yance_artifact_descriptor.json"
+    "third_party/github-actions-lock.json",
+    "third_party/licenses/actions-checkout-MIT.txt",
+    "third_party/licenses/actions-setup-node-MIT.txt",
+    "third_party/licenses/actions-upload-artifact-MIT.txt",
+    "third_party/licenses/baileys-MIT.txt",
+    "third_party/provenance.json",
+    "third_party/sbom.cdx.json"
   ],
   "productPrefixes": [
     ".github/",
