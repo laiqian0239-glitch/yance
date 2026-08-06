@@ -28,7 +28,7 @@ Yance project license decision: **UNRESOLVED**
 
 - Registry ID: `actions-setup-node`
 - Upstream: https://github.com/actions/setup-node
-- Version: `v4`
+- Version: `v6.4.0`
 - Commit: `48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e`
 - Integration mode: `dependency`
 - License: `MIT`
@@ -47,7 +47,7 @@ Yance project license decision: **UNRESOLVED**
 
 - Registry ID: `actions-upload-artifact`
 - Upstream: https://github.com/actions/upload-artifact
-- Version: `v4`
+- Version: `v4.6.2`
 - Commit: `ea165f8d65b6e75b540449e92b4886f43607fa02`
 - Integration mode: `dependency`
 - License: `MIT`
