@@ -2,9 +2,16 @@
 
 const crypto = require('node:crypto');
 const { canonicalSha256, sha256Hex } = require('./jcs');
+
+const EMPTY_SHA256 = sha256Hex(Buffer.alloc(0));
+const EMPTY_PATH_SET_SHA256 = sha256Hex(Buffer.from('\n'));
 const { validateCommandSet, commandSetDigest } = require('./commandSetRegistry');
 const { resolveActiveExecutor } = require('./executorRegistry');
-const { canonicalPayloadBytes, validateFinalReceipt, verifyReceiptDigests } = require('./canonicalEvidenceReceipt');
+const {
+  canonicalPayloadBytes,
+  validateFinalReceipt,
+  verifyReceiptDigests
+} = require('./canonicalEvidenceReceipt');
 const { REASON_CODES } = require('./reasonCodes');
 
 function fail(reasonCode, details) { return { pass: false, reasonCode, details }; }
@@ -40,13 +47,25 @@ function verifySignedExecutorReceipt({ receipt, expected = {}, executorRegistry,
   if (commandSet.platform !== receipt.commandSet.platform || receipt.producer.platform !== commandSet.platform) return fail(REASON_CODES.EVIDENCE_PLATFORM_MISMATCH);
 
   if (receipt.authenticity.executorId !== receipt.producer.executorId || receipt.authenticity.keyGeneration !== receipt.producer.keyGeneration) return fail(REASON_CODES.EVIDENCE_SIGNATURE_INVALID);
-  const executorResult = resolveActiveExecutor({ registry: executorRegistry, executorId: receipt.producer.executorId, keyGeneration: receipt.producer.keyGeneration, platform: receipt.producer.platform, commandSetDigest: digest });
+  const executorResult = resolveActiveExecutor({
+    registry: executorRegistry,
+    executorId: receipt.producer.executorId,
+    keyGeneration: receipt.producer.keyGeneration,
+    platform: receipt.producer.platform,
+    commandSetDigest: digest
+  });
   if (!executorResult.pass) return executorResult;
 
   const signature = Buffer.from(receipt.authenticity.signatureBase64, 'base64');
   if (!crypto.verify(null, canonicalPayloadBytes(receipt), executorResult.executor.publicKeyPem, signature)) return fail(REASON_CODES.EVIDENCE_SIGNATURE_INVALID);
+  if (receipt.producer.architecture !== executorResult.executor.architecture) return fail(REASON_CODES.EVIDENCE_EXECUTOR_ARCHITECTURE_MISMATCH);
+  if (Date.parse(receipt.execution.startedAt) < Date.parse(executorResult.executor.validFrom)) return fail(REASON_CODES.EVIDENCE_EXECUTOR_NOT_YET_VALID);
 
   if (receipt.workspace.preHead !== receipt.headCommit || receipt.workspace.postHead !== receipt.headCommit) return fail(REASON_CODES.EVIDENCE_WORKSPACE_HEAD_MISMATCH);
+  if (receipt.workspace.preTrackedDiffSha256 !== EMPTY_SHA256 || receipt.workspace.postTrackedDiffSha256 !== EMPTY_SHA256) return fail(REASON_CODES.EVIDENCE_WORKSPACE_DIRTY);
+  if (receipt.workspace.preUnexpectedUntrackedPathSetSha256 !== EMPTY_PATH_SET_SHA256 || receipt.workspace.postUnexpectedUntrackedPathSetSha256 !== EMPTY_PATH_SET_SHA256) return fail(REASON_CODES.EVIDENCE_UNEXPECTED_UNTRACKED_PATHS);
+  const expectedGeneratedRootDigest = canonicalSha256([...new Set(commandSet.commands.flatMap((command) => command.generatedRoots))].sort());
+  if (receipt.workspace.allowedGeneratedRootSetSha256 !== expectedGeneratedRootDigest) return fail(REASON_CODES.EVIDENCE_WORKSPACE_DIRTY);
   if (receipt.execution.commands.length !== commandSet.commands.length) return fail(REASON_CODES.EVIDENCE_COMMAND_RESULT_MISMATCH);
   const resultsById = new Map(receipt.results.map((row) => [row.commandId, row]));
   const executionsById = new Map(receipt.execution.commands.map((row) => [row.commandId, row]));
@@ -61,6 +80,14 @@ function verifySignedExecutorReceipt({ receipt, expected = {}, executorRegistry,
     if (!passed) return fail(REASON_CODES.EVIDENCE_COMMAND_FAILED);
   }
 
+  const declaredArtifacts = new Map();
+  for (const command of commandSet.commands) {
+    for (const relativePath of command.artifacts) declaredArtifacts.set(relativePath, command.commandId);
+  }
+  if (receipt.artifacts.length !== declaredArtifacts.size) return fail(REASON_CODES.EVIDENCE_ARTIFACT_DIGEST_MISMATCH);
+  for (const artifact of receipt.artifacts) {
+    if (declaredArtifacts.get(artifact.relativePath) !== artifact.producerCommandId) return fail(REASON_CODES.EVIDENCE_ARTIFACT_DIGEST_MISMATCH);
+  }
   if (artifactResolver) {
     for (const artifact of receipt.artifacts) {
       let bytes;
@@ -70,13 +97,23 @@ function verifySignedExecutorReceipt({ receipt, expected = {}, executorRegistry,
     }
   }
 
-  return { pass: true, fact: {
-    repository: receipt.repository, workPackage: receipt.workPackage, gateId: receipt.gateId,
-    baseCommit: receipt.baseCommit, headCommit: receipt.headCommit, platform: receipt.commandSet.platform,
-    commandSetId: receipt.commandSet.commandSetId, commandSetDigest: receipt.commandSet.commandSetDigest,
-    verificationStatus: 'VERIFIED_PASS', adapterType: receipt.adapterType, receiptSha256: receipt.receiptSha256,
-    producerIdentity: `${receipt.producer.executorId}:generation-${receipt.producer.keyGeneration}`
-  } };
+  return {
+    pass: true,
+    fact: {
+      repository: receipt.repository,
+      workPackage: receipt.workPackage,
+      gateId: receipt.gateId,
+      baseCommit: receipt.baseCommit,
+      headCommit: receipt.headCommit,
+      platform: receipt.commandSet.platform,
+      commandSetId: receipt.commandSet.commandSetId,
+      commandSetDigest: receipt.commandSet.commandSetDigest,
+      verificationStatus: 'VERIFIED_PASS',
+      adapterType: receipt.adapterType,
+      receiptSha256: receipt.receiptSha256,
+      producerIdentity: `${receipt.producer.executorId}:generation-${receipt.producer.keyGeneration}`
+    }
+  };
 }
 
 module.exports = { verifySignedExecutorReceipt };
