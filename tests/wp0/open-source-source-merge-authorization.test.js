@@ -10,13 +10,14 @@ const repoRoot = path.resolve(__dirname, '..', '..');
 const authorizationPath = 'governance/layered-ci/oss-a-source-merge-authorization.json';
 const policyModulePath = path.join(repoRoot, 'shared', 'release', 'openSourceSourceMergeAuthorizationPolicy.js');
 const authorizationBytes = fs.readFileSync(path.join(repoRoot, authorizationPath));
-const authorizationFileSha256 = crypto.createHash('sha256').update(authorizationBytes).digest('hex');
+const checkedInAuthorizationFileSha256 = crypto.createHash('sha256').update(authorizationBytes).digest('hex');
 const authorizationTemplate = JSON.parse(authorizationBytes.toString('utf8'));
 
 const BASE = 'ad195d8497ec61fbe3387c606692110f5645fba0';
 const AUTH_HEAD = 'f50590181e19cdc134c35d91ae9421af5b532ce8';
 const AUTH_MERGE = 'fac7d298f182043f4ecc6e41a780248ce3a03132';
 const AUTH_BLOB = '99ee3e5243d07fed5cea6661cb6ad82123771bc8';
+const PRE_SEAL_AUTHORIZATION_FILE_SHA256 = 'a9c6022c7a59e49dd3c4c957d6e7e56de70697b84609f338d00a4cc5c07fe0fd';
 const RED_HEAD = '1111111111111111111111111111111111111111';
 const POLICY_HEAD = '2222222222222222222222222222222222222222';
 const POLICY_TIP = '3333333333333333333333333333333333333333';
@@ -41,6 +42,22 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function unsealedAuthorization() {
+  const value = clone(authorizationTemplate);
+  value.status = 'POLICY_AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE_AND_SEAL';
+  value.requiredAuthorizationSeal = {
+    ...value.requiredAuthorizationSeal,
+    authorizationMergeCommit: 'TO_BE_SEALED_AFTER_ORDINARY_MAIN_MERGE',
+    authorizationMergeFirstParent: BASE,
+    authorizationReviewedHead: 'TO_BE_SEALED_FROM_THIS_BRANCH_FINAL_EXACT_HEAD',
+    authorizationOriginalBlobSha: 'TO_BE_SEALED_FROM_THIS_FILE_AT_FINAL_EXACT_HEAD',
+    authorizationOriginalFileSha256: 'TO_BE_SEALED_FROM_THIS_FILE_AT_FINAL_EXACT_HEAD',
+    policyReviewedHead: 'TO_BE_RECORDED_BY_LATER_EVIDENCE_COMMIT'
+  };
+  delete value.policyBinding;
+  return value;
+}
+
 function sealedAuthorization() {
   const value = clone(authorizationTemplate);
   value.status = 'POLICY_AUTHORIZATION_SEALED';
@@ -50,7 +67,7 @@ function sealedAuthorization() {
     authorizationMergeFirstParent: BASE,
     authorizationReviewedHead: AUTH_HEAD,
     authorizationOriginalBlobSha: AUTH_BLOB,
-    authorizationOriginalFileSha256: authorizationFileSha256,
+    authorizationOriginalFileSha256: PRE_SEAL_AUTHORIZATION_FILE_SHA256,
     policyReviewedHead: POLICY_HEAD
   };
   value.policyBinding = {
@@ -107,7 +124,9 @@ function validGraph() {
       return commit === AUTH_HEAD && repositoryPath === authorizationPath ? AUTH_BLOB : null;
     },
     fileSha256At(commit, repositoryPath) {
-      return commit === AUTH_HEAD && repositoryPath === authorizationPath ? authorizationFileSha256 : null;
+      return commit === AUTH_HEAD && repositoryPath === authorizationPath
+        ? PRE_SEAL_AUTHORIZATION_FILE_SHA256
+        : null;
     },
     isAncestor(ancestor, descendant) {
       const valid = new Set([
@@ -197,14 +216,24 @@ function validSealPullRequest() {
   };
 }
 
-test('records the exact pre-seal authorization file SHA-256', () => {
-  assert.match(authorizationFileSha256, /^[0-9a-f]{64}$/u);
-  console.log(`# authorization_file_sha256 ${authorizationFileSha256}`);
+test('preserves the exact pre-seal authorization identity across the evidence commit', () => {
+  assert.match(PRE_SEAL_AUTHORIZATION_FILE_SHA256, /^[0-9a-f]{64}$/u);
+  if (authorizationTemplate.status === 'POLICY_AUTHORIZATION_SEALED') {
+    assert.equal(
+      authorizationTemplate.requiredAuthorizationSeal.authorizationOriginalFileSha256,
+      PRE_SEAL_AUTHORIZATION_FILE_SHA256
+    );
+    assert.notEqual(checkedInAuthorizationFileSha256, PRE_SEAL_AUTHORIZATION_FILE_SHA256);
+  } else {
+    assert.equal(authorizationTemplate.status, 'POLICY_AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE_AND_SEAL');
+    assert.equal(checkedInAuthorizationFileSha256, PRE_SEAL_AUTHORIZATION_FILE_SHA256);
+  }
+  console.log(`# authorization_file_sha256 ${PRE_SEAL_AUTHORIZATION_FILE_SHA256}`);
 });
 
 test('unsealed policy authorization fails closed', () => {
   const { validatePolicyAuthorization } = loadPolicy();
-  const result = validatePolicyAuthorization(authorizationTemplate);
+  const result = validatePolicyAuthorization(unsealedAuthorization());
   assert.equal(result.pass, false);
   assert.equal(result.reasonCode, 'POLICY_AUTHORIZATION_UNSEALED');
 });
