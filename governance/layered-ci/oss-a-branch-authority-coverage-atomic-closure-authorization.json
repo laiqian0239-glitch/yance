@@ -30,6 +30,18 @@
     ],
     "mustRemainSingleFile": true
   },
+  "runtimeBranchAuthority": {
+    "documentPath": "governance/layered-ci/oss-a-source-merge-policy-branch-authority-authorization.json",
+    "mergeCommit": "8311cd15572bdc89316c47485459017613b2e2c8",
+    "mergeFirstParent": "fac7d298f182043f4ecc6e41a780248ce3a03132",
+    "reviewedHead": "97e6ebc2d83d7e775879603e2383dd1f321fa868",
+    "blobSha": "5c675b30e71de55e524bf8ce5c0ac6d60718d11b",
+    "implementationBranchField": "implementation.branch",
+    "exactImplementationBranch": "fix/oss-a-source-merge-policy-branch-authority",
+    "consumedBy": "shared/release/implementationBranchPolicy.js",
+    "thisDocumentGrantsRuntimeBranchAuthority": false,
+    "thisDocumentPurpose": "exact four-path atomic scope composition only"
+  },
   "implementation": {
     "branch": "fix/oss-a-source-merge-policy-branch-authority",
     "pullRequest": 86,
@@ -67,7 +79,7 @@
     "combinedCandidateMustPreserveExactSourceBlobsUnlessReviewFixIsRequired": true
   },
   "mandatoryContracts": [
-    "The implementation branch is accepted only from exact trusted-main authorization documents and never from candidate-owned self-authorization",
+    "The implementation branch is accepted only from the exact trusted-main runtimeBranchAuthority document and never from this scope-composition document or candidate-owned self-authorization",
     "Git subprocesses discard repository, object database, replacement object and config override environment variables",
     "Wrong merge parent order, wrong authorization blob, widened paths, document tampering and arbitrary governance branches fail closed",
     "GOVERNANCE_WP0 executes node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js exactly once",
@@ -112,6 +124,7 @@
     "automaticNextWorkPackageAuthorization": true
   },
   "governance": {
+    "booleanSemantics": "TRUE_MEANS_AUTHORIZED_OR_REQUIRED",
     "authorizationPredatesCombinedImplementation": true,
     "exactPathScopeOnly": true,
     "independentBranchAndPullRequestRequired": true,
@@ -121,9 +134,9 @@
     "uiPr85MustRemainFrozen": true,
     "sourceMergeAuthorized": false,
     "productionUseAuthorized": false,
-    "formalRelease": false,
-    "publish": false,
-    "readyForPromotion": false,
-    "automaticNextWorkPackageAuthorization": false
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationGranted": false
   }
 }
