@@ -61,6 +61,12 @@ function makeTempRoot(t) {
   return root;
 }
 
+function writeRepositoryFile(root, relativePath, content) {
+  const target = path.join(root, ...relativePath.split('/'));
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, content, 'utf8');
+}
+
 function writeLockFixture(root, lock) {
   fs.mkdirSync(path.join(root, 'third_party', 'licenses'), { recursive: true });
   fs.writeFileSync(
@@ -132,6 +138,96 @@ test('local actions and reusable workflows are allowed while docker actions are 
 
   const docker = inspect('steps:\n  - uses: docker://node:22\n');
   assert.ok(docker.errors.some(error => error.code === 'DOCKER_ACTION_FORBIDDEN'));
+});
+
+test('repository verifier recursively scans nested local composite actions', t => {
+  const { verifyRepository } = loadActionsLock();
+  const root = makeTempRoot(t);
+  const setupNodeLock = makeLock([makeLock().actions[1]]);
+  writeLockFixture(root, setupNodeLock);
+  writeRepositoryFile(
+    root,
+    '.github/workflows/local-chain.yml',
+    'steps:\n  - uses: ./.github/actions/outer\n'
+  );
+  writeRepositoryFile(
+    root,
+    '.github/actions/outer/action.yml',
+    'name: Outer\nruns:\n  using: composite\n  steps:\n    - uses: ./.github/actions/inner\n'
+  );
+  writeRepositoryFile(
+    root,
+    '.github/actions/inner/action.yaml',
+    `name: Inner\nruns:\n  using: composite\n  steps:\n    - uses: ${LOCKED_REFS[1]}\n`
+  );
+
+  const report = verifyRepository(root);
+  assert.equal(report.ok, true, JSON.stringify(report.errors, null, 2));
+  assert.deepEqual(report.externalReferences, [LOCKED_REFS[1]]);
+});
+
+test('nested local composite actions cannot hide floating external references', t => {
+  const { verifyRepository } = loadActionsLock();
+  const root = makeTempRoot(t);
+  writeLockFixture(root, makeLock([makeLock().actions[1]]));
+  writeRepositoryFile(
+    root,
+    '.github/workflows/local-floating.yml',
+    'steps:\n  - uses: ./.github/actions/floating\n'
+  );
+  writeRepositoryFile(
+    root,
+    '.github/actions/floating/action.yml',
+    'name: Floating\nruns:\n  using: composite\n  steps:\n    - uses: actions/setup-node@v6\n'
+  );
+
+  const report = verifyRepository(root);
+  assert.equal(report.ok, false);
+  assert.ok(report.errors.some(error => (
+    error.code === 'ACTION_REF_NOT_EXACT'
+    && error.path === '.github/actions/floating/action.yml'
+  )));
+});
+
+test('local action resolution fails closed on escape, missing or ambiguous manifests', t => {
+  const { verifyRepository } = loadActionsLock();
+
+  const escapeRoot = makeTempRoot(t);
+  writeLockFixture(escapeRoot, makeLock([makeLock().actions[0]]));
+  writeRepositoryFile(escapeRoot, '.github/workflows/escape.yml', 'steps:\n  - uses: ./../outside\n');
+  assert.ok(verifyRepository(escapeRoot).errors.some(error => error.code === 'LOCAL_ACTION_PATH_INVALID'));
+
+  const missingRoot = makeTempRoot(t);
+  writeLockFixture(missingRoot, makeLock([makeLock().actions[0]]));
+  writeRepositoryFile(missingRoot, '.github/workflows/missing.yml', 'steps:\n  - uses: ./.github/actions/missing\n');
+  fs.mkdirSync(path.join(missingRoot, '.github', 'actions', 'missing'), { recursive: true });
+  assert.ok(verifyRepository(missingRoot).errors.some(error => error.code === 'LOCAL_ACTION_MANIFEST_MISSING'));
+
+  const ambiguousRoot = makeTempRoot(t);
+  writeLockFixture(ambiguousRoot, makeLock([makeLock().actions[0]]));
+  writeRepositoryFile(ambiguousRoot, '.github/workflows/ambiguous.yml', 'steps:\n  - uses: ./.github/actions/ambiguous\n');
+  const manifest = 'name: Ambiguous\nruns:\n  using: composite\n  steps: []\n';
+  writeRepositoryFile(ambiguousRoot, '.github/actions/ambiguous/action.yml', manifest);
+  writeRepositoryFile(ambiguousRoot, '.github/actions/ambiguous/action.yaml', manifest);
+  assert.ok(verifyRepository(ambiguousRoot).errors.some(error => error.code === 'LOCAL_ACTION_MANIFEST_AMBIGUOUS'));
+});
+
+test('recursive local action cycles fail closed', t => {
+  const { verifyRepository } = loadActionsLock();
+  const root = makeTempRoot(t);
+  writeLockFixture(root, makeLock([makeLock().actions[0]]));
+  writeRepositoryFile(root, '.github/workflows/cycle.yml', 'steps:\n  - uses: ./.github/actions/outer\n');
+  writeRepositoryFile(
+    root,
+    '.github/actions/outer/action.yml',
+    'name: Outer\nruns:\n  using: composite\n  steps:\n    - uses: ./.github/actions/inner\n'
+  );
+  writeRepositoryFile(
+    root,
+    '.github/actions/inner/action.yml',
+    'name: Inner\nruns:\n  using: composite\n  steps:\n    - uses: ./.github/actions/outer\n'
+  );
+  assert.ok(verifyRepository(root).errors.some(error => error.code === 'LOCAL_ACTION_CYCLE'));
 });
 
 test('flow-mapping uses syntax is rejected instead of skipped', () => {
