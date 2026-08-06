@@ -17,7 +17,7 @@ const LOCKED_REFS = [
   'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02'
 ];
 const REVIEWED_TAGS = Object.freeze({
-  'actions/checkout': 'v4.2.2',
+  'actions/checkout': 'v4.4.0',
   'actions/setup-node': 'v6.4.0',
   'actions/upload-artifact': 'v4.6.2'
 });
@@ -94,6 +94,20 @@ test('canonical repository uses only the three reviewed exact Action commits', (
   assert.deepEqual(report.errors, []);
   assert.deepEqual([...new Set(report.externalReferences)].sort(), [...LOCKED_REFS].sort());
   assert.equal(report.checkoutSteps.every(step => step.persistCredentials === false), true);
+});
+
+test('canonical checkout pin is bound to the official reviewed v4.4.0 release', () => {
+  const lock = JSON.parse(
+    fs.readFileSync(path.join(repoRoot, 'third_party', 'github-actions-lock.json'), 'utf8')
+  );
+  const checkout = lock.actions.find(entry => entry.repository === 'actions/checkout');
+  assert.deepEqual(
+    { commit: checkout?.commit, reviewedTag: checkout?.reviewedTag },
+    {
+      commit: '11d5960a326750d5838078e36cf38b85af677262',
+      reviewedTag: 'v4.4.0'
+    }
+  );
 });
 
 test('floating tags, branches, expressions and unregistered exact commits fail closed', () => {
