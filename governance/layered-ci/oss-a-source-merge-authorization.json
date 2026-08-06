@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OSS_A_SOURCE_MERGE_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-06T15:45:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-A",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE_AND_SEAL",
+  "reason": "PR #67 has completed its exact 23-path OSS-A supply-chain implementation, cross-platform verification and independent code review, but its implementation receipt explicitly denies merge, production, release, publication and automatic next-work-package authority. A separate current-main, two-phase sealed authorization is required before any source merge can occur.",
+  "base": {
+    "branch": "main",
+    "commit": "ad195d8497ec61fbe3387c606692110f5645fba0"
+  },
+  "authorizationBranch": {
+    "name": "governance/oss-a-source-merge-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/oss-a-source-merge-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "effectiveness": {
+    "effectiveBeforeOrdinaryMainMerge": false,
+    "requiresExactAuthorizationHeadGreen": true,
+    "requiresIndependentAllowMerge": true,
+    "requiresOrdinaryMainMerge": true,
+    "requiresPostMergeSeal": true,
+    "sourceMergeAuthorizedBeforePolicyImplementationMerge": false
+  },
+  "reviewedCandidate": {
+    "pullRequest": 67,
+    "branch": "oss/a-supply-chain-foundation",
+    "baseBranch": "main",
+    "implementationBaseCommit": "ad195d8497ec61fbe3387c606692110f5645fba0",
+    "exactHead": "028535eb6c092c47ad92bce3f0675c7d7b23f22d",
+    "candidateChangedFileCount": 24,
+    "implementationChangedFileCount": 23,
+    "implementationChangedFileSetSha256": "fb99d7c9b090a0c8b92b5655c401b80f0e0674c6e6f5725bad8264c9ec19a175",
+    "implementationReceiptPath": "governance/open-source-acceleration/oss-a-supply-chain-authorization-receipt.json",
+    "structuredIndependentReviewId": 4872646973,
+    "reviewDecision": "ALLOW_MERGE",
+    "reviewP0": 0,
+    "reviewP1": 0,
+    "unresolvedReviewThreads": 0,
+    "mustRemainDraftUntilThisAuthorizationAndItsPolicyAreMerged": true
+  },
+  "exactHeadEvidence": {
+    "ossProvenanceRunId": 31084829850,
+    "stageWp0RunId": 31084829808,
+    "layeredCiRunId": 31084830046,
+    "acv2RunId": 31084829997,
+    "wpAPostMergeValidationRunId": 31084829858,
+    "promotionAuthorizationRunId": 31084829813,
+    "promotionAuthorizationConclusion": "skipped-by-design",
+    "allRequiredRunsGreen": true
+  },
+  "implementation": {
+    "branch": "governance/oss-a-source-merge-policy",
+    "requiredBase": "the exact ordinary main merge commit containing this authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/oss-a-source-merge-authorization.json",
+      "shared/release/openSourceSourceMergeAuthorizationPolicy.js",
+      "tests/wp0/open-source-source-merge-authorization.test.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "f61d9f9af9d5cde9fe189d05943550b590a438ae0085ffc47113f2038d7686a1",
+    "authorizationFileMayOnlyAddTrustedMergeSealAndPolicyBinding": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "productRouteImplementationAllowed": false,
+    "oss1aSpecificRoleCopyAllowed": false
+  },
+  "requiredSeal": {
+    "authorizationMergeCommit": "TO_BE_SEALED_AFTER_ORDINARY_MAIN_MERGE",
+    "authorizationMergeFirstParent": "ad195d8497ec61fbe3387c606692110f5645fba0",
+    "authorizationReviewedHead": "TO_BE_SEALED_FROM_THIS_BRANCH_EXACT_HEAD",
+    "authorizationOriginalBlobSha": "TO_BE_SEALED_FROM_THIS_FILE_BEFORE_MERGE",
+    "authorizationOriginalFileSha256": "TO_BE_SEALED_FROM_THIS_FILE_BEFORE_MERGE",
+    "exactTwoParentOrderRequired": true,
+    "sealMayNotChangeCandidateIdentityOrImplementationScope": true
+  },
+  "sourceMerge": {
+    "targetBranch": "main",
+    "sourcePullRequest": 67,
+    "sourceBranch": "oss/a-supply-chain-foundation",
+    "sourceExactHead": "028535eb6c092c47ad92bce3f0675c7d7b23f22d",
+    "method": "ORDINARY_TWO_PARENT_MERGE_COMMIT",
+    "firstParentMustEqualFreshTrustedMainImmediatelyBeforeMerge": true,
+    "secondParentMustEqualSourceExactHead": true,
+    "squashAllowed": false,
+    "rebaseAllowed": false,
+    "fastForwardWithoutMergeCommitAllowed": false,
+    "sourceMergeMayOccurOnlyAfterPolicyImplementationOrdinaryMainMerge": true,
+    "postMergeReceiptRequiresSeparateExactAuthorization": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The unmerged or unsealed authorization cannot authorize PR #67 source merge",
+    "A missing authorization merge commit, wrong merge parent order, wrong reviewed authorization Head or wrong original authorization blob fails closed",
+    "Any PR number, source branch, source Head, implementation base, 24/23 path count or implementation path digest drift fails closed",
+    "Any required workflow run identity or structured independent review identity drift fails closed",
+    "The source merge readiness evaluator rejects a trusted main that does not descend from the sealed authorization merge and the exact policy implementation merge",
+    "Any path outside the three authorized policy implementation paths between the authorization merge and policy implementation merge fails closed",
+    "A proposed merge topology whose first parent is not the fresh trusted main or whose second parent is not the exact PR #67 Head fails closed",
+    "Setting production, release, publication, promotion or automatic next-work-package authority true fails closed",
+    "The exact sealed authorization and exact reviewed candidate pass only after all required graph, scope, evidence and closure checks succeed"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes all applicable governance gates",
+    "Independent review returns ALLOW_MERGE with zero P0 and P1 findings",
+    "Authorization PR merges to main by ordinary merge without history rewrite",
+    "Policy implementation branch is created from that exact authorization merge commit",
+    "A test-only commit records causal RED for unsealed authority, candidate drift, evidence drift, implementation-scope drift and merge-parent drift",
+    "The authorization file is sealed with its exact ordinary merge identity without changing candidate or implementation scope",
+    "The pure source-merge authorization policy is implemented without importing the OSS-1A-specific product-route role machinery",
+    "Policy implementation exact Head passes permanent WP0, Layered CI, ACV2, post-merge validation and independent review",
+    "Policy implementation PR merges to main by ordinary merge",
+    "PR #67 remains Draft until the policy implementation merge and fresh exact candidate verification are complete",
+    "PR #67 is source-merged only by an ordinary two-parent merge commit after a final ref lock",
+    "The source-merged main is verified before a separately authorized post-merge receipt or WP-B work begins"
+  ],
+  "prohibitions": {
+    "booleanSemantics": "TRUE_MEANS_FORBIDDEN",
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "candidateScopeReduction": true,
+    "directModificationOfPr67OutsideItsSealedScope": true,
+    "copyOss1aSpecificBranchRoleAsParallelAuthority": true,
+    "sourceMergeBeforePolicyImplementationMainMerge": true,
+    "squashMerge": true,
+    "rebaseMerge": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "productionUse": true,
+    "formalRelease": true,
+    "publish": true,
+    "readyForPromotion": true,
+    "automaticNextWorkPackageAuthorization": true,
+    "wpBImplementationBeforeSourceMergedBaseline": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "twoPhaseSealRequired": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "pr67MustRemainDraft": true,
+    "sourceMergeOnly": true,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "readyForPromotion": false,
+    "automaticNextWorkPackageAuthorization": false
+  }
+}
