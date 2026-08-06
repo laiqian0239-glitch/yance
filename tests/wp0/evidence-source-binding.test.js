@@ -19,6 +19,13 @@ const POST_MERGE_DEFECT_PATH = path.join(
 );
 const LFS_POINTER_ENV = Object.freeze({ ...process.env, GIT_LFS_SKIP_SMUDGE: '1' });
 
+function evaluatedRepositoryEnv(repo) {
+  return {
+    ...LFS_POINTER_ENV,
+    YANCE_EVALUATED_REPOSITORY_ROOT: repo
+  };
+}
+
 function git(cwd, args) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', env: LFS_POINTER_ENV }).trim();
 }
@@ -61,7 +68,7 @@ function runGenerator(repo, args = []) {
   const result = spawnSync(process.execPath, ['tools/wp0/generate-evidence.js', ...args], {
     cwd: repo,
     encoding: 'utf8',
-    env: LFS_POINTER_ENV
+    env: evaluatedRepositoryEnv(repo)
   });
   let json = null;
   try { json = JSON.parse(result.stdout); } catch { json = null; }
