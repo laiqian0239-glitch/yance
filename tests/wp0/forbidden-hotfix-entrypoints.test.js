@@ -14,7 +14,29 @@ const {
 } = require('../../tools/wp0/lib');
 
 const FIXTURE_BRANCH = 'rebuild/windows-release-closure-20260806-wp0-fixture';
-const FIXTURE_ENV = Object.freeze({ ...process.env, GIT_LFS_SKIP_SMUDGE: '1' });
+const CALLER_ROOT_ENV_KEYS = Object.freeze([
+  'YANCE_EVALUATED_REPOSITORY_ROOT',
+  'TRUSTED_POLICY_ROOT',
+  'TRUSTED_POLICY_SHA',
+  'IMPLEMENTATION_BRANCH',
+  'REVIEWED_HEAD_SHA'
+]);
+
+function isolatedFixtureEnv() {
+  const env = { ...process.env, GIT_LFS_SKIP_SMUDGE: '1' };
+  for (const key of CALLER_ROOT_ENV_KEYS) delete env[key];
+  return Object.freeze(env);
+}
+
+const FIXTURE_ENV = isolatedFixtureEnv();
+
+function fixtureGit(repo, args) {
+  return execFileSync('git', args, {
+    cwd: repo,
+    encoding: 'utf8',
+    env: FIXTURE_ENV
+  }).trim();
+}
 
 function makeAuthorizedFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp0-command-fixture-'));
@@ -39,10 +61,11 @@ function makeAuthorizedFixture() {
     encoding: 'utf8',
     env: FIXTURE_ENV
   });
-  assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], {
-    cwd: repo,
-    encoding: 'utf8'
-  }).trim(), head);
+  const remoteRef = `refs/remotes/origin/${FIXTURE_BRANCH}`;
+  fixtureGit(repo, ['update-ref', remoteRef, head]);
+  assert.equal(fixtureGit(repo, ['rev-parse', 'HEAD']), head);
+  assert.equal(fixtureGit(repo, ['branch', '--show-current']), FIXTURE_BRANCH);
+  assert.equal(fixtureGit(repo, ['rev-parse', remoteRef]), head);
   return { root, repo };
 }
 
@@ -50,6 +73,10 @@ test('forbidden-hotfix-entrypoints.test', () => {
   const result = checkForbiddenHotfixEntrypoints();
   assert.equal(result.pass, true, JSON.stringify(result));
   assert.equal(result.details.enumerationMethod, 'git ls-files -z');
+});
+
+test('protected-command fixture cannot inherit the caller repository or reviewed identity', () => {
+  for (const key of CALLER_ROOT_ENV_KEYS) assert.equal(FIXTURE_ENV[key], undefined, key);
 });
 
 test('local build package and release commands are guarded by executable WP0 gate on an isolated authorized rebuild branch', () => {
@@ -67,6 +94,7 @@ test('local build package and release commands are guarded by executable WP0 gat
       assert.equal(result.status, 'PASS', JSON.stringify(result));
       assert.equal(result.gateStatus, 'PASS');
       assert.equal(result.branch, FIXTURE_BRANCH);
+      assert.equal(result.sourceCommit, fixtureGit(repo, ['rev-parse', 'HEAD']));
     }
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
