@@ -2,95 +2,112 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Eliminate the four structural blockers that currently force every Yance UI authorization package to be rebuilt whenever `main` or `project-state/active-handoff` advances: provide root-agnostic UI authorization, a deterministic dynamic current-main receipt, active-handoff decoupling, and base-owned execution gates.
+**Goal:** Establish the four bottom-layer capabilities required before the approved Yance UI migration can begin: root-agnostic UI authorization, deterministic dynamic current-main receipts, active-handoff decoupling, and base-owned execution gates.
 
-**Architecture:** Keep the reviewed UI product design and immutable asset/upstream identities static, while moving branch-time identities into one deterministic receipt generated from Git history. A pure CommonJS policy validates the static authority and receipt without network access. The permanent WP0 workflow evaluates candidate scope using the exact pull-request base worktree, so candidate-owned policy cannot authorize itself. The implementation uses one branch and ordinary checkpoint commits: test-only RED, bottom-layer GREEN, receipt-only final metadata.
+**Architecture:** The prerequisite is delivered through two ordinary governance pull requests. A minimal exact-route bootstrap first registers only the future prerequisite paths in the existing base-owned routing policy. A single prerequisite capability branch is then created from that route merge and implements the static authorization package, receipt generator/verifier, and base-owned evaluator. That capability branch is reviewed and merged as governance infrastructure; it never uses the new UI policy to authorize itself. Only after the capability is present in `main` may the next plan create the approved 28-path UI-WP1 causal RED branch and its branch-time receipt.
 
-**Tech Stack:** Node.js 22, CommonJS, `node:test`, Git plumbing with NUL-framed path evidence, JSON/YAML governance documents, GitHub Actions, existing WP0 route and work-package scope infrastructure.
+**Tech Stack:** Node.js 22, CommonJS, `node:test`, strict Git plumbing through `execFileSync`, UTF-8/LF deterministic JSON, NUL-framed path evidence, GitHub Actions, and the existing WP0 routing and delegated-authority infrastructure.
 
-## Scope and non-scope
+## Product and authority boundary
 
-This plan may establish only the four prerequisite capabilities required by the approved design snapshot.
-
-It must not add:
+This plan implements governance/runtime-enablement infrastructure only. It must not add or change:
 
 - Vue Product Shell source;
 - Chatwoot, shadcn-vue or other upstream source copies;
-- dependencies for the future UI renderer;
-- sound redistribution or installer inclusion;
-- business-state writers, send behavior, translation behavior or data migration;
+- UI runtime dependencies;
+- notification sounds or installer distribution;
+- application data writers;
+- translation or send behavior;
+- identity merge, contact, relationship-memory or AI behavior;
 - legacy/Vue cutover;
 - production, release, publish or promotion authority.
 
-The future Product Shell and the 28-path causal RED package require separate plans and separate authorization after this prerequisite closes.
+The approved UI design snapshot remains the product design authority. This plan only makes that design executable without rebinding four documents every time `main` or `project-state/active-handoff` advances.
 
-## Target branch and checkpoint topology
+## Why two governance pull requests are required
 
-After PR #90 is ordinarily merged, create exactly one implementation branch from the freshly resolved `main`:
+A candidate branch cannot safely add both a new route and the new files that depend on that route, because the exact base-owned routing policy would not recognize candidate-owned route changes. Likewise, a candidate cannot rely on a policy module that exists only in its own tree to authorize itself.
+
+Therefore:
+
+1. **Route bootstrap PR:** modifies only already trusted routing-policy and routing-test paths. It registers a literal future path set and no implementation behavior.
+2. **Prerequisite capability PR:** starts from the ordinary route-bootstrap merge. Every new path is already classified by the base-owned routing policy. The branch is validated as governance infrastructure by the existing gates, then merged ordinarily.
+3. **Future UI-WP1 RED PR:** starts only after both prerequisite PRs are in `main`. Its receipt and scope are evaluated by policy code already owned by the pull-request base.
+
+This is not a temporary bypass. It removes the bootstrap and self-trust cycle at the architecture boundary.
+
+## Branch and commit topology
 
 ```text
-feat/ui-migration-prerequisites
+fresh main after PR #90
+  |
+  +-- governance/ui-migration-prerequisite-routes
+  |     -> test-only exact-route RED
+  |     -> exact-route GREEN
+  |     -> ordinary merge to main
+  |
+  +-- governance/ui-migration-prerequisites
+        -> static package test-only RED
+        -> static package GREEN
+        -> policy test-only RED
+        -> policy GREEN
+        -> receipt test-only RED
+        -> receipt generator/verifier GREEN
+        -> base-owned gate test-only RED
+        -> base-owned gate GREEN = reviewedCodeHead
+        -> ordinary merge to main
 ```
 
-Commit topology:
-
-```text
-fresh trusted main
-  -> test-only root-agnostic authorization RED
-  -> root-agnostic authorization GREEN
-  -> test-only dynamic receipt RED
-  -> deterministic receipt GREEN
-  -> test-only active-handoff decoupling RED
-  -> static companion document refactor GREEN
-  -> test-only base-owned gate RED
-  -> base-owned gate GREEN = reviewedCodeHead
-  -> receipt-only final metadata commit = exact branch tip
-```
+No receipt for a product/UI implementation branch is checked in by this plan. Receipt generation is tested with immutable Git fixtures and real temporary repositories. The first real receipt is created by the next UI-WP1 RED plan from the then-current trusted `main`.
 
 No amend, rebase, squash, force push or history rewrite is permitted.
 
-## Planned repository paths
+## Exact future prerequisite paths
 
-### New static authority and policy
+The route bootstrap registers exactly these new paths:
 
-- `governance/ui-migration/ui-wp1-root-agnostic-authorization.json`
-- `shared/release/uiMigrationWorkPackagePolicy.js`
-- `tests/wp0/ui-migration-work-package-authorization.test.js`
+```text
+governance/layered-ci/ui-wp1-root-agnostic-authorization.json
+governance/ui-migration/ui-wp1-current-main-receipt.json
+shared/release/uiMigrationWorkPackagePolicy.js
+tests/layered-ci/ui-migration-base-owned-gate.test.js
+tests/layered-ci/ui-migration-static-package.test.js
+tests/ui-migration/ui-wp1-current-main-receipt.test.js
+tests/wp0/ui-migration-work-package-authorization.test.js
+tools/ui-migration/generate-ui-wp1-current-main-receipt.js
+tools/ui-migration/verify-ui-wp1-current-main-receipt.js
+```
 
-### New dynamic receipt implementation
+The following four companion paths are already exact UI governance routes and remain unchanged as path identities:
 
-- `governance/ui-migration/ui-wp1-current-main-receipt.json`
-- `tools/ui-migration/generate-ui-wp1-current-main-receipt.js`
-- `tools/ui-migration/verify-ui-wp1-current-main-receipt.js`
-- `tests/ui-migration/ui-wp1-current-main-receipt.test.js`
+```text
+docs/ui-migration/CHATWOOT_TRANSPLANT_MANIFEST.yaml
+docs/ui-migration/UI_ASSET_BASELINE.json
+docs/ui-migration/UI_WP1_AUTHORIZATION.md
+docs/ui-migration/UPSTREAM_PINS.yaml
+```
 
-### Existing frozen companion documents to refactor
+Existing files modified by the capability implementation are:
 
-- `docs/ui-migration/CHATWOOT_TRANSPLANT_MANIFEST.yaml`
-- `docs/ui-migration/UI_ASSET_BASELINE.json`
-- `docs/ui-migration/UI_WP1_AUTHORIZATION.md`
-- `docs/ui-migration/UPSTREAM_PINS.yaml`
+```text
+.github/workflows/stage-6459-wp0-gates.yml
+governance/layered-ci/wp0-routing-policy.json
+shared/release/implementationBranchPolicy.js
+tests/layered-ci/ui-product-shell-wp0-routing.test.js
+tests/layered-ci/wp0-routing.test.js
+tests/wp0/implementation-branch-policy.test.js
+tools/wp0/work-package-scope-gate.js
+```
 
-### Base-owned gate integration
-
-- `.github/workflows/stage-6459-wp0-gates.yml`
-- `governance/layered-ci/wp0-routing-policy.json`
-- `shared/release/implementationBranchPolicy.js`
-- `tools/wp0/work-package-scope-gate.js`
-- `tests/layered-ci/ui-migration-base-owned-gate.test.js`
-- `tests/layered-ci/ui-product-shell-wp0-routing.test.js`
-- `tests/layered-ci/wp0-routing.test.js`
-- `tests/wp0/implementation-branch-policy.test.js`
-
-Any implementation need outside this set must stop and revise this plan before changing code.
+Any need to change a path outside these sets must stop implementation and revise this plan before code changes continue.
 
 ---
 
-## Task 0: Lock fresh refs and create an isolated worktree
+## Task 0: Lock current refs and verify the approved design merge
 
 **Files:** None.
 
-**Step 1: Read exact remote refs**
+**Step 1: Fetch exact remote refs**
 
 ```bash
 git fetch --prune origin main design/unified-ui-open-source-migration-2026-08-06
@@ -98,197 +115,465 @@ git rev-parse refs/remotes/origin/main
 git rev-parse refs/remotes/origin/design/unified-ui-open-source-migration-2026-08-06
 ```
 
-Expected: both commands return exact 40-character commits. Record the values in the PR description; do not copy a stale SHA from this plan.
+Expected: two exact 40-character commits. Never copy a stale SHA from this plan.
 
-**Step 2: Confirm PR #90 is merged before implementation begins**
+**Step 2: Verify PR #90 was ordinarily merged**
 
 ```bash
 gh pr view 90 --json state,mergedAt,mergeCommit,headRefOid,baseRefOid
 ```
 
-Expected: `state=CLOSED`, non-null `mergedAt`, and an ordinary merge commit on `main`. If not merged, stop; this plan itself grants no implementation authority.
+Expected:
 
-**Step 3: Create one isolated worktree and branch**
+- `state` is `CLOSED`;
+- `mergedAt` is non-null;
+- `mergeCommit` is non-null;
+- the merge commit has two parents in the expected order.
+
+If PR #90 is not ordinarily merged, stop. The design branch itself grants no implementation authority.
+
+**Step 3: Establish a clean baseline**
 
 ```bash
-git worktree add ../yance-ui-migration-prerequisites \
-  -b feat/ui-migration-prerequisites \
+git worktree add ../yance-ui-route-bootstrap \
+  -b governance/ui-migration-prerequisite-routes \
   refs/remotes/origin/main
-cd ../yance-ui-migration-prerequisites
+cd ../yance-ui-route-bootstrap
 test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/main)"
 test -z "$(git status --porcelain=v1 --untracked-files=all)"
-```
-
-Expected: clean worktree exactly at fresh remote `main`.
-
-**Step 4: Establish the local baseline**
-
-```bash
 npm ci --ignore-scripts --no-audit --no-fund
-node --test --test-concurrency=1 tests/layered-ci/ui-product-shell-wp0-routing.test.js
-npm run test:wp0
+node --test --test-concurrency=1 \
+  tests/layered-ci/wp0-routing.test.js \
+  tests/layered-ci/ui-product-shell-wp0-routing.test.js
 ```
 
-Expected: existing tests pass before new contracts are added. Infrastructure failure is not a RED and must be repaired separately.
+Expected: clean baseline and existing routing contracts GREEN.
 
 ---
 
-## Task 1: Define causal RED for root-agnostic UI authorization
+## Task 1: Create a test-only RED for exact prerequisite routes
+
+**Files:**
+
+- Modify: `tests/layered-ci/wp0-routing.test.js`
+- Modify: `tests/layered-ci/ui-product-shell-wp0-routing.test.js`
+
+**Step 1: Add exact-route contracts**
+
+Require the base-owned route policy to classify each of the nine new prerequisite paths as governance scope and to preserve the existing four UI document routes.
+
+The tests must also prove that these remain denied or product-routed:
+
+- `governance/ui-migration/extra.json`;
+- `shared/release/uiMigrationWorkPackagePolicy-copy.js`;
+- `tools/ui-migration/arbitrary.js`;
+- `tests/ui-migration/arbitrary.test.js`;
+- any path accepted only through a prefix, glob, case fold or separator normalization.
+
+The route set must contain no `governance/ui-migration/`, `tools/ui-migration/`, `tests/ui-migration/` or `shared/release/` wildcard/prefix expansion introduced for this work package.
+
+**Step 2: Run and confirm causal RED**
+
+```bash
+node --test --test-concurrency=1 \
+  tests/layered-ci/wp0-routing.test.js \
+  tests/layered-ci/ui-product-shell-wp0-routing.test.js
+```
+
+Expected: only the new exact paths fail because the base routing policy does not yet list them. Syntax, discovery and infrastructure failures are invalid RED.
+
+**Step 3: Commit tests only**
+
+```bash
+git add \
+  tests/layered-ci/wp0-routing.test.js \
+  tests/layered-ci/ui-product-shell-wp0-routing.test.js
+git commit -m "test(wp0): require exact UI prerequisite routes"
+```
+
+---
+
+## Task 2: Register the exact routes and merge the bootstrap PR
+
+**Files:**
+
+- Modify: `governance/layered-ci/wp0-routing-policy.json`
+- Modify: `tests/layered-ci/wp0-routing.test.js`
+- Modify: `tests/layered-ci/ui-product-shell-wp0-routing.test.js`
+
+**Step 1: Add the nine literal paths**
+
+Add every new path from **Exact future prerequisite paths** individually. Do not add a directory prefix, glob, branch wildcard or generic UI exception.
+
+The future receipt path is registered now but is not created on this branch.
+
+**Step 2: Run focused routing tests**
+
+```bash
+node --test --test-concurrency=1 \
+  tests/layered-ci/wp0-routing.test.js \
+  tests/layered-ci/ui-product-shell-wp0-routing.test.js
+```
+
+Expected: GREEN, including all negative near-match cases.
+
+**Step 3: Run the existing governance matrix**
+
+```bash
+npm run test:wp0
+npm run test:security-scan
+node tools/protocol/validate-v3-protocols.js
+git diff --check
+```
+
+Expected: GREEN.
+
+**Step 4: Commit the GREEN route change**
+
+```bash
+git add \
+  governance/layered-ci/wp0-routing-policy.json \
+  tests/layered-ci/wp0-routing.test.js \
+  tests/layered-ci/ui-product-shell-wp0-routing.test.js
+git commit -m "fix(wp0): register exact UI prerequisite routes"
+```
+
+**Step 5: Open, review and ordinarily merge the route PR**
+
+The PR must contain exactly the three paths above. Require:
+
+- exact Head verification;
+- zero unresolved P0/P1 findings;
+- no wildcard or prefix authority;
+- ordinary two-parent merge;
+- no Product Shell, receipt or prerequisite implementation files.
+
+After merge:
+
+```bash
+git fetch --prune origin main
+ROUTE_MERGE="$(git rev-parse refs/remotes/origin/main)"
+git show --no-patch --format='%P' "${ROUTE_MERGE}"
+```
+
+Expected: the merge has two ordered parents and contains only the reviewed route PR delta.
+
+---
+
+## Task 3: Create the prerequisite capability branch from the route merge
+
+**Files:** None.
+
+**Step 1: Create a new isolated worktree**
+
+```bash
+cd ../yance
+git worktree add ../yance-ui-prerequisites \
+  -b governance/ui-migration-prerequisites \
+  "${ROUTE_MERGE}"
+cd ../yance-ui-prerequisites
+test "$(git rev-parse HEAD)" = "${ROUTE_MERGE}"
+test -z "$(git status --porcelain=v1 --untracked-files=all)"
+```
+
+**Step 2: Verify all future paths are base-owned before creating them**
+
+Run the routing evaluator or its exact tests against the route-merge base and prove every future path is already registered. A candidate-owned routing file may not be used for this assertion.
+
+**Step 3: Run the baseline**
+
+```bash
+npm ci --ignore-scripts --no-audit --no-fund
+node --test --test-concurrency=1 \
+  tests/layered-ci/wp0-routing.test.js \
+  tests/layered-ci/ui-product-shell-wp0-routing.test.js
+npm run test:wp0
+```
+
+Expected: GREEN before adding prerequisite behavior.
+
+---
+
+## Task 4: Define static-package and active-handoff causal RED
+
+**Files:**
+
+- Create: `tests/layered-ci/ui-migration-static-package.test.js`
+
+**Step 1: Write static-package contracts**
+
+Require exactly:
+
+- document type `YANCE_UI_MIGRATION_ROOT_AGNOSTIC_AUTHORIZATION`;
+- repository `laiqian0239-glitch/yance`;
+- work package `UI-WP1`;
+- the approved design snapshot path;
+- the exact four companion document paths;
+- immutable upstream commit/blob and local source-snapshot identities;
+- exact future UI-WP1 RED branch name and 28-path set identity;
+- exact Yance authority, single-writer and non-production closure fields;
+- exact prerequisite implementation path set and digest;
+- no executable current-main commit/tree, authorization parent or active-handoff identity.
+
+The test must fail closed on:
+
+- missing, duplicate, malformed, traversal, case-variant or separator-variant paths;
+- a prefix/wildcard path authority;
+- Product Shell, source copy, sound distribution, cutover, production, release, publish or automatic continuation set true;
+- a changed upstream commit/blob without a matching reviewed static package;
+- an `activeHandoffObserved`, `requiredActiveHandoff`, `activeHandoffCommit`, `baseCommit`, `baseTree` or `authorizationParent` field used as executable authority.
+
+Historical observations may exist only under an `observations` object with `authoritative: false`; changing or deleting that object must not change authorization identity.
+
+**Step 2: Run and confirm causal RED**
+
+```bash
+node --test --test-concurrency=1 \
+  tests/layered-ci/ui-migration-static-package.test.js
+```
+
+Expected: failure only because the five static package files do not yet exist.
+
+**Step 3: Commit the test only**
+
+```bash
+git add tests/layered-ci/ui-migration-static-package.test.js
+git commit -m "test(ui): define root-agnostic static package contracts"
+```
+
+---
+
+## Task 5: Create the root-agnostic static package
+
+**Files:**
+
+- Create: `docs/ui-migration/CHATWOOT_TRANSPLANT_MANIFEST.yaml`
+- Create: `docs/ui-migration/UI_ASSET_BASELINE.json`
+- Create: `docs/ui-migration/UI_WP1_AUTHORIZATION.md`
+- Create: `docs/ui-migration/UPSTREAM_PINS.yaml`
+- Create: `governance/layered-ci/ui-wp1-root-agnostic-authorization.json`
+- Modify: `tests/layered-ci/ui-migration-static-package.test.js`
+
+**Step 1: Build from the approved design and reviewed source identities**
+
+Use the approved design snapshot as the product/design source. Reuse only already reviewed exact upstream commits, blobs, versions and Yance source-snapshot identities from the prior UI authorization work.
+
+Do not treat PR #65, PR #85 or their branch roots as current execution parents. They are historical source evidence only.
+
+**Step 2: Remove executable root bindings**
+
+The four companion documents and static authority must not require:
+
+- a current `main` SHA or tree;
+- `project-state/active-handoff` existence or SHA;
+- an authorization branch parent;
+- a workflow run ID;
+- a candidate Head.
+
+Where historical capture information is retained, place it under:
+
+```json
+{
+  "observations": {
+    "authoritative": false
+  }
+}
+```
+
+Equivalent YAML/Markdown forms are allowed only when tests prove they cannot affect execution identity or package digests.
+
+**Step 3: Freeze exact static identities**
+
+The authorization must include:
+
+- exact four-document byte digests;
+- one normalized authorization digest;
+- one deterministic static package digest;
+- exact 28-path future RED set digest;
+- exact prerequisite capability path set digest;
+- explicit denial of all implementation and production authorities not granted by this package.
+
+Hash rules must be defined once in the static-package test and later implemented identically by the pure policy. Records use UTF-8 LF bytes, lexicographic path order, and `path + NUL + digest + "\n"` package framing.
+
+**Step 4: Run the focused test**
+
+```bash
+node --test --test-concurrency=1 \
+  tests/layered-ci/ui-migration-static-package.test.js
+```
+
+Expected: GREEN.
+
+**Step 5: Verify active-handoff independence**
+
+```bash
+git grep -nE \
+  'activeHandoffObserved|requiredActiveHandoff|activeHandoffCommit|authorizationParent' \
+  -- docs/ui-migration governance/layered-ci/ui-wp1-root-agnostic-authorization.json
+```
+
+Expected: no executable match. Any historical match must be explicitly non-authoritative and excluded from authorization digests by tests.
+
+**Step 6: Commit the GREEN static package**
+
+```bash
+git add \
+  docs/ui-migration/CHATWOOT_TRANSPLANT_MANIFEST.yaml \
+  docs/ui-migration/UI_ASSET_BASELINE.json \
+  docs/ui-migration/UI_WP1_AUTHORIZATION.md \
+  docs/ui-migration/UPSTREAM_PINS.yaml \
+  governance/layered-ci/ui-wp1-root-agnostic-authorization.json \
+  tests/layered-ci/ui-migration-static-package.test.js
+git commit -m "docs(ui): freeze root-agnostic migration package"
+```
+
+---
+
+## Task 6: Define causal RED for the pure UI migration policy
 
 **Files:**
 
 - Create: `tests/wp0/ui-migration-work-package-authorization.test.js`
 
-**Step 1: Write the static-authority contracts**
+**Step 1: Write policy contracts before the module exists**
 
-The test must require all of the following:
-
-- exact document type `YANCE_UI_MIGRATION_ROOT_AGNOSTIC_AUTHORIZATION`;
-- repository `laiqian0239-glitch/yance` and work package `UI-WP1`;
-- exact immutable companion paths and package digests;
-- no executable `base.commit`, `base.tree`, `authorizationParent`, `activeHandoffObserved` or workflow-run identity;
-- no branch prefix, wildcard or generic `docs/ui-migration/` authority;
-- explicit denial of Product Shell implementation, source copy, sound distribution, cutover, production, release, publish and automatic continuation;
-- malformed, duplicate, case-variant and traversal paths fail closed;
-- a candidate-owned replacement authority cannot validate itself.
-
-The initial test may import the not-yet-existing module:
+The test imports:
 
 ```js
 const policy = require('../../shared/release/uiMigrationWorkPackagePolicy');
 ```
 
-**Step 2: Run the focused test and verify causal RED**
+Require focused exports:
+
+```js
+validateStaticAuthorization(document)
+validateCurrentMainReceipt(document, context)
+evaluateUiMigrationCandidate(input)
+changedFileSetSha256(paths)
+```
+
+Contracts must prove:
+
+- exact repository-path validation without lossy normalization;
+- canonical path-set and package digests;
+- static authority validation independent of active-handoff and current main;
+- receipt validation requires trusted graph/file adapters;
+- candidate-owned static authority or policy mutation cannot authorize itself;
+- non-production closure fields are mandatory;
+- results and normalized inputs are immutable;
+- distinct reason codes exist for static identity, scope, receipt, graph and closure failure.
+
+**Step 2: Run and confirm causal RED**
 
 ```bash
 node --test --test-concurrency=1 \
   tests/wp0/ui-migration-work-package-authorization.test.js
 ```
 
-Expected: failure only because the policy/static authority does not yet exist. Syntax errors, missing test discovery or unrelated failures are invalid RED.
+Expected: failure only because the module does not yet exist.
 
 **Step 3: Commit test only**
 
 ```bash
 git add tests/wp0/ui-migration-work-package-authorization.test.js
-git commit -m "test(ui): define root-agnostic authorization contracts"
+git commit -m "test(ui): define migration policy contracts"
 ```
 
 ---
 
-## Task 2: Implement the root-agnostic authority and pure policy
+## Task 7: Implement the pure policy
 
 **Files:**
 
-- Create: `governance/ui-migration/ui-wp1-root-agnostic-authorization.json`
 - Create: `shared/release/uiMigrationWorkPackagePolicy.js`
 - Modify: `tests/wp0/ui-migration-work-package-authorization.test.js`
+- Modify: `tests/layered-ci/ui-migration-static-package.test.js`
 
-**Step 1: Create the static authority**
-
-The authority must contain only stable identities:
-
-- immutable design/spec path;
-- exact companion document paths;
-- content digests and upstream identities;
-- authorized future 28-path RED set identity;
-- required single-writer and Yance-authority boundaries;
-- prohibited actions.
-
-It must not name a current `main` commit/tree or active-handoff commit.
-
-**Step 2: Implement the pure policy**
-
-Export focused functions such as:
-
-```js
-validateUiMigrationAuthorization(document)
-validateUiMigrationReceipt(document, context)
-evaluateUiMigrationScope(input)
-changedFileSetSha256(paths)
-```
+**Step 1: Implement validation primitives**
 
 Requirements:
 
-- no network access;
-- dependency injection for graph and file evidence;
-- exact repository-path validation without lossy normalization;
-- canonical sorted path-set digest;
-- immutable result objects;
-- distinct reason codes for authority identity, scope, receipt, graph and closure failures.
+- CommonJS and no network access;
+- dependency injection for Git graph and file evidence;
+- exact UTF-8 repository paths;
+- rejection of duplicate, malformed and normalization-dependent paths;
+- deterministic SHA-256 helpers;
+- no branch, prefix or wildcard expansion;
+- immutable return values;
+- no reading `project-state/active-handoff`.
 
-**Step 3: Run focused RED-to-GREEN tests**
+**Step 2: Replace duplicated test hashing with the production helper**
+
+The static-package test must use the same public deterministic digest functions, while retaining independent known-answer fixtures so a broken implementation cannot merely agree with itself.
+
+**Step 3: Run RED-to-GREEN tests**
 
 ```bash
 node --check shared/release/uiMigrationWorkPackagePolicy.js
 node --test --test-concurrency=1 \
+  tests/layered-ci/ui-migration-static-package.test.js \
   tests/wp0/ui-migration-work-package-authorization.test.js
 ```
 
-Expected: all root-agnostic authorization contracts pass.
+Expected: GREEN.
 
-**Step 4: Run related regressions**
-
-```bash
-node --test --test-concurrency=1 \
-  tests/wp0/implementation-branch-policy.test.js \
-  tests/layered-ci/ui-product-shell-wp0-routing.test.js
-```
-
-Expected: existing delegated-authority and exact-route behavior remains GREEN.
-
-**Step 5: Commit implementation**
+**Step 4: Commit the implementation**
 
 ```bash
 git add \
-  governance/ui-migration/ui-wp1-root-agnostic-authorization.json \
   shared/release/uiMigrationWorkPackagePolicy.js \
+  tests/layered-ci/ui-migration-static-package.test.js \
   tests/wp0/ui-migration-work-package-authorization.test.js
-git commit -m "feat(ui): implement root-agnostic migration authority"
+git commit -m "feat(ui): implement root-agnostic migration policy"
 ```
 
 ---
 
-## Task 3: Define causal RED for the dynamic current-main receipt
+## Task 8: Define causal RED for deterministic current-main receipts
 
 **Files:**
 
 - Create: `tests/ui-migration/ui-wp1-current-main-receipt.test.js`
 
-**Step 1: Write deterministic receipt contracts**
+**Step 1: Write receipt contracts using temporary Git repositories**
 
-The receipt shape must bind:
+The receipt must bind:
 
-- exact repository/work package/document type;
-- exact implementation branch;
-- exact trusted `main` base commit resolved at branch creation;
-- exact reviewed code Head;
+- document type `YANCE_UI_WP1_CURRENT_MAIN_RECEIPT`;
+- repository and work package;
+- exact future implementation branch;
+- trusted base commit resolved when the branch is created;
+- reviewed code Head;
 - reviewed Head ancestry from trusted base;
-- static authorization introduction merge, original blob and file hash;
-- exact implementation paths/count/digest excluding only the receipt path;
-- exact companion package digests;
-- allowed post-review path set containing only the receipt;
+- exact static authorization blob and file hash from the trusted base;
+- exact implementation path count and digest excluding only the receipt path;
+- exact companion static package digest;
+- allowed post-review path set containing only the receipt path;
 - all production/release/publish/promotion/automatic-next-package fields false.
 
-Negative contracts must reject:
+Negative fixtures must reject:
 
 - stale or fabricated base;
-- wrong ancestry or parent order;
+- wrong ancestry or merge-parent order;
 - receipt self-reference;
-- duplicate, invalid or widened path sets;
-- manual receipt drift;
+- dirty worktree;
 - wrong branch;
-- candidate-owned static authority;
-- extra post-review commit/path.
+- candidate-owned static authority or policy;
+- duplicate, invalid or widened path sets;
+- an extra post-review commit or path;
+- CRLF/platform-dependent receipt bytes;
+- Git replacement/config/environment injection.
 
-**Step 2: Run the focused test and verify causal RED**
+Changing active-handoff refs or observations in the temporary repository must not change generated receipt bytes.
+
+**Step 2: Run and confirm causal RED**
 
 ```bash
 node --test --test-concurrency=1 \
   tests/ui-migration/ui-wp1-current-main-receipt.test.js
 ```
 
-Expected: failure only because the generator/verifier is absent.
+Expected: failure only because generator and verifier modules do not yet exist.
 
 **Step 3: Commit test only**
 
@@ -299,7 +584,7 @@ git commit -m "test(ui): define dynamic current-main receipt contracts"
 
 ---
 
-## Task 4: Implement deterministic receipt generation and verification
+## Task 9: Implement deterministic receipt generation and verification
 
 **Files:**
 
@@ -309,44 +594,54 @@ git commit -m "test(ui): define dynamic current-main receipt contracts"
 
 **Step 1: Implement trusted Git adapters**
 
-Use `execFileSync('git', args, ...)` with:
+Use `execFileSync('git', args, options)` only, with:
 
-- an explicit repository root;
-- stripped repository/object replacement/config override variables;
+- explicit repository root;
 - `GIT_NO_REPLACE_OBJECTS=1`;
 - `GIT_TERMINAL_PROMPT=0`;
+- repository/object/config override variables stripped;
 - bounded timeout and buffer;
+- no shell interpolation;
 - NUL-framed changed-file transport;
-- fatal UTF-8 decoding;
-- no shell interpolation.
+- fatal UTF-8 decoding.
 
-**Step 2: Implement deterministic generation**
+**Step 2: Implement generation**
 
-Required CLI behavior:
+Required CLI:
 
 ```bash
 node tools/ui-migration/generate-ui-wp1-current-main-receipt.js \
+  --repository-root <path> \
   --base <trusted-main-sha> \
   --reviewed-head <reviewed-code-sha> \
-  --branch feat/ui-migration-prerequisites \
-  --output <path>
+  --branch <exact-implementation-branch> \
+  --output <receipt-path>
 ```
 
-Generation must be byte-deterministic for identical Git inputs. It must refuse dirty worktrees, missing ancestry, changed static authority, invalid branch identity and any implementation path outside the approved set.
+Generation must be deterministic and must refuse:
 
-**Step 3: Implement strict verification**
+- dirty worktrees;
+- missing ancestry;
+- altered trusted static authority;
+- wrong branch identity;
+- implementation paths outside the static authorization;
+- receipt inclusion in its own implementation digest.
 
-Required CLI behavior:
+**Step 3: Implement verification**
+
+Required CLI:
 
 ```bash
 node tools/ui-migration/verify-ui-wp1-current-main-receipt.js \
+  --check \
+  --repository-root <path> \
   --receipt <path> \
   --base <trusted-main-sha> \
   --head <candidate-sha> \
-  --branch feat/ui-migration-prerequisites
+  --branch <exact-implementation-branch>
 ```
 
-`--check` must regenerate to memory and compare exact UTF-8 LF bytes without rewriting the file.
+`--check` regenerates in memory and compares exact UTF-8 LF bytes without rewriting the file.
 
 **Step 4: Run tests**
 
@@ -358,167 +653,64 @@ node --test --test-concurrency=1 \
   tests/wp0/ui-migration-work-package-authorization.test.js
 ```
 
-Expected: all receipt and static-authority contracts pass.
+Expected: GREEN on deterministic and adversarial fixtures.
 
-**Step 5: Commit generator and verifier**
+**Step 5: Commit implementation**
 
 ```bash
 git add \
   tools/ui-migration/generate-ui-wp1-current-main-receipt.js \
   tools/ui-migration/verify-ui-wp1-current-main-receipt.js \
   tests/ui-migration/ui-wp1-current-main-receipt.test.js
-git commit -m "feat(ui): implement deterministic current-main receipt"
+git commit -m "feat(ui): implement deterministic current-main receipts"
 ```
 
-Do not create the final checked-in receipt yet; its `reviewedHead` must point to a later GREEN code commit.
+Do not create `governance/ui-migration/ui-wp1-current-main-receipt.json` on this branch.
 
 ---
 
-## Task 5: Define causal RED for active-handoff decoupling
-
-**Files:**
-
-- Modify: `tests/wp0/ui-migration-work-package-authorization.test.js`
-- Modify: `tests/ui-migration/ui-wp1-current-main-receipt.test.js`
-
-**Step 1: Add non-authority mutation contracts**
-
-Prove that all of these produce the same authorization result:
-
-- active-handoff ref present;
-- active-handoff ref missing;
-- active-handoff ref advanced;
-- historical observation text changed;
-- no active-handoff field at all.
-
-Also prove that any executable field named `activeHandoffObserved`, `requiredActiveHandoff`, `activeHandoffCommit` or equivalent is rejected by the static authority and receipt schemas.
-
-**Step 2: Run and verify causal RED**
-
-```bash
-node --test --test-concurrency=1 \
-  tests/wp0/ui-migration-work-package-authorization.test.js \
-  tests/ui-migration/ui-wp1-current-main-receipt.test.js
-```
-
-Expected: only the new decoupling contracts fail because the four existing companion documents still encode current-main/active-handoff observations as package identity.
-
-**Step 3: Commit test only**
-
-```bash
-git add \
-  tests/wp0/ui-migration-work-package-authorization.test.js \
-  tests/ui-migration/ui-wp1-current-main-receipt.test.js
-git commit -m "test(ui): prove active handoff is non-authoritative"
-```
-
----
-
-## Task 6: Refactor the four companion documents into immutable snapshots
-
-**Files:**
-
-- Modify: `docs/ui-migration/CHATWOOT_TRANSPLANT_MANIFEST.yaml`
-- Modify: `docs/ui-migration/UI_ASSET_BASELINE.json`
-- Modify: `docs/ui-migration/UI_WP1_AUTHORIZATION.md`
-- Modify: `docs/ui-migration/UPSTREAM_PINS.yaml`
-- Modify: `governance/ui-migration/ui-wp1-root-agnostic-authorization.json`
-
-**Step 1: Separate immutable source identity from observations**
-
-For every companion document:
-
-- retain exact upstream commits, blobs, local authoritative file blobs and behavior boundaries;
-- rename current-root fields to immutable source snapshot fields where they identify bytes actually reviewed;
-- remove `baseCommit`, `baseTree`, `authorizationParent` and active-handoff values from execution authority;
-- when historical observations remain useful, place them under an explicitly non-authoritative `observations` section with `authoritative: false`;
-- never use an observation in a digest that determines execution authority.
-
-**Step 2: Recompute static package digests**
-
-Use one deterministic helper in `uiMigrationWorkPackagePolicy.js`; do not hand-maintain parallel hashing algorithms.
-
-**Step 3: Run focused tests**
-
-```bash
-node --test --test-concurrency=1 \
-  tests/wp0/ui-migration-work-package-authorization.test.js \
-  tests/ui-migration/ui-wp1-current-main-receipt.test.js \
-  tests/layered-ci/ui-product-shell-wp0-routing.test.js
-```
-
-Expected: all static authority, receipt and active-handoff decoupling contracts pass.
-
-**Step 4: Verify no executable active-handoff binding remains**
-
-```bash
-git grep -nE \
-  'activeHandoffObserved|requiredActiveHandoff|activeHandoffCommit' \
-  -- \
-  docs/ui-migration \
-  governance/ui-migration \
-  shared/release/uiMigrationWorkPackagePolicy.js \
-  tools/ui-migration
-```
-
-Expected: either no match, or matches only inside explicitly non-authoritative observation/test text.
-
-**Step 5: Commit the bottom-layer refactor**
-
-```bash
-git add \
-  docs/ui-migration/CHATWOOT_TRANSPLANT_MANIFEST.yaml \
-  docs/ui-migration/UI_ASSET_BASELINE.json \
-  docs/ui-migration/UI_WP1_AUTHORIZATION.md \
-  docs/ui-migration/UPSTREAM_PINS.yaml \
-  governance/ui-migration/ui-wp1-root-agnostic-authorization.json
-git commit -m "refactor(ui): decouple active handoff from migration authority"
-```
-
----
-
-## Task 7: Define causal RED for a base-owned UI migration gate
+## Task 10: Define causal RED for the base-owned execution gate
 
 **Files:**
 
 - Create: `tests/layered-ci/ui-migration-base-owned-gate.test.js`
 - Modify: `tests/layered-ci/ui-product-shell-wp0-routing.test.js`
-- Modify: `tests/layered-ci/wp0-routing.test.js`
 - Modify: `tests/wp0/implementation-branch-policy.test.js`
 
-**Step 1: Add structural workflow contracts**
+**Step 1: Add workflow structure contracts**
 
 Require the permanent workflow to:
 
-- resolve the exact PR base and Head;
-- create a detached base-owned policy worktree;
-- execute the UI migration authorization contract exactly once and fail fast;
-- run receipt verification against the candidate using the base-owned policy implementation;
-- pass the explicit `IMPLEMENTATION_BRANCH` when checkout is detached;
-- reject broad `tests/wp0/*.test.js` substitutions, duplicate invocation, `continue-on-error`, shell suppression and candidate-owned verifier execution.
+- resolve exact pull-request base and Head;
+- create or use a detached worktree at the exact base;
+- execute UI static-authority and receipt semantics from the base-owned module;
+- pass explicit implementation branch identity for detached checkout;
+- execute the exact focused contract once and fail fast;
+- reject candidate-owned verifier execution;
+- reject broad test globs, duplicate invocation, `continue-on-error`, warning-only closure and shell suppression.
 
-**Step 2: Add scope-gate contracts**
+**Step 2: Add delegated-authority contracts**
 
-Require:
+Require the existing branch policy and scope gate to:
 
-- `feat/ui-migration-prerequisites` is applicable only through exact trusted authority;
-- the receipt path is the only path excluded from implementation digest;
-- wrong branch, stale base, widened scope and candidate policy mutation fail closed;
-- unrelated UI branches and arbitrary `feat/ui-*` branches remain denied;
-- the four existing UI governance paths remain exact governance routes;
-- new authority, receipt, verifier and tests receive exact routes without adding a directory wildcard.
+- recognize only the exact future UI-WP1 RED branch defined by the static package;
+- verify static authority from the pull-request base, not the candidate;
+- verify receipt bytes, trusted-base ancestry and exact path digest;
+- exclude only the receipt path from implementation scope;
+- deny arbitrary `feat/ui-*` and near-match branches;
+- deny static authority, policy or workflow mutation by the future implementation branch;
+- return `readyForPromotion: false`.
 
-**Step 3: Run and verify causal RED**
+**Step 3: Run and confirm causal RED**
 
 ```bash
 node --test --test-concurrency=1 \
   tests/layered-ci/ui-migration-base-owned-gate.test.js \
   tests/layered-ci/ui-product-shell-wp0-routing.test.js \
-  tests/layered-ci/wp0-routing.test.js \
   tests/wp0/implementation-branch-policy.test.js
 ```
 
-Expected: only new base-owned gate and exact-route contracts fail.
+Expected: only the new base-owned gate contracts fail.
 
 **Step 4: Commit test only**
 
@@ -526,64 +718,52 @@ Expected: only new base-owned gate and exact-route contracts fail.
 git add \
   tests/layered-ci/ui-migration-base-owned-gate.test.js \
   tests/layered-ci/ui-product-shell-wp0-routing.test.js \
-  tests/layered-ci/wp0-routing.test.js \
   tests/wp0/implementation-branch-policy.test.js
 git commit -m "test(wp0): require base-owned UI migration gate"
 ```
 
 ---
 
-## Task 8: Integrate the base-owned UI migration gate
+## Task 11: Integrate the base-owned gate
 
 **Files:**
 
 - Modify: `.github/workflows/stage-6459-wp0-gates.yml`
-- Modify: `governance/layered-ci/wp0-routing-policy.json`
 - Modify: `shared/release/implementationBranchPolicy.js`
 - Modify: `tools/wp0/work-package-scope-gate.js`
 - Modify: `tests/layered-ci/ui-migration-base-owned-gate.test.js`
 - Modify: `tests/layered-ci/ui-product-shell-wp0-routing.test.js`
-- Modify: `tests/layered-ci/wp0-routing.test.js`
 - Modify: `tests/wp0/implementation-branch-policy.test.js`
 
-**Step 1: Register only exact new paths**
+**Step 1: Add one UI migration authority descriptor**
 
-Add each approved governance/test/tool path literally. Do not add `governance/ui-migration/`, `tools/ui-migration/`, `tests/ui-migration/` or any other prefix/wildcard authority.
+Extend the existing delegated-authority mechanism; do not create a parallel generic branch-authority registry.
 
-**Step 2: Add a trusted UI authority descriptor**
+The descriptor must point to the trusted static authorization path and exact future implementation branch. Runtime adapters must verify the static file from the pull-request base and its exact content identity.
 
-Extend the existing delegated-authority mechanism or call the new pure policy through one exact descriptor rooted in the ordinary main merge that introduced the static authority. Verify:
+**Step 2: Add isolated candidate evaluation**
 
-- ordered merge parents;
-- reviewed authorization Head;
-- original authorization blob;
-- trusted-Head ancestry;
-- exact implementation branch and path digest;
-- all non-production closure fields.
+In `tools/wp0/work-package-scope-gate.js`, add a focused UI path that:
 
-Do not copy the OSS-A product registry or create a second generic branch authority.
+- reads static authority and policy code from the base worktree;
+- reads only candidate receipt and candidate changed-file evidence from the candidate tree;
+- uses strict Buffer/NUL-framed Git evidence;
+- verifies clean worktree, ancestry and exact branch;
+- excludes exactly `governance/ui-migration/ui-wp1-current-main-receipt.json` from implementation scope;
+- delegates semantics to `uiMigrationWorkPackagePolicy.js`;
+- denies production and promotion.
 
-**Step 3: Add UI scope evaluation**
+**Step 3: Update the permanent workflow**
 
-In `tools/wp0/work-package-scope-gate.js`, add an isolated `evaluateUiMigrationScope` path that:
+The workflow must execute the base-owned UI evaluator for applicable future branches. Candidate modifications to the workflow, policy, static authority or verifier must not alter the evaluator used for that run.
 
-- resolves the trusted static authority and checked-in receipt from the base-owned policy root;
-- uses strict Buffer/NUL-framed Git path evidence;
-- checks clean worktree and exact ancestry;
-- excludes only `governance/ui-migration/ui-wp1-current-main-receipt.json` from implementation scope;
-- delegates semantic validation to `uiMigrationWorkPackagePolicy.js`;
-- returns `readyForPromotion: false`.
-
-**Step 4: Execute the exact contract in the workflow**
-
-The `GOVERNANCE_WP0` job must execute the new static authorization contract exactly once. The `PRODUCT_WP0` base-owned executable gate must evaluate the implementation branch and receipt through the trusted base worktree. No candidate-owned script may decide its own authority.
-
-**Step 5: Run focused tests**
+**Step 4: Run focused tests**
 
 ```bash
 node --check shared/release/implementationBranchPolicy.js
 node --check tools/wp0/work-package-scope-gate.js
 node --test --test-concurrency=1 \
+  tests/layered-ci/ui-migration-static-package.test.js \
   tests/layered-ci/ui-migration-base-owned-gate.test.js \
   tests/layered-ci/ui-product-shell-wp0-routing.test.js \
   tests/layered-ci/wp0-routing.test.js \
@@ -592,52 +772,50 @@ node --test --test-concurrency=1 \
   tests/ui-migration/ui-wp1-current-main-receipt.test.js
 ```
 
-Expected: all focused contracts pass.
+Expected: GREEN.
 
-**Step 6: Run repository-level verification**
+**Step 5: Run repository-level verification**
 
 ```bash
 npm run test:wp0
 npm run test:security-scan
 node tools/protocol/validate-v3-protocols.js
 git diff --check
-test -z "$(git status --porcelain=v1 --untracked-files=all)"
 ```
 
-The final clean-tree assertion is run after staging/committing, not while intended changes remain uncommitted.
+Expected: GREEN.
 
-**Step 7: Commit the GREEN code Head**
+**Step 6: Commit the reviewed code Head**
 
 ```bash
 git add \
   .github/workflows/stage-6459-wp0-gates.yml \
-  governance/layered-ci/wp0-routing-policy.json \
   shared/release/implementationBranchPolicy.js \
   tools/wp0/work-package-scope-gate.js \
   tests/layered-ci/ui-migration-base-owned-gate.test.js \
   tests/layered-ci/ui-product-shell-wp0-routing.test.js \
-  tests/layered-ci/wp0-routing.test.js \
   tests/wp0/implementation-branch-policy.test.js
-git commit -m "fix(wp0): execute base-owned UI migration authorization"
+git commit -m "fix(wp0): execute base-owned UI migration policy"
 ```
 
 Record this commit as `reviewedCodeHead`.
 
 ---
 
-## Task 9: Complete hermetic and cross-platform verification
+## Task 12: Complete hermetic Linux and Windows verification
 
-**Files:** No planned changes. Any discovered defect requires a new focused RED before repair.
+**Files:** No planned changes. A discovered defect requires a new focused failing test before repair.
 
-**Step 1: Reinstall from lock and run the complete local matrix**
+**Step 1: Verify Linux from a clean dependency install**
 
 ```bash
 rm -rf node_modules
 npm ci --ignore-scripts --no-audit --no-fund
 node --test --test-concurrency=1 \
+  tests/layered-ci/ui-migration-static-package.test.js \
+  tests/layered-ci/ui-migration-base-owned-gate.test.js \
   tests/wp0/ui-migration-work-package-authorization.test.js \
-  tests/ui-migration/ui-wp1-current-main-receipt.test.js \
-  tests/layered-ci/ui-migration-base-owned-gate.test.js
+  tests/ui-migration/ui-wp1-current-main-receipt.test.js
 npm run test:wp0
 npm run test:security-scan
 node tools/protocol/validate-v3-protocols.js
@@ -645,16 +823,17 @@ git diff --check
 test -z "$(git status --porcelain=v1 --untracked-files=all)"
 ```
 
-Expected: GREEN and clean on Linux.
+Expected: GREEN and clean.
 
-**Step 2: Run equivalent Windows commands**
+**Step 2: Verify Windows**
 
 ```powershell
 npm ci --ignore-scripts --no-audit --no-fund
 node --test --test-concurrency=1 `
+  tests/layered-ci/ui-migration-static-package.test.js `
+  tests/layered-ci/ui-migration-base-owned-gate.test.js `
   tests/wp0/ui-migration-work-package-authorization.test.js `
-  tests/ui-migration/ui-wp1-current-main-receipt.test.js `
-  tests/layered-ci/ui-migration-base-owned-gate.test.js
+  tests/ui-migration/ui-wp1-current-main-receipt.test.js
 npm run test:wp0
 npm run test:security-scan
 node tools/protocol/validate-v3-protocols.js
@@ -662,181 +841,111 @@ git diff --check
 if (git status --porcelain=v1 --untracked-files=all) { throw 'worktree is dirty' }
 ```
 
-Expected: identical semantic result. Path separators, line endings and detached checkout must not alter receipt bytes or authorization decisions.
+Expected: identical semantic result and deterministic receipt bytes.
 
 **Step 3: Run mutation controls**
 
-At minimum mutate in temporary fixtures:
+At minimum mutate temporary fixtures for:
 
 - base SHA;
 - branch name;
 - static authority blob;
-- one companion digest;
+- companion package digest;
 - duplicate implementation path;
 - extra post-review path;
-- active-handoff observation;
-- candidate-owned verifier.
+- candidate-owned verifier;
+- Git replacement/config injection;
+- active-handoff ref and observation.
 
-Expected: every authority mutation fails except the active-handoff observation mutation, which must not affect the result.
-
----
-
-## Task 10: Generate the receipt-only final metadata commit
-
-**Files:**
-
-- Create: `governance/ui-migration/ui-wp1-current-main-receipt.json`
-
-**Step 1: Resolve immutable inputs**
-
-```bash
-TRUSTED_BASE="$(git merge-base refs/remotes/origin/main HEAD)"
-REVIEWED_HEAD="$(git rev-parse HEAD)"
-test "${REVIEWED_HEAD}" = "$(git rev-parse feat/ui-migration-prerequisites)"
-git merge-base --is-ancestor "${TRUSTED_BASE}" "${REVIEWED_HEAD}"
-```
-
-Expected: `REVIEWED_HEAD` is the Task 8 GREEN code commit and the branch has not moved.
-
-**Step 2: Generate the checked-in receipt**
-
-```bash
-node tools/ui-migration/generate-ui-wp1-current-main-receipt.js \
-  --base "${TRUSTED_BASE}" \
-  --reviewed-head "${REVIEWED_HEAD}" \
-  --branch feat/ui-migration-prerequisites \
-  --output governance/ui-migration/ui-wp1-current-main-receipt.json
-```
-
-**Step 3: Verify exact bytes before commit**
-
-```bash
-node tools/ui-migration/verify-ui-wp1-current-main-receipt.js \
-  --check \
-  --receipt governance/ui-migration/ui-wp1-current-main-receipt.json \
-  --base "${TRUSTED_BASE}" \
-  --head "${REVIEWED_HEAD}" \
-  --branch feat/ui-migration-prerequisites
-```
-
-Expected: GREEN with no file rewrite.
-
-**Step 4: Commit only the receipt**
-
-```bash
-git add governance/ui-migration/ui-wp1-current-main-receipt.json
-git diff --cached --name-only
-git commit -m "chore(ui): record current-main migration receipt"
-```
-
-Expected staged path list contains exactly one path.
-
-**Step 5: Prove post-review topology**
-
-```bash
-TIP="$(git rev-parse HEAD)"
-git diff --name-only "${REVIEWED_HEAD}" "${TIP}"
-git rev-list --count "${REVIEWED_HEAD}..${TIP}"
-```
-
-Expected:
-
-```text
-governance/ui-migration/ui-wp1-current-main-receipt.json
-1
-```
-
-**Step 6: Rerun the full matrix at the exact tip**
-
-```bash
-node --test --test-concurrency=1 \
-  tests/wp0/ui-migration-work-package-authorization.test.js \
-  tests/ui-migration/ui-wp1-current-main-receipt.test.js \
-  tests/layered-ci/ui-migration-base-owned-gate.test.js
-npm run test:wp0
-npm run test:security-scan
-node tools/protocol/validate-v3-protocols.js
-git diff --check
-test -z "$(git status --porcelain=v1 --untracked-files=all)"
-```
-
-Expected: exact-tip GREEN and clean.
+Expected: every authority mutation fails. Active-handoff ref/observation mutation does not change authorization or receipt bytes.
 
 ---
 
-## Task 11: Review, ordinary merge and next-work-package boundary
+## Task 13: Review and ordinarily merge the prerequisite capability
 
 **Files:** PR metadata only unless a real defect is found.
 
-**Step 1: Open one implementation PR against fresh `main`**
+**Step 1: Open one prerequisite capability PR**
 
-The PR must record:
+The PR must identify:
 
-- trusted base;
-- each test-only RED Head and exact failure;
+- exact route-bootstrap merge base;
+- every test-only RED Head and its causal failure;
 - reviewed code Head;
-- receipt-only exact tip;
-- exact changed path set/digest;
-- Linux and Windows commands/results;
-- no Product Shell/source-copy/distribution/cutover authority.
+- exact changed-file set and digest;
+- Linux and Windows results;
+- confirmation that no real current-main receipt was created;
+- confirmation that no Product Shell/source copy/distribution/cutover authority exists.
 
 **Step 2: Require independent review**
 
 Review must verify:
 
-- candidate-owned policy cannot self-authorize;
-- active-handoff has no executable role;
-- only the receipt is dynamic;
-- the receipt is deterministic and non-self-referential;
-- base-owned workflow invokes exact tests once and fail fast;
-- no wildcard route or branch authority;
-- no hidden Product Shell implementation.
+- the branch was routed by the pre-existing base policy;
+- it did not use the new UI policy to authorize itself;
+- static documents contain no executable current-main or active-handoff binding;
+- receipt generation is deterministic and non-self-referential;
+- the permanent evaluator reads policy and static authority from the PR base;
+- only the future candidate receipt and changed-file facts come from the candidate;
+- all routes and branch identities are exact;
+- no hidden UI implementation exists.
 
 All P0/P1 findings and unresolved threads must be zero before merge.
 
-**Step 3: Perform a fresh ref lock**
+**Step 3: Fresh ref lock**
 
 ```bash
-git fetch --prune origin main feat/ui-migration-prerequisites
-test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/feat/ui-migration-prerequisites)"
+git fetch --prune origin main governance/ui-migration-prerequisites
+test "$(git rev-parse HEAD)" = \
+  "$(git rev-parse refs/remotes/origin/governance/ui-migration-prerequisites)"
 git merge-base --is-ancestor refs/remotes/origin/main HEAD
 ```
 
-If `main` changed a policy/authority path relevant to this plan, do not rebase or force-update. Resolve through an ordinary main merge and regenerate only the dynamic receipt, preserving the static package identity.
+If `main` changed a relevant routing, authority or gate path, merge fresh main ordinarily into the branch and rerun the full matrix. Do not rebase or force-update.
 
 **Step 4: Merge ordinarily after explicit user approval**
 
 Use an ordinary two-parent merge commit. Squash and rebase are forbidden.
 
-**Step 5: Close stale UI authorization PRs only after the new mechanism is in main**
+**Step 5: Verify merged main**
 
-PR #65 and PR #85 become superseded historical evidence. Close them unmerged after the new root-agnostic authority and dynamic receipt mechanism are verified on `main`.
+Run the focused contracts and the permanent WP0 suite on the exact merge commit. Confirm the policy and static authority are now base-owned for subsequent pull requests.
 
-**Step 6: Stop at the prerequisite boundary**
+**Step 6: Close superseded historical UI authorization PRs**
 
-This merge authorizes no UI implementation by itself. The next plan must create the approved 28-path causal RED contract package for:
+After merged-main verification, close PR #65 and PR #85 unmerged as superseded historical evidence. Do not delete their history or treat them as implementation parents.
 
-- design tokens and theme/settings adapters;
-- bilingual message/composer contracts;
-- dock state machines;
-- unified conversation center;
+---
+
+## Task 14: Stop at the prerequisite boundary
+
+This plan ends when the prerequisite capability is verified on `main`.
+
+The next plan creates the approved 28-path causal RED package on one implementation branch. That next RED package covers:
+
+- preserved theme/settings/sound identities;
+- bilingual message and composer contracts;
+- left/right dock state machines;
+- unified multi-platform conversation center;
 - explicit surface-state labels;
-- crash/restart and DPI/accessibility behavior.
+- crash/restart behavior;
+- DPI, keyboard and accessibility behavior.
 
-No Product Shell GREEN source begins until that next RED package is reviewed and authorized.
+No Product Shell GREEN source, Chatwoot source copy, sound distribution or business integration begins until the next RED package is reviewed and authorized.
 
 ## Definition of done
 
-This prerequisite is complete only when all of the following are true:
+The prerequisite is complete only when:
 
-- one static root-agnostic authority validates without a current-main or active-handoff SHA;
-- changing active-handoff observations cannot change authorization;
-- one deterministic receipt binds the exact branch-time base and reviewed Head;
-- receipt generation is reproducible on Linux and Windows;
-- candidate-owned policy cannot authorize itself;
-- permanent WP0 executes the exact base-owned UI gate;
-- exact routes are registered without prefixes or wildcards;
-- the final tip differs from reviewed code Head by exactly one receipt path;
+- PR #90 is ordinarily merged;
+- the exact-route bootstrap is ordinarily merged before any new prerequisite path is created;
+- one static root-agnostic authorization package exists in `main`;
+- no executable current-main or active-handoff SHA exists in that static package;
+- active-handoff changes cannot change static authorization or receipt bytes;
+- deterministic receipt generation and verification pass real temporary-repository tests on Linux and Windows;
+- candidate-owned policy, static authority, verifier and workflow changes cannot authorize a future candidate;
+- permanent WP0 evaluates applicable future UI branches using policy and authority from the exact PR base;
+- all routes, paths and branches are literal and fail closed on near matches;
 - full WP0, security and protocol suites are GREEN;
-- implementation PR merges ordinarily with no force push or history rewrite;
-- Product Shell implementation remains explicitly unauthorized.
+- the prerequisite capability PR merges ordinarily with no force push or history rewrite;
+- no UI implementation, source copy, distribution, cutover, production, release, publish or promotion authority has been granted.
