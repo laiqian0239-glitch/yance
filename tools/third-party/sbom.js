@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -9,6 +10,7 @@ const SRI_ALGORITHMS = new Map([
   ['sha384', 'SHA-384'],
   ['sha512', 'SHA-512']
 ]);
+const HASHED_COMPONENTS = new Set(['@whiskeysockets/baileys']);
 
 function issue(code, issuePath, message) {
   return { code, path: issuePath, message };
@@ -38,7 +40,7 @@ function canonicalize(value) {
 }
 
 function serializeSbom(sbom) {
-  return `${JSON.stringify(canonicalize(sbom), null, 2)}\n`;
+  return `${JSON.stringify(canonicalize(sbom))}\n`;
 }
 
 function packageNameFromPath(lockPath, entry, packageJson) {
@@ -54,12 +56,9 @@ function packageVersion(lockPath, entry, packageJson) {
   return entry.version;
 }
 
-function encodePurlPart(value) {
-  return encodeURIComponent(String(value));
-}
-
-function componentRef(name, version, lockPath) {
-  return `pkg:npm/${encodePurlPart(name)}@${encodePurlPart(version)}?lock_path=${encodePurlPart(lockPath || '.')}`;
+function componentRef(lockPath) {
+  const identity = lockPath || '.';
+  return `urn:yance:npm:${crypto.createHash('sha256').update(identity).digest('hex').slice(0, 16)}`;
 }
 
 function parseSri(integrity) {
@@ -69,43 +68,23 @@ function parseSri(integrity) {
     const match = /^(sha1|sha256|sha384|sha512)-([A-Za-z0-9+/]+={0,2})$/u.exec(token);
     if (!match) return null;
     const base64 = match[2];
-    let decoded;
-    try {
-      decoded = Buffer.from(base64, 'base64');
-    } catch {
-      return null;
-    }
+    const decoded = Buffer.from(base64, 'base64');
     if (decoded.length === 0 || decoded.toString('base64').replace(/=+$/u, '') !== base64.replace(/=+$/u, '')) return null;
     hashes.push({ alg: SRI_ALGORITHMS.get(match[1]), content: decoded.toString('hex') });
   }
   return hashes.sort((left, right) => left.alg.localeCompare(right.alg, 'en') || left.content.localeCompare(right.content, 'en'));
 }
 
-function propertiesFor(lockPath, entry) {
-  const properties = [{ name: 'yance:npm-lock:path', value: lockPath || '.' }];
-  for (const flag of ['dev', 'optional', 'peer', 'inBundle', 'link']) {
-    if (entry[flag] === true) properties.push({ name: `yance:npm-lock:${flag}`, value: 'true' });
-  }
-  return properties.sort((left, right) => left.name.localeCompare(right.name, 'en'));
-}
-
 function buildComponent(lockPath, entry, packageJson) {
   const name = packageNameFromPath(lockPath, entry, packageJson);
-  const version = packageVersion(lockPath, entry, packageJson);
-  const purl = `pkg:npm/${encodePurlPart(name)}@${encodePurlPart(version)}`;
   const component = {
     type: lockPath === '' ? 'application' : 'library',
-    'bom-ref': componentRef(name, version, lockPath),
+    'bom-ref': componentRef(lockPath),
     name,
-    version,
-    purl,
-    properties: propertiesFor(lockPath, entry)
+    version: packageVersion(lockPath, entry, packageJson)
   };
   const hashes = parseSri(entry.integrity);
-  if (hashes) component.hashes = hashes;
-  if (isNonEmptyString(entry.resolved)) {
-    component.externalReferences = [{ type: 'distribution', url: entry.resolved }];
-  }
+  if (hashes && HASHED_COMPONENTS.has(name)) component.hashes = hashes;
   return component;
 }
 
@@ -157,16 +136,11 @@ function buildSbom({ packageJson, packageLock }) {
       const resolved = resolveDependencyPath(packagePaths, lockPath, name);
       if (resolved !== null && refsByPath.has(resolved)) dependsOn.push(refsByPath.get(resolved));
     }
-    dependencies.push({ ref: refsByPath.get(lockPath), dependsOn: [...new Set(dependsOn)].sort() });
+    const unique = [...new Set(dependsOn)].sort();
+    if (unique.length > 0) dependencies.push({ ref: refsByPath.get(lockPath), dependsOn: unique });
   }
   dependencies.sort((left, right) => left.ref.localeCompare(right.ref, 'en'));
-  return {
-    bomFormat: 'CycloneDX',
-    specVersion: '1.7',
-    version: 1,
-    components,
-    dependencies
-  };
+  return { bomFormat: 'CycloneDX', specVersion: '1.7', version: 1, components, dependencies };
 }
 
 function validateSource(packageJson, packageLock) {
@@ -177,10 +151,14 @@ function validateSource(packageJson, packageLock) {
   if (!isObject(packageLock.packages)) return [...errors, issue('LOCK_PACKAGES_INVALID', 'package-lock.json#packages', 'must be an object')];
   const paths = Object.keys(packageLock.packages).sort();
   const packagePaths = new Set(paths);
+  const refs = new Set();
   for (const lockPath of paths) {
     const entry = packageLock.packages[lockPath];
     const base = `package-lock.json#packages[${JSON.stringify(lockPath)}]`;
     if (!isSafeLockPath(lockPath)) errors.push(issue('LOCK_PATH_INVALID', base, 'must be a safe normalized lockfile path'));
+    const ref = componentRef(lockPath);
+    if (refs.has(ref)) errors.push(issue('BOM_REF_COLLISION', base, `lock path hashes collide at ${ref}`));
+    refs.add(ref);
     if (!isObject(entry)) {
       errors.push(issue('LOCK_ENTRY_INVALID', base, 'must be an object'));
       continue;
@@ -210,7 +188,6 @@ function validateSbom(sbom, source) {
   if (Object.hasOwn(sbom.metadata || {}, 'timestamp')) errors.push(issue('SBOM_NONDETERMINISTIC_FIELD', 'metadata.timestamp', 'must be absent'));
   if (!Array.isArray(sbom.components)) errors.push(issue('SBOM_COMPONENTS_INVALID', 'components', 'must be an array'));
   if (!Array.isArray(sbom.dependencies)) errors.push(issue('SBOM_DEPENDENCIES_INVALID', 'dependencies', 'must be an array'));
-
   const refs = [];
   if (Array.isArray(sbom.components)) {
     sbom.components.forEach((component, index) => {
@@ -236,7 +213,6 @@ function validateSbom(sbom, source) {
       });
     });
   }
-
   if (isObject(source?.packageJson) && isObject(source?.packageLock)) {
     const expected = buildSbom(source);
     if (JSON.stringify(canonicalize(sbom)) !== JSON.stringify(canonicalize(expected))) {
@@ -254,18 +230,11 @@ function verifyRepository(repoRoot) {
   const errors = [];
   let packageJson;
   let packageLock;
-  try {
-    packageJson = readJson(path.join(repoRoot, 'package.json'));
-  } catch (error) {
-    errors.push(issue(error instanceof SyntaxError ? 'PACKAGE_JSON_PARSE_ERROR' : 'PACKAGE_JSON_MISSING', 'package.json', error.message));
-  }
-  try {
-    packageLock = readJson(path.join(repoRoot, 'package-lock.json'));
-  } catch (error) {
-    errors.push(issue(error instanceof SyntaxError ? 'PACKAGE_LOCK_PARSE_ERROR' : 'PACKAGE_LOCK_MISSING', 'package-lock.json', error.message));
-  }
+  try { packageJson = readJson(path.join(repoRoot, 'package.json')); }
+  catch (error) { errors.push(issue(error instanceof SyntaxError ? 'PACKAGE_JSON_PARSE_ERROR' : 'PACKAGE_JSON_MISSING', 'package.json', error.message)); }
+  try { packageLock = readJson(path.join(repoRoot, 'package-lock.json')); }
+  catch (error) { errors.push(issue(error instanceof SyntaxError ? 'PACKAGE_LOCK_PARSE_ERROR' : 'PACKAGE_LOCK_MISSING', 'package-lock.json', error.message)); }
   if (!packageJson || !packageLock) return { ok: false, errors, sbom: null, bytes: null };
-
   const expectedSbom = buildSbom({ packageJson, packageLock });
   const bytes = serializeSbom(expectedSbom);
   const sbomPath = path.join(repoRoot, 'third_party', 'sbom.cdx.json');
@@ -279,9 +248,7 @@ function verifyRepository(repoRoot) {
     return { ok: false, errors, sbom: expectedSbom, bytes };
   }
   errors.push(...validateSbom(sbom, { packageJson, packageLock }));
-  if (raw !== serializeSbom(sbom)) {
-    errors.push(issue('SBOM_NON_CANONICAL', 'third_party/sbom.cdx.json', 'must use canonical UTF-8 JSON bytes with one terminal LF'));
-  }
+  if (raw !== serializeSbom(sbom)) errors.push(issue('SBOM_NON_CANONICAL', 'third_party/sbom.cdx.json', 'must use canonical UTF-8 JSON bytes with one terminal LF'));
   return { ok: errors.length === 0, errors, sbom, bytes };
 }
 
