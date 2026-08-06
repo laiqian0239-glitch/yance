@@ -67,3 +67,34 @@ test('executor identity, platform, generation and artifact bytes are independent
   const artifact = createContext();
   assert.equal(verify(artifact, artifact.receipt, { artifactResolver: () => Buffer.from('tampered') }).reasonCode, 'EVIDENCE_ARTIFACT_DIGEST_MISMATCH');
 });
+
+test('workspace cleanliness, generated roots, architecture and executor activation are policy facts', () => {
+  const tracked = createContext();
+  tracked.receipt.workspace.preTrackedDiffSha256 = 'f'.repeat(64);
+  tracked.reseal();
+  assert.equal(verify(tracked).reasonCode, 'EVIDENCE_WORKSPACE_DIRTY');
+
+  const untracked = createContext();
+  untracked.receipt.workspace.postUnexpectedUntrackedPathSetSha256 = 'e'.repeat(64);
+  untracked.reseal();
+  assert.equal(verify(untracked).reasonCode, 'EVIDENCE_UNEXPECTED_UNTRACKED_PATHS');
+
+  const roots = createContext();
+  roots.receipt.workspace.allowedGeneratedRootSetSha256 = 'd'.repeat(64);
+  roots.reseal();
+  assert.equal(verify(roots).reasonCode, 'EVIDENCE_WORKSPACE_DIRTY');
+
+  const architecture = createContext();
+  architecture.receipt.producer.architecture = 'arm64';
+  architecture.reseal();
+  assert.equal(verify(architecture).reasonCode, 'EVIDENCE_EXECUTOR_ARCHITECTURE_MISMATCH');
+
+  const future = createContext();
+  future.executorRegistry.executors[0].validFrom = '2026-08-08T00:00:00.000Z';
+  assert.equal(verify(future).reasonCode, 'EVIDENCE_EXECUTOR_NOT_YET_VALID');
+
+  const undeclaredArtifact = createContext();
+  undeclaredArtifact.receipt.artifacts[0].relativePath = '.pvep-output/other.json';
+  undeclaredArtifact.reseal();
+  assert.equal(verify(undeclaredArtifact).reasonCode, 'EVIDENCE_ARTIFACT_DIGEST_MISMATCH');
+});
