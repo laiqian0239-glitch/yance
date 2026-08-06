@@ -142,6 +142,8 @@ function validGraph() {
     },
     isAncestor(ancestor, descendant) {
       const valid = new Set([
+        `${AUTH_MERGE}:${RED_HEAD}`,
+        `${RED_HEAD}:${POLICY_HEAD}`,
         `${AUTH_MERGE}:${POLICY_BASE}`,
         `${AUTH_MERGE}:${POLICY_HEAD}`,
         `${POLICY_HEAD}:${POLICY_TIP}`,
@@ -301,6 +303,16 @@ test('sealed policy authorization validates exact checkpoint, closure and implem
   assert.equal(validatePolicyAuthorization(production).reasonCode, 'POLICY_GOVERNANCE_CLOSURE_INVALID');
 });
 
+test('declared failure-first topology is mandatory', () => {
+  const { validatePolicyAuthorization } = loadPolicy();
+  const weakened = sealedAuthorization();
+  weakened.policyReviewTopology.redTestCommitMustPrecedeImplementation = false;
+  assert.equal(
+    validatePolicyAuthorization(weakened).reasonCode,
+    'POLICY_AUTHORIZATION_SEAL_INVALID'
+  );
+});
+
 test('policy implementation authority verifies merge identity, trusted evidence and reviewed-code topology', () => {
   const { evaluatePolicyImplementation } = loadPolicy();
   const authorization = sealedAuthorization();
@@ -323,6 +335,20 @@ test('policy implementation authority verifies merge identity, trusted evidence 
   const untrustedEvidence = validEvidence();
   untrustedEvidence.verifyWorkflowRun = () => false;
   assert.equal(evaluatePolicyImplementation({ authorization, graph: validGraph(), evidence: untrustedEvidence }).reasonCode, 'CHECKPOINT_EVIDENCE_INVALID');
+});
+
+test('RED Head must follow the authorization merge and precede the reviewed policy Head', () => {
+  const { evaluatePolicyImplementation } = loadPolicy();
+  const graph = validGraph();
+  graph.isAncestor = (ancestor, descendant) => {
+    if (ancestor === RED_HEAD && descendant === POLICY_HEAD) return false;
+    return validGraph().isAncestor(ancestor, descendant);
+  };
+  assert.equal(evaluatePolicyImplementation({
+    authorization: sealedAuthorization(),
+    graph,
+    evidence: validEvidence()
+  }).reasonCode, 'POLICY_RED_HEAD_ANCESTRY_INVALID');
 });
 
 test('adapter path sets reject invalid or duplicate entries instead of normalizing them away', () => {
