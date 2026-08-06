@@ -157,6 +157,25 @@ test('registry rejects short SHA, unsafe evidence paths, unsupported modes and u
   assert.ok(errors.some(error => error.code === 'REVIEW_NOT_APPROVED'));
 });
 
+test('review dates must be real UTC calendar dates', () => {
+  const { validateRegistry } = loadProvenance();
+
+  const impossibleMonth = makeProject('impossible-month');
+  impossibleMonth.review.reviewedAt = '2026-99-99';
+  assert.ok(validateRegistry(makeRegistry({ projects: [impossibleMonth] }))
+    .some(error => error.code === 'REVIEW_DATE_INVALID'));
+
+  const nonLeapDay = makeProject('non-leap-day');
+  nonLeapDay.review.reviewedAt = '2025-02-29';
+  assert.ok(validateRegistry(makeRegistry({ projects: [nonLeapDay] }))
+    .some(error => error.code === 'REVIEW_DATE_INVALID'));
+
+  const leapDay = makeProject('leap-day');
+  leapDay.review.reviewedAt = '2024-02-29';
+  assert.equal(validateRegistry(makeRegistry({ projects: [leapDay] }))
+    .some(error => error.code === 'REVIEW_DATE_INVALID'), false);
+});
+
 test('notice ordering and bytes are deterministic regardless of project input order', () => {
   const { renderNotice } = loadProvenance();
   const zeta = makeProject('zeta');
