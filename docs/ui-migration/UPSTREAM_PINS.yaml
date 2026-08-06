@@ -1,0 +1,69 @@
+schemaVersion: 3
+authority: YanceUIUpstreamPins
+frozenAt: '2026-08-06'
+capturedFrom:
+  repository: laiqian0239-glitch/yance
+  baseCommit: ad195d8497ec61fbe3387c606692110f5645fba0
+  baseTree: 90b356df25180f3d3798e4d2326477b2d381e8e2
+  remoteObservationsAreHistorical: true
+runtime:
+  vue:
+    version: 3.5.17
+    role: Product Shell runtime
+  vite:
+    version: 6.4.2
+    role: Product Shell build boundary
+upstreams:
+- name: Chatwoot
+  repository: chatwoot/chatwoot
+  tag: v4.14.2
+  tagObject: a2797a8cf35592de547983d172e6b1556d40c418
+  commit: a9468409fb9d5778b847bf93f215140fc357a36b
+  license: MIT-Expat outside enterprise/**
+  use: file-level manifest only
+  sourceCopyAuthorized: false
+  enterpriseSourceAllowed: false
+- name: shadcn-vue
+  repository: unovue/shadcn-vue
+  tag: v2.7.3
+  tagObject: c44d9e99e6902a56675f74bb7b24e6a647b34c1e
+  commit: 0840c07ac18bbb2de1d5be8a4bde717595ada013
+  license: MIT
+  use: future controlled source copy of primitives after separate authorization
+  sourceCopyAuthorized: false
+- name: Reka UI
+  repository: unovue/reka-ui
+  version: 2.9.7
+  commit: edbeb9348dba6eb7e9af208953f6c6a9e502fa9b
+  license: MIT
+  use: future exact dependency
+  dependencyInstallationAuthorized: false
+- name: VueUse
+  repository: vueuse/vueuse
+  version: 14.4.0
+  commit: 24160f9a8f1dcc576f1234008134ed47491c8183
+  license: MIT
+  use: future exact dependency
+  dependencyInstallationAuthorized: false
+- name: Howler.js
+  repository: goldfire/howler.js
+  version: 2.2.4
+  commit: 003b917c40cb41cf382ba47ae0ed7a35ca2abe76
+  license: MIT
+  use: future sound playback dependency
+  dependencyInstallationAuthorized: false
+yanceBoundaries:
+  appearanceLogicalAuthority: YanceAppearanceAuthority
+  appearanceWriteGateway: YanceThemeAdapter
+  settingsWriteGateway: YanceSettingsAdapter
+  productDataAuthority: Yance backend and canonical stores
+  notificationAuthority: Yance notificationPolicy and SoundNotificationService
+  translationAndSendAuthority: Yance outboundTranslationAuthority and send queue
+  sourceCopyRequiresSeparateExactAuthorization: true
+prohibited:
+- floating version or branch
+- enterprise/** source
+- unresolved Chatwoot runtime import
+- Chatwoot state, API, auth, notification or send authority
+- dependency installation before authorized implementation package
+- source copy before exact copy authorization
