@@ -16,6 +16,11 @@ const LOCKED_REFS = [
   'actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e',
   'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02'
 ];
+const REVIEWED_TAGS = Object.freeze({
+  'actions/checkout': 'v4.2.2',
+  'actions/setup-node': 'v6.4.0',
+  'actions/upload-artifact': 'v4.6.2'
+});
 
 function loadActionsLock() {
   assert.equal(
@@ -33,7 +38,7 @@ function makeLock(entries = LOCKED_REFS.map(ref => {
   return {
     repository,
     commit,
-    reviewedTag: repository === 'actions/checkout' ? 'v4.2.2' : 'v4',
+    reviewedTag: REVIEWED_TAGS[repository],
     license: 'MIT',
     licenseEvidence: `third_party/licenses/${repository.replace('/', '-')}-MIT.txt`
   };
@@ -54,6 +59,18 @@ function makeTempRoot(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-actions-lock-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   return root;
+}
+
+function writeLockFixture(root, lock) {
+  fs.mkdirSync(path.join(root, 'third_party', 'licenses'), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, 'third_party', 'github-actions-lock.json'),
+    `${JSON.stringify(lock, null, 2)}\n`
+  );
+  for (const entry of lock.actions.filter(entry => entry && typeof entry === 'object')) {
+    if (!entry.licenseEvidence?.startsWith('third_party/licenses/')) continue;
+    fs.writeFileSync(path.join(root, entry.licenseEvidence), 'MIT License\n');
+  }
 }
 
 function runCli(cwd, args = []) {
@@ -86,6 +103,15 @@ test('floating tags, branches, expressions and unregistered exact commits fail c
   assert.ok(unregistered.errors.some(error => error.code === 'ACTION_NOT_LOCKED'));
 });
 
+test('reviewed Action tags must identify an exact release', () => {
+  const { validateLock } = loadActionsLock();
+  const floating = makeLock();
+  floating.actions[1].reviewedTag = 'v6';
+  floating.actions[2].reviewedTag = 'v4';
+  const errors = validateLock(floating);
+  assert.equal(errors.filter(error => error.code === 'ACTION_REVIEWED_TAG_NOT_EXACT').length, 2);
+});
+
 test('checkout must explicitly disable persisted credentials', () => {
   const missing = inspect(`steps:\n  - uses: ${LOCKED_REFS[0]}\n`);
   assert.ok(missing.errors.some(error => error.code === 'CHECKOUT_PERSIST_CREDENTIALS_NOT_FALSE'));
@@ -108,6 +134,11 @@ test('local actions and reusable workflows are allowed while docker actions are 
   assert.ok(docker.errors.some(error => error.code === 'DOCKER_ACTION_FORBIDDEN'));
 });
 
+test('flow-mapping uses syntax is rejected instead of skipped', () => {
+  const report = inspect('steps:\n  - {uses: actions/checkout@v4, with: {persist-credentials: false}}\n');
+  assert.ok(report.errors.some(error => error.code === 'USES_SYNTAX_INVALID'));
+});
+
 test('ambiguous uses syntax, duplicate lock identities, unsafe evidence paths and unused entries fail closed', () => {
   const ambiguous = inspect('steps:\n  - uses : actions/checkout@v4\n');
   assert.ok(ambiguous.errors.some(error => error.code === 'USES_SYNTAX_INVALID'));
@@ -115,7 +146,7 @@ test('ambiguous uses syntax, duplicate lock identities, unsafe evidence paths an
   const { validateLock } = loadActionsLock();
   const duplicate = makeLock();
   duplicate.actions.push({ ...duplicate.actions[0] });
-  duplicate.actions[1].licenseEvidence = '../LICENSE';
+  duplicate.actions[duplicate.actions.length - 1].licenseEvidence = '../LICENSE';
   const errors = validateLock(duplicate);
   assert.ok(errors.some(error => error.code === 'ACTION_LOCK_DUPLICATE'));
   assert.ok(errors.some(error => error.code === 'LICENSE_PATH_INVALID'));
@@ -124,15 +155,8 @@ test('ambiguous uses syntax, duplicate lock identities, unsafe evidence paths an
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-actions-lock-unused-'));
   try {
     fs.mkdirSync(path.join(root, '.github', 'workflows'), { recursive: true });
-    fs.mkdirSync(path.join(root, 'third_party', 'licenses'), { recursive: true });
     const lock = makeLock();
-    fs.writeFileSync(
-      path.join(root, 'third_party', 'github-actions-lock.json'),
-      `${JSON.stringify(lock, null, 2)}\n`
-    );
-    for (const entry of lock.actions) {
-      fs.writeFileSync(path.join(root, entry.licenseEvidence), 'MIT License\n');
-    }
+    writeLockFixture(root, lock);
     fs.writeFileSync(
       path.join(root, '.github', 'workflows', 'checkout-only.yml'),
       `steps:\n  - uses: ${LOCKED_REFS[0]}\n    with:\n      persist-credentials: false\n`
@@ -144,19 +168,22 @@ test('ambiguous uses syntax, duplicate lock identities, unsafe evidence paths an
   }
 });
 
+test('malformed lock entries are reported without crashing repository verification', t => {
+  const { verifyRepository } = loadActionsLock();
+  const root = makeTempRoot(t);
+  const lock = makeLock();
+  lock.actions.push(null);
+  writeLockFixture(root, lock);
+  const report = verifyRepository(root);
+  assert.equal(report.ok, false);
+  assert.ok(report.errors.some(error => error.code === 'ACTION_LOCK_ENTRY_INVALID'));
+});
+
 test('repository verifier detects a retained checkout credential and reports the exact workflow path', t => {
   const { verifyRepository } = loadActionsLock();
   const root = makeTempRoot(t);
   fs.mkdirSync(path.join(root, '.github', 'workflows'), { recursive: true });
-  fs.mkdirSync(path.join(root, 'third_party', 'licenses'), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, 'third_party', 'github-actions-lock.json'),
-    `${JSON.stringify(makeLock([makeLock().actions[0]]), null, 2)}\n`
-  );
-  fs.writeFileSync(
-    path.join(root, 'third_party', 'licenses', 'actions-checkout-MIT.txt'),
-    'MIT License\n'
-  );
+  writeLockFixture(root, makeLock([makeLock().actions[0]]));
   fs.writeFileSync(
     path.join(root, '.github', 'workflows', 'unsafe.yml'),
     `steps:\n  - uses: ${LOCKED_REFS[0]}\n`,
