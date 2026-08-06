@@ -130,6 +130,23 @@ test('product source, release surfaces, general architecture docs and non-Markdo
   }
 });
 
+test('OSS-A third-party registry, licenses, SBOM and notices are explicit PRODUCT_WP0 paths', () => {
+  assert.equal(policy.productExactPaths.includes('THIRD_PARTY_NOTICES.md'), true);
+  assert.equal(policy.productPrefixes.includes('third_party/'), true);
+  for (const file of [
+    'THIRD_PARTY_NOTICES.md',
+    'third_party/provenance.json',
+    'third_party/sbom.cdx.json',
+    'third_party/github-actions-lock.json',
+    'third_party/licenses/baileys-MIT.txt'
+  ]) {
+    const result = classifyWp0Route(policy, [file]);
+    assert.equal(result.pass, true, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.route, ROUTES.PRODUCT, file);
+    assert.equal(result.productChangesPresent, true, file);
+  }
+});
+
 test('specific layered governance documents retain governance priority over product documentation prefixes', () => {
   const result = classifyWp0Route(policy, [
     'docs/superpowers/specs/2026-08-02-layered-ci-reviewed-candidate-design.md'
