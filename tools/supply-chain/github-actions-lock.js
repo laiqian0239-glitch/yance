@@ -7,6 +7,7 @@ const FULL_SHA = /^[0-9a-f]{40}$/u;
 const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
 const EXACT_RELEASE_TAG = /^v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u;
 const YAML_FILE = /\.ya?ml$/iu;
+const LOCAL_ACTION_MANIFESTS = Object.freeze(['action.yml', 'action.yaml']);
 
 function issue(code, issuePath, message, line) {
   const value = { code, path: issuePath, message };
@@ -28,6 +29,14 @@ function isSafeRepositoryPath(value) {
   if (normalized.startsWith('/') || /^[A-Za-z]:\//u.test(normalized) || /[\r\n\0-\x1f\x7f]/u.test(normalized)) return false;
   const segments = normalized.split('/');
   return !segments.includes('') && !segments.includes('.') && !segments.includes('..');
+}
+
+function isStrictDescendant(root, target) {
+  const relative = path.relative(root, target);
+  return relative !== ''
+    && relative !== '..'
+    && !relative.startsWith(`..${path.sep}`)
+    && !path.isAbsolute(relative);
 }
 
 function validateLock(lock) {
@@ -169,6 +178,7 @@ function checkoutPersistCredentials(lines, usesIndex, parsed) {
 
 function inspectWorkflowText(text, options = {}) {
   const workflowPath = options.workflowPath || '.github/workflows/unknown.yml';
+  const allowLocalReusableWorkflows = options.allowLocalReusableWorkflows !== false;
   const lock = options.lock;
   const errors = validateLock(lock);
   const entries = new Map();
@@ -180,6 +190,7 @@ function inspectWorkflowText(text, options = {}) {
   }
   const externalReferences = [];
   const checkoutSteps = [];
+  const localReferences = [];
   const lines = String(text).replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
 
   lines.forEach((line, index) => {
@@ -198,7 +209,22 @@ function inspectWorkflowText(text, options = {}) {
       errors.push(issue('USES_SYNTAX_INVALID', workflowPath, 'uses value must be one unquoted token', index + 1));
       return;
     }
-    if (target.startsWith('./')) return;
+    if (target.startsWith('./')) {
+      const relativeTarget = target.slice(2);
+      if (!isSafeRepositoryPath(relativeTarget)) {
+        errors.push(issue('LOCAL_ACTION_PATH_INVALID', workflowPath, `${target} must remain within the repository`, index + 1));
+        return;
+      }
+      const reusableWorkflow = relativeTarget.startsWith('.github/workflows/') && YAML_FILE.test(relativeTarget);
+      if (reusableWorkflow) {
+        if (!allowLocalReusableWorkflows) {
+          errors.push(issue('LOCAL_WORKFLOW_REFERENCE_INVALID', workflowPath, 'composite actions cannot delegate to reusable workflows', index + 1));
+        }
+        return;
+      }
+      localReferences.push({ path: workflowPath, line: index + 1, target: relativeTarget });
+      return;
+    }
     if (target.startsWith('docker://')) {
       errors.push(issue('DOCKER_ACTION_FORBIDDEN', workflowPath, 'docker actions require a separate digest-bound policy', index + 1));
       return;
@@ -228,7 +254,7 @@ function inspectWorkflowText(text, options = {}) {
     }
   });
 
-  return { errors, externalReferences, checkoutSteps };
+  return { errors, externalReferences, checkoutSteps, localReferences };
 }
 
 function listWorkflowFiles(root) {
@@ -246,8 +272,57 @@ function listWorkflowFiles(root) {
   return files.sort();
 }
 
+function resolveLocalActionManifest(repoRoot, reference) {
+  const root = path.resolve(repoRoot);
+  const actionDirectory = path.resolve(root, reference.target);
+  if (!isStrictDescendant(root, actionDirectory)) {
+    return { error: issue('LOCAL_ACTION_PATH_INVALID', reference.path, `${reference.target} escapes the repository`, reference.line) };
+  }
+  if (!fs.existsSync(actionDirectory) || !fs.statSync(actionDirectory).isDirectory()) {
+    return { error: issue('LOCAL_ACTION_MANIFEST_MISSING', reference.path, `${reference.target} must contain action.yml or action.yaml`, reference.line) };
+  }
+
+  let realRoot;
+  let realActionDirectory;
+  try {
+    realRoot = fs.realpathSync(root);
+    realActionDirectory = fs.realpathSync(actionDirectory);
+  } catch (error) {
+    return { error: issue('LOCAL_ACTION_MANIFEST_READ_FAILED', reference.path, error.message, reference.line) };
+  }
+  if (!isStrictDescendant(realRoot, realActionDirectory)) {
+    return { error: issue('LOCAL_ACTION_PATH_INVALID', reference.path, `${reference.target} resolves outside the repository`, reference.line) };
+  }
+
+  const manifests = LOCAL_ACTION_MANIFESTS
+    .map(name => path.join(actionDirectory, name))
+    .filter(candidate => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
+  if (manifests.length === 0) {
+    return { error: issue('LOCAL_ACTION_MANIFEST_MISSING', reference.path, `${reference.target} must contain action.yml or action.yaml`, reference.line) };
+  }
+  if (manifests.length !== 1) {
+    return { error: issue('LOCAL_ACTION_MANIFEST_AMBIGUOUS', reference.path, `${reference.target} contains both action.yml and action.yaml`, reference.line) };
+  }
+
+  let canonicalManifest;
+  try {
+    canonicalManifest = fs.realpathSync(manifests[0]);
+  } catch (error) {
+    return { error: issue('LOCAL_ACTION_MANIFEST_READ_FAILED', reference.path, error.message, reference.line) };
+  }
+  if (!isStrictDescendant(realRoot, canonicalManifest)) {
+    return { error: issue('LOCAL_ACTION_PATH_INVALID', reference.path, `${reference.target} manifest resolves outside the repository`, reference.line) };
+  }
+  return {
+    absolute: manifests[0],
+    canonical: canonicalManifest,
+    relative: path.relative(root, manifests[0]).replaceAll(path.sep, '/')
+  };
+}
+
 function verifyRepository(repoRoot) {
-  const lockPath = path.join(repoRoot, 'third_party', 'github-actions-lock.json');
+  const root = path.resolve(repoRoot);
+  const lockPath = path.join(root, 'third_party', 'github-actions-lock.json');
   let lock;
   const errors = [];
   try {
@@ -259,7 +334,7 @@ function verifyRepository(repoRoot) {
   errors.push(...validateLock(lock));
   for (const [index, entry] of (Array.isArray(lock.actions) ? lock.actions : []).entries()) {
     if (isSafeRepositoryPath(entry?.licenseEvidence)) {
-      const evidencePath = path.join(repoRoot, entry.licenseEvidence);
+      const evidencePath = path.join(root, entry.licenseEvidence);
       if (!fs.existsSync(evidencePath) || !fs.statSync(evidencePath).isFile()) {
         errors.push(issue('LICENSE_EVIDENCE_MISSING', `actions[${index}].licenseEvidence`, entry.licenseEvidence));
       }
@@ -282,12 +357,53 @@ function verifyRepository(repoRoot) {
     'LICENSE_PATH_INVALID',
     'ACTION_UPSTREAM_REPOSITORY_INVALID'
   ]);
-  for (const absolute of listWorkflowFiles(repoRoot)) {
-    const workflowPath = path.relative(repoRoot, absolute).replaceAll(path.sep, '/');
-    const report = inspectWorkflowText(fs.readFileSync(absolute, 'utf8'), { lock, workflowPath });
+  const scannedLocalActions = new Set();
+  const activeLocalActions = new Set();
+
+  const appendReport = report => {
     errors.push(...report.errors.filter(error => !lockValidationCodes.has(error.code)));
     externalReferences.push(...report.externalReferences);
     checkoutSteps.push(...report.checkoutSteps);
+  };
+
+  const scanLocalAction = reference => {
+    const resolution = resolveLocalActionManifest(root, reference);
+    if (resolution.error) {
+      errors.push(resolution.error);
+      return;
+    }
+    if (activeLocalActions.has(resolution.canonical)) {
+      errors.push(issue('LOCAL_ACTION_CYCLE', reference.path, `${reference.target} creates a recursive local action cycle`, reference.line));
+      return;
+    }
+    if (scannedLocalActions.has(resolution.canonical)) return;
+
+    activeLocalActions.add(resolution.canonical);
+    try {
+      const report = inspectWorkflowText(fs.readFileSync(resolution.absolute, 'utf8'), {
+        lock,
+        workflowPath: resolution.relative,
+        allowLocalReusableWorkflows: false
+      });
+      appendReport(report);
+      for (const nestedReference of report.localReferences) scanLocalAction(nestedReference);
+    } catch (error) {
+      errors.push(issue('LOCAL_ACTION_MANIFEST_READ_FAILED', resolution.relative, error.message));
+    } finally {
+      activeLocalActions.delete(resolution.canonical);
+      scannedLocalActions.add(resolution.canonical);
+    }
+  };
+
+  for (const absolute of listWorkflowFiles(root)) {
+    const workflowPath = path.relative(root, absolute).replaceAll(path.sep, '/');
+    const report = inspectWorkflowText(fs.readFileSync(absolute, 'utf8'), {
+      lock,
+      workflowPath,
+      allowLocalReusableWorkflows: true
+    });
+    appendReport(report);
+    for (const reference of report.localReferences) scanLocalAction(reference);
   }
 
   const used = new Set(externalReferences);
@@ -295,7 +411,7 @@ function verifyRepository(repoRoot) {
     if (!isObject(entry)) continue;
     const identity = `${entry.repository}@${entry.commit}`;
     if (FULL_SHA.test(entry.commit || '') && REPOSITORY.test(entry.repository || '') && !used.has(identity)) {
-      errors.push(issue('ACTION_LOCK_ENTRY_UNUSED', `actions[${index}]`, `${identity} is not used by any workflow`));
+      errors.push(issue('ACTION_LOCK_ENTRY_UNUSED', `actions[${index}]`, `${identity} is not used by any workflow or referenced local action`));
     }
   }
 
