@@ -11,6 +11,7 @@ const { spawnSync } = require('node:child_process');
 const repoRoot = path.resolve(__dirname, '..', '..');
 const modulePath = path.join(repoRoot, 'tools', 'third-party', 'sbom.js');
 const cliPath = path.join(repoRoot, 'tools', 'third-party', 'verify-sbom.js');
+const CANONICAL_SBOM_PATH = 'third_party/sbom.cdx.json';
 
 function loadSbom() {
   assert.equal(
@@ -159,7 +160,7 @@ test('SBOM validation rejects malformed SRI, unsafe lock paths and unresolved de
   assert.ok(errors.some(error => error.code === 'DEPENDENCY_UNRESOLVED'));
 });
 
-test('SBOM verifier rejects drift, duplicate refs and non-canonical JSON bytes', t => {
+test('SBOM verifier rejects drift, duplicate refs and non-canonical JSON bytes with the canonical report path', t => {
   const { verifyRepository } = loadSbom();
   const root = writeFixtureRepository(t);
   const sbomPath = path.join(root, 'third_party', 'sbom.cdx.json');
@@ -171,6 +172,9 @@ test('SBOM verifier rejects drift, duplicate refs and non-canonical JSON bytes',
   assert.ok(report.errors.some(error => error.code === 'BOM_REF_DUPLICATE'));
   assert.ok(report.errors.some(error => error.code === 'SBOM_DRIFT'));
   assert.ok(report.errors.some(error => error.code === 'SBOM_NON_CANONICAL'));
+  for (const error of report.errors.filter(error => ['SBOM_DRIFT', 'SBOM_NON_CANONICAL'].includes(error.code))) {
+    assert.equal(error.path, CANONICAL_SBOM_PATH);
+  }
 });
 
 test('strict SBOM CLI succeeds for canonical bytes and fails after manual drift', t => {
