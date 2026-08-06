@@ -13,23 +13,63 @@ const {
   referenceOnlyRootPolicies
 } = require('../../tools/wp0/lib');
 
+const FIXTURE_BRANCH = 'stage/6.4.5.9-architecture-closure';
+const FIXTURE_ENV = Object.freeze({ ...process.env, GIT_LFS_SKIP_SMUDGE: '1' });
+
+function makeAuthorizedFixture() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp0-command-fixture-'));
+  const repo = path.join(root, 'repo');
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8'
+  }).trim();
+  execFileSync('git', [
+    '-c', 'core.autocrlf=false',
+    '-c', 'core.eol=lf',
+    'clone',
+    '--config', 'core.autocrlf=false',
+    '--config', 'core.eol=lf',
+    '--quiet',
+    '--no-local',
+    REPO_ROOT,
+    repo
+  ], { encoding: 'utf8', env: FIXTURE_ENV });
+  execFileSync('git', ['switch', '--force-create', FIXTURE_BRANCH, head], {
+    cwd: repo,
+    encoding: 'utf8',
+    env: FIXTURE_ENV
+  });
+  assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], {
+    cwd: repo,
+    encoding: 'utf8'
+  }).trim(), head);
+  return { root, repo };
+}
+
 test('forbidden-hotfix-entrypoints.test', () => {
   const result = checkForbiddenHotfixEntrypoints();
   assert.equal(result.pass, true, JSON.stringify(result));
   assert.equal(result.details.enumerationMethod, 'git ls-files -z');
 });
 
-test('local build package and release commands are guarded by executable WP0 gate', () => {
+test('local build package and release commands are guarded by executable WP0 gate on an isolated authorized branch', () => {
   const policy = checkProtectedCommandPolicy();
   assert.equal(policy.pass, true, JSON.stringify(policy));
-  for (const command of ['build', 'package', 'release']) {
-    const stdout = execFileSync(process.execPath, ['tools/wp0/run-protected-command.js', command, '--gate-only'], {
-      cwd: REPO_ROOT,
-      encoding: 'utf8'
-    });
-    const result = JSON.parse(stdout);
-    assert.equal(result.status, 'PASS', JSON.stringify(result));
-    assert.equal(result.gateStatus, 'PASS');
+  const { root, repo } = makeAuthorizedFixture();
+  try {
+    for (const command of ['build', 'package', 'release']) {
+      const stdout = execFileSync(process.execPath, ['tools/wp0/run-protected-command.js', command, '--gate-only'], {
+        cwd: repo,
+        encoding: 'utf8',
+        env: FIXTURE_ENV
+      });
+      const result = JSON.parse(stdout);
+      assert.equal(result.status, 'PASS', JSON.stringify(result));
+      assert.equal(result.gateStatus, 'PASS');
+      assert.equal(result.branch, FIXTURE_BRANCH);
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
   }
 });
 
