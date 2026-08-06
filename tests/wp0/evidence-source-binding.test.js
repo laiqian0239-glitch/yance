@@ -17,10 +17,24 @@ const POST_MERGE_DEFECT_PATH = path.join(
   'architecture-closure-v2',
   'wp-a-post-merge-defect-001.json'
 );
-const LFS_POINTER_ENV = Object.freeze({ ...process.env, GIT_LFS_SKIP_SMUDGE: '1' });
+const CALLER_ROOT_ENV_KEYS = Object.freeze([
+  'YANCE_EVALUATED_REPOSITORY_ROOT',
+  'TRUSTED_POLICY_ROOT',
+  'TRUSTED_POLICY_SHA',
+  'IMPLEMENTATION_BRANCH',
+  'REVIEWED_HEAD_SHA'
+]);
+
+function isolatedFixtureEnv() {
+  const env = { ...process.env, GIT_LFS_SKIP_SMUDGE: '1' };
+  for (const key of CALLER_ROOT_ENV_KEYS) delete env[key];
+  return Object.freeze(env);
+}
+
+const FIXTURE_ENV = isolatedFixtureEnv();
 
 function git(cwd, args) {
-  return execFileSync('git', args, { cwd, encoding: 'utf8', env: LFS_POINTER_ENV }).trim();
+  return execFileSync('git', args, { cwd, encoding: 'utf8', env: FIXTURE_ENV }).trim();
 }
 
 function assertPointerPreserved(repo) {
@@ -45,14 +59,17 @@ function makeCleanClone() {
     REPO_ROOT,
     repo
   ];
-  execFileSync('git', args, { encoding: 'utf8', env: LFS_POINTER_ENV });
+  execFileSync('git', args, { encoding: 'utf8', env: FIXTURE_ENV });
   execFileSync('git', ['switch', '--force-create', FIXTURE_BRANCH, sourceCommit], {
     cwd: repo,
     encoding: 'utf8',
-    env: LFS_POINTER_ENV
+    env: FIXTURE_ENV
   });
+  const remoteRef = `refs/remotes/origin/${FIXTURE_BRANCH}`;
+  git(repo, ['update-ref', remoteRef, sourceCommit]);
   assert.equal(git(repo, ['rev-parse', 'HEAD']), sourceCommit, 'WP0 evidence fixture must use the tested HEAD');
   assert.equal(git(repo, ['branch', '--show-current']), FIXTURE_BRANCH);
+  assert.equal(git(repo, ['rev-parse', remoteRef]), sourceCommit, 'reviewed fixture remote tip must equal HEAD');
   assertPointerPreserved(repo);
   return { root, repo, sourceBranch: FIXTURE_BRANCH, sourceCommit };
 }
@@ -61,7 +78,7 @@ function runGenerator(repo, args = []) {
   const result = spawnSync(process.execPath, ['tools/wp0/generate-evidence.js', ...args], {
     cwd: repo,
     encoding: 'utf8',
-    env: LFS_POINTER_ENV
+    env: FIXTURE_ENV
   });
   let json = null;
   try { json = JSON.parse(result.stdout); } catch { json = null; }
@@ -76,6 +93,10 @@ function fileMap(root) {
   }
   return map;
 }
+
+test('fixture environment cannot inherit the caller repository or reviewed identity', () => {
+  for (const key of CALLER_ROOT_ENV_KEYS) assert.equal(FIXTURE_ENV[key], undefined, key);
+});
 
 test('evidence generator rejects an existing commit that is not the tested HEAD', () => {
   const { repo } = makeCleanClone();
@@ -140,7 +161,7 @@ test('historical detached evidence succeeds only at the sealed post-merge defect
   execFileSync('git', ['-c', 'core.autocrlf=false', '-c', 'core.eol=lf', 'worktree', 'add', '--quiet', '--detach', worktree, historical], {
     cwd: repo,
     encoding: 'utf8',
-    env: LFS_POINTER_ENV
+    env: FIXTURE_ENV
   });
   assertPointerPreserved(worktree);
   const out = path.join(root, 'historical-evidence');
