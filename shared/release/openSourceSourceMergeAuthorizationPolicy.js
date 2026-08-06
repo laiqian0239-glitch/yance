@@ -178,6 +178,7 @@ function validateGovernanceClosure(document) {
 function validateAuthorizationSeal(document) {
   const seal = document.requiredAuthorizationSeal;
   const binding = document.policyBinding;
+  const topology = document.policyReviewTopology;
   if (!isObject(seal)
     || seal.status !== AUTHORIZATION_SEAL_STATUS
     || !SHA40.test(String(seal.authorizationMergeCommit || ''))
@@ -190,10 +191,21 @@ function validateAuthorizationSeal(document) {
     || seal.sealMayNotChangeCheckpointIdentityOrImplementationScope !== true
     || !isObject(binding)
     || !SHA40.test(String(binding.redHead || ''))
+    || binding.redHead === seal.policyReviewedHead
     || binding.reviewedHead !== seal.policyReviewedHead
     || binding.branch !== POLICY_BRANCH
     || binding.allowedPostReviewCommitsClassification !== 'GOVERNANCE_METADATA_ONLY'
-    || !sameArray(binding.allowedPostReviewPaths, [AUTHORIZATION_PATH])) {
+    || !sameArray(binding.allowedPostReviewPaths, [AUTHORIZATION_PATH])
+    || !isObject(topology)
+    || topology.redTestCommitMustPrecedeImplementation !== true
+    || topology.policyReviewedHeadIsGreenCodeCommit !== true
+    || topology.policyReviewedHeadMustBeRecordedByLaterEvidenceCommit !== true
+    || topology.policyBranchTipMustBeResolvedFromExactRemoteRef !== true
+    || topology.policyBranchTipMayNotBeSelfRecorded !== true
+    || topology.allowedPostReviewCommitsClassification !== binding.allowedPostReviewCommitsClassification
+    || !sameArray(topology.allowedPostReviewPaths, binding.allowedPostReviewPaths)
+    || topology.policyReviewedHeadMustBeAncestorOfBranchTip !== true
+    || topology.extraPostReviewCommitOrPathFailsClosed !== true) {
     return fail('POLICY_AUTHORIZATION_SEAL_INVALID');
   }
   return pass('POLICY_AUTHORIZATION_SEAL_VALID');
@@ -277,6 +289,10 @@ function evaluatePolicyImplementation({ authorization, graph, evidence } = {}) {
   }
   if (!verifyCheckpointEvidence(authorization, evidence)) {
     return fail('CHECKPOINT_EVIDENCE_INVALID');
+  }
+  if (graph.isAncestor(seal.authorizationMergeCommit, binding.redHead) !== true
+    || graph.isAncestor(binding.redHead, binding.reviewedHead) !== true) {
+    return fail('POLICY_RED_HEAD_ANCESTRY_INVALID');
   }
   if (graph.isAncestor(seal.authorizationMergeCommit, binding.reviewedHead) !== true) {
     return fail('POLICY_REVIEWED_HEAD_ANCESTRY_INVALID');
