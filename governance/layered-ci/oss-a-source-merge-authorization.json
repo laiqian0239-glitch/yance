@@ -77,9 +77,22 @@
     "authorizationReviewedHead": "TO_BE_SEALED_FROM_THIS_BRANCH_FINAL_EXACT_HEAD",
     "authorizationOriginalBlobSha": "TO_BE_SEALED_FROM_THIS_FILE_AT_FINAL_EXACT_HEAD",
     "authorizationOriginalFileSha256": "TO_BE_SEALED_FROM_THIS_FILE_AT_FINAL_EXACT_HEAD",
-    "policyReviewedHead": "TO_BE_SEALED_BY_POLICY_IMPLEMENTATION",
+    "policyReviewedHead": "TO_BE_RECORDED_BY_LATER_EVIDENCE_COMMIT",
     "exactTwoParentOrderRequired": true,
     "sealMayNotChangeCheckpointIdentityOrImplementationScope": true
+  },
+  "policyReviewTopology": {
+    "redTestCommitMustPrecedeImplementation": true,
+    "policyReviewedHeadIsGreenCodeCommit": true,
+    "policyReviewedHeadMustBeRecordedByLaterEvidenceCommit": true,
+    "policyBranchTipMustBeResolvedFromExactRemoteRef": true,
+    "policyBranchTipMayNotBeSelfRecorded": true,
+    "allowedPostReviewCommitsClassification": "GOVERNANCE_METADATA_ONLY",
+    "allowedPostReviewPaths": [
+      "governance/layered-ci/oss-a-source-merge-authorization.json"
+    ],
+    "policyReviewedHeadMustBeAncestorOfBranchTip": true,
+    "extraPostReviewCommitOrPathFailsClosed": true
   },
   "finalCandidateSeal": {
     "requiredAfterPolicyImplementationOrdinaryMainMerge": true,
@@ -130,6 +143,8 @@
     "Any checkpoint PR number, source branch, checkpoint Head, implementation base, 24/23 path count or implementation path digest drift fails closed",
     "Self-asserted workflow or review conclusions without trusted adapter verification fail closed",
     "Any path outside the three authorized policy implementation paths between the authorization merge and policy reviewed Head fails closed",
+    "A policy reviewed Head that is not an ancestor of the exact remote policy branch tip fails closed",
+    "Any post-review commit or path other than an authorization-file-only governance metadata commit fails closed",
     "The checkpoint Head 028535eb6c092c47ad92bce3f0675c7d7b23f22d is rejected as the final source-merge Head after main advances",
     "A missing, merged, multi-file, stale-main or unreviewed final candidate seal fails closed",
     "A final candidate seal whose receipt base, 23-path count, digest, workflow evidence or independent review does not match the refreshed PR #67 Head fails closed",
@@ -143,9 +158,10 @@
     "Policy authorization PR merges to main by ordinary merge without history rewrite",
     "Policy implementation branch is created from that exact authorization merge commit",
     "A test-only commit records causal RED for unsealed authority, checkpoint drift, untrusted evidence, implementation-scope drift, stale final candidate and merge-parent drift",
-    "The policy authorization file is sealed with its exact ordinary merge identity without changing checkpoint or implementation scope",
-    "The pure source-merge authorization policy is implemented without importing the OSS-1A-specific product-route role machinery",
-    "Policy implementation exact Head passes permanent WP0, Layered CI, ACV2, post-merge validation and independent review",
+    "A GREEN code commit implements the pure source-merge authorization policy without importing the OSS-1A-specific product-route role machinery",
+    "A later authorization-file-only governance metadata commit seals the authorization merge identity and records the preceding GREEN code commit as policyReviewedHead",
+    "The exact remote policy branch tip is verified as a descendant of policyReviewedHead with no post-review path except this authorization file",
+    "Policy implementation exact branch tip passes permanent WP0, Layered CI, ACV2, post-merge validation and independent review",
     "Policy implementation PR merges to main by ordinary merge",
     "Fresh main is ordinarily merged into PR #67 and only its receipt base binding is updated; the 23-path count and digest remain fixed",
     "The refreshed PR #67 exact Head passes permanent WP0, Layered CI, OSS Provenance, ACV2, post-merge validation and independent review",
@@ -163,6 +179,8 @@
     "candidateScopeReduction": true,
     "directModificationOfPr67OutsideItsSealedScope": true,
     "copyOss1aSpecificBranchRoleAsParallelAuthority": true,
+    "selfRecordPolicyBranchTip": true,
+    "extraPostReviewImplementationPath": true,
     "treatCheckpointHeadAsFinalAfterMainAdvances": true,
     "mergeFinalCandidateSealIntoMainBeforeSourceMerge": true,
     "sourceMergeBeforePolicyImplementationMainMerge": true,
@@ -180,6 +198,7 @@
   "governance": {
     "authorizationPredatesImplementation": true,
     "twoPhasePolicySealRequired": true,
+    "reviewedCodeAndEvidenceTipSeparated": true,
     "separateFinalCandidateSealRequired": true,
     "exactPathScopeOnly": true,
     "independentBranchAndPullRequestRequired": true,
