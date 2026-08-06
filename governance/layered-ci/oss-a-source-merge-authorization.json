@@ -72,14 +72,24 @@
     "oss1aSpecificRoleCopyAllowed": false
   },
   "requiredAuthorizationSeal": {
-    "authorizationMergeCommit": "TO_BE_SEALED_AFTER_ORDINARY_MAIN_MERGE",
+    "status": "SEALED",
+    "authorizationMergeCommit": "fac7d298f182043f4ecc6e41a780248ce3a03132",
     "authorizationMergeFirstParent": "ad195d8497ec61fbe3387c606692110f5645fba0",
-    "authorizationReviewedHead": "TO_BE_SEALED_FROM_THIS_BRANCH_FINAL_EXACT_HEAD",
-    "authorizationOriginalBlobSha": "TO_BE_SEALED_FROM_THIS_FILE_AT_FINAL_EXACT_HEAD",
-    "authorizationOriginalFileSha256": "TO_BE_SEALED_FROM_THIS_FILE_AT_FINAL_EXACT_HEAD",
-    "policyReviewedHead": "TO_BE_RECORDED_BY_LATER_EVIDENCE_COMMIT",
+    "authorizationReviewedHead": "f50590181e19cdc134c35d91ae9421af5b532ce8",
+    "authorizationOriginalBlobSha": "99ee3e5243d07fed5cea6661cb6ad82123771bc8",
+    "authorizationOriginalFileSha256": "a9c6022c7a59e49dd3c4c957d6e7e56de70697b84609f338d00a4cc5c07fe0fd",
+    "policyReviewedHead": "7926dd003d00c80a1feb1dc17e42dea3ab8009b7",
     "exactTwoParentOrderRequired": true,
     "sealMayNotChangeCheckpointIdentityOrImplementationScope": true
+  },
+  "policyBinding": {
+    "redHead": "5117b03d25b8cae87db39cb4445c322dc01405d9",
+    "reviewedHead": "7926dd003d00c80a1feb1dc17e42dea3ab8009b7",
+    "branch": "governance/oss-a-source-merge-policy",
+    "allowedPostReviewCommitsClassification": "GOVERNANCE_METADATA_ONLY",
+    "allowedPostReviewPaths": [
+      "governance/layered-ci/oss-a-source-merge-authorization.json"
+    ]
   },
   "policyReviewTopology": {
     "redTestCommitMustPrecedeImplementation": true,
