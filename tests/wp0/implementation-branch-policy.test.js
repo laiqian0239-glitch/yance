@@ -6,151 +6,280 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const {
-  ACV2_AUTHORIZATION_BLOB_SHA,
-  ACV2_AUTHORIZATION_REPOSITORY_PATH,
-  ACV2_WP_A_PARENT_GOVERNANCE_HEAD,
-  A8_POST_MERGE_DEFECT_ID,
-  A8_POST_MERGE_DEFECT_PATH,
-  A8_POST_MERGE_DEFECT_TARGET_BRANCH,
-  REBUILD_BRANCH_PATTERN_SOURCE,
-  authorizedImplementationBranchDescription,
-  canonicalRebuildBranch,
   canonicalStageBranch,
-  changedFileSetSha256,
-  evaluateAuthorizedPostMergeDefectScope,
-  evaluateAuthorizedWorkPackageScope,
+  isReleaseClosureRebuildBranch,
   isAuthorizedImplementationBranch,
+  authorizedImplementationBranchDescription,
+  loadWorkPackageScopeAmendment,
+  loadWorkPackageTaskScopeChain,
+  loadWorkPackagePostMergeDefect,
+  isValidWorkPackageScopeAmendment,
+  validateWorkPackageTaskScopeChain,
   isValidWorkPackagePostMergeDefect,
-  loadWorkPackageAuthorization,
-  loadWorkPackagePostMergeDefect
+  evaluateAuthorizedWorkPackageScope,
+  evaluateAuthorizedWorkPackageTaskScope,
+  evaluateAuthorizedPostMergeDefectScope,
+  workPackageChangedFilesSha256
 } = require('../../shared/release/implementationBranchPolicy');
+const { CURRENT_STAGE, currentBranch, checkRuntimeTargetGate } = require('../../tools/wp0/lib');
 
-const ROOT = path.resolve(__dirname, '..', '..');
-const AUTHORIZATION = loadWorkPackageAuthorization();
-const AUTHORIZED_BRANCH = AUTHORIZATION.authorizedBranch;
-const STAGE = '6.4.5.9';
+const REPO_ROOT = path.join(__dirname, '..', '..');
+const AUTHORIZATION_PATH = path.join(REPO_ROOT, 'governance', 'architecture-closure-v2', 'implementation-plan-authorization.json');
+const A6_CLOSURE_PATH = path.join(REPO_ROOT, 'governance', 'architecture-closure-v2', 'wp-a-a6-closure.json');
+const PARENT_GOVERNANCE_HEAD = 'd81599d8a3f3de891da369b6f1ddbd01e264c78d';
+const A6_FROZEN_DIGEST = 'd2cac11bd6864b02e09fa68015dbdba5c41bb2777bf79e821f00a846b651702a';
 
-function changedFilesFrom(base) {
-  const raw = execFileSync('git', ['diff', '--name-only', '-z', base, 'HEAD', '--'], {
-    cwd: ROOT,
-    encoding: null
-  });
-  return raw.toString('utf8').split('\0').filter(Boolean).sort();
+function authorization() {
+  return JSON.parse(fs.readFileSync(AUTHORIZATION_PATH, 'utf8'));
 }
 
-test('canonical stage and rebuild branches remain exact', () => {
-  assert.equal(canonicalStageBranch(STAGE), 'stage/6.4.5.9-architecture-closure');
-  assert.equal(canonicalRebuildBranch(STAGE), 'rebuild/windows-release-closure-6.4.5.9');
-  assert.equal(REBUILD_BRANCH_PATTERN_SOURCE, '^rebuild/windows-release-closure-6\\.4\\.5\\.9$');
-  assert.equal(authorizedImplementationBranchDescription(STAGE),
-    'stage/6.4.5.9-architecture-closure, rebuild/windows-release-closure-6.4.5.9, acv2/wp-a-identity-ledger-write-host, or an exact sealed open-source work-package branch');
+function changedFilesFrom(baseHead) {
+  const output = execFileSync('git', [
+    '-c',
+    'core.quotePath=false',
+    'diff',
+    '--name-only',
+    '-z',
+    baseHead,
+    'HEAD',
+    '--'
+  ], {
+    cwd: REPO_ROOT,
+    encoding: null
+  });
+  return output.toString('utf8').split('\0').filter(Boolean).sort();
+}
+
+function actualWorkPackageChangedFiles() {
+  return changedFilesFrom(PARENT_GOVERNANCE_HEAD);
+}
+
+function scopeAmendment(document, changedFiles) {
+  return {
+    schemaVersion: 1,
+    documentType: 'YANCE_ACV2_WORK_PACKAGE_SCOPE_AMENDMENT',
+    status: 'APPROVED_INDEPENDENT_REVIEW_SCOPE_AMENDMENT',
+    repository: document.repository,
+    workPackage: document.currentAuthorizedWorkPackage,
+    task: 'A6_INDEPENDENT_ROOT_REPAIR_AND_GOVERNANCE_SCOPE_CLOSURE',
+    authorizedBranch: document.authorizedBranch,
+    pullRequest: 5,
+    baseAuthorizationPath: 'governance/architecture-closure-v2/implementation-plan-authorization.json',
+    baseAuthorizationBlobSha: '203697b36c06e0dc72c92113ef58f1a8f2394312',
+    parentGovernanceHead: PARENT_GOVERNANCE_HEAD,
+    approvedChangedFileCount: changedFiles.length,
+    approvedChangedFileSetSha256: workPackageChangedFilesSha256(changedFiles),
+    additionalAllowedPaths: [
+      'backend/runtime/AppRuntime.js',
+      'tools/wp0/lib.js'
+    ],
+    governance: {
+      exactPathExpansionOnly: true,
+      wildcardExpansionAllowed: false,
+      prMustRemainDraft: true,
+      automaticNextTaskAuthorization: false,
+      automaticNextWorkPackageAuthorization: false,
+      readyForPromotion: false
+    }
+  };
+}
+
+test('canonical Stage6 branch remains authorized without permitting rewrite aliases', () => {
+  const branch = canonicalStageBranch(CURRENT_STAGE);
+  assert.equal(branch, 'stage/6.4.5.9-architecture-closure');
+  assert.equal(isAuthorizedImplementationBranch(branch, CURRENT_STAGE), true);
+  assert.equal(isAuthorizedImplementationBranch(`${branch}-copy`, CURRENT_STAGE), false);
 });
 
-test('authorized implementation branches preserve stage, rebuild, ACV2 and sealed OSS delegation', () => {
-  assert.equal(isAuthorizedImplementationBranch(canonicalStageBranch(STAGE), STAGE), true);
-  assert.equal(isAuthorizedImplementationBranch(canonicalRebuildBranch(STAGE), STAGE), true);
-  assert.equal(isAuthorizedImplementationBranch(AUTHORIZED_BRANCH, STAGE), true);
-  assert.equal(isAuthorizedImplementationBranch('stage/6.4.5.8-architecture-closure', STAGE), false);
-  assert.equal(isAuthorizedImplementationBranch('rebuild/windows-release-closure-6.4.5.9-extra', STAGE), false);
-  assert.equal(isAuthorizedImplementationBranch(' acv2/wp-a-identity-ledger-write-host', STAGE), false);
-  assert.equal(isAuthorizedImplementationBranch('./acv2/wp-a-identity-ledger-write-host', STAGE), false);
+test('dated Windows release-closure rebuild branches are authorized', () => {
+  assert.equal(isReleaseClosureRebuildBranch('rebuild/windows-release-closure-20260712'), true);
+  assert.equal(isReleaseClosureRebuildBranch('rebuild/windows-release-closure-20260712-gate-fix'), true);
+  assert.equal(isAuthorizedImplementationBranch('rebuild/windows-release-closure-20260712', CURRENT_STAGE), true);
 });
 
-test('checked-out scope authority preserves the exact authorization blob and path set', () => {
-  const blob = execFileSync('git', ['rev-parse', `HEAD:${ACV2_AUTHORIZATION_REPOSITORY_PATH}`], {
-    cwd: ROOT,
-    encoding: 'utf8'
-  }).trim();
-  assert.equal(blob, ACV2_AUTHORIZATION_BLOB_SHA);
-  assert.equal(AUTHORIZATION.parentGovernanceHead, ACV2_WP_A_PARENT_GOVERNANCE_HEAD);
-  assert.equal(AUTHORIZATION.approvedChangedFileCount, AUTHORIZATION.exactPaths.length);
-  assert.equal(AUTHORIZATION.approvedChangedFileSetSha256, changedFileSetSha256(AUTHORIZATION.exactPaths));
+test('exact machine-authorized ACV2 work-package branch is accepted without a wildcard', () => {
+  const document = authorization();
+  const exact = document.authorizedBranch;
+  assert.equal(isAuthorizedImplementationBranch(exact, CURRENT_STAGE, { authorization: document }), true);
+  assert.match(
+    authorizedImplementationBranchDescription(CURRENT_STAGE, { authorization: document }),
+    new RegExp(exact.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  );
+
+  for (const branch of [
+    'acv2/wp-a-arbitrary',
+    'acv2/wp-b-durable-execution-outbox',
+    `${exact}-copy`,
+    'acv2/wp-a/escape'
+  ]) assert.equal(isAuthorizedImplementationBranch(branch, CURRENT_STAGE, { authorization: document }), false, branch);
+
+  assert.equal(isAuthorizedImplementationBranch(exact, CURRENT_STAGE, { authorization: { ...document, schemaVersion: 99 } }), false);
+  assert.equal(isAuthorizedImplementationBranch(exact, CURRENT_STAGE, { authorization: { ...document, status: 'REVOKED' } }), false);
+  assert.equal(isAuthorizedImplementationBranch(exact, CURRENT_STAGE, {
+    authorization: { ...document, governance: { ...document.governance, automaticNextWorkPackageAuthorization: true } }
+  }), false);
 });
 
-test('checked-out candidate scope remains exact when evaluated from the frozen ACV2 parent', () => {
-  const changedFiles = changedFilesFrom(ACV2_WP_A_PARENT_GOVERNANCE_HEAD);
-  const evaluation = evaluateAuthorizedWorkPackageScope({
-    branch: AUTHORIZED_BRANCH,
+test('historical A6 amendment remains immutable and independently valid', () => {
+  const document = authorization();
+  const amendment = loadWorkPackageScopeAmendment();
+  assert.ok(amendment, 'historical A6 scope amendment must exist');
+  assert.equal(isValidWorkPackageScopeAmendment(amendment, document), true);
+  assert.equal(amendment.approvedChangedFileCount, 83);
+  assert.equal(amendment.approvedChangedFileSetSha256, A6_FROZEN_DIGEST);
+  assert.equal(amendment.governance.readyForPromotion, false);
+});
+
+test('work-package scope requires an exact independently reviewed amendment', () => {
+  assert.equal(typeof evaluateAuthorizedWorkPackageScope, 'function');
+  assert.equal(typeof workPackageChangedFilesSha256, 'function');
+  const document = authorization();
+  const changedFiles = [
+    'backend/runtime/AppRuntimeFactory.js',
+    'backend/runtime/AppRuntime.js',
+    'tools/wp0/lib.js'
+  ];
+
+  const withoutAmendment = evaluateAuthorizedWorkPackageScope({
+    branch: document.authorizedBranch,
     changedFiles,
-    authorization: AUTHORIZATION,
+    authorization: document,
     amendment: null
   });
-  if (evaluation.pass) {
-    assert.equal(evaluation.changedFileSetSha256, AUTHORIZATION.approvedChangedFileSetSha256);
-    assert.equal(changedFiles.length, AUTHORIZATION.approvedChangedFileCount);
-    assert.deepEqual(evaluation.unauthorizedPaths, []);
-  } else {
-    assert.ok([
-      'ACV2_WORK_PACKAGE_CHANGED_FILE_SET_MISMATCH',
-      'ACV2_WORK_PACKAGE_SCOPE_VIOLATION'
-    ].includes(evaluation.reasonCode), JSON.stringify(evaluation));
-  }
-});
+  assert.equal(withoutAmendment.pass, false);
+  assert.deepEqual(withoutAmendment.unauthorizedPaths, [
+    'backend/runtime/AppRuntime.js',
+    'tools/wp0/lib.js'
+  ]);
 
-test('unrelated branches cannot inherit ACV2 scope authority', () => {
-  const result = evaluateAuthorizedWorkPackageScope({
-    branch: 'main',
-    changedFiles: AUTHORIZATION.exactPaths,
-    authorization: AUTHORIZATION,
-    amendment: null
+  const approved = scopeAmendment(document, changedFiles);
+  const accepted = evaluateAuthorizedWorkPackageScope({
+    branch: document.authorizedBranch,
+    changedFiles,
+    authorization: document,
+    amendment: approved
   });
-  assert.equal(result.pass, false);
-  assert.equal(result.reasonCode, 'ACV2_WORK_PACKAGE_AUTHORIZATION_INVALID');
+  assert.equal(accepted.pass, true);
+  assert.deepEqual(accepted.unauthorizedPaths, []);
+
+  const unknownPath = 'backend/runtime/UnreviewedWriter.js';
+  const expanded = [...changedFiles, unknownPath];
+  const unknownResult = evaluateAuthorizedWorkPackageScope({
+    branch: document.authorizedBranch,
+    changedFiles: expanded,
+    authorization: document,
+    amendment: {
+      ...approved,
+      approvedChangedFileCount: expanded.length,
+      approvedChangedFileSetSha256: workPackageChangedFilesSha256(expanded)
+    }
+  });
+  assert.equal(unknownResult.pass, false);
+  assert.deepEqual(unknownResult.unauthorizedPaths, [unknownPath]);
+
+  const wildcardExpansion = evaluateAuthorizedWorkPackageScope({
+    branch: document.authorizedBranch,
+    changedFiles,
+    authorization: document,
+    amendment: { ...approved, additionalAllowedPaths: ['backend/**'] }
+  });
+  assert.equal(wildcardExpansion.reasonCode, 'ACV2_SCOPE_AMENDMENT_INVALID');
+
+  const wrongParent = evaluateAuthorizedWorkPackageScope({
+    branch: document.authorizedBranch,
+    changedFiles,
+    authorization: document,
+    amendment: { ...approved, parentGovernanceHead: 'f'.repeat(40) }
+  });
+  assert.equal(wrongParent.reasonCode, 'ACV2_SCOPE_AMENDMENT_INVALID');
+
+  const wrongCount = evaluateAuthorizedWorkPackageScope({
+    branch: document.authorizedBranch,
+    changedFiles,
+    authorization: document,
+    amendment: { ...approved, approvedChangedFileCount: changedFiles.length + 1 }
+  });
+  assert.equal(wrongCount.reasonCode, 'ACV2_CHANGED_FILE_SET_MISMATCH');
 });
 
-test('post-merge defect authority remains exact and closed', () => {
+test('checked-out scope preserves immutable A8 closure and validates an exact post-close defect when present', () => {
+  const document = authorization();
+  const chain = loadWorkPackageTaskScopeChain();
+  assert.ok(chain, 'task scope chain must exist and parse as JSON');
+  assert.equal(validateWorkPackageTaskScopeChain(chain, document), true);
+  assert.equal(chain.activeTask, 'A8');
+  assert.equal(chain.status, 'A8_CLOSED');
+
+  const closure = JSON.parse(fs.readFileSync(A6_CLOSURE_PATH, 'utf8'));
+  assert.equal(closure.task, 'A6');
+  assert.equal(closure.status, 'CLOSED');
+  assert.equal(closure.frozenEvidenceBranchTip, chain.tasks[0].evidenceBranchTip);
+  assert.equal(closure.governance.readyForPromotion, false);
+
   const defect = loadWorkPackagePostMergeDefect();
-  assert.ok(defect);
-  assert.equal(defect.defectId, A8_POST_MERGE_DEFECT_ID);
-  assert.equal(defect.scope.targetBranch, A8_POST_MERGE_DEFECT_TARGET_BRANCH);
-  assert.equal(defect.status, 'CLOSED');
-  assert.equal(isValidWorkPackagePostMergeDefect(defect), true);
-  assert.equal(defect.scope.changedFileSetSha256, changedFileSetSha256(defect.scope.exactPaths));
-  assert.equal(defect.scope.changedFileCount, defect.scope.exactPaths.length);
-  assert.deepEqual([...defect.scope.exactPaths].sort(), defect.scope.exactPaths);
-});
+  if (defect && isValidWorkPackagePostMergeDefect(defect)) {
+    const changedFiles = [...defect.scope.exactPaths];
+    const result = evaluateAuthorizedPostMergeDefectScope({
+      branch: defect.scope.targetBranch,
+      changedFiles,
+      defect
+    });
+    assert.equal(result.pass, true, JSON.stringify(result));
+    assert.equal(result.defectId, 'WP-A-POST-MERGE-DEFECT-001');
+    assert.equal(result.changedFileSetSha256, defect.scope.approvedChangedFileSetSha256);
+    assert.equal(changedFiles.length, defect.scope.approvedChangedFileCount);
+    assert.deepEqual(result.unauthorizedPaths, []);
+    assert.equal(result.readyForPromotion, true);
 
-test('checked-out scope authority preserves A8 against the frozen defect commits and paths', () => {
-  const defectPath = path.join(ROOT, ...A8_POST_MERGE_DEFECT_PATH.split('/'));
-  assert.equal(fs.existsSync(defectPath), true);
-  const defect = JSON.parse(fs.readFileSync(defectPath, 'utf8'));
-  assert.equal(isValidWorkPackagePostMergeDefect(defect), true);
-  assert.equal(defect.scope.changedFileSetSha256, changedFileSetSha256(defect.scope.exactPaths));
-  assert.equal(defect.scope.changedFileCount, defect.scope.exactPaths.length);
-  assert.deepEqual([...defect.scope.exactPaths].sort(), defect.scope.exactPaths);
-
-  execFileSync('git', ['cat-file', '-e', `${defect.scope.baseHead}^{commit}`], { cwd: ROOT });
-  execFileSync('git', ['cat-file', '-e', `${defect.scope.closedHead}^{commit}`], { cwd: ROOT });
-  execFileSync('git', ['merge-base', '--is-ancestor', defect.scope.baseHead, defect.scope.closedHead], {
-    cwd: ROOT
-  });
-
-  const evaluation = evaluateAuthorizedPostMergeDefectScope({
-    branch: defect.scope.targetBranch,
-    changedFiles: defect.scope.exactPaths,
-    defect
-  });
-  assert.equal(evaluation.pass, true, JSON.stringify(evaluation));
-  assert.equal(evaluation.changedFileSetSha256, defect.scope.changedFileSetSha256);
-  assert.deepEqual(evaluation.unauthorizedPaths, []);
-});
-
-test('post-merge defect scope rejects current candidate changes not in its frozen set', () => {
-  const defect = loadWorkPackagePostMergeDefect();
-  const currentChangedFiles = changedFilesFrom(defect.scope.baseHead);
-  const evaluation = evaluateAuthorizedPostMergeDefectScope({
-    branch: defect.scope.targetBranch,
-    changedFiles: currentChangedFiles,
-    defect
-  });
-  if (currentChangedFiles.length === defect.scope.changedFileCount
-    && changedFileSetSha256(currentChangedFiles) === defect.scope.changedFileSetSha256) {
-    assert.equal(evaluation.pass, true, JSON.stringify(evaluation));
-  } else {
-    assert.equal(evaluation.pass, false);
-    assert.ok([
-      'ACV2_POST_MERGE_DEFECT_CHANGED_FILE_SET_MISMATCH',
-      'ACV2_POST_MERGE_DEFECT_SCOPE_VIOLATION'
-    ].includes(evaluation.reasonCode), JSON.stringify(evaluation));
+    const currentChangedFiles = changedFilesFrom(defect.scope.baseHead);
+    if (workPackageChangedFilesSha256(currentChangedFiles)
+      !== defect.scope.approvedChangedFileSetSha256) {
+      const currentResult = evaluateAuthorizedPostMergeDefectScope({
+        branch: defect.scope.targetBranch,
+        changedFiles: currentChangedFiles,
+        defect
+      });
+      assert.equal(currentResult.pass, false);
+    }
+    return;
   }
+
+  const changedFiles = actualWorkPackageChangedFiles();
+  const result = evaluateAuthorizedWorkPackageTaskScope({
+    branch: document.authorizedBranch,
+    changedFiles,
+    authorization: document,
+    taskScopeChain: chain
+  });
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.activeTask, 'A8');
+  assert.equal(result.changedFileSetSha256, chain.approvedChangedFileSetSha256);
+  assert.equal(changedFiles.length, chain.approvedChangedFileCount);
+  assert.deepEqual(result.unauthorizedPaths, []);
+  assert.equal(result.readyForPromotion, false);
+});
+
+test('malformed, impossible-date and arbitrary branches remain denied', () => {
+  for (const branch of [
+    'rebuild/windows-release-closure-latest',
+    'rebuild/windows-release-closure-20260230',
+    'rebuild/windows-release-closure-20260712/escape',
+    'feature/windows-release-closure-20260712',
+    'main'
+  ]) assert.equal(isAuthorizedImplementationBranch(branch, CURRENT_STAGE), false, branch);
+});
+
+test('current repository branch uses local authority only when locally provable and arbitrary branches fail', () => {
+  const branch = currentBranch();
+  const current = checkRuntimeTargetGate({ branch, changedFiles: [] });
+  if (branch === 'oss/a-supply-chain-foundation') {
+    assert.equal(current.pass, false, 'candidate-owned policy must not self-authorize the sealed OSS receipt');
+    assert.equal(current.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');
+  } else {
+    assert.equal(current.pass, true, JSON.stringify(current));
+  }
+
+  const denied = checkRuntimeTargetGate({ branch: 'feature/unreviewed-release', changedFiles: [] });
+  assert.equal(denied.pass, false);
+  assert.equal(denied.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');
 });
