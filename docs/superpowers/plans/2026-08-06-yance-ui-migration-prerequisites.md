@@ -91,13 +91,14 @@ Existing files modified by the capability implementation are:
 
 ```text
 .github/workflows/stage-6459-wp0-gates.yml
-governance/layered-ci/wp0-routing-policy.json
 shared/release/implementationBranchPolicy.js
 tests/layered-ci/ui-product-shell-wp0-routing.test.js
 tests/layered-ci/wp0-routing.test.js
 tests/wp0/implementation-branch-policy.test.js
 tools/wp0/work-package-scope-gate.js
 ```
+
+`governance/layered-ci/wp0-routing-policy.json` is changed only by the route-bootstrap branch. The capability branch may read it but must not modify it.
 
 Any need to change a path outside these sets must stop implementation and revise this plan before code changes continue.
 
