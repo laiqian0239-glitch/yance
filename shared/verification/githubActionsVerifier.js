@@ -1,6 +1,7 @@
 'use strict';
 
-const { canonicalSha256, sha256Hex } = require('./jcs');
+const { sha256Hex } = require('./jcs');
+const { verifyCommandFacts } = require('./commandFacts');
 const { validateCommandSet, commandSetDigest } = require('./commandSetRegistry');
 const { validateFinalReceipt, verifyReceiptDigests } = require('./canonicalEvidenceReceipt');
 const { REASON_CODES } = require('./reasonCodes');
@@ -28,23 +29,6 @@ function expectedMismatch(receipt, expected) {
 function apiInvalid(details) { return fail(REASON_CODES.EVIDENCE_GITHUB_API_IDENTITY_INVALID, details); }
 function normalizeWorkflowId(value) { return String(value); }
 
-function verifyCommandFacts(receipt, commandSet) {
-  if (receipt.execution.commands.length !== commandSet.commands.length || receipt.results.length !== commandSet.commands.length) return fail(REASON_CODES.EVIDENCE_COMMAND_RESULT_MISMATCH);
-  const executions = new Map(receipt.execution.commands.map((entry) => [entry.commandId, entry]));
-  const results = new Map(receipt.results.map((entry) => [entry.commandId, entry]));
-  for (const command of commandSet.commands) {
-    const execution = executions.get(command.commandId);
-    const result = results.get(command.commandId);
-    if (!execution || !result) return fail(REASON_CODES.EVIDENCE_COMMAND_RESULT_MISMATCH);
-    const argvDigest = canonicalSha256({ executable: command.executable, argv: command.argv });
-    if (execution.argvDigest !== argvDigest) return fail(REASON_CODES.EVIDENCE_COMMAND_RESULT_MISMATCH);
-    const passed = execution.exitCode === command.expectedExitCode;
-    if (result.passed !== passed) return fail(REASON_CODES.EVIDENCE_COMMAND_RESULT_MISMATCH);
-    if (!passed) return fail(REASON_CODES.EVIDENCE_COMMAND_FAILED);
-  }
-  return { pass: true };
-}
-
 async function verifyGitHubActionsReceipt({ receipt, expected = {}, commandSetRegistry, client }) {
   const shape = validateFinalReceipt(receipt);
   if (!shape.pass) return shape;
@@ -55,7 +39,7 @@ async function verifyGitHubActionsReceipt({ receipt, expected = {}, commandSetRe
   if (mismatch) return fail(mismatch);
 
   const commandSet = resolveCommandSet(commandSetRegistry, receipt.commandSet.commandSetId);
-  if (!commandSet) return fail(REASON_CODES.EVIDENCE_COMMAND_SET_UNTRUSTED);
+  if (!commandSet) return fail(REASON_CODES.EVIDENCE_COMMAND_SET_UNKNOWN);
   const commandValidation = validateCommandSet(commandSet);
   if (!commandValidation.pass) return commandValidation;
   const digest = commandSetDigest(commandSet);

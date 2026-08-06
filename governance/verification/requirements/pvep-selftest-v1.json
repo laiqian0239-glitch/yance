@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "requirementSetId": "pvep-selftest-v1",
+  "commandSetIds": {
+    "linux": "pvep-linux-selftest-v1",
+    "windows": "pvep-windows-selftest-v1"
+  },
+  "requirements": [
+    {
+      "gateId": "pvep-linux-selftest",
+      "platform": "linux",
+      "commandSetDigest": "4e181101658c2a9fa9de0a5352ebb749e5aed86f6515cae6fe5e22224436f4c6"
+    },
+    {
+      "gateId": "pvep-windows-selftest",
+      "platform": "windows",
+      "commandSetDigest": "353a97205323255f56b646f91c6665715c834d33ccd6e9572b01b51624412240"
+    }
+  ]
+}

@@ -36,7 +36,7 @@ function validateExecutorRegistry(registry) {
     if (!exactKeys(executor, ['executorId', 'platform', 'architecture', 'keyAlgorithm', 'publicKeyPem', 'keyGeneration', 'status', 'validFrom', 'allowedCommandSetDigests', 'signerIsolation'])) return fail(REASON_CODES.EVIDENCE_SCHEMA_INVALID);
     if (!ID_RE.test(executor.executorId || '') || !['linux', 'windows'].includes(executor.platform) || typeof executor.architecture !== 'string' || executor.architecture.length === 0 || !Number.isSafeInteger(executor.keyGeneration) || executor.keyGeneration < 1 || !['ACTIVE', 'REVOKED'].includes(executor.status) || !validUtc(executor.validFrom) || !Array.isArray(executor.allowedCommandSetDigests) || executor.allowedCommandSetDigests.length === 0 || executor.allowedCommandSetDigests.some((digest) => !HASH_RE.test(digest))) return fail(REASON_CODES.EVIDENCE_SCHEMA_INVALID);
     if (executor.keyAlgorithm !== 'Ed25519' || !validPublicKey(executor.publicKeyPem)) return fail(REASON_CODES.EVIDENCE_EXECUTOR_ALGORITHM_INVALID);
-    if (!validateIsolation(executor.signerIsolation)) return fail(REASON_CODES.EVIDENCE_EXECUTOR_ISOLATION_INVALID);
+    if (!validateIsolation(executor.signerIsolation)) return fail(REASON_CODES.EVIDENCE_SIGNER_ISOLATION_INVALID);
     const identity = `${executor.executorId}:${executor.keyGeneration}`;
     if (identities.has(identity)) return fail(REASON_CODES.EVIDENCE_SCHEMA_INVALID);
     identities.add(identity);
@@ -50,7 +50,7 @@ function resolveActiveExecutor({ registry, executorId, keyGeneration, platform, 
   const generations = registry.executors.filter((entry) => entry.executorId === executorId);
   if (generations.length === 0) return fail(REASON_CODES.EVIDENCE_EXECUTOR_UNKNOWN);
   const executor = generations.find((entry) => entry.keyGeneration === keyGeneration);
-  if (!executor) return fail(REASON_CODES.EVIDENCE_EXECUTOR_GENERATION_MISMATCH);
+  if (!executor) return fail(REASON_CODES.EVIDENCE_KEY_GENERATION_INVALID);
   if (executor.status === 'REVOKED') return fail(REASON_CODES.EVIDENCE_EXECUTOR_REVOKED);
   if (executor.platform !== platform) return fail(REASON_CODES.EVIDENCE_PLATFORM_MISMATCH);
   if (!executor.allowedCommandSetDigests.includes(commandSetDigest)) return fail(REASON_CODES.EVIDENCE_EXECUTOR_COMMAND_SET_UNAUTHORIZED);

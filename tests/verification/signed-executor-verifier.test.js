@@ -57,7 +57,7 @@ test('executor identity, platform, generation and artifact bytes are independent
   const generation = createContext();
   generation.receipt.producer.keyGeneration = 2;
   generation.reseal();
-  assert.equal(verify(generation).reasonCode, 'EVIDENCE_EXECUTOR_GENERATION_MISMATCH');
+  assert.equal(verify(generation).reasonCode, 'EVIDENCE_KEY_GENERATION_INVALID');
 
   const executor = createContext();
   executor.receipt.producer.executorId = 'other-executor';
