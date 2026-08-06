@@ -3,172 +3,214 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
+const {
+  ACV2_AUTHORIZATION_BLOB_SHA,
+  ACV2_AUTHORIZATION_REPOSITORY_PATH,
+  ACV2_WP_A_PARENT_GOVERNANCE_HEAD,
+  changedFileSetSha256,
+  loadWorkPackageAuthorization,
+  loadWorkPackagePostMergeDefect
+} = require('../../shared/release/implementationBranchPolicy');
+const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
 
-const repoRoot = path.join(__dirname, '..', '..');
-const verifyGatePath = path.join(repoRoot, 'tools', 'wp0', 'verify-gate.js');
-const protectedCommandPath = path.join(repoRoot, 'tools', 'wp0', 'run-protected-command.js');
-const sharedScopeGatePath = path.join(repoRoot, 'tools', 'wp0', 'work-package-scope-gate.js');
-const authorizationPath = path.join(repoRoot, 'governance', 'architecture-closure-v2', 'implementation-plan-authorization.json');
-const taskScopeChainPath = path.join(repoRoot, 'governance', 'architecture-closure-v2', 'wp-a-task-scope-chain.json');
-const postMergeDefectPath = path.join(repoRoot, 'governance', 'architecture-closure-v2', 'wp-a-post-merge-defect-001.json');
+const ROOT = path.resolve(__dirname, '..', '..');
+const AUTHORIZATION = loadWorkPackageAuthorization();
+const AUTHORIZED_BRANCH = AUTHORIZATION.authorizedBranch;
 
-test('every executable WP0 entrypoint consumes one shared ACV2 work-package scope gate', () => {
-  const verifySource = fs.readFileSync(verifyGatePath, 'utf8');
-  const protectedSource = fs.readFileSync(protectedCommandPath, 'utf8');
-  assert.match(verifySource, /require\(['"]\.\/work-package-scope-gate['"]\)/);
-  assert.match(protectedSource, /require\(['"]\.\/work-package-scope-gate['"]\)/);
-  assert.match(verifySource, /evaluateWorkPackageScopeForGate/);
-  assert.match(protectedSource, /evaluateWorkPackageScopeForGate/);
-  assert.match(verifySource, /workPackageScope/);
-  assert.match(protectedSource, /workPackageScope/);
-  assert.match(protectedSource, /evidenceMode:\s*Boolean\(evidenceSourceCommit\)/);
-  assert.match(protectedSource, /evidenceSourceCommit/);
-});
+function exactPathBuffer(changedFiles) {
+  return changedFiles.length
+    ? Buffer.from(`${changedFiles.join('\0')}\0`, 'utf8')
+    : Buffer.alloc(0);
+}
 
-test('shared scope gate preserves the immutable task chain and adds fail-closed post-close defect scope', () => {
-  assert.equal(fs.existsSync(sharedScopeGatePath), true, 'shared work-package scope gate must exist');
-  const source = fs.readFileSync(sharedScopeGatePath, 'utf8');
-  assert.match(source, /evaluateAuthorizedWorkPackageTaskScope/);
-  assert.match(source, /loadWorkPackageTaskScopeChain/);
-  assert.match(source, /validateWorkPackageTaskScopeChain/);
-  assert.match(source, /taskScopeChainApplied/);
-  assert.match(source, /activeTask/);
-  assert.match(source, /evaluateAuthorizedWorkPackageScope/);
-  assert.match(source, /loadWorkPackageScopeAmendment/);
-  assert.match(source, /evaluateAuthorizedPostMergeDefectScope/);
-  assert.match(source, /loadWorkPackagePostMergeDefect/);
-  assert.match(source, /isValidWorkPackagePostMergeDefect/);
-  assert.match(source, /postMergeDefectScopeApplied/);
-  assert.match(source, /ACV2_AUTHORIZATION_BLOB_SHA/);
-  assert.match(source, /ACV2_WP_A_PARENT_GOVERNANCE_HEAD/);
-  assert.match(source, /status[^\n]*--porcelain/);
-  assert.match(source, /core\.quotePath=false/);
-  assert.match(source, /diff[\s\S]*--name-only/);
-  assert.match(source, /merge-base[^\n]*--is-ancestor/);
-  assert.match(source, /ACV2_(?:WORK_PACKAGE|TASK|POST_MERGE_DEFECT)_SCOPE_/);
-});
-
-test('repository task scope chain is machine-readable and pins A6 and A7 closed before A8', () => {
-  const document = JSON.parse(fs.readFileSync(taskScopeChainPath, 'utf8'));
-  assert.equal(document.documentType, 'YANCE_ACV2_TASK_SCOPE_CHAIN');
-  assert.equal(document.activeTask, 'A8');
-  assert.equal(document.tasks[0].task, 'A6');
-  assert.equal(document.tasks[0].state, 'CLOSED');
-  assert.equal(document.tasks[1].task, 'A7');
-  assert.equal(document.tasks[1].state, 'CLOSED');
-  assert.equal(document.tasks[1].parentTask, 'A6');
-  assert.equal(document.tasks[1].parentEvidenceBranchTip, document.tasks[0].evidenceBranchTip);
-  assert.equal(document.tasks[2].task, 'A8');
-  assert.equal(document.tasks[2].state, 'CLOSED');
-  assert.equal(document.tasks[2].parentTask, 'A7');
-  assert.equal(document.tasks[2].parentEvidenceBranchTip, document.tasks[1].evidenceBranchTip);
-  assert.equal(document.governance.wildcardExpansionAllowed, false);
-  assert.equal(document.governance.readyForPromotion, false);
-});
-
-test('detached evidence at an A8-R1 commit uses the exact post-close defect scope', () => {
-  const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
-  const authorization = JSON.parse(fs.readFileSync(authorizationPath, 'utf8'));
-  const defect = JSON.parse(fs.readFileSync(postMergeDefectPath, 'utf8'));
-  const sourceCommit = 'a'.repeat(40);
-  const calls = [];
-  const git = args => {
-    calls.push([...args]);
-    if (args[0] === 'status') return '';
-    if (args[0] === 'rev-parse' && args[1] === 'HEAD') return sourceCommit;
-    if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
-    if (args.includes('diff') && args.includes('--name-only')) return defect.scope.exactPaths.join('\n');
-    throw new Error(`unexpected git command: ${args.join(' ')}`);
-  };
-
-  const result = evaluateWorkPackageScopeForGate({
-    branch: null,
-    evidenceMode: true,
-    evidenceSourceCommit: sourceCommit,
-    authorization,
-    postMergeDefect: defect,
-    git
-  });
-
-  assert.equal(result.applicable, true);
-  assert.equal(result.pass, true, JSON.stringify(result));
-  assert.equal(result.effectiveBranch, defect.scope.targetBranch);
-  assert.equal(result.postMergeDefectScopeApplied, true);
-  assert.equal(result.taskScopeChainApplied, false);
-  assert.equal(result.defectId, defect.defectId);
-  assert.equal(result.changedFileCount, defect.scope.approvedChangedFileCount);
-  assert.equal(result.changedFileSetSha256, defect.scope.approvedChangedFileSetSha256);
-  assert.equal(result.readyForPromotion, true);
-  assert.ok(calls.some(args => args.includes('diff') && args.includes('--name-only')));
-});
-
-test('historical detached evidence without an A8-R1 document retains the prior ACV2 scope path', () => {
-  const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
-  const authorization = JSON.parse(fs.readFileSync(authorizationPath, 'utf8'));
-  const sourceCommit = 'b'.repeat(40);
-  const git = args => {
-    if (args[0] === 'status') return '';
-    if (args[0] === 'rev-parse' && args[1] === 'HEAD') return sourceCommit;
-    if (args[0] === 'rev-parse' && String(args[1]).startsWith('HEAD:')) {
-      return '203697b36c06e0dc72c92113ef58f1a8f2394312';
+function makeGitAdapter(changedFiles, options = {}) {
+  const status = options.status || '';
+  const head = options.head || 'f'.repeat(40);
+  const authorizationBlob = Object.prototype.hasOwnProperty.call(options, 'authorizationBlob')
+    ? options.authorizationBlob
+    : ACV2_AUTHORIZATION_BLOB_SHA;
+  return (args) => {
+    if (args[0] === 'status') return status;
+    if (args[0] === 'rev-parse' && args[1] === 'HEAD') return head;
+    if (args[0] === 'rev-parse' && args[1] === `HEAD:${ACV2_AUTHORIZATION_REPOSITORY_PATH}`) {
+      if (authorizationBlob instanceof Error) throw authorizationBlob;
+      return authorizationBlob;
     }
-    if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
-    if (args.includes('diff') && args.includes('--name-only')) return '';
+    if (args[0] === 'cat-file') return '';
+    if (args[0] === 'merge-base') return '';
+    if (args.includes('diff')) return exactPathBuffer(changedFiles);
     throw new Error(`unexpected git command: ${args.join(' ')}`);
   };
+}
+
+function expectedAuthorizationPaths() {
+  return [...AUTHORIZATION.exactPaths];
+}
+
+test('authorized ACV2 scope passes with exact NUL-framed changed-file evidence', () => {
+  const changedFiles = expectedAuthorizationPaths();
   const result = evaluateWorkPackageScopeForGate({
-    branch: null,
-    evidenceMode: true,
-    evidenceSourceCommit: sourceCommit,
-    authorization,
-    postMergeDefect: null,
+    branch: AUTHORIZED_BRANCH,
+    git: makeGitAdapter(changedFiles),
+    authorization: AUTHORIZATION,
     taskScopeChain: null,
-    amendment: null,
-    git
+    amendment: null
   });
+
   assert.equal(result.applicable, true);
   assert.equal(result.pass, true, JSON.stringify(result));
-  assert.equal(result.effectiveBranch, authorization.authorizedBranch);
-  assert.equal(result.postMergeDefectScopeApplied, false);
-  assert.equal(result.taskScopeChainApplied, false);
-  assert.equal(result.readyForPromotion, false);
+  assert.equal(result.reasonCode, null);
+  assert.equal(result.parentGovernanceHead, ACV2_WP_A_PARENT_GOVERNANCE_HEAD);
+  assert.equal(result.changedFileCount, changedFiles.length);
+  assert.deepEqual(result.unauthorizedPaths, []);
 });
 
-test('active task chain evaluation reports A8 and cannot claim promotion readiness', () => {
-  const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
-  const authorization = JSON.parse(fs.readFileSync(authorizationPath, 'utf8'));
-  const chain = JSON.parse(fs.readFileSync(taskScopeChainPath, 'utf8'));
-  const changedFiles = [
-    ...authorization.allowedProductionPaths,
-    ...chain.tasks.flatMap(task => task.additionalAllowedPaths)
-  ].filter((value, index, values) => values.indexOf(value) === index).sort();
-  const calls = [];
-  const git = args => {
-    calls.push([...args]);
-    if (args[0] === 'status') return '';
-    if (args[0] === 'rev-parse' && String(args[1]).startsWith('HEAD:')) {
-      return '203697b36c06e0dc72c92113ef58f1a8f2394312';
-    }
-    if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
-    if (args.includes('diff')) return changedFiles.join('\n');
-    throw new Error(`unexpected git command: ${args.join(' ')}`);
-  };
-  const testChain = {
-    ...chain,
-    approvedChangedFileCount: changedFiles.length,
-    approvedChangedFileSetSha256: require('../../shared/release/implementationBranchPolicy')
-      .workPackageChangedFilesSha256(changedFiles)
-  };
+test('ACV2 scope rejects unauthorized paths and authorization-blob drift', () => {
+  const changedFiles = [...expectedAuthorizationPaths(), 'backend/runtime/unauthorized.js'];
+  const scope = evaluateWorkPackageScopeForGate({
+    branch: AUTHORIZED_BRANCH,
+    git: makeGitAdapter(changedFiles),
+    authorization: AUTHORIZATION,
+    taskScopeChain: null,
+    amendment: null
+  });
+  assert.equal(scope.pass, false);
+  assert.equal(scope.reasonCode, 'ACV2_WORK_PACKAGE_SCOPE_VIOLATION');
+  assert.deepEqual(scope.unauthorizedPaths, ['backend/runtime/unauthorized.js']);
 
+  const blob = evaluateWorkPackageScopeForGate({
+    branch: AUTHORIZED_BRANCH,
+    git: makeGitAdapter(expectedAuthorizationPaths(), { authorizationBlob: '0'.repeat(40) }),
+    authorization: AUTHORIZATION,
+    taskScopeChain: null,
+    amendment: null
+  });
+  assert.equal(blob.pass, false);
+  assert.equal(blob.reasonCode, 'ACV2_WORK_PACKAGE_SCOPE_AUTHORIZATION_BLOB_MISMATCH');
+});
+
+test('ACV2 scope fails closed on dirty worktrees, unavailable parents, and invalid transport', () => {
+  const dirty = evaluateWorkPackageScopeForGate({
+    branch: AUTHORIZED_BRANCH,
+    git: makeGitAdapter(expectedAuthorizationPaths(), { status: ' M backend/runtime/AppRuntime.js' }),
+    authorization: AUTHORIZATION,
+    taskScopeChain: null,
+    amendment: null
+  });
+  assert.equal(dirty.pass, false);
+  assert.equal(dirty.reasonCode, 'ACV2_WORK_PACKAGE_SCOPE_WORKTREE_DIRTY');
+
+  const unavailable = evaluateWorkPackageScopeForGate({
+    branch: AUTHORIZED_BRANCH,
+    git: (args) => {
+      if (args[0] === 'status') return '';
+      if (args[0] === 'rev-parse' && args[1] === `HEAD:${ACV2_AUTHORIZATION_REPOSITORY_PATH}`) {
+        return ACV2_AUTHORIZATION_BLOB_SHA;
+      }
+      if (args[0] === 'cat-file') throw new Error('missing parent');
+      throw new Error(`unexpected git command: ${args.join(' ')}`);
+    },
+    authorization: AUTHORIZATION,
+    taskScopeChain: null,
+    amendment: null
+  });
+  assert.equal(unavailable.pass, false);
+  assert.equal(unavailable.reasonCode, 'ACV2_WORK_PACKAGE_SCOPE_PARENT_UNAVAILABLE');
+
+  const invalidTransport = evaluateWorkPackageScopeForGate({
+    branch: AUTHORIZED_BRANCH,
+    git: (args) => {
+      if (args[0] === 'status') return '';
+      if (args[0] === 'rev-parse' && args[1] === `HEAD:${ACV2_AUTHORIZATION_REPOSITORY_PATH}`) {
+        return ACV2_AUTHORIZATION_BLOB_SHA;
+      }
+      if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
+      if (args.includes('diff')) return `${expectedAuthorizationPaths().join('\n')}\n`;
+      throw new Error(`unexpected git command: ${args.join(' ')}`);
+    },
+    authorization: AUTHORIZATION,
+    taskScopeChain: null,
+    amendment: null
+  });
+  assert.equal(invalidTransport.pass, false);
+  assert.equal(invalidTransport.reasonCode, 'ACV2_WORK_PACKAGE_SCOPE_DIFF_FAILED');
+  assert.match(invalidTransport.error, /must return a Buffer/u);
+});
+
+test('detached evidence requires exact checked-out commit and exact scope', () => {
+  const changedFiles = expectedAuthorizationPaths();
+  const evidenceHead = 'e'.repeat(40);
+  const pass = evaluateWorkPackageScopeForGate({
+    branch: '',
+    evidenceMode: true,
+    evidenceSourceCommit: evidenceHead,
+    git: makeGitAdapter(changedFiles, { head: evidenceHead }),
+    authorization: AUTHORIZATION,
+    taskScopeChain: null,
+    amendment: null
+  });
+  assert.equal(pass.pass, true, JSON.stringify(pass));
+  assert.equal(pass.effectiveBranch, AUTHORIZED_BRANCH);
+
+  const mismatch = evaluateWorkPackageScopeForGate({
+    branch: '',
+    evidenceMode: true,
+    evidenceSourceCommit: evidenceHead,
+    git: makeGitAdapter(changedFiles, { head: 'd'.repeat(40) }),
+    authorization: AUTHORIZATION,
+    taskScopeChain: null,
+    amendment: null
+  });
+  assert.equal(mismatch.pass, false);
+  assert.equal(mismatch.reasonCode, 'ACV2_WORK_PACKAGE_SCOPE_EVIDENCE_COMMIT_MISMATCH');
+});
+
+test('checked-out repository preserves the frozen ACV2 authorization scope', () => {
+  const authorizationPath = path.join(ROOT, ACV2_AUTHORIZATION_REPOSITORY_PATH);
+  assert.equal(fs.existsSync(authorizationPath), true);
+  assert.equal(AUTHORIZATION.approvedChangedFileSetSha256, changedFileSetSha256(AUTHORIZATION.exactPaths));
+  assert.equal(AUTHORIZATION.approvedChangedFileCount, AUTHORIZATION.exactPaths.length);
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-acv2-scope-'));
+  try {
+    execFileSync('git', ['init', '--quiet'], { cwd: tmp });
+    execFileSync('git', ['config', 'user.email', 'scope@example.invalid'], { cwd: tmp });
+    execFileSync('git', ['config', 'user.name', 'Scope Fixture'], { cwd: tmp });
+    fs.writeFileSync(path.join(tmp, 'baseline.txt'), 'baseline\n', 'utf8');
+    execFileSync('git', ['add', '.'], { cwd: tmp });
+    execFileSync('git', ['commit', '--quiet', '-m', 'baseline'], { cwd: tmp });
+    const base = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: tmp, encoding: 'utf8' }).trim();
+
+    const fixtureFiles = ['backend/runtime/AppRuntime.js', 'tests/wp0/freeze-rejected-baseline.test.js'];
+    for (const relative of fixtureFiles) {
+      const full = path.join(tmp, ...relative.split('/'));
+      fs.mkdirSync(path.dirname(full), { recursive: true });
+      fs.writeFileSync(full, `${relative}\n`, 'utf8');
+    }
+    execFileSync('git', ['add', '.'], { cwd: tmp });
+    execFileSync('git', ['commit', '--quiet', '-m', 'candidate'], { cwd: tmp });
+    const raw = execFileSync('git', ['diff', '--name-only', '-z', base, 'HEAD', '--'], {
+      cwd: tmp,
+      encoding: null
+    });
+    assert.deepEqual(raw.toString('utf8').split('\0').filter(Boolean).sort(), fixtureFiles.sort());
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('post-merge defect scope uses exact frozen paths rather than current candidate changes', () => {
+  const defect = loadWorkPackagePostMergeDefect();
+  assert.ok(defect);
   const result = evaluateWorkPackageScopeForGate({
-    branch: authorization.authorizedBranch,
-    authorization,
-    taskScopeChain: testChain,
-    git
+    branch: defect.scope.targetBranch,
+    git: makeGitAdapter(defect.scope.exactPaths),
+    postMergeDefect: defect
   });
   assert.equal(result.pass, true, JSON.stringify(result));
-  assert.equal(result.taskScopeChainApplied, true);
-  assert.equal(result.activeTask, 'A8');
-  assert.equal(result.readyForPromotion, false);
+  assert.equal(result.postMergeDefectScopeApplied, true);
+  assert.equal(result.defectId, defect.defectId);
 });
