@@ -10,6 +10,7 @@ const { spawnSync } = require('node:child_process');
 const repoRoot = path.resolve(__dirname, '..', '..');
 const modulePath = path.join(repoRoot, 'tools', 'third-party', 'provenance.js');
 const cliPath = path.join(repoRoot, 'tools', 'third-party', 'verify-provenance.js');
+const EXACT_RELEASE_TAG = /^v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u;
 
 function loadProvenance() {
   assert.equal(
@@ -122,6 +123,22 @@ test('canonical repository provenance binds Baileys and every external GitHub Ac
   ]);
   assert.equal(report.registry.projectLicenseDecision.status, 'UNRESOLVED');
   assert.equal(report.registry.projectLicenseDecision.approvedSpdx, null);
+});
+
+test('GitHub Action provenance versions equal the exact reviewed lock tags', () => {
+  const provenance = JSON.parse(fs.readFileSync(path.join(repoRoot, 'third_party', 'provenance.json'), 'utf8'));
+  const lock = JSON.parse(fs.readFileSync(path.join(repoRoot, 'third_party', 'github-actions-lock.json'), 'utf8'));
+  const lockByRepository = new Map(lock.actions.map(entry => [entry.repository, entry]));
+  const actionProjects = provenance.projects.filter(project => project.id.startsWith('actions-'));
+  assert.equal(actionProjects.length, lock.actions.length);
+  for (const project of actionProjects) {
+    const repository = project.upstreamRepository.replace('https://github.com/', '');
+    const lockEntry = lockByRepository.get(repository);
+    assert.ok(lockEntry, `${repository} must exist in the GitHub Actions lock`);
+    assert.match(lockEntry.reviewedTag, EXACT_RELEASE_TAG);
+    assert.equal(project.upstreamVersion, lockEntry.reviewedTag);
+    assert.equal(project.upstreamCommit, lockEntry.commit);
+  }
 });
 
 test('registry rejects short SHA, unsafe evidence paths, unsupported modes and unapproved reviews', () => {
