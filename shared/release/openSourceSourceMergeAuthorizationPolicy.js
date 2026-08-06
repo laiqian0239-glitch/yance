@@ -8,7 +8,8 @@ const REPOSITORY = 'laiqian0239-glitch/yance';
 const WORK_PACKAGE = 'OSS-A';
 const AUTHORIZATION_PATH = 'governance/layered-ci/oss-a-source-merge-authorization.json';
 const AUTHORIZATION_DOCUMENT_TYPE = 'YANCE_OSS_A_SOURCE_MERGE_POLICY_AUTHORIZATION';
-const SEALED_AUTHORIZATION_STATUS = 'POLICY_AUTHORIZATION_SEALED';
+const AUTHORIZATION_STATUS = 'POLICY_AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE_AND_SEAL';
+const AUTHORIZATION_SEAL_STATUS = 'SEALED';
 const POLICY_BRANCH = 'governance/oss-a-source-merge-policy';
 const SOURCE_PULL_REQUEST = 67;
 const SOURCE_BRANCH = 'oss/a-supply-chain-foundation';
@@ -167,6 +168,7 @@ function validateAuthorizationSeal(document) {
   const seal = document.requiredAuthorizationSeal;
   const binding = document.policyBinding;
   if (!isObject(seal)
+    || seal.status !== AUTHORIZATION_SEAL_STATUS
     || !SHA40.test(String(seal.authorizationMergeCommit || ''))
     || seal.authorizationMergeFirstParent !== document.base.commit
     || !SHA40.test(String(seal.authorizationReviewedHead || ''))
@@ -192,6 +194,7 @@ function validatePolicyAuthorization(document) {
     || document.documentType !== AUTHORIZATION_DOCUMENT_TYPE
     || document.repository !== REPOSITORY
     || document.workPackage !== WORK_PACKAGE
+    || document.status !== AUTHORIZATION_STATUS
     || document.base?.branch !== 'main'
     || !SHA40.test(String(document.base?.commit || ''))
     || document.authorizationBranch?.name !== 'governance/oss-a-source-merge-authorization'
@@ -199,7 +202,7 @@ function validatePolicyAuthorization(document) {
     || !sameArray(document.authorizationBranch?.allowedChangedPaths, [AUTHORIZATION_PATH])) {
     return fail('POLICY_AUTHORIZATION_IDENTITY_INVALID');
   }
-  if (document.status !== SEALED_AUTHORIZATION_STATUS) {
+  if (document.requiredAuthorizationSeal?.status !== AUTHORIZATION_SEAL_STATUS) {
     return fail('POLICY_AUTHORIZATION_UNSEALED');
   }
   for (const validator of [
