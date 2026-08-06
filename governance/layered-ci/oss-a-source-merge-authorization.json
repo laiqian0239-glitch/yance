@@ -4,7 +4,7 @@
   "requestedByUserAt": "2026-08-06T15:45:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "OSS-A",
-  "status": "POLICY_AUTHORIZATION_SEALED",
+  "status": "POLICY_AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE_AND_SEAL",
   "reason": "PR #67 has completed its exact 23-path OSS-A supply-chain implementation, cross-platform verification and independent code review, but its implementation receipt explicitly denies merge, production, release, publication and automatic next-work-package authority. A separate current-main policy and a non-circular final candidate seal are required before any source merge can occur.",
   "base": {
     "branch": "main",
@@ -72,18 +72,19 @@
     "oss1aSpecificRoleCopyAllowed": false
   },
   "requiredAuthorizationSeal": {
+    "status": "SEALED",
     "authorizationMergeCommit": "fac7d298f182043f4ecc6e41a780248ce3a03132",
     "authorizationMergeFirstParent": "ad195d8497ec61fbe3387c606692110f5645fba0",
     "authorizationReviewedHead": "f50590181e19cdc134c35d91ae9421af5b532ce8",
     "authorizationOriginalBlobSha": "99ee3e5243d07fed5cea6661cb6ad82123771bc8",
     "authorizationOriginalFileSha256": "a9c6022c7a59e49dd3c4c957d6e7e56de70697b84609f338d00a4cc5c07fe0fd",
-    "policyReviewedHead": "58abc362272fc742176c7007173de7fd6b531c76",
+    "policyReviewedHead": "cbd929c59185c6e087b92e7aa41be8f6a8bfde10",
     "exactTwoParentOrderRequired": true,
     "sealMayNotChangeCheckpointIdentityOrImplementationScope": true
   },
   "policyBinding": {
     "redHead": "5117b03d25b8cae87db39cb4445c322dc01405d9",
-    "reviewedHead": "58abc362272fc742176c7007173de7fd6b531c76",
+    "reviewedHead": "cbd929c59185c6e087b92e7aa41be8f6a8bfde10",
     "branch": "governance/oss-a-source-merge-policy",
     "allowedPostReviewCommitsClassification": "GOVERNANCE_METADATA_ONLY",
     "allowedPostReviewPaths": [
