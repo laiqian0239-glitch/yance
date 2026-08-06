@@ -240,7 +240,7 @@ function validateSbom(sbom, source) {
   if (isObject(source?.packageJson) && isObject(source?.packageLock)) {
     const expected = buildSbom(source);
     if (JSON.stringify(canonicalize(sbom)) !== JSON.stringify(canonicalize(expected))) {
-      errors.push(issue('SBOM_DRIFT', 'third_PARTY/sbom.cdx.json', 'must exactly project the committed package-lock.json'));
+      errors.push(issue('SBOM_DRIFT', 'third_party/sbom.cdx.json', 'must exactly project the committed package-lock.json'));
     }
   }
   return errors;
@@ -280,7 +280,7 @@ function verifyRepository(repoRoot) {
   }
   errors.push(...validateSbom(sbom, { packageJson, packageLock }));
   if (raw !== serializeSbom(sbom)) {
-    errors.push(issue('SBOM_NON_CANONICAL', 'third_PARTY/sbom.cdx.json', 'must use canonical UTF-8 JSON bytes with one terminal LF'));
+    errors.push(issue('SBOM_NON_CANONICAL', 'third_party/sbom.cdx.json', 'must use canonical UTF-8 JSON bytes with one terminal LF'));
   }
   return { ok: errors.length === 0, errors, sbom, bytes };
 }
