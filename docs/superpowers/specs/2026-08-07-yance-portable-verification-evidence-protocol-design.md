@@ -8,6 +8,7 @@
 - 设计分支：`design/portable-verification-evidence-protocol-2026-08-07`
 - 状态：`APPROVED_FOR_IMPLEMENTATION_PLANNING`
 - 用户批准：`2026-08-07`
+- 实施计划：`docs/superpowers/plans/2026-08-07-yance-portable-verification-evidence-protocol.md`
 - 生产代码修改授权：`false`
 - PR #67 修改授权：`false`
 - OSS-A 合并授权：`false`
