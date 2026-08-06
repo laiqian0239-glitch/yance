@@ -3,6 +3,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const openSourceWorkPackagePolicy = require('./openSourceWorkPackagePolicy');
 
 const REBUILD_BRANCH_PATTERN_SOURCE = '^rebuild/windows-release-closure-([0-9]{4})([0-9]{2})([0-9]{2})(?:-[a-z0-9][a-z0-9._-]*)?$';
@@ -20,6 +21,30 @@ const ACV2_SCOPE_AMENDMENT_TASK = 'A6_INDEPENDENT_ROOT_REPAIR_AND_GOVERNANCE_SCO
 const ACV2_TASK_PATTERN = /^A([0-8])$/u;
 const ACV2_TASK_STATES = new Set(['RED_LOCKED', 'IMPLEMENTING', 'GREEN_PROVISIONAL', 'INDEPENDENT_REVIEW', 'CLOSED']);
 const PATH_CONTROL = /[\u0000-\u001f\u007f]/u;
+const SHA40 = /^[a-f0-9]{40}$/u;
+const TRUSTED_POLICY_ROOT = path.resolve(__dirname, '..', '..');
+const DELEGATED_GOVERNANCE_AUTHORITIES = Object.freeze([
+  Object.freeze({
+    authorizationPath: 'governance/layered-ci/oss-a-source-merge-authorization.json',
+    mergeCommit: 'fac7d298f182043f4ecc6e41a780248ce3a03132',
+    mergeFirstParent: 'ad195d8497ec61fbe3387c606692110f5645fba0',
+    reviewedHead: 'f50590181e19cdc134c35d91ae9421af5b532ce8',
+    blobSha: '99ee3e5243d07fed5cea6661cb6ad82123771bc8',
+    documentType: 'YANCE_OSS_A_SOURCE_MERGE_POLICY_AUTHORIZATION',
+    status: 'POLICY_AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE_AND_SEAL',
+    sourceMergeClosureField: 'sourceMergeDirectlyAuthorized'
+  }),
+  Object.freeze({
+    authorizationPath: 'governance/layered-ci/oss-a-source-merge-policy-branch-authority-authorization.json',
+    mergeCommit: '8311cd15572bdc89316c47485459017613b2e2c8',
+    mergeFirstParent: 'fac7d298f182043f4ecc6e41a780248ce3a03132',
+    reviewedHead: '97e6ebc2d83d7e775879603e2383dd1f321fa868',
+    blobSha: '5c675b30e71de55e524bf8ce5c0ac6d60718d11b',
+    documentType: 'YANCE_OSS_A_SOURCE_MERGE_POLICY_BRANCH_AUTHORITY_REPAIR_AUTHORIZATION',
+    status: 'AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE',
+    sourceMergeClosureField: 'sourceMergeAuthorized'
+  })
+]);
 
 function canonicalStageBranch(stageVersion) {
   if (typeof stageVersion !== 'string' || !/^\d+\.\d+\.\d+\.\d+$/.test(stageVersion)) {
@@ -104,10 +129,162 @@ function isAuthorizedAcv2WorkPackageBranch(branch, authorization) {
     && branch === authorization.authorizedBranch;
 }
 
+function isExactBranch(value) {
+  const branch = String(value || '');
+  return Boolean(branch
+    && branch === branch.trim()
+    && !branch.startsWith('/')
+    && !branch.endsWith('/')
+    && !branch.includes('//')
+    && !/[\u0000-\u0020\u007f~^:?*[\]\\]/u.test(branch)
+    && branch.split('/').every(part => part && part !== '.' && part !== '..' && !part.endsWith('.lock')));
+}
+
+function trustedGit(args, options = {}) {
+  return execFileSync('git', args, {
+    cwd: path.resolve(options.trustedPolicyRoot || TRUSTED_POLICY_ROOT),
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe']
+  }).trim();
+}
+
+function defaultTrustedHead(options) {
+  try { return trustedGit(['rev-parse', 'HEAD'], options); } catch (_) { return null; }
+}
+
+function defaultCommitParents(commit, options) {
+  try {
+    const row = trustedGit(['rev-list', '--parents', '-n', '1', commit], options).split(/\s+/u);
+    return row.length === 3 && row[0] === commit ? row.slice(1) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function defaultCommitBlobSha(commit, repositoryPath, options) {
+  try { return trustedGit(['rev-parse', `${commit}:${repositoryPath}`], options); }
+  catch (_) { return null; }
+}
+
+function defaultTrustedAncestor(base, head, options) {
+  try {
+    trustedGit(['merge-base', '--is-ancestor', base, head], options);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function defaultAuthorizationAtMerge(authority, options) {
+  try {
+    const document = JSON.parse(trustedGit(['show', `${authority.mergeCommit}:${authority.authorizationPath}`], options));
+    return document && typeof document === 'object' && !Array.isArray(document) ? document : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function sameJson(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function validDelegatedAuthorityDescriptor(authority) {
+  return Boolean(authority
+    && normalizeRepositoryPath(authority.authorizationPath) === authority.authorizationPath
+    && authority.authorizationPath.startsWith('governance/layered-ci/')
+    && authority.authorizationPath.endsWith('.json')
+    && [authority.mergeCommit, authority.mergeFirstParent, authority.reviewedHead, authority.blobSha]
+      .every(value => SHA40.test(String(value || '')))
+    && authority.mergeFirstParent !== authority.reviewedHead
+    && typeof authority.documentType === 'string'
+    && authority.documentType.startsWith('YANCE_')
+    && typeof authority.status === 'string'
+    && authority.status.length > 0
+    && ['sourceMergeDirectlyAuthorized', 'sourceMergeAuthorized'].includes(authority.sourceMergeClosureField));
+}
+
+function validDelegatedGovernanceAuthorization(document, authority) {
+  if (!validDelegatedAuthorityDescriptor(authority)
+    || !document
+    || typeof document !== 'object'
+    || Array.isArray(document)
+    || document.schemaVersion !== 1
+    || document.documentType !== authority.documentType
+    || document.repository !== 'laiqian0239-glitch/yance'
+    || document.workPackage !== 'OSS-A'
+    || document.status !== authority.status
+    || document.base?.branch !== 'main'
+    || document.base?.commit !== authority.mergeFirstParent
+    || !isExactBranch(document.authorizationBranch?.name)
+    || document.authorizationBranch?.mustRemainSingleFile !== true
+    || !Array.isArray(document.authorizationBranch?.allowedChangedPaths)
+    || document.authorizationBranch.allowedChangedPaths.length !== 1
+    || document.authorizationBranch.allowedChangedPaths[0] !== authority.authorizationPath
+    || !isExactBranch(document.implementation?.branch)
+    || !Array.isArray(document.implementation?.allowedChangedPaths)
+    || document.implementation.allowedChangedPaths.length === 0
+    || document.implementation.approvedChangedFileCount !== document.implementation.allowedChangedPaths.length
+    || document.implementation.approvedChangedFileSetSha256
+      !== workPackageChangedFilesSha256(document.implementation.allowedChangedPaths)
+    || document.implementation.newDependencyAllowed !== false
+    || document.implementation.workflowModificationAllowed !== false
+    || document.governance?.authorizationPredatesImplementation !== true
+    || document.governance?.exactPathScopeOnly !== true
+    || document.governance?.independentBranchAndPullRequestRequired !== true
+    || document.governance?.productionUseAuthorized !== false
+    || document.governance?.formalRelease !== false
+    || document.governance?.publish !== false
+    || document.governance?.readyForPromotion !== false
+    || document.governance?.automaticNextWorkPackageAuthorization !== false
+    || document.governance?.[authority.sourceMergeClosureField] !== false) return false;
+  const exactPaths = normalizeChangedFiles(document.implementation.allowedChangedPaths);
+  return exactPaths.length === document.implementation.allowedChangedPaths.length
+    && sameJson(exactPaths, document.implementation.allowedChangedPaths);
+}
+
+function isAuthorizedDelegatedGovernanceBranch(branch, options = {}) {
+  if (!isExactBranch(branch)) return false;
+  const authorities = Array.isArray(options.authorities)
+    ? options.authorities
+    : DELEGATED_GOVERNANCE_AUTHORITIES;
+  const trustedHead = Object.prototype.hasOwnProperty.call(options, 'trustedPolicyHead')
+    ? options.trustedPolicyHead
+    : defaultTrustedHead(options);
+  if (!SHA40.test(String(trustedHead || ''))) return false;
+  const matches = [];
+
+  for (const authority of authorities) {
+    if (!validDelegatedAuthorityDescriptor(authority)) continue;
+    const trustedDocument = options.loadAuthorization
+      ? options.loadAuthorization(authority)
+      : defaultAuthorizationAtMerge(authority, options);
+    if (!validDelegatedGovernanceAuthorization(trustedDocument, authority)) continue;
+    if (Object.prototype.hasOwnProperty.call(options.authorizationByPath || {}, authority.authorizationPath)
+      && !sameJson(options.authorizationByPath[authority.authorizationPath], trustedDocument)) continue;
+    const parents = (options.resolveCommitParents || (commit => defaultCommitParents(commit, options)))(authority.mergeCommit);
+    if (!Array.isArray(parents)
+      || parents.length !== 2
+      || parents[0] !== authority.mergeFirstParent
+      || parents[1] !== authority.reviewedHead) continue;
+    const blob = (options.resolveCommitBlobSha
+      || ((commit, repositoryPath) => defaultCommitBlobSha(commit, repositoryPath, options)))(
+      authority.mergeCommit,
+      authority.authorizationPath
+    );
+    if (blob !== authority.blobSha) continue;
+    const ancestor = options.isTrustedAncestor
+      || ((base, head) => defaultTrustedAncestor(base, head, options));
+    if (ancestor(authority.mergeCommit, trustedHead) !== true) continue;
+    if (branch === trustedDocument.implementation.branch) matches.push(authority.authorizationPath);
+  }
+  return matches.length === 1;
+}
+
 function isAuthorizedImplementationBranch(branch, stageVersion, options = {}) {
   if (typeof branch !== 'string' || branch.length === 0) return false;
   if (branch === canonicalStageBranch(stageVersion) || isReleaseClosureRebuildBranch(branch)) return true;
   if (isAuthorizedAcv2WorkPackageBranch(branch, resolveAuthorization(options))) return true;
+  if (isAuthorizedDelegatedGovernanceBranch(branch, options.delegatedGovernance || {})) return true;
   return openSourceWorkPackagePolicy.isAuthorizedOpenSourceImplementationBranch(
     branch,
     options.openSource || {}
@@ -120,7 +297,7 @@ function authorizedImplementationBranchDescription(stageVersion, options = {}) {
   const acv2 = isValidWorkPackageAuthorization(authorization)
     ? `${base} or exact machine-authorized branch ${authorization.authorizedBranch}`
     : base;
-  return `${acv2} or an exact sealed open-source work-package branch`;
+  return `${acv2} or an exact trusted-main delegated governance branch or an exact sealed open-source work-package branch`;
 }
 
 function normalizeRepositoryPath(value) {
@@ -403,6 +580,7 @@ module.exports = {
   ACV2_WP_A_PARENT_GOVERNANCE_HEAD,
   ACV2_WP_A_PULL_REQUEST,
   ACV2_SCOPE_AMENDMENT_TASK,
+  DELEGATED_GOVERNANCE_AUTHORITIES,
   canonicalStageBranch,
   isReleaseClosureRebuildBranch,
   loadWorkPackageAuthorization,
@@ -414,6 +592,7 @@ module.exports = {
   validateWorkPackageTaskScopeChain,
   isValidWorkPackagePostMergeDefect,
   isAuthorizedAcv2WorkPackageBranch,
+  isAuthorizedDelegatedGovernanceBranch,
   isAuthorizedImplementationBranch,
   authorizedImplementationBranchDescription,
   normalizeRepositoryPath,
