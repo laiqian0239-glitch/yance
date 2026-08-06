@@ -39,7 +39,8 @@ function validateCommandSet(commandSet) {
     if (!Array.isArray(command.argv) || command.argv.some((arg) => containsShellSyntax(arg) || arg === '..' || arg.startsWith('../') || arg.includes('/../') || arg.includes('\\'))) return fail(REASON_CODES.EVIDENCE_COMMAND_SET_INVALID);
     if (!Number.isSafeInteger(command.expectedExitCode)) return fail(REASON_CODES.EVIDENCE_COMMAND_SET_INVALID);
     if (!Array.isArray(command.generatedRoots) || command.generatedRoots.some((root) => !generatedRootAllowed(root))) return fail(REASON_CODES.EVIDENCE_COMMAND_SET_INVALID);
-    if (!Array.isArray(command.artifacts) || command.artifacts.some((artifact) => !validRelativePath(artifact))) return fail(REASON_CODES.EVIDENCE_COMMAND_SET_INVALID);
+    if (!Array.isArray(command.artifacts) || command.artifacts.some((artifact) => !validRelativePath(artifact) || !command.generatedRoots.some((root) => artifact === root || artifact.startsWith(`${root}/`)))) return fail(REASON_CODES.EVIDENCE_COMMAND_SET_INVALID);
+    if (new Set(command.artifacts).size !== command.artifacts.length) return fail(REASON_CODES.EVIDENCE_COMMAND_SET_INVALID);
   }
   return ok(commandSet);
 }
