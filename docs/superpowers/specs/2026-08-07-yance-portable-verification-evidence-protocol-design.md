@@ -6,7 +6,8 @@
 - 仓库：`laiqian0239-glitch/yance`
 - 设计基线：`main@9290b7e1c4995fa2c7f909911a84ac56e1176109`
 - 设计分支：`design/portable-verification-evidence-protocol-2026-08-07`
-- 状态：`PROPOSED_FOR_WRITTEN_SPEC_REVIEW`
+- 状态：`APPROVED_FOR_IMPLEMENTATION_PLANNING`
+- 用户批准：`2026-08-07`
 - 生产代码修改授权：`false`
 - PR #67 修改授权：`false`
 - OSS-A 合并授权：`false`
