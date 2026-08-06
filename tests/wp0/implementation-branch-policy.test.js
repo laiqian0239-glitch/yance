@@ -39,14 +39,15 @@ function changedFilesFrom(baseHead) {
     'core.quotePath=false',
     'diff',
     '--name-only',
+    '-z',
     baseHead,
     'HEAD',
     '--'
   ], {
     cwd: REPO_ROOT,
-    encoding: 'utf8'
+    encoding: null
   });
-  return output.split(/\r?\n/u).map(value => value.trim()).filter(Boolean).sort();
+  return output.toString('utf8').split('\0').filter(Boolean).sort();
 }
 
 function actualWorkPackageChangedFiles() {
@@ -217,7 +218,7 @@ test('checked-out scope preserves immutable A8 closure and validates an exact po
 
   const defect = loadWorkPackagePostMergeDefect();
   if (defect && isValidWorkPackagePostMergeDefect(defect)) {
-    const changedFiles = changedFilesFrom(defect.scope.baseHead);
+    const changedFiles = [...defect.scope.exactPaths];
     const result = evaluateAuthorizedPostMergeDefectScope({
       branch: defect.scope.targetBranch,
       changedFiles,
@@ -229,6 +230,17 @@ test('checked-out scope preserves immutable A8 closure and validates an exact po
     assert.equal(changedFiles.length, defect.scope.approvedChangedFileCount);
     assert.deepEqual(result.unauthorizedPaths, []);
     assert.equal(result.readyForPromotion, true);
+
+    const currentChangedFiles = changedFilesFrom(defect.scope.baseHead);
+    if (workPackageChangedFilesSha256(currentChangedFiles)
+      !== defect.scope.approvedChangedFileSetSha256) {
+      const currentResult = evaluateAuthorizedPostMergeDefectScope({
+        branch: defect.scope.targetBranch,
+        changedFiles: currentChangedFiles,
+        defect
+      });
+      assert.equal(currentResult.pass, false);
+    }
     return;
   }
 
@@ -257,8 +269,16 @@ test('malformed, impossible-date and arbitrary branches remain denied', () => {
   ]) assert.equal(isAuthorizedImplementationBranch(branch, CURRENT_STAGE), false, branch);
 });
 
-test('current repository branch is authorized and an arbitrary branch fails the WP0 gate', () => {
-  assert.equal(checkRuntimeTargetGate({ branch: currentBranch(), changedFiles: [] }).pass, true);
+test('current repository branch uses local authority only when locally provable and arbitrary branches fail', () => {
+  const branch = currentBranch();
+  const current = checkRuntimeTargetGate({ branch, changedFiles: [] });
+  if (branch === 'oss/a-supply-chain-foundation') {
+    assert.equal(current.pass, false, 'candidate-owned policy must not self-authorize the sealed OSS receipt');
+    assert.equal(current.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');
+  } else {
+    assert.equal(current.pass, true, JSON.stringify(current));
+  }
+
   const denied = checkRuntimeTargetGate({ branch: 'feature/unreviewed-release', changedFiles: [] });
   assert.equal(denied.pass, false);
   assert.equal(denied.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');

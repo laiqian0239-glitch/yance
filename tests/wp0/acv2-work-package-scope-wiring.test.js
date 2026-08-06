@@ -13,6 +13,10 @@ const authorizationPath = path.join(repoRoot, 'governance', 'architecture-closur
 const taskScopeChainPath = path.join(repoRoot, 'governance', 'architecture-closure-v2', 'wp-a-task-scope-chain.json');
 const postMergeDefectPath = path.join(repoRoot, 'governance', 'architecture-closure-v2', 'wp-a-post-merge-defect-001.json');
 
+function nulPathBuffer(paths) {
+  return paths.length ? Buffer.from(`${paths.join('\0')}\0`, 'utf8') : Buffer.alloc(0);
+}
+
 test('every executable WP0 entrypoint consumes one shared ACV2 work-package scope gate', () => {
   const verifySource = fs.readFileSync(verifyGatePath, 'utf8');
   const protectedSource = fs.readFileSync(protectedCommandPath, 'utf8');
@@ -78,7 +82,7 @@ test('detached evidence at an A8-R1 commit uses the exact post-close defect scop
     if (args[0] === 'status') return '';
     if (args[0] === 'rev-parse' && args[1] === 'HEAD') return sourceCommit;
     if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
-    if (args.includes('diff') && args.includes('--name-only')) return defect.scope.exactPaths.join('\n');
+    if (args.includes('diff') && args.includes('--name-only')) return nulPathBuffer(defect.scope.exactPaths);
     throw new Error(`unexpected git command: ${args.join(' ')}`);
   };
 
@@ -114,7 +118,7 @@ test('historical detached evidence without an A8-R1 document retains the prior A
       return '203697b36c06e0dc72c92113ef58f1a8f2394312';
     }
     if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
-    if (args.includes('diff') && args.includes('--name-only')) return '';
+    if (args.includes('diff') && args.includes('--name-only')) return Buffer.alloc(0);
     throw new Error(`unexpected git command: ${args.join(' ')}`);
   };
   const result = evaluateWorkPackageScopeForGate({
@@ -151,7 +155,7 @@ test('active task chain evaluation reports A8 and cannot claim promotion readine
       return '203697b36c06e0dc72c92113ef58f1a8f2394312';
     }
     if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
-    if (args.includes('diff')) return changedFiles.join('\n');
+    if (args.includes('diff')) return nulPathBuffer(changedFiles);
     throw new Error(`unexpected git command: ${args.join(' ')}`);
   };
   const testChain = {
@@ -171,4 +175,28 @@ test('active task chain evaluation reports A8 and cannot claim promotion readine
   assert.equal(result.taskScopeChainApplied, true);
   assert.equal(result.activeTask, 'A8');
   assert.equal(result.readyForPromotion, false);
+});
+
+test('String-delimited Git path evidence fails closed after the Buffer transport upgrade', () => {
+  const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
+  const authorization = JSON.parse(fs.readFileSync(authorizationPath, 'utf8'));
+  const chain = JSON.parse(fs.readFileSync(taskScopeChainPath, 'utf8'));
+  const git = args => {
+    if (args[0] === 'status') return '';
+    if (args[0] === 'rev-parse' && String(args[1]).startsWith('HEAD:')) {
+      return '203697b36c06e0dc72c92113ef58f1a8f2394312';
+    }
+    if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
+    if (args.includes('diff')) return authorization.allowedProductionPaths.join('\n');
+    throw new Error(`unexpected git command: ${args.join(' ')}`);
+  };
+  const result = evaluateWorkPackageScopeForGate({
+    branch: authorization.authorizedBranch,
+    authorization,
+    taskScopeChain: chain,
+    git
+  });
+  assert.equal(result.pass, false);
+  assert.equal(result.reasonCode, 'ACV2_WORK_PACKAGE_SCOPE_DIFF_FAILED');
+  assert.match(result.error, /must return a Buffer/u);
 });
