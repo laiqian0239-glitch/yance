@@ -22,7 +22,7 @@
       "name": "GitHub Actions Checkout",
       "upstreamRepository": "https://github.com/actions/checkout",
       "upstreamCommit": "11d5960a326750d5838078e36cf38b85af677262",
-      "upstreamVersion": "v4.2.2",
+      "upstreamVersion": "v4.4.0",
       "integrationMode": "dependency",
       "license": {
         "spdx": "MIT",
@@ -42,7 +42,7 @@
         "status": "APPROVED",
         "reviewedAt": "2026-08-06",
         "evidence": [
-          "actions-checkout-v4.2.2-exact-commit-review",
+          "actions-checkout-v4.4.0-exact-commit-review",
           "official-license-at-11d5960a326750d5838078e36cf38b85af677262"
         ]
       }

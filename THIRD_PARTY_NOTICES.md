@@ -9,7 +9,7 @@ Yance project license decision: **UNRESOLVED**
 
 - Registry ID: `actions-checkout`
 - Upstream: https://github.com/actions/checkout
-- Version: `v4.2.2`
+- Version: `v4.4.0`
 - Commit: `11d5960a326750d5838078e36cf38b85af677262`
 - Integration mode: `dependency`
 - License: `MIT`

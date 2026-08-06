@@ -6,7 +6,7 @@
       "repository": "actions/checkout",
       "upstreamRepository": "https://github.com/actions/checkout",
       "commit": "11d5960a326750d5838078e36cf38b85af677262",
-      "reviewedTag": "v4.2.2",
+      "reviewedTag": "v4.4.0",
       "license": "MIT",
       "licenseEvidence": "third_party/licenses/actions-checkout-MIT.txt"
     },
