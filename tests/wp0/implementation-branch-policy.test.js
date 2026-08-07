@@ -823,6 +823,15 @@ test('generic delegated authority activates only from canonical main two-parent 
   });
   assert.equal(scopeEscape.pass, false);
   assert.deepEqual(scopeEscape.unauthorizedPaths, ['shared/release/unreviewed-authority.js']);
+
+  const ambiguousMergeBase = evaluateTrustedDelegatedGovernanceBranch({
+    branch: GENERIC_IMPLEMENTATION_BRANCH,
+    ...genericTrustedAuthorityOptions({
+      mergeBases: [GENERIC_MERGE, '7'.repeat(40)]
+    })
+  });
+  assert.equal(ambiguousMergeBase.pass, false);
+  assert.equal(ambiguousMergeBase.reasonCode, 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID');
 });
 
 
