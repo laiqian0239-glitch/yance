@@ -3,11 +3,16 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const {
   canonicalStageBranch,
   isReleaseClosureRebuildBranch,
+  isAuthorizedDelegatedGovernanceBranch,
+  isValidGenericDelegatedGovernanceAuthorization,
+  evaluateDelegatedGovernanceAuthorizationProposal,
+  evaluateTrustedDelegatedGovernanceBranch,
   isAuthorizedImplementationBranch,
   authorizedImplementationBranchDescription,
   buildTrustedGitEnvironment,
@@ -41,6 +46,16 @@ const REPAIR_AUTH_MERGE = '8311cd15572bdc89316c47485459017613b2e2c8';
 const REPAIR_AUTH_PARENT = SOURCE_AUTH_MERGE;
 const REPAIR_AUTH_HEAD = '97e6ebc2d83d7e775879603e2383dd1f321fa868';
 const REPAIR_AUTH_BLOB = '5c675b30e71de55e524bf8ce5c0ac6d60718d11b';
+const GENERIC_AUTHORIZATION_PATH = 'governance/layered-ci/pvep-wp0-branch-authority-v2-authorization.json';
+const GENERIC_AUTHORIZATION_BRANCH = 'governance/pvep-wp0-branch-authority-v2-authorization';
+const GENERIC_IMPLEMENTATION_BRANCH = 'fix/pvep-wp0-branch-authority-v2';
+const GENERIC_BASE = '1'.repeat(40);
+const GENERIC_REVIEWED_HEAD = '2'.repeat(40);
+const GENERIC_MERGE = '3'.repeat(40);
+const GENERIC_TRUSTED_MAIN = '4'.repeat(40);
+const GENERIC_IMPLEMENTATION_HEAD = '5'.repeat(40);
+const GENERIC_BLOB = '6'.repeat(40);
+
 
 function authorization() {
   return JSON.parse(fs.readFileSync(AUTHORIZATION_PATH, 'utf8'));
@@ -101,6 +116,110 @@ function scopeAmendment(document, changedFiles) {
       automaticNextTaskAuthorization: false,
       automaticNextWorkPackageAuthorization: false,
       readyForPromotion: false
+    }
+  };
+}
+
+function genericDelegatedAuthorization(overrides = {}) {
+  const allowedChangedPaths = overrides.allowedChangedPaths || [
+    'shared/release/implementationBranchPolicy.js',
+    'tests/wp0/implementation-branch-policy.test.js',
+    'tools/wp0/lib.js'
+  ];
+  return {
+    schemaVersion: 1,
+    documentType: 'YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION',
+    repository: 'laiqian0239-glitch/yance',
+    workPackage: 'PVEP',
+    status: 'AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE',
+    base: { branch: 'main', commit: GENERIC_BASE },
+    effectiveness: {
+      effectiveBeforeMerge: false,
+      requiresOrdinaryTwoParentMainMerge: true,
+      implementationMayStartOnlyFromAuthorizationMergeCommit: true,
+      authorizationProposalTransportIsNotImplementationAuthority: true
+    },
+    authorizationBranch: {
+      name: GENERIC_AUTHORIZATION_BRANCH,
+      allowedChangedPaths: [GENERIC_AUTHORIZATION_PATH],
+      mustRemainSingleFile: true
+    },
+    implementation: {
+      branch: GENERIC_IMPLEMENTATION_BRANCH,
+      allowedChangedPaths,
+      approvedChangedFileCount: allowedChangedPaths.length,
+      approvedChangedFileSetSha256: workPackageChangedFilesSha256(allowedChangedPaths),
+      newDependencyAllowed: false,
+      workflowModificationAllowed: false
+    },
+    governance: {
+      authorizationPredatesImplementation: true,
+      exactPathScopeOnly: true,
+      independentBranchAndPullRequestRequired: true,
+      productionUseAuthorized: false,
+      formalReleaseAuthorized: false,
+      publishAuthorized: false,
+      readyForPromotionAuthorized: false,
+      automaticNextWorkPackageAuthorizationAuthorized: false
+    },
+    // Nested objects in overrides.document intentionally replace the fixture defaults.
+    ...overrides.document
+  };
+}
+
+function genericTrustedAuthorityOptions(overrides = {}) {
+  const authorization = overrides.authorization || genericDelegatedAuthorization();
+  const evaluatedHead = overrides.evaluatedHead || GENERIC_IMPLEMENTATION_HEAD;
+  return {
+    trustedMainHead: overrides.trustedMainHead || GENERIC_TRUSTED_MAIN,
+    evaluatedHead,
+    listAuthorizationPaths: () => overrides.authorizationPaths || [GENERIC_AUTHORIZATION_PATH],
+    loadAuthorizationAtTrustedHead: repositoryPath => (
+      repositoryPath === GENERIC_AUTHORIZATION_PATH ? authorization : null
+    ),
+    findAuthorizationIntroductionMerges: repositoryPath => (
+      repositoryPath === GENERIC_AUTHORIZATION_PATH
+        ? (overrides.introductionMerges || [GENERIC_MERGE])
+        : []
+    ),
+    resolveCommitParents: commit => (
+      commit === GENERIC_MERGE
+        ? (overrides.mergeParents || [GENERIC_BASE, GENERIC_REVIEWED_HEAD])
+        : []
+    ),
+    resolveCommitBlobSha: (commit, repositoryPath) => {
+      if (repositoryPath !== GENERIC_AUTHORIZATION_PATH) return null;
+      if (Object.prototype.hasOwnProperty.call(overrides.blobByCommit || {}, commit)) {
+        return overrides.blobByCommit[commit];
+      }
+      if ([GENERIC_MERGE, GENERIC_REVIEWED_HEAD, GENERIC_TRUSTED_MAIN].includes(commit)) {
+        return GENERIC_BLOB;
+      }
+      return null;
+    },
+    resolveCommitPathMode: (commit, repositoryPath) => {
+      if (repositoryPath !== GENERIC_AUTHORIZATION_PATH) return null;
+      return overrides.pathModeByCommit?.[commit] || '100644';
+    },
+    resolveChangedFilesBetween: (base, head) => {
+      if (base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD) {
+        return overrides.reviewedChangedFiles || [GENERIC_AUTHORIZATION_PATH];
+      }
+      if (base === GENERIC_BASE && head === GENERIC_MERGE) {
+        return overrides.mergeChangedFiles || [GENERIC_AUTHORIZATION_PATH];
+      }
+      if (base === GENERIC_MERGE && head === evaluatedHead) {
+        return overrides.implementationChangedFiles || authorization.implementation.allowedChangedPaths;
+      }
+      throw new Error(`unexpected diff request ${base}..${head}`);
+    },
+    isTrustedAncestor: (base, head) => {
+      if (overrides.ancestorResultByPair?.[`${base}:${head}`] !== undefined) {
+        return overrides.ancestorResultByPair[`${base}:${head}`];
+      }
+      return (base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD)
+        || (base === GENERIC_MERGE && head === GENERIC_TRUSTED_MAIN)
+        || (base === GENERIC_MERGE && head === evaluatedHead);
     }
   };
 }
@@ -414,6 +533,478 @@ test('trusted-main delegated governance authorization is exact and fails closed 
   assert.equal(isAuthorizedImplementationBranch(BRANCH_REPAIR_BRANCH, CURRENT_STAGE, {
     delegatedGovernance: crossCheckInvalid
   }), false);
+});
+
+
+test('generic delegated authorization forbids workflow and dependency control paths when their authority flags are false', () => {
+  for (const repositoryPath of [
+    '.github/workflows/pvep.yml',
+    '.github/actions/pvep/action.yml',
+    'package.json',
+    'package-lock.json',
+    'services/facebook-worker/package.json'
+  ]) {
+    const authorization = genericDelegatedAuthorization({ allowedChangedPaths: [repositoryPath] });
+    assert.equal(
+      isValidGenericDelegatedGovernanceAuthorization(authorization, GENERIC_AUTHORIZATION_PATH),
+      false,
+      repositoryPath
+    );
+  }
+});
+
+test('authorization proposal transport is single-file and never grants implementation authority', () => {
+  assert.equal(typeof evaluateDelegatedGovernanceAuthorizationProposal, 'function');
+  const authorization = genericDelegatedAuthorization();
+  const accepted = evaluateDelegatedGovernanceAuthorizationProposal({
+    branch: GENERIC_AUTHORIZATION_BRANCH,
+    changedFiles: [GENERIC_AUTHORIZATION_PATH],
+    authorizationPath: GENERIC_AUTHORIZATION_PATH,
+    authorization,
+    trustedMainHead: GENERIC_BASE,
+    evaluatedHead: GENERIC_REVIEWED_HEAD,
+    isTrustedAncestor: (base, head) => base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD,
+    resolveCommitBlobSha: (commit) => commit === GENERIC_BASE ? null : GENERIC_BLOB,
+    resolveCommitPathMode: () => '100644'
+  });
+  assert.equal(accepted.pass, true, JSON.stringify(accepted));
+  assert.equal(accepted.mode, 'AUTHORIZATION_PROPOSAL_TRANSPORT');
+  assert.equal(accepted.implementationAuthorityGranted, false);
+
+  assert.equal(isAuthorizedImplementationBranch(GENERIC_AUTHORIZATION_BRANCH, CURRENT_STAGE), false);
+  const transported = checkRuntimeTargetGate({
+    branch: GENERIC_AUTHORIZATION_BRANCH,
+    changedFiles: [GENERIC_AUTHORIZATION_PATH],
+    authorizationProposal: {
+      authorizationPath: GENERIC_AUTHORIZATION_PATH,
+      authorization,
+      trustedMainHead: GENERIC_BASE,
+      evaluatedHead: GENERIC_REVIEWED_HEAD,
+      isTrustedAncestor: (base, head) => base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD,
+      resolveCommitBlobSha: (commit) => commit === GENERIC_BASE ? null : GENERIC_BLOB,
+      resolveCommitPathMode: () => '100644'
+    }
+  });
+  assert.equal(transported.pass, true, JSON.stringify(transported));
+  assert.equal(transported.authorityMode, 'AUTHORIZATION_PROPOSAL_TRANSPORT');
+  assert.equal(transported.implementationAuthorityGranted, false);
+
+  const spoofedProposalFacts = checkRuntimeTargetGate({
+    branch: 'feature/unreviewed-release',
+    changedFiles: [GENERIC_AUTHORIZATION_PATH, 'tools/wp0/lib.js'],
+    authorizationProposal: {
+      branch: GENERIC_AUTHORIZATION_BRANCH,
+      changedFiles: [GENERIC_AUTHORIZATION_PATH],
+      authorizationPath: GENERIC_AUTHORIZATION_PATH,
+      authorization,
+      trustedMainHead: GENERIC_BASE,
+      evaluatedHead: GENERIC_REVIEWED_HEAD,
+      isTrustedAncestor: () => true,
+      resolveCommitBlobSha: (commit) => commit === GENERIC_BASE ? null : GENERIC_BLOB,
+      resolveCommitPathMode: () => '100644'
+    }
+  });
+  assert.equal(spoofedProposalFacts.pass, false, 'proposal injection must not override actual branch or changed-file facts');
+  assert.equal(spoofedProposalFacts.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');
+
+  const rejectedTransport = checkRuntimeTargetGate({
+    branch: GENERIC_AUTHORIZATION_BRANCH,
+    changedFiles: [GENERIC_AUTHORIZATION_PATH, 'tools/wp0/lib.js'],
+    authorizationProposal: {
+      authorizationPath: GENERIC_AUTHORIZATION_PATH,
+      authorization,
+      trustedMainHead: GENERIC_BASE,
+      evaluatedHead: GENERIC_REVIEWED_HEAD,
+      isTrustedAncestor: (base, head) => base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD
+    }
+  });
+  assert.equal(rejectedTransport.pass, false);
+  assert.equal(rejectedTransport.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');
+  assert.equal(
+    rejectedTransport.authorizationProposalReasonCode,
+    'WP0_AUTHORIZATION_PROPOSAL_TRANSPORT_INVALID'
+  );
+
+  const staleMain = evaluateDelegatedGovernanceAuthorizationProposal({
+    branch: GENERIC_AUTHORIZATION_BRANCH,
+    changedFiles: [GENERIC_AUTHORIZATION_PATH],
+    authorizationPath: GENERIC_AUTHORIZATION_PATH,
+    authorization,
+    trustedMainHead: 'f'.repeat(40)
+  });
+  assert.equal(staleMain.pass, false);
+
+  const unrelatedHead = evaluateDelegatedGovernanceAuthorizationProposal({
+    branch: GENERIC_AUTHORIZATION_BRANCH,
+    changedFiles: [GENERIC_AUTHORIZATION_PATH],
+    authorizationPath: GENERIC_AUTHORIZATION_PATH,
+    authorization,
+    trustedMainHead: GENERIC_BASE,
+    evaluatedHead: GENERIC_REVIEWED_HEAD,
+    isTrustedAncestor: () => false
+  });
+  assert.equal(unrelatedHead.pass, false, 'proposal Head must descend from its trusted-main base');
+
+  const existingAuthorizationPath = evaluateDelegatedGovernanceAuthorizationProposal({
+    branch: GENERIC_AUTHORIZATION_BRANCH,
+    changedFiles: [GENERIC_AUTHORIZATION_PATH],
+    authorizationPath: GENERIC_AUTHORIZATION_PATH,
+    authorization,
+    trustedMainHead: GENERIC_BASE,
+    evaluatedHead: GENERIC_REVIEWED_HEAD,
+    isTrustedAncestor: () => true,
+    resolveCommitBlobSha: () => GENERIC_BLOB,
+    resolveCommitPathMode: () => '100644'
+  });
+  assert.equal(existingAuthorizationPath.pass, false, 'proposal transport must not overwrite an existing authority path');
+
+  const symlinkAuthorization = evaluateDelegatedGovernanceAuthorizationProposal({
+    branch: GENERIC_AUTHORIZATION_BRANCH,
+    changedFiles: [GENERIC_AUTHORIZATION_PATH],
+    authorizationPath: GENERIC_AUTHORIZATION_PATH,
+    authorization,
+    trustedMainHead: GENERIC_BASE,
+    evaluatedHead: GENERIC_REVIEWED_HEAD,
+    isTrustedAncestor: () => true,
+    resolveCommitBlobSha: () => null,
+    resolveCommitPathMode: () => '120000'
+  });
+  assert.equal(symlinkAuthorization.pass, false, 'authorization proposal must be a regular 100644 blob');
+
+  for (const [name, candidate] of [
+    ['extra changed path', {
+      changedFiles: [GENERIC_AUTHORIZATION_PATH, 'shared/release/implementationBranchPolicy.js']
+    }],
+    ['effective before merge', {
+      authorization: genericDelegatedAuthorization({
+        document: {
+          effectiveness: {
+            ...authorization.effectiveness,
+            effectiveBeforeMerge: true
+          }
+        }
+      })
+    }],
+    ['proposal self-authorizes', {
+      authorization: genericDelegatedAuthorization({
+        document: {
+          implementation: {
+            ...authorization.implementation,
+            branch: GENERIC_AUTHORIZATION_BRANCH
+          }
+        }
+      })
+    }],
+    ['wildcard implementation path', {
+      authorization: genericDelegatedAuthorization({
+        allowedChangedPaths: ['shared/release/**']
+      })
+    }],
+    ['authorization branch mismatch', {
+      authorization: genericDelegatedAuthorization({
+        document: {
+          authorizationBranch: {
+            ...authorization.authorizationBranch,
+            name: 'governance/some-other-authorization'
+          }
+        }
+      })
+    }],
+    ['single-file guarantee removed', {
+      authorization: genericDelegatedAuthorization({
+        document: {
+          authorizationBranch: {
+            ...authorization.authorizationBranch,
+            mustRemainSingleFile: false
+          }
+        }
+      })
+    }]
+  ]) {
+    const result = evaluateDelegatedGovernanceAuthorizationProposal({
+      branch: GENERIC_AUTHORIZATION_BRANCH,
+      changedFiles: candidate.changedFiles || [GENERIC_AUTHORIZATION_PATH],
+      authorizationPath: GENERIC_AUTHORIZATION_PATH,
+      authorization: candidate.authorization || authorization,
+      trustedMainHead: GENERIC_BASE
+    });
+    assert.equal(result.pass, false, name);
+  }
+});
+
+test('generic delegated authority activates only from canonical main two-parent introduction', () => {
+  const exact = genericTrustedAuthorityOptions();
+  assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
+    generic: exact
+  }), true);
+  assert.equal(isAuthorizedDelegatedGovernanceBranch(`${GENERIC_IMPLEMENTATION_BRANCH}-copy`, {
+    generic: exact
+  }), false);
+
+  assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
+    generic: genericTrustedAuthorityOptions({
+      mergeParents: [GENERIC_REVIEWED_HEAD, GENERIC_BASE]
+    })
+  }), false, 'wrong parent order must fail closed');
+
+  assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
+    generic: genericTrustedAuthorityOptions({
+      blobByCommit: { [GENERIC_TRUSTED_MAIN]: 'f'.repeat(40) }
+    })
+  }), false, 'trusted-main blob drift must fail closed');
+
+  assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
+    generic: genericTrustedAuthorityOptions({
+      pathModeByCommit: { [GENERIC_REVIEWED_HEAD]: '120000' }
+    })
+  }), false, 'authorization path must remain a regular 100644 blob across reviewed, merge, and trusted-main identities');
+
+  assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
+    generic: genericTrustedAuthorityOptions({
+      blobByCommit: { [GENERIC_BASE]: 'e'.repeat(40) }
+    })
+  }), false, 'authorization path already present at base must fail closed');
+
+  assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
+    generic: genericTrustedAuthorityOptions({
+      reviewedChangedFiles: [GENERIC_AUTHORIZATION_PATH, 'governance/layered-ci/extra.json']
+    })
+  }), false, 'reviewed authorization Head must remain single-file');
+
+  assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
+    generic: genericTrustedAuthorityOptions({
+      mergeChangedFiles: [GENERIC_AUTHORIZATION_PATH, 'governance/layered-ci/merge-only-extra.json']
+    })
+  }), false, 'authorization introduction merge must remain single-file against first parent');
+
+  assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
+    generic: genericTrustedAuthorityOptions({
+      ancestorResultByPair: { [`${GENERIC_MERGE}:${GENERIC_TRUSTED_MAIN}`]: false }
+    })
+  }), false, 'candidate-owned merge not on canonical main must not authorize');
+
+  assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
+    generic: genericTrustedAuthorityOptions({
+      ancestorResultByPair: { [`${GENERIC_BASE}:${GENERIC_REVIEWED_HEAD}`]: false }
+    })
+  }), false, 'reviewed authorization Head must descend from its declared trusted-main base');
+
+  const widened = genericDelegatedAuthorization({
+    document: {
+      implementation: {
+        ...genericDelegatedAuthorization().implementation,
+        approvedChangedFileSetSha256: 'f'.repeat(64)
+      }
+    }
+  });
+  assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
+    generic: genericTrustedAuthorityOptions({ authorization: widened })
+  }), false, 'implementation path digest drift must fail closed');
+
+  assert.equal(typeof evaluateTrustedDelegatedGovernanceBranch, 'function');
+  const scoped = evaluateTrustedDelegatedGovernanceBranch({
+    branch: GENERIC_IMPLEMENTATION_BRANCH,
+    ...exact
+  });
+  assert.equal(scoped.pass, true, JSON.stringify(scoped));
+  assert.equal(scoped.authorityMode, 'TRUSTED_MAIN_DELEGATED_GOVERNANCE');
+  assert.deepEqual(scoped.unauthorizedPaths, []);
+
+  const scopeEscape = evaluateTrustedDelegatedGovernanceBranch({
+    branch: GENERIC_IMPLEMENTATION_BRANCH,
+    ...genericTrustedAuthorityOptions({
+      implementationChangedFiles: [
+        ...genericDelegatedAuthorization().implementation.allowedChangedPaths,
+        'shared/release/unreviewed-authority.js'
+      ].sort()
+    })
+  });
+  assert.equal(scopeEscape.pass, false);
+  assert.deepEqual(scopeEscape.unauthorizedPaths, ['shared/release/unreviewed-authority.js']);
+});
+
+
+function isolatedGitEnvironment(root) {
+  const nullDevice = process.platform === 'win32' ? 'NUL' : '/dev/null';
+  return {
+    ...buildTrustedGitEnvironment(process.env),
+    HOME: root,
+    USERPROFILE: root,
+    GIT_CONFIG_GLOBAL: nullDevice,
+    GIT_CONFIG_SYSTEM: nullDevice,
+    GIT_CONFIG_NOSYSTEM: '1'
+  };
+}
+
+test('generic delegated authority verifies a real two-parent Git introduction and exact implementation diff', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-generic-authority-'));
+  const git = (...args) => execFileSync('git', args, {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: isolatedGitEnvironment(root)
+  }).trim();
+  const write = (repositoryPath, content) => {
+    const filePath = path.join(root, ...repositoryPath.split('/'));
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, content);
+  };
+
+  try {
+    git('init', '-b', 'main');
+    git('config', 'user.name', 'Yance Test');
+    git('config', 'user.email', 'yance-test@example.invalid');
+    write('.base', 'base\n');
+    git('add', '.base');
+    git('commit', '-m', 'base');
+    const base = git('rev-parse', 'HEAD');
+
+    const authorizationPath = 'governance/layered-ci/real-git-authority-authorization.json';
+    const authorizationBranch = 'governance/real-git-authority-authorization';
+    const implementationBranch = 'fix/real-git-authority';
+    const allowedChangedPaths = ['shared/release/implementationBranchPolicy.js'];
+    const authorization = genericDelegatedAuthorization({
+      allowedChangedPaths,
+      document: {
+        base: { branch: 'main', commit: base },
+        authorizationBranch: {
+          name: authorizationBranch,
+          allowedChangedPaths: [authorizationPath],
+          mustRemainSingleFile: true
+        },
+        implementation: {
+          branch: implementationBranch,
+          allowedChangedPaths,
+          approvedChangedFileCount: allowedChangedPaths.length,
+          approvedChangedFileSetSha256: workPackageChangedFilesSha256(allowedChangedPaths),
+          newDependencyAllowed: false,
+          workflowModificationAllowed: false
+        }
+      }
+    });
+
+    git('switch', '-c', authorizationBranch);
+    write(authorizationPath, `${JSON.stringify(authorization, null, 2)}\n`);
+    git('add', authorizationPath);
+    git('commit', '-m', 'authorize exact delegated repair');
+    const reviewedHead = git('rev-parse', 'HEAD');
+
+    git('switch', 'main');
+    git('merge', '--no-ff', authorizationBranch, '-m', 'merge delegated authorization');
+    const authorizationMerge = git('rev-parse', 'HEAD');
+    assert.deepEqual(git('rev-list', '--parents', '-n', '1', authorizationMerge).split(/\s+/u).slice(1), [
+      base,
+      reviewedHead
+    ]);
+
+    git('switch', '-c', implementationBranch);
+    write(allowedChangedPaths[0], 'module.exports = true;\n');
+    git('add', allowedChangedPaths[0]);
+    git('commit', '-m', 'implement exact delegated repair');
+    const implementationHead = git('rev-parse', 'HEAD');
+
+    const accepted = evaluateTrustedDelegatedGovernanceBranch({
+      branch: implementationBranch,
+      trustedPolicyRoot: root,
+      evaluatedHead: implementationHead
+    });
+    assert.equal(accepted.pass, true, JSON.stringify(accepted));
+    assert.equal(accepted.authorizationMergeCommit, authorizationMerge);
+    assert.equal(accepted.reviewedAuthorizationHead, reviewedHead);
+    assert.deepEqual(accepted.unauthorizedPaths, []);
+
+    write('shared/release/unreviewed-authority.js', 'module.exports = false;\n');
+    git('add', 'shared/release/unreviewed-authority.js');
+    git('commit', '-m', 'escape exact delegated scope');
+    const escapedHead = git('rev-parse', 'HEAD');
+    const rejected = evaluateTrustedDelegatedGovernanceBranch({
+      branch: implementationBranch,
+      trustedPolicyRoot: root,
+      evaluatedHead: escapedHead
+    });
+    assert.equal(rejected.pass, false);
+    assert.equal(rejected.reasonCode, 'WP0_DELEGATED_GOVERNANCE_SCOPE_DENIED');
+    assert.deepEqual(rejected.unauthorizedPaths, ['shared/release/unreviewed-authority.js']);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+
+test('authorization proposal transport rejects a rename disguised as a single destination path', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-authorization-rename-'));
+  const git = (...args) => execFileSync('git', args, {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: isolatedGitEnvironment(root)
+  }).trim();
+  const write = (repositoryPath, content) => {
+    const filePath = path.join(root, ...repositoryPath.split('/'));
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, content);
+  };
+
+  try {
+    git('init', '-b', 'main');
+    git('config', 'user.name', 'Yance Test');
+    git('config', 'user.email', 'yance-test@example.invalid');
+    const sourcePath = 'governance/layered-ci/rename-source-authorization.json';
+    const authorizationPath = 'governance/layered-ci/rename-target-authorization.json';
+    const authorizationBranch = 'governance/rename-target-authorization';
+    const implementationBranch = 'fix/rename-target-authority';
+    const allowedChangedPaths = ['tools/wp0/lib.js'];
+    const seed = genericDelegatedAuthorization({
+      allowedChangedPaths,
+      document: {
+        base: { branch: 'main', commit: '0'.repeat(40) },
+        authorizationBranch: {
+          name: authorizationBranch,
+          allowedChangedPaths: [authorizationPath],
+          mustRemainSingleFile: true
+        },
+        implementation: {
+          branch: implementationBranch,
+          allowedChangedPaths,
+          approvedChangedFileCount: 1,
+          approvedChangedFileSetSha256: workPackageChangedFilesSha256(allowedChangedPaths),
+          newDependencyAllowed: false,
+          workflowModificationAllowed: false
+        }
+      }
+    });
+    write(sourcePath, `${JSON.stringify(seed, null, 2)}\n`);
+    git('add', sourcePath);
+    git('commit', '-m', 'seed similar authorization bytes');
+    const base = git('rev-parse', 'HEAD');
+
+    git('switch', '-c', authorizationBranch);
+    fs.renameSync(
+      path.join(root, ...sourcePath.split('/')),
+      path.join(root, ...authorizationPath.split('/'))
+    );
+    const authorization = {
+      ...seed,
+      base: { branch: 'main', commit: base }
+    };
+    write(authorizationPath, `${JSON.stringify(authorization, null, 2)}\n`);
+    git('add', '-A');
+    git('commit', '-m', 'rename into authorization path');
+    const evaluatedHead = git('rev-parse', 'HEAD');
+
+    const detectedByGit = git('diff', '--name-status', '-M', base, evaluatedHead, '--');
+    assert.match(detectedByGit, /^R\d+\s+/u, `fixture must be detected as a rename: ${detectedByGit}`);
+
+    const result = evaluateDelegatedGovernanceAuthorizationProposal({
+      branch: authorizationBranch,
+      trustedPolicyRoot: root,
+      trustedMainHead: base,
+      evaluatedHead
+    });
+    assert.equal(result.pass, false, JSON.stringify(result));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('malformed, impossible-date and arbitrary branches remain denied', () => {

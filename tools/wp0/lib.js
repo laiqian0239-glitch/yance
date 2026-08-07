@@ -8,6 +8,7 @@ const {
   REBUILD_BRANCH_PATTERN_SOURCE,
   canonicalStageBranch,
   isAuthorizedImplementationBranch,
+  evaluateDelegatedGovernanceAuthorizationProposal,
   authorizedImplementationBranchDescription
 } = require('../../shared/release/implementationBranchPolicy');
 
@@ -387,7 +388,27 @@ function checkRuntimeTargetGate(options = {}) {
   const errors = [];
   if (targetStage === REJECTED_STAGE) errors.push('target stage 6.4.5.8 is permanently rejected for runtime, build, package, and release changes');
   if (targetStage !== CURRENT_STAGE) errors.push(`target stage must be ${CURRENT_STAGE}`);
-  if (!isAuthorizedImplementationBranch(branch, CURRENT_STAGE) && !detachedEvidenceAllowed) errors.push(`implementation branch must be ${authorizedImplementationBranchDescription(CURRENT_STAGE)}; detached HEAD is allowed only for evidence generated at the exact checked-out commit`);
+
+  const implementationBranchOptions = options.implementationBranchOptions || {};
+  const implementationAuthorized = isAuthorizedImplementationBranch(
+    branch,
+    CURRENT_STAGE,
+    implementationBranchOptions
+  );
+  let authorizationProposalTransport = null;
+  if (!implementationAuthorized && !detachedEvidenceAllowed) {
+    const explicitProposal = options.authorizationProposal;
+    const proposalOptions = { ...(explicitProposal || {}), branch };
+    delete proposalOptions.changedFiles;
+    if (Object.prototype.hasOwnProperty.call(options, 'changedFiles')) {
+      proposalOptions.changedFiles = changedFiles;
+    }
+    authorizationProposalTransport = evaluateDelegatedGovernanceAuthorizationProposal(proposalOptions);
+  }
+  const proposalTransportAllowed = authorizationProposalTransport?.pass === true;
+  if (!implementationAuthorized && !proposalTransportAllowed && !detachedEvidenceAllowed) {
+    errors.push(`implementation branch must be ${authorizedImplementationBranchDescription(CURRENT_STAGE)}; detached HEAD is allowed only for evidence generated at the exact checked-out commit; a single-file non-effective delegated-governance authorization proposal may use authorization-proposal transport`);
+  }
   return {
     pass: errors.length === 0,
     reasonCode: errors.length ? 'WP0_REJECTED_STAGE_TARGET_DENIED' : null,
@@ -395,6 +416,11 @@ function checkRuntimeTargetGate(options = {}) {
     targetStage,
     branch,
     detachedEvidenceAllowed,
+    authorizationProposalReasonCode: authorizationProposalTransport?.reasonCode ?? null,
+    authorityMode: implementationAuthorized
+      ? 'IMPLEMENTATION_AUTHORITY'
+      : (proposalTransportAllowed ? authorizationProposalTransport.mode : null),
+    implementationAuthorityGranted: implementationAuthorized,
     changedFileCount: changedFiles.length,
     runtimeChangedFileCount: runtimeChangedFiles.length,
     runtimeChangedFiles
