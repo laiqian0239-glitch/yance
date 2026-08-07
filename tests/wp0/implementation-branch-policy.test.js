@@ -541,7 +541,8 @@ test('generic delegated authorization forbids workflow and dependency control pa
     '.github/workflows/pvep.yml',
     '.github/actions/pvep/action.yml',
     'package.json',
-    'package-lock.json'
+    'package-lock.json',
+    'services/facebook-worker/package.json'
   ]) {
     const authorization = genericDelegatedAuthorization({ allowedChangedPaths: [repositoryPath] });
     assert.equal(
