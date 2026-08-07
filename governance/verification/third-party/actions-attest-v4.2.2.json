@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "component": "actions/attest",
+  "release": "v4.2.2",
+  "commit": "1e69f48acb82d1966a394da916b4c1698aa569d6",
+  "license": "MIT",
+  "role": "Generic GitHub Artifact Attestations using in-toto/DSSE and Sigstore identity/trust infrastructure",
+  "source": "https://github.com/actions/attest",
+  "verifiedAt": "2026-08-07"
+}
