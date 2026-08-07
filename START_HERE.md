@@ -2,59 +2,70 @@
 
 > **任何新聊天在修改仓库前，必须按以下顺序读取并核验。**
 
+## 0. 最高稳定架构指令
+
+首先读取 [`YANCE_IMPLEMENTATION_MASTER_PLAN.md`](./YANCE_IMPLEMENTATION_MASTER_PLAN.md)。
+
+该文件自 V2 起是 **Yance 最高稳定架构与实施指令**。除实时远端事实、已生效治理凭据、精确授权 Head 与正式安全/许可证约束外，任何旧聊天、旧设计、旧 PR 说明、旧专题计划与它冲突时，以它为准。
+
+V2 已确认的最高原则：
+
+- Yance 为个人使用的开源项目，并接受/履行所采用 GPL/AGPL/LGPL/Apache/MIT/BSD/Boost 等许可证义务；
+- 成熟 OSS 产品、服务、Sidecar 和完整源码模块优先，**禁止重复自研已有成熟实现的基础能力**；
+- 不再要求 Yance 自己拥有通信、联系人、关系、Agent memory、任务调度等唯一事实权威；
+- 多平台优先 Matrix/Synapse + mautrix + Element；
+- AI 长期大脑优先 Letta + Graphiti；
+- 有目标的聊天优先 Parlant Journey，SalesGPT 等作为领域 Journey 模板来源；
+- 模型路由优先 RouteLLM + LiteLLM；
+- 学习成长优先 Langfuse + DSPy + Promptfoo（需要人工标注时 Argilla）；
+- 本人跨语言声音克隆优先 CosyVoice 3，并以 Chatterbox/GPT-SoVITS/OpenVoice 等作为 benchmark/备选；
+- 个人照片素材优先 Immich 真实图库，生成链优先 ComfyUI + PhotoMaker/InstantID/PuLID + IP-Adapter/ControlNet；
+- 只有证明没有成熟 OSS 可满足时才允许最小自研；
+- 禁止临时绕过，必须底层修复，不强推、不改写历史、不弱化门禁。
+
 ## 1. 当前精确状态
 
 读取 [`PROJECT_CONTINUATION.md`](./PROJECT_CONTINUATION.md)：
 
 - 当前任务、阻塞和下一步；
 - 精确分支、commit SHA、workflow run/job；
-- 授权路径、receipt 与正式门禁；
-- 禁止绕过、强推、历史改写和弱化门禁规则。
+- 授权路径、receipt 与正式门禁。
 
-## 2. 稳定总实施方案
+`PROJECT_CONTINUATION.md` 只负责当前动态事实。它不能把 V1 架构重新提升为最高稳定路线。
 
-读取 [`YANCE_IMPLEMENTATION_MASTER_PLAN.md`](./YANCE_IMPLEMENTATION_MASTER_PLAN.md)：
+## 2. 旧专题计划
 
-- “尽快让言策真实落地”的最高指标；
-- OSS-A～OSS-G 总路线；
-- PR #17 资产提取与 PR #19 总设计顺序；
-- 成熟开源模块的完整移植、固定依赖、Sidecar 和行为合同规则；
-- 唯一 ChannelDriver、Canonical 数据层、Capability Manifest；
-- WhatsApp、Telegram、Signal、Meta、LINE、KakaoTalk、iMessage、Google Messages；
-- 手机与 macOS Companion Host；
-- 欧美、日本、韩国 Dating Companion Mode；
-- 单一言策会话中心、联系人体系和 AI 回复界面；
-- WP-B 持久执行、AI 模型栈、关系图、Style Genome、学习成长和统一 UI；
-- 并行实施线路与固定验收门禁。
+读取需要用到的专题计划，例如 [`YANCE_UNIFIED_UI_OPEN_SOURCE_MIGRATION_PLAN.md`](./YANCE_UNIFIED_UI_OPEN_SOURCE_MIGRATION_PLAN.md)。
 
-## 3. 统一 UI 开源移植与零回归修订
+这些文件继续保存历史决策、零回归要求、主题/声音/翻译/布局等细节，但其架构优先级已经调整：
 
-读取 [`YANCE_UNIFIED_UI_OPEN_SOURCE_MIGRATION_PLAN.md`](./YANCE_UNIFIED_UI_OPEN_SOURCE_MIGRATION_PLAN.md)：
+- 与 V2 最高指令一致的部分继续有效；
+- 与 V2 冲突的部分自动降级为历史参考；
+- 尤其是“Chatwoot 唯一产品壳”“Yance 唯一 ChannelDriver/Canonical/Outbox 权威”等旧硬要求，不再覆盖 V2；
+- 现有主题、提示音、通知规则、用户设置、翻译体验和真实数据零回归要求仍然有效，除非后续专项迁移以 RED/GREEN 和可回滚证据正式替换。
 
-- Chatwoot OSS 作为统一会话产品壳与主要 UI 源码来源；
-- shadcn-vue + Reka UI 的可折叠、可隐藏、可拖拽左右侧栏；
-- VueUse 经言策设置适配器持久化布局、字体、密度和主题选择；
-- 保留言策现有全部主题模板、名称、用户选择和设置兼容；
-- `YanceThemeAdapter` 与统一 Design Tokens；
-- 保留现有 `SoundNotificationService`、通知策略和全部提示音；
-- Howler.js 仅作为可选自定义声音执行层；
-- 字体 80%–160%、专注模式和重启恢复；
-- 德国、奥地利、瑞士及欧洲语言自动翻译；
-- 中文输入、目标语言预览、最终译文冻结到 Outbox；
-- 单一会话中心和 UI/声音/主题/翻译零回归门禁。
+## 3. 冲突处理优先级
 
-该修订是总实施方案第 8 节的约束性补充。不得在当前 OSS-1A 授权 Head 中提前混入 UI 代码。
+从高到低：
 
-## 4. 冲突处理
+1. 当前远端 refs、已生效正式治理凭据、精确授权 Head、workflow/receipt 事实；
+2. `YANCE_IMPLEMENTATION_MASTER_PLAN.md` V2 最高稳定架构指令；
+3. `PROJECT_CONTINUATION.md` 当前动态状态；
+4. 与 V2 一致的专题计划；
+5. 旧聊天、旧 PR 正文和已被 V2 取代的历史设计。
 
-- 当前远端 refs、正式治理凭据、精确 Actions 证据高于状态文档；
-- `PROJECT_CONTINUATION.md` 高于旧聊天中的临时状态描述；
-- `YANCE_IMPLEMENTATION_MASTER_PLAN.md` 是稳定范围和路线，具体实施仍受工作包授权与路径清单约束；
-- `YANCE_UNIFIED_UI_OPEN_SOURCE_MIGRATION_PLAN.md` 对统一 UI、主题、声音、布局和翻译体验具有约束性补充地位；
-- 发现文档与远端事实冲突时，先停止修改、核验事实，再用普通提交更新状态文档；不得 amend、rebase 或 force push。
+发现文档与远端事实冲突时，先核验事实，再用普通提交修正文档；不得 amend、rebase 或 force push。
+
+## 4. 当前执行保护
+
+V2 不允许污染当前已经授权的旧 exact-Head 工作包：
+
+- 已授权 OSS-A/OSS-1A、治理、发布链继续按原门禁收口；
+- V2 产品迁移必须使用新的工作包、来源 pin、路径清单、RED/GREEN、receipt 与精确 Head；
+- 不允许因为“新架构更快”而跳过正在生效的门禁。
 
 ## 5. 固定分支
 
-所有跨聊天状态文档固定保存在：
+所有跨聊天稳定/状态文档固定保存在：
 
 `project-state/active-handoff`

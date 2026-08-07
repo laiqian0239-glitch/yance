@@ -1,482 +1,832 @@
-# 言策（Yance）总实施方案与开源移植主计划
+# 言策（Yance）总实施方案与开源移植最高指令
 
-> **状态：V1 范围冻结，跨聊天持续有效。**
+> **状态：V2 最高指令冻结，跨聊天持续有效。**
 >
-> 本文件记录已经确认的产品范围、开源移植方案、阶段顺序、统一界面原则与验收口径。它是实施计划，不替代具体工作包的正式授权、来源凭据、RED/GREEN 证据和精确 Head 门禁。
+> 本文件是 Yance 的最高稳定架构与实施指令。除实时远端事实、已生效治理凭据、精确授权 Head 与正式安全/许可证约束外，任何旧聊天、旧设计快照、旧实施方案、旧 UI 计划或旧工作包说明与本文件冲突时，**以本文件为准**。
+>
+> 当前已经授权并正在收口的精确 Head、PR、workflow、receipt 与门禁不因本次架构升级而被改写或绕过；它们按原授权完成。新架构通过新的普通提交、独立工作包、精确上游 pin、RED/GREEN 证据和可回滚迁移逐步落地。
 
-## 0. 最高指标
+## 0. 最高指令：成熟 OSS 接管，禁止重复自研
 
-言策项目的最高执行指标是：**尽快形成真实可运行、稳定、功能完整且统一的个人产品。**
+Yance 的最高执行指标是：**以最短路径形成真实可运行、功能尽可能强、稳定、可维护的个人开源产品。**
 
-所有决策按以下顺序优化：
+项目定位固定为：
 
-1. 复用成熟开源项目的完整能力模块；
-2. 固定版本依赖或受控 Sidecar；
-3. 仅在必须掌握权威边界时精选源码移植；
-4. 只有没有成熟来源时才自研。
+- 个人使用；
+- 开源 Yance；
+- 接受并履行 GPL、AGPL、LGPL、Apache、MIT、BSD、Boost 等所采用组件对应的许可证义务；
+- 不再要求 Yance 自己拥有产品身份、通信事实权威、联系人事实权威、关系事实权威、Agent 状态权威或任务调度权威；
+- 只要成熟上游已经提供生产级完整能力，优先让成熟上游成为真实运行内核，而不是“参考后由 Yance 重写一遍”。
 
-速度不能通过临时绕过获得：禁止弱化门禁、跳过测试、吞错、强推、扩大重试或保留脆弱补丁。固定原则是：
-
-> **架构一步到位，代码分阶段落地；成熟能力优先移植，言策保持唯一产品与数据权威。**
-
-## 1. 最终产品形态
-
-言策不是多个聊天软件界面的拼接，也不是多个开源产品的集合。最终始终只有一个统一桌面产品：
+采用顺序固定为：
 
 ```text
-言策
-├── 统一会话中心
-├── 统一联系人与关系
-├── 统一 AI 回复工作室
-├── 统一搜索与附件
-├── 统一账号中心
-├── 统一模型与路由中心
-├── 统一学习与成长中心
-├── 统一系统健康与恢复
-└── 统一设置、隐私与诊断
+完整成熟开源产品
+        ↓
+完整成熟开源服务 / Sidecar
+        ↓
+完整成熟源码能力模块
+        ↓
+固定版本依赖
+        ↓
+极薄 Adapter / Branding / Configuration
+        ↓
+只有证明没有成熟 OSS 可满足时才允许自研
 ```
 
-各渠道只提供认证、协议、同步、媒体、事件、发送与恢复能力；不得移植或创建各平台专属聊天页面、联系人权威、任务调度权威或独立业务数据库。
+### 0.1 自研准入硬门禁
 
-## 2. 总工作包
+任何计划新增 Yance 自研基础设施前，必须提供：
 
-- **OSS-A**：持久执行、来源治理、许可证与供应链基础。
-- **OSS-B**：多平台 Social & Dating Channel Fabric。
-- **OSS-C**：联系人、身份合并与时间关系图。
-- **OSS-D**：Persona、Style Genome 与回复推理。
-- **OSS-E**：统一模型网关、任务分类与模型路由。
-- **OSS-F**：学习、评测、反馈与可回滚成长闭环。
-- **OSS-G**：设置、隐私、诊断、语音、文件与多模态。
+1. 已检索和评估的成熟 OSS 候选；
+2. 候选不能满足需求的具体行为缺口；
+3. 为什么不能通过完整产品、Sidecar、源码模块、依赖或极薄适配解决；
+4. 最小自研范围；
+5. 对应失败测试和回滚方案。
 
-正确实施顺序：
+没有这份证据，**不得批准自研等价能力**。
+
+### 0.2 速度规则
+
+速度通过删除重复工程获得，不通过临时绕过获得。继续永久禁止：
+
+- 弱化或关闭 guard；
+- 跳过测试；
+- 吞错；
+- 强推；
+- amend/rebase 改写已发布历史；
+- 扩大无边界重试；
+- 伪造成功状态；
+- 用临时 patch、CSS 遮挡、假数据或旁路长期代替底层修复。
+
+固定原则变更为：
+
+> **成熟 OSS 是默认实现；Yance 只做必要整合。底层重构优先通过替换为成熟上游完成，而不是重新造轮子。**
+
+## 1. 最终产品形态：Yance 开源整合发行版
+
+Yance 最终仍提供一个统一桌面体验，但底层允许多个成熟 OSS 各自拥有其最擅长的真实运行状态。
 
 ```text
-完成当前 OSS-1A Task 11
-        ↓
-PR #19 总设计最终审阅并合入 main
-        ↓
-OSS-A 来源/许可证/供应链底座
-        ↓
-从 PR #17 提取 WP-B 持久执行核心
-        ↓
-Baileys 生命周期完整修复与移植
-        ↓
-OSS-B 统一 Channel Fabric 与第一批连接器
-        ↓
-AI SDK + LiteLLM + LangGraph 执行链
-        ↓
-联系人/时间关系图
-        ↓
-Style Genome/回复大脑
-        ↓
-学习/成长闭环
-        ↓
-其余平台、语音、文件与多模态
+                              YANCE
+                                │
+             ┌──────────────────┼──────────────────┐
+             ↓                  ↓                  ↓
+      Communication Core     AI Brain        Multimodal Core
+       Matrix / Element        Letta          Voice / Visual
+             │                  │                  │
+       mautrix bridges       Graphiti        CosyVoice / ComfyUI
+             │                  │                  │
+      Native OSS fallback     Parlant         Immich / OCR / STT
+             │                  │                  │
+             └──────────────────┼──────────────────┘
+                                ↓
+                         Yance Integration
+                  Branding / AI Panel / Config / UX
 ```
 
-## 3. PR 与历史成果处理
-
-### PR #17
-
-冻结但不删除，不整体合并约 170 文件分支。保留并按小工作包重新提取：
-
-- Durable Task；
-- Outbox；
-- external call 前持久化 Attempt；
-- lease/fencing；
-- late-result rejection；
-- uncertain outcome reconciliation；
-- crash/restart recovery。
-
-禁止把 PR #17 的整套 UI、未来平台、AI 学习或其他未授权范围直接带入。
-
-### PR #19
-
-作为总设计权威完成最终审阅，确保只冻结设计、信息架构、权威边界、工作包顺序、Product Shell 与 UI 合同，不提前改变当前运行时行为。通过后合入 `main`。
-
-## 4. 开源移植采用规则
-
-“完整移植模块”是指把一个平台成熟的可运行能力切片完整保留，而不是只复制几个函数。每个模块至少覆盖：
+Yance 自身默认只维护：
 
 ```text
-认证与凭据
-设备/会话生命周期
-历史同步与分页
-实时事件、排序与批处理
-消息去重与迟到事件拒绝
-联系人、群组、成员与身份
-文本、图片、视频、语音、文件
-回复、引用、反应、编辑、删除
-已读、送达、输入与在线状态
-上传、下载与断点恢复
-限流、断线重连、崩溃重启恢复
-上游关键测试与真实故障场景
+branding/
+integration/
+ai-panel/
+goal-ui/
+voice-ui/
+visual-ui/
+installer/
+config/
+upstream-patches/
+compatibility-tests/
 ```
 
-按项目特性选择：
+除非工作包证明没有成熟 OSS 可用，否则不新增第二套通信数据库、第二套消息状态机、第二套 Agent memory、第二套图像工作流引擎或第二套模型网关。
 
-1. **精选源码移植**：与言策技术栈兼容、且必须掌握底层控制权；
-2. **固定版本依赖**：成熟库已有稳定 API，不维护无必要分叉；
-3. **受控 Sidecar**：Python、Go、C/C++、原生客户端或重型服务；
-4. **行为合同重构**：技术栈冲突、只需领域规则或不能形成第二权威。
+## 2. V2 核心开源母体矩阵
 
-最小来源记录自动完成：上游仓库、精确 40 位 commit、来源路径、目标路径、采用方式、修改说明、测试与回滚。治理不得成为无限人工审批，但也不得允许无法追溯的源码进入产品。
+下列项目是首选上游母体；实施前仍必须由 OSS-A 固定精确仓库、40 位 commit/tag、许可证、来源路径、构建方式、目标路径、上游测试、修改说明、SBOM 与回滚。
 
-## 5. OSS-B：统一多平台 Channel Fabric
+| 能力 | 首选成熟 OSS | 默认采用方式 |
+|---|---|---|
+| 统一通信底座 | Matrix + Synapse | 完整服务 |
+| 多平台桥接 | mautrix bridge 生态 | 完整 Sidecar / bridge |
+| 统一聊天 UI | Element Web / Element 相关成熟客户端能力 | 产品壳源码/运行时 |
+| WhatsApp 原生深度能力 | mautrix-whatsapp；Baileys 作为原生能力补充/回退候选 | bridge 优先，必要时 native runtime |
+| Telegram | mautrix-telegram / TDLib | bridge 或完整 Sidecar |
+| Signal | mautrix-signal / signal-cli 等成熟桥 | 隔离 Sidecar |
+| Messenger / Instagram | mautrix-meta + 官方 Meta API | bridge/API |
+| Google Messages | mautrix-gmessages | bridge |
+| 长期 Agent / Memory / Context | Letta | 完整服务 / SDK |
+| 时间关系记忆 | Graphiti | Sidecar |
+| 目标导向对话 | Parlant | 完整对话控制运行时 |
+| 销售/客户 Journey 模板 | SalesGPT 等成熟领域实现 | 行为模板/模块 |
+| 非对话长流程 | LangGraph | 固定依赖/Sidecar，避免与 Parlant 重复 |
+| 模型统一网关 | LiteLLM | Sidecar |
+| 智能模型路由 | RouteLLM | 路由模块 |
+| 前端 AI streaming/tool UI | Vercel AI SDK | 固定依赖 |
+| AI trace / dataset / eval | Langfuse | 完整服务 |
+| Prompt/program 优化 | DSPy | Sidecar |
+| AI 回归/红队 | Promptfoo | CI/评测工具 |
+| 人工反馈数据集 | Argilla（需要时） | Sidecar |
+| 本人声音克隆 | CosyVoice 3 | 本地 GPU/Sidecar |
+| 多语言声音备选 | Chatterbox Multilingual / GPT-SoVITS 候选 | benchmark 后固定 |
+| Voice conversion 回退 | OpenVoice V2 | Sidecar |
+| 实时语音 Agent | LiveKit Agents / Pipecat | Sidecar/服务 |
+| 本地 STT | whisper.cpp / FunASR 候选 | Native Sidecar |
+| 个人真实照片库 | Immich | 完整服务 |
+| 图像工作流 | ComfyUI | 完整 Sidecar |
+| 身份一致人像 | PhotoMaker / InstantID / PuLID 候选 | ComfyUI 工作流模块 |
+| 图像条件控制 | IP-Adapter / ControlNet | ComfyUI 模块 |
+| 图像修复/超分 | Real-ESRGAN / GFPGAN / CodeFormer | 模块 |
+| OCR | PaddleOCR | Sidecar |
+| 文档解析 | Apache Tika | Sidecar |
+| PII 脱敏 | Microsoft Presidio | Sidecar |
+| 备份 | restic | Sidecar |
+| 可观测性 | OpenTelemetry | 固定依赖/Collector |
+| SBOM/漏洞 | CycloneDX / OSV-Scanner | CI/发布工具 |
 
-### 5.1 唯一 ChannelDriver
+### 2.1 Copyleft 规则
+
+GPL/AGPL 不再因为未来闭源商业化而被排除。采用时必须：
+
+- 保留许可证与版权声明；
+- 满足源码提供、修改披露、网络交互等对应义务；
+- 在 `THIRD_PARTY_NOTICES`、SBOM 与 Release 资产中记录；
+- 对分叉修改保持可重建与可追溯；
+- 不把许可证义务当作绕开成熟上游、重新自研的默认理由。
+
+## 3. 多平台：Matrix/mautrix 优先替代 Yance 自建 Channel Fabric
+
+V1 的“唯一 Yance ChannelDriver + 唯一 Canonical 模型”不再是最高架构要求。与本节冲突处，V1 条款废止。
+
+首选运行链：
 
 ```text
-ChannelDriver
-├── authenticate()
-├── connect()
-├── disconnect()
-├── syncHistory()
-├── subscribeEvents()
-├── sendMessage()
-├── editMessage()
-├── deleteMessage()
-├── sendReaction()
-├── markRead()
-├── setTyping()
-├── uploadAttachment()
-├── downloadAttachment()
-├── resolveContact()
-├── resolveConversation()
-└── reconcileDelivery()
+WhatsApp / Telegram / Signal / Meta / Google Messages / 其他成熟桥
+                                ↓
+                         mautrix bridges
+                                ↓
+                              Matrix
+                                ↓
+                        Element / Yance UI
 ```
 
-### 5.2 唯一 Canonical 模型
+### 3.1 平台接入规则
 
-```text
-CanonicalAccount
-CanonicalIdentity
-CanonicalContact
-CanonicalConversation
-CanonicalMessage
-CanonicalAttachment
-CanonicalReaction
-CanonicalDeliveryReceipt
-CanonicalPresence
-```
+1. 有成熟 Matrix bridge：优先完整采用 bridge；
+2. bridge 缺平台特有能力：允许调用成熟 native OSS runtime，不强迫压缩成 Matrix 最小公分母；
+3. 没有成熟 bridge 但有官方/成熟完整客户端：直接 Sidecar；
+4. 只有设备本机能力：使用 Android/iOS/macOS Companion Host；
+5. 没有成熟来源：先证明缺口，再决定是否做最小自研。
 
-连接器只能提交标准事件和执行外部调用，不能直接修改 canonical、ledger、Outbox、联系人或关系事实权威。
+### 3.2 平台范围
 
-### 5.3 平台能力清单
+首批优先：
 
-统一界面通过 `PlatformCapabilityManifest` 决定按钮，不为平台重做工具栏：
+- WhatsApp；
+- Telegram；
+- Signal；
+- Facebook Page / Messenger；
+- Instagram Professional / Personal DM；
+- Google Messages / RCS / SMS。
 
-```text
-supportsReply
-supportsEdit
-supportsDelete
-supportsReaction
-supportsThread
-supportsReadReceipt
-supportsTyping
-supportsVoice
-supportsVideo
-supportsHistorySync
-supportsMultiAccount
-supportsGroup
-supportsGroupAdmin
-supportsRichCard
-```
-
-### 5.4 第一批完整连接器
-
-#### WhatsApp
-
-以 Baileys 成熟实现为来源，完整覆盖：auth state、Signal Key Store、`creds.update`、Socket 生命周期、事件批处理、history sync、`getMessage`、retry cache、消息去重、群组/媒体、DisconnectReason、单账号单 Socket、断线与重启恢复。
-
-#### Telegram
-
-采用 TDLib 完整客户端运行时作为受控 Sidecar，保留登录、设备验证、本地会话数据库、更新顺序、历史、群组、频道、主题、媒体、编辑/删除/反应、离线与网络恢复。禁止重新实现 Telegram 协议客户端。
-
-#### Signal
-
-采用 libsignal 与成熟 Signal 桥接运行时，隔离为 Sidecar，覆盖设备链接、密钥、加密会话、私聊、群聊、附件、回执、消失消息、断线与重启恢复。
-
-#### Meta
-
-必须拆成四个账号入口，但全部进入同一个言策会话中心：
-
-```text
-Facebook 公共主页
-Facebook 个人 Messenger
-Instagram 专业账号
-Instagram 个人 DM
-```
-
-公共账号使用正式 Page/Professional 授权通道；个人 Messenger 与 Instagram DM 使用成熟 Meta 桥接运行时作为隔离 Sidecar。四种账号的凭据、发送身份、生命周期和恢复状态必须隔离，canonical 展示统一。
-
-### 5.5 手机与 macOS Companion Host
-
-- **手机 Companion Host**：Android/iOS 分享、截图、通知/文本转入、Google Messages、交友应用辅助。
-- **macOS Companion Host**：iMessage、本机通知、分享、剪贴板和受控消息辅助。
-
-Companion Host 是无独立产品权威的连接节点；Windows 言策仍是主控制中心。
-
-### 5.6 日韩与设备消息平台
-
-固定范围：
+后续保持：
 
 - LINE；
 - KakaoTalk；
 - iMessage；
-- Google Messages / RCS / SMS。
+- 其他有成熟开源桥或 Companion 能力的平台。
 
-有成熟完整客户端能力时直接采用；平台只提供有限接口时由 Companion Host 和用户确认流程补齐，不伪装成不存在的完整同步能力。
+不得伪装成平台不存在的完整同步能力；能力缺失必须明确显示。
 
-### 5.7 通用 Dating Companion Mode
+### 3.3 Native capability escape hatch
 
-一次开发统一引擎，所有封闭交友平台共享：
+Matrix 是主统一层，不是强制最小公分母。以下场景允许通过成熟原生 runtime 直达：
 
-```text
-文本 / 截图 / 资料页
-        ↓
-OCR 与结构解析
-        ↓
-识别平台、对象、语言与关系阶段
-        ↓
-Persona + Style Genome + Audience Context
-        ↓
-生成多个回复候选
-        ↓
-用户选择、修改、复制或分享回原平台
-        ↓
-记录可审计反馈并离线学习
-```
+- bridge 尚未暴露但上游原生客户端已成熟支持的功能；
+- 特殊媒体/群管理/设备生命周期；
+- 平台特有编辑、反应、回执、线程或同步能力；
+- 需要更深故障诊断时。
 
-第一版模板范围：
+Yance 只维护极薄能力映射，不重写协议。
 
-- 欧美：Tinder、Bumble、Hinge、Badoo、OkCupid、Match、Plenty of Fish、Grindr、HER；
-- 日本：Pairs、with、Omiai、Tapple；
-- 韩国：Amanda、Noondate、Wippy、GLAM。
+## 4. 聊天产品壳：Element 优先，Chatwoot 降为可选能力来源
 
-模板只提供截图布局、资料字段、平台图标、语言文化和平台提示；不得形成平台专属聊天界面或独立回复大脑。
+V1/UI V1 中“Chatwoot OSS 是唯一产品壳”的条款在与本节冲突处被取代。
 
-### 5.8 OSS-B 冻结范围
+首选：
 
 ```text
-统一 ChannelDriver 与 Canonical 模型
+Element Web / 成熟 Matrix 客户端能力
         ↓
-并行移植 WhatsApp / Telegram / Signal / Meta
+保留成熟会话列表、timeline、thread、reply、edit、reaction、media、search、notification、settings
         ↓
-建立手机与 macOS Companion Host
-        ↓
-LINE / KakaoTalk / iMessage / Google Messages
-        ↓
-一次开发通用 Dating Companion Mode
-        ↓
-为欧美、日本、韩国交友平台增加识别配置和统一界面模板
+加入 Yance 品牌、AI 右侧栏、目标栏、语音/照片素材入口
 ```
 
-当前不加入国内社交平台、企业办公平台、独立 CRM、无关社区平台、功能重复桥接框架或“未来可能有用”的平台。
+Chatwoot 仍可作为联系人/收件箱/消息交互规则和组件参考或精选源码来源，但不再要求 Yance 复制其完整会话产品壳。
 
-## 6. WP-B 持久执行核心
+自定义 Yance 面板优先使用：
 
-从 PR #17 重新提取为可审计的小 PR：
+- shadcn-vue；
+- Reka UI；
+- VueUse；
+- Tiptap OSS Core；
+- TanStack；
+- Cytoscape.js；
+- Storybook / Playwright / axe-core / MSW。
+
+现有主题、提示音、通知规则、用户设置和翻译体验原则继续保留，除非后续专门迁移工作包以零回归证据替换其实现。
+
+## 5. AI Reply Brain：Letta + Graphiti + Parlant
+
+Yance 不自研完整 Cognitive Runtime。
+
+### 5.1 Letta：长期 Agent 核心
+
+Letta 默认负责：
+
+- persistent agent state；
+- working/persistent memory；
+- context window management；
+- compaction；
+- conversation continuity；
+- tool/state persistence；
+- 长期 Agent 运行生命周期。
+
+Yance 不再自己写一套等价 Agent State / Memory Runtime。
+
+### 5.2 Graphiti：时间关系与事实演化
+
+Graphiti 默认负责：
+
+- 人物/组织/主题关系；
+- episode provenance；
+- 时间有效性；
+- 新事实替换旧事实；
+- 关系召回；
+- 历史互动关联。
+
+具体 graph backend 在独立来源/许可证工作包中固定，不在总计划里假定某个已弃用或许可证不合适的后端。
+
+### 5.3 Persona / Style
+
+用户 Persona、表达偏好、语言习惯和 Style Genome 仍然是产品能力，但不再要求自研一个独立框架。
+
+优先实现为：
 
 ```text
-DurableTask
-OutboxRecord
-ExternalAttempt
-LeaseFence
-ReconciliationCase
+Letta memory / structured profile
+        +
+Graphiti relationship context
+        +
+成熟 prompt/persona 模块行为
+        +
+DSPy 优化
 ```
 
-固定调用链：
+Yance 只保留用户可见编辑、版本历史、回滚和呈现体验。
+
+## 6. Goal Brain：聊天必须有可选目标，Parlant 作为主运行时
+
+“会回复”不是最终目标。Yance 必须支持每个联系人/会话设置当前沟通目标，并让 AI 在不生硬、不机械、不重复的前提下逐步推进。
+
+### 6.1 用户输入
+
+每个联系人/会话可设置：
 
 ```text
-用户/AI 产生发送意图
-        ↓
-持久化 Durable Task / Outbox
-        ↓
-外部调用前持久化 Attempt
-        ↓
-获得 lease/fence 后调用连接器
-        ↓
-接纳确定结果 / 拒绝迟到结果
-        ↓
-不确定结果进入 reconciliation
-        ↓
-崩溃、断网、重启后恢复
+今日聊天目标
+成功条件
+推进强度：非常自然 / 自然推进 / 主动推进
+期限（可选）
+禁止触碰的话题（可选）
 ```
 
-所有渠道和模型调用共用同一持久执行权威，不允许连接器自建第二套重试和发送事实库。
+示例：
 
-## 7. AI 执行、关系与成长开源栈
+- 获取某项客户需求信息；
+- 安排下一次会议；
+- 处理异议并完成报价；
+- 恢复联系；
+- 自然邀请见面；
+- 售后确认问题已解决。
 
-### 7.1 模型执行
+### 6.2 Parlant Journey
+
+目标转换为成熟 Journey/Guideline 运行时：
 
 ```text
-言策任务分类、权限与发送权威
-        ↓
-Vercel AI SDK
-        ↓
-LiteLLM Sidecar
-        ↓
-OpenRouter / OpenAI / Anthropic / Gemini / Ollama / llama.cpp
-        ↓
-LangGraph.js 回复工作流
+Goal
+ ↓
+Activation Conditions
+ ↓
+Journey States / Transitions
+ ↓
+当前聊天上下文
+ ↓
+下一步沟通意图
+ ↓
+自然回复候选
 ```
 
-言策始终保留：任务分类、模型能力要求、超时/取消、late-result 接纳、发送许可、成本与审计权威。
+必须支持：
 
-### 7.2 联系人与时间关系
+- 对方跑题后自然回答，再回到目标；
+- backtracking；
+- conditional transition；
+- 一次回答多个信息时跳过已完成步骤；
+- 明确完成条件；
+- 目标完成后停止继续推动；
+- 用户随时暂停、改目标或删除 Journey。
 
-- Chatwoot：联系人、会话、收件箱、未读与消息状态规则；
-- Monica：重要日期、互动、共同经历与关系事件模型；
-- Graphiti：时间事实、来源、事实失效、关系图与召回 Sidecar；
-- ConvoKit：互动节奏、语言协调与对话分析；
-- Cytoscape.js：统一关系图展示。
+SalesGPT 等成熟项目的客户开发、qualification、needs analysis、objection handling、close 等阶段模型可作为 Journey Pack 来源，不重写一个新的销售状态机。
 
-`CanonicalContact`、身份合并、关系事实数据库仍是言策唯一权威；AI 推断与用户确认事实必须显式分离。
-
-### 7.3 回复大脑
-
-- SillyTavern：Persona、World Info、Prompt Manager 和上下文装配的行为合同；
-- LangGraph.js：理解、召回、规划、候选、人工确认与 checkpoint；
-- Graphiti：时间关系上下文；
-- Style Genome：言策自有统一风格模型。
-
-回复结果由以下共同决定：
+### 6.3 Reply Brain 最终链
 
 ```text
-PersonaStance
-StyleGenome
-DialogueMovePlan
-AudienceContext
-ResponseShape
+对方消息
+   ↓
+Letta：长期状态与上下文
+   ↓
+Graphiti：人物/关系/时间事实
+   ↓
+Parlant：目标/Journey/下一步策略
+   ↓
+Persona / Style Context
+   ↓
+RouteLLM：模型选择
+   ↓
+LiteLLM：provider / fallback / budget
+   ↓
+候选生成
+   ↓
+Critic / Eval / Ranking
+   ↓
+文字 / 本人克隆语音 / 素材建议
 ```
 
-### 7.4 学习与成长
+## 7. Model Brain：RouteLLM + LiteLLM，不自研 provider 层
 
-- Langfuse：回复 trace、generation、dataset 与评测证据；
-- Promptfoo：Prompt、模型、Persona 与安全回归；
-- Argilla：选择、修改、拒绝和人工反馈；
-- DSPy：离线生成候选 Prompt 与示例。
-
-禁止模型直接永久修改 Persona 或关系事实；任何晋级必须有证据、评测、用户同意和回滚。
-
-## 8. 产品壳层与统一 UI
-
-UI/UX 是 OSS-A～G 的横切交付层，不允许等到最后补。
-
-建议采用：
-
-- shadcn/ui + Radix UI：统一组件源码和无障碍基础；
-- TanStack Query/Table/Virtual：数据、表格和大列表；
-- XState：登录、同步、发送与恢复状态机；
-- Tiptap OSS Core：Prompt、Persona、Style 与回复编辑器；
-- i18next、Lucide、ECharts、Cytoscape.js；
-- Storybook、Playwright、axe-core、MSW：组件、E2E、无障碍和故障模拟。
-
-每个开源能力必须完成以下产品映射：
+模型执行固定分工：
 
 ```text
-能力
-→ 用户任务
-→ 页面入口
-→ 触发动作
-→ 成功反馈
-→ 失败/离线/权限状态
-→ 撤销或回滚
-→ Windows/DPI/键盘验收
+任务/上下文
+   ↓
+RouteLLM 或同级成熟路由模块
+   ↓
+LiteLLM
+   ↓
+OpenAI / Anthropic / Gemini / OpenRouter / Ollama / llama.cpp / 其他 provider
 ```
 
-内部实现不能简单暴露成大量原始按钮。使用渐进披露：常用动作直接展示；低频动作进入侧栏/设置；专业控制进入高级模式；基础设施只提供状态和受控操作。
+Yance 不重复实现：
 
-## 9. 文件、多模态、隐私与供应链
+- provider adapter；
+- streaming protocol normalization；
+- 基础 retry/fallback；
+- token/cost normalization；
+- provider health/load balancing。
 
-- whisper.cpp：离线转写；
-- LiveKit Agents：实时语音；
-- Apache Tika：Office、PDF、邮件等内容提取；
-- PaddleOCR：截图、扫描件和文档 OCR；
-- Microsoft Presidio：日志、导出与评测数据脱敏；
-- restic：加密、增量、去重备份与恢复；
-- OpenTelemetry JS：统一 trace、metric、log；
-- CycloneDX Node npm：SBOM；
-- OSV-Scanner：依赖漏洞与许可证自动扫描。
+路由输入至少包括：
 
-这些组件不得直接修改 canonical、ledger、Outbox 或关系事实，只能通过受控端口提交解析结果、诊断或备份操作。
+- 任务类型；
+- reasoning 难度；
+- social/relationship sensitivity；
+- 语言；
+- vision/audio/tool 要求；
+- context length；
+- 延迟目标；
+- 成本预算；
+- local/cloud 隐私偏好；
+- 历史真实质量数据。
 
-## 10. 并行实施线路
+路由结果通过 Langfuse/评测数据持续校准，而不是写死“某模型永远最好”。
 
-在共同接口冻结后并行推进：
+## 8. Learning Brain：从“记录反馈”升级为可证据化成长
+
+学习闭环优先采用成熟 OSS：
 
 ```text
-线路 A：ChannelDriver + Canonical + Capability Manifest
-线路 B：WhatsApp / Telegram / Signal / Meta 完整运行时
-线路 C：WP-B Durable Task / Outbox / Attempt / Lease / Recovery
-线路 D：手机与 macOS Companion Host、LINE/Kakao/iMessage/Google Messages
-线路 E：AI SDK / LiteLLM / LangGraph 模型执行链
-线路 F：统一账号中心、会话中心、AI 回复区与系统状态 UI
-线路 G：Dating Companion 引擎及欧美日韩模板
-线路 H：Windows、断网、崩溃、重启、重复事件与 DPI UAT
+生产回复 / Journey / 模型调用
+        ↓
+Langfuse trace + score + dataset
+        ↓
+用户选择 / 修改 / 拒绝 / 目标是否达成
+        ↓
+Argilla（需要人工整理时）
+        ↓
+DSPy 生成 Prompt / Program / Example 候选
+        ↓
+Promptfoo + Langfuse experiment
+        ↓
+Shadow / Benchmark / Regression
+        ↓
+晋级或回滚
 ```
 
-不再按“一个平台全部完成后再开始下一个平台”的串行方式推进。
+### 8.1 Shadow Learning
 
-## 11. 第一个真实产品闭环
-
-第一条必须尽快达到真实可用的闭环：
+必须记录：
 
 ```text
-WhatsApp 收到真实消息
-        ↓
-Baileys 完整生命周期
-        ↓
-CanonicalMessage
-        ↓
-Durable Task / Outbox
-        ↓
-AI SDK + LiteLLM + LangGraph
-        ↓
-统一回复区显示多个候选
-        ↓
-用户选择或修改
-        ↓
-可靠发送
-        ↓
-断网、崩溃、重启仍可恢复和对账
+AI 推荐文本
+vs
+用户最终发送文本
 ```
 
-该闭环完成后，Telegram、Signal、Meta、联系人图、Style Genome 和其他平台在同一底座上并行扩展，不再重新打基础。
+形成：
 
-## 12. 固定质量门禁
+- 修改距离；
+- 语气变化；
+- 长短变化；
+- 正式程度；
+- 常用词/语气词；
+- 是否接受候选；
+- Journey 是否推进；
+- 最终目标是否达成。
 
-每个阶段必须满足：
+这些数据先成为学习证据，不允许单次行为直接永久覆盖 Persona。
 
-- 精确上游 commit 与来源记录；
-- 不形成第二事实权威；
-- 数据可迁移、可回滚；
-- 不破坏现有功能和风格；
-- RED → GREEN；
-- Windows 现有真实数据验证；
-- 离线、断网、崩溃、重启、重复事件和迟到结果测试；
-- 不吞错、不扩大重试、不关闭 guard；
-- 外部组件不得直接修改 ledger、Outbox 或 canonical；
-- UI 具有 loading、empty、offline、error、recovery、permission-denied 状态；
-- 关键动作有确认、撤销或回滚；
-- 100%、125%、150%、200% DPI、键盘操作和基础无障碍；
-- 不允许界面伪造成功。
+### 8.2 版本化成长
 
-## 13. 计划维护协议
+至少版本化：
+
+```text
+Persona/Profile Version
+Style Version
+Prompt/Program Version
+Journey Template Version
+Routing Policy Version
+Voice Style Profile Version
+```
+
+每次晋级都必须可比较、可回滚。
+
+## 9. Voice Brain：上传本人声音，自动跨语言生成本人语音
+
+Yance 必须支持用户创建自己的 `VoiceProfile`，以后 AI 回复可直接生成接近本人音色的目标语言语音，不要求用户每次重新录音。
+
+### 9.1 首选引擎
+
+主候选：
+
+- CosyVoice 3：主零样本/跨语言声音克隆引擎；
+- Chatterbox Multilingual 或 GPT-SoVITS：第二引擎，经过同一 benchmark 后固定；
+- OpenVoice V2：voice conversion / fallback；
+- whisper.cpp / FunASR：STT；
+- LiveKit Agents / Pipecat：需要实时 voice agent 时采用。
+
+实施时必须用真实用户声音样本测试：
+
+- speaker similarity；
+- 中文/英文/日文/韩文及用户目标语言；
+- 情绪自然度；
+- latency；
+- GPU/CPU 占用；
+- 长文本稳定性；
+- 音频编码后平台兼容性。
+
+不得在未 benchmark 的情况下凭项目热度锁死唯一引擎。
+
+### 9.2 发送链
+
+```text
+AI 最终回复文本
+       ↓
+目标语言 / locale
+       ↓
+Voice Router
+       ↓
+本人 VoiceProfile
+       ↓
+CosyVoice / 备选引擎
+       ↓
+情绪 / pace / formality
+       ↓
+WAV/PCM
+       ↓
+FFmpeg / Opus 等成熟编码
+       ↓
+Matrix / native platform audio message
+```
+
+### 9.3 Voice Style Learning
+
+按联系人/场景学习：
+
+- pace；
+- pause；
+- energy；
+- formality；
+- emotion；
+- 常见语气。
+
+仍然通过证据和版本晋级，不直接永久覆盖。
+
+### 9.4 身份与授权边界
+
+VoiceProfile 只允许来自用户本人或已明确获得授权的声音素材；默认在发送前可预览/确认。任何未来自动发送模式必须由用户显式开启并可一键关闭。
+
+## 10. Visual Brain：真实照片优先，AI 个性化素材补足
+
+交友、客户维护和日常聊天允许建立个人照片素材库，但不自研照片管理或图像生成基础设施。
+
+### 10.1 Immich：真实素材库
+
+Immich 默认负责：
+
+- 照片/视频导入；
+- 时间线；
+- 相册；
+- 人脸/人物；
+- 地点；
+- 语义搜索；
+- 原图保存与元数据。
+
+Yance 聊天时首先检索真实照片，而不是首先生成图片。
+
+### 10.2 真实素材标签
+
+通过已有视觉模型/Immich metadata/OCR 自动建立：
+
+- 人物；
+- 衣着；
+- 室内/室外；
+- 白天/夜晚；
+- 春夏秋冬；
+- 咖啡厅/餐厅/健身/旅行/办公/街景等场景；
+- 自拍/半身/全身；
+- 情绪与风格；
+- 已授权的时间与地点信息。
+
+### 10.3 AI 图像生成
+
+真实库没有合适素材时，进入：
+
+```text
+聊天上下文 + 当前 Journey 目标
+        ↓
+用户授权的季节 / 时间 / 地点上下文
+        ↓
+ComfyUI
+        ↓
+PhotoMaker / InstantID / PuLID
+        +
+IP-Adapter / ControlNet
+        ↓
+Real-ESRGAN / GFPGAN / CodeFormer（需要时）
+        ↓
+多张候选
+        ↓
+用户选择后发送
+```
+
+ComfyUI 是图像工作流运行时；Yance 不写新的 node graph engine。
+
+### 10.4 Real-first 规则
+
+素材推荐顺序固定为：
+
+```text
+真实照片高匹配
+   ↓
+真实照片可轻量裁切/增强
+   ↓
+基于本人已授权照片的 AI 个性化生成
+```
+
+AI 生成素材在 Yance 内部必须保留 provenance，不能与原始真实照片混淆。涉及“我现在就在这里”“实时现场证明”等依赖真实性的语境时，默认只推荐真实素材；不得把合成图自动当作实时事实证据。
+
+## 11. Dating Companion Mode
+
+Dating Companion 保留，但底层改为复用本文件的统一能力：
+
+```text
+截图 / 文本 / 资料页 / 当前会话
+        ↓
+PaddleOCR / 结构解析
+        ↓
+Letta + Graphiti
+        ↓
+Parlant Goal/Journey
+        ↓
+Persona / Style
+        ↓
+RouteLLM + LiteLLM
+        ↓
+文字候选 / 本人克隆语音 / 真实或生成照片素材建议
+        ↓
+用户选择/修改/发送
+        ↓
+Langfuse + DSPy 学习
+```
+
+第一版模板范围继续包括欧美、日本、韩国主要交友平台。模板只做 UI 识别、文化/语言配置与 Journey Pack，不为每个平台另造回复大脑。
+
+## 12. Durable Execution：不再默认自研 WP-B
+
+V1 的 `DurableTask / OutboxRecord / ExternalAttempt / LeaseFence / ReconciliationCase` 不再作为所有产品功能的强制自研前置条件。
+
+原则变更：
+
+1. 通信发送优先采用 Matrix/bridge/native upstream 自己的持久状态、重试和回执语义；
+2. AI Agent 状态优先 Letta；
+3. Journey 状态优先 Parlant；
+4. 长时间、跨服务、确实需要 durable workflow 的任务优先评估 Temporal 等成熟引擎；
+5. 只有成熟引擎存在明确行为缺口时，才新增最小 Yance 持久化适配。
+
+PR #17 的 Durable Task/Outbox 等历史资产继续冻结保留，作为测试语义、失败场景和必要回退参考，不因为 V2 而删除历史；但不再默认要求把整套自研运行时晋级为主产品前置条件。
+
+## 13. 文件、多模态、隐私与诊断
+
+继续优先采用：
+
+- PaddleOCR：截图/扫描件/文档 OCR；
+- Apache Tika：Office/PDF/email 等提取；
+- whisper.cpp / FunASR：本地语音转写；
+- LiveKit Agents / Pipecat：实时音频 Agent；
+- Microsoft Presidio：日志/导出/评测脱敏；
+- restic：加密、增量、去重备份；
+- OpenTelemetry：trace/metric/log；
+- CycloneDX + OSV-Scanner：SBOM 与依赖漏洞。
+
+能够由成熟服务直接完成的，不再建立 Yance 等价实现。
+
+## 14. V2 工作线路与实施顺序
+
+### 14.1 当前治理链先完成
+
+当前已经授权的 OSS-A/OSS-1A 精确 Head、PR、workflow、receipt 和发布链继续按既有门禁完成。不得把 V2 大规模产品代码混入这些旧授权 Head。
+
+### 14.2 V2 最短真实产品闭环
+
+完成当前治理链后，优先建立：
+
+```text
+Matrix/Synapse
+      +
+Element
+      +
+一个真实 bridge（优先 WhatsApp）
+      ↓
+真实收到消息
+      ↓
+Letta
+      ↓
+Parlant：读取当前聊天目标
+      ↓
+RouteLLM + LiteLLM
+      ↓
+多个回复候选
+      ↓
+用户选择/修改
+      ↓
+Matrix/bridge 真实发送
+      ↓
+Langfuse 记录结果
+```
+
+这条闭环成立后，不再重新打底，直接并行扩展。
+
+### 14.3 并行线路
+
+```text
+线路 A：Matrix / Synapse / Element 产品骨架
+线路 B：mautrix WhatsApp / Telegram / Signal / Meta / Google Messages
+线路 C：Letta + Graphiti 长期 Agent / 关系记忆
+线路 D：Parlant Goal/Journey + SalesGPT Journey Packs
+线路 E：RouteLLM + LiteLLM + provider pool
+线路 F：Langfuse + DSPy + Promptfoo 学习闭环
+线路 G：CosyVoice + 多语言本人 VoiceProfile
+线路 H：Immich + ComfyUI + Identity Visual workflow
+线路 I：Dating Companion + OCR + 语音/照片素材入口
+线路 J：LINE/Kakao/iMessage/Companion gap fill
+线路 K：Windows/Electron/安装/更新/备份/诊断/UAT
+```
+
+### 14.4 V2 优先级
+
+P0：
+
+1. OSS-A 来源/许可证/供应链治理；
+2. Matrix + Element + 第一真实 bridge；
+3. Letta；
+4. Parlant Goal Brain；
+5. LiteLLM + RouteLLM；
+6. Langfuse 基础 trace；
+7. CosyVoice VoiceProfile；
+8. Immich real-photo retrieval。
+
+P1：
+
+- Graphiti 深度关系；
+- DSPy/Promptfoo 自动优化；
+- ComfyUI 个性化生成；
+- 更多 bridges；
+- Live voice；
+- Dating Journey Packs；
+- Companion Hosts。
+
+## 15. 固定质量门禁
+
+每个采用的 OSS 产品/模块至少必须满足：
+
+- 精确上游仓库、40 位 commit/tag 与来源记录；
+- 许可证义务明确并进入 Release/SBOM/THIRD_PARTY_NOTICES；
+- 上游关键测试保留或等效覆盖；
+- Windows 真实数据与真实账号验证；
+- 离线、断网、崩溃、重启、重复事件、迟到事件测试；
+- 不吞错、不伪造成功；
+- 升级和回滚可执行；
+- upstream patch 尽量小、可重放、可重新基于新上游验证；
+- UI 具有 loading、empty、offline、error、recovery、permission-denied；
+- 关键外部动作默认可确认、可撤销或有明确不可撤销提示；
+- 100%、125%、150%、200% DPI 与键盘基本可用；
+- AI route、prompt、Journey、VoiceProfile、Visual workflow 均有版本和回归证据。
+
+额外专项门禁：
+
+### 通信
+
+- bridge capability matrix；
+- history/backfill；
+- edit/delete/reaction/read receipt；
+- reconnect；
+- media；
+- 多账号；
+- 平台特有能力不被静默丢弃。
+
+### Goal Brain
+
+- 跑题后恢复 Journey；
+- 不重复已完成问题；
+- 条件跳转；
+- 目标完成即停止推动；
+- 用户改目标立即生效。
+
+### Voice
+
+- 本人授权声音；
+- speaker similarity benchmark；
+- 多语言自然度；
+- 平台音频兼容；
+- 生成/发送失败明确反馈。
+
+### Visual
+
+- real-first；
+- 身份一致性 benchmark；
+- 真实/生成 provenance 不混淆；
+- 季节/时间/地点上下文必须来自用户输入或已授权数据；
+- 依赖实时真实性的场景不自动使用合成图。
+
+### Learning / Routing
+
+- 离线评测；
+- shadow 对比；
+- prompt/Journey/routing 回归；
+- 成本、延迟、接受率、修改距离、目标达成率可比较；
+- 失败可回滚到上一个稳定版本。
+
+## 16. 与旧计划的冲突处理
+
+本 V2 明确取代以下旧架构硬要求：
+
+- “Yance 必须保持唯一产品与数据权威”；
+- “必须自建唯一 ChannelDriver”；
+- “必须自建 CanonicalAccount/Contact/Conversation/Message 等统一事实层”；
+- “Chatwoot 必须是唯一 Product Shell”；
+- “所有渠道和模型调用必须先完成 Yance 自研 WP-B DurableTask/Outbox”；
+- “外部成熟产品只能作为行为合同、不得成为实际状态权威”的一般性限制。
+
+以下旧原则继续有效：
+
+- 禁止临时绕过；
+- 必须底层修复；
+- 失败测试先行；
+- 不强推、不改写历史、不弱化门禁；
+- 精确上游 commit 与来源治理；
+- 独立工作包、授权、PR、receipt、exact-Head 复验；
+- 用户设置、主题、提示音和真实数据迁移不得无证据回归。
+
+## 17. 计划维护协议
 
 - 固定分支：`project-state/active-handoff`；
-- 固定文件：`YANCE_IMPLEMENTATION_MASTER_PLAN.md`；
-- `PROJECT_CONTINUATION.md` 记录当前精确状态与下一步；本文件记录稳定总方案；
-- 总范围调整必须在本文件形成普通新提交，不 amend、不 rebase、不 force push；
-- 具体工作包仍需各自正式授权、路径清单、receipt、RED/GREEN 与精确 Head 证据。
+- 最高稳定文件：`YANCE_IMPLEMENTATION_MASTER_PLAN.md`；
+- `START_HERE.md` 必须明确本文件为最高稳定架构指令；
+- `PROJECT_CONTINUATION.md` 只记录当前精确状态、阻塞和下一步，不得反向覆盖本文件的稳定架构；
+- 旧专题计划在与本文件冲突时自动降级为历史/局部参考；
+- 总范围调整通过普通新提交，不 amend、不 rebase、不 force push；
+- 具体落地仍需各自来源凭据、路径清单、RED/GREEN、receipt 与精确 Head 证据。
 
-## 14. 当前立即行动
+## 18. 当前立即行动
 
-1. 不扩大范围，先完成 OSS-1A Task 11 候选发布链根修复和 Windows/正式门禁；
-2. 最终审阅并完成 PR #19；
-3. 建立 OSS-A 来源与供应链基础；
-4. 从 PR #17 小步提取 WP-B；
-5. 同时冻结 ChannelDriver、Canonical、Capability Manifest 和统一 UI 合同；
-6. 启动 Baileys 完整运行时与第一个产品闭环；
-7. 接口稳定后并行启动 Telegram、Signal、Meta 和 Companion Host。
+1. 不污染当前已授权精确 Head，先完成正在进行的 OSS-A/治理/发布链收口；
+2. 为 V2 建立首批上游冻结矩阵：Matrix/Synapse、Element、mautrix、Letta、Graphiti、Parlant、LiteLLM、RouteLLM、Langfuse、DSPy、Promptfoo、CosyVoice、Immich、ComfyUI；
+3. 对每个上游固定精确 commit、许可证、运行方式、可移植模块、上游测试与 Windows 可运行性；
+4. 新工作包优先打通 `Matrix + Element + WhatsApp bridge + Letta + Parlant + LiteLLM` 第一真实闭环；
+5. 同时准备 VoiceProfile P0：CosyVoice 与第二候选的真实多语言 speaker-similarity benchmark；
+6. 同时准备 Visual P0：Immich 真实照片检索；生成链在 real-first 闭环后接入 ComfyUI/PhotoMaker/InstantID/PuLID；
+7. 第一闭环稳定后并行扩展 Telegram、Signal、Meta、Google Messages、Graphiti、DSPy/Promptfoo、Dating Journey Packs、LINE/Kakao/iMessage Companion；
+8. 以后任何新功能先查成熟 OSS；没有“无成熟 OSS 证据”，不得转入自研。
