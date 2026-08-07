@@ -68,6 +68,11 @@ test('the official module owns Yance UI while the minimal patch only adds the mi
   assert.match(patchText, /registerGlobalRightPanel/u);
   assert.match(patchText, /globalRightPanelRenderer/u);
   assert.doesNotMatch(patchText, /matrix-js-sdk\/src\/sync|stopClient|logout\(/u);
+  assert.match(
+    patchText,
+    /diff --git a\/packages\/module-api\/element-web-module-api\.api\.md b\/packages\/module-api\/element-web-module-api\.api\.md\nindex 6557e89ac2949b6d6b46f991ebb4d64085f74d35\.\.bc4d73cc52e516be949a6a756d9e7227055c9ad4 100644\nGIT binary patch/u,
+    'generated Element API report must replay the exact frozen CRLF blob with a Git binary patch'
+  );
 });
 
 test('the right workspace remains inside the unified Element shell and is restoreable after hiding', () => {
