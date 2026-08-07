@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "upstreams": {
+    "synapse": {
+      "repository": "https://github.com/element-hq/synapse.git",
+      "version": "v1.158.0",
+      "commit": "7a3e98b6f77ee3a5fe4dbeb934b0a0c1721e6afe",
+      "license": "AGPL-3.0-or-later"
+    },
+    "elementWeb": {
+      "repository": "https://github.com/element-hq/element-web.git",
+      "version": "v1.12.25",
+      "commit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+      "license": "AGPL-3.0-only"
+    },
+    "mautrixWhatsapp": {
+      "repository": "https://github.com/mautrix/whatsapp.git",
+      "version": "v0.2607.0",
+      "commit": "a86f5eb9bf7d5a4a6cc7a1c4e42d322bdcb03aa2",
+      "license": "AGPL-3.0-or-later WITH upstream-exceptions"
+    }
+  }
+}

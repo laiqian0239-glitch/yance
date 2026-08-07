@@ -1,0 +1,23 @@
+{
+  "name": "@yance/element-module",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "nx build",
+    "lint:types": "nx lint:types"
+  },
+  "dependencies": {
+    "@element-hq/element-web-module-api": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}
