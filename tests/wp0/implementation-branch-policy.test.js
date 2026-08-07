@@ -207,7 +207,8 @@ function genericTrustedAuthorityOptions(overrides = {}) {
       if (overrides.ancestorResultByPair?.[`${base}:${head}`] !== undefined) {
         return overrides.ancestorResultByPair[`${base}:${head}`];
       }
-      return (base === GENERIC_MERGE && head === GENERIC_TRUSTED_MAIN)
+      return (base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD)
+        || (base === GENERIC_MERGE && head === GENERIC_TRUSTED_MAIN)
         || (base === GENERIC_MERGE && head === GENERIC_IMPLEMENTATION_HEAD);
     }
   };
@@ -533,7 +534,9 @@ test('authorization proposal transport is single-file and never grants implement
     changedFiles: [GENERIC_AUTHORIZATION_PATH],
     authorizationPath: GENERIC_AUTHORIZATION_PATH,
     authorization,
-    trustedMainHead: GENERIC_BASE
+    trustedMainHead: GENERIC_BASE,
+    evaluatedHead: GENERIC_REVIEWED_HEAD,
+    isTrustedAncestor: (base, head) => base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD
   });
   assert.equal(accepted.pass, true, JSON.stringify(accepted));
   assert.equal(accepted.mode, 'AUTHORIZATION_PROPOSAL_TRANSPORT');
@@ -546,7 +549,9 @@ test('authorization proposal transport is single-file and never grants implement
     authorizationProposal: {
       authorizationPath: GENERIC_AUTHORIZATION_PATH,
       authorization,
-      trustedMainHead: GENERIC_BASE
+      trustedMainHead: GENERIC_BASE,
+      evaluatedHead: GENERIC_REVIEWED_HEAD,
+      isTrustedAncestor: (base, head) => base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD
     }
   });
   assert.equal(transported.pass, true, JSON.stringify(transported));
@@ -561,6 +566,17 @@ test('authorization proposal transport is single-file and never grants implement
     trustedMainHead: 'f'.repeat(40)
   });
   assert.equal(staleMain.pass, false);
+
+  const unrelatedHead = evaluateDelegatedGovernanceAuthorizationProposal({
+    branch: GENERIC_AUTHORIZATION_BRANCH,
+    changedFiles: [GENERIC_AUTHORIZATION_PATH],
+    authorizationPath: GENERIC_AUTHORIZATION_PATH,
+    authorization,
+    trustedMainHead: GENERIC_BASE,
+    evaluatedHead: GENERIC_REVIEWED_HEAD,
+    isTrustedAncestor: () => false
+  });
+  assert.equal(unrelatedHead.pass, false, 'proposal Head must descend from its trusted-main base');
 
   for (const [name, candidate] of [
     ['extra changed path', {
@@ -641,6 +657,12 @@ test('generic delegated authority activates only from canonical main two-parent 
       ancestorResultByPair: { [`${GENERIC_MERGE}:${GENERIC_TRUSTED_MAIN}`]: false }
     })
   }), false, 'candidate-owned merge not on canonical main must not authorize');
+
+  assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
+    generic: genericTrustedAuthorityOptions({
+      ancestorResultByPair: { [`${GENERIC_BASE}:${GENERIC_REVIEWED_HEAD}`]: false }
+    })
+  }), false, 'reviewed authorization Head must descend from its declared trusted-main base');
 
   const widened = genericDelegatedAuthorization({
     document: {
