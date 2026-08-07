@@ -14,6 +14,8 @@ V2.1 已确认的最高原则：
 - 成熟 OSS 产品、服务、Sidecar 和完整源码模块优先，**禁止重复自研已有成熟实现的基础能力**；
 - 不再要求 Yance 自己拥有通信、联系人、关系、Agent memory、媒体或任务调度等唯一事实权威；
 - 多平台优先 Matrix/Synapse + mautrix + Element，平台特有深度能力允许成熟 native OSS escape hatch；
+- **产品体验始终只有一个 Yance 统一界面**：所有平台共享统一导航、会话列表、消息时间线、输入区和 AI/联系人工作区，不为 WhatsApp、Telegram、Signal、Meta 等重新建立独立产品界面；
+- **统一产品界面 + 可折叠/可隐藏/可拖拽侧栏 + 渐进披露** 是 V2.1 固定 UX 硬规则：左侧全局导航、会话列表、右侧 AI/联系人/关系/Personal Presence 工作区均必须支持收起、完全隐藏、拖拽调整宽度和重启恢复；常用动作直接展示，低频动作进入菜单/侧栏，专业控制进入高级模式；
 - AI 长期大脑优先 Letta + Graphiti；
 - 有目标的聊天优先 Parlant Journey，SalesGPT 等作为领域 Journey 模板来源；
 - 模型路由优先 RouteLLM + LiteLLM；
@@ -47,6 +49,7 @@ V2.1 已确认的最高原则：
 - 与 V2.1 冲突的部分自动降级为历史参考；
 - 尤其是“Chatwoot 唯一产品壳”“Yance 唯一 ChannelDriver/Canonical/Outbox 权威”等旧硬要求，不再覆盖 V2.1；
 - Voice、Visual、Video 现在统一归 `Personal Presence`，旧计划若把它们视为独立附件能力，以 V2.1 为准；
+- **统一界面、左右侧栏与会话列表可折叠/可隐藏/可拖拽、布局重启恢复、渐进披露** 属于继续有效且已升级为 V2.1 最高 UX 规则的部分；
 - 现有主题、提示音、通知规则、用户设置、翻译体验和真实数据零回归要求仍然有效，除非后续专项迁移以 RED/GREEN 和可回滚证据正式替换。
 
 ## 3. 冲突处理优先级
