@@ -558,6 +558,24 @@ test('authorization proposal transport is single-file and never grants implement
   assert.equal(transported.authorityMode, 'AUTHORIZATION_PROPOSAL_TRANSPORT');
   assert.equal(transported.implementationAuthorityGranted, false);
 
+  const rejectedTransport = checkRuntimeTargetGate({
+    branch: GENERIC_AUTHORIZATION_BRANCH,
+    changedFiles: [GENERIC_AUTHORIZATION_PATH, 'tools/wp0/lib.js'],
+    authorizationProposal: {
+      authorizationPath: GENERIC_AUTHORIZATION_PATH,
+      authorization,
+      trustedMainHead: GENERIC_BASE,
+      evaluatedHead: GENERIC_REVIEWED_HEAD,
+      isTrustedAncestor: (base, head) => base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD
+    }
+  });
+  assert.equal(rejectedTransport.pass, false);
+  assert.equal(rejectedTransport.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');
+  assert.equal(
+    rejectedTransport.authorizationProposalReasonCode,
+    'WP0_AUTHORIZATION_PROPOSAL_TRANSPORT_INVALID'
+  );
+
   const staleMain = evaluateDelegatedGovernanceAuthorizationProposal({
     branch: GENERIC_AUTHORIZATION_BRANCH,
     changedFiles: [GENERIC_AUTHORIZATION_PATH],
