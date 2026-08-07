@@ -1,88 +1,115 @@
 # 言策跨聊天执行入口
 
-> **任何新聊天在修改仓库前，必须按以下顺序读取并核验。**
+> **任何新聊天在修改仓库前，必须按以下顺序读取并 fresh 核验。**
 
 ## 0. 唯一稳定架构指令
 
 首先读取 [`YANCE_IMPLEMENTATION_MASTER_PLAN.md`](./YANCE_IMPLEMENTATION_MASTER_PLAN.md)。
 
-该文件自 V2.1 起是 **Yance 唯一稳定架构与实施指令**。除实时远端事实、已生效治理凭据、精确授权 Head 与正式安全/许可证约束外，任何旧聊天、旧设计、旧 PR 说明、旧专题计划与它冲突时，以它为准。
+该文件自 V2.1 起是 **Yance 唯一稳定架构与实施指令**。当前 V2.1 已吸收 `Relationship Intelligence Enhancement`，它是 V2.1 的严格超集增强，不是 V2.2，也不允许推倒已完成或已授权工作包重来。
 
-为了避免旧方案被误用，已经被 V2.1 完整吸收且存在架构冲突的旧计划文件应从活动状态分支删除，而不是继续保留为可执行参考。历史信息依赖 Git 历史追溯，不在活动入口重复保留第二份权威。
+冲突优先级固定为：
 
-V2.1 已确认的最高原则：
+1. 当前远端 refs、正式治理凭据、exact Head、workflow、review、receipt；
+2. `YANCE_IMPLEMENTATION_MASTER_PLAN.md` V2.1；
+3. `PROJECT_CONTINUATION.md` 动态接续；
+4. 明确声明只补充 V2.1 的专项合同；
+5. Git 历史只用于审计，不作为当前执行指令。
 
-- Yance 为个人使用的开源项目，并接受/履行所采用 GPL/AGPL/LGPL/Apache/MIT/BSD/Boost 等许可证义务；
-- 成熟 OSS 产品、服务、Sidecar 和完整源码模块优先，**禁止重复自研已有成熟实现的基础能力**；
-- 不再要求 Yance 自己拥有通信、联系人、关系、Agent memory、媒体或任务调度等唯一事实权威；
-- 多平台优先 Matrix/Synapse + mautrix + Element，平台特有深度能力允许成熟 native OSS escape hatch；
-- **所有平台始终进入同一个 Yance 产品界面**，不得拆成 WhatsApp/Telegram/Signal/Meta 等独立产品 UI；
-- **统一产品界面 + 可折叠/可隐藏/可拖拽侧栏 + 渐进披露** 是固定 UX 硬规则；左侧导航、会话列表、右侧 AI/联系人/关系/Personal Presence 工作区都必须可收起、完全隐藏、拖拽宽度，并支持重启恢复和明确恢复入口；
-- 隐藏/折叠只改变展示，不得静默停止同步、消息接收、Journey、AI 或后台任务；
-- AI 长期大脑优先 Letta + Graphiti；
-- 有目标的聊天优先 Parlant Journey，SalesGPT 等作为领域 Journey 模板来源；
-- 模型路由优先 RouteLLM + LiteLLM；
-- 学习成长优先 Langfuse + DSPy + Promptfoo（需要人工标注时 Argilla）；
-- Personal Presence 统一合并声音、照片和实时本人 AI Avatar：
-  - 本人跨语言声音克隆优先 CosyVoice 3，并以 Chatterbox/GPT-SoVITS/OpenVoice 等作为 benchmark/备选；
-  - 个人照片素材优先 Immich 真实图库，生成链优先 ComfyUI + PhotoMaker/InstantID/PuLID + IP-Adapter/ControlNet；
-  - 实时本人 AI Avatar 视频通话优先 CyberVerse + LiveKit，Ditto/MuseTalk/LivePortrait/FlashHead/LiveAct 作为统一 benchmark 的 Avatar backend；
-  - 第三方桌面视频客户端只在正式支持时通过 OBS Virtual Camera 等成熟路径输出，不自研协议绕过；
-- 合成声音、照片和 Avatar 必须保留授权/provenance；不得把合成内容当作实时现场事实证据，也不得以“无法识别为 AI/合成内容”作为验收指标；
-- 只有证明没有成熟 OSS 可满足时才允许最小自研；
-- 禁止临时绕过，必须底层修复，不强推、不改写历史、不弱化门禁。
+## 1. 当前最高产品定位
 
-## 1. 当前精确状态
+Yance 固定为：
 
-读取 [`PROJECT_CONTINUATION.md`](./PROJECT_CONTINUATION.md)：
+> **个人使用、开源、面向真实交友 / 情感 / 长期关系沟通的 AI 助手。**
 
-- 当前任务、阻塞和下一步；
-- 精确分支、commit SHA、workflow run/job；
-- 授权路径、receipt 与正式门禁。
+不是 CRM、销售漏斗、营销自动化或客服工单产品。
 
-`PROJECT_CONTINUATION.md` 只负责当前动态事实。它不能把任何已被 V2.1 取代的架构重新提升为稳定路线。
+用户只看到一个 Yance；底层允许成熟 OSS 分别拥有最适合的运行状态。Yance 保留单一产品身份、统一设置/通知体验、统一工作区、用户确认与最终发送决策，不为了“全部自己拥有”再复制成熟 OSS 已经提供的第二套状态机。
 
-## 2. 当前有效补充文件
+## 2. V2.1 能力不回退
 
-只有当某个补充文件仍承载 **V2.1 未在主计划中吸收的有效合同** 时才允许继续存在。所有已被主计划完整吸收、且容易误导后续执行的旧 V1/旧专题计划，应删除出活动状态分支，由 Git 历史保留审计轨迹。
+后续升级必须覆盖并继续增强既有 V2.1：
 
-补充文件不得：
+- Matrix / Synapse / Element / mautrix 多平台；
+- WhatsApp / Telegram / Signal / Facebook / Instagram / Google Messages 等平台目标；
+- Letta + Graphiti 长期关系记忆；
+- Parlant Relationship Goal/Journey；
+- LiteLLM + RouteLLM；
+- Langfuse + OpenTelemetry + DSPy + Promptfoo；
+- SenseVoice / STT + CosyVoice VoiceProfile；
+- Immich + ComfyUI；
+- CyberVerse + LiveKit + Avatar backends；
+- Docling / OCR / Retrieval / MCP；
+- Windows / Electron / 安装 / 更新 / 备份 / UAT；
+- exact upstream、license、SBOM、failure-first、exact-Head merge gate。
 
-- 重新声明 Chatwoot 为唯一产品壳；
-- 重新声明 Yance 必须自建唯一 ChannelDriver/Canonical/Outbox 权威；
-- 重新拆分 Voice、Visual、Video 为互不关联的产品底座；
-- 覆盖 V2.1 的统一 UI、OSS-first、Personal Presence、Goal Brain、Model Brain、Learning Brain 路线。
+不得因为新增 Relationship Intelligence 而削弱这些能力。
 
-## 3. 冲突处理优先级
+## 3. 最高工程原则：成熟 OSS 默认接管
 
-从高到低：
+采用顺序：
 
-1. 当前远端 refs、已生效正式治理凭据、精确授权 Head、workflow/receipt 事实；
-2. `YANCE_IMPLEMENTATION_MASTER_PLAN.md` V2.1 唯一稳定架构指令；
-3. `PROJECT_CONTINUATION.md` 当前动态状态；
-4. 明确声明与 V2.1 兼容且未被主计划吸收的专项合同；
-5. Git 历史中的旧方案仅用于审计追溯，不作为当前执行输入。
+```text
+完整成熟开源产品
+        ↓
+完整成熟服务 / Sidecar
+        ↓
+成熟源码能力模块
+        ↓
+官方 SDK / 固定依赖
+        ↓
+极薄 Yance Adapter
+        ↓
+只有证明没有成熟 OSS 可满足时才允许最小自研
+```
 
-发现文档与远端事实冲突时，先核验事实，再用普通提交修正文档；不得 amend、rebase 或 force push。
+任何新的 Yance 自研基础设施必须先通过 V2.1 OSS-fit；存在成熟 OSS 可覆盖约 80% 以上核心需求时，原则上禁止重写等价基础设施。
 
-## 4. 当前执行保护
+继续永久禁止：临时绕过、弱化门禁、跳过测试、强推、amend/rebase 改写已发布历史、伪造成功状态。
 
-V2.1 不允许污染当前已经授权的旧 exact-Head 工作包：
+## 4. Relationship Intelligence 固定方向
 
-- 已授权 OSS-A/OSS-1A、治理、发布链继续按原门禁收口；
-- V2.1 产品迁移必须使用新的工作包、来源 pin、路径清单、RED/GREEN、receipt 与精确 Head；
-- 不允许因为“新架构更快”而跳过正在生效的门禁。
+当前新增但不替代旧 V2.1 的关系智能层包括：
 
-## 5. 已移除的旧活动计划
+- Persona / Style；
+- Relationship Profile；
+- confirmed fact / user fact / AI inference 分层；
+- Important Moments / Relationship Timeline；
+- Conversation Goal / Relationship Journey；
+- 多方向 Reply Candidates；
+- Emotion Context；
+- 聊天后可证据化学习。
 
-以下旧计划已被 V2.1 主计划完整吸收，因此从活动状态分支删除：
+优先成熟 OSS：Letta、Graphiti、Parlant、SillyTavern 可许可模块、SenseVoice、CosyVoice、Immich、ComfyUI、Docling、MCP、pgvector/Qdrant、LiveKit/Pipecat 等。
 
-- `YANCE_UNIFIED_UI_OPEN_SOURCE_MIGRATION_PLAN.md`
+## 5. Facebook 固定现代化方向
 
-需要审计旧设计时从 Git 历史读取，不允许把旧文件恢复成当前执行入口。
+Facebook 必须区分：
 
-## 6. 固定分支
+- **Facebook Page / 公共主页**；
+- **Facebook Personal / 个人账号**。
 
-所有跨聊天稳定/状态文档固定保存在：
+Page 后续不再默认扩大 Yance 自研 Facebook transport。独立工作包评估：
+
+1. **Official Page Engine**：Chatwoot OSS Facebook Channel 可移植核心 + Meta 官方 API/SDK/schema；
+2. **Optional Session Engine**：facebook-chat-api/FCA-compatible 账号/session 路线，仅在 2026 真实账号 + 真实 Page 登录、2FA、appState、收发、Business Suite echo、Page identity switch、重连和 Windows/Electron probe 通过后准入。
+
+Session 方案不得长期保存明文密码；成功后只保存加密 session/appState。不能凭旧 README 支持 `pageID` 就宣称当前可用。
+
+## 6. 当前精确动态状态
+
+读取 [`PROJECT_CONTINUATION.md`](./PROJECT_CONTINUATION.md)，随后必须从 GitHub fresh 核验 main、PR、workflow、review、exact Head。`PROJECT_CONTINUATION.md` 可能滞后，实时 GitHub 事实永远优先。
+
+## 7. 工作包隔离
+
+- 当前已经授权/正在收口的工作包按原 scope 完成；
+- Relationship Enhancement 不自动扩大任何现有 authorization；
+- Facebook modernization、SillyTavern、SenseVoice、Docling、MCP 等必须各自走独立 OSS-fit / authorization / RED-GREEN / PR；
+- 普通 merge 保留 two-parent history；
+- 最终 merge 始终停在 owner exact-Head 明确批准边界。
+
+## 8. 固定分支
+
+跨聊天稳定/状态文档固定在：
 
 `project-state/active-handoff`
