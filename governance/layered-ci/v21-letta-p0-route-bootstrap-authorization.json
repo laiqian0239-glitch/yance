@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-07T23:55:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LETTA-P0-ROUTE-BOOTSTRAP",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #119 exact-Head implementation exposed a base-owned WP0 routing gap: three exact Letta supply-chain paths already authorized by merged PR #118 are still classified WP0_ROUTE_UNKNOWN_PATH by trusted main. Candidate-owned policy changes are forbidden, so this work package authorizes only an exact literal product-route bootstrap plus its regression contract.",
+  "base": {
+    "branch": "main",
+    "commit": "cb8f816759dec6a17d22a9bd37cd2a23a72946fd"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "evidence": {
+    "sourcePullRequest": 119,
+    "sourceExactHead": "6e9a98bd07d8c1e110c74dee1487015ddd5f4125",
+    "sourceChangedFileCount": 8,
+    "stageWp0Run": 31202804782,
+    "stageWp0RouteJob": 92946591733,
+    "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "unknownPathsObservedAtSourceExactHead": [
+      "config/upstreams/v21-letta-p0.json",
+      "third_party/licenses/letta-agent-sdk-Apache-2.0.txt",
+      "third_party/licenses/letta-code-Apache-2.0.txt"
+    ],
+    "trustedRoutingPolicyCommit": "cb8f816759dec6a17d22a9bd37cd2a23a72946fd",
+    "trustedRoutingPolicyBlob": "70e8c34ecb623a162ff78c4ae8170e6b1fcc688c"
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-letta-p0-route-bootstrap-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-letta-p0-route-bootstrap-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-letta-p0-route-bootstrap",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-letta-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "29742461f6cb607da9a8be686600f1232e8a0f2a45973c470a8ff66dabcbc37c",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "bootstrapPaths": [
+    "config/upstreams/v21-letta-p0.json",
+    "third_party/licenses/letta-agent-sdk-Apache-2.0.txt",
+    "third_party/licenses/letta-code-Apache-2.0.txt"
+  ],
+  "bootstrapPathCount": 3,
+  "bootstrapPathSetSha256": "9c913fc6ebfe917ab4735ebdf6339544f6e41e61c6410d48076c321219540b60",
+  "candidatePreservation": {
+    "candidatePullRequest": 119,
+    "candidateBranch": "product/v21-letta-p0-v2",
+    "candidateAuthorizedChangedFileCountMustRemain": 14,
+    "candidateAuthorizedChangedFileSetSha256MustRemain": "97a70af318307f072f029266b25b49f1ea3caeddf4382313adc452c9f0dab65d",
+    "candidateWorkflowModificationAllowed": false,
+    "candidateHistoryRewriteAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "Before implementation the trusted-main classifier reports WP0_ROUTE_UNKNOWN_PATH for all three exact Letta bootstrap paths observed in Stage run 31202804782",
+    "After implementation each exact Letta bootstrap path selects PRODUCT_WP0",
+    "The exact three-path set selects PRODUCT_WP0",
+    "The bootstrap uses only productExactPaths and does not add config/ or third_party/ prefixes",
+    "Unknown and malformed repository paths continue to fail closed",
+    "Governance and product-documentation route precedence remains unchanged",
+    "No PR #119 product implementation path, workflow, dependency manifest, release policy, promotion authority, PR #67, or unrelated work package is modified by this route-bootstrap implementation"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes all applicable governance gates with zero unresolved P0/P1 findings",
+    "Authorization PR merges to main by ordinary two-parent merge without history rewrite",
+    "Implementation branch is created from that exact authorization merge commit",
+    "A test-only commit records causal RED for the three exact Letta paths before policy implementation",
+    "Only the three exact bootstrap paths are added to productExactPaths",
+    "Implementation exact Head passes applicable Stage, Layered, ACV2 and review gates",
+    "Implementation PR merges to main by ordinary two-parent merge",
+    "Fresh main is merged normally into PR #119 without rebase, amend, or force push",
+    "PR #119 continues its original exact 14-path authorization and is reverified on its refreshed exact Head"
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansionInBootstrap": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "directCandidateSelfAuthorization": true,
+    "candidateScopeReduction": true,
+    "candidateScopeExpansion": true,
+    "pr67Modification": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
