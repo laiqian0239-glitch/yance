@@ -181,7 +181,7 @@ function m2Guard(channel, fn) {
 function assertPrivilegedIpcEvent(event, channel) {
   if (!mainWindow || !isTrustedMainFrameIpcEvent(event, {
     webContents: mainWindow.webContents,
-    allowedOrigins: [LOCAL_FRONTEND_URL]
+    allowedOrigins: [YANCE_ELEMENT_URL]
   })) {
     const error = new Error(`Rejected privileged IPC from an untrusted frame: ${channel}`);
     error.reasonCode = 'DESKTOP_IPC_UNTRUSTED_FRAME';
@@ -316,7 +316,9 @@ function governRuntimeNativeBinariesBootCheck() {
   }
 }
 
-const LOCAL_FRONTEND_URL = `http://127.0.0.1:${Number(process.env.YANCE_PORT || 27632)}`;
+const YANCE_BACKEND_URL = `http://127.0.0.1:${Number(process.env.YANCE_PORT || 27632)}`;
+const YANCE_ELEMENT_URL = String(process.env.YANCE_ELEMENT_URL || 'http://127.0.0.1:8080').replace(/\/+$/u, '');
+const YANCE_ELEMENT_HEALTH_URL = String(process.env.YANCE_ELEMENT_HEALTH_URL || `${YANCE_ELEMENT_URL}/config.json`);
 const WP7_APPLICATION_PROCESS_STARTED_AT_UTC = new Date().toISOString();
 const WP7_NETWORK_OBSERVED_AT_UTC = new Date().toISOString();
 let WP7_NETWORK_ONLINE_AT_PROCESS_START = true;
@@ -399,10 +401,10 @@ function parseDesktopLaunchIntent(argv = process.argv) {
 
 const INITIAL_DESKTOP_LAUNCH_INTENT = parseDesktopLaunchIntent(process.argv);
 
-installR32LocalApiHeader({ app, session, baseURL: LOCAL_FRONTEND_URL, tokenProvider: () => currentApiSessionToken({ required: false }) });
+installR32LocalApiHeader({ app, session, baseURL: YANCE_BACKEND_URL, tokenProvider: () => currentApiSessionToken({ required: false }) });
 installR32WindowSecurity({
   app,
-  allowedNavigationOrigins: [LOCAL_FRONTEND_URL],
+  allowedNavigationOrigins: [YANCE_ELEMENT_URL],
   allowedWebviewOrigins: ['https://web.whatsapp.com', 'https://web.telegram.org', 'https://www.facebook.com', 'https://business.facebook.com'],
   allowedExternalOrigins: ['https://web.whatsapp.com', 'https://web.telegram.org', 'https://www.facebook.com', 'https://business.facebook.com'],
   allowedWebviewPreloadPaths: [path.join(__dirname, 'webview-preload.js')],
@@ -448,7 +450,7 @@ function normalizeSoundKind(pattern) {
 let soundSettingsSyncTimer = null;
 async function refreshNotificationSettings() {
   try {
-    const res = await fetch(`${LOCAL_FRONTEND_URL}/api/r32/system/notifications`);
+    const res = await fetch(`${YANCE_BACKEND_URL}/api/r32/system/notifications`);
     if (!res.ok) return;
     const data = await res.json();
     const settings = data && data.settings ? data.settings : null;
@@ -555,7 +557,7 @@ function ensureWp7RendererStorageSession() {
   if (wp7ProbeRendererStorageSession) return wp7ProbeRendererStorageSession;
   wp7ProbeRendererStorageSession = createElectronRendererStorageSession({
     BrowserWindow,
-    baseUrl: LOCAL_FRONTEND_URL,
+    baseUrl: YANCE_BACKEND_URL,
     waitForReady: () => wp7ProbeBackendReadyDocument()
   });
   return wp7ProbeRendererStorageSession;
@@ -828,7 +830,7 @@ function desktopState() {
     backend: {
       ready: backendReady,
       pid: backendPid,
-      url: LOCAL_FRONTEND_URL,
+      url: YANCE_BACKEND_URL,
       eventStreamConnected: eventSocket?.readyState === WebSocket.OPEN,
       restarting: backendRestarting,
       readySource: backendReadySource,
@@ -899,7 +901,7 @@ function localApiError(response, payload, endpoint) {
 
 async function apiRequest(endpoint, options = {}) {
   if (relaunchPending) { const error = new Error('Application relaunch is in progress'); error.reasonCode = 'DESKTOP_RELAUNCH_IN_PROGRESS'; throw error; }
-  const response = await fetch(`${LOCAL_FRONTEND_URL}${endpoint}`, {
+  const response = await fetch(`${YANCE_BACKEND_URL}${endpoint}`, {
     ...options,
     headers: {
       accept: 'application/json',
@@ -1188,9 +1190,9 @@ async function notificationIcon(payload = {}) {
         const separator = value.indexOf(',');
         buffer = Buffer.from(separator >= 0 ? value.slice(separator + 1) : '', value.slice(0, separator).includes(';base64') ? 'base64' : 'utf8');
       } else if (/^https?:\/\//i.test(value) || value.startsWith('/api/')) {
-        const url = value.startsWith('/api/') ? `${LOCAL_FRONTEND_URL}${value}` : value;
+        const url = value.startsWith('/api/') ? `${YANCE_BACKEND_URL}${value}` : value;
         const response = await fetch(url, {
-          headers: value.startsWith('/api/') ? { Authorization: `Bearer ${currentApiSessionToken()}`, Origin: LOCAL_FRONTEND_URL } : {},
+          headers: value.startsWith('/api/') ? { Authorization: `Bearer ${currentApiSessionToken()}`, Origin: YANCE_BACKEND_URL } : {},
           redirect: 'follow',
           signal: AbortSignal.timeout(10000)
         });
@@ -1743,7 +1745,7 @@ function backendEnvironment(launch = {}) {
   if (explicitPlatformAuthHash || fs.existsSync(releasePlatformAuthHash)) {
     env.YANCE_PLATFORM_AUTH_CONFIG_SHA256_PATH = path.resolve(explicitPlatformAuthHash || releasePlatformAuthHash);
   }
-  env.YANCE_PORT = String(new URL(LOCAL_FRONTEND_URL).port);
+  env.YANCE_PORT = String(new URL(YANCE_BACKEND_URL).port);
   env.YANCE_AUTO_START_WHATSAPP = '0';
   for (const key of [
     'WP7_PROBE_ID',
@@ -1778,9 +1780,9 @@ function scheduleEventReconnect() {
 function connectEventSocket() {
   stopEventSocket();
   if (!backendReady) return;
-  const wsUrl = LOCAL_FRONTEND_URL.replace(/^http/, 'ws') + '/events';
+  const wsUrl = YANCE_BACKEND_URL.replace(/^http/, 'ws') + '/events';
   eventSocket = new WebSocket(wsUrl, {
-    headers: { Authorization: `Bearer ${currentApiSessionToken()}`, Origin: LOCAL_FRONTEND_URL }
+    headers: { Authorization: `Bearer ${currentApiSessionToken()}`, Origin: YANCE_BACKEND_URL }
   });
   m2Registry.registerEventSocket(eventSocket);
   eventSocket.on('open', () => {
@@ -2022,7 +2024,7 @@ function startBackendProcessForCoordinator(options = {}) {
     backendObservationChild = child;
     backendPid = child.pid || 0;
     const supervisor = createBackendStartupSupervisor({
-      baseUrl: LOCAL_FRONTEND_URL,
+      baseUrl: YANCE_BACKEND_URL,
       apiToken: started.apiSessionToken,
       expectedPid: backendPid,
       startupNonce,
@@ -2229,6 +2231,36 @@ async function restartBackend(options = {}) {
   } finally { backendRestarting = false; }
 }
 
+async function waitForElementShellReady(options = {}) {
+  const timeoutMs = Math.max(1000, Number(options.timeoutMs || 60000));
+  const pollIntervalMs = Math.max(100, Number(options.pollIntervalMs || 400));
+  const deadline = Date.now() + timeoutMs;
+  let lastError = null;
+  while (Date.now() < deadline && !quitting && !relaunchPending) {
+    try {
+      const response = await fetch(YANCE_ELEMENT_HEALTH_URL, {
+        method: 'GET',
+        redirect: 'follow',
+        signal: AbortSignal.timeout(Math.min(5000, Math.max(500, deadline - Date.now())))
+      });
+      if (response.ok) return { ready: true, status: response.status, url: YANCE_ELEMENT_HEALTH_URL };
+      lastError = new Error(`Element shell health returned HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+    if (Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+  }
+  const error = new Error(lastError?.message || 'Element shell readiness timed out');
+  error.reasonCode = 'YANCE_ELEMENT_SHELL_READY_TIMEOUT';
+  error.details = { url: YANCE_ELEMENT_HEALTH_URL, timeoutMs };
+  throw error;
+}
+
+function loadElementShell(window) {
+  return waitForElementShellReady()
+    .then(() => window.loadURL(YANCE_ELEMENT_URL));
+}
+
 function createWindow() {
   if (mainWindow && !mainWindow.isDestroyed()) return mainWindow;
 
@@ -2322,7 +2354,8 @@ function createWindow() {
   createdWindow.on('restore', syncSoundWindowState);
   createdWindow.once('ready-to-show', syncSoundWindowState);
   syncSoundWindowState();
-  createdWindow.loadURL(LOCAL_FRONTEND_URL).catch(error => {
+  loadElementShell(createdWindow).catch(error => {
+    desktopLog('error', 'element-shell-load-failed', { reasonCode: error.reasonCode || '', message: error.message, url: YANCE_ELEMENT_URL });
     if (mainWindow === createdWindow) dialog.showErrorBox('工作台加载失败', error.message);
   });
   return createdWindow;
@@ -2860,20 +2893,20 @@ ipcGuardHandle('desktop:set-active-conversation', (_event, data = {}) => {
   return { ok: true };
 });
   ipcMain.on('desktop:preload-ready', (event, payload = {}) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [LOCAL_FRONTEND_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
     ensureMainWindowActivationController().markPreloadReady(mainWindow, payload);
   });
   ipcMain.on('desktop:renderer-ready', (event, payload = {}) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [LOCAL_FRONTEND_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
     ensureMainWindowActivationController().markRendererReady(mainWindow, payload);
   });
   ipcMain.on('desktop:activation-probe-complete', (event, payload = {}) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [LOCAL_FRONTEND_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
     ensureMainWindowRuntimeReadiness().complete(event.sender, payload);
   });
   ipcGuardHandle('desktop:report-sound-result', (_event, result) => ({ accepted: resolveSound(result || {}) }));
   ipcMain.on('sound:result', (event, result) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [LOCAL_FRONTEND_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
     resolveSound(result || {});
   });
   ipcGuardHandle('desktop:save-credential', (_event, input) => saveCredentialFromDesktop(input?.ref, input?.value || {}, { requestId: input?.requestId }));
@@ -2931,7 +2964,7 @@ if (!app.requestSingleInstanceLock()) {
     });
     try { governRuntimeNativeBinariesBootCheck(); } catch (_) { /* never block startup */ }
     runtimeApiV2Client = new ApiV2RuntimeClient({
-      baseURL: LOCAL_FRONTEND_URL,
+      baseURL: YANCE_BACKEND_URL,
       sessionProvider: options => desktopHost.backendProcessHost.getApiSessionBinding(options),
       expectedBuildId: acceptedRelease.buildId
     });
