@@ -10,6 +10,7 @@ const {
   isReleaseClosureRebuildBranch,
   isAuthorizedDelegatedGovernanceBranch,
   evaluateDelegatedGovernanceAuthorizationProposal,
+  evaluateTrustedDelegatedGovernanceBranch,
   isAuthorizedImplementationBranch,
   authorizedImplementationBranchDescription,
   buildTrustedGitEnvironment,
@@ -189,11 +190,15 @@ function genericTrustedAuthorityOptions(overrides = {}) {
       }
       return null;
     },
-    resolveChangedFilesBetween: (base, head) => (
-      base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD
-        ? (overrides.reviewedChangedFiles || [GENERIC_AUTHORIZATION_PATH])
-        : []
-    ),
+    resolveChangedFilesBetween: (base, head) => {
+      if (base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD) {
+        return overrides.reviewedChangedFiles || [GENERIC_AUTHORIZATION_PATH];
+      }
+      if (base === GENERIC_MERGE && head === GENERIC_IMPLEMENTATION_HEAD) {
+        return overrides.implementationChangedFiles || authorization.implementation.allowedChangedPaths;
+      }
+      return [];
+    },
     isTrustedAncestor: (base, head) => {
       if (overrides.ancestorResultByPair?.[`${base}:${head}`] !== undefined) {
         return overrides.ancestorResultByPair[`${base}:${head}`];
@@ -523,7 +528,8 @@ test('authorization proposal transport is single-file and never grants implement
     branch: GENERIC_AUTHORIZATION_BRANCH,
     changedFiles: [GENERIC_AUTHORIZATION_PATH],
     authorizationPath: GENERIC_AUTHORIZATION_PATH,
-    authorization
+    authorization,
+    trustedMainHead: GENERIC_BASE
   });
   assert.equal(accepted.pass, true, JSON.stringify(accepted));
   assert.equal(accepted.mode, 'AUTHORIZATION_PROPOSAL_TRANSPORT');
@@ -535,12 +541,22 @@ test('authorization proposal transport is single-file and never grants implement
     changedFiles: [GENERIC_AUTHORIZATION_PATH],
     authorizationProposal: {
       authorizationPath: GENERIC_AUTHORIZATION_PATH,
-      authorization
+      authorization,
+      trustedMainHead: GENERIC_BASE
     }
   });
   assert.equal(transported.pass, true, JSON.stringify(transported));
   assert.equal(transported.authorityMode, 'AUTHORIZATION_PROPOSAL_TRANSPORT');
   assert.equal(transported.implementationAuthorityGranted, false);
+
+  const staleMain = evaluateDelegatedGovernanceAuthorizationProposal({
+    branch: GENERIC_AUTHORIZATION_BRANCH,
+    changedFiles: [GENERIC_AUTHORIZATION_PATH],
+    authorizationPath: GENERIC_AUTHORIZATION_PATH,
+    authorization,
+    trustedMainHead: 'f'.repeat(40)
+  });
+  assert.equal(staleMain.pass, false);
 
   for (const [name, candidate] of [
     ['extra changed path', {
@@ -576,7 +592,8 @@ test('authorization proposal transport is single-file and never grants implement
       branch: GENERIC_AUTHORIZATION_BRANCH,
       changedFiles: candidate.changedFiles || [GENERIC_AUTHORIZATION_PATH],
       authorizationPath: GENERIC_AUTHORIZATION_PATH,
-      authorization: candidate.authorization || authorization
+      authorization: candidate.authorization || authorization,
+      trustedMainHead: GENERIC_BASE
     });
     assert.equal(result.pass, false, name);
   }
@@ -626,6 +643,27 @@ test('generic delegated authority activates only from canonical main two-parent 
   assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
     generic: genericTrustedAuthorityOptions({ authorization: widened })
   }), false, 'implementation path digest drift must fail closed');
+
+  assert.equal(typeof evaluateTrustedDelegatedGovernanceBranch, 'function');
+  const scoped = evaluateTrustedDelegatedGovernanceBranch({
+    branch: GENERIC_IMPLEMENTATION_BRANCH,
+    ...exact
+  });
+  assert.equal(scoped.pass, true, JSON.stringify(scoped));
+  assert.equal(scoped.authorityMode, 'TRUSTED_MAIN_DELEGATED_GOVERNANCE');
+  assert.deepEqual(scoped.unauthorizedPaths, []);
+
+  const scopeEscape = evaluateTrustedDelegatedGovernanceBranch({
+    branch: GENERIC_IMPLEMENTATION_BRANCH,
+    ...genericTrustedAuthorityOptions({
+      implementationChangedFiles: [
+        ...genericDelegatedAuthorization().implementation.allowedChangedPaths,
+        'shared/release/unreviewed-authority.js'
+      ]
+    })
+  });
+  assert.equal(scopeEscape.pass, false);
+  assert.deepEqual(scopeEscape.unauthorizedPaths, ['shared/release/unreviewed-authority.js']);
 });
 
 test('malformed, impossible-date and arbitrary branches remain denied', () => {
