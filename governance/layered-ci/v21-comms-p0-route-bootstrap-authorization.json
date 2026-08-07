@@ -19,10 +19,11 @@
   "evidence": {
     "sourcePullRequest": 112,
     "sourceExactHead": "47c1822fa2b26d4d1aa69616b9f2767f44fcb0bf",
+    "sourceChangedFileCount": 20,
     "stageWp0Run": 31169106386,
     "stageWp0RouteJob": 92836633013,
     "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
-    "unknownPathsAtSourceExactHead": [
+    "unknownPathsObservedAtSourceExactHead": [
       "config/matrix/element-config.json",
       "config/matrix/mautrix-whatsapp/config.yaml",
       "config/matrix/synapse/homeserver.yaml",
@@ -37,7 +38,16 @@
       "third_party/licenses/mautrix-whatsapp-LICENSE.exceptions.txt",
       "third_party/licenses/synapse-AGPL-3.0.txt",
       "upstream-patches/element-web/0001-yance-global-right-workspace.patch"
-    ]
+    ],
+    "prospectiveFinalPathPreimplementationCheck": {
+      "path": "third_party/licenses/element-web-AGPL-3.0.txt",
+      "candidateSourceHeadContainsPath": false,
+      "trustedRoutingPolicyCommit": "2e7beefc6fd349f5a0b06ab6d5ded67418e75d9f",
+      "classifier": "tools/layered-ci/wp0-routing.js#classifyWp0Route",
+      "resultPass": false,
+      "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+      "purpose": "Prove the final authorized twenty-two-path candidate would remain fail-closed on the not-yet-materialized Element license path unless the exact route bootstrap is merged first. This is direct classifier evidence, not a claim that the path appeared in Stage run 31169106386."
+    }
   },
   "authorizationBranch": {
     "name": "governance/v21-comms-p0-route-bootstrap-authorization",
@@ -85,7 +95,8 @@
     "candidateHistoryRewriteAllowed": false
   },
   "mandatoryFailureFirstContracts": [
-    "The current-main routing policy reports WP0_ROUTE_UNKNOWN_PATH for the exact V2.1 bootstrap paths before implementation",
+    "The current-main routing policy reports WP0_ROUTE_UNKNOWN_PATH for the fourteen V2.1 bootstrap paths observed at PR #112 source exact Head 47c1822fa2b26d4d1aa69616b9f2767f44fcb0bf",
+    "Before implementation, the same trusted-main classifier independently reports WP0_ROUTE_UNKNOWN_PATH for the fifteenth final-scope path third_party/licenses/element-web-AGPL-3.0.txt, which was not yet materialized at the twenty-file source Head",
     "After implementation all fifteen exact bootstrap paths select PRODUCT_WP0",
     "The bootstrap uses only productExactPaths and does not add config/, integration/, third_party/, or upstream-patches/ to productPrefixes",
     "Unknown and malformed repository paths continue to fail closed",
