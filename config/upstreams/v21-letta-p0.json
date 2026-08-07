@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "upstreams": {
+    "lettaAgentSdk": {
+      "repository": "https://github.com/letta-ai/letta-agent-sdk.git",
+      "version": "v0.6.2",
+      "commit": "c48df1693731443682fe8c7f356ef9b8a33df6c0",
+      "package": "@letta-ai/letta-agent-sdk@0.6.2",
+      "license": "Apache-2.0"
+    },
+    "lettaCode": {
+      "repository": "https://github.com/letta-ai/letta-code.git",
+      "version": "v0.30.5",
+      "commit": "3e5ead65dcf3b7fdf1e2da595660eb85063a9722",
+      "package": "@letta-ai/letta-code@0.30.5",
+      "license": "Apache-2.0",
+      "cli": "letta server --listen ws://127.0.0.1:0"
+    }
+  }
+}
