@@ -26,10 +26,10 @@
     "branch": "fix/pvep-exact-workflow-delegation-policy",
     "allowedChangedPaths": [
       "shared/release/implementationBranchPolicy.js",
-      "tests/wp0/implementation-branch-policy.test.js"
+      "tests/layered-ci/pvep-exact-workflow-delegation.test.js"
     ],
     "approvedChangedFileCount": 2,
-    "approvedChangedFileSetSha256": "c9ebb6397f260acd3447fa7691a53ec9c6478d1c375250dc3a07b61498cc03f2",
+    "approvedChangedFileSetSha256": "2622f49473c4bbaaadeefc2094622de8bbeea29d99dfb130515b619d13cd8050",
     "newDependencyAllowed": false,
     "workflowModificationAllowed": false
   },
