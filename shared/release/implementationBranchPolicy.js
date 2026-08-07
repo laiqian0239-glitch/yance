@@ -451,7 +451,11 @@ function evaluateDelegatedGovernanceAuthorizationProposal(options = {}) {
   }
   const authorizationPath = options.authorizationPath || normalized[0];
   const authorization = resolveGenericCandidateAuthorization(authorizationPath, evaluatedHead, options);
-  const pass = isValidGenericDelegatedGovernanceAuthorization(authorization, authorizationPath)
+  const ancestor = options.isTrustedAncestor
+    || ((base, head) => defaultTrustedAncestor(base, head, options));
+  const pass = SHA40.test(String(evaluatedHead || ''))
+    && ancestor(trustedMainHead, evaluatedHead) === true
+    && isValidGenericDelegatedGovernanceAuthorization(authorization, authorizationPath)
     && authorization.base.commit === trustedMainHead
     && authorization.authorizationBranch.name === branch
     && authorization.authorizationBranch.allowedChangedPaths[0] === normalized[0];
@@ -515,6 +519,9 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
       || !SHA40.test(String(parents[1] || ''))
       || parents[0] === parents[1]) continue;
     const reviewedHead = parents[1];
+    const ancestor = options.isTrustedAncestor
+      || ((base, head) => defaultTrustedAncestor(base, head, options));
+    if (ancestor(authorization.base.commit, reviewedHead) !== true) continue;
 
     const resolveBlob = options.resolveCommitBlobSha
       || ((commit, repositoryPath) => defaultCommitBlobSha(commit, repositoryPath, options));
@@ -545,8 +552,6 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
       || mergeNormalized[0] !== authorizationPath
       || mergeChangedFiles[0] !== authorizationPath) continue;
 
-    const ancestor = options.isTrustedAncestor
-      || ((base, head) => defaultTrustedAncestor(base, head, options));
     if (ancestor(mergeCommit, trustedMainHead) !== true
       || ancestor(mergeCommit, evaluatedHead) !== true) continue;
 
