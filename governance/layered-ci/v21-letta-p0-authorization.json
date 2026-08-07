@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LETTA-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Adopt the current official Letta application-embedding path as the V2.1 persistent-agent authority: @letta-ai/letta-agent-sdk with its exact bundled @letta-ai/letta-code App Server runtime. Letta owns persistent agent state, memory, conversation continuity, compaction and runtime lifecycle. Yance is limited to exact upstream/dependency pinning, a thin Electron adapter and guarded IPC bridge, binding Letta local-backend storage beneath the existing Yance data root, exposing Letta status/identity in the existing Element Yance Workspace, notices/licenses and compatibility contracts. The legacy letta-ai/letta V1 server is explicitly not authorized. No Yance memory engine, agent state machine, model router, goal engine, tracing stack or second AI frontend is authorized by this package.",
+  "base": {
+    "branch": "main",
+    "commit": "932c7c6588de9af6bd86becc31b90b54e4110be4"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-letta-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-letta-p0-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "product/v21-letta-p0",
+    "allowedChangedPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "config/upstreams/v21-letta-p0.json",
+      "docs/superpowers/plans/2026-08-07-yance-v21-letta-p0.md",
+      "electron/lettaAgentRuntime.js",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/preload.js",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "package-lock.json",
+      "package.json",
+      "tests/wp0/v21-letta-p0.test.js",
+      "tests/wp0/v21-letta-workspace-contract.test.js",
+      "third_party/licenses/letta-agent-sdk-Apache-2.0.txt",
+      "third_party/licenses/letta-code-Apache-2.0.txt"
+    ],
+    "approvedChangedFileCount": 14,
+    "approvedChangedFileSetSha256": "97a70af318307f072f029266b25b49f1ea3caeddf4382313adc452c9f0dab65d",
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "package-lock.json",
+        "package.json"
+      ],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "workflowModificationAllowed": false
+  },
+  "upstreams": {
+    "lettaAgentSdk": {
+      "repository": "letta-ai/letta-agent-sdk",
+      "version": "v0.6.2",
+      "commit": "c48df1693731443682fe8c7f356ef9b8a33df6c0",
+      "package": "@letta-ai/letta-agent-sdk@0.6.2",
+      "license": "Apache-2.0"
+    },
+    "lettaCode": {
+      "repository": "letta-ai/letta-code",
+      "version": "v0.30.5",
+      "commit": "3e5ead65dcf3b7fdf1e2da595660eb85063a9722",
+      "package": "@letta-ai/letta-code@0.30.5",
+      "license": "Apache-2.0",
+      "relationship": "Exact runtime dependency pinned by @letta-ai/letta-agent-sdk@0.6.2"
+    }
+  },
+  "ossFit": {
+    "matureOssDefault": true,
+    "officialCurrentEmbeddingPath": "Official Letta documentation directs application developers to Letta Agent SDK; the legacy letta-ai/letta repository explicitly states that active development moved away from the V1 server and self-hosting now uses the App Server.",
+    "adoptionMode": "Pinned dependency plus thin Electron adapter; SDK-managed local App Server remains the runtime authority.",
+    "lettaOwnsPersistentAgentState": true,
+    "lettaOwnsMemoryAndCompaction": true,
+    "lettaOwnsConversationContinuity": true,
+    "lettaOwnsAppServerLifecycle": true,
+    "yanceDataRootBindingOnly": true,
+    "localBackendDefault": true,
+    "loopbackOnlyByDefault": true,
+    "legacyV1ServerForbidden": true,
+    "duplicateAgentStateMachineForbidden": true,
+    "duplicateMemoryStoreForbidden": true,
+    "customYanceAgentRuntimeForbidden": true,
+    "modelProviderHardcodeForbidden": true,
+    "routeLLMOrLiteLLMImplementationForbidden": true,
+    "parlantGoalEngineImplementationForbidden": true,
+    "langfuseImplementationForbidden": true,
+    "secondAiFrontendForbidden": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The trusted base has no exact @letta-ai/letta-agent-sdk dependency, no Letta runtime adapter and no guarded Letta IPC contract before implementation",
+    "The implementation must pin @letta-ai/letta-agent-sdk exactly to 0.6.2 and prove its exact bundled @letta-ai/letta-code runtime is 0.30.5; mutable dependency ranges for these two authorities are forbidden",
+    "The supported Node floor must satisfy the SDK requirement of Node >=22.19.0; Electron 39.8.5 runtime compatibility must remain explicit",
+    "A real local SDK App Server management probe must start on loopback without requiring a model-generation turn and must cleanly terminate",
+    "Letta local-backend state must be rooted beneath the resolved Yance data root through LETTA_LOCAL_BACKEND_DIR; default writes to an unrelated user-home Letta tree are forbidden for the Yance-owned launch path",
+    "The Electron adapter may expose status, agent/conversation management and future session entrypoints but may not persist a parallel Yance memory or agent-state store",
+    "All Letta renderer calls must traverse the existing trusted preload/main-frame IPC boundary and be declared in the IPC manifest; direct Node access from the Element renderer is forbidden",
+    "The existing Element Yance Workspace remains the only AI product surface and must show Letta runtime/identity state without introducing a second frontend shell",
+    "No model-provider default, Parlant goal policy, LiteLLM/RouteLLM routing, Langfuse tracing or message-send authority may be introduced by this package",
+    "Exact upstream repositories, 40-character commits, Apache-2.0 license records and package-lock source integrity must be present before implementation can be considered GREEN"
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
