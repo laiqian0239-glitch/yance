@@ -1,8 +1,12 @@
 # 言策统一 UI 开源移植与零回归修订
 
-> **状态：已确认、V1 冻结、跨聊天持续有效。**
+> **状态：V1 细节合同继续保留；V2.1 架构兼容说明已生效。**
 >
-> 本文件是 [`YANCE_IMPLEMENTATION_MASTER_PLAN.md`](./YANCE_IMPLEMENTATION_MASTER_PLAN.md) 第 8 节“产品壳层与统一 UI”的约束性补充。发生冲突时，本文件对 UI 产品形态、开源移植来源、主题/声音保留、翻译交互和验收门禁具有优先解释权。它不替代具体工作包授权、来源凭据、RED/GREEN 证据或精确 Head 门禁。
+> 本文件保存统一 UI、主题、声音、翻译、布局与零回归的详细合同。自 V2.1 起，[`YANCE_IMPLEMENTATION_MASTER_PLAN.md`](./YANCE_IMPLEMENTATION_MASTER_PLAN.md) 是更高层级的稳定架构指令；本文件与 V2.1 一致的部分继续有效，与 V2.1 冲突的旧 ChannelDriver/Canonical/Chatwoot 唯一产品壳等描述降级为历史实现参考，不得反向覆盖 V2.1。
+>
+> **以下产品体验已经由 V2.1 重新确认并提升为最高 UX 硬规则：统一产品界面 + 可折叠/可隐藏/可拖拽侧栏 + 渐进披露。** 底层可以由 Matrix/Element/mautrix、Letta、Parlant、Personal Presence 等多个成熟 OSS 组成，但用户始终只进入一个 Yance 工作区。
+>
+> 本文件不替代具体工作包授权、来源凭据、RED/GREEN 证据或精确 Head 门禁。
 
 ## 0. 最高目标
 
@@ -12,28 +16,50 @@ UI 工作必须服务于言策的最高指标：**尽快形成真实可运行、
 
 1. 完整复用成熟开源产品壳、会话组件和交互原语；
 2. 保留言策已有功能、主题、声音、设置和真实数据；
-3. 只编写言策权威数据与开源组件之间的适配层；
+3. 只编写成熟上游与统一 Yance 产品体验之间的必要适配层；
 4. 没有成熟来源时才自研。
 
-禁止通过临时 CSS、隐藏错误、跳过状态、伪造成功或另建第二套设置权威换取速度。
+禁止通过临时 CSS、隐藏错误、跳过状态、伪造成功或另建不必要的第二套设置/产品状态换取速度。
+
+### 0.1 V2.1 固定 UX 硬规则
+
+```text
+统一产品界面
++
+左侧导航 / 会话列表 / 右侧工作区可折叠、可隐藏、可拖拽
++
+布局与宽度重启恢复
++
+渐进披露
+```
+
+固定要求：
+
+- WhatsApp、Telegram、Signal、Facebook、Instagram、LINE 等平台不得各自形成独立产品级聊天页面；
+- 左侧全局导航、会话列表、右侧 AI/联系人/关系/Personal Presence 工作区都必须支持收起、完全隐藏和拖拽宽度；
+- 被隐藏面板必须能通过快捷键或明确入口恢复；
+- 隐藏/折叠只改变展示，不得静默停止同步、消息接收、Journey、AI 或后台任务；
+- 常用动作直接展示；低频动作进入菜单/Popover/Sheet/侧栏；专业、模型、路由、诊断和基础设施控制进入高级模式；
+- Voice、Visual、Video Avatar、Goal/Journey、关系洞察等复杂能力按当前任务渐进显示，不永久挤占聊天主区；
+- 窄窗口允许用 Sheet/Drawer 等成熟响应式模式替代固定侧栏，但能力、状态和恢复入口不能丢失。
 
 ## 1. 最终产品形态：一个言策，不是多个聊天应用
 
-所有渠道统一进入同一个桌面产品：
+所有渠道统一进入同一个桌面产品。V2.1 当前首选底层链为：
 
 ```text
-多个成熟平台运行时
+多个成熟平台运行时 / mautrix bridges / native OSS
         ↓
-统一 ChannelDriver
+Matrix / Element 成熟通信与聊天能力
         ↓
-唯一 Canonical 数据层
+唯一 Yance 用户工作区
         ↓
-唯一 Yance Product Shell
-        ↓
-统一会话中心 / 联系人 / AI 回复 / 翻译 / 设置
+统一会话中心 / 联系人 / AI 回复 / Goal / Personal Presence / 翻译 / 设置
 ```
 
-不得创建 WhatsApp、Telegram、Signal、Facebook、Instagram、LINE 等平台专属聊天页面。平台只以账号、筛选器、图标、能力差异和消息来源身份出现。
+本文件 V1 中曾使用的 `ChannelDriver`、`Canonical` 作为 UI 数据入口描述，在与 V2.1 冲突处不再是架构硬要求；UI 只要求统一、可验证的数据/状态适配接口，不要求 Yance 自研第二套通信事实层。
+
+不得创建 WhatsApp、Telegram、Signal、Facebook、Instagram、LINE 等平台专属产品级聊天页面。平台只以账号、筛选器、图标、能力差异和消息来源身份出现。
 
 统一界面固定包含：
 
@@ -44,16 +70,18 @@ UI 工作必须服务于言策的最高指标：**尽快形成真实可运行、
 ├── 统一消息时间线
 ├── 统一中文输入与目标语言发送区
 ├── 统一联系人与关系侧栏
-├── 统一 AI 回复与翻译侧栏
+├── 统一 AI 回复 / Goal / Personal Presence / 翻译侧栏
 ├── 统一搜索、附件和资料
 └── 统一设置、主题、通知、声音与诊断
 ```
 
 ## 2. UI 开源移植来源冻结
 
-### 2.1 Chatwoot OSS：唯一产品壳与会话 UI 主来源
+### 2.1 Element 优先；Chatwoot OSS 保留为可选能力来源
 
-精选并完整移植其成熟前端能力切片：
+V2.1 首选 Element Web / 成熟 Matrix 客户端能力作为聊天产品壳和时间线运行时来源，优先保留其成熟会话、timeline、thread、reply、edit、reaction、media、search、notification、settings 等能力。
+
+Chatwoot OSS 继续可精选并完整移植成熟前端能力切片，例如：
 
 - 产品主框架与导航结构；
 - 统一收件箱/账号入口模式；
@@ -66,15 +94,9 @@ UI 工作必须服务于言策的最高指标：**尽快形成真实可运行、
 - loading、empty、offline、error、recovery、permission-denied 状态；
 - 通知入口、快捷键和设置页结构。
 
-禁止移植：
+Chatwoot 不再是唯一 Product Shell，也不得因为采用 Chatwoot 而重新引入第二套通信事实权威。Ruby/Rails 后端、PostgreSQL/Redis 消息权威、客服坐席/SLA/工单等与 Yance 无关的后台能力默认不移植。
 
-- Ruby/Rails 后端；
-- PostgreSQL、Redis 或 Chatwoot 消息/联系人权威；
-- 客服坐席、团队分配、SLA 和工单业务；
-- Chatwoot 自带渠道作为言策发送权威；
-- Chatwoot 品牌、云服务和企业目录。
-
-所有 Chatwoot 派生组件必须通过 `YanceUIAdapter` 读取言策 Canonical、联系人、关系、Outbox、翻译和 AI 权威。
+所有开源派生 UI 必须通过 V2.1 认可的适配层读取当前真实运行状态，不得为了 UI 方便另造隐藏事实库。
 
 ### 2.2 shadcn-vue + Reka UI：通用组件与无障碍交互
 
@@ -108,7 +130,7 @@ UI 工作必须服务于言策的最高指标：**尽快形成真实可运行、
 - 专注模式；
 - 窗口尺寸与恢复。
 
-持久化必须通过言策设置适配器写入唯一设置权威。浏览器存储只能作为缓存或迁移入口，不能成为第二事实来源。
+持久化必须通过当前稳定设置适配层保存。浏览器存储只能作为缓存或迁移入口，不能无审计地形成与正式设置冲突的第二来源。
 
 ### 2.4 Howler.js：仅作为可选声音执行层
 
@@ -121,7 +143,7 @@ UI 工作必须服务于言策的最高指标：**尽快形成真实可运行、
 - 缓存和格式兼容；
 - 播放失败反馈。
 
-Howler.js 不决定是否播放。是否静音、免打扰、去重、优先级、活动会话抑制和事件类型仍由言策现有通知权威决定。
+Howler.js 不决定是否播放。是否静音、免打扰、去重、优先级、活动会话抑制和事件类型仍由当前稳定通知策略决定。
 
 ## 3. 左右侧栏与工作区
 
@@ -146,7 +168,7 @@ Howler.js 不决定是否播放。是否静音、免打扰、去重、优先级�
 - 拖拽调整宽度；
 - 通过快捷键恢复。
 
-### 3.3 右侧 AI / 联系人 / 关系侧栏
+### 3.3 右侧 AI / 联系人 / 关系 / Personal Presence 工作区
 
 固定支持：
 
@@ -154,18 +176,18 @@ Howler.js 不决定是否播放。是否静音、免打扰、去重、优先级�
 - 收起为窄 Tab；
 - 完全隐藏；
 - 拖拽调整宽度；
-- AI 回复、翻译、联系人资料、关系事实、互动洞察共用同一侧栏框架。
+- AI 回复、今日聊天目标/Journey、翻译、联系人资料、关系事实、互动洞察、VoiceProfile、照片素材、AI 生图和 Video Avatar 共用同一右侧工作区框架。
 
 ### 3.4 布局模式
 
 ```text
 完整工作台：左导航 + 会话列表 + 聊天 + 右侧栏
-专注聊天：左导航收起 + 聊天最大化 + 右侧栏隐藏
-AI 辅助：左导航收起 + 聊天 + AI 侧栏
-沉浸模式：左右侧栏与会话列表均可隐藏
+专注聊天：左导航/会话列表收起或隐藏 + 聊天最大化 + 右侧栏隐藏
+AI 辅助：左导航收起 + 聊天 + AI/Goal 侧栏
+沉浸模式：左右侧栏与会话列表均可隐藏，只保留当前聊天
 ```
 
-任何模式都不得改变数据、发送或翻译权威，只改变展示。
+任何模式都只能改变展示，不得静默改变通信同步、发送、翻译、Journey、AI 或 Personal Presence 的真实运行状态。
 
 ## 4. 字体、密度和可访问性
 
@@ -228,7 +250,7 @@ AI 辅助：左导航收起 + 聊天 + AI 侧栏
 - 旧设置结构和升级迁移；
 - 用户自定义主题内容（若存在）。
 
-不得用 Chatwoot、shadcn-vue 或其他开源项目默认主题替换言策现有主题。
+不得用 Element、Chatwoot、shadcn-vue 或其他开源项目默认主题替换言策现有主题。
 
 ### 5.2 主题适配结构
 
@@ -239,7 +261,7 @@ YanceThemeAdapter
         ↓
 统一 Design Tokens
         ↓
-Chatwoot 派生组件 / shadcn-vue / Reka UI
+Element/Chatwoot 派生组件 / shadcn-vue / Reka UI
 ```
 
 所有新组件必须读取言策 Token，不允许写死品牌色、背景色、边框色、字体或圆角。
@@ -250,7 +272,7 @@ Chatwoot 派生组件 / shadcn-vue / Reka UI
 
 ## 6. 现有消息提示音与通知能力全部保留
 
-### 6.1 唯一通知权威
+### 6.1 通知行为零回归
 
 保留现有：
 
@@ -270,7 +292,7 @@ Chatwoot 派生组件 / shadcn-vue / Reka UI
 ### 6.2 扩展方式
 
 ```text
-Canonical Event
+真实消息/状态事件
         ↓
 现有 SoundNotificationService / notification policy
         ↓
@@ -364,12 +386,12 @@ English / Français / Italiano / Español / Nederlands / 其他欧洲语言
    ↓
 用户预览或直接确认
    ↓
-冻结最终目标语言字节到 Outbox
+冻结最终目标语言文本/字节到当前真实发送运行时
    ↓
 渠道发送
 ```
 
-**进入 Outbox 后禁止重试时重新翻译。**重试必须发送完全相同的冻结文本，防止语义漂移和重复消息差异。
+重试不得无提示地重新翻译成不同语义文本。若底层发送运行时需要重新构造消息，必须保持已确认译文语义和可审计版本。
 
 ### 7.4 开源翻译能力来源
 
@@ -380,7 +402,7 @@ English / Français / Italiano / Español / Nederlands / 其他欧洲语言
 - CTranslate2：本地高性能翻译 Sidecar；
 - OPUS-MT / Marian / NLLB 等模型：按语言对和质量门禁选择。
 
-翻译引擎不能直接发送消息或修改联系人权威，只返回候选译文和置信度。
+翻译引擎不能直接绕过用户/产品发送控制，只返回候选译文和置信度。
 
 ## 8. 设置中心信息架构
 
@@ -420,35 +442,32 @@ English / Français / Italiano / Español / Nederlands / 其他欧洲语言
 └── 低置信度确认
 ```
 
-## 9. 数据与权威边界
+## 9. 数据与状态边界
 
-必须保持唯一权威：
+V2.1 不再要求 Yance 自研唯一 Canonical/Outbox/联系人事实层。UI 的固定要求改为：
 
-```text
-CanonicalMessage / CanonicalConversation
-CanonicalContact / Relationship facts
-Outbox / ExternalAttempt / LeaseFence
-TranslationPreference / FrozenOutboundText
-ThemePreference / LayoutPreference
-SoundNotificationService / Notification policy
-```
+- 读取当前被 V2.1 选定的真实上游状态；
+- 不因 UI 组件便利另造隐藏事实源；
+- 用户设置、布局、主题、通知和翻译偏好必须有明确稳定的持久化归属；
+- UI 缓存必须可失效、可重建；
+- Element、Chatwoot、VueUse、Reka UI、Howler、翻译 Sidecar 等不得在未经契约的情况下彼此双写同一用户状态。
 
-Chatwoot、VueUse、Reka UI、Howler、翻译 Sidecar 只能通过受控接口读取或提交候选结果，不得直接成为业务事实源。
+具体运行权威由 `YANCE_IMPLEMENTATION_MASTER_PLAN.md` 和对应工作包决定。
 
 ## 10. 迁移实施顺序
 
 为了最快落地，按真实闭环而非整页重写推进：
 
 ```text
-1. 建立 Yance Design Tokens、ThemeAdapter、SettingsAdapter
-2. 移植 Chatwoot Product Shell、会话列表、消息时间线和输入框
-3. 接入真实 Canonical 数据与现有 Outbox
-4. 接入可折叠/隐藏/拖拽侧栏
+1. 冻结统一 Yance 工作区合同与 Design Tokens
+2. 采用 Element/成熟 Matrix 客户端产品壳，并按需要精选 Chatwoot/shadcn-vue/Reka UI 能力
+3. 接入 Matrix/mautrix/当前真实通信数据
+4. 接入可折叠/隐藏/拖拽的左导航、会话列表和右侧工作区
 5. 迁移现有主题并证明零回归
 6. 迁移现有声音设置并接入可选 Howler 执行层
 7. 接入字体、密度、布局持久化
-8. 接入中文输入 → 德语/欧洲语言预览 → 冻结 Outbox
-9. 接入 AI 回复、联系人、关系和翻译侧栏
+8. 接入中文输入 → 目标语言预览 → 稳定发送文本
+9. 接入 AI Reply、Goal/Journey、联系人、关系、翻译和 Personal Presence 右侧工作区
 10. Windows 真实数据 UAT 后切换主界面
 ```
 
@@ -463,8 +482,7 @@ Chatwoot、VueUse、Reka UI、Howler、翻译 Sidecar 只能通过受控接口�
 - 所有现有提示音仍能播放；
 - 静音、免打扰、优先联系人和去重规则不变；
 - 所有平台仍使用同一个会话中心和输入框；
-- 中文输入发送的实际平台文本等于 Outbox 冻结译文；
-- 重试不重新翻译；
+- 翻译后实际发送文本与用户确认的目标语言版本一致并可追溯；
 - 外语原文与中文译文均可追溯。
 
 ### 11.2 UI 状态
@@ -483,12 +501,17 @@ Chatwoot、VueUse、Reka UI、Howler、翻译 Sidecar 只能通过受控接口�
 
 不得伪造成功或仅显示 Toast 后吞掉底层错误。
 
-### 11.3 平台与恢复
+### 11.3 统一工作区与恢复
 
 - Windows 真实现有数据；
 - 100%、125%、150%、200% DPI；
 - 键盘与无障碍；
-- 左右侧栏状态重启恢复；
+- 左侧导航、会话列表、右侧工作区均可折叠、完全隐藏、拖拽宽度；
+- 被隐藏面板存在明确恢复入口/快捷键；
+- 左右侧栏与会话列表状态、宽度重启恢复；
+- 完整工作台、专注聊天、AI 辅助、沉浸模式可切换；
+- 渐进披露符合常用/低频/高级功能分层；
+- 隐藏任何面板不应静默停止通信同步、Journey、AI 或后台任务；
 - 字体 80%–160% 不溢出、不遮挡关键动作；
 - 断网、崩溃、重启后主题、布局、声音和翻译偏好一致；
 - 自定义声音文件缺失或损坏时明确失败并允许恢复默认；
@@ -507,17 +530,18 @@ Chatwoot、VueUse、Reka UI、Howler、翻译 Sidecar 只能通过受控接口�
 
 ## 12. 禁止事项
 
+- 不引入多套相互竞争的产品界面；
 - 不引入多套相互竞争的 UI 组件系统；
 - 不用开源默认主题替换言策现有主题；
 - 不删除或重写现有提示音策略；
 - 不为每个平台建立独立聊天 UI；
-- 不把 VueUse/localStorage 作为最终设置权威；
+- 不把 VueUse/localStorage 作为无审计的最终设置权威；
 - 不让 Howler.js 决定通知策略；
-- 不让翻译引擎直接发送消息；
-- 不在 Outbox 重试时重新翻译；
+- 不让翻译引擎绕过用户/产品发送控制；
 - 不在没有真实 Windows 数据验证前删除旧 UI；
+- 不把“隐藏侧栏”实现成停止后台业务；
 - 不通过隐藏错误、禁用按钮或缩小测试范围完成验收。
 
 ## 13. 当前边界
 
-当前仍优先完成 OSS-1A Task 11，不在当前授权 Head 中混入 UI 代码。本文件先冻结后续 UI 实施合同；Task 11 完成、PR #19 总设计审阅通过后，按小 PR 和 RED→GREEN 逐步落地。
+当前已经授权的 OSS-A/OSS-1A、治理和发布链继续按原 exact-Head 门禁收口，不在这些旧授权 Head 中混入 V2.1 UI 产品代码。新的统一工作区迁移必须作为独立工作包，按成熟 OSS 优先、RED→GREEN、来源治理、可回滚和 Windows 真实数据 UAT 推进。
