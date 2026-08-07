@@ -363,6 +363,23 @@ function isGenericDelegatedGovernanceAuthorizationPath(value) {
   return Boolean(normalized && normalized === value && GENERIC_DELEGATED_GOVERNANCE_PATH.test(normalized));
 }
 
+function isValidExactWorkflowModificationPolicy(implementation, implementationPaths) {
+  const policy = implementation?.workflowModificationPolicy;
+  if (!policy || typeof policy !== 'object' || Array.isArray(policy)) return false;
+  const expectedKeys = ['allowedWorkflowPaths', 'approvedWorkflowPathCount', 'approvedWorkflowPathSetSha256'];
+  if (!sameJson(Object.keys(policy).sort(), expectedKeys)) return false;
+  if (!Array.isArray(policy.allowedWorkflowPaths) || policy.allowedWorkflowPaths.length === 0) return false;
+  const workflowPaths = normalizeChangedFiles(policy.allowedWorkflowPaths);
+  if (workflowPaths.length !== policy.allowedWorkflowPaths.length
+    || !sameJson(workflowPaths, policy.allowedWorkflowPaths)
+    || !workflowPaths.every(isExactAdditionalPath)
+    || !workflowPaths.every(isWorkflowControlPath)
+    || policy.approvedWorkflowPathCount !== workflowPaths.length
+    || policy.approvedWorkflowPathSetSha256 !== workPackageChangedFilesSha256(workflowPaths)) return false;
+  const implementationWorkflowPaths = implementationPaths.filter(isWorkflowControlPath);
+  return sameJson(workflowPaths, implementationWorkflowPaths);
+}
+
 function isValidGenericDelegatedGovernanceAuthorization(document, authorizationPath) {
   if (!isGenericDelegatedGovernanceAuthorizationPath(authorizationPath)
     || !document
@@ -395,7 +412,7 @@ function isValidGenericDelegatedGovernanceAuthorization(document, authorizationP
     || document.implementation.approvedChangedFileSetSha256
       !== workPackageChangedFilesSha256(document.implementation.allowedChangedPaths)
     || document.implementation.newDependencyAllowed !== false
-    || document.implementation.workflowModificationAllowed !== false
+    || ![true, false].includes(document.implementation.workflowModificationAllowed)
     || document.governance?.authorizationPredatesImplementation !== true
     || document.governance?.exactPathScopeOnly !== true
     || document.governance?.independentBranchAndPullRequestRequired !== true
@@ -407,13 +424,19 @@ function isValidGenericDelegatedGovernanceAuthorization(document, authorizationP
 
   const authorizationPaths = normalizeChangedFiles(document.authorizationBranch.allowedChangedPaths);
   const implementationPaths = normalizeChangedFiles(document.implementation.allowedChangedPaths);
-  return authorizationPaths.length === 1
-    && authorizationPaths[0] === authorizationPath
-    && implementationPaths.length === document.implementation.allowedChangedPaths.length
-    && sameJson(implementationPaths, document.implementation.allowedChangedPaths)
-    && implementationPaths.every(isExactAdditionalPath)
-    && implementationPaths.every(repositoryPath => !isWorkflowControlPath(repositoryPath))
-    && implementationPaths.every(repositoryPath => !isDependencyControlPath(repositoryPath));
+  if (authorizationPaths.length !== 1
+    || authorizationPaths[0] !== authorizationPath
+    || implementationPaths.length !== document.implementation.allowedChangedPaths.length
+    || !sameJson(implementationPaths, document.implementation.allowedChangedPaths)
+    || !implementationPaths.every(isExactAdditionalPath)
+    || !implementationPaths.every(repositoryPath => !isDependencyControlPath(repositoryPath))) return false;
+
+  const workflowPaths = implementationPaths.filter(isWorkflowControlPath);
+  if (document.implementation.workflowModificationAllowed === false) {
+    return workflowPaths.length === 0
+      && !Object.prototype.hasOwnProperty.call(document.implementation, 'workflowModificationPolicy');
+  }
+  return isValidExactWorkflowModificationPolicy(document.implementation, implementationPaths);
 }
 
 function resolveGenericCandidateAuthorization(authorizationPath, evaluatedHead, options = {}) {
