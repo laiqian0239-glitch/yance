@@ -402,7 +402,9 @@ function isValidGenericDelegatedGovernanceAuthorization(document, authorizationP
     && authorizationPaths[0] === authorizationPath
     && implementationPaths.length === document.implementation.allowedChangedPaths.length
     && sameJson(implementationPaths, document.implementation.allowedChangedPaths)
-    && implementationPaths.every(isExactAdditionalPath);
+    && implementationPaths.every(isExactAdditionalPath)
+    && implementationPaths.every(repositoryPath => !isWorkflowControlPath(repositoryPath))
+    && implementationPaths.every(repositoryPath => !isDependencyControlPath(repositoryPath));
 }
 
 function resolveGenericCandidateAuthorization(authorizationPath, evaluatedHead, options = {}) {
@@ -786,6 +788,23 @@ function workPackageChangedFilesSha256(values = []) {
 function isExactAdditionalPath(value) {
   const normalized = normalizeRepositoryPath(value);
   return Boolean(normalized && normalized === value && !/[?*[]/u.test(normalized));
+}
+
+function isWorkflowControlPath(repositoryPath) {
+  return repositoryPath.startsWith('.github/workflows/')
+    || repositoryPath.startsWith('.github/actions/');
+}
+
+function isDependencyControlPath(repositoryPath) {
+  return new Set([
+    'package.json',
+    'package-lock.json',
+    'npm-shrinkwrap.json',
+    'pnpm-lock.yaml',
+    'yarn.lock',
+    'bun.lock',
+    'bun.lockb'
+  ]).has(repositoryPath);
 }
 
 function isValidWorkPackageScopeAmendment(amendment, authorization) {

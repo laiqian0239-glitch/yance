@@ -398,13 +398,12 @@ function checkRuntimeTargetGate(options = {}) {
   let authorizationProposalTransport = null;
   if (!implementationAuthorized && !detachedEvidenceAllowed) {
     const explicitProposal = options.authorizationProposal;
-    authorizationProposalTransport = evaluateDelegatedGovernanceAuthorizationProposal({
-      branch,
-      ...(explicitProposal || {}),
-      ...(explicitProposal && !Object.prototype.hasOwnProperty.call(explicitProposal, 'changedFiles')
-        ? { changedFiles }
-        : {})
-    });
+    const proposalOptions = { ...(explicitProposal || {}), branch };
+    delete proposalOptions.changedFiles;
+    if (Object.prototype.hasOwnProperty.call(options, 'changedFiles')) {
+      proposalOptions.changedFiles = changedFiles;
+    }
+    authorizationProposalTransport = evaluateDelegatedGovernanceAuthorizationProposal(proposalOptions);
   }
   const proposalTransportAllowed = authorizationProposalTransport?.pass === true;
   if (!implementationAuthorized && !proposalTransportAllowed && !detachedEvidenceAllowed) {
