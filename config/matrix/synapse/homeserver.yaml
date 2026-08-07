@@ -1,0 +1,24 @@
+server_name: yance.local
+pid_file: /data/homeserver.pid
+public_baseurl: http://127.0.0.1:8008/
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    resources:
+      - names: [client, federation]
+        compress: false
+database:
+  name: sqlite3
+  args:
+    database: /data/homeserver.db
+log_config: /data/log.config
+media_store_path: /data/media_store
+registration_shared_secret: yance-local-bootstrap-only
+report_stats: false
+macaroon_secret_key: yance-local-macaroon
+form_secret: yance-local-form
+signing_key_path: /data/yance.local.signing.key
+trusted_key_servers: []
+enable_registration: false
