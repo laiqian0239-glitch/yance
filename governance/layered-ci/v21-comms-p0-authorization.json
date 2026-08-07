@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-COMMS-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Implement the first V2.1 real product loop by adopting mature OSS as the runtime: Synapse for Matrix state, Element Web for the unified conversation shell, and mautrix-whatsapp for the first real platform bridge. Yance is limited to exact upstream pinning, configuration/bootstrap, one runtime module, one minimal replayable Element patch for the documented missing global persistent right-workspace mount, Electron shell wiring, licenses/notices, and compatibility contracts. No second Yance message state machine, Matrix store, protocol implementation, or per-platform product page is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "c3363f8c90e18ad3a65f04c6dd50e1392192f571"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-comms-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-comms-p0-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "product/v21-comms-p0",
+    "allowedChangedPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "config/matrix/element-config.json",
+      "config/matrix/mautrix-whatsapp/config.yaml",
+      "config/matrix/synapse/homeserver.yaml",
+      "config/upstreams/v21-comms-p0.json",
+      "docs/superpowers/plans/2026-08-07-yance-v21-comms-p0.md",
+      "electron/main.js",
+      "integration/element-module/package.json",
+      "integration/element-module/project.json",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/tsconfig.json",
+      "integration/element-module/vite.config.ts",
+      "services/matrix/docker-compose.yml",
+      "tests/wp0/v21-comms-p0.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "third_party/licenses/element-web-AGPL-3.0.txt",
+      "third_party/licenses/mautrix-whatsapp-AGPL-3.0.txt",
+      "third_party/licenses/mautrix-whatsapp-LICENSE.exceptions.txt",
+      "third_party/licenses/synapse-AGPL-3.0.txt",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0001-yance-global-right-workspace.patch"
+    ],
+    "approvedChangedFileCount": 22,
+    "approvedChangedFileSetSha256": "972786dec8299d2d8c7e9b9a7aa44e89608310f6ac4f462d5d35fbf613f71ab2",
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "integration/element-module/package.json"
+      ],
+      "approvedDependencyPathCount": 1,
+      "approvedDependencyPathSetSha256": "12c498270cc27530196545a2d4f01479116ef90a5a518c6579770e39b5f66419"
+    },
+    "workflowModificationAllowed": false
+  },
+  "upstreams": {
+    "synapse": {
+      "repository": "element-hq/synapse",
+      "version": "v1.158.0",
+      "commit": "7a3e98b6f77ee3a5fe4dbeb934b0a0c1721e6afe",
+      "license": "AGPL-3.0-or-later / commercial dual-license upstream; Yance adopts the AGPL route"
+    },
+    "elementWeb": {
+      "repository": "element-hq/element-web",
+      "version": "v1.12.25",
+      "commit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+      "license": "AGPL-3.0 / GPL-3.0 / commercial multi-license upstream; Yance adopts the AGPL route"
+    },
+    "mautrixWhatsapp": {
+      "repository": "mautrix/whatsapp",
+      "version": "v0.2607.0",
+      "commit": "a86f5eb9bf7d5a4a6cc7a1c4e42d322bdcb03aa2",
+      "license": "AGPL-3.0 with upstream license exceptions"
+    }
+  },
+  "ossFit": {
+    "matureOssDefault": true,
+    "synapseIsMatrixAuthority": true,
+    "elementIsConversationShell": true,
+    "mautrixWhatsappIsBridgeAuthority": true,
+    "elementRuntimeModulePreferred": true,
+    "elementPatchAllowedOnlyForVerifiedGap": "Element Web v1.12.25 runtime Module API can register logged-in navigation renderers and room-header actions but exposes no global persistent right-panel renderer; Container=right only relocates an existing room widget. The authorized patch may only add the missing global Yance workspace mount and must preserve Element's existing right-panel resize/hide persistence semantics.",
+    "duplicateMessageStateMachineForbidden": true,
+    "duplicateMatrixStoreForbidden": true,
+    "perPlatformProductPageForbidden": true,
+    "secondFrontendBuildSystemForbidden": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "Exact upstream repositories, 40-character commits and license records are absent before implementation",
+    "The unified Element shell has no persistent global Yance right workspace before the authorized module/patch",
+    "The right workspace must be hideable, resizable, restorable and must not control Matrix synchronization or bridge runtime state",
+    "WhatsApp enters the same Matrix/Element conversation shell and no WhatsApp-only product page or Yance message state machine is introduced",
+    "Bootstrap rejects mutable refs, short commits, pin drift and patch drift"
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
