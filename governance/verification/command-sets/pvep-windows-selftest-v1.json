@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "commandSetId": "pvep-windows-selftest-v1",
+  "platform": "windows",
+  "commands": [
+    {
+      "commandId": "pvep-required-tests",
+      "executable": "node",
+      "argv": ["tools/verification/run-required-tests.js"],
+      "expectedExitCode": 0,
+      "generatedRoots": [".pvep-output"],
+      "artifacts": []
+    }
+  ]
+}
