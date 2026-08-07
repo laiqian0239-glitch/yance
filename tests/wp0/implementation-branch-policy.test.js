@@ -1020,12 +1020,18 @@ test('malformed, impossible-date and arbitrary branches remain denied', () => {
 test('current repository branch uses local authority only when locally provable and arbitrary branches fail', () => {
   const branch = process.env.IMPLEMENTATION_BRANCH || currentBranch();
   assert.ok(branch, 'current repository branch must come from the trusted workflow identity or an attached local branch');
-  const current = checkRuntimeTargetGate({ branch, changedFiles: [] });
+  const current = checkRuntimeTargetGate({ branch });
   if (branch === 'oss/a-supply-chain-foundation') {
     assert.equal(current.pass, false, 'candidate-owned policy must not self-authorize the sealed OSS receipt');
     assert.equal(current.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');
   } else {
     assert.equal(current.pass, true, JSON.stringify(current));
+  }
+
+  if (current.authorityMode === 'AUTHORIZATION_PROPOSAL_TRANSPORT') {
+    const deniedFalseFacts = checkRuntimeTargetGate({ branch, changedFiles: [] });
+    assert.equal(deniedFalseFacts.pass, false, 'proposal transport must reject an explicitly empty changed-file fact set');
+    assert.equal(deniedFalseFacts.authorizationProposalReasonCode, 'WP0_AUTHORIZATION_PROPOSAL_TRANSPORT_INVALID');
   }
 
   const denied = checkRuntimeTargetGate({ branch: 'feature/unreviewed-release', changedFiles: [] });
