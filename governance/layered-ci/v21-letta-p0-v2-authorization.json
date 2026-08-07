@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LETTA-P0-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Supersede the unused V21-LETTA-P0 implementation branch after verifying a public-lifecycle gap in @letta-ai/letta-agent-sdk@0.6.2: its local management transport starts and retains an SDK-owned App Server but LettaAgentClient exposes no supported close/dispose API for that owned management connection/process. The repaired architecture keeps Letta as the runtime authority without private-field access or copied SDK internals: Yance supervises the official @letta-ai/letta-code@0.30.5 CLI App Server process through its documented `letta server --listen` entrypoint, while @letta-ai/letta-agent-sdk@0.6.2 connects through its public remote backend for management APIs. Letta Code owns agent state, memory, conversation continuity, compaction and App Server internals; Yance owns only desktop child-process lifecycle, Yance data-root binding, guarded IPC and the existing Element workspace projection.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-letta-p0-authorization.json",
+    "implementationBranch": "product/v21-letta-p0",
+    "reason": "The superseded branch was created from its authorization merge but received no implementation commits after the public Agent SDK shutdown gap was confirmed. It must remain unused for V21 Letta P0 implementation."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "1b4cf74b93f4ab1e20ba2f29238f4c4589f05564"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-letta-p0-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-letta-p0-v2-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Apply the repository normalizeChangedFiles contract: require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing. This is the workPackageChangedFilesSha256 contract used by shared/release/implementationBranchPolicy.js."
+  },
+  "implementation": {
+    "branch": "product/v21-letta-p0-v2",
+    "allowedChangedPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "config/upstreams/v21-letta-p0.json",
+      "docs/superpowers/plans/2026-08-07-yance-v21-letta-p0.md",
+      "electron/lettaAgentRuntime.js",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/preload.js",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "package-lock.json",
+      "package.json",
+      "tests/wp0/v21-letta-p0.test.js",
+      "tests/wp0/v21-letta-workspace-contract.test.js",
+      "third_party/licenses/letta-agent-sdk-Apache-2.0.txt",
+      "third_party/licenses/letta-code-Apache-2.0.txt"
+    ],
+    "approvedChangedFileCount": 14,
+    "approvedChangedFileSetSha256": "97a70af318307f072f029266b25b49f1ea3caeddf4382313adc452c9f0dab65d",
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "package-lock.json",
+        "package.json"
+      ],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "workflowModificationAllowed": false
+  },
+  "dependencies": {
+    "directExact": {
+      "@letta-ai/letta-agent-sdk": "0.6.2",
+      "@letta-ai/letta-code": "0.30.5"
+    },
+    "mutableRangesForbidden": true,
+    "directLettaCodeReason": "Yance launches the supported Letta Code package CLI directly and must not depend on a transitive node_modules layout beneath the Agent SDK."
+  },
+  "upstreams": {
+    "lettaAgentSdk": {
+      "repository": "letta-ai/letta-agent-sdk",
+      "version": "v0.6.2",
+      "commit": "c48df1693731443682fe8c7f356ef9b8a33df6c0",
+      "package": "@letta-ai/letta-agent-sdk@0.6.2",
+      "license": "Apache-2.0"
+    },
+    "lettaCode": {
+      "repository": "letta-ai/letta-code",
+      "version": "v0.30.5",
+      "commit": "3e5ead65dcf3b7fdf1e2da595660eb85063a9722",
+      "package": "@letta-ai/letta-code@0.30.5",
+      "license": "Apache-2.0",
+      "cli": "letta server --listen ws://127.0.0.1:0"
+    }
+  },
+  "ossFit": {
+    "matureOssDefault": true,
+    "agentSdkPublicRemoteApiOnly": true,
+    "lettaCodeOfficialCliProcess": true,
+    "lettaCodeOwnsPersistentAgentState": true,
+    "lettaCodeOwnsMemoryAndCompaction": true,
+    "lettaCodeOwnsConversationContinuity": true,
+    "lettaCodeOwnsAppServerInternals": true,
+    "yanceOwnsDesktopChildProcessLifecycleOnly": true,
+    "yanceDataRootBindingOnly": true,
+    "localBackendDefault": true,
+    "loopbackOnly": true,
+    "deprecatedAppServerAliasForbidden": true,
+    "sdkPrivateFieldAccessForbidden": true,
+    "sdkInternalSubpathImportForbidden": true,
+    "copiedSdkLauncherForbidden": true,
+    "duplicateAgentStateMachineForbidden": true,
+    "duplicateMemoryStoreForbidden": true,
+    "customYanceAgentRuntimeForbidden": true,
+    "modelProviderHardcodeForbidden": true,
+    "routeLLMOrLiteLLMImplementationForbidden": true,
+    "parlantGoalEngineImplementationForbidden": true,
+    "langfuseImplementationForbidden": true,
+    "secondAiFrontendForbidden": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The trusted base and superseded unused implementation branch have no Letta implementation commits; implementation must start only from this authorization merge on product/v21-letta-p0-v2",
+    "Both @letta-ai/letta-agent-sdk and @letta-ai/letta-code must be direct exact dependencies at 0.6.2 and 0.30.5 respectively; mutable ranges and reliance on the Agent SDK transitive node_modules layout are forbidden",
+    "The supported Node floor must satisfy Node >=22.19.0 and Electron 39.8.5 compatibility must remain explicit",
+    "The adapter must resolve the official @letta-ai/letta-code package entrypoint, launch it with the existing trusted Node runtime and the supported `server --listen ws://127.0.0.1:0` command, and reject any non-loopback listening URL",
+    "A real App Server management probe must connect through the public @letta-ai/letta-agent-sdk remote backend, perform a sessionless management read without a model-generation turn, then terminate the Letta Code process through SIGTERM and observe a clean child exit",
+    "Letta Code local-backend state must be rooted beneath the resolved Yance data root through LETTA_LOCAL_BACKEND_DIR; writes to an unrelated default user-home Letta tree are forbidden for the Yance launch path",
+    "The Letta Code CLI SIGTERM path must remain the shutdown authority; the adapter must not reach into Agent SDK managementTransport, ownedConnection or other private fields and must not import unexported SDK subpaths",
+    "All renderer calls must traverse the existing trusted preload/main-frame IPC boundary and be declared in the IPC manifest; direct Node access from the Element renderer is forbidden",
+    "The existing Element Yance Workspace remains the only AI product surface and must show Letta runtime/identity state without introducing a second frontend shell",
+    "No parallel Yance memory or agent-state persistence, model-provider default, Parlant goal policy, LiteLLM/RouteLLM routing, Langfuse tracing or message-send authority may be introduced by this package",
+    "Exact upstream repositories, 40-character commits, Apache-2.0 license records and package-lock source integrity must be present before implementation can be considered GREEN"
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
