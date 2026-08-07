@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_PVEP_WP0_BRANCH_AUTHORITY_REPAIR_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-07T06:56:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "PVEP",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PVEP exact-Head verification proved that permanent WP0 correctly rejects governance/portable-verification-evidence-protocol because no trusted-main delegated governance authority exists for it. A second causal check on fresh main proved that, after GOVERNANCE_WP0 began executing the implementation-branch policy contract and that contract began consuming IMPLEMENTATION_BRANCH, a new single-file authorization proposal branch is itself rejected before it can establish trusted-main authority. The repair must therefore both authorize the exact PVEP repair branch from a trusted-main authorization merge and permanently separate non-effective authorization-proposal transport from implementation authority, without a branch alias, prefix whitelist, candidate-owned implementation authorization or gate skip.",
+  "base": {
+    "branch": "main",
+    "commit": "9290b7e1c4995fa2c7f909911a84ac56e1176109"
+  },
+  "sourceEvidence": {
+    "pvepImplementationBranch": "governance/portable-verification-evidence-protocol",
+    "pvepExactHead": "9ec59ac836f70e95a1e6d32a03451a3780908bdd",
+    "reasonCode": "WP0_REJECTED_STAGE_TARGET_DENIED",
+    "rejectedBranch": "governance/portable-verification-evidence-protocol",
+    "bootstrapRejectedBranch": "governance/pvep-wp0-branch-authority-authorization",
+    "governanceBranchPolicyCoverageMerge": "edec1d5ab49b1aa316b400b99a63eb619b82b2a5",
+    "trustedBranchIdentityTestCommit": "5f66addfd8fb371af31597e570c99f4ccd989cd1",
+    "historicalComparableAuthorizationHead": "97e6ebc2d83d7e775879603e2383dd1f321fa868",
+    "historicalComparableStageRun": 31088964384,
+    "historicalComparableGovernanceJob": 92575177879,
+    "historicalComparableGovernanceJobDidNotExecuteImplementationBranchPolicy": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/pvep-wp0-branch-authority-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/pvep-wp0-branch-authority-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/pvep-wp0-branch-authority",
+    "requiredBase": "the exact ordinary main merge commit containing this authorization",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "c9ebb6397f260acd3447fa7691a53ec9c6478d1c375250dc3a07b61498cc03f2",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "registryModificationAllowed": false,
+    "hardCodedBranchWhitelistAllowed": false,
+    "directoryAutoDiscoveryAllowed": false
+  },
+  "requiredDesign": {
+    "authoritySource": "TRUSTED_MAIN_AUTHORIZATION_MERGE",
+    "candidateOwnedImplementationAuthorizationMayNotSelfAuthorize": true,
+    "authorizationProposalTransportMayOnlyTransportOneExactNonEffectiveAuthorizationDocument": true,
+    "authorizationProposalTransportMayNotAuthorizeItsImplementationBranch": true,
+    "authorizationIntroductionMergeMustBeTwoParent": true,
+    "authorizationIntroductionParentsMustMatchEvidence": true,
+    "authorizationBlobAtIntroductionMergeMustMatchEvidence": true,
+    "trustedPolicyHeadMustDescendFromIntroductionMerge": true,
+    "branchMustEqualAuthorizationImplementationBranch": true,
+    "authorizationImplementationScopeMustMatchCountAndDigest": true,
+    "arbitraryGovernanceBranchesMustFailClosed": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The exact governance/portable-verification-evidence-protocol branch is denied on current main before the repair",
+    "The exact single-file authorization proposal branch is also denied by current main, proving the post-coverage bootstrap deadlock",
+    "After the repair, a single-file non-effective authorization proposal may pass only the proposal-transport branch gate and still grants no implementation authority",
+    "A trusted-main authorization introduced by the exact ordinary merge with the exact parents and blob authorizes only fix/pvep-wp0-branch-authority",
+    "Wrong introduction merge, parent order, reviewed authorization Head, blob, document type, status, branch, path count, path digest or governance closure fails closed",
+    "Changing the authorization file only in an evaluated candidate cannot authorize its implementation branch",
+    "A proposal carrying more than one changed path, an effective-before-merge authorization, a wildcard path or an implementation branch equal to the proposal branch fails closed",
+    "An arbitrary governance branch remains denied",
+    "Existing OSS-A, ACV2, Stage and rebuild branch authorities remain unchanged"
+  ],
+  "requiredSequence": [
+    "Record the current-main authorization-proposal bootstrap RED without renaming the branch or weakening the assertion",
+    "Independently review this exact single-file authorization proposal",
+    "Introduce this authorization into main only through an explicit owner-approved ordinary two-parent bootstrap merge because current main has no non-circular authorization-proposal transport path",
+    "Implementation branch starts from that exact authorization merge commit",
+    "Failure-first tests prove PVEP denial, authorization-proposal transport boundaries and all trusted-main graph/blob drift cases",
+    "implementationBranchPolicy gains reusable authorization-proposal transport semantics and the exact PVEP trusted-main delegated authority descriptor",
+    "No branch prefix, governance directory wildcard, candidate-owned implementation self-authorization or workflow skip is introduced",
+    "Implementation exact Head passes permanent WP0, Layered CI, ACV2 and independent review",
+    "Implementation PR merges to main through an ordinary merge commit",
+    "PVEP implementation branch is then rebased only by ordinary merge topology onto fresh trusted main and Task 11/12 exact-Head verification resumes"
+  ],
+  "prohibitions": {
+    "booleanSemantics": "TRUE_MEANS_FORBIDDEN",
+    "temporaryBranchAlias": true,
+    "localBranchRenameToPassTests": true,
+    "branchPrefixWhitelist": true,
+    "governanceDirectoryWildcard": true,
+    "candidateOwnedImplementationSelfAuthorization": true,
+    "authorizationProposalGrantsImplementationAuthority": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "directModificationOfPr67": true,
+    "wpBModification": true,
+    "productionUse": true,
+    "formalRelease": true,
+    "publish": true,
+    "readyForPromotion": true,
+    "automaticNextWorkPackageAuthorization": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "pr67MustRemainDraft": true,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "readyForPromotion": false,
+    "automaticNextWorkPackageAuthorization": false
+  }
+}
