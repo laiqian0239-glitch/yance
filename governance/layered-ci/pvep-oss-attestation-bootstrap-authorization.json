@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "PVEP_OSS_ATTESTATION_BOOTSTRAP",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "base": {"branch": "main", "commit": "028d14458269d0be6196e724fe5a0416dbfa900a"},
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/pvep-oss-attestation-bootstrap-authorization",
+    "allowedChangedPaths": ["governance/layered-ci/pvep-oss-attestation-bootstrap-authorization.json"],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "governance/pvep-attestation-bootstrap-authorized",
+    "purpose": "Install a base-owned trusted PVEP runner and GitHub/Sigstore artifact-attestation workflow so candidate-controlled code cannot self-assert verification facts.",
+    "allowedChangedPaths": [
+      ".github/workflows/pvep-attested-evidence.yml",
+      "governance/verification/third-party/actions-attest-v4.2.2.json",
+      "tests/verification/pvep-trusted-runner-contract.test.js",
+      "tools/verification/pvep-trusted-runner.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "bccc8c37d679cf53a3fe4f1de89adb80910aeb5486eb9fa5a171b2c3dae7c2cf",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "upstreamPins": [
+      {"repository": "actions/attest", "release": "v4.2.2", "commit": "1e69f48acb82d1966a394da916b4c1698aa569d6", "role": "in-toto/DSSE + Sigstore-backed GitHub Artifact Attestation"},
+      {"repository": "actions/checkout", "commit": "11d5960a326750d5838078e36cf38b85af677262", "role": "existing reviewed checkout pin"},
+      {"repository": "actions/setup-node", "commit": "48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e", "role": "existing reviewed Node setup pin"}
+    ],
+    "requiredSecurityProperties": [
+      "trusted runner code is loaded from the pull request base commit, never from the candidate Head",
+      "candidate Head is checked out only as the workload under test",
+      "command execution uses direct argv spawning with shell disabled",
+      "evidence bytes are the attested subject and exact base/head/platform/command-set digest are bound in the attested predicate",
+      "attestation generation uses the pinned actions/attest upstream rather than Yance-owned signing or key lifecycle"
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
