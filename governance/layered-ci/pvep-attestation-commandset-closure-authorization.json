@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "PVEP-ATTESTATION-COMMANDSET-CLOSURE",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Post-merge review of PR #104 found that the base-owned attestation workflow references Linux and Windows PVEP selftest command-set paths that are not present on trusted main. The older definitions on PR #100 transitively depend on the custom receipt/JCS/signed-executor stack that V2.1 OSS-fit is replacing. The root repair is therefore to add only two self-contained base-owned selftest command sets and explicitly prohibit importing the PR #100 custom trust stack.",
+  "base": {
+    "branch": "main",
+    "commit": "2487a39919851604607697be712042da6a75fd26"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/pvep-attestation-commandset-closure-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/pvep-attestation-commandset-closure-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/pvep-attestation-commandset-closure",
+    "allowedChangedPaths": [
+      "governance/verification/command-sets/pvep-linux-selftest-v1.json",
+      "governance/verification/command-sets/pvep-windows-selftest-v1.json"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "69842a8630aa8ef4371fefeff8be5a44e50d82461114bce7ace49bd01ec381ad",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "requiredDesign": {
+    "commandSetsAreBaseOwned": true,
+    "selftestCommandsAreSelfContained": true,
+    "candidateOwnedRunnerOrCommandSetIsNeverUsed": true,
+    "pr100CustomReceiptJcsSignedExecutorStackMayNotBeImported": true,
+    "exactPathScopeOnly": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first pull request after PR #104 reproducibly fails the new attestation workflow because the trusted-base command-set paths are absent",
+    "The closure adds exactly the Linux and Windows selftest command-set files and no transitive PR #100 trust-stack dependency",
+    "After the closure reaches trusted main, the next pull request obtains a real GitHub/Sigstore attestation from the base-owned workflow"
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
