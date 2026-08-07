@@ -4,218 +4,270 @@
 >
 > 稳定架构唯一来源：[`YANCE_IMPLEMENTATION_MASTER_PLAN.md`](./YANCE_IMPLEMENTATION_MASTER_PLAN.md) V2.1。
 >
-> 新聊天必须先读取 [`START_HERE.md`](./START_HERE.md)、V2.1 主计划和本文件，然后 fresh 核验远端 refs、PR、workflow、review 与 exact Head。实时 GitHub 事实优先于本文件。
+> 新聊天必须先读取 [`START_HERE.md`](./START_HERE.md)、V2.1 主计划和本文件，然后 fresh 核验 GitHub refs、PR、workflow、review 与 exact Head。实时 GitHub 事实优先于本文件。
 
 ## 0. 固定执行规则
 
-1. 禁止临时绕过，必须底层修复/成熟 OSS 替换。
-2. 失败测试先行；不得跳过、关闭、弱化门禁制造 GREEN。
+1. 禁止临时绕过，必须底层修复 / 成熟 OSS 替换。
+2. failure-first；不得跳过、关闭、弱化门禁制造 GREEN。
 3. 不强推，不 amend/rebase 改写已发布历史。
-4. 普通 merge 必须保留 two-parent 历史。
-5. 成熟 OSS 优先；任何新的 Yance 自研基础设施必须先通过 V2.1 OSS-fit 准入。
-6. 快速落地模式：按完整工作包连续实施，不按小 Task 单独审批；只在真实 RED、正式授权边界或最终 owner exact-Head merge approval 边界停下。
-7. 当前 P0 已完成正式授权；不要再次停下来索取中间 Task 批准。
-8. **防丢失加速规则**：稳定的非平凡实施切片优先用单个 Git tree 原子提交并立即 fast-forward 到远端 Draft 实施分支；不要在会话里长期积累未提交代码。昂贵查询/长 CI 前先做远端 checkpoint。
-9. **减少无效 CI**：failure-first RED 只需取得 causal 证据；实现阶段尽量整包/大切片原子提交，不逐文件 push。最终 exact Head 才要求适用全门禁完整 GREEN。
-10. **等待不空转**：CI 运行期间并行做只读上游核验、license/source closure、patch 生成、diff 审查；不得为了等待而停。
-11. 已冻结的上游/架构不重复研究；只做 fresh drift 核验。上传的 portable bundle 可用于代码地图/本地精确 blob 重放，但 live GitHub refs/精确 blob 才是最终权威。
+4. 普通 merge 保留 ordinary two-parent history。
+5. 成熟 OSS 优先；任何新的 Yance 自研基础设施必须先通过 V2.1 OSS-fit。
+6. 快速落地模式：按完整 work package 连续实施，不按小 Task 单独审批；只在真实 RED、正式授权边界或最终 owner exact-Head merge approval 边界停下。
+7. 当前已经授权的工作包不重复授权，不重新制造已经成立的 RED。
+8. 稳定实施切片优先远端 checkpoint；Draft PR 作为恢复点。
+9. failure-first RED 只取得 causal evidence；实现阶段尽量整包原子提交，最终 exact Head 再跑完整门禁。
+10. CI 等待期间并行做只读上游/license/source/diff/scope 核验，不空转。
+11. uploaded bundle/cache 可以离线加速，但 live GitHub SHA/blob/ref 才是最终权威。
 
-## 1. 当前产品架构与唯一目标
+## 1. V2.1 当前稳定产品方向
 
-当前 V2.1 第一真实产品闭环：
+V2.1 已并入 Relationship Intelligence Enhancement，属于**原 V2.1 的严格超集增强**，不另起 V2.2，不重做 Communications/Letta 等已完成或已授权工作。
 
-```text
-Matrix/Synapse + Element + mautrix-whatsapp
-        ↓
-单一统一 Element conversation shell
-        ↓
-可折叠/隐藏/可恢复 Yance Workspace
-        ↓
-Letta → Parlant → RouteLLM/LiteLLM → reply candidates
-        ↓
-用户选择/修改 → Matrix/bridge 真实发送 → Langfuse
-```
+产品定位：
 
-当前工作只推进第一段：**Matrix/Synapse + Element + 第一真实 WhatsApp bridge + 统一 Yance Workspace**。
+> **个人使用、开源、面向真实交友 / 情感 / 长期关系沟通的 AI 助手。**
 
-权威边界：
-- Synapse = Matrix server/state authority；
-- Element = conversation/product shell authority；
-- mautrix-whatsapp = WhatsApp bridge authority；
-- Yance 只保留薄 branding/integration/workspace UX，不新建第二套 message/contact/channel/state runtime。
+不是 CRM、销售漏斗或营销自动化产品。
 
-不得恢复旧 Chatwoot 产品壳、每平台独立聊天页面、第二套消息状态机或自研通信基础设施。
+当前稳定架构继续包含：
 
-## 2. 已完成的治理闭环
+- Matrix / Synapse / Element / mautrix 多平台；
+- Letta + Graphiti；
+- Parlant Relationship Goal/Journey；
+- LiteLLM + RouteLLM；
+- Langfuse + OpenTelemetry + DSPy + Promptfoo；
+- SenseVoice / STT + CosyVoice；
+- Immich + ComfyUI；
+- CyberVerse + LiveKit + Avatar backends；
+- Docling / Retrieval / MCP；
+- 单一 Yance 产品工作区、设置/通知体验、用户确认与最终发送决策。
 
-PVEP 已由 PR #108 完整收口，旧 PR #100 已 closed/unmerged，不再继续 custom trust stack。
+## 2. Communications P0 已完成，不得重做
 
-为 P0 OSS dependency 引入补齐的治理链也已完成：
+PR #112 `feat(v21): adopt Matrix Element and mautrix-whatsapp P0` 已 merged。
 
-- PR #109：exact dependency-control delegation authorization，ordinary merge `d4da61ac...`；
-- PR #110：dependency delegation policy implementation，causal RED `32f81ff4...`，GREEN implementation Head `9e309cf8...`，ordinary merge `c3363f8c...`；
-- PR #111：V2.1 Comms P0 正式授权，ordinary merge **`2e7beefc6fd349f5a0b06ab6d5ded67418e75d9f`**。
+实时核验：
 
-当前 live `main` fresh 核验：
+- PR #112：closed / merged；
+- final product Head：`8a2892cf9045cfe69b0340aeebbc8dbb27b2cb01`；
+- ordinary merge commit：`932c7c6588de9af6bd86becc31b90b54e4110be4`；
+- changed files：22；
+- exact authorized path-set SHA-256：`972786dec8299d2d8c7e9b9a7aa44e89608310f6ac4f462d5d35fbf613f71ab2`；
+- final Stage / ACV2 / post-merge / PVEP and independent review were GREEN at closure。
 
-**`2e7beefc6fd349f5a0b06ab6d5ded67418e75d9f`**
+已冻结上游：
 
-因此 P0 实施已经在授权范围内；新聊天不要再建立一轮重复授权。
+### Synapse
+- version `v1.158.0`
+- commit `7a3e98b6f77ee3a5fe4dbeb934b0a0c1721e6afe`
 
-## 3. 当前实施 PR #112
+### Element Web
+- version `v1.12.25`
+- commit `a2a996ae50d802878bf48e4bbf3730004bdcc55c`
 
-PR：**#112 `feat(v21): adopt Matrix Element and mautrix-whatsapp P0`**
+### mautrix-whatsapp
+- version `v0.2607.0`
+- commit `a86f5eb9bf7d5a4a6cc7a1c4e42d322bdcb03aa2`
 
-状态：
+不要重新规划 Communications P0，不恢复旧 Chatwoot Product Shell，也不要再建立 Yance 第二套 message/channel/sync runtime。
+
+## 3. trusted main 当前事实
+
+fresh GitHub 核验：
+
+`main = cb8f816759dec6a17d22a9bd37cd2a23a72946fd`
+
+这是 PR #118 `governance(v21): authorize Letta P0 v2` 的 ordinary merge commit。
+
+PR #118：
+
+- closed / merged；
+- authorization head：`3b115a666faee4a9ff7b6db6e651ee58124b7f69`；
+- merge：`cb8f816759dec6a17d22a9bd37cd2a23a72946fd`；
+- scope：Letta P0 v2 exact 14 paths；
+- workflow modification forbidden。
+
+## 4. 当前实施工作包：Letta P0 v2 / PR #119
+
+PR：**#119 `feat(v21): adopt Letta persistent-agent P0 v2`**
+
+fresh 状态：
+
 - Open；
 - Draft；
 - 未 merge；
-- branch：`product/v21-comms-p0`；
-- base：`main@2e7beefc6fd349f5a0b06ab6d5ded67418e75d9f`。
-
-### 3.1 Failure-first RED
-
-RED Head：
-
-**`7664eea49b206ec3bd40fc2efeca7e690ca4ae5d`**
-
-只包含两份永久 WP0 合同：
-- `tests/wp0/v21-comms-p0.test.js`
-- `tests/wp0/v21-element-workspace-contract.test.js`
-
-Stage WP0 run **`31153194208`**：
-- routing GREEN；
-- Linux sealed-export GREEN；
-- Windows sealed-export GREEN；
-- 唯一 causal failure = `wp0-product / Run WP0 required tests`，8/8 都是缺少本 P0 实现文件/行为。
-
-这是有效 RED；不要重新制造另一颗 failure-only Head。
-
-### 3.2 当前远端 recovery checkpoint
-
-为防止长会话卡死导致进度丢失，当前实施已经上传到远端：
-
-**exact Head = `9cfbfa62e8fa9e04a902458056529dd586c08771`**
-
-commit：`wip(v21): checkpoint Matrix Element P0 implementation`
-
-当前 PR #112：
+- mergeable；
+- branch：`product/v21-letta-p0-v2`；
+- base：`main@cb8f816759dec6a17d22a9bd37cd2a23a72946fd`；
+- exact current Head：`9e5dbf19de8dde85ac18324bd9877a997f9a8e00`；
 - 3 commits；
-- 15 changed files；
-- 其中 2 个永久 RED contracts + 13 个已授权 implementation paths；
-- Draft 保持不变；
-- **DO NOT MERGE checkpoint**。
+- 3 changed files；
+- 目前只含实施计划 + 两份 failure-first tests；
+- **当前仍是预期 causal RED，尚无 Letta production code/dependency changes。**
 
-最终正式授权范围：**exactly 22 paths**；canonical sorted path-set SHA-256：
+### 4.1 正式授权范围
 
-**`972786dec8299d2d8c7e9b9a7aa44e89608310f6ac4f462d5d35fbf613f71ab2`**
+Work package：`V21-LETTA-P0-V2`
 
-唯一 dependency-control 路径：`integration/element-module/package.json`；root `package.json` 和 workflow 都不在授权范围。
+正式 implementation branch：
 
-## 4. 已冻结上游，禁止重复选型
+`product/v21-letta-p0-v2`
 
-精确 OSS pins：
+旧 `product/v21-letta-p0` 已被 supersede，不得继续使用。
 
-### Synapse
-- repo: `https://github.com/element-hq/synapse.git`
-- version: `v1.158.0`
-- commit: **`7a3e98b6f77ee3a5fe4dbeb934b0a0c1721e6afe`**
-- license: AGPL-3.0-or-later
+exact 14 paths：
 
-### Element Web
-- repo: `https://github.com/element-hq/element-web.git`
-- version: `v1.12.25`
-- commit: **`a2a996ae50d802878bf48e4bbf3730004bdcc55c`**
-- license: AGPL-3.0-only（上游同时提供其它许可文件，但本 P0 按 AGPL 路径履约）
+1. `THIRD_PARTY_NOTICES.md`
+2. `config/upstreams/v21-letta-p0.json`
+3. `docs/superpowers/plans/2026-08-07-yance-v21-letta-p0.md`
+4. `electron/lettaAgentRuntime.js`
+5. `electron/m2/ipcManifest.json`
+6. `electron/main.js`
+7. `electron/preload.js`
+8. `integration/element-module/src/YanceWorkspace.tsx`
+9. `package-lock.json`
+10. `package.json`
+11. `tests/wp0/v21-letta-p0.test.js`
+12. `tests/wp0/v21-letta-workspace-contract.test.js`
+13. `third_party/licenses/letta-agent-sdk-Apache-2.0.txt`
+14. `third_party/licenses/letta-code-Apache-2.0.txt`
 
-### mautrix-whatsapp
-- repo: `https://github.com/mautrix/whatsapp.git`
-- version: `v0.2607.0`
-- commit: **`a86f5eb9bf7d5a4a6cc7a1c4e42d322bdcb03aa2`**
-- license: AGPL-3.0-or-later WITH upstream exceptions
+canonical path-set SHA-256：
 
-不要再做 Chatwoot/shadcn-vue 等旧 UI 线选型来替换这一 P0 主体。
+`97a70af318307f072f029266b25b49f1ea3caeddf4382313adc452c9f0dab65d`
 
-## 5. Element workspace 最终技术方向已冻结
+唯一 dependency-control paths：
 
-Element 1.12.25 已具备 runtime Module API、`navigation.registerLocationRenderer`、`extras.addRoomHeaderButtonCallback` 等能力，但其 `CustomComponentsApi` **没有 global persistent right-panel renderer slot**；`Container:"right"` 只用于已有 room widget，不满足 Yance 全局 workspace。
+- `package.json`
+- `package-lock.json`
 
-因此 V2.1 OSS-fit 结论：
+dependency-path digest：
 
-- 不 fork Element 整体；
-- Yance Workspace UI = 官方 Element runtime module；
-- module 源码存 `integration/element-module/*`，bootstrap 复制到 Element monorepo `modules/yance`，继续使用 Element 自己 Nx/Vite workspace，不建立 Yance 第二套前端构建基础设施；
-- 只保留一个最小、可重放 upstream patch，补 global right-panel renderer；
-- patch 必须精确只改这 4 个 Element upstream files：
-  1. `apps/web/src/components/structures/RightPanel.tsx`
-  2. `apps/web/src/modules/customComponentApi.ts`
-  3. `packages/module-api/element-web-module-api.api.md`
-  4. `packages/module-api/src/api/custom-components.ts`
-- patch 文件路径：`upstream-patches/element-web/0001-yance-global-right-workspace.patch`；
-- 不新建第二个 RightPanel store；显示/隐藏/resize/session persistence 继续复用 Element `RightPanelStore`/现有 shell；
-- module 负责 AI / Goal / Contact / Presence UI；hide/render 不得 stop client、logout、stop sync 或控制 bridge runtime。
+`3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2`
 
-## 6. checkpoint 已保存的实施内容
+### 4.2 已冻结 Letta OSS-fit
 
-`9cfbfa62...` 已保存核心 13 implementation paths，包括：
-- `config/upstreams/v21-comms-p0.json` 精确 upstream lock；
-- Synapse config；
-- mautrix-whatsapp config；
-- Element config；
-- `services/matrix/docker-compose.yml`；
-- `tools/matrix/bootstrap.js` exact-commit/bootstrap 骨架；
-- `integration/element-module/*` runtime module / Nx/Vite skeleton；
-- P0 实施计划。
+Direct exact dependencies：
 
-这些内容已在 GitHub，不需要新聊天从头生成。
+- `@letta-ai/letta-agent-sdk@0.6.2`
+- `@letta-ai/letta-code@0.30.5`
 
-## 7. 下一步只剩 7 个授权路径收口
+架构：
 
-从 **`product/v21-comms-p0@9cfbfa62e8fa9e04a902458056529dd586c08771`** 继续，直接完成剩余 7 paths：
+```text
+Yance Electron main
+  ↓ supervise trusted Node child
+official Letta Code CLI
+  letta server --listen ws://127.0.0.1:0
+  ↓
+loopback App Server
+  ↓
+public Letta Agent SDK
+  backend: remote
+```
 
-1. `upstream-patches/element-web/0001-yance-global-right-workspace.patch`
-2. `electron/main.js`
-3. `THIRD_PARTY_NOTICES.md`
-4. `third_party/licenses/element-web-AGPL-3.0.txt`
-5. `third_party/licenses/synapse-AGPL-3.0.txt`
-6. `third_party/licenses/mautrix-whatsapp-AGPL-3.0.txt`
-7. `third_party/licenses/mautrix-whatsapp-LICENSE.exceptions.txt`
+固定边界：
 
-注意：`electron/main.js` 在 uploaded portable bundle 中的 Git blob 已确认与 #112 原 exact Head 一致（blob `95820fe9...`），因此可用 bundle 做本地精确最小 patch，但提交前仍以 live branch blob 做 fresh identity 核验。
+- Letta owns agent state / memory / conversations / compaction / App Server internals；
+- Yance 只监督官方 child lifecycle，并通过公开 remote API 做产品投影；
+- `LETTA_LOCAL_BACKEND_DIR` 必须位于 Yance data root；
+- stop 通过 SIGTERM 触发官方 clean shutdown；
+- 禁止 private SDK fields/subpaths、复制 launcher、第二套 Yance agent memory/runtime。
 
-剩余实现完成后：
-1. 单个/极少原子 Git tree commit fast-forward 到 `product/v21-comms-p0`；
-2. 立即跑两份 WP0 contracts，确认 causal RED → GREEN；
-3. fresh 比较相对授权 merge：必须 exactly 22 paths，无 scope drift；
-4. final exact Head 跑所有适用 Stage WP0 / Layered / ACV2 / sealed-export 等门禁；
-5. review threads 必须 0；
-6. 若出现真实产品/安全/授权 RED，底层修复；不得绕过；
-7. 全 GREEN 后停在 **owner final exact-Head merge approval**，不要自行 merge #112。
+### 4.3 causal RED 已成立
 
-## 8. 加速方式（新聊天必须遵守）
+exact Head：
 
-- 不重新读几十个旧 PR；启动只读 3 个 handoff docs + fresh main + #112 + final authorization receipt/paths。
-- 不重复上游选型；pins 已冻结，只核 tag/commit/license 是否漂移。
-- 多文件实施用 Git blob/tree/commit 一次性原子落库，避免 contents API 逐文件制造 7 次 CI。
-- 每完成一个真正可恢复的大切片就先远端 checkpoint，再做长查询/CI；Draft PR 是恢复点。
-- CI 等待期间并行完成 license blob、patch static review、Electron exact diff、scope/hash 计算，不空等。
-- 只为 causal RED 获取必要日志；不要下载/美化大段审计材料。
-- 能用上传的 bundle/cacache/Electron ZIP 做离线加速就用，但身份和最终结论仍由 GitHub exact SHA/blob 验证。
-- 不碰 PR #67 / OSS-A /旧 Chatwoot UI 独立工作线，不把它们 merge/rebase 到 #112。
-- 不创建新的 Yance message runtime、provenance platform、front-end build system。
+`9e5dbf19de8dde85ac18324bd9877a997f9a8e00`
 
-## 9. 新聊天最短启动动作
+Stage run：
 
-1. 读取 `project-state/active-handoff/START_HERE.md`。
-2. 读取 `project-state/active-handoff/YANCE_IMPLEMENTATION_MASTER_PLAN.md` V2.1。
-3. 读取本文件。
-4. fresh 核验 `main` 与 PR #112 exact Head；预期当前值分别为 `2e7beefc...` / `9cfbfa62...`，如有正常后继则以 live GitHub 为准。
-5. 确认 #112 仍 Draft/Open，scope authorization SHA `972786de...` 未改变。
-6. **不要重新规划/重新授权/重新制造 RED。直接从剩余 7 路径继续整包实施。**
-7. 只在真实 RED 或最终 exact-Head merge approval 边界停下。
+`31191936121` — failure（预期 causal RED）
 
-### 临时 ref 噪音
+同一 exact Head：
 
-此前为防丢失工具探测可能留下若干 `checkpoint/v21-comms-p0-*` refs。它们不是权威实施分支，不要基于它们继续；唯一权威实施 ref 是：
+- ACV2 `31191935852` — success；
+- WP-A Main Post-Merge Validation `31191936242` — success。
 
-`product/v21-comms-p0`
+Stage 失败精确落在新增 Letta product contracts：
+
+- 首个失败：缺 `config/upstreams/v21-letta-p0.json`；
+- 随后证明缺 exact Letta dependencies；
+- 缺 `electron/lettaAgentRuntime.js`；
+- 缺 IPC manifest/preload/main wiring；
+- 缺现有 Yance Workspace 的 Letta projection；
+- 没有语法错误或无关既有测试回归。
+
+这是有效 failure-first 边界。下一步不是重新研究/重新授权/重新制造 RED，而是直接实施授权的 GREEN closure。
+
+## 5. #119 下一步
+
+继续在 `product/v21-letta-p0-v2` 上整包实现：
+
+1. `config/upstreams/v21-letta-p0.json` exact provenance；
+2. exact dependencies + Node >=22.19.0 + 正确 package-lock；
+3. Apache-2.0 license copies + THIRD_PARTY_NOTICES；
+4. `electron/lettaAgentRuntime.js` official CLI supervision；
+5. main lifecycle integration；
+6. read-only guarded IPC + preload + manifest；
+7. 只在现有 Element `YanceWorkspace` 投影 Letta state/agents/conversations；
+8. real local App Server probe + SIGTERM clean child exit；
+9. final exact 14 paths/digest；
+10. Stage / Layered / ACV2 / sealed-export / review threads 全 GREEN；
+11. 最终停在 owner exact-Head merge approval，**不得自行 merge #119**。
+
+## 6. Relationship Intelligence Enhancement 已写入 V2.1，但不扩大 #119
+
+后续主线：
+
+1. Parlant Relationship Goal/Journey；
+2. LiteLLM + RouteLLM；
+3. Langfuse + OpenTelemetry；
+4. SenseVoice + CosyVoice；
+5. Immich Relationship Media Memory；
+6. Graphiti Relationship Timeline；
+7. SillyTavern Persona / Character / Lorebook / Prompt 可移植模块 OSS-fit；
+8. Docling + Retrieval；
+9. MCP；
+10. ComfyUI identity visual；
+11. Live voice；
+12. CyberVerse + LiveKit Avatar；
+13. Temporal/durable engine only when a real long-running workflow requires it。
+
+每项都必须独立 OSS-fit / authorization / RED-GREEN / PR。
+
+## 7. Facebook modernization 新增为独立并行线
+
+现有 Facebook Page 真实问题历史包括 OAuth/scope/domain/redirect、Business Login configuration、Business Suite 会话/echo、未知 PSID、history/reconciliation、permission-limited 状态等。
+
+后续不再默认扩大 Yance 自研 Facebook transport，而是独立评估两条成熟 OSS 路线：
+
+### Official Page Engine
+
+- Chatwoot OSS Facebook Channel 的 MIT 范围能力；
+- Meta official API / SDK / schema；
+- Yance 只保留极薄 Facebook Bridge、统一产品投影和最终发送决策。
+
+### Optional Session Engine
+
+- `facebook-chat-api` 架构及 2026 仍维护的 FCA-compatible forks；
+- 目标：账号/session 登录、2FA、encrypted appState、Personal Messenger，并真实验证 Page identity switch / Page send / Page receive / Business Suite echo；
+- 只有真实 Facebook account + Page + Windows/Electron probe 全部成立后才准入；
+- 不长期保存明文密码；
+- 不凭旧 README/旧 `pageID` 支持宣称当前可用。
+
+Facebook modernization 不允许污染 #119。
+
+## 8. 跨聊天启动最短动作
+
+1. 读取 `START_HERE.md`；
+2. 读取 `YANCE_IMPLEMENTATION_MASTER_PLAN.md` V2.1；
+3. 读取本文件；
+4. fresh 核验 `main`；
+5. fresh 核验 #119 base/head/draft/mergeable/status；
+6. fresh 核验 exact Head workflows；
+7. 如 #119 Head 没有外部漂移，直接从 causal RED 继续 GREEN implementation；
+8. 不重新规划 Communications P0，不重新授权 Letta，不扩大 #119 scope；
+9. Relationship/Facebook 新能力另开独立 work package；
+10. 只在真实 RED、正式授权边界或最终 exact-Head merge approval 停下。

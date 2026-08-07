@@ -1,28 +1,87 @@
 # 言策（Yance）总实施方案与开源移植最高指令
 
-> **状态：V2.1 最高指令冻结，跨聊天持续有效。**
+> **状态：V2.1 最高指令冻结；Relationship Intelligence Enhancement 已并入 V2.1，跨聊天持续有效。**
 >
 > 本文件是 Yance 的**唯一稳定架构与实施指令**。除实时远端事实、已生效治理凭据、精确授权 Head 与正式安全/许可证约束外，任何旧聊天、旧设计快照、旧实施方案、旧 UI 计划或旧工作包说明与本文件冲突时，**以本文件为准**。
 >
-> 为避免旧方案被误用：凡已被本文件完整吸收、且与 V2.1 存在架构冲突的旧稳定/专题计划，不继续留在活动状态分支作为“历史参考”；应通过普通提交删除，由 Git 历史承担审计追溯。只有仍承载 V2.1 未吸收的有效专项合同，且明确声明不覆盖本文件的文件，才允许继续保留。
->
-> V2.1 将此前确认的多平台、统一产品界面、AI 回复大脑、长期记忆、目标导向聊天、模型路由、学习成长、本人声音克隆、个人照片素材与实时本人 AI Avatar 视频通话合并为一套单一架构。禁止后续再次拆成互相竞争的平行产品底座。
->
-> 当前已经授权并正在收口的精确 Head、PR、workflow、receipt 与门禁不因本次架构升级而被改写或绕过；它们按原授权完成。V2.1 通过新的普通提交、独立工作包、精确上游 pin、RED/GREEN 证据和可回滚迁移逐步落地。
+> 本次更新是 **V2.1 的严格超集增强，不是 V2.2，也不是推倒重做**。已经完成、已授权或正在实施的 V2.1 工作包继续按原 exact-Head、scope、receipt、workflow 与 merge gate 收口；不得因为本次产品语义校正而重写历史、扩大当前工作包 scope 或重新制造已经成立的 RED。
 
-## 0. 最高指令：成熟 OSS 接管，禁止重复自研
+---
+
+## 0. 产品定位：交友 / 情感 / 长期关系沟通副驾
+
+Yance 的产品定位固定为：
+
+> **面向个人真实人际关系、交友与情感沟通的 AI 助手。**
+
+Yance 的目标不是 CRM、营销自动化、销售漏斗、lead scoring、成交预测或客服工单系统。任何后续 OSS 选型和功能设计都必须优先回答：
+
+- 是否更理解“我是谁、我怎么说话”；
+- 是否更理解“对方是谁、我们发生过什么”；
+- 是否增强长期关系连续性；
+- 是否增强情绪与语境理解；
+- 是否让表达更自然、更像用户本人；
+- 是否增强多语言、语音、图片、视频等真实沟通能力；
+- 是否能帮助用户表达真实意图并自然推进关系，而不是操控对方；
+- 是否能通过成熟 OSS 更快、更稳定地落地。
+
+### 0.1 Relationship-first 语义
+
+后续产品词汇优先使用：
+
+- Person / Contact；
+- Relationship；
+- Relationship Profile；
+- Relationship Memory；
+- Conversation Goal / Intention；
+- Relationship Journey；
+- Important Moment；
+- Relationship Timeline；
+- Communication Preference；
+- Persona / Style；
+- Emotion Context；
+- Reply Candidate。
+
+不得再把 sales funnel、lead、qualification、close、deal pipeline、conversion 等商业销售概念作为 Yance 核心产品模型。
+
+### 0.2 能力不回退规则
+
+本次增强不得删除或弱化 V2.1 已确认能力，除非出现正式安全、许可证、上游废弃或真实技术冲突，并通过新的替代决策。
+
+必须继续保留并增强：
+
+- Matrix / Synapse / Element / mautrix 多平台通信；
+- WhatsApp、Telegram、Signal、Facebook、Instagram、Google Messages 等平台目标；
+- 单一 Yance 产品界面；
+- Letta 长期 Agent / Memory；
+- Graphiti 时间关系记忆；
+- Parlant Goal / Journey；
+- LiteLLM + RouteLLM；
+- Langfuse + DSPy + Promptfoo；
+- CosyVoice VoiceProfile；
+- Immich real-first 素材库；
+- ComfyUI 身份一致内容生成；
+- LiveKit / CyberVerse / Avatar backend 实时 Presence；
+- MCP / tools；
+- OCR / 文档 / PII / 备份 / 可观测性 / SBOM；
+- Windows / Electron / 安装 / 更新 / UAT；
+- 所有既有安全、授权、治理、exact-Head、RED/GREEN 与 merge gate。
+
+---
+
+## 1. 最高执行原则：成熟 OSS 接管，禁止重复自研
 
 Yance 的最高执行指标是：**以最短路径形成真实可运行、功能尽可能强、稳定、可维护的个人开源产品。**
 
-项目定位固定为：
+固定条件：
 
 - 个人使用；
 - 开源 Yance；
-- 接受并履行 GPL、AGPL、LGPL、Apache、MIT、BSD、Boost 等所采用组件对应的许可证义务；
-- 不再要求 Yance 自己拥有产品身份、通信事实权威、联系人事实权威、关系事实权威、Agent 状态权威、媒体事实权威或任务调度权威；
-- 只要成熟上游已经提供生产级完整能力，优先让成熟上游成为真实运行内核，而不是“参考后由 Yance 重写一遍”。
+- 接受并履行 GPL、AGPL、LGPL、Apache、MIT、BSD、Boost 等实际采用组件对应的许可证义务；
+- 不以未来闭源商业化作为规避成熟 copyleft OSS 的默认理由；
+- 成熟上游已有生产级完整能力时，优先让上游成为真实运行内核，而不是参考后由 Yance 重写一遍。
 
-采用顺序固定为：
+### 1.1 OSS 采用顺序
 
 ```text
 完整成熟开源产品
@@ -31,28 +90,43 @@ Yance 的最高执行指标是：**以最短路径形成真实可运行、功能
         ↓
 完整成熟源码能力模块
         ↓
-固定版本依赖
+官方 SDK / 固定版本依赖
         ↓
 极薄 Adapter / Branding / Configuration
         ↓
-只有证明没有成熟 OSS 可满足时才允许自研
+只有证明没有成熟 OSS 可满足时才允许最小自研
 ```
 
-### 0.1 自研准入硬门禁
+### 1.2 OSS-fit 自研准入硬门禁
 
 任何计划新增 Yance 自研基础设施前，必须提供：
 
 1. 已检索和评估的成熟 OSS 候选；
-2. 候选不能满足需求的具体行为缺口；
-3. 为什么不能通过完整产品、Sidecar、源码模块、依赖或极薄适配解决；
-4. 最小自研范围；
-5. 对应失败测试和回滚方案。
+2. 每个候选的仓库、维护活跃度、许可证、运行方式与依赖闭包；
+3. 候选不能满足需求的具体行为缺口；
+4. 为什么不能通过完整产品、Sidecar、源码模块、官方 SDK 或极薄适配解决；
+5. 最小自研范围；
+6. 对应 failure-first 测试与回滚方案。
 
-没有这份证据，**不得批准自研等价能力**。
+默认准入规则：
 
-### 0.2 速度规则
+> **存在成熟 OSS 可满足约 80% 以上核心需求时，原则上禁止重新自研等价基础设施；优先移植/封装成熟上游，再用最薄适配补齐剩余差异。**
 
-速度通过删除重复工程获得，不通过临时绕过获得。继续永久禁止：
+### 1.3 “移植”定义
+
+“移植开源项目源码模块”不等于机械复制整个仓库。优先级为：
+
+- 官方公开 API / SDK；
+- 官方 sidecar/server；
+- 可独立运行的成熟模块；
+- 精确 vendoring 可维护源码；
+- 最后才是 Yance 独立实现。
+
+禁止“参考上游后用 Yance 重写一遍”冒充 OSS 移植。
+
+### 1.4 速度规则
+
+速度通过删除重复工程获得，不通过临时绕过获得。永久禁止：
 
 - 弱化或关闭 guard；
 - 跳过测试；
@@ -63,122 +137,115 @@ Yance 的最高执行指标是：**以最短路径形成真实可运行、功能
 - 伪造成功状态；
 - 用临时 patch、CSS 遮挡、假数据或旁路长期代替底层修复。
 
-固定原则：
+---
 
-> **成熟 OSS 是默认实现；Yance 只做必要整合。底层重构优先通过替换为成熟上游完成，而不是重新造轮子。**
+## 2. 最终产品形态：一个 Yance，多个成熟 OSS 发动机
 
-## 1. 最终产品形态：Yance 开源整合发行版
+用户最终只能看到一个 Yance。
 
-Yance 最终始终提供**一个统一产品界面**。底层允许多个成熟 OSS 各自拥有其最擅长的真实运行状态，但用户不得被暴露为多个产品或多个后台拼接体。
+Yance 固定拥有：
+
+- 单一产品身份与 Branding；
+- 单一用户设置与通知体验；
+- 单一统一工作区；
+- 用户确认、权限与最终发送决策；
+- 各成熟 OSS 能力的统一产品投影。
+
+底层事实状态允许由最合适的成熟 OSS 持有，例如 Synapse、mautrix、Letta、Parlant、Immich、LiveKit 等；禁止为了“Yance 自己拥有数据”而再复制第二套同类状态机或数据库。
 
 ```text
                                       YANCE
                                         │
           ┌─────────────────────────────┼─────────────────────────────┐
           ↓                             ↓                             ↓
- Communication Core                 AI Brain                  Personal Presence
- Matrix / Element                    Letta                  Voice / Photo / Avatar
-          │                             │                             │
- mautrix bridges                    Graphiti           CosyVoice / Immich / CyberVerse
-          │                             │                             │
- Native OSS fallback                Parlant       ComfyUI / LiveKit / Avatar Backends
-          │                             │                             │
-          └─────────────────────────────┼─────────────────────────────┘
-                                        ↓
-                                  Model Brain
-                              RouteLLM + LiteLLM
-                                        ↓
-                                  Learning Brain
-                         Langfuse + DSPy + Promptfoo
-                                        ↓
-                                Yance Integration
-                    Branding / AI Panel / Goal / Presence / UX
-                                        ↓
-                              一个统一 Yance 工作区
+ Communication Core          Relationship Intelligence        Personal Presence
+ Matrix / Element         Persona / Letta / Graphiti /       Voice / Photo / Avatar
+ mautrix / native OSS          Parlant / Emotion                     │
+          │                             │                    CosyVoice / Immich
+          │                             │                    ComfyUI / LiveKit
+          └───────────────┬─────────────┴───────────────┬────────────┘
+                          ↓                             ↓
+                    Model Brain                  Knowledge / Tools
+                RouteLLM + LiteLLM        Docling / MCP / Retrieval
+                          ↓                             ↓
+                     Learning Brain                Tool execution
+              Langfuse + OTel + DSPy              mature OSS
+                    + Promptfoo
+                          ↓
+                   Yance Integration
+                          ↓
+                  一个统一 Yance 工作区
 ```
 
-Yance 自身默认只维护：
+---
 
-```text
-branding/
-integration/
-ai-panel/
-goal-ui/
-presence-ui/
-installer/
-config/
-upstream-patches/
-compatibility-tests/
-```
+## 3. V2.1 核心开源母体矩阵
 
-除非工作包证明没有成熟 OSS 可用，否则不新增第二套通信数据库、第二套消息状态机、第二套 Agent memory、第二套 Journey runtime、第二套模型网关、第二套照片管理系统、第二套图像工作流引擎、第二套 TTS 引擎或第二套实时数字人/WebRTC 框架。
+所有上游实施前仍必须由独立 OSS-fit / OSS-A 工作包固定精确仓库、40 位 commit/tag、许可证、来源路径、构建方式、目标路径、上游测试、修改说明、SBOM 与回滚。
 
-## 2. V2.1 核心开源母体矩阵
-
-下列项目是首选上游母体；实施前仍必须由 OSS-A 固定精确仓库、40 位 commit/tag、许可证、来源路径、构建方式、目标路径、上游测试、修改说明、SBOM 与回滚。
-
-| 能力 | 首选成熟 OSS | 默认采用方式 |
+| 能力 | 首选成熟 OSS / 来源 | 默认采用方式 |
 |---|---|---|
 | 统一通信底座 | Matrix + Synapse | 完整服务 |
 | 多平台桥接 | mautrix bridge 生态 | 完整 Sidecar / bridge |
 | 统一聊天 UI | Element Web / Element 相关成熟客户端能力 | 产品壳源码/运行时 |
-| WhatsApp 原生深度能力 | mautrix-whatsapp；Baileys 作为原生能力补充/回退候选 | bridge 优先，必要时 native runtime |
-| Telegram | mautrix-telegram / TDLib | bridge 或完整 Sidecar |
-| Signal | mautrix-signal / signal-cli 等成熟桥 | 隔离 Sidecar |
-| Messenger / Instagram | mautrix-meta + 官方 Meta API | bridge/API |
+| WhatsApp | mautrix-whatsapp；Baileys 作为原生深度能力补充 | bridge 优先，必要时 native runtime |
+| Telegram | mautrix-telegram / TDLib | bridge / Sidecar |
+| Signal | mautrix-signal / signal-cli | Sidecar |
+| Facebook Page 官方路线 | Chatwoot OSS Facebook Channel 可移植核心 + Meta 官方 API/SDK/schema | OSS core / Sidecar / 极薄 bridge |
+| Facebook Personal / Page Session 候选 | facebook-chat-api 家族及 2026 仍维护的 FCA-compatible forks | **仅在真实账号/Page probe 通过后准入** |
+| Instagram | mautrix-meta + 官方 API；个人 DM 另走经 OSS-fit 证明的 native/session runtime | bridge / API / native fallback |
 | Google Messages | mautrix-gmessages | bridge |
 | 长期 Agent / Memory / Context | Letta | 完整服务 / SDK |
 | 时间关系记忆 | Graphiti | Sidecar |
-| 目标导向对话 | Parlant | 完整对话控制运行时 |
-| 销售/客户 Journey 模板 | SalesGPT 等成熟领域实现 | 行为模板/模块 |
-| 非对话长流程 | LangGraph | 固定依赖/Sidecar，避免与 Parlant 重复 |
+| Persona / Character / Lorebook / Prompt 行为来源 | SillyTavern 经过许可证与边界审查的模块/思想 | 精选源码模块，不引入第二产品 UI |
+| 目标导向关系对话 | Parlant | 完整 Journey/Guideline 运行时 |
+| 非对话长流程 | LangGraph 或 Temporal（按 durable 需求） | 依赖/Sidecar，避免重复 |
 | 模型统一网关 | LiteLLM | Sidecar |
 | 智能模型路由 | RouteLLM | 路由模块 |
-| 前端 AI streaming/tool UI | Vercel AI SDK | 固定依赖 |
-| AI trace / dataset / eval | Langfuse | 完整服务 |
+| 前端 AI streaming/tool UI | Vercel AI SDK 等成熟 SDK | 固定依赖 |
+| AI trace / dataset / eval | Langfuse | 完整服务；enterprise 路径单独排除/审计 |
+| Telemetry 标准 | OpenTelemetry | 固定依赖 / Collector |
 | Prompt/program 优化 | DSPy | Sidecar |
 | AI 回归/红队 | Promptfoo | CI/评测工具 |
 | 人工反馈数据集 | Argilla（需要时） | Sidecar |
-| 本人声音克隆 | CosyVoice 3 | 本地 GPU/Sidecar |
-| 多语言声音备选 | Chatterbox Multilingual / GPT-SoVITS 候选 | benchmark 后固定 |
+| 语音理解 / 情绪识别 | SenseVoice / FunASR | Sidecar；模型权重许可证单独审查 |
+| STT 备选 | faster-whisper / whisper.cpp | Sidecar / native |
+| 本人声音克隆 | CosyVoice 3 | 本地 GPU / Sidecar |
+| 多语言声音备选 | Chatterbox Multilingual / GPT-SoVITS | benchmark 后固定 |
 | Voice conversion 回退 | OpenVoice V2 | Sidecar |
-| 实时语音 Agent | LiveKit Agents / Pipecat | Sidecar/服务 |
-| 本地 STT | whisper.cpp / FunASR 候选 | Native Sidecar |
-| 个人真实照片库 | Immich | 完整服务 |
+| 实时语音 Agent | LiveKit Agents / Pipecat | Sidecar / 服务 |
+| 实时语音 pipeline 模块参考 | Open-LLM-VTuber **仅许可合适的精确版本/模块** | 精选模块；不盲追 main |
+| 个人真实照片/视频库 | Immich | 完整服务 |
 | 图像工作流 | ComfyUI | 完整 Sidecar |
-| 身份一致人像 | PhotoMaker / InstantID / PuLID 候选 | ComfyUI 工作流模块 |
+| 身份一致人像 | PhotoMaker / InstantID / PuLID | ComfyUI workflow 模块 |
 | 图像条件控制 | IP-Adapter / ControlNet | ComfyUI 模块 |
 | 图像修复/超分 | Real-ESRGAN / GFPGAN / CodeFormer | 模块 |
-| 实时数字人视频通话母体 | CyberVerse | 完整源码母体 / 独立服务 |
-| 实时 talking-head 后端 | Ditto TalkingHead | Avatar backend / Sidecar |
-| 实时 lip-sync 后端 | MuseTalk 1.5 | Avatar backend / Sidecar |
-| 头部/表情驱动 | LivePortrait | Avatar backend；模型资产单独审查 |
-| CyberVerse 原生头像后端 | SoulX-FlashHead / LiveAct | benchmark 后按模型许可证固定 |
-| WebRTC 音视频通话 | LiveKit | 完整服务 / SFU |
-| 第三方客户端虚拟摄像头输出 | OBS Studio Virtual Camera | 独立桌面运行时 |
-| 高质量离线视频消息 | HunyuanVideo-Avatar 等候选 | 独立 benchmark/许可证工作包 |
+| 文档解析 | Docling 优先；Apache Tika 作为覆盖/兼容备选 | Sidecar |
 | OCR | PaddleOCR | Sidecar |
-| 文档解析 | Apache Tika | Sidecar |
+| 公共知识检索 | pgvector / Qdrant 按规模选型 | Sidecar / PostgreSQL extension |
+| Tool protocol | MCP 官方 SDK 稳定发布线 | 固定依赖；实现时 pin stable revision |
+| 实时数字人视频通话母体 | CyberVerse | 完整源码母体 / 独立服务 |
+| WebRTC 音视频 | LiveKit | 完整服务 / SFU |
+| talking-head / lip-sync | Ditto / MuseTalk / LivePortrait / SoulX-FlashHead / LiveAct | benchmark 后固定 backend |
+| 第三方虚拟摄像头 | OBS Studio Virtual Camera | 独立桌面运行时 |
+| 高质量离线视频消息 | HunyuanVideo-Avatar 等候选 | 独立 benchmark/许可证工作包 |
 | PII 脱敏 | Microsoft Presidio | Sidecar |
 | 备份 | restic | Sidecar |
-| 可观测性 | OpenTelemetry | 固定依赖/Collector |
-| SBOM/漏洞 | CycloneDX / OSV-Scanner | CI/发布工具 |
+| SBOM / 漏洞 | CycloneDX / OSV-Scanner | CI/发布工具 |
 
-### 2.1 Copyleft 与模型资产规则
+### 3.1 Copyleft / open-core / 模型资产
 
-GPL/AGPL 不再因为未来闭源商业化而被排除。采用时必须：
+- GPL/AGPL 不因未来商业化假设自动排除；
+- Chatwoot 只允许采用根 MIT 范围内代码，`enterprise/` 必须明确排除或单独授权；
+- Langfuse、LiteLLM 等 open-core 项目必须做精确 path-level license audit；
+- SillyTavern AGPL 等义务正常履行，不以许可证为由默认重写；
+- Open-LLM-VTuber 必须冻结许可证合适的精确 backend/module；不能假设后续 main 仍为 permissive；
+- SenseVoice、Avatar、图片、音频模型必须把**代码许可证与模型权重许可证分开冻结**；
+- 所有 vendoring / fork 修改必须可重建、可追溯、可重新基于上游验证。
 
-- 保留许可证与版权声明；
-- 满足源码提供、修改披露、网络交互等对应义务；
-- 在 `THIRD_PARTY_NOTICES`、SBOM 与 Release 资产中记录；
-- 对分叉修改保持可重建与可追溯；
-- 不把许可证义务当作绕开成熟上游、重新自研的默认理由。
+---
 
-模型权重、测试素材、第三方 detector/embedding、人物身份模型与代码许可证必须分别核验。代码 permissive 不代表模型资产自动 permissive。
-
-## 3. 多平台：Matrix/mautrix 优先替代 Yance 自建 Channel Fabric
-
-V1 的“唯一 Yance ChannelDriver + 唯一 Canonical 模型”不再是架构要求。
+## 4. 多平台：Matrix/mautrix 主统一层 + Native OSS Escape Hatch
 
 首选运行链：
 
@@ -192,48 +259,143 @@ WhatsApp / Telegram / Signal / Meta / Google Messages / 其他成熟桥
                         Element / Yance UI
 ```
 
-### 3.1 平台接入规则
+规则：
 
-1. 有成熟 Matrix bridge：优先完整采用 bridge；
-2. bridge 缺平台特有能力：允许调用成熟 native OSS runtime，不强迫压缩成 Matrix 最小公分母；
-3. 没有成熟 bridge 但有官方/成熟完整客户端：直接 Sidecar；
-4. 只有设备本机能力：使用 Android/iOS/macOS Companion Host；
-5. 没有成熟来源：先证明缺口，再决定是否做最小自研。
+1. 有成熟 Matrix bridge：优先完整采用；
+2. bridge 缺平台特有能力：允许成熟 native OSS runtime 直达；
+3. 没有 bridge 但有官方/成熟完整客户端：Sidecar；
+4. 只有设备本机能力：Companion Host；
+5. 没有成熟来源：先形成 OSS-fit 缺口证据，再批准最小自研。
 
-### 3.2 平台范围
+### 4.1 平台范围
 
-首批优先：
+P0 / P1 目标继续包含：
 
 - WhatsApp；
 - Telegram；
 - Signal；
 - Facebook Page / Messenger；
+- Facebook Personal / Messenger（独立能力线）；
 - Instagram Professional / Personal DM；
-- Google Messages / RCS / SMS。
-
-后续保持：
-
+- Google Messages / RCS / SMS；
 - LINE；
 - KakaoTalk；
 - iMessage；
-- 其他有成熟开源桥或 Companion 能力的平台。
+- 其他有成熟 OSS bridge / native client / Companion 能力的平台。
 
-不得伪装成平台不存在的完整同步或通话能力；能力缺失必须明确显示。
+平台的 Business/Page identity 与 Personal identity 必须在 capability model 中明确分离；不得因为官方 API 只覆盖其中一种身份，就静默把另一种从产品目标删除。
 
-### 3.3 Native capability escape hatch
+---
 
-Matrix 是主统一层，不是强制最小公分母。以下场景允许通过成熟原生 runtime 直达：
+## 5. Facebook Page / Personal：双引擎现代化，不继续扩大 Yance 自研 Facebook 基础设施
 
-- bridge 尚未暴露但上游原生客户端已成熟支持的功能；
-- 特殊媒体/群管理/设备生命周期；
-- 平台特有编辑、反应、回执、线程、同步、语音或视频能力；
-- 需要更深故障诊断时。
+现有 Facebook Page 链已证明会受到 OAuth scope、redirect URI、App Domain、Business Login Configuration、Page token、Webhook、历史对账、Echo、PSID、头像、Graph API 差异等复杂度影响。
 
-Yance 只维护极薄能力映射，不重写协议。
+因此后续 Facebook 不再采用“继续给 `facebookAdapter` / worker / gateway 无限补洞”的默认策略。
 
-## 4. 统一产品界面：Element 优先 + 单一 Yance 工作区
+### 5.1 Official Page Engine
 
-底层聊天能力优先复用 Element Web / 成熟 Matrix 客户端，Chatwoot 只作为必要时的精选交互/组件来源，不再拥有任何“唯一产品壳”地位。
+官方 Page 路线继续存在，目标是长期官方兼容与政策稳定：
+
+```text
+Facebook Page
+   ↓
+Meta official API / SDK / schema
+   +
+Chatwoot OSS Facebook Channel 可移植核心
+   ↓
+Yance Facebook Bridge
+   ↓
+Yance unified workspace / final send decision
+```
+
+优先从成熟 OSS 吸收：
+
+- Page OAuth lifecycle；
+- Page token lifecycle；
+- webhook subscription / verification；
+- event normalization；
+- sender / recipient / PSID mapping；
+- Meta MID/source-id dedupe；
+- echo；
+- delivery/read；
+- attachments；
+- profile/contact acquisition；
+- Graph pagination/retry/error classification；
+- webhook concurrency locking；
+- subscription and permission diagnostics。
+
+不得把 Chatwoot 整个 CRM/UI 变成第二产品；只采用 MIT OSS 范围内的 Facebook Channel 能力或最小 Sidecar。
+
+### 5.2 Optional Session Engine：账号/session 登录路线
+
+Yance 同时保留独立 Facebook Session OSS-fit 线路，目标是评估：
+
+```text
+Facebook account login / browser session
+        ↓
+2FA / checkpoint（如需要）
+        ↓
+encrypted appState/session
+        ↓
+Messenger realtime session / MQTT 等上游机制
+        ↓
+Personal identity
+        +
+用户管理的 Page identity（仅真实验证成立时）
+        ↓
+Yance Facebook Bridge
+```
+
+候选来源包括历史 `facebook-chat-api` 架构与仍维护的 FCA-compatible forks，但**不得仅凭 README 或旧版本支持 `pageID` 就宣称 2026 可用于 Page**。
+
+必须真实证明：
+
+1. 账号登录；
+2. 2FA；
+3. appState/session 重启恢复；
+4. 长连接与重连；
+5. Personal Messenger 收/发；
+6. media / attachments；
+7. echo/self message；
+8. read/delivery；
+9. history/thread；
+10. session 失效恢复；
+11. Page identity discovery/switch；
+12. Page 收消息；
+13. Page 发消息；
+14. Business Suite/Page 后台发出的消息是否进入 session；
+15. Windows/Electron 可运行；
+16. 不依赖现有 Meta App OAuth；
+17. 账号风险、checkpoint、平台条款与失败语义明确显示。
+
+只有全部核心行为通过真实账号 + 真实 Page probe 后，Session Engine 才可成为 Page/Personal 的正式 native escape hatch。
+
+### 5.3 Credential 规则
+
+- 不长期保存明文 Facebook 密码；
+- 密码只允许在建立 session 的最小生命周期内使用；
+- 成功后只持有加密 session/appState；
+- session key / cookie / token 必须进入受保护存储；
+- logout/revoke 必须真正清除凭据；
+- 不允许把账号登录风险伪装成“官方 API 同等稳定”。
+
+### 5.4 Facebook 实施顺序
+
+Facebook modernization 是**独立 work package**，不得污染当前 Letta #119 或其它 exact-scope 工作线。
+
+推荐：
+
+1. 先冻结现有真实故障 regression suite；
+2. Chatwoot OSS Facebook Core / Meta official SDK 做 Official Engine OSS-fit；
+3. FCA-compatible forks 做 Session Engine OSS-fit；
+4. 两条路线用同一真实账号/Page capability matrix 比较；
+5. Yance 只保留最薄 bridge 与统一产品投影；
+6. 无成熟实现的剩余缺口再单独申请最小自研。
+
+---
+
+## 6. 统一产品界面：Element + 单一 Yance Workspace
 
 用户层面固定只有一个 Yance：
 
@@ -243,233 +405,268 @@ Yance 统一产品界面
 ├── 统一会话列表
 ├── 统一消息时间线
 ├── 统一输入与发送区
-└── 右侧 AI / 联系人 / 关系 / Personal Presence 工作区
+└── 右侧 Relationship / AI / Contact / Presence 工作区
 ```
 
-平台身份只以账号、图标、筛选器、来源标识和能力差异出现；不得为 WhatsApp、Telegram、Signal、Facebook、Instagram、LINE 等重新建立独立产品级聊天界面。
+平台身份只通过图标、账号、筛选、来源和 capability 差异呈现；不得为 WhatsApp、Telegram、Signal、Facebook、Instagram 等重新建立产品级独立 UI。
 
-### 4.1 固定 UX 硬规则：可折叠 / 可隐藏 / 可拖拽 + 渐进披露
+固定 UX：
 
-这是 V2.1 的**最高产品体验硬规则**：
+- 左导航、会话列表、右侧 workspace 均可展开/收起/完全隐藏/拖拽宽度；
+- 状态重启恢复；
+- 隐藏必须有明确恢复入口；
+- 窄窗口使用成熟 Sheet/Drawer；
+- 隐藏/折叠只改变展示，不得停止同步、Journey、AI 或后台任务；
+- 主题、提示音、通知、翻译、字体/密度和用户设置继续零回归。
 
-- 左侧全局导航：展开、图标收起、完全隐藏、悬停临时展开、拖拽调整宽度；
-- 会话列表：标准、窄模式、完全隐藏、拖拽调整宽度；
-- 右侧工作区：完整展开、窄 Tab、完全隐藏、拖拽调整宽度；
-- 右侧工作区统一承载 AI 回复、今日聊天目标/Journey、联系人资料、Graphiti 关系记忆、翻译、VoiceProfile、照片素材、AI 生图、Video Avatar 等能力；
-- 布局状态、面板宽度、字体/密度等用户偏好必须在重启后恢复；
-- 窄窗口允许成熟 Sheet/Drawer 模式替代固定侧栏，但能力入口和状态不能丢失；
-- 必须有键盘快捷方式或明确入口恢复被隐藏的面板，不能把“隐藏”变成不可恢复状态。
+UI 组件仍优先 shadcn-vue、Reka UI、VueUse、Tiptap OSS Core、TanStack、Cytoscape.js、Storybook、Playwright、axe-core、MSW 等成熟 OSS。
 
-固定布局模式至少包括：
+---
+
+## 7. Relationship Intelligence：Persona + Relationship Profile + Letta + Graphiti
+
+### 7.1 Persona：理解“我”
+
+用户 Persona / Style 不建立新的 Yance 基础框架。
+
+优先组合：
 
 ```text
-完整工作台：左导航 + 会话列表 + 聊天 + 右侧工作区
-专注聊天：左侧区域收起/隐藏 + 聊天最大化 + 右侧隐藏
-AI 辅助：左侧收起 + 聊天 + AI/Goal 右侧工作区
-沉浸模式：左导航、会话列表、右侧工作区均可隐藏，只保留当前聊天
+SillyTavern Persona / Prompt Manager 可移植行为
+        +
+Letta structured memory/profile
+        +
+Graphiti context
+        +
+DSPy learning
 ```
 
-渐进披露固定为：
+至少支持：
 
-1. 当前会话最常用动作直接展示；
-2. 低频动作进入菜单、Popover、Sheet 或侧栏；
-3. AI Goal、关系洞察、Voice/Visual/Avatar 等复杂能力按当前任务显示，不永久占满聊天区；
-4. 模型、路由、诊断、开发者与基础设施控制进入高级模式；
-5. 底层多个 OSS 服务只暴露必要状态和受控操作，不把上游后台界面直接拼进主产品。
+- 常用语言；
+- 句子长短；
+- 表情/emoji 使用习惯；
+- 称呼；
+- 幽默度；
+- 主动程度；
+- 正式/随意程度；
+- 用户明确禁止的说法；
+- 对不同关系采用不同表达方式；
+- 用户修改/拒绝 AI 回复形成可证据化学习。
 
-折叠、隐藏或调整面板只改变展示，不得静默停止平台同步、消息接收、Journey、AI 运行或后台任务；如果某操作会改变运行状态，必须作为独立明确动作呈现。
+### 7.2 Relationship Profile：理解“对方”和“两个人”
 
-### 4.2 UI 技术来源
+借鉴成熟 Character Card / Lorebook / World Info 的数据组织，但联系人是真实人物，因此必须分离：
 
-自定义 Yance 面板优先使用：
+```text
+confirmed fact
+user-provided fact
+AI inference
+```
 
-- shadcn-vue；
-- Reka UI；
-- VueUse；
-- Tiptap OSS Core；
-- TanStack；
-- Cytoscape.js；
-- Storybook / Playwright / axe-core / MSW。
+AI inference 永远不能静默升级成 confirmed fact。
 
-现有主题、提示音、通知规则、用户设置和翻译体验原则继续保留，并作为本文件当前有效合同的一部分；不再依赖旧 V1 UI 计划作为执行输入。
+Relationship Profile 可包含：
 
-## 5. AI Reply Brain：Letta + Graphiti + Parlant
+- 昵称/语言/兴趣/生活信息；
+- 对方明确表达的偏好；
+- 沟通节奏；
+- 常见表情/表达；
+- 双方如何认识；
+- 共同兴趣；
+- 重要事件；
+- 承诺/约定；
+- 容易展开的话题；
+- 曾发生的误会；
+- 用户明确维护的关系状态。
 
-Yance 不自研完整 Cognitive Runtime。
+每条关键事实应尽量带来源、时间、confidence/provenance。
 
-### 5.1 Letta：长期 Agent 核心
+### 7.3 Letta：Relationship Memory Authority
 
-Letta 默认负责：
+Letta 继续负责：
 
 - persistent agent state；
 - working/persistent memory；
-- context window management；
+- context management；
 - compaction；
 - conversation continuity；
-- tool/state persistence；
-- 长期 Agent 运行生命周期。
+- 长期互动记忆；
+- agent/tool state persistence。
 
-Yance 不再自己写一套等价 Agent State / Memory Runtime。
+当前 Letta P0 仍按既有授权 scope 收口，不因本增强扩大 #119。
 
-### 5.2 Graphiti：时间关系与事实演化
+### 7.4 Graphiti：时间关系演化
 
-Graphiti 默认负责：
+Graphiti 继续负责：
 
-- 人物/组织/主题关系；
+- 人物/主题/事件关系；
 - episode provenance；
 - 时间有效性；
 - 新事实替换旧事实；
-- 关系召回；
-- 历史互动关联。
+- 重要互动与关系召回；
+- Relationship Timeline 的图谱来源。
 
-具体 graph backend 在独立来源/许可证工作包中固定，不在总计划里假定某个已弃用或许可证不合适的后端。
+### 7.5 Important Moments / Relationship Timeline
 
-### 5.3 Persona / Style
+新增产品投影：
 
-用户 Persona、表达偏好、语言习惯和 Style Genome 仍然是产品能力，但不再要求自研一个独立框架。
+- 第一次认识；
+- 重要约会/见面；
+- 生日/节日/纪念日；
+- 曾经的冲突与修复；
+- 共同活动；
+- 对方主动分享的重要生活事件；
+- 用户明确标记的“重要时刻”。
 
-优先实现为：
+这些投影优先来自 Letta / Graphiti / Immich，不再建立第二套独立关系数据库。
 
-```text
-Letta memory / structured profile
-        +
-Graphiti relationship context
-        +
-成熟 prompt/persona 模块行为
-        +
-DSPy 优化
-```
+---
 
-Yance 只保留用户可见编辑、版本历史、回滚和呈现体验。
+## 8. Conversation Goal / Relationship Journey：Parlant 主运行时
 
-## 6. Goal Brain：聊天必须有可选目标，Parlant 作为主运行时
-
-“会回复”不是最终目标。Yance 必须支持每个联系人/会话设置当前沟通目标，并让 AI 在不生硬、不机械、不重复的前提下逐步推进。
-
-### 6.1 用户输入
-
-每个联系人/会话可设置：
-
-```text
-今日聊天目标
-成功条件
-推进强度：非常自然 / 自然推进 / 主动推进
-期限（可选）
-禁止触碰的话题（可选）
-```
+Yance 支持用户为当前联系人/会话设置**可选聊天意图**。
 
 示例：
 
-- 获取某项客户需求信息；
-- 安排下一次会议；
-- 处理异议并完成报价；
-- 恢复联系；
+- 自然重新打开话题；
+- 让聊天轻松一些；
+- 多了解对方最近的生活；
+- 表达关心；
+- 分享自己的感受；
+- 昨天发生误会，今天希望缓和；
+- 刚认识，不要表现得太着急；
 - 自然邀请见面；
-- 售后确认问题已解决。
+- 延续昨天的话题；
+- 不设置目标，只自然聊天。
 
-### 6.2 Parlant Journey
-
-目标转换为成熟 Journey/Guideline 运行时：
+底层优先 Parlant Journey / Guidelines：
 
 ```text
-Goal
- ↓
-Activation Conditions
- ↓
-Journey States / Transitions
- ↓
-当前聊天上下文
- ↓
+Conversation Goal
+        ↓
+Activation conditions
+        ↓
+Journey state / guideline
+        ↓
+当前关系与情绪上下文
+        ↓
 下一步沟通意图
- ↓
+        ↓
 自然回复候选
 ```
 
 必须支持：
 
-- 对方跑题后自然回答，再回到目标；
+- 对方跑题后先自然回应，不机械拉回；
 - backtracking；
 - conditional transition；
 - 一次回答多个信息时跳过已完成步骤；
-- 明确完成条件；
-- 目标完成后停止继续推动；
-- 用户随时暂停、改目标或删除 Journey。
+- 目标完成后停止推动；
+- 用户随时暂停/修改/删除；
+- 目标约束“自己的表达”，不得设计成诱导、胁迫或欺骗对方完成动作。
 
-SalesGPT 等成熟项目的客户开发、qualification、needs analysis、objection handling、close 等阶段模型可作为 Journey Pack 来源，不重写一个新的销售状态机。
+SalesGPT/销售阶段不再是 V2.1 核心 Journey 模板来源。
 
-### 6.3 Reply Brain 最终输出
+---
+
+## 9. Reply Candidates：不是只给一个“标准答案”
+
+同一条消息允许生成多方向候选，例如：
+
+- 自然；
+- 温柔；
+- 幽默；
+- 更主动；
+- 更克制。
+
+候选必须共享同一事实/关系上下文，但可以有不同表达策略。
+
+可借鉴 SillyTavern swipe/branch、prompt composition 等成熟交互思想或可移植模块；不得因此把 SillyTavern 变成第二套 Yance UI。
+
+Yance 最终发送前保持用户可选择、修改和接管。
+
+---
+
+## 10. Emotion Context：语音和文本情绪是上下文，不是事实判决
+
+### 10.1 SenseVoice 优先增强输入
+
+语音理解优先评估 SenseVoice / FunASR：
 
 ```text
-对方消息 / 语音 / 视频通话实时输入
-   ↓
-Letta：长期状态与上下文
-   ↓
-Graphiti：人物/关系/时间事实
-   ↓
-Parlant：目标/Journey/下一步策略
-   ↓
-Persona / Style Context
-   ↓
-RouteLLM：模型选择
-   ↓
-LiteLLM：provider / fallback / budget
-   ↓
-候选生成 + Critic / Eval / Ranking
-   ↓
-文字 / 本人克隆语音 / 真实或生成照片 / 实时 Avatar 发言
+voice
+ ↓
+ASR text
+ + language ID
+ + speech emotion signal
+ + audio event signal
+ + speaker diarization（适用时）
 ```
 
-## 7. Model Brain：RouteLLM + LiteLLM，不自研 provider 层
+SenseVoice 模型权重许可证必须独立于代码许可证冻结。
 
-模型执行固定分工：
+### 10.2 Emotion inference 规则
+
+情绪识别输出属于 inference：
+
+- 必须有 confidence；
+- 不能写成“对方一定生气”；
+- 不允许长期永久固化一次瞬时情绪；
+- 文本语义、语音信号和长期关系历史发生冲突时，必须保持不确定性。
+
+### 10.3 STT fallback
+
+faster-whisper / whisper.cpp 继续作为成熟稳定 STT fallback/benchmark。
+
+---
+
+## 11. Model Brain：RouteLLM + LiteLLM
 
 ```text
-任务/上下文
+Relationship context / task
    ↓
-RouteLLM 或同级成熟路由模块
+RouteLLM
    ↓
 LiteLLM
    ↓
 OpenAI / Anthropic / Gemini / OpenRouter / Ollama / llama.cpp / 其他 provider
 ```
 
-Yance 不重复实现：
+Yance 不重复实现 provider adapter、stream normalization、基础 retry/fallback、token/cost normalization、provider health/load balancing。
 
-- provider adapter；
-- streaming protocol normalization；
-- 基础 retry/fallback；
-- token/cost normalization；
-- provider health/load balancing。
+路由依据至少包括：
 
-路由输入至少包括：
-
-- 任务类型；
-- reasoning 难度；
-- social/relationship sensitivity；
-- 语言；
-- vision/audio/video/tool 要求；
+- conversation complexity；
+- emotional/relationship sensitivity；
+- language；
+- vision/audio/video/tool；
 - context length；
-- 延迟目标；
-- 成本预算；
-- local/cloud 隐私偏好；
+- latency；
+- budget；
+- local/cloud privacy；
 - 历史真实质量数据。
 
-路由结果通过 Langfuse/评测数据持续校准，而不是写死“某模型永远最好”。
+LiteLLM/open-core 路径必须做 license boundary audit。
 
-## 8. Learning Brain：从记录反馈升级为可证据化成长
+---
 
-学习闭环优先采用成熟 OSS：
+## 12. Learning Brain：越来越像用户，不直接“训练出另一个人格”
+
+闭环：
 
 ```text
-生产回复 / Journey / 模型调用 / Presence 输出
+AI candidate / Journey / route / Presence output
         ↓
-Langfuse trace + score + dataset
+Langfuse trace + OpenTelemetry
         ↓
-用户选择 / 修改 / 拒绝 / 目标是否达成
+用户选择 / 修改 / 拒绝 / 最终发送
+        ↓
+Letta/Graphiti relationship evidence
         ↓
 Argilla（需要人工整理时）
         ↓
-DSPy 生成 Prompt / Program / Example 候选
+DSPy candidate optimization
         ↓
 Promptfoo + Langfuse experiment
         ↓
@@ -478,554 +675,412 @@ Shadow / Benchmark / Regression
 晋级或回滚
 ```
 
-### 8.1 Shadow Learning
-
 必须记录：
 
-```text
-AI 推荐文本
-vs
-用户最终发送文本
-```
-
-并记录：
-
+- AI 推荐文本 vs 用户最终发送文本；
 - 修改距离；
 - 语气变化；
 - 长短变化；
-- 正式程度；
-- 常用词/语气词；
-- 是否接受候选；
-- Journey 是否推进；
-- 最终目标是否达成；
-- Voice/Visual/Avatar 是否被采用；
-- 实时语音/视频中的打断、延迟、失败和用户接管情况。
+- 常用词；
+- 候选接受/拒绝；
+- Journey 是否自然推进；
+- 用户是否主动取消目标；
+- Voice/Visual/Avatar 是否采用；
+- latency / failure / user takeover。
 
-这些数据先成为学习证据，不允许单次行为直接永久覆盖 Persona、Journey、Routing 或 Presence Profile。
+单次行为不得直接覆盖长期 Persona 或 Relationship Profile。
 
-### 8.2 版本化成长
+版本化至少包括：
 
-至少版本化：
+- Persona/Profile Version；
+- Relationship Policy Version；
+- Prompt/Program Version；
+- Journey Template Version；
+- Routing Policy Version；
+- Voice Style Profile Version；
+- Visual Workflow Version；
+- Avatar Runtime/Profile Version。
 
-```text
-Persona/Profile Version
-Style Version
-Prompt/Program Version
-Journey Template Version
-Routing Policy Version
-Voice Style Profile Version
-Visual Workflow Version
-Avatar Runtime/Profile Version
-```
+---
 
-每次晋级都必须可比较、可回滚。
+## 13. Voice Brain：SenseVoice 输入 + CosyVoice 输出
 
-## 9. Personal Presence：本人声音 + 个人照片 + 实时 AI Avatar
+### 13.1 VoiceProfile
 
-Voice、Visual、Video 不再作为互不相关的附件功能，而是统一为 `PersonalPresenceProfile`。
+用户可以上传/录制自己明确授权的声音，形成 VoiceProfile；Yance 以后生成接近本人音色的目标语言语音，不要求每次重新录音。
 
-```text
-PersonalPresenceProfile
-├── VoiceProfile
-├── VisualIdentityProfile
-├── AvatarProfile
-├── Scene/Style Preferences
-├── Provenance / Authorization
-└── Runtime / Model Versions
-```
+首选：
 
-所有身份素材默认只允许来自用户本人或已明确获得授权的素材。Yance 必须保存来源与授权状态，不允许把不同人的声音、人脸或素材静默混成同一个 Profile。
+- CosyVoice 3：zero-shot / cross-lingual voice cloning；
+- Chatterbox / GPT-SoVITS：benchmark 备选；
+- OpenVoice：voice conversion fallback；
+- SenseVoice/faster-whisper/whisper.cpp：输入理解；
+- LiveKit Agents/Pipecat：实时 voice pipeline。
 
-### 9.1 Voice Brain：跨语言本人声音克隆
+### 13.2 情感语音输出
 
-Yance 支持用户创建自己的 `VoiceProfile`，以后 AI 回复可直接生成接近本人音色的目标语言语音，不要求用户每次重新录音。
-
-首选引擎：
-
-- CosyVoice 3：主零样本/跨语言声音克隆引擎；
-- Chatterbox Multilingual 或 GPT-SoVITS：第二引擎，经过同一 benchmark 后固定；
-- OpenVoice V2：voice conversion / fallback；
-- whisper.cpp / FunASR：STT；
-- LiveKit Agents / Pipecat：实时 voice agent。
-
-实施时必须用真实授权声音样本测试：
-
-- speaker similarity；
-- 中文/英文/日文/韩文及用户目标语言；
-- 情绪自然度；
-- latency；
-- GPU/CPU 占用；
-- 长文本稳定性；
-- 音频编码后平台兼容性。
-
-发送链：
+Voice output 不只是 `text -> speech`，而是：
 
 ```text
-AI 最终回复文本
-       ↓
-目标语言 / locale
-       ↓
-Voice Router
-       ↓
-本人 VoiceProfile
-       ↓
-CosyVoice / 备选引擎
-       ↓
-情绪 / pace / formality
-       ↓
-WAV/PCM
-       ↓
-FFmpeg / Opus 等成熟编码
-       ↓
-Matrix / native platform audio message / Avatar runtime
+reply text
+ + intended tone
+ + pace
+ + energy
+ + formality
+ + language/locale
+        ↓
+CosyVoice / selected backend
+        ↓
+FFmpeg/Opus mature encoding
+        ↓
+platform audio message / realtime avatar
 ```
 
-Voice Style 可按联系人/场景学习 pace、pause、energy、formality、emotion 和常见语气，但必须通过证据、评测和版本晋级。
+必须通过真实授权声音样本测试 speaker similarity、多语言自然度、情绪自然度、latency、长文本稳定性、GPU/CPU 与平台编码兼容。
 
-### 9.2 Visual Brain：真实照片优先，AI 个性化素材补足
+---
 
-个人照片素材库不自研照片管理或图像生成基础设施。
+## 14. Realtime Voice：不自研 WebRTC/VAD/STT/TTS orchestration
 
-Immich 默认负责：
-
-- 照片/视频导入；
-- 时间线；
-- 相册；
-- 人脸/人物；
-- 地点；
-- 语义搜索；
-- 原图保存与元数据。
-
-Yance 聊天时首先检索真实照片，而不是首先生成图片。
-
-真实库没有合适素材时：
+普通语音消息优先：
 
 ```text
-聊天上下文 + 当前 Journey 目标
-        ↓
-用户授权的季节 / 时间 / 地点上下文
-        ↓
-ComfyUI
-        ↓
-PhotoMaker / InstantID / PuLID
-        +
-IP-Adapter / ControlNet
-        ↓
-Real-ESRGAN / GFPGAN / CodeFormer（需要时）
-        ↓
-多张候选
-        ↓
-用户选择后发送
+SenseVoice/faster-whisper
+  → Relationship Intelligence
+  → CosyVoice
 ```
 
-素材推荐顺序固定为：
+实时语音/电话优先 LiveKit Agents / Pipecat；可评估 Open-LLM-VTuber 中许可证合适的成熟 backend/module，例如 interruption、proactive speaking、ASR/LLM/TTS modular pipeline，但不得直接跟随许可证已经变化的主线代码。
+
+Yance 不自研：
+
+- WebRTC SFU；
+- VAD 基础模型；
+- realtime media transport；
+- 通用 turn-taking framework；
+- 第二套 STT/TTS orchestration framework。
+
+---
+
+## 15. Visual / Relationship Media Memory：Immich real-first
+
+Immich 继续负责个人真实照片/视频：
+
+- timeline；
+- albums；
+- face/person；
+- place；
+- semantic search；
+- memories；
+- metadata；
+- 原始文件。
+
+在 Relationship Intelligence 中，Immich 额外承担**Relationship Media Memory** 来源，例如：
+
+- 共同旅行/活动照片；
+- 对方曾发送的重要图片；
+- 时间/地点/人物关联；
+- Relationship Timeline 的媒体证据。
+
+真实素材优先级固定：
 
 ```text
 真实照片高匹配
    ↓
-真实照片可轻量裁切/增强
+真实照片轻量裁切/增强
    ↓
-基于本人已授权照片的 AI 个性化生成
+基于本人授权素材的 AI 个性化生成
 ```
 
-AI 生成素材在 Yance 内部必须保留 provenance，不能与原始真实照片混淆。涉及“我现在就在这里”“实时现场证明”等依赖真实性的语境时，默认只推荐真实素材；不得把合成图自动当作实时事实证据。
+ComfyUI + PhotoMaker/InstantID/PuLID + IP-Adapter/ControlNet 用于个性化生成；Real-ESRGAN/GFPGAN/CodeFormer 用于修复增强。
 
-### 9.3 Video Avatar Brain：照片驱动的实时本人 AI 视频通话
+合成素材必须保留 provenance，不得冒充实时现场事实。
 
-目标是：**高拟真、低延迟、本人授权形象、本人授权声音、自然听说与表情的 Personal AI Avatar Call**。不得把“无法被对方识别为 AI/合成内容”作为质量指标，也不得把合成 Avatar 当作现实现场证明。
+---
 
-首选完整母体：
+## 16. Personal Video Avatar：CyberVerse + LiveKit
 
-- **CyberVerse**：优先整块采用其数字人 Agent、实时 WebRTC 通话、Avatar plugin、实时打断、会话管理和音视频流能力；
-- **LiveKit**：需要可扩展 SFU、TURN、客户端 SDK、E2EE 和生产级音视频网络时直接采用；
-- **Ditto TalkingHead**：实时 audio-driven talking-head 后端候选；
-- **MuseTalk 1.5**：实时高质量 lip-sync 后端候选；
-- **LivePortrait**：头部姿态、表情与 portrait animation 能力来源；
-- **SoulX-FlashHead / LiveAct**：作为 CyberVerse 已支持的实时头像后端进入统一 benchmark；
-- **OBS Studio Virtual Camera**：第三方桌面客户端允许虚拟摄像头时，作为成熟输出路径；
-- **HunyuanVideo-Avatar 等**：仅作为高质量离线视频消息候选，不阻塞实时通话。
+目标仍是本人授权形象/声音的低延迟 AI Avatar communication。
 
-Yance 不自研 WebRTC SFU、不自研 talking-head 基础网络、不自研 lip-sync 模型、不自研虚拟摄像头驱动。
+首选：
 
-#### 9.3.1 Yance 原生实时 Avatar 通话
+- CyberVerse：完整数字人 Agent / realtime runtime；
+- LiveKit：WebRTC/SFU/TURN/client SDK；
+- Ditto / MuseTalk / LivePortrait / SoulX-FlashHead / LiveAct：统一 benchmark backend；
+- OBS Virtual Camera：第三方桌面客户端正式支持时的成熟输出路径；
+- HunyuanVideo-Avatar 等：离线高质量 Video Message。
+
+必须支持 listening/speaking、打断、idle motion、音画同步、网络恢复、用户随时接管真实麦克风/摄像头、backend 失败降级到语音/文字。
+
+不得以“无法被对方识别为 AI/合成”作为验收指标。
+
+---
+
+## 17. Document / Knowledge Intelligence：Docling + Retrieval，不重复造解析器
+
+Yance 允许用户导入与个人沟通相关的资料，例如 PDF、Word、PPT、Excel、网页、聊天导出、旅行计划、活动资料等。
+
+文档解析优先 Docling；Apache Tika 作为覆盖/兼容备选；PaddleOCR 用于 OCR。
 
 ```text
-对方实时语音/视频输入
+file
+ ↓
+Docling / Tika / PaddleOCR
+ ↓
+structured document
+ ↓
+knowledge ingestion
+ ↓
+pgvector / Qdrant（按规模）
+ ↓
+Relationship / Conversation context
+```
+
+Knowledge Base 与 Letta personal/relationship memory 必须分离：
+
+- Letta = 人与长期互动记忆；
+- Graphiti = 时间关系事实；
+- Retrieval = 可查询外部资料/知识。
+
+不得再引入第二套个人长期记忆系统与 Letta 竞争。
+
+---
+
+## 18. MCP：工具生态标准接口
+
+Yance 的 AI 工具连接优先采用 MCP 官方 SDK 的**实施时稳定发布线**，用于：
+
+- tools；
+- resources；
+- prompts；
+- stdio / Streamable HTTP；
+- auth helpers；
+- external integrations。
+
+禁止为 Gmail、Calendar、Drive、数据库、浏览器等每个工具重新设计一套 Yance 私有 tool protocol。
+
+MCP SDK 仍需 exact version/commit pin 和 protocol compatibility tests；不得直接依赖未冻结的 `main`。
+
+---
+
+## 19. Durable Execution：需要时用成熟 workflow engine
+
+通信状态优先由 Matrix/bridge/native upstream 持有；Agent state 优先 Letta；Journey state 优先 Parlant；realtime session 优先 LiveKit/CyberVerse。
+
+真正出现跨小时/跨天、需要 crash-recovery 的长流程时，优先评估 Temporal 等成熟 durable workflow engine，例如：
+
+- 稍后提醒用户回复某个联系人；
+- 等某个外部条件变化后继续；
+- 多步工具流程；
+- 长时间媒体/导入任务。
+
+不再默认自研通用 DurableTask/Outbox framework。
+
+---
+
+## 20. Dating Companion Mode
+
+Dating Companion 是 Relationship Intelligence 的产品模式，而不是另一个 AI 大脑。
+
+```text
+文本 / 截图 / profile / 当前聊天 / 语音 / 图片
         ↓
-LiveKit / WebRTC
+OCR / SenseVoice / VLM / structured parsing
         ↓
-STT / VAD / turn-taking
+Persona + Relationship Profile
         ↓
 Letta + Graphiti
         ↓
-Parlant 当前 Goal/Journey
+Parlant Conversation Goal
         ↓
 RouteLLM + LiteLLM
         ↓
-AI 回复文本
+多方向 reply candidates
         ↓
-CosyVoice VoiceProfile
+text / cloned voice / real photo / generated media / avatar
         ↓
-CyberVerse Avatar Runtime
+用户选择 / 修改 / 发送
         ↓
-Ditto / MuseTalk / LivePortrait / FlashHead / LiveAct
-        ↓
-实时表情 / 嘴型 / 头部动作 / idle listening
-        ↓
-LiveKit / WebRTC 输出
+Learning Brain
 ```
 
-必须支持：
+不同交友平台模板只负责 UI 识别、文化/语言配置和 Relationship Journey Pack，不建立平台专属回复大脑。
 
-- speaking / listening 两种自然状态；
-- 对方打断 AI 时立即停止当前语音/视频发言；
-- idle breathing、自然眨眼、轻微头部运动等不说话状态；
-- 音频与口型同步；
-- 网络抖动后的恢复；
-- 用户随时一键接管真实摄像头/麦克风；
-- Avatar runtime 失败时降级到语音或文字，而不是伪造“仍在正常通话”。
+---
 
-#### 9.3.2 第三方平台视频通话
+## 21. 固定质量门禁
 
-Matrix/mautrix 不代表自动拥有 WhatsApp、Signal、Instagram 等原生视频通话能力。第三方视频通话采用：
+所有 OSS 产品/模块至少必须满足：
 
-```text
-Yance Avatar Video Output
-        ↓
-OBS Virtual Camera 或平台正式支持的虚拟视频输入
-        ↓
-第三方桌面客户端
-```
-
-只有平台实际支持时才启用。禁止为了“看起来支持”去绕过平台安全限制、伪造不存在的协议能力或长期维护脆弱的私有逆向旁路。
-
-#### 9.3.3 Video Message
-
-需要预生成高质量视频消息时，可以使用更重的离线 Avatar/Video 模型；它与实时视频通话分离。离线高画质不能反向阻塞实时低延迟产品链。
-
-### 9.4 Personal Presence 路由
-
-同一个回复意图可以根据场景输出不同媒介：
-
-```text
-Reply Intent
-   ├── Text
-   ├── Cloned Voice
-   ├── Real Photo
-   ├── Generated Photo
-   ├── Generated Video Message
-   └── Realtime Avatar Speech
-```
-
-选择依据至少包括：当前 Journey、用户明确选择、平台能力、联系人偏好、隐私/授权、延迟、GPU 状态和失败回退。默认不允许模型绕过用户设置自行把普通文字升级成更高身份风险的实时 Avatar 通话。
-
-## 10. Dating Companion Mode
-
-Dating Companion 保留，但底层复用同一套统一能力：
-
-```text
-截图 / 文本 / 资料页 / 当前会话 / 语音或视频上下文
-        ↓
-PaddleOCR / STT / 结构解析
-        ↓
-Letta + Graphiti
-        ↓
-Parlant Goal/Journey
-        ↓
-Persona / Style
-        ↓
-RouteLLM + LiteLLM
-        ↓
-文字候选 / 本人克隆语音 / 真实或生成照片 / 视频消息 / Avatar 通话建议
-        ↓
-用户选择/修改/发送/发起通话
-        ↓
-Langfuse + DSPy 学习
-```
-
-第一版模板范围继续包括欧美、日本、韩国主要交友平台。模板只做 UI 识别、文化/语言配置与 Journey Pack，不为每个平台另造回复大脑。
-
-## 11. Durable Execution：不再默认自研 WP-B
-
-V1 的 `DurableTask / OutboxRecord / ExternalAttempt / LeaseFence / ReconciliationCase` 不再作为所有产品功能的强制自研前置条件。
-
-原则：
-
-1. 通信发送优先采用 Matrix/bridge/native upstream 自己的持久状态、重试和回执语义；
-2. AI Agent 状态优先 Letta；
-3. Journey 状态优先 Parlant；
-4. 实时音视频状态优先 CyberVerse/LiveKit 及其成熟会话机制；
-5. 长时间、跨服务、确实需要 durable workflow 的任务优先评估 Temporal 等成熟引擎；
-6. 只有成熟引擎存在明确行为缺口时，才新增最小 Yance 持久化适配。
-
-PR #17 的 Durable Task/Outbox 等历史资产继续冻结保留，作为测试语义、失败场景和必要回退参考，不因为 V2.1 而删除历史；但不再默认要求把整套自研运行时晋级为主产品前置条件。
-
-## 12. 文件、多模态、隐私与诊断
-
-继续优先采用：
-
-- PaddleOCR：截图/扫描件/文档 OCR；
-- Apache Tika：Office/PDF/email 等提取；
-- whisper.cpp / FunASR：本地语音转写；
-- LiveKit Agents / Pipecat：实时音频 Agent；
-- CyberVerse / LiveKit：实时数字人与视频通话；
-- FFmpeg：音视频编码、封装、转码；
-- Microsoft Presidio：日志/导出/评测脱敏；
-- restic：加密、增量、去重备份；
-- OpenTelemetry：trace/metric/log；
-- CycloneDX + OSV-Scanner：SBOM 与依赖漏洞。
-
-能够由成熟服务直接完成的，不再建立 Yance 等价实现。
-
-## 13. V2.1 工作线路与实施顺序
-
-### 13.1 当前治理链先完成
-
-当前已经授权的 OSS-A/OSS-1A 精确 Head、PR、workflow、receipt 和发布链继续按既有门禁完成。不得把 V2.1 大规模产品代码混入这些旧授权 Head。
-
-### 13.2 最短真实产品闭环
-
-完成当前治理链后，优先建立：
-
-```text
-Matrix/Synapse
-      +
-Element
-      +
-一个真实 bridge（优先 WhatsApp）
-      ↓
-真实收到消息
-      ↓
-Letta
-      ↓
-Parlant：读取当前聊天目标
-      ↓
-RouteLLM + LiteLLM
-      ↓
-多个回复候选
-      ↓
-用户选择/修改
-      ↓
-Matrix/bridge 真实发送
-      ↓
-Langfuse 记录结果
-```
-
-第一闭环必须直接落入统一 Yance 工作区，不能临时为 WhatsApp 或任何单一平台建立独立产品级页面。
-
-这条闭环成立后，不再重新打底，直接并行扩展 Voice / Visual / Video Presence。
-
-### 13.3 Personal Presence 扩展顺序
-
-```text
-VoiceProfile
-CosyVoice 多语言本人语音
-        ↓
-Immich real-first 素材检索
-        ↓
-ComfyUI 身份一致照片生成
-        ↓
-CyberVerse + LiveKit 实时 Avatar 最小闭环
-        ↓
-Ditto / MuseTalk / LivePortrait / FlashHead / LiveAct 统一 benchmark
-        ↓
-OBS Virtual Camera 第三方客户端能力矩阵
-        ↓
-离线高质量 Video Message
-```
-
-### 13.4 并行线路
-
-```text
-线路 A：Matrix / Synapse / Element + 统一可折叠 Yance 产品工作区
-线路 B：mautrix WhatsApp / Telegram / Signal / Meta / Google Messages
-线路 C：Letta + Graphiti 长期 Agent / 关系记忆
-线路 D：Parlant Goal/Journey + SalesGPT Journey Packs
-线路 E：RouteLLM + LiteLLM + provider pool
-线路 F：Langfuse + DSPy + Promptfoo 学习闭环
-线路 G：CosyVoice + 多语言本人 VoiceProfile
-线路 H：Immich + ComfyUI + Identity Visual workflow
-线路 I：CyberVerse + LiveKit + Avatar backend 实时视频通话
-线路 J：Dating Companion + OCR + Presence 素材入口
-线路 K：LINE/Kakao/iMessage/Companion gap fill
-线路 L：Windows/Electron/安装/更新/备份/诊断/UAT
-```
-
-### 13.5 优先级
-
-P0：
-
-1. OSS-A 来源/许可证/供应链治理；
-2. Matrix + Element + 第一真实 bridge + 统一 Yance 工作区；
-3. Letta；
-4. Parlant Goal Brain；
-5. LiteLLM + RouteLLM；
-6. Langfuse 基础 trace；
-7. CosyVoice VoiceProfile；
-8. Immich real-photo retrieval。
-
-P1：
-
-- Graphiti 深度关系；
-- DSPy/Promptfoo 自动优化；
-- ComfyUI 个性化生成；
-- CyberVerse + LiveKit 实时 Avatar 通话；
-- Ditto/MuseTalk/LivePortrait/FlashHead/LiveAct benchmark；
-- 更多 bridges；
-- Live voice；
-- Dating Journey Packs；
-- Companion Hosts。
-
-视频 Avatar 是正式核心能力，但不阻塞第一条文字真实闭环；第一闭环成立后进入并行主线，而不是无限后置。
-
-## 14. 固定质量门禁
-
-每个采用的 OSS 产品/模块至少必须满足：
-
-- 精确上游仓库、40 位 commit/tag 与来源记录；
-- 许可证义务明确并进入 Release/SBOM/THIRD_PARTY_NOTICES；
-- 模型权重与代码许可证分别记录；
+- 精确上游 repo + 40 位 commit/tag；
+- license/path/model assets 精确记录；
+- THIRD_PARTY_NOTICES / SBOM / Release 义务；
 - 上游关键测试保留或等效覆盖；
 - Windows 真实数据与真实账号验证；
-- 离线、断网、崩溃、重启、重复事件、迟到事件测试；
+- offline / disconnect / crash / restart / duplicate / late event；
 - 不吞错、不伪造成功；
-- 升级和回滚可执行；
-- upstream patch 尽量小、可重放、可重新基于新上游验证；
-- UI 具有 loading、empty、offline、error、recovery、permission-denied；
-- 关键外部动作默认可确认、可撤销或有明确不可撤销提示；
-- 100%、125%、150%、200% DPI 与键盘基本可用；
-- AI route、prompt、Journey、VoiceProfile、Visual workflow、Avatar runtime 均有版本和回归证据。
+- upgrade / rollback 可执行；
+- patch 小、可重放、可重新基于上游验证；
+- UI loading/empty/offline/error/recovery/permission-denied；
+- 100/125/150/200% DPI 与键盘基本可用；
+- route/prompt/Journey/Persona/Voice/Visual/Avatar 全部版本化。
 
-### 14.1 Unified UI
+### 21.1 Relationship Intelligence
 
 必须验证：
 
-- 所有平台只进入同一个 Yance 产品工作区；
-- 左侧导航、会话列表、右侧工作区的展开/收起/完全隐藏；
-- 三个区域均可拖拽宽度；
-- 重启后恢复布局与宽度；
-- 被隐藏区域可通过快捷键或明确入口恢复；
-- 100%、125%、150%、200% DPI；
-- 窄窗口 Sheet/Drawer fallback；
-- 渐进披露不丢失能力或状态；
-- 隐藏/折叠不停止消息同步、Journey、AI 或后台任务；
-- 主题、提示音、通知、翻译和用户设置零回归。
+- confirmed fact / user fact / AI inference 不混淆；
+- inference 有来源/confidence；
+- 不把一次情绪判断永久写成事实；
+- Persona 变化有证据、版本和回滚；
+- Relationship Timeline 的重要事实可追溯；
+- Goal 控制自己的沟通策略，不构建欺骗/胁迫式对方控制；
+- 用户可随时停用 Goal / AI / Voice / Avatar。
 
-### 14.2 通信
+### 21.2 Communication
 
-- bridge capability matrix；
+- capability matrix；
 - history/backfill；
 - edit/delete/reaction/read receipt；
 - reconnect；
 - media；
-- 多账号；
-- 平台特有能力不被静默丢弃。
+- multi-account；
+- 平台特有能力不静默丢失。
 
-### 14.3 Goal Brain
+### 21.3 Facebook 专项
 
-- 跑题后恢复 Journey；
-- 不重复已完成问题；
-- 条件跳转；
-- 目标完成即停止推动；
-- 用户改目标立即生效。
+Official Engine：
 
-### 14.4 Voice
+- OAuth/token/subscription/webhook；
+- unknown contact first message；
+- Business Suite / external echo；
+- Meta MID dedupe；
+- delivery/read；
+- attachment/media；
+- history/reconciliation；
+- permission-limited state 必须真实显示。
 
-- 本人/授权声音；
-- speaker similarity benchmark；
-- 多语言自然度；
+Session Engine：
+
+- login/2FA/session recovery；
+- no plaintext password persistence；
+- Personal send/receive；
+- Page identity discovery/switch；
+- Page send/receive；
+- Business Suite echo；
+- long connection/reconnect；
+- checkpoint/account-risk visibility；
+- Windows/Electron real-account UAT。
+
+### 21.4 Voice / Emotion
+
+- speaker similarity；
+- ASR accuracy；
+- emotion signal accuracy/uncertainty；
+- 多语言；
 - latency；
-- 平台音频兼容；
-- 生成/发送失败明确反馈。
+- audio codec/platform compatibility；
+- failure fallback。
 
-### 14.5 Visual
+### 21.5 Learning / Routing
 
-- real-first；
-- 身份一致性 benchmark；
-- 真实/生成 provenance 不混淆；
-- 季节/时间/地点上下文必须来自用户输入或已授权数据；
-- 依赖实时真实性的场景不自动使用合成图。
+- shadow comparison；
+- prompt/Journey/routing regression；
+- acceptance/modification distance；
+- latency/cost/quality；
+- failure rollback。
 
-### 14.6 Video Avatar
+### 21.6 Visual / Avatar
 
-至少测试：
+继续保留 V2.1 的 real-first、provenance、identity consistency、lip-sync、turn interruption、WebRTC recovery、user takeover、synthetic-content truthfulness 等门禁。
 
-- 本人/授权形象；
-- identity consistency；
-- lip-sync；
-- listening/speaking 状态切换；
-- 眨眼、idle motion、头部运动自然度；
-- 首帧时间与持续端到端 latency；
-- 目标 FPS/分辨率在指定 GPU 上稳定；
-- 对方打断后的停止延迟；
-- STT → Reply Brain → TTS → Avatar 的全链延迟；
-- WebRTC ICE/TURN/P2P/SFU 网络失败恢复；
-- 音视频同步；
-- 用户切回真实麦克风/摄像头；
-- Avatar backend 崩溃后的明确降级；
-- 虚拟摄像头只在平台正式支持的路径启用；
-- AI/合成来源在 Yance 内有明确状态与 provenance；
-- 不以“无法识别为合成内容”作为验收条件。
+---
 
-### 14.7 Learning / Routing
+## 22. V2.1 实施顺序
 
-- 离线评测；
-- shadow 对比；
-- prompt/Journey/routing 回归；
-- 成本、延迟、接受率、修改距离、目标达成率可比较；
-- Presence 媒介采用率与失败率可比较；
-- 失败可回滚到上一个稳定版本。
+### 22.1 已完成 / 当前工作不得重做
 
-## 15. 旧计划清理与冲突处理
+- Communications P0（Matrix/Synapse + Element + mautrix-whatsapp）已经按既有工作包收口后，不重新打底；
+- 当前 Letta P0 v2 继续按现有 #119 精确授权与 RED/GREEN 周期实施；
+- 本次 Relationship Enhancement **不得扩大 #119 scope**。
 
-V2.1 已经取代以下旧架构硬要求，这些要求不得再存在于活动计划中作为可执行指令：
+### 22.2 AI / Relationship 主线
 
-- “Yance 必须保持唯一产品与数据权威”；
-- “必须自建唯一 ChannelDriver”；
-- “必须自建 CanonicalAccount/Contact/Conversation/Message 等统一事实层”；
-- “Chatwoot 必须是唯一 Product Shell”；
-- “所有渠道和模型调用必须先完成 Yance 自研 WP-B DurableTask/Outbox”；
-- “外部成熟产品只能作为行为合同、不得成为实际状态权威”的一般性限制；
-- 把 Voice、Visual、Video 当成互不关联的独立多模态附件能力的旧理解；
-- 为不同平台提供独立产品级聊天 UI 的任何方案。
+当前 Letta P0 收口后：
 
-清理规则：
+1. Parlant Relationship Goal/Journey；
+2. LiteLLM + RouteLLM；
+3. Langfuse + OpenTelemetry；
+4. SenseVoice + CosyVoice Voice Brain；
+5. Immich Relationship Media Memory；
+6. Graphiti 深度 Relationship Timeline；
+7. SillyTavern Persona/Character/Lorebook/Prompt 可移植模块 OSS-fit；
+8. Docling + Retrieval；
+9. MCP tool ecosystem；
+10. ComfyUI identity visual；
+11. Live voice；
+12. CyberVerse + LiveKit realtime Avatar；
+13. Temporal/durable workflow 仅在真实需求出现时。
 
-1. 已被本文件完整吸收的旧 V1/旧专题计划从 `project-state/active-handoff` 删除；
-2. 历史内容通过 Git commit 历史追溯，不在活动分支保留“可能被误读的第二份真相”；
-3. 仍需保留的专项合同必须明确声明其只补充 V2.1，不能覆盖 V2.1；
-4. `START_HERE.md` 不再把已删除旧计划列为必读项。
+### 22.3 Facebook reliability 独立并行线
 
-以下工程原则继续有效：
+Facebook Page 当前已有真实缺陷历史，因此在不污染 Letta/AI exact-scope 的前提下，启动独立：
 
-- 禁止临时绕过；
-- 必须底层修复；
-- 失败测试先行；
-- 不强推、不改写历史、不弱化门禁；
-- 精确上游 commit 与来源治理；
-- 独立工作包、授权、PR、receipt、exact-Head 复验；
-- 用户设置、主题、提示音和真实数据迁移不得无证据回归。
+```text
+Facebook current regression freeze
+        ↓
+Chatwoot OSS Facebook Core + Meta official engine OSS-fit
+        ↓
+FCA Session Engine real-account/Page OSS-fit
+        ↓
+同一 capability/UAT matrix
+        ↓
+选择 default + fallback/escape hatch
+        ↓
+逐步淘汰 Yance 重复自研 Facebook transport logic
+```
 
-## 16. 计划维护协议
+这条线与 AI Relationship 主线并行，不要求等待所有 AI 模块完成。
 
-- 固定分支：`project-state/active-handoff`；
-- 唯一稳定文件：`YANCE_IMPLEMENTATION_MASTER_PLAN.md`；
-- `START_HERE.md` 必须明确本文件为唯一稳定架构指令；
-- `PROJECT_CONTINUATION.md` 只记录当前精确状态、阻塞和下一步，不得反向覆盖本文件的稳定架构；
-- 已被本文件完整吸收的旧稳定/专题计划应删除，而不是继续保留为“历史可执行参考”；
-- 总范围调整通过普通新提交，不 amend、不 rebase、不 force push；
-- 具体落地仍需各自来源凭据、路径清单、RED/GREEN、receipt 与精确 Head 证据。
+---
 
-## 17. 当前立即行动
+## 23. 旧计划清理与冲突处理
 
-1. 不污染当前已授权精确 Head，先完成正在进行的 OSS-A/治理/发布链收口；
-2. 删除已被 V2.1 完整吸收、且可能误导后续执行的旧 V1/旧专题计划；历史由 Git 保留；
-3. 为 V2.1 建立首批上游冻结矩阵：Matrix/Synapse、Element、mautrix、Letta、Graphiti、Parlant、LiteLLM、RouteLLM、Langfuse、DSPy、Promptfoo、CosyVoice、Immich、ComfyUI、CyberVerse、LiveKit、Ditto、MuseTalk、LivePortrait、OBS Studio；
-4. 对每个上游固定精确 commit、许可证、模型资产许可证、运行方式、可移植模块、上游测试与 Windows 可运行性；
-5. 新工作包优先打通 `Matrix + Element + WhatsApp bridge + Letta + Parlant + LiteLLM` 第一真实闭环，并直接进入统一 Yance 工作区；
-6. 同时准备 VoiceProfile P0：CosyVoice 与第二候选的真实多语言 speaker-similarity benchmark；
-7. 同时准备 Visual P0：Immich 真实照片检索；生成链在 real-first 闭环后接入 ComfyUI/PhotoMaker/InstantID/PuLID；
-8. 第一文字闭环稳定后启动 Personal Video Avatar 工作包：先验证 CyberVerse + LiveKit 的完整实时通话母体，再对 Ditto/MuseTalk/LivePortrait/FlashHead/LiveAct 做同一硬件、同一素材、同一延迟口径 benchmark；
-9. 第三方视频通话只通过平台正式能力或 OBS Virtual Camera 等成熟受支持路径，不为“看起来支持”自研脆弱绕过；
-10. 第一闭环稳定后并行扩展 Telegram、Signal、Meta、Google Messages、Graphiti、DSPy/Promptfoo、Dating Journey Packs、LINE/Kakao/iMessage Companion；
-11. 以后任何新功能先查成熟 OSS；没有“无成熟 OSS 证据”，不得转入自研。
+V2.1 当前明确废止/纠正：
+
+- 把 Yance 定位为 CRM / sales / marketing system；
+- SalesGPT/销售漏斗作为 Goal Brain 的核心模板；
+- 为每个平台建立独立产品 UI；
+- 为成熟 OSS 已有能力建立第二套 Yance message/memory/journey/model/photo/voice/WebRTC infrastructure；
+- Facebook Page 默认继续通过扩大 Yance 自研 connector 修补；
+- AI inference 静默变成真人事实；
+- 生成声音/图片/Avatar 冒充实时事实证据。
+
+历史提交不改写；旧语义通过后继普通提交逐步迁移。
+
+---
+
+## 24. 计划维护协议
+
+- 固定稳定/状态分支：`project-state/active-handoff`；
+- 唯一稳定架构文件：`YANCE_IMPLEMENTATION_MASTER_PLAN.md`；
+- `START_HERE.md` 只作为入口与最高原则摘要；
+- `PROJECT_CONTINUATION.md` 只记录当前动态事实，不得覆盖本文件；
+- 总范围调整只允许普通后继提交，不 amend/rebase/force push；
+- 每个真正落地的 OSS 模块仍需要独立来源 pin、scope、failure-first RED、GREEN、review、receipt、exact-Head merge approval；
+- 当前已授权工作包不因为总计划增强而自动获得新增路径授权。
+
+---
+
+## 25. 当前立即行动
+
+1. 继续收口当前 Letta P0 v2 #119，不改 scope；
+2. Letta GREEN 后按 Relationship 主线进入 Parlant；
+3. 独立建立 Facebook modernization OSS-fit，不再继续零散修补现有 Facebook transport；
+4. Facebook Session Engine 必须先做真实账号 + Page 能力证明，再决定是否成为正式 native engine；
+5. 把 SillyTavern、SenseVoice、Docling、MCP、pgvector/Qdrant、Open-LLM-VTuber 可许可模块纳入后续来源矩阵；
+6. 对每个新增 OSS 固定 repo/commit/license/model-license/build/runtime/Windows UAT；
+7. 所有功能继续只进入一个 Yance 产品工作区；
+8. 所有 Relation/Emotion inference 必须保留不确定性和 provenance；
+9. 继续执行成熟 OSS 优先、failure-first、底层修复、不强推、不改写历史、不弱化门禁；
+10. 最终 merge 始终停在 owner exact-Head 明确批准边界。
