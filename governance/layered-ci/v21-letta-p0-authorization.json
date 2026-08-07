@@ -22,6 +22,14 @@
     ],
     "mustRemainSingleFile": true
   },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Apply the repository normalizeChangedFiles contract: require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing. This is the workPackageChangedFilesSha256 contract used by shared/release/implementationBranchPolicy.js."
+  },
   "implementation": {
     "branch": "product/v21-letta-p0",
     "allowedChangedPaths": [
