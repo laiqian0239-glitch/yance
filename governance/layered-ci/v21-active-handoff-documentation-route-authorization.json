@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACTIVE_HANDOFF_GOVERNANCE_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-07T23:21:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ACTIVE-HANDOFF-DOCUMENTATION-ROUTE",
+  "status": "AUTHORIZED_AFTER_ACTIVE_HANDOFF_MERGE",
+  "reason": "PR #120 exact-Head Stage verification proved that the base-owned project-state/active-handoff WP0 routing policy fails closed on the three root-level active-handoff authority documents. The route implementation itself is correct and no selector, workflow, schema, or broad-prefix change is required. This authorization permits only an exact governance-path classification root fix plus its dedicated regression contract.",
+  "base": {
+    "branch": "project-state/active-handoff",
+    "commit": "a876c92f857afdf6f9d4e0cd70c0c72fa63e6c08"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentActiveHandoffMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "evidence": {
+    "sourcePullRequest": 120,
+    "sourceExactHead": "eda3e49640dc152e0054f6a7d6c053f64ded87b3",
+    "sourceBase": "a876c92f857afdf6f9d4e0cd70c0c72fa63e6c08",
+    "stageWp0Run": 31196866124,
+    "stageWp0RouteJob": 92927103030,
+    "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "unknownPathsObservedAtSourceExactHead": [
+      "PROJECT_CONTINUATION.md",
+      "START_HERE.md",
+      "YANCE_IMPLEMENTATION_MASTER_PLAN.md"
+    ],
+    "baseRoutingPolicySchemaVersion": 1,
+    "baseRoutingPolicyBlob": "7d62c7ae50eb179f72e0af37f1bf64cc794818e2",
+    "baseRoutingImplementationBlob": "4e0105f5c5aa695437fa18de951681d2c91bbe35"
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-active-handoff-documentation-route-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-active-handoff-documentation-route-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-active-handoff-documentation-route",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-active-handoff-documentation-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "7ff5c3ba53fbe043bded6464cdca223ea2e80af7c844ab5aa0d911c336e2734f",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "selectorModificationAllowed": false,
+    "schemaModificationAllowed": false,
+    "prefixExpansionAllowed": false
+  },
+  "exactDocumentationPaths": [
+    "PROJECT_CONTINUATION.md",
+    "START_HERE.md",
+    "YANCE_IMPLEMENTATION_MASTER_PLAN.md"
+  ],
+  "exactDocumentationPathCount": 3,
+  "candidatePreservation": {
+    "candidatePullRequest": 120,
+    "candidateBranch": "docs/v21-relationship-intelligence-enhancement-2026-08-07",
+    "candidateSourceExactHead": "eda3e49640dc152e0054f6a7d6c053f64ded87b3",
+    "candidateSourceChangedFileCount": 3,
+    "candidateContentModificationAuthorizedByThisWorkPackage": false,
+    "candidateHistoryRewriteAllowed": false,
+    "candidateMustReceiveFreshExactHeadApprovalAfterBaseRefresh": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "Before policy implementation, the three exact root-level active-handoff authority documents classify as WP0_ROUTE_UNKNOWN_PATH under the base-owned classifier",
+    "After implementation each exact root document independently selects GOVERNANCE_WP0",
+    "After implementation the exact three-path PR #120 document set selects GOVERNANCE_WP0",
+    "Suffix aliases, case variants, unknown root files, and malformed repository paths continue to fail closed",
+    "A mixed active-handoff authority document plus an existing product path escalates to PRODUCT_WP0",
+    "Only the three literal paths are added to governanceExactPaths; governancePrefixes and productPrefixes remain unchanged",
+    "tools/layered-ci/wp0-routing.js, workflows, schemaVersion, dependencies, PR #120 content, PR #119, PR #67, and unrelated work packages remain untouched"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes applicable GOVERNANCE_WP0 gates and has zero unresolved P0/P1 review findings",
+    "Owner explicitly approves the authorization exact Head merge",
+    "Authorization PR merges to project-state/active-handoff by ordinary two-parent merge without history rewrite",
+    "Implementation branch is created from that exact authorization merge commit",
+    "Dedicated test-only commit records causal RED before policy implementation",
+    "Only the three literal root documents are added to governanceExactPaths",
+    "Implementation exact Head passes applicable Stage and review gates",
+    "Owner explicitly approves the implementation exact Head merge",
+    "Implementation PR merges to project-state/active-handoff by ordinary two-parent merge",
+    "The refreshed project-state/active-handoff is merged normally into PR #120 without rebase, amend, or force push",
+    "PR #120 is reverified on its new exact Head and requires fresh owner merge approval"
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "prefixExpansion": true,
+    "schemaUpgrade": true,
+    "workflowModification": true,
+    "selectorModification": true,
+    "mergeMainWholesaleIntoActiveHandoff": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "directCandidateSelfAuthorization": true,
+    "pr120ContentModification": true,
+    "pr119Modification": true,
+    "pr67Modification": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
