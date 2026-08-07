@@ -313,6 +313,17 @@ function defaultChangedFilesBetween(base, head, options = {}) {
   }
 }
 
+function defaultMergeBases(left, right, options = {}) {
+  try {
+    const output = trustedGit(['merge-base', '--all', left, right], options);
+    if (!output) return [];
+    const mergeBases = output.split(/\r?\n/u).filter(Boolean);
+    return mergeBases.every(SHA40.test.bind(SHA40)) ? mergeBases : [];
+  } catch (_) {
+    return [];
+  }
+}
+
 function defaultListGenericAuthorizationPaths(trustedMainHead, options = {}) {
   try {
     const values = parseNulPathList(trustedGitBuffer([
@@ -641,7 +652,18 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
     if (ancestor(mergeCommit, trustedMainHead) !== true
       || ancestor(mergeCommit, evaluatedHead) !== true) continue;
 
-    const implementationChangedFiles = resolveChangedFiles(mergeCommit, evaluatedHead);
+    const resolveMergeBases = options.resolveMergeBases
+      || ((left, right) => defaultMergeBases(left, right, options));
+    const mergeBases = resolveMergeBases(trustedMainHead, evaluatedHead);
+    if (!Array.isArray(mergeBases)
+      || mergeBases.length !== 1
+      || !SHA40.test(String(mergeBases[0] || ''))) continue;
+    const implementationBase = mergeBases[0];
+    if (ancestor(mergeCommit, implementationBase) !== true
+      || ancestor(implementationBase, trustedMainHead) !== true
+      || ancestor(implementationBase, evaluatedHead) !== true) continue;
+
+    const implementationChangedFiles = resolveChangedFiles(implementationBase, evaluatedHead);
     if (!Array.isArray(implementationChangedFiles)) continue;
     const implementationNormalized = normalizeChangedFiles(implementationChangedFiles);
     if (implementationNormalized.length !== implementationChangedFiles.length
