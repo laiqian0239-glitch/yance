@@ -2,9 +2,11 @@
 
 > **状态：V2.1 最高指令冻结，跨聊天持续有效。**
 >
-> 本文件是 Yance 的最高稳定架构与实施指令。除实时远端事实、已生效治理凭据、精确授权 Head 与正式安全/许可证约束外，任何旧聊天、旧设计快照、旧实施方案、旧 UI 计划或旧工作包说明与本文件冲突时，**以本文件为准**。
+> 本文件是 Yance 的**唯一稳定架构与实施指令**。除实时远端事实、已生效治理凭据、精确授权 Head 与正式安全/许可证约束外，任何旧聊天、旧设计快照、旧实施方案、旧 UI 计划或旧工作包说明与本文件冲突时，**以本文件为准**。
 >
-> V2.1 将此前确认的多平台、AI 回复大脑、长期记忆、目标导向聊天、模型路由、学习成长、本人声音克隆、个人照片素材与实时本人 AI Avatar 视频通话合并为一套单一架构。禁止后续再次拆成互相竞争的平行产品底座。
+> 为避免旧方案被误用：凡已被本文件完整吸收、且与 V2.1 存在架构冲突的旧稳定/专题计划，不继续留在活动状态分支作为“历史参考”；应通过普通提交删除，由 Git 历史承担审计追溯。只有仍承载 V2.1 未吸收的有效专项合同，且明确声明不覆盖本文件的文件，才允许继续保留。
+>
+> V2.1 将此前确认的多平台、统一产品界面、AI 回复大脑、长期记忆、目标导向聊天、模型路由、学习成长、本人声音克隆、个人照片素材与实时本人 AI Avatar 视频通话合并为一套单一架构。禁止后续再次拆成互相竞争的平行产品底座。
 >
 > 当前已经授权并正在收口的精确 Head、PR、workflow、receipt 与门禁不因本次架构升级而被改写或绕过；它们按原授权完成。V2.1 通过新的普通提交、独立工作包、精确上游 pin、RED/GREEN 证据和可回滚迁移逐步落地。
 
@@ -67,7 +69,7 @@ Yance 的最高执行指标是：**以最短路径形成真实可运行、功能
 
 ## 1. 最终产品形态：Yance 开源整合发行版
 
-Yance 最终仍提供一个统一桌面体验，但底层允许多个成熟 OSS 各自拥有其最擅长的真实运行状态。
+Yance 最终始终提供**一个统一产品界面**。底层允许多个成熟 OSS 各自拥有其最擅长的真实运行状态，但用户不得被暴露为多个产品或多个后台拼接体。
 
 ```text
                                       YANCE
@@ -91,6 +93,8 @@ Yance 最终仍提供一个统一桌面体验，但底层允许多个成熟 OSS 
                                         ↓
                                 Yance Integration
                     Branding / AI Panel / Goal / Presence / UX
+                                        ↓
+                              一个统一 Yance 工作区
 ```
 
 Yance 自身默认只维护：
@@ -174,7 +178,7 @@ GPL/AGPL 不再因为未来闭源商业化而被排除。采用时必须：
 
 ## 3. 多平台：Matrix/mautrix 优先替代 Yance 自建 Channel Fabric
 
-V1 的“唯一 Yance ChannelDriver + 唯一 Canonical 模型”不再是最高架构要求。与本节冲突处，V1 条款废止。
+V1 的“唯一 Yance ChannelDriver + 唯一 Canonical 模型”不再是架构要求。
 
 首选运行链：
 
@@ -227,39 +231,11 @@ Matrix 是主统一层，不是强制最小公分母。以下场景允许通过�
 
 Yance 只维护极薄能力映射，不重写协议。
 
-## 4. 聊天产品壳：Element 优先，Chatwoot 降为可选能力来源
+## 4. 统一产品界面：Element 优先 + 单一 Yance 工作区
 
-V1/UI V1 中“Chatwoot OSS 是唯一产品壳”的条款在与本节冲突处被取代。
+底层聊天能力优先复用 Element Web / 成熟 Matrix 客户端，Chatwoot 只作为必要时的精选交互/组件来源，不再拥有任何“唯一产品壳”地位。
 
-首选：
-
-```text
-Element Web / 成熟 Matrix 客户端能力
-        ↓
-保留成熟会话列表、timeline、thread、reply、edit、reaction、media、search、notification、settings
-        ↓
-加入 Yance 品牌、AI 右侧栏、目标栏、语音/照片/视频 Avatar 入口
-```
-
-Chatwoot 仍可作为联系人/收件箱/消息交互规则和组件参考或精选源码来源，但不再要求 Yance 复制其完整会话产品壳。
-
-自定义 Yance 面板优先使用：
-
-- shadcn-vue；
-- Reka UI；
-- VueUse；
-- Tiptap OSS Core；
-- TanStack；
-- Cytoscape.js；
-- Storybook / Playwright / axe-core / MSW。
-
-现有主题、提示音、通知规则、用户设置和翻译体验原则继续保留，除非后续专门迁移工作包以零回归证据替换其实现。
-
-### 4.1 统一产品界面 + 可折叠/可隐藏/可拖拽侧栏 + 渐进披露
-
-这是 V2.1 的**固定产品体验硬规则**，不得因为底层采用 Matrix、Element、mautrix、Letta、Parlant、Personal Presence 或其他成熟 OSS 而拆成多个产品界面。
-
-所有平台必须汇入同一个 Yance 工作区：
+用户层面固定只有一个 Yance：
 
 ```text
 Yance 统一产品界面
@@ -272,14 +248,16 @@ Yance 统一产品界面
 
 平台身份只以账号、图标、筛选器、来源标识和能力差异出现；不得为 WhatsApp、Telegram、Signal、Facebook、Instagram、LINE 等重新建立独立产品级聊天界面。
 
-工作区固定支持：
+### 4.1 固定 UX 硬规则：可折叠 / 可隐藏 / 可拖拽 + 渐进披露
+
+这是 V2.1 的**最高产品体验硬规则**：
 
 - 左侧全局导航：展开、图标收起、完全隐藏、悬停临时展开、拖拽调整宽度；
 - 会话列表：标准、窄模式、完全隐藏、拖拽调整宽度；
 - 右侧工作区：完整展开、窄 Tab、完全隐藏、拖拽调整宽度；
 - 右侧工作区统一承载 AI 回复、今日聊天目标/Journey、联系人资料、Graphiti 关系记忆、翻译、VoiceProfile、照片素材、AI 生图、Video Avatar 等能力；
 - 布局状态、面板宽度、字体/密度等用户偏好必须在重启后恢复；
-- 窄窗口或移动式布局允许成熟 Sheet/Drawer 模式替代固定侧栏，但能力入口和状态不能丢失；
+- 窄窗口允许成熟 Sheet/Drawer 模式替代固定侧栏，但能力入口和状态不能丢失；
 - 必须有键盘快捷方式或明确入口恢复被隐藏的面板，不能把“隐藏”变成不可恢复状态。
 
 固定布局模式至少包括：
@@ -301,7 +279,19 @@ AI 辅助：左侧收起 + 聊天 + AI/Goal 右侧工作区
 
 折叠、隐藏或调整面板只改变展示，不得静默停止平台同步、消息接收、Journey、AI 运行或后台任务；如果某操作会改变运行状态，必须作为独立明确动作呈现。
 
-该规则与旧 `YANCE_UNIFIED_UI_OPEN_SOURCE_MIGRATION_PLAN.md` 中左右侧栏、布局恢复、字体、主题、声音和零回归条款兼容；旧文件里与 V2.1 冲突的 ChannelDriver/Canonical/Chatwoot 唯一权威描述仍按本主计划降级为历史参考。
+### 4.2 UI 技术来源
+
+自定义 Yance 面板优先使用：
+
+- shadcn-vue；
+- Reka UI；
+- VueUse；
+- Tiptap OSS Core；
+- TanStack；
+- Cytoscape.js；
+- Storybook / Playwright / axe-core / MSW。
+
+现有主题、提示音、通知规则、用户设置和翻译体验原则继续保留，并作为本文件当前有效合同的一部分；不再依赖旧 V1 UI 计划作为执行输入。
 
 ## 5. AI Reply Brain：Letta + Graphiti + Parlant
 
@@ -821,6 +811,8 @@ Matrix/bridge 真实发送
 Langfuse 记录结果
 ```
 
+第一闭环必须直接落入统一 Yance 工作区，不能临时为 WhatsApp 或任何单一平台建立独立产品级页面。
+
 这条闭环成立后，不再重新打底，直接并行扩展 Voice / Visual / Video Presence。
 
 ### 13.3 Personal Presence 扩展顺序
@@ -845,7 +837,7 @@ OBS Virtual Camera 第三方客户端能力矩阵
 ### 13.4 并行线路
 
 ```text
-线路 A：Matrix / Synapse / Element 产品骨架
+线路 A：Matrix / Synapse / Element + 统一可折叠 Yance 产品工作区
 线路 B：mautrix WhatsApp / Telegram / Signal / Meta / Google Messages
 线路 C：Letta + Graphiti 长期 Agent / 关系记忆
 线路 D：Parlant Goal/Journey + SalesGPT Journey Packs
@@ -864,7 +856,7 @@ OBS Virtual Camera 第三方客户端能力矩阵
 P0：
 
 1. OSS-A 来源/许可证/供应链治理；
-2. Matrix + Element + 第一真实 bridge；
+2. Matrix + Element + 第一真实 bridge + 统一 Yance 工作区；
 3. Letta；
 4. Parlant Goal Brain；
 5. LiteLLM + RouteLLM；
@@ -900,13 +892,26 @@ P1：
 - 升级和回滚可执行；
 - upstream patch 尽量小、可重放、可重新基于新上游验证；
 - UI 具有 loading、empty、offline、error、recovery、permission-denied；
-- 统一界面必须证明左侧导航、会话列表、右侧工作区可折叠/可隐藏/可拖拽，布局与宽度重启恢复，隐藏面板可通过快捷方式或明确入口恢复；
-- 渐进披露必须证明常用动作不被深埋、低频/高级功能不长期占满聊天主区，隐藏面板不会静默改变后台同步或 AI/Goal 运行状态；
 - 关键外部动作默认可确认、可撤销或有明确不可撤销提示；
 - 100%、125%、150%、200% DPI 与键盘基本可用；
 - AI route、prompt、Journey、VoiceProfile、Visual workflow、Avatar runtime 均有版本和回归证据。
 
-### 14.1 通信
+### 14.1 Unified UI
+
+必须验证：
+
+- 所有平台只进入同一个 Yance 产品工作区；
+- 左侧导航、会话列表、右侧工作区的展开/收起/完全隐藏；
+- 三个区域均可拖拽宽度；
+- 重启后恢复布局与宽度；
+- 被隐藏区域可通过快捷键或明确入口恢复；
+- 100%、125%、150%、200% DPI；
+- 窄窗口 Sheet/Drawer fallback；
+- 渐进披露不丢失能力或状态；
+- 隐藏/折叠不停止消息同步、Journey、AI 或后台任务；
+- 主题、提示音、通知、翻译和用户设置零回归。
+
+### 14.2 通信
 
 - bridge capability matrix；
 - history/backfill；
@@ -916,7 +921,7 @@ P1：
 - 多账号；
 - 平台特有能力不被静默丢弃。
 
-### 14.2 Goal Brain
+### 14.3 Goal Brain
 
 - 跑题后恢复 Journey；
 - 不重复已完成问题；
@@ -924,7 +929,7 @@ P1：
 - 目标完成即停止推动；
 - 用户改目标立即生效。
 
-### 14.3 Voice
+### 14.4 Voice
 
 - 本人/授权声音；
 - speaker similarity benchmark；
@@ -933,7 +938,7 @@ P1：
 - 平台音频兼容；
 - 生成/发送失败明确反馈。
 
-### 14.4 Visual
+### 14.5 Visual
 
 - real-first；
 - 身份一致性 benchmark；
@@ -941,7 +946,7 @@ P1：
 - 季节/时间/地点上下文必须来自用户输入或已授权数据；
 - 依赖实时真实性的场景不自动使用合成图。
 
-### 14.5 Video Avatar
+### 14.6 Video Avatar
 
 至少测试：
 
@@ -962,7 +967,7 @@ P1：
 - AI/合成来源在 Yance 内有明确状态与 provenance；
 - 不以“无法识别为合成内容”作为验收条件。
 
-### 14.6 Learning / Routing
+### 14.7 Learning / Routing
 
 - 离线评测；
 - shadow 对比；
@@ -971,9 +976,9 @@ P1：
 - Presence 媒介采用率与失败率可比较；
 - 失败可回滚到上一个稳定版本。
 
-## 15. 与旧计划的冲突处理
+## 15. 旧计划清理与冲突处理
 
-本 V2.1 明确取代以下旧架构硬要求：
+V2.1 已经取代以下旧架构硬要求，这些要求不得再存在于活动计划中作为可执行指令：
 
 - “Yance 必须保持唯一产品与数据权威”；
 - “必须自建唯一 ChannelDriver”；
@@ -981,11 +986,18 @@ P1：
 - “Chatwoot 必须是唯一 Product Shell”；
 - “所有渠道和模型调用必须先完成 Yance 自研 WP-B DurableTask/Outbox”；
 - “外部成熟产品只能作为行为合同、不得成为实际状态权威”的一般性限制；
-- 把 Voice、Visual、Video 当成互不关联的独立多模态附件能力的旧理解。
+- 把 Voice、Visual、Video 当成互不关联的独立多模态附件能力的旧理解；
+- 为不同平台提供独立产品级聊天 UI 的任何方案。
 
-以下旧原则继续有效：
+清理规则：
 
-- **统一产品界面 + 可折叠/可隐藏/可拖拽侧栏 + 渐进披露**；
+1. 已被本文件完整吸收的旧 V1/旧专题计划从 `project-state/active-handoff` 删除；
+2. 历史内容通过 Git commit 历史追溯，不在活动分支保留“可能被误读的第二份真相”；
+3. 仍需保留的专项合同必须明确声明其只补充 V2.1，不能覆盖 V2.1；
+4. `START_HERE.md` 不再把已删除旧计划列为必读项。
+
+以下工程原则继续有效：
+
 - 禁止临时绕过；
 - 必须底层修复；
 - 失败测试先行；
@@ -997,20 +1009,20 @@ P1：
 ## 16. 计划维护协议
 
 - 固定分支：`project-state/active-handoff`；
-- 最高稳定文件：`YANCE_IMPLEMENTATION_MASTER_PLAN.md`；
-- `START_HERE.md` 必须明确本文件为最高稳定架构指令；
+- 唯一稳定文件：`YANCE_IMPLEMENTATION_MASTER_PLAN.md`；
+- `START_HERE.md` 必须明确本文件为唯一稳定架构指令；
 - `PROJECT_CONTINUATION.md` 只记录当前精确状态、阻塞和下一步，不得反向覆盖本文件的稳定架构；
-- 旧专题计划在与本文件冲突时自动降级为历史/局部参考；
+- 已被本文件完整吸收的旧稳定/专题计划应删除，而不是继续保留为“历史可执行参考”；
 - 总范围调整通过普通新提交，不 amend、不 rebase、不 force push；
 - 具体落地仍需各自来源凭据、路径清单、RED/GREEN、receipt 与精确 Head 证据。
 
 ## 17. 当前立即行动
 
 1. 不污染当前已授权精确 Head，先完成正在进行的 OSS-A/治理/发布链收口；
-2. 为 V2.1 建立首批上游冻结矩阵：Matrix/Synapse、Element、mautrix、Letta、Graphiti、Parlant、LiteLLM、RouteLLM、Langfuse、DSPy、Promptfoo、CosyVoice、Immich、ComfyUI、CyberVerse、LiveKit、Ditto、MuseTalk、LivePortrait、OBS Studio；
-3. 对每个上游固定精确 commit、许可证、模型资产许可证、运行方式、可移植模块、上游测试与 Windows 可运行性；
-4. 新工作包优先打通 `Matrix + Element + WhatsApp bridge + Letta + Parlant + LiteLLM` 第一真实闭环；
-5. 第一真实闭环的 UI 必须同时证明统一会话中心、可折叠/隐藏/拖拽工作区和渐进披露，不允许先做不可调整的临时壳再返工；
+2. 删除已被 V2.1 完整吸收、且可能误导后续执行的旧 V1/旧专题计划；历史由 Git 保留；
+3. 为 V2.1 建立首批上游冻结矩阵：Matrix/Synapse、Element、mautrix、Letta、Graphiti、Parlant、LiteLLM、RouteLLM、Langfuse、DSPy、Promptfoo、CosyVoice、Immich、ComfyUI、CyberVerse、LiveKit、Ditto、MuseTalk、LivePortrait、OBS Studio；
+4. 对每个上游固定精确 commit、许可证、模型资产许可证、运行方式、可移植模块、上游测试与 Windows 可运行性；
+5. 新工作包优先打通 `Matrix + Element + WhatsApp bridge + Letta + Parlant + LiteLLM` 第一真实闭环，并直接进入统一 Yance 工作区；
 6. 同时准备 VoiceProfile P0：CosyVoice 与第二候选的真实多语言 speaker-similarity benchmark；
 7. 同时准备 Visual P0：Immich 真实照片检索；生成链在 real-first 闭环后接入 ComfyUI/PhotoMaker/InstantID/PuLID；
 8. 第一文字闭环稳定后启动 Personal Video Avatar 工作包：先验证 CyberVerse + LiveKit 的完整实时通话母体，再对 Ditto/MuseTalk/LivePortrait/FlashHead/LiveAct 做同一硬件、同一素材、同一延迟口径 benchmark；
