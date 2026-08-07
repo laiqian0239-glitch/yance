@@ -63,7 +63,22 @@
     "third_party/licenses/actions-upload-artifact-MIT.txt",
     "third_party/licenses/baileys-MIT.txt",
     "third_party/provenance.json",
-    "third_party/sbom.cdx.json"
+    "third_party/sbom.cdx.json",
+    "config/matrix/element-config.json",
+    "config/matrix/mautrix-whatsapp/config.yaml",
+    "config/matrix/synapse/homeserver.yaml",
+    "config/upstreams/v21-comms-p0.json",
+    "integration/element-module/package.json",
+    "integration/element-module/project.json",
+    "integration/element-module/src/YanceWorkspace.tsx",
+    "integration/element-module/src/index.tsx",
+    "integration/element-module/tsconfig.json",
+    "integration/element-module/vite.config.ts",
+    "third_party/licenses/element-web-AGPL-3.0.txt",
+    "third_party/licenses/mautrix-whatsapp-AGPL-3.0.txt",
+    "third_party/licenses/mautrix-whatsapp-LICENSE.exceptions.txt",
+    "third_party/licenses/synapse-AGPL-3.0.txt",
+    "upstream-patches/element-web/0001-yance-global-right-workspace.patch"
   ],
   "productPrefixes": [
     ".github/",
