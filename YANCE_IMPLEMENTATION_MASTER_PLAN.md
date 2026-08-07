@@ -255,6 +255,54 @@ Chatwoot 仍可作为联系人/收件箱/消息交互规则和组件参考或精
 
 现有主题、提示音、通知规则、用户设置和翻译体验原则继续保留，除非后续专门迁移工作包以零回归证据替换其实现。
 
+### 4.1 统一产品界面 + 可折叠/可隐藏/可拖拽侧栏 + 渐进披露
+
+这是 V2.1 的**固定产品体验硬规则**，不得因为底层采用 Matrix、Element、mautrix、Letta、Parlant、Personal Presence 或其他成熟 OSS 而拆成多个产品界面。
+
+所有平台必须汇入同一个 Yance 工作区：
+
+```text
+Yance 统一产品界面
+├── 左侧全局导航 / 账号与平台筛选
+├── 统一会话列表
+├── 统一消息时间线
+├── 统一输入与发送区
+└── 右侧 AI / 联系人 / 关系 / Personal Presence 工作区
+```
+
+平台身份只以账号、图标、筛选器、来源标识和能力差异出现；不得为 WhatsApp、Telegram、Signal、Facebook、Instagram、LINE 等重新建立独立产品级聊天界面。
+
+工作区固定支持：
+
+- 左侧全局导航：展开、图标收起、完全隐藏、悬停临时展开、拖拽调整宽度；
+- 会话列表：标准、窄模式、完全隐藏、拖拽调整宽度；
+- 右侧工作区：完整展开、窄 Tab、完全隐藏、拖拽调整宽度；
+- 右侧工作区统一承载 AI 回复、今日聊天目标/Journey、联系人资料、Graphiti 关系记忆、翻译、VoiceProfile、照片素材、AI 生图、Video Avatar 等能力；
+- 布局状态、面板宽度、字体/密度等用户偏好必须在重启后恢复；
+- 窄窗口或移动式布局允许成熟 Sheet/Drawer 模式替代固定侧栏，但能力入口和状态不能丢失；
+- 必须有键盘快捷方式或明确入口恢复被隐藏的面板，不能把“隐藏”变成不可恢复状态。
+
+固定布局模式至少包括：
+
+```text
+完整工作台：左导航 + 会话列表 + 聊天 + 右侧工作区
+专注聊天：左侧区域收起/隐藏 + 聊天最大化 + 右侧隐藏
+AI 辅助：左侧收起 + 聊天 + AI/Goal 右侧工作区
+沉浸模式：左导航、会话列表、右侧工作区均可隐藏，只保留当前聊天
+```
+
+渐进披露固定为：
+
+1. 当前会话最常用动作直接展示；
+2. 低频动作进入菜单、Popover、Sheet 或侧栏；
+3. AI Goal、关系洞察、Voice/Visual/Avatar 等复杂能力按当前任务显示，不永久占满聊天区；
+4. 模型、路由、诊断、开发者与基础设施控制进入高级模式；
+5. 底层多个 OSS 服务只暴露必要状态和受控操作，不把上游后台界面直接拼进主产品。
+
+折叠、隐藏或调整面板只改变展示，不得静默停止平台同步、消息接收、Journey、AI 运行或后台任务；如果某操作会改变运行状态，必须作为独立明确动作呈现。
+
+该规则与旧 `YANCE_UNIFIED_UI_OPEN_SOURCE_MIGRATION_PLAN.md` 中左右侧栏、布局恢复、字体、主题、声音和零回归条款兼容；旧文件里与 V2.1 冲突的 ChannelDriver/Canonical/Chatwoot 唯一权威描述仍按本主计划降级为历史参考。
+
 ## 5. AI Reply Brain：Letta + Graphiti + Parlant
 
 Yance 不自研完整 Cognitive Runtime。
@@ -852,6 +900,8 @@ P1：
 - 升级和回滚可执行；
 - upstream patch 尽量小、可重放、可重新基于新上游验证；
 - UI 具有 loading、empty、offline、error、recovery、permission-denied；
+- 统一界面必须证明左侧导航、会话列表、右侧工作区可折叠/可隐藏/可拖拽，布局与宽度重启恢复，隐藏面板可通过快捷方式或明确入口恢复；
+- 渐进披露必须证明常用动作不被深埋、低频/高级功能不长期占满聊天主区，隐藏面板不会静默改变后台同步或 AI/Goal 运行状态；
 - 关键外部动作默认可确认、可撤销或有明确不可撤销提示；
 - 100%、125%、150%、200% DPI 与键盘基本可用；
 - AI route、prompt、Journey、VoiceProfile、Visual workflow、Avatar runtime 均有版本和回归证据。
@@ -935,6 +985,7 @@ P1：
 
 以下旧原则继续有效：
 
+- **统一产品界面 + 可折叠/可隐藏/可拖拽侧栏 + 渐进披露**；
 - 禁止临时绕过；
 - 必须底层修复；
 - 失败测试先行；
@@ -959,9 +1010,10 @@ P1：
 2. 为 V2.1 建立首批上游冻结矩阵：Matrix/Synapse、Element、mautrix、Letta、Graphiti、Parlant、LiteLLM、RouteLLM、Langfuse、DSPy、Promptfoo、CosyVoice、Immich、ComfyUI、CyberVerse、LiveKit、Ditto、MuseTalk、LivePortrait、OBS Studio；
 3. 对每个上游固定精确 commit、许可证、模型资产许可证、运行方式、可移植模块、上游测试与 Windows 可运行性；
 4. 新工作包优先打通 `Matrix + Element + WhatsApp bridge + Letta + Parlant + LiteLLM` 第一真实闭环；
-5. 同时准备 VoiceProfile P0：CosyVoice 与第二候选的真实多语言 speaker-similarity benchmark；
-6. 同时准备 Visual P0：Immich 真实照片检索；生成链在 real-first 闭环后接入 ComfyUI/PhotoMaker/InstantID/PuLID；
-7. 第一文字闭环稳定后启动 Personal Video Avatar 工作包：先验证 CyberVerse + LiveKit 的完整实时通话母体，再对 Ditto/MuseTalk/LivePortrait/FlashHead/LiveAct 做同一硬件、同一素材、同一延迟口径 benchmark；
-8. 第三方视频通话只通过平台正式能力或 OBS Virtual Camera 等成熟受支持路径，不为“看起来支持”自研脆弱绕过；
-9. 第一闭环稳定后并行扩展 Telegram、Signal、Meta、Google Messages、Graphiti、DSPy/Promptfoo、Dating Journey Packs、LINE/Kakao/iMessage Companion；
-10. 以后任何新功能先查成熟 OSS；没有“无成熟 OSS 证据”，不得转入自研。
+5. 第一真实闭环的 UI 必须同时证明统一会话中心、可折叠/隐藏/拖拽工作区和渐进披露，不允许先做不可调整的临时壳再返工；
+6. 同时准备 VoiceProfile P0：CosyVoice 与第二候选的真实多语言 speaker-similarity benchmark；
+7. 同时准备 Visual P0：Immich 真实照片检索；生成链在 real-first 闭环后接入 ComfyUI/PhotoMaker/InstantID/PuLID；
+8. 第一文字闭环稳定后启动 Personal Video Avatar 工作包：先验证 CyberVerse + LiveKit 的完整实时通话母体，再对 Ditto/MuseTalk/LivePortrait/FlashHead/LiveAct 做同一硬件、同一素材、同一延迟口径 benchmark；
+9. 第三方视频通话只通过平台正式能力或 OBS Virtual Camera 等成熟受支持路径，不为“看起来支持”自研脆弱绕过；
+10. 第一闭环稳定后并行扩展 Telegram、Signal、Meta、Google Messages、Graphiti、DSPy/Promptfoo、Dating Journey Packs、LINE/Kakao/iMessage Companion；
+11. 以后任何新功能先查成熟 OSS；没有“无成熟 OSS 证据”，不得转入自研。
