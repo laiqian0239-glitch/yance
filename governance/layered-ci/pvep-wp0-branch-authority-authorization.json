@@ -41,14 +41,15 @@
     "requiredBase": "the exact ordinary main merge commit containing this authorization",
     "allowedChangedPaths": [
       "shared/release/implementationBranchPolicy.js",
-      "tests/wp0/implementation-branch-policy.test.js"
+      "tests/wp0/implementation-branch-policy.test.js",
+      "tools/wp0/lib.js"
     ],
-    "approvedChangedFileCount": 2,
-    "approvedChangedFileSetSha256": "c9ebb6397f260acd3447fa7691a53ec9c6478d1c375250dc3a07b61498cc03f2",
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "179f489b06be3b22ee152fceaeebb967f1aa4b577ea3146e0e56c998fc56e17f",
     "newDependencyAllowed": false,
     "workflowModificationAllowed": false,
     "registryModificationAllowed": false,
-    "hardCodedBranchWhitelistAllowed": false,
+    "hardCodedBranchWhitelistAlowed": false,
     "directoryAutoDiscoveryAllowed": false
   },
   "requiredDesign": {
@@ -62,7 +63,8 @@
     "trustedPolicyHeadMustDescendFromIntroductionMerge": true,
     "branchMustEqualAuthorizationImplementationBranch": true,
     "authorizationImplementationScopeMustMatchCountAndDigest": true,
-    "arbitraryGovernanceBranchesMustFailClosed": true
+    "arbitraryGovernanceBranchesMustFailClosed": true,
+    "authorizationProposalTransportReceivesExactChangedFileSet": true
   },
   "mandatoryFailureFirstContracts": [
     "The exact governance/portable-verification-evidence-protocol branch is denied on current main before the repair",
