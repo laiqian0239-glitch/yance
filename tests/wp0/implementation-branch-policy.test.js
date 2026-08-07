@@ -161,15 +161,17 @@ function genericDelegatedAuthorization(overrides = {}) {
       readyForPromotionAuthorized: false,
       automaticNextWorkPackageAuthorizationAuthorized: false
     },
+    // Nested objects in overrides.document intentionally replace the fixture defaults.
     ...overrides.document
   };
 }
 
 function genericTrustedAuthorityOptions(overrides = {}) {
   const authorization = overrides.authorization || genericDelegatedAuthorization();
+  const evaluatedHead = overrides.evaluatedHead || GENERIC_IMPLEMENTATION_HEAD;
   return {
     trustedMainHead: overrides.trustedMainHead || GENERIC_TRUSTED_MAIN,
-    evaluatedHead: overrides.evaluatedHead || GENERIC_IMPLEMENTATION_HEAD,
+    evaluatedHead,
     listAuthorizationPaths: () => overrides.authorizationPaths || [GENERIC_AUTHORIZATION_PATH],
     loadAuthorizationAtTrustedHead: repositoryPath => (
       repositoryPath === GENERIC_AUTHORIZATION_PATH ? authorization : null
@@ -186,8 +188,11 @@ function genericTrustedAuthorityOptions(overrides = {}) {
     ),
     resolveCommitBlobSha: (commit, repositoryPath) => {
       if (repositoryPath !== GENERIC_AUTHORIZATION_PATH) return null;
+      if (Object.prototype.hasOwnProperty.call(overrides.blobByCommit || {}, commit)) {
+        return overrides.blobByCommit[commit];
+      }
       if ([GENERIC_MERGE, GENERIC_REVIEWED_HEAD, GENERIC_TRUSTED_MAIN].includes(commit)) {
-        return overrides.blobByCommit?.[commit] || GENERIC_BLOB;
+        return GENERIC_BLOB;
       }
       return null;
     },
@@ -198,10 +203,10 @@ function genericTrustedAuthorityOptions(overrides = {}) {
       if (base === GENERIC_BASE && head === GENERIC_MERGE) {
         return overrides.mergeChangedFiles || [GENERIC_AUTHORIZATION_PATH];
       }
-      if (base === GENERIC_MERGE && head === GENERIC_IMPLEMENTATION_HEAD) {
+      if (base === GENERIC_MERGE && head === evaluatedHead) {
         return overrides.implementationChangedFiles || authorization.implementation.allowedChangedPaths;
       }
-      return [];
+      throw new Error(`unexpected diff request ${base}..${head}`);
     },
     isTrustedAncestor: (base, head) => {
       if (overrides.ancestorResultByPair?.[`${base}:${head}`] !== undefined) {
@@ -209,7 +214,7 @@ function genericTrustedAuthorityOptions(overrides = {}) {
       }
       return (base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD)
         || (base === GENERIC_MERGE && head === GENERIC_TRUSTED_MAIN)
-        || (base === GENERIC_MERGE && head === GENERIC_IMPLEMENTATION_HEAD);
+        || (base === GENERIC_MERGE && head === evaluatedHead);
     }
   };
 }
@@ -624,6 +629,26 @@ test('authorization proposal transport is single-file and never grants implement
       authorization: genericDelegatedAuthorization({
         allowedChangedPaths: ['shared/release/**']
       })
+    }],
+    ['authorization branch mismatch', {
+      authorization: genericDelegatedAuthorization({
+        document: {
+          authorizationBranch: {
+            ...authorization.authorizationBranch,
+            name: 'governance/some-other-authorization'
+          }
+        }
+      })
+    }],
+    ['single-file guarantee removed', {
+      authorization: genericDelegatedAuthorization({
+        document: {
+          authorizationBranch: {
+            ...authorization.authorizationBranch,
+            mustRemainSingleFile: false
+          }
+        }
+      })
     }]
   ]) {
     const result = evaluateDelegatedGovernanceAuthorizationProposal({
@@ -657,6 +682,13 @@ test('generic delegated authority activates only from canonical main two-parent 
       blobByCommit: { [GENERIC_TRUSTED_MAIN]: 'f'.repeat(40) }
     })
   }), false, 'trusted-main blob drift must fail closed');
+
+
+  assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
+    generic: genericTrustedAuthorityOptions({
+      blobByCommit: { [GENERIC_BASE]: 'e'.repeat(40) }
+    })
+  }), false, 'authorization path already present at base must fail closed');
 
   assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
     generic: genericTrustedAuthorityOptions({
@@ -717,12 +749,25 @@ test('generic delegated authority activates only from canonical main two-parent 
 });
 
 
+function isolatedGitEnvironment(root) {
+  const nullDevice = process.platform === 'win32' ? 'NUL' : '/dev/null';
+  return {
+    ...buildTrustedGitEnvironment(process.env),
+    HOME: root,
+    USERPROFILE: root,
+    GIT_CONFIG_GLOBAL: nullDevice,
+    GIT_CONFIG_SYSTEM: nullDevice,
+    GIT_CONFIG_NOSYSTEM: '1'
+  };
+}
+
 test('generic delegated authority verifies a real two-parent Git introduction and exact implementation diff', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-generic-authority-'));
   const git = (...args) => execFileSync('git', args, {
     cwd: root,
     encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe']
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: isolatedGitEnvironment(root)
   }).trim();
   const write = (repositoryPath, content) => {
     const filePath = path.join(root, ...repositoryPath.split('/'));
@@ -816,7 +861,8 @@ test('authorization proposal transport rejects a rename disguised as a single de
   const git = (...args) => execFileSync('git', args, {
     cwd: root,
     encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe']
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: isolatedGitEnvironment(root)
   }).trim();
   const write = (repositoryPath, content) => {
     const filePath = path.join(root, ...repositoryPath.split('/'));
