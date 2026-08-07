@@ -46,11 +46,15 @@ test('all Letta renderer access stays on the existing guarded desktop IPC bounda
 test('Letta lifecycle stays main-process-owned and is not exposed as renderer process control', () => {
   const main = readText('electron/main.js');
   const preload = readText('electron/preload.js');
+  const runtime = readText('electron/lettaAgentRuntime.js');
   assert.match(main, /createLettaAgentRuntime/u);
   assert.match(main, /\.start\(\)/u);
   assert.match(main, /\.stop\(\)/u);
   assert.doesNotMatch(preload, /startLetta|stopLetta|restartLetta|killLetta/u);
-  assert.doesNotMatch(main, /kill\([^\n]*pid|process\.kill\([^\n]*letta/iu);
+  assert.doesNotMatch(main, /process\.kill\([^\n]*(?:letta|LETTA)/u, 'Electron main must not address the Letta child through an arbitrary PID');
+  assert.doesNotMatch(main, /(?:lettaAgentRuntime|letta)[^\n]*\.kill\(/iu, 'Electron main must delegate Letta shutdown to the runtime adapter');
+  assert.match(runtime, /ownedChild\.kill\('SIGTERM'\)/u, 'the runtime adapter may signal only its owned Letta child');
+  assert.doesNotMatch(runtime, /process\.kill\(/u, 'the runtime adapter must not signal arbitrary PIDs');
 });
 
 test('the existing Element Yance Workspace is the only Letta product surface', () => {
