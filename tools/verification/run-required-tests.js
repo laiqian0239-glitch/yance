@@ -11,7 +11,10 @@ const REQUIRED_TESTS = Object.freeze([
   'tests/verification/executor-registry.test.js',
   'tests/verification/signed-executor-verifier.test.js',
   'tests/verification/runner.test.js',
-  'tests/verification/cli.test.js'
+  'tests/verification/cli.test.js',
+  'tests/verification/github-actions-verifier.test.js',
+  'tests/verification/requirement-aggregator.test.js',
+  'tests/verification/adversarial.test.js'
 ]);
 
 function runRequiredTests({ repoRoot = path.resolve(__dirname, '..', '..') } = {}) {

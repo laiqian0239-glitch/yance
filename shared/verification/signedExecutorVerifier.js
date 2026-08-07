@@ -2,6 +2,7 @@
 
 const crypto = require('node:crypto');
 const { canonicalSha256, sha256Hex } = require('./jcs');
+const { verifyCommandFacts } = require('./commandFacts');
 
 const EMPTY_SHA256 = sha256Hex(Buffer.alloc(0));
 const EMPTY_PATH_SET_SHA256 = sha256Hex(Buffer.from('\n'));
@@ -39,7 +40,7 @@ function verifySignedExecutorReceipt({ receipt, expected = {}, executorRegistry,
   if (mismatch) return fail(mismatch);
 
   const commandSet = resolveCommandSet(commandSetRegistry, receipt.commandSet.commandSetId);
-  if (!commandSet) return fail(REASON_CODES.EVIDENCE_COMMAND_SET_UNTRUSTED);
+  if (!commandSet) return fail(REASON_CODES.EVIDENCE_COMMAND_SET_UNKNOWN);
   const commandValidation = validateCommandSet(commandSet);
   if (!commandValidation.pass) return commandValidation;
   const digest = commandSetDigest(commandSet);
@@ -66,19 +67,8 @@ function verifySignedExecutorReceipt({ receipt, expected = {}, executorRegistry,
   if (receipt.workspace.preUnexpectedUntrackedPathSetSha256 !== EMPTY_PATH_SET_SHA256 || receipt.workspace.postUnexpectedUntrackedPathSetSha256 !== EMPTY_PATH_SET_SHA256) return fail(REASON_CODES.EVIDENCE_UNEXPECTED_UNTRACKED_PATHS);
   const expectedGeneratedRootDigest = canonicalSha256([...new Set(commandSet.commands.flatMap((command) => command.generatedRoots))].sort());
   if (receipt.workspace.allowedGeneratedRootSetSha256 !== expectedGeneratedRootDigest) return fail(REASON_CODES.EVIDENCE_WORKSPACE_DIRTY);
-  if (receipt.execution.commands.length !== commandSet.commands.length) return fail(REASON_CODES.EVIDENCE_COMMAND_RESULT_MISMATCH);
-  const resultsById = new Map(receipt.results.map((row) => [row.commandId, row]));
-  const executionsById = new Map(receipt.execution.commands.map((row) => [row.commandId, row]));
-  for (const command of commandSet.commands) {
-    const execution = executionsById.get(command.commandId);
-    const result = resultsById.get(command.commandId);
-    if (!execution || !result) return fail(REASON_CODES.EVIDENCE_COMMAND_RESULT_MISMATCH);
-    const argvDigest = canonicalSha256({ executable: command.executable, argv: command.argv });
-    if (execution.argvDigest !== argvDigest) return fail(REASON_CODES.EVIDENCE_COMMAND_RESULT_MISMATCH);
-    const passed = execution.exitCode === command.expectedExitCode;
-    if (result.passed !== passed) return fail(REASON_CODES.EVIDENCE_COMMAND_RESULT_MISMATCH);
-    if (!passed) return fail(REASON_CODES.EVIDENCE_COMMAND_FAILED);
-  }
+  const commandFacts = verifyCommandFacts(receipt, commandSet);
+  if (!commandFacts.pass) return commandFacts;
 
   const declaredArtifacts = new Map();
   for (const command of commandSet.commands) {

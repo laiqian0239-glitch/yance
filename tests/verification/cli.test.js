@@ -37,7 +37,7 @@ test('malformed signatures, wrong identity and digest-text signatures fail witho
   candidate.producer.keyGeneration = 2;
   candidate.canonicalPayloadSha256 = require('../../shared/verification/canonicalEvidenceReceipt').computeCanonicalPayloadSha256(candidate);
   const signature = crypto.sign(null, canonicalPayloadBytes(candidate), wrongGeneration.privateKey);
-  assert.equal(assembleSignedReceipt({ candidate, signatureBytes: signature, executorRegistry: wrongGeneration.executorRegistry, commandSetRegistry: wrongGeneration.commandSetRegistry, expected: wrongGeneration.expected }).reasonCode, 'EVIDENCE_EXECUTOR_GENERATION_MISMATCH');
+  assert.equal(assembleSignedReceipt({ candidate, signatureBytes: signature, executorRegistry: wrongGeneration.executorRegistry, commandSetRegistry: wrongGeneration.commandSetRegistry, expected: wrongGeneration.expected }).reasonCode, 'EVIDENCE_KEY_GENERATION_INVALID');
 
   const digestText = createContext();
   const digestCandidate = unsignedFrom(digestText);

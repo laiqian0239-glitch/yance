@@ -48,7 +48,7 @@ test('ACTIVE exact generation/platform/command digest with verified isolation re
 test('unknown, revoked, generation, platform and command authorization fail closed', () => {
   assert.equal(resolveActiveExecutor({ registry: registry(), executorId: 'missing', keyGeneration: 1, platform: 'linux', commandSetDigest: DIGEST }).reasonCode, 'EVIDENCE_EXECUTOR_UNKNOWN');
   assert.equal(resolveActiveExecutor({ registry: registry(activeEntry({ status: 'REVOKED' })), executorId: 'linux-executor-01', keyGeneration: 1, platform: 'linux', commandSetDigest: DIGEST }).reasonCode, 'EVIDENCE_EXECUTOR_REVOKED');
-  assert.equal(resolveActiveExecutor({ registry: registry(), executorId: 'linux-executor-01', keyGeneration: 2, platform: 'linux', commandSetDigest: DIGEST }).reasonCode, 'EVIDENCE_EXECUTOR_GENERATION_MISMATCH');
+  assert.equal(resolveActiveExecutor({ registry: registry(), executorId: 'linux-executor-01', keyGeneration: 2, platform: 'linux', commandSetDigest: DIGEST }).reasonCode, 'EVIDENCE_KEY_GENERATION_INVALID');
   assert.equal(resolveActiveExecutor({ registry: registry(), executorId: 'linux-executor-01', keyGeneration: 1, platform: 'windows', commandSetDigest: DIGEST }).reasonCode, 'EVIDENCE_PLATFORM_MISMATCH');
   assert.equal(resolveActiveExecutor({ registry: registry(), executorId: 'linux-executor-01', keyGeneration: 1, platform: 'linux', commandSetDigest: 'd'.repeat(64) }).reasonCode, 'EVIDENCE_EXECUTOR_COMMAND_SET_UNAUTHORIZED');
 });
@@ -56,11 +56,11 @@ test('unknown, revoked, generation, platform and command authorization fail clos
 test('invalid signer isolation and non-Ed25519 algorithms are rejected', () => {
   const samePrincipal = activeEntry();
   samePrincipal.signerIsolation.signerPrincipal = samePrincipal.signerIsolation.runnerPrincipal;
-  assert.equal(validateExecutorRegistry(registry(samePrincipal)).reasonCode, 'EVIDENCE_EXECUTOR_ISOLATION_INVALID');
+  assert.equal(validateExecutorRegistry(registry(samePrincipal)).reasonCode, 'EVIDENCE_SIGNER_ISOLATION_INVALID');
 
   const missingEvidence = activeEntry();
   missingEvidence.signerIsolation.evidenceSha256 = 'bad';
-  assert.equal(validateExecutorRegistry(registry(missingEvidence)).reasonCode, 'EVIDENCE_EXECUTOR_ISOLATION_INVALID');
+  assert.equal(validateExecutorRegistry(registry(missingEvidence)).reasonCode, 'EVIDENCE_SIGNER_ISOLATION_INVALID');
 
   const wrongAlgorithm = activeEntry({ keyAlgorithm: 'RSA' });
   assert.equal(validateExecutorRegistry(registry(wrongAlgorithm)).reasonCode, 'EVIDENCE_EXECUTOR_ALGORITHM_INVALID');
@@ -70,4 +70,12 @@ test('production registry may be intentionally empty but duplicate identities ar
   assert.equal(validateExecutorRegistry({ schemaVersion: 1, executors: [] }).pass, true);
   const entry = activeEntry();
   assert.equal(validateExecutorRegistry({ schemaVersion: 1, executors: [entry, structuredClone(entry)] }).reasonCode, 'EVIDENCE_SCHEMA_INVALID');
+});
+
+
+test('reserved unenrolled portability identities can never be enrolled as trusted executors', () => {
+  assert.equal(
+    validateExecutorRegistry(registry(activeEntry({ executorId: 'pvep-unenrolled-linux-selftest' }))).reasonCode,
+    'EVIDENCE_SCHEMA_INVALID'
+  );
 });
