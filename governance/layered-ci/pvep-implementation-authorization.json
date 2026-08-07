@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "PVEP",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "base": {
+    "branch": "main",
+    "commit": "5507310b587f24b3a852c6d90cd8e5bcf0ae0ae3"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/pvep-implementation-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/pvep-implementation-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "governance/portable-verification-evidence-protocol-authorized",
+    "allowedChangedPaths": [
+      "docs/governance/PVEP_EXECUTOR_ENROLLMENT.md",
+      "docs/governance/PVEP_OPERATIONS.md",
+      "governance/verification/command-sets/pvep-linux-selftest-v1.json",
+      "governance/verification/command-sets/pvep-windows-selftest-v1.json",
+      "governance/verification/requirements/pvep-selftest-v1.json",
+      "governance/verification/third-party/canonicalize-2.1.0.json",
+      "governance/verification/trusted-executors.json",
+      "shared/verification/canonicalEvidenceReceipt.js",
+      "shared/verification/commandFacts.js",
+      "shared/verification/commandSetRegistry.js",
+      "shared/verification/commandSetRunner.js",
+      "shared/verification/executorRegistry.js",
+      "shared/verification/githubActionsVerifier.js",
+      "shared/verification/jcs.js",
+      "shared/verification/reasonCodes.js",
+      "shared/verification/requirementAggregator.js",
+      "shared/verification/signedExecutorVerifier.js",
+      "shared/verification/trustedEvidencePolicy.js",
+      "shared/verification/vendor/canonicalize-2.1.0.js",
+      "shared/verification/workspaceEvidence.js",
+      "tests/verification/adversarial.test.js",
+      "tests/verification/canonical-evidence-receipt.test.js",
+      "tests/verification/cli.test.js",
+      "tests/verification/command-set-registry.test.js",
+      "tests/verification/executor-registry.test.js",
+      "tests/verification/fixtures/commands/fail.js",
+      "tests/verification/fixtures/commands/mutate-tracked.js",
+      "tests/verification/fixtures/commands/pass.js",
+      "tests/verification/fixtures/commands/write-artifact.js",
+      "tests/verification/fixtures/receiptFactory.js",
+      "tests/verification/github-actions-verifier.test.js",
+      "tests/verification/jcs.test.js",
+      "tests/verification/requirement-aggregator.test.js",
+      "tests/verification/runner.test.js",
+      "tests/verification/signed-executor-verifier.test.js",
+      "tools/verification/assemble-signed-receipt.js",
+      "tools/verification/run-command-set.js",
+      "tools/verification/run-required-tests.js",
+      "tools/verification/verify-jcs-dependency.js",
+      "tools/verification/verify-receipt.js",
+      "tools/verification/verify-requirement-set.js"
+    ],
+    "approvedChangedFileCount": 41,
+    "approvedChangedFileSetSha256": "8f32666cc108db2f2804f218c94bba7c100eacac30812d23156619c8ac20d2cd",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
