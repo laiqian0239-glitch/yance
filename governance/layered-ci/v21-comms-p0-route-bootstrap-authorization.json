@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_V21_COMMS_P0_CURRENT_MAIN_PRODUCT_ROUTE_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-07T17:25:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-COMMS-P0-ROUTE-BOOTSTRAP",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #112 exact-Head verification proved that permanent WP0 correctly uses the base-owned main routing policy, but current main does not recognize the exact V2.1 P0 config, Element runtime-module, upstream patch, and copied-license paths already authorized by the merged V2.1 product authorization. Candidate-owned policy changes are forbidden; an exact current-main route bootstrap is required.",
+  "base": {
+    "branch": "main",
+    "commit": "2e7beefc6fd349f5a0b06ab6d5ded67418e75d9f"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresExactHeadGreen": true,
+    "requiresIndependentAllowMerge": true,
+    "requiresOrdinaryMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true
+  },
+  "evidence": {
+    "sourcePullRequest": 112,
+    "sourceExactHead": "47c1822fa2b26d4d1aa69616b9f2767f44fcb0bf",
+    "stageWp0Run": 31169106386,
+    "stageWp0RouteJob": 92836633013,
+    "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "unknownPathsAtSourceExactHead": [
+      "config/matrix/element-config.json",
+      "config/matrix/mautrix-whatsapp/config.yaml",
+      "config/matrix/synapse/homeserver.yaml",
+      "config/upstreams/v21-comms-p0.json",
+      "integration/element-module/package.json",
+      "integration/element-module/project.json",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/tsconfig.json",
+      "integration/element-module/vite.config.ts",
+      "third_party/licenses/mautrix-whatsapp-AGPL-3.0.txt",
+      "third_party/licenses/mautrix-whatsapp-LICENSE.exceptions.txt",
+      "third_party/licenses/synapse-AGPL-3.0.txt",
+      "upstream-patches/element-web/0001-yance-global-right-workspace.patch"
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-comms-p0-route-bootstrap-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-comms-p0-route-bootstrap-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-comms-p0-route-bootstrap",
+    "requiredBase": "the exact main merge commit containing this authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-comms-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "8c99902e70bef8f70fe519b7d6dc14ee477e7dc5e6c7b57b9af08d5d231dc149",
+    "route": "PRODUCT_WP0",
+    "exactBootstrapOnly": true,
+    "productPrefixExpansionAllowed": false,
+    "runtimeProductBehaviorChanged": false,
+    "workflowModificationAllowed": false,
+    "newDependencyAllowed": false
+  },
+  "bootstrapPaths": [
+    "config/matrix/element-config.json",
+    "config/matrix/mautrix-whatsapp/config.yaml",
+    "config/matrix/synapse/homeserver.yaml",
+    "config/upstreams/v21-comms-p0.json",
+    "integration/element-module/package.json",
+    "integration/element-module/project.json",
+    "integration/element-module/src/YanceWorkspace.tsx",
+    "integration/element-module/src/index.tsx",
+    "integration/element-module/tsconfig.json",
+    "integration/element-module/vite.config.ts",
+    "third_party/licenses/element-web-AGPL-3.0.txt",
+    "third_party/licenses/mautrix-whatsapp-AGPL-3.0.txt",
+    "third_party/licenses/mautrix-whatsapp-LICENSE.exceptions.txt",
+    "third_party/licenses/synapse-AGPL-3.0.txt",
+    "upstream-patches/element-web/0001-yance-global-right-workspace.patch"
+  ],
+  "bootstrapPathCount": 15,
+  "bootstrapPathSetSha256": "21a73995991eed82a0e2233a06a26154216ecb1da91ab4206bbf7e7e606c40aa",
+  "candidatePreservation": {
+    "candidatePullRequest": 112,
+    "candidateBranch": "product/v21-comms-p0",
+    "candidateExactHeadMustNotBeRewritten": true,
+    "candidateAuthorizedChangedFileCountMustRemain": 22,
+    "candidateAuthorizedChangedFileSetSha256MustRemain": "972786dec8299d2d8c7e9b9a7aa44e89608310f6ac4f462d5d35fbf613f71ab2",
+    "candidateWorkflowModificationAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "The current-main routing policy reports WP0_ROUTE_UNKNOWN_PATH for the exact V2.1 bootstrap paths before implementation",
+    "After implementation all fifteen exact bootstrap paths select PRODUCT_WP0",
+    "The bootstrap uses only productExactPaths and does not add config/, integration/, third_party/, or upstream-patches/ to productPrefixes",
+    "Unknown and malformed repository paths continue to fail closed",
+    "Governance and product-documentation route precedence remains unchanged",
+    "No PR #112 product implementation file, workflow, dependency manifest, product authorization receipt, PR #67 / OSS-A path, release policy, or promotion authority changes occur in this implementation PR"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes all applicable governance gates",
+    "Independent review returns ALLOW_MERGE with zero P0 and P1 findings",
+    "Authorization PR merges to main by ordinary merge without history rewrite",
+    "Implementation branch is created from that exact authorization merge commit",
+    "A test-only commit records causal RED for the fifteen exact paths before policy implementation",
+    "Only the fifteen exact bootstrap paths are added to productExactPaths",
+    "Implementation exact Head passes Layered CI, permanent WP0, ACV2 and independent review",
+    "Implementation PR merges to main by ordinary merge",
+    "The resulting main is merged normally into PR #112 without rewriting its history",
+    "PR #112 is completed to its original exact 22-path authorized product scope and reverified"
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansionInBootstrap": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "directCandidateSelfAuthorization": true,
+    "candidateScopeReduction": true,
+    "pr67Modification": true,
+    "productionUse": true,
+    "formalRelease": true,
+    "publish": true,
+    "automaticNextWorkPackageAuthorization": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "pr112MustRemainDraftUntilFinalExactHeadClosure": true,
+    "pr67MustRemainUntouched": true,
+    "readyForPromotion": false
+  }
+}
