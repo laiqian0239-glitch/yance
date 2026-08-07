@@ -10,6 +10,7 @@ const {
   canonicalStageBranch,
   isReleaseClosureRebuildBranch,
   isAuthorizedDelegatedGovernanceBranch,
+  isValidGenericDelegatedGovernanceAuthorization,
   evaluateDelegatedGovernanceAuthorizationProposal,
   evaluateTrustedDelegatedGovernanceBranch,
   isAuthorizedImplementationBranch,
@@ -535,6 +536,22 @@ test('trusted-main delegated governance authorization is exact and fails closed 
 });
 
 
+test('generic delegated authorization forbids workflow and dependency control paths when their authority flags are false', () => {
+  for (const repositoryPath of [
+    '.github/workflows/pvep.yml',
+    '.github/actions/pvep/action.yml',
+    'package.json',
+    'package-lock.json'
+  ]) {
+    const authorization = genericDelegatedAuthorization({ allowedChangedPaths: [repositoryPath] });
+    assert.equal(
+      isValidGenericDelegatedGovernanceAuthorization(authorization, GENERIC_AUTHORIZATION_PATH),
+      false,
+      repositoryPath
+    );
+  }
+});
+
 test('authorization proposal transport is single-file and never grants implementation authority', () => {
   assert.equal(typeof evaluateDelegatedGovernanceAuthorizationProposal, 'function');
   const authorization = genericDelegatedAuthorization();
@@ -570,6 +587,24 @@ test('authorization proposal transport is single-file and never grants implement
   assert.equal(transported.pass, true, JSON.stringify(transported));
   assert.equal(transported.authorityMode, 'AUTHORIZATION_PROPOSAL_TRANSPORT');
   assert.equal(transported.implementationAuthorityGranted, false);
+
+  const spoofedProposalFacts = checkRuntimeTargetGate({
+    branch: 'feature/unreviewed-release',
+    changedFiles: [GENERIC_AUTHORIZATION_PATH, 'tools/wp0/lib.js'],
+    authorizationProposal: {
+      branch: GENERIC_AUTHORIZATION_BRANCH,
+      changedFiles: [GENERIC_AUTHORIZATION_PATH],
+      authorizationPath: GENERIC_AUTHORIZATION_PATH,
+      authorization,
+      trustedMainHead: GENERIC_BASE,
+      evaluatedHead: GENERIC_REVIEWED_HEAD,
+      isTrustedAncestor: () => true,
+      resolveCommitBlobSha: (commit) => commit === GENERIC_BASE ? null : GENERIC_BLOB,
+      resolveCommitPathMode: () => '100644'
+    }
+  });
+  assert.equal(spoofedProposalFacts.pass, false, 'proposal injection must not override actual branch or changed-file facts');
+  assert.equal(spoofedProposalFacts.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');
 
   const rejectedTransport = checkRuntimeTargetGate({
     branch: GENERIC_AUTHORIZATION_BRANCH,
