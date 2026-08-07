@@ -49,7 +49,7 @@
     "newDependencyAllowed": false,
     "workflowModificationAllowed": false,
     "registryModificationAllowed": false,
-    "hardCodedBranchWhitelistAlowed": false,
+    "hardCodedBranchWhitelistAllowed": false,
     "directoryAutoDiscoveryAllowed": false
   },
   "requiredDesign": {
@@ -115,10 +115,11 @@
     "exactPathScopeOnly": true,
     "independentBranchAndPullRequestRequired": true,
     "pr67MustRemainDraft": true,
+    "booleanSemantics": "TRUE_MEANS_REQUIRED_OR_AUTHORIZED_BY_KEY_NAME",
     "productionUseAuthorized": false,
-    "formalRelease": false,
-    "publish": false,
-    "readyForPromotion": false,
-    "automaticNextWorkPackageAuthorization": false
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
   }
 }
