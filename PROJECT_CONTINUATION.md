@@ -4,7 +4,7 @@
 >
 > 稳定架构唯一来源：[`YANCE_IMPLEMENTATION_MASTER_PLAN.md`](./YANCE_IMPLEMENTATION_MASTER_PLAN.md) V2.1。
 >
-> 新聊天必须先读取 [`START_HERE.md`](./START_HERE.md)，再读取 V2.1 主计划，然后重新核验远端 refs、PR、workflow、receipt 与 exact Head。禁止依赖本文件中的历史 SHA、旧工作包顺序或旧 UI/架构描述直接执行。
+> 新聊天必须先读取 [`START_HERE.md`](./START_HERE.md)，再读取 V2.1 主计划和本文件，然后重新核验远端 refs、PR、workflow、receipt 与 exact Head。禁止依赖本文件中的历史 SHA、旧工作包顺序或旧 UI/架构描述直接执行。
 
 ## 0. 固定修复与治理规则
 
@@ -22,6 +22,8 @@
 START_HERE.md
         ↓
 YANCE_IMPLEMENTATION_MASTER_PLAN.md  V2.1
+        ↓
+PROJECT_CONTINUATION.md  当前动态执行状态
         ↓
 实时远端 refs / PR / workflow / receipt / exact Head
 ```
@@ -53,27 +55,86 @@ YANCE_IMPLEMENTATION_MASTER_PLAN.md  V2.1
 - **Personal Presence**：CosyVoice + Immich/ComfyUI + CyberVerse/LiveKit；
 - **OSS-first**：有成熟产品/服务/模块时禁止重复自研。
 
-## 4. 当前执行恢复协议
+## 4. 当前最新执行进展：PVEP WP0 授权传输底层修复
+
+当前最新修复 exact Head：
+
+`c34ba1fb8bf56c06007ab0702a5f3441838f8e46`
+
+完整 RED→GREEN 历史：
+
+```text
+c3c54b0  test(wp0): require non-circular authorization transport
+737559e  test(wp0): bind delegated authority to main and exact scope
+c1d9acc  test(wp0): reject merge-only and rename transport escapes
+c34ba1f  fix(wp0): separate authorization transport from branch authority
+```
+
+本次底层修复的核心合同：
+
+```text
+AUTHORIZATION_PROPOSAL_TRANSPORT
+        ≠
+IMPLEMENTATION_AUTHORITY
+```
+
+并额外封闭两类旁路：
+
+1. 普通 two-parent merge 本身必须相对 first parent 只包含授权文件；
+2. Git diff 强制 `--no-renames`，防止 rename 伪装成单文件授权。
+
+### 4.1 Fresh local RED→GREEN 证据
+
+以下为本地 fresh 验证结果，不冒充 GitHub Actions 结果：
+
+- Layered：77/77 GREEN；
+- OSS authorization：8/8 GREEN；
+- implementation branch policy：14/14 GREEN；
+- independent-review contract：7/7 GREEN；
+- security：6/6 GREEN；
+- ACV2 A0：4/4 GREEN；
+- protocol：GREEN；
+- `git diff --check`：GREEN；
+- 工作区：clean。
+
+完整 `test:wp0` 中的重型 `evidence-source-binding.test.js` 在沙箱运行约 10 分钟后被外层执行时限截断；未观察到测试失败。该测试不属于本次实际 `GOVERNANCE_WP0` 路由执行集合，因此本次修复没有为它修改、跳过或弱化任何测试。
+
+### 4.2 PR #94 状态
+
+PR #94 当前必须保持：
+
+- Open；
+- Draft；
+- 未合并；
+- 不把 known-RED authorization proposal 当作可直接 merge 的实现授权。
+
+远端实时核验优先于本文件；任何继续动作前必须重新查询 PR #94、目标 implementation branch、main、workflow 和 exact Head。
+
+## 5. 当前执行恢复协议
 
 每次恢复实施必须重新执行：
 
 1. 读取 `START_HERE.md`；
 2. 读取 `YANCE_IMPLEMENTATION_MASTER_PLAN.md` V2.1；
-3. 查询当前 `main`、目标分支、PR Head、merge 状态；
-4. 查询当前 workflow runs/jobs、receipt、review threads、授权路径；
-5. 只基于实时事实决定下一动作；
-6. 如本文件与实时远端事实冲突，先修正本文件，不得让本文件覆盖远端事实。
+3. 读取本文件的当前动态进展；
+4. 查询当前 `main`、目标分支、PR Head、merge 状态；
+5. 查询当前 workflow runs/jobs、receipt、review threads、授权路径；
+6. 只基于实时事实决定下一动作；
+7. 如本文件与实时远端事实冲突，先修正本文件，不得让本文件覆盖远端事实。
 
-## 5. 活动状态分支清理规则
+## 6. 活动状态分支清理规则
 
-- 已被 V2.1 完整吸收且会误导后续执行的旧计划，从 `project-state/active-handoff` 删除；
-- 已删除：`YANCE_UNIFIED_UI_OPEN_SOURCE_MIGRATION_PLAN.md`；
-- `START_HERE.md` 不再把已删除旧计划列为必读项；
-- Git 历史保留全部审计轨迹，因此删除活动文件不等于删除历史；
+- 已被 V2.1 完整吸收且会误导后续执行的旧**静态架构/专题计划**，可从 `project-state/active-handoff` 删除；
+- `PROJECT_CONTINUATION.md` 作为当前动态执行接续记录必须保留，不属于删除对象；
+- `START_HERE.md` 必须把本文件作为动态状态入口，而不是把旧专题计划列为必读主线；
+- Git 历史保留全部审计轨迹，因此删除活动旧计划不等于删除历史；
 - 仍需保留的专项合同必须明确声明只补充 V2.1，不能覆盖 V2.1。
 
-## 6. 当前下一步
+## 7. 当前下一步边界
 
-**不在本文件缓存具体 next-step SHA 或旧工作包顺序。**
+当前 PVEP WP0 修复已经有本地 RED→GREEN 证据，但下一步仍必须以**实时远端状态和正式授权**为准：
 
-进入任何具体实施会话时，先实时核验仓库与 GitHub Actions，再依据 V2.1 主计划和当前有效授权选择下一工作包。若发现旧治理/实施链仍有必须收口的 exact-Head 任务，则按其既有正式授权完成，但不得把其旧产品架构扩展为新的稳定路线。
+- 不因为本地 GREEN 自动获得 merge、promotion、production、release 或下一工作包权限；
+- 不把 PR #94 从 Draft 改为 Ready，除非后续 exact-Head 证据与正式授权明确允许；
+- 不污染当前其它 exact-Head 工作包；
+- 不恢复 V1/旧 UI/自研 WP-B 作为产品主线。
