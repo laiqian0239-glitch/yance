@@ -2,11 +2,13 @@
 
 > **任何新聊天在修改仓库前，必须按以下顺序读取并核验。**
 
-## 0. 最高稳定架构指令
+## 0. 唯一稳定架构指令
 
 首先读取 [`YANCE_IMPLEMENTATION_MASTER_PLAN.md`](./YANCE_IMPLEMENTATION_MASTER_PLAN.md)。
 
-该文件自 V2.1 起是 **Yance 最高稳定架构与实施指令**。除实时远端事实、已生效治理凭据、精确授权 Head 与正式安全/许可证约束外，任何旧聊天、旧设计、旧 PR 说明、旧专题计划与它冲突时，以它为准。
+该文件自 V2.1 起是 **Yance 唯一稳定架构与实施指令**。除实时远端事实、已生效治理凭据、精确授权 Head 与正式安全/许可证约束外，任何旧聊天、旧设计、旧 PR 说明、旧专题计划与它冲突时，以它为准。
+
+为了避免旧方案被误用，已经被 V2.1 完整吸收且存在架构冲突的旧计划文件应从活动状态分支删除，而不是继续保留为可执行参考。历史信息依赖 Git 历史追溯，不在活动入口重复保留第二份权威。
 
 V2.1 已确认的最高原则：
 
@@ -14,8 +16,9 @@ V2.1 已确认的最高原则：
 - 成熟 OSS 产品、服务、Sidecar 和完整源码模块优先，**禁止重复自研已有成熟实现的基础能力**；
 - 不再要求 Yance 自己拥有通信、联系人、关系、Agent memory、媒体或任务调度等唯一事实权威；
 - 多平台优先 Matrix/Synapse + mautrix + Element，平台特有深度能力允许成熟 native OSS escape hatch；
-- **产品体验始终只有一个 Yance 统一界面**：所有平台共享统一导航、会话列表、消息时间线、输入区和 AI/联系人工作区，不为 WhatsApp、Telegram、Signal、Meta 等重新建立独立产品界面；
-- **统一产品界面 + 可折叠/可隐藏/可拖拽侧栏 + 渐进披露** 是 V2.1 固定 UX 硬规则：左侧全局导航、会话列表、右侧 AI/联系人/关系/Personal Presence 工作区均必须支持收起、完全隐藏、拖拽调整宽度和重启恢复；常用动作直接展示，低频动作进入菜单/侧栏，专业控制进入高级模式；
+- **所有平台始终进入同一个 Yance 产品界面**，不得拆成 WhatsApp/Telegram/Signal/Meta 等独立产品 UI；
+- **统一产品界面 + 可折叠/可隐藏/可拖拽侧栏 + 渐进披露** 是固定 UX 硬规则；左侧导航、会话列表、右侧 AI/联系人/关系/Personal Presence 工作区都必须可收起、完全隐藏、拖拽宽度，并支持重启恢复和明确恢复入口；
+- 隐藏/折叠只改变展示，不得静默停止同步、消息接收、Journey、AI 或后台任务；
 - AI 长期大脑优先 Letta + Graphiti；
 - 有目标的聊天优先 Parlant Journey，SalesGPT 等作为领域 Journey 模板来源；
 - 模型路由优先 RouteLLM + LiteLLM；
@@ -37,30 +40,28 @@ V2.1 已确认的最高原则：
 - 精确分支、commit SHA、workflow run/job；
 - 授权路径、receipt 与正式门禁。
 
-`PROJECT_CONTINUATION.md` 只负责当前动态事实。它不能把 V1/V2 已被取代的架构重新提升为最高稳定路线。
+`PROJECT_CONTINUATION.md` 只负责当前动态事实。它不能把任何已被 V2.1 取代的架构重新提升为稳定路线。
 
-## 2. 旧专题计划
+## 2. 当前有效补充文件
 
-读取需要用到的专题计划，例如 [`YANCE_UNIFIED_UI_OPEN_SOURCE_MIGRATION_PLAN.md`](./YANCE_UNIFIED_UI_OPEN_SOURCE_MIGRATION_PLAN.md)。
+只有当某个补充文件仍承载 **V2.1 未在主计划中吸收的有效合同** 时才允许继续存在。所有已被主计划完整吸收、且容易误导后续执行的旧 V1/旧专题计划，应删除出活动状态分支，由 Git 历史保留审计轨迹。
 
-这些文件继续保存历史决策、零回归要求、主题/声音/翻译/布局等细节，但其架构优先级已经调整：
+补充文件不得：
 
-- 与 V2.1 最高指令一致的部分继续有效；
-- 与 V2.1 冲突的部分自动降级为历史参考；
-- 尤其是“Chatwoot 唯一产品壳”“Yance 唯一 ChannelDriver/Canonical/Outbox 权威”等旧硬要求，不再覆盖 V2.1；
-- Voice、Visual、Video 现在统一归 `Personal Presence`，旧计划若把它们视为独立附件能力，以 V2.1 为准；
-- **统一界面、左右侧栏与会话列表可折叠/可隐藏/可拖拽、布局重启恢复、渐进披露** 属于继续有效且已升级为 V2.1 最高 UX 规则的部分；
-- 现有主题、提示音、通知规则、用户设置、翻译体验和真实数据零回归要求仍然有效，除非后续专项迁移以 RED/GREEN 和可回滚证据正式替换。
+- 重新声明 Chatwoot 为唯一产品壳；
+- 重新声明 Yance 必须自建唯一 ChannelDriver/Canonical/Outbox 权威；
+- 重新拆分 Voice、Visual、Video 为互不关联的产品底座；
+- 覆盖 V2.1 的统一 UI、OSS-first、Personal Presence、Goal Brain、Model Brain、Learning Brain 路线。
 
 ## 3. 冲突处理优先级
 
 从高到低：
 
 1. 当前远端 refs、已生效正式治理凭据、精确授权 Head、workflow/receipt 事实；
-2. `YANCE_IMPLEMENTATION_MASTER_PLAN.md` V2.1 最高稳定架构指令；
+2. `YANCE_IMPLEMENTATION_MASTER_PLAN.md` V2.1 唯一稳定架构指令；
 3. `PROJECT_CONTINUATION.md` 当前动态状态；
-4. 与 V2.1 一致的专题计划；
-5. 旧聊天、旧 PR 正文和已被 V2.1 取代的历史设计。
+4. 明确声明与 V2.1 兼容且未被主计划吸收的专项合同；
+5. Git 历史中的旧方案仅用于审计追溯，不作为当前执行输入。
 
 发现文档与远端事实冲突时，先核验事实，再用普通提交修正文档；不得 amend、rebase 或 force push。
 
