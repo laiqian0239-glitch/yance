@@ -196,6 +196,10 @@ function genericTrustedAuthorityOptions(overrides = {}) {
       }
       return null;
     },
+    resolveCommitPathMode: (commit, repositoryPath) => {
+      if (repositoryPath !== GENERIC_AUTHORIZATION_PATH) return null;
+      return overrides.pathModeByCommit?.[commit] || '100644';
+    },
     resolveChangedFilesBetween: (base, head) => {
       if (base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD) {
         return overrides.reviewedChangedFiles || [GENERIC_AUTHORIZATION_PATH];
@@ -601,6 +605,32 @@ test('authorization proposal transport is single-file and never grants implement
   });
   assert.equal(unrelatedHead.pass, false, 'proposal Head must descend from its trusted-main base');
 
+  const existingAuthorizationPath = evaluateDelegatedGovernanceAuthorizationProposal({
+    branch: GENERIC_AUTHORIZATION_BRANCH,
+    changedFiles: [GENERIC_AUTHORIZATION_PATH],
+    authorizationPath: GENERIC_AUTHORIZATION_PATH,
+    authorization,
+    trustedMainHead: GENERIC_BASE,
+    evaluatedHead: GENERIC_REVIEWED_HEAD,
+    isTrustedAncestor: () => true,
+    resolveCommitBlobSha: () => GENERIC_BLOB,
+    resolveCommitPathMode: () => '100644'
+  });
+  assert.equal(existingAuthorizationPath.pass, false, 'proposal transport must not overwrite an existing authority path');
+
+  const symlinkAuthorization = evaluateDelegatedGovernanceAuthorizationProposal({
+    branch: GENERIC_AUTHORIZATION_BRANCH,
+    changedFiles: [GENERIC_AUTHORIZATION_PATH],
+    authorizationPath: GENERIC_AUTHORIZATION_PATH,
+    authorization,
+    trustedMainHead: GENERIC_BASE,
+    evaluatedHead: GENERIC_REVIEWED_HEAD,
+    isTrustedAncestor: () => true,
+    resolveCommitBlobSha: () => null,
+    resolveCommitPathMode: () => '120000'
+  });
+  assert.equal(symlinkAuthorization.pass, false, 'authorization proposal must be a regular 100644 blob');
+
   for (const [name, candidate] of [
     ['extra changed path', {
       changedFiles: [GENERIC_AUTHORIZATION_PATH, 'shared/release/implementationBranchPolicy.js']
@@ -683,6 +713,11 @@ test('generic delegated authority activates only from canonical main two-parent 
     })
   }), false, 'trusted-main blob drift must fail closed');
 
+  assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
+    generic: genericTrustedAuthorityOptions({
+      pathModeByCommit: { [GENERIC_REVIEWED_HEAD]: '120000' }
+    })
+  }), false, 'authorization path must remain a regular 100644 blob across reviewed, merge, and trusted-main identities');
 
   assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {
     generic: genericTrustedAuthorityOptions({
