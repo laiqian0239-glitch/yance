@@ -78,6 +78,7 @@
     "services/",
     "shared/",
     "tests/",
+    "third_party/",
     "tools/",
     "vendor/"
   ],

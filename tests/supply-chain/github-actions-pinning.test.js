@@ -1,0 +1,322 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+
+const repoRoot = path.resolve(__dirname, '..', '..');
+const modulePath = path.join(repoRoot, 'tools', 'supply-chain', 'github-actions-lock.js');
+const cliPath = path.join(repoRoot, 'tools', 'supply-chain', 'verify-github-actions-lock.js');
+
+const LOCKED_REFS = [
+  'actions/checkout@11d5960a326750d5838078e36cf38b85af677262',
+  'actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e',
+  'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02'
+];
+const REVIEWED_TAGS = Object.freeze({
+  'actions/checkout': 'v4.4.0',
+  'actions/setup-node': 'v6.4.0',
+  'actions/upload-artifact': 'v4.6.2'
+});
+
+function loadActionsLock() {
+  assert.equal(
+    fs.existsSync(modulePath),
+    true,
+    'OSS-A GitHub Actions lock implementation must exist before the contract can pass'
+  );
+  return require(modulePath);
+}
+
+function makeLock(entries = LOCKED_REFS.map(ref => {
+  const at = ref.lastIndexOf('@');
+  const repository = ref.slice(0, at);
+  const commit = ref.slice(at + 1);
+  return {
+    repository,
+    commit,
+    reviewedTag: REVIEWED_TAGS[repository],
+    license: 'MIT',
+    licenseEvidence: `third_party/licenses/${repository.replace('/', '-')}-MIT.txt`
+  };
+})) {
+  return {
+    schemaVersion: 1,
+    documentType: 'YANCE_GITHUB_ACTIONS_LOCK',
+    actions: entries
+  };
+}
+
+function inspect(text, lock = makeLock(), workflowPath = '.github/workflows/fixture.yml') {
+  const { inspectWorkflowText } = loadActionsLock();
+  return inspectWorkflowText(text, { lock, workflowPath });
+}
+
+function makeTempRoot(t) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-actions-lock-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  return root;
+}
+
+function writeRepositoryFile(root, relativePath, content) {
+  const target = path.join(root, ...relativePath.split('/'));
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, content, 'utf8');
+}
+
+function writeLockFixture(root, lock) {
+  fs.mkdirSync(path.join(root, 'third_party', 'licenses'), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, 'third_party', 'github-actions-lock.json'),
+    `${JSON.stringify(lock, null, 2)}\n`
+  );
+  for (const entry of lock.actions.filter(entry => entry && typeof entry === 'object')) {
+    if (!entry.licenseEvidence?.startsWith('third_party/licenses/')) continue;
+    fs.writeFileSync(path.join(root, entry.licenseEvidence), 'MIT License\n');
+  }
+}
+
+function runCli(cwd, args = []) {
+  assert.equal(fs.existsSync(cliPath), true, 'OSS-A GitHub Actions lock CLI must exist');
+  return spawnSync(process.execPath, [cliPath, ...args], {
+    cwd,
+    encoding: 'utf8'
+  });
+}
+
+test('canonical repository uses only the three reviewed exact Action commits', () => {
+  const { verifyRepository } = loadActionsLock();
+  const report = verifyRepository(repoRoot);
+  assert.equal(report.ok, true, JSON.stringify(report.errors, null, 2));
+  assert.deepEqual(report.errors, []);
+  assert.deepEqual([...new Set(report.externalReferences)].sort(), [...LOCKED_REFS].sort());
+  assert.equal(report.checkoutSteps.every(step => step.persistCredentials === false), true);
+});
+
+test('canonical checkout pin is bound to the official reviewed v4.4.0 release', () => {
+  const lock = JSON.parse(
+    fs.readFileSync(path.join(repoRoot, 'third_party', 'github-actions-lock.json'), 'utf8')
+  );
+  const checkout = lock.actions.find(entry => entry.repository === 'actions/checkout');
+  assert.deepEqual(
+    { commit: checkout?.commit, reviewedTag: checkout?.reviewedTag },
+    {
+      commit: '11d5960a326750d5838078e36cf38b85af677262',
+      reviewedTag: 'v4.4.0'
+    }
+  );
+});
+
+test('floating tags, branches, expressions and unregistered exact commits fail closed', () => {
+  const floating = inspect('steps:\n  - uses: actions/checkout@v4\n');
+  assert.ok(floating.errors.some(error => error.code === 'ACTION_REF_NOT_EXACT'));
+
+  const expression = inspect('steps:\n  - uses: actions/checkout@${{ github.ref }}\n');
+  assert.ok(expression.errors.some(error => error.code === 'ACTION_REF_NOT_EXACT'));
+
+  const unregistered = inspect(
+    'steps:\n  - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567\n'
+  );
+  assert.ok(unregistered.errors.some(error => error.code === 'ACTION_NOT_LOCKED'));
+});
+
+test('reviewed Action tags must identify an exact release', () => {
+  const { validateLock } = loadActionsLock();
+  const floating = makeLock();
+  floating.actions[1].reviewedTag = 'v6';
+  floating.actions[2].reviewedTag = 'v4';
+  const errors = validateLock(floating);
+  assert.equal(errors.filter(error => error.code === 'ACTION_REVIEWED_TAG_NOT_EXACT').length, 2);
+});
+
+test('checkout must explicitly disable persisted credentials', () => {
+  const missing = inspect(`steps:\n  - uses: ${LOCKED_REFS[0]}\n`);
+  assert.ok(missing.errors.some(error => error.code === 'CHECKOUT_PERSIST_CREDENTIALS_NOT_FALSE'));
+
+  const enabled = inspect(`steps:\n  - uses: ${LOCKED_REFS[0]}\n    with:\n      persist-credentials: true\n`);
+  assert.ok(enabled.errors.some(error => error.code === 'CHECKOUT_PERSIST_CREDENTIALS_NOT_FALSE'));
+
+  const disabled = inspect(`steps:\n  - uses: ${LOCKED_REFS[0]}\n    with:\n      persist-credentials: false\n`);
+  assert.deepEqual(disabled.errors, []);
+});
+
+test('local actions and reusable workflows are allowed while docker actions are rejected', () => {
+  const local = inspect('steps:\n  - uses: ./.github/actions/local\n');
+  assert.deepEqual(local.errors, []);
+
+  const reusable = inspect('jobs:\n  delegated:\n    uses: ./.github/workflows/local.yml\n');
+  assert.deepEqual(reusable.errors, []);
+
+  const docker = inspect('steps:\n  - uses: docker://node:22\n');
+  assert.ok(docker.errors.some(error => error.code === 'DOCKER_ACTION_FORBIDDEN'));
+});
+
+test('repository verifier recursively scans nested local composite actions', t => {
+  const { verifyRepository } = loadActionsLock();
+  const root = makeTempRoot(t);
+  const setupNodeLock = makeLock([makeLock().actions[1]]);
+  writeLockFixture(root, setupNodeLock);
+  writeRepositoryFile(
+    root,
+    '.github/workflows/local-chain.yml',
+    'steps:\n  - uses: ./.github/actions/outer\n'
+  );
+  writeRepositoryFile(
+    root,
+    '.github/actions/outer/action.yml',
+    'name: Outer\nruns:\n  using: composite\n  steps:\n    - uses: ./.github/actions/inner\n'
+  );
+  writeRepositoryFile(
+    root,
+    '.github/actions/inner/action.yaml',
+    `name: Inner\nruns:\n  using: composite\n  steps:\n    - uses: ${LOCKED_REFS[1]}\n`
+  );
+
+  const report = verifyRepository(root);
+  assert.equal(report.ok, true, JSON.stringify(report.errors, null, 2));
+  assert.deepEqual(report.externalReferences, [LOCKED_REFS[1]]);
+});
+
+test('nested local composite actions cannot hide floating external references', t => {
+  const { verifyRepository } = loadActionsLock();
+  const root = makeTempRoot(t);
+  writeLockFixture(root, makeLock([makeLock().actions[1]]));
+  writeRepositoryFile(
+    root,
+    '.github/workflows/local-floating.yml',
+    'steps:\n  - uses: ./.github/actions/floating\n'
+  );
+  writeRepositoryFile(
+    root,
+    '.github/actions/floating/action.yml',
+    'name: Floating\nruns:\n  using: composite\n  steps:\n    - uses: actions/setup-node@v6\n'
+  );
+
+  const report = verifyRepository(root);
+  assert.equal(report.ok, false);
+  assert.ok(report.errors.some(error => (
+    error.code === 'ACTION_REF_NOT_EXACT'
+    && error.path === '.github/actions/floating/action.yml'
+  )));
+});
+
+test('local action resolution fails closed on escape, missing or ambiguous manifests', t => {
+  const { verifyRepository } = loadActionsLock();
+
+  const escapeRoot = makeTempRoot(t);
+  writeLockFixture(escapeRoot, makeLock([makeLock().actions[0]]));
+  writeRepositoryFile(escapeRoot, '.github/workflows/escape.yml', 'steps:\n  - uses: ./../outside\n');
+  assert.ok(verifyRepository(escapeRoot).errors.some(error => error.code === 'LOCAL_ACTION_PATH_INVALID'));
+
+  const missingRoot = makeTempRoot(t);
+  writeLockFixture(missingRoot, makeLock([makeLock().actions[0]]));
+  writeRepositoryFile(missingRoot, '.github/workflows/missing.yml', 'steps:\n  - uses: ./.github/actions/missing\n');
+  fs.mkdirSync(path.join(missingRoot, '.github', 'actions', 'missing'), { recursive: true });
+  assert.ok(verifyRepository(missingRoot).errors.some(error => error.code === 'LOCAL_ACTION_MANIFEST_MISSING'));
+
+  const ambiguousRoot = makeTempRoot(t);
+  writeLockFixture(ambiguousRoot, makeLock([makeLock().actions[0]]));
+  writeRepositoryFile(ambiguousRoot, '.github/workflows/ambiguous.yml', 'steps:\n  - uses: ./.github/actions/ambiguous\n');
+  const manifest = 'name: Ambiguous\nruns:\n  using: composite\n  steps: []\n';
+  writeRepositoryFile(ambiguousRoot, '.github/actions/ambiguous/action.yml', manifest);
+  writeRepositoryFile(ambiguousRoot, '.github/actions/ambiguous/action.yaml', manifest);
+  assert.ok(verifyRepository(ambiguousRoot).errors.some(error => error.code === 'LOCAL_ACTION_MANIFEST_AMBIGUOUS'));
+});
+
+test('recursive local action cycles fail closed', t => {
+  const { verifyRepository } = loadActionsLock();
+  const root = makeTempRoot(t);
+  writeLockFixture(root, makeLock([makeLock().actions[0]]));
+  writeRepositoryFile(root, '.github/workflows/cycle.yml', 'steps:\n  - uses: ./.github/actions/outer\n');
+  writeRepositoryFile(
+    root,
+    '.github/actions/outer/action.yml',
+    'name: Outer\nruns:\n  using: composite\n  steps:\n    - uses: ./.github/actions/inner\n'
+  );
+  writeRepositoryFile(
+    root,
+    '.github/actions/inner/action.yml',
+    'name: Inner\nruns:\n  using: composite\n  steps:\n    - uses: ./.github/actions/outer\n'
+  );
+  assert.ok(verifyRepository(root).errors.some(error => error.code === 'LOCAL_ACTION_CYCLE'));
+});
+
+test('flow-mapping uses syntax is rejected instead of skipped', () => {
+  const report = inspect('steps:\n  - {uses: actions/checkout@v4, with: {persist-credentials: false}}\n');
+  assert.ok(report.errors.some(error => error.code === 'USES_SYNTAX_INVALID'));
+});
+
+test('quoted and anchored uses keys are rejected instead of skipped', () => {
+  const quoted = inspect('steps:\n  - "uses": actions/checkout@v4\n');
+  assert.ok(quoted.errors.some(error => error.code === 'USES_SYNTAX_INVALID'));
+
+  const anchored = inspect('steps:\n  - &checkout {uses: actions/checkout@v4}\n');
+  assert.ok(anchored.errors.some(error => error.code === 'USES_SYNTAX_INVALID'));
+});
+
+test('ambiguous uses syntax, duplicate lock identities, unsafe evidence paths and unused entries fail closed', () => {
+  const ambiguous = inspect('steps:\n  - uses : actions/checkout@v4\n');
+  assert.ok(ambiguous.errors.some(error => error.code === 'USES_SYNTAX_INVALID'));
+
+  const { validateLock } = loadActionsLock();
+  const duplicate = makeLock();
+  duplicate.actions.push({ ...duplicate.actions[0] });
+  duplicate.actions[duplicate.actions.length - 1].licenseEvidence = '../LICENSE';
+  const errors = validateLock(duplicate);
+  assert.ok(errors.some(error => error.code === 'ACTION_LOCK_DUPLICATE'));
+  assert.ok(errors.some(error => error.code === 'LICENSE_PATH_INVALID'));
+
+  const { verifyRepository } = loadActionsLock();
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-actions-lock-unused-'));
+  try {
+    fs.mkdirSync(path.join(root, '.github', 'workflows'), { recursive: true });
+    const lock = makeLock();
+    writeLockFixture(root, lock);
+    fs.writeFileSync(
+      path.join(root, '.github', 'workflows', 'checkout-only.yml'),
+      `steps:\n  - uses: ${LOCKED_REFS[0]}\n    with:\n      persist-credentials: false\n`
+    );
+    const unused = verifyRepository(root);
+    assert.ok(unused.errors.some(error => error.code === 'ACTION_LOCK_ENTRY_UNUSED'));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('malformed lock entries are reported without crashing repository verification', t => {
+  const { verifyRepository } = loadActionsLock();
+  const root = makeTempRoot(t);
+  const lock = makeLock();
+  lock.actions.push(null);
+  writeLockFixture(root, lock);
+  const report = verifyRepository(root);
+  assert.equal(report.ok, false);
+  assert.ok(report.errors.some(error => error.code === 'ACTION_LOCK_ENTRY_INVALID'));
+});
+
+test('repository verifier detects a retained checkout credential and reports the exact workflow path', t => {
+  const { verifyRepository } = loadActionsLock();
+  const root = makeTempRoot(t);
+  fs.mkdirSync(path.join(root, '.github', 'workflows'), { recursive: true });
+  writeLockFixture(root, makeLock([makeLock().actions[0]]));
+  fs.writeFileSync(
+    path.join(root, '.github', 'workflows', 'unsafe.yml'),
+    `steps:\n  - uses: ${LOCKED_REFS[0]}\n`,
+    'utf8'
+  );
+  const report = verifyRepository(root);
+  assert.equal(report.ok, false);
+  assert.ok(report.errors.some(error => (
+    error.code === 'CHECKOUT_PERSIST_CREDENTIALS_NOT_FALSE'
+    && error.path === '.github/workflows/unsafe.yml'
+  )));
+});
+
+test('strict GitHub Actions lock CLI succeeds for the repository', () => {
+  const result = runCli(repoRoot, ['--json']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).ok, true);
+});

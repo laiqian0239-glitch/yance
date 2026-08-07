@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_GITHUB_ACTIONS_LOCK",
+  "actions": [
+    {
+      "repository": "actions/checkout",
+      "upstreamRepository": "https://github.com/actions/checkout",
+      "commit": "11d5960a326750d5838078e36cf38b85af677262",
+      "reviewedTag": "v4.4.0",
+      "license": "MIT",
+      "licenseEvidence": "third_party/licenses/actions-checkout-MIT.txt"
+    },
+    {
+      "repository": "actions/setup-node",
+      "upstreamRepository": "https://github.com/actions/setup-node",
+      "commit": "48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+      "reviewedTag": "v6.4.0",
+      "license": "MIT",
+      "licenseEvidence": "third_party/licenses/actions-setup-node-MIT.txt"
+    },
+    {
+      "repository": "actions/upload-artifact",
+      "upstreamRepository": "https://github.com/actions/upload-artifact",
+      "commit": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "reviewedTag": "v4.6.2",
+      "license": "MIT",
+      "licenseEvidence": "third_party/licenses/actions-upload-artifact-MIT.txt"
+    }
+  ]
+}

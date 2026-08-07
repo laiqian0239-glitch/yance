@@ -1,0 +1,54 @@
+name: OSS Provenance
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify-supply-chain:
+    name: verify-supply-chain-${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22.5.0
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Generate deterministic SBOM evidence
+        run: node -e "const fs=require('node:fs');const path=require('node:path');const {buildSbom,serializeSbom}=require('./tools/third-party/sbom');const packageJson=require('./package.json');const packageLock=require('./package-lock.json');fs.writeFileSync(path.join(process.env.RUNNER_TEMP,'yance-sbom.cdx.json'),serializeSbom(buildSbom({packageJson,packageLock})));"
+      - name: Upload deterministic SBOM evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: yance-deterministic-sbom-${{ matrix.os }}
+          path: ${{ runner.temp }}/yance-sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Run provenance contracts
+        run: node --test --test-concurrency=1 tests/third-party/provenance.test.js
+      - name: Run deterministic SBOM contracts
+        run: node --test --test-concurrency=1 tests/third-party/sbom.test.js
+      - name: Run GitHub Actions lock contracts
+        run: node --test --test-concurrency=1 tests/supply-chain/github-actions-pinning.test.js
+      - name: Verify provenance registry and notices
+        run: node tools/third-party/verify-provenance.js
+      - name: Verify deterministic SBOM bytes
+        run: node tools/third-party/verify-sbom.js
+      - name: Verify external Action lock
+        run: node tools/supply-chain/verify-github-actions-lock.js
