@@ -65,6 +65,15 @@ test('Synapse, Element and mautrix-whatsapp are the runtime authorities rather t
   assert.equal(element.default_server_config['m.homeserver'].base_url, 'http://127.0.0.1:8008');
 });
 
+test('mautrix-whatsapp database storage remains a top-level bridgev2 authority config', () => {
+  const bridge = readText('config/matrix/mautrix-whatsapp/config.yaml');
+  assert.match(bridge, /^database:\s*$/mu);
+  assert.doesNotMatch(bridge, /^\s+database:\s*$/mu);
+  for (const section of ['homeserver', 'appservice', 'database', 'bridge', 'logging']) {
+    assert.match(bridge, new RegExp(`^${section}:\\s*$`, 'mu'), `${section} must remain a top-level mautrix bridge config section`);
+  }
+});
+
 test('bootstrap is exact-commit, patch-drift and mutable-ref fail closed', () => {
   const bootstrap = readText('tools/matrix/bootstrap.js');
   assert.match(bootstrap, /assertExactCommit/u);
