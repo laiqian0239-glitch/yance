@@ -27,6 +27,15 @@ const GENERIC_DELEGATED_GOVERNANCE_STATUS = 'AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE
 const GENERIC_DELEGATED_GOVERNANCE_PATH = /^governance\/layered-ci\/[a-z0-9][a-z0-9-]*-authorization\.json$/u;
 const AUTHORIZATION_PROPOSAL_TRANSPORT_MODE = 'AUTHORIZATION_PROPOSAL_TRANSPORT';
 const TRUSTED_MAIN_DELEGATED_GOVERNANCE_MODE = 'TRUSTED_MAIN_DELEGATED_GOVERNANCE';
+const DEPENDENCY_CONTROL_FILENAMES = new Set([
+  'package.json',
+  'package-lock.json',
+  'npm-shrinkwrap.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
+  'bun.lock',
+  'bun.lockb'
+]);
 
 const TRUSTED_POLICY_ROOT = path.resolve(__dirname, '..', '..');
 const TRUSTED_GIT_ENVIRONMENT_KEYS = Object.freeze([
@@ -796,15 +805,8 @@ function isWorkflowControlPath(repositoryPath) {
 }
 
 function isDependencyControlPath(repositoryPath) {
-  return new Set([
-    'package.json',
-    'package-lock.json',
-    'npm-shrinkwrap.json',
-    'pnpm-lock.yaml',
-    'yarn.lock',
-    'bun.lock',
-    'bun.lockb'
-  ]).has(repositoryPath);
+  const segments = repositoryPath.split('/');
+  return DEPENDENCY_CONTROL_FILENAMES.has(segments[segments.length - 1]);
 }
 
 function isValidWorkPackageScopeAmendment(amendment, authorization) {
