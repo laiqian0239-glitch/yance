@@ -207,6 +207,20 @@ function defaultCommitBlobSha(commit, repositoryPath, options) {
   catch (_) { return null; }
 }
 
+function defaultCommitPathMode(commit, repositoryPath, options = {}) {
+  try {
+    const output = trustedGit(['ls-tree', commit, '--', repositoryPath], options);
+    if (!output) return null;
+    const tabIndex = output.indexOf('\t');
+    if (tabIndex < 0 || output.slice(tabIndex + 1) !== repositoryPath) return null;
+    const metadata = output.slice(0, tabIndex).split(/\s+/u);
+    if (metadata.length !== 3 || metadata[1] !== 'blob' || !SHA40.test(metadata[2])) return null;
+    return metadata[0];
+  } catch (_) {
+    return null;
+  }
+}
+
 function defaultTrustedAncestor(base, head, options) {
   try {
     trustedGit(['merge-base', '--is-ancestor', base, head], options);
@@ -453,8 +467,14 @@ function evaluateDelegatedGovernanceAuthorizationProposal(options = {}) {
   const authorization = resolveGenericCandidateAuthorization(authorizationPath, evaluatedHead, options);
   const ancestor = options.isTrustedAncestor
     || ((base, head) => defaultTrustedAncestor(base, head, options));
+  const resolveBlob = options.resolveCommitBlobSha
+    || ((commit, repositoryPath) => defaultCommitBlobSha(commit, repositoryPath, options));
+  const resolvePathMode = options.resolveCommitPathMode
+    || ((commit, repositoryPath) => defaultCommitPathMode(commit, repositoryPath, options));
   const pass = SHA40.test(String(evaluatedHead || ''))
     && ancestor(trustedMainHead, evaluatedHead) === true
+    && resolveBlob(trustedMainHead, authorizationPath) === null
+    && resolvePathMode(evaluatedHead, authorizationPath) === '100644'
     && isValidGenericDelegatedGovernanceAuthorization(authorization, authorizationPath)
     && authorization.base.commit === trustedMainHead
     && authorization.authorizationBranch.name === branch
@@ -529,10 +549,18 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
     const reviewedBlob = resolveBlob(reviewedHead, authorizationPath);
     const trustedBlob = resolveBlob(trustedMainHead, authorizationPath);
     const baseBlob = resolveBlob(authorization.base.commit, authorizationPath);
+    const resolvePathMode = options.resolveCommitPathMode
+      || ((commit, repositoryPath) => defaultCommitPathMode(commit, repositoryPath, options));
+    const mergeMode = resolvePathMode(mergeCommit, authorizationPath);
+    const reviewedMode = resolvePathMode(reviewedHead, authorizationPath);
+    const trustedMode = resolvePathMode(trustedMainHead, authorizationPath);
     if (![mergeBlob, reviewedBlob, trustedBlob].every(value => SHA40.test(String(value || '')))
       || mergeBlob !== reviewedBlob
       || mergeBlob !== trustedBlob
-      || baseBlob !== null) continue;
+      || baseBlob !== null
+      || mergeMode !== '100644'
+      || reviewedMode !== '100644'
+      || trustedMode !== '100644') continue;
 
     const resolveChangedFiles = options.resolveChangedFilesBetween
       || ((base, head) => defaultChangedFilesBetween(base, head, options));

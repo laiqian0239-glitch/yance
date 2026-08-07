@@ -545,7 +545,9 @@ test('authorization proposal transport is single-file and never grants implement
     authorization,
     trustedMainHead: GENERIC_BASE,
     evaluatedHead: GENERIC_REVIEWED_HEAD,
-    isTrustedAncestor: (base, head) => base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD
+    isTrustedAncestor: (base, head) => base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD,
+    resolveCommitBlobSha: (commit) => commit === GENERIC_BASE ? null : GENERIC_BLOB,
+    resolveCommitPathMode: () => '100644'
   });
   assert.equal(accepted.pass, true, JSON.stringify(accepted));
   assert.equal(accepted.mode, 'AUTHORIZATION_PROPOSAL_TRANSPORT');
@@ -560,7 +562,9 @@ test('authorization proposal transport is single-file and never grants implement
       authorization,
       trustedMainHead: GENERIC_BASE,
       evaluatedHead: GENERIC_REVIEWED_HEAD,
-      isTrustedAncestor: (base, head) => base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD
+      isTrustedAncestor: (base, head) => base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD,
+      resolveCommitBlobSha: (commit) => commit === GENERIC_BASE ? null : GENERIC_BLOB,
+      resolveCommitPathMode: () => '100644'
     }
   });
   assert.equal(transported.pass, true, JSON.stringify(transported));
