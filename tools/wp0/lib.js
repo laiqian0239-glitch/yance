@@ -417,6 +417,7 @@ function checkRuntimeTargetGate(options = {}) {
     targetStage,
     branch,
     detachedEvidenceAllowed,
+    authorizationProposalReasonCode: authorizationProposalTransport?.reasonCode ?? null,
     authorityMode: implementationAuthorized
       ? 'IMPLEMENTATION_AUTHORITY'
       : (proposalTransportAllowed ? authorizationProposalTransport.mode : null),
