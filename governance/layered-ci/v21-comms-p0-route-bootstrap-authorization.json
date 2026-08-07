@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "documentType": "YANCE_V21_COMMS_P0_CURRENT_MAIN_PRODUCT_ROUTE_AUTHORIZATION",
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "requestedByUserAt": "2026-08-07T17:25:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-COMMS-P0-ROUTE-BOOTSTRAP",
@@ -12,10 +12,9 @@
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
-    "requiresExactHeadGreen": true,
-    "requiresIndependentAllowMerge": true,
-    "requiresOrdinaryMainMerge": true,
-    "implementationMayStartOnlyFromAuthorizationMergeCommit": true
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
   },
   "evidence": {
     "sourcePullRequest": 112,
@@ -49,19 +48,14 @@
   },
   "implementation": {
     "branch": "fix/v21-comms-p0-route-bootstrap",
-    "requiredBase": "the exact main merge commit containing this authorization",
     "allowedChangedPaths": [
       "governance/layered-ci/wp0-routing-policy.json",
       "tests/layered-ci/v21-comms-p0-routing.test.js"
     ],
     "approvedChangedFileCount": 2,
     "approvedChangedFileSetSha256": "8c99902e70bef8f70fe519b7d6dc14ee477e7dc5e6c7b57b9af08d5d231dc149",
-    "route": "PRODUCT_WP0",
-    "exactBootstrapOnly": true,
-    "productPrefixExpansionAllowed": false,
-    "runtimeProductBehaviorChanged": false,
-    "workflowModificationAllowed": false,
-    "newDependencyAllowed": false
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
   },
   "bootstrapPaths": [
     "config/matrix/element-config.json",
@@ -85,10 +79,10 @@
   "candidatePreservation": {
     "candidatePullRequest": 112,
     "candidateBranch": "product/v21-comms-p0",
-    "candidateExactHeadMustNotBeRewritten": true,
     "candidateAuthorizedChangedFileCountMustRemain": 22,
     "candidateAuthorizedChangedFileSetSha256MustRemain": "972786dec8299d2d8c7e9b9a7aa44e89608310f6ac4f462d5d35fbf613f71ab2",
-    "candidateWorkflowModificationAllowed": false
+    "candidateWorkflowModificationAllowed": false,
+    "candidateHistoryRewriteAllowed": false
   },
   "mandatoryFailureFirstContracts": [
     "The current-main routing policy reports WP0_ROUTE_UNKNOWN_PATH for the exact V2.1 bootstrap paths before implementation",
@@ -101,12 +95,12 @@
   "requiredSequence": [
     "Authorization exact Head passes all applicable governance gates",
     "Independent review returns ALLOW_MERGE with zero P0 and P1 findings",
-    "Authorization PR merges to main by ordinary merge without history rewrite",
+    "Authorization PR merges to main by ordinary two-parent merge without history rewrite",
     "Implementation branch is created from that exact authorization merge commit",
     "A test-only commit records causal RED for the fifteen exact paths before policy implementation",
     "Only the fifteen exact bootstrap paths are added to productExactPaths",
     "Implementation exact Head passes Layered CI, permanent WP0, ACV2 and independent review",
-    "Implementation PR merges to main by ordinary merge",
+    "Implementation PR merges to main by ordinary two-parent merge",
     "The resulting main is merged normally into PR #112 without rewriting its history",
     "PR #112 is completed to its original exact 22-path authorized product scope and reverified"
   ],
@@ -121,18 +115,16 @@
     "historyRewrite": true,
     "directCandidateSelfAuthorization": true,
     "candidateScopeReduction": true,
-    "pr67Modification": true,
-    "productionUse": true,
-    "formalRelease": true,
-    "publish": true,
-    "automaticNextWorkPackageAuthorization": true
+    "pr67Modification": true
   },
   "governance": {
     "authorizationPredatesImplementation": true,
     "exactPathScopeOnly": true,
     "independentBranchAndPullRequestRequired": true,
-    "pr112MustRemainDraftUntilFinalExactHeadClosure": true,
-    "pr67MustRemainUntouched": true,
-    "readyForPromotion": false
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
   }
 }
