@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "PVEP-WORKFLOW-DELEGATION-POLICY",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #101 exact Head aedb0787d9d563fd0391acb469e153db6e14d690 produced causal Stage 6.4.5.9 WP0 RED in run 31145431370 / job 92763806984. The existing generic delegated-governance validator intentionally rejects workflow-control paths and requires workflowModificationAllowed=false. PVEP's V2.1 OSS-fit requires a base-owned GitHub Artifact Attestation workflow, so the root fix is to add reusable exact workflow-control delegation while preserving default workflow denial, exact-path scope, no wildcards, no dependency-control delegation and fail-closed behavior.",
+  "base": {
+    "branch": "main",
+    "commit": "028d14458269d0be6196e724fe5a0416dbfa900a"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/pvep-oss-attestation-bootstrap-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/pvep-oss-attestation-bootstrap-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/pvep-exact-workflow-delegation-policy",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/layered-ci/pvep-exact-workflow-delegation.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "2622f49473c4bbaaadeefc2094622de8bbeea29d99dfb130515b619d13cd8050",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "requiredDesign": {
+    "defaultGenericWorkflowModificationRemainsDenied": true,
+    "workflowDelegationMustBeExplicit": true,
+    "workflowDelegationMustUseExactPathsOnly": true,
+    "workflowDelegationPathCountAndDigestMustBeExact": true,
+    "workflowDelegationMayNotAuthorizeDependencyControlPaths": true,
+    "wildcardsAndDirectoryPrefixesRemainForbidden": true,
+    "candidateOwnedAuthorizationMayNotSelfAuthorize": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "Current generic delegated authorization rejects an otherwise exact authorization that requests one workflow-control path",
+    "Exact workflow delegation without an explicit workflow path policy fails closed",
+    "Workflow path count, digest, wildcard, extra path and undeclared workflow drift fail closed",
+    "Dependency-control paths remain forbidden even when workflow delegation is explicitly enabled",
+    "Existing workflowModificationAllowed=false authorization behavior remains unchanged"
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
