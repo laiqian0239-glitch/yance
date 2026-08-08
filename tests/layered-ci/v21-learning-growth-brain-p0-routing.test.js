@@ -37,6 +37,13 @@ const V21_LEARNING_GROWTH_BRAIN_P0_BOOTSTRAP_PATHS = Object.freeze([
   'upstream-patches/element-web/0002-yance-learning-assistant-ui-deps.patch'
 ]);
 
+const V21_LEARNING_GROWTH_BRAIN_P0_UI_ADAPTER_PATHS = Object.freeze([
+  'integration/element-module/src/LearningToolUiAdapter.tsx',
+  'integration/element-module/src/LearningWorkspace.css',
+  'integration/element-module/src/LearningWorkspace.tsx',
+  'integration/element-module/src/learningAssistantRuntime.ts'
+]);
+
 function canonicalPathSetSha256(paths) {
   const canonical = [...new Set(paths)].sort().join('\n') + '\n';
   return crypto.createHash('sha256').update(canonical, 'utf8').digest('hex');
@@ -115,4 +122,51 @@ test('V2.1 Learning Growth Brain route bootstrap preserves governance and produc
     assert.equal(mixed.route, ROUTES.PRODUCT, JSON.stringify(files));
     assert.equal(mixed.productChangesPresent, true, JSON.stringify(files));
   }
+});
+
+test('V2.1 Learning Growth Brain UI adapter route set is frozen exactly', () => {
+  assert.equal(V21_LEARNING_GROWTH_BRAIN_P0_UI_ADAPTER_PATHS.length, 4);
+  assert.equal(new Set(V21_LEARNING_GROWTH_BRAIN_P0_UI_ADAPTER_PATHS).size, 4);
+  assert.equal(
+    canonicalPathSetSha256(V21_LEARNING_GROWTH_BRAIN_P0_UI_ADAPTER_PATHS),
+    '42ef3dfb059895946ed0bae849e4b79b279a2b1ea7b861fbdfc2c962a7e1343e'
+  );
+});
+
+test('V2.1 Learning Growth Brain UI adapters are exact PRODUCT_WP0 routes', () => {
+  for (const file of V21_LEARNING_GROWTH_BRAIN_P0_UI_ADAPTER_PATHS) {
+    const result = classifyWp0Route(policy, [file]);
+    assert.equal(result.pass, true, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.route, ROUTES.PRODUCT, file);
+    assert.equal(result.productChangesPresent, true, file);
+    assert.equal(policy.productExactPaths.includes(file), true, file);
+  }
+
+  const aggregate = classifyWp0Route(policy, V21_LEARNING_GROWTH_BRAIN_P0_UI_ADAPTER_PATHS);
+  assert.equal(aggregate.pass, true, JSON.stringify(aggregate));
+  assert.equal(aggregate.route, ROUTES.PRODUCT);
+  assert.equal(aggregate.productChangesPresent, true);
+});
+
+test('V2.1 Learning UI route closure does not authorize an integration product prefix', () => {
+  assert.equal(policy.productPrefixes.includes('integration/'), false);
+  assert.equal(policy.productPrefixes.includes('integration/element-module/'), false);
+  assert.equal(policy.productPrefixes.includes('integration/element-module/src/'), false);
+});
+
+test('adjacent unregistered Learning UI paths remain fail closed', () => {
+  for (const file of [
+    'integration/element-module/src/UnapprovedLearningWorkspace.tsx',
+    'integration/element-module/src/learningApprovalFramework.ts',
+    'integration/element-module/src/vendor/tool-ui/UnapprovedAdapter.tsx'
+  ]) {
+    const result = classifyWp0Route(policy, [file]);
+    assert.equal(result.pass, false, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.reasonCode, 'WP0_ROUTE_UNKNOWN_PATH', file);
+    assert.equal(result.route, null, file);
+  }
+
+  const malformed = classifyWp0Route(policy, ['../integration/element-module/src/LearningWorkspace.tsx']);
+  assert.equal(malformed.pass, false, JSON.stringify(malformed));
+  assert.equal(malformed.reasonCode, 'WP0_ROUTE_PATH_INVALID');
 });
