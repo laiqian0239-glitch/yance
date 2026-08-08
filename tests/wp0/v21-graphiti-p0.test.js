@@ -11,7 +11,8 @@ const { EventEmitter } = require('node:events');
 const ROOT = path.resolve(__dirname, '../..');
 const GRAPHITI_VERSION = 'v0.29.3';
 const GRAPHITI_COMMIT = '021d3a57d511f21b10adaf7fa923bd5c1fce5e9d';
-const GRAPHITI_UV_LOCK_BLOB = '38b26ce7d01f11287d71df7f5359867b85b3d6c4';
+const GRAPHITI_UV_LOCK_BLOB = '871ec1a85fbcfc80b3919f4178818301981e43e2';
+const GRAPHITI_PYPROJECT_BLOB = '8ed8dbab39eec12d213076a5d8c937245ba065ed';
 const NEO4J_VERSION = '2026.07.1';
 const NEO4J_SHA256 = 'd70f2019c7a53b6ed5ac61a027a9884a5dbcf714d52e941249036d02d7886162';
 const TEMURIN_VERSION = 'jdk-21.0.11+10';
@@ -33,6 +34,7 @@ test('V2.1 Graphiti P0 seals exact mature OSS authorities and the first-party Ne
   assert.equal(lock.upstreams.graphiti.version, GRAPHITI_VERSION);
   assert.equal(lock.upstreams.graphiti.commit, GRAPHITI_COMMIT);
   assert.equal(lock.upstreams.graphiti.uvLockGitBlob, GRAPHITI_UV_LOCK_BLOB);
+  assert.equal(lock.upstreams.graphiti.pyprojectGitBlob, GRAPHITI_PYPROJECT_BLOB);
   assert.equal(lock.upstreams.neo4jCommunity.version, NEO4J_VERSION);
   assert.equal(lock.upstreams.neo4jCommunity.windowsX64Sha256, NEO4J_SHA256);
   assert.equal(lock.upstreams.neo4jCommunity.sha256Url, `https://dist.neo4j.org/neo4j-community-${NEO4J_VERSION}-windows.zip.sha256`);

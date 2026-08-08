@@ -10,7 +10,8 @@ from urllib.parse import quote
 
 GRAPHITI_VERSION = "0.29.3"
 GRAPHITI_COMMIT = "021d3a57d511f21b10adaf7fa923bd5c1fce5e9d"
-GRAPHITI_UV_LOCK_BLOB = "38b26ce7d01f11287d71df7f5359867b85b3d6c4"
+GRAPHITI_UV_LOCK_BLOB = "871ec1a85fbcfc80b3919f4178818301981e43e2"
+GRAPHITI_PYPROJECT_BLOB = "8ed8dbab39eec12d213076a5d8c937245ba065ed"
 NEO4J_VERSION = "2026.07.1"
 NEO4J_SHA256 = "d70f2019c7a53b6ed5ac61a027a9884a5dbcf714d52e941249036d02d7886162"
 TEMURIN_VERSION = "jdk-21.0.11+10"
@@ -116,6 +117,7 @@ def build_bom() -> dict[str, object]:
                 {"name": "yance:runtime:network-resolution", "value": "forbidden"},
                 {"name": "yance:runtime:graphiti-commit", "value": GRAPHITI_COMMIT},
                 {"name": "yance:runtime:graphiti-uv-lock-git-blob", "value": GRAPHITI_UV_LOCK_BLOB},
+                {"name": "yance:runtime:graphiti-pyproject-git-blob", "value": GRAPHITI_PYPROJECT_BLOB},
                 {"name": "yance:runtime:neo4j-version", "value": NEO4J_VERSION},
                 {"name": "yance:runtime:temurin-version", "value": TEMURIN_VERSION},
                 {"name": "yance:runtime:uv-version", "value": UV_VERSION},

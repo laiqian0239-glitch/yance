@@ -22,7 +22,10 @@ test('Windows sealing verifies every external artifact and the Neo4j first-party
   assert.match(script, /Get-FileHash[^\n]+SHA256/iu);
   assert.match(script, /GRAPHITI_NEO4J_CHECKSUM_MISMATCH/u);
   assert.match(script, /GRAPHITI_FIRST_PARTY_CHECKSUM_MISMATCH/u);
-  assert.match(script, /38b26ce7d01f11287d71df7f5359867b85b3d6c4/u, 'exact upstream uv.lock blob must be verified');
+  assert.match(script, /871ec1a85fbcfc80b3919f4178818301981e43e2/u, 'exact upstream uv.lock blob must be verified');
+  assert.match(script, /8ed8dbab39eec12d213076a5d8c937245ba065ed/u, 'exact upstream pyproject.toml blob must be verified');
+  assert.equal(lock.upstreams.graphiti.uvLockGitBlob, '871ec1a85fbcfc80b3919f4178818301981e43e2');
+  assert.equal(lock.upstreams.graphiti.pyprojectGitBlob, '8ed8dbab39eec12d213076a5d8c937245ba065ed');
   assert.equal(lock.upstreams.neo4jCommunity.allowedArtifactHosts.includes('dist.neo4j.org'), true);
 });
 
@@ -39,6 +42,9 @@ test('portable runtime contains sealed Python, Graphiti source lock, Java, Neo4j
   assert.match(sbom, /CycloneDX|cyclonedx/iu);
   assert.match(sbom, /specVersion['"]?\s*:\s*['"]1\.7['"]/u);
   assert.match(sbom, /sort_keys=True/u);
+  assert.match(sbom, /871ec1a85fbcfc80b3919f4178818301981e43e2/u, 'SBOM must bind the exact Graphiti uv.lock Git blob');
+  assert.match(sbom, /8ed8dbab39eec12d213076a5d8c937245ba065ed/u, 'SBOM must bind the exact Graphiti pyproject.toml Git blob');
+  assert.match(sbom, /graphiti-pyproject-git-blob/u);
 });
 
 test('Windows workflow performs build-time online materialization then a network-isolated authenticated runtime closure', () => {

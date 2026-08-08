@@ -23,7 +23,7 @@ test('Graphiti projection is admitted through the existing workspace facade/serv
   assert.doesNotMatch(electron, /node:sqlite|better-sqlite3|DatabaseSync|INSERT\s+INTO|UPDATE\s+relationship_timeline_events/iu);
 });
 
-test('Graphiti fact projection requires episode provenance and is idempotent on the Graphiti fact identity', () => {
+test('Graphiti inference projection requires episode provenance and is idempotent on the Graphiti edge identity', () => {
   const servicePath = repositoryPath('backend/services/relationshipKeyNodeService.js');
   delete require.cache[require.resolve(servicePath)];
   const { createRelationshipKeyNodeService } = require(servicePath);
@@ -54,16 +54,19 @@ test('Graphiti fact projection requires episode provenance and is idempotent on 
   assert.throws(() => service.projectGraphitiFacts({ contactId: 'contact-A', facts: [{ ...fact, factId: 'bad', episodeUuid: '' }] }), /provenance|episode/iu);
 });
 
-test('relationship projection authority prefers Graphiti-provenance factual timeline over legacy inferred rows', () => {
+test('relationship projection authority prefers Graphiti temporal inference without presenting it as confirmed fact', () => {
   const authorityPath = repositoryPath('backend/services/relationshipProjectionAuthority.js');
   delete require.cache[require.resolve(authorityPath)];
   const authority = require(authorityPath);
   const graphiti = {
     event_id: 'graphiti:edge-1',
-    event_type: 'graphiti_fact',
-    interpretation: 'Current Graphiti fact',
+    event_type: 'graphiti_inference',
+    interpretation: 'Current Graphiti inference',
     confirmed_at: '2026-08-08T11:00:00Z',
-    confidence: 1,
+    confidence: 0,
+    status: 'inferred',
+    node_kind: 'inference',
+    after_json: JSON.stringify({ epistemicStatus: 'ai_inference', confidenceStatus: 'unscored' }),
     engine_version: 'graphiti:v0.29.3',
     source_signal_ids_json: JSON.stringify(['graphiti:episode-1'])
   };
@@ -77,9 +80,14 @@ test('relationship projection authority prefers Graphiti-provenance factual time
     source_signal_ids_json: '[]'
   };
   const projected = authority.project({ messages: [], timeline: [legacy, graphiti], signals: [] });
-  assert.equal(projected.trajectory.events.some(row => row[1] === 'Current Graphiti fact'), true);
-  assert.equal(projected.trajectory.events.some(row => row[1] === 'Legacy inferred fact'), false, 'legacy factual inference must not override Graphiti-provenance facts');
-  assert.equal(projected.trajectory.factualAuthority, 'graphiti');
+  const graphitiEvent = projected.trajectory.events.find(row => row[1] === 'Current Graphiti inference');
+  assert.ok(graphitiEvent);
+  assert.equal(projected.trajectory.events.some(row => row[1] === 'Legacy inferred fact'), false, 'legacy inference must not override Graphiti temporal inference');
+  assert.equal(graphitiEvent[3], 'inference');
+  assert.match(graphitiEvent[4], /AI 推断/u);
+  assert.match(graphitiEvent[4], /未评分/u);
+  assert.equal(projected.trajectory.timelineAuthority, 'graphiti_temporal_inference');
+  assert.equal(Object.hasOwn(projected.trajectory, 'factualAuthority'), false, 'Graphiti inference must not be exposed as factual authority');
 });
 
 test('Graphiti re-projection preserves manual key-node annotation metadata', () => {
@@ -118,6 +126,15 @@ test('Graphiti re-projection preserves manual key-node annotation metadata', () 
     createdAt: '2026-08-08T11:05:00Z'
   };
   repo.projectGraphitiFacts({ contactId: 'contact-A', conversationId: 'conv-A', facts: [original] });
+  const inferred = repo.getEvent('graphiti:edge-annotation-1');
+  assert.equal(inferred.event_type, 'graphiti_inference');
+  assert.equal(inferred.node_kind, 'inference');
+  assert.equal(inferred.status, 'inferred');
+  assert.equal(inferred.confidence, 0, 'compatibility confidence column must use a neutral sentinel when upstream is unscored');
+  const inferredMeta = JSON.parse(inferred.after_json);
+  assert.equal(inferredMeta.sourceEpistemicStatus, 'ai_inference');
+  assert.equal(inferredMeta.confidenceStatus, 'unscored');
+  assert.equal(inferredMeta.confidenceSource, null);
   repo.markExistingEvent('graphiti:edge-annotation-1', {
     nodeKind: 'fact',
     markedBy: 'user',
@@ -135,5 +152,6 @@ test('Graphiti re-projection preserves manual key-node annotation metadata', () 
   assert.equal(row.marked_by, 'user', 'Graphiti refresh must not overwrite manual annotation ownership');
   assert.equal(row.marked_at, '2026-08-08T11:30:00Z');
   assert.equal(row.interpretation, 'Alice deeply trusts Bob.');
-  assert.equal(row.status, 'invalidated');
+  assert.equal(row.status, 'confirmed', 'Graphiti refresh must not overwrite explicit user confirmation');
+  assert.equal(JSON.parse(row.after_json).invalidAt, '2026-08-08T11:55:00Z');
 });

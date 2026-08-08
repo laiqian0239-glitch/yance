@@ -9,14 +9,14 @@ The implementation branch is `product/v21-graphiti-p0-v1`. The final diff is res
 ## Failure-first sequence
 
 1. Start from the ordinary two-parent authorization merge commit.
-2. Land a test-only RED commit that proves missing Graphiti runtime, missing portable seal, missing broker-owned projection write path, and competing legacy factual projection.
+2. Land a test-only RED commit that proves missing Graphiti runtime, missing portable seal, missing broker-owned projection write path, and competing legacy relationship inference projection.
 3. Verify Neo4j Community 2026.07.1 first-party checksum before sealing. The accepted first-party SHA-256 is `d70f2019c7a53b6ed5ac61a027a9884a5dbcf714d52e941249036d02d7886162` from `dist.neo4j.org`.
 4. Implement only thin Graphiti-specific lifecycle, credential, projection and sealing adapters around mature upstream OSS.
 5. Require exact-Head Stage/Layered/ACV2/Windows runtime gates and independent review before merge.
 
 ## OSS ownership
 
-- Graphiti `v0.29.3` at `021d3a57d511f21b10adaf7fa923bd5c1fce5e9d` owns temporal relationship facts, episode provenance, validity/invalidation and supersession.
+- Graphiti `v0.29.3` at `021d3a57d511f21b10adaf7fa923bd5c1fce5e9d` owns the temporal relationship graph, episode provenance, validity/invalidation and supersession. Graphiti upstream calls extracted edges `facts`; Yance treats automatically extracted Graphiti edges as AI inference until the user explicitly confirms or supplies the fact.
 - Neo4j Community `2026.07.1` is the local Graphiti graph store.
 - Letta remains long-term person/interaction memory authority.
 - Parlant remains Goal/Journey authority.
@@ -31,13 +31,13 @@ OpenRouter credentials stay in the existing Yance credential authority. A high-e
 
 Each inbound relationship message is admitted with Graphiti native `add_episode` using a deterministic relationship `group_id`, source provenance and reference time. Native Graphiti `search` recall is projected into the existing relationship timeline only through the workspace facade/service/`RelationshipKeyNodeRepository` authority-write-host chain. Direct Electron SQL and a second SQLite writer remain forbidden.
 
-When Graphiti-provenance facts exist, `RelationshipProjectionAuthority` excludes legacy inferred rows from factual timeline authority while preserving manual key-node annotations. This prevents competing factual truth without deleting historical compatibility data.
+When Graphiti-provenance inference exists, `RelationshipProjectionAuthority` prefers the Graphiti temporal inference timeline over competing legacy inferred rows while preserving manual key-node annotations and explicit user confirmations. Graphiti extraction is never silently promoted to a Yance confirmed fact, and the absence of an upstream calibrated confidence is represented as unscored rather than a fabricated numeric certainty.
 
 ## Portable Windows seal
 
 The Windows build uses exact verified inputs only:
 
-- Graphiti exact tag/commit and exact upstream `uv.lock` Git blob `38b26ce7d01f11287d71df7f5359867b85b3d6c4`.
+- Graphiti exact tag/commit and exact upstream `uv.lock` Git blob `871ec1a85fbcfc80b3919f4178818301981e43e2`.
 - uv `0.12.3` as build/sealing tool only.
 - python-build-standalone CPython `3.12.13` asset `18bcc65b17921806b72cdc88bcf000bf67a2c99a8fc381fe1629f2b9ba56858d`.
 - Eclipse Temurin `jdk-21.0.11+10` asset `d3625e7cadf23787ea540229544b6e2ab494b3b54da1801879e583e1dfee0a64`.

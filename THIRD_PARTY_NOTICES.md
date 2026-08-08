@@ -125,8 +125,8 @@ Exact Parlant/uv/python-build-standalone runtime pins are recorded in `config/up
 - Exact commit: `021d3a57d511f21b10adaf7fa923bd5c1fce5e9d`
 - License: `Apache-2.0`
 - License copy: `third_party/licenses/graphiti-Apache-2.0.txt`
-- Upstream dependency lock: exact `uv.lock` Git blob `38b26ce7d01f11287d71df7f5359867b85b3d6c4`
-- Yance integration: Graphiti remains the authoritative temporal relationship-fact graph, including episode provenance, fact validity/invalidation and supersession. Yance provides only a relationship-specific loopback lifecycle/projection adapter and does not copy or reimplement Graphiti's temporal algorithms.
+- Upstream dependency lock: exact `uv.lock` Git blob `871ec1a85fbcfc80b3919f4178818301981e43e2`
+- Yance integration: Graphiti remains the authoritative temporal relationship graph for extracted edge records, episode provenance, validity/invalidation and supersession. Graphiti upstream names extracted edges `facts`; Yance classifies automatically extracted Graphiti edges as AI inference unless the user explicitly confirms or supplies the fact. Upstream v0.29.3 does not expose calibrated confidence on `EntityEdge`, so Yance records such projections as unscored rather than fabricating numeric certainty. Yance provides only a relationship-specific loopback lifecycle/projection adapter and does not copy or reimplement Graphiti's temporal algorithms.
 
 ## Neo4j Community
 

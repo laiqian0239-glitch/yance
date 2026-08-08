@@ -11,8 +11,8 @@ $ProgressPreference = 'SilentlyContinue'
 
 $GraphitiVersion = 'v0.29.3'
 $GraphitiCommit = '021d3a57d511f21b10adaf7fa923bd5c1fce5e9d'
-$GraphitiUvLockBlob = '38b26ce7d01f11287d71df7f5359867b85b3d6c4'
-$GraphitiPyprojectBlob = 'd0dc10e0efe7acedc27fac8665dd8e00b02dce32'
+$GraphitiUvLockBlob = '871ec1a85fbcfc80b3919f4178818301981e43e2'
+$GraphitiPyprojectBlob = '8ed8dbab39eec12d213076a5d8c937245ba065ed'
 $Neo4jVersion = '2026.07.1'
 $Neo4jAsset = 'neo4j-community-2026.07.1-windows.zip'
 $Neo4jAssetSize = 262189122
