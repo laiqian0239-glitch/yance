@@ -10,6 +10,11 @@ const PARLANT_COMMIT = '61bba3b2b3fffd677d345e393e8c942dbd400297';
 const DEFAULT_ENDPOINT = 'http://127.0.0.1:18765';
 const DEFAULT_STARTUP_TIMEOUT_MS = 60000;
 const DEFAULT_REQUEST_TIMEOUT_MS = 90000;
+const LOOPBACK_TOKEN_ENV = 'YANCE_PARLANT_LOOPBACK_TOKEN';
+const LOOPBACK_TOKEN_HEADER = 'x-yance-parlant-token';
+const LOOPBACK_CHALLENGE_HEADER = 'x-yance-parlant-challenge';
+const LOOPBACK_HEALTH_PATH = '/yance/healthz';
+const LOOPBACK_PROOF_DOMAIN = 'yance-parlant-health-v1:';
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 
@@ -50,25 +55,45 @@ function sanitizeChildEnvironment(source = process.env) {
     'APPDATA', 'USERPROFILE', 'HOME', 'LANG', 'LC_ALL'
   ];
   for (const key of allowed) if (source[key]) env[key] = source[key];
-  delete env.ELECTRON_RUN_AS_NODE;
-  delete env.OPENROUTER_API_KEY;
-  delete env.PARLANT_DATA_COLLECTION;
-  delete env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
-  delete env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT;
   return env;
+}
+
+function createLoopbackToken() {
+  return crypto.randomBytes(32).toString('base64url');
+}
+
+function assertLoopbackToken(value) {
+  const token = clean(value);
+  if (!/^[A-Za-z0-9_-]{43,128}$/u.test(token)) {
+    throw runtimeError('DESKTOP_PARLANT_LOOPBACK_TOKEN_INVALID', 'Parlant loopback credential must be a high-entropy base64url value.');
+  }
+  return token;
+}
+
+function instanceProof(loopbackToken, challenge) {
+  return crypto.createHmac('sha256', loopbackToken).update(`${LOOPBACK_PROOF_DOMAIN}${challenge}`, 'utf8').digest('hex');
+}
+
+function constantTimeTextEqual(left, right) {
+  const a = Buffer.from(clean(left), 'utf8');
+  const b = Buffer.from(clean(right), 'utf8');
+  return a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);
 }
 
 function buildParlantEnvironment(options = {}) {
   const key = clean(options.openRouterApiKey);
   const dataRoot = path.resolve(clean(options.dataRoot));
+  const loopbackToken = assertLoopbackToken(options.loopbackToken || createLoopbackToken());
   if (!key) throw runtimeError('DESKTOP_PARLANT_OPENROUTER_CREDENTIAL_MISSING', 'OpenRouter credential is required for the Parlant relationship runtime.');
   if (!dataRoot) throw runtimeError('DESKTOP_PARLANT_DATA_ROOT_INVALID', 'Parlant data root is required.');
   return {
     ...sanitizeChildEnvironment(options.baseEnv || process.env),
     OPENROUTER_API_KEY: key,
     PARLANT_DATA_COLLECTION: 'false',
+    PARLANT_ENV: 'production',
     PARLANT_HOME: dataRoot,
     YANCE_PARLANT_DATA_ROOT: dataRoot,
+    YANCE_PARLANT_LOOPBACK_TOKEN: loopbackToken,
     PYTHONNOUSERSITE: '1',
     PYTHONDONTWRITEBYTECODE: '1',
     PYTHONUTF8: '1'
@@ -119,6 +144,7 @@ function createParlantRelationshipRuntime(options = {}) {
   let startPromise = null;
   let lastError = null;
   let stderrTail = '';
+  let loopbackToken = '';
 
   function snapshot() {
     return Object.freeze({
@@ -132,16 +158,18 @@ function createParlantRelationshipRuntime(options = {}) {
   }
 
   async function request(method, route, body, requestOptions = {}) {
-    if (!ready && requestOptions.allowBeforeReady !== true) {
+    if (!ready || !child || child.exitCode != null || !loopbackToken) {
       throw runtimeError('DESKTOP_PARLANT_RUNTIME_NOT_READY', 'Parlant relationship runtime is not ready.');
     }
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), Math.max(1000, Number(requestOptions.timeoutMs || DEFAULT_REQUEST_TIMEOUT_MS)));
     timeout.unref?.();
     try {
+      const headers = { accept: 'application/json', [LOOPBACK_TOKEN_HEADER]: loopbackToken };
+      if (body !== undefined) headers['content-type'] = 'application/json';
       const response = await fetchImpl(`${endpoint}${route}`, {
         method,
-        headers: body === undefined ? { accept: 'application/json' } : { accept: 'application/json', 'content-type': 'application/json' },
+        headers,
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal
       });
@@ -158,6 +186,9 @@ function createParlantRelationshipRuntime(options = {}) {
         const message = clean(payload?.message || detail.message) || `Parlant request failed with HTTP ${response.status}.`;
         throw runtimeError(code, message, { status: response.status });
       }
+      if (!child || child.exitCode != null || !loopbackToken) {
+        throw runtimeError('DESKTOP_PARLANT_PROCESS_EXITED', 'Owned Parlant process exited during request.');
+      }
       return payload;
     } catch (error) {
       if (error?.name === 'AbortError') throw runtimeError('DESKTOP_PARLANT_REQUEST_TIMEOUT', 'Parlant request timed out.');
@@ -172,10 +203,28 @@ function createParlantRelationshipRuntime(options = {}) {
     let observed = null;
     while (Date.now() < deadline && child && child.exitCode == null && !lastError) {
       try {
-        const response = await fetchImpl(`${endpoint}/healthz`, { signal: AbortSignal.timeout(Math.min(2500, Math.max(250, deadline - Date.now()))) });
-        if (response.ok && child && child.exitCode == null && !lastError) return true;
+        const challenge = crypto.randomBytes(24).toString('base64url');
+        const expectedProof = instanceProof(loopbackToken, challenge);
+        const response = await fetchImpl(`${endpoint}${LOOPBACK_HEALTH_PATH}`, {
+          headers: { accept: 'application/json', [LOOPBACK_CHALLENGE_HEADER]: challenge },
+          signal: AbortSignal.timeout(Math.min(2500, Math.max(250, deadline - Date.now())))
+        });
+        const text = await response.text();
+        let payload = {};
+        if (text) {
+          try { payload = JSON.parse(text); } catch (_) { payload = {}; }
+        }
+        if (response.ok) {
+          if (!constantTimeTextEqual(payload?.instanceProof, expectedProof)) {
+            throw runtimeError('DESKTOP_PARLANT_OWNERSHIP_PROOF_MISMATCH', 'Loopback responder is not the Yance-owned Parlant child.');
+          }
+          if (child && child.exitCode == null && !lastError) return true;
+        }
         observed = `HTTP ${response.status}`;
-      } catch (error) { observed = clean(error?.message || error); }
+      } catch (error) {
+        if (error?.reasonCode === 'DESKTOP_PARLANT_OWNERSHIP_PROOF_MISMATCH') throw error;
+        observed = clean(error?.message || error);
+      }
       await new Promise(resolve => setTimeout(resolve, 250));
     }
     if (lastError) throw lastError;
@@ -184,12 +233,10 @@ function createParlantRelationshipRuntime(options = {}) {
 
   async function stop() {
     const target = child;
-    if (!target) {
-      ready = false;
-      return { stopped: true, exitConfirmed: true, alreadyStopped: true, pid: 0 };
-    }
     child = null;
     ready = false;
+    loopbackToken = '';
+    if (!target) return { stopped: true, exitConfirmed: true, alreadyStopped: true, pid: 0 };
     const pid = Number(target.pid || 0);
     if (target.exitCode != null) return { stopped: true, exitConfirmed: true, alreadyStopped: true, pid };
     return await new Promise((resolve, reject) => {
@@ -207,7 +254,7 @@ function createParlantRelationshipRuntime(options = {}) {
   }
 
   async function start() {
-    if (ready && child && child.exitCode == null) return snapshot();
+    if (ready && child && child.exitCode == null && loopbackToken) return snapshot();
     if (startPromise) return startPromise;
     startPromise = (async () => {
       for (const required of [paths.pythonExecutable, paths.serverScript, paths.sbom, paths.seal]) {
@@ -215,6 +262,7 @@ function createParlantRelationshipRuntime(options = {}) {
       }
       const openRouterApiKey = clean(await getOpenRouterApiKey());
       const env = buildParlantEnvironment({ openRouterApiKey, dataRoot, baseEnv: options.baseEnv || process.env });
+      loopbackToken = assertLoopbackToken(env[LOOPBACK_TOKEN_ENV]);
       fsImpl.mkdirSync(dataRoot, { recursive: true });
       stderrTail = '';
       lastError = null;
@@ -233,6 +281,7 @@ function createParlantRelationshipRuntime(options = {}) {
           const wasReady = ready;
           child = null;
           ready = false;
+          loopbackToken = '';
           lastError = runtimeError(
             wasReady ? 'DESKTOP_PARLANT_PROCESS_ERROR' : 'DESKTOP_PARLANT_CHILD_SPAWN_FAILED',
             wasReady ? 'Parlant process reported an error.' : 'Failed to start the packaged Parlant process.',
@@ -244,6 +293,7 @@ function createParlantRelationshipRuntime(options = {}) {
         if (child === nextChild) {
           child = null;
           ready = false;
+          loopbackToken = '';
           if (code !== 0 && signal !== 'SIGTERM') lastError = runtimeError('DESKTOP_PARLANT_PROCESS_EXITED', 'Parlant process exited unexpectedly.', { code, signal, stderrTail: stderrTail.slice(-2000) });
         }
       });
