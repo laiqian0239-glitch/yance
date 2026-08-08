@@ -173,7 +173,7 @@ Spawn the trusted Node executable with:
 <resolved Letta Code entry> server --backend local --listen ws://127.0.0.1:0
 ```
 
-Parse the official `WebSocket: ws://127.0.0.1:<port>` line, enforce the loopback guard, then construct `new LettaAgentClient({ backend: 'remote', url })`. The SDK `remote` value is only the connection topology to the Yance-owned pre-started App Server; the CLI's explicit `--backend local` owns persistence/backend selection. Use sessionless `client.agents.list()` / `client.conversations.list()` for management reads.
+Parse the official `Listening on ws://127.0.0.1:<port>` line emitted by the locked Letta Code 0.30.5 server command, enforce the loopback guard, then construct `new LettaAgentClient({ backend: 'remote', url })`. The SDK `remote` value is only the connection topology to the Yance-owned pre-started App Server; the CLI's explicit `--backend local` owns persistence/backend selection. Use sessionless `client.agents.list()` / `client.conversations.list()` for management reads.
 
 - [ ] **Step 4: Implement supported clean shutdown**
 
@@ -312,8 +312,8 @@ Search the 14-path diff for Agent SDK private fields/internal subpaths, deprecat
 
 - [ ] **Step 5: Push exact Head and require CI/review**
 
-Stage WP0, Layered CI, ACV2, CodeRabbit and independent review must bind the same exact Head. Resolve only findings proved fixed by successor commits and fresh verification.
+Stage WP0, Layered CI, ACV2 and independent review must bind the same exact Head. CodeRabbit is supplemental when available; it must not replace independent review or permanent executable gates. Resolve only findings proved fixed by successor commits and fresh verification.
 
 - [ ] **Step 6: Stop at final implementation merge boundary**
 
-Do not merge the implementation PR without explicit owner approval. Ordinary two-parent merge is required; squash/rebase/force-push/amend are forbidden.
+Merge only while owner authorization is in force and the exact Head, trusted base, authorized 14-path scope, required GREEN gates and zero unresolved P0/P1 remain unchanged. Standing owner authorization may satisfy this boundary. Ordinary two-parent merge is required; squash/rebase/force-push/amend are forbidden.
