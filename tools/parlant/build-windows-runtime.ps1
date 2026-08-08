@@ -38,7 +38,12 @@ function Invoke-Checked([string]$FilePath, [string[]]$Arguments, [string]$Label)
   if ($LASTEXITCODE -ne 0) { throw "$Label failed with exit $LASTEXITCODE" }
 }
 function Relative-Path([string]$Root, [string]$Path) {
-  return [IO.Path]::GetRelativePath($Root, $Path).Replace('\', '/')
+  $rootFull = [IO.Path]::GetFullPath($Root)
+  $separator = [IO.Path]::DirectorySeparatorChar.ToString()
+  if (-not $rootFull.EndsWith($separator)) { $rootFull += $separator }
+  $rootUri = New-Object System.Uri($rootFull)
+  $pathUri = New-Object System.Uri([IO.Path]::GetFullPath($Path))
+  return [Uri]::UnescapeDataString($rootUri.MakeRelativeUri($pathUri).ToString()).Replace('\', '/')
 }
 
 $OutputRoot = [IO.Path]::GetFullPath($OutputRoot)

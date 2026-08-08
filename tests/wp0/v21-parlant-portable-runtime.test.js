@@ -43,6 +43,14 @@ test('Windows Parlant version probe uses argv instead of nested native quotes', 
   assert.equal(s.includes("version('parlant')"), false);
 });
 
+
+test('Windows Parlant runtime sealing avoids .NET Core-only GetRelativePath', () => {
+  const s=readText('tools/parlant/build-windows-runtime.ps1');
+  assert.equal(s.includes('[IO.Path]::GetRelativePath'), false);
+  assert.match(s,/MakeRelativeUri/u);
+  assert.match(s,/UnescapeDataString/u);
+});
+
 test('shipped runtime excludes resolvers, VCS state and caches', () => {
   const s=readText('tools/parlant/build-windows-runtime.ps1');
   assert.match(s,/Remove-Item -LiteralPath \$ToolRoot[\s\S]*Remove-Item -LiteralPath \$ParlantRepo[\s\S]*Remove-Item -LiteralPath \$DownloadRoot/iu);
