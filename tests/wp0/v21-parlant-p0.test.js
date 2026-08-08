@@ -186,3 +186,9 @@ test('application startup never resolves Python dependencies online', () => {
   for (const source of [runtime, server]) assert.doesNotMatch(source, /\b(?:pip|uv)\s+(?:install|sync)|subprocess[^\n]*(?:pip|uv)|git\s+clone|curl\s+http|Invoke-WebRequest/iu);
   assert.match(runtime, /parlant-runtime/u);
 });
+
+test('Parlant child spawn failures stay inside the supervised runtime boundary', () => {
+  const runtime = readText('electron/parlantRelationshipRuntime.js');
+  assert.match(runtime, /nextChild\.once\?\.\(\s*['"]error['"]/u, 'spawned Parlant child must have an explicit error listener before readiness');
+  assert.match(runtime, /DESKTOP_PARLANT_CHILD_SPAWN_FAILED/u, 'spawn errors must map to a stable fail-closed reason code');
+});
