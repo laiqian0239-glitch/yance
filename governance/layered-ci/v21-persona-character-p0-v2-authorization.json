@@ -4,7 +4,7 @@
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PERSONA-CHARACTER-P0-V2",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Supersede V21-PERSONA-CHARACTER-P0-V1 after its failure-first branch exposed a provenance-mechanics defect: the recorded authors-note.js 331-361 segment is an exact contiguous statement slice from inside setFloatingPrompt, while the frozen mechanical transformation allowlist permits wrapping declarations, functions and method bodies but not arbitrary partial function-body statements. V1 later advanced through in-scope Persona implementation commits, but those commits remain tied to the defective V1 provenance contract and are not reusable as V2 implementation authority or lineage. V2 preserves the mature SillyTavern 1.18.0 OSS architecture, all 20 product paths, dependencies, runtime authorities and product contracts, but replaces that single partial slice with the complete upstream setFloatingPrompt function at 1-based inclusive lines 300-363 and its exact canonical SHA-256. No SillyTavern UI runtime is imported; lexical shims are supplied by the thin Yance adapter. No new Yance Persona, Character, prompt-ordering or injection framework is authorized.",
+  "reason": "Supersede V21-PERSONA-CHARACTER-P0-V1 after its failure-first branch exposed a provenance-mechanics defect: the recorded authors-note.js 331-361 segment is an exact contiguous statement slice from inside setFloatingPrompt, while the frozen mechanical transformation allowlist permits wrapping declarations, functions and method bodies but not arbitrary partial function-body statements. V1 later advanced through in-scope Persona implementation commits, but those commits remain tied to the defective V1 provenance contract and are not reusable as V2 implementation authority or lineage. V2 preserves the mature SillyTavern 1.18.0 OSS architecture, all 20 product paths, dependencies, runtime authorities and product contracts, but replaces that single partial slice with the complete upstream setFloatingPrompt function at 1-based inclusive lines 324-392 and its exact canonical SHA-256. No SillyTavern UI runtime is imported; lexical shims are supplied by the thin Yance adapter. No new Yance Persona, Character, prompt-ordering or injection framework is authorized.",
   "supersedes": {
     "authorizationPath": "governance/layered-ci/v21-persona-character-p0-v1-authorization.json",
     "authorizationMergeCommit": "801217f73cd249d6398d7b3c9fa7a35b770bc377",
@@ -24,8 +24,8 @@
       "oldSliceSha256": "e33bd43faa4da8773541dadc55bed0621eabe4892fd7e16bdcc5712934d66648",
       "problem": "The old bytes are exact but form a partial function-body statement slice, which is outside the frozen mechanical wrapping allowlist.",
       "newUpstreamSymbol": "setFloatingPrompt",
-      "newUpstreamLineRange": "300-363",
-      "newSliceSha256": "499ca71c9bbbe1eb025fe649149c9da0e2e905f449df4e7ceb307670cf8c89f6",
+      "newUpstreamLineRange": "324-392",
+      "newSliceSha256": "b0a20c23230a885f272a1ffc3f32a0630616ef2d1f98a77c91b064f00a6990f6",
       "newDestinationRegionMarker": "SILLYTAVERN_SLICE::authors-note::depth-role-injection",
       "mechanics": "Adopt the complete upstream function and apply only the already-frozen ESM/CommonJS and lexical-shim transformations."
     },
@@ -243,8 +243,8 @@
               },
               {
                 "upstreamSymbol": "setFloatingPrompt",
-                "upstreamLineRange": "300-363",
-                "sliceSha256": "499ca71c9bbbe1eb025fe649149c9da0e2e905f449df4e7ceb307670cf8c89f6",
+                "upstreamLineRange": "324-392",
+                "sliceSha256": "b0a20c23230a885f272a1ffc3f32a0630616ef2d1f98a77c91b064f00a6990f6",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::authors-note::depth-role-injection"
               }
             ]
@@ -402,7 +402,7 @@
     "The exact SillyTavern upstream must remain release 1.18.0 at commit 51ad27fb86d39a3daca3adaa970375c9670c12df; every adopted source path must match the recorded upstream Git blob before any compatibility transformation.",
     "Every recorded source segment must reproduce its sliceSha256 from the exact upstream Git blob using sourceSliceCanonicalization before implementation may be GREEN; a line-range, symbol or hash mismatch is RED.",
     "The frozen SillyTavern source-slice inventory must contain exactly 18 recorded segments; missing, duplicate or extra destinationRegionMarker entries are RED.",
-    "The authors-note setFloatingPrompt source segment must reproduce SHA-256 499ca71c9bbbe1eb025fe649149c9da0e2e905f449df4e7ceb307670cf8c89f6 from exact 1-based inclusive lines 300-363; the V1 partial 331-361 statement slice is forbidden in V2.",
+    "The authors-note setFloatingPrompt source segment must reproduce SHA-256 b0a20c23230a885f272a1ffc3f32a0630616ef2d1f98a77c91b064f00a6990f6 from exact 1-based inclusive lines 324-392; the V1 partial 331-361 statement slice is forbidden in V2.",
     "Every executable source-derived region of vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs must be bounded by its recorded destinationRegionMarker and trace to exactly one recorded source segment; unmapped executable source-derived logic is RED. Only allowedSourceSliceMechanicalTransformations are permitted, and vendor/sillytavern/1.18.0/UPSTREAM.json must record each applied transformation.",
     "The complete setFloatingPrompt function may execute only inside the vendored lexical factory with adapter-supplied bindings; importing SillyTavern DOM, jQuery UI, global chat state or Author's Note UI lifecycle into Yance is RED.",
     "Character Card PNG V2/V3 parsing, ccv3-over-chara precedence, write/read round trip and TavernCardValidator behavior must fail before the vendored upstream modules are wired and pass afterward.",
