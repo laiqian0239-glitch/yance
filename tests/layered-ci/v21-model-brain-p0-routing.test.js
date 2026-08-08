@@ -57,11 +57,26 @@ test('adjacent unregistered Model Brain and LiteLLM-like paths remain fail close
 });
 
 test('V2.1 Model Brain route bootstrap preserves governance and product-documentation precedence', () => {
-  const governance = classifyWp0Route(policy, ['governance/layered-ci/risk-policy.json']);
+  const modelBrain = V21_MODEL_BRAIN_P0_BOOTSTRAP_PATHS[0];
+  const governancePath = 'governance/layered-ci/risk-policy.json';
+  const documentationPath = 'docs/superpowers/plans/2026-08-08-model-brain-route-bootstrap.md';
+
+  const governance = classifyWp0Route(policy, [governancePath]);
   assert.equal(governance.pass, true, JSON.stringify(governance));
   assert.equal(governance.route, ROUTES.GOVERNANCE);
 
-  const documentation = classifyWp0Route(policy, ['docs/superpowers/plans/2026-08-08-model-brain-route-bootstrap.md']);
+  const documentation = classifyWp0Route(policy, [documentationPath]);
   assert.equal(documentation.pass, true, JSON.stringify(documentation));
   assert.equal(documentation.route, ROUTES.PRODUCT_DOCUMENTATION);
+
+  for (const files of [
+    [modelBrain, governancePath],
+    [modelBrain, documentationPath],
+    [governancePath, documentationPath]
+  ]) {
+    const mixed = classifyWp0Route(policy, files);
+    assert.equal(mixed.pass, true, JSON.stringify(mixed));
+    assert.equal(mixed.route, ROUTES.PRODUCT, JSON.stringify(files));
+    assert.equal(mixed.productChangesPresent, true, JSON.stringify(files));
+  }
 });
