@@ -38,7 +38,7 @@
         "learningCoachApprovalUi": "assistant-ui/tool-ui",
         "relationshipFacts": "Graphiti",
         "journeyGoal": "Parlant",
-        "modelGatewayAndRouting": "existing V21 Model Brain authority"
+        "modelGatewayAndRouting": "V21 Model Brain after its separate product authorization and implementation become effective"
       },
       "secondYanceLearningFrameworkForbidden": true,
       "secondYanceDatasetStoreForbidden": true,
@@ -50,7 +50,10 @@
       "secondYanceToolApprovalFrameworkForbidden": true
     },
     "modelInvocationBoundary": {
-      "modelBrainIsSoleProviderGatewayAndRouter": true,
+      "modelBrainIsSoleProviderGatewayAndRouterOnceEffective": true,
+      "modelBrainProductReadinessRequiredBeforeLearningLiveModelCalls": true,
+      "untilModelBrainIsEffectiveLearningIsPrecomputedOrOfflineOnly": true,
+      "liveOptimizationFailsClosedWithoutEffectiveModelBrain": true,
       "learningRuntimeMayNotOwnProviderCredentials": true,
       "learningRuntimeMayNotSelectProvidersOrModelsOutsideModelBrain": true,
       "dspyTransitiveLiteLlmIsClientLibraryOnlyNotRoutingAuthority": true,
@@ -116,7 +119,7 @@
         "license": "MIT",
         "python": ">=3.10,<3.15",
         "gepaDependency": "gepa[dspy]==0.1.1",
-        "modelInvocation": "through Model Brain authority only"
+        "modelInvocation": "through effective Model Brain authority only; otherwise live optimization is disabled"
       },
       "gepa": {
         "repository": "gepa-ai/gepa",
@@ -237,7 +240,7 @@
     "Only the 24 exact bootstrap paths are added to productExactPaths",
     "Implementation exact Head passes applicable Stage, Layered, ACV2 and independent-review gates",
     "Implementation PR merges to main by ordinary two-parent merge",
-    "Formal V21-LEARNING-GROWTH-BRAIN-P0 product authorization is created only from fresh trusted main after active Persona/shared dependency paths are released; this route bootstrap does not itself authorize Learning product implementation"
+    "Formal V21-LEARNING-GROWTH-BRAIN-P0 product authorization is created only from fresh trusted main after active Persona/shared dependency paths are released and must revalidate whether V21 Model Brain product authority is effective; live Learning model calls remain disabled until it is"
   ],
   "prohibitions": {
     "temporaryBypass": true,
@@ -262,6 +265,7 @@
     "learningDirectProviderRouting": true,
     "promptfooDirectProviderInvocation": true,
     "dspyBypassOfModelBrain": true,
+    "liveLearningModelCallsBeforeModelBrainProductAuthority": true,
     "customSchedulerPersistenceLayer": true,
     "learningRuntimeSecretStore": true,
     "wp7PackagingModification": true,
