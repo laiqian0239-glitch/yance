@@ -42,6 +42,7 @@ export function YanceWorkspace(): React.JSX.Element {
 
   useEffect(() => {
     let cancelled = false;
+    let refreshInFlight = false;
     const api = lettaDesktopApi();
     if (!api) {
       setLettaStatus("Desktop bridge unavailable");
@@ -49,11 +50,15 @@ export function YanceWorkspace(): React.JSX.Element {
     }
 
     const load = async (): Promise<void> => {
+      if (refreshInFlight || cancelled) return;
+      refreshInFlight = true;
       try {
         const state = await api.getLettaState();
         if (cancelled) return;
         setLettaState(state || { ready: false });
         if (!state?.ready) {
+          setLettaAgents([]);
+          setLettaConversations([]);
           setLettaStatus(state?.reasonCode || "Not ready");
           return;
         }
@@ -65,15 +70,25 @@ export function YanceWorkspace(): React.JSX.Element {
         if (firstAgentId) {
           const conversations = await api.listLettaConversations({ agentId: firstAgentId, limit: 20 });
           if (!cancelled) setLettaConversations(Array.isArray(conversations) ? conversations : []);
+        } else {
+          setLettaConversations([]);
         }
         if (!cancelled) setLettaStatus("Ready");
-      } catch (error) {
-        if (!cancelled) setLettaStatus(error instanceof Error ? error.message : "Letta state unavailable");
+      } catch (_) {
+        if (!cancelled) {
+          setLettaState({ ready: false, reasonCode: "LETTA_PROJECTION_UNAVAILABLE" });
+          setLettaAgents([]);
+          setLettaConversations([]);
+          setLettaStatus("Letta state unavailable");
+        }
+      } finally {
+        refreshInFlight = false;
       }
     };
 
     void load();
-    return () => { cancelled = true; };
+    const timer = window.setInterval(() => { void load(); }, 5000);
+    return () => { cancelled = true; window.clearInterval(timer); };
   }, []);
 
   return (
@@ -103,7 +118,7 @@ export function YanceWorkspace(): React.JSX.Element {
           <dl>
             <dt>Runtime</dt><dd>{lettaState.ready ? "Ready" : lettaStatus}</dd>
             <dt>Agents</dt><dd>{lettaAgents.length}</dd>
-            <dt>Conversations</dt><dd>{lettaConversations.length}</dd>
+            <dt>Recent conversations (first agent)</dt><dd>{lettaConversations.length >= 20 ? "20+" : lettaConversations.length}</dd>
           </dl>
         </aside>
       ) : null}
