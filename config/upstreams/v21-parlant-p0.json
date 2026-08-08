@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "workPackage": "V21-PARLANT-P0-V1",
+  "upstreams": {
+    "parlant": {
+      "repository": "emcie-co/parlant",
+      "version": "v3.3.2",
+      "commit": "61bba3b2b3fffd677d345e393e8c942dbd400297",
+      "license": "Apache-2.0",
+      "requiresPython": ">=3.10,<3.15",
+      "uvLockGitBlob": "aa2f7de8e858f19296df58efec56d72c8d3f50a5"
+    },
+    "uv": {
+      "repository": "astral-sh/uv",
+      "version": "0.12.3",
+      "commit": "507230998c9541d67814b57463ac00e454ff6991",
+      "license": "MIT OR Apache-2.0",
+      "windowsX64Asset": "uv-x86_64-pc-windows-msvc.zip",
+      "windowsX64AssetSize": 19013455,
+      "windowsX64AssetSha256": "b23350c79e8ad0192b8124af13a0f17e8d4e4549524785e1aef389ae5a06990e"
+    },
+    "pythonBuildStandalone": {
+      "repository": "astral-sh/python-build-standalone",
+      "release": "20260807",
+      "commit": "00c8a06113f11220667c3bcf5fab1672ff9e78ef",
+      "license": "MPL-2.0",
+      "cpythonVersion": "3.12.13",
+      "cpythonLicense": "PSF-2.0",
+      "windowsX64Asset": "cpython-3.12.13+20260807-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+      "windowsX64AssetSize": 21962247,
+      "windowsX64AssetSha256": "18bcc65b17921806b72cdc88bcf000bf67a2c99a8fc381fe1629f2b9ba56858d"
+    }
+  }
+}
