@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LEARNING-GROWTH-BRAIN-P0-PRIVACY-ROLLOUT-ROUTE-CLOSURE",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "The owner approved the mature-OSS Learning direction that adds Presidio for source-side PII detection/anonymization and OpenFeature plus the flagd in-process evaluator for targeted rollout, while requiring visible Learning UI and retirement of replaced legacy Learning infrastructure. Trusted WP0 routing fails closed and has no third_party/ product prefix. Four exact new license evidence paths are therefore unrouted and must be closed before any downstream product implementation. This authorization grants only the exact route closure; it does not authorize dependencies, Learning product code, UI implementation, legacy retirement, release, promotion, or production use.",
+  "base": {
+    "branch": "main",
+    "commit": "0e32c3cfa3f9c600517da833fd206a5d5eb5d0a8"
+  },
+  "prerequisites": {
+    "learningUiRouteClosureImplementationPullRequest": 151,
+    "learningUiRouteClosureImplementationMerge": "0e32c3cfa3f9c600517da833fd206a5d5eb5d0a8",
+    "learningUiRouteClosureOrdinaryTwoParentVerified": true,
+    "learningUiRouteClosureParent1": "0565f3460fef87323ce9483c80379a0805d283a8",
+    "learningUiRouteClosureParent2": "4fcb07ab1688fd69f8a3431afd8e00d1e3f1b2f7"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-learning-growth-brain-p0-privacy-rollout-route-closure-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-learning-growth-brain-p0-privacy-rollout-route-closure-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "576c12f652a4fb9637b796bcb048b539435e7d49267ab5a488f7caf47e2c5064",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-learning-growth-brain-p0-privacy-rollout-route-closure",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-learning-growth-brain-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "9277acfdaff7a1633978f60158343d76a3951e91d98719c50fd60749edd46fd1",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "productImplementationAllowed": false
+  },
+  "newExactRoutePaths": [
+    "third_party/licenses/presidio-MIT.txt",
+    "third_party/licenses/openfeature-js-Apache-2.0.txt",
+    "third_party/licenses/openfeature-flagd-provider-Apache-2.0.txt",
+    "third_party/licenses/openfeature-flagd-core-Apache-2.0.txt"
+  ],
+  "newExactRoutePathCount": 4,
+  "newExactRoutePathSetSha256": "d4e119293726950129be0c54979657d8e84170ffd69bb841bc10acc9e52dcfde",
+  "ossFit": {
+    "presidio": {
+      "repository": "data-privacy-stack/presidio",
+      "release": "2.2.364",
+      "commit": "779dbd286d5ef4d1fbe2514275fb1bce358f2417",
+      "license": "MIT",
+      "licenseBlob": "9afc65b563ea7064fb04f68e3bbe31a15080f666",
+      "python": ">=3.10,<3.15",
+      "p0Mode": "presidio-analyzer + presidio-anonymizer with upstream NoOpNlpEngine; no external language-model asset required",
+      "authority": "PII detection and anonymization before Learning telemetry/evaluation data leaves the source-side privacy boundary"
+    },
+    "openFeatureServerSdk": {
+      "repository": "open-feature/js-sdk",
+      "release": "server-sdk-v1.23.0",
+      "package": "@openfeature/server-sdk@1.23.0",
+      "commit": "ba1bfd0627ef63ffe9c26c600899f7aedd6f0087",
+      "license": "Apache-2.0",
+      "licenseBlob": "96b3dc8fc4d945a56bcd1496142d7cd89cdb6758",
+      "node": ">=20"
+    },
+    "flagdProvider": {
+      "repository": "open-feature/js-sdk-contrib",
+      "release": "flagd-provider-v0.16.0",
+      "package": "@openfeature/flagd-provider@0.16.0",
+      "commit": "c18b1de5f9ce8325acf118ad98e49e57ebdc0e28",
+      "license": "Apache-2.0",
+      "licenseBlob": "afcad975f3c07eb7aece67f1954648fbb786e0ba",
+      "p0Mode": "official in-process evaluation with offline local JSON flag definition; no flagd daemon"
+    },
+    "flagdCore": {
+      "repository": "open-feature/js-sdk-contrib",
+      "release": "flagd-core-v4.0.0",
+      "package": "@openfeature/flagd-core@4.0.0",
+      "commit": "c0defa4d2e1f97104eb740934ad1a75e69bcfe94",
+      "license": "Apache-2.0",
+      "licenseBlob": "afcad975f3c07eb7aece67f1954648fbb786e0ba",
+      "authority": "in-process flag evaluation, targeting and deterministic rollout semantics"
+    }
+  },
+  "architectureBoundary": {
+    "presidioReplacesYancePiiRedactionEngine": true,
+    "openFeatureFlagdReplacesYanceRolloutPromotionEngine": true,
+    "flagdDaemonForbiddenForP0": true,
+    "upstreamNativeFlagdJsonRequired": true,
+    "newYanceFlagSchemaOrRolloutDatabaseForbidden": true,
+    "langfuseRemainsPromptDatasetExperimentScoreCorrectionVersionAuthority": true,
+    "modelBrainRemainsProviderModelRoutingAuthority": true,
+    "parlantRemainsJourneyGoalAuthority": true,
+    "graphitiRemainsRelationshipFactAuthority": true,
+    "lettaRemainsLearningCoachAgentMemoryRuntimeAuthority": true,
+    "yanceRetainsConsentPermissionsVisibleUiAndFinalSendAuthority": true,
+    "routeClosureMayAddOnlyExactProductPaths": true,
+    "thirdPartyProductPrefixForbidden": true
+  },
+  "downstreamProductReauthorization": {
+    "previous88PathScopeIsObsolete": true,
+    "previousScopeCount": 88,
+    "previousScopeSha256": "cb3376971ba3900418e55e6468ee188cb4b6b22ce27788492f51450412e3ec10",
+    "previousDependencyControlPathSetSha256": "aadb97c3ef070c0ca16a98663573051b55f00f8569daede0746f11cb9dad766d",
+    "reason": "Presidio/OpenFeature/flagd adoption plus the owner-required visible Learning UI and complete legacy Learning retirement change the product path and dependency closure.",
+    "formalProductAuthorizationEffectiveNow": false,
+    "mustRecomputeExactProductPathSetAfterPersonaSharedPathsRelease": true,
+    "mustRecomputeDependencyControlPathSet": true,
+    "mustRevalidateFreshMainAllPinsLicensesAndAuthorityBoundaries": true,
+    "scopeHashOrAuthorityDriftRequiresNewOwnerAuthorization": true,
+    "modelBrainLiveCallDependency": "Learning live DSPy/GEPA/model calls remain fail closed until V21 Model Brain product authority is implemented and effective."
+  },
+  "requiredDownstreamUiContract": [
+    "YanceWorkspace exposes a visible top-level Learning capability/button; backend-only Learning is forbidden.",
+    "The Learning capability renders the real LearningWorkspace and exposes Overview/Daily Review, Learning Coach, Evidence/Mistake-Success Library, Proposals, Experiments, Rollout/Promotion/Rollback, and Privacy/consent surfaces.",
+    "Every visible action is wired to the real learningAssistantRuntime/bridge; fake or dead controls are forbidden.",
+    "The current-conversation do-not-learn control is visible and enforced before evidence emission.",
+    "Approval enters evaluation only and cannot directly deploy a candidate.",
+    "Promotion/rollback controls operate through Langfuse version/labels plus OpenFeature/flagd rollout state rather than a Yance promotion state machine.",
+    "When Model Brain is unavailable the UI visibly reports offline/fail-closed status and live Learning model actions remain disabled.",
+    "Official assistant-ui/tool-ui approval, question and progress primitives are reused; no second Yance approval or chat UI framework."
+  ],
+  "requiredLegacyRetirement": [
+    "backend/store/social/replyFeedbackLearningEngine.js production authority is removed; historical one-way migration/read/delete only if required.",
+    "backend/services/replyLearningScopeAuthority.js production authority is removed.",
+    "backend/services/learningPreferenceAuthority.js custom Learning preference authority is removed or reduced to one-way migration only.",
+    "backend/services/learningSynthesisScheduler.js is removed; APScheduler owns Learning scheduling.",
+    "backend/services/replyLearningGovernanceService.js custom Learning governance authority is removed.",
+    "backend/services/aiReplyLearningAuthority.js custom pending/approved/shadow/active/rollback workflow authority is removed.",
+    "backend/repositories/replyLearningProjectionRepository.js custom Learning lease/retry/DLQ/effect-runner authority is removed.",
+    "backend/services/replyFeedbackLearningService.js is reduced to a thin evidence bridge; no new writes to old scope/profile/L1-L2-L3 ledgers.",
+    "backend/services/candidateInteractionLearningService.js is reduced to evidence capture routed through privacy filtering and OSS evidence authorities.",
+    "Old duplicate Learning UI/settings/routes are removed when replaced; schema migration history is not rewritten."
+  ],
+  "mandatoryFailureFirstContracts": [
+    "The first route-closure implementation commit changes only tests/layered-ci/v21-learning-growth-brain-p0-routing.test.js.",
+    "Before policy implementation each of the four exact new license paths fails closed as WP0_ROUTE_UNKNOWN_PATH.",
+    "After the root fix each exact path selects PRODUCT_WP0.",
+    "The root fix adds only the four exact literals to productExactPaths and does not add third_party/ or any other broad prefix.",
+    "Adjacent unregistered third_party license paths and malformed repository paths continue to fail closed.",
+    "Existing 24-path Learning OSS bootstrap routes and four Learning UI adapter routes remain GREEN.",
+    "Governance and product-documentation precedence remains unchanged."
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes applicable governance gates and independent review with zero unresolved P0/P1 findings.",
+    "Owner exact-scope approval is bound before the authorization proposal is ordinarily merged to main.",
+    "Authorization PR merges to main by ordinary two-parent merge without history rewrite.",
+    "Implementation branch is created from that exact authorization merge commit.",
+    "A test-only commit records the four-path causal RED before routing policy changes.",
+    "Only the four exact new license literals are added to productExactPaths.",
+    "Implementation exact Head passes Stage, Layered, ACV2 and independent review.",
+    "Final route-closure implementation merge remains owner exact-Head approval gated.",
+    "No Learning product implementation begins until its separately recomputed exact authorization is effective."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansion": true,
+    "forcePush": true,
+    "rebaseOrAmendPublishedHistory": true,
+    "directCandidateSelfAuthorization": true,
+    "learningProductImplementation": true,
+    "dependencyManifestModification": true,
+    "workflowModification": true,
+    "newYanceLearningEngineFrameworkSchedulerDatasetExperimentPromotionOrRolloutInfrastructure": true,
+    "backendOnlyFeatureWithoutVisibleUi": true,
+    "keepingReplacedLegacyLearningAuthorityAsFallback": true
+  }
+}
