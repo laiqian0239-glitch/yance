@@ -1,0 +1,264 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PERSONA-CHARACTER-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Adopt SillyTavern 1.18.0 Persona/Character/Prompt source capabilities as the mandatory OSS basis for Yance Persona Card, Character Card import/validation, Character Description, Personality, Scenario, Character Note/depth injection, Example Dialogues, prompt ordering/placement and the suitable CharacterBook/World Info data and matching primitives. The implementation must replace/thin the existing Yance-owned flat Persona prompt composition rather than create a second Persona framework. Letta remains long-term agent/interaction memory authority, Graphiti remains temporal relationship-fact authority, Parlant remains Goal/Journey authority, and the existing Yance AI gateway and send authority remain unchanged. SillyTavern UI, provider/model gateways, server endpoints, global chat state and swipe UI are explicitly excluded.",
+  "base": {
+    "branch": "main",
+    "commit": "152b2f91c9b7a09d06ecdbebd385b6b2045d7a4e"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-persona-character-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-persona-character-p0-v1-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Apply the repository normalizeChangedFiles contract: require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "product/v21-persona-character-p0-v1",
+    "allowedChangedPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "backend/personaBrain/compiler.js",
+      "backend/personaBrain/runtimeTruthAuthority.js",
+      "backend/personaBrain/sillyTavernAdapter.js",
+      "backend/personaBrain/stylePolicy.js",
+      "backend/personaBrain/truthFirewall.js",
+      "backend/services/contextAwareReplyBrain.js",
+      "backend/tests/personaBrain/compiler.test.js",
+      "docs/superpowers/plans/2026-08-08-yance-v21-persona-character-p0.md",
+      "package-lock.json",
+      "package.json",
+      "tests/persona-character/sillytavern-tavern-card-validator.test.js",
+      "tests/persona-character/v21-persona-character-p0.test.js",
+      "tests/persona-character/v21-persona-native-register.test.js",
+      "vendor/sillytavern/1.18.0/LICENSE",
+      "vendor/sillytavern/1.18.0/UPSTREAM.json",
+      "vendor/sillytavern/1.18.0/src/character-card-parser.cjs",
+      "vendor/sillytavern/1.18.0/src/png/encode.cjs",
+      "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "vendor/sillytavern/1.18.0/src/validator/TavernCardValidator.cjs"
+    ],
+    "approvedChangedFileCount": 20,
+    "approvedChangedFileSetSha256": "061859f0708b587f992df1430ddf45ebe6b36874774f71a396cb639ba81ce81c",
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "package-lock.json",
+        "package.json"
+      ],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "workflowModificationAllowed": false
+  },
+  "dependencies": {
+    "directExact": {
+      "crc": "4.3.2",
+      "png-chunk-text": "1.0.0",
+      "png-chunks-extract": "1.0.0"
+    },
+    "mutableRangesForbidden": true,
+    "lockfileIntegrityRequired": true,
+    "reason": "These are the exact SillyTavern 1.18.0 runtime dependencies used by the adopted Character Card PNG parser/encoder source path; no additional Persona framework dependency is authorized."
+  },
+  "upstreams": {
+    "sillyTavern": {
+      "repository": "SillyTavern/SillyTavern",
+      "release": "1.18.0",
+      "releasePublishedAt": "2026-05-03T15:55:24Z",
+      "commit": "51ad27fb86d39a3daca3adaa970375c9670c12df",
+      "license": "AGPL-3.0",
+      "requiresNode": ">=20",
+      "verifiedLatestStableReleaseOn": "2026-08-08",
+      "sourceInventory": {
+        "adoptWholeWithMechanicalCommonJsCompatibilityOnly": [
+          {
+            "path": "src/character-card-parser.js",
+            "gitBlob": "dd63b00d804e80104d5efb6c5ae268b4e99ed0a5"
+          },
+          {
+            "path": "src/png/encode.js",
+            "gitBlob": "d4cac7540b8121277eb356bf1bdfb9066ba7a581"
+          },
+          {
+            "path": "src/validator/TavernCardValidator.js",
+            "gitBlob": "82593d0aabda8b17363f892cc7119a005eefae77"
+          }
+        ],
+        "adoptExactSourceSlicesWithProvenance": [
+          {
+            "path": "public/scripts/PromptManager.js",
+            "gitBlob": "20219dc45ffa232ef61ebbfac0836241f168a55a",
+            "scope": "Prompt and PromptCollection data structures plus relative/absolute injection position, depth and order semantics only"
+          },
+          {
+            "path": "public/scripts/openai.js",
+            "gitBlob": "97b96658edf515c9f76db937735cd0b25c69d686",
+            "scope": "Example Dialogue formatting and prompt-composition ordering/placement semantics only; all provider/model code excluded"
+          },
+          {
+            "path": "public/scripts/personas.js",
+            "gitBlob": "1b70e0f7410297e412eb48b0e93d5d3c38ac2915",
+            "scope": "Persona description placement semantics only; lifecycle UI/global state excluded"
+          },
+          {
+            "path": "public/scripts/authors-note.js",
+            "gitBlob": "34adf6c7a1df1024a12e272bdae147a63c0e65e2",
+            "scope": "Character Note/Author's Note depth, role and placement semantics only"
+          },
+          {
+            "path": "public/scripts/world-info.js",
+            "gitBlob": "49577d722cfb5305abc8f07b31cd468725d72d80",
+            "scope": "CharacterBook/World Info entry organization, keyword/selective-logic matching primitives and prompt placement data only; recursive global chat-state/token-budget engine excluded"
+          }
+        ],
+        "upstreamTests": [
+          {
+            "path": "tests/tavern-card-validator.test.js",
+            "gitBlob": "6eadae6d2f5f5f7870be20aea499281ed613c6c3",
+            "adoption": "Port as executable Node test against the vendored mechanically adapted validator while preserving upstream cases"
+          }
+        ],
+        "licenseFile": {
+          "path": "LICENSE",
+          "gitBlob": "0ad25db4bd1d86c452db3f9602ccdbe172438f52"
+        }
+      }
+    }
+  },
+  "licenseBoundary": {
+    "sillyTavernCodeRemainsAgpl3Covered": true,
+    "yancePackageLicenseMustDeclare": "AGPL-3.0-only",
+    "yancePrivatePackageFlagMayRemain": true,
+    "vendoredAgplLicenseTextRequired": true,
+    "thirdPartyNoticeAndExactProvenanceRequired": true,
+    "upstreamCopyrightAndLicenseNoticesMustBePreserved": true,
+    "correspondingSourceRequiredForCoveredBinaryDistribution": true,
+    "remoteNetworkSourceOfferRequiredWhenModifiedCoveredProgramIsUsedThroughAComputerNetwork": true,
+    "permissiveRelicensingOfSillyTavernDerivedSourceForbidden": true,
+    "licenseWorkaroundOrCleanRoomRewriteForbidden": true,
+    "legalNote": "This authorization encodes project compliance requirements; it is not legal advice."
+  },
+  "runtimeBoundary": {
+    "personaCardOwnsWhoIAmAndHowISpeakOnly": true,
+    "relationshipCardIsReadOnlyCommunicationContextProjection": true,
+    "relationshipCardSecondFactDatabaseForbidden": true,
+    "lettaRemainsLongTermAgentInteractionMemoryAuthority": true,
+    "graphitiRemainsTemporalRelationshipFactAuthority": true,
+    "parlantRemainsGoalJourneyAuthority": true,
+    "liteLlmRouteLlmImplementationForbidden": true,
+    "existingYanceAiGatewayRemainsOnlyModelExecutionBoundary": true,
+    "sillyTavernProviderGatewayCodeForbidden": true,
+    "sillyTavernSecondUiForbidden": true,
+    "sillyTavernSwipeUiForbidden": true,
+    "lorebookRealContactFactAuthorityForbidden": true,
+    "lorebookMayContainPersonaScenarioExampleCompositionMaterialOnly": true,
+    "localeProfileSeparateFromPersonaIdentity": true,
+    "chatRegisterSeparateFromPersonaIdentity": true,
+    "demographicStereotypeTemplateForbidden": true,
+    "styleTagsRemainStructuredResolverInputs": true,
+    "flatConcatenatedStylePromptForbidden": true,
+    "windowsDesktopNodeFloor": ">=22.19.0",
+    "sillyTavernSourceNodeFloorSatisfied": ">=20",
+    "electronCompatibilityMustRemain": "39.8.5"
+  },
+  "productCompositionContract": {
+    "orderedInputs": [
+      "Yance Persona Card",
+      "Relationship Card",
+      "Locale Profile",
+      "Chat Register",
+      "Style Overlay",
+      "Example Dialogues"
+    ],
+    "requiredStyleLabelsPreserved": [
+      "暧昧",
+      "小女人",
+      "风骚",
+      "调情",
+      "个性",
+      "温柔",
+      "成熟",
+      "高冷",
+      "主动",
+      "神秘",
+      "幽默",
+      "俏皮"
+    ],
+    "phaseOneLocales": [
+      "de-DE",
+      "de-AT"
+    ],
+    "nativeRegisterTarget": "Natural short-form WhatsApp chat that reflects the user's explicit persona and learned style without nationality/age stereotyping."
+  },
+  "ossFit": {
+    "result": "PASS",
+    "matureOssMandatory": true,
+    "sillyTavernIsPersonaCharacterPromptSourceAuthority": true,
+    "wholePortableModulesAdoptedRatherThanRewritten": true,
+    "sourceSlicesMustRetainExactOriginAndModificationRecord": true,
+    "newYancePersonaEngineForbidden": true,
+    "newYanceCharacterFrameworkForbidden": true,
+    "newYancePromptFrameworkForbidden": true,
+    "existingPersonaCompilerMustBeThinnedOrReplacedInPlace": true,
+    "existingFlatStylePromptMustBeRemoved": true,
+    "thinSillyTavernAdapterAllowed": true,
+    "fullPersonasJsRuntimeExcluded": true,
+    "fullPromptManagerJsRuntimeExcluded": true,
+    "fullOpenAiJsRuntimeExcluded": true,
+    "fullWorldInfoJsRuntimeExcluded": true,
+    "fullAuthorsNoteJsRuntimeExcluded": true,
+    "charactersEndpointRuntimeExcluded": true,
+    "swipePickerRuntimeExcluded": true,
+    "reasonForFullFileExclusions": "The excluded full files are inseparably coupled to SillyTavern DOM/UI, global chat state, tokenizers, provider/model routing, server endpoints or product lifecycle. P0 adopts the independently portable modules and exact source slices instead of importing a second SillyTavern product shell."
+  },
+  "mandatoryFailureFirstContracts": [
+    "Implementation must start only from the ordinary two-parent merge commit of this authorization proposal and only on product/v21-persona-character-p0-v1.",
+    "The exact SillyTavern upstream must remain release 1.18.0 at commit 51ad27fb86d39a3daca3adaa970375c9670c12df; every adopted source path must match the recorded upstream Git blob before any compatibility transformation.",
+    "Character Card PNG V2/V3 parsing, ccv3-over-chara precedence, write/read round trip and TavernCardValidator behavior must fail before the vendored upstream modules are wired and pass afterward.",
+    "The three direct PNG parser dependencies must be exactly crc@4.3.2, png-chunk-text@1.0.0 and png-chunks-extract@1.0.0 with package-lock integrity; mutable direct ranges are RED.",
+    "Prompt composition must use the SillyTavern-derived Prompt/PromptCollection ordering and explicit relative/absolute injection position, depth and order semantics; replacing them with a new Yance ordering engine is RED.",
+    "Character Description, Personality, Scenario, Persona Description, Character Note/depth injection and Example Dialogues must remain distinct composition units and must not be flattened into one concatenated Persona prompt string.",
+    "Example Dialogues must be a first-class ordered input and preserve user/assistant conversational examples rather than being reduced to descriptive prose.",
+    "SillyTavern-derived CharacterBook/World Info handling may organize persona/scenario/example composition material and use the adopted matching primitives, but it must not persist, infer or supersede real contact facts.",
+    "World Info recursive global chat-state, token-budget and UI engine must not be partially reimplemented in Yance P0; importing that full runtime or creating an equivalent Yance engine is RED.",
+    "The existing labels 暧昧, 小女人, 风骚, 调情, 个性, 温柔, 成熟, 高冷, 主动, 神秘, 幽默 and 俏皮 must remain available as structured Style Overlay resolver inputs; direct flat prompt concatenation of the label weights is RED.",
+    "Persona, Locale Profile, Chat Register, Relationship Card and Style Overlay must remain distinct inputs; nationality or age must not select a stereotyped persona template.",
+    "de-DE and de-AT fixtures must prove the composition contract prefers native WhatsApp register and explicitly rejects translationese, email/customer-service tone, over-explaining, overly complete AI sentences, repeated questions, emoji overuse, neediness/overeagerness, relationship-stage mismatch and assistant clichés.",
+    "Relationship stage may alter allowed tone/placement through the read-only Relationship Card projection, but Persona code must not become a second relationship fact store.",
+    "Letta long-term agent/interaction memory, Graphiti temporal relationship facts and Parlant Goal/Journey authority must remain unchanged; this work package must not modify their runtime, storage, routes, workflows or authorization files.",
+    "The existing Yance AI gateway remains the only model execution boundary; no SillyTavern provider code, second model gateway, LiteLLM/RouteLLM implementation or provider credential path may be introduced.",
+    "No SillyTavern UI, settings shell, chat state, swipe picker or second candidate UI may be introduced; existing Yance candidate generation and unique send authority remain intact.",
+    "AGPL-3.0 obligations must be explicit before GREEN: package license declaration, vendored license text, preserved upstream notices/provenance, Corresponding Source availability for covered distribution, and Section 13 source offer when the modified covered program is used through a computer network.",
+    "The mechanically adapted CommonJS vendored modules and source-slice file must contain exact upstream repository/commit/path/blob provenance and a minimal transformation record; clean-room rewritten equivalents are RED.",
+    "The implementation must remain compatible with Yance Node >=22.19.0 and Electron 39.8.5 on Windows without adding native build/runtime requirements for Persona/Character parsing.",
+    "The final implementation changed-path set must remain within these 20 exact paths and retain SHA-256 061859f0708b587f992df1430ddf45ebe6b36874774f71a396cb639ba81ce81c.",
+    "Independent exact-Head review must have zero unresolved P0/P1 findings before implementation merge."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
