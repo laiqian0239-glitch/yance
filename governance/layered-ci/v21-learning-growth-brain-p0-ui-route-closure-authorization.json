@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LEARNING-GROWTH-BRAIN-P0-UI-ROUTE-CLOSURE",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "The Learning Growth Brain P0 mature-OSS design requires four thin Yance Element integration adapters for assistant-ui/tool-ui composition. These product-specific adapters are not upstream vendor source and must remain under integration/element-module/src rather than being hidden under vendor/. Trusted WP0 routing fails closed for unknown paths and has no integration/ product prefix, so the four exact adapter paths require an exact route closure before the later Learning product authorization. This authorization grants only the route closure and no Learning product implementation authority.",
+  "base": {
+    "branch": "main",
+    "commit": "0725a955817123bea465c46e9886ff16c03b688c"
+  },
+  "prerequisites": {
+    "learningRouteBootstrapAuthorizationPullRequest": 146,
+    "learningRouteBootstrapAuthorizationMerge": "47fa8ce90cfe96880307c7a34932a3fcda171d9b",
+    "learningRouteBootstrapImplementationPullRequest": 148,
+    "learningRouteBootstrapImplementationExactHead": "13a94dfd9d58e2a2346b9c2d3f8adacb0fe3aacc",
+    "learningRouteBootstrapImplementationMerge": "0725a955817123bea465c46e9886ff16c03b688c",
+    "learningRouteBootstrapOrdinaryTwoParentVerified": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-learning-growth-brain-p0-ui-route-closure-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-learning-growth-brain-p0-ui-route-closure-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "b2c4f8dfc9650ad46f71c86f6cfb40ec2c67a9d15a786eb5cd072352c18624fd",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-learning-growth-brain-p0-ui-route-closure",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-learning-growth-brain-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "9277acfdaff7a1633978f60158343d76a3951e91d98719c50fd60749edd46fd1",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "productImplementationAllowed": false
+  },
+  "uiAdapterRoutePaths": [
+    "integration/element-module/src/LearningToolUiAdapter.tsx",
+    "integration/element-module/src/LearningWorkspace.css",
+    "integration/element-module/src/LearningWorkspace.tsx",
+    "integration/element-module/src/learningAssistantRuntime.ts"
+  ],
+  "uiAdapterRoutePathCount": 4,
+  "uiAdapterRoutePathSetSha256": "42ef3dfb059895946ed0bae849e4b79b279a2b1ea7b861fbdfc2c962a7e1343e",
+  "architectureBoundary": {
+    "upstreamToolUiSourceLivesUnderVendor": true,
+    "yanceProductAdaptersRemainUnderIntegration": true,
+    "vendorMayNotContainYanceOwnedAdapters": true,
+    "toolUiUpstreamBehaviorSchemaAccessibilityMustBePreserved": true,
+    "assistantUiOfficialRuntimePrimitivesRequired": true,
+    "secondYanceChatRuntimeForbidden": true,
+    "secondYanceToolApprovalFrameworkForbidden": true,
+    "routeClosureMayAddOnlyExactProductPaths": true,
+    "integrationProductPrefixForbidden": true
+  },
+  "downstreamProductAuthorization": {
+    "ownerApprovedTargetScopeCount": 88,
+    "ownerApprovedTargetScopeSha256": "cb3376971ba3900418e55e6468ee188cb4b6b22ce27788492f51450412e3ec10",
+    "dependencyControlPathSetSha256": "aadb97c3ef070c0ca16a98663573051b55f00f8569daede0746f11cb9dad766d",
+    "effectiveNow": false,
+    "formalAuthorizationMayBeCreatedOnlyAfterSharedPersonaPathsAreReleased": true,
+    "mustRevalidateFreshMain": true,
+    "mustRevalidateAllUpstreamPinsAndAuthorityBoundaries": true,
+    "scopeHashOrAuthorityDriftInvalidatesOwnerApproval": true,
+    "modelBrainLiveCallDependency": "Learning live DSPy/GEPA/model calls remain fail closed until V21 Model Brain product authority is implemented and effective."
+  },
+  "activeSharedPathBlockers": {
+    "personaV2AuthorizationPullRequest": 142,
+    "personaV1ImplementationPullRequest": 139,
+    "sharedPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "backend/services/contextAwareReplyBrain.js",
+      "package-lock.json",
+      "package.json"
+    ]
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first route-closure implementation commit changes only tests/layered-ci/v21-learning-growth-brain-p0-routing.test.js.",
+    "Before policy implementation each of the four exact UI adapter paths fails closed as WP0_ROUTE_UNKNOWN_PATH.",
+    "After the root fix each of the four exact UI adapter paths selects PRODUCT_WP0.",
+    "The root fix adds only the four exact literals to productExactPaths and does not add integration/ or any other broad prefix.",
+    "Adjacent unregistered Learning UI paths and malformed repository paths continue to fail closed.",
+    "Existing 24-path Learning OSS bootstrap routing remains GREEN.",
+    "Governance and product-documentation precedence remains unchanged."
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes applicable governance gates and independent review with zero unresolved P0/P1 findings.",
+    "Authorization PR merges to main by ordinary two-parent merge without history rewrite.",
+    "Implementation branch is created from that exact authorization merge commit.",
+    "A test-only commit records the four-path causal RED before routing policy changes.",
+    "Only the four exact UI adapter literals are added to productExactPaths.",
+    "Implementation exact Head passes Stage, Layered, ACV2 and independent review.",
+    "Final implementation merge remains owner exact-Head approval gated and must use ordinary merge."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansion": true,
+    "forcePush": true,
+    "rebaseOrAmendPublishedHistory": true,
+    "directCandidateSelfAuthorization": true,
+    "learningProductImplementation": true,
+    "dependencyManifestModification": true,
+    "workflowModification": true,
+    "placingYanceOwnedAdaptersUnderVendor": true,
+    "creatingSecondLearningUiFramework": true
+  }
+}

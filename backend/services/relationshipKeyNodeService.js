@@ -195,7 +195,38 @@ function createRelationshipKeyNodeService(deps) {
     return coerceRow(store.getKeyNode(eventId));
   }
 
-  return { markKeyNode, unmarkKeyNode, listKeyNodes, getKeyNode, VALID_KINDS };
+  function projectGraphitiFacts(input) {
+    input = input || {};
+    const contactId = String(input.contactId || '').trim();
+    const conversationId = String(input.conversationId || '').trim();
+    const facts = Array.isArray(input.facts) ? input.facts : [];
+    if (!contactId) throw CoreError('INVALID_INPUT', 'contactId is required for Graphiti projection');
+    const normalizedFacts = facts.map((fact) => {
+      const row = fact && typeof fact === 'object' ? fact : {};
+      const factId = String(row.factId || '').trim();
+      const episodeUuid = String(row.episodeUuid || '').trim();
+      const groupId = String(row.groupId || '').trim();
+      const text = String(row.fact || '').trim();
+      if (!factId) throw CoreError('GRAPHITI_FACT_ID_REQUIRED', 'Graphiti fact identity is required');
+      if (!episodeUuid) throw CoreError('GRAPHITI_EPISODE_PROVENANCE_REQUIRED', 'Graphiti episode provenance is required', { factId });
+      if (!groupId) throw CoreError('GRAPHITI_GROUP_ID_REQUIRED', 'Graphiti relationship group provenance is required', { factId });
+      if (!text) throw CoreError('GRAPHITI_FACT_TEXT_REQUIRED', 'Graphiti fact text is required', { factId });
+      return {
+        factId,
+        episodeUuid,
+        groupId,
+        name: String(row.name || '').trim(),
+        fact: text,
+        validAt: row.validAt || null,
+        invalidAt: row.invalidAt || null,
+        referenceTime: row.referenceTime || null,
+        createdAt: row.createdAt || null
+      };
+    });
+    return store.transaction((tx) => tx.projectGraphitiFacts({ contactId, conversationId, facts: normalizedFacts }));
+  }
+
+  return { markKeyNode, unmarkKeyNode, listKeyNodes, getKeyNode, projectGraphitiFacts, VALID_KINDS };
 }
 
 module.exports = { createRelationshipKeyNodeService, CoreError, VALID_KINDS };

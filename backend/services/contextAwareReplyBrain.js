@@ -318,17 +318,48 @@ function projectRecentMessageForModel(message = {}) {
   };
 }
 
+function parseRelationshipEventMetadata(value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+  if (typeof value !== 'string' || !value.trim()) return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch (_) {
+    return {};
+  }
+}
+
 function projectRelationshipEventForModel(event = {}) {
+  const metadata = parseRelationshipEventMetadata(event.afterJson ?? event.after_json);
+  const confidenceStatus = clean(metadata.confidenceStatus);
+  const confidenceValue = event.confidence;
+  const hasNumericConfidence = confidenceStatus !== 'unscored'
+    && confidenceValue != null
+    && clean(confidenceValue) !== ''
+    && Number.isFinite(Number(confidenceValue));
+  const provenance = {
+    factId: clean(metadata.graphitiFactId) || undefined,
+    groupId: clean(metadata.graphitiGroupId) || undefined,
+    episodeUuid: clean(metadata.graphitiEpisodeUuid) || undefined,
+    referenceTime: clean(metadata.referenceTime) || undefined,
+    validAt: clean(metadata.validAt) || undefined,
+    invalidAt: metadata.invalidAt == null ? null : clean(metadata.invalidAt) || undefined
+  };
+  const hasProvenance = Object.values(provenance).some(value => value != null && value !== '');
   return compactContextValue({
-    type: clean(event.type || event.eventType || event.signalType || event.signal || event.name),
+    type: clean(event.type || event.eventType || event.event_type || event.signalType || event.signal_type || event.signal || event.name),
     summary: truncateText(event.summary || event.interpretation || event.evidence?.summary || event.text || event.description || event.label, 420),
     direction: clean(event.direction),
     polarity: clean(event.polarity),
     status: clean(event.status),
-    strength: Number.isFinite(Number(event.strength)) ? Number(event.strength) : undefined,
-    confidence: Number.isFinite(Number(event.confidence)) ? Number(event.confidence) : undefined,
-    at: clean(event.at || event.confirmedAt || event.observedAt || event.createdAt || event.timestamp || event.sentAt)
-  }, { maxDepth: 3, maxArray: 4, maxString: 420 });
+    strength: event.strength != null && clean(event.strength) !== '' && Number.isFinite(Number(event.strength)) ? Number(event.strength) : undefined,
+    confidence: hasNumericConfidence ? Number(confidenceValue) : undefined,
+    confidenceStatus: confidenceStatus || undefined,
+    epistemicStatus: clean(metadata.sourceEpistemicStatus) || undefined,
+    engineVersion: clean(event.engineVersion || event.engine_version) || undefined,
+    provenance: hasProvenance ? provenance : undefined,
+    at: clean(event.at || event.confirmedAt || event.confirmed_at || event.observedAt || event.observed_at || event.startedAt || event.started_at || event.createdAt || event.created_at || event.timestamp || event.sentAt || event.sent_at)
+  }, { maxDepth: 4, maxArray: 4, maxString: 420 });
 }
 
 function compactSocialDecisionPacket(packet = {}, limits = {}) {

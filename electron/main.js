@@ -109,6 +109,7 @@ const { RuntimeProjectionCoordinator } = require('./desktopHost/RuntimeProjectio
 const { backendAuthority, stopOwnedBackend, completeElectronQuit, restartElectronApp } = require('./backendShutdownCoordinator');
 const { createLettaAgentRuntime } = require('./lettaAgentRuntime');
 const { createParlantRelationshipRuntime, createRelationshipTaskSequencer } = require('./parlantRelationshipRuntime');
+const { createGraphitiRelationshipRuntime, createNeo4jPassword } = require('./graphitiRelationshipRuntime');
 const { SoundNotificationService } = require('./SoundNotificationService');
 const { isCustomSoundPattern, soundFileName } = require('../shared/notificationSoundCatalog');
 const { runInstalledRuntimeProbeApplicationEntry } = require('./wp7InstalledRuntimeProbeApplicationEntry');
@@ -476,6 +477,7 @@ let runtimeApiV2Client = null;
 let runtimeProjectionCoordinator = null;
 let lettaAgentRuntime = null;
 let parlantRelationshipRuntime = null;
+let graphitiRelationshipRuntime = null;
 const parlantInboundSequencer = createRelationshipTaskSequencer();
 
 function ensureLettaAgentRuntime() {
@@ -496,6 +498,78 @@ function projectLettaRendererState(state = {}) {
 }
 
 const PARLANT_OPENROUTER_CREDENTIAL_REF = 'model:openrouter:default';
+const GRAPHITI_OPENROUTER_CREDENTIAL_REF = PARLANT_OPENROUTER_CREDENTIAL_REF;
+const GRAPHITI_NEO4J_CREDENTIAL_REF = 'runtime:graphiti:neo4j';
+const GRAPHITI_NEO4J_CREDENTIAL_PROVISION = 'GRAPHITI_NEO4J_CREDENTIAL_PROVISION';
+
+function readGraphitiOpenRouterApiKey() {
+  const credential = vault?.get?.(GRAPHITI_OPENROUTER_CREDENTIAL_REF) || null;
+  const apiKey = String(credential?.apiKey || '').trim();
+  if (!apiKey) {
+    const error = new Error('OpenRouter credential is not configured for Graphiti relationship memory.');
+    error.reasonCode = 'DESKTOP_GRAPHITI_OPENROUTER_CREDENTIAL_MISSING';
+    throw error;
+  }
+  return apiKey;
+}
+
+function readGraphitiNeo4jPassword() {
+  const credential = vault?.get?.(GRAPHITI_NEO4J_CREDENTIAL_REF) || null;
+  const password = String(credential?.password || '').trim();
+  if (!/^[A-Za-z0-9_-]{43}$/u.test(password)) {
+    const error = new Error('Graphiti Neo4j runtime credential is missing or invalid.');
+    error.reasonCode = 'DESKTOP_GRAPHITI_NEO4J_CREDENTIAL_MISSING';
+    throw error;
+  }
+  return password;
+}
+
+async function ensureGraphitiNeo4jCredentialProvisioned(applicationLeaseToken) {
+  const existing = vault?.get?.(GRAPHITI_NEO4J_CREDENTIAL_REF) || null;
+  if (existing) {
+    const password = String(existing.password || '').trim();
+    if (!/^[A-Za-z0-9_-]{43}$/u.test(password)) {
+      const error = new Error('Persisted Graphiti Neo4j credential is malformed.');
+      error.reasonCode = 'DESKTOP_GRAPHITI_NEO4J_CREDENTIAL_INVALID';
+      throw error;
+    }
+    return { created: false, ref: GRAPHITI_NEO4J_CREDENTIAL_REF };
+  }
+  if (!vault?.available) {
+    const error = new Error('Operating-system secure credential storage is unavailable for Graphiti Neo4j.');
+    error.reasonCode = 'DESKTOP_GRAPHITI_SECURE_STORAGE_UNAVAILABLE';
+    throw error;
+  }
+  if (!desktopHost?.credentialVaultHost || !applicationLeaseToken) {
+    const error = new Error('Graphiti Neo4j credential provisioning requires the existing credential authority lease.');
+    error.reasonCode = 'DESKTOP_GRAPHITI_CREDENTIAL_AUTHORITY_UNAVAILABLE';
+    throw error;
+  }
+  const mutation = await desktopHost.credentialVaultHost.executeDesktopMutation('persist', GRAPHITI_NEO4J_CREDENTIAL_REF, {
+    password: createNeo4jPassword()
+  }, {
+    requestId: `${GRAPHITI_NEO4J_CREDENTIAL_PROVISION.toLowerCase()}:${randomUUID()}`,
+    applicationLeaseToken
+  });
+  if (mutation?.transactionState !== 'COMMITTED' || mutation?.persisted !== true) {
+    const error = new Error('Graphiti Neo4j credential did not reach a durable committed state.');
+    error.reasonCode = mutation?.reasonCode || 'DESKTOP_GRAPHITI_CREDENTIAL_PERSIST_FAILED';
+    throw error;
+  }
+  return { created: true, ref: GRAPHITI_NEO4J_CREDENTIAL_REF };
+}
+
+function ensureGraphitiRelationshipRuntime() {
+  if (!graphitiRelationshipRuntime) {
+    graphitiRelationshipRuntime = createGraphitiRelationshipRuntime({
+      resourcesPath: controlledResourcesPath(),
+      dataRoot: DATA_ROOT,
+      getOpenRouterApiKey: () => readGraphitiOpenRouterApiKey(),
+      getNeo4jPassword: () => readGraphitiNeo4jPassword()
+    });
+  }
+  return graphitiRelationshipRuntime;
+}
 
 function readParlantOpenRouterApiKey() {
   const credential = vault?.get?.(PARLANT_OPENROUTER_CREDENTIAL_REF) || null;
@@ -624,6 +698,26 @@ async function stopLettaAgentRuntime() {
   return { stopped: true, exitConfirmed: true, alreadyStopped: false, pid: Number(before.pid || 0), state: stopped };
 }
 
+function graphitiOwnershipPresent() {
+  const state = graphitiRelationshipRuntime?.snapshot?.() || {};
+  return state.ready === true || Number(state.graphitiPid || 0) > 0 || Number(state.neo4jPid || 0) > 0;
+}
+
+async function stopGraphitiRelationshipRuntime() {
+  if (!graphitiRelationshipRuntime) return { stopped: true, exitConfirmed: true, alreadyStopped: true, graphitiPid: 0, neo4jPid: 0 };
+  const before = graphitiRelationshipRuntime.snapshot();
+  if (!before.ready && !before.graphitiPid && !before.neo4jPid) return { stopped: true, exitConfirmed: true, alreadyStopped: true, graphitiPid: 0, neo4jPid: 0 };
+  const stopped = await graphitiRelationshipRuntime.stop();
+  const after = graphitiRelationshipRuntime.snapshot();
+  if (after.ready || after.graphitiPid || after.neo4jPid) {
+    const error = new Error('Graphiti relationship runtime shutdown was not confirmed');
+    error.reasonCode = 'DESKTOP_GRAPHITI_STOP_NOT_CONFIRMED';
+    error.details = { before, after, stopped };
+    throw error;
+  }
+  return { stopped: true, exitConfirmed: true, alreadyStopped: false, graphitiPid: Number(before.graphitiPid || 0), neo4jPid: Number(before.neo4jPid || 0), state: stopped };
+}
+
 function parlantOwnershipPresent() {
   const state = parlantRelationshipRuntime?.snapshot?.() || {};
   return state.ready === true || Number(state.pid || 0) > 0;
@@ -649,17 +743,21 @@ async function stopApplicationOwnedRuntimes(options = {}) {
   let lettaError = null;
   let parlantStop = null;
   let parlantError = null;
+  let graphitiStop = null;
+  let graphitiError = null;
   let backendStop = null;
   let backendError = null;
   try { lettaStop = await stopLettaAgentRuntime(); } catch (error) { lettaError = error; }
   try { parlantStop = await stopParlantRelationshipRuntime(); } catch (error) { parlantError = error; }
+  try { graphitiStop = await stopGraphitiRelationshipRuntime(); } catch (error) { graphitiError = error; }
   try { backendStop = await stopBackend({ forShutdown: true, reason: String(options.reason || 'application-shutdown') }); } catch (error) { backendError = error; }
-  if (lettaError || parlantError || backendError) {
+  if (lettaError || parlantError || graphitiError || backendError) {
     const error = new Error('Application-owned runtime shutdown was not fully confirmed');
-    error.reasonCode = lettaError?.reasonCode || parlantError?.reasonCode || backendError?.reasonCode || 'DESKTOP_RUNTIME_STOP_NOT_CONFIRMED';
+    error.reasonCode = lettaError?.reasonCode || parlantError?.reasonCode || graphitiError?.reasonCode || backendError?.reasonCode || 'DESKTOP_RUNTIME_STOP_NOT_CONFIRMED';
     error.details = {
       letta: lettaError ? { reasonCode: lettaError.reasonCode || '', message: lettaError.message } : lettaStop,
       parlant: parlantError ? { reasonCode: parlantError.reasonCode || '', message: parlantError.message } : parlantStop,
+      graphiti: graphitiError ? { reasonCode: graphitiError.reasonCode || '', message: graphitiError.message } : graphitiStop,
       backend: backendError ? { reasonCode: backendError.reasonCode || '', message: backendError.message } : backendStop
     };
     throw error;
@@ -669,7 +767,8 @@ async function stopApplicationOwnedRuntimes(options = {}) {
     stopped: true,
     exitConfirmed: true,
     letta: lettaStop,
-    parlant: parlantStop
+    parlant: parlantStop,
+    graphiti: graphitiStop
   };
 }
 
@@ -2072,6 +2171,63 @@ function scheduleParlantInboundEvent(event = {}) {
   return parlantInboundSequencer.run(contactId, () => processParlantInboundEvent(event));
 }
 
+function isGraphitiEligibleInboundMessage(message = {}) {
+  const direction = String(message.direction || '').trim().toLowerCase();
+  const speaker = String(message.speaker || message.role || '').trim().toLowerCase();
+  const contactId = String(message.contactId || '').trim();
+  const conversationId = String(message.conversationId || message.sessionKey || '').trim();
+  const text = String(message.text || message.transcript || message.translation || '').trim();
+  return Boolean(contactId && conversationId && text && direction === 'inbound' && ['peer', 'contact', 'customer'].includes(speaker));
+}
+
+function mergeGraphitiFacts(...groups) {
+  const byId = new Map();
+  for (const group of groups) {
+    for (const fact of Array.isArray(group) ? group : []) {
+      const factId = String(fact?.factId || '').trim();
+      const episodeUuid = String(fact?.episodeUuid || '').trim();
+      const groupId = String(fact?.groupId || '').trim();
+      if (!factId || !episodeUuid || !groupId) continue;
+      byId.set(factId, fact);
+    }
+  }
+  return [...byId.values()];
+}
+
+async function processGraphitiInboundEvent(event = {}) {
+  const message = event?.payload?.message || {};
+  if (!isGraphitiEligibleInboundMessage(message)) return { handled: false, reasonCode: 'DESKTOP_GRAPHITI_EVENT_NOT_ELIGIBLE' };
+  const contactId = String(message.contactId || '').trim();
+  const conversationId = String(message.conversationId || message.sessionKey || '').trim();
+  const inboundText = String(message.text || message.transcript || message.translation || '').trim();
+  const externalMessageId = String(message.externalMessageId || message.messageId || message.id || '').trim();
+  const referenceTime = String(message.sentAt || message.timestamp || new Date().toISOString()).trim();
+  try {
+    const runtime = ensureGraphitiRelationshipRuntime();
+    const added = await runtime.addRelationshipEpisode({ contactId, text: inboundText, externalMessageId, referenceTime });
+    const recalled = await runtime.recallRelationshipFacts({ contactId, query: inboundText, limit: 12 });
+    const facts = mergeGraphitiFacts(added?.facts, recalled?.facts);
+    if (facts.length) {
+      await apiRequest(`/api/r32/workspace/contacts/${encodeURIComponent(contactId)}/graphiti-projection`, {
+        method: 'POST',
+        body: JSON.stringify({ conversationId, facts })
+      });
+    }
+    return { handled: true, projectedFacts: facts.length };
+  } catch (error) {
+    const reasonCode = String(error?.reasonCode || error?.code || 'DESKTOP_GRAPHITI_RUNTIME_UNAVAILABLE');
+    desktopLog('error', 'graphiti-relationship-memory-degraded', { contactId, conversationId, reasonCode });
+    sendToRenderer('desktop:event', { type: 'graphiti:relationship-memory-degraded', payload: { contactId, conversationId, reasonCode } });
+    return { handled: false, degraded: true, reasonCode };
+  }
+}
+
+function scheduleGraphitiInboundEvent(event = {}) {
+  const message = event?.payload?.message || {};
+  if (!isGraphitiEligibleInboundMessage(message)) return Promise.resolve({ handled: false, reasonCode: 'DESKTOP_GRAPHITI_EVENT_NOT_ELIGIBLE' });
+  return processGraphitiInboundEvent(event);
+}
+
 function connectEventSocket() {
   stopEventSocket();
   if (!backendReady) return;
@@ -2091,6 +2247,8 @@ function connectEventSocket() {
     if (event.type === 'message:inserted') {
       Promise.resolve(scheduleParlantInboundEvent(event))
         .catch(error => desktopLog('error', 'parlant-inbound-processing-failed', { reasonCode: error?.reasonCode || error?.code || '', message: error?.message || String(error) }));
+      Promise.resolve(scheduleGraphitiInboundEvent(event))
+        .catch(error => desktopLog('error', 'graphiti-inbound-processing-failed', { reasonCode: error?.reasonCode || error?.code || '', message: error?.message || String(error) }));
     }
     if (['sound-notification:event','desktop:notify','send-queue:sent','send-queue:failed','conversation:presence','system:notifications-updated','notification:settings-updated'].includes(event.type)) {
       Promise.resolve(soundNotificationService.handleBackendEvent(event))
@@ -3345,14 +3503,18 @@ if (!app.requestSingleInstanceLock()) {
       });
       desktopLog('info', 'desktop-bootstrap-containment-recovery-complete', startupContainmentRecovery);
       credentialVaultRecoveryReport = {
-        ...await desktopCredentialApplicationCoordinator.runExclusive('LEGACY_CREDENTIAL_MIGRATION', applicationLeaseToken => recoverCredentialVaults({
-          legacyRoots: legacyDiscovery.legacyRoots,
-          destinationFile: credentialFile,
-          destinationVault: vault,
-          credentialVaultHost: desktopHost.credentialVaultHost,
-          applicationLeaseToken,
-          createVault: file => new CredentialVault(file)
-        })),
+        ...await desktopCredentialApplicationCoordinator.runExclusive('LEGACY_CREDENTIAL_MIGRATION', async applicationLeaseToken => {
+          const recovery = await recoverCredentialVaults({
+            legacyRoots: legacyDiscovery.legacyRoots,
+            destinationFile: credentialFile,
+            destinationVault: vault,
+            credentialVaultHost: desktopHost.credentialVaultHost,
+            applicationLeaseToken,
+            createVault: file => new CredentialVault(file)
+          });
+          const graphitiNeo4jCredential = await ensureGraphitiNeo4jCredentialProvisioned(applicationLeaseToken);
+          return { ...recovery, graphitiNeo4jCredential };
+        }),
         mode: 'same-machine-safe-storage-reencryption',
         legacyRoots: legacyDiscovery.legacyRoots
       };
@@ -3474,7 +3636,7 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin' && !settingsStore?.read().closeToTray) app.quit();
 });
 app.on('will-quit', event => {
-  if (exitAfterBackendShutdown || (!backendOwnershipPresent() && !lettaOwnershipPresent() && !parlantOwnershipPresent())) return;
+  if (exitAfterBackendShutdown || (!backendOwnershipPresent() && !lettaOwnershipPresent() && !parlantOwnershipPresent() && !graphitiOwnershipPresent())) return;
   event.preventDefault();
   stopEventSocket();
   if (shutdownInProgress) return;
