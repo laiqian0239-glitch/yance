@@ -81,7 +81,6 @@
     "third_party/licenses/mautrix-whatsapp-AGPL-3.0.txt",
     "third_party/licenses/mautrix-whatsapp-LICENSE.exceptions.txt",
     "third_party/licenses/synapse-AGPL-3.0.txt",
-    "upstream-patches/element-web/0001-yance-global-right-workspace.patch",
     "config/upstreams/v21-parlant-p0.json",
     "runtime/parlant/generate_runtime_sbom.py",
     "runtime/parlant/yance_parlant_server.py",
@@ -89,7 +88,8 @@
     "third_party/licenses/parlant-Apache-2.0.txt",
     "third_party/licenses/python-build-standalone-MPL-2.0.txt",
     "third_party/licenses/uv-Apache-2.0.txt",
-    "third_party/licenses/uv-MIT.txt"
+    "third_party/licenses/uv-MIT.txt",
+    "upstream-patches/element-web/0001-yance-global-right-workspace.patch"
   ],
   "productPrefixes": [
     ".github/",
