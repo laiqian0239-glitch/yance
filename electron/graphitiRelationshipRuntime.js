@@ -201,6 +201,8 @@ function createGraphitiRelationshipRuntime(options = {}) {
   let graphitiChild = null;
   let ready = false;
   let startPromise = null;
+  let stopPromise = null;
+  let stopping = false;
   let lastError = null;
   let loopbackToken = '';
   let stderrTail = '';
@@ -348,45 +350,86 @@ function createGraphitiRelationshipRuntime(options = {}) {
   async function stop() {
     ready = false;
     loopbackToken = '';
+    if (stopPromise) return stopPromise;
     const graph = graphitiChild;
     const neo = neo4jChild;
-    await Promise.all([stopChild(graph), stopChild(neo)]);
-    if (graphitiChild === graph) graphitiChild = null;
-    if (neo4jChild === neo) neo4jChild = null;
-    return { stopped: true };
+    stopping = true;
+    stopPromise = (async () => {
+      try {
+        await Promise.all([stopChild(graph), stopChild(neo)]);
+        return { stopped: true };
+      } finally {
+        if (graphitiChild === graph) graphitiChild = null;
+        if (neo4jChild === neo) neo4jChild = null;
+        stopping = false;
+      }
+    })().finally(() => { stopPromise = null; });
+    return stopPromise;
+  }
+
+  function superviseOwnedChild(kind, child) {
+    const reasonCode = kind === 'neo4j' ? 'DESKTOP_GRAPHITI_NEO4J_EXITED' : 'DESKTOP_GRAPHITI_PROCESS_EXITED';
+    const message = kind === 'neo4j' ? 'Neo4j exited unexpectedly.' : 'Graphiti exited unexpectedly.';
+    const isCurrent = () => kind === 'neo4j' ? neo4jChild === child : graphitiChild === child;
+    const failPair = (details = {}) => {
+      if (stopping || !isCurrent()) return;
+      ready = false;
+      lastError = runtimeError(reasonCode, message, details);
+      void stop().catch(error => {
+        lastError = runtimeError('DESKTOP_GRAPHITI_CHILD_STOP_FAILED', 'Owned Graphiti runtime pair cleanup failed.', {
+          cause: clean(error?.message || error),
+          originalReasonCode: reasonCode
+        });
+      });
+    };
+    child.once?.('exit', (code, signal) => failPair({ code, signal }));
+    child.once?.('error', error => failPair({ cause: clean(error?.message || error) }));
   }
 
   async function start() {
+    if (stopPromise) await stopPromise;
     if (ready && graphitiChild?.exitCode == null && neo4jChild?.exitCode == null) return snapshot();
     if (startPromise) return startPromise;
     startPromise = (async () => {
-      for (const required of [paths.pythonExecutable, paths.serverScript, paths.neo4jExecutable, paths.neo4jAdminExecutable, paths.javaExecutable, paths.sbom, paths.seal]) {
-        if (!fsImpl.existsSync(required)) throw runtimeError('DESKTOP_GRAPHITI_RUNTIME_MISSING', 'Packaged Graphiti runtime is incomplete.', { missing: required });
+      if (stopPromise) await stopPromise;
+      if (graphitiChild || neo4jChild) await stop();
+      try {
+        for (const required of [paths.pythonExecutable, paths.serverScript, paths.neo4jExecutable, paths.neo4jAdminExecutable, paths.javaExecutable, paths.sbom, paths.seal]) {
+          if (!fsImpl.existsSync(required)) throw runtimeError('DESKTOP_GRAPHITI_RUNTIME_MISSING', 'Packaged Graphiti runtime is incomplete.', { missing: required });
+        }
+        fsImpl.mkdirSync(dataRoot, { recursive: true });
+        const neo4j = writeNeo4jConfig();
+        const env = buildGraphitiEnvironment({
+          baseEnv: options.baseEnv || process.env,
+          dataRoot,
+          openRouterApiKey: await getOpenRouterApiKey(),
+          neo4jPassword: await getNeo4jPassword(),
+          loopbackToken: createLoopbackToken(),
+          neo4jUri: DEFAULT_BOLT_ENDPOINT,
+          ...provider
+        });
+        loopbackToken = env.YANCE_GRAPHITI_LOOPBACK_TOKEN;
+        stderrTail = '';
+        lastError = null;
+        await initializeNeo4jCredential(env, neo4j);
+        neo4jChild = launchNeo4j(neo4j);
+        superviseOwnedChild('neo4j', neo4jChild);
+        await waitForNeo4jReady(neo4jChild, DEFAULT_BOLT_ENDPOINT, options.neo4jStartupTimeoutMs || options.startupTimeoutMs || DEFAULT_STARTUP_TIMEOUT_MS);
+        const host = endpointUrl.hostname === 'localhost' ? '127.0.0.1' : endpointUrl.hostname.replace(/^\[|\]$/gu, '');
+        graphitiChild = spawnProcess(paths.pythonExecutable, ['-I', paths.serverScript, '--host', host, '--port', String(endpointUrl.port || 80)], { cwd: paths.root, env, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
+        graphitiChild.stderr?.setEncoding?.('utf8');
+        graphitiChild.stderr?.on?.('data', chunk => { stderrTail = `${stderrTail}${String(chunk || '')}`.slice(-8000); });
+        superviseOwnedChild('graphiti', graphitiChild);
+        await waitUntilReady(options.startupTimeoutMs);
+        ready = true;
+        return snapshot();
+      } catch (error) {
+        lastError = error;
+        try { await stop(); } catch (cleanupError) {
+          error.cleanupError = cleanupError;
+        }
+        throw error;
       }
-      fsImpl.mkdirSync(dataRoot, { recursive: true });
-      const neo4j = writeNeo4jConfig();
-      const env = buildGraphitiEnvironment({
-        baseEnv: options.baseEnv || process.env,
-        dataRoot,
-        openRouterApiKey: await getOpenRouterApiKey(),
-        neo4jPassword: await getNeo4jPassword(),
-        loopbackToken: createLoopbackToken(),
-        neo4jUri: DEFAULT_BOLT_ENDPOINT,
-        ...provider
-      });
-      loopbackToken = env.YANCE_GRAPHITI_LOOPBACK_TOKEN;
-      stderrTail = '';
-      lastError = null;
-      await initializeNeo4jCredential(env, neo4j);
-      neo4jChild = launchNeo4j(neo4j);
-      neo4jChild.once?.('exit', (code, signal) => { if (ready && signal !== 'SIGTERM') { ready = false; lastError = runtimeError('DESKTOP_GRAPHITI_NEO4J_EXITED', 'Neo4j exited unexpectedly.', { code, signal }); } });
-      await waitForNeo4jReady(neo4jChild, DEFAULT_BOLT_ENDPOINT, options.neo4jStartupTimeoutMs || options.startupTimeoutMs || DEFAULT_STARTUP_TIMEOUT_MS);
-      const host = endpointUrl.hostname === 'localhost' ? '127.0.0.1' : endpointUrl.hostname.replace(/^\[|\]$/gu, '');
-      graphitiChild = spawnProcess(paths.pythonExecutable, ['-I', paths.serverScript, '--host', host, '--port', String(endpointUrl.port || 80)], { cwd: paths.root, env, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
-      graphitiChild.stderr?.setEncoding?.('utf8');
-      graphitiChild.stderr?.on?.('data', chunk => { stderrTail = `${stderrTail}${String(chunk || '')}`.slice(-8000); });
-      graphitiChild.once?.('exit', (code, signal) => { if (ready && signal !== 'SIGTERM') { ready = false; lastError = runtimeError('DESKTOP_GRAPHITI_PROCESS_EXITED', 'Graphiti exited unexpectedly.', { code, signal }); } });
-      try { await waitUntilReady(options.startupTimeoutMs); ready = true; return snapshot(); } catch (error) { lastError = error; await stop(); throw error; }
     })().finally(() => { startPromise = null; });
     return startPromise;
   }

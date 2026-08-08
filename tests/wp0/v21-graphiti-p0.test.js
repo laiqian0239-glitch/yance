@@ -150,18 +150,21 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
-function createFakeGraphitiChild({ exitOnSpawn = false } = {}) {
+function createFakeGraphitiChild({ exitOnSpawn = false, exitOnKill = false } = {}) {
   const child = new EventEmitter();
   child.pid = Math.floor(Math.random() * 10000) + 100;
   child.exitCode = null;
   child.stderr = new EventEmitter();
   child.stderr.setEncoding = () => {};
-  child.kill = () => true;
+  child.kill = (signal = 'SIGTERM') => {
+    if (exitOnKill && child.exitCode == null) queueMicrotask(() => { child.exitCode = 0; child.emit('exit', 0, signal); });
+    return true;
+  };
   if (exitOnSpawn) queueMicrotask(() => { child.exitCode = 0; child.emit('exit', 0, null); });
   return child;
 }
 
-function graphitiRuntimeHarness({ neo4jReadyPromise = Promise.resolve() } = {}) {
+function graphitiRuntimeHarness({ neo4jReadyPromise = Promise.resolve(), exitOnKill = false } = {}) {
   const runtimePath = repositoryPath('electron/graphitiRelationshipRuntime.js');
   delete require.cache[require.resolve(runtimePath)];
   const runtimeModule = require(runtimePath);
@@ -169,7 +172,7 @@ function graphitiRuntimeHarness({ neo4jReadyPromise = Promise.resolve() } = {}) 
   let bridgeToken = '';
   const spawnProcess = (file, args = [], options = {}) => {
     const isAdmin = args[0] === 'dbms';
-    const child = createFakeGraphitiChild({ exitOnSpawn: isAdmin });
+    const child = createFakeGraphitiChild({ exitOnSpawn: isAdmin, exitOnKill: !isAdmin && exitOnKill });
     spawned.push({ file, args: [...args], options, child });
     if (args.includes('--host')) bridgeToken = String(options.env?.YANCE_GRAPHITI_LOOPBACK_TOKEN || '');
     return child;
@@ -238,3 +241,49 @@ test('Graphiti runtime stop waits for both owned children to exit before reporti
   assert.equal(runtime.snapshot().graphitiPid, 0);
   assert.equal(runtime.snapshot().neo4jPid, 0);
 });
+
+test('Graphiti startup failure reclaims an already-launched Neo4j child before rejecting', async () => {
+  const readinessFailure = new Error('neo4j readiness failed');
+  const { runtime, spawned } = graphitiRuntimeHarness({
+    neo4jReadyPromise: Promise.reject(readinessFailure),
+    exitOnKill: true
+  });
+
+  await assert.rejects(runtime.start(), /neo4j readiness failed/u);
+  await new Promise(resolve => setImmediate(resolve));
+
+  const owned = spawned.filter(row => row.args[0] !== 'dbms');
+  assert.equal(owned.length, 1, 'Graphiti bridge must never launch after Neo4j readiness failure');
+  assert.notEqual(owned[0].child.exitCode, null, 'partial-start Neo4j child must be terminated before start rejects');
+  assert.equal(runtime.snapshot().neo4jPid, 0);
+  assert.equal(runtime.snapshot().graphitiPid, 0);
+  assert.equal(runtime.snapshot().ready, false);
+});
+
+test('Graphiti runtime reclaims the sibling after an unexpected owned-child exit before restart', async () => {
+  const { runtime, spawned } = graphitiRuntimeHarness({ exitOnKill: true });
+  await runtime.start();
+
+  const owned = spawned.filter(row => row.args[0] !== 'dbms');
+  const neo = owned.find(row => !row.args.includes('--host'));
+  const graph = owned.find(row => row.args.includes('--host'));
+  assert.ok(neo && graph);
+
+  graph.child.exitCode = 17;
+  graph.child.emit('exit', 17, null);
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.notEqual(neo.child.exitCode, null, 'unexpected Graphiti exit must terminate its Neo4j sibling');
+  assert.equal(runtime.snapshot().ready, false);
+  assert.equal(runtime.snapshot().graphitiPid, 0);
+  assert.equal(runtime.snapshot().neo4jPid, 0);
+
+  const startedBeforeRestart = spawned.filter(row => row.args[0] !== 'dbms').length;
+  await runtime.start();
+  const startedAfterRestart = spawned.filter(row => row.args[0] !== 'dbms').length;
+  assert.equal(startedAfterRestart, startedBeforeRestart + 2, 'restart must create exactly one fresh owned pair after cleanup');
+
+  await runtime.stop();
+});
+
