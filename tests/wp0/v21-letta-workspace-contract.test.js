@@ -47,13 +47,17 @@ test('Letta lifecycle stays main-process-owned and is not exposed as renderer pr
   const main = readText('electron/main.js');
   const preload = readText('electron/preload.js');
   const runtime = readText('electron/lettaAgentRuntime.js');
+  const stopStart = runtime.indexOf('async function stop()');
+  const stopEnd = runtime.indexOf('async function start()', stopStart);
   assert.match(main, /createLettaAgentRuntime/u);
   assert.match(main, /ensureLettaAgentRuntime\(\)\.start\(\)/u, 'Electron main must explicitly start the Letta runtime it owns');
   assert.match(main, /lettaAgentRuntime\.stop\(\)/u, 'Electron main must stop the Letta runtime it owns');
   assert.doesNotMatch(preload, /startLetta|stopLetta|restartLetta|killLetta/u);
   assert.doesNotMatch(main, /process\.kill\([^\n]*(?:letta|LETTA)/u, 'Electron main must not address the Letta child through an arbitrary PID');
   assert.doesNotMatch(main, /(?:lettaAgentRuntime|letta)[^\n]*\.kill\(/iu, 'Electron main must delegate Letta shutdown to the runtime adapter');
-  assert.match(runtime, /ownedChild\.kill\('SIGTERM'\)/u, 'the runtime adapter may signal only its owned Letta child');
+  assert.notEqual(stopStart, -1, 'runtime stop() must exist');
+  assert.notEqual(stopEnd, -1, 'runtime stop() section must be bounded');
+  assert.match(runtime.slice(stopStart, stopEnd), /ownedChild\.kill\('SIGTERM'\)/u, 'normal stop() must signal only its owned Letta child with SIGTERM');
   assert.doesNotMatch(runtime, /process\.kill\(/u, 'the runtime adapter must not signal arbitrary PIDs');
 });
 
@@ -81,6 +85,16 @@ test('the existing Element Yance Workspace is the only Letta product surface', (
   assert.doesNotMatch(workspace, /createAgent|deleteAgent|sendMessage|\.send\(/u);
 });
 
+test('Letta Workspace refreshes readonly projections after runtime state changes and labels bounded counts honestly', () => {
+  const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
+  assert.match(workspace, /setInterval\(/u, 'Workspace must refresh Letta state after mount so post-ready exits are observable');
+  assert.match(workspace, /clearInterval\(/u, 'Workspace must dispose the Letta refresh interval');
+  assert.match(workspace, /setLettaAgents\(\[\]\)/u, 'Workspace must clear stale agent projection when Letta is not ready');
+  assert.match(workspace, /setLettaConversations\(\[\]\)/u, 'Workspace must clear stale conversation projection when Letta is not ready');
+  assert.match(workspace, /Recent conversations \(first agent\)/u, 'bounded conversation count must identify its first-agent scope');
+  assert.match(workspace, /20\+/u, 'bounded conversation count must disclose the 20-item cap');
+});
+
 test('Letta IPC contracts remain readonly projections without arbitrary path or process authority', () => {
   const manifest = readJson('electron/m2/ipcManifest.json');
   const byChannel = new Map(manifest.handlers.map(handler => [handler.channel, handler]));
@@ -98,4 +112,16 @@ test('Letta IPC contracts remain readonly projections without arbitrary path or 
   assert.deepEqual(properties, ['agentId', 'limit']);
   assert.equal(Object.prototype.hasOwnProperty.call(conversations.inputSchema?.properties || {}, 'path'), false);
   assert.equal(Object.prototype.hasOwnProperty.call(conversations.inputSchema?.properties || {}, 'command'), false);
+});
+
+test('Letta IPC manifest validation summary and source locations stay traceable', () => {
+  const manifest = readJson('electron/m2/ipcManifest.json');
+  const rendererToMain = manifest.handlers.filter(handler => handler.direction === 'renderer-to-main');
+  assert.equal(manifest.validationSummary?.rendererToMainHandlerCount, rendererToMain.length, 'declared renderer-to-main count must equal actual handlers');
+  const byChannel = new Map(manifest.handlers.map(handler => [handler.channel, handler]));
+  for (const channel of CHANNELS) {
+    const contract = byChannel.get(channel);
+    assert.ok(Number.isInteger(contract?.handler?.line) && contract.handler.line > 0, `${channel} handler source line must be traceable`);
+    assert.ok(Number.isInteger(contract?.rendererExposure?.line) && contract.rendererExposure.line > 0, `${channel} renderer exposure source line must be traceable`);
+  }
 });
