@@ -1,6 +1,6 @@
 # 言策（Yance）总实施方案与开源移植最高指令
 
-> **状态：V2.1 最高指令冻结；Relationship Intelligence Enhancement 已并入 V2.1，跨聊天持续有效。**
+> **状态：V2.1 最高指令冻结；Relationship Intelligence + Persona Realism + Learning/Growth + Mature OSS Mandatory Adoption 已并入 V2.1，跨聊天持续有效。**
 >
 > 本文件是 Yance 的**唯一稳定架构与实施指令**。除实时远端事实、已生效治理凭据、精确授权 Head 与正式安全/许可证约束外，任何旧聊天、旧设计快照、旧实施方案、旧 UI 计划或旧工作包说明与本文件冲突时，**以本文件为准**。
 >
@@ -56,8 +56,14 @@ Yance 的目标不是 CRM、营销自动化、销售漏斗、lead scoring、成�
 - Letta 长期 Agent / Memory；
 - Graphiti 时间关系记忆；
 - Parlant Goal / Journey；
+- SillyTavern Persona / Character Card / Lorebook / Prompt Manager 可移植成熟模块；
+- Yance Persona Card + Relationship Card + Style Overlay + Locale/Register + Example Dialogue；
 - LiteLLM + RouteLLM；
-- Langfuse + DSPy + Promptfoo；
+- Langfuse + OpenTelemetry + DSPy + GEPA + Promptfoo；
+- Agent Lightning 作为数据成熟后的 APO / RL / SFT 候选训练层；
+- Learning Coach 复用现有 Letta Agent SDK / runtime，不建立第二套 Agent/Memory 服务；
+- assistant-ui + tool-ui 作为 Learning 对话、tool rendering 与 approval UI 的优先成熟 OSS 来源；
+- AG-UI 仅在未来出现真实多 Agent↔UI 协议需求时作为 P1 候选，不提前自建协议；
 - CosyVoice VoiceProfile；
 - Immich real-first 素材库；
 - ComfyUI 身份一致内容生成；
@@ -69,7 +75,7 @@ Yance 的目标不是 CRM、营销自动化、销售漏斗、lead scoring、成�
 
 ---
 
-## 1. 最高执行原则：成熟 OSS 接管，禁止重复自研
+## 1. 最高执行原则：成熟 OSS 强制接管，原则上禁止自研基础能力
 
 Yance 的最高执行指标是：**以最短路径形成真实可运行、功能尽可能强、稳定、可维护的个人开源产品。**
 
@@ -79,7 +85,19 @@ Yance 的最高执行指标是：**以最短路径形成真实可运行、功能
 - 开源 Yance；
 - 接受并履行 GPL、AGPL、LGPL、Apache、MIT、BSD、Boost 等实际采用组件对应的许可证义务；
 - 不以未来闭源商业化作为规避成熟 copyleft OSS 的默认理由；
-- 成熟上游已有生产级完整能力时，优先让上游成为真实运行内核，而不是参考后由 Yance 重写一遍。
+- 成熟上游已有生产级完整能力时，必须优先让上游成为真实运行内核，而不是参考后由 Yance 重写一遍；
+- **成熟 OSS 不是“可选优化项”，而是新增功能的默认硬门禁。只要成熟 OSS 产品、服务、SDK、协议或源码模块能够承担等价核心能力，原则上禁止 Yance 自研同类 engine/runtime/state machine/framework。**
+
+Yance 自有代码默认只允许集中在：
+
+- Branding / 单一产品体验；
+- OSS 能力在 Yance Workspace 中的 UI composition；
+- 用户设置、权限、确认、最终发送决策；
+- 多个成熟 OSS 之间不可避免的极薄 Adapter / data projection；
+- installer / configuration / packaging；
+- upstream patch / compatibility shim（优先回馈上游）；
+- failure-first / compatibility / Windows / security / release tests；
+- 已经通过正式 OSS-fit 证明不存在成熟 OSS 可承担的最小产品差异。
 
 ### 1.1 OSS 采用顺序
 
@@ -92,41 +110,70 @@ Yance 的最高执行指标是：**以最短路径形成真实可运行、功能
         ↓
 官方 SDK / 固定版本依赖
         ↓
-极薄 Adapter / Branding / Configuration
+成熟开放协议 + 官方/成熟 Adapter
         ↓
-只有证明没有成熟 OSS 可满足时才允许最小自研
+极薄 Yance Adapter / Branding / Configuration
+        ↓
+仅在正式证明“无成熟 OSS/上游扩展可满足必要缺口”后允许最小差异代码
 ```
+
+不得因为“自己写更直接”“改起来方便”“当前只有一个功能点”而越过上面的采用顺序。
 
 ### 1.2 OSS-fit 自研准入硬门禁
 
-任何计划新增 Yance 自研基础设施前，必须提供：
+任何计划新增 Yance 自研基础设施、运行时、状态机、协议、通用组件或等价能力前，必须提供：
 
 1. 已检索和评估的成熟 OSS 候选；
 2. 每个候选的仓库、维护活跃度、许可证、运行方式与依赖闭包；
-3. 候选不能满足需求的具体行为缺口；
-4. 为什么不能通过完整产品、Sidecar、源码模块、官方 SDK 或极薄适配解决；
-5. 最小自研范围；
-6. 对应 failure-first 测试与回滚方案。
+3. 候选不能满足需求的**可复现行为缺口**；
+4. 为什么不能通过完整产品、Sidecar、源码模块、官方 SDK、成熟协议、plugin/extension 或 upstream patch 解决；
+5. 为什么多个成熟 OSS 的组合仍不能满足；
+6. 最小不可避免的 Yance 差异范围；
+7. 对应 failure-first 测试、升级/回滚与未来替换方案。
 
-默认准入规则：
+默认准入规则升级为：
 
-> **存在成熟 OSS 可满足约 80% 以上核心需求时，原则上禁止重新自研等价基础设施；优先移植/封装成熟上游，再用最薄适配补齐剩余差异。**
+> **只要存在成熟 OSS 能承担该能力的核心权威，Yance 就不得重新自研等价基础设施。即使单个 OSS 不能覆盖 100%，也必须优先组合成熟 OSS + 上游扩展 + 极薄适配补齐；“成熟 OSS 可满足约 80%”只是最低判断线，不是允许重写剩余或整套重写的理由。**
+
+只有在正式 OSS-fit 形成“无成熟产品 / 服务 / 模块 / SDK / 协议 / 上游扩展可以满足必要行为”的证据后，才允许申请最小差异代码；该授权不自动扩展成新的通用 Yance framework。
 
 ### 1.3 “移植”定义
 
-“移植开源项目源码模块”不等于机械复制整个仓库。优先级为：
+“移植开源项目源码模块”不等于机械复制整个仓库，也不等于阅读实现后重新写一个 Yance 版本。优先级为：
 
 - 官方公开 API / SDK；
 - 官方 sidecar/server；
 - 可独立运行的成熟模块；
+- 官方 plugin / extension / protocol；
 - 精确 vendoring 可维护源码；
-- 最后才是 Yance 独立实现。
+- 必要 upstream patch；
+- 最后才是经正式授权的最小差异代码。
 
-禁止“参考上游后用 Yance 重写一遍”冒充 OSS 移植。
+禁止：
+
+```text
+OSS
+ ↓
+研究实现
+ ↓
+重新设计 Yance 版本
+ ↓
+复制等价 engine/runtime/state machine
+```
+
+必须优先：
+
+```text
+OSS product/runtime/module/SDK
+        ↓
+直接成为生产能力
+        ↓
+极薄 Yance integration
+```
 
 ### 1.4 速度规则
 
-速度通过删除重复工程获得，不通过临时绕过获得。永久禁止：
+速度通过删除重复工程获得，不通过临时绕过或重复自研获得。永久禁止：
 
 - 弱化或关闭 guard；
 - 跳过测试；
@@ -135,7 +182,34 @@ Yance 的最高执行指标是：**以最短路径形成真实可运行、功能
 - amend/rebase 改写已发布历史；
 - 扩大无边界重试；
 - 伪造成功状态；
-- 用临时 patch、CSS 遮挡、假数据或旁路长期代替底层修复。
+- 用临时 patch、CSS 遮挡、假数据或旁路长期代替底层修复；
+- 为了赶进度自研成熟 OSS 已有的基础能力，随后再用长期修复成本偿还技术债。
+
+### 1.5 明确禁止新增的 Yance 自研基础引擎
+
+除非经过独立 OSS-fit 缺口证明与新的精确授权，禁止新增或扩展等价的 Yance 自研：
+
+- Message / Communication Engine；
+- Memory Engine / Agent persistence framework；
+- Relationship Graph / temporal fact engine；
+- Journey / Goal runtime；
+- Model Gateway / provider adapter framework；
+- Model Router 基础设施；
+- Prompt Optimizer / Learning / Training Engine；
+- Agent Chat UI framework / streaming framework；
+- Agent runtime / conversation server；
+- Tool protocol；
+- Vector DB；
+- Document parser / OCR engine；
+- STT / TTS / voice cloning engine；
+- Image workflow / photo manager；
+- WebRTC / realtime media framework；
+- Avatar runtime；
+- Durable workflow engine；
+- 通用 observability / dataset / evaluation platform；
+- 与成熟 OSS 重复的数据存储、状态机、同步、重试、调度或插件框架。
+
+若成熟 OSS 已存在，Yance 的任务是**集成、配置、产品化、验证和必要上游修补**，不是重新实现。
 
 ---
 
@@ -159,8 +233,8 @@ Yance 固定拥有：
           ┌─────────────────────────────┼─────────────────────────────┐
           ↓                             ↓                             ↓
  Communication Core          Relationship Intelligence        Personal Presence
- Matrix / Element         Persona / Letta / Graphiti /       Voice / Photo / Avatar
- mautrix / native OSS          Parlant / Emotion                     │
+ Matrix / Element       Persona/Character / Letta / Graphiti  Voice / Photo / Avatar
+ mautrix / native OSS       Parlant / Emotion / Lorebook              │
           │                             │                    CosyVoice / Immich
           │                             │                    ComfyUI / LiveKit
           └───────────────┬─────────────┴───────────────┬────────────┘
@@ -169,8 +243,13 @@ Yance 固定拥有：
                 RouteLLM + LiteLLM        Docling / MCP / Retrieval
                           ↓                             ↓
                      Learning Brain                Tool execution
-              Langfuse + OTel + DSPy              mature OSS
-                    + Promptfoo
+       Langfuse + OTel + DSPy + GEPA + Promptfoo   mature OSS
+                 + Agent Lightning (later)
+                          │
+                          ↓
+                 Learning Coach UX
+      Letta Agent SDK + assistant-ui + tool-ui
+                + AG-UI only if needed
                           ↓
                    Yance Integration
                           ↓
@@ -196,16 +275,21 @@ Yance 固定拥有：
 | Instagram | mautrix-meta + 官方 API；个人 DM 另走经 OSS-fit 证明的 native/session runtime | bridge / API / native fallback |
 | Google Messages | mautrix-gmessages | bridge |
 | 长期 Agent / Memory / Context | Letta | 完整服务 / SDK |
+| Learning Coach conversational agent | **复用现有 Letta Agent SDK / Letta runtime** | 新建受限 Coach Agent/配置与工具绑定；禁止第二 Agent server / memory runtime |
 | 时间关系记忆 | Graphiti | Sidecar |
-| Persona / Character / Lorebook / Prompt 行为来源 | SillyTavern 经过许可证与边界审查的模块/思想 | 精选源码模块，不引入第二产品 UI |
+| Persona / Character Card / Lorebook / Prompt 行为来源 | SillyTavern 经过许可证与边界审查的成熟模块 | 精选源码模块，不引入第二产品 UI/模型网关 |
 | 目标导向关系对话 | Parlant | 完整 Journey/Guideline 运行时 |
 | 非对话长流程 | LangGraph 或 Temporal（按 durable 需求） | 依赖/Sidecar，避免重复 |
 | 模型统一网关 | LiteLLM | Sidecar |
 | 智能模型路由 | RouteLLM | 路由模块 |
-| 前端 AI streaming/tool UI | Vercel AI SDK 等成熟 SDK | 固定依赖 |
+| 前端 AI streaming/tool UI | Vercel AI SDK 等成熟 SDK | 固定依赖，按实际缺口采用，不重造 streaming/tool 基础层 |
+| Learning 对话 UI | **assistant-ui** | 精选成熟 React primitives / custom runtime adapter，嵌入现有 YanceWorkspace |
+| Learning tool / approval UI | **assistant-ui/tool-ui** | 成熟 tool rendering / approval / progress / data UI，不建立第二状态权威 |
+| Agent↔UI 通用协议 | AG-UI | **P1 候选：仅在真实多 Agent/UI 协议需求出现时采用**；禁止提前自研协议 |
 | AI trace / dataset / eval | Langfuse | 完整服务；enterprise 路径单独排除/审计 |
 | Telemetry 标准 | OpenTelemetry | 固定依赖 / Collector |
-| Prompt/program 优化 | DSPy | Sidecar |
+| Prompt / program 优化 | DSPy + GEPA | Sidecar / 优化模块 |
+| Agent trajectory 深层训练 | Microsoft Agent Lightning | **P1：数据成熟后**接入 APO / RL / SFT；先 shadow/offline |
 | AI 回归/红队 | Promptfoo | CI/评测工具 |
 | 人工反馈数据集 | Argilla（需要时） | Sidecar |
 | 语音理解 / 情绪识别 | SenseVoice / FunASR | Sidecar；模型权重许可证单独审查 |
@@ -239,6 +323,8 @@ Yance 固定拥有：
 - Chatwoot 只允许采用根 MIT 范围内代码，`enterprise/` 必须明确排除或单独授权；
 - Langfuse、LiteLLM 等 open-core 项目必须做精确 path-level license audit；
 - SillyTavern AGPL 等义务正常履行，不以许可证为由默认重写；
+- GEPA、DSPy、Agent Lightning 等仍必须在实际采用前固定 exact repo/commit/license/dependency closure；
+- assistant-ui、tool-ui、AG-UI 等在实际采用前同样必须固定 exact repo/commit/tag、license、依赖闭包、vendored/build paths 与 notices；
 - Open-LLM-VTuber 必须冻结许可证合适的精确 backend/module；不能假设后续 main 仍为 permissive；
 - SenseVoice、Avatar、图片、音频模型必须把**代码许可证与模型权重许可证分开冻结**；
 - 所有 vendoring / fork 修改必须可重建、可追溯、可重新基于上游验证。
@@ -265,7 +351,7 @@ WhatsApp / Telegram / Signal / Meta / Google Messages / 其他成熟桥
 2. bridge 缺平台特有能力：允许成熟 native OSS runtime 直达；
 3. 没有 bridge 但有官方/成熟完整客户端：Sidecar；
 4. 只有设备本机能力：Companion Host；
-5. 没有成熟来源：先形成 OSS-fit 缺口证据，再批准最小自研。
+5. 没有成熟来源：先形成 OSS-fit 缺口证据，再批准最小差异代码；不得直接新建通用 transport framework。
 
 ### 4.1 平台范围
 
@@ -382,7 +468,7 @@ Yance Facebook Bridge
 
 ### 5.4 Facebook 实施顺序
 
-Facebook modernization 是**独立 work package**，不得污染当前 Letta #119 或其它 exact-scope 工作线。
+Facebook modernization 是**独立 work package**，不得污染任何 Relationship/AI exact-scope 工作线。
 
 推荐：
 
@@ -391,7 +477,7 @@ Facebook modernization 是**独立 work package**，不得污染当前 Letta #11
 3. FCA-compatible forks 做 Session Engine OSS-fit；
 4. 两条路线用同一真实账号/Page capability matrix 比较；
 5. Yance 只保留最薄 bridge 与统一产品投影；
-6. 无成熟实现的剩余缺口再单独申请最小自研。
+6. 无成熟实现的剩余缺口必须先尝试上游扩展/patch，再单独申请最小差异代码；不得建立第二套通用 transport framework。
 
 ---
 
@@ -406,6 +492,7 @@ Yance 统一产品界面
 ├── 统一消息时间线
 ├── 统一输入与发送区
 └── 右侧 Relationship / AI / Contact / Presence 工作区
+    └── AI: Reply / Goal / Persona / Relationship / Learning
 ```
 
 平台身份只通过图标、账号、筛选、来源和 capability 差异呈现；不得为 WhatsApp、Telegram、Signal、Facebook、Instagram 等重新建立产品级独立 UI。
@@ -417,44 +504,148 @@ Yance 统一产品界面
 - 隐藏必须有明确恢复入口；
 - 窄窗口使用成熟 Sheet/Drawer；
 - 隐藏/折叠只改变展示，不得停止同步、Journey、AI 或后台任务；
-- 主题、提示音、通知、翻译、字体/密度和用户设置继续零回归。
+- 主题、提示音、通知、翻译、字体/密度和用户设置继续零回归；
+- Learning 交互必须继续存在于同一 YanceWorkspace，不允许启动第二套 AI 聊天产品 UI；
+- Learning Chat 的 Thread / Message / Composer / streaming / action bar 等优先直接采用 assistant-ui 成熟 primitives；
+- tool result / approval / progress / structured data UI 优先采用 tool-ui；Yance 只做视觉整合和与既有 authority 的薄 adapter。
 
-UI 组件仍优先 shadcn-vue、Reka UI、VueUse、Tiptap OSS Core、TanStack、Cytoscape.js、Storybook、Playwright、axe-core、MSW 等成熟 OSS。
+UI 组件仍优先 shadcn-vue、Reka UI、VueUse、Tiptap OSS Core、TanStack、Cytoscape.js、Storybook、Playwright、axe-core、MSW 等成熟 OSS；对于 Agent Chat / Tool UI 这种已有专门成熟 OSS 的能力，不允许仅因为现有通用 UI 库可拼出来就自行重写等价框架。
 
 ---
 
-## 7. Relationship Intelligence：Persona + Relationship Profile + Letta + Graphiti
+## 7. Relationship Intelligence：Persona/Character + Relationship Profile + Letta + Graphiti
 
-### 7.1 Persona：理解“我”
+### 7.1 Yance Persona Card：理解“我是谁、我如何真实地说话”
 
-用户 Persona / Style 不建立新的 Yance 基础框架。
+Yance 不再把“暧昧、小女人、风骚、调情、成熟、高冷、个性、温柔、主动、神秘、性感、幽默、俏皮”等风格标签直接平铺进一个大 Prompt。
+
+这些既有标签必须保留，但角色升级为**Persona 选择/组合参数**，由成熟 Character Card / Persona / Prompt composition 机制编译成稳定、可执行、可评测的聊天人格。
 
 优先组合：
 
 ```text
-SillyTavern Persona / Prompt Manager 可移植行为
+SillyTavern Persona / Character Card / Prompt Manager / Lorebook 可移植行为
         +
 Letta structured memory/profile
         +
-Graphiti context
+Graphiti relationship context
         +
-DSPy learning
+DSPy/GEPA learning
 ```
 
-至少支持：
+Yance Persona Card 至少包含：
 
-- 常用语言；
-- 句子长短；
-- 表情/emoji 使用习惯；
-- 称呼；
-- 幽默度；
-- 主动程度；
-- 正式/随意程度；
-- 用户明确禁止的说法；
-- 对不同关系采用不同表达方式；
-- 用户修改/拒绝 AI 回复形成可证据化学习。
+```text
+Yance Persona Card
+├── Identity / Core Persona
+│   ├── language / locale
+│   ├── maturity / confidence
+│   ├── femininity / warmth / independence 等用户自选特征
+│   └── 用户明确身份与表达边界
+├── Conversation Style
+│   ├── flirt / teasing / directness / warmth
+│   ├── initiative / restraint / mystery
+│   ├── message length / question density
+│   └── emoji / punctuation / colloquial habits
+├── Boundaries
+│   ├── 禁止说法
+│   ├── 不连续追问
+│   ├── 不过度解释/讨好
+│   └── 用户明确的亲密/成人内容边界
+├── Scenario Profiles
+│   ├── 刚认识
+│   ├── Dating App
+│   ├── 暧昧中
+│   ├── 稳定关系
+│   ├── 冷淡/冲突后
+│   └── 重新联系
+└── Example Dialogues
+    ├── 普通聊天
+    ├── 暧昧/调情
+    ├── 拒绝/设边界
+    ├── 推进见面
+    └── 对方冷淡/跑题/主动升级
+```
 
-### 7.2 Relationship Profile：理解“对方”和“两个人”
+Persona Card 是“我怎么表达”的权威投影；Letta/Graphiti 不被复制成第二套人格数据库。
+
+### 7.1.1 Style 标签 → 可执行人格，不允许只保留抽象形容词
+
+标签不得直接等同于模型指令。例如“暧昧”必须进一步定义为具体行为规则、禁用模式与 Example Dialogues；“小女人 + 高冷 + 主动 + 暧昧”等潜在冲突标签必须先由 Style Resolver 解释成一致的人格策略。
+
+允许内部形成类似：
+
+```text
+maturity
+warmth
+femininity
+flirt
+teasing
+directness
+initiative
+restraint
+mystery
+neediness
+emoji_frequency
+message_length
+```
+
+但这些参数只是 Persona 编译输入，不直接作为最终用户可见人格，也不能代替自然语言规则和真人 Few-shot。
+
+### 7.1.2 Locale Profile 与 Chat Register 必须和人格分离
+
+Yance 面向德国、奥地利及欧美用户时，必须分离：
+
+```text
+Persona
+= 这个用户是谁、有什么稳定表达气质
+
+Locale Profile
+= de-DE / de-AT / de-CH / en-GB / en-US ...
+
+Chat Register
+= WhatsApp / Dating App / 长期伴侣 / 工作等具体沟通表面
+
+Relationship Context
+= 当前面对谁、处于什么关系阶段
+```
+
+不得把“德国女性”“奥地利女性”等人口属性直接简化成刻板人格规则。
+
+例如“德国 45 岁成熟高质量女性在 WhatsApp 上自然打字”的产品目标，必须被拆成：德语母语级 locale、成熟/自信/有边界 Persona、WhatsApp 短消息 register、当前 Relationship Stage、具体用户历史风格和 Example Dialogues，而不是一个人口标签。
+
+### 7.1.3 Base Persona + Style Overlay
+
+长期稳定人格与当天临时风格必须分层：
+
+```text
+Base Persona
+  +
+Style Overlay
+  +
+Relationship-specific adaptation
+```
+
+例如用户长期是“独立 + 温柔 + 有个性”，当天可以选择“更暧昧一点 / 更克制一点 / 更女性化一点 / 更大胆一点”；Overlay 只调整强度，不替换长期 Persona。
+
+### 7.1.4 Example Dialogues / Few-shot 是 Persona 的一等公民
+
+对“真实 WhatsApp 感”的要求不能只靠标签和规则。
+
+每个重要 Persona/Locale/Register 组合应有经筛选的 Example Dialogues，覆盖：
+
+- 对方普通开场；
+- teasing / flirt；
+- 主动询问见面；
+- 对方冷淡；
+- 冲突后缓和；
+- 拒绝和边界；
+- 用户不想显得过度主动；
+- 用户愿意自然升级亲密度。
+
+Example 必须来自用户明确提供/授权或合法构建的训练/评测素材；不得无来源复制私人聊天数据。
+
+### 7.2 Relationship Profile / Relationship Card：理解“对方”和“两个人”
 
 借鉴成熟 Character Card / Lorebook / World Info 的数据组织，但联系人是真实人物，因此必须分离：
 
@@ -482,6 +673,18 @@ Relationship Profile 可包含：
 
 每条关键事实应尽量带来源、时间、confidence/provenance。
 
+最终 Reply Brain 的人格输入必须是：
+
+```text
+Yance Persona Card（我是谁）
+        ×
+Relationship Card（对方是谁 / 我们是什么关系）
+        ×
+Locale/Register
+        ×
+当前 Style Overlay
+```
+
 ### 7.3 Letta：Relationship Memory Authority
 
 Letta 继续负责：
@@ -494,7 +697,7 @@ Letta 继续负责：
 - 长期互动记忆；
 - agent/tool state persistence。
 
-当前 Letta P0 仍按既有授权 scope 收口，不因本增强扩大 #119。
+Letta P0 v2 已完成并进入 `main`；后续不得为了 Persona/Character/Learning Coach 功能重新建立第二套长期 memory authority、Agent server 或 conversation persistence runtime。
 
 ### 7.4 Graphiti：时间关系演化
 
@@ -568,6 +771,8 @@ Journey state / guideline
 
 SalesGPT/销售阶段不再是 V2.1 核心 Journey 模板来源。
 
+Parlant Relationship Goal/Journey P0 v1 已完成并进入 `main`；后续 Persona/Graphiti/Learning 工作只能消费或增强其上下文，不复制第二套 Journey runtime。
+
 ---
 
 ## 9. Reply Candidates：不是只给一个“标准答案”
@@ -584,6 +789,30 @@ SalesGPT/销售阶段不再是 V2.1 核心 Journey 模板来源。
 
 可借鉴 SillyTavern swipe/branch、prompt composition 等成熟交互思想或可移植模块；不得因此把 SillyTavern 变成第二套 Yance UI。
 
+生成链至少允许：
+
+```text
+当前消息
+ + Graphiti 关系事实
+ + Letta 长期上下文
+ + Relationship Card
+ + Yance Persona Card
+ + Locale/Register
+ + Style Overlay
+ + Parlant Goal/Journey
+ + relevant Example Dialogues
+        ↓
+RouteLLM + LiteLLM
+        ↓
+候选生成
+        ↓
+Persona Consistency / Native Register / Relationship Critic
+        ↓
+候选排序
+```
+
+对于德语 WhatsApp 等核心目标，必须专门评估：翻译腔、邮件/客服感、过度完整、过度解释、Emoji 过量、连续追问、Persona drift、关系阶段不匹配和典型 AI 套话。
+
 Yance 最终发送前保持用户可选择、修改和接管。
 
 ---
@@ -597,8 +826,7 @@ Yance 最终发送前保持用户可选择、修改和接管。
 ```text
 voice
  ↓
-ASR text
- + language ID
+ASR text + language ID
  + speech emotion signal
  + audio event signal
  + speaker diarization（适用时）
@@ -651,55 +879,248 @@ LiteLLM/open-core 路径必须做 license boundary audit。
 
 ---
 
-## 12. Learning Brain：越来越像用户，不直接“训练出另一个人格”
+## 12. Learning / Growth Brain：每天复盘、可证据化成长、不会任意改自己
 
-闭环：
+Learning Brain 的目标不是“让模型看完聊天后直接自我修改”，而是形成：
+
+> **观察 → 复盘 → 找错/找成功模式 → 形成学习候选 → 回归验证 → 版本晋级/回滚 → 下一次真实聊天继续验证。**
+
+固定闭环：
 
 ```text
-AI candidate / Journey / route / Presence output
+真实聊天 / AI candidate / Journey / route / Presence output
         ↓
 Langfuse trace + OpenTelemetry
         ↓
 用户选择 / 修改 / 拒绝 / 最终发送
         ↓
-Letta/Graphiti relationship evidence
+对方后续反应 + Parlant Goal/Journey 变化
         ↓
-Argilla（需要人工整理时）
+Letta / Graphiti relationship evidence
         ↓
-DSPy candidate optimization
+Daily Review + Mistake/Success Library
         ↓
-Promptfoo + Langfuse experiment
+DSPy Program
+        ↓
+GEPA Reflection / Optimization
+        ↓
+Persona / Prompt / Strategy candidate version
+        ↓
+Promptfoo + Langfuse Experiment
         ↓
 Shadow / Benchmark / Regression
         ↓
 晋级或回滚
+        ↓
+数据规模与质量达到正式门槛后：Agent Lightning APO / RL / SFT
 ```
 
-必须记录：
+### 12.1 Langfuse / OpenTelemetry：完整学习轨迹
 
-- AI 推荐文本 vs 用户最终发送文本；
-- 修改距离；
-- 语气变化；
-- 长短变化；
-- 常用词；
-- 候选接受/拒绝；
-- Journey 是否自然推进；
-- 用户是否主动取消目标；
-- Voice/Visual/Avatar 是否采用；
-- latency / failure / user takeover。
+必须尽量记录：
 
-单次行为不得直接覆盖长期 Persona 或 Relationship Profile。
+- contact / relationship identity；
+- incoming message；
+- Graphiti / Letta context；
+- Parlant Journey state；
+- Persona / Relationship / Style Overlay version；
+- Prompt/Program version；
+- model / route；
+- candidate A/B/C...；
+- 用户选择哪一条；
+- 用户最终修改；
+- 实际发送文本；
+- 对方后续反应；
+- Goal/Journey 是否推进；
+- native-language/register score；
+- Persona consistency；
+- latency / failure / user takeover；
+- Voice/Visual/Avatar 是否采用。
+
+### 12.2 Daily Relationship Review：逐联系人当天总结 + 次日计划
+
+每天可以为每个有实际互动的联系人生成结构化 Review，包括：
+
+```text
+今日重要变化
+Relationship Timeline 新事实/新事件
+对方主动/被动趋势
+今天 Goal/Journey 进度
+哪些回复有效
+哪些回复被用户明显修改/拒绝
+AI 的主要问题分类
+值得学习的表达模式
+明日 Relationship Journey 建议
+明日应避免重复的问题
+```
+
+用户侧只显示简洁“今日关系总结 / 明日建议”；工程侧保留完整 `Conversation Learning Report`。
+
+“明日计划”优先成为 Parlant Journey proposal，不新增第二套 TomorrowPlan runtime。
+
+### 12.3 Mistake Library / Success Library：错误与成功都必须沉淀
+
+每个高价值失败案例至少应形成：
+
+```text
+Context
+Bad Candidate
+User Correction / Better Outcome
+Failure Classification
+Root Cause
+Correct Pattern
+Regression Test
+```
+
+典型 Failure Classification 包括：
+
+- too formal；
+- too long；
+- too eager；
+- wrong relationship stage；
+- unnatural German / translationese；
+- email/customer-service tone；
+- persona drift；
+- excessive emoji；
+- repeated questions；
+- over-explaining；
+- wrong memory/fact usage；
+- Journey push too hard / too weak。
+
+被确认的重要错误必须尽量转成 Promptfoo/Langfuse regression case，形成“犯过的错误 → 永久测试”。
+
+成功案例同样沉淀，避免系统只会学习“不该做什么”。
+
+### 12.4 Per-Relationship Learning 与 Global Learning 必须隔离
+
+联系人特有偏好只能进入该 Relationship Profile / Relationship Policy，例如某个联系人不喜欢长消息、Emoji 或直接表达。
+
+只有经过跨关系、跨样本、回归验证的稳定模式，才允许成为全局 Persona/Locale/Register/Prompt Program 改进。
+
+禁止：
+
+```text
+Thomas 不喜欢 Emoji
+        ↓
+所有德国联系人都自动禁用 Emoji
+```
+
+### 12.5 用户修改是最高价值学习信号之一
+
+AI 推荐与用户最终发送之间的差异必须作为显式学习证据，例如：
+
+- 长度减少；
+- 主动程度下降/上升；
+- 暧昧/调情强度变化；
+- 删除解释性后半句；
+- Emoji 调整；
+- 改为更自然的本地口语；
+- 用户完全放弃候选。
+
+但单次行为不得直接覆盖长期 Persona 或 Relationship Profile。
+
+### 12.6 DSPy + GEPA：Learning Brain P0 优化器
+
+DSPy 负责把 Reply Brain 组织成可组合、可优化的 Program，例如：
+
+```text
+ContactUnderstanding
+PersonaSelection
+RelationshipContext
+JourneyStrategy
+ExampleRetrieval
+ReplyGeneration
+NativeRegisterCritic
+PersonaCritic
+RelationshipCritic
+CandidateRanker
+```
+
+GEPA 负责读取执行轨迹、反馈和失败信息，反思根因并提出新的 Prompt / Persona / Strategy / Program 候选。
+
+GEPA/DSPy 输出永远是**候选版本**，不得绕过 Promptfoo/Langfuse experiment 与 shadow/regression 直接上线。
+
+### 12.7 Agent Lightning：P1 深层训练，不作为早期在线自修改器
+
+Agent Lightning 只在：
+
+- 数据量足够；
+- 奖励/评测定义稳定；
+- 训练数据授权清晰；
+- shadow/offline pipeline 已成立；
+- rollback/version gate 已成立；
+
+之后进入 APO / RL / SFT。
+
+第一阶段不允许用少量真实聊天直接做在线 RL 并即时覆盖生产策略。
+
+### 12.8 版本与回滚
 
 版本化至少包括：
 
 - Persona/Profile Version；
+- Locale/Register Version；
+- Style Overlay Version；
 - Relationship Policy Version；
 - Prompt/Program Version；
 - Journey Template Version；
 - Routing Policy Version；
+- Learning Policy / Dataset Version；
 - Voice Style Profile Version；
 - Visual Workflow Version；
 - Avatar Runtime/Profile Version。
+
+任何学习晋级必须能回滚到前一个已验证版本。
+
+### 12.9 Learning Coach：可以像聊天一样交流，但不自研第二套聊天/Agent 基础设施
+
+用户必须能够在 Yance 右侧 `AI > Learning` 中直接与 Learning/Growth Brain 自然语言交流，例如：
+
+- “今天我和这个联系人的聊天有什么问题？”；
+- “为什么刚才这条回复显得像 AI？”；
+- “最近一周我经常把哪些回复改掉？”；
+- “哪些做法值得继续？”；
+- “明天这个联系人应该怎么聊？”；
+- “你最近从我的修改里学到了什么？”；
+- “这个结论有什么证据？”；
+- 用户纠正错误归因，例如“不是太长，是太讨好”。
+
+实现边界固定为：
+
+```text
+YanceWorkspace > AI > Learning
+        ↓
+assistant-ui
+Thread / Message / Composer / streaming / actions
+        +
+assistant-ui/tool-ui
+approval / progress / evidence / structured results
+        ↓
+极薄 runtime adapter
+        ↓
+现有 Letta Agent SDK / Letta runtime
+Learning Coach Agent
+        ↓
+公开/正式 authority interfaces
+Langfuse / Graphiti / Parlant / Persona / existing conversation data
+```
+
+Learning Coach 不建立新的 Agent server、conversation runtime、memory DB、Relationship DB、Journey DB、dataset platform 或 training engine。
+
+Learning Coach 的状态与长期 Agent conversation 继续由 Letta 持有；关系事实由 Graphiti；Goal/Journey 由 Parlant；trace/dataset/eval 由 Langfuse；优化由 DSPy/GEPA；回归由 Promptfoo。
+
+面向真实状态修改的能力默认使用 proposal/approval 语义，例如：
+
+```text
+propose_persona_change
+propose_relationship_policy_change
+propose_regression_case
+propose_tomorrow_journey
+```
+
+不得把自然语言聊天直接变成未经验证的生产 Persona/Prompt/Journey 静默覆盖。tool-ui 的 approval UI 只负责呈现和用户确认，不成为状态权威。
+
+若未来多个 Agent/前端之间确实出现统一事件/状态同步协议需求，先对 AG-UI 做 OSS-fit；在此之前禁止自研 Yance Agent↔UI protocol。
 
 ---
 
@@ -925,7 +1346,20 @@ Learning Brain
 - 100/125/150/200% DPI 与键盘基本可用；
 - route/prompt/Journey/Persona/Voice/Visual/Avatar 全部版本化。
 
-### 21.1 Relationship Intelligence
+### 21.0 Mature OSS Mandatory Gate
+
+每个新增功能 work package 在定义 implementation scope 前必须先通过：
+
+- 明确该功能的生产 authority 应由哪个成熟 OSS 承担；
+- 完整列出搜索/评估过的成熟 OSS 产品、服务、SDK、模块或协议；
+- 证明没有把“已有成熟 OSS 能力”重新写成 Yance 自研基础设施；
+- 优先采用 whole product / sidecar / module / SDK / plugin / upstream patch；
+- 若出现新的 `*Engine`、`*Runtime`、`*Framework`、通用 DB/state machine/protocol，必须自动触发 OSS-fit RED，直到证明没有成熟 OSS 可承担；
+- Yance 自有新增代码必须能解释为 branding / integration / configuration / authority projection / packaging / compatibility / required upstream patch / proven minimal gap；
+- “开发快”“代码不多”“以后方便改”不能作为自研基础能力的理由；
+- 成熟 OSS 组合优先于 Yance 自研一体化替代品。
+
+### 21.1 Relationship Intelligence / Persona Realism
 
 必须验证：
 
@@ -935,7 +1369,13 @@ Learning Brain
 - Persona 变化有证据、版本和回滚；
 - Relationship Timeline 的重要事实可追溯；
 - Goal 控制自己的沟通策略，不构建欺骗/胁迫式对方控制；
-- 用户可随时停用 Goal / AI / Voice / Avatar。
+- 用户可随时停用 Goal / AI / Voice / Avatar；
+- Persona Card / Relationship Card / Style Overlay 权威边界清晰；
+- Locale Profile 不退化成人口/国籍刻板模板；
+- 德语核心场景必须做 de-DE/de-AT native conversational evaluation；
+- WhatsApp register 必须检测邮件/客服感、翻译腔、过度完整、过度解释、连续追问、Emoji 过量和 AI 套话；
+- 同一 Persona 在不同 Relationship Stage 下保持人格一致但允许表达策略变化；
+- Example Dialogues 来源与授权可追溯。
 
 ### 21.2 Communication
 
@@ -984,11 +1424,26 @@ Session Engine：
 
 ### 21.5 Learning / Routing
 
+必须验证：
+
 - shadow comparison；
 - prompt/Journey/routing regression；
 - acceptance/modification distance；
 - latency/cost/quality；
-- failure rollback。
+- failure rollback；
+- per-relationship learning 与 global learning 不串扰；
+- 单次行为不能直接覆盖长期 Persona/Profile；
+- Daily Review 的事实、推断、建议来源可追溯；
+- 高价值 Mistake Case 能转为永久 regression；
+- GEPA/DSPy 输出必须先成为候选版本；
+- Promptfoo/Langfuse experiment 不允许被绕过；
+- 新版本必须有明确质量提升证据和 rollback target；
+- Agent Lightning 第一阶段只允许 offline/shadow，不允许少量数据在线 RL 直接覆盖生产策略；
+- 训练/评测数据权限、PII 和删除边界明确；
+- Learning Chat 必须复用现有 Letta Agent SDK/runtime，不得新建 Learning Agent server/memory runtime；
+- Learning UI 优先 assistant-ui + tool-ui，不得自研等价 Thread/streaming/tool/approval framework；
+- tool-ui 只做展示/确认，不得成为 Persona/Relationship/Journey 状态权威；
+- AG-UI 仅在真实统一协议需求出现并通过 OSS-fit 后采用，禁止提前自研私有 Agent↔UI 协议。
 
 ### 21.6 Visual / Avatar
 
@@ -1000,31 +1455,42 @@ Session Engine：
 
 ### 22.1 已完成 / 当前工作不得重做
 
-- Communications P0（Matrix/Synapse + Element + mautrix-whatsapp）已经按既有工作包收口后，不重新打底；
-- 当前 Letta P0 v2 继续按现有 #119 精确授权与 RED/GREEN 周期实施；
-- 本次 Relationship Enhancement **不得扩大 #119 scope**。
+以下产品骨架已按独立 work package 完成并进入 `main`，后续不得重新打底：
+
+- Communications P0：Matrix/Synapse + Element + mautrix-whatsapp；
+- Letta Persistent Agent / Memory P0 v2；
+- Parlant Relationship Goal/Journey P0 v1。
+
+后续工作必须从这些既成权威继续扩展，不得为了 Graphiti、Persona 或 Learning Growth 新建第二套 Communication / Memory / Journey / Agent Chat 基础设施。
 
 ### 22.2 AI / Relationship 主线
 
-当前 Letta P0 收口后：
+当前主线从 post-Parlant 状态继续：
 
-1. Parlant Relationship Goal/Journey；
-2. LiteLLM + RouteLLM；
-3. Langfuse + OpenTelemetry；
-4. SenseVoice + CosyVoice Voice Brain；
-5. Immich Relationship Media Memory；
-6. Graphiti 深度 Relationship Timeline；
-7. SillyTavern Persona/Character/Lorebook/Prompt 可移植模块 OSS-fit；
-8. Docling + Retrieval；
-9. MCP tool ecosystem；
-10. ComfyUI identity visual；
-11. Live voice；
-12. CyberVerse + LiveKit realtime Avatar；
-13. Temporal/durable workflow 仅在真实需求出现时。
+1. Graphiti 深度 Relationship Timeline / temporal relationship memory；
+2. SillyTavern Persona / Character Card / Lorebook / Prompt Manager 可移植模块 OSS-fit，并形成 Yance Persona Card + Relationship Card + Style Overlay + Locale/Register；
+3. LiteLLM + RouteLLM Model Brain；
+4. Langfuse + OpenTelemetry trace/dataset/eval foundation；
+5. DSPy + GEPA Learning/Growth P0：Daily Review、Mistake/Success Library、Persona/Prompt/Strategy candidate optimization；
+6. Promptfoo permanent regression / red-team closure；
+7. Learning Coach Interaction P0：**复用现有 Letta Agent SDK/runtime + assistant-ui + tool-ui**，只做极薄 adapter 与 YanceWorkspace 集成；AG-UI 仅作为未来真实协议需求的 P1 候选；
+8. SenseVoice + CosyVoice Voice Brain；
+9. Immich Relationship Media Memory；
+10. Agent Lightning P1：仅在数据量/奖励定义/回归门禁成熟后进入 APO / RL / SFT；
+11. Docling + Retrieval；
+12. MCP tool ecosystem；
+13. ComfyUI identity visual；
+14. Live voice；
+15. CyberVerse + LiveKit realtime Avatar；
+16. Temporal/durable workflow 仅在真实需求出现时。
+
+允许互不污染 exact-scope 的独立工作线并行推进；顺序表示默认主线依赖，不要求所有后续能力串行等待。
+
+任何一个步骤在实施前都必须重新执行 Mature OSS Mandatory Gate；若发现更成熟、更完整、许可证可接受且能直接承担生产 authority 的 OSS，应优先整体采用，不因为本计划已经列出某候选就继续自研或固守较弱方案。
 
 ### 22.3 Facebook reliability 独立并行线
 
-Facebook Page 当前已有真实缺陷历史，因此在不污染 Letta/AI exact-scope 的前提下，启动独立：
+Facebook Page 当前已有真实缺陷历史，因此在不污染 Relationship/AI exact-scope 的前提下，启动独立：
 
 ```text
 Facebook current regression freeze
@@ -1052,6 +1518,15 @@ V2.1 当前明确废止/纠正：
 - SalesGPT/销售漏斗作为 Goal Brain 的核心模板；
 - 为每个平台建立独立产品 UI；
 - 为成熟 OSS 已有能力建立第二套 Yance message/memory/journey/model/photo/voice/WebRTC infrastructure；
+- 存在成熟 OSS 时仍以“自己写更方便”为理由建立 Yance 等价 engine/runtime/framework；
+- 阅读成熟 OSS 源码后重新实现一套 Yance 版本并称为“移植”；
+- 为 Learning Brain 新建 `YanceLearningEngine`、第二 Agent server、第二 conversation/memory runtime；
+- 自研 assistant-ui/tool-ui 已成熟覆盖的 Thread/streaming/tool rendering/approval 基础框架；
+- 在没有真实多 Agent/UI 协议缺口时自研 Yance 私有 Agent↔UI protocol；
+- 把风格标签直接平铺进一个大 Prompt 作为长期 Persona 系统；
+- 把国籍/年龄直接当作刻板 Persona 模板；
+- 让 Learning Brain 看完单次聊天后直接覆盖长期 Persona/Profile/Prompt；
+- 同一联系人的学习结果静默污染全部联系人；
 - Facebook Page 默认继续通过扩大 Yance 自研 connector 修补；
 - AI inference 静默变成真人事实；
 - 生成声音/图片/Avatar 冒充实时事实证据。
@@ -1068,19 +1543,27 @@ V2.1 当前明确废止/纠正：
 - `PROJECT_CONTINUATION.md` 只记录当前动态事实，不得覆盖本文件；
 - 总范围调整只允许普通后继提交，不 amend/rebase/force push；
 - 每个真正落地的 OSS 模块仍需要独立来源 pin、scope、failure-first RED、GREEN、review、receipt、exact-Head merge approval；
-- 当前已授权工作包不因为总计划增强而自动获得新增路径授权。
+- 每个新增功能 work package 在 implementation authorization 前必须先通过 Mature OSS Mandatory Gate；
+- 当前已授权工作包不因为总计划增强而自动获得新增路径授权；
+- 已完成/已授权工作包不因新 OSS 方向回滚重做；新能力按普通后继 work package 前向集成，除非正式证据证明既有基础本身必须被替换。
 
 ---
 
 ## 25. 当前立即行动
 
-1. 继续收口当前 Letta P0 v2 #119，不改 scope；
-2. Letta GREEN 后按 Relationship 主线进入 Parlant；
-3. 独立建立 Facebook modernization OSS-fit，不再继续零散修补现有 Facebook transport；
-4. Facebook Session Engine 必须先做真实账号 + Page 能力证明，再决定是否成为正式 native engine；
-5. 把 SillyTavern、SenseVoice、Docling、MCP、pgvector/Qdrant、Open-LLM-VTuber 可许可模块纳入后续来源矩阵；
-6. 对每个新增 OSS 固定 repo/commit/license/model-license/build/runtime/Windows UAT；
-7. 所有功能继续只进入一个 Yance 产品工作区；
-8. 所有 Relation/Emotion inference 必须保留不确定性和 provenance；
-9. 继续执行成熟 OSS 优先、failure-first、底层修复、不强推、不改写历史、不弱化门禁；
-10. 最终 merge 始终停在 owner exact-Head 明确批准边界。
+1. Communications P0、Letta P0 v2、Parlant P0 v1 已完成，禁止重新打底或扩大历史 scope；
+2. Graphiti Relationship Timeline 按既有正式授权/实施线继续，不因为 Persona/Learning/OSS 规则更新污染其 exact scope；
+3. 紧随其后独立启动 SillyTavern Persona / Character Card / Lorebook / Prompt Manager 精确源码模块 OSS-fit，目标是 Yance Persona Card + Relationship Card + Style Overlay + Locale/Register + Example Dialogue；
+4. Persona 核心验收必须包含“自然 de-DE/de-AT WhatsApp register”，并验证成熟高质量用户风格而不是人口刻板模板；
+5. Model Brain 按 LiteLLM + RouteLLM 落地，不引入 SillyTavern 第二模型网关，不自研 provider/routing 基础设施；
+6. Learning/Growth Brain 按 Langfuse + OpenTelemetry → DSPy + GEPA → Promptfoo 顺序形成 P0，支持逐联系人 Daily Review、Mistake/Success Library、用户修改学习和次日 Parlant Journey proposal；
+7. Learning Coach Interaction 独立 OSS-fit：**现有 Letta Agent SDK/runtime + assistant-ui + tool-ui** 为默认 P0 组合；只允许极薄 Yance adapter/UI integration；AG-UI 仅在真实多 Agent/UI 协议需求成立后进入 P1；
+8. Agent Lightning 作为 P1 深层训练层，只有数据量、奖励定义、权限、shadow/regression、rollback 都达到门槛后才实施；
+9. 独立建立 Facebook modernization OSS-fit，不再继续零散修补现有 Facebook transport；
+10. Facebook Session Engine 必须先做真实账号 + Page 能力证明，再决定是否成为正式 native engine；
+11. 对每个新增 OSS 固定 repo/commit/license/model-license/build/runtime/Windows UAT；
+12. 所有功能继续只进入一个 Yance 产品工作区；
+13. 所有 Relation/Emotion inference 必须保留不确定性和 provenance；
+14. **所有新增功能默认必须由成熟 OSS 产品/服务/SDK/源码模块承担；禁止把成熟 OSS 已有能力重新自研成 Yance 基础设施。**
+15. 继续执行 failure-first、底层修复、不强推、不改写历史、不弱化门禁；
+16. 最终 merge 始终停在 owner exact-Head 明确批准边界。
