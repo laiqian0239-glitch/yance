@@ -72,7 +72,9 @@ test('runtime SBOM binds the sealed o200k data component', () => {
 test('Windows sealing script verifies exact assets and official Parlant lock before materialization', () => {
   const s=readText('tools/parlant/build-windows-runtime.ps1');
   for (const marker of [PARLANT_COMMIT,LOCK_BLOB,UV_COMMIT,UV_ASSET,UV_SHA,PBS_COMMIT,PY_ASSET,PY_SHA,'Get-FileHash','SHA256','uv.lock','--frozen','--no-dev','--no-editable']) assert.ok(s.includes(marker), marker);
+  assert.doesNotMatch(s,/--no-verify/iu, 'sealing script must never disable verification');
   assert.match(s, /\$ErrorActionPreference\s*=\s*['"]Stop['"]/u, 'script must fail closed with ErrorActionPreference = Stop');
+  assert.doesNotMatch(s,/\$ErrorActionPreference\s*=\s*['"](?:Continue|SilentlyContinue)['"]/iu, 'sealing script must not downgrade PowerShell error handling');
   assert.match(s, /if\s*\([^)]*-ne[^)]*\)\s*\{\s*throw/iu, 'digest comparison must throw on mismatch');
 });
 
