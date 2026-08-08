@@ -108,7 +108,7 @@ const { ApiV2RuntimeClient } = require('./desktopHost/ApiV2RuntimeClient');
 const { RuntimeProjectionCoordinator } = require('./desktopHost/RuntimeProjectionCoordinator');
 const { backendAuthority, stopOwnedBackend, completeElectronQuit, restartElectronApp } = require('./backendShutdownCoordinator');
 const { createLettaAgentRuntime } = require('./lettaAgentRuntime');
-const { createParlantRelationshipRuntime } = require('./parlantRelationshipRuntime');
+const { createParlantRelationshipRuntime, createRelationshipTaskSequencer } = require('./parlantRelationshipRuntime');
 const { SoundNotificationService } = require('./SoundNotificationService');
 const { isCustomSoundPattern, soundFileName } = require('../shared/notificationSoundCatalog');
 const { runInstalledRuntimeProbeApplicationEntry } = require('./wp7InstalledRuntimeProbeApplicationEntry');
@@ -476,6 +476,7 @@ let runtimeApiV2Client = null;
 let runtimeProjectionCoordinator = null;
 let lettaAgentRuntime = null;
 let parlantRelationshipRuntime = null;
+const parlantInboundSequencer = createRelationshipTaskSequencer();
 
 function ensureLettaAgentRuntime() {
   if (!lettaAgentRuntime) {
@@ -2018,10 +2019,16 @@ async function processParlantInboundEvent(event = {}) {
       text: String(message.text || message.transcript || message.translation || '').trim(),
       externalMessageId: String(message.externalMessageId || message.messageId || message.id || '').trim()
     });
+    const processingTraceId = String(ingested?.traceId || '').trim();
+    if (!processingTraceId) throw Object.assign(new Error('Parlant ingest did not return a native processing trace.'), { reasonCode: 'DESKTOP_PARLANT_PROCESSING_TRACE_MISSING' });
     const candidate = await runtime.requestReplyCandidate({
       contactId,
-      afterOffset: Number(ingested?.nextOffset || 0)
+      afterOffset: Number(ingested?.nextOffset || 0),
+      processingTraceId: String(ingested?.traceId || '')
     });
+    if (String(candidate?.traceId || '').trim() !== processingTraceId) {
+      throw Object.assign(new Error('Parlant candidate trace does not match the ingested native processing trace.'), { reasonCode: 'DESKTOP_PARLANT_CANDIDATE_TRACE_MISMATCH' });
+    }
     const candidateText = String(candidate?.text || '').trim();
     if (!candidateText) throw Object.assign(new Error('Parlant returned an empty relationship-goal candidate.'), { reasonCode: 'DESKTOP_PARLANT_CANDIDATE_EMPTY' });
     const committed = await apiRequest('/api/r32/store/replies/generate', {
@@ -2055,6 +2062,13 @@ async function processParlantInboundEvent(event = {}) {
   }
 }
 
+function scheduleParlantInboundEvent(event = {}) {
+  const message = event?.payload?.message || {};
+  if (!isParlantEligibleInboundMessage(message)) return Promise.resolve({ handled: false, reasonCode: 'DESKTOP_PARLANT_EVENT_NOT_ELIGIBLE' });
+  const contactId = String(message.contactId || '').trim();
+  return parlantInboundSequencer.run(contactId, () => processParlantInboundEvent(event));
+}
+
 function connectEventSocket() {
   stopEventSocket();
   if (!backendReady) return;
@@ -2072,7 +2086,7 @@ function connectEventSocket() {
     try { event = JSON.parse(String(buffer)); } catch (_) { return; }
     sendToRenderer('desktop:event', event);
     if (event.type === 'message:inserted') {
-      Promise.resolve(processParlantInboundEvent(event))
+      Promise.resolve(scheduleParlantInboundEvent(event))
         .catch(error => desktopLog('error', 'parlant-inbound-processing-failed', { reasonCode: error?.reasonCode || error?.code || '', message: error?.message || String(error) }));
     }
     if (['sound-notification:event','desktop:notify','send-queue:sent','send-queue:failed','conversation:presence','system:notifications-updated','notification:settings-updated'].includes(event.type)) {

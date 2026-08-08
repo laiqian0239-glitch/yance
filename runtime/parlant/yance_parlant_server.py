@@ -350,13 +350,14 @@ async def install_yance_routes(api: FastAPI) -> FastAPI:
                 "yance_relationship_key": key,
             },
         )
-        return {"ok": True, "eventId": str(event.id), "offset": int(event.offset), "nextOffset": int(event.offset) + 1, "paused": current.mode == "manual"}
+        return {"ok": True, "eventId": str(event.id), "traceId": str(event.trace_id), "offset": int(event.offset), "nextOffset": int(event.offset) + 1, "paused": current.mode == "manual"}
 
     @api.get("/yance/relationship-goals/{route_key}/candidate")
     async def get_relationship_candidate(
         route_key: str,
         contactId: str = Query(...),
         after_offset: int = Query(0, ge=0),
+        processing_trace_id: str = Query(..., min_length=1, max_length=512),
     ):
         key = assert_scope(route_key, contactId)
         graph = await find_goal(key)
@@ -373,7 +374,7 @@ async def install_yance_routes(api: FastAPI) -> FastAPI:
                 min_offset=after_offset,
                 source=EventSource.AI_AGENT,
                 kinds=[EventKind.MESSAGE],
-                trace_id=None,
+                trace_id=processing_trace_id,
             )
             candidates = sorted((event for event in events if int(event.offset) >= after_offset), key=lambda event: int(event.offset))
             for event in candidates:
@@ -384,6 +385,7 @@ async def install_yance_routes(api: FastAPI) -> FastAPI:
                         "ok": True,
                         "text": text,
                         "eventId": str(event.id),
+                        "traceId": str(event.trace_id),
                         "offset": int(event.offset),
                         "progress": (await goal_projection(key))["progress"],
                     }

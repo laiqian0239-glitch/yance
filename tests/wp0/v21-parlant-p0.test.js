@@ -129,6 +129,41 @@ test('customer ingestion uses native Parlant SessionModule and candidate path ne
   assert.match(main, /source:\s*['"]parlant-journey['"]/u);
 });
 
+test('relationship ingress sequencer serializes one contact without globally blocking other relationships', async () => {
+  const runtimePath = repositoryPath('electron/parlantRelationshipRuntime.js');
+  delete require.cache[require.resolve(runtimePath)];
+  const { createRelationshipTaskSequencer } = require(runtimePath);
+  assert.equal(typeof createRelationshipTaskSequencer, 'function');
+  const sequencer = createRelationshipTaskSequencer();
+  const order = [];
+  let releaseA;
+  const gateA = new Promise(resolve => { releaseA = resolve; });
+  const a1 = sequencer.run('contact-A', async () => { order.push('a1:start'); await gateA; order.push('a1:end'); return 'a1'; });
+  const a2 = sequencer.run('contact-A', async () => { order.push('a2:start'); return 'a2'; });
+  const b1 = sequencer.run('contact-B', async () => { order.push('b1:start'); return 'b1'; });
+  await b1;
+  assert.deepEqual(order, ['a1:start', 'b1:start'], 'different relationships must stay parallel while contact-A is busy');
+  releaseA();
+  assert.deepEqual(await Promise.all([a1, a2]), ['a1', 'a2']);
+  assert.deepEqual(order, ['a1:start', 'b1:start', 'a1:end', 'a2:start']);
+  await assert.rejects(sequencer.run('contact-A', async () => { throw new Error('expected failure'); }), /expected failure/u);
+  assert.equal(await sequencer.run('contact-A', async () => 'after-failure'), 'after-failure', 'a failed task must not poison the relationship queue');
+});
+
+test('Parlant candidate correlation is bound to the native processing trace and same-contact ingress is sequenced', () => {
+  const server = readText('runtime/parlant/yance_parlant_server.py');
+  const runtime = readText('electron/parlantRelationshipRuntime.js');
+  const main = readText('electron/main.js');
+  assert.match(server, /["']traceId["']\s*:\s*str\(event\.trace_id\)/u, 'ingest must return the native Parlant event trace');
+  assert.match(server, /processing_trace_id\s*:\s*str\s*=\s*Query\(/u, 'candidate route must require an exact processing trace');
+  assert.match(server, /trace_id=processing_trace_id/u, 'candidate lookup must filter by the exact native trace');
+  assert.doesNotMatch(server, /trace_id=None/u, 'candidate lookup must never accept an uncorrelated AI event');
+  assert.match(runtime, /processing_trace_id=\$\{encodeURIComponent\(processingTraceId\)\}/u, 'Electron adapter must transport the trace as a query value');
+  assert.match(main, /processingTraceId:\s*String\(ingested\?\.traceId\s*\|\|\s*['"]['"]\)/u, 'main must bind candidate capture to the ingest trace');
+  assert.match(main, /parlantInboundSequencer\.run\(contactId/u, 'same-contact inbound work must go through the relationship sequencer');
+  assert.doesNotMatch(main, /Promise\.resolve\(processParlantInboundEvent\(event\)\)/u, 'event socket must not launch same-contact Parlant work concurrently');
+});
+
 test('provider/runtime failures fail closed and renderer never receives plaintext OpenRouter credentials', () => {
   const runtime = readText('electron/parlantRelationshipRuntime.js');
   const main = readText('electron/main.js');

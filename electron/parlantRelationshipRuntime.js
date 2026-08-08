@@ -75,6 +75,23 @@ function buildParlantEnvironment(options = {}) {
   };
 }
 
+function createRelationshipTaskSequencer() {
+  const tails = new Map();
+  return Object.freeze({
+    run(contactId, taskFactory) {
+      const key = clean(contactId);
+      if (!key || key.length > 512) return Promise.reject(runtimeError('DESKTOP_PARLANT_CONTACT_ID_INVALID', 'Parlant contactId must contain 1 to 512 characters.'));
+      if (typeof taskFactory !== 'function') return Promise.reject(runtimeError('DESKTOP_PARLANT_TASK_INVALID', 'Parlant relationship task must be a function.'));
+      const previous = tails.get(key) || Promise.resolve();
+      const current = previous.catch(() => undefined).then(() => taskFactory());
+      const tracked = current.then(() => undefined, () => undefined);
+      tails.set(key, tracked);
+      tracked.finally(() => { if (tails.get(key) === tracked) tails.delete(key); });
+      return current;
+    }
+  });
+}
+
 function runtimePaths(resourcesPath) {
   const root = path.join(path.resolve(resourcesPath), 'parlant-runtime');
   return Object.freeze({
@@ -276,7 +293,9 @@ function createParlantRelationshipRuntime(options = {}) {
     await ensureStarted();
     const contactId = clean(input.contactId);
     const afterOffset = Number.isInteger(input.afterOffset) ? input.afterOffset : 0;
-    return request('GET', `${scopedRoute(contactId)}/candidate?${contactQuery(contactId)}&after_offset=${Math.max(0, afterOffset)}`, undefined, { timeoutMs: input.timeoutMs || DEFAULT_REQUEST_TIMEOUT_MS });
+    const processingTraceId = clean(input.processingTraceId);
+    if (!processingTraceId || processingTraceId.length > 512) throw runtimeError('DESKTOP_PARLANT_PROCESSING_TRACE_INVALID', 'Parlant candidate capture requires the exact native processing trace.');
+    return request('GET', `${scopedRoute(contactId)}/candidate?${contactQuery(contactId)}&after_offset=${Math.max(0, afterOffset)}&processing_trace_id=${encodeURIComponent(processingTraceId)}`, undefined, { timeoutMs: input.timeoutMs || DEFAULT_REQUEST_TIMEOUT_MS });
   }
 
   return Object.freeze({
@@ -300,5 +319,6 @@ module.exports = {
   assertLoopbackEndpoint,
   buildParlantEnvironment,
   runtimePaths,
+  createRelationshipTaskSequencer,
   createParlantRelationshipRuntime
 };
