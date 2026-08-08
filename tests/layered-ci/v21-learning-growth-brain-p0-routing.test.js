@@ -44,6 +44,13 @@ const V21_LEARNING_GROWTH_BRAIN_P0_UI_ADAPTER_PATHS = Object.freeze([
   'integration/element-module/src/learningAssistantRuntime.ts'
 ]);
 
+const V21_LEARNING_GROWTH_BRAIN_P0_PRIVACY_ROLLOUT_LICENSE_PATHS = Object.freeze([
+  'third_party/licenses/presidio-MIT.txt',
+  'third_party/licenses/openfeature-js-Apache-2.0.txt',
+  'third_party/licenses/openfeature-flagd-provider-Apache-2.0.txt',
+  'third_party/licenses/openfeature-flagd-core-Apache-2.0.txt'
+]);
+
 function canonicalPathSetSha256(paths) {
   const canonical = [...new Set(paths)].sort().join('\n') + '\n';
   return crypto.createHash('sha256').update(canonical, 'utf8').digest('hex');
@@ -167,6 +174,52 @@ test('adjacent unregistered Learning UI paths remain fail closed', () => {
   }
 
   const malformed = classifyWp0Route(policy, ['../integration/element-module/src/LearningWorkspace.tsx']);
+  assert.equal(malformed.pass, false, JSON.stringify(malformed));
+  assert.equal(malformed.reasonCode, 'WP0_ROUTE_PATH_INVALID');
+});
+
+test('V2.1 Learning privacy/rollout license route set is frozen exactly', () => {
+  assert.equal(V21_LEARNING_GROWTH_BRAIN_P0_PRIVACY_ROLLOUT_LICENSE_PATHS.length, 4);
+  assert.equal(new Set(V21_LEARNING_GROWTH_BRAIN_P0_PRIVACY_ROLLOUT_LICENSE_PATHS).size, 4);
+  assert.equal(
+    canonicalPathSetSha256(V21_LEARNING_GROWTH_BRAIN_P0_PRIVACY_ROLLOUT_LICENSE_PATHS),
+    'd4e119293726950129be0c54979657d8e84170ffd69bb841bc10acc9e52dcfde'
+  );
+});
+
+test('V2.1 Learning privacy/rollout license paths are exact PRODUCT_WP0 routes', () => {
+  for (const file of V21_LEARNING_GROWTH_BRAIN_P0_PRIVACY_ROLLOUT_LICENSE_PATHS) {
+    const result = classifyWp0Route(policy, [file]);
+    assert.equal(result.pass, true, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.route, ROUTES.PRODUCT, file);
+    assert.equal(result.productChangesPresent, true, file);
+    assert.equal(policy.productExactPaths.includes(file), true, file);
+  }
+
+  const aggregate = classifyWp0Route(policy, V21_LEARNING_GROWTH_BRAIN_P0_PRIVACY_ROLLOUT_LICENSE_PATHS);
+  assert.equal(aggregate.pass, true, JSON.stringify(aggregate));
+  assert.equal(aggregate.route, ROUTES.PRODUCT);
+  assert.equal(aggregate.productChangesPresent, true);
+});
+
+test('V2.1 Learning privacy/rollout route closure does not authorize a third_party product prefix', () => {
+  assert.equal(policy.productPrefixes.includes('third_party/'), false);
+  assert.equal(policy.productPrefixes.includes('third_party/licenses/'), false);
+});
+
+test('adjacent unregistered Learning privacy/rollout license paths remain fail closed', () => {
+  for (const file of [
+    'third_party/licenses/presidio-enterprise-unapproved.txt',
+    'third_party/licenses/openfeature-unapproved.txt',
+    'third_party/licenses/flagd-daemon-unapproved.txt'
+  ]) {
+    const result = classifyWp0Route(policy, [file]);
+    assert.equal(result.pass, false, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.reasonCode, 'WP0_ROUTE_UNKNOWN_PATH', file);
+    assert.equal(result.route, null, file);
+  }
+
+  const malformed = classifyWp0Route(policy, ['../third_party/licenses/presidio-MIT.txt']);
   assert.equal(malformed.pass, false, JSON.stringify(malformed));
   assert.equal(malformed.reasonCode, 'WP0_ROUTE_PATH_INVALID');
 });
