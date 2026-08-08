@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-08T12:13:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PARLANT-P0-ROUTE-BOOTSTRAP",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #127 exact Head b6ff3da201fba99aa36eb04461c6805ab372b1f7 exposed a base-owned WP0 routing gap for Parlant P0. Stage run 31239291839 / route job 93057389069 failed closed with WP0_ROUTE_UNKNOWN_PATH for config/upstreams/v21-parlant-p0.json and runtime/parlant/yance_parlant_server.py. Six additional exact paths in the already-authorized 20-path Parlant P0 scope are likewise deterministically unknown under the same trusted-main routing policy but were not yet materialized at that source Head. Candidate-owned policy changes are forbidden, so this work package authorizes only an exact literal product-route bootstrap plus its regression contract.",
+  "base": {
+    "branch": "main",
+    "commit": "d3d312874fbd6647427e91b2772920d04091a6d5"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "evidence": {
+    "sourcePullRequest": 127,
+    "sourceExactHead": "b6ff3da201fba99aa36eb04461c6805ab372b1f7",
+    "sourceChangedFileCount": 6,
+    "stageWp0Run": 31239291839,
+    "stageWp0RouteJob": 93057389069,
+    "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "unknownPathsObservedAtSourceExactHead": [
+      "config/upstreams/v21-parlant-p0.json",
+      "runtime/parlant/yance_parlant_server.py"
+    ],
+    "notYetMaterializedPathsClassifiedUnknownAgainstSameTrustedPolicy": [
+      "runtime/parlant/generate_runtime_sbom.py",
+      "third_party/licenses/cpython-PSF-2.0.txt",
+      "third_party/licenses/parlant-Apache-2.0.txt",
+      "third_party/licenses/python-build-standalone-MPL-2.0.txt",
+      "third_party/licenses/uv-Apache-2.0.txt",
+      "third_party/licenses/uv-MIT.txt"
+    ],
+    "trustedRoutingPolicyCommit": "d3d312874fbd6647427e91b2772920d04091a6d5",
+    "trustedRoutingPolicyBlob": "71a13e3deea0198819bd2f6a8092832b70f9ad39"
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-parlant-p0-route-bootstrap-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-parlant-p0-route-bootstrap-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-parlant-p0-route-bootstrap",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-parlant-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "42b298ba4411d5b65978043551933ac89b527f8cd2e6113bba7d5b7776d1e026",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "bootstrapPaths": [
+    "config/upstreams/v21-parlant-p0.json",
+    "runtime/parlant/generate_runtime_sbom.py",
+    "runtime/parlant/yance_parlant_server.py",
+    "third_party/licenses/cpython-PSF-2.0.txt",
+    "third_party/licenses/parlant-Apache-2.0.txt",
+    "third_party/licenses/python-build-standalone-MPL-2.0.txt",
+    "third_party/licenses/uv-Apache-2.0.txt",
+    "third_party/licenses/uv-MIT.txt"
+  ],
+  "bootstrapPathCount": 8,
+  "bootstrapPathSetSha256": "ae39239319813ed754e9e8188d5562ead5cbc8165104797141f02ec8230db99b",
+  "candidatePreservation": {
+    "candidatePullRequest": 127,
+    "candidateBranch": "product/v21-parlant-p0-v1",
+    "candidateAuthorizedChangedFileCountMustRemain": 20,
+    "candidateAuthorizedChangedFileSetSha256MustRemain": "e9cdb1ac7c250c235b7b6f595c3b9a2e5856d9852cdf34aa3b1f5ec81e62cab6",
+    "candidateWorkflowModificationAllowed": true,
+    "candidateAuthorizedWorkflowPath": ".github/workflows/v21-parlant-p0-windows.yml",
+    "candidateHistoryRewriteAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "Trusted-main Stage run 31239291839 records causal WP0_ROUTE_UNKNOWN_PATH on PR #127 exact Head b6ff3da201fba99aa36eb04461c6805ab372b1f7",
+    "After implementation each of the eight exact Parlant bootstrap paths selects PRODUCT_WP0",
+    "The exact eight-path set selects PRODUCT_WP0",
+    "The bootstrap uses only productExactPaths and does not add config/, runtime/ or third_party/ prefixes",
+    "Adjacent unregistered Parlant-like and malformed repository paths continue to fail closed",
+    "Governance and product-documentation route precedence remains unchanged",
+    "No PR #127 product implementation path, workflow, dependency manifest, WP7 packaging implementation, release policy, promotion authority, Facebook modernization or unrelated work package is modified by this route-bootstrap implementation"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes applicable governance gates with zero unresolved P0/P1 findings",
+    "Authorization PR merges to main by ordinary two-parent merge without history rewrite",
+    "Implementation branch is created from that exact authorization merge commit",
+    "A test-only commit records the exact eight-path fail-closed contract before policy implementation",
+    "Only the eight exact bootstrap paths are added to productExactPaths",
+    "Implementation exact Head passes applicable Stage, Layered, ACV2 and review gates",
+    "Implementation PR merges to main by ordinary two-parent merge",
+    "Fresh main is merged normally into PR #127 without rebase, amend or force push",
+    "PR #127 continues its original exact 20-path authorization and is reverified on its refreshed exact Head"
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansionInBootstrap": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "directCandidateSelfAuthorization": true,
+    "candidateScopeReduction": true,
+    "candidateScopeExpansion": true,
+    "wp7PackagingModification": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
