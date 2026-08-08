@@ -34,3 +34,27 @@ Yance V2.1 communication P0 integrates the following mature open-source projects
 - Yance integration: mautrix-whatsapp remains the WhatsApp bridge authority.
 
 Exact source pins are recorded in `config/upstreams/v21-comms-p0.json`; `tools/matrix/bootstrap.js` materializes those commits and fails closed on commit or Element patch drift.
+
+## Letta Agent SDK
+
+- Project: Letta Agent SDK
+- Upstream: `https://github.com/letta-ai/letta-agent-sdk.git`
+- Version: `v0.6.2`
+- Exact commit: `c48df1693731443682fe8c7f356ef9b8a33df6c0`
+- Package: `@letta-ai/letta-agent-sdk@0.6.2`
+- License: `Apache-2.0`
+- License copy: `third_party/licenses/letta-agent-sdk-Apache-2.0.txt`
+- Yance integration: public remote `LettaAgentClient` management projection only; Letta remains the agent, memory, conversation, and compaction authority.
+
+## Letta Code
+
+- Project: Letta Code
+- Upstream: `https://github.com/letta-ai/letta-code.git`
+- Version: `v0.30.5`
+- Exact commit: `3e5ead65dcf3b7fdf1e2da595660eb85063a9722`
+- Package: `@letta-ai/letta-code@0.30.5`
+- License: `Apache-2.0` for the code used by Yance; upstream brand assets remain excluded as stated by upstream.
+- License copy: `third_party/licenses/letta-code-Apache-2.0.txt`
+- Yance integration: Yance supervises the official `letta server --backend local --listen ws://127.0.0.1:0` child and stores its local backend under the Yance data root.
+
+Exact Letta source pins are recorded in `config/upstreams/v21-letta-p0.json`. Yance does not copy the Letta launcher or access private Agent SDK lifecycle fields.
