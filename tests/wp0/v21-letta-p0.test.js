@@ -188,3 +188,13 @@ test('manual review requires data-minimized renderer projections and executable 
   assert.equal(conversationItems.additionalProperties, false);
   assert.deepEqual(Object.keys(conversationItems.properties || {}).sort(), ['agentId', 'id']);
 });
+
+test('renderer-facing Letta reads cannot acquire process authority by auto-starting the runtime', () => {
+  const source = readText('electron/lettaAgentRuntime.js');
+  const listAgentsSection = source.slice(source.indexOf('async function listAgents()'), source.indexOf('async function listConversations'));
+  const listConversationsSection = source.slice(source.indexOf('async function listConversations'), source.indexOf('return Object.freeze({ start, stop, snapshot, listAgents, listConversations })'));
+  for (const section of [listAgentsSection, listConversationsSection]) {
+    assert.doesNotMatch(section, /await start\(\)/u, 'read APIs must never start the Letta child');
+    assert.match(section, /LETTA_RUNTIME_NOT_READY/u, 'read APIs must fail closed until Electron main explicitly starts Letta');
+  }
+});
