@@ -584,7 +584,7 @@ function applicationRuntimeAuthoritySnapshot() {
   return {
     ...backend,
     ownershipPresent: backend.ownershipPresent === true || lettaOwned,
-    backendPid: Number(backend.backendPid || letta.pid || 0),
+    backendPid: Number(backend.backendPid || 0),
     letta
   };
 }

@@ -2839,12 +2839,12 @@
       "ipcType": "invoke",
       "handler": {
         "file": "electron/main.js",
-        "line": 0
+        "line": 2807
       },
       "rendererExposure": {
         "api": "getLettaState",
         "file": "electron/preload.js",
-        "line": 0
+        "line": 71
       },
       "risk": "P1",
       "m2Scope": true,
@@ -2891,12 +2891,12 @@
       "ipcType": "invoke",
       "handler": {
         "file": "electron/main.js",
-        "line": 0
+        "line": 2808
       },
       "rendererExposure": {
         "api": "listLettaAgents",
         "file": "electron/preload.js",
-        "line": 0
+        "line": 72
       },
       "risk": "P1",
       "m2Scope": true,
@@ -2956,12 +2956,12 @@
       "ipcType": "invoke",
       "handler": {
         "file": "electron/main.js",
-        "line": 0
+        "line": 2812
       },
       "rendererExposure": {
         "api": "listLettaConversations",
         "file": "electron/preload.js",
-        "line": 0
+        "line": 73
       },
       "risk": "P1",
       "m2Scope": true,
@@ -3221,7 +3221,7 @@
     }
   ],
   "validationSummary": {
-    "rendererToMainHandlerCount": 40,
+    "rendererToMainHandlerCount": 44,
     "mainToRendererChannelCount": 8,
     "allRendererToMainHandlersHaveRequiredFields": true,
     "allOutboundChannelsHaveRequiredFields": true,
