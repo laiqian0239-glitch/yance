@@ -90,9 +90,44 @@ function presentationScalar(value, key) {
   };
 }
 
+function isGraphitiInferenceRow(row = {}) {
+  const engine = clean(row.engine_version || row.engineVersion).toLowerCase();
+  const sources = parseJson(row.source_signal_ids_json || row.sourceSignalIdsJson, []);
+  return clean(row.event_type || row.eventType) === 'graphiti_inference'
+    && engine.startsWith('graphiti:')
+    && array(sources).some(value => clean(value).startsWith('graphiti:'));
+}
+
+function isManualTimelineAnnotation(row = {}) {
+  return Boolean(row.is_key_node || row.isKeyNode)
+    && clean(row.marked_by || row.markedBy).toLowerCase() === 'user';
+}
+
+function selectRelationshipTimeline(timeline = [], signals = []) {
+  const rows = array(timeline);
+  const graphitiRows = rows.filter(isGraphitiInferenceRow);
+  if (!graphitiRows.length) return { timeline: rows, signals: array(signals), authority: 'legacy_projection' };
+  return {
+    timeline: rows.filter(row => isGraphitiInferenceRow(row) || isManualTimelineAnnotation(row)),
+    signals: [],
+    authority: 'graphiti_temporal_inference'
+  };
+}
+
 function timelinePresentationRows(timeline = [], signals = []) {
   const eventRows = array(timeline).slice().reverse().map(row => {
     const title = clean(row.interpretation || row.event_type || row.eventType) || '关系状态变化';
+    const graphitiInference = isGraphitiInferenceRow(row);
+    const manualConfirmation = graphitiInference && isManualTimelineAnnotation(row) && clean(row.node_kind || row.nodeKind) === 'fact';
+    if (graphitiInference) {
+      return [
+        clean(row.confirmed_at || row.confirmedAt || row.started_at || row.startedAt),
+        title,
+        title,
+        manualConfirmation ? 'fact' : 'inference',
+        manualConfirmation ? '用户确认 · Graphiti 来源' : 'Graphiti · AI 推断 · 未评分'
+      ];
+    }
     const confidence = Math.round(clamp01(row.confidence, 0.5) * 100);
     return [
       clean(row.confirmed_at || row.confirmedAt || row.started_at || row.startedAt),
@@ -262,10 +297,11 @@ function project(input = {}) {
   const aiAnalysisCommitted = input.analysisCommitted === true;
   const substantiveInsight = hasSubstantiveInsight(insight) && aiAnalysisAvailable;
   const stale = isInsightStale(insight, messages);
-  const evidenceCount = Math.max(timeline.length, signals.length);
+  const relationshipTimelineSource = selectRelationshipTimeline(timeline, signals);
+  const evidenceCount = Math.max(relationshipTimelineSource.timeline.length, relationshipTimelineSource.signals.length);
   const hasSocialProjection = ['relationship', 'emotion', 'interaction', 'strategy', 'potential']
     .some(key => Object.keys(object(social[key])).length > 0);
-  const baseline = ruleProjection({ messages, social, timeline, signals, fallback });
+  const baseline = ruleProjection({ messages, social, timeline: relationshipTimelineSource.timeline, signals: relationshipTimelineSource.signals, fallback });
 
   let state = STATES.EMPTY;
   let source = 'empty';
@@ -327,7 +363,8 @@ function project(input = {}) {
     risk: substantiveInsight ? Number(insight.riskScore ?? insight.risk ?? baseline.risk) : baseline.risk,
     opportunityText: substantiveInsight ? clean(insight.opportunityText || insight.summary) || baseline.opportunityText : baseline.opportunityText,
     riskText: substantiveInsight ? clean(insight.riskText || insight.hiddenNeed) || baseline.riskText : baseline.riskText,
-    events: timelinePresentationRows(timeline, signals),
+    timelineAuthority: relationshipTimelineSource.authority,
+    events: timelinePresentationRows(relationshipTimelineSource.timeline, relationshipTimelineSource.signals),
     ...(rulePresentation ? { bilingualPresentation: rulePresentation } : {})
   };
 

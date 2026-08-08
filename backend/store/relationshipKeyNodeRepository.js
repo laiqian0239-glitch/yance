@@ -129,6 +129,72 @@ class RelationshipKeyNodeRepository {
     ).all(contactId);
   }
 
+  /** Graphiti owns temporal relationship inference/provenance; Yance preserves epistemic classification separately. */
+  projectGraphitiFacts({ contactId, conversationId, facts } = {}) {
+    const rows = Array.isArray(facts) ? facts : [];
+    const at = new Date(this.now()).toISOString();
+    const statement = this.db.prepare(`
+      INSERT INTO relationship_timeline_events(
+        event_id, contact_id, conversation_id, event_type,
+        started_at, confirmed_at, before_json, after_json, interpretation,
+        evidence_message_ids_json, source_signal_ids_json, confidence, status, engine_version,
+        created_at, updated_at, is_key_node, node_kind, marked_by, marked_at
+      ) VALUES (?, ?, ?, 'graphiti_inference', ?, ?, '{}', ?, ?, '[]', ?, 0.0, ?, 'graphiti:v0.29.3', ?, ?, 0, 'inference', '', '')
+      ON CONFLICT(event_id) DO UPDATE SET
+        contact_id=excluded.contact_id,
+        conversation_id=excluded.conversation_id,
+        event_type=excluded.event_type,
+        started_at=excluded.started_at,
+        confirmed_at=excluded.confirmed_at,
+        after_json=excluded.after_json,
+        interpretation=excluded.interpretation,
+        source_signal_ids_json=excluded.source_signal_ids_json,
+        confidence=excluded.confidence,
+        status=CASE
+          WHEN relationship_timeline_events.marked_by='user' THEN relationship_timeline_events.status
+          ELSE excluded.status
+        END,
+        engine_version=excluded.engine_version,
+        updated_at=excluded.updated_at,
+        node_kind=CASE
+          WHEN relationship_timeline_events.marked_by='user' THEN relationship_timeline_events.node_kind
+          ELSE 'inference'
+        END
+    `);
+    let applied = 0;
+    for (const fact of rows) {
+      const validAt = fact.validAt || fact.referenceTime || fact.createdAt || at;
+      const confirmedAt = fact.createdAt || fact.referenceTime || validAt || at;
+      const status = fact.invalidAt ? 'invalidated' : 'inferred';
+      const afterJson = JSON.stringify({
+        graphitiFactId: fact.factId,
+        graphitiGroupId: fact.groupId,
+        graphitiEpisodeUuid: fact.episodeUuid,
+        sourceEpistemicStatus: 'ai_inference',
+        confidenceStatus: 'unscored',
+        confidenceSource: null,
+        validAt: fact.validAt || null,
+        invalidAt: fact.invalidAt || null,
+        referenceTime: fact.referenceTime || null
+      });
+      statement.run(
+        `graphiti:${fact.factId}`,
+        contactId,
+        conversationId || '',
+        validAt,
+        confirmedAt,
+        afterJson,
+        fact.fact || fact.name || 'Graphiti relationship fact',
+        JSON.stringify([`graphiti:${fact.episodeUuid}`]),
+        status,
+        at,
+        at
+      );
+      applied += 1;
+    }
+    return { applied, unchanged: 0 };
+  }
+
   /** 仅当该事件确为关键节点时返回，否则 null。 */
   getKeyNode(eventId) {
     return this.db.prepare(
