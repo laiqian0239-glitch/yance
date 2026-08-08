@@ -4,7 +4,7 @@
 
 **Goal:** Adopt Letta Agent SDK 0.6.2 plus Letta Code 0.30.5 as Yance's persistent-agent authority while keeping Yance limited to desktop child-process supervision, guarded IPC, Yance-rooted storage and projection inside the existing Element Yance Workspace.
 
-**Architecture:** Yance launches the official `@letta-ai/letta-code` CLI with the existing trusted Node runtime and `server --listen ws://127.0.0.1:0`. The adapter parses the official listening line, rejects non-loopback URLs, binds `LETTA_LOCAL_BACKEND_DIR` under the resolved Yance data root, and connects `@letta-ai/letta-agent-sdk` through its public `backend: "remote"` management API. Letta owns persistent agent state, memory, conversations, compaction and App Server internals; Yance never persists a parallel agent/memory model.
+**Architecture:** Yance launches the official `@letta-ai/letta-code` CLI with the existing trusted Node runtime and `server --backend local --listen ws://127.0.0.1:0`. The explicit local backend prevents machine/user backend preference from silently selecting the cloud/API backend. The adapter parses the official listening line, rejects non-loopback URLs, binds `LETTA_LOCAL_BACKEND_DIR` under the resolved Yance data root, removes cloud API credentials from the child environment, and connects `@letta-ai/letta-agent-sdk` through its public `backend: "remote"` management API. Here `remote` describes the SDK connection topology to the already-running App Server; Letta Code remains on its local persistent backend. Letta owns persistent agent state, memory, conversations, compaction and App Server internals; Yance never persists a parallel agent/memory model.
 
 **Tech Stack:** Electron 39.8.5, Node >=22.19.0, CommonJS desktop host, `@letta-ai/letta-agent-sdk@0.6.2`, `@letta-ai/letta-code@0.30.5`, Node test runner, Element runtime module/React workspace.
 
@@ -15,7 +15,7 @@
 - Final implementation diff: exactly the 14 authorized paths; no workflow modification.
 - Direct exact dependencies: `@letta-ai/letta-agent-sdk` = `0.6.2`; `@letta-ai/letta-code` = `0.30.5`; mutable ranges forbidden.
 - Supported runtime floor: Node `>=22.19.0`; Electron `39.8.5` compatibility remains explicit.
-- Letta Code CLI command: `server --listen ws://127.0.0.1:0`; deprecated `app-server` alias forbidden.
+- Letta Code CLI command: `server --backend local --listen ws://127.0.0.1:0`; deprecated `app-server` alias forbidden.
 - Loopback only. No `0.0.0.0`, LAN or externally supplied listen URL in the Yance launch path.
 - Shutdown authority: SIGTERM to the Letta Code CLI, whose upstream handler owns App Server close; no Agent SDK private-field access.
 - Forbidden: `managementTransport`, `ownedConnection`, unexported Agent SDK subpaths, copied SDK launcher code, Yance memory engine, Yance agent state machine, provider hardcoding, Parlant, LiteLLM/RouteLLM, Langfuse, second AI frontend, or message-send authority.
@@ -61,7 +61,7 @@ Require `electron/lettaAgentRuntime.js` to export:
 }
 ```
 
-The source contract must prove use of the official Letta Code package/`server --listen`, public Agent SDK `backend: 'remote'`, SIGTERM shutdown, and absence of forbidden private/internal access.
+The source contract must prove use of the official Letta Code package/`server --backend local --listen`, public Agent SDK `backend: 'remote'`, SIGTERM shutdown, and absence of forbidden private/internal access.
 
 - [ ] **Step 3: Add workspace/IPC RED contracts**
 
@@ -159,7 +159,7 @@ git commit -m "build(v21): pin Letta P0 authorities"
 LETTA_LOCAL_BACKEND_DIR = path.join(yanceDataRoot, 'letta', 'local-backend')
 ```
 
-and removes `ELECTRON_RUN_AS_NODE` from the child environment.
+and removes both `ELECTRON_RUN_AS_NODE` and `LETTA_API_KEY` from the child environment. The CLI backend flag, rather than inherited user/cloud settings, is the backend authority.
 
 - [ ] **Step 2: Resolve the official package entrypoint**
 
@@ -170,10 +170,10 @@ and removes `ELECTRON_RUN_AS_NODE` from the child environment.
 Spawn the trusted Node executable with:
 
 ```text
-<resolved Letta Code entry> server --listen ws://127.0.0.1:0
+<resolved Letta Code entry> server --backend local --listen ws://127.0.0.1:0
 ```
 
-Parse the official `WebSocket: ws://127.0.0.1:<port>` line, enforce the loopback guard, then construct `new LettaAgentClient({ backend: 'remote', url })`. Use sessionless `client.agents.list()` / `client.conversations.list()` for management reads.
+Parse the official `WebSocket: ws://127.0.0.1:<port>` line, enforce the loopback guard, then construct `new LettaAgentClient({ backend: 'remote', url })`. The SDK `remote` value is only the connection topology to the Yance-owned pre-started App Server; the CLI's explicit `--backend local` owns persistence/backend selection. Use sessionless `client.agents.list()` / `client.conversations.list()` for management reads.
 
 - [ ] **Step 4: Implement supported clean shutdown**
 
@@ -185,7 +185,7 @@ Run the Task 1 test file and verify the adapter source/API contracts are GREEN.
 
 - [ ] **Step 6: Run a real management probe**
 
-Start the actual App Server on loopback, call a sessionless management read without generating a model turn, call `stop()`, and assert the child exits cleanly. The probe must use a temporary Yance data root and confirm `LETTA_LOCAL_BACKEND_DIR` is beneath it.
+Start the actual App Server on loopback with the explicit local backend, call a sessionless management read without generating a model turn or requiring `LETTA_API_KEY`, call `stop()`, and assert the child exits cleanly. The probe must use a temporary Yance data root and confirm `LETTA_LOCAL_BACKEND_DIR` is beneath it.
 
 - [ ] **Step 7: Commit**
 
