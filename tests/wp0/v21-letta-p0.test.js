@@ -155,3 +155,36 @@ test('real Letta App Server management probe is sessionless and shuts down its o
   assert.equal(stopped.pid, null);
   assert.equal(stopped.lastExit?.signal === 'SIGTERM' || stopped.lastExit?.code === 0, true);
 });
+
+test('manual review requires live-child readiness and authoritative failed-start cleanup', () => {
+  const source = readText('electron/lettaAgentRuntime.js');
+  assert.match(source, /child\.exitCode === null/u, 'ready state must require a still-running owned child');
+  assert.match(source, /!child\.signalCode/u, 'ready state must reject an already-signalled owned child');
+  assert.match(source, /if \(child === ownedChild\)/u, 'owned child exit must release the current runtime reference');
+  assert.match(source, /await stop\(\)/u, 'failed start must use the authoritative owned-child stop path');
+});
+
+test('manual review requires data-minimized renderer projections and executable conversation bounds', () => {
+  const main = readText('electron/main.js');
+  const manifest = readJson('electron/m2/ipcManifest.json');
+  const byChannel = new Map(manifest.handlers.map(handler => [handler.channel, handler]));
+
+  assert.match(main, /function projectLettaRendererState\(/u);
+  assert.match(main, /function projectLettaAgentIdentity\(/u);
+  assert.match(main, /function projectLettaConversationIdentity\(/u);
+  assert.match(main, /function normalizeLettaConversationListInput\(/u);
+  assert.match(main, /agentId\.length > 256/u);
+  assert.doesNotMatch(main, /ipcGuardHandle\(['"]desktop:letta-get-state['"], \(\) => ensureLettaAgentRuntime\(\)\.snapshot\(\)\)/u);
+
+  const stateOutput = byChannel.get('desktop:letta-get-state').outputSchema;
+  assert.equal(stateOutput.additionalProperties, false);
+  assert.deepEqual(Object.keys(stateOutput.properties || {}).sort(), ['ready', 'reasonCode']);
+
+  const agentItems = byChannel.get('desktop:letta-list-agents').outputSchema.items;
+  assert.equal(agentItems.additionalProperties, false);
+  assert.deepEqual(Object.keys(agentItems.properties || {}).sort(), ['id', 'name']);
+
+  const conversationItems = byChannel.get('desktop:letta-list-conversations').outputSchema.items;
+  assert.equal(conversationItems.additionalProperties, false);
+  assert.deepEqual(Object.keys(conversationItems.properties || {}).sort(), ['agentId', 'id']);
+});
