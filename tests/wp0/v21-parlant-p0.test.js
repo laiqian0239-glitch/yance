@@ -192,3 +192,25 @@ test('Parlant child spawn failures stay inside the supervised runtime boundary',
   assert.match(runtime, /nextChild\.once\?\.\(\s*['"]error['"]/u, 'spawned Parlant child must have an explicit error listener before readiness');
   assert.match(runtime, /DESKTOP_PARLANT_CHILD_SPAWN_FAILED/u, 'spawn errors must map to a stable fail-closed reason code');
 });
+
+test('Parlant loopback transport authenticates the exact Yance-owned child and rejects local impostors', () => {
+  const runtime = readText('electron/parlantRelationshipRuntime.js');
+  const server = readText('runtime/parlant/yance_parlant_server.py');
+  const preload = readText('electron/preload.js');
+  const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
+
+  assert.match(runtime, /YANCE_PARLANT_LOOPBACK_TOKEN/u, 'main-owned child environment must carry an ephemeral loopback credential');
+  assert.match(runtime, /x-yance-parlant-token/iu, 'every Electron-to-Parlant request must authenticate with the loopback credential');
+  assert.match(runtime, /\/yance\/healthz/u, 'readiness must use the Yance-owned health endpoint rather than generic Parlant health');
+  assert.match(runtime, /instanceProof/u, 'readiness must validate an instance-specific proof rather than accept any HTTP 200');
+  assert.match(runtime, /PARLANT_ENV\s*:\s*['"]production['"]/u, 'Parlant must run with upstream production authorization as defense in depth');
+
+  assert.match(server, /YANCE_PARLANT_LOOPBACK_TOKEN/u, 'bridge must require the same ephemeral loopback credential');
+  assert.match(server, /hmac\.compare_digest/u, 'loopback credential comparison must be constant-time');
+  assert.match(server, /@api\.middleware\(\s*["']http["']\s*\)/u, 'authentication must cover the complete Parlant HTTP surface, not only custom routes');
+  assert.match(server, /x-yance-parlant-token/iu, 'bridge middleware must reject requests without the Yance loopback credential');
+  assert.match(server, /\/yance\/healthz/u, 'bridge must expose an authenticated Yance-owned health proof');
+
+  assert.doesNotMatch(preload, /YANCE_PARLANT_LOOPBACK_TOKEN|x-yance-parlant-token/iu, 'loopback credential must never enter renderer IPC');
+  assert.doesNotMatch(workspace, /YANCE_PARLANT_LOOPBACK_TOKEN|x-yance-parlant-token/iu, 'loopback credential must never enter Workspace state');
+});
