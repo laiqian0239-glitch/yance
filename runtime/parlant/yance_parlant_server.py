@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import hashlib
+import hmac
 import json
 import os
 import sys
@@ -21,6 +22,7 @@ TIKTOKEN_ENCODING_SHA256 = "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5
 TIKTOKEN_CACHE_DIR = (RUNTIME_ROOT / "tiktoken-cache").resolve()
 os.environ["TIKTOKEN_CACHE_DIR"] = str(TIKTOKEN_CACHE_DIR)
 
+
 def _assert_sealed_tiktoken_cache() -> None:
     cache_file = TIKTOKEN_CACHE_DIR / TIKTOKEN_CACHE_KEY
     if not cache_file.is_file():
@@ -31,13 +33,16 @@ def _assert_sealed_tiktoken_cache() -> None:
             f"YANCE_PARLANT_TIKTOKEN_CACHE_HASH_MISMATCH: expected={TIKTOKEN_ENCODING_SHA256} actual={actual}"
         )
 
+
 _assert_sealed_tiktoken_cache()
 
 DATA_ROOT = Path(os.environ.get("YANCE_PARLANT_DATA_ROOT") or os.environ.get("PARLANT_HOME") or "parlant-data").resolve()
 DATA_ROOT.mkdir(parents=True, exist_ok=True)
 os.environ["PARLANT_HOME"] = str(DATA_ROOT)
 
-from fastapi import Body, FastAPI, HTTPException, Query  # noqa: E402
+from fastapi import Body, FastAPI, HTTPException, Query, Request  # noqa: E402
+from fastapi.responses import JSONResponse  # noqa: E402
+from fastapi.routing import APIWebSocketRoute  # noqa: E402
 from lagom import Container  # noqa: E402
 from parlant.adapters.nlp.openrouter_service import OpenRouterService  # noqa: E402
 from parlant.bin.server import StartupParameters, start_parlant  # noqa: E402
@@ -59,12 +64,33 @@ from parlant.core.app_modules.sessions import Moderation  # noqa: E402
 EXPECTED_PARLANT_VERSION = "3.3.2"
 EXPECTED_PARLANT_COMMIT = "61bba3b2b3fffd677d345e393e8c942dbd400297"
 LISTEN_HOST = "127.0.0.1"
+LOOPBACK_TOKEN_ENV = "YANCE_PARLANT_LOOPBACK_TOKEN"
+LOOPBACK_TOKEN_HEADER = "x-yance-parlant-token"
+LOOPBACK_CHALLENGE_HEADER = "x-yance-parlant-challenge"
+LOOPBACK_HEALTH_PATH = "/yance/healthz"
+LOOPBACK_PROOF_DOMAIN = "yance-parlant-health-v1:"
 GOAL_CONDITION = "The active relationship conversation should be guided by its configured Yance relationship goal."
 COMPLETION_CONDITION = "The configured relationship goal has been achieved, abandoned, or is no longer appropriate to pursue."
 
 
 def clean(value: Any) -> str:
     return str(value or "").strip()
+
+
+def required_loopback_token() -> str:
+    token = clean(os.environ.get(LOOPBACK_TOKEN_ENV))
+    allowed = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
+    if not 43 <= len(token) <= 128 or any(character not in allowed for character in token):
+        raise RuntimeError("YANCE_PARLANT_LOOPBACK_TOKEN_INVALID")
+    return token
+
+
+def health_instance_proof(token: str, challenge: str) -> str:
+    return hmac.new(
+        token.encode("utf-8"),
+        f"{LOOPBACK_PROOF_DOMAIN}{challenge}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
 
 
 def relationship_key(contact_id: str) -> str:
@@ -261,8 +287,6 @@ async def ensure_goal_graph(key: str, goal_text: str):
                 {"action": steering_action(goal_text), "description": "Use the relationship goal as a conversational direction, not a forced script."},
             )
         except ItemNotFoundError:
-            # A missing native graph node is a corrupted Parlant-owned goal,
-            # not a reason to create a second Yance state machine.
             raise HTTPException(status_code=409, detail={"reasonCode": "YANCE_PARLANT_GOAL_GRAPH_INVALID", "message": "Parlant goal graph is incomplete"})
         await evaluate_goal_graph(JourneyId(ids["journey"]))
     return await goal_projection(key, session=session)
@@ -294,6 +318,44 @@ async def goal_projection(key: str, session=None) -> dict[str, Any]:
 
 
 async def install_yance_routes(api: FastAPI) -> FastAPI:
+    loopback_token = required_loopback_token()
+
+    # Yance does not consume Parlant's unauthenticated WebSocket log stream.
+    # Remove every upstream WebSocket route rather than ship a second unguarded
+    # local control surface beside the authenticated HTTP bridge.
+    api.router.routes[:] = [route for route in api.router.routes if not isinstance(route, APIWebSocketRoute)]
+
+    @api.middleware("http")
+    async def require_yance_loopback_auth(request: Request, call_next):
+        if request.url.path == LOOPBACK_HEALTH_PATH:
+            return await call_next(request)
+        supplied = clean(request.headers.get(LOOPBACK_TOKEN_HEADER))
+        if not hmac.compare_digest(supplied, loopback_token):
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "ok": False,
+                    "reasonCode": "YANCE_PARLANT_LOOPBACK_AUTH_REQUIRED",
+                    "message": "authenticated Yance loopback transport is required",
+                },
+            )
+        return await call_next(request)
+
+    @api.get(LOOPBACK_HEALTH_PATH)
+    async def yance_healthz(request: Request):
+        challenge = clean(request.headers.get(LOOPBACK_CHALLENGE_HEADER))
+        allowed = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
+        if not 16 <= len(challenge) <= 256 or any(character not in allowed for character in challenge):
+            raise HTTPException(
+                status_code=422,
+                detail={"reasonCode": "YANCE_PARLANT_HEALTH_CHALLENGE_INVALID", "message": "health challenge is invalid"},
+            )
+        return {
+            "ok": True,
+            "instanceProof": health_instance_proof(loopback_token, challenge),
+            "parlantVersion": PARLANT_VERSION,
+        }
+
     @api.get("/yance/relationship-goals/{route_key}")
     async def get_relationship_goal(route_key: str, contactId: str = Query(...)):
         key = assert_scope(route_key, contactId)
@@ -418,6 +480,9 @@ def self_test() -> int:
 async def serve(host: str, port: int) -> None:
     if host != LISTEN_HOST:
         raise RuntimeError("Yance Parlant bridge refuses non-loopback listeners")
+    if clean(os.environ.get("PARLANT_ENV")) != "production":
+        raise RuntimeError("YANCE_PARLANT_PRODUCTION_AUTH_REQUIRED")
+    required_loopback_token()
     if not clean(os.environ.get("OPENROUTER_API_KEY")):
         raise RuntimeError("OPENROUTER_API_KEY is required")
     params = StartupParameters(
