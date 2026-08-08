@@ -100,4 +100,19 @@ Exact Letta source pins are recorded in `config/upstreams/v21-letta-p0.json`. Ya
 - License copy: `third_party/licenses/cpython-PSF-2.0.txt`
 - Yance integration: bundled interpreter for the offline Parlant sidecar; no system Python dependency is permitted.
 
+
+## tiktoken and o200k_base tokenizer data
+
+- Project: tiktoken
+- Upstream: `https://github.com/openai/tiktoken.git`
+- Version: `0.12.0`
+- Exact commit: `97e49cbadd500b5cc9dbb51a486f0b42e6701bee`
+- License: `MIT`
+- Exact upstream LICENSE Git blob: `83ed1036f70d4f419307e8a044a35e163cc35201`
+- Runtime data: `o200k_base.tiktoken` from `https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken`
+- Runtime data SHA-256: `446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d`
+- tiktoken cache key (SHA-1 of the source URL): `fb374d419588a4632f3f557e76b4b70aebbca790`
+- License evidence: `dotnet/machinelearning@7bf1b4d28f49b04fd0b511298f41202ed0b454d7`, `src/Microsoft.ML.Tokenizers.Data.O200kBase/Microsoft.ML.Tokenizers.Data.O200kBase.csproj` (blob `701ec1fd4ead088ffeef61f52bcb831b55ff0115`) explicitly identifies this data file as MIT-licensed.
+- Yance integration: tiktoken remains the tokenizer implementation selected transitively by Parlant's exact `uv.lock`. The build seal pre-materializes only the exact `o200k_base` data through tiktoken's native `TIKTOKEN_CACHE_DIR` protocol, verifies its official hash, includes it in runtime SBOM/tree sealing, and fails closed if the shipped cache is missing or altered. No runtime tokenizer-data download fallback is permitted.
+
 Exact Parlant/uv/python-build-standalone runtime pins are recorded in `config/upstreams/v21-parlant-p0.json`. Runtime materialization must verify the pinned asset sizes/hashes and the exact Parlant lock before producing a distributable runtime.

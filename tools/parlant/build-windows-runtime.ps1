@@ -23,6 +23,12 @@ $PythonAsset = 'cpython-3.12.13+20260807-x86_64-pc-windows-msvc-install_only_str
 $PythonAssetSize = 21962247
 $PythonAssetSha256 = '18bcc65b17921806b72cdc88bcf000bf67a2c99a8fc381fe1629f2b9ba56858d'
 $CpythonVersion = '3.12.13'
+$TiktokenVersion = '0.12.0'
+$TiktokenCommit = '97e49cbadd500b5cc9dbb51a486f0b42e6701bee'
+$TiktokenEncodingName = 'o200k_base'
+$TiktokenEncodingUrl = 'https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken'
+$TiktokenEncodingSha256 = '446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d'
+$TiktokenCacheKey = 'fb374d419588a4632f3f557e76b4b70aebbca790'
 
 function Assert-Sha256([string]$Path, [string]$Expected, [string]$Label) {
   if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "$Label is missing: $Path" }
@@ -61,6 +67,7 @@ $ParlantRepo = Join-Path $WorkRoot 'parlant-src'
 $PythonRoot = Join-Path $OutputRoot 'python'
 $VenvRoot = Join-Path $OutputRoot 'venv'
 $LicenseRoot = Join-Path $OutputRoot 'licenses'
+$TiktokenCacheRoot = Join-Path $OutputRoot 'tiktoken-cache'
 New-Item -ItemType Directory -Path $DownloadRoot, $ToolRoot, $LicenseRoot | Out-Null
 
 $UvZip = Join-Path $DownloadRoot $UvAsset
@@ -107,6 +114,19 @@ if (-not (Test-Path -LiteralPath $VenvPython -PathType Leaf)) { throw "materiali
 $InstalledParlantVersion = (& $VenvPython -I -c 'import importlib.metadata, sys; print(importlib.metadata.version(sys.argv[1]))' 'parlant').Trim()
 if ($InstalledParlantVersion -ne '3.3.2') { throw "installed Parlant version mismatch: expected=3.3.2 actual=$InstalledParlantVersion" }
 
+$InstalledTiktokenVersion = (& $VenvPython -I -c 'import importlib.metadata, sys; print(importlib.metadata.version(sys.argv[1]))' 'tiktoken').Trim()
+if ($InstalledTiktokenVersion -ne $TiktokenVersion) { throw "installed tiktoken version mismatch: expected=$TiktokenVersion actual=$InstalledTiktokenVersion" }
+New-Item -ItemType Directory -Path $TiktokenCacheRoot | Out-Null
+$OldTiktokenCacheDir = $env:TIKTOKEN_CACHE_DIR
+try {
+  $env:TIKTOKEN_CACHE_DIR = $TiktokenCacheRoot
+  Invoke-Checked $VenvPython @('-I', '-c', 'import sys, tiktoken; print(tiktoken.get_encoding(sys.argv[1]).name)', $TiktokenEncodingName) 'pre-materialize official tiktoken o200k cache'
+} finally {
+  if ($null -eq $OldTiktokenCacheDir) { Remove-Item Env:TIKTOKEN_CACHE_DIR -ErrorAction SilentlyContinue } else { $env:TIKTOKEN_CACHE_DIR = $OldTiktokenCacheDir }
+}
+$TiktokenCacheFile = Join-Path $TiktokenCacheRoot $TiktokenCacheKey
+Assert-Sha256 $TiktokenCacheFile $TiktokenEncodingSha256 'tiktoken o200k_base cache'
+
 Copy-Item -LiteralPath (Join-Path $SourceRoot 'runtime\parlant\yance_parlant_server.py') -Destination (Join-Path $OutputRoot 'yance_parlant_server.py')
 Copy-Item -LiteralPath (Join-Path $SourceRoot 'runtime\parlant\generate_runtime_sbom.py') -Destination (Join-Path $OutputRoot 'generate_runtime_sbom.py')
 foreach ($license in @(
@@ -118,6 +138,10 @@ foreach ($license in @(
 )) { Copy-Item -LiteralPath (Join-Path $SourceRoot $license) -Destination $LicenseRoot }
 $AssetLicense = Join-Path $PythonRoot 'LICENSE.txt'
 if (Test-Path -LiteralPath $AssetLicense -PathType Leaf) { Copy-Item -LiteralPath $AssetLicense -Destination (Join-Path $LicenseRoot 'cpython-asset-LICENSE.txt') }
+
+$TiktokenLicense = Get-ChildItem -LiteralPath (Join-Path $VenvRoot 'Lib\site-packages') -Filter 'LICENSE' -File -Recurse | Where-Object { $_.FullName -match 'tiktoken-0\.12\.0\.dist-info[\\/]licenses[\\/]LICENSE$' } | Select-Object -First 1
+if (-not $TiktokenLicense) { throw 'installed tiktoken MIT license file is missing from sealed environment' }
+Copy-Item -LiteralPath $TiktokenLicense.FullName -Destination (Join-Path $LicenseRoot 'tiktoken-MIT.txt')
 
 $env:PARLANT_DATA_COLLECTION = 'false'
 Invoke-Checked $VenvPython @('-I', (Join-Path $OutputRoot 'yance_parlant_server.py'), '--self-test') 'Parlant bridge isolated self-test'
@@ -145,6 +169,7 @@ $seal = [ordered]@{
   parlant = [ordered]@{ version = $ParlantVersion; commit = $ParlantCommit; uvLockGitBlob = $ParlantUvLockBlob }
   uvBuildTool = [ordered]@{ version = $UvVersion; commit = $UvCommit; asset = $UvAsset; assetSha256 = $UvAssetSha256 }
   pythonBuildStandalone = [ordered]@{ release = $PythonBuildStandaloneRelease; commit = $PythonBuildStandaloneCommit; asset = $PythonAsset; assetSha256 = $PythonAssetSha256; cpythonVersion = $CpythonVersion }
+  tiktoken = [ordered]@{ version = $TiktokenVersion; commit = $TiktokenCommit; encoding = $TiktokenEncodingName; encodingUrl = $TiktokenEncodingUrl; encodingSha256 = $TiktokenEncodingSha256; cacheKeySha1 = $TiktokenCacheKey; cacheProtocol = 'TIKTOKEN_CACHE_DIR' }
   runtime = [ordered]@{ fileCount = $records.Count; treeSha256 = $TreeSha; sbomSha256 = $SbomSha; dependencyResolution = 'build-time-only'; networkResolutionAtRuntime = $false }
 }
 [IO.File]::WriteAllText((Join-Path $OutputRoot 'runtime-seal.json'), (($seal | ConvertTo-Json -Depth 8) + "`n"), (New-Object Text.UTF8Encoding($false)))

@@ -15,6 +15,11 @@ const PBS_COMMIT='00c8a06113f11220667c3bcf5fab1672ff9e78ef';
 const PY_ASSET='cpython-3.12.13+20260807-x86_64-pc-windows-msvc-install_only_stripped.tar.gz';
 const PY_SHA='18bcc65b17921806b72cdc88bcf000bf67a2c99a8fc381fe1629f2b9ba56858d';
 
+const TIKTOKEN_COMMIT='97e49cbadd500b5cc9dbb51a486f0b42e6701bee';
+const TIKTOKEN_ENCODING_URL='https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken';
+const TIKTOKEN_ENCODING_SHA='446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d';
+const TIKTOKEN_CACHE_KEY='fb374d419588a4632f3f557e76b4b70aebbca790';
+
 test('portable sealing pins every downloadable runtime input', () => {
   const lock=readJson('config/upstreams/v21-parlant-p0.json');
   assert.equal(lock.upstreams.parlant.commit,PARLANT_COMMIT);
@@ -27,6 +32,41 @@ test('portable sealing pins every downloadable runtime input', () => {
   assert.equal(lock.upstreams.pythonBuildStandalone.windowsX64Asset,PY_ASSET);
   assert.equal(lock.upstreams.pythonBuildStandalone.windowsX64AssetSize,21962247);
   assert.equal(lock.upstreams.pythonBuildStandalone.windowsX64AssetSha256,PY_SHA);
+});
+
+
+test('portable sealing pins tiktoken offline encoding provenance and MIT evidence', () => {
+  const lock=readJson('config/upstreams/v21-parlant-p0.json');
+  assert.equal(lock.upstreams.tiktoken.version,'0.12.0');
+  assert.equal(lock.upstreams.tiktoken.commit,TIKTOKEN_COMMIT);
+  assert.equal(lock.upstreams.tiktoken.license,'MIT');
+  assert.equal(lock.upstreams.tiktoken.encoding,'o200k_base');
+  assert.equal(lock.upstreams.tiktoken.encodingUrl,TIKTOKEN_ENCODING_URL);
+  assert.equal(lock.upstreams.tiktoken.encodingSha256,TIKTOKEN_ENCODING_SHA);
+  assert.equal(lock.upstreams.tiktoken.cacheKeySha1,TIKTOKEN_CACHE_KEY);
+  assert.equal(lock.upstreams.tiktoken.licenseEvidence.repository,'dotnet/machinelearning');
+  assert.match(lock.upstreams.tiktoken.licenseEvidence.sourcePath,/Microsoft\.ML\.Tokenizers\.Data\.O200kBase/u);
+});
+
+test('Windows sealing pre-materializes and verifies tiktoken official cache', () => {
+  const s=readText('tools/parlant/build-windows-runtime.ps1');
+  for (const marker of ['TIKTOKEN_CACHE_DIR','o200k_base',TIKTOKEN_ENCODING_URL,TIKTOKEN_ENCODING_SHA,TIKTOKEN_CACHE_KEY,"importlib.metadata.version(sys.argv[1])",'tiktoken.get_encoding']) assert.ok(s.includes(marker), marker);
+  assert.match(s,/Assert-Sha256\s+\$TiktokenCacheFile\s+\$TiktokenEncodingSha256/u);
+});
+
+test('Parlant bridge binds a sealed tiktoken cache before Parlant imports and fails closed', () => {
+  const s=readText('runtime/parlant/yance_parlant_server.py');
+  const cacheBind=s.indexOf('TIKTOKEN_CACHE_DIR');
+  const cacheAssert=s.indexOf('_assert_sealed_tiktoken_cache()');
+  const parlantImport=s.indexOf('from parlant.');
+  assert.ok(cacheBind >= 0 && cacheBind < parlantImport, 'cache env must be bound before Parlant import');
+  assert.ok(cacheAssert >= 0 && cacheAssert < parlantImport, 'cache integrity must be checked before Parlant import');
+  for (const marker of [TIKTOKEN_ENCODING_SHA,TIKTOKEN_CACHE_KEY,'YANCE_PARLANT_TIKTOKEN_CACHE_MISSING','YANCE_PARLANT_TIKTOKEN_CACHE_HASH_MISMATCH']) assert.ok(s.includes(marker), marker);
+});
+
+test('runtime SBOM binds the sealed o200k data component', () => {
+  const s=readText('runtime/parlant/generate_runtime_sbom.py');
+  for (const marker of ['o200k_base.tiktoken','"type": "data"',TIKTOKEN_ENCODING_URL,TIKTOKEN_ENCODING_SHA,TIKTOKEN_CACHE_KEY,'0.12.0']) assert.ok(s.includes(marker), marker);
 });
 
 test('Windows sealing script verifies exact assets and official Parlant lock before materialization', () => {

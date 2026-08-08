@@ -15,6 +15,24 @@ os.environ["PARLANT_DATA_COLLECTION"] = "false"
 os.environ.pop("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", None)
 os.environ.pop("OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", None)
 
+RUNTIME_ROOT = Path(__file__).resolve().parent
+TIKTOKEN_CACHE_KEY = "fb374d419588a4632f3f557e76b4b70aebbca790"
+TIKTOKEN_ENCODING_SHA256 = "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+TIKTOKEN_CACHE_DIR = (RUNTIME_ROOT / "tiktoken-cache").resolve()
+os.environ["TIKTOKEN_CACHE_DIR"] = str(TIKTOKEN_CACHE_DIR)
+
+def _assert_sealed_tiktoken_cache() -> None:
+    cache_file = TIKTOKEN_CACHE_DIR / TIKTOKEN_CACHE_KEY
+    if not cache_file.is_file():
+        raise RuntimeError(f"YANCE_PARLANT_TIKTOKEN_CACHE_MISSING: {cache_file}")
+    actual = hashlib.sha256(cache_file.read_bytes()).hexdigest()
+    if actual != TIKTOKEN_ENCODING_SHA256:
+        raise RuntimeError(
+            f"YANCE_PARLANT_TIKTOKEN_CACHE_HASH_MISMATCH: expected={TIKTOKEN_ENCODING_SHA256} actual={actual}"
+        )
+
+_assert_sealed_tiktoken_cache()
+
 DATA_ROOT = Path(os.environ.get("YANCE_PARLANT_DATA_ROOT") or os.environ.get("PARLANT_HOME") or "parlant-data").resolve()
 DATA_ROOT.mkdir(parents=True, exist_ok=True)
 os.environ["PARLANT_HOME"] = str(DATA_ROOT)
