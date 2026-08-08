@@ -47,6 +47,19 @@ test('portable runtime contains sealed Python, Graphiti source lock, Java, Neo4j
   assert.match(sbom, /graphiti-pyproject-git-blob/u);
 });
 
+test('Windows Graphiti version probe avoids PowerShell native -c quote loss', () => {
+  const script = readText('tools/graphiti/build-windows-runtime.ps1');
+  assert.equal(
+    script.includes("-c 'import importlib.metadata; print(importlib.metadata.version(\"graphiti-core\"))'"),
+    false,
+    'embedded quoted Python -c version probes are not stable across Windows PowerShell native argument marshalling'
+  );
+  assert.match(script, /graphiti-version-probe\.py/u);
+  assert.match(script, /importlib\.metadata\.version/u);
+  assert.match(script, /\$GraphitiVersionProbe\s*=\s*Join-Path\s+\$WorkRoot\s+['"]graphiti-version-probe\.py['"]/iu);
+  assert.equal(script.includes("Invoke-Checked $VenvPython @('-I', $GraphitiVersionProbe, $GraphitiVersionOutput) 'probe installed graphiti-core version'"), true);
+});
+
 test('Windows workflow performs build-time online materialization then a network-isolated authenticated runtime closure', () => {
   const workflow = readText('.github/workflows/v21-graphiti-p0-windows.yml');
   assert.match(workflow, /windows-2025|windows-latest/u);
