@@ -44,7 +44,7 @@ test('V2.1 Letta P0 pins the exact current OSS authorities', () => {
     commit: CODE_COMMIT,
     package: '@letta-ai/letta-code@0.30.5',
     license: 'Apache-2.0',
-    cli: 'letta server --listen ws://127.0.0.1:0'
+    cli: 'letta server --backend local --listen ws://127.0.0.1:0'
   });
   for (const upstream of Object.values(lock.upstreams)) assert.match(upstream.commit, SHA40);
 });
@@ -84,11 +84,14 @@ test('the desktop adapter uses the official Letta Code CLI and public Agent SDK 
     '@letta-ai/letta-code',
     '@letta-ai/letta-agent-sdk',
     'server',
+    '--backend',
+    'local',
     '--listen',
     'ws://127.0.0.1:0',
     'LETTA_LOCAL_BACKEND_DIR',
     'SIGTERM'
   ]) assert.ok(source.includes(required), `adapter must contain ${required}`);
+  assert.match(source, /const args = \[entrypoint, 'server', '--backend', 'local', '--listen', DEFAULT_LISTEN_URL\]/u);
   assert.match(source, /backend\s*:\s*['"]remote['"]/u);
   assert.doesNotMatch(source, /\bmanagementTransport\b|\bownedConnection\b/u);
   assert.doesNotMatch(source, /@letta-ai\/letta-agent-sdk\//u);
@@ -108,9 +111,10 @@ test('adapter pure guards bind Letta storage under Yance and reject non-loopback
   }
 
   const dataRoot = path.join(os.tmpdir(), 'yance-letta-contract-root');
-  const env = runtimeModule.buildLettaEnvironment({ ELECTRON_RUN_AS_NODE: '1', KEEP_ME: 'yes' }, dataRoot);
+  const env = runtimeModule.buildLettaEnvironment({ ELECTRON_RUN_AS_NODE: '1', LETTA_API_KEY: 'must-not-cross-local-boundary', KEEP_ME: 'yes' }, dataRoot);
   assert.equal(env.KEEP_ME, 'yes');
   assert.equal(Object.prototype.hasOwnProperty.call(env, 'ELECTRON_RUN_AS_NODE'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(env, 'LETTA_API_KEY'), false);
   assert.equal(env.LETTA_LOCAL_BACKEND_DIR, path.join(dataRoot, 'letta', 'local-backend'));
 });
 
