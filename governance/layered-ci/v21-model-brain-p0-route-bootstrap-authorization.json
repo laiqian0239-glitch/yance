@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-MODEL-BRAIN-P0-ROUTE-BOOTSTRAP",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "V2.1 Mature OSS Mandatory Adoption requires the Model Brain to replace Yance-owned provider/gateway/routing authority with mature OSS rather than extending the existing custom AI gateway. Fresh trusted main routes unknown paths fail closed and does not yet enumerate the Model Brain-specific LiteLLM upstream descriptor, sealed Python worker/SBOM paths, or exact LiteLLM license path. Candidate-owned policy changes are forbidden, so this prerequisite authorizes only the exact literal route bootstrap and its regression contract before V21-MODEL-BRAIN-P0 product authorization. It grants no LiteLLM product implementation authority by itself.",
+  "base": {
+    "branch": "main",
+    "commit": "0eb9a1572c9f10aad3034a8d4bf0876681dd5f2f"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "evidence": {
+    "trustedRoutingPolicyCommit": "0eb9a1572c9f10aad3034a8d4bf0876681dd5f2f",
+    "trustedRoutingPolicyBlob": "e0a18fa7c1143e2e73295d7864a512ce966aab2c",
+    "routingReason": "WP0 routing policy sets unknownPathFailsClosed=true; none of the four exact Model Brain bootstrap paths are present in productExactPaths, and new config/upstreams, runtime/model-brain and third_party/licenses paths are not covered by an approved product prefix.",
+    "selectedUpstream": {
+      "repository": "BerriAI/litellm",
+      "release": "v1.95.0",
+      "commit": "72a4a55f43ea7266de589f005d0d33624fe5d555",
+      "licenseBoundary": "MIT outside enterprise/; enterprise/ is separately licensed and excluded",
+      "python": ">=3.10,<3.15",
+      "rootLicenseGitBlob": "3bfef5bae9b48c334acf426d5b7f21bc1913aab9",
+      "uvLockGitBlob": "08d10667fb1fde67211a74ad1d4c747c0fb84cf3",
+      "proxyExtraExcluded": true,
+      "proxyExtraReason": "v1.95.0 litellm[proxy] explicitly depends on litellm-enterprise==0.1.52; P0 adopts the MIT base SDK/Router and does not ship the proxy extra or enterprise package"
+    },
+    "routingOssFit": {
+      "routeLlm": {
+        "repository": "lm-sys/RouteLLM",
+        "mainCommit": "0b64fdafe049e596a3f5657c219329f24af24198",
+        "lastMainCommitDate": "2024-08-10",
+        "license": "Apache-2.0",
+        "releaseOrTagAvailable": false,
+        "decision": "REJECT_FOR_P0_PRODUCTION_AUTHORITY",
+        "reason": "no release/tag and no mainline maintenance since 2024-08-10"
+      },
+      "selectedRouter": "LiteLLM Router + ComplexityRouter; AdaptiveRouter remains available inside the same adopted upstream when its persistence/feedback boundary is explicitly enabled",
+      "secondYanceRouterForbidden": true,
+      "secondRoutingPackageRequired": false
+    }
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-model-brain-p0-route-bootstrap-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-model-brain-p0-route-bootstrap-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-model-brain-p0-route-bootstrap",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-model-brain-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "39738dff6046b01f24f540078f3e1b5c0d6614f0686b1200569328a39902d08a",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "bootstrapPaths": [
+    "config/upstreams/v21-model-brain-p0.json",
+    "runtime/model-brain/generate_runtime_sbom.py",
+    "runtime/model-brain/yance_litellm_worker.py",
+    "third_party/licenses/litellm-MIT.txt"
+  ],
+  "bootstrapPathCount": 4,
+  "bootstrapPathSetSha256": "043f4438a8b839a659163b9d68b2d53cec6b0c7311787640f1e04a00f9d773d1",
+  "mandatoryFailureFirstContracts": [
+    "Before policy implementation, a test-only commit must prove each of the four exact Model Brain bootstrap paths fails closed as WP0_ROUTE_UNKNOWN_PATH against the trusted authorization-merge routing policy",
+    "After implementation each of the four exact Model Brain bootstrap paths selects PRODUCT_WP0",
+    "The exact four-path set selects PRODUCT_WP0",
+    "The bootstrap uses only productExactPaths and does not add config/, runtime/, third_party/ or other broad prefixes",
+    "Adjacent unregistered LiteLLM-like, model-brain-like and malformed repository paths continue to fail closed",
+    "Governance and product-documentation route precedence remains unchanged",
+    "No LiteLLM runtime implementation, existing Yance model gateway/router implementation, dependency manifest, WP7 packaging implementation, Persona, Learning Brain, Voice, Facebook, Presence, release policy, promotion authority or unrelated work package is modified by this route-bootstrap implementation"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes applicable governance gates with zero unresolved P0/P1 findings",
+    "Authorization PR merges to main by ordinary two-parent merge without history rewrite",
+    "Implementation branch is created from that exact authorization merge commit",
+    "A test-only commit records the exact four-path fail-closed contract before policy implementation",
+    "Only the four exact bootstrap paths are added to productExactPaths",
+    "Implementation exact Head passes applicable Stage, Layered, ACV2 and independent-review gates",
+    "Implementation PR merges to main by ordinary two-parent merge",
+    "The formal V21-MODEL-BRAIN-P0 product authorization is then created from fresh trusted main; this route bootstrap does not itself authorize Model Brain product implementation"
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansionInBootstrap": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "directCandidateSelfAuthorization": true,
+    "modelBrainProductImplementation": true,
+    "customModelGatewayOrRouter": true,
+    "wp7PackagingModification": true,
+    "releaseOrPublish": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
