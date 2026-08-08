@@ -128,37 +128,37 @@
               {
                 "upstreamSymbol": "DEFAULT_DEPTH / DEFAULT_ORDER / INJECTION_POSITION",
                 "upstreamLineRange": "29-38",
-                "sliceSha256": "4b3428b1a4e6352846bf6f1db46466805bce0f11a82f626c288d6bbb3ef916ca",
+                "sliceSha256": "3f58f9b5563f1f124fa547cfbe89ec577794a042d688f1ab1faa6b10c31007a1",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::PromptManager::injection-position"
               },
               {
                 "upstreamSymbol": "Prompt.constructor",
                 "upstreamLineRange": "171-185",
-                "sliceSha256": "868d0ebfd169dd087464d9b1ea7bf6b273d502672f13f97012875ebe72be7297",
+                "sliceSha256": "000a72f278c6778f89c013bf7b63b941d97604beabe41be68d9814bb8f36539d",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::PromptManager::prompt-constructor"
               },
               {
                 "upstreamSymbol": "PromptCollection",
                 "upstreamLineRange": "189-278",
-                "sliceSha256": "82109bcea50d2f85e7fadf891fec17d5f12d295f609ba47bcb6d3588b2471ff1",
+                "sliceSha256": "01aaaba3a48b6ea9535cb85cae25c14c12686bbead1e3fc6d29c38b8fd9e2682",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::PromptManager::prompt-collection"
               },
               {
                 "upstreamSymbol": "PromptManager.preparePrompt",
                 "upstreamLineRange": "1164-1175",
-                "sliceSha256": "40eff7815571a971f7bb754504c09d63e395ff6adba07b9889832f42d1ef12b9",
+                "sliceSha256": "7df524ebf2efa483907de864b34c2cb997f19f4e78bdabb91374d3db78430072",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::PromptManager::prepare-prompt"
               },
               {
                 "upstreamSymbol": "PromptManager.getPromptCollection / shouldTrigger",
                 "upstreamLineRange": "1381-1414",
-                "sliceSha256": "abb9e856832ae70cc4f8c6536dccbe15ff26ee0aa827c21714bf6a8b813df921",
+                "sliceSha256": "3447867594bee6c3654703c7aa9fd8bd41e86cfb1520252654c6cf8713c1e469",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::PromptManager::collection-order"
               },
               {
                 "upstreamSymbol": "promptManagerDefaultPromptOrder",
                 "upstreamLineRange": "1904-1953",
-                "sliceSha256": "b62ee0588b9e474931d0336c286e15a8e8f5be725dd8ebbbc1f4991e8425476d",
+                "sliceSha256": "851aa371ac801f92ed055c69d99a1e61aff0876973d6082d592406b80282c2fb",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::PromptManager::default-order"
               }
             ]
@@ -172,19 +172,19 @@
               {
                 "upstreamSymbol": "setOpenAIMessageExamples",
                 "upstreamLineRange": "619-630",
-                "sliceSha256": "c3e1d758936885552ed3f756a68c3a6c2eaf071a409b387488e7b09f98d40caf",
+                "sliceSha256": "19b4a4706e65e39db70573e274b664c688aa0c5f821a1728cd92b9f2e4c4465b",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::openai::example-blocks"
               },
               {
                 "upstreamSymbol": "parseExampleIntoIndividual",
                 "upstreamLineRange": "687-741",
-                "sliceSha256": "a919a77d5fde10348d0b9e04877edd69a8cd5c47bf579c81ff9024545fedaa42",
+                "sliceSha256": "8ad9cfbcdd31fd687219647caa26adcafcbd54ba3a96ee4657a7e39793391393",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::openai::example-dialogue-parser"
               },
               {
                 "upstreamSymbol": "populationInjectionPrompts",
                 "upstreamLineRange": "762-821",
-                "sliceSha256": "4147304938fe53d89080bafcb3cc45ccd5421c980787a6ef8fa104f8244b5fc2",
+                "sliceSha256": "97d159d837623834a43f9453e373d5fc002ce6348a665979a9743fc821fb4eae",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::openai::depth-order-role-injection"
               }
             ]
@@ -212,13 +212,13 @@
               {
                 "upstreamSymbol": "metadata_keys / chara_note_position",
                 "upstreamLineRange": "29-41",
-                "sliceSha256": "15c317e74033cfa00a640c57537e98e7de945e1c467becbe89b543e685e9eb35",
+                "sliceSha256": "fcc8d8f82e0f18cf6394d763693ea8d7b354a51040f2c0a5903ba74fe67bcae8",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::authors-note::metadata-placement"
               },
               {
                 "upstreamSymbol": "setFloatingPrompt injection core",
                 "upstreamLineRange": "331-361",
-                "sliceSha256": "160eb17266c8c5ae7643e787d1e895df44ee378bbb388fde4f0991fe898b3be7",
+                "sliceSha256": "e33bd43faa4da8773541dadc55bed0621eabe4892fd7e16bdcc5712934d66648",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::authors-note::depth-role-injection"
               }
             ]
@@ -232,37 +232,37 @@
               {
                 "upstreamSymbol": "world_info_logic",
                 "upstreamLineRange": "31-36",
-                "sliceSha256": "8724bbb50237d42172e1459f9291891f8f650cdfe76dcf327b5092b4892b9a04",
+                "sliceSha256": "34e2cafcfb3df14e4afb0a0b0c6a862d8ef91cea6d54b9457ff91bbb0a8f3c64",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::world-info::selective-logic"
               },
               {
                 "upstreamSymbol": "world_info_position / wi_anchor_position",
                 "upstreamLineRange": "791-804",
-                "sliceSha256": "6ba029960525d653af6615aa4f123c5e4be33961c39d22d54a58b12ee9b50236",
+                "sliceSha256": "f5a959d076bea42dce96340351ac8540818484f7ba672ccdb054f6aa98b9d663",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::world-info::placement"
               },
               {
                 "upstreamSymbol": "WorldInfoBuffer.matchKeys",
                 "upstreamLineRange": "313-339",
-                "sliceSha256": "dec39123c572c506933f854cfb6bcd7e17ddbeaa0ee0e152a15565c069c2d41b",
+                "sliceSha256": "2a02fe8fa46fe657b454fd0aa7bc045cffb62f17025318c1b5d16d46d4df6e75",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::world-info::match-keys"
               },
               {
                 "upstreamSymbol": "parseRegexFromString",
                 "upstreamLineRange": "2620-2643",
-                "sliceSha256": "0d1d33158fc88648e1242d757db6e6d38e3cba697617d865d261be5a39f39620",
+                "sliceSha256": "50a609bc779d3daadd9fa87d30691e6fee9e8bbfdd4e17cbacc199b79cf3dae6",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::world-info::regex-parser"
               },
               {
                 "upstreamSymbol": "newWorldInfoEntryDefinition / newWorldInfoEntryTemplate",
                 "upstreamLineRange": "3731-3777",
-                "sliceSha256": "f108ed2117be852be6240c31f6ede6a71d49db72df913167c6b51600ca1ad356",
+                "sliceSha256": "797192c3e57796716811332693886a45a1b96e86c9edf6c6f232cfaa0a0867b3",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::world-info::entry-schema"
               },
               {
                 "upstreamSymbol": "convertCharacterBook",
                 "upstreamLineRange": "5097-5152",
-                "sliceSha256": "ebc36f7f2a4fcede65d1edfb27fad63da1ba5784f5ccbee6b061c6de27f70f82",
+                "sliceSha256": "c825751a2389bbb7f487ace14bd321dd2d0929bd9d19ca1089eef064fa1fa40b",
                 "destinationRegionMarker": "SILLYTAVERN_SLICE::world-info::character-book-conversion"
               }
             ]
@@ -278,7 +278,8 @@
         "licenseFile": {
           "path": "LICENSE",
           "gitBlob": "0ad25db4bd1d86c452db3f9602ccdbe172438f52"
-        }
+        },
+        "sourceSegmentCount": 18
       }
     }
   },
@@ -372,6 +373,7 @@
     "Implementation must start only from the ordinary two-parent merge commit of this authorization proposal and only on product/v21-persona-character-p0-v1.",
     "The exact SillyTavern upstream must remain release 1.18.0 at commit 51ad27fb86d39a3daca3adaa970375c9670c12df; every adopted source path must match the recorded upstream Git blob before any compatibility transformation.",
     "Every recorded source segment must reproduce its sliceSha256 from the exact upstream Git blob using sourceSliceCanonicalization before implementation may be GREEN; a line-range, symbol or hash mismatch is RED.",
+    "The frozen SillyTavern source-slice inventory must contain exactly 18 recorded segments; missing, duplicate or extra destinationRegionMarker entries are RED.",
     "Every executable source-derived region of vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs must be bounded by its recorded destinationRegionMarker and trace to exactly one recorded source segment; unmapped executable logic is RED. Only allowedSourceSliceMechanicalTransformations are permitted, and vendor/sillytavern/1.18.0/UPSTREAM.json must record each applied transformation.",
     "Character Card PNG V2/V3 parsing, ccv3-over-chara precedence, write/read round trip and TavernCardValidator behavior must fail before the vendored upstream modules are wired and pass afterward.",
     "The three direct PNG parser dependencies must be exactly crc@4.3.2, png-chunk-text@1.0.0 and png-chunks-extract@1.0.0 with package-lock integrity; mutable direct ranges are RED.",
