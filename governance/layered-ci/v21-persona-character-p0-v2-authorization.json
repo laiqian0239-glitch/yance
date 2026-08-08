@@ -4,14 +4,14 @@
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PERSONA-CHARACTER-P0-V2",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Supersede V21-PERSONA-CHARACTER-P0-V1 before any product implementation after its failure-first branch exposed a provenance-mechanics defect: the recorded authors-note.js 331-361 segment is an exact contiguous statement slice from inside setFloatingPrompt, while the frozen mechanical transformation allowlist permits wrapping declarations, functions and method bodies but not arbitrary partial function-body statements. V2 preserves the mature SillyTavern 1.18.0 OSS architecture, all 20 product paths, dependencies, runtime authorities and product contracts, but replaces that single partial slice with the complete upstream setFloatingPrompt function at 1-based inclusive lines 300-363 and its exact canonical SHA-256. No SillyTavern UI runtime is imported; lexical shims are supplied by the thin Yance adapter. No new Yance Persona, Character, prompt-ordering or injection framework is authorized.",
+  "reason": "Supersede V21-PERSONA-CHARACTER-P0-V1 after its failure-first branch exposed a provenance-mechanics defect: the recorded authors-note.js 331-361 segment is an exact contiguous statement slice from inside setFloatingPrompt, while the frozen mechanical transformation allowlist permits wrapping declarations, functions and method bodies but not arbitrary partial function-body statements. V1 later advanced through in-scope Persona implementation commits, but those commits remain tied to the defective V1 provenance contract and are not reusable as V2 implementation authority or lineage. V2 preserves the mature SillyTavern 1.18.0 OSS architecture, all 20 product paths, dependencies, runtime authorities and product contracts, but replaces that single partial slice with the complete upstream setFloatingPrompt function at 1-based inclusive lines 300-363 and its exact canonical SHA-256. No SillyTavern UI runtime is imported; lexical shims are supplied by the thin Yance adapter. No new Yance Persona, Character, prompt-ordering or injection framework is authorized.",
   "supersedes": {
     "authorizationPath": "governance/layered-ci/v21-persona-character-p0-v1-authorization.json",
     "authorizationMergeCommit": "801217f73cd249d6398d7b3c9fa7a35b770bc377",
     "implementationBranch": "product/v21-persona-character-p0-v1",
     "implementationPullRequest": 139,
-    "implementationExactHead": "6153824a4dd698432c28350b6875e24cf839941c",
-    "reason": "The superseded implementation branch contains only the authorized failure-first test commit. Stage proved causal RED at Run WP0 required tests because the SillyTavern vendor modules and thin adapter are absent; no Persona/Character product implementation, dependency, vendor source, license or runtime integration commit exists on the superseded branch. It must remain unused for V2 product implementation."
+    "implementationExactHead": "eee7da1cb541b32a1f6af365ed8210ce23636563",
+    "reason": "The V1 branch established its causal failure-first RED at 6153824a4dd698432c28350b6875e24cf839941c, then later advanced through in-scope Persona/Character implementation commits to eee7da1cb541b32a1f6af365ed8210ce23636563. Because the V1 provenance contract itself is defective, neither the later V1 implementation Head nor any V1 implementation commit may be used as the V2 implementation base or treated as satisfying V2 provenance. V1 is frozen as historical evidence and must receive no further Persona/Character product implementation commits."
   },
   "provenanceCorrection": {
     "scope": "authors-note source-slice mechanics only",
@@ -33,7 +33,7 @@
   },
   "base": {
     "branch": "main",
-    "commit": "801217f73cd249d6398d7b3c9fa7a35b770bc377"
+    "commit": "0e32c3cfa3f9c600517da833fd206a5d5eb5d0a8"
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
@@ -397,7 +397,7 @@
     "reasonForFullFileExclusions": "The excluded full files are inseparably coupled to SillyTavern DOM/UI, global chat state, tokenizers, provider/model routing, server endpoints or product lifecycle. P0 adopts independently portable whole modules and exact source slices/functions inside lexical shims instead of importing a second SillyTavern product shell."
   },
   "mandatoryFailureFirstContracts": [
-    "The V1 implementation branch product/v21-persona-character-p0-v1 at exact Head 6153824a4dd698432c28350b6875e24cf839941c is superseded test-only RED evidence and must receive no Persona/Character product implementation commits.",
+    "The V1 implementation branch product/v21-persona-character-p0-v1 established causal failure-first RED at exact Head 6153824a4dd698432c28350b6875e24cf839941c and later advanced to eee7da1cb541b32a1f6af365ed8210ce23636563; both are superseded historical evidence. The V1 branch must receive no further Persona/Character product implementation commits, and no V1 implementation commit may be used as the V2 implementation base.",
     "V2 implementation must start only from the ordinary two-parent merge commit of this V2 authorization proposal and only on product/v21-persona-character-p0-v2; the three failure-first WP0 suites and compiler regression must be recreated first and observed RED before product code is added.",
     "The exact SillyTavern upstream must remain release 1.18.0 at commit 51ad27fb86d39a3daca3adaa970375c9670c12df; every adopted source path must match the recorded upstream Git blob before any compatibility transformation.",
     "Every recorded source segment must reproduce its sliceSha256 from the exact upstream Git blob using sourceSliceCanonicalization before implementation may be GREEN; a line-range, symbol or hash mismatch is RED.",
