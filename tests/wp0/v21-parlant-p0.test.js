@@ -155,6 +155,7 @@ test('Parlant candidate correlation is bound to the native processing trace and 
   const runtime = readText('electron/parlantRelationshipRuntime.js');
   const main = readText('electron/main.js');
   assert.match(server, /["']traceId["']\s*:\s*str\(event\.trace_id\)/u, 'ingest must return the native Parlant event trace');
+  assert.match(server, /with\s+RUNTIME\.container\[Tracer\]\.span\(\s*["']yance\.relationship\.ingest["']/u, 'ingest must create the native Parlant processing span before dispatching the background engine task');
   assert.match(server, /processing_trace_id\s*:\s*str\s*=\s*Query\(/u, 'candidate route must require an exact processing trace');
   assert.match(server, /trace_id=processing_trace_id/u, 'candidate lookup must filter by the exact native trace');
   assert.doesNotMatch(server, /trace_id=None/u, 'candidate lookup must never accept an uncorrelated AI event');

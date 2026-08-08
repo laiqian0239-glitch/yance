@@ -339,17 +339,20 @@ async def install_yance_routes(api: FastAPI) -> FastAPI:
             raise HTTPException(status_code=422, detail={"reasonCode": "YANCE_PARLANT_MESSAGE_INVALID", "message": "message text is invalid"})
         _ids, _agent, _customer, session = await ensure_relationship(key)
         current = await RUNTIME.session_store.read_session(session.id)
-        event = await RUNTIME.app.sessions.create_customer_message(
-            session_id=session.id,
-            moderation=Moderation.NONE,
-            message=text,
-            source=EventSource.CUSTOMER,
-            trigger_processing=current.mode != "manual",
-            metadata={
-                "yance_external_message_id": clean(payload.get("externalMessageId"))[:512],
-                "yance_relationship_key": key,
-            },
-        )
+        if RUNTIME.container is None:
+            raise RuntimeError("Parlant container is not initialized")
+        with RUNTIME.container[Tracer].span("yance.relationship.ingest", {"yance.relationship_key": key}):
+            event = await RUNTIME.app.sessions.create_customer_message(
+                session_id=session.id,
+                moderation=Moderation.NONE,
+                message=text,
+                source=EventSource.CUSTOMER,
+                trigger_processing=current.mode != "manual",
+                metadata={
+                    "yance_external_message_id": clean(payload.get("externalMessageId"))[:512],
+                    "yance_relationship_key": key,
+                },
+            )
         return {"ok": True, "eventId": str(event.id), "traceId": str(event.trace_id), "offset": int(event.offset), "nextOffset": int(event.offset) + 1, "paused": current.mode == "manual"}
 
     @api.get("/yance/relationship-goals/{route_key}/candidate")
