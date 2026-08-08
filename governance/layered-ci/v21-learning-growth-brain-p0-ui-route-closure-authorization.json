@@ -23,6 +23,16 @@
     "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
     "authorizationProposalTransportIsNotImplementationAuthority": true
   },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
   "authorizationBranch": {
     "name": "governance/v21-learning-growth-brain-p0-ui-route-closure-authorization",
     "allowedChangedPaths": [
