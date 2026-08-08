@@ -57,10 +57,12 @@ jobs:
             if (-not (Test-Path -LiteralPath (Join-Path $root $required) -PathType Leaf)) { throw "sealed runtime missing: $required" }
           }
 
-      - name: Network-independent import and health closure
+      - name: Network-independent authenticated ownership and health closure
         shell: powershell
         env:
           PARLANT_DATA_COLLECTION: 'false'
+          PARLANT_ENV: 'production'
+          YANCE_PARLANT_LOOPBACK_TOKEN: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdef'
           OPENROUTER_API_KEY: 'offline-probe-not-a-secret'
           HTTP_PROXY: 'http://127.0.0.1:9'
           HTTPS_PROXY: 'http://127.0.0.1:9'
@@ -80,15 +82,41 @@ jobs:
           $process = Start-Process -FilePath $python -ArgumentList @('-I',(Join-Path $root 'yance_parlant_server.py'),'--host','127.0.0.1','--port','18765') -PassThru -NoNewWindow -RedirectStandardOutput $stdout -RedirectStandardError $stderr
           try {
             $healthy = $false
+            $challenge = 'workflow-offline-proof-20260808'
+            $headers = @{ 'x-yance-parlant-challenge' = $challenge }
             for ($i = 0; $i -lt 120; $i++) {
               if ($process.HasExited) { throw "Parlant offline probe exited early: $((Get-Content $stderr -Raw -ErrorAction SilentlyContinue))" }
               try {
-                $result = Invoke-RestMethod -Uri 'http://127.0.0.1:18765/healthz' -TimeoutSec 2
+                $result = Invoke-RestMethod -Uri 'http://127.0.0.1:18765/yance/healthz' -Headers $headers -TimeoutSec 2
+                $hmac = New-Object System.Security.Cryptography.HMACSHA256
+                try {
+                  $hmac.Key = [System.Text.Encoding]::UTF8.GetBytes($env:YANCE_PARLANT_LOOPBACK_TOKEN)
+                  $proofBytes = $hmac.ComputeHash([System.Text.Encoding]::UTF8.GetBytes("yance-parlant-health-v1:$challenge"))
+                  $expectedProof = -join ($proofBytes | ForEach-Object { $_.ToString('x2') })
+                } finally {
+                  $hmac.Dispose()
+                }
+                if ([string]$result.instanceProof -ne $expectedProof) { throw 'Parlant ownership proof mismatch' }
                 $healthy = $true
                 break
               } catch { Start-Sleep -Milliseconds 500 }
             }
-            if (-not $healthy) { throw 'Parlant /healthz did not become ready under offline proxy isolation' }
+            if (-not $healthy) {
+              Write-Host '--- parlant offline stdout ---'
+              Get-Content $stdout -Raw -ErrorAction SilentlyContinue
+              Write-Host '--- parlant offline stderr ---'
+              Get-Content $stderr -Raw -ErrorAction SilentlyContinue
+              throw 'Parlant authenticated /yance/healthz did not become ready under offline proxy isolation'
+            }
+            $unauthorizedRejected = $false
+            try {
+              Invoke-WebRequest -Uri 'http://127.0.0.1:18765/healthz' -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop | Out-Null
+            } catch {
+              $status = 0
+              if ($_.Exception.Response -and $_.Exception.Response.StatusCode) { $status = [int]$_.Exception.Response.StatusCode }
+              if ($status -eq 403) { $unauthorizedRejected = $true } else { throw }
+            }
+            if (-not $unauthorizedRejected) { throw 'Parlant unauthenticated HTTP surface was not rejected' }
           } finally {
             if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }
           }
