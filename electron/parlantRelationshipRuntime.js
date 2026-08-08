@@ -170,14 +170,15 @@ function createParlantRelationshipRuntime(options = {}) {
   async function waitUntilReady(timeoutMs = DEFAULT_STARTUP_TIMEOUT_MS) {
     const deadline = Date.now() + Math.max(1000, Number(timeoutMs || DEFAULT_STARTUP_TIMEOUT_MS));
     let observed = null;
-    while (Date.now() < deadline && child && child.exitCode == null) {
+    while (Date.now() < deadline && child && child.exitCode == null && !lastError) {
       try {
         const response = await fetchImpl(`${endpoint}/healthz`, { signal: AbortSignal.timeout(Math.min(2500, Math.max(250, deadline - Date.now()))) });
-        if (response.ok) return true;
+        if (response.ok && child && child.exitCode == null && !lastError) return true;
         observed = `HTTP ${response.status}`;
       } catch (error) { observed = clean(error?.message || error); }
       await new Promise(resolve => setTimeout(resolve, 250));
     }
+    if (lastError) throw lastError;
     throw runtimeError('DESKTOP_PARLANT_STARTUP_TIMEOUT', 'Parlant relationship runtime did not become ready.', { observed, stderrTail: stderrTail.slice(-2000) });
   }
 
@@ -227,6 +228,18 @@ function createParlantRelationshipRuntime(options = {}) {
       child = nextChild;
       nextChild.stderr?.setEncoding?.('utf8');
       nextChild.stderr?.on?.('data', chunk => { stderrTail = `${stderrTail}${String(chunk || '')}`.slice(-8000); });
+      nextChild.once?.('error', error => {
+        if (child === nextChild) {
+          const wasReady = ready;
+          child = null;
+          ready = false;
+          lastError = runtimeError(
+            wasReady ? 'DESKTOP_PARLANT_PROCESS_ERROR' : 'DESKTOP_PARLANT_CHILD_SPAWN_FAILED',
+            wasReady ? 'Parlant process reported an error.' : 'Failed to start the packaged Parlant process.',
+            { code: clean(error?.code), message: clean(error?.message) }
+          );
+        }
+      });
       nextChild.once?.('exit', (code, signal) => {
         if (child === nextChild) {
           child = null;
