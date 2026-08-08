@@ -2803,6 +2803,130 @@
       "currentObservation": "Renderer-scoped cancellation aborts only the matching long-running reply fetch.",
       "m2RequiredAction": "Keep request IDs scoped to event.sender and remove controller state on settle/dispose.",
       "crossModuleDependency": "Backend HTTP disconnect propagates AbortSignal through Brain, Runtime, and Provider."
+    },
+    {
+      "channel": "desktop:letta-get-state",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_LETTA_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "getLettaState",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "Read-only Letta runtime readiness and process projection.",
+      "m2RequiredAction": "Keep Letta renderer access read-only and bound to the main-process-owned runtime adapter.",
+      "crossModuleDependency": "Letta App Server process ownership remains in Electron main; renderer receives projections only."
+    },
+    {
+      "channel": "desktop:letta-list-agents",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_LETTA_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "listLettaAgents",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "Read-only authoritative Letta agent identity projection.",
+      "m2RequiredAction": "Keep Letta renderer access read-only and bound to the main-process-owned runtime adapter.",
+      "crossModuleDependency": "Letta App Server process ownership remains in Electron main; renderer receives projections only."
+    },
+    {
+      "channel": "desktop:letta-list-conversations",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "agentId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "required": [
+          "agentId"
+        ]
+      },
+      "outputSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_LETTA_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "listLettaConversations",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "Read-only authoritative Letta conversation identity projection scoped to one agent.",
+      "m2RequiredAction": "Keep Letta renderer access read-only and bound to the main-process-owned runtime adapter.",
+      "crossModuleDependency": "Letta App Server process ownership remains in Electron main; renderer receives projections only."
     }
   ],
   "outboundRendererChannels": [

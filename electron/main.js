@@ -107,6 +107,7 @@ const { LegacyRuntimeCutoverGate } = require('./desktopHost/LegacyRuntimeCutover
 const { ApiV2RuntimeClient } = require('./desktopHost/ApiV2RuntimeClient');
 const { RuntimeProjectionCoordinator } = require('./desktopHost/RuntimeProjectionCoordinator');
 const { backendAuthority, stopOwnedBackend, completeElectronQuit, restartElectronApp } = require('./backendShutdownCoordinator');
+const { createLettaAgentRuntime } = require('./lettaAgentRuntime');
 const { SoundNotificationService } = require('./SoundNotificationService');
 const { isCustomSoundPattern, soundFileName } = require('../shared/notificationSoundCatalog');
 const { runInstalledRuntimeProbeApplicationEntry } = require('./wp7InstalledRuntimeProbeApplicationEntry');
@@ -472,6 +473,81 @@ let desktopHost = null;
 let desktopCredentialApplicationCoordinator = null;
 let runtimeApiV2Client = null;
 let runtimeProjectionCoordinator = null;
+let lettaAgentRuntime = null;
+
+function ensureLettaAgentRuntime() {
+  if (!lettaAgentRuntime) {
+    lettaAgentRuntime = createLettaAgentRuntime({
+      nodeExecutablePath: resolveTrustedNodeRuntime(),
+      dataRoot: DATA_ROOT
+    });
+  }
+  return lettaAgentRuntime;
+}
+
+function lettaOwnershipPresent() {
+  const state = lettaAgentRuntime?.snapshot?.() || {};
+  return state.ready === true || Number(state.pid || 0) > 0;
+}
+
+async function stopLettaAgentRuntime() {
+  if (!lettaAgentRuntime) return { stopped: true, exitConfirmed: true, alreadyStopped: true, pid: 0 };
+  const before = lettaAgentRuntime.snapshot();
+  if (!before.ready && !before.pid) return { stopped: true, exitConfirmed: true, alreadyStopped: true, pid: 0 };
+  const stopped = await lettaAgentRuntime.stop();
+  const after = lettaAgentRuntime.snapshot();
+  if (after.ready || after.pid) {
+    const error = new Error('Letta runtime shutdown was not confirmed');
+    error.reasonCode = 'DESKTOP_LETTA_STOP_NOT_CONFIRMED';
+    error.details = { before, after, stopped };
+    throw error;
+  }
+  return { stopped: true, exitConfirmed: true, alreadyStopped: false, pid: Number(before.pid || 0), state: stopped };
+}
+
+async function stopApplicationOwnedRuntimes(options = {}) {
+  let lettaStop = null;
+  let lettaError = null;
+  let backendStop = null;
+  let backendError = null;
+  try {
+    lettaStop = await stopLettaAgentRuntime();
+  } catch (error) {
+    lettaError = error;
+  }
+  try {
+    backendStop = await stopBackend({ forShutdown: true, reason: String(options.reason || 'application-shutdown') });
+  } catch (error) {
+    backendError = error;
+  }
+  if (lettaError || backendError) {
+    const error = new Error('Application-owned runtime shutdown was not fully confirmed');
+    error.reasonCode = lettaError?.reasonCode || backendError?.reasonCode || 'DESKTOP_RUNTIME_STOP_NOT_CONFIRMED';
+    error.details = {
+      letta: lettaError ? { reasonCode: lettaError.reasonCode || '', message: lettaError.message } : lettaStop,
+      backend: backendError ? { reasonCode: backendError.reasonCode || '', message: backendError.message } : backendStop
+    };
+    throw error;
+  }
+  return {
+    ...(backendStop || { stopped: true, exitConfirmed: true, alreadyStopped: true, backendPid: 0 }),
+    stopped: true,
+    exitConfirmed: true,
+    letta: lettaStop
+  };
+}
+
+function applicationRuntimeAuthoritySnapshot() {
+  const backend = authoritativeBackend().backend || {};
+  const letta = lettaAgentRuntime?.snapshot?.() || {};
+  const lettaOwned = letta.ready === true || Number(letta.pid || 0) > 0;
+  return {
+    ...backend,
+    ownershipPresent: backend.ownershipPresent === true || lettaOwned,
+    backendPid: Number(backend.backendPid || letta.pid || 0),
+    letta
+  };
+}
 
 function currentApiSessionToken(options = {}) {
   const token = desktopHost?.backendProcessHost?.getApiSessionToken?.() || '';
@@ -694,8 +770,10 @@ async function completeWp7ProbeAndExit(exitCode = 0) {
   quitting = true;
   stopEventSocket();
   const receiptPath = path.join(String(process.env.WP7_PROBE_ROOT || DATA_ROOT), 'completion-receipt.json');
+  let lettaStop = { stopped: true, exitConfirmed: true, alreadyStopped: true, pid: 0 };
   let backendStop = { stopped: true, exitConfirmed: true, alreadyStopped: true, backendPid: 0 };
   try {
+    lettaStop = await stopLettaAgentRuntime();
     if (backendOwnershipPresent()) {
       const child = ownedBackendChild();
       const backendPid = Number(child?.pid || 0);
@@ -731,6 +809,7 @@ async function completeWp7ProbeAndExit(exitCode = 0) {
       executionNonce: String(process.env.WP7_PROBE_EXECUTION_NONCE || ''),
       electronPid: process.pid,
       backendStop,
+      lettaStop,
       completedAtUtc: new Date().toISOString()
     }, null, 2)}\n`);
     exitAfterBackendShutdown = true;
@@ -2685,6 +2764,14 @@ function registerIpc() {
   installR32StoreBridge({ ipcMain, apiRequest });
   registerM2DebugIpc();
   ipcGuardHandle('desktop:get-state', () => desktopState());
+  ipcGuardHandle('desktop:letta-get-state', () => ensureLettaAgentRuntime().snapshot());
+  ipcGuardHandle('desktop:letta-list-agents', () => ensureLettaAgentRuntime().listAgents());
+  ipcGuardHandle('desktop:letta-list-conversations', (_event, input = {}) => {
+    const agentId = String(input?.agentId || '').trim();
+    const requestedLimit = Number(input?.limit || 50);
+    const limit = Number.isInteger(requestedLimit) ? Math.max(1, Math.min(200, requestedLimit)) : 50;
+    return ensureLettaAgentRuntime().listConversations({ agentId, limit });
+  });
   ipcGuardHandle('desktop:report-runtime-environment', (_event, input = {}) => {
     const state = desktopState();
     const finite = (value, min, max) => {
@@ -2876,8 +2963,8 @@ function registerIpc() {
   ipcGuardHandle('desktop:restart-app', async () => restartElectronApp({
     setRelaunchIntent: () => { relaunchPending = true; quitting = true; backendRestarting = true; stopEventSocket(); },
     clearRelaunchIntent: () => { relaunchPending = false; quitting = false; backendRestarting = false; },
-    stop: () => stopBackend({ forShutdown: true, reason: 'application-relaunch' }),
-    authoritySnapshot: () => authoritativeBackend().backend,
+    stop: () => stopApplicationOwnedRuntimes({ reason: 'application-relaunch' }),
+    authoritySnapshot: () => applicationRuntimeAuthoritySnapshot(),
     appRelaunch: () => app.relaunch(),
     appExit: code => { exitAfterBackendShutdown = true; app.exit(code); },
     onFailure: error => {
@@ -3059,6 +3146,7 @@ if (!app.requestSingleInstanceLock()) {
     createTray();
     createSoundWindow();
     try {
+      await ensureLettaAgentRuntime().start();
       await launchBackend();
       if (wp7ProbeRequested()) {
         const probeResult = await runWp7InstalledRuntimeProbe();
@@ -3148,12 +3236,12 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin' && !settingsStore?.read().closeToTray) app.quit();
 });
 app.on('will-quit', event => {
-  if (exitAfterBackendShutdown || !backendOwnershipPresent()) return;
+  if (exitAfterBackendShutdown || (!backendOwnershipPresent() && !lettaOwnershipPresent())) return;
   event.preventDefault();
   stopEventSocket();
   if (shutdownInProgress) return;
   shutdownInProgress = completeElectronQuit({
-    stop: () => stopBackend({ forShutdown: true, reason: 'application-quit' }),
+    stop: () => stopApplicationOwnedRuntimes({ reason: 'application-quit' }),
     appExit: code => { exitAfterBackendShutdown = true; app.exit(code); },
     onFailure: error => {
       quitting = false;
