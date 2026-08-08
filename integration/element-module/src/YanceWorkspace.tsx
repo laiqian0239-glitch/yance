@@ -6,9 +6,7 @@ type Capability = (typeof CAPABILITIES)[number];
 
 type LettaState = {
   ready?: boolean;
-  pid?: number | null;
-  url?: string | null;
-  lastError?: { message?: string } | null;
+  reasonCode?: string;
 };
 
 type LettaAgent = { id?: string; name?: string };
@@ -56,7 +54,7 @@ export function YanceWorkspace(): React.JSX.Element {
         if (cancelled) return;
         setLettaState(state || { ready: false });
         if (!state?.ready) {
-          setLettaStatus(state?.lastError?.message || "Not ready");
+          setLettaStatus(state?.reasonCode || "Not ready");
           return;
         }
         const agents = await api.listLettaAgents();
