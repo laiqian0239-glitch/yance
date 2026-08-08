@@ -44,9 +44,9 @@
       "docs/superpowers/plans/2026-08-08-yance-v21-persona-character-p0.md",
       "package-lock.json",
       "package.json",
-      "tests/persona-character/sillytavern-tavern-card-validator.test.js",
-      "tests/persona-character/v21-persona-character-p0.test.js",
-      "tests/persona-character/v21-persona-native-register.test.js",
+      "tests/wp0/sillytavern-tavern-card-validator.test.js",
+      "tests/wp0/v21-persona-character-p0.test.js",
+      "tests/wp0/v21-persona-native-register.test.js",
       "vendor/sillytavern/1.18.0/LICENSE",
       "vendor/sillytavern/1.18.0/UPSTREAM.json",
       "vendor/sillytavern/1.18.0/src/character-card-parser.cjs",
@@ -55,7 +55,7 @@
       "vendor/sillytavern/1.18.0/src/validator/TavernCardValidator.cjs"
     ],
     "approvedChangedFileCount": 20,
-    "approvedChangedFileSetSha256": "061859f0708b587f992df1430ddf45ebe6b36874774f71a396cb639ba81ce81c",
+    "approvedChangedFileSetSha256": "ddde51c01a6d56ecdec4a4d12cee1a75af17a258ec95bdb164a31c3d7586b47e",
     "newDependencyAllowed": true,
     "dependencyModificationPolicy": {
       "allowedDependencyPaths": [
@@ -132,7 +132,7 @@
           {
             "path": "tests/tavern-card-validator.test.js",
             "gitBlob": "6eadae6d2f5f5f7870be20aea499281ed613c6c3",
-            "adoption": "Port as executable Node test against the vendored mechanically adapted validator while preserving upstream cases"
+            "adoption": "Port as executable Node test under tests/wp0/ against the vendored mechanically adapted validator while preserving upstream cases so the permanent WP0 runner executes it automatically"
           }
         ],
         "licenseFile": {
@@ -241,6 +241,7 @@
     "The existing labels 暧昧, 小女人, 风骚, 调情, 个性, 温柔, 成熟, 高冷, 主动, 神秘, 幽默 and 俏皮 must remain available as structured Style Overlay resolver inputs; direct flat prompt concatenation of the label weights is RED.",
     "Persona, Locale Profile, Chat Register, Relationship Card and Style Overlay must remain distinct inputs; nationality or age must not select a stereotyped persona template.",
     "de-DE and de-AT fixtures must prove the composition contract prefers native WhatsApp register and explicitly rejects translationese, email/customer-service tone, over-explaining, overly complete AI sentences, repeated questions, emoji overuse, neediness/overeagerness, relationship-stage mismatch and assistant clichés.",
+    "All three Persona/Character failure-first suites must live under tests/wp0/ so tools/wp0/run-tests.js discovers them automatically; relying on a manually invoked side test command or an un-gated test directory is RED.",
     "Relationship stage may alter allowed tone/placement through the read-only Relationship Card projection, but Persona code must not become a second relationship fact store.",
     "Letta long-term agent/interaction memory, Graphiti temporal relationship facts and Parlant Goal/Journey authority must remain unchanged; this work package must not modify their runtime, storage, routes, workflows or authorization files.",
     "The existing Yance AI gateway remains the only model execution boundary; no SillyTavern provider code, second model gateway, LiteLLM/RouteLLM implementation or provider credential path may be introduced.",
@@ -248,7 +249,7 @@
     "AGPL-3.0 obligations must be explicit before GREEN: package license declaration, vendored license text, preserved upstream notices/provenance, Corresponding Source availability for covered distribution, and Section 13 source offer when the modified covered program is used through a computer network.",
     "The mechanically adapted CommonJS vendored modules and source-slice file must contain exact upstream repository/commit/path/blob provenance and a minimal transformation record; clean-room rewritten equivalents are RED.",
     "The implementation must remain compatible with Yance Node >=22.19.0 and Electron 39.8.5 on Windows without adding native build/runtime requirements for Persona/Character parsing.",
-    "The final implementation changed-path set must remain within these 20 exact paths and retain SHA-256 061859f0708b587f992df1430ddf45ebe6b36874774f71a396cb639ba81ce81c.",
+    "The final implementation changed-path set must remain within these 20 exact paths and retain SHA-256 ddde51c01a6d56ecdec4a4d12cee1a75af17a258ec95bdb164a31c3d7586b47e.",
     "Independent exact-Head review must have zero unresolved P0/P1 findings before implementation merge."
   ],
   "governance": {
