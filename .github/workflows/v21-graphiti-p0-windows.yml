@@ -82,7 +82,7 @@ jobs:
           $data = Join-Path $env:RUNNER_TEMP 'graphiti-offline-data'
           $conf = Join-Path $data 'neo4j-conf'
           New-Item -ItemType Directory -Force -Path $conf,(Join-Path $data 'neo4j-data'),(Join-Path $data 'neo4j-logs'),(Join-Path $data 'neo4j-transactions') | Out-Null
-          @"
+          $neo4jConfig = @"
           server.default_listen_address=127.0.0.1
           server.bolt.enabled=true
           server.bolt.listen_address=127.0.0.1:17687
@@ -93,7 +93,8 @@ jobs:
           server.directories.logs=$((Join-Path $data 'neo4j-logs').Replace('\','/'))
           server.directories.transaction.logs.root=$((Join-Path $data 'neo4j-transactions').Replace('\','/'))
           dbms.security.auth_enabled=true
-          "@ | Set-Content -LiteralPath (Join-Path $conf 'neo4j.conf') -Encoding utf8
+          "@
+          [IO.File]::WriteAllText((Join-Path $conf 'neo4j.conf'), $neo4jConfig, (New-Object Text.UTF8Encoding($false)))
           $env:JAVA_HOME = $java
           $env:NEO4J_HOME = $neo4j
           $env:NEO4J_CONF = $conf
