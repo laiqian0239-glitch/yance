@@ -7,7 +7,7 @@
   "reason": "Independent review of Persona Character P0 V2 proved that generic delegated-governance authorization currently ignores later supersession declarations. A superseded V1 implementation branch can therefore remain executable under an older trusted authorization even after a later authorization records that it replaces the earlier work package. This work package authorizes only the minimum policy/test root repair required to make supersession fail closed without force-resetting or rewriting historical branches.",
   "base": {
     "branch": "main",
-    "commit": "2d95350a3b7d4dbb3572cc16da5bb89684fd4f18"
+    "commit": "baa4af9d31d65c9cf42803c0902f2a59374531ec"
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
