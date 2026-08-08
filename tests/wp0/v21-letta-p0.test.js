@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { ChildProcess } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
 const SDK_VERSION = '0.6.2';
@@ -136,9 +137,18 @@ test('real Letta App Server management probe is sessionless and shuts down its o
     dataRoot,
     startupTimeoutMs: 45000
   });
+  const originalKill = ChildProcess.prototype.kill;
+  const killCalls = [];
+  let ownedPid = null;
+  ChildProcess.prototype.kill = function observedOwnedChildKill(signal) {
+    killCalls.push({ pid: Number(this.pid || 0), signal });
+    return originalKill.call(this, signal);
+  };
 
   try {
     const started = await runtime.start();
+    ownedPid = Number(started.pid || 0);
+    assert.ok(ownedPid > 0, 'real Letta probe must expose the owned child PID inside main-process-only runtime state');
     assert.equal(started.ready, true);
     assert.equal(runtimeModule.assertLoopbackListenUrl(started.url), started.url);
     assert.equal(started.dataRoot, path.join(dataRoot, 'letta', 'local-backend'));
@@ -147,9 +157,14 @@ test('real Letta App Server management probe is sessionless and shuts down its o
     assert.ok(Array.isArray(agents));
     assert.equal(runtime.snapshot().ready, true);
   } finally {
-    await runtime.stop();
+    try {
+      await runtime.stop();
+    } finally {
+      ChildProcess.prototype.kill = originalKill;
+    }
   }
 
+  assert.equal(killCalls.some(call => call.pid === ownedPid && call.signal === 'SIGTERM'), true, 'stop() must signal SIGTERM to the adapter-owned Letta child');
   const stopped = runtime.snapshot();
   assert.equal(stopped.ready, false);
   assert.equal(stopped.pid, null);
