@@ -1,0 +1,127 @@
+name: V2.1 Parlant P0 Windows Runtime
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/v21-parlant-p0-windows.yml'
+      - 'config/upstreams/v21-parlant-p0.json'
+      - 'electron/parlantRelationshipRuntime.js'
+      - 'runtime/parlant/**'
+      - 'tools/parlant/build-windows-runtime.ps1'
+      - 'electron/main.js'
+      - 'electron/preload.js'
+      - 'electron/m2/ipcManifest.json'
+      - 'integration/element-module/src/YanceWorkspace.tsx'
+      - 'tools/wp7/lib.js'
+      - 'tools/wp7/packaged-product-trust.js'
+      - 'tools/wp7/create-pre-review-trusted-product.js'
+      - 'THIRD_PARTY_NOTICES.md'
+      - 'package.json'
+      - 'third_party/licenses/parlant-Apache-2.0.txt'
+      - 'third_party/licenses/uv-Apache-2.0.txt'
+      - 'third_party/licenses/uv-MIT.txt'
+      - 'third_party/licenses/python-build-standalone-MPL-2.0.txt'
+      - 'third_party/licenses/cpython-PSF-2.0.txt'
+      - 'tests/wp0/v21-parlant-*.test.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seal-and-offline-probe:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Seal Parlant Windows runtime from pinned upstream inputs
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\tools\parlant\build-windows-runtime.ps1 -OutputRoot "$env:RUNNER_TEMP\parlant-runtime"
+
+      - name: Verify runtime has no build resolver or VCS state
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = "$env:RUNNER_TEMP\parlant-runtime"
+          foreach ($forbidden in @('uv.exe', '.git', 'uv.lock')) {
+            $found = @(Get-ChildItem -LiteralPath $root -Recurse -Force | Where-Object { $_.Name -eq $forbidden })
+            if ($found.Count -ne 0) { throw "forbidden build-time artifact shipped: $forbidden" }
+          }
+          foreach ($required in @('venv\Scripts\python.exe','python\python.exe','yance_parlant_server.py','runtime-sbom.cdx.json','runtime-seal.json')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $root $required) -PathType Leaf)) { throw "sealed runtime missing: $required" }
+          }
+
+      - name: Network-independent authenticated ownership and health closure
+        shell: powershell
+        env:
+          PARLANT_DATA_COLLECTION: 'false'
+          PARLANT_ENV: 'production'
+          YANCE_PARLANT_LOOPBACK_TOKEN: 'offline-probe-loopback-token-not-a-secret-0000000000'
+          OPENROUTER_API_KEY: 'offline-probe-not-a-secret'
+          HTTP_PROXY: 'http://127.0.0.1:9'
+          HTTPS_PROXY: 'http://127.0.0.1:9'
+          ALL_PROXY: 'http://127.0.0.1:9'
+          NO_PROXY: '127.0.0.1,localhost'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = "$env:RUNNER_TEMP\parlant-runtime"
+          $python = Join-Path $root 'venv\Scripts\python.exe'
+          & $python -I (Join-Path $root 'yance_parlant_server.py') --self-test
+          if ($LASTEXITCODE -ne 0) { throw 'isolated Parlant self-test failed' }
+          $data = Join-Path $env:RUNNER_TEMP 'parlant-offline-data'
+          $env:YANCE_PARLANT_DATA_ROOT = $data
+          $env:PARLANT_HOME = $data
+          $stdout = Join-Path $env:RUNNER_TEMP 'parlant-offline-stdout.log'
+          $stderr = Join-Path $env:RUNNER_TEMP 'parlant-offline-stderr.log'
+          $process = Start-Process -FilePath $python -ArgumentList @('-I',(Join-Path $root 'yance_parlant_server.py'),'--host','127.0.0.1','--port','18765') -PassThru -NoNewWindow -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          try {
+            $healthy = $false
+            $challenge = 'workflow-offline-proof-20260808'
+            $headers = @{ 'x-yance-parlant-challenge' = $challenge }
+            for ($i = 0; $i -lt 120; $i++) {
+              if ($process.HasExited) { throw "Parlant offline probe exited early: $((Get-Content $stderr -Raw -ErrorAction SilentlyContinue))" }
+              try {
+                $result = Invoke-RestMethod -Uri 'http://127.0.0.1:18765/yance/healthz' -Headers $headers -TimeoutSec 2
+                $hmac = New-Object System.Security.Cryptography.HMACSHA256
+                try {
+                  $hmac.Key = [System.Text.Encoding]::UTF8.GetBytes($env:YANCE_PARLANT_LOOPBACK_TOKEN)
+                  $proofBytes = $hmac.ComputeHash([System.Text.Encoding]::UTF8.GetBytes("yance-parlant-health-v1:$challenge"))
+                  $expectedProof = -join ($proofBytes | ForEach-Object { $_.ToString('x2') })
+                } finally {
+                  $hmac.Dispose()
+                }
+                if ([string]$result.instanceProof -ne $expectedProof) { throw 'Parlant ownership proof mismatch' }
+                $healthy = $true
+                break
+              } catch { Start-Sleep -Milliseconds 500 }
+            }
+            if (-not $healthy) {
+              Write-Host '--- parlant offline stdout ---'
+              Get-Content $stdout -Raw -ErrorAction SilentlyContinue
+              Write-Host '--- parlant offline stderr ---'
+              Get-Content $stderr -Raw -ErrorAction SilentlyContinue
+              throw 'Parlant authenticated /yance/healthz did not become ready under offline proxy isolation'
+            }
+            $unauthorizedRejected = $false
+            try {
+              Invoke-WebRequest -Uri 'http://127.0.0.1:18765/healthz' -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop | Out-Null
+            } catch {
+              $status = 0
+              if ($_.Exception.Response -and $_.Exception.Response.StatusCode) { $status = [int]$_.Exception.Response.StatusCode }
+              if ($status -eq 403) { $unauthorizedRejected = $true } else { throw }
+            }
+            if (-not $unauthorizedRejected) { throw 'Parlant unauthenticated HTTP surface was not rejected' }
+          } finally {
+            if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }
+          }
+
+      - name: Re-run WP0 Parlant contracts
+        shell: powershell
+        run: |
+          node --test tests/wp0/v21-parlant-p0.test.js tests/wp0/v21-parlant-portable-runtime.test.js tests/wp0/v21-parlant-workspace-contract.test.js

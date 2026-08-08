@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "workPackage": "V21-PARLANT-P0-V1",
+  "upstreams": {
+    "parlant": {
+      "repository": "emcie-co/parlant",
+      "version": "v3.3.2",
+      "commit": "61bba3b2b3fffd677d345e393e8c942dbd400297",
+      "license": "Apache-2.0",
+      "requiresPython": ">=3.10,<3.15",
+      "uvLockGitBlob": "aa2f7de8e858f19296df58efec56d72c8d3f50a5"
+    },
+    "uv": {
+      "repository": "astral-sh/uv",
+      "version": "0.12.3",
+      "commit": "507230998c9541d67814b57463ac00e454ff6991",
+      "license": "MIT OR Apache-2.0",
+      "windowsX64Asset": "uv-x86_64-pc-windows-msvc.zip",
+      "windowsX64AssetSize": 19013455,
+      "windowsX64AssetSha256": "b23350c79e8ad0192b8124af13a0f17e8d4e4549524785e1aef389ae5a06990e"
+    },
+    "pythonBuildStandalone": {
+      "repository": "astral-sh/python-build-standalone",
+      "release": "20260807",
+      "commit": "00c8a06113f11220667c3bcf5fab1672ff9e78ef",
+      "license": "MPL-2.0",
+      "cpythonVersion": "3.12.13",
+      "cpythonLicense": "PSF-2.0",
+      "windowsX64Asset": "cpython-3.12.13+20260807-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+      "windowsX64AssetSize": 21962247,
+      "windowsX64AssetSha256": "18bcc65b17921806b72cdc88bcf000bf67a2c99a8fc381fe1629f2b9ba56858d"
+    },
+    "tiktoken": {
+      "repository": "openai/tiktoken",
+      "version": "0.12.0",
+      "commit": "97e49cbadd500b5cc9dbb51a486f0b42e6701bee",
+      "license": "MIT",
+      "licenseGitBlob": "83ed1036f70d4f419307e8a044a35e163cc35201",
+      "encoding": "o200k_base",
+      "encodingUrl": "https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken",
+      "encodingSha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d",
+      "cacheKeySha1": "fb374d419588a4632f3f557e76b4b70aebbca790",
+      "licenseEvidence": {
+        "repository": "dotnet/machinelearning",
+        "commit": "7bf1b4d28f49b04fd0b511298f41202ed0b454d7",
+        "sourcePath": "src/Microsoft.ML.Tokenizers.Data.O200kBase/Microsoft.ML.Tokenizers.Data.O200kBase.csproj",
+        "sourceGitBlob": "701ec1fd4ead088ffeef61f52bcb831b55ff0115",
+        "assertion": "The o200k_base.tiktoken data file is under the MIT copyright license."
+      }
+    }
+  }
+}
