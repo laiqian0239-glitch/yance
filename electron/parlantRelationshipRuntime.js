@@ -1,261 +1,288 @@
 'use strict';
 
-const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 
-const PARLANT_VERSION = 'v3.3.2';
+const PARLANT_VERSION = '3.3.2';
 const PARLANT_COMMIT = '61bba3b2b3fffd677d345e393e8c942dbd400297';
-const DEFAULT_PORT = 18765;
-const DEFAULT_ENDPOINT = `http://127.0.0.1:${DEFAULT_PORT}`;
-const HEALTH_PATH = '/healthz';
-const READY_TIMEOUT_MS = 30_000;
+const DEFAULT_ENDPOINT = 'http://127.0.0.1:18765';
+const DEFAULT_STARTUP_TIMEOUT_MS = 60000;
+const DEFAULT_REQUEST_TIMEOUT_MS = 90000;
 
-class ParlantRuntimeError extends Error {
-  constructor(code, message, cause) {
-    super(message, cause ? { cause } : undefined);
-    this.name = 'ParlantRuntimeError';
-    this.code = code;
-  }
+function clean(value) { return String(value == null ? '' : value).trim(); }
+
+function runtimeError(reasonCode, message, details = {}) {
+  const error = new Error(message);
+  error.reasonCode = reasonCode;
+  error.code = reasonCode;
+  error.details = details;
+  return error;
+}
+
+function relationshipKey(contactId) {
+  const contact = clean(contactId);
+  if (!contact || contact.length > 512) throw runtimeError('DESKTOP_PARLANT_CONTACT_ID_INVALID', 'Parlant contactId must contain 1 to 512 characters.');
+  return crypto.createHash('sha256').update(contact, 'utf8').digest('hex');
 }
 
 function assertLoopbackEndpoint(endpoint) {
-  const raw = String(endpoint || '').trim();
-  let parsed;
-  try {
-    parsed = new URL(raw);
-  } catch (error) {
-    throw new ParlantRuntimeError('PARLANT_RUNTIME_NOT_READY', 'Parlant endpoint is invalid', error);
+  let url;
+  try { url = new URL(clean(endpoint)); } catch (_) {
+    throw runtimeError('DESKTOP_PARLANT_ENDPOINT_INVALID', 'Parlant endpoint must be a valid loopback HTTP URL.');
   }
-  const host = parsed.hostname.toLowerCase();
-  if (
-    parsed.protocol !== 'http:' ||
-    (host !== '127.0.0.1' && host !== 'localhost') ||
-    parsed.username ||
-    parsed.password ||
-    (parsed.pathname && parsed.pathname !== '/') ||
-    parsed.search ||
-    parsed.hash
-  ) {
-    throw new ParlantRuntimeError('PARLANT_RUNTIME_NOT_READY', 'Parlant endpoint must be loopback-only HTTP');
+  const host = String(url.hostname || '').toLowerCase();
+  if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost', '::1', '[::1]'].includes(host)) {
+    throw runtimeError('DESKTOP_PARLANT_NON_LOOPBACK_DENIED', 'Parlant sidecar must bind to loopback HTTP only.', { endpoint: url.origin });
   }
-  return raw;
+  if (url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
+    throw runtimeError('DESKTOP_PARLANT_ENDPOINT_INVALID', 'Parlant endpoint must not include credentials, path, query, or fragment.');
+  }
+  return url.origin;
 }
 
-function relationshipNamespaceKey(contactId) {
-  const normalized = String(contactId || '').trim();
-  if (!normalized) throw new TypeError('contactId is required for Parlant relationship isolation');
-  return crypto.createHash('sha256').update(normalized, 'utf8').digest('hex');
+function sanitizeChildEnvironment(source = process.env) {
+  const env = {};
+  const allowed = [
+    'SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'PATH', 'ComSpec', 'PATHEXT',
+    'ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432', 'LOCALAPPDATA',
+    'APPDATA', 'USERPROFILE', 'HOME', 'LANG', 'LC_ALL'
+  ];
+  for (const key of allowed) if (source[key]) env[key] = source[key];
+  delete env.ELECTRON_RUN_AS_NODE;
+  delete env.OPENROUTER_API_KEY;
+  delete env.PARLANT_DATA_COLLECTION;
+  delete env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT;
+  delete env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT;
+  return env;
 }
 
-function buildParlantEnvironment(baseEnvironment, yanceDataRoot, openRouterApiKey) {
-  const root = path.resolve(String(yanceDataRoot || '').trim());
-  if (!root) throw new TypeError('Yance data root is required');
-  const credential = String(openRouterApiKey || '').trim();
-  if (!credential) {
-    throw new ParlantRuntimeError('PARLANT_PROVIDER_UNAVAILABLE', 'OpenRouter credential is unavailable');
-  }
-
-  const environment = { ...(baseEnvironment || {}) };
-  delete environment.ELECTRON_RUN_AS_NODE;
-  delete environment.OPENROUTER_API_KEY;
-  environment.PARLANT_DATA_COLLECTION = 'false';
-  environment.OPENROUTER_API_KEY = credential;
-  environment.YANCE_PARLANT_DATA_ROOT = path.join(root, 'parlant');
-  environment.PARLANT_HOME = environment.YANCE_PARLANT_DATA_ROOT;
-  environment.PYTHONNOUSERSITE = '1';
-  environment.PYTHONDONTWRITEBYTECODE = '1';
-  return environment;
-}
-
-function normalizeProjection(value, contactId) {
-  const input = value && typeof value === 'object' ? value : {};
+function buildParlantEnvironment(options = {}) {
+  const key = clean(options.openRouterApiKey);
+  const dataRoot = path.resolve(clean(options.dataRoot));
+  if (!key) throw runtimeError('DESKTOP_PARLANT_OPENROUTER_CREDENTIAL_MISSING', 'OpenRouter credential is required for the Parlant relationship runtime.');
+  if (!dataRoot) throw runtimeError('DESKTOP_PARLANT_DATA_ROOT_INVALID', 'Parlant data root is required.');
   return {
-    contactId: String(contactId || ''),
-    goal: typeof input.goal === 'string' ? input.goal : '',
-    paused: Boolean(input.paused),
-    progress: typeof input.progress === 'string' ? input.progress : '',
-    reasonCode: typeof input.reasonCode === 'string' ? input.reasonCode : '',
-    status: typeof input.status === 'string' ? input.status : 'degraded'
+    ...sanitizeChildEnvironment(options.baseEnv || process.env),
+    OPENROUTER_API_KEY: key,
+    PARLANT_DATA_COLLECTION: 'false',
+    PARLANT_HOME: dataRoot,
+    YANCE_PARLANT_DATA_ROOT: dataRoot,
+    PYTHONNOUSERSITE: '1',
+    PYTHONDONTWRITEBYTECODE: '1',
+    PYTHONUTF8: '1'
   };
 }
 
-function createParlantRelationshipRuntime(options = {}) {
-  const fetchImpl = options.fetchImpl || global.fetch;
-  const spawnImpl = options.spawnImpl || spawn;
-  const existsSync = options.existsSync || fs.existsSync;
-  const mkdirSync = options.mkdirSync || fs.mkdirSync;
-  const dataRoot = path.resolve(String(options.dataRoot || '').trim());
-  const resourcesPath = path.resolve(String(options.resourcesPath || process.resourcesPath || '').trim());
-  const endpoint = assertLoopbackEndpoint(options.endpoint || DEFAULT_ENDPOINT);
-  const getOpenRouterApiKey = typeof options.getOpenRouterApiKey === 'function'
-    ? options.getOpenRouterApiKey
-    : async () => '';
-  const runtimeRoot = path.resolve(options.runtimeRoot || path.join(resourcesPath, 'parlant-runtime'));
-  const pythonExecutable = path.join(runtimeRoot, 'python', 'python.exe');
-  const serverScript = path.join(runtimeRoot, 'yance_parlant_server.py');
+function runtimePaths(resourcesPath) {
+  const root = path.join(path.resolve(resourcesPath), 'parlant-runtime');
+  return Object.freeze({
+    root,
+    pythonExecutable: path.join(root, 'venv', 'Scripts', 'python.exe'),
+    serverScript: path.join(root, 'yance_parlant_server.py'),
+    sbom: path.join(root, 'runtime-sbom.cdx.json'),
+    seal: path.join(root, 'runtime-seal.json')
+  });
+}
 
-  if (typeof fetchImpl !== 'function') throw new TypeError('fetch implementation is required');
-  if (!dataRoot) throw new TypeError('dataRoot is required');
+function createParlantRelationshipRuntime(options = {}) {
+  const endpoint = assertLoopbackEndpoint(options.endpoint || DEFAULT_ENDPOINT);
+  const endpointUrl = new URL(endpoint);
+  const resourcesPath = path.resolve(clean(options.resourcesPath || process.resourcesPath || process.cwd()));
+  const dataRoot = path.join(path.resolve(clean(options.dataRoot || process.cwd())), 'parlant');
+  const getOpenRouterApiKey = typeof options.getOpenRouterApiKey === 'function' ? options.getOpenRouterApiKey : async () => '';
+  const fetchImpl = options.fetchImpl || globalThis.fetch;
+  const spawnProcess = options.spawnProcess || spawn;
+  const fsImpl = options.fsImpl || fs;
+  const paths = runtimePaths(resourcesPath);
 
   let child = null;
-  let startupPromise = null;
+  let ready = false;
+  let startPromise = null;
+  let lastError = null;
+  let stderrTail = '';
 
-  async function request(relativePath, requestOptions = {}) {
-    await ensureStarted();
-    const response = await fetchImpl(`${endpoint}${relativePath}`, {
-      ...requestOptions,
-      headers: {
-        accept: 'application/json',
-        ...(requestOptions.body ? { 'content-type': 'application/json' } : {}),
-        ...(requestOptions.headers || {})
-      }
+  function snapshot() {
+    return Object.freeze({
+      ready,
+      pid: Number(child?.pid || 0),
+      endpoint,
+      version: PARLANT_VERSION,
+      commit: PARLANT_COMMIT,
+      lastError: lastError ? { reasonCode: clean(lastError.reasonCode || lastError.code), message: clean(lastError.message) } : null
     });
-    if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      const message = body ? `Parlant request failed (${response.status}): ${body.slice(0, 256)}` : `Parlant request failed (${response.status})`;
-      throw new ParlantRuntimeError('PARLANT_DEGRADED', message);
-    }
-    if (response.status === 204) return null;
-    return response.json();
   }
 
-  async function healthReady() {
+  async function request(method, route, body, requestOptions = {}) {
+    if (!ready && requestOptions.allowBeforeReady !== true) {
+      throw runtimeError('DESKTOP_PARLANT_RUNTIME_NOT_READY', 'Parlant relationship runtime is not ready.');
+    }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), Math.max(1000, Number(requestOptions.timeoutMs || DEFAULT_REQUEST_TIMEOUT_MS)));
+    timeout.unref?.();
     try {
-      const response = await fetchImpl(`${endpoint}${HEALTH_PATH}`, { headers: { accept: 'application/json' } });
-      return Boolean(response && response.ok);
-    } catch (_) {
-      return false;
-    }
-  }
-
-  async function waitUntilReady() {
-    const deadline = Date.now() + READY_TIMEOUT_MS;
-    while (Date.now() < deadline) {
-      if (child && child.exitCode !== null) {
-        throw new ParlantRuntimeError('PARLANT_RUNTIME_NOT_READY', `Parlant runtime exited before health readiness (${child.exitCode})`);
-      }
-      if (await healthReady()) return;
-      await new Promise(resolve => setTimeout(resolve, 125));
-    }
-    throw new ParlantRuntimeError('PARLANT_RUNTIME_NOT_READY', 'Parlant runtime did not become healthy');
-  }
-
-  async function start() {
-    if (child && child.exitCode === null && await healthReady()) return;
-    if (startupPromise) return startupPromise;
-    startupPromise = (async () => {
-      if (!existsSync(pythonExecutable) || !existsSync(serverScript)) {
-        throw new ParlantRuntimeError('PARLANT_RUNTIME_NOT_READY', 'Packaged Parlant runtime is unavailable');
-      }
-      const credential = String(await getOpenRouterApiKey() || '').trim();
-      if (!credential) {
-        throw new ParlantRuntimeError('PARLANT_PROVIDER_UNAVAILABLE', 'OpenRouter credential is unavailable');
-      }
-      mkdirSync(path.join(dataRoot, 'parlant'), { recursive: true });
-      const env = buildParlantEnvironment(process.env, dataRoot, credential);
-      const parsed = new URL(endpoint);
-      child = spawnImpl(pythonExecutable, [
-        '-I',
-        serverScript,
-        '--host',
-        parsed.hostname,
-        '--port',
-        parsed.port || String(DEFAULT_PORT)
-      ], {
-        cwd: runtimeRoot,
-        env,
-        windowsHide: true,
-        stdio: 'ignore'
+      const response = await fetchImpl(`${endpoint}${route}`, {
+        method,
+        headers: body === undefined ? { accept: 'application/json' } : { accept: 'application/json', 'content-type': 'application/json' },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: controller.signal
       });
-      child.once('exit', () => { child = null; });
-      await waitUntilReady();
-    })();
-    try {
-      await startupPromise;
-    } finally {
-      startupPromise = null;
-    }
-  }
-
-  async function ensureStarted() {
-    if (child && child.exitCode === null && await healthReady()) return;
-    await start();
-  }
-
-  async function readRelationshipGoal({ contactId }) {
-    const key = relationshipNamespaceKey(contactId);
-    try {
-      const value = await request(`/yance/relationship-goals/${key}`);
-      return normalizeProjection(value, contactId);
+      const text = await response.text();
+      let payload = {};
+      if (text) {
+        try { payload = JSON.parse(text); } catch (_) {
+          throw runtimeError('DESKTOP_PARLANT_RESPONSE_INVALID', 'Parlant returned non-JSON content.', { status: response.status });
+        }
+      }
+      if (!response.ok || payload?.ok === false) {
+        const detail = payload?.detail && typeof payload.detail === 'object' && !Array.isArray(payload.detail) ? payload.detail : {};
+        const code = clean(payload?.reasonCode || payload?.code || detail.reasonCode || detail.code) || `DESKTOP_PARLANT_HTTP_${response.status}`;
+        const message = clean(payload?.message || detail.message) || `Parlant request failed with HTTP ${response.status}.`;
+        throw runtimeError(code, message, { status: response.status });
+      }
+      return payload;
     } catch (error) {
-      if (error instanceof ParlantRuntimeError) throw error;
-      throw new ParlantRuntimeError('PARLANT_DEGRADED', 'Parlant relationship goal is unavailable', error);
+      if (error?.name === 'AbortError') throw runtimeError('DESKTOP_PARLANT_REQUEST_TIMEOUT', 'Parlant request timed out.');
+      throw error;
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
-  async function upsertRelationshipGoal({ contactId, goal }) {
-    const normalizedGoal = String(goal || '').trim();
-    if (!normalizedGoal) throw new TypeError('goal is required');
-    if (normalizedGoal.length > 4000) throw new RangeError('goal exceeds 4000 characters');
-    const key = relationshipNamespaceKey(contactId);
-    const value = await request(`/yance/relationship-goals/${key}`, {
-      method: 'PUT',
-      body: JSON.stringify({ contactId: String(contactId), goal: normalizedGoal })
-    });
-    return normalizeProjection(value, contactId);
-  }
-
-  async function deleteRelationshipGoal({ contactId }) {
-    const key = relationshipNamespaceKey(contactId);
-    await request(`/yance/relationship-goals/${key}`, { method: 'DELETE' });
-    return { contactId: String(contactId), deleted: true };
-  }
-
-  async function setRelationshipGoalPaused({ contactId, paused }) {
-    const key = relationshipNamespaceKey(contactId);
-    const value = await request(`/yance/relationship-goals/${key}/mode`, {
-      method: 'PATCH',
-      body: JSON.stringify({ contactId: String(contactId), mode: paused ? 'manual' : 'auto' })
-    });
-    return normalizeProjection(value, contactId);
-  }
-
-  async function ingestCustomerMessage({ contactId, text }) {
-    const normalized = String(text || '').trim();
-    if (!normalized) throw new TypeError('customer message text is required');
-    const key = relationshipNamespaceKey(contactId);
-    return request(`/yance/relationship-events/${key}`, {
-      method: 'POST',
-      body: JSON.stringify({ contactId: String(contactId), source: 'customer', text: normalized })
-    });
-  }
-
-  async function requestReplyCandidate({ contactId, afterOffset }) {
-    const key = relationshipNamespaceKey(contactId);
-    const suffix = Number.isInteger(afterOffset) && afterOffset >= 0 ? `?after_offset=${afterOffset}` : '';
-    const value = await request(`/yance/relationship-candidates/${key}${suffix}`);
-    if (!value || typeof value !== 'object' || typeof value.text !== 'string') {
-      throw new ParlantRuntimeError('PARLANT_DEGRADED', 'Parlant did not provide a bounded reply candidate');
+  async function waitUntilReady(timeoutMs = DEFAULT_STARTUP_TIMEOUT_MS) {
+    const deadline = Date.now() + Math.max(1000, Number(timeoutMs || DEFAULT_STARTUP_TIMEOUT_MS));
+    let observed = null;
+    while (Date.now() < deadline && child && child.exitCode == null) {
+      try {
+        const response = await fetchImpl(`${endpoint}/healthz`, { signal: AbortSignal.timeout(Math.min(2500, Math.max(250, deadline - Date.now()))) });
+        if (response.ok) return true;
+        observed = `HTTP ${response.status}`;
+      } catch (error) { observed = clean(error?.message || error); }
+      await new Promise(resolve => setTimeout(resolve, 250));
     }
-    return { text: value.text, eventId: String(value.eventId || ''), offset: Number(value.offset || 0) };
+    throw runtimeError('DESKTOP_PARLANT_STARTUP_TIMEOUT', 'Parlant relationship runtime did not become ready.', { observed, stderrTail: stderrTail.slice(-2000) });
   }
 
   async function stop() {
-    const active = child;
+    const target = child;
+    if (!target) {
+      ready = false;
+      return { stopped: true, exitConfirmed: true, alreadyStopped: true, pid: 0 };
+    }
     child = null;
-    if (!active || active.exitCode !== null) return;
-    await new Promise(resolve => {
-      const timer = setTimeout(resolve, 3000);
-      active.once('exit', () => { clearTimeout(timer); resolve(); });
-      active.kill('SIGTERM');
+    ready = false;
+    const pid = Number(target.pid || 0);
+    if (target.exitCode != null) return { stopped: true, exitConfirmed: true, alreadyStopped: true, pid };
+    return await new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = value => { if (!settled) { settled = true; clearTimeout(timer); resolve(value); } };
+      const fail = error => { if (!settled) { settled = true; clearTimeout(timer); reject(error); } };
+      const timer = setTimeout(() => fail(runtimeError('DESKTOP_PARLANT_STOP_NOT_CONFIRMED', 'Parlant runtime shutdown was not confirmed.', { pid })), 10000);
+      timer.unref?.();
+      target.once('exit', () => finish({ stopped: true, exitConfirmed: true, alreadyStopped: false, pid }));
+      try {
+        const signalled = target.kill('SIGTERM');
+        if (signalled === false) fail(runtimeError('DESKTOP_PARLANT_STOP_SIGNAL_FAILED', 'Unable to signal the owned Parlant process.', { pid }));
+      } catch (error) { fail(runtimeError('DESKTOP_PARLANT_STOP_SIGNAL_FAILED', error.message || 'Unable to signal Parlant.', { pid })); }
     });
+  }
+
+  async function start() {
+    if (ready && child && child.exitCode == null) return snapshot();
+    if (startPromise) return startPromise;
+    startPromise = (async () => {
+      for (const required of [paths.pythonExecutable, paths.serverScript, paths.sbom, paths.seal]) {
+        if (!fsImpl.existsSync(required)) throw runtimeError('DESKTOP_PARLANT_RUNTIME_MISSING', 'Packaged Parlant runtime is incomplete.', { missing: required });
+      }
+      const openRouterApiKey = clean(await getOpenRouterApiKey());
+      const env = buildParlantEnvironment({ openRouterApiKey, dataRoot, baseEnv: options.baseEnv || process.env });
+      fsImpl.mkdirSync(dataRoot, { recursive: true });
+      stderrTail = '';
+      lastError = null;
+      const args = ['-I', paths.serverScript, '--host', endpointUrl.hostname === 'localhost' ? '127.0.0.1' : endpointUrl.hostname.replace(/^\[|\]$/g, ''), '--port', String(endpointUrl.port || 80)];
+      const nextChild = spawnProcess(paths.pythonExecutable, args, {
+        cwd: paths.root,
+        env,
+        windowsHide: true,
+        stdio: ['ignore', 'ignore', 'pipe']
+      });
+      child = nextChild;
+      nextChild.stderr?.setEncoding?.('utf8');
+      nextChild.stderr?.on?.('data', chunk => { stderrTail = `${stderrTail}${String(chunk || '')}`.slice(-8000); });
+      nextChild.once?.('exit', (code, signal) => {
+        if (child === nextChild) {
+          child = null;
+          ready = false;
+          if (code !== 0 && signal !== 'SIGTERM') lastError = runtimeError('DESKTOP_PARLANT_PROCESS_EXITED', 'Parlant process exited unexpectedly.', { code, signal, stderrTail: stderrTail.slice(-2000) });
+        }
+      });
+      try {
+        await waitUntilReady(options.startupTimeoutMs);
+        ready = true;
+        return snapshot();
+      } catch (error) {
+        lastError = error;
+        try { await stop(); } catch (_) {}
+        throw error;
+      }
+    })().finally(() => { startPromise = null; });
+    return startPromise;
+  }
+
+  async function ensureStarted() { if (!ready) await start(); }
+  const scopedRoute = (contactId, suffix = '') => `/yance/relationship-goals/${relationshipKey(contactId)}${suffix}`;
+  const contactQuery = contactId => `contactId=${encodeURIComponent(clean(contactId))}`;
+
+  async function readRelationshipGoal(input = {}) {
+    await ensureStarted();
+    const contactId = clean(input.contactId);
+    return request('GET', `${scopedRoute(contactId)}?${contactQuery(contactId)}`);
+  }
+
+  async function upsertRelationshipGoal(input = {}) {
+    await ensureStarted();
+    const contactId = clean(input.contactId);
+    const goalText = clean(input.goalText);
+    if (!goalText || goalText.length > 4000) throw runtimeError('DESKTOP_PARLANT_GOAL_INVALID', 'Relationship goal must contain 1 to 4000 characters.');
+    return request('PUT', scopedRoute(contactId), { contactId, goalText });
+  }
+
+  async function deleteRelationshipGoal(input = {}) {
+    await ensureStarted();
+    const contactId = clean(input.contactId);
+    return request('DELETE', `${scopedRoute(contactId)}?${contactQuery(contactId)}`);
+  }
+
+  async function setRelationshipGoalPaused(input = {}) {
+    await ensureStarted();
+    const contactId = clean(input.contactId);
+    return request('PATCH', `${scopedRoute(contactId)}/mode`, { contactId, paused: input.paused === true });
+  }
+
+  async function ingestCustomerMessage(input = {}) {
+    await ensureStarted();
+    const contactId = clean(input.contactId);
+    const text = clean(input.text);
+    if (!text || text.length > 20000) throw runtimeError('DESKTOP_PARLANT_MESSAGE_INVALID', 'Incoming Parlant message must contain 1 to 20000 characters.');
+    return request('POST', `${scopedRoute(contactId)}/events`, {
+      contactId,
+      text,
+      externalMessageId: clean(input.externalMessageId).slice(0, 512)
+    });
+  }
+
+  async function requestReplyCandidate(input = {}) {
+    await ensureStarted();
+    const contactId = clean(input.contactId);
+    const afterOffset = Number.isInteger(input.afterOffset) ? input.afterOffset : 0;
+    return request('GET', `${scopedRoute(contactId)}/candidate?${contactQuery(contactId)}&after_offset=${Math.max(0, afterOffset)}`, undefined, { timeoutMs: input.timeoutMs || DEFAULT_REQUEST_TIMEOUT_MS });
   }
 
   return Object.freeze({
     start,
     stop,
+    snapshot,
     readRelationshipGoal,
     upsertRelationshipGoal,
     deleteRelationshipGoal,
@@ -269,9 +296,9 @@ module.exports = {
   PARLANT_VERSION,
   PARLANT_COMMIT,
   DEFAULT_ENDPOINT,
-  ParlantRuntimeError,
+  relationshipKey,
   assertLoopbackEndpoint,
-  relationshipNamespaceKey,
   buildParlantEnvironment,
+  runtimePaths,
   createParlantRelationshipRuntime
 };

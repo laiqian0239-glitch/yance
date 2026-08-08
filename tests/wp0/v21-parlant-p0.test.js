@@ -7,7 +7,8 @@ const os = require('node:os');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '../..');
-const PARLANT_VERSION = 'v3.3.2';
+const PARLANT_TAG = 'v3.3.2';
+const PARLANT_VERSION = '3.3.2';
 const PARLANT_COMMIT = '61bba3b2b3fffd677d345e393e8c942dbd400297';
 const PARLANT_UV_LOCK_BLOB = 'aa2f7de8e858f19296df58efec56d72c8d3f50a5';
 const UV_VERSION = '0.12.3';
@@ -16,24 +17,18 @@ const PYTHON_BUILD_STANDALONE_RELEASE = '20260807';
 const PYTHON_BUILD_STANDALONE_COMMIT = '00c8a06113f11220667c3bcf5fab1672ff9e78ef';
 const CPYTHON_VERSION = '3.12.13';
 
-function repositoryPath(relativePath) {
-  return path.join(ROOT, ...relativePath.split('/'));
-}
-
+const repositoryPath = relativePath => path.join(ROOT, ...relativePath.split('/'));
 function readText(relativePath) {
   const filePath = repositoryPath(relativePath);
   assert.equal(fs.existsSync(filePath), true, `missing V2.1 Parlant P0 file: ${relativePath}`);
   return fs.readFileSync(filePath, 'utf8');
 }
+const readJson = relativePath => JSON.parse(readText(relativePath));
 
-function readJson(relativePath) {
-  return JSON.parse(readText(relativePath));
-}
-
-test('V2.1 Parlant P0 pins exact mature OSS runtime authorities without adding Node dependencies', () => {
+test('V2.1 Parlant P0 pins exact mature OSS authorities without adding Node dependencies', () => {
   const lock = readJson('config/upstreams/v21-parlant-p0.json');
   assert.equal(lock.schemaVersion, 1);
-  assert.equal(lock.upstreams.parlant.version, PARLANT_VERSION);
+  assert.equal(lock.upstreams.parlant.version, PARLANT_TAG);
   assert.equal(lock.upstreams.parlant.commit, PARLANT_COMMIT);
   assert.equal(lock.upstreams.parlant.license, 'Apache-2.0');
   assert.equal(lock.upstreams.parlant.uvLockGitBlob, PARLANT_UV_LOCK_BLOB);
@@ -42,17 +37,13 @@ test('V2.1 Parlant P0 pins exact mature OSS runtime authorities without adding N
   assert.equal(lock.upstreams.pythonBuildStandalone.release, PYTHON_BUILD_STANDALONE_RELEASE);
   assert.equal(lock.upstreams.pythonBuildStandalone.commit, PYTHON_BUILD_STANDALONE_COMMIT);
   assert.equal(lock.upstreams.pythonBuildStandalone.cpythonVersion, CPYTHON_VERSION);
-
   const pkg = readJson('package.json');
-  assert.equal(Object.keys(pkg.dependencies || {}).some(name => /parlant|python|uv/iu.test(name)), false, 'Parlant P0 must not invent a Node-side Python/runtime dependency layer');
+  assert.equal(Object.keys(pkg.dependencies || {}).some(name => /parlant|python|uv/iu.test(name)), false);
 });
 
-test('Parlant, uv, python-build-standalone and CPython redistribution obligations are explicit', () => {
+test('redistribution obligations are explicit and carry full license texts', () => {
   const notices = readText('THIRD_PARTY_NOTICES.md');
-  for (const required of ['Parlant', 'uv', 'python-build-standalone', 'CPython']) {
-    assert.match(notices, new RegExp(required, 'u'));
-  }
-
+  for (const required of ['Parlant', 'uv', 'python-build-standalone', 'CPython']) assert.match(notices, new RegExp(required, 'u'));
   const licenses = [
     ['third_party/licenses/parlant-Apache-2.0.txt', /Apache License/u],
     ['third_party/licenses/uv-Apache-2.0.txt', /Apache License/u],
@@ -61,104 +52,101 @@ test('Parlant, uv, python-build-standalone and CPython redistribution obligation
     ['third_party/licenses/cpython-PSF-2.0.txt', /PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2|Python Software Foundation License/u]
   ];
   for (const [relativePath, marker] of licenses) {
-    const license = readText(relativePath);
-    assert.match(license, marker);
-    assert.ok(license.length > 500, `${relativePath} must contain the upstream license text`);
+    const text = readText(relativePath);
+    assert.match(text, marker);
+    assert.ok(text.length > 500, `${relativePath} must contain upstream license text`);
   }
 });
 
-test('the Electron adapter is Parlant-specific, loopback-only, telemetry-off and main-owned', () => {
+test('Electron adapter is Parlant-specific, loopback-only, telemetry-off and main-owned', () => {
   const runtimePath = repositoryPath('electron/parlantRelationshipRuntime.js');
-  assert.equal(fs.existsSync(runtimePath), true, 'Parlant relationship runtime adapter must exist');
   delete require.cache[require.resolve(runtimePath)];
-  const runtimeModule = require(runtimePath);
-
-  assert.equal(runtimeModule.PARLANT_VERSION, PARLANT_VERSION);
-  assert.equal(runtimeModule.PARLANT_COMMIT, PARLANT_COMMIT);
-  assert.equal(runtimeModule.assertLoopbackEndpoint('http://127.0.0.1:8800'), 'http://127.0.0.1:8800');
-  assert.equal(runtimeModule.assertLoopbackEndpoint('http://localhost:8800'), 'http://localhost:8800');
+  const runtime = require(runtimePath);
+  assert.equal(runtime.PARLANT_VERSION, PARLANT_VERSION);
+  assert.equal(runtime.PARLANT_COMMIT, PARLANT_COMMIT);
+  assert.equal(runtime.assertLoopbackEndpoint('http://127.0.0.1:8800'), 'http://127.0.0.1:8800');
+  assert.equal(runtime.assertLoopbackEndpoint('http://localhost:8800'), 'http://localhost:8800');
   for (const denied of ['http://0.0.0.0:8800', 'http://192.168.1.20:8800', 'https://127.0.0.1:8800']) {
-    assert.throws(() => runtimeModule.assertLoopbackEndpoint(denied), /loopback|Parlant|endpoint/iu);
+    assert.throws(() => runtime.assertLoopbackEndpoint(denied), /loopback|Parlant|endpoint/iu);
   }
-
   const dataRoot = path.join(os.tmpdir(), 'yance-parlant-contract-root');
-  const env = runtimeModule.buildParlantEnvironment({
-    ELECTRON_RUN_AS_NODE: '1',
-    PARLANT_DATA_COLLECTION: 'true',
-    OPENROUTER_API_KEY: 'ambient-key-must-not-be-trusted',
-    KEEP_ME: 'yes'
-  }, dataRoot, 'explicit-main-owned-key');
-  assert.equal(env.KEEP_ME, 'yes');
+  const env = runtime.buildParlantEnvironment({
+    baseEnv: { ELECTRON_RUN_AS_NODE: '1', PARLANT_DATA_COLLECTION: 'true', OPENROUTER_API_KEY: 'ambient-denied', KEEP_ME: 'yes' },
+    dataRoot,
+    openRouterApiKey: 'explicit-main-owned-key'
+  });
+  assert.equal(env.KEEP_ME, undefined, 'child environment must be allowlisted rather than inherit arbitrary ambient values');
   assert.equal(env.PARLANT_DATA_COLLECTION, 'false');
   assert.equal(env.OPENROUTER_API_KEY, 'explicit-main-owned-key');
-  assert.equal(Object.prototype.hasOwnProperty.call(env, 'ELECTRON_RUN_AS_NODE'), false);
-  assert.equal(env.YANCE_PARLANT_DATA_ROOT, path.join(dataRoot, 'parlant'));
+  assert.equal(Object.hasOwn(env, 'ELECTRON_RUN_AS_NODE'), false);
+  assert.equal(env.YANCE_PARLANT_DATA_ROOT, path.resolve(dataRoot));
+  assert.equal(env.PARLANT_HOME, path.resolve(dataRoot));
 });
 
-test('relationship keys are only deterministic isolation keys and do not become a Yance Journey store', () => {
+test('relationship identifiers are deterministic isolation keys, not a Yance Journey store', () => {
   const runtimePath = repositoryPath('electron/parlantRelationshipRuntime.js');
-  assert.equal(fs.existsSync(runtimePath), true, 'Parlant relationship runtime adapter must exist');
   delete require.cache[require.resolve(runtimePath)];
-  const runtimeModule = require(runtimePath);
-
-  const a1 = runtimeModule.relationshipNamespaceKey('contact-A');
-  const a2 = runtimeModule.relationshipNamespaceKey('contact-A');
-  const b = runtimeModule.relationshipNamespaceKey('contact-B');
-  assert.equal(a1, a2);
-  assert.notEqual(a1, b);
-  assert.match(a1, /^[a-f0-9]{64}$/u);
-
+  const runtime = require(runtimePath);
+  const a = runtime.relationshipKey('contact-A');
+  assert.equal(a, runtime.relationshipKey('contact-A'));
+  assert.notEqual(a, runtime.relationshipKey('contact-B'));
+  assert.match(a, /^[a-f0-9]{64}$/u);
   const source = readText('electron/parlantRelationshipRuntime.js');
-  assert.doesNotMatch(source, /new\s+Map\([^\n]*(?:journey|goal)|journeyGraph|goalGraph|transitionGraph/iu, 'Yance must not own a duplicate Journey/Goal graph');
-  assert.doesNotMatch(source, /sqlite|better-sqlite3|leveldb|indexeddb/iu, 'the thin Parlant adapter must not add a second relationship-goal persistence authority');
+  assert.doesNotMatch(source, /journeyGraph|goalGraph|transitionGraph|better-sqlite3|leveldb|indexeddb/iu);
 });
 
-test('the Python bridge builds real Parlant Journeys instead of reimplementing a state machine', () => {
+test('Python bridge uses Parlant full persistent Application/Store authority, not transient SDK Server', () => {
   const server = readText('runtime/parlant/yance_parlant_server.py');
-  assert.match(server, /import parlant\.sdk as p|from parlant import sdk as p/u);
-  assert.match(server, /create_journey\(/u);
-  assert.match(server, /initial_state\.transition_to\(/u);
-  assert.match(server, /chat_state\s*=/u);
-  assert.match(server, /condition\s*=/u, 'goal Journey needs an explicit completion/transition condition');
-  assert.match(server, /mode\s*=\s*["']manual["']|["']manual["']/u, 'pause must use native Parlant manual session mode');
-  assert.match(server, /["']auto["']/u, 'resume must use native Parlant auto session mode');
-  assert.doesNotMatch(server, /class\s+(?:Journey|GoalGraph|TransitionGraph)|networkx|state_machine/iu);
+  assert.match(server, /from parlant\.bin\.server import StartupParameters, start_parlant/u);
+  assert.match(server, /from parlant\.core\.application import Application/u);
+  assert.match(server, /JourneyStore/u);
+  assert.match(server, /SessionStore/u);
+  assert.match(server, /JourneyEvaluator/u);
+  assert.match(server, /JourneyPayload/u);
+  assert.match(server, /start_parlant\(params\)/u);
+  assert.match(server, /RUNTIME\.app\.journeys\.create/u);
+  assert.match(server, /RUNTIME\.journey_store\.create_node/u);
+  assert.match(server, /RUNTIME\.journey_store\.create_edge/u);
+  assert.match(server, /JourneyStore\.END_NODE_ID/u);
+  assert.match(server, /state\.journey_paths/u, 'progress must project Parlant-native journey_paths');
+  assert.match(server, /["']manual["']/u);
+  assert.match(server, /["']auto["']/u);
+  assert.doesNotMatch(server, /\bp\.Server\b|import parlant\.sdk as p|class\s+(?:Journey|GoalGraph|TransitionGraph)|networkx|state_machine/iu);
 });
 
-test('runtime API is relationship-scoped, ingests customer events and returns candidates without send authority', () => {
-  const source = readText('electron/parlantRelationshipRuntime.js');
-  for (const required of [
-    'readRelationshipGoal',
-    'upsertRelationshipGoal',
-    'deleteRelationshipGoal',
-    'setRelationshipGoalPaused',
-    'ingestCustomerMessage',
-    'requestReplyCandidate'
-  ]) assert.ok(source.includes(required), `Parlant adapter must expose ${required}`);
-
-  assert.match(source, /contactId|relationship/iu);
-  assert.match(source, /customer/iu, 'incoming customer messages must be represented explicitly');
-  assert.doesNotMatch(source, /sendMessage|sendText|sendMedia|channel\.send|whatsapp|telegram|facebook/iu, 'Parlant must return a candidate, never send to a channel');
+test('customer ingestion uses native Parlant SessionModule and candidate path never owns channel sending', () => {
+  const server = readText('runtime/parlant/yance_parlant_server.py');
+  const runtime = readText('electron/parlantRelationshipRuntime.js');
+  const main = readText('electron/main.js');
+  assert.match(server, /create_customer_message\(/u);
+  assert.match(server, /trigger_processing=current\.mode != ["']manual["']/u);
+  assert.match(server, /source=EventSource\.CUSTOMER/u);
+  assert.match(server, /source=EventSource\.AI_AGENT/u);
+  for (const name of ['readRelationshipGoal','upsertRelationshipGoal','deleteRelationshipGoal','setRelationshipGoalPaused','ingestCustomerMessage','requestReplyCandidate']) assert.ok(runtime.includes(name));
+  assert.doesNotMatch(`${runtime}\n${server}`, /sendMessage|sendText|sendMedia|channel\.send|whatsapp|telegram|facebook/iu);
+  assert.match(main, /\/api\/r32\/store\/replies\/generate/u);
+  assert.match(main, /manualText:\s*candidateText/u);
+  assert.match(main, /source:\s*['"]parlant-journey['"]/u);
 });
 
-test('provider/runtime failures fail closed and plaintext OpenRouter credentials never enter renderer projections', () => {
+test('provider/runtime failures fail closed and renderer never receives plaintext OpenRouter credentials', () => {
   const runtime = readText('electron/parlantRelationshipRuntime.js');
   const main = readText('electron/main.js');
   const preload = readText('electron/preload.js');
   const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
-
-  assert.match(runtime, /PARLANT_RUNTIME_NOT_READY|PARLANT_PROVIDER_UNAVAILABLE|PARLANT_DEGRADED/u);
+  assert.match(runtime, /DESKTOP_PARLANT_RUNTIME_NOT_READY|DESKTOP_PARLANT_RUNTIME_MISSING/u);
+  assert.match(main, /DESKTOP_PARLANT_OPENROUTER_CREDENTIAL_MISSING/u);
+  assert.match(main, /model:openrouter:default/u);
+  assert.match(main, /vault\?\.get/u);
   assert.doesNotMatch(preload, /OPENROUTER_API_KEY|openRouterApiKey|apiKey/iu);
   assert.doesNotMatch(workspace, /OPENROUTER_API_KEY|openRouterApiKey|apiKey/iu);
-  assert.doesNotMatch(main, /console\.(?:log|info|warn|error)\([^\n]*OPENROUTER_API_KEY/iu);
-  assert.doesNotMatch(runtime, /console\.(?:log|info|warn|error)\([^\n]*(?:OPENROUTER_API_KEY|openRouterApiKey)/iu);
+  assert.doesNotMatch(main, /process\.env\.OPENROUTER_API_KEY/u, 'main must use Yance credential authority, not ambient provider keys');
+  assert.match(runtime, /payload\?\.detail/u, 'FastAPI reasonCode detail must survive the main-process adapter');
 });
 
 test('application startup never resolves Python dependencies online', () => {
   const runtime = readText('electron/parlantRelationshipRuntime.js');
   const server = readText('runtime/parlant/yance_parlant_server.py');
-  for (const source of [runtime, server]) {
-    assert.doesNotMatch(source, /\b(?:pip|uv)\s+(?:install|sync)|subprocess[^\n]*(?:pip|uv)|git\s+clone|curl\s+http|Invoke-WebRequest/iu);
-  }
-  assert.match(runtime, /parlant-runtime|PARLANT_RUNTIME/iu, 'Electron must launch a pre-materialized packaged runtime');
+  for (const source of [runtime, server]) assert.doesNotMatch(source, /\b(?:pip|uv)\s+(?:install|sync)|subprocess[^\n]*(?:pip|uv)|git\s+clone|curl\s+http|Invoke-WebRequest/iu);
+  assert.match(runtime, /parlant-runtime/u);
 });

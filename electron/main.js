@@ -108,6 +108,7 @@ const { ApiV2RuntimeClient } = require('./desktopHost/ApiV2RuntimeClient');
 const { RuntimeProjectionCoordinator } = require('./desktopHost/RuntimeProjectionCoordinator');
 const { backendAuthority, stopOwnedBackend, completeElectronQuit, restartElectronApp } = require('./backendShutdownCoordinator');
 const { createLettaAgentRuntime } = require('./lettaAgentRuntime');
+const { createParlantRelationshipRuntime } = require('./parlantRelationshipRuntime');
 const { SoundNotificationService } = require('./SoundNotificationService');
 const { isCustomSoundPattern, soundFileName } = require('../shared/notificationSoundCatalog');
 const { runInstalledRuntimeProbeApplicationEntry } = require('./wp7InstalledRuntimeProbeApplicationEntry');
@@ -474,6 +475,7 @@ let desktopCredentialApplicationCoordinator = null;
 let runtimeApiV2Client = null;
 let runtimeProjectionCoordinator = null;
 let lettaAgentRuntime = null;
+let parlantRelationshipRuntime = null;
 
 function ensureLettaAgentRuntime() {
   if (!lettaAgentRuntime) {
@@ -490,6 +492,82 @@ function projectLettaRendererState(state = {}) {
     ready: state.ready === true,
     reasonCode: String(state.lastError?.reasonCode || '')
   });
+}
+
+const PARLANT_OPENROUTER_CREDENTIAL_REF = 'model:openrouter:default';
+
+function readParlantOpenRouterApiKey() {
+  const credential = vault?.get?.(PARLANT_OPENROUTER_CREDENTIAL_REF) || null;
+  const apiKey = String(credential?.apiKey || '').trim();
+  if (!apiKey) {
+    const error = new Error('OpenRouter credential is not configured for the relationship goal runtime.');
+    error.reasonCode = 'DESKTOP_PARLANT_OPENROUTER_CREDENTIAL_MISSING';
+    throw error;
+  }
+  return apiKey;
+}
+
+function ensureParlantRelationshipRuntime() {
+  if (!parlantRelationshipRuntime) {
+    parlantRelationshipRuntime = createParlantRelationshipRuntime({
+      resourcesPath: controlledResourcesPath(),
+      dataRoot: DATA_ROOT,
+      getOpenRouterApiKey: () => readParlantOpenRouterApiKey()
+    });
+  }
+  return parlantRelationshipRuntime;
+}
+
+function normalizeParlantGoalInput(input = {}, allowedKeys = []) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw Object.assign(new Error('Parlant relationship goal input must be an object.'), { reasonCode: 'DESKTOP_PARLANT_INPUT_INVALID' });
+  }
+  const allowed = new Set(allowedKeys);
+  const unknownKeys = Object.keys(input).filter(key => !allowed.has(key));
+  if (unknownKeys.length) {
+    throw Object.assign(new Error('Parlant relationship goal input contains unsupported fields.'), { reasonCode: 'DESKTOP_PARLANT_INPUT_INVALID', details: { unknownKeys } });
+  }
+  const contactId = String(input.contactId || '').trim();
+  if (!contactId || contactId.length > 512) {
+    throw Object.assign(new Error('Parlant contactId must contain 1 to 512 characters.'), { reasonCode: 'DESKTOP_PARLANT_CONTACT_ID_INVALID' });
+  }
+  const normalized = { contactId };
+  if (allowed.has('goalText')) {
+    const goalText = String(input.goalText || '').trim();
+    if (!goalText || goalText.length > 4000) {
+      throw Object.assign(new Error('Relationship goal must contain 1 to 4000 characters.'), { reasonCode: 'DESKTOP_PARLANT_GOAL_INVALID' });
+    }
+    normalized.goalText = goalText;
+  }
+  if (allowed.has('paused')) normalized.paused = input.paused === true;
+  return Object.freeze(normalized);
+}
+
+function projectParlantRelationshipGoal(payload = {}) {
+  const pathProjection = Array.isArray(payload?.progress?.path)
+    ? payload.progress.path.map(value => String(value || '').slice(0, 256)).filter(Boolean).slice(-32)
+    : [];
+  return Object.freeze({
+    available: payload.available !== false,
+    exists: payload.exists === true ? true : payload.exists === false ? false : null,
+    goalText: String(payload.goalText || '').slice(0, 4000),
+    paused: payload.paused === true,
+    progress: Object.freeze({ path: Object.freeze(pathProjection), completed: payload?.progress?.completed === true }),
+    reasonCode: String(payload.reasonCode || '').slice(0, 128)
+  });
+}
+
+async function readParlantRelationshipGoalProjection(input = {}) {
+  const normalized = normalizeParlantGoalInput(input, ['contactId']);
+  try {
+    return projectParlantRelationshipGoal(await ensureParlantRelationshipRuntime().readRelationshipGoal(normalized));
+  } catch (error) {
+    return projectParlantRelationshipGoal({
+      available: false,
+      exists: null,
+      reasonCode: error?.reasonCode || error?.code || 'DESKTOP_PARLANT_RUNTIME_UNAVAILABLE'
+    });
+  }
 }
 
 function projectLettaAgentIdentity(agent = {}) {
@@ -545,26 +623,42 @@ async function stopLettaAgentRuntime() {
   return { stopped: true, exitConfirmed: true, alreadyStopped: false, pid: Number(before.pid || 0), state: stopped };
 }
 
+function parlantOwnershipPresent() {
+  const state = parlantRelationshipRuntime?.snapshot?.() || {};
+  return state.ready === true || Number(state.pid || 0) > 0;
+}
+
+async function stopParlantRelationshipRuntime() {
+  if (!parlantRelationshipRuntime) return { stopped: true, exitConfirmed: true, alreadyStopped: true, pid: 0 };
+  const before = parlantRelationshipRuntime.snapshot();
+  if (!before.ready && !before.pid) return { stopped: true, exitConfirmed: true, alreadyStopped: true, pid: 0 };
+  const stopped = await parlantRelationshipRuntime.stop();
+  const after = parlantRelationshipRuntime.snapshot();
+  if (after.ready || after.pid) {
+    const error = new Error('Parlant relationship runtime shutdown was not confirmed');
+    error.reasonCode = 'DESKTOP_PARLANT_STOP_NOT_CONFIRMED';
+    error.details = { before, after, stopped };
+    throw error;
+  }
+  return { stopped: true, exitConfirmed: true, alreadyStopped: false, pid: Number(before.pid || 0), state: stopped };
+}
+
 async function stopApplicationOwnedRuntimes(options = {}) {
   let lettaStop = null;
   let lettaError = null;
+  let parlantStop = null;
+  let parlantError = null;
   let backendStop = null;
   let backendError = null;
-  try {
-    lettaStop = await stopLettaAgentRuntime();
-  } catch (error) {
-    lettaError = error;
-  }
-  try {
-    backendStop = await stopBackend({ forShutdown: true, reason: String(options.reason || 'application-shutdown') });
-  } catch (error) {
-    backendError = error;
-  }
-  if (lettaError || backendError) {
+  try { lettaStop = await stopLettaAgentRuntime(); } catch (error) { lettaError = error; }
+  try { parlantStop = await stopParlantRelationshipRuntime(); } catch (error) { parlantError = error; }
+  try { backendStop = await stopBackend({ forShutdown: true, reason: String(options.reason || 'application-shutdown') }); } catch (error) { backendError = error; }
+  if (lettaError || parlantError || backendError) {
     const error = new Error('Application-owned runtime shutdown was not fully confirmed');
-    error.reasonCode = lettaError?.reasonCode || backendError?.reasonCode || 'DESKTOP_RUNTIME_STOP_NOT_CONFIRMED';
+    error.reasonCode = lettaError?.reasonCode || parlantError?.reasonCode || backendError?.reasonCode || 'DESKTOP_RUNTIME_STOP_NOT_CONFIRMED';
     error.details = {
       letta: lettaError ? { reasonCode: lettaError.reasonCode || '', message: lettaError.message } : lettaStop,
+      parlant: parlantError ? { reasonCode: parlantError.reasonCode || '', message: parlantError.message } : parlantStop,
       backend: backendError ? { reasonCode: backendError.reasonCode || '', message: backendError.message } : backendStop
     };
     throw error;
@@ -573,19 +667,23 @@ async function stopApplicationOwnedRuntimes(options = {}) {
     ...(backendStop || { stopped: true, exitConfirmed: true, alreadyStopped: true, backendPid: 0 }),
     stopped: true,
     exitConfirmed: true,
-    letta: lettaStop
+    letta: lettaStop,
+    parlant: parlantStop
   };
 }
 
 function applicationRuntimeAuthoritySnapshot() {
   const backend = authoritativeBackend().backend || {};
   const letta = lettaAgentRuntime?.snapshot?.() || {};
+  const parlant = parlantRelationshipRuntime?.snapshot?.() || {};
   const lettaOwned = letta.ready === true || Number(letta.pid || 0) > 0;
+  const parlantOwned = parlant.ready === true || Number(parlant.pid || 0) > 0;
   return {
     ...backend,
-    ownershipPresent: backend.ownershipPresent === true || lettaOwned,
+    ownershipPresent: backend.ownershipPresent === true || lettaOwned || parlantOwned,
     backendPid: Number(backend.backendPid || 0),
-    letta
+    letta,
+    parlant
   };
 }
 
@@ -1896,6 +1994,67 @@ function scheduleEventReconnect() {
   }, 1500);
 }
 
+function isParlantEligibleInboundMessage(message = {}) {
+  const direction = String(message.direction || '').trim().toLowerCase();
+  const speaker = String(message.speaker || message.role || '').trim().toLowerCase();
+  const contactId = String(message.contactId || '').trim();
+  const conversationId = String(message.conversationId || message.sessionKey || '').trim();
+  const text = String(message.text || message.transcript || message.translation || '').trim();
+  return Boolean(contactId && conversationId && text && direction === 'inbound' && ['peer', 'contact', 'customer'].includes(speaker));
+}
+
+async function processParlantInboundEvent(event = {}) {
+  const message = event?.payload?.message || {};
+  if (!isParlantEligibleInboundMessage(message)) return { handled: false, reasonCode: 'DESKTOP_PARLANT_EVENT_NOT_ELIGIBLE' };
+  const contactId = String(message.contactId || '').trim();
+  const conversationId = String(message.conversationId || message.sessionKey || '').trim();
+  const runtime = ensureParlantRelationshipRuntime();
+  try {
+    const goal = await runtime.readRelationshipGoal({ contactId });
+    if (goal?.exists !== true) return { handled: false, reasonCode: 'DESKTOP_PARLANT_GOAL_NOT_CONFIGURED' };
+    if (goal?.paused === true) return { handled: false, reasonCode: 'DESKTOP_PARLANT_GOAL_PAUSED' };
+    const ingested = await runtime.ingestCustomerMessage({
+      contactId,
+      text: String(message.text || message.transcript || message.translation || '').trim(),
+      externalMessageId: String(message.externalMessageId || message.messageId || message.id || '').trim()
+    });
+    const candidate = await runtime.requestReplyCandidate({
+      contactId,
+      afterOffset: Number(ingested?.nextOffset || 0)
+    });
+    const candidateText = String(candidate?.text || '').trim();
+    if (!candidateText) throw Object.assign(new Error('Parlant returned an empty relationship-goal candidate.'), { reasonCode: 'DESKTOP_PARLANT_CANDIDATE_EMPTY' });
+    const committed = await apiRequest('/api/r32/store/replies/generate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        contactId,
+        conversationId,
+        incomingMessage: {
+          id: String(message.externalMessageId || message.messageId || message.id || '').trim(),
+          text: String(message.text || '').trim(),
+          type: String(message.type || message.messageType || 'text').trim(),
+          sentAt: String(message.sentAt || message.timestamp || '').trim()
+        },
+        contextMessageIds: [String(message.externalMessageId || message.messageId || message.id || '').trim()].filter(Boolean),
+        manualText: candidateText,
+        performanceMode: 'rapid',
+        source: 'parlant-journey'
+      })
+    });
+    sendToRenderer('desktop:event', {
+      type: 'parlant:relationship-goal-candidate-ready',
+      payload: { contactId, conversationId, candidateId: String(committed?.candidate?.candidateId || '') }
+    });
+    return { handled: true, candidateId: String(committed?.candidate?.candidateId || '') };
+  } catch (error) {
+    const reasonCode = String(error?.reasonCode || error?.code || 'DESKTOP_PARLANT_RUNTIME_UNAVAILABLE');
+    desktopLog('error', 'parlant-relationship-goal-degraded', { contactId, conversationId, reasonCode });
+    sendToRenderer('desktop:event', { type: 'parlant:relationship-goal-degraded', payload: { contactId, conversationId, reasonCode } });
+    return { handled: false, degraded: true, reasonCode };
+  }
+}
+
 function connectEventSocket() {
   stopEventSocket();
   if (!backendReady) return;
@@ -1912,6 +2071,10 @@ function connectEventSocket() {
     let event;
     try { event = JSON.parse(String(buffer)); } catch (_) { return; }
     sendToRenderer('desktop:event', event);
+    if (event.type === 'message:inserted') {
+      Promise.resolve(processParlantInboundEvent(event))
+        .catch(error => desktopLog('error', 'parlant-inbound-processing-failed', { reasonCode: error?.reasonCode || error?.code || '', message: error?.message || String(error) }));
+    }
     if (['sound-notification:event','desktop:notify','send-queue:sent','send-queue:failed','conversation:presence','system:notifications-updated','notification:settings-updated'].includes(event.type)) {
       Promise.resolve(soundNotificationService.handleBackendEvent(event))
         .catch(error => desktopLog('error', 'sound-notification-event-failed', { type: event.type, error: error.message || String(error) }));
@@ -2816,6 +2979,20 @@ function registerIpc() {
       .map(conversation => projectLettaConversationIdentity(conversation, normalized.agentId))
       .filter(conversation => conversation.id);
   });
+  ipcGuardHandle('desktop:parlant-get-relationship-goal', (_event, input = {}) => readParlantRelationshipGoalProjection(input));
+  ipcGuardHandle('desktop:parlant-upsert-relationship-goal', async (_event, input = {}) => {
+    const normalized = normalizeParlantGoalInput(input, ['contactId', 'goalText']);
+    return projectParlantRelationshipGoal(await ensureParlantRelationshipRuntime().upsertRelationshipGoal(normalized));
+  });
+  ipcGuardHandle('desktop:parlant-delete-relationship-goal', async (_event, input = {}) => {
+    const normalized = normalizeParlantGoalInput(input, ['contactId']);
+    const result = await ensureParlantRelationshipRuntime().deleteRelationshipGoal(normalized);
+    return Object.freeze({ deleted: result?.deleted === true });
+  });
+  ipcGuardHandle('desktop:parlant-set-relationship-goal-paused', async (_event, input = {}) => {
+    const normalized = normalizeParlantGoalInput(input, ['contactId', 'paused']);
+    return projectParlantRelationshipGoal(await ensureParlantRelationshipRuntime().setRelationshipGoalPaused(normalized));
+  });
   ipcGuardHandle('desktop:report-runtime-environment', (_event, input = {}) => {
     const state = desktopState();
     const finite = (value, min, max) => {
@@ -3280,7 +3457,7 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin' && !settingsStore?.read().closeToTray) app.quit();
 });
 app.on('will-quit', event => {
-  if (exitAfterBackendShutdown || (!backendOwnershipPresent() && !lettaOwnershipPresent())) return;
+  if (exitAfterBackendShutdown || (!backendOwnershipPresent() && !lettaOwnershipPresent() && !parlantOwnershipPresent())) return;
   event.preventDefault();
   stopEventSocket();
   if (shutdownInProgress) return;

@@ -5,430 +5,428 @@ import asyncio
 import hashlib
 import json
 import os
-from typing import Literal
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
+# Privacy defaults must be set before any Parlant module is imported.
 os.environ["PARLANT_DATA_COLLECTION"] = "false"
-if os.environ.get("YANCE_PARLANT_DATA_ROOT"):
-    os.environ["PARLANT_HOME"] = os.environ["YANCE_PARLANT_DATA_ROOT"]
+os.environ.pop("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", None)
+os.environ.pop("OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", None)
 
-from fastapi import FastAPI, HTTPException
-from lagom import Container
-from pydantic import BaseModel, ConfigDict, Field
+DATA_ROOT = Path(os.environ.get("YANCE_PARLANT_DATA_ROOT") or os.environ.get("PARLANT_HOME") or "parlant-data").resolve()
+DATA_ROOT.mkdir(parents=True, exist_ok=True)
+os.environ["PARLANT_HOME"] = str(DATA_ROOT)
 
-from parlant.adapters.nlp.openrouter_service import OpenRouterService
-from parlant.bin.server import StartupParameters, start_parlant
-from parlant.core.agents import AgentId
-from parlant.core.application import Application
-from parlant.core.async_utils import Timeout
-from parlant.core.common import ItemNotFoundError
-from parlant.core.customers import CustomerId
-from parlant.core.journeys import JourneyId, JourneyNodeId, JourneyStore
-from parlant.core.loggers import Logger
-from parlant.core.meter import Meter
-from parlant.core.nlp.service import NLPService, NLPServiceConfigurationError
-from parlant.core.sessions import EventKind, EventSource, Session, SessionStore
-from parlant.core.tags import Tag
-from parlant.core.tracer import Tracer
-from parlant.core.version import VERSION
-from parlant.core.app_modules.sessions import Moderation
+from fastapi import Body, FastAPI, HTTPException, Query  # noqa: E402
+from lagom import Container  # noqa: E402
+from parlant.adapters.nlp.openrouter_service import OpenRouterService  # noqa: E402
+from parlant.bin.server import StartupParameters, start_parlant  # noqa: E402
+from parlant.core.agents import AgentId  # noqa: E402
+from parlant.core.application import Application  # noqa: E402
+from parlant.core.common import ItemNotFoundError  # noqa: E402
+from parlant.core.customers import CustomerId  # noqa: E402
+from parlant.core.evaluations import JourneyPayload, PayloadOperation  # noqa: E402
+from parlant.core.journeys import JourneyId, JourneyNodeId, JourneyStore  # noqa: E402
+from parlant.core.loggers import Logger  # noqa: E402
+from parlant.core.meter import Meter  # noqa: E402
+from parlant.core.services.indexing.behavioral_change_evaluation import JourneyEvaluator  # noqa: E402
+from parlant.core.sessions import EventKind, EventSource, SessionStore  # noqa: E402
+from parlant.core.tags import Tag  # noqa: E402
+from parlant.core.tracer import Tracer  # noqa: E402
+from parlant.core.version import VERSION as PARLANT_VERSION  # noqa: E402
+from parlant.core.app_modules.sessions import Moderation  # noqa: E402
 
-PARLANT_VERSION = "3.3.2"
-PARLANT_COMMIT = "61bba3b2b3fffd677d345e393e8c942dbd400297"
+EXPECTED_PARLANT_VERSION = "3.3.2"
+EXPECTED_PARLANT_COMMIT = "61bba3b2b3fffd677d345e393e8c942dbd400297"
 LISTEN_HOST = "127.0.0.1"
-DEFAULT_PORT = 18765
-GOAL_CONDITION = "Always activate this relationship goal journey"
-GOAL_ACTION = (
-    "Naturally guide the conversation toward the relationship goal described in this Journey. "
-    "Stay responsive to the customer's current message, avoid abrupt topic changes, and never "
-    "claim the goal is complete until the conversation itself supports that conclusion."
-)
-GOAL_DONE_CONDITION = (
-    "The relationship goal has been achieved, or the user explicitly abandoned or replaced it"
-)
+GOAL_CONDITION = "The active relationship conversation should be guided by its configured Yance relationship goal."
+COMPLETION_CONDITION = "The configured relationship goal has been achieved, abandoned, or is no longer appropriate to pursue."
 
 
-class GoalUpsert(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    contactId: str = Field(min_length=1, max_length=512)
-    goal: str = Field(min_length=1, max_length=4000)
-
-
-class GoalMode(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    contactId: str = Field(min_length=1, max_length=512)
-    mode: Literal["manual", "auto"]
-
-
-class CustomerMessage(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    contactId: str = Field(min_length=1, max_length=512)
-    source: Literal["customer"]
-    text: str = Field(min_length=1, max_length=20000)
+def clean(value: Any) -> str:
+    return str(value or "").strip()
 
 
 def relationship_key(contact_id: str) -> str:
-    normalized = contact_id.strip()
-    if not normalized:
-        raise HTTPException(status_code=422, detail="contactId is required")
-    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    value = clean(contact_id)
+    if not value or len(value) > 512:
+        raise HTTPException(status_code=422, detail={"reasonCode": "YANCE_PARLANT_CONTACT_ID_INVALID", "message": "contactId is invalid"})
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
-def require_relationship_key(route_key: str, contact_id: str) -> str:
+def assert_scope(route_key: str, contact_id: str) -> str:
     expected = relationship_key(contact_id)
     if route_key != expected:
-        raise HTTPException(status_code=409, detail="relationship isolation key mismatch")
+        raise HTTPException(status_code=403, detail={"reasonCode": "YANCE_PARLANT_RELATIONSHIP_SCOPE_MISMATCH", "message": "relationship scope mismatch"})
     return expected
 
 
-def agent_id_for(key: str) -> AgentId:
-    return AgentId(f"yance-agent-{key[:40]}")
+def identifiers(key: str) -> dict[str, str]:
+    short = key[:40]
+    return {
+        "agent": f"yance-agent-{short}",
+        "customer": f"yance-customer-{short}",
+        "journey": f"yance-goal-{short}",
+        "steering_node": f"yance-steer-{short}",
+    }
 
 
-def customer_id_for(key: str) -> CustomerId:
-    return CustomerId(f"yance-customer-{key[:40]}")
+@dataclass
+class RuntimeContext:
+    container: Container | None = None
+
+    @property
+    def app(self) -> Application:
+        if self.container is None:
+            raise RuntimeError("Parlant container is not initialized")
+        return self.container[Application]
+
+    @property
+    def journey_store(self) -> JourneyStore:
+        if self.container is None:
+            raise RuntimeError("Parlant container is not initialized")
+        return self.container[JourneyStore]
+
+    @property
+    def session_store(self) -> SessionStore:
+        if self.container is None:
+            raise RuntimeError("Parlant container is not initialized")
+        return self.container[SessionStore]
 
 
-def journey_id_for(key: str) -> JourneyId:
-    return JourneyId(f"yance-goal-{key[:40]}")
+RUNTIME = RuntimeContext()
 
 
-def steering_node_id_for(key: str) -> JourneyNodeId:
-    return JourneyNodeId(f"yance-steer-{key[:40]}")
-
-
-def relationship_label(key: str) -> str:
-    return f"yance-relationship-{key}"
-
-
-async def create_openrouter_service(container: Container) -> NLPService:
-    if error := OpenRouterService.verify_environment():
-        raise NLPServiceConfigurationError(error)
+async def openrouter_service(container: Container):
+    error = OpenRouterService.verify_environment()
+    if error:
+        raise RuntimeError(f"OpenRouter configuration is unavailable: {error}")
     return OpenRouterService(container[Logger], container[Tracer], container[Meter])
 
 
-async def ensure_agent(app: Application, key: str):
-    agent_id = agent_id_for(key)
+async def capture_initialized_container(container: Container) -> Container:
+    # start_parlant will initialize this same cloned container with the full
+    # persistent Agent/Guideline/Relationship/Session/Journey store stack.
+    RUNTIME.container = container
+    return container
+
+
+async def ensure_relationship(key: str):
+    ids = identifiers(key)
+    app = RUNTIME.app
+
     try:
-        return await app.agents.read(agent_id)
+        agent = await app.agents.read(AgentId(ids["agent"]))
     except ItemNotFoundError:
-        return await app.agents.create(
-            name=f"Yance relationship {key[:12]}",
-            description=(
-                "Relationship-specific Parlant agent. Journey and Session state are authoritative "
-                "inside Parlant; Yance only projects bounded Goal state and retains send authority."
-            ),
+        agent = await app.agents.create(
+            name=f"Yance relationship {key[:10]}",
+            description="Parlant-owned relationship conversation journey agent. Yance retains final send authority.",
             max_engine_iterations=None,
             composition_mode=None,
             message_output_mode=None,
             tags=None,
-            id=agent_id,
+            id=AgentId(ids["agent"]),
         )
 
-
-async def ensure_customer(app: Application, key: str, contact_id: str):
-    customer_id = customer_id_for(key)
     try:
-        return await app.customers.read(customer_id)
+        customer = await app.customers.read(CustomerId(ids["customer"]))
     except ItemNotFoundError:
-        return await app.customers.create(
-            name=f"Yance contact {contact_id[:80]}",
+        customer = await app.customers.create(
+            name=f"Relationship contact {key[:10]}",
             extra={"yance_relationship_key": key},
             tags=None,
-            id=customer_id,
+            id=CustomerId(ids["customer"]),
         )
 
-
-async def find_session(app: Application, key: str, agent_id: AgentId, customer_id: CustomerId) -> Session | None:
-    listing = await app.sessions.find(
-        agent_id=agent_id,
-        customer_id=customer_id,
-        labels={relationship_label(key)},
+    sessions = await app.sessions.find(
+        agent_id=agent.id,
+        customer_id=customer.id,
+        limit=10,
+        cursor=None,
+        sort_direction=None,
+        labels=None,
     )
-    if not listing.items:
-        return None
-    return sorted(listing.items, key=lambda item: item.creation_utc)[-1]
-
-
-async def ensure_session(app: Application, key: str, agent_id: AgentId, customer_id: CustomerId) -> Session:
-    if session := await find_session(app, key, agent_id, customer_id):
-        return session
-    return await app.sessions.create(
-        customer_id=customer_id,
-        agent_id=agent_id,
-        title=f"Yance relationship {key[:12]}",
+    session = sessions.items[0] if sessions.items else await app.sessions.create(
+        customer_id=customer.id,
+        agent_id=agent.id,
+        title="Yance relationship journey",
         allow_greeting=False,
         metadata={"yance_relationship_key": key},
-        labels={relationship_label(key)},
+        labels={"yance-relationship-goal"},
     )
+    return ids, agent, customer, session
 
 
-async def read_journey_or_none(app: Application, key: str):
+async def find_goal(key: str):
+    ids = identifiers(key)
     try:
-        return await app.journeys.read(journey_id_for(key))
+        graph = await RUNTIME.app.journeys.read(JourneyId(ids["journey"]))
+        return graph
     except ItemNotFoundError:
         return None
 
 
-async def ensure_goal_journey(
-    app: Application,
-    journey_store: JourneyStore,
-    key: str,
-    goal: str,
-    agent_id: AgentId,
-):
-    journey_graph = await read_journey_or_none(app, key)
-    if journey_graph:
-        await app.journeys.update(
-            journey_id=journey_id_for(key),
-            title=None,
-            description=goal,
+def steering_action(goal_text: str) -> str:
+    return (
+        "Guide the conversation naturally toward this relationship goal while respecting the contact's current intent and tone: "
+        f"{goal_text}. Do not force the topic, fabricate facts, or claim the goal is complete unless the conversation supports it."
+    )
+
+
+async def evaluate_goal_graph(journey_id: JourneyId) -> None:
+    if RUNTIME.container is None:
+        raise RuntimeError("Parlant container is not initialized")
+    evaluations = await RUNTIME.container[JourneyEvaluator].evaluate(
+        payloads=[JourneyPayload(journey_id=journey_id, operation=PayloadOperation.ADD)]
+    )
+    if not evaluations:
+        raise RuntimeError("Parlant Journey evaluator returned no result")
+    for node_id, properties in (evaluations[0].node_properties_proposition or {}).items():
+        if node_id == JourneyStore.END_NODE_ID:
+            continue
+        for name, value in properties.items():
+            await RUNTIME.journey_store.set_node_metadata(node_id=node_id, key=name, value=value)
+
+
+async def ensure_goal_graph(key: str, goal_text: str):
+    ids, agent, _customer, session = await ensure_relationship(key)
+    graph = await find_goal(key)
+    if graph is None:
+        journey, _conditions = await RUNTIME.app.journeys.create(
+            title="Yance relationship goal",
+            description=goal_text,
+            conditions=[GOAL_CONDITION],
+            tags=[Tag.for_agent_id(agent.id).id],
+            id=JourneyId(ids["journey"]),
+            composition_mode=None,
+            labels={"yance-relationship-goal"},
+            priority=10,
+        )
+        steering = await RUNTIME.journey_store.create_node(
+            journey_id=journey.id,
+            action=steering_action(goal_text),
+            tools=[],
+            description="Use the relationship goal as a conversational direction, not a forced script.",
+            composition_mode=None,
+            id=JourneyNodeId(ids["steering_node"]),
+            labels={"yance-goal-steering"},
+        )
+        await RUNTIME.journey_store.create_edge(
+            journey_id=journey.id,
+            source=journey.root_id,
+            target=steering.id,
+            condition=None,
+        )
+        await RUNTIME.journey_store.create_edge(
+            journey_id=journey.id,
+            source=steering.id,
+            target=JourneyStore.END_NODE_ID,
+            condition=COMPLETION_CONDITION,
+        )
+        await evaluate_goal_graph(journey.id)
+    else:
+        await RUNTIME.app.journeys.update(
+            journey_id=JourneyId(ids["journey"]),
+            title="Yance relationship goal",
+            description=goal_text,
             conditions=None,
             tags=None,
             composition_mode=None,
             labels=None,
-            priority=None,
+            priority=10,
         )
-        return await app.journeys.read(journey_id_for(key))
-
-    journey, _ = await app.journeys.create(
-        title=f"Yance relationship goal {key[:12]}",
-        description=goal,
-        conditions=[GOAL_CONDITION],
-        tags=[Tag.for_agent_id(agent_id).id],
-        id=journey_id_for(key),
-        composition_mode=None,
-        labels={"yance-relationship-goal"},
-        priority=100,
-    )
-
-    steering_node = await journey_store.create_node(
-        journey_id=journey.id,
-        action=GOAL_ACTION,
-        tools=[],
-        description="Adaptive goal steering owned by Parlant Journey traversal",
-        id=steering_node_id_for(key),
-        labels={"yance-goal-steering"},
-    )
-    await journey_store.create_edge(
-        journey_id=journey.id,
-        source=journey.root_id,
-        target=steering_node.id,
-        condition=None,
-    )
-    await journey_store.create_edge(
-        journey_id=journey.id,
-        source=steering_node.id,
-        target=JourneyStore.END_NODE_ID,
-        condition=GOAL_DONE_CONDITION,
-    )
-    return await app.journeys.read(journey.id)
+        try:
+            await RUNTIME.journey_store.update_node(
+                JourneyNodeId(ids["steering_node"]),
+                {"action": steering_action(goal_text), "description": "Use the relationship goal as a conversational direction, not a forced script."},
+            )
+        except ItemNotFoundError:
+            # A missing native graph node is a corrupted Parlant-owned goal,
+            # not a reason to create a second Yance state machine.
+            raise HTTPException(status_code=409, detail={"reasonCode": "YANCE_PARLANT_GOAL_GRAPH_INVALID", "message": "Parlant goal graph is incomplete"})
+        await evaluate_goal_graph(JourneyId(ids["journey"]))
+    return await goal_projection(key, session=session)
 
 
-def journey_progress(session: Session | None, journey_id: JourneyId) -> tuple[str, str]:
-    if session is None:
-        return "not-started", "active"
-    for agent_state in reversed(session.agent_states):
-        path = agent_state.journey_paths.get(journey_id)
-        if path:
-            visited = [node for node in path if node]
-            if visited and visited[-1] == JourneyStore.END_NODE_ID:
-                return "completed", "completed"
-            return f"visited:{len(visited)}", "paused" if session.mode == "manual" else "active"
-    return "not-started", "paused" if session.mode == "manual" else "active"
-
-
-async def projection(app: Application, key: str, contact_id: str) -> dict[str, object]:
-    graph = await read_journey_or_none(app, key)
+async def goal_projection(key: str, session=None) -> dict[str, Any]:
+    graph = await find_goal(key)
     if graph is None:
-        return {
-            "contactId": contact_id,
-            "goal": "",
-            "paused": False,
-            "progress": "not-started",
-            "reasonCode": "",
-            "status": "inactive",
-        }
-
-    agent_id = agent_id_for(key)
-    customer_id = customer_id_for(key)
-    session = await find_session(app, key, agent_id, customer_id)
-    progress, status = journey_progress(session, graph.journey.id)
+        return {"ok": True, "available": True, "exists": False, "goalText": "", "paused": False, "progress": {"path": [], "completed": False}}
+    _ids, _agent, _customer, resolved_session = await ensure_relationship(key)
+    session = session or resolved_session
+    persisted_session = await RUNTIME.session_store.read_session(session.id)
+    journey_id = graph.journey.id
+    path: list[str] = []
+    for state in reversed(persisted_session.agent_states):
+        raw = state.journey_paths.get(journey_id)
+        if raw is not None:
+            path = [clean(node) for node in raw if clean(node)]
+            break
+    completed = bool(path and path[-1] == str(JourneyStore.END_NODE_ID))
     return {
-        "contactId": contact_id,
-        "goal": graph.journey.description,
-        "paused": bool(session and session.mode == "manual"),
-        "progress": progress,
-        "reasonCode": "",
-        "status": status,
+        "ok": True,
+        "available": True,
+        "exists": True,
+        "goalText": graph.journey.description,
+        "paused": persisted_session.mode == "manual",
+        "progress": {"path": path, "completed": completed},
     }
 
 
-def configure_yance_api(holder: dict[str, Container]):
-    async def configure(api: FastAPI) -> FastAPI:
-        container = holder["container"]
-        app = container[Application]
-        journey_store = container[JourneyStore]
+async def install_yance_routes(api: FastAPI) -> FastAPI:
+    @api.get("/yance/relationship-goals/{route_key}")
+    async def get_relationship_goal(route_key: str, contactId: str = Query(...)):
+        key = assert_scope(route_key, contactId)
+        return await goal_projection(key)
 
-        @api.get("/yance/relationship-goals/{key}")
-        async def get_relationship_goal(key: str, contactId: str):
-            require_relationship_key(key, contactId)
-            return await projection(app, key, contactId)
+    @api.put("/yance/relationship-goals/{route_key}")
+    async def put_relationship_goal(route_key: str, payload: dict[str, Any] = Body(...)):
+        contact_id = clean(payload.get("contactId"))
+        key = assert_scope(route_key, contact_id)
+        goal_text = clean(payload.get("goalText"))
+        if not goal_text or len(goal_text) > 4000:
+            raise HTTPException(status_code=422, detail={"reasonCode": "YANCE_PARLANT_GOAL_INVALID", "message": "goalText is invalid"})
+        return await ensure_goal_graph(key, goal_text)
 
-        @api.put("/yance/relationship-goals/{key}")
-        async def upsert_relationship_goal(key: str, body: GoalUpsert):
-            require_relationship_key(key, body.contactId)
-            agent = await ensure_agent(app, key)
-            customer = await ensure_customer(app, key, body.contactId)
-            await ensure_session(app, key, agent.id, customer.id)
-            await ensure_goal_journey(app, journey_store, key, body.goal.strip(), agent.id)
-            return await projection(app, key, body.contactId)
+    @api.delete("/yance/relationship-goals/{route_key}")
+    async def delete_relationship_goal(route_key: str, contactId: str = Query(...)):
+        key = assert_scope(route_key, contactId)
+        graph = await find_goal(key)
+        if graph is not None:
+            await RUNTIME.app.journeys.delete(graph.journey.id)
+        return {"ok": True, "deleted": graph is not None}
 
-        @api.delete("/yance/relationship-goals/{key}", status_code=204)
-        async def delete_relationship_goal(key: str, contactId: str):
-            require_relationship_key(key, contactId)
-            try:
-                await app.journeys.delete(journey_id_for(key))
-            except ItemNotFoundError:
-                pass
-            return None
+    @api.patch("/yance/relationship-goals/{route_key}/mode")
+    async def set_relationship_goal_mode(route_key: str, payload: dict[str, Any] = Body(...)):
+        contact_id = clean(payload.get("contactId"))
+        key = assert_scope(route_key, contact_id)
+        graph = await find_goal(key)
+        if graph is None:
+            raise HTTPException(status_code=404, detail={"reasonCode": "YANCE_PARLANT_GOAL_NOT_FOUND", "message": "relationship goal does not exist"})
+        _ids, _agent, _customer, session = await ensure_relationship(key)
+        await RUNTIME.app.sessions.update(session.id, {"mode": "manual" if payload.get("paused") is True else "auto"}, labels=None)
+        return await goal_projection(key)
 
-        @api.patch("/yance/relationship-goals/{key}/mode")
-        async def set_relationship_goal_mode(key: str, body: GoalMode):
-            require_relationship_key(key, body.contactId)
-            if await read_journey_or_none(app, key) is None:
-                raise HTTPException(status_code=404, detail="relationship goal not found")
-            agent = await ensure_agent(app, key)
-            customer = await ensure_customer(app, key, body.contactId)
-            session = await ensure_session(app, key, agent.id, customer.id)
-            await app.sessions.update(session.id, {"mode": body.mode})
-            return await projection(app, key, body.contactId)
+    @api.post("/yance/relationship-goals/{route_key}/events")
+    async def ingest_relationship_event(route_key: str, payload: dict[str, Any] = Body(...)):
+        contact_id = clean(payload.get("contactId"))
+        key = assert_scope(route_key, contact_id)
+        graph = await find_goal(key)
+        if graph is None:
+            raise HTTPException(status_code=404, detail={"reasonCode": "YANCE_PARLANT_GOAL_NOT_FOUND", "message": "relationship goal does not exist"})
+        text = clean(payload.get("text"))
+        if not text or len(text) > 20000:
+            raise HTTPException(status_code=422, detail={"reasonCode": "YANCE_PARLANT_MESSAGE_INVALID", "message": "message text is invalid"})
+        _ids, _agent, _customer, session = await ensure_relationship(key)
+        current = await RUNTIME.session_store.read_session(session.id)
+        event = await RUNTIME.app.sessions.create_customer_message(
+            session_id=session.id,
+            moderation=Moderation.NONE,
+            message=text,
+            source=EventSource.CUSTOMER,
+            trigger_processing=current.mode != "manual",
+            metadata={
+                "yance_external_message_id": clean(payload.get("externalMessageId"))[:512],
+                "yance_relationship_key": key,
+            },
+        )
+        return {"ok": True, "eventId": str(event.id), "offset": int(event.offset), "nextOffset": int(event.offset) + 1, "paused": current.mode == "manual"}
 
-        @api.post("/yance/relationship-events/{key}")
-        async def ingest_relationship_event(key: str, body: CustomerMessage):
-            require_relationship_key(key, body.contactId)
-            if await read_journey_or_none(app, key) is None:
-                raise HTTPException(status_code=409, detail="relationship goal is not configured")
-            agent = await ensure_agent(app, key)
-            customer = await ensure_customer(app, key, body.contactId)
-            session = await ensure_session(app, key, agent.id, customer.id)
-            event = await app.sessions.create_customer_message(
+    @api.get("/yance/relationship-goals/{route_key}/candidate")
+    async def get_relationship_candidate(
+        route_key: str,
+        contactId: str = Query(...),
+        after_offset: int = Query(0, ge=0),
+    ):
+        key = assert_scope(route_key, contactId)
+        graph = await find_goal(key)
+        if graph is None:
+            raise HTTPException(status_code=404, detail={"reasonCode": "YANCE_PARLANT_GOAL_NOT_FOUND", "message": "relationship goal does not exist"})
+        _ids, _agent, _customer, session = await ensure_relationship(key)
+        current = await RUNTIME.session_store.read_session(session.id)
+        if current.mode == "manual":
+            raise HTTPException(status_code=409, detail={"reasonCode": "YANCE_PARLANT_GOAL_PAUSED", "message": "relationship goal is paused in Parlant manual mode"})
+        deadline = asyncio.get_running_loop().time() + 90.0
+        while asyncio.get_running_loop().time() < deadline:
+            events = await RUNTIME.app.sessions.find_events(
                 session_id=session.id,
-                moderation=Moderation.NONE,
-                message=body.text.strip(),
-                source=EventSource.CUSTOMER,
-                trigger_processing=True,
-                metadata={"yance_relationship_key": key},
-            )
-            return {"eventId": str(event.id), "offset": event.offset, "sessionId": str(session.id)}
-
-        @api.get("/yance/relationship-candidates/{key}")
-        async def get_relationship_candidate(key: str, contactId: str, after_offset: int = -1):
-            require_relationship_key(key, contactId)
-            if await read_journey_or_none(app, key) is None:
-                raise HTTPException(status_code=409, detail="relationship goal is not configured")
-            agent = await ensure_agent(app, key)
-            customer = await ensure_customer(app, key, contactId)
-            session = await ensure_session(app, key, agent.id, customer.id)
-            minimum = max(0, after_offset + 1)
-            events = await app.sessions.find_events(
-                session_id=session.id,
-                min_offset=minimum,
+                min_offset=after_offset,
                 source=EventSource.AI_AGENT,
                 kinds=[EventKind.MESSAGE],
                 trace_id=None,
             )
-            if not events:
-                await app.sessions.wait_for_more_events(
-                    session_id=session.id,
-                    min_offset=minimum,
-                    kinds=[EventKind.MESSAGE],
-                    source=EventSource.AI_AGENT,
-                    timeout=Timeout(30),
-                )
-                events = await app.sessions.find_events(
-                    session_id=session.id,
-                    min_offset=minimum,
-                    source=EventSource.AI_AGENT,
-                    kinds=[EventKind.MESSAGE],
-                    trace_id=None,
-                )
-            if not events:
-                raise HTTPException(status_code=504, detail="Parlant reply candidate timed out")
-            event = sorted(events, key=lambda item: item.offset)[0]
-            message = event.data.get("message") if isinstance(event.data, dict) else None
-            if not isinstance(message, str) or not message.strip():
-                raise HTTPException(status_code=502, detail="Parlant returned an invalid reply candidate")
-            return {"text": message, "eventId": str(event.id), "offset": event.offset}
+            candidates = sorted((event for event in events if int(event.offset) >= after_offset), key=lambda event: int(event.offset))
+            for event in candidates:
+                data = event.data if isinstance(event.data, dict) else {}
+                text = clean(data.get("message"))
+                if text:
+                    return {
+                        "ok": True,
+                        "text": text,
+                        "eventId": str(event.id),
+                        "offset": int(event.offset),
+                        "progress": (await goal_projection(key))["progress"],
+                    }
+            await asyncio.sleep(0.25)
+        raise HTTPException(status_code=504, detail={"reasonCode": "YANCE_PARLANT_CANDIDATE_TIMEOUT", "message": "Parlant did not produce a candidate before timeout"})
 
-        return api
-
-    return configure
+    return api
 
 
-async def run_server(host: str, port: int) -> None:
+def self_test() -> int:
+    result = {
+        "ok": PARLANT_VERSION == EXPECTED_PARLANT_VERSION,
+        "parlantVersion": PARLANT_VERSION,
+        "expectedVersion": EXPECTED_PARLANT_VERSION,
+        "expectedCommit": EXPECTED_PARLANT_COMMIT,
+        "listenHost": LISTEN_HOST,
+        "dataCollection": os.environ.get("PARLANT_DATA_COLLECTION"),
+        "persistentServer": True,
+        "applicationAuthority": Application.__module__,
+        "journeyStoreAuthority": JourneyStore.__module__,
+        "sessionStoreAuthority": SessionStore.__module__,
+    }
+    print(json.dumps(result, sort_keys=True))
+    return 0 if result["ok"] and result["dataCollection"] == "false" and result["listenHost"] == "127.0.0.1" else 1
+
+
+async def serve(host: str, port: int) -> None:
     if host != LISTEN_HOST:
-        raise SystemExit("Parlant Yance bridge must bind to 127.0.0.1")
-    data_root = os.environ.get("YANCE_PARLANT_DATA_ROOT", "").strip()
-    if not data_root:
-        raise SystemExit("YANCE_PARLANT_DATA_ROOT is required")
-    if not os.environ.get("OPENROUTER_API_KEY", "").strip():
-        raise SystemExit("OPENROUTER_API_KEY is required")
-
-    holder: dict[str, Container] = {}
-
-    async def capture_container(container: Container) -> Container:
-        holder["container"] = container
-        return container
-
+        raise RuntimeError("Yance Parlant bridge refuses non-loopback listeners")
+    if not clean(os.environ.get("OPENROUTER_API_KEY")):
+        raise RuntimeError("OPENROUTER_API_KEY is required")
     params = StartupParameters(
         host=LISTEN_HOST,
         port=port,
-        nlp_service=create_openrouter_service,
-        log_level="info",
+        nlp_service=openrouter_service,
+        log_level="warning",
         modules=[],
         migrate=False,
-        configure=capture_container,
+        configure=capture_initialized_container,
         initialize=None,
-        configure_api=configure_yance_api(holder),
+        configure_api=install_yance_routes,
     )
-
     async with start_parlant(params):
         pass
 
 
-def self_test() -> None:
-    if VERSION != PARLANT_VERSION:
-        raise SystemExit(f"Parlant version mismatch: expected {PARLANT_VERSION}, got {VERSION}")
-    print(
-        json.dumps(
-            {
-                "ok": True,
-                "parlantVersion": VERSION,
-                "parlantCommit": PARLANT_COMMIT,
-                "listenHost": LISTEN_HOST,
-                "dataCollection": os.environ.get("PARLANT_DATA_COLLECTION"),
-            },
-            sort_keys=True,
-            separators=(",", ":"),
-        )
-    )
-
-
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Yance Parlant relationship goal bridge")
+    parser = argparse.ArgumentParser(description="Yance thin adapter for Parlant Relationship Goal/Journey P0")
     parser.add_argument("--host", default=LISTEN_HOST)
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+    parser.add_argument("--port", type=int, default=18765)
     parser.add_argument("--self-test", action="store_true")
     return parser.parse_args()
 
 
-def main() -> None:
+def main() -> int:
     args = parse_args()
     if args.self_test:
-        self_test()
-        return
-    asyncio.run(run_server(args.host, args.port))
+        return self_test()
+    asyncio.run(serve(args.host, args.port))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

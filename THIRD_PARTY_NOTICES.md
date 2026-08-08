@@ -58,3 +58,46 @@ Exact source pins are recorded in `config/upstreams/v21-comms-p0.json`; `tools/m
 - Yance integration: Yance supervises the official `letta server --backend local --listen ws://127.0.0.1:0` child and stores its local backend under the Yance data root.
 
 Exact Letta source pins are recorded in `config/upstreams/v21-letta-p0.json`. Yance does not copy the Letta launcher or access private Agent SDK lifecycle fields.
+
+## Parlant
+
+- Project: Parlant
+- Upstream: `https://github.com/emcie-co/parlant.git`
+- Version: `v3.3.2`
+- Exact commit: `61bba3b2b3fffd677d345e393e8c942dbd400297`
+- License: `Apache-2.0`
+- License copy: `third_party/licenses/parlant-Apache-2.0.txt`
+- Upstream dependency lock: exact `uv.lock` Git blob `aa2f7de8e858f19296df58efec56d72c8d3f50a5`
+- Yance integration: Parlant remains the relationship Journey, Goal graph, session-processing, progress/backtracking/skipping, and conversation-event authority. Yance exposes only a contact-scoped projection and retains unique final send authority.
+
+## uv
+
+- Project: uv
+- Upstream: `https://github.com/astral-sh/uv.git`
+- Version: `0.12.3`
+- Exact commit: `507230998c9541d67814b57463ac00e454ff6991`
+- License: `MIT OR Apache-2.0`
+- License copies: `third_party/licenses/uv-MIT.txt`, `third_party/licenses/uv-Apache-2.0.txt`
+- Yance integration: build/sealing tool only. It is not shipped as an application runtime dependency resolver.
+
+## python-build-standalone
+
+- Project: python-build-standalone
+- Upstream: `https://github.com/astral-sh/python-build-standalone.git`
+- Release: `20260807`
+- Exact commit: `00c8a06113f11220667c3bcf5fab1672ff9e78ef`
+- License: `MPL-2.0`
+- License copy: `third_party/licenses/python-build-standalone-MPL-2.0.txt`
+- Yance integration: provides the pinned Windows x64 CPython runtime asset used to materialize the sealed Parlant sidecar.
+
+## CPython
+
+- Project: CPython
+- Version: `3.12.13`
+- Runtime asset: `cpython-3.12.13+20260807-x86_64-pc-windows-msvc-install_only_stripped.tar.gz`
+- Runtime asset SHA-256: `18bcc65b17921806b72cdc88bcf000bf67a2c99a8fc381fe1629f2b9ba56858d`
+- License: Python Software Foundation License Version 2 (plus bundled historical/third-party notices in the CPython distribution)
+- License copy: `third_party/licenses/cpython-PSF-2.0.txt`
+- Yance integration: bundled interpreter for the offline Parlant sidecar; no system Python dependency is permitted.
+
+Exact Parlant/uv/python-build-standalone runtime pins are recorded in `config/upstreams/v21-parlant-p0.json`. Runtime materialization must verify the pinned asset sizes/hashes and the exact Parlant lock before producing a distributable runtime.
