@@ -14,7 +14,7 @@
       "commit": "3e5ead65dcf3b7fdf1e2da595660eb85063a9722",
       "package": "@letta-ai/letta-code@0.30.5",
       "license": "Apache-2.0",
-      "cli": "letta server --listen ws://127.0.0.1:0"
+      "cli": "letta server --backend local --listen ws://127.0.0.1:0"
     }
   }
 }
