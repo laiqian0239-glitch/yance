@@ -44,7 +44,7 @@ test('V2.1 Letta P0 pins the exact current OSS authorities', () => {
     commit: CODE_COMMIT,
     package: '@letta-ai/letta-code@0.30.5',
     license: 'Apache-2.0',
-    cli: 'letta server --listen ws://127.0.0.1:0'
+    cli: 'letta server --backend local --listen ws://127.0.0.1:0'
   });
   for (const upstream of Object.values(lock.upstreams)) assert.match(upstream.commit, SHA40);
 });
@@ -84,11 +84,14 @@ test('the desktop adapter uses the official Letta Code CLI and public Agent SDK 
     '@letta-ai/letta-code',
     '@letta-ai/letta-agent-sdk',
     'server',
+    '--backend',
+    'local',
     '--listen',
     'ws://127.0.0.1:0',
     'LETTA_LOCAL_BACKEND_DIR',
     'SIGTERM'
   ]) assert.ok(source.includes(required), `adapter must contain ${required}`);
+  assert.match(source, /const args = \[entrypoint, 'server', '--backend', 'local', '--listen', DEFAULT_LISTEN_URL\]/u);
   assert.match(source, /backend\s*:\s*['"]remote['"]/u);
   assert.doesNotMatch(source, /\bmanagementTransport\b|\bownedConnection\b/u);
   assert.doesNotMatch(source, /@letta-ai\/letta-agent-sdk\//u);
@@ -108,9 +111,10 @@ test('adapter pure guards bind Letta storage under Yance and reject non-loopback
   }
 
   const dataRoot = path.join(os.tmpdir(), 'yance-letta-contract-root');
-  const env = runtimeModule.buildLettaEnvironment({ ELECTRON_RUN_AS_NODE: '1', KEEP_ME: 'yes' }, dataRoot);
+  const env = runtimeModule.buildLettaEnvironment({ ELECTRON_RUN_AS_NODE: '1', LETTA_API_KEY: 'must-not-cross-local-boundary', KEEP_ME: 'yes' }, dataRoot);
   assert.equal(env.KEEP_ME, 'yes');
   assert.equal(Object.prototype.hasOwnProperty.call(env, 'ELECTRON_RUN_AS_NODE'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(env, 'LETTA_API_KEY'), false);
   assert.equal(env.LETTA_LOCAL_BACKEND_DIR, path.join(dataRoot, 'letta', 'local-backend'));
 });
 
@@ -150,4 +154,37 @@ test('real Letta App Server management probe is sessionless and shuts down its o
   assert.equal(stopped.ready, false);
   assert.equal(stopped.pid, null);
   assert.equal(stopped.lastExit?.signal === 'SIGTERM' || stopped.lastExit?.code === 0, true);
+});
+
+test('manual review requires live-child readiness and authoritative failed-start cleanup', () => {
+  const source = readText('electron/lettaAgentRuntime.js');
+  assert.match(source, /child\.exitCode === null/u, 'ready state must require a still-running owned child');
+  assert.match(source, /!child\.signalCode/u, 'ready state must reject an already-signalled owned child');
+  assert.match(source, /if \(child === ownedChild\)/u, 'owned child exit must release the current runtime reference');
+  assert.match(source, /await stop\(\)/u, 'failed start must use the authoritative owned-child stop path');
+});
+
+test('manual review requires data-minimized renderer projections and executable conversation bounds', () => {
+  const main = readText('electron/main.js');
+  const manifest = readJson('electron/m2/ipcManifest.json');
+  const byChannel = new Map(manifest.handlers.map(handler => [handler.channel, handler]));
+
+  assert.match(main, /function projectLettaRendererState\(/u);
+  assert.match(main, /function projectLettaAgentIdentity\(/u);
+  assert.match(main, /function projectLettaConversationIdentity\(/u);
+  assert.match(main, /function normalizeLettaConversationListInput\(/u);
+  assert.match(main, /agentId\.length > 256/u);
+  assert.doesNotMatch(main, /ipcGuardHandle\(['"]desktop:letta-get-state['"], \(\) => ensureLettaAgentRuntime\(\)\.snapshot\(\)\)/u);
+
+  const stateOutput = byChannel.get('desktop:letta-get-state').outputSchema;
+  assert.equal(stateOutput.additionalProperties, false);
+  assert.deepEqual(Object.keys(stateOutput.properties || {}).sort(), ['ready', 'reasonCode']);
+
+  const agentItems = byChannel.get('desktop:letta-list-agents').outputSchema.items;
+  assert.equal(agentItems.additionalProperties, false);
+  assert.deepEqual(Object.keys(agentItems.properties || {}).sort(), ['id', 'name']);
+
+  const conversationItems = byChannel.get('desktop:letta-list-conversations').outputSchema.items;
+  assert.equal(conversationItems.additionalProperties, false);
+  assert.deepEqual(Object.keys(conversationItems.properties || {}).sort(), ['agentId', 'id']);
 });
