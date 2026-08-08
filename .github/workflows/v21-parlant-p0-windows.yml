@@ -62,7 +62,7 @@ jobs:
         env:
           PARLANT_DATA_COLLECTION: 'false'
           PARLANT_ENV: 'production'
-          YANCE_PARLANT_LOOPBACK_TOKEN: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdef'
+          YANCE_PARLANT_LOOPBACK_TOKEN: 'offline-probe-loopback-token-not-a-secret-0000000000'
           OPENROUTER_API_KEY: 'offline-probe-not-a-secret'
           HTTP_PROXY: 'http://127.0.0.1:9'
           HTTPS_PROXY: 'http://127.0.0.1:9'
