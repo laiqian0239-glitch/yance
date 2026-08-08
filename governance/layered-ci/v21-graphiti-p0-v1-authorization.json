@@ -4,7 +4,7 @@
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-GRAPHITI-P0-V1",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Adopt Graphiti v0.29.3 with Neo4j Community as Yance's authoritative temporal relationship-fact graph for people/topic/event relations, episode provenance, temporal validity/invalidation and Relationship Timeline factual projection. Letta remains long-term person/interaction memory and Parlant remains Goal/Journey authority. Yance supplies only thin Graphiti-specific lifecycle, credential, projection and portable-sealing adapters; it must not implement a duplicate temporal graph, supersession algorithm, graph database, model gateway or generic sidecar framework.",
+  "reason": "Adopt Graphiti v0.29.3 with Neo4j Community as Yance's authoritative temporal relationship-fact graph for people/topic/event relations, episode provenance, temporal validity/invalidation and Relationship Timeline factual projection. Letta remains long-term person/interaction memory and Parlant remains Goal/Journey authority. Graphiti-derived compatibility projection must enter the existing broker-owned SQLite authority through the existing workspace command facade/service/repository route rather than a second database writer. Yance supplies only thin Graphiti-specific lifecycle, credential, projection and portable-sealing adapters; it must not implement a duplicate temporal graph, supersession algorithm, graph database, model gateway or generic sidecar framework.",
   "base": {
     "branch": "main",
     "commit": "70bcc1313659d582c659ae94454177ce11fec9c6"
@@ -17,9 +17,7 @@
   },
   "authorizationBranch": {
     "name": "governance/v21-graphiti-p0-v1-authorization",
-    "allowedChangedPaths": [
-      "governance/layered-ci/v21-graphiti-p0-v1-authorization.json"
-    ],
+    "allowedChangedPaths": ["governance/layered-ci/v21-graphiti-p0-v1-authorization.json"],
     "mustRemainSingleFile": true
   },
   "digestCanonicalization": {
@@ -35,7 +33,11 @@
     "allowedChangedPaths": [
       ".github/workflows/v21-graphiti-p0-windows.yml",
       "THIRD_PARTY_NOTICES.md",
+      "backend/routes/workspace.js",
       "backend/services/relationshipKeyNodeService.js",
+      "backend/services/relationshipProjectionAuthority.js",
+      "backend/services/workspaceIdentityCommandFacade.js",
+      "backend/store/relationshipKeyNodeRepository.js",
       "config/upstreams/v21-graphiti-p0.json",
       "docs/superpowers/plans/2026-08-08-yance-v21-graphiti-p0.md",
       "electron/graphitiRelationshipRuntime.js",
@@ -50,14 +52,12 @@
       "third_party/licenses/temurin-GPL-2.0-with-Classpath-Exception.txt",
       "tools/graphiti/build-windows-runtime.ps1"
     ],
-    "approvedChangedFileCount": 16,
-    "approvedChangedFileSetSha256": "b27428408bf78dc2cf515547e0cf03d1281ee31a7ba4e6706345e161fad05754",
+    "approvedChangedFileCount": 20,
+    "approvedChangedFileSetSha256": "9dcc1cc0e91626f977a14b324e285ec5c8526c93bb54f37518e71ed520e4499b",
     "newDependencyAllowed": false,
     "workflowModificationAllowed": true,
     "workflowModificationPolicy": {
-      "allowedWorkflowPaths": [
-        ".github/workflows/v21-graphiti-p0-windows.yml"
-      ],
+      "allowedWorkflowPaths": [".github/workflows/v21-graphiti-p0-windows.yml"],
       "approvedWorkflowPathCount": 1,
       "approvedWorkflowPathSetSha256": "5fb9d3ad6245e23e4e498d437adea17e0aec6e40e715e5007a00a84cb2cd2b6d"
     }
@@ -83,12 +83,7 @@
       "firstPartyArtifactRequired": true,
       "firstPartySha256RequiredBeforeSeal": true,
       "missingOrUnverifiableChecksumIsRed": true,
-      "allowedArtifactHosts": [
-        "neo4j.com",
-        "go.neo4j.com",
-        "dist.neo4j.com",
-        "dist.neo4j.org"
-      ],
+      "allowedArtifactHosts": ["neo4j.com", "go.neo4j.com", "dist.neo4j.com", "dist.neo4j.org"],
       "role": "Local Graphiti graph database only."
     },
     "temurin": {
@@ -145,8 +140,11 @@
     "graphitiOwnsFactSupersession": true,
     "graphitiGroupIdIsRelationshipIsolationBoundary": true,
     "sqliteRelationshipTimelineIsCompatibilityProjectionOnly": true,
+    "sqliteProjectionMustUseExistingAuthorityWriteHost": true,
+    "secondSqliteWriterForbidden": true,
     "sqliteMayStoreManualKeyNodeAnnotationsButMustNotInferIndependentFacts": true,
     "newSqliteFactWithoutGraphitiEpisodeProvenanceForbidden": true,
+    "relationshipProjectionAuthorityMustPreferGraphitiProvenanceForFactualTimeline": true,
     "lettaRemainsLongTermPersonMemoryAuthority": true,
     "parlantRemainsGoalJourneyAuthority": true,
     "yanceOwnsFinalReplyDecision": true,
@@ -198,7 +196,9 @@
     "Graphiti HTTP must use per-runtime high-entropy Yance ownership authentication and reject unauthenticated or local-impostor access.",
     "OPENROUTER_API_KEY plaintext reaching renderer state, persistent Yance state or logs is RED.",
     "Every real relationship event admitted to temporal memory must be recorded through Graphiti add_episode with stable relationship group_id, source provenance and reference time.",
+    "Graphiti-derived factual timeline projection must enter broker-owned SQLite only through the existing workspace command facade/service/repository authority-write-host path; a second writer or direct Electron SQL is RED.",
     "SQLite must not independently infer or create competing fact/inference timeline truth without Graphiti episode provenance.",
+    "Existing non-Graphiti historical rows must not override current Graphiti-provenance factual timeline once Graphiti data is available.",
     "Fact validity, invalidation and supersession must come from Graphiti native temporal graph behavior rather than a Yance reimplementation.",
     "Relationship isolation must prevent one relationship group from reading another relationship's Graphiti facts.",
     "Graphiti-derived recall must enter the existing Yance reply-context projection without bypassing Yance final reply decision or send authority.",
@@ -209,7 +209,7 @@
     "Exact Graphiti, Neo4j, Temurin, uv, python-build-standalone and CPython provenance/license evidence plus deterministic runtime SBOM must be complete before GREEN.",
     "Neo4j 2026.07.1 Windows Community artifact must come from a first-party Neo4j distribution path and have a first-party SHA-256 resolved and verified before sealing; absent, unverifiable or mismatched checksum is hard RED.",
     "Windows x64 portable runtime must be built from exact sealed OSS inputs and pass offline startup/import/Neo4j/Graphiti authenticated health closure without build tools present in the runtime bundle.",
-    "The final implementation changed-path set must remain within these 16 exact paths and retain SHA-256 b27428408bf78dc2cf515547e0cf03d1281ee31a7ba4e6706345e161fad05754.",
+    "The final implementation changed-path set must remain within these 20 exact paths and retain SHA-256 9dcc1cc0e91626f977a14b324e285ec5c8526c93bb54f37518e71ed520e4499b.",
     "Independent exact-Head review must have zero unresolved P0/P1 findings before implementation merge."
   ],
   "governance": {
