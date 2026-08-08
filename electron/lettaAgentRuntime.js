@@ -226,7 +226,9 @@ function createLettaAgentRuntime(options = {}) {
   }
 
   async function listAgents() {
-    if (!snapshot().ready) await start();
+    if (!snapshot().ready || !client) {
+      throw runtimeError('LETTA_RUNTIME_NOT_READY', 'Letta runtime must be started by Electron main before agents can be listed.');
+    }
     return client.agents.list();
   }
 
@@ -238,7 +240,9 @@ function createLettaAgentRuntime(options = {}) {
     if (!Number.isInteger(requestedLimit) || requestedLimit < 1 || requestedLimit > 200) {
       throw runtimeError('LETTA_CONVERSATION_LIMIT_INVALID', 'limit must be an integer from 1 to 200.');
     }
-    if (!snapshot().ready) await start();
+    if (!snapshot().ready || !client) {
+      throw runtimeError('LETTA_RUNTIME_NOT_READY', 'Letta runtime must be started by Electron main before conversations can be listed.');
+    }
     return client.conversations.list({ agentId, limit: requestedLimit });
   }
 

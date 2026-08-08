@@ -55,6 +55,6 @@ Exact source pins are recorded in `config/upstreams/v21-comms-p0.json`; `tools/m
 - Package: `@letta-ai/letta-code@0.30.5`
 - License: `Apache-2.0` for the code used by Yance; upstream brand assets remain excluded as stated by upstream.
 - License copy: `third_party/licenses/letta-code-Apache-2.0.txt`
-- Yance integration: Yance supervises the official `letta server --listen ws://127.0.0.1:0` child and stores its local backend under the Yance data root.
+- Yance integration: Yance supervises the official `letta server --backend local --listen ws://127.0.0.1:0` child and stores its local backend under the Yance data root.
 
 Exact Letta source pins are recorded in `config/upstreams/v21-letta-p0.json`. Yance does not copy the Letta launcher or access private Agent SDK lifecycle fields.
