@@ -60,6 +60,13 @@ test('Windows Graphiti version probe avoids PowerShell native -c quote loss', ()
   assert.equal(script.includes("Invoke-Checked $VenvPython @('-I', $GraphitiVersionProbe, $GraphitiVersionOutput) 'probe installed graphiti-core version'"), true);
 });
 
+test('Windows Neo4j config is written as UTF-8 without BOM for strict validation', () => {
+  const workflow = readText('.github/workflows/v21-graphiti-p0-windows.yml');
+  assert.equal(workflow.includes("Set-Content -LiteralPath (Join-Path $conf 'neo4j.conf') -Encoding utf8"), false);
+  assert.match(workflow, /Text\.UTF8Encoding\(\$false\)/u);
+  assert.match(workflow, /WriteAllText[^\n]+neo4j\.conf/iu);
+});
+
 test('Windows workflow performs build-time online materialization then a network-isolated authenticated runtime closure', () => {
   const workflow = readText('.github/workflows/v21-graphiti-p0-windows.yml');
   assert.match(workflow, /windows-2025|windows-latest/u);
