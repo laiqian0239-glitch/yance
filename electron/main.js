@@ -485,6 +485,46 @@ function ensureLettaAgentRuntime() {
   return lettaAgentRuntime;
 }
 
+function projectLettaRendererState(state = {}) {
+  return Object.freeze({
+    ready: state.ready === true,
+    reasonCode: String(state.lastError?.reasonCode || '')
+  });
+}
+
+function projectLettaAgentIdentity(agent = {}) {
+  return Object.freeze({
+    id: String(agent?.id || '').trim().slice(0, 256),
+    name: String(agent?.name || '').trim().slice(0, 256)
+  });
+}
+
+function projectLettaConversationIdentity(conversation = {}, fallbackAgentId = '') {
+  return Object.freeze({
+    id: String(conversation?.id || '').trim().slice(0, 256),
+    agentId: String(conversation?.agentId || conversation?.agent_id || fallbackAgentId || '').trim().slice(0, 256)
+  });
+}
+
+function normalizeLettaConversationListInput(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw Object.assign(new Error('Letta conversation list input must be an object.'), { reasonCode: 'DESKTOP_LETTA_INPUT_INVALID' });
+  }
+  const unknownKeys = Object.keys(input).filter(key => !['agentId', 'limit'].includes(key));
+  if (unknownKeys.length) {
+    throw Object.assign(new Error('Letta conversation list input contains unsupported fields.'), { reasonCode: 'DESKTOP_LETTA_INPUT_INVALID', details: { unknownKeys } });
+  }
+  const agentId = String(input.agentId || '').trim();
+  if (!agentId || agentId.length > 256) {
+    throw Object.assign(new Error('Letta agentId must contain 1 to 256 characters.'), { reasonCode: 'DESKTOP_LETTA_AGENT_ID_INVALID' });
+  }
+  const limit = input.limit === undefined ? 50 : input.limit;
+  if (!Number.isInteger(limit) || limit < 1 || limit > 200) {
+    throw Object.assign(new Error('Letta conversation limit must be an integer from 1 to 200.'), { reasonCode: 'DESKTOP_LETTA_LIMIT_INVALID' });
+  }
+  return Object.freeze({ agentId, limit });
+}
+
 function lettaOwnershipPresent() {
   const state = lettaAgentRuntime?.snapshot?.() || {};
   return state.ready === true || Number(state.pid || 0) > 0;
@@ -2764,13 +2804,17 @@ function registerIpc() {
   installR32StoreBridge({ ipcMain, apiRequest });
   registerM2DebugIpc();
   ipcGuardHandle('desktop:get-state', () => desktopState());
-  ipcGuardHandle('desktop:letta-get-state', () => ensureLettaAgentRuntime().snapshot());
-  ipcGuardHandle('desktop:letta-list-agents', () => ensureLettaAgentRuntime().listAgents());
-  ipcGuardHandle('desktop:letta-list-conversations', (_event, input = {}) => {
-    const agentId = String(input?.agentId || '').trim();
-    const requestedLimit = Number(input?.limit || 50);
-    const limit = Number.isInteger(requestedLimit) ? Math.max(1, Math.min(200, requestedLimit)) : 50;
-    return ensureLettaAgentRuntime().listConversations({ agentId, limit });
+  ipcGuardHandle('desktop:letta-get-state', () => projectLettaRendererState(ensureLettaAgentRuntime().snapshot()));
+  ipcGuardHandle('desktop:letta-list-agents', async () => {
+    const agents = await ensureLettaAgentRuntime().listAgents();
+    return (Array.isArray(agents) ? agents : []).map(projectLettaAgentIdentity).filter(agent => agent.id);
+  });
+  ipcGuardHandle('desktop:letta-list-conversations', async (_event, input = {}) => {
+    const normalized = normalizeLettaConversationListInput(input);
+    const conversations = await ensureLettaAgentRuntime().listConversations(normalized);
+    return (Array.isArray(conversations) ? conversations : [])
+      .map(conversation => projectLettaConversationIdentity(conversation, normalized.agentId))
+      .filter(conversation => conversation.id);
   });
   ipcGuardHandle('desktop:report-runtime-environment', (_event, input = {}) => {
     const state = desktopState();
