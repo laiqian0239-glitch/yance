@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-08T23:23:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-GRAPHITI-REPLY-BRAIN-EPISTEMIC-CLOSURE",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Close the independently reviewed Graphiti reply-brain epistemic projection P1 without weakening the frozen Graphiti P0 scope. Fresh trusted main still contains the pre-fix reply-brain projector: it consumes raw relationship_timeline_events compatibility rows, can misread Graphiti's storage sentinel confidence=0 as a scored confidence, and drops snake_case Graphiti event type/time and after_json epistemic/provenance metadata. The owner explicitly authorized a corrected successor-branch work package after discovery that the earlier #137 branch predated formal delegated authorization. That earlier branch is evidence only and must never be treated as authorized implementation history.",
+  "base": {
+    "branch": "main",
+    "commit": "801217f73cd249d6398d7b3c9fa7a35b770bc377"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-graphiti-reply-brain-epistemic-closure-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-graphiti-reply-brain-epistemic-closure-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Apply the repository normalizeChangedFiles contract: require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "fix/v21-graphiti-reply-brain-epistemic-closure-v1-authorized",
+    "allowedChangedPaths": [
+      "backend/services/contextAwareReplyBrain.js",
+      "backend/tests/fullPlatformContactAiClosureFix11.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "d8ca5a18771dc563b79cf4b6337f645501b562ad676411a6acc19d622c0b2fa0",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "freshMainEvidence": {
+    "main": "801217f73cd249d6398d7b3c9fa7a35b770bc377",
+    "replyBrainBlob": "2beb9830f01ce446ddbc589360a26fe6f44baa1b",
+    "replyBrainTestBlob": "93de8d8a8444869226bc8bdd3c654152b4535d2d",
+    "observedProjectorContract": {
+      "readsSnakeCaseGraphitiEventType": false,
+      "readsSnakeCaseGraphitiTime": false,
+      "readsAfterJsonEpistemicMetadata": false,
+      "suppressesNumericConfidenceWhenUnscored": false
+    }
+  },
+  "preAuthorizationDiscoveryEvidence": {
+    "pullRequest": 137,
+    "branch": "fix/v21-graphiti-reply-brain-epistemic-closure-v1",
+    "head": "3811ff73d477e991b62f599efddf42e764d311d6",
+    "authorityStatus": "DISCOVERY_EVIDENCE_ONLY_NOT_AUTHORIZED_IMPLEMENTATION",
+    "mustNotBeMergedAsFormalImplementation": true,
+    "mustNotBeRebasedOrForceRewrittenIntoAuthorizedHistory": true,
+    "observedFixedBlobs": {
+      "backend/services/contextAwareReplyBrain.js": "86feff0aecd414f49e4f553ccaa5b89c7d0968ba",
+      "backend/tests/fullPlatformContactAiClosureFix11.test.js": "b50b93a8417c8a7083014b46db80651a76f340a2"
+    }
+  },
+  "epistemicContract": {
+    "automaticGraphitiExtraction": "AI_INFERENCE",
+    "graphitiUpstreamFactTermDoesNotImplyHumanConfirmedFact": true,
+    "unscoredGraphitiProjectionMustNotExposeNumericConfidence": true,
+    "calibratedNumericConfidenceMayBePreservedWhenActuallyProvided": true,
+    "snakeCaseEventTypeAndTimeMustBePreserved": true,
+    "afterJsonGraphitiProvenanceMustBeProjected": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "After this authorization merges to fresh main, create the formal implementation branch from that exact authorization merge commit; do not reuse or retarget the pre-authorization #137 branch.",
+    "The first formal implementation commit must be test-only and must fail causally against the unchanged trusted-main projector for a raw graphiti_inference row carrying confidence=0 plus after_json.confidenceStatus=unscored.",
+    "The causal RED must demonstrate loss/misprojection of Graphiti event type, temporal/provenance metadata, or unscored confidence semantics rather than an environment/dependency failure.",
+    "The root fix must occur at backend/services/contextAwareReplyBrain.js::projectRelationshipEventForModel and may not alter Graphiti repository sentinel storage or fabricate a replacement confidence score.",
+    "A scored non-Graphiti relationship event must retain a genuine numeric confidence value as an adjacency regression contract.",
+    "Malformed or absent after_json metadata must fail closed without throwing and without manufacturing epistemic provenance.",
+    "Only the two authorized implementation paths may differ from the unique fresh-main implementation merge base."
+  ],
+  "requiredSequence": [
+    "Authorization proposal remains exactly one governance JSON path and is not implementation authority before merge.",
+    "Authorization exact Head passes applicable governance/Stage/ACV2/WP-A gates and independent review with zero unresolved P0/P1 findings.",
+    "Authorization PR merges to main by ordinary two-parent merge without squash, rebase, force push or history rewrite.",
+    "Formal successor implementation branch is created from that exact authorization merge commit.",
+    "A test-only causal RED commit is recorded before production implementation.",
+    "The root implementation is applied only within the frozen two-path scope and independently verified.",
+    "The formal successor implementation PR passes fresh exact-Head gates and independent review.",
+    "PR #135 remains Draft until the formal successor implementation is merged to main and #135 is revalidated against that fresh main."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "magicConfidenceSentinelInterpretation": true,
+    "fabricatedNumericConfidence": true,
+    "graphitiStorageSentinelRewriteToAvoidProjectorFix": true,
+    "testSkipOrAssertionWeakening": true,
+    "scopeExpansion": true,
+    "dependencyModification": true,
+    "workflowModification": true,
+    "reusePreAuthorizationBranchAsFormalImplementation": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "directMainImplementation": true,
+    "releaseOrPublish": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
