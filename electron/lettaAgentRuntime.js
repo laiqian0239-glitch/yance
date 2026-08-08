@@ -43,6 +43,7 @@ function buildLettaEnvironment(baseEnv = process.env, dataRoot) {
   }
   const env = { ...baseEnv };
   delete env.ELECTRON_RUN_AS_NODE;
+  delete env.LETTA_API_KEY;
   env.LETTA_LOCAL_BACKEND_DIR = path.join(path.resolve(dataRoot), 'letta', 'local-backend');
   return env;
 }
@@ -92,7 +93,7 @@ function createLettaAgentRuntime(options = {}) {
       const environment = buildLettaEnvironment(baseEnvironment, yanceDataRoot);
       backendDataRoot = environment.LETTA_LOCAL_BACKEND_DIR;
       const entrypoint = resolveLettaCodeEntrypoint();
-      const args = [entrypoint, 'server', '--listen', DEFAULT_LISTEN_URL];
+      const args = [entrypoint, 'server', '--backend', 'local', '--listen', DEFAULT_LISTEN_URL];
       const ownedChild = spawn(nodeExecutablePath, args, {
         cwd: yanceDataRoot,
         env: environment,
