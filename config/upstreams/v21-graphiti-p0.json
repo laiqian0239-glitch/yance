@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "workPackage": "V21-GRAPHITI-P0-V1",
+  "upstreams": {
+    "graphiti": {
+      "repository": "getzep/graphiti",
+      "version": "v0.29.3",
+      "commit": "021d3a57d511f21b10adaf7fa923bd5c1fce5e9d",
+      "license": "Apache-2.0",
+      "requiresPython": ">=3.10,<4",
+      "uvLockGitBlob": "38b26ce7d01f11287d71df7f5359867b85b3d6c4",
+      "pyprojectGitBlob": "d0dc10e0efe7acedc27fac8665dd8e00b02dce32"
+    },
+    "neo4jCommunity": {
+      "repository": "neo4j/neo4j",
+      "version": "2026.07.1",
+      "releaseCommit": "f213380f812b820a1b312e2ea52cb3d8f1931ccc",
+      "releaseDate": "2026-08-07",
+      "edition": "Community",
+      "license": "GPL-3.0",
+      "windowsX64Asset": "neo4j-community-2026.07.1-windows.zip",
+      "windowsX64AssetSize": 262189122,
+      "windowsX64Url": "https://dist.neo4j.org/neo4j-community-2026.07.1-windows.zip",
+      "sha256Url": "https://dist.neo4j.org/neo4j-community-2026.07.1-windows.zip.sha256",
+      "windowsX64Sha256": "d70f2019c7a53b6ed5ac61a027a9884a5dbcf714d52e941249036d02d7886162",
+      "allowedArtifactHosts": ["dist.neo4j.org"],
+      "sourceTag": "2026.07.1",
+      "sourceUrl": "https://github.com/neo4j/neo4j/tree/2026.07.1"
+    },
+    "temurin": {
+      "repository": "adoptium/temurin21-binaries",
+      "version": "jdk-21.0.11+10",
+      "releaseCommit": "a056bdb4513e0acd462e16c6f2dd3520306f730e",
+      "license": "GPL-2.0-with-Classpath-Exception",
+      "windowsX64Asset": "OpenJDK21U-jdk_x64_windows_hotspot_21.0.11_10.zip",
+      "windowsX64AssetId": 407472815,
+      "windowsX64AssetSize": 205073954,
+      "windowsX64AssetSha256": "d3625e7cadf23787ea540229544b6e2ab494b3b54da1801879e583e1dfee0a64",
+      "openJdkSourceRepository": "openjdk/jdk21u",
+      "openJdkSourceCommit": "d8615be992082324aaeb01bd6db275e30485aeea"
+    },
+    "uv": {
+      "repository": "astral-sh/uv",
+      "version": "0.12.3",
+      "commit": "507230998c9541d67814b57463ac00e454ff6991",
+      "license": "MIT OR Apache-2.0",
+      "windowsX64Asset": "uv-x86_64-pc-windows-msvc.zip",
+      "windowsX64AssetSize": 19013455,
+      "windowsX64AssetSha256": "b23350c79e8ad0192b8124af13a0f17e8d4e4549524785e1aef389ae5a06990e"
+    },
+    "pythonBuildStandalone": {
+      "repository": "astral-sh/python-build-standalone",
+      "release": "20260807",
+      "commit": "00c8a06113f11220667c3bcf5fab1672ff9e78ef",
+      "license": "MPL-2.0",
+      "cpythonVersion": "3.12.13",
+      "cpythonLicense": "PSF-2.0",
+      "windowsX64Asset": "cpython-3.12.13+20260807-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+      "windowsX64AssetSize": 21962247,
+      "windowsX64AssetSha256": "18bcc65b17921806b72cdc88bcf000bf67a2c99a8fc381fe1629f2b9ba56858d"
+    }
+  },
+  "provider": {
+    "provider": "OpenRouter",
+    "baseUrl": "https://openrouter.ai/api/v1",
+    "chatModel": "openai/gpt-4.1-mini",
+    "smallModel": "openai/gpt-4.1-nano",
+    "rerankerModel": "openai/gpt-4.1-nano",
+    "embeddingModel": "openai/text-embedding-3-small",
+    "credentialEnvironmentVariable": "OPENROUTER_API_KEY",
+    "silentFallbackAllowed": false
+  },
+  "runtime": {
+    "graphitiHttp": "http://127.0.0.1:18766",
+    "neo4jBolt": "bolt://127.0.0.1:17687",
+    "neo4jHttpEnabled": false,
+    "runtimeDependencyResolutionNetworkAllowed": false,
+    "systemPythonAllowed": false,
+    "graphitiTelemetryEnabled": false,
+    "sbomFormat": "CycloneDX-1.7"
+  }
+}

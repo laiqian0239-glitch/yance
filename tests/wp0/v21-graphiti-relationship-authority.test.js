@@ -81,3 +81,59 @@ test('relationship projection authority prefers Graphiti-provenance factual time
   assert.equal(projected.trajectory.events.some(row => row[1] === 'Legacy inferred fact'), false, 'legacy factual inference must not override Graphiti-provenance facts');
   assert.equal(projected.trajectory.factualAuthority, 'graphiti');
 });
+
+test('Graphiti re-projection preserves manual key-node annotation metadata', () => {
+  const { DatabaseSync } = require('node:sqlite');
+  const repoPath = repositoryPath('backend/store/relationshipKeyNodeRepository.js');
+  delete require.cache[require.resolve(repoPath)];
+  const { RelationshipKeyNodeRepository } = require(repoPath);
+  const db = new DatabaseSync(':memory:');
+  db.exec(`
+    CREATE TABLE relationship_timeline_events (
+      event_id TEXT PRIMARY KEY,
+      contact_id TEXT NOT NULL,
+      conversation_id TEXT NOT NULL DEFAULT '',
+      event_type TEXT NOT NULL,
+      started_at TEXT NOT NULL,
+      confirmed_at TEXT NOT NULL,
+      before_json TEXT NOT NULL DEFAULT '{}',
+      after_json TEXT NOT NULL DEFAULT '{}',
+      interpretation TEXT NOT NULL DEFAULT '',
+      evidence_message_ids_json TEXT NOT NULL DEFAULT '[]',
+      source_signal_ids_json TEXT NOT NULL DEFAULT '[]',
+      confidence REAL NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'candidate',
+      engine_version TEXT NOT NULL DEFAULT '1.0',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    ) STRICT;
+  `);
+  const repo = new RelationshipKeyNodeRepository({ db, now: () => Date.parse('2026-08-08T12:00:00Z') });
+  const original = {
+    factId: 'edge-annotation-1',
+    episodeUuid: 'episode-annotation-1',
+    groupId: 'yance-rel-annotation',
+    fact: 'Alice trusts Bob.',
+    validAt: '2026-08-08T11:00:00Z',
+    createdAt: '2026-08-08T11:05:00Z'
+  };
+  repo.projectGraphitiFacts({ contactId: 'contact-A', conversationId: 'conv-A', facts: [original] });
+  repo.markExistingEvent('graphiti:edge-annotation-1', {
+    nodeKind: 'fact',
+    markedBy: 'user',
+    markedAt: '2026-08-08T11:30:00Z',
+    status: 'confirmed'
+  });
+  repo.projectGraphitiFacts({
+    contactId: 'contact-A',
+    conversationId: 'conv-A',
+    facts: [{ ...original, fact: 'Alice deeply trusts Bob.', invalidAt: '2026-08-08T11:55:00Z' }]
+  });
+  const row = repo.getEvent('graphiti:edge-annotation-1');
+  assert.equal(row.is_key_node, 1);
+  assert.equal(row.node_kind, 'fact');
+  assert.equal(row.marked_by, 'user', 'Graphiti refresh must not overwrite manual annotation ownership');
+  assert.equal(row.marked_at, '2026-08-08T11:30:00Z');
+  assert.equal(row.interpretation, 'Alice deeply trusts Bob.');
+  assert.equal(row.status, 'invalidated');
+});

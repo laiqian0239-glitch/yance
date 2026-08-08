@@ -90,6 +90,30 @@ function presentationScalar(value, key) {
   };
 }
 
+function isGraphitiProvenanceRow(row = {}) {
+  const engine = clean(row.engine_version || row.engineVersion).toLowerCase();
+  const sources = parseJson(row.source_signal_ids_json || row.sourceSignalIdsJson, []);
+  return clean(row.event_type || row.eventType) === 'graphiti_fact'
+    && engine.startsWith('graphiti:')
+    && array(sources).some(value => clean(value).startsWith('graphiti:'));
+}
+
+function isManualTimelineAnnotation(row = {}) {
+  return Boolean(row.is_key_node || row.isKeyNode)
+    && clean(row.marked_by || row.markedBy).toLowerCase() === 'user';
+}
+
+function selectFactualTimeline(timeline = [], signals = []) {
+  const rows = array(timeline);
+  const graphitiRows = rows.filter(isGraphitiProvenanceRow);
+  if (!graphitiRows.length) return { timeline: rows, signals: array(signals), authority: 'legacy_projection' };
+  return {
+    timeline: rows.filter(row => isGraphitiProvenanceRow(row) || isManualTimelineAnnotation(row)),
+    signals: [],
+    authority: 'graphiti'
+  };
+}
+
 function timelinePresentationRows(timeline = [], signals = []) {
   const eventRows = array(timeline).slice().reverse().map(row => {
     const title = clean(row.interpretation || row.event_type || row.eventType) || '关系状态变化';
@@ -262,10 +286,11 @@ function project(input = {}) {
   const aiAnalysisCommitted = input.analysisCommitted === true;
   const substantiveInsight = hasSubstantiveInsight(insight) && aiAnalysisAvailable;
   const stale = isInsightStale(insight, messages);
-  const evidenceCount = Math.max(timeline.length, signals.length);
+  const factualSource = selectFactualTimeline(timeline, signals);
+  const evidenceCount = Math.max(factualSource.timeline.length, factualSource.signals.length);
   const hasSocialProjection = ['relationship', 'emotion', 'interaction', 'strategy', 'potential']
     .some(key => Object.keys(object(social[key])).length > 0);
-  const baseline = ruleProjection({ messages, social, timeline, signals, fallback });
+  const baseline = ruleProjection({ messages, social, timeline: factualSource.timeline, signals: factualSource.signals, fallback });
 
   let state = STATES.EMPTY;
   let source = 'empty';
@@ -327,7 +352,8 @@ function project(input = {}) {
     risk: substantiveInsight ? Number(insight.riskScore ?? insight.risk ?? baseline.risk) : baseline.risk,
     opportunityText: substantiveInsight ? clean(insight.opportunityText || insight.summary) || baseline.opportunityText : baseline.opportunityText,
     riskText: substantiveInsight ? clean(insight.riskText || insight.hiddenNeed) || baseline.riskText : baseline.riskText,
-    events: timelinePresentationRows(timeline, signals),
+    factualAuthority: factualSource.authority,
+    events: timelinePresentationRows(factualSource.timeline, factualSource.signals),
     ...(rulePresentation ? { bilingualPresentation: rulePresentation } : {})
   };
 

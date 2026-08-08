@@ -5,6 +5,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const crypto = require('node:crypto');
+const { EventEmitter } = require('node:events');
 
 const ROOT = path.resolve(__dirname, '../..');
 const GRAPHITI_VERSION = 'v0.29.3';
@@ -100,6 +102,7 @@ test('Graphiti Python bridge uses native temporal graph operations and OpenRoute
   assert.match(server, /await\s+RUNTIME\.graphiti\.search\(/u);
   assert.match(server, /group_id\s*=\s*relationship_group_id/u);
   assert.match(server, /reference_time\s*=/u);
+  assert.doesNotMatch(server, /\brelationship_group_id\s*=\s*relationship_group_id\(/u, 'bridge must not shadow the relationship_group_id helper');
   assert.doesNotMatch(server, /class\s+(?:TemporalGraph|FactSupersession|GraphDatabase)|networkx|sqlite3/iu);
 });
 
@@ -113,4 +116,123 @@ test('Graphiti relationship group ids are deterministic isolation keys and never
   assert.match(a, /^yance-rel-[a-f0-9]{64}$/u);
   const source = `${readText('electron/graphitiRelationshipRuntime.js')}\n${readText('runtime/graphiti/yance_graphiti_server.py')}`;
   assert.doesNotMatch(source, /sendMessage|sendText|sendMedia|channel\.send|whatsapp|telegram|facebook/iu);
+});
+
+test('Electron main owns Graphiti credential provisioning, ingestion, projection, degradation and shutdown', () => {
+  const main = readText('electron/main.js');
+  assert.match(main, /createGraphitiRelationshipRuntime/u);
+  assert.match(main, /createNeo4jPassword/u);
+  assert.match(main, /runtime:graphiti:neo4j/u);
+  assert.match(main, /GRAPHITI_NEO4J_CREDENTIAL_PROVISION/u);
+  assert.match(main, /credentialVaultHost\.executeDesktopMutation\(['"]persist['"]/u);
+  assert.match(main, /addRelationshipEpisode\(/u);
+  assert.match(main, /recallRelationshipFacts\(/u);
+  assert.match(main, /\/api\/r32\/workspace\/contacts\/\$\{encodeURIComponent\(contactId\)\}\/graphiti-projection/u);
+  assert.match(main, /graphiti:relationship-memory-degraded/u);
+  assert.match(main, /stopGraphitiRelationshipRuntime\(/u);
+  assert.match(main, /graphitiOwnershipPresent\(\)/u);
+  assert.doesNotMatch(main, /YANCE_GRAPHITI_NEO4J_PASSWORD\s*=|OPENROUTER_API_KEY\s*=.*graphiti/iu);
+
+  const runtimePath = repositoryPath('electron/graphitiRelationshipRuntime.js');
+  delete require.cache[require.resolve(runtimePath)];
+  const runtime = require(runtimePath);
+  const password = runtime.createNeo4jPassword();
+  assert.match(password, /^[A-Za-z0-9_-]{43}$/u);
+});
+
+
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+  return { promise, resolve, reject };
+}
+
+function createFakeGraphitiChild({ exitOnSpawn = false } = {}) {
+  const child = new EventEmitter();
+  child.pid = Math.floor(Math.random() * 10000) + 100;
+  child.exitCode = null;
+  child.stderr = new EventEmitter();
+  child.stderr.setEncoding = () => {};
+  child.kill = () => true;
+  if (exitOnSpawn) queueMicrotask(() => { child.exitCode = 0; child.emit('exit', 0, null); });
+  return child;
+}
+
+function graphitiRuntimeHarness({ neo4jReadyPromise = Promise.resolve() } = {}) {
+  const runtimePath = repositoryPath('electron/graphitiRelationshipRuntime.js');
+  delete require.cache[require.resolve(runtimePath)];
+  const runtimeModule = require(runtimePath);
+  const spawned = [];
+  let bridgeToken = '';
+  const spawnProcess = (file, args = [], options = {}) => {
+    const isAdmin = args[0] === 'dbms';
+    const child = createFakeGraphitiChild({ exitOnSpawn: isAdmin });
+    spawned.push({ file, args: [...args], options, child });
+    if (args.includes('--host')) bridgeToken = String(options.env?.YANCE_GRAPHITI_LOOPBACK_TOKEN || '');
+    return child;
+  };
+  const fakeFs = {
+    existsSync(file) { return !String(file).endsWith('.neo4j-auth-initialized'); },
+    mkdirSync() {},
+    writeFileSync() {}
+  };
+  const fetchImpl = async (_url, options = {}) => {
+    const challenge = String(options.headers?.['x-yance-graphiti-challenge'] || '');
+    const proof = crypto.createHmac('sha256', bridgeToken).update(`yance-graphiti-health-v1:${challenge}`, 'utf8').digest('hex');
+    return { ok: true, status: 200, async text() { return JSON.stringify({ ok: true, instanceProof: proof }); } };
+  };
+  const runtime = runtimeModule.createGraphitiRelationshipRuntime({
+    resourcesPath: path.join(os.tmpdir(), 'graphiti-runtime-harness-resources'),
+    dataRoot: path.join(os.tmpdir(), 'graphiti-runtime-harness-data'),
+    getOpenRouterApiKey: async () => 'openrouter-secret',
+    getNeo4jPassword: async () => 'A'.repeat(43),
+    spawnProcess,
+    fsImpl: fakeFs,
+    fetchImpl,
+    waitForNeo4jReady: async () => neo4jReadyPromise,
+    startupTimeoutMs: 1000
+  });
+  return { runtime, spawned };
+}
+
+test('Graphiti bridge launch waits for authenticated Neo4j Bolt readiness instead of racing cold startup', async () => {
+  const gate = deferred();
+  const { runtime, spawned } = graphitiRuntimeHarness({ neo4jReadyPromise: gate.promise });
+  const startPromise = runtime.start();
+  await new Promise(resolve => setImmediate(resolve));
+  const launchedBeforeNeo4jReady = spawned.filter(row => row.args.includes('--host'));
+  assert.equal(launchedBeforeNeo4jReady.length, 0, 'Python bridge must not start before Neo4j Bolt is connectable');
+  gate.resolve();
+  await startPromise;
+  assert.equal(spawned.filter(row => row.args.includes('--host')).length, 1);
+
+  for (const row of spawned.filter(row => row.args[0] !== 'dbms')) {
+    row.child.exitCode = 0;
+    row.child.emit('exit', 0, 'SIGTERM');
+  }
+  await runtime.stop();
+});
+
+test('Graphiti runtime stop waits for both owned children to exit before reporting stopped', async () => {
+  const { runtime, spawned } = graphitiRuntimeHarness();
+  await runtime.start();
+  const owned = spawned.filter(row => row.args[0] !== 'dbms');
+  assert.equal(owned.length, 2);
+  for (const row of owned) {
+    row.child.kill = () => true;
+  }
+
+  let settled = false;
+  const stopPromise = runtime.stop().then(value => { settled = true; return value; });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(settled, false, 'stop must remain pending while Graphiti/Neo4j still own live processes');
+
+  for (const row of owned) {
+    row.child.exitCode = 0;
+    row.child.emit('exit', 0, 'SIGTERM');
+  }
+  assert.deepEqual(await stopPromise, { stopped: true });
+  assert.equal(runtime.snapshot().graphitiPid, 0);
+  assert.equal(runtime.snapshot().neo4jPid, 0);
 });

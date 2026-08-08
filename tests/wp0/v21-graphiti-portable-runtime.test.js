@@ -51,5 +51,6 @@ test('Windows workflow performs build-time online materialization then a network
   assert.match(workflow, /YANCE_GRAPHITI_LOOPBACK_TOKEN/u);
   assert.match(workflow, /YANCE_GRAPHITI_NEO4J_PASSWORD/u);
   assert.match(workflow, /HTTP_PROXY|HTTPS_PROXY|ALL_PROXY/u);
+  assert.match(workflow, /Test-NetConnection[^\n]+127\.0\.0\.1[^\n]+17687/iu, 'workflow must wait for the Neo4j Bolt listener before launching Graphiti');
   assert.match(workflow, /node --test tests\/wp0\/v21-graphiti-p0\.test\.js/u);
 });

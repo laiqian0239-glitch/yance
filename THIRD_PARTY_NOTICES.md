@@ -116,3 +116,43 @@ Exact Letta source pins are recorded in `config/upstreams/v21-letta-p0.json`. Ya
 - Yance integration: tiktoken remains the tokenizer implementation selected transitively by Parlant's exact `uv.lock`. The build seal pre-materializes only the exact `o200k_base` data through tiktoken's native `TIKTOKEN_CACHE_DIR` protocol, verifies its official hash, includes it in runtime SBOM/tree sealing, and fails closed if the shipped cache is missing or altered. No runtime tokenizer-data download fallback is permitted.
 
 Exact Parlant/uv/python-build-standalone runtime pins are recorded in `config/upstreams/v21-parlant-p0.json`. Runtime materialization must verify the pinned asset sizes/hashes and the exact Parlant lock before producing a distributable runtime.
+
+## Graphiti
+
+- Project: Graphiti
+- Upstream: `https://github.com/getzep/graphiti.git`
+- Version: `v0.29.3`
+- Exact commit: `021d3a57d511f21b10adaf7fa923bd5c1fce5e9d`
+- License: `Apache-2.0`
+- License copy: `third_party/licenses/graphiti-Apache-2.0.txt`
+- Upstream dependency lock: exact `uv.lock` Git blob `38b26ce7d01f11287d71df7f5359867b85b3d6c4`
+- Yance integration: Graphiti remains the authoritative temporal relationship-fact graph, including episode provenance, fact validity/invalidation and supersession. Yance provides only a relationship-specific loopback lifecycle/projection adapter and does not copy or reimplement Graphiti's temporal algorithms.
+
+## Neo4j Community
+
+- Project: Neo4j Community Edition
+- Upstream source: `https://github.com/neo4j/neo4j.git`
+- Version / source tag: `2026.07.1`
+- Exact source commit: `f213380f812b820a1b312e2ea52cb3d8f1931ccc`
+- Windows runtime artifact: `https://dist.neo4j.org/neo4j-community-2026.07.1-windows.zip`
+- First-party checksum: `https://dist.neo4j.org/neo4j-community-2026.07.1-windows.zip.sha256`
+- SHA-256: `d70f2019c7a53b6ed5ac61a027a9884a5dbcf714d52e941249036d02d7886162`
+- License: `GPL-3.0`
+- License copy: `third_party/licenses/neo4j-GPL-3.0.txt`
+- Corresponding source: the exact upstream `2026.07.1` source tag above; Yance ships the unmodified Community distribution as Graphiti's local graph store.
+- Yance integration: authenticated Bolt on loopback only. Neo4j HTTP/HTTPS connectors are disabled, and Neo4j is not a Yance data-authority replacement outside Graphiti.
+
+## Eclipse Temurin / OpenJDK 21
+
+- Project: Eclipse Temurin 21
+- Binary upstream: `https://github.com/adoptium/temurin21-binaries.git`
+- Version: `jdk-21.0.11+10`
+- Binary release commit: `a056bdb4513e0acd462e16c6f2dd3520306f730e`
+- Windows x64 asset: `OpenJDK21U-jdk_x64_windows_hotspot_21.0.11_10.zip`
+- SHA-256: `d3625e7cadf23787ea540229544b6e2ab494b3b54da1801879e583e1dfee0a64`
+- OpenJDK 21u source commit: `d8615be992082324aaeb01bd6db275e30485aeea`
+- License: `GPL-2.0-with-Classpath-Exception`
+- License copy: `third_party/licenses/temurin-GPL-2.0-with-Classpath-Exception.txt`
+- Yance integration: the verified prebuilt Java 21 runtime is bundled only to run the sealed Neo4j Community process; application startup never downloads Java.
+
+Exact Graphiti, Neo4j Community, Temurin, uv and python-build-standalone pins are recorded in `config/upstreams/v21-graphiti-p0.json`. The Graphiti runtime seal must verify the first-party Neo4j checksum before extraction, must preserve license/source provenance, and must not perform package/source/runtime downloads after sealing.
