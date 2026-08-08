@@ -34,9 +34,9 @@ test('renderer Goal operations stay on guarded desktop IPC and never gain runtim
   for (const channel of CHANNELS) {
     assert.ok(
       main.includes(`ipcGuardHandle('${channel}'`) || main.includes(`ipcGuardHandle("${channel}"`),
-      `main must register ${channel} through ipcGuardHandle`
+      `${channel}: main must register through ipcGuardHandle`
     );
-    assert.equal(manifestChannels.has(channel), true, `ipcManifest.json must declare ${channel}`);
+    assert.equal(manifestChannels.has(channel), true, `${channel}: ipcManifest.json must declare channel`);
   }
   for (const api of ['getParlantRelationshipGoal','upsertParlantRelationshipGoal','deleteParlantRelationshipGoal','setParlantRelationshipGoalPaused']) assert.ok(preload.includes(api));
   assert.doesNotMatch(preload, /startParlant|stopParlant|restartParlant|killParlant|child_process|\bspawn\b|OPENROUTER_API_KEY/iu);
@@ -84,7 +84,7 @@ test('incoming events and candidate generation stay internal to main and Yance r
   assert.match(main, /requestReplyCandidate/u);
   assert.match(main, /manualText:\s*candidateText/u);
   const inbound = sourceRegion(main, 'async function processParlantInboundEvent', '\nfunction scheduleParlantInboundEvent');
-  assert.doesNotMatch(inbound, /(?:sendMessage|sendText|sendMedia|channel\s*\.\s*send)\s*\(/u, 'Parlant inbound handling must never call a channel send primitive');
+  assert.doesNotMatch(inbound, /(?:sendMessage|sendText|sendMedia|channel\s*\.\s*send)[\s\S]{0,40}\(/u, 'Parlant inbound handling must never call a channel send primitive');
 });
 
 test('inbound Parlant handling uses one resolved text value for both Parlant and the backend', () => {

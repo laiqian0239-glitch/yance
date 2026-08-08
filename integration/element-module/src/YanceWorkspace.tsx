@@ -185,15 +185,25 @@ export function YanceWorkspace(): React.JSX.Element {
       }
     };
     void loadRelationships();
+    return () => { cancelled = true; };
+  }, []);
+
+  const selectedContactRef = React.useRef(selectedContactId);
+  useEffect(() => {
+    selectedContactRef.current = selectedContactId;
+  }, [selectedContactId]);
+
+  useEffect(() => {
+    const api = relationshipGoalDesktopApi();
+    if (!api) return () => {};
     const unsubscribe = typeof api.onDesktopEvent === "function" ? api.onDesktopEvent((event) => {
       const contactId = String(event?.payload?.message?.contactId || event?.payload?.contactId || "").trim();
-      if (event?.type === "message:inserted" && contactId) setSelectedContactId(contactId);
-      if (event?.type === "parlant:relationship-goal-degraded" && contactId === selectedContactId) {
+      if (event?.type === "parlant:relationship-goal-degraded" && contactId === selectedContactRef.current) {
         setGoalStatus(`Degraded: ${String((event.payload as { reasonCode?: string })?.reasonCode || "PARLANT_UNAVAILABLE")}`);
       }
     }) : () => {};
-    return () => { cancelled = true; unsubscribe?.(); };
-  }, [selectedContactId]);
+    return () => { unsubscribe?.(); };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

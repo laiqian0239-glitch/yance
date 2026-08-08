@@ -72,7 +72,8 @@ test('runtime SBOM binds the sealed o200k data component', () => {
 test('Windows sealing script verifies exact assets and official Parlant lock before materialization', () => {
   const s=readText('tools/parlant/build-windows-runtime.ps1');
   for (const marker of [PARLANT_COMMIT,LOCK_BLOB,UV_COMMIT,UV_ASSET,UV_SHA,PBS_COMMIT,PY_ASSET,PY_SHA,'Get-FileHash','SHA256','uv.lock','--frozen','--no-dev','--no-editable']) assert.ok(s.includes(marker), marker);
-  assert.doesNotMatch(s,/--no-verify|continue\s*on\s*error/iu);
+  assert.match(s, /\$ErrorActionPreference\s*=\s*['"]Stop['"]/u, 'script must fail closed with ErrorActionPreference = Stop');
+  assert.match(s, /if\s*\([^)]*-ne[^)]*\)\s*\{\s*throw/iu, 'digest comparison must throw on mismatch');
 });
 
 test('Windows Parlant version probe uses argv instead of nested native quotes', () => {
@@ -86,7 +87,7 @@ test('Windows Parlant version probe uses argv instead of nested native quotes', 
 
 test('Windows Parlant runtime sealing avoids .NET Core-only GetRelativePath', () => {
   const s=readText('tools/parlant/build-windows-runtime.ps1');
-  assert.equal(s.includes('[IO.Path]::GetRelativePath'), false);
+  assert.doesNotMatch(s, /::GetRelativePath/u, 'script must not use GetRelativePath regardless of type qualifier');
   assert.match(s,/MakeRelativeUri/u);
   assert.match(s,/UnescapeDataString/u);
 });

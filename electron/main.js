@@ -2009,14 +2009,15 @@ async function processParlantInboundEvent(event = {}) {
   if (!isParlantEligibleInboundMessage(message)) return { handled: false, reasonCode: 'DESKTOP_PARLANT_EVENT_NOT_ELIGIBLE' };
   const contactId = String(message.contactId || '').trim();
   const conversationId = String(message.conversationId || message.sessionKey || '').trim();
-  const runtime = ensureParlantRelationshipRuntime();
   try {
+    const runtime = ensureParlantRelationshipRuntime();
     const goal = await runtime.readRelationshipGoal({ contactId });
     if (goal?.exists !== true) return { handled: false, reasonCode: 'DESKTOP_PARLANT_GOAL_NOT_CONFIGURED' };
     if (goal?.paused === true) return { handled: false, reasonCode: 'DESKTOP_PARLANT_GOAL_PAUSED' };
+    const inboundText = String(message.text || message.transcript || message.translation || '').trim();
     const ingested = await runtime.ingestCustomerMessage({
       contactId,
-      text: String(message.text || message.transcript || message.translation || '').trim(),
+      text: inboundText,
       externalMessageId: String(message.externalMessageId || message.messageId || message.id || '').trim()
     });
     const processingTraceId = String(ingested?.traceId || '').trim();
@@ -2039,7 +2040,7 @@ async function processParlantInboundEvent(event = {}) {
         conversationId,
         incomingMessage: {
           id: String(message.externalMessageId || message.messageId || message.id || '').trim(),
-          text: String(message.text || '').trim(),
+          text: inboundText,
           type: String(message.type || message.messageType || 'text').trim(),
           sentAt: String(message.sentAt || message.timestamp || '').trim()
         },
@@ -2057,7 +2058,9 @@ async function processParlantInboundEvent(event = {}) {
   } catch (error) {
     const reasonCode = String(error?.reasonCode || error?.code || 'DESKTOP_PARLANT_RUNTIME_UNAVAILABLE');
     desktopLog('error', 'parlant-relationship-goal-degraded', { contactId, conversationId, reasonCode });
-    sendToRenderer('desktop:event', { type: 'parlant:relationship-goal-degraded', payload: { contactId, conversationId, reasonCode } });
+    if (reasonCode !== 'DESKTOP_PARLANT_OPENROUTER_CREDENTIAL_MISSING') {
+      sendToRenderer('desktop:event', { type: 'parlant:relationship-goal-degraded', payload: { contactId, conversationId, reasonCode } });
+    }
     return { handled: false, degraded: true, reasonCode };
   }
 }
