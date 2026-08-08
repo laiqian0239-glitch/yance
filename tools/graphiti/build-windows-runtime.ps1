@@ -149,8 +149,20 @@ try {
 }
 $VenvPython = Join-Path $VenvRoot 'Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $VenvPython -PathType Leaf)) { throw "materialized venv python missing: $VenvPython" }
-$InstalledGraphitiVersion = (& $VenvPython -I -c 'import importlib.metadata; print(importlib.metadata.version("graphiti-core"))').Trim()
+$GraphitiVersionProbe = Join-Path $WorkRoot 'graphiti-version-probe.py'
+$GraphitiVersionOutput = Join-Path $WorkRoot 'graphiti-version.txt'
+$GraphitiVersionProbeSource = @'
+import importlib.metadata
+from pathlib import Path
+import sys
+
+Path(sys.argv[1]).write_text(importlib.metadata.version("graphiti-core"), encoding="utf-8")
+'@
+[IO.File]::WriteAllText($GraphitiVersionProbe, $GraphitiVersionProbeSource, (New-Object Text.UTF8Encoding($false)))
+Invoke-Checked $VenvPython @('-I', $GraphitiVersionProbe, $GraphitiVersionOutput) 'probe installed graphiti-core version'
+$InstalledGraphitiVersion = (Get-Content -LiteralPath $GraphitiVersionOutput -Raw).Trim()
 if ($InstalledGraphitiVersion -ne '0.29.3') { throw "installed graphiti-core version mismatch: expected=0.29.3 actual=$InstalledGraphitiVersion" }
+Remove-Item -LiteralPath $GraphitiVersionProbe, $GraphitiVersionOutput -Force
 
 Copy-Item -LiteralPath (Join-Path $SourceRoot 'runtime\graphiti\yance_graphiti_server.py') -Destination (Join-Path $OutputRoot 'yance_graphiti_server.py')
 Copy-Item -LiteralPath (Join-Path $SourceRoot 'runtime\graphiti\generate_runtime_sbom.py') -Destination (Join-Path $OutputRoot 'generate_runtime_sbom.py')
