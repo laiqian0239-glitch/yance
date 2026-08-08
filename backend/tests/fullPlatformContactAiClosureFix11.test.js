@@ -279,6 +279,77 @@ test('contact fallback names never present Telegram or Facebook ids as WhatsApp 
   assert.equal(facebook.name.startsWith('+'), false);
 });
 
+test('Graphiti inference stays unscored with temporal provenance in the reply-brain model packet', () => {
+  const serialized = JSON.parse(serializeSocialDecisionPacket({
+    customer: { name: 'Anna', platform: 'whatsapp' },
+    relevantMemories: {},
+    relationshipTimeline: [{
+      event_type: 'graphiti_inference',
+      interpretation: 'Alice trusts Bob',
+      status: 'inferred',
+      confidence: 0,
+      confirmed_at: '2026-08-08T10:02:03.000Z',
+      started_at: '2026-08-08T10:00:00.000Z',
+      engine_version: 'graphiti:v0.29.3',
+      after_json: JSON.stringify({
+        sourceEpistemicStatus: 'ai_inference',
+        confidenceStatus: 'unscored',
+        confidenceSource: null,
+        graphitiFactId: 'edge-1',
+        graphitiGroupId: 'group-1',
+        graphitiEpisodeUuid: 'episode-1',
+        validAt: '2026-08-08T09:00:00.000Z',
+        invalidAt: null,
+        referenceTime: '2026-08-08T08:00:00.000Z'
+      })
+    }],
+    recentSignals: [],
+    recentMessages: [],
+    director: {},
+    incomingMessage: { text: 'hi' }
+  }));
+
+  const row = serialized.relationshipTimeline[0];
+  assert.equal(row.type, 'graphiti_inference');
+  assert.equal(row.summary, 'Alice trusts Bob');
+  assert.equal(row.status, 'inferred');
+  assert.equal(row.at, '2026-08-08T10:02:03.000Z');
+  assert.equal(row.engineVersion, 'graphiti:v0.29.3');
+  assert.equal(row.epistemicStatus, 'ai_inference');
+  assert.equal(row.confidenceStatus, 'unscored');
+  assert.equal(Object.hasOwn(row, 'confidence'), false, 'unscored Graphiti inference must not become numeric zero confidence');
+  assert.deepEqual(row.provenance, {
+    factId: 'edge-1',
+    groupId: 'group-1',
+    episodeUuid: 'episode-1',
+    referenceTime: '2026-08-08T08:00:00.000Z',
+    validAt: '2026-08-08T09:00:00.000Z',
+    invalidAt: null
+  });
+});
+
+test('scored non-Graphiti relationship timeline keeps numeric confidence', () => {
+  const serialized = JSON.parse(serializeSocialDecisionPacket({
+    customer: { name: 'Anna', platform: 'whatsapp' },
+    relevantMemories: {},
+    relationshipTimeline: [{
+      eventType: 'relationship_signal',
+      summary: 'Warm reconnect',
+      status: 'observed',
+      confidence: 0.82,
+      confirmedAt: '2026-08-08T11:00:00.000Z'
+    }],
+    recentSignals: [],
+    recentMessages: [],
+    director: {},
+    incomingMessage: { text: 'hi' }
+  }));
+  const row = serialized.relationshipTimeline[0];
+  assert.equal(row.type, 'relationship_signal');
+  assert.equal(row.confidence, 0.82);
+  assert.equal(row.at, '2026-08-08T11:00:00.000Z');
+});
+
 test('AI reply brain uses the active platform instead of calling every reply WhatsApp', () => {
   const basePacket = {
     customer: { name: 'Anna', platform: 'telegram' },
