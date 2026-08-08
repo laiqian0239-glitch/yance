@@ -301,7 +301,7 @@ Yance 固定拥有：
 | 实时语音 pipeline 模块参考 | Open-LLM-VTuber **仅许可合适的精确版本/模块** | 精选模块；不盲追 main |
 | 个人真实照片/视频库 | Immich | 完整服务 |
 | 图像工作流 | ComfyUI | 完整 Sidecar |
-| 身份一致人像 | PhotoMaker / InstantID / PuLID | ComfyUI workflow 模块 |
+| 身份一致人像 | PhotoMaker / InstantID/PuLID | ComfyUI workflow 模块 |
 | 图像条件控制 | IP-Adapter / ControlNet | ComfyUI 模块 |
 | 图像修复/超分 | Real-ESRGAN / GFPGAN / CodeFormer | 模块 |
 | 文档解析 | Docling 优先；Apache Tika 作为覆盖/兼容备选 | Sidecar |
