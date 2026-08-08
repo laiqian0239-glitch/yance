@@ -7,7 +7,7 @@
   "reason": "Independent review of Persona Character P0 V2 proved that generic delegated-governance authorization currently ignores later supersession declarations. The first authorization attempt for this repair, merged by PR #152, is intentionally treated as non-effective evidence because concurrent trusted-main advancement made its actual authorization merge first parent differ from the base.commit recorded in that authorization. This V2 work package re-authorizes only the same minimum policy/test root repair and adds no product, workflow, dependency, release, or production scope.",
   "base": {
     "branch": "main",
-    "commit": "c3fdac92391968da10f53ccc31fd6f53c37e01a2"
+    "commit": "86164ecf5aff844a16e6a884f8b1808c69c0c093"
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
