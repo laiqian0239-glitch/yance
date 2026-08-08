@@ -353,6 +353,75 @@ function copyTree(sourceRoot, destinationRoot, options = {}) {
     else throw new Wp7Error('WP1_PAYLOAD_PATH_INVALID', 'unsupported file type in final runtime payload', { source });
   }
 }
+function presealedParlantRuntimeRecords(runtimeRoot) {
+  const root = path.resolve(runtimeRoot);
+  if (!fs.existsSync(root)) throw new Wp7Error('WP7_PARLANT_RUNTIME_REQUIRED', 'presealed Parlant runtime input is missing', { runtimeRoot: root });
+  const rootStat = fs.lstatSync(root);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) throw new Wp7Error('WP7_PARLANT_RUNTIME_INVALID', 'presealed Parlant runtime must be a real non-symlink directory', { runtimeRoot: root });
+  const records = [];
+  function visit(directory) {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name, 'en'))) {
+      const absolute = path.join(directory, entry.name);
+      if (entry.isSymbolicLink()) throw new Wp7Error('WP7_PARLANT_RUNTIME_SYMLINK_REJECTED', 'symlinks are forbidden in the presealed Parlant runtime', { path: absolute });
+      if (entry.isDirectory()) visit(absolute);
+      else if (entry.isFile()) {
+        if (entry.name === 'runtime-seal.json') continue;
+        const relative = path.relative(root, absolute).split(path.sep).join('/');
+        const stat = fs.statSync(absolute);
+        records.push(Object.freeze({ path: relative, sizeBytes: stat.size, sha256: sha256File(absolute) }));
+      } else throw new Wp7Error('WP7_PARLANT_RUNTIME_INVALID', 'unsupported file type in presealed Parlant runtime', { path: absolute });
+    }
+  }
+  visit(root);
+  records.sort((a, b) => a.path.localeCompare(b.path, 'en'));
+  return Object.freeze(records);
+}
+function validatePresealedParlantRuntime(runtimeRoot) {
+  const root = path.resolve(runtimeRoot);
+  const required = [
+    'runtime-seal.json',
+    'runtime-sbom.cdx.json',
+    'yance_parlant_server.py',
+    'python/python.exe',
+    'venv/Scripts/python.exe'
+  ];
+  for (const relative of required) {
+    const absolute = path.join(root, ...relative.split('/'));
+    if (!fs.existsSync(absolute)) throw new Wp7Error('WP7_PARLANT_RUNTIME_INVALID', 'presealed Parlant runtime is missing a required file', { relative });
+    const stat = fs.lstatSync(absolute);
+    if (!stat.isFile() || stat.isSymbolicLink()) throw new Wp7Error('WP7_PARLANT_RUNTIME_INVALID', 'presealed Parlant runtime required path must be a regular non-symlink file', { relative });
+  }
+  let seal;
+  try { seal = JSON.parse(fs.readFileSync(path.join(root, 'runtime-seal.json'), 'utf8')); }
+  catch (error) { throw new Wp7Error('WP7_PARLANT_RUNTIME_SEAL_INVALID', 'presealed Parlant runtime seal is not valid JSON', { message: error.message }); }
+  if (seal.schemaVersion !== 1 || seal.documentType !== 'YANCE_PARLANT_WINDOWS_RUNTIME_SEAL') throw new Wp7Error('WP7_PARLANT_RUNTIME_SEAL_INVALID', 'presealed Parlant runtime seal identity is invalid');
+  if (!seal.runtime || !Number.isInteger(seal.runtime.fileCount) || seal.runtime.fileCount <= 0 || !SHA256_RE.test(String(seal.runtime.treeSha256 || '')) || !SHA256_RE.test(String(seal.runtime.sbomSha256 || ''))) {
+    throw new Wp7Error('WP7_PARLANT_RUNTIME_SEAL_INVALID', 'presealed Parlant runtime seal runtime identity is invalid');
+  }
+  if (seal.runtime.dependencyResolution !== 'build-time-only' || seal.runtime.networkResolutionAtRuntime !== false) {
+    throw new Wp7Error('WP7_PARLANT_RUNTIME_SEAL_INVALID', 'presealed Parlant runtime must prohibit runtime dependency resolution and runtime network resolution');
+  }
+  const records = presealedParlantRuntimeRecords(root);
+  const canonical = Buffer.from(records.map((row) => `${row.path}|${row.sizeBytes}|${row.sha256}\n`).join(''), 'utf8');
+  const treeSha256 = sha256Buffer(canonical);
+  if (records.length !== seal.runtime.fileCount || treeSha256 !== seal.runtime.treeSha256) {
+    throw new Wp7Error('WP7_PARLANT_RUNTIME_TREE_MISMATCH', 'presealed Parlant runtime tree does not match its runtime seal', { expectedFileCount: seal.runtime.fileCount, actualFileCount: records.length, expectedTreeSha256: seal.runtime.treeSha256, actualTreeSha256: treeSha256 });
+  }
+  const sbomSha256 = sha256File(path.join(root, 'runtime-sbom.cdx.json'));
+  if (sbomSha256 !== seal.runtime.sbomSha256) throw new Wp7Error('WP7_PARLANT_RUNTIME_SBOM_MISMATCH', 'presealed Parlant runtime SBOM does not match its runtime seal', { expected: seal.runtime.sbomSha256, actual: sbomSha256 });
+  return Object.freeze({ root: fs.realpathSync(root), fileCount: records.length, treeSha256, sbomSha256, sealSha256: sha256File(path.join(root, 'runtime-seal.json')), seal });
+}
+function copyPresealedParlantRuntime(sourceRoot, resourcesRoot) {
+  const source = validatePresealedParlantRuntime(sourceRoot);
+  const destinationRoot = path.join(path.resolve(resourcesRoot), 'parlant-runtime');
+  if (fs.existsSync(destinationRoot)) throw new Wp7Error('WP7_PARLANT_RUNTIME_DESTINATION_NOT_EMPTY', 'Parlant runtime destination must not already exist', { destinationRoot });
+  copyTree(source.root, destinationRoot, { missingReason: 'WP7_PARLANT_RUNTIME_REQUIRED' });
+  const copied = validatePresealedParlantRuntime(destinationRoot);
+  if (copied.fileCount !== source.fileCount || copied.treeSha256 !== source.treeSha256 || copied.sbomSha256 !== source.sbomSha256 || copied.sealSha256 !== source.sealSha256) {
+    throw new Wp7Error('WP7_PARLANT_RUNTIME_COPY_MISMATCH', 'copied Parlant runtime differs from the presealed source', { source, copied });
+  }
+  return Object.freeze({ ...copied, relativeRoot: 'resources/parlant-runtime' });
+}
 function copyProductionDependencyTree(sourceRoot, destinationRoot) {
   const excludedGeneratedBinDirectories = [];
   const sourceBase = path.resolve(sourceRoot);
@@ -520,6 +589,9 @@ function assembleWindowsApplication(options = {}) {
     destinationRoot: path.join(payloadRoot, 'resources', 'runtime', 'node22'),
     platform: targetPlatform
   });
+  const parlantRuntime = options.parlantRuntimeSource
+    ? copyPresealedParlantRuntime(options.parlantRuntimeSource, path.join(payloadRoot, 'resources'))
+    : null;
   return {
     status: 'PASS',
     payloadRoot,
@@ -528,6 +600,7 @@ function assembleWindowsApplication(options = {}) {
     targetPlatform,
     targetArch,
     nodeRuntime,
+    parlantRuntime,
     productionDependencyCanonicalization
   };
 }
@@ -558,7 +631,8 @@ function buildFinalWindowsPayload(options = {}) {
     testRceditRunner: options.testRceditRunner,
     targetPlatform,
     targetArch,
-    trustedNodeExecutable: options.trustedNodeExecutable
+    trustedNodeExecutable: options.trustedNodeExecutable,
+    parlantRuntimeSource: options.parlantRuntimeSource
   });
   const sourceClosure = validateReviewedApplicationSourceClosure(payloadRoot, repoRoot, identity.sourceCommit, { platform: targetPlatform });
   const dependencies = verifyProductionDependencyClosure({ repoRoot, appRoot: runtime.appRoot, sourceCommit: identity.sourceCommit, platform: targetPlatform, arch: targetArch });
@@ -1205,7 +1279,8 @@ function buildAuthorizedFinalWindowsInstaller(options = {}) {
       testRceditRunner: options.testRceditRunner,
       platformAuthConfigPath: options.platformAuthConfigPath,
       platformAuthHashPath: options.platformAuthHashPath,
-      requirePlatformAuth: options.requirePlatformAuth === true
+      requirePlatformAuth: options.requirePlatformAuth === true,
+      parlantRuntimeSource: options.parlantRuntimeSource
     });
     if (typeof options.afterPayloadHook === 'function') options.afterPayloadHook({ repoRoot, frozenRoot: frozen.frozenRoot, stagingRoot, identity, built });
     assertSourceStillFrozen(repoRoot, identity, frozen.frozenRoot, frozenContent);
@@ -1407,7 +1482,7 @@ module.exports = {
   createDetachedFrozenSource, assertSourceStillFrozen, trackedWorkingTreeSha256, completeProjectSourceTreeSha256,
   readReleaseSource, verifyRuntimeProtocolConvergence,
   ensureDirectoryEmpty, acquireExclusiveLease, assertCanonicalPayloadPath, assertNoWp1Reuse, buildSessionId,
-  writePreReviewInstallerFixture, readPreReviewInstallerFixture, copyTree, copyProductionDependencyTree, installReleasePlatformAuth, assembleWindowsApplication, buildFinalWindowsPayload, buildManifestAndPayload, buildPreReviewFixture,
+  writePreReviewInstallerFixture, readPreReviewInstallerFixture, copyTree, presealedParlantRuntimeRecords, validatePresealedParlantRuntime, copyPresealedParlantRuntime, copyProductionDependencyTree, installReleasePlatformAuth, assembleWindowsApplication, buildFinalWindowsPayload, buildManifestAndPayload, buildPreReviewFixture,
   assertSessionSealed, validateBuildIdentity, validateRiskRegister, validateDeferredScope, validateEvidenceReferences,
   validateEvidenceCommon, validateCrossFileIdentity, validateCleanInstallEvidence, validateBootFailureDiagnostics,
   validateAcceptanceMapping, validatePhaseModel, verifyRequiredTestImplementations, validateWorkstreamTraceability, validateAllGovernance,
