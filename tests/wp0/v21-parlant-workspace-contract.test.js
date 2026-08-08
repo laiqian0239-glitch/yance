@@ -10,8 +10,20 @@ const CHANNELS = [
   'desktop:parlant-delete-relationship-goal',
   'desktop:parlant-set-relationship-goal-paused'
 ];
-const readText = rel => fs.readFileSync(path.join(ROOT, ...rel.split('/')), 'utf8');
+const readText = rel => {
+  const filePath = path.join(ROOT, ...rel.split('/'));
+  assert.equal(fs.existsSync(filePath), true, `missing Parlant workspace contract file: ${rel}`);
+  return fs.readFileSync(filePath, 'utf8');
+};
 const readJson = rel => JSON.parse(readText(rel));
+
+function sourceRegion(source, startMarker, endMarker) {
+  const start = source.indexOf(startMarker);
+  assert.ok(start >= 0, `missing source marker: ${startMarker}`);
+  const end = source.indexOf(endMarker, start + startMarker.length);
+  assert.ok(end > start, `missing source marker: ${endMarker}`);
+  return source.slice(start, end);
+}
 
 test('renderer Goal operations stay on guarded desktop IPC and never gain runtime authority', () => {
   const main = readText('electron/main.js');
@@ -20,8 +32,11 @@ test('renderer Goal operations stay on guarded desktop IPC and never gain runtim
   const manifestChannels = new Set(manifest.handlers.map(row => row.channel));
   assert.match(main, /require\(['"]\.\/parlantRelationshipRuntime['"]\)/u);
   for (const channel of CHANNELS) {
-    assert.ok(main.includes(`ipcGuardHandle('${channel}'`) || main.includes(`ipcGuardHandle(\"${channel}\"`));
-    assert.equal(manifestChannels.has(channel), true);
+    assert.ok(
+      main.includes(`ipcGuardHandle('${channel}'`) || main.includes(`ipcGuardHandle("${channel}"`),
+      `main must register ${channel} through ipcGuardHandle`
+    );
+    assert.equal(manifestChannels.has(channel), true, `ipcManifest.json must declare ${channel}`);
   }
   for (const api of ['getParlantRelationshipGoal','upsertParlantRelationshipGoal','deleteParlantRelationshipGoal','setParlantRelationshipGoalPaused']) assert.ok(preload.includes(api));
   assert.doesNotMatch(preload, /startParlant|stopParlant|restartParlant|killParlant|child_process|\bspawn\b|OPENROUTER_API_KEY/iu);
@@ -32,7 +47,7 @@ test('Parlant Goal IPC schemas are contact-scoped, closed and credential-free', 
   const by = new Map(manifest.handlers.map(row => [row.channel, row]));
   for (const channel of CHANNELS) {
     const contract = by.get(channel);
-    assert.ok(contract);
+    assert.ok(contract, `missing IPC contract: ${channel}`);
     assert.equal(contract.inputSchema.additionalProperties, false);
     assert.equal(contract.outputSchema.additionalProperties, false);
     assert.equal(Object.hasOwn(contract.inputSchema.properties || {}, 'contactId'), true);
@@ -46,8 +61,13 @@ test('renderer projection is bounded and omits raw Parlant internals', () => {
   const by = new Map(manifest.handlers.map(row => [row.channel, row]));
   const allowed = ['available','exists','goalText','paused','progress','reasonCode'];
   for (const channel of ['desktop:parlant-get-relationship-goal','desktop:parlant-upsert-relationship-goal','desktop:parlant-set-relationship-goal-paused']) {
-    assert.deepEqual(Object.keys(by.get(channel).outputSchema.properties || {}).sort(), [...allowed].sort());
+    assert.deepEqual(Object.keys(by.get(channel).outputSchema.properties || {}).sort(), [...allowed].sort(), `${channel} must keep the bounded Goal projection`);
   }
+  assert.deepEqual(
+    Object.keys(by.get('desktop:parlant-delete-relationship-goal').outputSchema.properties || {}).sort(),
+    ['deleted'],
+    'delete Goal projection must stay limited to the deletion result'
+  );
   const parlantContracts = manifest.handlers.filter(row => CHANNELS.includes(row.channel));
   assert.doesNotMatch(JSON.stringify(parlantContracts), /OPENROUTER_API_KEY|api[_-]?key|journey_paths|session_events|agent_states|prompt|token/iu);
 });
@@ -63,14 +83,56 @@ test('incoming events and candidate generation stay internal to main and Yance r
   assert.match(main, /ingestCustomerMessage/u);
   assert.match(main, /requestReplyCandidate/u);
   assert.match(main, /manualText:\s*candidateText/u);
-  assert.doesNotMatch(main, /parlant[^\n]*(?:sendMessage|sendText|sendMedia|channel\.send)/iu);
+  const inbound = sourceRegion(main, 'async function processParlantInboundEvent', '\nfunction scheduleParlantInboundEvent');
+  assert.doesNotMatch(inbound, /(?:sendMessage|sendText|sendMedia|channel\s*\.\s*send)\s*\(/u, 'Parlant inbound handling must never call a channel send primitive');
 });
 
-test('existing Yance Workspace provides Goal controls without browser goal persistence', () => {
+test('inbound Parlant handling uses one resolved text value for both Parlant and the backend', () => {
+  const main = readText('electron/main.js');
+  const inbound = sourceRegion(main, 'async function processParlantInboundEvent', '\nfunction scheduleParlantInboundEvent');
+  assert.match(inbound, /const inboundText\s*=\s*String\(message\.text\s*\|\|\s*message\.transcript\s*\|\|\s*message\.translation\s*\|\|\s*['"]['"]\)\.trim\(\)/u);
+  assert.equal((inbound.match(/text:\s*inboundText/gu) || []).length, 2, 'Parlant ingest and backend candidate commit must receive the same resolved inbound text');
+});
+
+test('missing Parlant provider credentials fail closed without renderer event spam', () => {
+  const main = readText('electron/main.js');
+  const inbound = sourceRegion(main, 'async function processParlantInboundEvent', '\nfunction scheduleParlantInboundEvent');
+  assert.match(inbound, /DESKTOP_PARLANT_OPENROUTER_CREDENTIAL_MISSING/u);
+  assert.match(inbound, /reasonCode\s*!==\s*['"]DESKTOP_PARLANT_OPENROUTER_CREDENTIAL_MISSING['"]/u, 'ambient inbound traffic must not emit degraded renderer events when the optional Goal runtime has no provider credential');
+});
+
+test('relationship desktop event subscription never steals selection from an unsaved Goal draft', () => {
   const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
-  for (const marker of ['data-yance-workspace','Relationship Goal','getParlantRelationshipGoal','upsertParlantRelationshipGoal','deleteParlantRelationshipGoal','setParlantRelationshipGoalPaused','Pause','Resume','Delete','Progress','Yance approval and channel pipeline']) assert.match(workspace, new RegExp(marker, 'u'));
+  assert.doesNotMatch(workspace, /event\?\.type\s*===\s*["']message:inserted["'][\s\S]{0,160}setSelectedContactId/u, 'inbound messages must not auto-select another relationship while the user is editing');
+  assert.match(workspace, /selectedContactRef\s*=\s*React\.useRef/u, 'stable desktop subscription must read the latest selected relationship through a ref');
+  assert.match(workspace, /selectedContactRef\.current\s*=\s*selectedContactId/u);
+  assert.match(workspace, /contactId\s*===\s*selectedContactRef\.current/u);
+});
+
+test('existing Yance Workspace provides stable Goal controls without browser goal persistence', () => {
+  const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
+  for (const marker of ['data-yance-workspace','getParlantRelationshipGoal','upsertParlantRelationshipGoal','deleteParlantRelationshipGoal','setParlantRelationshipGoalPaused']) {
+    assert.equal(workspace.includes(marker), true, `workspace must retain stable Goal identifier: ${marker}`);
+  }
   assert.match(workspace, /storeSnapshot\(\{\s*domains:\s*\["customers"\]\s*\}\)/u);
   assert.doesNotMatch(workspace, /from\s+['"](?:node:|parlant)|child_process|\bspawn\b|OPENROUTER_API_KEY/iu);
   const writes = workspace.match(/localStorage\.setItem\([^\n]+/gu) || [];
   assert.equal(writes.some(line => /goal|parlant|journey|contactId/iu.test(line)), false);
+});
+
+test('dedicated Parlant workflow runs whenever an asserted contract dependency changes', () => {
+  const workflow = readText('.github/workflows/v21-parlant-p0-windows.yml');
+  for (const requiredPath of [
+    'electron/main.js',
+    'electron/preload.js',
+    'electron/m2/ipcManifest.json',
+    'integration/element-module/src/YanceWorkspace.tsx',
+    'tools/wp7/lib.js',
+    'tools/wp7/packaged-product-trust.js',
+    'tools/wp7/create-pre-review-trusted-product.js',
+    'THIRD_PARTY_NOTICES.md',
+    'package.json'
+  ]) {
+    assert.equal(workflow.includes(`'${requiredPath}'`) || workflow.includes(`"${requiredPath}"`), true, `Parlant workflow path filter must include ${requiredPath}`);
+  }
 });
