@@ -4,7 +4,7 @@
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-MODEL-BRAIN-P0",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Replace and de-authorize Yance-owned production provider-gateway and physical model-routing infrastructure with mature OSS LiteLLM v1.95.0 base SDK Router/ComplexityRouter as the Model Brain production authority. Yance remains responsible only for product-specific task/context/privacy/capability projection, credential authority, queue/cancellation/stale-result fencing, signed execution evidence, user settings and final reply/send authority. LiteLLM must own provider normalization, streaming, retry/fallback, cooldown/load balancing, runtime health/availability handling, provider selection, token/cost normalization and physical model selection. LiteLLM may not be placed behind the legacy Yance router and no second Yance Model Gateway or Router is authorized.",
+  "reason": "Replace and de-authorize Yance-owned production provider-gateway and physical model-routing infrastructure with mature OSS LiteLLM v1.95.0 base SDK Router/ComplexityRouter as the Model Brain production authority. Yance remains responsible only for product-specific task/context/privacy/capability projection, credential authority, catalog/capability discovery without model ranking, queue/cancellation/stale-result fencing, signed execution evidence, user settings and final reply/send authority. LiteLLM must own provider normalization, streaming, retry/fallback, cooldown/load balancing, runtime health/availability handling, provider selection, token/cost normalization and physical model selection. LiteLLM may not be placed behind the legacy Yance router or a Yance pre-routing model shortlist and no second Yance Model Gateway or Router is authorized.",
   "supersedesProposal": {
     "pullRequest": 145,
     "exactHead": "f844d9fa27bf256431ca50be3288d6fbe5ad4e16",
@@ -59,6 +59,7 @@
       "backend/services/modelBrainRuntime.js",
       "backend/services/modelExecutor.js",
       "backend/services/modelRegistry.js",
+      "backend/services/openRouterAutoConfigurationService.js",
       "config/upstreams/v21-model-brain-p0.json",
       "docs/superpowers/plans/2026-08-09-yance-v21-model-brain-p0.md",
       "runtime/model-brain/generate_runtime_sbom.py",
@@ -69,8 +70,8 @@
       "third_party/licenses/litellm-MIT.txt",
       "tools/model-brain/build-windows-runtime.ps1"
     ],
-    "approvedChangedFileCount": 20,
-    "approvedChangedFileSetSha256": "19e51c52a1247c95b45ec1beb13bfb3f998694498429a182e96d02287bef16f2",
+    "approvedChangedFileCount": 21,
+    "approvedChangedFileSetSha256": "1a27502a3fb1741f16bc6bb795d75c9bd80043e58e182f9229bfec54471099a5",
     "newDependencyAllowed": false,
     "newNodeDependencyAllowed": false,
     "packageManifestModificationAllowed": false,
@@ -204,6 +205,7 @@
       "task/context/privacy/capability signal projection",
       "credential references and in-memory credential resolution",
       "explicit user/security provider allow/deny policy",
+      "catalog/capability discovery and non-ranking registration",
       "user/product configuration",
       "queue/cancellation/stale-result fencing",
       "signed execution evidence",
@@ -244,15 +246,19 @@
       "modelRegistry qualification/benchmark production route auto-write/rebalance",
       "modelExecutor direct ollama/openai-compatible provider switch",
       "mediaIntelligenceService direct ollama inference",
-      "bilingualUnderstandingService physical resolveRoute selection"
+      "bilingualUnderstandingService physical resolveRoute selection",
+      "openRouterAutoConfigurationService family/role/quality/cost/speed/frontier ranking and preferredRoute shortlist authority"
     ],
     "mayRemainAsNonAuthoritativeFactsOrEvidence": [
       "model discovery/catalog facts",
-      "model capability and qualification evidence",
+      "provider account/model availability catalog facts",
+      "model capability metadata",
+      "model qualification evidence",
       "user enabled/disabled state",
       "signed route/execution receipt verification",
       "historical route records explicitly marked legacy/non-authoritative"
     ],
+    "openRouterAutoConfigurationReplacement": "Retain OpenRouter account/catalog/credential discovery and normalized capability facts only. Registration must be deterministic and non-ranking (for example stable catalog order or explicit user selection with a documented safety cap). Remove familyQuality, qualityTier, usagePolicy, roleScore, rankForRole, buildSelections, frontier preferredRoute and any equivalent Yance model-ranking authority from the production onboarding path. LiteLLM receives eligible deployments and performs routing; Yance may not pre-rank the physical model pool.",
     "executionHostRetirementMechanism": "The authorized aiGateway production path must call modelBrainRuntime directly with a logical Model Brain projection. The legacy modelExecutionHost/worker/isolatedModelExecutor chain is not in this package scope and therefore must become unreachable from production inference rather than being modified or retained as fallback.",
     "deletionFollowUpAllowed": "Dead legacy files may be physically deleted in this exact package only if already inside the authorized path set; otherwise deletion requires a separately authorized cleanup package. Their continued presence must not imply runtime authority."
   },
@@ -305,7 +311,7 @@
       "local/cloud privacy requirement",
       "explicit user/security provider allow/deny constraint"
     ],
-    "projectionMechanism": "logical model group plus LiteLLM deployment tags/metadata and request metadata. Mandatory hard tags use AND semantics. Yance must not score/rank physical providers after projection and must not project transient provider health/cooldown state.",
+    "projectionMechanism": "logical model group plus LiteLLM deployment tags/metadata and request metadata. Mandatory hard tags use AND semantics. Yance must not score/rank physical providers after projection and must not project transient provider health/cooldown state. Legacy OpenRouter selectionScore/qualityTier/usagePolicy/preferredRoute/frontier scores are explicitly forbidden as production routing inputs.",
     "historicalQualityFutureInput": "Reserve structured route/model/usage/cost/result identifiers so later Langfuse quality evidence can feed the same mature routing authority without changing the gateway contract. Do not implement Langfuse in this package."
   },
   "observabilityBoundary": {
@@ -354,7 +360,8 @@
     "modelExecutor must not perform a direct provider switch to ollamaClient/openAiCompatibleClient for model inference; qualification and benchmark calls must traverse LiteLLM too.",
     "mediaIntelligenceService image/video representative-frame model inference must traverse Model Brain/LiteLLM and must not call ollamaClient directly.",
     "bilingualUnderstandingService must not call aiGateway.resolveRoute to preselect a translation model; translation must use the logical group/tags path into LiteLLM.",
-    "modelAutoActivationService and modelRegistry qualification/benchmark flows must not auto-write or rebalance authoritative primary/fallback physical routes.",
+    "modelAutoActivationService and modelRegistry qualification/benchmark/startup repair flows must not auto-write or rebalance authoritative primary/fallback physical routes even when legacy callers pass autoSelectVerified/rebalance options.",
+    "openRouterAutoConfigurationService must retain only account/catalog/capability discovery and deterministic non-ranking registration. familyQuality, qualityTier, usagePolicy, roleScore, rankForRole, buildSelections, frontier preferredRoute and equivalent Yance model-ranking outputs must not influence the production deployment pool or routing order.",
     "No usable sealed Model Brain runtime is an explicit fail-closed/degraded RED for AI inference; legacy direct provider clients must never become fallback authority.",
     "LiteLLM Router must run with enable_tag_filtering=true and tag_filtering_match_any=false for mandatory hard-eligibility tags. A mandatory-tag request must never use a default deployment fallback, and no deployment satisfying every mandatory tag must fail closed.",
     "The pinned LiteLLM ComplexityRouter must be the complexity-tier classifier/routing implementation when complexity routing is enabled; no copied or rewritten Yance complexity scoring engine is allowed.",
@@ -366,16 +373,16 @@
     "Windows x64 sealed runtime must be built from the exact pinned upstream/source/lock/tool/runtime inputs and pass offline import, Router construction, strict tag-routing, complexity-routing and health closure with build tools absent from the shipped runtime.",
     "Deterministic CycloneDX 1.7 runtime SBOM plus upstream provenance/license/tree evidence must be generated and verified before GREEN.",
     "Letta, Graphiti, Parlant, Persona, Learning Brain, Voice, Facebook and Presence authorities remain unchanged and are not implemented or modified by this work package.",
-    "The final implementation changed-path set must remain within the exact 20 authorized paths and retain SHA-256 19e51c52a1247c95b45ec1beb13bfb3f998694498429a182e96d02287bef16f2.",
+    "The final implementation changed-path set must remain within the exact 21 authorized paths and retain SHA-256 1a27502a3fb1741f16bc6bb795d75c9bd80043e58e182f9229bfec54471099a5.",
     "Independent exact-Head review must have zero unresolved P0/P1 findings before the implementation can reach the final merge boundary."
   ],
   "requiredSequence": [
     "Authorization proposal exact Head changes only governance/layered-ci/v21-model-brain-p0-authorization.json, has a clean descendant history from the frozen trusted main, and passes applicable governance gates with zero unresolved P0/P1 findings.",
     "Authorization PR merges to trusted main by ordinary two-parent merge without rebase, squash, amend, force push or history rewrite.",
     "Implementation branch product/v21-model-brain-p0 is created from that exact authorization merge commit.",
-    "First implementation commit is test-only and records the causal RED for absent LiteLLM authority plus still-active legacy routing/direct-provider paths.",
-    "Implement the thin Yance task/privacy/capability projection and sealed LiteLLM runtime without introducing a second gateway/router.",
-    "Cut every authorized production inference path over to LiteLLM and de-authorize/disconnect legacy Yance physical routing/provider execution.",
+    "First implementation commit is test-only and records the causal RED for absent LiteLLM authority plus still-active legacy routing/direct-provider paths, including the legacy OpenRouter pre-ranking selector.",
+    "Implement the thin Yance task/privacy/capability projection and sealed LiteLLM runtime without introducing a second gateway/router or pre-routing model shortlist.",
+    "Cut every authorized production inference path over to LiteLLM and de-authorize/disconnect legacy Yance physical routing/provider execution and model pre-ranking.",
     "Achieve GREEN for product contracts, retirement contracts, strict hard-tag eligibility, upstream provenance/license/open-core boundary, credential secrecy, token/cost authority, runtime restart/cancel/fail-closed behavior and Windows offline runtime closure.",
     "Verify final changed paths and canonical path-set hash against this authorization.",
     "Run independent exact-Head review; resolve all valid P0/P1 findings and rerun applicable Stage, Layered, ACV2 and Windows runtime workflows on the new exact Head.",
@@ -389,6 +396,7 @@
     "wildcardAuthorization": true,
     "secondModelGateway": true,
     "secondYanceRouter": true,
+    "yancePreRoutingPhysicalModelShortlist": true,
     "legacyRouterAsProductionFallback": true,
     "legacyModelExecutionHostAsProductionFallback": true,
     "litellmProxyServer": true,
