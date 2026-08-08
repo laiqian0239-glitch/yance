@@ -35,6 +35,14 @@ test('Windows sealing script verifies exact assets and official Parlant lock bef
   assert.doesNotMatch(s,/--no-verify|continue\s*on\s*error/iu);
 });
 
+test('Windows Parlant version probe uses argv instead of nested native quotes', () => {
+  const s=readText('tools/parlant/build-windows-runtime.ps1');
+  assert.match(s,/import importlib\.metadata, sys; print\(importlib\.metadata\.version\(sys\.argv\[1\]\)\)/u);
+  assert.match(s,/-c '[^']*sys\.argv\[1\][^']*' 'parlant'/u);
+  assert.equal(s.includes('version(\"parlant\")'), false);
+  assert.equal(s.includes("version('parlant')"), false);
+});
+
 test('shipped runtime excludes resolvers, VCS state and caches', () => {
   const s=readText('tools/parlant/build-windows-runtime.ps1');
   assert.match(s,/Remove-Item -LiteralPath \$ToolRoot[\s\S]*Remove-Item -LiteralPath \$ParlantRepo[\s\S]*Remove-Item -LiteralPath \$DownloadRoot/iu);

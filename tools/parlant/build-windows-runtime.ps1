@@ -99,7 +99,7 @@ try {
 
 $VenvPython = Join-Path $VenvRoot 'Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $VenvPython -PathType Leaf)) { throw "materialized venv python missing: $VenvPython" }
-$InstalledParlantVersion = (& $VenvPython -I -c 'import importlib.metadata; print(importlib.metadata.version("parlant"))').Trim()
+$InstalledParlantVersion = (& $VenvPython -I -c 'import importlib.metadata, sys; print(importlib.metadata.version(sys.argv[1]))' 'parlant').Trim()
 if ($InstalledParlantVersion -ne '3.3.2') { throw "installed Parlant version mismatch: expected=3.3.2 actual=$InstalledParlantVersion" }
 
 Copy-Item -LiteralPath (Join-Path $SourceRoot 'runtime\parlant\yance_parlant_server.py') -Destination (Join-Path $OutputRoot 'yance_parlant_server.py')
