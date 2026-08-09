@@ -1,7 +1,8 @@
+import { MediaWorkspace } from "./MediaWorkspace";
 import React, { useEffect, useMemo, useState } from "react";
 
 const STORAGE_KEY = "yance.workspace.active-capability";
-const CAPABILITIES = ["AI", "Goal", "Contact", "Presence"] as const;
+const CAPABILITIES = ["AI", "Goal", "Contact", "Presence", "Media"] as const;
 type Capability = (typeof CAPABILITIES)[number];
 
 type LettaState = {
@@ -315,6 +316,7 @@ export function YanceWorkspace(): React.JSX.Element {
         <dt>Goal</dt><dd>Parlant-owned relationship journey</dd>
         <dt>Contact</dt><dd>Unified relationship context</dd>
         <dt>Presence</dt><dd>Channel and bridge presence</dd>
+        <dt>Media</dt><dd>Immich library and ComfyUI image workflows</dd>
       </dl>
       {activeCapability === "AI" ? (
         <aside aria-label="Letta persistent agent status">
@@ -359,6 +361,7 @@ export function YanceWorkspace(): React.JSX.Element {
           </dl>
         </aside>
       ) : null}
+      {activeCapability === "Media" ? <MediaWorkspace /> : null}
     </section>
   );
 }

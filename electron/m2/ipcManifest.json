@@ -3323,6 +3323,677 @@
         "line": 74
       },
       "currentObservation": "Pause/resume maps to native Parlant Session manual/auto mode; renderer receives only minimized status/progress."
+    },
+    {
+      "channel": "desktop:media-brain-health",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3249
+      },
+      "rendererExposure": {
+        "api": "getMediaBrainHealth",
+        "file": "electron/preload.js",
+        "line": 78
+      },
+      "currentObservation": "Read-only upstream health/model readiness projection."
+    },
+    {
+      "channel": "desktop:media-brain-import-asset",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "bytes",
+        "base64",
+        "filename"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {},
+          "base64": {
+            "type": "string",
+            "maxLength": 150000000
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "mimeType": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "createdAt": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "modifiedAt": {
+            "type": "string",
+            "maxLength": 64
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3250
+      },
+      "rendererExposure": {
+        "api": "importMediaAsset",
+        "file": "electron/preload.js",
+        "line": 79
+      },
+      "currentObservation": "Imports into the sole Immich asset authority."
+    },
+    {
+      "channel": "desktop:media-brain-search-assets",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "query",
+        "personIds",
+        "albumIds"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "size": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "personIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100
+          },
+          "albumIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3251
+      },
+      "rendererExposure": {
+        "api": "searchMediaAssets",
+        "file": "electron/preload.js",
+        "line": 80
+      },
+      "currentObservation": "Delegates semantic asset search to Immich."
+    },
+    {
+      "channel": "desktop:media-brain-list-people",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "withHidden": {
+            "type": "boolean"
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3252
+      },
+      "rendererExposure": {
+        "api": "listMediaPeople",
+        "file": "electron/preload.js",
+        "line": 81
+      },
+      "currentObservation": "Delegates people listing to Immich."
+    },
+    {
+      "channel": "desktop:media-brain-list-albums",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "shared": {
+            "type": "boolean"
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3253
+      },
+      "rendererExposure": {
+        "api": "listMediaAlbums",
+        "file": "electron/preload.js",
+        "line": 82
+      },
+      "currentObservation": "Delegates album listing to Immich."
+    },
+    {
+      "channel": "desktop:media-brain-get-asset-preview",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "assetId"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "preview",
+              "thumbnail"
+            ]
+          }
+        },
+        "required": [
+          "assetId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3254
+      },
+      "rendererExposure": {
+        "api": "getMediaAssetPreview",
+        "file": "electron/preload.js",
+        "line": 83
+      },
+      "currentObservation": "Retrieves an Immich-backed preview."
+    },
+    {
+      "channel": "desktop:media-brain-upload-workflow-input",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "bytes",
+        "base64",
+        "filename"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {},
+          "base64": {
+            "type": "string",
+            "maxLength": 150000000
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "mimeType": {
+            "type": "string",
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "filename"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3255
+      },
+      "rendererExposure": {
+        "api": "uploadMediaWorkflowInput",
+        "file": "electron/preload.js",
+        "line": 84
+      },
+      "currentObservation": "Uploads renderer-owned workflow input to ComfyUI."
+    },
+    {
+      "channel": "desktop:media-brain-upload-asset-workflow-input",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "assetId",
+        "filename"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 240
+          }
+        },
+        "required": [
+          "assetId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3256
+      },
+      "rendererExposure": {
+        "api": "uploadMediaAssetWorkflowInput",
+        "file": "electron/preload.js",
+        "line": 85
+      },
+      "currentObservation": "Transfers an Immich original to ComfyUI in main without renderer byte substitution."
+    },
+    {
+      "channel": "desktop:media-brain-queue-workflow",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "prompt",
+        "negativePrompt",
+        "inputImage",
+        "clientId"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "generate",
+              "edit"
+            ]
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          },
+          "negativePrompt": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "checkpoint": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "inputImage": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "clientId": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "seed": {
+            "type": "integer"
+          },
+          "width": {
+            "type": "number"
+          },
+          "height": {
+            "type": "number"
+          },
+          "denoise": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "prompt"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3257
+      },
+      "rendererExposure": {
+        "api": "queueMediaWorkflow",
+        "file": "electron/preload.js",
+        "line": 86
+      },
+      "currentObservation": "Queues a reviewed template in ComfyUI; Yance never executes image nodes."
+    },
+    {
+      "channel": "desktop:media-brain-get-workflow-result",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "promptId"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "promptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "promptId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3258
+      },
+      "rendererExposure": {
+        "api": "getMediaWorkflowResult",
+        "file": "electron/preload.js",
+        "line": 87
+      },
+      "currentObservation": "Reads ComfyUI output as non-selectable until save-back."
+    },
+    {
+      "channel": "desktop:media-brain-save-workflow-output",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "promptId",
+        "filename"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "promptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "mimeType": {
+            "type": "string",
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "promptId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3262
+      },
+      "rendererExposure": {
+        "api": "saveMediaWorkflowOutput",
+        "file": "electron/preload.js",
+        "line": 88
+      },
+      "currentObservation": "Re-fetches ComfyUI output in main and imports it into Immich."
+    },
+    {
+      "channel": "desktop:media-brain-send-asset",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "accountId",
+        "chatJid",
+        "assetId",
+        "sessionKey",
+        "filename",
+        "caption"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "whatsapp",
+              "telegram",
+              "facebook"
+            ]
+          },
+          "accountId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "chatJid": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "assetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "image",
+              "video",
+              "audio",
+              "document",
+              "sticker"
+            ]
+          },
+          "sessionKey": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "caption": {
+            "type": "string",
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "platform",
+          "accountId",
+          "chatJid",
+          "assetId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3263
+      },
+      "rendererExposure": {
+        "api": "sendMediaAsset",
+        "file": "electron/preload.js",
+        "line": 89
+      },
+      "currentObservation": "Delegates an Immich original to existing send-media-stream; no Media send queue is created."
     }
   ],
   "outboundRendererChannels": [
@@ -3576,7 +4247,7 @@
     }
   ],
   "validationSummary": {
-    "rendererToMainHandlerCount": 48,
+    "rendererToMainHandlerCount": 60,
     "mainToRendererChannelCount": 8,
     "allRendererToMainHandlersHaveRequiredFields": true,
     "allOutboundChannelsHaveRequiredFields": true,
