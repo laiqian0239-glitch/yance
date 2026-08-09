@@ -4,7 +4,7 @@
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRESENCE-AVATAR-P0-ROUTE-BOOTSTRAP",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Bootstrap only the exact previously-unrouted Presence / Avatar supply-chain, runtime-config, license and replayable upstream-seam paths needed by the later V21-PRESENCE-AVATAR-P0-V1 authorization. This prerequisite creates no Presence product authority. Mature OSS remains authoritative: LiveKit owns WebRTC/realtime room and stream transport; CyberVerse owns digital-human/avatar/lip-sync runtime; SoulX-FlashHead remains an upstream avatar model implementation. No Yance WebRTC server, realtime transport framework, avatar runtime, lip-sync engine or second digital-human state machine is authorized.",
+  "reason": "Bootstrap only the exact previously-unrouted Presence / Avatar supply-chain, runtime-config, license, visible Element Presence UI and replayable upstream-seam paths needed by the later V21-PRESENCE-AVATAR-P0-V1 authorization. This prerequisite creates no Presence product authority. Mature OSS remains authoritative: LiveKit owns WebRTC/realtime room and stream transport; CyberVerse owns digital-human/avatar/lip-sync runtime; SoulX-FlashHead remains an upstream avatar model implementation. No Yance WebRTC server, realtime transport framework, avatar runtime, lip-sync engine or second digital-human state machine is authorized.",
   "base": {
     "branch": "main",
     "commit": "bcc775973c8c09b99ac704f8e7dd8c165aa0f5c5"
@@ -44,8 +44,11 @@
   },
   "futureProductBootstrapPaths": [
     "config/upstreams/v21-presence-avatar-p0.json",
-    "runtime/presence-avatar/cyberverse/cyberverse.yaml",
+    "integration/element-module/src/PresenceWorkspace.css",
+    "integration/element-module/src/PresenceWorkspace.tsx",
+    "integration/element-module/src/presenceLiveKit.ts",
     "runtime/presence-avatar/cyberverse/avatar_models/flash_head.yaml",
+    "runtime/presence-avatar/cyberverse/cyberverse.yaml",
     "third_party/licenses/cyberverse-GPL-3.0.txt",
     "third_party/licenses/livekit-Apache-2.0.txt",
     "third_party/licenses/livekit-client-Apache-2.0.txt",
@@ -53,8 +56,8 @@
     "upstream-patches/cyberverse/0001-yance-external-audio-ingress.patch",
     "upstream-patches/element-web/0010-yance-presence-livekit-client.patch"
   ],
-  "futureProductBootstrapPathCount": 9,
-  "futureProductBootstrapPathSetSha256": "0269fe4958bd49bf560892a2d1be675105dab7f2d23aa9d12a865e31e5efdc2d",
+  "futureProductBootstrapPathCount": 12,
+  "futureProductBootstrapPathSetSha256": "13ab2ef63e882402c27fad390ba185396ae2c52b809cefceb55bf926a7638d90",
   "upstreamEvidence": {
     "livekitServer": {
       "repository": "livekit/livekit",
@@ -112,9 +115,9 @@
     "mediaImplementationForbidden": true
   },
   "mandatoryFailureFirstContracts": [
-    "All nine future Presence bootstrap paths must fail closed as WP0_ROUTE_UNKNOWN_PATH before the routing policy is changed.",
-    "The route implementation may add only the nine exact literals to productExactPaths; adding config/, runtime/, third_party/, upstream-patches/ or integration/ as a broad product prefix is RED.",
-    "Adjacent unregistered Presence, LiveKit, CyberVerse or avatar-like paths must remain fail closed.",
+    "All twelve future Presence bootstrap paths must fail closed as WP0_ROUTE_UNKNOWN_PATH before the routing policy is changed.",
+    "The route implementation may add only the twelve exact literals to productExactPaths; adding config/, runtime/, third_party/, upstream-patches/ or integration/ as a broad product prefix is RED.",
+    "Adjacent unregistered Presence, LiveKit, CyberVerse, Element Presence UI or avatar-like paths must remain fail closed.",
     "The route implementation may not add dependencies, runtime code, product code, workflow changes or Presence implementation authority.",
     "The final route-bootstrap changed-path set must remain exactly two paths with SHA-256 1c320e243f504eca60c7d128a8d2105e4170edc59bba1300a205d0bc1af9cd2e."
   ],
