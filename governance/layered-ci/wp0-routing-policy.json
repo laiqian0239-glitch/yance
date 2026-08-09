@@ -131,7 +131,17 @@
     "third_party/licenses/python-build-standalone-MPL-2.0.txt",
     "third_party/licenses/uv-Apache-2.0.txt",
     "third_party/licenses/uv-MIT.txt",
-    "upstream-patches/element-web/0001-yance-global-right-workspace.patch"
+    "upstream-patches/element-web/0001-yance-global-right-workspace.patch",
+    "config/comfyui-workflows/v21-media-edit.json",
+    "config/comfyui-workflows/v21-media-generate.json",
+    "config/upstreams/v21-media-brain-p0.json",
+    "integration/element-module/src/MediaWorkspace.css",
+    "integration/element-module/src/MediaWorkspace.tsx",
+    "runtime/media-brain/README.md",
+    "runtime/media-brain/comfyui/UPSTREAM.json",
+    "runtime/media-brain/immich/UPSTREAM.json",
+    "third_party/licenses/comfyui-GPL-3.0.txt",
+    "third_party/licenses/immich-AGPL-3.0.txt"
   ],
   "productPrefixes": [
     ".github/",
