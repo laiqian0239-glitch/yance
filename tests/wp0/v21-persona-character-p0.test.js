@@ -10,6 +10,7 @@ const ADAPTER = path.join(ROOT, 'backend/personaBrain/sillyTavernAdapter.js');
 const CORE = path.join(ROOT, 'vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs');
 const UPSTREAM = path.join(ROOT, 'vendor/sillytavern/1.18.0/UPSTREAM.json');
 const REPLY_BRAIN = path.join(ROOT, 'backend/services/contextAwareReplyBrain.js');
+const { buildRuntimeTruthReceipt } = require('../../backend/personaBrain/runtimeTruthAuthority');
 
 function loadAuthorizedRuntime() {
   assert.equal(fs.existsSync(ADAPTER), true, 'missing thin SillyTavern Persona adapter');
@@ -35,7 +36,7 @@ test('V21 Persona P0 V2: composition keeps Description, Personality, Scenario, N
     relationshipCard: { relationshipStage: 'warming', summary: 'light mutual interest' },
     localeProfile: { locale: 'de-DE' },
     chatRegister: { channel: 'whatsapp', register: 'native_short_form' },
-    styleOverlay: { labels: ['暧昧', '温柔', '幽默'], weights: { 暧昧: 30, 温柔: 40, 幽默: 20 } },
+    styleOverlay: { labels: ['暧昧', '温柔', '幽默'], weights: { ambiguity: 30, femininity: 40, humor: 20 } },
     exampleDialogues: [
       { user: 'Bist du noch wach?', assistant: 'Leider ja 😄' },
       { user: 'Was machst du?', assistant: 'Noch kurz aufräumen. Und du?' }
@@ -52,6 +53,29 @@ test('V21 Persona P0 V2: composition keeps Description, Personality, Scenario, N
   assert.equal(result.relationshipCard.relationshipStage, 'warming');
   assert.equal(result.localeProfile.locale, 'de-DE');
   assert.equal(result.chatRegister.register, 'native_short_form');
+});
+
+test('V21 Persona P0 V2: adapter normalizes German register, raw example strings, note numerics and style weights', () => {
+  const { adapter } = loadAuthorizedRuntime();
+  const register = adapter.buildNativeRegisterContract({ locale: 'fr-FR', channel: 'whatsapp' });
+  assert.equal(register.locale, 'de-DE');
+
+  const result = adapter.buildPersonaComposition({
+    characterCard: {
+      characterNote: { content: 'compact', depth: 'not-a-number', position: 'not-a-number', role: 'system' }
+    },
+    styleOverlay: {
+      labels: ['暧昧', '幽默'],
+      weights: { ambiguity: '30', humor: 'bad', madeUpStyle: 99 }
+    },
+    exampleDialogues: ['{{user}}: Erste Zeile\n{{char}}: Zweite Zeile']
+  });
+  assert.deepEqual(result.styleOverlay.weights, { ambiguity: 30 });
+  assert.equal(result.exampleDialogues.flat().some(row => row.content === 'Erste Zeile'), true);
+  assert.equal(result.exampleDialogues.flat().some(row => row.content === 'Zweite Zeile'), true);
+  const note = result.units.find(unit => unit.identifier === 'characterNote');
+  assert.ok(note, 'characterNote unit missing');
+  assert.equal(note.injectionDepth, 4);
 });
 
 test('V21 Persona P0 V2: CharacterBook matching is composition-only and never becomes contact fact authority', () => {
@@ -73,18 +97,48 @@ test('V21 Persona P0 V2: CharacterBook matching is composition-only and never be
   assert.equal(result.contactFactsFromCharacterBook, undefined);
 });
 
-test('V21 Persona P0 V2: provenance adopts complete setFloatingPrompt 324-392 and forbids the V1 partial statement slice', () => {
+test('V21 Persona P0 V2: runtime truth rejects legacy flat style without composition and reports relationship-card write authority accurately', () => {
+  const legacy = buildRuntimeTruthReceipt({ generationMode: 'live', style: { prompt: 'legacy flat style' } }, { profileId: 'owner', personaVersionId: 1, policyHash: 'policy' });
+  assert.equal(legacy.pass, false);
+  assert.ok(legacy.errors.includes('LEGACY_FLAT_STYLE_PROMPT_FORBIDDEN'));
+
+  const writeCapable = buildRuntimeTruthReceipt({
+    generationMode: 'live',
+    style: {},
+    composition: {
+      sourceAuthority: 'SillyTavern/SillyTavern@51ad27fb86d39a3daca3adaa970375c9670c12df',
+      relationshipCard: { relationshipStage: 'warming', writeAuthority: 'unexpected' }
+    }
+  }, { profileId: 'owner', personaVersionId: 1, policyHash: 'policy' });
+  assert.equal(writeCapable.pass, false);
+  assert.ok(writeCapable.errors.includes('RELATIONSHIP_CARD_WRITE_AUTHORITY_FORBIDDEN'));
+  assert.equal(writeCapable.relationshipCardReadOnly, false);
+
+  const readOnly = buildRuntimeTruthReceipt({
+    generationMode: 'live',
+    style: {},
+    composition: {
+      sourceAuthority: 'SillyTavern/SillyTavern@51ad27fb86d39a3daca3adaa970375c9670c12df',
+      relationshipCard: { relationshipStage: 'warming', readOnly: true }
+    }
+  }, { profileId: 'owner', personaVersionId: 1, policyHash: 'policy' });
+  assert.equal(readOnly.pass, true);
+  assert.equal(readOnly.relationshipCardReadOnly, true);
+});
+
+test('V21 Persona P0 V2: provenance binds complete setFloatingPrompt segment and forbids the V1 partial statement slice', () => {
   assert.equal(fs.existsSync(UPSTREAM), true, 'missing SillyTavern provenance manifest');
   const manifest = JSON.parse(fs.readFileSync(UPSTREAM, 'utf8'));
-  const entries = Array.isArray(manifest.sourceSlices) ? manifest.sourceSlices
-    : Array.isArray(manifest.adoptExactSourceSlicesWithProvenance) ? manifest.adoptExactSourceSlicesWithProvenance
-      : Array.isArray(manifest.sources) ? manifest.sources : [];
-  const serialized = JSON.stringify(manifest);
-  assert.match(serialized, /setFloatingPrompt/);
-  assert.match(serialized, /324-392/);
-  assert.match(serialized, /b0a20c23230a885f272a1ffc3f32a0630616ef2d1f98a77c91b064f00a6990f6/);
-  assert.doesNotMatch(serialized, /331-361/);
-  assert.ok(entries.length >= 0);
+  assert.equal(Array.isArray(manifest.segments), true);
+  const segment = manifest.segments.find(row => row.sourceSymbol === 'setFloatingPrompt');
+  assert.ok(segment, 'setFloatingPrompt provenance segment missing');
+  assert.equal(segment.sourcePath, 'public/scripts/authors-note.js');
+  assert.equal(segment.sourceLineRange, '324-392');
+  assert.equal(segment.sourceSliceSha256, 'b0a20c23230a885f272a1ffc3f32a0630616ef2d1f98a77c91b064f00a6990f6');
+  assert.equal(segment.destinationPath, 'vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs');
+  assert.equal(segment.destinationRegionMarker, 'SILLYTAVERN_SLICE::authors-note::depth-role-injection');
+  assert.equal(segment.destinationRegionSha256, '0199c0f37b10993c74a78b307809ecb9f493cc6a8382c70d78fc131d0c12b40f');
+  assert.equal(manifest.segments.some(row => row.sourceLineRange === '331-361'), false);
 
   const { core } = loadAuthorizedRuntime();
   assert.equal(typeof core.createFloatingPromptRuntime, 'function', 'complete upstream setFloatingPrompt must be exposed through a lexical runtime factory');
