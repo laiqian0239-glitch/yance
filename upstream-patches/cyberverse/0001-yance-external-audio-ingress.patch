@@ -10,9 +10,9 @@ resampling, or AV-pacing authority.
 ---
  server/internal/api/handlers.go                         |  61 ++++++
  server/internal/api/router.go                           |   1 +
- server/internal/orchestrator/external_avatar_audio.go   | 223 +++++++++++++++++++++
+ server/internal/orchestrator/external_avatar_audio.go   | 289 +++++++++++++++++++++
  server/internal/orchestrator/orchestrator.go            |   4 +
- 4 files changed, 289 insertions(+)
+ 4 files changed, 355 insertions(+)
  create mode 100644 server/internal/orchestrator/external_avatar_audio.go
 
 diff --git a/server/internal/api/router.go b/server/internal/api/router.go
@@ -133,14 +133,14 @@ index 342937c..e607d51 100644
  	xunfeiSessions map[string]xunfeiAvatarRuntime
  	viduSessions   map[string]viduSessionRuntime
 +	externalAudioMu sync.Mutex
-+	externalAudio   map[string]*externalAvatarAudioStream
++	externalAudio   map[string]map[string]*externalAvatarAudioStream
  	mu             sync.RWMutex
  }
 @@ -691,6 +693,7 @@ func New(inferenceClient inference.InferenceService, hub *ws.Hub, sessionMgr *Se
  		silentRuntimes: make(map[string]*silentAvatarRuntime),
  		xunfeiSessions: make(map[string]xunfeiAvatarRuntime),
  		viduSessions:   make(map[string]viduSessionRuntime),
-+		externalAudio:   make(map[string]*externalAvatarAudioStream),
++		externalAudio:   make(map[string]map[string]*externalAvatarAudioStream),
  		recorder:       recorder,
  	}
  	if len(pipelineCfg) > 0 {
@@ -149,7 +149,7 @@ new file mode 100644
 index 0000000..6fcba6c
 --- /dev/null
 +++ b/server/internal/orchestrator/external_avatar_audio.go
-@@ -0,0 +1,272 @@
+@@ -0,0 +1,289 @@
 +package orchestrator
 +
 +import (
@@ -191,8 +191,10 @@ index 0000000..6fcba6c
 +}
 +
 +// HandleExternalAvatarAudioChunk accepts already-synthesized audio while
-+// preserving CyberVerse as the avatar/AV/LiveKit authority. A reply starts at
-+// sequence zero and subsequent chunks must be strictly contiguous.
++// preserving CyberVerse as the avatar/AV/LiveKit authority. Each reply starts
++// at sequence zero and subsequent chunks for that reply must be strictly
++// contiguous. Multiple finalized replies may drain concurrently at the
++// session level; avatarMu below still serializes the single avatar authority.
 +func (o *Orchestrator) HandleExternalAvatarAudioChunk(ctx context.Context, sessionID, replyID string, sequence uint64, chunk *pb.AudioChunk) error {
 +	if o == nil || o.inference == nil {
 +		return errors.New("inference service is not configured")
@@ -219,7 +221,12 @@ index 0000000..6fcba6c
 +	}
 +
 +	o.externalAudioMu.Lock()
-+	stream := o.externalAudio[sessionID]
++	sessionStreams := o.externalAudio[sessionID]
++	if sessionStreams == nil {
++		sessionStreams = make(map[string]*externalAvatarAudioStream)
++		o.externalAudio[sessionID] = sessionStreams
++	}
++	stream := sessionStreams[replyID]
 +	if stream == nil {
 +		if sequence != 0 {
 +			o.externalAudioMu.Unlock()
@@ -232,21 +239,20 @@ index 0000000..6fcba6c
 +			cancel:  cancel,
 +			done:    make(chan error, 1),
 +		}
-+		o.externalAudio[sessionID] = stream
-+		go func(s *externalAvatarAudioStream) {
-+			err := o.runExternalAvatarAudioStream(streamCtx, sessionID, replyID, s.input)
++		sessionStreams[replyID] = stream
++		go func(s *externalAvatarAudioStream, streamReplyID string) {
++			err := o.runExternalAvatarAudioStream(streamCtx, sessionID, streamReplyID, s.input)
 +			s.done <- err
 +			close(s.done)
 +			o.externalAudioMu.Lock()
-+			if o.externalAudio[sessionID] == s {
-+				delete(o.externalAudio, sessionID)
++			if streams := o.externalAudio[sessionID]; streams != nil && streams[streamReplyID] == s {
++				delete(streams, streamReplyID)
++				if len(streams) == 0 {
++					delete(o.externalAudio, sessionID)
++				}
 +			}
 +			o.externalAudioMu.Unlock()
-+		}(stream)
-+	}
-+	if stream.replyID != replyID {
-+		o.externalAudioMu.Unlock()
-+		return errors.New("external audio reply changed before prior reply finished")
++		}(stream, replyID)
 +	}
 +	if stream.closed {
 +		o.externalAudioMu.Unlock()
@@ -281,24 +287,35 @@ index 0000000..6fcba6c
 +}
 +
 +// StopExternalAvatarAudio is called by CyberVerse session deletion before the
-+// existing TeardownSession path. It is idempotent and bounded.
++// existing TeardownSession path. It cancels every reply stream for the session,
++// is idempotent, and bounds the combined drain wait.
 +func (o *Orchestrator) StopExternalAvatarAudio(sessionID string) {
 +	if o == nil {
 +		return
 +	}
 +	o.externalAudioMu.Lock()
-+	stream := o.externalAudio[sessionID]
-+	if stream != nil {
-+		delete(o.externalAudio, sessionID)
++	sessionStreams := o.externalAudio[sessionID]
++	delete(o.externalAudio, sessionID)
++	streams := make([]*externalAvatarAudioStream, 0, len(sessionStreams))
++	for _, stream := range sessionStreams {
++		stream.closed = true
++		streams = append(streams, stream)
 +	}
 +	o.externalAudioMu.Unlock()
-+	if stream == nil {
++	if len(streams) == 0 {
 +		return
 +	}
-+	stream.cancel()
-+	select {
-+	case <-stream.done:
-+	case <-time.After(3 * time.Second):
++	for _, stream := range streams {
++		stream.cancel()
++	}
++	timer := time.NewTimer(3 * time.Second)
++	defer timer.Stop()
++	for _, stream := range streams {
++		select {
++		case <-stream.done:
++		case <-timer.C:
++			return
++		}
 +	}
 +}
 +
