@@ -7,7 +7,7 @@
   "reason": "Fresh-main authorization for a complete visible Media / Photo / Image Workflow product package. Immich is the sole photo/video asset-library, people, album and search authority; ComfyUI is the sole image generation/editing workflow executor. Yance may add only thin Electron/API/product projection glue and must not create a second media asset manager, image workflow framework, image generation engine, search index, face/person index, credential store, media transport cache or send authority.",
   "base": {
     "branch": "main",
-    "commit": "0ea9dcd22a2dfa3d3b2e95f0f9da2e1eff2b16a9"
+    "commit": "86a11eda9b716d9a8850118a0897324ea8219f73"
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
@@ -33,13 +33,13 @@
   },
   "prerequisites": {
     "parallelRegistryIssue": 178,
-    "liveMainAtAuthorizationProposal": "0ea9dcd22a2dfa3d3b2e95f0f9da2e1eff2b16a9",
+    "liveMainAtAuthorizationProposal": "86a11eda9b716d9a8850118a0897324ea8219f73",
     "learningGrowthV2AuthorizationMerge": "ed90d68d651572e517591b0ad2707166dee518d0",
     "learningV1ImplementationPr": 177,
     "learningV1ImplementationStateAtReseal": "CLOSED_SUPERSEDED",
     "learningV2ImplementationBranch": "product/v21-learning-growth-brain-p0-v2",
     "mediaDuplicateWorklineCheck": "No second active Media/Immich/ComfyUI product branch or PR found before fresh-main reconciliation; Media route-bootstrap implementation PR #186 ordinary-merged as 21321bf4c59c34d0b442344a68fbd72ab37804d6 and its ten exact route paths are a subset of this frozen 23-path product scope.",
-    "voiceAuthorityAtProposal": "Voice route-bootstrap authorization PR #193 ordinary-merged as 0ea9dcd22a2dfa3d3b2e95f0f9da2e1eff2b16a9; it grants no Voice product implementation authority and has zero exact route-path overlap with the Media 23-path scope.",
+    "voiceAuthorityAtProposal": "Effective Voice route-bootstrap V2 authorization PR #195 introduced governance/layered-ci/v21-voice-brain-p0-route-bootstrap-v2-authorization.json at reviewed Head c4ad9690d195cac34fc214f0fc302d44c7fd6a4e and ordinary-merged as 86a11eda9b716d9a8850118a0897324ea8219f73; it grants no Voice product implementation authority and has zero exact route-path overlap with the Media 23-path scope. Historical #193 remains non-effective evidence and #194 remains failed in-place reseal evidence.",
     "presenceAuthorityAtProposal": "Presence route-bootstrap implementation PR #189 ordinary-merged as d6d1342d89e5b1edd587ddc65ff817309543c470 under authorization merge 0c51e0d69a0610de151e55f67c9d46112183eb4f; the generic delegated route-policy guard is trusted-main code and the Presence exact route set has zero exact overlap with the Media 23-path scope."
   },
   "implementation": {
@@ -142,7 +142,7 @@
       "rule": "These are shared composition roots, not serialization locks. If Learning V2 merges product implementation first, Media must ordinary-forward reconcile from fresh main and re-seal the effective exact diff; no rebase/force/squash."
     },
     "voiceBrain": {
-      "exactAuthorityAtProposal": "governance/layered-ci/v21-voice-brain-p0-route-bootstrap-authorization.json from PR #193 Head 3b928ca3865a5b716e2680b87498a607055d4127, ordinary-merged on main as 0ea9dcd22a2dfa3d3b2e95f0f9da2e1eff2b16a9",
+      "exactAuthorityAtProposal": "governance/layered-ci/v21-voice-brain-p0-route-bootstrap-v2-authorization.json from PR #195 reviewed Head c4ad9690d195cac34fc214f0fc302d44c7fd6a4e, ordinary-merged on main as 86a11eda9b716d9a8850118a0897324ea8219f73; prior #193 is non-effective historical evidence",
       "routeBootstrapOverlapWithMedia": [],
       "reservedOwnership": [
         "ASR",
