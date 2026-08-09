@@ -774,17 +774,24 @@ function dependencySectionProjection(document) {
   return projection;
 }
 
-function validateDelegatedNpmLockfileClosure(candidateManifest, candidateLockfile) {
+function validateDelegatedNpmLockfileClosure(candidateManifest, candidateLockfile, identityEntries = []) {
   if (!isPlainJsonObject(candidateManifest)
     || !isPlainJsonObject(candidateLockfile)
+    || !Array.isArray(identityEntries)
     || ![2, 3].includes(candidateLockfile.lockfileVersion)
     || !isPlainJsonObject(candidateLockfile.packages)
     || !isPlainJsonObject(candidateLockfile.packages[''])) return false;
   const manifestProjection = dependencySectionProjection(candidateManifest);
   const lockfileProjection = dependencySectionProjection(candidateLockfile.packages['']);
-  return Boolean(manifestProjection
-    && lockfileProjection
-    && sameJsonSemantics(manifestProjection, lockfileProjection));
+  if (!manifestProjection
+    || !lockfileProjection
+    || !sameJsonSemantics(manifestProjection, lockfileProjection)) return false;
+  for (const entry of identityEntries) {
+    if (entry.section === 'peerDependencies') continue;
+    const lockDescriptor = candidateLockfile.packages[`node_modules/${entry.name}`];
+    if (!isPlainJsonObject(lockDescriptor) || lockDescriptor.version !== entry.version) return false;
+  }
+  return true;
 }
 
 function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
@@ -1167,7 +1174,8 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
       }
       if (!validateDelegatedNpmLockfileClosure(
         loadDependencyControl(evaluatedHead, manifestPath),
-        loadDependencyControl(evaluatedHead, repositoryPath)
+        loadDependencyControl(evaluatedHead, repositoryPath),
+        identityPolicy.entries.filter(entry => entry.path === manifestPath)
       )) return denyDependencyIdentityMutation();
     }
 
@@ -1183,7 +1191,8 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
         }
         if (!validateDelegatedNpmLockfileClosure(
           loadDependencyControl(evaluatedHead, manifestPath),
-          loadDependencyControl(evaluatedHead, companionPath)
+          loadDependencyControl(evaluatedHead, companionPath),
+          identityPolicy.entries.filter(entry => entry.path === manifestPath)
         )) return denyDependencyIdentityMutation();
       }
     }
