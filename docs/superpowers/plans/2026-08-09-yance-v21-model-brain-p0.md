@@ -1,3 +1,15 @@
+# Status note — historical V3 plan
+
+This file is the historical `V21-MODEL-BRAIN-P0-V3` implementation plan. Its design material remains useful historical architecture context, but its branch/PR/scope/merge-boundary status is no longer current.
+
+The final workline is `V21-MODEL-BRAIN-P0-V4`, implementation PR #169, and its authoritative terminal status is **MERGED + POST-MERGE GREEN**. Read the current closure/handoff first:
+
+- `docs/superpowers/plans/2026-08-09-yance-v21-model-brain-p0-v4-post-merge-handoff.md`
+
+Do not use this V3 file to reopen PR #158, restore the former 40-path scope, or infer that Model Brain is still waiting at an implementation merge boundary.
+
+---
+
 # Yance V2.1 Model Brain P0 V3 implementation plan
 
 Work package: `V21-MODEL-BRAIN-P0-V3`
