@@ -448,3 +448,14 @@ test('trusted delegated evaluator rejects manifest-only identity when trusted ma
   assert.equal(result.pass, false, JSON.stringify(result));
   assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
 });
+
+test('trusted delegated evaluator rejects unrelated existing direct npm lock descriptor drift', () => {
+  const driftedLockfile = exactLockfile();
+  driftedLockfile.packages['node_modules/vite'].version = '6.2.0';
+
+  const result = evaluateTrustedDelegatedGovernanceBranch(trustedOptionsWithLockfile({
+    candidateLockfile: driftedLockfile
+  }));
+  assert.equal(result.pass, false, JSON.stringify(result));
+  assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
+});
