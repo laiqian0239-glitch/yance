@@ -156,3 +156,15 @@ Exact Parlant/uv/python-build-standalone runtime pins are recorded in `config/up
 - Yance integration: the verified prebuilt Java 21 runtime is bundled only to run the sealed Neo4j Community process; application startup never downloads Java.
 
 Exact Graphiti, Neo4j Community, Temurin, uv and python-build-standalone pins are recorded in `config/upstreams/v21-graphiti-p0.json`. The Graphiti runtime seal must verify the first-party Neo4j checksum before extraction, must preserve license/source provenance, and must not perform package/source/runtime downloads after sealing.
+
+## SillyTavern
+
+- Project: SillyTavern
+- Upstream: `https://github.com/SillyTavern/SillyTavern.git`
+- Release: `1.18.0`
+- Exact commit: `51ad27fb86d39a3daca3adaa970375c9670c12df`
+- License: `AGPL-3.0`
+- License copy: `vendor/sillytavern/1.18.0/LICENSE`
+- Provenance manifest: `vendor/sillytavern/1.18.0/UPSTREAM.json`
+- Yance integration: adopts the pinned Character Card parser/validator/PNG helpers and exact Prompt/Persona/Example Dialogue/Author Note/World Info source regions with mechanical CommonJS and lexical-binding adaptation only. Yance does not import the SillyTavern UI, provider/model gateway, server shell, global chat state, swipe UI, or recursive World Info token-budget engine.
+- Authority boundary: SillyTavern supplies Persona/Character/Prompt composition semantics only; Letta remains memory authority, Graphiti remains temporal relationship-fact authority, Parlant remains Goal/Journey authority, and Yance retains its existing model gateway and unique final send authority.
