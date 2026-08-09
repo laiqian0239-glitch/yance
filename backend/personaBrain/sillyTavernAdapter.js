@@ -10,7 +10,8 @@ const {
   matchKeys,
   world_info_logic,
   world_info_position,
-  resolveFloatingPromptInjection
+  metadata_keys,
+  createFloatingPromptRuntime
 } = require('../../vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs');
 
 const SOURCE_AUTHORITY = 'SillyTavern/SillyTavern@51ad27fb86d39a3daca3adaa970375c9670c12df';
@@ -143,6 +144,48 @@ function characterBookMatches(characterBook, incomingText) {
     .filter(entry => entry.content);
 }
 
+function resolveCharacterNotePlacement(note = {}) {
+  const captured = { prompt: null, counter: null };
+  const context = {
+    groupId: null,
+    characterId: 0,
+    chat: [{ is_user: true }],
+    setExtensionPrompt(moduleName, content, position, depth, allowWIScan, role) {
+      captured.prompt = { moduleName, content: String(content), position, depth, allowWIScan, role };
+    }
+  };
+  const runtime = createFloatingPromptRuntime({
+    getContext: () => context,
+    chat_metadata: {
+      [metadata_keys.interval]: 1,
+      [metadata_keys.position]: Number(note.position ?? world_info_position.atDepth),
+      [metadata_keys.depth]: Number(note.depth ?? 4),
+      [metadata_keys.role]: clean(note.role || 'system')
+    },
+    extension_settings: { note: { chara: [], allowWIScan: false } },
+    $: selector => ({
+      val: () => selector === '#extension_floating_prompt' ? clean(note.content) : '',
+      text: value => { if (selector === '#extension_floating_counter') captured.counter = String(value); }
+    }),
+    extension_prompt_types: { NONE: 0 },
+    MODULE_NAME: 'YancePersonaCharacterNote',
+    MAX_INJECTION_DEPTH: Number(note.depth ?? 4),
+    getCharaFilename: () => '',
+    console: { debug() {} }
+  });
+  runtime.setFloatingPrompt();
+  const placed = captured.prompt || {};
+  return {
+    prompt: String(placed.content || ''),
+    position: placed.position,
+    depth: placed.depth,
+    allowWIScan: placed.allowWIScan,
+    role: placed.role,
+    shouldAddPrompt: runtime.getShouldWIAddPrompt(),
+    counter: captured.counter
+  };
+}
+
 function buildPersonaComposition(input = {}) {
   const personaCard = plain(input.personaCard) ? clone(input.personaCard) : {};
   const characterCard = plain(input.characterCard) ? clone(input.characterCard) : {};
@@ -162,16 +205,7 @@ function buildPersonaComposition(input = {}) {
 
   const note = plain(characterCard.characterNote) ? characterCard.characterNote : {};
   if (clean(note.content)) {
-    const notePlacement = resolveFloatingPromptInjection({
-      lastMessageNumber: 1,
-      interval: 1,
-      floatingPrompt: clean(note.content),
-      charaNote: null,
-      position: Number(note.position ?? world_info_position.atDepth),
-      depth: Number(note.depth ?? 4),
-      allowWIScan: false,
-      role: clean(note.role || 'system')
-    });
+    const notePlacement = resolveCharacterNotePlacement(note);
     add(prompt('characterNote', notePlacement.prompt, {
       role: notePlacement.role,
       injection_position: INJECTION_POSITION.ABSOLUTE,
@@ -213,6 +247,7 @@ function buildPersonaComposition(input = {}) {
       injectionOrder: unit.injection_order
     })),
     personaCard,
+    characterCard,
     relationshipCard,
     localeProfile,
     chatRegister,
@@ -229,5 +264,6 @@ module.exports = {
   buildNativeRegisterContract,
   buildPersonaComposition,
   characterBookMatches,
-  normalizeStyleOverlay
+  normalizeStyleOverlay,
+  resolveCharacterNotePlacement
 };
