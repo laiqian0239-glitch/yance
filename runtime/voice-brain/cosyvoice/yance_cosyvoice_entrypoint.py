@@ -7,7 +7,6 @@ import sys
 
 import torch
 import torchaudio
-from cosyvoice.cli.cosyvoice import AutoModel
 
 SOURCE_COMMIT = "074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc"
 MODEL_REVISION = "29e01c4e8d000f4bcd70751be16fa94bf3d85a18"
@@ -28,7 +27,21 @@ def _load_request() -> dict:
     return value
 
 
-def _save_generation(model: AutoModel, iterator, output_path: Path) -> tuple[int, float]:
+def _load_auto_model(source_dir: Path):
+    if not source_dir.is_dir():
+        raise FileNotFoundError(f"CosyVoice source directory is unavailable: {source_dir}")
+    matcha_dir = source_dir / "third_party" / "Matcha-TTS"
+    if not matcha_dir.is_dir():
+        raise FileNotFoundError(f"CosyVoice Matcha-TTS submodule is unavailable: {matcha_dir}")
+    for candidate in (source_dir, matcha_dir):
+        value = str(candidate)
+        if value not in sys.path:
+            sys.path.insert(0, value)
+    from cosyvoice.cli.cosyvoice import AutoModel
+    return AutoModel
+
+
+def _save_generation(model, iterator, output_path: Path) -> tuple[int, float]:
     chunks = []
     for item in iterator:
         speech = item.get("tts_speech") if isinstance(item, dict) else None
@@ -44,7 +57,7 @@ def _save_generation(model: AutoModel, iterator, output_path: Path) -> tuple[int
     return int(model.sample_rate), duration
 
 
-def _generate(model: AutoModel, request: dict, output_path: Path) -> dict:
+def _generate(model, request: dict, output_path: Path) -> dict:
     text = _clean(request.get("text"))
     prompt_audio = Path(_clean(request.get("promptAudio"))).resolve()
     prompt_text = _clean(request.get("promptText"))
@@ -87,8 +100,10 @@ def _generate(model: AutoModel, request: dict, output_path: Path) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Yance thin sealed CosyVoice adapter")
     parser.add_argument("--model-dir", required=True)
+    parser.add_argument("--source-dir", required=True)
     args = parser.parse_args()
     model_dir = Path(args.model_dir).resolve()
+    source_dir = Path(args.source_dir).resolve()
     if not model_dir.is_dir():
         raise FileNotFoundError(f"CosyVoice model directory is unavailable: {model_dir}")
 
@@ -96,6 +111,7 @@ def main() -> int:
     if _clean(request.get("operation")) != "generate":
         raise ValueError("unsupported CosyVoice operation")
     output_path = Path(_clean(request.get("outputPath"))).resolve()
+    AutoModel = _load_auto_model(source_dir)
     model = AutoModel(model_dir=str(model_dir))
     result = _generate(model, request, output_path)
     sys.stdout.write(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
