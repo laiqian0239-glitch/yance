@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const test = require('node:test');
 const implementationBranchPolicy = require('../../shared/release/implementationBranchPolicy');
 
@@ -11,15 +12,25 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const ROUTING_POLICY_PATH = 'governance/layered-ci/wp0-routing-policy.json';
 const PRESENCE_AUTHORIZATION_PATH = 'governance/layered-ci/v21-presence-avatar-p0-route-bootstrap-authorization.json';
 const MEDIA_AUTHORIZATION_PATH = 'governance/layered-ci/v21-media-brain-p0-route-bootstrap-authorization.json';
-const basePolicy = JSON.parse(fs.readFileSync(path.join(ROOT, ROUTING_POLICY_PATH), 'utf8'));
-const presenceAuthorization = JSON.parse(fs.readFileSync(path.join(ROOT, PRESENCE_AUTHORIZATION_PATH), 'utf8'));
-const mediaAuthorization = JSON.parse(fs.readFileSync(path.join(ROOT, MEDIA_AUTHORIZATION_PATH), 'utf8'));
-
 const PRESENCE_AUTHORIZATION_MERGE = '0c51e0d69a0610de151e55f67c9d46112183eb4f';
 const PRESENCE_REVIEWED_HEAD = 'f37aa4eb0cc95f66d02350a84703178428147e0f';
 const PRESENCE_AUTHORIZATION_BLOB = '9ee2c41b82d8b48cf1719f65e4cb4a337046ccb4';
 const SYNTHETIC_CANDIDATE_HEAD = '1111111111111111111111111111111111111111';
 const DENIED = 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED';
+
+const basePolicy = JSON.parse(execFileSync(
+  'git',
+  ['show', `${PRESENCE_AUTHORIZATION_MERGE}:${ROUTING_POLICY_PATH}`],
+  {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: implementationBranchPolicy.buildTrustedGitEnvironment(process.env),
+    windowsHide: true
+  }
+));
+const presenceAuthorization = JSON.parse(fs.readFileSync(path.join(ROOT, PRESENCE_AUTHORIZATION_PATH), 'utf8'));
+const mediaAuthorization = JSON.parse(fs.readFileSync(path.join(ROOT, MEDIA_AUTHORIZATION_PATH), 'utf8'));
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
