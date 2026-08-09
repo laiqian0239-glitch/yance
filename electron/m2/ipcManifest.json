@@ -4138,7 +4138,7 @@
     }
   ],
   "validationSummary": {
-    "rendererToMainHandlerCount": 60,
+    "rendererToMainHandlerCount": 58,
     "mainToRendererChannelCount": 8,
     "allRendererToMainHandlersHaveRequiredFields": true,
     "allOutboundChannelsHaveRequiredFields": true,
