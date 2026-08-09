@@ -409,3 +409,28 @@ test('trusted delegated evaluator rejects stale direct npm lock entry versions',
   assert.equal(result.pass, false, JSON.stringify(result));
   assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
 });
+
+test('trusted delegated evaluator rejects manifest-only identity when base already has an omitted npm lockfile', () => {
+  const options = trustedOptions(exactManifest());
+  const resolveAuthorizationBlob = options.resolveCommitBlobSha;
+  const lockBlob = '7'.repeat(40);
+  options.resolveCommitBlobSha = (commit, repositoryPath) => {
+    if (repositoryPath === LOCK_PATH && [MERGE, TRUSTED_MAIN, CANDIDATE].includes(commit)) return lockBlob;
+    return resolveAuthorizationBlob(commit, repositoryPath);
+  };
+  options.loadDependencyControlAtCommit = (commit, repositoryPath) => {
+    if (repositoryPath === MANIFEST_PATH) {
+      if (commit === MERGE) return baseManifest();
+      if (commit === CANDIDATE) return exactManifest();
+    }
+    if (repositoryPath === LOCK_PATH) {
+      if (commit === MERGE) return baseLockfile();
+      if (commit === CANDIDATE) return baseLockfile();
+    }
+    return null;
+  };
+
+  const result = evaluateTrustedDelegatedGovernanceBranch(options);
+  assert.equal(result.pass, false, JSON.stringify(result));
+  assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
+});
