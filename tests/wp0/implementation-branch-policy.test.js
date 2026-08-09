@@ -1395,3 +1395,159 @@ test('later effective delegated authorization supersedes the exact earlier imple
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+const delegatedRoutePolicyBranchPolicy = require('../../shared/release/implementationBranchPolicy');
+const DELEGATED_ROUTE_POLICY_PATH = 'governance/layered-ci/wp0-routing-policy.json';
+const ROUTE_GUARD_FIXTURE_PATHS = Object.freeze([
+  'config/route-guard-fixture.json',
+  'runtime/route-guard/fixture.json'
+]);
+
+function routeGuardBasePolicy() {
+  return {
+    schemaVersion: 2,
+    documentType: 'YANCE_WP0_SCOPE_ROUTING_POLICY',
+    governanceExactPaths: ['governance/existing.json'],
+    governancePrefixes: ['governance/layered-ci/'],
+    productDocumentationPrefixes: ['docs/superpowers/plans/'],
+    productDocumentationExtensions: ['.md'],
+    productExactPaths: ['package.json'],
+    productPrefixes: ['backend/'],
+    mixedChangesEscalateToProduct: true,
+    unknownPathFailsClosed: true,
+    readyForPromotion: false
+  };
+}
+
+function routeGuardCandidate(basePolicy) {
+  const candidate = clone(basePolicy);
+  candidate.productExactPaths = [...candidate.productExactPaths, ...ROUTE_GUARD_FIXTURE_PATHS].sort();
+  return candidate;
+}
+
+function routeGuardAuthorization(pathField = 'bootstrapPaths') {
+  const allowedChangedPaths = [
+    DELEGATED_ROUTE_POLICY_PATH,
+    'shared/release/implementationBranchPolicy.js',
+    'tests/wp0/implementation-branch-policy.test.js'
+  ].sort();
+  const seed = genericDelegatedAuthorization({ allowedChangedPaths });
+  const countField = pathField === 'bootstrapPaths'
+    ? 'bootstrapPathCount'
+    : 'futureProductBootstrapPathCount';
+  const digestField = pathField === 'bootstrapPaths'
+    ? 'bootstrapPathSetSha256'
+    : 'futureProductBootstrapPathSetSha256';
+  return genericDelegatedAuthorization({
+    allowedChangedPaths,
+    document: {
+      [pathField]: [...ROUTE_GUARD_FIXTURE_PATHS],
+      [countField]: ROUTE_GUARD_FIXTURE_PATHS.length,
+      [digestField]: workPackageChangedFilesSha256(ROUTE_GUARD_FIXTURE_PATHS),
+      implementation: {
+        ...seed.implementation,
+        genericRouteMutationGuardRequired: true
+      }
+    }
+  });
+}
+
+test('delegated route-policy validator accepts only the frozen exact productExactPaths additions', () => {
+  const validate = delegatedRoutePolicyBranchPolicy.validateDelegatedRoutePolicyMutation;
+  assert.equal(typeof validate, 'function');
+  const basePolicy = routeGuardBasePolicy();
+
+  for (const pathField of ['bootstrapPaths', 'futureProductBootstrapPaths']) {
+    const authorization = routeGuardAuthorization(pathField);
+    const exact = validate({ authorization, basePolicy, candidatePolicy: routeGuardCandidate(basePolicy) });
+    assert.equal(exact.pass, true, `${pathField}: ${JSON.stringify(exact)}`);
+  }
+
+  const authorization = routeGuardAuthorization();
+  const bothDeclarations = clone(authorization);
+  bothDeclarations.futureProductBootstrapPaths = [...ROUTE_GUARD_FIXTURE_PATHS];
+  bothDeclarations.futureProductBootstrapPathCount = ROUTE_GUARD_FIXTURE_PATHS.length;
+  bothDeclarations.futureProductBootstrapPathSetSha256 = workPackageChangedFilesSha256(ROUTE_GUARD_FIXTURE_PATHS);
+  assert.equal(validate({ authorization: bothDeclarations, basePolicy, candidatePolicy: routeGuardCandidate(basePolicy) }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+
+  const wrongCount = clone(authorization);
+  wrongCount.bootstrapPathCount += 1;
+  assert.equal(validate({ authorization: wrongCount, basePolicy, candidatePolicy: routeGuardCandidate(basePolicy) }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+
+  const wrongDigest = clone(authorization);
+  wrongDigest.bootstrapPathSetSha256 = 'f'.repeat(64);
+  assert.equal(validate({ authorization: wrongDigest, basePolicy, candidatePolicy: routeGuardCandidate(basePolicy) }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+
+  const broadPrefix = routeGuardCandidate(basePolicy);
+  broadPrefix.productPrefixes.push('runtime/');
+  assert.equal(validate({ authorization, basePolicy, candidatePolicy: broadPrefix }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+
+  const unrelatedExact = routeGuardCandidate(basePolicy);
+  unrelatedExact.productExactPaths.push('runtime/unreviewed-route.json');
+  assert.equal(validate({ authorization, basePolicy, candidatePolicy: unrelatedExact }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+
+  const removedExisting = routeGuardCandidate(basePolicy);
+  removedExisting.productExactPaths = removedExisting.productExactPaths.filter(value => value !== 'package.json');
+  assert.equal(validate({ authorization, basePolicy, candidatePolicy: removedExisting }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+
+  const weakenedFailClosed = routeGuardCandidate(basePolicy);
+  weakenedFailClosed.unknownPathFailsClosed = false;
+  assert.equal(validate({ authorization, basePolicy, candidatePolicy: weakenedFailClosed }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+
+  const governanceDrift = routeGuardCandidate(basePolicy);
+  governanceDrift.governancePrefixes.push('runtime/');
+  assert.equal(validate({ authorization, basePolicy, candidatePolicy: governanceDrift }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+
+  const documentationDrift = routeGuardCandidate(basePolicy);
+  documentationDrift.productDocumentationPrefixes.push('runtime/');
+  assert.equal(validate({ authorization, basePolicy, candidatePolicy: documentationDrift }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+});
+
+test('trusted delegated evaluator applies the generic route-policy semantic guard at the implementation merge base', () => {
+  const authorization = routeGuardAuthorization();
+  const basePolicy = routeGuardBasePolicy();
+  const candidatePolicy = routeGuardCandidate(basePolicy);
+  const exact = genericTrustedAuthorityOptions({
+    authorization,
+    implementationChangedFiles: authorization.implementation.allowedChangedPaths
+  });
+  const loadRepositoryJsonAtCommit = (commit, repositoryPath) => {
+    if (repositoryPath !== DELEGATED_ROUTE_POLICY_PATH) return null;
+    if (commit === GENERIC_MERGE) return basePolicy;
+    if (commit === GENERIC_IMPLEMENTATION_HEAD) return candidatePolicy;
+    return null;
+  };
+
+  const accepted = evaluateTrustedDelegatedGovernanceBranch({
+    branch: GENERIC_IMPLEMENTATION_BRANCH,
+    ...exact,
+    loadRepositoryJsonAtCommit
+  });
+  assert.equal(accepted.pass, true, JSON.stringify(accepted));
+  assert.equal(accepted.routePolicyGuardApplied, true);
+  assert.equal(accepted.routePolicyBootstrapPathCount, ROUTE_GUARD_FIXTURE_PATHS.length);
+
+  const driftedPolicy = routeGuardCandidate(basePolicy);
+  driftedPolicy.productPrefixes.push('runtime/');
+  const rejected = evaluateTrustedDelegatedGovernanceBranch({
+    branch: GENERIC_IMPLEMENTATION_BRANCH,
+    ...exact,
+    loadRepositoryJsonAtCommit: (commit, repositoryPath) => {
+      if (repositoryPath !== DELEGATED_ROUTE_POLICY_PATH) return null;
+      return commit === GENERIC_MERGE ? basePolicy : driftedPolicy;
+    }
+  });
+  assert.equal(rejected.pass, false, JSON.stringify(rejected));
+  assert.equal(rejected.reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+  assert.equal(rejected.authorityMode, null);
+
+  const testOnly = evaluateTrustedDelegatedGovernanceBranch({
+    branch: GENERIC_IMPLEMENTATION_BRANCH,
+    ...genericTrustedAuthorityOptions({
+      authorization,
+      implementationChangedFiles: ['tests/wp0/implementation-branch-policy.test.js']
+    })
+  });
+  assert.equal(testOnly.pass, true, JSON.stringify(testOnly));
+  assert.equal(testOnly.routePolicyGuardApplied, false);
+});
