@@ -370,6 +370,21 @@ test('trusted delegated evaluator rejects stale or extra npm lockfile direct-dep
   assert.equal(extraResult.reasonCode, DENIED, JSON.stringify(extraResult));
 });
 
+test('trusted delegated evaluator rejects an unreferenced npm lock artifact descriptor', () => {
+  const descriptorOnly = exactLockfile();
+  descriptorOnly.packages['node_modules/left-pad'] = {
+    version: '1.3.0',
+    resolved: 'https://mirror.example.invalid/left-pad-1.3.0.tgz',
+    integrity: 'sha512-undeclared-left-pad'
+  };
+
+  const result = evaluateTrustedDelegatedGovernanceBranch(trustedOptionsWithLockfile({
+    candidateLockfile: descriptorOnly
+  }));
+  assert.equal(result.pass, false, JSON.stringify(result));
+  assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
+});
+
 test('trusted delegated evaluator rejects lockfile-only dependency identity drift', () => {
   const result = evaluateTrustedDelegatedGovernanceBranch(trustedOptionsWithLockfile({
     candidateManifest: baseManifest(),
