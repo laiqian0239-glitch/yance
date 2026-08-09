@@ -66,7 +66,8 @@ Copy-Item (Join-Path $source "litellm") $litellmTarget -Recurse
 $SharedProxyFiles = @(
   "proxy/__init__.py",
   "proxy/_types.py",
-  "proxy/types_utils/utils.py"
+  "proxy/types_utils/utils.py",
+  "proxy/spend_tracking/cold_storage_handler.py"
 )
 $proxyRoot = Join-Path $litellmTarget "proxy"
 Remove-Item $proxyRoot -Recurse -Force -ErrorAction SilentlyContinue
@@ -84,7 +85,7 @@ $actualProxyFiles = @(Get-ChildItem $proxyRoot -Recurse -File | ForEach-Object {
 $unexpectedProxyFiles = @($actualProxyFiles | Where-Object { $_ -notin $SharedProxyFiles })
 $missingProxyFiles = @($SharedProxyFiles | Where-Object { $_ -notin $actualProxyFiles })
 if ($unexpectedProxyFiles.Count -gt 0 -or $missingProxyFiles.Count -gt 0) {
-  throw "LiteLLM shared proxy type closure mismatch; unexpected=$($unexpectedProxyFiles -join ','); missing=$($missingProxyFiles -join ',')"
+  throw "LiteLLM shared proxy import closure mismatch; unexpected=$($unexpectedProxyFiles -join ','); missing=$($missingProxyFiles -join ',')"
 }
 
 Get-ChildItem $litellmTarget -Recurse -File | Where-Object { $_.Name -match '^_native\.(pyd|dll|so)$' -or $_.Extension -in @('.pyd','.dll','.so') -and $_.FullName -match 'rust_bridge' } | Remove-Item -Force
