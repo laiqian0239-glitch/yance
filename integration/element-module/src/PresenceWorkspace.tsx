@@ -11,7 +11,15 @@ import {
 } from "./presenceLiveKit";
 
 type PresenceSession = Readonly<{ sessionId: string; livekitUrl: string; livekitToken: string }>;
-type PresenceHealth = Readonly<{ available?: boolean; degraded?: boolean; reasonCode?: string; endpoint?: string }>;
+type PresenceCharacter = Readonly<{ id: string; name: string }>;
+type PresenceHealth = Readonly<{
+  available?: boolean;
+  degraded?: boolean;
+  reasonCode?: string;
+  endpoint?: string;
+  characterCatalogAvailable?: boolean;
+  characters?: readonly PresenceCharacter[];
+}>;
 type DesktopPresenceApi = {
   getPresenceHealth: () => Promise<PresenceHealth>;
   createPresenceSession: (input?: Record<string, unknown>) => Promise<PresenceSession>;
@@ -27,11 +35,12 @@ function desktopApi(): DesktopPresenceApi | null {
 export function PresenceWorkspace(): React.JSX.Element {
   const api = useMemo(() => desktopApi(), []);
   const [health, setHealth] = useState<PresenceHealth>({ degraded: true, reasonCode: "unavailable" });
+  const [characters, setCharacters] = useState<readonly PresenceCharacter[]>([]);
+  const [characterId, setCharacterId] = useState("");
   const [session, setSession] = useState<PresenceSession | null>(null);
   const sessionRef = useRef<PresenceSession | null>(null);
   const aliveRef = useRef(true);
   const [liveKit, setLiveKit] = useState<PresenceLiveKitSnapshot>(getPresenceLiveKitSnapshot());
-  const [avatarId, setAvatarId] = useState("flash-head");
   const [status, setStatus] = useState("Presence unavailable");
   const [busy, setBusy] = useState(false);
 
@@ -40,8 +49,14 @@ export function PresenceWorkspace(): React.JSX.Element {
     if (!api) return;
     api.getPresenceHealth().then((next) => {
       if (!aliveRef.current) return;
+      const nextCharacters = Array.isArray(next.characters) ? next.characters : [];
       setHealth(next);
-      setStatus(next.available ? "CyberVerse ready · LiveKit disconnected" : `Degraded · ${next.reasonCode || "unavailable"}`);
+      setCharacters(nextCharacters);
+      setCharacterId((current) => current && nextCharacters.some((row) => row.id === current) ? current : nextCharacters[0]?.id || "");
+      if (!next.available) setStatus(`Degraded · ${next.reasonCode || "unavailable"}`);
+      else if (!next.characterCatalogAvailable) setStatus("Degraded · CyberVerse Character catalog unavailable");
+      else if (!nextCharacters.length) setStatus("CyberVerse ready · create a Character with an avatar image before connecting");
+      else setStatus("CyberVerse ready · LiveKit disconnected");
     }).catch((error) => {
       if (aliveRef.current) setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "unavailable")}`);
     });
@@ -59,11 +74,11 @@ export function PresenceWorkspace(): React.JSX.Element {
   }, [api]);
 
   const connect = async (): Promise<void> => {
-    if (!api || busy) return;
+    if (!api || busy || !characterId) return;
     setBusy(true);
     let created: PresenceSession | null = null;
     try {
-      created = await api.createPresenceSession({ avatarId });
+      created = await api.createPresenceSession({ characterId });
       if (!aliveRef.current) {
         await api.closePresenceSession({ sessionId: created.sessionId }).catch(() => undefined);
         return;
@@ -103,20 +118,23 @@ export function PresenceWorkspace(): React.JSX.Element {
     } finally { setBusy(false); }
   };
 
+  const ready = health.available === true && health.characterCatalogAvailable === true && characters.length > 0;
   return (
     <aside className="yance-presence-workspace" aria-label="Presence Workspace">
       <header>
-        <div><strong>Presence</strong><span>CyberVerse avatar · LiveKit realtime media</span></div>
-        <span className={health.available ? "presence-health ready" : "presence-health degraded"}>{health.available ? "Ready" : "Degraded"}</span>
+        <div><strong>Presence</strong><span>CyberVerse Character · SoulX FlashHead backend · LiveKit realtime media</span></div>
+        <span className={ready ? "presence-health ready" : "presence-health degraded"}>{ready ? "Ready" : "Degraded"}</span>
       </header>
       <p className="presence-status" aria-live="polite">{status}</p>
-      <label>Avatar
-        <select value={avatarId} onChange={(event) => setAvatarId(event.target.value)} disabled={busy || Boolean(session)}>
-          <option value="flash-head">SoulX FlashHead</option>
+      <label>CyberVerse Character
+        <select value={characterId} onChange={(event) => setCharacterId(event.target.value)} disabled={busy || Boolean(session) || !characters.length}>
+          {characters.length
+            ? characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)
+            : <option value="">No configured Characters</option>}
         </select>
       </label>
       <div className="presence-actions">
-        <button type="button" onClick={() => void connect()} disabled={busy || Boolean(session)}>Connect</button>
+        <button type="button" onClick={() => void connect()} disabled={busy || Boolean(session) || !ready || !characterId}>Connect</button>
         <button type="button" onClick={() => void disconnect()} disabled={busy || !session}>Disconnect</button>
         <button type="button" onClick={() => void setPresenceMicrophoneEnabled(!liveKit.microphoneEnabled)} disabled={liveKit.state !== "connected"}>Microphone · {liveKit.microphoneEnabled ? "On" : "Off"}</button>
         <button type="button" onClick={() => void setPresenceCameraEnabled(!liveKit.cameraEnabled)} disabled={liveKit.state !== "connected"}>Camera · {liveKit.cameraEnabled ? "On" : "Off"}</button>
