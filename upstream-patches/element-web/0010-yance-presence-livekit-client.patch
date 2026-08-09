@@ -7,14 +7,16 @@ integration/element-module overlay has been copied to modules/yance.
 
 This patch changes only the Yance module overlay. Element remains the shell,
 livekit-client remains the browser/WebRTC client authority, and CyberVerse
-remains the avatar/lip-sync/token authority.
+remains the avatar/lip-sync/token authority. Presence teardown closes both the
+LiveKit client room and the CyberVerse session on disconnect, connection
+failure, and React workspace teardown.
 ---
  modules/yance/package.json                     |   3 +-
  modules/yance/src/PresenceWorkspace.css        |  16 ++++
- modules/yance/src/PresenceWorkspace.tsx        | 100 ++++++++++++++++++++++++
+ modules/yance/src/PresenceWorkspace.tsx        | 131 +++++++++++++++++++++++++
  modules/yance/src/YanceWorkspace.tsx           |   2 +
- modules/yance/src/presenceLiveKit.ts            |  57 ++++++++++++++
- 5 files changed, 177 insertions(+), 1 deletion(-)
+ modules/yance/src/presenceLiveKit.ts            |  57 +++++++++++
+ 5 files changed, 208 insertions(+), 1 deletion(-)
  create mode 100644 modules/yance/src/PresenceWorkspace.css
  create mode 100644 modules/yance/src/PresenceWorkspace.tsx
  create mode 100644 modules/yance/src/presenceLiveKit.ts
@@ -136,8 +138,8 @@ diff --git a/modules/yance/src/PresenceWorkspace.tsx b/modules/yance/src/Presenc
 new file mode 100644
 --- /dev/null
 +++ b/modules/yance/src/PresenceWorkspace.tsx
-@@ -0,0 +1,100 @@
-+import React, { useEffect, useMemo, useState } from "react";
+@@ -0,0 +1,131 @@
++import React, { useEffect, useMemo, useRef, useState } from "react";
 +import "./PresenceWorkspace.css";
 +import {
 +  connectPresenceLiveKit,
@@ -167,6 +169,8 @@ new file mode 100644
 +  const api = useMemo(() => desktopApi(), []);
 +  const [health, setHealth] = useState<PresenceHealth>({ degraded: true, reasonCode: "unavailable" });
 +  const [session, setSession] = useState<PresenceSession | null>(null);
++  const sessionRef = useRef<PresenceSession | null>(null);
++  const aliveRef = useRef(true);
 +  const [liveKit, setLiveKit] = useState<PresenceLiveKitSnapshot>(getPresenceLiveKitSnapshot());
 +  const [avatarId, setAvatarId] = useState("flash-head");
 +  const [status, setStatus] = useState("Presence unavailable");
@@ -176,38 +180,67 @@ new file mode 100644
 +  useEffect(() => {
 +    if (!api) return;
 +    api.getPresenceHealth().then((next) => {
++      if (!aliveRef.current) return;
 +      setHealth(next);
 +      setStatus(next.available ? "CyberVerse ready · LiveKit disconnected" : `Degraded · ${next.reasonCode || "unavailable"}`);
-+    }).catch((error) => setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "unavailable")}`));
++    }).catch((error) => {
++      if (aliveRef.current) setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "unavailable")}`);
++    });
 +  }, [api]);
-+  useEffect(() => () => { void disconnectPresenceLiveKit(); }, []);
++  useEffect(() => {
++    aliveRef.current = true;
++    return () => {
++      aliveRef.current = false;
++      const closing = sessionRef.current;
++      sessionRef.current = null;
++      void disconnectPresenceLiveKit()
++        .catch(() => undefined)
++        .then(() => closing?.sessionId && api ? api.closePresenceSession({ sessionId: closing.sessionId }).catch(() => undefined) : undefined);
++    };
++  }, [api]);
 +
 +  const connect = async (): Promise<void> => {
 +    if (!api || busy) return;
 +    setBusy(true);
++    let created: PresenceSession | null = null;
 +    try {
-+      const next = await api.createPresenceSession({ avatarId });
-+      setSession(next);
-+      await connectPresenceLiveKit({ livekitUrl: next.livekitUrl, livekitToken: next.livekitToken });
++      created = await api.createPresenceSession({ avatarId });
++      if (!aliveRef.current) {
++        await api.closePresenceSession({ sessionId: created.sessionId }).catch(() => undefined);
++        return;
++      }
++      sessionRef.current = created;
++      setSession(created);
++      await connectPresenceLiveKit({ livekitUrl: created.livekitUrl, livekitToken: created.livekitToken });
++      if (!aliveRef.current) {
++        await disconnectPresenceLiveKit().catch(() => undefined);
++        return;
++      }
 +      setStatus("Connected · CyberVerse avatar is streaming through LiveKit");
 +    } catch (error) {
-+      setSession(null);
++      const closing = sessionRef.current || created;
++      sessionRef.current = null;
++      if (aliveRef.current) setSession(null);
 +      await disconnectPresenceLiveKit().catch(() => undefined);
-+      setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "connection unavailable")}`);
-+    } finally { setBusy(false); }
++      if (closing?.sessionId) await api.closePresenceSession({ sessionId: closing.sessionId }).catch(() => undefined);
++      if (aliveRef.current) setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "connection unavailable")}`);
++    } finally {
++      if (aliveRef.current) setBusy(false);
++    }
 +  };
 +
 +  const disconnect = async (): Promise<void> => {
 +    if (busy) return;
 +    setBusy(true);
-+    const closing = session;
++    const closing = sessionRef.current;
++    sessionRef.current = null;
 +    setSession(null);
 +    try {
 +      await disconnectPresenceLiveKit();
 +      if (api && closing?.sessionId) await api.closePresenceSession({ sessionId: closing.sessionId });
 +      setStatus("Disconnected");
 +    } catch (error) {
-+      setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "disconnect unavailable")}`);
++      setStatus(`Degraded · ${String((error as { reasonCode?: string; code?: string })?.reasonCode || (error as { code?: string })?.code || "disconnect unavailable")}`);
 +    } finally { setBusy(false); }
 +  };
 +
