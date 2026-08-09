@@ -4,6 +4,7 @@ import {
   connectPresenceLiveKit,
   disconnectPresenceLiveKit,
   getPresenceLiveKitSnapshot,
+  mountPresenceRemoteMedia,
   setPresenceCameraEnabled,
   setPresenceMicrophoneEnabled,
   subscribePresenceLiveKit,
@@ -34,6 +35,7 @@ function desktopApi(): DesktopPresenceApi | null {
 
 export function PresenceWorkspace(): React.JSX.Element {
   const api = useMemo(() => desktopApi(), []);
+  const mediaHostRef = useRef<HTMLDivElement | null>(null);
   const [health, setHealth] = useState<PresenceHealth>({ degraded: true, reasonCode: "unavailable" });
   const [characters, setCharacters] = useState<readonly PresenceCharacter[]>([]);
   const [characterId, setCharacterId] = useState("");
@@ -45,6 +47,10 @@ export function PresenceWorkspace(): React.JSX.Element {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => subscribePresenceLiveKit(setLiveKit), []);
+  useEffect(() => {
+    const host = mediaHostRef.current;
+    return host ? mountPresenceRemoteMedia(host) : undefined;
+  }, []);
   useEffect(() => {
     if (!api) return;
     api.getPresenceHealth().then((next) => {
@@ -125,6 +131,8 @@ export function PresenceWorkspace(): React.JSX.Element {
         <div><strong>Presence</strong><span>CyberVerse Character · SoulX FlashHead backend · LiveKit realtime media</span></div>
         <span className={ready ? "presence-health ready" : "presence-health degraded"}>{ready ? "Ready" : "Degraded"}</span>
       </header>
+      <div ref={mediaHostRef} className="presence-media" aria-label="Live avatar media" />
+      {liveKit.state !== "connected" ? <p className="presence-media-placeholder">Avatar video appears here after LiveKit connects.</p> : null}
       <p className="presence-status" aria-live="polite">{status}</p>
       <label>CyberVerse Character
         <select value={characterId} onChange={(event) => setCharacterId(event.target.value)} disabled={busy || Boolean(session) || !characters.length}>

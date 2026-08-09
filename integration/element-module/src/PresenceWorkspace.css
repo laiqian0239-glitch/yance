@@ -9,6 +9,10 @@
 .yance-presence-workspace header div { display: grid; gap: 4px; }
 .yance-presence-workspace header span, .presence-status, .yance-presence-workspace dd { opacity: .78; }
 .presence-health { font-size: 12px; border: 1px solid currentColor; border-radius: 999px; padding: 3px 8px; }
+.presence-media { min-height: 180px; display: grid; place-items: center; overflow: hidden; border-radius: 12px; background: rgba(0, 0, 0, .32); }
+.presence-media .presence-remote-media { width: 100%; max-height: 360px; object-fit: contain; }
+.presence-media audio.presence-remote-media { min-height: 36px; }
+.presence-media-placeholder { margin: -8px 0 0; font-size: 12px; opacity: .68; }
 .presence-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .presence-actions button, .yance-presence-workspace select { min-height: 34px; }
 .yance-presence-workspace dl { display: grid; gap: 8px; margin: 0; }
