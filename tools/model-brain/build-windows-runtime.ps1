@@ -54,14 +54,44 @@ $BuildPhase = "sdk-materialization"
 # Preserve the reviewed MIT litellm/ source tree byte-for-byte. Some base-SDK
 # imports traverse modules under litellm.proxy; that namespace is upstream SDK
 # source, not evidence that the optional Proxy product or service is activated.
-$sourceCore = Join-Path $source "litellm"
 $litellmTarget = Join-Path $sitePackages "litellm"
 Remove-Item $litellmTarget -Recurse -Force -ErrorAction SilentlyContinue
 Copy-Item (Join-Path $source "litellm") $litellmTarget -Recurse
 
-# Fail closed if packaging changes, deletes or patches any upstream SDK source.
-& git --no-pager diff --no-index --quiet -- $sourceCore $litellmTarget
-if ($LASTEXITCODE -ne 0) { throw "LiteLLM source tree integrity mismatch after materialization" }
+# Verify source tree integrity against the pinned Git tree itself. Comparing two
+# worktree directories with `git diff --no-index` is not a supply-chain identity
+# check on Windows because worktree/path attributes can affect diff semantics.
+# Instead, bind every materialized file to the reviewed tree's exact blob SHA and
+# independently reject any path that is not present in that tree.
+$treeEntries = @(& git -C $source ls-tree -r $ExpectedCoreTree)
+if ($LASTEXITCODE -ne 0 -or $treeEntries.Count -eq 0) { throw "LiteLLM pinned core tree enumeration failed" }
+$expectedPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+foreach ($entry in $treeEntries) {
+  if ($entry -notmatch '^(?<mode>[0-9]{6}) blob (?<blob>[0-9a-f]{40})\t(?<path>.+)$') {
+    throw "LiteLLM pinned core tree entry parse failed: $entry"
+  }
+  $expectedBlob = $Matches['blob']
+  $relative = $Matches['path']
+  [void]$expectedPaths.Add($relative)
+  $targetFile = Join-Path $litellmTarget $relative
+  if (-not (Test-Path -LiteralPath $targetFile -PathType Leaf)) {
+    throw "LiteLLM source path mismatch after materialization: missing=$relative"
+  }
+  $actualBlob = (& git -C $source hash-object --no-filters -- $targetFile).Trim()
+  if ($LASTEXITCODE -ne 0 -or $actualBlob -ne $expectedBlob) {
+    throw "LiteLLM source blob mismatch after materialization: path=$relative expected=$expectedBlob actual=$actualBlob"
+  }
+}
+$actualSourceFiles = @(Get-ChildItem -LiteralPath $litellmTarget -Recurse -File | ForEach-Object {
+  [IO.Path]::GetRelativePath($litellmTarget, $_.FullName).Replace('\','/')
+})
+$unexpectedSourceFiles = @($actualSourceFiles | Where-Object { -not $expectedPaths.Contains($_) })
+if ($unexpectedSourceFiles.Count -gt 0) {
+  throw "LiteLLM unexpected source path after materialization: $($unexpectedSourceFiles -join ',')"
+}
+if ($actualSourceFiles.Count -ne $expectedPaths.Count) {
+  throw "LiteLLM source path set mismatch after materialization: expected=$($expectedPaths.Count) actual=$($actualSourceFiles.Count)"
+}
 $sourceTreePreserved = $true
 
 # The reviewed source tree contains no compiled Rust bridge. Do not mutate the tree;
