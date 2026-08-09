@@ -2,12 +2,17 @@
   "schemaVersion": 1,
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-LEARNING-GROWTH-BRAIN-P0-V1",
+  "workPackage": "V21-LEARNING-GROWTH-BRAIN-P0-V2",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Final fresh-main product authorization after Persona V2 and Model Brain V4 became effective. Mature OSS must replace the existing Yance-owned Learning engines, durable promotion/projection workflow, synthesis scheduler and learned-profile authority. Backend capability, visible Learning UI, privacy/consent controls, dependency closure and retirement of obsolete backend/UI authority are one indivisible package.",
+  "reason": "Superseding fresh-main authorization after merged PR #176 exposed a startup-ownership scope gap. Mature OSS must replace the existing Yance-owned Learning engines, durable promotion/projection workflow, synthesis scheduler and learned-profile authority, and proper-lockfile must replace the Yance-built generic backend process mutex so backend ownership is acquired before any writable SQLite authority. Backend capability, visible Learning UI, privacy/consent controls, dependency closure, startup-order repair and retirement of obsolete backend/UI authority remain one indivisible package.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-learning-growth-brain-p0-v1-authorization.json",
+    "implementationBranch": "product/v21-learning-growth-brain-p0-v1",
+    "reason": "PR #176 merged the earlier 143-path Learning authority before startup-ownership OSS-fit proved that 13 additional exact paths were required. The earlier implementation branch is superseded rather than widened in place; published history remains immutable evidence."
+  },
   "base": {
     "branch": "main",
-    "commit": "ebb839b10f8acb93f29ce9aec15ec9fa392293af"
+    "commit": "bcc775973c8c09b99ac704f8e7dd8c165aa0f5c5"
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
@@ -16,9 +21,9 @@
     "authorizationProposalTransportIsNotImplementationAuthority": true
   },
   "authorizationBranch": {
-    "name": "governance/v21-learning-growth-brain-p0-v1-authorization",
+    "name": "governance/v21-learning-growth-brain-p0-v1-authorization-amendment",
     "allowedChangedPaths": [
-      "governance/layered-ci/v21-learning-growth-brain-p0-v1-authorization.json"
+      "governance/layered-ci/v21-learning-growth-brain-p0-v2-authorization.json"
     ],
     "mustRemainSingleFile": true,
     "mustRemainCleanFromTrustedMain": true
@@ -32,27 +37,27 @@
     "canonicalText": "Join sorted unique paths with LF and append one trailing LF."
   },
   "prerequisites": {
-    "personaV2ImplementationMerge": "37c98cd0fd7d39c10b28ad7e336ce786b5eee9e0",
+    "priorLearningAuthorizationPullRequest": 176,
+    "priorLearningAuthorizationMerge": "bcc775973c8c09b99ac704f8e7dd8c165aa0f5c5",
+    "priorLearningImplementationPullRequest": 177,
+    "priorLearningFailureFirstHead": "b85bf281f73ea0ea58066f90f7b6734f052b4f68",
     "personaV2PostMergeSemanticRepairMerge": "ebb839b10f8acb93f29ce9aec15ec9fa392293af",
     "modelBrainV4ImplementationMerge": "a09ff34348110cd57c527c9de8831cd7d57a478b",
-    "modelBrainV4Status": "MERGED + POST-MERGE GREEN",
-    "modelBrainV4PathSetSha256": "82b7e712c50ae5f433af5d14a3e790f3dd0b0962e30a8b96453c11de29aa22d7",
-    "learningBootstrapPathSetSha256": "c8e7f2f77332eea0e264bcbf750d67aa8df67929ae0911638cf76dd5e93318e3",
-    "learningUiRoutePathSetSha256": "42ef3dfb059895946ed0bae849e4b79b279a2b1ea7b861fbdfc2c962a7e1343e",
-    "privacyRolloutRoutePathSetSha256": "d4e119293726950129be0c54979657d8e84170ffd69bb841bc10acc9e52dcfde",
-    "obsoleteTargetPathCount": 88,
-    "obsoleteTargetPathSetSha256": "cb3376971ba3900418e55e6468ee188cb4b6b22ce27788492f51450412e3ec10"
+    "modelBrainV4PathSetSha256": "82b7e712c50ae5f433af5d14a3e790f3dd0b0962e30a8b96453c11de29aa22d7"
   },
   "implementation": {
-    "branch": "product/v21-learning-growth-brain-p0-v1",
+    "branch": "product/v21-learning-growth-brain-p0-v2",
     "allowedChangedPaths": [
       "THIRD_PARTY_NOTICES.md",
+      "backend/desktopHostedEntry.js",
       "backend/repositories/platformCoreRepository.js",
       "backend/repositories/replyFeedbackRepository.js",
       "backend/repositories/replyLearningProjectionRepository.js",
       "backend/routes/learning.js",
       "backend/routes/store.js",
       "backend/runtime/AppRuntimeComposition.js",
+      "backend/runtime/NamedRuntimeMutex.js",
+      "backend/runtime/RuntimeOwnership.js",
       "backend/server.js",
       "backend/services/aiReplyLearningAuthority.js",
       "backend/services/architectureRuntimeHealthService.js",
@@ -80,6 +85,7 @@
       "backend/store/commands/registerAiReplyCommands.js",
       "backend/store/selectors/customerSocialSelectors.js",
       "backend/store/social/replyFeedbackLearningEngine.js",
+      "backend/tests/architectureClosureV2/wpA/windowsRuntimeMutexPowerShell.test.js",
       "backend/tests/batch26PlatformAiLearningClosure.test.js",
       "backend/tests/batch27DeveloperHandoffV2Closure.test.js",
       "backend/tests/batch28IndependentReviewRootClosure.test.js",
@@ -147,6 +153,11 @@
       "tests/wp0/v21-learning-growth-brain-p0.test.js",
       "tests/wp0/v21-learning-growth-brain-ui.test.js",
       "tests/wp0/v21-learning-growth-brain-windows-runtime.test.js",
+      "tests/wp3/portable-runtime-mutex-endpoint.test.js",
+      "tests/wp3/runtime-path-canonicalization.test.js",
+      "tests/wp3/second-backend-ownership-denied.test.js",
+      "tests/wp3/windows-named-mutex-real.test.js",
+      "tests/wp4/backend-launch-environment-and-phase-diagnostics.test.js",
       "third_party/licenses/apscheduler-MIT.txt",
       "third_party/licenses/assistant-ui-MIT.txt",
       "third_party/licenses/assistant-ui-tool-ui-MIT.txt",
@@ -163,11 +174,15 @@
       "third_party/licenses/opentelemetry-python-Apache-2.0.txt",
       "third_party/licenses/presidio-MIT.txt",
       "third_party/licenses/promptfoo-MIT.txt",
+      "third_party/licenses/proper-lockfile-MIT.txt",
       "third_party/licenses/zod-MIT.txt",
       "tools/learning-growth/build-windows-runtime.ps1",
       "tools/matrix/bootstrap.js",
       "tools/uat/exportPlatformProductionEvidence.js",
       "tools/uat/rootCauseClosureGate.js",
+      "tools/wp3/generate-evidence.js",
+      "tools/wp3/production-runtime-alias-scenario.js",
+      "tools/wp3/windows-named-mutex-evidence.js",
       "upstream-patches/element-web/0002-yance-learning-assistant-ui-deps.patch",
       "vendor/assistant-ui-tool-ui/v2026.2.13/LICENSE.md",
       "vendor/assistant-ui-tool-ui/v2026.2.13/UPSTREAM.json",
@@ -190,8 +205,8 @@
       "vendor/assistant-ui-tool-ui/v2026.2.13/shared/schema.ts",
       "vendor/assistant-ui-tool-ui/v2026.2.13/shared/use-action-buttons.tsx"
     ],
-    "approvedChangedFileCount": 143,
-    "approvedChangedFileSetSha256": "b7bed2fe518d71036ec23a73bc8b26c84833461a70f5a7b105e0de2b4d31b29c",
+    "approvedChangedFileCount": 156,
+    "approvedChangedFileSetSha256": "c000b6a59e83a48d0f3918d952ba3858568783def0f0b684750fdb200d39f183",
     "newDependencyAllowed": true,
     "packageManifestModificationAllowed": true,
     "workflowModificationAllowed": false,
@@ -235,7 +250,8 @@
     "assistantUi": "@assistant-ui/react 0.15.1 @ 6306c74b479020a0be96438eebd9be8dc32b82da; MIT",
     "toolUi": "assistant-ui/tool-ui v2026.2.13 @ ee6389647e997f8637c21187f3e49c2db6cde3a5; MIT",
     "zod": "zod 4.4.3 @ 1fb56a5c18c27102dbc92260a4007c7732a0ccca; MIT",
-    "lucide": "lucide-react 0.563.0 @ e9e060a851a44ab9c33e296caeec9c6c778c51d1; ISC/MIT"
+    "lucide": "lucide-react 0.563.0 @ e9e060a851a44ab9c33e296caeec9c6c778c51d1; ISC/MIT",
+    "properLockfile": "moxystudio/node-proper-lockfile v4.1.2 @ 9f8c303c91998e8404a911dc11c54029812bca69; MIT; pure JavaScript; atomic mkdir lock with mtime stale/update and compromised-lock detection; realpath=false required for pre-SQLite acquisition"
   },
   "architecture": {
     "modelExecution": "All live Learning model calls use effective Model Brain V4/LiteLLM authority; Learning owns no provider credentials or physical routing.",
@@ -248,46 +264,13 @@
     "coach": "Existing Letta Agent SDK/runtime owns Coach state/agent loop; assistant-ui/tool-ui owns approval/question/progress UI.",
     "factsAndGoals": "Graphiti remains relationship-fact authority; Parlant remains Journey/Goal authority; Persona changes must pass Persona authority.",
     "legacyData": "Historical old Learning SQLite rows may remain dormant for data safety, but no production path may read, write, promote or inject them. Explicit user purge may delete them through the new privacy boundary.",
+    "runtimeOwnership": "Electron requestSingleInstanceLock remains app-instance authority only. proper-lockfile owns backend cross-process exclusion and must be acquired on the canonical runtime SQLite target before AuthorityWriteHost or any writable SQLite broker opens. RuntimeStateStore lease, heartbeat and fencing remain Yance product-level runtime authority and are not replaced by the file lock.",
     "secondYanceLearningFrameworkForbidden": true
-  },
-  "uiCompletion": {
-    "topLevelLearningEntryRequired": true,
-    "requiredSurfaces": [
-      "Overview/Daily Review",
-      "Learning Coach",
-      "Evidence / Mistake & Success Library",
-      "Proposals",
-      "Experiments",
-      "Rollout / Promotion / Rollback",
-      "Privacy / Consent"
-    ],
-    "perConversationDoNotLearnRequired": true,
-    "realRuntimeActionsRequired": true,
-    "fakeOrDeadButtonsForbidden": true,
-    "approvalMeansEnterEvaluationNotDeploy": true,
-    "legacyDuplicateLearningUiMustBeRemoved": true
-  },
-  "legacyRetirement": {
-    "productionAuthorityFilesToDeleteOrDeauthorize": [
-      "backend/store/social/replyFeedbackLearningEngine.js",
-      "backend/services/replyLearningScopeAuthority.js",
-      "backend/services/learningPreferenceAuthority.js",
-      "backend/services/learningSynthesisScheduler.js",
-      "backend/services/replyLearningGovernanceService.js",
-      "backend/services/aiReplyLearningAuthority.js",
-      "backend/repositories/replyLearningProjectionRepository.js",
-      "backend/services/replyLearningQualityService.js",
-      "backend/repositories/replyFeedbackRepository.js",
-      "backend/services/replyLearningSummaryService.js"
-    ],
-    "oldProfileInjectionForbidden": true,
-    "oldL1L2L3PromotionForbidden": true,
-    "oldPendingShadowActiveStateMachineForbidden": true,
-    "oldProjectionLeaseRetryDlqWorkflowForbidden": true
   },
   "failureFirst": {
     "firstImplementationCommitTestsOnly": true,
     "testPaths": [
+      "backend/tests/architectureClosureV2/wpA/windowsRuntimeMutexPowerShell.test.js",
       "backend/tests/learningEvidencePipeline.test.js",
       "backend/tests/learningGrowthBrainP0.test.js",
       "backend/tests/learningLegacyAuthorityCutover.test.js",
@@ -296,7 +279,12 @@
       "tests/wp0/v21-learning-coach-contract.test.js",
       "tests/wp0/v21-learning-growth-brain-p0.test.js",
       "tests/wp0/v21-learning-growth-brain-ui.test.js",
-      "tests/wp0/v21-learning-growth-brain-windows-runtime.test.js"
+      "tests/wp0/v21-learning-growth-brain-windows-runtime.test.js",
+      "tests/wp3/portable-runtime-mutex-endpoint.test.js",
+      "tests/wp3/runtime-path-canonicalization.test.js",
+      "tests/wp3/second-backend-ownership-denied.test.js",
+      "tests/wp3/windows-named-mutex-real.test.js",
+      "tests/wp4/backend-launch-environment-and-phase-diagnostics.test.js"
     ],
     "causalRedMustCover": [
       "required OSS dependencies/runtime/vendor sources absent on fresh main",
@@ -306,12 +294,14 @@
       "Presidio privacy boundary and per-conversation do-not-learn enforcement absent",
       "OpenFeature/flagd staged rollout plus Langfuse experiment/prompt-version wiring absent",
       "DSPy/GEPA live model work not bound end-to-end through Model Brain V4",
-      "Promptfoo precomputed regression and sealed Windows Learning runtime absent"
+      "Promptfoo precomputed regression and sealed Windows Learning runtime absent",
+      "desktop-hosted backend opens AuthorityWriteHost/writable SQLite before backend cross-process ownership is acquired",
+      "proper-lockfile runtime ownership adapter is absent while Yance PowerShell/loopback mutex infrastructure remains active or importable"
     ],
     "testWeakeningForbidden": true
   },
   "mandatoryContracts": [
-    "Final implementation diff from the authorization merge is exactly the authorized 143-path set and digest b7bed2fe518d71036ec23a73bc8b26c84833461a70f5a7b105e0de2b4d31b29c.",
+    "Final implementation diff from the authorization merge is exactly the authorized 156-path set and digest c000b6a59e83a48d0f3918d952ba3858568783def0f0b684750fdb200d39f183.",
     "No legacy Yance Learning engine/authority/scheduler/promotion/projection workflow remains a production fallback behind OSS.",
     "No historical Learning SQLite profile/ledger/receipt becomes production truth after cutover.",
     "Actual sent message, user correction/rejection, contact reaction and Parlant Journey outcome are evidence; send alone is not success.",
@@ -320,15 +310,18 @@
     "Fact, strategy hypothesis and Persona mutation remain separate authority domains.",
     "Promotion lifecycle is Evidence -> Hypothesis -> Candidate -> Regression -> Shadow -> staged rollout -> Promote/Rollback.",
     "All visible UI controls call real runtime actions and expose failure-closed/offline state.",
+    "Backend cross-process ownership is acquired through pinned proper-lockfile before AuthorityWriteHost or any writable SQLite broker opens; Electron requestSingleInstanceLock is not treated as backend ownership.",
+    "RuntimeStateStore lease, heartbeat and fencing remain the product-level write authority after the OSS process lock and must fail closed on stale ownership.",
+    "The Yance-built PowerShell System.Threading.Mutex and portable loopback TCP lock algorithms are removed/de-authorized rather than retained as fallback.",
     "Final exact Head requires applicable Stage, Layered, ACV2, Learning Windows and independent P0=0/P1=0 before final owner merge authorization."
   ],
   "requiredSequence": [
-    "one-file authorization proposal from fresh main -> applicable gates/review",
+    "one-file superseding authorization proposal from fresh main -> applicable gates/review",
     "ordinary two-parent authorization merge",
-    "create product/v21-learning-growth-brain-p0-v1 from exact authorization merge",
-    "first implementation commit changes only the nine failure-first test paths and records causal RED",
-    "implement OSS dependencies/runtime/evidence/privacy/optimization/regression/rollout/Coach/UI and legacy retirement within exact scope",
-    "seal exact 143 paths/digest and applicable Stage/Layered/ACV2/Windows GREEN",
+    "create product/v21-learning-growth-brain-p0-v2 from exact authorization merge",
+    "first implementation commit changes only the fifteen failure-first test paths and records causal RED",
+    "implement OSS dependencies/runtime/evidence/privacy/optimization/regression/rollout/Coach/UI, legacy retirement and pre-SQLite backend ownership refactor within exact scope",
+    "seal exact 156 paths/digest and applicable Stage/Layered/ACV2/Windows GREEN",
     "self-independent exact-head review and repair P0/P1",
     "stop at final implementation merge boundary"
   ],
@@ -347,6 +340,7 @@
     "customLearningAgentServer": true,
     "customChatStreamingFramework": true,
     "customApprovalFramework": true,
+    "customCrossProcessRuntimeMutex": true,
     "learningProviderCredentials": true,
     "learningPhysicalModelRouting": true,
     "promptfooDirectProviderInvocation": true,
