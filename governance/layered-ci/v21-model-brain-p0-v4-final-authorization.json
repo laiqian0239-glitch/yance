@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-MODEL-BRAIN-P0-V4",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Clean supersession of unmerged V3 after exact-head WP-A exposed one cross-work-package gap: Round12 send policy still mints the retired Yance routeReceipt. V4 preserves the pinned LiteLLM replacement and adds only the current Model Brain execution-evidence transport into SendPolicyAuthority; Yance physical routing/scoring must never return.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-model-brain-p0-v3-final-authorization.json",
+    "implementationBranch": "product/v21-model-brain-p0-v3",
+    "reason": "V3 exact Head 7f852691ca89d3089ad1b10837e97cc55a226361 remains unmerged. WP-A 31293753813 passed 191/192 and failed only because backend/tests/round12PlatformCoreAuthorities.test.js calls retired aiQualityRouteAuthority.routeReceipt and receives MODEL_ROUTING_MANAGED_BY_LITELLM. V3's 40-path authority excludes the send evidence boundary, so repairing it inside V3 would violate scope."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "3bc8df65d1abe1edb19ff1706c8555c57a8ee30e"
+  },
+  "evidence": {
+    "v3AuthorizationPullRequest": 156,
+    "v3AuthorizationMerge": "86164ecf5aff844a16e6a884f8b1808c69c0c093",
+    "v3ImplementationPullRequest": 158,
+    "v3ExactHead": "7f852691ca89d3089ad1b10837e97cc55a226361",
+    "v3ExactTree": "4e3c062666f5ff3192dff64cdb38953dc1b57671",
+    "v3PathCount": 40,
+    "v3PathSetSha256": "23bf7a688309f488870f82bb9e99b4db4f55eb0c133dc66c3729af55bc3ea401",
+    "v3Runs": {
+      "stage": 31293753894,
+      "acv2": 31293753823,
+      "modelBrainWindows": 31293753828,
+      "wpA": 31293753813
+    },
+    "v3WpAFailure": {
+      "tests": 192,
+      "pass": 191,
+      "fail": 1,
+      "path": "backend/tests/round12PlatformCoreAuthorities.test.js",
+      "reasonCode": "MODEL_ROUTING_MANAGED_BY_LITELLM"
+    },
+    "l2Closure": {
+      "pullRequest": 166,
+      "merge": "3bc8df65d1abe1edb19ff1706c8555c57a8ee30e",
+      "postMergeRun": 31297222294,
+      "conclusion": "success",
+      "modelBrainV3RealGitL2Verified": true
+    }
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-model-brain-p0-v4-final-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-model-brain-p0-v4-final-authorization.json"
+    ],
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Exact normalized repository-relative paths; unique; JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join sorted unique paths with LF and append one trailing LF."
+  },
+  "implementation": {
+    "branch": "product/v21-model-brain-p0-v4",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-model-brain-p0-windows.yml",
+      "backend/routes/models.js",
+      "backend/services/aiBrainOrchestrator.js",
+      "backend/services/aiGateway.js",
+      "backend/services/aiQualityRouteAuthority.js",
+      "backend/services/aiReplyOutboxService.js",
+      "backend/services/aiTaskRoleReadinessAuthority.js",
+      "backend/services/bilingualUnderstandingService.js",
+      "backend/services/contextAwareReplyBrain.js",
+      "backend/services/diagnosticsService.js",
+      "backend/services/mediaIntelligenceService.js",
+      "backend/services/modelAutoActivationService.js",
+      "backend/services/modelBrainProjection.js",
+      "backend/services/modelBrainRuntime.js",
+      "backend/services/modelExecutor.js",
+      "backend/services/modelRegistry.js",
+      "backend/services/modelStatusProjection.js",
+      "backend/services/openRouterAutoConfigurationService.js",
+      "backend/services/openRouterFrontierCandidateAuthority.js",
+      "backend/services/openRouterOnboardingSmokeService.js",
+      "backend/services/replyBrainModelAuthority.js",
+      "backend/services/round12ArchitectureStatusService.js",
+      "backend/services/runtimeArtifactBootstrapService.js",
+      "backend/services/sendPolicyAuthority.js",
+      "backend/services/sendQueueService.js",
+      "backend/services/systemCenterService.js",
+      "backend/tests/round12PlatformCoreAuthorities.test.js",
+      "config/upstreams/v21-model-brain-p0.json",
+      "docs/superpowers/plans/2026-08-09-yance-v21-model-brain-p0.md",
+      "frontend/index.html",
+      "frontend/js/r32-ai-workbench-runtime.js",
+      "frontend/js/r32-model-runtime-snapshot-authority.js",
+      "frontend/js/r32-openrouter-presentation-authority.js",
+      "frontend/js/r32-product-area-navigation.js",
+      "frontend/js/r32-route-draft-authority.js",
+      "frontend/r32-system-center.css",
+      "frontend/r32-system-center.js",
+      "runtime/model-brain/generate_runtime_sbom.py",
+      "runtime/model-brain/yance_litellm_worker.py",
+      "tests/wp0/v21-model-brain-p0.test.js",
+      "tests/wp0/v21-model-brain-retirement.test.js",
+      "tests/wp0/v21-model-brain-runtime.test.js",
+      "tests/wp0/v21-model-brain-ui.test.js",
+      "third_party/licenses/litellm-MIT.txt",
+      "tools/model-brain/build-windows-runtime.ps1"
+    ],
+    "approvedChangedFileCount": 45,
+    "approvedChangedFileSetSha256": "82b7e712c50ae5f433af5d14a3e790f3dd0b0962e30a8b96453c11de29aa22d7",
+    "newDependencyAllowed": false,
+    "newNodeDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-model-brain-p0-windows.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "9f33f7160c3495119793d7342637bba27423f56b11e534c09be4180417746c7f"
+    }
+  },
+  "upstream": {
+    "repository": "BerriAI/litellm",
+    "release": "v1.95.0",
+    "commit": "72a4a55f43ea7266de589f005d0d33624fe5d555",
+    "commitTree": "98627d729e47b181cebb6ae8afe60201bbd56993",
+    "mitCoreTree": "cb54d17e6ce0a0ad98c992f9642957faa998bbca",
+    "rootLicenseBlob": "3bfef5bae9b48c334acf426d5b7f21bc1913aab9",
+    "uvLockBlob": "08d10667fb1fde67211a74ad1d4c747c0fb84cf3",
+    "productionAuthority": "LiteLLM base SDK Router + strict tag filtering + ComplexityRouter"
+  },
+  "architecture": {
+    "physicalRoutingAuthority": "LiteLLM v1.95.0 only",
+    "executionEvidenceSource": "modelBrainRuntime.safeEvidence -> aiGateway result.evidence",
+    "transport": [
+      "contextAwareReplyBrain -> generationMetadata.modelBrainExecutionEvidence",
+      "existing StoreManager persists generationMetadata unchanged into candidate/outbox",
+      "aiReplyOutboxService -> sendQueueService",
+      "sendQueueService -> SendPolicyAuthority"
+    ],
+    "storeChangeRequired": false,
+    "historicalReceiptRule": "verifyRouteReceipt may remain only for already-issued historical records; no V4 production path may call routeReceipt or treat a historical receipt as current routing authority.",
+    "sendPolicyRule": "SendPolicyAuthority validates/binds current execution evidence and platform capability; it must not rank models or recreate quality tiers.",
+    "manualRule": "Manual replies remain sendable without fabricated Model Brain evidence.",
+    "learningRule": "Emergency is always learning-ineligible; model-generated learning eligibility requires valid current Model Brain execution evidence plus existing non-routing learning gates."
+  },
+  "newlyAuthorizedCrossWorkPackagePaths": [
+    "backend/services/contextAwareReplyBrain.js",
+    "backend/services/aiReplyOutboxService.js",
+    "backend/services/sendQueueService.js",
+    "backend/services/sendPolicyAuthority.js",
+    "backend/tests/round12PlatformCoreAuthorities.test.js"
+  ],
+  "failureFirst": {
+    "firstImplementationCommitTestsOnly": true,
+    "testPaths": [
+      "backend/tests/round12PlatformCoreAuthorities.test.js",
+      "tests/wp0/v21-model-brain-p0.test.js",
+      "tests/wp0/v21-model-brain-retirement.test.js",
+      "tests/wp0/v21-model-brain-runtime.test.js",
+      "tests/wp0/v21-model-brain-ui.test.js"
+    ],
+    "causalRedMustCover": [
+      "LiteLLM replacement absent and legacy routing/scoring active on fresh main",
+      "Round12 current generated-reply send contract requires Model Brain execution evidence and never mints routeReceipt",
+      "execution evidence survives generation -> authoritative Outbox -> send queue -> SendPolicyAuthority",
+      "missing/malformed/mismatched execution evidence fails closed for model-generated learning eligibility",
+      "manual replies require no fake model evidence",
+      "emergency sends remain learning-ineligible",
+      "no production path calls aiQualityRouteAuthority.routeReceipt"
+    ],
+    "testWeakeningForbidden": true
+  },
+  "mandatoryContracts": [
+    "V3 PR #158 remains unmerged historical evidence after V4 authorization becomes effective.",
+    "Final V4 diff from its authorization merge is exactly 45 paths with digest 82b7e712c50ae5f433af5d14a3e790f3dd0b0962e30a8b96453c11de29aa22d7.",
+    "Reconcile V3 changes onto fresh main; never overwrite later trusted-main Persona/governance changes with stale whole-file blobs.",
+    "LiteLLM alone owns physical selection/retry/fallback/cooldown/runtime health/complexity routing.",
+    "No production code may restore routeReceipt creation, Yance route scoring, champion/primary/fallback, or a second model gateway.",
+    "Current Model Brain result.evidence is carried into the frozen approved send command through existing authoritative metadata storage.",
+    "No new storage infrastructure or dependency is introduced.",
+    "Final exact Head requires Stage, delegated L2 full_work_package, ACV2, WP-A, Model Brain Windows GREEN and self-independent P0=0/P1=0."
+  ],
+  "requiredSequence": [
+    "One-file authorization proposal from fresh main -> gates/review",
+    "ordinary two-parent authorization merge",
+    "create product/v21-model-brain-p0-v4 from exact authorization merge",
+    "first implementation commit is the five test paths only and records causal RED",
+    "reconcile/replay complete V3 LiteLLM replacement plus execution-evidence send migration",
+    "seal exact 45 paths/digest and Stage/Layered/ACV2/WP-A/Windows GREEN",
+    "self-independent exact-head review and repair P0/P1",
+    "stop at final V4 implementation merge boundary"
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "secondModelGateway": true,
+    "secondYanceRouter": true,
+    "yancePhysicalModelScoring": true,
+    "restoreRouteReceiptCreation": true,
+    "newEvidenceDatabase": true,
+    "packageJsonModification": true,
+    "packageLockModification": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true,
+    "rebaseMerge": true,
+    "productionRelease": true,
+    "publish": true,
+    "promotion": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
