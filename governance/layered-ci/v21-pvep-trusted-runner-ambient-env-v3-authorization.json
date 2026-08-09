@@ -57,11 +57,11 @@
     "name": "deterministicTrustedCommandEnvironmentAndFailureEvidence",
     "requirements": [
       "Base-owned command execution must not inherit ambient Node process-control variables such as NODE_OPTIONS or NODE_PATH.",
-      "The child environment must be constructed from an explicit minimal cross-platform allowlist required for executable discovery and temporary-directory operation; arbitrary workflow or runner variables must not flow through by default.",
+      "The child environment must be constructed from an explicit minimal cross-platform allowlist required for executable discovery and temporary-directory operation; arbitrary repository, workflow, runner, and secret environment variables must not flow through by default.",
       "Environment key matching must account for Windows case-insensitive environment semantics.",
       "The trusted command set remains the sole authority for executable, argv, expected exit code, generated roots, and artifact declarations.",
       "A failed child command must still produce the existing evidence JSON with verificationStatus VERIFIED_FAIL before the runner exits nonzero.",
-      "Failure diagnostics written to stderr must be machine-verifiable and include commandId, expected/observed exit code, signal or spawn error code, and stdout/stderr digests, without raw child output or environment values.",
+      "Failure diagnostics written to stderr must be machine-verifiable and safe: include commandId, expected/observed exit code, signal or spawn error code, and stdout/stderr digests, but never raw child stdout/stderr or secret-bearing environment values.",
       "Workspace Head and dirty-worktree fail-closed checks remain unchanged.",
       "No retry, timeout relaxation, ignored failure, fallback command, shell execution, or candidate-controlled override is permitted."
     ]
@@ -77,8 +77,8 @@
     ],
     "requiredGreen": [
       "The same command-set-valid trusted command passes with hostile parent NODE_OPTIONS and NODE_PATH because those variables are not inherited by the child.",
-      "Arbitrary ambient variables are absent from the child environment unless explicitly allowlisted as platform-critical.",
-      "A deliberate child exit remains fail-closed and emits structured digest-only diagnostics with no raw child output.",
+      "Arbitrary ambient variables and secret-like variables are absent from the child environment unless explicitly allowlisted as platform-critical.",
+      "A deliberate child exit remains fail-closed and emits safe structured diagnostics with no raw child stdout or stderr.",
       "Existing base-owned runner, exact-Head, workspace cleanliness, trusted command-set ownership, evidence digest, and subject binding tests remain GREEN on Linux and Windows."
     ]
   },
