@@ -7,7 +7,7 @@
   "reason": "Independent exact-scope review of Media authorization PR #180 proved that trusted main has unknownPathFailsClosed=true and ten future Media supply-chain/runtime/Element UI paths are not recognized by the base-owned WP0 routing policy. Candidate-owned routing edits are forbidden. This prerequisite authorizes only an exact current-main route bootstrap; it creates no Media product authority and does not widen the frozen 23-path Media implementation scope.",
   "base": {
     "branch": "main",
-    "commit": "bcc775973c8c09b99ac704f8e7dd8c165aa0f5c5"
+    "commit": "ed90d68d651572e517591b0ad2707166dee518d0"
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
@@ -38,7 +38,7 @@
     "sourceMediaAuthorizationHead": "3e631243b01718c1c0535504461262d52c070a7d",
     "sourceMediaImplementationPathCount": 23,
     "sourceMediaImplementationPathSetSha256": "5285766f6304074ecdeb098409b3b9fdadcd5be84c8acfdf0e2332dbad7aa5bf",
-    "trustedRoutingPolicyCommit": "bcc775973c8c09b99ac704f8e7dd8c165aa0f5c5",
+    "trustedRoutingPolicyCommit": "ed90d68d651572e517591b0ad2707166dee518d0",
     "trustedRoutingPolicyBlob": "7ced911c5513e5a6522f8cd408b0cb2b8f8bf563",
     "unknownPathFailsClosed": true,
     "classifier": "tools/layered-ci/wp0-routing.js#classifyWp0Route",
