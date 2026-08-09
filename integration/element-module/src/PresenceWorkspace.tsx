@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./PresenceWorkspace.css";
 import {
   connectPresenceLiveKit,
@@ -28,6 +28,8 @@ export function PresenceWorkspace(): React.JSX.Element {
   const api = useMemo(() => desktopApi(), []);
   const [health, setHealth] = useState<PresenceHealth>({ degraded: true, reasonCode: "unavailable" });
   const [session, setSession] = useState<PresenceSession | null>(null);
+  const sessionRef = useRef<PresenceSession | null>(null);
+  const aliveRef = useRef(true);
   const [liveKit, setLiveKit] = useState<PresenceLiveKitSnapshot>(getPresenceLiveKitSnapshot());
   const [avatarId, setAvatarId] = useState("flash-head");
   const [status, setStatus] = useState("Presence unavailable");
@@ -37,38 +39,67 @@ export function PresenceWorkspace(): React.JSX.Element {
   useEffect(() => {
     if (!api) return;
     api.getPresenceHealth().then((next) => {
+      if (!aliveRef.current) return;
       setHealth(next);
       setStatus(next.available ? "CyberVerse ready · LiveKit disconnected" : `Degraded · ${next.reasonCode || "unavailable"}`);
-    }).catch((error) => setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "unavailable")}`));
+    }).catch((error) => {
+      if (aliveRef.current) setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "unavailable")}`);
+    });
   }, [api]);
-  useEffect(() => () => { void disconnectPresenceLiveKit(); }, []);
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+      const closing = sessionRef.current;
+      sessionRef.current = null;
+      void disconnectPresenceLiveKit()
+        .catch(() => undefined)
+        .then(() => closing?.sessionId && api ? api.closePresenceSession({ sessionId: closing.sessionId }).catch(() => undefined) : undefined);
+    };
+  }, [api]);
 
   const connect = async (): Promise<void> => {
     if (!api || busy) return;
     setBusy(true);
+    let created: PresenceSession | null = null;
     try {
-      const next = await api.createPresenceSession({ avatarId });
-      setSession(next);
-      await connectPresenceLiveKit({ livekitUrl: next.livekitUrl, livekitToken: next.livekitToken });
+      created = await api.createPresenceSession({ avatarId });
+      if (!aliveRef.current) {
+        await api.closePresenceSession({ sessionId: created.sessionId }).catch(() => undefined);
+        return;
+      }
+      sessionRef.current = created;
+      setSession(created);
+      await connectPresenceLiveKit({ livekitUrl: created.livekitUrl, livekitToken: created.livekitToken });
+      if (!aliveRef.current) {
+        await disconnectPresenceLiveKit().catch(() => undefined);
+        return;
+      }
       setStatus("Connected · CyberVerse avatar is streaming through LiveKit");
     } catch (error) {
-      setSession(null);
+      const closing = sessionRef.current || created;
+      sessionRef.current = null;
+      if (aliveRef.current) setSession(null);
       await disconnectPresenceLiveKit().catch(() => undefined);
-      setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "connection unavailable")}`);
-    } finally { setBusy(false); }
+      if (closing?.sessionId) await api.closePresenceSession({ sessionId: closing.sessionId }).catch(() => undefined);
+      if (aliveRef.current) setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "connection unavailable")}`);
+    } finally {
+      if (aliveRef.current) setBusy(false);
+    }
   };
 
   const disconnect = async (): Promise<void> => {
     if (busy) return;
     setBusy(true);
-    const closing = session;
+    const closing = sessionRef.current;
+    sessionRef.current = null;
     setSession(null);
     try {
       await disconnectPresenceLiveKit();
       if (api && closing?.sessionId) await api.closePresenceSession({ sessionId: closing.sessionId });
       setStatus("Disconnected");
     } catch (error) {
-      setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "disconnect unavailable")}`);
+      setStatus(`Degraded · ${String((error as { reasonCode?: string; code?: string })?.reasonCode || (error as { code?: string })?.code || "disconnect unavailable")}`);
     } finally { setBusy(false); }
   };
 
