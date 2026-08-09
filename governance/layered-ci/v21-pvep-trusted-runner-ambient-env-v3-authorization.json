@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PVEP-TRUSTED-RUNNER-AMBIENT-ENV-HARDENING-P0-V3",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Replace the V2 implementation lineage because PR #206's first test-only commit did not prove the ambient-environment causal RED: its node -e argv contained a backslash escape and the existing runner rejected the command set with EVIDENCE_COMMAND_SET_INVALID before child environment inheritance was observed. The safe-diagnostic RED was causal, but V2 required both REDs in the first implementation commit. Published history cannot be amended, rebased, or force-pushed. V3 authorizes the same bottom-layer runner repair with a command-set-valid failure-first fixture and direct execution of the exact PVEP contract before product repair.",
+  "base": {
+    "branch": "main",
+    "commit": "3103ceb291230e8a20e6056b4dfe0f146deaa1d3"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-pvep-trusted-runner-ambient-env-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-pvep-trusted-runner-ambient-env-v3-authorization.json"
+    ],
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-pvep-trusted-runner-ambient-env-v3",
+    "allowedChangedPaths": [
+      "tests/verification/pvep-trusted-runner-contract.test.js",
+      "tools/verification/pvep-trusted-runner.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "92ca188edf8203e81c5d7b93f2877b7b8cff3656a55cdfc96902d28df1cb0b8c",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "firstCommitMustBeTestOnly": true,
+    "firstCommitAllowedChangedPaths": [
+      "tests/verification/pvep-trusted-runner-contract.test.js"
+    ],
+    "firstCommitChangedFileSetSha256": "049263a7af5af21a32d8aebd41feaff233f191d8f1733ae9122cf2a785abfde5"
+  },
+  "ossFit": {
+    "disposition": "EXISTING_PVEP_HARDENING_NO_NEW_INFRASTRUCTURE",
+    "newYanceFrameworkAuthorized": false,
+    "newThirdPartyDependencyRequired": false,
+    "basis": "Repair the existing PVEP base-owned runner and its contract tests only, using Node.js core process primitives."
+  },
+  "v2LineageDisposition": {
+    "authorizationPullRequest": 205,
+    "authorizationMergeCommit": "3103ceb291230e8a20e6056b4dfe0f146deaa1d3",
+    "implementationPullRequest": 206,
+    "implementationFirstHead": "aba1db108ea2cf109f5e226119a6b089836236cb",
+    "implementationDisposition": "CLOSED_UNMERGED_INVALID_FAILURE_FIRST_FIXTURE",
+    "productRepairCommitted": false
+  },
+  "requiredGenericCapability": {
+    "name": "deterministicTrustedCommandEnvironmentAndFailureEvidence",
+    "requirements": [
+      "Base-owned command execution must not inherit ambient Node process-control variables such as NODE_OPTIONS or NODE_PATH.",
+      "The child environment must be constructed from an explicit minimal cross-platform allowlist required for executable discovery and temporary-directory operation; arbitrary repository, workflow, runner, and secret environment variables must not flow through by default.",
+      "Environment key matching must account for Windows case-insensitive environment semantics.",
+      "The trusted command set remains the sole authority for executable, argv, expected exit code, generated roots, and artifact declarations.",
+      "A failed child command must still produce the existing evidence JSON with verificationStatus VERIFIED_FAIL before the runner exits nonzero.",
+      "Failure diagnostics written to stderr must be machine-verifiable and safe: include commandId, expected/observed exit code, signal or spawn error code, and stdout/stderr digests, but never raw child stdout/stderr or secret-bearing environment values.",
+      "Workspace Head and dirty-worktree fail-closed checks remain unchanged.",
+      "No retry, timeout relaxation, ignored failure, fallback command, shell execution, or candidate-controlled override is permitted."
+    ]
+  },
+  "failureFirst": {
+    "directRedCommand": "node --test --test-concurrency=1 tests/verification/pvep-trusted-runner-contract.test.js",
+    "requiredCausalRed": [
+      "The first V3 implementation commit changes only tests/verification/pvep-trusted-runner-contract.test.js.",
+      "The exact directRedCommand must be executed against the exact first Head before product repair; Stage test:wp0 success is not a substitute because tools/wp0/run-tests.js enumerates only tests/wp0/*.test.js.",
+      "The ambient-environment trusted command fixture must satisfy the existing validateCommandSet contract and must not contain a backslash in executable or argv.",
+      "The ambient test must reach trusted child execution and fail because current execution inherits NODE_OPTIONS, NODE_PATH, or an arbitrary ambient variable, not because validation or fixture setup failed.",
+      "The deliberate child-failure test must fail only because structured child-failure diagnostics are absent while VERIFIED_FAIL evidence is preserved."
+    ],
+    "requiredGreen": [
+      "The same command-set-valid trusted command passes with hostile parent NODE_OPTIONS and NODE_PATH because those variables are not inherited by the child.",
+      "Arbitrary ambient variables and secret-like variables are absent from the child environment unless explicitly allowlisted as platform-critical.",
+      "A deliberate child exit remains fail-closed and emits safe structured diagnostics with no raw child stdout or stderr.",
+      "Existing base-owned runner, exact-Head, workspace cleanliness, trusted command-set ownership, evidence digest, and subject binding tests remain GREEN on Linux and Windows."
+    ]
+  },
+  "requiredSequence": [
+    "authorization exact Head passes required governance, Stage, Layered, ACV2, PVEP, and cross-platform checks plus independent review",
+    "immediately before authorization merge, live main must still equal base.commit exactly; zero-path-overlap drift is not sufficient",
+    "authorization ordinary two-parent merges with parent[0] exactly equal to base.commit",
+    "create fix/v21-pvep-trusted-runner-ambient-env-v3 from that exact authorization merge commit",
+    "first implementation commit changes only tests/verification/pvep-trusted-runner-contract.test.js",
+    "execute failureFirst.directRedCommand on that exact first Head and verify both intended causal REDs",
+    "repair tools/verification/pvep-trusted-runner.js only after both intended causal REDs are independently observed",
+    "seal exact-Head Linux and Windows verification plus repository gates and independent review",
+    "stop at implementation final merge boundary for explicit merge authorization",
+    "after the root repair is trusted-main code, revalidate PR #192 against the fresh trusted base without weakening or bypassing PVEP"
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "ordinaryTwoParentMergeRequired": true,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true,
+    "gateWeakeningForbidden": true
+  }
+}
