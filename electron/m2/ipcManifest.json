@@ -3325,6 +3325,320 @@
       "currentObservation": "Pause/resume maps to native Parlant Session manual/auto mode; renderer receives only minimized status/progress."
     },
     {
+      "channel": "desktop:voice-brain-health",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_VOICE_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep SenseVoice as ASR authority, CosyVoice as cloned-speech authority, local/private profile custody in main, and existing send-media-stream as the sole final send authority.",
+      "crossModuleDependency": "Voice runtime is a thin main-process adapter over sealed SenseVoice/CosyVoice artifacts; final send remains owned by the existing Yance media send authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "getVoiceBrainHealth",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "currentObservation": "Read-only local SenseVoice/CosyVoice readiness projection; no process command, filesystem path, or raw profile sample is exposed."
+    },
+    {
+      "channel": "desktop:voice-brain-transcribe",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_VOICE_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "language"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep SenseVoice as ASR authority, CosyVoice as cloned-speech authority, local/private profile custody in main, and existing send-media-stream as the sole final send authority.",
+      "crossModuleDependency": "Voice runtime is a thin main-process adapter over sealed SenseVoice/CosyVoice artifacts; final send remains owned by the existing Yance media send authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "translateToChinese": {
+            "type": "boolean"
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "transcribeVoiceAudio",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "currentObservation": "Main owns the audio file picker; renderer cannot submit a filesystem path. Transcription delegates only to SenseVoice."
+    },
+    {
+      "channel": "desktop:voice-brain-enroll-profile",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_VOICE_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "promptText"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep SenseVoice as ASR authority, CosyVoice as cloned-speech authority, local/private profile custody in main, and existing send-media-stream as the sole final send authority.",
+      "crossModuleDependency": "Voice runtime is a thin main-process adapter over sealed SenseVoice/CosyVoice artifacts; final send remains owned by the existing Yance media send authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "language": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "promptText": {
+            "type": "string",
+            "maxLength": 20000
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "enrollVoiceProfile",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "currentObservation": "Main owns the audio file picker; selected voice sample remains local/private and renderer receives only minimized profile metadata."
+    },
+    {
+      "channel": "desktop:voice-brain-delete-profile",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_VOICE_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "voiceProfileId"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep SenseVoice as ASR authority, CosyVoice as cloned-speech authority, local/private profile custody in main, and existing send-media-stream as the sole final send authority.",
+      "crossModuleDependency": "Voice runtime is a thin main-process adapter over sealed SenseVoice/CosyVoice artifacts; final send remains owned by the existing Yance media send authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "voiceProfileId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "voiceProfileId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "deleteVoiceProfile",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "currentObservation": "Deletes only a validated local Voice profile through the main-owned Voice runtime."
+    },
+    {
+      "channel": "desktop:voice-brain-generate-speech",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_VOICE_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "voiceProfileId",
+        "text"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep SenseVoice as ASR authority, CosyVoice as cloned-speech authority, local/private profile custody in main, and existing send-media-stream as the sole final send authority.",
+      "crossModuleDependency": "Voice runtime is a thin main-process adapter over sealed SenseVoice/CosyVoice artifacts; final send remains owned by the existing Yance media send authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "voiceProfileId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20000
+          },
+          "language": {
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "voiceProfileId",
+          "text"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "generateVoiceSpeech",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "currentObservation": "Generates cloned speech only through the sealed CosyVoice runtime and returns a frozen minimized VoiceOutput plus bounded preview data."
+    },
+    {
+      "channel": "desktop:voice-brain-send-artifact",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_VOICE_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "accountId",
+        "chatJid",
+        "sessionKey",
+        "audioArtifact",
+        "filename",
+        "caption"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep SenseVoice as ASR authority, CosyVoice as cloned-speech authority, local/private profile custody in main, and existing send-media-stream as the sole final send authority.",
+      "crossModuleDependency": "Voice runtime is a thin main-process adapter over sealed SenseVoice/CosyVoice artifacts; final send remains owned by the existing Yance media send authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "whatsapp",
+              "telegram",
+              "facebook"
+            ]
+          },
+          "accountId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "chatJid": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "sessionKey": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "audioArtifact": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "caption": {
+            "type": "string",
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "platform",
+          "accountId",
+          "chatJid",
+          "audioArtifact"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "sendVoiceArtifact",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "currentObservation": "Accepts only a generated Voice artifact inside the main-owned Voice generated root and streams it to existing send-media-stream with kind=audio; no Voice outbox or send queue."
+    },
+    {
       "channel": "desktop:media-brain-save-settings",
       "direction": "renderer-to-main",
       "phase": "pre-ready",
@@ -4197,7 +4511,7 @@
     }
   ],
   "validationSummary": {
-    "rendererToMainHandlerCount": 59,
+    "rendererToMainHandlerCount": 65,
     "mainToRendererChannelCount": 8,
     "allRendererToMainHandlersHaveRequiredFields": true,
     "allOutboundChannelsHaveRequiredFields": true,

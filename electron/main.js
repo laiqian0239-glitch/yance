@@ -111,6 +111,7 @@ const { createLettaAgentRuntime } = require('./lettaAgentRuntime');
 const { createParlantRelationshipRuntime, createRelationshipTaskSequencer } = require('./parlantRelationshipRuntime');
 const { createGraphitiRelationshipRuntime, createNeo4jPassword } = require('./graphitiRelationshipRuntime');
 const { createMediaBrainRuntime, mergeImmichConfiguration, mergeComfyuiConfiguration } = require('./mediaBrainRuntime');
+const { createVoiceBrainRuntime } = require('./voiceBrainRuntime');
 const { SoundNotificationService } = require('./SoundNotificationService');
 const { isCustomSoundPattern, soundFileName } = require('../shared/notificationSoundCatalog');
 const { runInstalledRuntimeProbeApplicationEntry } = require('./wp7InstalledRuntimeProbeApplicationEntry');
@@ -480,6 +481,7 @@ let lettaAgentRuntime = null;
 let parlantRelationshipRuntime = null;
 let graphitiRelationshipRuntime = null;
 let mediaBrainRuntime = null;
+let voiceBrainRuntime = null;
 const parlantInboundSequencer = createRelationshipTaskSequencer();
 
 function ensureLettaAgentRuntime() {
@@ -594,6 +596,128 @@ function ensureMediaBrainRuntime() {
     });
   }
   return mediaBrainRuntime;
+}
+
+function voiceRuntimeRoot() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'runtime', 'voice-brain')
+    : path.join(APP_ROOT, 'runtime', 'voice-brain');
+}
+
+function ensureVoiceBrainRuntime() {
+  if (!voiceBrainRuntime) {
+    voiceBrainRuntime = createVoiceBrainRuntime({
+      dataRoot: DATA_ROOT,
+      appRoot: packagedAppRoot(),
+      runtimeRoot: voiceRuntimeRoot()
+    });
+  }
+  return voiceBrainRuntime;
+}
+
+function voiceGeneratedRoot() {
+  return path.resolve(DATA_ROOT, 'voice-brain', 'generated');
+}
+
+function assertVoiceGeneratedArtifact(value) {
+  const artifact = path.resolve(String(value || '').trim());
+  const root = voiceGeneratedRoot();
+  let realRoot;
+  let realArtifact;
+  try {
+    realRoot = fs.realpathSync.native(root);
+    realArtifact = fs.realpathSync.native(artifact);
+  } catch (_) {
+    throw Object.assign(new Error('Voice artifact is unavailable.'), { reasonCode: 'DESKTOP_VOICE_ARTIFACT_INVALID' });
+  }
+  const relative = path.relative(realRoot, realArtifact);
+  if (!relative || relative.startsWith(`..${path.sep}`) || relative === '..' || path.isAbsolute(relative)) {
+    throw Object.assign(new Error('Voice artifact is outside the local generated-audio root.'), { reasonCode: 'DESKTOP_VOICE_ARTIFACT_OUTSIDE_ROOT' });
+  }
+  const stat = fs.lstatSync(realArtifact);
+  if (!stat.isFile() || stat.isSymbolicLink()) {
+    throw Object.assign(new Error('Voice artifact is not a regular local file.'), { reasonCode: 'DESKTOP_VOICE_ARTIFACT_INVALID' });
+  }
+  if (stat.size < 1 || stat.size > 64 * 1024 * 1024) {
+    throw Object.assign(new Error('Voice artifact size is invalid.'), { reasonCode: 'DESKTOP_VOICE_ARTIFACT_SIZE_INVALID' });
+  }
+  return Object.freeze({ artifact: realArtifact, stat });
+}
+
+function projectVoiceRendererOutput(output = {}) {
+  const verified = assertVoiceGeneratedArtifact(output.audioArtifact);
+  const bytes = fs.readFileSync(verified.artifact);
+  return Object.freeze({
+    ...output,
+    previewDataUrl: `data:${String(output.mimeType || 'audio/wav')};base64,${bytes.toString('base64')}`
+  });
+}
+
+function normalizeVoiceSendInput(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw Object.assign(new Error('Voice send input must be an object.'), { reasonCode: 'DESKTOP_VOICE_SEND_INPUT_INVALID' });
+  }
+  const platform = String(input.platform || '').trim().toLowerCase();
+  const accountId = String(input.accountId || '').trim();
+  const chatJid = String(input.chatJid || '').trim();
+  if (!['whatsapp', 'telegram', 'facebook'].includes(platform)) {
+    throw Object.assign(new Error('Voice send platform is invalid.'), { reasonCode: 'DESKTOP_VOICE_SEND_PLATFORM_INVALID' });
+  }
+  if (!accountId || accountId.length > 512 || !chatJid || chatJid.length > 1024) {
+    throw Object.assign(new Error('Voice send target is invalid.'), { reasonCode: 'DESKTOP_VOICE_SEND_INPUT_INVALID' });
+  }
+  const verified = assertVoiceGeneratedArtifact(input.audioArtifact);
+  return Object.freeze({
+    platform,
+    accountId,
+    chatJid,
+    sessionKey: String(input.sessionKey || '').trim().slice(0, 1024),
+    caption: String(input.caption || '').slice(0, 10000),
+    filename: path.basename(String(input.filename || path.basename(verified.artifact) || 'yance-voice.wav')).slice(0, 240),
+    artifact: verified.artifact,
+    bytes: verified.stat.size
+  });
+}
+
+async function sendVoiceArtifactThroughExistingAuthority(input = {}) {
+  const target = normalizeVoiceSendInput(input);
+  const encodeHeader = value => encodeURIComponent(String(value || ''));
+  const response = await fetch(`${YANCE_BACKEND_URL}/api/r32/messages/${encodeURIComponent(target.platform)}/${encodeURIComponent(target.accountId)}/send-media-stream`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${currentApiSessionToken()}`,
+      Origin: YANCE_BACKEND_URL,
+      'content-type': 'audio/wav',
+      'content-length': String(target.bytes),
+      'x-yance-chat-jid': encodeHeader(target.chatJid),
+      'x-yance-session-key': encodeHeader(target.sessionKey),
+      'x-yance-media-kind': encodeHeader('audio'),
+      'x-yance-mime-type': encodeHeader('audio/wav'),
+      'x-yance-filename': encodeHeader(target.filename),
+      'x-yance-caption': encodeHeader(target.caption)
+    },
+    body: fs.createReadStream(target.artifact),
+    duplex: 'half',
+    signal: AbortSignal.timeout(120000)
+  });
+  const text = await response.text();
+  let payload = {};
+  try { payload = text ? JSON.parse(text) : {}; } catch (_) {}
+  if (!response.ok) {
+    const error = new Error(String(payload?.error?.message || payload?.message || `Existing Yance media send authority returned HTTP ${response.status}.`));
+    error.reasonCode = String(payload?.error?.code || payload?.code || `VOICE_SEND_HTTP_${response.status}`);
+    throw error;
+  }
+  return payload;
+}
+
+async function selectVoiceInputFile(title) {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    title,
+    filters: [{ name: 'Audio', extensions: ['wav', 'mp3', 'm4a', 'aac', 'ogg', 'opus', 'flac', 'webm'] }]
+  });
+  return result.canceled ? '' : String(result.filePaths?.[0] || '');
 }
 
 function mediaConfigurationChanged(current, next) {
@@ -3288,6 +3412,40 @@ function registerIpc() {
     const normalized = normalizeParlantGoalInput(input, ['contactId', 'paused']);
     return projectParlantRelationshipGoal(await ensureParlantRelationshipRuntime().setRelationshipGoalPaused(normalized));
   });
+  ipcGuardHandle('desktop:voice-brain-health', () => ensureVoiceBrainRuntime().health());
+  ipcGuardHandle('desktop:voice-brain-transcribe', async (_event, input = {}) => {
+    const filePath = await selectVoiceInputFile('选择要转写的语音');
+    if (!filePath) return Object.freeze({ cancelled: true });
+    return ensureVoiceBrainRuntime().transcribe({
+      filePath,
+      language: input.language,
+      translateToChinese: input.translateToChinese === true
+    });
+  });
+  ipcGuardHandle('desktop:voice-brain-enroll-profile', async (_event, input = {}) => {
+    const samplePath = await selectVoiceInputFile('选择本地声音样本');
+    if (!samplePath) return Object.freeze({ cancelled: true });
+    const enrolled = await ensureVoiceBrainRuntime().enrollVoiceProfile({
+      samplePath,
+      label: input.label,
+      language: input.language,
+      promptText: input.promptText
+    });
+    return Object.freeze({
+      voiceProfileId: enrolled.voiceProfileId,
+      label: enrolled.label,
+      sampleLanguage: enrolled.sampleLanguage,
+      createdAt: enrolled.createdAt,
+      local: enrolled.local === true,
+      private: enrolled.private === true
+    });
+  });
+  ipcGuardHandle('desktop:voice-brain-delete-profile', (_event, input = {}) => ensureVoiceBrainRuntime().deleteVoiceProfile(input));
+  ipcGuardHandle('desktop:voice-brain-generate-speech', async (_event, input = {}) => {
+    const output = await ensureVoiceBrainRuntime().generateSpeech(input);
+    return projectVoiceRendererOutput(output);
+  });
+  ipcGuardHandle('desktop:voice-brain-send-artifact', (_event, input = {}) => sendVoiceArtifactThroughExistingAuthority(input));
   ipcGuardHandle('desktop:media-brain-health', () => ensureMediaBrainRuntime().health());
   ipcGuardHandle('desktop:media-brain-save-settings', (_event, input = {}) => saveMediaBrainSettings(input));
   ipcGuardHandle('desktop:media-brain-import-asset', (_event, input = {}) => ensureMediaBrainRuntime().importAsset(input));
