@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-09T16:03:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-VOICE-BRAIN-P0-ROUTE-BOOTSTRAP",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main routing preflight proves twelve exact Voice Brain product paths under config/upstreams, runtime/voice-brain and third_party/licenses are unknown to the current WP0 routing policy. Candidate-owned routing changes are forbidden. This bootstrap authorizes only exact PRODUCT_WP0 registration plus a fail-closed regression contract; it authorizes no SenseVoice/CosyVoice product implementation.",
+  "base": {
+    "branch": "main",
+    "commit": "ed90d68d651572e517591b0ad2707166dee518d0"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "evidence": {
+    "trustedRoutingPolicyPath": "governance/layered-ci/wp0-routing-policy.json",
+    "trustedRoutingPolicyBlob": "7ced911c5513e5a6522f8cd408b0cb2b8f8bf563",
+    "routingPolicySchemaVersion": 2,
+    "unknownPathFailsClosed": true,
+    "productPrefixesExclude": [
+      "config/",
+      "runtime/",
+      "third_party/"
+    ],
+    "voicePathsAlreadyExactRouted": false,
+    "reasonCodeExpected": "WP0_ROUTE_UNKNOWN_PATH",
+    "supersededLearningImplementationPr": 177,
+    "supersededLearningFailureFirstHead": "b85bf281f73ea0ea58066f90f7b6734f052b4f68",
+    "supersedingLearningAuthorizationPr": 179,
+    "supersedingLearningAuthorizationMerge": "ed90d68d651572e517591b0ad2707166dee518d0",
+    "effectiveLearningWorkPackage": "V21-LEARNING-GROWTH-BRAIN-P0-V2",
+    "effectiveLearningImplementationBranch": "product/v21-learning-growth-brain-p0-v2",
+    "historicalPr177ChangedPathOverlapCount": 0,
+    "effectiveLearningSharedPathOverlap": [
+      "THIRD_PARTY_NOTICES.md",
+      "frontend/index.html"
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-voice-brain-p0-route-bootstrap-authorization-v2",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-voice-brain-p0-route-bootstrap-authorization.json"
+    ],
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-voice-brain-p0-route-bootstrap",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-voice-brain-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "00c56d4e9ef38c5acc4908e18bb51a2415431101c4b7f9bb29ecee7052a2b942",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "bootstrapPaths": [
+    "config/upstreams/v21-voice-brain-p0.json",
+    "runtime/voice-brain/cosyvoice/generate_runtime_sbom.py",
+    "runtime/voice-brain/cosyvoice/pyproject.toml",
+    "runtime/voice-brain/cosyvoice/uv.lock",
+    "runtime/voice-brain/cosyvoice/yance_cosyvoice_entrypoint.py",
+    "runtime/voice-brain/sensevoice/runtime-manifest.json",
+    "third_party/licenses/cosyvoice-Apache-2.0.txt",
+    "third_party/licenses/cosyvoice3-model-Apache-2.0.txt",
+    "third_party/licenses/funasr-model-license.txt",
+    "third_party/licenses/onnxruntime-MIT.txt",
+    "third_party/licenses/pytorch-BSD-3-Clause.txt",
+    "third_party/licenses/sensevoice-MIT.txt"
+  ],
+  "bootstrapPathCount": 12,
+  "bootstrapPathSetSha256": "34360957294d3b9b178f533212bcf3e98b870cdd10c86961b812d899c241326a",
+  "targetVoiceScope": {
+    "workPackage": "V21-VOICE-BRAIN-P0-V1",
+    "prospectiveImplementationPathCount": 45,
+    "prospectiveImplementationPathSetSha256": "6d07f31115c7bfdc9364bd99c11cfeac52f3344f4ff60a2d8b0b314e1b08df42",
+    "historicalPr177OverlapCount": 0,
+    "effectiveLearningV2OverlapCount": 2,
+    "effectiveLearningV2OverlapPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "frontend/index.html"
+    ],
+    "note": "This target scope is coordination evidence only. The later Voice Brain authorization remains a separate authority and may only be created from fresh main after this bootstrap becomes effective."
+  },
+  "mandatoryFailureFirstContracts": [
+    "Before bootstrap, all twelve exact Voice bootstrap paths fail closed as WP0_ROUTE_UNKNOWN_PATH under trusted main policy.",
+    "After implementation each of the twelve exact Voice bootstrap paths selects PRODUCT_WP0.",
+    "The exact twelve-path set selects PRODUCT_WP0.",
+    "Bootstrap uses only productExactPaths and does not add config/, runtime/ or third_party/ prefixes.",
+    "Adjacent unregistered voice-like, runtime-like and license-like paths continue to fail closed.",
+    "Governance and product-documentation precedence remains unchanged.",
+    "No Voice product implementation, Learning V2 path, Media authority, Presence authority, package manifest, workflow or release/promotion authority is modified."
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes applicable governance/Stage/Layered/ACV2 gates and independent review with zero unresolved P0/P1.",
+    "Stop at this authorization merge boundary.",
+    "After owner authorization, merge by ordinary two-parent merge without history rewrite.",
+    "Create fix/v21-voice-brain-p0-route-bootstrap from the exact authorization merge.",
+    "Create a test-only failure-first commit for the twelve-path routing contract.",
+    "Add only the twelve exact paths to productExactPaths.",
+    "Pass applicable gates and independent review.",
+    "Merge bootstrap implementation by ordinary two-parent merge.",
+    "Only then create the separate V21-VOICE-BRAIN-P0-V1 authorization from fresh main."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansionInBootstrap": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true,
+    "rebaseMerge": true,
+    "directVoiceCandidateSelfAuthorization": true,
+    "voiceProductImplementation": true,
+    "learningModification": true,
+    "mediaModification": true,
+    "presenceModification": true,
+    "productionRelease": true,
+    "publish": true,
+    "promotion": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
