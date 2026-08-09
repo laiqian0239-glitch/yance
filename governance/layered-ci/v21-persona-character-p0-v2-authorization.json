@@ -7,15 +7,12 @@
   "reason": "Supersede V21-PERSONA-CHARACTER-P0-V1 after its failure-first branch exposed a provenance-mechanics defect: the recorded authors-note.js 331-361 segment is an exact contiguous statement slice from inside setFloatingPrompt, while the frozen mechanical transformation allowlist permits wrapping declarations, functions and method bodies but not arbitrary partial function-body statements. V1 later advanced through in-scope Persona implementation commits, but those commits remain tied to the defective V1 provenance contract and are not reusable as V2 implementation authority or lineage. V2 preserves the mature SillyTavern 1.18.0 OSS architecture, all 20 product paths, dependencies, runtime authorities and product contracts, but replaces that single partial slice with the complete upstream setFloatingPrompt function at 1-based inclusive lines 324-392 and its exact canonical SHA-256. No SillyTavern UI runtime is imported; lexical shims are supplied by the thin Yance adapter. No new Yance Persona, Character, prompt-ordering or injection framework is authorized.",
   "supersedes": {
     "authorizationPath": "governance/layered-ci/v21-persona-character-p0-v1-authorization.json",
-    "authorizationMergeCommit": "801217f73cd249d6398d7b3c9fa7a35b770bc377",
     "implementationBranch": "product/v21-persona-character-p0-v1",
-    "implementationPullRequest": 139,
-    "implementationExactHead": "eee7da1cb541b32a1f6af365ed8210ce23636563",
     "reason": "The V1 branch established its causal failure-first RED at 6153824a4dd698432c28350b6875e24cf839941c, then later advanced through in-scope Persona/Character implementation commits to eee7da1cb541b32a1f6af365ed8210ce23636563. Because the V1 provenance contract itself is defective, neither the later V1 implementation Head nor any V1 implementation commit may be used as the V2 implementation base or treated as satisfying V2 provenance. V1 is frozen as historical evidence and must receive no further Persona/Character product implementation commits."
   },
   "provenanceCorrection": {
     "scope": "authors-note source-slice mechanics only",
-    "unchangedSourceSegmentCount": 18,
+    "unchangedSourceSegmentCount": 17,
     "unchangedSegments": 17,
     "replacedSegment": {
       "path": "public/scripts/authors-note.js",
@@ -330,7 +327,6 @@
     "graphitiRemainsTemporalRelationshipFactAuthority": true,
     "parlantRemainsGoalJourneyAuthority": true,
     "liteLlmRouteLlmImplementationForbidden": true,
-    "existingYanceAiGatewayRemainsOnlyModelExecutionBoundary": true,
     "sillyTavernProviderGatewayCodeForbidden": true,
     "sillyTavernSecondUiForbidden": true,
     "sillyTavernSwipeUiForbidden": true,
@@ -344,7 +340,9 @@
     "flatConcatenatedStylePromptForbidden": true,
     "windowsDesktopNodeFloor": ">=22.19.0",
     "sillyTavernSourceNodeFloorSatisfied": ">=20",
-    "electronCompatibilityMustRemain": "39.8.5"
+    "electronCompatibilityMustRemain": "39.8.5",
+    "modelExecutionAuthorityRemainsExternalToPersona": true,
+    "effectiveTrustedMainModelExecutionAuthorityMustBeUsed": true
   },
   "productCompositionContract": {
     "orderedInputs": [
@@ -418,7 +416,7 @@
     "All three Persona/Character failure-first suites must live under tests/wp0/ so tools/wp0/run-tests.js discovers them automatically; relying on a manually invoked side test command or an un-gated test directory is RED.",
     "Relationship stage may alter allowed tone/placement through the read-only Relationship Card projection, but Persona code must not become a second relationship fact store.",
     "Letta long-term agent/interaction memory, Graphiti temporal relationship facts and Parlant Goal/Journey authority must remain unchanged; this work package must not modify their runtime, storage, routes, workflows or authorization files.",
-    "The existing Yance AI gateway remains the only model execution boundary; no SillyTavern provider code, second model gateway, LiteLLM/RouteLLM implementation or provider credential path may be introduced.",
+    "Model execution remains external to Persona and must use the model-execution authority effective on trusted main at implementation/reconciliation time; Persona may call that logical boundary but must not implement or preserve SillyTavern provider code, a second model gateway/router, LiteLLM/RouteLLM routing authority, physical-model routing/scoring, or any provider credential path.",
     "No SillyTavern UI, settings shell, chat state, swipe picker or second candidate UI may be introduced; existing Yance candidate generation and unique send authority remain intact.",
     "AGPL-3.0 obligations must be explicit before GREEN: package license declaration, vendored license text, preserved upstream notices/provenance, Corresponding Source availability for covered distribution, and Section 13 source offer when the modified covered program is used through a computer network.",
     "The mechanically adapted CommonJS vendored modules and source-slice file must contain exact upstream repository/commit/path/blob provenance and a minimal transformation record; clean-room rewritten equivalents are RED.",
