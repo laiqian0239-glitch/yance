@@ -583,24 +583,73 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
   const authorizationPaths = Array.isArray(rawPaths)
     ? [...new Set(rawPaths.filter(isGenericDelegatedGovernanceAuthorizationPath))].sort()
     : [];
-  const matches = [];
+  const authorizations = new Map();
+  const declarations = new Map();
+  const graphInvalidPaths = new Set();
+
+  function parseSupersessionDeclaration(authorizationPath, authorization) {
+    if (!Object.prototype.hasOwnProperty.call(authorization, 'supersedes')) return null;
+    const declaration = authorization.supersedes;
+    const expectedKeys = ['authorizationPath', 'implementationBranch', 'reason'];
+    if (!declaration
+      || typeof declaration !== 'object'
+      || Array.isArray(declaration)
+      || !sameJson(Object.keys(declaration).sort(), expectedKeys)
+      || !isGenericDelegatedGovernanceAuthorizationPath(declaration.authorizationPath)
+      || !isExactBranch(declaration.implementationBranch)
+      || declaration.authorizationPath === authorizationPath
+      || declaration.implementationBranch === authorization.implementation.branch
+      || typeof declaration.reason !== 'string'
+      || declaration.reason.length === 0
+      || declaration.reason !== declaration.reason.trim()) return false;
+    return Object.freeze({
+      authorizationPath: declaration.authorizationPath,
+      implementationBranch: declaration.implementationBranch
+    });
+  }
 
   for (const authorizationPath of authorizationPaths) {
     const authorization = options.loadAuthorizationAtTrustedHead
       ? options.loadAuthorizationAtTrustedHead(authorizationPath)
       : defaultAuthorizationAtCommit(trustedMainHead, authorizationPath, options);
     if (!isValidGenericDelegatedGovernanceAuthorization(authorization, authorizationPath)) continue;
-    if (authorization.implementation.branch !== branch) continue;
+    authorizations.set(authorizationPath, authorization);
+    const declaration = parseSupersessionDeclaration(authorizationPath, authorization);
+    if (declaration === false) graphInvalidPaths.add(authorizationPath);
+    else if (declaration) declarations.set(authorizationPath, declaration);
+  }
 
-    const findIntroductions = options.findAuthorizationIntroductionMerges
-      || (repositoryPath => defaultFindAuthorizationIntroductionMerges(trustedMainHead, repositoryPath, options));
+  const candidatePaths = [...authorizations.entries()]
+    .filter(([, authorization]) => authorization.implementation.branch === branch)
+    .map(([authorizationPath]) => authorizationPath);
+  const topologyPaths = new Set(candidatePaths);
+  for (const [sourcePath, declaration] of declarations) {
+    topologyPaths.add(sourcePath);
+    if (authorizations.has(declaration.authorizationPath)) topologyPaths.add(declaration.authorizationPath);
+  }
+
+  const findIntroductions = options.findAuthorizationIntroductionMerges
+    || (repositoryPath => defaultFindAuthorizationIntroductionMerges(trustedMainHead, repositoryPath, options));
+  const resolveParents = options.resolveCommitParents
+    || (commit => defaultCommitParentList(commit, options));
+  const ancestor = options.isTrustedAncestor
+    || ((base, head) => defaultTrustedAncestor(base, head, options));
+  const resolveBlob = options.resolveCommitBlobSha
+    || ((commit, repositoryPath) => defaultCommitBlobSha(commit, repositoryPath, options));
+  const resolvePathMode = options.resolveCommitPathMode
+    || ((commit, repositoryPath) => defaultCommitPathMode(commit, repositoryPath, options));
+  const resolveChangedFiles = options.resolveChangedFilesBetween
+    || ((base, head) => defaultChangedFilesBetween(base, head, options));
+  const effectiveRecords = new Map();
+
+  for (const authorizationPath of [...topologyPaths].sort()) {
+    const authorization = authorizations.get(authorizationPath);
+    if (!authorization) continue;
     const introductionMerges = findIntroductions(authorizationPath);
     if (!Array.isArray(introductionMerges)
       || introductionMerges.length !== 1
       || !SHA40.test(String(introductionMerges[0] || ''))) continue;
     const mergeCommit = introductionMerges[0];
-    const resolveParents = options.resolveCommitParents
-      || (commit => defaultCommitParentList(commit, options));
     const parents = resolveParents(mergeCommit);
     if (!Array.isArray(parents)
       || parents.length !== 2
@@ -608,18 +657,12 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
       || !SHA40.test(String(parents[1] || ''))
       || parents[0] === parents[1]) continue;
     const reviewedHead = parents[1];
-    const ancestor = options.isTrustedAncestor
-      || ((base, head) => defaultTrustedAncestor(base, head, options));
     if (ancestor(authorization.base.commit, reviewedHead) !== true) continue;
 
-    const resolveBlob = options.resolveCommitBlobSha
-      || ((commit, repositoryPath) => defaultCommitBlobSha(commit, repositoryPath, options));
     const mergeBlob = resolveBlob(mergeCommit, authorizationPath);
     const reviewedBlob = resolveBlob(reviewedHead, authorizationPath);
     const trustedBlob = resolveBlob(trustedMainHead, authorizationPath);
     const baseBlob = resolveBlob(authorization.base.commit, authorizationPath);
-    const resolvePathMode = options.resolveCommitPathMode
-      || ((commit, repositoryPath) => defaultCommitPathMode(commit, repositoryPath, options));
     const mergeMode = resolvePathMode(mergeCommit, authorizationPath);
     const reviewedMode = resolvePathMode(reviewedHead, authorizationPath);
     const trustedMode = resolvePathMode(trustedMainHead, authorizationPath);
@@ -631,8 +674,6 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
       || reviewedMode !== '100644'
       || trustedMode !== '100644') continue;
 
-    const resolveChangedFiles = options.resolveChangedFilesBetween
-      || ((base, head) => defaultChangedFilesBetween(base, head, options));
     const reviewedChangedFiles = resolveChangedFiles(authorization.base.commit, reviewedHead);
     const reviewedNormalized = normalizeChangedFiles(reviewedChangedFiles);
     if (!Array.isArray(reviewedChangedFiles)
@@ -648,37 +689,82 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
       || mergeNormalized.length !== 1
       || mergeNormalized[0] !== authorizationPath
       || mergeChangedFiles[0] !== authorizationPath) continue;
+    if (ancestor(mergeCommit, trustedMainHead) !== true) continue;
 
-    if (ancestor(mergeCommit, trustedMainHead) !== true
-      || ancestor(mergeCommit, evaluatedHead) !== true) continue;
-
-    const resolveMergeBases = options.resolveMergeBases
-      || ((left, right) => defaultMergeBases(left, right, options));
-    const mergeBases = resolveMergeBases(trustedMainHead, evaluatedHead);
-    if (!Array.isArray(mergeBases)
-      || mergeBases.length !== 1
-      || !SHA40.test(String(mergeBases[0] || ''))) continue;
-    const implementationBase = mergeBases[0];
-    if (ancestor(mergeCommit, implementationBase) !== true
-      || ancestor(implementationBase, trustedMainHead) !== true
-      || ancestor(implementationBase, evaluatedHead) !== true) continue;
-
-    const implementationChangedFiles = resolveChangedFiles(implementationBase, evaluatedHead);
-    if (!Array.isArray(implementationChangedFiles)) continue;
-    const implementationNormalized = normalizeChangedFiles(implementationChangedFiles);
-    if (implementationNormalized.length !== implementationChangedFiles.length
-      || !sameJson(implementationNormalized, implementationChangedFiles)) continue;
-    const allowed = new Set(authorization.implementation.allowedChangedPaths);
-    const unauthorizedPaths = implementationNormalized.filter(repositoryPath => !allowed.has(repositoryPath));
-    matches.push({
+    effectiveRecords.set(authorizationPath, Object.freeze({
       authorizationPath,
       authorization,
       mergeCommit,
-      reviewedHead,
-      unauthorizedPaths
-    });
+      reviewedHead
+    }));
   }
 
+  const edges = new Map();
+  const incoming = new Map();
+  for (const [sourcePath, declaration] of declarations) {
+    const sourceRecord = effectiveRecords.get(sourcePath);
+    if (!sourceRecord) continue;
+    const targetAuthorization = authorizations.get(declaration.authorizationPath);
+    const targetRecord = effectiveRecords.get(declaration.authorizationPath);
+    if (!targetAuthorization
+      || !targetRecord
+      || targetAuthorization.implementation.branch !== declaration.implementationBranch
+      || ancestor(targetRecord.mergeCommit, sourceRecord.authorization.base.commit) !== true) {
+      graphInvalidPaths.add(sourcePath);
+      continue;
+    }
+    edges.set(sourcePath, declaration.authorizationPath);
+    const sources = incoming.get(declaration.authorizationPath) || [];
+    sources.push(sourcePath);
+    incoming.set(declaration.authorizationPath, sources);
+  }
+
+  for (const [targetPath, sources] of incoming) {
+    if (sources.length <= 1) continue;
+    graphInvalidPaths.add(targetPath);
+    for (const sourcePath of sources) graphInvalidPaths.add(sourcePath);
+  }
+
+  const visiting = new Set();
+  const visited = new Set();
+  const stack = [];
+  function visitSupersessionNode(node) {
+    if (visited.has(node)) return;
+    if (visiting.has(node)) {
+      const cycleStart = stack.lastIndexOf(node);
+      for (const cycleNode of stack.slice(cycleStart)) graphInvalidPaths.add(cycleNode);
+      return;
+    }
+    visiting.add(node);
+    stack.push(node);
+    const target = edges.get(node);
+    if (target) visitSupersessionNode(target);
+    stack.pop();
+    visiting.delete(node);
+    visited.add(node);
+  }
+  for (const sourcePath of edges.keys()) visitSupersessionNode(sourcePath);
+
+  let propagated = true;
+  while (propagated) {
+    propagated = false;
+    for (const [sourcePath, targetPath] of edges) {
+      if (!graphInvalidPaths.has(sourcePath) && graphInvalidPaths.has(targetPath)) {
+        graphInvalidPaths.add(sourcePath);
+        propagated = true;
+      }
+    }
+  }
+
+  const supersededBy = new Map();
+  for (const [sourcePath, targetPath] of edges) {
+    if (graphInvalidPaths.has(sourcePath) || graphInvalidPaths.has(targetPath)) continue;
+    supersededBy.set(targetPath, sourcePath);
+  }
+
+  const matches = candidatePaths
+    .map(authorizationPath => effectiveRecords.get(authorizationPath))
+    .filter(Boolean);
   if (matches.length !== 1) {
     return Object.freeze({
       pass: false,
@@ -689,8 +775,83 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
       unauthorizedPaths: []
     });
   }
+
   const match = matches[0];
-  const pass = match.unauthorizedPaths.length === 0;
+  if (graphInvalidPaths.has(match.authorizationPath)) {
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'WP0_DELEGATED_GOVERNANCE_SUPERSESSION_INVALID',
+      authorityMode: null,
+      authorizationPath: match.authorizationPath,
+      unauthorizedPaths: []
+    });
+  }
+  if (supersededBy.has(match.authorizationPath)) {
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_SUPERSEDED',
+      authorityMode: null,
+      authorizationPath: match.authorizationPath,
+      supersededByAuthorizationPath: supersededBy.get(match.authorizationPath),
+      unauthorizedPaths: []
+    });
+  }
+  if (ancestor(match.mergeCommit, evaluatedHead) !== true) {
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID',
+      authorityMode: null,
+      unauthorizedPaths: []
+    });
+  }
+
+  const resolveMergeBases = options.resolveMergeBases
+    || ((left, right) => defaultMergeBases(left, right, options));
+  const mergeBases = resolveMergeBases(trustedMainHead, evaluatedHead);
+  if (!Array.isArray(mergeBases)
+    || mergeBases.length !== 1
+    || !SHA40.test(String(mergeBases[0] || ''))) {
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID',
+      authorityMode: null,
+      unauthorizedPaths: []
+    });
+  }
+  const implementationBase = mergeBases[0];
+  if (ancestor(match.mergeCommit, implementationBase) !== true
+    || ancestor(implementationBase, trustedMainHead) !== true
+    || ancestor(implementationBase, evaluatedHead) !== true) {
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID',
+      authorityMode: null,
+      unauthorizedPaths: []
+    });
+  }
+
+  const implementationChangedFiles = resolveChangedFiles(implementationBase, evaluatedHead);
+  if (!Array.isArray(implementationChangedFiles)) {
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID',
+      authorityMode: null,
+      unauthorizedPaths: []
+    });
+  }
+  const implementationNormalized = normalizeChangedFiles(implementationChangedFiles);
+  if (implementationNormalized.length !== implementationChangedFiles.length
+    || !sameJson(implementationNormalized, implementationChangedFiles)) {
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID',
+      authorityMode: null,
+      unauthorizedPaths: []
+    });
+  }
+  const allowed = new Set(match.authorization.implementation.allowedChangedPaths);
+  const unauthorizedPaths = implementationNormalized.filter(repositoryPath => !allowed.has(repositoryPath));
+  const pass = unauthorizedPaths.length === 0;
   return Object.freeze({
     pass,
     reasonCode: pass ? null : 'WP0_DELEGATED_GOVERNANCE_SCOPE_DENIED',
@@ -698,7 +859,7 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
     authorizationPath: match.authorizationPath,
     authorizationMergeCommit: match.mergeCommit,
     reviewedAuthorizationHead: match.reviewedHead,
-    unauthorizedPaths: Object.freeze([...match.unauthorizedPaths])
+    unauthorizedPaths: Object.freeze([...unauthorizedPaths])
   });
 }
 
