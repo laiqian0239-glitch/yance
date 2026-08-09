@@ -58,11 +58,10 @@ $litellmTarget = Join-Path $sitePackages "litellm"
 Remove-Item $litellmTarget -Recurse -Force -ErrorAction SilentlyContinue
 Copy-Item (Join-Path $source "litellm") $litellmTarget -Recurse
 
-# Verify source tree integrity against the pinned Git tree itself. Comparing two
-# worktree directories with `git diff --no-index` is not a supply-chain identity
-# check on Windows because worktree/path attributes can affect diff semantics.
-# Instead, bind every materialized file to the reviewed tree's exact blob SHA and
-# independently reject any path that is not present in that tree.
+# Verify source tree integrity against the pinned Git tree itself. A worktree-level
+# directory comparison is not a supply-chain identity check on Windows because
+# checkout/path attributes can affect comparison semantics. Instead, bind every
+# materialized file to the reviewed tree's exact blob SHA and reject extra paths.
 $treeEntries = @(& git -C $source ls-tree -r $ExpectedCoreTree)
 if ($LASTEXITCODE -ne 0 -or $treeEntries.Count -eq 0) { throw "LiteLLM pinned core tree enumeration failed" }
 $expectedPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
