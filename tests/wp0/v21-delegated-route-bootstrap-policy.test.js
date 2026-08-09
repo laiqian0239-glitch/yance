@@ -120,7 +120,7 @@ test('generic delegated route guard accepts both current exact declaration schem
   }
 });
 
-test('generic delegated route guard rejects ambiguous, unsupported, count-drifted and digest-drifted declarations', () => {
+test('generic delegated route guard rejects ambiguous, unsupported, non-exact, count-drifted and digest-drifted declarations', () => {
   const validate = assertGuardAvailable();
   const candidatePolicy = exactCandidate(presenceAuthorization);
 
@@ -136,6 +136,14 @@ test('generic delegated route guard rejects ambiguous, unsupported, count-drifte
   delete unsupported.futureProductBootstrapPathSetSha256;
   unsupported.routePaths = [...presenceAuthorization.futureProductBootstrapPaths];
   assert.equal(validate({ authorization: unsupported, basePolicy, candidatePolicy }).reasonCode, DENIED);
+
+  const nonExact = clone(presenceAuthorization);
+  nonExact.futureProductBootstrapPaths = ['runtime/presence-avatar/*'];
+  nonExact.futureProductBootstrapPathCount = 1;
+  nonExact.futureProductBootstrapPathSetSha256 = canonicalPathSetSha256(nonExact.futureProductBootstrapPaths);
+  const nonExactCandidate = clone(basePolicy);
+  nonExactCandidate.productExactPaths = [...basePolicy.productExactPaths, ...nonExact.futureProductBootstrapPaths].sort();
+  assert.equal(validate({ authorization: nonExact, basePolicy, candidatePolicy: nonExactCandidate }).reasonCode, DENIED);
 
   const wrongCount = clone(presenceAuthorization);
   wrongCount.futureProductBootstrapPathCount += 1;
