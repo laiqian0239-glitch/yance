@@ -39,17 +39,17 @@
       "governance/layered-ci/wp0-routing-policy.json",
       "shared/release/implementationBranchPolicy.js",
       "tests/layered-ci/v21-presence-avatar-p0-routing.test.js",
-      "tests/wp0/implementation-branch-policy.test.js"
+      "tests/wp0/v21-delegated-route-bootstrap-policy.test.js"
     ],
     "approvedChangedFileCount": 4,
-    "approvedChangedFileSetSha256": "03af3b7e4ed82129b22059f68301d76026a840cb20114fe0a4411f0d965f4201",
+    "approvedChangedFileSetSha256": "57a72ac97d38af7b487e6f2bbc743576be18949efbf86d5c504f77e8d702fed8",
     "newDependencyAllowed": false,
     "workflowModificationAllowed": false,
     "productImplementationAllowed": false,
     "firstCommitMustBeTestOnly": true,
     "firstCommitAllowedChangedPaths": [
       "tests/layered-ci/v21-presence-avatar-p0-routing.test.js",
-      "tests/wp0/implementation-branch-policy.test.js"
+      "tests/wp0/v21-delegated-route-bootstrap-policy.test.js"
     ],
     "genericRouteMutationGuardRequired": true
   },
@@ -166,7 +166,7 @@
     "yanceGpuInferenceRuntimeForbidden": true
   },
   "mandatoryFailureFirstContracts": [
-    "The first route-bootstrap implementation commit changes only tests/layered-ci/v21-presence-avatar-p0-routing.test.js and tests/wp0/implementation-branch-policy.test.js, with zero production or routing-policy code.",
+    "The first route-bootstrap implementation commit changes only tests/layered-ci/v21-presence-avatar-p0-routing.test.js and tests/wp0/v21-delegated-route-bootstrap-policy.test.js, with zero production or routing-policy code.",
     "Before routing-policy implementation each of the twelve exact Presence bootstrap paths fails closed as WP0_ROUTE_UNKNOWN_PATH.",
     "Before generic branch-policy implementation a delegated route-bootstrap candidate that changes productPrefixes, governance routes, documentation routes, unrelated productExactPaths, removes existing routes, weakens unknownPathFailsClosed, or otherwise mutates wp0-routing-policy.json beyond its frozen exact declaration is rejected by the permanent branch-policy contract.",
     "The generic guard must accept the current exact declaration schema used by Presence (futureProductBootstrapPaths) and the current exact declaration schema used by Media/Voice route authorities (bootstrapPaths), with count and canonical digest verification; unsupported or ambiguous declaration schemas are RED.",
@@ -175,7 +175,7 @@
     "The root fix adds only the twelve exact Presence literals to productExactPaths and does not add config/, runtime/, third_party/, upstream-patches/, integration/ or any other broad prefix.",
     "Adjacent unregistered Presence, LiveKit, CyberVerse, Element Presence UI or avatar-like paths and malformed repository paths continue to fail closed.",
     "The route implementation may not add dependencies, runtime code, product code, workflow changes or Presence implementation authority.",
-    "The final route-bootstrap changed-path set remains exactly four paths with SHA-256 03af3b7e4ed82129b22059f68301d76026a840cb20114fe0a4411f0d965f4201."
+    "The final route-bootstrap changed-path set remains exactly four paths with SHA-256 57a72ac97d38af7b487e6f2bbc743576be18949efbf86d5c504f77e8d702fed8."
   ],
   "requiredSequence": [
     "Authorization exact Head passes applicable governance gates with zero unresolved P0/P1 findings.",
