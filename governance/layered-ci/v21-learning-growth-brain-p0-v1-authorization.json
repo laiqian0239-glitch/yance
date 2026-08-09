@@ -195,6 +195,17 @@
     "newDependencyAllowed": true,
     "packageManifestModificationAllowed": true,
     "workflowModificationAllowed": false,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "integration/element-module/package.json",
+        "package-lock.json",
+        "package.json",
+        "runtime/learning-growth/promptfoo/package-lock.json",
+        "runtime/learning-growth/promptfoo/package.json"
+      ],
+      "approvedDependencyPathCount": 5,
+      "approvedDependencyPathSetSha256": "66f590bae5c01ce779c8d19fd472964bdb57a17308381cf7435871b3ab09fafb"
+    },
     "dependencyControlPaths": [
       "integration/element-module/package.json",
       "package-lock.json",
