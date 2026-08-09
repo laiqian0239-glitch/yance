@@ -398,3 +398,14 @@ test('historical delegated authorization without dependencyIdentityPolicy remain
   const result = evaluateTrustedDelegatedGovernanceBranch(trustedOptions(candidate, historical));
   assert.equal(result.pass, true, JSON.stringify(result));
 });
+
+test('trusted delegated evaluator rejects stale direct npm lock entry versions', () => {
+  const staleResolution = exactLockfile();
+  staleResolution.packages['node_modules/livekit-client'].version = '2.20.0';
+
+  const result = evaluateTrustedDelegatedGovernanceBranch(trustedOptionsWithLockfile({
+    candidateLockfile: staleResolution
+  }));
+  assert.equal(result.pass, false, JSON.stringify(result));
+  assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
+});
