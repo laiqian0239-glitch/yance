@@ -3350,7 +3350,7 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3249
+        "line": 3251
       },
       "rendererExposure": {
         "api": "getMediaBrainHealth",
@@ -3411,7 +3411,7 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3250
+        "line": 3252
       },
       "rendererExposure": {
         "api": "importMediaAsset",
@@ -3475,7 +3475,7 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3251
+        "line": 3253
       },
       "rendererExposure": {
         "api": "searchMediaAssets",
@@ -3514,7 +3514,7 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3252
+        "line": 3254
       },
       "rendererExposure": {
         "api": "listMediaPeople",
@@ -3541,7 +3541,7 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "shared": {
+          "isShared": {
             "type": "boolean"
           }
         },
@@ -3553,7 +3553,7 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3253
+        "line": 3255
       },
       "rendererExposure": {
         "api": "listMediaAlbums",
@@ -3605,7 +3605,7 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3254
+        "line": 3256
       },
       "rendererExposure": {
         "api": "getMediaAssetPreview",
@@ -3613,111 +3613,6 @@
         "line": 83
       },
       "currentObservation": "Retrieves an Immich-backed preview."
-    },
-    {
-      "channel": "desktop:media-brain-upload-workflow-input",
-      "direction": "renderer-to-main",
-      "phase": "pre-ready",
-      "requiresBackendReady": false,
-      "allowedDuringQuitting": false,
-      "allowedDuringRestart": false,
-      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
-      "sensitiveFields": [
-        "bytes",
-        "base64",
-        "filename"
-      ],
-      "ipcType": "invoke",
-      "risk": "P1",
-      "m2Scope": true,
-      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
-      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
-      "inputSchema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "bytes": {},
-          "base64": {
-            "type": "string",
-            "maxLength": 150000000
-          },
-          "filename": {
-            "type": "string",
-            "maxLength": 240
-          },
-          "mimeType": {
-            "type": "string",
-            "maxLength": 160
-          }
-        },
-        "required": [
-          "filename"
-        ]
-      },
-      "outputSchema": {
-        "type": "object",
-        "additionalProperties": true
-      },
-      "handler": {
-        "file": "electron/main.js",
-        "line": 3255
-      },
-      "rendererExposure": {
-        "api": "uploadMediaWorkflowInput",
-        "file": "electron/preload.js",
-        "line": 84
-      },
-      "currentObservation": "Uploads renderer-owned workflow input to ComfyUI."
-    },
-    {
-      "channel": "desktop:media-brain-upload-asset-workflow-input",
-      "direction": "renderer-to-main",
-      "phase": "pre-ready",
-      "requiresBackendReady": false,
-      "allowedDuringQuitting": false,
-      "allowedDuringRestart": false,
-      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
-      "sensitiveFields": [
-        "assetId",
-        "filename"
-      ],
-      "ipcType": "invoke",
-      "risk": "P1",
-      "m2Scope": true,
-      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
-      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
-      "inputSchema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "assetId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 512
-          },
-          "filename": {
-            "type": "string",
-            "maxLength": 240
-          }
-        },
-        "required": [
-          "assetId"
-        ]
-      },
-      "outputSchema": {
-        "type": "object",
-        "additionalProperties": true
-      },
-      "handler": {
-        "file": "electron/main.js",
-        "line": 3256
-      },
-      "rendererExposure": {
-        "api": "uploadMediaAssetWorkflowInput",
-        "file": "electron/preload.js",
-        "line": 85
-      },
-      "currentObservation": "Transfers an Immich original to ComfyUI in main without renderer byte substitution."
     },
     {
       "channel": "desktop:media-brain-queue-workflow",
@@ -3730,7 +3625,8 @@
       "sensitiveFields": [
         "prompt",
         "negativePrompt",
-        "inputImage",
+        "assetId",
+        "filename",
         "clientId"
       ],
       "ipcType": "invoke",
@@ -3762,9 +3658,14 @@
             "type": "string",
             "maxLength": 1024
           },
-          "inputImage": {
+          "assetId": {
             "type": "string",
-            "maxLength": 1024
+            "maxLength": 512,
+            "minLength": 1
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 240
           },
           "clientId": {
             "type": "string",
@@ -3799,9 +3700,9 @@
       "rendererExposure": {
         "api": "queueMediaWorkflow",
         "file": "electron/preload.js",
-        "line": 86
+        "line": 84
       },
-      "currentObservation": "Queues a reviewed template in ComfyUI; Yance never executes image nodes."
+      "currentObservation": "Generate queues a reviewed ComfyUI template; Edit accepts only an Immich asset id and main transfers that original to ComfyUI before queueing."
     },
     {
       "channel": "desktop:media-brain-get-workflow-result",
@@ -3839,12 +3740,12 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3258
+        "line": 3287
       },
       "rendererExposure": {
         "api": "getMediaWorkflowResult",
         "file": "electron/preload.js",
-        "line": 87
+        "line": 85
       },
       "currentObservation": "Reads ComfyUI output as non-selectable until save-back."
     },
@@ -3893,12 +3794,12 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3262
+        "line": 3288
       },
       "rendererExposure": {
         "api": "saveMediaWorkflowOutput",
         "file": "electron/preload.js",
-        "line": 88
+        "line": 86
       },
       "currentObservation": "Re-fetches ComfyUI output in main and imports it into Immich."
     },
@@ -3950,16 +3851,6 @@
             "minLength": 1,
             "maxLength": 512
           },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "image",
-              "video",
-              "audio",
-              "document",
-              "sticker"
-            ]
-          },
           "sessionKey": {
             "type": "string",
             "maxLength": 1024
@@ -3986,14 +3877,14 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3263
+        "line": 3289
       },
       "rendererExposure": {
         "api": "sendMediaAsset",
         "file": "electron/preload.js",
-        "line": 89
+        "line": 87
       },
-      "currentObservation": "Delegates an Immich original to existing send-media-stream; no Media send queue is created."
+      "currentObservation": "Sends only an Immich asset through the existing Yance send-media-stream authority; main derives image/video kind from the Immich original MIME type."
     }
   ],
   "outboundRendererChannels": [

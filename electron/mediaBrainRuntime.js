@@ -198,7 +198,7 @@ function createMediaBrainRuntime(options = {}) {
   }
   async function listAlbums(input = {}) {
     const query = new URLSearchParams();
-    if (input.shared === true) query.set('shared', 'true');
+    if (input.isShared === true) query.set('isShared', 'true');
     return immichJson(`/albums${query.size ? `?${query}` : ''}`);
   }
   async function getAssetPreview(input = {}) {
@@ -212,20 +212,40 @@ function createMediaBrainRuntime(options = {}) {
     return Object.freeze({ assetId: id, mimeType: clean(response.headers.get('content-type')) || 'image/jpeg', bytes: new Uint8Array(bytes) });
   }
 
-  async function getAssetOriginal(input = {}) {
+  async function fetchAssetOriginal(input = {}) {
     const id = clean(input.assetId || input.id);
     if (!id) throw mediaError('IMMICH_ASSET_ID_REQUIRED', 'Immich asset id is required.');
     const { endpoint, apiKey } = immichContext();
-    const response = await fetchImpl(`${endpoint}/api/assets/${encodeURIComponent(id)}/original`, { headers: { 'x-api-key': apiKey }, signal: AbortSignal.timeout(60000) });
+    let response;
+    try {
+      response = await fetchImpl(`${endpoint}/api/assets/${encodeURIComponent(id)}/original`, { headers: { 'x-api-key': apiKey }, signal: AbortSignal.timeout(60000) });
+    } catch (error) {
+      throw mediaError('IMMICH_UNAVAILABLE', 'Immich original asset retrieval failed.', { cause: clean(error?.message) });
+    }
     if (!response.ok) throw mediaError(`IMMICH_HTTP_${response.status}`, `Immich original asset retrieval failed with HTTP ${response.status}.`);
-    return Object.freeze({ assetId: id, mimeType: clean(response.headers.get('content-type')) || 'application/octet-stream', bytes: new Uint8Array(await response.arrayBuffer()) });
+    return { id, response, mimeType: clean(response.headers.get('content-type')) || 'application/octet-stream' };
+  }
+
+  async function getAssetOriginal(input = {}) {
+    const { id, response, mimeType } = await fetchAssetOriginal(input);
+    return Object.freeze({ assetId: id, mimeType, bytes: new Uint8Array(await response.arrayBuffer()) });
+  }
+
+  async function openAssetOriginalStream(input = {}) {
+    const { id, response, mimeType } = await fetchAssetOriginal(input);
+    if (!response.body) throw mediaError('IMMICH_ASSET_STREAM_UNAVAILABLE', 'Immich original asset stream is unavailable.');
+    return Object.freeze({ assetId: id, mimeType, body: response.body });
   }
 
   async function uploadWorkflowInput(input = {}) {
     const bytes = asBytes(input);
     const filename = safeFilename(input.filename, 'yance-workflow-input.png');
+    const mimeType = clean(input.mimeType) || 'image/png';
+    if (!mimeType.toLowerCase().startsWith('image/')) {
+      throw mediaError('COMFYUI_IMAGE_INPUT_REQUIRED', 'ComfyUI image upload requires an image media type.');
+    }
     const form = new FormData();
-    form.append('image', new Blob([bytes], { type: clean(input.mimeType) || 'image/png' }), filename);
+    form.append('image', new Blob([bytes], { type: mimeType }), filename);
     form.append('type', 'input');
     form.append('overwrite', 'false');
     const { endpoint } = comfyContext();
@@ -311,11 +331,11 @@ function createMediaBrainRuntime(options = {}) {
   async function saveWorkflowOutputToImmich(input = {}) {
     const output = await getWorkflowOutput(input);
     if (!output?.ready || !output?.bytes) throw mediaError(COMFYUI_OUTPUT_NOT_IMPORTED, 'ComfyUI output is not ready to import into Immich.');
-    const imported = await importAsset({ bytes: output.bytes, filename: safeFilename(input.filename || output.descriptor?.filename, 'yance-comfyui-output.png'), mimeType: input.mimeType || output.mimeType, createdAt: new Date().toISOString(), modifiedAt: new Date().toISOString() });
+    const imported = await importAsset({ bytes: output.bytes, filename: safeFilename(input.filename || output.descriptor?.filename, 'yance-comfyui-output.png'), mimeType: output.mimeType, createdAt: new Date().toISOString(), modifiedAt: new Date().toISOString() });
     return Object.freeze({ ...imported, source: 'comfyui', promptId: clean(input.promptId), saveBack: 'IMMICH_SAVE_BACK_COMPLETE' });
   }
 
-  return Object.freeze({ health, importAsset, searchAssets, listPeople, listAlbums, getAssetPreview, getAssetOriginal, uploadWorkflowInput, uploadImmichAssetAsWorkflowInput, queueWorkflow, getWorkflowHistory, getWorkflowOutput, saveWorkflowOutputToImmich });
+  return Object.freeze({ health, importAsset, searchAssets, listPeople, listAlbums, getAssetPreview, getAssetOriginal, openAssetOriginalStream, uploadWorkflowInput, uploadImmichAssetAsWorkflowInput, queueWorkflow, getWorkflowHistory, getWorkflowOutput, saveWorkflowOutputToImmich });
 }
 
 module.exports = {

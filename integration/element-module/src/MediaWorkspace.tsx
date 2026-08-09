@@ -25,8 +25,6 @@ type DesktopMediaApi = {
   listMediaPeople: (input?: Record<string, unknown>) => Promise<unknown>;
   listMediaAlbums: (input?: Record<string, unknown>) => Promise<unknown>;
   getMediaAssetPreview: (input: Record<string, unknown>) => Promise<BinaryResult>;
-  uploadMediaWorkflowInput: (input: Record<string, unknown>) => Promise<{ name?: string; filename?: string }>;
-  uploadMediaAssetWorkflowInput: (input: Record<string, unknown>) => Promise<{ name?: string; filename?: string }>;
   queueMediaWorkflow: (input: Record<string, unknown>) => Promise<{ promptId?: string; selectable?: boolean; reasonCode?: string }>;
   getMediaWorkflowResult: (input: Record<string, unknown>) => Promise<WorkflowResult>;
   saveMediaWorkflowOutput: (input: Record<string, unknown>) => Promise<{ asset?: MediaAsset; selectable?: boolean }>;
@@ -178,13 +176,15 @@ export function MediaWorkspace(): React.JSX.Element {
     if (!api || busy || !prompt.trim()) return;
     setBusy(true);
     try {
-      let inputImage = "";
-      if (workflowKind === "edit") {
-        if (!selectedAsset?.id) throw Object.assign(new Error("Select an Immich asset first"), { reasonCode: "IMMICH_ASSET_REQUIRED" });
-        const uploaded = await api.uploadMediaAssetWorkflowInput({ assetId: selectedAsset.id, filename: String(selectedAsset.originalFileName || selectedAsset.fileName || `yance-edit-${selectedAsset.id}.png`) });
-        inputImage = String(uploaded.name || uploaded.filename || "");
+      if (workflowKind === "edit" && !selectedAsset?.id) {
+        throw Object.assign(new Error("Select an Immich asset first"), { reasonCode: "IMMICH_ASSET_REQUIRED" });
       }
-      const queued = await api.queueMediaWorkflow({ kind: workflowKind, prompt: prompt.trim(), inputImage });
+      const queueInput: Record<string, unknown> = { kind: workflowKind, prompt: prompt.trim() };
+      if (workflowKind === "edit") {
+        queueInput.assetId = selectedAsset?.id;
+        queueInput.filename = String(selectedAsset?.originalFileName || selectedAsset?.fileName || "");
+      }
+      const queued = await api.queueMediaWorkflow(queueInput);
       setWorkflowPromptId(String(queued.promptId || ""));
       setWorkflowOutput(null);
       setPreview(null);
@@ -222,7 +222,7 @@ export function MediaWorkspace(): React.JSX.Element {
     if (!api || !selectedAsset?.id || busy) return;
     setBusy(true);
     try {
-      await api.sendMediaAsset({ platform, accountId: accountId.trim(), chatJid: chatJid.trim(), assetId: selectedAsset.id, kind: assetMediaKind(selectedAsset), filename: displayName(selectedAsset), caption });
+      await api.sendMediaAsset({ platform, accountId: accountId.trim(), chatJid: chatJid.trim(), assetId: selectedAsset.id, filename: displayName(selectedAsset), caption });
       setStatus("Send delegated to existing Yance send-media-stream authority");
     } catch (error) { setStatus(`Send unavailable · ${String((error as { reasonCode?: string })?.reasonCode || "unknown")}`); }
     finally { setBusy(false); }

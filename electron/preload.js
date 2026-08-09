@@ -81,8 +81,6 @@ contextBridge.exposeInMainWorld('yanceDesktop', Object.freeze({
   listMediaPeople: input => ipcRenderer.invoke('desktop:media-brain-list-people', input || {}),
   listMediaAlbums: input => ipcRenderer.invoke('desktop:media-brain-list-albums', input || {}),
   getMediaAssetPreview: input => ipcRenderer.invoke('desktop:media-brain-get-asset-preview', input || {}),
-  uploadMediaWorkflowInput: input => ipcRenderer.invoke('desktop:media-brain-upload-workflow-input', input || {}),
-  uploadMediaAssetWorkflowInput: input => ipcRenderer.invoke('desktop:media-brain-upload-asset-workflow-input', input || {}),
   queueMediaWorkflow: input => ipcRenderer.invoke('desktop:media-brain-queue-workflow', input || {}),
   getMediaWorkflowResult: input => ipcRenderer.invoke('desktop:media-brain-get-workflow-result', input || {}),
   saveMediaWorkflowOutput: input => ipcRenderer.invoke('desktop:media-brain-save-workflow-output', input || {}),
