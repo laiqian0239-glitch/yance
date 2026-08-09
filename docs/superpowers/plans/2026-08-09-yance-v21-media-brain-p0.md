@@ -1,3 +1,7 @@
+> Historical implementation plan. Terminal repository status is recorded in
+> `docs/superpowers/plans/2026-08-10-yance-v21-media-brain-p0-v1-post-merge-handoff.md`.
+> `V21-MEDIA-BRAIN-P0-V1` is **MERGED + POST-MERGE GREEN**; do not reuse the stale RED/Head data below as current state.
+
 # Yance V2.1 Media Brain P0 V1 implementation plan
 
 ## Frozen authorization
