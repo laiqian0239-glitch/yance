@@ -116,7 +116,12 @@ function compilePersonaContext(versionRecord, options = {}) {
     mode: opts.mode || 'live'
   });
   const requestedComposition = isPlainObject(opts.composition) ? opts.composition : {};
-  const locale = String(requestedComposition.localeProfile?.locale || content.metadata?.locale || truthSafePacket.preferredLanguage || '').trim();
+  const persistedPersonaProfile = isPlainObject(authoritative.personaProfile) ? authoritative.personaProfile : {};
+  const persistedCharacterCard = isPlainObject(persistedPersonaProfile.characterCard) ? persistedPersonaProfile.characterCard : {};
+  const persistedLocaleProfile = isPlainObject(persistedPersonaProfile.localeProfile) ? persistedPersonaProfile.localeProfile : {};
+  const persistedChatRegister = isPlainObject(persistedPersonaProfile.chatRegister) ? persistedPersonaProfile.chatRegister : {};
+  const persistedExampleDialogues = Array.isArray(persistedPersonaProfile.exampleDialogues) ? persistedPersonaProfile.exampleDialogues : [];
+  const locale = String(requestedComposition.localeProfile?.locale || persistedLocaleProfile.locale || content.metadata?.locale || truthSafePacket.preferredLanguage || '').trim();
   const relationshipCard = isPlainObject(requestedComposition.relationshipCard) ? requestedComposition.relationshipCard : {
     authority: 'read_only_communication_context_projection',
     relationshipStage: truthSafePacket.relationshipStage,
@@ -124,20 +129,24 @@ function compilePersonaContext(versionRecord, options = {}) {
     interaction: isPlainObject(socialContext.interaction) ? socialContext.interaction : {},
     emotionalTrend: socialContext.emotion?.trend || socialContext.emotionalTrend || ''
   };
-  const localeProfile = isPlainObject(requestedComposition.localeProfile) ? requestedComposition.localeProfile : {
-    locale,
-    preferredLanguage: truthSafePacket.preferredLanguage || ''
-  };
-  const chatRegister = isPlainObject(requestedComposition.chatRegister) ? requestedComposition.chatRegister : buildNativeRegisterContract({
-    locale,
-    channel: socialContext.customer?.platform || 'whatsapp'
-  });
+  const localeProfile = isPlainObject(requestedComposition.localeProfile)
+    ? requestedComposition.localeProfile
+    : (Object.keys(persistedLocaleProfile).length ? persistedLocaleProfile : {
+      locale,
+      preferredLanguage: truthSafePacket.preferredLanguage || ''
+    });
+  const chatRegister = isPlainObject(requestedComposition.chatRegister)
+    ? requestedComposition.chatRegister
+    : (Object.keys(persistedChatRegister).length ? persistedChatRegister : buildNativeRegisterContract({
+      locale,
+      channel: socialContext.customer?.platform || 'whatsapp'
+    }));
   const stylePolicy = truthSafePacket.style?.policy || {};
   const composition = buildPersonaComposition({
     personaCard: isPlainObject(requestedComposition.personaCard) ? requestedComposition.personaCard : {
-      description: truthSafePacket.presentationProfile || {}
+      description: persistedPersonaProfile.description || truthSafePacket.presentationProfile || {}
     },
-    characterCard: isPlainObject(requestedComposition.characterCard) ? requestedComposition.characterCard : {},
+    characterCard: isPlainObject(requestedComposition.characterCard) ? requestedComposition.characterCard : persistedCharacterCard,
     relationshipCard,
     localeProfile,
     chatRegister,
@@ -146,8 +155,10 @@ function compilePersonaContext(versionRecord, options = {}) {
       weights: isPlainObject(stylePolicy.directions) ? stylePolicy.directions : {},
       intensity: stylePolicy.intensity || 'natural'
     },
-    exampleDialogues: Array.isArray(requestedComposition.exampleDialogues) ? requestedComposition.exampleDialogues : [],
-    characterBook: isPlainObject(requestedComposition.characterBook) ? requestedComposition.characterBook : undefined,
+    exampleDialogues: Array.isArray(requestedComposition.exampleDialogues) ? requestedComposition.exampleDialogues : persistedExampleDialogues,
+    characterBook: isPlainObject(requestedComposition.characterBook)
+      ? requestedComposition.characterBook
+      : (isPlainObject(persistedCharacterCard.characterBook) ? persistedCharacterCard.characterBook : undefined),
     incomingText: requestedComposition.incomingText || socialContext.incomingMessage?.text || ''
   });
   truthSafePacket.composition = composition;
