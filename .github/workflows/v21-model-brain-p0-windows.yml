@@ -25,8 +25,14 @@ jobs:
       - name: Acquire sealed CPython and uv build tools
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri 'https://github.com/astral-sh/python-build-standalone/releases/download/20250712/cpython-3.12.13+20250712-x86_64-pc-windows-msvc-install_only_stripped.tar.gz' -OutFile python.tar.gz
-          Invoke-WebRequest -Uri 'https://github.com/astral-sh/uv/releases/download/0.12.3/uv-x86_64-pc-windows-msvc.zip' -OutFile uv.zip
+          $pythonUrl = 'https://github.com/astral-sh/python-build-standalone/releases/download/20260303/cpython-3.12.13%2B20260303-x86_64-pc-windows-msvc-install_only_stripped.tar.gz'
+          $pythonSha256 = '10b7a95b928e551fc78cac665999e1ae1f08fb738b255adb0a8d3b9c2824a9c0'
+          $uvUrl = 'https://github.com/astral-sh/uv/releases/download/0.12.3/uv-x86_64-pc-windows-msvc.zip'
+          $uvSha256 = 'b23350c79e8ad0192b8124af13a0f17e8d4e4549524785e1aef389ae5a06990e'
+          Invoke-WebRequest -Uri $pythonUrl -OutFile python.tar.gz
+          Invoke-WebRequest -Uri $uvUrl -OutFile uv.zip
+          if ((Get-FileHash python.tar.gz -Algorithm SHA256).Hash.ToLowerInvariant() -ne $pythonSha256) { throw 'CPython asset SHA-256 mismatch' }
+          if ((Get-FileHash uv.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $uvSha256) { throw 'uv asset SHA-256 mismatch' }
           Expand-Archive uv.zip -DestinationPath uv-bin
           # Build stage may use network. The produced runtime is subsequently tested offline.
       - name: Build sealed SDK runtime
