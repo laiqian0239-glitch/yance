@@ -7,7 +7,7 @@
   "reason": "Independent post-merge review of Persona V2 found two concrete semantic correctness defects inside the already-adopted SillyTavern Character Card integration. First, frontend apply logic promotes Character Card creator_notes into the runtime Character Note when post_history_instructions is empty, even though pinned SillyTavern 1.18.0 defines creator_notes as internal creator comments and post_history_instructions as conversation-history instructions. Second, request-side composition containing a newly selected Character Card can carry character_book nested under characterCard while the compiler falls back to persisted characterBook unless a duplicate top-level characterBook is supplied, so pre-save composition preview can use stale World Info. This repair preserves the existing SillyTavern architecture and authority boundaries; it adds no framework, dependency, workflow or model-gateway surface.",
   "base": {
     "branch": "main",
-    "commit": "05bb2ddc3a1428374f3a43705d38619681bb0185"
+    "commit": "e5a255a7472a864c9858db16a4111eb3dc89b24a"
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
@@ -57,8 +57,8 @@
     "letta": "long-term interaction memory authority",
     "graphiti": "temporal relationship-fact authority",
     "parlant": "Goal/Journey authority",
-    "modelExecution": "existing Yance model gateway only",
-    "finalSend": "existing Yance final send authority only"
+    "modelExecution": "model execution authority remains external to Persona and must use the authority effective on trusted main at implementation/reconciliation time",
+    "finalSend": "final-send authority remains external to Persona and must use the authority effective on trusted main at implementation/reconciliation time"
   },
   "failureFirst": {
     "firstImplementationCommitTestsOnly": true,
@@ -77,6 +77,8 @@
     "creator_notes remains preserved metadata and is not converted to system/runtime Character Note authority.",
     "Requested composition may use characterBook nested under the requested characterCard without requiring a duplicated top-level field.",
     "Persisted characterBook remains the fallback only when neither requested top-level characterBook nor requested characterCard.characterBook is present.",
+    "Persona repair must use the model-execution authority effective on trusted main and must not preserve or create a second gateway, router, physical-model scorer or provider credential path.",
+    "Persona repair must use the final-send authority effective on trusted main and must not create a second send-policy or send-execution authority.",
     "No Persona V2 dependency, workflow, vendor source, provenance digest, license, model gateway, Letta, Graphiti, Parlant or final-send authority is changed.",
     "No temporary bypass, retry-only workaround, test weakening, force push, rebase or amend is permitted."
   ],
