@@ -14,6 +14,52 @@ $ExpectedPython = "3.12.13"
 $ExpectedUv = "0.12.3"
 $BuildPhase = "source-integrity"
 
+function Write-GitBlobFile {
+  param(
+    [Parameter(Mandatory=$true)][string]$Repository,
+    [Parameter(Mandatory=$true)][string]$Blob,
+    [Parameter(Mandatory=$true)][string]$Destination
+  )
+
+  $parent = Split-Path -Parent $Destination
+  if ($parent) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }
+
+  # Use git cat-file blob through a byte-safe redirected stream. Do not let a shell,
+  # worktree filter or text decoder/re-encoder stand between the Git blob and disk.
+  $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+  $startInfo.FileName = "git"
+  $startInfo.UseShellExecute = $false
+  $startInfo.RedirectStandardOutput = $true
+  $startInfo.RedirectStandardError = $true
+  foreach ($argument in @("-C", $Repository, "cat-file", "blob", $Blob)) {
+    [void]$startInfo.ArgumentList.Add($argument)
+  }
+
+  $process = [System.Diagnostics.Process]::new()
+  $process.StartInfo = $startInfo
+  try {
+    if (-not $process.Start()) { throw "git cat-file blob process failed to start: $Blob" }
+    $targetStream = [System.IO.FileStream]::new(
+      $Destination,
+      [System.IO.FileMode]::Create,
+      [System.IO.FileAccess]::Write,
+      [System.IO.FileShare]::None
+    )
+    try {
+      $process.StandardOutput.BaseStream.CopyTo($targetStream)
+    } finally {
+      $targetStream.Dispose()
+    }
+    $stderr = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+    if ($process.ExitCode -ne 0) {
+      throw "git cat-file blob failed for $Blob`: $stderr"
+    }
+  } finally {
+    $process.Dispose()
+  }
+}
+
 try {
 $source = (Resolve-Path $LiteLLMSource).Path
 if ((git -C $source rev-parse HEAD).Trim() -ne $ExpectedCommit) { throw "LiteLLM commit mismatch" }
@@ -51,26 +97,14 @@ $sitePackages = (& $pythonExe -I -c "import sysconfig; print(sysconfig.get_paths
 if (-not $sitePackages -or -not (Test-Path $sitePackages)) { throw "sealed site-packages path missing" }
 
 $BuildPhase = "sdk-materialization"
-# Materialize the reviewed MIT litellm/ tree directly from the immutable Git tree
-# object. Windows checkout bytes may apply worktree EOL conversion, so sealed source
-# identity must come from Git objects rather than from the platform checkout view.
+# Materialize the reviewed MIT litellm/ tree from raw Git blob objects. This is
+# intentionally below archive/worktree conversion so sealed bytes are platform-neutral.
 $litellmTarget = Join-Path $sitePackages "litellm"
 Remove-Item $litellmTarget -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $litellmTarget | Out-Null
-$sourceArchive = Join-Path $OutputRoot "litellm-source.tar"
-Remove-Item $sourceArchive -Force -ErrorAction SilentlyContinue
-& git -C $source archive --format=tar --output=$sourceArchive $ExpectedCoreTree
-if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $sourceArchive -PathType Leaf)) {
-  Remove-Item $sourceArchive -Force -ErrorAction SilentlyContinue
-  throw "LiteLLM pinned core tree object export failed"
-}
-& tar -xf $sourceArchive -C $litellmTarget
-$archiveExitCode = $LASTEXITCODE
-Remove-Item $sourceArchive -Force -ErrorAction SilentlyContinue
-if ($archiveExitCode -ne 0) { throw "LiteLLM pinned core tree object extraction failed" }
 
-# Verify source tree integrity against the pinned Git tree itself. Bind every
-# materialized file to the reviewed tree's exact blob SHA and reject extra paths.
+# Enumerate the pinned tree once, write each exact blob, then independently hash the
+# materialized file bytes and reject any missing/extra path.
 $treeEntries = @(& git -C $source ls-tree -r $ExpectedCoreTree)
 if ($LASTEXITCODE -ne 0 -or $treeEntries.Count -eq 0) { throw "LiteLLM pinned core tree enumeration failed" }
 $expectedPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
@@ -82,6 +116,11 @@ foreach ($entry in $treeEntries) {
   $relative = $Matches['path']
   [void]$expectedPaths.Add($relative)
   $targetFile = Join-Path $litellmTarget $relative
+  try {
+    Write-GitBlobFile -Repository $source -Blob $expectedBlob -Destination $targetFile
+  } catch {
+    throw "LiteLLM raw Git blob materialization failed: path=$relative blob=$expectedBlob error=$($_.Exception.Message)"
+  }
   if (-not (Test-Path -LiteralPath $targetFile -PathType Leaf)) {
     throw "LiteLLM source path mismatch after materialization: missing=$relative"
   }
