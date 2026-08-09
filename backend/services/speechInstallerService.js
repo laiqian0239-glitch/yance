@@ -2,64 +2,82 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
 const { PATHS } = require('../config');
 const logger = require('./logger');
 const transcription = require('./transcriptionService');
 
-let activeChild = null;
-let activeStartedAt = '';
-
 function sourceRoot() { return path.resolve(__dirname, '..', '..'); }
-function installerScript() { return path.join(sourceRoot(), 'tools', 'runtime-delivery', 'install-local-whisper.ps1'); }
-function statusPath() { return path.join(PATHS.models, 'whisper', 'install-status.json'); }
-function logPath() { return path.join(PATHS.logs, 'speech-installer.log'); }
+function runtimeRoot() {
+  const configured = String(process.env.YANCE_VOICE_BRAIN_RUNTIME_DIR || '').trim();
+  return path.resolve(configured || path.join(PATHS.root, 'runtime', 'voice-brain'));
+}
+function statusPath() { return path.join(PATHS.models, 'voice-brain', 'sealed-runtime-status.json'); }
 function readJson(file, fallback = {}) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
   catch (error) {
-    if (error.code !== 'ENOENT') logger.warn('speech', 'installer-status-read-failed', { operation: 'speechInstaller.status', accountId: '', conversationId: '', reasonCode: error.code || 'SPEECH_INSTALLER_STATUS_READ_FAILED', httpStatus: 0, attempt: 1, nextRetryAt: '', file, error: error.message });
+    if (error.code !== 'ENOENT') logger.warn('speech', 'voice-brain-status-read-failed', {
+      operation: 'speechInstaller.status',
+      accountId: '',
+      conversationId: '',
+      reasonCode: error.code || 'VOICE_BRAIN_STATUS_READ_FAILED',
+      httpStatus: 0,
+      attempt: 1,
+      nextRetryAt: '',
+      file,
+      error: error.message
+    });
     return fallback;
   }
 }
-function status() {
-  const engine = transcription.engineStatus();
-  const persisted = readJson(statusPath(), {});
-  const running = Boolean(activeChild && activeChild.exitCode == null);
-  return {
-    ok: true,
-    running,
-    startedAt: activeStartedAt,
-    installerScript: installerScript(),
-    logFile: logPath(),
-    install: persisted,
-    engine
-  };
-}
-function startInstall() {
-  const current = status();
-  if (current.engine.whatsappAudioReady) return { ...current, started: false, alreadyReady: true };
-  if (current.running) return { ...current, started: false, alreadyRunning: true };
-  if (process.platform !== 'win32') throw Object.assign(new Error('自动安装当前只支持 Windows。'), { code: 'SPEECH_INSTALL_PLATFORM_UNSUPPORTED', status: 409 });
-  const script = installerScript();
-  if (!fs.existsSync(script)) throw Object.assign(new Error('本地语音安装脚本不存在。'), { code: 'SPEECH_INSTALLER_SCRIPT_MISSING', status: 500 });
-  fs.mkdirSync(PATHS.logs, { recursive: true });
-  fs.mkdirSync(path.dirname(statusPath()), { recursive: true });
-  const output = fs.openSync(logPath(), 'a');
-  activeStartedAt = new Date().toISOString();
-  activeChild = spawn('powershell.exe', ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, '-DataRoot', PATHS.root], {
-    windowsHide: true,
-    detached: false,
-    stdio: ['ignore', output, output]
-  });
-  fs.closeSync(output);
-  activeChild.once('error', error => {
-    logger.error('speech', 'installer-start-failed', { operation: 'speechInstaller.start', accountId: '', conversationId: '', reasonCode: error.code || 'SPEECH_INSTALLER_START_FAILED', httpStatus: 0, attempt: 1, nextRetryAt: '', error: error.message });
-  });
-  activeChild.once('close', code => {
-    logger.info('speech', 'installer-finished', { operation: 'speechInstaller.start', accountId: '', conversationId: '', reasonCode: code === 0 ? 'SPEECH_INSTALLER_READY' : 'SPEECH_INSTALLER_FAILED', httpStatus: 0, attempt: 1, nextRetryAt: '', exitCode: Number(code || 0) });
-    activeChild = null;
-  });
-  return { ...status(), started: true, pid: activeChild.pid };
+
+function cosyVoiceRuntimeStatus() {
+  const roots = [
+    runtimeRoot(),
+    path.join(sourceRoot(), 'runtime', 'voice-brain')
+  ];
+  const pythonName = process.platform === 'win32' ? 'python.exe' : 'python';
+  const candidates = roots.flatMap(root => [
+    path.join(root, 'cosyvoice', 'python', pythonName),
+    path.join(root, 'cosyvoice', 'runtime', pythonName),
+    path.join(root, 'python', pythonName)
+  ]);
+  const executable = candidates.find(file => {
+    try { return fs.statSync(file).isFile(); } catch (_) { return false; }
+  }) || '';
+  return Object.freeze({ authority: 'CosyVoice', available: Boolean(executable), executable });
 }
 
-module.exports = { status, startInstall, installerScript, statusPath, logPath };
+function status() {
+  const asr = transcription.engineStatus();
+  const tts = cosyVoiceRuntimeStatus();
+  const persisted = readJson(statusPath(), {});
+  const ready = asr.available === true && tts.available === true;
+  return Object.freeze({
+    ok: true,
+    product: 'Voice Brain',
+    authority: { asr: 'SenseVoice', tts: 'CosyVoice' },
+    available: ready,
+    running: false,
+    installSupported: false,
+    provisionMode: 'sealed-build-only',
+    runtimeRoot: runtimeRoot(),
+    statusFile: statusPath(),
+    install: persisted,
+    engine: asr,
+    cosyVoice: tts,
+    reasonCode: ready ? '' : !asr.available ? asr.reasonCode : 'COSYVOICE_RUNTIME_MISSING'
+  });
+}
+
+function startInstall() {
+  const current = status();
+  if (current.available) return { ...current, started: false, alreadyReady: true };
+  const error = new Error('Voice Brain runtime is provisioned only by the sealed build pipeline; dynamic application-time installation is disabled.');
+  error.code = 'VOICE_BRAIN_SEALED_RUNTIME_MISSING';
+  error.reasonCode = 'VOICE_BRAIN_SEALED_RUNTIME_MISSING';
+  error.status = 409;
+  error.details = { runtimeRoot: current.runtimeRoot, reasonCode: current.reasonCode };
+  throw error;
+}
+
+module.exports = { status, startInstall, runtimeRoot, statusPath, cosyVoiceRuntimeStatus };

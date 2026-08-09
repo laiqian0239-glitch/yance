@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "authority": "SenseVoice",
+  "runtime": {
+    "repository": "QwenAudio/SenseVoice",
+    "release": "runtime-llamacpp-v0.1.9",
+    "sourceCommit": "73ccdd3577db37e92dbf22a4a9fc323b038cf13b",
+    "platform": "windows-x64-avx2",
+    "asset": "funasr-llamacpp-windows-x64-avx2.zip",
+    "size": 4917274,
+    "sha256": "f2a1389658e6fb5f5f93c7bad98b5ce100eb4811e0e3c39603e39466773b1b4c",
+    "executable": "llama-funasr-sensevoice.exe"
+  },
+  "model": {
+    "repository": "FunAudioLLM/SenseVoiceSmall-GGUF",
+    "revision": "90c1c61912018b70ada0fcc024ea24aca62f2e63",
+    "asset": "sense-voice-small-q8_0.gguf",
+    "size": 254208320,
+    "sha256": "4ae45c94422de949b387e2e0fb10d7e14e4c42c69db30c3444ecc7d4b844b7c5"
+  },
+  "inputContract": {
+    "format": "wav",
+    "sampleRate": 16000,
+    "channels": 1,
+    "sampleEncoding": "pcm_s16le"
+  },
+  "startupPolicy": "offline-only"
+}
