@@ -13,6 +13,7 @@ const {
   metadata_keys,
   createFloatingPromptRuntime
 } = require('../../vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs');
+const { STYLE_DIRECTIONS, normalizeDirectionKey } = require('./stylePolicy');
 
 const SOURCE_AUTHORITY = 'SillyTavern/SillyTavern@51ad27fb86d39a3daca3adaa970375c9670c12df';
 const PRODUCT_INPUT_ORDER = Object.freeze([
@@ -24,11 +25,21 @@ const PRODUCT_INPUT_ORDER = Object.freeze([
   'Example Dialogues'
 ]);
 const REQUIRED_STYLE_LABELS = Object.freeze(['暧昧', '小女人', '风骚', '调情', '个性', '温柔', '成熟', '高冷', '主动', '神秘', '幽默', '俏皮']);
+const SUPPORTED_REGISTER_LOCALES = Object.freeze(['de-DE', 'de-AT']);
+const STYLE_KEYS = new Set(Object.keys(STYLE_DIRECTIONS));
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function plain(value) { return Boolean(value) && typeof value === 'object' && !Array.isArray(value); }
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
-function nonEmptyArray(value) { return Array.isArray(value) ? value.map(clean).filter(Boolean) : []; }
+function finiteNumber(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+function clampStyleWeight(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return null;
+  return Math.max(0, Math.min(100, number));
+}
 
 function stableStructuredContent(value) {
   if (value == null) return '';
@@ -48,14 +59,15 @@ function prompt(identifier, content, options = {}) {
     system_prompt: true,
     marker: false,
     injection_position: options.injection_position ?? INJECTION_POSITION.RELATIVE,
-    injection_depth: Number(options.injection_depth ?? 0),
-    injection_order: Number(options.injection_order ?? 100),
+    injection_depth: finiteNumber(options.injection_depth, 0),
+    injection_order: finiteNumber(options.injection_order, 100),
     injection_trigger: []
   });
 }
 
 function buildNativeRegisterContract(input = {}) {
-  const locale = ['de-DE', 'de-AT'].includes(clean(input.locale)) ? clean(input.locale) : clean(input.locale || 'de-DE');
+  const requestedLocale = clean(input.locale);
+  const locale = SUPPORTED_REGISTER_LOCALES.includes(requestedLocale) ? requestedLocale : 'de-DE';
   const channel = clean(input.channel || 'whatsapp').toLowerCase() || 'whatsapp';
   return Object.freeze({
     locale,
@@ -87,7 +99,15 @@ function normalizeStyleOverlay(value = {}) {
   const labels = Array.isArray(source.labels)
     ? source.labels.map(row => plain(row) ? clean(row.label || row.key) : clean(row)).filter(Boolean)
     : [];
-  const weights = plain(source.weights) ? clone(source.weights) : {};
+  const weights = {};
+  if (plain(source.weights)) {
+    for (const [rawKey, rawValue] of Object.entries(source.weights)) {
+      const key = normalizeDirectionKey(rawKey);
+      const weight = clampStyleWeight(rawValue);
+      if (!STYLE_KEYS.has(key) || weight == null) continue;
+      weights[key] = weight;
+    }
+  }
   return {
     labels: labels.filter(label => REQUIRED_STYLE_LABELS.includes(label)),
     weights,
@@ -99,7 +119,11 @@ function normalizeStyleOverlay(value = {}) {
 function exampleBlocks(exampleDialogues = []) {
   const runtime = createExampleDialogueRuntime({ name1: '{{user}}', name2: '{{char}}', getGroupNames: () => [], selected_group: null });
   const blocks = (Array.isArray(exampleDialogues) ? exampleDialogues : []).map(row => {
-    if (typeof row === 'string') return row;
+    if (typeof row === 'string') {
+      const text = clean(row);
+      if (!text) return '';
+      return /^<START>/i.test(text) ? text : `<START>\n${text}`;
+    }
     const user = clean(row?.user);
     const assistant = clean(row?.assistant);
     if (!user && !assistant) return '';
@@ -146,20 +170,22 @@ function characterBookMatches(characterBook, incomingText) {
 
 function resolveCharacterNotePlacement(note = {}) {
   const captured = { prompt: null, counter: null };
+  const position = finiteNumber(note.position, world_info_position.atDepth);
+  const depth = finiteNumber(note.depth, 4);
   const context = {
     groupId: null,
     characterId: 0,
     chat: [{ is_user: true }],
-    setExtensionPrompt(moduleName, content, position, depth, allowWIScan, role) {
-      captured.prompt = { moduleName, content: String(content), position, depth, allowWIScan, role };
+    setExtensionPrompt(moduleName, content, placedPosition, placedDepth, allowWIScan, role) {
+      captured.prompt = { moduleName, content: String(content), position: placedPosition, depth: placedDepth, allowWIScan, role };
     }
   };
   const runtime = createFloatingPromptRuntime({
     getContext: () => context,
     chat_metadata: {
       [metadata_keys.interval]: 1,
-      [metadata_keys.position]: Number(note.position ?? world_info_position.atDepth),
-      [metadata_keys.depth]: Number(note.depth ?? 4),
+      [metadata_keys.position]: position,
+      [metadata_keys.depth]: depth,
       [metadata_keys.role]: clean(note.role || 'system')
     },
     extension_settings: { note: { chara: [], allowWIScan: false } },
@@ -169,7 +195,7 @@ function resolveCharacterNotePlacement(note = {}) {
     }),
     extension_prompt_types: { NONE: 0 },
     MODULE_NAME: 'YancePersonaCharacterNote',
-    MAX_INJECTION_DEPTH: Number(note.depth ?? 4),
+    MAX_INJECTION_DEPTH: depth,
     getCharaFilename: () => '',
     console: { debug() {} }
   });
@@ -177,10 +203,10 @@ function resolveCharacterNotePlacement(note = {}) {
   const placed = captured.prompt || {};
   return {
     prompt: String(placed.content || ''),
-    position: placed.position,
-    depth: placed.depth,
-    allowWIScan: placed.allowWIScan,
-    role: placed.role,
+    position: finiteNumber(placed.position, position),
+    depth: finiteNumber(placed.depth, depth),
+    allowWIScan: placed.allowWIScan === true,
+    role: clean(placed.role || note.role || 'system'),
     shouldAddPrompt: runtime.getShouldWIAddPrompt(),
     counter: captured.counter
   };
@@ -191,7 +217,11 @@ function buildPersonaComposition(input = {}) {
   const characterCard = plain(input.characterCard) ? clone(input.characterCard) : {};
   const relationshipCard = plain(input.relationshipCard) ? clone(input.relationshipCard) : {};
   const localeProfile = plain(input.localeProfile) ? clone(input.localeProfile) : {};
-  const chatRegister = plain(input.chatRegister) ? clone(input.chatRegister) : buildNativeRegisterContract({ locale: localeProfile.locale, channel: 'whatsapp' });
+  const chatRegisterSource = plain(input.chatRegister) ? input.chatRegister : {};
+  const chatRegister = buildNativeRegisterContract({
+    locale: chatRegisterSource.locale || localeProfile.locale,
+    channel: chatRegisterSource.channel || 'whatsapp'
+  });
   const styleOverlay = normalizeStyleOverlay(input.styleOverlay);
   const examples = exampleBlocks(input.exampleDialogues);
   const matchedBook = characterBookMatches(input.characterBook, input.incomingText);
@@ -210,7 +240,7 @@ function buildPersonaComposition(input = {}) {
       role: notePlacement.role,
       injection_position: INJECTION_POSITION.ABSOLUTE,
       injection_depth: notePlacement.depth,
-      injection_order: Number(note.order ?? 100)
+      injection_order: finiteNumber(note.order, 100)
     }));
   }
 
@@ -261,6 +291,7 @@ module.exports = {
   SOURCE_AUTHORITY,
   PRODUCT_INPUT_ORDER,
   REQUIRED_STYLE_LABELS,
+  SUPPORTED_REGISTER_LOCALES,
   buildNativeRegisterContract,
   buildPersonaComposition,
   characterBookMatches,
