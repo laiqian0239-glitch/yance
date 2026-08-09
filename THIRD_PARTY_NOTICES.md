@@ -190,3 +190,53 @@ Exact Graphiti, Neo4j Community, Temurin, uv and python-build-standalone pins ar
 - Yance integration: unmodified official Windows portable or user-managed ComfyUI remains the sole Media Brain image workflow/model execution authority. Yance performs only HTTP coordination and parameter substitution; generated/edited outputs must be imported into Immich before becoming selectable or sendable.
 
 Exact Media Brain pins and authority boundaries are recorded in `config/upstreams/v21-media-brain-p0.json`.
+
+## SenseVoice
+
+- Project: SenseVoice
+- Upstream: `https://github.com/QwenAudio/SenseVoice.git`
+- Release: `runtime-llamacpp-v0.1.9`
+- Exact source commit: `73ccdd3577db37e92dbf22a4a9fc323b038cf13b`
+- Windows x64 AVX2 runtime asset: `funasr-llamacpp-windows-x64-avx2.zip`
+- Runtime asset SHA-256: `f2a1389658e6fb5f5f93c7bad98b5ce100eb4811e0e3c39603e39466773b1b4c`
+- License: `MIT`
+- License copy: `third_party/licenses/sensevoice-MIT.txt`
+- Yance integration: sole local Voice Brain ASR and language-detection authority. Legacy Whisper ASR discovery, CLI, installer and fallback authority are retired.
+
+## SenseVoice / FunASR model
+
+- Model repository used for sealed GGUF runtime: `FunAudioLLM/SenseVoiceSmall-GGUF`
+- Exact model revision: `90c1c61912018b70ada0fcc024ea24aca62f2e63`
+- Sealed q8 model SHA-256: `4ae45c94422de949b387e2e0fb10d7e14e4c42c69db30c3444ecc7d4b844b7c5`
+- Source model license evidence: FunASR Model Open Source License Agreement, version 1.1
+- License copy: `third_party/licenses/funasr-model-license.txt`
+- Yance integration: model weights are used only by the verified local SenseVoice runtime; model/source attribution is retained separately from the GGUF repository's distribution metadata.
+
+## CosyVoice
+
+- Project: CosyVoice
+- Upstream: `https://github.com/QwenAudio/CosyVoice.git`
+- Exact source commit: `074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc`
+- License: `Apache-2.0`
+- License copy: `third_party/licenses/cosyvoice-Apache-2.0.txt`
+- Yance integration: sole Voice Brain TTS, zero-shot voice-cloning and cross-lingual speech authority. The sealed runtime carries the exact upstream source tree and initialized `third_party/Matcha-TTS` source subtree; Yance provides only a thin local process adapter.
+
+## Fun-CosyVoice3-0.5B-2512 model
+
+- Model repository: `FunAudioLLM/Fun-CosyVoice3-0.5B-2512`
+- Exact model revision: `29e01c4e8d000f4bcd70751be16fa94bf3d85a18`
+- License: `Apache-2.0`
+- License copy: `third_party/licenses/cosyvoice3-model-Apache-2.0.txt`
+- Yance integration: exact local model snapshot for cloned/cross-lingual speech. The application does not download this model at startup.
+
+## Voice runtime dependencies
+
+- ONNX Runtime version: `1.18.0`
+- ONNX Runtime license: `MIT`
+- License copy: `third_party/licenses/onnxruntime-MIT.txt`
+- PyTorch / torchaudio version: `2.3.1`
+- PyTorch license copy: `third_party/licenses/pytorch-BSD-3-Clause.txt`
+- CosyVoice upstream dependency `openai-whisper==20231117` is sealed only for CosyVoice prompt-audio mel feature extraction. It is not a Yance ASR authority and must not be used for transcription, model discovery, CLI installation or fallback routing.
+- Voice Python dependency closure is defined only by `runtime/voice-brain/cosyvoice/pyproject.toml` plus its exact `uv.lock`, then materialized at build time using the already-noticed `uv` and `python-build-standalone` supply chain with `--frozen --offline` semantics.
+
+Exact Voice Brain source, model and build-tool pins are recorded in `config/upstreams/v21-voice-brain-p0.json`. Voice profiles and prompt samples remain local/private; final Voice sending delegates to the existing Yance `send-media-stream` authority rather than creating a second send queue or outbox.
