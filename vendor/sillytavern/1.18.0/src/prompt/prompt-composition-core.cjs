@@ -296,32 +296,99 @@ const chara_note_position = {
 // END_SILLYTAVERN_SLICE::authors-note::metadata-placement
 
 // SILLYTAVERN_SLICE::authors-note::depth-role-injection
-function resolveFloatingPromptInjection({ lastMessageNumber, interval, floatingPrompt, charaNote, position, depth, allowWIScan, role } = {}) {
-    if (interval === 1) {
+function createFloatingPromptRuntime(bindings = {}) {
+    const getContext = typeof bindings.getContext === 'function' ? bindings.getContext : (() => ({}));
+    const chat_metadata = bindings.chat_metadata || {};
+    const extension_settings = {
+        ...(bindings.extension_settings || {}),
+        note: {
+            ...(bindings.extension_settings?.note || {}),
+            chara: Array.isArray(bindings.extension_settings?.note?.chara) ? bindings.extension_settings.note.chara : [],
+            allowWIScan: Boolean(bindings.extension_settings?.note?.allowWIScan),
+        },
+    };
+    const $ = typeof bindings.$ === 'function' ? bindings.$ : (() => ({ val: () => '', text: () => undefined }));
+    const extension_prompt_types = bindings.extension_prompt_types || { NONE: 0 };
+    const MODULE_NAME = String(bindings.MODULE_NAME || '2_floating_prompt');
+    const MAX_INJECTION_DEPTH = Number(bindings.MAX_INJECTION_DEPTH ?? 100);
+    const getCharaFilename = typeof bindings.getCharaFilename === 'function' ? bindings.getCharaFilename : (() => '');
+    const console = bindings.console || globalThis.console;
+    let shouldWIAddPrompt = Boolean(bindings.shouldWIAddPrompt);
+
+function setFloatingPrompt() {
+    const context = getContext();
+    if (!context.groupId && context.characterId === undefined) {
+        console.debug('setFloatingPrompt: Not in a chat. Skipping.');
+        shouldWIAddPrompt = false;
+        return;
+    }
+
+    // take the count of messages
+    let lastMessageNumber = Array.isArray(context.chat) && context.chat.length ? context.chat.filter(m => m.is_user).length : 0;
+
+    console.debug(`
+    setFloatingPrompt entered
+    ------
+    lastMessageNumber = ${lastMessageNumber}
+    metadata_keys.interval = ${chat_metadata[metadata_keys.interval]}
+    metadata_keys.position = ${chat_metadata[metadata_keys.position]}
+    metadata_keys.depth = ${chat_metadata[metadata_keys.depth]}
+    metadata_keys.role = ${chat_metadata[metadata_keys.role]}
+    ------
+    `);
+
+    // interval 1 should be inserted no matter what
+    if (chat_metadata[metadata_keys.interval] === 1) {
         lastMessageNumber = 1;
     }
-    if (lastMessageNumber <= 0 || interval <= 0) {
-        return { prompt: '', position, depth, allowWIScan, role, shouldAddPrompt: false, disabled: true };
+
+    if (lastMessageNumber <= 0 || chat_metadata[metadata_keys.interval] <= 0) {
+        context.setExtensionPrompt(MODULE_NAME, '', extension_prompt_types.NONE, MAX_INJECTION_DEPTH);
+        $('#extension_floating_counter').text('(disabled)');
+        shouldWIAddPrompt = false;
+        return;
     }
-    const messagesTillInsertion = lastMessageNumber >= interval
-        ? (lastMessageNumber % interval)
-        : (interval - lastMessageNumber);
+
+    const messagesTillInsertion = lastMessageNumber >= chat_metadata[metadata_keys.interval]
+        ? (lastMessageNumber % chat_metadata[metadata_keys.interval])
+        : (chat_metadata[metadata_keys.interval] - lastMessageNumber);
     const shouldAddPrompt = messagesTillInsertion == 0;
-    let prompt = shouldAddPrompt ? floatingPrompt : '';
-    if (shouldAddPrompt && charaNote && charaNote.useChara) {
-        switch (charaNote.position) {
-            case chara_note_position.before:
-                prompt = charaNote.prompt + '\n' + prompt;
-                break;
-            case chara_note_position.after:
-                prompt = prompt + '\n' + charaNote.prompt;
-                break;
-            default:
-                prompt = charaNote.prompt;
-                break;
+    shouldWIAddPrompt = shouldAddPrompt;
+
+    let prompt = shouldAddPrompt ? $('#extension_floating_prompt').val() : '';
+    if (shouldAddPrompt && extension_settings.note.chara && getContext().characterId !== undefined) {
+        const charaNote = extension_settings.note.chara.find((e) => e.name === getCharaFilename());
+
+        // Only replace with the chara note if the user checked the box
+        if (charaNote && charaNote.useChara) {
+            switch (charaNote.position) {
+                case chara_note_position.before:
+                    prompt = charaNote.prompt + '\n' + prompt;
+                    break;
+                case chara_note_position.after:
+                    prompt = prompt + '\n' + charaNote.prompt;
+                    break;
+                default:
+                    prompt = charaNote.prompt;
+                    break;
+            }
         }
     }
-    return { prompt: String(prompt), position, depth, allowWIScan, role, shouldAddPrompt, messagesTillInsertion, disabled: false };
+    context.setExtensionPrompt(
+        MODULE_NAME,
+        String(prompt),
+        chat_metadata[metadata_keys.position],
+        chat_metadata[metadata_keys.depth],
+        extension_settings.note.allowWIScan,
+        chat_metadata[metadata_keys.role],
+    );
+    $('#extension_floating_counter').text(shouldAddPrompt ? '0' : messagesTillInsertion);
+}
+
+    return {
+        setFloatingPrompt,
+        getShouldWIAddPrompt: () => shouldWIAddPrompt,
+    };
 }
 // END_SILLYTAVERN_SLICE::authors-note::depth-role-injection
 
@@ -474,7 +541,7 @@ function convertCharacterBook(characterBook, bindings = {}) {
 module.exports = {
     DEFAULT_DEPTH, DEFAULT_ORDER, INJECTION_POSITION, Prompt, PromptCollection, preparePrompt, shouldTrigger, getPromptCollection,
     promptManagerDefaultPromptOrder, createExampleDialogueRuntime, createPopulationInjectionPrompts,
-    persona_description_positions, PERSONA_DEFAULT_DEPTH, PERSONA_DEFAULT_ROLE, metadata_keys, chara_note_position, resolveFloatingPromptInjection,
+    persona_description_positions, PERSONA_DEFAULT_DEPTH, PERSONA_DEFAULT_ROLE, metadata_keys, chara_note_position, createFloatingPromptRuntime,
     world_info_logic, world_info_position, wi_anchor_position, parseRegexFromString, matchKeys, newWorldInfoEntryDefinition, newWorldInfoEntryTemplate, convertCharacterBook,
     WORLD_INFO_DEFAULT_DEPTH, DEFAULT_WEIGHT,
 };
