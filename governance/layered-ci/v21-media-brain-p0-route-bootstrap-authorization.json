@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-MEDIA-BRAIN-P0-ROUTE-BOOTSTRAP",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Independent exact-scope review of Media authorization PR #180 proved that trusted main has unknownPathFailsClosed=true and ten future Media supply-chain/runtime/Element UI paths are not recognized by the base-owned WP0 routing policy. Candidate-owned routing edits are forbidden. This prerequisite authorizes only an exact current-main route bootstrap; it creates no Media product authority and does not widen the frozen 23-path Media implementation scope.",
+  "base": {
+    "branch": "main",
+    "commit": "bcc775973c8c09b99ac704f8e7dd8c165aa0f5c5"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-media-brain-p0-route-bootstrap-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-media-brain-p0-route-bootstrap-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "7c7675ab42c17b4d27a39ce13fe95eeb0b9107414bea8cb72b16bedf35de6215",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Exact normalized repository-relative paths; unique; JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join sorted unique paths with LF and append one trailing LF."
+  },
+  "evidence": {
+    "sourceMediaAuthorizationPullRequest": 180,
+    "sourceMediaAuthorizationHead": "3e631243b01718c1c0535504461262d52c070a7d",
+    "sourceMediaImplementationPathCount": 23,
+    "sourceMediaImplementationPathSetSha256": "5285766f6304074ecdeb098409b3b9fdadcd5be84c8acfdf0e2332dbad7aa5bf",
+    "trustedRoutingPolicyCommit": "bcc775973c8c09b99ac704f8e7dd8c165aa0f5c5",
+    "trustedRoutingPolicyBlob": "7ced911c5513e5a6522f8cd408b0cb2b8f8bf563",
+    "unknownPathFailsClosed": true,
+    "classifier": "tools/layered-ci/wp0-routing.js#classifyWp0Route",
+    "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "auditMethod": "Static exact-path classification against trusted-main productExactPaths/productPrefixes/productDocumentation rules; causal RED is required in the first implementation commit before routing policy mutation."
+  },
+  "implementation": {
+    "branch": "fix/v21-media-brain-p0-route-bootstrap",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-media-brain-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "09343d41c1938dce6ff781c32a8c1b2c2b3cbb020352975a5819adfc9e42db6f",
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "productImplementationAllowed": false,
+    "firstCommitMustBeTestOnly": true
+  },
+  "bootstrapPaths": [
+    "config/comfyui-workflows/v21-media-edit.json",
+    "config/comfyui-workflows/v21-media-generate.json",
+    "config/upstreams/v21-media-brain-p0.json",
+    "integration/element-module/src/MediaWorkspace.css",
+    "integration/element-module/src/MediaWorkspace.tsx",
+    "runtime/media-brain/README.md",
+    "runtime/media-brain/comfyui/UPSTREAM.json",
+    "runtime/media-brain/immich/UPSTREAM.json",
+    "third_party/licenses/comfyui-GPL-3.0.txt",
+    "third_party/licenses/immich-AGPL-3.0.txt"
+  ],
+  "bootstrapPathCount": 10,
+  "bootstrapPathSetSha256": "b2bd300fb921d64d9b5fd5770a7a66047131fb61f2f928992cb17c4d878392c0",
+  "candidatePreservation": {
+    "candidatePullRequest": 180,
+    "candidateBranch": "governance/v21-media-brain-p0-v1-authorization",
+    "candidateImplementationBranch": "product/v21-media-brain-p0-v1",
+    "candidateAuthorizedChangedFileCountMustRemain": 23,
+    "candidateAuthorizedChangedFileSetSha256MustRemain": "5285766f6304074ecdeb098409b3b9fdadcd5be84c8acfdf0e2332dbad7aa5bf",
+    "candidateWorkflowModificationAllowed": false,
+    "candidateHistoryRewriteAllowed": false,
+    "postBootstrapRule": "After route-bootstrap implementation merges to main, main must be merged normally into PR #180, its base receipt must be fresh-main resealed by a descendant commit, and the effective Media implementation diff/path digest must remain exact before authorization merge."
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first route-bootstrap implementation commit changes only tests/layered-ci/v21-media-brain-p0-routing.test.js and contains zero routing-policy or product implementation changes.",
+    "Before policy implementation each of the ten exact bootstrap paths fails closed as WP0_ROUTE_UNKNOWN_PATH under the trusted-main classifier.",
+    "After implementation each of the ten exact bootstrap paths selects PRODUCT_WP0.",
+    "The root fix adds only the ten exact literals to productExactPaths and does not add config/, integration/, runtime/, third_party/ or any other broad product prefix.",
+    "Adjacent unregistered Media/Immich/ComfyUI/runtime/license/UI paths and malformed repository paths continue to fail closed.",
+    "Governance and product-documentation routing precedence remains unchanged.",
+    "No Media product file, dependency manifest, workflow, Learning/Voice/Presence authority, release/publish/promotion path or PR #180 implementation scope is changed in the route-bootstrap implementation."
+  ],
+  "requiredSequence": [
+    "authorization exact Head passes applicable governance gates and independent review with P0=0/P1=0",
+    "authorization PR merges to main by ordinary two-parent merge without history rewrite",
+    "create fix/v21-media-brain-p0-route-bootstrap from the exact authorization merge commit",
+    "first implementation commit changes only tests/layered-ci/v21-media-brain-p0-routing.test.js and records causal RED for all ten exact paths",
+    "add only the ten exact bootstrap literals to governance/layered-ci/wp0-routing-policy.json",
+    "implementation exact Head passes Stage, Layered, ACV2 and independent review GREEN",
+    "route-bootstrap implementation PR merges to main by ordinary two-parent merge",
+    "ordinary-forward reconcile the resulting fresh main into Media authorization PR #180 and re-seal its base/effective exact diff without rebase, force push, amend or squash",
+    "resume Media authorization exact-head gates and independent review before its ordinary merge"
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansionInBootstrap": true,
+    "forcePush": true,
+    "rebaseOrAmendPublishedHistory": true,
+    "squash": true,
+    "directCandidateSelfAuthorization": true,
+    "mediaProductImplementation": true,
+    "dependencyManifestModification": true,
+    "workflowModification": true,
+    "learningVoicePresenceModification": true,
+    "candidateScopeReductionOrExpansion": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalMergeRequiresOwnerBoundary": false,
+    "ordinaryTwoParentMergeRequired": true
+  }
+}
