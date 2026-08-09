@@ -1,10 +1,11 @@
 'use strict';
 
-// Mechanically adapted from SillyTavern 1.18.0
-// upstream: src/validator/TavernCardValidator.js
-// commit: 51ad27fb86d39a3daca3adaa970375c9670c12df
-// blob: 82593d0aabda8b17363f892cc7119a005eefae77
-// transformation: strip ESM export and add CommonJS export only.
+// Yance modification notice (2026-08-09): mechanically adapted from the pinned SillyTavern source below.
+// This modified source file is licensed under GNU Affero General Public License v3.0 (AGPL-3.0); see ../../LICENSE.
+// Upstream: SillyTavern 1.18.0, src/validator/TavernCardValidator.js
+// Commit: 51ad27fb86d39a3daca3adaa970375c9670c12df
+// Source blob: 82593d0aabda8b17363f892cc7119a005eefae77
+// Transformation: strip ESM export and add CommonJS export only.
 class TavernCardValidator {
     #lastValidationError = null;
 
