@@ -212,3 +212,44 @@ test('V21 Persona P0 V2: derived native register clamps unsupported metadata loc
   assert.strictEqual(out.context.persona.composition.chatRegister.locale, 'de-DE');
   assert.strictEqual(out.context.persona.composition.chatRegister.register, 'native_short_form');
 });
+
+test('V21 Persona semantic repair: requested nested Character Card book wins before persisted fallback', () => {
+  const rec = makeVersionRecord({
+    content: {
+      schemaVersion: 1,
+      profileId: 'owner',
+      authoritative: {
+        coreIdentity: { mode: 'verified_real' },
+        personaProfile: {
+          characterCard: {
+            name: 'Persisted Mira',
+            characterBook: {
+              entries: [{ keys: ['signal'], content: 'PERSISTED-BOOK', enabled: true }]
+            }
+          }
+        },
+        replyStylePolicy: { directions: {}, intensity: 'natural' },
+        disclosureRules: {},
+        forbiddenFabrications: []
+      },
+      learned: { preferences: {}, interactionPatterns: {} },
+      metadata: { title: 'Owner', locale: 'de-DE' }
+    }
+  });
+
+  const out = compilePersonaContext(rec, {
+    socialContext: { customer: { platform: 'whatsapp' }, incomingMessage: { text: 'signal' } },
+    composition: {
+      characterCard: {
+        name: 'Requested Mira',
+        characterBook: {
+          entries: [{ keys: ['signal'], content: 'REQUESTED-NESTED-BOOK', enabled: true }]
+        }
+      }
+    }
+  });
+
+  assert.strictEqual(out.safeFallback, false);
+  assert.strictEqual(out.context.persona.composition.characterBookMatches.some(row => row.content === 'REQUESTED-NESTED-BOOK'), true);
+  assert.strictEqual(out.context.persona.composition.characterBookMatches.some(row => row.content === 'PERSISTED-BOOK'), false);
+});

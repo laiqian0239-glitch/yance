@@ -198,3 +198,11 @@ test('V21 Persona UI: existing validate/export/import/save actions remain presen
     assert.ok(runtime.includes(label), `legacy Persona top action disappeared: ${label}`);
   }
 });
+
+test('V21 Persona semantic repair: creator_notes stays metadata and never becomes runtime Character Note authority', () => {
+  const runtime = source(RUNTIME_PATH);
+  const route = source(ROUTE_PATH);
+  assert.match(route, /creatorNotes:\s*String\(data\.creator_notes\s*\|\|\s*''\)/, 'creator_notes must remain preserved Character Card metadata');
+  assert.match(runtime, /characterNote:\s*\{\s*content:\s*String\(card\.postHistoryInstructions\s*\|\|\s*''\)/, 'runtime Character Note must come only from postHistoryInstructions');
+  assert.doesNotMatch(runtime, /characterNote:\s*\{[\s\S]{0,180}card\.creatorNotes/, 'creatorNotes must never be promoted into runtime Character Note authority');
+});
