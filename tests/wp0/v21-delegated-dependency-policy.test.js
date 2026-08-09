@@ -13,6 +13,7 @@ const AUTHORIZATION_PATH = 'governance/layered-ci/dependency-identity-fixture-au
 const AUTHORIZATION_BRANCH = 'governance/dependency-identity-fixture-authorization';
 const IMPLEMENTATION_BRANCH = 'fix/dependency-identity-fixture';
 const MANIFEST_PATH = 'integration/element-module/package.json';
+const LOCK_PATH = 'integration/element-module/package-lock.json';
 const BASE = '1'.repeat(40);
 const REVIEWED = '2'.repeat(40);
 const MERGE = '3'.repeat(40);
@@ -47,6 +48,43 @@ function exactManifest() {
   const manifest = baseManifest();
   manifest.dependencies['livekit-client'] = '2.21.0';
   return manifest;
+}
+
+function baseLockfile() {
+  return {
+    name: '@yance/element-module',
+    version: '0.0.0',
+    lockfileVersion: 3,
+    requires: true,
+    packages: {
+      '': {
+        name: '@yance/element-module',
+        version: '0.0.0',
+        dependencies: {
+          '@element-hq/element-web-module-api': '0.8.0'
+        },
+        devDependencies: {
+          vite: '6.1.0'
+        }
+      },
+      'node_modules/@element-hq/element-web-module-api': {
+        version: '0.8.0'
+      },
+      'node_modules/vite': {
+        version: '6.1.0',
+        dev: true
+      }
+    }
+  };
+}
+
+function exactLockfile() {
+  const lockfile = baseLockfile();
+  lockfile.packages[''].dependencies['livekit-client'] = '2.21.0';
+  lockfile.packages['node_modules/livekit-client'] = {
+    version: '2.21.0'
+  };
+  return lockfile;
 }
 
 function dependencyIdentityPolicy(entries = [{
@@ -105,6 +143,20 @@ function authorization(identityPolicy = dependencyIdentityPolicy()) {
   };
 }
 
+function authorizationWithLockfile(identityPolicy = dependencyIdentityPolicy()) {
+  const document = authorization(identityPolicy);
+  const allowedChangedPaths = [LOCK_PATH, MANIFEST_PATH].sort();
+  document.implementation.allowedChangedPaths = allowedChangedPaths;
+  document.implementation.approvedChangedFileCount = allowedChangedPaths.length;
+  document.implementation.approvedChangedFileSetSha256 = workPackageChangedFilesSha256(allowedChangedPaths);
+  document.implementation.dependencyModificationPolicy = {
+    allowedDependencyPaths: allowedChangedPaths,
+    approvedDependencyPathCount: allowedChangedPaths.length,
+    approvedDependencyPathSetSha256: workPackageChangedFilesSha256(allowedChangedPaths)
+  };
+  return document;
+}
+
 function trustedOptions(candidateManifest, auth = authorization()) {
   return {
     branch: IMPLEMENTATION_BRANCH,
@@ -139,6 +191,32 @@ function trustedOptions(candidateManifest, auth = authorization()) {
       return null;
     }
   };
+}
+
+function trustedOptionsWithLockfile({
+  candidateManifest = exactManifest(),
+  candidateLockfile = exactLockfile(),
+  changedPaths = [LOCK_PATH, MANIFEST_PATH].sort(),
+  auth = authorizationWithLockfile()
+} = {}) {
+  const options = trustedOptions(candidateManifest, auth);
+  options.resolveChangedFilesBetween = (base, head) => {
+    if (base === BASE && [REVIEWED, MERGE].includes(head)) return [AUTHORIZATION_PATH];
+    if (base === MERGE && head === CANDIDATE) return [...changedPaths];
+    return [];
+  };
+  options.loadDependencyControlAtCommit = (commit, path) => {
+    if (path === MANIFEST_PATH) {
+      if (commit === MERGE) return baseManifest();
+      if (commit === CANDIDATE) return candidateManifest;
+    }
+    if (path === LOCK_PATH) {
+      if (commit === MERGE) return baseLockfile();
+      if (commit === CANDIDATE) return candidateLockfile;
+    }
+    return null;
+  };
+  return options;
 }
 
 test('delegated authorization schema accepts an exact dependency identity declaration and rejects malformed variants', () => {
@@ -262,6 +340,50 @@ test('dependency identity policy also prevents unrelated package-manifest script
   const candidate = exactManifest();
   candidate.scripts.build = 'node unreviewed-build.js';
   const result = evaluateTrustedDelegatedGovernanceBranch(trustedOptions(candidate));
+  assert.equal(result.pass, false, JSON.stringify(result));
+  assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
+});
+
+test('trusted delegated evaluator accepts exact package identity with synchronized npm lockfile closure', () => {
+  const auth = authorizationWithLockfile();
+  assert.equal(isValidGenericDelegatedGovernanceAuthorization(auth, AUTHORIZATION_PATH), true);
+
+  const result = evaluateTrustedDelegatedGovernanceBranch(trustedOptionsWithLockfile({ auth }));
+  assert.equal(result.pass, true, JSON.stringify(result));
+});
+
+test('trusted delegated evaluator rejects stale or extra npm lockfile direct-dependency closure', () => {
+  const stale = baseLockfile();
+  const staleResult = evaluateTrustedDelegatedGovernanceBranch(trustedOptionsWithLockfile({
+    candidateLockfile: stale
+  }));
+  assert.equal(staleResult.pass, false, JSON.stringify(staleResult));
+  assert.equal(staleResult.reasonCode, DENIED, JSON.stringify(staleResult));
+
+  const extra = exactLockfile();
+  extra.packages[''].dependencies['left-pad'] = '1.3.0';
+  extra.packages['node_modules/left-pad'] = { version: '1.3.0' };
+  const extraResult = evaluateTrustedDelegatedGovernanceBranch(trustedOptionsWithLockfile({
+    candidateLockfile: extra
+  }));
+  assert.equal(extraResult.pass, false, JSON.stringify(extraResult));
+  assert.equal(extraResult.reasonCode, DENIED, JSON.stringify(extraResult));
+});
+
+test('trusted delegated evaluator rejects lockfile-only dependency identity drift', () => {
+  const result = evaluateTrustedDelegatedGovernanceBranch(trustedOptionsWithLockfile({
+    candidateManifest: baseManifest(),
+    candidateLockfile: exactLockfile(),
+    changedPaths: [LOCK_PATH]
+  }));
+  assert.equal(result.pass, false, JSON.stringify(result));
+  assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
+});
+
+test('trusted delegated evaluator requires an authorized existing npm lockfile companion to change with its manifest', () => {
+  const result = evaluateTrustedDelegatedGovernanceBranch(trustedOptionsWithLockfile({
+    changedPaths: [MANIFEST_PATH]
+  }));
   assert.equal(result.pass, false, JSON.stringify(result));
   assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
 });
