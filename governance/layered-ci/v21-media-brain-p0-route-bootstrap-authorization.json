@@ -4,7 +4,7 @@
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-MEDIA-BRAIN-P0-ROUTE-BOOTSTRAP",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Independent exact-scope review of Media authorization PR #180 proved that trusted main has unknownPathFailsClosed=true and ten future Media supply-chain/runtime/Element UI paths are not recognized by the base-owned WP0 routing policy. Candidate-owned routing edits are forbidden. This prerequisite authorizes only an exact current-main route bootstrap; it creates no Media product authority and does not widen the frozen 23-path Media implementation scope.",
+  "reason": "Independent exact-scope review of Media authorization PR #180 proved that trusted main has unknownPathFailsClosed=true and ten future Media supply-chain/runtime/Element UI paths are not recognized by the base-owned WP0 routing policy. A second independent cross-workline review also proved that merely authorizing wp0-routing-policy.json as a changed path does not mechanically constrain the semantic mutation inside that file. Candidate-owned routing edits and prose-only restrictions are forbidden. This prerequisite therefore authorizes an exact route bootstrap plus the generic delegated route-policy mutation guard; it creates no Media product authority and does not widen the frozen 23-path Media implementation scope.",
   "base": {
     "branch": "main",
     "commit": "ed90d68d651572e517591b0ad2707166dee518d0"
@@ -43,21 +43,29 @@
     "unknownPathFailsClosed": true,
     "classifier": "tools/layered-ci/wp0-routing.js#classifyWp0Route",
     "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
-    "auditMethod": "Static exact-path classification against trusted-main productExactPaths/productPrefixes/productDocumentation rules; causal RED is required in the first implementation commit before routing policy mutation."
+    "auditMethod": "Static exact-path classification against trusted-main productExactPaths/productPrefixes/productDocumentation rules; causal RED is required in the first implementation commit before routing policy mutation.",
+    "genericMutationGuardFinding": "A delegated route-bootstrap authorization that only scopes the changed filename wp0-routing-policy.json does not by itself prove that the candidate changed only the authorized productExactPaths additions. A permanent branch-policy semantic guard is required."
   },
   "implementation": {
     "branch": "fix/v21-media-brain-p0-route-bootstrap",
     "allowedChangedPaths": [
       "governance/layered-ci/wp0-routing-policy.json",
-      "tests/layered-ci/v21-media-brain-p0-routing.test.js"
+      "shared/release/implementationBranchPolicy.js",
+      "tests/layered-ci/v21-media-brain-p0-routing.test.js",
+      "tests/wp0/implementation-branch-policy.test.js"
     ],
-    "approvedChangedFileCount": 2,
-    "approvedChangedFileSetSha256": "09343d41c1938dce6ff781c32a8c1b2c2b3cbb020352975a5819adfc9e42db6f",
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "1d13d92c3be9ce5c5b22bf51553ec5a2390240b85c31b3b5990dda4eb071873c",
     "newDependencyAllowed": false,
     "packageManifestModificationAllowed": false,
     "workflowModificationAllowed": false,
     "productImplementationAllowed": false,
-    "firstCommitMustBeTestOnly": true
+    "firstCommitMustBeTestOnly": true,
+    "firstCommitAllowedChangedPaths": [
+      "tests/layered-ci/v21-media-brain-p0-routing.test.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "genericRouteMutationGuardRequired": true
   },
   "bootstrapPaths": [
     "config/comfyui-workflows/v21-media-edit.json",
@@ -83,21 +91,38 @@
     "candidateHistoryRewriteAllowed": false,
     "postBootstrapRule": "After route-bootstrap implementation merges to main, main must be merged normally into PR #180, its base receipt must be fresh-main resealed by a descendant commit, and the effective Media implementation diff/path digest must remain exact before authorization merge."
   },
+  "parallelRouteReconciliation": {
+    "presenceAuthorizationPr": 184,
+    "presenceAuthorizationHeadObserved": "70dac5e1ee2eb0635bf3f5c9b1c4a891d4a2d1a1",
+    "voiceAuthorizationPr": 185,
+    "voiceAuthorizationHeadObserved": "f788987601895f6766637236996f360f6b10d8a2",
+    "sharedRouteCompositionPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "rule": "These are shared governance composition roots, not serialization locks. Whichever route-bootstrap root fix ordinary-merges first becomes fresh main. Any later Media route implementation must ordinary-forward reconcile that main, preserve the already-effective generic guard and other exact route literals, add only Media's authorized ten literals, and re-seal its effective exact diff without rebase, force, amend or squash."
+  },
   "mandatoryFailureFirstContracts": [
-    "The first route-bootstrap implementation commit changes only tests/layered-ci/v21-media-brain-p0-routing.test.js and contains zero routing-policy or product implementation changes.",
-    "Before policy implementation each of the ten exact bootstrap paths fails closed as WP0_ROUTE_UNKNOWN_PATH under the trusted-main classifier.",
-    "After implementation each of the ten exact bootstrap paths selects PRODUCT_WP0.",
-    "The root fix adds only the ten exact literals to productExactPaths and does not add config/, integration/, runtime/, third_party/ or any other broad product prefix.",
+    "The first route-bootstrap implementation commit changes only tests/layered-ci/v21-media-brain-p0-routing.test.js and tests/wp0/implementation-branch-policy.test.js and contains zero production or routing-policy code.",
+    "Before policy implementation each of the ten exact Media bootstrap paths fails closed as WP0_ROUTE_UNKNOWN_PATH under the trusted-main classifier.",
+    "Before generic branch-policy implementation a delegated route-bootstrap candidate that changes productPrefixes, governance routes, documentation routes, unrelated productExactPaths, removes existing routes, weakens unknownPathFailsClosed, or otherwise mutates wp0-routing-policy.json beyond the frozen exact additions is rejected by the permanent branch-policy contract.",
+    "After implementation each of the ten exact Media bootstrap paths selects PRODUCT_WP0.",
+    "The generic delegated implementation guard compares routing-policy semantics to the authorization merge base and permits only adding that authorization's exact bootstrapPaths/futureProductBootstrapPaths to productExactPaths; every other routing-policy mutation is RED.",
+    "The root fix adds only the ten exact Media literals to productExactPaths and does not add config/, integration/, runtime/, third_party/ or any other broad product prefix.",
     "Adjacent unregistered Media/Immich/ComfyUI/runtime/license/UI paths and malformed repository paths continue to fail closed.",
     "Governance and product-documentation routing precedence remains unchanged.",
-    "No Media product file, dependency manifest, workflow, Learning/Voice/Presence authority, release/publish/promotion path or PR #180 implementation scope is changed in the route-bootstrap implementation."
+    "No Media product file, dependency manifest, workflow, Learning/Voice/Presence product authority, release/publish/promotion path or PR #180 implementation scope is changed in the route-bootstrap implementation.",
+    "The final Media route-bootstrap changed-path set remains exactly four paths with SHA-256 1d13d92c3be9ce5c5b22bf51553ec5a2390240b85c31b3b5990dda4eb071873c unless a prior ordinary merge makes one or more generic-guard paths byte-identical to fresh main, in which case the effective diff must be re-sealed without reauthorizing new paths."
   ],
   "requiredSequence": [
     "authorization exact Head passes applicable governance gates and independent review with P0=0/P1=0",
     "authorization PR merges to main by ordinary two-parent merge without history rewrite",
     "create fix/v21-media-brain-p0-route-bootstrap from the exact authorization merge commit",
-    "first implementation commit changes only tests/layered-ci/v21-media-brain-p0-routing.test.js and records causal RED for all ten exact paths",
-    "add only the ten exact bootstrap literals to governance/layered-ci/wp0-routing-policy.json",
+    "first implementation commit changes only the two authorized test paths and records both causal RED classes: all ten Media route paths and the generic route-policy semantic mutation guard",
+    "fix the generic delegated branch policy so a route-bootstrap authorization mechanically permits only its frozen exact productExactPaths additions",
+    "add only the ten exact Media bootstrap literals to governance/layered-ci/wp0-routing-policy.json",
+    "if Voice or Presence route bootstrap merges first, ordinary-forward reconcile fresh main, preserve its generic guard and route literals, and re-seal the effective Media diff",
     "implementation exact Head passes Stage, Layered, ACV2 and independent review GREEN",
     "route-bootstrap implementation PR merges to main by ordinary two-parent merge",
     "ordinary-forward reconcile the resulting fresh main into Media authorization PR #180 and re-seal its base/effective exact diff without rebase, force push, amend or squash",
@@ -117,7 +142,7 @@
     "mediaProductImplementation": true,
     "dependencyManifestModification": true,
     "workflowModification": true,
-    "learningVoicePresenceModification": true,
+    "learningVoicePresenceProductModification": true,
     "candidateScopeReductionOrExpansion": true
   },
   "governance": {
