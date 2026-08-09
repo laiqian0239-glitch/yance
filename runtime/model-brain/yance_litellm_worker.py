@@ -103,8 +103,6 @@ def _logical_names(payload: dict[str, Any]) -> list[str]:
     return list(dict.fromkeys(item for item in result if item))
 
 
-
-
 # LiteLLM keeps cooldown, usage and deployment-health state on each Router instance.
 # The persistent stdio worker therefore reuses a bounded set of Router instances for
 # stable routing configurations instead of recreating a Router for every request.
@@ -154,6 +152,7 @@ def _cache_router(structure_key: str, cache_key: str, value: tuple[Router, str, 
         for key, active in list(_ROUTER_ACTIVE_BY_STRUCTURE.items()):
             if active == oldest:
                 _ROUTER_ACTIVE_BY_STRUCTURE.pop(key, None)
+
 
 def _build_router(payload: dict[str, Any]) -> tuple[Router, str, ComplexityRouter | None]:
     logical_model = _clean(payload.get("modelGroup") or payload.get("logicalModel"))
@@ -205,10 +204,12 @@ def _usage(response: Any) -> dict[str, int]:
     usage = getattr(response, "usage", None)
     if usage is None and isinstance(response, dict):
         usage = response.get("usage")
+
     def number(key: str) -> int:
         if isinstance(usage, dict):
             return int(usage.get(key, 0) or 0)
         return int(getattr(usage, key, 0) or 0)
+
     return {
         "prompt_tokens": number("prompt_tokens"),
         "completion_tokens": number("completion_tokens"),
@@ -329,12 +330,22 @@ async def _handle(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _failure(request_id: str, exc: BaseException) -> dict[str, Any]:
-    code = _clean(getattr(exc, "code", "")) or _clean(getattr(exc, "status_code", "")) or "MODEL_BRAIN_REQUEST_FAILED"
-    # No traceback or request envelope is emitted: either can contain credentials.
+    if isinstance(exc, ModelBrainError):
+        code = _clean(exc.code) or "MODEL_BRAIN_REQUEST_FAILED"
+        message = _clean(exc)[:800] or "Model Brain request failed"
+    else:
+        try:
+            status_code = int(getattr(exc, "status_code", 0) or 0)
+        except (TypeError, ValueError):
+            status_code = 0
+        code = f"MODEL_BRAIN_PROVIDER_{status_code}" if 400 <= status_code <= 599 else "MODEL_BRAIN_REQUEST_FAILED"
+        message = "Model Brain provider request failed"
+    # Upstream exception text, traceback and request envelopes are untrusted because
+    # provider SDKs may include credentials or request metadata in diagnostic strings.
     return {
         "requestId": request_id,
         "ok": False,
-        "error": {"code": code, "message": _clean(exc)[:800]},
+        "error": {"code": code, "message": message},
         "evidence": {"requestId": request_id, "status": "failed"},
     }
 
