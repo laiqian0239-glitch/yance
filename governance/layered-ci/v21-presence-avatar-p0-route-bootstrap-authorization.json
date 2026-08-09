@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRESENCE-AVATAR-P0-ROUTE-BOOTSTRAP",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main successor after Media route authorization PR #183 ordinary-merged and advanced trusted main. This authorizes only the exact previously-unrouted Presence / Avatar supply-chain, runtime-config, license, visible Element Presence UI and replayable upstream-seam paths needed by V21-PRESENCE-AVATAR-P0-V1, plus one generic delegated route-bootstrap semantic guard root correction. Authorization to edit wp0-routing-policy.json must mechanically permit only the authorization's frozen exact route-bootstrap declaration, never unrelated route mutations. The generic guard must support both exact declaration shapes already used by current Yance route-bootstrap authorities: futureProductBootstrapPaths and bootstrapPaths. LiveKit remains authoritative for WebRTC/room/session/stream transport; CyberVerse remains authoritative for digital-human/avatar/lip-sync runtime; SoulX-FlashHead remains an upstream avatar model. No Yance WebRTC server, realtime transport framework, avatar runtime, lip-sync engine or second digital-human state machine is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "00a40ada36821ffcff2ed9e9bc8d4df4985bf4ba"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-presence-avatar-p0-route-bootstrap-authorization-v3",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-presence-avatar-p0-route-bootstrap-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "f103b98afe463f972965807932c2a4307ecad4dcbada806067a4fccb899ae8a1",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Apply the repository normalizeChangedFiles contract: require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "fix/v21-presence-avatar-p0-route-bootstrap",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "shared/release/implementationBranchPolicy.js",
+      "tests/layered-ci/v21-presence-avatar-p0-routing.test.js",
+      "tests/wp0/v21-delegated-route-bootstrap-policy.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "57a72ac97d38af7b487e6f2bbc743576be18949efbf86d5c504f77e8d702fed8",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "productImplementationAllowed": false,
+    "firstCommitMustBeTestOnly": true,
+    "firstCommitAllowedChangedPaths": [
+      "tests/layered-ci/v21-presence-avatar-p0-routing.test.js",
+      "tests/wp0/v21-delegated-route-bootstrap-policy.test.js"
+    ],
+    "genericRouteMutationGuardRequired": true
+  },
+  "routeBootstrapDeclarationSchema": {
+    "supportedExactPathFields": [
+      "futureProductBootstrapPaths",
+      "bootstrapPaths"
+    ],
+    "exactlyOneDeclarationFieldRequiredForGuard": true,
+    "declarationMustBeNormalizedUniqueExactPaths": true,
+    "matchingCountAndCanonicalSha256Required": true,
+    "candidateRoutingPolicyMayOnlyAddDeclaredPathsToProductExactPaths": true,
+    "allOtherRoutingPolicyMutationForbidden": true,
+    "note": "This generic branch-policy protection does not modify Media or Voice authorization documents; it consumes frozen exact declarations already present in their authorities when those branches execute. Media #183 authorization is already on this proposal's trusted-main base; Voice #185 remains blocked and does not duplicate the guard."
+  },
+  "futureProductBootstrapPaths": [
+    "config/upstreams/v21-presence-avatar-p0.json",
+    "integration/element-module/src/PresenceWorkspace.css",
+    "integration/element-module/src/PresenceWorkspace.tsx",
+    "integration/element-module/src/presenceLiveKit.ts",
+    "runtime/presence-avatar/cyberverse/avatar_models/flash_head.yaml",
+    "runtime/presence-avatar/cyberverse/cyberverse.yaml",
+    "third_party/licenses/cyberverse-GPL-3.0.txt",
+    "third_party/licenses/livekit-Apache-2.0.txt",
+    "third_party/licenses/livekit-client-Apache-2.0.txt",
+    "third_party/licenses/soulx-flashhead-Apache-2.0.txt",
+    "upstream-patches/cyberverse/0001-yance-external-audio-ingress.patch",
+    "upstream-patches/element-web/0010-yance-presence-livekit-client.patch"
+  ],
+  "futureProductBootstrapPathCount": 12,
+  "futureProductBootstrapPathSetSha256": "13ab2ef63e882402c27fad390ba185396ae2c52b809cefceb55bf926a7638d90",
+  "upstreamEvidence": {
+    "livekitServer": {
+      "repository": "livekit/livekit",
+      "version": "v1.13.5",
+      "commit": "3b9f118327b257301083a7c4aa46076c8012918a",
+      "license": "Apache-2.0",
+      "windowsAmd64Asset": "livekit_1.13.5_windows_amd64.zip",
+      "windowsAmd64Sha256": "3ec7eaa76ef64063bf21f78364733703e0969612cb92ffd60661ed45fa4a8906",
+      "role": "Authoritative realtime WebRTC room/session/stream transport."
+    },
+    "livekitClient": {
+      "repository": "livekit/client-sdk-js",
+      "version": "v2.21.0",
+      "commit": "15ca5f8180ab8939c3a5a4dfee1d5e44f62f71cf",
+      "package": "livekit-client@2.21.0",
+      "license": "Apache-2.0",
+      "role": "Official browser/Electron-renderer LiveKit client; no Yance WebRTC implementation."
+    },
+    "cyberVerse": {
+      "repository": "Lynpoint/CyberVerse",
+      "sourceSelection": "main exact commit because the latest v0.1.0 release predates the maintained LiveKit integration required by this work package",
+      "commit": "459abae601411d191a1f4c99fe55b60d59e59305",
+      "license": "GPL-3.0",
+      "role": "Authoritative digital-human/avatar/lip-sync runtime and its existing LiveKit media peer integration.",
+      "requiredNativeWindowsAvatarBundle": false,
+      "serviceDeploymentAllowed": true
+    },
+    "soulXFlashHead": {
+      "repository": "Soul-AILab/SoulX-FlashHead",
+      "commit": "9bc03de06bb0de82cd6bc477804512ae06144bf2",
+      "license": "Apache-2.0",
+      "weights": "Soul-AILab/SoulX-FlashHead-1_3B",
+      "weightsLicense": "Apache-2.0",
+      "role": "CyberVerse-supported local realtime talking-head model; Yance does not copy or reimplement its inference engine."
+    }
+  },
+  "architectureBoundary": {
+    "liveKitOwnsWebRtc": true,
+    "liveKitOwnsRoomSessionTransport": true,
+    "cyberVerseOwnsAvatarRuntime": true,
+    "cyberVerseOwnsLipSync": true,
+    "cyberVerseOwnsAvatarStateMachine": true,
+    "yanceWebRtcImplementationForbidden": true,
+    "yanceRealtimeServerForbidden": true,
+    "yanceAvatarRuntimeForbidden": true,
+    "yanceLipSyncEngineForbidden": true,
+    "yanceDigitalHumanStateMachineForbidden": true,
+    "yanceRealtimePresenceFrameworkForbidden": true,
+    "cyberVerseLlmAuthorityForbidden": true,
+    "cyberVerseAsrAuthorityForbidden": true,
+    "cyberVerseTtsAuthorityForbidden": true,
+    "cyberVersePersonaAuthorityForbidden": true,
+    "voiceImplementationForbidden": true,
+    "learningImplementationForbidden": true,
+    "mediaImplementationForbidden": true
+  },
+  "voiceIndependentAudioBoundary": {
+    "contractVersion": "yance.voice.audio.v1",
+    "semanticBase": "CyberVerse proto/common.proto AudioChunk",
+    "fields": [
+      "sessionId",
+      "replyId",
+      "sequence",
+      "data",
+      "sampleRate",
+      "channels",
+      "format",
+      "isFinal",
+      "timestampMs"
+    ],
+    "formats": [
+      "s16le",
+      "float32"
+    ],
+    "sampleRateAssumptionForbidden": true,
+    "cosyVoiceRuntimeAssumptionForbidden": true,
+    "secondVoiceAdapterForbidden": true
+  },
+  "windowsRuntimeBoundary": {
+    "electronUsesOfficialLiveKitClient": true,
+    "cyberVerseRunsAsServiceEndpoint": true,
+    "nativeCyberVerseCudaBundleInsideElectronRequired": false,
+    "yanceGpuInferenceRuntimeForbidden": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first route-bootstrap implementation commit changes only tests/layered-ci/v21-presence-avatar-p0-routing.test.js and tests/wp0/v21-delegated-route-bootstrap-policy.test.js, with zero production or routing-policy code.",
+    "Before routing-policy implementation each of the twelve exact Presence bootstrap paths fails closed as WP0_ROUTE_UNKNOWN_PATH.",
+    "Before generic branch-policy implementation a delegated route-bootstrap candidate that changes productPrefixes, governance routes, documentation routes, unrelated productExactPaths, removes existing routes, weakens unknownPathFailsClosed, or otherwise mutates wp0-routing-policy.json beyond its frozen exact declaration is rejected by the permanent branch-policy contract.",
+    "The generic guard must accept the current exact declaration schema used by Presence (futureProductBootstrapPaths) and the current exact declaration schema used by Media/Voice route authorities (bootstrapPaths), with count and canonical digest verification; unsupported or ambiguous declaration schemas are RED.",
+    "After the root fix each of the twelve exact Presence bootstrap paths selects PRODUCT_WP0.",
+    "The generic delegated implementation guard compares routing-policy semantics to the authorization merge base and permits only adding that authorization's frozen exact declared paths to productExactPaths; every other routing-policy mutation is RED.",
+    "The root fix adds only the twelve exact Presence literals to productExactPaths and does not add config/, runtime/, third_party/, upstream-patches/, integration/ or any other broad prefix.",
+    "Adjacent unregistered Presence, LiveKit, CyberVerse, Element Presence UI or avatar-like paths and malformed repository paths continue to fail closed.",
+    "The route implementation may not add dependencies, runtime code, product code, workflow changes or Presence implementation authority.",
+    "The final route-bootstrap changed-path set remains exactly four paths with SHA-256 57a72ac97d38af7b487e6f2bbc743576be18949efbf86d5c504f77e8d702fed8."
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes applicable governance gates with zero unresolved P0/P1 findings.",
+    "Authorization PR merges to main by ordinary two-parent merge without history rewrite.",
+    "Implementation branch is created from that exact authorization merge commit.",
+    "A test-only commit on the two authorized test paths records both the twelve-path route RED and generic route-policy mutation-guard RED, including both supported exact declaration field shapes.",
+    "Generic delegated branch policy is fixed so route-bootstrap authorizations mechanically restrict routing-policy content changes to their exact frozen declared productExactPaths additions.",
+    "Only the twelve exact Presence literals are added to productExactPaths.",
+    "Implementation exact Head passes Stage, Layered and ACV2 gates.",
+    "Final route-bootstrap implementation merge uses ordinary merge."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalMergeRequiresOwnerBoundary": true,
+    "ordinaryTwoParentMergeRequired": true,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true,
+    "gateWeakeningForbidden": true
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansion": true,
+    "forcePush": true,
+    "rebaseOrAmendPublishedHistory": true,
+    "directCandidateSelfAuthorization": true,
+    "presenceProductImplementation": true,
+    "dependencyManifestModification": true,
+    "workflowModification": true,
+    "creatingSecondWebRtcStack": true,
+    "creatingSecondAvatarRuntime": true
+  }
+}
