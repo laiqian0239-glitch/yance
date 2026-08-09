@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-PRODUCT-L2-REAL-GIT-FIXTURE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Repair one permanent delegated-product L2 real-Git integration fixture whose original success assertion was intentionally invalidated when trusted-main Model Brain V4 superseded the historical V3 authority. Preserve real Git lifecycle evidence by requiring the exact historical V3 candidate to fail closed as superseded; keep positive delegated-product acceptance exercised by the verifier unit contracts and each real candidate's branch-bound Layered workflow. Do not weaken, skip, bypass or change the verifier/workflow implementation.",
+  "base": {
+    "branch": "main",
+    "commit": "05bb2ddc3a1428374f3a43705d38619681bb0185"
+  },
+  "evidence": {
+    "delegatedProductL2V2AuthorizationPath": "governance/layered-ci/v21-delegated-product-l2-p0-v2-final-authorization.json",
+    "delegatedProductL2V2Merge": "3bc8df65d1abe1edb19ff1706c8555c57a8ee30e",
+    "modelBrainV3AuthorizationPath": "governance/layered-ci/v21-model-brain-p0-v3-final-authorization.json",
+    "modelBrainV3Branch": "product/v21-model-brain-p0-v3",
+    "modelBrainV3ExactHead": "7f852691ca89d3089ad1b10837e97cc55a226361",
+    "modelBrainV3ExactTree": "4e3c062666f5ff3192dff64cdb38953dc1b57671",
+    "modelBrainV4AuthorizationPath": "governance/layered-ci/v21-model-brain-p0-v4-final-authorization.json",
+    "modelBrainV4AuthorizationMerge": "05bb2ddc3a1428374f3a43705d38619681bb0185",
+    "modelBrainV4SupersedesV3": true,
+    "causalRed": {
+      "candidateHead": "a810d814016d5a3c6f7a12f58006037569b6b62b",
+      "wpAPullRequestRun": 31298826701,
+      "failedJob": "wp-a-post-merge-identity-source-closure",
+      "failedTest": "real Model Brain exact head passes trusted Git L2 full_work_package verification",
+      "actualReasonCode": "WP0_DELEGATED_GOVERNANCE_AUTHORITY_SUPERSEDED",
+      "windowsPortableMatrix": "success",
+      "ubuntuPortableMatrix": "success",
+      "classification": "The product/runtime/send-policy matrix is GREEN. The only WP-A RED is the permanent historical V3 success fixture, which conflicts with the trusted-main V4 supersession graph by design."
+    }
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-product-l2-real-git-fixture-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-product-l2-real-git-fixture-p0-authorization.json"
+    ],
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Exact normalized repository-relative paths; unique; JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join sorted unique paths with LF and append one trailing LF."
+  },
+  "implementation": {
+    "branch": "governance/v21-delegated-product-l2-real-git-fixture-p0",
+    "allowedChangedPaths": [
+      "tests/layered-ci/delegated-product-l2.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "09aad3d3f9ae4647840ea776d8ea2b3a67a4e8cdd363a740e415007b74e45b92",
+    "newDependencyAllowed": false,
+    "newNodeDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "architecture": {
+    "layer": "L2_WORK_PACKAGE_GOVERNANCE_TEST",
+    "verifierImplementationChanged": false,
+    "workflowImplementationChanged": false,
+    "trustedMainSupersessionSemanticsChanged": false,
+    "positiveAcceptanceEvidence": "Synthetic exact-candidate verifier contracts remain unchanged, and every real delegated product candidate is verified by the branch-bound Layered L2 full_work_package workflow against its exact branch, SHA, tree and trusted-main authorization.",
+    "permanentRealGitLifecycleEvidence": "The historical Model Brain V3 exact branch/head remains a real remote Git object and must now be rejected with WP0_DELEGATED_GOVERNANCE_AUTHORITY_SUPERSEDED after the V4 trusted-main authorization merge.",
+    "antiPatternRemoved": "A permanent main test must not assert that a supersedable product candidate remains positively authorized forever."
+  },
+  "failureFirst": {
+    "firstImplementationCommitTestsOnly": true,
+    "testPaths": [
+      "tests/layered-ci/delegated-product-l2.test.js"
+    ],
+    "causalRedAlreadyObserved": true,
+    "causalRedRun": 31298826701,
+    "causalRedReason": "The historical V3 positive real-Git assertion fails exactly because trusted main now correctly reports WP0_DELEGATED_GOVERNANCE_AUTHORITY_SUPERSEDED.",
+    "testWeakeningForbidden": true
+  },
+  "mandatoryContracts": [
+    "The historical V3 branch/head/tree literals remain exact and are not silently replaced with the in-flight V4 candidate.",
+    "The real-Git V3 fixture must assert pass=false, reasonCode=WP0_DELEGATED_GOVERNANCE_AUTHORITY_SUPERSEDED, route=null and readyForPromotion=false.",
+    "No test is skipped, removed, warning-only, dynamically disabled or made conditional on CI environment.",
+    "Existing positive verifier unit contracts remain unchanged.",
+    "Actual current delegated product acceptance remains enforced by the Layered branch-bound full_work_package workflow rather than a permanent main assertion tied to a supersedable candidate.",
+    "No verifier, workflow, implementation branch policy, Model Brain product path, dependency-control path or release/promotion path is modified.",
+    "The implementation diff is exactly one path with canonical SHA-256 09aad3d3f9ae4647840ea776d8ea2b3a67a4e8cdd363a740e415007b74e45b92."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "warningOnlyClosure": true,
+    "testSkipOrAssertionWeakening": true,
+    "dynamicCurrentCandidateAcceptanceFixture": true,
+    "verifierModification": true,
+    "workflowModification": true,
+    "implementationBranchPolicyModification": true,
+    "modelBrainProductModification": true,
+    "dependencyModification": true,
+    "l3Modification": true,
+    "wp7Modification": true,
+    "promotion": true,
+    "productionRelease": true,
+    "publish": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "rebaseMerge": true,
+    "squashMerge": true
+  },
+  "requiredSequence": [
+    "Authorization proposal remains exactly one file from trusted main 05bb2ddc3a1428374f3a43705d38619681bb0185.",
+    "Authorization proposal passes Stage, Layered and ACV2 governance gates plus self-independent review.",
+    "Stop at the authorization merge boundary for explicit owner approval.",
+    "After ordinary two-parent authorization merge, create governance/v21-delegated-product-l2-real-git-fixture-p0 from that exact merge.",
+    "First and only implementation commit changes tests/layered-ci/delegated-product-l2.test.js and converts the stale positive V3 real-Git assertion into exact supersession lifecycle evidence without weakening any positive verifier unit contract.",
+    "Run Stage, Layered, ACV2 and WP-A; the previously isolated portable-governance RED must become GREEN.",
+    "Perform self-independent exact-head review and stop at the governance implementation merge boundary for explicit owner approval."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
