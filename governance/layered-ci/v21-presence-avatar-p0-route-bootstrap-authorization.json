@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRESENCE-AVATAR-P0-ROUTE-BOOTSTRAP",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Bootstrap only the exact previously-unrouted Presence / Avatar supply-chain, runtime-config, license and replayable upstream-seam paths needed by the later V21-PRESENCE-AVATAR-P0-V1 authorization. This prerequisite creates no Presence product authority. Mature OSS remains authoritative: LiveKit owns WebRTC/realtime room and stream transport; CyberVerse owns digital-human/avatar/lip-sync runtime; SoulX-FlashHead remains an upstream avatar model implementation. No Yance WebRTC server, realtime transport framework, avatar runtime, lip-sync engine or second digital-human state machine is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "bcc775973c8c09b99ac704f8e7dd8c165aa0f5c5"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-presence-avatar-p0-route-bootstrap-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-presence-avatar-p0-route-bootstrap-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Apply the repository normalizeChangedFiles contract: require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "fix/v21-presence-avatar-p0-route-bootstrap",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-presence-avatar-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "1c320e243f504eca60c7d128a8d2105e4170edc59bba1300a205d0bc1af9cd2e",
+    "firstCommitMustBeTestOnly": true,
+    "workflowModificationAllowed": false,
+    "dependencyModificationAllowed": false
+  },
+  "futureProductBootstrapPaths": [
+    "config/upstreams/v21-presence-avatar-p0.json",
+    "runtime/presence-avatar/cyberverse/cyberverse.yaml",
+    "runtime/presence-avatar/cyberverse/avatar_models/flash_head.yaml",
+    "third_party/licenses/cyberverse-GPL-3.0.txt",
+    "third_party/licenses/livekit-Apache-2.0.txt",
+    "third_party/licenses/livekit-client-Apache-2.0.txt",
+    "third_party/licenses/soulx-flashhead-Apache-2.0.txt",
+    "upstream-patches/cyberverse/0001-yance-external-audio-ingress.patch",
+    "upstream-patches/element-web/0010-yance-presence-livekit-client.patch"
+  ],
+  "futureProductBootstrapPathCount": 9,
+  "futureProductBootstrapPathSetSha256": "0269fe4958bd49bf560892a2d1be675105dab7f2d23aa9d12a865e31e5efdc2d",
+  "upstreamEvidence": {
+    "livekitServer": {
+      "repository": "livekit/livekit",
+      "version": "v1.13.5",
+      "commit": "3b9f118327b257301083a7c4aa46076c8012918a",
+      "license": "Apache-2.0",
+      "windowsAmd64Asset": "livekit_1.13.5_windows_amd64.zip",
+      "windowsAmd64Sha256": "3ec7eaa76ef64063bf21f78364733703e0969612cb92ffd60661ed45fa4a8906",
+      "role": "Authoritative realtime WebRTC room/session/stream transport."
+    },
+    "livekitClient": {
+      "repository": "livekit/client-sdk-js",
+      "version": "v2.21.0",
+      "commit": "15ca5f8180ab8939c3a5a4dfee1d5e44f62f71cf",
+      "package": "livekit-client@2.21.0",
+      "license": "Apache-2.0",
+      "role": "Official browser/Electron-renderer LiveKit client; no Yance WebRTC implementation."
+    },
+    "cyberVerse": {
+      "repository": "Lynpoint/CyberVerse",
+      "sourceSelection": "main exact commit because the latest v0.1.0 release predates the maintained LiveKit integration required by this work package",
+      "commit": "459abae601411d191a1f4c99fe55b60d59e59305",
+      "license": "GPL-3.0",
+      "role": "Authoritative digital-human/avatar/lip-sync runtime and its existing LiveKit media peer integration.",
+      "requiredNativeWindowsAvatarBundle": false,
+      "serviceDeploymentAllowed": true
+    },
+    "soulXFlashHead": {
+      "repository": "Soul-AILab/SoulX-FlashHead",
+      "commit": "9bc03de06bb0de82cd6bc477804512ae06144bf2",
+      "license": "Apache-2.0",
+      "weights": "Soul-AILab/SoulX-FlashHead-1_3B",
+      "weightsLicense": "Apache-2.0",
+      "role": "CyberVerse-supported local realtime talking-head model; Yance does not copy or reimplement its inference engine."
+    }
+  },
+  "architectureBoundary": {
+    "liveKitOwnsWebRtc": true,
+    "liveKitOwnsRoomSessionTransport": true,
+    "cyberVerseOwnsAvatarRuntime": true,
+    "cyberVerseOwnsLipSync": true,
+    "cyberVerseOwnsAvatarStateMachine": true,
+    "yanceWebRtcImplementationForbidden": true,
+    "yanceRealtimeServerForbidden": true,
+    "yanceAvatarRuntimeForbidden": true,
+    "yanceLipSyncEngineForbidden": true,
+    "yanceDigitalHumanStateMachineForbidden": true,
+    "yanceRealtimePresenceFrameworkForbidden": true,
+    "cyberVerseLlmAuthorityForbidden": true,
+    "cyberVerseAsrAuthorityForbidden": true,
+    "cyberVerseTtsAuthorityForbidden": true,
+    "cyberVersePersonaAuthorityForbidden": true,
+    "voiceImplementationForbidden": true,
+    "learningImplementationForbidden": true,
+    "mediaImplementationForbidden": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "All nine future Presence bootstrap paths must fail closed as WP0_ROUTE_UNKNOWN_PATH before the routing policy is changed.",
+    "The route implementation may add only the nine exact literals to productExactPaths; adding config/, runtime/, third_party/, upstream-patches/ or integration/ as a broad product prefix is RED.",
+    "Adjacent unregistered Presence, LiveKit, CyberVerse or avatar-like paths must remain fail closed.",
+    "The route implementation may not add dependencies, runtime code, product code, workflow changes or Presence implementation authority.",
+    "The final route-bootstrap changed-path set must remain exactly two paths with SHA-256 1c320e243f504eca60c7d128a8d2105e4170edc59bba1300a205d0bc1af9cd2e."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "finalMergeRequiresOwnerBoundary": true,
+    "ordinaryTwoParentMergeRequired": true,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true,
+    "gateWeakeningForbidden": true
+  }
+}
