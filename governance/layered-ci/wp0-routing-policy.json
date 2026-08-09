@@ -153,7 +153,19 @@
     "runtime/media-brain/comfyui/UPSTREAM.json",
     "runtime/media-brain/immich/UPSTREAM.json",
     "third_party/licenses/comfyui-GPL-3.0.txt",
-    "third_party/licenses/immich-AGPL-3.0.txt"
+    "third_party/licenses/immich-AGPL-3.0.txt",
+    "config/upstreams/v21-voice-brain-p0.json",
+    "runtime/voice-brain/cosyvoice/generate_runtime_sbom.py",
+    "runtime/voice-brain/cosyvoice/pyproject.toml",
+    "runtime/voice-brain/cosyvoice/uv.lock",
+    "runtime/voice-brain/cosyvoice/yance_cosyvoice_entrypoint.py",
+    "runtime/voice-brain/sensevoice/runtime-manifest.json",
+    "third_party/licenses/cosyvoice-Apache-2.0.txt",
+    "third_party/licenses/cosyvoice3-model-Apache-2.0.txt",
+    "third_party/licenses/funasr-model-license.txt",
+    "third_party/licenses/onnxruntime-MIT.txt",
+    "third_party/licenses/pytorch-BSD-3-Clause.txt",
+    "third_party/licenses/sensevoice-MIT.txt"
   ],
   "productPrefixes": [
     ".github/",
