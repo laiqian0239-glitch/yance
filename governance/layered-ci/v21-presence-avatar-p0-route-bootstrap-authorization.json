@@ -15,11 +15,30 @@
     "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
     "authorizationProposalTransportIsNotImplementationAuthority": true
   },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalMergeRequiresOwnerBoundary": true,
+    "ordinaryTwoParentMergeRequired": true,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true,
+    "gateWeakeningForbidden": true
+  },
   "authorizationBranch": {
     "name": "governance/v21-presence-avatar-p0-route-bootstrap-authorization",
     "allowedChangedPaths": [
       "governance/layered-ci/v21-presence-avatar-p0-route-bootstrap-authorization.json"
     ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "f103b98afe463f972965807932c2a4307ecad4dcbada806067a4fccb899ae8a1",
     "mustRemainSingleFile": true
   },
   "digestCanonicalization": {
@@ -38,9 +57,10 @@
     ],
     "approvedChangedFileCount": 2,
     "approvedChangedFileSetSha256": "1c320e243f504eca60c7d128a8d2105e4170edc59bba1300a205d0bc1af9cd2e",
-    "firstCommitMustBeTestOnly": true,
+    "newDependencyAllowed": false,
     "workflowModificationAllowed": false,
-    "dependencyModificationAllowed": false
+    "productImplementationAllowed": false,
+    "firstCommitMustBeTestOnly": true
   },
   "futureProductBootstrapPaths": [
     "config/upstreams/v21-presence-avatar-p0.json",
@@ -115,24 +135,37 @@
     "mediaImplementationForbidden": true
   },
   "mandatoryFailureFirstContracts": [
-    "All twelve future Presence bootstrap paths must fail closed as WP0_ROUTE_UNKNOWN_PATH before the routing policy is changed.",
-    "The route implementation may add only the twelve exact literals to productExactPaths; adding config/, runtime/, third_party/, upstream-patches/ or integration/ as a broad product prefix is RED.",
-    "Adjacent unregistered Presence, LiveKit, CyberVerse, Element Presence UI or avatar-like paths must remain fail closed.",
+    "The first route-bootstrap implementation commit changes only tests/layered-ci/v21-presence-avatar-p0-routing.test.js.",
+    "Before policy implementation each of the twelve exact Presence bootstrap paths fails closed as WP0_ROUTE_UNKNOWN_PATH.",
+    "After the root fix each of the twelve exact Presence bootstrap paths selects PRODUCT_WP0.",
+    "The root fix adds only the twelve exact literals to productExactPaths and does not add config/, runtime/, third_party/, upstream-patches/, integration/ or any other broad prefix.",
+    "Adjacent unregistered Presence, LiveKit, CyberVerse, Element Presence UI or avatar-like paths and malformed repository paths continue to fail closed.",
     "The route implementation may not add dependencies, runtime code, product code, workflow changes or Presence implementation authority.",
-    "The final route-bootstrap changed-path set must remain exactly two paths with SHA-256 1c320e243f504eca60c7d128a8d2105e4170edc59bba1300a205d0bc1af9cd2e."
+    "The final route-bootstrap changed-path set remains exactly two paths with SHA-256 1c320e243f504eca60c7d128a8d2105e4170edc59bba1300a205d0bc1af9cd2e."
   ],
-  "governance": {
-    "authorizationPredatesImplementation": true,
-    "exactPathScopeOnly": true,
-    "independentBranchAndPullRequestRequired": true,
-    "productionUseAuthorized": false,
-    "formalReleaseAuthorized": false,
-    "finalMergeRequiresOwnerBoundary": true,
-    "ordinaryTwoParentMergeRequired": true,
-    "forcePushForbidden": true,
-    "rebaseForbidden": true,
-    "amendPublishedHistoryForbidden": true,
-    "squashForbidden": true,
-    "gateWeakeningForbidden": true
+  "requiredSequence": [
+    "Authorization exact Head passes applicable governance gates with zero unresolved P0/P1 findings.",
+    "Authorization PR merges to main by ordinary two-parent merge without history rewrite.",
+    "Implementation branch is created from that exact authorization merge commit.",
+    "A test-only commit records the twelve-path causal RED before routing policy changes.",
+    "Only the twelve exact Presence literals are added to productExactPaths.",
+    "Implementation exact Head passes Stage, Layered and ACV2 gates.",
+    "Final route-bootstrap implementation merge uses ordinary merge."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansion": true,
+    "forcePush": true,
+    "rebaseOrAmendPublishedHistory": true,
+    "directCandidateSelfAuthorization": true,
+    "presenceProductImplementation": true,
+    "dependencyManifestModification": true,
+    "workflowModification": true,
+    "creatingSecondWebRtcStack": true,
+    "creatingSecondAvatarRuntime": true
   }
 }
