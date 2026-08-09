@@ -63,14 +63,16 @@ jobs:
         shell: pwsh
         run: |
           $python = (Resolve-Path 'dist/model-brain-runtime/python/python.exe').Path
-          $rule = New-NetFirewallRule -DisplayName 'YanceModelBrainOffline' -Direction Outbound -Action Block -Program $python -PassThru
+          $firewallRuleName = 'YanceModelBrainOffline'
+          Remove-NetFirewallRule -DisplayName $firewallRuleName -ErrorAction SilentlyContinue
+          New-NetFirewallRule -DisplayName $firewallRuleName -Direction Outbound -Action Block -Program $python | Out-Null
           try {
             & $python -I -c "from litellm import Router; from litellm.router_strategy.complexity_router.complexity_router import ComplexityRouter; r=Router(model_list=[], enable_tag_filtering=True, tag_filtering_match_any=False); assert r.enable_tag_filtering and not r.tag_filtering_match_any; print('offline Router ComplexityRouter tag_filtering network gate GREEN')"
             if ($LASTEXITCODE -ne 0) { throw 'offline isolated import failed' }
             '{"operation":"unknown-offline-gate","requestId":"offline-gate"}' | & $python -I 'dist/model-brain-runtime/yance_litellm_worker.py' | Tee-Object -Variable WorkerOutput
             if ($LASTEXITCODE -ne 0 -or $WorkerOutput -notmatch 'MODEL_BRAIN_UNKNOWN_OPERATION') { throw 'sealed worker offline startup gate failed' }
           } finally {
-            Remove-NetFirewallRule -Name $rule.Name -ErrorAction SilentlyContinue
+            Remove-NetFirewallRule -DisplayName $firewallRuleName -ErrorAction SilentlyContinue
           }
       - name: Upload sealed runtime
         uses: actions/upload-artifact@v4
