@@ -1,0 +1,241 @@
+From a2a996ae50d802878bf48e4bbf3730004bdcc55c Mon Sep 17 00:00:00 2001
+Subject: [PATCH] yance module: add official LiveKit Presence workspace
+
+Replay target: pinned Element Web v1.12.25 after
+0001-yance-global-right-workspace.patch and after the pre-Presence
+integration/element-module overlay has been copied to modules/yance.
+
+This patch changes only the Yance module overlay. Element remains the shell,
+livekit-client remains the browser/WebRTC client authority, and CyberVerse
+remains the avatar/lip-sync/token authority.
+---
+ modules/yance/package.json                     |   3 +-
+ modules/yance/src/PresenceWorkspace.css        |  16 ++++
+ modules/yance/src/PresenceWorkspace.tsx        | 100 ++++++++++++++++++++++++
+ modules/yance/src/YanceWorkspace.tsx           |   2 +
+ modules/yance/src/presenceLiveKit.ts            |  57 ++++++++++++++
+ 5 files changed, 177 insertions(+), 1 deletion(-)
+ create mode 100644 modules/yance/src/PresenceWorkspace.css
+ create mode 100644 modules/yance/src/PresenceWorkspace.tsx
+ create mode 100644 modules/yance/src/presenceLiveKit.ts
+
+diff --git a/modules/yance/package.json b/modules/yance/package.json
+--- a/modules/yance/package.json
++++ b/modules/yance/package.json
+@@ -9,7 +9,8 @@
+     "lint:types": "nx lint:types"
+   },
+   "dependencies": {
+-    "@element-hq/element-web-module-api": "workspace:*"
++    "@element-hq/element-web-module-api": "workspace:*",
++    "livekit-client": "2.21.0"
+   },
+   "peerDependencies": {
+     "react": ">=18"
+diff --git a/modules/yance/src/YanceWorkspace.tsx b/modules/yance/src/YanceWorkspace.tsx
+--- a/modules/yance/src/YanceWorkspace.tsx
++++ b/modules/yance/src/YanceWorkspace.tsx
+@@ -1,4 +1,5 @@
+ import { MediaWorkspace } from "./MediaWorkspace";
++import { PresenceWorkspace } from "./PresenceWorkspace";
+ import React, { useEffect, useMemo, useState } from "react";
+ 
+ const STORAGE_KEY = "yance.workspace.active-capability";
+@@ -361,6 +362,7 @@ export function YanceWorkspace(): React.JSX.Element {
+           </dl>
+         </aside>
+       ) : null}
++      {activeCapability === "Presence" ? <PresenceWorkspace /> : null}
+       {activeCapability === "Media" ? <MediaWorkspace /> : null}
+     </section>
+   );
+diff --git a/modules/yance/src/PresenceWorkspace.css b/modules/yance/src/PresenceWorkspace.css
+new file mode 100644
+--- /dev/null
++++ b/modules/yance/src/PresenceWorkspace.css
+@@ -0,0 +1,16 @@
++.yance-presence-workspace {
++  display: grid;
++  gap: 12px;
++  padding: 16px;
++  min-width: 280px;
++  color: var(--cpd-color-text-primary, #e6ecec);
++}
++.yance-presence-workspace header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
++.yance-presence-workspace header div { display: grid; gap: 4px; }
++.yance-presence-workspace header span, .presence-status, .yance-presence-workspace dd { opacity: .78; }
++.presence-health { font-size: 12px; border: 1px solid currentColor; border-radius: 999px; padding: 3px 8px; }
++.presence-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
++.presence-actions button, .yance-presence-workspace select { min-height: 34px; }
++.yance-presence-workspace dl { display: grid; gap: 8px; margin: 0; }
++.yance-presence-workspace dl div { display: flex; justify-content: space-between; gap: 12px; }
++.yance-presence-workspace dt, .yance-presence-workspace dd { margin: 0; }
+diff --git a/modules/yance/src/presenceLiveKit.ts b/modules/yance/src/presenceLiveKit.ts
+new file mode 100644
+--- /dev/null
++++ b/modules/yance/src/presenceLiveKit.ts
+@@ -0,0 +1,57 @@
++import { Room, RoomEvent, Track } from "livekit-client";
++
++export type PresenceLiveKitSession = Readonly<{
++  livekitUrl: string;
++  livekitToken: string;
++}>;
++
++export type PresenceLiveKitSnapshot = Readonly<{
++  state: "disconnected" | "connecting" | "connected" | "reconnecting";
++  participants: number;
++  microphoneEnabled: boolean;
++  cameraEnabled: boolean;
++}>;
++
++let room: Room | null = null;
++let snapshot: PresenceLiveKitSnapshot = Object.freeze({ state: "disconnected", participants: 0, microphoneEnabled: false, cameraEnabled: false });
++const subscribers = new Set<(value: PresenceLiveKitSnapshot) => void>();
++
++function publish(next: Partial<PresenceLiveKitSnapshot>): PresenceLiveKitSnapshot {
++  snapshot = Object.freeze({ ...snapshot, ...next });
++  for (const subscriber of subscribers) subscriber(snapshot);
++  return snapshot;
++}
++function participantCount(activeRoom: Room): number { return activeRoom.remoteParticipants.size + 1; }
++export function getPresenceLiveKitSnapshot(): PresenceLiveKitSnapshot { return snapshot; }
++export function subscribePresenceLiveKit(listener: (value: PresenceLiveKitSnapshot) => void): () => void { subscribers.add(listener); listener(snapshot); return () => { subscribers.delete(listener); }; }
++
++export async function connectPresenceLiveKit(session: PresenceLiveKitSession): Promise<PresenceLiveKitSnapshot> {
++  if (room) await disconnectPresenceLiveKit();
++  const nextRoom = new Room({ adaptiveStream: true, dynacast: true });
++  room = nextRoom;
++  publish({ state: "connecting", participants: 0 });
++  nextRoom.on(RoomEvent.ParticipantConnected, () => publish({ participants: participantCount(nextRoom) }));
++  nextRoom.on(RoomEvent.ParticipantDisconnected, () => publish({ participants: participantCount(nextRoom) }));
++  nextRoom.on(RoomEvent.Reconnecting, () => publish({ state: "reconnecting" }));
++  nextRoom.on(RoomEvent.Reconnected, () => publish({ state: "connected", participants: participantCount(nextRoom) }));
++  nextRoom.on(RoomEvent.Disconnected, () => publish({ state: "disconnected", participants: 0, microphoneEnabled: false, cameraEnabled: false }));
++  try {
++    await nextRoom.connect(session.livekitUrl, session.livekitToken, { autoSubscribe: true });
++    return publish({ state: "connected", participants: participantCount(nextRoom) });
++  } catch (error) {
++    room = null;
++    nextRoom.disconnect();
++    publish({ state: "disconnected", participants: 0, microphoneEnabled: false, cameraEnabled: false });
++    throw error;
++  }
++}
++
++export async function disconnectPresenceLiveKit(): Promise<PresenceLiveKitSnapshot> {
++  const active = room;
++  room = null;
++  if (active) active.disconnect();
++  return publish({ state: "disconnected", participants: 0, microphoneEnabled: false, cameraEnabled: false });
++}
++export async function setPresenceMicrophoneEnabled(enabled: boolean): Promise<PresenceLiveKitSnapshot> { if (!room) throw new Error("Presence LiveKit room is not connected"); await room.localParticipant.setMicrophoneEnabled(enabled); return publish({ microphoneEnabled: enabled }); }
++export async function setPresenceCameraEnabled(enabled: boolean): Promise<PresenceLiveKitSnapshot> { if (!room) throw new Error("Presence LiveKit room is not connected"); await room.localParticipant.setCameraEnabled(enabled); return publish({ cameraEnabled: enabled }); }
++export function getPresenceRemoteMediaTracks(): readonly Track[] { if (!room) return []; const tracks: Track[] = []; for (const participant of room.remoteParticipants.values()) for (const publication of participant.trackPublications.values()) if (publication.track) tracks.push(publication.track); return tracks; }
+diff --git a/modules/yance/src/PresenceWorkspace.tsx b/modules/yance/src/PresenceWorkspace.tsx
+new file mode 100644
+--- /dev/null
++++ b/modules/yance/src/PresenceWorkspace.tsx
+@@ -0,0 +1,100 @@
++import React, { useEffect, useMemo, useState } from "react";
++import "./PresenceWorkspace.css";
++import {
++  connectPresenceLiveKit,
++  disconnectPresenceLiveKit,
++  getPresenceLiveKitSnapshot,
++  setPresenceCameraEnabled,
++  setPresenceMicrophoneEnabled,
++  subscribePresenceLiveKit,
++  type PresenceLiveKitSnapshot,
++} from "./presenceLiveKit";
++
++type PresenceSession = Readonly<{ sessionId: string; livekitUrl: string; livekitToken: string }>;
++type PresenceHealth = Readonly<{ available?: boolean; degraded?: boolean; reasonCode?: string; endpoint?: string }>;
++type DesktopPresenceApi = {
++  getPresenceHealth: () => Promise<PresenceHealth>;
++  createPresenceSession: (input?: Record<string, unknown>) => Promise<PresenceSession>;
++  closePresenceSession: (input: { sessionId: string }) => Promise<unknown>;
++  pushPresenceVoiceAudioChunk: (input: Record<string, unknown>) => Promise<unknown>;
++};
++
++function desktopApi(): DesktopPresenceApi | null {
++  const api = (window as unknown as { yanceDesktop?: Partial<DesktopPresenceApi> }).yanceDesktop;
++  return api && typeof api.createPresenceSession === "function" ? api as DesktopPresenceApi : null;
++}
++
++export function PresenceWorkspace(): React.JSX.Element {
++  const api = useMemo(() => desktopApi(), []);
++  const [health, setHealth] = useState<PresenceHealth>({ degraded: true, reasonCode: "unavailable" });
++  const [session, setSession] = useState<PresenceSession | null>(null);
++  const [liveKit, setLiveKit] = useState<PresenceLiveKitSnapshot>(getPresenceLiveKitSnapshot());
++  const [avatarId, setAvatarId] = useState("flash-head");
++  const [status, setStatus] = useState("Presence unavailable");
++  const [busy, setBusy] = useState(false);
++
++  useEffect(() => subscribePresenceLiveKit(setLiveKit), []);
++  useEffect(() => {
++    if (!api) return;
++    api.getPresenceHealth().then((next) => {
++      setHealth(next);
++      setStatus(next.available ? "CyberVerse ready · LiveKit disconnected" : `Degraded · ${next.reasonCode || "unavailable"}`);
++    }).catch((error) => setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "unavailable")}`));
++  }, [api]);
++  useEffect(() => () => { void disconnectPresenceLiveKit(); }, []);
++
++  const connect = async (): Promise<void> => {
++    if (!api || busy) return;
++    setBusy(true);
++    try {
++      const next = await api.createPresenceSession({ avatarId });
++      setSession(next);
++      await connectPresenceLiveKit({ livekitUrl: next.livekitUrl, livekitToken: next.livekitToken });
++      setStatus("Connected · CyberVerse avatar is streaming through LiveKit");
++    } catch (error) {
++      setSession(null);
++      await disconnectPresenceLiveKit().catch(() => undefined);
++      setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "connection unavailable")}`);
++    } finally { setBusy(false); }
++  };
++
++  const disconnect = async (): Promise<void> => {
++    if (busy) return;
++    setBusy(true);
++    const closing = session;
++    setSession(null);
++    try {
++      await disconnectPresenceLiveKit();
++      if (api && closing?.sessionId) await api.closePresenceSession({ sessionId: closing.sessionId });
++      setStatus("Disconnected");
++    } catch (error) {
++      setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "disconnect unavailable")}`);
++    } finally { setBusy(false); }
++  };
++
++  return (
++    <aside className="yance-presence-workspace" aria-label="Presence Workspace">
++      <header>
++        <div><strong>Presence</strong><span>CyberVerse avatar · LiveKit realtime media</span></div>
++        <span className={health.available ? "presence-health ready" : "presence-health degraded"}>{health.available ? "Ready" : "Degraded"}</span>
++      </header>
++      <p className="presence-status" aria-live="polite">{status}</p>
++      <label>Avatar
++        <select value={avatarId} onChange={(event) => setAvatarId(event.target.value)} disabled={busy || Boolean(session)}>
++          <option value="flash-head">SoulX FlashHead</option>
++        </select>
++      </label>
++      <div className="presence-actions">
++        <button type="button" onClick={() => void connect()} disabled={busy || Boolean(session)}>Connect</button>
++        <button type="button" onClick={() => void disconnect()} disabled={busy || !session}>Disconnect</button>
++        <button type="button" onClick={() => void setPresenceMicrophoneEnabled(!liveKit.microphoneEnabled)} disabled={liveKit.state !== "connected"}>Microphone · {liveKit.microphoneEnabled ? "On" : "Off"}</button>
++        <button type="button" onClick={() => void setPresenceCameraEnabled(!liveKit.cameraEnabled)} disabled={liveKit.state !== "connected"}>Camera · {liveKit.cameraEnabled ? "On" : "Off"}</button>
++      </div>
++      <dl>
++        <div><dt>LiveKit</dt><dd>{liveKit.state}</dd></div>
++        <div><dt>Participants</dt><dd>{liveKit.participants}</dd></div>
++        <div><dt>Session</dt><dd>{session?.sessionId || "disconnected"}</dd></div>
++      </dl>
++    </aside>
++  );
++}
+-- 
+2.45.2
