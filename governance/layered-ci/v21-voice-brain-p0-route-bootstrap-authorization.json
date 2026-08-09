@@ -4,10 +4,10 @@
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-VOICE-BRAIN-P0-ROUTE-BOOTSTRAP",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Fresh-main successor to closed, never-merged Voice route proposals #182 and #185. The shared delegated route-policy semantic guard is now trusted-main code through ordinary two-parent merge of Presence route implementation PR #189. Current trusted routing still fails closed for the twelve frozen Voice Brain supply-chain/runtime/license paths because config/, runtime/ and third_party/ remain outside productPrefixes and none of these exact Voice paths is registered. This authorization permits only a two-path route-bootstrap implementation: one failure-first routing contract and the exact additions to productExactPaths. SenseVoice remains the ASR authority and CosyVoice remains the TTS/voice-cloning authority; this bootstrap grants no Voice product implementation authority.",
+  "reason": "Fresh-main re-seal after authorization PR #193 ordinary-merged immediately after concurrent Media route-bootstrap PR #186 advanced main and changed the trusted routing-policy blob. The concurrent Media change added only its ten exact Media routes and did not register any Voice path, broaden product prefixes, weaken unknown-path fail-closed behavior, or modify the shared delegated route-policy semantic guard. Current trusted routing therefore still fails closed for the twelve frozen Voice Brain supply-chain/runtime/license paths because config/, runtime/ and third_party/ remain outside productPrefixes and none of these exact Voice paths is registered. This re-seal permits only the same two-path route-bootstrap implementation: one failure-first routing contract and the exact additions to productExactPaths. SenseVoice remains the ASR authority and CosyVoice remains the TTS/voice-cloning authority; this bootstrap grants no Voice product implementation authority.",
   "base": {
     "branch": "main",
-    "commit": "24603974b8cc65d65da8bcaffef5cfee4370eb52"
+    "commit": "0ea9dcd22a2dfa3d3b2e95f0f9da2e1eff2b16a9"
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
@@ -17,7 +17,7 @@
   },
   "evidence": {
     "trustedRoutingPolicyPath": "governance/layered-ci/wp0-routing-policy.json",
-    "trustedRoutingPolicyBlob": "2f78af4cf6a65942aaa0afe425a0059788915457",
+    "trustedRoutingPolicyBlob": "bab4ea8359eccdb019df434c20210675eba64871",
     "trustedDelegatedBranchPolicyPath": "shared/release/implementationBranchPolicy.js",
     "trustedDelegatedBranchPolicyBlob": "6c874b93aa3a72c60ee2b9599faf37afe695f35c",
     "sharedRouteGuardMerge": "d6d1342d89e5b1edd587ddc65ff817309543c470",
@@ -34,11 +34,18 @@
     "allVoiceBootstrapPathsAbsentFromProductExactPaths": true,
     "expectedPreBootstrapReasonCode": "WP0_ROUTE_UNKNOWN_PATH",
     "supersededVoiceRouteAuthorizationPrs": [182, 185],
-    "latestTrustedMainAdvancementPr": 191,
+    "priorAuthorizationPr": 193,
+    "priorAuthorizationMerge": "0ea9dcd22a2dfa3d3b2e95f0f9da2e1eff2b16a9",
+    "concurrentMainAdvancementPr": 186,
+    "concurrentMainAdvancementMerge": "21321bf4c59c34d0b442344a68fbd72ab37804d6",
+    "concurrentMainAdvancementTouchedRoutingPolicy": true,
+    "concurrentMainAdvancementVoicePathNeutral": true,
+    "freshRouteFactsRevalidatedOnBase": true,
+    "latestTrustedMainAdvancementPr": 193,
     "latestTrustedMainAdvancementIsVoiceRouteNeutral": true
   },
   "authorizationBranch": {
-    "name": "governance/v21-voice-brain-p0-route-bootstrap-authorization-v3",
+    "name": "governance/v21-voice-brain-p0-route-bootstrap-authorization-v4",
     "allowedChangedPaths": [
       "governance/layered-ci/v21-voice-brain-p0-route-bootstrap-authorization.json"
     ],
