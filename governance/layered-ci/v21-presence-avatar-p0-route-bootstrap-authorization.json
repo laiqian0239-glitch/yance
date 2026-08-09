@@ -7,7 +7,7 @@
   "reason": "Fresh-main authorization for the exact previously-unrouted Presence / Avatar supply-chain, runtime-config, license, visible Element Presence UI and replayable upstream-seam paths needed by V21-PRESENCE-AVATAR-P0-V1. It also closes a generic delegated route-bootstrap policy gap: authorization to edit wp0-routing-policy.json must mechanically permit only the authorization's frozen exact route-bootstrap declaration, never unrelated route mutations. The generic guard must support both exact declaration shapes already used by current Yance route-bootstrap authorities: futureProductBootstrapPaths and bootstrapPaths. LiveKit remains authoritative for WebRTC/room/session/stream transport; CyberVerse remains authoritative for digital-human/avatar/lip-sync runtime; SoulX-FlashHead remains an upstream avatar model. No Yance WebRTC server, realtime transport framework, avatar runtime, lip-sync engine or second digital-human state machine is authorized.",
   "base": {
     "branch": "main",
-    "commit": "ed90d68d651572e517591b0ad2707166dee518d0"
+    "commit": "00a40ada36821ffcff2ed9e9bc8d4df4985bf4ba"
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
