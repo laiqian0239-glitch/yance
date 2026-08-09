@@ -81,22 +81,31 @@ export async function connectPresenceLiveKit(session: PresenceLiveKitSession): P
   const nextRoom = new Room({ adaptiveStream: true, dynacast: true });
   room = nextRoom;
   publish({ state: "connecting", participants: 0 });
-  nextRoom.on(RoomEvent.ParticipantConnected, () => { publish({ participants: participantCount(nextRoom) }); publishRemoteTracks(); });
-  nextRoom.on(RoomEvent.ParticipantDisconnected, () => { publish({ participants: participantCount(nextRoom) }); publishRemoteTracks(); });
-  nextRoom.on(RoomEvent.TrackSubscribed, publishRemoteTracks);
-  nextRoom.on(RoomEvent.TrackUnsubscribed, publishRemoteTracks);
-  nextRoom.on(RoomEvent.Reconnecting, () => publish({ state: "reconnecting" }));
-  nextRoom.on(RoomEvent.Reconnected, () => { publish({ state: "connected", participants: participantCount(nextRoom) }); publishRemoteTracks(); });
-  nextRoom.on(RoomEvent.Disconnected, () => { publish({ state: "disconnected", participants: 0, microphoneEnabled: false, cameraEnabled: false }); publishRemoteTracks(); });
+  nextRoom.on(RoomEvent.ParticipantConnected, () => { if (room !== nextRoom) return; publish({ participants: participantCount(nextRoom) }); publishRemoteTracks(); });
+  nextRoom.on(RoomEvent.ParticipantDisconnected, () => { if (room !== nextRoom) return; publish({ participants: participantCount(nextRoom) }); publishRemoteTracks(); });
+  nextRoom.on(RoomEvent.TrackSubscribed, () => { if (room === nextRoom) publishRemoteTracks(); });
+  nextRoom.on(RoomEvent.TrackUnsubscribed, () => { if (room === nextRoom) publishRemoteTracks(); });
+  nextRoom.on(RoomEvent.Reconnecting, () => { if (room === nextRoom) publish({ state: "reconnecting" }); });
+  nextRoom.on(RoomEvent.Reconnected, () => { if (room !== nextRoom) return; publish({ state: "connected", participants: participantCount(nextRoom) }); publishRemoteTracks(); });
+  nextRoom.on(RoomEvent.Disconnected, () => {
+    if (room !== nextRoom) return;
+    room = null;
+    publish({ state: "disconnected", participants: 0, microphoneEnabled: false, cameraEnabled: false });
+    publishRemoteTracks();
+  });
   try {
     await nextRoom.connect(session.livekitUrl, session.livekitToken, { autoSubscribe: true });
+    if (room !== nextRoom) throw new Error("Presence LiveKit room was superseded while connecting");
     publishRemoteTracks();
     return publish({ state: "connected", participants: participantCount(nextRoom) });
   } catch (error) {
-    room = null;
+    const current = room === nextRoom;
+    if (current) room = null;
     nextRoom.disconnect();
-    publishRemoteTracks();
-    publish({ state: "disconnected", participants: 0, microphoneEnabled: false, cameraEnabled: false });
+    if (current) {
+      publishRemoteTracks();
+      publish({ state: "disconnected", participants: 0, microphoneEnabled: false, cameraEnabled: false });
+    }
     throw error;
   }
 }
