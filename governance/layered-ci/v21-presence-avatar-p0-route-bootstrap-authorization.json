@@ -7,7 +7,17 @@
   "reason": "Bootstrap only the exact previously-unrouted Presence / Avatar supply-chain, runtime-config, license, visible Element Presence UI and replayable upstream-seam paths needed by the later V21-PRESENCE-AVATAR-P0-V1 authorization. This prerequisite creates no Presence product authority. Mature OSS remains authoritative: LiveKit owns WebRTC/realtime room and stream transport; CyberVerse owns digital-human/avatar/lip-sync runtime; SoulX-FlashHead remains an upstream avatar model implementation. No Yance WebRTC server, realtime transport framework, avatar runtime, lip-sync engine or second digital-human state machine is authorized.",
   "base": {
     "branch": "main",
-    "commit": "bcc775973c8c09b99ac704f8e7dd8c165aa0f5c5"
+    "commit": "ed90d68d651572e517591b0ad2707166dee518d0"
+  },
+  "freshMainReconciliation": {
+    "previousBase": "bcc775973c8c09b99ac704f8e7dd8c165aa0f5c5",
+    "currentBase": "ed90d68d651572e517591b0ad2707166dee518d0",
+    "advancementChangedPaths": [
+      "governance/layered-ci/v21-learning-growth-brain-p0-v2-authorization.json"
+    ],
+    "authorizationPathOverlapCount": 0,
+    "futureProductBootstrapPathOverlapCount": 0,
+    "routeBootstrapScopeUnchanged": true
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
