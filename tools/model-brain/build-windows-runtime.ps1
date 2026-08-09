@@ -32,8 +32,10 @@ if ((& $UvExe --version) -notmatch [regex]::Escape($ExpectedUv)) { throw "uv ver
 
 $req = Join-Path $Output "requirements.locked.txt"
 # Build-time only. Export exact transitive dependencies from the reviewed upstream lock,
-# while deliberately omitting the project itself, workspace projects, and dev groups.
-& $UvExe export --directory $source --locked --no-dev --no-group dev --no-install-workspace --no-emit-workspace --no-install-project --no-emit-project --format requirements-txt --output-file $req
+# while deliberately omitting the project itself, workspace projects, and the dev group.
+# uv 0.12.3 treats --no-install-project/workspace as aliases of --no-emit-project/workspace,
+# and --no-dev as an alias of --no-group dev; use one canonical spelling for each semantic flag.
+& $UvExe export --directory $source --locked --no-dev --no-emit-workspace --no-emit-project --format requirements-txt --output-file $req
 if ($LASTEXITCODE -ne 0) { throw "uv locked export failed" }
 if (Select-String -Path $req -Pattern 'litellm\[proxy\]|litellm-enterprise|litellm-proxy-extras|maturin|setuptools-rust' -Quiet) { throw "forbidden proxy/enterprise/Rust build dependency" }
 
