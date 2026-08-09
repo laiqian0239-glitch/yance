@@ -13,7 +13,6 @@ const { DatabaseSync } = require('node:sqlite');
 const { createPersonaBrain } = require('../../personaBrain');
 const { compilePersonaContext } = require('../../personaBrain/compiler');
 
-// P0-A/B 同款最小 store shim：:memory: + transaction（绕过 R32SqliteStore 的 path.resolve(':memory:') 问题）
 function makeStore() {
   const db = new DatabaseSync(':memory:');
   return {
@@ -87,7 +86,6 @@ test('OD-004: baseContext 合并 + policy 透传', () => {
   const out = compilePersonaContext(rec, { baseContext: { channel: 'telegram' }, policy: { maxTokens: 800 } });
   assert.strictEqual(out.context.channel, 'telegram');
   assert.strictEqual(out.context.policy.maxTokens, 800);
-  // baseContext 不被 persona 覆盖
   assert.strictEqual(out.context.persona.available, true);
 });
 
@@ -111,4 +109,106 @@ test('OD-004: 集成 - 未初始化 profile -> safeFallback', () => {
   const compiled = brain.compileContext('owner');
   assert.strictEqual(compiled.safeFallback, true);
   assert.strictEqual(compiled.reason, 'profile-not-initialized');
+});
+
+test('V21 Persona P0: compiler exposes SillyTavern-backed structured composition without legacy flat style prompt', () => {
+  const rec = makeVersionRecord({
+    content: {
+      schemaVersion: 1,
+      profileId: 'owner',
+      authoritative: {
+        coreIdentity: { mode: 'verified_real' },
+        personaProfile: { personality: ['warm'], expressionHabits: ['short replies'] },
+        replyStylePolicy: { directions: { ambiguity: 30, matureWarm: 40 }, intensity: 'natural' },
+        disclosureRules: {},
+        forbiddenFabrications: []
+      },
+      learned: { preferences: {}, interactionPatterns: {} },
+      metadata: { title: 'Owner', locale: 'de-DE' }
+    }
+  });
+
+  const out = compilePersonaContext(rec, {
+    socialContext: { customer: { relationshipStage: 'warming' } },
+    composition: {
+      relationshipCard: { relationshipStage: 'warming' },
+      localeProfile: { locale: 'de-DE' },
+      chatRegister: { channel: 'whatsapp', register: 'native_short_form' },
+      exampleDialogues: [{ user: 'Na?', assistant: 'Na du 😄' }]
+    }
+  });
+
+  assert.strictEqual(out.safeFallback, false);
+  assert.strictEqual(out.context.persona.composition.sourceAuthority, 'SillyTavern/SillyTavern@51ad27fb86d39a3daca3adaa970375c9670c12df');
+  assert.strictEqual(Array.isArray(out.context.persona.composition.units), true);
+  assert.strictEqual(out.context.persona.truthSafePacket.style.prompt, undefined);
+  assert.strictEqual(out.context.persona.truthSafePacket.runtimeAuthority.pass, true);
+  assert.strictEqual(out.context.persona.composition.units.some(unit => unit.identifier === 'exampleDialogues'), true);
+});
+
+test('V21 Persona P0 V2: saved structured Persona fields feed live composition without request-side composition overrides', () => {
+  const rec = makeVersionRecord({
+    content: {
+      schemaVersion: 1,
+      profileId: 'owner',
+      authoritative: {
+        coreIdentity: { mode: 'verified_real' },
+        personaProfile: {
+          description: 'owner presentation',
+          characterCard: {
+            name: 'Mira',
+            description: 'dry and curious',
+            personality: 'warm but concise',
+            scenario: 'late evening chat',
+            characterNote: { content: 'keep it compact', depth: 2, role: 'system' }
+          },
+          exampleDialogues: [{ user: 'Na?', assistant: 'Na du 😄' }],
+          localeProfile: { locale: 'de-AT' },
+          chatRegister: { channel: 'whatsapp', register: 'native_short_form' }
+        },
+        replyStylePolicy: { directions: { ambiguity: 30, humor: 20 }, intensity: 'natural' },
+        disclosureRules: {},
+        forbiddenFabrications: []
+      },
+      learned: { preferences: {}, interactionPatterns: {} },
+      metadata: { title: 'Owner', locale: 'de-DE' }
+    }
+  });
+
+  const out = compilePersonaContext(rec, {
+    socialContext: { customer: { platform: 'whatsapp', relationshipStage: 'warming' }, incomingMessage: { text: 'Na?' } }
+  });
+
+  assert.strictEqual(out.safeFallback, false);
+  assert.strictEqual(out.context.persona.composition.characterCard.name, 'Mira');
+  assert.strictEqual(out.context.persona.composition.localeProfile.locale, 'de-AT');
+  assert.strictEqual(out.context.persona.composition.chatRegister.register, 'native_short_form');
+  assert.strictEqual(out.context.persona.composition.exampleDialogues.length, 1);
+  assert.strictEqual(out.context.persona.composition.units.some(unit => unit.identifier === 'charDescription'), true);
+  assert.strictEqual(out.context.persona.composition.units.some(unit => unit.identifier === 'exampleDialogues'), true);
+  const note = out.context.persona.composition.units.find(unit => unit.identifier === 'characterNote');
+  assert.ok(note);
+  assert.strictEqual(note.injectionDepth, 2);
+});
+
+test('V21 Persona P0 V2: derived native register clamps unsupported metadata locale when no register override exists', () => {
+  const rec = makeVersionRecord({
+    content: {
+      schemaVersion: 1,
+      profileId: 'owner',
+      authoritative: {
+        coreIdentity: { mode: 'verified_real' },
+        personaProfile: { description: 'owner presentation' },
+        replyStylePolicy: { directions: {}, intensity: 'natural' },
+        disclosureRules: {},
+        forbiddenFabrications: []
+      },
+      learned: { preferences: {}, interactionPatterns: {} },
+      metadata: { title: 'Owner', locale: 'fr-FR' }
+    }
+  });
+  const out = compilePersonaContext(rec, { socialContext: { customer: { platform: 'whatsapp' } } });
+  assert.strictEqual(out.safeFallback, false);
+  assert.strictEqual(out.context.persona.composition.chatRegister.locale, 'de-DE');
+  assert.strictEqual(out.context.persona.composition.chatRegister.register, 'native_short_form');
 });

@@ -7,6 +7,15 @@
   const htmlAttr = security.escapeHtmlAttribute || htmlText;
   const PERSONA_PROFILE_KEY = 'yance:persona-profile-id';
   const LEGACY_PERSONA_PROFILE_KEY = 'yance29:persona-profile-id';
+  const LEGACY_ACTION_LABELS = Object.freeze(['校验人物基线', '导出JSON', '导入JSON', '保存新版本']);
+  const STYLE_OVERLAY_FIELDS = Object.freeze([
+    ['ambiguity', '暧昧'], ['softWoman', '小女人'], ['coquettish', '风骚'], ['flirting', '调情'],
+    ['individuality', '个性'], ['femininity', '温柔'], ['matureWarm', '成熟'], ['queen', '高冷'],
+    ['initiative', '主动'], ['mystery', '神秘'], ['humor', '幽默'], ['sensualPlayfulness', '俏皮']
+  ]);
+  const NORMALIZED_CHARACTER_CARD_FIELDS = Object.freeze([
+    'firstMessage', 'exampleDialogueText', 'alternateGreetings', 'tags', 'extensions', 'systemPrompt'
+  ]);
   function readPersonaProfileId() {
     const current = localStorage.getItem(PERSONA_PROFILE_KEY);
     if (current) return current;
@@ -35,7 +44,20 @@
     presets: [],
     effective: null,
     bindings: [],
-    versionDiff: null
+    versionDiff: null,
+    v2: {
+      hydrated: false,
+      characterCardPreview: null,
+      compositionPreview: null,
+      inFlight: false,
+      status: 'idle',
+      personaDescription: '',
+      characterCard: { name: '', description: '', personality: '', scenario: '', characterNote: { content: '', depth: 4, role: 'system' } },
+      examples: [{ user: '', assistant: '' }],
+      locale: 'de-DE',
+      chatRegister: 'native_short_form',
+      styleWeights: {}
+    }
   };
 
   function profileId() { return String(state.profileId || 'owner').trim() || 'owner'; }
@@ -111,6 +133,199 @@
     const original=personaScalar(value);return {primary:original,original,pending:Boolean(original&&!containsChinese(original))}}
   function personaReadableRows(value,path=[],depth=0,limit=80){const rows=[];const walk=(current,currentPath,level)=>{if(rows.length>=limit||level>5||current==null)return;const scalar=personaScalar(current);if(scalar){const localized=personaLocalizedValue(current);rows.push({path:currentPath,label:personaLabel(currentPath.at(-1)),...localized});return}if(Array.isArray(current)){current.forEach((item,index)=>walk(item,[...currentPath,`${index+1}`],level+1));return}if(typeof current==='object'){const localized=personaLocalizedValue(current);if(localized.primary||localized.original){rows.push({path:currentPath,label:personaLabel(currentPath.at(-1)),...localized});return}Object.entries(current).forEach(([key,item])=>{if(key==='chineseUnderstanding'||key==='translatedZh'||key==='translationZh')return;walk(item,[...currentPath,key],level+1)})}};walk(value,path,depth);return rows}
   function readablePersonaHtml(){const source=authoritative();const sections=Object.entries(source||{});return `<section class="persona-card persona-readable-card"><header><div><small>中文结构化视图</small><h3>可阅读人物基线</h3></div><span class="persona-pill ok">原始数据不变</span></header><div class="persona-readable-note"><b>中文优先展示，不覆盖权威原文</b><p>已有中文理解时直接显示；只有外语原文而缺少中文时标记“中文理解待生成”，不会猜测或伪造译文。高级 JSON 编辑仍保留在下方。</p></div><div class="persona-readable-grid">${sections.length?sections.map(([key,value])=>{const rows=personaReadableRows(value,[key]);return `<article class="persona-readable-section"><header><div><small>${htmlText(key)}</small><h4>${htmlText(personaLabel(key))}</h4></div><span>${htmlText(rows.length)} 项</span></header><div>${rows.length?rows.map(row=>`<div class="persona-readable-row ${htmlAttr(row.pending?'translation-pending':'')}"><span>${htmlText(row.path.slice(1).map(personaLabel).join(' · ')||personaLabel(key))}</span><b>${htmlText(row.primary||'暂无内容')}</b>${row.original&&row.original!==row.primary?`<p><em>原文</em>${htmlText(row.original)}</p>`:''}${row.pending?'<small>待生成中文理解 · 当前展示权威原文</small>':''}</div>`).join(''):'<div class="persona-readable-empty">当前部分没有可展示内容</div>'}</div></article>`}).join(''):'<div class="persona-readable-empty">当前 Persona 没有权威人物数据</div>'}</div></section>`}
+
+  function cloneJson(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
+  function preserveNormalizedCharacterCard(card = {}) {
+    const preserved = cloneJson(card) || {};
+    for (const field of NORMALIZED_CHARACTER_CARD_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(card, field)) preserved[field] = cloneJson(card[field]);
+    }
+    return preserved;
+  }
+  function v2RelationshipProjection() {
+    const scope = activeScope();
+    const snapshot = window.YanceActiveContactStore?.getSnapshot?.() || {};
+    return {
+      authority: 'read_only_communication_context_projection',
+      relationshipStage: state.effective?.relationshipStage || snapshot.relationshipStage || '',
+      contactId: scope.contactId || '',
+      conversationId: scope.conversationId || '',
+      effectivePersona: state.effective?.effectiveLabel || '',
+      readOnly: true
+    };
+  }
+  function hydrateV2Draft(payload = state.current) {
+    const content = payload?.version?.content || {};
+    const auth = content.authoritative || {};
+    const profile = auth.personaProfile && typeof auth.personaProfile === 'object' ? auth.personaProfile : {};
+    const card = profile.characterCard && typeof profile.characterCard === 'object' ? preserveNormalizedCharacterCard(profile.characterCard) : {};
+    const examples = Array.isArray(profile.exampleDialogues) && profile.exampleDialogues.length ? cloneJson(profile.exampleDialogues) : [{ user: '', assistant: '' }];
+    const directions = auth.replyStylePolicy?.directions && typeof auth.replyStylePolicy.directions === 'object' ? auth.replyStylePolicy.directions : {};
+    state.v2 = {
+      ...state.v2,
+      hydrated: true,
+      personaDescription: String(profile.description || ''),
+      characterCard: {
+        ...card,
+        name: String(card.name || ''),
+        description: String(card.description || ''),
+        personality: String(card.personality || ''),
+        scenario: String(card.scenario || ''),
+        characterNote: {
+          content: String(card.characterNote?.content || card.postHistoryInstructions || ''),
+          depth: Number(card.characterNote?.depth ?? 4),
+          role: String(card.characterNote?.role || 'system')
+        },
+        characterBook: card.characterBook && typeof card.characterBook === 'object' ? cloneJson(card.characterBook) : undefined
+      },
+      examples,
+      locale: ['de-DE', 'de-AT'].includes(String(profile.localeProfile?.locale || content.metadata?.locale || '')) ? String(profile.localeProfile?.locale || content.metadata?.locale) : 'de-DE',
+      chatRegister: String(profile.chatRegister?.register || 'native_short_form'),
+      styleWeights: Object.fromEntries(STYLE_OVERLAY_FIELDS.map(([key]) => [key, Number(directions[key] || 0)])),
+      characterCardPreview: null,
+      compositionPreview: null,
+      status: 'idle',
+      inFlight: false
+    };
+  }
+  function syncV2DraftToAuthoritative() {
+    let doc;
+    try { doc = JSON.parse(state.draftText || prettyAuthoritative()); }
+    catch { doc = cloneJson(authoritative()) || {}; }
+    doc.personaProfile = doc.personaProfile && typeof doc.personaProfile === 'object' ? doc.personaProfile : {};
+    doc.personaProfile.description = state.v2.personaDescription;
+    doc.personaProfile.characterCard = cloneJson(state.v2.characterCard);
+    doc.personaProfile.exampleDialogues = cloneJson(state.v2.examples);
+    doc.personaProfile.localeProfile = { locale: state.v2.locale };
+    doc.personaProfile.chatRegister = { channel: 'whatsapp', register: state.v2.chatRegister };
+    doc.replyStylePolicy = doc.replyStylePolicy && typeof doc.replyStylePolicy === 'object' ? doc.replyStylePolicy : {};
+    doc.replyStylePolicy.directions = { ...(doc.replyStylePolicy.directions || {}), ...state.v2.styleWeights };
+    state.draftText = JSON.stringify(doc, null, 2);
+    state.dirty = true;
+    const editor = $('personaJsonEditor');
+    if (editor) editor.value = state.draftText;
+  }
+  function collectV2Controls() {
+    const value = id => String($(id)?.value || '');
+    state.v2.personaDescription = value('personaV2PersonaDescription');
+    state.v2.characterCard.name = value('personaV2CharacterName');
+    state.v2.characterCard.description = value('personaV2CharacterDescription');
+    state.v2.characterCard.personality = value('personaV2Personality');
+    state.v2.characterCard.scenario = value('personaV2Scenario');
+    state.v2.characterCard.characterNote = {
+      ...state.v2.characterCard.characterNote,
+      content: value('personaV2CharacterNote')
+    };
+    state.v2.locale = value('personaV2Locale') || 'de-DE';
+    state.v2.chatRegister = value('personaV2ChatRegister') || 'native_short_form';
+    state.v2.examples = [...document.querySelectorAll('[data-persona-example-row]')].map(row => ({
+      user: String(row.querySelector('[data-persona-example-user]')?.value || '').trim(),
+      assistant: String(row.querySelector('[data-persona-example-assistant]')?.value || '').trim()
+    })).filter(row => row.user || row.assistant);
+    if (!state.v2.examples.length) state.v2.examples = [{ user: '', assistant: '' }];
+    for (const [key] of STYLE_OVERLAY_FIELDS) {
+      state.v2.styleWeights[key] = Number(document.querySelector(`[data-persona-style="${key}"]`)?.value || 0);
+    }
+    syncV2DraftToAuthoritative();
+  }
+  function compositionInput() {
+    const labels = STYLE_OVERLAY_FIELDS.filter(([key]) => Number(state.v2.styleWeights[key] || 0) > 0).map(([, label]) => label);
+    return {
+      personaCard: { description: state.v2.personaDescription },
+      characterCard: cloneJson(state.v2.characterCard),
+      relationshipCard: v2RelationshipProjection(),
+      localeProfile: { locale: state.v2.locale },
+      chatRegister: { channel: 'whatsapp', register: state.v2.chatRegister },
+      styleOverlay: { labels, weights: cloneJson(state.v2.styleWeights), intensity: authoritative()?.replyStylePolicy?.intensity || 'natural' },
+      exampleDialogues: cloneJson(state.v2.examples)
+    };
+  }
+  function exampleRowsHtml() {
+    return state.v2.examples.map((row, index) => `<div class="persona-example-row" data-persona-example-row>
+      <label>用户示例<input data-persona-example-user value="${htmlAttr(row.user || '')}" aria-label="Example Dialogues 用户示例 ${index + 1}"/></label>
+      <label>AI 示例<input data-persona-example-assistant value="${htmlAttr(row.assistant || '')}" aria-label="Example Dialogues AI 示例 ${index + 1}"/></label>
+      <button type="button" data-persona-example-remove="${htmlAttr(index)}" ${state.v2.examples.length <= 1 ? 'disabled' : ''}>移除</button>
+    </div>`).join('');
+  }
+  function styleOverlayHtml() {
+    return STYLE_OVERLAY_FIELDS.map(([key, label]) => `<label class="persona-style-control"><span>${htmlText(label)}</span><input type="range" min="0" max="100" step="5" value="${htmlAttr(Number(state.v2.styleWeights[key] || 0))}" data-persona-style="${htmlAttr(key)}" aria-label="Style Overlay ${htmlAttr(label)}"/><output>${htmlText(Number(state.v2.styleWeights[key] || 0))}</output></label>`).join('');
+  }
+  function v2WorkbenchHtml() {
+    const preview = state.v2.characterCardPreview;
+    const composition = state.v2.compositionPreview;
+    const relationship = v2RelationshipProjection();
+    const statusClass = state.v2.status === 'error' ? 'error' : state.v2.status === 'success' ? 'success' : state.dirty ? 'dirty' : '';
+    return `<section class="persona-card persona-v2-workbench ${htmlAttr(statusClass)}" aria-label="Persona Character V2 structured editor">
+      <header><div><small>SillyTavern 1.18.0 · structured composition</small><h3>Persona / Character 结构化编辑</h3></div><span class="persona-pill ${htmlAttr(state.v2.status === 'success' ? 'ok' : state.v2.status === 'error' ? 'bad' : '')}">${state.v2.inFlight ? 'loading' : state.dirty ? 'dirty' : 'ready'}</span></header>
+      <div class="persona-v2-toolbar"><span>保留操作：${LEGACY_ACTION_LABELS.map(htmlText).join(' · ')}</span><button type="button" data-persona-compile-preview ${state.v2.inFlight ? 'disabled' : ''}>生成组合预览</button></div>
+      <div class="persona-character-card">
+        <div><h4>Character Card</h4><p>PNG / JSON 由后端 SillyTavern parser 解析与校验，浏览器不重写 PNG 解析。</p></div>
+        <label class="persona-file-label">导入 Character Card<input id="personaCharacterCardFile" type="file" accept="image/png,.png,application/json,.json" aria-label="Character Card PNG 或 JSON"/></label>
+        <button type="button" data-persona-card-preview ${state.v2.inFlight ? 'disabled' : ''}>预览 Character Card</button>
+        <button type="button" data-persona-card-apply ${preview ? '' : 'disabled'}>应用到当前 Persona</button>
+        <div class="persona-card-preview" aria-live="polite">${preview ? `<b>${htmlText(preview.characterCard?.name || '未命名角色')}</b><span>${htmlText(preview.spec || '')} ${htmlText(preview.specVersion || '')}</span><p>${htmlText(preview.characterCard?.description || '无 Description')}</p>` : '<span>尚未选择或预览 Character Card</span>'}</div>
+      </div>
+      <div class="persona-structured">
+        <label>Persona Description<textarea id="personaV2PersonaDescription" aria-label="Persona Description">${htmlText(state.v2.personaDescription)}</textarea></label>
+        <label>Character Name<input id="personaV2CharacterName" value="${htmlAttr(state.v2.characterCard.name || '')}"/></label>
+        <label>Character Description<textarea id="personaV2CharacterDescription">${htmlText(state.v2.characterCard.description || '')}</textarea></label>
+        <label>Personality<textarea id="personaV2Personality">${htmlText(state.v2.characterCard.personality || '')}</textarea></label>
+        <label>Scenario<textarea id="personaV2Scenario">${htmlText(state.v2.characterCard.scenario || '')}</textarea></label>
+        <label>Character Note<textarea id="personaV2CharacterNote">${htmlText(state.v2.characterCard.characterNote?.content || '')}</textarea></label>
+      </div>
+      <div class="persona-example"><div class="persona-section-title"><div><small>Example Dialogues</small><h4>示例对话</h4></div><button type="button" data-persona-example-add>新增示例</button></div>${exampleRowsHtml()}</div>
+      <div class="persona-style"><div class="persona-section-title"><div><small>Style Overlay</small><h4>12 项结构化风格权重</h4></div><span>0–100</span></div><div class="persona-style-grid">${styleOverlayHtml()}</div></div>
+      <div class="persona-locale"><label>Locale Profile<select id="personaV2Locale"><option value="de-DE" ${state.v2.locale === 'de-DE' ? 'selected' : ''}>de-DE</option><option value="de-AT" ${state.v2.locale === 'de-AT' ? 'selected' : ''}>de-AT</option></select></label><label>Chat Register<select id="personaV2ChatRegister"><option value="native_short_form" selected>native_short_form</option></select></label></div>
+      <div class="persona-relationship"><div class="persona-section-title"><div><small>Relationship Card</small><h4>关系上下文投影</h4></div><span class="persona-pill">只读 · read-only</span></div><pre>${htmlText(JSON.stringify(relationship, null, 2))}</pre></div>
+      <div class="persona-preview"><div class="persona-section-title"><div><small>compile-context</small><h4>组合预览</h4></div><span>${composition ? `${htmlText(composition.units?.length || 0)} units` : '尚未编译'}</span></div><pre aria-live="polite">${htmlText(composition ? JSON.stringify(composition, null, 2) : '点击“生成组合预览”后，由后端 compiler 返回 SillyTavern-backed composition。')}</pre></div>
+    </section>`;
+  }
+
+  async function previewCharacterCard() {
+    const file = $('personaCharacterCardFile')?.files?.[0];
+    if (!file) throw new Error('请先选择 Character Card PNG 或 JSON 文件');
+    if (file.size > 8 * 1024 * 1024) throw new Error('Character Card 文件不能超过 8mb');
+    state.v2.inFlight = true; state.v2.status = 'loading'; render();
+    try {
+      const response = await fetchPersona('/api/v2/persona/character-card/preview', {
+        method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: await file.arrayBuffer(), retryAttempts: 1, timeoutMs: 12000
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || payload.ok === false) throw new Error(payload?.error?.message || payload?.message || `Character Card 预览失败 (${response.status})`);
+      state.v2.characterCardPreview = payload.preview || null;
+      state.v2.status = 'success';
+      notify('Character Card 解析与校验通过');
+    } catch (error) {
+      state.v2.status = 'error';
+      throw error;
+    } finally { state.v2.inFlight = false; render(); }
+  }
+  function applyCharacterCard() {
+    const preview = state.v2.characterCardPreview;
+    if (!preview?.characterCard) throw new Error('请先完成 Character Card 预览');
+    const card = preserveNormalizedCharacterCard(preview.characterCard);
+    state.v2.characterCard = {
+      ...card,
+      name: String(card.name || ''), description: String(card.description || ''), personality: String(card.personality || ''), scenario: String(card.scenario || ''),
+      characterNote: { content: String(card.postHistoryInstructions || card.creatorNotes || ''), depth: 4, role: 'system' },
+      characterBook: card.characterBook && typeof card.characterBook === 'object' ? cloneJson(card.characterBook) : undefined
+    };
+    syncV2DraftToAuthoritative();
+    state.v2.status = 'success';
+    render();
+    notify('Character Card 已应用到当前 Persona 草稿；保存新版本后持久化');
+  }
+  async function compileCompositionPreview() {
+    collectV2Controls();
+    state.v2.inFlight = true; state.v2.status = 'loading'; render();
+    try {
+      const payload = await request(`/api/v2/persona/${profileId()}/compile-context`, { method: 'POST', body: JSON.stringify({ composition: compositionInput() }) });
+      state.v2.compositionPreview = payload.context?.persona?.composition || payload.composition || null;
+      state.v2.status = 'success';
+      notify('Persona 组合预览已更新');
+    } catch (error) { state.v2.status = 'error'; throw error; }
+    finally { state.v2.inFlight = false; render(); }
+  }
 
   function optionsHtml(rows, valueKey, label) {
     return rows.map(row => {
@@ -210,7 +425,7 @@
       if (badge) badge.textContent = '0';
       return;
     }
-    host.innerHTML = `${managerHtml()}${summaryCardsHtml()}${readablePersonaHtml()}<div class="persona-grid">${editorHtml()}${validationHtml()}${historyHtml()}${pendingHtml()}</div>`;
+    host.innerHTML = `${managerHtml()}${summaryCardsHtml()}${v2WorkbenchHtml()}${readablePersonaHtml()}<div class="persona-grid">${editorHtml()}${validationHtml()}${historyHtml()}${pendingHtml()}</div>`;
     const editor = $('personaJsonEditor');
     editor?.addEventListener('input', () => { state.dirty = true; state.draftText = editor.value; });
     const badge = $('aiwPersonaVersion');
@@ -262,6 +477,7 @@
       state.pendingChanges = pendingPayload.pendingChanges || [];
       state.validation = validationPayload.validation || null;
       state.draftText = JSON.stringify(currentPayload.version?.content?.authoritative || {}, null, 2);
+      hydrateV2Draft(currentPayload);
       state.loaded = true;
       state.dirty = false;
       window.YanceR32PersonaBrainStatus?.refresh?.();
@@ -280,6 +496,7 @@
   }
 
   async function validate() {
+    collectV2Controls();
     const data = parseEditor();
     const payload = await request(`/api/v2/persona/${profileId()}/validate`, { method: 'POST', body: JSON.stringify({ authoritative: data }) });
     state.validation = payload.validation;
@@ -289,6 +506,7 @@
   }
 
   async function save() {
+    collectV2Controls();
     const data = parseEditor();
     const validationPayload = await request(`/api/v2/persona/${profileId()}/validate`, { method: 'POST', body: JSON.stringify({ authoritative: data }) });
     state.validation = validationPayload.validation;
@@ -461,6 +679,11 @@
     if (button.id === 'aiwPersonaSave') save().catch(error => notify(error.message, 'error'));
     if (button.id === 'aiwPersonaExport') exportJson().catch(error => notify(error.message, 'error'));
     if (button.id === 'aiwPersonaImport') chooseImport();
+    if (button.hasAttribute('data-persona-card-preview')) previewCharacterCard().catch(error => notify(error.message, 'error'));
+    if (button.hasAttribute('data-persona-card-apply')) { try { applyCharacterCard(); } catch (error) { notify(error.message, 'error'); } }
+    if (button.hasAttribute('data-persona-compile-preview')) compileCompositionPreview().catch(error => notify(error.message, 'error'));
+    if (button.hasAttribute('data-persona-example-add')) { collectV2Controls(); state.v2.examples.push({ user: '', assistant: '' }); render(); }
+    if (button.dataset.personaExampleRemove != null) { collectV2Controls(); state.v2.examples.splice(Number(button.dataset.personaExampleRemove), 1); if (!state.v2.examples.length) state.v2.examples.push({ user: '', assistant: '' }); render(); }
     if (button.hasAttribute('data-persona-create')) createProfile(false).catch(error => notify(error.message, 'error'));
     if (button.hasAttribute('data-persona-load-preset')) createProfile(true).catch(error => notify(error.message, 'error'));
     if (button.dataset.personaBind) bindScope(button.dataset.personaBind).catch(error => notify(error.message, 'error'));
@@ -470,7 +693,22 @@
     if (button.dataset.personaDiff) loadVersionDiff(Number(button.dataset.personaDiff)).catch(error => notify(error.message, 'error'));
     if (button.dataset.personaChange) decideChange(button.dataset.personaChange, button.dataset.decision).catch(error => notify(error.message, 'error'));
   });
+  document.addEventListener('input', event => {
+    if (event.target?.matches?.('#personaV2PersonaDescription,#personaV2CharacterName,#personaV2CharacterDescription,#personaV2Personality,#personaV2Scenario,#personaV2CharacterNote,[data-persona-example-user],[data-persona-example-assistant],[data-persona-style]')) {
+      if (event.target.matches('[data-persona-style]')) event.target.parentElement?.querySelector('output') && (event.target.parentElement.querySelector('output').textContent = event.target.value);
+      collectV2Controls();
+    }
+  });
   document.addEventListener('change', event => {
+    if (event.target?.id === 'personaCharacterCardFile') {
+      state.v2.characterCardPreview = null;
+      state.v2.status = 'idle';
+      const applyButton = document.querySelector('[data-persona-card-apply]');
+      if (applyButton) applyButton.disabled = true;
+      const previewHost = document.querySelector('.persona-card-preview');
+      if (previewHost) previewHost.textContent = '文件已更换，请重新预览 Character Card';
+    }
+    if (event.target?.id === 'personaV2Locale' || event.target?.id === 'personaV2ChatRegister') collectV2Controls();
     if (event.target?.id === 'personaImportFile') importFile(event.target.files?.[0]).catch(error => notify(error.message, 'error'));
     if (event.target?.id === 'personaProfileSelect') switchProfile(event.target.value).catch(error => notify(error.message, 'error'));
   });

@@ -14,6 +14,15 @@ const LIVE_PRESENTATION_KEYS = Object.freeze([
   'forbiddenExpressions',
   'specialRelationshipSettings'
 ]);
+const RELATIONSHIP_WRITE_AUTHORITY_FIELDS = Object.freeze([
+  'writeAuthority',
+  'factStore',
+  'persistence',
+  'mutation',
+  'persistFacts',
+  'writeFacts',
+  'upsertFact'
+]);
 
 function sanitizeLivePresentationProfile(profile) {
   const source = profile && typeof profile === 'object' && !Array.isArray(profile) ? profile : {};
@@ -56,6 +65,20 @@ function buildRuntimeTruthReceipt(packet, options = {}) {
     const unsafe = presentationKeys.filter(key => !LIVE_PRESENTATION_KEYS.includes(key));
     if (unsafe.length) errors.push('LIVE_PRESENTATION_PROFILE_CONTAINS_FACTUAL_FIELDS');
   }
+  if (clean(packet?.style?.prompt)) errors.push('LEGACY_FLAT_STYLE_PROMPT_FORBIDDEN');
+
+  const composition = packet?.composition && typeof packet.composition === 'object' ? packet.composition : null;
+  const relationshipCard = composition?.relationshipCard && typeof composition.relationshipCard === 'object'
+    ? composition.relationshipCard
+    : {};
+  const relationshipWriteFields = RELATIONSHIP_WRITE_AUTHORITY_FIELDS.filter(field => Object.prototype.hasOwnProperty.call(relationshipCard, field));
+  if (composition) {
+    if (clean(composition.sourceAuthority) !== 'SillyTavern/SillyTavern@51ad27fb86d39a3daca3adaa970375c9670c12df') {
+      errors.push('PERSONA_COMPOSITION_SOURCE_AUTHORITY_INVALID');
+    }
+    if (composition.contactFactsFromCharacterBook !== undefined) errors.push('CHARACTER_BOOK_CONTACT_FACT_AUTHORITY_FORBIDDEN');
+    if (relationshipWriteFields.length) errors.push('RELATIONSHIP_CARD_WRITE_AUTHORITY_FORBIDDEN');
+  }
   const base = {
     authority: 'YancePersonaRuntimeTruthAuthority',
     version: 1,
@@ -68,6 +91,8 @@ function buildRuntimeTruthReceipt(packet, options = {}) {
     fictionalFactsIncluded: packet?.truthFirewall?.fictionalFactsIncluded === true,
     generatedTextNeverBecomesFact: packet?.truthFirewall?.generatedTextNeverBecomesFact === true,
     allowedPresentationKeys: [...LIVE_PRESENTATION_KEYS],
+    compositionSourceAuthority: clean(composition?.sourceAuthority),
+    relationshipCardReadOnly: composition ? relationshipWriteFields.length === 0 : null,
     fictionalMarkerPaths: fictionalMarkers.slice(0, 50),
     errors,
     pass: errors.length === 0,
@@ -91,6 +116,7 @@ function assertRuntimeTruthSafe(packet, options = {}) {
 
 module.exports = {
   LIVE_PRESENTATION_KEYS,
+  RELATIONSHIP_WRITE_AUTHORITY_FIELDS,
   sanitizeLivePresentationProfile,
   findFictionalMarkers,
   buildRuntimeTruthReceipt,
