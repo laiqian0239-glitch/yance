@@ -15,6 +15,8 @@ const IMPLEMENTATION_BRANCH = 'product/v21-model-brain-p0-v3';
 const CANDIDATE_SHA = '7f852691ca89d3089ad1b10837e97cc55a226361';
 const EXPECTED_TREE = '4e3c062666f5ff3192dff64cdb38953dc1b57671';
 const AUTHORIZATION_MERGE = '86164ecf5aff844a16e6a884f8b1808c69c0c093';
+const MODEL_BRAIN_PATH_COUNT = 40;
+const MODEL_BRAIN_PATH_DIGEST = '23bf7a688309f488870f82bb9e99b4db4f55eb0c133dc66c3729af55bc3ea401';
 const ALLOWED_PATHS = Object.freeze([
   '.github/workflows/v21-model-brain-p0-windows.yml',
   'backend/routes/models.js',
@@ -22,7 +24,7 @@ const ALLOWED_PATHS = Object.freeze([
   'backend/services/aiGateway.js'
 ].sort());
 
-function loadVerifier() {
+function loadVerifierModule() {
   assert.equal(
     fs.existsSync(VERIFIER_PATH),
     true,
@@ -35,7 +37,11 @@ function loadVerifier() {
     'function',
     'verifier must export verifyDelegatedProductL2Candidate'
   );
-  return verifier.verifyDelegatedProductL2Candidate;
+  return verifier;
+}
+
+function loadVerifier() {
+  return loadVerifierModule().verifyDelegatedProductL2Candidate;
 }
 
 function authorization(overrides = {}) {
@@ -191,4 +197,32 @@ test('trusted authorization count and digest must match the exact actual path se
     assert.equal(result.pass, false);
     assert.equal(result.reasonCode, 'L2_DELEGATED_PRODUCT_SCOPE_MISMATCH');
   }
+});
+
+test('real Model Brain exact head passes trusted Git L2 full_work_package verification', { timeout: 45000 }, () => {
+  const {
+    verifyDelegatedProductL2Candidate,
+    prepareGitDependencies
+  } = loadVerifierModule();
+  assert.equal(
+    typeof prepareGitDependencies,
+    'function',
+    'verifier must export its production trusted-Git dependency preparation'
+  );
+
+  const realDependencies = prepareGitDependencies(IMPLEMENTATION_BRANCH, CANDIDATE_SHA);
+  assert.ok(realDependencies, 'trusted Git identity preparation must resolve current main and exact remote Model Brain ref');
+
+  const result = verifyDelegatedProductL2Candidate(input(), realDependencies);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.reasonCode, null);
+  assert.equal(result.route, 'DELEGATED_PRODUCT_L2');
+  assert.equal(result.readyForPromotion, false);
+  assert.equal(result.candidateBranch, IMPLEMENTATION_BRANCH);
+  assert.equal(result.candidateSha, CANDIDATE_SHA);
+  assert.equal(result.expectedTree, EXPECTED_TREE);
+  assert.equal(result.authorizationPath, AUTHORIZATION_PATH);
+  assert.equal(result.authorizationMergeCommit, AUTHORIZATION_MERGE);
+  assert.equal(result.changedFileCount, MODEL_BRAIN_PATH_COUNT);
+  assert.equal(result.changedFileSetSha256, MODEL_BRAIN_PATH_DIGEST);
 });
