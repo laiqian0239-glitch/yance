@@ -1150,6 +1150,7 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
     const changedDependencyPaths = implementationNormalized.filter(isDependencyControlPath);
     const changedDependencyPathSet = new Set(changedDependencyPaths);
     const authorizedDependencyPaths = match.authorization.implementation.dependencyModificationPolicy.allowedDependencyPaths;
+    const authorizedDependencyPathSet = new Set(authorizedDependencyPaths);
     const loadDependencyControl = options.loadDependencyControlAtCommit
       || options.loadDependencyManifestAtCommit
       || ((commit, repositoryPath) => defaultAuthorizationAtCommit(commit, repositoryPath, options));
@@ -1181,12 +1182,23 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
 
     for (const manifestPath of declaredManifestPaths) {
       if (!changedDependencyPathSet.has(manifestPath)) continue;
-      const companionPaths = authorizedDependencyPaths.filter(repositoryPath => (
-        repositoryPath !== manifestPath
-        && dependencyManifestPathForControlPath(repositoryPath) === manifestPath
-      ));
+      const manifestDirectory = path.posix.dirname(manifestPath);
+      const manifestPrefix = manifestDirectory === '.' ? '' : `${manifestDirectory}/`;
+      const existingNpmLockPaths = [
+        `${manifestPrefix}package-lock.json`,
+        `${manifestPrefix}npm-shrinkwrap.json`
+      ].filter(repositoryPath => SHA40.test(String(resolveBlob(implementationBase, repositoryPath) || '')));
+      const companionPaths = [...new Set([
+        ...authorizedDependencyPaths.filter(repositoryPath => (
+          repositoryPath !== manifestPath
+          && dependencyManifestPathForControlPath(repositoryPath) === manifestPath
+        )),
+        ...existingNpmLockPaths
+      ])];
       for (const companionPath of companionPaths) {
-        if (!changedDependencyPathSet.has(companionPath) || !isNpmDependencyLockPath(companionPath)) {
+        if (!authorizedDependencyPathSet.has(companionPath)
+          || !changedDependencyPathSet.has(companionPath)
+          || !isNpmDependencyLockPath(companionPath)) {
           return denyDependencyIdentityMutation();
         }
         if (!validateDelegatedNpmLockfileClosure(
