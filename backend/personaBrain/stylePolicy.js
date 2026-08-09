@@ -3,16 +3,20 @@
 const { isPlainObject, clone, sha256Json } = require('./canonicalJson');
 
 const STYLE_DIRECTIONS = Object.freeze({
-  matureWarm: '成熟温柔',
-  femininity: '女人味',
-  softWoman: '柔软小女人感',
-  queen: '女王感',
+  matureWarm: '成熟',
+  femininity: '温柔',
+  softWoman: '小女人',
+  queen: '高冷',
   ambiguity: '暧昧',
   individuality: '个性',
   coquettish: '风骚',
-  sensualPlayfulness: '情趣',
-  flirting: '调情'
+  sensualPlayfulness: '俏皮',
+  flirting: '调情',
+  initiative: '主动',
+  mystery: '神秘',
+  humor: '幽默'
 });
+const REQUIRED_STYLE_LABELS = Object.freeze(['暧昧', '小女人', '风骚', '调情', '个性', '温柔', '成熟', '高冷', '主动', '神秘', '幽默', '俏皮']);
 const STYLE_INTENSITIES = Object.freeze(['natural', 'obvious', 'strong']);
 const DEFAULT_STYLE_WEIGHTS = Object.freeze({
   matureWarm: 20,
@@ -23,7 +27,10 @@ const DEFAULT_STYLE_WEIGHTS = Object.freeze({
   individuality: 10,
   coquettish: 5,
   sensualPlayfulness: 5,
-  flirting: 5
+  flirting: 5,
+  initiative: 0,
+  mystery: 0,
+  humor: 0
 });
 const QUICK_ADJUSTMENTS = Object.freeze({
   '更温柔': { matureWarm: 20 },
@@ -49,15 +56,18 @@ function normalizeDirectionKey(key) {
   const cleanKey = clean(key);
   if (Object.hasOwn(STYLE_DIRECTIONS, cleanKey)) return cleanKey;
   const aliases = {
-    mature: 'matureWarm', warm: 'matureWarm', 成熟温柔: 'matureWarm',
-    feminine: 'femininity', 女人味: 'femininity',
+    mature: 'matureWarm', warm: 'matureWarm', 成熟温柔: 'matureWarm', 成熟: 'matureWarm',
+    feminine: 'femininity', 女人味: 'femininity', 温柔: 'femininity',
     littleWoman: 'softWoman', 小女人: 'softWoman', 柔软小女人感: 'softWoman',
-    queenly: 'queen', 女王: 'queen', 女王感: 'queen',
+    queenly: 'queen', 女王: 'queen', 女王感: 'queen', 高冷: 'queen',
     ambiguous: 'ambiguity', 暧昧: 'ambiguity',
     personality: 'individuality', 个性: 'individuality',
     sexy: 'coquettish', coquettishness: 'coquettish', 风骚: 'coquettish',
-    playfulness: 'sensualPlayfulness', 情趣: 'sensualPlayfulness',
-    flirt: 'flirting', 调情: 'flirting'
+    playfulness: 'sensualPlayfulness', 情趣: 'sensualPlayfulness', 俏皮: 'sensualPlayfulness',
+    flirt: 'flirting', 调情: 'flirting',
+    initiative: 'initiative', 主动: 'initiative',
+    mystery: 'mystery', 神秘: 'mystery',
+    humor: 'humor', 幽默: 'humor'
   };
   return aliases[cleanKey] || '';
 }
@@ -126,10 +136,10 @@ function candidateAdjustmentOverlay(input = {}) {
 }
 function describeStylePolicy(policy = {}, presentationProfile = {}) {
   const normalized = normalizeStylePolicy(policy);
-  const ranked = Object.entries(normalized.directions)
+  const labels = Object.entries(normalized.directions)
     .filter(([, weight]) => weight > 0)
     .sort((a, b) => b[1] - a[1])
-    .map(([key, weight]) => `${STYLE_DIRECTIONS[key]} ${weight}%`);
+    .map(([key, weight]) => ({ key, label: STYLE_DIRECTIONS[key], weight }));
   const expressionHabits = Array.isArray(presentationProfile?.expressionHabits) ? presentationProfile.expressionHabits.map(clean).filter(Boolean).slice(0, 32) : [];
   const replyStylePreferences = Array.isArray(presentationProfile?.replyStylePreferences) ? presentationProfile.replyStylePreferences.map(clean).filter(Boolean).slice(0, 32) : [];
   const forbiddenExpressions = [
@@ -141,22 +151,15 @@ function describeStylePolicy(policy = {}, presentationProfile = {}) {
     expressionHabits,
     replyStylePreferences,
     forbiddenExpressions,
-    labels: ranked,
-    prompt: [
-      `女性吸引力风格组合：${ranked.join('，') || '自然'}`,
-      `表达强度：${({ natural: '自然', obvious: '明显', strong: '强烈' })[normalized.intensity]}`,
-      normalized.allowBoldInitiative ? '可以更大胆、更主动、更会撩，但必须符合关系阶段。' : '保持自然主动，不刻意推进。',
-      expressionHabits.length ? `表达习惯：${expressionHabits.join('；')}` : '',
-      replyStylePreferences.length ? `回复偏好：${replyStylePreferences.join('；')}` : '',
-      forbiddenExpressions.length ? `禁止表达：${forbiddenExpressions.join('；')}` : '',
-      '避免机械撒娇、千篇一律、油腻套路、生硬色情、低俗表达和每句话都故意挑逗。'
-    ].filter(Boolean).join('\n')
+    labels,
+    requiredLabels: [...REQUIRED_STYLE_LABELS]
   };
 }
 function stylePolicyHash(policy = {}) { return sha256Json(normalizeStylePolicy(policy)); }
 
 module.exports = {
   STYLE_DIRECTIONS,
+  REQUIRED_STYLE_LABELS,
   STYLE_INTENSITIES,
   DEFAULT_STYLE_WEIGHTS,
   QUICK_ADJUSTMENTS,

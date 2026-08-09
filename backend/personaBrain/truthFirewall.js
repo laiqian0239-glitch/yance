@@ -183,8 +183,7 @@ function compileTruthSafePersona(document, socialContext = {}, options = {}) {
     presentationProfile,
     style: {
       legacyVoice: expression.voice || {},
-      policy: stylePolicy,
-      prompt: stylePolicy.prompt
+      policy: stylePolicy
     },
     personality: {
       publicSide: expression.personality?.publicSide || [],

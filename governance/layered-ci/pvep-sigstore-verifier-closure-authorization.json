@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "PVEP-SIGSTORE-VERIFIER-CLOSURE",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #100 is blocked because its custom GitHub rebind and signed-executor trust stack does not cryptographically bind verification facts to a trusted producer. PRs #104-#106 installed and closed a base-owned GitHub Artifact Attestation/Sigstore producer. The final root repair is a thin five-path verifier that delegates cryptographic authenticity to GitHub CLI attestation verification and retains only Yance exact base/head, requirement and governance policy.",
+  "base": {
+    "branch": "main",
+    "commit": "ac3febd50e342ae55f5263f2dd9715d58157ffa4"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/pvep-sigstore-verifier-closure-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/pvep-sigstore-verifier-closure-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/pvep-sigstore-verifier-closure",
+    "allowedChangedPaths": [
+      "docs/governance/PVEP_OPERATIONS.md",
+      "governance/verification/requirements/pvep-selftest-v1.json",
+      "shared/verification/githubAttestationVerifier.js",
+      "tests/layered-ci/pvep-github-attestation-verifier.test.js",
+      "tools/verification/verify-attestation.js"
+    ],
+    "approvedChangedFileCount": 5,
+    "approvedChangedFileSetSha256": "8acee72f1756d1e8ea4edfdb1524a1ca5055e6fcd8a65f2bf5bef38e08bb0865",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "requiredDesign": {
+    "cryptographicVerifier": "gh attestation verify",
+    "predicateType": "https://yance.dev/attestations/pvep-verification/v1",
+    "signerWorkflow": "laiqian0239-glitch/yance/.github/workflows/pvep-attested-evidence.yml",
+    "exactSignerDigestRequired": true,
+    "exactSourceDigestRequired": true,
+    "exactSourceRefRequired": true,
+    "denySelfHostedRunnersRequired": true,
+    "onlineAndOfflineBundleVerificationSupported": true,
+    "verifiedTimestampRequired": true,
+    "exactBaseAndHeadBindingRequired": true,
+    "linuxAndWindowsRequirementDigestBindingRequired": true,
+    "customReceiptOrSignatureInfrastructureAllowed": false,
+    "customJcsAllowed": false,
+    "customExecutorRegistryAllowed": false,
+    "customDetachedSignatureAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "The verifier rejects missing or failed gh attestation verification",
+    "The verifier rejects wrong repository, signer workflow/digest, source digest/ref, predicate type or self-hosted provenance by constructing strict gh verification flags",
+    "The verifier rejects predicate base/head/work-package/status drift and any Linux/Windows requirement digest drift",
+    "The verifier rejects missing verified timestamps, duplicate or unexpected requirements, malformed JSON and mixed or conflicting attestations",
+    "Offline mode uses a supplied attestation bundle and custom trusted root rather than Yance-managed trust keys",
+    "No PR #100 JCS, canonical receipt, executor registry, Ed25519 signing, GitHub API rebind or signed-executor implementation is imported"
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

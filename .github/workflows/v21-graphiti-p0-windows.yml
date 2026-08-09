@@ -1,0 +1,158 @@
+name: V2.1 Graphiti P0 Windows Runtime
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/v21-graphiti-p0-windows.yml'
+      - 'config/upstreams/v21-graphiti-p0.json'
+      - 'electron/graphitiRelationshipRuntime.js'
+      - 'electron/main.js'
+      - 'runtime/graphiti/**'
+      - 'tools/graphiti/build-windows-runtime.ps1'
+      - 'backend/routes/workspace.js'
+      - 'backend/services/relationshipKeyNodeService.js'
+      - 'backend/services/relationshipProjectionAuthority.js'
+      - 'backend/services/workspaceIdentityCommandFacade.js'
+      - 'backend/store/relationshipKeyNodeRepository.js'
+      - 'THIRD_PARTY_NOTICES.md'
+      - 'third_party/licenses/graphiti-Apache-2.0.txt'
+      - 'third_party/licenses/neo4j-GPL-3.0.txt'
+      - 'third_party/licenses/temurin-GPL-2.0-with-Classpath-Exception.txt'
+      - 'tests/wp0/v21-graphiti-*.test.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seal-and-offline-probe:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Seal Graphiti and Neo4j runtime from pinned first-party inputs
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\tools\graphiti\build-windows-runtime.ps1 -OutputRoot "$env:RUNNER_TEMP\graphiti-runtime"
+          $seal = Get-Content -LiteralPath "$env:RUNNER_TEMP\graphiti-runtime\runtime-seal.json" -Raw | ConvertFrom-Json
+          if ([string]$seal.neo4jCommunity.asset -ne 'neo4j-community-2026.07.1-windows.zip') { throw 'Neo4j sealed asset identity mismatch' }
+          if ([string]$seal.neo4jCommunity.assetSha256 -ne 'd70f2019c7a53b6ed5ac61a027a9884a5dbcf714d52e941249036d02d7886162') { throw 'Neo4j sealed SHA-256 mismatch' }
+
+      - name: Verify sealed runtime excludes build-time resolvers and source-control state
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = "$env:RUNNER_TEMP\graphiti-runtime"
+          foreach ($forbidden in @('uv.exe', '.git', 'uv.lock', 'pyproject.toml')) {
+            $found = @(Get-ChildItem -LiteralPath $root -Recurse -Force | Where-Object { $_.Name -eq $forbidden })
+            if ($found.Count -ne 0) { throw "forbidden build-time artifact shipped: $forbidden" }
+          }
+          foreach ($required in @('venv\Scripts\python.exe','python\python.exe','java\bin\java.exe','neo4j\bin\neo4j.bat','neo4j\bin\neo4j-admin.bat','yance_graphiti_server.py','runtime-sbom.cdx.json','runtime-seal.json')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $root $required) -PathType Leaf)) { throw "sealed runtime missing: $required" }
+          }
+
+      - name: Network-isolated Neo4j Bolt and authenticated Graphiti health closure
+        shell: powershell
+        env:
+          OPENROUTER_API_KEY: 'offline-probe-not-a-secret'
+          YANCE_GRAPHITI_LOOPBACK_TOKEN: 'offline-probe-loopback-token-not-a-secret-0000000000'
+          YANCE_GRAPHITI_NEO4J_PASSWORD: 'offlineProbeNeo4jPassword000000000000000000000'
+          YANCE_GRAPHITI_CHAT_MODEL: 'openai/gpt-4.1-mini'
+          YANCE_GRAPHITI_SMALL_MODEL: 'openai/gpt-4.1-nano'
+          YANCE_GRAPHITI_RERANKER_MODEL: 'openai/gpt-4.1-nano'
+          YANCE_GRAPHITI_EMBEDDING_MODEL: 'openai/text-embedding-3-small'
+          YANCE_GRAPHITI_OPENROUTER_BASE_URL: 'https://openrouter.ai/api/v1'
+          YANCE_GRAPHITI_NEO4J_URI: 'bolt://127.0.0.1:17687'
+          GRAPHITI_TELEMETRY_ENABLED: 'false'
+          HTTP_PROXY: 'http://127.0.0.1:9'
+          HTTPS_PROXY: 'http://127.0.0.1:9'
+          ALL_PROXY: 'http://127.0.0.1:9'
+          NO_PROXY: '127.0.0.1,localhost'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = "$env:RUNNER_TEMP\graphiti-runtime"
+          $python = Join-Path $root 'venv\Scripts\python.exe'
+          $java = Join-Path $root 'java'
+          $neo4j = Join-Path $root 'neo4j'
+          $data = Join-Path $env:RUNNER_TEMP 'graphiti-offline-data'
+          $conf = Join-Path $data 'neo4j-conf'
+          New-Item -ItemType Directory -Force -Path $conf,(Join-Path $data 'neo4j-data'),(Join-Path $data 'neo4j-logs'),(Join-Path $data 'neo4j-transactions') | Out-Null
+          $neo4jConfig = @"
+          server.default_listen_address=127.0.0.1
+          server.bolt.enabled=true
+          server.bolt.listen_address=127.0.0.1:17687
+          server.bolt.advertised_address=127.0.0.1:17687
+          server.http.enabled=false
+          server.https.enabled=false
+          server.directories.data=$((Join-Path $data 'neo4j-data').Replace('\','/'))
+          server.directories.logs=$((Join-Path $data 'neo4j-logs').Replace('\','/'))
+          server.directories.transaction.logs.root=$((Join-Path $data 'neo4j-transactions').Replace('\','/'))
+          dbms.security.auth_enabled=true
+          "@
+          [IO.File]::WriteAllText((Join-Path $conf 'neo4j.conf'), $neo4jConfig, (New-Object Text.UTF8Encoding($false)))
+          $env:JAVA_HOME = $java
+          $env:NEO4J_HOME = $neo4j
+          $env:NEO4J_CONF = $conf
+          & (Join-Path $neo4j 'bin\neo4j-admin.bat') dbms set-initial-password $env:YANCE_GRAPHITI_NEO4J_PASSWORD
+          if ($LASTEXITCODE -ne 0) { throw 'Neo4j initial password setup failed' }
+          $neoOut = Join-Path $env:RUNNER_TEMP 'neo4j-stdout.log'
+          $neoErr = Join-Path $env:RUNNER_TEMP 'neo4j-stderr.log'
+          $neoProcess = Start-Process -FilePath (Join-Path $neo4j 'bin\neo4j.bat') -ArgumentList @('console') -WorkingDirectory $neo4j -PassThru -NoNewWindow -RedirectStandardOutput $neoOut -RedirectStandardError $neoErr
+          $graphOut = Join-Path $env:RUNNER_TEMP 'graphiti-stdout.log'
+          $graphErr = Join-Path $env:RUNNER_TEMP 'graphiti-stderr.log'
+          $graphProcess = $null
+          try {
+            $boltReady = $false
+            for ($i = 0; $i -lt 180; $i++) {
+              if ($neoProcess.HasExited) { throw "Neo4j exited before Bolt readiness: $((Get-Content $neoErr -Raw -ErrorAction SilentlyContinue))" }
+              if (Test-NetConnection -ComputerName 127.0.0.1 -Port 17687 -InformationLevel Quiet -WarningAction SilentlyContinue) { $boltReady = $true; break }
+              Start-Sleep -Milliseconds 500
+            }
+            if (-not $boltReady) { throw 'Neo4j loopback Bolt listener did not become ready' }
+            & $python -I (Join-Path $root 'yance_graphiti_server.py') --self-test
+            if ($LASTEXITCODE -ne 0) { throw 'isolated Graphiti self-test failed' }
+            $env:YANCE_GRAPHITI_DATA_ROOT = $data
+            $graphProcess = Start-Process -FilePath $python -ArgumentList @('-I',(Join-Path $root 'yance_graphiti_server.py'),'--host','127.0.0.1','--port','18766') -WorkingDirectory $root -PassThru -NoNewWindow -RedirectStandardOutput $graphOut -RedirectStandardError $graphErr
+            $healthy = $false
+            $challenge = 'workflow-offline-proof-20260808'
+            for ($i = 0; $i -lt 180; $i++) {
+              if ($neoProcess.HasExited) { throw "Neo4j exited early: $((Get-Content $neoErr -Raw -ErrorAction SilentlyContinue))" }
+              if ($graphProcess.HasExited) { throw "Graphiti exited early: $((Get-Content $graphErr -Raw -ErrorAction SilentlyContinue))" }
+              try {
+                $headers = @{ 'x-yance-graphiti-challenge' = $challenge }
+                $result = Invoke-RestMethod -Uri 'http://127.0.0.1:18766/yance/healthz' -Headers $headers -TimeoutSec 2
+                $hmac = New-Object System.Security.Cryptography.HMACSHA256
+                try {
+                  $hmac.Key = [Text.Encoding]::UTF8.GetBytes($env:YANCE_GRAPHITI_LOOPBACK_TOKEN)
+                  $proofBytes = $hmac.ComputeHash([Text.Encoding]::UTF8.GetBytes("yance-graphiti-health-v1:$challenge"))
+                  $expectedProof = -join ($proofBytes | ForEach-Object { $_.ToString('x2') })
+                } finally { $hmac.Dispose() }
+                if ([string]$result.instanceProof -ne $expectedProof) { throw 'Graphiti ownership proof mismatch' }
+                $healthy = $true
+                break
+              } catch { Start-Sleep -Milliseconds 500 }
+            }
+            if (-not $healthy) { throw 'Graphiti authenticated health did not become ready with external network resolution isolated' }
+            $unauthorizedRejected = $false
+            try {
+              Invoke-WebRequest -Uri 'http://127.0.0.1:18766/yance/relationships/yance-rel-0000000000000000000000000000000000000000000000000000000000000000/search' -Method POST -ContentType 'application/json' -Body '{"contactId":"x","query":"x"}' -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop | Out-Null
+            } catch {
+              $status = 0
+              if ($_.Exception.Response -and $_.Exception.Response.StatusCode) { $status = [int]$_.Exception.Response.StatusCode }
+              if ($status -eq 403) { $unauthorizedRejected = $true } else { throw }
+            }
+            if (-not $unauthorizedRejected) { throw 'Graphiti unauthenticated HTTP mutation/search surface was not rejected' }
+          } finally {
+            if ($graphProcess -and -not $graphProcess.HasExited) { Stop-Process -Id $graphProcess.Id -Force }
+            if (-not $neoProcess.HasExited) { Stop-Process -Id $neoProcess.Id -Force }
+          }
+
+      - name: Re-run Graphiti WP0 contracts
+        shell: powershell
+        run: |
+          node --test tests/wp0/v21-graphiti-p0.test.js tests/wp0/v21-graphiti-portable-runtime.test.js tests/wp0/v21-graphiti-relationship-authority.test.js

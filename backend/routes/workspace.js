@@ -214,6 +214,27 @@ router.delete('/contacts/:id/key-nodes/:eventId', (req, res) => {
     res.json(Object.assign({ ok: true }, result));
   } catch (error) { respondError(res, error); }
 });
+router.post('/contacts/:id/graphiti-projection', (req, res) => {
+  try {
+    systemPolicy.assertWriteAllowed('relationship-key-node');
+    const sourceContactId = req.params.id;
+    const person = workspaceRepository.resolvePersonProfileContext(sourceContactId);
+    const projectionContactId = person.profileContactId || person.physicalId || sourceContactId;
+    const result = buildKeyNodeService().projectGraphitiFacts({
+      contactId: projectionContactId,
+      conversationId: (req.body && req.body.conversationId) || '',
+      facts: (req.body && req.body.facts) || []
+    });
+    res.json({
+      ok: true,
+      personId: person.personId || '',
+      sourceContactId,
+      projectionContactId,
+      applied: Number(result && result.applied || 0),
+      unchanged: Number(result && result.unchanged || 0)
+    });
+  } catch (error) { respondError(res, error); }
+});
 
 router.get('/ai-automation', (_req, res) => {
   res.json({ ok: true, status: aiAutomation.status(), config: aiAutomation.readConfig() });

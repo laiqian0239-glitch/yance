@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "commandSetId": "pvep-windows-selftest-v1",
+  "platform": "windows",
+  "commands": [
+    {
+      "commandId": "pvep-base-owned-selftest",
+      "executable": "node",
+      "argv": [
+        "-e",
+        "process.stdout.write('pvep-base-owned-selftest')"
+      ],
+      "expectedExitCode": 0,
+      "generatedRoots": [],
+      "artifacts": []
+    }
+  ]
+}

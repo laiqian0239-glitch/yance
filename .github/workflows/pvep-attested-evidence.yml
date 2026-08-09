@@ -1,0 +1,212 @@
+name: PVEP Attested Evidence
+
+on:
+  pull_request_target:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pvep-attested-evidence-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PREDICATE_TYPE: https://yance.dev/attestations/pvep-verification/v1
+
+jobs:
+  verify-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout trusted base
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+      - name: Checkout candidate as untrusted workload
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Run base-owned Linux verification
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_SHA" = "$BASE_SHA"
+          node "$GITHUB_WORKSPACE/trusted/tools/verification/pvep-trusted-runner.js" run \
+            --repo-root "$GITHUB_WORKSPACE/candidate" \
+            --trusted-command-set-root "$GITHUB_WORKSPACE/trusted" \
+            --repository "${{ github.repository }}" \
+            --work-package PVEP \
+            --gate-id pvep-linux-selftest \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --command-set governance/verification/command-sets/pvep-linux-selftest-v1.json \
+            --output "$RUNNER_TEMP/pvep-linux-evidence.json" \
+            --subject-output "$RUNNER_TEMP/pvep-linux-subject.txt"
+
+  verify-windows:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout trusted base
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+      - name: Checkout candidate as untrusted workload
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Run base-owned Windows verification
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_SHA" = "$BASE_SHA"
+          node "$GITHUB_WORKSPACE/trusted/tools/verification/pvep-trusted-runner.js" run \
+            --repo-root "$GITHUB_WORKSPACE/candidate" \
+            --trusted-command-set-root "$GITHUB_WORKSPACE/trusted" \
+            --repository "${{ github.repository }}" \
+            --work-package PVEP \
+            --gate-id pvep-windows-selftest \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --command-set governance/verification/command-sets/pvep-windows-selftest-v1.json \
+            --output "$RUNNER_TEMP/pvep-windows-evidence.json" \
+            --subject-output "$RUNNER_TEMP/pvep-windows-subject.txt"
+
+  attest-same-head:
+    runs-on: ubuntu-latest
+    needs: [verify-linux, verify-windows]
+    timeout-minutes: 6
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Checkout trusted base only
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Build trusted same-Head predicate
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_SHA" = "$BASE_SHA"
+          mkdir -p .pvep-attestation
+          node - <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const base = process.env.BASE_SHA;
+          const head = process.env.HEAD_SHA;
+          const repository = process.env.GITHUB_REPOSITORY;
+          const root = path.join(process.env.GITHUB_WORKSPACE, 'trusted');
+          const requirements = [
+            ['pvep-linux-selftest', 'linux', 'governance/verification/command-sets/pvep-linux-selftest-v1.json'],
+            ['pvep-windows-selftest', 'windows', 'governance/verification/command-sets/pvep-windows-selftest-v1.json']
+          ].map(([gateId, platform, relativePath]) => {
+            const bytes = fs.readFileSync(path.join(root, relativePath));
+            return {
+              gateId,
+              platform,
+              commandSetPath: relativePath,
+              commandSetSha256: crypto.createHash('sha256').update(bytes).digest('hex'),
+              verificationStatus: 'VERIFIED_PASS',
+              evidenceSource: 'github-job-result'
+            };
+          });
+          const predicate = {
+            schemaVersion: 1,
+            recordType: 'YANCE_PVEP_ATTESTED_VERIFICATION',
+            repository,
+            workPackage: 'PVEP',
+            trustedPolicyCommit: base,
+            baseCommit: base,
+            headCommit: head,
+            verificationStatus: 'VERIFIED_PASS',
+            requirements
+          };
+          const subject = [
+            'YANCE_PVEP_SUBJECT_V2',
+            `repository=${repository}`,
+            `base=${base}`,
+            `head=${head}`,
+            ...requirements.map(value => `${value.platform}CommandSetSha256=${value.commandSetSha256}`),
+            ''
+          ].join('\n');
+          fs.writeFileSync('.pvep-attestation/predicate.json', `${JSON.stringify(predicate, null, 2)}\n`);
+          fs.writeFileSync('.pvep-attestation/subject.txt', subject);
+          NODE
+      - name: Attest same-Head evidence with GitHub/Sigstore
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: .pvep-attestation/subject.txt
+          predicate-type: ${{ env.PREDICATE_TYPE }}
+          predicate-path: .pvep-attestation/predicate.json
+          show-summary: false
+      - name: Verify attestation identity and trusted source
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          gh attestation verify .pvep-attestation/subject.txt \
+            --repo "${{ github.repository }}" \
+            --bundle "$BUNDLE" \
+            --signer-workflow "${{ github.repository }}/.github/workflows/pvep-attested-evidence.yml" \
+            --signer-digest "$BASE_SHA" \
+            --source-digest "$BASE_SHA" \
+            --source-ref "refs/heads/$BASE_REF" \
+            --predicate-type "$PREDICATE_TYPE" \
+            --deny-self-hosted-runners >/dev/null

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DEPENDENCY-DELEGATION-POLICY",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "V2.1 mature-OSS adoption requires isolated package manifests for upstream-owned integration modules such as the Element runtime module. The current generic delegated-governance validator hard-requires newDependencyAllowed=false and rejects every dependency-control path, which would force either a governance bypass or repeated bespoke authority. The root fix is a reusable exact dependency-control delegation policy that preserves default denial and only accepts explicitly listed dependency-control paths with exact count and SHA-256 path-set binding.",
+  "base": {
+    "branch": "main",
+    "commit": "043a446b5e9a995cd63835f11924ab0c42bd2e0d"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-dependency-delegation-policy-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-dependency-delegation-policy-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-exact-dependency-delegation-policy",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/layered-ci/v21-exact-dependency-delegation.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "4f6fefcaf7306fdc71a5b30aa3fdee43f821dd520b3628a900eed4b8ef5a5eb9",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "requiredDesign": {
+    "defaultDependencyModificationRemainsDenied": true,
+    "dependencyDelegationMustBeExplicit": true,
+    "dependencyDelegationMustUseExactPathsOnly": true,
+    "dependencyDelegationPathCountAndDigestMustBeExact": true,
+    "wildcardsAndDirectoryPrefixesRemainForbidden": true,
+    "candidateOwnedAuthorizationMayNotSelfAuthorize": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "Current generic delegated authorization rejects an otherwise exact authorization that requests one dependency-control path",
+    "Exact dependency delegation without an explicit dependency path policy fails closed",
+    "Dependency path count, digest, wildcard, extra path and undeclared dependency drift fail closed",
+    "Existing newDependencyAllowed=false behavior remains unchanged"
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

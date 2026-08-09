@@ -2803,6 +2803,526 @@
       "currentObservation": "Renderer-scoped cancellation aborts only the matching long-running reply fetch.",
       "m2RequiredAction": "Keep request IDs scoped to event.sender and remove controller state on settle/dispose.",
       "crossModuleDependency": "Backend HTTP disconnect propagates AbortSignal through Brain, Runtime, and Provider."
+    },
+    {
+      "channel": "desktop:letta-get-state",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ready": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "ready",
+          "reasonCode"
+        ]
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_LETTA_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 2807
+      },
+      "rendererExposure": {
+        "api": "getLettaState",
+        "file": "electron/preload.js",
+        "line": 71
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "Read-only, data-minimized Letta readiness projection; process, socket, filesystem and raw diagnostic fields stay main-process-only.",
+      "m2RequiredAction": "Keep Letta renderer access read-only and bound to the main-process-owned runtime adapter.",
+      "crossModuleDependency": "Letta App Server process ownership remains in Electron main; renderer receives projections only."
+    },
+    {
+      "channel": "desktop:letta-list-agents",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "id",
+            "name"
+          ]
+        }
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_LETTA_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 2808
+      },
+      "rendererExposure": {
+        "api": "listLettaAgents",
+        "file": "electron/preload.js",
+        "line": 72
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "Read-only Letta agent identity projection limited to id and name.",
+      "m2RequiredAction": "Keep Letta renderer access read-only and bound to the main-process-owned runtime adapter.",
+      "crossModuleDependency": "Letta App Server process ownership remains in Electron main; renderer receives projections only."
+    },
+    {
+      "channel": "desktop:letta-list-conversations",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "agentId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "required": [
+          "agentId"
+        ]
+      },
+      "outputSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "agentId": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "id",
+            "agentId"
+          ]
+        }
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_LETTA_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 2812
+      },
+      "rendererExposure": {
+        "api": "listLettaConversations",
+        "file": "electron/preload.js",
+        "line": 73
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "Read-only Letta conversation identity projection limited to id and agentId for one validated agent.",
+      "m2RequiredAction": "Keep Letta renderer access read-only and bound to the main-process-owned runtime adapter.",
+      "crossModuleDependency": "Letta App Server process ownership remains in Electron main; renderer receives projections only."
+    },
+    {
+      "channel": "desktop:parlant-get-relationship-goal",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PARLANT_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep relationship Goal operations contact-scoped; keep provider credentials, raw Parlant agent/session identifiers, event ingestion, candidate generation and all send authority out of renderer IPC.",
+      "crossModuleDependency": "Parlant owns Journey/session state; Yance main projects Goal controls and commits candidate text through the existing AI reply candidate authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "contactId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "goalText": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "progress": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              },
+              "completed": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "path",
+              "completed"
+            ]
+          },
+          "reasonCode": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "available",
+          "exists",
+          "goalText",
+          "paused",
+          "progress",
+          "reasonCode"
+        ]
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 2982
+      },
+      "rendererExposure": {
+        "api": "getParlantRelationshipGoal",
+        "file": "electron/preload.js",
+        "line": 74
+      },
+      "currentObservation": "Read-only minimized Goal projection. Runtime/provider failures are returned explicitly as available=false; no credential or raw Parlant identity is exposed."
+    },
+    {
+      "channel": "desktop:parlant-upsert-relationship-goal",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PARLANT_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep relationship Goal operations contact-scoped; keep provider credentials, raw Parlant agent/session identifiers, event ingestion, candidate generation and all send authority out of renderer IPC.",
+      "crossModuleDependency": "Parlant owns Journey/session state; Yance main projects Goal controls and commits candidate text through the existing AI reply candidate authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "goalText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          }
+        },
+        "required": [
+          "contactId",
+          "goalText"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "goalText": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "progress": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              },
+              "completed": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "path",
+              "completed"
+            ]
+          },
+          "reasonCode": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "available",
+          "exists",
+          "goalText",
+          "paused",
+          "progress",
+          "reasonCode"
+        ]
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 2982
+      },
+      "rendererExposure": {
+        "api": "upsertParlantRelationshipGoal",
+        "file": "electron/preload.js",
+        "line": 74
+      },
+      "currentObservation": "Creates or edits only the contact-scoped Parlant Journey; Yance does not persist a second Goal graph."
+    },
+    {
+      "channel": "desktop:parlant-delete-relationship-goal",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PARLANT_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep relationship Goal operations contact-scoped; keep provider credentials, raw Parlant agent/session identifiers, event ingestion, candidate generation and all send authority out of renderer IPC.",
+      "crossModuleDependency": "Parlant owns Journey/session state; Yance main projects Goal controls and commits candidate text through the existing AI reply candidate authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "contactId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ]
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 2982
+      },
+      "rendererExposure": {
+        "api": "deleteParlantRelationshipGoal",
+        "file": "electron/preload.js",
+        "line": 74
+      },
+      "currentObservation": "Deletes the contact-scoped Parlant Journey through main-owned runtime authority."
+    },
+    {
+      "channel": "desktop:parlant-set-relationship-goal-paused",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PARLANT_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep relationship Goal operations contact-scoped; keep provider credentials, raw Parlant agent/session identifiers, event ingestion, candidate generation and all send authority out of renderer IPC.",
+      "crossModuleDependency": "Parlant owns Journey/session state; Yance main projects Goal controls and commits candidate text through the existing AI reply candidate authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "paused": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "contactId",
+          "paused"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "goalText": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "progress": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              },
+              "completed": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "path",
+              "completed"
+            ]
+          },
+          "reasonCode": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "available",
+          "exists",
+          "goalText",
+          "paused",
+          "progress",
+          "reasonCode"
+        ]
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 2982
+      },
+      "rendererExposure": {
+        "api": "setParlantRelationshipGoalPaused",
+        "file": "electron/preload.js",
+        "line": 74
+      },
+      "currentObservation": "Pause/resume maps to native Parlant Session manual/auto mode; renderer receives only minimized status/progress."
     }
   ],
   "outboundRendererChannels": [
@@ -3056,7 +3576,7 @@
     }
   ],
   "validationSummary": {
-    "rendererToMainHandlerCount": 40,
+    "rendererToMainHandlerCount": 48,
     "mainToRendererChannelCount": 8,
     "allRendererToMainHandlersHaveRequiredFields": true,
     "allOutboundChannelsHaveRequiredFields": true,

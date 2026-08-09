@@ -22,6 +22,7 @@ const ENV_BY_ARGUMENT = Object.freeze({
   '--electron-dist': 'WP7_ELECTRON_DISTRIBUTION_ROOT',
   '--production-node-modules': 'WP7_PRODUCTION_NODE_MODULES',
   '--trusted-node-executable': 'WP7_TRUSTED_NODE_EXECUTABLE',
+  '--parlant-runtime': 'WP7_PARLANT_RUNTIME_ROOT',
   '--rcedit-path': 'WP7_RCEDIT_PATH',
   '--platform-auth-config': 'WP7_PLATFORM_AUTH_CONFIG_PATH',
   '--platform-auth-sha256': 'WP7_PLATFORM_AUTH_CONFIG_SHA256_PATH',
@@ -98,6 +99,7 @@ function resolveBuildInputs(options = {}) {
     electronDist: assertDirectory(argumentValue('--electron-dist', options), 'WP7_OFFICIAL_ELECTRON_DISTRIBUTION_REQUIRED', 'official Electron extracted distribution'),
     productionNodeModulesSource: assertDirectory(argumentValue('--production-node-modules', options), 'WP7_PRODUCTION_DEPENDENCY_DIRECTORY_TREE_MISMATCH', 'reviewed production node_modules'),
     trustedNodeExecutable: assertRegular(argumentValue('--trusted-node-executable', options), 'WP7_NODE_RUNTIME_EXECUTABLE_MISSING', 'trusted Node executable'),
+    parlantRuntimeSource: assertDirectory(argumentValue('--parlant-runtime', options), 'WP7_PARLANT_RUNTIME_REQUIRED', 'presealed Parlant runtime'),
     rceditPath: assertRegular(argumentValue('--rcedit-path', options), 'WP7_RCEDIT_EXECUTABLE_REQUIRED', 'trusted rcedit executable'),
     platformAuthConfigPath: argumentValue('--platform-auth-config', options) ? assertRegular(argumentValue('--platform-auth-config', options), 'WP7_PLATFORM_AUTH_RELEASE_CONFIG_MISSING', 'sealed platform auth configuration') : null,
     platformAuthHashPath: argumentValue('--platform-auth-sha256', options) ? assertRegular(argumentValue('--platform-auth-sha256', options), 'WP7_PLATFORM_AUTH_RELEASE_CONFIG_MISSING', 'platform auth detached SHA-256') : null,
@@ -116,7 +118,7 @@ function run(options = {}) {
   const inputs = resolveBuildInputs(options);
   const {
     repoRoot, outputRoot, electronArchivePath, electronDist, productionNodeModulesSource,
-    trustedNodeExecutable, rceditPath, platformAuthConfigPath, platformAuthHashPath, requirePlatformAuth,
+    trustedNodeExecutable, parlantRuntimeSource, rceditPath, platformAuthConfigPath, platformAuthHashPath, requirePlatformAuth,
     buildTimestampUtc, buildSessionId, targetPlatform, targetArch, allowNonWindowsReviewFixture
   } = inputs;
   if (!/^[0-9a-f]{16,64}$/.test(buildSessionId)) fail('WP7_PRE_REVIEW_BUILD_SESSION_ID_INVALID', 'build session ID must be 16-64 lowercase hexadecimal characters', { buildSessionId });
@@ -135,6 +137,7 @@ function run(options = {}) {
     productionNodeModulesSource,
     electronDist,
     trustedNodeExecutable,
+    parlantRuntimeSource,
     electronArchivePath,
     rceditPath,
     platformAuthConfigPath,
@@ -208,6 +211,10 @@ function run(options = {}) {
     nodeRuntimeExecutableSha256: closure.nodeRuntime.executableSha256,
     nodeRuntimeTreeSha256: closure.nodeRuntime.runtimeTreeSha256,
     nodeRuntimeFileCount: closure.nodeRuntime.fileCount,
+    parlantRuntimeRelativePath: 'application-payload/resources/parlant-runtime',
+    parlantRuntimeSealSha256: built.runtime.parlantRuntime.sealSha256,
+    parlantRuntimeTreeSha256: built.runtime.parlantRuntime.treeSha256,
+    parlantRuntimeFileCount: built.runtime.parlantRuntime.fileCount,
     nativeBinaryScanSha256: closure.nativeBinaryScanSha256,
     nativeBinaryFileCount: closure.nativeBinaryScan.fileCount,
     nativeBinaryFailureCount: closure.nativeBinaryScan.failureCount,

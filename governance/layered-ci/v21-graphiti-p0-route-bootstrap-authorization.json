@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-08T17:02:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-GRAPHITI-P0-ROUTE-BOOTSTRAP",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "V2.1 requires Graphiti as the mature OSS temporal relationship-memory sidecar. Fresh trusted main routes unknown paths fail closed and does not yet enumerate the Graphiti-specific upstream descriptor, runtime adapter/SBOM paths, or exact Graphiti/Neo4j/Temurin license paths. Candidate-owned policy changes are forbidden, so this work package authorizes only the exact literal route bootstrap and its regression contract before any Graphiti product implementation starts. The owner explicitly delegated continuous implementation on 2026-08-08 without per-task approval; that delegation does not authorize wildcard routing, release, publish, promotion, unrelated work packages, or gate weakening.",
+  "base": {
+    "branch": "main",
+    "commit": "717482d7fccdf8be180a7d93f24468ad64df5c51"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "evidence": {
+    "trustedRoutingPolicyCommit": "717482d7fccdf8be180a7d93f24468ad64df5c51",
+    "trustedRoutingPolicyBlob": "2bde571e9d6adce01e3d7fe49ba0da05cda9b359",
+    "routingReason": "WP0 routing policy sets unknownPathFailsClosed=true; none of the six exact Graphiti bootstrap paths are present in productExactPaths and runtime/ plus new third_party license paths are not covered by an approved product prefix.",
+    "graphitiUpstream": {
+      "repository": "getzep/graphiti",
+      "version": "v0.29.3",
+      "commit": "021d3a57d511f21b10adaf7fa923bd5c1fce5e9d",
+      "license": "Apache-2.0"
+    },
+    "neo4jSelectedRelease": "2026.07.1",
+    "neo4jReleaseDate": "2026-08-07",
+    "neo4jEdition": "Community"
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-graphiti-p0-route-bootstrap-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-graphiti-p0-route-bootstrap-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-graphiti-p0-route-bootstrap",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-graphiti-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "268fa9d9f7a76fc24e5b470bc99133e98ef5c28457adb1a5c5b8939546c98a03",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "bootstrapPaths": [
+    "config/upstreams/v21-graphiti-p0.json",
+    "runtime/graphiti/generate_runtime_sbom.py",
+    "runtime/graphiti/yance_graphiti_server.py",
+    "third_party/licenses/graphiti-Apache-2.0.txt",
+    "third_party/licenses/neo4j-GPL-3.0.txt",
+    "third_party/licenses/temurin-GPL-2.0-with-Classpath-Exception.txt"
+  ],
+  "bootstrapPathCount": 6,
+  "bootstrapPathSetSha256": "d05cc760b8dab00a8c516037c66a68625ac6e8aa0d524361a7d04039dcbaa4c4",
+  "mandatoryFailureFirstContracts": [
+    "Before policy implementation, a test-only commit must prove each of the six exact Graphiti bootstrap paths fails closed as WP0_ROUTE_UNKNOWN_PATH against the trusted authorization-merge routing policy",
+    "After implementation each of the six exact Graphiti bootstrap paths selects PRODUCT_WP0",
+    "The exact six-path set selects PRODUCT_WP0",
+    "The bootstrap uses only productExactPaths and does not add config/, runtime/, third_party/ or other broad prefixes",
+    "Adjacent unregistered Graphiti-like, Neo4j-like, Temurin-like and malformed repository paths continue to fail closed",
+    "Governance and product-documentation route precedence remains unchanged",
+    "No Graphiti runtime implementation, dependency manifest, WP7 packaging implementation, release policy, promotion authority, Parlant, Letta, communications, UI migration, Facebook modernization or unrelated work package is modified by this route-bootstrap implementation"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes applicable governance gates with zero unresolved P0/P1 findings",
+    "Authorization PR merges to main by ordinary two-parent merge without history rewrite",
+    "Implementation branch is created from that exact authorization merge commit",
+    "A test-only commit records the exact six-path fail-closed contract before policy implementation",
+    "Only the six exact bootstrap paths are added to productExactPaths",
+    "Implementation exact Head passes applicable Stage, Layered, ACV2 and independent-review gates",
+    "Implementation PR merges to main by ordinary two-parent merge",
+    "The formal V21-GRAPHITI-P0-V1 authorization is then created from fresh trusted main; this route bootstrap does not itself authorize Graphiti product implementation"
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansionInBootstrap": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "directCandidateSelfAuthorization": true,
+    "graphitiProductImplementation": true,
+    "wp7PackagingModification": true,
+    "releaseOrPublish": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

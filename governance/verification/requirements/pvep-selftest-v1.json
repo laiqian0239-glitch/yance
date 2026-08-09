@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "requirementSetId": "pvep-selftest-v1",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "PVEP",
+  "predicateType": "https://yance.dev/attestations/pvep-verification/v1",
+  "signerWorkflow": "laiqian0239-glitch/yance/.github/workflows/pvep-attested-evidence.yml",
+  "sourceRef": "refs/heads/main",
+  "requirements": [
+    {
+      "gateId": "pvep-linux-selftest",
+      "platform": "linux",
+      "commandSetPath": "governance/verification/command-sets/pvep-linux-selftest-v1.json",
+      "commandSetSha256": "34bbd06526e6da8ddd8c8bb1daec1a98b57698ed9d6f71040973f737d4c47a27"
+    },
+    {
+      "gateId": "pvep-windows-selftest",
+      "platform": "windows",
+      "commandSetPath": "governance/verification/command-sets/pvep-windows-selftest-v1.json",
+      "commandSetSha256": "3af8ad25fa600975af87dfa2656ea8ecd2c3ee7e683f19ab8cdb8443112eb447"
+    }
+  ]
+}

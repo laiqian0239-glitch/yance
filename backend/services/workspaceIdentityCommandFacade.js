@@ -40,7 +40,8 @@ function configureWorkspaceIdentityCommandFacade(options = {}) {
   const facade = Object.freeze({
     identityService,
     mergeService,
-    keyNodeService
+    keyNodeService,
+    relationshipFactProjectionService: keyNodeService
   });
   binding = Object.freeze({ db, facade });
   return facade;

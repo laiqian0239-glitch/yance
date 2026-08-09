@@ -8,6 +8,56 @@ const {
   PERSONA_BRAIN_EVENT_PAYLOAD_POLICY
 } = require('../../shared/personaBrainContract');
 const { ensureOwnerPersonaBaseline } = require('../services/personaBaselineBootstrapService');
+const characterCardParser = require('../../vendor/sillytavern/1.18.0/src/character-card-parser.cjs');
+const TavernCardValidator = require('../../vendor/sillytavern/1.18.0/src/validator/TavernCardValidator.cjs');
+
+const CHARACTER_CARD_MAX_BYTES = 8 * 1024 * 1024;
+const PNG_SIGNATURE_HEX = '89504e470d0a1a0a';
+
+function parseCharacterCardPreviewBuffer(value) {
+  const buffer = Buffer.isBuffer(value) ? value : Buffer.from(value || []);
+  if (!buffer.length) throw routeError('PERSONA_CHARACTER_CARD_EMPTY', 'Character Card payload is empty', 400);
+  if (buffer.length > CHARACTER_CARD_MAX_BYTES) throw routeError('PERSONA_CHARACTER_CARD_TOO_LARGE', 'Character Card payload exceeds 8mb', 413);
+
+  let parsed;
+  try {
+    const isPng = buffer.length >= 8 && buffer.subarray(0, 8).toString('hex') === PNG_SIGNATURE_HEX;
+    const jsonText = isPng ? characterCardParser.read(buffer) : buffer.toString('utf8');
+    parsed = JSON.parse(jsonText);
+  } catch (error) {
+    throw routeError('PERSONA_CHARACTER_CARD_INVALID', `Character Card could not be parsed: ${String(error?.message || error)}`, 400);
+  }
+
+  const validator = new TavernCardValidator(parsed);
+  const version = validator.validate();
+  if (!version) {
+    throw routeError('PERSONA_CHARACTER_CARD_INVALID', `Character Card validation failed at ${validator.lastValidationError || 'unknown field'}`, 400, {
+      validationField: validator.lastValidationError || ''
+    });
+  }
+
+  const data = version === 1 ? parsed : (parsed.data || {});
+  return {
+    version,
+    spec: version === 1 ? 'chara_card_v1' : String(parsed.spec || ''),
+    specVersion: version === 1 ? '1.0' : String(parsed.spec_version || ''),
+    characterCard: {
+      name: String(data.name || ''),
+      description: String(data.description || ''),
+      personality: String(data.personality || ''),
+      scenario: String(data.scenario || ''),
+      firstMessage: String(data.first_mes || ''),
+      exampleDialogueText: String(data.mes_example || ''),
+      creatorNotes: String(data.creator_notes || ''),
+      systemPrompt: String(data.system_prompt || ''),
+      postHistoryInstructions: String(data.post_history_instructions || ''),
+      alternateGreetings: Array.isArray(data.alternate_greetings) ? data.alternate_greetings.map(String) : [],
+      tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
+      characterBook: data.character_book && typeof data.character_book === 'object' ? data.character_book : undefined,
+      extensions: data.extensions && typeof data.extensions === 'object' ? data.extensions : {}
+    }
+  };
+}
 
 const PROFILE_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 
@@ -144,6 +194,13 @@ function createPersonaBrainRouter(options = {}) {
 
   router.get('/bootstrap-status', (_req, res) => {
     res.status(ownerBaseline.ok === false ? 503 : 200).json({ ok: ownerBaseline.ok !== false, ownerBaseline });
+  });
+
+  router.post('/character-card/preview', express.raw({ type: 'application/octet-stream', limit: '8mb' }), (req, res, next) => {
+    try {
+      const preview = parseCharacterCardPreviewBuffer(req.body);
+      res.set('Cache-Control', 'no-store').json({ ok: true, preview });
+    } catch (error) { next(exposePersonaError(error)); }
   });
 
   router.get('/profiles', (req, res, next) => {
@@ -506,5 +563,6 @@ module.exports = {
   assertEventPayloadPolicy,
   normalizeScopeType,
   normalizeScopeId,
-  compilePersonaContext
+  compilePersonaContext,
+  parseCharacterCardPreviewBuffer
 };

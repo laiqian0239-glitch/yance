@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-07T18:44:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-AUTHORITY-TRUSTED-MAIN-REFRESH",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #112 reached its exact authorized 22-path V2.1 product scope and both V2.1 product contracts passed, but permanent WP0 rejected the product branch because the generic trusted-main delegated-governance evaluator computes implementation scope from the authorization introduction merge to the candidate Head. After a later legitimate trusted-main route-bootstrap merge was normally merged into the product branch, that range incorrectly includes trusted-main-owned governance files as candidate-owned implementation changes. The root repair must make generic delegated authority tolerate legitimate trusted-main advancement without weakening candidate-only exact scope enforcement.",
+  "base": {
+    "branch": "main",
+    "commit": "87a12bbe7e4f541e98fcfa18c04777d05aaba2bc"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "evidence": {
+    "sourcePullRequest": 112,
+    "sourceExactHead": "fd640909a536a316e1902959bedebaf1932fa433",
+    "sourceTrustedMain": "87a12bbe7e4f541e98fcfa18c04777d05aaba2bc",
+    "sourceAuthorizedChangedFileCount": 22,
+    "sourceAuthorizedChangedFileSetSha256": "972786dec8299d2d8c7e9b9a7aa44e89608310f6ac4f462d5d35fbf613f71ab2",
+    "stageWp0Run": 31174468004,
+    "failedJob": "wp0-product",
+    "failedStep": "Run WP0 required tests",
+    "failedContract": "tests/wp0/implementation-branch-policy.test.js",
+    "failedAssertionLine": 1028,
+    "v21ProductContractPassed": true,
+    "v21ElementWorkspaceContractPassed": true,
+    "linuxSealedExportPassed": true,
+    "windowsSealedExportPassed": true,
+    "acv2Passed": true,
+    "wpAMainPostMergeValidationPassed": true,
+    "rootCause": "evaluateTrustedDelegatedGovernanceBranch scopes implementation changes from authorizationMergeCommit to evaluatedHead. A later ordinary merge of fresh trusted main into the candidate causes legitimate trusted-main-owned files to appear in that range even though the candidate remains exact relative to current trusted main."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-authority-trusted-main-refresh-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-authority-trusted-main-refresh-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-delegated-authority-trusted-main-refresh",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "c9ebb6397f260acd3447fa7691a53ec9c6478d1c375250dc3a07b61498cc03f2",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "candidatePreservation": {
+    "candidatePullRequest": 112,
+    "candidateBranch": "product/v21-comms-p0",
+    "candidateExactHeadAtAuthorization": "fd640909a536a316e1902959bedebaf1932fa433",
+    "candidateAuthorizedChangedFileCountMustRemain": 22,
+    "candidateAuthorizedChangedFileSetSha256MustRemain": "972786dec8299d2d8c7e9b9a7aa44e89608310f6ac4f462d5d35fbf613f71ab2",
+    "candidateWorkflowModificationAllowed": false,
+    "candidateHistoryRewriteAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "A real Git delegated authorization is introduced to main by an ordinary two-parent merge and an implementation branch changes only an authorized path",
+    "Main then advances with a trusted-main-only file outside the implementation authorization and that fresh main is merged normally into the implementation branch",
+    "Before the repair the generic evaluator rejects that branch even though the implementation delta relative to the unique current trusted-main merge base remains exact",
+    "After the repair the same fresh-main merge case is accepted",
+    "The scope baseline is derived from the unique merge-base of trustedMainHead and evaluatedHead and must descend from the authorization merge",
+    "A candidate-only unauthorized path added after the fresh-main merge still fails closed with WP0_DELEGATED_GOVERNANCE_SCOPE_DENIED",
+    "Authorization introduction topology, immutable authorization blob identity, exact allowed paths, dependency/workflow prohibitions, and ambiguity checks remain unchanged"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes all applicable governance gates",
+    "Independent review returns ALLOW_MERGE with zero P0 and P1 findings",
+    "Authorization PR merges to main by ordinary two-parent merge without history rewrite",
+    "Implementation branch is created from that exact authorization merge commit",
+    "A test-only commit records causal RED for the fresh-trusted-main merge case",
+    "Only the generic delegated-authority implementation and its contract test are changed",
+    "Implementation exact Head passes permanent WP0, Layered CI, ACV2 and independent review",
+    "Implementation PR merges to main by ordinary two-parent merge",
+    "The resulting main is merged normally into PR #112 without rewriting its history",
+    "PR #112 remains exact 22-path scope and is reverified"
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "candidateSpecificBranchWhitelist": true,
+    "candidateSpecificPathException": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "directCandidateSelfAuthorization": true,
+    "candidateScopeReduction": true,
+    "pr67Modification": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
