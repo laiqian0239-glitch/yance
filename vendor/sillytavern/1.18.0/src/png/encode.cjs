@@ -1,10 +1,11 @@
 'use strict';
 
-// Mechanically adapted from SillyTavern 1.18.0
-// upstream: src/png/encode.js
-// commit: 51ad27fb86d39a3daca3adaa970375c9670c12df
-// blob: d4cac7540b8121277eb356bf1bdfb9066ba7a581
-// transformation: ESM import/default export -> CommonJS require/module.exports only.
+// Yance modification notice (2026-08-09): mechanically adapted from the pinned SillyTavern source below.
+// This modified source file is licensed under GNU Affero General Public License v3.0 (AGPL-3.0); see ../../../LICENSE.
+// Upstream: SillyTavern 1.18.0, src/png/encode.js
+// Commit: 51ad27fb86d39a3daca3adaa970375c9670c12df
+// Source blob: d4cac7540b8121277eb356bf1bdfb9066ba7a581
+// Transformation: ESM import/default export -> CommonJS require/module.exports only.
 const { crc32 } = require('crc');
 
 /**
