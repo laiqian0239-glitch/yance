@@ -95,6 +95,7 @@
     ],
     "dependencyControlPathCount": 2,
     "dependencyControlPathSetSha256": "5fb0c8cb34914bbfad33b0fe89c6dd852173782b0bf822f1f543d31bc7221db6",
+    "newDependencyAllowed": false,
     "rootNpmManifestModificationAllowed": false,
     "rootNpmLockfileModificationAllowed": false,
     "workflowModificationAllowed": false,
