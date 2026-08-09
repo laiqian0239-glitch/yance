@@ -74,8 +74,10 @@ $BuildPhase = "sbom"
 if ($LASTEXITCODE -ne 0) { throw "CycloneDX SBOM generation failed" }
 
 $BuildPhase = "isolated-import"
-& $pythonExe -I -c "from litellm import Router; from litellm.router_strategy.complexity_router.complexity_router import ComplexityRouter; r=Router(model_list=[], enable_tag_filtering=True, tag_filtering_match_any=False); assert r.enable_tag_filtering is True; assert r.tag_filtering_match_any is False; print('Router ComplexityRouter tag_filtering isolated import OK')"
-if ($LASTEXITCODE -ne 0) { throw "isolated Router/ComplexityRouter/tag_filtering import gate failed" }
+$importOutput = & $pythonExe -I -c "from litellm import Router; from litellm.router_strategy.complexity_router.complexity_router import ComplexityRouter; r=Router(model_list=[], enable_tag_filtering=True, tag_filtering_match_any=False); assert r.enable_tag_filtering is True; assert r.tag_filtering_match_any is False; print('Router ComplexityRouter tag_filtering isolated import OK')" 2>&1
+$importExitCode = $LASTEXITCODE
+if ($importOutput) { $importOutput | Write-Output }
+if ($importExitCode -ne 0) { throw "isolated Router/ComplexityRouter/tag_filtering import gate failed: $($importOutput -join ' | ')" }
 
 $BuildPhase = "manifest"
 @{
