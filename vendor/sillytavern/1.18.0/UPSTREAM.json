@@ -23,7 +23,7 @@
       "sourcePath": "src/character-card-parser.js",
       "sourceGitBlob": "dd63b00d804e80104d5efb6c5ae268b4e99ed0a5",
       "destinationPath": "vendor/sillytavern/1.18.0/src/character-card-parser.cjs",
-      "vendoredGitBlob": "29bb7ded51d6ce6b41745bc22a3de73fa65b0d98",
+      "vendoredGitBlob": "29bb7dedfa8879b11c7259a40e0c8a5657a21264",
       "transformations": [
         "esm-export-to-commonjs",
         "local-import-extension-js-to-cjs"
@@ -33,7 +33,7 @@
       "sourcePath": "src/png/encode.js",
       "sourceGitBlob": "d4cac7540b8121277eb356bf1bdfb9066ba7a581",
       "destinationPath": "vendor/sillytavern/1.18.0/src/png/encode.cjs",
-      "vendoredGitBlob": "96898c2e0194a8134b425c19194733236cb8103d",
+      "vendoredGitBlob": "96898c2ee99043e49c9150f5f081acbccb9e3fd9",
       "transformations": [
         "esm-import-export-to-commonjs"
       ]
@@ -42,7 +42,7 @@
       "sourcePath": "src/validator/TavernCardValidator.js",
       "sourceGitBlob": "82593d0aabda8b17363f892cc7119a005eefae77",
       "destinationPath": "vendor/sillytavern/1.18.0/src/validator/TavernCardValidator.cjs",
-      "vendoredGitBlob": "48dac42fdb7c91b24d34a800577321fdad85cffd",
+      "vendoredGitBlob": "48dac42fbb1cee30ad569e7f963a8127859794d9",
       "transformations": [
         "esm-export-to-commonjs"
       ]
