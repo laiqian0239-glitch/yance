@@ -76,6 +76,17 @@ function projectSession(payload = {}) {
   return Object.freeze({ sessionId, livekitUrl, livekitToken });
 }
 
+function projectCharacters(payload) {
+  if (!Array.isArray(payload)) return Object.freeze([]);
+  return Object.freeze(payload.map(item => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+    const id = String(item.id || '').trim();
+    if (!id) return null;
+    const name = String(item.name || id).trim() || id;
+    return Object.freeze({ id, name });
+  }).filter(Boolean));
+}
+
 function createPresenceAvatarRuntime(options = {}) {
   const fetchImpl = options.fetchImpl || globalThis.fetch;
   if (typeof fetchImpl !== 'function') throw fail('PRESENCE_FETCH_UNAVAILABLE', 'A fetch implementation is required.');
@@ -105,19 +116,33 @@ function createPresenceAvatarRuntime(options = {}) {
     const endpoint = configuration();
     try {
       const response = await fetchImpl(`${endpoint.baseUrl}/api/v1/health`, { method: 'GET', signal: AbortSignal.timeout(5000) });
-      if (!response.ok) return Object.freeze({ available: false, degraded: true, reasonCode: `PRESENCE_HEALTH_HTTP_${response.status}` });
-      return Object.freeze({ available: true, degraded: false, endpoint: endpoint.baseUrl });
+      if (!response.ok) return Object.freeze({ available: false, degraded: true, reasonCode: `PRESENCE_HEALTH_HTTP_${response.status}`, characters: Object.freeze([]) });
+      let characters = Object.freeze([]);
+      let characterCatalogAvailable = false;
+      try {
+        const charactersResponse = await fetchImpl(`${endpoint.baseUrl}/api/v1/characters`, { method: 'GET', headers: { accept: 'application/json' }, signal: AbortSignal.timeout(5000) });
+        if (charactersResponse.ok) {
+          characters = projectCharacters(await charactersResponse.json().catch(() => []));
+          characterCatalogAvailable = true;
+        }
+      } catch (_) {}
+      return Object.freeze({ available: true, degraded: false, endpoint: endpoint.baseUrl, characterCatalogAvailable, characters });
     } catch (error) {
-      return Object.freeze({ available: false, degraded: true, reasonCode: String(error?.reasonCode || error?.code || 'PRESENCE_SERVICE_UNAVAILABLE') });
+      return Object.freeze({ available: false, degraded: true, reasonCode: String(error?.reasonCode || error?.code || 'PRESENCE_SERVICE_UNAVAILABLE'), characters: Object.freeze([]) });
     }
   }
 
   async function createSession(input = {}) {
     const endpoint = configuration();
+    const characterId = String(input.characterId || '').trim();
+    if (characterId) {
+      const characterResponse = await fetchImpl(`${endpoint.baseUrl}/api/v1/characters/${encodeURIComponent(characterId)}`, { method: 'GET', headers: { accept: 'application/json' }, signal: AbortSignal.timeout(5000) });
+      await readJson(characterResponse, 'PRESENCE_CHARACTER_LOOKUP_FAILED');
+    }
     const response = await fetchImpl(`${endpoint.baseUrl}/api/v1/sessions`, {
       method: 'POST',
       headers: { accept: 'application/json', 'content-type': 'application/json' },
-      body: JSON.stringify({ mode: 'standard', character_id: String(input.characterId || '').trim() }),
+      body: JSON.stringify({ mode: 'standard', character_id: characterId }),
       signal: AbortSignal.timeout(15000)
     });
     const session = projectSession(await readJson(response, 'PRESENCE_SESSION_CREATE_FAILED'));
@@ -161,4 +186,4 @@ function createPresenceAvatarRuntime(options = {}) {
   return Object.freeze({ health, createSession, closeSession, pushVoiceAudioChunk, closeAllSessions, snapshot, normalizeVoiceAudioChunk });
 }
 
-module.exports = { DEFAULT_CYBERVERSE_ENDPOINT, createPresenceAvatarRuntime, normalizeEndpoint, normalizeVoiceAudioChunk, projectSession };
+module.exports = { DEFAULT_CYBERVERSE_ENDPOINT, createPresenceAvatarRuntime, normalizeEndpoint, normalizeVoiceAudioChunk, projectCharacters, projectSession };
