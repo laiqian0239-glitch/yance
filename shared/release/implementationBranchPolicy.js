@@ -2,6 +2,7 @@
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const openSourceWorkPackagePolicy = require('./openSourceWorkPackagePolicy');
@@ -799,11 +800,101 @@ function sameDirectLockDescriptorIdentity(baseDescriptor, candidateDescriptor) {
   return identityFields.some(field => Object.prototype.hasOwnProperty.call(baseDescriptor, field));
 }
 
+function collectNpmLockTreePackagePaths(node, temporaryRoot, packagePaths = new Set()) {
+  if (!isPlainJsonObject(node)) return null;
+  if (typeof node.path === 'string') {
+    const relativePath = path.relative(temporaryRoot, node.path);
+    if (relativePath === '' || relativePath === '.') packagePaths.add('');
+    else if (path.isAbsolute(relativePath)
+      || relativePath === '..'
+      || relativePath.startsWith(`..${path.sep}`)) return null;
+    else packagePaths.add(relativePath.split(path.sep).join('/'));
+  }
+  if (node.dependencies === undefined) return packagePaths;
+  if (!isPlainJsonObject(node.dependencies)) return null;
+  for (const dependency of Object.values(node.dependencies)) {
+    if (!isPlainJsonObject(dependency)) return null;
+    if (dependency.missing === true && typeof dependency.path !== 'string') continue;
+    if (!collectNpmLockTreePackagePaths(dependency, temporaryRoot, packagePaths)) return null;
+  }
+  return packagePaths;
+}
+
+function resolveNpmLockTreePackagePaths(
+  candidateManifest,
+  candidateLockfile,
+  lockfileFilename = 'package-lock.json'
+) {
+  if (!isPlainJsonObject(candidateManifest)
+    || !isPlainJsonObject(candidateLockfile)
+    || !['package-lock.json', 'npm-shrinkwrap.json'].includes(lockfileFilename)) return null;
+  let temporaryRoot = null;
+  try {
+    temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-npm-lock-tree-'));
+    const userConfigPath = path.join(temporaryRoot, 'user.npmrc');
+    const globalConfigPath = path.join(temporaryRoot, 'global.npmrc');
+    fs.writeFileSync(path.join(temporaryRoot, 'package.json'), `${JSON.stringify(candidateManifest)}\n`, 'utf8');
+    fs.writeFileSync(path.join(temporaryRoot, lockfileFilename), `${JSON.stringify(candidateLockfile)}\n`, 'utf8');
+    fs.writeFileSync(userConfigPath, '', 'utf8');
+    fs.writeFileSync(globalConfigPath, '', 'utf8');
+    const environment = {
+      ...buildTrustedGitEnvironment(process.env),
+      npm_config_userconfig: userConfigPath,
+      npm_config_globalconfig: globalConfigPath,
+      npm_config_cache: path.join(temporaryRoot, 'npm-cache'),
+      npm_config_ignore_scripts: 'true',
+      npm_config_audit: 'false',
+      npm_config_fund: 'false',
+      npm_config_update_notifier: 'false',
+      npm_config_offline: 'true'
+    };
+    const npmExecutable = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    const args = [
+      'ls',
+      '--package-lock-only',
+      '--json',
+      '--all',
+      '--long',
+      '--include=dev',
+      '--include=optional',
+      '--include=peer'
+    ];
+    let output;
+    try {
+      output = execFileSync(npmExecutable, args, {
+        cwd: temporaryRoot,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: environment,
+        timeout: 10000,
+        maxBuffer: 4 * 1024 * 1024,
+        windowsHide: true
+      });
+    } catch (error) {
+      if (error?.status !== 1 || typeof error.stdout !== 'string' || !error.stdout.trim()) return null;
+      output = error.stdout;
+    }
+    const tree = JSON.parse(output);
+    if (!isPlainJsonObject(tree)
+      || (isPlainJsonObject(tree.error) && tree.error.code !== 'ELSPROBLEMS')) return null;
+    return collectNpmLockTreePackagePaths(tree, temporaryRoot);
+  } catch (_) {
+    return null;
+  } finally {
+    if (temporaryRoot) fs.rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+}
+
+function isNpmInstalledPackageLocation(repositoryPath) {
+  return repositoryPath.startsWith('node_modules/') || repositoryPath.includes('/node_modules/');
+}
+
 function validateDelegatedNpmLockfileClosure(
   candidateManifest,
   candidateLockfile,
   identityEntries = [],
-  baselineLockfile = null
+  baselineLockfile = null,
+  lockfileFilename = 'package-lock.json'
 ) {
   if (!isPlainJsonObject(candidateManifest)
     || !isPlainJsonObject(candidateLockfile)
@@ -816,6 +907,16 @@ function validateDelegatedNpmLockfileClosure(
   if (!manifestProjection
     || !lockfileProjection
     || !sameJsonSemantics(manifestProjection, lockfileProjection)) return false;
+  const npmTreePackagePaths = resolveNpmLockTreePackagePaths(
+    candidateManifest,
+    candidateLockfile,
+    lockfileFilename
+  );
+  if (!(npmTreePackagePaths instanceof Set)) return false;
+  for (const packageLocation of Object.keys(candidateLockfile.packages)) {
+    if (packageLocation !== '' && normalizeRepositoryPath(packageLocation) !== packageLocation) return false;
+    if (isNpmInstalledPackageLocation(packageLocation) && !npmTreePackagePaths.has(packageLocation)) return false;
+  }
   for (const entry of identityEntries) {
     if (entry.section === 'peerDependencies') continue;
     const lockDescriptor = candidateLockfile.packages[`node_modules/${entry.name}`];
@@ -1233,7 +1334,8 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
         loadDependencyControl(evaluatedHead, manifestPath),
         loadDependencyControl(evaluatedHead, repositoryPath),
         identityPolicy.entries.filter(entry => entry.path === manifestPath),
-        baselineLockfile
+        baselineLockfile,
+        path.posix.basename(repositoryPath)
       )) return denyDependencyIdentityMutation();
     }
 
@@ -1265,7 +1367,8 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
           loadDependencyControl(evaluatedHead, manifestPath),
           loadDependencyControl(evaluatedHead, companionPath),
           identityPolicy.entries.filter(entry => entry.path === manifestPath),
-          baselineLockfile
+          baselineLockfile,
+          path.posix.basename(companionPath)
         )) return denyDependencyIdentityMutation();
       }
     }
