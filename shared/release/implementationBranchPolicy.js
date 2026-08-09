@@ -789,15 +789,14 @@ function directDependencyNamesFromProjection(projection) {
 
 function sameDirectLockDescriptorIdentity(baseDescriptor, candidateDescriptor) {
   if (!isPlainJsonObject(baseDescriptor) || !isPlainJsonObject(candidateDescriptor)) return false;
-  if (typeof baseDescriptor.version === 'string') {
-    return candidateDescriptor.version === baseDescriptor.version;
+  const identityFields = ['version', 'resolved', 'integrity', 'link'];
+  for (const field of identityFields) {
+    const baseHasField = Object.prototype.hasOwnProperty.call(baseDescriptor, field);
+    const candidateHasField = Object.prototype.hasOwnProperty.call(candidateDescriptor, field);
+    if (baseHasField !== candidateHasField) return false;
+    if (baseHasField && candidateDescriptor[field] !== baseDescriptor[field]) return false;
   }
-  if (baseDescriptor.version !== undefined || candidateDescriptor.version !== undefined) return false;
-  if (typeof baseDescriptor.resolved === 'string' || baseDescriptor.link === true) {
-    return candidateDescriptor.resolved === baseDescriptor.resolved
-      && candidateDescriptor.link === baseDescriptor.link;
-  }
-  return false;
+  return identityFields.some(field => Object.prototype.hasOwnProperty.call(baseDescriptor, field));
 }
 
 function validateDelegatedNpmLockfileClosure(
