@@ -3409,7 +3409,7 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3251
+        "line": 3291
       },
       "rendererExposure": {
         "api": "getMediaBrainHealth",
@@ -3470,12 +3470,12 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3252
+        "line": 3293
       },
       "rendererExposure": {
         "api": "importMediaAsset",
         "file": "electron/preload.js",
-        "line": 79
+        "line": 80
       },
       "currentObservation": "Imports into the sole Immich asset authority."
     },
@@ -3534,12 +3534,12 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3253
+        "line": 3294
       },
       "rendererExposure": {
         "api": "searchMediaAssets",
         "file": "electron/preload.js",
-        "line": 80
+        "line": 81
       },
       "currentObservation": "Delegates semantic asset search to Immich."
     },
@@ -3573,12 +3573,12 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3254
+        "line": 3295
       },
       "rendererExposure": {
         "api": "listMediaPeople",
         "file": "electron/preload.js",
-        "line": 81
+        "line": 82
       },
       "currentObservation": "Delegates people listing to Immich."
     },
@@ -3612,12 +3612,12 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3255
+        "line": 3296
       },
       "rendererExposure": {
         "api": "listMediaAlbums",
         "file": "electron/preload.js",
-        "line": 82
+        "line": 83
       },
       "currentObservation": "Delegates album listing to Immich."
     },
@@ -3664,12 +3664,12 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3256
+        "line": 3297
       },
       "rendererExposure": {
         "api": "getMediaAssetPreview",
         "file": "electron/preload.js",
-        "line": 83
+        "line": 84
       },
       "currentObservation": "Retrieves an Immich-backed preview."
     },
@@ -3754,12 +3754,12 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3257
+        "line": 3298
       },
       "rendererExposure": {
         "api": "queueMediaWorkflow",
         "file": "electron/preload.js",
-        "line": 84
+        "line": 85
       },
       "currentObservation": "Generate queues a reviewed ComfyUI template; Edit accepts only an Immich asset id and main transfers that original to ComfyUI before queueing."
     },
@@ -3799,12 +3799,12 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3287
+        "line": 3328
       },
       "rendererExposure": {
         "api": "getMediaWorkflowResult",
         "file": "electron/preload.js",
-        "line": 85
+        "line": 86
       },
       "currentObservation": "Reads ComfyUI output as non-selectable until save-back."
     },
@@ -3853,12 +3853,12 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3288
+        "line": 3329
       },
       "rendererExposure": {
         "api": "saveMediaWorkflowOutput",
         "file": "electron/preload.js",
-        "line": 86
+        "line": 87
       },
       "currentObservation": "Re-fetches ComfyUI output in main and imports it into Immich."
     },
@@ -3936,12 +3936,12 @@
       },
       "handler": {
         "file": "electron/main.js",
-        "line": 3289
+        "line": 3330
       },
       "rendererExposure": {
         "api": "sendMediaAsset",
         "file": "electron/preload.js",
-        "line": 87
+        "line": 88
       },
       "currentObservation": "Sends only an Immich asset through the existing Yance send-media-stream authority; main derives image/video kind from the Immich original MIME type."
     }

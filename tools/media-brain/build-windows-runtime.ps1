@@ -9,7 +9,8 @@ $ErrorActionPreference = 'Stop'
 
 function Test-YanceLoopbackEndpoint([string]$Endpoint) {
   $uri = [Uri]$Endpoint
-  return $uri.Host -in @('127.0.0.1', 'localhost', '::1')
+  $hostName = $uri.Host.Trim('[', ']')
+  return $hostName -in @('127.0.0.1', 'localhost', '::1')
 }
 
 function Assert-YanceEndpoint([string]$Name, [string]$Endpoint) {

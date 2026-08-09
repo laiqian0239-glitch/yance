@@ -612,11 +612,11 @@ async function saveMediaBrainSettings(input = {}) {
     endpoint: input.immichEndpoint,
     apiKey: input.immichApiKey,
     clearApiKey: input.clearImmichApiKey === true,
-    allowExternalEndpoint: input.immichAllowExternalEndpoint === true
+    allowExternalEndpoint: input.immichAllowExternalEndpoint === undefined ? undefined : input.immichAllowExternalEndpoint === true
   });
   const nextComfyui = mergeComfyuiConfiguration(currentComfyui, {
     endpoint: input.comfyuiEndpoint,
-    allowExternalEndpoint: input.comfyuiAllowExternalEndpoint === true
+    allowExternalEndpoint: input.comfyuiAllowExternalEndpoint === undefined ? undefined : input.comfyuiAllowExternalEndpoint === true
   });
   const requestBase = `media-settings:${randomUUID()}`;
   let immichUpdated = false;
