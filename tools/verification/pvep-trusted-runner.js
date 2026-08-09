@@ -8,7 +8,6 @@ const { spawnSync } = require('node:child_process');
 
 const COMMIT_RE = /^[0-9a-f]{40}$/u;
 const HASH_RE = /^[0-9a-f]{64}$/u;
-const SECRET_NAME_RE = /(token|secret|password|credential|private[_-]?key|api[_-]?key)/iu;
 
 function sha256(bytes) {
   return crypto.createHash('sha256').update(bytes).digest('hex');
@@ -27,8 +26,24 @@ function git(repoRoot, args) {
   return (result.stdout || '').trim();
 }
 
-function sanitizedEnvironment(environment) {
-  return Object.fromEntries(Object.entries(environment).filter(([name]) => !SECRET_NAME_RE.test(name)));
+const POSIX_CHILD_ENV_ALLOWLIST = Object.freeze(['PATH', 'TMPDIR', 'TMP', 'TEMP']);
+const WINDOWS_CHILD_ENV_ALLOWLIST = Object.freeze(['PATH', 'PATHEXT', 'SYSTEMROOT', 'WINDIR', 'COMSPEC', 'TEMP', 'TMP']);
+
+function sanitizedEnvironment(environment, platform = process.platform) {
+  const windows = platform === 'win32';
+  const allowlist = windows ? WINDOWS_CHILD_ENV_ALLOWLIST : POSIX_CHILD_ENV_ALLOWLIST;
+  const source = new Map();
+  for (const [name, value] of Object.entries(environment || {})) {
+    if (typeof value !== 'string') continue;
+    const key = windows ? name.toUpperCase() : name;
+    if (!source.has(key)) source.set(key, value);
+  }
+  const result = {};
+  for (const name of allowlist) {
+    const key = windows ? name.toUpperCase() : name;
+    if (source.has(key)) result[name] = source.get(key);
+  }
+  return result;
 }
 
 function parseStatus(raw) {
@@ -119,6 +134,7 @@ function run(argv = process.argv.slice(2)) {
       expectedExitCode: command.expectedExitCode,
       exitCode,
       signal: child.signal || null,
+      errorCode: child.error && typeof child.error.code === 'string' ? child.error.code : null,
       startedAt,
       completedAt,
       stdoutSha256: sha256(stdout),
@@ -163,7 +179,22 @@ function run(argv = process.argv.slice(2)) {
   fs.mkdirSync(path.dirname(output), { recursive: true });
   fs.writeFileSync(output, serialized, 'utf8');
   if (!HASH_RE.test(sha256(Buffer.from(serialized)))) fail('EVIDENCE_INTERNAL_DIGEST_INVALID');
-  if (!allPassed) process.exitCode = 1;
+  if (!allPassed) {
+    for (const command of commands) {
+      if (command.passed) continue;
+      const diagnostic = {
+        commandId: command.commandId,
+        expectedExitCode: command.expectedExitCode,
+        exitCode: command.exitCode,
+        signal: command.signal,
+        errorCode: command.errorCode,
+        stdoutSha256: command.stdoutSha256,
+        stderrSha256: command.stderrSha256
+      };
+      process.stderr.write(`EVIDENCE_COMMAND_FAILED ${JSON.stringify(diagnostic)}\n`);
+    }
+    process.exitCode = 1;
+  }
   return evidence;
 }
 

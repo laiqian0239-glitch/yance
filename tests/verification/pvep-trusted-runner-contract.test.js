@@ -8,6 +8,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const RUNNER = path.resolve(__dirname, '../../tools/verification/pvep-trusted-runner.js');
+const TEST_PLATFORM = process.platform === 'win32' ? 'windows' : 'linux';
 
 function git(cwd, ...args) {
   const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
@@ -29,7 +30,7 @@ function makeCandidate() {
   fs.writeFileSync(path.join(root, 'governance/verification/command-sets/pvep-linux-selftest-v1.json'), JSON.stringify({
     schemaVersion: 1,
     commandSetId: 'candidate-controlled-set',
-    platform: 'linux',
+    platform: TEST_PLATFORM,
     commands: [{
       commandId: 'candidate-noop',
       executable: 'node',
@@ -44,30 +45,30 @@ function makeCandidate() {
   return { root, head: git(root, 'rev-parse', 'HEAD') };
 }
 
-function makeTrustedCommandSetRoot() {
+function makeTrustedCommandSetRoot(command = {
+  commandId: 'trusted-command',
+  executable: 'node',
+  argv: ['tests/verification/fixtures/commands/pass.js'],
+  expectedExitCode: 0,
+  generatedRoots: [],
+  artifacts: []
+}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pvep-trusted-command-set-'));
   fs.mkdirSync(path.join(root, 'governance/verification/command-sets'), { recursive: true });
   fs.writeFileSync(path.join(root, 'governance/verification/command-sets/pvep-linux-selftest-v1.json'), JSON.stringify({
     schemaVersion: 1,
     commandSetId: 'pvep-linux-selftest-v1',
-    platform: 'linux',
-    commands: [{
-      commandId: 'trusted-command',
-      executable: 'node',
-      argv: ['tests/verification/fixtures/commands/pass.js'],
-      expectedExitCode: 0,
-      generatedRoots: [],
-      artifacts: []
-    }]
+    platform: TEST_PLATFORM,
+    commands: [command]
   }, null, 2) + '\n');
   return root;
 }
 
-function runTrusted(candidate, head = candidate.head) {
-  const trustedCommandSetRoot = makeTrustedCommandSetRoot();
-  const output = path.join(os.tmpdir(), `pvep-evidence-${process.pid}-${Date.now()}.json`);
-  const subject = path.join(os.tmpdir(), `pvep-subject-${process.pid}-${Date.now()}.txt`);
-  const result = spawnSync(process.execPath, [RUNNER,
+function makeRunRequest(candidate, head = candidate.head, command) {
+  const trustedCommandSetRoot = makeTrustedCommandSetRoot(command);
+  const output = path.join(os.tmpdir(), `pvep-evidence-${process.pid}-${Date.now()}-${Math.random()}.json`);
+  const subject = path.join(os.tmpdir(), `pvep-subject-${process.pid}-${Date.now()}-${Math.random()}.txt`);
+  const args = [
     'run',
     '--repo-root', candidate.root,
     '--trusted-command-set-root', trustedCommandSetRoot,
@@ -79,8 +80,14 @@ function runTrusted(candidate, head = candidate.head) {
     '--command-set', 'governance/verification/command-sets/pvep-linux-selftest-v1.json',
     '--output', output,
     '--subject-output', subject
-  ], { encoding: 'utf8' });
-  return { result, output, subject };
+  ];
+  return { args, output, subject };
+}
+
+function runTrusted(candidate, head = candidate.head, command) {
+  const request = makeRunRequest(candidate, head, command);
+  const result = spawnSync(process.execPath, [RUNNER, ...request.args], { encoding: 'utf8' });
+  return { result, output: request.output, subject: request.subject };
 }
 
 test('base-owned runner ignores candidate runner and records real command facts', () => {
@@ -96,7 +103,7 @@ test('base-owned runner ignores candidate runner and records real command facts'
   assert.equal(evidence.execution.commands[0].exitCode, 0);
   assert.match(evidence.commandSet.sha256, /^[0-9a-f]{64}$/u);
   const subjectText = fs.readFileSync(subject, 'utf8');
-  assert.equal(subjectText, `YANCE_PVEP_SUBJECT_V1\nrepository=laiqian0239-glitch/yance\nhead=${candidate.head}\nplatform=linux\ncommandSetSha256=${evidence.commandSet.sha256}\n`);
+  assert.equal(subjectText, `YANCE_PVEP_SUBJECT_V1\nrepository=laiqian0239-glitch/yance\nhead=${candidate.head}\nplatform=${TEST_PLATFORM}\ncommandSetSha256=${evidence.commandSet.sha256}\n`);
 });
 
 test('base-owned runner rejects a claimed Head that is not the candidate checkout', () => {
@@ -104,6 +111,72 @@ test('base-owned runner rejects a claimed Head that is not the candidate checkou
   const { result } = runTrusted(candidate, '2'.repeat(40));
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /EVIDENCE_WORKSPACE_HEAD_MISMATCH/u);
+});
+
+test('base-owned runner strips ambient Node controls and arbitrary variables from trusted children', () => {
+  const candidate = makeCandidate();
+  const command = {
+    commandId: 'trusted-env-check',
+    executable: 'node',
+    argv: ['-e', "const names=['NODE_OPTIONS','NODE_PATH','PVEP_AMBIENT_SHOULD_NOT_LEAK','YANCE_TEST_SECRET'];process.exit(names.some((name)=>Object.hasOwn(process.env,name))?23:0)"],
+    expectedExitCode: 0,
+    generatedRoots: [],
+    artifacts: []
+  };
+  assert.equal(command.argv.some((value) => value.includes('\\')), false, 'ambient fixture must satisfy current command-set validation');
+  const request = makeRunRequest(candidate, candidate.head, command);
+  const wrapper = path.join(os.tmpdir(), `pvep-runner-wrapper-${process.pid}-${Date.now()}-${Math.random()}.js`);
+  fs.writeFileSync(wrapper, [
+    "process.env.NODE_OPTIONS = '--no-deprecation';",
+    "process.env.NODE_PATH = 'pvep-hostile-node-path';",
+    "process.env.PVEP_AMBIENT_SHOULD_NOT_LEAK = 'ambient-value';",
+    "process.env.YANCE_TEST_SECRET = 'must-not-flow';",
+    `const { run } = require(${JSON.stringify(RUNNER)});`,
+    'run(process.argv.slice(2));',
+    ''
+  ].join('\n'), 'utf8');
+
+  const result = spawnSync(process.execPath, [wrapper, ...request.args], { encoding: 'utf8' });
+  const evidence = JSON.parse(fs.readFileSync(request.output, 'utf8'));
+  const commandEvidence = evidence.execution.commands[0];
+  assert.equal(commandEvidence.exitCode, 0, `ambient environment reached trusted child; observed exit=${commandEvidence.exitCode}`);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(evidence.verificationStatus, 'VERIFIED_PASS');
+});
+
+test('failed trusted child emits digest-only structured diagnostics and keeps fail evidence', () => {
+  const candidate = makeCandidate();
+  const command = {
+    commandId: 'trusted-failure',
+    executable: 'node',
+    argv: ['-e', "process.stdout.write('PRIVATE_STDOUT');process.stderr.write('PRIVATE_STDERR');process.exit(7)"],
+    expectedExitCode: 0,
+    generatedRoots: [],
+    artifacts: []
+  };
+  assert.equal(command.argv.some((value) => value.includes('\\')), false, 'failure fixture must satisfy current command-set validation');
+  const { result, output } = runTrusted(candidate, candidate.head, command);
+  assert.equal(result.status, 1);
+  const evidence = JSON.parse(fs.readFileSync(output, 'utf8'));
+  assert.equal(evidence.verificationStatus, 'VERIFIED_FAIL');
+  const commandEvidence = evidence.execution.commands[0];
+  assert.equal(commandEvidence.commandId, 'trusted-failure');
+  assert.equal(commandEvidence.exitCode, 7);
+
+  const prefix = 'EVIDENCE_COMMAND_FAILED ';
+  const diagnosticLine = result.stderr.split(/\r?\n/u).find((line) => line.startsWith(prefix));
+  assert.ok(diagnosticLine, `missing structured diagnostic in stderr: ${result.stderr}`);
+  const diagnostic = JSON.parse(diagnosticLine.slice(prefix.length));
+  assert.deepEqual(diagnostic, {
+    commandId: 'trusted-failure',
+    expectedExitCode: 0,
+    exitCode: 7,
+    signal: null,
+    errorCode: null,
+    stdoutSha256: commandEvidence.stdoutSha256,
+    stderrSha256: commandEvidence.stderrSha256
+  });
+  assert.doesNotMatch(result.stderr, /PRIVATE_STDOUT|PRIVATE_STDERR/u);
 });
 
 test('attestation workflow keeps candidate execution unprivileged and signing isolated', () => {
