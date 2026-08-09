@@ -25,7 +25,8 @@ if ((git -C $source hash-object uv.lock).Trim() -ne $ExpectedUvLockBlob) { throw
 $BuildPhase = "python-bootstrap"
 Remove-Item $Output -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $Output | Out-Null
-$pythonRoot = Join-Path $Output "python"
+$OutputRoot = (Resolve-Path $Output).Path
+$pythonRoot = Join-Path $OutputRoot "python"
 Expand-Archive -Path $PythonArchive -DestinationPath $pythonRoot
 $pythonExe = Get-ChildItem $pythonRoot -Recurse -Filter python.exe | Select-Object -First 1 -ExpandProperty FullName
 if (-not $pythonExe) { throw "sealed CPython executable missing" }
@@ -34,7 +35,7 @@ if ($pythonVersion -ne $ExpectedPython) { throw "CPython version mismatch: $pyth
 if ((& $UvExe --version) -notmatch [regex]::Escape($ExpectedUv)) { throw "uv version mismatch" }
 
 $BuildPhase = "locked-export"
-$req = Join-Path $Output "requirements.locked.txt"
+$req = Join-Path $OutputRoot "requirements.locked.txt"
 # Build-time only. Export exact transitive dependencies from the reviewed upstream lock,
 # while deliberately omitting the project itself, workspace projects, and the dev group.
 # uv 0.12.3 treats --no-install-project/workspace as aliases of --no-emit-project/workspace,
@@ -64,12 +65,12 @@ Get-ChildItem $litellmTarget -Recurse -File | Where-Object { $_.Name -match '^_n
 if (Test-Path (Join-Path $litellmTarget "proxy")) { throw "LiteLLM Proxy tree leaked into sealed runtime" }
 if (Get-ChildItem $litellmTarget -Recurse -File | Where-Object { $_.FullName -match 'litellm-proxy-extras|litellm-enterprise|proxy_server|rust_bridge[\\/]+_native\.(pyd|dll|so)' }) { throw "forbidden Proxy/enterprise/Rust native payload" }
 
-Copy-Item "runtime/model-brain/yance_litellm_worker.py" (Join-Path $Output "yance_litellm_worker.py")
-Copy-Item "runtime/model-brain/generate_runtime_sbom.py" (Join-Path $Output "generate_runtime_sbom.py")
-Copy-Item (Join-Path $source "LICENSE") (Join-Path $Output "THIRD_PARTY_LITELLM_LICENSE.txt")
+Copy-Item "runtime/model-brain/yance_litellm_worker.py" (Join-Path $OutputRoot "yance_litellm_worker.py")
+Copy-Item "runtime/model-brain/generate_runtime_sbom.py" (Join-Path $OutputRoot "generate_runtime_sbom.py")
+Copy-Item (Join-Path $source "LICENSE") (Join-Path $OutputRoot "THIRD_PARTY_LITELLM_LICENSE.txt")
 
 $BuildPhase = "sbom"
-& $pythonExe -I (Join-Path $Output "generate_runtime_sbom.py") --output (Join-Path $Output "sbom.cdx.json") --runtime-root $Output --litellm-version "1.95.0"
+& $pythonExe -I (Join-Path $OutputRoot "generate_runtime_sbom.py") --output (Join-Path $OutputRoot "sbom.cdx.json") --runtime-root $OutputRoot --litellm-version "1.95.0"
 if ($LASTEXITCODE -ne 0) { throw "CycloneDX SBOM generation failed" }
 
 $BuildPhase = "isolated-import"
@@ -93,7 +94,7 @@ $BuildPhase = "manifest"
   rustNativePayload = $false
   proxyPayload = $false
   excluded = @('enterprise','proxy','proxy_server','litellm-proxy-extras','Rust native bridge','network resolution at runtime')
-} | ConvertTo-Json -Depth 4 | Set-Content -Encoding UTF8 (Join-Path $Output "runtime-manifest.json")
+} | ConvertTo-Json -Depth 4 | Set-Content -Encoding UTF8 (Join-Path $OutputRoot "runtime-manifest.json")
 } catch {
   $message = $_.Exception.Message -replace '[\r\n]+', ' '
   Write-Output ('::error title=Model Brain runtime build ({0})::{1}' -f $BuildPhase, $message)
