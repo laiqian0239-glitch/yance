@@ -166,13 +166,8 @@ foreach ($license in @(
   'third_party\licenses\cpython-PSF-2.0.txt'
 )) { Copy-Item -LiteralPath (Join-Path $SourceRoot $license) -Destination $LicenseRoot }
 
-$OldPythonPath = $env:PYTHONPATH
-try {
-  $env:PYTHONPATH = "$SourceDestination;$SourceDestination\third_party\Matcha-TTS"
-  Invoke-Checked $PythonExe @('-I', '-c', 'from cosyvoice.cli.cosyvoice import AutoModel; print("CosyVoice import ok")') 'CosyVoice sealed import self-test'
-} finally {
-  if ($null -eq $OldPythonPath) { Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue } else { $env:PYTHONPATH = $OldPythonPath }
-}
+$CosyVoiceImportProbe = 'import sys; source=sys.argv[1]; sys.path[:0]=[source, source + r"\third_party\Matcha-TTS"]; from cosyvoice.cli.cosyvoice import AutoModel; print("CosyVoice import ok")'
+Invoke-Checked $PythonExe @('-I', '-c', $CosyVoiceImportProbe, $SourceDestination) 'CosyVoice sealed import self-test'
 Invoke-Checked $PythonExe @('-I', (Join-Path $CosyRoot 'generate_runtime_sbom.py'), '--output', (Join-Path $CosyRoot 'runtime-sbom.cdx.json'), '--lock-sha256', $LockSha256) 'Voice runtime SBOM generation'
 Remove-Item -LiteralPath (Join-Path $CosyRoot 'generate_runtime_sbom.py') -Force
 
