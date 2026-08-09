@@ -7,6 +7,7 @@ import {
   mountPresenceRemoteMedia,
   setPresenceCameraEnabled,
   setPresenceMicrophoneEnabled,
+  startPresenceAudioPlayback,
   subscribePresenceLiveKit,
   type PresenceLiveKitSnapshot,
 } from "./presenceLiveKit";
@@ -91,12 +92,14 @@ export function PresenceWorkspace(): React.JSX.Element {
       }
       sessionRef.current = created;
       setSession(created);
-      await connectPresenceLiveKit({ livekitUrl: created.livekitUrl, livekitToken: created.livekitToken });
+      const connected = await connectPresenceLiveKit({ livekitUrl: created.livekitUrl, livekitToken: created.livekitToken });
       if (!aliveRef.current) {
         await disconnectPresenceLiveKit().catch(() => undefined);
         return;
       }
-      setStatus("Connected · CyberVerse avatar is streaming through LiveKit");
+      setStatus(connected.audioPlaybackEnabled
+        ? "Connected · CyberVerse avatar is streaming through LiveKit"
+        : "Connected · click Enable audio to hear the avatar");
     } catch (error) {
       const closing = sessionRef.current || created;
       sessionRef.current = null;
@@ -124,6 +127,15 @@ export function PresenceWorkspace(): React.JSX.Element {
     } finally { setBusy(false); }
   };
 
+  const enableAudio = async (): Promise<void> => {
+    try {
+      const next = await startPresenceAudioPlayback();
+      setStatus(next.audioPlaybackEnabled ? "Connected · avatar audio enabled" : "Connected · audio playback is still blocked");
+    } catch (error) {
+      setStatus(`Degraded · ${String((error as { message?: string })?.message || "audio playback unavailable")}`);
+    }
+  };
+
   const ready = health.available === true && health.characterCatalogAvailable === true && characters.length > 0;
   return (
     <aside className="yance-presence-workspace" aria-label="Presence Workspace">
@@ -144,6 +156,7 @@ export function PresenceWorkspace(): React.JSX.Element {
       <div className="presence-actions">
         <button type="button" onClick={() => void connect()} disabled={busy || Boolean(session) || !ready || !characterId}>Connect</button>
         <button type="button" onClick={() => void disconnect()} disabled={busy || !session}>Disconnect</button>
+        {liveKit.state === "connected" && !liveKit.audioPlaybackEnabled ? <button type="button" onClick={() => void enableAudio()}>Enable audio</button> : null}
         <button type="button" onClick={() => void setPresenceMicrophoneEnabled(!liveKit.microphoneEnabled)} disabled={liveKit.state !== "connected"}>Microphone · {liveKit.microphoneEnabled ? "On" : "Off"}</button>
         <button type="button" onClick={() => void setPresenceCameraEnabled(!liveKit.cameraEnabled)} disabled={liveKit.state !== "connected"}>Camera · {liveKit.cameraEnabled ? "On" : "Off"}</button>
       </div>
