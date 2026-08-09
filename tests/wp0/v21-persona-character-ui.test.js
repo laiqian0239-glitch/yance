@@ -7,6 +7,7 @@ const path = require('node:path');
 const http = require('node:http');
 const express = require('express');
 const { createPersonaBrainRouter } = require('../../backend/routes/personaBrain');
+const { compilePersonaContext } = require('../../backend/personaBrain/compiler');
 const characterCardParser = require('../../vendor/sillytavern/1.18.0/src/character-card-parser.cjs');
 
 const ROOT = path.resolve(__dirname, '../..');
@@ -39,6 +40,26 @@ function validV3Card(name = 'Mira') {
       creator: 'Yance test',
       character_version: '1',
       extensions: { test: true }
+    }
+  };
+}
+
+function personaVersionRecord(characterCard = {}) {
+  return {
+    version: 3,
+    contentSha256: 'persona-semantic-repair-test',
+    content: {
+      schemaVersion: 1,
+      profileId: 'owner',
+      authoritative: {
+        coreIdentity: { mode: 'verified_real' },
+        personaProfile: { characterCard },
+        replyStylePolicy: { directions: {}, intensity: 'natural' },
+        disclosureRules: {},
+        forbiddenFabrications: []
+      },
+      learned: { preferences: {}, interactionPatterns: {} },
+      metadata: { title: 'Owner', locale: 'de-DE' }
     }
   };
 }
@@ -197,4 +218,25 @@ test('V21 Persona UI: existing validate/export/import/save actions remain presen
   for (const label of ['校验人物基线', '导出JSON', '导入JSON', '保存新版本']) {
     assert.ok(runtime.includes(label), `legacy Persona top action disappeared: ${label}`);
   }
+});
+
+test('V21 Persona semantic repair: creator_notes stays metadata and never becomes runtime Character Note authority', () => {
+  const runtime = source(RUNTIME_PATH);
+  const route = source(ROUTE_PATH);
+  assert.match(route, /creatorNotes:\s*String\(data\.creator_notes\s*\|\|\s*''\)/, 'creator_notes must remain preserved Character Card metadata');
+  assert.match(runtime, /characterNote:\s*\{\s*content:\s*String\(card\.postHistoryInstructions\s*\|\|\s*''\)/, 'runtime Character Note must come only from postHistoryInstructions');
+  assert.doesNotMatch(runtime, /characterNote:\s*\{[\s\S]{0,180}card\.creatorNotes/, 'creatorNotes must never be promoted into runtime Character Note authority');
+});
+
+test('V21 Persona semantic repair: requested nested Character Card book wins before persisted fallback in live compiler', () => {
+  const persistedBook = { entries: [{ keys: ['signal'], content: 'PERSISTED-BOOK', enabled: true }] };
+  const requestedBook = { entries: [{ keys: ['signal'], content: 'REQUESTED-NESTED-BOOK', enabled: true }] };
+  const out = compilePersonaContext(personaVersionRecord({ name: 'Persisted Mira', characterBook: persistedBook }), {
+    socialContext: { customer: { platform: 'whatsapp' }, incomingMessage: { text: 'signal' } },
+    composition: { characterCard: { name: 'Requested Mira', characterBook: requestedBook } }
+  });
+
+  assert.equal(out.safeFallback, false);
+  assert.equal(out.context.persona.composition.characterBookMatches.some(row => row.content === 'REQUESTED-NESTED-BOOK'), true);
+  assert.equal(out.context.persona.composition.characterBookMatches.some(row => row.content === 'PERSISTED-BOOK'), false);
 });

@@ -158,7 +158,9 @@ function compilePersonaContext(versionRecord, options = {}) {
     exampleDialogues: Array.isArray(requestedComposition.exampleDialogues) ? requestedComposition.exampleDialogues : persistedExampleDialogues,
     characterBook: isPlainObject(requestedComposition.characterBook)
       ? requestedComposition.characterBook
-      : (isPlainObject(persistedCharacterCard.characterBook) ? persistedCharacterCard.characterBook : undefined),
+      : (isPlainObject(requestedComposition.characterCard?.characterBook)
+          ? requestedComposition.characterCard.characterBook
+          : (isPlainObject(persistedCharacterCard.characterBook) ? persistedCharacterCard.characterBook : undefined)),
     incomingText: requestedComposition.incomingText || socialContext.incomingMessage?.text || ''
   });
   truthSafePacket.composition = composition;
