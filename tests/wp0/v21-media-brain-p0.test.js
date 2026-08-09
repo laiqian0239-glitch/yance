@@ -55,3 +55,36 @@ test('Media workflows are pinned templates rather than a Yance execution engine'
     assert.equal(workflow.executor, 'comfyui');
   }
 });
+
+test('external Immich credentials require HTTPS outside loopback', async () => {
+  const { createMediaBrainRuntime } = require(runtimePath);
+  let fetchCalls = 0;
+  const runtime = createMediaBrainRuntime({
+    fetchImpl: async () => {
+      fetchCalls += 1;
+      throw new Error('fetch must not be reached for insecure external Immich');
+    },
+    getImmichConfiguration: () => ({
+      endpoint: 'http://192.0.2.10:2283',
+      apiKey: 'secret-key',
+      allowExternalEndpoint: true
+    }),
+    getComfyuiConfiguration: () => ({ endpoint: 'http://127.0.0.1:8188' })
+  });
+
+  await assert.rejects(
+    () => runtime.searchAssets({ query: 'security' }),
+    error => error?.reasonCode === 'MEDIA_EXTERNAL_HTTPS_REQUIRED'
+  );
+  assert.equal(fetchCalls, 0, 'insecure external Immich must be rejected before any credential-bearing fetch');
+});
+
+test('Immich settings merge preserves the saved API key unless replacement or clear is explicit', () => {
+  const { mergeImmichConfiguration } = require(runtimePath);
+  assert.equal(typeof mergeImmichConfiguration, 'function', 'Media settings must merge inside the trusted main/runtime boundary');
+
+  const existing = { endpoint: 'https://immich.example', apiKey: 'saved-secret', allowExternalEndpoint: true };
+  assert.equal(mergeImmichConfiguration(existing, { endpoint: 'https://photos.example', apiKey: '', allowExternalEndpoint: true }).apiKey, 'saved-secret');
+  assert.equal(mergeImmichConfiguration(existing, { endpoint: 'https://photos.example', apiKey: 'replacement', allowExternalEndpoint: true }).apiKey, 'replacement');
+  assert.equal(mergeImmichConfiguration(existing, { endpoint: 'https://photos.example', clearApiKey: true, allowExternalEndpoint: true }).apiKey, '');
+});

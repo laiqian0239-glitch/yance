@@ -76,6 +76,7 @@ contextBridge.exposeInMainWorld('yanceDesktop', Object.freeze({
   deleteParlantRelationshipGoal: input => ipcRenderer.invoke('desktop:parlant-delete-relationship-goal', input || {}),
   setParlantRelationshipGoalPaused: input => ipcRenderer.invoke('desktop:parlant-set-relationship-goal-paused', input || {}),
   getMediaBrainHealth: () => ipcRenderer.invoke('desktop:media-brain-health'),
+  saveMediaBrainSettings: input => ipcRenderer.invoke('desktop:media-brain-save-settings', input || {}),
   importMediaAsset: input => ipcRenderer.invoke('desktop:media-brain-import-asset', input || {}),
   searchMediaAssets: input => ipcRenderer.invoke('desktop:media-brain-search-assets', input || {}),
   listMediaPeople: input => ipcRenderer.invoke('desktop:media-brain-list-people', input || {}),

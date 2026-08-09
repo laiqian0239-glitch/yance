@@ -29,8 +29,10 @@ type DesktopMediaApi = {
   getMediaWorkflowResult: (input: Record<string, unknown>) => Promise<WorkflowResult>;
   saveMediaWorkflowOutput: (input: Record<string, unknown>) => Promise<{ asset?: MediaAsset; selectable?: boolean }>;
   sendMediaAsset: (input: Record<string, unknown>) => Promise<unknown>;
-  saveCredential: (ref: string, value: Record<string, unknown>) => Promise<unknown>;
+  saveMediaBrainSettings: (input: Record<string, unknown>) => Promise<unknown>;
 };
+
+type ExternalPolicyIntent = "preserve" | "allow" | "loopback";
 
 function desktopApi(): DesktopMediaApi | null {
   const api = (window as unknown as { yanceDesktop?: Partial<DesktopMediaApi> }).yanceDesktop;
@@ -85,11 +87,12 @@ export function MediaWorkspace(): React.JSX.Element {
   const [workflowKind, setWorkflowKind] = useState<"generate" | "edit">("generate");
   const [workflowPromptId, setWorkflowPromptId] = useState("");
   const [workflowOutput, setWorkflowOutput] = useState<WorkflowResult | null>(null);
-  const [immichEndpoint, setImmichEndpoint] = useState("http://127.0.0.1:2283");
+  const [immichEndpoint, setImmichEndpoint] = useState("");
   const [immichApiKey, setImmichApiKey] = useState("");
-  const [immichExternal, setImmichExternal] = useState(false);
-  const [comfyEndpoint, setComfyEndpoint] = useState("http://127.0.0.1:8188");
-  const [comfyExternal, setComfyExternal] = useState(false);
+  const [immichExternalIntent, setImmichExternalIntent] = useState<ExternalPolicyIntent>("preserve");
+  const [clearImmichApiKey, setClearImmichApiKey] = useState(false);
+  const [comfyEndpoint, setComfyEndpoint] = useState("");
+  const [comfyExternalIntent, setComfyExternalIntent] = useState<ExternalPolicyIntent>("preserve");
   const [platform, setPlatform] = useState("whatsapp");
   const [accountId, setAccountId] = useState("");
   const [chatJid, setChatJid] = useState("");
@@ -119,9 +122,22 @@ export function MediaWorkspace(): React.JSX.Element {
     if (!api || busy) return;
     setBusy(true);
     try {
-      await api.saveCredential("media:immich:default", { endpoint: immichEndpoint.trim(), apiKey: immichApiKey.trim(), allowExternalEndpoint: immichExternal });
-      await api.saveCredential("media:comfyui:default", { endpoint: comfyEndpoint.trim(), allowExternalEndpoint: comfyExternal });
-      setStatus("Media endpoints saved in existing Yance credential custody");
+      const nextSettings: Record<string, unknown> = {
+        ...(immichEndpoint.trim() ? { immichEndpoint: immichEndpoint.trim() } : {}),
+        ...(immichApiKey.trim() ? { immichApiKey: immichApiKey.trim() } : {}),
+        ...(clearImmichApiKey ? { clearImmichApiKey: true } : {}),
+        ...(immichExternalIntent !== "preserve" ? { immichAllowExternalEndpoint: immichExternalIntent === "allow" } : {}),
+        ...(comfyEndpoint.trim() ? { comfyuiEndpoint: comfyEndpoint.trim() } : {}),
+        ...(comfyExternalIntent !== "preserve" ? { comfyuiAllowExternalEndpoint: comfyExternalIntent === "allow" } : {})
+      };
+      await api.saveMediaBrainSettings(nextSettings);
+      setImmichEndpoint("");
+      setImmichApiKey("");
+      setImmichExternalIntent("preserve");
+      setClearImmichApiKey(false);
+      setComfyEndpoint("");
+      setComfyExternalIntent("preserve");
+      setStatus("Media settings updated in existing Yance credential custody");
       await refreshHealth();
     } catch (error) {
       setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "settings unavailable")}`);
@@ -243,11 +259,12 @@ export function MediaWorkspace(): React.JSX.Element {
       <details>
         <summary>Upstream settings</summary>
         <div className="media-grid">
-          <label>Immich endpoint<input value={immichEndpoint} onChange={(event) => setImmichEndpoint(event.target.value)} /></label>
-          <label>Immich API key<input type="password" value={immichApiKey} onChange={(event) => setImmichApiKey(event.target.value)} autoComplete="off" /></label>
-          <label className="media-check"><input type="checkbox" checked={immichExternal} onChange={(event) => setImmichExternal(event.target.checked)} /> Explicit external Immich endpoint</label>
-          <label>ComfyUI endpoint<input value={comfyEndpoint} onChange={(event) => setComfyEndpoint(event.target.value)} /></label>
-          <label className="media-check"><input type="checkbox" checked={comfyExternal} onChange={(event) => setComfyExternal(event.target.checked)} /> Explicit external ComfyUI endpoint</label>
+          <label>Immich endpoint<input value={immichEndpoint} onChange={(event) => setImmichEndpoint(event.target.value)} placeholder="Leave blank to keep current endpoint" /></label>
+          <label>Immich API key<input type="password" value={immichApiKey} onChange={(event) => setImmichApiKey(event.target.value)} autoComplete="off" placeholder="Leave blank to keep saved key" /></label>
+          <label>Immich external policy<select value={immichExternalIntent} onChange={(event) => setImmichExternalIntent(event.target.value as ExternalPolicyIntent)}><option value="preserve">Keep current policy</option><option value="allow">Allow external HTTPS</option><option value="loopback">Loopback only</option></select></label>
+          <label className="media-check"><input type="checkbox" checked={clearImmichApiKey} onChange={(event) => setClearImmichApiKey(event.target.checked)} /> Clear saved Immich API key</label>
+          <label>ComfyUI endpoint<input value={comfyEndpoint} onChange={(event) => setComfyEndpoint(event.target.value)} placeholder="Leave blank to keep current endpoint" /></label>
+          <label>ComfyUI external policy<select value={comfyExternalIntent} onChange={(event) => setComfyExternalIntent(event.target.value as ExternalPolicyIntent)}><option value="preserve">Keep current policy</option><option value="allow">Allow external endpoint</option><option value="loopback">Loopback only</option></select></label>
           <button type="button" onClick={() => void saveSettings()} disabled={busy}>Save settings</button>
         </div>
       </details>

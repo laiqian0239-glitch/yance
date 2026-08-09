@@ -55,3 +55,20 @@ test('Desktop preload and IPC manifest expose the Media runtime without creating
 
   assert.doesNotMatch(preload, /createMediaSendQueue|MediaSendAuthority/u, 'existing send authority must be reused');
 });
+
+test('Media workspace CSS uses lint-clean currentcolor keyword casing', () => {
+  const css = read('integration/element-module/src/MediaWorkspace.css');
+  assert.match(css, /currentcolor/u, 'Media CSS must satisfy the Stylelint keyword casing');
+  assert.doesNotMatch(css, /currentColor/u, 'mixed-case currentColor must not remain');
+});
+
+test('Media settings use a secret-preserving Media settings IPC', () => {
+  const workspace = read('integration/element-module/src/MediaWorkspace.tsx');
+  const preload = read('electron/preload.js');
+  const manifest = JSON.parse(read('electron/m2/ipcManifest.json'));
+
+  assert.match(workspace, /saveMediaBrainSettings/u, 'renderer must use a Media-specific settings projection');
+  assert.doesNotMatch(workspace, /api\.saveCredential\(/u, 'renderer must not replace the whole Immich credential record');
+  assert.match(preload, /saveMediaBrainSettings/u, 'preload must expose the Media-specific settings projection');
+  assert.equal(manifest.handlers.some(handler => handler.channel === 'desktop:media-brain-save-settings'), true, 'IPC manifest must declare the Media settings handler');
+});
