@@ -10,6 +10,7 @@ $ExpectedTree = "98627d729e47b181cebb6ae8afe60201bbd56993"
 $ExpectedCoreTree = "cb54d17e6ce0a0ad98c992f9642957faa998bbca"
 $ExpectedLicenseBlob = "3bfef5bae9b48c334acf426d5b7f21bc1913aab9"
 $ExpectedUvLockBlob = "08d10667fb1fde67211a74ad1d4c747c0fb84cf3"
+$ExpectedInitBlob = "3f8c742c5a2462ec0c08ed24e774bb88e303752f"
 $ExpectedPython = "3.12.13"
 $ExpectedUv = "0.12.3"
 $BuildPhase = "source-integrity"
@@ -21,6 +22,7 @@ if ((git -C $source rev-parse 'HEAD^{tree}').Trim() -ne $ExpectedTree) { throw "
 if ((git -C $source rev-parse 'HEAD:litellm').Trim() -ne $ExpectedCoreTree) { throw "LiteLLM core tree mismatch" }
 if ((git -C $source hash-object LICENSE).Trim() -ne $ExpectedLicenseBlob) { throw "LiteLLM license blob mismatch" }
 if ((git -C $source hash-object uv.lock).Trim() -ne $ExpectedUvLockBlob) { throw "uv.lock blob mismatch" }
+if ((git -C $source hash-object litellm/__init__.py).Trim() -ne $ExpectedInitBlob) { throw "LiteLLM SDK init blob mismatch" }
 
 $BuildPhase = "python-bootstrap"
 Remove-Item $Output -Recurse -Force -ErrorAction SilentlyContinue
@@ -56,9 +58,7 @@ if (-not $sitePackages -or -not (Test-Path $sitePackages)) { throw "sealed site-
 $BuildPhase = "sdk-materialization"
 # Do not `pip install` the LiteLLM project: v1.95.0 uses maturin as its build backend.
 # Materialize the reviewed MIT SDK source tree, then replace the open-core Proxy tree
-# with only the exact upstream shared Python modules required by the base SDK import
-# closure. No Yance compatibility stub is introduced: every retained byte comes from
-# the already verified LiteLLM core tree at $ExpectedCommit.
+# with only exact upstream shared Python modules required by the base SDK import closure.
 $litellmTarget = Join-Path $sitePackages "litellm"
 Remove-Item $litellmTarget -Recurse -Force -ErrorAction SilentlyContinue
 Copy-Item (Join-Path $source "litellm") $litellmTarget -Recurse
@@ -87,6 +87,20 @@ $missingProxyFiles = @($SharedProxyFiles | Where-Object { $_ -notin $actualProxy
 if ($unexpectedProxyFiles.Count -gt 0 -or $missingProxyFiles.Count -gt 0) {
   throw "LiteLLM shared proxy import closure mismatch; unexpected=$($unexpectedProxyFiles -join ','); missing=$($missingProxyFiles -join ',')"
 }
+
+# The pinned upstream top-level SDK initializer imports the Proxy CLI entrypoint even
+# though Router is the next import and the base SDK does not need to run a server.
+# Keep the patch deterministic and fail closed: bind the exact upstream init blob above,
+# require the exact import exactly once, and record the packaging patch in the manifest.
+$SdkInitPatch = "omit-proxy-cli-top-level-import"
+$proxyCliImport = "from .proxy.proxy_cli import run_server"
+$targetInit = Join-Path $litellmTarget "__init__.py"
+$initText = [IO.File]::ReadAllText($targetInit)
+$proxyCliImportCount = ([regex]::Matches($initText, [regex]::Escape($proxyCliImport))).Count
+if ($proxyCliImportCount -ne 1) { throw "LiteLLM Proxy CLI init import preimage mismatch: count=$proxyCliImportCount" }
+$patchedInit = $initText.Replace($proxyCliImport, "# sealed base SDK packaging: Proxy CLI entrypoint omitted")
+[IO.File]::WriteAllText($targetInit, $patchedInit, [Text.UTF8Encoding]::new($false))
+if (Select-String -Path $targetInit -SimpleMatch $proxyCliImport -Quiet) { throw "LiteLLM Proxy CLI init import survived deterministic patch" }
 
 Get-ChildItem $litellmTarget -Recurse -File | Where-Object { $_.Name -match '^_native\.(pyd|dll|so)$' -or $_.Extension -in @('.pyd','.dll','.so') -and $_.FullName -match 'rust_bridge' } | Remove-Item -Force
 if (Get-ChildItem $litellmTarget -Recurse -File | Where-Object { $_.FullName -match 'litellm-proxy-extras|litellm-enterprise|proxy_server|rust_bridge[\\/]+_native\.(pyd|dll|so)' }) { throw "forbidden Proxy server/enterprise/Rust native payload" }
@@ -123,6 +137,8 @@ $BuildPhase = "manifest"
   proxyPayload = $false
   proxyServerPayload = $false
   retainedSharedProxyModules = $SharedProxyFiles
+  sdkInitPatch = $SdkInitPatch
+  sdkInitSourceBlob = $ExpectedInitBlob
   excluded = @('enterprise','proxy server','proxy_server','litellm-proxy-extras','Rust native bridge','network resolution at runtime')
 } | ConvertTo-Json -Depth 4 | Set-Content -Encoding UTF8 (Join-Path $OutputRoot "runtime-manifest.json")
 } catch {
