@@ -307,7 +307,7 @@
     state.v2.characterCard = {
       ...card,
       name: String(card.name || ''), description: String(card.description || ''), personality: String(card.personality || ''), scenario: String(card.scenario || ''),
-      characterNote: { content: String(card.postHistoryInstructions || card.creatorNotes || ''), depth: 4, role: 'system' },
+      characterNote: { content: String(card.postHistoryInstructions || ''), depth: 4, role: 'system' },
       characterBook: card.characterBook && typeof card.characterBook === 'object' ? cloneJson(card.characterBook) : undefined
     };
     syncV2DraftToAuthoritative();
