@@ -2,6 +2,7 @@
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const openSourceWorkPackagePolicy = require('./openSourceWorkPackagePolicy');
@@ -29,6 +30,14 @@ const AUTHORIZATION_PROPOSAL_TRANSPORT_MODE = 'AUTHORIZATION_PROPOSAL_TRANSPORT'
 const TRUSTED_MAIN_DELEGATED_GOVERNANCE_MODE = 'TRUSTED_MAIN_DELEGATED_GOVERNANCE';
 const DELEGATED_ROUTE_POLICY_PATH = 'governance/layered-ci/wp0-routing-policy.json';
 const DELEGATED_ROUTE_POLICY_MUTATION_DENIED = 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED';
+const DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED = 'WP0_DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED';
+const DEPENDENCY_IDENTITY_SECTIONS = new Set([
+  'dependencies',
+  'devDependencies',
+  'optionalDependencies',
+  'peerDependencies'
+]);
+const EXACT_DEPENDENCY_VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u;
 const DEPENDENCY_CONTROL_FILENAMES = new Set([
   'package.json',
   'package-lock.json',
@@ -254,6 +263,18 @@ function sameJson(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function stableJsonValue(value) {
+  if (Array.isArray(value)) return value.map(stableJsonValue);
+  if (!value || typeof value !== 'object') return value;
+  const stable = {};
+  for (const key of Object.keys(value).sort()) stable[key] = stableJsonValue(value[key]);
+  return stable;
+}
+
+function sameJsonSemantics(left, right) {
+  return sameJson(stableJsonValue(left), stableJsonValue(right));
+}
+
 function trustedGitBuffer(args, options = {}) {
   return execFileSync('git', args, {
     cwd: path.resolve(options.trustedPolicyRoot || TRUSTED_POLICY_ROOT),
@@ -410,6 +431,54 @@ function isValidExactDependencyModificationPolicy(implementation, implementation
   return sameJson(dependencyPaths, implementationDependencyPaths);
 }
 
+function isPlainJsonObject(value) {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function isValidDependencyIdentityName(value) {
+  return typeof value === 'string'
+    && value === value.trim()
+    && /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/u.test(value);
+}
+
+function isExactDependencyIdentityVersion(value) {
+  return typeof value === 'string'
+    && value === value.trim()
+    && EXACT_DEPENDENCY_VERSION.test(value);
+}
+
+function resolveDependencyIdentityPolicy(implementation, implementationPaths) {
+  if (!Object.prototype.hasOwnProperty.call(implementation || {}, 'dependencyIdentityPolicy')) return null;
+  const policy = implementation.dependencyIdentityPolicy;
+  if (!isPlainJsonObject(policy) || !sameJson(Object.keys(policy).sort(), ['entries'])) return false;
+  if (!Array.isArray(policy.entries) || policy.entries.length === 0) return false;
+  const dependencyPaths = new Set(implementation?.dependencyModificationPolicy?.allowedDependencyPaths || []);
+  const implementationPathSet = new Set(implementationPaths || []);
+  const seenIdentities = new Set();
+  const normalizedEntries = [];
+  for (const entry of policy.entries) {
+    if (!isPlainJsonObject(entry)
+      || !sameJson(Object.keys(entry).sort(), ['name', 'path', 'section', 'version'])
+      || !isExactAdditionalPath(entry.path)
+      || path.posix.basename(entry.path) !== 'package.json'
+      || !dependencyPaths.has(entry.path)
+      || !implementationPathSet.has(entry.path)
+      || !DEPENDENCY_IDENTITY_SECTIONS.has(entry.section)
+      || !isValidDependencyIdentityName(entry.name)
+      || !isExactDependencyIdentityVersion(entry.version)) return false;
+    const identity = `${entry.path}\0${entry.name}`;
+    if (seenIdentities.has(identity)) return false;
+    seenIdentities.add(identity);
+    normalizedEntries.push(Object.freeze({
+      path: entry.path,
+      section: entry.section,
+      name: entry.name,
+      version: entry.version
+    }));
+  }
+  return Object.freeze({ entries: Object.freeze(normalizedEntries) });
+}
+
 function isValidGenericDelegatedGovernanceAuthorization(document, authorizationPath) {
   if (!isGenericDelegatedGovernanceAuthorizationPath(authorizationPath)
     || !document
@@ -463,10 +532,13 @@ function isValidGenericDelegatedGovernanceAuthorization(document, authorizationP
   const dependencyPaths = implementationPaths.filter(isDependencyControlPath);
   if (document.implementation.newDependencyAllowed === false) {
     if (dependencyPaths.length !== 0
-      || Object.prototype.hasOwnProperty.call(document.implementation, 'dependencyModificationPolicy')) return false;
+      || Object.prototype.hasOwnProperty.call(document.implementation, 'dependencyModificationPolicy')
+      || Object.prototype.hasOwnProperty.call(document.implementation, 'dependencyIdentityPolicy')) return false;
   } else if (!isValidExactDependencyModificationPolicy(document.implementation, implementationPaths)) {
     return false;
   }
+  if (Object.prototype.hasOwnProperty.call(document.implementation, 'dependencyIdentityPolicy')
+    && resolveDependencyIdentityPolicy(document.implementation, implementationPaths) === false) return false;
 
   const workflowPaths = implementationPaths.filter(isWorkflowControlPath);
   if (document.implementation.workflowModificationAllowed === false) {
@@ -639,6 +711,237 @@ function validateDelegatedRoutePolicyMutation(options = {}) {
     declaredPaths: declaration.paths,
     declarationPathField: declaration.pathField
   });
+}
+
+function validateDelegatedDependencyIdentityMutation(options = {}) {
+  const authorization = options.authorization;
+  const repositoryPath = normalizeRepositoryPath(options.repositoryPath);
+  const baseManifest = options.baseManifest;
+  const candidateManifest = options.candidateManifest;
+  const denied = () => Object.freeze({
+    pass: false,
+    reasonCode: DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED
+  });
+  if (!repositoryPath || !isPlainJsonObject(baseManifest) || !isPlainJsonObject(candidateManifest)) return denied();
+  const implementation = authorization?.implementation;
+  const implementationPaths = normalizeChangedFiles(implementation?.allowedChangedPaths);
+  const policy = resolveDependencyIdentityPolicy(implementation, implementationPaths);
+  if (!policy) return denied();
+  const entries = policy.entries.filter(entry => entry.path === repositoryPath);
+  if (entries.length === 0) return denied();
+
+  const expected = JSON.parse(JSON.stringify(baseManifest));
+  for (const entry of entries) {
+    for (const section of DEPENDENCY_IDENTITY_SECTIONS) {
+      const sectionValue = baseManifest[section];
+      if (sectionValue !== undefined && !isPlainJsonObject(sectionValue)) return denied();
+      if (isPlainJsonObject(sectionValue)
+        && Object.prototype.hasOwnProperty.call(sectionValue, entry.name)) return denied();
+    }
+    if (expected[entry.section] === undefined) expected[entry.section] = {};
+    if (!isPlainJsonObject(expected[entry.section])) return denied();
+    expected[entry.section][entry.name] = entry.version;
+  }
+  if (!sameJsonSemantics(expected, candidateManifest)) return denied();
+  return Object.freeze({
+    pass: true,
+    reasonCode: null,
+    repositoryPath,
+    entries: Object.freeze(entries)
+  });
+}
+
+function dependencyManifestPathForControlPath(repositoryPath) {
+  const normalized = normalizeRepositoryPath(repositoryPath);
+  if (!normalized || !isDependencyControlPath(normalized)) return '';
+  if (path.posix.basename(normalized) === 'package.json') return normalized;
+  const directory = path.posix.dirname(normalized);
+  return directory === '.' ? 'package.json' : `${directory}/package.json`;
+}
+
+function isNpmDependencyLockPath(repositoryPath) {
+  const filename = path.posix.basename(repositoryPath);
+  return filename === 'package-lock.json' || filename === 'npm-shrinkwrap.json';
+}
+
+function dependencySectionProjection(document) {
+  if (!isPlainJsonObject(document)) return null;
+  const projection = {};
+  for (const section of DEPENDENCY_IDENTITY_SECTIONS) {
+    if (!Object.prototype.hasOwnProperty.call(document, section)) continue;
+    if (!isPlainJsonObject(document[section])) return null;
+    projection[section] = document[section];
+  }
+  return projection;
+}
+
+function directDependencyNamesFromProjection(projection) {
+  if (!isPlainJsonObject(projection)) return null;
+  const names = new Set();
+  for (const section of DEPENDENCY_IDENTITY_SECTIONS) {
+    if (section === 'peerDependencies') continue;
+    const dependencies = projection[section];
+    if (dependencies === undefined) continue;
+    if (!isPlainJsonObject(dependencies)) return null;
+    for (const name of Object.keys(dependencies)) names.add(name);
+  }
+  return names;
+}
+
+function sameDirectLockDescriptorIdentity(baseDescriptor, candidateDescriptor) {
+  if (!isPlainJsonObject(baseDescriptor) || !isPlainJsonObject(candidateDescriptor)) return false;
+  const identityFields = ['version', 'resolved', 'integrity', 'link'];
+  for (const field of identityFields) {
+    const baseHasField = Object.prototype.hasOwnProperty.call(baseDescriptor, field);
+    const candidateHasField = Object.prototype.hasOwnProperty.call(candidateDescriptor, field);
+    if (baseHasField !== candidateHasField) return false;
+    if (baseHasField && candidateDescriptor[field] !== baseDescriptor[field]) return false;
+  }
+  return identityFields.some(field => Object.prototype.hasOwnProperty.call(baseDescriptor, field));
+}
+
+function collectNpmLockTreePackagePaths(node, temporaryRoot, packagePaths = new Set()) {
+  if (!isPlainJsonObject(node)) return null;
+  if (typeof node.path === 'string') {
+    const relativePath = path.relative(temporaryRoot, node.path);
+    if (relativePath === '' || relativePath === '.') packagePaths.add('');
+    else if (path.isAbsolute(relativePath)
+      || relativePath === '..'
+      || relativePath.startsWith(`..${path.sep}`)) return null;
+    else packagePaths.add(relativePath.split(path.sep).join('/'));
+  }
+  if (node.dependencies === undefined) return packagePaths;
+  if (!isPlainJsonObject(node.dependencies)) return null;
+  for (const dependency of Object.values(node.dependencies)) {
+    if (!isPlainJsonObject(dependency)) return null;
+    if (dependency.missing === true) return null;
+    if (!collectNpmLockTreePackagePaths(dependency, temporaryRoot, packagePaths)) return null;
+  }
+  return packagePaths;
+}
+
+function resolveNpmLockTreePackagePaths(
+  candidateManifest,
+  candidateLockfile,
+  lockfileFilename = 'package-lock.json'
+) {
+  if (!isPlainJsonObject(candidateManifest)
+    || !isPlainJsonObject(candidateLockfile)
+    || !['package-lock.json', 'npm-shrinkwrap.json'].includes(lockfileFilename)) return null;
+  let temporaryRoot = null;
+  try {
+    temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-npm-lock-tree-'));
+    const userConfigPath = path.join(temporaryRoot, 'user.npmrc');
+    const globalConfigPath = path.join(temporaryRoot, 'global.npmrc');
+    fs.writeFileSync(path.join(temporaryRoot, 'package.json'), `${JSON.stringify(candidateManifest)}\n`, 'utf8');
+    fs.writeFileSync(path.join(temporaryRoot, lockfileFilename), `${JSON.stringify(candidateLockfile)}\n`, 'utf8');
+    fs.writeFileSync(userConfigPath, '', 'utf8');
+    fs.writeFileSync(globalConfigPath, '', 'utf8');
+    const environment = {
+      ...buildTrustedGitEnvironment(process.env),
+      npm_config_userconfig: userConfigPath,
+      npm_config_globalconfig: globalConfigPath,
+      npm_config_cache: path.join(temporaryRoot, 'npm-cache'),
+      npm_config_ignore_scripts: 'true',
+      npm_config_audit: 'false',
+      npm_config_fund: 'false',
+      npm_config_update_notifier: 'false',
+      npm_config_offline: 'true'
+    };
+    const npmExecutable = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    const args = [
+      'ls',
+      '--package-lock-only',
+      '--json',
+      '--all',
+      '--long',
+      '--include=dev',
+      '--include=optional',
+      '--include=peer'
+    ];
+    let output;
+    try {
+      output = execFileSync(npmExecutable, args, {
+        cwd: temporaryRoot,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: environment,
+        timeout: 10000,
+        maxBuffer: 4 * 1024 * 1024,
+        windowsHide: true
+      });
+    } catch (error) {
+      if (error?.status !== 1 || typeof error.stdout !== 'string' || !error.stdout.trim()) return null;
+      output = error.stdout;
+    }
+    const tree = JSON.parse(output);
+    if (!isPlainJsonObject(tree)
+      || (isPlainJsonObject(tree.error) && tree.error.code !== 'ELSPROBLEMS')) return null;
+    return collectNpmLockTreePackagePaths(tree, temporaryRoot);
+  } catch (_) {
+    return null;
+  } finally {
+    if (temporaryRoot) fs.rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+}
+
+function isNpmInstalledPackageLocation(repositoryPath) {
+  return repositoryPath.startsWith('node_modules/') || repositoryPath.includes('/node_modules/');
+}
+
+function validateDelegatedNpmLockfileClosure(
+  candidateManifest,
+  candidateLockfile,
+  identityEntries = [],
+  baselineLockfile = null,
+  lockfileFilename = 'package-lock.json'
+) {
+  if (!isPlainJsonObject(candidateManifest)
+    || !isPlainJsonObject(candidateLockfile)
+    || !Array.isArray(identityEntries)
+    || ![2, 3].includes(candidateLockfile.lockfileVersion)
+    || !isPlainJsonObject(candidateLockfile.packages)
+    || !isPlainJsonObject(candidateLockfile.packages[''])) return false;
+  const manifestProjection = dependencySectionProjection(candidateManifest);
+  const lockfileProjection = dependencySectionProjection(candidateLockfile.packages['']);
+  if (!manifestProjection
+    || !lockfileProjection
+    || !sameJsonSemantics(manifestProjection, lockfileProjection)) return false;
+  const npmTreePackagePaths = resolveNpmLockTreePackagePaths(
+    candidateManifest,
+    candidateLockfile,
+    lockfileFilename
+  );
+  if (!(npmTreePackagePaths instanceof Set)) return false;
+  for (const packageLocation of Object.keys(candidateLockfile.packages)) {
+    if (packageLocation !== '' && normalizeRepositoryPath(packageLocation) !== packageLocation) return false;
+    if (isNpmInstalledPackageLocation(packageLocation) && !npmTreePackagePaths.has(packageLocation)) return false;
+  }
+  for (const entry of identityEntries) {
+    const lockDescriptor = candidateLockfile.packages[`node_modules/${entry.name}`];
+    if (entry.section === 'peerDependencies') {
+      if (lockDescriptor !== undefined
+        && (!isPlainJsonObject(lockDescriptor) || lockDescriptor.version !== entry.version)) return false;
+      continue;
+    }
+    if (!isPlainJsonObject(lockDescriptor) || lockDescriptor.version !== entry.version) return false;
+  }
+  if (baselineLockfile !== null) {
+    if (!isPlainJsonObject(baselineLockfile)
+      || ![2, 3].includes(baselineLockfile.lockfileVersion)
+      || !isPlainJsonObject(baselineLockfile.packages)
+      || !isPlainJsonObject(baselineLockfile.packages[''])) return false;
+    const baselineProjection = dependencySectionProjection(baselineLockfile.packages['']);
+    const existingDirectNames = directDependencyNamesFromProjection(baselineProjection);
+    if (!baselineProjection || !existingDirectNames) return false;
+    for (const name of existingDirectNames) {
+      if (!sameDirectLockDescriptorIdentity(
+        baselineLockfile.packages[`node_modules/${name}`],
+        candidateLockfile.packages[`node_modules/${name}`]
+      )) return false;
+    }
+  }
+  return true;
 }
 
 function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
@@ -965,6 +1268,113 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
         reviewedAuthorizationHead: match.reviewedHead,
         unauthorizedPaths: Object.freeze([])
       });
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(match.authorization.implementation, 'dependencyIdentityPolicy')) {
+    const identityPolicy = resolveDependencyIdentityPolicy(
+      match.authorization.implementation,
+      match.authorization.implementation.allowedChangedPaths
+    );
+    if (!identityPolicy) {
+      return Object.freeze({
+        pass: false,
+        reasonCode: DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED,
+        authorityMode: null,
+        authorizationPath: match.authorizationPath,
+        authorizationMergeCommit: match.mergeCommit,
+        reviewedAuthorizationHead: match.reviewedHead,
+        unauthorizedPaths: Object.freeze([])
+      });
+    }
+    const denyDependencyIdentityMutation = () => Object.freeze({
+      pass: false,
+      reasonCode: DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED,
+      authorityMode: null,
+      authorizationPath: match.authorizationPath,
+      authorizationMergeCommit: match.mergeCommit,
+      reviewedAuthorizationHead: match.reviewedHead,
+      unauthorizedPaths: Object.freeze([])
+    });
+    const declaredManifestPaths = new Set(identityPolicy.entries.map(entry => entry.path));
+    const changedDependencyPaths = implementationNormalized.filter(isDependencyControlPath);
+    const changedDependencyPathSet = new Set(changedDependencyPaths);
+    const authorizedDependencyPaths = match.authorization.implementation.dependencyModificationPolicy.allowedDependencyPaths;
+    const authorizedDependencyPathSet = new Set(authorizedDependencyPaths);
+    const loadDependencyControl = options.loadDependencyControlAtCommit
+      || options.loadDependencyManifestAtCommit
+      || ((commit, repositoryPath) => defaultAuthorizationAtCommit(commit, repositoryPath, options));
+    const loadNpmLockfileBaseline = repositoryPath => {
+      if (!isNpmDependencyLockPath(repositoryPath)) return null;
+      if (SHA40.test(String(resolveBlob(trustedMainHead, repositoryPath) || ''))) {
+        const trustedDocument = loadDependencyControl(trustedMainHead, repositoryPath);
+        return isPlainJsonObject(trustedDocument) ? trustedDocument : false;
+      }
+      const baseDocument = loadDependencyControl(implementationBase, repositoryPath);
+      if (baseDocument === null || baseDocument === undefined) return null;
+      return isPlainJsonObject(baseDocument) ? baseDocument : false;
+    };
+
+    for (const repositoryPath of changedDependencyPaths) {
+      const manifestPath = dependencyManifestPathForControlPath(repositoryPath);
+      if (!manifestPath || !declaredManifestPaths.has(manifestPath)) return denyDependencyIdentityMutation();
+
+      if (repositoryPath === manifestPath) {
+        const identityValidation = validateDelegatedDependencyIdentityMutation({
+          authorization: match.authorization,
+          repositoryPath,
+          baseManifest: loadDependencyControl(implementationBase, repositoryPath),
+          candidateManifest: loadDependencyControl(evaluatedHead, repositoryPath)
+        });
+        if (!identityValidation.pass) return denyDependencyIdentityMutation();
+        continue;
+      }
+
+      if (!changedDependencyPathSet.has(manifestPath) || !isNpmDependencyLockPath(repositoryPath)) {
+        return denyDependencyIdentityMutation();
+      }
+      const baselineLockfile = loadNpmLockfileBaseline(repositoryPath);
+      if (baselineLockfile === false || !validateDelegatedNpmLockfileClosure(
+        loadDependencyControl(evaluatedHead, manifestPath),
+        loadDependencyControl(evaluatedHead, repositoryPath),
+        identityPolicy.entries.filter(entry => entry.path === manifestPath),
+        baselineLockfile,
+        path.posix.basename(repositoryPath)
+      )) return denyDependencyIdentityMutation();
+    }
+
+    for (const manifestPath of declaredManifestPaths) {
+      if (!changedDependencyPathSet.has(manifestPath)) continue;
+      const manifestDirectory = path.posix.dirname(manifestPath);
+      const manifestPrefix = manifestDirectory === '.' ? '' : `${manifestDirectory}/`;
+      const existingNpmLockPaths = [
+        `${manifestPrefix}package-lock.json`,
+        `${manifestPrefix}npm-shrinkwrap.json`
+      ].filter(repositoryPath => [implementationBase, trustedMainHead].some(commit => (
+        SHA40.test(String(resolveBlob(commit, repositoryPath) || ''))
+      )));
+      const companionPaths = [...new Set([
+        ...authorizedDependencyPaths.filter(repositoryPath => (
+          repositoryPath !== manifestPath
+          && dependencyManifestPathForControlPath(repositoryPath) === manifestPath
+        )),
+        ...existingNpmLockPaths
+      ])];
+      for (const companionPath of companionPaths) {
+        if (!authorizedDependencyPathSet.has(companionPath)
+          || !changedDependencyPathSet.has(companionPath)
+          || !isNpmDependencyLockPath(companionPath)) {
+          return denyDependencyIdentityMutation();
+        }
+        const baselineLockfile = loadNpmLockfileBaseline(companionPath);
+        if (baselineLockfile === false || !validateDelegatedNpmLockfileClosure(
+          loadDependencyControl(evaluatedHead, manifestPath),
+          loadDependencyControl(evaluatedHead, companionPath),
+          identityPolicy.entries.filter(entry => entry.path === manifestPath),
+          baselineLockfile,
+          path.posix.basename(companionPath)
+        )) return denyDependencyIdentityMutation();
+      }
     }
   }
 
@@ -1397,6 +1807,7 @@ module.exports = {
   TRUSTED_MAIN_DELEGATED_GOVERNANCE_MODE,
   DELEGATED_ROUTE_POLICY_PATH,
   DELEGATED_ROUTE_POLICY_MUTATION_DENIED,
+  DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED,
   canonicalStageBranch,
   isReleaseClosureRebuildBranch,
   buildTrustedGitEnvironment,
@@ -1413,6 +1824,7 @@ module.exports = {
   isValidGenericDelegatedGovernanceAuthorization,
   evaluateDelegatedGovernanceAuthorizationProposal,
   validateDelegatedRoutePolicyMutation,
+  validateDelegatedDependencyIdentityMutation,
   evaluateTrustedDelegatedGovernanceBranch,
   isAuthorizedDelegatedGovernanceBranch,
   isAuthorizedImplementationBranch,
