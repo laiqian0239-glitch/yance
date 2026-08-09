@@ -517,3 +517,24 @@ test('trusted delegated evaluator rejects an installed peer that violates the ex
   assert.equal(result.pass, false, JSON.stringify(result));
   assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
 });
+
+test('trusted delegated evaluator rejects missing required npm topology while preserving optional absence', () => {
+  const missingRequired = exactLockfile();
+  missingRequired.packages['node_modules/livekit-client'].dependencies = {
+    'missing-required-child': '1.0.0'
+  };
+  const requiredResult = evaluateTrustedDelegatedGovernanceBranch(trustedOptionsWithLockfile({
+    candidateLockfile: missingRequired
+  }));
+  assert.equal(requiredResult.pass, false, JSON.stringify(requiredResult));
+  assert.equal(requiredResult.reasonCode, DENIED, JSON.stringify(requiredResult));
+
+  const missingOptional = exactLockfile();
+  missingOptional.packages['node_modules/livekit-client'].optionalDependencies = {
+    'missing-optional-child': '1.0.0'
+  };
+  const optionalResult = evaluateTrustedDelegatedGovernanceBranch(trustedOptionsWithLockfile({
+    candidateLockfile: missingOptional
+  }));
+  assert.equal(optionalResult.pass, true, JSON.stringify(optionalResult));
+});
