@@ -15,13 +15,12 @@ const systemPolicy = require('./systemPolicy');
 const eventBus = require('./eventBus');
 const safeModeService = require('./safeModeService');
 const productionDiagnostics = require('./productionDiagnosticsService');
-const { accountReadiness, aiRoutingReadiness, aiTaskRoutingReadiness } = require('./diagnosticReadiness');
+const { accountReadiness } = require('./diagnosticReadiness');
 const { diagnosticResult, summarizeDiagnosticResults } = require('./diagnosticResult');
 const platformProductionReadiness = require('./platformProductionReadinessAuthority');
 const sendQueue = require('./sendQueueService');
 const { getRuntimeSafetySupervisor } = require('./runtimeSafetySupervisor');
 const modelExecutionEvidenceStore = require('./modelExecutionEvidenceStore');
-const aiExecutionTraceAuthority = require('./aiExecutionTraceAuthority');
 const fix6mArchitectureDiagnostics = require('./fix6mArchitectureDiagnostics');
 
 function writable(dir) {
@@ -49,37 +48,21 @@ function openRouterReadiness(modelState = {}) {
   const authenticationStatus = String(state.authenticationStatus || 'unknown');
   const catalogStatus = String(state.catalogStatus || 'unknown');
   const onboardingSmokeStatus = String(state.onboardingSmokeStatus || 'not-run');
-  const routeStatus = String(state.routeStatus || 'blocked');
-  const formalQualificationStatus = String(state.formalQualificationStatus || state.benchmarkStatus || 'pending');
-  const primaryModelSlug = String(state.onboardingPrimaryModelSlug || '');
-  const fallbackModelSlug = String(state.onboardingFallbackModelSlug || '');
   const smokeResults = Array.isArray(state.onboardingSmokeResults) ? state.onboardingSmokeResults : [];
   const authenticated = authenticationStatus === 'passed';
-  const catalogReady = catalogStatus === 'passed';
-  const smokePassed = onboardingSmokeStatus === 'passed' && smokeResults.filter(row => row?.pass === true).length >= 2;
-  const independentModels = Boolean(primaryModelSlug && fallbackModelSlug && primaryModelSlug !== fallbackModelSlug);
-  const routeReady = ['conditional-ready', 'ready'].includes(routeStatus) && independentModels;
-  const conditionalReady = configured && authenticated && catalogReady && smokePassed && routeReady;
-  const formallyQualified = ['passed', 'qualified', 'ready'].includes(formalQualificationStatus);
+  const catalogReady = ['passed', 'ready', 'success'].includes(catalogStatus);
+  const smokePassed = onboardingSmokeStatus === 'passed' || smokeResults.some(row => row?.pass === true);
   return {
     configured,
     authenticated,
     catalogReady,
     smokePassed,
-    independentModels,
-    routeReady,
-    conditionalReady,
-    formallyQualified,
+    ready: configured && authenticated && catalogReady,
     authenticationStatus,
     catalogStatus,
     onboardingSmokeStatus,
-    routeStatus,
-    formalQualificationStatus,
-    modelCount: Number(state.modelCount || 0),
-    eligibleModelCount: Number(state.eligibleModelCount || 0),
+    modelCount: Number(state.modelCount || state.catalogCount || 0),
     registeredModelCount: Number(state.registeredModelCount || 0),
-    primaryModelSlug,
-    fallbackModelSlug,
     smokeResults: smokeResults.map(row => ({
       modelId: String(row?.modelId || ''),
       modelSlug: String(row?.modelSlug || row?.returnedModel || ''),
@@ -102,39 +85,6 @@ function candidateOperationReadiness(operationTrace = {}) {
 }
 
 
-function candidateRouteTraceReadiness(rows = []) {
-  const recent = (Array.isArray(rows) ? rows : []).slice(0, 20).map(row => {
-    const lastStage = Array.isArray(row?.stages) ? row.stages[row.stages.length - 1] : null;
-    return {
-      routeTestId: String(row?.routeTestId || ''),
-      task: String(row?.task || ''),
-      executionMode: String(row?.executionMode || ''),
-      status: String(row?.status || ''),
-      completedAt: String(row?.completedAt || row?.startedAt || ''),
-      modelId: String(lastStage?.evidence?.modelId || ''),
-      providerRequestId: String(lastStage?.evidence?.providerRequestId || ''),
-      reasonCode: String(lastStage?.evidence?.reasonCode || lastStage?.evidence?.errorCode || '')
-    };
-  });
-  const latest = recent[0] || null;
-  const latestFailed = latest?.status === 'failed';
-  return {
-    pass: !latestFailed,
-    status: latestFailed ? 'warning' : 'pass',
-    reasonCode: latestFailed
-      ? 'AI_CANDIDATE_ROUTE_TEST_RECENT_FAILURE'
-      : latest
-        ? 'AI_CANDIDATE_ROUTE_TEST_RECENT_SUCCESS'
-        : 'AI_CANDIDATE_ROUTE_TEST_NOT_ATTEMPTED',
-    detail: latestFailed
-      ? `最近候选路由测试失败：${latest.task || 'unknown-task'} · ${latest.reasonCode || 'CANDIDATE_ROUTE_TEST_FAILED'}`
-      : latest
-        ? `最近候选路由测试已记录：${latest.task || 'unknown-task'} · ${latest.status || 'unknown'}`
-        : '尚无候选路由测试记录',
-    evidence: { recent }
-  };
-}
-
 function snapshot() {
   const modelState = modelStatus.read();
   const db = sqliteState();
@@ -153,12 +103,17 @@ function snapshot() {
   const operationTrace = productionDiagnostics.snapshot({ limit: 120 });
   const { activeAccounts, onboardingAccounts, transientAccounts, unreadyAccounts, operationFailures: accountOperationFailures } = accountReadiness(accountState, operationTrace.recent || []);
   const platformReadiness = platformProductionReadiness.evaluate(accountState);
-  const aiReadiness = aiRoutingReadiness(modelState);
-  const aiTaskReadiness = aiTaskRoutingReadiness(modelState);
+  const modelBrainReadiness = {
+    count: Number(modelState.summary?.total || modelState.models?.length || 0),
+    verified: Number(modelState.summary?.verified || 0),
+    local: Number(modelState.summary?.local || 0),
+    cloud: Number(modelState.summary?.cloud || 0),
+    modelBrain: modelState.modelBrain || {},
+    taskReadiness: modelState.taskReadiness || { pass: false, tasks: [], missing: [] }
+  };
+  const aiTaskReadiness = modelBrainReadiness.taskReadiness;
   const openRouterReadinessState = openRouterReadiness(modelState);
   const candidateOperations = candidateOperationReadiness(operationTrace);
-  const candidateRouteTraces = aiExecutionTraceAuthority.recent(20);
-  const candidateRouteTraceState = candidateRouteTraceReadiness(candidateRouteTraces);
   const recentModelExecutions = modelExecutionEvidenceStore.readRecent(20);
   const latestModelExecution = recentModelExecutions[0] || null;
   const latestModelExecutionFailed = latestModelExecution?.terminated === true;
@@ -172,62 +127,29 @@ function snapshot() {
     { id: 'secure-root', group: 'security', severity: 'critical', name: '加密凭据目录可写', pass: writable(PATHS.secure), detail: '系统加密文件位于永久数据根并纳入备份' },
     { id: 'whatsapp-auth', group: 'security', severity: 'high', name: 'WhatsApp认证目录可用', pass: writable(PATHS.whatsappAuth), detail: PATHS.whatsappAuth },
     { id: 'ai-assets', group: 'ai', severity: 'medium', name: 'AI成果目录可用', pass: writable(PATHS.aiAssets), detail: '提示词、知识库与轻量适配器可纳入备份' },
-    { id: 'models-store', group: 'ai', severity: 'medium', name: '模型注册表可读', pass: Array.isArray(modelState.models), detail: `${modelState.models?.length || 0} 个模型 · ${Number(modelState.summary?.routesPersisted || 0)} 条持久路由 · ${Number(modelState.summary?.routesOperational || 0)} 条可运行路由` },
+    { id: 'models-store', group: 'ai', severity: 'medium', name: '模型注册表可读', pass: Array.isArray(modelState.models), detail: `${modelState.models?.length || 0} 个 catalog 模型 · local ${Number(modelState.summary?.local || 0)} · cloud ${Number(modelState.summary?.cloud || 0)} · verified ${Number(modelState.summary?.verified || 0)}` },
     { id: 'fix6m-architecture-authorities', group: 'architecture', severity: 'critical', name: '通信、任务、关系与学习公共权威', pass: fix6mArchitectureState.pass, status: fix6mArchitectureState.status, detail: `停滞任务 ${Number(fix6mArchitectureState.counts?.stalledExecutions || 0)} · 媒体失败 ${Number(fix6mArchitectureState.counts?.retryableMediaFailures || 0) + Number(fix6mArchitectureState.counts?.permanentMediaFailures || 0)} · 同步缺口 ${Number(fix6mArchitectureState.counts?.openSyncGaps || 0)} · 不确定发送 ${Number(fix6mArchitectureState.counts?.uncertainDeliveries || 0)} · 影子不一致 ${Number(fix6mArchitectureState.shadowGate?.mismatches || 0)}`, reasonCode: fix6mArchitectureState.reasonCode, evidence: fix6mArchitectureState },
     {
       id: 'openrouter-runtime-readiness',
       group: 'ai',
-      severity: 'high',
-      name: 'OpenRouter真实接入与候选路由',
-      pass: openRouterReadinessState.formallyQualified,
-      status: !openRouterReadinessState.configured ? 'skipped' : openRouterReadinessState.formallyQualified ? 'pass' : openRouterReadinessState.conditionalReady ? 'warning' : 'fail',
+      severity: 'medium',
+      name: 'OpenRouter catalog / credential readiness',
+      pass: openRouterReadinessState.ready,
+      status: !openRouterReadinessState.configured ? 'skipped' : openRouterReadinessState.ready ? 'pass' : 'warning',
       detail: !openRouterReadinessState.configured
-        ? '尚未配置OpenRouter，不冒充已接入'
-        : openRouterReadinessState.formallyQualified
-          ? `真实鉴权、目录、双模型调用与正式资格均通过 · ${openRouterReadinessState.primaryModelSlug} → ${openRouterReadinessState.fallbackModelSlug}`
-          : openRouterReadinessState.conditionalReady
-            ? `两个不同云模型的最小真实调用已通过，当前仅允许人工确认候选；正式商业专项仍待完成`
-            : `真实接入未闭环：鉴权 ${openRouterReadinessState.authenticationStatus} · 目录 ${openRouterReadinessState.catalogStatus} · 双模型调用 ${openRouterReadinessState.onboardingSmokeStatus} · 路由 ${openRouterReadinessState.routeStatus}`,
-      reasonCode: !openRouterReadinessState.configured
-        ? 'OPENROUTER_NOT_CONFIGURED'
-        : openRouterReadinessState.formallyQualified
-          ? 'OPENROUTER_FORMALLY_QUALIFIED'
-          : openRouterReadinessState.conditionalReady
-            ? 'OPENROUTER_CONDITIONAL_READY_HUMAN_REVIEW_REQUIRED'
-            : 'OPENROUTER_RUNTIME_NOT_READY',
+        ? '尚未配置 OpenRouter；Model Brain 可继续使用其他合格 provider'
+        : `${openRouterReadinessState.authenticationStatus} · catalog ${openRouterReadinessState.catalogStatus} · ${openRouterReadinessState.modelCount} models · logical smoke ${openRouterReadinessState.onboardingSmokeStatus}`,
       evidence: openRouterReadinessState
     },
     {
-      id: 'ai-model-execution-evidence',
+      id: 'model-brain-runtime',
       group: 'ai',
       severity: 'high',
-      name: '隔离模型执行证据',
-      pass: !latestModelExecutionFailed,
-      status: latestModelExecutionFailed ? 'warning' : 'pass',
-      detail: latestModelExecution
-        ? latestModelExecutionFailed
-          ? `最近隔离执行未完成：${latestModelExecution.terminationClass || 'unknown'} · ${latestModelExecution.terminationReason || 'MODEL_EXECUTION_TERMINATED'}`
-          : `最近隔离执行已完成 · ${latestModelExecution.modelId || 'unknown-model'} · ${latestModelExecution.durationMs || 0}ms`
-        : '尚无隔离模型执行记录',
-      reasonCode: latestModelExecutionFailed
-        ? 'AI_MODEL_EXECUTION_RECENT_FAILURE'
-        : latestModelExecution
-          ? 'AI_MODEL_EXECUTION_RECENT_SUCCESS'
-          : 'AI_MODEL_EXECUTION_NOT_ATTEMPTED',
-      evidence: {
-        recent: recentModelExecutions.slice(0, 10)
-      }
-    },
-    {
-      id: 'ai-candidate-route-trace',
-      group: 'ai',
-      severity: 'high',
-      name: '候选路由测试全链路追踪',
-      pass: candidateRouteTraceState.pass,
-      status: candidateRouteTraceState.status,
-      detail: candidateRouteTraceState.detail,
-      reasonCode: candidateRouteTraceState.reasonCode,
-      evidence: candidateRouteTraceState.evidence
+      name: 'Model Brain / LiteLLM 运行状态',
+      pass: modelBrainReadiness.modelBrain.runtimeAvailable === true,
+      status: modelBrainReadiness.modelBrain.health === 'healthy' ? 'pass' : modelBrainReadiness.modelBrain.health === 'degraded' ? 'warning' : 'fail',
+      detail: `${modelBrainReadiness.modelBrain.health || 'unavailable'} · ${modelBrainReadiness.modelBrain.litellm || 'LiteLLM v1.95.0'} · ${modelBrainReadiness.modelBrain.complexityRouter || 'ComplexityRouter'} · strict tags ${modelBrainReadiness.modelBrain.strictTagFiltering !== false ? 'AND' : 'off'}`,
+      evidence: modelBrainReadiness.modelBrain
     },
     {
       id: 'ai-candidate-operation-observability',
@@ -282,8 +204,8 @@ function snapshot() {
                 : '自动运行门禁已通过';
       return { id: `platform-${platform}-production-readiness`, group: 'accounts', severity: 'high', name: labels[platform], pass: status === 'pass', status, detail, reasonCode: `PLATFORM_${platform.toUpperCase()}_${projection.status.toUpperCase().replace(/-/g, '_')}`, evidence: projection };
     }),
-    { id: 'ai-routing-readiness', group: 'ai', severity: 'high', name: 'AI 回复大脑任务路由完整', pass: aiReadiness.pass, detail: aiReadiness.count === 0 ? '尚未配置模型' : aiReadiness.routeIntegrity?.pass === false ? `持久化模型路由存在 ${Number(aiReadiness.routeIntegrity.invalidPersistedRouteCount || aiReadiness.routeIntegrity.quarantine?.length || 0)} 条不合格记录，已阻止假通过` : aiReadiness.replyBrain.userMessage, evidence: { routeIntegrity: aiReadiness.routeIntegrity, replyBrain: aiReadiness.replyBrain } },
-    { id: 'ai-core-task-readiness', group: 'ai', severity: 'high', name: 'AI核心任务真实可运行', pass: aiTaskReadiness.pass, detail: aiReadiness.count === 0 ? '尚未配置模型' : aiTaskReadiness.summary },
+    { id: 'ai-hard-eligibility', group: 'ai', severity: 'high', name: 'Model Brain 硬资格目录', pass: modelBrainReadiness.count === 0 || modelBrainReadiness.verified > 0, status: modelBrainReadiness.count === 0 ? 'skipped' : modelBrainReadiness.verified > 0 ? 'pass' : 'warning', detail: modelBrainReadiness.count === 0 ? '尚未登记模型' : `catalog ${modelBrainReadiness.count} · verified ${modelBrainReadiness.verified} · local ${modelBrainReadiness.local} · cloud ${modelBrainReadiness.cloud} · privacy/modality/language/context/provider`, evidence: modelBrainReadiness },
+    { id: 'ai-core-task-readiness', group: 'ai', severity: 'high', name: 'Model Brain 核心任务硬资格', pass: aiTaskReadiness.pass === true, detail: modelBrainReadiness.count === 0 ? '尚未登记模型' : aiTaskReadiness.pass ? '核心 logical task 均存在合格模型' : `${(aiTaskReadiness.missing || []).length} 个 logical task 缺少合格模型` },
     { id: 'ai-domain-isolation', group: 'ai', severity: 'high', name: 'AI自动任务域隔离', pass: safetySupervisor.aiAutomationBlocked !== true, status: safetySupervisor.aiAutomationBlocked ? 'warning' : 'pass', detail: safetySupervisor.aiAutomationBlocked ? `AI自动任务已隔离：${(safetySupervisor.aiIsolationReasons || []).join('、')}` : 'AI自动任务域未隔离', evidence: safetySupervisor.domainIsolation || {} },
     { id: 'credential-vault', group: 'security', severity: 'critical', name: '系统凭据隔离桥', pass: securityGuard.available || process.env.NODE_ENV === 'test', detail: securityGuard.available ? '敏感凭据由Electron safeStorage加密后持久化' : '独立服务模式不持久化明文凭据' },
     { id: 'notification-config', group: 'notification', severity: 'medium', name: '通知设置有效', pass: typeof notifications.enabled === 'boolean' && typeof notifications.soundEnabled === 'boolean' && notifications.soundVolume >= 0 && notifications.soundVolume <= 1, detail: `桌面 ${notifications.desktopEnabled ? '开启' : '关闭'} · 声音 ${notifications.soundEnabled ? Math.round(notifications.soundVolume * 100) + '%' : '关闭'}` },
@@ -313,32 +235,21 @@ function snapshot() {
       evidence = { failures: accountOperationFailures.slice(0, 10).map(row => ({ command: row.command, code: row.code || '', at: row.completedAt || row.at || '' })) };
       reasonCode = accountOperationFailures[0]?.code || (test.pass ? 'ACCOUNT_OPERATIONS_HEALTHY' : 'ACCOUNT_OPERATION_FAILED');
     }
-    if (test.id === 'ai-routing-readiness') {
-      evidence = {
-        count: aiReadiness.count,
-        verified: aiReadiness.verified,
-        routingEligible: aiReadiness.routingEligible,
-        replyBrainState: aiReadiness.replyBrain.state,
-        missing: aiReadiness.replyBrain.missing,
-        quickReply: aiReadiness.replyBrain.quick,
-        deepReply: aiReadiness.replyBrain.deep,
-        director: aiReadiness.replyBrain.director,
-        translation: aiReadiness.replyBrain.translation
-      };
-      if (aiReadiness.count === 0) { status = 'skipped'; reasonCode = 'NO_AI_MODEL_NOT_APPLICABLE'; }
-      else if (!aiReadiness.pass) reasonCode = 'AI_REPLY_BRAIN_INCOMPLETE';
-      else reasonCode = 'AI_REPLY_BRAIN_READY';
+    if (test.id === 'ai-hard-eligibility') {
+      evidence = modelBrainReadiness;
+      if (modelBrainReadiness.count === 0) { status = 'skipped'; reasonCode = 'NO_AI_MODEL_NOT_APPLICABLE'; }
+      else if (modelBrainReadiness.verified === 0) { status = 'warning'; reasonCode = 'MODEL_BRAIN_NO_VERIFIED_MODEL'; }
+      else reasonCode = 'MODEL_BRAIN_HARD_ELIGIBILITY_READY';
     }
     if (test.id === 'ai-core-task-readiness') {
       evidence = {
-        coreTasks: aiTaskReadiness.coreTasks,
-        configured: aiTaskReadiness.configured,
-        operational: aiTaskReadiness.operational,
-        missing: aiTaskReadiness.missing
+        tasks: aiTaskReadiness.tasks || [],
+        missing: aiTaskReadiness.missing || [],
+        authority: 'Model Brain / LiteLLM'
       };
-      if (aiReadiness.count === 0) { status = 'skipped'; reasonCode = 'NO_AI_MODEL_NOT_APPLICABLE'; }
-      else if (!aiTaskReadiness.pass) reasonCode = 'AI_CORE_TASKS_INCOMPLETE';
-      else reasonCode = 'AI_CORE_TASKS_READY';
+      if (modelBrainReadiness.count === 0) { status = 'skipped'; reasonCode = 'NO_AI_MODEL_NOT_APPLICABLE'; }
+      else if (!aiTaskReadiness.pass) reasonCode = 'MODEL_BRAIN_CORE_TASKS_INCOMPLETE';
+      else reasonCode = 'MODEL_BRAIN_CORE_TASKS_READY';
     }
     if (test.id === 'sqlite-store' && !test.pass) reasonCode = 'ERR_SQLITE_ERROR';
     return diagnosticResult({ ...test, status, reasonCode, evidence });
@@ -355,15 +266,16 @@ function snapshot() {
     skipped: summary.skipped,
     executed: summary.executed,
     models: {
-      online: modelState.ollamaOnline || false,
-      count: modelState.models?.length || 0,
-      verified: Number(modelState.summary?.verified || 0),
-      routingEligible: Number(modelState.summary?.routingEligible || 0),
-      replyBrainReady: modelState.replyBrain?.pass === true,
-      replyBrainState: modelState.replyBrain?.state || 'REPLY_BRAIN_INCOMPLETE',
+      online: modelState.catalog?.ollamaOnline === true,
+      count: modelBrainReadiness.count,
+      verified: modelBrainReadiness.verified,
+      local: modelBrainReadiness.local,
+      cloud: modelBrainReadiness.cloud,
       source: modelState.source,
+      modelBrain: modelBrainReadiness.modelBrain,
+      taskReadiness: aiTaskReadiness,
       openRouter: openRouterReadinessState,
-      candidateRouteTraces: candidateRouteTraceState.evidence.recent,
+      executionEvidence: modelBrainReadiness.modelBrain.lastEvidence || null,
       candidateOperations: {
         active: candidateOperations.active.length,
         recent: candidateOperations.recent.slice(0, 10).map(row => ({ operationId: row.operationId, type: row.type, code: row.code || '', lifecycleState: row.lifecycleState || '', at: row.completedAt || row.startedAt || '' }))
@@ -386,4 +298,4 @@ function snapshot() {
   };
 }
 
-module.exports = { snapshot, writable, sqliteState, openRouterReadiness, candidateOperationReadiness, candidateRouteTraceReadiness };
+module.exports = { snapshot, writable, sqliteState, openRouterReadiness, candidateOperationReadiness };

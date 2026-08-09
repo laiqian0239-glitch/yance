@@ -5,8 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const os = require('os');
 const settingsRepository = require('../repositories/settingsRepository');
-const modelRegistry = require('./modelRegistry');
-const { streamChat } = require('./ollamaClient');
+const aiGateway = require('./aiGateway');
 const transcription = require('./transcriptionService');
 const messageStore = require('./messageStore');
 
@@ -77,33 +76,43 @@ async function prepareVisionInput({ filePath = '', buffer = null, mimeType = '',
   return { buffer: file.buffer, mimeType: mimeType || 'image/jpeg', kind, cleanup: () => {} };
 }
 
-function visionModel() {
-  const state = modelRegistry.read();
-  const models = (state.models || []).filter(row => row.available !== false && /vision|llava|qwen.*vl|minicpm.*v|gemma3|gemma-3|moondream|bakllava|pixtral/i.test(`${row.name || ''} ${row.family || ''} ${(row.families || []).join(' ')}`));
-  return models.find(row => ['verified', 'experimental'].includes(row.qualification)) || models[0] || null;
-}
 async function analyzeImageBuffer({ buffer, mimeType = 'image/jpeg', caption = '', kind = 'image' }) {
   if (!Buffer.isBuffer(buffer) || !buffer.length) throw Object.assign(new Error('没有可识别的图片内容'), { code: 'IMAGE_EMPTY' });
   if (buffer.length > MAX_BYTES) throw Object.assign(new Error('图片超过识别大小限制'), { code: 'MEDIA_TOO_LARGE' });
-  const model = visionModel();
-  if (!model) return { status: 'unavailable', kind, error: '没有检测到可用的本地视觉模型。请先在AI工作台完成视觉模型扫描和资格测试。' };
   const instruction = kind === 'video'
     ? '这是视频代表画面。识别场景、人物动作、物品、可见文字、文字语言、主要内容和可能表达的意图。'
     : '识别图片或贴纸中的场景、人物动作、物品、可见文字、文字语言、主要内容和可能表达的意图。';
-  const response = await streamChat({
-    endpoint: model.endpoint,
-    model: model.name,
-    messages: [
-      { role: 'system', content: '你是言策本地媒体理解模块。只根据可见证据分析，不猜测身份，不发送消息。只输出合法JSON。' },
-      {
-        role: 'user',
-        content: `${instruction}\n附加文字：${clean(caption, 12000)}\n只返回JSON：{"summary":"","visibleText":"","translation":"","scene":"","intent":"","replyCues":[""]}`,
-        images: [buffer.toString('base64')]
+  try {
+    const response = await aiGateway.execute({
+      task: 'media_analysis',
+      messages: [
+        { role: 'system', content: '只根据可见证据分析，不猜测身份，不发送消息。只输出合法JSON。' },
+        { role: 'user', content: [
+          { type: 'text', text: `${instruction}\n附加文字：${clean(caption, 12000)}\n只返回JSON：{"summary":"","visibleText":"","translation":"","scene":"","intent":"","replyCues":[""]}` },
+          { type: 'image_url', image_url: { url: `data:${mimeType || 'image/jpeg'};base64,${buffer.toString('base64')}`, detail: 'low' } }
+        ] }
+      ],
+      options: {
+        temperature: 0.1,
+        maxTokens: 1800,
+        json: true,
+        timeoutMs: 300000,
+        constraints: { modalities: ['vision'] }
       }
-    ],
-    options: { maxTokens: 1800, temperature: 0.1, json: true, timeoutMs: 300000 }
-  });
-  return { status: 'completed', kind, ...parseJson(response.text), model: { id: model.id, name: model.name, endpoint: model.endpoint }, metrics: { totalMs: response.totalMs, firstTokenMs: response.firstTokenMs } };
+    });
+    return {
+      status: 'completed',
+      kind,
+      ...parseJson(response.text),
+      modelBrain: { provider: response.provider || '', selectedModel: response.model || response.modelId || '' },
+      metrics: { totalMs: Number(response.latencyMs || 0), totalTokens: Number(response.totalTokens || 0), costUsd: Number(response.costUsd || 0) }
+    };
+  } catch (error) {
+    if (error?.code === 'MODEL_BRAIN_NO_ELIGIBLE_DEPLOYMENT' || error?.code === 'MODEL_BRAIN_RUNTIME_UNAVAILABLE') {
+      return { status: 'unavailable', kind, error: 'Model Brain 没有满足视觉硬资格条件的可用模型。请在 AI 工作台扫描、配置并完成模型资格测试。' };
+    }
+    throw error;
+  }
 }
 function findMessage(sessionKey, messageId) {
   return messageStore.listMessages(sessionKey, { limit: 5000 }).find(row => row.id === messageId || row.externalMessageId === messageId || row.dedupeKey === messageId) || null;

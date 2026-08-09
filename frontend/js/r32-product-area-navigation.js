@@ -46,7 +46,7 @@
       .system-center-open #systemAreaSubnav,.settings-recovery-open #systemAreaSubnav,.theme-workspace-open #systemAreaSubnav{display:flex}
       .app.settings-recovery-open .settings-recovery-workspace,.app.theme-workspace-open .theme-workspace{grid-template-rows:auto auto minmax(0,1fr)}
       .app.system-center-open .system-center-workspace{grid-template-rows:auto auto auto minmax(0,1fr)}
-      .aiw30-business-mode .aiw30-tab[data-aiw-tab="models"],.aiw30-business-mode .aiw30-tab[data-aiw-tab="routing"]{display:none!important}
+      .aiw30-business-mode .aiw30-tab[data-aiw-tab="persona"]{display:none!important}
       .aiw30-business-mode .aiw30-tabs{grid-template-columns:minmax(0,1fr)}
       .aiw30-business-mode .aiw30-tab{min-width:0;white-space:normal;overflow-wrap:anywhere;writing-mode:horizontal-tb}
       .aiw30-business-mode .aiw30-health article:nth-child(2),.aiw30-business-mode .aiw30-health article:nth-child(4){display:none}
@@ -285,11 +285,11 @@
       mode = next === 'advanced' ? 'advanced' : 'business';
       workspace.classList.toggle('aiw30-business-mode', mode === 'business');
       workspace.classList.toggle('aiw30-advanced-mode', mode === 'advanced');
-      button.textContent = mode === 'advanced' ? '返回日常模式' : '高级模型设置';
-      button.title = mode === 'advanced' ? '隐藏模型、路由与内部参数' : '查看模型、任务路由与开发诊断';
+      button.textContent = mode === 'advanced' ? '返回日常模式' : '高级 AI 设置';
+      button.title = mode === 'advanced' ? '隐藏人物基线与内部参数' : '查看 Model Brain、LiteLLM 与开发诊断';
       button.setAttribute('aria-pressed', String(mode === 'advanced'));
       try { localStorage.setItem('yance:r32:ai-workbench-mode', mode); } catch (_) {}
-      if (mode === 'business' && workspace.querySelector('.aiw30-tab.active[data-aiw-tab="models"],.aiw30-tab.active[data-aiw-tab="routing"]')) {
+      if (mode === 'business' && workspace.querySelector('.aiw30-tab.active[data-aiw-tab="persona"]')) {
         workspace.querySelector('.aiw30-tab[data-aiw-tab="rules"]')?.click();
       }
     };

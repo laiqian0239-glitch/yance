@@ -83,7 +83,6 @@ async function executeTranslationAttempt(aiGateway, input, termPack, sourceLangu
     : translationPrompt(termPack.maskedText, sourceLanguage, input.glossary || input.terminology || []);
   return aiGateway.execute({
     task: 'translation',
-    modelId: clean(options.modelId || input.modelId),
     messages: [
       { role: 'system', content: '只输出简体中文译文，不输出标题、解释、原文或代码块。' },
       { role: 'user', content: userContent }
@@ -144,16 +143,11 @@ async function translateToChinese(input = {}, dependencies = {}) {
     const invalid = !translatedZh || terminology.hasResidualProtectedTerms(translatedZh) || !containsHan(translatedZh) || quality.status === 'blocking';
     let selected = first;
     if (invalid) {
-      const route = typeof aiGateway.resolveRoute === 'function'
-        ? aiGateway.resolveRoute('translation', clean(input.modelId), { translationProfile: clean(input.translationProfile || (input.background === true ? 'history' : 'realtime')), background: input.background === true })
-        : null;
-      const fallbackId = clean(route?.fallback?.id);
       const repaired = await executeTranslationAttempt(aiGateway, input, termPack, sourceLanguage, {
         strictRepair: true,
-        previous: translatedZh || clean(first?.text),
-        modelId: fallbackId && fallbackId !== clean(first?.modelId) ? fallbackId : clean(input.modelId)
+        previous: translatedZh || clean(first?.text)
       });
-      attempts.push({ modelId: clean(repaired?.modelId), model: clean(repaired?.model), status: fallbackId ? 'fallback-repair' : 'repair' });
+      attempts.push({ modelId: clean(repaired?.modelId), model: clean(repaired?.model), status: 'logical-repair' });
       const repairedText = terminology.restoreProtectedTerms(normalizeTranslationOutput(repaired?.text), termPack.mappings);
       const repairedQuality = terminology.assessChineseTranslation({ sourceText: text, translatedZh: repairedText, mappings: termPack.mappings });
       if (repairedText && !terminology.hasResidualProtectedTerms(repairedText) && containsHan(repairedText) && repairedQuality.status !== 'blocking') {
