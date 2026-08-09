@@ -11,6 +11,7 @@
 const { PERSONA_BRAIN_SCHEMA_VERSION } = require('./schema');
 const { compileTruthSafePersona } = require('./truthFirewall');
 const { assertRuntimeTruthSafe } = require('./runtimeTruthAuthority');
+const { buildPersonaComposition, buildNativeRegisterContract } = require('./sillyTavernAdapter');
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value) &&
@@ -110,9 +111,46 @@ function compilePersonaContext(versionRecord, options = {}) {
   const authoritative = isPlainObject(content.authoritative) ? content.authoritative : {};
   const learned = isPlainObject(content.learned) ? content.learned : {};
   const runtimeLearned = projectLearnedRuntime(learned);
-  const truthSafePacket = compileTruthSafePersona(content, opts.socialContext || {}, {
+  const socialContext = isPlainObject(opts.socialContext) ? opts.socialContext : {};
+  const truthSafePacket = compileTruthSafePersona(content, socialContext, {
     mode: opts.mode || 'live'
   });
+  const requestedComposition = isPlainObject(opts.composition) ? opts.composition : {};
+  const locale = String(requestedComposition.localeProfile?.locale || content.metadata?.locale || truthSafePacket.preferredLanguage || '').trim();
+  const relationshipCard = isPlainObject(requestedComposition.relationshipCard) ? requestedComposition.relationshipCard : {
+    authority: 'read_only_communication_context_projection',
+    relationshipStage: truthSafePacket.relationshipStage,
+    communicationPreferences: isPlainObject(socialContext.preferences) ? socialContext.preferences : {},
+    interaction: isPlainObject(socialContext.interaction) ? socialContext.interaction : {},
+    emotionalTrend: socialContext.emotion?.trend || socialContext.emotionalTrend || ''
+  };
+  const localeProfile = isPlainObject(requestedComposition.localeProfile) ? requestedComposition.localeProfile : {
+    locale,
+    preferredLanguage: truthSafePacket.preferredLanguage || ''
+  };
+  const chatRegister = isPlainObject(requestedComposition.chatRegister) ? requestedComposition.chatRegister : buildNativeRegisterContract({
+    locale,
+    channel: socialContext.customer?.platform || 'whatsapp'
+  });
+  const stylePolicy = truthSafePacket.style?.policy || {};
+  const composition = buildPersonaComposition({
+    personaCard: isPlainObject(requestedComposition.personaCard) ? requestedComposition.personaCard : {
+      description: truthSafePacket.presentationProfile || {}
+    },
+    characterCard: isPlainObject(requestedComposition.characterCard) ? requestedComposition.characterCard : {},
+    relationshipCard,
+    localeProfile,
+    chatRegister,
+    styleOverlay: isPlainObject(requestedComposition.styleOverlay) ? requestedComposition.styleOverlay : {
+      labels: Array.isArray(stylePolicy.labels) ? stylePolicy.labels : [],
+      weights: isPlainObject(stylePolicy.directions) ? stylePolicy.directions : {},
+      intensity: stylePolicy.intensity || 'natural'
+    },
+    exampleDialogues: Array.isArray(requestedComposition.exampleDialogues) ? requestedComposition.exampleDialogues : [],
+    characterBook: isPlainObject(requestedComposition.characterBook) ? requestedComposition.characterBook : undefined,
+    incomingText: requestedComposition.incomingText || socialContext.incomingMessage?.text || ''
+  });
+  truthSafePacket.composition = composition;
   const runtimeTruthReceipt = assertRuntimeTruthSafe(truthSafePacket, {
     profileId: String(content.profileId || 'owner'),
     personaVersionId: version,
@@ -128,6 +166,7 @@ function compilePersonaContext(versionRecord, options = {}) {
       personaVersionId: version,
       policyHash,
       truthSafePacket,
+      composition,
       authoritative: opts.includeAuthoritativeForAdmin === true ? authoritative : undefined,
       learned: runtimeLearned,
       disclosureRules: isPlainObject(authoritative.disclosureRules) ? authoritative.disclosureRules : {},

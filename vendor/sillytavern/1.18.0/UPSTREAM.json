@@ -1,0 +1,310 @@
+{
+  "schemaVersion": 1,
+  "project": "SillyTavern",
+  "repository": "https://github.com/SillyTavern/SillyTavern",
+  "release": "1.18.0",
+  "commit": "51ad27fb86d39a3daca3adaa970375c9670c12df",
+  "license": "AGPL-3.0",
+  "licenseGitBlob": "0ad25db4bd1d86c452db3f9602ccdbe172438f52",
+  "sourceSliceCanonicalization": {
+    "encoding": "UTF-8",
+    "lineEnding": "LF",
+    "lineRange": "1-based inclusive",
+    "trailingNewline": true,
+    "hash": "SHA-256"
+  },
+  "wholeModules": [
+    {
+      "sourcePath": "src/character-card-parser.js",
+      "sourceGitBlob": "dd63b00d804e80104d5efb6c5ae268b4e99ed0a5",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/character-card-parser.cjs",
+      "vendoredGitBlob": "74d46802029e78d50d549213e65442893f6535c9",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "local-import-extension-js-to-cjs"
+      ]
+    },
+    {
+      "sourcePath": "src/png/encode.js",
+      "sourceGitBlob": "d4cac7540b8121277eb356bf1bdfb9066ba7a581",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/png/encode.cjs",
+      "vendoredGitBlob": "a03bee6250638665075fc7d2d6ecf2f68299b9fe",
+      "transformations": [
+        "esm-import-export-to-commonjs"
+      ]
+    },
+    {
+      "sourcePath": "src/validator/TavernCardValidator.js",
+      "sourceGitBlob": "82593d0aabda8b17363f892cc7119a005eefae77",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/validator/TavernCardValidator.cjs",
+      "vendoredGitBlob": "1954c64c611d1decc357f8ea205b4fbcaa48a990",
+      "transformations": [
+        "esm-export-to-commonjs"
+      ]
+    }
+  ],
+  "sourceSegmentCount": 18,
+  "segments": [
+    {
+      "sourcePath": "public/scripts/PromptManager.js",
+      "sourceGitBlob": "20219dc45ffa232ef61ebbfac0836241f168a55a",
+      "sourceLineRange": "29-38",
+      "sourceSliceSha256": "3f58f9b5563f1f124fa547cfbe89ec577794a042d688f1ab1faa6b10c31007a1",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::PromptManager::injection-position",
+      "destinationRegionSha256": "c81b42d24371a13e5198fad40905bc6178537373e57f53a2269162967f21a6a6",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/PromptManager.js",
+      "sourceGitBlob": "20219dc45ffa232ef61ebbfac0836241f168a55a",
+      "sourceLineRange": "171-185",
+      "sourceSliceSha256": "000a72f278c6778f89c013bf7b63b941d97604beabe41be68d9814bb8f36539d",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::PromptManager::prompt-constructor",
+      "destinationRegionSha256": "e819d1bb5e09a6366d266e0f2db931029f4a59417c1fed271fda46e352f6e938",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/PromptManager.js",
+      "sourceGitBlob": "20219dc45ffa232ef61ebbfac0836241f168a55a",
+      "sourceLineRange": "189-278",
+      "sourceSliceSha256": "01aaaba3a48b6ea9535cb85cae25c14c12686bbead1e3fc6d29c38b8fd9e2682",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::PromptManager::prompt-collection",
+      "destinationRegionSha256": "d4b7678ef35c45119fe0d1047e40b76834d10576e8a585df415dfbde50d107b1",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/PromptManager.js",
+      "sourceGitBlob": "20219dc45ffa232ef61ebbfac0836241f168a55a",
+      "sourceLineRange": "1164-1175",
+      "sourceSliceSha256": "7df524ebf2efa483907de864b34c2cb997f19f4e78bdabb91374d3db78430072",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::PromptManager::prepare-prompt",
+      "destinationRegionSha256": "9834a6e8940e4cf4e20140d87a228327aae66756974e7715f388901a4e809284",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/PromptManager.js",
+      "sourceGitBlob": "20219dc45ffa232ef61ebbfac0836241f168a55a",
+      "sourceLineRange": "1381-1414",
+      "sourceSliceSha256": "3447867594bee6c3654703c7aa9fd8bd41e86cfb1520252654c6cf8713c1e469",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::PromptManager::collection-order",
+      "destinationRegionSha256": "25317981479cd7058f09f0cae2ab203acc42fc2c61a1d45c5c52f2bd93df74f6",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/PromptManager.js",
+      "sourceGitBlob": "20219dc45ffa232ef61ebbfac0836241f168a55a",
+      "sourceLineRange": "1904-1953",
+      "sourceSliceSha256": "851aa371ac801f92ed055c69d99a1e61aff0876973d6082d592406b80282c2fb",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::PromptManager::default-order",
+      "destinationRegionSha256": "47482e5826aa6e03fcfb190cd02e1896d6517c13b892de2355ab8234626d2595",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/openai.js",
+      "sourceGitBlob": "97b96658edf515c9f76db937735cd0b25c69d686",
+      "sourceLineRange": "619-630",
+      "sourceSliceSha256": "19b4a4706e65e39db70573e274b664c688aa0c5f821a1728cd92b9f2e4c4465b",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::openai::example-blocks",
+      "destinationRegionSha256": "d06de516e41fc66c3d6360ff59bbf0dbdae112c4b10b4f60a5ea77f9a3617e61",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/openai.js",
+      "sourceGitBlob": "97b96658edf515c9f76db937735cd0b25c69d686",
+      "sourceLineRange": "687-741",
+      "sourceSliceSha256": "8ad9cfbcdd31fd687219647caa26adcafcbd54ba3a96ee4657a7e39793391393",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::openai::example-dialogue-parser",
+      "destinationRegionSha256": "6c54016874554ba072cd732048e164e4ecfe105d81eab2b506f2eb6a7de0c464",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/openai.js",
+      "sourceGitBlob": "97b96658edf515c9f76db937735cd0b25c69d686",
+      "sourceLineRange": "762-821",
+      "sourceSliceSha256": "97d159d837623834a43f9453e373d5fc002ce6348a665979a9743fc821fb4eae",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::openai::depth-order-role-injection",
+      "destinationRegionSha256": "cc382baada52b50ad6b3b35f6404ea2bc39bebd0370b9a911b08e035864e8336",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/personas.js",
+      "sourceGitBlob": "1b70e0f7410297e412eb48b0e93d5d3c38ac2915",
+      "sourceLineRange": "88-105",
+      "sourceSliceSha256": "44071749a139c1247c5799f7d08ece3f522779f81ff4c19b0dcc50213d8d2af7",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::personas::description-placement",
+      "destinationRegionSha256": "c07c1a0494060ce2fbe8c1f8736c14b131330749417e1302c69397ada45ee7b5",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/authors-note.js",
+      "sourceGitBlob": "34adf6c7a1df1024a12e272bdae147a63c0e65e2",
+      "sourceLineRange": "29-41",
+      "sourceSliceSha256": "fcc8d8f82e0f18cf6394d763693ea8d7b354a51040f2c0a5903ba74fe67bcae8",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::authors-note::metadata-placement",
+      "destinationRegionSha256": "8a471103a3e27f82717e7f0f2dfa553f83c4985204cdec825ecbe1f764bbe5a6",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/authors-note.js",
+      "sourceGitBlob": "34adf6c7a1df1024a12e272bdae147a63c0e65e2",
+      "sourceLineRange": "331-361",
+      "sourceSliceSha256": "e33bd43faa4da8773541dadc55bed0621eabe4892fd7e16bdcc5712934d66648",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::authors-note::depth-role-injection",
+      "destinationRegionSha256": "675866b34737ad440673b100d22e414c26dc978fef9965dd7aad25f4e1c82d4c",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/world-info.js",
+      "sourceGitBlob": "49577d722cfb5305abc8f07b31cd468725d72d80",
+      "sourceLineRange": "31-36",
+      "sourceSliceSha256": "34e2cafcfb3df14e4afb0a0b0c6a862d8ef91cea6d54b9457ff91bbb0a8f3c64",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::world-info::selective-logic",
+      "destinationRegionSha256": "a79ecb901ecf8da13473ba5e83c54d6ebddc4fdcde0ea5f343993704aa88cc12",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/world-info.js",
+      "sourceGitBlob": "49577d722cfb5305abc8f07b31cd468725d72d80",
+      "sourceLineRange": "791-804",
+      "sourceSliceSha256": "f5a959d076bea42dce96340351ac8540818484f7ba672ccdb054f6aa98b9d663",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::world-info::placement",
+      "destinationRegionSha256": "835b65f73e0f532f006e55045e107a2b4266a9ca97fc64a47118942f56473eb7",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/world-info.js",
+      "sourceGitBlob": "49577d722cfb5305abc8f07b31cd468725d72d80",
+      "sourceLineRange": "313-339",
+      "sourceSliceSha256": "2a02fe8fa46fe657b454fd0aa7bc045cffb62f17025318c1b5d16d46d4df6e75",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::world-info::match-keys",
+      "destinationRegionSha256": "e7259150efb11637a07bd25a0c084489dfd177be8a52814a81e325b05cba81b7",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/world-info.js",
+      "sourceGitBlob": "49577d722cfb5305abc8f07b31cd468725d72d80",
+      "sourceLineRange": "2620-2643",
+      "sourceSliceSha256": "50a609bc779d3daadd9fa87d30691e6fee9e8bbfdd4e17cbacc199b79cf3dae6",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::world-info::regex-parser",
+      "destinationRegionSha256": "dd8b81170cb6efca4d999abd4e01e0c9b321218ab3a8179b5570d170098d8198",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/world-info.js",
+      "sourceGitBlob": "49577d722cfb5305abc8f07b31cd468725d72d80",
+      "sourceLineRange": "3731-3777",
+      "sourceSliceSha256": "797192c3e57796716811332693886a45a1b96e86c9edf6c6f232cfaa0a0867b3",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::world-info::entry-schema",
+      "destinationRegionSha256": "72f7abd78a7810adf75664b1a8057c9e158309987b3ee003f1d24f253276976d",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    },
+    {
+      "sourcePath": "public/scripts/world-info.js",
+      "sourceGitBlob": "49577d722cfb5305abc8f07b31cd468725d72d80",
+      "sourceLineRange": "5097-5152",
+      "sourceSliceSha256": "c825751a2389bbb7f487ace14bd321dd2d0929bd9d19ca1089eef064fa1fa40b",
+      "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "destinationRegionMarker": "SILLYTAVERN_SLICE::world-info::character-book-conversion",
+      "destinationRegionSha256": "772f007d14b6217fb250342d6aa414ab60b60293b87ea745eb8ecf02fd387a28",
+      "transformations": [
+        "esm-export-to-commonjs",
+        "lexical-binding-injection-where-required"
+      ]
+    }
+  ],
+  "dependencies": {
+    "crc": {
+      "version": "4.3.2",
+      "integrity": "sha512-uGDHf4KLLh2zsHa8D8hIQ1H/HtFQhyHrc0uhHBcoKGol/Xnb+MPYfUMw7cvON6ze/GUESTudKayDcJC5HnJv1A=="
+    },
+    "png-chunk-text": {
+      "version": "1.0.0",
+      "integrity": "sha512-DEROKU3SkkLGWNMzru3xPVgxyd48UGuMSZvioErCure6yhOc/pRH2ZV+SEn7nmaf7WNf3NdIpH+UTrRdKyq9Lw=="
+    },
+    "png-chunks-extract": {
+      "version": "1.0.0",
+      "integrity": "sha512-ZiVwF5EJ0DNZyzAqld8BP1qyJBaGOFaq9zl579qfbkcmOwWLLO4I9L8i2O4j3HkI6/35i0nKG2n+dZplxiT89Q=="
+    },
+    "crc-32": {
+      "version": "0.3.0",
+      "transitive": true,
+      "integrity": "sha512-kucVIjOmMc1f0tv53BJ/5WIX+MGLcKuoBhnGqQrgKJNqLByb/sVMWfW/Aw6hw0jgcqjJ2pi9E5y32zOIpaUlsA=="
+    }
+  },
+  "excluded": [
+    "SillyTavern UI",
+    "provider/model gateway",
+    "server endpoints",
+    "global chat state",
+    "swipe UI",
+    "recursive World Info token-budget engine"
+  ]
+}
