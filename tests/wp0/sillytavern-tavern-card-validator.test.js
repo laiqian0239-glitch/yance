@@ -27,7 +27,7 @@ test('V21 Persona P0: Character Card parser and validator are adopted from the p
 
 test('V21 Persona P0: Character Card PNG write/read round trip emits V3 precedence over V2', () => {
   const { read, write } = requireVendored(PARSER);
-  const emptyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII=', 'base64');
+  const emptyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=', 'base64');
   const card = {
     spec: 'chara_card_v2',
     spec_version: '2.0',
