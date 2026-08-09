@@ -918,8 +918,12 @@ function validateDelegatedNpmLockfileClosure(
     if (isNpmInstalledPackageLocation(packageLocation) && !npmTreePackagePaths.has(packageLocation)) return false;
   }
   for (const entry of identityEntries) {
-    if (entry.section === 'peerDependencies') continue;
     const lockDescriptor = candidateLockfile.packages[`node_modules/${entry.name}`];
+    if (entry.section === 'peerDependencies') {
+      if (lockDescriptor !== undefined
+        && (!isPlainJsonObject(lockDescriptor) || lockDescriptor.version !== entry.version)) return false;
+      continue;
+    }
     if (!isPlainJsonObject(lockDescriptor) || lockDescriptor.version !== entry.version) return false;
   }
   if (baselineLockfile !== null) {
