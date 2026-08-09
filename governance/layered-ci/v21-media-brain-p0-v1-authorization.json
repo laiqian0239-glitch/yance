@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-MEDIA-BRAIN-P0-V1",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main authorization for a complete visible Media / Photo / Image Workflow product package. Immich is the sole photo/video asset-library, people, album and search authority; ComfyUI is the sole image generation/editing workflow executor. Yance may add only thin Electron/API/product projection glue and must not create a second media asset manager, image workflow framework, image generation engine, search index, face/person index, credential store, media transport cache or send authority.",
+  "base": {
+    "branch": "main",
+    "commit": "86a11eda9b716d9a8850118a0897324ea8219f73"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-media-brain-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-media-brain-p0-v1-authorization.json"
+    ],
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Exact normalized repository-relative paths; unique; JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join sorted unique paths with LF and append one trailing LF."
+  },
+  "prerequisites": {
+    "parallelRegistryIssue": 178,
+    "liveMainAtAuthorizationProposal": "86a11eda9b716d9a8850118a0897324ea8219f73",
+    "learningGrowthV2AuthorizationMerge": "ed90d68d651572e517591b0ad2707166dee518d0",
+    "learningV1ImplementationPr": 177,
+    "learningV1ImplementationStateAtReseal": "CLOSED_SUPERSEDED",
+    "learningV2ImplementationBranch": "product/v21-learning-growth-brain-p0-v2",
+    "mediaDuplicateWorklineCheck": "No second active Media/Immich/ComfyUI product branch or PR found before fresh-main reconciliation; Media route-bootstrap implementation PR #186 ordinary-merged as 21321bf4c59c34d0b442344a68fbd72ab37804d6 and its ten exact route paths are a subset of this frozen 23-path product scope.",
+    "voiceAuthorityAtProposal": "Effective Voice route-bootstrap V2 authorization PR #195 introduced governance/layered-ci/v21-voice-brain-p0-route-bootstrap-v2-authorization.json at reviewed Head c4ad9690d195cac34fc214f0fc302d44c7fd6a4e and ordinary-merged as 86a11eda9b716d9a8850118a0897324ea8219f73; it grants no Voice product implementation authority and has zero exact route-path overlap with the Media 23-path scope. Historical #193 remains non-effective evidence and #194 remains failed in-place reseal evidence.",
+    "presenceAuthorityAtProposal": "Presence route-bootstrap implementation PR #189 ordinary-merged as d6d1342d89e5b1edd587ddc65ff817309543c470 under authorization merge 0c51e0d69a0610de151e55f67c9d46112183eb4f; the generic delegated route-policy guard is trusted-main code and the Presence exact route set has zero exact overlap with the Media 23-path scope."
+  },
+  "implementation": {
+    "branch": "product/v21-media-brain-p0-v1",
+    "allowedChangedPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "config/comfyui-workflows/v21-media-edit.json",
+      "config/comfyui-workflows/v21-media-generate.json",
+      "config/upstreams/v21-media-brain-p0.json",
+      "docs/superpowers/plans/2026-08-09-yance-v21-media-brain-p0.md",
+      "docs/superpowers/specs/2026-08-09-yance-v21-media-brain-p0-design.md",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/mediaBrainRuntime.js",
+      "electron/preload.js",
+      "integration/element-module/src/MediaWorkspace.css",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "runtime/media-brain/README.md",
+      "runtime/media-brain/comfyui/UPSTREAM.json",
+      "runtime/media-brain/immich/UPSTREAM.json",
+      "tests/wp0/v21-media-brain-authority-cutover.test.js",
+      "tests/wp0/v21-media-brain-p0.test.js",
+      "tests/wp0/v21-media-brain-ui.test.js",
+      "tests/wp0/v21-media-brain-windows-runtime.test.js",
+      "third_party/licenses/comfyui-GPL-3.0.txt",
+      "third_party/licenses/immich-AGPL-3.0.txt",
+      "tools/media-brain/build-windows-runtime.ps1"
+    ],
+    "approvedChangedFileCount": 23,
+    "approvedChangedFileSetSha256": "5285766f6304074ecdeb098409b3b9fdadcd5be84c8acfdf0e2332dbad7aa5bf",
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "dependencyControlPaths": [],
+    "dependencyControlPathCount": 0,
+    "dependencyControlPathSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "ossPins": {
+    "immich": "immich-app/immich v3.1.0 @ 8aa95c67470a02a8ddedf03c2e52963af33065ff; AGPL-3.0; unmodified external/self-hosted service reached through stable HTTP API; Yance must not copy its database, search, people/face, album or asset-library implementation.",
+    "comfyui": "Comfy-Org/ComfyUI v0.31.0 @ 43cb4fffc89bba20ab7bd61467a36d0339338dab; GPL-3.0; unmodified local/portable or user-managed server reached through Local Server API; Yance owns only pinned workflow templates and parameter mapping, never an execution engine."
+  },
+  "ossFit": {
+    "immich": {
+      "authority": [
+        "asset upload/import",
+        "asset metadata/original/thumbnail retrieval",
+        "smart search",
+        "people/person search",
+        "albums"
+      ],
+      "windowsFit": "Run as upstream-supported Docker/WSL2/self-hosted service or explicit user-managed endpoint. Database storage remains an Immich concern and must not be recreated inside Electron.",
+      "offlineBoundary": "Runtime may be local/offline after upstream container/images and ML artifacts are provisioned; first provisioning/model cache warmup is not claimed offline.",
+      "apiBoundary": "Stable Immich API with API-key auth. Electron credential value remains in existing Yance credential custody."
+    },
+    "comfyui": {
+      "authority": [
+        "workflow validation/queueing",
+        "model execution",
+        "image input upload",
+        "generation/editing execution",
+        "history/output retrieval",
+        "model/node inventory"
+      ],
+      "windowsFit": "Prefer official Windows portable or explicit user-managed local endpoint; do not embed a second Python inference engine in Yance.",
+      "offlineBoundary": "Model weights are separate large artifacts and are not bundled in npm/Electron. P0 exposes missing-model state and uses installed model inventory.",
+      "apiBoundary": "Local server /prompt, /ws, /history/{prompt_id}, /view, /upload/image, /object_info and model inventory endpoints."
+    }
+  },
+  "architectureRules": [
+    "Immich is the only Media P0 asset-library authority for photo/video identity, metadata, people, albums and search.",
+    "ComfyUI is the only Media P0 generation/editing/workflow execution authority.",
+    "electron/mediaBrainRuntime.js is a thin adapter/coordinator only: no durable asset database, search index, embeddings, person/face model, image executor or custom scheduler.",
+    "Existing electron credential custody remains the only owner of Immich secrets; Media must not create another credential store.",
+    "Existing backend /api/r32/messages/:platform/:accountId/send-media-stream and existing business-command/sendQueue path remain the only send authority.",
+    "Existing backend/services/mediaPipeline.js remains transport/cache staging only and must not become a library/search authority.",
+    "Existing mediaIntelligenceService remains outside Media library authority; Media P0 must not use it to build a photo/video catalog, search index or person/face system.",
+    "No new npm dependency is authorized. Use runtime/platform capabilities already present.",
+    "External/non-loopback Immich or ComfyUI endpoints require explicit user configuration; loopback/local is the default privacy posture.",
+    "Generated/edited ComfyUI outputs must be imported back into Immich before becoming selectable Media assets.",
+    "Visible Media UI must expose upstream health, missing-model/degraded state, import, search/select, generate/edit, preview, save-back and send actions; controls must call real IPC/runtime actions.",
+    "No YancePhotoManager, YanceImageWorkflow, YanceImageGenerationEngine or equivalent second framework may be introduced."
+  ],
+  "retirementRules": [
+    "Do not extend mediaPipeline into a persistent asset manager; treat it only as message transport/cache staging.",
+    "Do not extend mediaIntelligenceService into library analysis/search/person authority.",
+    "Do not persist a parallel Yance photo/video catalog for Immich assets; renderer state is transient projection only.",
+    "Do not implement custom image inference, model loading, node execution, prompt queueing or image-edit graph execution outside ComfyUI."
+  ],
+  "parallelOverlap": {
+    "learningGrowthBrain": {
+      "authoritySource": "governance/layered-ci/v21-learning-growth-brain-p0-v2-authorization.json on main@ed90d68d651572e517591b0ad2707166dee518d0",
+      "sharedExactPaths": [
+        "THIRD_PARTY_NOTICES.md",
+        "electron/m2/ipcManifest.json",
+        "electron/main.js",
+        "electron/preload.js",
+        "integration/element-module/src/YanceWorkspace.tsx"
+      ],
+      "rule": "These are shared composition roots, not serialization locks. If Learning V2 merges product implementation first, Media must ordinary-forward reconcile from fresh main and re-seal the effective exact diff; no rebase/force/squash."
+    },
+    "voiceBrain": {
+      "exactAuthorityAtProposal": "governance/layered-ci/v21-voice-brain-p0-route-bootstrap-v2-authorization.json from PR #195 reviewed Head c4ad9690d195cac34fc214f0fc302d44c7fd6a4e, ordinary-merged on main as 86a11eda9b716d9a8850118a0897324ea8219f73; prior #193 is non-effective historical evidence",
+      "routeBootstrapOverlapWithMedia": [],
+      "reservedOwnership": [
+        "ASR",
+        "TTS",
+        "voice cloning",
+        "voice enrollment",
+        "cross-language voice generation"
+      ],
+      "rule": "Media must not modify Voice authority. Voice route-bootstrap paths are distinct from the Media 23-path scope; later shared composition-root drift is reconciled after first merge."
+    },
+    "presenceAvatar": {
+      "exactAuthorityAtProposal": "Presence route-bootstrap authorization ordinary-merged as 0c51e0d69a0610de151e55f67c9d46112183eb4f; implementation PR #189 Head d16971a890140e1f58691001c72a8c0570c68b97 ordinary-merged as d6d1342d89e5b1edd587ddc65ff817309543c470",
+      "routeBootstrapOverlapWithMedia": [],
+      "reservedOwnership": [
+        "LiveKit presence",
+        "CyberVerse avatar/presence rendering"
+      ],
+      "rule": "Media must not modify Presence authority. Presence route-bootstrap paths are distinct from the Media 23-path scope; later shared composition-root drift is reconciled after first merge."
+    }
+  },
+  "failureFirst": {
+    "firstImplementationCommitMustBeTestOnly": true,
+    "exactTestPaths": [
+      "tests/wp0/v21-media-brain-authority-cutover.test.js",
+      "tests/wp0/v21-media-brain-p0.test.js",
+      "tests/wp0/v21-media-brain-ui.test.js",
+      "tests/wp0/v21-media-brain-windows-runtime.test.js"
+    ],
+    "testPathCount": 4,
+    "requiredCausalFailures": [
+      "missing pinned Immich + ComfyUI upstream descriptor/product authority contract",
+      "missing mediaBrainRuntime real upstream workflow API contract",
+      "missing visible Media workspace and desktop IPC bridge",
+      "missing Windows/local runtime provisioning/preflight contract"
+    ]
+  },
+  "requiredSequence": [
+    "single-file authorization proposal from exact fresh main -> authorization gates and independent review",
+    "ordinary two-parent authorization merge into main",
+    "create product/v21-media-brain-p0-v1 from exact authorization merge commit",
+    "first implementation commit changes only the four authorized failure-first test paths and records causal RED",
+    "implement pinned upstream descriptors, thin Electron Media runtime, Immich asset/search/people/albums, ComfyUI generate/edit workflows, save-back, preview/select/send, privacy boundary, visible UI, licenses and runtime provisioning within exact scope",
+    "if any shared path changed on main first, ordinary-forward reconcile from fresh main and re-seal effective exact diff",
+    "seal applicable Stage, Layered, ACV2, Windows/runtime and independent review GREEN with P0=0/P1=0",
+    "stop at final implementation merge owner boundary"
+  ],
+  "finalGates": [
+    "exact path count and SHA-256 match the effective authorized scope after any ordinary reconciliation",
+    "Stage GREEN",
+    "Layered GREEN",
+    "ACV2 GREEN",
+    "Media Windows/local runtime contract GREEN",
+    "independent review P0=0 and P1=0",
+    "no duplicate Yance media/photo/image/search/workflow/execution/credential/send authority"
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

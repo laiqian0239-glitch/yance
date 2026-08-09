@@ -110,6 +110,7 @@ const { backendAuthority, stopOwnedBackend, completeElectronQuit, restartElectro
 const { createLettaAgentRuntime } = require('./lettaAgentRuntime');
 const { createParlantRelationshipRuntime, createRelationshipTaskSequencer } = require('./parlantRelationshipRuntime');
 const { createGraphitiRelationshipRuntime, createNeo4jPassword } = require('./graphitiRelationshipRuntime');
+const { createMediaBrainRuntime, mergeImmichConfiguration, mergeComfyuiConfiguration } = require('./mediaBrainRuntime');
 const { SoundNotificationService } = require('./SoundNotificationService');
 const { isCustomSoundPattern, soundFileName } = require('../shared/notificationSoundCatalog');
 const { runInstalledRuntimeProbeApplicationEntry } = require('./wp7InstalledRuntimeProbeApplicationEntry');
@@ -478,6 +479,7 @@ let runtimeProjectionCoordinator = null;
 let lettaAgentRuntime = null;
 let parlantRelationshipRuntime = null;
 let graphitiRelationshipRuntime = null;
+let mediaBrainRuntime = null;
 const parlantInboundSequencer = createRelationshipTaskSequencer();
 
 function ensureLettaAgentRuntime() {
@@ -569,6 +571,124 @@ function ensureGraphitiRelationshipRuntime() {
     });
   }
   return graphitiRelationshipRuntime;
+}
+
+const MEDIA_IMMICH_CREDENTIAL_REF = 'media:immich:default';
+const MEDIA_COMFYUI_CREDENTIAL_REF = 'media:comfyui:default';
+
+function readMediaConfiguration(ref, fallbackEndpoint) {
+  const credential = vault?.get?.(ref) || {};
+  return Object.freeze({
+    endpoint: String(credential.endpoint || fallbackEndpoint || '').trim(),
+    apiKey: String(credential.apiKey || '').trim(),
+    allowExternalEndpoint: credential.allowExternalEndpoint === true
+  });
+}
+
+function ensureMediaBrainRuntime() {
+  if (!mediaBrainRuntime) {
+    mediaBrainRuntime = createMediaBrainRuntime({
+      workflowDirectory: path.join(APP_ROOT, 'config', 'comfyui-workflows'),
+      getImmichConfiguration: () => readMediaConfiguration(MEDIA_IMMICH_CREDENTIAL_REF, 'http://127.0.0.1:2283'),
+      getComfyuiConfiguration: () => readMediaConfiguration(MEDIA_COMFYUI_CREDENTIAL_REF, 'http://127.0.0.1:8188')
+    });
+  }
+  return mediaBrainRuntime;
+}
+
+function mediaConfigurationChanged(current, next) {
+  return String(current?.endpoint || '') !== String(next?.endpoint || '')
+    || String(current?.apiKey || '') !== String(next?.apiKey || '')
+    || (current?.allowExternalEndpoint === true) !== (next?.allowExternalEndpoint === true);
+}
+
+async function saveMediaBrainSettings(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw Object.assign(new Error('Media settings input must be an object.'), { reasonCode: 'DESKTOP_MEDIA_SETTINGS_INPUT_INVALID' });
+  }
+  const currentImmich = readMediaConfiguration(MEDIA_IMMICH_CREDENTIAL_REF, 'http://127.0.0.1:2283');
+  const currentComfyui = readMediaConfiguration(MEDIA_COMFYUI_CREDENTIAL_REF, 'http://127.0.0.1:8188');
+  const nextImmich = mergeImmichConfiguration(currentImmich, {
+    endpoint: input.immichEndpoint,
+    apiKey: input.immichApiKey,
+    clearApiKey: input.clearImmichApiKey === true,
+    allowExternalEndpoint: input.immichAllowExternalEndpoint === undefined ? undefined : input.immichAllowExternalEndpoint === true
+  });
+  const nextComfyui = mergeComfyuiConfiguration(currentComfyui, {
+    endpoint: input.comfyuiEndpoint,
+    allowExternalEndpoint: input.comfyuiAllowExternalEndpoint === undefined ? undefined : input.comfyuiAllowExternalEndpoint === true
+  });
+  const requestBase = `media-settings:${randomUUID()}`;
+  let immichUpdated = false;
+  let comfyuiUpdated = false;
+  if (mediaConfigurationChanged(currentImmich, nextImmich)) {
+    await applyVaultMutationWithRestart('persist', MEDIA_IMMICH_CREDENTIAL_REF, nextImmich, { requestId: `${requestBase}:immich` });
+    immichUpdated = true;
+  }
+  if (mediaConfigurationChanged(currentComfyui, nextComfyui)) {
+    await applyVaultMutationWithRestart('persist', MEDIA_COMFYUI_CREDENTIAL_REF, nextComfyui, { requestId: `${requestBase}:comfyui` });
+    comfyuiUpdated = true;
+  }
+  return Object.freeze({
+    ok: true,
+    immich: Object.freeze({ endpoint: nextImmich.endpoint, allowExternalEndpoint: nextImmich.allowExternalEndpoint, hasApiKey: Boolean(nextImmich.apiKey), updated: immichUpdated }),
+    comfyui: Object.freeze({ endpoint: nextComfyui.endpoint, allowExternalEndpoint: nextComfyui.allowExternalEndpoint, updated: comfyuiUpdated })
+  });
+}
+
+function normalizeMediaSendInput(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw Object.assign(new Error('Media send input must be an object.'), { reasonCode: 'DESKTOP_MEDIA_SEND_INPUT_INVALID' });
+  }
+  const platform = String(input.platform || '').trim().toLowerCase();
+  const accountId = String(input.accountId || '').trim();
+  const chatJid = String(input.chatJid || '').trim();
+  const assetId = String(input.assetId || '').trim();
+  if (!['whatsapp', 'telegram', 'facebook'].includes(platform)) throw Object.assign(new Error('Media send platform is invalid.'), { reasonCode: 'DESKTOP_MEDIA_SEND_PLATFORM_INVALID' });
+  if (!accountId || accountId.length > 512 || !chatJid || chatJid.length > 1024 || !assetId || assetId.length > 512) throw Object.assign(new Error('Media send target or asset is invalid.'), { reasonCode: 'DESKTOP_MEDIA_SEND_INPUT_INVALID' });
+  return Object.freeze({
+    platform, accountId, chatJid, assetId,
+    sessionKey: String(input.sessionKey || '').trim().slice(0, 1024),
+    filename: path.basename(String(input.filename || 'yance-media')).slice(0, 240),
+    caption: String(input.caption || '').slice(0, 10000)
+  });
+}
+
+async function sendMediaAssetThroughExistingAuthority(input = {}) {
+  const target = normalizeMediaSendInput(input);
+  const original = await ensureMediaBrainRuntime().openAssetOriginalStream({ assetId: target.assetId });
+  const mimeType = String(original.mimeType || '').trim().toLowerCase();
+  const kind = mimeType.startsWith('image/') ? 'image' : mimeType.startsWith('video/') ? 'video' : '';
+  if (!kind) {
+    throw Object.assign(new Error('Immich original media type is unsupported by the Media workspace send contract.'), { reasonCode: 'DESKTOP_MEDIA_SEND_MIME_TYPE_UNSUPPORTED' });
+  }
+  const encodeHeader = value => encodeURIComponent(String(value || ''));
+  const response = await fetch(`${YANCE_BACKEND_URL}/api/r32/messages/${encodeURIComponent(target.platform)}/${encodeURIComponent(target.accountId)}/send-media-stream`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${currentApiSessionToken()}`,
+      Origin: YANCE_BACKEND_URL,
+      'content-type': original.mimeType || 'application/octet-stream',
+      'x-yance-chat-jid': encodeHeader(target.chatJid),
+      'x-yance-session-key': encodeHeader(target.sessionKey),
+      'x-yance-media-kind': encodeHeader(kind),
+      'x-yance-mime-type': encodeHeader(original.mimeType || 'application/octet-stream'),
+      'x-yance-filename': encodeHeader(target.filename),
+      'x-yance-caption': encodeHeader(target.caption)
+    },
+    body: original.body,
+    duplex: 'half',
+    signal: AbortSignal.timeout(120000)
+  });
+  const text = await response.text();
+  let payload = {};
+  try { payload = text ? JSON.parse(text) : {}; } catch (_) {}
+  if (!response.ok) {
+    const error = new Error(String(payload?.error?.message || payload?.message || `Existing Yance media send authority returned HTTP ${response.status}.`));
+    error.reasonCode = String(payload?.error?.code || payload?.code || `MEDIA_SEND_HTTP_${response.status}`);
+    throw error;
+  }
+  return payload;
 }
 
 function readParlantOpenRouterApiKey() {
@@ -3168,6 +3288,46 @@ function registerIpc() {
     const normalized = normalizeParlantGoalInput(input, ['contactId', 'paused']);
     return projectParlantRelationshipGoal(await ensureParlantRelationshipRuntime().setRelationshipGoalPaused(normalized));
   });
+  ipcGuardHandle('desktop:media-brain-health', () => ensureMediaBrainRuntime().health());
+  ipcGuardHandle('desktop:media-brain-save-settings', (_event, input = {}) => saveMediaBrainSettings(input));
+  ipcGuardHandle('desktop:media-brain-import-asset', (_event, input = {}) => ensureMediaBrainRuntime().importAsset(input));
+  ipcGuardHandle('desktop:media-brain-search-assets', (_event, input = {}) => ensureMediaBrainRuntime().searchAssets(input));
+  ipcGuardHandle('desktop:media-brain-list-people', (_event, input = {}) => ensureMediaBrainRuntime().listPeople(input));
+  ipcGuardHandle('desktop:media-brain-list-albums', (_event, input = {}) => ensureMediaBrainRuntime().listAlbums(input));
+  ipcGuardHandle('desktop:media-brain-get-asset-preview', (_event, input = {}) => ensureMediaBrainRuntime().getAssetPreview(input));
+  ipcGuardHandle('desktop:media-brain-queue-workflow', async (_event, input = {}) => {
+    const runtime = ensureMediaBrainRuntime();
+    const kind = String(input?.kind || '').trim().toLowerCase();
+    const queueInput = {
+      kind,
+      prompt: String(input?.prompt || ''),
+      negativePrompt: String(input?.negativePrompt || ''),
+      checkpoint: String(input?.checkpoint || ''),
+      clientId: String(input?.clientId || ''),
+      seed: input?.seed,
+      width: input?.width,
+      height: input?.height,
+      denoise: input?.denoise
+    };
+    if (kind === 'edit') {
+      const assetId = String(input?.assetId || '').trim();
+      if (!assetId || assetId.length > 512) {
+        throw Object.assign(new Error('Edit workflow requires an Immich asset id.'), { reasonCode: 'IMMICH_ASSET_REQUIRED' });
+      }
+      const uploaded = await runtime.uploadImmichAssetAsWorkflowInput({
+        assetId,
+        filename: path.basename(String(input?.filename || `immich-${assetId}`)).slice(0, 240)
+      });
+      queueInput.inputImage = String(uploaded?.name || uploaded?.filename || '').trim();
+      if (!queueInput.inputImage) {
+        throw Object.assign(new Error('ComfyUI did not return an uploaded image name.'), { reasonCode: 'COMFYUI_INPUT_IMAGE_UPLOAD_INVALID' });
+      }
+    }
+    return runtime.queueWorkflow(queueInput);
+  });
+  ipcGuardHandle('desktop:media-brain-get-workflow-result', (_event, input = {}) => ensureMediaBrainRuntime().getWorkflowOutput({ promptId: String(input?.promptId || '').trim() }));
+  ipcGuardHandle('desktop:media-brain-save-workflow-output', (_event, input = {}) => ensureMediaBrainRuntime().saveWorkflowOutputToImmich(input));
+  ipcGuardHandle('desktop:media-brain-send-asset', (_event, input = {}) => sendMediaAssetThroughExistingAuthority(input));
   ipcGuardHandle('desktop:report-runtime-environment', (_event, input = {}) => {
     const state = desktopState();
     const finite = (value, min, max) => {

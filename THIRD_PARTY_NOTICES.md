@@ -168,3 +168,25 @@ Exact Graphiti, Neo4j Community, Temurin, uv and python-build-standalone pins ar
 - Provenance manifest: `vendor/sillytavern/1.18.0/UPSTREAM.json`
 - Yance integration: adopts the pinned Character Card parser/validator/PNG helpers and exact Prompt/Persona/Example Dialogue/Author Note/World Info source regions with mechanical CommonJS and lexical-binding adaptation only. Yance does not import the SillyTavern UI, provider/model gateway, server shell, global chat state, swipe UI, or recursive World Info token-budget engine.
 - Authority boundary: SillyTavern supplies Persona/Character/Prompt composition semantics only; Letta remains memory authority, Graphiti remains temporal relationship-fact authority, Parlant remains Goal/Journey authority, and Yance retains its existing model gateway and unique final send authority.
+
+## Immich
+
+- Project: Immich
+- Upstream: `https://github.com/immich-app/immich.git`
+- Version: `v3.1.0`
+- Exact commit: `8aa95c67470a02a8ddedf03c2e52963af33065ff`
+- License: `AGPL-3.0`
+- License copy: `third_party/licenses/immich-AGPL-3.0.txt`
+- Yance integration: unmodified user-managed/self-hosted Immich remains the sole Media Brain authority for asset upload/import, metadata/original/thumbnail retrieval, smart search, people and albums. Yance does not create a parallel asset catalog, search index, face/person index or media database.
+
+## ComfyUI
+
+- Project: ComfyUI
+- Upstream: `https://github.com/Comfy-Org/ComfyUI.git`
+- Version: `v0.31.0`
+- Exact commit: `43cb4fffc89bba20ab7bd61467a36d0339338dab`
+- License: `GPL-3.0`
+- License copy: `third_party/licenses/comfyui-GPL-3.0.txt`
+- Yance integration: unmodified official Windows portable or user-managed ComfyUI remains the sole Media Brain image workflow/model execution authority. Yance performs only HTTP coordination and parameter substitution; generated/edited outputs must be imported into Immich before becoming selectable or sendable.
+
+Exact Media Brain pins and authority boundaries are recorded in `config/upstreams/v21-media-brain-p0.json`.

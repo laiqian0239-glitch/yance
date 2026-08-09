@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-VOICE-BRAIN-P0-ROUTE-BOOTSTRAP-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh authorization successor after Voice route-bootstrap authorization PR #193 ordinary-merged immediately after concurrent Media route-bootstrap PR #186 advanced trusted main. The resulting #193 merge first parent did not equal the base.commit recorded by that authorization, so the generic delegated-governance evaluator correctly treats #193 as merged but non-effective evidence. The later in-place re-seal proposal #194 intentionally remained unmerged after Stage proved that mutating an already-introduced authorization path is invalid authorization-proposal transport. This V2 authorization follows the repository's existing non-effective-authorization recovery pattern: preserve all historical evidence, introduce one new authorization document from fresh trusted main, and keep the Voice implementation scope unchanged. SenseVoice remains the ASR authority and CosyVoice remains the TTS/voice-cloning authority; this route bootstrap grants no Voice product implementation authority.",
+  "base": {
+    "branch": "main",
+    "commit": "0ea9dcd22a2dfa3d3b2e95f0f9da2e1eff2b16a9"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "evidence": {
+    "trustedRoutingPolicyPath": "governance/layered-ci/wp0-routing-policy.json",
+    "trustedRoutingPolicyBlob": "bab4ea8359eccdb019df434c20210675eba64871",
+    "trustedDelegatedBranchPolicyPath": "shared/release/implementationBranchPolicy.js",
+    "trustedDelegatedBranchPolicyBlob": "6c874b93aa3a72c60ee2b9599faf37afe695f35c",
+    "sharedRouteGuardMerge": "d6d1342d89e5b1edd587ddc65ff817309543c470",
+    "sharedRouteGuardSourcePr": 189,
+    "sharedRouteGuardTrustedMainEffective": true,
+    "routeDeclarationField": "bootstrapPaths",
+    "routeDeclarationSchemaSupportedByTrustedGuard": true,
+    "unknownPathFailsClosed": true,
+    "productPrefixesExclude": [
+      "config/",
+      "runtime/",
+      "third_party/"
+    ],
+    "allVoiceBootstrapPathsAbsentFromProductExactPaths": true,
+    "expectedPreBootstrapReasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "concurrentMainAdvancementPr": 186,
+    "concurrentMainAdvancementMerge": "21321bf4c59c34d0b442344a68fbd72ab37804d6",
+    "concurrentMainAdvancementTouchedRoutingPolicy": true,
+    "concurrentMainAdvancementVoicePathNeutral": true,
+    "freshRouteFactsRevalidatedOnBase": true
+  },
+  "priorNonEffectiveAuthorization": {
+    "path": "governance/layered-ci/v21-voice-brain-p0-route-bootstrap-authorization.json",
+    "pullRequest": 193,
+    "mergeCommit": "0ea9dcd22a2dfa3d3b2e95f0f9da2e1eff2b16a9",
+    "recordedBaseCommit": "24603974b8cc65d65da8bcaffef5cfee4370eb52",
+    "actualMergeFirstParent": "21321bf4c59c34d0b442344a68fbd72ab37804d6",
+    "reviewedHead": "3b928ca3865a5b716e2680b87498a607055d4127",
+    "implementationAuthorityGranted": false,
+    "historyRewriteOrDeletionAllowed": false
+  },
+  "failedInPlaceResealProposal": {
+    "pullRequest": 194,
+    "head": "27565dfefebdfc06fecdcdb0455448b757335c58",
+    "merged": false,
+    "stageRun": 31312296737,
+    "reasonCode": "WP0_AUTHORIZATION_PROPOSAL_TRANSPORT_INVALID",
+    "mustRemainHistoricalRedEvidence": true
+  },
+  "authorizationMergeTransport": {
+    "required": "Construct the final ordinary two-parent authorization merge only after reading the exact current trusted main. The merge first parent must equal this document base.commit and the second parent must be the independently reviewed exact authorization Head. If trusted main advances before the non-force main ref update, the merge must not become effective; refresh through another new authorization proposal rather than mutating or rewriting this authorization.",
+    "pullRequestMergeApiAloneIsSufficient": false,
+    "forceUpdateAllowed": false
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-voice-brain-p0-route-bootstrap-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-voice-brain-p0-route-bootstrap-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "bf29f3e64d32dc5d310ea8c1150fefc7e48c672e35e200f8cb9518501328bd3c",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Apply the repository normalizeChangedFiles contract: require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "fix/v21-voice-brain-p0-route-bootstrap",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-voice-brain-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "00c56d4e9ef38c5acc4908e18bb51a2415431101c4b7f9bb29ecee7052a2b942",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "productImplementationAllowed": false,
+    "firstCommitMustBeTestOnly": true,
+    "firstCommitAllowedChangedPaths": [
+      "tests/layered-ci/v21-voice-brain-p0-routing.test.js"
+    ],
+    "firstCommitChangedFileSetSha256": "94562a2bb9f584474902dd8e2c60168428dac17ca406a1ddb56d3153181acd23",
+    "genericRouteMutationGuardRequired": true
+  },
+  "bootstrapPaths": [
+    "config/upstreams/v21-voice-brain-p0.json",
+    "runtime/voice-brain/cosyvoice/generate_runtime_sbom.py",
+    "runtime/voice-brain/cosyvoice/pyproject.toml",
+    "runtime/voice-brain/cosyvoice/uv.lock",
+    "runtime/voice-brain/cosyvoice/yance_cosyvoice_entrypoint.py",
+    "runtime/voice-brain/sensevoice/runtime-manifest.json",
+    "third_party/licenses/cosyvoice-Apache-2.0.txt",
+    "third_party/licenses/cosyvoice3-model-Apache-2.0.txt",
+    "third_party/licenses/funasr-model-license.txt",
+    "third_party/licenses/onnxruntime-MIT.txt",
+    "third_party/licenses/pytorch-BSD-3-Clause.txt",
+    "third_party/licenses/sensevoice-MIT.txt"
+  ],
+  "bootstrapPathCount": 12,
+  "bootstrapPathSetSha256": "34360957294d3b9b178f533212bcf3e98b870cdd10c86961b812d899c241326a",
+  "routeGuardContract": {
+    "guardAlreadyTrusted": true,
+    "guardMustNotBeReimplementedByVoice": true,
+    "supportedDeclarationField": "bootstrapPaths",
+    "matchingCountAndCanonicalSha256Required": true,
+    "candidateRoutingPolicyMayOnlyAddDeclaredPathsToProductExactPaths": true,
+    "productPrefixMutationForbidden": true,
+    "unrelatedProductExactPathMutationForbidden": true,
+    "routeRemovalForbidden": true,
+    "unknownPathFailsClosedWeakeningForbidden": true,
+    "governanceOrDocumentationRouteDriftForbidden": true
+  },
+  "matureOssBoundary": {
+    "senseVoiceOwnsAsr": true,
+    "cosyVoiceOwnsTts": true,
+    "cosyVoiceOwnsVoiceCloning": true,
+    "yanceAsrFrameworkForbidden": true,
+    "yanceTtsFrameworkForbidden": true,
+    "yanceVoiceCloningFrameworkForbidden": true,
+    "legacyWhisperAuthorityMayRemainFallback": false,
+    "existingRecordingAndSendAuthorityMustBeReused": true,
+    "presenceImplementationForbidden": true,
+    "learningImplementationForbidden": true,
+    "mediaImplementationForbidden": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first route-bootstrap implementation commit changes only tests/layered-ci/v21-voice-brain-p0-routing.test.js and changes zero routing-policy or product code.",
+    "Before routing-policy implementation each of the twelve exact Voice bootstrap paths fails closed as WP0_ROUTE_UNKNOWN_PATH.",
+    "The already-trusted generic delegated route-policy guard remains GREEN for the Voice bootstrapPaths declaration and rejects every semantic mutation beyond adding the frozen twelve paths to productExactPaths.",
+    "After implementation each of the twelve exact Voice bootstrap paths selects PRODUCT_WP0.",
+    "The route repair adds only the twelve exact Voice literals to productExactPaths and does not add config/, runtime/, third_party/ or any other broad prefix.",
+    "Adjacent unregistered Voice, SenseVoice, CosyVoice, runtime-like and license-like paths continue to fail closed.",
+    "Governance and product-documentation precedence remains unchanged.",
+    "No Voice product implementation, dependency, workflow, Learning, Media or Presence authority is modified by this route-bootstrap implementation."
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes applicable Stage, Layered and ACV2 governance gates and independent review with zero unresolved P0/P1 findings.",
+    "Stop at the authorization merge boundary.",
+    "After explicit owner authorization, construct and merge the authorization with exact first-parent freshness and ordinary two-parent history without force update or history rewrite.",
+    "Create fix/v21-voice-brain-p0-route-bootstrap from the exact effective authorization merge commit.",
+    "Create the mandatory test-only causal RED commit on tests/layered-ci/v21-voice-brain-p0-routing.test.js.",
+    "Add only the twelve frozen Voice literals to productExactPaths; do not touch the already-trusted generic route guard implementation.",
+    "Pass applicable Stage, Layered and ACV2 gates plus independent exact-Head review.",
+    "Merge route-bootstrap implementation by ordinary two-parent merge after the final owner boundary.",
+    "Only then create the separate V21-VOICE-BRAIN-P0-V1 product authorization from then-fresh main and freshly reconstruct/reseal its exact implementation scope and parallel-workline overlap matrix."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalMergeRequiresOwnerBoundary": true,
+    "ordinaryTwoParentMergeRequired": true,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true,
+    "gateWeakeningForbidden": true
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansion": true,
+    "forcePush": true,
+    "rebaseOrAmendPublishedHistory": true,
+    "directCandidateSelfAuthorization": true,
+    "voiceProductImplementation": true,
+    "dependencyManifestModification": true,
+    "workflowModification": true,
+    "duplicateGenericRouteGuard": true,
+    "creatingSecondAsrStack": true,
+    "creatingSecondTtsStack": true,
+    "creatingSecondVoiceCloneStack": true
+  }
+}
