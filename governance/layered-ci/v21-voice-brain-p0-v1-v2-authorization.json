@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-VOICE-BRAIN-P0-V1",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Adopt SenseVoice as the sole local ASR/language-detection authority and CosyVoice as the sole TTS/zero-shot voice-cloning/cross-lingual speech authority for Yance Voice Brain P0. Replace the legacy Yance Whisper discovery/router/installer authority at its source rather than layering a fallback beside it. Yance remains limited to product composition, privacy/permission controls, thin service/runtime adapters, sealed portable runtime supervision, exact provenance/SBOM, the modular VoiceWorkspace UI, and reuse of the existing unique media/send authority.",
+  "base": {
+    "branch": "main",
+    "commit": "804f2a4624f1eb438e5e2596b7251a3a51de3daf"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "804f2a4624f1eb438e5e2596b7251a3a51de3daf",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-voice-brain-p0-v1-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-voice-brain-p0-v1-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "4bc36799b54bce260ca6dd72d90c9193c26b7738df12368a66e20d333b89b5cf",
+    "mustRemainSingleFile": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "supersession": {
+    "supersedesPullRequest": 208,
+    "supersededProposalHead": "a030d13e6f2a9eb9761db5a384f2cce5a9e0735a",
+    "supersededProposalBase": "3103ceb291230e8a20e6056b4dfe0f146deaa1d3",
+    "supersedingMainCommit": "804f2a4624f1eb438e5e2596b7251a3a51de3daf",
+    "supersedingMainPullRequest": 207,
+    "supersedingMainChangedPaths": [
+      "governance/layered-ci/v21-pvep-trusted-runner-ambient-env-v3-authorization.json"
+    ],
+    "voiceImplementationPathOverlapCount": 0,
+    "scopeOrOssPinChanged": false,
+    "historyReuseAsAuthorityForbidden": true
+  },
+  "prerequisites": {
+    "routeBootstrapAuthorizationMerge": "dfcf813e10d4bdbe49fa9018ec2334a0654ac8a3",
+    "routeBootstrapImplementationMerge": "be18cb5668297237de5d590140fa2776938c6983",
+    "routeBootstrapImplementationPr": 203,
+    "voiceProductAuthorizationPreviouslyExistedOnMain": false,
+    "staleHistoricalPathCountsAreAuthority": false
+  },
+  "implementation": {
+    "branch": "product/v21-voice-brain-p0-v1",
+    "allowedChangedPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "backend/services/speechInstallerService.js",
+      "backend/services/transcriptionService.js",
+      "config/upstreams/v21-voice-brain-p0.json",
+      "docs/superpowers/plans/2026-08-10-yance-v21-voice-brain-p0.md",
+      "docs/superpowers/specs/2026-08-10-yance-v21-voice-brain-p0-design.md",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/voiceBrainRuntime.js",
+      "integration/element-module/src/VoiceWorkspace.css",
+      "integration/element-module/src/VoiceWorkspace.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "runtime/voice-brain/cosyvoice/generate_runtime_sbom.py",
+      "runtime/voice-brain/cosyvoice/pyproject.toml",
+      "runtime/voice-brain/cosyvoice/uv.lock",
+      "runtime/voice-brain/cosyvoice/yance_cosyvoice_entrypoint.py",
+      "runtime/voice-brain/sensevoice/runtime-manifest.json",
+      "tests/wp0/v21-voice-brain-authority-cutover.test.js",
+      "tests/wp0/v21-voice-brain-p0.test.js",
+      "tests/wp0/v21-voice-brain-ui.test.js",
+      "tests/wp0/v21-voice-brain-windows-runtime.test.js",
+      "third_party/licenses/cosyvoice-Apache-2.0.txt",
+      "third_party/licenses/cosyvoice3-model-Apache-2.0.txt",
+      "third_party/licenses/funasr-model-license.txt",
+      "third_party/licenses/onnxruntime-MIT.txt",
+      "third_party/licenses/pytorch-BSD-3-Clause.txt",
+      "third_party/licenses/sensevoice-MIT.txt",
+      "tools/voice-brain/build-windows-runtime.ps1"
+    ],
+    "approvedChangedFileCount": 29,
+    "approvedChangedFileSetSha256": "76057909e62989e2602f38f6dbb5a431e0cd20acc9a4bab53ebc2e8c6b86f2e1",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-voice-brain-authority-cutover.test.js",
+        "tests/wp0/v21-voice-brain-p0.test.js",
+        "tests/wp0/v21-voice-brain-ui.test.js",
+        "tests/wp0/v21-voice-brain-windows-runtime.test.js"
+      ],
+      "approvedChangedFileCount": 4,
+      "approvedChangedFileSetSha256": "c3789bfd85a9eff02deab2b76a38d894b3cd41f748f9c2692634b24ba646418f",
+      "productionCodeChanged": false
+    },
+    "dependencyControlPaths": [
+      "runtime/voice-brain/cosyvoice/pyproject.toml",
+      "runtime/voice-brain/cosyvoice/uv.lock"
+    ],
+    "dependencyControlPathCount": 2,
+    "dependencyControlPathSetSha256": "5fb0c8cb34914bbfad33b0fe89c6dd852173782b0bf822f1f543d31bc7221db6",
+    "newDependencyAllowed": false,
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "upstreams": {
+    "senseVoice": {
+      "repository": "QwenAudio/SenseVoice",
+      "sourceRelease": "runtime-llamacpp-v0.1.9",
+      "sourceCommit": "73ccdd3577db37e92dbf22a4a9fc323b038cf13b",
+      "license": "MIT",
+      "windowsX64Avx2Asset": "funasr-llamacpp-windows-x64-avx2.zip",
+      "windowsX64Avx2AssetSize": 4917274,
+      "windowsX64Avx2AssetSha256": "f2a1389658e6fb5f5f93c7bad98b5ce100eb4811e0e3c39603e39466773b1b4c",
+      "modelRepository": "FunAudioLLM/SenseVoiceSmall-GGUF",
+      "modelRevision": "90c1c61912018b70ada0fcc024ea24aca62f2e63",
+      "defaultModelAsset": "sense-voice-small-q8_0.gguf",
+      "defaultModelAssetSize": 254208320,
+      "defaultModelAssetSha256": "4ae45c94422de949b387e2e0fb10d7e14e4c42c69db30c3444ecc7d4b844b7c5",
+      "sourceModelLicenseEvidenceRequired": "FunASR model license",
+      "role": "sole local ASR and language-detection authority; no Whisper fallback"
+    },
+    "cosyVoice": {
+      "repository": "QwenAudio/CosyVoice",
+      "sourceCommit": "074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc",
+      "license": "Apache-2.0",
+      "modelRepository": "FunAudioLLM/Fun-CosyVoice3-0.5B-2512",
+      "modelRevision": "29e01c4e8d000f4bcd70751be16fa94bf3d85a18",
+      "modelLicense": "Apache-2.0",
+      "role": "sole TTS, zero-shot voice cloning and cross-lingual speech authority",
+      "upstreamOpenAiWhisperDependency": {
+        "version": "20231117",
+        "permittedUse": "CosyVoice upstream prompt-audio mel feature extraction only",
+        "forbiddenUses": [
+          "ASR transcription",
+          "Whisper model discovery",
+          "Whisper CLI execution",
+          "Whisper installer",
+          "ASR fallback or routing authority"
+        ]
+      }
+    },
+    "uv": {
+      "repository": "astral-sh/uv",
+      "version": "0.12.3",
+      "commit": "507230998c9541d67814b57463ac00e454ff6991",
+      "license": "MIT OR Apache-2.0",
+      "windowsX64Asset": "uv-x86_64-pc-windows-msvc.zip",
+      "windowsX64AssetSize": 19013455,
+      "windowsX64AssetSha256": "b23350c79e8ad0192b8124af13a0f17e8d4e4549524785e1aef389ae5a06990e",
+      "role": "build/sealing time only; never runtime dependency resolution"
+    },
+    "pythonBuildStandalone": {
+      "repository": "astral-sh/python-build-standalone",
+      "release": "20260807",
+      "commit": "00c8a06113f11220667c3bcf5fab1672ff9e78ef",
+      "license": "MPL-2.0",
+      "cpythonLicense": "PSF-2.0",
+      "windowsX64Asset": "cpython-3.10.20+20260807-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+      "windowsX64AssetSize": 22272036,
+      "windowsX64AssetSha256": "53391d9e6401c8f91b97aab6daf49200bce0b6eb41dcc1615031e65e9db8bd63",
+      "role": "prebuilt CPython 3.10.20 runtime for the sealed CosyVoice environment"
+    }
+  },
+  "ossFit": {
+    "matureOssMandatory": true,
+    "senseVoiceOwnsAsr": true,
+    "cosyVoiceOwnsTtsAndVoiceCloning": true,
+    "duplicateYanceAsrEngineForbidden": true,
+    "duplicateYanceTtsEngineForbidden": true,
+    "duplicateYanceVoiceCloneEngineForbidden": true,
+    "duplicateGenericSpeechRuntimeFrameworkForbidden": true,
+    "cosyVoiceForkForDependencyRemovalForbidden": true,
+    "thinVoiceSpecificRuntimeAdapterAllowed": true,
+    "thinVoiceSpecificPortableSealingToolAllowed": true,
+    "existingElementWorkspaceOnly": true,
+    "existingUniqueSendAuthorityOnly": true
+  },
+  "architectureRules": {
+    "transcriptionServiceBecomesThinSenseVoiceAdapter": true,
+    "transcriptionServiceMustRetainGenericMediaHelpers": [
+      "discoverFfmpeg",
+      "runCommand"
+    ],
+    "speechInstallerServiceBecomesSealedVoiceRuntimeStatusFacade": true,
+    "legacyWhisperEnvironmentAuthorityForbidden": true,
+    "legacyWhisperCommandDiscoveryForbidden": true,
+    "legacyWhisperModelDiscoveryForbidden": true,
+    "legacyWhisperInstallerForbidden": true,
+    "runtimeNetworkDependencyResolutionForbidden": true,
+    "runtimePipInstallForbidden": true,
+    "runtimeUvSyncForbidden": true,
+    "runtimeShellExecutionForDynamicInstallForbidden": true,
+    "buildTimeExactDependencyMaterializationAllowed": true,
+    "voiceProfileSampleLocalPrivateByDefault": true,
+    "voiceProfileDeletionRequired": true,
+    "cloudVoiceSampleUploadWithoutSeparateAuthorityForbidden": true,
+    "generatedAudioMustUseExistingSendMediaAuthority": true,
+    "voiceWorkspaceMustBeModularYanceWorkspaceCapability": true,
+    "legacyFrontendRewriteForbidden": true
+  },
+  "voiceOutputContract": {
+    "fields": [
+      "audioArtifact",
+      "mimeType",
+      "duration",
+      "sampleRate",
+      "language",
+      "voiceProfileId",
+      "provenance"
+    ],
+    "presenceMayConsumeProjection": true,
+    "presenceMayOwnSecondVoiceAdapter": false
+  },
+  "parallelOverlap": {
+    "pr139PersonaCharacter": {
+      "exactOverlapPaths": [
+        "THIRD_PARTY_NOTICES.md"
+      ],
+      "count": 1,
+      "rule": "Whichever line merges second must reconcile THIRD_PARTY_NOTICES.md from fresh main without widening either product authority."
+    },
+    "pr158ModelBrain": {
+      "count": 0
+    },
+    "pr188LearningGrowthBrain": {
+      "count": 0
+    },
+    "pr192DelegatedDependencyPolicy": {
+      "count": 0
+    },
+    "pvepCurrentLine": {
+      "count": 0
+    },
+    "freshMainRecheckRequiredBeforeAuthorizationMerge": true,
+    "freshMainRecheckRequiredBeforeImplementationMerge": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit changes exactly the four authorized Voice test paths and no production code.",
+    "Current legacy transcriptionService Whisper ASR/discovery/environment/CLI authority is RED and must be removed at the source.",
+    "Current speechInstallerService Whisper PowerShell installer/status authority is RED and must be removed at the source.",
+    "Missing exact SenseVoice sealed runtime, model manifest and provenance is RED.",
+    "Missing exact CosyVoice sealed Python runtime, locked dependency closure, model revision, entrypoint and runtime SBOM is RED.",
+    "Any use of openai-whisper for ASR transcription, model discovery, CLI/install or fallback is RED; CosyVoice upstream mel-feature use only is allowed.",
+    "VoiceWorkspace absence and YanceWorkspace missing Voice capability are RED.",
+    "Missing Electron main/preload/IPC Voice runtime boundary is RED.",
+    "Own-voice enrollment, local privacy/delete, test sample, cross-language clone, preview, regenerate and existing-send integration must be behaviorally proven.",
+    "VoiceOutput must expose only the frozen Presence-facing projection and Presence must not gain a second voice runtime authority.",
+    "Runtime startup must be offline: no pip/uv sync/Git checkout/model download/dynamic installer at application startup.",
+    "Windows x64 sealed runtime must be verified against exact artifacts and dependency/model provenance before GREEN.",
+    "The final implementation changed-path set must remain within these 29 exact paths and retain SHA-256 76057909e62989e2602f38f6dbb5a431e0cd20acc9a4bab53ebc2e8c6b86f2e1.",
+    "Independent exact-Head review must have zero unresolved P0/P1 findings before implementation merge."
+  ],
+  "largeArtifactBoundary": {
+    "cosyVoiceModelSnapshotIsLarge": true,
+    "mustNotInventOrSilentlyFetchUnsealedSnapshot": true,
+    "userProvidedArtifactMayBeRequiredDuringImplementation": true,
+    "authorizationDoesNotClaimArtifactPresent": true
+  },
+  "requiredSequence": [
+    "ordinary two-parent merge this exact authorization to then-current trusted main",
+    "create product/v21-voice-brain-p0-v1 from the effective authorization merge commit",
+    "commit exactly the four failure-first test paths with zero production changes",
+    "capture causal remote RED",
+    "replace legacy Whisper ASR/installer authority with SenseVoice/CosyVoice thin adapters and sealed runtimes inside the exact scope",
+    "prove local/private voice enrollment, cross-language cloned reply preview/regenerate and existing unique-send integration",
+    "materialize and verify Windows sealed runtime using exact pinned OSS inputs; use existing PVEP/trusted runner evidence rather than creating a second verification framework",
+    "run exact-Head Stage, Layered, ACV2, PVEP and applicable repository Windows regression gates",
+    "complete independent exact-Head review with P0=0 and P1=0",
+    "stop at final implementation merge boundary for explicit owner authorization"
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "implementationMergeRequiresExplicitOwnerApproval": true
+  }
+}
