@@ -1,0 +1,324 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRESENCE-AVATAR-P0-V1",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Authorize the complete visible Realtime Presence / Audio-Video / Avatar P0 product package after the exact route-bootstrap root repair merged to trusted main. LiveKit remains the sole WebRTC room/session/stream transport authority. CyberVerse remains the sole digital-human/avatar/lip-sync runtime and already owns the LiveKit bot/media-peer integration and scoped participant-token generation. SoulX-FlashHead remains the selected local talking-head model. Yance may add only thin Electron session/security/audio-ingress composition, Element UI integration, pinned configuration/licensing/provenance evidence and a narrowly bounded CyberVerse upstream patch that refactors the existing audio-to-avatar-to-paced-AV chain so externally synthesized Voice audio can enter the same upstream runtime. No second WebRTC server, token server, avatar runtime, lip-sync engine, digital-human state machine, audio processing engine or YanceRealtimePresence framework is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "d6d1342d89e5b1edd587ddc65ff817309543c470"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-presence-avatar-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-presence-avatar-p0-v1-authorization.json"
+    ],
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Apply the repository normalizeChangedFiles contract: exact normalized repository-relative paths, unique, JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join normalized sorted unique paths with LF and append exactly one trailing LF before hashing."
+  },
+  "prerequisites": {
+    "parallelRegistryIssue": 178,
+    "routeBootstrapAuthorizationMerge": "0c51e0d69a0610de151e55f67c9d46112183eb4f",
+    "routeBootstrapImplementationMerge": "d6d1342d89e5b1edd587ddc65ff817309543c470",
+    "routeBootstrapPr": 189,
+    "routeBootstrapFuturePathCount": 12,
+    "routeBootstrapFuturePathSetSha256": "13ab2ef63e882402c27fad390ba185396ae2c52b809cefceb55bf926a7638d90",
+    "sharedDelegatedRoutePolicySemanticGuardEffectiveOnTrustedMain": true,
+    "duplicatePresenceProductWorklineCheck": "No second active Presence/Avatar product implementation branch or PR was found before this fresh-main proposal."
+  },
+  "implementation": {
+    "branch": "product/v21-presence-avatar-p0-v1",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-presence-avatar-p0-windows.yml",
+      "THIRD_PARTY_NOTICES.md",
+      "config/upstreams/v21-presence-avatar-p0.json",
+      "docs/superpowers/plans/2026-08-09-yance-v21-presence-avatar-p0.md",
+      "docs/superpowers/specs/2026-08-09-yance-v21-presence-avatar-p0-design.md",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/presenceAvatarRuntime.js",
+      "integration/element-module/package.json",
+      "integration/element-module/src/PresenceWorkspace.css",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/presenceLiveKit.ts",
+      "runtime/presence-avatar/cyberverse/avatar_models/flash_head.yaml",
+      "runtime/presence-avatar/cyberverse/cyberverse.yaml",
+      "tests/wp0/v21-presence-avatar-authority.test.js",
+      "tests/wp0/v21-presence-avatar-p0.test.js",
+      "tests/wp0/v21-presence-avatar-ui.test.js",
+      "tests/wp0/v21-presence-avatar-voice-contract.test.js",
+      "tests/wp0/v21-presence-avatar-windows-runtime.test.js",
+      "third_party/licenses/cyberverse-GPL-3.0.txt",
+      "third_party/licenses/livekit-Apache-2.0.txt",
+      "third_party/licenses/livekit-client-Apache-2.0.txt",
+      "third_party/licenses/soulx-flashhead-Apache-2.0.txt",
+      "tools/presence-avatar/build-windows-runtime.ps1",
+      "upstream-patches/cyberverse/0001-yance-external-audio-ingress.patch",
+      "upstream-patches/element-web/0010-yance-presence-livekit-client.patch"
+    ],
+    "approvedChangedFileCount": 28,
+    "approvedChangedFileSetSha256": "89c2e6fdf8be45053c418bff1c89ede9c7e143a3a899dbbdcfe04550284f955c",
+    "newDependencyAllowed": true,
+    "packageManifestModificationAllowed": true,
+    "workflowModificationAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "integration/element-module/package.json"
+      ],
+      "approvedDependencyPathCount": 1,
+      "approvedDependencyPathSetSha256": "12c498270cc27530196545a2d4f01479116ef90a5a518c6579770e39b5f66419"
+    },
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-presence-avatar-p0-windows.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "69247c862ecd23856e17feb87a58db804492f97d62ec3af72fea11221343daa1"
+    },
+    "dependencyControlPaths": [
+      "integration/element-module/package.json"
+    ],
+    "dependencyControlPathCount": 1,
+    "dependencyControlPathSetSha256": "12c498270cc27530196545a2d4f01479116ef90a5a518c6579770e39b5f66419"
+  },
+  "upstreams": {
+    "liveKitServer": {
+      "repository": "livekit/livekit",
+      "version": "v1.13.5",
+      "commit": "3b9f118327b257301083a7c4aa46076c8012918a",
+      "license": "Apache-2.0",
+      "role": "Sole WebRTC room/session/media transport server authority. Yance does not embed or reimplement it.",
+      "windowsAmd64Asset": "livekit_1.13.5_windows_amd64.zip",
+      "windowsAmd64Sha256": "3ec7eaa76ef64063bf21f78364733703e0969612cb92ffd60661ed45fa4a8906"
+    },
+    "liveKitClient": {
+      "repository": "livekit/client-sdk-js",
+      "version": "v2.21.0",
+      "commit": "15ca5f8180ab8939c3a5a4dfee1d5e44f62f71cf",
+      "package": "livekit-client@2.21.0",
+      "license": "Apache-2.0",
+      "role": "Official browser/Electron-renderer LiveKit client. The exact package is the only new JS dependency authorized by this work package."
+    },
+    "cyberVerse": {
+      "repository": "Lynpoint/CyberVerse",
+      "commit": "459abae601411d191a1f4c99fe55b60d59e59305",
+      "sourceSelection": "Pinned current main because formal v0.1.0 predates the maintained LiveKit integration required by this package.",
+      "license": "GPL-3.0",
+      "role": "Sole digital-human/avatar/lip-sync runtime plus existing LiveKit media peer and participant-token authority.",
+      "existingSessionContract": "POST /api/v1/sessions returns session_id, livekit_url and livekit_token when streaming_mode=livekit.",
+      "existingTokenAuthority": "server/internal/livekit/token.go uses LiveKit protocol/auth to issue room-scoped participant tokens; LiveKit API key/secret stay inside CyberVerse service configuration and are forbidden from Yance renderer/runtime state.",
+      "patchBoundary": "Only refactor/reuse the existing standard audio -> GenerateAvatarStream -> paced AV segment -> MediaPeer/LiveKit path to accept an externally supplied cyberverse.AudioChunk stream. No avatar, lip-sync, AV pacing or WebRTC implementation may be copied into Yance."
+    },
+    "soulXFlashHead": {
+      "repository": "Soul-AILab/SoulX-FlashHead",
+      "commit": "9bc03de06bb0de82cd6bc477804512ae06144bf2",
+      "license": "Apache-2.0",
+      "weights": "Soul-AILab/SoulX-FlashHead-1_3B",
+      "weightsLicense": "Apache-2.0",
+      "role": "CyberVerse-supported local realtime talking-head model. Model execution remains CyberVerse/SoulX authority."
+    }
+  },
+  "ossFit": {
+    "liveKitAdoptedWholeForWebRtc": true,
+    "cyberVerseAdoptedAsAvatarRuntime": true,
+    "soulXFlashHeadRemainsUpstreamModel": true,
+    "yanceWebRtcServerForbidden": true,
+    "yanceTokenServerForbidden": true,
+    "yanceAvatarRuntimeForbidden": true,
+    "yanceLipSyncEngineForbidden": true,
+    "yanceDigitalHumanStateMachineForbidden": true,
+    "yanceRealtimePresenceFrameworkForbidden": true,
+    "yanceAudioProcessingEngineForbidden": true,
+    "cyberVerseLlmAuthorityForbidden": true,
+    "cyberVerseAsrAuthorityForbidden": true,
+    "cyberVerseTtsAuthorityForbidden": true,
+    "cyberVersePersonaAuthorityForbidden": true
+  },
+  "voiceIndependentAudioContract": {
+    "contractVersion": "yance.voice.audio.v1",
+    "semanticBase": "CyberVerse proto/common.proto AudioChunk",
+    "fields": [
+      "sessionId",
+      "replyId",
+      "sequence",
+      "data",
+      "sampleRate",
+      "channels",
+      "format",
+      "isFinal",
+      "timestampMs"
+    ],
+    "cyberVerseNativeFields": [
+      "data",
+      "sample_rate",
+      "channels",
+      "format",
+      "is_final",
+      "timestamp_ms"
+    ],
+    "formats": [
+      "s16le",
+      "float32"
+    ],
+    "fixedSampleRateAssumptionForbidden": true,
+    "presenceSideResamplingForbidden": true,
+    "cosyVoiceRuntimeAssumptionForbidden": true,
+    "secondVoiceAdapterForbidden": true,
+    "voiceImplementationModificationForbidden": true
+  },
+  "runtimeBoundary": {
+    "electronMainOwnsCyberVerseSessionBootstrap": true,
+    "rendererReceivesOnlySanitizedSessionProjection": true,
+    "rendererMayReceiveCyberVerseIssuedLiveKitUrlAndParticipantToken": true,
+    "rendererLiveKitApiKeyOrSecretForbidden": true,
+    "yanceLiveKitJwtSigningForbidden": true,
+    "cyberVerseEndpointDefaultLoopback": true,
+    "nonLoopbackEndpointRequiresExplicitUserConfiguration": true,
+    "nonLoopbackPlainHttpForbidden": true,
+    "electronNativeCyberVerseCudaBundleRequired": false,
+    "electronGpuInferenceRuntimeForbidden": true,
+    "serviceDeploymentAllowed": true,
+    "sessionTeardownMustCloseCyberVerseAndLiveKitClient": true,
+    "sessionFailureMustSurfaceExplicitDegradedState": true,
+    "silentFallbackToCustomMediaTransportForbidden": true
+  },
+  "uiBoundary": {
+    "surface": "Existing Element global-right-panel Yance Workspace Presence capability",
+    "visibleFeatures": [
+      "CyberVerse/LiveKit health and degraded status",
+      "start/stop realtime avatar session",
+      "avatar image/model readiness projection",
+      "LiveKit connection/participant/media state",
+      "audio-driven digital-human video/audio playback",
+      "explicit retry/reconnect control without hidden transport fallback"
+    ],
+    "existingPresenceCapabilitySlotReused": true,
+    "newGlobalUiFrameworkForbidden": true,
+    "directLiveKitClientRequired": true,
+    "controlsMustCallRealDesktopAndLiveKitActions": true
+  },
+  "windowsBoundary": {
+    "electronUsesOfficialLiveKitClient": true,
+    "cyberVerseRunsAsServiceEndpoint": true,
+    "liveKitServerMayRunAsUpstreamService": true,
+    "nativeCyberVerseCudaBundleInsideElectronRequired": false,
+    "soulXWeightsBundledInElectronRequired": false,
+    "windowsGateMustBuildElementPresenceClient": true,
+    "windowsGateMustVerifyNoApiSecretInRendererBundle": true,
+    "windowsGateMustVerifyNoCustomWebRtcOrAvatarRuntime": true,
+    "windowsGateMustVerifyServiceEndpointPreflight": true
+  },
+  "parallelOverlap": {
+    "learningGrowthBrain": {
+      "authority": "V21-LEARNING-GROWTH-BRAIN-P0-V2 / implementation PR #188",
+      "sharedExactPaths": [
+        "THIRD_PARTY_NOTICES.md",
+        "electron/m2/ipcManifest.json",
+        "electron/main.js",
+        "electron/preload.js",
+        "integration/element-module/package.json",
+        "integration/element-module/src/YanceWorkspace.tsx"
+      ],
+      "rule": "Shared composition roots are not a serialization lock. First merge wins; later workline ordinary-forward reconciles from fresh main and re-seals the effective exact diff."
+    },
+    "mediaBrain": {
+      "authority": "V21-MEDIA-BRAIN-P0-V1 authorization PR #180; route implementation PR #186 remains unmerged at proposal time.",
+      "sharedExactPaths": [
+        "THIRD_PARTY_NOTICES.md",
+        "electron/m2/ipcManifest.json",
+        "electron/main.js",
+        "electron/preload.js",
+        "integration/element-module/src/YanceWorkspace.tsx"
+      ],
+      "rule": "Media owns Immich/ComfyUI asset and image workflow capability. Presence may not modify Media runtime or authority; shared roots use first-merge + fresh-main ordinary reconciliation."
+    },
+    "voiceBrain": {
+      "authority": "V21-VOICE-BRAIN-P0-V1 coordination evidence in PR #185; fresh successor required now that the shared route guard is trusted-main.",
+      "consumedContract": "VoiceOutput { audioArtifact, mimeType, duration, sampleRate, language, voiceProfileId, provenance } projected into yance.voice.audio.v1 chunks without assuming CosyVoice runtime internals.",
+      "reservedOwnership": [
+        "SenseVoice ASR",
+        "CosyVoice TTS",
+        "voice cloning/enrollment",
+        "cross-language voice generation"
+      ],
+      "rule": "Presence does not wait for Voice final merge, does not modify Voice runtime, and must not invent a second voice adapter. Integration stops only if the frozen Voice output cannot yet be projected at a concrete final integration point."
+    }
+  },
+  "failureFirst": {
+    "firstImplementationCommitMustBeTestOnly": true,
+    "exactTestPaths": [
+      "tests/wp0/v21-presence-avatar-authority.test.js",
+      "tests/wp0/v21-presence-avatar-p0.test.js",
+      "tests/wp0/v21-presence-avatar-ui.test.js",
+      "tests/wp0/v21-presence-avatar-voice-contract.test.js",
+      "tests/wp0/v21-presence-avatar-windows-runtime.test.js"
+    ],
+    "testPathCount": 5,
+    "requiredCausalFailures": [
+      "missing pinned LiveKit/CyberVerse/SoulX authority and no-second-runtime contracts",
+      "missing thin Presence runtime/session lifecycle and CyberVerse external-audio reuse seam",
+      "missing visible Element Presence workspace using official livekit-client",
+      "missing typed Voice-independent AudioChunk projection with no sample-rate/CosyVoice assumption",
+      "missing Windows/Electron build, secret-boundary and service-endpoint preflight contracts"
+    ]
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit changes exactly the five frozen test paths and zero product/runtime/config/workflow/dependency code.",
+    "LiveKit API key/secret or any Yance-signed LiveKit participant JWT reaching renderer state, source, logs or persistent plaintext state is RED.",
+    "CyberVerse session creation must be the source of the LiveKit URL and participant token; a Yance token server/JWT signer is RED.",
+    "The renderer must use official livekit-client@2.21.0 rather than custom RTCPeerConnection/WebSocket media transport code.",
+    "Externally synthesized Voice audio must enter CyberVerse through the patched reuse seam and then traverse CyberVerse's existing avatar/lip-sync/AV pacing/MediaPeer path; copied Yance avatar or AV-sync logic is RED.",
+    "Presence must accept sample rate/channels/format/finality from the typed audio contract and must not assume 16 kHz or CosyVoice internals.",
+    "CyberVerse LLM/ASR/TTS/Persona authority must remain disabled/excluded for Yance AI reply playback; Presence consumes already-decided reply audio only.",
+    "Session start/stop/retry/reconnect must use CyberVerse + LiveKit lifecycle semantics; a parallel Yance realtime session state machine is RED.",
+    "Visible Presence UI must connect to real desktop session actions and real LiveKit participant/media state; fixture-only or fake controls are RED.",
+    "No native CyberVerse/SoulX CUDA runtime or model weights are bundled into Electron P0; GPU inference remains the configured CyberVerse service concern.",
+    "Non-loopback CyberVerse endpoints require explicit user configuration and HTTPS; silent insecure remote endpoint fallback is RED.",
+    "The exact implementation changed-path set must remain within 28 paths with SHA-256 89c2e6fdf8be45053c418bff1c89ede9c7e143a3a899dbbdcfe04550284f955c after any required ordinary fresh-main reconciliation.",
+    "Independent exact-Head review must have zero unresolved P0/P1 findings before implementation merge."
+  ],
+  "requiredSequence": [
+    "single-file product authorization proposal from exact fresh main -> Stage/Layered/ACV2 and independent exact-Head review",
+    "ordinary two-parent authorization merge into trusted main",
+    "create product/v21-presence-avatar-p0-v1 from that exact authorization merge commit",
+    "first implementation commit changes only the five frozen test paths and records causal RED",
+    "implement exact pins/config/licenses, CyberVerse external-audio reuse patch, thin Electron session bridge, official LiveKit renderer client, visible Presence workspace and Windows gate within exact scope",
+    "if Learning/Media/shared composition roots merge first, ordinary-forward reconcile from fresh main and preserve sibling behavior without rebase/force/squash",
+    "seal applicable Stage, Layered, ACV2, Presence Windows/runtime and independent-review GREEN",
+    "stop at final Presence implementation owner merge boundary"
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalMergeRequiresOwnerBoundary": true,
+    "ordinaryTwoParentMergeRequired": true,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true,
+    "gateWeakeningForbidden": true
+  }
+}
