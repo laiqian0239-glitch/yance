@@ -141,7 +141,8 @@ test('V21 Persona P0: compiler exposes SillyTavern-backed structured composition
   assert.strictEqual(out.safeFallback, false);
   assert.strictEqual(out.context.persona.composition.sourceAuthority, 'SillyTavern/SillyTavern@51ad27fb86d39a3daca3adaa970375c9670c12df');
   assert.strictEqual(Array.isArray(out.context.persona.composition.units), true);
-  assert.strictEqual(out.context.persona.style?.prompt, undefined);
+  assert.strictEqual(out.context.persona.truthSafePacket.style.prompt, undefined);
+  assert.strictEqual(out.context.persona.truthSafePacket.runtimeAuthority.pass, true);
   assert.strictEqual(out.context.persona.composition.units.some(unit => unit.identifier === 'exampleDialogues'), true);
 });
 
@@ -185,4 +186,29 @@ test('V21 Persona P0 V2: saved structured Persona fields feed live composition w
   assert.strictEqual(out.context.persona.composition.exampleDialogues.length, 1);
   assert.strictEqual(out.context.persona.composition.units.some(unit => unit.identifier === 'charDescription'), true);
   assert.strictEqual(out.context.persona.composition.units.some(unit => unit.identifier === 'exampleDialogues'), true);
+  const note = out.context.persona.composition.units.find(unit => unit.identifier === 'characterNote');
+  assert.ok(note);
+  assert.strictEqual(note.injectionDepth, 2);
+});
+
+test('V21 Persona P0 V2: derived native register clamps unsupported metadata locale when no register override exists', () => {
+  const rec = makeVersionRecord({
+    content: {
+      schemaVersion: 1,
+      profileId: 'owner',
+      authoritative: {
+        coreIdentity: { mode: 'verified_real' },
+        personaProfile: { description: 'owner presentation' },
+        replyStylePolicy: { directions: {}, intensity: 'natural' },
+        disclosureRules: {},
+        forbiddenFabrications: []
+      },
+      learned: { preferences: {}, interactionPatterns: {} },
+      metadata: { title: 'Owner', locale: 'fr-FR' }
+    }
+  });
+  const out = compilePersonaContext(rec, { socialContext: { customer: { platform: 'whatsapp' } } });
+  assert.strictEqual(out.safeFallback, false);
+  assert.strictEqual(out.context.persona.composition.chatRegister.locale, 'de-DE');
+  assert.strictEqual(out.context.persona.composition.chatRegister.register, 'native_short_form');
 });
