@@ -1,6 +1,8 @@
 'use strict';
 
 /*
+ * Yance modification notice (2026-08-09): source-derived and mechanically adapted from the pinned SillyTavern sources recorded in UPSTREAM.json.
+ * This modified source file is licensed under GNU Affero General Public License v3.0 (AGPL-3.0); see ../../LICENSE.
  * SillyTavern 1.18.0 source-derived prompt composition core.
  * Upstream: https://github.com/SillyTavern/SillyTavern
  * Commit: 51ad27fb86d39a3daca3adaa970375c9670c12df
