@@ -6,171 +6,93 @@ const registry = require('../services/modelRegistry');
 const modelStatus = require('../services/modelStatusService');
 const qualification = require('../services/modelQualification');
 const aiGateway = require('../services/aiGateway');
-const candidateExecutionService = require('../services/candidateExecutionService');
-const productionExecutionService = require('../services/productionExecutionService');
 const eventBus = require('../services/eventBus');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
-const securityGuard = getSecurityGuard();
 const { verifyCloudCredential } = require('../services/modelExecutor');
+const { listModels } = require('../services/openAiCompatibleClient');
 const aiAutomation = require('../services/aiBrainOrchestrator');
 const modelAutoActivation = require('../services/modelAutoActivationService');
 const replyBrainAuthority = require('../services/replyBrainModelAuthority');
-const replyBrainBenchmark = require('../services/replyBrainBenchmark');
-const whatsappReplyStyle = require('../services/whatsappReplyStyleAuthority');
-const { appearsGerman } = require('../services/modelQualification');
-const modelTaskRuntimePolicy = require('../services/modelTaskRuntimePolicy');
 const openRouterAutoConfiguration = require('../services/openRouterAutoConfigurationService');
-const commercialModelBenchmark = require('../services/commercialModelBenchmarkService');
-const aiQualityRouteAuthority = require('../services/aiQualityRouteAuthority');
 const openRouterOnboardingSmoke = require('../services/openRouterOnboardingSmokeService');
-const replyChampionAuthority = require('../services/replyChampionAuthority');
-const workloadPlacementAuthority = require('../services/aiWorkloadPlacementAuthority');
-const aiBudgetAuthority = require('../services/aiBudgetAuthority');
 
+const securityGuard = getSecurityGuard();
 const router = express.Router();
 const testControllers = new Map();
 
+function clean(value) { return String(value == null ? '' : value).trim(); }
 function findModel(idOrName) {
   const state = registry.read();
   return (state.models || []).find(model => model.id === idOrName || model.name === idOrName);
 }
-
-
-function qualificationHasTechnicalFailure(result = {}) {
-  return Object.values(result.scores || {}).some(row => ['MODEL_TIMEOUT', 'MODEL_CANCELLED', 'MODEL_REQUEST_FAILED', 'REQUEST_TIMEOUT', 'EMPTY_MODEL_OUTPUT'].includes(String(row?.code || '')));
+function publicCredential(credentialRef, fallbackEndpoint = '') {
+  const row = securityGuard.credentials.get(clean(credentialRef)) || {};
+  return {
+    apiKey: clean(row.apiKey || row.key || row.token),
+    endpoint: clean(row.endpoint || row.baseUrl || fallbackEndpoint)
+  };
 }
-
-async function runReplyBrainBenchmarkWorkflow(inputModel, options = {}) {
-  let model = inputModel;
-  let baseQualification = null;
-  const runtimeProfile = replyBrainBenchmark.runtimeProfileForModel(model, options);
-  const warmupResult = await replyBrainBenchmark.warmupModel(model, options, runtimeProfile);
-
-  if (!replyBrainBenchmark.isSpecialPurpose(model) && !replyBrainAuthority.baseReplyEligible(model) && warmupResult.pass) {
-    baseQualification = await qualification.qualifyModel(model, {
-      tests: ['connectivity', 'json', 'persona', 'hallucination'],
-      timeoutMs: runtimeProfile.baseQualificationTimeoutMs,
-      runtimeProfile,
-      signal: options.signal
-    });
-    model = findModel(model.id) || model;
+async function waitForCredential(credentialRef) {
+  for (let attempt = 0; attempt < 10 && !securityGuard.credentials.has(credentialRef); attempt += 1) {
+    await new Promise(resolve => setTimeout(resolve, 50));
   }
-
-  // 基础资格是诊断事实，不再阻止模型参加真正的聊天专项基准。
-  // 回复专项本身已经包含德语、英语、Persona 事实边界、导演 JSON、候选差异和速度。
-  const result = await replyBrainBenchmark.runReplyBrainBenchmark(model, {
-    ...options,
-    runtimeProfile,
-    warmupResult,
-    signal: options.signal
-  });
-  result.baseQualification = baseQualification ? {
-    completed: !qualificationHasTechnicalFailure(baseQualification),
-    pass: baseQualification.pass === true,
-    testedAt: baseQualification.testedAt || '',
-    failedTests: Object.entries(baseQualification.scores || {}).filter(([, row]) => row?.pass !== true).map(([name, row]) => ({ name, code: row?.code || '', message: row?.message || '' }))
-  } : null;
-  const state = await registry.recordReplyBrainBenchmark(model.id, result);
-  eventBus.publish('model:reply-brain-benchmark-complete', { modelId: model.id, model: model.name, result, runtimeProfile });
-  return { model, baseQualification, result, state, runtimeProfile };
+  return securityGuard.credentials.has(credentialRef);
+}
+function runtimeMetrics(result = {}) {
+  const evidence = result.evidence || {};
+  return {
+    returnedModel: clean(evidence.selectedModel || result.model),
+    model: clean(evidence.selectedModel || result.model),
+    providerRequestId: clean(evidence.requestId),
+    requestId: clean(evidence.requestId),
+    latencyMs: Number(evidence.latencyMs || result.latencyMs || 0),
+    totalMs: Number(evidence.latencyMs || result.latencyMs || 0),
+    inputTokens: Number(evidence.inputTokens || result.inputTokens || 0),
+    promptTokens: Number(evidence.inputTokens || result.inputTokens || 0),
+    outputTokens: Number(evidence.outputTokens || result.outputTokens || 0),
+    totalTokens: Number(evidence.totalTokens || result.totalTokens || 0),
+    costUsd: Number(evidence.costUsd || result.costUsd || 0),
+    retryCount: Number(evidence.retryCount || result.retryCount || 0),
+    fallbackCount: Number(evidence.fallbackCount || result.fallbackCount || 0)
+  };
+}
+function currentStatus() {
+  const state = modelStatus.read();
+  return {
+    ...state,
+    runtime: {
+      ...aiGateway.status(),
+      aiAutomation: aiAutomation.status(),
+      autoActivation: modelAutoActivation.status()
+    }
+  };
+}
+function responseStatus(error, fallback = 503) {
+  const status = Number(error?.status || 0);
+  return status >= 400 && status <= 599 ? status : fallback;
+}
+function cloudFailurePayload(error, fallbackCode) {
+  return {
+    ok: false,
+    error: clean(error?.code || fallbackCode),
+    code: clean(error?.code || fallbackCode),
+    message: clean(error?.message || fallbackCode),
+    status: Number(error?.status || 0),
+    type: clean(error?.type),
+    requestId: clean(error?.requestId),
+    testStage: clean(error?.testStage),
+    availableModels: Array.isArray(error?.availableModels) ? error.availableModels : []
+  };
 }
 
-router.get('/status', (_req, res) => {
-  const state = modelStatus.read();
-  res.json({ ok: true, ...state, runtime: { ...aiGateway.status(), aiAutomation: aiAutomation.status(), autoActivation: modelAutoActivation.status() } });
+router.get('/status', (_req, res) => res.json({ ok: true, ...currentStatus() }));
+router.get('/model-brain/status', (_req, res) => {
+  const state = currentStatus();
+  res.json({ ok: true, modelBrain: state.modelBrain, taskReadiness: state.taskReadiness, summary: state.summary, runtime: state.runtime?.modelBrain || aiGateway.status().modelBrain });
 });
-
 router.get('/audit', (_req, res) => {
   const state = modelStatus.read();
-  res.json({ ok: true, ...replyBrainAuthority.audit(state.models || [], state.routes || {}) });
-});
-
-router.get('/quality-routing', (_req, res) => {
-  const state = modelStatus.read();
-  const tasks = Object.keys(aiQualityRouteAuthority.TASK_PROFILES);
-  const plans = Object.fromEntries(tasks.map(task => {
-    const route = state.routes?.[task] || {};
-    return [task, aiQualityRouteAuthority.routePlan({
-      task,
-      route: {
-        primary: route.primary || route.primaryModelId || '',
-        fallback: route.fallback || route.fallbackModelId || '',
-        emergency: route.emergency || route.emergencyModelId || '',
-        allowConditional: route.allowConditional === true,
-        humanReviewRequired: route.humanReviewRequired === true,
-        allowEmergency: route.allowEmergency === true
-      },
-      models: state.models || []
-    })];
-  }));
-  const rows = Object.values(plans);
-  res.json({
-    ok: true,
-    authority: aiQualityRouteAuthority.AUTHORITY,
-    plans,
-    summary: {
-      tasks: rows.length,
-      ready: rows.filter(row => row.state === aiQualityRouteAuthority.ROUTE_STATE.READY).length,
-      degraded: rows.filter(row => row.state === aiQualityRouteAuthority.ROUTE_STATE.DEGRADED).length,
-      conditional: rows.filter(row => row.state === aiQualityRouteAuthority.ROUTE_STATE.CONDITIONAL).length,
-      emergencyOnly: rows.filter(row => row.state === aiQualityRouteAuthority.ROUTE_STATE.EMERGENCY_ONLY).length,
-      blocked: rows.filter(row => row.state === aiQualityRouteAuthority.ROUTE_STATE.BLOCKED).length
-    }
-  });
-});
-
-
-router.get('/brain-routing', (_req, res) => {
-  const state = registry.read();
-  const models = Array.isArray(state.models) ? state.models : [];
-  const now = new Date().toISOString();
-  const championTasks = ['quick_reply', 'deep_reply', 'director'];
-  const champions = Object.fromEntries(championTasks.map(task => [task, replyChampionAuthority.decide(models, task, {
-    now,
-    maxFallbackScoreGap: Number(state.routes?.[task]?.maxFallbackScoreGap ?? replyChampionAuthority.DEFAULT_MAX_FALLBACK_SCORE_GAP)
-  })]));
-  const workloadProfiles = {
-    translationOutbound: { task: 'translation', options: { translationProfile: 'outbound', now } },
-    translationHistory: { task: 'translation', options: { translationProfile: 'history', background: true, now } },
-    relationship: { task: 'relationship', options: { background: true, now } },
-    understanding: { task: 'understanding', options: { background: true, now } },
-    factExtraction: { task: 'fact_extraction', options: { background: true, now } },
-    memoryExtraction: { task: 'memory_extraction', options: { background: true, now } },
-    summary: { task: 'summary', options: { background: true, now } }
-  };
-  const workloads = Object.fromEntries(Object.entries(workloadProfiles).map(([name, profile]) => {
-    const ranked = workloadPlacementAuthority.rankCandidates(models, profile.task, profile.options);
-    return [name, {
-      authority: ranked.authority,
-      schemaVersion: ranked.schemaVersion,
-      policy: ranked.policy,
-      candidates: ranked.candidates,
-      rejected: ranked.rejected
-    }];
-  }));
-  const budget = aiBudgetAuthority.decide(state, { task: 'relationship', modelCostClass: 'paid-cloud' });
-  res.json({
-    ok: true,
-    authorityVersion: 'ai-champion-brain-v1',
-    champions,
-    workloads,
-    budget: {
-      policy: state.aiBudgetPolicy,
-      usage: state.aiBudgetUsage,
-      remainingUsd: budget.remainingUsd,
-      reserveUsd: budget.reserveUsd,
-      paidBackgroundAdmission: { pass: budget.pass, reasonCode: budget.reasonCode }
-    }
-  });
-});
-
-router.patch('/budget-policy', async (req, res, next) => {
-  try {
-    const state = await registry.setAiBudgetPolicy(req.body || {});
-    res.json({ ok: true, policy: state.aiBudgetPolicy, usage: state.aiBudgetUsage });
-  } catch (error) {
-    next(error);
-  }
+  res.json({ ok: true, ...replyBrainAuthority.audit(state.models || []) });
 });
 
 router.patch('/:id/lifecycle', async (req, res, next) => {
@@ -180,123 +102,92 @@ router.patch('/:id/lifecycle', async (req, res, next) => {
     const enabled = req.body?.enabled === true;
     const state = await registry.setModelEnabled(model.id, enabled, { reason: req.body?.reason });
     const projected = modelStatus.project(state);
-    res.json({ ok: true, enabled, model: projected.models.find(row => row.id === model.id), replyBrain: projected.replyBrain });
+    res.json({ ok: true, enabled, model: projected.models.find(row => row.id === model.id), modelBrain: projected.modelBrain, taskReadiness: projected.taskReadiness });
   } catch (error) { next(error); }
 });
 
+router.post('/cloud/discover', async (req, res) => {
+  const endpoint = clean(req.body?.endpoint);
+  const credentialRef = clean(req.body?.credentialRef);
+  if (!endpoint || !credentialRef) return res.status(400).json({ ok: false, error: 'INVALID_CLOUD_MODEL_DISCOVERY', message: '地址和凭据不能为空' });
+  try {
+    if (!await waitForCredential(credentialRef)) return res.status(409).json({ ok: false, error: 'CLOUD_MODEL_CREDENTIAL_MISSING', message: '云模型凭据尚未写入系统安全存储' });
+    const credential = publicCredential(credentialRef, endpoint);
+    const models = await listModels({ endpoint: credential.endpoint || endpoint, apiKey: credential.apiKey, timeoutMs: Number(req.body?.timeoutMs || 30000) });
+    return res.json({ ok: true, endpoint: credential.endpoint || endpoint, models });
+  } catch (error) {
+    return res.status(responseStatus(error)).json(cloudFailurePayload(error, 'CLOUD_MODEL_DISCOVERY_FAILED'));
+  }
+});
 
 router.post('/cloud', async (req, res, next) => {
-  const name = String(req.body?.name || req.body?.model || '').trim();
-  const endpoint = String(req.body?.endpoint || '').trim();
-  const credentialRef = String(req.body?.credentialRef || '').trim();
+  const name = clean(req.body?.name || req.body?.model);
+  const endpoint = clean(req.body?.endpoint);
+  const credentialRef = clean(req.body?.credentialRef);
+  const provider = clean(req.body?.provider || 'openai-compatible').toLowerCase();
+  const testVision = req.body?.testVision === true || req.body?.vision === true;
   if (!name || !endpoint || !credentialRef) return res.status(400).json({ ok: false, error: 'INVALID_CLOUD_MODEL', message: '模型名称、地址和凭据不能为空' });
-  if (req.body?.verify === false) return res.status(400).json({ ok: false, error: 'CLOUD_MODEL_TEST_REQUIRED', message: '云模型必须先完成模型列表和最小真实调用测试，测试通过后才能保存并启用。', persisted: false });
+  if (req.body?.verify === false) return res.status(400).json({ ok: false, error: 'CLOUD_MODEL_TEST_REQUIRED', message: '云模型必须先完成目录读取和 Model Brain 逻辑烟测，测试通过后才能保存。', persisted: false });
   try {
-    for (let attempt = 0; attempt < 10 && !securityGuard.credentials.has(credentialRef); attempt += 1) await new Promise(resolve => setTimeout(resolve, 50));
-    if (!securityGuard.credentials.has(credentialRef)) return res.status(409).json({ ok: false, error: 'CLOUD_MODEL_CREDENTIAL_MISSING', message: '云模型凭据尚未写入系统安全存储', persisted: false });
-    const testVision = req.body?.testVision === true || req.body?.vision === true;
+    if (!await waitForCredential(credentialRef)) return res.status(409).json({ ok: false, error: 'CLOUD_MODEL_CREDENTIAL_MISSING', message: '云模型凭据尚未写入系统安全存储', persisted: false });
+    const credential = publicCredential(credentialRef, endpoint);
+    const availableModels = await listModels({ endpoint: credential.endpoint || endpoint, apiKey: credential.apiKey, timeoutMs: Number(req.body?.discoveryTimeoutMs || 30000) });
     let verification;
     try {
-      verification = await verifyCloudCredential({ endpoint, credentialRef, model: name, runInference: true, testVision });
+      verification = await verifyCloudCredential({ endpoint, credentialRef, model: name, provider, runInference: true, testVision });
     } catch (error) {
-      const availableModels = Array.isArray(error.availableModels) ? error.availableModels : [];
-      const modelHint = error.modelAvailable === false && availableModels.length
-        ? `；当前账号可见模型包括：${availableModels.slice(0, 12).join('、')}`
-        : '';
-      const responseStatus = Number(error.status) >= 400 && Number(error.status) <= 599 ? Number(error.status) : 503;
-      return res.status(responseStatus).json({
-        ok: false,
-        error: error.code || 'CLOUD_MODEL_TEST_FAILED',
-        code: error.code || 'CLOUD_MODEL_TEST_FAILED',
-        message: `${error.message || '云模型真实调用测试失败'}${modelHint}`,
-        status: Number(error.status || 0),
-        type: String(error.type || ''),
-        requestId: String(error.requestId || ''),
-        testStage: String(error.testStage || 'text-inference'),
-        modelAvailable: error.modelAvailable !== false,
-        availableModels,
-        persisted: false
-      });
+      error.availableModels = availableModels;
+      return res.status(responseStatus(error)).json({ ...cloudFailurePayload(error, 'CLOUD_MODEL_TEST_FAILED'), persisted: false });
     }
-
-    const inference = verification.inference || {};
-    const visionInference = verification.vision || {};
-    const textPass = /YANCE_MODEL_OK/i.test(String(inference.text || ''));
-    const visionPass = !testVision || /YANCE_VISION_OK/i.test(String(visionInference.text || ''));
-    if (!textPass || !visionPass) {
-      const code = !textPass ? 'CLOUD_MODEL_MINIMUM_RESPONSE_INVALID' : 'CLOUD_MODEL_VISION_RESPONSE_INVALID';
-      const message = !textPass ? '模型文本返回不符合最小真实调用测试要求' : '模型图片识别返回不符合最小真实调用测试要求';
-      return res.status(422).json({ ok: false, error: code, code, message, persisted: false, verification: { ...verification, inference: { ...inference, text: String(inference.text || '').slice(0, 200) } }, availableModels: verification.models || [] });
+    if (verification.inference?.probePass !== true) {
+      return res.status(422).json({ ok: false, error: 'CLOUD_MODEL_LOGICAL_SMOKE_FAILED', code: 'CLOUD_MODEL_LOGICAL_SMOKE_FAILED', message: 'Model Brain / LiteLLM 最小逻辑烟测未通过', persisted: false, availableModels });
     }
-
     let state = await registry.upsertCloudModel({
       id: req.body?.id,
       name,
       endpoint,
       credentialRef,
-      provider: req.body?.provider || 'openai-compatible',
+      provider,
       source: 'user-configured',
       resetValidation: true,
-      testVision
+      testVision,
+      capabilities: testVision ? ['text', 'vision'] : ['text']
     });
     let model = (state.models || []).find(row => row.name === name && row.credentialRef === credentialRef);
-    await registry.recordInvocation(model.id, inference);
+    if (!model) throw Object.assign(new Error('CLOUD_MODEL_REGISTRY_WRITE_FAILED'), { code: 'CLOUD_MODEL_REGISTRY_WRITE_FAILED' });
+    const metrics = runtimeMetrics(verification.inference || {});
+    await registry.recordInvocation(model.id, metrics);
     const connectivity = {
-      name: 'connectivity', task: 'general', pass: true, output: String(inference.text || ''),
-      metrics: {
-        firstTokenMs: Number(inference.firstTokenMs || 0), totalMs: Number(inference.totalMs || 0),
-        promptTokens: Number(inference.promptTokens || 0), outputTokens: Number(inference.outputTokens || 0),
-        totalTokens: Number(inference.totalTokens || 0), returnedModel: String(inference.returnedModel || '')
-      },
-      error: '', code: '', status: 200, durationMs: Number(inference.totalMs || 0)
+      name: 'connectivity', task: 'probe', pass: true, output: clean(verification.inference?.text), metrics,
+      error: '', code: '', status: 200, durationMs: metrics.latencyMs
     };
     const vision = testVision ? {
-      name: 'vision', task: 'vision', pass: true, output: String(visionInference.text || ''),
-      metrics: {
-        firstTokenMs: Number(visionInference.firstTokenMs || 0), totalMs: Number(visionInference.totalMs || 0),
-        promptTokens: Number(visionInference.promptTokens || 0), outputTokens: Number(visionInference.outputTokens || 0),
-        totalTokens: Number(visionInference.totalTokens || 0), returnedModel: String(visionInference.returnedModel || '')
-      },
-      error: '', code: '', status: 200, durationMs: Number(visionInference.totalMs || 0)
+      name: 'vision', task: 'probe', pass: verification.tests?.vision?.pass === true, output: clean(verification.vision?.text),
+      metrics: runtimeMetrics(verification.vision || {}), error: '', code: '', status: verification.tests?.vision?.pass === true ? 200 : 422,
+      durationMs: Number(verification.tests?.vision?.totalMs || 0)
     } : null;
-    const completedTests = [connectivity, ...(vision ? [vision] : [])];
     const result = {
       schemaVersion: 1,
       testedAt: new Date().toISOString(),
       qualification: 'experimental',
-      allowedTasks: ['general', ...(testVision ? ['vision'] : [])],
-      blockedReason: '', connectivity, vision, scores: { connectivity, ...(vision ? { vision } : {}) },
-      summary: {
-        passed: completedTests.length,
-        total: completedTests.length,
-        averageLatencyMs: Math.round(completedTests.reduce((sum, row) => sum + Number(row.durationMs || 0), 0) / completedTests.length)
-      }
+      allowedTasks: [],
+      blockedReason: '仅完成连接/隔离烟测；生产任务须通过正式 hard qualification',
+      connectivity,
+      vision,
+      scores: { connectivity, ...(vision ? { vision } : {}) },
+      summary: { passed: [connectivity, vision].filter(row => row?.pass === true).length, total: [connectivity, vision].filter(Boolean).length, averageLatencyMs: metrics.latencyMs }
     };
     state = await registry.recordTest(model.id, result);
     model = (state.models || []).find(row => row.id === model.id) || model;
-    return res.status(201).json({ ok: true, persisted: true, model, verification, result, availableModels: verification.models || [] });
+    return res.status(201).json({ ok: true, persisted: true, model, verification: { ...verification, models: availableModels, modelAvailable: availableModels.includes(name) }, result, availableModels });
   } catch (error) { next(error); }
 });
 
-router.post('/cloud/discover', async (req, res) => {
-  const endpoint = String(req.body?.endpoint || '').trim();
-  const credentialRef = String(req.body?.credentialRef || '').trim();
-  if (!endpoint || !credentialRef) return res.status(400).json({ ok: false, error: 'INVALID_CLOUD_MODEL_DISCOVERY', message: '地址和凭据不能为空' });
-  try {
-    const verification = await verifyCloudCredential({ endpoint, credentialRef, runInference: false });
-    return res.json({ ok: true, endpoint: verification.endpoint, models: verification.models });
-  } catch (error) {
-    const responseStatus = Number(error.status) >= 400 && Number(error.status) <= 599 ? Number(error.status) : 503;
-    return res.status(responseStatus).json({ ok: false, error: error.code || 'CLOUD_MODEL_DISCOVERY_FAILED', message: error.message || String(error), status: Number(error.status || 0), type: String(error.type || ''), requestId: String(error.requestId || ''), testStage: String(error.testStage || 'model-discovery') });
-  }
-});
-
 router.post('/cloud/openrouter/auto-configure', async (req, res, next) => {
-  const credentialRef = String(req.body?.credentialRef || '').trim();
-  if (!credentialRef) return res.status(400).json({ ok: false, error: 'OPENROUTER_CREDENTIAL_REF_REQUIRED', message: '请先把OpenRouter API Key写入系统安全存储' });
+  const credentialRef = clean(req.body?.credentialRef);
+  if (!credentialRef) return res.status(400).json({ ok: false, error: 'OPENROUTER_CREDENTIAL_REF_REQUIRED', message: '请先把 OpenRouter API Key 写入系统安全存储' });
   try {
-    for (let attempt = 0; attempt < 10 && !securityGuard.credentials.has(credentialRef); attempt += 1) await new Promise(resolve => setTimeout(resolve, 50));
-    if (!securityGuard.credentials.has(credentialRef)) return res.status(409).json({ ok: false, error: 'OPENROUTER_CREDENTIAL_MISSING', message: 'OpenRouter API Key尚未写入系统安全存储' });
+    if (!await waitForCredential(credentialRef)) return res.status(409).json({ ok: false, error: 'OPENROUTER_CREDENTIAL_MISSING', message: 'OpenRouter API Key 尚未写入系统安全存储' });
     const snapshot = await openRouterAutoConfiguration.autoConfigure({
       credentialRef,
       endpoint: req.body?.endpoint || openRouterAutoConfiguration.OPENROUTER_ENDPOINT
@@ -306,442 +197,102 @@ router.post('/cloud/openrouter/auto-configure', async (req, res, next) => {
       authenticationStatus: 'passed',
       catalogStatus: 'passed',
       onboardingSmokeStatus: 'running',
-      routeStatus: 'blocked',
-      formalQualificationStatus: 'pending'
+      qualificationStatus: 'pending'
     });
-    let onboarding;
     try {
-      onboarding = await openRouterOnboardingSmoke.run({
-        snapshot,
-        registry,
-        timeoutMs: Number(req.body?.smokeTimeoutMs || 120000)
-      });
+      await openRouterOnboardingSmoke.run({ snapshot, registry, timeoutMs: Number(req.body?.smokeTimeoutMs || 120000) });
     } catch (smokeError) {
       const smokeResults = Array.isArray(smokeError.results) ? smokeError.results : [];
-      const failedSnapshot = await registry.recordOpenRouterSnapshot({
+      const failedState = await registry.recordOpenRouterSnapshot({
         connectionState: 'degraded',
         authenticationStatus: 'passed',
         catalogStatus: 'passed',
         onboardingSmokeStatus: 'failed',
         onboardingSmokeResults: smokeResults,
-        onboardingSmokeErrorCode: String(smokeError.code || 'OPENROUTER_ONBOARDING_SMOKE_FAILED'),
-        onboardingSmokeError: String(smokeError.message || smokeError),
-        routeStatus: 'blocked',
-        formalQualificationStatus: 'pending'
+        onboardingSmokeErrorCode: clean(smokeError.code || 'OPENROUTER_ONBOARDING_SMOKE_FAILED'),
+        onboardingSmokeError: clean(smokeError.message),
+        qualificationStatus: 'pending'
       });
-      const projectedFailure = modelStatus.project(failedSnapshot);
+      const projected = modelStatus.project(failedState);
       return res.status(422).json({
         ok: false,
         error: smokeError.code || 'OPENROUTER_ONBOARDING_SMOKE_FAILED',
         code: smokeError.code || 'OPENROUTER_ONBOARDING_SMOKE_FAILED',
-        message: smokeError.message || 'OpenRouter 最小真实调用未通过，未启用生产候选路由。',
+        message: smokeError.message || 'OpenRouter Model Brain 逻辑烟测失败。',
         provider: 'openrouter',
-        snapshot: failedSnapshot.openRouter || snapshot,
+        snapshot: projected.openRouter,
         onboarding: { pass: false, results: smokeResults },
-        models: projectedFailure.models,
-        routes: projectedFailure.routes,
-        replyBrain: projectedFailure.replyBrain,
-        nextAction: '系统已按能力过滤并顺序尝试候选模型；请检查全部失败收据后重试，不得把目录读取成功当作回复链路成功。'
+        models: projected.models,
+        modelBrain: projected.modelBrain
       });
     }
-    const automationStatus = aiAutomation.status();
     const connectedState = await registry.recordOpenRouterSnapshot({
-      connectionState: 'conditional-ready',
+      connectionState: 'ready',
       authenticationStatus: 'passed',
       catalogStatus: 'passed',
       onboardingSmokeStatus: 'passed',
-      onboardingSmokeResults: onboarding.results,
-      onboardingPrimaryModelId: onboarding.primaryModelId,
-      onboardingPrimaryModelSlug: onboarding.primaryModelSlug,
-      onboardingFallbackModelId: onboarding.fallbackModelId,
-      onboardingFallbackModelSlug: onboarding.fallbackModelSlug,
-      routeStatus: 'conditional-ready',
-      humanReviewRequired: true,
-      formalQualificationStatus: 'pending',
-      benchmarkStatus: 'pending'
+      logicalModelBrainSmoke: true,
+      qualificationStatus: 'pending'
     });
     const projected = modelStatus.project(connectedState);
-    eventBus.publish('models:openrouter-auto-configured', {
-      modelCount: snapshot.modelCount,
-      freeModelCount: snapshot.freeModelCount,
-      registeredModelCount: snapshot.registeredModelCount,
-      onboardingSmokeStatus: 'passed',
-      routeStatus: 'conditional-ready',
-      benchmarkStatus: 'pending'
-    });
-    return res.json({
-      ok: true,
-      provider: 'openrouter',
-      connectionState: 'conditional-ready',
-      snapshot: connectedState.openRouter || snapshot,
-      onboarding,
-      models: projected.models,
-      routes: projected.routes,
-      replyBrain: projected.replyBrain,
-      automation: automationStatus,
-      automationChanged: false,
-      automationChangeReason: 'OPENROUTER_ONBOARDING_DOES_NOT_MUTATE_GLOBAL_AUTOMATION',
-      routingPolicy: 'cloud-quality-first-local-fallback',
-      localFallbackScope: 'offline-only',
-      routingPolicyDetail: 'cloud-quality-first-local-offline-fallback',
-      formalQualificationStatus: 'pending',
-      humanReviewRequired: true,
-      nextAction: '当前已可在人工确认下生成候选；商业专项评估需从模型服务页单独运行，不能阻塞接入弹窗。'
-    });
+    eventBus.publish('models:openrouter-auto-configured', { provider: 'openrouter', catalogCount: Number(snapshot.catalogCount || 0), registeredModelCount: Number(snapshot.registeredModelCount || 0), modelBrain: true });
+    return res.json({ ok: true, provider: 'openrouter', snapshot: projected.openRouter, models: projected.models, modelBrain: projected.modelBrain, taskReadiness: projected.taskReadiness });
   } catch (error) { next(error); }
 });
 
 router.get('/cloud/openrouter/status', (_req, res) => {
   const state = modelStatus.read();
   const openRouter = state.openRouter || {};
-  const routeTasks = ['director', 'quick_reply', 'deep_reply', 'translation', 'learning_synthesis'];
-  const plans = Object.fromEntries(routeTasks.map(task => [task, aiQualityRouteAuthority.routePlan({
-    task,
-    route: state.routes?.[task] || {},
-    models: state.models || []
-  })]));
   res.json({
     ok: true,
     provider: 'openrouter',
-    connectionState: String(openRouter.connectionState || 'not-configured'),
-    authenticationStatus: String(openRouter.authenticationStatus || 'unknown'),
-    catalogStatus: String(openRouter.catalogStatus || 'unknown'),
-    onboardingSmokeStatus: String(openRouter.onboardingSmokeStatus || 'not-run'),
-    routeStatus: String(openRouter.routeStatus || 'blocked'),
-    formalQualificationStatus: String(openRouter.formalQualificationStatus || openRouter.benchmarkStatus || 'pending'),
+    connectionState: clean(openRouter.connectionState || 'not-configured'),
+    authenticationStatus: clean(openRouter.authenticationStatus || 'unknown'),
+    catalogStatus: clean(openRouter.catalogStatus || 'unknown'),
+    onboardingSmokeStatus: clean(openRouter.onboardingSmokeStatus || 'not-run'),
+    qualificationStatus: clean(openRouter.qualificationStatus || 'pending'),
     key: openRouter.key || {},
-    modelCount: Number(openRouter.modelCount || 0),
-    eligibleModelCount: Number(openRouter.eligibleModelCount || 0),
+    catalogCount: Number(openRouter.catalogCount || 0),
     registeredModelCount: Number(openRouter.registeredModelCount || 0),
-    primaryModel: { id: String(openRouter.onboardingPrimaryModelId || ''), slug: String(openRouter.onboardingPrimaryModelSlug || '') },
-    fallbackModel: { id: String(openRouter.onboardingFallbackModelId || ''), slug: String(openRouter.onboardingFallbackModelSlug || '') },
     smokeResults: Array.isArray(openRouter.onboardingSmokeResults) ? openRouter.onboardingSmokeResults : [],
-    routePlans: plans,
+    modelBrain: state.modelBrain,
+    taskReadiness: state.taskReadiness,
     openRouter
   });
-});
-
-router.post('/cloud/openrouter/commercial-benchmark', async (req, res, next) => {
-  const batchKey = 'openrouter-commercial-benchmark';
-  if (testControllers.has(batchKey)) {
-    return res.status(409).json({
-      ok: false,
-      error: 'OPENROUTER_COMMERCIAL_BENCHMARK_ALREADY_RUNNING',
-      message: 'OpenRouter商业模型评估正在串行运行，请等待当前批次完成。'
-    });
-  }
-  const controller = new AbortController();
-  testControllers.set(batchKey, controller);
-  try {
-    const initial = registry.read();
-    if (!initial.openRouter?.credentialRef) {
-      return res.status(409).json({ ok: false, error: 'OPENROUTER_NOT_CONFIGURED', message: '请先一键接入OpenRouter。' });
-    }
-    const benchmarkPlan = commercialModelBenchmark.chooseOpenRouterBenchmarkPlan(initial, {
-      maxUtilityModels: Number(req.body?.maxUtilityModels || req.body?.maxModels || 10),
-      maxReplyModels: Number(req.body?.maxReplyModels || 8),
-      translationLimit: Number(req.body?.translationLimit || 4),
-      memoryLimit: Number(req.body?.memoryLimit || 4),
-      quickLimit: Number(req.body?.quickLimit || 3),
-      directorLimit: Number(req.body?.directorLimit || 3),
-      deepLimit: Number(req.body?.deepLimit || 3)
-    });
-    const utilityCandidates = benchmarkPlan.utilityCandidates;
-    if (!utilityCandidates.length) {
-      return res.status(409).json({ ok: false, error: 'OPENROUTER_BENCHMARK_CANDIDATES_EMPTY', message: '没有找到已接入的OpenRouter商业评估候选模型。' });
-    }
-
-    await registry.recordOpenRouterSnapshot({
-      benchmarkStatus: 'running',
-      benchmarkStartedAt: new Date().toISOString(),
-      benchmarkPlan: {
-        catalogCount: benchmarkPlan.catalogCount,
-        registeredCount: benchmarkPlan.registeredCount,
-        shortlistedCount: benchmarkPlan.shortlistedCount,
-        utilityCandidateCount: benchmarkPlan.utilityCandidateCount,
-        replyCandidateCount: benchmarkPlan.replyCandidateCount,
-        unassessedCatalogCount: benchmarkPlan.unassessedCatalogCount,
-        roleCoverage: benchmarkPlan.roleCoverage
-      }
-    });
-    const commercialResults = [];
-    for (const model of utilityCandidates) {
-      if (controller.signal.aborted) break;
-      const result = await commercialModelBenchmark.runAndRecord(model, {
-        timeoutMs: Number(req.body?.timeoutMs || 180000),
-        signal: controller.signal,
-        registry
-      });
-      commercialResults.push({ modelId: model.id, model: model.name, displayName: model.displayName || model.name, result });
-      eventBus.publish('models:openrouter-commercial-benchmark-progress', {
-        phase: 'translation-and-evidence',
-        completed: commercialResults.length,
-        total: utilityCandidates.length,
-        modelId: model.id,
-        model: model.displayName || model.name,
-        result
-      });
-    }
-
-    let state = registry.read();
-    const utilityRoutes = commercialModelBenchmark.recommendedUtilityRoutes(state.models || []);
-    if (!controller.signal.aborted && req.body?.applyRoutes !== false) state = await registry.applyRecommendedUtilityRoutes(utilityRoutes);
-
-    const stateModelsById = new Map((state.models || []).map(model => [model.id, model]));
-    const replyCandidates = benchmarkPlan.replyCandidates
-      .map(model => stateModelsById.get(model.id) || model)
-      .filter(Boolean)
-      .filter(model => !replyBrainBenchmark.isSpecialPurpose(model));
-    const replyResults = [];
-    for (const model of replyCandidates) {
-      if (controller.signal.aborted) break;
-      const workflow = await runReplyBrainBenchmarkWorkflow(model, {
-        timeoutMs: Number(req.body?.replyTimeoutMs || req.body?.timeoutMs || 180000),
-        latencyThresholdMs: Number(req.body?.latencyThresholdMs || 90000),
-        signal: controller.signal,
-        warmup: false
-      });
-      replyResults.push({ modelId: model.id, model: model.name, displayName: model.displayName || model.name, result: workflow.result, baseQualification: workflow.baseQualification });
-      eventBus.publish('models:openrouter-commercial-benchmark-progress', {
-        phase: 'reply-brain',
-        completed: replyResults.length,
-        total: replyCandidates.length,
-        modelId: model.id,
-        model: model.displayName || model.name,
-        result: workflow.result
-      });
-    }
-
-    state = registry.read();
-    const replyRecommendation = replyBrainAuthority.recommendedReplyRoutes(state.models || [], state.routes || {});
-    const completed = !controller.signal.aborted
-      && commercialResults.length === utilityCandidates.length
-      && replyResults.length === replyCandidates.length;
-    if (completed && req.body?.applyRoutes !== false) state = await registry.applyRecommendedReplyBrainRoutes(replyRecommendation.routes);
-    let balanceRefresh = null;
-    if (!controller.signal.aborted) {
-      try {
-        balanceRefresh = await openRouterAutoConfiguration.refreshAccountStatus({
-          credentialRef: initial.openRouter.credentialRef,
-          endpoint: initial.openRouter.endpoint || openRouterAutoConfiguration.OPENROUTER_ENDPOINT,
-          signal: controller.signal,
-          registry
-        });
-      } catch (balanceError) {
-        balanceRefresh = { balanceRefreshStatus: 'failed', balanceRefreshErrorCode: String(balanceError.code || 'OPENROUTER_BALANCE_REFRESH_FAILED') };
-        await registry.recordOpenRouterSnapshot({ ...balanceRefresh, balanceRefreshedAt: new Date().toISOString() }).catch(() => {});
-      }
-    }
-    const benchmarkCompletedAt = new Date().toISOString();
-    state = await registry.recordOpenRouterSnapshot({
-      benchmarkStatus: completed ? 'completed' : 'cancelled',
-      benchmarkCompletedAt,
-      benchmarkModelCount: commercialResults.length,
-      replyBenchmarkModelCount: replyResults.length,
-      benchmarkCatalogCount: benchmarkPlan.catalogCount,
-      benchmarkRegisteredCount: benchmarkPlan.registeredCount,
-      benchmarkShortlistedCount: benchmarkPlan.shortlistedCount,
-      benchmarkUnassessedCatalogCount: benchmarkPlan.unassessedCatalogCount,
-      balanceRefreshStatus: balanceRefresh?.balanceRefreshStatus || (controller.signal.aborted ? 'cancelled' : 'not-run'),
-      balanceRefreshedAt: balanceRefresh?.balanceRefreshedAt || '',
-      balanceRefreshErrorCode: balanceRefresh?.balanceRefreshErrorCode || '',
-      routesApplied: completed && req.body?.applyRoutes !== false,
-      utilityRoutes,
-      replyRoutes: replyRecommendation.routes
-    });
-    const projected = modelStatus.project(state);
-    eventBus.publish('models:openrouter-commercial-benchmark-complete', {
-      completed,
-      commercialCount: commercialResults.length,
-      replyCount: replyResults.length,
-      utilityRoutes,
-      replyRoutes: replyRecommendation.routes
-    });
-    return res.json({
-      ok: true,
-      completed,
-      cancelled: controller.signal.aborted,
-      commercialResults,
-      replyResults,
-      utilityRoutes,
-      replyRecommendation,
-      benchmarkPlan: {
-        catalogCount: benchmarkPlan.catalogCount,
-        registeredCount: benchmarkPlan.registeredCount,
-        shortlistedCount: benchmarkPlan.shortlistedCount,
-        utilityCandidateCount: benchmarkPlan.utilityCandidateCount,
-        replyCandidateCount: benchmarkPlan.replyCandidateCount,
-        unassessedCatalogCount: benchmarkPlan.unassessedCatalogCount,
-        roleCoverage: benchmarkPlan.roleCoverage
-      },
-      balanceRefresh,
-      models: projected.models,
-      routes: projected.routes,
-      replyBrain: projected.replyBrain,
-      openRouter: projected.openRouter || state.openRouter
-    });
-  } catch (error) {
-    await registry.recordOpenRouterSnapshot({
-      benchmarkStatus: controller.signal.aborted ? 'cancelled' : 'failed',
-      benchmarkCompletedAt: new Date().toISOString(),
-      benchmarkError: String(error.message || error),
-      benchmarkErrorCode: String(error.code || 'OPENROUTER_COMMERCIAL_BENCHMARK_FAILED')
-    }).catch(() => {});
-    next(error);
-  } finally {
-    testControllers.delete(batchKey);
-  }
-});
-
-router.post('/cloud/openrouter/commercial-benchmark/cancel', (_req, res) => {
-  const controller = testControllers.get('openrouter-commercial-benchmark');
-  if (!controller) return res.json({ ok: true, cancelled: false });
-  controller.abort(Object.assign(new Error('MODEL_CANCELLED'), { code: 'MODEL_CANCELLED' }));
-  res.json({ ok: true, cancelled: true });
 });
 
 router.delete('/cloud/:id', async (req, res, next) => {
   try {
     const model = findModel(req.params.id);
     if (!model) return res.status(404).json({ ok: false, error: 'MODEL_NOT_FOUND' });
-    if (model.provider === 'ollama') return res.status(409).json({ ok: false, error: 'OLLAMA_MODEL_CANNOT_BE_REMOVED_HERE' });
-    const state = await registry.removeModel(model.id);
-    if (req.body?.removeCredential === true && model.credentialRef) await securityGuard.credentials.remove(model.credentialRef);
-    res.json({ ok: true, removed: model.id, models: state.models });
+    if (model.provider === 'ollama') return res.status(409).json({ ok: false, error: 'LOCAL_MODEL_DELETE_ENDPOINT_REQUIRED' });
+    await registry.removeModel(model.id);
+    if (req.body?.removeCredential === true && clean(model.credentialRef)) await securityGuard.credentials.remove(model.credentialRef, { actor: 'backend-core' });
+    res.json({ ok: true, modelId: model.id, model: model.name });
   } catch (error) { next(error); }
 });
 
 router.delete('/local/:id', async (req, res, next) => {
   try {
     const model = findModel(req.params.id);
-    if (!model) return res.status(404).json({ ok: false, error: 'MODEL_NOT_FOUND', message: '没有找到该本地模型' });
-    if (model.provider !== 'ollama') return res.status(409).json({ ok: false, error: 'LOCAL_MODEL_REQUIRED', message: '该接口只删除本地 Ollama 模型' });
-    if (model.userDisabled !== true) return res.status(409).json({ ok: false, error: 'MODEL_MUST_BE_DISABLED_FIRST', message: '必须先停用模型并移出全部任务路由，才能从 Ollama 删除。' });
-    const exactName = String(req.body?.confirmName || '').trim();
-    if (exactName !== model.name) return res.status(400).json({ ok: false, error: 'MODEL_DELETE_CONFIRMATION_MISMATCH', message: '请输入完整模型名称确认删除。' });
-    const current = modelStatus.read();
-    const projected = (current.models || []).find(row => row.id === model.id);
-    if ((projected?.routedTasks || []).length) return res.status(409).json({ ok: false, error: 'MODEL_ROUTE_DEPENDENCY_EXISTS', message: '该模型仍被任务路由引用，请先迁移任务路由。', routedTasks: projected.routedTasks });
-    await ollama.unload(model.endpoint, model.name).catch(() => {});
+    if (!model) return res.status(404).json({ ok: false, error: 'MODEL_NOT_FOUND' });
+    if (model.provider !== 'ollama') return res.status(409).json({ ok: false, error: 'CLOUD_MODEL_DELETE_ENDPOINT_REQUIRED' });
+    if (model.userDisabled !== true) return res.status(409).json({ ok: false, error: 'MODEL_MUST_BE_DISABLED_BEFORE_DELETE', message: '请先停用模型，再执行永久删除。' });
+    if (clean(req.body?.confirmName) !== clean(model.name)) return res.status(409).json({ ok: false, error: 'MODEL_DELETE_CONFIRMATION_MISMATCH', message: '模型名称确认不一致。' });
     await ollama.remove(model.endpoint, model.name);
-    const state = await registry.removeModel(model.id);
-    res.json({ ok: true, removed: model.id, removedName: model.name, removedFromOllama: true, models: state.models });
+    await registry.removeModel(model.id);
+    res.json({ ok: true, modelId: model.id, model: model.name });
   } catch (error) { next(error); }
 });
 
-router.post('/scan', async (req, res, next) => {
+router.post('/scan', async (_req, res, next) => {
   try {
-    const discovery = await ollama.discover({ hosts: req.body?.hosts });
-    await registry.mergeDiscovered(discovery);
-    const state = modelStatus.read();
-    eventBus.publish('models:scanned', { discovery, registry: state });
-    const activation = modelAutoActivation.schedule({ force: req.body?.forceQualification === true });
-    res.json({ ok: true, discovery, registry: state, activation });
+    const discovery = await ollama.discover();
+    let state = await registry.mergeDiscovered(discovery);
+    state = await modelAutoActivation.run({ reason: 'manual-scan', state });
+    eventBus.publish('models:scanned', { count: discovery.models?.length || 0, online: discovery.online === true });
+    res.json({ ok: true, ...modelStatus.project(state) });
   } catch (error) { next(error); }
-});
-
-router.post('/reply-brain/benchmark-local', async (req, res, next) => {
-  const batchKey = 'reply-brain-local-batch';
-  if (testControllers.has(batchKey)) {
-    return res.status(409).json({
-      ok: false,
-      error: 'REPLY_BRAIN_BENCHMARK_ALREADY_RUNNING',
-      message: '本地回复模型正在串行评估，请等待当前批次完成，不要重复启动。'
-    });
-  }
-  const controller = new AbortController();
-  testControllers.set(batchKey, controller);
-  try {
-    const initial = registry.read();
-    const force = req.body?.force === true;
-    const candidates = (initial.models || []).filter(model => {
-      const last = model.lastReplyBrainBenchmarkAttempt || model.lastReplyBrainBenchmark;
-      return model.provider === 'ollama'
-        && model.available !== false
-        && model.userDisabled !== true
-        && !replyBrainBenchmark.isSpecialPurpose(model)
-        && (force || !last || last.pass !== true || last.status === 'REPLY_BRAIN_INCOMPLETE');
-    });
-    const results = [];
-    for (const model of candidates) {
-      if (controller.signal.aborted) break;
-      let row;
-      try {
-        row = await runReplyBrainBenchmarkWorkflow(model, {
-          timeoutMs: Number(req.body?.timeoutMs || 0) || undefined,
-          latencyThresholdMs: Number(req.body?.latencyThresholdMs || 0) || undefined,
-          signal: controller.signal
-        });
-        results.push({ modelId: model.id, model: model.name, result: row.result, baseQualification: row.baseQualification, runtimeProfile: row.runtimeProfile });
-        eventBus.publish('model:reply-brain-benchmark-progress', {
-          completed: results.length,
-          total: candidates.length,
-          modelId: model.id,
-          model: model.name,
-          result: row.result,
-          runtimeProfile: row.runtimeProfile
-        });
-      } finally {
-        await ollama.unload(model.endpoint, model.name).catch(() => {});
-      }
-    }
-
-    let state = registry.read();
-    const recommendation = replyBrainAuthority.recommendedReplyRoutes(state.models || [], state.routes || {});
-    const batchCompleted = !controller.signal.aborted && results.length === candidates.length;
-    if (batchCompleted && req.body?.applyRoutes !== false) state = await registry.applyRecommendedReplyBrainRoutes(recommendation.routes);
-    const projected = modelStatus.project(state);
-    eventBus.publish('models:reply-brain-benchmark-complete', { count: results.length, recommendation, batchCompleted });
-    res.json({
-      ok: true,
-      batchCompleted,
-      count: results.length,
-      skipped: (initial.models || []).filter(model => model.provider === 'ollama').length - candidates.length,
-      incomplete: results.filter(row => row.result?.completed === false).length,
-      results,
-      recommendation,
-      models: projected.models,
-      routes: projected.routes,
-      replyBrain: projected.replyBrain
-    });
-  } catch (error) {
-    next(error);
-  } finally {
-    testControllers.delete(batchKey);
-  }
-});
-
-router.post('/:id/reply-brain-benchmark', async (req, res, next) => {
-  const model = findModel(req.params.id);
-  if (!model) return res.status(404).json({ ok: false, error: 'MODEL_NOT_FOUND', message: '没有找到该模型' });
-  if (testControllers.has(model.id) || testControllers.has('reply-brain-local-batch')) {
-    return res.status(409).json({ ok: false, error: 'REPLY_BRAIN_BENCHMARK_ALREADY_RUNNING', message: '该模型或本地批次正在评估，请等待当前任务完成。' });
-  }
-  const controller = new AbortController();
-  testControllers.set(model.id, controller);
-  try {
-    const workflow = await runReplyBrainBenchmarkWorkflow(model, {
-      timeoutMs: Number(req.body?.timeoutMs || 0) || undefined,
-      latencyThresholdMs: Number(req.body?.latencyThresholdMs || 0) || undefined,
-      signal: controller.signal
-    });
-    const projected = modelStatus.project(workflow.state);
-    res.json({
-      ok: true,
-      qualified: workflow.result.pass === true,
-      completed: workflow.result.completed !== false,
-      baseQualification: workflow.baseQualification,
-      runtimeProfile: workflow.runtimeProfile,
-      result: workflow.result,
-      model: projected.models.find(row => row.id === model.id),
-      replyBrain: projected.replyBrain
-    });
-  } catch (error) {
-    next(error);
-  } finally {
-    testControllers.delete(model.id);
-    await ollama.unload(model.endpoint, model.name).catch(() => {});
-  }
 });
 
 router.post('/:id/test', async (req, res, next) => {
@@ -755,34 +306,28 @@ router.post('/:id/test', async (req, res, next) => {
       timeoutMs: Number(req.body?.timeoutMs || 180000),
       signal: controller.signal
     });
-    testControllers.delete(model.id);
-    res.json({ ok: true, model, result });
-  } catch (error) {
-    testControllers.delete(req.params.id);
-    next(error);
-  }
+    const projected = modelStatus.read();
+    res.json({ ok: true, model: projected.models.find(row => row.id === model.id), result, modelBrain: projected.modelBrain, taskReadiness: projected.taskReadiness });
+  } catch (error) { next(error); }
+  finally { testControllers.delete(req.params.id); }
 });
-
 router.post('/:id/cancel', (req, res) => {
   const controller = testControllers.get(req.params.id);
   if (!controller) return res.json({ ok: true, cancelled: false });
-  controller.abort(new Error('TEST_CANCELLED'));
+  controller.abort(Object.assign(new Error('TEST_CANCELLED'), { code: 'TEST_CANCELLED' }));
   testControllers.delete(req.params.id);
   res.json({ ok: true, cancelled: true });
 });
-
 router.post('/test-all', async (req, res, next) => {
   try {
-    const state = registry.read();
-    const models = (state.models || []).filter(model => model.available !== false);
+    const models = (registry.read().models || []).filter(model => model.available !== false && model.userDisabled !== true);
     const results = await qualification.qualifyAll(models, {
       tests: Array.isArray(req.body?.tests) && req.body.tests.length ? req.body.tests : undefined,
       timeoutMs: Number(req.body?.timeoutMs || 180000)
     });
-    res.json({ ok: true, count: results.length, results });
+    res.json({ ok: true, count: results.length, results, modelBrain: modelStatus.read().modelBrain });
   } catch (error) { next(error); }
 });
-
 router.post('/:id/unload', async (req, res, next) => {
   try {
     const model = findModel(req.params.id);
@@ -793,137 +338,43 @@ router.post('/:id/unload', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-function routeTestMessages(task) {
-  if (task === 'director') return [
-    { role: 'system', content: '只输出合法 JSON，不要代码块。字段：strategy、reasonZh、targetLanguage、maxQuestions。targetLanguage 必须是 de，maxQuestions 只能是 0 或 1。' },
-    { role: 'user', content: '为德语 WhatsApp 消息“Ich hatte heute einen langen Tag, wollte aber trotzdem wissen, wie es dir geht.”制定自然成熟的回复策略。' }
-  ];
-  const stylePrompt = task === 'deep_reply'
-    ? '成熟、独立、温暖但有边界。结合上下文，输出 1 到 2 个自然短句。'
-    : '成熟、独立、自然、简短。输出 1 到 2 个 WhatsApp 短句。';
-  return [
-    { role: 'system', content: whatsappReplyStyle.runtimePrompt({ targetLanguage: '德语', presentationProfile: { expressionHabits: ['short natural messages', 'at most one question', 'no repeated name', 'no em dash'] }, stylePrompt }) },
-    { role: 'user', content: '对方说：Ich hatte heute einen langen Tag, wollte aber trotzdem wissen, wie es dir geht.' }
-  ];
-}
-
-function judgeRouteTest(task, text) {
-  if (task === 'director') {
-    let value = null;
-    try { value = JSON.parse(String(text || '').replace(/^```json\s*/iu, '').replace(/```$/u, '').trim()); } catch (_) {}
-    const issues = [];
-    if (!value || typeof value !== 'object' || Array.isArray(value)) issues.push({ code: 'INVALID_JSON', message: '导演模型没有输出合法 JSON 对象' });
-    if (value && String(value.targetLanguage || '').toLowerCase() !== 'de') issues.push({ code: 'WRONG_TARGET_LANGUAGE', message: '导演模型没有保持德语目标语言' });
-    if (value && ![0, 1].includes(Number(value.maxQuestions))) issues.push({ code: 'INVALID_MAX_QUESTIONS', message: '导演模型问题数量上限无效' });
-    return { pass: issues.length === 0, issues, structured: value };
-  }
-  const validation = whatsappReplyStyle.validate(text);
-  const issues = [...(validation.issues || [])];
-  if (!appearsGerman(text)) issues.push({ code: 'WRONG_LANGUAGE', message: '测试回复不是自然德语' });
-  if (/[\u3400-\u9fff]/u.test(String(text || ''))) issues.push({ code: 'CHINESE_LEAK', message: '客户回复正文混入中文' });
-  return { pass: issues.length === 0, issues };
-}
-
-router.post('/routes/:task/test', async (req, res, next) => {
+router.post('/model-brain/probe', async (req, res, next) => {
   try {
-    const task = String(req.params.task || '').trim();
-    if (!['quick_reply', 'deep_reply', 'director'].includes(task)) return res.status(400).json({ ok: false, error: 'UNSUPPORTED_ROUTE_TEST', message: '当前只支持测试快速回复、深度回复和 AI 导演路由。' });
-    const routeDraft = req.body?.routeDraft;
-    const state = modelStatus.read();
-    const route = routeDraft && typeof routeDraft === 'object'
-      ? registry.validateRouteDraft(task, routeDraft, { autoSelect: true, source: 'route-test-draft' })
-      : (state.routes?.[task] || {});
-    if (route.enabled === false || !route.primary) return res.status(409).json({ ok: false, error: 'ROUTE_NOT_CONFIGURED', message: '请先选择主模型并启用该任务路由。' });
-    const startedAt = Date.now();
-    const result = await candidateExecutionService.execute({
+    const task = clean(req.body?.task || 'probe');
+    const modelId = clean(req.body?.modelId);
+    if (modelId && task !== 'probe') return res.status(400).json({ ok: false, error: 'PHYSICAL_MODEL_SELECTION_FORBIDDEN', message: '只有隔离资格 probe 可以指定精确 deployment；生产任务由 LiteLLM 选择。' });
+    const result = await aiGateway.execute({
       task,
-      routeTestId: String(req.body?.routeTestId || '').trim(),
-      route,
-      messages: routeTestMessages(task),
-      options: {
-        maxTokens: Number(route.maxTokens || (task === 'deep_reply' ? 480 : task === 'director' ? 360 : 220)),
-        timeoutMs: modelTaskRuntimePolicy.normalizeTimeoutMs(task, Math.max(Number(route.timeoutMs || 0), Number(req.body?.timeoutMs || 0))),
-        temperature: task === 'director' ? 0.2 : 0.65,
-        json: task === 'director'
-      }
+      modelId,
+      messages: Array.isArray(req.body?.messages) && req.body.messages.length ? req.body.messages : [{ role: 'user', content: clean(req.body?.content || 'Reply with exactly: YANCE_MODEL_BRAIN_OK') }],
+      options: { ...(req.body?.options || {}), timeoutMs: Number(req.body?.timeoutMs || req.body?.options?.timeoutMs || 120000) },
+      context: req.body?.context || {}
     });
-    const judged = judgeRouteTest(task, result.text || '');
-    res.json({
-      ok: true,
-      pass: judged.pass,
-      task,
-      route: {
-        requested: route.requested,
-        resolved: route.resolved,
-        resolutionState: route.resolutionState,
-        reasonCodes: route.reasonCodes,
-        primary: route.primary,
-        fallback: route.fallback || '',
-        allowConditional: route.allowConditional === true,
-        humanReviewRequired: route.humanReviewRequired === true || route.allowConditional === true,
-        primarySelection: route.primarySelection || 'manual',
-        fallbackSelection: route.fallbackSelection || 'manual',
-        autoSelectionReason: route.autoSelectionReason || '',
-        timeoutMs: modelTaskRuntimePolicy.normalizeTimeoutMs(task, route.timeoutMs)
-      },
-      routeTestId: result.routeTestId,
-      executionMode: result.executionMode,
-      deliveryEligible: result.deliveryEligible === true,
-      learningEligible: result.learningEligible === true,
-      formalReceiptEligible: result.formalReceiptEligible === true,
-      modelId: result.modelId,
-      model: result.model,
-      fallbackUsed: result.fallbackUsed === true,
-      conditionalRoute: result.conditionalRoute === true,
-      durationMs: Date.now() - startedAt,
-      attempts: result.attempts || [],
-      issues: judged.issues || [],
-      preview: String(result.text || '').slice(0, 600),
-      structured: judged.structured || null,
-      message: judged.pass ? '当前路由真实测试通过。' : '模型能够调用，但输出没有通过语言、Persona 或 WhatsApp 风格门禁。'
-    });
-  } catch (error) { next(error); }
-});
-
-
-router.patch('/routes/:task', async (req, res, next) => {
-  try {
-    const task = String(req.params.task || '').trim();
-    const state = await registry.setRoute(task, req.body?.route || req.body?.routeDraft || {}, {
-      autoSelect: req.body?.autoSelect !== false,
-      source: 'user-configured-single-task'
-    });
-    res.json({ ok: true, task, route: state.routes?.[task] || null, routesUpdatedAt: state.routesUpdatedAt || '' });
-  } catch (error) { next(error); }
-});
-
-router.post('/routes', async (req, res, next) => {
-  try {
-    const state = await registry.setRoutes(req.body?.routes || {});
-    res.json({ ok: true, routes: state.routes });
+    res.json({ ok: true, probePass: result.probePass === true || /YANCE_MODEL_BRAIN_OK/iu.test(clean(result.text)), text: result.text || '', evidence: result.evidence || null, modelBrain: aiGateway.status().modelBrain });
   } catch (error) { next(error); }
 });
 
 router.post('/execute', async (req, res, next) => {
   const controller = new AbortController();
-  const abortRequest = () => {
-    if (!controller.signal.aborted) controller.abort(Object.assign(new Error('MODEL_REQUEST_DISCONNECTED'), { code: 'MODEL_REQUEST_DISCONNECTED' }));
-  };
+  const abortRequest = () => { if (!controller.signal.aborted) controller.abort(Object.assign(new Error('MODEL_REQUEST_DISCONNECTED'), { code: 'MODEL_REQUEST_DISCONNECTED' })); };
   req.once('aborted', abortRequest);
   const closeHandler = () => { if (!res.writableEnded) abortRequest(); };
   res.once('close', closeHandler);
   try {
-    const result = await productionExecutionService.execute({
-      task: req.body?.task,
+    const task = clean(req.body?.task);
+    const modelId = clean(req.body?.modelId);
+    if (modelId && task !== 'probe') return res.status(400).json({ ok: false, error: 'PHYSICAL_MODEL_SELECTION_FORBIDDEN', message: '生产执行只接受 logical task + hard constraints；物理模型由 LiteLLM 选择。' });
+    const result = await aiGateway.execute({
+      task,
       messages: req.body?.messages || [],
-      modelId: req.body?.modelId || '',
+      modelId,
       options: req.body?.options || {},
       dedupeKey: req.body?.dedupeKey || '',
       fingerprint: req.body?.fingerprint || '',
       context: req.body?.context || {},
       signal: controller.signal
     });
-    if (!res.writableEnded) res.json({ ok: true, result, structured: result.structured ?? null });
+    if (!res.writableEnded) res.json({ ok: true, result, structured: result.text || '' });
   } catch (error) {
     if (!controller.signal.aborted && !res.headersSent) next(error);
   } finally {
@@ -931,29 +382,21 @@ router.post('/execute', async (req, res, next) => {
     res.removeListener('close', closeHandler);
   }
 });
-
-
 router.post('/jobs', (req, res, next) => {
   try {
-    const submitted = productionExecutionService.submit({
-      task: req.body?.task,
-      messages: req.body?.messages || [],
-      modelId: req.body?.modelId || '',
-      options: req.body?.options || {},
-      context: req.body?.context || {}
-    });
+    const task = clean(req.body?.task);
+    const modelId = clean(req.body?.modelId);
+    if (modelId && task !== 'probe') return res.status(400).json({ ok: false, error: 'PHYSICAL_MODEL_SELECTION_FORBIDDEN', message: '生产异步任务不能指定物理模型。' });
+    const submitted = aiGateway.submit({ task, messages: req.body?.messages || [], modelId, options: req.body?.options || {}, context: req.body?.context || {}, background: req.body?.background === true });
     res.status(202).json({ ok: true, ...submitted });
   } catch (error) { next(error); }
 });
-router.get('/jobs', (_req, res) => res.json({ ok: true, status: aiGateway.status() }));
+router.get('/jobs', (_req, res) => res.json({ ok: true, status: aiGateway.status(), jobs: aiGateway.listJobs() }));
 router.get('/jobs/:id', (req, res) => {
   const job = aiGateway.getJob(req.params.id);
   if (!job) return res.status(404).json({ ok: false, error: 'JOB_NOT_FOUND' });
   res.json({ ok: true, job });
 });
-
-router.post('/jobs/:id/cancel', (req, res) => {
-  res.json({ ok: true, cancelled: aiGateway.cancel(req.params.id) });
-});
+router.post('/jobs/:id/cancel', (req, res) => res.json({ ok: true, cancelled: aiGateway.cancel(req.params.id) }));
 
 module.exports = router;

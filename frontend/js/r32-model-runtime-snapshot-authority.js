@@ -5,86 +5,60 @@
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   'use strict';
 
-  function object(value) {
-    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-  }
-
+  function object(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
   function requiredFunction(value, name) {
-    if (typeof value !== 'function') {
-      throw Object.assign(new TypeError(`模型运行快照缺少 ${name}`), {
-        code: 'MODEL_RUNTIME_SNAPSHOT_ADAPTER_MISSING',
-        adapter: name
-      });
-    }
+    if (typeof value !== 'function') throw Object.assign(new TypeError(`模型运行快照缺少 ${name}`), { code: 'MODEL_RUNTIME_SNAPSHOT_ADAPTER_MISSING', adapter: name });
     return value;
   }
-
-  function shouldPreserveRoutes(state = {}) {
-    return String(state?.tab || '') === 'routing' && state?.routeDraftDirty === true;
-  }
-
-  function projectModelRuntimeSnapshot({
-    modelState = {},
-    previousState = {},
-    defaults = {},
-    adapters = {},
-    preserveRoutes = shouldPreserveRoutes(previousState)
-  } = {}) {
-    const source = object(modelState);
-    const previous = object(previousState);
-    const fallback = object(defaults);
-    const projectServices = requiredFunction(adapters.projectServices, 'projectServices');
-    const projectRoutes = requiredFunction(adapters.projectRoutes, 'projectRoutes');
-    const summarizeServices = requiredFunction(adapters.summarizeServices, 'summarizeServices');
-    const mergeAuthoritativeSummary = requiredFunction(adapters.mergeAuthoritativeSummary, 'mergeAuthoritativeSummary');
-
-    const services = projectServices(Array.isArray(source.models) ? source.models : []);
-    const taskReadiness = source.taskReadiness || previous.taskReadiness || fallback.taskReadiness || {};
-    const routes = preserveRoutes
-      ? (Array.isArray(previous.routes) ? previous.routes : [])
-      : projectRoutes(source.routes || {}, taskReadiness);
-    const automation = source.runtime?.aiAutomation;
-    const aiAutomation = automation
-      ? { ...object(automation), ...object(automation.config) }
-      : previous.aiAutomation || fallback.aiAutomation || {};
-
+  function currentModelBrain(source = {}, previous = {}, fallback = {}) {
+    const runtime = object(source.modelBrain || source.runtime?.modelBrain);
+    const old = object(previous.modelBrain);
+    const base = object(fallback.modelBrain);
+    const evidence = runtime.lastEvidence || source.executionEvidence || old.lastEvidence || base.lastEvidence || null;
     return Object.freeze({
-      services,
-      modelSummary: mergeAuthoritativeSummary(summarizeServices(services), source.summary || {}),
-      replyBrain: source.replyBrain || previous.replyBrain || fallback.replyBrain || {},
-      modelPools: source.modelPools || previous.modelPools || fallback.modelPools || {},
-      taskReadiness,
-      routes,
-      openRouter: source.openRouter || previous.openRouter || fallback.openRouter || {},
-      aiAutomation
+      name: 'Model Brain',
+      litellm: String(runtime.litellm || runtime.authority || old.litellm || base.litellm || 'LiteLLM v1.95.0'),
+      health: String(runtime.health || old.health || base.health || 'unavailable'),
+      runtimeAvailable: runtime.runtimeAvailable === true,
+      complexityRouter: String(runtime.complexityRouter || old.complexityRouter || base.complexityRouter || 'ComplexityRouter'),
+      strictTagFiltering: runtime.strictTagFiltering !== false,
+      tagFilteringMatchAny: runtime.tagFilteringMatchAny === true,
+      lastEvidence: evidence
     });
   }
 
-  function commitModelRuntimeSnapshot(targetState, snapshot, options = {}) {
-    if (!targetState || typeof targetState !== 'object' || Array.isArray(targetState)) {
-      throw Object.assign(new TypeError('模型运行状态目标无效'), { code: 'MODEL_RUNTIME_STATE_TARGET_INVALID' });
-    }
-    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
-      throw Object.assign(new TypeError('模型运行快照无效'), { code: 'MODEL_RUNTIME_SNAPSHOT_INVALID' });
-    }
+  function projectModelRuntimeSnapshot({ modelState = {}, previousState = {}, defaults = {}, adapters = {} } = {}) {
+    const source = object(modelState), previous = object(previousState), fallback = object(defaults);
+    const projectServices = requiredFunction(adapters.projectServices, 'projectServices');
+    const summarizeServices = requiredFunction(adapters.summarizeServices, 'summarizeServices');
+    const mergeAuthoritativeSummary = requiredFunction(adapters.mergeAuthoritativeSummary, 'mergeAuthoritativeSummary');
+    const services = projectServices(Array.isArray(source.models) ? source.models : []);
+    const automation = source.runtime?.aiAutomation;
+    return Object.freeze({
+      services,
+      modelSummary: mergeAuthoritativeSummary(summarizeServices(services), source.summary || {}),
+      modelBrain: currentModelBrain(source, previous, fallback),
+      taskReadiness: source.taskReadiness || previous.taskReadiness || fallback.taskReadiness || {},
+      replyBrain: source.replyBrain || previous.replyBrain || fallback.replyBrain || {},
+      openRouter: source.openRouter || previous.openRouter || fallback.openRouter || {},
+      aiAutomation: automation ? { ...object(automation), ...object(automation.config) } : previous.aiAutomation || fallback.aiAutomation || {}
+    });
+  }
 
-    const next = {
+  function commitModelRuntimeSnapshot(targetState, snapshot) {
+    if (!targetState || typeof targetState !== 'object' || Array.isArray(targetState)) throw Object.assign(new TypeError('模型运行状态目标无效'), { code: 'MODEL_RUNTIME_STATE_TARGET_INVALID' });
+    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) throw Object.assign(new TypeError('模型运行快照无效'), { code: 'MODEL_RUNTIME_SNAPSHOT_INVALID' });
+    Object.assign(targetState, {
       services: snapshot.services,
       modelSummary: snapshot.modelSummary,
+      modelBrain: snapshot.modelBrain,
       replyBrain: snapshot.replyBrain,
-      modelPools: snapshot.modelPools,
       taskReadiness: snapshot.taskReadiness,
       openRouter: snapshot.openRouter,
       aiAutomation: snapshot.aiAutomation
-    };
-    if (options.preserveRoutes !== true) next.routes = snapshot.routes;
-    Object.assign(targetState, next);
+    });
     return snapshot;
   }
 
-  return Object.freeze({
-    shouldPreserveRoutes,
-    projectModelRuntimeSnapshot,
-    commitModelRuntimeSnapshot
-  });
+  return Object.freeze({ projectModelRuntimeSnapshot, commitModelRuntimeSnapshot });
 });
