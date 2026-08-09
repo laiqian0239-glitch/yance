@@ -55,15 +55,40 @@ if (-not $sitePackages -or -not (Test-Path $sitePackages)) { throw "sealed site-
 
 $BuildPhase = "sdk-materialization"
 # Do not `pip install` the LiteLLM project: v1.95.0 uses maturin as its build backend.
-# Materialize only the reviewed MIT SDK source tree, then remove Proxy/open-core server
-# payload. This keeps the exact Python SDK bytes without creating a Rust/native build.
+# Materialize the reviewed MIT SDK source tree, then replace the open-core Proxy tree
+# with only the exact upstream shared Python modules required by the base SDK import
+# closure. No Yance compatibility stub is introduced: every retained byte comes from
+# the already verified LiteLLM core tree at $ExpectedCommit.
 $litellmTarget = Join-Path $sitePackages "litellm"
 Remove-Item $litellmTarget -Recurse -Force -ErrorAction SilentlyContinue
 Copy-Item (Join-Path $source "litellm") $litellmTarget -Recurse
-Remove-Item (Join-Path $litellmTarget "proxy") -Recurse -Force -ErrorAction SilentlyContinue
+
+$SharedProxyFiles = @(
+  "proxy/__init__.py",
+  "proxy/_types.py",
+  "proxy/types_utils/utils.py"
+)
+$proxyRoot = Join-Path $litellmTarget "proxy"
+Remove-Item $proxyRoot -Recurse -Force -ErrorAction SilentlyContinue
+foreach ($relative in $SharedProxyFiles) {
+  $nativeRelative = $relative.Replace('/', [IO.Path]::DirectorySeparatorChar)
+  $sourceFile = Join-Path (Join-Path $source "litellm") $nativeRelative
+  $targetFile = Join-Path $litellmTarget $nativeRelative
+  if (-not (Test-Path $sourceFile -PathType Leaf)) { throw "reviewed LiteLLM shared module missing: $relative" }
+  New-Item -ItemType Directory -Path (Split-Path $targetFile -Parent) -Force | Out-Null
+  Copy-Item $sourceFile $targetFile
+}
+$actualProxyFiles = @(Get-ChildItem $proxyRoot -Recurse -File | ForEach-Object {
+  [IO.Path]::GetRelativePath($litellmTarget, $_.FullName).Replace('\','/')
+})
+$unexpectedProxyFiles = @($actualProxyFiles | Where-Object { $_ -notin $SharedProxyFiles })
+$missingProxyFiles = @($SharedProxyFiles | Where-Object { $_ -notin $actualProxyFiles })
+if ($unexpectedProxyFiles.Count -gt 0 -or $missingProxyFiles.Count -gt 0) {
+  throw "LiteLLM shared proxy type closure mismatch; unexpected=$($unexpectedProxyFiles -join ','); missing=$($missingProxyFiles -join ',')"
+}
+
 Get-ChildItem $litellmTarget -Recurse -File | Where-Object { $_.Name -match '^_native\.(pyd|dll|so)$' -or $_.Extension -in @('.pyd','.dll','.so') -and $_.FullName -match 'rust_bridge' } | Remove-Item -Force
-if (Test-Path (Join-Path $litellmTarget "proxy")) { throw "LiteLLM Proxy tree leaked into sealed runtime" }
-if (Get-ChildItem $litellmTarget -Recurse -File | Where-Object { $_.FullName -match 'litellm-proxy-extras|litellm-enterprise|proxy_server|rust_bridge[\\/]+_native\.(pyd|dll|so)' }) { throw "forbidden Proxy/enterprise/Rust native payload" }
+if (Get-ChildItem $litellmTarget -Recurse -File | Where-Object { $_.FullName -match 'litellm-proxy-extras|litellm-enterprise|proxy_server|rust_bridge[\\/]+_native\.(pyd|dll|so)' }) { throw "forbidden Proxy server/enterprise/Rust native payload" }
 
 Copy-Item "runtime/model-brain/yance_litellm_worker.py" (Join-Path $OutputRoot "yance_litellm_worker.py")
 Copy-Item "runtime/model-brain/generate_runtime_sbom.py" (Join-Path $OutputRoot "generate_runtime_sbom.py")
@@ -95,7 +120,9 @@ $BuildPhase = "manifest"
   projectBuildBackendInvoked = $false
   rustNativePayload = $false
   proxyPayload = $false
-  excluded = @('enterprise','proxy','proxy_server','litellm-proxy-extras','Rust native bridge','network resolution at runtime')
+  proxyServerPayload = $false
+  retainedSharedProxyModules = $SharedProxyFiles
+  excluded = @('enterprise','proxy server','proxy_server','litellm-proxy-extras','Rust native bridge','network resolution at runtime')
 } | ConvertTo-Json -Depth 4 | Set-Content -Encoding UTF8 (Join-Path $OutputRoot "runtime-manifest.json")
 } catch {
   $message = $_.Exception.Message -replace '[\r\n]+', ' '
