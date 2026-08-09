@@ -37,14 +37,15 @@ The Windows artifact uses CPython 3.12.13 and uv 0.12.3 at build time. The build
 
 LiteLLM v1.95.0 declares `maturin` as its project build backend, so V3 deliberately does **not** install the LiteLLM project and never invokes the Rust build chain. Instead:
 
-1. `uv export --locked` exports only locked third-party dependencies, excluding project/workspace emission.
-2. Hash-locked dependencies are installed into the sealed interpreter's own site-packages.
-3. The verified MIT `litellm/` source tree is materialized directly into that interpreter.
-4. `litellm/proxy`, enterprise/proxy extras and any Rust native bridge binary are rejected/removed.
-5. `python -I` must import `Router` and `ComplexityRouter` without `PYTHONPATH` or system Python.
-6. CycloneDX 1.7 SBOM generation and an outbound-blocked worker smoke test seal the artifact.
+1. `uv export --locked` exports only locked base-SDK third-party dependencies, excluding project/workspace emission and dev groups.
+2. Hash-locked base dependencies are installed into the sealed interpreter's own site-packages.
+3. The verified MIT `litellm/` source tree is materialized byte-for-byte into that interpreter and checked against the pinned upstream tree; no upstream SDK file is deleted, rewritten or patched by Yance.
+4. Modules under the upstream `litellm/proxy` namespace remain when they are part of that exact MIT tree because the base SDK import graph legitimately traverses shared modules there. Their presence does not authorize or activate the LiteLLM Proxy product.
+5. Proxy/enterprise/workspace/dev optional dependencies, generated LiteLLM Proxy console/service entrypoints and Rust native bridge payloads are forbidden. Yance never starts `run_server`, `proxy_server`, uvicorn, gunicorn, granian or a LiteLLM Proxy service.
+6. `python -I` must import `Router` and `ComplexityRouter` from the unmodified tree without `PYTHONPATH` or system Python.
+7. CycloneDX 1.7 SBOM generation and an outbound-blocked worker smoke test seal the artifact.
 
-Runtime dependency resolution, `pip install`, `uv sync`, git checkout, system Python dependency, LiteLLM Proxy, enterprise distribution and Rust toolchain are forbidden after packaging.
+Runtime dependency resolution, `pip install`, `uv sync`, git checkout, system Python dependency, LiteLLM Proxy service activation, enterprise distribution and Rust toolchain are forbidden after packaging.
 
 ## Legacy retirement
 
