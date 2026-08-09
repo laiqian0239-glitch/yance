@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-PRODUCT-L2-P0-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Supersede the contaminated V21-DELEGATED-PRODUCT-L2-P0 implementation lineage without rewriting history. PR #163 reached a fully GREEN exact implementation tree on the authorized four-path scope, but an operator error later appended an unauthorized README_DO_NOT_USE commit. The polluted branch is preserved as immutable audit evidence and must never regain implementation authority. V2 re-authorizes the same minimal four-path L2 verifier/workflow scope from fresh trusted main, keeps the same failure-first semantics, and does not alter or weaken L3 Promotion/WP7 release-candidate gates.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-delegated-product-l2-p0-authorization.json",
+    "implementationBranch": "governance/v21-delegated-product-l2-p0",
+    "reason": "The superseded implementation branch was polluted after exact-head GREEN by unauthorized path README_DO_NOT_USE at commit 411a04d55e6771fa4e269cfa218283ae2e748e67. The branch and PR #163 remain immutable historical evidence; deleting the file, force-resetting, rebasing, amending or otherwise rewriting the history is forbidden."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "53fa979a11f1bf3281bbd06baac97926596e658a"
+  },
+  "evidence": {
+    "originalAuthorizationPullRequest": 162,
+    "originalAuthorizationMerge": "53fa979a11f1bf3281bbd06baac97926596e658a",
+    "contaminatedImplementationPullRequest": 163,
+    "cleanExactHeadBeforePollution": "d33faea84c268ac323dcf8d804ef97520f32c25b",
+    "cleanExactTree": "16eb4d2f6c1eaf17e38b6d312dcefe011835a8f5",
+    "cleanExactParent": "434c67b06fd0aa8a126ce3504372c5a34112265a",
+    "pollutedHead": "411a04d55e6771fa4e269cfa218283ae2e748e67",
+    "pollutedPath": "README_DO_NOT_USE",
+    "cleanExactHeadRemoteRuns": {
+      "stage": 31295783954,
+      "layered": 31295784015,
+      "acv2": 31295783956,
+      "wpA": 31295783957
+    },
+    "cleanExactHeadReview": "ALLOW_MERGE / P0=0 / P1=0 before the later unauthorized-path commit; that review is historical evidence only and is not valid for the polluted Head or any V2 implementation Head.",
+    "modelBrainImplementationPullRequest": 158,
+    "modelBrainExactHead": "7f852691ca89d3089ad1b10837e97cc55a226361",
+    "modelBrainExactTree": "4e3c062666f5ff3192dff64cdb38953dc1b57671",
+    "misappliedL3Run": 31294219999,
+    "misappliedL3Facts": {
+      "candidateBinding": "PASS",
+      "wp0": "205/205 PASS",
+      "security": "6/6 PASS",
+      "wp7": "25/34 PASS; 9 FAIL",
+      "classification": "WP7 failures belong to release/Activation/WP6/final-build/source-delivery contracts and must not be bypassed for product work packages."
+    },
+    "layeredSemanticFinding": "L2 is Work Package verification; L3 Promotion is release-candidate verification. Model Brain explicitly forbids promotion/productionRelease/publish while requiring Layered GREEN."
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-product-l2-p0-v2-final-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-product-l2-p0-v2-final-authorization.json"
+    ],
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "governance/v21-delegated-product-l2-p0-v2",
+    "allowedChangedPaths": [
+      ".github/workflows/layered-ci-task.yml",
+      "tests/layered-ci/delegated-product-l2.test.js",
+      "tests/layered-ci/github-actions-workflow.test.js",
+      "tools/layered-ci/verify-delegated-product-l2.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "a00a9995d99e2c24dc894cbf06a6d660aafd266f338699c1f9d76ba3e87b036b",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/layered-ci-task.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "64a403022b648cf56232b0848a152de6f29ff019d66a111a71f9cd08705a98a2"
+    }
+  },
+  "architecture": {
+    "layer": "L2_WORK_PACKAGE",
+    "l3PromotionUnchanged": true,
+    "reuse": "shared/release/implementationBranchPolicy.js::evaluateTrustedDelegatedGovernanceBranch",
+    "newVerifier": "tools/layered-ci/verify-delegated-product-l2.js",
+    "trustSource": "trusted main Git objects and remote refs only; never candidate-owned self-declaration",
+    "scopeSeal": "actual authorization-merge..candidate changed path set must exactly equal the trusted-main authorization allowedChangedPaths, including exact count and canonical SHA-256 digest",
+    "treeSeal": "caller-supplied expected tree must exactly equal candidate^{tree}",
+    "remoteRefSeal": "remote candidate branch tip must exactly equal candidate SHA",
+    "suite": "delegated product candidates are accepted only for required_level=L2 and suite=full_work_package",
+    "legacyCompatibility": "existing stage/6.4.5.9-architecture-closure and rebuild/windows-release-closure-* routing remains unchanged",
+    "supersession": "reuse the trusted-main delegated authorization supersession graph already enforced by shared/release/implementationBranchPolicy.js; no second revocation framework"
+  },
+  "mandatoryContracts": [
+    "The original authorization and contaminated implementation branch remain immutable audit evidence and are superseded only through the existing trusted-main authorization graph.",
+    "The old governance/v21-delegated-product-l2-p0 implementation branch must fail closed as WP0_DELEGATED_GOVERNANCE_AUTHORITY_SUPERSEDED after this V2 authorization becomes effective.",
+    "Delegated product Layered closure maps to L2 Work Package verification; it never maps to or weakens L3 Promotion.",
+    "Candidate classification is derived from trusted-main delegated authorization and verified Git history, never branch prefix or candidate-owned authorization content alone.",
+    "The trusted authorization must have been introduced by exactly one ordinary two-parent main merge with the reviewed authorization Head as parent2 and the authorization base as parent1.",
+    "The V2 implementation Head must descend from the effective V2 authorization merge and the exact remote V2 implementation branch tip must equal the candidate SHA.",
+    "The candidate commit SHA and expected tree are both exact lowercase 40-character Git object IDs and candidate^{tree} must equal expected tree.",
+    "The actual authorization-merge..candidate changed path set must exactly equal the trusted authorization implementation.allowedChangedPaths; subset-only acceptance is forbidden.",
+    "The actual changed path count and canonical SHA-256 must exactly match approvedChangedFileCount and approvedChangedFileSetSha256 from trusted main.",
+    "Unknown, ambiguous, superseded, stale, missing, malformed or conflicting authority/ref/tree/scope inputs fail closed.",
+    "Dependency-control and workflow-control behavior remains governed by the trusted authorization exact policies; candidate self-report cannot expand either surface.",
+    "L3 Promotion, WP7, Activation, WP6, final-build, installer identity and source-delivery parent-chain contracts remain unchanged and are never skipped by this work package.",
+    "No Model Brain product path and no PR #158 implementation path is modified by this governance work package."
+  ],
+  "failureFirst": {
+    "firstImplementationCommitTestsOnly": true,
+    "testPaths": [
+      "tests/layered-ci/delegated-product-l2.test.js",
+      "tests/layered-ci/github-actions-workflow.test.js"
+    ],
+    "causalRedMustCover": [
+      "product/v21-model-brain-p0-v3 is rejected by current L2 branch-bound allowlist",
+      "candidate tree mismatch",
+      "remote branch tip mismatch",
+      "candidate-owned or unmerged authorization spoof",
+      "subset scope that omits an authorized path",
+      "extra unauthorized path",
+      "wrong level or suite",
+      "ambiguous/superseded delegated authority"
+    ],
+    "testWeakeningForbidden": true,
+    "historicalRedEvidenceMayGuideButNotReplaceV2ExactHeadVerification": true
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "deletePollutionAndPretendClean": true,
+    "continueOnError": true,
+    "warningOnlyClosure": true,
+    "testSkipOrAssertionWeakening": true,
+    "branchPrefixTrust": true,
+    "candidateOwnedAuthorizationTrust": true,
+    "productionRelease": true,
+    "promotion": true,
+    "publish": true,
+    "l3Modification": true,
+    "wp7Modification": true,
+    "activationChainForgery": true,
+    "dependencyModification": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "rebaseMerge": true,
+    "squashMerge": true
+  },
+  "requiredSequence": [
+    "Authorization proposal remains exactly one file from fresh trusted main.",
+    "Authorization proposal passes governance gates and self-independent exact-head review.",
+    "Authorization is ordinary two-parent merged into main.",
+    "Create governance/v21-delegated-product-l2-p0-v2 from the exact V2 authorization merge.",
+    "First V2 implementation commit changes only the two authorized test paths and records causal RED.",
+    "Implement the same thin trusted delegated-product L2 verifier and workflow routing without changing L3.",
+    "Run the exact-head Layered governance contracts and delegated-product L2 tests.",
+    "Exercise Model Brain PR #158 exact Head through the V2 L2 route with exact commit/tree binding.",
+    "Perform self-independent V2 exact-head review and resolve P0/P1 findings.",
+    "Stop at the V2 governance implementation merge boundary for explicit owner approval."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
