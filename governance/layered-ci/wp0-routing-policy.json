@@ -165,7 +165,9 @@
     "third_party/licenses/funasr-model-license.txt",
     "third_party/licenses/onnxruntime-MIT.txt",
     "third_party/licenses/pytorch-BSD-3-Clause.txt",
-    "third_party/licenses/sensevoice-MIT.txt"
+    "third_party/licenses/sensevoice-MIT.txt",
+    "integration/element-module/src/VoiceWorkspace.css",
+    "integration/element-module/src/VoiceWorkspace.tsx"
   ],
   "productPrefixes": [
     ".github/",

@@ -10,7 +10,8 @@ const { validateDelegatedRoutePolicyMutation } = require('../../shared/release/i
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const policy = JSON.parse(fs.readFileSync(path.join(ROOT, 'governance/layered-ci/wp0-routing-policy.json'), 'utf8'));
-const authorization = JSON.parse(fs.readFileSync(path.join(ROOT, 'governance/layered-ci/v21-voice-brain-p0-route-bootstrap-v2-authorization.json'), 'utf8'));
+const routeBootstrapV2Authorization = JSON.parse(fs.readFileSync(path.join(ROOT, 'governance/layered-ci/v21-voice-brain-p0-route-bootstrap-v2-authorization.json'), 'utf8'));
+const routeBootstrapV4Authorization = JSON.parse(fs.readFileSync(path.join(ROOT, 'governance/layered-ci/v21-voice-brain-p0-route-bootstrap-v4-authorization.json'), 'utf8'));
 
 const VOICE_PATHS = Object.freeze([
   'config/upstreams/v21-voice-brain-p0.json',
@@ -26,31 +27,41 @@ const VOICE_PATHS = Object.freeze([
   'third_party/licenses/pytorch-BSD-3-Clause.txt',
   'third_party/licenses/sensevoice-MIT.txt'
 ]);
-const DIGEST = '34360957294d3b9b178f533212bcf3e98b870cdd10c86961b812d899c241326a';
+const VOICE_DIGEST = '34360957294d3b9b178f533212bcf3e98b870cdd10c86961b812d899c241326a';
+const VOICE_WORKSPACE_PATHS = Object.freeze([
+  'integration/element-module/src/VoiceWorkspace.css',
+  'integration/element-module/src/VoiceWorkspace.tsx'
+]);
+const VOICE_WORKSPACE_DIGEST = '736314fa2512aa0dfec9dc8fbec0ac9951a2565d8ad2539e15938d52442ba6b2';
 
 function clone(value) { return JSON.parse(JSON.stringify(value)); }
 function digest(paths) { return crypto.createHash('sha256').update([...new Set(paths)].sort().join('\n') + '\n').digest('hex'); }
-function basePolicy() {
+function v2BasePolicy() {
   const value = clone(policy);
   value.productExactPaths = value.productExactPaths.filter(file => !VOICE_PATHS.includes(file));
   return value;
 }
-function candidate(base = basePolicy()) {
+function v2Candidate(base = v2BasePolicy()) {
   const value = clone(base);
   value.productExactPaths = [...new Set([...value.productExactPaths, ...VOICE_PATHS])].sort();
   return value;
 }
+function v4Candidate(base = clone(policy)) {
+  const value = clone(base);
+  value.productExactPaths = [...new Set([...value.productExactPaths, ...VOICE_WORKSPACE_PATHS])].sort();
+  return value;
+}
 
-test('Voice route bootstrap path set is frozen', () => {
+test('Voice route bootstrap V2 path set remains frozen', () => {
   assert.equal(VOICE_PATHS.length, 12);
   assert.equal(new Set(VOICE_PATHS).size, 12);
-  assert.equal(digest(VOICE_PATHS), DIGEST);
-  assert.deepEqual(authorization.bootstrapPaths, VOICE_PATHS);
-  assert.equal(authorization.bootstrapPathCount, 12);
-  assert.equal(authorization.bootstrapPathSetSha256, DIGEST);
+  assert.equal(digest(VOICE_PATHS), VOICE_DIGEST);
+  assert.deepEqual(routeBootstrapV2Authorization.bootstrapPaths, VOICE_PATHS);
+  assert.equal(routeBootstrapV2Authorization.bootstrapPathCount, 12);
+  assert.equal(routeBootstrapV2Authorization.bootstrapPathSetSha256, VOICE_DIGEST);
 });
 
-test('Voice exact routes are causal RED before registration', () => {
+test('Voice V2 exact routes remain registered as PRODUCT', () => {
   const failures = VOICE_PATHS.filter(file => {
     const result = classifyWp0Route(policy, [file]);
     return result.pass !== true
@@ -66,8 +77,33 @@ test('Voice exact routes are causal RED before registration', () => {
   assert.equal(aggregate.productChangesPresent, true);
 });
 
+test('Voice workspace route bootstrap V4 path set is frozen', () => {
+  assert.equal(VOICE_WORKSPACE_PATHS.length, 2);
+  assert.equal(new Set(VOICE_WORKSPACE_PATHS).size, 2);
+  assert.equal(digest(VOICE_WORKSPACE_PATHS), VOICE_WORKSPACE_DIGEST);
+  assert.deepEqual(routeBootstrapV4Authorization.bootstrapPaths, VOICE_WORKSPACE_PATHS);
+  assert.equal(routeBootstrapV4Authorization.bootstrapPathCount, 2);
+  assert.equal(routeBootstrapV4Authorization.bootstrapPathSetSha256, VOICE_WORKSPACE_DIGEST);
+});
+
+test('Voice workspace exact routes are causal RED before registration', () => {
+  const failures = VOICE_WORKSPACE_PATHS.filter(file => {
+    const result = classifyWp0Route(policy, [file]);
+    return result.pass !== true
+      || result.route !== ROUTES.PRODUCT
+      || result.productChangesPresent !== true
+      || !policy.productExactPaths.includes(file);
+  });
+  assert.deepEqual(failures, []);
+
+  const aggregate = classifyWp0Route(policy, VOICE_WORKSPACE_PATHS);
+  assert.equal(aggregate.pass, true, JSON.stringify(aggregate));
+  assert.equal(aggregate.route, ROUTES.PRODUCT);
+  assert.equal(aggregate.productChangesPresent, true);
+});
+
 test('Voice adjacent paths remain fail closed without broad prefixes', () => {
-  for (const prefix of ['config/', 'runtime/', 'third_party/']) {
+  for (const prefix of ['config/', 'runtime/', 'third_party/', 'integration/']) {
     assert.equal(policy.productPrefixes.includes(prefix), false, prefix);
   }
 
@@ -75,7 +111,8 @@ test('Voice adjacent paths remain fail closed without broad prefixes', () => {
     'config/upstreams/v21-voice-brain-p1.json',
     'runtime/voice-brain/cosyvoice/unapproved.py',
     'runtime/voice-brain/sensevoice/unapproved.json',
-    'third_party/licenses/voice-unapproved.txt'
+    'third_party/licenses/voice-unapproved.txt',
+    'integration/element-module/src/VoiceWorkspace.unapproved.tsx'
   ]) {
     const result = classifyWp0Route(policy, [file]);
     assert.equal(result.pass, false, `${file}: ${JSON.stringify(result)}`);
@@ -102,33 +139,64 @@ test('Voice route bootstrap preserves governance and product-documentation prece
   assert.equal(mixed.route, ROUTES.PRODUCT);
 });
 
-test('Voice consumes the trusted route mutation guard', () => {
+test('Voice V2 consumes the trusted route mutation guard unchanged', () => {
   assert.equal(typeof validateDelegatedRoutePolicyMutation, 'function');
-  assert.equal(authorization.implementation.genericRouteMutationGuardRequired, true);
-  const base = basePolicy();
-  assert.equal(validateDelegatedRoutePolicyMutation({ authorization, basePolicy: base, candidatePolicy: candidate(base) }).pass, true);
+  assert.equal(routeBootstrapV2Authorization.implementation.genericRouteMutationGuardRequired, true);
+  const base = v2BasePolicy();
+  assert.equal(validateDelegatedRoutePolicyMutation({ authorization: routeBootstrapV2Authorization, basePolicy: base, candidatePolicy: v2Candidate(base) }).pass, true);
 
-  const broad = candidate(base);
+  const broad = v2Candidate(base);
   broad.productPrefixes = [...broad.productPrefixes, 'runtime/'];
-  assert.equal(validateDelegatedRoutePolicyMutation({ authorization, basePolicy: base, candidatePolicy: broad }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+  assert.equal(validateDelegatedRoutePolicyMutation({ authorization: routeBootstrapV2Authorization, basePolicy: base, candidatePolicy: broad }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
 
-  const extra = candidate(base);
+  const extra = v2Candidate(base);
   extra.productExactPaths.push('runtime/voice-brain/extra.json');
-  assert.equal(validateDelegatedRoutePolicyMutation({ authorization, basePolicy: base, candidatePolicy: extra }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+  assert.equal(validateDelegatedRoutePolicyMutation({ authorization: routeBootstrapV2Authorization, basePolicy: base, candidatePolicy: extra }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
 
-  const removed = candidate(base);
+  const removed = v2Candidate(base);
   removed.productExactPaths = removed.productExactPaths.filter(file => file !== base.productExactPaths[0]);
-  assert.equal(validateDelegatedRoutePolicyMutation({ authorization, basePolicy: base, candidatePolicy: removed }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+  assert.equal(validateDelegatedRoutePolicyMutation({ authorization: routeBootstrapV2Authorization, basePolicy: base, candidatePolicy: removed }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
 
-  const weakened = candidate(base);
+  const weakened = v2Candidate(base);
   weakened.unknownPathFailsClosed = false;
-  assert.equal(validateDelegatedRoutePolicyMutation({ authorization, basePolicy: base, candidatePolicy: weakened }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+  assert.equal(validateDelegatedRoutePolicyMutation({ authorization: routeBootstrapV2Authorization, basePolicy: base, candidatePolicy: weakened }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
 
-  const governanceDrift = candidate(base);
+  const governanceDrift = v2Candidate(base);
   governanceDrift.governancePrefixes = [...governanceDrift.governancePrefixes, 'runtime/'];
-  assert.equal(validateDelegatedRoutePolicyMutation({ authorization, basePolicy: base, candidatePolicy: governanceDrift }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+  assert.equal(validateDelegatedRoutePolicyMutation({ authorization: routeBootstrapV2Authorization, basePolicy: base, candidatePolicy: governanceDrift }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
 
-  const documentationDrift = candidate(base);
+  const documentationDrift = v2Candidate(base);
   documentationDrift.productDocumentationExactPaths = [...(documentationDrift.productDocumentationExactPaths || []), 'runtime/voice-brain/README.md'];
-  assert.equal(validateDelegatedRoutePolicyMutation({ authorization, basePolicy: base, candidatePolicy: documentationDrift }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+  assert.equal(validateDelegatedRoutePolicyMutation({ authorization: routeBootstrapV2Authorization, basePolicy: base, candidatePolicy: documentationDrift }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+});
+
+test('Voice V4 consumes the trusted route mutation guard for only the frozen workspace paths', () => {
+  assert.equal(typeof validateDelegatedRoutePolicyMutation, 'function');
+  assert.equal(routeBootstrapV4Authorization.implementation.genericRouteMutationGuardRequired, true);
+  const base = clone(policy);
+  assert.equal(validateDelegatedRoutePolicyMutation({ authorization: routeBootstrapV4Authorization, basePolicy: base, candidatePolicy: v4Candidate(base) }).pass, true);
+
+  const broad = v4Candidate(base);
+  broad.productPrefixes = [...broad.productPrefixes, 'integration/'];
+  assert.equal(validateDelegatedRoutePolicyMutation({ authorization: routeBootstrapV4Authorization, basePolicy: base, candidatePolicy: broad }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+
+  const extra = v4Candidate(base);
+  extra.productExactPaths.push('integration/element-module/src/VoiceWorkspace.unapproved.tsx');
+  assert.equal(validateDelegatedRoutePolicyMutation({ authorization: routeBootstrapV4Authorization, basePolicy: base, candidatePolicy: extra }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+
+  const removed = v4Candidate(base);
+  removed.productExactPaths = removed.productExactPaths.filter(file => file !== base.productExactPaths[0]);
+  assert.equal(validateDelegatedRoutePolicyMutation({ authorization: routeBootstrapV4Authorization, basePolicy: base, candidatePolicy: removed }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+
+  const weakened = v4Candidate(base);
+  weakened.unknownPathFailsClosed = false;
+  assert.equal(validateDelegatedRoutePolicyMutation({ authorization: routeBootstrapV4Authorization, basePolicy: base, candidatePolicy: weakened }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+
+  const governanceDrift = v4Candidate(base);
+  governanceDrift.governancePrefixes = [...governanceDrift.governancePrefixes, 'integration/'];
+  assert.equal(validateDelegatedRoutePolicyMutation({ authorization: routeBootstrapV4Authorization, basePolicy: base, candidatePolicy: governanceDrift }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+
+  const documentationDrift = v4Candidate(base);
+  documentationDrift.productDocumentationExactPaths = [...(documentationDrift.productDocumentationExactPaths || []), 'integration/element-module/src/VoiceWorkspace.md'];
+  assert.equal(validateDelegatedRoutePolicyMutation({ authorization: routeBootstrapV4Authorization, basePolicy: base, candidatePolicy: documentationDrift }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
 });
