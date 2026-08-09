@@ -1339,12 +1339,14 @@ function createContextAwareReplyBrain({ storeManager, aiGateway, personaBrain, r
         throw Object.assign(new Error('AI task cancelled before candidate commit'), { code: 'AI_TASK_CANCELLED' });
       }
 
-      const qualityRouteReceipt = { ...(modelResult.qualityRouteReceipt || {}) };
-      const directorQualityRouteReceipt = { ...(directorResult?.qualityRouteReceipt || {}) };
-      const qualityTier = clean(qualityRouteReceipt.qualityTier);
-      const emergencyMode = qualityRouteReceipt.emergencyMode === true;
-      const learningEligible = qualityRouteReceipt.learningEligible !== false && !emergencyMode;
-      const highCapabilityPath = qualityRouteReceipt.highCapabilityPath === true && !emergencyMode;
+      const modelBrainExecutionEvidence = { ...(modelResult.evidence || {}) };
+      const directorModelBrainExecutionEvidence = { ...(directorResult?.evidence || {}) };
+      const qualityRouteReceipt = {};
+      const directorQualityRouteReceipt = {};
+      const qualityTier = clean(modelBrainExecutionEvidence.status).toLowerCase() === 'ok' ? 'model-brain' : '';
+      const emergencyMode = false;
+      const learningEligible = clean(modelBrainExecutionEvidence.status).toLowerCase() === 'ok';
+      const highCapabilityPath = false;
       const directorStrategyProjection = { ...(directorStrategy.strategy || {}) };
       const candidatePlanProjection = { ...(candidatePlan.plan || {}) };
       const candidateStrategyBranch = branchApplication.branch ? { ...branchApplication.branch } : null;
@@ -1369,6 +1371,7 @@ function createContextAwareReplyBrain({ storeManager, aiGateway, personaBrain, r
         model: clean(modelResult.model),
         modelAttempts: Array.isArray(modelResult.attempts) ? modelResult.attempts : [],
         fallbackUsed: modelResult.fallbackUsed === true,
+        modelBrainExecutionEvidence,
         qualityRouteReceipt,
         qualityTier,
         emergencyMode,
@@ -1382,6 +1385,7 @@ function createContextAwareReplyBrain({ storeManager, aiGateway, personaBrain, r
           model: clean(directorResult?.model),
           attempts: Array.isArray(directorResult?.attempts) ? directorResult.attempts : [],
           fallbackUsed: directorResult?.fallbackUsed === true,
+          modelBrainExecutionEvidence: directorModelBrainExecutionEvidence,
           qualityRouteReceipt: directorQualityRouteReceipt,
           schemaRepair: directorRepair
         },
@@ -1494,6 +1498,7 @@ function createContextAwareReplyBrain({ storeManager, aiGateway, personaBrain, r
         model: clean(modelResult.model),
         modelAttempts: Array.isArray(modelResult.attempts) ? modelResult.attempts : [],
         fallbackUsed: modelResult.fallbackUsed === true,
+        modelBrainExecutionEvidence,
         contextVersion: currentContext.contextVersion,
         conversationRevision: currentRevision,
         contextMessageIds: incomingMessage.messageIds || [],
@@ -1578,7 +1583,7 @@ function createContextAwareReplyBrain({ storeManager, aiGateway, personaBrain, r
             error: clean(error.message),
             failed: !cancellationCodes.has(clean(error.code).toUpperCase())
           }
-        }).catch(dispatchError => logger.warn('ai', 'reply-task-cancel-persist-failed', { operation: 'storeManager.dispatch.AI_REPLY_TASK_CANCELLED', accountId: '', conversationId, reasonCode: dispatchError.code || 'AI_REPLY_TASK_CANCEL_PERSIST_FAILED', httpStatus: Number(dispatchError.status || 0), attempt: 1, nextRetryAt: '', taskId, error: dispatchError.message }));
+        }).catch(dispatchError => logger.warn('ai', 'reply-task-cancel-persist-failed', { operation: 'storeManager.dispatch.AI_REPLY_TASK_CANCELLED', accountId: '', conversationId, reasonCode: dispatchError.code || 'AI_REPLY_TASK_PERSIST_FAILED', httpStatus: Number(dispatchError.status || 0), attempt: 1, nextRetryAt: '', taskId, error: dispatchError.message }));
       }
       throw error;
     } finally {

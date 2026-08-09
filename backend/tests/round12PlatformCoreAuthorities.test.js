@@ -13,23 +13,23 @@ const { createPlatformCoreRepository } = require('../repositories/platformCoreRe
 const { IdentityLinkAuthority } = require('../services/identityLinkAuthority');
 const { DomainEventLogService } = require('../services/domainEventLogService');
 const { SendPolicyAuthority } = require('../services/sendPolicyAuthority');
-const aiQuality = require('../services/aiQualityRouteAuthority');
 
-function validQuickReplyReceipt() {
-  const model = {
-    id: 'round12-quality-model', name: 'round12-quality-model', provider: 'openrouter', qualification: 'verified', available: true,
-    allowedTasks: ['quick_reply', 'deep_reply', 'director', 'learning_synthesis', 'understanding', 'relationship'],
-    lastQualificationTest: { scores: { persona: { pass: true }, hallucination: { pass: true }, json: { pass: true } } },
-    lastReplyBrainBenchmark: {
-      authority: 'YanceReplyBrainBenchmark', pass: true, status: 'REPLY_BRAIN_QUALIFIED', completed: true, score: 92,
-      scenarios: [
-        { id: 'german_whatsapp', pass: true, score: 19 }, { id: 'english_whatsapp', pass: true, score: 19 },
-        { id: 'persona_boundary', pass: true, score: 24 }, { id: 'director_schema', pass: true, score: 19 },
-        { id: 'latency', pass: true, score: 11 }
-      ]
-    }
+function validModelBrainExecutionEvidence(overrides = {}) {
+  return {
+    requestId: 'round12-model-brain-request',
+    logicalModel: 'yance.reply.quick',
+    selectedModel: 'round12-quality-model',
+    provider: 'openrouter',
+    latencyMs: 123,
+    inputTokens: 21,
+    outputTokens: 9,
+    totalTokens: 30,
+    costUsd: 0.0012,
+    retryCount: 0,
+    fallbackCount: 0,
+    status: 'ok',
+    ...overrides
   };
-  return aiQuality.routeReceipt({ task: 'quick_reply', selectedModel: model, routePlan: { state: 'ready', violations: [] } });
 }
 
 function withAuthorities(callback) {
@@ -41,20 +41,10 @@ function withAuthorities(callback) {
   const host = acquireAuthorityWriteHost({ dbPath, instanceId: 'round12-platform-core-test-host' });
   const broker = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: host.capability });
   const store = broker.open();
-  const coordinator = new AuthorityTransactionCoordinator({
-    store,
-    eventBus: { publish() {} }
-  });
+  const coordinator = new AuthorityTransactionCoordinator({ store, eventBus: { publish() {} } });
   const coordinatorCapability = coordinator.repositoryCapability();
-  const repository = createPlatformCoreRepository({
-    storeProvider: () => store,
-    coordinatorCapability
-  });
-  const ledger = new canonicalEventLedger.CanonicalEventLedgerAuthority({
-    coordinator,
-    store,
-    compatibilityRepository: repository
-  });
+  const repository = createPlatformCoreRepository({ storeProvider: () => store, coordinatorCapability });
+  const ledger = new canonicalEventLedger.CanonicalEventLedgerAuthority({ coordinator, store, compatibilityRepository: repository });
   canonicalEventLedger.configureSingleton(ledger);
   const accountStateProvider = () => [
     { id: 'wa-1', platform: 'whatsapp', state: 'connected', canSend: true, canReceive: true, credentialReady: true, capabilityAvailability: {} },
@@ -62,13 +52,7 @@ function withAuthorities(callback) {
   ];
   try {
     return callback({
-      host,
-      broker,
-      store,
-      coordinator,
-      coordinatorCapability,
-      repository,
-      ledger,
+      host, broker, store, coordinator, coordinatorCapability, repository, ledger,
       identity: new IdentityLinkAuthority({ repository }),
       events: new DomainEventLogService({ canonicalAuthority: ledger }),
       sendPolicy: new SendPolicyAuthority({ repository, accountStateProvider })
@@ -145,17 +129,25 @@ test('shadow projection records match and mismatch without replacing production 
   });
 });
 
-test('send policy freezes approved target-language text and persists capability evidence', () => {
+test('send policy binds current Model Brain execution evidence without minting a route receipt', () => {
   withAuthorities(({ sendPolicy, store }) => {
+    const evidence = validModelBrainExecutionEvidence();
     const frozen = sendPolicy.freezeOutboxCommand({
       platform: 'whatsapp', accountId: 'wa-1', sessionKey: 'wa-1:peer', chatJid: 'peer', operation: 'text',
       messageType: 'text', finalText: 'Bis morgen!', targetLanguage: 'de', idempotencyKey: 'send-1', outboxId: 'outbox-1',
-      qualityRouteReceipt: validQuickReplyReceipt(), emergencyMode: false, learningEligible: true
+      replySource: 'local_model', replyTask: 'quick_reply', modelId: 'round12-quality-model',
+      modelBrainExecutionEvidence: evidence, emergencyMode: false, learningEligible: true
     });
     assert.equal(frozen.command.contentFrozen, true);
     assert.equal(frozen.command.retranslateOnRetry, false);
     assert.equal(frozen.command.learningEligible, true);
-    assert.equal(frozen.command.qualityTier, 'high');
+    assert.equal(frozen.command.qualityTier, 'model-brain');
+    assert.equal(frozen.command.modelBrainEvidenceValid, true);
+    assert.match(frozen.command.modelBrainEvidenceSha256, /^[a-f0-9]{64}$/u);
+    assert.deepEqual(frozen.command.modelBrainExecutionEvidence, evidence);
+    assert.deepEqual(frozen.command.qualityRouteReceipt, {});
+    assert.equal(frozen.queueMetadata.modelBrainEvidenceValid, true);
+    assert.deepEqual(frozen.queueMetadata.modelBrainExecutionEvidence, evidence);
     assert.equal(frozen.queueMetadata.sendPolicy.policyVersion, 'round12-send-policy-v1');
     assert.doesNotThrow(() => sendPolicy.verifyFrozenCommand(frozen.command));
     assert.throws(() => sendPolicy.verifyFrozenCommand({ ...frozen.command, finalText: 'Mutated' }), error => error.code === 'OUTBOX_COMMAND_CONTENT_MUTATED');
@@ -164,12 +156,48 @@ test('send policy freezes approved target-language text and persists capability 
   });
 });
 
+test('model-generated learning fails closed when Model Brain evidence is missing or mismatched', () => {
+  withAuthorities(({ sendPolicy }) => {
+    const missing = sendPolicy.freezeOutboxCommand({
+      platform: 'whatsapp', accountId: 'wa-1', sessionKey: 'wa-1:peer', chatJid: 'peer', operation: 'text',
+      finalText: 'Hallo', idempotencyKey: 'missing-model-evidence', replySource: 'local_model', replyTask: 'quick_reply',
+      modelId: 'round12-quality-model', learningEligible: true
+    });
+    assert.equal(missing.command.learningEligible, false);
+    assert.equal(missing.command.modelBrainEvidenceValid, false);
+    assert.equal(missing.command.modelBrainEvidenceReasonCode, 'MODEL_BRAIN_EXECUTION_EVIDENCE_REQUIRED');
+    const mismatch = sendPolicy.freezeOutboxCommand({
+      platform: 'whatsapp', accountId: 'wa-1', sessionKey: 'wa-1:peer', chatJid: 'peer', operation: 'text',
+      finalText: 'Hallo', idempotencyKey: 'mismatch-model-evidence', replySource: 'local_model', replyTask: 'quick_reply',
+      modelId: 'round12-quality-model', modelBrainExecutionEvidence: validModelBrainExecutionEvidence({ selectedModel: 'other-model' }), learningEligible: true
+    });
+    assert.equal(mismatch.command.learningEligible, false);
+    assert.equal(mismatch.command.modelBrainEvidenceValid, false);
+    assert.equal(mismatch.command.modelBrainEvidenceReasonCode, 'MODEL_BRAIN_EXECUTION_EVIDENCE_MODEL_MISMATCH');
+  });
+});
+
+test('manual send remains sendable without fabricated Model Brain evidence', () => {
+  withAuthorities(({ sendPolicy }) => {
+    const frozen = sendPolicy.freezeOutboxCommand({
+      platform: 'telegram', accountId: 'tg-1', sessionKey: 'tg-1:peer', chatJid: 'peer', operation: 'text',
+      messageType: 'text', finalText: 'Hallo', targetLanguage: 'de', idempotencyKey: 'manual-1',
+      replySource: 'manual', learningEligible: true
+    });
+    assert.equal(frozen.command.learningEligible, false);
+    assert.equal(frozen.command.modelBrainEvidenceValid, false);
+    assert.equal(frozen.command.modelBrainEvidenceReasonCode, 'MODEL_BRAIN_EVIDENCE_NOT_REQUIRED');
+    assert.deepEqual(frozen.command.modelBrainExecutionEvidence, {});
+  });
+});
+
 test('emergency send commands are excluded from long-term learning', () => {
   withAuthorities(({ sendPolicy }) => {
     const frozen = sendPolicy.freezeOutboxCommand({
       platform: 'telegram', accountId: 'tg-1', sessionKey: 'tg-1:peer', chatJid: 'peer', operation: 'text',
       messageType: 'text', finalText: 'Hallo', targetLanguage: 'de', idempotencyKey: 'emergency-1',
-      qualityTier: 'emergency', emergencyMode: true, learningEligible: true
+      replySource: 'local_model', replyTask: 'quick_reply', modelId: 'round12-quality-model',
+      modelBrainExecutionEvidence: validModelBrainExecutionEvidence(), emergencyMode: true, learningEligible: true
     });
     assert.equal(frozen.command.emergencyMode, true);
     assert.equal(frozen.command.learningEligible, false);
@@ -200,7 +228,7 @@ test('default send policy reads the live AccountManager projection rather than s
     const sendPolicy = new SendPolicyAuthority({ repository });
     const frozen = sendPolicy.freezeOutboxCommand({
       platform: 'facebook', accountId: 'fb-live', sessionKey: 'fb-live:peer', chatJid: 'facebook:peer',
-      operation: 'text', finalText: 'Hello', idempotencyKey: 'live-account-send'
+      operation: 'text', finalText: 'Hello', idempotencyKey: 'live-account-send', replySource: 'manual'
     });
     assert.equal(frozen.capabilitySnapshot.observation.availability, 'degraded');
     assert.equal(frozen.capabilitySnapshot.observation.enabled, true);

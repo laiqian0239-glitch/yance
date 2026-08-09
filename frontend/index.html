@@ -971,7 +971,7 @@ img[data-r28-lazy]{content-visibility:auto}
 <section aria-label="AI工作台" class="aiwork-workspace ui-route-scroll-root" id="aiworkWorkspace">
 <header class="aiw30-hero">
 <div class="aiw30-head">
-<div class="aiw30-title"><small>实时智能工作台 · 规则、学习、模型、路由</small><h1>AI工作台</h1><p>统一管理导演规则、联系人专属规则、学习材料治理、模型服务与任务路由。所有设置直接作用于当前联系人、AI回复大脑、客户档案和关系洞察，不再维护孤立配置。</p></div>
+<div class="aiw30-title"><small>实时智能工作台 · 规则、学习、Model Brain</small><h1>AI工作台</h1><p>统一管理导演规则、联系人专属规则、学习材料治理，以及 Model Brain / LiteLLM 的模型资格与真实执行证据。所有设置直接作用于当前联系人、AI回复大脑、客户档案和关系洞察。</p></div>
 <div class="aiw30-actions"><label>当前联系人<select id="aiwContactSelect"></select></label><button id="aiwOpenDirector">打开AI导演</button><button id="aiwRunDiagnostics">九项诊断</button><button class="primary" id="aiwOpenConversation">进入会话</button></div>
 </div>
 <div class="aiw30-sync"><article><i></i><div><b>会话上下文</b><span>当前联系人和聊天上下文按完整会话身份绑定</span></div></article><article><i></i><div><b>客户事实与证据</b><span>确认事实、边界和长期备注从权威档案读取</span></div></article><article><i></i><div><b>关系导演输入</b><span>风险、机会和下一步动作进入当前导演策略</span></div></article><article><i></i><div><b>真实回复学习</b><span>只使用接受、编辑、拒绝和实际发送形成的证据</span></div></article><article class="warn" id="personaBrainStatusCard"><i></i><div><b>人物基线状态</b><span id="personaBrainStatus">正在读取 Persona 版本…</span></div></article></div>
@@ -979,8 +979,8 @@ img[data-r28-lazy]{content-visibility:auto}
 <div class="aiw30-status-banner" id="aiwOffline">当前处于离线状态。规则和已载入配置仍可查看，模型测试与云端任务将在恢复网络后重试。</div>
 <section class="aiw30-body">
 <aside class="aiw30-sidebar">
-<div class="aiw30-core"><div class="aiw30-core-head"><div class="aiw30-core-orb"></div><div class="aiw30-core-copy"><b>智能编排核心</b><span id="aiwCoreStatus">正在校验统一数据链</span></div></div><div class="aiw30-health"><article><span>规则完整度</span><b id="aiwRuleHealth">0%</b></article><article><span>路由健康度</span><b id="aiwRouteHealth">0%</b></article><article><span>已启用规则</span><b id="aiwEnabledRules">0</b></article><article><span>模型服务</span><b id="aiwServiceCount">0</b></article></div></div>
-<nav class="aiw30-tabs" id="aiwTabs"><button class="aiw30-tab active" data-aiw-tab="rules"><i>01</i><span><b>导演规则</b><small>全局、模板、联系人专属</small></span><em id="aiwRulesCount">0</em></button><button class="aiw30-tab" data-aiw-tab="learning"><i>02</i><span><b>学习治理</b><small>审核、影子验证、回滚</small></span><em id="aiwLearningCount">0</em></button><button class="aiw30-tab" data-aiw-tab="models"><i>03</i><span><b>模型服务</b><small>本地Ollama与云端模型</small></span><em id="aiwModelsCount">0</em></button><button class="aiw30-tab" data-aiw-tab="routing"><i>04</i><span><b>任务路由</b><small>任务模型与失败回退</small></span><em id="aiwRoutesCount">0</em></button><button class="aiw30-tab" data-aiw-tab="persona"><i>05</i><span><b>人物基线</b><small>版本、真实性、审批与回滚</small></span><em id="aiwPersonaVersion">0</em></button></nav>
+<div class="aiw30-core"><div class="aiw30-core-head"><div class="aiw30-core-orb"></div><div class="aiw30-core-copy"><b>智能编排核心</b><span id="aiwCoreStatus">正在校验统一数据链</span></div></div><div class="aiw30-health"><article><span>规则完整度</span><b id="aiwRuleHealth">0%</b></article><article><span>Model Brain 运行状态</span><b id="aiwRouteHealth">unavailable</b></article><article><span>已启用规则</span><b id="aiwEnabledRules">0</b></article><article><span>模型服务</span><b id="aiwServiceCount">0</b></article></div></div>
+<nav class="aiw30-tabs" id="aiwTabs"><button class="aiw30-tab active" data-aiw-tab="rules"><i>01</i><span><b>导演规则</b><small>全局、模板、联系人专属</small></span><em id="aiwRulesCount">0</em></button><button class="aiw30-tab" data-aiw-tab="learning"><i>02</i><span><b>学习治理</b><small>审核、影子验证、回滚</small></span><em id="aiwLearningCount">0</em></button><button class="aiw30-tab" data-aiw-tab="models"><i>03</i><span><b>模型服务</b><small>本地Ollama与云端模型</small></span><em id="aiwModelsCount">0</em></button><button class="aiw30-tab" data-aiw-tab="persona"><i>04</i><span><b>人物基线</b><small>版本、真实性、审批与回滚</small></span><em id="aiwPersonaVersion">0</em></button></nav>
 <div class="aiw30-activity"><h3>最近操作</h3><div class="aiw30-log" id="aiwActivity"></div></div>
 <div class="aiw30-sidebar-foot"><button id="aiwUndo">撤销上一次工作台修改</button></div>
 </aside>
@@ -990,7 +990,7 @@ img[data-r28-lazy]{content-visibility:auto}
 <section class="aiw30-panel active" data-aiw-panel="rules"><div id="aiwRulesPanel"></div></section>
 <section class="aiw30-panel" data-aiw-panel="learning"><div id="aiwLearningPanel"></div></section>
 <section class="aiw30-panel" data-aiw-panel="models"><div id="aiwModelsPanel"></div></section>
-<section class="aiw30-panel" data-aiw-panel="routing"><div id="aiwRoutingPanel"></div></section>
+
 <section class="aiw30-panel" data-aiw-panel="persona"><div id="aiwPersonaPanel"></div></section>
 </div>
 </main>
@@ -1067,7 +1067,7 @@ img[data-r28-lazy]{content-visibility:auto}
 <script src="/js/r32-ui-runtime.js"></script>
 <script src="/js/r32-insights-diagnostics.js"></script>
 <script id="r29-insights-runtime" src="/js/r32-insights-runtime.js"></script>
-<script src="/js/r32-credential-mutation-receipt.js"></script><script src="/js/r32-model-registry-projection.js"></script><script src="/js/r32-model-runtime-snapshot-authority.js"></script><script src="/js/r32-route-draft-authority.js"></script><script src="/js/r32-openrouter-presentation-authority.js"></script><script id="r30-ai-workbench-script" src="/js/r32-ai-workbench-runtime.js"></script><script src="/js/r32-conversation-capabilities.js"></script><script src="/js/r32-architecture-governance.js"></script>
+<script src="/js/r32-credential-mutation-receipt.js"></script><script src="/js/r32-model-registry-projection.js"></script><script src="/js/r32-model-runtime-snapshot-authority.js"></script><script src="/js/r32-openrouter-presentation-authority.js"></script><script id="r30-ai-workbench-script" src="/js/r32-ai-workbench-runtime.js"></script><script src="/js/r32-conversation-capabilities.js"></script><script src="/js/r32-architecture-governance.js"></script>
 <script src="/js/r32-persona-runtime.js"></script>
 <script src="/js/r32-account-auth-poll-policy.js"></script>
 <script src="/r32-account-center.js"></script>
