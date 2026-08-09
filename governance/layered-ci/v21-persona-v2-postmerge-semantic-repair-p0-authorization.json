@@ -112,6 +112,7 @@
     "productionUseAuthorized": false,
     "formalReleaseAuthorized": false,
     "publishAuthorized": false,
-    "promotionAuthorized": false
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
   }
 }
