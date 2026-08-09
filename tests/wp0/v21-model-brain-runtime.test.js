@@ -36,3 +36,5 @@ test('runtime child inherits only safe OS bootstrap environment and never provid
 });
 
 test('sealed Windows runtime reports phase-specific build failures to GitHub annotations',()=>{const b=read('tools/model-brain/build-windows-runtime.ps1');assert.match(b,/::error/iu);assert.match(b,/BuildPhase/iu);for(const phase of ['locked-export','dependency-install','sbom','isolated-import'])assert.match(b,new RegExp(phase,'iu'));});
+
+test('sealed Windows runtime canonicalizes its output root before directory-scoped uv export',()=>{const b=read('tools/model-brain/build-windows-runtime.ps1');assert.match(b,/\$OutputRoot\s*=\s*\(Resolve-Path\s+\$Output\)\.Path/iu);assert.match(b,/\$req\s*=\s*Join-Path\s+\$OutputRoot\s+["']requirements\.locked\.txt["']/iu);assert.doesNotMatch(b,/\$req\s*=\s*Join-Path\s+\$Output\s+["']requirements\.locked\.txt["']/iu);});
