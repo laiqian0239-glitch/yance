@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-AUTHORITY-SUPERSESSION-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Independent review of Persona Character P0 V2 proved that generic delegated-governance authorization currently ignores later supersession declarations. A superseded V1 implementation branch can therefore remain executable under an older trusted authorization even after a later authorization records that it replaces the earlier work package. This work package authorizes only the minimum policy/test root repair required to make supersession fail closed without force-resetting or rewriting historical branches.",
+  "base": {
+    "branch": "main",
+    "commit": "baa4af9d31d65c9cf42803c0902f2a59374531ec"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-authority-supersession-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-authority-supersession-p0-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-delegated-authority-supersession-p0",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "c9ebb6397f260acd3447fa7691a53ec9c6478d1c375250dc3a07b61498cc03f2",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "targetDefect": {
+    "policyFunction": "evaluateTrustedDelegatedGovernanceBranch",
+    "policyPath": "shared/release/implementationBranchPolicy.js",
+    "testPath": "tests/wp0/implementation-branch-policy.test.js",
+    "observedOldAuthorization": "governance/layered-ci/v21-persona-character-p0-v1-authorization.json",
+    "observedOldImplementationBranch": "product/v21-persona-character-p0-v1",
+    "observedReplacementProposal": "governance/layered-ci/v21-persona-character-p0-v2-authorization.json",
+    "requiredSemantics": "When trusted main contains exactly one later valid delegated authorization that explicitly supersedes an earlier authorization/implementation branch identity, the earlier branch must not receive delegated implementation authority. Historical commits and refs remain immutable evidence; revocation is policy evaluation, not history rewrite."
+  },
+  "mandatoryFailureFirstContracts": [
+    "Before the policy repair, a fixture containing a valid V1 delegated authorization plus a later valid V2 authorization that explicitly supersedes V1 must demonstrate RED because product/v21-persona-character-p0-v1 is still accepted as an authorized implementation branch.",
+    "After the repair, the same V1 branch must fail closed while the V2 implementation branch remains eligible under the later authorization once that authorization is effective.",
+    "Supersession must be resolved only from authorization documents that are themselves valid, uniquely introduced by an ordinary two-parent trusted-main merge, and present on the evaluated trusted main; proposal-only or malformed documents must not revoke authority.",
+    "A supersession declaration must bind the superseded authorization path and implementation branch exactly; ambiguous, self-referential, cyclic, duplicate or mismatched supersession must fail closed rather than pick an authority heuristically.",
+    "Unrelated delegated work packages must retain their existing authorization behavior.",
+    "No wildcard branch/path authority, force-reset, branch deletion, history rewrite, workflow weakening, warning-only behavior or temporary bypass is permitted.",
+    "The implementation diff must contain exactly the two authorized paths and preserve all existing generic delegated-governance integrity checks unless a stricter fail-closed condition is added."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

@@ -1152,3 +1152,246 @@ test('generic delegated authority scopes implementation from the unique current 
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('delegated authorization with invalid supersession declaration fails with specific reason code', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-invalid-supersession-'));
+  const git = (...args) => execFileSync('git', args, {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: isolatedGitEnvironment(root)
+  }).trim();
+  const write = (repositoryPath, content) => {
+    const filePath = path.join(root, ...repositoryPath.split('/'));
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, content);
+  };
+  const allowedChangedPaths = ['shared/release/implementationBranchPolicy.js'];
+  const exactImplementation = branch => ({
+    branch,
+    allowedChangedPaths,
+    approvedChangedFileCount: allowedChangedPaths.length,
+    approvedChangedFileSetSha256: workPackageChangedFilesSha256(allowedChangedPaths),
+    newDependencyAllowed: false,
+    workflowModificationAllowed: false
+  });
+
+  try {
+    git('init', '-b', 'main');
+    git('config', 'user.name', 'Yance Test');
+    git('config', 'user.email', 'yance-test@example.invalid');
+    write('.base', 'base\n');
+    git('add', '.base');
+    git('commit', '-m', 'base');
+    const base = git('rev-parse', 'HEAD');
+
+    const targetAuthorizationPath = 'governance/layered-ci/invalid-target-authorization.json';
+    const targetAuthorizationBranch = 'governance/invalid-target-authorization';
+    const targetImplementationBranch = 'fix/invalid-target';
+    const targetAuthorization = genericDelegatedAuthorization({
+      allowedChangedPaths,
+      document: {
+        workPackage: 'INVALID-TARGET',
+        base: { branch: 'main', commit: base },
+        authorizationBranch: {
+          name: targetAuthorizationBranch,
+          allowedChangedPaths: [targetAuthorizationPath],
+          mustRemainSingleFile: true
+        },
+        implementation: exactImplementation(targetImplementationBranch)
+      }
+    });
+
+    git('switch', '-c', targetAuthorizationBranch);
+    write(targetAuthorizationPath, `${JSON.stringify(targetAuthorization, null, 2)}\n`);
+    git('add', targetAuthorizationPath);
+    git('commit', '-m', 'authorize target');
+    const targetReviewedHead = git('rev-parse', 'HEAD');
+
+    git('switch', 'main');
+    git('merge', '--no-ff', targetAuthorizationBranch, '-m', 'merge target authorization');
+    const targetMerge = git('rev-parse', 'HEAD');
+    assert.deepEqual(git('rev-list', '--parents', '-n', '1', targetMerge).split(/\s+/u).slice(1), [
+      base,
+      targetReviewedHead
+    ]);
+
+    const invalidAuthorizationPath = 'governance/layered-ci/invalid-supersession-authorization.json';
+    const invalidAuthorizationBranch = 'governance/invalid-supersession-authorization';
+    const invalidImplementationBranch = 'fix/invalid-supersession';
+    const invalidAuthorization = genericDelegatedAuthorization({
+      allowedChangedPaths,
+      document: {
+        workPackage: 'INVALID-SUPERSESSION',
+        supersedes: {
+          authorizationPath: targetAuthorizationPath,
+          implementationBranch: 'fix/mismatched-branch-name',
+          reason: 'invalid supersession with mismatched implementation branch'
+        },
+        base: { branch: 'main', commit: targetMerge },
+        authorizationBranch: {
+          name: invalidAuthorizationBranch,
+          allowedChangedPaths: [invalidAuthorizationPath],
+          mustRemainSingleFile: true
+        },
+        implementation: exactImplementation(invalidImplementationBranch)
+      }
+    });
+
+    git('switch', '-c', invalidAuthorizationBranch);
+    write(invalidAuthorizationPath, `${JSON.stringify(invalidAuthorization, null, 2)}\n`);
+    git('add', invalidAuthorizationPath);
+    git('commit', '-m', 'authorize invalid supersession');
+    const invalidReviewedHead = git('rev-parse', 'HEAD');
+
+    git('switch', 'main');
+    git('merge', '--no-ff', invalidAuthorizationBranch, '-m', 'merge invalid authorization');
+    const trustedMainHead = git('rev-parse', 'HEAD');
+    assert.deepEqual(git('rev-list', '--parents', '-n', '1', trustedMainHead).split(/\s+/u).slice(1), [
+      targetMerge,
+      invalidReviewedHead
+    ]);
+
+    const invalidResult = evaluateTrustedDelegatedGovernanceBranch({
+      branch: invalidImplementationBranch,
+      trustedPolicyRoot: root,
+      trustedMainHead,
+      evaluatedHead: trustedMainHead
+    });
+    assert.equal(invalidResult.pass, false, JSON.stringify(invalidResult));
+    assert.equal(invalidResult.reasonCode, 'WP0_DELEGATED_GOVERNANCE_SUPERSESSION_INVALID');
+    assert.equal(invalidResult.authorizationPath, invalidAuthorizationPath);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('later effective delegated authorization supersedes the exact earlier implementation branch', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-delegated-supersession-'));
+  const git = (...args) => execFileSync('git', args, {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: isolatedGitEnvironment(root)
+  }).trim();
+  const write = (repositoryPath, content) => {
+    const filePath = path.join(root, ...repositoryPath.split('/'));
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, content);
+  };
+  const allowedChangedPaths = ['shared/release/implementationBranchPolicy.js'];
+  const exactImplementation = branch => ({
+    branch,
+    allowedChangedPaths,
+    approvedChangedFileCount: allowedChangedPaths.length,
+    approvedChangedFileSetSha256: workPackageChangedFilesSha256(allowedChangedPaths),
+    newDependencyAllowed: false,
+    workflowModificationAllowed: false
+  });
+
+  try {
+    git('init', '-b', 'main');
+    git('config', 'user.name', 'Yance Test');
+    git('config', 'user.email', 'yance-test@example.invalid');
+    write('.base', 'base\n');
+    git('add', '.base');
+    git('commit', '-m', 'base');
+    const base = git('rev-parse', 'HEAD');
+
+    const v1AuthorizationPath = 'governance/layered-ci/supersession-v1-authorization.json';
+    const v1AuthorizationBranch = 'governance/supersession-v1-authorization';
+    const v1ImplementationBranch = 'fix/supersession-v1';
+    const v1Authorization = genericDelegatedAuthorization({
+      allowedChangedPaths,
+      document: {
+        workPackage: 'SUPERSESSION-V1',
+        base: { branch: 'main', commit: base },
+        authorizationBranch: {
+          name: v1AuthorizationBranch,
+          allowedChangedPaths: [v1AuthorizationPath],
+          mustRemainSingleFile: true
+        },
+        implementation: exactImplementation(v1ImplementationBranch)
+      }
+    });
+
+    git('switch', '-c', v1AuthorizationBranch);
+    write(v1AuthorizationPath, `${JSON.stringify(v1Authorization, null, 2)}\n`);
+    git('add', v1AuthorizationPath);
+    git('commit', '-m', 'authorize v1');
+    const v1ReviewedHead = git('rev-parse', 'HEAD');
+
+    git('switch', 'main');
+    git('merge', '--no-ff', v1AuthorizationBranch, '-m', 'merge v1 authorization');
+    const v1Merge = git('rev-parse', 'HEAD');
+    assert.deepEqual(git('rev-list', '--parents', '-n', '1', v1Merge).split(/\s+/u).slice(1), [
+      base,
+      v1ReviewedHead
+    ]);
+
+    const beforeSupersession = evaluateTrustedDelegatedGovernanceBranch({
+      branch: v1ImplementationBranch,
+      trustedPolicyRoot: root,
+      trustedMainHead: v1Merge,
+      evaluatedHead: v1Merge
+    });
+    assert.equal(beforeSupersession.pass, true, JSON.stringify(beforeSupersession));
+
+    const v2AuthorizationPath = 'governance/layered-ci/supersession-v2-authorization.json';
+    const v2AuthorizationBranch = 'governance/supersession-v2-authorization';
+    const v2ImplementationBranch = 'fix/supersession-v2';
+    const v2Authorization = genericDelegatedAuthorization({
+      allowedChangedPaths,
+      document: {
+        workPackage: 'SUPERSESSION-V2',
+        supersedes: {
+          authorizationPath: v1AuthorizationPath,
+          implementationBranch: v1ImplementationBranch,
+          reason: 'replace exact v1 delegated authority'
+        },
+        base: { branch: 'main', commit: v1Merge },
+        authorizationBranch: {
+          name: v2AuthorizationBranch,
+          allowedChangedPaths: [v2AuthorizationPath],
+          mustRemainSingleFile: true
+        },
+        implementation: exactImplementation(v2ImplementationBranch)
+      }
+    });
+
+    git('switch', '-c', v2AuthorizationBranch);
+    write(v2AuthorizationPath, `${JSON.stringify(v2Authorization, null, 2)}\n`);
+    git('add', v2AuthorizationPath);
+    git('commit', '-m', 'authorize v2 supersession');
+    const v2ReviewedHead = git('rev-parse', 'HEAD');
+
+    git('switch', 'main');
+    git('merge', '--no-ff', v2AuthorizationBranch, '-m', 'merge v2 authorization');
+    const trustedMainHead = git('rev-parse', 'HEAD');
+    assert.deepEqual(git('rev-list', '--parents', '-n', '1', trustedMainHead).split(/\s+/u).slice(1), [
+      v1Merge,
+      v2ReviewedHead
+    ]);
+
+    const superseded = evaluateTrustedDelegatedGovernanceBranch({
+      branch: v1ImplementationBranch,
+      trustedPolicyRoot: root,
+      trustedMainHead,
+      evaluatedHead: v1Merge
+    });
+    assert.equal(superseded.pass, false, JSON.stringify(superseded));
+    assert.equal(superseded.reasonCode, 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_SUPERSEDED');
+    assert.equal(superseded.authorizationPath, v1AuthorizationPath);
+    assert.equal(superseded.supersededByAuthorizationPath, v2AuthorizationPath);
+
+    const replacement = evaluateTrustedDelegatedGovernanceBranch({
+      branch: v2ImplementationBranch,
+      trustedPolicyRoot: root,
+      trustedMainHead,
+      evaluatedHead: trustedMainHead
+    });
+    assert.equal(replacement.pass, true, JSON.stringify(replacement));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

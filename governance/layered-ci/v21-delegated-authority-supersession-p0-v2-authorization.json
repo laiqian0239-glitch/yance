@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-AUTHORITY-SUPERSESSION-P0-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Independent review of Persona Character P0 V2 proved that generic delegated-governance authorization currently ignores later supersession declarations. The first authorization attempt for this repair, merged by PR #152, is intentionally treated as non-effective evidence because concurrent trusted-main advancement made its actual authorization merge first parent differ from the base.commit recorded in that authorization. This V2 work package re-authorizes only the same minimum policy/test root repair and adds no product, workflow, dependency, release, or production scope.",
+  "base": {
+    "branch": "main",
+    "commit": "86164ecf5aff844a16e6a884f8b1808c69c0c093"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-authority-supersession-p0-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-authority-supersession-p0-v2-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-delegated-authority-supersession-p0-v2",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "c9ebb6397f260acd3447fa7691a53ec9c6478d1c375250dc3a07b61498cc03f2",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "priorNonEffectiveAuthorization": {
+    "path": "governance/layered-ci/v21-delegated-authority-supersession-p0-authorization.json",
+    "pullRequest": 152,
+    "mergeCommit": "bff4553a746ab3a5736e81825ce6ceb4f34f576d",
+    "recordedBaseCommit": "baa4af9d31d65c9cf42803c0902f2a59374531ec",
+    "actualMergeFirstParent": "6712a398f4c8f2ab576e95e83e67f8af83d584b1",
+    "implementationAuthorityGranted": false,
+    "historyRewriteOrDeletionAllowed": false
+  },
+  "authorizationMergeTransport": {
+    "required": "Construct the final ordinary two-parent authorization merge commit only after reading the exact current trusted main. The merge commit first parent must be that exact current main and equal this document base.commit; the second parent must be the independently reviewed exact authorization Head. Update refs/heads/main only with a non-force fast-forward ref update. If trusted main advances before the ref update, the ref update must fail and the proposal must be refreshed and re-reviewed rather than creating mismatched authority.",
+    "pullRequestMergeApiAloneIsSufficient": false,
+    "forceUpdateAllowed": false
+  },
+  "targetDefect": {
+    "policyFunction": "evaluateTrustedDelegatedGovernanceBranch",
+    "policyPath": "shared/release/implementationBranchPolicy.js",
+    "testPath": "tests/wp0/implementation-branch-policy.test.js",
+    "observedOldAuthorization": "governance/layered-ci/v21-persona-character-p0-v1-authorization.json",
+    "observedOldImplementationBranch": "product/v21-persona-character-p0-v1",
+    "observedReplacementProposal": "governance/layered-ci/v21-persona-character-p0-v2-authorization.json",
+    "requiredSemantics": "When trusted main contains exactly one later valid delegated authorization that explicitly supersedes an earlier authorization/implementation branch identity, the earlier branch must not receive delegated implementation authority. Historical commits and refs remain immutable evidence; revocation is policy evaluation, not history rewrite."
+  },
+  "mandatoryFailureFirstContracts": [
+    "Before the policy repair, a fixture containing a valid V1 delegated authorization plus a later valid V2 authorization that explicitly supersedes V1 must demonstrate RED because product/v21-persona-character-p0-v1 is still accepted as an authorized implementation branch.",
+    "After the repair, the same V1 branch must fail closed while the V2 implementation branch remains eligible under the later authorization once that authorization is effective.",
+    "Supersession must be resolved only from authorization documents that are themselves valid, uniquely introduced by an ordinary two-parent trusted-main merge, and present on the evaluated trusted main; proposal-only or malformed documents must not revoke authority.",
+    "A supersession declaration must bind the superseded authorization path and implementation branch exactly; ambiguous, self-referential, cyclic, duplicate or mismatched supersession must fail closed rather than pick an authority heuristically.",
+    "Unrelated delegated work packages must retain their existing authorization behavior.",
+    "No wildcard branch/path authority, force-reset, branch deletion, history rewrite, workflow weakening, warning-only behavior or temporary bypass is permitted.",
+    "The implementation diff must contain exactly the two authorized paths and preserve all existing generic delegated-governance integrity checks unless a stricter fail-closed condition is added."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
