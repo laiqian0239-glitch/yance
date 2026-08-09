@@ -51,16 +51,25 @@ $sitePackages = (& $pythonExe -I -c "import sysconfig; print(sysconfig.get_paths
 if (-not $sitePackages -or -not (Test-Path $sitePackages)) { throw "sealed site-packages path missing" }
 
 $BuildPhase = "sdk-materialization"
-# Preserve the reviewed MIT litellm/ source tree byte-for-byte. Some base-SDK
-# imports traverse modules under litellm.proxy; that namespace is upstream SDK
-# source, not evidence that the optional Proxy product or service is activated.
+# Materialize the reviewed MIT litellm/ tree directly from the immutable Git tree
+# object. Windows checkout bytes may apply worktree EOL conversion, so sealed source
+# identity must come from Git objects rather than from the platform checkout view.
 $litellmTarget = Join-Path $sitePackages "litellm"
 Remove-Item $litellmTarget -Recurse -Force -ErrorAction SilentlyContinue
-Copy-Item (Join-Path $source "litellm") $litellmTarget -Recurse
+New-Item -ItemType Directory -Path $litellmTarget | Out-Null
+$sourceArchive = Join-Path $OutputRoot "litellm-source.tar"
+Remove-Item $sourceArchive -Force -ErrorAction SilentlyContinue
+& git -C $source archive --format=tar --output=$sourceArchive $ExpectedCoreTree
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $sourceArchive -PathType Leaf)) {
+  Remove-Item $sourceArchive -Force -ErrorAction SilentlyContinue
+  throw "LiteLLM pinned core tree object export failed"
+}
+& tar -xf $sourceArchive -C $litellmTarget
+$archiveExitCode = $LASTEXITCODE
+Remove-Item $sourceArchive -Force -ErrorAction SilentlyContinue
+if ($archiveExitCode -ne 0) { throw "LiteLLM pinned core tree object extraction failed" }
 
-# Verify source tree integrity against the pinned Git tree itself. A worktree-level
-# directory comparison is not a supply-chain identity check on Windows because
-# checkout/path attributes can affect comparison semantics. Instead, bind every
+# Verify source tree integrity against the pinned Git tree itself. Bind every
 # materialized file to the reviewed tree's exact blob SHA and reject extra paths.
 $treeEntries = @(& git -C $source ls-tree -r $ExpectedCoreTree)
 if ($LASTEXITCODE -ne 0 -or $treeEntries.Count -eq 0) { throw "LiteLLM pinned core tree enumeration failed" }
