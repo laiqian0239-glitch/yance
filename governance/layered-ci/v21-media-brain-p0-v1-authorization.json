@@ -7,7 +7,7 @@
   "reason": "Fresh-main authorization for a complete visible Media / Photo / Image Workflow product package. Immich is the sole photo/video asset-library, people, album and search authority; ComfyUI is the sole image generation/editing workflow executor. Yance may add only thin Electron/API/product projection glue and must not create a second media asset manager, image workflow framework, image generation engine, search index, face/person index, credential store, media transport cache or send authority.",
   "base": {
     "branch": "main",
-    "commit": "bcc775973c8c09b99ac704f8e7dd8c165aa0f5c5"
+    "commit": "ed90d68d651572e517591b0ad2707166dee518d0"
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
@@ -33,12 +33,14 @@
   },
   "prerequisites": {
     "parallelRegistryIssue": 178,
-    "liveMainAtAuthorizationProposal": "bcc775973c8c09b99ac704f8e7dd8c165aa0f5c5",
-    "learningGrowthAuthorizationMerge": "bcc775973c8c09b99ac704f8e7dd8c165aa0f5c5",
-    "learningImplementationPr": 177,
-    "mediaDuplicateWorklineCheck": "No active Media/Immich/ComfyUI product branch or PR found before authorization branch creation.",
-    "voiceAuthorityAtProposal": "No branch/PR exact-path authority found; registry phase OSS-fit / scope construction.",
-    "presenceAuthorityAtProposal": "No branch/PR exact-path authority found; registry phase planned, not started."
+    "liveMainAtAuthorizationProposal": "ed90d68d651572e517591b0ad2707166dee518d0",
+    "learningGrowthV2AuthorizationMerge": "ed90d68d651572e517591b0ad2707166dee518d0",
+    "learningV1ImplementationPr": 177,
+    "learningV1ImplementationStateAtReseal": "CLOSED_SUPERSEDED",
+    "learningV2ImplementationBranch": "product/v21-learning-growth-brain-p0-v2",
+    "mediaDuplicateWorklineCheck": "No second active Media/Immich/ComfyUI product branch or PR found before fresh-main reconciliation.",
+    "voiceAuthorityAtProposal": "Route-bootstrap authorization branch governance/v21-voice-brain-p0-route-bootstrap-authorization exists; no Voice product implementation authority is granted by it.",
+    "presenceAuthorityAtProposal": "Route-bootstrap authorization PR #181 is live; its exact future bootstrap/route paths have zero exact overlap with the Media 23-path scope."
   },
   "implementation": {
     "branch": "product/v21-media-brain-p0-v1",
@@ -134,7 +136,7 @@
   ],
   "parallelOverlap": {
     "learningGrowthBrain": {
-      "authoritySource": "governance/layered-ci/v21-learning-growth-brain-p0-v1-authorization.json on authorization base",
+      "authoritySource": "governance/layered-ci/v21-learning-growth-brain-p0-v2-authorization.json on main@ed90d68d651572e517591b0ad2707166dee518d0",
       "sharedExactPaths": [
         "THIRD_PARTY_NOTICES.md",
         "electron/m2/ipcManifest.json",
@@ -142,10 +144,11 @@
         "electron/preload.js",
         "integration/element-module/src/YanceWorkspace.tsx"
       ],
-      "rule": "These are shared composition roots, not serialization locks. If Learning merges first, Media must ordinary-forward reconcile from fresh main and re-seal the effective exact diff; no rebase/force/squash."
+      "rule": "These are shared composition roots, not serialization locks. If Learning V2 merges product implementation first, Media must ordinary-forward reconcile from fresh main and re-seal the effective exact diff; no rebase/force/squash."
     },
     "voiceBrain": {
-      "exactAuthorityAtProposal": null,
+      "exactAuthorityAtProposal": "governance/v21-voice-brain-p0-route-bootstrap-authorization@a57ac07a24ec04dafb89defa5b4df95c738c1796",
+      "routeBootstrapOverlapWithMedia": [],
       "reservedOwnership": [
         "ASR",
         "TTS",
@@ -153,15 +156,16 @@
         "voice enrollment",
         "cross-language voice generation"
       ],
-      "rule": "Media must not modify Voice authority. Future shared-root drift is reconciled after first merge."
+      "rule": "Media must not modify Voice authority. Voice route-bootstrap paths are distinct from the Media 23-path scope; later shared composition-root drift is reconciled after first merge."
     },
     "presenceAvatar": {
-      "exactAuthorityAtProposal": null,
+      "exactAuthorityAtProposal": "PR #181 route-bootstrap authorization; current exact Head observed as 15c29a2a30ca3c3034f826e66efc2f19411f033f",
+      "routeBootstrapOverlapWithMedia": [],
       "reservedOwnership": [
         "LiveKit presence",
         "CyberVerse avatar/presence rendering"
       ],
-      "rule": "Media must not modify Presence authority. Future shared-root drift is reconciled after first merge."
+      "rule": "Media must not modify Presence authority. Presence route-bootstrap paths are distinct from the Media 23-path scope; later shared composition-root drift is reconciled after first merge."
     }
   },
   "failureFirst": {
