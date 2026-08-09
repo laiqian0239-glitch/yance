@@ -374,6 +374,10 @@ class SendQueueService extends EventEmitter {
       ...input, platform, accountId, sessionKey, chatJid, idempotencyKey, commandId: id, operation: 'text', messageType: 'text', finalText: text,
       targetLanguage: clean(prepared.targetLanguageCode || prepared.targetLanguage),
       replyReference: input.quoted || null,
+      replySource: clean(input.replySource),
+      replyTask: clean(input.replyTask),
+      modelId: clean(input.modelId),
+      modelBrainExecutionEvidence: input.modelBrainExecutionEvidence || {},
       qualityTier: clean(input.qualityTier || input.qualityRouteReceipt?.qualityTier),
       emergencyMode: input.emergencyMode === true || input.qualityRouteReceipt?.emergencyMode === true,
       learningEligible: input.learningEligible !== false && input.qualityRouteReceipt?.learningEligible !== false,
@@ -400,7 +404,11 @@ class SendQueueService extends EventEmitter {
       qualityTier: frozen.queueMetadata.qualityTier,
       emergencyMode: frozen.queueMetadata.emergencyMode,
       learningEligible: frozen.queueMetadata.learningEligible,
-      qualityRouteReceipt: frozen.queueMetadata.qualityRouteReceipt
+      qualityRouteReceipt: frozen.queueMetadata.qualityRouteReceipt,
+      modelBrainExecutionEvidence: frozen.queueMetadata.modelBrainExecutionEvidence || {},
+      modelBrainEvidenceValid: frozen.queueMetadata.modelBrainEvidenceValid === true,
+      modelBrainEvidenceReasonCode: clean(frozen.queueMetadata.modelBrainEvidenceReasonCode),
+      modelBrainEvidenceSha256: clean(frozen.queueMetadata.modelBrainEvidenceSha256)
     };
   }
 
