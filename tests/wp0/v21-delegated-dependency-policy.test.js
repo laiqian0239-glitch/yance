@@ -459,3 +459,24 @@ test('trusted delegated evaluator rejects unrelated existing direct npm lock des
   assert.equal(result.pass, false, JSON.stringify(result));
   assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
 });
+
+test('trusted delegated evaluator rejects unrelated existing direct npm lock artifact drift at the same version', () => {
+  const baselineLockfile = baseLockfile();
+  baselineLockfile.packages['node_modules/vite'].resolved = 'https://registry.npmjs.org/vite/-/vite-6.1.0.tgz';
+  baselineLockfile.packages['node_modules/vite'].integrity = 'sha512-baseline-vite';
+
+  const driftedLockfile = exactLockfile();
+  driftedLockfile.packages['node_modules/vite'].resolved = 'https://mirror.example.invalid/vite-6.1.0.tgz';
+  driftedLockfile.packages['node_modules/vite'].integrity = 'sha512-drifted-vite';
+
+  const options = trustedOptionsWithLockfile({ candidateLockfile: driftedLockfile });
+  const loadDependencyControlAtCommit = options.loadDependencyControlAtCommit;
+  options.loadDependencyControlAtCommit = (commit, repositoryPath) => {
+    if (repositoryPath === LOCK_PATH && commit === MERGE) return baselineLockfile;
+    return loadDependencyControlAtCommit(commit, repositoryPath);
+  };
+
+  const result = evaluateTrustedDelegatedGovernanceBranch(options);
+  assert.equal(result.pass, false, JSON.stringify(result));
+  assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
+});
