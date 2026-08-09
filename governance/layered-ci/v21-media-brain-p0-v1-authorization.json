@@ -74,11 +74,6 @@
     "newDependencyAllowed": false,
     "packageManifestModificationAllowed": false,
     "workflowModificationAllowed": false,
-    "dependencyModificationPolicy": {
-      "allowedDependencyPaths": [],
-      "approvedDependencyPathCount": 0,
-      "approvedDependencyPathSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
     "dependencyControlPaths": [],
     "dependencyControlPathCount": 0,
     "dependencyControlPathSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -202,5 +197,15 @@
     "Media Windows/local runtime contract GREEN",
     "independent review P0=0 and P1=0",
     "no duplicate Yance media/photo/image/search/workflow/execution/credential/send authority"
-  ]
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
 }
