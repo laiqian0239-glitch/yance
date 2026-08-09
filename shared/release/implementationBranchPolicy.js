@@ -1187,7 +1187,9 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
       const existingNpmLockPaths = [
         `${manifestPrefix}package-lock.json`,
         `${manifestPrefix}npm-shrinkwrap.json`
-      ].filter(repositoryPath => SHA40.test(String(resolveBlob(implementationBase, repositoryPath) || '')));
+      ].filter(repositoryPath => [implementationBase, trustedMainHead].some(commit => (
+        SHA40.test(String(resolveBlob(commit, repositoryPath) || ''))
+      )));
       const companionPaths = [...new Set([
         ...authorizedDependencyPaths.filter(repositoryPath => (
           repositoryPath !== manifestPath
