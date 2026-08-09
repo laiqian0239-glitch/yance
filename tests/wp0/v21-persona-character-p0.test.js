@@ -9,6 +9,7 @@ const ROOT = path.resolve(__dirname, '../..');
 const ADAPTER = path.join(ROOT, 'backend/personaBrain/sillyTavernAdapter.js');
 const CORE = path.join(ROOT, 'vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs');
 const UPSTREAM = path.join(ROOT, 'vendor/sillytavern/1.18.0/UPSTREAM.json');
+const REPLY_BRAIN = path.join(ROOT, 'backend/services/contextAwareReplyBrain.js');
 
 function loadAuthorizedRuntime() {
   assert.equal(fs.existsSync(ADAPTER), true, 'missing thin SillyTavern Persona adapter');
@@ -88,4 +89,14 @@ test('V21 Persona P0 V2: provenance adopts complete setFloatingPrompt 324-392 an
   const { core } = loadAuthorizedRuntime();
   assert.equal(typeof core.createFloatingPromptRuntime, 'function', 'complete upstream setFloatingPrompt must be exposed through a lexical runtime factory');
   assert.equal(core.resolveFloatingPromptInjection, undefined, 'V1 handwritten floating-prompt equivalent must not remain an authority');
+});
+
+test('V21 Persona P0 V2: live reply brain carries structured composition and never revives the flat style-prompt authority', () => {
+  const source = fs.readFileSync(REPLY_BRAIN, 'utf8');
+  assert.match(source, /composition:\s*reduced\.persona\?\.truthSafePacket\?\.composition/);
+  assert.match(source, /composition:\s*reduced\.persona\?\.composition/);
+  assert.doesNotMatch(source, /personaStylePrompt\s*=\s*clean\(truthSafePacket\?\.style\?\.prompt\)/);
+  assert.match(source, /stylePrompt:\s*''/);
+  assert.match(source, /persona\.composition 是 Persona\/Relationship\/Locale\/Register\/Style\/Examples 的结构化组合/);
+  assert.match(source, /mode:\s*'live',\s*candidateAdjustment,\s*composition:\s*\{\s*incomingText:\s*clean\(incomingMessage\?\.text\)\s*\}/);
 });
