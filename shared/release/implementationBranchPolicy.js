@@ -29,6 +29,14 @@ const AUTHORIZATION_PROPOSAL_TRANSPORT_MODE = 'AUTHORIZATION_PROPOSAL_TRANSPORT'
 const TRUSTED_MAIN_DELEGATED_GOVERNANCE_MODE = 'TRUSTED_MAIN_DELEGATED_GOVERNANCE';
 const DELEGATED_ROUTE_POLICY_PATH = 'governance/layered-ci/wp0-routing-policy.json';
 const DELEGATED_ROUTE_POLICY_MUTATION_DENIED = 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED';
+const DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED = 'WP0_DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED';
+const DEPENDENCY_IDENTITY_SECTIONS = new Set([
+  'dependencies',
+  'devDependencies',
+  'optionalDependencies',
+  'peerDependencies'
+]);
+const EXACT_DEPENDENCY_VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u;
 const DEPENDENCY_CONTROL_FILENAMES = new Set([
   'package.json',
   'package-lock.json',
@@ -254,6 +262,18 @@ function sameJson(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function stableJsonValue(value) {
+  if (Array.isArray(value)) return value.map(stableJsonValue);
+  if (!value || typeof value !== 'object') return value;
+  const stable = {};
+  for (const key of Object.keys(value).sort()) stable[key] = stableJsonValue(value[key]);
+  return stable;
+}
+
+function sameJsonSemantics(left, right) {
+  return sameJson(stableJsonValue(left), stableJsonValue(right));
+}
+
 function trustedGitBuffer(args, options = {}) {
   return execFileSync('git', args, {
     cwd: path.resolve(options.trustedPolicyRoot || TRUSTED_POLICY_ROOT),
@@ -410,6 +430,54 @@ function isValidExactDependencyModificationPolicy(implementation, implementation
   return sameJson(dependencyPaths, implementationDependencyPaths);
 }
 
+function isPlainJsonObject(value) {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function isValidDependencyIdentityName(value) {
+  return typeof value === 'string'
+    && value === value.trim()
+    && /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/u.test(value);
+}
+
+function isExactDependencyIdentityVersion(value) {
+  return typeof value === 'string'
+    && value === value.trim()
+    && EXACT_DEPENDENCY_VERSION.test(value);
+}
+
+function resolveDependencyIdentityPolicy(implementation, implementationPaths) {
+  if (!Object.prototype.hasOwnProperty.call(implementation || {}, 'dependencyIdentityPolicy')) return null;
+  const policy = implementation.dependencyIdentityPolicy;
+  if (!isPlainJsonObject(policy) || !sameJson(Object.keys(policy).sort(), ['entries'])) return false;
+  if (!Array.isArray(policy.entries) || policy.entries.length === 0) return false;
+  const dependencyPaths = new Set(implementation?.dependencyModificationPolicy?.allowedDependencyPaths || []);
+  const implementationPathSet = new Set(implementationPaths || []);
+  const seenIdentities = new Set();
+  const normalizedEntries = [];
+  for (const entry of policy.entries) {
+    if (!isPlainJsonObject(entry)
+      || !sameJson(Object.keys(entry).sort(), ['name', 'path', 'section', 'version'])
+      || !isExactAdditionalPath(entry.path)
+      || path.posix.basename(entry.path) !== 'package.json'
+      || !dependencyPaths.has(entry.path)
+      || !implementationPathSet.has(entry.path)
+      || !DEPENDENCY_IDENTITY_SECTIONS.has(entry.section)
+      || !isValidDependencyIdentityName(entry.name)
+      || !isExactDependencyIdentityVersion(entry.version)) return false;
+    const identity = `${entry.path}\0${entry.name}`;
+    if (seenIdentities.has(identity)) return false;
+    seenIdentities.add(identity);
+    normalizedEntries.push(Object.freeze({
+      path: entry.path,
+      section: entry.section,
+      name: entry.name,
+      version: entry.version
+    }));
+  }
+  return Object.freeze({ entries: Object.freeze(normalizedEntries) });
+}
+
 function isValidGenericDelegatedGovernanceAuthorization(document, authorizationPath) {
   if (!isGenericDelegatedGovernanceAuthorizationPath(authorizationPath)
     || !document
@@ -463,10 +531,13 @@ function isValidGenericDelegatedGovernanceAuthorization(document, authorizationP
   const dependencyPaths = implementationPaths.filter(isDependencyControlPath);
   if (document.implementation.newDependencyAllowed === false) {
     if (dependencyPaths.length !== 0
-      || Object.prototype.hasOwnProperty.call(document.implementation, 'dependencyModificationPolicy')) return false;
+      || Object.prototype.hasOwnProperty.call(document.implementation, 'dependencyModificationPolicy')
+      || Object.prototype.hasOwnProperty.call(document.implementation, 'dependencyIdentityPolicy')) return false;
   } else if (!isValidExactDependencyModificationPolicy(document.implementation, implementationPaths)) {
     return false;
   }
+  if (Object.prototype.hasOwnProperty.call(document.implementation, 'dependencyIdentityPolicy')
+    && resolveDependencyIdentityPolicy(document.implementation, implementationPaths) === false) return false;
 
   const workflowPaths = implementationPaths.filter(isWorkflowControlPath);
   if (document.implementation.workflowModificationAllowed === false) {
@@ -638,6 +709,44 @@ function validateDelegatedRoutePolicyMutation(options = {}) {
     reasonCode: null,
     declaredPaths: declaration.paths,
     declarationPathField: declaration.pathField
+  });
+}
+
+function validateDelegatedDependencyIdentityMutation(options = {}) {
+  const authorization = options.authorization;
+  const repositoryPath = normalizeRepositoryPath(options.repositoryPath);
+  const baseManifest = options.baseManifest;
+  const candidateManifest = options.candidateManifest;
+  const denied = () => Object.freeze({
+    pass: false,
+    reasonCode: DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED
+  });
+  if (!repositoryPath || !isPlainJsonObject(baseManifest) || !isPlainJsonObject(candidateManifest)) return denied();
+  const implementation = authorization?.implementation;
+  const implementationPaths = normalizeChangedFiles(implementation?.allowedChangedPaths);
+  const policy = resolveDependencyIdentityPolicy(implementation, implementationPaths);
+  if (!policy) return denied();
+  const entries = policy.entries.filter(entry => entry.path === repositoryPath);
+  if (entries.length === 0) return denied();
+
+  const expected = JSON.parse(JSON.stringify(baseManifest));
+  for (const entry of entries) {
+    for (const section of DEPENDENCY_IDENTITY_SECTIONS) {
+      const sectionValue = baseManifest[section];
+      if (sectionValue !== undefined && !isPlainJsonObject(sectionValue)) return denied();
+      if (isPlainJsonObject(sectionValue)
+        && Object.prototype.hasOwnProperty.call(sectionValue, entry.name)) return denied();
+    }
+    if (expected[entry.section] === undefined) expected[entry.section] = {};
+    if (!isPlainJsonObject(expected[entry.section])) return denied();
+    expected[entry.section][entry.name] = entry.version;
+  }
+  if (!sameJsonSemantics(expected, candidateManifest)) return denied();
+  return Object.freeze({
+    pass: true,
+    reasonCode: null,
+    repositoryPath,
+    entries: Object.freeze(entries)
   });
 }
 
@@ -965,6 +1074,58 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
         reviewedAuthorizationHead: match.reviewedHead,
         unauthorizedPaths: Object.freeze([])
       });
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(match.authorization.implementation, 'dependencyIdentityPolicy')) {
+    const identityPolicy = resolveDependencyIdentityPolicy(
+      match.authorization.implementation,
+      match.authorization.implementation.allowedChangedPaths
+    );
+    if (!identityPolicy) {
+      return Object.freeze({
+        pass: false,
+        reasonCode: DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED,
+        authorityMode: null,
+        authorizationPath: match.authorizationPath,
+        authorizationMergeCommit: match.mergeCommit,
+        reviewedAuthorizationHead: match.reviewedHead,
+        unauthorizedPaths: Object.freeze([])
+      });
+    }
+    const declaredPaths = new Set(identityPolicy.entries.map(entry => entry.path));
+    const changedDependencyPaths = implementationNormalized.filter(isDependencyControlPath);
+    const loadDependencyManifest = options.loadDependencyManifestAtCommit
+      || ((commit, repositoryPath) => defaultAuthorizationAtCommit(commit, repositoryPath, options));
+    for (const repositoryPath of changedDependencyPaths) {
+      if (!declaredPaths.has(repositoryPath)) {
+        return Object.freeze({
+          pass: false,
+          reasonCode: DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED,
+          authorityMode: null,
+          authorizationPath: match.authorizationPath,
+          authorizationMergeCommit: match.mergeCommit,
+          reviewedAuthorizationHead: match.reviewedHead,
+          unauthorizedPaths: Object.freeze([])
+        });
+      }
+      const identityValidation = validateDelegatedDependencyIdentityMutation({
+        authorization: match.authorization,
+        repositoryPath,
+        baseManifest: loadDependencyManifest(implementationBase, repositoryPath),
+        candidateManifest: loadDependencyManifest(evaluatedHead, repositoryPath)
+      });
+      if (!identityValidation.pass) {
+        return Object.freeze({
+          pass: false,
+          reasonCode: DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED,
+          authorityMode: null,
+          authorizationPath: match.authorizationPath,
+          authorizationMergeCommit: match.mergeCommit,
+          reviewedAuthorizationHead: match.reviewedHead,
+          unauthorizedPaths: Object.freeze([])
+        });
+      }
     }
   }
 
@@ -1397,6 +1558,7 @@ module.exports = {
   TRUSTED_MAIN_DELEGATED_GOVERNANCE_MODE,
   DELEGATED_ROUTE_POLICY_PATH,
   DELEGATED_ROUTE_POLICY_MUTATION_DENIED,
+  DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED,
   canonicalStageBranch,
   isReleaseClosureRebuildBranch,
   buildTrustedGitEnvironment,
@@ -1413,6 +1575,7 @@ module.exports = {
   isValidGenericDelegatedGovernanceAuthorization,
   evaluateDelegatedGovernanceAuthorizationProposal,
   validateDelegatedRoutePolicyMutation,
+  validateDelegatedDependencyIdentityMutation,
   evaluateTrustedDelegatedGovernanceBranch,
   isAuthorizedDelegatedGovernanceBranch,
   isAuthorizedImplementationBranch,
