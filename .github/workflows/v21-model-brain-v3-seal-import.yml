@@ -6,6 +6,7 @@ on:
       - transport/v21-model-brain-p0-v3-seal
     paths:
       - V21-MODEL-BRAIN-P0-V3-final-seal-2026-08-09.tar.gz
+      - .github/workflows/v21-model-brain-v3-seal-import.yml
 
 permissions:
   contents: write
@@ -28,6 +29,7 @@ jobs:
         env:
           ARCHIVE: V21-MODEL-BRAIN-P0-V3-final-seal-2026-08-09.tar.gz
           ARCHIVE_SHA256: ecef40610b171f959d4deacfe3ac698fd35222662b142506603e010e236478dd
+          AUTHORIZATION_BASE: 86164ecf5aff844a16e6a884f8b1808c69c0c093
           EXPECTED_PARENT: 2c70cca77360cc350560a2d596530a4fb1cc02a6
           TARGET_BRANCH: product/v21-model-brain-p0-v3
           EXPECTED_PATHSET_SHA256: 23bf7a688309f488870f82bb9e99b4db4f55eb0c133dc66c3729af55bc3ea401
@@ -76,6 +78,7 @@ jobs:
           git fetch origin "$TARGET_BRANCH"
           REMOTE_HEAD="$(git rev-parse "origin/$TARGET_BRANCH")"
           test "$REMOTE_HEAD" = "$EXPECTED_PARENT"
+          git cat-file -e "$AUTHORIZATION_BASE^{commit}"
           git checkout --detach "$EXPECTED_PARENT"
           git reset --hard "$EXPECTED_PARENT"
           git clean -fdx
@@ -85,6 +88,31 @@ jobs:
             test -n "$path" || continue
             rm -f -- "$path"
           done < "$SEAL_ROOT/DELETE_PATHS.txt"
+
+          git add -A
+          python3 - "$SEAL_ROOT/SEAL_MANIFEST.json" "$EXPECTED_PATHSET_SHA256" "$AUTHORIZATION_BASE" <<'PY'
+          import hashlib, json, subprocess, sys
+          manifest_path, expected_hash, authorization_base = sys.argv[1:]
+          manifest = json.load(open(manifest_path, encoding='utf-8'))
+          authorized = {entry['path'] for entry in manifest['entries']}
+
+          staged_raw = subprocess.check_output(['git', 'diff', '--cached', '--name-only', '-z', '--'])
+          staged = {item.decode() for item in staged_raw.split(b'\0') if item}
+          print(f'successor staged paths={len(staged)}')
+          assert staged
+          assert staged.issubset(authorized), sorted(staged - authorized)
+
+          final_raw = subprocess.check_output([
+              'git', 'diff', '--cached', '--name-only', '-z', authorization_base, '--'
+          ])
+          final_paths = sorted({item.decode() for item in final_raw.split(b'\0') if item})
+          canonical = '\n'.join(final_paths) + '\n'
+          actual = hashlib.sha256(canonical.encode()).hexdigest()
+          print(f'candidate final paths={len(final_paths)} pathset_sha256={actual}')
+          assert len(final_paths) == 40, len(final_paths)
+          assert set(final_paths) == authorized, sorted(authorized.symmetric_difference(final_paths))
+          assert actual == expected_hash, actual
+          PY
 
           node --test \
             tests/wp0/v21-model-brain-p0.test.js \
@@ -108,24 +136,32 @@ jobs:
             runtime/model-brain/generate_runtime_sbom.py
           find runtime -type d -name __pycache__ -prune -exec rm -rf {} +
           git diff --check
-
           git add -A
-          python3 - "$EXPECTED_PATHSET_SHA256" <<'PY'
-          import hashlib, subprocess, sys
-          expected = sys.argv[1]
-          raw = subprocess.check_output(['git','diff','--cached','--name-only','-z'])
-          paths = sorted(set(item.decode() for item in raw.split(b'\0') if item))
-          canonical = '\n'.join(paths) + '\n'
-          actual = hashlib.sha256(canonical.encode()).hexdigest()
-          print(f'staged changed paths={len(paths)} pathset_sha256={actual}')
-          assert len(paths) == 40
-          assert actual == expected
-          PY
 
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'feat(model-brain): integrate sealed LiteLLM Model Brain V3'
           NEW_HEAD="$(git rev-parse HEAD)"
           test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT"
+
+          python3 - "$SEAL_ROOT/SEAL_MANIFEST.json" "$EXPECTED_PATHSET_SHA256" "$AUTHORIZATION_BASE" "$NEW_HEAD" <<'PY'
+          import hashlib, json, subprocess, sys
+          manifest_path, expected_hash, authorization_base, new_head = sys.argv[1:]
+          manifest = json.load(open(manifest_path, encoding='utf-8'))
+          authorized = {entry['path'] for entry in manifest['entries']}
+          raw = subprocess.check_output([
+              'git', 'diff', '--name-only', '-z', authorization_base, new_head, '--'
+          ])
+          paths = sorted({item.decode() for item in raw.split(b'\0') if item})
+          canonical = '\n'.join(paths) + '\n'
+          actual = hashlib.sha256(canonical.encode()).hexdigest()
+          print(f'committed final paths={len(paths)} pathset_sha256={actual}')
+          assert len(paths) == 40, len(paths)
+          assert set(paths) == authorized, sorted(authorized.symmetric_difference(paths))
+          assert actual == expected_hash, actual
+          PY
+
+          git fetch origin "$TARGET_BRANCH"
+          test "$(git rev-parse "origin/$TARGET_BRANCH")" = "$EXPECTED_PARENT"
           git push origin "HEAD:refs/heads/$TARGET_BRANCH"
           echo "new_head=$NEW_HEAD"
