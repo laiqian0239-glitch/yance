@@ -604,12 +604,10 @@ function normalizeMediaSendInput(input = {}) {
   const accountId = String(input.accountId || '').trim();
   const chatJid = String(input.chatJid || '').trim();
   const assetId = String(input.assetId || '').trim();
-  const kind = String(input.kind || 'image').trim().toLowerCase();
   if (!['whatsapp', 'telegram', 'facebook'].includes(platform)) throw Object.assign(new Error('Media send platform is invalid.'), { reasonCode: 'DESKTOP_MEDIA_SEND_PLATFORM_INVALID' });
   if (!accountId || accountId.length > 512 || !chatJid || chatJid.length > 1024 || !assetId || assetId.length > 512) throw Object.assign(new Error('Media send target or asset is invalid.'), { reasonCode: 'DESKTOP_MEDIA_SEND_INPUT_INVALID' });
-  if (!['image', 'video', 'audio', 'document', 'sticker'].includes(kind)) throw Object.assign(new Error('Media send kind is invalid.'), { reasonCode: 'DESKTOP_MEDIA_SEND_KIND_INVALID' });
   return Object.freeze({
-    platform, accountId, chatJid, assetId, kind,
+    platform, accountId, chatJid, assetId,
     sessionKey: String(input.sessionKey || '').trim().slice(0, 1024),
     filename: path.basename(String(input.filename || 'yance-media')).slice(0, 240),
     caption: String(input.caption || '').slice(0, 10000)
@@ -618,8 +616,12 @@ function normalizeMediaSendInput(input = {}) {
 
 async function sendMediaAssetThroughExistingAuthority(input = {}) {
   const target = normalizeMediaSendInput(input);
-  const original = await ensureMediaBrainRuntime().getAssetOriginal({ assetId: target.assetId });
-  const bytes = Buffer.from(original.bytes);
+  const original = await ensureMediaBrainRuntime().openAssetOriginalStream({ assetId: target.assetId });
+  const mimeType = String(original.mimeType || '').trim().toLowerCase();
+  const kind = mimeType.startsWith('image/') ? 'image' : mimeType.startsWith('video/') ? 'video' : '';
+  if (!kind) {
+    throw Object.assign(new Error('Immich original media type is unsupported by the Media workspace send contract.'), { reasonCode: 'DESKTOP_MEDIA_SEND_MIME_TYPE_UNSUPPORTED' });
+  }
   const encodeHeader = value => encodeURIComponent(String(value || ''));
   const response = await fetch(`${YANCE_BACKEND_URL}/api/r32/messages/${encodeURIComponent(target.platform)}/${encodeURIComponent(target.accountId)}/send-media-stream`, {
     method: 'POST',
@@ -627,15 +629,15 @@ async function sendMediaAssetThroughExistingAuthority(input = {}) {
       Authorization: `Bearer ${currentApiSessionToken()}`,
       Origin: YANCE_BACKEND_URL,
       'content-type': original.mimeType || 'application/octet-stream',
-      'content-length': String(bytes.length),
       'x-yance-chat-jid': encodeHeader(target.chatJid),
       'x-yance-session-key': encodeHeader(target.sessionKey),
-      'x-yance-media-kind': encodeHeader(target.kind),
+      'x-yance-media-kind': encodeHeader(kind),
       'x-yance-mime-type': encodeHeader(original.mimeType || 'application/octet-stream'),
       'x-yance-filename': encodeHeader(target.filename),
       'x-yance-caption': encodeHeader(target.caption)
     },
-    body: bytes,
+    body: original.body,
+    duplex: 'half',
     signal: AbortSignal.timeout(120000)
   });
   const text = await response.text();
@@ -3252,9 +3254,36 @@ function registerIpc() {
   ipcGuardHandle('desktop:media-brain-list-people', (_event, input = {}) => ensureMediaBrainRuntime().listPeople(input));
   ipcGuardHandle('desktop:media-brain-list-albums', (_event, input = {}) => ensureMediaBrainRuntime().listAlbums(input));
   ipcGuardHandle('desktop:media-brain-get-asset-preview', (_event, input = {}) => ensureMediaBrainRuntime().getAssetPreview(input));
-  ipcGuardHandle('desktop:media-brain-upload-workflow-input', (_event, input = {}) => ensureMediaBrainRuntime().uploadWorkflowInput(input));
-  ipcGuardHandle('desktop:media-brain-upload-asset-workflow-input', (_event, input = {}) => ensureMediaBrainRuntime().uploadImmichAssetAsWorkflowInput(input));
-  ipcGuardHandle('desktop:media-brain-queue-workflow', (_event, input = {}) => ensureMediaBrainRuntime().queueWorkflow(input));
+  ipcGuardHandle('desktop:media-brain-queue-workflow', async (_event, input = {}) => {
+    const runtime = ensureMediaBrainRuntime();
+    const kind = String(input?.kind || '').trim().toLowerCase();
+    const queueInput = {
+      kind,
+      prompt: String(input?.prompt || ''),
+      negativePrompt: String(input?.negativePrompt || ''),
+      checkpoint: String(input?.checkpoint || ''),
+      clientId: String(input?.clientId || ''),
+      seed: input?.seed,
+      width: input?.width,
+      height: input?.height,
+      denoise: input?.denoise
+    };
+    if (kind === 'edit') {
+      const assetId = String(input?.assetId || '').trim();
+      if (!assetId || assetId.length > 512) {
+        throw Object.assign(new Error('Edit workflow requires an Immich asset id.'), { reasonCode: 'IMMICH_ASSET_REQUIRED' });
+      }
+      const uploaded = await runtime.uploadImmichAssetAsWorkflowInput({
+        assetId,
+        filename: path.basename(String(input?.filename || `immich-${assetId}`)).slice(0, 240)
+      });
+      queueInput.inputImage = String(uploaded?.name || uploaded?.filename || '').trim();
+      if (!queueInput.inputImage) {
+        throw Object.assign(new Error('ComfyUI did not return an uploaded image name.'), { reasonCode: 'COMFYUI_INPUT_IMAGE_UPLOAD_INVALID' });
+      }
+    }
+    return runtime.queueWorkflow(queueInput);
+  });
   ipcGuardHandle('desktop:media-brain-get-workflow-result', (_event, input = {}) => ensureMediaBrainRuntime().getWorkflowOutput({ promptId: String(input?.promptId || '').trim() }));
   ipcGuardHandle('desktop:media-brain-save-workflow-output', (_event, input = {}) => ensureMediaBrainRuntime().saveWorkflowOutputToImmich(input));
   ipcGuardHandle('desktop:media-brain-send-asset', (_event, input = {}) => sendMediaAssetThroughExistingAuthority(input));
