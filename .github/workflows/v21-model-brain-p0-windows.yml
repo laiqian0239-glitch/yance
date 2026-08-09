@@ -42,10 +42,20 @@ jobs:
           if (-not (Test-Path 'python/python.exe')) { throw 'unexpected CPython archive layout' }
           Compress-Archive -Path python/* -DestinationPath python.zip
           ./tools/model-brain/build-windows-runtime.ps1 -LiteLLMSource upstream/litellm -PythonArchive python.zip -UvExe ./uv-bin/uv.exe -Output dist/model-brain-runtime
-      - name: Reject proxy enterprise and Rust native payload
+      - name: Reject proxy server enterprise and Rust native payload
         shell: pwsh
         run: |
-          if (Get-ChildItem dist/model-brain-runtime -Recurse -File | Where-Object { $_.FullName -match 'enterprise|proxy_server|litellm-proxy-extras|litellm[\\/]proxy[\\/]|rust_bridge[\\/]+_native\.(pyd|dll|so)' }) { throw 'forbidden proxy enterprise or Rust native payload' }
+          $proxyRoot = (Resolve-Path 'dist/model-brain-runtime/python/Lib/site-packages/litellm/proxy').Path
+          $allowedProxyFiles = @('__init__.py', '_types.py', 'types_utils/utils.py')
+          $actualProxyFiles = @(Get-ChildItem $proxyRoot -Recurse -File | ForEach-Object {
+            [IO.Path]::GetRelativePath($proxyRoot, $_.FullName).Replace('\','/')
+          })
+          $unexpectedProxyFiles = @($actualProxyFiles | Where-Object { $_ -notin $allowedProxyFiles })
+          $missingProxyFiles = @($allowedProxyFiles | Where-Object { $_ -notin $actualProxyFiles })
+          if ($unexpectedProxyFiles.Count -gt 0 -or $missingProxyFiles.Count -gt 0) {
+            throw "sealed shared proxy module allowlist mismatch; unexpected=$($unexpectedProxyFiles -join ','); missing=$($missingProxyFiles -join ',')"
+          }
+          if (Get-ChildItem dist/model-brain-runtime -Recurse -File | Where-Object { $_.FullName -match 'enterprise|proxy_server|litellm-proxy-extras|rust_bridge[\\/]+_native\.(pyd|dll|so)' }) { throw 'forbidden proxy server enterprise or Rust native payload' }
       - name: Offline Router ComplexityRouter strict tag_filtering gate
         shell: pwsh
         run: |
