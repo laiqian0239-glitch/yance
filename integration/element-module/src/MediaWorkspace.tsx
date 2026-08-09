@@ -29,7 +29,7 @@ type DesktopMediaApi = {
   getMediaWorkflowResult: (input: Record<string, unknown>) => Promise<WorkflowResult>;
   saveMediaWorkflowOutput: (input: Record<string, unknown>) => Promise<{ asset?: MediaAsset; selectable?: boolean }>;
   sendMediaAsset: (input: Record<string, unknown>) => Promise<unknown>;
-  saveCredential: (ref: string, value: Record<string, unknown>) => Promise<unknown>;
+  saveMediaBrainSettings: (input: Record<string, unknown>) => Promise<unknown>;
 };
 
 function desktopApi(): DesktopMediaApi | null {
@@ -88,6 +88,7 @@ export function MediaWorkspace(): React.JSX.Element {
   const [immichEndpoint, setImmichEndpoint] = useState("http://127.0.0.1:2283");
   const [immichApiKey, setImmichApiKey] = useState("");
   const [immichExternal, setImmichExternal] = useState(false);
+  const [clearImmichApiKey, setClearImmichApiKey] = useState(false);
   const [comfyEndpoint, setComfyEndpoint] = useState("http://127.0.0.1:8188");
   const [comfyExternal, setComfyExternal] = useState(false);
   const [platform, setPlatform] = useState("whatsapp");
@@ -119,8 +120,16 @@ export function MediaWorkspace(): React.JSX.Element {
     if (!api || busy) return;
     setBusy(true);
     try {
-      await api.saveCredential("media:immich:default", { endpoint: immichEndpoint.trim(), apiKey: immichApiKey.trim(), allowExternalEndpoint: immichExternal });
-      await api.saveCredential("media:comfyui:default", { endpoint: comfyEndpoint.trim(), allowExternalEndpoint: comfyExternal });
+      await api.saveMediaBrainSettings({
+        immichEndpoint: immichEndpoint.trim(),
+        immichApiKey: immichApiKey.trim(),
+        clearImmichApiKey,
+        immichAllowExternalEndpoint: immichExternal,
+        comfyuiEndpoint: comfyEndpoint.trim(),
+        comfyuiAllowExternalEndpoint: comfyExternal
+      });
+      setImmichApiKey("");
+      setClearImmichApiKey(false);
       setStatus("Media endpoints saved in existing Yance credential custody");
       await refreshHealth();
     } catch (error) {
@@ -245,7 +254,8 @@ export function MediaWorkspace(): React.JSX.Element {
         <div className="media-grid">
           <label>Immich endpoint<input value={immichEndpoint} onChange={(event) => setImmichEndpoint(event.target.value)} /></label>
           <label>Immich API key<input type="password" value={immichApiKey} onChange={(event) => setImmichApiKey(event.target.value)} autoComplete="off" /></label>
-          <label className="media-check"><input type="checkbox" checked={immichExternal} onChange={(event) => setImmichExternal(event.target.checked)} /> Explicit external Immich endpoint</label>
+          <label className="media-check"><input type="checkbox" checked={immichExternal} onChange={(event) => setImmichExternal(event.target.checked)} /> Explicit external Immich HTTPS endpoint</label>
+          <label className="media-check"><input type="checkbox" checked={clearImmichApiKey} onChange={(event) => setClearImmichApiKey(event.target.checked)} /> Clear saved Immich API key</label>
           <label>ComfyUI endpoint<input value={comfyEndpoint} onChange={(event) => setComfyEndpoint(event.target.value)} /></label>
           <label className="media-check"><input type="checkbox" checked={comfyExternal} onChange={(event) => setComfyExternal(event.target.checked)} /> Explicit external ComfyUI endpoint</label>
           <button type="button" onClick={() => void saveSettings()} disabled={busy}>Save settings</button>

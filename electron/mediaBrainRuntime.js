@@ -21,7 +21,7 @@ function isLoopback(hostname) {
   const host = clean(hostname).toLowerCase().replace(/^\[|\]$/g, '');
   return host === '127.0.0.1' || host === 'localhost' || host === '::1';
 }
-function normalizeEndpoint(configuration, fallback, authority) {
+function normalizeEndpoint(configuration, fallback, authority, options = {}) {
   const config = configuration && typeof configuration === 'object' ? configuration : {};
   const raw = clean(config.endpoint) || fallback;
   let url;
@@ -31,10 +31,47 @@ function normalizeEndpoint(configuration, fallback, authority) {
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) {
     throw mediaError('MEDIA_ENDPOINT_INVALID', `${authority} endpoint must be a plain HTTP(S) origin.`);
   }
-  if (!isLoopback(url.hostname) && config.allowExternalEndpoint !== true) {
+  const external = !isLoopback(url.hostname);
+  if (external && config.allowExternalEndpoint !== true) {
     throw mediaError('MEDIA_EXTERNAL_ENDPOINT_REQUIRES_EXPLICIT_CONFIGURATION', `${authority} external endpoint requires explicit configuration.`, { authority, endpoint: url.origin });
   }
+  if (external && options.requireExternalHttps === true && url.protocol !== 'https:') {
+    throw mediaError('MEDIA_EXTERNAL_HTTPS_REQUIRED', `${authority} external endpoint must use HTTPS.`, { authority, endpoint: url.origin });
+  }
   return url.origin;
+}
+
+function mergeEndpointConfiguration(current = {}, input = {}, options = {}) {
+  const previous = current && typeof current === 'object' ? current : {};
+  const update = input && typeof input === 'object' ? input : {};
+  const allowExternalEndpoint = update.allowExternalEndpoint === undefined
+    ? previous.allowExternalEndpoint === true
+    : update.allowExternalEndpoint === true;
+  const endpoint = normalizeEndpoint({
+    endpoint: update.endpoint === undefined ? previous.endpoint : update.endpoint,
+    allowExternalEndpoint
+  }, options.fallback, options.authority, { requireExternalHttps: options.requireExternalHttps === true });
+  return { endpoint, allowExternalEndpoint };
+}
+
+function mergeImmichConfiguration(current = {}, input = {}) {
+  const base = mergeEndpointConfiguration(current, input, {
+    fallback: DEFAULT_IMMICH_ENDPOINT,
+    authority: 'Immich',
+    requireExternalHttps: true
+  });
+  const previousApiKey = clean(current?.apiKey);
+  const replacementApiKey = clean(input?.apiKey);
+  const apiKey = input?.clearApiKey === true ? '' : (replacementApiKey || previousApiKey);
+  return Object.freeze({ ...base, apiKey });
+}
+
+function mergeComfyuiConfiguration(current = {}, input = {}) {
+  return Object.freeze(mergeEndpointConfiguration(current, input, {
+    fallback: DEFAULT_COMFYUI_ENDPOINT,
+    authority: 'ComfyUI',
+    requireExternalHttps: false
+  }));
 }
 function asBytes(input) {
   const value = input?.bytes ?? input?.data ?? input?.buffer;
@@ -87,7 +124,7 @@ function createMediaBrainRuntime(options = {}) {
     const configuration = getImmichConfiguration() || {};
     const apiKey = clean(configuration.apiKey);
     if (!apiKey) throw mediaError('IMMICH_API_KEY_MISSING', 'Immich API key is unavailable.');
-    return { endpoint: normalizeEndpoint(configuration, DEFAULT_IMMICH_ENDPOINT, 'Immich'), apiKey };
+    return { endpoint: normalizeEndpoint(configuration, DEFAULT_IMMICH_ENDPOINT, 'Immich', { requireExternalHttps: true }), apiKey };
   }
   function comfyContext() {
     const configuration = getComfyuiConfiguration() || {};
@@ -109,6 +146,7 @@ function createMediaBrainRuntime(options = {}) {
     const { endpoint, apiKey } = immichContext();
     return requestJson('immich', `${endpoint}/api${route}`, {
       ...requestOptions,
+      redirect: 'error',
       headers: { accept: 'application/json', 'x-api-key': apiKey, ...(requestOptions.headers || {}) }
     });
   }
@@ -161,7 +199,7 @@ function createMediaBrainRuntime(options = {}) {
     const { endpoint, apiKey } = immichContext();
     let response;
     try {
-      response = await fetchImpl(`${endpoint}/api/assets`, { method: 'POST', headers: { accept: 'application/json', 'x-api-key': apiKey }, body: form, signal: AbortSignal.timeout(60000) });
+      response = await fetchImpl(`${endpoint}/api/assets`, { method: 'POST', headers: { accept: 'application/json', 'x-api-key': apiKey }, body: form, redirect: 'error', signal: AbortSignal.timeout(60000) });
     } catch (error) {
       throw mediaError('IMMICH_UNAVAILABLE', 'Immich asset import failed.', { cause: clean(error?.message) });
     }
@@ -206,7 +244,7 @@ function createMediaBrainRuntime(options = {}) {
     if (!id) throw mediaError('IMMICH_ASSET_ID_REQUIRED', 'Immich asset id is required.');
     const { endpoint, apiKey } = immichContext();
     const size = ['preview', 'thumbnail'].includes(clean(input.size)) ? clean(input.size) : 'preview';
-    const response = await fetchImpl(`${endpoint}/api/assets/${encodeURIComponent(id)}/thumbnail?size=${encodeURIComponent(size)}`, { headers: { 'x-api-key': apiKey }, signal: AbortSignal.timeout(30000) });
+    const response = await fetchImpl(`${endpoint}/api/assets/${encodeURIComponent(id)}/thumbnail?size=${encodeURIComponent(size)}`, { headers: { 'x-api-key': apiKey }, redirect: 'error', signal: AbortSignal.timeout(30000) });
     if (!response.ok) throw mediaError(`IMMICH_HTTP_${response.status}`, `Immich preview failed with HTTP ${response.status}.`);
     const bytes = Buffer.from(await response.arrayBuffer());
     return Object.freeze({ assetId: id, mimeType: clean(response.headers.get('content-type')) || 'image/jpeg', bytes: new Uint8Array(bytes) });
@@ -218,7 +256,7 @@ function createMediaBrainRuntime(options = {}) {
     const { endpoint, apiKey } = immichContext();
     let response;
     try {
-      response = await fetchImpl(`${endpoint}/api/assets/${encodeURIComponent(id)}/original`, { headers: { 'x-api-key': apiKey }, signal: AbortSignal.timeout(60000) });
+      response = await fetchImpl(`${endpoint}/api/assets/${encodeURIComponent(id)}/original`, { headers: { 'x-api-key': apiKey }, redirect: 'error', signal: AbortSignal.timeout(60000) });
     } catch (error) {
       throw mediaError('IMMICH_UNAVAILABLE', 'Immich original asset retrieval failed.', { cause: clean(error?.message) });
     }
@@ -343,5 +381,7 @@ module.exports = {
   DEFAULT_COMFYUI_ENDPOINT,
   IMMICH_SAVE_BACK_REQUIRED,
   COMFYUI_OUTPUT_NOT_IMPORTED,
+  mergeImmichConfiguration,
+  mergeComfyuiConfiguration,
   createMediaBrainRuntime
 };
