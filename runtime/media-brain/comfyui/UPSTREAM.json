@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "project": "ComfyUI",
+  "repository": "https://github.com/Comfy-Org/ComfyUI.git",
+  "version": "v0.31.0",
+  "commit": "43cb4fffc89bba20ab7bd61467a36d0339338dab",
+  "license": "GPL-3.0",
+  "mode": "official-portable-or-user-managed-server",
+  "authority": ["workflow-validation", "workflow-queue", "model-execution", "input-upload", "history", "output", "model-inventory"]
+}

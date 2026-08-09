@@ -1,0 +1,19 @@
+.yance-media-workspace { display: grid; gap: 14px; padding: 14px; border: 1px solid color-mix(in srgb, currentColor 18%, transparent); border-radius: 12px; }
+.yance-media-workspace header, .media-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.yance-media-workspace header { justify-content: space-between; }
+.yance-media-workspace header div { display: grid; gap: 2px; }
+.yance-media-workspace header span, .media-summary { opacity: .72; font-size: .9em; }
+.yance-media-workspace section { display: grid; gap: 9px; }
+.yance-media-workspace h3 { margin: 0; font-size: 1em; }
+.media-status { margin: 0; }
+.media-status.degraded { font-weight: 600; }
+.media-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; align-items: end; }
+.media-grid label { display: grid; gap: 4px; }
+.media-grid .media-check { display: flex; align-items: center; gap: 6px; }
+.media-assets { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.media-assets button { white-space: nowrap; }
+.media-assets button.selected { font-weight: 700; text-decoration: underline; }
+.media-file { display: inline-flex; align-items: center; gap: 6px; }
+.media-file input { max-width: 220px; }
+.yance-media-workspace textarea { width: 100%; resize: vertical; }
+.media-preview { width: min(100%, 520px); max-height: 360px; object-fit: contain; border-radius: 10px; }
