@@ -814,7 +814,7 @@ function collectNpmLockTreePackagePaths(node, temporaryRoot, packagePaths = new 
   if (!isPlainJsonObject(node.dependencies)) return null;
   for (const dependency of Object.values(node.dependencies)) {
     if (!isPlainJsonObject(dependency)) return null;
-    if (dependency.missing === true && typeof dependency.path !== 'string') continue;
+    if (dependency.missing === true) return null;
     if (!collectNpmLockTreePackagePaths(dependency, temporaryRoot, packagePaths)) return null;
   }
   return packagePaths;
