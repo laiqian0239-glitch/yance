@@ -434,3 +434,17 @@ test('trusted delegated evaluator rejects manifest-only identity when base alrea
   assert.equal(result.pass, false, JSON.stringify(result));
   assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
 });
+
+test('trusted delegated evaluator rejects manifest-only identity when trusted main adds an npm lockfile after the implementation base', () => {
+  const options = trustedOptions(exactManifest());
+  const resolveAuthorizationBlob = options.resolveCommitBlobSha;
+  const lockBlob = '8'.repeat(40);
+  options.resolveCommitBlobSha = (commit, repositoryPath) => {
+    if (repositoryPath === LOCK_PATH && commit === TRUSTED_MAIN) return lockBlob;
+    return resolveAuthorizationBlob(commit, repositoryPath);
+  };
+
+  const result = evaluateTrustedDelegatedGovernanceBranch(options);
+  assert.equal(result.pass, false, JSON.stringify(result));
+  assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
+});
