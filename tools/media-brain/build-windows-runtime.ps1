@@ -16,8 +16,12 @@ function Assert-YanceEndpoint([string]$Name, [string]$Endpoint) {
   if ([string]::IsNullOrWhiteSpace($Endpoint)) { throw "$Name endpoint is required" }
   $uri = [Uri]$Endpoint
   if ($uri.Scheme -notin @('http', 'https')) { throw "$Name endpoint must use HTTP(S)" }
-  if (-not (Test-YanceLoopbackEndpoint $Endpoint) -and -not $AllowExternalEndpoint) {
+  $isLoopback = Test-YanceLoopbackEndpoint $Endpoint
+  if (-not $isLoopback -and -not $AllowExternalEndpoint) {
     throw "$Name external endpoint requires explicit -AllowExternalEndpoint configuration"
+  }
+  if ($Name -eq 'Immich' -and -not $isLoopback -and $uri.Scheme -ne 'https') {
+    throw 'Immich external endpoint must use HTTPS because it carries an API key.'
   }
 }
 
@@ -31,7 +35,7 @@ Assert-YanceEndpoint 'ComfyUI' $ComfyUIEndpoint
 $immichHeaders = @{}
 if (-not [string]::IsNullOrWhiteSpace($ImmichApiKey)) { $immichHeaders['x-api-key'] = $ImmichApiKey }
 try {
-  $immich = Invoke-WebRequest -UseBasicParsing -Uri "$($ImmichEndpoint.TrimEnd('/'))/api/server/ping" -Headers $immichHeaders -TimeoutSec 10
+  $immich = Invoke-WebRequest -UseBasicParsing -Uri "$($ImmichEndpoint.TrimEnd('/'))/api/server/ping" -Headers $immichHeaders -TimeoutSec 10 -MaximumRedirection 0
   if ($immich.StatusCode -lt 200 -or $immich.StatusCode -ge 300) { throw "Immich health returned HTTP $($immich.StatusCode)" }
   Write-Host 'Immich health: ready'
 } catch {

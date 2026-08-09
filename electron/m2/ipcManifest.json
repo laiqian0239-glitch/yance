@@ -3325,6 +3325,65 @@
       "currentObservation": "Pause/resume maps to native Parlant Session manual/auto mode; renderer receives only minimized status/progress."
     },
     {
+      "channel": "desktop:media-brain-save-settings",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "immichApiKey"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media settings merge is main-process-owned so the existing CredentialVault remains the only secret authority and renderer never reads stored secrets.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "immichEndpoint": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "immichApiKey": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "clearImmichApiKey": {
+            "type": "boolean"
+          },
+          "immichAllowExternalEndpoint": {
+            "type": "boolean"
+          },
+          "comfyuiEndpoint": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "comfyuiAllowExternalEndpoint": {
+            "type": "boolean"
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3292
+      },
+      "rendererExposure": {
+        "api": "saveMediaBrainSettings",
+        "file": "electron/preload.js",
+        "line": 79
+      },
+      "currentObservation": "Main merges Media endpoint settings with existing CredentialVault custody, preserves the Immich API key unless replacement or explicit clear is requested, and returns no secret material."
+    },
+    {
       "channel": "desktop:media-brain-health",
       "direction": "renderer-to-main",
       "phase": "pre-ready",
@@ -4138,7 +4197,7 @@
     }
   ],
   "validationSummary": {
-    "rendererToMainHandlerCount": 58,
+    "rendererToMainHandlerCount": 59,
     "mainToRendererChannelCount": 8,
     "allRendererToMainHandlersHaveRequiredFields": true,
     "allOutboundChannelsHaveRequiredFields": true,

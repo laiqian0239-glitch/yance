@@ -110,7 +110,7 @@ const { backendAuthority, stopOwnedBackend, completeElectronQuit, restartElectro
 const { createLettaAgentRuntime } = require('./lettaAgentRuntime');
 const { createParlantRelationshipRuntime, createRelationshipTaskSequencer } = require('./parlantRelationshipRuntime');
 const { createGraphitiRelationshipRuntime, createNeo4jPassword } = require('./graphitiRelationshipRuntime');
-const { createMediaBrainRuntime } = require('./mediaBrainRuntime');
+const { createMediaBrainRuntime, mergeImmichConfiguration, mergeComfyuiConfiguration } = require('./mediaBrainRuntime');
 const { SoundNotificationService } = require('./SoundNotificationService');
 const { isCustomSoundPattern, soundFileName } = require('../shared/notificationSoundCatalog');
 const { runInstalledRuntimeProbeApplicationEntry } = require('./wp7InstalledRuntimeProbeApplicationEntry');
@@ -594,6 +594,46 @@ function ensureMediaBrainRuntime() {
     });
   }
   return mediaBrainRuntime;
+}
+
+function mediaConfigurationChanged(current, next) {
+  return String(current?.endpoint || '') !== String(next?.endpoint || '')
+    || String(current?.apiKey || '') !== String(next?.apiKey || '')
+    || (current?.allowExternalEndpoint === true) !== (next?.allowExternalEndpoint === true);
+}
+
+async function saveMediaBrainSettings(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw Object.assign(new Error('Media settings input must be an object.'), { reasonCode: 'DESKTOP_MEDIA_SETTINGS_INPUT_INVALID' });
+  }
+  const currentImmich = readMediaConfiguration(MEDIA_IMMICH_CREDENTIAL_REF, 'http://127.0.0.1:2283');
+  const currentComfyui = readMediaConfiguration(MEDIA_COMFYUI_CREDENTIAL_REF, 'http://127.0.0.1:8188');
+  const nextImmich = mergeImmichConfiguration(currentImmich, {
+    endpoint: input.immichEndpoint,
+    apiKey: input.immichApiKey,
+    clearApiKey: input.clearImmichApiKey === true,
+    allowExternalEndpoint: input.immichAllowExternalEndpoint === true
+  });
+  const nextComfyui = mergeComfyuiConfiguration(currentComfyui, {
+    endpoint: input.comfyuiEndpoint,
+    allowExternalEndpoint: input.comfyuiAllowExternalEndpoint === true
+  });
+  const requestBase = `media-settings:${randomUUID()}`;
+  let immichUpdated = false;
+  let comfyuiUpdated = false;
+  if (mediaConfigurationChanged(currentImmich, nextImmich)) {
+    await applyVaultMutationWithRestart('persist', MEDIA_IMMICH_CREDENTIAL_REF, nextImmich, { requestId: `${requestBase}:immich` });
+    immichUpdated = true;
+  }
+  if (mediaConfigurationChanged(currentComfyui, nextComfyui)) {
+    await applyVaultMutationWithRestart('persist', MEDIA_COMFYUI_CREDENTIAL_REF, nextComfyui, { requestId: `${requestBase}:comfyui` });
+    comfyuiUpdated = true;
+  }
+  return Object.freeze({
+    ok: true,
+    immich: Object.freeze({ endpoint: nextImmich.endpoint, allowExternalEndpoint: nextImmich.allowExternalEndpoint, hasApiKey: Boolean(nextImmich.apiKey), updated: immichUpdated }),
+    comfyui: Object.freeze({ endpoint: nextComfyui.endpoint, allowExternalEndpoint: nextComfyui.allowExternalEndpoint, updated: comfyuiUpdated })
+  });
 }
 
 function normalizeMediaSendInput(input = {}) {
@@ -3249,6 +3289,7 @@ function registerIpc() {
     return projectParlantRelationshipGoal(await ensureParlantRelationshipRuntime().setRelationshipGoalPaused(normalized));
   });
   ipcGuardHandle('desktop:media-brain-health', () => ensureMediaBrainRuntime().health());
+  ipcGuardHandle('desktop:media-brain-save-settings', (_event, input = {}) => saveMediaBrainSettings(input));
   ipcGuardHandle('desktop:media-brain-import-asset', (_event, input = {}) => ensureMediaBrainRuntime().importAsset(input));
   ipcGuardHandle('desktop:media-brain-search-assets', (_event, input = {}) => ensureMediaBrainRuntime().searchAssets(input));
   ipcGuardHandle('desktop:media-brain-list-people', (_event, input = {}) => ensureMediaBrainRuntime().listPeople(input));

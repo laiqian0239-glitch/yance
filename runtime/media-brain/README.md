@@ -6,7 +6,7 @@ Media Brain P0 integrates two mature upstream authorities and intentionally does
 
 Immich `v3.1.0` at `8aa95c67470a02a8ddedf03c2e52963af33065ff` is the sole asset-library authority for upload/import, asset bytes and previews, smart search, people, and albums. **Immich owns the database** and storage layout; the Immich database is not a Yance database and is never recreated inside Electron.
 
-The default endpoint is `http://127.0.0.1:2283`. A non-loopback endpoint is allowed only after explicit user configuration. The API key remains in the existing Yance `CredentialVault` under `media:immich:default`; Media Brain has no credential store of its own.
+The default endpoint is `http://127.0.0.1:2283`. Loopback HTTP remains supported. A non-loopback external Immich endpoint is allowed only after explicit user configuration and **must use HTTPS because the Immich API key is sent as credential-bearing `x-api-key` traffic**. The API key remains in the existing Yance `CredentialVault` under `media:immich:default`; Media Brain has no credential store of its own. Leaving the API-key field blank preserves the saved key; clearing it requires an explicit clear action.
 
 ## ComfyUI
 
