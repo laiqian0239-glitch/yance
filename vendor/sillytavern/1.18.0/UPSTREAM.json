@@ -191,11 +191,12 @@
     {
       "sourcePath": "public/scripts/authors-note.js",
       "sourceGitBlob": "34adf6c7a1df1024a12e272bdae147a63c0e65e2",
-      "sourceLineRange": "331-361",
-      "sourceSliceSha256": "e33bd43faa4da8773541dadc55bed0621eabe4892fd7e16bdcc5712934d66648",
+      "sourceSymbol": "setFloatingPrompt",
+      "sourceLineRange": "324-392",
+      "sourceSliceSha256": "b0a20c23230a885f272a1ffc3f32a0630616ef2d1f98a77c91b064f00a6990f6",
       "destinationPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
       "destinationRegionMarker": "SILLYTAVERN_SLICE::authors-note::depth-role-injection",
-      "destinationRegionSha256": "675866b34737ad440673b100d22e414c26dc978fef9965dd7aad25f4e1c82d4c",
+      "destinationRegionSha256": "0199c0f37b10993c74a78b307809ecb9f493cc6a8382c70d78fc131d0c12b40f",
       "transformations": [
         "esm-export-to-commonjs",
         "lexical-binding-injection-where-required"
