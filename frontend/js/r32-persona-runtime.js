@@ -13,6 +13,9 @@
     ['individuality', '个性'], ['femininity', '温柔'], ['matureWarm', '成熟'], ['queen', '高冷'],
     ['initiative', '主动'], ['mystery', '神秘'], ['humor', '幽默'], ['sensualPlayfulness', '俏皮']
   ]);
+  const NORMALIZED_CHARACTER_CARD_FIELDS = Object.freeze([
+    'firstMessage', 'exampleDialogueText', 'alternateGreetings', 'tags', 'extensions', 'systemPrompt'
+  ]);
   function readPersonaProfileId() {
     const current = localStorage.getItem(PERSONA_PROFILE_KEY);
     if (current) return current;
@@ -132,6 +135,13 @@
   function readablePersonaHtml(){const source=authoritative();const sections=Object.entries(source||{});return `<section class="persona-card persona-readable-card"><header><div><small>中文结构化视图</small><h3>可阅读人物基线</h3></div><span class="persona-pill ok">原始数据不变</span></header><div class="persona-readable-note"><b>中文优先展示，不覆盖权威原文</b><p>已有中文理解时直接显示；只有外语原文而缺少中文时标记“中文理解待生成”，不会猜测或伪造译文。高级 JSON 编辑仍保留在下方。</p></div><div class="persona-readable-grid">${sections.length?sections.map(([key,value])=>{const rows=personaReadableRows(value,[key]);return `<article class="persona-readable-section"><header><div><small>${htmlText(key)}</small><h4>${htmlText(personaLabel(key))}</h4></div><span>${htmlText(rows.length)} 项</span></header><div>${rows.length?rows.map(row=>`<div class="persona-readable-row ${htmlAttr(row.pending?'translation-pending':'')}"><span>${htmlText(row.path.slice(1).map(personaLabel).join(' · ')||personaLabel(key))}</span><b>${htmlText(row.primary||'暂无内容')}</b>${row.original&&row.original!==row.primary?`<p><em>原文</em>${htmlText(row.original)}</p>`:''}${row.pending?'<small>待生成中文理解 · 当前展示权威原文</small>':''}</div>`).join(''):'<div class="persona-readable-empty">当前部分没有可展示内容</div>'}</div></article>`}).join(''):'<div class="persona-readable-empty">当前 Persona 没有权威人物数据</div>'}</div></section>`}
 
   function cloneJson(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
+  function preserveNormalizedCharacterCard(card = {}) {
+    const preserved = cloneJson(card) || {};
+    for (const field of NORMALIZED_CHARACTER_CARD_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(card, field)) preserved[field] = cloneJson(card[field]);
+    }
+    return preserved;
+  }
   function v2RelationshipProjection() {
     const scope = activeScope();
     const snapshot = window.YanceActiveContactStore?.getSnapshot?.() || {};
@@ -148,7 +158,7 @@
     const content = payload?.version?.content || {};
     const auth = content.authoritative || {};
     const profile = auth.personaProfile && typeof auth.personaProfile === 'object' ? auth.personaProfile : {};
-    const card = profile.characterCard && typeof profile.characterCard === 'object' ? cloneJson(profile.characterCard) : {};
+    const card = profile.characterCard && typeof profile.characterCard === 'object' ? preserveNormalizedCharacterCard(profile.characterCard) : {};
     const examples = Array.isArray(profile.exampleDialogues) && profile.exampleDialogues.length ? cloneJson(profile.exampleDialogues) : [{ user: '', assistant: '' }];
     const directions = auth.replyStylePolicy?.directions && typeof auth.replyStylePolicy.directions === 'object' ? auth.replyStylePolicy.directions : {};
     state.v2 = {
@@ -156,6 +166,7 @@
       hydrated: true,
       personaDescription: String(profile.description || ''),
       characterCard: {
+        ...card,
         name: String(card.name || ''),
         description: String(card.description || ''),
         personality: String(card.personality || ''),
@@ -292,8 +303,9 @@
   function applyCharacterCard() {
     const preview = state.v2.characterCardPreview;
     if (!preview?.characterCard) throw new Error('请先完成 Character Card 预览');
-    const card = preview.characterCard;
+    const card = preserveNormalizedCharacterCard(preview.characterCard);
     state.v2.characterCard = {
+      ...card,
       name: String(card.name || ''), description: String(card.description || ''), personality: String(card.personality || ''), scenario: String(card.scenario || ''),
       characterNote: { content: String(card.postHistoryInstructions || card.creatorNotes || ''), depth: 4, role: 'system' },
       characterBook: card.characterBook && typeof card.characterBook === 'object' ? cloneJson(card.characterBook) : undefined
@@ -688,6 +700,14 @@
     }
   });
   document.addEventListener('change', event => {
+    if (event.target?.id === 'personaCharacterCardFile') {
+      state.v2.characterCardPreview = null;
+      state.v2.status = 'idle';
+      const applyButton = document.querySelector('[data-persona-card-apply]');
+      if (applyButton) applyButton.disabled = true;
+      const previewHost = document.querySelector('.persona-card-preview');
+      if (previewHost) previewHost.textContent = '文件已更换，请重新预览 Character Card';
+    }
     if (event.target?.id === 'personaV2Locale' || event.target?.id === 'personaV2ChatRegister') collectV2Controls();
     if (event.target?.id === 'personaImportFile') importFile(event.target.files?.[0]).catch(error => notify(error.message, 'error'));
     if (event.target?.id === 'personaProfileSelect') switchProfile(event.target.value).catch(error => notify(error.message, 'error'));
