@@ -4,17 +4,36 @@
   "requestedByUserAt": "2026-08-09T16:03:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-VOICE-BRAIN-P0-ROUTE-BOOTSTRAP",
-  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Fresh-main routing preflight proves twelve exact Voice Brain product paths under config/upstreams, runtime/voice-brain and third_party/licenses are unknown to the current WP0 routing policy. Candidate-owned routing changes are forbidden. This bootstrap authorizes only exact PRODUCT_WP0 registration plus a fail-closed regression contract; it authorizes no SenseVoice/CosyVoice product implementation.",
+  "status": "BLOCKED_PENDING_SHARED_ROUTE_POLICY_GUARD",
+  "reason": "Fresh-main routing preflight proves twelve exact Voice Brain product paths under config/upstreams, runtime/voice-brain and third_party/licenses are unknown to the current WP0 routing policy. Candidate-owned routing changes are forbidden. A concurrent independent review of the shared routing authority also proved that exact-path authorization of wp0-routing-policy.json alone does not mechanically constrain semantic mutation inside that file. Presence route-bootstrap authorization PR #184 owns the shared bottom-layer guard that constrains delegated route bootstraps to their frozen declaration. Voice must consume that shared guard after it becomes effective on trusted main rather than duplicate or race it.",
   "base": {
     "branch": "main",
     "commit": "ed90d68d651572e517591b0ad2707166dee518d0"
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
+    "requiresSharedSemanticGuardOnTrustedMain": true,
+    "mustReissueFromFreshMainAfterPrerequisite": true,
     "requiresOrdinaryTwoParentMainMerge": true,
-    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "implementationMayStartOnlyFromFreshReissuedAuthorizationMergeCommit": true,
     "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "blockingPrerequisite": {
+    "kind": "SHARED_ROUTE_POLICY_SEMANTIC_GUARD",
+    "ownerAuthorizationPr": 184,
+    "observedOwnerAuthorizationHead": "e706a50e3e8027c075e8556bb90fd20f78bdd188",
+    "requiredBehaviorOnTrustedMain": [
+      "Delegated route-bootstrap policy changes must resolve exactly one supported frozen declaration field.",
+      "The guard must support both bootstrapPaths and futureProductBootstrapPaths declarations.",
+      "Declaration count and canonical SHA-256 must be validated.",
+      "Only declared frozen paths may be added to productExactPaths.",
+      "productPrefixes and all unrelated routing-policy semantics must remain unchanged.",
+      "Unsupported or ambiguous declarations must fail closed."
+    ],
+    "voiceMustNotDuplicateSharedGuardImplementation": true,
+    "voiceMustNotModifyPresenceAuthority": true,
+    "satisfiedByAuthorizationMergeAlone": false,
+    "satisfactionRule": "The generic semantic route-policy guard authorized by #184 must be implemented, independently reviewed, ordinarily merged, and present on trusted main. Voice then creates a fresh successor authorization proposal from that main; this blocked proposal must not be merged."
   },
   "evidence": {
     "trustedRoutingPolicyPath": "governance/layered-ci/wp0-routing-policy.json",
@@ -48,7 +67,7 @@
     "mustRemainSingleFile": true,
     "mustRemainCleanFromTrustedMain": true
   },
-  "implementation": {
+  "futureImplementationAfterPrerequisite": {
     "branch": "fix/v21-voice-brain-p0-route-bootstrap",
     "allowedChangedPaths": [
       "governance/layered-ci/wp0-routing-policy.json",
@@ -57,7 +76,8 @@
     "approvedChangedFileCount": 2,
     "approvedChangedFileSetSha256": "00c56d4e9ef38c5acc4908e18bb51a2415431101c4b7f9bb29ecee7052a2b942",
     "newDependencyAllowed": false,
-    "workflowModificationAllowed": false
+    "workflowModificationAllowed": false,
+    "note": "Coordination target only while this proposal is blocked. The fresh successor authorization must revalidate and reseal this exact scope after the shared guard is effective."
   },
   "bootstrapPaths": [
     "config/upstreams/v21-voice-brain-p0.json",
@@ -85,29 +105,37 @@
       "THIRD_PARTY_NOTICES.md",
       "frontend/index.html"
     ],
-    "note": "This target scope is coordination evidence only. The later Voice Brain authorization remains a separate authority and may only be created from fresh main after this bootstrap becomes effective."
+    "note": "Coordination evidence only. Final Voice Brain product authorization is separate and must be generated from then-fresh main after route bootstrap is effective."
   },
   "mandatoryFailureFirstContracts": [
-    "Before bootstrap, all twelve exact Voice bootstrap paths fail closed as WP0_ROUTE_UNKNOWN_PATH under trusted main policy.",
+    "Before Voice route bootstrap, all twelve exact Voice bootstrap paths fail closed as WP0_ROUTE_UNKNOWN_PATH under trusted main policy.",
+    "The shared semantic guard is already GREEN on trusted main before Voice route implementation begins.",
     "After implementation each of the twelve exact Voice bootstrap paths selects PRODUCT_WP0.",
     "The exact twelve-path set selects PRODUCT_WP0.",
     "Bootstrap uses only productExactPaths and does not add config/, runtime/ or third_party/ prefixes.",
+    "The shared guard proves the Voice route implementation adds only the frozen bootstrapPaths literals and changes no unrelated route-policy semantics.",
     "Adjacent unregistered voice-like, runtime-like and license-like paths continue to fail closed.",
     "Governance and product-documentation precedence remains unchanged.",
     "No Voice product implementation, Learning V2 path, Media authority, Presence authority, package manifest, workflow or release/promotion authority is modified."
   ],
   "requiredSequence": [
-    "Authorization exact Head passes applicable governance/Stage/Layered/ACV2 gates and independent review with zero unresolved P0/P1.",
-    "Stop at this authorization merge boundary.",
+    "Do not merge this blocked proposal.",
+    "Wait only for the shared route-policy semantic guard owned by #184 to become implemented, independently reviewed, ordinarily merged and present on trusted main.",
+    "Close this blocked proposal without merge and create a fresh successor Voice route-bootstrap authorization directly from that trusted main; do not rebase, amend or force-push this history.",
+    "Revalidate the twelve bootstrap paths, two-path Voice route implementation target, canonical digests, parallel-workline overlap and exact base-owned routing policy.",
+    "Fresh successor authorization exact Head must pass applicable governance/Stage/Layered/ACV2 gates and independent review with zero unresolved P0/P1.",
+    "Stop at that successor authorization merge boundary.",
     "After owner authorization, merge by ordinary two-parent merge without history rewrite.",
-    "Create fix/v21-voice-brain-p0-route-bootstrap from the exact authorization merge.",
-    "Create a test-only failure-first commit for the twelve-path routing contract.",
+    "Create fix/v21-voice-brain-p0-route-bootstrap from the exact successor authorization merge.",
+    "Create a test-only failure-first commit for the twelve-path routing contract and shared semantic-guard enforcement.",
     "Add only the twelve exact paths to productExactPaths.",
     "Pass applicable gates and independent review.",
     "Merge bootstrap implementation by ordinary two-parent merge.",
-    "Only then create the separate V21-VOICE-BRAIN-P0-V1 authorization from fresh main."
+    "Only then create the separate V21-VOICE-BRAIN-P0-V1 product authorization from fresh main."
   ],
   "prohibitions": {
+    "mergeWhileSharedGuardMissing": true,
+    "duplicateSharedRoutePolicyGuard": true,
     "temporaryBypass": true,
     "warningOnlyClosure": true,
     "continueOnError": true,
