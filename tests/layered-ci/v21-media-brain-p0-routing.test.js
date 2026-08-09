@@ -22,6 +22,7 @@ const MEDIA_BOOTSTRAP_PATHS = Object.freeze([
   'third_party/licenses/comfyui-GPL-3.0.txt',
   'third_party/licenses/immich-AGPL-3.0.txt'
 ]);
+const MEDIA_BOOTSTRAP_PATH_SET_SHA256 = 'b2bd300fb921d64d9b5fd5770a7a66047131fb61f2f928992cb17c4d878392c0';
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -35,6 +36,8 @@ function routeAuthorization() {
     workPackage: 'V21-MEDIA-BRAIN-P0-ROUTE-BOOTSTRAP',
     status: 'AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE',
     bootstrapPaths: [...MEDIA_BOOTSTRAP_PATHS],
+    bootstrapPathCount: MEDIA_BOOTSTRAP_PATHS.length,
+    bootstrapPathSetSha256: MEDIA_BOOTSTRAP_PATH_SET_SHA256,
     implementation: {
       branch: 'fix/v21-media-brain-p0-route-bootstrap',
       allowedChangedPaths: [
