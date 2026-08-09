@@ -774,7 +774,38 @@ function dependencySectionProjection(document) {
   return projection;
 }
 
-function validateDelegatedNpmLockfileClosure(candidateManifest, candidateLockfile, identityEntries = []) {
+function directDependencyNamesFromProjection(projection) {
+  if (!isPlainJsonObject(projection)) return null;
+  const names = new Set();
+  for (const section of DEPENDENCY_IDENTITY_SECTIONS) {
+    if (section === 'peerDependencies') continue;
+    const dependencies = projection[section];
+    if (dependencies === undefined) continue;
+    if (!isPlainJsonObject(dependencies)) return null;
+    for (const name of Object.keys(dependencies)) names.add(name);
+  }
+  return names;
+}
+
+function sameDirectLockDescriptorIdentity(baseDescriptor, candidateDescriptor) {
+  if (!isPlainJsonObject(baseDescriptor) || !isPlainJsonObject(candidateDescriptor)) return false;
+  if (typeof baseDescriptor.version === 'string') {
+    return candidateDescriptor.version === baseDescriptor.version;
+  }
+  if (baseDescriptor.version !== undefined || candidateDescriptor.version !== undefined) return false;
+  if (typeof baseDescriptor.resolved === 'string' || baseDescriptor.link === true) {
+    return candidateDescriptor.resolved === baseDescriptor.resolved
+      && candidateDescriptor.link === baseDescriptor.link;
+  }
+  return false;
+}
+
+function validateDelegatedNpmLockfileClosure(
+  candidateManifest,
+  candidateLockfile,
+  identityEntries = [],
+  baselineLockfile = null
+) {
   if (!isPlainJsonObject(candidateManifest)
     || !isPlainJsonObject(candidateLockfile)
     || !Array.isArray(identityEntries)
@@ -790,6 +821,21 @@ function validateDelegatedNpmLockfileClosure(candidateManifest, candidateLockfil
     if (entry.section === 'peerDependencies') continue;
     const lockDescriptor = candidateLockfile.packages[`node_modules/${entry.name}`];
     if (!isPlainJsonObject(lockDescriptor) || lockDescriptor.version !== entry.version) return false;
+  }
+  if (baselineLockfile !== null) {
+    if (!isPlainJsonObject(baselineLockfile)
+      || ![2, 3].includes(baselineLockfile.lockfileVersion)
+      || !isPlainJsonObject(baselineLockfile.packages)
+      || !isPlainJsonObject(baselineLockfile.packages[''])) return false;
+    const baselineProjection = dependencySectionProjection(baselineLockfile.packages['']);
+    const existingDirectNames = directDependencyNamesFromProjection(baselineProjection);
+    if (!baselineProjection || !existingDirectNames) return false;
+    for (const name of existingDirectNames) {
+      if (!sameDirectLockDescriptorIdentity(
+        baselineLockfile.packages[`node_modules/${name}`],
+        candidateLockfile.packages[`node_modules/${name}`]
+      )) return false;
+    }
   }
   return true;
 }
@@ -1154,6 +1200,16 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
     const loadDependencyControl = options.loadDependencyControlAtCommit
       || options.loadDependencyManifestAtCommit
       || ((commit, repositoryPath) => defaultAuthorizationAtCommit(commit, repositoryPath, options));
+    const loadNpmLockfileBaseline = repositoryPath => {
+      if (!isNpmDependencyLockPath(repositoryPath)) return null;
+      if (SHA40.test(String(resolveBlob(trustedMainHead, repositoryPath) || ''))) {
+        const trustedDocument = loadDependencyControl(trustedMainHead, repositoryPath);
+        return isPlainJsonObject(trustedDocument) ? trustedDocument : false;
+      }
+      const baseDocument = loadDependencyControl(implementationBase, repositoryPath);
+      if (baseDocument === null || baseDocument === undefined) return null;
+      return isPlainJsonObject(baseDocument) ? baseDocument : false;
+    };
 
     for (const repositoryPath of changedDependencyPaths) {
       const manifestPath = dependencyManifestPathForControlPath(repositoryPath);
@@ -1173,10 +1229,12 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
       if (!changedDependencyPathSet.has(manifestPath) || !isNpmDependencyLockPath(repositoryPath)) {
         return denyDependencyIdentityMutation();
       }
-      if (!validateDelegatedNpmLockfileClosure(
+      const baselineLockfile = loadNpmLockfileBaseline(repositoryPath);
+      if (baselineLockfile === false || !validateDelegatedNpmLockfileClosure(
         loadDependencyControl(evaluatedHead, manifestPath),
         loadDependencyControl(evaluatedHead, repositoryPath),
-        identityPolicy.entries.filter(entry => entry.path === manifestPath)
+        identityPolicy.entries.filter(entry => entry.path === manifestPath),
+        baselineLockfile
       )) return denyDependencyIdentityMutation();
     }
 
@@ -1203,10 +1261,12 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
           || !isNpmDependencyLockPath(companionPath)) {
           return denyDependencyIdentityMutation();
         }
-        if (!validateDelegatedNpmLockfileClosure(
+        const baselineLockfile = loadNpmLockfileBaseline(companionPath);
+        if (baselineLockfile === false || !validateDelegatedNpmLockfileClosure(
           loadDependencyControl(evaluatedHead, manifestPath),
           loadDependencyControl(evaluatedHead, companionPath),
-          identityPolicy.entries.filter(entry => entry.path === manifestPath)
+          identityPolicy.entries.filter(entry => entry.path === manifestPath),
+          baselineLockfile
         )) return denyDependencyIdentityMutation();
       }
     }
