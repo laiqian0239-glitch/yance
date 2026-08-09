@@ -110,6 +110,7 @@ const { backendAuthority, stopOwnedBackend, completeElectronQuit, restartElectro
 const { createLettaAgentRuntime } = require('./lettaAgentRuntime');
 const { createParlantRelationshipRuntime, createRelationshipTaskSequencer } = require('./parlantRelationshipRuntime');
 const { createGraphitiRelationshipRuntime, createNeo4jPassword } = require('./graphitiRelationshipRuntime');
+const { createMediaBrainRuntime } = require('./mediaBrainRuntime');
 const { SoundNotificationService } = require('./SoundNotificationService');
 const { isCustomSoundPattern, soundFileName } = require('../shared/notificationSoundCatalog');
 const { runInstalledRuntimeProbeApplicationEntry } = require('./wp7InstalledRuntimeProbeApplicationEntry');
@@ -478,6 +479,7 @@ let runtimeProjectionCoordinator = null;
 let lettaAgentRuntime = null;
 let parlantRelationshipRuntime = null;
 let graphitiRelationshipRuntime = null;
+let mediaBrainRuntime = null;
 const parlantInboundSequencer = createRelationshipTaskSequencer();
 
 function ensureLettaAgentRuntime() {
@@ -569,6 +571,82 @@ function ensureGraphitiRelationshipRuntime() {
     });
   }
   return graphitiRelationshipRuntime;
+}
+
+const MEDIA_IMMICH_CREDENTIAL_REF = 'media:immich:default';
+const MEDIA_COMFYUI_CREDENTIAL_REF = 'media:comfyui:default';
+
+function readMediaConfiguration(ref, fallbackEndpoint) {
+  const credential = vault?.get?.(ref) || {};
+  return Object.freeze({
+    endpoint: String(credential.endpoint || fallbackEndpoint || '').trim(),
+    apiKey: String(credential.apiKey || '').trim(),
+    allowExternalEndpoint: credential.allowExternalEndpoint === true
+  });
+}
+
+function ensureMediaBrainRuntime() {
+  if (!mediaBrainRuntime) {
+    mediaBrainRuntime = createMediaBrainRuntime({
+      workflowDirectory: path.join(APP_ROOT, 'config', 'comfyui-workflows'),
+      getImmichConfiguration: () => readMediaConfiguration(MEDIA_IMMICH_CREDENTIAL_REF, 'http://127.0.0.1:2283'),
+      getComfyuiConfiguration: () => readMediaConfiguration(MEDIA_COMFYUI_CREDENTIAL_REF, 'http://127.0.0.1:8188')
+    });
+  }
+  return mediaBrainRuntime;
+}
+
+function normalizeMediaSendInput(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw Object.assign(new Error('Media send input must be an object.'), { reasonCode: 'DESKTOP_MEDIA_SEND_INPUT_INVALID' });
+  }
+  const platform = String(input.platform || '').trim().toLowerCase();
+  const accountId = String(input.accountId || '').trim();
+  const chatJid = String(input.chatJid || '').trim();
+  const assetId = String(input.assetId || '').trim();
+  const kind = String(input.kind || 'image').trim().toLowerCase();
+  if (!['whatsapp', 'telegram', 'facebook'].includes(platform)) throw Object.assign(new Error('Media send platform is invalid.'), { reasonCode: 'DESKTOP_MEDIA_SEND_PLATFORM_INVALID' });
+  if (!accountId || accountId.length > 512 || !chatJid || chatJid.length > 1024 || !assetId || assetId.length > 512) throw Object.assign(new Error('Media send target or asset is invalid.'), { reasonCode: 'DESKTOP_MEDIA_SEND_INPUT_INVALID' });
+  if (!['image', 'video', 'audio', 'document', 'sticker'].includes(kind)) throw Object.assign(new Error('Media send kind is invalid.'), { reasonCode: 'DESKTOP_MEDIA_SEND_KIND_INVALID' });
+  return Object.freeze({
+    platform, accountId, chatJid, assetId, kind,
+    sessionKey: String(input.sessionKey || '').trim().slice(0, 1024),
+    filename: path.basename(String(input.filename || 'yance-media')).slice(0, 240),
+    caption: String(input.caption || '').slice(0, 10000)
+  });
+}
+
+async function sendMediaAssetThroughExistingAuthority(input = {}) {
+  const target = normalizeMediaSendInput(input);
+  const original = await ensureMediaBrainRuntime().getAssetOriginal({ assetId: target.assetId });
+  const bytes = Buffer.from(original.bytes);
+  const encodeHeader = value => encodeURIComponent(String(value || ''));
+  const response = await fetch(`${YANCE_BACKEND_URL}/api/r32/messages/${encodeURIComponent(target.platform)}/${encodeURIComponent(target.accountId)}/send-media-stream`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${currentApiSessionToken()}`,
+      Origin: YANCE_BACKEND_URL,
+      'content-type': original.mimeType || 'application/octet-stream',
+      'content-length': String(bytes.length),
+      'x-yance-chat-jid': encodeHeader(target.chatJid),
+      'x-yance-session-key': encodeHeader(target.sessionKey),
+      'x-yance-media-kind': encodeHeader(target.kind),
+      'x-yance-mime-type': encodeHeader(original.mimeType || 'application/octet-stream'),
+      'x-yance-filename': encodeHeader(target.filename),
+      'x-yance-caption': encodeHeader(target.caption)
+    },
+    body: bytes,
+    signal: AbortSignal.timeout(120000)
+  });
+  const text = await response.text();
+  let payload = {};
+  try { payload = text ? JSON.parse(text) : {}; } catch (_) {}
+  if (!response.ok) {
+    const error = new Error(String(payload?.error?.message || payload?.message || `Existing Yance media send authority returned HTTP ${response.status}.`));
+    error.reasonCode = String(payload?.error?.code || payload?.code || `MEDIA_SEND_HTTP_${response.status}`);
+    throw error;
+  }
+  return payload;
 }
 
 function readParlantOpenRouterApiKey() {
@@ -3168,6 +3246,18 @@ function registerIpc() {
     const normalized = normalizeParlantGoalInput(input, ['contactId', 'paused']);
     return projectParlantRelationshipGoal(await ensureParlantRelationshipRuntime().setRelationshipGoalPaused(normalized));
   });
+  ipcGuardHandle('desktop:media-brain-health', () => ensureMediaBrainRuntime().health());
+  ipcGuardHandle('desktop:media-brain-import-asset', (_event, input = {}) => ensureMediaBrainRuntime().importAsset(input));
+  ipcGuardHandle('desktop:media-brain-search-assets', (_event, input = {}) => ensureMediaBrainRuntime().searchAssets(input));
+  ipcGuardHandle('desktop:media-brain-list-people', (_event, input = {}) => ensureMediaBrainRuntime().listPeople(input));
+  ipcGuardHandle('desktop:media-brain-list-albums', (_event, input = {}) => ensureMediaBrainRuntime().listAlbums(input));
+  ipcGuardHandle('desktop:media-brain-get-asset-preview', (_event, input = {}) => ensureMediaBrainRuntime().getAssetPreview(input));
+  ipcGuardHandle('desktop:media-brain-upload-workflow-input', (_event, input = {}) => ensureMediaBrainRuntime().uploadWorkflowInput(input));
+  ipcGuardHandle('desktop:media-brain-upload-asset-workflow-input', (_event, input = {}) => ensureMediaBrainRuntime().uploadImmichAssetAsWorkflowInput(input));
+  ipcGuardHandle('desktop:media-brain-queue-workflow', (_event, input = {}) => ensureMediaBrainRuntime().queueWorkflow(input));
+  ipcGuardHandle('desktop:media-brain-get-workflow-result', (_event, input = {}) => ensureMediaBrainRuntime().getWorkflowOutput({ promptId: String(input?.promptId || '').trim() }));
+  ipcGuardHandle('desktop:media-brain-save-workflow-output', (_event, input = {}) => ensureMediaBrainRuntime().saveWorkflowOutputToImmich(input));
+  ipcGuardHandle('desktop:media-brain-send-asset', (_event, input = {}) => sendMediaAssetThroughExistingAuthority(input));
   ipcGuardHandle('desktop:report-runtime-environment', (_event, input = {}) => {
     const state = desktopState();
     const finite = (value, min, max) => {
