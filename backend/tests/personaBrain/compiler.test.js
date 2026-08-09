@@ -144,3 +144,45 @@ test('V21 Persona P0: compiler exposes SillyTavern-backed structured composition
   assert.strictEqual(out.context.persona.style?.prompt, undefined);
   assert.strictEqual(out.context.persona.composition.units.some(unit => unit.identifier === 'exampleDialogues'), true);
 });
+
+test('V21 Persona P0 V2: saved structured Persona fields feed live composition without request-side composition overrides', () => {
+  const rec = makeVersionRecord({
+    content: {
+      schemaVersion: 1,
+      profileId: 'owner',
+      authoritative: {
+        coreIdentity: { mode: 'verified_real' },
+        personaProfile: {
+          description: 'owner presentation',
+          characterCard: {
+            name: 'Mira',
+            description: 'dry and curious',
+            personality: 'warm but concise',
+            scenario: 'late evening chat',
+            characterNote: { content: 'keep it compact', depth: 2, role: 'system' }
+          },
+          exampleDialogues: [{ user: 'Na?', assistant: 'Na du 😄' }],
+          localeProfile: { locale: 'de-AT' },
+          chatRegister: { channel: 'whatsapp', register: 'native_short_form' }
+        },
+        replyStylePolicy: { directions: { ambiguity: 30, humor: 20 }, intensity: 'natural' },
+        disclosureRules: {},
+        forbiddenFabrications: []
+      },
+      learned: { preferences: {}, interactionPatterns: {} },
+      metadata: { title: 'Owner', locale: 'de-DE' }
+    }
+  });
+
+  const out = compilePersonaContext(rec, {
+    socialContext: { customer: { platform: 'whatsapp', relationshipStage: 'warming' }, incomingMessage: { text: 'Na?' } }
+  });
+
+  assert.strictEqual(out.safeFallback, false);
+  assert.strictEqual(out.context.persona.composition.characterCard.name, 'Mira');
+  assert.strictEqual(out.context.persona.composition.localeProfile.locale, 'de-AT');
+  assert.strictEqual(out.context.persona.composition.chatRegister.register, 'native_short_form');
+  assert.strictEqual(out.context.persona.composition.exampleDialogues.length, 1);
+  assert.strictEqual(out.context.persona.composition.units.some(unit => unit.identifier === 'charDescription'), true);
+  assert.strictEqual(out.context.persona.composition.units.some(unit => unit.identifier === 'exampleDialogues'), true);
+});
