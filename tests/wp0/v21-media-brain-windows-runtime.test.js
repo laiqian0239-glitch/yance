@@ -41,3 +41,12 @@ test('runtime manifests preserve OSS provenance and do not claim bundled model w
   assert.match(readme, /model.*not bundled|missing model|user-managed/iu);
   assert.match(readme, /Immich.*database.*not.*Yance|Immich.*owns.*database/iu);
 });
+
+test('credential-bearing external Immich preflight requires HTTPS', () => {
+  const script = read('tools/media-brain/build-windows-runtime.ps1');
+  const readme = read('runtime/media-brain/README.md');
+
+  assert.match(script, /\$Name\s+-eq\s*['"]Immich['"]/u, 'preflight must distinguish Immich from credential-free upstreams');
+  assert.match(script, /\$uri\.Scheme\s+-ne\s*['"]https['"]/u, 'external Immich must reject non-HTTPS endpoints');
+  assert.match(readme, /external\s+Immich[\s\S]{0,180}HTTPS[\s\S]{0,180}API\s+key/iu, 'runtime boundary must document HTTPS for external Immich API-key traffic');
+});
