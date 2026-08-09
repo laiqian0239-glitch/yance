@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PERSONA-V2-POSTMERGE-SEMANTIC-REPAIR-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Independent post-merge review of Persona V2 found two concrete semantic correctness defects inside the already-adopted SillyTavern Character Card integration. First, frontend apply logic promotes Character Card creator_notes into the runtime Character Note when post_history_instructions is empty, even though pinned SillyTavern 1.18.0 defines creator_notes as internal creator comments and post_history_instructions as conversation-history instructions. Second, request-side composition containing a newly selected Character Card can carry character_book nested under characterCard while the compiler falls back to persisted characterBook unless a duplicate top-level characterBook is supplied, so pre-save composition preview can use stale World Info. This repair preserves the existing SillyTavern architecture and authority boundaries; it adds no framework, dependency, workflow or model-gateway surface.",
+  "base": {
+    "branch": "main",
+    "commit": "05bb2ddc3a1428374f3a43705d38619681bb0185"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-persona-v2-postmerge-semantic-repair-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-persona-v2-postmerge-semantic-repair-p0-authorization.json"
+    ],
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Apply the repository normalizeChangedFiles contract: require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "fix/v21-persona-v2-postmerge-semantic-repair-p0",
+    "allowedChangedPaths": [
+      "backend/personaBrain/compiler.js",
+      "backend/tests/personaBrain/compiler.test.js",
+      "frontend/js/r32-persona-runtime.js",
+      "tests/wp0/v21-persona-character-ui.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "19d51be5c581848e9c375845c9982263c13f1458d5ba804036503bfc3aa668e9",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "upstreamEvidence": {
+    "sillyTavernCommit": "51ad27fb86d39a3daca3adaa970375c9670c12df",
+    "sourcePath": "public/scripts/char-data.js",
+    "creatorNotesMeaning": "Internal notes or comments left by the character's creator.",
+    "postHistoryInstructionsMeaning": "Instructions for handling the character's conversation history.",
+    "semanticRule": "creator_notes must remain metadata and must never be promoted into Yance runtime Character Note authority solely because post_history_instructions is empty."
+  },
+  "authorityBoundaries": {
+    "persona": "who I am / how I speak",
+    "relationshipCard": "read-only communication-context projection",
+    "letta": "long-term interaction memory authority",
+    "graphiti": "temporal relationship-fact authority",
+    "parlant": "Goal/Journey authority",
+    "modelExecution": "existing Yance model gateway only",
+    "finalSend": "existing Yance final send authority only"
+  },
+  "failureFirst": {
+    "firstImplementationCommitTestsOnly": true,
+    "testPaths": [
+      "backend/tests/personaBrain/compiler.test.js",
+      "tests/wp0/v21-persona-character-ui.test.js"
+    ],
+    "causalRedMustCover": [
+      "Character Card creator_notes is not promoted to runtime characterNote when post_history_instructions is empty",
+      "request-side nested characterCard.characterBook is used for composition before persisted characterBook fallback"
+    ],
+    "testWeakeningForbidden": true
+  },
+  "mandatoryContracts": [
+    "Pinned SillyTavern Character Card field semantics remain authoritative for creator_notes versus post_history_instructions.",
+    "creator_notes remains preserved metadata and is not converted to system/runtime Character Note authority.",
+    "Requested composition may use characterBook nested under the requested characterCard without requiring a duplicated top-level field.",
+    "Persisted characterBook remains the fallback only when neither requested top-level characterBook nor requested characterCard.characterBook is present.",
+    "No Persona V2 dependency, workflow, vendor source, provenance digest, license, model gateway, Letta, Graphiti, Parlant or final-send authority is changed.",
+    "No temporary bypass, retry-only workaround, test weakening, force push, rebase or amend is permitted."
+  ],
+  "requiredSequence": [
+    "Authorization proposal remains exactly one file from fresh trusted main.",
+    "Authorization proposal passes applicable governance gates and independent exact-head review.",
+    "Authorization is ordinary two-parent merged into main.",
+    "Create fix/v21-persona-v2-postmerge-semantic-repair-p0 from the exact authorization merge.",
+    "First implementation commit changes only the two authorized test paths and records causal RED.",
+    "Repair creator_notes authority mapping and nested requested Character Book selection at the source of each defect.",
+    "Run exact Persona tests plus applicable Stage/Layered/ACV2 gates.",
+    "Perform independent exact-head review with zero unresolved P0/P1.",
+    "Ordinary two-parent merge only after exact-head closure."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "testSkipOrAssertionWeakening": true,
+    "workflowModification": true,
+    "dependencyModification": true,
+    "vendorModification": true,
+    "modelGatewayModification": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "rebaseMerge": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "promotionAuthorized": false
+  }
+}
