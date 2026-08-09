@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 
 const ROOT = path.resolve(__dirname, '../..');
 const ADAPTER = path.join(ROOT, 'backend/personaBrain/sillyTavernAdapter.js');
@@ -16,6 +17,12 @@ function loadAuthorizedRuntime() {
   assert.equal(fs.existsSync(ADAPTER), true, 'missing thin SillyTavern Persona adapter');
   assert.equal(fs.existsSync(CORE), true, 'missing SillyTavern-derived prompt composition core');
   return { adapter: require(ADAPTER), core: require(CORE) };
+}
+
+function gitBlobSha(file) {
+  const bytes = fs.readFileSync(file);
+  const header = Buffer.from(`blob ${bytes.length}\0`, 'utf8');
+  return crypto.createHash('sha1').update(header).update(bytes).digest('hex');
 }
 
 test('V21 Persona P0 V2: composition keeps Description, Personality, Scenario, Note and Example Dialogues as distinct ordered units', () => {
@@ -143,6 +150,21 @@ test('V21 Persona P0 V2: provenance binds complete setFloatingPrompt segment and
   const { core } = loadAuthorizedRuntime();
   assert.equal(typeof core.createFloatingPromptRuntime, 'function', 'complete upstream setFloatingPrompt must be exposed through a lexical runtime factory');
   assert.equal(core.resolveFloatingPromptInjection, undefined, 'V1 handwritten floating-prompt equivalent must not remain an authority');
+});
+
+test('V21 Persona P0 V2: whole-module provenance binds the exact vendored Git blobs after required modification notices', () => {
+  const manifest = JSON.parse(fs.readFileSync(UPSTREAM, 'utf8'));
+  assert.equal(Array.isArray(manifest.wholeModules), true);
+  assert.equal(manifest.wholeModules.length, 3);
+  for (const moduleRecord of manifest.wholeModules) {
+    const destination = path.join(ROOT, moduleRecord.destinationPath);
+    assert.equal(fs.existsSync(destination), true, `missing vendored whole module ${moduleRecord.destinationPath}`);
+    assert.equal(
+      moduleRecord.vendoredGitBlob,
+      gitBlobSha(destination),
+      `stale vendoredGitBlob provenance for ${moduleRecord.destinationPath}`
+    );
+  }
 });
 
 test('V21 Persona P0 V2: live reply brain carries structured composition and never revives the flat style-prompt authority', () => {
