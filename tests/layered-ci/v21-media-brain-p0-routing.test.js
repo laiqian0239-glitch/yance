@@ -51,8 +51,15 @@ function routeAuthorization() {
   };
 }
 
-function exactCandidate() {
-  const candidate = clone(policy);
+function preBootstrapPolicy() {
+  const base = clone(policy);
+  base.productExactPaths = (base.productExactPaths || [])
+    .filter(file => !MEDIA_BOOTSTRAP_PATHS.includes(file));
+  return base;
+}
+
+function exactCandidate(basePolicy = preBootstrapPolicy()) {
+  const candidate = clone(basePolicy);
   candidate.productExactPaths = [...new Set([
     ...(candidate.productExactPaths || []),
     ...MEDIA_BOOTSTRAP_PATHS
@@ -109,30 +116,31 @@ test('delegated route bootstrap requires a permanent semantic mutation guard', (
   assert.equal(typeof validate, 'function', 'generic delegated route-policy semantic guard must exist');
 
   const authorization = routeAuthorization();
-  const accepted = validate({ authorization, basePolicy: policy, candidatePolicy: exactCandidate() });
+  const basePolicy = preBootstrapPolicy();
+  const accepted = validate({ authorization, basePolicy, candidatePolicy: exactCandidate(basePolicy) });
   assert.equal(accepted.pass, true, JSON.stringify(accepted));
 
-  const broadPrefix = exactCandidate();
+  const broadPrefix = exactCandidate(basePolicy);
   broadPrefix.productPrefixes = [...broadPrefix.productPrefixes, 'runtime/'];
-  assert.equal(validate({ authorization, basePolicy: policy, candidatePolicy: broadPrefix }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+  assert.equal(validate({ authorization, basePolicy, candidatePolicy: broadPrefix }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
 
-  const unrelatedExact = exactCandidate();
+  const unrelatedExact = exactCandidate(basePolicy);
   unrelatedExact.productExactPaths.push('runtime/media-brain/unapproved/UPSTREAM.json');
-  assert.equal(validate({ authorization, basePolicy: policy, candidatePolicy: unrelatedExact }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+  assert.equal(validate({ authorization, basePolicy, candidatePolicy: unrelatedExact }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
 
-  const removedRoute = exactCandidate();
+  const removedRoute = exactCandidate(basePolicy);
   removedRoute.productExactPaths = removedRoute.productExactPaths.slice(1);
-  assert.equal(validate({ authorization, basePolicy: policy, candidatePolicy: removedRoute }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+  assert.equal(validate({ authorization, basePolicy, candidatePolicy: removedRoute }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
 
-  const weakenedFailClosed = exactCandidate();
+  const weakenedFailClosed = exactCandidate(basePolicy);
   weakenedFailClosed.unknownPathFailsClosed = false;
-  assert.equal(validate({ authorization, basePolicy: policy, candidatePolicy: weakenedFailClosed }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+  assert.equal(validate({ authorization, basePolicy, candidatePolicy: weakenedFailClosed }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
 
-  const governanceDrift = exactCandidate();
+  const governanceDrift = exactCandidate(basePolicy);
   governanceDrift.governancePrefixes = [...governanceDrift.governancePrefixes, 'runtime/'];
-  assert.equal(validate({ authorization, basePolicy: policy, candidatePolicy: governanceDrift }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+  assert.equal(validate({ authorization, basePolicy, candidatePolicy: governanceDrift }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
 
-  const documentationDrift = exactCandidate();
+  const documentationDrift = exactCandidate(basePolicy);
   documentationDrift.productDocumentationExactPaths = [...(documentationDrift.productDocumentationExactPaths || []), 'runtime/media-brain/README.md'];
-  assert.equal(validate({ authorization, basePolicy: policy, candidatePolicy: documentationDrift }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
+  assert.equal(validate({ authorization, basePolicy, candidatePolicy: documentationDrift }).reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED');
 });

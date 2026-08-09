@@ -27,6 +27,8 @@ const GENERIC_DELEGATED_GOVERNANCE_STATUS = 'AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE
 const GENERIC_DELEGATED_GOVERNANCE_PATH = /^governance\/layered-ci\/[a-z0-9][a-z0-9-]*-authorization\.json$/u;
 const AUTHORIZATION_PROPOSAL_TRANSPORT_MODE = 'AUTHORIZATION_PROPOSAL_TRANSPORT';
 const TRUSTED_MAIN_DELEGATED_GOVERNANCE_MODE = 'TRUSTED_MAIN_DELEGATED_GOVERNANCE';
+const DELEGATED_ROUTE_POLICY_PATH = 'governance/layered-ci/wp0-routing-policy.json';
+const DELEGATED_ROUTE_POLICY_MUTATION_DENIED = 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED';
 const DEPENDENCY_CONTROL_FILENAMES = new Set([
   'package.json',
   'package-lock.json',
@@ -558,6 +560,87 @@ function evaluateDelegatedGovernanceAuthorizationProposal(options = {}) {
   });
 }
 
+function resolveDelegatedRouteBootstrapDeclaration(authorization) {
+  if (!authorization || typeof authorization !== 'object' || Array.isArray(authorization)) return null;
+  const schemas = [
+    {
+      paths: 'futureProductBootstrapPaths',
+      count: 'futureProductBootstrapPathCount',
+      digest: 'futureProductBootstrapPathSetSha256'
+    },
+    {
+      paths: 'bootstrapPaths',
+      count: 'bootstrapPathCount',
+      digest: 'bootstrapPathSetSha256'
+    }
+  ];
+  const present = schemas.filter(schema => Object.prototype.hasOwnProperty.call(authorization, schema.paths));
+  if (present.length !== 1) return null;
+  const schema = present[0];
+  const rawPaths = authorization[schema.paths];
+  if (!Array.isArray(rawPaths) || rawPaths.length === 0) return null;
+  if (rawPaths.some(repositoryPath => !isExactAdditionalPath(repositoryPath))) return null;
+  const normalized = normalizeChangedFiles(rawPaths);
+  if (normalized.length !== rawPaths.length) return null;
+  if (authorization[schema.count] !== rawPaths.length) return null;
+  if (authorization[schema.digest] !== workPackageChangedFilesSha256(rawPaths)) return null;
+  return Object.freeze({
+    paths: Object.freeze(normalized),
+    pathField: schema.paths,
+    countField: schema.count,
+    digestField: schema.digest
+  });
+}
+
+function validateDelegatedRoutePolicyMutation(options = {}) {
+  const authorization = options.authorization;
+  const basePolicy = options.basePolicy;
+  const candidatePolicy = options.candidatePolicy;
+  const denied = details => Object.freeze({
+    pass: false,
+    reasonCode: DELEGATED_ROUTE_POLICY_MUTATION_DENIED,
+    ...(details || {})
+  });
+
+  if (!basePolicy || typeof basePolicy !== 'object' || Array.isArray(basePolicy)
+    || !candidatePolicy || typeof candidatePolicy !== 'object' || Array.isArray(candidatePolicy)) {
+    return denied();
+  }
+  const declaration = resolveDelegatedRouteBootstrapDeclaration(authorization);
+  if (!declaration) return denied();
+  if (!Array.isArray(basePolicy.productExactPaths) || !Array.isArray(candidatePolicy.productExactPaths)) {
+    return denied();
+  }
+  if (basePolicy.productExactPaths.some(repositoryPath => !isExactAdditionalPath(repositoryPath))
+    || candidatePolicy.productExactPaths.some(repositoryPath => !isExactAdditionalPath(repositoryPath))) {
+    return denied();
+  }
+  const baseExact = normalizeChangedFiles(basePolicy.productExactPaths);
+  const candidateExact = normalizeChangedFiles(candidatePolicy.productExactPaths);
+  if (baseExact.length !== basePolicy.productExactPaths.length
+    || candidateExact.length !== candidatePolicy.productExactPaths.length) return denied();
+
+  const expectedExact = normalizeChangedFiles([...baseExact, ...declaration.paths]);
+  if (!sameJson(candidateExact, expectedExact)) {
+    return denied({ declaredPaths: declaration.paths });
+  }
+
+  const baseRest = { ...basePolicy };
+  const candidateRest = { ...candidatePolicy };
+  delete baseRest.productExactPaths;
+  delete candidateRest.productExactPaths;
+  if (!sameJson(baseRest, candidateRest)) {
+    return denied({ declaredPaths: declaration.paths });
+  }
+
+  return Object.freeze({
+    pass: true,
+    reasonCode: null,
+    declaredPaths: declaration.paths,
+    declarationPathField: declaration.pathField
+  });
+}
+
 function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
   const branch = String(options.branch || '');
   const trustedMainHead = Object.prototype.hasOwnProperty.call(options, 'trustedMainHead')
@@ -851,15 +934,48 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
   }
   const allowed = new Set(match.authorization.implementation.allowedChangedPaths);
   const unauthorizedPaths = implementationNormalized.filter(repositoryPath => !allowed.has(repositoryPath));
-  const pass = unauthorizedPaths.length === 0;
+  if (unauthorizedPaths.length !== 0) {
+    return Object.freeze({
+      pass: false,
+      reasonCode: 'WP0_DELEGATED_GOVERNANCE_SCOPE_DENIED',
+      authorityMode: null,
+      authorizationPath: match.authorizationPath,
+      authorizationMergeCommit: match.mergeCommit,
+      reviewedAuthorizationHead: match.reviewedHead,
+      unauthorizedPaths: Object.freeze([...unauthorizedPaths])
+    });
+  }
+
+  if (match.authorization.implementation.genericRouteMutationGuardRequired === true
+    && implementationNormalized.includes(DELEGATED_ROUTE_POLICY_PATH)) {
+    const loadRoutingPolicy = options.loadRoutingPolicyAtCommit
+      || (commit => defaultAuthorizationAtCommit(commit, DELEGATED_ROUTE_POLICY_PATH, options));
+    const routePolicyValidation = validateDelegatedRoutePolicyMutation({
+      authorization: match.authorization,
+      basePolicy: loadRoutingPolicy(implementationBase),
+      candidatePolicy: loadRoutingPolicy(evaluatedHead)
+    });
+    if (!routePolicyValidation.pass) {
+      return Object.freeze({
+        pass: false,
+        reasonCode: DELEGATED_ROUTE_POLICY_MUTATION_DENIED,
+        authorityMode: null,
+        authorizationPath: match.authorizationPath,
+        authorizationMergeCommit: match.mergeCommit,
+        reviewedAuthorizationHead: match.reviewedHead,
+        unauthorizedPaths: Object.freeze([])
+      });
+    }
+  }
+
   return Object.freeze({
-    pass,
-    reasonCode: pass ? null : 'WP0_DELEGATED_GOVERNANCE_SCOPE_DENIED',
-    authorityMode: pass ? TRUSTED_MAIN_DELEGATED_GOVERNANCE_MODE : null,
+    pass: true,
+    reasonCode: null,
+    authorityMode: TRUSTED_MAIN_DELEGATED_GOVERNANCE_MODE,
     authorizationPath: match.authorizationPath,
     authorizationMergeCommit: match.mergeCommit,
     reviewedAuthorizationHead: match.reviewedHead,
-    unauthorizedPaths: Object.freeze([...unauthorizedPaths])
+    unauthorizedPaths: Object.freeze([])
   });
 }
 
@@ -1279,6 +1395,8 @@ module.exports = {
   GENERIC_DELEGATED_GOVERNANCE_STATUS,
   AUTHORIZATION_PROPOSAL_TRANSPORT_MODE,
   TRUSTED_MAIN_DELEGATED_GOVERNANCE_MODE,
+  DELEGATED_ROUTE_POLICY_PATH,
+  DELEGATED_ROUTE_POLICY_MUTATION_DENIED,
   canonicalStageBranch,
   isReleaseClosureRebuildBranch,
   buildTrustedGitEnvironment,
@@ -1294,6 +1412,7 @@ module.exports = {
   isGenericDelegatedGovernanceAuthorizationPath,
   isValidGenericDelegatedGovernanceAuthorization,
   evaluateDelegatedGovernanceAuthorizationProposal,
+  validateDelegatedRoutePolicyMutation,
   evaluateTrustedDelegatedGovernanceBranch,
   isAuthorizedDelegatedGovernanceBranch,
   isAuthorizedImplementationBranch,
@@ -1311,187 +1430,3 @@ module.exports = {
   evaluateAuthorizedOpenSourceWorkPackageScope:
     openSourceWorkPackagePolicy.evaluateAuthorizedOpenSourceWorkPackageScope
 };
-
-const DELEGATED_ROUTE_POLICY_PATH = 'governance/layered-ci/wp0-routing-policy.json';
-const DELEGATED_ROUTE_POLICY_MUTATION_DENIED = 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED';
-
-function delegatedRoutePolicyMutationDenied(details = {}) {
-  return Object.freeze({
-    pass: false,
-    reasonCode: DELEGATED_ROUTE_POLICY_MUTATION_DENIED,
-    declaredPaths: Object.freeze([]),
-    ...details
-  });
-}
-
-function resolveDelegatedRouteBootstrapDeclaration(authorization) {
-  if (!authorization
-    || typeof authorization !== 'object'
-    || Array.isArray(authorization)
-    || authorization.implementation?.genericRouteMutationGuardRequired !== true) return null;
-  const shapes = [
-    {
-      pathField: 'bootstrapPaths',
-      countField: 'bootstrapPathCount',
-      digestField: 'bootstrapPathSetSha256'
-    },
-    {
-      pathField: 'futureProductBootstrapPaths',
-      countField: 'futureProductBootstrapPathCount',
-      digestField: 'futureProductBootstrapPathSetSha256'
-    }
-  ];
-  const present = shapes.filter(shape => Object.prototype.hasOwnProperty.call(authorization, shape.pathField));
-  if (present.length !== 1) return null;
-  const shape = present[0];
-  const rawPaths = authorization[shape.pathField];
-  if (!Array.isArray(rawPaths) || rawPaths.length === 0 || !rawPaths.every(isExactAdditionalPath)) return null;
-  const paths = normalizeChangedFiles(rawPaths);
-  if (paths.length !== rawPaths.length
-    || authorization[shape.countField] !== paths.length
-    || authorization[shape.digestField] !== workPackageChangedFilesSha256(paths)) return null;
-  return Object.freeze({
-    ...shape,
-    paths: Object.freeze([...paths])
-  });
-}
-
-function validateDelegatedRoutePolicyMutation(options = {}) {
-  const authorization = options.authorization;
-  const basePolicy = options.basePolicy;
-  const candidatePolicy = options.candidatePolicy;
-  const declaration = resolveDelegatedRouteBootstrapDeclaration(authorization);
-  if (!declaration
-    || !basePolicy
-    || typeof basePolicy !== 'object'
-    || Array.isArray(basePolicy)
-    || !candidatePolicy
-    || typeof candidatePolicy !== 'object'
-    || Array.isArray(candidatePolicy)
-    || !Array.isArray(basePolicy.productExactPaths)
-    || !Array.isArray(candidatePolicy.productExactPaths)) {
-    return delegatedRoutePolicyMutationDenied();
-  }
-
-  const baseExact = normalizeChangedFiles(basePolicy.productExactPaths);
-  const candidateExact = normalizeChangedFiles(candidatePolicy.productExactPaths);
-  if (baseExact.length !== basePolicy.productExactPaths.length
-    || candidateExact.length !== candidatePolicy.productExactPaths.length
-    || declaration.paths.some(repositoryPath => baseExact.includes(repositoryPath))) {
-    return delegatedRoutePolicyMutationDenied({ declaredPaths: declaration.paths });
-  }
-
-  const baseWithoutExact = { ...basePolicy };
-  const candidateWithoutExact = { ...candidatePolicy };
-  delete baseWithoutExact.productExactPaths;
-  delete candidateWithoutExact.productExactPaths;
-  if (!sameJson(baseWithoutExact, candidateWithoutExact)) {
-    return delegatedRoutePolicyMutationDenied({ declaredPaths: declaration.paths });
-  }
-
-  const expectedExact = normalizeChangedFiles([...baseExact, ...declaration.paths]);
-  if (!sameJson(candidateExact, expectedExact)) {
-    return delegatedRoutePolicyMutationDenied({ declaredPaths: declaration.paths });
-  }
-
-  return Object.freeze({
-    pass: true,
-    reasonCode: null,
-    declaredPaths: declaration.paths,
-    declarationField: declaration.pathField
-  });
-}
-
-const evaluateTrustedDelegatedGovernanceBranchWithoutRoutePolicyGuard = evaluateTrustedDelegatedGovernanceBranch;
-evaluateTrustedDelegatedGovernanceBranch = function evaluateTrustedDelegatedGovernanceBranchWithRoutePolicyGuard(options = {}) {
-  const result = evaluateTrustedDelegatedGovernanceBranchWithoutRoutePolicyGuard(options);
-  if (!result.pass) return result;
-
-  const trustedMainHead = Object.prototype.hasOwnProperty.call(options, 'trustedMainHead')
-    ? options.trustedMainHead
-    : defaultTrustedMainHead(options);
-  const evaluatedHead = Object.prototype.hasOwnProperty.call(options, 'evaluatedHead')
-    ? options.evaluatedHead
-    : defaultTrustedHead(options);
-  const authorization = options.loadAuthorizationAtTrustedHead
-    ? options.loadAuthorizationAtTrustedHead(result.authorizationPath)
-    : defaultAuthorizationAtCommit(trustedMainHead, result.authorizationPath, options);
-  if (authorization?.implementation?.genericRouteMutationGuardRequired !== true) return result;
-
-  const declaration = resolveDelegatedRouteBootstrapDeclaration(authorization);
-  if (!declaration
-    || !authorization.implementation.allowedChangedPaths.includes(DELEGATED_ROUTE_POLICY_PATH)) {
-    return Object.freeze({
-      ...result,
-      pass: false,
-      reasonCode: DELEGATED_ROUTE_POLICY_MUTATION_DENIED,
-      authorityMode: null,
-      routePolicyGuardApplied: true
-    });
-  }
-
-  const resolveMergeBases = options.resolveMergeBases
-    || ((left, right) => defaultMergeBases(left, right, options));
-  const mergeBases = resolveMergeBases(trustedMainHead, evaluatedHead);
-  if (!Array.isArray(mergeBases)
-    || mergeBases.length !== 1
-    || !SHA40.test(String(mergeBases[0] || ''))) {
-    return Object.freeze({
-      ...result,
-      pass: false,
-      reasonCode: 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID',
-      authorityMode: null,
-      routePolicyGuardApplied: true
-    });
-  }
-
-  const implementationBase = mergeBases[0];
-  const resolveChangedFiles = options.resolveChangedFilesBetween
-    || ((base, head) => defaultChangedFilesBetween(base, head, options));
-  const changedFiles = resolveChangedFiles(implementationBase, evaluatedHead);
-  const normalized = normalizeChangedFiles(changedFiles);
-  if (!Array.isArray(changedFiles)
-    || normalized.length !== changedFiles.length
-    || !sameJson(normalized, changedFiles)) {
-    return Object.freeze({
-      ...result,
-      pass: false,
-      reasonCode: 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID',
-      authorityMode: null,
-      routePolicyGuardApplied: true
-    });
-  }
-  if (!normalized.includes(DELEGATED_ROUTE_POLICY_PATH)) {
-    return Object.freeze({
-      ...result,
-      routePolicyGuardApplied: false,
-      routePolicyBootstrapPathCount: declaration.paths.length
-    });
-  }
-
-  const loadRepositoryJsonAtCommit = options.loadRepositoryJsonAtCommit
-    || ((commit, repositoryPath) => defaultAuthorizationAtCommit(commit, repositoryPath, options));
-  const guard = validateDelegatedRoutePolicyMutation({
-    authorization,
-    basePolicy: loadRepositoryJsonAtCommit(implementationBase, DELEGATED_ROUTE_POLICY_PATH),
-    candidatePolicy: loadRepositoryJsonAtCommit(evaluatedHead, DELEGATED_ROUTE_POLICY_PATH)
-  });
-  if (!guard.pass) {
-    return Object.freeze({
-      ...result,
-      pass: false,
-      reasonCode: guard.reasonCode,
-      authorityMode: null,
-      routePolicyGuardApplied: true
-    });
-  }
-  return Object.freeze({
-    ...result,
-    routePolicyGuardApplied: true,
-    routePolicyBootstrapPathCount: guard.declaredPaths.length
-  });
-};
-
-module.exports.DELEGATED_ROUTE_POLICY_MUTATION_DENIED = DELEGATED_ROUTE_POLICY_MUTATION_DENIED;
-module.exports.validateDelegatedRoutePolicyMutation = validateDelegatedRoutePolicyMutation;
-module.exports.evaluateTrustedDelegatedGovernanceBranch = evaluateTrustedDelegatedGovernanceBranch;

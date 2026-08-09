@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-DEPENDENCY-IDENTITY-POLICY-HARDENING",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Independent exact-Head review of Presence product authorization PR #190 proved a generic delegated-governance defect: the current dependency modification policy restricts which manifest path may change but does not mechanically restrict dependency name, exact version, dependency section, removals, version changes, or extra additions inside that authorized manifest. This authorization permits a bottom-layer generic repair only. The repair must add an optional exact dependency-identity declaration schema for future delegated authorizations and enforce it against base-to-candidate package-manifest semantics in evaluateTrustedDelegatedGovernanceBranch. Existing trusted authorizations that do not declare dependency identity constraints must remain valid. Presence #190 stays closed/unmerged and will be replaced from fresh main only after this policy hardening is trusted-main code.",
+  "base": {
+    "branch": "main",
+    "commit": "d6d1342d89e5b1edd587ddc65ff817309543c470"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-dependency-identity-policy-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-dependency-identity-policy-authorization.json"
+    ],
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-delegated-dependency-identity-policy",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/implementation-branch-policy.test.js",
+      "tests/wp0/v21-delegated-dependency-policy.test.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "cd56acb77b8718349df7179d69e1dd380963790c50e59ebfcd2230c6553fe784",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "firstCommitMustBeTestOnly": true,
+    "firstCommitAllowedChangedPaths": [
+      "tests/wp0/implementation-branch-policy.test.js",
+      "tests/wp0/v21-delegated-dependency-policy.test.js"
+    ],
+    "firstCommitChangedFileSetSha256": "4fd9032685d449f27d3b1716324ac4a6230bb7c6139c1eb0f64640d906358d82"
+  },
+  "requiredGenericCapability": {
+    "schemaName": "dependencyIdentityPolicy",
+    "optionalForHistoricalCompatibility": true,
+    "whenPresentMustBeEnforced": true,
+    "supportedManifest": "JSON package manifest",
+    "controlledSections": [
+      "dependencies",
+      "devDependencies",
+      "optionalDependencies",
+      "peerDependencies"
+    ],
+    "entryFields": [
+      "path",
+      "section",
+      "name",
+      "version"
+    ],
+    "requirements": [
+      "Each declared path must already be included in dependencyModificationPolicy.allowedDependencyPaths and implementation.allowedChangedPaths.",
+      "Each declared dependency name must be a valid non-empty package key and each version must be an exact non-range string selected by the authorization.",
+      "The candidate manifest may add only the declared path/section/name/version tuples.",
+      "Any undeclared dependency addition is denied.",
+      "Any dependency removal is denied unless a future authorization schema explicitly grants that operation; this P0 schema grants additions only.",
+      "Any version change of a pre-existing dependency is denied.",
+      "Moving a dependency between dependencies/devDependencies/optionalDependencies/peerDependencies is denied.",
+      "Changing the declared dependency section is denied.",
+      "Package-manifest non-dependency semantics are outside this identity helper but remain constrained by the authorization's exact changed-path scope and other permanent contracts.",
+      "The trusted evaluator, not a test-only helper, must invoke the identity guard whenever an effective authorization declares dependencyIdentityPolicy and the corresponding manifest changed."
+    ]
+  },
+  "presenceFinding": {
+    "sourcePr": 190,
+    "reviewedHead": "033f006047e98d68c010b0efaa37f3ce07dfcc68",
+    "coderabbitCommentId": 5231053944,
+    "severity": "P1",
+    "disposition": "VALID_ROOT_POLICY_DEFECT",
+    "requiredSuccessor": "Fresh Presence product authorization after this policy hardening is ordinary-merged to trusted main; no amend/rebase/force-push of #190."
+  },
+  "failureFirst": {
+    "requiredCausalRed": [
+      "A delegated candidate may currently add the authorized livekit-client dependency plus an undeclared second dependency and still pass the path-only policy.",
+      "A delegated candidate may currently authorize the manifest path but use a different livekit-client version and still pass the path-only policy.",
+      "A dependency may currently move between dependency sections without a generic identity-level denial.",
+      "The permanent evaluator currently has no generic base/candidate package-manifest semantic guard tied to a dependencyIdentityPolicy declaration."
+    ],
+    "requiredGreen": [
+      "Exact declared addition passes.",
+      "Extra dependency addition fails closed.",
+      "Wrong version fails closed.",
+      "Wrong section fails closed.",
+      "Dependency move fails closed.",
+      "Removal/version mutation of an existing dependency fails closed.",
+      "Malformed/duplicate/ambiguous identity declarations fail closed.",
+      "Historical delegated authorities without dependencyIdentityPolicy remain valid.",
+      "evaluateTrustedDelegatedGovernanceBranch invokes the guard for changed declared manifests."
+    ]
+  },
+  "requiredSequence": [
+    "authorization exact Head passes Stage/Layered/ACV2 and independent review",
+    "authorization ordinary two-parent merges to trusted main",
+    "create fix/v21-delegated-dependency-identity-policy from that exact merge commit",
+    "first implementation commit changes only the two authorized test paths and records causal RED",
+    "implement the generic exact dependency-identity declaration validator and evaluator wiring in shared/release/implementationBranchPolicy.js",
+    "seal Stage/Layered/ACV2 and independent review GREEN",
+    "ordinary two-parent merge the policy hardening",
+    "build a fresh Presence product authorization successor from the resulting trusted main"
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "ordinaryTwoParentMergeRequired": true,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true,
+    "gateWeakeningForbidden": true
+  }
+}
