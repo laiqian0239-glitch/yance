@@ -4,7 +4,7 @@
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRESENCE-AVATAR-P0-ROUTE-BOOTSTRAP",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Bootstrap only the exact previously-unrouted Presence / Avatar supply-chain, runtime-config, license, visible Element Presence UI and replayable upstream-seam paths needed by the later V21-PRESENCE-AVATAR-P0-V1 authorization. This prerequisite creates no Presence product authority. Mature OSS remains authoritative: LiveKit owns WebRTC/realtime room and stream transport; CyberVerse owns digital-human/avatar/lip-sync runtime; SoulX-FlashHead remains an upstream avatar model implementation. No Yance WebRTC server, realtime transport framework, avatar runtime, lip-sync engine or second digital-human state machine is authorized.",
+  "reason": "Bootstrap only the exact previously-unrouted Presence / Avatar supply-chain, runtime-config, license, visible Element Presence UI and replayable upstream-seam paths needed by the later V21-PRESENCE-AVATAR-P0-V1 authorization. This prerequisite also closes the generic delegated route-bootstrap mutation-policy gap: a branch authorized to edit wp0-routing-policy.json must be mechanically prevented from changing anything except the authorization's frozen exact productExactPaths additions. This creates no Presence product authority. Mature OSS remains authoritative: LiveKit owns WebRTC/realtime room and stream transport; CyberVerse owns digital-human/avatar/lip-sync runtime; SoulX-FlashHead remains an upstream avatar model implementation. No Yance WebRTC server, realtime transport framework, avatar runtime, lip-sync engine or second digital-human state machine is authorized.",
   "base": {
     "branch": "main",
     "commit": "ed90d68d651572e517591b0ad2707166dee518d0"
@@ -63,14 +63,21 @@
     "branch": "fix/v21-presence-avatar-p0-route-bootstrap",
     "allowedChangedPaths": [
       "governance/layered-ci/wp0-routing-policy.json",
-      "tests/layered-ci/v21-presence-avatar-p0-routing.test.js"
+      "shared/release/implementationBranchPolicy.js",
+      "tests/layered-ci/v21-presence-avatar-p0-routing.test.js",
+      "tests/wp0/implementation-branch-policy.test.js"
     ],
-    "approvedChangedFileCount": 2,
-    "approvedChangedFileSetSha256": "1c320e243f504eca60c7d128a8d2105e4170edc59bba1300a205d0bc1af9cd2e",
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "03af3b7e4ed82129b22059f68301d76026a840cb20114fe0a4411f0d965f4201",
     "newDependencyAllowed": false,
     "workflowModificationAllowed": false,
     "productImplementationAllowed": false,
-    "firstCommitMustBeTestOnly": true
+    "firstCommitMustBeTestOnly": true,
+    "firstCommitAllowedChangedPaths": [
+      "tests/layered-ci/v21-presence-avatar-p0-routing.test.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "genericRouteMutationGuardRequired": true
   },
   "futureProductBootstrapPaths": [
     "config/upstreams/v21-presence-avatar-p0.json",
@@ -145,19 +152,22 @@
     "mediaImplementationForbidden": true
   },
   "mandatoryFailureFirstContracts": [
-    "The first route-bootstrap implementation commit changes only tests/layered-ci/v21-presence-avatar-p0-routing.test.js.",
+    "The first route-bootstrap implementation commit changes only the two authorized test paths and contains zero production/policy code.",
     "Before policy implementation each of the twelve exact Presence bootstrap paths fails closed as WP0_ROUTE_UNKNOWN_PATH.",
+    "Before generic policy implementation a delegated route-bootstrap candidate that changes productPrefixes, governance paths, unrelated productExactPaths, removes existing routes, or otherwise changes wp0-routing-policy.json beyond the frozen exact additions is rejected.",
     "After the root fix each of the twelve exact Presence bootstrap paths selects PRODUCT_WP0.",
+    "The generic delegated implementation guard compares route policy semantics against the authorization merge base and permits only adding the authorization's exact futureProductBootstrapPaths to productExactPaths; every other routing-policy mutation is RED.",
     "The root fix adds only the twelve exact literals to productExactPaths and does not add config/, runtime/, third_party/, upstream-patches/, integration/ or any other broad prefix.",
     "Adjacent unregistered Presence, LiveKit, CyberVerse, Element Presence UI or avatar-like paths and malformed repository paths continue to fail closed.",
-    "The route implementation may not add dependencies, runtime code, product code, workflow changes or Presence implementation authority.",
-    "The final route-bootstrap changed-path set remains exactly two paths with SHA-256 1c320e243f504eca60c7d128a8d2105e4170edc59bba1300a205d0bc1af9cd2e."
+    "The route implementation may not add dependencies, runtime code, workflow changes or Presence product implementation authority.",
+    "The final route-bootstrap changed-path set remains exactly four paths with SHA-256 03af3b7e4ed82129b22059f68301d76026a840cb20114fe0a4411f0d965f4201."
   ],
   "requiredSequence": [
     "Authorization exact Head passes applicable governance gates with zero unresolved P0/P1 findings.",
     "Authorization PR merges to main by ordinary two-parent merge without history rewrite.",
     "Implementation branch is created from that exact authorization merge commit.",
-    "A test-only commit records the twelve-path causal RED before routing policy changes.",
+    "A test-only commit on the two authorized test paths records both twelve-path route RED and generic route-policy mutation-guard RED.",
+    "Generic delegated branch policy is fixed so route-bootstrap authorizations mechanically restrict routing-policy content changes to the exact frozen productExactPaths additions.",
     "Only the twelve exact Presence literals are added to productExactPaths.",
     "Implementation exact Head passes Stage, Layered and ACV2 gates.",
     "Final route-bootstrap implementation merge uses ordinary merge."
