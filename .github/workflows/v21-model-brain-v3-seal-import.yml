@@ -1,0 +1,131 @@
+name: V21 Model Brain V3 sealed transport import
+
+on:
+  push:
+    branches:
+      - transport/v21-model-brain-p0-v3-seal
+    paths:
+      - V21-MODEL-BRAIN-P0-V3-final-seal-2026-08-09.tar.gz
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v21-model-brain-p0-v3-seal-import
+  cancel-in-progress: false
+
+jobs:
+  import-sealed-successor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout transport branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify, test, commit, and fast-forward exact implementation branch
+        shell: bash
+        env:
+          ARCHIVE: V21-MODEL-BRAIN-P0-V3-final-seal-2026-08-09.tar.gz
+          ARCHIVE_SHA256: ecef40610b171f959d4deacfe3ac698fd35222662b142506603e010e236478dd
+          EXPECTED_PARENT: 2c70cca77360cc350560a2d596530a4fb1cc02a6
+          TARGET_BRANCH: product/v21-model-brain-p0-v3
+          EXPECTED_PATHSET_SHA256: 23bf7a688309f488870f82bb9e99b4db4f55eb0c133dc66c3729af55bc3ea401
+        run: |
+          set -euo pipefail
+
+          test -f "$ARCHIVE"
+          printf '%s  %s\n' "$ARCHIVE_SHA256" "$ARCHIVE" | sha256sum -c -
+          cp "$ARCHIVE" /tmp/v21-model-brain-final-seal.tar.gz
+
+          rm -rf /tmp/v21-model-brain-final-seal
+          mkdir -p /tmp/v21-model-brain-final-seal
+          tar -xzf /tmp/v21-model-brain-final-seal.tar.gz -C /tmp/v21-model-brain-final-seal
+          SEAL_ROOT=/tmp/v21-model-brain-final-seal/V21-MODEL-BRAIN-P0-V3-final-seal-2026-08-09
+          test -f "$SEAL_ROOT/SEAL_MANIFEST.json"
+          test -d "$SEAL_ROOT/files"
+
+          python3 - "$SEAL_ROOT" "$EXPECTED_PARENT" "$TARGET_BRANCH" "$EXPECTED_PATHSET_SHA256" <<'PY'
+          import hashlib, json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          expected_parent, target_branch, expected_path_hash = sys.argv[2:]
+          manifest = json.loads((root / 'SEAL_MANIFEST.json').read_text(encoding='utf-8'))
+          assert manifest['workPackage'] == 'V21-MODEL-BRAIN-P0-V3'
+          assert manifest['expectedParent'] == expected_parent
+          assert manifest['targetBranch'] == target_branch
+          assert manifest['authorizedPathCount'] == 40
+          assert manifest['authorizedPathSetSha256'] == expected_path_hash
+          assert manifest['writeCount'] == 39
+          assert manifest['deleteCount'] == 1
+          paths = []
+          for entry in manifest['entries']:
+              path = entry['path']
+              paths.append(path)
+              if entry['action'] == 'delete':
+                  continue
+              payload = (root / 'files' / path).read_bytes()
+              assert len(payload) == entry['bytes'], path
+              assert hashlib.sha256(payload).hexdigest() == entry['sha256'], path
+          canonical = '\n'.join(sorted(set(paths))) + '\n'
+          assert len(set(paths)) == 40
+          assert hashlib.sha256(canonical.encode()).hexdigest() == expected_path_hash
+          assert manifest['deletions'] == ['frontend/js/r32-route-draft-authority.js']
+          print('seal manifest and 40-path authorization verified')
+          PY
+
+          git fetch origin "$TARGET_BRANCH"
+          REMOTE_HEAD="$(git rev-parse "origin/$TARGET_BRANCH")"
+          test "$REMOTE_HEAD" = "$EXPECTED_PARENT"
+          git checkout --detach "$EXPECTED_PARENT"
+          git reset --hard "$EXPECTED_PARENT"
+          git clean -fdx
+
+          cp -a "$SEAL_ROOT/files/." ./
+          while IFS= read -r path; do
+            test -n "$path" || continue
+            rm -f -- "$path"
+          done < "$SEAL_ROOT/DELETE_PATHS.txt"
+
+          node --test \
+            tests/wp0/v21-model-brain-p0.test.js \
+            tests/wp0/v21-model-brain-retirement.test.js \
+            tests/wp0/v21-model-brain-runtime.test.js \
+            tests/wp0/v21-model-brain-ui.test.js
+
+          while IFS= read -r path; do
+            if [[ "$path" == *.js && -f "$path" ]]; then
+              node --check "$path" >/dev/null
+            fi
+          done < <(python3 - "$SEAL_ROOT/SEAL_MANIFEST.json" <<'PY'
+          import json, sys
+          for entry in json.load(open(sys.argv[1], encoding='utf-8'))['entries']:
+              print(entry['path'])
+          PY
+          )
+
+          python3 -m py_compile \
+            runtime/model-brain/yance_litellm_worker.py \
+            runtime/model-brain/generate_runtime_sbom.py
+          find runtime -type d -name __pycache__ -prune -exec rm -rf {} +
+          git diff --check
+
+          git add -A
+          python3 - "$EXPECTED_PATHSET_SHA256" <<'PY'
+          import hashlib, subprocess, sys
+          expected = sys.argv[1]
+          raw = subprocess.check_output(['git','diff','--cached','--name-only','-z'])
+          paths = sorted(set(item.decode() for item in raw.split(b'\0') if item))
+          canonical = '\n'.join(paths) + '\n'
+          actual = hashlib.sha256(canonical.encode()).hexdigest()
+          print(f'staged changed paths={len(paths)} pathset_sha256={actual}')
+          assert len(paths) == 40
+          assert actual == expected
+          PY
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(model-brain): integrate sealed LiteLLM Model Brain V3'
+          NEW_HEAD="$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT"
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+          echo "new_head=$NEW_HEAD"
