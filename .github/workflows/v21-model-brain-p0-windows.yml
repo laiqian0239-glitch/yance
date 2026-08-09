@@ -45,15 +45,21 @@ jobs:
       - name: Reject proxy server enterprise and Rust native payload
         shell: pwsh
         run: |
-          $proxyRoot = (Resolve-Path 'dist/model-brain-runtime/python/Lib/site-packages/litellm/proxy').Path
-          $allowedProxyFiles = @('__init__.py', '_types.py', 'types_utils/utils.py')
+          $litellmRoot = (Resolve-Path 'dist/model-brain-runtime/python/Lib/site-packages/litellm').Path
+          $proxyRoot = Join-Path $litellmRoot 'proxy'
+          $allowedProxyFiles = @(
+            'proxy/__init__.py',
+            'proxy/_types.py',
+            'proxy/types_utils/utils.py',
+            'proxy/spend_tracking/cold_storage_handler.py'
+          )
           $actualProxyFiles = @(Get-ChildItem $proxyRoot -Recurse -File | ForEach-Object {
-            [IO.Path]::GetRelativePath($proxyRoot, $_.FullName).Replace('\','/')
+            [IO.Path]::GetRelativePath($litellmRoot, $_.FullName).Replace('\','/')
           })
           $unexpectedProxyFiles = @($actualProxyFiles | Where-Object { $_ -notin $allowedProxyFiles })
           $missingProxyFiles = @($allowedProxyFiles | Where-Object { $_ -notin $actualProxyFiles })
           if ($unexpectedProxyFiles.Count -gt 0 -or $missingProxyFiles.Count -gt 0) {
-            throw "sealed shared proxy module allowlist mismatch; unexpected=$($unexpectedProxyFiles -join ','); missing=$($missingProxyFiles -join ',')"
+            throw "sealed shared proxy import allowlist mismatch; unexpected=$($unexpectedProxyFiles -join ','); missing=$($missingProxyFiles -join ',')"
           }
           if (Get-ChildItem dist/model-brain-runtime -Recurse -File | Where-Object { $_.FullName -match 'enterprise|proxy_server|litellm-proxy-extras|rust_bridge[\\/]+_native\.(pyd|dll|so)' }) { throw 'forbidden proxy server enterprise or Rust native payload' }
       - name: Offline Router ComplexityRouter strict tag_filtering gate
