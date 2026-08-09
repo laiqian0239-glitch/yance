@@ -104,6 +104,10 @@ async function handleSendConfirmed(wrapperEvent) {
         error.code = currentGuard.error;
         throw error;
       }
+      const generationMetadata = current.outbox.metadata?.generationMetadata || {};
+      const modelBrainExecutionEvidence = current.outbox.metadata?.modelBrainExecutionEvidence
+        || generationMetadata.modelBrainExecutionEvidence
+        || {};
       const queued = await sendQueueService.enqueueText({
         platform: current.outbox.platform || current.conversation.platform,
         accountId: current.outbox.accountId,
@@ -115,10 +119,14 @@ async function handleSendConfirmed(wrapperEvent) {
         outboxId,
         approvalReceiptId: clean(current.outbox.approvalReceiptId || current.outbox.metadata?.approvalReceiptId),
         targetLanguage: clean(current.outbox.targetLanguage || current.outbox.metadata?.targetLanguageCode || current.outbox.metadata?.targetLanguage),
-        qualityRouteReceipt: current.outbox.qualityRouteReceipt || current.outbox.metadata?.qualityRouteReceipt || current.outbox.metadata?.generationMetadata?.qualityRouteReceipt || {},
-        qualityTier: clean(current.outbox.qualityTier || current.outbox.metadata?.qualityTier || current.outbox.metadata?.generationMetadata?.qualityTier),
-        emergencyMode: current.outbox.emergencyMode === true || current.outbox.metadata?.emergencyMode === true || current.outbox.metadata?.generationMetadata?.emergencyMode === true,
-        learningEligible: current.outbox.learningEligible !== false && current.outbox.metadata?.learningEligible !== false && current.outbox.metadata?.generationMetadata?.learningEligible !== false
+        replySource: clean(current.outbox.metadata?.replySource || current.outbox.source),
+        replyTask: clean(current.outbox.metadata?.replyTask || generationMetadata.replyTask),
+        modelId: clean(current.outbox.metadata?.modelId || generationMetadata.modelId),
+        modelBrainExecutionEvidence,
+        qualityRouteReceipt: current.outbox.qualityRouteReceipt || current.outbox.metadata?.qualityRouteReceipt || generationMetadata.qualityRouteReceipt || {},
+        qualityTier: clean(current.outbox.qualityTier || current.outbox.metadata?.qualityTier || generationMetadata.qualityTier),
+        emergencyMode: current.outbox.emergencyMode === true || current.outbox.metadata?.emergencyMode === true || generationMetadata.emergencyMode === true,
+        learningEligible: current.outbox.learningEligible !== false && current.outbox.metadata?.learningEligible !== false && generationMetadata.learningEligible !== false
       });
       await storeManager.dispatch({
         type: 'OUTBOX_QUEUE_LINKED',
@@ -133,7 +141,11 @@ async function handleSendConfirmed(wrapperEvent) {
           qualityTier: queued.qualityTier,
           emergencyMode: queued.emergencyMode,
           learningEligible: queued.learningEligible,
-          qualityRouteReceipt: queued.qualityRouteReceipt || {}
+          qualityRouteReceipt: queued.qualityRouteReceipt || {},
+          modelBrainExecutionEvidence: queued.modelBrainExecutionEvidence || {},
+          modelBrainEvidenceValid: queued.modelBrainEvidenceValid === true,
+          modelBrainEvidenceReasonCode: clean(queued.modelBrainEvidenceReasonCode),
+          modelBrainEvidenceSha256: clean(queued.modelBrainEvidenceSha256)
         }
       });
       const terminal = await sendQueueService.waitForTerminal(
