@@ -101,8 +101,7 @@ class ModelBrainRuntime {
     child.stdout.on('data', chunk => this.onStdout(chunk));
     child.stderr.setEncoding('utf8');
     child.stderr.on('data', chunk => {
-      const message = clean(chunk).slice(0, 800);
-      if (message) this.lastError = fail('MODEL_BRAIN_RUNTIME_STDERR', message);
+      if (clean(chunk)) this.lastError = fail('MODEL_BRAIN_RUNTIME_STDERR', 'Model Brain runtime emitted stderr');
     });
     child.once('exit', (code, signal) => this.onExit(code, signal));
     child.once('error', error => this.onExit(null, error?.code || 'spawn-error', error));
