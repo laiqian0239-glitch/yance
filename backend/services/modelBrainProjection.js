@@ -20,10 +20,25 @@ const LOGICAL_GROUPS = Object.freeze({
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function list(value) { return [...new Set((Array.isArray(value) ? value : []).map(clean).filter(Boolean))]; }
+function endpointHost(value) {
+  const endpoint = clean(value);
+  if (!endpoint) return '';
+  try {
+    const parsed = new URL(endpoint.includes('://') ? endpoint : `http://${endpoint}`);
+    return clean(parsed.hostname).toLowerCase().replace(/^\[|\]$/gu, '');
+  } catch (_) {
+    return '';
+  }
+}
+function isLoopbackHost(hostname) {
+  const host = clean(hostname).toLowerCase();
+  return host === 'localhost' || host === '::1' || /^127(?:\.\d{1,3}){3}$/u.test(host);
+}
 function sourceType(model = {}) {
-  const provider = clean(model.provider || model.kind).toLowerCase();
-  const endpoint = clean(model.endpoint || model.baseUrl).toLowerCase();
-  return provider === 'ollama' || endpoint.includes('127.0.0.1') || endpoint.includes('localhost') ? 'local' : 'cloud';
+  const providerValue = clean(model.provider || model.kind).toLowerCase();
+  const endpoint = clean(model.endpoint || model.baseUrl);
+  if (!endpoint && providerValue === 'ollama') return 'local';
+  return isLoopbackHost(endpointHost(endpoint)) ? 'local' : 'cloud';
 }
 function provider(model = {}) { return clean(model.provider || model.kind || model.providerId || 'unknown').toLowerCase(); }
 function contextLength(model = {}) {
