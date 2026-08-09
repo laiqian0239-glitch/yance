@@ -102,19 +102,18 @@ $CosyRoot = Join-Path $OutputRoot 'cosyvoice'
 $SenseRoot = Join-Path $OutputRoot 'sensevoice'
 $ToolRoot = Join-Path $WorkRoot 'tools'
 $SenseExtract = Join-Path $WorkRoot 'sensevoice-extract'
-$RuntimePython = Join-Path $CosyRoot 'python'
-$BasePythonRoot = Join-Path $WorkRoot 'python-base'
+$PythonRoot = Join-Path $CosyRoot 'python'
 $ProjectRoot = Join-Path $WorkRoot 'cosyvoice-project'
-New-Item -ItemType Directory -Path $CosyRoot, $SenseRoot, $ToolRoot, $SenseExtract, $BasePythonRoot, $ProjectRoot | Out-Null
+New-Item -ItemType Directory -Path $CosyRoot, $SenseRoot, $ToolRoot, $SenseExtract, $ProjectRoot | Out-Null
 
 Expand-Archive -LiteralPath $UvZip -DestinationPath $ToolRoot
 $UvExe = (Get-ChildItem -LiteralPath $ToolRoot -Filter 'uv.exe' -File -Recurse | Select-Object -First 1).FullName
 if (-not $UvExe) { throw 'uv.exe was not found in the verified asset' }
 
-Invoke-Checked 'tar.exe' @('-xf', $PythonTar, '-C', $BasePythonRoot) 'extract verified CPython asset'
-$BasePython = Join-Path $BasePythonRoot 'python\python.exe'
-if (-not (Test-Path -LiteralPath $BasePython -PathType Leaf)) { throw "standalone python.exe missing after extraction: $BasePython" }
-$PythonVersion = (& $BasePython -I -c 'import platform; print(platform.python_version())').Trim()
+Invoke-Checked 'tar.exe' @('-xf', $PythonTar, '-C', $CosyRoot) 'extract verified CPython asset'
+$PythonExe = Join-Path $PythonRoot 'python.exe'
+if (-not (Test-Path -LiteralPath $PythonExe -PathType Leaf)) { throw "standalone python.exe missing after extraction: $PythonExe" }
+$PythonVersion = (& $PythonExe -I -c 'import platform; print(platform.python_version())').Trim()
 if ($PythonVersion -ne $CpythonVersion) { throw "CPython version mismatch: expected=$CpythonVersion actual=$PythonVersion" }
 
 Copy-Item -LiteralPath (Join-Path $SourceRoot 'runtime\voice-brain\cosyvoice\pyproject.toml') -Destination $ProjectRoot
@@ -122,19 +121,16 @@ Copy-Item -LiteralPath (Join-Path $SourceRoot 'runtime\voice-brain\cosyvoice\uv.
 $LockPath = Join-Path $ProjectRoot 'uv.lock'
 $LockSha256 = (Get-FileHash -LiteralPath $LockPath -Algorithm SHA256).Hash.ToLowerInvariant()
 
-$OldUvProjectEnvironment = $env:UV_PROJECT_ENVIRONMENT
+$RequirementsPath = Join-Path $WorkRoot 'cosyvoice-locked-requirements.txt'
 $OldUvCacheDir = $env:UV_CACHE_DIR
 try {
-  $env:UV_PROJECT_ENVIRONMENT = $RuntimePython
   $env:UV_CACHE_DIR = $UvCache
-  Invoke-Checked $UvExe @('sync', '--project', $ProjectRoot, '--frozen', '--offline', '--no-dev', '--no-editable', '--python', $BasePython) 'materialize CosyVoice dependency closure from exact uv.lock'
+  Invoke-Checked $UvExe @('export', '--project', $ProjectRoot, '--frozen', '--offline', '--no-dev', '--format', 'requirements-txt', '--output-file', $RequirementsPath) 'export exact CosyVoice uv.lock closure'
+  Invoke-Checked $UvExe @('pip', 'sync', '--python', $PythonExe, '--offline', '--require-hashes', $RequirementsPath) 'materialize exact CosyVoice closure into sealed CPython'
 } finally {
-  if ($null -eq $OldUvProjectEnvironment) { Remove-Item Env:UV_PROJECT_ENVIRONMENT -ErrorAction SilentlyContinue } else { $env:UV_PROJECT_ENVIRONMENT = $OldUvProjectEnvironment }
   if ($null -eq $OldUvCacheDir) { Remove-Item Env:UV_CACHE_DIR -ErrorAction SilentlyContinue } else { $env:UV_CACHE_DIR = $OldUvCacheDir }
 }
-$RuntimePythonExe = Join-Path $RuntimePython 'Scripts\python.exe'
-if (-not (Test-Path -LiteralPath $RuntimePythonExe -PathType Leaf)) { throw "CosyVoice venv python missing: $RuntimePythonExe" }
-$WhisperVersion = (& $RuntimePythonExe -I -c 'import importlib.metadata; print(importlib.metadata.version("openai-whisper"))').Trim()
+$WhisperVersion = (& $PythonExe -I -c 'import importlib.metadata; print(importlib.metadata.version("openai-whisper"))').Trim()
 if ($WhisperVersion -ne '20231117') { throw "openai-whisper closure mismatch: expected=20231117 actual=$WhisperVersion" }
 
 $SourceDestination = Join-Path $CosyRoot 'source'
@@ -172,12 +168,12 @@ foreach ($license in @(
 
 $OldPythonPath = $env:PYTHONPATH
 try {
-  $env:PYTHONPATH = $SourceDestination
-  Invoke-Checked $RuntimePythonExe @('-I', '-c', 'from cosyvoice.cli.cosyvoice import AutoModel; print("CosyVoice import ok")') 'CosyVoice sealed import self-test'
+  $env:PYTHONPATH = "$SourceDestination;$SourceDestination\third_party\Matcha-TTS"
+  Invoke-Checked $PythonExe @('-I', '-c', 'from cosyvoice.cli.cosyvoice import AutoModel; print("CosyVoice import ok")') 'CosyVoice sealed import self-test'
 } finally {
   if ($null -eq $OldPythonPath) { Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue } else { $env:PYTHONPATH = $OldPythonPath }
 }
-Invoke-Checked $RuntimePythonExe @('-I', (Join-Path $CosyRoot 'generate_runtime_sbom.py'), '--output', (Join-Path $CosyRoot 'runtime-sbom.cdx.json'), '--lock-sha256', $LockSha256) 'Voice runtime SBOM generation'
+Invoke-Checked $PythonExe @('-I', (Join-Path $CosyRoot 'generate_runtime_sbom.py'), '--output', (Join-Path $CosyRoot 'runtime-sbom.cdx.json'), '--lock-sha256', $LockSha256) 'Voice runtime SBOM generation'
 Remove-Item -LiteralPath (Join-Path $CosyRoot 'generate_runtime_sbom.py') -Force
 
 Get-ChildItem -LiteralPath $OutputRoot -Directory -Recurse -Force | Where-Object { $_.Name -in @('__pycache__', '.pytest_cache', '.mypy_cache', '.ruff_cache') } | Sort-Object FullName -Descending | Remove-Item -Recurse -Force
