@@ -495,3 +495,25 @@ test('trusted delegated evaluator rejects unrelated existing direct npm lock art
   assert.equal(result.pass, false, JSON.stringify(result));
   assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
 });
+
+test('trusted delegated evaluator rejects an installed peer that violates the exact authorized peer version', () => {
+  const peerIdentity = dependencyIdentityPolicy([{
+    path: MANIFEST_PATH,
+    section: 'peerDependencies',
+    name: 'livekit-client',
+    version: '2.21.0'
+  }]);
+  const candidateManifest = baseManifest();
+  candidateManifest.peerDependencies = { 'livekit-client': '2.21.0' };
+  const candidateLockfile = baseLockfile();
+  candidateLockfile.packages[''].peerDependencies = { 'livekit-client': '2.21.0' };
+  candidateLockfile.packages['node_modules/livekit-client'] = { version: '2.20.0' };
+
+  const result = evaluateTrustedDelegatedGovernanceBranch(trustedOptionsWithLockfile({
+    candidateManifest,
+    candidateLockfile,
+    auth: authorizationWithLockfile(peerIdentity)
+  }));
+  assert.equal(result.pass, false, JSON.stringify(result));
+  assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
+});
