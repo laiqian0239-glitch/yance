@@ -84,4 +84,8 @@ test('V21 Persona P0 V2: provenance adopts complete setFloatingPrompt 324-392 an
   assert.match(serialized, /b0a20c23230a885f272a1ffc3f32a0630616ef2d1f98a77c91b064f00a6990f6/);
   assert.doesNotMatch(serialized, /331-361/);
   assert.ok(entries.length >= 0);
+
+  const { core } = loadAuthorizedRuntime();
+  assert.equal(typeof core.createFloatingPromptRuntime, 'function', 'complete upstream setFloatingPrompt must be exposed through a lexical runtime factory');
+  assert.equal(core.resolveFloatingPromptInjection, undefined, 'V1 handwritten floating-prompt equivalent must not remain an authority');
 });
