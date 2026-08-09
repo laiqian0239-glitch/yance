@@ -750,6 +750,43 @@ function validateDelegatedDependencyIdentityMutation(options = {}) {
   });
 }
 
+function dependencyManifestPathForControlPath(repositoryPath) {
+  const normalized = normalizeRepositoryPath(repositoryPath);
+  if (!normalized || !isDependencyControlPath(normalized)) return '';
+  if (path.posix.basename(normalized) === 'package.json') return normalized;
+  const directory = path.posix.dirname(normalized);
+  return directory === '.' ? 'package.json' : `${directory}/package.json`;
+}
+
+function isNpmDependencyLockPath(repositoryPath) {
+  const filename = path.posix.basename(repositoryPath);
+  return filename === 'package-lock.json' || filename === 'npm-shrinkwrap.json';
+}
+
+function dependencySectionProjection(document) {
+  if (!isPlainJsonObject(document)) return null;
+  const projection = {};
+  for (const section of DEPENDENCY_IDENTITY_SECTIONS) {
+    if (!Object.prototype.hasOwnProperty.call(document, section)) continue;
+    if (!isPlainJsonObject(document[section])) return null;
+    projection[section] = document[section];
+  }
+  return projection;
+}
+
+function validateDelegatedNpmLockfileClosure(candidateManifest, candidateLockfile) {
+  if (!isPlainJsonObject(candidateManifest)
+    || !isPlainJsonObject(candidateLockfile)
+    || ![2, 3].includes(candidateLockfile.lockfileVersion)
+    || !isPlainJsonObject(candidateLockfile.packages)
+    || !isPlainJsonObject(candidateLockfile.packages[''])) return false;
+  const manifestProjection = dependencySectionProjection(candidateManifest);
+  const lockfileProjection = dependencySectionProjection(candidateLockfile.packages['']);
+  return Boolean(manifestProjection
+    && lockfileProjection
+    && sameJsonSemantics(manifestProjection, lockfileProjection));
+}
+
 function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
   const branch = String(options.branch || '');
   const trustedMainHead = Object.prototype.hasOwnProperty.call(options, 'trustedMainHead')
@@ -1093,38 +1130,61 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
         unauthorizedPaths: Object.freeze([])
       });
     }
-    const declaredPaths = new Set(identityPolicy.entries.map(entry => entry.path));
+    const denyDependencyIdentityMutation = () => Object.freeze({
+      pass: false,
+      reasonCode: DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED,
+      authorityMode: null,
+      authorizationPath: match.authorizationPath,
+      authorizationMergeCommit: match.mergeCommit,
+      reviewedAuthorizationHead: match.reviewedHead,
+      unauthorizedPaths: Object.freeze([])
+    });
+    const declaredManifestPaths = new Set(identityPolicy.entries.map(entry => entry.path));
     const changedDependencyPaths = implementationNormalized.filter(isDependencyControlPath);
-    const loadDependencyManifest = options.loadDependencyManifestAtCommit
+    const changedDependencyPathSet = new Set(changedDependencyPaths);
+    const authorizedDependencyPaths = match.authorization.implementation.dependencyModificationPolicy.allowedDependencyPaths;
+    const loadDependencyControl = options.loadDependencyControlAtCommit
+      || options.loadDependencyManifestAtCommit
       || ((commit, repositoryPath) => defaultAuthorizationAtCommit(commit, repositoryPath, options));
+
     for (const repositoryPath of changedDependencyPaths) {
-      if (!declaredPaths.has(repositoryPath)) {
-        return Object.freeze({
-          pass: false,
-          reasonCode: DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED,
-          authorityMode: null,
-          authorizationPath: match.authorizationPath,
-          authorizationMergeCommit: match.mergeCommit,
-          reviewedAuthorizationHead: match.reviewedHead,
-          unauthorizedPaths: Object.freeze([])
+      const manifestPath = dependencyManifestPathForControlPath(repositoryPath);
+      if (!manifestPath || !declaredManifestPaths.has(manifestPath)) return denyDependencyIdentityMutation();
+
+      if (repositoryPath === manifestPath) {
+        const identityValidation = validateDelegatedDependencyIdentityMutation({
+          authorization: match.authorization,
+          repositoryPath,
+          baseManifest: loadDependencyControl(implementationBase, repositoryPath),
+          candidateManifest: loadDependencyControl(evaluatedHead, repositoryPath)
         });
+        if (!identityValidation.pass) return denyDependencyIdentityMutation();
+        continue;
       }
-      const identityValidation = validateDelegatedDependencyIdentityMutation({
-        authorization: match.authorization,
-        repositoryPath,
-        baseManifest: loadDependencyManifest(implementationBase, repositoryPath),
-        candidateManifest: loadDependencyManifest(evaluatedHead, repositoryPath)
-      });
-      if (!identityValidation.pass) {
-        return Object.freeze({
-          pass: false,
-          reasonCode: DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED,
-          authorityMode: null,
-          authorizationPath: match.authorizationPath,
-          authorizationMergeCommit: match.mergeCommit,
-          reviewedAuthorizationHead: match.reviewedHead,
-          unauthorizedPaths: Object.freeze([])
-        });
+
+      if (!changedDependencyPathSet.has(manifestPath) || !isNpmDependencyLockPath(repositoryPath)) {
+        return denyDependencyIdentityMutation();
+      }
+      if (!validateDelegatedNpmLockfileClosure(
+        loadDependencyControl(evaluatedHead, manifestPath),
+        loadDependencyControl(evaluatedHead, repositoryPath)
+      )) return denyDependencyIdentityMutation();
+    }
+
+    for (const manifestPath of declaredManifestPaths) {
+      if (!changedDependencyPathSet.has(manifestPath)) continue;
+      const companionPaths = authorizedDependencyPaths.filter(repositoryPath => (
+        repositoryPath !== manifestPath
+        && dependencyManifestPathForControlPath(repositoryPath) === manifestPath
+      ));
+      for (const companionPath of companionPaths) {
+        if (!changedDependencyPathSet.has(companionPath) || !isNpmDependencyLockPath(companionPath)) {
+          return denyDependencyIdentityMutation();
+        }
+        if (!validateDelegatedNpmLockfileClosure(
+          loadDependencyControl(evaluatedHead, manifestPath),
+          loadDependencyControl(evaluatedHead, companionPath)
+        )) return denyDependencyIdentityMutation();
       }
     }
   }
