@@ -25,6 +25,18 @@ function gitBlobSha(file) {
   return crypto.createHash('sha1').update(header).update(bytes).digest('hex');
 }
 
+function destinationRegionSha256(file, marker) {
+  const source = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+  const startMarker = `// ${marker}`;
+  const endMarker = `// END_${marker}`;
+  const start = source.indexOf(startMarker);
+  assert.notEqual(start, -1, `missing destination region marker ${marker}`);
+  const endStart = source.indexOf(endMarker, start + startMarker.length);
+  assert.notEqual(endStart, -1, `missing destination region end marker ${marker}`);
+  const region = `${source.slice(start, endStart + endMarker.length)}\n`;
+  return crypto.createHash('sha256').update(region, 'utf8').digest('hex');
+}
+
 test('V21 Persona P0 V2: composition keeps Description, Personality, Scenario, Note and Example Dialogues as distinct ordered units', () => {
   const { adapter, core } = loadAuthorizedRuntime();
   assert.equal(typeof adapter.buildPersonaComposition, 'function');
@@ -145,6 +157,7 @@ test('V21 Persona P0 V2: provenance binds complete setFloatingPrompt segment and
   assert.equal(segment.destinationPath, 'vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs');
   assert.equal(segment.destinationRegionMarker, 'SILLYTAVERN_SLICE::authors-note::depth-role-injection');
   assert.equal(segment.destinationRegionSha256, '0199c0f37b10993c74a78b307809ecb9f493cc6a8382c70d78fc131d0c12b40f');
+  assert.equal(destinationRegionSha256(CORE, segment.destinationRegionMarker), segment.destinationRegionSha256);
   assert.equal(manifest.segments.some(row => row.sourceLineRange === '331-361'), false);
 
   const { core } = loadAuthorizedRuntime();
