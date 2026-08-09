@@ -98,3 +98,18 @@ test('shared workflow parser fails closed for missing, enabled, expression, nest
     []
   );
 });
+
+test('Layered L2 full work package accepts only trusted delegated product candidates with exact tree verification', () => {
+  const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'layered-ci-task.yml'), 'utf8');
+  assert.match(workflow, /expected_tree:\s*\n\s*description: Exact frozen candidate tree/u);
+  assert.match(workflow, /EXPECTED_TREE:\s*\$\{\{ inputs\.expected_tree \}\}/u);
+  assert.match(workflow, /node tools\/layered-ci\/verify-delegated-product-l2\.js/u);
+  assert.match(workflow, /required_level == 'L2'/u);
+  assert.match(workflow, /suite == 'full_work_package'/u);
+  assert.match(workflow, /git switch --force-create "\$\{CANDIDATE_BRANCH\}" "\$\{CANDIDATE_SHA\}"/u);
+  assert.doesNotMatch(
+    workflow,
+    /continue-on-error:\s*true|layered-ci-promotion\.yml|tools\/wp7\//u,
+    'L2 delegated-product closure must not weaken or invoke L3/WP7 promotion gates'
+  );
+});
