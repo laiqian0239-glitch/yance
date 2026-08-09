@@ -1,0 +1,51 @@
+name: V2.1 Presence Avatar P0 Windows Runtime
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/v21-presence-avatar-p0-windows.yml'
+      - 'config/upstreams/v21-presence-avatar-p0.json'
+      - 'electron/main.js'
+      - 'electron/preload.js'
+      - 'electron/presenceAvatarRuntime.js'
+      - 'electron/m2/ipcManifest.json'
+      - 'integration/element-module/package.json'
+      - 'integration/element-module/src/PresenceWorkspace.tsx'
+      - 'integration/element-module/src/PresenceWorkspace.css'
+      - 'integration/element-module/src/YanceWorkspace.tsx'
+      - 'integration/element-module/src/presenceLiveKit.ts'
+      - 'runtime/presence-avatar/**'
+      - 'tools/presence-avatar/build-windows-runtime.ps1'
+      - 'upstream-patches/cyberverse/0001-yance-external-audio-ingress.patch'
+      - 'upstream-patches/element-web/0010-yance-presence-livekit-client.patch'
+      - 'tests/wp0/v21-presence-avatar-*.test.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  presence-windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Setup Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.19.0'
+          cache: 'npm'
+      - name: Install locked Yance dependencies
+        shell: powershell
+        run: npm ci --ignore-scripts
+      - name: Verify official LiveKit renderer and CyberVerse service boundary
+        shell: powershell
+        env:
+          YANCE_CYBERVERSE_ENDPOINT: 'http://127.0.0.1:8081'
+        run: .\tools\presence-avatar\build-windows-runtime.ps1 -RepositoryRoot $PWD
+      - name: Re-run Presence WP0 contracts
+        shell: powershell
+        run: node --test --test-concurrency=1 tests/wp0/v21-presence-avatar-authority.test.js tests/wp0/v21-presence-avatar-p0.test.js tests/wp0/v21-presence-avatar-ui.test.js tests/wp0/v21-presence-avatar-voice-contract.test.js tests/wp0/v21-presence-avatar-windows-runtime.test.js

@@ -1,0 +1,16 @@
+.yance-presence-workspace {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  min-width: 280px;
+  color: var(--cpd-color-text-primary, #e6ecec);
+}
+.yance-presence-workspace header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.yance-presence-workspace header div { display: grid; gap: 4px; }
+.yance-presence-workspace header span, .presence-status, .yance-presence-workspace dd { opacity: .78; }
+.presence-health { font-size: 12px; border: 1px solid currentColor; border-radius: 999px; padding: 3px 8px; }
+.presence-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.presence-actions button, .yance-presence-workspace select { min-height: 34px; }
+.yance-presence-workspace dl { display: grid; gap: 8px; margin: 0; }
+.yance-presence-workspace dl div { display: flex; justify-content: space-between; gap: 12px; }
+.yance-presence-workspace dt, .yance-presence-workspace dd { margin: 0; }
