@@ -1,10 +1,11 @@
 'use strict';
 
-// Mechanically adapted from SillyTavern 1.18.0
-// upstream: src/character-card-parser.js
-// commit: 51ad27fb86d39a3daca3adaa970375c9670c12df
-// blob: dd63b00d804e80104d5efb6c5ae268b4e99ed0a5
-// transformation: ESM imports/exports -> CommonJS require/module.exports only.
+// Yance modification notice (2026-08-09): mechanically adapted from the pinned SillyTavern source below.
+// This modified source file is licensed under GNU Affero General Public License v3.0 (AGPL-3.0); see ../../LICENSE.
+// Upstream: SillyTavern 1.18.0, src/character-card-parser.js
+// Commit: 51ad27fb86d39a3daca3adaa970375c9670c12df
+// Source blob: dd63b00d804e80104d5efb6c5ae268b4e99ed0a5
+// Transformation: ESM imports/exports -> CommonJS require/module.exports only.
 const fs = require('node:fs');
 const { Buffer } = require('node:buffer');
 
