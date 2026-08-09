@@ -1,0 +1,61 @@
+name: V21 Model Brain P0 Windows
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sealed-model-brain-runtime:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Checkout pinned LiteLLM base SDK
+        shell: pwsh
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/BerriAI/litellm.git upstream/litellm
+          git -C upstream/litellm checkout --detach 72a4a55f43ea7266de589f005d0d33624fe5d555
+          if ((git -C upstream/litellm rev-parse HEAD).Trim() -ne '72a4a55f43ea7266de589f005d0d33624fe5d555') { throw 'commit mismatch' }
+          if ((git -C upstream/litellm rev-parse 'HEAD^{tree}').Trim() -ne '98627d729e47b181cebb6ae8afe60201bbd56993') { throw 'tree mismatch' }
+          if ((git -C upstream/litellm rev-parse 'HEAD:litellm').Trim() -ne 'cb54d17e6ce0a0ad98c992f9642957faa998bbca') { throw 'core tree mismatch' }
+          if ((git -C upstream/litellm hash-object LICENSE).Trim() -ne '3bfef5bae9b48c334acf426d5b7f21bc1913aab9') { throw 'license mismatch' }
+          if ((git -C upstream/litellm hash-object uv.lock).Trim() -ne '08d10667fb1fde67211a74ad1d4c747c0fb84cf3') { throw 'uv.lock mismatch' }
+      - name: Acquire sealed CPython and uv build tools
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri 'https://github.com/astral-sh/python-build-standalone/releases/download/20250712/cpython-3.12.13+20250712-x86_64-pc-windows-msvc-install_only_stripped.tar.gz' -OutFile python.tar.gz
+          Invoke-WebRequest -Uri 'https://github.com/astral-sh/uv/releases/download/0.12.3/uv-x86_64-pc-windows-msvc.zip' -OutFile uv.zip
+          Expand-Archive uv.zip -DestinationPath uv-bin
+          # Build stage may use network. The produced runtime is subsequently tested offline.
+      - name: Build sealed SDK runtime
+        shell: pwsh
+        run: |
+          tar -xf python.tar.gz
+          if (-not (Test-Path 'python/python.exe')) { throw 'unexpected CPython archive layout' }
+          Compress-Archive -Path python/* -DestinationPath python.zip
+          ./tools/model-brain/build-windows-runtime.ps1 -LiteLLMSource upstream/litellm -PythonArchive python.zip -UvExe ./uv-bin/uv.exe -Output dist/model-brain-runtime
+      - name: Reject proxy enterprise and Rust native payload
+        shell: pwsh
+        run: |
+          if (Get-ChildItem dist/model-brain-runtime -Recurse -File | Where-Object { $_.FullName -match 'enterprise|proxy_server|litellm-proxy-extras|litellm[\\/]proxy[\\/]|rust_bridge[\\/]+_native\.(pyd|dll|so)' }) { throw 'forbidden proxy enterprise or Rust native payload' }
+      - name: Offline Router ComplexityRouter strict tag_filtering gate
+        shell: pwsh
+        run: |
+          $python = (Resolve-Path 'dist/model-brain-runtime/python/python.exe').Path
+          $rule = New-NetFirewallRule -DisplayName 'YanceModelBrainOffline' -Direction Outbound -Action Block -Program $python -PassThru
+          try {
+            & $python -I -c "from litellm import Router; from litellm.router_strategy.complexity_router.complexity_router import ComplexityRouter; r=Router(model_list=[], enable_tag_filtering=True, tag_filtering_match_any=False); assert r.enable_tag_filtering and not r.tag_filtering_match_any; print('offline Router ComplexityRouter tag_filtering network gate GREEN')"
+            if ($LASTEXITCODE -ne 0) { throw 'offline isolated import failed' }
+            '{"operation":"unknown-offline-gate","requestId":"offline-gate"}' | & $python -I 'dist/model-brain-runtime/yance_litellm_worker.py' | Tee-Object -Variable WorkerOutput
+            if ($LASTEXITCODE -ne 0 -or $WorkerOutput -notmatch 'MODEL_BRAIN_UNKNOWN_OPERATION') { throw 'sealed worker offline startup gate failed' }
+          } finally {
+            Remove-NetFirewallRule -Name $rule.Name -ErrorAction SilentlyContinue
+          }
+      - name: Upload sealed runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: yance-model-brain-windows-x64
+          path: dist/model-brain-runtime
+          if-no-files-found: error

@@ -29,7 +29,7 @@ const TAB_META = [
   ['desktop', '桌面与运行', '启动、托盘、进程与媒体', '▣'],
   ['notifications', '通知与声音', '真实提醒链路与免打扰', '♬'],
   ['data', '数据保护', '完整备份、验证、恢复与回滚', '◇'],
-  ['ai', 'AI与资产', '模型服务、路由与成果保护', '✦'],
+  ['ai', 'AI与资产', 'Model Brain、模型来源与执行证据', '✦'],
   ['diagnostics', '诊断与日志', '真实探针、错误与脱敏导出', '◎'],
   ['security', '安全控制', '凭据、隐私、安全模式与门禁', '⚑'],
   ['about', '关于言策', '品牌、版本与内测说明', '言']
@@ -314,7 +314,7 @@ function renderHeader() {
     ['发布就绪', release.ready ? '可以发布' : '禁止发布', release.ready ? '全部正式门禁通过' : `${release.blockers?.length || 0} 个未通过或未执行门禁`, release.ready ? 'ok' : 'bad'],
     ['平台连接', `${data.accounts?.connected || 0}/${data.accounts?.total || 0}`, data.accounts?.total ? (data.accounts?.abnormal ? `${data.accounts.abnormal} 个账号异常` : '只统计凭据就绪的真实连接') : '尚无账号，平台实测未执行', data.accounts?.abnormal || !data.accounts?.total ? 'warn' : 'ok'],
     ['数据保护', latest ? (latest.valid ? '校验通过' : '校验失败') : '尚无恢复点', latest ? `${latest.files} 文件 · ${latest.sizeLabel}` : '建议立即创建完整备份', latest ? (latest.valid ? 'ok' : 'bad') : 'warn'],
-    ['AI能力', ai.count ? `${ai.routingEligible || 0}/${ai.count} 可路由` : '尚无模型', `${ai.verified || 0} 已验证 · ${ai.routesOperational || ai.routes || 0} 条可运行路由${ai.invalidPersistedRoutes?` · ${ai.invalidPersistedRoutes} 条已隔离`:''}`, ai.invalidPersistedRoutes ? 'bad' : ai.online && ai.routingEligible ? 'ok' : 'warn']
+    ['AI能力', ai.count ? `${ai.verified || 0}/${ai.count} 硬资格验证` : '尚无模型', `${ai.modelBrain?.litellm || 'LiteLLM v1.95.0'} · health ${ai.modelBrain?.health || 'unavailable'}`, ai.modelBrain?.runtimeAvailable && ai.taskReadiness?.pass ? 'ok' : 'warn']
   ];
   document.getElementById('sc32Summary').innerHTML = rows.map(row => `<article class="sc32-stat ${htmlAttr(row[3])}"><span>${htmlText(row[0])}</span><b>${htmlText(row[1])}</b><small>${htmlText(row[2])}</small></article>`).join('');
 }
@@ -383,7 +383,7 @@ function renderOverview() {
     service('消息与媒体', `${d.messages?.conversations || 0} 个会话`, `${d.messages?.count || 0} 条消息 · 实时事件总线 ${d.services?.eventBus?.pass ? '正常' : '异常'}`, d.services?.eventBus?.pass ? '接收链路正常' : '需要诊断', d.services?.eventBus?.pass ? '' : 'bad'),
     service('通知与声音', d.notifications?.enabled && !d.notifications?.paused ? '提醒开启' : '提醒暂停', `桌面通知 ${boolLabel(d.notifications?.desktopEnabled)} · 声音 ${Math.round((d.notifications?.soundVolume || 0) * 100)}%`, d.notifications?.soundEnabled ? '真实播放回执已接入' : '声音已关闭', d.notifications?.enabled && !d.notifications?.paused ? '' : 'warn'),
     service('完整数据保护', latest ? (latest.valid ? '恢复点有效' : '恢复点异常') : '尚无恢复点', latest ? `${latest.files} 个文件 · ${latest.sizeLabel} · Schema ${latest.schemaVersion}` : `受保护 ${d.data?.protectedSizeLabel || '0 B'}`, latest?.valid === false ? '立即处理' : latest ? 'SHA256已验证' : '建议立即备份', latest?.valid === false ? 'bad' : latest ? '' : 'warn'),
-    service('AI模型与资产', ai.routingEligible > 0 ? `${ai.routingEligible}/${ai.count} 可路由` : ai.count ? '当前不可路由' : '尚无模型', `${ai.verified || 0} 已验证 · ${ai.routes || 0} 路由 · 资产 ${ai.assets?.sizeLabel || '0 B'}`, ai.routingEligible > 0 ? '存在正式可路由模型' : 'AI不可作为在线可用能力', ai.routingEligible > 0 ? '' : 'warn')
+    service('Model Brain / LiteLLM', ai.modelBrain?.runtimeAvailable ? '运行中' : 'unavailable', `${ai.verified || 0}/${ai.count || 0} 已验证 · local ${ai.local || 0} · cloud ${ai.cloud || 0} · 资产 ${ai.assets?.sizeLabel || '0 B'}`, ai.taskReadiness?.pass ? 'hard eligibility ready' : `${Number(ai.taskReadiness?.missing?.length || 0)} logical tasks degraded`, ai.modelBrain?.runtimeAvailable && ai.taskReadiness?.pass ? '' : 'warn')
   ].join('');
   const integrityRows = (d.integrity?.checks || []).map(check => row(check.pass ? '✓' : '!', check.id, check.detail, check.pass ? '通过' : check.severity, check.pass ? '' : severityClass(check.severity))).join('');
   const releaseStatusLabel = { pass:'通过', fail:'失败', warning:'需关注', skipped:'未执行' };
@@ -554,7 +554,7 @@ function renderData() {
   const rows = (backups.rows || []).map(item => `<article class="sc32-backup-row ${htmlAttr(item.valid === false ? 'bad' : '')}">
     <div><small>${htmlText(fmtDate(item.createdAt))} · ${htmlText(item.label || 'manual')}</small><b>${htmlText(item.name)}</b><p>${htmlText(item.files)} 个文件 · ${htmlText(item.sizeLabel)} · Schema ${htmlText(item.schemaVersion)} · ${htmlText(item.verifyMessage || '')}</p></div>
     <div class="sc32-backup-actions"><button class="sc32-link" data-backup-action="verify" data-backup-name="${htmlAttr(item.name)}">验证</button><button class="sc32-link danger" data-backup-action="restore" data-backup-name="${htmlAttr(item.name)}">准备恢复</button></div>
-  </article>`).join('') || `<div class="sc32-empty"><b>尚未创建完整恢复点</b><p>新备份会同时保护核心数据、模型路由、WhatsApp认证、安全凭据和AI成果资产。</p></div>`;
+  </article>`).join('') || `<div class="sc32-empty"><b>尚未创建完整恢复点</b><p>新备份会同时保护核心数据、模型目录与资格、WhatsApp认证、安全凭据和AI成果资产。</p></div>`;
   const pendingHtml = pending ? `<div class="sc32-restore-plan"><div><small>等待重启执行</small><b>${htmlText(pending.backupName)}</b><p>创建于 ${htmlText(fmtDate(pending.createdAt))}。启动时会再次验证清单，建立保护备份，再进行原子目录切换；失败会自动回滚。</p></div><div>${actionButton('取消恢复','cancel-restore')}${actionButton('重启并执行','restart-app','danger')}</div></div>` : `<div class="sc32-result">当前没有待执行恢复任务。恢复不会在应用运行中直接覆盖数据库。</div>`;
   const history = (backups.restoreHistory || []).map(item => row(item.ok === false ? '×' : '✓', item.backupName || item.name || '恢复任务', item.message || item.detail || `保护备份 ${item.protectionBackup || '已创建'}`, fmtDate(item.at || item.completedAt), item.ok === false ? 'bad' : '')).join('') || `<div class="sc32-empty compact"><b>暂无恢复历史</b><p>执行恢复后会记录结果、回滚和保护备份。</p></div>`;
   const excluded = latest?.excluded?.map(item => row('○', item.label || item.id || '排除项', item.reason || '不进入备份', item.inventory ? `${item.inventory.length} 项清单` : '仅记录清单', 'warn')).join('') || row('○','大型本地基础模型','只记录模型清单与版本，不复制Ollama大型模型文件。','节省空间','warn');
@@ -573,33 +573,65 @@ function renderData() {
 
 function renderAI() {
   const ai = state.overview.ai || {};
-  const routeIntegrity = ai.routeIntegrity || {};
-  const models = (ai.models || []).map(model => `<article class="sc32-model-card ${htmlAttr(!model.runtimeOnline || ['failed','blocked'].includes(model.qualification) ? 'bad' : model.qualification !== 'verified' ? 'warn' : '')}">
-    <div><small>${htmlText(model.provider || 'local')} · ${htmlText(model.stateLabel || model.qualificationLabel || model.qualification || 'untested')}</small><b>${htmlText(model.name)}</b><p>${model.allowedTasks?.length ? htmlText(model.allowedTasks.join(' · ')) : '尚未分配任务'}${htmlText(model.callCount ? ` · 已真实调用 ${Number(model.callCount)} 次` : ' · 尚未真实调用')}${model.lastUsedAt ? ` · 最近 ${htmlText(fmtDate(model.lastUsedAt))}` : ''}${model.blockedReason ? ` · ${htmlText(model.blockedReason)}` : ''}${model.lastError ? ` · 最近失败 ${htmlText(model.lastError)}` : ''}</p></div><em>${htmlText(!model.runtimeOnline ? '服务离线' : model.routingEligible ? '可参与路由' : model.qualificationPassed ? '已验证' : model.qualification === 'experimental' ? '实验性' : model.qualification === 'failed' ? '验证失败' : model.qualification === 'testing' ? '验证中' : '待验证')}</em>
-  </article>`).join('') || `<div class="sc32-empty"><b>尚未发现本地模型</b><p>基础消息、账号和备份功能仍可使用；扫描模型后再启用AI任务路由。</p></div>`;
-  return `<div class="sc32-panel-head"><div><h2>AI服务与成果资产</h2><p>系统中心与AI工作台共同读取SQLite模型注册表的同一资格投影，不再各自计算“已验证”与“可用”状态。</p></div><div class="sc32-panel-actions">${actionButton('扫描本地Ollama','scan-models','warn')}${actionButton('打开AI工作台','open-ai','primary')}</div></div>
+  const brain = ai.modelBrain || {};
+  const eligibility = ai.hardEligibility || {};
+  const evidence = ai.executionEvidence || {};
+  const models = (ai.models || []).map(model => {
+    const source = model.sourceType || (String(model.provider || '').toLowerCase() === 'ollama' ? 'local' : 'cloud');
+    const capabilities = model.capabilities && typeof model.capabilities === 'object' ? model.capabilities : {};
+    const modalityValues = Array.isArray(model.modalities) ? model.modalities : (Array.isArray(capabilities.modalities) ? capabilities.modalities : []);
+    const languageValues = Array.isArray(model.languages) ? model.languages : (Array.isArray(capabilities.language) ? capabilities.language : []);
+    const privacyValues = Array.isArray(model.privacy) ? model.privacy : (capabilities.privacy ? [capabilities.privacy] : []);
+    const modalities = modalityValues.length ? modalityValues.join('/') : 'text';
+    const languages = languageValues.length ? languageValues.join('/') : 'multilingual';
+    const privacy = privacyValues.length ? privacyValues.join('/') : (source === 'local' ? 'local' : 'cloud');
+    const contextLength = Number(model.contextLength || capabilities.context || 0);
+    return `<article class="sc32-model-card ${htmlAttr(model.qualification === 'verified' && model.enabled !== false ? '' : 'warn')}">
+      <div><small>${htmlText(source)} · provider ${htmlText(model.provider || 'unknown')} · ${htmlText(model.qualificationLabel || model.qualification || 'untested')}</small><b>${htmlText(model.name || model.id || 'model')}</b><p>modality ${htmlText(modalities)} · language ${htmlText(languages)} · context ${htmlText(contextLength)} · privacy ${htmlText(privacy)}</p></div><em>${htmlText(model.enabled === false ? '已禁用' : model.qualification === 'verified' ? 'hard-qualified' : '待验证')}</em>
+    </article>`;
+  }).join('') || `<div class="sc32-empty"><b>尚未发现模型</b><p>基础消息、账号和备份功能仍可使用；扫描 local Ollama 或连接 cloud OpenRouter 后再验证硬资格。</p></div>`;
+  const runtimeClass = brain.runtimeAvailable && ai.taskReadiness?.pass ? '' : 'warn';
+  const evidenceHtml = evidence.selectedModel || evidence.provider
+    ? `<div class="sc32-facts">
+        ${fact('selected model', evidence.selectedModel || 'unknown')}
+        ${fact('provider', evidence.provider || 'unknown')}
+        ${fact('latency', `${Number(evidence.latencyMs || 0)} ms`)}
+        ${fact('tokens', `${Number(evidence.inputTokens || 0)} in / ${Number(evidence.outputTokens || 0)} out`)}
+        ${fact('cost', `$${Number(evidence.costUsd || 0).toFixed(6)}`)}
+        ${fact('retry / fallback', `${Number(evidence.retryCount || 0)} / ${Number(evidence.fallbackCount || 0)}`)}
+      </div>`
+    : `<div class="sc32-empty compact"><b>尚无执行证据</b><p>运行一次 logical Model Brain test / probe 后，这里显示实际 selected model、provider、latency、tokens、cost、retry/fallback。</p></div>`;
+  return `<div class="sc32-model-brain-shell"><div class="sc32-panel-head"><div><h2>Model Brain / LiteLLM</h2><p>Yance 只投影 privacy、local/cloud、modality、language、context 与 provider 硬资格；物理选择、重试与运行健康由 LiteLLM v1.95.0 负责。</p></div><div class="sc32-panel-actions">${actionButton('扫描 local Ollama','scan-models','warn')}${actionButton('打开AI工作台','open-ai','primary')}</div></div>
   <div class="sc32-grid">
-    ${section('AI服务总览', ai.scannedAt ? `扫描于 ${fmtDate(ai.scannedAt)}` : '尚未扫描', `<div class="sc32-service-grid">
-      ${service('Ollama服务', ai.online ? '在线' : '离线', `${ai.endpoint || '默认本地地址'} · ${ai.version || '版本待读取'}`, ai.online ? '连接正常' : ai.scanError || '等待连接', ai.online ? '' : 'warn')}
-      ${service('模型资格', `${ai.verified || 0}/${ai.count || 0} 已验证`, `${ai.routingEligible || 0} 可路由 · ${ai.experimental || 0} 实验性 · ${ai.failed || 0} 失败`, ai.routingEligible ? '存在正式可路由模型' : '等待真实测试和任务授权', ai.routingEligible ? '' : 'warn')}
-      ${service('任务路由', `${ai.routesOperational || ai.routes || 0} 条可运行`, `${ai.routesPersisted || 0} 条持久配置 · ${ai.invalidPersistedRoutes || 0} 条不合格已隔离`, routeIntegrity.pass === false ? '持久路由存在不合格记录，门禁已阻断假通过' : (ai.routesOperational || ai.routes) ? '持久路由与运行资格一致' : '尚未配置', routeIntegrity.pass === false ? 'bad' : (ai.routesOperational || ai.routes) ? '' : 'warn')}
+    ${section('Model Brain 运行状态', brain.runtimeAvailable ? 'healthy' : (brain.health || 'unavailable'), `<div class="sc32-service-grid">
+      ${service('LiteLLM', brain.litellm || 'LiteLLM v1.95.0', `health ${brain.health || 'unavailable'}`, brain.runtimeAvailable ? 'sealed runtime available' : 'sealed runtime unavailable; fail closed', runtimeClass)}
+      ${service('ComplexityRouter', brain.complexityRouter || 'ComplexityRouter', `strict tags: ${brain.strictTagFiltering?.enabled === false ? 'off' : 'on'} · matchAny=${brain.strictTagFiltering?.matchAny === true}`, 'mandatory tags use AND semantics', brain.strictTagFiltering?.matchAny === true ? 'bad' : '')}
+      ${service('hard eligibility', `${ai.verified || 0}/${ai.count || 0} verified`, `local ${ai.local || 0} · cloud ${ai.cloud || 0}`, ai.taskReadiness?.pass ? 'all logical tasks have qualified capability' : `${Number(ai.taskReadiness?.missing?.length || 0)} logical tasks degraded`, ai.taskReadiness?.pass ? '' : 'warn')}
     </div>`, true)}
-    ${section('模型注册与验证', `${ai.models?.length || 0} 个 · ${Number(ai.used || 0)} 个已实际调用 · 来源 ${htmlText(ai.source || 'sqlite:model-registry')}`, `<div class="sc32-model-grid">${models}</div><div class="sc32-inline-note">自动AI大脑：${htmlText(ai.automation?.config?.enabled ? (ai.automation?.config?.localOnly ? '已启用，仅使用本地合格模型' : '已启用，允许已授权云模型') : '已关闭')} · 已处理 ${htmlText(Number(ai.automation?.processed || 0))} 次 · 跳过 ${htmlText(Number(ai.automation?.skipped || 0))} 次${ai.automation?.lastModel ? ` · 最近模型 ${htmlText(ai.automation.lastModel)}` : ''}</div>`, true)}
+    ${section('硬资格与模型来源', `${ai.models?.length || 0} 个 catalog entries`, `<div class="sc32-facts">
+      ${fact('privacy', eligibility.privacy || 'privacy/local-cloud')}
+      ${fact('local / cloud', `${eligibility.local || ai.local || 0} / ${eligibility.cloud || ai.cloud || 0}`)}
+      ${fact('modality', Array.isArray(eligibility.modality) ? eligibility.modality.join(' / ') : 'text / vision / audio / video')}
+      ${fact('language', eligibility.language || 'native-register')}
+      ${fact('context', eligibility.context || 'context length')}
+      ${fact('provider', eligibility.provider || 'explicit allow/deny')}
+    </div><div class="sc32-model-grid">${models}</div>`, true)}
+    ${section('LiteLLM execution evidence', evidence.selectedModel ? evidence.selectedModel : '等待 test / probe', evidenceHtml, true)}
     ${section('AI成果与知识资产', ai.assets?.backupIncluded ? '已纳入完整备份' : '未保护', `<div class="sc32-facts">
       ${fact('AI资产目录', ai.assets?.sizeLabel || '0 B', `${ai.assets?.files || 0} 个文件`)}
-      ${fact('模型注册与路由', ai.assets?.registrySizeLabel || '0 B', `${ai.assets?.registryFiles || 0} 个文件`)}
+      ${fact('模型目录与资格', ai.assets?.registrySizeLabel || '0 B', `${ai.assets?.registryFiles || 0} 个文件`)}
       ${fact('提示词与规则', '完整保护', '包含全局与联系人专属规则')}
       ${fact('知识库与向量索引', '完整保护', '恢复时与数据库版本共同校验')}
       ${fact('训练样本与学习材料', '完整保护', '保留审核、影子验证与回滚状态')}
       ${fact('大型基础模型文件', '仅记录清单', '不复制Ollama模型本体，避免备份过大')}
     </div>`)}
-    ${section('AI安全边界', '不允许自动越权', `<div class="sc32-list">
-      ${row(routeIntegrity.pass === false?'×':'✓','模型资格唯一事实源',routeIntegrity.pass === false?`发现 ${Number(routeIntegrity.invalidPersistedRouteCount || 0)} 条不合格持久路由，已从运行投影隔离且发布门禁失败。`:'系统中心与AI工作台使用相同的资格、在线和路由资格字段。',routeIntegrity.pass === false?'阻断':'已统一',routeIntegrity.pass === false?'bad':'')}
-      ${row('✓','任务路由持久化','任务、主模型、备用模型和失败原因统一记录。','已升级')}
+    ${section('AI安全边界', 'Model Brain fail closed', `<div class="sc32-list">
+      ${row(brain.runtimeAvailable?'✓':'×','单一模型执行权威',brain.runtimeAvailable?'Model Brain delegates physical selection to LiteLLM Router and ComplexityRouter.':'sealed LiteLLM runtime unavailable; legacy provider clients are not used as a substitute.',brain.runtimeAvailable?'已统一':'degraded',brain.runtimeAvailable?'':'bad')}
+      ${row(ai.taskReadiness?.pass?'✓':'△','硬资格唯一事实源','System Center 与 AI Workbench 使用相同的 privacy/local/cloud/modality/language/context/provider qualification projection.',ai.taskReadiness?.pass?'ready':'degraded',ai.taskReadiness?.pass?'':'warn')}
       ${row('✓','AI资产随恢复点保护','规则、知识、样本与客户记忆纳入Schema 3备份。','已升级')}
       ${row('✓','人工发送门禁','AI生成结果不会绕过全局写操作门禁自动发送。','已启用')}
     </div>`)}
-  </div>`;
+  </div></div>`;
 }
 
 function logStateLabel(value) { return ({ active:'当前活动', recent:'最近发生', historical:'历史记录' })[value] || '状态未知'; }

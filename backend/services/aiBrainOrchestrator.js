@@ -12,7 +12,7 @@ const { QUALIFICATION } = require('../../shared/constants');
 const messageSpeakerAuthority = require('./messageSpeakerAuthority');
 const backgroundJobAuthority = require('./backgroundJobAuthority');
 const { getRuntimeDomainIsolationAuthority } = require('./runtimeDomainIsolationAuthority');
-const modelRoutingIntegrityService = require('./modelRoutingIntegrityService');
+const modelBrainProjection = require('./modelBrainProjection');
 
 const DEFAULTS = Object.freeze({
   schemaVersion: 1,
@@ -107,18 +107,18 @@ async function updateDocument(mutator) {
 
 function eligibleModel(task, config, registryState = null) {
   const state = registryState && typeof registryState === 'object' ? registryState : modelRegistry.read();
-  const route = state.routes?.[task] || {};
-  const models = (state.models || []).filter(model => {
-    if (!modelRoutingIntegrityService.eligibleForTask(model, task, { allowExperimental: true, allowConditional: false })) return false;
-    if (config.localOnly && model.provider !== 'ollama') return false;
-    return true;
-  });
-  return models.find(model => model.id === route.primary)
-    || models.find(model => model.id === route.fallback)
-    || models[0]
-    || null;
+  const constraints = {
+    localOnly: config.localOnly === true,
+    privacy: config.localOnly === true ? 'local' : ''
+  };
+  const projection = modelBrainProjection.project(state, { task, constraints });
+  return projection.candidates.length ? {
+    modelBrain: true,
+    logicalModel: projection.logicalModel,
+    candidateCount: projection.candidates.length,
+    constraints
+  } : null;
 }
-
 function compactMessages(conversationId, limit) {
   return messageStore.listMessages(conversationId, { limit })
     .filter(message => !message.revoked && messageSpeakerAuthority.isAnalysisMessage(message))
@@ -287,8 +287,9 @@ async function processConversation(conversationId, options = {}) {
     await persistStatus({ lastConversationId: conversationId, lastSkipReason: 'translation-pending', lastError: '' });
     return { processed: false, deferred: true, reason: 'translation-pending' };
   }
-  const model = eligibleModel('understanding', config);
-  if (!model) {
+  const analysisTask = 'understanding';
+  const modelBrainAvailability = eligibleModel(analysisTask, config);
+  if (!modelBrainAvailability) {
     const current = readDocument().status;
     await persistStatus({ skipped: Number(current.skipped || 0) + 1, lastSkipReason: config.localOnly ? 'no-qualified-local-model' : 'no-qualified-model', lastConversationId: conversationId, lastError: '' });
     return { processed: false, reason: config.localOnly ? 'no-qualified-local-model' : 'no-qualified-model' };
@@ -305,7 +306,6 @@ async function processConversation(conversationId, options = {}) {
   await persistStatus({ lastConversationId: conversationId, lastError: '', lastSkipReason: '' });
   try {
     const result = await workspaceData.analyzeConversation(conversationId, {
-      modelId: model.id,
       maxMessages: config.maxMessages,
       dedupeKey: `ai-automation:${conversationId}:${messages.at(-1)?.at || messages.length}`,
       deterministicFacts: deterministicFacts?.persisted ? deterministicFacts : undefined,
@@ -318,21 +318,21 @@ async function processConversation(conversationId, options = {}) {
       processed: Number(current.processed || 0) + 1,
       lastProcessedAt: nowIso(),
       lastConversationId: conversationId,
-      lastModelId: result.model?.id || model.id,
-      lastModel: result.model?.name || model.name || model.id,
+      lastModelId: clean(result.evidence?.selectedModel || result.modelId || result.model?.id),
+      lastModel: clean(result.evidence?.selectedModel || result.model || result.model?.name),
       lastError: '',
       lastSkipReason: ''
     });
     eventBus.publish('ai:conversation-processed', {
       conversationId,
       platform: conversation.platform,
-      modelId: result.model?.id || model.id,
-      model: result.model?.name || model.name || model.id,
+      modelId: clean(result.evidence?.selectedModel || result.modelId || result.model?.id),
+      model: clean(result.evidence?.selectedModel || result.model || result.model?.name),
       analysis: result.analysis,
       profile: result.profile,
       insights: result.insights
     });
-    return { processed: true, ...result, modelId: result.model?.id || model.id };
+    return { processed: true, ...result, modelId: clean(result.evidence?.selectedModel || result.modelId || result.model?.id) };
   } catch (error) {
     const current = readDocument().status;
     const cancellationCode = clean(error?.code || signal?.reason?.code).toUpperCase();
