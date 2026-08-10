@@ -1,0 +1,398 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-SHELL-P0",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Implement the approved Yance Living Relationship OS Product Experience Shell as relationship-first product composition over the existing Element/Matrix conversation authority. Adopt Base UI for accessible headless interaction primitives, Motion for layout/spring/gesture mechanics, official Rive React + canvas runtime for living AI/presence visual playback, and Howler for restrained UI sound playback. Yance may own relationship experience composition, semantic visual identity, local experience preferences and thin public-API adapters only; no second conversation, animation, overlay, sound, social graph, media, voice, presence or learning runtime may be created.",
+  "base": {
+    "branch": "main",
+    "commit": "42aa3893d11b9915f9286b6ce4267aac327f75a3"
+  },
+  "designAuthority": {
+    "pullRequest": 226,
+    "path": "docs/superpowers/specs/2026-08-10-yance-v21-product-experience-shell-p0-design.md",
+    "mergeCommit": "e99d4cd517bc08c2a6b290ef8c25194ec6f5e804"
+  },
+  "implementationPlan": {
+    "pullRequest": 227,
+    "path": "docs/superpowers/plans/2026-08-10-yance-v21-product-experience-shell-p0.md",
+    "mergeCommit": "42aa3893d11b9915f9286b6ce4267aac327f75a3"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "42aa3893d11b9915f9286b6ce4267aac327f75a3",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-shell-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-shell-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "5b50ce8b7cc668514f285bbcf7f5a8f7a1b6e4653a24c6101f548f3e977fe0ab",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "product/v21-product-experience-shell-p0",
+    "allowedChangedPaths": [
+      "config/upstreams/v21-product-experience-shell-p0.json",
+      "docs/uat/V21_PRODUCT_EXPERIENCE_SHELL_P0_UAT.md",
+      "integration/element-module/package.json",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/RelationshipAssistant.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/RiveRelationshipCompanion.tsx",
+      "integration/element-module/src/product-experience/assets/yance-relationship-orb.riv",
+      "integration/element-module/src/product-experience/experiencePreferences.ts",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "integration/element-module/src/product-experience/experienceSound.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "tests/wp0/v21-product-experience-shell-accessibility.test.js",
+      "tests/wp0/v21-product-experience-shell-dependencies.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "third_party/licenses/base-ui-MIT.txt",
+      "third_party/licenses/howler-MIT.txt",
+      "third_party/licenses/motion-MIT.txt",
+      "third_party/licenses/rive-react-MIT.txt",
+      "third_party/licenses/rive-wasm-MIT.txt",
+      "third_party/licenses/types-howler-MIT.txt",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch"
+    ],
+    "approvedChangedFileCount": 31,
+    "approvedChangedFileSetSha256": "140c0163e8e937ccc3ed7658d15ec059d9d5cddc515448f55a0abf5b5904d76f",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-experience-shell-accessibility.test.js",
+        "tests/wp0/v21-product-experience-shell-dependencies.test.js",
+        "tests/wp0/v21-product-experience-shell-interaction.test.js",
+        "tests/wp0/v21-product-experience-shell-p0.test.js"
+      ],
+      "approvedChangedFileCount": 4,
+      "approvedChangedFileSetSha256": "b1d828e55e1a3fc4f7ad9b5cc60157011a67fc0e8d978d9e9b09d0baae494238",
+      "productionCodeChanged": false
+    },
+    "dependencyControlPaths": [
+      "integration/element-module/package.json",
+      "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch"
+    ],
+    "dependencyControlPathCount": 2,
+    "dependencyControlPathSetSha256": "6450e4bd0dcb2c62a9ed40f852033214ad68c9235e522c381ce93d1c5beae477",
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "integration/element-module/package.json"
+      ],
+      "approvedDependencyPathCount": 1,
+      "approvedDependencyPathSetSha256": "12c498270cc27530196545a2d4f01479116ef90a5a518c6579770e39b5f66419"
+    },
+    "dependencyIdentityPolicy": {
+      "entries": [
+        {
+          "path": "integration/element-module/package.json",
+          "section": "dependencies",
+          "name": "@base-ui/react",
+          "version": "1.7.0"
+        },
+        {
+          "path": "integration/element-module/package.json",
+          "section": "dependencies",
+          "name": "@rive-app/react-canvas",
+          "version": "4.31.0"
+        },
+        {
+          "path": "integration/element-module/package.json",
+          "section": "dependencies",
+          "name": "howler",
+          "version": "2.2.4"
+        },
+        {
+          "path": "integration/element-module/package.json",
+          "section": "dependencies",
+          "name": "motion",
+          "version": "12.42.2"
+        },
+        {
+          "path": "integration/element-module/package.json",
+          "section": "devDependencies",
+          "name": "@types/howler",
+          "version": "2.2.13"
+        }
+      ]
+    },
+    "packageManifestModificationAllowed": true,
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "upstreams": {
+    "baseUi": {
+      "repository": "mui/base-ui",
+      "release": "v1.7.0",
+      "commit": "254f4744f0a241c20697b9eeab33402f4469a081",
+      "package": "@base-ui/react",
+      "packageVersion": "1.7.0",
+      "license": "MIT",
+      "role": "sole Product Experience headless interaction primitive authority"
+    },
+    "motion": {
+      "repository": "motiondivision/motion",
+      "release": "v12.42.2",
+      "commit": "40e8756c63b258c9dd07de9501cb788410eefb02",
+      "package": "motion",
+      "packageVersion": "12.42.2",
+      "license": "MIT",
+      "role": "sole Product Experience shared-layout/spring/gesture/transition authority"
+    },
+    "riveReact": {
+      "repository": "rive-app/rive-react",
+      "release": "v4.31.0",
+      "commit": "c05ec1842324a4a61d01f8e49dfd2ac2c37ae72c",
+      "package": "@rive-app/react-canvas",
+      "packageVersion": "4.31.0",
+      "license": "MIT",
+      "role": "official React integration for Product Experience Rive visuals"
+    },
+    "riveRuntime": {
+      "repository": "rive-app/rive-wasm",
+      "release": "2.39.2",
+      "commit": "68dbf3a775df37fc4a6f128fb685eb9ed4bf149b",
+      "package": "@rive-app/canvas",
+      "packageVersion": "2.39.2",
+      "license": "MIT",
+      "role": "required resolved backing canvas/WASM runtime for @rive-app/react-canvas 4.31.0"
+    },
+    "howler": {
+      "repository": "goldfire/howler.js",
+      "release": "v2.2.4",
+      "commit": "003b917c40cb41cf382ba47ae0ed7a35ca2abe76",
+      "package": "howler",
+      "packageVersion": "2.2.4",
+      "license": "MIT",
+      "role": "sole short UI sound playback/grouping/volume/mute authority; not Voice Brain or realtime audio"
+    },
+    "howlerTypes": {
+      "repository": "DefinitelyTyped/DefinitelyTyped",
+      "package": "@types/howler",
+      "packageVersion": "2.2.13",
+      "license": "MIT",
+      "role": "TypeScript declarations for Howler only"
+    },
+    "elementWeb": {
+      "repository": "element-hq/element-web",
+      "release": "v1.12.25",
+      "commit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+      "license": "AGPL-3.0-only",
+      "packageManager": "pnpm@11.5.2",
+      "role": "existing conversation shell/timeline/composer/navigation authority; Product integrates through public module APIs and existing Yance global-right-panel extension only"
+    }
+  },
+  "ossFit": {
+    "matureOssMandatory": true,
+    "baseUiOwnsInteractionPrimitives": true,
+    "motionOwnsAnimationMechanics": true,
+    "riveOwnsStatefulVisualPlayback": true,
+    "howlerOwnsUiSoundPlayback": true,
+    "elementMatrixOwnsMessagingTimelineComposer": true,
+    "existingMediaWorkspaceOwnsMediaProductRuntime": true,
+    "existingPresenceWorkspaceOwnsLivePresenceProductRuntime": true,
+    "voiceWorklineOwnsVoiceProductRuntime": true,
+    "learningWorklineOwnsLearningProductRuntime": true,
+    "duplicateComponentFrameworkForbidden": true,
+    "duplicateAnimationEngineForbidden": true,
+    "duplicateGameUiRuntimeForbidden": true,
+    "duplicateSoundEngineForbidden": true,
+    "duplicateConversationEngineForbidden": true,
+    "duplicateOverlayFrameworkForbidden": true,
+    "duplicateSocialGraphEngineForbidden": true,
+    "thinProductCompositionAllowed": true,
+    "semanticDesignTokensAllowed": true,
+    "localExperiencePreferencesAllowed": true
+  },
+  "architectureRules": {
+    "relationshipFirstNormalPathRequired": true,
+    "legacyFlatCapabilityDashboardNormalPathForbidden": true,
+    "peopleSurfaceRequired": true,
+    "relationshipWorldRequired": true,
+    "relationshipAssistantHiddenByDefault": true,
+    "normalTypingMayAutoOpenAi": false,
+    "actionDockMustUseElementPublicComposerExtension": true,
+    "elementComposerReplacementForbidden": true,
+    "elementTimelineReplacementForbidden": true,
+    "privateElementComposerOrTimelineStateAccessForbidden": true,
+    "mediaOverlayMustComposeExistingMediaWorkspace": true,
+    "liveOverlayMustComposeExistingPresenceWorkspace": true,
+    "voiceOverlayMustComposeVoiceAuthorityAfterOrdinaryHistoryReconciliation": true,
+    "voiceLogicDuplicationForbidden": true,
+    "learningLogicDuplicationForbidden": true,
+    "sharedLayoutAvatarTransitionRequired": true,
+    "composerFocusPreservationRequired": true,
+    "timelineScrollPreservationRequired": true,
+    "overlayCloseRestoresPriorConversationState": true,
+    "reducedMotionRequired": true,
+    "keyboardAccessibilityRequired": true,
+    "visibleFocusRequired": true,
+    "soundModes": [
+      "Off",
+      "Essential only",
+      "Immersive"
+    ],
+    "mostHoverSoundForbidden": true,
+    "aiThinkingLoopSoundForbidden": true,
+    "targetFps": 60,
+    "targetFpsMustBeRealUatEvidenceNotUnitTestClaim": true,
+    "relationshipXpForbidden": true,
+    "affectionScoreForbidden": true,
+    "leaderboardForbidden": true,
+    "streakGamificationForbidden": true,
+    "autonomousSendingForbidden": true
+  },
+  "binaryAssetPolicy": {
+    "authorizedPath": "integration/element-module/src/product-experience/assets/yance-relationship-orb.riv",
+    "mustBeYanceOwnedOrExplicitlyRedistributable": true,
+    "benchmarkOrUnverifiedHistoricalAssetForbidden": true,
+    "requiredStateVocabulary": [
+      "idle",
+      "wake",
+      "listening",
+      "thinking",
+      "ready",
+      "speaking",
+      "error"
+    ],
+    "requiredBeforeFinalVisualUat": true,
+    "absenceDoesNotAuthorizeRuntimeSubstitution": true
+  },
+  "parallelOverlap": {
+    "voicePr211": {
+      "observedHead": "0ef46efd62f195049640a96ba6e5fe2a1f6a6e6e",
+      "observedChangedFileCount": 29,
+      "exactOverlapPaths": [
+        "integration/element-module/src/YanceWorkspace.tsx"
+      ],
+      "count": 1
+    },
+    "learningPr223": {
+      "observedHead": "0b48b4dbd04693d21ef3f6545cbd330c6b519289",
+      "observedChangedFileCount": 63,
+      "exactOverlapPaths": [
+        "integration/element-module/src/YanceWorkspace.tsx"
+      ],
+      "count": 1
+    },
+    "currentExactDependencyRootOverlapWithVoice": 0,
+    "currentExactDependencyRootOverlapWithLearning": 0,
+    "sharedRootPaths": [
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/package.json",
+      "tools/matrix/bootstrap.js"
+    ],
+    "rule": "Before any shared-root edit, fresh-read trusted main, Voice #211 and Learning #223. If either exact Head has advanced into a Product shared root, reconcile by ordinary forward history or issue a successor authorization; never overwrite a stale blob, rebase, amend, force-push or cherry-pick stale shared-root content as authority.",
+    "freshMainRecheckRequiredBeforeAuthorizationMerge": true,
+    "freshOpenWorklineRecheckRequiredBeforeSharedRootEdit": true,
+    "freshMainRecheckRequiredBeforeImplementationMerge": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit changes exactly the four authorized Product Experience test paths and no production code.",
+    "The current flat AI/Goal/Contact/Presence/Media capability dashboard is RED as the normal Product path.",
+    "Missing People Surface and Relationship World are RED.",
+    "AI as a top-level capability rather than hidden current-relationship companion is RED.",
+    "Missing exact @base-ui/react 1.7.0, motion 12.42.2, @rive-app/react-canvas 4.31.0 with resolved @rive-app/canvas 2.39.2, howler 2.2.4 and @types/howler 2.2.13 identities are RED.",
+    "Missing Element public registerComposerPreview Action Dock integration is RED; private composer/timeline state access is forbidden.",
+    "Missing reduced-motion and Off/Essential only/Immersive sound policy is RED.",
+    "Any AI-thinking looping sound contract is RED.",
+    "Missing focus-restoration and non-remounting conversation-state preservation contracts are RED.",
+    "Any duplicate Conversation/Overlay/Animation/Sound/SocialGraph runtime authority is RED.",
+    "Missing exact upstream/license/provenance receipts or non-replayable Element dependency lock is RED.",
+    "The final changed-path set must remain within the 31 exact authorized paths and canonical SHA-256 140c0163e8e937ccc3ed7658d15ec059d9d5cddc515448f55a0abf5b5904d76f.",
+    "Final real Electron functional/performance/accessibility/motion/sound/visual UAT must be recorded on the exact implementation Head.",
+    "Independent exact-Head review must return zero unresolved P0 and P1 findings before Ready for final merge approval."
+  ],
+  "requiredSequence": [
+    "Authorization proposal remains exactly one file and clean from trusted main.",
+    "Authorization exact Head passes all applicable permanent gates and independent review with zero P0/P1 blockers.",
+    "Authorization merges to the unchanged trusted main by ordinary two-parent merge; no squash/rebase/force/history rewrite.",
+    "Implementation branch is created from that exact authorization merge commit.",
+    "First implementation commit contains exactly the four failure-first tests and zero production code.",
+    "Exact tests-only Head proves causal RED from missing Product Experience contracts.",
+    "Implement isolated Product Experience files first using mature OSS authorities.",
+    "Immediately before package/YanceWorkspace/bootstrap shared-root edits, fresh-read main, Voice #211 and Learning #223 and recompute overlap.",
+    "Perform dependency lock replay and shared-root cutover only within the frozen path set using ordinary forward reconciliation when needed.",
+    "Complete functional/performance/accessibility/motion/sound/visual UAT on the real Electron product.",
+    "Final exact Head passes applicable Stage, Layered, ACV2, Windows and PVEP gates plus independent exact-Head review P0=0/P1=0.",
+    "Stop at final implementation merge boundary for explicit owner authorization."
+  ],
+  "requiredFinalGates": {
+    "stage": true,
+    "layeredCi": true,
+    "acv2": true,
+    "windows": true,
+    "pvep": true,
+    "functionalUat": true,
+    "performanceUat": true,
+    "accessibilityUat": true,
+    "motionUat": true,
+    "soundUat": true,
+    "visualUat": true,
+    "independentExactHeadReview": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "wildcardAuthorization": true,
+    "forcePush": true,
+    "rebasePublishedHistory": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "gateWeakening": true,
+    "continueOnErrorForRequiredGate": true,
+    "secondMessagingAuthority": true,
+    "secondConversationComposer": true,
+    "secondMediaRuntime": true,
+    "secondVoiceRuntime": true,
+    "secondPresenceRuntime": true,
+    "secondLearningRuntime": true,
+    "unverifiedSoundRedistribution": true,
+    "unverifiedRiveAssetRedistribution": true,
+    "productionReleaseOrPublish": true,
+    "automaticFinalImplementationMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "readyForImplementationAuthorizationMerge": true
+}
