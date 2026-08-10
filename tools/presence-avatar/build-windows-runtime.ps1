@@ -38,11 +38,17 @@ Copy-Item -LiteralPath (Join-Path $RepositoryRoot 'integration\element-module\sr
 @'
 {"compilerOptions":{"target":"ES2022","module":"ESNext","moduleResolution":"Bundler","strict":true,"lib":["ES2022","DOM"],"noEmit":true,"skipLibCheck":true},"include":["src/presenceLiveKit.ts"]}
 '@ | Set-Content -LiteralPath (Join-Path $harness 'tsconfig.json') -Encoding utf8
+
+# Resolve the native Windows npm shim explicitly. Set-StrictMode is intentionally
+# retained for this gate, but invoking bare `npm` from Windows PowerShell can
+# select npm.ps1 and inherit this script's strict mode into that child scope.
+# npm.cmd is the deterministic Node/npm CLI entrypoint for the Windows harness.
+$npmCommand = (Get-Command npm.cmd -ErrorAction Stop).Source
 Push-Location $harness
 try {
-  npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+  & $npmCommand install --package-lock-only --ignore-scripts --no-audit --no-fund
   if ($LASTEXITCODE -ne 0) { Fail 'failed to resolve exact LiveKit build harness lock' }
-  npm ci --ignore-scripts --no-audit --no-fund
+  & $npmCommand ci --ignore-scripts --no-audit --no-fund
   if ($LASTEXITCODE -ne 0) { Fail 'failed to install exact LiveKit build harness' }
   .\node_modules\.bin\tsc.cmd -p tsconfig.json
   if ($LASTEXITCODE -ne 0) { Fail 'official livekit-client renderer seam did not type-check' }
