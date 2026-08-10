@@ -68,7 +68,8 @@ function verifyDelegatedProductL2Candidate(input = {}, dependencies = {}) {
   }
   if (authority.authorityMode !== TRUSTED_MAIN_DELEGATED_GOVERNANCE_MODE
     || typeof authority.authorizationPath !== 'string'
-    || !SHA40.test(String(authority.authorizationMergeCommit || ''))) {
+    || !SHA40.test(String(authority.authorizationMergeCommit || ''))
+    || !SHA40.test(String(authority.implementationBase || ''))) {
     return frozenFailure('WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID');
   }
 
@@ -99,7 +100,7 @@ function verifyDelegatedProductL2Candidate(input = {}, dependencies = {}) {
   }
 
   const actualPaths = normalizeExactPaths(
-    dependencies.resolveChangedFilesBetween(authority.authorizationMergeCommit, candidateSha)
+    dependencies.resolveChangedFilesBetween(authority.implementationBase, candidateSha)
   );
   const approvedDigest = implementation.approvedChangedFileSetSha256;
   if (!actualPaths

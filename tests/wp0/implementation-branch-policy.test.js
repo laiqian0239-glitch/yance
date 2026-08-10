@@ -1395,3 +1395,16 @@ test('later effective delegated authorization supersedes the exact earlier imple
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('generic delegated authority exposes its canonical implementation base to downstream verifiers', () => {
+  const result = evaluateTrustedDelegatedGovernanceBranch({
+    branch: GENERIC_IMPLEMENTATION_BRANCH,
+    ...genericTrustedAuthorityOptions()
+  });
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(
+    result.implementationBase,
+    GENERIC_MERGE,
+    JSON.stringify(result)
+  );
+});

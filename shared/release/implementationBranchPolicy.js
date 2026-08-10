@@ -1392,6 +1392,7 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
     authorityMode: TRUSTED_MAIN_DELEGATED_GOVERNANCE_MODE,
     authorizationPath: match.authorizationPath,
     authorizationMergeCommit: match.mergeCommit,
+    implementationBase,
     reviewedAuthorizationHead: match.reviewedHead,
     unauthorizedPaths: Object.freeze([])
   });

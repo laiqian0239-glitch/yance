@@ -20,8 +20,6 @@ const REAL_GIT_IMPLEMENTATION_BRANCH = 'governance/v21-delegated-product-l2-p0-v
 const REAL_GIT_CANDIDATE_SHA = 'd7e6d3ec0dbb3fd1ddebaea9e754506890588a60';
 const REAL_GIT_EXPECTED_TREE = 'd1e85feaf5bb64017727201faf811b7b80a2daaf';
 const REAL_GIT_AUTHORIZATION_MERGE = '75ed2d407ee93bcaa72ccc42a21b26ab8db6242f';
-const REAL_GIT_PATH_COUNT = 4;
-const REAL_GIT_PATH_DIGEST = 'a00a9995d99e2c24dc894cbf06a6d660aafd266f338699c1f9d76ba3e87b036b';
 const SUPERSEDED_BRANCH = 'governance/v21-delegated-product-l2-p0';
 const SUPERSEDED_HEAD = '411a04d55e6771fa4e269cfa218283ae2e748e67';
 const ALLOWED_PATHS = Object.freeze([
@@ -84,6 +82,7 @@ function dependencies(overrides = {}) {
       authorityMode: 'TRUSTED_MAIN_DELEGATED_GOVERNANCE',
       authorizationPath: AUTHORIZATION_PATH,
       authorizationMergeCommit: AUTHORIZATION_MERGE,
+      implementationBase: AUTHORIZATION_MERGE,
       reviewedAuthorizationHead: '1'.repeat(40),
       unauthorizedPaths: []
     }),
@@ -153,6 +152,34 @@ test('candidate-owned or unmerged authority cannot spoof delegated product eligi
   assert.equal(result.reasonCode, 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID');
 });
 
+test('missing or malformed canonical implementation base fails closed', () => {
+  const verify = loadVerifier();
+  for (const authority of [
+    {
+      pass: true,
+      authorityMode: 'TRUSTED_MAIN_DELEGATED_GOVERNANCE',
+      authorizationPath: AUTHORIZATION_PATH,
+      authorizationMergeCommit: AUTHORIZATION_MERGE,
+      reviewedAuthorizationHead: '1'.repeat(40),
+      unauthorizedPaths: []
+    },
+    {
+      pass: true,
+      authorityMode: 'TRUSTED_MAIN_DELEGATED_GOVERNANCE',
+      authorizationPath: AUTHORIZATION_PATH,
+      authorizationMergeCommit: AUTHORIZATION_MERGE,
+      implementationBase: 'not-a-sha',
+      reviewedAuthorizationHead: '1'.repeat(40),
+      unauthorizedPaths: []
+    }
+  ]) {
+    const result = verify(input(), dependencies({ evaluateAuthority: () => authority }));
+    assert.equal(result.pass, false, JSON.stringify(authority));
+    assert.equal(result.reasonCode, 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID');
+    assert.equal(result.readyForPromotion, false);
+  }
+});
+
 test('subset scope is rejected even when every changed path is individually authorized', () => {
   const verify = loadVerifier();
   const result = verify(input(), dependencies({
@@ -206,7 +233,7 @@ test('trusted authorization count and digest must match the exact actual path se
   }
 });
 
-test('real stable delegated L2 exact head passes trusted Git full_work_package verification', { timeout: 45000 }, () => {
+test('real historical delegated L2 V2 head fails closed when canonical base no longer equals its authorization merge', { timeout: 45000 }, () => {
   const {
     verifyDelegatedProductL2Candidate,
     prepareGitDependencies
@@ -218,24 +245,26 @@ test('real stable delegated L2 exact head passes trusted Git full_work_package v
   );
 
   const realDependencies = prepareGitDependencies(REAL_GIT_IMPLEMENTATION_BRANCH, REAL_GIT_CANDIDATE_SHA);
-  assert.ok(realDependencies, 'trusted Git identity preparation must resolve current main and the stable delegated L2 V2 ref');
+  assert.ok(realDependencies, 'trusted Git identity preparation must resolve current main and the preserved delegated L2 V2 ref');
+
+  const authority = realDependencies.evaluateAuthority();
+  assert.equal(authority.pass, true, JSON.stringify(authority));
+  assert.equal(authority.authorizationPath, REAL_GIT_AUTHORIZATION_PATH);
+  assert.equal(authority.authorizationMergeCommit, REAL_GIT_AUTHORIZATION_MERGE);
+  assert.match(authority.implementationBase, /^[0-9a-f]{40}$/u);
+  assert.notEqual(authority.implementationBase, REAL_GIT_AUTHORIZATION_MERGE);
 
   const result = verifyDelegatedProductL2Candidate(input({
     candidateBranch: REAL_GIT_IMPLEMENTATION_BRANCH,
     candidateSha: REAL_GIT_CANDIDATE_SHA,
     expectedTree: REAL_GIT_EXPECTED_TREE
   }), realDependencies);
-  assert.equal(result.pass, true, JSON.stringify(result));
-  assert.equal(result.reasonCode, null);
-  assert.equal(result.route, 'DELEGATED_PRODUCT_L2');
-  assert.equal(result.readyForPromotion, false);
-  assert.equal(result.candidateBranch, REAL_GIT_IMPLEMENTATION_BRANCH);
-  assert.equal(result.candidateSha, REAL_GIT_CANDIDATE_SHA);
-  assert.equal(result.expectedTree, REAL_GIT_EXPECTED_TREE);
-  assert.equal(result.authorizationPath, REAL_GIT_AUTHORIZATION_PATH);
-  assert.equal(result.authorizationMergeCommit, REAL_GIT_AUTHORIZATION_MERGE);
-  assert.equal(result.changedFileCount, REAL_GIT_PATH_COUNT);
-  assert.equal(result.changedFileSetSha256, REAL_GIT_PATH_DIGEST);
+  assert.deepEqual(result, {
+    pass: false,
+    reasonCode: 'L2_DELEGATED_PRODUCT_SCOPE_MISMATCH',
+    route: null,
+    readyForPromotion: false
+  });
 });
 
 test('real contaminated V1 branch is revoked by trusted-main V2 supersession', { timeout: 45000 }, () => {
@@ -255,4 +284,31 @@ test('real contaminated V1 branch is revoked by trusted-main V2 supersession', {
   assert.equal(result.reasonCode, 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_SUPERSEDED');
   assert.equal(result.route, null);
   assert.equal(result.readyForPromotion, false);
+});
+
+test('fresh-main merged candidate scopes L2 from authority canonical implementation base', () => {
+  const canonicalImplementationBase = '8'.repeat(40);
+  const trustedMainOnlyPath = 'governance/trusted-main-only.txt';
+  const verify = loadVerifier();
+
+  const result = verify(input(), dependencies({
+    evaluateAuthority: () => ({
+      pass: true,
+      authorityMode: 'TRUSTED_MAIN_DELEGATED_GOVERNANCE',
+      authorizationPath: AUTHORIZATION_PATH,
+      authorizationMergeCommit: AUTHORIZATION_MERGE,
+      reviewedAuthorizationHead: '1'.repeat(40),
+      implementationBase: canonicalImplementationBase,
+      unauthorizedPaths: []
+    }),
+    resolveChangedFilesBetween: base => (
+      base === canonicalImplementationBase
+        ? [...ALLOWED_PATHS]
+        : [...ALLOWED_PATHS, trustedMainOnlyPath].sort()
+    )
+  }));
+
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.reasonCode, null);
+  assert.equal(result.changedFileCount, ALLOWED_PATHS.length);
 });
