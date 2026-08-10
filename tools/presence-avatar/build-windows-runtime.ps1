@@ -39,6 +39,17 @@ if ($cyberVersePatch -notmatch 'return\s+o\.runAvatarAVDriver') { Fail 'external
 $addedAvatarGenerators = [regex]::Matches($cyberVersePatch, '(?m)^\+.*GenerateAvatarStream').Count
 if ($addedAvatarGenerators -ne 1) { Fail "CyberVerse patch must add exactly one shared GenerateAvatarStream driver, got $addedAvatarGenerators" }
 
+# Sharing the AV driver must not silently change each upstream caller's existing
+# error/cancellation semantics. Standard TTS historically logs a peer-send
+# failure and continues, and flushes its partial segment on cancellation;
+# external-audio historically fails closed on peer-send and does not flush a
+# partial reply during cancellation/teardown.
+if ($cyberVersePatch -notmatch 'FailOnPeerSendError\s+bool') { Fail 'shared avatar AV driver must parameterize peer-send error semantics' }
+if ($cyberVersePatch -notmatch 'FlushOnCancel\s+bool') { Fail 'shared avatar AV driver must parameterize cancellation flush semantics' }
+if ($cyberVersePatch -notmatch 'FailOnPeerSendError:\s*true') { Fail 'external-audio must remain fail-closed on MediaPeer send failure' }
+if ($cyberVersePatch -notmatch 'FlushOnCancel:\s*true') { Fail 'standard TTS must preserve partial-segment flush on cancellation' }
+if ($cyberVersePatch -notmatch 'OnPeerSendError:\s*func\(err error\)') { Fail 'standard TTS must preserve non-fatal MediaPeer send error reporting' }
+
 # Prove that the checked-in integration patch is replayable against the exact
 # pinned mature-OSS source, not merely textually plausible. Fetch only the
 # frozen CyberVerse commit into a disposable runner directory and run git's own
@@ -87,4 +98,4 @@ try {
   .\node_modules\.bin\tsc.cmd -p tsconfig.json
   if ($LASTEXITCODE -ne 0) { Fail 'official livekit-client renderer seam did not type-check' }
 } finally { Pop-Location }
-Write-Host 'Presence Windows gate: pinned CyberVerse patch replayability, official LiveKit renderer build, shared avatar AV driver, service preflight, secret boundary, and custom-runtime rejection passed.'
+Write-Host 'Presence Windows gate: pinned CyberVerse patch replayability, official LiveKit renderer build, shared avatar AV driver, preserved caller semantics, service preflight, secret boundary, and custom-runtime rejection passed.'
