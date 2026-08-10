@@ -6,7 +6,8 @@ const { spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
 const LOCK = require(path.join(ROOT, 'config/upstreams/v21-comms-p0.json'));
-const PATCH = path.join(ROOT, 'upstream-patches/element-web/0001-yance-global-right-workspace.patch');
+const ELEMENT_WORKSPACE_PATCH = path.join(ROOT, 'upstream-patches/element-web/0001-yance-global-right-workspace.patch');
+const PRODUCT_DEPENDENCY_LOCK_PATCH = path.join(ROOT, 'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
 const RUNTIME = path.join(ROOT, 'services/matrix/.runtime');
 
 function run(cwd, command, args) {
@@ -25,6 +26,12 @@ function assertExactCommit(repoDir, expected) {
   if (actual !== expected) throw new Error(`pin drift: expected ${expected}, got ${actual}`);
 }
 
+function applyPatch(repoDir, patchPath, label) {
+  if (!fs.existsSync(patchPath)) throw new Error(`${label} missing: ${path.relative(ROOT, patchPath)}`);
+  run(repoDir, 'git', ['apply', '--check', patchPath]);
+  run(repoDir, 'git', ['apply', patchPath]);
+}
+
 function materialize(name, upstream) {
   if (!/^[a-f0-9]{40}$/u.test(upstream.commit)) throw new Error(`${name}: mutable or short commit rejected`);
   const dir = path.join(RUNTIME, name);
@@ -41,11 +48,17 @@ function main() {
   const synapse = materialize('synapse', LOCK.upstreams.synapse);
   const element = materialize('element-web', LOCK.upstreams.elementWeb);
   const mautrix = materialize('mautrix-whatsapp', LOCK.upstreams.mautrixWhatsapp);
-  if (!fs.existsSync(PATCH)) throw new Error('Element workspace patch missing');
-  run(element, 'git', ['apply', '--check', PATCH]);
-  run(element, 'git', ['apply', PATCH]);
+
+  applyPatch(element, ELEMENT_WORKSPACE_PATCH, 'Element workspace patch');
+
   const moduleTarget = path.join(element, 'modules', 'yance');
   fs.cpSync(path.join(ROOT, 'integration/element-module'), moduleTarget, { recursive: true });
+
+  // Product dependencies live in the copied workspace module. Apply the lock-only
+  // replay patch only after the overlay exists so the frozen Element lock describes
+  // the exact modules/yance importer that pnpm will install with --frozen-lockfile.
+  applyPatch(element, PRODUCT_DEPENDENCY_LOCK_PATCH, 'Product Experience dependency lock patch');
+
   assertExactCommit(synapse, LOCK.upstreams.synapse.commit);
   assertExactCommit(mautrix, LOCK.upstreams.mautrixWhatsapp.commit);
   console.log('V2.1 Matrix/Element/mautrix exact-source runtime materialized.');
