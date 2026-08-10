@@ -256,3 +256,35 @@ test('real contaminated V1 branch is revoked by trusted-main V2 supersession', {
   assert.equal(result.route, null);
   assert.equal(result.readyForPromotion, false);
 });
+
+test('delegated product L2 scopes an ordinary fresh-main candidate from the canonical base supplied by trusted authority', () => {
+  const verify = loadVerifier();
+  const canonicalImplementationBase = '4'.repeat(40);
+  const unrelatedFreshMainPath = 'governance/layered-ci/unrelated-fresh-main-authorization.json';
+  const diffCalls = [];
+  const result = verify(input(), dependencies({
+    evaluateAuthority: () => ({
+      pass: true,
+      authorityMode: 'TRUSTED_MAIN_DELEGATED_GOVERNANCE',
+      authorizationPath: AUTHORIZATION_PATH,
+      authorizationMergeCommit: AUTHORIZATION_MERGE,
+      reviewedAuthorizationHead: '1'.repeat(40),
+      implementationBaseCommit: canonicalImplementationBase,
+      unauthorizedPaths: []
+    }),
+    resolveChangedFilesBetween: (base, head) => {
+      diffCalls.push([base, head]);
+      if (base === canonicalImplementationBase && head === CANDIDATE_SHA) return [...ALLOWED_PATHS];
+      if (base === AUTHORIZATION_MERGE && head === CANDIDATE_SHA) {
+        return [...ALLOWED_PATHS, unrelatedFreshMainPath].sort();
+      }
+      throw new Error(`unexpected diff request ${base}..${head}`);
+    }
+  }));
+
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.reasonCode, null, JSON.stringify(result));
+  assert.deepEqual(diffCalls, [[canonicalImplementationBase, CANDIDATE_SHA]]);
+  assert.equal(result.changedFileCount, ALLOWED_PATHS.length);
+  assert.equal(result.changedFileSetSha256, workPackageChangedFilesSha256(ALLOWED_PATHS));
+});
