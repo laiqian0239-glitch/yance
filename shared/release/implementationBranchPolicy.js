@@ -1316,6 +1316,7 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
     };
 
     for (const repositoryPath of changedDependencyPaths) {
+      if (resolvePathMode(evaluatedHead, repositoryPath) !== '100644') return denyDependencyIdentityMutation();
       const manifestPath = dependencyManifestPathForControlPath(repositoryPath);
       if (!manifestPath || !declaredManifestPaths.has(manifestPath)) return denyDependencyIdentityMutation();
 
@@ -1433,7 +1434,7 @@ function validDelegatedGovernanceAuthorization(document, authority) {
     || document.authorizationBranch.allowedChangedPaths.length !== 1
     || document.authorizationBranch.allowedChangedPaths[0] !== authority.authorizationPath
     || !isExactBranch(document.implementation?.branch)
-    || !Array.isArray(document.implementation?.allowedChangedPaths)
+    || !Array.isArray(document.implementation.allowedChangedPaths)
     || document.implementation.allowedChangedPaths.length === 0
     || document.implementation.approvedChangedFileCount !== document.implementation.allowedChangedPaths.length
     || document.implementation.approvedChangedFileSetSha256
