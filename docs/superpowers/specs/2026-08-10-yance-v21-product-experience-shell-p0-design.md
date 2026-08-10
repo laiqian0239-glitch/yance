@@ -61,9 +61,12 @@ At design creation:
 - Presence implementation PR #214 is merged;
 - Voice implementation PR #211 remains open Draft at `0ef46efd62f195049640a96ba6e5fe2a1f6a6e6e`;
 - Learning implementation PR #223 remains open Draft at `0b48b4dbd04693d21ef3f6545cbd330c6b519289`;
-- `integration/element-module/src/YanceWorkspace.tsx` is a shared composition root used by parallel worklines.
+- `integration/element-module/src/YanceWorkspace.tsx` is a shared composition root used by Voice / Learning;
+- `integration/element-module/package.json` is a dependency-control root currently modified by Learning #223.
 
-Therefore Product Experience implementation must **not** begin by editing shared roots. The implementation successor must be created from then-fresh `main` after re-reading Voice / Learning exact Heads and reconstructing overlap. New isolated shell files should be preferred; final cutover into `YanceWorkspace.tsx` is a late integration step.
+Therefore Product Experience implementation must **not** begin by editing either shared root or by installing the new Product Experience dependencies into the shared manifest. Before any dependency-control write, fresh-read Learning #223. Before any shared composition-root write, fresh-read both Voice #211 and Learning #223. The implementation successor must be created from then-fresh `main` and exact overlap must be reconstructed.
+
+New isolated shell/design-system files should be preferred first; dependency installation and final cutover into `YanceWorkspace.tsx` are late integration steps.
 
 ## 3. Historical UI work
 
@@ -157,6 +160,22 @@ Relationship data is projected around the person:
 - optional hidden AI companion entry.
 
 Different people may have different restrained color / atmosphere tokens derived from approved theme inputs. No unreadable photo wallpaper, high-contrast visual noise or automatic public inference of sensitive relationship state is allowed.
+
+### 6.1 Visual language — approved direction D
+
+The visual direction is a fusion of warm intimacy, premium night-time atmosphere and restrained future/game feel, with **premium calm overriding spectacle**.
+
+Rules:
+
+- deep warm-neutral / graphite surfaces are the baseline; relationship accents may use amber, rose, violet, blue or green families through semantic theme tokens;
+- at most three clear visual depth levels are visible in the normal conversation view;
+- translucency / blur is selective material, not the default background of every component;
+- no neon-outline-everything, permanent particles, rainbow gradients or cyberpunk HUD vocabulary;
+- photos may influence atmosphere color, but never reduce text contrast or become unreadable wallpaper behind active message text;
+- primary actions use clear human labels when ambiguity exists; icon-only actions are reserved for universally understood actions and must expose accessible labels/tooltips;
+- ordinary desktop interactive targets should be at least 40x40 CSS px where layout permits; compact exceptions must preserve keyboard and accessibility behavior;
+- destructive actions are never visually adjacent to high-frequency send / voice controls without separation;
+- normal conversation copy uses relationship language such as `People`, `Moments`, `Voice`, `Live`, `For Lena`, `Tonight`; internal engine names are hidden from normal users.
 
 ## 7. Conversation Surface
 
