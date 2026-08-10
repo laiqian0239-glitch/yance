@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-11T01:18:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-SHELL-P0-LEGACY-CONTRACT-MIGRATION",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Product Experience Shell P0 intentionally replaces the retired flat YanceWorkspace implementation with a thin Element composition root. Existing WP0 contracts for Element, Letta, Parlant, Media and Presence still bind preserved semantic requirements to implementation tokens inside YanceWorkspace.tsx. Stage #1857 on Product exact Head ebde6ea965adf5f796c04512ba072bb9812c30af proves that these source-location assertions now fail even though Product-specific architecture, interaction and accessibility contracts are green. Product successor 920e4db40a0cc2ae6988cb8cb9293d77b4f0984c preserves the actual Letta refresh and unsaved Goal-draft semantics in the new Product authority without restoring the flat dashboard. This work package authorizes only migration of five legacy tests from retired source-location assumptions to the new Product authority while preserving or strengthening their behavioral and authority-boundary assertions.",
+  "base": {
+    "branch": "main",
+    "commit": "d10bd5c4e447b5e73645aedba71a2fd9c80a0477"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "d10bd5c4e447b5e73645aedba71a2fd9c80a0477",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "evidence": {
+    "sourcePullRequest": 229,
+    "causalRedExactHead": "ebde6ea965adf5f796c04512ba072bb9812c30af",
+    "semanticRepairSuccessorHead": "920e4db40a0cc2ae6988cb8cb9293d77b4f0984c",
+    "stageWp0Run": 31421309698,
+    "stageWp0ProductJob": 93562603921,
+    "wp0Tests": 304,
+    "wp0Passed": 294,
+    "wp0Failed": 10,
+    "legacySourceLocationFailures": {
+      "v21-element-workspace-contract.test.js": 2,
+      "v21-letta-workspace-contract.test.js": 2,
+      "v21-media-brain-ui.test.js": 1,
+      "v21-parlant-workspace-contract.test.js": 2,
+      "v21-presence-avatar-ui.test.js": 1
+    },
+    "independentProductSupplyChainFailuresExcludedFromThisMigration": 2,
+    "productExperienceArchitectureContractGreen": true,
+    "productExperienceInteractionContractGreen": true,
+    "productExperienceAccessibilityContractGreen": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-shell-p0-legacy-contract-migration-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-shell-p0-legacy-contract-migration-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "00a4debea19eb199b222b4f153f64862f02ccc181292a72c991e4232893e42ce",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-shell-p0-legacy-contract-migration",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-letta-workspace-contract.test.js",
+      "tests/wp0/v21-media-brain-ui.test.js",
+      "tests/wp0/v21-parlant-workspace-contract.test.js",
+      "tests/wp0/v21-presence-avatar-ui.test.js"
+    ],
+    "approvedChangedFileCount": 5,
+    "approvedChangedFileSetSha256": "24130b9de8a6418cb72b81724300d7d8a3899a16b13d4fdbde4e56dca1f36d89",
+    "productionCodeChanged": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "migrationContracts": {
+    "element": [
+      "YanceWorkspace.tsx remains a thin composition root that renders ProductExperienceShell.",
+      "The actual ProductExperienceShell remains identifiable as the Yance workspace and exposes an accessible Yance label.",
+      "Workspace preference persistence is asserted against experiencePreferences.ts and must remain limited to Product experience preferences rather than message, Goal, relationship or runtime authority."
+    ],
+    "letta": [
+      "Readonly Letta desktop APIs remain consumed only through the Product relationship projection and never gain renderer process/runtime authority.",
+      "RelationshipAssistant keeps post-mount Letta state observable using a cancellable refresh mechanism compatible with the Product reduced-motion contract; setInterval is not reintroduced.",
+      "Stale agent/conversation projections are cleared by the Product projection when Letta is unavailable, and bounded recent-conversation semantics remain explicit."
+    ],
+    "parlant": [
+      "Goal CRUD remains contact-scoped through the existing guarded desktop API and no browser Goal persistence is introduced.",
+      "Background relationship events and refreshes must not overwrite an unsaved Goal draft or auto-select another relationship.",
+      "The test follows experienceProjection.ts, experienceSession.ts and RelationshipAssistant.tsx rather than requiring retired state variables inside YanceWorkspace.tsx."
+    ],
+    "media": [
+      "Media remains visibly reachable from the Product relationship Action Dock and RelationshipOverlayHost.",
+      "MediaWorkspace remains the existing runtime-backed action authority; the Product shell does not create a second media or send runtime."
+    ],
+    "presence": [
+      "Presence remains visibly reachable from the Product relationship Action Dock and RelationshipOverlayHost.",
+      "PresenceWorkspace and official livekit-client remain the realtime authority; the Product shell does not create custom WebRTC transport."
+    ]
+  },
+  "candidatePreservation": {
+    "candidatePullRequest": 229,
+    "candidateBranch": "product/v21-product-experience-shell-p0",
+    "candidateObservedHead": "920e4db40a0cc2ae6988cb8cb9293d77b4f0984c",
+    "candidateAuthorizedChangedFileCountMustRemain": 31,
+    "candidateAuthorizedChangedFileSetSha256MustRemain": "140c0163e8e937ccc3ed7658d15ec059d9d5cddc515448f55a0abf5b5904d76f",
+    "candidateFirstFailureHeadMustRemain": "e75d824e84111acd221896ca4de287b53018322b",
+    "candidateWorkflowModificationAllowed": false,
+    "candidateHistoryRewriteAllowed": false
+  },
+  "mandatoryVerification": [
+    "Before migration, the cited Product Stage run preserves causal failure evidence for the eight legacy source-location assertions while Product architecture, interaction and accessibility contracts are green.",
+    "Each migrated contract continues to test the same runtime authority, fail-closed, persistence, refresh, unsaved-draft and visibility semantics against the new Product source authority.",
+    "No assertion may be removed merely because Product Experience moved implementation out of YanceWorkspace.tsx; source reads must be retargeted to the new authoritative files and semantic checks preserved or strengthened.",
+    "No production, dependency, workflow, release, routing, Voice #211, Learning #223 or unrelated work-package file is modified by the migration implementation.",
+    "After migration main merges into Product #229 by ordinary two-parent merge and the Product WP0 run may still remain RED only for independently unresolved authorized Product supply-chain/asset work until those genuine dependencies are closed."
+  ],
+  "requiredSequence": [
+    "Authorization exact Head remains one file, is based on unchanged trusted main, and passes all applicable governance gates with independent review P0=0/P1=0.",
+    "Authorization PR merges to main by ordinary two-parent merge without rebase, squash, force push or history rewrite.",
+    "Implementation branch is created from that exact authorization merge commit.",
+    "Only the five exact legacy test files are migrated; no production or workflow file changes.",
+    "Migrated tests must preserve the old contracts' behavioral intent while following ProductExperienceShell, RelationshipAssistant, experienceProjection, experienceSession, ProductComposerAccessory and RelationshipOverlayHost as appropriate.",
+    "Implementation exact Head passes applicable Stage, Layered, ACV2 and independent review gates.",
+    "Implementation PR merges to main by ordinary two-parent merge.",
+    "Fresh main merges normally into Product PR #229; Product history and original authorization remain intact."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkip": true,
+    "assertionDeletionForGreen": true,
+    "regexMarkerOnlyCompatibilityShim": true,
+    "restoreRetiredFlatDashboard": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true,
+    "workflowModification": true,
+    "productionCodeModification": true,
+    "candidateScopeExpansion": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
