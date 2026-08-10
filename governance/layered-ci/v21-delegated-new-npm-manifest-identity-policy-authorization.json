@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-NEW-NPM-MANIFEST-IDENTITY-POLICY",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Generic delegated dependency identity enforcement merged by PR #192 correctly seals exact additions to existing npm manifests, but currently rejects an authorized new package.json because validateDelegatedDependencyIdentityMutation requires the base manifest to be a JSON object. Learning / Growth Brain requires a separately sealed Promptfoo npm runtime whose package.json does not exist on trusted main. Moving Promptfoo into the root manifest, weakening the identity guard, or creating an ungoverned bootstrap manifest would be structural bypasses. This root repair must make the generic policy safely support a trusted-base-absent npm manifest only when the candidate manifest is exactly the declared dependency sections and its authorized companion npm lockfile closes exactly; all extra metadata, scripts, dependencies, descriptor drift and ghost lock artifacts remain fail-closed.",
+  "base": {
+    "branch": "main",
+    "commit": "788e8c431eeec62d52323d755d32fdff11703740"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-new-npm-manifest-identity-policy-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-new-npm-manifest-identity-policy-authorization.json"
+    ],
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Repository normalizeChangedFiles contract: normalized repository-relative paths, unique, JavaScript default sort.",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "prerequisites": {
+    "delegatedDependencyIdentityPolicyPullRequest": 192,
+    "delegatedDependencyIdentityPolicyMerge": "197e8932ee51deb1e09243c1d1f62154ed0486b1",
+    "trustedPolicyPath": "shared/release/implementationBranchPolicy.js",
+    "learningImplementationPullRequest": 188,
+    "learningLegacyAuthorizationPath": "governance/layered-ci/v21-learning-growth-brain-p0-v2-authorization.json",
+    "learningPromptfooManifestPath": "runtime/learning-growth/promptfoo/package.json",
+    "learningPromptfooManifestAbsentAtBase": true
+  },
+  "implementation": {
+    "branch": "fix/v21-delegated-new-npm-manifest-identity-policy",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/v21-delegated-dependency-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "da9c824293effd3aa16d3837ba461b488ef62f20e806e18e5115ae42573e268b",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "rootCause": {
+    "currentGuard": "validateDelegatedDependencyIdentityMutation",
+    "currentFailure": "baseManifest=null is rejected before exact candidate semantics can be evaluated",
+    "requiredGenericBehavior": "When and only when the trusted implementation base has no manifest at an already-authorized package.json path, treat the dependency-section baseline as empty and accept a candidate manifest only if it is semantically exactly the dependency identities declared by dependencyIdentityPolicy. The normal companion-lock closure must still verify exact direct descriptors and complete npm/Arborist topology.",
+    "existingManifestSemanticsMustRemainUnchanged": true,
+    "newManifestExtraMetadataMustFailClosed": true,
+    "newManifestExtraScriptsMustFailClosed": true,
+    "newManifestExtraDependenciesMustFailClosed": true,
+    "companionLockRequiredWhenAuthorized": true,
+    "ghostLockArtifactsRemainForbidden": true,
+    "unrelatedExistingDescriptorDriftRemainForbidden": true
+  },
+  "failureFirst": {
+    "firstImplementationCommitMustBeTestOnly": true,
+    "firstImplementationChangedPaths": [
+      "tests/wp0/v21-delegated-dependency-policy.test.js"
+    ],
+    "requiredCausalRed": [
+      "A delegated authorization that exactly declares a brand-new package.json dependency identity plus an authorized new sibling package-lock.json is rejected solely because the trusted-base manifest is absent.",
+      "The same fixture must prove that extra candidate manifest metadata/scripts/dependencies remain denied rather than broadening new-manifest authority."
+    ]
+  },
+  "learningClosureDependency": {
+    "purpose": "Unblock the future Learning successor authorization without weakening exact dependency identity enforcement.",
+    "futurePromptfooManifest": {
+      "path": "runtime/learning-growth/promptfoo/package.json",
+      "minimumExactShape": {
+        "dependencies": {
+          "promptfoo": "0.122.0"
+        }
+      },
+      "companionLockPath": "runtime/learning-growth/promptfoo/package-lock.json"
+    },
+    "promptfooRootManifestRelocationForbidden": true,
+    "pathOnlyDependencyAuthorityForbidden": true
+  },
+  "requiredSequence": [
+    "ordinary two-parent authorization merge from exact trusted main",
+    "create fix/v21-delegated-new-npm-manifest-identity-policy from the exact authorization merge",
+    "first implementation commit changes only tests/wp0/v21-delegated-dependency-policy.test.js and records causal RED",
+    "repair the generic validator at source without Learning-specific branching",
+    "verify exact two-path scope and applicable Stage/Layered/ACV2/PVEP gates",
+    "independent exact-Head review with P0=0/P1=0",
+    "stop at final implementation merge boundary"
+  ],
+  "prohibitions": {
+    "learningProductCode": true,
+    "learningSpecificPolicyBranch": true,
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "dependencyGuardWeakening": true,
+    "pathOnlyDependencyAuthority": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true,
+    "rebaseMerge": true,
+    "productionRelease": true,
+    "publish": true,
+    "promotion": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
