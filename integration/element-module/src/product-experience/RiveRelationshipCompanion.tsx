@@ -29,7 +29,7 @@ export function RiveRelationshipCompanion({ state, reducedMotion }: RiveRelation
   const { rive, RiveComponent } = useRive({
     src,
     stateMachines: STATE_MACHINE,
-    autoplay: true,
+    autoplay: !reducedMotion,
     onLoadError: () => setFailed(true),
   });
   const relationshipState = useStateMachineInput(rive, STATE_MACHINE, "relationshipState", STATE_INDEX.idle);
@@ -45,14 +45,14 @@ export function RiveRelationshipCompanion({ state, reducedMotion }: RiveRelation
 
   useEffect(() => {
     if (!rive) return;
-    const syncVisibility = (): void => {
-      if (document.visibilityState === "hidden") rive.stopRendering();
+    const syncRendering = (): void => {
+      if (reducedMotion || document.visibilityState === "hidden") rive.stopRendering();
       else rive.startRendering();
     };
-    syncVisibility();
-    document.addEventListener("visibilitychange", syncVisibility);
-    return () => document.removeEventListener("visibilitychange", syncVisibility);
-  }, [rive]);
+    syncRendering();
+    document.addEventListener("visibilitychange", syncRendering);
+    return () => document.removeEventListener("visibilitychange", syncRendering);
+  }, [rive, reducedMotion]);
 
   return (
     <div
@@ -62,7 +62,11 @@ export function RiveRelationshipCompanion({ state, reducedMotion }: RiveRelation
       aria-live="polite"
       aria-label={`Relationship AI ${state}`}
     >
-      {!failed ? <RiveComponent aria-hidden="true" /> : <span className="yance-rive-fallback" aria-hidden="true">●</span>}
+      {reducedMotion ? (
+        <span className="yance-rive-static-state" aria-hidden="true">{state}</span>
+      ) : null}
+      {!reducedMotion && !failed ? <RiveComponent aria-hidden="true" /> : null}
+      {!reducedMotion && failed ? <span className="yance-rive-fallback" aria-hidden="true">●</span> : null}
       <span className="yance-sr-only">AI state: {state}</span>
     </div>
   );
