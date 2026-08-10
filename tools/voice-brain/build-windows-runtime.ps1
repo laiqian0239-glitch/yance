@@ -126,7 +126,12 @@ $OldUvCacheDir = $env:UV_CACHE_DIR
 try {
   $env:UV_CACHE_DIR = $UvCache
   Invoke-Checked $UvExe @('export', '--project', $ProjectRoot, '--frozen', '--offline', '--no-dev', '--format', 'requirements-txt', '--output-file', $RequirementsPath) 'export exact CosyVoice uv.lock closure'
-  Invoke-Checked $UvExe @('pip', 'sync', '--python', $PythonExe, '--offline', '--require-hashes', $RequirementsPath) 'materialize exact CosyVoice closure into sealed CPython'
+  Push-Location $ProjectRoot
+  try {
+    Invoke-Checked $UvExe @('pip', 'sync', '--python', $PythonExe, '--offline', '--require-hashes', $RequirementsPath) 'materialize exact CosyVoice closure into sealed CPython'
+  } finally {
+    Pop-Location
+  }
 } finally {
   if ($null -eq $OldUvCacheDir) { Remove-Item Env:UV_CACHE_DIR -ErrorAction SilentlyContinue } else { $env:UV_CACHE_DIR = $OldUvCacheDir }
 }
