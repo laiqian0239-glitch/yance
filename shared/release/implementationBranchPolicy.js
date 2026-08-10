@@ -1316,14 +1316,22 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
     };
 
     for (const repositoryPath of changedDependencyPaths) {
+      if (resolvePathMode(evaluatedHead, repositoryPath) !== '100644') return denyDependencyIdentityMutation();
       const manifestPath = dependencyManifestPathForControlPath(repositoryPath);
       if (!manifestPath || !declaredManifestPaths.has(manifestPath)) return denyDependencyIdentityMutation();
 
       if (repositoryPath === manifestPath) {
+        const baseManifest = loadDependencyControl(implementationBase, repositoryPath);
+        const baseManifestBlob = resolveBlob(implementationBase, repositoryPath);
+        const baseManifestForValidation = (baseManifest === null || baseManifest === undefined)
+          && baseManifestBlob === null
+          && resolveBlob(trustedMainHead, repositoryPath) === null
+          ? {}
+          : baseManifest;
         const identityValidation = validateDelegatedDependencyIdentityMutation({
           authorization: match.authorization,
           repositoryPath,
-          baseManifest: loadDependencyControl(implementationBase, repositoryPath),
+          baseManifest: baseManifestForValidation,
           candidateManifest: loadDependencyControl(evaluatedHead, repositoryPath)
         });
         if (!identityValidation.pass) return denyDependencyIdentityMutation();
