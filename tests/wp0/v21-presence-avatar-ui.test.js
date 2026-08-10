@@ -8,6 +8,7 @@ const path = require('node:path');
 const ROOT = path.resolve(__dirname, '..', '..');
 const workspacePath = path.join(ROOT, 'integration/element-module/src/PresenceWorkspace.tsx');
 const liveKitPath = path.join(ROOT, 'integration/element-module/src/presenceLiveKit.ts');
+const productSentinelPath = path.join(ROOT, 'integration/element-module/src/product-experience/ProductExperienceShell.tsx');
 
 function read(repositoryPath) {
   return fs.readFileSync(path.join(ROOT, repositoryPath), 'utf8');
@@ -18,7 +19,18 @@ test('Presence is a visible Yance workspace backed by real desktop session and L
   const yance = read('integration/element-module/src/YanceWorkspace.tsx');
   const workspace = fs.readFileSync(workspacePath, 'utf8');
 
-  assert.match(yance, /Presence/u);
+  if (fs.existsSync(productSentinelPath)) {
+    const composer = read('integration/element-module/src/product-experience/ProductComposerAccessory.tsx');
+    const overlay = read('integration/element-module/src/product-experience/RelationshipOverlayHost.tsx');
+    assert.match(yance, /ProductExperienceShell/u, 'YanceWorkspace must remain the thin Product composition root');
+    assert.match(composer, /label: "Live"/u);
+    assert.match(composer, /LiveKit and CyberVerse/u, 'Live action must expose the existing Presence/Avatar authority');
+    assert.match(overlay, /import \{ PresenceWorkspace \} from "\.\.\/PresenceWorkspace"/u);
+    assert.match(overlay, /overlay === "live"/u, 'Product relationship Live action must route to PresenceWorkspace');
+  } else {
+    assert.match(yance, /Presence/u);
+  }
+
   for (const label of ['Connect', 'Disconnect', 'Microphone', 'Camera', 'Avatar']) {
     assert.match(workspace, new RegExp(label, 'iu'), `${label} control must be visible`);
   }
