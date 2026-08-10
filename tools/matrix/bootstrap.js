@@ -7,7 +7,7 @@ const { spawnSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '../..');
 const LOCK = require(path.join(ROOT, 'config/upstreams/v21-comms-p0.json'));
 const PATCH = path.join(ROOT, 'upstream-patches/element-web/0001-yance-global-right-workspace.patch');
-const RUNTIME_PATCH = path.join(ROOT, 'upstream-patches/element-web/0012-yance-element-module-runtime.patch');
+const MODULE_DELIVERY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0012-yance-element-module-runtime.patch');
 const RUNTIME = path.join(ROOT, 'services/matrix/.runtime');
 
 function run(cwd, command, args) {
@@ -47,9 +47,9 @@ function main() {
   run(element, 'git', ['apply', PATCH]);
   const moduleTarget = path.join(element, 'modules', 'yance');
   fs.cpSync(path.join(ROOT, 'integration/element-module'), moduleTarget, { recursive: true });
-  if (!fs.existsSync(RUNTIME_PATCH)) throw new Error('Element runtime module patch missing');
-  run(element, 'git', ['apply', '--check', RUNTIME_PATCH]);
-  run(element, 'git', ['apply', RUNTIME_PATCH]);
+  if (!fs.existsSync(MODULE_DELIVERY_PATCH)) throw new Error('Element module delivery patch missing');
+  run(element, 'git', ['apply', '--check', MODULE_DELIVERY_PATCH]);
+  run(element, 'git', ['apply', MODULE_DELIVERY_PATCH]);
   assertExactCommit(synapse, LOCK.upstreams.synapse.commit);
   assertExactCommit(mautrix, LOCK.upstreams.mautrixWhatsapp.commit);
   console.log('V2.1 Matrix/Element/mautrix exact-source runtime materialized.');
