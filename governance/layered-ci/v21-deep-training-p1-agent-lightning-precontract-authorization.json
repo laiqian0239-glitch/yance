@@ -3,7 +3,7 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-DEEP-TRAINING-P1-AGENT-LIGHTNING",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Pre-contract proposal transport only. Learning PR #188 is unmerged; this proposal MUST remain Draft/unmerged and MUST be replaced by a fresh successor authorization after final Learning contracts land on then-current trusted main.",
   "base": {
@@ -28,7 +28,7 @@
   },
   "designEvidence": {
     "pullRequest": 215,
-    "exactHead": "daa396240b01ee3fbff56790b016fad37633575f",
+    "exactHead": "e92413b654c277eb7f60c29ce9eb73acda6b0fbd",
     "implementationAuthorityGranted": false
   },
   "learningContractDependency": {
@@ -155,7 +155,7 @@
   },
   "parallelOverlapSnapshot": {
     "designPr215": {
-      "head": "daa396240b01ee3fbff56790b016fad37633575f",
+      "head": "e92413b654c277eb7f60c29ce9eb73acda6b0fbd",
       "count": 2,
       "paths": [
         "docs/superpowers/plans/2026-08-10-yance-v21-agent-lightning-p1.md",
