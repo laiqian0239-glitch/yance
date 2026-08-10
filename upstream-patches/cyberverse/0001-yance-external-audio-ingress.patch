@@ -24,7 +24,7 @@ index 5c60f3f..1598f77 100644
 --- a/server/internal/api/handlers.go
 +++ b/server/internal/api/handlers.go
 @@ -2,6 +2,7 @@ package api
- 
+
  import (
  	"context"
 +	"encoding/base64"
@@ -41,7 +41,7 @@ index 5c60f3f..1598f77 100644
 @@ -51,6 +53,17 @@ type SendMessageRequest struct {
  	Text string `json:"text"`
  }
- 
+
 +type ExternalAvatarAudioRequest struct {
 +	ReplyID     string `json:"reply_id"`
 +	Sequence    uint64 `json:"sequence"`
@@ -57,7 +57,7 @@ index 5c60f3f..1598f77 100644
  	Error string `json:"error"`
  }
 @@ -519,6 +532,7 @@ func (r *Router) handleDeleteSession(w http.ResponseWriter, req *http.Request) {
- 
+
  	// Teardown orchestrator resources
  	if r.orch != nil {
 +		r.orch.StopExternalAvatarAudio(id)
@@ -67,7 +67,7 @@ index 5c60f3f..1598f77 100644
 @@ -559,6 +573,51 @@ func (r *Router) handleSendMessage(w http.ResponseWriter, req *http.Request) {
  	writeJSON(w, http.StatusAccepted, map[string]string{"status": "queued"})
  }
- 
+
 +func (r *Router) handleExternalAvatarAudio(w http.ResponseWriter, req *http.Request) {
 +	id := req.PathValue("id")
 +	session, err := r.sessionMgr.Get(id)
@@ -138,19 +138,20 @@ index 342937c..0000000 100644
  	if len(pipelineCfg) > 0 {
 @@ -3130,168 +3130,61 @@ func (o *Orchestrator) runStandardPipeline(ctx context.Context, session *Session, sessionID string, pipelineSeq uint64, turnSeq uint64) {
  	}
- 
+
 -	// 4. Start Avatar stream
 -	stdSyncBuf := newVoiceAVSyncBuffer(voiceMaxPCMBufferSamples)
-+	// 4. Feed standard TTS audio into the one CyberVerse avatar AV driver.
-+	// The shared driver owns avatar inference, AV sync, segment pacing and
-+	// MediaPeer publication; this pipeline keeps only standard-turn callbacks.
- 	avatarAudioCh := make(chan *pb.AudioChunk, 8)
- 	go func() {
- 		defer close(avatarAudioCh)
-@@ -3142,31 +3035,13 @@ func (o *Orchestrator) runStandardPipeline(ctx context.Context, session *Session, sessionID string, pipelineSeq uint64, turnSeq uint64) {
- 				if !ok {
- 					return
- 				}
+-	avatarAudioCh := make(chan *pb.AudioChunk, 8)
+-	go func() {
+-		defer close(avatarAudioCh)
+-		for {
+-			select {
+-			case <-ctx.Done():
+-				return
+-			case chunk, ok := <-ttsAudioCh:
+-				if !ok {
+-					return
+-				}
 -				// Avatar decodes AudioChunk.Format itself; browser audio and
 -				// recordings need signed 16-bit PCM.
 -				pcm, pcmSampleRate := audioChunkToPCM16(chunk)
@@ -163,13 +164,26 @@ index 342937c..0000000 100644
 -				}
 -				// Forward original audio to avatar. Browser audio is published
 -				// later as part of the same paced AV segment as the video.
- 				select {
- 				case avatarAudioCh <- chunk:
- 				case <-ctx.Done():
-@@ -3181,113 +3056,30 @@ func (o *Orchestrator) runStandardPipeline(ctx context.Context, session *Session, sessionID string, pipelineSeq uint64, turnSeq uint64) {
- 		}
- 	}()
- 
+-				select {
+-				case avatarAudioCh <- chunk:
+-				case <-ctx.Done():
+-					return
+-				}
+-			case err, ok := <-ttsErrCh:
+-				if !ok {
+-					ttsErrCh = nil
+-					continue
+-				}
+-				if err == nil {
+-					continue
+-				}
+-				log.Printf("TTS stream error for session %s: %v", sessionID, err)
+-				o.broadcastError(sessionID, "Speech synthesis failed")
+-				return
+-			}
+-		}
+-	}()
+-
 -	// Delay speaking status until first video frame arrives (avoids frozen-frame stall on frontend).
 -	speakingBroadcasted := false
 -
@@ -287,6 +301,41 @@ index 342937c..0000000 100644
 -				flushStdSeg(chunk.GetIsFinal())
 -			}
 -		}
+-	}
++	// 4. Feed standard TTS audio into the one CyberVerse avatar AV driver.
++	// The shared driver owns avatar inference, AV sync, segment pacing and
++	// MediaPeer publication; this pipeline keeps only standard-turn callbacks.
++	avatarAudioCh := make(chan *pb.AudioChunk, 8)
++	go func() {
++		defer close(avatarAudioCh)
++		for {
++			select {
++			case <-ctx.Done():
++				return
++			case chunk, ok := <-ttsAudioCh:
++				if !ok {
++					return
++				}
++				select {
++				case avatarAudioCh <- chunk:
++				case <-ctx.Done():
++					return
++				}
++			case err, ok := <-ttsErrCh:
++				if !ok {
++					ttsErrCh = nil
++					continue
++				}
++				if err == nil {
++					continue
++				}
++				log.Printf("TTS stream error for session %s: %v", sessionID, err)
++				o.broadcastError(sessionID, "Speech synthesis failed")
++				return
++			}
++		}
++	}()
++
 +	err := o.runAvatarAVDriver(ctx, sessionID, avatarAudioCh, avatarAVDriverOptions{
 +		Epoch: turnSeq,
 +		TraceLabel: func(segSeq int64) string {
@@ -308,9 +357,9 @@ index 342937c..0000000 100644
 +		}
 +		log.Printf("Avatar stream error for session %s: %v", sessionID, err)
 +		o.broadcastError(sessionID, "Avatar generation failed")
- 	}
++	}
  }
- 
+
  // HandleAudioStream processes incoming user audio through the session's pipeline.
 diff --git a/server/internal/orchestrator/external_avatar_audio.go b/server/internal/orchestrator/external_avatar_audio.go
 new file mode 100644
@@ -695,5 +744,5 @@ index 0000000..44f04af
 +		},
 +	})
 +}
-+-- 
-+2.45.2
+-- 
+2.45.2
