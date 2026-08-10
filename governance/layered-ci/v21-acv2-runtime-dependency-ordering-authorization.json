@@ -3,7 +3,7 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-ACV2-RUNTIME-DEPENDENCY-ORDERING",
-  "status": "PROPOSED_UNTIL_TRUSTED_MAIN_MERGE",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "ACV2 executes the runtime mutex contract before installing the exact root lock closure. Learning Growth Brain P0 V3 correctly replaced the custom process-lock framework with authorized proper-lockfile@4.1.2, but ACV2 Ubuntu and Windows fail with MODULE_NOT_FOUND before the workflow's later npm ci step. The repair belongs to the gate ordering, not to product code, vendored node_modules, fallback infrastructure, or a fake require path.",
   "base": {
     "branch": "main",
@@ -52,7 +52,14 @@
     "approvedChangedFileSetSha256": "452c961de8bb03f0bd7d14f6d759fdd318936bd1dbbb02d06ac00f7b9e6c58ee",
     "newDependencyAllowed": false,
     "packageManifestModificationAllowed": false,
-    "workflowModificationAllowed": true
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/acv2-wp-a.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "452c961de8bb03f0bd7d14f6d759fdd318936bd1dbbb02d06ac00f7b9e6c58ee"
+    }
   },
   "requiredRepair": {
     "platformMatrixOnly": true,
@@ -93,5 +100,15 @@
     "blockedLearningPr": 223,
     "blockedLearningHeadMustNotBeRewritten": "2abf1dda808ad81585f99eb7e7d59ffd965629da",
     "learningMayResumeAfterRepairMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
   }
 }
