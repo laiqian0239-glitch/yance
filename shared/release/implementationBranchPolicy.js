@@ -1324,6 +1324,7 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
         const baseManifestBlob = resolveBlob(implementationBase, repositoryPath);
         const baseManifestForValidation = (baseManifest === null || baseManifest === undefined)
           && baseManifestBlob === null
+          && resolveBlob(trustedMainHead, repositoryPath) === null
           ? {}
           : baseManifest;
         const identityValidation = validateDelegatedDependencyIdentityMutation({
