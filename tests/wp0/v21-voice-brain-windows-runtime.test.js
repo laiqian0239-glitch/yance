@@ -63,6 +63,27 @@ test('Windows Voice build is sealed from exact CPython and uv artifacts and prod
   assert.match(script, /SBOM|generate_runtime_sbom/iu);
 });
 
+test('sealed pip materialization preserves the Whisper sdist build dependency contract', () => {
+  const pyproject = read('runtime/voice-brain/cosyvoice/pyproject.toml');
+  const script = read('tools/voice-brain/build-windows-runtime.ps1');
+
+  assert.match(
+    pyproject,
+    /\[tool\.uv\.extra-build-dependencies\][\s\S]*openai-whisper\s*=\s*\["setuptools==80\.10\.1"\]/u,
+    'lock-time Whisper build dependency must remain explicit'
+  );
+  assert.match(
+    pyproject,
+    /\[tool\.uv\.pip\][\s\S]*extra-build-dependencies\s*=\s*\{[^\n}]*openai-whisper\s*=\s*\["setuptools==80\.10\.1"\][^\n}]*\}/u,
+    'uv pip sync must receive the same Whisper build dependency through the pip-interface configuration'
+  );
+
+  const push = script.indexOf('Push-Location $ProjectRoot');
+  const sync = script.indexOf("@('pip', 'sync'");
+  const pop = script.indexOf('Pop-Location', sync);
+  assert.ok(push >= 0 && sync > push && pop > sync, 'uv pip sync must execute from copied $ProjectRoot so its pyproject pip configuration is discovered');
+});
+
 test('application startup cannot dynamically install or download Voice dependencies/models', () => {
   const runtimePath = path.join(ROOT, 'electron/voiceBrainRuntime.js');
   assert.equal(fs.existsSync(runtimePath), true, 'Voice runtime must exist');
