@@ -171,8 +171,12 @@ function trustedOptions(candidateManifest, auth = authorization()) {
       return [REVIEWED, MERGE, TRUSTED_MAIN].includes(commit) ? AUTH_BLOB : null;
     },
     resolveCommitPathMode: (commit, path) => {
-      if (path !== AUTHORIZATION_PATH || commit === BASE) return null;
-      return [REVIEWED, MERGE, TRUSTED_MAIN].includes(commit) ? '100644' : null;
+      if (path === AUTHORIZATION_PATH) {
+        if (commit === BASE) return null;
+        return [REVIEWED, MERGE, TRUSTED_MAIN].includes(commit) ? '100644' : null;
+      }
+      if (commit === CANDIDATE && [MANIFEST_PATH, LOCK_PATH].includes(path)) return '100644';
+      return null;
     },
     resolveChangedFilesBetween: (base, head) => {
       if (base === BASE && [REVIEWED, MERGE].includes(head)) return [AUTHORIZATION_PATH];
@@ -537,4 +541,138 @@ test('trusted delegated evaluator rejects missing required npm topology while pr
     candidateLockfile: missingOptional
   }));
   assert.equal(optionalResult.pass, true, JSON.stringify(optionalResult));
+});
+
+test('trusted delegated evaluator accepts an exact brand-new npm manifest with exact authorized sibling lock closure', () => {
+  const candidateManifest = {
+    dependencies: {
+      'livekit-client': '2.21.0'
+    }
+  };
+  const candidateLockfile = {
+    lockfileVersion: 3,
+    requires: true,
+    packages: {
+      '': {
+        dependencies: {
+          'livekit-client': '2.21.0'
+        }
+      },
+      'node_modules/livekit-client': {
+        version: '2.21.0'
+      }
+    }
+  };
+  const options = trustedOptionsWithLockfile({ candidateManifest, candidateLockfile });
+  options.loadDependencyControlAtCommit = (commit, repositoryPath) => {
+    if (commit === MERGE && [MANIFEST_PATH, LOCK_PATH].includes(repositoryPath)) return null;
+    if (commit === CANDIDATE && repositoryPath === MANIFEST_PATH) return candidateManifest;
+    if (commit === CANDIDATE && repositoryPath === LOCK_PATH) return candidateLockfile;
+    return null;
+  };
+
+  const result = evaluateTrustedDelegatedGovernanceBranch(options);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.reasonCode, null, JSON.stringify(result));
+});
+
+test('trusted delegated evaluator keeps brand-new npm manifests exact and rejects extra metadata, scripts and dependencies', () => {
+  const exactNewManifest = {
+    dependencies: {
+      'livekit-client': '2.21.0'
+    }
+  };
+  const exactNewLockfile = {
+    lockfileVersion: 3,
+    requires: true,
+    packages: {
+      '': {
+        dependencies: {
+          'livekit-client': '2.21.0'
+        }
+      },
+      'node_modules/livekit-client': {
+        version: '2.21.0'
+      }
+    }
+  };
+  const fixtures = [
+    ['metadata', { ...exactNewManifest, name: 'unreviewed-runtime' }],
+    ['scripts', { ...exactNewManifest, scripts: { postinstall: 'node unreviewed.js' } }],
+    ['dependency', { dependencies: { ...exactNewManifest.dependencies, 'left-pad': '1.3.0' } }]
+  ];
+
+  for (const [name, candidateManifest] of fixtures) {
+    const candidateLockfile = clone(exactNewLockfile);
+    if (name === 'dependency') {
+      candidateLockfile.packages[''].dependencies['left-pad'] = '1.3.0';
+      candidateLockfile.packages['node_modules/left-pad'] = { version: '1.3.0' };
+    }
+    const options = trustedOptionsWithLockfile({ candidateManifest, candidateLockfile });
+    options.loadDependencyControlAtCommit = (commit, repositoryPath) => {
+      if (commit === MERGE && [MANIFEST_PATH, LOCK_PATH].includes(repositoryPath)) return null;
+      if (commit === CANDIDATE && repositoryPath === MANIFEST_PATH) return candidateManifest;
+      if (commit === CANDIDATE && repositoryPath === LOCK_PATH) return candidateLockfile;
+      return null;
+    };
+    const result = evaluateTrustedDelegatedGovernanceBranch(options);
+    assert.equal(result.pass, false, `${name}: ${JSON.stringify(result)}`);
+    assert.equal(result.reasonCode, DENIED, name);
+  }
+});
+
+test('trusted delegated evaluator rejects a brand-new manifest when trusted main adds that manifest after the implementation base', () => {
+  const candidateManifest = {
+    dependencies: {
+      'livekit-client': '2.21.0'
+    }
+  };
+  const candidateLockfile = {
+    lockfileVersion: 3,
+    requires: true,
+    packages: {
+      '': {
+        dependencies: {
+          'livekit-client': '2.21.0'
+        }
+      },
+      'node_modules/livekit-client': {
+        version: '2.21.0'
+      }
+    }
+  };
+  const options = trustedOptionsWithLockfile({ candidateManifest, candidateLockfile });
+  const resolveAuthorizationBlob = options.resolveCommitBlobSha;
+  const trustedManifestBlob = '9'.repeat(40);
+  options.resolveCommitBlobSha = (commit, repositoryPath) => {
+    if (commit === TRUSTED_MAIN && repositoryPath === MANIFEST_PATH) return trustedManifestBlob;
+    return resolveAuthorizationBlob(commit, repositoryPath);
+  };
+  options.loadDependencyControlAtCommit = (commit, repositoryPath) => {
+    if (commit === MERGE && [MANIFEST_PATH, LOCK_PATH].includes(repositoryPath)) return null;
+    if (commit === TRUSTED_MAIN && repositoryPath === MANIFEST_PATH) {
+      return { dependencies: { 'main-added-package': '1.0.0' } };
+    }
+    if (commit === CANDIDATE && repositoryPath === MANIFEST_PATH) return candidateManifest;
+    if (commit === CANDIDATE && repositoryPath === LOCK_PATH) return candidateLockfile;
+    return null;
+  };
+
+  const result = evaluateTrustedDelegatedGovernanceBranch(options);
+  assert.equal(result.pass, false, JSON.stringify(result));
+  assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
+});
+
+test('trusted delegated evaluator rejects non-regular candidate npm manifest and lockfile modes', () => {
+  for (const repositoryPath of [MANIFEST_PATH, LOCK_PATH]) {
+    const options = trustedOptionsWithLockfile();
+    const resolveRegularMode = options.resolveCommitPathMode;
+    options.resolveCommitPathMode = (commit, path) => {
+      if (commit === CANDIDATE && path === repositoryPath) return '120000';
+      return resolveRegularMode(commit, path);
+    };
+    const result = evaluateTrustedDelegatedGovernanceBranch(options);
+    assert.equal(result.pass, false, `${repositoryPath}: ${JSON.stringify(result)}`);
+    assert.equal(result.reasonCode, DENIED, repositoryPath);
+  }
 });
