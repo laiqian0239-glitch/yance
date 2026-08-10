@@ -131,3 +131,28 @@ test('Electron boots the unified local Element shell instead of the legacy hand-
   assert.doesNotMatch(main, /LOCAL_FRONTEND_URL/u);
   assert.doesNotMatch(main, /frontend[\\/]index\.html/u);
 });
+
+test('Yance Element module is delivered through the official Element /modules runtime path', () => {
+  const runtimePatch = readText('upstream-patches/element-web/0012-yance-element-module-runtime.patch');
+  assert.deepEqual(patchedPaths(runtimePatch), ['apps/web/Dockerfile']);
+  assert.match(runtimePatch, /RUN pnpm exec nx build yance-element-module/u);
+  assert.match(runtimePatch, /COPY --from=builder \/src\/modules\/yance\/package\.json \/modules\/yance\/package\.json/u);
+  assert.match(runtimePatch, /COPY --from=builder \/src\/modules\/yance\/lib \/modules\/yance\/lib/u);
+  assert.doesNotMatch(runtimePatch, /build_config\.yaml|apps\/web\/src\/vector\/init\.tsx|config\/matrix\/element-config\.json|@matrix-org\/react-sdk-module-api/u);
+
+  const bootstrap = readText('tools/matrix/bootstrap.js');
+  const moduleCopy = "fs.cpSync(path.join(ROOT, 'integration/element-module'), moduleTarget, { recursive: true });";
+  const checkDeliveryPatch = "run(element, 'git', ['apply', '--check', MODULE_DELIVERY_PATCH]);";
+  const applyDeliveryPatch = "run(element, 'git', ['apply', MODULE_DELIVERY_PATCH]);";
+  const moduleCopyIndex = bootstrap.indexOf(moduleCopy);
+  const deliveryCheckIndex = bootstrap.indexOf(checkDeliveryPatch);
+  const deliveryApplyIndex = bootstrap.indexOf(applyDeliveryPatch);
+  assert.ok(moduleCopyIndex >= 0, 'bootstrap must copy Yance module into pinned Element workspace');
+  assert.ok(deliveryCheckIndex > moduleCopyIndex, '0012 replay check must run only after module workspace copy');
+  assert.ok(deliveryApplyIndex > deliveryCheckIndex, '0012 module delivery patch must apply only after its replay check');
+  assert.doesNotMatch(
+    bootstrap,
+    /runtime[ _-]?patch/iu,
+    'upstream module delivery must not be mislabeled as the forbidden legacy runtime-patch release mechanism'
+  );
+});

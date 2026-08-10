@@ -8,6 +8,7 @@ const ROOT = path.resolve(__dirname, '../..');
 const LOCK = require(path.join(ROOT, 'config/upstreams/v21-comms-p0.json'));
 const ELEMENT_WORKSPACE_PATCH = path.join(ROOT, 'upstream-patches/element-web/0001-yance-global-right-workspace.patch');
 const PRODUCT_DEPENDENCY_LOCK_PATCH = path.join(ROOT, 'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
+const MODULE_DELIVERY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0012-yance-element-module-runtime.patch');
 const RUNTIME = path.join(ROOT, 'services/matrix/.runtime');
 
 function run(cwd, command, args) {
@@ -58,6 +59,10 @@ function main() {
   // replay patch only after the overlay exists so the frozen Element lock describes
   // the exact modules/yance importer that pnpm will install with --frozen-lockfile.
   applyPatch(element, PRODUCT_DEPENDENCY_LOCK_PATCH, 'Product Experience dependency lock patch');
+
+  if (!fs.existsSync(MODULE_DELIVERY_PATCH)) throw new Error('Element module delivery patch missing');
+  run(element, 'git', ['apply', '--check', MODULE_DELIVERY_PATCH]);
+  run(element, 'git', ['apply', MODULE_DELIVERY_PATCH]);
 
   assertExactCommit(synapse, LOCK.upstreams.synapse.commit);
   assertExactCommit(mautrix, LOCK.upstreams.mautrixWhatsapp.commit);
