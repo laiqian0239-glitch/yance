@@ -256,3 +256,30 @@ test('real contaminated V1 branch is revoked by trusted-main V2 supersession', {
   assert.equal(result.route, null);
   assert.equal(result.readyForPromotion, false);
 });
+
+test('fresh-main merged candidate scopes L2 from authority canonical implementation base', () => {
+  const canonicalImplementationBase = '8'.repeat(40);
+  const trustedMainOnlyPath = 'governance/trusted-main-only.txt';
+  const verify = loadVerifier();
+
+  const result = verify(input(), dependencies({
+    evaluateAuthority: () => ({
+      pass: true,
+      authorityMode: 'TRUSTED_MAIN_DELEGATED_GOVERNANCE',
+      authorizationPath: AUTHORIZATION_PATH,
+      authorizationMergeCommit: AUTHORIZATION_MERGE,
+      reviewedAuthorizationHead: '1'.repeat(40),
+      implementationBase: canonicalImplementationBase,
+      unauthorizedPaths: []
+    }),
+    resolveChangedFilesBetween: base => (
+      base === canonicalImplementationBase
+        ? [...ALLOWED_PATHS]
+        : [...ALLOWED_PATHS, trustedMainOnlyPath].sort()
+    )
+  }));
+
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.reasonCode, null);
+  assert.equal(result.changedFileCount, ALLOWED_PATHS.length);
+});
