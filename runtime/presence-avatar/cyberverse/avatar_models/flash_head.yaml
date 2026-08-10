@@ -1,0 +1,13 @@
+model: flash_head
+runtime_authority: cyberverse
+backend: local_image
+upstream:
+  repository: Soul-AILab/SoulX-FlashHead
+  commit: 9bc03de06bb0de82cd6bc477804512ae06144bf2
+  weights: Soul-AILab/SoulX-FlashHead-1_3B
+  license: Apache-2.0
+execution:
+  service_owned: true
+  electron_bundled: false
+  yance_avatar_runtime: forbidden
+  yance_lip_sync_engine: forbidden

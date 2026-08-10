@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "workPackage": "V21-PRESENCE-AVATAR-P0-V1-V3",
+  "authority": {
+    "realtimeTransport": "livekit",
+    "rendererClient": "livekit-client",
+    "avatarRuntime": "cyberverse",
+    "talkingHeadModel": "soulx-flashhead"
+  },
+  "upstreams": {
+    "liveKitServer": {
+      "repository": "livekit/livekit",
+      "version": "v1.13.5",
+      "commit": "3b9f118327b257301083a7c4aa46076c8012918a",
+      "license": "Apache-2.0"
+    },
+    "liveKitClient": {
+      "repository": "livekit/client-sdk-js",
+      "package": "livekit-client@2.21.0",
+      "commit": "15ca5f8180ab8939c3a5a4dfee1d5e44f62f71cf",
+      "license": "Apache-2.0"
+    },
+    "cyberVerse": {
+      "repository": "Lynpoint/CyberVerse",
+      "commit": "459abae601411d191a1f4c99fe55b60d59e59305",
+      "license": "GPL-3.0"
+    },
+    "soulXFlashHead": {
+      "repository": "Soul-AILab/SoulX-FlashHead",
+      "commit": "9bc03de06bb0de82cd6bc477804512ae06144bf2",
+      "license": "Apache-2.0",
+      "weights": "Soul-AILab/SoulX-FlashHead-1_3B"
+    }
+  },
+  "boundaries": {
+    "yanceWebRtcServerForbidden": true,
+    "yanceTokenServerForbidden": true,
+    "yanceAvatarRuntimeForbidden": true,
+    "yanceLipSyncEngineForbidden": true,
+    "yanceDigitalHumanStateMachineForbidden": true,
+    "yanceRealtimePresenceFrameworkForbidden": true,
+    "yanceAudioProcessingEngineForbidden": true,
+    "presenceSideResamplingForbidden": true,
+    "electronGpuInferenceRuntimeForbidden": true
+  },
+  "runtime": {
+    "cyberVerseDefaultEndpoint": "http://127.0.0.1:8081",
+    "externalEndpointRequiresExplicitUserConfiguration": true,
+    "externalEndpointRequiresHttps": true,
+    "sessionBootstrapAuthority": "cyberverse",
+    "rendererProjection": ["sessionId", "livekitUrl", "livekitToken"]
+  },
+  "voiceAudioContract": {
+    "version": "yance.voice.audio.v1",
+    "formats": ["s16le", "float32"],
+    "fields": ["sessionId", "replyId", "sequence", "data", "sampleRate", "channels", "format", "isFinal", "timestampMs"]
+  }
+}

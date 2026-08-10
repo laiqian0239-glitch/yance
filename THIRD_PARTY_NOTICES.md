@@ -190,3 +190,46 @@ Exact Graphiti, Neo4j Community, Temurin, uv and python-build-standalone pins ar
 - Yance integration: unmodified official Windows portable or user-managed ComfyUI remains the sole Media Brain image workflow/model execution authority. Yance performs only HTTP coordination and parameter substitution; generated/edited outputs must be imported into Immich before becoming selectable or sendable.
 
 Exact Media Brain pins and authority boundaries are recorded in `config/upstreams/v21-media-brain-p0.json`.
+
+## LiveKit Server
+
+- Project: LiveKit Server
+- Upstream: `https://github.com/livekit/livekit.git`
+- Version: `v1.13.5`
+- Exact commit: `3b9f118327b257301083a7c4aa46076c8012918a`
+- License: `Apache-2.0`
+- License copy: `third_party/licenses/livekit-Apache-2.0.txt`
+- Yance integration: LiveKit remains the sole realtime WebRTC room/session/media transport server authority. Yance does not implement a second WebRTC server or participant-token signer.
+
+## LiveKit Client SDK JS
+
+- Project: LiveKit Client SDK JS
+- Upstream: `https://github.com/livekit/client-sdk-js.git`
+- Version: `v2.21.0`
+- Exact commit: `15ca5f8180ab8939c3a5a4dfee1d5e44f62f71cf`
+- Package: `livekit-client@2.21.0`
+- License: `Apache-2.0`
+- License copy: `third_party/licenses/livekit-client-Apache-2.0.txt`
+- Yance integration: the official client is used directly by the Element Presence workspace for room, microphone and camera lifecycle; no Yance WebRTC client implementation is introduced.
+
+## CyberVerse
+
+- Project: CyberVerse
+- Upstream: `https://github.com/Lynpoint/CyberVerse.git`
+- Exact commit: `459abae601411d191a1f4c99fe55b60d59e59305`
+- License: `GPL-3.0`
+- License copy: `third_party/licenses/cyberverse-GPL-3.0.txt`
+- Replayable patch: `upstream-patches/cyberverse/0001-yance-external-audio-ingress.patch`
+- Yance integration: CyberVerse remains the sole digital-human/avatar/lip-sync/AV-pacing runtime and its existing LiveKit media-peer/participant-token authority. The patch adds only a session-scoped external AudioChunk ingress inside CyberVerse so already-synthesized Yance Voice audio enters CyberVerse's existing avatar/media primitives.
+
+## SoulX-FlashHead
+
+- Project: SoulX-FlashHead
+- Upstream: `https://github.com/Soul-AILab/SoulX-FlashHead.git`
+- Exact commit: `9bc03de06bb0de82cd6bc477804512ae06144bf2`
+- Weights: `Soul-AILab/SoulX-FlashHead-1_3B`
+- License: `Apache-2.0`
+- License copy: `third_party/licenses/soulx-flashhead-Apache-2.0.txt`
+- Yance integration: the model remains CyberVerse-executed. Yance does not copy its inference engine, lip-sync implementation, weights runtime, or avatar state machine into Electron.
+
+Exact Presence / Avatar pins and authority boundaries are recorded in `config/upstreams/v21-presence-avatar-p0.json`.
