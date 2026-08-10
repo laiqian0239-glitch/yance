@@ -19,12 +19,25 @@ $rendererSource = @(Read-Text 'integration\element-module\src\presenceLiveKit.ts
 $runtimeSource = Read-Text 'electron\presenceAvatarRuntime.js'
 $preloadSource = Read-Text 'electron\preload.js'
 $mainSource = Read-Text 'electron\main.js'
+$cyberVersePatch = Read-Text 'upstream-patches\cyberverse\0001-yance-external-audio-ingress.patch'
 if ($rendererSource -notmatch 'from\s+["'']livekit-client["'']') { Fail 'official livekit-client import is missing' }
 if ($rendererSource -match 'new\s+RTCPeerConnection|createOffer\(|setLocalDescription\(|new\s+WebSocket\(') { Fail 'custom WebRTC transport is forbidden' }
 if (($rendererSource + $preloadSource) -match 'livekitApiSecret|livekitApiKey|signLiveKit|mintLiveKit|SignJWT|jsonwebtoken') { Fail 'LiveKit API key/secret or signing authority reached renderer/preload source' }
 if ($runtimeSource -match 'RTCPeerConnection|simple-peer|wrtc|lip.?sync|face.?mesh|avatar.?state.?machine') { Fail 'custom WebRTC/avatar runtime authority is forbidden' }
 if ($mainSource -notmatch 'createPresenceAvatarRuntime|presence-avatar') { Fail 'Electron main must own the CyberVerse Presence service bridge' }
 if ($preloadSource -notmatch 'createPresenceSession|closePresenceSession|getPresenceHealth|pushPresenceVoiceAudioChunk') { Fail 'sanitized Presence preload bridge is incomplete' }
+
+# The Presence seam may add external-audio ingress to pinned CyberVerse, but it
+# must not add a second avatar AV driver. The reviewed design requires the
+# existing standard TTS driver to be extracted once and reused by both paths.
+if ($cyberVersePatch -notmatch 'runAvatarAVDriver') { Fail 'CyberVerse patch must expose one shared runAvatarAVDriver' }
+if ($cyberVersePatch -notmatch '(?m)^-.*GenerateAvatarStream') { Fail 'CyberVerse patch must remove the standard pipeline inline GenerateAvatarStream driver' }
+if ($cyberVersePatch -notmatch '(?m)^-.*newVoiceAVSyncBuffer') { Fail 'CyberVerse patch must remove the standard pipeline inline AV sync driver' }
+if ($cyberVersePatch -notmatch '(?m)^-.*RawAVSegment') { Fail 'CyberVerse patch must remove the standard pipeline inline AV segment publisher' }
+if ($cyberVersePatch -notmatch 'return\s+o\.runAvatarAVDriver') { Fail 'external-audio must call the shared CyberVerse avatar AV driver' }
+$addedAvatarGenerators = [regex]::Matches($cyberVersePatch, '(?m)^\+.*GenerateAvatarStream').Count
+if ($addedAvatarGenerators -ne 1) { Fail "CyberVerse patch must add exactly one shared GenerateAvatarStream driver, got $addedAvatarGenerators" }
+
 & (Get-Command node -ErrorAction Stop).Source --check (Join-Path $RepositoryRoot 'electron\presenceAvatarRuntime.js')
 if ($LASTEXITCODE -ne 0) { Fail 'Presence runtime syntax check failed' }
 
@@ -53,4 +66,4 @@ try {
   .\node_modules\.bin\tsc.cmd -p tsconfig.json
   if ($LASTEXITCODE -ne 0) { Fail 'official livekit-client renderer seam did not type-check' }
 } finally { Pop-Location }
-Write-Host 'Presence Windows gate: official LiveKit renderer build, CyberVerse service preflight, secret boundary, and custom-runtime rejection passed.'
+Write-Host 'Presence Windows gate: official LiveKit renderer build, shared CyberVerse avatar AV driver, service preflight, secret boundary, and custom-runtime rejection passed.'
