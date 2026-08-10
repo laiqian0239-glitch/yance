@@ -85,3 +85,41 @@ test('Voice runtime keeps enrollment local/private and requires explicit deletio
   assert.match(source, /local|private/iu);
   assert.doesNotMatch(source, /upload.*voice.*sample|voice.*sample.*upload/iu, 'voice samples must not be uploaded to a cloud service without separate authority');
 });
+
+test('renderer-facing Voice health is sanitized and never exposes local runtime paths', () => {
+  const { projectVoiceHealth } = require(runtimePath);
+  assert.equal(typeof projectVoiceHealth, 'function', 'Voice runtime must expose a dedicated sanitized health projector');
+
+  const health = projectVoiceHealth({
+    senseVoice: {
+      authority: 'SenseVoice',
+      available: true,
+      kind: 'sensevoice',
+      source: 'sealed-runtime',
+      command: 'C:\\Users\\private\\runtime\\sensevoice.exe',
+      model: 'C:\\Users\\private\\models\\sensevoice.gguf',
+      audioConverterAvailable: true,
+      audioConverter: 'C:\\Users\\private\\tools\\ffmpeg.exe',
+      reasonCode: '',
+      installSupported: false,
+      sealedRuntimeRequired: true
+    },
+    cosyVoice: {
+      authority: 'CosyVoice',
+      available: true,
+      python: 'C:\\Users\\private\\runtime\\python.exe',
+      sourceDir: 'C:\\Users\\private\\runtime\\cosyvoice\\source',
+      modelDir: 'C:\\Users\\private\\runtime\\cosyvoice\\model',
+      entrypoint: 'C:\\Users\\private\\runtime\\entrypoint.py'
+    }
+  });
+
+  assert.deepEqual(Object.keys(health.senseVoice).sort(), [
+    'audioConverterAvailable', 'authority', 'available', 'installSupported', 'kind', 'reasonCode', 'sealedRuntimeRequired', 'source'
+  ].sort());
+  assert.deepEqual(Object.keys(health.cosyVoice).sort(), ['authority', 'available', 'reasonCode'].sort());
+  assert.equal(JSON.stringify(health).includes('C:\\\\Users'), false, 'renderer-facing health must not contain local filesystem paths');
+  assert.equal(Object.isFrozen(health), true);
+  assert.equal(Object.isFrozen(health.senseVoice), true);
+  assert.equal(Object.isFrozen(health.cosyVoice), true);
+});
