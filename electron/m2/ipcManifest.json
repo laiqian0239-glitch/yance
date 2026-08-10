@@ -3698,6 +3698,269 @@
       "currentObservation": "Main merges Media endpoint settings with existing CredentialVault custody, preserves the Immich API key unless replacement or explicit clear is requested, and returns no secret material."
     },
     {
+      "channel": "desktop:presence-avatar-health",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PRESENCE_AVATAR_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep CyberVerse as Character/avatar/session/audio-ingress authority, LiveKit as realtime transport authority, and Electron main as the CyberVerse endpoint/session lifecycle owner; never add renderer signing or custom realtime/avatar authority.",
+      "crossModuleDependency": "Presence is a thin main-process coordinator over the adopted CyberVerse service and official LiveKit client; Voice contributes only the implementation-independent AudioChunk contract.",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3333
+      },
+      "rendererExposure": {
+        "api": "getPresenceHealth",
+        "file": "electron/preload.js",
+        "line": 78
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "currentObservation": "Read-only CyberVerse readiness and sanitized native Character projection; no LiveKit signing material is exposed."
+    },
+    {
+      "channel": "desktop:presence-avatar-create-session",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PRESENCE_AVATAR_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "characterId",
+        "livekitToken"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep CyberVerse as Character/avatar/session/audio-ingress authority, LiveKit as realtime transport authority, and Electron main as the CyberVerse endpoint/session lifecycle owner; never add renderer signing or custom realtime/avatar authority.",
+      "crossModuleDependency": "Presence is a thin main-process coordinator over the adopted CyberVerse service and official LiveKit client; Voice contributes only the implementation-independent AudioChunk contract.",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3334
+      },
+      "rendererExposure": {
+        "api": "createPresenceSession",
+        "file": "electron/preload.js",
+        "line": 79
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "characterId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "characterId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "livekitUrl": {
+            "type": "string"
+          },
+          "livekitToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionId",
+          "livekitUrl",
+          "livekitToken"
+        ]
+      },
+      "currentObservation": "Creates only a real CyberVerse Character session; CyberVerse remains the sole source of session id, LiveKit URL and participant token."
+    },
+    {
+      "channel": "desktop:presence-avatar-close-session",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PRESENCE_AVATAR_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "sessionId"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep CyberVerse as Character/avatar/session/audio-ingress authority, LiveKit as realtime transport authority, and Electron main as the CyberVerse endpoint/session lifecycle owner; never add renderer signing or custom realtime/avatar authority.",
+      "crossModuleDependency": "Presence is a thin main-process coordinator over the adopted CyberVerse service and official LiveKit client; Voice contributes only the implementation-independent AudioChunk contract.",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3335
+      },
+      "rendererExposure": {
+        "api": "closePresenceSession",
+        "file": "electron/preload.js",
+        "line": 80
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "sessionId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "closed": {
+            "type": "boolean"
+          },
+          "sessionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "closed",
+          "sessionId"
+        ]
+      },
+      "currentObservation": "Closes only a tracked CyberVerse Presence session through the main-owned service adapter."
+    },
+    {
+      "channel": "desktop:presence-avatar-push-voice-audio-chunk",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PRESENCE_AVATAR_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "sessionId",
+        "replyId",
+        "data"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep CyberVerse as Character/avatar/session/audio-ingress authority, LiveKit as realtime transport authority, and Electron main as the CyberVerse endpoint/session lifecycle owner; never add renderer signing or custom realtime/avatar authority.",
+      "crossModuleDependency": "Presence is a thin main-process coordinator over the adopted CyberVerse service and official LiveKit client; Voice contributes only the implementation-independent AudioChunk contract.",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3336
+      },
+      "rendererExposure": {
+        "api": "pushPresenceVoiceAudioChunk",
+        "file": "electron/preload.js",
+        "line": 81
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "replyId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "data": {},
+          "sampleRate": {
+            "type": "integer",
+            "minimum": 8000,
+            "maximum": 192000
+          },
+          "channels": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "s16le",
+              "float32"
+            ]
+          },
+          "isFinal": {
+            "type": "boolean"
+          },
+          "timestampMs": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "sessionId",
+          "replyId",
+          "sequence",
+          "data",
+          "sampleRate",
+          "channels",
+          "format",
+          "isFinal",
+          "timestampMs"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          },
+          "sessionId": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer"
+          },
+          "isFinal": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "accepted",
+          "sessionId",
+          "sequence",
+          "isFinal"
+        ]
+      },
+      "currentObservation": "Forwards validated Voice-independent AudioChunk bytes/metadata to CyberVerse external-audio unchanged; no resampling, lip sync, WebRTC or Voice implementation authority is recreated in Yance."
+    },
+    {
       "channel": "desktop:media-brain-health",
       "direction": "renderer-to-main",
       "phase": "pre-ready",
@@ -4511,7 +4774,7 @@
     }
   ],
   "validationSummary": {
-    "rendererToMainHandlerCount": 65,
+    "rendererToMainHandlerCount": 69,
     "mainToRendererChannelCount": 8,
     "allRendererToMainHandlersHaveRequiredFields": true,
     "allOutboundChannelsHaveRequiredFields": true,

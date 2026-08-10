@@ -111,6 +111,7 @@ const { createLettaAgentRuntime } = require('./lettaAgentRuntime');
 const { createParlantRelationshipRuntime, createRelationshipTaskSequencer } = require('./parlantRelationshipRuntime');
 const { createGraphitiRelationshipRuntime, createNeo4jPassword } = require('./graphitiRelationshipRuntime');
 const { createMediaBrainRuntime, mergeImmichConfiguration, mergeComfyuiConfiguration } = require('./mediaBrainRuntime');
+const { createPresenceAvatarRuntime } = require('./presenceAvatarRuntime');
 const { createVoiceBrainRuntime } = require('./voiceBrainRuntime');
 const { SoundNotificationService } = require('./SoundNotificationService');
 const { isCustomSoundPattern, soundFileName } = require('../shared/notificationSoundCatalog');
@@ -481,6 +482,7 @@ let lettaAgentRuntime = null;
 let parlantRelationshipRuntime = null;
 let graphitiRelationshipRuntime = null;
 let mediaBrainRuntime = null;
+let presenceAvatarRuntime = null;
 let voiceBrainRuntime = null;
 const parlantInboundSequencer = createRelationshipTaskSequencer();
 
@@ -596,6 +598,11 @@ function ensureMediaBrainRuntime() {
     });
   }
   return mediaBrainRuntime;
+}
+
+function ensurePresenceAvatarRuntime() {
+  if (!presenceAvatarRuntime) presenceAvatarRuntime = createPresenceAvatarRuntime();
+  return presenceAvatarRuntime;
 }
 
 function voiceRuntimeRoot() {
@@ -982,7 +989,36 @@ async function stopParlantRelationshipRuntime() {
   return { stopped: true, exitConfirmed: true, alreadyStopped: false, pid: Number(before.pid || 0), state: stopped };
 }
 
+function presenceAvatarOwnershipPresent() {
+  const state = presenceAvatarRuntime?.snapshot?.() || {};
+  return Number(state.activeSessionCount || 0) > 0;
+}
+
+async function stopPresenceAvatarRuntime() {
+  if (!presenceAvatarRuntime) return { stopped: true, sessionsClosed: true, alreadyStopped: true, activeSessionCount: 0 };
+  const before = presenceAvatarRuntime.snapshot();
+  if (Number(before.activeSessionCount || 0) < 1) return { stopped: true, sessionsClosed: true, alreadyStopped: true, activeSessionCount: 0 };
+  const closedSessions = await presenceAvatarRuntime.closeAllSessions();
+  const after = presenceAvatarRuntime.snapshot();
+  const failures = (Array.isArray(closedSessions) ? closedSessions : []).filter(result => result?.closed !== true);
+  if (failures.length || Number(after.activeSessionCount || 0) > 0) {
+    const error = new Error('Presence Avatar session shutdown was not confirmed');
+    error.reasonCode = 'DESKTOP_PRESENCE_AVATAR_STOP_NOT_CONFIRMED';
+    error.details = { before, after, failures };
+    throw error;
+  }
+  return {
+    stopped: true,
+    sessionsClosed: true,
+    alreadyStopped: false,
+    activeSessionCount: 0,
+    closedSessions
+  };
+}
+
 async function stopApplicationOwnedRuntimes(options = {}) {
+  let presenceStop = null;
+  let presenceError = null;
   let lettaStop = null;
   let lettaError = null;
   let parlantStop = null;
@@ -991,14 +1027,16 @@ async function stopApplicationOwnedRuntimes(options = {}) {
   let graphitiError = null;
   let backendStop = null;
   let backendError = null;
+  try { presenceStop = await stopPresenceAvatarRuntime(); } catch (error) { presenceError = error; }
   try { lettaStop = await stopLettaAgentRuntime(); } catch (error) { lettaError = error; }
   try { parlantStop = await stopParlantRelationshipRuntime(); } catch (error) { parlantError = error; }
   try { graphitiStop = await stopGraphitiRelationshipRuntime(); } catch (error) { graphitiError = error; }
   try { backendStop = await stopBackend({ forShutdown: true, reason: String(options.reason || 'application-shutdown') }); } catch (error) { backendError = error; }
-  if (lettaError || parlantError || graphitiError || backendError) {
+  if (presenceError || lettaError || parlantError || graphitiError || backendError) {
     const error = new Error('Application-owned runtime shutdown was not fully confirmed');
-    error.reasonCode = lettaError?.reasonCode || parlantError?.reasonCode || graphitiError?.reasonCode || backendError?.reasonCode || 'DESKTOP_RUNTIME_STOP_NOT_CONFIRMED';
+    error.reasonCode = presenceError?.reasonCode || lettaError?.reasonCode || parlantError?.reasonCode || graphitiError?.reasonCode || backendError?.reasonCode || 'DESKTOP_RUNTIME_STOP_NOT_CONFIRMED';
     error.details = {
+      presence: presenceError ? { reasonCode: presenceError.reasonCode || '', message: presenceError.message } : presenceStop,
       letta: lettaError ? { reasonCode: lettaError.reasonCode || '', message: lettaError.message } : lettaStop,
       parlant: parlantError ? { reasonCode: parlantError.reasonCode || '', message: parlantError.message } : parlantStop,
       graphiti: graphitiError ? { reasonCode: graphitiError.reasonCode || '', message: graphitiError.message } : graphitiStop,
@@ -1010,6 +1048,7 @@ async function stopApplicationOwnedRuntimes(options = {}) {
     ...(backendStop || { stopped: true, exitConfirmed: true, alreadyStopped: true, backendPid: 0 }),
     stopped: true,
     exitConfirmed: true,
+    presence: presenceStop,
     letta: lettaStop,
     parlant: parlantStop,
     graphiti: graphitiStop
@@ -1020,14 +1059,17 @@ function applicationRuntimeAuthoritySnapshot() {
   const backend = authoritativeBackend().backend || {};
   const letta = lettaAgentRuntime?.snapshot?.() || {};
   const parlant = parlantRelationshipRuntime?.snapshot?.() || {};
+  const presence = presenceAvatarRuntime?.snapshot?.() || {};
   const lettaOwned = letta.ready === true || Number(letta.pid || 0) > 0;
   const parlantOwned = parlant.ready === true || Number(parlant.pid || 0) > 0;
+  const presenceOwned = Number(presence.activeSessionCount || 0) > 0;
   return {
     ...backend,
-    ownershipPresent: backend.ownershipPresent === true || lettaOwned || parlantOwned,
+    ownershipPresent: backend.ownershipPresent === true || lettaOwned || parlantOwned || presenceOwned,
     backendPid: Number(backend.backendPid || 0),
     letta,
-    parlant
+    parlant,
+    presence
   };
 }
 
@@ -3412,6 +3454,10 @@ function registerIpc() {
     const normalized = normalizeParlantGoalInput(input, ['contactId', 'paused']);
     return projectParlantRelationshipGoal(await ensureParlantRelationshipRuntime().setRelationshipGoalPaused(normalized));
   });
+  ipcGuardHandle('desktop:presence-avatar-health', () => ensurePresenceAvatarRuntime().health());
+  ipcGuardHandle('desktop:presence-avatar-create-session', (_event, input = {}) => ensurePresenceAvatarRuntime().createSession(input));
+  ipcGuardHandle('desktop:presence-avatar-close-session', (_event, input = {}) => ensurePresenceAvatarRuntime().closeSession(input));
+  ipcGuardHandle('desktop:presence-avatar-push-voice-audio-chunk', (_event, input = {}) => ensurePresenceAvatarRuntime().pushVoiceAudioChunk(input));
   ipcGuardHandle('desktop:voice-brain-health', () => ensureVoiceBrainRuntime().health());
   ipcGuardHandle('desktop:voice-brain-transcribe', async (_event, input = {}) => {
     const filePath = await selectVoiceInputFile('选择要转写的语音');
@@ -3954,7 +4000,7 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin' && !settingsStore?.read().closeToTray) app.quit();
 });
 app.on('will-quit', event => {
-  if (exitAfterBackendShutdown || (!backendOwnershipPresent() && !lettaOwnershipPresent() && !parlantOwnershipPresent() && !graphitiOwnershipPresent())) return;
+  if (exitAfterBackendShutdown || (!backendOwnershipPresent() && !lettaOwnershipPresent() && !parlantOwnershipPresent() && !graphitiOwnershipPresent() && !presenceAvatarOwnershipPresent())) return;
   event.preventDefault();
   stopEventSocket();
   if (shutdownInProgress) return;

@@ -1,4 +1,5 @@
 import { MediaWorkspace } from "./MediaWorkspace";
+import { PresenceWorkspace } from "./PresenceWorkspace";
 import { VoiceWorkspace } from "./VoiceWorkspace";
 import React, { useEffect, useMemo, useState } from "react";
 
@@ -363,6 +364,7 @@ export function YanceWorkspace(): React.JSX.Element {
           </dl>
         </aside>
       ) : null}
+      {activeCapability === "Presence" ? <PresenceWorkspace /> : null}
       {activeCapability === "Media" ? <MediaWorkspace /> : null}
       {activeCapability === "Voice" ? <VoiceWorkspace /> : null}
     </section>
