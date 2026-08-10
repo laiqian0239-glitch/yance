@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DEEP-TRAINING-P1-AGENT-LIGHTNING",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Pre-contract proposal transport only. Learning PR #188 is unmerged; this proposal MUST remain Draft/unmerged and MUST be replaced by a fresh successor authorization after final Learning contracts land on then-current trusted main.",
+  "base": {
+    "branch": "main",
+    "commit": "a05f8547f1374ab79bb1628731967b8b86418b2a"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-deep-training-p1-agent-lightning-precontract-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-deep-training-p1-agent-lightning-precontract-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "4a4fcc336dd640d64151be526b2ec8fc0d621a6642e194ce30fdde3c19d58411",
+    "mustRemainSingleFile": true
+  },
+  "designEvidence": {
+    "pullRequest": 215,
+    "exactHead": "daa396240b01ee3fbff56790b016fad37633575f",
+    "implementationAuthorityGranted": false
+  },
+  "learningContractDependency": {
+    "requiredPullRequest": 188,
+    "observedHead": "66787ac4ec9d9753a5af7ba9f2bceaa92315be8c",
+    "satisfiedAtProposal": false,
+    "mustLandOnTrustedMainBeforeImplementation": true,
+    "requiredCapabilities": [
+      "training-eligible experience",
+      "trajectory semantics",
+      "outcome/success/failure",
+      "reward/score/evaluation",
+      "privacy/PII/training eligibility",
+      "relationship/global isolation",
+      "candidate regression baseline",
+      "shadow/promotion/rollback"
+    ],
+    "authorizationMergeForbiddenWhileUnsatisfied": true,
+    "implementationBranchCreationForbiddenWhileUnsatisfied": true,
+    "mockOrGuessedContractForbidden": true,
+    "successorAuthorizationRequiredAfterLanding": true,
+    "oldProposalRebaseOrAmendIntoExecutableAuthorityForbidden": true,
+    "stopState": "BLOCKED BY INTENTIONAL LEARNING CONTRACT DEPENDENCY — WAIT FOR V21-LEARNING-GROWTH-BRAIN-P0-V2 TO LAND ON TRUSTED MAIN"
+  },
+  "implementation": {
+    "branch": "product/v21-deep-training-p1-agent-lightning",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-agent-lightning-p1-linux.yml",
+      "THIRD_PARTY_NOTICES.md",
+      "backend/services/agentLightningTrainingAdapter.js",
+      "config/upstreams/v21-agent-lightning-p1.json",
+      "docs/superpowers/plans/2026-08-10-yance-v21-agent-lightning-p1.md",
+      "docs/superpowers/specs/2026-08-10-yance-v21-agent-lightning-p1-design.md",
+      "runtime/deep-training/agent-lightning/agent_lightning_entrypoint.py",
+      "runtime/deep-training/agent-lightning/generate_runtime_sbom.py",
+      "runtime/deep-training/agent-lightning/pyproject.toml",
+      "runtime/deep-training/agent-lightning/uv.lock",
+      "tests/wp0/v21-agent-lightning-authority-boundary.test.js",
+      "tests/wp0/v21-agent-lightning-contract-adapter.test.js",
+      "tests/wp0/v21-agent-lightning-evaluation-gate.test.js",
+      "tests/wp0/v21-agent-lightning-oss-fit.test.js",
+      "tests/wp0/v21-agent-lightning-privacy-isolation.test.js",
+      "tests/wp0/v21-agent-lightning-training-runtime.test.js",
+      "tests/wp0/v21-agent-lightning-wsl-runtime.test.js",
+      "third_party/licenses/agent-lightning-MIT.txt",
+      "tools/deep-training/agent-lightning-preflight.ps1"
+    ],
+    "approvedChangedFileCount": 19,
+    "approvedChangedFileSetSha256": "5e3bcfd244096c416c9803fb1e711bfcf270cdf6d4f16d04f3af05d0d6308f4e",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-agent-lightning-p1-linux.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "33684c8c04b664020e8198f1808e5ed62d7556b4bdc0ed05f57794e33739d095"
+    },
+    "firstCommitMustBeTestOnly": true,
+    "firstCommitAllowedChangedPaths": [
+      "tests/wp0/v21-agent-lightning-authority-boundary.test.js",
+      "tests/wp0/v21-agent-lightning-contract-adapter.test.js",
+      "tests/wp0/v21-agent-lightning-evaluation-gate.test.js",
+      "tests/wp0/v21-agent-lightning-oss-fit.test.js",
+      "tests/wp0/v21-agent-lightning-privacy-isolation.test.js",
+      "tests/wp0/v21-agent-lightning-training-runtime.test.js",
+      "tests/wp0/v21-agent-lightning-wsl-runtime.test.js"
+    ],
+    "firstCommitChangedFileSetSha256": "8db739b4d5597929551d49a1df558349af8bb58921942d0de4a96a548835c61b",
+    "pythonDependencyControlPaths": [
+      "runtime/deep-training/agent-lightning/pyproject.toml",
+      "runtime/deep-training/agent-lightning/uv.lock"
+    ],
+    "pythonDependencyControlPathSetSha256": "80c66a839a5979f445de27a69d356427176dc2baeccc1c2905b185d0facae9f1",
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "executableNow": false
+  },
+  "routeBootstrapGap": {
+    "currentlyRequired": true,
+    "futureProductBootstrapPaths": [
+      "config/upstreams/v21-agent-lightning-p1.json",
+      "runtime/deep-training/agent-lightning/agent_lightning_entrypoint.py",
+      "runtime/deep-training/agent-lightning/generate_runtime_sbom.py",
+      "runtime/deep-training/agent-lightning/pyproject.toml",
+      "runtime/deep-training/agent-lightning/uv.lock",
+      "third_party/licenses/agent-lightning-MIT.txt"
+    ],
+    "futureProductBootstrapPathCount": 6,
+    "futureProductBootstrapPathSetSha256": "b560e29a0410b9b86b83d65e955219459a344edf97ba04cf3d6bcde51fd1e5ca",
+    "exactPathsOnly": true,
+    "mustRecheckAfterLearningMerge": true,
+    "mustCloseBeforeExecutableSuccessor": true
+  },
+  "upstream": {
+    "repository": "microsoft/agent-lightning",
+    "release": "v0.3.0",
+    "commit": "3b5d733861cf313fc09821a23240bbdf3cb2ee5b",
+    "annotatedTagObject": "bf09fc9c72e345d3b75ae6b65af90a456881cdc1",
+    "license": "MIT",
+    "python": ">=3.10",
+    "platform": "Linux; Windows via WSL2 only",
+    "releaseUvLockBlob": "5a98a2ac121b050b0a82f6ac8dc207577ce3af4e"
+  },
+  "ossFit": {
+    "core": "ADOPT_UPSTREAM",
+    "apo": "FIT_INITIAL",
+    "sft": "CONDITIONAL_SUCCESSOR",
+    "verlRl": "BLOCKED_PENDING_FINAL_LEARNING_REWARD_COMPATIBILITY",
+    "customYanceTrainerForbidden": true,
+    "customRewardTrajectoryDatasetEvaluatorForbidden": true,
+    "forkToBypassRewardMismatchForbidden": true
+  },
+  "authorityBoundary": {
+    "learning": "canonical eligibility/experience/trajectory/outcome/reward/evaluation/privacy/isolation/regression/shadow/rollout/promotion/rollback",
+    "agentLightning": "approved training execution + upstream run-local state + CANDIDATE_ONLY artifact/evidence",
+    "modelBrain": "production provider credentials and routing",
+    "letta": "agent memory and Learning Coach loop",
+    "graphiti": "relationship/temporal facts",
+    "parlant": "Goal/Journey state",
+    "persona": "Persona mutation",
+    "lightningStoreCanonicalDatasetAuthority": false,
+    "llmProxyProductionRoutingForbidden": true
+  },
+  "parallelOverlapSnapshot": {
+    "designPr215": {
+      "head": "daa396240b01ee3fbff56790b016fad37633575f",
+      "count": 2,
+      "paths": [
+        "docs/superpowers/plans/2026-08-10-yance-v21-agent-lightning-p1.md",
+        "docs/superpowers/specs/2026-08-10-yance-v21-agent-lightning-p1-design.md"
+      ]
+    },
+    "presencePr214": {
+      "head": "cfe49bfd7bdac47dd058be2d0cd3b0a9eb2e4b26",
+      "count": 1,
+      "paths": [
+        "THIRD_PARTY_NOTICES.md"
+      ]
+    },
+    "voicePr211": {
+      "head": "0bccc2a6399e92a56d19f29481a27e1e568e5a50",
+      "count": 1,
+      "paths": [
+        "THIRD_PARTY_NOTICES.md"
+      ]
+    },
+    "learningPr188": {
+      "head": "66787ac4ec9d9753a5af7ba9f2bceaa92315be8c",
+      "currentCount": 0,
+      "authorizedMaximumKnownPaths": [
+        "THIRD_PARTY_NOTICES.md"
+      ]
+    },
+    "modelPr158": {
+      "head": "7f852691ca89d3089ad1b10837e97cc55a226361",
+      "count": 0
+    },
+    "personaPr139": {
+      "head": "eee7da1cb541b32a1f6af365ed8210ce23636563",
+      "count": 1,
+      "paths": [
+        "THIRD_PARTY_NOTICES.md"
+      ]
+    },
+    "stackedPolicyPr160": {
+      "head": "10942f27033989ba6f81d3ca43ee8b1a7f696212",
+      "count": 0
+    },
+    "freshRecheckRequiredAfterLearningMerge": true
+  },
+  "failureFirst": {
+    "mayStartNow": false,
+    "exactTestPaths": [
+      "tests/wp0/v21-agent-lightning-authority-boundary.test.js",
+      "tests/wp0/v21-agent-lightning-contract-adapter.test.js",
+      "tests/wp0/v21-agent-lightning-evaluation-gate.test.js",
+      "tests/wp0/v21-agent-lightning-oss-fit.test.js",
+      "tests/wp0/v21-agent-lightning-privacy-isolation.test.js",
+      "tests/wp0/v21-agent-lightning-training-runtime.test.js",
+      "tests/wp0/v21-agent-lightning-wsl-runtime.test.js"
+    ],
+    "testPathCount": 7,
+    "testPathSetSha256": "8db739b4d5597929551d49a1df558349af8bb58921942d0de4a96a548835c61b",
+    "productCodeChangedInFirstCommit": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "preContractProposalMustRemainDraft": true,
+    "preContractProposalMainMergeAuthorized": false,
+    "implementationBranchCreationAuthorizedNow": false,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "squashForbidden": true,
+    "gateWeakeningForbidden": true
+  }
+}
