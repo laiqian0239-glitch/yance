@@ -189,7 +189,8 @@
     "third_party/licenses/rive-react-MIT.txt",
     "third_party/licenses/rive-wasm-MIT.txt",
     "third_party/licenses/types-howler-MIT.txt",
-    "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch"
+    "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
+    "upstream-patches/element-web/0012-yance-element-module-runtime.patch"
   ],
   "productPrefixes": [
     ".github/",
