@@ -84,6 +84,7 @@ function dependencies(overrides = {}) {
       authorityMode: 'TRUSTED_MAIN_DELEGATED_GOVERNANCE',
       authorizationPath: AUTHORIZATION_PATH,
       authorizationMergeCommit: AUTHORIZATION_MERGE,
+      implementationBase: AUTHORIZATION_MERGE,
       reviewedAuthorizationHead: '1'.repeat(40),
       unauthorizedPaths: []
     }),
@@ -151,6 +152,34 @@ test('candidate-owned or unmerged authority cannot spoof delegated product eligi
   assert.equal(result.pass, false);
   assert.equal(candidateAuthorizationRead, false);
   assert.equal(result.reasonCode, 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID');
+});
+
+test('missing or malformed canonical implementation base fails closed', () => {
+  const verify = loadVerifier();
+  for (const authority of [
+    {
+      pass: true,
+      authorityMode: 'TRUSTED_MAIN_DELEGATED_GOVERNANCE',
+      authorizationPath: AUTHORIZATION_PATH,
+      authorizationMergeCommit: AUTHORIZATION_MERGE,
+      reviewedAuthorizationHead: '1'.repeat(40),
+      unauthorizedPaths: []
+    },
+    {
+      pass: true,
+      authorityMode: 'TRUSTED_MAIN_DELEGATED_GOVERNANCE',
+      authorizationPath: AUTHORIZATION_PATH,
+      authorizationMergeCommit: AUTHORIZATION_MERGE,
+      implementationBase: 'not-a-sha',
+      reviewedAuthorizationHead: '1'.repeat(40),
+      unauthorizedPaths: []
+    }
+  ]) {
+    const result = verify(input(), dependencies({ evaluateAuthority: () => authority }));
+    assert.equal(result.pass, false, JSON.stringify(authority));
+    assert.equal(result.reasonCode, 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID');
+    assert.equal(result.readyForPromotion, false);
+  }
 });
 
 test('subset scope is rejected even when every changed path is individually authorized', () => {
