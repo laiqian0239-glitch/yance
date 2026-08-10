@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-PRODUCT-L2-FRESH-MAIN-SCOPE-REPAIR",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Layered delegated-product L2 verification introduced by PR #166 re-derives implementation scope from authorizationMergeCommit..candidate even though the trusted delegated-governance evaluator was already repaired by PR #116 to scope legitimate fresh-main merges from the unique current merge-base(trustedMainHead, evaluatedHead). After Voice Brain PR #211 legitimately merged fresh main by ordinary two-parent history, its current PR diff remains exactly the 29 authorized Voice paths, but Layered run 31357189123 fails L2_DELEGATED_PRODUCT_SCOPE_MISMATCH because the duplicate L2 verifier counts unrelated later-main history. The repair must remove this duplicated scope authority and make Layered L2 consume the canonical implementation base computed by the existing trusted delegated-governance authority.",
+  "base": {
+    "branch": "main",
+    "commit": "9f20e25ac07fc8f0e5ae86a03be82da6421972c3"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-product-l2-fresh-main-scope-repair-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-product-l2-fresh-main-scope-repair-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "74d03fcec28bcedd03b0e482bb11b1d59e3a3c7c5ca274196e6a8fdf9b0c0406",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Repository normalizeChangedFiles contract: normalized repository-relative paths, unique, JavaScript default sort.",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "prerequisites": {
+    "trustedMainRefreshRootRepairPullRequest": 116,
+    "trustedMainRefreshRootRepairMerge": "d476356e8b42a7b073633db9df80741cec1c621c",
+    "trustedMainRefreshRootRepairHead": "a41f8a97a908c9e535e642f121093c5062f60b91",
+    "delegatedProductL2PullRequest": 166,
+    "delegatedProductL2Merge": "3bc8df65d1abe1edb19ff1706c8555c57a8ee30e",
+    "voiceImplementationPullRequest": 211,
+    "voiceObservedHead": "0ef46efd62f195049640a96ba6e5fe2a1f6a6e6e",
+    "voiceLayeredFailureRun": 31357189123,
+    "voiceLayeredFailureReasonCode": "L2_DELEGATED_PRODUCT_SCOPE_MISMATCH"
+  },
+  "implementation": {
+    "branch": "fix/v21-delegated-product-l2-fresh-main-scope-repair",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/layered-ci/delegated-product-l2.test.js",
+      "tests/wp0/implementation-branch-policy.test.js",
+      "tools/layered-ci/verify-delegated-product-l2.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "9f311bae08b5257a5dd1984b0445ea346ccd0b2d73dfad46d3eff2dcad357419",
+    "newDependencyAllowed": false,
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "rootCause": {
+    "canonicalAuthority": "shared/release/implementationBranchPolicy.js::evaluateTrustedDelegatedGovernanceBranch",
+    "canonicalExistingBehavior": "PR #116 computes exactly one implementation base with git merge-base --all(trustedMainHead, evaluatedHead), requires the authorization merge to be its ancestor, and requires that implementation base to be an ancestor of both trusted main and the evaluated candidate.",
+    "duplicateDefect": "tools/layered-ci/verify-delegated-product-l2.js ignores that canonical implementation base and instead computes actual candidate paths from authority.authorizationMergeCommit directly to candidateSha.",
+    "observedFailure": "A legitimate ordinary fresh-main merge preserves the candidate-owned PR diff but causes authorizationMergeCommit..candidate to contain unrelated trusted-main paths, producing a false L2_DELEGATED_PRODUCT_SCOPE_MISMATCH.",
+    "requiredRefactor": "Expose the already-computed canonical implementation base from the trusted delegated-governance authority result, then make the delegated-product L2 verifier consume that exact authority-provided base for its path/count/digest seal. Do not independently recompute another merge base in the L2 verifier.",
+    "candidateOnlyUnauthorizedPathsRemainFailClosed": true,
+    "ambiguousMultipleMergeBasesRemainFailClosed": true,
+    "supersededOrMalformedAuthorityRemainFailClosed": true
+  },
+  "failureFirst": {
+    "firstImplementationCommitMustBeTestOnly": true,
+    "firstImplementationChangedPaths": [
+      "tests/layered-ci/delegated-product-l2.test.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "1d0654427caa13a221091fae7a0510c0671d762b2eb7fd74c0fc6cf978405982",
+    "requiredCausalRed": [
+      "A real-Git or topology-equivalent contract creates an authorized delegated candidate, advances trusted main with an unrelated path, ordinary-merges that trusted main into the candidate, and proves the current L2 verifier rejects the otherwise exact authorized candidate with L2_DELEGATED_PRODUCT_SCOPE_MISMATCH.",
+      "The trusted delegated-governance authority contract proves its canonical implementation base is the unique current merge base and must be available to downstream verifiers without recomputation."
+    ]
+  },
+  "parallelOverlap": {
+    "pullRequest218": {
+      "stateObserved": "OPEN_DRAFT",
+      "observedHead": "e6cbfe3ec4ecbf72f8a0ad2e367d513d77a664e1",
+      "exactOverlapPaths": [
+        "shared/release/implementationBranchPolicy.js"
+      ],
+      "count": 1,
+      "rule": "Neither implementation line may copy or overwrite the other's shared policy blob. Whichever implementation is based second must re-read fresh main and incorporate the already-landed policy semantics by ordinary history. If #218 is still unmerged, this repair must not assume its candidate changes. No rebase, amend, force update, cherry-pick-as-authority, or candidate-specific compatibility bypass."
+    },
+    "voicePullRequest211": {
+      "productPathOverlapCount": 0,
+      "rule": "This governance repair must not modify Voice implementation paths. After this repair lands on trusted main, Voice must refresh from fresh main by ordinary two-parent history and rerun all exact-Head gates; historical Voice Layered/materialization evidence cannot be rebound to a new Head."
+    }
+  },
+  "requiredSequence": [
+    "ordinary two-parent authorization merge from exact trusted main",
+    "create fix/v21-delegated-product-l2-fresh-main-scope-repair from the exact authorization merge",
+    "first implementation commit changes only the two authorized test paths and records the fresh-main Layered L2 causal RED",
+    "expose the existing canonical implementation base from evaluateTrustedDelegatedGovernanceBranch without weakening its fail-closed ancestry checks",
+    "make verify-delegated-product-l2 consume the authority-provided canonical implementation base instead of authorizationMergeCommit",
+    "prove candidate-only unauthorized paths, multiple merge bases, stale/superseded authority and remote-ref/tree mismatches remain fail-closed",
+    "verify exact four-path scope and applicable Stage/Layered/ACV2/PVEP gates",
+    "independent exact-Head review with P0=0 and P1=0",
+    "stop at final implementation merge boundary",
+    "after repair lands, refresh affected delegated product candidates from fresh main and rerun their exact-Head gates"
+  ],
+  "prohibitions": {
+    "voiceProductCode": true,
+    "pullRequest218CandidateCodeReuseBeforeMerge": true,
+    "candidateSpecificWhitelist": true,
+    "branchSpecificException": true,
+    "secondMergeBaseAuthority": true,
+    "workflowChange": true,
+    "dependencyChange": true,
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true,
+    "rebaseMerge": true,
+    "productionRelease": true,
+    "publish": true,
+    "promotion": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
