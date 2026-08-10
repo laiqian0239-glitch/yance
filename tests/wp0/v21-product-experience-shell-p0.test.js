@@ -28,6 +28,15 @@ function productSource() {
     .join('\n');
 }
 
+function patchedPaths(patchText) {
+  return [...patchText.matchAll(/^diff --git a\/(.+?) b\/(.+)$/gmu)]
+    .map((match) => {
+      assert.equal(match[1], match[2], 'Product runtime patch may not rename upstream Element files');
+      return match[1];
+    })
+    .sort();
+}
+
 test('Living Relationship shell exists and replaces the flat capability dashboard normal path', () => {
   for (const rel of [
     'integration/element-module/src/product-experience/ProductExperienceShell.tsx',
@@ -51,6 +60,23 @@ test('Element public module APIs remain the Product Shell integration boundary',
   assert.match(index, /registerGlobalRightPanel/u);
   assert.match(index, /registerComposerPreview/u);
   assert.doesNotMatch(index, /mx_MessageComposer|mx_RoomView|RightPanelStore|dispatcher\/actions/u);
+});
+
+test('Product module is delivered through Element official runtime module directory', () => {
+  const pkg = JSON.parse(read('integration/element-module/package.json'));
+  assert.equal(pkg.main, 'lib/index.js');
+
+  const patchRel = 'upstream-patches/element-web/0012-yance-element-module-runtime.patch';
+  assert.equal(fs.existsSync(path.join(ROOT, patchRel)), true, `${patchRel} must exist`);
+  const patch = read(patchRel);
+  const bootstrap = read('tools/matrix/bootstrap.js');
+
+  assert.deepEqual(patchedPaths(patch), ['apps/web/Dockerfile']);
+  assert.match(bootstrap, /0012-yance-element-module-runtime\.patch/u);
+  assert.match(patch, /pnpm\s+(?:exec\s+nx\s+build\s+yance-element-module|--filter\s+@yance\/element-module\s+build)/u);
+  assert.match(patch, /COPY\s+--from=builder\s+\/src\/modules\/yance\/package\.json\s+\/modules\/yance\/package\.json/u);
+  assert.match(patch, /COPY\s+--from=builder\s+\/src\/modules\/yance\/lib\s+\/modules\/yance\/lib/u);
+  assert.doesNotMatch(patch, /build_config\.yaml|src\/vector\/init\.tsx|config\.json/u);
 });
 
 test('Product composition does not introduce forbidden Yance infrastructure authorities', () => {
