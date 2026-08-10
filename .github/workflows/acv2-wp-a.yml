@@ -38,6 +38,8 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
+      - name: Install locked dependencies for runtime contracts and legacy regressions
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Verify Windows runtime mutex helper selection
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/windowsRuntimeMutexPowerShell.test.js
       - name: Run AuthorityWriteHost unit and migration contract
@@ -89,8 +91,6 @@ jobs:
           backend/tests/architectureClosureV2/wpA/primaryStoreCapabilityBoundary.test.js
       - name: Run A8 zero-writer source closure contract
         run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpA/sourceClosureFinal.test.js
-      - name: Install locked dependencies for legacy regressions
-        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run legacy identity observe, merge and rollback regressions
         run: node --test --test-concurrency=1 --test-name-pattern="identity observations|identity merge" backend/tests/round12PlatformCoreAuthorities.test.js
       - name: Run existing SQLite ownership and fencing regressions
