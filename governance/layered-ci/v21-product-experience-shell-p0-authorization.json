@@ -3,7 +3,7 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-EXPERIENCE-SHELL-P0",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Implement the approved Yance Living Relationship OS Product Experience Shell as relationship-first product composition over the existing Element/Matrix conversation authority. Adopt Base UI for accessible headless interaction primitives, Motion for layout/spring/gesture mechanics, official Rive React + canvas runtime for living AI/presence visual playback, and Howler for restrained UI sound playback. Yance may own relationship experience composition, semantic visual identity, local experience preferences and thin public-API adapters only; no second conversation, animation, overlay, sound, social graph, media, voice, presence or learning runtime may be created.",
   "base": {
@@ -12,8 +12,8 @@
   },
   "designAuthority": {
     "pullRequest": 226,
-    "mergedDesignPath": "docs/superpowers/specs/2026-08-10-yance-v21-product-experience-shell-p0-design.md",
-    "designMergeCommit": "e99d4cd517bc08c2a6b290ef8c25194ec6f5e804"
+    "path": "docs/superpowers/specs/2026-08-10-yance-v21-product-experience-shell-p0-design.md",
+    "mergeCommit": "e99d4cd517bc08c2a6b290ef8c25194ec6f5e804"
   },
   "implementationPlan": {
     "pullRequest": 227,
@@ -103,11 +103,13 @@
     "dependencyControlPathCount": 2,
     "dependencyControlPathSetSha256": "6450e4bd0dcb2c62a9ed40f852033214ad68c9235e522c381ce93d1c5beae477",
     "newDependencyAllowed": true,
-    "packageManifestModificationAllowed": true,
-    "rootNpmManifestModificationAllowed": false,
-    "rootNpmLockfileModificationAllowed": false,
-    "workflowModificationAllowed": false,
-    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "integration/element-module/package.json"
+      ],
+      "approvedDependencyPathCount": 1,
+      "approvedDependencyPathSetSha256": "12c498270cc27530196545a2d4f01479116ef90a5a518c6579770e39b5f66419"
+    },
     "dependencyIdentityPolicy": {
       "entries": [
         {
@@ -115,12 +117,6 @@
           "section": "dependencies",
           "name": "@base-ui/react",
           "version": "1.7.0"
-        },
-        {
-          "path": "integration/element-module/package.json",
-          "section": "dependencies",
-          "name": "motion",
-          "version": "12.42.2"
         },
         {
           "path": "integration/element-module/package.json",
@@ -136,20 +132,23 @@
         },
         {
           "path": "integration/element-module/package.json",
+          "section": "dependencies",
+          "name": "motion",
+          "version": "12.42.2"
+        },
+        {
+          "path": "integration/element-module/package.json",
           "section": "devDependencies",
           "name": "@types/howler",
           "version": "2.2.13"
         }
-      ],
-      "requiredResolvedIdentities": [
-        {
-          "name": "@rive-app/canvas",
-          "version": "2.39.2",
-          "reason": "Official @rive-app/react-canvas 4.31.0 backing runtime; must remain the approved Rive WASM runtime identity."
-        }
-      ],
-      "rangesForbiddenForProductDirectDependencies": true
-    }
+      ]
+    },
+    "packageManifestModificationAllowed": true,
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
   },
   "upstreams": {
     "baseUi": {
@@ -159,7 +158,7 @@
       "package": "@base-ui/react",
       "packageVersion": "1.7.0",
       "license": "MIT",
-      "role": "sole Product Experience headless interaction primitive authority for dialog/drawer/popover/menu/tooltip/scroll/focus/dismissal mechanics"
+      "role": "sole Product Experience headless interaction primitive authority"
     },
     "motion": {
       "repository": "motiondivision/motion",
@@ -186,7 +185,7 @@
       "package": "@rive-app/canvas",
       "packageVersion": "2.39.2",
       "license": "MIT",
-      "role": "sole Rive canvas/WASM playback runtime used by the selected official React wrapper"
+      "role": "required resolved backing canvas/WASM runtime for @rive-app/react-canvas 4.31.0"
     },
     "howler": {
       "repository": "goldfire/howler.js",
@@ -195,14 +194,14 @@
       "package": "howler",
       "packageVersion": "2.2.4",
       "license": "MIT",
-      "role": "sole Product Experience short UI sound playback/grouping/volume/mute authority; explicitly not Voice Brain or realtime audio authority"
+      "role": "sole short UI sound playback/grouping/volume/mute authority; not Voice Brain or realtime audio"
     },
     "howlerTypes": {
       "repository": "DefinitelyTyped/DefinitelyTyped",
       "package": "@types/howler",
       "packageVersion": "2.2.13",
       "license": "MIT",
-      "role": "TypeScript declarations for howler only"
+      "role": "TypeScript declarations for Howler only"
     },
     "elementWeb": {
       "repository": "element-hq/element-web",
@@ -210,7 +209,7 @@
       "commit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
       "license": "AGPL-3.0-only",
       "packageManager": "pnpm@11.5.2",
-      "role": "existing conversation shell/timeline/composer/navigation authority; Product integrates only through public module APIs and existing Yance global-right-panel patch"
+      "role": "existing conversation shell/timeline/composer/navigation authority; Product integrates through public module APIs and existing Yance global-right-panel extension only"
     }
   },
   "ossFit": {
@@ -233,8 +232,7 @@
     "duplicateSocialGraphEngineForbidden": true,
     "thinProductCompositionAllowed": true,
     "semanticDesignTokensAllowed": true,
-    "localExperiencePreferencesAllowed": true,
-    "existingElementWorkspaceOnly": true
+    "localExperiencePreferencesAllowed": true
   },
   "architectureRules": {
     "relationshipFirstNormalPathRequired": true,
@@ -385,6 +383,16 @@
     "unverifiedRiveAssetRedistribution": true,
     "productionReleaseOrPublish": true,
     "automaticFinalImplementationMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
   },
   "readyForImplementationAuthorizationMerge": true
 }
