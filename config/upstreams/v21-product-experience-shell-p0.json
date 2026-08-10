@@ -43,5 +43,15 @@
       "packageVersion": "2.2.13",
       "license": "MIT"
     }
+  },
+  "assetProvenance": {
+    "riveRelationshipOrb": {
+      "path": "integration/element-module/src/product-experience/assets/yance-relationship-orb.riv",
+      "ownership": "YANCE_OWNED",
+      "redistributable": true,
+      "source": "Yance-authored original relationship orb asset",
+      "sha256": "b75a8733a9750c32b9c91e7691f2083300b51f2d2ac29cb841e1069bd4e4ec2a",
+      "format": "RIVE 7.0"
+    }
   }
 }
