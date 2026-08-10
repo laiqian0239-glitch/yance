@@ -7,6 +7,7 @@ const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const workspacePath = path.join(ROOT, 'integration/element-module/src/MediaWorkspace.tsx');
+const productSentinelPath = path.join(ROOT, 'integration/element-module/src/product-experience/ProductExperienceShell.tsx');
 
 function read(file) {
   return fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -17,7 +18,20 @@ test('Media is a visible top-level Yance capability with real runtime-backed act
   const yance = read('integration/element-module/src/YanceWorkspace.tsx');
   const workspace = fs.readFileSync(workspacePath, 'utf8');
 
-  assert.match(yance, /Media/u);
+  if (fs.existsSync(productSentinelPath)) {
+    const composer = read('integration/element-module/src/product-experience/ProductComposerAccessory.tsx');
+    const overlay = read('integration/element-module/src/product-experience/RelationshipOverlayHost.tsx');
+    assert.match(yance, /ProductExperienceShell/u, 'YanceWorkspace must remain the thin Product composition root');
+    assert.match(composer, /label: "Photo"/u);
+    assert.match(composer, /label: "Attachment"/u);
+    assert.match(composer, /Immich library and ComfyUI/u, 'Photo action must expose the existing Media Brain authority');
+    assert.match(composer, /Existing media authority/u, 'Attachment action must reuse the existing Media authority');
+    assert.match(overlay, /import \{ MediaWorkspace \} from "\.\.\/MediaWorkspace"/u);
+    assert.match(overlay, /overlay === "photo" \|\| overlay === "attachment"/u, 'Product relationship overlays must route media actions to MediaWorkspace');
+  } else {
+    assert.match(yance, /Media/u);
+  }
+
   for (const label of [
     'Import',
     'Search',

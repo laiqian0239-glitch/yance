@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '../..');
+const PRODUCT_SENTINEL = 'integration/element-module/src/product-experience/ProductExperienceShell.tsx';
 const CHANNELS = [
   'desktop:letta-get-state',
   'desktop:letta-list-agents',
@@ -24,6 +25,10 @@ function readText(relativePath) {
 
 function readJson(relativePath) {
   return JSON.parse(readText(relativePath));
+}
+
+function hasProductExperienceLayout() {
+  return fs.existsSync(repositoryPath(PRODUCT_SENTINEL));
 }
 
 test('all Letta renderer access stays on the existing guarded desktop IPC boundary', () => {
@@ -73,26 +78,57 @@ test('application runtime authority never aliases the Letta PID into backendPid'
 });
 
 test('the existing Element Yance Workspace is the only Letta product surface', () => {
-  const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
-  assert.match(workspace, /data-yance-workspace/u);
-  assert.match(workspace, /Letta/u);
-  assert.match(workspace, /getLettaState/u);
-  assert.match(workspace, /listLettaAgents/u);
-  assert.match(workspace, /listLettaConversations/u);
-  assert.doesNotMatch(workspace, /from\s+['"](?:node:|@letta-ai)/u);
-  assert.doesNotMatch(workspace, /\bspawn\b|child_process|LETTA_LOCAL_BACKEND_DIR/u);
-  assert.doesNotMatch(workspace, /LettaPage|LettaShell|SecondAi|SecondAI/u);
-  assert.doesNotMatch(workspace, /createAgent|deleteAgent|sendMessage|\.send\(/u);
+  if (hasProductExperienceLayout()) {
+    const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
+    const assistant = readText('integration/element-module/src/product-experience/RelationshipAssistant.tsx');
+    const projection = readText('integration/element-module/src/product-experience/experienceProjection.ts');
+    assert.match(workspace, /ProductExperienceShell/u);
+    assert.match(assistant, /Letta/u);
+    assert.match(projection, /getLettaState/u);
+    assert.match(projection, /listLettaAgents/u);
+    assert.match(projection, /listLettaConversations/u);
+    const productAuthority = workspace + assistant + projection;
+    assert.doesNotMatch(productAuthority, /from\s+['"](?:node:|@letta-ai)/u);
+    assert.doesNotMatch(productAuthority, /\bspawn\b|child_process|LETTA_LOCAL_BACKEND_DIR/u);
+    assert.doesNotMatch(productAuthority, /LettaPage|LettaShell|SecondAi|SecondAI/u);
+    assert.doesNotMatch(productAuthority, /createAgent|deleteAgent|sendMessage|\.send\(/u);
+  } else {
+    const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
+    assert.match(workspace, /data-yance-workspace/u);
+    assert.match(workspace, /Letta/u);
+    assert.match(workspace, /getLettaState/u);
+    assert.match(workspace, /listLettaAgents/u);
+    assert.match(workspace, /listLettaConversations/u);
+    assert.doesNotMatch(workspace, /from\s+['"](?:node:|@letta-ai)/u);
+    assert.doesNotMatch(workspace, /\bspawn\b|child_process|LETTA_LOCAL_BACKEND_DIR/u);
+    assert.doesNotMatch(workspace, /LettaPage|LettaShell|SecondAi|SecondAI/u);
+    assert.doesNotMatch(workspace, /createAgent|deleteAgent|sendMessage|\.send\(/u);
+  }
 });
 
 test('Letta Workspace refreshes readonly projections after runtime state changes and labels bounded counts honestly', () => {
-  const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
-  assert.match(workspace, /setInterval\(/u, 'Workspace must refresh Letta state after mount so post-ready exits are observable');
-  assert.match(workspace, /clearInterval\(/u, 'Workspace must dispose the Letta refresh interval');
-  assert.match(workspace, /setLettaAgents\(\[\]\)/u, 'Workspace must clear stale agent projection when Letta is not ready');
-  assert.match(workspace, /setLettaConversations\(\[\]\)/u, 'Workspace must clear stale conversation projection when Letta is not ready');
-  assert.match(workspace, /Recent conversations \(first agent\)/u, 'bounded conversation count must identify its first-agent scope');
-  assert.match(workspace, /20\+/u, 'bounded conversation count must disclose the 20-item cap');
+  if (hasProductExperienceLayout()) {
+    const assistant = readText('integration/element-module/src/product-experience/RelationshipAssistant.tsx');
+    const projection = readText('integration/element-module/src/product-experience/experienceProjection.ts');
+    assert.match(assistant, /window\.setTimeout/u, 'Product assistant must refresh Letta state after mount without reintroducing an interval loop');
+    assert.match(assistant, /window\.clearTimeout/u, 'Product assistant must dispose the cancellable refresh timer');
+    assert.doesNotMatch(assistant, /setInterval\(/u, 'Product reduced-motion contract forbids reintroducing the retired setInterval refresh');
+    assert.match(assistant, /load\(false\)/u, 'background refreshes must preserve an unsaved Goal draft');
+    assert.match(assistant, /setProjection\(null\)/u, 'Product assistant must clear stale projection when Letta becomes unavailable');
+    assert.match(projection, /let agentCount = 0/u);
+    assert.match(projection, /let recentConversationCount = 0/u);
+    assert.match(projection, /const firstId = text\(normalized\[0\]\?\.id\)/u, 'bounded conversation count must remain first-agent scoped');
+    assert.match(projection, /listLettaConversations\(\{ agentId: firstId, limit: 20 \}\)/u, 'bounded conversation projection must preserve the 20-item cap');
+    assert.match(assistant, /Recent context/u, 'bounded recent-conversation projection must stay visible');
+  } else {
+    const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
+    assert.match(workspace, /setInterval\(/u, 'Workspace must refresh Letta state after mount so post-ready exits are observable');
+    assert.match(workspace, /clearInterval\(/u, 'Workspace must dispose the Letta refresh interval');
+    assert.match(workspace, /setLettaAgents\(\[\]\)/u, 'Workspace must clear stale agent projection when Letta is not ready');
+    assert.match(workspace, /setLettaConversations\(\[\]\)/u, 'Workspace must clear stale conversation projection when Letta is not ready');
+    assert.match(workspace, /Recent conversations \(first agent\)/u, 'bounded conversation count must identify its first-agent scope');
+    assert.match(workspace, /20\+/u, 'bounded conversation count must disclose the 20-item cap');
+  }
 });
 
 test('Letta IPC contracts remain readonly projections without arbitrary path or process authority', () => {

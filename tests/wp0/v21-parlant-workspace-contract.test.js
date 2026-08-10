@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const ROOT = path.resolve(__dirname, '../..');
+const PRODUCT_SENTINEL = 'integration/element-module/src/product-experience/ProductExperienceShell.tsx';
 const CHANNELS = [
   'desktop:parlant-get-relationship-goal',
   'desktop:parlant-upsert-relationship-goal',
@@ -16,6 +17,7 @@ const readText = rel => {
   return fs.readFileSync(filePath, 'utf8');
 };
 const readJson = rel => JSON.parse(readText(rel));
+const hasProductExperienceLayout = () => fs.existsSync(path.join(ROOT, ...PRODUCT_SENTINEL.split('/')));
 
 function sourceRegion(source, startMarker, endMarker) {
   const start = source.indexOf(startMarker);
@@ -102,22 +104,53 @@ test('missing Parlant provider credentials fail closed without renderer event sp
 });
 
 test('relationship desktop event subscription never steals selection from an unsaved Goal draft', () => {
-  const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
-  assert.doesNotMatch(workspace, /event\?\.type\s*===\s*["']message:inserted["'][\s\S]{0,160}setSelectedContactId/u, 'inbound messages must not auto-select another relationship while the user is editing');
-  assert.match(workspace, /selectedContactRef\s*=\s*React\.useRef/u, 'stable desktop subscription must read the latest selected relationship through a ref');
-  assert.match(workspace, /selectedContactRef\.current\s*=\s*selectedContactId/u);
-  assert.match(workspace, /contactId\s*===\s*selectedContactRef\.current/u);
+  if (hasProductExperienceLayout()) {
+    const assistant = readText('integration/element-module/src/product-experience/RelationshipAssistant.tsx');
+    const projection = readText('integration/element-module/src/product-experience/experienceProjection.ts');
+    const session = readText('integration/element-module/src/product-experience/experienceSession.ts');
+    assert.match(session, /selectedRelationshipId/u, 'Product session must keep explicit selected-relationship authority');
+    assert.match(assistant, /dirtyDraftRef\s*=\s*useRef\(false\)/u, 'Product assistant must track unsaved Goal draft state');
+    assert.match(assistant, /syncDraft\s*&&\s*!dirtyDraftRef\.current/u, 'background projection refresh must not overwrite a dirty Goal draft');
+    assert.match(assistant, /contactId\s*===\s*relationshipId/u, 'relationship desktop events must refresh only the currently open relationship assistant');
+    assert.match(assistant, /load\(false\)/u, 'background relationship events must refresh without resynchronizing the draft');
+    assert.doesNotMatch(assistant + projection, /selectRelationship\(/u, 'background Goal/desktop events must not auto-select another relationship');
+  } else {
+    const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
+    assert.doesNotMatch(workspace, /event\?\.type\s*===\s*["']message:inserted["'][\s\S]{0,160}setSelectedContactId/u, 'inbound messages must not auto-select another relationship while the user is editing');
+    assert.match(workspace, /selectedContactRef\s*=\s*React\.useRef/u, 'stable desktop subscription must read the latest selected relationship through a ref');
+    assert.match(workspace, /selectedContactRef\.current\s*=\s*selectedContactId/u);
+    assert.match(workspace, /contactId\s*===\s*selectedContactRef\.current/u);
+  }
 });
 
 test('existing Yance Workspace provides stable Goal controls without browser goal persistence', () => {
-  const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
-  for (const marker of ['data-yance-workspace','getParlantRelationshipGoal','upsertParlantRelationshipGoal','deleteParlantRelationshipGoal','setParlantRelationshipGoalPaused']) {
-    assert.equal(workspace.includes(marker), true, `workspace must retain stable Goal identifier: ${marker}`);
+  if (hasProductExperienceLayout()) {
+    const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
+    const assistant = readText('integration/element-module/src/product-experience/RelationshipAssistant.tsx');
+    const projection = readText('integration/element-module/src/product-experience/experienceProjection.ts');
+    const session = readText('integration/element-module/src/product-experience/experienceSession.ts');
+    assert.match(workspace, /ProductExperienceShell/u);
+    for (const marker of ['getParlantRelationshipGoal','upsertParlantRelationshipGoal','deleteParlantRelationshipGoal','setParlantRelationshipGoalPaused']) {
+      assert.equal(projection.includes(marker), true, `Product projection must retain stable Goal identifier: ${marker}`);
+    }
+    for (const marker of ['updateRelationshipGoal','deleteRelationshipGoal','setRelationshipGoalPaused']) {
+      assert.equal(assistant.includes(marker), true, `Product assistant must retain Goal control: ${marker}`);
+    }
+    assert.match(projection, /storeSnapshot\(\{ domains: \["customers"\] \}\)/u);
+    assert.match(session, /selectRelationship/u);
+    const productGoalAuthority = assistant + projection + session;
+    assert.doesNotMatch(productGoalAuthority, /from\s+['"](?:node:|parlant)|child_process|\bspawn\b|OPENROUTER_API_KEY/iu);
+    assert.doesNotMatch(productGoalAuthority, /localStorage\.setItem\(/u, 'Product Goal state must not gain browser persistence');
+  } else {
+    const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
+    for (const marker of ['data-yance-workspace','getParlantRelationshipGoal','upsertParlantRelationshipGoal','deleteParlantRelationshipGoal','setParlantRelationshipGoalPaused']) {
+      assert.equal(workspace.includes(marker), true, `workspace must retain stable Goal identifier: ${marker}`);
+    }
+    assert.match(workspace, /storeSnapshot\(\{\s*domains:\s*\["customers"\]\s*\}\)/u);
+    assert.doesNotMatch(workspace, /from\s+['"](?:node:|parlant)|child_process|\bspawn\b|OPENROUTER_API_KEY/iu);
+    const writes = workspace.match(/localStorage\.setItem\([^\n]+/gu) || [];
+    assert.equal(writes.some(line => /goal|parlant|journey|contactId/iu.test(line)), false);
   }
-  assert.match(workspace, /storeSnapshot\(\{\s*domains:\s*\["customers"\]\s*\}\)/u);
-  assert.doesNotMatch(workspace, /from\s+['"](?:node:|parlant)|child_process|\bspawn\b|OPENROUTER_API_KEY/iu);
-  const writes = workspace.match(/localStorage\.setItem\([^\n]+/gu) || [];
-  assert.equal(writes.some(line => /goal|parlant|journey|contactId/iu.test(line)), false);
 });
 
 test('dedicated Parlant workflow runs whenever an asserted contract dependency changes', () => {
