@@ -538,3 +538,81 @@ test('trusted delegated evaluator rejects missing required npm topology while pr
   }));
   assert.equal(optionalResult.pass, true, JSON.stringify(optionalResult));
 });
+
+test('trusted delegated evaluator accepts an exact brand-new npm manifest with exact authorized sibling lock closure', () => {
+  const candidateManifest = {
+    dependencies: {
+      'livekit-client': '2.21.0'
+    }
+  };
+  const candidateLockfile = {
+    lockfileVersion: 3,
+    requires: true,
+    packages: {
+      '': {
+        dependencies: {
+          'livekit-client': '2.21.0'
+        }
+      },
+      'node_modules/livekit-client': {
+        version: '2.21.0'
+      }
+    }
+  };
+  const options = trustedOptionsWithLockfile({ candidateManifest, candidateLockfile });
+  options.loadDependencyControlAtCommit = (commit, repositoryPath) => {
+    if (commit === MERGE && [MANIFEST_PATH, LOCK_PATH].includes(repositoryPath)) return null;
+    if (commit === CANDIDATE && repositoryPath === MANIFEST_PATH) return candidateManifest;
+    if (commit === CANDIDATE && repositoryPath === LOCK_PATH) return candidateLockfile;
+    return null;
+  };
+
+  const result = evaluateTrustedDelegatedGovernanceBranch(options);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.reasonCode, null, JSON.stringify(result));
+});
+
+test('trusted delegated evaluator keeps brand-new npm manifests exact and rejects extra metadata, scripts and dependencies', () => {
+  const exactNewManifest = {
+    dependencies: {
+      'livekit-client': '2.21.0'
+    }
+  };
+  const exactNewLockfile = {
+    lockfileVersion: 3,
+    requires: true,
+    packages: {
+      '': {
+        dependencies: {
+          'livekit-client': '2.21.0'
+        }
+      },
+      'node_modules/livekit-client': {
+        version: '2.21.0'
+      }
+    }
+  };
+  const fixtures = [
+    ['metadata', { ...exactNewManifest, name: 'unreviewed-runtime' }],
+    ['scripts', { ...exactNewManifest, scripts: { postinstall: 'node unreviewed.js' } }],
+    ['dependency', { dependencies: { ...exactNewManifest.dependencies, 'left-pad': '1.3.0' } }]
+  ];
+
+  for (const [name, candidateManifest] of fixtures) {
+    const candidateLockfile = clone(exactNewLockfile);
+    if (name === 'dependency') {
+      candidateLockfile.packages[''].dependencies['left-pad'] = '1.3.0';
+      candidateLockfile.packages['node_modules/left-pad'] = { version: '1.3.0' };
+    }
+    const options = trustedOptionsWithLockfile({ candidateManifest, candidateLockfile });
+    options.loadDependencyControlAtCommit = (commit, repositoryPath) => {
+      if (commit === MERGE && [MANIFEST_PATH, LOCK_PATH].includes(repositoryPath)) return null;
+      if (commit === CANDIDATE && repositoryPath === MANIFEST_PATH) return candidateManifest;
+      if (commit === CANDIDATE && repositoryPath === LOCK_PATH) return candidateLockfile;
+      return null;
+    };
+    const result = evaluateTrustedDelegatedGovernanceBranch(options);
+    assert.equal(result.pass, false, `${name}: ${JSON.stringify(result)}`);
+    assert.equal(result.reasonCode, DENIED, name);
+  }
+});
