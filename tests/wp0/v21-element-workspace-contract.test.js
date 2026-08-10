@@ -142,12 +142,17 @@ test('Yance Element module is delivered through the official Element /modules ru
 
   const bootstrap = readText('tools/matrix/bootstrap.js');
   const moduleCopy = "fs.cpSync(path.join(ROOT, 'integration/element-module'), moduleTarget, { recursive: true });";
-  const checkRuntimePatch = "run(element, 'git', ['apply', '--check', RUNTIME_PATCH]);";
-  const applyRuntimePatch = "run(element, 'git', ['apply', RUNTIME_PATCH]);";
+  const checkDeliveryPatch = "run(element, 'git', ['apply', '--check', MODULE_DELIVERY_PATCH]);";
+  const applyDeliveryPatch = "run(element, 'git', ['apply', MODULE_DELIVERY_PATCH]);";
   const moduleCopyIndex = bootstrap.indexOf(moduleCopy);
-  const runtimeCheckIndex = bootstrap.indexOf(checkRuntimePatch);
-  const runtimeApplyIndex = bootstrap.indexOf(applyRuntimePatch);
+  const deliveryCheckIndex = bootstrap.indexOf(checkDeliveryPatch);
+  const deliveryApplyIndex = bootstrap.indexOf(applyDeliveryPatch);
   assert.ok(moduleCopyIndex >= 0, 'bootstrap must copy Yance module into pinned Element workspace');
-  assert.ok(runtimeCheckIndex > moduleCopyIndex, '0012 replay check must run only after module workspace copy');
-  assert.ok(runtimeApplyIndex > runtimeCheckIndex, '0012 runtime patch must apply only after its replay check');
+  assert.ok(deliveryCheckIndex > moduleCopyIndex, '0012 replay check must run only after module workspace copy');
+  assert.ok(deliveryApplyIndex > deliveryCheckIndex, '0012 module delivery patch must apply only after its replay check');
+  assert.doesNotMatch(
+    bootstrap,
+    /runtime[ _-]?patch/iu,
+    'upstream module delivery must not be mislabeled as the forbidden legacy runtime-patch release mechanism'
+  );
 });
