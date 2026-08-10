@@ -171,8 +171,12 @@ function trustedOptions(candidateManifest, auth = authorization()) {
       return [REVIEWED, MERGE, TRUSTED_MAIN].includes(commit) ? AUTH_BLOB : null;
     },
     resolveCommitPathMode: (commit, path) => {
-      if (path !== AUTHORIZATION_PATH || commit === BASE) return null;
-      return [REVIEWED, MERGE, TRUSTED_MAIN].includes(commit) ? '100644' : null;
+      if (path === AUTHORIZATION_PATH) {
+        if (commit === BASE) return null;
+        return [REVIEWED, MERGE, TRUSTED_MAIN].includes(commit) ? '100644' : null;
+      }
+      if (commit === CANDIDATE && [MANIFEST_PATH, LOCK_PATH].includes(path)) return '100644';
+      return null;
     },
     resolveChangedFilesBetween: (base, head) => {
       if (base === BASE && [REVIEWED, MERGE].includes(head)) return [AUTHORIZATION_PATH];
@@ -657,4 +661,18 @@ test('trusted delegated evaluator rejects a brand-new manifest when trusted main
   const result = evaluateTrustedDelegatedGovernanceBranch(options);
   assert.equal(result.pass, false, JSON.stringify(result));
   assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
+});
+
+test('trusted delegated evaluator rejects non-regular candidate npm manifest and lockfile modes', () => {
+  for (const repositoryPath of [MANIFEST_PATH, LOCK_PATH]) {
+    const options = trustedOptionsWithLockfile();
+    const resolveRegularMode = options.resolveCommitPathMode;
+    options.resolveCommitPathMode = (commit, path) => {
+      if (commit === CANDIDATE && path === repositoryPath) return '120000';
+      return resolveRegularMode(commit, path);
+    };
+    const result = evaluateTrustedDelegatedGovernanceBranch(options);
+    assert.equal(result.pass, false, `${repositoryPath}: ${JSON.stringify(result)}`);
+    assert.equal(result.reasonCode, DENIED, repositoryPath);
+  }
 });
