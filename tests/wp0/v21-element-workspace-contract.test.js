@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '../..');
+const PRODUCT_SENTINEL = 'integration/element-module/src/product-experience/ProductExperienceShell.tsx';
 
 function repositoryPath(relativePath) {
   return path.join(ROOT, ...relativePath.split('/'));
@@ -19,6 +20,10 @@ function readText(relativePath) {
 
 function readJson(relativePath) {
   return JSON.parse(readText(relativePath));
+}
+
+function hasProductExperienceLayout() {
+  return fs.existsSync(repositoryPath(PRODUCT_SENTINEL));
 }
 
 function patchedPaths(patchText) {
@@ -50,12 +55,26 @@ test('the official module owns Yance UI while the minimal patch only adds the mi
   const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
   assert.match(entry, /registerGlobalRightPanel/u);
   assert.match(entry, /YanceWorkspace/u);
-  assert.match(workspace, /data-yance-workspace/u);
-  for (const capability of ['AI', 'Goal', 'Contact', 'Presence']) {
-    assert.match(workspace, new RegExp(capability, 'u'));
-  }
-  for (const forbidden of ['stopClient', 'logout(', 'client.stop', 'sync.stop', 'mautrix.stop']) {
-    assert.equal(workspace.includes(forbidden), false, `hiding/rendering Yance workspace must not control runtime: ${forbidden}`);
+
+  if (hasProductExperienceLayout()) {
+    const shell = readText(PRODUCT_SENTINEL);
+    assert.match(workspace, /ProductExperienceShell/u, 'YanceWorkspace must stay a thin Product Experience composition root');
+    assert.match(shell, /data-yance-workspace/u, 'ProductExperienceShell must own the Yance workspace identity');
+    assert.match(shell, /aria-label=["']Yance Living Relationship OS["']/u, 'ProductExperienceShell must expose an accessible Yance label');
+    for (const authority of ['PeopleSurface', 'RelationshipAssistant', 'RelationshipOverlayHost']) {
+      assert.match(shell, new RegExp(authority, 'u'), `ProductExperienceShell must compose ${authority}`);
+    }
+    for (const forbidden of ['stopClient', 'logout(', 'client.stop', 'sync.stop', 'mautrix.stop']) {
+      assert.equal((workspace + shell).includes(forbidden), false, `hiding/rendering Yance workspace must not control runtime: ${forbidden}`);
+    }
+  } else {
+    assert.match(workspace, /data-yance-workspace/u);
+    for (const capability of ['AI', 'Goal', 'Contact', 'Presence']) {
+      assert.match(workspace, new RegExp(capability, 'u'));
+    }
+    for (const forbidden of ['stopClient', 'logout(', 'client.stop', 'sync.stop', 'mautrix.stop']) {
+      assert.equal(workspace.includes(forbidden), false, `hiding/rendering Yance workspace must not control runtime: ${forbidden}`);
+    }
   }
 
   const patchText = readText('upstream-patches/element-web/0001-yance-global-right-workspace.patch');
@@ -80,10 +99,28 @@ test('the right workspace remains inside the unified Element shell and is restor
   const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
   assert.match(entry, /addRoomHeaderButtonCallback/u);
   assert.match(entry, /openGlobalRightPanel/u);
-  assert.match(workspace, /aria-label=.*Yance|Yance Workspace/u);
-  assert.match(workspace, /localStorage|sessionStorage/u);
-  assert.match(workspace, /yance\.workspace/u);
-  assert.doesNotMatch(workspace, /WhatsAppPage|TelegramPage|SignalPage|FacebookPage|InstagramPage/u);
+
+  if (hasProductExperienceLayout()) {
+    const shell = readText(PRODUCT_SENTINEL);
+    const preferences = readText('integration/element-module/src/product-experience/experiencePreferences.ts');
+    assert.match(workspace, /ProductExperienceShell/u);
+    assert.match(shell, /aria-label=["']Yance Living Relationship OS["']/u);
+    assert.match(shell, /data-yance-workspace/u);
+    assert.match(preferences, /localStorage\.getItem/u);
+    assert.match(preferences, /localStorage\.setItem/u);
+    for (const key of [
+      'yance.product-experience.sound',
+      'yance.product-experience.motion',
+      'yance.product-experience.atmosphere'
+    ]) assert.match(preferences, new RegExp(key.replaceAll('.', '\\.'), 'u'));
+    assert.doesNotMatch(preferences, /goal|parlant|journey|contactId|message|relationshipId/iu, 'Product persistence must stay limited to experience preferences');
+    assert.doesNotMatch(shell, /WhatsAppPage|TelegramPage|SignalPage|FacebookPage|InstagramPage/u);
+  } else {
+    assert.match(workspace, /aria-label=.*Yance|Yance Workspace/u);
+    assert.match(workspace, /localStorage|sessionStorage/u);
+    assert.match(workspace, /yance\.workspace/u);
+    assert.doesNotMatch(workspace, /WhatsAppPage|TelegramPage|SignalPage|FacebookPage|InstagramPage/u);
+  }
 });
 
 test('Electron boots the unified local Element shell instead of the legacy hand-built conversation page', () => {
