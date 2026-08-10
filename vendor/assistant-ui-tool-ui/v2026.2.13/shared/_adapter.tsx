@@ -20,17 +20,21 @@ export function cn(...values: ClassValue[]): string {
 
 export type ToolUiButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: string;
+  size?: string;
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ToolUiButtonProps>(
-  function ToolUiButton({ variant: _variant, type = "button", ...props }, ref) {
+  function ToolUiButton({ variant: _variant, size: _size, type = "button", ...props }, ref) {
     return <button ref={ref} type={type} {...props} />;
   },
 );
 
-export const Separator = React.forwardRef<
-  HTMLHRElement,
-  React.HTMLAttributes<HTMLHRElement>
->(function ToolUiSeparator(props, ref) {
-  return <hr ref={ref} {...props} />;
-});
+export type ToolUiSeparatorProps = React.HTMLAttributes<HTMLHRElement> & {
+  orientation?: "horizontal" | "vertical";
+};
+
+export const Separator = React.forwardRef<HTMLHRElement, ToolUiSeparatorProps>(
+  function ToolUiSeparator({ orientation = "horizontal", ...props }, ref) {
+    return <hr ref={ref} data-orientation={orientation} {...props} />;
+  },
+);
