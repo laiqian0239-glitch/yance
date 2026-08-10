@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-PRODUCT-EXPERIENCE-SHELL-P0",
-  "proposalRevision": 2,
+  "workPackage": "V21-PRODUCT-EXPERIENCE-SHELL-P0-RUNTIME-MODULE-DELIVERY",
+  "proposalRevision": 3,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Close the Product Experience runtime-reachability gap using Element Web's own mature runtime module mechanism. The Yance module already implements @element-hq/element-web-module-api and is copied into the pinned Element workspace, but the pinned Element Docker image only serves modules that exist in /modules at runtime. Authorize one minimal upstream Dockerfile patch that builds the existing Yance module inside the pinned Element workspace and copies only its package.json and lib output into /modules/yance, allowing Element's existing 18-load-element-modules.sh, SdkConfig modules list, ModuleLoader dynamic import, and nginx /modules alias to remain the sole module loading authority. Do not revive the deprecated build_config/module_system path and do not add a Yance module loader.",
+  "reason": "Close the Product Experience runtime-reachability gap as an independent root-migration work package, without widening or superseding the existing Product Experience implementation authority. Reuse Element Web v1.12.25's mature official runtime module mechanism: build the existing @yance/element-module in the pinned Element workspace, copy only its package.json and lib output into /modules/yance in the final Element image, and rely on Element's existing 18-load-element-modules.sh, SdkConfig modules list, ModuleLoader dynamic import, and nginx /modules alias. After this independent implementation is ordinarily merged to main, Product Experience may merge fresh main forward and retain its original 31-path authorization unchanged. Deprecated build_config/module_system integration and any Yance-owned module loader are forbidden.",
   "base": {
     "branch": "main",
     "commit": "aa03c8ba1f8a3d6cfeec0ed179757f43cb1b4648"
@@ -13,10 +13,10 @@
   "effectiveness": {
     "effectiveBeforeMerge": false,
     "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
     "requiredFirstParent": "aa03c8ba1f8a3d6cfeec0ed179757f43cb1b4648",
     "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
-    "implementationMayContinueOnlyAfterAuthorizationMergeCommitIsMergedForwardIntoProductBranch": true,
-    "authorizationProposalTransportIsNotImplementationAuthority": true,
     "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
   },
   "authorizationBranch": {
@@ -37,67 +37,34 @@
     "trailingNewline": true,
     "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
   },
-  "supersession": {
-    "extendsAuthorizationPath": "governance/layered-ci/v21-product-experience-shell-p0-authorization.json",
-    "extendsAuthorizationMerge": "ae0a6b8c7c8ad10ba09c2f97d15f48085012ef87",
-    "scopeChanged": true,
-    "ossPinsChanged": false,
-    "newRuntimeAuthorityAdded": false,
-    "newAllowedPath": "upstream-patches/element-web/0012-yance-element-module-runtime.patch",
-    "previousApprovedChangedFileCount": 31,
-    "previousApprovedChangedFileSetSha256": "140c0163e8e937ccc3ed7658d15ec059d9d5cddc515448f55a0abf5b5904d76f"
+  "implementation": {
+    "branch": "fix/v21-product-experience-shell-p0-runtime-module-delivery",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0012-yance-element-module-runtime.patch"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "0365afe5ff9b5ad01bd4515c19aab2e740b4668e68fc2baf9f8880292c4ff6e9",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
   },
-  "observedCausalRed": {
+  "observedRootGap": {
     "productBranch": "product/v21-product-experience-shell-p0",
     "exactHead": "26b47f91c9fb84ec347a2a03f73fa26e7fb001e7",
     "testPath": "tests/wp0/v21-product-experience-shell-p0.test.js",
     "contract": "Product module is delivered through Element official runtime module directory",
-    "rootCause": "Pinned Element's new ModuleLoader only imports URLs from SdkConfig.modules. Its Docker entrypoint populates that list from /modules and nginx serves /modules, but Yance currently only copies source into the Element build workspace; no built Yance module is present under /modules in the final Element image.",
-    "implementationBeforeAuthorizationMergeForbidden": true
+    "rootCause": "Pinned Element's ModuleLoader imports URLs from SdkConfig.modules; its Docker entrypoint populates that list from /modules and nginx serves /modules, but Yance currently only copies integration/element-module into the Element build workspace and no built Yance module reaches /modules in the final Element image.",
+    "productScopeMustRemainUnchanged": true
   },
-  "implementation": {
-    "branch": "product/v21-product-experience-shell-p0",
-    "allowedChangedPaths": [
-      "config/upstreams/v21-product-experience-shell-p0.json",
-      "docs/uat/V21_PRODUCT_EXPERIENCE_SHELL_P0_UAT.md",
-      "integration/element-module/package.json",
-      "integration/element-module/src/YanceWorkspace.tsx",
-      "integration/element-module/src/index.tsx",
-      "integration/element-module/src/product-experience/PeopleSurface.tsx",
-      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
-      "integration/element-module/src/product-experience/ProductExperienceShell.css",
-      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
-      "integration/element-module/src/product-experience/RelationshipAssistant.tsx",
-      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
-      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
-      "integration/element-module/src/product-experience/RiveRelationshipCompanion.tsx",
-      "integration/element-module/src/product-experience/assets/yance-relationship-orb.riv",
-      "integration/element-module/src/product-experience/experiencePreferences.ts",
-      "integration/element-module/src/product-experience/experienceProjection.ts",
-      "integration/element-module/src/product-experience/experienceSession.ts",
-      "integration/element-module/src/product-experience/experienceSound.ts",
-      "integration/element-module/src/product-experience/experienceTypes.ts",
-      "tests/wp0/v21-product-experience-shell-accessibility.test.js",
-      "tests/wp0/v21-product-experience-shell-dependencies.test.js",
-      "tests/wp0/v21-product-experience-shell-interaction.test.js",
-      "tests/wp0/v21-product-experience-shell-p0.test.js",
-      "third_party/licenses/base-ui-MIT.txt",
-      "third_party/licenses/howler-MIT.txt",
-      "third_party/licenses/motion-MIT.txt",
-      "third_party/licenses/rive-react-MIT.txt",
-      "third_party/licenses/rive-wasm-MIT.txt",
-      "third_party/licenses/types-howler-MIT.txt",
-      "tools/matrix/bootstrap.js",
-      "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
-      "upstream-patches/element-web/0012-yance-element-module-runtime.patch"
-    ],
-    "approvedChangedFileCount": 32,
-    "approvedChangedFileSetSha256": "74e02a5d52e1da51961a4268cc1c6b13a3249ab351502004db61557f7410e6b7",
-    "newDependencyAllowed": false,
-    "rootNpmManifestModificationAllowed": false,
-    "rootNpmLockfileModificationAllowed": false,
-    "workflowModificationAllowed": false,
-    "newGeneralPurposeYanceInfrastructureAllowed": false
+  "failureFirst": {
+    "firstImplementationCommitTestsOnly": true,
+    "testPath": "tests/wp0/v21-element-workspace-contract.test.js",
+    "causalRed": "On the exact authorization-merge baseline, require the replayable 0012 patch and official /modules/yance delivery contract before any bootstrap or patch implementation is added.",
+    "productionCodeBeforeCausalRedForbidden": true
   },
   "runtimeModuleDelivery": {
     "upstreamRepository": "element-hq/element-web",
@@ -112,7 +79,7 @@
     ],
     "authorizedUpstreamChangedPathCount": 1,
     "requiredBehavior": [
-      "Build the already-copied modules/yance workspace package using the pinned Element workspace dependency graph.",
+      "Build the already-copied modules/yance workspace package using the pinned Element workspace graph.",
       "Copy only modules/yance/package.json and modules/yance/lib into /modules/yance in the final Element nginx image.",
       "Rely on Element's existing 18-load-element-modules.sh to append /modules/yance/lib/index.js to config.json modules.",
       "Rely on Element's existing nginx /modules alias to serve the module.",
@@ -124,7 +91,7 @@
       "Do not use apps/web/build_config.yaml or the deprecated @matrix-org/react-sdk-module-api module system.",
       "Do not add a Yance-owned module loader or dynamic import framework.",
       "Do not vendor a second React copy into the Yance module.",
-      "Do not widen the patch beyond apps/web/Dockerfile."
+      "Do not widen the upstream patch beyond apps/web/Dockerfile."
     ]
   },
   "ossFit": {
@@ -136,13 +103,33 @@
     "duplicateYanceModuleLoaderForbidden": true,
     "thinElementDockerPackagingPatchAllowed": true
   },
+  "handoffBackToProduct": {
+    "productWorkPackage": "V21-PRODUCT-EXPERIENCE-SHELL-P0",
+    "productBranch": "product/v21-product-experience-shell-p0",
+    "originalAuthorizationPath": "governance/layered-ci/v21-product-experience-shell-p0-authorization.json",
+    "originalApprovedChangedFileCount": 31,
+    "originalApprovedChangedFileSetSha256": "140c0163e8e937ccc3ed7658d15ec059d9d5cddc515448f55a0abf5b5904d76f",
+    "rule": "After this root-migration implementation ordinarily merges to main, merge fresh main forward into Product. The 0012 path is then base-owned and must not widen Product's original implementation authorization."
+  },
   "mandatoryClosure": [
-    "The authorization proposal must remain exactly one governance JSON file before merge.",
-    "The causal RED at Product Head 26b47f91c9fb84ec347a2a03f73fa26e7fb001e7 must remain attributable to missing official runtime module delivery.",
-    "After authorization ordinary merge, fresh main must be ordinarily merged forward into product/v21-product-experience-shell-p0 before implementation continues.",
-    "The 0012 patch must touch exactly apps/web/Dockerfile and must be replayable against pinned Element commit a2a996ae50d802878bf48e4bbf3730004bdcc55c.",
-    "The final Product implementation changed-path set must remain within the 32 exact authorized paths and retain SHA-256 74e02a5d52e1da51961a4268cc1c6b13a3249ab351502004db61557f7410e6b7.",
-    "Real Windows Electron UAT must prove the Yance module is actually loaded through Element's official ModuleLoader path before docs/uat/V21_PRODUCT_EXPERIENCE_SHELL_P0_UAT.md is written.",
-    "Final implementation merge remains an explicit owner merge boundary."
-  ]
+    "The authorization proposal remains exactly one governance JSON file from fresh trusted main.",
+    "After ordinary authorization merge, create fix/v21-product-experience-shell-p0-runtime-module-delivery from the exact authorization merge.",
+    "The first implementation commit changes only tests/wp0/v21-element-workspace-contract.test.js and establishes causal RED for missing 0012 runtime delivery.",
+    "The 0012 patch changes exactly apps/web/Dockerfile and replays against pinned Element commit a2a996ae50d802878bf48e4bbf3730004bdcc55c.",
+    "Bootstrap applies 0012 only after integration/element-module has been copied to modules/yance.",
+    "No deprecated Element module system and no Yance-owned loader is introduced.",
+    "The independent implementation must pass required exact-head gates and review before ordinary merge to main.",
+    "Fresh main must then be merged forward into product/v21-product-experience-shell-p0; Product retains its original 31-path authority.",
+    "Real Windows Electron UAT must prove the Product module is loaded through Element's official ModuleLoader path before Product final UAT closure."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
 }
