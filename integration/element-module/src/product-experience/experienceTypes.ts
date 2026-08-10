@@ -31,7 +31,7 @@ export type RelationshipAssistantProjection = {
   recentConversationCount: number;
 };
 
-export type RelationshipOverlayKind = "photo" | "voice" | "live";
+export type RelationshipOverlayKind = "photo" | "voice" | "live" | "attachment";
 
 export type RelationshipAiState =
   | "idle"

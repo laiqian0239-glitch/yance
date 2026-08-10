@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "workPackage": "V21-PRODUCT-EXPERIENCE-SHELL-P0",
+  "upstreams": {
+    "baseUi": {
+      "repository": "mui/base-ui",
+      "package": "@base-ui/react",
+      "packageVersion": "1.7.0",
+      "commit": "254f4744f0a241c20697b9eeab33402f4469a081",
+      "license": "MIT"
+    },
+    "motion": {
+      "repository": "motiondivision/motion",
+      "package": "motion",
+      "packageVersion": "12.42.2",
+      "commit": "40e8756c63b258c9dd07de9501cb788410eefb02",
+      "license": "MIT"
+    },
+    "riveReact": {
+      "repository": "rive-app/rive-react",
+      "package": "@rive-app/react-canvas",
+      "packageVersion": "4.31.0",
+      "commit": "c05ec1842324a4a61d01f8e49dfd2ac2c37ae72c",
+      "license": "MIT"
+    },
+    "riveRuntime": {
+      "repository": "rive-app/rive-wasm",
+      "package": "@rive-app/canvas",
+      "packageVersion": "2.39.2",
+      "commit": "68dbf3a775df37fc4a6f128fb685eb9ed4bf149b",
+      "license": "MIT"
+    },
+    "howler": {
+      "repository": "goldfire/howler.js",
+      "package": "howler",
+      "packageVersion": "2.2.4",
+      "commit": "003b917c40cb41cf382ba47ae0ed7a35ca2abe76",
+      "license": "MIT"
+    },
+    "howlerTypes": {
+      "repository": "DefinitelyTyped/DefinitelyTyped",
+      "package": "@types/howler",
+      "packageVersion": "2.2.13",
+      "license": "MIT"
+    }
+  }
+}
