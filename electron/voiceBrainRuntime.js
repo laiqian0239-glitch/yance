@@ -55,6 +55,39 @@ function projectVoiceOutput(input = {}) {
   for (const field of VOICE_OUTPUT_FIELDS) projected[field] = input[field];
   return Object.freeze(projected);
 }
+function projectVoiceHealth(input = {}) {
+  const rawSenseVoice = input.senseVoice && typeof input.senseVoice === 'object' ? input.senseVoice : {};
+  const rawCosyVoice = input.cosyVoice && typeof input.cosyVoice === 'object' ? input.cosyVoice : {};
+  const senseVoice = Object.freeze({
+    authority: 'SenseVoice',
+    available: rawSenseVoice.available === true,
+    kind: clean(rawSenseVoice.kind) || 'sensevoice',
+    source: clean(rawSenseVoice.source) || 'sealed-runtime',
+    audioConverterAvailable: rawSenseVoice.audioConverterAvailable === true,
+    reasonCode: clean(rawSenseVoice.reasonCode),
+    installSupported: false,
+    sealedRuntimeRequired: true
+  });
+  const cosyVoice = Object.freeze({
+    authority: 'CosyVoice',
+    available: rawCosyVoice.available === true,
+    reasonCode: rawCosyVoice.available === true ? '' : clean(rawCosyVoice.reasonCode) || 'COSYVOICE_RUNTIME_MISSING'
+  });
+  const available = senseVoice.available && cosyVoice.available;
+  return Object.freeze({
+    available,
+    degraded: !available,
+    localPrivateProfiles: true,
+    authorities: Object.freeze({ asr: 'SenseVoice', tts: 'CosyVoice' }),
+    senseVoice,
+    cosyVoice,
+    reasonCode: !senseVoice.available
+      ? senseVoice.reasonCode || 'SENSEVOICE_RUNTIME_MISSING'
+      : !cosyVoice.available
+        ? cosyVoice.reasonCode
+        : ''
+  });
+}
 
 function createVoiceBrainRuntime(options = {}) {
   const dataRoot = path.resolve(clean(options.dataRoot) || clean(process.env.YANCE_DATA_DIR) || path.join(os.homedir(), '.yance'));
@@ -110,12 +143,7 @@ function createVoiceBrainRuntime(options = {}) {
     let senseVoice;
     try { senseVoice = require('../backend/services/transcriptionService').engineStatus(); }
     catch (error) { senseVoice = { authority: 'SenseVoice', available: false, reasonCode: clean(error.code) || 'SENSEVOICE_STATUS_UNAVAILABLE' }; }
-    const available = senseVoice.available === true && cosyVoice.available === true;
-    return Object.freeze({
-      available, degraded: !available, localPrivateProfiles: true,
-      authorities: { asr: 'SenseVoice', tts: 'CosyVoice' }, senseVoice, cosyVoice,
-      reasonCode: !senseVoice.available ? clean(senseVoice.reasonCode) || 'SENSEVOICE_RUNTIME_MISSING' : !cosyVoice.available ? 'COSYVOICE_RUNTIME_MISSING' : ''
-    });
+    return projectVoiceHealth({ senseVoice, cosyVoice });
   }
   async function transcribe(input = {}) {
     return transcribeImpl({
@@ -211,4 +239,4 @@ function createVoiceBrainRuntime(options = {}) {
   return Object.freeze({ health, transcribe, enrollVoiceProfile, deleteVoiceProfile, generateSpeech, projectVoiceOutput, resolveCosyVoiceLayout });
 }
 
-module.exports = { createVoiceBrainRuntime, projectVoiceOutput, VOICE_OUTPUT_FIELDS };
+module.exports = { createVoiceBrainRuntime, projectVoiceHealth, projectVoiceOutput, VOICE_OUTPUT_FIELDS };
