@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ACV2-RUNTIME-DEPENDENCY-ORDERING",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "ACV2 executes the runtime mutex contract before installing the exact root lock closure. Learning Growth Brain P0 V3 correctly replaced the custom process-lock framework with authorized proper-lockfile@4.1.2, but ACV2 Ubuntu and Windows fail with MODULE_NOT_FOUND before the workflow's later npm ci step. The repair belongs to the gate ordering, not to product code, vendored node_modules, fallback infrastructure, or a fake require path.",
+  "base": {
+    "branch": "main",
+    "commit": "78eadaa4ae3da384b8b291bcaef577309676ecaf"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-acv2-runtime-dependency-ordering-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-acv2-runtime-dependency-ordering-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8f4bbe9a67ae7af5fcfcc84739ec1f3d268389a02743b6e8ab5f02e66831a889",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Repository normalizeChangedFiles contract: normalized repository-relative paths, unique, JavaScript default sort.",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "causalRed": {
+    "blockedPullRequest": 223,
+    "blockedHead": "2abf1dda808ad81585f99eb7e7d59ffd965629da",
+    "workflowRun": 31387570492,
+    "ubuntuJob": 93451391569,
+    "windowsJob": 93451391606,
+    "failingStep": "Verify Windows runtime mutex helper selection",
+    "failure": "Cannot find module 'proper-lockfile'",
+    "rootCause": "The platform-matrix job runs the dependency-requiring runtime mutex contract before its existing npm ci step."
+  },
+  "implementation": {
+    "branch": "fix/v21-acv2-runtime-dependency-ordering",
+    "allowedChangedPaths": [
+      ".github/workflows/acv2-wp-a.yml"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "452c961de8bb03f0bd7d14f6d759fdd318936bd1dbbb02d06ac00f7b9e6c58ee",
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/acv2-wp-a.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "452c961de8bb03f0bd7d14f6d759fdd318936bd1dbbb02d06ac00f7b9e6c58ee"
+    }
+  },
+  "requiredRepair": {
+    "platformMatrixOnly": true,
+    "installCommand": "npm ci --ignore-scripts --no-audit --no-fund",
+    "installMustOccurAfter": "Set up Node.js",
+    "installMustOccurBefore": "Verify Windows runtime mutex helper selection",
+    "removeLaterDuplicateInstallStep": true,
+    "preserveExactCheckoutActionPin": true,
+    "preserveExactSetupNodeActionPin": true,
+    "preserveNodeMajor": "22",
+    "preservePackageManagerCacheDisabled": true,
+    "preserveAllExistingRuntimeAndArchitectureContracts": true,
+    "preserveSourceClosureJob": true
+  },
+  "forbidden": [
+    "Changing PR #223 workflow files inside the Learning implementation scope",
+    "Committing node_modules or a vendored proper-lockfile substitute",
+    "Embedding or reimplementing proper-lockfile inside Yance runtime code",
+    "Dead-code or fallback require tricks used only to satisfy source matching",
+    "Skipping, weakening, deleting, or marking the mutex contract warning-only",
+    "continue-on-error",
+    "force push",
+    "rebase or amend of published history",
+    "squash merge",
+    "release, publish, or automatic promotion"
+  ],
+  "validation": {
+    "freshCausalRedAlreadyEstablished": true,
+    "implementationMustProduceFreshAcv2UbuntuGreen": true,
+    "implementationMustProduceFreshAcv2WindowsGreen": true,
+    "implementationMustKeepAcv2SourceClosureGreen": true,
+    "implementationMustRunStageAndApplicableLayeredGates": true,
+    "independentExactHeadReviewRequired": true,
+    "reviewSeverityClosure": "P0=0/P1=0",
+    "stopAtImplementationMergeBoundary": true
+  },
+  "parallelBoundary": {
+    "blockedLearningPr": 223,
+    "blockedLearningHeadMustNotBeRewritten": "2abf1dda808ad81585f99eb7e7d59ffd965629da",
+    "learningMayResumeAfterRepairMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
