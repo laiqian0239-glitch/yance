@@ -50,3 +50,36 @@ dependencies = [
 package = false
 resolution = "highest"
 prerelease = "if-necessary-or-explicit"
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu121" }
+torchaudio = { index = "pytorch-cu121" }
+onnxruntime-gpu = { index = "onnxruntime-cuda12" }
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[[tool.uv.index]]
+name = "onnxruntime-cuda12"
+url = "https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/"
+explicit = true
+
+[[tool.uv.dependency-metadata]]
+name = "deepspeed"
+version = "0.15.1"
+requires-dist = [
+  "hjson",
+  "ninja",
+  "numpy",
+  "packaging>=20.0",
+  "psutil",
+  "py-cpuinfo",
+  "pydantic>=2.0.0",
+  "torch",
+  "tqdm",
+]
+
+[tool.uv.extra-build-dependencies]
+openai-whisper = ["setuptools==80.10.1"]
