@@ -616,3 +616,45 @@ test('trusted delegated evaluator keeps brand-new npm manifests exact and reject
     assert.equal(result.reasonCode, DENIED, name);
   }
 });
+
+test('trusted delegated evaluator rejects a brand-new manifest when trusted main adds that manifest after the implementation base', () => {
+  const candidateManifest = {
+    dependencies: {
+      'livekit-client': '2.21.0'
+    }
+  };
+  const candidateLockfile = {
+    lockfileVersion: 3,
+    requires: true,
+    packages: {
+      '': {
+        dependencies: {
+          'livekit-client': '2.21.0'
+        }
+      },
+      'node_modules/livekit-client': {
+        version: '2.21.0'
+      }
+    }
+  };
+  const options = trustedOptionsWithLockfile({ candidateManifest, candidateLockfile });
+  const resolveAuthorizationBlob = options.resolveCommitBlobSha;
+  const trustedManifestBlob = '9'.repeat(40);
+  options.resolveCommitBlobSha = (commit, repositoryPath) => {
+    if (commit === TRUSTED_MAIN && repositoryPath === MANIFEST_PATH) return trustedManifestBlob;
+    return resolveAuthorizationBlob(commit, repositoryPath);
+  };
+  options.loadDependencyControlAtCommit = (commit, repositoryPath) => {
+    if (commit === MERGE && [MANIFEST_PATH, LOCK_PATH].includes(repositoryPath)) return null;
+    if (commit === TRUSTED_MAIN && repositoryPath === MANIFEST_PATH) {
+      return { dependencies: { 'main-added-package': '1.0.0' } };
+    }
+    if (commit === CANDIDATE && repositoryPath === MANIFEST_PATH) return candidateManifest;
+    if (commit === CANDIDATE && repositoryPath === LOCK_PATH) return candidateLockfile;
+    return null;
+  };
+
+  const result = evaluateTrustedDelegatedGovernanceBranch(options);
+  assert.equal(result.pass, false, JSON.stringify(result));
+  assert.equal(result.reasonCode, DENIED, JSON.stringify(result));
+});
