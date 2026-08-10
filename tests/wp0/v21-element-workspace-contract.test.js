@@ -131,3 +131,23 @@ test('Electron boots the unified local Element shell instead of the legacy hand-
   assert.doesNotMatch(main, /LOCAL_FRONTEND_URL/u);
   assert.doesNotMatch(main, /frontend[\\/]index\.html/u);
 });
+
+test('Yance Element module is delivered through the official Element /modules runtime path', () => {
+  const runtimePatch = readText('upstream-patches/element-web/0012-yance-element-module-runtime.patch');
+  assert.deepEqual(patchedPaths(runtimePatch), ['apps/web/Dockerfile']);
+  assert.match(runtimePatch, /RUN pnpm exec nx build yance-element-module/u);
+  assert.match(runtimePatch, /COPY --from=builder \/src\/modules\/yance\/package\.json \/modules\/yance\/package\.json/u);
+  assert.match(runtimePatch, /COPY --from=builder \/src\/modules\/yance\/lib \/modules\/yance\/lib/u);
+  assert.doesNotMatch(runtimePatch, /build_config\.yaml|apps\/web\/src\/vector\/init\.tsx|config\/matrix\/element-config\.json|@matrix-org\/react-sdk-module-api/u);
+
+  const bootstrap = readText('tools/matrix/bootstrap.js');
+  const moduleCopy = "fs.cpSync(path.join(ROOT, 'integration/element-module'), moduleTarget, { recursive: true });";
+  const checkRuntimePatch = "run(element, 'git', ['apply', '--check', RUNTIME_PATCH]);";
+  const applyRuntimePatch = "run(element, 'git', ['apply', RUNTIME_PATCH]);";
+  const moduleCopyIndex = bootstrap.indexOf(moduleCopy);
+  const runtimeCheckIndex = bootstrap.indexOf(checkRuntimePatch);
+  const runtimeApplyIndex = bootstrap.indexOf(applyRuntimePatch);
+  assert.ok(moduleCopyIndex >= 0, 'bootstrap must copy Yance module into pinned Element workspace');
+  assert.ok(runtimeCheckIndex > moduleCopyIndex, '0012 replay check must run only after module workspace copy');
+  assert.ok(runtimeApplyIndex > runtimeCheckIndex, '0012 runtime patch must apply only after its replay check');
+});
