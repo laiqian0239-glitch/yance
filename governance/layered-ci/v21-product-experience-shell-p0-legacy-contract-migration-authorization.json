@@ -4,9 +4,9 @@
   "requestedByUserAt": "2026-08-11T01:18:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-EXPERIENCE-SHELL-P0-LEGACY-CONTRACT-MIGRATION",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Product Experience Shell P0 intentionally replaces the retired flat YanceWorkspace implementation with a thin Element composition root. Existing WP0 contracts for Element, Letta, Parlant, Media and Presence still bind preserved semantic requirements to implementation tokens inside YanceWorkspace.tsx. Stage #1857 on Product exact Head ebde6ea965adf5f796c04512ba072bb9812c30af proves that these source-location assertions now fail even though Product-specific architecture, interaction and accessibility contracts are green. Product successor 920e4db40a0cc2ae6988cb8cb9293d77b4f0984c preserves the actual Letta refresh and unsaved Goal-draft semantics in the new Product authority without restoring the flat dashboard. This work package authorizes only migration of five legacy tests from retired source-location assumptions to the new Product authority while preserving or strengthening their behavioral and authority-boundary assertions.",
+  "reason": "Product Experience Shell P0 intentionally replaces the retired flat YanceWorkspace implementation with a thin Element composition root. Existing WP0 contracts for Element, Letta, Parlant, Media and Presence still bind preserved semantic requirements to implementation tokens inside YanceWorkspace.tsx. Stage #1857 on Product exact Head ebde6ea965adf5f796c04512ba072bb9812c30af and Stage #1858 on semantic-repair Head 920e4db40a0cc2ae6988cb8cb9293d77b4f0984c prove that these source-location assertions remain RED even though Product architecture, interaction and accessibility contracts are green and the new Product authority preserves Letta refresh and unsaved Goal-draft semantics without restoring the flat dashboard. Because the migration implementation must merge to trusted main before Product source files exist there, this authorization requires permanent dual-layout semantic contracts: the same tests must preserve current-main assertions when ProductExperienceShell is absent and must automatically switch to the new Product authority when ProductExperienceShell exists. Layout selection may depend only on repository file existence, never branch name, environment, CI state or skip flags, and both layouts must assert equivalent authority and behavior.",
   "base": {
     "branch": "main",
     "commit": "d10bd5c4e447b5e73645aedba71a2fd9c80a0477"
@@ -26,6 +26,8 @@
     "semanticRepairSuccessorHead": "920e4db40a0cc2ae6988cb8cb9293d77b4f0984c",
     "stageWp0Run": 31421309698,
     "stageWp0ProductJob": 93562603921,
+    "semanticRepairStageWp0Run": 31421915039,
+    "semanticRepairStageWp0ProductJob": 93564571826,
     "wp0Tests": 304,
     "wp0Passed": 294,
     "wp0Failed": 10,
@@ -66,29 +68,47 @@
     "workflowModificationAllowed": false,
     "newGeneralPurposeYanceInfrastructureAllowed": false
   },
+  "transitionCompatibility": {
+    "mainCompatibilityRequired": true,
+    "productLayoutSentinel": "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+    "layoutSelectionAuthority": "REPOSITORY_FILE_EXISTENCE_ONLY",
+    "branchNameSelectionForbidden": true,
+    "environmentSelectionForbidden": true,
+    "ciStateSelectionForbidden": true,
+    "skipFlagSelectionForbidden": true,
+    "oldLayoutContract": "When ProductExperienceShell.tsx is absent, each migrated test must continue asserting the existing trusted-main YanceWorkspace semantics and existing runtime authority boundaries with no weakening.",
+    "newLayoutContract": "When ProductExperienceShell.tsx is present, each migrated test must assert the corresponding Product Experience source authority and must not fall back to YanceWorkspace implementation-token assertions.",
+    "semanticEquivalenceRequired": true,
+    "bothLayoutsExecuteAssertions": true,
+    "zeroSkippedTestsRequired": true,
+    "temporaryBypass": false
+  },
   "migrationContracts": {
     "element": [
-      "YanceWorkspace.tsx remains a thin composition root that renders ProductExperienceShell.",
-      "The actual ProductExperienceShell remains identifiable as the Yance workspace and exposes an accessible Yance label.",
-      "Workspace preference persistence is asserted against experiencePreferences.ts and must remain limited to Product experience preferences rather than message, Goal, relationship or runtime authority."
+      "YanceWorkspace.tsx remains a thin composition root that renders ProductExperienceShell in the Product layout.",
+      "The actual ProductExperienceShell remains identifiable as the Yance workspace and exposes an accessible Yance label in the Product layout.",
+      "Workspace preference persistence is asserted against experiencePreferences.ts in the Product layout and must remain limited to Product experience preferences rather than message, Goal, relationship or runtime authority.",
+      "Trusted main without ProductExperienceShell continues to satisfy the existing YanceWorkspace identity, accessibility and workspace-persistence contract."
     ],
     "letta": [
-      "Readonly Letta desktop APIs remain consumed only through the Product relationship projection and never gain renderer process/runtime authority.",
-      "RelationshipAssistant keeps post-mount Letta state observable using a cancellable refresh mechanism compatible with the Product reduced-motion contract; setInterval is not reintroduced.",
-      "Stale agent/conversation projections are cleared by the Product projection when Letta is unavailable, and bounded recent-conversation semantics remain explicit."
+      "Readonly Letta desktop APIs remain consumed only through the existing guarded renderer projection boundary and never gain renderer process/runtime authority in either layout.",
+      "In the Product layout RelationshipAssistant keeps post-mount Letta state observable using a cancellable refresh mechanism compatible with the Product reduced-motion contract; setInterval is not reintroduced.",
+      "In the current-main layout the existing post-mount refresh contract remains asserted against YanceWorkspace.",
+      "Stale agent/conversation projections are cleared when Letta is unavailable, and bounded recent-conversation semantics remain explicit in either layout."
     ],
     "parlant": [
-      "Goal CRUD remains contact-scoped through the existing guarded desktop API and no browser Goal persistence is introduced.",
-      "Background relationship events and refreshes must not overwrite an unsaved Goal draft or auto-select another relationship.",
-      "The test follows experienceProjection.ts, experienceSession.ts and RelationshipAssistant.tsx rather than requiring retired state variables inside YanceWorkspace.tsx."
+      "Goal CRUD remains contact-scoped through the existing guarded desktop API and no browser Goal persistence is introduced in either layout.",
+      "Background relationship events and refreshes must not overwrite an unsaved Goal draft or auto-select another relationship in either layout.",
+      "The Product layout test follows experienceProjection.ts, experienceSession.ts and RelationshipAssistant.tsx rather than requiring retired state variables inside YanceWorkspace.tsx.",
+      "The current-main layout continues to assert the existing YanceWorkspace selected-contact ref and stable Goal-control semantics."
     ],
     "media": [
-      "Media remains visibly reachable from the Product relationship Action Dock and RelationshipOverlayHost.",
-      "MediaWorkspace remains the existing runtime-backed action authority; the Product shell does not create a second media or send runtime."
+      "Media remains visibly reachable through the existing top-level capability in current main and through the Product relationship Action Dock plus RelationshipOverlayHost in the Product layout.",
+      "MediaWorkspace remains the existing runtime-backed action authority in either layout; no second media or send runtime is created."
     ],
     "presence": [
-      "Presence remains visibly reachable from the Product relationship Action Dock and RelationshipOverlayHost.",
-      "PresenceWorkspace and official livekit-client remain the realtime authority; the Product shell does not create custom WebRTC transport."
+      "Presence remains visibly reachable through the existing top-level capability in current main and through the Product relationship Action Dock plus RelationshipOverlayHost in the Product layout.",
+      "PresenceWorkspace and official livekit-client remain the realtime authority in either layout; no custom WebRTC transport is created."
     ]
   },
   "candidatePreservation": {
@@ -102,21 +122,23 @@
     "candidateHistoryRewriteAllowed": false
   },
   "mandatoryVerification": [
-    "Before migration, the cited Product Stage run preserves causal failure evidence for the eight legacy source-location assertions while Product architecture, interaction and accessibility contracts are green.",
-    "Each migrated contract continues to test the same runtime authority, fail-closed, persistence, refresh, unsaved-draft and visibility semantics against the new Product source authority.",
-    "No assertion may be removed merely because Product Experience moved implementation out of YanceWorkspace.tsx; source reads must be retargeted to the new authoritative files and semantic checks preserved or strengthened.",
+    "Before migration, the cited Product Stage runs preserve causal failure evidence for the eight legacy source-location assertions while Product architecture, interaction and accessibility contracts are green.",
+    "The migrated five-test implementation passes on trusted main where ProductExperienceShell.tsx is absent and executes the old-layout semantic assertions rather than skipping them.",
+    "After the migrated tests merge to main and that fresh main is ordinarily merged into Product #229, the same five tests detect ProductExperienceShell.tsx by file existence, execute the Product-layout semantic assertions and do not fall back to retired YanceWorkspace implementation-token checks.",
+    "Each migrated contract continues to test the same runtime authority, fail-closed, persistence, refresh, unsaved-draft and visibility semantics; source-layout compatibility must not reduce semantic coverage.",
+    "No assertion may be removed merely because Product Experience moved implementation out of YanceWorkspace.tsx; assertions must remain equivalent or stronger under both source layouts.",
     "No production, dependency, workflow, release, routing, Voice #211, Learning #223 or unrelated work-package file is modified by the migration implementation.",
-    "After migration main merges into Product #229 by ordinary two-parent merge and the Product WP0 run may still remain RED only for independently unresolved authorized Product supply-chain/asset work until those genuine dependencies are closed."
+    "After migration main merges into Product #229 by ordinary two-parent merge, Product WP0 may remain RED only for independently unresolved authorized Product supply-chain/asset work until those genuine dependencies are closed."
   ],
   "requiredSequence": [
     "Authorization exact Head remains one file, is based on unchanged trusted main, and passes all applicable governance gates with independent review P0=0/P1=0.",
     "Authorization PR merges to main by ordinary two-parent merge without rebase, squash, force push or history rewrite.",
     "Implementation branch is created from that exact authorization merge commit.",
     "Only the five exact legacy test files are migrated; no production or workflow file changes.",
-    "Migrated tests must preserve the old contracts' behavioral intent while following ProductExperienceShell, RelationshipAssistant, experienceProjection, experienceSession, ProductComposerAccessory and RelationshipOverlayHost as appropriate.",
-    "Implementation exact Head passes applicable Stage, Layered, ACV2 and independent review gates.",
-    "Implementation PR merges to main by ordinary two-parent merge.",
-    "Fresh main merges normally into Product PR #229; Product history and original authorization remain intact."
+    "On the implementation branch the five tests must pass against trusted main using only repository-file-existence layout detection and full old-layout semantic assertions.",
+    "Implementation exact Head passes applicable Stage, Layered, ACV2 and independent review gates and merges to main by ordinary two-parent merge.",
+    "Fresh main merges normally into Product PR #229; Product history and original authorization remain intact.",
+    "On the reconciled Product exact Head the same five tests must take the Product-layout path and preserve or strengthen all prior semantic assertions against ProductExperienceShell, RelationshipAssistant, experienceProjection, experienceSession, ProductComposerAccessory and RelationshipOverlayHost as appropriate."
   ],
   "prohibitions": {
     "temporaryBypass": true,
@@ -125,6 +147,9 @@
     "testSkip": true,
     "assertionDeletionForGreen": true,
     "regexMarkerOnlyCompatibilityShim": true,
+    "branchConditionalCompatibility": true,
+    "environmentConditionalCompatibility": true,
+    "ciConditionalCompatibility": true,
     "restoreRetiredFlatDashboard": true,
     "forcePush": true,
     "historyRewrite": true,
