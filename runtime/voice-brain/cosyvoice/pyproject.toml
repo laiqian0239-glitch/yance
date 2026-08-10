@@ -83,3 +83,6 @@ requires-dist = [
 
 [tool.uv.extra-build-dependencies]
 openai-whisper = ["setuptools==80.10.1"]
+
+[tool.uv.pip]
+extra-build-dependencies = { openai-whisper = ["setuptools==80.10.1"] }
