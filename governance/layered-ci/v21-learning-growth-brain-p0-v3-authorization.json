@@ -35,8 +35,7 @@
   },
   "supersedes": {
     "authorizationPath": "governance/layered-ci/v21-learning-growth-brain-p0-v2-authorization.json",
-    "branch": "product/v21-learning-growth-brain-p0-v2",
-    "authorizationMerge": "ed90d68d651572e517591b0ad2707166dee518d0",
+    "implementationBranch": "product/v21-learning-growth-brain-p0-v2",
     "reason": "V2 predates dependencyIdentityPolicy and omits eleven fresh-main Learning surfaces."
   },
   "prerequisites": {
@@ -396,6 +395,7 @@
     "productionUseAuthorized": false,
     "formalReleaseAuthorized": false,
     "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
     "automaticNextWorkPackageAuthorizationAuthorized": false
   }
 }
