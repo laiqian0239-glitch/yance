@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   deleteRelationshipGoal,
   loadRelationshipAssistant,
@@ -13,6 +13,8 @@ type RelationshipAssistantProps = {
   onStateChange?: (state: RelationshipAiState) => void;
 };
 
+const RELATIONSHIP_ASSISTANT_REFRESH_MS = 5000;
+
 function statusText(projection: RelationshipAssistantProjection | null): string {
   if (!projection) return "Loading relationship intelligence";
   if (!projection.agentReady) return projection.agentStatus || "AI unavailable";
@@ -25,16 +27,21 @@ export function RelationshipAssistant({ relationshipId, onStateChange }: Relatio
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("Loading relationship intelligence");
+  const dirtyDraftRef = useRef(false);
 
-  const refresh = async (): Promise<void> => {
-    onStateChange?.("thinking");
+  const applyProjection = (next: RelationshipAssistantProjection, syncDraft: boolean): void => {
+    setProjection(next);
+    if (syncDraft && !dirtyDraftRef.current) {
+      setDraft(next.goal.exists === true ? next.goal.goalText : "");
+    }
+    setStatus(statusText(next));
+    onStateChange?.(next.agentReady ? "ready" : "error");
+  };
+
+  const refresh = async (syncDraft = false): Promise<void> => {
     try {
       const next = await loadRelationshipAssistant(relationshipId);
-      setProjection(next);
-      setDraft(next.goal.exists === true ? next.goal.goalText : "");
-      const nextStatus = statusText(next);
-      setStatus(nextStatus);
-      onStateChange?.(next.agentReady ? "ready" : "error");
+      applyProjection(next, syncDraft);
     } catch {
       setProjection(null);
       setStatus("Relationship intelligence unavailable");
@@ -44,24 +51,42 @@ export function RelationshipAssistant({ relationshipId, onStateChange }: Relatio
 
   useEffect(() => {
     let cancelled = false;
+    let refreshTimer: number | undefined;
+    dirtyDraftRef.current = false;
+    setDraft("");
     onStateChange?.("wake");
-    loadRelationshipAssistant(relationshipId).then((next) => {
-      if (cancelled) return;
-      setProjection(next);
-      setDraft(next.goal.exists === true ? next.goal.goalText : "");
-      setStatus(statusText(next));
-      onStateChange?.(next.agentReady ? "ready" : "error");
-    }).catch(() => {
-      if (!cancelled) {
-        setStatus("Relationship intelligence unavailable");
-        onStateChange?.("error");
+
+    const load = async (syncDraft: boolean): Promise<void> => {
+      try {
+        const next = await loadRelationshipAssistant(relationshipId);
+        if (!cancelled) applyProjection(next, syncDraft);
+      } catch {
+        if (!cancelled) {
+          setProjection(null);
+          setStatus("Relationship intelligence unavailable");
+          onStateChange?.("error");
+        }
       }
+    };
+
+    const scheduleRefresh = (): void => {
+      refreshTimer = window.setTimeout(async () => {
+        await load(false);
+        if (!cancelled) scheduleRefresh();
+      }, RELATIONSHIP_ASSISTANT_REFRESH_MS);
+    };
+
+    void load(true).finally(() => {
+      if (!cancelled) scheduleRefresh();
     });
+
     const unsubscribe = subscribeRelationshipEvents((contactId) => {
-      if (contactId === relationshipId && !cancelled) void refresh();
+      if (contactId === relationshipId && !cancelled) void load(false);
     });
+
     return () => {
       cancelled = true;
+      if (refreshTimer !== undefined) window.clearTimeout(refreshTimer);
       unsubscribe();
     };
   }, [relationshipId]);
@@ -73,6 +98,7 @@ export function RelationshipAssistant({ relationshipId, onStateChange }: Relatio
     onStateChange?.("listening");
     try {
       const next = await updateRelationshipGoal(relationshipId, goalText);
+      dirtyDraftRef.current = false;
       setProjection(next);
       setDraft(next.goal.goalText);
       setStatus(next.goal.paused ? "Goal paused" : "Goal active");
@@ -106,8 +132,9 @@ export function RelationshipAssistant({ relationshipId, onStateChange }: Relatio
     setBusy(true);
     try {
       await deleteRelationshipGoal(relationshipId);
-      await refresh();
+      dirtyDraftRef.current = false;
       setDraft("");
+      await refresh(true);
       setStatus("Conversation objective removed");
     } catch {
       setStatus("Could not remove the conversation objective");
@@ -138,7 +165,10 @@ export function RelationshipAssistant({ relationshipId, onStateChange }: Relatio
           disabled={busy}
           onFocus={() => onStateChange?.("listening")}
           onBlur={() => onStateChange?.(projection?.agentReady ? "ready" : "idle")}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => {
+            dirtyDraftRef.current = true;
+            setDraft(event.target.value);
+          }}
           placeholder="Naturally guide the conversation toward what matters today."
         />
       </label>

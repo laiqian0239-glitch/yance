@@ -75,6 +75,7 @@ export function ProductExperienceShell(): React.JSX.Element {
   return (
     <main
       className="yance-product-shell"
+      data-yance-workspace
       data-atmosphere={preferences.atmosphere.toLowerCase()}
       data-reduced-motion={preferences.reducedMotion || undefined}
       aria-label="Yance Living Relationship OS"
