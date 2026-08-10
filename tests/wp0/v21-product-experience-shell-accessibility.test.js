@@ -36,9 +36,12 @@ test('Base UI is the focus dismissal and popup primitive authority', () => {
 test('Reduced motion is explicit and keeps controls usable', () => {
   const product = source();
   const css = readOrEmpty('integration/element-module/src/product-experience/ProductExperienceShell.css');
+  const rive = readOrEmpty('integration/element-module/src/product-experience/RiveRelationshipCompanion.tsx');
   assert.match(product, /useReducedMotion|prefers-reduced-motion/u);
   assert.match(`${product}\n${css}`, /reduced[- ]motion|prefers-reduced-motion/iu);
   assert.doesNotMatch(product, /setInterval\s*\(/u);
+  assert.match(rive, /reducedMotion\s*\?\s*\(\s*<span\s+className="yance-rive-static-state"[^>]*>\{state\}<\/span>/su);
+  assert.match(rive, /!reducedMotion\s*&&\s*!failed\s*\?\s*<RiveComponent/u);
 });
 
 test('Keyboard focus and screen-reader state feedback are visible', () => {
