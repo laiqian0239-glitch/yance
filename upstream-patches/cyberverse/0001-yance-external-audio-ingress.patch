@@ -136,7 +136,7 @@ index 342937c..0000000 100644
  		recorder:       recorder,
  	}
  	if len(pipelineCfg) > 0 {
-@@ -3130,168 +3130,61 @@ func (o *Orchestrator) runStandardPipeline(ctx context.Context, session *Session, sessionID string, pipelineSeq uint64, turnSeq uint64) {
+@@ -3130,168 +3130,65 @@ func (o *Orchestrator) runStandardPipeline(ctx context.Context, session *Session, sessionID string, pipelineSeq uint64, turnSeq uint64) {
  	}
 
 -	// 4. Start Avatar stream
@@ -337,7 +337,8 @@ index 342937c..0000000 100644
 +	}()
 +
 +	err := o.runAvatarAVDriver(ctx, sessionID, avatarAudioCh, avatarAVDriverOptions{
-+		Epoch: turnSeq,
++		Epoch:         turnSeq,
++		FlushOnCancel: true,
 +		TraceLabel: func(segSeq int64) string {
 +			return voiceTraceLabel(sessionID, turnSeq, "standard", "", segSeq)
 +		},
@@ -349,6 +350,9 @@ index 342937c..0000000 100644
 +			beginRec(width, height, fps)
 +		},
 +		OnVideoChunk: writeRecVideo,
++		OnPeerSendError: func(err error) {
++			log.Printf("std av SendAVSegment failed session=%s: %v", sessionID, err)
++		},
 +	})
 +	finishRec()
 +	if err != nil {
@@ -363,10 +367,10 @@ index 342937c..0000000 100644
  // HandleAudioStream processes incoming user audio through the session's pipeline.
 diff --git a/server/internal/orchestrator/external_avatar_audio.go b/server/internal/orchestrator/external_avatar_audio.go
 new file mode 100644
-index 0000000..44f04af
+index 0000000..3e5abd3
 --- /dev/null
 +++ b/server/internal/orchestrator/external_avatar_audio.go
-@@ -0,0 +1,377 @@
+@@ -0,0 +1,390 @@
 +package orchestrator
 +
 +import (
@@ -397,12 +401,15 @@ index 0000000..44f04af
 +// CyberVerse-owned avatar AV driver. The driver itself remains authoritative
 +// for avatar inference, AV sync, pacing and MediaPeer publication.
 +type avatarAVDriverOptions struct {
-+	Epoch        uint64
-+	RequirePeer  bool
-+	TraceLabel   func(int64) string
-+	OnAudio      func([]byte, int)
-+	OnFirstVideo func(int, int, int)
-+	OnVideoChunk func([]byte)
++	Epoch               uint64
++	RequirePeer         bool
++	FailOnPeerSendError bool
++	FlushOnCancel       bool
++	TraceLabel          func(int64) string
++	OnAudio             func([]byte, int)
++	OnFirstVideo        func(int, int, int)
++	OnVideoChunk        func([]byte)
++	OnPeerSendError     func(error)
 +}
 +
 +func cloneExternalAudioChunk(chunk *pb.AudioChunk) *pb.AudioChunk {
@@ -530,7 +537,12 @@ index 0000000..44f04af
 +				NumFrames:    segFrames,
 +			}
 +			if err := peer.SendAVSegment(raw); err != nil {
-+				return err
++				if options.FailOnPeerSendError {
++					return err
++				}
++				if options.OnPeerSendError != nil {
++					options.OnPeerSendError(err)
++				}
 +			}
 +		} else if options.RequirePeer {
 +			return errors.New("media peer not found")
@@ -545,7 +557,11 @@ index 0000000..44f04af
 +	for {
 +		select {
 +		case <-driverCtx.Done():
-+			_ = flush(false)
++			if options.FlushOnCancel {
++				if err := flush(false); err != nil {
++					return err
++				}
++			}
 +			return driverCtx.Err()
 +		case chunk, ok := <-videoCh:
 +			if !ok {
@@ -732,7 +748,8 @@ index 0000000..44f04af
 +// AV driver as standard TTS. External ingress owns only session/reply ordering.
 +func (o *Orchestrator) runExternalAvatarAudioStream(ctx context.Context, sessionID, replyID string, input <-chan *pb.AudioChunk) error {
 +	return o.runAvatarAVDriver(ctx, sessionID, input, avatarAVDriverOptions{
-+		RequirePeer: true,
++		RequirePeer:         true,
++		FailOnPeerSendError: true,
 +		TraceLabel: func(segSeq int64) string {
 +			return voiceTraceLabel(sessionID, 0, replyID, "", segSeq)
 +		},
