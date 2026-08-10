@@ -1316,6 +1316,7 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
     };
 
     for (const repositoryPath of changedDependencyPaths) {
+      if (resolvePathMode(evaluatedHead, repositoryPath) !== '100644') return denyDependencyIdentityMutation();
       const manifestPath = dependencyManifestPathForControlPath(repositoryPath);
       if (!manifestPath || !declaredManifestPaths.has(manifestPath)) return denyDependencyIdentityMutation();
 
