@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 15:28 +07:00
+Last updated: 2026-08-11 15:30 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -41,17 +41,18 @@ These operator/network-discovery iterations are not to be patched further. They 
 5. Therefore Synapse DNS failure to `facebook-personal` is downstream of bridge process failure, not sufficient evidence of a Compose network-definition defect.
 6. Upstream mautrix bridgev2 framework maps exit code `11` to configuration validation failure.
 7. The latest diagnostic collector itself failed because native Docker stderr was promoted to a terminating PowerShell error under `$ErrorActionPreference = 'Stop'`. That collector failure is a Lab tooling defect and must not be confused with a new upstream bridge failure.
-8. Repository inspection found an existing accepted Yance Windows native-process pattern in `tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1`: `System.Diagnostics.ProcessStartInfo`, separate stdout/stderr redirection, and explicit process exit-code inspection. The recovery collector will reuse that pattern rather than create a second execution framework.
+8. Repository inspection found an existing accepted Yance Windows native-process pattern in `tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1`: `System.Diagnostics.ProcessStartInfo`, separate stdout/stderr redirection, and explicit process exit-code inspection. The recovery collector reuses that pattern rather than creating a second execution framework.
 9. Test-only commit `3980bf0936132489dac72533f079cb595dcd2747` adds `tests/multibridge-lab/native-process-semantics.test.js` and no production/helper implementation. It locks the required stderr+exit0 and stderr+nonzero semantics plus a Windows legacy direct-native reproducer.
-10. Causal RED is established before implementation: executing the committed helper-existence contract against the test-only state returns TAP `fail 1`, exit `1`, with `missing Lab native-process helper: .../tools/multibridge-lab/native-process.ps1`. The prior Windows real-machine collector abort remains the runtime RED for the old direct-native behavior.
-11. The current execution container has Node `v22.16.0` but no `powershell`/`pwsh`; therefore the Windows-only dynamic stderr subtests are not claimed GREEN here and remain mandatory before user handoff.
+10. Causal RED was established before implementation: executing the helper-existence contract against the test-only state returned TAP `fail 1`, exit `1`, with `missing Lab native-process helper: .../tools/multibridge-lab/native-process.ps1`. The prior Windows real-machine collector abort remains the runtime RED for the old direct-native behavior.
+11. The current execution container has Node `v22.16.0` but no `powershell`/`pwsh`; therefore Windows-only dynamic stderr subtests are not claimed GREEN here and remain mandatory before user handoff.
 12. Minimal implementation commit `fe9a8be63943970bffd18a449799ebc6892210f6` adds only `tools/multibridge-lab/native-process.ps1`. It uses `System.Diagnostics.ProcessStartInfo`, redirects stdout/stderr independently, captures `Process.ExitCode`, and returns a structured result even for non-zero exit so the collector can classify `REAL_RED` without PowerShell stream semantics. It does not modify Docker, bridge config, network state, login flows, or R12/R13 runtime artifacts.
+13. Focused static contract is GREEN against the helper: TAP `pass 1 / fail 0`, process exit `0`. This proves the helper contains the required isolated-process primitives and no `2>&1`/direct `& $FilePath` path. It is not a substitute for Windows dynamic proof.
 
 ## Current root-cause hypothesis
 
 **Primary hypothesis:** one or more R12-generated bridge config fields fail the exact upstream validators at runtime. A common generator defect may affect several bridges, but this must be proven from each bridge's exact startup validation error before changing config generation.
 
-**Collector sub-hypothesis:** the failed diagnostic package used PowerShell native-command stream semantics as the error boundary. A thin `ProcessStartInfo` boundary that captures stdout/stderr independently and returns the native exit code will remove that wrapper defect without changing bridge/runtime behavior.
+**Collector sub-hypothesis:** the failed diagnostic package used PowerShell native-command stream semantics as the error boundary. A thin `ProcessStartInfo` boundary that captures stdout/stderr independently and returns the native exit code removes that wrapper defect without changing bridge/runtime behavior.
 
 **Explicitly rejected hypotheses until new evidence appears:**
 
@@ -64,11 +65,11 @@ These operator/network-discovery iterations are not to be patched further. They 
 
 **Do not ask the user to run another package yet.**
 
-The minimal helper is implemented but not yet declared GREEN. Next:
+Static GREEN is frozen. Next:
 
-1. Re-run the focused contract locally for static GREEN against exact helper source.
-2. Obtain the mandatory Windows dynamic proof for stderr+exit0 and stderr+nonzero before any user package is authorized.
-3. Build the read-only, sanitized exit-11 collector on top of that proven boundary.
+1. Reuse repository GitHub Actions/Windows runner conventions to execute `tests/multibridge-lab/native-process-semantics.test.js` on Windows, including stderr+exit0 and stderr+nonzero dynamic cases. Do not use the user's machine for this gate.
+2. Record the Windows result here before building the collector.
+3. Build the read-only, sanitized exit-11 collector on top of the proven boundary.
 4. Re-run the full Lab-owned collector test set.
 5. Only then provide one sanitized evidence package whose sole purpose is to capture the exact configuration-validation line for each of the five bridge containers.
 
@@ -92,7 +93,7 @@ A user-run instruction is allowed only if all are true:
 - the script/package has a failure-first test;
 - focused tests are GREEN;
 - full Lab-owned tests are GREEN;
-- native stderr handling is explicitly tested;
+- native stderr handling is explicitly tested on Windows;
 - script does not close the PowerShell window;
 - script does not build/restart/reconfigure unless that operation is the intentional implementation step;
 - script prints one final state: `GREEN`, `REAL_RED`, or `HUMAN_AUTH_REQUIRED`;
@@ -146,7 +147,9 @@ The replacement for R12 readiness must require, in order:
 - [x] Record recovery execution plan in repository.
 - [x] Add test-only native-process semantic contract (`3980bf0936132489dac72533f079cb595dcd2747`).
 - [x] Establish causal RED from the test-only state.
-- [ ] Prove helper GREEN and fix collector native stderr semantics.
+- [x] Implement minimal native-process helper and prove static GREEN.
+- [ ] Prove Windows dynamic native stderr semantics.
+- [ ] Fix collector native stderr semantics end-to-end.
 - [ ] Capture exact sanitized exit-11 validator errors.
 - [ ] Map each error to exact upstream schema/source authority.
 - [ ] Repair config generation at source.
