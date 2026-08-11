@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-11T11:39:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-P0-ELEMENT-NX-CRLF-V2",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Clean successor authorization for the Element Nx 23.1.1 Windows CRLF lockfile repair. The original authorization merged in PR #250 as 411b49e90a71c5cec0c5101d3429a6004d57b0ec and correctly identified the Nx 23.1.0 CRLF multi-document parser defect, but its evidence and mandatory failure-first contract incorrectly transcribed the pinned Element a2a996ae50d802878bf48e4bbf3730004bdcc55c pnpm-lock.yaml Git blob as 7e1974c8c927b6e1f1672051833890932264ef33. Live upstream GitHub source proves the exact pinned blob is 7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc. Implementation PR #251 established a clean tests-only causal RED at 61aea55d9588c776b494b8f9af70cecb3581a7c3, then was frozen before any patch/bootstrap implementation once the authority fact mismatch was discovered. No history rewrite or gate weakening is permitted. This V2 authorization supersedes the erroneous V1 authority, requires a fresh V2 implementation branch and a fresh tests-only causal RED, and otherwise preserves the same minimal OSS backport scope: stable Nx 23.1.1 only, package.json plus pnpm-lock.yaml official Nx closure, pinned Element unchanged, multi-document lock structure unchanged, and no unrelated Element dependency churn.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-experience-p0-element-nx-crlf-authorization.json",
+    "implementationBranch": "fix/v21-product-experience-p0-element-nx-crlf",
+    "reason": "V1 contains an incorrect exact pnpm-lock.yaml Git blob identity. Historical authorization merge 411b49e90a71c5cec0c5101d3429a6004d57b0ec and historical causal RED 61aea55d9588c776b494b8f9af70cecb3581a7c3 remain immutable audit evidence, but V1 may not authorize production implementation."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "411b49e90a71c5cec0c5101d3429a6004d57b0ec"
+  },
+  "evidence": {
+    "productPullRequest": 229,
+    "productExactHead": "249b803257441a553627b8ff5a0913529eba4f67",
+    "finalValidationRun": 31454992682,
+    "finalValidationJob": 93666828025,
+    "elementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "elementPackageJsonBlob": "1458c14e3e59f6fa7c948b5ffb7de4404c1cb5f5",
+    "elementPnpmLockBlob": "7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc",
+    "currentNxVersion": "23.1.0",
+    "targetNxVersion": "23.1.1",
+    "nxUpstreamFixCommit": "b8dca5e4f9315b989d0c2f7a336868ecd91a36fa",
+    "nxUpstreamPullRequest": 36419,
+    "elementUpstreamAdoptionCommit": "27f0347668494711ae25466b3d81434a65011df6",
+    "elementUpstreamAdoptionPullRequest": 34530,
+    "historicalAuthorizationMerge": "411b49e90a71c5cec0c5101d3429a6004d57b0ec",
+    "historicalFailureFirstPullRequest": 251,
+    "historicalFailureFirstHead": "61aea55d9588c776b494b8f9af70cecb3581a7c3",
+    "historicalFailureFirstRun": 31459829459,
+    "historicalFailureFirstJob": 93681013027,
+    "historicalFailureFirstError": "missing V2.1 workspace file: upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch",
+    "failureBoundary": "pnpm install --frozen-lockfile and Element postinstall completed successfully; pnpm exec nx build yance-element-module then failed in Nx pnpm-normalizer with expected a single document in the stream, but found more; lint:types was not entered"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-p0-element-nx-crlf-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-p0-element-nx-crlf-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "2a29a167361976ce1a13dfbe13311ed46ff829a48f1759e182daf384c9a2d715",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-p0-element-nx-crlf-v2",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "7671565555eb7533bb38e05539bc5b8511e25fde9dee0310d6cc45d94537cb48",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "historicalV1RedDoesNotTransferAuthority": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-element-workspace-contract.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "e263649043e2a16c14cd790c10125a5e2cec4aaf727a3d64e68fea92481159dd",
+      "productionCodeChanged": false
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "bootstrapModificationAllowed": true,
+    "elementPinModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "yanceLockModificationAllowed": false,
+    "elementLockRegenerationAllowed": false,
+    "officialElementLockBackportAllowed": true,
+    "pnpmVersionChangeAllowed": false,
+    "finalValidationWorkflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "A fresh V2 implementation branch must start only from this V2 authorization merge. Historical PR #251 and Head 61aea55d9588c776b494b8f9af70cecb3581a7c3 remain causal-RED audit evidence but do not transfer implementation authority.",
+    "A dedicated upstream patch must update pinned Element from exact Nx 23.1.0 to stable Nx 23.1.1 and must bind its package.json hunk to pinned old blob 1458c14e3e59f6fa7c948b5ffb7de4404c1cb5f5 and its pnpm-lock.yaml hunk to pinned old blob 7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc.",
+    "The patch must preserve the existing two-document pnpm lock structure and must not delete or rewrite YAML document markers to avoid the Nx defect.",
+    "The pnpm-lock.yaml portion must be limited to the Nx 23.1.0 to 23.1.1 dependency closure and exact related native Nx package records; unrelated matrix-js-sdk, React, axios, brace-expansion or other dependency drift from newer Element branches is forbidden.",
+    "tools/matrix/bootstrap.js must replay the dedicated Nx patch through the existing fail-closed applyPatch mechanism after the package-manager authority patch and before Product module copy; Product 0011 remains a separate later overlay and must not be folded into this work package.",
+    "No Corepack strict disable, git autocrlf manipulation, line-ending rewrite, Nx plugin disable, lockfile parser bypass, Yance lock regeneration, Element pin change, pnpm version change or final-validation workflow change is permitted.",
+    "A subsequent real Windows Task 9 must prove frozen install and postinstall remain GREEN, then prove Nx build crosses the prior CRLF multi-document parser failure before any conclusion is drawn about lint:types."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "lineEndingRewrite": true,
+    "gitAutocrlfManipulation": true,
+    "lockDocumentMarkerRemoval": true,
+    "nxPluginDisable": true,
+    "customYamlParser": true,
+    "corepackStrictDisable": true,
+    "elementPinChange": true,
+    "pnpmVersionDrift": true,
+    "yanceLockRegeneration": true,
+    "elementLockRegeneration": true,
+    "unrelatedElementDependencyDrift": true,
+    "productSourceModification": true,
+    "productRuntimeModification": true,
+    "finalValidationWorkflowChange": true,
+    "gitApplyThreeWay": true,
+    "gitApplyReject": true,
+    "fuzzyPatch": true,
+    "bootstrapSkipPatch": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
