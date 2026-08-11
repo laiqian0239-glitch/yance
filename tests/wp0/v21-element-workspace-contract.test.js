@@ -347,8 +347,9 @@ test('Nx CRLF backport keeps ordinary git-apply edge context on every mutation h
         || (line.startsWith('-') && !line.startsWith('---'))
     ))
     .filter(hunk => {
-      const first = hunk.body[0] ?? '';
-      const last = hunk.body.at(-1) ?? '';
+      const body = hunk.body.filter(line => line !== '');
+      const first = body[0] ?? '';
+      const last = body.at(-1) ?? '';
       return !first.startsWith(' ') && !last.startsWith(' ');
     })
     .map(hunk => hunk.header);
