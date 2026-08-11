@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 18:32 +07:00
+Last updated: 2026-08-11 18:35 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -38,39 +38,35 @@ Final authority run `31485153849`, job `93758725677`, exact `4bd07b41451d2c27b7a
 
 Historical fixture `65a41976fdcb8d321fab92ac03c65cd647e822ab`; failure-first `645eb7a2429cb34f179e58fbab579ed3aaa994af` → causal RED `31485657849`; implementation `63c008a31b8e36b093a7fc9f39d918f0960dc159` → Windows run `31485835966`, job `93760893132`, 18/18 GREEN.
 
-## Exact upstream database validator source authority — FROZEN
+## Exact upstream database source authority — FROZEN
 
-- Meta/Instagram dependency `56938b8a508d37c2501629d9b35538e849f4a63b`: validator blob `667d48e5e4647d58802ec87b67f7b294e00cd5a8`; example-config blob `60efdc4938344b31a96d8859b06f3d0f636247f9`.
-- Google Messages dependency `5743d9b6f27e2de4966f50e13a658308cdcdbbcb`: validator blob `f83032370ba81302451157dd96f7c8f2cdd2f15c`; example-config blob `1740634c0df8710e7d54dd5ef04c728f39ac004e`.
-- Signal dependency `f7cfa8766d2bcf45f944fc76ea856bcc36317ad9`: validator blob `e1321e6421b387b2b8651861f51559d10eca2f1b`; example-config blob `1740634c0df8710e7d54dd5ef04c728f39ac004e`.
+Immutable authority fixture `cba12644cae7cd248bb25337df50bbb9799b2af1` records exact bridgev2 dependency refs and validator/example-config blobs for Meta/Instagram, Google Messages, and Signal. All three exact validators fail only when URI equals the upstream Postgres placeholder; all exact examples support `sqlite3-fk-wal` and recommend `file:<path>?_txlock=immediate`.
 
-All exact validators use the same fatal predicate: URI equals `postgres://user:password@host/database?sslmode=disable` → `database.uri not configured`. Exact example configs support `sqlite3-fk-wal` and recommend `file:<path>?_txlock=immediate`.
+## Source-semantic verification — GREEN
 
-Immutable authority fixture commit: `cba12644cae7cd248bb25337df50bbb9799b2af1`.
+Verification-only commit `cdd22bfc400b5e6967af3e8cb4b6cc248f3f7c3c` adds no runtime code and evaluates actual Windows R12 wiring outputs against all three frozen upstream authorities.
 
-## Source-semantic verification-only boundary
+Windows run `31486266961`, job `93762278784`, exact checkout `cdd22bfc400b5e6967af3e8cb4b6cc248f3f7c3c`:
 
-Commit `cdd22bfc400b5e6967af3e8cb4b6cc248f3f7c3c` adds only `tests/multibridge-lab/r12-upstream-database-validator.test.js`; no runtime or wiring source changed.
+- 20 tests / 20 pass / 0 fail / 0 skipped;
+- frozen authority identity test GREEN;
+- actual generated DB values clear every exact `database.uri not configured` predicate;
+- exact type is `sqlite3-fk-wal` for every target;
+- exact URI is `file:/data/<service>.db?_txlock=immediate` for every target;
+- all prior R12 fixture/wiring, collector, fatal-context, native stderr, wrapper, source-identity gates remain GREEN;
+- unrelated frozen collector package staging and both uploads remain GREEN.
 
-The verification test:
-
-- freezes exact three-service authority identity and exact dependency/validator blobs;
-- evaluates actual Windows `Get-LabR12DatabaseWiring` output for each authority service;
-- requires exact upstream-supported type `sqlite3-fk-wal`;
-- requires each URI to differ from the exact fatal placeholder;
-- requires exact per-service `file:/data/<service>.db?_txlock=immediate`;
-- requires the URI to match upstream-recommended `file:` + `_txlock=immediate` form;
-- requires the exact yq database mutation fragment.
-
-This is verification-only and therefore does not create an artificial implementation RED cycle.
+This is **source-semantic config validation GREEN**, not yet binary/image startup validation.
 
 ## Unique next action
 
 No user action now.
 
-1. Collect exact Windows result for `cdd22bfc400b5e6967af3e8cb4b6cc248f3f7c3c`; expect 20/20 GREEN if source-semantic authority matches implementation.
-2. Record source-semantic GREEN before moving to exact pinned binary/image validation.
-3. Keep existing user runtime untouched until pinned binary/image validation package is independently GREEN.
+1. Inspect exact upstream repositories at the frozen bridge commits for their own Docker build/entrypoint/image-tag authority.
+2. Prefer upstream Dockerfiles/launchers or published exact images; do not invent a validator executable.
+3. Build/pull and exercise the exact pinned Instagram DM / Google Messages / Signal bridge binaries/images against repaired generated DB config in isolated CI/runtime, without touching the user's existing containers.
+4. The binary/image gate must prove startup gets past `database.uri not configured`; any later unrelated startup dependency failure must be classified separately, not hidden.
+5. Only after binary/image proof may a user runtime repair package be considered.
 
 ## Replacement readiness
 
@@ -79,11 +75,9 @@ Config validation GREEN → sustained five-process runtime → stable RestartCou
 ## Progress
 
 - [x] Three-bridge DB fatal defect proven.
-- [x] Fatal-context collector/package sealed GREEN.
 - [x] DB-generator causal RED → implementation → Windows 18/18 GREEN.
 - [x] Exact upstream source-semantic authority frozen.
-- [x] Source-semantic verification-only test committed (`cdd22bfc...`).
-- [ ] Prove source-semantic Windows GREEN.
-- [ ] Validate repaired configs with exact pinned binaries/images.
+- [x] Source-semantic Windows 20/20 GREEN (`31486266961`).
+- [ ] Validate repaired configs with exact pinned binaries/images in isolation.
 - [ ] Capture/repair true Facebook/LINE fatal validators.
 - [ ] Validate all five runtimes and sustained readiness.
