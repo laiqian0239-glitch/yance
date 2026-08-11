@@ -137,3 +137,11 @@ test('final Windows runtime repair/readiness package is thin, exact-five, Compos
   assert.ok(childExitAssertIndex >= 0 && bootstrapGreenIndex > childExitAssertIndex && normalizeIndex > bootstrapGreenIndex,
     'expected child RED may be normalized only after all MotW assertions and MOTW_BOOTSTRAP_GREEN');
 });
+
+test('single-line helper preserves collection identity under Windows PowerShell pipeline semantics', () => {
+  const script = fs.readFileSync(IMPLEMENTATION, 'utf8');
+  const helperMatch = script.match(/function\s+Get-SingleLineArray\s*\{([\s\S]*?)\n\}/);
+  assert.ok(helperMatch, 'Get-SingleLineArray helper is missing');
+  assert.match(helperMatch[1], /return\s+,@\(/,
+    'one-line native output must not scalarize into a string/char at array-indexing call sites');
+});
