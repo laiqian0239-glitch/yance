@@ -104,6 +104,9 @@ test('dedicated CI validates Linux install smoke and publishes a sealed Windows 
   assert.match(workflow, /ubuntu-latest/);
   assert.match(workflow, /facebook-personal-wsl-manager\.test\.js/);
   assert.match(workflow, /WINDOWS_POWERSHELL_5_1_MANAGER_PARSE_GREEN/);
+  assert.match(workflow, /foreach\s*\(\$target\s+in\s+\$targets\)/);
+  assert.match(workflow, /powershell\.exe[^\r\n]*-Target\s+\$target/);
+  assert.doesNotMatch(workflow, /-Target\s+\$targets\b/);
   assert.match(workflow, /bash\s+-n[\s\S]*facebook-personal-manager-install\.sh/);
   assert.match(workflow, /--install-and-smoke/);
   assert.match(workflow, /yance-facebook-personal-wsl-manager/);
