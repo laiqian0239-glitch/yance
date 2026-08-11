@@ -40,7 +40,7 @@ function resolveMainRef() {
 
 function changedAuthorizationPaths() {
   const mainRef = resolveMainRef();
-  if (!mainRef) return [];
+  if (!mainRef) throw new Error('OSS-first gate could not resolve trusted main ref');
   const mergeBase = git(['merge-base', 'HEAD', mainRef]);
   if (!/^[0-9a-f]{40}$/u.test(mergeBase)) throw new Error('OSS-first gate could not resolve trusted main merge base');
   const output = execFileSync('git', [
@@ -68,10 +68,13 @@ function assertOssFit(authorization, authorizationPath, policy) {
   assert.ok(Array.isArray(ossFit.reviewedCandidates) && ossFit.reviewedCandidates.length > 0, `${authorizationPath}: ossFit.reviewedCandidates must record at least one mature OSS or existing repository seam candidate`);
   for (const [index, candidate] of ossFit.reviewedCandidates.entries()) {
     assert.ok(candidate && typeof candidate === 'object' && !Array.isArray(candidate), `${authorizationPath}: reviewedCandidates[${index}] must be an object`);
-    for (const field of ['name', 'source', 'license', 'adoptionMode', 'fit', 'reason']) {
+    for (const field of policy.requiredOssFitEvidence.candidateFields) {
       assertNonEmptyText(candidate[field], `${authorizationPath}: reviewedCandidates[${index}].${field}`);
     }
-    assert.ok(['FIT', 'PARTIAL_FIT', 'GAP'].includes(candidate.fit), `${authorizationPath}: reviewedCandidates[${index}].fit must be FIT, PARTIAL_FIT, or GAP`);
+    assert.ok(
+      policy.requiredOssFitEvidence.candidateFitValues.includes(candidate.fit),
+      `${authorizationPath}: reviewedCandidates[${index}].fit must be one of ${policy.requiredOssFitEvidence.candidateFitValues.join(', ')}`
+    );
   }
   assert.ok(Array.isArray(ossFit.retireOrAvoid) && ossFit.retireOrAvoid.length > 0, `${authorizationPath}: ossFit.retireOrAvoid must state which duplicate Yance paths are retired or forbidden`);
   ossFit.retireOrAvoid.forEach((value, index) => assertNonEmptyText(value, `${authorizationPath}: ossFit.retireOrAvoid[${index}]`));
@@ -81,7 +84,11 @@ function assertOssFit(authorization, authorizationPath, policy) {
     assert.ok(gap && typeof gap === 'object' && !Array.isArray(gap), `${authorizationPath}: self-built/minimal-gap work requires ossFit.uncoveredGap`);
     assertNonEmptyText(gap.capability, `${authorizationPath}: ossFit.uncoveredGap.capability`);
     assertNonEmptyText(gap.reason, `${authorizationPath}: ossFit.uncoveredGap.reason`);
-    assert.ok(Array.isArray(gap.rejectedAdoptionModes) && gap.rejectedAdoptionModes.length >= 5, `${authorizationPath}: uncoveredGap must explain rejected product/sidecar/module/SDK/repository-seam adoption modes`);
+    const minimumRejected = policy.requiredOssFitEvidence.minimalGapRejectedAdoptionModesMinimum;
+    assert.ok(
+      Array.isArray(gap.rejectedAdoptionModes) && gap.rejectedAdoptionModes.length >= minimumRejected,
+      `${authorizationPath}: uncoveredGap must explain at least ${minimumRejected} rejected adoption modes`
+    );
   }
 }
 
@@ -97,6 +104,9 @@ test('repository OSS-first development policy is an enforced pre-implementation 
   assert.equal(policy.retireEquivalentYanceImplementationWhenOssFits, true);
   assert.equal(policy.userMachineBuildEnvironmentForbiddenByDefault, true);
   assert.equal(policy.newGeneralPurposeInfrastructureRequiresProvenGap, true);
+  assert.deepEqual(policy.requiredOssFitEvidence.candidateFields, ['name', 'source', 'license', 'adoptionMode', 'fit', 'reason']);
+  assert.deepEqual(policy.requiredOssFitEvidence.candidateFitValues, ['FIT', 'PARTIAL_FIT', 'GAP']);
+  assert.equal(policy.requiredOssFitEvidence.minimalGapRejectedAdoptionModesMinimum, 5);
   assert.ok(Array.isArray(policy.uatDefaultProhibitions));
   for (const required of ['npm-ci-on-user-machine', 'node-gyp-on-user-machine', 'visual-studio-build-prerequisite', 'spectre-sdk-prerequisite', 'native-addon-compilation-on-user-machine']) {
     assert.ok(policy.uatDefaultProhibitions.includes(required), `OSS-first UAT policy missing prohibition: ${required}`);
