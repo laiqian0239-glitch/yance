@@ -360,3 +360,35 @@ test('Nx CRLF backport keeps ordinary git-apply edge context on every mutation h
     'ordinary git apply requires unchanged edge context or structural coalescing; reduced-context mutation hunks are forbidden'
   );
 });
+
+test('Nx CRLF backport presents canonical per-file unified-diff hunk order', () => {
+  const nxPatch = readText('upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch');
+  const violations = [];
+  let currentFile = null;
+  let previousOldLine = null;
+
+  for (const line of nxPatch.split(/\r?\n/u)) {
+    const fileMatch = line.match(/^diff --git a\/(.+?) b\/(.+)$/u);
+    if (fileMatch) {
+      assert.equal(fileMatch[1], fileMatch[2], 'canonical replay may not rename upstream files');
+      currentFile = fileMatch[1];
+      previousOldLine = null;
+      continue;
+    }
+
+    const hunkMatch = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/u);
+    if (!hunkMatch) continue;
+    assert.notEqual(currentFile, null, 'every hunk must belong to an explicit diff file section');
+    const oldLine = Number(hunkMatch[1]);
+    if (previousOldLine !== null && oldLine <= previousOldLine) {
+      violations.push({ file: currentFile, previousOldLine, oldLine });
+    }
+    previousOldLine = oldLine;
+  }
+
+  assert.deepEqual(
+    violations,
+    [],
+    'canonical unified diff requires strictly increasing old-file hunk coordinates within each file section'
+  );
+});
