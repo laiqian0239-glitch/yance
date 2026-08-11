@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 18:49 +07:00
+Last updated: 2026-08-11 18:51 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -53,13 +53,25 @@ Job `93764904649`:
 - `database.uri not configured` did not recur;
 - next fatal was `Configuration error: bridge.permissions not configured`.
 
-This is harness fidelity RED, not DB implementation RED: the first harness omitted historical R12 permissions/appservice/matrix mutations that are already frozen in the historical fixture. The first harness also wrote failure reports only to `$RUNNER_TEMP`, so `always()` artifact upload could not find them.
+### Instagram DM: original DB fatal cleared, same harness fidelity RED
+
+Job `93764904868`:
+- recovered R12 DB wiring resolve GREEN;
+- exact Meta source commit `a0db68a56bb5715d67faa331f647e771d62b05a2` verified;
+- exact upstream `Dockerfile.ig` build GREEN, image ID `sha256:9ca6d6f52fad70645623aa90cb195f81e9b0bfc41c6750748984e4bf257f5629`;
+- built `/usr/bin/mautrix-instagram` generated its own example config GREEN;
+- ephemeral registration generation GREEN;
+- `database.uri not configured` did not recur;
+- next fatal was again `Configuration error: bridge.permissions not configured`;
+- first-run failure report artifact was absent only because the already-identified harness wrote it under `$RUNNER_TEMP` while upload read workspace.
+
+Both completed first-run failures are therefore the same **verification-harness fidelity/observability RED**, not DB implementation RED. They independently prove the recovered DB values get past the original fatal predicate inside the exact pinned GMessages and Instagram binaries.
 
 ## Harness fidelity repair — COMMITTED
 
 CI-only commit `8aaceef6b22d410c0f975c18ba46a0a9c6fc7ed0` changes only `.github/workflows/multibridge-lab-pinned-db-image-validation.yml`.
 
-The repair does not change DB implementation, upstream pins, Dockerfiles, binaries, `--network none`, or user runtime. It only restores the already-frozen historical R12 config shape with safe non-secret values before applying the recovered DB fields:
+The repair does not change DB implementation, upstream pins, Dockerfiles, binaries, `--network none`, or user runtime. It restores the already-frozen historical R12 config shape with safe non-secret values before applying recovered DB fields:
 
 - `.homeserver.address/domain/software`;
 - `.appservice.address/hostname/port`;
@@ -68,17 +80,15 @@ The repair does not change DB implementation, upstream pins, Dockerfiles, binari
 - `.bridge.permissions[@lab:yance-lab.local] = admin`;
 - recovered `.database.type/.database.uri`.
 
-The yq operations intentionally mirror the exact historical fixture field semantics. Failure/green reports are now written directly to `$GITHUB_WORKSPACE/pinned-db-image-<service>.txt`, so `always()` artifact upload works on both result classes.
-
-No product/runtime source changed.
+The yq operations mirror the exact historical fixture field semantics. Failure/green reports now write directly to `$GITHUB_WORKSPACE/pinned-db-image-<service>.txt`, so `always()` artifact upload works on both result classes. No product/runtime source changed.
 
 ## Unique next action
 
 No user action now.
 
-1. Record the remaining Instagram/Signal results from first run `31487107541` when complete; do not confuse them with rerun authority.
-2. Collect the new three-service matrix run triggered by CI-only `8aaceef6b22d410c0f975c18ba46a0a9c6fc7ed0`.
-3. Classify exact pinned binary results independently; require DB file creation and no Configuration error before declaring per-service image gate GREEN.
+1. Record old Signal job `93764904631` when complete; keep it separate from repaired-run authority.
+2. Collect repaired matrix run `31487411606` triggered by CI-only `8aaceef6b22d410c0f975c18ba46a0a9c6fc7ed0`.
+3. Classify each exact pinned binary independently; require DB file creation and no `Configuration error` before per-service image gate GREEN.
 4. Keep `r12-database-wiring.ps1` unchanged.
 
 ## Replacement readiness
@@ -90,7 +100,8 @@ Config validation GREEN → sustained five-process runtime → stable RestartCou
 - [x] DB causal RED → thin R12 repair → Windows/source-semantic GREEN.
 - [x] Exact pinned image authority frozen.
 - [x] GMessages first exact-image build proved original DB fatal cleared.
+- [x] Instagram first exact-image build proved original DB fatal cleared.
 - [x] Harness fidelity/observability defect root-repaired in CI only (`8aaceef...`).
-- [ ] Classify remaining first-run jobs and repaired three-service run.
+- [ ] Classify old Signal job and repaired three-service run.
 - [ ] Capture/repair true Facebook/LINE fatal validators.
 - [ ] Validate all five user runtimes and sustained readiness.
