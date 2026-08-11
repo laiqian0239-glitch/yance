@@ -1,0 +1,212 @@
+name: Multibridge Lab FB LINE Fatal Diagnostic
+
+on:
+  push:
+    branches:
+      - lab/multibridge-recovery-plan-20260811
+    paths:
+      - tests/multibridge-lab/fixtures/r12-wire-bridge-config-expression.txt
+      - .github/workflows/multibridge-lab-fb-line-fatal-diagnostic.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-fatal:
+    name: pinned-fatal-${{ matrix.service }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: facebook-personal
+            repository: mautrix/meta
+            commit: a0db68a56bb5715d67faa331f647e771d62b05a2
+            dockerfile: Dockerfile
+            binary: /usr/bin/mautrix-meta
+          - service: line
+            repository: beeper/line
+            commit: 0fc10ea165b54db6ffd7c085d42cc42b0ce46414
+            dockerfile: Dockerfile
+            binary: /usr/bin/matrix-line
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify historical R12 fixture omits database wiring
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture=tests/multibridge-lab/fixtures/r12-wire-bridge-config-expression.txt
+          test -f "$fixture"
+          grep -Fq '.homeserver.address=strenv(YANCE_HOMESERVER_ADDRESS)' "$fixture"
+          grep -Fq '.bridge.permissions[strenv(YANCE_ADMIN_PERMISSION_KEY)]=strenv(YANCE_ADMIN_PERMISSION)' "$fixture"
+          exact="$(sed -n '/EXACT_YQ_EXPRESSION_BEGIN/,/EXACT_YQ_EXPRESSION_END/p' "$fixture")"
+          if grep -Fq '.database.type' <<<"$exact" || grep -Fq '.database.uri' <<<"$exact"; then
+            echo 'Historical fixture unexpectedly contains database wiring' >&2
+            exit 21
+          fi
+
+      - name: Fetch exact upstream source
+        shell: bash
+        env:
+          REPOSITORY: ${{ matrix.repository }}
+          SOURCE_COMMIT: ${{ matrix.commit }}
+        run: |
+          set -euo pipefail
+          rm -rf upstream
+          git init upstream
+          git -C upstream remote add origin "https://github.com/${REPOSITORY}.git"
+          git -C upstream fetch --depth=1 origin "$SOURCE_COMMIT"
+          git -C upstream checkout --detach FETCH_HEAD
+          actual="$(git -C upstream rev-parse HEAD)"
+          test "$actual" = "$SOURCE_COMMIT"
+          echo "SOURCE_COMMIT_VERIFIED=$actual"
+
+      - name: Build exact upstream image
+        shell: bash
+        env:
+          SERVICE: ${{ matrix.service }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+        run: |
+          set -euo pipefail
+          image="yance-lab-fatal/${SERVICE}:${GITHUB_SHA}"
+          docker build --file "upstream/$DOCKERFILE" --tag "$image" upstream
+          image_id="$(docker image inspect --format '{{.Id}}' "$image")"
+          echo "IMAGE=$image" >> "$GITHUB_ENV"
+          echo "IMAGE_ID=$image_id" >> "$GITHUB_ENV"
+          echo "IMAGE_ID=$image_id"
+
+      - name: Reproduce historical R12 config fatal with exact binary
+        shell: bash
+        env:
+          SERVICE: ${{ matrix.service }}
+          SOURCE_COMMIT: ${{ matrix.commit }}
+          BINARY: ${{ matrix.binary }}
+          YANCE_HOMESERVER_ADDRESS: http://127.0.0.1:9
+          YANCE_HOMESERVER_DOMAIN: yance-lab.local
+          YANCE_HOMESERVER_SOFTWARE: standard
+          YANCE_APPSERVICE_ADDRESS: http://127.0.0.1:29320
+          YANCE_APPSERVICE_HOSTNAME: 127.0.0.1
+          YANCE_APPSERVICE_PORT: "29320"
+          YANCE_FEDERATE_ROOMS: "false"
+          YANCE_DOMAIN_PERMISSION_KEY: yance-lab.local
+          YANCE_ADMIN_PERMISSION_KEY: "@lab:yance-lab.local"
+          YANCE_USER_PERMISSION: user
+          YANCE_ADMIN_PERMISSION: admin
+        run: |
+          set -euo pipefail
+          data="$RUNNER_TEMP/yance-fatal-$SERVICE"
+          log="$RUNNER_TEMP/yance-fatal-$SERVICE.log"
+          report="$GITHUB_WORKSPACE/pinned-fatal-$SERVICE.txt"
+          rm -rf "$data"
+          rm -f "$report"
+          mkdir -p "$data"
+          cid=""
+          cleanup() {
+            if [ -n "$cid" ]; then docker rm -f "$cid" >/dev/null 2>&1 || true; fi
+          }
+          trap cleanup EXIT
+
+          write_report() {
+            local state="$1"
+            local exit_code="$2"
+            local classification="$3"
+            {
+              echo "service=$SERVICE"
+              echo "source_commit=$SOURCE_COMMIT"
+              echo "image_id=$IMAGE_ID"
+              echo "state=$state"
+              echo "exit_code=$exit_code"
+              echo "classification=$classification"
+            } > "$report"
+          }
+
+          docker run --rm \
+            --entrypoint "$BINARY" \
+            --volume "$data:/data" \
+            "$IMAGE" -c /data/config.yaml -e
+          test -f "$data/config.yaml"
+
+          docker run --rm \
+            --entrypoint sh \
+            --volume "$data:/data" \
+            --env YANCE_HOMESERVER_ADDRESS \
+            --env YANCE_HOMESERVER_DOMAIN \
+            --env YANCE_HOMESERVER_SOFTWARE \
+            --env YANCE_APPSERVICE_ADDRESS \
+            --env YANCE_APPSERVICE_HOSTNAME \
+            --env YANCE_APPSERVICE_PORT \
+            --env YANCE_FEDERATE_ROOMS \
+            --env YANCE_DOMAIN_PERMISSION_KEY \
+            --env YANCE_ADMIN_PERMISSION_KEY \
+            --env YANCE_USER_PERMISSION \
+            --env YANCE_ADMIN_PERMISSION \
+            "$IMAGE" -ceu '
+              yq -I4 e -i '\''
+                .homeserver.address = strenv(YANCE_HOMESERVER_ADDRESS) |
+                .homeserver.domain = strenv(YANCE_HOMESERVER_DOMAIN) |
+                .homeserver.software = strenv(YANCE_HOMESERVER_SOFTWARE) |
+                .appservice.address = strenv(YANCE_APPSERVICE_ADDRESS) |
+                .appservice.hostname = strenv(YANCE_APPSERVICE_HOSTNAME) |
+                .appservice.port = env(YANCE_APPSERVICE_PORT) |
+                .matrix.federate_rooms = env(YANCE_FEDERATE_ROOMS) |
+                .bridge.permissions[strenv(YANCE_DOMAIN_PERMISSION_KEY)] = strenv(YANCE_USER_PERMISSION) |
+                .bridge.permissions[strenv(YANCE_ADMIN_PERMISSION_KEY)] = strenv(YANCE_ADMIN_PERMISSION)
+              '\'' /data/config.yaml
+            '
+
+          docker run --rm \
+            --entrypoint "$BINARY" \
+            --volume "$data:/data" \
+            "$IMAGE" -g -c /data/config.yaml -r /data/registration.yaml
+          test -f "$data/registration.yaml"
+
+          cid="$(docker run -d \
+            --network none \
+            --workdir /data \
+            --entrypoint "$BINARY" \
+            --volume "$data:/data" \
+            "$IMAGE" -c /data/config.yaml)"
+          sleep 8
+          state="$(docker inspect --format '{{.State.Status}}' "$cid")"
+          exit_code="$(docker inspect --format '{{.State.ExitCode}}' "$cid")"
+          docker logs "$cid" > "$log" 2>&1 || true
+
+          classification=NO_ENUMERATED_CONFIGURATION_FATAL
+          if grep -Fq 'database.uri not configured' "$log"; then
+            classification=DATABASE_URI_NOT_CONFIGURED
+          elif grep -Fq 'bridge.permissions not configured' "$log"; then
+            classification=BRIDGE_PERMISSIONS_NOT_CONFIGURED
+          elif grep -Fq 'homeserver.address not configured' "$log"; then
+            classification=HOMESERVER_ADDRESS_NOT_CONFIGURED
+          elif grep -Fq 'homeserver.domain not configured' "$log"; then
+            classification=HOMESERVER_DOMAIN_NOT_CONFIGURED
+          elif grep -Fq 'appservice.as_token not configured' "$log"; then
+            classification=APPSERVICE_AS_TOKEN_NOT_CONFIGURED
+          elif grep -Fq 'appservice.hs_token not configured' "$log"; then
+            classification=APPSERVICE_HS_TOKEN_NOT_CONFIGURED
+          elif grep -Fq 'username template is missing user ID placeholder' "$log"; then
+            classification=USERNAME_TEMPLATE_INVALID
+          elif grep -Fq 'Configuration error' "$log"; then
+            classification=OTHER_CONFIGURATION_ERROR
+          fi
+
+          write_report "$state" "$exit_code" "$classification"
+          cat "$report"
+
+          if [ "$classification" = OTHER_CONFIGURATION_ERROR ]; then
+            exit 41
+          fi
+          if [ "$classification" = NO_ENUMERATED_CONFIGURATION_FATAL ]; then
+            exit 42
+          fi
+
+      - name: Upload non-secret fatal classification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinned-fatal-${{ matrix.service }}
+          path: pinned-fatal-${{ matrix.service }}.txt
+          if-no-files-found: ignore
