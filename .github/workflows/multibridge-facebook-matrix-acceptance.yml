@@ -1,0 +1,100 @@
+name: Multibridge Facebook Matrix Acceptance
+
+on:
+  push:
+    branches:
+      - lab/multibridge-recovery-plan-20260811
+    paths:
+      - tools/multibridge-lab/facebook-personal-matrix-acceptance.ps1
+      - tools/multibridge-lab/RUN_FACEBOOK_PERSONAL_MATRIX_ACCEPTANCE.cmd
+      - tools/multibridge-lab/FACEBOOK_PERSONAL_MATRIX_ACCEPTANCE_README.txt
+      - tests/multibridge-lab/facebook-personal-matrix-acceptance.test.js
+      - .github/workflows/multibridge-facebook-matrix-acceptance.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+      - name: Run Facebook Personal Matrix acceptance contracts
+        shell: pwsh
+        run: node --test tests/multibridge-lab/facebook-personal-matrix-acceptance.test.js
+      - name: Parse acceptance probe with Windows PowerShell 5.1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $target = (Resolve-Path 'tools/multibridge-lab/facebook-personal-matrix-acceptance.ps1').Path
+          $gate = Join-Path $env:RUNNER_TEMP 'parse-facebook-matrix-acceptance-ps51.ps1'
+          $body = @'
+          param([Parameter(Mandatory = $true)][string]$Target)
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($Target, [ref]$tokens, [ref]$errors)
+          if (@($errors).Count -ne 0) {
+            Write-Error ("Windows PowerShell 5.1 parse RED: " + $errors[0].Message)
+            exit 1
+          }
+          Write-Output 'WINDOWS_POWERSHELL_5_1_MATRIX_ACCEPTANCE_PARSE_GREEN'
+          '@
+          [IO.File]::WriteAllText($gate, $body, [Text.Encoding]::ASCII)
+          & powershell.exe -NoLogo -NoProfile -NonInteractive -File $gate -Target $target
+          if ($LASTEXITCODE -ne 0) { throw 'Windows PowerShell 5.1 Matrix acceptance parse gate failed.' }
+      - name: Stage sealed Matrix acceptance package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $packageRoot = 'dist/facebook-personal-matrix-acceptance'
+          Remove-Item $packageRoot -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
+          $files = [ordered]@{
+            'tools/multibridge-lab/RUN_FACEBOOK_PERSONAL_MATRIX_ACCEPTANCE.cmd' = 'RUN_FACEBOOK_PERSONAL_MATRIX_ACCEPTANCE.cmd'
+            'tools/multibridge-lab/facebook-personal-matrix-acceptance.ps1' = 'facebook-personal-matrix-acceptance.ps1'
+            'tools/multibridge-lab/FACEBOOK_PERSONAL_MATRIX_ACCEPTANCE_README.txt' = 'FACEBOOK_PERSONAL_MATRIX_ACCEPTANCE_README.txt'
+          }
+          foreach ($entry in $files.GetEnumerator()) {
+            if (-not (Test-Path -LiteralPath $entry.Key -PathType Leaf)) { throw "Missing package source: $($entry.Key)" }
+            Copy-Item -LiteralPath $entry.Key -Destination (Join-Path $packageRoot $entry.Value)
+          }
+          $manifest = foreach ($name in @($files.Values | Sort-Object)) {
+            $hash = (Get-FileHash -LiteralPath (Join-Path $packageRoot $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $name"
+          }
+          [IO.File]::WriteAllLines((Join-Path $packageRoot 'SHA256SUMS.txt'), $manifest, [Text.UTF8Encoding]::new($false))
+          Write-Host '=== PACKAGE SHA256 ==='
+          $manifest | Write-Host
+
+          $probe = (Resolve-Path (Join-Path $packageRoot 'facebook-personal-matrix-acceptance.ps1')).Path
+          [IO.File]::WriteAllText($probe + ':Zone.Identifier', "[ZoneTransfer]`r`nZoneId=3`r`n", [Text.Encoding]::ASCII)
+          $wrapper = (Resolve-Path (Join-Path $packageRoot 'RUN_FACEBOOK_PERSONAL_MATRIX_ACCEPTANCE.cmd')).Path
+          $previousPolicy = $env:PSExecutionPolicyPreference
+          try {
+            $env:PSExecutionPolicyPreference = 'RemoteSigned'
+            $cmdLine = '(echo.)|call "' + $wrapper + '" -LabRoot "Z:\definitely-missing-yance-lab"'
+            $output = (& cmd.exe /d /s /c $cmdLine 2>&1 | Out-String)
+            $exitCode = $LASTEXITCODE
+          }
+          finally {
+            if ($null -eq $previousPolicy) { Remove-Item Env:PSExecutionPolicyPreference -ErrorAction SilentlyContinue }
+            else { $env:PSExecutionPolicyPreference = $previousPolicy }
+          }
+          $output | Write-Host
+          if ($output -notmatch 'PACKAGE_INTEGRITY_GREEN') { throw 'Acceptance wrapper integrity bootstrap did not pass.' }
+          if ($output -notmatch 'PACKAGE_MOTW_RELEASE_GREEN') { throw 'Acceptance wrapper MotW release did not pass.' }
+          if ($output -notmatch 'FINAL STATUS: REAL_RED') { throw 'Acceptance wrapper did not reach controlled missing-Lab RED.' }
+          if ($output -match 'PSSecurityException|UnauthorizedAccess|digitally signed') { throw 'Acceptance wrapper remained blocked by execution policy.' }
+          if ($exitCode -ne 1) { throw "Unexpected hosted-Windows acceptance package exit: $exitCode" }
+          $global:LASTEXITCODE = 0
+          Write-Host 'MATRIX_ACCEPTANCE_PACKAGE_GREEN'
+      - name: Upload Facebook Personal Matrix acceptance package
+        uses: actions/upload-artifact@v4
+        with:
+          name: yance-facebook-personal-matrix-acceptance-${{ github.sha }}
+          path: dist/facebook-personal-matrix-acceptance
+          if-no-files-found: error
