@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-11T08:48:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-P0-ELEMENT-COREPACK-AUTHORITY",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Real Product Experience Task 9 Windows run 31451837359 at exact Product Head 2e2f26f14bfbca49c78f25d3ce58e41e96a4e73b proved the prior Element 0001 portability repair on Windows and then entered pnpm install --frozen-lockfile. The exact 2654-entry supply-chain inventory passed, pnpm reported that the lockfile was up to date and skipped resolution, then Element postinstall failed when its nested pnpm invocation was rejected because the ancestor Yance repository root declares packageManager npm@10.9.2. Pinned Element a2a996ae50d802878bf48e4bbf3730004bdcc55c declares devEngines.packageManager pnpm 11.5.2 but no top-level packageManager. Node 22.23.1 bundles Corepack 0.34.6, whose loadSpec loop only stops walking parent package.json files when selection.data.packageManager is present; Corepack issue #779 documents the resulting devEngines.packageManager lookup asymmetry. The root repair is therefore a dedicated fail-closed upstream patch that adds top-level packageManager pnpm@11.5.2 to the pinned Element root manifest, matching its existing devEngines declaration, and registers that patch in the existing bootstrap replay sequence. Yance root npm authority, Element pin, Product runtime, Product dependency lock, pnpm version, frozen-install semantics and final-validation workflow remain frozen.",
+  "base": {
+    "branch": "main",
+    "commit": "655cd8a4f89bbcf1fdd4aeab61ca195673e0b054"
+  },
+  "evidence": {
+    "productPullRequest": 229,
+    "productExactHead": "2e2f26f14bfbca49c78f25d3ce58e41e96a4e73b",
+    "finalValidationRun": 31451837359,
+    "finalValidationJob": 93657612560,
+    "elementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "elementRootPackageRepositoryBlob": "1458c14e3e59f6fa7c948b5ffb7de4404c1cb5f5",
+    "nodeVersion": "22.23.1",
+    "bundledCorepackVersion": "0.34.6",
+    "elementDeclaredPackageManager": {
+      "field": "devEngines.packageManager",
+      "name": "pnpm",
+      "version": "11.5.2"
+    },
+    "ancestorYancePackageManager": "npm@10.9.2",
+    "frozenInstallEvidence": "2654-entry supply-chain validation passed and pnpm reported Lockfile is up to date, resolution step is skipped before Element postinstall",
+    "failureBoundary": "Element postinstall node scripts/pnpm-link.ts && pnpm run -r sane-postinstall failed because Corepack resolved the ancestor Yance packageManager npm authority; Nx build and lint:types were not entered",
+    "corepackUpstreamIssue": 779
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-p0-element-corepack-authority-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-p0-element-corepack-authority-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "26d37ef74c2962add39d03bc8350004d5bc50fb2a28843457bf0f9ee11aba263",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-p0-element-corepack-authority",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0002-yance-package-manager-authority.patch"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "5175e54cea94d6998d915c4111887c237b40769adc63c014c37adbafeb33f7b0",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-element-workspace-contract.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "e263649043e2a16c14cd790c10125a5e2cec4aaf727a3d64e68fea92481159dd",
+      "productionCodeChanged": false
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "bootstrapModificationAllowed": true,
+    "elementPinModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "productLockRegenerationAllowed": false,
+    "pnpmVersionChangeAllowed": false,
+    "rootPackageManagerModificationAllowed": false,
+    "finalValidationWorkflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "The pinned Element root package.json must gain packageManager pnpm@11.5.2 through a dedicated ordinary textual upstream patch whose exact preimage is repository blob 1458c14e3e59f6fa7c948b5ffb7de4404c1cb5f5; the value must exactly match the existing devEngines.packageManager name pnpm and version 11.5.2.",
+    "The dedicated package-manager authority patch must patch only Element package.json and must not change Element dependencies, devDependencies, engines, devEngines package-manager version, pnpm-lock.yaml or any Yance Product source.",
+    "tools/matrix/bootstrap.js must apply the dedicated authority patch through the existing fail-closed git apply --check then git apply mechanism after the global-right-workspace patch and before the Product module copy/dependency-lock/module-delivery stages.",
+    "The repair must not disable Corepack project or strict checking, modify PATH to bypass Corepack, use COREPACK_ENABLE_STRICT=0 or COREPACK_ENABLE_PROJECT_SPEC=0, modify the Yance root packageManager, change pnpm 11.5.2, regenerate locks, or modify the final-validation workflow.",
+    "A subsequent real Task 9 Windows run must prove the exact pinned Element checkout accepts the new package-manager authority patch and that pnpm install --frozen-lockfile crosses the prior Corepack postinstall failure before any conclusion is drawn about Nx build or lint:types."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "corepackStrictDisable": true,
+    "corepackProjectSpecDisable": true,
+    "corepackPathBypass": true,
+    "rootPackageManagerChange": true,
+    "elementPinChange": true,
+    "productSourceModification": true,
+    "productRuntimeModification": true,
+    "pnpmVersionDrift": true,
+    "lockRegeneration": true,
+    "finalValidationWorkflowChange": true,
+    "gitApplyThreeWay": true,
+    "gitApplyReject": true,
+    "fuzzyPatch": true,
+    "bootstrapSkipPatch": true,
+    "releasePublishing": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
