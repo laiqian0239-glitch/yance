@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 17:32 +07:00
+Last updated: 2026-08-11 17:35 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -19,59 +19,45 @@ Authoritative Lab execution ledger. Update after every real state transition. Do
 
 Five bridges restart-loop exit 11 while Synapse stays healthy; DNS failure is downstream. Upstream bridgev2 exit 11 is configuration validation failure. No bridge config changes before exact sanitized validator evidence.
 
-## Collector/native-process TDD — GREEN
+## Collector/package TDD — GREEN BEFORE ARTIFACT STAGING
 
 - Native-process Windows GREEN `31473597261` / `93722164048`.
-- Clean collector nonzero causal RED `31474915060` / `93726291605`.
-- Shared root repair `537159b9238dee82b207d131151ba3132f064c43`.
+- Clean collector nonzero causal RED `31474915060` / `93726291605` → shared root repair `537159b9238dee82b207d131151ba3132f064c43`.
 - Full collector/native Windows suite `31475110284` / `93726901278`: 9/9 GREEN.
+- Exact R12 Compose service keys verified: `facebook-personal`, `instagram-dm`, `google-messages`, `signal`, `line`.
+- Package failure-first `523447ffc1c04b82f06bd66207be6a24e7aca199` → wrapper implementation `8775328978e29b50232f7180982730731621d855` → final package Windows run `31481685787` / `93747849900`: 12/12 GREEN.
 
-## R12 service keys — VERIFIED GREEN
+## CI artifact packaging boundary
 
-Exact Compose service authority: `facebook-personal`, `instagram-dm`, `google-messages`, `signal`, `line`; current collector matches exactly.
+`3eb764f13452a511c7d59214e5093f1a7dd9713a` adds only post-test artifact staging/upload logic. It first requires the complete tests GREEN, then checks source identity, stages exactly three runtime files, generates separate SHA-256/source records, and uses repository-standard `actions/upload-artifact@v4`.
 
-## Final package TDD — COMPLETE GREEN
+## Artifact staging run — REAL RED
 
-- Failure-first `523447ffc1c04b82f06bd66207be6a24e7aca199` → Windows `31481406541` / `93746945122`: 10 pass / 2 intentional missing-wrapper RED.
-- Wrapper implementation `8775328978e29b50232f7180982730731621d855`; collector/helper unchanged.
-- Test-only assertion correction `73f97d23008a9ce706fce724b2f92f694d03c75a`.
-- Final Windows run `31481685787` / job `93747849900`, exact `73f97d23008a9ce706fce724b2f92f694d03c75a`: tests=12/pass=12/fail=0/skipped=0.
+Actions run `31481938176`, job `93748671397`, exact checkout `3eb764f13452a511c7d59214e5093f1a7dd9713a`:
 
-Exact runtime Git blobs:
+- all 12 Lab tests GREEN;
+- artifact staging step RED before any upload;
+- exact failure: `RUN_EXIT11_EVIDENCE.cmd` expected repository blob `7787475bd7a6e0640b5353c3042ae8e8471ef234`, but `git hash-object` of the Windows checked-out/tested worktree file was `c9afd263cc5b89486ff937a195e9313bdce9c32a`;
+- both upload steps were correctly skipped.
 
-- `RUN_EXIT11_EVIDENCE.cmd` → `7787475bd7a6e0640b5353c3042ae8e8471ef234`
-- `collect-exit11-evidence.ps1` → `38eee8ecfe5411a89273027404a320b94b623dba`
-- `native-process.ps1` → `47d56b8e6561676eec75b814c1ed1ebaa8ba30d5`
+This is not a runtime behavior failure. It exposes a real source-delivery integrity defect: the wrapper was originally created through the GitHub contents API with CRLF bytes, while repository `.gitattributes` requires `* text=auto eol=lf`. Windows checkout materializes the canonical LF worktree used by the tests, so the repository blob bytes and the tested/delivered worktree bytes are not identical.
 
-## Exact CI packaging boundary
-
-Commit `3eb764f13452a511c7d59214e5093f1a7dd9713a` changes only `.github/workflows/multibridge-lab-native-process.yml`; runtime files are unchanged.
-
-After the complete Lab tests pass, the workflow now:
-
-1. verifies each runtime file against the exact frozen Git blob SHA above;
-2. copies exactly the three runtime files into `dist/multibridge-exit11-evidence`;
-3. asserts that staging directory contains exactly those three filenames and no extras;
-4. generates SHA-256 `SHA256SUMS.txt` plus `SOURCE.txt` in a separate verification directory;
-5. uploads the runtime staging directory as `yance-multibridge-exit11-evidence-package` using repository-standard `actions/upload-artifact@v4`;
-6. uploads the manifest/source record separately as `yance-multibridge-exit11-evidence-verification`.
-
-The user-facing artifact therefore remains only the three runtime files; verification metadata is separate.
+Changing the expected blob to the transformed Windows value would be a bypass and is forbidden. The source must be normalized to the repository EOL contract so Git blob identity and tested worktree identity converge.
 
 ## Current unique next action
 
 **Do not ask the user to run anything yet.**
 
-1. Collect the exact Windows Actions result for CI packaging Head `3eb764f13452a511c7d59214e5093f1a7dd9713a` (or STATUS-only descendant only if source/runtime/workflow are unchanged).
-2. Require 12/12 tests GREEN before the staging/upload steps, and verify both upload steps complete successfully.
-3. Fetch the resulting two artifacts.
-4. Download the runtime artifact and verification record, independently verify exact filenames, SHA-256, Git blob/source equality, and absence of credential/config/message artifacts.
-5. Perform verification-before-completion review against the recovery plan and STATUS gates.
-6. Only then hand the runtime ZIP to the user and request exactly `exit11-evidence.txt` after one Windows run.
+1. Add a package regression test that asserts each of the three runtime files has identical repository blob identity and materialized worktree `git hash-object` identity on Windows. This must RED on the current CRLF wrapper source while all existing 12 tests remain GREEN.
+2. Record the causal EOL/source-identity RED before changing runtime source.
+3. Normalize only `RUN_EXIT11_EVIDENCE.cmd` to LF in Git, preserving its behavior/content semantics and `.gitattributes` authority; do not weaken `.gitattributes`.
+4. Update the frozen wrapper blob in CI/STATUS to the new canonical LF blob.
+5. Re-run the complete Windows suite plus artifact staging. Require all tests GREEN and both artifact uploads success.
+6. Download and independently verify runtime artifact and verification record before user handoff.
 
 ## User involvement gate
 
-No user testing until artifact build/hash verification and final review are complete. User is not a script-debugging environment.
+No user testing until source/blob/worktree identity, artifact build/hash verification, and final verification-before-completion review are all GREEN. User is not a script-debugging environment.
 
 ## Runtime-ready after config repair
 
@@ -86,7 +72,9 @@ Facebook Personal → Instagram DM → Google Messages → Signal → LINE → F
 - [x] Collector/native root repairs + Windows GREEN.
 - [x] Exact R12 service keys verified.
 - [x] Package failure-first RED → wrapper implementation → 12/12 Windows GREEN.
-- [x] Add exact CI artifact packaging boundary (`3eb764f13452a511c7d59214e5093f1a7dd9713a`).
-- [ ] Prove artifact-producing Windows run GREEN and independently verify both artifacts.
+- [x] Classify artifact staging source/EOL identity RED (`31481938176`).
+- [ ] Add automated source/blob/worktree identity regression and establish RED.
+- [ ] Normalize wrapper to LF and prove full Windows artifact-producing GREEN.
+- [ ] Independently verify artifacts and hand off one runtime ZIP.
 - [ ] Capture validator lines and repair R12 generator at source.
 - [ ] Validate five runtimes and reach human-auth boundary.
