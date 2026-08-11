@@ -38,6 +38,52 @@ function Invoke-YanceJsonRequest {
   return Invoke-RestMethod @params
 }
 
+function Get-YanceJoinedRoomSet {
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $true)][string]$HomeserverUrl,
+    [Parameter(Mandatory = $true)][string]$AccessToken
+  )
+  $uri = $HomeserverUrl.TrimEnd('/') + '/_matrix/client/v3/joined_rooms'
+  try {
+    $response = Invoke-YanceJsonRequest -Method GET -Uri $uri -AccessToken $AccessToken
+  }
+  catch {
+    throw 'REAL_RED: local Matrix joined-room membership could not be queried.'
+  }
+  $set = @{}
+  foreach ($roomId in @($response.joined_rooms)) {
+    $value = [string]$roomId
+    if ($value) { $set[$value] = $true }
+  }
+  return $set
+}
+
+function Ensure-YanceJoinedRoom {
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $true)][string]$HomeserverUrl,
+    [Parameter(Mandatory = $true)][string]$RoomId,
+    [Parameter(Mandatory = $true)][string]$AccessToken,
+    [Parameter(Mandatory = $true)][hashtable]$JoinedRooms,
+    [Parameter(Mandatory = $true)][ValidateSet('space', 'child room')][string]$Purpose
+  )
+  if ($JoinedRooms.ContainsKey($RoomId)) { return $false }
+  $room = [Uri]::EscapeDataString($RoomId)
+  $uri = $HomeserverUrl.TrimEnd('/') + '/_matrix/client/v3/join/' + $room
+  try {
+    $response = Invoke-YanceJsonRequest -Method POST -Uri $uri -Body @{} -AccessToken $AccessToken
+  }
+  catch {
+    throw ('REAL_RED: local Matrix user could not accept the existing Facebook Personal ' + $Purpose + ' invitation.')
+  }
+  if ([string]$response.room_id -ne $RoomId) {
+    throw ('REAL_RED: Matrix join returned an unexpected room identity for the Facebook Personal ' + $Purpose + '.')
+  }
+  $JoinedRooms[$RoomId] = $true
+  return $true
+}
+
 function Get-YanceRoomState {
   [CmdletBinding()]
   param(
@@ -47,7 +93,12 @@ function Get-YanceRoomState {
   )
   $room = [Uri]::EscapeDataString($RoomId)
   $uri = $HomeserverUrl.TrimEnd('/') + '/_matrix/client/v3/rooms/' + $room + '/state'
-  $response = Invoke-YanceJsonRequest -Method GET -Uri $uri -AccessToken $AccessToken
+  try {
+    $response = Invoke-YanceJsonRequest -Method GET -Uri $uri -AccessToken $AccessToken
+  }
+  catch {
+    throw 'REAL_RED: joined Facebook Personal Matrix space state could not be read.'
+  }
   $response | ForEach-Object { $_ }
 }
 
@@ -61,7 +112,12 @@ function Get-YanceRoomMessages {
   )
   $room = [Uri]::EscapeDataString($RoomId)
   $uri = $HomeserverUrl.TrimEnd('/') + '/_matrix/client/v3/rooms/' + $room + '/messages?dir=b&limit=' + $Limit
-  return Invoke-YanceJsonRequest -Method GET -Uri $uri -AccessToken $AccessToken
+  try {
+    return Invoke-YanceJsonRequest -Method GET -Uri $uri -AccessToken $AccessToken
+  }
+  catch {
+    throw 'REAL_RED: joined Facebook Personal child-room history could not be read.'
+  }
 }
 
 if ($LibraryOnly) { return }
@@ -132,12 +188,12 @@ try {
   }
   Write-Host 'FACEBOOK_PROVISIONING_CONNECTED_GREEN login_count=1'
 
+  $joinedRooms = Get-YanceJoinedRoomSet -HomeserverUrl $HomeserverUrl -AccessToken $accessToken
+  $spaceAccepted = Ensure-YanceJoinedRoom -HomeserverUrl $HomeserverUrl -RoomId $spaceRoom -AccessToken $accessToken -JoinedRooms $joinedRooms -Purpose 'space'
+  if ($spaceAccepted) { Write-Host 'MATRIX_SPACE_INVITE_ACCEPTED_GREEN' }
+
   $spaceState = @(Get-YanceRoomState -HomeserverUrl $HomeserverUrl -RoomId $spaceRoom -AccessToken $accessToken)
   $createEvents = @($spaceState | Where-Object { [string]$_.type -eq 'm.room.create' -and [string]$_.state_key -eq '' })
-  Write-Host ('MATRIX_SPACE_STATE_DIAGNOSTIC events=' + $spaceState.Count + ' create_events=' + $createEvents.Count)
-  if ($createEvents.Count -gt 0) {
-    Write-Host ('MATRIX_SPACE_CREATE_DIAGNOSTIC type=' + [string]$createEvents[0].content.type)
-  }
   if ($createEvents.Count -ne 1 -or [string]$createEvents[0].content.type -ne 'm.space') {
     throw 'REAL_RED: Facebook Personal space_room is not a Matrix m.space room.'
   }
@@ -151,9 +207,13 @@ try {
 
   $roomsWithMessages = 0
   $messageEvents = 0
+  $childInvitesAccepted = 0
   foreach ($child in @($childEvents | Select-Object -First 12)) {
     $childRoomId = [string]$child.state_key
     if (-not $childRoomId) { continue }
+    if (Ensure-YanceJoinedRoom -HomeserverUrl $HomeserverUrl -RoomId $childRoomId -AccessToken $accessToken -JoinedRooms $joinedRooms -Purpose 'child room') {
+      $childInvitesAccepted++
+    }
     $messages = Get-YanceRoomMessages -HomeserverUrl $HomeserverUrl -RoomId $childRoomId -AccessToken $accessToken -Limit $MessageScanLimit
     $roomMessageEvents = @($messages.chunk | Where-Object { [string]$_.type -eq 'm.room.message' })
     if ($roomMessageEvents.Count -gt 0) {
@@ -161,6 +221,7 @@ try {
       $messageEvents += $roomMessageEvents.Count
     }
   }
+  Write-Host ('MATRIX_CHILD_INVITES_ACCEPTED_GREEN count=' + $childInvitesAccepted)
   if ($messageEvents -lt 1) {
     throw 'REAL_RED: no initial Matrix message history was observed in the Facebook Personal child rooms.'
   }
