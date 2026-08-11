@@ -3,7 +3,7 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "requestedByUserAt": "2026-08-11T09:40:00+07:00",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-PRODUCT-EXPERIENCE-P0-ELEMENT-COREPACK-AUTHORITY-ROUTE-BOOTSTRAP",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-P0-ELEMENT-COREPACK-ROUTE-BOOTSTRAP",
   "proposalRevision": 1,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Element Corepack authority implementation PR #247 reached exact Head 6e43a13740c5fd93b0393820e44bff45c41e3c9f with the already authorized three-path implementation, but trusted-main Stage route classification failed closed before WP0 execution with WP0_ROUTE_UNKNOWN_PATH for the newly authorized exact path upstream-patches/element-web/0002-yance-package-manager-authority.patch. Candidate-owned routing changes are forbidden. This work package follows the existing literal route-bootstrap pattern used for Element 0012 and authorizes only one exact PRODUCT_WP0 route plus one regression contract. It does not authorize any upstream-patches/ or upstream-patches/element-web/ prefix expansion and does not modify the blocked candidate.",
