@@ -49,7 +49,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'corepack enable failed' }
           corepack prepare pnpm@11.5.2 --activate
           if ($LASTEXITCODE -ne 0) { throw 'failed to activate pnpm 11.5.2' }
-          $actualPnpm = (pnpm --version).Trim()
+          Push-Location $env:RUNNER_TEMP
+          try {
+            $actualPnpm = (pnpm --version).Trim()
+          } finally {
+            Pop-Location
+          }
           if ($actualPnpm -ne $env:PNPM_VERSION) { throw "pnpm version mismatch: expected=$env:PNPM_VERSION actual=$actualPnpm" }
 
       - name: Run two clean frozen Element materializations and builds
@@ -69,12 +74,17 @@ jobs:
             if (-not (Select-String -Path "$element\apps\web\Dockerfile" -Pattern 'nx build yance-element-module' -Quiet)) { throw "0012 module delivery Docker build seam missing on iteration $iteration" }
             if (-not (Select-String -Path "$element\apps\web\Dockerfile" -Pattern '/modules/yance/package.json' -Quiet)) { throw "0012 module manifest delivery seam missing on iteration $iteration" }
 
-            pnpm --dir $element install --frozen-lockfile
-            if ($LASTEXITCODE -ne 0) { throw "frozen pnpm install failed on iteration $iteration" }
-            pnpm --dir $element exec nx build yance-element-module
-            if ($LASTEXITCODE -ne 0) { throw "Yance Element module build failed on iteration $iteration" }
-            pnpm --dir $element exec nx run yance-element-module:lint:types
-            if ($LASTEXITCODE -ne 0) { throw "Yance Element module typecheck failed on iteration $iteration" }
+            Push-Location $env:RUNNER_TEMP
+            try {
+              pnpm --dir $element install --frozen-lockfile
+              if ($LASTEXITCODE -ne 0) { throw "frozen pnpm install failed on iteration $iteration" }
+              pnpm --dir $element exec nx build yance-element-module
+              if ($LASTEXITCODE -ne 0) { throw "Yance Element module build failed on iteration $iteration" }
+              pnpm --dir $element exec nx run yance-element-module:lint:types
+              if ($LASTEXITCODE -ne 0) { throw "Yance Element module typecheck failed on iteration $iteration" }
+            } finally {
+              Pop-Location
+            }
             if (-not (Test-Path "$element\modules\yance\lib\index.js")) { throw "Yance Element module output missing on iteration $iteration" }
 
             $lockSha256 = (Get-FileHash "$element\pnpm-lock.yaml" -Algorithm SHA256).Hash.ToLowerInvariant()
