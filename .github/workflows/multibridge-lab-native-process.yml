@@ -27,6 +27,6 @@ jobs:
           node --version
           $PSVersionTable | Format-List | Out-String | Write-Host
           if (-not (Get-Command powershell.exe -ErrorAction SilentlyContinue)) { throw 'Windows PowerShell 5.1 is required for the legacy regression proof' }
-      - name: Run Multibridge Lab native-process contracts
+      - name: Run Multibridge Lab contracts
         shell: pwsh
-        run: node --test tests/multibridge-lab/native-process-semantics.test.js
+        run: node --test tests/multibridge-lab/*.test.js
