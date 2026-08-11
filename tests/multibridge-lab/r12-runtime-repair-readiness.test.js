@@ -103,9 +103,13 @@ test('final Windows runtime repair/readiness package is thin, exact-five, Compos
   assert.match(readme, /HUMAN_AUTH_REQUIRED/);
   assert.match(readme, /do not upload/i);
 
-  // CI must publish exactly this small user package after Windows contracts pass.
+  // CI must publish exactly this small user package after Windows contracts pass
+  // and parse the real entrypoint with the same Windows PowerShell family used
+  // by the double-click wrapper, not only with pwsh 7.
   assert.match(workflow, /yance-multibridge-r12-runtime-repair-readiness/);
   assert.match(workflow, /r12-runtime-repair-readiness\.ps1/);
   assert.match(workflow, /RUN_R12_RUNTIME_REPAIR_READINESS\.cmd/);
   assert.match(workflow, /R12_RUNTIME_REPAIR_READINESS_README\.txt/);
+  assert.match(workflow, /powershell\.exe\s+-NoLogo\s+-NoProfile\s+-NonInteractive/);
+  assert.match(workflow, /WINDOWS_POWERSHELL_5_1_PARSE_GREEN/);
 });
