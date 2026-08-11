@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 17:40 +07:00
+Last updated: 2026-08-11 17:43 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -19,44 +19,42 @@ Authoritative Lab execution ledger. Update after every real state transition. Do
 
 Five bridges restart-loop exit 11 while Synapse stays healthy; DNS failure is downstream. Upstream bridgev2 exit 11 is configuration validation failure. No bridge config changes before exact sanitized validator evidence.
 
-## Collector/package behavior — GREEN BEFORE SOURCE-ID GATE
+## Collector/package behavior
 
-- Native-process Windows GREEN `31473597261` / `93722164048`.
-- Collector root repair `537159b9238dee82b207d131151ba3132f064c43`; full collector/native `31475110284` / `93726901278`: 9/9 GREEN.
-- Exact R12 Compose service keys verified.
-- Package failure-first → wrapper implementation → package Windows `31481685787` / `93747849900`: 12/12 GREEN.
+- Native-process and collector root fixes are Windows GREEN.
+- Exact R12 Compose keys verified: `facebook-personal`, `instagram-dm`, `google-messages`, `signal`, `line`.
+- Package wrapper behavioral/security suite was 12/12 GREEN at `31481685787` / `93747849900` before source byte-identity hardening.
 
-## Artifact staging EOL/source identity defect
+## Source byte-identity TDD
 
-Artifact staging run `31481938176` / `93748671397` proved all 12 behavior/security tests GREEN but staging RED because repository wrapper blob `7787475bd7a6e0640b5353c3042ae8e8471ef234` differed from tested Windows worktree hash `c9afd263cc5b89486ff937a195e9313bdce9c32a`. `.gitattributes` requires LF.
+Artifact staging first exposed repository wrapper blob `7787475bd7a6e0640b5353c3042ae8e8471ef234` vs tested Windows worktree raw hash `c9afd263cc5b89486ff937a195e9313bdce9c32a` because the wrapper Git blob contained CRLF while `.gitattributes` requires LF.
 
-## Automated source-identity causal RED — PROVEN
+Permanent regression test-only commit `aa5afaa61aad58a3e17d5cd39cdeae36e2885c53` then proved clean causal RED in Windows run `31482110715` / job `93749209685`: 13 tests, 12 pass, 1 fail only on wrapper repository/worktree byte identity.
 
-Test-only commit `aa5afaa61aad58a3e17d5cd39cdeae36e2885c53` adds the permanent runtime blob/worktree identity contract.
+## Canonical wrapper source repair
 
-Windows run `31482110715`, job `93749209685`, exact checkout `aa5afaa61aad58a3e17d5cd39cdeae36e2885c53`:
+Commit `0385a383b3bc638f18d395c40638a5a2103ce366` changes only the byte representation of `tools/multibridge-lab/RUN_EXIT11_EVIDENCE.cmd` from CRLF to repository-canonical LF. Wrapper commands, error handling, output path, `-NoExit`, collector delegation, and security semantics are unchanged.
 
-- tests=13
-- pass=12
-- fail=1
-- all prior collector/native/package behavior/security tests remain GREEN;
-- only `runtime repository blobs and tested worktree bytes are identical` fails;
-- exact failing file: `tools/multibridge-lab/RUN_EXIT11_EVIDENCE.cmd`;
-- repository blob `7787475bd7a6e0640b5353c3042ae8e8471ef234`;
-- tested Windows worktree raw hash `c9afd263cc5b89486ff937a195e9313bdce9c32a`;
-- artifact staging/upload steps correctly skipped because the source-identity test failed.
+New canonical wrapper Git blob:
 
-This is the clean causal RED required before source normalization.
+`c9afd263cc5b89486ff937a195e9313bdce9c32a`
+
+This equals the previously observed canonical Windows worktree raw hash and therefore aligns source storage with `.gitattributes` instead of weakening the gate.
+
+Other runtime blobs remain:
+
+- collector `38eee8ecfe5411a89273027404a320b94b623dba`
+- helper `47d56b8e6561676eec75b814c1ed1ebaa8ba30d5`
 
 ## Current unique next action
 
 **Do not ask the user to run anything yet.**
 
-1. Normalize only `tools/multibridge-lab/RUN_EXIT11_EVIDENCE.cmd` Git bytes from CRLF to LF, preserving all wrapper semantics/content and obeying `.gitattributes`.
-2. Record the new canonical wrapper Git blob here before any CI pin change.
-3. Collect the wrapper-fix Windows run: require all 13 tests GREEN, proving repository/worktree byte identity is repaired. Packaging may still RED on the old frozen expected wrapper blob; that is an expected stale-CI-pin boundary, not to be bypassed.
-4. Then update only the workflow's expected wrapper blob to the newly proven canonical value.
-5. Re-run full Windows tests + staging + both artifact uploads and independently verify artifacts.
+1. Collect the Windows result for exact wrapper-fix Head `0385a383b3bc638f18d395c40638a5a2103ce366`.
+2. Require all 13 tests GREEN, including repository/worktree byte identity.
+3. Packaging is expected to stop on the still-stale workflow wrapper pin `7787475b...`; if so, record that as the explicit stale-pin boundary, not a runtime/source failure.
+4. Only after 13/13 GREEN update the workflow expected wrapper blob to canonical `c9afd263cc5b89486ff937a195e9313bdce9c32a` and matching SOURCE record.
+5. Re-run full tests + artifact staging + both uploads, then independently verify artifacts.
 
 ## User involvement gate
 
@@ -74,10 +72,10 @@ Facebook Personal → Instagram DM → Google Messages → Signal → LINE → F
 
 - [x] Collector/native root repairs + Windows GREEN.
 - [x] Exact R12 service keys verified.
-- [x] Package failure-first RED → wrapper implementation → 12/12 Windows GREEN.
-- [x] Artifact staging EOL/source identity RED classified.
-- [x] Permanent byte-identity regression added and clean causal RED proven (`31482110715`).
-- [ ] Normalize wrapper Git source to LF and prove 13/13 Windows GREEN.
+- [x] Package failure-first RED → wrapper implementation → behavior/security GREEN.
+- [x] Artifact source/EOL defect converted into automated byte-identity RED.
+- [x] Normalize wrapper Git source to LF (`0385a383...`, canonical blob `c9afd263...`).
+- [ ] Prove 13/13 Windows source-identity GREEN.
 - [ ] Refresh CI blob pin and prove artifact-producing Windows GREEN.
 - [ ] Independently verify artifacts and hand off one runtime ZIP.
 - [ ] Capture validator lines and repair R12 generator at source.
