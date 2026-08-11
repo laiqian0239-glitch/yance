@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 18:51 +07:00
+Last updated: 2026-08-11 18:54 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -40,56 +40,64 @@ Fatal-context package final authority run `31485153849`, job `93758725677`, exac
 
 ## First isolated pinned-image run
 
-Workflow commit `2a1743a1856132c8552639928578e54a656cf74a`, run `31487107541`, three matrix jobs.
+Workflow commit `2a1743a1856132c8552639928578e54a656cf74a`, run `31487107541`.
 
-### Google Messages: original DB fatal cleared, harness fidelity RED
+Google Messages job `93764904649` and Instagram job `93764904868` both verified exact source + exact upstream image build + binary-generated config/registration, cleared the original `database.uri not configured`, then hit only `bridge.permissions not configured` because the first validation harness had omitted historical R12 permissions/appservice/matrix mutations. Classification: harness fidelity RED, not DB implementation RED.
 
-Job `93764904649`:
-- recovered R12 DB wiring resolve GREEN;
-- exact source SHA fetch GREEN;
-- exact upstream Docker image build GREEN, image ID `sha256:b8cb1df08dc2a53f464f1c1b293e3d92d1c05e4ea6baa4d34f5d9af8d2371cbb`;
-- example config generation GREEN;
-- ephemeral registration generation GREEN;
-- `database.uri not configured` did not recur;
-- next fatal was `Configuration error: bridge.permissions not configured`.
+First-run image IDs:
+- Google Messages `sha256:b8cb1df08dc2a53f464f1c1b293e3d92d1c05e4ea6baa4d34f5d9af8d2371cbb`.
+- Instagram DM `sha256:9ca6d6f52fad70645623aa90cb195f81e9b0bfc41c6750748984e4bf257f5629`.
 
-### Instagram DM: original DB fatal cleared, same harness fidelity RED
+The first harness also wrote RED reports under `$RUNNER_TEMP`, so report upload was absent on failure. Both issues were repaired only in CI.
 
-Job `93764904868`:
-- recovered R12 DB wiring resolve GREEN;
-- exact Meta source commit `a0db68a56bb5715d67faa331f647e771d62b05a2` verified;
-- exact upstream `Dockerfile.ig` build GREEN, image ID `sha256:9ca6d6f52fad70645623aa90cb195f81e9b0bfc41c6750748984e4bf257f5629`;
-- built `/usr/bin/mautrix-instagram` generated its own example config GREEN;
-- ephemeral registration generation GREEN;
-- `database.uri not configured` did not recur;
-- next fatal was again `Configuration error: bridge.permissions not configured`;
-- first-run failure report artifact was absent only because the already-identified harness wrote it under `$RUNNER_TEMP` while upload read workspace.
+## Harness fidelity repair
 
-Both completed first-run failures are therefore the same **verification-harness fidelity/observability RED**, not DB implementation RED. They independently prove the recovered DB values get past the original fatal predicate inside the exact pinned GMessages and Instagram binaries.
+CI-only commit `8aaceef6b22d410c0f975c18ba46a0a9c6fc7ed0` changes only `.github/workflows/multibridge-lab-pinned-db-image-validation.yml` and replays the frozen historical R12 config fields with safe dummy values before applying recovered DB fields. It also writes the seven-field report directly to workspace so RED/GREEN both upload. DB implementation, upstream pins, Dockerfiles, binaries, `--network none`, and user runtime remain unchanged.
 
-## Harness fidelity repair — COMMITTED
+## Repaired pinned-image run — IG + GOOGLE MESSAGES GREEN
 
-CI-only commit `8aaceef6b22d410c0f975c18ba46a0a9c6fc7ed0` changes only `.github/workflows/multibridge-lab-pinned-db-image-validation.yml`.
+Run `31487411606`, exact head `8aaceef6b22d410c0f975c18ba46a0a9c6fc7ed0`.
 
-The repair does not change DB implementation, upstream pins, Dockerfiles, binaries, `--network none`, or user runtime. It restores the already-frozen historical R12 config shape with safe non-secret values before applying recovered DB fields:
+### Instagram DM — PINNED IMAGE DB STARTUP GREEN
 
-- `.homeserver.address/domain/software`;
-- `.appservice.address/hostname/port`;
-- `.matrix.federate_rooms`;
-- `.bridge.permissions[domain] = user`;
-- `.bridge.permissions[@lab:yance-lab.local] = admin`;
-- recovered `.database.type/.database.uri`.
+Job `93765873058`:
+- exact Meta commit verified;
+- exact `Dockerfile.ig` image build GREEN;
+- exact image ID `sha256:fd83600ab2d55aa02f998067daf3fb8baa889874d5813f31a6c79a2a20bd669c`;
+- built `/usr/bin/mautrix-instagram` generated its own example config and ephemeral registration GREEN;
+- exact historical R12 non-DB wiring + recovered DB fields applied;
+- process observed after 12 seconds: `state=running`, `exit_code=0`;
+- expected SQLite DB file exists;
+- no `database.uri not configured`, no `Failed to initialize database`, no `Configuration error`;
+- classification `PINNED_IMAGE_DB_STARTUP_GREEN`.
 
-The yq operations mirror the exact historical fixture field semantics. Failure/green reports now write directly to `$GITHUB_WORKSPACE/pinned-db-image-<service>.txt`, so `always()` artifact upload works on both result classes. No product/runtime source changed.
+Artifact ID `9099701058`, GitHub digest `sha256:f582c497b98e5cde2dc9954b17aae94d14e84c711e7c206604f0cec62714dc23`. Independent download verification: ZIP digest exact match; ZIP contains exactly one seven-field `pinned-db-image-instagram-dm.txt`; no config/registration/log/token/DB content.
+
+### Google Messages — PINNED IMAGE DB STARTUP GREEN
+
+Job `93765873115`:
+- exact GMessages commit verified;
+- exact upstream Dockerfile image build GREEN;
+- exact image ID `sha256:87e2bf3d75cb2d201958104a98e4d84d80dfc770918211f1213b6d034a4b1b16`;
+- built `/usr/bin/mautrix-gmessages` generated its own example config and ephemeral registration GREEN;
+- exact historical R12 non-DB wiring + recovered DB fields applied;
+- process observed after 12 seconds: `state=running`, `exit_code=0`;
+- expected SQLite DB file exists;
+- no `database.uri not configured`, no `Failed to initialize database`, no `Configuration error`;
+- classification `PINNED_IMAGE_DB_STARTUP_GREEN`.
+
+Artifact ID `9099710796`, GitHub digest `sha256:b85260a3b9750822f8837f010d48476ad3c6c24854993b8ae6f04bcaddd374e1`. Independent download verification: ZIP digest exact match; ZIP contains exactly one seven-field `pinned-db-image-google-messages.txt`; no config/registration/log/token/DB content.
+
+These two exact pinned binary/image DB gates are now sealed GREEN. `r12-database-wiring.ps1` remains unchanged.
 
 ## Unique next action
 
 No user action now.
 
-1. Record old Signal job `93764904631` when complete; keep it separate from repaired-run authority.
-2. Collect repaired matrix run `31487411606` triggered by CI-only `8aaceef6b22d410c0f975c18ba46a0a9c6fc7ed0`.
-3. Classify each exact pinned binary independently; require DB file creation and no `Configuration error` before per-service image gate GREEN.
-4. Keep `r12-database-wiring.ps1` unchanged.
+1. Record old Signal job `93764904631` when it completes, keeping first-run evidence separate.
+2. Collect repaired Signal job `93765873138` from run `31487411606`; require exact source/submodule build, DB file creation, and no `Configuration error` before sealing the third DB image gate.
+3. After all three DB image gates GREEN, proceed to a failure-first user-runtime config-repair package rather than giving manual commands.
+4. Keep Facebook/LINE fatal-context collector sealed until the DB runtime repair boundary is stable.
 
 ## Replacement readiness
 
@@ -99,9 +107,9 @@ Config validation GREEN → sustained five-process runtime → stable RestartCou
 
 - [x] DB causal RED → thin R12 repair → Windows/source-semantic GREEN.
 - [x] Exact pinned image authority frozen.
-- [x] GMessages first exact-image build proved original DB fatal cleared.
-- [x] Instagram first exact-image build proved original DB fatal cleared.
-- [x] Harness fidelity/observability defect root-repaired in CI only (`8aaceef...`).
-- [ ] Classify old Signal job and repaired three-service run.
+- [x] Instagram repaired exact pinned-image DB startup GREEN + independent artifact verification.
+- [x] Google Messages repaired exact pinned-image DB startup GREEN + independent artifact verification.
+- [ ] Seal Signal exact pinned-image DB startup gate.
+- [ ] Build failure-first user-runtime DB repair package.
 - [ ] Capture/repair true Facebook/LINE fatal validators.
 - [ ] Validate all five user runtimes and sustained readiness.
