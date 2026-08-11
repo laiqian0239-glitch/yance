@@ -110,10 +110,12 @@ test('Windows acceptance probe proves connected Facebook provisioning identity, 
 
   let loginBody = null;
   let logoutSeen = false;
+  const requests = [];
   const server = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://127.0.0.1');
       const decodedPath = decodeURIComponent(url.pathname);
+      requests.push({ method: req.method, path: decodedPath, query: url.search });
       let body = '';
       for await (const chunk of req) body += chunk;
       if (req.method === 'POST' && decodedPath === '/_matrix/client/v3/login') {
@@ -172,7 +174,7 @@ test('Windows acceptance probe proves connected Facebook provisioning identity, 
       '-ExpectedUserId', expectedUser,
       '-MessageScanLimit', '20',
     ]);
-    assert.equal(run.code, 0, `acceptance probe failed:\n${run.stdout}\n${run.stderr}`);
+    assert.equal(run.code, 0, `acceptance probe failed:\n${run.stdout}\n${run.stderr}\nrequests=${JSON.stringify(requests)}`);
     assert.match(run.stdout, /MATRIX_LOCAL_LOGIN_GREEN/);
     assert.match(run.stdout, /FACEBOOK_PROVISIONING_CONNECTED_GREEN login_count=1/);
     assert.match(run.stdout, /FACEBOOK_MATRIX_SPACE_GREEN child_rooms=1/);
