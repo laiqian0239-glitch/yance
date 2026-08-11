@@ -94,6 +94,36 @@ test('Windows operator resolves a non-root WSLg user and pins GUI launch to that
   assert.match(run.stdout, /USER=alice UID=1000/);
 });
 
+test('root-only WSL distro bootstraps a dedicated unprivileged GUI identity and separates install from launch', { skip: process.platform !== 'win32' }, () => {
+  const script = text(PS);
+  const installer = text(SH);
+  assert.match(script, /function\s+Ensure-FacebookPersonalWslGuiUser/);
+  assert.match(script, /yance-manager/);
+  assert.match(script, /useradd/);
+  assert.match(script, /WSL_GUI_USER_CREATED/);
+  assert.match(script, /--install-only/);
+  assert.match(script, /--launch-only/);
+  assert.match(installer, /--install-only/);
+  assert.match(installer, /--launch-only/);
+  assert.doesNotMatch(script, /--set-default|\/etc\/wsl\.conf|usermod[^\r\n]*sudo/i);
+  assert.doesNotMatch(installer, /--no-sandbox|--disable-setuid-sandbox/i);
+
+  const command = [
+    `. ${psQuote(PS)} -LibraryOnly`,
+    '$script:created = $false',
+    'function Invoke-LabNativeProcess { param([string]$FilePath,[string[]]$Arguments,[string]$WorkingDirectory = ""); $joined = ($Arguments -join "|"); if ($joined -match "--exec\\|bash\\|-lc" -and $joined -notmatch "--user") { return [pscustomobject]@{ ExitCode = 0; StdOut = "UID=0`nUSER=root`n"; StdErr = "" } }; if ($joined -match "--exec\\|getent\\|passwd") { $out = "root:x:0:0:root:/root:/bin/bash`n"; if ($script:created) { $out += "yance-manager:x:1000:1000:Yance Manager:/home/yance-manager:/bin/bash`n" }; return [pscustomobject]@{ ExitCode = 0; StdOut = $out; StdErr = "" } }; if ($joined -match "--user\\|root\\|--exec\\|bash\\|-lc" -and $joined -match "useradd") { $script:created = $true; return [pscustomobject]@{ ExitCode = 0; StdOut = "WSL_GUI_USER_CREATED=yance-manager`n"; StdErr = "" } }; if ($joined -match "--user\\|yance-manager\\|--exec\\|bash\\|-lc") { return [pscustomobject]@{ ExitCode = 0; StdOut = "UID=1000`nUSER=yance-manager`nHOME=/home/yance-manager`nWSLG=1`nDISPLAY_OK=1`n"; StdErr = "" } }; return [pscustomobject]@{ ExitCode = 9; StdOut = ""; StdErr = $joined } }',
+    `$r = Ensure-FacebookPersonalWslGuiUser -WslExe 'C:\\Windows\\System32\\wsl.exe' -DistroName 'Ubuntu-24.04'`,
+    'Write-Output ("USER=" + $r.Name + " UID=" + $r.Uid + " CREATED=" + $r.Created)'
+  ].join('; ');
+  const run = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', command], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    windowsHide: true
+  });
+  assert.equal(run.status, 0, `PowerShell root-only WSL GUI user bootstrap test failed:\n${run.stdout}\n${run.stderr}`);
+  assert.match(run.stdout, /USER=yance-manager UID=1000 CREATED=True/);
+});
+
 test('interactive native launcher classifies stderr by exit code and does not hide sudo prompts', { skip: process.platform !== 'win32' }, () => {
   text(PS);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wsl-manager-test-'));
