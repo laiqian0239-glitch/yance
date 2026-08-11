@@ -13,10 +13,15 @@ $ManagerDebSha256 = '94cca9ffe2087521a042f8afc656c1403dcc79af980acd229420829b367
 $ManagerDebUrl = 'https://github.com/mautrix/manager/releases/download/v0.2.1/mautrix-manager_0.2.1_amd64.deb'
 
 $nativeProcessPath = Join-Path $PSScriptRoot 'native-process.ps1'
+$provisioningAuthorityPath = Join-Path $PSScriptRoot 'facebook-personal-provisioning-authority.ps1'
 if (-not (Test-Path -LiteralPath $nativeProcessPath -PathType Leaf)) {
   throw 'REAL_RED: bundled native-process helper is missing.'
 }
+if (-not (Test-Path -LiteralPath $provisioningAuthorityPath -PathType Leaf)) {
+  throw 'REAL_RED: bundled Facebook provisioning Compose authority is missing.'
+}
 . $nativeProcessPath
+. $provisioningAuthorityPath
 
 function Invoke-LabNativeInteractiveProcess {
   [CmdletBinding()]
@@ -157,44 +162,17 @@ try {
   $yqLines = @($yqProbe.StdOut -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_.StartsWith('/') })
   if ($yqLines.Count -ne 1) { throw 'REAL_RED: upstream yq path is ambiguous.' }
   $yqPath = [string]$yqLines[0]
-  $mount = "${dataDir}:/data:ro"
 
-  function Get-FacebookYqScalar {
-    param([Parameter(Mandatory = $true)][string]$Expression)
-    $result = Invoke-LabNativeProcess -FilePath $dockerExe -Arguments @(
-      'run', '--rm', '--pull=never', '--volume', $mount,
-      '--entrypoint', $yqPath, $imageTag, '-r', $Expression, '/data/config.yaml'
-    ) -WorkingDirectory $resolvedLabRoot
-    if ($result.ExitCode -ne 0) { throw "REAL_RED: upstream config projection failed for $Expression." }
-    return $result.StdOut.Trim()
-  }
-
-  $appserviceAddress = Get-FacebookYqScalar -Expression '.appservice.address'
-  $allowMatrixAuth = Get-FacebookYqScalar -Expression '.provisioning.allow_matrix_auth'
-  if ($allowMatrixAuth -ne 'true') { throw 'REAL_RED: Facebook Personal provisioning does not allow Matrix authentication.' }
-  try { $appserviceUri = [Uri]$appserviceAddress } catch { throw 'REAL_RED: Facebook Personal appservice.address is invalid.' }
-  if (-not $appserviceUri.IsAbsoluteUri -or $appserviceUri.Host -ne 'facebook-personal' -or $appserviceUri.Port -le 0) {
-    throw 'REAL_RED: Facebook Personal appservice.address is not Compose-authoritative.'
-  }
-  $internalPort = [int]$appserviceUri.Port
-
-  $container = Invoke-LabNativeProcess -FilePath $dockerExe -Arguments @('compose', '-f', $composePath, 'ps', '-q', 'facebook-personal') -WorkingDirectory $resolvedLabRoot
-  $containerIds = @($container.StdOut -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-  if ($container.ExitCode -ne 0 -or $containerIds.Count -ne 1) { throw 'REAL_RED: expected one running Facebook Personal Compose container.' }
-  $state = Invoke-LabNativeProcess -FilePath $dockerExe -Arguments @('inspect', '--format', '{{.State.Running}}|{{.State.ExitCode}}', $containerIds[0]) -WorkingDirectory $resolvedLabRoot
-  if ($state.ExitCode -ne 0 -or $state.StdOut.Trim() -ne 'true|0') { throw 'REAL_RED: Facebook Personal runtime is not running with exit code zero.' }
-
-  $portResult = Invoke-LabNativeProcess -FilePath $dockerExe -Arguments @('compose', '-f', $composePath, 'port', 'facebook-personal', [string]$internalPort) -WorkingDirectory $resolvedLabRoot
-  if ($portResult.ExitCode -ne 0) { throw 'REAL_RED: Compose could not resolve a published Facebook Personal provisioning port.' }
-  $publishedPorts = @(
-    $portResult.StdOut -split "`r?`n" |
-      ForEach-Object { if ($_.Trim() -match ':(\d+)\s*$') { [int]$matches[1] } } |
-      Where-Object { $_ -gt 0 } |
-      Sort-Object -Unique
-  )
-  if ($publishedPorts.Count -ne 1) { throw 'REAL_RED: Facebook Personal provisioning port is not published with one stable host port.' }
-  $hostPort = [int]$publishedPorts[0]
-  $bridgeUrl = "http://127.0.0.1:$hostPort"
+  $provisioningAuthority = Ensure-FacebookPersonalProvisioningAuthority `
+    -LabRoot $resolvedLabRoot `
+    -DockerExe $dockerExe `
+    -ComposePath $composePath `
+    -ImageTag $imageTag `
+    -ImageId ([string]$stage.imageId) `
+    -YqPath $yqPath
+  $internalPort = [int]$provisioningAuthority.InternalPort
+  $hostPort = [int]$provisioningAuthority.HostPort
+  $bridgeUrl = [string]$provisioningAuthority.BridgeUrl
 
   $tcpProbe = "timeout 3 bash -c 'exec 3<>/dev/tcp/127.0.0.1/$hostPort'"
   $wslTcp = Invoke-LabNativeProcess -FilePath $wslExe -Arguments @('--distribution', $DistroName, '--exec', 'bash', '-lc', $tcpProbe)
