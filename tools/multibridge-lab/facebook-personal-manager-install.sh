@@ -98,6 +98,12 @@ if [ "$mode" = '--install-and-smoke' ]; then
   exit 0
 fi
 
+launch_uid="$(id -u)"
+launch_user="$(id -un)"
+[ "$launch_uid" -ne 0 ] || real_red 'mautrix-manager GUI launch requires a non-root WSL user'
+[ "$launch_user" != 'root' ] || real_red 'mautrix-manager GUI launch resolved root unexpectedly'
+echo "MAUTRIX_MANAGER_GUI_USER_GREEN user=$launch_user uid=$launch_uid"
+
 [ -d /mnt/wslg ] || real_red 'WSLg runtime directory is unavailable'
 if [ -z "${WAYLAND_DISPLAY:-}" ] && [ -z "${DISPLAY:-}" ]; then
   real_red 'WSLg display environment is unavailable'
