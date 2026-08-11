@@ -69,6 +69,23 @@ test('Task 9 gives each frozen Element install a clean iteration-scoped RUNNER_T
   assert.doesNotMatch(source, /verifyStoreIntegrity\s*=\s*false|verify-store-integrity(?:=|\s+)false/u);
 });
 
+test('Product final validation materializes and verifies the trusted Windows Electron LFS object before UAT packaging', () => {
+  const source = readWorkflow();
+  const lfsPullIndex = source.indexOf('git lfs pull');
+  const packageIndex = source.indexOf('create-round12-13-windows-uat-package.js');
+  assert.ok(lfsPullIndex >= 0, 'trusted Windows Electron LFS object must be materialized explicitly');
+  assert.ok(packageIndex > lfsPullIndex, 'LFS materialization and verification must happen before UAT packaging');
+  assert.match(source, /release[\\/]electron-distribution-trust\.json/u);
+  assert.match(source, /git lfs install --local/u);
+  assert.match(source, /git lfs pull origin --include=/u);
+  assert.match(source, /git show "HEAD:\$relativePath"/u);
+  assert.match(source, /oid sha256:/u);
+  assert.match(source, /Get-FileHash[^\n]*SHA256/u);
+  assert.match(source, /Get-Item[^\n]*Length/u);
+  assert.match(source, /git status --porcelain=v1 --untracked-files=all/u);
+  assert.doesNotMatch(source, /Invoke-WebRequest|Start-BitsTransfer|windows-side.*download|electron.*download fallback/iu);
+});
+
 test('PowerShell loop diagnostics delimit iteration before colon punctuation', () => {
   const source = readWorkflow();
   assert.doesNotMatch(source, /iteration \$iteration:/u);
