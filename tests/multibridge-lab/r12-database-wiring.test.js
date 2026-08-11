@@ -11,6 +11,8 @@ const FIXTURE = path.join(ROOT, 'tests', 'multibridge-lab', 'fixtures', 'r12-wir
 const IMPLEMENTATION = path.join(ROOT, 'tools', 'multibridge-lab', 'r12-database-wiring.ps1');
 const TARGETS = ['instagram-dm', 'google-messages', 'signal'];
 const NON_TARGETS = ['facebook-personal', 'line', 'telegram', 'whatsapp'];
+const FIVE_TARGET_SCOPE = ['facebook-personal', 'instagram-dm', 'google-messages', 'signal', 'line'];
+const FIVE_TARGET_NON_TARGETS = ['telegram', 'whatsapp'];
 
 function psQuote(value) {
   return `'${String(value).replaceAll("'", "''")}'`;
@@ -66,6 +68,34 @@ test('recovered R12 database wiring targets exactly the three proven database fa
   const combined = `${run.stdout || ''}\n${run.stderr || ''}`;
   assert.equal(run.status, 0, `R12 database wiring contract failed:\n${combined}`);
   for (const service of TARGETS) {
+    const escaped = service.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.match(combined, new RegExp(`${escaped}\\|sqlite3-fk-wal\\|file:/data/${escaped}\\.db\\?_txlock=immediate\\|`));
+  }
+  assert.match(combined, /\.database\.type=strenv\(YANCE_DATABASE_TYPE\)\|\.database\.uri=strenv\(YANCE_DATABASE_URI\)/);
+  assert.doesNotMatch(combined, /postgres:\/\//);
+});
+
+test('R12 database wiring scope expands to exactly five causally proven database failures', { skip: process.platform !== 'win32' }, () => {
+  const command = [
+    `. ${psQuote(IMPLEMENTATION)}`,
+    `$targets = @(${FIVE_TARGET_SCOPE.map(psQuote).join(',')})`,
+    `$nonTargets = @(${FIVE_TARGET_NON_TARGETS.map(psQuote).join(',')})`,
+    '$missing = @()',
+    'foreach ($service in $targets) {',
+    '  $wiring = Get-LabR12DatabaseWiring -Service $service',
+    '  if ($null -eq $wiring) { $missing += $service; continue }',
+    "  Write-Output ($service + '|' + $wiring.Type + '|' + $wiring.Uri + '|' + $wiring.YqExpression)",
+    '}',
+    'foreach ($service in $nonTargets) {',
+    '  $wiring = Get-LabR12DatabaseWiring -Service $service',
+    "  if ($null -ne $wiring) { throw ('unexpected database rewrite for ' + $service) }",
+    '}',
+    "if ($missing.Count -gt 0) { throw ('missing wiring for ' + ($missing -join ',')) }"
+  ].join('\r\n');
+  const run = runWindowsPowerShell(command);
+  const combined = `${run.stdout || ''}\n${run.stderr || ''}`;
+  assert.equal(run.status, 0, `five-target R12 database wiring contract failed:\n${combined}`);
+  for (const service of FIVE_TARGET_SCOPE) {
     const escaped = service.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     assert.match(combined, new RegExp(`${escaped}\\|sqlite3-fk-wal\\|file:/data/${escaped}\\.db\\?_txlock=immediate\\|`));
   }
