@@ -290,7 +290,7 @@ index 7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc..f13b569df10a63311d7bba874c452b56
 +    dependencies:
 +      is-inside-container: 1.0.0
 +
-   is-wsl@3.1.1: {}
+   is-wsl@3.1.1:
 @@ -23846,3 +23877,3 @@
 -  nx@23.1.0:
 +  nx@23.1.1:
