@@ -61,6 +61,27 @@ function Invoke-LabDockerReadOnly {
   return Invoke-LabNativeProcess -FilePath $DockerPath -Arguments $Arguments
 }
 
+function Assert-LabDockerReadSuccess {
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $true)][string]$Operation,
+    [Parameter(Mandatory = $true)][string]$Service,
+    [Parameter(Mandatory = $true)]$Result
+  )
+
+  if ($null -eq $Result) {
+    throw "Docker $Operation returned no result for service $Service."
+  }
+
+  $exitCode = [int]$Result.ExitCode
+  if ($exitCode -eq 0) { return }
+
+  $safeStderr = Protect-LabEvidenceLine ([string]$Result.StdErr)
+  $safeStderr = $safeStderr.Trim()
+  if ([string]::IsNullOrWhiteSpace($safeStderr)) { $safeStderr = '[NO_STDERR]' }
+  throw "Docker $Operation failed for service $Service with exit code $exitCode. stderr=$safeStderr"
+}
+
 function Get-LabBridgeContainerId {
   [CmdletBinding()]
   param(
@@ -71,9 +92,8 @@ function Get-LabBridgeContainerId {
   $lookup = Invoke-LabDockerReadOnly -DockerPath $DockerPath -Arguments @(
     'ps', '-a', '--filter', "label=com.docker.compose.service=$Service", '--format', '{{.ID}}'
   )
-  if ($lookup.ExitCode -ne 0) {
-    throw "Docker ps failed for service $Service with exit code $($lookup.ExitCode)."
-  }
+  Assert-LabDockerReadSuccess -Operation 'ps' -Service $Service -Result $lookup
+
   $ids = @($lookup.StdOut -split '\r?\n' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
   if ($ids.Count -ne 1) {
     throw "Expected exactly one container for service $Service, found $($ids.Count)."
@@ -92,11 +112,11 @@ function Get-LabExit11ServiceEvidence {
   $state = Invoke-LabDockerReadOnly -DockerPath $DockerPath -Arguments @(
     'inspect', '--format', '{{.State.Status}}|{{.State.ExitCode}}|{{.RestartCount}}', $containerId
   )
-  if ($state.ExitCode -ne 0) {
-    throw "Docker inspect failed for service $Service with exit code $($state.ExitCode)."
-  }
+  Assert-LabDockerReadSuccess -Operation 'inspect' -Service $Service -Result $state
 
   $logs = Invoke-LabDockerReadOnly -DockerPath $DockerPath -Arguments @('logs', '--tail', '80', $containerId)
+  Assert-LabDockerReadSuccess -Operation 'logs' -Service $Service -Result $logs
+
   $combined = @($logs.StdOut -split '\r?\n') + @($logs.StdErr -split '\r?\n')
   $validation = @(
     $combined |
