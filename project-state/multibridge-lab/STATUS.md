@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 17:46 +07:00
+Last updated: 2026-08-11 17:48 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -19,47 +19,40 @@ Authoritative Lab execution ledger. Update after every real state transition. Do
 
 Five bridges restart-loop exit 11 while Synapse stays healthy; DNS failure is downstream. Upstream bridgev2 exit 11 is configuration validation failure. No bridge config changes before exact sanitized validator evidence.
 
-## Collector/package runtime state
+## Runtime/package source state — GREEN
 
-- Native-process and collector root fixes are Windows GREEN.
+- Native-process/collector root repairs are Windows GREEN.
 - Exact R12 Compose service keys verified: `facebook-personal`, `instagram-dm`, `google-messages`, `signal`, `line`.
-- Package wrapper behavior/security was 12/12 GREEN before byte-identity hardening.
+- Package behavior/security GREEN.
+- Permanent byte-identity regression established RED on the old CRLF wrapper source and GREEN after canonical LF repair.
+- Fresh source-identity run `31482228118` / job `93749578770` at exact `0385a383b3bc638f18d395c40638a5a2103ce366`: tests=13/pass=13/fail=0.
 
-## Source byte-identity TDD — GREEN
+Canonical runtime blobs:
 
-Artifact staging exposed CRLF Git blob vs LF canonical checkout for `RUN_EXIT11_EVIDENCE.cmd`. Permanent regression `aa5afaa61aad58a3e17d5cd39cdeae36e2885c53` established clean causal RED at Windows run `31482110715` / job `93749209685`: 12 pass / 1 byte-identity fail.
-
-Root source repair `0385a383b3bc638f18d395c40638a5a2103ce366` normalizes only wrapper Git bytes to LF. Canonical wrapper blob is now:
-
-`c9afd263cc5b89486ff937a195e9313bdce9c32a`
-
-Other runtime blobs remain:
-
+- wrapper `c9afd263cc5b89486ff937a195e9313bdce9c32a`
 - collector `38eee8ecfe5411a89273027404a320b94b623dba`
 - helper `47d56b8e6561676eec75b814c1ed1ebaa8ba30d5`
 
-### Fresh Windows proof
+The same `0385a383...` run then stopped only because the artifact workflow still had the stale pre-normalization wrapper pin. That stale boundary is now repaired.
 
-Actions run `31482228118`, job `93749578770`, exact checkout `0385a383b3bc638f18d395c40638a5a2103ce366`:
+## Canonical artifact pin boundary
 
-- tests=13
-- pass=13
-- fail=0
-- repository/worktree byte identity test GREEN for all three runtime files;
-- all collector/native/package behavior/security tests remain GREEN.
+Commit `5b8f77aa10e7bab2538d1c4f0ce3a643045536fa` changes only `.github/workflows/multibridge-lab-native-process.yml`:
 
-Artifact staging then fails only because workflow expected wrapper blob is still the stale pre-normalization `7787475bd7a6e0640b5353c3042ae8e8471ef234`, while actual canonical source is `c9afd263cc5b89486ff937a195e9313bdce9c32a`. This is the explicit stale-CI-pin boundary anticipated by the prior SSOT, not a runtime/source regression.
+- expected wrapper blob updated from stale `7787475b...` to canonical `c9afd263cc5b89486ff937a195e9313bdce9c32a`;
+- verification `SOURCE.txt` wrapper blob updated to the same canonical value;
+- collector/helper pins, runtime source, tests, staging rules, and upload actions are unchanged.
 
 ## Current unique next action
 
 **Do not ask the user to run anything yet.**
 
-1. Update only `.github/workflows/multibridge-lab-native-process.yml` wrapper expected blob and verification SOURCE record from stale `7787475b...` to canonical `c9afd263cc5b89486ff937a195e9313bdce9c32a`.
-2. Runtime files, tests, `.gitattributes`, collector/helper behavior remain unchanged.
-3. Run the full Windows workflow from the workflow-pin commit.
-4. Require 13/13 tests GREEN, staging `PACKAGE_FILE_SET=GREEN`, runtime artifact upload success, and verification artifact upload success.
-5. Fetch/download both artifacts and independently verify exact file set, SHA-256 manifest, Git blob/source identity, and absence of forbidden data.
-6. Run final verification-before-completion review before user handoff.
+1. Collect the exact Windows workflow result for Head `5b8f77aa10e7bab2538d1c4f0ce3a643045536fa`.
+2. Require tests=13/pass=13/fail=0.
+3. Require staging log `PACKAGE_FILE_SET=GREEN` and exact SHA-256 manifest generation.
+4. Require both `actions/upload-artifact@v4` steps success.
+5. Fetch both artifacts and independently verify runtime package exact three-file set, manifest SHA-256, SOURCE commit/blob identities, and absence of forbidden files/data.
+6. Apply verification-before-completion review before user handoff.
 
 ## User involvement gate
 
@@ -78,8 +71,8 @@ Facebook Personal → Instagram DM → Google Messages → Signal → LINE → F
 - [x] Collector/native root repairs + Windows GREEN.
 - [x] Exact R12 service keys verified.
 - [x] Package failure-first RED → wrapper implementation → behavior/security GREEN.
-- [x] Byte-identity failure-first RED → canonical LF wrapper source → 13/13 Windows GREEN (`31482228118`).
-- [ ] Refresh CI canonical wrapper blob pin and prove artifact-producing Windows GREEN.
-- [ ] Independently verify both artifacts and hand off one runtime ZIP.
-- [ ] Capture validator lines and repair R12 generator at source.
-- [ ] Validate five runtimes and reach human-auth boundary.
+- [x] Byte-identity RED → canonical LF source → 13/13 Windows GREEN.
+- [x] Refresh artifact workflow to canonical wrapper blob pin (`5b8f77aa10e7bab2538d1c4f0ce3a643045536fa`).
+- [ ] Prove artifact-producing Windows GREEN and independently verify both artifacts.
+- [ ] Hand off one runtime ZIP and capture exact validator evidence.
+- [ ] Repair R12 generator at source, validate five runtimes, then reach human-auth boundary.
