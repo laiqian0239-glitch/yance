@@ -165,7 +165,7 @@ function createBuilderResult(options) {
     compilerPath,
     rceditPath: options.rceditPath ? path.resolve(options.rceditPath) : undefined,
     iconPath: options.iconPath ? path.resolve(options.iconPath) : path.join(repoRoot, 'frontend', 'assets', 'icon.ico'),
-    trustedNodeExecutable,
+    trustedNodeExecutable: path.resolve(options.trustedNodeExecutable),
     platformAuthConfigPath,
     platformAuthHashPath,
     requirePlatformAuth,
