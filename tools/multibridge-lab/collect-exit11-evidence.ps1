@@ -25,6 +25,7 @@ function Protect-LabEvidenceLine {
   $value = [regex]::Replace($value, '(?<!\w)\+?[0-9][0-9() .-]{7,}[0-9](?!\w)', '[REDACTED]')
   $value = [regex]::Replace($value, '(?i)\b(message|body|text|content)\b\s*[:=]\s*.*$', '$1: [REDACTED]')
   $value = [regex]::Replace($value, '(?i)\b(sessionid|cookie|token)\b\s*[:=]\s*[^\s,;]+', '$1: [REDACTED]')
+  $value = [regex]::Replace($value, '(?i)\b[A-Z0-9_]*SECRET[A-Z0-9_]*\b', '[REDACTED]')
 
   return $value
 }
@@ -35,6 +36,48 @@ function Test-LabValidationLine {
 
   if ([string]::IsNullOrWhiteSpace($Line)) { return $false }
   return $Line -match '(?i)\b(config(?:uration)?|validation|validator|invalid|missing|required|unknown|unsupported|yaml|fatal|error)\b'
+}
+
+function Select-LabExit11FatalContext {
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $true)][AllowEmptyCollection()][string[]]$Lines,
+    [ValidateRange(1, 64)][int]$MaxLines = 12
+  )
+
+  $source = @($Lines)
+  if ($source.Count -eq 0) { return @() }
+
+  $fatalIndex = -1
+  for ($index = $source.Count - 1; $index -ge 0; $index--) {
+    $line = [string]$source[$index]
+    if ($line -match '(?i)\bConfiguration error\b' -or $line -match '(?i)\bFTL\b.*\b(?:config(?:uration)?|validation|validator|error)\b') {
+      $fatalIndex = $index
+      break
+    }
+  }
+
+  $selected = @()
+  if ($fatalIndex -ge 0) {
+    $before = [Math]::Min(3, $fatalIndex)
+    $start = $fatalIndex - $before
+    $remaining = $MaxLines - ($fatalIndex - $start + 1)
+    $after = [Math]::Min([Math]::Max(0, $remaining), $source.Count - $fatalIndex - 1)
+    $end = $fatalIndex + $after
+    for ($index = $start; $index -le $end; $index++) {
+      if (-not [string]::IsNullOrWhiteSpace([string]$source[$index])) {
+        $selected += [string]$source[$index]
+      }
+    }
+  } else {
+    $selected = @(
+      $source |
+        Where-Object { Test-LabValidationLine $_ } |
+        Select-Object -Last $MaxLines
+    )
+  }
+
+  return @($selected | Select-Object -First $MaxLines | ForEach-Object { Protect-LabEvidenceLine $_ })
 }
 
 function Resolve-LabDockerExecutable {
@@ -118,12 +161,7 @@ function Get-LabExit11ServiceEvidence {
   Assert-LabDockerReadSuccess -Operation 'logs' -Service $Service -Result $logs
 
   $combined = @($logs.StdOut -split '\r?\n') + @($logs.StdErr -split '\r?\n')
-  $validation = @(
-    $combined |
-      Where-Object { Test-LabValidationLine $_ } |
-      Select-Object -Last 12 |
-      ForEach-Object { Protect-LabEvidenceLine $_ }
-  )
+  $validation = @(Select-LabExit11FatalContext -Lines $combined -MaxLines 12)
 
   return [pscustomobject]@{
     Service = $Service
