@@ -31,139 +31,93 @@ jobs:
       - name: Run Multibridge Lab contracts
         shell: pwsh
         run: node --test tests/multibridge-lab/*.test.js
-      - name: Verify exact upstream mautrix-manager source launch chain
+      - name: Enforce retired mautrix-manager source-launch security boundary
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $commit = 'd2c08e60c7a877602bc6da2961daf2daffcff79b'
-          $source = Join-Path $env:RUNNER_TEMP 'mautrix-manager-v0.2.1-source'
-          Remove-Item $source -Recurse -Force -ErrorAction SilentlyContinue
-          git clone --no-checkout --filter=blob:none https://github.com/mautrix/manager.git $source
-          if ($LASTEXITCODE -ne 0) { throw 'mautrix-manager clone failed' }
-          git -C $source fetch --depth=1 origin $commit
-          if ($LASTEXITCODE -ne 0) { throw 'mautrix-manager exact commit fetch failed' }
-          git -C $source checkout --detach $commit
-          if ($LASTEXITCODE -ne 0) { throw 'mautrix-manager exact commit checkout failed' }
-          $actual = (git -C $source rev-parse HEAD).Trim()
-          if ($LASTEXITCODE -ne 0 -or $actual -ne $commit) { throw "mautrix-manager HEAD mismatch: $actual" }
-          node -e "const p=require(process.argv[1]);if(p.name!=='mautrix-manager'||p.version!=='0.2.1'||p.devDependencies?.electron!=='43.2.0')process.exit(1)" (Join-Path $source 'package.json')
-          if ($LASTEXITCODE -ne 0) { throw 'mautrix-manager package identity mismatch' }
-          Push-Location $source
-          try {
-            npm ci --include=dev
-            if ($LASTEXITCODE -ne 0) { throw 'mautrix-manager npm ci failed' }
-            npm run lint
-            if ($LASTEXITCODE -ne 0) { throw 'mautrix-manager upstream lint failed' }
-          }
-          finally {
-            Pop-Location
-          }
-          Write-Host 'MAUTRIX_MANAGER_SOURCE_CHAIN_GREEN'
-      - name: Classify exact upstream mautrix-manager dependency audit
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $source = Join-Path $env:RUNNER_TEMP 'mautrix-manager-v0.2.1-source'
-          if (-not (Test-Path -LiteralPath (Join-Path $source 'package-lock.json') -PathType Leaf)) {
-            throw 'mautrix-manager exact source checkout is missing before dependency audit'
-          }
-
-          function Read-AuditResult {
-            param(
-              [Parameter(Mandatory = $true)][string[]]$Arguments,
-              [Parameter(Mandatory = $true)][string]$Label
-            )
-            Push-Location $source
-            try {
-              $raw = (& npm.cmd @Arguments 2>$null | Out-String)
-              $auditExit = $LASTEXITCODE
-            }
-            finally {
-              Pop-Location
-            }
-            if (-not $raw.Trim()) { throw "$Label npm audit produced no JSON" }
-            try { $document = $raw | ConvertFrom-Json } catch { throw "$Label npm audit JSON parse failed" }
-            if ($null -eq $document.metadata -or $null -eq $document.metadata.vulnerabilities) {
-              throw "$Label npm audit metadata is missing"
-            }
-            $counts = $document.metadata.vulnerabilities
-            $high = [int]$counts.high
-            $critical = [int]$counts.critical
-            $total = [int]$counts.total
-            Write-Host "$Label audit: total=$total high=$high critical=$critical exit=$auditExit"
-            $severe = @()
-            if ($document.vulnerabilities) {
-              $severe = @($document.vulnerabilities.PSObject.Properties | ForEach-Object {
-                $item = $_.Value
-                if ([string]$item.severity -in @('high', 'critical')) {
-                  $via = @($item.via | ForEach-Object {
-                    if ($_ -is [string]) { $_ }
-                    elseif ($null -ne $_.source) { "GHSA/source=$($_.source):$($_.title)" }
-                    elseif ($null -ne $_.title) { [string]$_.title }
-                  }) -join '; '
-                  [pscustomobject]@{
-                    Name = $_.Name
-                    Severity = [string]$item.severity
-                    Direct = [bool]$item.isDirect
-                    Range = [string]$item.range
-                    Via = $via
-                  }
-                }
-              })
-            }
-            foreach ($item in ($severe | Sort-Object Severity, Name)) {
-              Write-Host "$Label severe package=$($item.Name) severity=$($item.Severity) direct=$($item.Direct) range=$($item.Range) via=$($item.Via)"
-            }
-            return [pscustomobject]@{
-              Label = $Label
-              High = $high
-              Critical = $critical
-              Total = $total
-              ExitCode = $auditExit
-              Severe = $severe
-            }
-          }
-
-          $production = Read-AuditResult -Arguments @('audit', '--omit=dev', '--json') -Label 'production'
-          $full = Read-AuditResult -Arguments @('audit', '--json') -Label 'full'
-          Write-Host 'MAUTRIX_MANAGER_FULL_AUDIT_CLASSIFIED'
-
-          if ($production.High -gt 0 -or $production.Critical -gt 0) {
-            throw "mautrix-manager production dependency audit RED: high=$($production.High) critical=$($production.Critical)"
-          }
-          Write-Host 'MAUTRIX_MANAGER_PRODUCTION_AUDIT_GREEN'
-
-          if ($full.Critical -gt 0) {
-            throw "mautrix-manager full dependency critical audit RED: critical=$($full.Critical)"
-          }
-      - name: Stage Facebook Personal manager source launcher
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $packageRoot = 'dist/facebook-personal-manager-source-launch'
-          Remove-Item $packageRoot -Recurse -Force -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
-          $files = @(
+          $retiredFiles = @(
             'tools/multibridge-lab/RUN_FACEBOOK_PERSONAL_MANAGER_SOURCE.cmd',
             'tools/multibridge-lab/FACEBOOK_PERSONAL_MANAGER_SOURCE_README.txt'
           )
-          foreach ($source in $files) {
-            if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing manager launcher source: $source" }
-            Copy-Item -LiteralPath $source -Destination (Join-Path $packageRoot (Split-Path -Leaf $source))
+          foreach ($path in $retiredFiles) {
+            if (Test-Path -LiteralPath $path) { throw "Retired vulnerable manager source-launch path reappeared: $path" }
           }
-          $manifest = Get-ChildItem -LiteralPath $packageRoot -File | Sort-Object Name | ForEach-Object {
-            $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-            "$hash  $($_.Name)"
+          Write-Host 'MAUTRIX_MANAGER_SOURCE_LAUNCH_RETIRED_SECURITY_RED'
+      - name: Validate official mautrix-manager release payload for Facebook Personal
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $releaseCommit = 'd2c08e60c7a877602bc6da2961daf2daffcff79b'
+          $assetId = '495351157'
+          $assetName = 'mautrix_manager-0.2.1-full.nupkg'
+          $expectedSha256 = '0ab5a822f7c1ceb830811972fb98d9849cf17080c54f2d8d6583b0b9802721ed'
+          $assetApi = "https://api.github.com/repos/mautrix/manager/releases/assets/$assetId"
+          $tagApi = 'https://api.github.com/repos/mautrix/manager/git/ref/tags/v0.2.1'
+          $workRoot = Join-Path $env:RUNNER_TEMP 'mautrix-manager-v0.2.1-release-payload'
+          $nupkgPath = Join-Path $workRoot $assetName
+          $zipPath = Join-Path $workRoot 'mautrix-manager-release.zip'
+          $extractRoot = Join-Path $workRoot 'payload'
+          Remove-Item $workRoot -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $workRoot | Out-Null
+
+          $headers = @{
+            Accept = 'application/octet-stream'
+            Authorization = "Bearer $env:GH_TOKEN"
+            'X-GitHub-Api-Version' = '2022-11-28'
+            'User-Agent' = 'Yance-Multibridge-Lab'
           }
-          [IO.File]::WriteAllLines((Join-Path $packageRoot 'SHA256SUMS.txt'), $manifest, [Text.UTF8Encoding]::new($false))
-          Write-Host 'FACEBOOK_PERSONAL_MANAGER_SOURCE_PACKAGE_GREEN'
-          $manifest
-      - name: Upload Facebook Personal manager source launcher
-        uses: actions/upload-artifact@v4
-        with:
-          name: yance-facebook-personal-manager-source-launch
-          path: dist/facebook-personal-manager-source-launch
-          if-no-files-found: error
+          $tagHeaders = @{
+            Accept = 'application/vnd.github+json'
+            Authorization = "Bearer $env:GH_TOKEN"
+            'X-GitHub-Api-Version' = '2022-11-28'
+            'User-Agent' = 'Yance-Multibridge-Lab'
+          }
+          $tag = Invoke-RestMethod -Uri $tagApi -Headers $tagHeaders
+          if ([string]$tag.object.type -ne 'commit' -or [string]$tag.object.sha -ne $releaseCommit) {
+            throw "mautrix-manager v0.2.1 tag identity mismatch: $($tag.object.type) $($tag.object.sha)"
+          }
+
+          Invoke-WebRequest -Uri $assetApi -Headers $headers -OutFile $nupkgPath
+          if (-not (Test-Path -LiteralPath $nupkgPath -PathType Leaf)) { throw 'Official mautrix-manager release nupkg was not downloaded.' }
+          $actualSha256 = (Get-FileHash -LiteralPath $nupkgPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualSha256 -ne $expectedSha256) {
+            throw "Official mautrix-manager release nupkg SHA256 mismatch: $actualSha256"
+          }
+          Write-Host "MAUTRIX_MANAGER_RELEASE_NUPKG_SHA256_GREEN=$actualSha256"
+
+          Copy-Item -LiteralPath $nupkgPath -Destination $zipPath
+          Expand-Archive -LiteralPath $zipPath -DestinationPath $extractRoot -Force
+          $exePath = Join-Path $extractRoot 'lib/net45/mautrix-manager.exe'
+          if (-not (Test-Path -LiteralPath $exePath -PathType Leaf)) { throw 'Official nupkg does not contain lib/net45/mautrix-manager.exe.' }
+
+          $signature = Get-AuthenticodeSignature -FilePath $exePath
+          Write-Host "Internal Authenticode status=$($signature.Status)"
+          if ($null -ne $signature.SignerCertificate) {
+            Write-Host "Internal Authenticode subject=$($signature.SignerCertificate.Subject)"
+            Write-Host "Internal Authenticode thumbprint=$($signature.SignerCertificate.Thumbprint)"
+          }
+          if ([string]$signature.Status -ne 'Valid') {
+            throw "Internal mautrix-manager.exe Authenticode RED: status=$($signature.Status)"
+          }
+          Write-Host 'MAUTRIX_MANAGER_INTERNAL_AUTHENTICODE_GREEN'
+
+          $process = $null
+          try {
+            $process = Start-Process -FilePath $exePath -WorkingDirectory (Split-Path -Parent $exePath) -PassThru
+            Start-Sleep -Seconds 8
+            $process.Refresh()
+            if ($process.HasExited) {
+              throw "Official mautrix-manager release payload exited during no-login smoke: exit=$($process.ExitCode)"
+            }
+            Write-Host 'MAUTRIX_MANAGER_RELEASE_PAYLOAD_SMOKE_GREEN'
+          }
+          finally {
+            if ($null -ne $process -and -not $process.HasExited) {
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            }
+          }
       - name: Stage exact GREEN exit11 evidence package
         shell: pwsh
         run: |
