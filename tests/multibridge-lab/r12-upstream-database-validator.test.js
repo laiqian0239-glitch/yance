@@ -22,23 +22,34 @@ function runWindowsPowerShell(command) {
   });
 }
 
-test('frozen upstream database validator authorities have the exact three-service identity', () => {
+test('frozen upstream database validator authorities have the exact five-service identity', () => {
   const authority = JSON.parse(fs.readFileSync(AUTHORITY_FILE, 'utf8'));
   assert.equal(authority.schemaVersion, 1);
   assert.equal(authority.placeholderUri, 'postgres://user:password@host/database?sslmode=disable');
   assert.equal(authority.fatalError, 'database.uri not configured');
   assert.equal(authority.supportedSqliteType, 'sqlite3-fk-wal');
   assert.equal(authority.recommendedSqliteUriPattern, 'file:<path>?_txlock=immediate');
-  assert.deepEqual(authority.authorities.map(item => item.service), ['instagram-dm', 'google-messages', 'signal']);
+  assert.deepEqual(authority.authorities.map(item => item.service), ['facebook-personal', 'instagram-dm', 'google-messages', 'signal', 'line']);
   assert.deepEqual(authority.authorities.map(item => item.bridgev2Commit), [
     '56938b8a508d37c2501629d9b35538e849f4a63b',
+    '56938b8a508d37c2501629d9b35538e849f4a63b',
     '5743d9b6f27e2de4966f50e13a658308cdcdbbcb',
-    'f7cfa8766d2bcf45f944fc76ea856bcc36317ad9'
+    'f7cfa8766d2bcf45f944fc76ea856bcc36317ad9',
+    'a616b2b236fcb762e065ab1836b707aa71db3f46'
   ]);
   assert.deepEqual(authority.authorities.map(item => item.validatorBlob), [
     '667d48e5e4647d58802ec87b67f7b294e00cd5a8',
+    '667d48e5e4647d58802ec87b67f7b294e00cd5a8',
     'f83032370ba81302451157dd96f7c8f2cdd2f15c',
-    'e1321e6421b387b2b8651861f51559d10eca2f1b'
+    'e1321e6421b387b2b8651861f51559d10eca2f1b',
+    'f83032370ba81302451157dd96f7c8f2cdd2f15c'
+  ]);
+  assert.deepEqual(authority.authorities.map(item => item.exampleConfigBlob), [
+    '60efdc4938344b31a96d8859b06f3d0f636247f9',
+    '60efdc4938344b31a96d8859b06f3d0f636247f9',
+    '1740634c0df8710e7d54dd5ef04c728f39ac004e',
+    '1740634c0df8710e7d54dd5ef04c728f39ac004e',
+    '28903a6596742f600e27871514ee3c62c7815484'
   ]);
 });
 
