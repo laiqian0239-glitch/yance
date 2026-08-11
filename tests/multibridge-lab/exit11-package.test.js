@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
@@ -10,10 +11,21 @@ const TOOLS = path.join(ROOT, 'tools', 'multibridge-lab');
 const WRAPPER = path.join(TOOLS, 'RUN_EXIT11_EVIDENCE.cmd');
 const COLLECTOR = path.join(TOOLS, 'collect-exit11-evidence.ps1');
 const HELPER = path.join(TOOLS, 'native-process.ps1');
+const RUNTIME_PATHS = [
+  'tools/multibridge-lab/RUN_EXIT11_EVIDENCE.cmd',
+  'tools/multibridge-lab/collect-exit11-evidence.ps1',
+  'tools/multibridge-lab/native-process.ps1'
+];
 
 function read(file) {
   assert.ok(fs.existsSync(file), `missing package file: ${file}`);
   return fs.readFileSync(file, 'utf8');
+}
+
+function git(...args) {
+  const run = spawnSync('git', args, { cwd: ROOT, encoding: 'utf8', windowsHide: true });
+  assert.equal(run.status, 0, `git ${args.join(' ')} failed:\n${run.stdout}\n${run.stderr}`);
+  return run.stdout.trim();
 }
 
 test('final package has exactly one user-facing Windows wrapper over the tested collector/helper', () => {
@@ -68,5 +80,17 @@ test('package source remains the exact read-only collector boundary', () => {
   for (const text of [collector, helper]) {
     assert.doesNotMatch(text, /\bdocker\s+(?:compose\s+)?(?:up|start|restart|stop|kill|rm|build|exec)\b/i);
     assert.doesNotMatch(text, /\bdocker\s+network\s+(?:connect|disconnect|create|rm)\b/i);
+  }
+});
+
+test('runtime repository blobs and tested worktree bytes are identical', () => {
+  for (const relativePath of RUNTIME_PATHS) {
+    const repositoryBlob = git('rev-parse', `HEAD:${relativePath}`);
+    const worktreeBlob = git('hash-object', '--', relativePath);
+    assert.equal(
+      worktreeBlob,
+      repositoryBlob,
+      `runtime source byte identity mismatch for ${relativePath}: repository=${repositoryBlob} worktree=${worktreeBlob}`
+    );
   }
 });
