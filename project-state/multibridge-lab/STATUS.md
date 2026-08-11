@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 18:30 +07:00
+Last updated: 2026-08-11 18:32 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -40,23 +40,37 @@ Historical fixture `65a41976fdcb8d321fab92ac03c65cd647e822ab`; failure-first `64
 
 ## Exact upstream database validator source authority — FROZEN
 
-All three exact dependency versions were read live from GitHub, not inferred from latest docs:
-
 - Meta/Instagram dependency `56938b8a508d37c2501629d9b35538e849f4a63b`: validator blob `667d48e5e4647d58802ec87b67f7b294e00cd5a8`; example-config blob `60efdc4938344b31a96d8859b06f3d0f636247f9`.
 - Google Messages dependency `5743d9b6f27e2de4966f50e13a658308cdcdbbcb`: validator blob `f83032370ba81302451157dd96f7c8f2cdd2f15c`; example-config blob `1740634c0df8710e7d54dd5ef04c728f39ac004e`.
 - Signal dependency `f7cfa8766d2bcf45f944fc76ea856bcc36317ad9`: validator blob `e1321e6421b387b2b8651861f51559d10eca2f1b`; example-config blob `1740634c0df8710e7d54dd5ef04c728f39ac004e`.
 
-All exact validators use the same fatal predicate: database URI equals `postgres://user:password@host/database?sslmode=disable` → `database.uri not configured`. All exact example configs explicitly support `sqlite3-fk-wal` and recommend `file:<path>?_txlock=immediate` for SQLite.
+All exact validators use the same fatal predicate: URI equals `postgres://user:password@host/database?sslmode=disable` → `database.uri not configured`. Exact example configs support `sqlite3-fk-wal` and recommend `file:<path>?_txlock=immediate`.
 
-Commit `cba12644cae7cd248bb25337df50bbb9799b2af1` adds only immutable verification fixture `tests/multibridge-lab/fixtures/upstream-database-validator-authorities.json`, containing the exact dependency refs/blobs/predicate/SQLite contract above. It is audit data only; no runtime source changed.
+Immutable authority fixture commit: `cba12644cae7cd248bb25337df50bbb9799b2af1`.
+
+## Source-semantic verification-only boundary
+
+Commit `cdd22bfc400b5e6967af3e8cb4b6cc248f3f7c3c` adds only `tests/multibridge-lab/r12-upstream-database-validator.test.js`; no runtime or wiring source changed.
+
+The verification test:
+
+- freezes exact three-service authority identity and exact dependency/validator blobs;
+- evaluates actual Windows `Get-LabR12DatabaseWiring` output for each authority service;
+- requires exact upstream-supported type `sqlite3-fk-wal`;
+- requires each URI to differ from the exact fatal placeholder;
+- requires exact per-service `file:/data/<service>.db?_txlock=immediate`;
+- requires the URI to match upstream-recommended `file:` + `_txlock=immediate` form;
+- requires the exact yq database mutation fragment.
+
+This is verification-only and therefore does not create an artificial implementation RED cycle.
 
 ## Unique next action
 
 No user action now.
 
-1. Add verification-only test that evaluates already-GREEN `Get-LabR12DatabaseWiring` outputs against every frozen authority fixture entry: URI must differ from fatal placeholder, type must equal exact supported SQLite type, URI must match upstream-recommended `file:` + `_txlock=immediate`, and service authority set must match exactly.
-2. Run full Windows Lab suite and record source-semantic GREEN; no artificial failure-first cycle is required because no implementation behavior changes in this verification-only layer.
-3. Then move to exact pinned binary/image validation without restarting user runtime.
+1. Collect exact Windows result for `cdd22bfc400b5e6967af3e8cb4b6cc248f3f7c3c`; expect 20/20 GREEN if source-semantic authority matches implementation.
+2. Record source-semantic GREEN before moving to exact pinned binary/image validation.
+3. Keep existing user runtime untouched until pinned binary/image validation package is independently GREEN.
 
 ## Replacement readiness
 
@@ -68,8 +82,8 @@ Config validation GREEN → sustained five-process runtime → stable RestartCou
 - [x] Fatal-context collector/package sealed GREEN.
 - [x] DB-generator causal RED → implementation → Windows 18/18 GREEN.
 - [x] Exact upstream source-semantic authority frozen.
-- [x] Immutable source-authority fixture committed (`cba12644...`).
-- [ ] Run source-semantic verification test.
+- [x] Source-semantic verification-only test committed (`cdd22bfc...`).
+- [ ] Prove source-semantic Windows GREEN.
 - [ ] Validate repaired configs with exact pinned binaries/images.
 - [ ] Capture/repair true Facebook/LINE fatal validators.
 - [ ] Validate all five runtimes and sustained readiness.
