@@ -23,26 +23,27 @@ function psQuote(value) {
   return `'${String(value).replaceAll("'", "''")}'`;
 }
 
-test('Windows operator preflight proves the real Facebook provisioning endpoint before any install', () => {
+test('Windows operator preflight proves and repairs the real Facebook provisioning endpoint before any install', () => {
   const script = text(PS);
   assert.match(script, /Ubuntu-24\.04/);
   assert.match(script, /C:\\Users\\1\\Downloads\\yance-multibridge-lab/);
   assert.match(script, /runtime[\\/]docker-compose\.lab\.yml/);
   assert.match(script, /upstream-builds\.json/);
   assert.match(script, /facebook-personal/);
-  assert.match(script, /\.appservice\.address/);
-  assert.match(script, /\.provisioning\.allow_matrix_auth/);
-  assert.match(script, /compose[\s\S]*port/);
+  assert.match(script, /facebook-personal-provisioning-authority\.ps1/);
+  assert.match(script, /Ensure-FacebookPersonalProvisioningAuthority/);
+  assert.match(script, /\.InternalPort/);
+  assert.match(script, /\.HostPort/);
+  assert.match(script, /\.BridgeUrl/);
   assert.match(script, /127\.0\.0\.1/);
   assert.match(script, /\/dev\/tcp/);
   assert.match(script, /FACEBOOK_PROVISIONING_ENDPOINT_GREEN/);
-  assert.match(script, /http:\/\/127\.0\.0\.1:/);
   assert.match(script, /http:\/\/127\.0\.0\.1:8008/);
 
   for (const forbidden of ['--install', '--update', '--set-version', '--set-default', '--shutdown', '--unregister']) {
     assert.doesNotMatch(script, new RegExp(`wsl(?:\\.exe)?[^\\r\\n]*${forbidden.replaceAll('-', '\\-')}`, 'i'));
   }
-  assert.doesNotMatch(script, /\.wslconfig|netsh|Set-NetFirewall|New-NetFirewall/i);
+  assert.doesNotMatch(script, /\.wslconfig|netsh|Set-NetFirewall|New-NetFirewall|portproxy/i);
 });
 
 test('Linux installer uses only the exact official deb and package-manager sandbox semantics', () => {
@@ -103,6 +104,8 @@ test('dedicated CI validates Linux install smoke and publishes a sealed Windows 
   assert.match(workflow, /windows-latest/);
   assert.match(workflow, /ubuntu-latest/);
   assert.match(workflow, /facebook-personal-wsl-manager\.test\.js/);
+  assert.match(workflow, /facebook-personal-provisioning-authority\.test\.js/);
+  assert.match(workflow, /facebook-personal-provisioning-authority\.ps1/);
   assert.match(workflow, /WINDOWS_POWERSHELL_5_1_MANAGER_PARSE_GREEN/);
   assert.match(workflow, /foreach\s*\(\$target\s+in\s+\$targets\)/);
   assert.match(workflow, /powershell\.exe[^\r\n]*-Target\s+\$target/);
@@ -114,6 +117,7 @@ test('dedicated CI validates Linux install smoke and publishes a sealed Windows 
 
   assert.match(wrapper, /PACKAGE_INTEGRITY_GREEN/);
   assert.match(wrapper, /PACKAGE_MOTW_RELEASE_GREEN/);
+  assert.match(wrapper, /facebook-personal-provisioning-authority\.ps1/);
   assert.match(wrapper, /Unblock-File/);
   assert.match(wrapper, /pause/i);
   assert.doesNotMatch(wrapper, /ExecutionPolicy\s+(?:Bypass|Unrestricted)|Set-ExecutionPolicy/i);
