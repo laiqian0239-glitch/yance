@@ -49,6 +49,16 @@ test('Task 9 runs two clean pinned Element materializations with pnpm 11.5.2 fro
   assert.doesNotMatch(source, /pnpm\s+install[^\n]*--lockfile-only/u);
 });
 
+test('every pnpm shim invocation launches from neutral RUNNER_TEMP while --dir still targets Element', () => {
+  const source = readWorkflow();
+  assert.match(source, /Push-Location \$env:RUNNER_TEMP\s*\n\s*try \{\s*\n\s*\$actualPnpm = \(pnpm --version\)\.Trim\(\)\s*\n\s*\} finally \{\s*\n\s*Pop-Location\s*\n\s*\}/u);
+  assert.match(source, /Push-Location \$env:RUNNER_TEMP\s*\n\s*try \{[\s\S]*?pnpm --dir \$element install --frozen-lockfile[\s\S]*?pnpm --dir \$element exec nx build yance-element-module[\s\S]*?pnpm --dir \$element exec nx run yance-element-module:lint:types[\s\S]*?\} finally \{\s*\n\s*Pop-Location\s*\n\s*\}/u);
+  assert.equal((source.match(/Push-Location \$env:RUNNER_TEMP/gu) || []).length, 2);
+  assert.match(source, /PNPM_VERSION:\s*11\.5\.2/u);
+  assert.doesNotMatch(source, /packageManager[^\n]*pnpm/u);
+  assert.doesNotMatch(source, /--no-frozen-lockfile|--lockfile-only/u);
+});
+
 test('the workflow prepares a non-release exact-head UAT package without claiming real Electron UAT', () => {
   const source = readWorkflow();
   assert.match(source, /create-round12-13-windows-uat-package\.js/u);
