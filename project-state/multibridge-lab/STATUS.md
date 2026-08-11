@@ -1,115 +1,102 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 18:59 +07:00
+Last updated: 2026-08-11 19:00 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
 ## Operating rule
 
-Authoritative Lab execution ledger. Update after every real state transition. No repeated completed work without recorded regression. No user action for basic script/config debugging.
+Authoritative Lab ledger. Update after every real state transition. No user action for basic script/config debugging. Mature upstream source/runtime remains authority; no R13 revival or workaround infrastructure.
 
-## Frozen authorities
+## Frozen completed authorities
 
-- WhatsApp frozen: mautrix-whatsapp v0.2607.0 / `a86f5eb9bf7d5a4a6cc7a1c4e42d322bdcb03aa2`, PR #112 ordinary merged.
-- Telegram real-device GREEN frozen: `c85b03d37107a211075aece254c031ec5cff3586`, image `sha256:e064d991e9aefb9eee3c0ecc9615e601c73687ea2f0d493730dddb3dd6403084`.
+- WhatsApp: mautrix-whatsapp v0.2607.0 / `a86f5eb9bf7d5a4a6cc7a1c4e42d322bdcb03aa2`, PR #112 ordinary merged.
+- Telegram real-device GREEN: `c85b03d37107a211075aece254c031ec5cff3586`, image `sha256:e064d991e9aefb9eee3c0ecc9615e601c73687ea2f0d493730dddb3dd6403084`.
 - Synapse exact pin/image/account frozen; credentials local only.
 - R12 readiness revoked for `facebook-personal`, `instagram-dm`, `google-messages`, `signal`, `line`; R13–R13.3 retired.
 
-## Database recovery state
+## R12 database repair lineage
 
-Real Windows evidence proved Instagram DM / Google Messages / Signal fatal `database.uri not configured` while all five containers were `restarting|11|243`.
+Real Windows evidence: all five services were `restarting|11|243`; Instagram DM / Google Messages / Signal emitted fatal `database.uri not configured`.
 
-R12 DB repair lineage:
-- historical wiring fixture `65a41976fdcb8d321fab92ac03c65cd647e822ab`;
-- failure-first `645eb7a2429cb34f179e58fbab579ed3aaa994af` → causal RED run `31485657849`;
-- implementation `63c008a31b8e36b093a7fc9f39d918f0960dc159` → Windows 18/18 GREEN run `31485835966`;
-- exact upstream source authority fixture `cba12644cae7cd248bb25337df50bbb9799b2af1`;
-- verification-only `cdd22bfc400b5e6967af3e8cb4b6cc248f3f7c3c` → Windows 20/20 GREEN run `31486266961`, job `93762278784`.
+- historical exact wiring fixture `65a41976fdcb8d321fab92ac03c65cd647e822ab` proves R12 omitted DB type/URI;
+- failure-first `645eb7a2429cb34f179e58fbab579ed3aaa994af` → RED run `31485657849`;
+- thin implementation `63c008a31b8e36b093a7fc9f39d918f0960dc159` currently targets only `instagram-dm`, `google-messages`, `signal` with `sqlite3-fk-wal` + `file:/data/<service>.db?_txlock=immediate`;
+- Windows implementation run `31485835966`: 18/18 GREEN;
+- exact upstream authority fixture `cba12644cae7cd248bb25337df50bbb9799b2af1`;
+- source-semantic verification `cdd22bfc400b5e6967af3e8cb4b6cc248f3f7c3c` → run `31486266961`, job `93762278784`: 20/20 GREEN.
 
-Generated values remain exactly `sqlite3-fk-wal` + `file:/data/<service>.db?_txlock=immediate` for the three proven DB targets only and clear every exact frozen bridgev2 fatal placeholder predicate.
+## Pinned-image DB gates
+
+Repaired isolated run `31487411606`, head `8aaceef6b22d410c0f975c18ba46a0a9c6fc7ed0` replays exact historical R12 non-DB wiring with safe dummy values, adds recovered DB fields, uses exact upstream Docker builds/binaries and `--network none`.
+
+### Instagram DM — SEALED GREEN
+- job `93765873058`;
+- exact Meta commit `a0db68a56bb5715d67faa331f647e771d62b05a2` / `Dockerfile.ig` / `/usr/bin/mautrix-instagram`;
+- image `sha256:fd83600ab2d55aa02f998067daf3fb8baa889874d5813f31a6c79a2a20bd669c`;
+- running, exit 0, SQLite DB present, no Configuration error;
+- artifact `9099701058`, digest `sha256:f582c497b98e5cde2dc9954b17aae94d14e84c711e7c206604f0cec62714dc23`, independently verified.
+
+### Google Messages — SEALED GREEN
+- job `93765873115`;
+- exact commit `2f2a1efa59a1bfbfb0ab1570b0532a93baeeea96` / upstream Dockerfile / `/usr/bin/mautrix-gmessages`;
+- image `sha256:87e2bf3d75cb2d201958104a98e4d84d80dfc770918211f1213b6d034a4b1b16`;
+- running, exit 0, SQLite DB present, no Configuration error;
+- artifact `9099710796`, digest `sha256:b85260a3b9750822f8837f010d48476ad3c6c24854993b8ae6f04bcaddd374e1`, independently verified.
+
+### Signal — PENDING
+Exact source/submodule verification is GREEN in original job `93764904631` and repaired job `93765873128`; both remain in the expensive exact upstream Rust libsignal + Go Docker build. No prebuilt approximation is authorized.
 
 ## Facebook/LINE collector — SEALED GREEN
 
 Fatal-context package final authority run `31485153849`, job `93758725677`, exact `4bd07b41451d2c27b7a2945bb08d76570d2ed543`: 15/15 GREEN plus independently verified artifacts. Do not rerun on user machine yet.
 
-Observed first Windows evidence for Facebook `network.mode` null and LINE bot avatar null remains classified nonfatal upgrader warning; those lines are not root-cause authority.
+Initial Windows warning lines remain noncausal: Facebook empty `network.mode` is allowed; LINE empty bot avatar is upstream-template output and not required.
 
-## Exact pinned binary/image DB validation
+## Facebook/LINE pinned-binary fatal diagnostic
 
-- Instagram exact Meta `Dockerfile.ig` / binary `/usr/bin/mautrix-instagram`.
-- Google Messages exact upstream Dockerfile / binary `/usr/bin/mautrix-gmessages`.
-- Signal exact upstream Dockerfile + exact libsignal submodule / binary `/usr/bin/mautrix-signal`.
+Verification-only workflow commit `2991d16333ff274a141549ab4de2d4434f9cec10`, run `31488170951`. It intentionally replays exact historical R12 non-DB wiring **without** recovered DB wiring, uses exact upstream source/Dockerfile/binary under `--network none`, and uploads only non-secret classification reports.
 
-Repaired matrix run `31487411606`, exact head `8aaceef6b22d410c0f975c18ba46a0a9c6fc7ed0`:
+### Facebook Personal — DATABASE FATAL PROVEN
 
-### Instagram DM — SEALED PINNED IMAGE GREEN
-- job `93765873058`;
-- image `sha256:fd83600ab2d55aa02f998067daf3fb8baa889874d5813f31a6c79a2a20bd669c`;
-- state running, exit 0, SQLite DB present, no Configuration error;
-- artifact `9099701058`, digest `sha256:f582c497b98e5cde2dc9954b17aae94d14e84c711e7c206604f0cec62714dc23`, independently reverified.
+Job `93768243269` completed success as a diagnostic:
 
-### Google Messages — SEALED PINNED IMAGE GREEN
-- job `93765873115`;
-- image `sha256:87e2bf3d75cb2d201958104a98e4d84d80dfc770918211f1213b6d034a4b1b16`;
-- state running, exit 0, SQLite DB present, no Configuration error;
-- artifact `9099710796`, digest `sha256:b85260a3b9750822f8837f010d48476ad3c6c24854993b8ae6f04bcaddd374e1`, independently reverified.
+- historical R12 fixture omission check GREEN;
+- exact Meta source commit `a0db68a56bb5715d67faa331f647e771d62b05a2` verified;
+- exact default upstream Dockerfile build GREEN;
+- exact image ID `sha256:5130c03afcaf5de71a38c665dc533dc98622d37e843b9f879cfcb76339e3c06e`;
+- exact `/usr/bin/mautrix-meta` generated example config and ephemeral registration;
+- historical R12 homeserver/appservice/matrix/permissions wiring replayed; no DB repair applied;
+- observed `state=exited`, `exit_code=11`;
+- classification **`DATABASE_URI_NOT_CONFIGURED`**;
+- artifact ID `9099993096`, upload ZIP digest `sha256:a72e030dbc3ce884add6f4c053301a1dcc86f93f70604f25bd7f5e1f880f8aaa`.
 
-### Signal — PENDING
-Original job `93764904631` and repaired job `93765873128` have both verified exact source/submodule and remain in exact upstream Docker build. The long Rust libsignal build is intentionally not replaced by a prebuilt approximation.
+This directly disproves the old `network.mode` warning as root cause and proves Facebook Personal shares the R12 database omission. **Implementation scope is not expanded yet**: the artifact must be independently verified and LINE must be classified before a new failure-first scope expansion.
 
-## Facebook/LINE exact source facts
-
-### Facebook Personal
-- exact Meta commit `a0db68a56bb5715d67faa331f647e771d62b05a2`;
-- exact default Dockerfile blob `44df33201e9fcc3becc198efa96052ec71e54bbe`, binary `/usr/bin/mautrix-meta`, `/data` volume authority;
-- exact connector validation allows empty/unset mode, so prior `network.mode` warning remains nonfatal;
-- exact shared bridgev2 dependency contains the same base database-placeholder fatal predicate as Instagram.
-
-### LINE
-- exact commit `0fc10ea165b54db6ffd7c085d42cc42b0ce46414`;
-- exact Dockerfile blob `6be7573a8a50f95a3429b9c7e631c9a8f59b166a`, binary `/usr/bin/matrix-line`, exact docker-run blob `8d05e0493139a2617c03acf52f21edf021f16504`, `/data` authority;
-- exact LINE connector has no private config validator; config fatal authority is shared bridgev2 base validation;
-- exact mautrix/go v0.28.0 base validator contains the same placeholder URI → `database.uri not configured` predicate.
-
-These facts make shared DB omission plausible but do **not** authorize widening repair scope before pinned-binary reproduction.
-
-## Parallel isolated Facebook/LINE fatal diagnostic — WORKFLOW COMMITTED, RESULT PENDING
-
-Verification-only commit `2991d16333ff274a141549ab4de2d4434f9cec10` adds only `.github/workflows/multibridge-lab-fb-line-fatal-diagnostic.yml`.
-
-The workflow freezes the previously authorized diagnostic design:
-- exact matrix only `facebook-personal` and `line`;
-- verifies historical R12 fixture still omits DB wiring;
-- fetches and verifies each exact upstream source commit;
-- builds exact upstream Dockerfile (`mautrix/meta` default Dockerfile for FB, `beeper/line` Dockerfile for LINE);
-- uses exact pinned binary to generate example config and ephemeral registration;
-- replays frozen historical R12 non-DB wiring with safe dummy values and intentionally does **not** apply recovered DB wiring;
-- runs exact binary with `--network none` and isolated temporary `/data`;
-- classifies only enumerated non-secret fatal categories: `DATABASE_URI_NOT_CONFIGURED`, `BRIDGE_PERMISSIONS_NOT_CONFIGURED`, homeserver/appservice-token/username-template categories, `OTHER_CONFIGURATION_ERROR`, or `NO_ENUMERATED_CONFIGURATION_FATAL`;
-- uploads only six non-secret fields: service/source/image/state/exit/classification; no raw logs/config/registration/DB/token artifact;
-- does not modify `r12-database-wiring.ps1`, user runtime, collector, Compose, or product code.
-
-Result is not yet inspected. Per SSOT discipline, this workflow boundary is recorded before reading its Actions run.
+### LINE — PENDING
+Exact source fetch is GREEN; job `93768243356` remains in exact upstream Docker build. No repair inference before its pinned-binary result.
 
 ## Unique next actions
 
 No user action now.
 
-1. Collect exact Actions results for diagnostic commit `2991d16333ff274a141549ab4de2d4434f9cec10`; record each FB/LINE result separately before any repair-scope change.
-2. Continue waiting for exact Signal image builds/results without weakening authority.
-3. If FB/LINE exact binaries reproduce `database.uri not configured`, add failure-first tests before expanding R12 DB wiring to those services; otherwise split repairs by actual fatal.
-4. Only after all config defects are proven and repaired should a final user-runtime repair/readiness package be built.
+1. Independently download/verify Facebook classification artifact; record verification.
+2. Collect LINE pinned-binary result and record it before any implementation change.
+3. Continue exact Signal build/result without weakening authority.
+4. If LINE also proves `DATABASE_URI_NOT_CONFIGURED`, add failure-first tests to expand the existing thin R12 DB wiring to Facebook + LINE; if not, repair LINE by its actual fatal separately.
+5. Only after config validation for all five is proven should a user-runtime repair/readiness package be constructed.
 
-## Replacement readiness
+## Replacement runtime-ready definition
 
-Config validation GREEN → sustained five-process runtime → stable RestartCount → Compose endpoint/alias → Synapse↔bridge reachability → provisioning/login GREEN → `LAB_RUNTIME_READY` → human auth.
+Config validation GREEN → five processes sustained → RestartCount stable → Compose endpoint/alias → Synapse↔bridge DNS/TCP GREEN → upstream provisioning/login GREEN → `LAB_RUNTIME_READY` → human auth.
 
 ## Progress
 
-- [x] DB causal RED → thin R12 repair → Windows/source-semantic GREEN.
 - [x] Instagram pinned-image DB startup GREEN.
 - [x] Google Messages pinned-image DB startup GREEN.
 - [ ] Seal Signal pinned-image DB startup gate.
-- [x] Commit isolated Facebook/LINE true-fatal diagnostic (`2991d163...`).
-- [ ] Classify Facebook/LINE diagnostic results and failure-first expand/split repair.
+- [x] Facebook exact pinned binary proves DB fatal.
+- [ ] Independently verify Facebook artifact.
+- [ ] Classify LINE pinned binary.
+- [ ] Failure-first expand/split remaining config repair.
 - [ ] Build final user-runtime repair + sustained readiness gates.
