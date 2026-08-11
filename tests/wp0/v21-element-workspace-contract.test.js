@@ -309,17 +309,17 @@ test('Nx CRLF backport carries exact-source unified-diff replay coordinates', ()
       [323, 323], [362, 362],
       [3671, 3671], [3681, 3681], [3691, 3691], [3701, 3701], [3712, 3712],
       [3724, 3724], [3736, 3736], [3748, 3748], [3759, 3759], [3769, 3769],
-      [10785, 10797],
-      [8328, 8328], [9665, 9673], [10838, 10850], [12089, 12105],
+      [8328, 8328], [9665, 9673], [10785, 10797], [10838, 10850], [12089, 12105],
       [16378, 16398], [16381, 16401], [16388, 16408], [16392, 16412], [16401, 16421],
       [16411, 16431], [16436, 16456], [16440, 16460], [16447, 16467], [16454, 16474],
       [16486, 16506], [16492, 16512], [16498, 16518], [16504, 16524], [16510, 16530],
       [16516, 16536], [16522, 16542], [16528, 16548], [16534, 16554], [16540, 16560],
+      [20991, 21011], [22444, 22471],
       [23846, 23877], [23864, 23895], [23875, 23907], [23909, 23943], [23928, 23963],
       [23938, 23973], [23963, 23999],
-      [20991, 21011], [22444, 22471], [24017, 24053], [25525, 25568]
+      [24017, 24053], [25525, 25568]
     ],
-    'pnpm-lock.yaml hunks must bind exact pinned old lines and exact post-backport target lines without reordering mutation blocks'
+    'pnpm-lock.yaml hunks must bind exact pinned old lines and exact post-backport target lines in canonical old-file order'
   );
 });
 
@@ -358,5 +358,37 @@ test('Nx CRLF backport keeps ordinary git-apply edge context on every mutation h
     replayUnsafe,
     [],
     'ordinary git apply requires unchanged edge context or structural coalescing; reduced-context mutation hunks are forbidden'
+  );
+});
+
+test('Nx CRLF backport presents canonical per-file unified-diff hunk order', () => {
+  const nxPatch = readText('upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch');
+  const violations = [];
+  let currentFile = null;
+  let previousOldLine = null;
+
+  for (const line of nxPatch.split(/\r?\n/u)) {
+    const fileMatch = line.match(/^diff --git a\/(.+?) b\/(.+)$/u);
+    if (fileMatch) {
+      assert.equal(fileMatch[1], fileMatch[2], 'canonical replay may not rename upstream files');
+      currentFile = fileMatch[1];
+      previousOldLine = null;
+      continue;
+    }
+
+    const hunkMatch = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/u);
+    if (!hunkMatch) continue;
+    assert.notEqual(currentFile, null, 'every hunk must belong to an explicit diff file section');
+    const oldLine = Number(hunkMatch[1]);
+    if (previousOldLine !== null && oldLine <= previousOldLine) {
+      violations.push({ file: currentFile, previousOldLine, oldLine });
+    }
+    previousOldLine = oldLine;
+  }
+
+  assert.deepEqual(
+    violations,
+    [],
+    'canonical unified diff requires strictly increasing old-file hunk coordinates within each file section'
   );
 });

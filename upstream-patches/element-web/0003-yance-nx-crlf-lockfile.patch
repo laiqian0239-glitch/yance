@@ -101,13 +101,6 @@ index 7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc..9ea9eb20bd2bb2d8af0f811ecf079826
 +    resolution: {integrity: sha512-UD21AHWJ2PEA+PuANPCt+lj3kYpAzYNq+bm4VCbrt3KZd7zDPas0ns85UIhfrhsNiSmYzjWz2/JDk2S3cA6lGw==}
      cpu: [x64]
      os: [win32]
-@@ -10785,4 +10797,4 @@
--  nx@23.1.0:
--    resolution: {integrity: sha512-Z4hzIdRF6naDDpOTOazrJODmbU5D7slq94FR5q/dySW+evGxiOSFLO981VqDVvtNEvHPnEDh/C1wvFseWyvSrQ==}
-+  nx@23.1.1:
-+    resolution: {integrity: sha512-oDdW2JgVllgfyyN6OqlRzeABw0QrlXdxyl9rtOUMMXQzlkpYA1RTs8jinJCe6QSo7aEn0dZ+Ar7dd09hMudBsg==}
-     hasBin: true
-     peerDependencies:
 @@ -8328,2 +8328,10 @@
 +  default-browser-id@5.0.0:
 +    resolution: {integrity: sha512-A6p/pu/6fyBcA1TRz/GqWYPViplrftcW2gZC9q79ngNCKAeR/X3gcEdXQHl4KNXV+3wgIJ1CPkJQ3IHM6lcsyA==}
@@ -126,6 +119,13 @@ index 7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc..9ea9eb20bd2bb2d8af0f811ecf079826
 +
    is-wsl@3.1.1:
      resolution: {integrity: sha512-e6rvdUCiQCAuumZslxRJWR/Doq4VpPR82kqclvcS0efgt430SlGIk05vdCN58+VrzgtIcfNODjozVielycD4Sw==}
+@@ -10785,4 +10797,4 @@
+-  nx@23.1.0:
+-    resolution: {integrity: sha512-Z4hzIdRF6naDDpOTOazrJODmbU5D7slq94FR5q/dySW+evGxiOSFLO981VqDVvtNEvHPnEDh/C1wvFseWyvSrQ==}
++  nx@23.1.1:
++    resolution: {integrity: sha512-oDdW2JgVllgfyyN6OqlRzeABw0QrlXdxyl9rtOUMMXQzlkpYA1RTs8jinJCe6QSo7aEn0dZ+Ar7dd09hMudBsg==}
+     hasBin: true
+     peerDependencies:
 @@ -10838,2 +10850,6 @@
 +  open@10.1.0:
 +    resolution: {integrity: sha512-mnkeQ1qP5Ue2wd+aivTD3NHd/lZ96Lu0jgf0pwktLPtx6cTZiH7tyeGRRHs0zX0rbrahXPnXlUnbeXyaBBuIaw==}
@@ -262,6 +262,21 @@ index 7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc..9ea9eb20bd2bb2d8af0f811ecf079826
 +  '@nx/nx-win32-x64-msvc@23.1.1':
      optional: true
  
+@@ -20991,1 +21011,8 @@
++  default-browser-id@5.0.0: {}
++
++  default-browser@5.2.1:
++    dependencies:
++      bundle-name: 4.1.0
++      default-browser-id: 5.0.1
++
+   default-browser-id@5.0.1: {}
+@@ -22444,1 +22471,5 @@
++  is-wsl@3.1.0:
++    dependencies:
++      is-inside-container: 1.0.0
++
+   is-wsl@3.1.1:
 @@ -23846,3 +23877,3 @@
 -  nx@23.1.0:
 +  nx@23.1.1:
@@ -334,21 +349,6 @@ index 7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc..9ea9eb20bd2bb2d8af0f811ecf079826
 +      '@nx/nx-linux-x64-musl': 23.1.1
 +      '@nx/nx-win32-arm64-msvc': 23.1.1
 +      '@nx/nx-win32-x64-msvc': 23.1.1
-@@ -20991,1 +21011,8 @@
-+  default-browser-id@5.0.0: {}
-+
-+  default-browser@5.2.1:
-+    dependencies:
-+      bundle-name: 4.1.0
-+      default-browser-id: 5.0.1
-+
-   default-browser-id@5.0.1: {}
-@@ -22444,1 +22471,5 @@
-+  is-wsl@3.1.0:
-+    dependencies:
-+      is-inside-container: 1.0.0
-+
-   is-wsl@3.1.1:
 @@ -24017,1 +24053,8 @@
 +  open@10.1.0:
 +    dependencies:
