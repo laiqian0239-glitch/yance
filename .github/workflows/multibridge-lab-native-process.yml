@@ -31,6 +31,62 @@ jobs:
       - name: Run Multibridge Lab contracts
         shell: pwsh
         run: node --test tests/multibridge-lab/*.test.js
+      - name: Verify exact upstream mautrix-manager source launch chain
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $commit = 'd2c08e60c7a877602bc6da2961daf2daffcff79b'
+          $source = Join-Path $env:RUNNER_TEMP 'mautrix-manager-v0.2.1-source'
+          Remove-Item $source -Recurse -Force -ErrorAction SilentlyContinue
+          git clone --no-checkout --filter=blob:none https://github.com/mautrix/manager.git $source
+          if ($LASTEXITCODE -ne 0) { throw 'mautrix-manager clone failed' }
+          git -C $source fetch --depth=1 origin $commit
+          if ($LASTEXITCODE -ne 0) { throw 'mautrix-manager exact commit fetch failed' }
+          git -C $source checkout --detach $commit
+          if ($LASTEXITCODE -ne 0) { throw 'mautrix-manager exact commit checkout failed' }
+          $actual = (git -C $source rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $actual -ne $commit) { throw "mautrix-manager HEAD mismatch: $actual" }
+          node -e "const p=require(process.argv[1]);if(p.name!=='mautrix-manager'||p.version!=='0.2.1'||p.devDependencies?.electron!=='43.2.0')process.exit(1)" (Join-Path $source 'package.json')
+          if ($LASTEXITCODE -ne 0) { throw 'mautrix-manager package identity mismatch' }
+          Push-Location $source
+          try {
+            npm ci --include=dev
+            if ($LASTEXITCODE -ne 0) { throw 'mautrix-manager npm ci failed' }
+            npm run lint
+            if ($LASTEXITCODE -ne 0) { throw 'mautrix-manager upstream lint failed' }
+          }
+          finally {
+            Pop-Location
+          }
+          Write-Host 'MAUTRIX_MANAGER_SOURCE_CHAIN_GREEN'
+      - name: Stage Facebook Personal manager source launcher
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $packageRoot = 'dist/facebook-personal-manager-source-launch'
+          Remove-Item $packageRoot -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
+          $files = @(
+            'tools/multibridge-lab/RUN_FACEBOOK_PERSONAL_MANAGER_SOURCE.cmd',
+            'tools/multibridge-lab/FACEBOOK_PERSONAL_MANAGER_SOURCE_README.txt'
+          )
+          foreach ($source in $files) {
+            if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing manager launcher source: $source" }
+            Copy-Item -LiteralPath $source -Destination (Join-Path $packageRoot (Split-Path -Leaf $source))
+          }
+          $manifest = Get-ChildItem -LiteralPath $packageRoot -File | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          }
+          [IO.File]::WriteAllLines((Join-Path $packageRoot 'SHA256SUMS.txt'), $manifest, [Text.UTF8Encoding]::new($false))
+          Write-Host 'FACEBOOK_PERSONAL_MANAGER_SOURCE_PACKAGE_GREEN'
+          $manifest
+      - name: Upload Facebook Personal manager source launcher
+        uses: actions/upload-artifact@v4
+        with:
+          name: yance-facebook-personal-manager-source-launch
+          path: dist/facebook-personal-manager-source-launch
+          if-no-files-found: error
       - name: Stage exact GREEN exit11 evidence package
         shell: pwsh
         run: |
