@@ -66,3 +66,22 @@ test('canonical Nx-tools hunk keeps the frozen mutation set and pinned old ident
 
   assert.doesNotMatch(dense, /matrix-js-sdk|COREPACK_ENABLE|autocrlf|ignore-whitespace|recount/iu);
 });
+
+test('remaining Nx runtime replay tail uses exact-source canonical unified=3 hunks', () => {
+  const section = lockSection(readPatch());
+  const tail = hunkCoordinates(section).filter(hunk => hunk.oldStart >= 23870);
+
+  assert.deepEqual(
+    tail,
+    [
+      { oldStart: 23875, oldCount: 8, newStart: 23907, newCount: 10 },
+      { oldStart: 23909, oldCount: 11, newStart: 23943, newCount: 12 },
+      { oldStart: 23929, oldCount: 7, newStart: 23964, newCount: 7 },
+      { oldStart: 23938, oldCount: 6, newStart: 23973, newCount: 7 },
+      { oldStart: 23961, oldCount: 16, newStart: 23997, newCount: 16 },
+      { oldStart: 24014, oldCount: 6, newStart: 24050, newCount: 13 },
+      { oldStart: 25522, oldCount: 6, newStart: 25565, newCount: 8 }
+    ],
+    'standard Git unified=3 context must describe every remaining Nx runtime tail mutation against pinned Element a2a996ae source'
+  );
+});
