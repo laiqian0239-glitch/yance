@@ -15,6 +15,10 @@ if errorlevel 1 goto :missing_node
 where npm.cmd >nul 2>&1
 if errorlevel 1 goto :missing_npm
 
+node --version
+if errorlevel 1 goto :missing_node
+call npm --version
+if errorlevel 1 goto :missing_npm
 for /f "usebackq delims=" %%V in (`node -p "Number(process.versions.node.split('.')[0])"`) do set "NODE_MAJOR=%%V"
 if not defined NODE_MAJOR goto :bad_node
 if %NODE_MAJOR% LSS 22 goto :bad_node
