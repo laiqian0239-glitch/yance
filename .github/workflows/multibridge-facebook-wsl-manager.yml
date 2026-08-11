@@ -130,7 +130,7 @@ jobs:
           root_stderr="$RUNNER_TEMP/manager-root-launch.stderr"
           set +e
           sudo bash tools/multibridge-lab/facebook-personal-manager-install.sh \
-            --install-and-launch "$deb" http://127.0.0.1:29319 http://127.0.0.1:8008 \
+            --launch-only "$deb" http://127.0.0.1:29319 http://127.0.0.1:8008 \
             >"$root_stdout" 2>"$root_stderr"
           root_rc=$?
           set -e
