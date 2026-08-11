@@ -97,7 +97,7 @@ test('final Windows runtime repair/readiness package is thin, exact-five, Compos
   assert.match(wrapper, /Unblock-File/);
   assert.match(wrapper, /PACKAGE_MOTW_RELEASE_GREEN/);
   for (const hash of [
-    'ab80896e6e27b00baa46d6cc85bf4e593cade6023528224c0c7be3af31fe450e',
+    'ce4f30ed0bd0b2d7ad3860ff29ff9cee0b5a90bee2dbc6e10154dad0915ee3fe',
     '47c9a239414ed7f11cdcaaad6c9f3efd47a9f41a1bd59a84824d948e6bbca7d3',
     'fd715e68aae8a6efdd93ea64272208c38134d2cd67b9ac01275eda02c354599d',
     '29e1b882feadb8abe87ca89906a898601ee4e1c369532b0faf9f20999d238c6f'
