@@ -133,6 +133,7 @@
     "third_party/licenses/uv-MIT.txt",
     "upstream-patches/element-web/0001-yance-global-right-workspace.patch",
     "upstream-patches/element-web/0002-yance-package-manager-authority.patch",
+    "upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch",
     "config/upstreams/v21-presence-avatar-p0.json",
     "integration/element-module/src/PresenceWorkspace.css",
     "integration/element-module/src/PresenceWorkspace.tsx",
