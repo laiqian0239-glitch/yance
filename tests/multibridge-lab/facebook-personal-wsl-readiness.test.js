@@ -44,6 +44,12 @@ test('Facebook Personal WSL readiness checker exists and is strictly read-only',
   assert.match(script, /\/mnt\/wslg/);
   assert.match(script, /WAYLAND_DISPLAY/);
   assert.match(script, /DISPLAY/);
+  assert.match(script, /ip\s+route\s+show/);
+  assert.match(script, /127\.0\.0\.1/);
+  assert.match(script, /8008/);
+  assert.match(script, /\/dev\/tcp/);
+  assert.match(script, /WSL_WINDOWS_LAB_CONNECTIVITY_GREEN/);
+  assert.match(script, /WSL_LAB_NETWORK_REQUIRED/);
   assert.match(script, /WSL_GUI_READY/);
   assert.match(script, /WSL_SETUP_REQUIRED/);
   assert.match(script, /REAL_RED/);
@@ -57,6 +63,7 @@ test('Facebook Personal WSL readiness checker exists and is strictly read-only',
   assert.doesNotMatch(script, /Enable-WindowsOptionalFeature|dism(?:\.exe)?|Set-ItemProperty|New-ItemProperty/i);
   assert.doesNotMatch(script, /sudo|apt-get\s+install|dpkg\s+-i/i);
   assert.doesNotMatch(script, /cookie|password|access[_ -]?token|2fa|facebook\.com/i);
+  assert.doesNotMatch(script, /netsh|Set-NetFirewall|New-NetFirewall|\.wslconfig/i);
 
   assert.match(wrapper, /PACKAGE_INTEGRITY_GREEN/);
   assert.match(wrapper, /PACKAGE_MOTW_RELEASE_GREEN/);
@@ -68,6 +75,7 @@ test('Facebook Personal WSL readiness checker exists and is strictly read-only',
   assert.match(readme, /does not install/i);
   assert.match(readme, /WSL_GUI_READY/);
   assert.match(readme, /WSL_SETUP_REQUIRED/);
+  assert.match(readme, /WSL_LAB_NETWORK_REQUIRED/);
 });
 
 test('WSL verbose parser preserves distro names and WSL2 identity across English and localized states', { skip: process.platform !== 'win32' }, () => {
