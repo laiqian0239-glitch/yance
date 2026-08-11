@@ -48,6 +48,7 @@ test('final Windows runtime repair/readiness package is thin, exact-five, Compos
   assert.match(script, /NON_DATABASE_CONFIG_HASH_GREEN/);
   assert.match(script, /\.database\.type=strenv\(YANCE_DATABASE_TYPE\)/);
   assert.match(script, /\.database\.uri=strenv\(YANCE_DATABASE_URI\)/);
+  assert.match(script, /\[IO\.File\]::Replace\(/);
   assert.doesNotMatch(script, /\.homeserver\.address\s*=/);
   assert.doesNotMatch(script, /\.appservice\.address\s*=/);
   assert.doesNotMatch(script, /\.bridge\.permissions\[/);
@@ -64,6 +65,7 @@ test('final Windows runtime repair/readiness package is thin, exact-five, Compos
   // Upstream config/startup validation precedes the sustained-process gate.
   assert.match(script, /UPSTREAM_CONFIG_VALIDATION_GREEN/);
   assert.match(script, /RestartCount/);
+  assert.match(script, /RestartCount\s+-ne\s+0/);
   assert.match(script, /SUSTAINED_RUNTIME_GREEN/);
   assert.match(script, /Start-Sleep\s+-Seconds\s+15/);
 
