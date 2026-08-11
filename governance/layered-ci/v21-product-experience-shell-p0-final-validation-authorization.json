@@ -63,6 +63,13 @@
       "productionCodeChanged": false
     },
     "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
     "productRuntimeModificationAllowed": false,
     "releasePublishingAllowed": false,
     "formalReleaseAuthorized": false,
