@@ -6,12 +6,14 @@ on:
       - lab/multibridge-recovery-plan-20260811
     paths:
       - tools/multibridge-lab/facebook-personal-manager-wsl.ps1
+      - tools/multibridge-lab/facebook-personal-provisioning-authority.ps1
       - tools/multibridge-lab/facebook-personal-manager-install.sh
       - tools/multibridge-lab/RUN_FACEBOOK_PERSONAL_MANAGER_WSL.cmd
       - tools/multibridge-lab/FACEBOOK_PERSONAL_MANAGER_WSL_README.txt
       - tools/multibridge-lab/facebook-personal-wsl-readiness.ps1
       - tools/multibridge-lab/native-process.ps1
       - tests/multibridge-lab/facebook-personal-wsl-manager.test.js
+      - tests/multibridge-lab/facebook-personal-provisioning-authority.test.js
       - .github/workflows/multibridge-facebook-wsl-manager.yml
   workflow_dispatch:
 
@@ -28,13 +30,14 @@ jobs:
           node-version: 22.16.0
       - name: Run Facebook Personal WSL manager contracts
         shell: pwsh
-        run: node --test tests/multibridge-lab/facebook-personal-wsl-manager.test.js
+        run: node --test tests/multibridge-lab/facebook-personal-wsl-manager.test.js tests/multibridge-lab/facebook-personal-provisioning-authority.test.js
       - name: Parse manager launcher with Windows PowerShell 5.1
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $targets = @(
             (Resolve-Path 'tools/multibridge-lab/facebook-personal-manager-wsl.ps1').Path,
+            (Resolve-Path 'tools/multibridge-lab/facebook-personal-provisioning-authority.ps1').Path,
             (Resolve-Path 'tools/multibridge-lab/facebook-personal-wsl-readiness.ps1').Path
           )
           $gate = Join-Path $env:RUNNER_TEMP 'parse-facebook-manager-wsl-ps51.ps1'
@@ -64,6 +67,7 @@ jobs:
           $files = [ordered]@{
             'tools/multibridge-lab/RUN_FACEBOOK_PERSONAL_MANAGER_WSL.cmd' = 'RUN_FACEBOOK_PERSONAL_MANAGER_WSL.cmd'
             'tools/multibridge-lab/facebook-personal-manager-wsl.ps1' = 'facebook-personal-manager-wsl.ps1'
+            'tools/multibridge-lab/facebook-personal-provisioning-authority.ps1' = 'facebook-personal-provisioning-authority.ps1'
             'tools/multibridge-lab/facebook-personal-manager-install.sh' = 'facebook-personal-manager-install.sh'
             'tools/multibridge-lab/FACEBOOK_PERSONAL_MANAGER_WSL_README.txt' = 'FACEBOOK_PERSONAL_MANAGER_WSL_README.txt'
             'tools/multibridge-lab/facebook-personal-wsl-readiness.ps1' = 'facebook-personal-wsl-readiness.ps1'
@@ -82,7 +86,7 @@ jobs:
           Write-Host '=== PACKAGE SHA256 ==='
           $manifest | Write-Host
 
-          foreach ($name in @('facebook-personal-manager-wsl.ps1', 'facebook-personal-wsl-readiness.ps1', 'native-process.ps1')) {
+          foreach ($name in @('facebook-personal-manager-wsl.ps1', 'facebook-personal-provisioning-authority.ps1', 'facebook-personal-wsl-readiness.ps1', 'native-process.ps1')) {
             $path = (Resolve-Path (Join-Path $packageRoot $name)).Path
             [IO.File]::WriteAllText($path + ':Zone.Identifier', "[ZoneTransfer]`r`nZoneId=3`r`n", [Text.Encoding]::ASCII)
           }
