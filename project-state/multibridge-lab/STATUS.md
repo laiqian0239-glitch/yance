@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 18:20 +07:00
+Last updated: 2026-08-11 18:22 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -42,37 +42,34 @@ Final authority run `31485153849`, job `93758725677`, exact `4bd07b41451d2c27b7a
 
 Commit `65a41976fdcb8d321fab92ac03c65cd647e822ab` preserves only the exact previously verified historical yq mutation expression as a non-executable fixture. It proves historical R12 wiring omitted `.database.type` and `.database.uri`; no full-script reconstruction or guessed env wiring was introduced.
 
-## Database wiring failure-first — CAUSAL RED PROVEN
+## Database wiring TDD
 
-Test-only commit `645eb7a2429cb34f179e58fbab579ed3aaa994af` adds only `tests/multibridge-lab/r12-database-wiring.test.js`; implementation remains absent.
+Failure-first:
 
-Windows run `31485657849`, job `93760328914`, exact checkout `645eb7a2429cb34f179e58fbab579ed3aaa994af`:
+- test-only `645eb7a2429cb34f179e58fbab579ed3aaa994af`;
+- Windows run `31485657849`, job `93760328914`: 16 GREEN / 2 targeted RED only because implementation/function were absent.
 
-- total tests: 18;
-- prior/frozen tests plus historical-fixture proof: **16 GREEN**;
-- exactly two new database wiring tests RED;
-- RED #1: missing `tools/multibridge-lab/r12-database-wiring.ps1`;
-- RED #2: dynamic PowerShell contract cannot dot-source the absent file / find `Get-LabR12DatabaseWiring`;
-- no unrelated test, native-process, collector, sanitizer, wrapper, byte-identity, or fixture failure;
-- package staging/upload correctly skipped after test RED.
+Implementation commit `63c008a31b8e36b093a7fc9f39d918f0960dc159` adds only `tools/multibridge-lab/r12-database-wiring.ps1`.
 
-This is the intended causal implementation RED. The frozen implementation contract remains:
+Implementation is intentionally thin:
 
-- exactly three targets: `instagram-dm`, `google-messages`, `signal`;
-- non-targets return no DB rewrite: `facebook-personal`, `line`, `telegram`, `whatsapp`;
-- `Type=sqlite3-fk-wal`;
-- `Uri=file:/data/<service>.db?_txlock=immediate`;
-- yq fragment `.database.type=strenv(YANCE_DATABASE_TYPE)|.database.uri=strenv(YANCE_DATABASE_URI)`;
-- placeholder postgres URI forbidden.
+- one function `Get-LabR12DatabaseWiring`;
+- exact target services only: `instagram-dm`, `google-messages`, `signal`;
+- all other services return `$null` and therefore preserve their upstream/R12 config untouched;
+- exact type `sqlite3-fk-wal`;
+- exact per-service URI `file:/data/<service>.db?_txlock=immediate`;
+- exact yq fragment `.database.type=strenv(YANCE_DATABASE_TYPE)|.database.uri=strenv(YANCE_DATABASE_URI)`;
+- no YAML writer, DB daemon, migration engine, connection pool, Docker action, network action, or second config framework.
+
+GREEN is not claimed until exact Windows full-suite result is inspected.
 
 ## Unique next action
 
 No user action now.
 
-1. Implement only `tools/multibridge-lab/r12-database-wiring.ps1` with the frozen exact contract; no DB daemon/framework/migration layer.
-2. Record implementation boundary before collecting GREEN.
-3. Re-run all Lab Windows tests; package source should remain unrelated and unchanged.
-4. After unit/Windows GREEN, add exact upstream-validator semantic verification before any runtime restart.
+1. Collect exact Windows run for implementation `63c008a31b8e36b093a7fc9f39d918f0960dc159` and inspect all 18 tests.
+2. If unit/Windows contract is GREEN, add a separate exact-upstream validator semantic gate that proves the generated values no longer trigger each frozen bridgev2 `database.uri not configured` condition; do not restart runtime yet.
+3. Only after semantic validator proof should a config-repair/runtime-validation package be considered.
 
 ## Replacement readiness
 
@@ -83,9 +80,9 @@ Config validation GREEN → sustained five-process runtime → stable RestartCou
 - [x] Three-bridge DB fatal defect proven.
 - [x] Fatal-context collector/package sealed GREEN.
 - [x] Historical R12 wiring expression preserved.
-- [x] DB wiring test-only contract committed.
-- [x] DB-generator causal RED proven (`31485657849`: 16 pass / 2 targeted fail).
-- [ ] Implement minimal R12 DB wiring and prove full Windows GREEN.
-- [ ] Validate generated configs against exact upstream validator authority.
+- [x] DB-generator causal RED proven.
+- [x] Minimal recovered R12 DB wiring implementation committed (`63c008a...`).
+- [ ] Prove DB wiring full Windows GREEN.
+- [ ] Validate generated DB values against exact upstream validator authority.
 - [ ] Capture/repair true Facebook/LINE fatal validators.
 - [ ] Validate all five runtimes and sustained readiness.
