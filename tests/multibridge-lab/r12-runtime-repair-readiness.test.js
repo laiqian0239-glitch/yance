@@ -42,8 +42,6 @@ test('final Windows runtime repair/readiness package is thin, exact-five, Compos
   assert.match(script, /runtime[\\/]docker-compose\.lab\.yml/);
   for (const service of TARGETS) assert.match(script, new RegExp(`['\"]${service}['\"]`));
 
-  // R12's existing non-DB wiring remains authority. The repair may mutate only
-  // database.type and database.uri and must prove all other YAML semantics unchanged.
   assert.match(script, /del\(\.database\.type,\s*\.database\.uri\)/);
   assert.match(script, /NON_DATABASE_CONFIG_HASH_GREEN/);
   assert.match(script, /\.database\.type=strenv\(YANCE_DATABASE_TYPE\)/);
@@ -54,23 +52,18 @@ test('final Windows runtime repair/readiness package is thin, exact-five, Compos
   assert.doesNotMatch(script, /\.bridge\.permissions\[/);
   assert.doesNotMatch(script, /registration\.yaml.*(?:Set-Content|Copy-Item|Move-Item|Remove-Item)/i);
 
-  // Docker Compose is the sole runtime/network authority. No R13-style network
-  // discovery, host rewrites, alternate daemon, or generic replacement orchestrator.
   assert.match(script, /compose[\s\S]*config[\s\S]*--services/);
   assert.match(script, /COMPOSE_AUTHORITY_GREEN/);
   assert.doesNotMatch(script, /docker\s+network\s+create/i);
   assert.doesNotMatch(script, /(?:hosts|etc\/hosts).*Add-Content/i);
   assert.doesNotMatch(script, /R13/i);
 
-  // Upstream config/startup validation precedes the sustained-process gate.
   assert.match(script, /UPSTREAM_CONFIG_VALIDATION_GREEN/);
   assert.match(script, /RestartCount/);
   assert.match(script, /RestartCount\s+-ne\s+0/);
   assert.match(script, /SUSTAINED_RUNTIME_GREEN/);
   assert.match(script, /Start-Sleep\s+-Seconds\s+15/);
 
-  // Connectivity is proved from the actual Compose services, using only tools
-  // guaranteed by the exact upstream images: Synapse's Python and bridge curl.
   assert.match(script, /exec[\s\S]*-T[\s\S]*synapse[\s\S]*python/);
   assert.match(script, /socket\.create_connection/);
   assert.match(script, /exec[\s\S]*-T[\s\S]*curl/);
@@ -78,8 +71,6 @@ test('final Windows runtime repair/readiness package is thin, exact-five, Compos
   assert.match(script, /SYNAPSE_TO_BRIDGES_GREEN/);
   assert.match(script, /BRIDGES_TO_SYNAPSE_GREEN/);
 
-  // Login flow capability is source-frozen, but actual cookies/QR/device/account
-  // authorization remains a hard human boundary.
   assert.match(script, /runtime-login-flow-authorities\.json/);
   assert.match(script, /LOGIN_FLOW_AUTHORITY_GREEN/);
   assert.match(script, /LAB_RUNTIME_READY/);
@@ -88,24 +79,20 @@ test('final Windows runtime repair/readiness package is thin, exact-five, Compos
   assert.match(script, /GREEN/);
   assert.doesNotMatch(script, /CreateLogin|SubmitCookies|PerformProvisioning|enter_creds/i);
 
-  // Do not collect/upload sensitive runtime material or dump bridge logs.
   assert.doesNotMatch(script, /compose[\s\S]*logs/i);
   assert.doesNotMatch(script, /upload-artifact/i);
   assert.doesNotMatch(script, /Get-Content[^\n]*(?:registration\.yaml|lab-password|lab-account)/i);
 
-  // The Windows wrapper must keep the console visible, because this package is
-  // user-run and the result must not disappear when PowerShell exits.
   assert.match(wrapper, /powershell(?:\.exe)?/i);
   assert.match(wrapper, /pause/i);
   assert.match(wrapper, /exit\s+\/b\s+%/i);
 
-  // Downloaded ZIPs can propagate Mark-of-the-Web to extracted PowerShell files.
-  // The wrapper must not weaken ExecutionPolicy. It must first verify the exact
-  // sealed runtime bytes, then remove only the Internet-zone marker from those
-  // verified package inputs, then invoke the real entrypoint normally.
   assert.doesNotMatch(wrapper, /-ExecutionPolicy\s+(?:Bypass|Unrestricted)/i);
   assert.doesNotMatch(wrapper, /Set-ExecutionPolicy/i);
-  assert.match(wrapper, /Get-FileHash/);
+  assert.doesNotMatch(wrapper, /Get-FileHash/);
+  assert.match(wrapper, /\[Security\.Cryptography\.SHA256\]::Create\(\)/);
+  assert.match(wrapper, /\[IO\.File\]::OpenRead/);
+  assert.match(wrapper, /ComputeHash/);
   assert.match(wrapper, /PACKAGE_INTEGRITY_GREEN/);
   assert.match(wrapper, /Unblock-File/);
   assert.match(wrapper, /PACKAGE_MOTW_RELEASE_GREEN/);
@@ -126,9 +113,6 @@ test('final Windows runtime repair/readiness package is thin, exact-five, Compos
   assert.match(readme, /HUMAN_AUTH_REQUIRED/);
   assert.match(readme, /do not upload/i);
 
-  // CI must publish exactly this small user package after Windows contracts pass
-  // and parse the real entrypoint with the same Windows PowerShell family used
-  // by the double-click wrapper, not only with pwsh 7.
   assert.match(workflow, /yance-multibridge-r12-runtime-repair-readiness/);
   assert.match(workflow, /r12-runtime-repair-readiness\.ps1/);
   assert.match(workflow, /RUN_R12_RUNTIME_REPAIR_READINESS\.cmd/);
@@ -136,10 +120,6 @@ test('final Windows runtime repair/readiness package is thin, exact-five, Compos
   assert.match(workflow, /powershell\.exe\s+-NoLogo\s+-NoProfile\s+-NonInteractive/);
   assert.match(workflow, /WINDOWS_POWERSHELL_5_1_PARSE_GREEN/);
 
-  // Reproduce the user delivery boundary in CI: add Zone.Identifier to the staged
-  // scripts, force RemoteSigned for the child PowerShell process, run the actual
-  // CMD wrapper, and prove it reaches the runtime script (controlled missing-Lab
-  // REAL_RED) instead of dying with PSSecurityException/UnauthorizedAccess.
   assert.match(workflow, /Zone\.Identifier/);
   assert.match(workflow, /PSExecutionPolicyPreference/);
   assert.match(workflow, /MOTW_BOOTSTRAP_GREEN/);
