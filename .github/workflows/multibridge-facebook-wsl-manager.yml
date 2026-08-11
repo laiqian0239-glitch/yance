@@ -21,7 +21,115 @@ permissions:
   contents: read
 
 jobs:
+  compose-publication-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reproduce and repair stale Compose publication with the shipped authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v docker
+          docker compose version
+          command -v pwsh
+
+          fixture="$RUNNER_TEMP/facebook-publication-runtime"
+          mkdir -p "$fixture/runtime"
+          compose="$fixture/runtime/docker-compose.lab.yml"
+
+          cat > "$compose" <<'YAML'
+          services:
+            facebook-personal:
+              image: alpine:3.20.3
+              command: ["sh", "-c", "trap : TERM INT; sleep infinity & wait"]
+          YAML
+
+          docker compose -f "$compose" pull facebook-personal
+          docker compose -f "$compose" up -d facebook-personal
+          image_id="$(docker image inspect --format '{{.Id}}' alpine:3.20.3)"
+          test -n "$image_id"
+
+          cat > "$compose" <<'YAML'
+          services:
+            facebook-personal:
+              image: alpine:3.20.3
+              command: ["sh", "-c", "trap : TERM INT; sleep infinity & wait"]
+              ports:
+                - "127.0.0.1:29319:29319"
+          YAML
+
+          if stale="$(docker compose -f "$compose" port facebook-personal 29319 2>/dev/null)" && [ -n "$stale" ]; then
+            echo "Expected stale runtime to have no published port, got: $stale" >&2
+            exit 1
+          fi
+          echo 'REAL_COMPOSE_STALE_PUBLICATION_RED'
+
+          export YANCE_FIXTURE_ROOT="$fixture"
+          export YANCE_FIXTURE_COMPOSE="$compose"
+          export YANCE_FIXTURE_IMAGE_ID="$image_id"
+          pwsh -NoLogo -NoProfile -NonInteractive -Command '
+            $ErrorActionPreference = "Stop"
+            . ./tools/multibridge-lab/native-process.ps1
+            . ./tools/multibridge-lab/facebook-personal-provisioning-authority.ps1
+            function Get-FacebookConfigScalar {
+              param(
+                [string]$DockerExe,
+                [string]$LabRoot,
+                [string]$ImageTag,
+                [string]$YqPath,
+                [string]$Expression
+              )
+              switch ($Expression) {
+                ".appservice.address" { return "http://facebook-personal:29319" }
+                ".appservice.hostname" { return "0.0.0.0" }
+                ".appservice.port" { return "29319" }
+                ".provisioning.allow_matrix_auth" { return "true" }
+                default { throw "unexpected config scalar: $Expression" }
+              }
+            }
+            $dockerExe = (Get-Command docker -ErrorAction Stop).Source
+            $result = Ensure-FacebookPersonalProvisioningAuthority `
+              -LabRoot $env:YANCE_FIXTURE_ROOT `
+              -DockerExe $dockerExe `
+              -ComposePath $env:YANCE_FIXTURE_COMPOSE `
+              -ImageTag "alpine:3.20.3" `
+              -ImageId $env:YANCE_FIXTURE_IMAGE_ID `
+              -YqPath "/bin/false"
+            if ($result.InternalPort -ne 29319 -or $result.HostPort -ne 29319 -or $result.BridgeUrl -ne "http://127.0.0.1:29319" -or -not $result.Changed) {
+              throw "REAL_RED: shipped provisioning authority returned an invalid real-Compose result."
+            }
+            Write-Output "REAL_COMPOSE_AUTHORITY_GREEN"
+          '
+
+          published="$(docker compose -f "$compose" port facebook-personal 29319)"
+          test "$published" = '127.0.0.1:29319'
+          echo "REAL_COMPOSE_PORT_GREEN $published"
+          docker compose -f "$compose" down -v
+
+  linux-installer-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate installer syntax
+        shell: bash
+        run: bash -n tools/multibridge-lab/facebook-personal-manager-install.sh
+      - name: Validate exact official deb install and GUI smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          deb="$RUNNER_TEMP/mautrix-manager_0.2.1_amd64.deb"
+          curl --fail --silent --show-error --location \
+            --output "$deb" \
+            https://github.com/mautrix/manager/releases/download/v0.2.1/mautrix-manager_0.2.1_amd64.deb
+          echo '94cca9ffe2087521a042f8afc656c1403dcc79af980acd229420829b367ea1fd'"  $deb" | sha256sum --check --strict
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          bash tools/multibridge-lab/facebook-personal-manager-install.sh --install-and-smoke "$deb"
+
   package-windows:
+    needs:
+      - compose-publication-runtime
+      - linux-installer-smoke
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -113,26 +221,6 @@ jobs:
       - name: Upload Facebook Personal WSL manager package
         uses: actions/upload-artifact@v4
         with:
-          name: yance-facebook-personal-wsl-manager
+          name: yance-facebook-personal-wsl-manager-${{ github.sha }}
           path: dist/facebook-personal-wsl-manager
           if-no-files-found: error
-
-  linux-installer-smoke:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Validate installer syntax
-        shell: bash
-        run: bash -n tools/multibridge-lab/facebook-personal-manager-install.sh
-      - name: Validate exact official deb install and GUI smoke
-        shell: bash
-        run: |
-          set -euo pipefail
-          deb="$RUNNER_TEMP/mautrix-manager_0.2.1_amd64.deb"
-          curl --fail --silent --show-error --location \
-            --output "$deb" \
-            https://github.com/mautrix/manager/releases/download/v0.2.1/mautrix-manager_0.2.1_amd64.deb
-          echo '94cca9ffe2087521a042f8afc656c1403dcc79af980acd229420829b367ea1fd'"  $deb" | sha256sum --check --strict
-          sudo apt-get update
-          sudo apt-get install -y xvfb
-          bash tools/multibridge-lab/facebook-personal-manager-install.sh --install-and-smoke "$deb"
