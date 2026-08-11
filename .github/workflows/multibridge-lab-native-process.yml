@@ -314,6 +314,36 @@ jobs:
           grep -Eq 'x86-64|x86_64' <<<"$identity"
           echo 'MAUTRIX_MANAGER_LINUX_ELF_IDENTITY_GREEN'
 
+          echo '=== ldd ==='
+          ldd "$exe" | tee "$work_root/ldd.txt"
+          if grep -Fq 'not found' "$work_root/ldd.txt"; then
+            echo 'Linux manager has missing shared libraries.' >&2
+            exit 33
+          fi
+
+          payload_dir="$(dirname "$exe")"
+          sandbox="$payload_dir/chrome-sandbox"
+          echo '=== chrome-sandbox ==='
+          if [ -e "$sandbox" ]; then
+            stat -c 'path=%n owner=%U group=%G mode=%a uid=%u gid=%g' "$sandbox"
+          else
+            echo 'chrome-sandbox=missing'
+          fi
+
+          echo '=== user namespace / AppArmor ==='
+          if [ -r /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            apparmor_userns="$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns)"
+            echo "kernel.apparmor_restrict_unprivileged_userns=$apparmor_userns"
+          else
+            echo 'kernel.apparmor_restrict_unprivileged_userns=unavailable'
+          fi
+          set +e
+          unshare --user --map-root-user true
+          unshare_rc=$?
+          set -e
+          echo "unshare_user_exit=$unshare_rc"
+          echo 'MAUTRIX_MANAGER_LINUX_SMOKE_DIAGNOSTICS'
+
           if ! command -v xvfb-run >/dev/null 2>&1; then
             sudo apt-get update
             sudo apt-get install -y xvfb
@@ -325,6 +355,9 @@ jobs:
           set -e
           if [ "$smoke_rc" -ne 124 ]; then
             echo "Official Linux manager payload exited before the 8-second no-login smoke window: exit=$smoke_rc" >&2
+            echo '=== bounded stdout ===' >&2
+            sed -n '1,80p' "$work_root/stdout.txt" >&2 || true
+            echo '=== bounded stderr ===' >&2
             sed -n '1,80p' "$work_root/stderr.txt" >&2 || true
             exit 32
           fi
