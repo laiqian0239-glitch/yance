@@ -70,6 +70,21 @@ test('Linux installer uses only the exact official deb and package-manager sandb
   assert.doesNotMatch(script, /facebook\.com|cookie|password|2fa|access[_ -]?token/i);
 });
 
+test('upstream GUI lifecycle stays attached to the exact manager PID and cannot false-green on Chromium children', () => {
+  const installer = text(SH);
+  assert.doesNotMatch(installer, /\bnohup\b/);
+  assert.doesNotMatch(installer, /\bpgrep\b/);
+  assert.match(installer, /stability_seconds=['"]?15['"]?/);
+  assert.match(installer, /manager_pid="\$!"/);
+  assert.match(installer, /kill\s+-0\s+"\$manager_pid"/);
+  assert.match(installer, /wait\s+"\$manager_pid"/);
+  assert.match(installer, /MAUTRIX_MANAGER_GUI_SESSION_GREEN/);
+
+  const stableIndex = installer.indexOf('MAUTRIX_MANAGER_GUI_SESSION_GREEN');
+  const authIndex = installer.indexOf('FINAL STATUS: HUMAN_AUTH_REQUIRED');
+  assert.ok(stableIndex >= 0 && authIndex > stableIndex, 'human-auth final status must follow exact-PID sustained-session proof');
+});
+
 test('Windows operator resolves a non-root WSLg user and pins GUI launch to that user', { skip: process.platform !== 'win32' }, () => {
   const script = text(PS);
   const installer = text(SH);
