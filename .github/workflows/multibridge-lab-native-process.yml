@@ -38,7 +38,7 @@ jobs:
           $packageRoot = 'dist/multibridge-exit11-evidence'
           $verificationRoot = 'dist/multibridge-exit11-verification'
           $expected = [ordered]@{
-            'RUN_EXIT11_EVIDENCE.cmd' = '7787475bd7a6e0640b5353c3042ae8e8471ef234'
+            'RUN_EXIT11_EVIDENCE.cmd' = 'c9afd263cc5b89486ff937a195e9313bdce9c32a'
             'collect-exit11-evidence.ps1' = '38eee8ecfe5411a89273027404a320b94b623dba'
             'native-process.ps1' = '47d56b8e6561676eec75b814c1ed1ebaa8ba30d5'
           }
@@ -71,7 +71,7 @@ jobs:
           [IO.File]::WriteAllLines($manifestPath, $manifestLines, [Text.UTF8Encoding]::new($false))
           [IO.File]::WriteAllLines((Join-Path $verificationRoot 'SOURCE.txt'), @(
             "tested_commit=$env:GITHUB_SHA",
-            'wrapper_blob=7787475bd7a6e0640b5353c3042ae8e8471ef234',
+            'wrapper_blob=c9afd263cc5b89486ff937a195e9313bdce9c32a',
             'collector_blob=38eee8ecfe5411a89273027404a320b94b623dba',
             'helper_blob=47d56b8e6561676eec75b814c1ed1ebaa8ba30d5'
           ), [Text.UTF8Encoding]::new($false))
