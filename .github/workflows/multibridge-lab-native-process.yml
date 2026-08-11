@@ -1,0 +1,32 @@
+name: Multibridge Lab Native Process
+
+on:
+  push:
+    branches:
+      - lab/multibridge-recovery-plan-20260811
+    paths:
+      - tools/multibridge-lab/**
+      - tests/multibridge-lab/**
+      - .github/workflows/multibridge-lab-native-process.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-process-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+      - name: Verify runtime identity
+        shell: pwsh
+        run: |
+          node --version
+          $PSVersionTable | Format-List | Out-String | Write-Host
+          if (-not (Get-Command powershell.exe -ErrorAction SilentlyContinue)) { throw 'Windows PowerShell 5.1 is required for the legacy regression proof' }
+      - name: Run Multibridge Lab native-process contracts
+        shell: pwsh
+        run: node --test tests/multibridge-lab/native-process-semantics.test.js
