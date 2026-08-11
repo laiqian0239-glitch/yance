@@ -1,0 +1,12 @@
+diff --git a/package.json b/package.json
+index 1458c14e3e59f6fa7c948b5ffb7de4404c1cb5f5..44d3f11bbf98bb1d721ee8a4b8212d251e3b37e6 100644
+--- a/package.json
++++ b/package.json
+@@ -66,6 +66,7 @@
+             "onFail": "download"
+         }
+     },
++    "packageManager": "pnpm@11.5.2",
+     "private": true,
+     "nx": {}
+ }
