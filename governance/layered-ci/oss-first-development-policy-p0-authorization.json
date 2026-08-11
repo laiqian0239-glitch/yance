@@ -66,7 +66,7 @@
       "productionCodeChanged": false
     },
     "newDependencyAllowed": false,
-    "newWorkflowAllowed": false,
+    "workflowModificationAllowed": false,
     "newGeneralPurposeYanceInfrastructureAllowed": false
   },
   "mandatoryFailureFirstContracts": [
@@ -90,8 +90,10 @@
     "authorizationPredatesImplementation": true,
     "exactPathScopeOnly": true,
     "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
     "formalReleaseAuthorized": false,
     "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
     "automaticNextWorkPackageAuthorizationAuthorized": false
   }
 }
