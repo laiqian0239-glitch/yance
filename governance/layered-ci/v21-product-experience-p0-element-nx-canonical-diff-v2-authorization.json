@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-11T14:39:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-P0-ELEMENT-NX-CANONICAL-DIFF-V2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor failure-first repair after canonical hunk ordering alone was falsified by real Windows Product Final Validation. Product #229 exact Head 12425b044900370d8fe9edafb2e2b52446c31c47, run 31472943613 / job 93720110352, still fails ordinary git apply --check at pinned Element pnpm-lock.yaml:16388. The current hand-shaped 0003 splits the dense Nx-tools mutation region old lines 16378 through 16420 into six micro-hunks even though standard Git unified=3 context necessarily coalesces that region. Independent upstream object audit also proves official Element adoption commit 27f0347668494711ae25466b3d81434a65011df6 has parent pnpm-lock blob 075c7488f828ea085923b563a350f4bd0149d472, not the pinned release blob 7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc; therefore its resulting develop-branch blob 9ea9eb20bd2bb2d8af0f811ecf0798262924b8df may not be represented as the truthful result identity of the pinned-release-only mutation subset. This package replaces hand-shaped replay structure with exact pinned-source canonical hunk coalescing, while keeping the already-authorized Nx 23.1.0 to 23.1.1 mutation set frozen. No bootstrap, workflow, Element pin, Product runtime or dependency-authority change is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "341bb60ecbb9a61e89dd448829d286122873f5e8"
+  },
+  "evidence": {
+    "productPullRequest": 229,
+    "productExactHead": "12425b044900370d8fe9edafb2e2b52446c31c47",
+    "productChangedFileCount": 30,
+    "finalValidationRun": 31472943613,
+    "finalValidationJob": 93720110352,
+    "finalValidationFirstRealError": "git apply --check upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch fails at pnpm-lock.yaml:16388 during iteration-1 Windows materialization",
+    "elementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "elementPackageJsonBlob": "1458c14e3e59f6fa7c948b5ffb7de4404c1cb5f5",
+    "elementPnpmLockBlob": "7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc",
+    "targetNxVersion": "23.1.1",
+    "nxUpstreamFixCommit": "b8dca5e4f9315b989d0c2f7a336868ecd91a36fa",
+    "elementUpstreamAdoptionCommit": "27f0347668494711ae25466b3d81434a65011df6",
+    "elementUpstreamAdoptionParent": "a633b46dc655877ddd21ffae2ab11fe37bdfe46d",
+    "elementUpstreamAdoptionParentPnpmLockBlob": "075c7488f828ea085923b563a350f4bd0149d472",
+    "elementUpstreamAdoptionTargetPnpmLockBlob": "9ea9eb20bd2bb2d8af0f811ecf0798262924b8df",
+    "pinnedReleaseMatrixLock": "matrix-js-sdk 42.1.0",
+    "priorCanonicalityAuthorizationPullRequest": 260,
+    "priorCanonicalityImplementationPullRequest": 261,
+    "priorCanonicalityMerge": "341bb60ecbb9a61e89dd448829d286122873f5e8",
+    "denseNxToolsOldMutationRange": "16378..16420",
+    "canonicalUnified3ExpectedOuterOldRange": "16375..16423",
+    "historicalNxParserStatus": "NOT_RETESTED_AFTER_REPLAY_RED",
+    "lintTypesStatus": "UNKNOWN"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-p0-element-nx-canonical-diff-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-p0-element-nx-canonical-diff-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "e00c25b56b8967ea04e9efdf93e72d045c86329411a4e9ba7937c7fcf93c18a2",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-p0-element-nx-canonical-diff-v2",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-nx-patch-canonical-diff.test.js",
+      "upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "50ed77307323572dd670c28c0a74d093f1634ad130a269b72b3d54fcf9a80d73",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-element-nx-patch-canonical-diff.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "ea7d193392f0bb0148d965fb0ed1178b56092df69f4fdbb16220afe2547b8c18",
+      "productionCodeChanged": false
+    },
+    "bootstrapModificationAllowed": false,
+    "elementPinModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "elementLockRegenerationAllowed": false,
+    "patchMutationSetModificationAllowed": false,
+    "canonicalUnified3HunkCoalescingAllowed": true,
+    "exactPinnedSourceContextAdditionAllowed": true,
+    "patchResultIdentityCorrectionAllowedOnlyIfProvableFromExactResultBlob": true,
+    "newDependencyAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit must add only tests/wp0/v21-element-nx-patch-canonical-diff.test.js and must RED against the merged 0003 because the dense Nx-tools mutation region is represented by multiple micro-hunks that standard Git unified=3 context would coalesce.",
+    "For the current first failing dense region, the production repair must replace old-line micro-hunks beginning 16378, 16381, 16388, 16392, 16401 and 16411 with one exact pinned-source hunk whose outer old-file range is 16375 through 16423 and whose new-file range reflects only the already-existing preceding net additions.",
+    "All unchanged context added to a repaired hunk must be copied exactly from pinned Element a2a996ae50d802878bf48e4bbf3730004bdcc55c. Added/deleted mutation lines and their multiplicity must remain frozen.",
+    "The pnpm-lock index old identity must remain 7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc. The result identity must not be changed merely by inference; if later corrected, it must be proved from the exact patched result blob.",
+    "tools/matrix/bootstrap.js remains frozen and must continue ordinary git apply --check followed by git apply. No --3way, --reject, --recount, --ignore-whitespace, autocrlf manipulation or fuzzy replay is allowed.",
+    "A real Windows Product Task 9 after fresh-main forward merge remains the authority. If replay advances to another genuine structural RED, continue with failure-first exact-source canonicalization inside the authorized patch/test paths; do not weaken application semantics."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "gitApplyThreeWay": true,
+    "gitApplyReject": true,
+    "gitApplyRecount": true,
+    "gitApplyUnidiffZero": true,
+    "gitApplyIgnoreWhitespace": true,
+    "fuzzyPatch": true,
+    "lineEndingRewrite": true,
+    "gitAutocrlfManipulation": true,
+    "lockDocumentMarkerRemoval": true,
+    "customYamlParser": true,
+    "nxPluginDisable": true,
+    "elementPinChange": true,
+    "pnpmVersionDrift": true,
+    "elementLockRegeneration": true,
+    "unrelatedElementDependencyDrift": true,
+    "bootstrapModification": true,
+    "productSourceModification": true,
+    "workflowModification": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalProductPullRequestMergeRequiresOwnerApproval": true
+  }
+}
