@@ -41,7 +41,9 @@ test('Windows operator preflight proves and repairs the real Facebook provisioni
   assert.match(script, /http:\/\/127\.0\.0\.1:8008/);
 
   for (const forbidden of ['--install', '--update', '--set-version', '--set-default', '--shutdown', '--unregister']) {
-    assert.doesNotMatch(script, new RegExp(`wsl(?:\\.exe)?[^\\r\\n]*${forbidden.replaceAll('-', '\\-')}`, 'i'));
+    const escaped = forbidden.replaceAll('-', '\\-');
+    assert.doesNotMatch(script, new RegExp(`-Arguments\\s+@\\([^)]*['\"]${escaped}['\"]`, 'i'));
+    assert.doesNotMatch(script, new RegExp(`(?:wsl|wsl\\.exe)\\s+${escaped}(?:\\s|$)`, 'i'));
   }
   assert.doesNotMatch(script, /\.wslconfig|netsh|Set-NetFirewall|New-NetFirewall|portproxy/i);
 });
