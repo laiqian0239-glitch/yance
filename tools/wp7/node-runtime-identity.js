@@ -5,7 +5,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 
-const REQUIRED_NODE_VERSION = '22.16.0';
+const REQUIRED_NODE_VERSION = '22.23.1';
 const SHA256_RE = /^[0-9a-f]{64}$/;
 
 function fail(reasonCode, message, details = {}) {
