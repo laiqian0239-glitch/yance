@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-11T13:00:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-P0-ELEMENT-NX-CRLF-REPLAY-CONTEXT",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor authorization for the next first real Product Task 9 RED after the hunk-coordinate repair merged in PR #257. Product exact Head 329bf8cf4f609403db3b9f0bbe5038664d2e36ae, Windows run 31466523802 / job 93700450126, now replays package.json and the earlier pnpm-lock hunks but fails ordinary git apply --check at pnpm-lock.yaml:16389 before frozen install. The failing reduced-context hunk begins and ends with mutations, so ordinary git apply has no unchanged edge context. Two later hunks at old lines 16401 and 16411 have the same structural defect. This package may normalize only unified-diff hunk boundaries and the minimum exact-source context required for ordinary fail-closed replay; the authorized Nx 23.1.0 to 23.1.1 mutation set remains frozen.",
+  "base": {
+    "branch": "main",
+    "commit": "209ff6c523d2d742d61b50b312b838fb2e468d51"
+  },
+  "evidence": {
+    "productPullRequest": 229,
+    "productExactHead": "329bf8cf4f609403db3b9f0bbe5038664d2e36ae",
+    "task9Run": 31466523802,
+    "task9Job": 93700450126,
+    "task9FirstRealError": "git apply --check upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch fails at pnpm-lock.yaml:16389 during iteration-1 materialization",
+    "elementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "elementPackageJsonBlob": "1458c14e3e59f6fa7c948b5ffb7de4404c1cb5f5",
+    "elementPnpmLockBlob": "7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc",
+    "targetNxVersion": "23.1.1",
+    "nxUpstreamFixCommit": "b8dca5e4f9315b989d0c2f7a336868ecd91a36fa",
+    "elementUpstreamAdoptionCommit": "27f0347668494711ae25466b3d81434a65011df6",
+    "priorReplayImplementationMerge": "209ff6c523d2d742d61b50b312b838fb2e468d51",
+    "historicalParserStatus": "NOT_RETESTED",
+    "lintTypesStatus": "UNKNOWN"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-p0-element-nx-crlf-replay-context-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-p0-element-nx-crlf-replay-context-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "706d638e10133b1fbbeabe1fe7f75079a839397cd5c8365eae4861ccbf0bcd38",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-p0-element-nx-crlf-replay-context",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "70d565a39dfbeded19b6ad1bded3e07f0753f74533f33cc437e3dc4557f5027c",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-element-workspace-contract.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "e263649043e2a16c14cd790c10125a5e2cec4aaf727a3d64e68fea92481159dd",
+      "productionCodeChanged": false
+    },
+    "bootstrapModificationAllowed": false,
+    "elementPinModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "elementLockRegenerationAllowed": false,
+    "patchMutationSetModificationAllowed": false,
+    "patchHunkBoundaryNormalizationAllowed": true,
+    "minimumExactSourceContextAdditionAllowed": true,
+    "newDependencyAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit must change only tests/wp0/v21-element-workspace-contract.test.js and must RED against the merged 0003 patch because every ordinary hunk that carries mutations must expose unchanged context at at least one hunk edge unless it is structurally coalesced with its adjacent mutation hunk.",
+    "The implementation may change only unified-diff hunk headers/boundaries and minimum unchanged context copied exactly from pinned Element a2a996ae50d802878bf48e4bbf3730004bdcc55c. Added/deleted mutation lines, their order, diff paths and exact pinned old blob index identities must not change.",
+    "The known replay-unsafe Nx-tools hunks around old lines 16389, 16401 and 16411 must be normalized without --unidiff-zero, --3way, --reject, --recount or fuzzy application.",
+    "tools/matrix/bootstrap.js remains frozen and must preserve 0001 -> 0002 -> 0003 -> module copy -> 0011 -> 0012 using ordinary git apply --check followed by git apply.",
+    "A subsequent real Windows Product Task 9 must prove 0003 replay succeeds before frozen install. Only after that may the historical Nx multi-document parser RED be classified; lint:types remains UNKNOWN until actually executed."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "gitApplyThreeWay": true,
+    "gitApplyReject": true,
+    "gitApplyRecount": true,
+    "gitApplyUnidiffZero": true,
+    "fuzzyPatch": true,
+    "lineEndingRewrite": true,
+    "gitAutocrlfManipulation": true,
+    "lockDocumentMarkerRemoval": true,
+    "customYamlParser": true,
+    "nxPluginDisable": true,
+    "elementPinChange": true,
+    "pnpmVersionDrift": true,
+    "elementLockRegeneration": true,
+    "unrelatedElementDependencyDrift": true,
+    "bootstrapModification": true,
+    "productSourceModification": true,
+    "workflowModification": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
