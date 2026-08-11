@@ -285,3 +285,32 @@ test('pinned Element backports the official Nx 23.1.1 CRLF fix with only its req
   assert.ok(nxApplyIndex > authorityApplyIndex, '0003 must replay after 0002');
   assert.ok(moduleCopyIndex > nxApplyIndex, '0003 must replay before Product module copy');
 });
+
+test('Nx CRLF backport carries exact-source progressing unified-diff replay coordinates', () => {
+  const nxPatch = readText('upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch');
+  const packageMarker = 'diff --git a/package.json b/package.json';
+  const lockMarker = 'diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml';
+  const packageStart = nxPatch.indexOf(packageMarker);
+  const lockStart = nxPatch.indexOf(lockMarker);
+  assert.ok(packageStart >= 0 && lockStart > packageStart, '0003 must contain package.json then pnpm-lock.yaml');
+
+  const coordinates = patchText => [...patchText.matchAll(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/gmu)]
+    .map(match => [Number(match[1]), Number(match[2])]);
+
+  const packageCoordinates = coordinates(nxPatch.slice(packageStart, lockStart));
+  assert.deepEqual(packageCoordinates, [[48, 48]], 'package.json Nx backport must target the exact pinned Nx declaration line');
+
+  const lockCoordinates = coordinates(nxPatch.slice(lockStart));
+  assert.ok(lockCoordinates.length > 1, 'pnpm-lock.yaml Nx backport must expose ordinary textual hunks');
+  assert.deepEqual(lockCoordinates[0], [323, 323], 'lock replay must begin at the exact pinned @nx-tools importer line');
+  for (let index = 1; index < lockCoordinates.length; index += 1) {
+    assert.ok(
+      lockCoordinates[index][0] > lockCoordinates[index - 1][0],
+      `pnpm-lock.yaml old-side hunk coordinates must strictly progress at hunk ${index + 1}`
+    );
+    assert.ok(
+      lockCoordinates[index][1] > lockCoordinates[index - 1][1],
+      `pnpm-lock.yaml new-side hunk coordinates must strictly progress at hunk ${index + 1}`
+    );
+  }
+});
