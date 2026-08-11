@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-11T16:57:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-NX-CANONICAL-PREREQUISITE-V2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Atomic prerequisite V2 after the test-only prerequisite topology was falsified by a clean causal RED. Governance PR #264 ordinary-merged as 58baef8b2abc38142405f4213764dd6cc24e8d46 and authorized a one-path legacy coordinate migration. Its implementation PR #265 exact Head a4323f8228db904c10e5c64cce6cee4007b79348 then proved that migration cannot be independently GREEN against fresh main: Stage run 31482375777 / job 93750112843 executes 293 tests with 292 PASS / 1 FAIL. The sole failing file is tests/wp0/v21-element-workspace-contract.test.js and the sole failing subtest is 'Nx CRLF backport carries exact-source unified-diff replay coordinates'. The migrated expected coordinate is correctly [16375,16395], but actual fresh-main 0003 still contains the superseded six micro-hunks [16378,16398], [16381,16401], [16388,16408], [16392,16412], [16401,16421], [16411,16431]. Therefore canonical production patch and legacy coordinate-contract migration are one atomic prerequisite: either side alone is structurally RED. This authorization permits a distinct two-path implementation branch to transplant the already independently proven canonical 0003 blob from PR #263 exact Head da15ef14ccd6844a1fdaf15fa23592f70523a727 together with the already proven migrated workspace-test blob from PR #265 exact Head a4323f8228db904c10e5c64cce6cee4007b79348. No new patch semantics are authorized. After this atomic prerequisite ordinary-merges to main, fresh main must be forward-merged into #263 so #263 retains its causal failure-first canonical-diff test and historical ancestry under predecessor authorization #262.",
+  "base": {
+    "branch": "main",
+    "commit": "58baef8b2abc38142405f4213764dd6cc24e8d46"
+  },
+  "evidence": {
+    "predecessorCanonicalAuthorizationPullRequest": 262,
+    "predecessorCanonicalImplementationPullRequest": 263,
+    "predecessorCanonicalImplementationHead": "da15ef14ccd6844a1fdaf15fa23592f70523a727",
+    "canonicalPatchPath": "upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch",
+    "canonicalPatchBlob": "3f28a4fc82b88d1d8918cfef6b3d570ca9579d7d",
+    "testOnlyPrerequisiteAuthorizationPullRequest": 264,
+    "testOnlyPrerequisiteAuthorizationMerge": "58baef8b2abc38142405f4213764dd6cc24e8d46",
+    "testOnlyPrerequisiteImplementationPullRequest": 265,
+    "testOnlyPrerequisiteImplementationHead": "a4323f8228db904c10e5c64cce6cee4007b79348",
+    "migratedWorkspaceTestPath": "tests/wp0/v21-element-workspace-contract.test.js",
+    "migratedWorkspaceTestBlob": "839ce59beb9982649ae31ee9358fbf84e92e10a0",
+    "causalRedStageRun": 31482375777,
+    "causalRedStageJob": 93750112843,
+    "causalRedTestCount": 293,
+    "causalRedPassCount": 292,
+    "causalRedFailCount": 1,
+    "soleFailingContractPath": "tests/wp0/v21-element-workspace-contract.test.js",
+    "soleFailingSubtest": "Nx CRLF backport carries exact-source unified-diff replay coordinates",
+    "freshMainActualDenseCoordinates": [[16378,16398],[16381,16401],[16388,16408],[16392,16412],[16401,16421],[16411,16431]],
+    "authorizedCanonicalDenseCoordinate": [16375,16395],
+    "authorizedCanonicalDenseHeader": "@@ -16375,49 +16395,49 @@",
+    "elementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "elementPnpmLockBlob": "7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc",
+    "targetNxVersion": "23.1.1"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-nx-canonical-prerequisite-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-nx-canonical-prerequisite-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "71cbf1dce1ce3847fefe39add77fdcb7f08494e9d891573fe217cd33e7a80ef8",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-nx-canonical-prerequisite-v2",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "70d565a39dfbeded19b6ad1bded3e07f0753f74533f33cc437e3dc4557f5027c",
+    "canonicalPatchBlobRequired": "3f28a4fc82b88d1d8918cfef6b3d570ca9579d7d",
+    "migratedWorkspaceTestBlobRequired": "839ce59beb9982649ae31ee9358fbf84e92e10a0",
+    "exactBlobTransplantAllowed": true,
+    "newPatchSemanticModificationAllowed": false,
+    "bootstrapModificationAllowed": false,
+    "elementPinModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "elementLockRegenerationAllowed": false,
+    "patchMutationSetModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "mandatoryContracts": [
+    "Stage run 31482375777 / job 93750112843 is the causal failure-first evidence for this atomic prerequisite; no synthetic replacement RED is required.",
+    "The implementation branch must be distinct from PR #263 and PR #265 and must change exactly the two authorized paths only.",
+    "The production patch path must resolve to exact blob 3f28a4fc82b88d1d8918cfef6b3d570ca9579d7d, byte-identical to PR #263 exact Head da15ef14ccd6844a1fdaf15fa23592f70523a727. No new production patch edit is authorized.",
+    "The workspace contract path must resolve to exact blob 839ce59beb9982649ae31ee9358fbf84e92e10a0, byte-identical to PR #265 exact Head a4323f8228db904c10e5c64cce6cee4007b79348. No other workspace assertion may change.",
+    "The canonical dense header remains @@ -16375,49 +16395,49 @@ and ordinary git apply semantics remain mandatory; no 3-way, reject, recount, ignore-whitespace, unidiff-zero, fuzzy, autocrlf or line-ending workaround is allowed.",
+    "After this atomic prerequisite ordinary-merges to main, fresh main must be forward-merged into PR #263. PR #263 remains governed by #262; its failure-first canonical-diff test must remain present and GREEN, and the canonical 0003 blob must remain byte-identical.",
+    "After PR #263 is GREEN and ordinary-merges, fresh main must be forward-merged into Product PR #229 and real Windows Product Final Validation Task 9 remains the final replay authority before the owner-gated Product merge boundary."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "newPatchSemanticModification": true,
+    "gitApplyThreeWay": true,
+    "gitApplyReject": true,
+    "gitApplyRecount": true,
+    "gitApplyUnidiffZero": true,
+    "gitApplyIgnoreWhitespace": true,
+    "fuzzyPatch": true,
+    "lineEndingRewrite": true,
+    "gitAutocrlfManipulation": true,
+    "elementPinChange": true,
+    "pnpmVersionDrift": true,
+    "elementLockRegeneration": true,
+    "unrelatedElementDependencyDrift": true,
+    "bootstrapModification": true,
+    "productSourceModification": true,
+    "workflowModification": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalProductPullRequestMergeRequiresOwnerApproval": true
+  }
+}
