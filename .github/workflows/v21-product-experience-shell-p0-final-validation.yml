@@ -64,6 +64,8 @@ jobs:
           $results = @()
           foreach ($iteration in 1..2) {
             Remove-Item -Recurse -Force -ErrorAction SilentlyContinue services/matrix/.runtime
+            $pnpmStore = Join-Path $env:RUNNER_TEMP "product-experience-pnpm-store-$iteration"
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $pnpmStore
             node tools/matrix/bootstrap.js
             if ($LASTEXITCODE -ne 0) { throw "Element materialization failed on iteration $iteration" }
 
@@ -76,7 +78,7 @@ jobs:
 
             Push-Location $env:RUNNER_TEMP
             try {
-              pnpm --dir $element install --frozen-lockfile
+              pnpm --dir $element install --frozen-lockfile --store-dir $pnpmStore
               if ($LASTEXITCODE -ne 0) { throw "frozen pnpm install failed on iteration $iteration" }
               pnpm --dir $element exec nx build yance-element-module
               if ($LASTEXITCODE -ne 0) { throw "Yance Element module build failed on iteration $iteration" }

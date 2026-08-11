@@ -59,6 +59,16 @@ test('every pnpm shim invocation launches from neutral RUNNER_TEMP while --dir s
   assert.doesNotMatch(source, /--no-frozen-lockfile|--lockfile-only/u);
 });
 
+test('Task 9 gives each frozen Element install a clean iteration-scoped RUNNER_TEMP pnpm store', () => {
+  const source = readWorkflow();
+  assert.match(source, /\$pnpmStore = Join-Path \$env:RUNNER_TEMP "product-experience-pnpm-store-\$iteration"/u);
+  assert.match(source, /Remove-Item -Recurse -Force -ErrorAction SilentlyContinue \$pnpmStore/u);
+  assert.match(source, /pnpm --dir \$element install --frozen-lockfile --store-dir \$pnpmStore/u);
+  assert.doesNotMatch(source, /pnpm[^\n]*--force/u);
+  assert.doesNotMatch(source, /strictStorePkgContentCheck\s*=\s*false|strict-store-pkg-content-check(?:=|\s+)false/u);
+  assert.doesNotMatch(source, /verifyStoreIntegrity\s*=\s*false|verify-store-integrity(?:=|\s+)false/u);
+});
+
 test('PowerShell loop diagnostics delimit iteration before colon punctuation', () => {
   const source = readWorkflow();
   assert.doesNotMatch(source, /iteration \$iteration:/u);
