@@ -127,19 +127,52 @@ fi
 state_root="${XDG_STATE_HOME:-$HOME/.local/state}/yance-multibridge-lab"
 mkdir -p "$state_root"
 manager_log="$state_root/mautrix-manager.log"
-if ! pgrep -u "$launch_uid" -f -- "$exe" >/dev/null 2>&1; then
-  nohup "$exe" >"$manager_log" 2>&1 </dev/null &
-  sleep 5
-fi
-if ! pgrep -u "$launch_uid" -f -- "$exe" >/dev/null 2>&1; then
+stability_seconds=15
+: >"$manager_log"
+
+"$exe" >"$manager_log" 2>&1 &
+manager_pid="$!"
+echo "MAUTRIX_MANAGER_GUI_PID=$manager_pid"
+
+for ((elapsed = 0; elapsed < stability_seconds; elapsed++)); do
+  if ! kill -0 "$manager_pid" 2>/dev/null; then
+    set +e
+    wait "$manager_pid"
+    manager_rc=$?
+    set -e
+    echo '=== bounded manager log ===' >&2
+    sed -n '1,120p' "$manager_log" >&2 || true
+    real_red "mautrix-manager exited before the ${stability_seconds}-second human-session gate: exit=$manager_rc"
+  fi
+  sleep 1
+done
+
+if ! kill -0 "$manager_pid" 2>/dev/null; then
+  set +e
+  wait "$manager_pid"
+  manager_rc=$?
+  set -e
   echo '=== bounded manager log ===' >&2
-  sed -n '1,80p' "$manager_log" >&2 || true
-  real_red 'mautrix-manager did not remain running under WSLg'
+  sed -n '1,120p' "$manager_log" >&2 || true
+  real_red "mautrix-manager exited at the ${stability_seconds}-second human-session gate: exit=$manager_rc"
 fi
 
+echo "MAUTRIX_MANAGER_GUI_SESSION_GREEN pid=$manager_pid stable_seconds=$stability_seconds"
 echo 'MAUTRIX_MANAGER_GUI_LAUNCHED'
 echo "MATRIX_HOMESERVER=$homeserver_url"
 echo "FACEBOOK_PERSONAL_BRIDGE_URL=$bridge_url"
 echo 'Use the existing local Matrix Lab account in the upstream GUI, then add the displayed Bridge URL.'
 echo 'No remote-network authorization is performed by this package.'
 echo 'FINAL STATUS: HUMAN_AUTH_REQUIRED'
+
+set +e
+wait "$manager_pid"
+manager_rc=$?
+set -e
+if [ "$manager_rc" -ne 0 ]; then
+  echo '=== bounded manager log ===' >&2
+  sed -n '1,120p' "$manager_log" >&2 || true
+  real_red "mautrix-manager exited after reaching the human-authorization boundary: exit=$manager_rc"
+fi
+
+echo 'MAUTRIX_MANAGER_GUI_SESSION_ENDED exit=0'
