@@ -114,6 +114,22 @@ function Get-FacebookProvisioningRuntimeSample {
   }
 }
 
+function Test-FacebookPublishedPortRuntime {
+  param(
+    [Parameter(Mandatory = $true)][string]$DockerExe,
+    [Parameter(Mandatory = $true)][string]$LabRoot,
+    [Parameter(Mandatory = $true)][string]$ComposePath,
+    [Parameter(Mandatory = $true)][int]$InternalPort
+  )
+  $result = Invoke-LabNativeProcess -FilePath $DockerExe -Arguments @(
+    'compose', '-f', $ComposePath, 'port', 'facebook-personal', [string]$InternalPort
+  ) -WorkingDirectory $LabRoot
+  if ($result.ExitCode -ne 0) { return $false }
+  $lines = @([string]$result.StdOut -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+  if ($lines.Count -ne 1 -or $lines[0] -notmatch '^127\.0\.0\.1:(\d+)$') { return $false }
+  return ([int]$matches[1] -eq $InternalPort)
+}
+
 function Assert-FacebookPublishedPort {
   param(
     [Parameter(Mandatory = $true)][string]$DockerExe,
@@ -219,10 +235,16 @@ function Ensure-FacebookPersonalProvisioningAuthority {
       if ($committedMappings.Count -ne 1 -or -not (Test-FacebookLoopbackPortMapping -Mapping $committedMappings[0] -InternalPort $internalPort)) {
         throw 'REAL_RED: committed Compose authority failed loopback-only provisioning validation.'
       }
+    }
 
+    $runtimePublicationGreen = Test-FacebookPublishedPortRuntime -DockerExe $DockerExe -LabRoot $LabRoot -ComposePath $ComposePath -InternalPort $internalPort
+    $runtimeRecreated = $false
+    if ($needsRepair -or -not $runtimePublicationGreen) {
       [void](Invoke-FacebookProvisioningNativeChecked -DockerExe $DockerExe -LabRoot $LabRoot -Arguments @(
         'compose', '-f', $ComposePath, 'up', '-d', '--force-recreate', 'facebook-personal'
-      ) -FailureMessage 'Compose could not recreate only facebook-personal after provisioning publication repair.')
+      ) -FailureMessage 'Compose could not reconcile facebook-personal with the provisioning publication authority.')
+      $runtimeRecreated = $true
+      Write-Host 'FACEBOOK_PROVISIONING_RUNTIME_RECONCILED'
     }
 
     Start-Sleep -Seconds 5
@@ -246,7 +268,7 @@ function Ensure-FacebookPersonalProvisioningAuthority {
       InternalPort = $internalPort
       HostPort = $hostPort
       BridgeUrl = "http://127.0.0.1:$hostPort"
-      Changed = [bool]$needsRepair
+      Changed = [bool]($needsRepair -or $runtimeRecreated)
     }
   }
   catch {
