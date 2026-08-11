@@ -18,7 +18,7 @@ real_red() {
 }
 
 case "$mode" in
-  --install-and-smoke|--install-and-launch) ;;
+  --install-and-smoke|--install-only|--launch-only) ;;
   *) real_red 'unsupported manager installer mode' ;;
 esac
 
@@ -43,9 +43,17 @@ if [ -n "$installed_version" ] && [ "$installed_version" != "$expected_version" 
   real_red "a different mautrix-manager version is already installed: $installed_version"
 fi
 if [ -z "$installed_version" ]; then
-  sudo -v
-  sudo apt-get update
-  sudo apt-get install -y "$deb_path"
+  if [ "$mode" = '--launch-only' ]; then
+    real_red 'exact mautrix-manager package must be installed before unprivileged GUI launch'
+  fi
+  if [ "$(id -u)" -eq 0 ]; then
+    apt-get update
+    apt-get install -y "$deb_path"
+  else
+    sudo -v
+    sudo apt-get update
+    sudo apt-get install -y "$deb_path"
+  fi
 fi
 
 actual_version="$(dpkg-query -W -f='${Version}' "$expected_package" 2>/dev/null || true)"
@@ -81,6 +89,11 @@ if grep -Fq 'not found' <<<"$ldd_output"; then
 fi
 echo 'MAUTRIX_MANAGER_LINUX_DEB_DEPENDENCIES_GREEN'
 
+if [ "$mode" = '--install-only' ]; then
+  echo 'MANAGER_INSTALL_GREEN'
+  exit 0
+fi
+
 if [ "$mode" = '--install-and-smoke' ]; then
   command -v xvfb-run >/dev/null 2>&1 || real_red 'xvfb-run is required for CI smoke'
   set +e
@@ -114,11 +127,11 @@ fi
 state_root="${XDG_STATE_HOME:-$HOME/.local/state}/yance-multibridge-lab"
 mkdir -p "$state_root"
 manager_log="$state_root/mautrix-manager.log"
-if ! pgrep -f -- "$exe" >/dev/null 2>&1; then
+if ! pgrep -u "$launch_uid" -f -- "$exe" >/dev/null 2>&1; then
   nohup "$exe" >"$manager_log" 2>&1 </dev/null &
   sleep 5
 fi
-if ! pgrep -f -- "$exe" >/dev/null 2>&1; then
+if ! pgrep -u "$launch_uid" -f -- "$exe" >/dev/null 2>&1; then
   echo '=== bounded manager log ===' >&2
   sed -n '1,80p' "$manager_log" >&2 || true
   real_red 'mautrix-manager did not remain running under WSLg'
