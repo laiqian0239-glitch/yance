@@ -45,12 +45,9 @@ test('Facebook Personal Windows manager release path stays frozen as the exact u
   assert.match(windowsGate, /NotSigned/);
   assert.match(windowsGate, /MAUTRIX_MANAGER_WINDOWS_RELEASE_RETIRED_UNSIGNED_RED/);
 
-  // This is a frozen evidence guard only: never launch the known-unsigned EXE.
   assert.doesNotMatch(windowsGate, /Start-Process/);
   assert.doesNotMatch(windowsGate, /MAUTRIX_MANAGER_INTERNAL_AUTHENTICODE_GREEN/);
   assert.doesNotMatch(windowsGate, /MAUTRIX_MANAGER_RELEASE_PAYLOAD_SMOKE_GREEN/);
-
-  // The vulnerable Forge/npm source-launch chain remains retired.
   assert.doesNotMatch(workflow, /Upload Facebook Personal manager source launcher/);
   assert.doesNotMatch(workflow, /yance-facebook-personal-manager-source-launch/);
   assert.match(workflow, /MAUTRIX_MANAGER_SOURCE_LAUNCH_RETIRED_SECURITY_RED/);
@@ -76,9 +73,27 @@ test('Facebook Personal manager has an exact official Linux x64 release gate for
   assert.match(workflow, /timeout/);
   assert.match(workflow, /MAUTRIX_MANAGER_LINUX_RELEASE_PAYLOAD_SMOKE_GREEN/);
 
-  // The WSL candidate must be a prebuilt upstream release payload. It must not
-  // rebuild the app or execute the retired vulnerable Forge/npm source chain.
   const linuxJob = workflow.slice(workflow.indexOf('manager-linux-release:'));
   assert.doesNotMatch(linuxJob, /npm\s+(?:ci|install|start)/);
   assert.doesNotMatch(linuxJob, /electron-forge/);
+});
+
+test('Linux manager smoke failure emits bounded dependency and sandbox diagnostics before any workaround', () => {
+  const workflow = fs.readFileSync(WORKFLOW, 'utf8');
+  const linuxJob = workflow.slice(workflow.indexOf('manager-linux-release:'));
+
+  assert.match(linuxJob, /ldd\s+"\$exe"/);
+  assert.match(linuxJob, /not found/);
+  assert.match(linuxJob, /chrome-sandbox/);
+  assert.match(linuxJob, /stat\s+-c/);
+  assert.match(linuxJob, /kernel\.apparmor_restrict_unprivileged_userns/);
+  assert.match(linuxJob, /unshare\s+--user/);
+  assert.match(linuxJob, /stdout\.txt/);
+  assert.match(linuxJob, /stderr\.txt/);
+  assert.match(linuxJob, /sed\s+-n\s+'1,80p'/);
+  assert.match(linuxJob, /MAUTRIX_MANAGER_LINUX_SMOKE_DIAGNOSTICS/);
+
+  // Diagnostics only: do not disable Electron/Chromium sandboxing to force GREEN.
+  assert.doesNotMatch(linuxJob, /--no-sandbox/);
+  assert.doesNotMatch(linuxJob, /--disable-setuid-sandbox/);
 });
