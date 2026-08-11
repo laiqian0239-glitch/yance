@@ -3,7 +3,7 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "requestedByUserAt": "2026-08-12T00:36:00+07:00",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-PRODUCT-EXPERIENCE-SHELL-P0-FINAL-VALIDATION-PNPM-STORE-ISOLATION",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-P0-FINAL-VALIDATION-PNPM-STORE-ISOLATION",
   "proposalRevision": 1,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Product Experience PR #229 exact Head ca66b8acab6c2f285c39032660cf1edbe5d1e4f9 reproduced ERR_PNPM_UNEXPECTED_PKG_CONTENT_IN_STORE twice in the existing Windows final-validation workflow. Attempt 1 passed the first clean frozen install/build/typecheck and failed during the second materialization; attempt 2 failed during the first materialization while reusing the GitHub runner user-scoped pnpm content-addressable store. The repeated mismatch expected eslint-plugin-element-call@0.0.0 but found element-call@0.0.0 in the shared store. This work package authorizes only a failure-first contract and the existing dedicated final-validation workflow to use pnpm's native storeDir seam with an isolated RUNNER_TEMP store per materialization. It forbids disabling strict store package-content checks or store integrity verification, changing pnpm 11.5.2, changing the frozen Product lock/runtime, or adding Yance package-manager infrastructure.",
