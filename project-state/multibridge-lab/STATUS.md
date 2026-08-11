@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-12 00:18 +07:00
+Last updated: 2026-08-12 00:35 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -204,9 +204,9 @@ Observed bounded console evidence, in order:
 
 This closes the non-human Task E runtime gate. There is no remaining runtime/config/network/Compose repair action justified by current evidence. The next boundary is exactly the plan's Task 4 real-account operator layer, using mature upstream login/provisioning flows one platform at a time.
 
-## TASK 4 FACEBOOK PERSONAL — UPSTREAM OPERATOR SECURITY REAL RED
+## TASK 4 FACEBOOK PERSONAL — UPSTREAM OPERATOR SECURITY LINEAGE
 
-Facebook Personal remains runtime-ready, but real-account authorization is blocked before credentials/cookies/2FA by the current upstream Windows operator distribution trust boundary.
+Facebook Personal runtime is ready. Real-account authorization has not started; the work below is strictly operator-path qualification before credentials/cookies/2FA.
 
 ### SmartScreen evidence — unsigned official installer
 
@@ -227,39 +227,135 @@ A temporary exact-source investigation proved the upstream source itself could b
 
 No `npm audit fix`, lockfile mutation or Yance-owned dependency override was used. The source-launch files and artifact path were removed in ordinary commit `a4ba984144e503828fcf19ed4cf1eb9c03280db6`; workflow guard `MAUTRIX_MANAGER_SOURCE_LAUNCH_RETIRED_SECURITY_RED` prevents that path from reappearing.
 
-### Official `.nupkg` internal executable investigation — REAL RED
+### Official Windows `.nupkg` internal executable — RETIRED UNSIGNED RED
 
-The alternative mature upstream release-payload hypothesis was tested failure-first on real Windows:
+The mature upstream Windows release payload was tested on real Windows:
 
-- exact official release asset ID `495351157`;
-- asset `mautrix_manager-0.2.1-full.nupkg`;
-- exact GitHub Release SHA256 `0ab5a822f7c1ceb830811972fb98d9849cf17080c54f2d8d6583b0b9802721ed`;
-- payload contract commit `d7c8f5c81b1d4cf8627c0b98650b106c65d4ee34` → run `31516111721`: 26/27 GREEN, only the new payload gate absent;
-- implementation commit `a4ba984144e503828fcf19ed4cf1eb9c03280db6` retired the vulnerable source launcher and added exact tag/asset/SHA/Authenticode/smoke validation;
-- stale asset-variable contract fix `0f7d967346c36e836f0717cde47b11ba99964470`;
-- Windows run `31516762153`, job `93863708324`: **26/26 contracts GREEN** and retired-source guard GREEN;
-- downloaded `.nupkg` SHA256 exactly matched `0ab5a822f7c1ceb830811972fb98d9849cf17080c54f2d8d6583b0b9802721ed`;
-- extracted official `lib/net45/mautrix-manager.exe` was checked by Windows `Get-AuthenticodeSignature`;
-- result: **`Internal Authenticode status=NotSigned`**;
-- gate stopped immediately as `Internal mautrix-manager.exe Authenticode RED: status=NotSigned`;
-- no no-login smoke and no credential-bearing execution was allowed after the signature RED.
+- asset ID `495351157`, `mautrix_manager-0.2.1-full.nupkg`;
+- exact SHA256 `0ab5a822f7c1ceb830811972fb98d9849cf17080c54f2d8d6583b0b9802721ed`;
+- Windows run `31516762153`, job `93863708324`: exact release SHA matched;
+- internal `lib/net45/mautrix-manager.exe` → `Get-AuthenticodeSignature` status **`NotSigned`**.
 
-This proves both the outer official Windows installer and the internal official application executable lack a valid Windows Authenticode trust path for v0.2.1. The project must not bypass SmartScreen, manually run the unsigned internal EXE, resurrect the vulnerable Forge source-launch chain, or replace mautrix-manager with a Yance-built cookie/login client.
+The current workflow now retains this only as evidence guard `MAUTRIX_MANAGER_WINDOWS_RELEASE_RETIRED_UNSIGNED_RED`; it never starts the known-unsigned EXE.
 
-### Current stop condition
+### Official Linux x64 ZIP — RETIRED SANDBOX PACKAGING RED
 
-This is a genuine upstream OSS/security RED and is the authorized stop boundary. Facebook Personal account authorization has **not** started and no Matrix/Facebook credential, cookie, token, 2FA code or device-confirmation secret has been exposed.
+Official ZIP identity:
 
-The legitimate unblock condition is a mature upstream operator path that satisfies the security boundary, such as:
+- asset ID `495350343`;
+- `mautrix-manager-linux-x64-0.2.1.zip`;
+- SHA256 `8a55dc5022c5d52d13c58e05c72ad2d0bfff3fa9dac19d96e5eb84608f282479`.
 
-- an upstream Windows mautrix-manager release whose actual application executable has a valid Authenticode signature; or
-- an upstream-maintained dependency-secure operator/run path that does not require executing the currently vulnerable Forge/rebuild development chain.
+Failure-first lineage:
 
-Do not rerun the Task E runtime package, the unsigned manager installer, the removed source launcher, or the extracted unsigned manager executable while this RED remains.
+- Linux gate contract `062650cdae6dd3289fe8515fd707c1ad145ff5f9` → run `31519316332`: 26/27 GREEN, only Linux validation job absent;
+- first implementation `dc756d07695fd786b94073f42265767235c30f2a` reproduced GUI smoke exit `133`;
+- bounded diagnostic contract `e228a9107e8ee113ee2a3b02c5ad024acf06e5ff` and implementation `ef22a8b1a61261ad62caff90899016fc19117190` → run `31520131082`, job `93874860726`.
 
-## Task 4 canonical order after unblock
+Exact diagnosis:
 
-1. Facebook Personal — blocked at upstream operator security RED before human login.
+- release SHA and ELF x86-64 identity GREEN;
+- `ldd` showed no missing shared libraries;
+- extracted `chrome-sandbox` was `runner:runner`, mode `0755`;
+- Ubuntu runner had `kernel.apparmor_restrict_unprivileged_userns=1` and unprivileged `unshare --user` was denied;
+- Electron FATAL explicitly required the SUID sandbox helper to be root-owned and mode `4755`, then aborted with SIGTRAP/exit `133` rather than run without sandbox.
+
+No `--no-sandbox`, `--disable-setuid-sandbox`, manual `chown root`, or manual `chmod 4755` was accepted. The ZIP path is now evidence-only guard `MAUTRIX_MANAGER_LINUX_ZIP_RETIRED_SANDBOX_RED`.
+
+### Official Linux amd64 `.deb` — MATURE UPSTREAM PATH GREEN
+
+The official Debian package is the qualified operator runtime path:
+
+- asset ID `495350342`;
+- `mautrix-manager_0.2.1_amd64.deb`;
+- SHA256 `94cca9ffe2087521a042f8afc656c1403dcc79af980acd229420829b367ea1fd`;
+- failure-first contract `1a412e4387f1252a0eceaa8f0fba7f7e0e7ad04b` → run `31520284428`: exact new DEB/ZIP-retirement contracts RED while prior gates remained GREEN;
+- implementation `dfb801775b1457c736c6598f315f40c8cc2258b2` uses only native package-manager semantics.
+
+Run `31520540173`, job `93876208486` proved:
+
+- exact release SHA GREEN;
+- package metadata `mautrix-manager`, version `0.2.1`, architecture `amd64`;
+- formal DEB contents already encode `chrome-sandbox` as root/root setuid;
+- `apt-get install` of the exact official package installed `chrome-sandbox` as `owner=root group=root mode=4755`;
+- `ldd` after installation showed no missing libraries;
+- 8-second no-login Xvfb GUI smoke completed by timeout rather than premature exit;
+- markers `MAUTRIX_MANAGER_LINUX_DEB_SANDBOX_GREEN` and `MAUTRIX_MANAGER_LINUX_DEB_PAYLOAD_SMOKE_GREEN` emitted.
+
+Latest regression run `31521791219`, job `93880338534`, keeps the same official DEB gate GREEN. This path does not execute npm/Forge and does not disable Chromium sandboxing.
+
+## FACEBOOK PERSONAL — READ-ONLY WSL2/WSLg READINESS PACKAGE SEALED
+
+Before any Windows/WSL system mutation or Linux package installation, a bounded read-only capability checker was built failure-first.
+
+Checker semantics:
+
+- queries only `wsl.exe --status`, `wsl.exe --version`, and `wsl.exe --list --verbose`;
+- requires an existing WSL2 distro;
+- inside candidate distros reads only `uname -m`, presence of `apt-get`/`dpkg`, `/mnt/wslg`, and whether GUI display variables exist;
+- requires amd64/x86-64 Debian-family package-manager semantics and WSLg;
+- performs bounded read-only TCP reachability to existing Windows Synapse port `8008`, first via `127.0.0.1`, then via the Windows host address from `ip route show default`;
+- never installs/updates WSL, changes distro version/default, edits `.wslconfig`, changes firewall/network, runs sudo, installs packages, or reads credentials.
+
+Failure-first lineage:
+
+- initial WSL contract `e6b7b4665ff6a25ec15c23fcabed86f5a54e1b1b` → run `31520974017`, job `93877616982`: existing manager/runtime contracts GREEN and exactly three new WSL-package tests RED because implementation was absent;
+- network-readiness contract advanced in `44ae6f877f6285eeba53e170448e9cf4fbeeaf96`;
+- checker script `992cebf32864e080cf718ea950ea331ac12a961b`, README `4343874bcf4a9a30abc5462cdd3bd50f02cc286c`, MotW-safe wrapper `c49ebff5107bbc0f301227b5d410b3d5cc583a06`;
+- dedicated packaging workflow `3726369129d7acb60c11d8b1def371c548e06f2e`, isolated from the sealed native workflow;
+- first dedicated run `31521541649`, job `93879488904`: static/read-only and workflow contracts GREEN, only parser test RED because Windows PowerShell 5.1 rejected `.Replace([char]0, '')` overload with empty-string replacement;
+- minimal PS5.1 fix `1c603b758f7dacae920a5307315cf317d0fea479` changed only NUL normalization to `-replace "`0", ''`.
+
+Final dedicated run `31521791198`, job `93880338358` is fully GREEN:
+
+- WSL readiness contracts `3/3`, fail `0`;
+- `WINDOWS_POWERSHELL_5_1_WSL_CHECKER_PARSE_GREEN`;
+- reproduced downloaded-file MotW under RemoteSigned;
+- `PACKAGE_INTEGRITY_GREEN`;
+- `PACKAGE_MOTW_RELEASE_GREEN`;
+- hosted Windows runner classified its own environment read-only as `WSL_SETUP_REQUIRED reason=WSL_DISTRO_LIST_UNAVAILABLE` / exit `2`, which is an allowed classification rather than a package failure;
+- `WSL_READINESS_PACKAGE_GREEN`;
+- artifact upload GREEN.
+
+Final WSL readiness artifact:
+
+- artifact ID `9113313022`;
+- name `yance-facebook-personal-wsl-readiness`;
+- GitHub digest `sha256:64eaf5b32058f68d3232b42a53b2386bc813e0248377009cc882e3b8308f729e`;
+- size `6593` bytes;
+- exact file count `5`.
+
+Independent downloaded-ZIP verification:
+
+- ZIP SHA256 exactly `64eaf5b32058f68d3232b42a53b2386bc813e0248377009cc882e3b8308f729e`, equal to GitHub digest;
+- exact files: `FACEBOOK_PERSONAL_WSL_READINESS_README.txt`, `RUN_FACEBOOK_PERSONAL_WSL_READINESS.cmd`, `SHA256SUMS.txt`, `facebook-personal-wsl-readiness.ps1`, `native-process.ps1`;
+- all three manifest-controlled files independently recomputed GREEN;
+- manifest hashes: README `7ad4a6328894168af600c8ed3bc2e6f7d547b9f201dd8612533ad9670da297db`, checker `ee0d43fe3e6490434423764c053cdab7781ed10be5429fbf3993f3186cbf4505`, helper `fd715e68aae8a6efdd93ea64272208c38134d2cd67b9ac01275eda02c354599d`.
+
+Main regression run `31521791219` also finished all three jobs GREEN at the same head:
+
+- Windows/native job `93880338508` success;
+- Linux ZIP retired guard `93880338346` success;
+- official Linux DEB job `93880338534` success.
+
+## Current stop condition — USER-MACHINE READ-ONLY WSL CAPABILITY GATE
+
+There is no longer a need to wait for a future signed Windows manager release. The mature upstream operator runtime is the exact official Linux amd64 `.deb` under WSL2/WSLg, provided the user's existing Windows environment already satisfies the read-only capability gate.
+
+The unique next action is to run the sealed `yance-facebook-personal-wsl-readiness` package. It does not mutate Windows or WSL.
+
+Acceptable next states:
+
+- `FINAL STATUS: WSL_GUI_READY` — existing WSL2/WSLg environment is suitable; the next boundary is explicit system authorization to install the exact official `.deb` inside the selected distro, then Facebook Personal real-account authorization;
+- `FINAL STATUS: WSL_SETUP_REQUIRED` — a Windows/WSL system prerequisite is missing; stop and derive the smallest supported setup action from the emitted reason before any mutation;
+- `FINAL STATUS: WSL_LAB_NETWORK_REQUIRED` — WSLg exists but cannot reach the existing Windows Lab; diagnose the exact network authority before any `.wslconfig`/firewall/bind change;
+- `FINAL STATUS: REAL_RED` — unexpected checker failure; debug from that new causal boundary.
+
+Do not rerun the Task E runtime package, unsigned Windows manager, retired source launcher, or retired Linux ZIP. Do not install the `.deb` until the WSL capability checker reaches `WSL_GUI_READY` and the system-mutation boundary is explicitly crossed.
+
+## Task 4 canonical order
+
+1. Facebook Personal — current step: read-only WSL2/WSLg capability gate; official Linux amd64 `.deb` is qualified upstream operator runtime.
 2. Instagram DM — not started.
 3. Google Messages — not started.
 4. Signal — not started.
@@ -278,8 +374,12 @@ Do not rerun the Task E runtime package, the unsigned manager installer, the rem
 - [x] Scalarization-fixed package: 25/25 Windows contracts, MotW bootstrap GREEN, independent ZIP/manifest verification GREEN.
 - [x] User-machine `LAB_RUNTIME_READY` reached with all non-human gates GREEN and exit code `0`.
 - [x] Hard human authorization boundary reached exactly as designed: `FINAL STATUS: HUMAN_AUTH_REQUIRED`.
-- [x] Facebook Personal operator security investigation: unsigned installer refused, source-launch critical dev-chain identified/retired, exact official nupkg verified, internal EXE proven `NotSigned`.
-- [ ] Facebook Personal upstream real-account authorization/acceptance — BLOCKED on genuine upstream operator security RED.
+- [x] Facebook Personal Windows operator paths safely retired: unsigned installer/internal EXE and vulnerable source/Forge chain.
+- [x] Official Linux ZIP sandbox packaging RED causally diagnosed and retired without sandbox bypass.
+- [x] Official `mautrix-manager_0.2.1_amd64.deb` package-manager path: root/4755 sandbox + dependency-complete no-login smoke GREEN.
+- [x] Read-only WSL2/WSLg readiness checker built failure-first, PS5.1/MotW hardened, independently verified.
+- [ ] User-machine WSL capability classification (`WSL_GUI_READY`, `WSL_SETUP_REQUIRED`, `WSL_LAB_NETWORK_REQUIRED`, or `REAL_RED`).
+- [ ] Facebook Personal upstream real-account authorization/acceptance.
 - [ ] Instagram DM upstream real-account authorization/acceptance.
 - [ ] Google Messages upstream device-linking/acceptance.
 - [ ] Signal upstream device-linking/acceptance.
