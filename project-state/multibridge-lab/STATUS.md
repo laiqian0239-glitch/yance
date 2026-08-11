@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-12 00:35 +07:00
+Last updated: 2026-08-12 01:49 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -282,7 +282,7 @@ Run `31520540173`, job `93876208486` proved:
 - 8-second no-login Xvfb GUI smoke completed by timeout rather than premature exit;
 - markers `MAUTRIX_MANAGER_LINUX_DEB_SANDBOX_GREEN` and `MAUTRIX_MANAGER_LINUX_DEB_PAYLOAD_SMOKE_GREEN` emitted.
 
-Latest regression run `31521791219`, job `93880338534`, keeps the same official DEB gate GREEN. This path does not execute npm/Forge and does not disable Chromium sandboxing.
+Latest native regression run `31524499545` at head `326216fdfb4ffcdcaaf6a6777c0525162342afeb` keeps all three jobs GREEN: Windows/native `93889363327`, retired Linux ZIP guard `93889363290`, and official Linux DEB `93889363140`.
 
 ## FACEBOOK PERSONAL — READ-ONLY WSL2/WSLg READINESS PACKAGE SEALED
 
@@ -297,65 +297,121 @@ Checker semantics:
 - performs bounded read-only TCP reachability to existing Windows Synapse port `8008`, first via `127.0.0.1`, then via the Windows host address from `ip route show default`;
 - never installs/updates WSL, changes distro version/default, edits `.wslconfig`, changes firewall/network, runs sudo, installs packages, or reads credentials.
 
-Failure-first lineage:
+Final dedicated run `31521791198`, job `93880338358` is fully GREEN. Final readiness artifact `9113313022`, digest `sha256:64eaf5b32058f68d3232b42a53b2386bc813e0248377009cc882e3b8308f729e`, was independently verified.
 
-- initial WSL contract `e6b7b4665ff6a25ec15c23fcabed86f5a54e1b1b` → run `31520974017`, job `93877616982`: existing manager/runtime contracts GREEN and exactly three new WSL-package tests RED because implementation was absent;
-- network-readiness contract advanced in `44ae6f877f6285eeba53e170448e9cf4fbeeaf96`;
-- checker script `992cebf32864e080cf718ea950ea331ac12a961b`, README `4343874bcf4a9a30abc5462cdd3bd50f02cc286c`, MotW-safe wrapper `c49ebff5107bbc0f301227b5d410b3d5cc583a06`;
-- dedicated packaging workflow `3726369129d7acb60c11d8b1def371c548e06f2e`, isolated from the sealed native workflow;
-- first dedicated run `31521541649`, job `93879488904`: static/read-only and workflow contracts GREEN, only parser test RED because Windows PowerShell 5.1 rejected `.Replace([char]0, '')` overload with empty-string replacement;
-- minimal PS5.1 fix `1c603b758f7dacae920a5307315cf317d0fea479` changed only NUL normalization to `-replace "`0", ''`.
+## USER-MACHINE WSL CAPABILITY — GREEN
 
-Final dedicated run `31521791198`, job `93880338358` is fully GREEN:
+Real user-machine execution of the sealed readiness artifact reached exit code `0` and the exact final state `FINAL STATUS: WSL_GUI_READY`.
 
-- WSL readiness contracts `3/3`, fail `0`;
-- `WINDOWS_POWERSHELL_5_1_WSL_CHECKER_PARSE_GREEN`;
-- reproduced downloaded-file MotW under RemoteSigned;
+Observed bounded evidence:
+
 - `PACKAGE_INTEGRITY_GREEN`;
 - `PACKAGE_MOTW_RELEASE_GREEN`;
-- hosted Windows runner classified its own environment read-only as `WSL_SETUP_REQUIRED reason=WSL_DISTRO_LIST_UNAVAILABLE` / exit `2`, which is an allowed classification rather than a package failure;
-- `WSL_READINESS_PACKAGE_GREEN`;
-- artifact upload GREEN.
+- `WSL_STATUS_QUERY_GREEN`;
+- `WSL_VERSION_QUERY_GREEN`;
+- `WSL2_DISTRO_COUNT=2`;
+- `docker-desktop` was skipped as a failed/noncandidate distro probe;
+- `WSL2_DISTRO_GREEN name=Ubuntu-24.04`;
+- `WSL_DISTRO_ARCH_GREEN`;
+- `WSL_DEB_PACKAGE_MANAGER_GREEN`;
+- `WSLG_ENV_GREEN`;
+- `WSL_WINDOWS_LAB_CONNECTIVITY_GREEN mode=localhost`;
+- `WSL_GUI_READY distro=Ubuntu-24.04`;
+- exit code `0`.
 
-Final WSL readiness artifact:
+This closes the read-only WSL capability gate. No WSL install/update/version/network mutation is justified.
 
-- artifact ID `9113313022`;
-- name `yance-facebook-personal-wsl-readiness`;
-- GitHub digest `sha256:64eaf5b32058f68d3232b42a53b2386bc813e0248377009cc882e3b8308f729e`;
-- size `6593` bytes;
-- exact file count `5`.
+## FACEBOOK PERSONAL — OFFICIAL WSL `.deb` OPERATOR PACKAGE SEALED
 
-Independent downloaded-ZIP verification:
+The next package was built failure-first to cross only the qualified system-install/operator-launch boundary. It does not automate account authorization.
 
-- ZIP SHA256 exactly `64eaf5b32058f68d3232b42a53b2386bc813e0248377009cc882e3b8308f729e`, equal to GitHub digest;
-- exact files: `FACEBOOK_PERSONAL_WSL_READINESS_README.txt`, `RUN_FACEBOOK_PERSONAL_WSL_READINESS.cmd`, `SHA256SUMS.txt`, `facebook-personal-wsl-readiness.ps1`, `native-process.ps1`;
-- all three manifest-controlled files independently recomputed GREEN;
-- manifest hashes: README `7ad4a6328894168af600c8ed3bc2e6f7d547b9f201dd8612533ad9670da297db`, checker `ee0d43fe3e6490434423764c053cdab7781ed10be5429fbf3993f3186cbf4505`, helper `fd715e68aae8a6efdd93ea64272208c38134d2cd67b9ac01275eda02c354599d`.
+### Operator package contract
 
-Main regression run `31521791219` also finished all three jobs GREEN at the same head:
+Before downloading or installing manager, the Windows launcher must:
 
-- Windows/native job `93880338508` success;
-- Linux ZIP retired guard `93880338346` success;
-- official Linux DEB job `93880338534` success.
+1. replay the sealed WSL readiness checker and require `Ubuntu-24.04` WSL2/WSLg;
+2. reuse the existing Lab root `C:\Users\1\Downloads\yance-multibridge-lab`;
+3. validate frozen Facebook Personal stage/image identity from `runtime/upstream-builds.json` and live stage evidence;
+4. use the exact staged bridge image's own `yq` to read `.appservice.address` and `.provisioning.allow_matrix_auth`;
+5. require `provisioning.allow_matrix_auth=true`;
+6. require the real `facebook-personal` Compose container to remain running with exit `0`;
+7. resolve only an existing published appservice/provisioning port through `docker compose port`;
+8. prove `Ubuntu-24.04` can reach that exact published host port via `127.0.0.1` before any package download or install;
+9. stop `REAL_RED` instead of inventing a proxy, changing Compose, firewall, `.wslconfig`, bridge config, or container-IP authority if that port is not already exposed.
 
-## Current stop condition — USER-MACHINE READ-ONLY WSL CAPABILITY GATE
+Only after those gates does it download the exact official `mautrix-manager_0.2.1_amd64.deb`, verify SHA256, translate the path with `wslpath`, and invoke the Linux installer interactively so any Ubuntu `sudo` authorization prompt remains visible to the user.
 
-There is no longer a need to wait for a future signed Windows manager release. The mature upstream operator runtime is the exact official Linux amd64 `.deb` under WSL2/WSLg, provided the user's existing Windows environment already satisfies the read-only capability gate.
+Linux installer semantics remain upstream/package-manager native:
 
-The unique next action is to run the sealed `yance-facebook-personal-wsl-readiness` package. It does not mutate Windows or WSL.
+- exact file `mautrix-manager_0.2.1_amd64.deb` / SHA `94cca9ffe2087521a042f8afc656c1403dcc79af980acd229420829b367ea1fd`;
+- package/version/architecture must be `mautrix-manager` / `0.2.1` / `amd64`;
+- only `sudo -v`, `apt-get update`, and `apt-get install -y <exact deb>` are allowed for installation;
+- installed `chrome-sandbox` must be `root:root` mode `4755` from package semantics; no manual `chown`/`chmod` and no `--no-sandbox`;
+- `ldd` must show no missing shared libraries;
+- no `npm`, Forge, rebuild chain, Facebook password/cookie/2FA automation, or alternate login client exists;
+- on the real machine, the upstream GUI is launched under WSLg and the package stops at `FINAL STATUS: HUMAN_AUTH_REQUIRED`.
 
-Acceptable next states:
+### Failure-first and debugging lineage
 
-- `FINAL STATUS: WSL_GUI_READY` — existing WSL2/WSLg environment is suitable; the next boundary is explicit system authorization to install the exact official `.deb` inside the selected distro, then Facebook Personal real-account authorization;
-- `FINAL STATUS: WSL_SETUP_REQUIRED` — a Windows/WSL system prerequisite is missing; stop and derive the smallest supported setup action from the emitted reason before any mutation;
-- `FINAL STATUS: WSL_LAB_NETWORK_REQUIRED` — WSLg exists but cannot reach the existing Windows Lab; diagnose the exact network authority before any `.wslconfig`/firewall/bind change;
-- `FINAL STATUS: REAL_RED` — unexpected checker failure; debug from that new causal boundary.
+- test-only contract `ddf0677a5ba91f48be303aac121ef3a3b2577dac` → native run `31523502396`, Windows job `93886087997`: prior 31 contracts GREEN, exactly four new operator-package contracts RED because implementation/workflow was absent;
+- implementation: Windows preflight `3b2549810e5c5c7017a3eaead7994e96f03c0074`, Linux installer `fc41335e9354ceb2336f4cae3e818c557513b48c`, README `7c7697156d04e610fe889c98723063483fb1d2ea`, initial wrapper `5050e9aeea34a78fb30b376b504cb09b66d4436f`, dedicated workflow `763fdf49c686c8aab69563e20bdad4bfd656a110`;
+- first dedicated Windows run `31524083156`, job `93887987914`: 4/4 focused contracts GREEN, then a genuine CI harness RED because external `powershell.exe -Target $targets` expanded a two-element array into one bound and one unbound positional argument; no staging/artifact occurred;
+- regression contract `e81d7127202776b5b7c3c47bc543b852ad746999` made scalar per-file PS5.1 invocation mandatory and causally RED;
+- harness-only fix `2b4ddf89d9ea71440f5b1369043d36fd89696682` parses each target in a separate PS5.1 process;
+- run `31524358152`: Linux job `93888891978` GREEN; Windows job `93888892040` reached the deliberately-zero initial seal and failed only at package integrity after printing actual SHA values; no unsealed artifact was uploaded;
+- final exact seal commit `326216fdfb4ffcdcaaf6a6777c0525162342afeb` changed only wrapper seal values.
 
-Do not rerun the Task E runtime package, unsigned Windows manager, retired source launcher, or retired Linux ZIP. Do not install the `.deb` until the WSL capability checker reaches `WSL_GUI_READY` and the system-mutation boundary is explicitly crossed.
+### Final verification — SEALED GREEN
+
+Dedicated final run `31524499560` at head `326216fdfb4ffcdcaaf6a6777c0525162342afeb`:
+
+- Windows job `93889363421` success;
+- focused contracts `4/4`, fail `0`;
+- both target files parse under Windows PowerShell 5.1;
+- downloaded-file MotW/RemoteSigned bootstrap emits `PACKAGE_INTEGRITY_GREEN` and `PACKAGE_MOTW_RELEASE_GREEN` without execution-policy bypass;
+- hosted Windows correctly classifies its own missing WSL distro as allowed `WSL_SETUP_REQUIRED` rather than package failure;
+- `MANAGER_WSL_PACKAGE_GREEN`;
+- artifact upload success;
+- Linux job `93889363244` success on Ubuntu `24.04.4`;
+- exact DEB SHA and identity GREEN;
+- installed sandbox `owner=root group=root mode=4755`;
+- dependencies GREEN;
+- `MANAGER_INSTALL_SMOKE_GREEN` after the 8-second GUI smoke.
+
+Final operator artifact:
+
+- artifact ID `9114362353`;
+- name `yance-facebook-personal-wsl-manager`;
+- GitHub digest / independently recomputed ZIP SHA256 `3796f0279920e89185d4dcbebd938f9bf3eff7bf7eecee45f9f9c7b22bf95fc1`;
+- exact file count `7`.
+
+Independent downloaded-ZIP verification is GREEN:
+
+- exact files: `FACEBOOK_PERSONAL_MANAGER_WSL_README.txt`, `RUN_FACEBOOK_PERSONAL_MANAGER_WSL.cmd`, `SHA256SUMS.txt`, `facebook-personal-manager-install.sh`, `facebook-personal-manager-wsl.ps1`, `facebook-personal-wsl-readiness.ps1`, `native-process.ps1`;
+- every manifest entry independently recomputed and matched;
+- wrapper seal independently matched all five controlled files;
+- README SHA `b5a77669345ecfd7513061339089e6dc78faf975240d17ba234cdd5fb6c769ea`;
+- installer SHA `0186f9b711a5d95673c92bc25a9929b7c470e52476ca873ce40770db35cfcb09`;
+- manager Windows preflight SHA `3331f52b112c0087e31440b32035e5cefc7211608e98c26446da02fabacf909b`;
+- readiness SHA `ee0d43fe3e6490434423764c053cdab7781ed10be5429fbf3993f3186cbf4505`;
+- helper SHA `fd715e68aae8a6efdd93ea64272208c38134d2cd67b9ac01275eda02c354599d`;
+- wrapper SHA `f5fdfb2ff856571820ce2cfbbaddba04d05bd25cfa1067b8c9136e532721894f`.
+
+## Current stop condition — USER-MACHINE FACEBOOK PERSONAL OPERATOR BOUNDARY
+
+The prior Windows upstream-security block is closed by the qualified official Linux `.deb` path under the user's already-proven `Ubuntu-24.04` WSL2/WSLg environment. The next and only justified action is the sealed `yance-facebook-personal-wsl-manager` package.
+
+The package itself must determine the next real boundary before installing anything:
+
+- if the existing Compose authority already publishes the Facebook Personal appservice/provisioning port and WSL can reach it, it emits `FACEBOOK_PROVISIONING_ENDPOINT_GREEN`, then may request local Ubuntu `sudo` authorization to install the exact official `.deb`, launch the upstream GUI, print the local Matrix homeserver and Bridge URL, and stop at `FINAL STATUS: HUMAN_AUTH_REQUIRED`;
+- if the provisioning port is not already published/reachable, it stops `FINAL STATUS: REAL_RED` before download/install; that is the next causal runtime boundary and must be fixed at the existing Compose authority, not bypassed;
+- no Facebook/Matrix credential, password, cookie, token, 2FA code, QR/device confirmation, or other secret may be sent to ChatGPT or included in screenshots.
+
+Do not rerun the Task E runtime package, unsigned Windows manager, retired source launcher, or retired Linux ZIP. Do not manually install the `.deb`; use the sealed package so preflight and exact package identity remain enforced.
 
 ## Task 4 canonical order
 
-1. Facebook Personal — current step: read-only WSL2/WSLg capability gate; official Linux amd64 `.deb` is qualified upstream operator runtime.
+1. Facebook Personal — current step: sealed WSL operator package → real provisioning-port preflight → local system authorization if required → upstream GUI human authorization.
 2. Instagram DM — not started.
 3. Google Messages — not started.
 4. Signal — not started.
@@ -378,7 +434,9 @@ Do not rerun the Task E runtime package, unsigned Windows manager, retired sourc
 - [x] Official Linux ZIP sandbox packaging RED causally diagnosed and retired without sandbox bypass.
 - [x] Official `mautrix-manager_0.2.1_amd64.deb` package-manager path: root/4755 sandbox + dependency-complete no-login smoke GREEN.
 - [x] Read-only WSL2/WSLg readiness checker built failure-first, PS5.1/MotW hardened, independently verified.
-- [ ] User-machine WSL capability classification (`WSL_GUI_READY`, `WSL_SETUP_REQUIRED`, `WSL_LAB_NETWORK_REQUIRED`, or `REAL_RED`).
+- [x] User-machine WSL capability classification: `WSL_GUI_READY distro=Ubuntu-24.04`, localhost Lab connectivity, exit `0`.
+- [x] Facebook Personal WSL operator package: failure-first contracts, PS5.1/MotW seal, Ubuntu exact-DEB install smoke, independent ZIP/manifest verification GREEN.
+- [ ] User-machine Facebook Personal provisioning endpoint preflight / official manager installation and upstream GUI launch.
 - [ ] Facebook Personal upstream real-account authorization/acceptance.
 - [ ] Instagram DM upstream real-account authorization/acceptance.
 - [ ] Google Messages upstream device-linking/acceptance.
