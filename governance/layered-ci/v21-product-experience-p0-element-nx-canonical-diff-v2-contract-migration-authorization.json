@@ -3,10 +3,10 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "requestedByUserAt": "2026-08-11T16:57:00+07:00",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-PRODUCT-EXPERIENCE-P0-ELEMENT-NX-CANONICAL-DIFF-V2-CONTRACT-MIGRATION",
-  "proposalRevision": 1,
+  "workPackage": "V21-PRODUCT-EXPERIENCE-NX-CANONICAL-CONTRACT-MIGRATION",
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Successor scope amendment after the V2 canonical production repair proved its new contract but exposed one stale pre-existing workspace contract. On implementation PR #263 exact Head da15ef14ccd6844a1fdaf15fa23592f70523a727, Stage run 31480756447 / job 93745028942 executes 295 tests with 294 PASS / 1 FAIL. The new failure-first canonical-diff contract v21-element-nx-patch-canonical-diff.test.js is GREEN. The sole RED is subtest 'Nx CRLF backport carries exact-source unified-diff replay coordinates' in tests/wp0/v21-element-workspace-contract.test.js, whose expected coordinate list still hard-codes the superseded six micro-hunks [16378,16398], [16381,16401], [16388,16408], [16392,16412], [16401,16421], [16411,16431]. Actual coordinates correctly contain the newly authorized single canonical unified=3 hunk [16375,16395]. Reverting production patch structure to satisfy that stale assertion would violate the predecessor authorization and repeat the falsified design. This amendment authorizes only migration of that legacy coordinate contract to the canonical single-hunk truth after this authorization is ordinary merged and fresh main is forward-merged into the existing implementation branch. The Element pin, bootstrap, workflow, lock generation, Nx mutation set, production patch contents and all unrelated contracts remain frozen.",
+  "reason": "Independent prerequisite contract migration after the V2 canonical production repair proved its new contract but exposed one stale pre-existing workspace contract. On implementation PR #263 exact Head da15ef14ccd6844a1fdaf15fa23592f70523a727, Stage run 31480756447 / job 93745028942 executes 295 tests with 294 PASS / 1 FAIL. The new failure-first canonical-diff contract v21-element-nx-patch-canonical-diff.test.js is GREEN. The sole RED is subtest 'Nx CRLF backport carries exact-source unified-diff replay coordinates' in tests/wp0/v21-element-workspace-contract.test.js, whose expected coordinate list still hard-codes the superseded six micro-hunks [16378,16398], [16381,16401], [16388,16408], [16392,16412], [16401,16421], [16411,16431]. Actual coordinates correctly contain the newly authorized single canonical unified=3 hunk [16375,16395]. Reverting production patch structure to satisfy that stale assertion would violate predecessor authorization #262 and repeat the falsified design. The existing implementation branch for PR #263 must retain its original two-path authority and may not acquire a second effective delegated authorization. Therefore this package authorizes a distinct one-path implementation branch that migrates only the stale legacy coordinate expectation, ordinary-merges that prerequisite repair to main, and then allows fresh main to be forward-merged into #263. The Element pin, bootstrap, workflow, lock generation, Nx mutation set, production patch contents and all unrelated contracts remain frozen.",
   "base": {
     "branch": "main",
     "commit": "bfbbe9d242d5c1e0e39feee1a94f00d224d1fa10"
@@ -34,7 +34,7 @@
   "effectiveness": {
     "effectiveBeforeMerge": false,
     "requiresOrdinaryTwoParentMainMerge": true,
-    "implementationMayContinueOnlyAfterAuthorizationMainMergeIsForwardMerged": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
     "authorizationProposalTransportIsNotImplementationAuthority": true
   },
   "authorizationBranch": {
@@ -47,25 +47,12 @@
     "mustRemainSingleFile": true
   },
   "implementation": {
-    "branch": "fix/v21-product-experience-p0-element-nx-canonical-diff-v2",
-    "pullRequest": 263,
-    "preAmendmentHead": "da15ef14ccd6844a1fdaf15fa23592f70523a727",
+    "branch": "fix/v21-product-experience-p0-element-nx-canonical-contract-migration",
     "allowedChangedPaths": [
-      "tests/wp0/v21-element-nx-patch-canonical-diff.test.js",
-      "tests/wp0/v21-element-workspace-contract.test.js",
-      "upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch"
+      "tests/wp0/v21-element-workspace-contract.test.js"
     ],
-    "approvedChangedFileCount": 3,
-    "approvedChangedFileSetSha256": "bf7aba11c55b8bdf91cb53e967bc9c020083eb85480d2b526515d67c5e7e6f3c",
-    "nextImplementationCommit": {
-      "mustFollowFreshMainForwardMerge": true,
-      "allowedChangedPaths": [
-        "tests/wp0/v21-element-workspace-contract.test.js"
-      ],
-      "approvedChangedFileCount": 1,
-      "approvedChangedFileSetSha256": "e263649043e2a16c14cd790c10125a5e2cec4aaf727a3d64e68fea92481159dd",
-      "productionCodeChanged": false
-    },
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "e263649043e2a16c14cd790c10125a5e2cec4aaf727a3d64e68fea92481159dd",
     "legacyCoordinateContractMigrationAllowed": true,
     "productionPatchModificationAllowed": false,
     "bootstrapModificationAllowed": false,
@@ -78,11 +65,12 @@
     "newGeneralPurposeYanceInfrastructureAllowed": false
   },
   "mandatoryContracts": [
-    "The existing remote RED at Stage run 31480756447 / job 93745028942 is the causal failure-first evidence for this amendment; no synthetic replacement RED is required.",
-    "The new canonical-diff test must remain GREEN and the production patch must remain byte-identical to pre-amendment Head da15ef14ccd6844a1fdaf15fa23592f70523a727 while the stale workspace coordinate expectation is migrated.",
+    "The existing remote RED at Stage run 31480756447 / job 93745028942 is the causal failure-first evidence for this prerequisite migration; no synthetic replacement RED is required.",
+    "The implementation branch must be distinct from PR #263 and may change only tests/wp0/v21-element-workspace-contract.test.js. The production patch must not be changed by this work package.",
     "Only the six superseded dense micro-hunk coordinate entries in the legacy full-coordinate expectation may be replaced by the single authorized canonical coordinate [16375,16395]; all other expected hunk coordinates and every other workspace contract assertion remain unchanged.",
-    "No production patch change may be used to satisfy the stale test. The canonical dense header remains @@ -16375,49 +16395,49 @@ and ordinary git apply semantics remain mandatory.",
-    "After the contract migration is GREEN, PR #263 may proceed through its existing ordinary merge and fresh-main Product replay sequence. Real Windows Product Task 9 remains the final replay authority."
+    "The canonical dense header remains @@ -16375,49 +16395,49 @@ and ordinary git apply semantics remain mandatory. No production patch change may be used to satisfy the stale test.",
+    "After this prerequisite contract migration ordinary-merges to main, fresh main must be forward-merged into PR #263. PR #263 must continue under predecessor authorization #262 with its original two-path scope, and the new canonical-diff test must remain GREEN.",
+    "After PR #263 is GREEN and ordinary-merges, fresh main must be forward-merged into Product PR #229. Real Windows Product Task 9 remains the final replay authority before the owner-gated Product merge boundary."
   ],
   "prohibitions": {
     "temporaryBypass": true,
@@ -107,7 +95,7 @@
     "squashMerge": true
   },
   "governance": {
-    "authorizationPredatesNewlyAuthorizedImplementationChange": true,
+    "authorizationPredatesImplementation": true,
     "exactPathScopeOnly": true,
     "independentBranchAndPullRequestRequired": true,
     "productionUseAuthorized": false,
