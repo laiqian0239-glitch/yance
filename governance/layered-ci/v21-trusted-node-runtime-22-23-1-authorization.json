@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-12T05:20:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-TRUSTED-NODE-RUNTIME-22-23-1",
+  "proposalRevision": 5,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh OSS-first prerequisite for Product Experience PR #229 and future packaged Windows runtimes. The repository requires Node >=22.19.0 and Product Final Validation already uses pinned Node 22.23.1, but the existing WP7 packaged-runtime identity still defaults to Node 22.16.0 and packaged Electron passes that bundled runtime directly to Letta Code. The formal Windows Builder also conflates its build-host Node/npm toolchain with the Node executable embedded into the product. This package separates those custodians without expanding into an unrelated npm/release-toolchain migration: official Node 22.23.1 becomes the single packaged-runtime authority, the Builder keeps its independently reviewed build-host Node/npm custody, and it receives a separately verified trusted runtime executable for embedding. The failure-first test is placed under the permanent WP0 suite so the first implementation commit produces a real remote Stage causal RED before production changes. No Product-specific runtime, downloader, package manager, runtime manager, dependency or lockfile change is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "c5192d441ccb23d0e5b121c6c49c75d4dec8000a"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "requiredFirstParent": "c5192d441ccb23d0e5b121c6c49c75d4dec8000a",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-trusted-node-runtime-22-23-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-trusted-node-runtime-22-23-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "6588974f27e6fa9e1c61fd4d2bb5ca64075784a34c3db0592e7d797c93340177",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "fix/v21-trusted-node-runtime-22-23-1",
+    "allowedChangedPaths": [
+      "docs/release/WINDOWS_FINAL_BUILDER.md",
+      "tests/wp0/v21-trusted-node-runtime-authority.test.js",
+      "tests/wp7/helpers.js",
+      "tests/wp7/windows-network-isolation-smoke-contract.test.js",
+      "tests/wp7/wp7-windows-final-builder-runner.test.js",
+      "tools/wp7/RUN_WINDOWS_FINAL_BUILDER.ps1",
+      "tools/wp7/lib.js",
+      "tools/wp7/node-runtime-identity.js",
+      "tools/wp7/run-windows-final-builder.js",
+      "tools/wp7/windows-network-isolation-smoke.ps1"
+    ],
+    "approvedChangedFileCount": 10,
+    "approvedChangedFileSetSha256": "6cc0a3d6d8cdc2e07eff875a47df8631a087dbfb37372a46300f6a4997179467",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-trusted-node-runtime-authority.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "8dad186a335ed7eefdf6cd6f0bd671caaf6271c31d92ed741788541b409b51ae",
+      "productionCodeChanged": false,
+      "remoteCausalRedAuthority": "Stage 6.4.5.9 WP0 Architecture Gates -> npm run test:wp0"
+    }
+  },
+  "upstream": {
+    "authority": "Node.js official release distribution",
+    "version": "22.23.1",
+    "releaseLine": "Jod LTS",
+    "windowsX64Archive": "node-v22.23.1-win-x64.zip",
+    "windowsX64ArchiveSha256": "7df0bc9375723f4a86b3aa1b7cc73342423d9677a8df4538aca31a049e309c29",
+    "windowsX64NodeExeSha256": "f8d162c0641dcee512132f3bcf8a68169c7ecb852efd8e1a46c9fec5a0f469ed",
+    "officialBundledNpmVersion": "10.9.8",
+    "repositoryPackageManagerAuthorityRemains": "npm@10.9.2"
+  },
+  "ossFit": {
+    "decision": "ADOPT_MATURE_OSS_AND_REUSE_EXISTING_REPOSITORY_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "reviewedCandidates": [
+      {
+        "name": "Official Node.js 22.23.1 Jod LTS Windows x64 distribution",
+        "source": "nodejs.org official v22.23.1 release distribution and signed SHASUMS; nodejs/node release authority",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Provides the exact mature Windows x64 runtime already used by Product Final Validation, satisfies the repository Node >=22.19.0 floor, and requires no Yance runtime implementation."
+      },
+      {
+        "name": "Existing WP7 trusted Node runtime identity and packaged-product seam",
+        "source": "tools/wp7/node-runtime-identity.js plus tools/wp7/lib.js resources/runtime/node22 packaging and existing Builder runner",
+        "license": "repository-internal existing implementation; no new external license delta",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already verifies executable version/hash/tree identity and is the single runtime path resolved by packaged Electron; build-host/runtime custody can be separated inside this existing seam rather than duplicated."
+      },
+      {
+        "name": "Product-specific Node runtime or Yance downloader/runtime manager",
+        "source": "hypothetical new Yance infrastructure",
+        "license": "not applicable because adoption is rejected",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "Creates duplicate runtime authority despite complete coverage by official Node distribution plus the existing WP7 seam, so it is explicitly rejected."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire Node 22.16.0 as the packaged resources/runtime/node22 authority and final packaged-runtime evidence value.",
+      "Retire the Builder assumption that build-host process.execPath must also be the product-embedded trusted runtime; use an explicit trusted-node input through the existing Builder seam.",
+      "Avoid any Product-specific Node runtime/version override or second runtime resolver.",
+      "Avoid any Yance Node downloader, runtime manager, package manager, or user-machine Node/npm/node-gyp/Visual Studio/Windows SDK/Spectre prerequisite."
+    ],
+    "officialNodeDistributionIsRuntimeAuthority": true,
+    "existingWp7NodeRuntimeIdentityRemainsSoleYanceRuntimeIdentityAuthority": true,
+    "existingWp7PackagedProductSeamReused": true,
+    "existingFinalBuilderSeamReused": true,
+    "buildHostAndPackagedRuntimeCustodySeparated": true,
+    "productSpecificNodeRuntimeForbidden": true,
+    "duplicateNodeRuntimeIdentityForbidden": true,
+    "customYanceNodeDownloaderForbidden": true,
+    "customYancePackageManagerForbidden": true,
+    "customYanceRuntimeManagerForbidden": true,
+    "userMachineNativeBuildPrerequisiteForbidden": true,
+    "nodeDependencyOrLockfileChangeForbidden": true,
+    "thinYanceAdapterOnly": true
+  },
+  "retirementRules": [
+    "Retire Node 22.16.0 from the packaged runtime identity and packaged-runtime evidence while preserving historical evidence and archived closure documents.",
+    "Do not upgrade or broaden the formal build-host npm toolchain in this package; build-host package-manager custody remains separately governed and is not the Product UAT blocker.",
+    "Legacy source-UAT and Batch40 acceptance artifacts are not repaired here because the next Product materialized-UAT work package must retire user-machine build routes rather than prolong them.",
+    "Do not add a second Product Experience Node authority or version override path around tools/wp7/node-runtime-identity.js.",
+    "Do not make npm 10.9.8 a repository package-manager authority merely because it is bundled in the official Node archive; repository dependency installation remains governed separately by npm@10.9.2."
+  ],
+  "mandatoryFailureFirstContracts": [
+    "On the exact authorization-merge baseline, tests/wp0/v21-trusted-node-runtime-authority.test.js must be the only implementation change and Stage npm run test:wp0 must fail causally because tools/wp7/node-runtime-identity.js and packaged-runtime evidence still declare Node 22.16.0 and the formal Builder still embeds process.execPath instead of a separately supplied trusted runtime executable.",
+    "The focused test must prove the packaged trusted Node authority is exactly 22.23.1 and satisfies the repository Node >=22.19.0 floor.",
+    "The PowerShell Builder wrapper must keep reviewed build-host Node/npm custody separate, require an explicit trusted runtime Node executable, and pass it to run-windows-final-builder.js.",
+    "run-windows-final-builder.js must embed the explicit trusted runtime executable instead of process.execPath; missing or wrong-version trusted runtime input must fail closed through the existing WP7 runtime authority.",
+    "The final packaged-runtime evidence validator, shared WP7 fixture and Windows network-isolation smoke contract must converge on Node 22.23.1.",
+    "Packaged Electron must continue to resolve the one existing resources/runtime/node22 authority; no Product-specific path or alternate runtime resolver may be introduced.",
+    "Historical evidence and legacy source-UAT/Batch40 artifacts are not rewritten; they are handed to the next materialized-UAT retirement package."
+  ],
+  "downstreamBoundary": {
+    "productPullRequest": 229,
+    "productHeadAtAuthorizationDesign": "374164f002e723299e0c4123aacea309e32f5ceb",
+    "nextWorkPackage": "V21-PRODUCT-EXPERIENCE-MATERIALIZED-UAT",
+    "nextWorkPackageMayStartAutomatically": false,
+    "rule": "Only after this authorization and its implementation ordinary-merge to main may a separate fresh-main OSS-fit authorization be created for Product materialized UAT. The downstream package must retire legacy source-UAT/user-machine build routes rather than update their Node version."
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "newYanceDownloader": true,
+    "secondNodeRuntimeAuthority": true,
+    "rootDependencyChange": true,
+    "rootLockRegeneration": true,
+    "productSourceModification": true,
+    "workflowModification": true,
+    "releasePublishing": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
