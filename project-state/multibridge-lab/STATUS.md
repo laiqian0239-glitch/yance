@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 19:06 +07:00
+Last updated: 2026-08-11 19:08 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -26,12 +26,12 @@ Real Windows evidence: all five services were `restarting|11|243`; Instagram DM 
 - exact upstream authority fixture `cba12644cae7cd248bb25337df50bbb9799b2af1`;
 - source-semantic verification `cdd22bfc400b5e6967af3e8cb4b6cc248f3f7c3c` → run `31486266961`, job `93762278784`: 20/20 GREEN.
 
-## Pinned-image DB gates — THREE PROVEN TARGETS SEALED GREEN
+## Pinned-image DB gates — THREE IMPLEMENTED TARGETS SEALED GREEN
 
 Repaired isolated run `31487411606`, head `8aaceef6b22d410c0f975c18ba46a0a9c6fc7ed0` replays exact historical R12 non-DB wiring with safe dummy values, adds recovered DB fields, uses exact upstream Docker builds/binaries and `--network none`.
 
-- Instagram DM job `93765873058`: image `sha256:fd83600ab2d55aa02f998067daf3fb8baa889874d5813f31a6c79a2a20bd669c`, running/exit0/DB present/no Configuration error, artifact `9099701058` independently verified.
-- Google Messages job `93765873115`: image `sha256:87e2bf3d75cb2d201958104a98e4d84d80dfc770918211f1213b6d034a4b1b16`, running/exit0/DB present/no Configuration error, artifact `9099710796` independently verified.
+- Instagram DM job `93765873058`: image `sha256:fd83600ab2d55aa02f998067daf3fb8baa889874d5813f31a6c79a2a20bd669c`, running/exit0/DB present/no Configuration error, artifact `9099701058`, digest `sha256:f582c497b98e5cde2dc9954b17aae94d14e84c711e7c206604f0cec62714dc23`, independently verified.
+- Google Messages job `93765873115`: image `sha256:87e2bf3d75cb2d201958104a98e4d84d80dfc770918211f1213b6d034a4b1b16`, running/exit0/DB present/no Configuration error, artifact `9099710796`, digest `sha256:b85260a3b9750822f8837f010d48476ad3c6c24854993b8ae6f04bcaddd374e1`, independently verified.
 - Signal job `93765873128`: exact source + exact libsignal build, image `sha256:6a73d1eb2d4cf274540aa08e4e49e9e2e59bea51decafb7e313b545a6b5afa35`, running/exit0/DB present/`PINNED_IMAGE_DB_STARTUP_GREEN`; artifact `9100012306`, digest `sha256:295ea802f18ba7e04327db01dd75f0be4c3d4df7db19d002831c49ada461d2af`, independently verified as one seven-field report only.
 
 All three currently implemented DB targets are sealed GREEN through exact pinned binary/image startup.
@@ -42,28 +42,54 @@ Fatal-context package final authority run `31485153849`, job `93758725677`, exac
 
 Initial Windows warning lines remain noncausal: Facebook empty `network.mode` is allowed; LINE empty bot avatar is upstream-template output and not required.
 
-## Facebook/LINE pinned-binary fatal diagnostic
+## Facebook/LINE pinned-binary fatal diagnostic — BOTH DATABASE FATALS PROVEN
 
 Verification-only workflow commit `2991d16333ff274a141549ab4de2d4434f9cec10`, run `31488170951`, intentionally replays exact historical R12 non-DB wiring **without** recovered DB wiring and runs exact upstream binaries under `--network none`.
 
 ### Facebook Personal — DATABASE FATAL PROVEN AND ARTIFACT SEALED
 
-Job `93768243269`: exact Meta source/build GREEN; image `sha256:5130c03afcaf5de71a38c665dc533dc98622d37e843b9f879cfcb76339e3c06e`; historical non-DB R12 wiring replayed without DB repair; `state=exited`, `exit_code=11`, `classification=DATABASE_URI_NOT_CONFIGURED`; artifact `9099993096`, digest `sha256:a72e030dbc3ce884add6f4c053301a1dcc86f93f70604f25bd7f5e1f880f8aaa`, independently verified.
+Job `93768243269`: exact Meta source/build GREEN; image `sha256:5130c03afcaf5de71a38c665dc533dc98622d37e843b9f879cfcb76339e3c06e`; historical non-DB R12 wiring replayed without DB repair; `state=exited`, `exit_code=11`, `classification=DATABASE_URI_NOT_CONFIGURED`; artifact `9099993096`, digest `sha256:a72e030dbc3ce884add6f4c053301a1dcc86f93f70604f25bd7f5e1f880f8aaa`, independently verified as exactly one six-field report only.
 
-Facebook Personal is causally proven to share the R12 database omission. Old `network.mode` warning remains noncausal. Repair scope is not yet expanded until LINE details are verified.
+Facebook Personal is causally proven to share the R12 database omission. Old `network.mode` warning remains noncausal.
 
-### LINE — DIAGNOSTIC JOB COMPLETED SUCCESS; DETAILS PENDING VERIFICATION
+### LINE — DATABASE FATAL PROVEN AND ARTIFACT SEALED
 
-Job `93768243356` in run `31488170951` has now completed with conclusion `success`. Exact source fetch, exact upstream image build, exact pinned-binary fatal reproduction step, non-secret report upload, and cleanup all completed success. Per SSOT discipline, this completion boundary is recorded before reading the classification report/log details. No implementation scope change is authorized yet.
+Job `93768243356`:
+- exact LINE source commit `0fc10ea165b54db6ffd7c085d42cc42b0ce46414` verified;
+- exact upstream LINE Docker image build GREEN;
+- exact image ID `sha256:2718b804cd708df8a73f6bf1ba4d76b839291f8edc7f23cc836f9c8be0a9c933`;
+- historical R12 homeserver/appservice/matrix/permissions wiring replayed; no recovered DB wiring applied;
+- exact `/usr/bin/matrix-line` diagnostic result: `state=exited`, `exit_code=11`, `classification=DATABASE_URI_NOT_CONFIGURED`;
+- artifact ID `9100068573`, GitHub digest `sha256:08d5653cbfafe2bc6feb86c4df563a83a77c9a83ef4c10c1ae2f4bc2e99446ed`.
+
+Independent artifact verification is GREEN:
+- downloaded ZIP SHA-256 exactly equals GitHub digest `08d5653cbfafe2bc6feb86c4df563a83a77c9a83ef4c10c1ae2f4bc2e99446ed`;
+- exact file set: only `pinned-fatal-line.txt`;
+- exact six fields only: service, source_commit, image_id, state, exit_code, classification;
+- content exactly confirms `line`, source `0fc10ea165b54db6ffd7c085d42cc42b0ce46414`, image `sha256:2718b804cd708df8a73f6bf1ba4d76b839291f8edc7f23cc836f9c8be0a9c933`, `exited`, `11`, `DATABASE_URI_NOT_CONFIGURED`;
+- no raw logs/config/registration/token/DB bytes.
+
+LINE is causally proven to share the same historical R12 database omission. Old empty bot-avatar warning remains noncausal.
+
+## Repair-scope conclusion — EVIDENCE COMPLETE, IMPLEMENTATION NOT YET EXPANDED
+
+All five R12 bridge services now have causal evidence for the same database omission:
+
+- Instagram DM / Google Messages / Signal: original Windows fatal evidence + repaired exact pinned-image GREEN.
+- Facebook Personal / LINE: exact pinned-binary diagnostics reproduce `DATABASE_URI_NOT_CONFIGURED` under historical R12 wiring with no DB repair.
+
+The existing `r12-database-wiring.ps1` still intentionally targets only three services. Do not edit it until a new failure-first test-only expansion proves Facebook/LINE are absent from the current mapping and freezes the five-service target set.
 
 ## Unique next actions
 
 No user action now.
 
-1. Read/verify LINE job `93768243356` details and artifact; record exact image/state/exit/classification.
-2. If LINE proves `DATABASE_URI_NOT_CONFIGURED`, add failure-first tests before expanding existing thin R12 DB wiring from three targets to five; if not, split LINE repair by actual fatal.
-3. Validate any expanded/split repair with exact source-semantic and exact pinned-image gates before user runtime changes.
-4. Only after config validation for all five is proven should final user-runtime repair/readiness package be constructed.
+1. Add a **test-only** scope-expansion contract: expected DB targets become exactly `facebook-personal`, `instagram-dm`, `google-messages`, `signal`, `line`; Telegram/WhatsApp remain non-targets. Require Facebook and LINE exact SQLite URIs under `/data` and keep the same upstream-native `sqlite3-fk-wal` / yq fragment.
+2. Run Windows and require causal RED only because current thin implementation still returns `$null` for Facebook/LINE; preserve all prior GREEN tests.
+3. Only after causal RED, expand `Get-LabR12DatabaseWiring` minimally to five targets. No new framework, DB daemon, migration layer or second config system.
+4. Expand/freeze upstream source-semantic authority for Facebook/LINE and prove Windows/source-semantic GREEN.
+5. Extend isolated pinned-image DB validation to Facebook/LINE and require all five exact binaries running/exit0 with expected SQLite DB and no Configuration error.
+6. Only then build a failure-first user-runtime repair/readiness package; do not ask the user to run the old fatal-context collector again unless a new unexplained runtime RED appears.
 
 ## Replacement runtime-ready definition
 
@@ -75,6 +101,8 @@ Config validation GREEN → five processes sustained → RestartCount stable →
 - [x] Google Messages pinned-image DB startup GREEN.
 - [x] Signal pinned-image DB startup GREEN + independent artifact verification.
 - [x] Facebook exact pinned binary proves DB fatal + independent artifact verification.
-- [x] LINE diagnostic job completed success; exact classification verification pending.
-- [ ] Failure-first expand/split remaining config repair.
+- [x] LINE exact pinned binary proves DB fatal + independent artifact verification.
+- [x] Five-service shared R12 database omission causally established.
+- [ ] Failure-first expand thin DB mapping from three targets to five.
+- [ ] Prove five-target Windows/source-semantic/pinned-image GREEN.
 - [ ] Build final user-runtime repair + sustained readiness gates.
