@@ -165,11 +165,10 @@ function Repair-ServiceDatabaseConfig {
   $backupName = ".yance-r12-db-backup-$transactionId.yaml"
   $candidatePath = Join-Path $dataDir $candidateName
   $backupPath = Join-Path $dataDir $backupName
-  $committed = $false
+  $replaced = $false
 
   try {
     Copy-Item -LiteralPath $configPath -Destination $candidatePath -Force
-    Copy-Item -LiteralPath $configPath -Destination $backupPath -Force
 
     $beforeHash = Get-NonDatabaseSemanticHash -Service $Service -FileName 'config.yaml'
     $repairEnv = @{
@@ -189,13 +188,22 @@ function Repair-ServiceDatabaseConfig {
       throw "REAL_RED: database repair validation failed for $Service."
     }
 
-    Copy-Item -LiteralPath $candidatePath -Destination $configPath -Force
-    $committed = $true
+    [IO.File]::Replace($candidatePath, $configPath, $backupPath, $true)
+    $replaced = $true
+
+    $committedHash = Get-NonDatabaseSemanticHash -Service $Service -FileName 'config.yaml'
+    $committedType = Get-YqScalar -Service $Service -FileName 'config.yaml' -Expression '.database.type'
+    $committedUri = Get-YqScalar -Service $Service -FileName 'config.yaml' -Expression '.database.uri'
+    if ($committedHash -ne $beforeHash -or $committedType -ne [string]$wiring.Type -or $committedUri -ne [string]$wiring.Uri) {
+      throw "REAL_RED: committed database repair verification failed for $Service."
+    }
+
     Write-Host "NON_DATABASE_CONFIG_HASH_GREEN service=$Service"
   }
   catch {
-    if ($committed -and (Test-Path -LiteralPath $backupPath -PathType Leaf)) {
-      Copy-Item -LiteralPath $backupPath -Destination $configPath -Force
+    if ($replaced -and (Test-Path -LiteralPath $backupPath -PathType Leaf)) {
+      [IO.File]::Replace($backupPath, $configPath, $null, $true)
+      $replaced = $false
     }
     throw
   }
@@ -251,6 +259,9 @@ function Assert-InitialBridgeRuntime {
     if ($sample.Running -ne 'true' -or $sample.ExitCode -ne 0) {
       throw "REAL_RED: upstream config/startup validation failed for $service."
     }
+    if ($sample.RestartCount -ne 0) {
+      throw "REAL_RED: RestartCount is nonzero immediately after forced recreation for $service."
+    }
     if ($sample.ImageId -ne [string]$runtimeAuthority[$service].ImageId) {
       throw "REAL_RED: Compose runtime image no longer matches exact stage evidence for $service."
     }
@@ -282,7 +293,7 @@ function Get-AppserviceEndpoint {
   param([Parameter(Mandatory = $true)][string]$Service)
   $address = Get-YqScalar -Service $Service -FileName 'config.yaml' -Expression '.appservice.address'
   try { $uri = [Uri]$address } catch { throw "REAL_RED: appservice endpoint is invalid for $Service." }
-  if ($uri.Host -ne $Service -or $uri.Port -le 0) {
+  if (-not $uri.IsAbsoluteUri -or $uri.Host -ne $Service -or $uri.Port -le 0) {
     throw "REAL_RED: appservice endpoint is not Compose-authoritative for $Service."
   }
   return $uri
@@ -292,7 +303,7 @@ function Get-HomeserverEndpoint {
   param([Parameter(Mandatory = $true)][string]$Service)
   $address = Get-YqScalar -Service $Service -FileName 'config.yaml' -Expression '.homeserver.address'
   try { $uri = [Uri]$address } catch { throw "REAL_RED: homeserver endpoint is invalid for $Service." }
-  if ($uri.Host -ne 'synapse' -or $uri.Port -le 0) {
+  if (-not $uri.IsAbsoluteUri -or $uri.Host -ne 'synapse' -or $uri.Port -le 0) {
     throw "REAL_RED: homeserver endpoint is not Compose-authoritative for $Service."
   }
   return $uri
