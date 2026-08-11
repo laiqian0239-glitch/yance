@@ -27,6 +27,7 @@ const REQUIRED_OPTIONS = Object.freeze([
   'electron-dist',
   'electron-archive',
   'compiler-path',
+  'trusted-node-executable',
   'expected-branch',
   'expected-commit',
   'expected-tree',
@@ -96,6 +97,7 @@ function createBuilderResult(options) {
   const electronDist = path.resolve(options.electronDist);
   const electronArchivePath = path.resolve(options.electronArchivePath);
   const compilerPath = path.resolve(options.compilerPath);
+  const trustedNodeExecutable = path.resolve(options.trustedNodeExecutable);
   const requirePlatformAuth = options.requirePlatformAuth === true;
   const platformAuthConfigPath = options.platformAuthConfigPath ? path.resolve(options.platformAuthConfigPath) : null;
   const platformAuthHashPath = options.platformAuthHashPath ? path.resolve(options.platformAuthHashPath) : null;
@@ -107,6 +109,7 @@ function createBuilderResult(options) {
   assertFile(path.join(electronDist, 'electron.exe'), 'Electron executable');
   assertFile(electronArchivePath, 'official Electron archive');
   assertFile(compilerPath, 'NSIS compiler');
+  assertFile(trustedNodeExecutable, 'trusted Node runtime executable');
   if (path.extname(compilerPath).toLowerCase() !== '.exe') throw new Error('formal NSIS compiler must be a native .exe');
   if (requirePlatformAuth) {
     assertFile(platformAuthConfigPath, 'sealed platform auth configuration');
@@ -162,7 +165,7 @@ function createBuilderResult(options) {
     compilerPath,
     rceditPath: options.rceditPath ? path.resolve(options.rceditPath) : undefined,
     iconPath: options.iconPath ? path.resolve(options.iconPath) : path.join(repoRoot, 'frontend', 'assets', 'icon.ico'),
-    trustedNodeExecutable: process.execPath,
+    trustedNodeExecutable,
     platformAuthConfigPath,
     platformAuthHashPath,
     requirePlatformAuth,
@@ -202,6 +205,7 @@ function createBuilderResult(options) {
     buildSessionSealFile: path.join(outputRoot, 'build-session-seal.json'),
     buildSessionSealSha256: sha256File(path.join(outputRoot, 'build-session-seal.json')),
     electronArchiveSha256: sha256File(electronArchivePath),
+    trustedNodeExecutableSha256: sha256File(trustedNodeExecutable),
     compilerSha256: sha256File(compilerPath),
     preacceptanceRecordSha256: options.preacceptanceSha256,
     windowsRound1ResultSha256: windowsRoundBinding?.round1.sha256 || null,
@@ -235,6 +239,7 @@ function main(argv = process.argv.slice(2)) {
     electronDist: args['electron-dist'],
     electronArchivePath: args['electron-archive'],
     compilerPath: args['compiler-path'],
+    trustedNodeExecutable: args['trusted-node-executable'],
     rceditPath: args['rcedit-path'],
     iconPath: args['icon-path'],
     expectedBranch: args['expected-branch'],
