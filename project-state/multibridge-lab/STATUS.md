@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 15:58 +07:00
+Last updated: 2026-08-11 16:02 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -25,24 +25,25 @@ This file is the authoritative execution ledger for the Lab workline. Chat histo
 6. Implementation run `31473923511`, job `93723164381` produced 7 pass / 1 fail; the only failure was a source-format assertion for the semantically correct `--tail`,`80` argv pair.
 7. Independent audit identified a real remaining collector gap: non-zero `docker logs` is preserved as `DockerLogsExitCode` but not elevated to controlled evidence failure, so an incomplete evidence read can still return collector-level success.
 8. Test-only `d794f484269afbb65f526bd7e9607cc2da8f6e51` added the native-nonzero regression. Run `31474349148`, job `93724501945` was 8 pass / 1 fixture-layer RED because a `.cmd` Docker double hit the intentional CMD-injection guard on a legitimate inspect-format `|`; that guard remains unchanged.
-9. Test-only `3ba0718061b65a889acb379bff0e6c5ebda94264` replaced the `.cmd` fixture with collector-boundary injection. Run `31474585083`, job `93725245354` was again 8 pass / 1 harness RED: semicolon-joined PowerShell function blocks parsed incorrectly before reaching `logs ExitCode=9`.
-10. Test-only commit `6f1b8359ec5c08a461d834f802479aebb63e927a` changes only that final test harness: function definitions and try/catch are now emitted as valid multiline PowerShell. Collector implementation remains exactly unchanged from `8bb26b0be6695d4c88f9d37ee4ab5add57c7b49c`.
+9. Test-only `3ba0718061b65a889acb379bff0e6c5ebda94264` replaced the `.cmd` fixture with collector-boundary injection. Run `31474585083`, job `93725245354` was 8 pass / 1 harness RED because semicolon-joined PowerShell function blocks parsed incorrectly before reaching the target behavior.
+10. Test-only `6f1b8359ec5c08a461d834f802479aebb63e927a` fixed only that harness syntax by emitting valid multiline PowerShell. Collector implementation remained unchanged.
+11. **Clean causal collector RED is now proven.** Windows run `31474915060`, job `93726291605`, exact tested Head `6f1b8359ec5c08a461d834f802479aebb63e927a` produced 8 pass / 1 fail. Every prior test stayed GREEN. The single classifier test reached the injected `logs ExitCode=9`, current collector returned normally, emitted `UNEXPECTED_COLLECTOR_SUCCESS`, and the test exited `17`. No harness parse error and no native-command safety error occurred. This proves the unchanged collector incorrectly accepts a failed Docker evidence read.
 
 ## Current root-cause hypothesis
 
 **Bridge:** one or more R12-generated bridge config fields fail exact upstream validators. No bridge config change is authorized before exact per-bridge validator evidence exists.
 
-**Collector:** native-process stream handling is fixed. The only targeted behavior gap is collector-level classification of a non-zero Docker evidence read; `6f1b835...` is the cleanest current test-only harness for proving that RED.
+**Collector:** native-process stream handling is fixed. The causal RED now proves the remaining root defect is the absence of a shared sanitized non-zero Docker read classifier at the collector evidence boundary.
 
 ## Current unique next action
 
 **Do not ask the user to run another package yet.**
 
-1. Collect and inspect the exact Windows Actions run for test-only Head `6f1b8359ec5c08a461d834f802479aebb63e927a`.
-2. Require all prior tests GREEN and the native-nonzero classifier test to fail specifically because the unchanged collector accepts injected `logs ExitCode=9` (expected `UNEXPECTED_COLLECTOR_SUCCESS`/exit 17), not because of harness parsing.
-3. Record that causal RED here before collector implementation repair.
-4. Repair the collector evidence boundary with one shared sanitized non-zero classifier for Docker `ps`/`inspect`/`logs`; stderr+exit0 must remain accepted.
-5. Re-run all `tests/multibridge-lab/*.test.js` on Windows and inspect exact logs.
+1. Repair only `tools/multibridge-lab/collect-exit11-evidence.ps1` by introducing one shared sanitized Docker read-result validator used after `ps`, `inspect`, and `logs`.
+2. Any non-zero result must throw a controlled message containing operation/service context, native exit code, and sanitized stderr; stderr+exit0 must remain accepted.
+3. Do not weaken `native-process.ps1`, do not change Docker lifecycle/network/config behavior, and do not touch bridge configuration.
+4. Record the implementation boundary here before collecting GREEN evidence.
+5. Run all `tests/multibridge-lab/*.test.js` on Windows and inspect exact logs.
 6. Only after complete GREEN, exact Compose service-ID verification, and final verification review may one sanitized Windows exit-11 package be issued.
 
 ## User involvement gate
@@ -62,10 +63,9 @@ Facebook Personal → Instagram DM → Google Messages → Signal → LINE → F
 - [x] Freeze WhatsApp/Telegram; validate Synapse; revoke R12 readiness; retire R13–R13.3.
 - [x] Native-process failure-first → RED → helper → Windows GREEN (`31473597261`).
 - [x] Collector initial failure-first → RED (`31473833265`) → minimal read-only implementation (`8bb26b0...`).
-- [x] Classify implementation run `31473923511`, `.cmd` fixture run `31474349148`, and injected harness run `31474585083` without weakening gates.
-- [x] Fix only injected test harness syntax (`6f1b8359ec5c08a461d834f802479aebb63e927a`).
-- [ ] Establish clean causal collector native-nonzero RED.
-- [ ] Repair collector native-nonzero classification and prove complete Windows GREEN.
+- [x] Classify and repair only test-harness defects without weakening safety.
+- [x] Establish clean causal collector native-nonzero RED (`31474915060`, 8 pass / 1 causal fail).
+- [ ] Repair shared collector Docker-read non-zero classification and prove complete Windows GREEN.
 - [ ] Verify exact service IDs and issue one sanitized exit-11 evidence package.
 - [ ] Capture validator errors, map to exact upstream source/schema, repair config generator at source.
 - [ ] Validate five pinned runtimes and sustained readiness, then reach human-auth boundary in frozen order.
