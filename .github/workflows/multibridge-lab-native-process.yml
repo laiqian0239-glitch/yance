@@ -43,7 +43,7 @@ jobs:
             if (Test-Path -LiteralPath $path) { throw "Retired vulnerable manager source-launch path reappeared: $path" }
           }
           Write-Host 'MAUTRIX_MANAGER_SOURCE_LAUNCH_RETIRED_SECURITY_RED'
-      - name: Validate official mautrix-manager release payload for Facebook Personal
+      - name: Guard retired unsigned mautrix-manager Windows release payload
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -55,7 +55,7 @@ jobs:
           $expectedSha256 = '0ab5a822f7c1ceb830811972fb98d9849cf17080c54f2d8d6583b0b9802721ed'
           $assetApi = "https://api.github.com/repos/mautrix/manager/releases/assets/$assetId"
           $tagApi = 'https://api.github.com/repos/mautrix/manager/git/ref/tags/v0.2.1'
-          $workRoot = Join-Path $env:RUNNER_TEMP 'mautrix-manager-v0.2.1-release-payload'
+          $workRoot = Join-Path $env:RUNNER_TEMP 'mautrix-manager-v0.2.1-windows-retired'
           $nupkgPath = Join-Path $workRoot $assetName
           $zipPath = Join-Path $workRoot 'mautrix-manager-release.zip'
           $extractRoot = Join-Path $workRoot 'payload'
@@ -76,48 +76,26 @@ jobs:
           }
           $tag = Invoke-RestMethod -Uri $tagApi -Headers $tagHeaders
           if ([string]$tag.object.type -ne 'commit' -or [string]$tag.object.sha -ne $releaseCommit) {
-            throw "mautrix-manager v0.2.1 tag identity mismatch: $($tag.object.type) $($tag.object.sha)"
+            throw "mautrix-manager v0.2.1 tag identity changed: $($tag.object.type) $($tag.object.sha)"
           }
 
           Invoke-WebRequest -Uri $assetApi -Headers $headers -OutFile $nupkgPath
-          if (-not (Test-Path -LiteralPath $nupkgPath -PathType Leaf)) { throw 'Official mautrix-manager release nupkg was not downloaded.' }
+          if (-not (Test-Path -LiteralPath $nupkgPath -PathType Leaf)) { throw 'Official mautrix-manager Windows nupkg was not downloaded.' }
           $actualSha256 = (Get-FileHash -LiteralPath $nupkgPath -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($actualSha256 -ne $expectedSha256) {
-            throw "Official mautrix-manager release nupkg SHA256 mismatch: $actualSha256"
+            throw "Official mautrix-manager Windows nupkg SHA256 changed: $actualSha256"
           }
-          Write-Host "MAUTRIX_MANAGER_RELEASE_NUPKG_SHA256_GREEN=$actualSha256"
 
           Copy-Item -LiteralPath $nupkgPath -Destination $zipPath
           Expand-Archive -LiteralPath $zipPath -DestinationPath $extractRoot -Force
           $exePath = Join-Path $extractRoot 'lib/net45/mautrix-manager.exe'
-          if (-not (Test-Path -LiteralPath $exePath -PathType Leaf)) { throw 'Official nupkg does not contain lib/net45/mautrix-manager.exe.' }
-
+          if (-not (Test-Path -LiteralPath $exePath -PathType Leaf)) { throw 'Official nupkg payload layout changed.' }
           $signature = Get-AuthenticodeSignature -FilePath $exePath
           Write-Host "Internal Authenticode status=$($signature.Status)"
-          if ($null -ne $signature.SignerCertificate) {
-            Write-Host "Internal Authenticode subject=$($signature.SignerCertificate.Subject)"
-            Write-Host "Internal Authenticode thumbprint=$($signature.SignerCertificate.Thumbprint)"
+          if ([string]$signature.Status -ne 'NotSigned') {
+            throw "Windows manager release trust state changed; re-review required: status=$($signature.Status)"
           }
-          if ([string]$signature.Status -ne 'Valid') {
-            throw "Internal mautrix-manager.exe Authenticode RED: status=$($signature.Status)"
-          }
-          Write-Host 'MAUTRIX_MANAGER_INTERNAL_AUTHENTICODE_GREEN'
-
-          $process = $null
-          try {
-            $process = Start-Process -FilePath $exePath -WorkingDirectory (Split-Path -Parent $exePath) -PassThru
-            Start-Sleep -Seconds 8
-            $process.Refresh()
-            if ($process.HasExited) {
-              throw "Official mautrix-manager release payload exited during no-login smoke: exit=$($process.ExitCode)"
-            }
-            Write-Host 'MAUTRIX_MANAGER_RELEASE_PAYLOAD_SMOKE_GREEN'
-          }
-          finally {
-            if ($null -ne $process -and -not $process.HasExited) {
-              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-            }
-          }
+          Write-Host 'MAUTRIX_MANAGER_WINDOWS_RELEASE_RETIRED_UNSIGNED_RED'
       - name: Stage exact GREEN exit11 evidence package
         shell: pwsh
         run: |
@@ -283,3 +261,71 @@ jobs:
           name: yance-multibridge-r12-runtime-repair-readiness
           path: dist/multibridge-r12-runtime-repair-readiness
           if-no-files-found: error
+
+  manager-linux-release:
+    name: manager-linux-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate official mautrix-manager Linux x64 release payload
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_commit='d2c08e60c7a877602bc6da2961daf2daffcff79b'
+          asset_id='495350343'
+          asset_name='mautrix-manager-linux-x64-0.2.1.zip'
+          expected_sha256='8a55dc5022c5d52d13c58e05c72ad2d0bfff3fa9dac19d96e5eb84608f282479'
+          work_root="$RUNNER_TEMP/mautrix-manager-v0.2.1-linux-x64"
+          zip_path="$work_root/$asset_name"
+          extract_root="$work_root/payload"
+          rm -rf "$work_root"
+          mkdir -p "$extract_root"
+
+          tag_json="$(curl --fail --silent --show-error --location \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            https://api.github.com/repos/mautrix/manager/git/ref/tags/v0.2.1)"
+          tag_sha="$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["object"]["sha"] if d["object"]["type"] == "commit" else "")' <<<"$tag_json")"
+          test "$tag_sha" = "$release_commit"
+
+          curl --fail --silent --show-error --location \
+            --header 'Accept: application/octet-stream' \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --output "$zip_path" \
+            "https://api.github.com/repos/mautrix/manager/releases/assets/$asset_id"
+          echo "$expected_sha256  $zip_path" | sha256sum --check --strict
+          echo "MAUTRIX_MANAGER_LINUX_RELEASE_SHA256_GREEN=$expected_sha256"
+
+          unzip -q "$zip_path" -d "$extract_root"
+          mapfile -t candidates < <(find "$extract_root" -type f -name 'mautrix-manager' -print)
+          if [ "${#candidates[@]}" -ne 1 ]; then
+            printf 'Expected exactly one mautrix-manager executable, found %s\n' "${#candidates[@]}" >&2
+            printf '%s\n' "${candidates[@]:-}" >&2
+            exit 31
+          fi
+          exe="${candidates[0]}"
+          chmod u+x "$exe"
+          identity="$(file "$exe")"
+          printf '%s\n' "$identity"
+          grep -Fq 'ELF 64-bit' <<<"$identity"
+          grep -Eq 'x86-64|x86_64' <<<"$identity"
+          echo 'MAUTRIX_MANAGER_LINUX_ELF_IDENTITY_GREEN'
+
+          if ! command -v xvfb-run >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y xvfb
+          fi
+
+          set +e
+          timeout --signal=TERM --kill-after=3s 8s xvfb-run -a "$exe" >"$work_root/stdout.txt" 2>"$work_root/stderr.txt"
+          smoke_rc=$?
+          set -e
+          if [ "$smoke_rc" -ne 124 ]; then
+            echo "Official Linux manager payload exited before the 8-second no-login smoke window: exit=$smoke_rc" >&2
+            sed -n '1,80p' "$work_root/stderr.txt" >&2 || true
+            exit 32
+          fi
+          echo 'MAUTRIX_MANAGER_LINUX_RELEASE_PAYLOAD_SMOKE_GREEN'
