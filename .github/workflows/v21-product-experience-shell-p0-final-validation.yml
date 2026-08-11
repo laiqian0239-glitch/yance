@@ -69,7 +69,7 @@ jobs:
 
             $element = (Resolve-Path services/matrix/.runtime/element-web).Path
             $actualElementCommit = (git -C $element rev-parse HEAD).Trim()
-            if ($actualElementCommit -ne $env:ELEMENT_COMMIT) { throw "Element pin mismatch on iteration $iteration: expected=$env:ELEMENT_COMMIT actual=$actualElementCommit" }
+            if ($actualElementCommit -ne $env:ELEMENT_COMMIT) { throw "Element pin mismatch on iteration ${iteration}: expected=$env:ELEMENT_COMMIT actual=$actualElementCommit" }
             if (-not (Select-String -Path "$element\pnpm-lock.yaml" -Pattern 'modules/yance' -Quiet)) { throw "0011 Product dependency lock importer missing on iteration $iteration" }
             if (-not (Select-String -Path "$element\apps\web\Dockerfile" -Pattern 'nx build yance-element-module' -Quiet)) { throw "0012 module delivery Docker build seam missing on iteration $iteration" }
             if (-not (Select-String -Path "$element\apps\web\Dockerfile" -Pattern '/modules/yance/package.json' -Quiet)) { throw "0012 module manifest delivery seam missing on iteration $iteration" }

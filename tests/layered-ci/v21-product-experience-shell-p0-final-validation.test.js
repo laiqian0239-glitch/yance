@@ -59,6 +59,12 @@ test('every pnpm shim invocation launches from neutral RUNNER_TEMP while --dir s
   assert.doesNotMatch(source, /--no-frozen-lockfile|--lockfile-only/u);
 });
 
+test('PowerShell loop diagnostics delimit iteration before colon punctuation', () => {
+  const source = readWorkflow();
+  assert.doesNotMatch(source, /iteration \$iteration:/u);
+  assert.match(source, /Element pin mismatch on iteration \$\{iteration\}: expected=\$env:ELEMENT_COMMIT actual=\$actualElementCommit/u);
+});
+
 test('the workflow prepares a non-release exact-head UAT package without claiming real Electron UAT', () => {
   const source = readWorkflow();
   assert.match(source, /create-round12-13-windows-uat-package\.js/u);
