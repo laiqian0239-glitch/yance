@@ -141,6 +141,47 @@ jobs:
           & powershell.exe -NoLogo -NoProfile -NonInteractive -File $ps51ParseGate -Target $targetScript
           if ($LASTEXITCODE -ne 0) { throw 'Windows PowerShell 5.1 parse gate failed.' }
 
+          $motwFiles = @(
+            'r12-runtime-repair-readiness.ps1',
+            'r12-database-wiring.ps1',
+            'native-process.ps1'
+          )
+          foreach ($name in $motwFiles) {
+            $stagedPath = (Resolve-Path (Join-Path $packageRoot $name)).Path
+            [IO.File]::WriteAllText(
+              $stagedPath + ':Zone.Identifier',
+              "[ZoneTransfer]`r`nZoneId=3`r`n",
+              [Text.Encoding]::ASCII
+            )
+            $zone = [IO.File]::ReadAllText($stagedPath + ':Zone.Identifier')
+            if ($zone -notmatch 'ZoneId=3') { throw "Could not reproduce Mark-of-the-Web for $name" }
+          }
+
+          $wrapperPath = (Resolve-Path (Join-Path $packageRoot 'RUN_R12_RUNTIME_REPAIR_READINESS.cmd')).Path
+          $previousPolicyPreference = $env:PSExecutionPolicyPreference
+          try {
+            $env:PSExecutionPolicyPreference = 'RemoteSigned'
+            $cmdLine = '(echo.)|call "' + $wrapperPath + '" -LabRoot "Z:\YANCE-MOTW-MISSING-LAB"'
+            $motwOutput = (& cmd.exe /d /s /c $cmdLine 2>&1 | Out-String)
+            $motwExitCode = $LASTEXITCODE
+          }
+          finally {
+            if ($null -eq $previousPolicyPreference) {
+              Remove-Item Env:PSExecutionPolicyPreference -ErrorAction SilentlyContinue
+            }
+            else {
+              $env:PSExecutionPolicyPreference = $previousPolicyPreference
+            }
+          }
+
+          $motwOutput | Write-Host
+          if ($motwExitCode -ne 1) { throw "Expected controlled missing-Lab REAL_RED exit 1, got $motwExitCode" }
+          if ($motwOutput -notmatch 'PACKAGE_INTEGRITY_GREEN') { throw 'MotW wrapper did not verify sealed package bytes.' }
+          if ($motwOutput -notmatch 'PACKAGE_MOTW_RELEASE_GREEN') { throw 'MotW wrapper did not release the exact verified PowerShell files.' }
+          if ($motwOutput -notmatch 'FINAL STATUS: REAL_RED') { throw 'MotW wrapper did not reach the real runtime script boundary.' }
+          if ($motwOutput -match 'PSSecurityException|UnauthorizedAccess|digitally signed') { throw 'MotW wrapper remained blocked by PowerShell execution policy.' }
+          Write-Host 'MOTW_BOOTSTRAP_GREEN'
+
           $manifest = foreach ($name in @($files.Values | Sort-Object)) {
             $hash = (Get-FileHash -LiteralPath (Join-Path $packageRoot $name) -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  $name"
