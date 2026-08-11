@@ -1408,3 +1408,18 @@ test('generic delegated authority exposes its canonical implementation base to d
     JSON.stringify(result)
   );
 });
+
+test('Stage GOVERNANCE_WP0 executes the repository OSS-first authorization gate', () => {
+  const workflowPath = path.join(REPO_ROOT, '.github', 'workflows', 'stage-6459-wp0-gates.yml');
+  const workflow = fs.readFileSync(workflowPath, 'utf8');
+  const governanceIndex = workflow.indexOf('  wp0-governance:');
+  const nextJobIndex = workflow.indexOf('\n  wp0-product-documentation:', governanceIndex);
+  assert.ok(governanceIndex >= 0, 'Stage workflow must define wp0-governance');
+  assert.ok(nextJobIndex > governanceIndex, 'Stage workflow must delimit wp0-governance before wp0-product-documentation');
+  const governanceJob = workflow.slice(governanceIndex, nextJobIndex);
+  assert.match(
+    governanceJob,
+    /node --test --test-concurrency=1 tests\/wp0\/oss-first-development-policy\.test\.js/u,
+    'wp0-governance must execute the repository OSS-first authorization gate'
+  );
+});
