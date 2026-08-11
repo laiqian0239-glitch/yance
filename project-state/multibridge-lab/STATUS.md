@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 18:22 +07:00
+Last updated: 2026-08-11 18:25 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -42,34 +42,43 @@ Final authority run `31485153849`, job `93758725677`, exact `4bd07b41451d2c27b7a
 
 Commit `65a41976fdcb8d321fab92ac03c65cd647e822ab` preserves only the exact previously verified historical yq mutation expression as a non-executable fixture. It proves historical R12 wiring omitted `.database.type` and `.database.uri`; no full-script reconstruction or guessed env wiring was introduced.
 
-## Database wiring TDD
+## Database wiring TDD — WINDOWS GREEN
 
 Failure-first:
 
 - test-only `645eb7a2429cb34f179e58fbab579ed3aaa994af`;
 - Windows run `31485657849`, job `93760328914`: 16 GREEN / 2 targeted RED only because implementation/function were absent.
 
-Implementation commit `63c008a31b8e36b093a7fc9f39d918f0960dc159` adds only `tools/multibridge-lab/r12-database-wiring.ps1`.
+Implementation:
 
-Implementation is intentionally thin:
-
-- one function `Get-LabR12DatabaseWiring`;
-- exact target services only: `instagram-dm`, `google-messages`, `signal`;
-- all other services return `$null` and therefore preserve their upstream/R12 config untouched;
+- commit `63c008a31b8e36b093a7fc9f39d918f0960dc159` adds only `tools/multibridge-lab/r12-database-wiring.ps1`;
+- one thin `Get-LabR12DatabaseWiring` function;
+- exactly three targets: `instagram-dm`, `google-messages`, `signal`;
+- all non-target services return `$null`;
 - exact type `sqlite3-fk-wal`;
 - exact per-service URI `file:/data/<service>.db?_txlock=immediate`;
 - exact yq fragment `.database.type=strenv(YANCE_DATABASE_TYPE)|.database.uri=strenv(YANCE_DATABASE_URI)`;
-- no YAML writer, DB daemon, migration engine, connection pool, Docker action, network action, or second config framework.
+- no DB daemon/framework/migration/connection-pool/Docker/network behavior.
 
-GREEN is not claimed until exact Windows full-suite result is inspected.
+Windows implementation run `31485835966`, job `93760893132`, exact checkout `63c008a31b8e36b093a7fc9f39d918f0960dc159` is fully GREEN:
+
+- 18 tests / 18 pass / 0 fail / 0 skipped;
+- historical fixture proof GREEN;
+- static thin-wiring contract GREEN;
+- dynamic exact three-target/non-target contract GREEN;
+- all prior collector/fatal-context/native-process/wrapper/source-identity tests remain GREEN;
+- unrelated frozen collector package staging and both artifact uploads also remain GREEN.
+
+This proves the recovered R12 DB mapping behaves as frozen on Windows. It is **not yet called upstream binary/image validation**.
 
 ## Unique next action
 
 No user action now.
 
-1. Collect exact Windows run for implementation `63c008a31b8e36b093a7fc9f39d918f0960dc159` and inspect all 18 tests.
-2. If unit/Windows contract is GREEN, add a separate exact-upstream validator semantic gate that proves the generated values no longer trigger each frozen bridgev2 `database.uri not configured` condition; do not restart runtime yet.
-3. Only after semantic validator proof should a config-repair/runtime-validation package be considered.
+1. Freeze exact source-semantic validator authorities for the three dependency commits and add a verification gate that compares generated R12 values to the exact upstream `database.uri not configured` predicate.
+2. Prove generated values do not equal the upstream placeholder and are accepted by the upstream-supported SQLite type/URI contract at all three exact dependency versions.
+3. After source-semantic GREEN, build/run or otherwise exercise the exact pinned bridge binaries/images against generated repaired configs before any existing runtime container is restarted.
+4. Keep Facebook/LINE collector sealed until database validation reaches its binary/image boundary.
 
 ## Replacement readiness
 
@@ -81,8 +90,8 @@ Config validation GREEN → sustained five-process runtime → stable RestartCou
 - [x] Fatal-context collector/package sealed GREEN.
 - [x] Historical R12 wiring expression preserved.
 - [x] DB-generator causal RED proven.
-- [x] Minimal recovered R12 DB wiring implementation committed (`63c008a...`).
-- [ ] Prove DB wiring full Windows GREEN.
-- [ ] Validate generated DB values against exact upstream validator authority.
+- [x] Minimal R12 DB wiring implementation Windows 18/18 GREEN (`31485835966`).
+- [ ] Validate generated DB values against exact upstream source-semantic authority.
+- [ ] Validate repaired configs with exact pinned binaries/images.
 - [ ] Capture/repair true Facebook/LINE fatal validators.
 - [ ] Validate all five runtimes and sustained readiness.
