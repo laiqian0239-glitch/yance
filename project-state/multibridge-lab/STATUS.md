@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 17:25 +07:00
+Last updated: 2026-08-11 17:29 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -26,45 +26,69 @@ Five bridges restart-loop exit 11 while Synapse stays healthy; DNS failure is do
 - Shared root repair `537159b9238dee82b207d131151ba3132f064c43`.
 - Full collector/native Windows suite `31475110284` / `93726901278`: 9/9 GREEN.
 
-## R12 service keys — VERIFIED
+## R12 service keys — VERIFIED GREEN
 
-Exact Compose keys: `facebook-personal`, `instagram-dm`, `google-messages`, `signal`, `line`; collector matches authority exactly.
+Exact Compose service authority: `facebook-personal`, `instagram-dm`, `google-messages`, `signal`, `line`; current collector matches exactly.
 
-## Final package TDD
+## Final package TDD — COMPLETE GREEN
 
-### Causal package RED
+### Failure-first
 
-Test-only `523447ffc1c04b82f06bd66207be6a24e7aca199` → Windows `31481406541` / `93746945122`: 12 tests, 10 pass, 2 fail. Existing 9 tests remained GREEN; only wrapper tests failed because wrapper was intentionally absent.
+Test-only `523447ffc1c04b82f06bd66207be6a24e7aca199` → Windows `31481406541` / `93746945122`: 10 pass / 2 intentional missing-wrapper failures; all existing runtime tests GREEN.
 
-### Wrapper implementation
+### Implementation
 
-`8775328978e29b50232f7180982730731621d855` adds only `RUN_EXIT11_EVIDENCE.cmd`; collector/helper unchanged. Exact runtime blobs at this implementation Head:
+`8775328978e29b50232f7180982730731621d855` adds only `RUN_EXIT11_EVIDENCE.cmd`; collector/helper unchanged.
+
+Exact runtime blobs:
 
 - wrapper `7787475bd7a6e0640b5353c3042ae8e8471ef234`
 - collector `38eee8ecfe5411a89273027404a320b94b623dba`
 - helper `47d56b8e6561676eec75b814c1ed1ebaa8ba30d5`
 
-### First implementation run
+### Test-only assertion correction
 
-Windows `31481533725` / `93747350488`: 12 tests, 11 pass, 1 fail. All runtime/security/collector/native tests GREEN. Sole RED was the package test's `/\bexit\b/i` assertion matching legitimate `EXIT-11 SANITIZED EVIDENCE` text rather than a standalone CMD `exit` command.
+`73f97d23008a9ce706fce724b2f92f694d03c75a` changes only the over-broad static test assertion; runtime files remain exactly the blobs above.
 
-### Test-only assertion repair
+### Complete final Windows GREEN
 
-Commit `73f97d23008a9ce706fce724b2f92f694d03c75a` changes only `tests/multibridge-lab/exit11-package.test.js`. The prohibition now targets an actual standalone CMD `exit` command line. It deliberately continues to allow `-NoExit`, `EXIT-11` evidence identity, and `exit11-evidence.txt`. Runtime wrapper/collector/helper source is unchanged.
+Actions run `31481685787`, job `93747849900`, exact checkout `73f97d23008a9ce706fce724b2f92f694d03c75a`, Windows Server 2025 / Node 22.16.0:
+
+- tests=12
+- pass=12
+- fail=0
+- skipped=0
+
+GREEN covers:
+
+- collector read-only boundary;
+- exact five services;
+- sanitizer;
+- controlled Docker native nonzero;
+- legacy native stderr RED reproduction;
+- stderr+exit0 acceptance;
+- native nonzero preservation;
+- one user-facing CMD wrapper;
+- `powershell.exe -NoExit`;
+- fixed single evidence path `exit11-evidence.txt`;
+- explicit `FINAL_STATE=REAL_RED` + `OUTPUT_PATH=`;
+- no wrapper Docker/Compose command;
+- no credential/config/registration/token/cookie/message/WhatsApp/Telegram exposure.
 
 ## Current unique next action
 
 **Do not ask the user to run anything yet.**
 
-1. Collect exact Windows Actions result for test-only Head `73f97d23008a9ce706fce724b2f92f694d03c75a`.
-2. Require all 12 tests GREEN and inspect exact job log.
-3. If GREEN, build ZIP from the exact runtime blobs above (wrapper + collector + helper only), compute SHA-256 per file and archive, and independently compare downloaded bytes against GitHub exact source.
-4. Final review must confirm no extra config/credential/message artifacts and only one user-facing wrapper.
-5. Only then hand the ZIP to the user and request exactly `exit11-evidence.txt` after one Windows run.
+1. Extend only `.github/workflows/multibridge-lab-native-process.yml` so packaging occurs after the 12 tests pass.
+2. Packaging must copy exactly the three runtime files above into an artifact staging directory, generate a SHA-256 manifest, verify the directory contains no extra files, then upload it with official GitHub artifact tooling.
+3. The workflow modification must trigger a new Windows run; require all 12 tests GREEN before artifact creation.
+4. Download the resulting artifact and independently verify filenames/hashes/source equality.
+5. Perform final verification review.
+6. Only then hand one ZIP to the user and request exactly `exit11-evidence.txt` after one Windows run.
 
 ## User involvement gate
 
-No user testing until 12/12 Windows GREEN, archive/hash verification, and final review. User is not a script-debugging environment.
+No user testing until artifact build/hash verification and final review are complete. User is not a script-debugging environment.
 
 ## Runtime-ready after config repair
 
@@ -78,10 +102,7 @@ Facebook Personal → Instagram DM → Google Messages → Signal → LINE → F
 
 - [x] Collector/native root repairs + Windows GREEN.
 - [x] Exact R12 service keys verified.
-- [x] Package failure-first causal RED.
-- [x] Minimal wrapper implemented.
-- [x] Classify over-broad test assertion and repair test-only (`73f97d23008a9ce706fce724b2f92f694d03c75a`).
-- [ ] Prove 12/12 Windows GREEN.
-- [ ] Build/hash/final-verify evidence ZIP.
+- [x] Package failure-first RED → wrapper implementation → 12/12 Windows GREEN (`31481685787`).
+- [ ] CI-build/hash artifact from exact GREEN source and independently verify ZIP.
 - [ ] Capture validator lines and repair R12 generator at source.
 - [ ] Validate five runtimes and reach human-auth boundary.
