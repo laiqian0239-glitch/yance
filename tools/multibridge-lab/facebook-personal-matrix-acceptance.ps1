@@ -133,6 +133,10 @@ try {
 
   $spaceState = @(Get-YanceRoomState -HomeserverUrl $HomeserverUrl -RoomId $spaceRoom -AccessToken $accessToken)
   $createEvents = @($spaceState | Where-Object { [string]$_.type -eq 'm.room.create' -and [string]$_.state_key -eq '' })
+  Write-Host ('MATRIX_SPACE_STATE_DIAGNOSTIC events=' + $spaceState.Count + ' create_events=' + $createEvents.Count)
+  if ($createEvents.Count -gt 0) {
+    Write-Host ('MATRIX_SPACE_CREATE_DIAGNOSTIC type=' + [string]$createEvents[0].content.type)
+  }
   if ($createEvents.Count -ne 1 -or [string]$createEvents[0].content.type -ne 'm.space') {
     throw 'REAL_RED: Facebook Personal space_room is not a Matrix m.space room.'
   }
