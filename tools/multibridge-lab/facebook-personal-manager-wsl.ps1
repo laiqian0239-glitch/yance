@@ -98,6 +98,97 @@ function Get-FirstCommandPath {
   return $null
 }
 
+function ConvertFrom-FacebookPersonalWslGuiFacts {
+  param([AllowEmptyString()][string]$Text)
+  $facts = @{}
+  foreach ($line in ([string]$Text -split "`r?`n")) {
+    if ($line -match '^([A-Z0-9_]+)=(.*)$') {
+      $facts[[string]$matches[1]] = [string]$matches[2]
+    }
+  }
+  return $facts
+}
+
+function Resolve-FacebookPersonalWslGuiUser {
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $true)][string]$WslExe,
+    [Parameter(Mandatory = $true)][string]$DistroName
+  )
+
+  $currentProbeScript = @'
+printf 'UID=%s\n' "$(id -u)"
+printf 'USER=%s\n' "$(id -un)"
+'@
+  $current = Invoke-LabNativeProcess -FilePath $WslExe -Arguments @('--distribution', $DistroName, '--exec', 'bash', '-lc', $currentProbeScript)
+  if ($current.ExitCode -ne 0) {
+    throw 'REAL_RED: could not resolve the current Ubuntu-24.04 WSL user.'
+  }
+  $currentFacts = ConvertFrom-FacebookPersonalWslGuiFacts -Text $current.StdOut
+
+  $candidateNames = New-Object 'System.Collections.Generic.List[string]'
+  $currentUid = 0
+  if ($currentFacts.ContainsKey('UID') -and [int]::TryParse([string]$currentFacts['UID'], [ref]$currentUid) -and $currentUid -ne 0 -and $currentFacts.ContainsKey('USER')) {
+    $currentName = [string]$currentFacts['USER']
+    if ($currentName -and $currentName -ne 'root') { [void]$candidateNames.Add($currentName) }
+  }
+
+  $passwd = Invoke-LabNativeProcess -FilePath $WslExe -Arguments @('--distribution', $DistroName, '--exec', 'getent', 'passwd')
+  if ($passwd.ExitCode -ne 0) {
+    throw 'REAL_RED: Ubuntu-24.04 user database could not be read.'
+  }
+  $passwdCandidates = @()
+  foreach ($line in ([string]$passwd.StdOut -split "`r?`n")) {
+    if (-not $line) { continue }
+    $fields = @($line -split ':', 7)
+    if ($fields.Count -lt 7) { continue }
+    $uid = 0
+    if (-not [int]::TryParse([string]$fields[2], [ref]$uid)) { continue }
+    if ($uid -lt 1000 -or $uid -ge 60000) { continue }
+    $name = [string]$fields[0]
+    $shell = [string]$fields[6]
+    if (-not $name -or $name -eq 'root' -or $shell -match '(?:nologin|false)$') { continue }
+    $passwdCandidates += [pscustomobject]@{ Name = $name; Uid = $uid }
+  }
+  foreach ($candidate in @($passwdCandidates | Sort-Object Uid, Name)) {
+    if (-not $candidateNames.Contains([string]$candidate.Name)) {
+      [void]$candidateNames.Add([string]$candidate.Name)
+    }
+  }
+  if ($candidateNames.Count -eq 0) {
+    throw 'REAL_RED: no non-root interactive Ubuntu-24.04 user is available for the upstream manager GUI.'
+  }
+
+  $guiProbeScript = @'
+uid="$(id -u)"
+user="$(id -un)"
+printf 'UID=%s\n' "$uid"
+printf 'USER=%s\n' "$user"
+[ "$uid" -ne 0 ] || exit 10
+[ -d /mnt/wslg ] || exit 11
+if [ -z "${WAYLAND_DISPLAY:-}" ] && [ -z "${DISPLAY:-}" ]; then exit 12; fi
+[ -n "${HOME:-}" ] && [ "$HOME" != '/root' ] || exit 13
+printf 'HOME=%s\n' "$HOME"
+printf 'WSLG=1\n'
+printf 'DISPLAY_OK=1\n'
+'@
+
+  foreach ($candidateName in $candidateNames) {
+    $probe = Invoke-LabNativeProcess -FilePath $WslExe -Arguments @('--distribution', $DistroName, '--user', [string]$candidateName, '--exec', 'bash', '-lc', $guiProbeScript)
+    if ($probe.ExitCode -ne 0) { continue }
+    $facts = ConvertFrom-FacebookPersonalWslGuiFacts -Text $probe.StdOut
+    $uid = 0
+    if (-not $facts.ContainsKey('UID') -or -not [int]::TryParse([string]$facts['UID'], [ref]$uid) -or $uid -eq 0) { continue }
+    if (-not $facts.ContainsKey('USER') -or [string]$facts['USER'] -ne [string]$candidateName) { continue }
+    if (-not $facts.ContainsKey('WSLG') -or [string]$facts['WSLG'] -ne '1') { continue }
+    if (-not $facts.ContainsKey('DISPLAY_OK') -or [string]$facts['DISPLAY_OK'] -ne '1') { continue }
+    if (-not $facts.ContainsKey('HOME') -or -not [string]$facts['HOME'] -or [string]$facts['HOME'] -eq '/root') { continue }
+    return [pscustomobject]@{ Name = [string]$candidateName; Uid = $uid; Home = [string]$facts['HOME'] }
+  }
+
+  throw 'REAL_RED: no non-root Ubuntu-24.04 account has a usable WSLg GUI session.'
+}
+
 if ($LibraryOnly) { return }
 
 function Write-RealRed {
@@ -137,6 +228,8 @@ try {
   if (-not $dockerExe) { throw 'REAL_RED: Docker CLI is unavailable.' }
   $wslExe = Get-FirstCommandPath -Names @('wsl.exe')
   if (-not $wslExe) { throw 'REAL_RED: wsl.exe is unavailable.' }
+  $guiUser = Resolve-FacebookPersonalWslGuiUser -WslExe $wslExe -DistroName $DistroName
+  Write-Host "WSL_GUI_USER_GREEN user=$($guiUser.Name) uid=$($guiUser.Uid)"
 
   $profiles = Get-Content -Raw -LiteralPath $profilesPath | ConvertFrom-Json
   $profile = $profiles.profiles | Where-Object { [string]$_.platformId -eq 'facebook-personal' } | Select-Object -First 1
@@ -194,7 +287,7 @@ try {
 
   Write-Host 'SYSTEM_AUTHORIZATION_REQUIRED: Ubuntu may request sudo authorization to install the exact official package.'
   $interactive = Invoke-LabNativeInteractiveProcess -FilePath $wslExe -Arguments @(
-    '--distribution', $DistroName, '--exec', 'bash', $installerWsl.StdOut.Trim(),
+    '--distribution', $DistroName, '--user', $guiUser.Name, '--exec', 'bash', $installerWsl.StdOut.Trim(),
     '--install-and-launch', $debWsl.StdOut.Trim(), $bridgeUrl, $HomeserverUrl
   )
   if ($interactive.ExitCode -ne 0) { throw "REAL_RED: official manager install/launch failed with exit code $($interactive.ExitCode)." }
