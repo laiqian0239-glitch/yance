@@ -7,7 +7,7 @@ const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const RAW_PINNED_ELEMENT_LOCK_BLOB = '7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc';
-const POST_NX_ELEMENT_LOCK_BLOB = '9ea9eb20bd2bb2d8af0f811ecf0798262924b8df';
+const POST_NX_ELEMENT_LOCK_BLOB = 'f13b569df10a63311d7bba874c452b568617e5d0';
 
 function exists(rel) {
   return fs.existsSync(path.join(ROOT, rel));
