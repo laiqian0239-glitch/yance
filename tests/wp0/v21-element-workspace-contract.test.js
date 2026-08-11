@@ -285,3 +285,40 @@ test('pinned Element backports the official Nx 23.1.1 CRLF fix with only its req
   assert.ok(nxApplyIndex > authorityApplyIndex, '0003 must replay after 0002');
   assert.ok(moduleCopyIndex > nxApplyIndex, '0003 must replay before Product module copy');
 });
+
+test('Nx CRLF backport carries exact-source unified-diff replay coordinates', () => {
+  const nxPatch = readText('upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch');
+  const packageMarker = 'diff --git a/package.json b/package.json';
+  const lockMarker = 'diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml';
+  const packageStart = nxPatch.indexOf(packageMarker);
+  const lockStart = nxPatch.indexOf(lockMarker);
+  assert.ok(packageStart >= 0 && lockStart > packageStart, '0003 must contain package.json then pnpm-lock.yaml');
+
+  const coordinates = patchText => [...patchText.matchAll(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/gmu)]
+    .map(match => [Number(match[1]), Number(match[2])]);
+
+  assert.deepEqual(
+    coordinates(nxPatch.slice(packageStart, lockStart)),
+    [[48, 48]],
+    'package.json Nx backport must target the exact pinned Nx declaration line'
+  );
+
+  assert.deepEqual(
+    coordinates(nxPatch.slice(lockStart)),
+    [
+      [323, 323], [362, 362],
+      [3671, 3671], [3681, 3681], [3691, 3691], [3701, 3701], [3712, 3712],
+      [3724, 3724], [3736, 3736], [3748, 3748], [3759, 3759], [3769, 3769],
+      [10785, 10797],
+      [8328, 8328], [9665, 9673], [10838, 10850], [12089, 12105],
+      [16378, 16398], [16381, 16401], [16389, 16409], [16392, 16412], [16401, 16421],
+      [16411, 16431], [16436, 16456], [16440, 16460], [16447, 16467], [16454, 16474],
+      [16486, 16506], [16492, 16512], [16498, 16518], [16504, 16524], [16510, 16530],
+      [16516, 16536], [16522, 16542], [16528, 16548], [16534, 16554], [16540, 16560],
+      [23846, 23877], [23864, 23895], [23875, 23907], [23909, 23943], [23928, 23963],
+      [23938, 23973], [23963, 23999],
+      [20991, 21011], [22444, 22471], [24017, 24053], [25525, 25568]
+    ],
+    'pnpm-lock.yaml hunks must bind exact pinned old lines and exact post-backport target lines without reordering mutation blocks'
+  );
+});
