@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 23:09 +07:00
+Last updated: 2026-08-12 00:18 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -204,20 +204,67 @@ Observed bounded console evidence, in order:
 
 This closes the non-human Task E runtime gate. There is no remaining runtime/config/network/Compose repair action justified by current evidence. The next boundary is exactly the plan's Task 4 real-account operator layer, using mature upstream login/provisioning flows one platform at a time.
 
-## Unique next action — TASK 4 HUMAN AUTHORIZATION, FACEBOOK PERSONAL FIRST
+## TASK 4 FACEBOOK PERSONAL — UPSTREAM OPERATOR SECURITY REAL RED
 
-Do not rerun the runtime repair/readiness package unless a later real-account flow causes a genuinely new runtime-readiness regression.
+Facebook Personal remains runtime-ready, but real-account authorization is blocked before credentials/cookies/2FA by the current upstream Windows operator distribution trust boundary.
 
-The approved recovery plan now advances in this order:
+### SmartScreen evidence — unsigned official installer
 
-1. Facebook Personal — use the pinned Meta bridge's upstream login modes and mautrix-manager/bridgev2 provisioning flow where applicable; no hand-built cookie extraction and no Matrix-room command fallback.
-2. Instagram DM — pinned upstream Meta/Instagram login flow; if browser cookie capture is required by the exact pin, use the mature upstream manager/webview flow.
-3. Google Messages — upstream QR/device-linking flow.
-4. Signal — upstream device-linking flow and stable reconnect proof.
-5. LINE — upstream login/device-confirmation flow.
-6. Facebook Page stays last on its previously frozen native-session/manual acceptance path.
+The user attempted the official `mautrix-manager v0.2.1` Windows CI/Release installer path and Microsoft Defender SmartScreen displayed `发布者未知` / unknown publisher. The project explicitly refused the `仍要运行` / Run anyway path. No Defender, SmartScreen or execution-policy bypass is authorized.
 
-Stop only when the upstream flow itself requires a real human login, verification code, 2FA, checkpoint, QR scan, phone/device confirmation, or when a new upstream `REAL_RED` is proven. Never upload passwords, cookies, tokens, QR/device-linking secrets, 2FA codes, `.runtime`, configs, registrations or databases.
+The official `mautrix/manager` v0.2.1 release tag resolves exactly to commit `d2c08e60c7a877602bc6da2961daf2daffcff79b`. The upstream release workflow performs code signing only for macOS and does not establish Windows Authenticode signing.
+
+### Exact-source launcher investigation — RETIRED SECURITY RED
+
+A temporary exact-source investigation proved the upstream source itself could be fetched and linted on Windows, but it is not an acceptable credential-bearing operator delivery path:
+
+- exact source: `mautrix/manager@d2c08e60c7a877602bc6da2961daf2daffcff79b` / v0.2.1;
+- Windows source-chain run `31514771692`, job `93857058772`: exact source identity, `npm ci --include=dev`, and upstream `npm run lint` GREEN;
+- `npm audit --omit=dev --json`: production/runtime dependencies `total=0`, `high=0`, `critical=0`;
+- full locked source-launch tree: `total=37`, `high=33`, `critical=1`;
+- the critical advisory is in `tar` through the development/build chain `@electron/node-gyp → @electron/rebuild → Electron Forge`;
+- therefore running `npm start` would execute a build/development toolchain that fails the security gate even though the application production dependency set is clean.
+
+No `npm audit fix`, lockfile mutation or Yance-owned dependency override was used. The source-launch files and artifact path were removed in ordinary commit `a4ba984144e503828fcf19ed4cf1eb9c03280db6`; workflow guard `MAUTRIX_MANAGER_SOURCE_LAUNCH_RETIRED_SECURITY_RED` prevents that path from reappearing.
+
+### Official `.nupkg` internal executable investigation — REAL RED
+
+The alternative mature upstream release-payload hypothesis was tested failure-first on real Windows:
+
+- exact official release asset ID `495351157`;
+- asset `mautrix_manager-0.2.1-full.nupkg`;
+- exact GitHub Release SHA256 `0ab5a822f7c1ceb830811972fb98d9849cf17080c54f2d8d6583b0b9802721ed`;
+- payload contract commit `d7c8f5c81b1d4cf8627c0b98650b106c65d4ee34` → run `31516111721`: 26/27 GREEN, only the new payload gate absent;
+- implementation commit `a4ba984144e503828fcf19ed4cf1eb9c03280db6` retired the vulnerable source launcher and added exact tag/asset/SHA/Authenticode/smoke validation;
+- stale asset-variable contract fix `0f7d967346c36e836f0717cde47b11ba99964470`;
+- Windows run `31516762153`, job `93863708324`: **26/26 contracts GREEN** and retired-source guard GREEN;
+- downloaded `.nupkg` SHA256 exactly matched `0ab5a822f7c1ceb830811972fb98d9849cf17080c54f2d8d6583b0b9802721ed`;
+- extracted official `lib/net45/mautrix-manager.exe` was checked by Windows `Get-AuthenticodeSignature`;
+- result: **`Internal Authenticode status=NotSigned`**;
+- gate stopped immediately as `Internal mautrix-manager.exe Authenticode RED: status=NotSigned`;
+- no no-login smoke and no credential-bearing execution was allowed after the signature RED.
+
+This proves both the outer official Windows installer and the internal official application executable lack a valid Windows Authenticode trust path for v0.2.1. The project must not bypass SmartScreen, manually run the unsigned internal EXE, resurrect the vulnerable Forge source-launch chain, or replace mautrix-manager with a Yance-built cookie/login client.
+
+### Current stop condition
+
+This is a genuine upstream OSS/security RED and is the authorized stop boundary. Facebook Personal account authorization has **not** started and no Matrix/Facebook credential, cookie, token, 2FA code or device-confirmation secret has been exposed.
+
+The legitimate unblock condition is a mature upstream operator path that satisfies the security boundary, such as:
+
+- an upstream Windows mautrix-manager release whose actual application executable has a valid Authenticode signature; or
+- an upstream-maintained dependency-secure operator/run path that does not require executing the currently vulnerable Forge/rebuild development chain.
+
+Do not rerun the Task E runtime package, the unsigned manager installer, the removed source launcher, or the extracted unsigned manager executable while this RED remains.
+
+## Task 4 canonical order after unblock
+
+1. Facebook Personal — blocked at upstream operator security RED before human login.
+2. Instagram DM — not started.
+3. Google Messages — not started.
+4. Signal — not started.
+5. LINE — not started.
+6. Facebook Page remains last on its frozen native-session/manual acceptance path.
 
 ## Progress
 
@@ -231,10 +278,11 @@ Stop only when the upstream flow itself requires a real human login, verificatio
 - [x] Scalarization-fixed package: 25/25 Windows contracts, MotW bootstrap GREEN, independent ZIP/manifest verification GREEN.
 - [x] User-machine `LAB_RUNTIME_READY` reached with all non-human gates GREEN and exit code `0`.
 - [x] Hard human authorization boundary reached exactly as designed: `FINAL STATUS: HUMAN_AUTH_REQUIRED`.
-- [ ] Task 4 Facebook Personal upstream real-account authorization/acceptance.
-- [ ] Task 4 Instagram DM upstream real-account authorization/acceptance.
-- [ ] Task 4 Google Messages upstream device-linking/acceptance.
-- [ ] Task 4 Signal upstream device-linking/acceptance.
-- [ ] Task 4 LINE upstream login/device-confirmation acceptance.
+- [x] Facebook Personal operator security investigation: unsigned installer refused, source-launch critical dev-chain identified/retired, exact official nupkg verified, internal EXE proven `NotSigned`.
+- [ ] Facebook Personal upstream real-account authorization/acceptance — BLOCKED on genuine upstream operator security RED.
+- [ ] Instagram DM upstream real-account authorization/acceptance.
+- [ ] Google Messages upstream device-linking/acceptance.
+- [ ] Signal upstream device-linking/acceptance.
+- [ ] LINE upstream login/device-confirmation acceptance.
 - [ ] Facebook Page native-session/manual acceptance last.
 - [ ] Final Lab closure and separate product-integration merge boundary.
