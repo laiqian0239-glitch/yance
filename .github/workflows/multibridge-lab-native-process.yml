@@ -39,7 +39,7 @@ jobs:
           $verificationRoot = 'dist/multibridge-exit11-verification'
           $expected = [ordered]@{
             'RUN_EXIT11_EVIDENCE.cmd' = 'c9afd263cc5b89486ff937a195e9313bdce9c32a'
-            'collect-exit11-evidence.ps1' = '38eee8ecfe5411a89273027404a320b94b623dba'
+            'collect-exit11-evidence.ps1' = '886b3a792c6753b022cc716b07ff44be4b2389a3'
             'native-process.ps1' = '47d56b8e6561676eec75b814c1ed1ebaa8ba30d5'
           }
 
@@ -72,7 +72,7 @@ jobs:
           [IO.File]::WriteAllLines((Join-Path $verificationRoot 'SOURCE.txt'), @(
             "tested_commit=$env:GITHUB_SHA",
             'wrapper_blob=c9afd263cc5b89486ff937a195e9313bdce9c32a',
-            'collector_blob=38eee8ecfe5411a89273027404a320b94b623dba',
+            'collector_blob=886b3a792c6753b022cc716b07ff44be4b2389a3',
             'helper_blob=47d56b8e6561676eec75b814c1ed1ebaa8ba30d5'
           ), [Text.UTF8Encoding]::new($false))
 
