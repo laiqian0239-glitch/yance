@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-12T04:52:20+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-FIRST-NEGATIVE-PROBE-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Negative authorization probe required by the owner after ordinary merge of PR #284. This candidate is intentionally structurally valid but omits ossFit evidence so the merged repository OSS-first admission gate must reject it through the real GOVERNANCE_WP0 route. This probe is test-only and must never be merged or used as implementation authority.",
+  "base": {
+    "branch": "main",
+    "commit": "c5192d441ccb23d0e5b121c6c49c75d4dec8000a"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/oss-first-negative-probe-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/oss-first-negative-probe-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "3c088683dbba7a02a59ef467f0f827d2249eb6f3c134af4a50f8af4befdf6f2c",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/oss-first-negative-probe-p0",
+    "allowedChangedPaths": [
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      "governance/layered-ci/oss-first-development-policy.json",
+      "tests/wp0/implementation-branch-policy.test.js",
+      "tests/wp0/oss-first-development-policy.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "d73665b048fbb188104f76d611a2b896689b72ae50acad759f8f345bd0d759ce",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/implementation-branch-policy.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "7913275d3348e4c902aab19807e71fe0a02943be068cba5ef7f948eb9be7a7de",
+      "productionCodeChanged": false
+    },
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/stage-6459-wp0-gates.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "0b4f62bf34c62789474d394400d03e65bde1638fdff568d1cfd09b5a551fc815"
+    },
+    "newDependencyAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "The existing Stage route classifier must route this single governance authorization candidate to GOVERNANCE_WP0.",
+    "All pre-existing governance route and authorization-shape contracts must remain valid; the only intentional admission defect is the absence of ossFit evidence.",
+    "The merged tests/wp0/oss-first-development-policy.test.js must reject this changed authorization with an ossFit evidence required failure.",
+    "The selected wp0-governance job and final wp0-gates job must therefore fail closed.",
+    "This negative probe must not be merged, promoted, published, or used as implementation authority."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "testWeakening": true,
+    "newPolicyEngine": true,
+    "newGovernanceWorkflow": true,
+    "newCiFramework": true,
+    "retroactivelyInvalidatingHistoricalAuthorizations": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
