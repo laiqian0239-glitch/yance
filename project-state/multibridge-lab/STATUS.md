@@ -1,12 +1,12 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 19:34 +07:00
+Last updated: 2026-08-11 20:43 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
 ## Operating rule
 
-Authoritative Lab ledger. Update after every real state transition. No user action for basic script/config debugging. Mature upstream source/runtime remains authority; no R13 revival or workaround infrastructure. No force-push/rebase/amend/squash. Do not weaken gates. Stop only at a real RED, hard human-authorization boundary, or final integration merge boundary.
+Authoritative Lab ledger. Update after every real state transition. No user action for basic script/config debugging. Mature upstream source/runtime remains authority; no R13 revival or workaround infrastructure. No force-push/rebase/amend/squash. Do not weaken gates. Stop only at a real RED, hard human-authorization/external-runtime boundary, or final integration merge boundary.
 
 ## Frozen completed authorities
 
@@ -94,24 +94,132 @@ The verification-only historical fatal diagnostics remain sealed causal evidence
 
 They have now served their purpose. The repaired exact-five pinned-image gate above supersedes them as the current startup authority.
 
-## Current transition — TASK E AUTHORIZED
+## Task E — WINDOWS R12 RUNTIME REPAIR/READINESS PACKAGE SEALED
 
-Tasks A–D are complete. There is no current DB-mapping/source-semantic/pinned-image RED.
+Task E is implemented and CI-sealed. User-machine runtime execution is not yet proven.
 
-The only authorized next work package is the user Windows runtime repair/readiness package. It must be failure-first and must reuse current OSS/native authorities rather than introduce new Yance infrastructure.
+### Recovered real R12 runtime authority
 
-Required runtime semantics:
+Historical real Windows R12 entrypoint established these existing authorities and Task E reuses them rather than inventing replacements:
 
-1. repair **only** `.database.type` and `.database.uri` for the exact five bridge configs while preserving all other R12 fields;
-2. validate exact five upstream configs;
-3. require all five bridge processes sustained with stable `RestartCount`;
-4. treat Docker Compose service names/aliases as the sole endpoint/network authority;
-5. prove Synapse → bridge DNS/TCP and bridge → Synapse connectivity;
-6. prove upstream provisioning/login readiness without crossing human-auth boundaries;
-7. emit `LAB_RUNTIME_READY` only after all non-human gates are GREEN;
-8. terminal classification must be exactly one of `GREEN`, `REAL_RED`, `HUMAN_AUTH_REQUIRED`;
-9. if the next step requires real account/device authorization, stop as `HUMAN_AUTH_REQUIRED` and preserve the order Facebook Personal → Instagram → Google Messages → Signal → LINE → Facebook Page last;
-10. never upload config files, credentials, tokens, user-data logs, registration secrets, DB bytes, or other sensitive runtime artifacts.
+- existing Lab root default: `C:\Users\1\Downloads\yance-multibridge-lab`;
+- Compose authority: `runtime/docker-compose.lab.yml`;
+- exact upstream profile authority: `runtime/upstream-builds.json`;
+- exact stage evidence: `evidence/live/runtime-stage-<service>.json`;
+- existing bridge configs: `.runtime/<service>/config.yaml`;
+- Compose service IDs are exactly the five logical service names plus `synapse`.
+
+No R13 discovery layer, new Docker network, host-file rewrite, probe image, DB daemon, second config system, or new generic orchestrator was introduced.
+
+### Exact login-flow human-boundary authority
+
+Frozen fixture `d1b962e8dc3dc49edd54d14c57e8a7d8daf91289` records exact upstream `GetLoginFlows()` source identity for all five:
+
+- Facebook Personal login blob `1ddef424aefef63affed39509886d81ec47ea4d5`;
+- Instagram DM login blob `be0e8bd071fdcf3a1345f8067bea7302bbe25ef7`;
+- Google Messages login blob `1c2c2ad8582f75ac017fc9bcfbfe77c131505199`;
+- Signal login blob `0446d23eb96cfb00056c070de60e216e3af25bdb`;
+- LINE connector/login-flow blob `cae3a391ad546be2a7ebce0ac146da0a5bcaecbc`.
+
+These prove the supported login-flow capability only. Cookies, QR scans, phone pairing, Google-account pairing, credentials, 2FA and device linking remain outside automation authority.
+
+### Failure-first package lineage
+
+Initial package RED:
+
+- contract commit `f3fc915f66ed44d0c368197a1c270cfd494f9d1c`;
+- run `31495967920`, job `93793630452`: 23/24 GREEN; only RED was missing `r12-runtime-repair-readiness.ps1`.
+
+Initial implementation:
+
+- implementation `594cd44bba9ea3b76bdd18d5d08a72930f618435`;
+- wrapper `334dbb33df5af13eaf6d7912bed5ba74a71c499d`;
+- README `5be7b468c3a46e8e81ffc6dd3aaa9becb1d6767c`;
+- CI artifact staging `819d6e814a46ba1d00bcb6a9dd89794c2f66363d`;
+- run `31496608677`, job `93795796857`: 24/24 GREEN and package upload GREEN.
+
+Pre-user-execution hardening was then performed failure-first:
+
+1. Atomic config replacement + zero-startup-restart contract commit `6fc00a5a449b411dd56c8e9f1c347f86bbe8fad7` → run `31496911435`, job `93796824918`: 23/24 GREEN, only package contract RED.
+2. Implementation `b5ebab27d22963221cd218a3fddff8215a03cce1`:
+   - same-directory `[IO.File]::Replace(...)` atomic commit/rollback;
+   - post-commit semantic revalidation;
+   - immediate post-`--force-recreate` `RestartCount == 0` requirement;
+   - existing 15-second stable RestartCount gate retained;
+   - absolute Compose-authoritative endpoint checks retained/strengthened.
+3. Run `31497126496`, job `93797545537`: 24/24 GREEN and artifact upload GREEN.
+4. Windows PowerShell 5.1 parse contract `1c30b2bea45b12323f8aa2a0ae0f2a5ae521b183` → run `31497363051`, job `93798343743`: 23/24 GREEN; only RED was absence of the real PS5.1 parse gate.
+5. CI implementation `e5b331db6e28a1d6f64aeb929076f5b6d977e0f1` invokes the same `powershell.exe` family used by the double-click wrapper.
+6. Final run `31497488499`, job `93798762567`:
+   - 24/24 contracts GREEN;
+   - old exact exit11 package and verification uploads remain GREEN;
+   - `WINDOWS_POWERSHELL_5_1_PARSE_GREEN` emitted by actual `powershell.exe`;
+   - final R12 runtime repair/readiness package staging/upload GREEN.
+
+### Final runtime package semantics
+
+The package:
+
+1. preflights Compose service authority and exact staged source/image evidence;
+2. stops only the exact five bridge services;
+3. edits candidates using each exact upstream image's existing `yq`;
+4. proves the full YAML semantic projection after `del(.database.type, .database.uri)` is unchanged;
+5. atomically replaces only each existing `config.yaml`, with rollback backup, after exact DB value validation;
+6. never rewrites `registration.yaml`;
+7. requires Synapse healthy;
+8. `docker compose up -d --force-recreate` only the exact five bridges;
+9. requires initial `running=true`, exit `0`, exact image identity and `RestartCount=0`;
+10. waits 15 seconds and requires all five still running with unchanged RestartCount/image identity;
+11. proves Synapse → each bridge TCP through the actual Compose service name using Synapse's existing Python;
+12. proves each bridge → `synapse` via `/_matrix/client/versions` using the exact upstream images' existing `curl`;
+13. validates frozen five-service upstream login-flow authority;
+14. emits `LAB_RUNTIME_READY` only after every non-human gate is GREEN;
+15. then stops at `FINAL STATUS: HUMAN_AUTH_REQUIRED` without initiating real account/device authorization.
+
+Failures are fail-closed as `FINAL STATUS: REAL_RED`. The wrapper keeps the console open with `pause` so the result cannot disappear on exit.
+
+### Final artifact — INDEPENDENTLY VERIFIED
+
+Final GitHub artifact:
+
+- run `31497488499`;
+- artifact ID `9103590098`;
+- name `yance-multibridge-r12-runtime-repair-readiness`;
+- GitHub digest `sha256:aadf98265a8a0f769badd831ede2277097ccd2d0e0f24d016eeb6e91d0b2679a`.
+
+Independent downloaded ZIP verification:
+
+- local ZIP SHA-256 exactly `aadf98265a8a0f769badd831ede2277097ccd2d0e0f24d016eeb6e91d0b2679a`;
+- exact file count: 7;
+- exact file set:
+  - `R12_RUNTIME_REPAIR_READINESS_README.txt`
+  - `RUN_R12_RUNTIME_REPAIR_READINESS.cmd`
+  - `SHA256SUMS.txt`
+  - `native-process.ps1`
+  - `r12-database-wiring.ps1`
+  - `r12-runtime-repair-readiness.ps1`
+  - `runtime-login-flow-authorities.json`
+- all six runtime/source files independently recomputed against `SHA256SUMS.txt`: GREEN.
+
+Final package source SHA-256 values:
+
+- `native-process.ps1`: `fd715e68aae8a6efdd93ea64272208c38134d2cd67b9ac01275eda02c354599d`;
+- `R12_RUNTIME_REPAIR_READINESS_README.txt`: `b6f2807dc0c79230ee4bd4ace064064d68c710bc26517ca4b1f45c0b8636a3d9`;
+- `r12-database-wiring.ps1`: `47c9a239414ed7f11cdcaaad6c9f3efd47a9f41a1bd59a84824d948e6bbca7d3`;
+- `r12-runtime-repair-readiness.ps1`: `552f9cd47c8138ff6d2ee7b9394b23581dedfe9fb86859ee92a9d151f6c68e5c`;
+- `RUN_R12_RUNTIME_REPAIR_READINESS.cmd`: `3eb37847aae1350ff51071b13311b6da90c01de597b957804d0ef1ba7038cd48`;
+- `runtime-login-flow-authorities.json`: `29e1b882feadb8abe87ca89906a898601ee4e1c369532b0faf9f20999d238c6f`.
+
+## Unique next action — USER-MACHINE RUNTIME GATE
+
+No further repository-side implementation work is authorized before real Windows runtime evidence.
+
+Run the sealed final package against the existing Lab runtime. The only acceptable next state is:
+
+- `LAB_RUNTIME_READY` followed by `FINAL STATUS: HUMAN_AUTH_REQUIRED`, which opens the human authorization phase in canonical order; or
+- `FINAL STATUS: REAL_RED`, which is the next causal debugging boundary.
+
+Do not upload `.runtime`, configs, registration files, DBs, logs, cookies, tokens or account/device material. The package console output is deliberately bounded to gate/status messages and is the only output needed for the next transition.
 
 ## Progress
 
@@ -120,6 +228,6 @@ Required runtime semantics:
 - [x] Exact-five Windows DB mapping GREEN.
 - [x] Exact-five source-semantic authority GREEN.
 - [x] Exact-five exact pinned-image startup GREEN with strict running/exit0 gate.
-- [ ] Failure-first Windows runtime repair/readiness package.
+- [x] Failure-first Windows runtime repair/readiness package built and independently sealed.
 - [ ] User-machine `LAB_RUNTIME_READY` or a real classified RED.
 - [ ] Human authorization only after runtime readiness.
