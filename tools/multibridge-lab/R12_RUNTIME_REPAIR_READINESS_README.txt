@@ -21,6 +21,16 @@ Run
 Optional Lab root override from Command Prompt:
 RUN_R12_RUNTIME_REPAIR_READINESS.cmd -LabRoot "D:\path\to\yance-multibridge-lab"
 
+Downloaded-file protection
+--------------------------
+Windows may propagate the Internet-zone Mark-of-the-Web from a downloaded ZIP
+to the extracted PowerShell files. The CMD wrapper does not change or bypass
+ExecutionPolicy. Before any script is unblocked, it verifies SHA-256 for the
+exact runtime script, DB wiring helper, native-process helper and frozen login
+flow authority. Only after those sealed bytes match does it call Unblock-File
+for the three exact PowerShell files and invoke the runtime entrypoint normally.
+A missing or changed sealed input fails closed as FINAL STATUS: REAL_RED.
+
 What it changes
 ---------------
 For exactly these five existing bridge configs:
@@ -55,7 +65,8 @@ Only after all non-human gates pass does it print LAB_RUNTIME_READY.
 Final status
 ------------
 REAL_RED
-  A non-human runtime gate failed. Do not start account authorization.
+  A package-integrity/bootstrap or non-human runtime gate failed. Do not start
+  account authorization.
 
 HUMAN_AUTH_REQUIRED
   Runtime readiness is GREEN and the next step is real account/device
