@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-11T13:00:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-P0-ELEMENT-NX-CRLF-REPLAY",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor authorization for the first real Product Task 9 RED after PR #253 merged and was forward-merged into Product PR #229. Exact-head Windows run 31463824632 / job 93692503467 proved checkout, Node 22.23.1, candidate identity and pnpm 11.5.2 GREEN, then failed during iteration-1 Element materialization because upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch could not pass ordinary git apply --check against package.json or pnpm-lock.yaml. The patch preserves the authorized Nx 23.1.0 to 23.1.1 mutation set and exact pinned old blob identities, but its unified-diff hunks were emitted with synthetic @@ -1,... coordinates. The prior contract validated mutation scope, blob binding and bootstrap order but did not validate executable hunk metadata. This package closes only that replay-evidence gap; it does not reopen Nx version selection, Element pinning, lock regeneration, bootstrap ordering or Product source scope.",
+  "base": {
+    "branch": "main",
+    "commit": "f7a383c16580cff0994faa96dd0ee1ca68fcb899"
+  },
+  "evidence": {
+    "productPullRequest": 229,
+    "productExactHead": "d59b783ad97a773a7ac1509570e7e3d5003339c3",
+    "task9Run": 31463824632,
+    "task9Job": 93692503467,
+    "task9FirstRealError": "git apply --check upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch failed with 1 after 0001 and 0002, before frozen pnpm install or Nx build",
+    "elementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "elementPackageJsonBlob": "1458c14e3e59f6fa7c948b5ffb7de4404c1cb5f5",
+    "elementPnpmLockBlob": "7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc",
+    "targetNxVersion": "23.1.1",
+    "nxUpstreamFixCommit": "b8dca5e4f9315b989d0c2f7a336868ecd91a36fa",
+    "elementUpstreamAdoptionCommit": "27f0347668494711ae25466b3d81434a65011df6",
+    "priorAuthorizationMerge": "74bafed268a78e417f8984dbf5b67d1d751b75ca",
+    "priorImplementationMerge": "f7a383c16580cff0994faa96dd0ee1ca68fcb899",
+    "failureBoundary": "0003 ordinary textual replay fails before pnpm install; therefore the prior Nx CRLF parser failure has not yet been re-tested and lint:types remains UNKNOWN"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-p0-element-nx-crlf-replay-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-p0-element-nx-crlf-replay-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "421ff9376b71a0acc993cece458bb52dfba85627ce4d82b6eb769833ade8df2b",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-p0-element-nx-crlf-replay",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "70d565a39dfbeded19b6ad1bded3e07f0753f74533f33cc437e3dc4557f5027c",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-element-workspace-contract.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "e263649043e2a16c14cd790c10125a5e2cec4aaf727a3d64e68fea92481159dd",
+      "productionCodeChanged": false
+    },
+    "bootstrapModificationAllowed": false,
+    "elementPinModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "elementLockRegenerationAllowed": false,
+    "patchMutationSetModificationAllowed": false,
+    "patchHunkMetadataRepairAllowed": true,
+    "newDependencyAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit must change only tests/wp0/v21-element-workspace-contract.test.js and must RED against the currently merged 0003 patch because its ordinary unified-diff hunk coordinates are synthetic/non-progressing and do not provide executable replay metadata.",
+    "The repair may change only ordinary unified-diff hunk metadata in upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch. The ordered added/deleted mutation lines, diff paths and exact pinned old blob index identities must remain byte-for-byte semantically identical to the merged #253 patch.",
+    "The package.json old blob must remain 1458c14e3e59f6fa7c948b5ffb7de4404c1cb5f5 and pnpm-lock.yaml old blob must remain 7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc. Nx must remain an exact 23.1.0 to 23.1.1 backport and no unrelated lock dependency churn may be introduced.",
+    "tools/matrix/bootstrap.js is frozen in this package and must continue the Product sequence 0001 -> 0002 -> 0003 -> module copy -> 0011 -> 0012 using the existing fail-closed applyPatch mechanism.",
+    "No git apply --3way, --reject, fuzzy patching, --recount escape hatch, autocrlf manipulation, YAML marker rewrite, custom parser, lock regeneration, Element pin change, pnpm version change or workflow weakening is permitted.",
+    "A subsequent real Windows Product Task 9 on the forward-merged Product branch must first prove 0003 ordinary git apply --check/replay succeeds, then frozen install/postinstall and Nx build must cross the historical multi-document parser RED before lint:types may be classified."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "gitApplyThreeWay": true,
+    "gitApplyReject": true,
+    "gitApplyRecount": true,
+    "fuzzyPatch": true,
+    "lineEndingRewrite": true,
+    "gitAutocrlfManipulation": true,
+    "lockDocumentMarkerRemoval": true,
+    "customYamlParser": true,
+    "nxPluginDisable": true,
+    "elementPinChange": true,
+    "pnpmVersionDrift": true,
+    "elementLockRegeneration": true,
+    "unrelatedElementDependencyDrift": true,
+    "bootstrapModification": true,
+    "productSourceModification": true,
+    "workflowModification": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
