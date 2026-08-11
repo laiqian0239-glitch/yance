@@ -212,3 +212,50 @@ test('Yance Element module is delivered through the official Element /modules ru
     'upstream module delivery must not be mislabeled as the forbidden legacy runtime-patch release mechanism'
   );
 });
+
+test('pinned Element backports only the official Nx 23.1.1 CRLF lockfile fix before Product module copy', () => {
+  const nxPatch = readText('upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch');
+  assert.deepEqual(patchedPaths(nxPatch), ['package.json', 'pnpm-lock.yaml']);
+  assert.match(
+    nxPatch,
+    /^index 1458c14e3e59f6fa7c948b5ffb7de4404c1cb5f5\.\.[a-f0-9]{40} 100644$/mu,
+    'Nx CRLF patch package.json hunk must remain bound to the exact pinned Element old blob'
+  );
+  assert.match(
+    nxPatch,
+    /^index 7e1974c8c927b6e1f1672051833890932264ef33\.[.]?[a-f0-9]{40} 100644$/mu,
+    'Nx CRLF patch pnpm-lock.yaml hunk must remain bound to the exact pinned Element old blob'
+  );
+  assert.match(nxPatch, /^--- a\/package\.json$/mu);
+  assert.match(nxPatch, /^\+\+\+ b\/package\.json$/mu);
+  assert.match(nxPatch, /^--- a\/pnpm-lock\.yaml$/mu);
+  assert.match(nxPatch, /^\+\+\+ b\/pnpm-lock\.yaml$/mu);
+  assert.match(nxPatch, /^@@ /mu, 'Nx CRLF repair must remain an ordinary textual patch');
+
+  const mutationLines = nxPatch.split(/\r?\n/u).filter(line =>
+    (line.startsWith('+') && !line.startsWith('+++'))
+      || (line.startsWith('-') && !line.startsWith('---'))
+  );
+  const mutations = mutationLines.join('\n');
+  assert.match(mutations, /23\.1\.0/u, 'Nx 23.1.0 must be the only superseded Nx release');
+  assert.match(mutations, /23\.1\.1/u, 'stable Nx 23.1.1 must be the replacement release');
+  assert.doesNotMatch(mutations, /matrix-js-sdk|axios|brace-expansion|(?:^|[\s"'])react(?:@|[\s"':])/iu, 'unrelated Element dependency churn is forbidden');
+  assert.doesNotMatch(nxPatch, /^----$/mu, 'the existing YAML document separator must not be deleted');
+  assert.doesNotMatch(nxPatch, /^\+---$/mu, 'the patch must not add or rewrite YAML document separators');
+  assert.doesNotMatch(nxPatch, /COREPACK_ENABLE_STRICT|COREPACK_ENABLE_PROJECT_SPEC|--no-frozen-lockfile|--lockfile-only/u);
+
+  const bootstrap = readText('tools/matrix/bootstrap.js');
+  const authorityApply = "applyPatch(element, ELEMENT_PACKAGE_MANAGER_AUTHORITY_PATCH, 'Element package-manager authority patch');";
+  const nxApply = "applyPatch(element, ELEMENT_NX_CRLF_LOCKFILE_PATCH, 'Element Nx CRLF lockfile patch');";
+  const moduleCopy = "fs.cpSync(path.join(ROOT, 'integration/element-module'), moduleTarget, { recursive: true });";
+  assert.match(
+    bootstrap,
+    /const ELEMENT_NX_CRLF_LOCKFILE_PATCH = path\.join\(ROOT, 'upstream-patches\/element-web\/0003-yance-nx-crlf-lockfile\.patch'\);/u
+  );
+  const authorityApplyIndex = bootstrap.indexOf(authorityApply);
+  const nxApplyIndex = bootstrap.indexOf(nxApply);
+  const moduleCopyIndex = bootstrap.indexOf(moduleCopy);
+  assert.ok(authorityApplyIndex >= 0, 'bootstrap must preserve 0002 package-manager authority');
+  assert.ok(nxApplyIndex > authorityApplyIndex, '0003 must replay after 0002');
+  assert.ok(moduleCopyIndex > nxApplyIndex, '0003 must replay before Product module copy');
+});
