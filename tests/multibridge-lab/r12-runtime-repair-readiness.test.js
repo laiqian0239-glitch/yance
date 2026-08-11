@@ -99,6 +99,29 @@ test('final Windows runtime repair/readiness package is thin, exact-five, Compos
   assert.match(wrapper, /pause/i);
   assert.match(wrapper, /exit\s+\/b\s+%/i);
 
+  // Downloaded ZIPs can propagate Mark-of-the-Web to extracted PowerShell files.
+  // The wrapper must not weaken ExecutionPolicy. It must first verify the exact
+  // sealed runtime bytes, then remove only the Internet-zone marker from those
+  // verified package inputs, then invoke the real entrypoint normally.
+  assert.doesNotMatch(wrapper, /-ExecutionPolicy\s+(?:Bypass|Unrestricted)/i);
+  assert.doesNotMatch(wrapper, /Set-ExecutionPolicy/i);
+  assert.match(wrapper, /Get-FileHash/);
+  assert.match(wrapper, /PACKAGE_INTEGRITY_GREEN/);
+  assert.match(wrapper, /Unblock-File/);
+  assert.match(wrapper, /PACKAGE_MOTW_RELEASE_GREEN/);
+  for (const hash of [
+    '552f9cd47c8138ff6d2ee7b9394b23581dedfe9fb86859ee92a9d151f6c68e5c',
+    '47c9a239414ed7f11cdcaaad6c9f3efd47a9f41a1bd59a84824d948e6bbca7d3',
+    'fd715e68aae8a6efdd93ea64272208c38134d2cd67b9ac01275eda02c354599d',
+    '29e1b882feadb8abe87ca89906a898601ee4e1c369532b0faf9f20999d238c6f'
+  ]) assert.match(wrapper, new RegExp(hash));
+  const integrityIndex = wrapper.indexOf('PACKAGE_INTEGRITY_GREEN');
+  const unblockIndex = wrapper.indexOf('Unblock-File');
+  const invokeIndex = wrapper.lastIndexOf('-File "%~dp0r12-runtime-repair-readiness.ps1"');
+  assert.ok(integrityIndex >= 0 && unblockIndex > integrityIndex && invokeIndex > unblockIndex,
+    'wrapper must verify sealed bytes before unblocking and invoking the runtime script');
+  assert.doesNotMatch(wrapper, /Get-ChildItem[^\r\n]*Unblock-File/i);
+
   assert.match(readme, /C:\\Users\\1\\Downloads\\yance-multibridge-lab/);
   assert.match(readme, /HUMAN_AUTH_REQUIRED/);
   assert.match(readme, /do not upload/i);
@@ -112,4 +135,14 @@ test('final Windows runtime repair/readiness package is thin, exact-five, Compos
   assert.match(workflow, /R12_RUNTIME_REPAIR_READINESS_README\.txt/);
   assert.match(workflow, /powershell\.exe\s+-NoLogo\s+-NoProfile\s+-NonInteractive/);
   assert.match(workflow, /WINDOWS_POWERSHELL_5_1_PARSE_GREEN/);
+
+  // Reproduce the user delivery boundary in CI: add Zone.Identifier to the staged
+  // scripts, force RemoteSigned for the child PowerShell process, run the actual
+  // CMD wrapper, and prove it reaches the runtime script (controlled missing-Lab
+  // REAL_RED) instead of dying with PSSecurityException/UnauthorizedAccess.
+  assert.match(workflow, /Zone\.Identifier/);
+  assert.match(workflow, /PSExecutionPolicyPreference/);
+  assert.match(workflow, /MOTW_BOOTSTRAP_GREEN/);
+  assert.match(workflow, /FINAL STATUS: REAL_RED/);
+  assert.match(workflow, /PSSecurityException/);
 });
