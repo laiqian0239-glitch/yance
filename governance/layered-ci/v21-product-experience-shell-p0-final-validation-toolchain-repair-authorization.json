@@ -3,7 +3,7 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "requestedByUserAt": "2026-08-11T06:11:00+07:00",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-PRODUCT-EXPERIENCE-SHELL-P0-FINAL-VALIDATION-TOOLCHAIN-REPAIR",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-SHELL-P0-FINAL-VALIDATION-PNPM-CWD",
   "proposalRevision": 1,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "The first real Windows execution of Product Experience final validation reached exact checkout, Node 22.23.1 and local Product branch binding, and successfully prepared pnpm 11.5.2 with Corepack, then failed before materialization because Corepack invoked the pnpm shim from the Yance repository root where package.json declares packageManager=npm. This work package authorizes only a failure-first contract and the existing dedicated final-validation workflow so pinned pnpm is launched from a neutral RUNNER_TEMP working directory while --dir continues to target the pinned Element workspace. It forbids changing Yance root packageManager, changing the pnpm version, regenerating Product locks, or modifying Product runtime.",
