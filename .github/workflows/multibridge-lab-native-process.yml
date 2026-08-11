@@ -266,7 +266,7 @@ jobs:
     name: manager-linux-release
     runs-on: ubuntu-latest
     steps:
-      - name: Validate official mautrix-manager Linux x64 release payload
+      - name: Guard retired official mautrix-manager Linux x64 ZIP sandbox packaging
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -276,7 +276,7 @@ jobs:
           asset_id='495350343'
           asset_name='mautrix-manager-linux-x64-0.2.1.zip'
           expected_sha256='8a55dc5022c5d52d13c58e05c72ad2d0bfff3fa9dac19d96e5eb84608f282479'
-          work_root="$RUNNER_TEMP/mautrix-manager-v0.2.1-linux-x64"
+          work_root="$RUNNER_TEMP/mautrix-manager-v0.2.1-linux-zip-retired"
           zip_path="$work_root/$asset_name"
           extract_root="$work_root/payload"
           rm -rf "$work_root"
@@ -297,56 +297,113 @@ jobs:
             --output "$zip_path" \
             "https://api.github.com/repos/mautrix/manager/releases/assets/$asset_id"
           echo "$expected_sha256  $zip_path" | sha256sum --check --strict
-          echo "MAUTRIX_MANAGER_LINUX_RELEASE_SHA256_GREEN=$expected_sha256"
-
           unzip -q "$zip_path" -d "$extract_root"
+
           mapfile -t candidates < <(find "$extract_root" -type f -name 'mautrix-manager' -print)
           if [ "${#candidates[@]}" -ne 1 ]; then
-            printf 'Expected exactly one mautrix-manager executable, found %s\n' "${#candidates[@]}" >&2
-            printf '%s\n' "${candidates[@]:-}" >&2
+            echo 'Official Linux ZIP payload layout changed.' >&2
             exit 31
           fi
           exe="${candidates[0]}"
-          chmod u+x "$exe"
           identity="$(file "$exe")"
           printf '%s\n' "$identity"
           grep -Fq 'ELF 64-bit' <<<"$identity"
           grep -Eq 'x86-64|x86_64' <<<"$identity"
-          echo 'MAUTRIX_MANAGER_LINUX_ELF_IDENTITY_GREEN'
 
-          echo '=== ldd ==='
-          ldd "$exe" | tee "$work_root/ldd.txt"
-          if grep -Fq 'not found' "$work_root/ldd.txt"; then
-            echo 'Linux manager has missing shared libraries.' >&2
+          sandbox="$(dirname "$exe")/chrome-sandbox"
+          if [ ! -e "$sandbox" ]; then
+            echo 'Official Linux ZIP no longer contains chrome-sandbox; re-review required.' >&2
+            exit 32
+          fi
+          sandbox_meta="$(stat -c 'path=%n owner=%U group=%G mode=%a uid=%u gid=%g' "$sandbox")"
+          echo "$sandbox_meta"
+          if ! grep -Fq 'mode=755' <<<"$sandbox_meta"; then
+            echo 'Official Linux ZIP sandbox mode changed; re-review required.' >&2
             exit 33
           fi
+          echo 'MAUTRIX_MANAGER_LINUX_ZIP_RETIRED_SANDBOX_RED'
 
-          payload_dir="$(dirname "$exe")"
-          sandbox="$payload_dir/chrome-sandbox"
-          echo '=== chrome-sandbox ==='
-          if [ -e "$sandbox" ]; then
-            stat -c 'path=%n owner=%U group=%G mode=%a uid=%u gid=%g' "$sandbox"
-          else
-            echo 'chrome-sandbox=missing'
+  manager-linux-deb:
+    name: manager-linux-deb
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate official mautrix-manager amd64 deb payload
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_commit='d2c08e60c7a877602bc6da2961daf2daffcff79b'
+          asset_id='495350342'
+          asset_name='mautrix-manager_0.2.1_amd64.deb'
+          expected_sha256='94cca9ffe2087521a042f8afc656c1403dcc79af980acd229420829b367ea1fd'
+          work_root="$RUNNER_TEMP/mautrix-manager-v0.2.1-amd64-deb"
+          deb_path="$work_root/$asset_name"
+          rm -rf "$work_root"
+          mkdir -p "$work_root"
+
+          tag_json="$(curl --fail --silent --show-error --location \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            https://api.github.com/repos/mautrix/manager/git/ref/tags/v0.2.1)"
+          tag_sha="$(python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["object"]["sha"] if d["object"]["type"] == "commit" else "")' <<<"$tag_json")"
+          test "$tag_sha" = "$release_commit"
+
+          curl --fail --silent --show-error --location \
+            --header 'Accept: application/octet-stream' \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --output "$deb_path" \
+            "https://api.github.com/repos/mautrix/manager/releases/assets/$asset_id"
+          echo "$expected_sha256  $deb_path" | sha256sum --check --strict
+          echo "MAUTRIX_MANAGER_LINUX_DEB_SHA256_GREEN=$expected_sha256"
+
+          dpkg-deb --info "$deb_path"
+          dpkg-deb --contents "$deb_path" | tee "$work_root/deb-contents.txt"
+          package_name="$(dpkg-deb -f "$deb_path" Package)"
+          package_version="$(dpkg-deb -f "$deb_path" Version)"
+          package_arch="$(dpkg-deb -f "$deb_path" Architecture)"
+          echo "package=$package_name version=$package_version arch=$package_arch"
+          test "$package_version" = '0.2.1'
+          test "$package_arch" = 'amd64'
+
+          sudo apt-get update
+          sudo apt-get install -y xvfb "$deb_path"
+          dpkg -s "$package_name" >/dev/null
+          dpkg -L "$package_name" | tee "$work_root/installed-files.txt"
+
+          mapfile -t sandboxes < <(dpkg -L "$package_name" | grep '/chrome-sandbox$')
+          if [ "${#sandboxes[@]}" -ne 1 ]; then
+            echo "Expected exactly one installed chrome-sandbox, found ${#sandboxes[@]}" >&2
+            exit 41
           fi
+          sandbox="${sandboxes[0]}"
+          sandbox_meta="$(stat -c 'path=%n owner=%U group=%G mode=%a uid=%u gid=%g' "$sandbox")"
+          echo "$sandbox_meta"
+          grep -Fq 'owner=root' <<<"$sandbox_meta"
+          grep -Fq 'mode=4755' <<<"$sandbox_meta"
+          echo 'MAUTRIX_MANAGER_LINUX_DEB_SANDBOX_GREEN'
 
-          echo '=== user namespace / AppArmor ==='
-          if [ -r /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
-            apparmor_userns="$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns)"
-            echo "kernel.apparmor_restrict_unprivileged_userns=$apparmor_userns"
-          else
-            echo 'kernel.apparmor_restrict_unprivileged_userns=unavailable'
+          exe=''
+          while IFS= read -r candidate; do
+            [ -e "$candidate" ] || continue
+            resolved="$(readlink -f "$candidate")"
+            candidate_identity="$(file -L "$resolved")"
+            if grep -Fq 'ELF 64-bit' <<<"$candidate_identity" && grep -Eq 'x86-64|x86_64' <<<"$candidate_identity"; then
+              exe="$resolved"
+              break
+            fi
+          done < <(dpkg -L "$package_name" | grep '/mautrix-manager$')
+          if [ -z "$exe" ]; then
+            echo 'Could not resolve installed mautrix-manager ELF executable.' >&2
+            exit 42
           fi
-          set +e
-          unshare --user --map-root-user true
-          unshare_rc=$?
-          set -e
-          echo "unshare_user_exit=$unshare_rc"
-          echo 'MAUTRIX_MANAGER_LINUX_SMOKE_DIAGNOSTICS'
-
-          if ! command -v xvfb-run >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y xvfb
+          echo "installed_exe=$exe"
+          ldd "$exe" | tee "$work_root/ldd.txt"
+          if grep -Fq 'not found' "$work_root/ldd.txt"; then
+            echo 'Installed mautrix-manager has missing shared libraries.' >&2
+            exit 43
           fi
 
           set +e
@@ -354,11 +411,11 @@ jobs:
           smoke_rc=$?
           set -e
           if [ "$smoke_rc" -ne 124 ]; then
-            echo "Official Linux manager payload exited before the 8-second no-login smoke window: exit=$smoke_rc" >&2
+            echo "Official deb-installed manager exited before the 8-second no-login smoke window: exit=$smoke_rc" >&2
             echo '=== bounded stdout ===' >&2
             sed -n '1,80p' "$work_root/stdout.txt" >&2 || true
             echo '=== bounded stderr ===' >&2
             sed -n '1,80p' "$work_root/stderr.txt" >&2 || true
-            exit 32
+            exit 44
           fi
-          echo 'MAUTRIX_MANAGER_LINUX_RELEASE_PAYLOAD_SMOKE_GREEN'
+          echo 'MAUTRIX_MANAGER_LINUX_DEB_PAYLOAD_SMOKE_GREEN'
