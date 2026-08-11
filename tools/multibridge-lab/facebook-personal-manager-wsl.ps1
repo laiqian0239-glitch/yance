@@ -189,6 +189,57 @@ printf 'DISPLAY_OK=1\n'
   throw 'REAL_RED: no non-root Ubuntu-24.04 account has a usable WSLg GUI session.'
 }
 
+function Ensure-FacebookPersonalWslGuiUser {
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory = $true)][string]$WslExe,
+    [Parameter(Mandatory = $true)][string]$DistroName
+  )
+
+  try {
+    $existing = Resolve-FacebookPersonalWslGuiUser -WslExe $WslExe -DistroName $DistroName
+    return [pscustomobject]@{ Name = $existing.Name; Uid = $existing.Uid; Home = $existing.Home; Created = $false }
+  }
+  catch {
+    $message = [string]$_.Exception.Message
+    if ($message -ne 'REAL_RED: no non-root interactive Ubuntu-24.04 user is available for the upstream manager GUI.') {
+      throw
+    }
+  }
+
+  $dedicatedUser = 'yance-manager'
+  $provisionScript = @'
+set -euo pipefail
+name='yance-manager'
+if ! getent passwd "$name" >/dev/null 2>&1; then
+  command -v useradd >/dev/null 2>&1
+  useradd --create-home --shell /bin/bash --user-group --comment 'Yance mautrix-manager GUI runtime' "$name"
+  printf 'WSL_GUI_USER_CREATED=%s\n' "$name"
+fi
+entry="$(getent passwd "$name")"
+uid="$(printf '%s' "$entry" | cut -d: -f3)"
+home="$(printf '%s' "$entry" | cut -d: -f6)"
+shell="$(printf '%s' "$entry" | cut -d: -f7)"
+[ -n "$uid" ] && [ "$uid" -ne 0 ]
+[ -n "$home" ] && [ "$home" != '/root' ] && [ -d "$home" ]
+case "$shell" in *nologin|*false) exit 21 ;; esac
+printf 'PROVISIONED_USER=%s\n' "$name"
+printf 'PROVISIONED_UID=%s\n' "$uid"
+printf 'PROVISIONED_HOME=%s\n' "$home"
+'@
+  $provision = Invoke-LabNativeProcess -FilePath $WslExe -Arguments @('--distribution', $DistroName, '--user', 'root', '--exec', 'bash', '-lc', $provisionScript)
+  if ($provision.ExitCode -ne 0) {
+    throw 'REAL_RED: failed to provision the dedicated unprivileged Ubuntu-24.04 GUI identity.'
+  }
+  if ($provision.StdOut) { Write-Host $provision.StdOut.TrimEnd() }
+
+  $resolved = Resolve-FacebookPersonalWslGuiUser -WslExe $WslExe -DistroName $DistroName
+  if ([string]$resolved.Name -ne $dedicatedUser) {
+    throw 'REAL_RED: dedicated Ubuntu-24.04 GUI identity was created but did not become the resolved WSLg authority.'
+  }
+  return [pscustomobject]@{ Name = $resolved.Name; Uid = $resolved.Uid; Home = $resolved.Home; Created = $true }
+}
+
 if ($LibraryOnly) { return }
 
 function Write-RealRed {
@@ -228,8 +279,6 @@ try {
   if (-not $dockerExe) { throw 'REAL_RED: Docker CLI is unavailable.' }
   $wslExe = Get-FirstCommandPath -Names @('wsl.exe')
   if (-not $wslExe) { throw 'REAL_RED: wsl.exe is unavailable.' }
-  $guiUser = Resolve-FacebookPersonalWslGuiUser -WslExe $wslExe -DistroName $DistroName
-  Write-Host "WSL_GUI_USER_GREEN user=$($guiUser.Name) uid=$($guiUser.Uid)"
 
   $profiles = Get-Content -Raw -LiteralPath $profilesPath | ConvertFrom-Json
   $profile = $profiles.profiles | Where-Object { [string]$_.platformId -eq 'facebook-personal' } | Select-Object -First 1
@@ -286,11 +335,19 @@ try {
   }
 
   Write-Host 'SYSTEM_AUTHORIZATION_REQUIRED: Ubuntu may request sudo authorization to install the exact official package.'
-  $interactive = Invoke-LabNativeInteractiveProcess -FilePath $wslExe -Arguments @(
-    '--distribution', $DistroName, '--user', $guiUser.Name, '--exec', 'bash', $installerWsl.StdOut.Trim(),
-    '--install-and-launch', $debWsl.StdOut.Trim(), $bridgeUrl, $HomeserverUrl
+  $install = Invoke-LabNativeInteractiveProcess -FilePath $wslExe -Arguments @(
+    '--distribution', $DistroName, '--exec', 'bash', $installerWsl.StdOut.Trim(), '--install-only', $debWsl.StdOut.Trim()
   )
-  if ($interactive.ExitCode -ne 0) { throw "REAL_RED: official manager install/launch failed with exit code $($interactive.ExitCode)." }
+  if ($install.ExitCode -ne 0) { throw "REAL_RED: official manager installation failed with exit code $($install.ExitCode)." }
+
+  $guiUser = Ensure-FacebookPersonalWslGuiUser -WslExe $wslExe -DistroName $DistroName
+  Write-Host "WSL_GUI_USER_GREEN user=$($guiUser.Name) uid=$($guiUser.Uid) created=$($guiUser.Created)"
+
+  $launch = Invoke-LabNativeInteractiveProcess -FilePath $wslExe -Arguments @(
+    '--distribution', $DistroName, '--user', $guiUser.Name, '--exec', 'bash', $installerWsl.StdOut.Trim(),
+    '--launch-only', $debWsl.StdOut.Trim(), $bridgeUrl, $HomeserverUrl
+  )
+  if ($launch.ExitCode -ne 0) { throw "REAL_RED: official manager GUI launch failed with exit code $($launch.ExitCode)." }
   exit 0
 }
 catch {
