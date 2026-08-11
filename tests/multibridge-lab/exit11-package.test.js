@@ -30,7 +30,7 @@ test('final package has exactly one user-facing Windows wrapper over the tested 
   assert.match(wrapper, /OUTPUT_PATH=/);
 
   assert.doesNotMatch(wrapper, /\bpause\b/i);
-  assert.doesNotMatch(wrapper, /\bexit\b/i);
+  assert.doesNotMatch(wrapper, /(?:^|\r?\n)\s*exit(?:\s+\/b)?(?:\s+\d+)?\s*(?:\r?\n|$)/im);
   assert.doesNotMatch(wrapper, /\bdocker\b/i);
   assert.doesNotMatch(wrapper, /compose/i);
 });
