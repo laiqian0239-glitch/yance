@@ -493,7 +493,8 @@ function installReleasePlatformAuth(resourcesRoot, options = {}) {
   if (path.resolve(configInput) !== path.resolve(configPath)) fs.writeFileSync(configPath, bytes, { mode: 0o600 });
   else fs.chmodSync(configPath, 0o600);
   const digest = sha256Buffer(bytes);
-  fs.writeFileSync(hashPath, `${digest}  ${releasePlatformAuth.CONFIG_FILE}\n`, { mode: 0o600 });
+  fs.writeFileSync(hashPath, `${digest}  ${releasePlatformAuth.CONFIG_FILE}
+`, { mode: 0o600 });
   return Object.freeze({
     configured: true,
     sealed: loaded.sealed === true,
@@ -524,6 +525,9 @@ function assembleWindowsApplication(options = {}) {
   const productExecutableName = targetPlatform === 'win32' ? releaseSource.executableName : path.parse(releaseSource.executableName).name;
   const productExecutable = path.join(payloadRoot, productExecutableName);
   if (copiedElectron !== productExecutable) fs.renameSync(copiedElectron, productExecutable);
+  // Brand the product executable: inject approved icon + VERSIONINFO via rcedit.
+  // Only the .rsrc section is modified; code image (excluding .rsrc) stays identical
+  // to the trusted Electron release archive (enforced by packaged-product-trust.js).
   const iconPath = options.iconPath || path.join(repoRoot, 'assets', 'branding', 'yance', 'generated', 'Yance.ico');
   const rceditPath = options.rceditPath;
   const testRceditRunner = resolveReviewFixtureRceditRunner(options);
@@ -540,14 +544,20 @@ function assembleWindowsApplication(options = {}) {
   const iconExists = fs.existsSync(iconPath);
   const rceditExists = Boolean(rceditPath && fs.existsSync(rceditPath));
   if (iconExists && (rceditExists || testRceditRunner)) {
-    if (testRceditRunner) testRceditRunner({ exePath: productExecutable, iconPath, versionFields });
-    else require('./pe-resource-editor').runRcedit({ rceditPath, exePath: productExecutable, iconPath, versionFields });
+    if (testRceditRunner) {
+      testRceditRunner({ exePath: productExecutable, iconPath, versionFields });
+    } else {
+      const peResourceEditor = require('./pe-resource-editor');
+      peResourceEditor.runRcedit({ rceditPath, exePath: productExecutable, iconPath, versionFields });
+    }
   } else if (targetPlatform === 'win32') {
     throw new Wp7Error('WP7_BRANDING_INPUT_MISSING', 'rcedit and approved icon.ico are required to brand the Windows product executable', { targetPlatform, hostPlatform: process.platform, iconPath, iconExists, rceditPath: rceditPath || null, rceditExists, testRceditRunnerProvided: typeof options.testRceditRunner === 'function', reviewFixtureBrandingAuthorized: options.reviewFixtureBrandingCapability === REVIEW_FIXTURE_BRANDING_CAPABILITY && options.allowNonWindows === true });
   }
   const appRoot = path.join(payloadRoot, 'resources', 'app');
   fs.mkdirSync(appRoot, { recursive: true });
-  for (const rootName of ['backend', 'frontend', 'shared', 'electron', 'diagnostics', 'release']) copyTree(path.join(repoRoot, rootName), path.join(appRoot, rootName), { excludeNames: rootName === 'backend' ? ['tests'] : [] });
+  for (const rootName of ['backend', 'frontend', 'shared', 'electron', 'diagnostics', 'release']) {
+    copyTree(path.join(repoRoot, rootName), path.join(appRoot, rootName), { excludeNames: rootName === 'backend' ? ['tests'] : [] });
+  }
   for (const file of ['package.json', 'package-lock.json', 'installer/installedIdentityReceipt.js']) {
     const source = path.join(repoRoot, file);
     const destination = path.join(appRoot, file);
@@ -556,9 +566,15 @@ function assembleWindowsApplication(options = {}) {
     if (process.platform !== 'win32') fs.chmodSync(destination, fs.statSync(source).mode & 0o777);
   }
   let productionDependencyCanonicalization = Object.freeze({ policy: GENERATED_NPM_BIN_SHIM_POLICY, excludedGeneratedBinDirectories: Object.freeze([]) });
-  if (options.productionNodeModulesSource) productionDependencyCanonicalization = copyProductionDependencyTree(path.resolve(options.productionNodeModulesSource), path.join(appRoot, 'node_modules'));
-  else if (options.installProductionDependencies !== false) {
-    const result = runNpmCommand(['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund', '--no-bin-links', `--os=${targetPlatform}`, `--cpu=${targetArch}`], { cwd: appRoot, platform: options.hostPlatform || process.platform, command: options.npmExecutable, spawn: options.npmSpawn });
+  if (options.productionNodeModulesSource) {
+    productionDependencyCanonicalization = copyProductionDependencyTree(path.resolve(options.productionNodeModulesSource), path.join(appRoot, 'node_modules'));
+  } else if (options.installProductionDependencies !== false) {
+    const result = runNpmCommand(['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund', '--no-bin-links', `--os=${targetPlatform}`, `--cpu=${targetArch}`], {
+      cwd: appRoot,
+      platform: options.hostPlatform || process.platform,
+      command: options.npmExecutable,
+      spawn: options.npmSpawn
+    });
     if (result.status !== 0) throw new Wp7Error('WP7_PRODUCTION_DEPENDENCY_INSTALL_FAILED', 'production dependency installation failed', { ...spawnFailureDetails(result), targetPlatform, targetArch });
   }
   fs.rmSync(path.join(appRoot, 'node_modules', '.package-lock.json'), { force: true });
@@ -568,11 +584,26 @@ function assembleWindowsApplication(options = {}) {
     productionDependencyCanonicalization = Object.freeze({ policy: GENERATED_NPM_BIN_SHIM_POLICY, excludedGeneratedBinDirectories: Object.freeze(['.bin']) });
   }
   const trustedNodeExecutable = path.resolve(options.trustedNodeExecutable || process.execPath);
-  const nodeRuntime = copyTrustedNodeRuntime({ sourceExecutable: trustedNodeExecutable, destinationRoot: path.join(payloadRoot, 'resources', 'runtime', 'node22'), platform: targetPlatform });
-  const parlantRuntime = options.parlantRuntimeSource ? copyPresealedParlantRuntime(options.parlantRuntimeSource, path.join(payloadRoot, 'resources')) : null;
-  return { status: 'PASS', payloadRoot, appRoot, productExecutable: path.relative(payloadRoot, productExecutable).split(path.sep).join('/'), targetPlatform, targetArch, nodeRuntime, parlantRuntime, productionDependencyCanonicalization };
+  const nodeRuntime = copyTrustedNodeRuntime({
+    sourceExecutable: trustedNodeExecutable,
+    destinationRoot: path.join(payloadRoot, 'resources', 'runtime', 'node22'),
+    platform: targetPlatform
+  });
+  const parlantRuntime = options.parlantRuntimeSource
+    ? copyPresealedParlantRuntime(options.parlantRuntimeSource, path.join(payloadRoot, 'resources'))
+    : null;
+  return {
+    status: 'PASS',
+    payloadRoot,
+    appRoot,
+    productExecutable: path.relative(payloadRoot, productExecutable).split(path.sep).join('/'),
+    targetPlatform,
+    targetArch,
+    nodeRuntime,
+    parlantRuntime,
+    productionDependencyCanonicalization
+  };
 }
-
 function buildFinalWindowsPayload(options = {}) {
   const repoRoot = path.resolve(options.repoRoot || REPO_ROOT);
   const stagingRoot = path.resolve(options.stagingRoot);
@@ -586,24 +617,53 @@ function buildFinalWindowsPayload(options = {}) {
   const schemaAuthority = wp1.deriveDatabaseSchemaVersion(repoRoot);
   const payloadRoot = path.join(stagingRoot, 'application-payload');
   const runtimeDependencyClosure = validateProductionRuntimeSourceDependencies({ repoRoot });
-  const runtime = assembleWindowsApplication({ repoRoot, payloadRoot, allowNonWindows: options.allowNonWindows === true, installProductionDependencies: options.installProductionDependencies !== false, productionNodeModulesSource: options.productionNodeModulesSource, electronDist: options.electronDist, npmExecutable: options.npmExecutable, rceditPath: options.rceditPath, iconPath: options.iconPath, reviewFixtureBrandingCapability: options.reviewFixtureBrandingCapability, testRceditRunner: options.testRceditRunner, targetPlatform, targetArch, trustedNodeExecutable: options.trustedNodeExecutable, parlantRuntimeSource: options.parlantRuntimeSource });
+  const runtime = assembleWindowsApplication({
+    repoRoot,
+    payloadRoot,
+    allowNonWindows: options.allowNonWindows === true,
+    installProductionDependencies: options.installProductionDependencies !== false,
+    productionNodeModulesSource: options.productionNodeModulesSource,
+    electronDist: options.electronDist,
+    npmExecutable: options.npmExecutable,
+    rceditPath: options.rceditPath,
+    iconPath: options.iconPath,
+    reviewFixtureBrandingCapability: options.reviewFixtureBrandingCapability,
+    testRceditRunner: options.testRceditRunner,
+    targetPlatform,
+    targetArch,
+    trustedNodeExecutable: options.trustedNodeExecutable,
+    parlantRuntimeSource: options.parlantRuntimeSource
+  });
   const sourceClosure = validateReviewedApplicationSourceClosure(payloadRoot, repoRoot, identity.sourceCommit, { platform: targetPlatform });
   const dependencies = verifyProductionDependencyClosure({ repoRoot, appRoot: runtime.appRoot, sourceCommit: identity.sourceCommit, platform: targetPlatform, arch: targetArch });
   let electronDistribution;
   const executableName = targetPlatform === 'win32' ? releaseSource.executableName : path.parse(releaseSource.executableName).name;
   const archiveExecutableEntry = options.archiveExecutableEntry || (targetPlatform === 'win32' ? 'electron.exe' : 'electron');
-  if (Array.isArray(options.electronOfficialRecords)) electronDistribution = compareElectronDistributionTree({ payloadRoot, archiveExecutableEntry, productExecutableName: executableName, officialRecords: options.electronOfficialRecords, platform: targetPlatform });
-  else {
+  if (Array.isArray(options.electronOfficialRecords)) {
+    electronDistribution = compareElectronDistributionTree({ payloadRoot, archiveExecutableEntry, productExecutableName: executableName, officialRecords: options.electronOfficialRecords, platform: targetPlatform });
+  } else {
     if (!options.electronArchivePath) throw new Wp7Error('WP7_PACKAGED_ELECTRON_ARCHIVE_REQUIRED', 'final payload identity requires the official Electron release archive');
     electronDistribution = verifyElectronDistributionTree({ archivePath: options.electronArchivePath, payloadRoot, archiveExecutableEntry, productExecutableName: executableName, platform: targetPlatform, baseExecutablePath: path.join(options.electronDist || path.join(repoRoot, 'node_modules', 'electron', 'dist'), 'electron.exe') });
   }
   const artifactClass = options.artifactClass || FINAL_ARTIFACT_CLASS;
   const finalReleaseEvidence = options.finalReleaseEvidence === undefined ? artifactClass === FINAL_ARTIFACT_CLASS : options.finalReleaseEvidence === true;
-  if (![PRE_REVIEW_ARTIFACT_CLASS, FINAL_ARTIFACT_CLASS].includes(artifactClass) || finalReleaseEvidence !== (artifactClass === FINAL_ARTIFACT_CLASS)) throw new Wp7Error('WP7_ARTIFACT_CLASS_INVALID', 'payload artifact class and final release evidence flag are inconsistent', { artifactClass, finalReleaseEvidence });
+  if (![PRE_REVIEW_ARTIFACT_CLASS, FINAL_ARTIFACT_CLASS].includes(artifactClass) || finalReleaseEvidence !== (artifactClass === FINAL_ARTIFACT_CLASS)) {
+    throw new Wp7Error('WP7_ARTIFACT_CLASS_INVALID', 'payload artifact class and final release evidence flag are inconsistent', { artifactClass, finalReleaseEvidence });
+  }
   const resourcesRoot = path.join(payloadRoot, 'resources');
-  const platformAuth = installReleasePlatformAuth(resourcesRoot, { platformAuthConfigPath: options.platformAuthConfigPath, platformAuthHashPath: options.platformAuthHashPath, requirePlatformAuth: options.requirePlatformAuth === true });
+  const platformAuth = installReleasePlatformAuth(resourcesRoot, {
+    platformAuthConfigPath: options.platformAuthConfigPath,
+    platformAuthHashPath: options.platformAuthHashPath,
+    requirePlatformAuth: options.requirePlatformAuth === true
+  });
   const nativeBinaryEvidencePath = path.join(resourcesRoot, 'evidence', 'native-binary-scan.json');
-  const nativeBinaryScan = verifyNativeBinaries({ payloadRoot, evidenceFile: nativeBinaryEvidencePath, targetPlatform, targetArch, generatedAtUtc: buildTimestampUtc });
+  const nativeBinaryScan = verifyNativeBinaries({
+    payloadRoot,
+    evidenceFile: nativeBinaryEvidencePath,
+    targetPlatform,
+    targetArch,
+    generatedAtUtc: buildTimestampUtc
+  });
   if (nativeBinaryScan.status !== 'PASS') throw new Wp7Error('WP7_NATIVE_BINARY_SCAN_FAILED', 'native binary scan failed', { nativeBinaryScan });
   const nativeBinaryScanSha256 = sha256Buffer(nativeBinaryCanonicalBuffer(nativeBinaryScan));
   const records = wp1.generatePayloadRecords(payloadRoot, { excludedPaths: CONTROLLED_METADATA_PATHS });
@@ -658,10 +718,12 @@ function buildFinalWindowsPayload(options = {}) {
   const releaseManifestSha256 = sha256File(manifestPath);
   const detachedPath = path.join(resourcesRoot, 'release-manifest.sha256');
   fs.writeFileSync(detachedPath, wp1.detachedHashText(releaseManifestSha256), 'utf8');
-  const installerIdentityReceipt = writeInstallerIdentityReceipt(resourcesRoot, { ...manifest, manifestSha256: releaseManifestSha256 }, { generatedAtUtc: buildTimestampUtc, installerScriptSha256: sha256File(path.join(repoRoot, 'installer', 'wp7', 'YanceFinalInstaller.nsi')) });
+  const installerIdentityReceipt = writeInstallerIdentityReceipt(resourcesRoot, { ...manifest, manifestSha256: releaseManifestSha256 }, {
+    generatedAtUtc: buildTimestampUtc,
+    installerScriptSha256: sha256File(path.join(repoRoot, 'installer', 'wp7', 'YanceFinalInstaller.nsi'))
+  });
   return { releaseSource, schemaAuthority, payloadRoot, runtime, runtimeDependencyClosure, records, payloadFilesPath, payloadFilesSha256, resourcesRoot, manifest, manifestPath, releaseManifestSha256, detachedPath, installerIdentityReceipt, nativeBinaryScan, buildId, sourceClosure, dependencies, electronDistribution, platformAuth };
 }
-
 function buildManifestAndPayload({ repoRoot, stagingRoot, identity, buildTimestampUtc }) {
   const releaseSource = readReleaseSource(repoRoot);
   const singleSource = wp1.scanSingleHumanMaintainedReleaseSource(repoRoot, releaseSource);
@@ -684,10 +746,12 @@ function buildManifestAndPayload({ repoRoot, stagingRoot, identity, buildTimesta
   const releaseManifestSha256 = sha256File(manifestPath);
   const detachedPath = path.join(resourcesRoot, 'release-manifest.sha256');
   fs.writeFileSync(detachedPath, wp1.detachedHashText(releaseManifestSha256), 'utf8');
-  const installerIdentityReceipt = writeInstallerIdentityReceipt(resourcesRoot, { ...manifest, manifestSha256: releaseManifestSha256 }, { generatedAtUtc: buildTimestampUtc, installerScriptSha256: sha256File(path.join(repoRoot, 'installer', 'wp7', 'YanceFinalInstaller.nsi')) });
+  const installerIdentityReceipt = writeInstallerIdentityReceipt(resourcesRoot, { ...manifest, manifestSha256: releaseManifestSha256 }, {
+    generatedAtUtc: buildTimestampUtc,
+    installerScriptSha256: sha256File(path.join(repoRoot, 'installer', 'wp7', 'YanceFinalInstaller.nsi'))
+  });
   return { releaseSource, schemaAuthority, payloadRoot, payloadBuild, records, payloadFilesPath, payloadFilesSha256, resourcesRoot, manifest, manifestPath, releaseManifestSha256, detachedPath, installerIdentityReceipt, buildId };
 }
-
 function buildPreReviewFixture(options = {}) {
   const repoRoot = path.resolve(options.repoRoot || REPO_ROOT);
   const outputRoot = path.resolve(options.outputRoot || path.join(os.tmpdir(), `yance-wp7-pre-review-${process.pid}`));
@@ -708,32 +772,71 @@ function buildPreReviewFixture(options = {}) {
     const artifactsRoot = path.join(outputRoot, 'artifacts');
     const installerFileName = preReviewInstallerName(built.releaseSource, built.buildId);
     const installerPath = path.join(artifactsRoot, installerFileName);
-    writePreReviewInstallerFixture(installerPath, { schemaVersion: 1, buildSessionId: sessionId, buildId: built.buildId, productVersion: built.releaseSource.productVersion, stageVersion: built.releaseSource.stageVersion, sourceCommit: identity.sourceCommit, sourceTree: identity.sourceTree, releaseManifestSha256: built.releaseManifestSha256, applicationPayloadSha256: built.manifest.applicationPayloadSha256, payloadFilesSha256: built.payloadFilesSha256 });
+    writePreReviewInstallerFixture(installerPath, {
+      schemaVersion: 1,
+      buildSessionId: sessionId,
+      buildId: built.buildId,
+      productVersion: built.releaseSource.productVersion,
+      stageVersion: built.releaseSource.stageVersion,
+      sourceCommit: identity.sourceCommit,
+      sourceTree: identity.sourceTree,
+      releaseManifestSha256: built.releaseManifestSha256,
+      applicationPayloadSha256: built.manifest.applicationPayloadSha256,
+      payloadFilesSha256: built.payloadFilesSha256
+    });
     const installerSha256 = sha256File(installerPath);
     const evidence = {
       schemaVersion: 3,
       documentType: 'WP7_PRE_REVIEW_RELEASE_EVIDENCE',
-      stage: '6.4.5.9', phase: 'core-runtime-p1', workPackage: 'WP7', evidenceKind: 'BUILD_PIPELINE_FIXTURE', evidenceClass: PIPELINE_TEST_ARTIFACT_CLASS,
-      status: 'PASS', generatedAtUtc: buildTimestampUtc, frozenSourceCommit: identity.sourceCommit, frozenSourceTree: identity.sourceTree, buildSessionId: sessionId, buildId: built.buildId,
-      productVersion: built.releaseSource.productVersion, stageVersion: built.releaseSource.stageVersion, distributionMode: built.releaseSource.distributionMode, apiContractVersion: built.releaseSource.apiContractVersion,
-      credentialProtocolVersion: built.releaseSource.credentialProtocolVersion, runtimeLockProtocolVersion: built.releaseSource.runtimeLockProtocolVersion, databaseSchemaVersion: built.schemaAuthority.databaseSchemaVersion,
-      releaseManifestSha256: built.releaseManifestSha256, applicationPayloadSha256: built.manifest.applicationPayloadSha256, payloadFilesSha256: built.payloadFilesSha256,
-      installerFileName, installerSizeBytes: fs.statSync(installerPath).size, installerSha256, finalInstallationMode: 'CLEAN_INSTALL', legacyTestDataMigrationRequired: false, legacyTestVersionRollbackRequired: false,
-      inheritedRiskAcceptances: RISK_IDS.map((id) => ({ id, scopeExpansionAllowed: false })), assertions: ['stagingInitiallyEmpty', 'wp1ArtifactsNotReused', 'identityTupleConsistent', 'notFinalInstaller'], reasonCodes: [], finalReleaseEvidence: false
+      stage: '6.4.5.9', phase: 'core-runtime-p1', workPackage: 'WP7',
+      evidenceKind: 'BUILD_PIPELINE_FIXTURE', evidenceClass: PIPELINE_TEST_ARTIFACT_CLASS,
+      status: 'PASS', generatedAtUtc: buildTimestampUtc,
+      frozenSourceCommit: identity.sourceCommit, frozenSourceTree: identity.sourceTree,
+      buildSessionId: sessionId, buildId: built.buildId,
+      productVersion: built.releaseSource.productVersion, stageVersion: built.releaseSource.stageVersion,
+      distributionMode: built.releaseSource.distributionMode,
+      apiContractVersion: built.releaseSource.apiContractVersion,
+      credentialProtocolVersion: built.releaseSource.credentialProtocolVersion,
+      runtimeLockProtocolVersion: built.releaseSource.runtimeLockProtocolVersion,
+      databaseSchemaVersion: built.schemaAuthority.databaseSchemaVersion,
+      releaseManifestSha256: built.releaseManifestSha256,
+      applicationPayloadSha256: built.manifest.applicationPayloadSha256,
+      payloadFilesSha256: built.payloadFilesSha256,
+      installerFileName, installerSizeBytes: fs.statSync(installerPath).size, installerSha256,
+      finalInstallationMode: 'CLEAN_INSTALL', legacyTestDataMigrationRequired: false, legacyTestVersionRollbackRequired: false,
+      inheritedRiskAcceptances: RISK_IDS.map((id) => ({ id, scopeExpansionAllowed: false })),
+      assertions: ['stagingInitiallyEmpty', 'wp1ArtifactsNotReused', 'identityTupleConsistent', 'notFinalInstaller'],
+      reasonCodes: [], finalReleaseEvidence: false
     };
     const evidencePath = path.join(outputRoot, 'pre-review-release-evidence.json');
     writeCanonicalJson(evidencePath, evidence);
-    const provenance = { schemaVersion: 1, documentType: 'WP7_PRE_REVIEW_BUILD_PROVENANCE', status: 'PASS', artifactClass: PIPELINE_TEST_ARTIFACT_CLASS, generatedAtUtc: buildTimestampUtc, sourceCommit: identity.sourceCommit, sourceTree: identity.sourceTree, buildSessionId: sessionId, buildId: built.buildId, stagingInitiallyEmpty: true, oldStagingReuseAllowed: false, wp1PipelineArtifactReuseAllowed: false, overlayInstallerAllowed: false, releaseManifestSha256: built.releaseManifestSha256, installerSha256, includedRoots: built.payloadBuild.includedRoots, copiedFilesByRoot: built.payloadBuild.copiedFilesByRoot };
+    const provenance = {
+      schemaVersion: 1, documentType: 'WP7_PRE_REVIEW_BUILD_PROVENANCE', status: 'PASS', artifactClass: PIPELINE_TEST_ARTIFACT_CLASS,
+      generatedAtUtc: buildTimestampUtc, sourceCommit: identity.sourceCommit, sourceTree: identity.sourceTree,
+      buildSessionId: sessionId, buildId: built.buildId, stagingInitiallyEmpty: true,
+      oldStagingReuseAllowed: false, wp1PipelineArtifactReuseAllowed: false, overlayInstallerAllowed: false,
+      releaseManifestSha256: built.releaseManifestSha256, installerSha256,
+      includedRoots: built.payloadBuild.includedRoots, copiedFilesByRoot: built.payloadBuild.copiedFilesByRoot
+    };
     const provenancePath = path.join(outputRoot, 'build-provenance.json');
     writeCanonicalJson(provenancePath, provenance);
+    // The two resources documents above are freshly generated WP7 pre-review metadata.
+    // Scan only the application payload for inherited WP1 artifacts so the generic
+    // WP1 scanner does not misclassify WP7's own finalReleaseEvidence=false marker.
     assertNoWp1Reuse(built.payloadRoot);
-    const seal = { schemaVersion: 1, documentType: 'WP7_PRE_REVIEW_BUILD_SESSION_SEAL', status: 'SEALED_PIPELINE_TEST_ONLY', artifactClass: PIPELINE_TEST_ARTIFACT_CLASS, buildSessionId: sessionId, sourceCommit: identity.sourceCommit, sourceTree: identity.sourceTree, buildId: built.buildId, installerSha256, releaseManifestSha256: built.releaseManifestSha256, finalInstaller: false, generatedAtUtc: buildTimestampUtc };
+    const seal = {
+      schemaVersion: 1, documentType: 'WP7_PRE_REVIEW_BUILD_SESSION_SEAL', status: 'SEALED_PIPELINE_TEST_ONLY', artifactClass: PIPELINE_TEST_ARTIFACT_CLASS,
+      buildSessionId: sessionId, sourceCommit: identity.sourceCommit, sourceTree: identity.sourceTree,
+      buildId: built.buildId, installerSha256, releaseManifestSha256: built.releaseManifestSha256,
+      finalInstaller: false, generatedAtUtc: buildTimestampUtc
+    };
     const sealPath = path.join(outputRoot, 'build-session-seal.json');
     writeCanonicalJson(sealPath, seal);
     return { status: 'PASS', outputRoot, stagingRoot, artifactsRoot, installerPath, evidencePath, provenancePath, sealPath, identity, sessionId, installerSha256, ...built };
-  } finally { releaseLease(); }
+  } finally {
+    releaseLease();
+  }
 }
-
 function assertSessionSealed(outputRoot) {
   const sealPath = path.join(outputRoot, 'build-session-seal.json');
   if (!fs.existsSync(sealPath)) throw new Wp7Error('WP7_PARTIAL_BUILD_REUSE_DENIED', 'unsealed WP7 build session cannot be reused', { outputRoot });
@@ -770,7 +873,10 @@ function validateDeferredScope(document) {
 function validateEvidenceReferences(references, options = {}) {
   const invalid = [];
   for (const ref of references || []) {
-    if (!ref || typeof ref !== 'object' || Array.isArray(ref)) { invalid.push(typeof ref === 'string' ? ref : null); continue; }
+    if (!ref || typeof ref !== 'object' || Array.isArray(ref)) {
+      invalid.push(typeof ref === 'string' ? ref : null);
+      continue;
+    }
     const file = ref.path;
     if (!file || FORBIDDEN_EVIDENCE_PREFIXES.some((prefix) => file.startsWith(prefix))) invalid.push(file || null);
     if (options.final === true && !FINAL_EVIDENCE_ALLOWLIST.has(file)) invalid.push(file);
@@ -803,11 +909,13 @@ function validateEvidenceCommon(document, options = {}) {
   if (secretFindings.length) throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', 'secret-like fields are forbidden in evidence', { secretFindings });
   if (options.final === true) {
     const schema = readJson(EVIDENCE_REQUIREMENTS_PATH).finalEvidenceSchema;
-    for (const field of schema.commonRequiredFields || []) if (document[field] === undefined || document[field] === null || document[field] === '') throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', `final evidence field missing: ${field}`);
+    for (const field of schema.commonRequiredFields || []) {
+      if (document[field] === undefined || document[field] === null || document[field] === '') throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', `final evidence field missing: ${field}`);
+    }
     for (const field of ['releaseManifestSha256', 'applicationPayloadSha256', 'applicationPayloadFilesystemIdentitySha256', 'payloadFilesSha256', 'productionDependencyBindingSha256', 'productionDependencyPackageGraphSha256', 'productionDependencyFileTreeSha256', 'productionDependencyModeTreeSha256', 'productionDependencyDirectoryModeTreeSha256', 'gitPayloadModeTreeSha256', 'electronDistributionTreeSha256', 'nodeRuntimeExecutableSha256', 'nodeRuntimeTreeSha256', 'nativeBinaryScanSha256', 'installerSha256', 'completeProjectSourceTreeSha256']) if (!SHA256_RE.test(document[field])) throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', `invalid SHA256 field ${field}`);
     for (const field of ['productionDependencyPackageCount', 'productionDependencyFileCount', 'productionDependencyModeRecordCount', 'productionDependencyDirectoryCount', 'productionDependencyDirectoryModeRecordCount', 'gitPayloadModeRecordCount', 'electronDistributionFileCount', 'nodeRuntimeFileCount', 'nativeBinaryFileCount']) if (!Number.isInteger(document[field]) || document[field] <= 0) throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', `invalid positive count field ${field}`);
     if (!Number.isInteger(document.electronDistributionModeBoundFileCount) || document.electronDistributionModeBoundFileCount < 0 || document.electronDistributionModeBoundFileCount > document.electronDistributionFileCount) throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', 'invalid Electron mode-bound file count');
-    if (document.nodeRuntimeVersion !== '22.23.1') throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', 'invalid reviewed Node runtime version');
+    if (document.nodeRuntimeVersion !== '22.16.0') throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', 'invalid reviewed Node runtime version');
     if (!/^runtime\/node22\/(?:node|node\.exe)$/.test(document.nodeRuntimeExecutablePath)) throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', 'invalid Node runtime executable path');
     if (document.nativeBinaryFailureCount !== 0 || !['linux', 'win32'].includes(document.nativeBinaryTargetPlatform) || document.nativeBinaryTargetArch !== 'x64') throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', 'invalid native binary scan identity');
     if (!Number.isInteger(document.nodeRuntimeModeBoundFileCount) || document.nodeRuntimeModeBoundFileCount < 1 || document.nodeRuntimeModeBoundFileCount > document.nodeRuntimeFileCount) throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', 'invalid Node runtime mode-bound file count');
@@ -876,7 +984,9 @@ function validatePhaseModel(model = readJson(PHASE_MODEL_PATH)) {
   if (new Set(all).size !== all.length) throw new Wp7Error('WP7_REQUIRED_TEST_PHASE_CONTRADICTION', 'test assigned to multiple phase classes');
   const pre = [...model.testAssignments.PRE_REVIEW, ...model.testAssignments.PRE_REVIEW_AND_FINAL];
   const expectedPreReviewTotal = Number(model.convergencePreReviewRequiredTestCount);
-  if (!Number.isInteger(expectedPreReviewTotal) || expectedPreReviewTotal <= 0 || pre.length !== expectedPreReviewTotal) throw new Wp7Error('WP7_REQUIRED_TEST_PHASE_CONTRADICTION', 'Convergence Pre-Review required-test count does not match the governed model', { expected: expectedPreReviewTotal, actual: pre.length });
+  if (!Number.isInteger(expectedPreReviewTotal) || expectedPreReviewTotal <= 0 || pre.length !== expectedPreReviewTotal) {
+    throw new Wp7Error('WP7_REQUIRED_TEST_PHASE_CONTRADICTION', 'Convergence Pre-Review required-test count does not match the governed model', { expected: expectedPreReviewTotal, actual: pre.length });
+  }
   return { status: 'PASS', total: all.length, preReviewTotal: pre.length, counts: Object.fromEntries(expectedClasses.map((key) => [key, model.testAssignments[key].length])) };
 }
 function verifyRequiredTestImplementations(options = {}) {
@@ -927,6 +1037,7 @@ function verifyCompleteSourceClosure(repoRoot = REPO_ROOT, sourceRoot) {
   const missing = [], mismatch = [], extra = [];
   const trackedSet = new Set(tracked);
   for (const relative of tracked) {
+    const expected = git(['show', `HEAD:${relative}`], repoRoot);
     const filePath = path.join(sourceRoot, ...relative.split('/'));
     if (!fs.existsSync(filePath)) { missing.push(relative); continue; }
     const actual = fs.readFileSync(filePath);
@@ -984,8 +1095,12 @@ function validateNsisSourcePaths(options = {}) {
     const wildcard = /\*\.\*$/.test(relative);
     const normalized = wildcard ? relative.replace(/\/\*\.\*$/, '') : relative;
     const resolved = path.resolve(stagingRoot, ...normalized.split('/'));
-    if (!resolved.startsWith(`${stagingRoot}${path.sep}`) && resolved !== stagingRoot) throw new Wp7Error('WP7_FINAL_INSTALLER_STAGING_PATH_MISMATCH', 'NSIS source escapes staging root', { source, resolved });
-    if (!fs.existsSync(resolved) || (wildcard && (!fs.statSync(resolved).isDirectory() || fs.readdirSync(resolved).length === 0))) throw new Wp7Error('WP7_FINAL_INSTALLER_STAGING_PATH_MISMATCH', 'NSIS source is missing from final staging', { source, resolved, wildcard });
+    if (!resolved.startsWith(`${stagingRoot}${path.sep}`) && resolved !== stagingRoot) {
+      throw new Wp7Error('WP7_FINAL_INSTALLER_STAGING_PATH_MISMATCH', 'NSIS source escapes staging root', { source, resolved });
+    }
+    if (!fs.existsSync(resolved) || (wildcard && (!fs.statSync(resolved).isDirectory() || fs.readdirSync(resolved).length === 0))) {
+      throw new Wp7Error('WP7_FINAL_INSTALLER_STAGING_PATH_MISMATCH', 'NSIS source is missing from final staging', { source, resolved, wildcard });
+    }
     sources.push({ source, resolved, wildcard });
   }
   if (!sources.length) throw new Wp7Error('WP7_FINAL_INSTALLER_STAGING_PATH_MISMATCH', 'NSIS script has no staging-bound File sources');
@@ -1007,6 +1122,7 @@ function directorySizeBytes(root) {
   visit(absoluteRoot);
   return total;
 }
+
 function runNsisCompiler(options = {}) {
   const hostPlatform = options.hostPlatform || process.platform;
   if (hostPlatform !== 'win32' && options.allowNonWindows !== true) throw new Wp7Error('WP7_WINDOWS_FINAL_BUILD_REQUIRED', 'final installer must be built on Windows');
@@ -1031,7 +1147,9 @@ function runNsisCompiler(options = {}) {
     `/DESTIMATED_SIZE_KB=${estimatedSizeKb}`,
     scriptPath
   ];
-  if (hostPlatform === 'win32' && /\.(?:cmd|bat)$/i.test(compiler)) throw new Wp7Error('WP7_INSTALLER_COMPILER_SHIM_DENIED', 'final Windows installer requires a native makensis executable, not a command shim', { compiler });
+  if (hostPlatform === 'win32' && /\.(?:cmd|bat)$/i.test(compiler)) {
+    throw new Wp7Error('WP7_INSTALLER_COMPILER_SHIM_DENIED', 'final Windows installer requires a native makensis executable, not a command shim', { compiler });
+  }
   const spawn = options.spawn || spawnSync;
   const result = spawn(compiler, args, { cwd: REPO_ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, windowsHide: true, timeout: options.timeout || 15 * 60 * 1000 });
   if (result.status !== 0) throw new Wp7Error('WP7_INSTALLER_BUILD_FAILED', 'NSIS compiler failed', { ...spawnFailureDetails(result), compiler, args });
@@ -1043,6 +1161,12 @@ function runNsisCompiler(options = {}) {
   }
   return { status: 'PASS', outputFile: options.outputFile, sha256: sha256File(options.outputFile), stdout: result.stdout, sourceValidation, estimatedSizeBytes, estimatedSizeKb };
 }
+
+// Emit electron-updater update metadata (latest.yml + <setup>.blockmap) from the
+// GENUINE installer binary produced by the same build. This is exactly the
+// derivation electron-builder performs: path/size/sha512 of the real file and a
+// blockmap of full-file chunks. These artifacts are written only once the real
+// installer exists, so they always match the shipped binary (no pre-faked data).
 function emitUpdateMetadata(options = {}) {
   const installerPath = path.resolve(options.installerPath);
   if (!fs.existsSync(installerPath)) throw new Wp7Error('WP7_UPDATE_METADATA_INSTALLER_MISSING', 'cannot emit update metadata before a real installer exists');
@@ -1053,21 +1177,55 @@ function emitUpdateMetadata(options = {}) {
   const channel = options.channel || 'latest';
   const prerelease = options.prerelease === true;
   const releaseDate = options.buildTimestampUtc || new Date().toISOString();
-  const latestYml = `version: ${options.productVersion}\npublicVersion: ${options.publicVersion || options.productVersion}\nreleaseName: ${options.publicProductName || 'Yance'} ${options.publicVersion || options.productVersion}\nfiles:\n  - url: ${installerName}\n    sha512: ${sha512}\n    size: ${size}\npath: ${installerName}\nsha512: ${sha512}\nreleaseDate: ${releaseDate}\nchannel: ${channel}\nprerelease: ${prerelease}\n`;
+  const latestYml =
+    `version: ${options.productVersion}\n` +
+    `publicVersion: ${options.publicVersion || options.productVersion}\n` +
+    `releaseName: ${options.publicProductName || 'Yance'} ${options.publicVersion || options.productVersion}\n` +
+    `files:\n` +
+    `  - url: ${installerName}\n` +
+    `    sha512: ${sha512}\n` +
+    `    size: ${size}\n` +
+    `path: ${installerName}\n` +
+    `sha512: ${sha512}\n` +
+    `releaseDate: ${releaseDate}\n` +
+    `channel: ${channel}\n` +
+    `prerelease: ${prerelease}\n`;
   const latestYmlPath = path.join(options.outputRoot, 'latest.yml');
   fs.writeFileSync(latestYmlPath, latestYml, 'utf8');
-  const BLOCK_SIZE = 1024 * 1024;
-  const checksums = [], sizes = [];
+  // Real electron-updater blockmap. electron-updater's BlockMap schema (builder-util-runtime)
+  // is:
+  //   { version: "1", files: [ { name, offset, checksums: string[], sizes: number[] } ] }
+  // Each entry in `checksums`/`sizes` describes one fixed-size chunk of the installer
+  // binary (sha512 per chunk). `offset` is the byte offset of the file within the
+  // package (0 for a standalone installer). The DifferentialDownloader parses this
+  // format natively for partial/differential downloads. We do NOT fabricate a single
+  // block or use a custom `blocks[]` shape.
+  const BLOCK_SIZE = 1024 * 1024; // 1 MiB chunks
+  const checksums = [];
+  const sizes = [];
   for (let pos = 0; pos < buf.length; pos += BLOCK_SIZE) {
-    const chunk = buf.subarray(pos, Math.min(pos + BLOCK_SIZE, buf.length));
+    const end = Math.min(pos + BLOCK_SIZE, buf.length);
+    const chunk = buf.subarray(pos, end);
     checksums.push(crypto.createHash('sha512').update(chunk).digest('base64'));
     sizes.push(chunk.length);
   }
-  const blockmap = { version: '1', files: [{ name: installerName, offset: 0, checksums, sizes }] };
+  const blockmap = {
+    version: '1',
+    files: [{ name: installerName, offset: 0, checksums, sizes }]
+  };
   const blockmapName = `${installerName}.blockmap`;
   const blockmapPath = path.join(options.outputRoot, blockmapName);
   fs.writeFileSync(blockmapPath, JSON.stringify(blockmap, null, 2), 'utf8');
-  return { status: 'PASS', latestYmlPath, blockmapPath, latestYmlSha256: sha256File(latestYmlPath), blockmapSha256: sha256File(blockmapPath), installerName, installerSize: size, installerSha512: sha512 };
+  return {
+    status: 'PASS',
+    latestYmlPath,
+    blockmapPath,
+    latestYmlSha256: sha256File(latestYmlPath),
+    blockmapSha256: sha256File(blockmapPath),
+    installerName,
+    installerSize: size,
+    installerSha512: sha512
+  };
 }
 
 function buildAuthorizedFinalWindowsInstaller(options = {}) {
@@ -1076,54 +1234,227 @@ function buildAuthorizedFinalWindowsInstaller(options = {}) {
   const outputRoot = path.resolve(options.outputRoot);
   const identity = options.identity || gitIdentity(repoRoot);
   assertActivationBinding(repoRoot, { identity, requireClean: true, requireBranch: true });
-  const preacceptance = assertPreacceptedImplementation(repoRoot, { identity, recordPath: options.preacceptanceRecordPath, recordSha256: options.preacceptanceRecordSha256 });
+  const preacceptance = assertPreacceptedImplementation(repoRoot, {
+    identity,
+    recordPath: options.preacceptanceRecordPath,
+    recordSha256: options.preacceptanceRecordSha256
+  });
   const buildTimestampUtc = normalizeTimestamp(options.buildTimestampUtc || new Date().toISOString());
   const releaseLease = acquireExclusiveLease(`${outputRoot}.lease`, { outputRoot, sourceCommit: identity.sourceCommit, final: true, preacceptanceRecordSha256: preacceptance.recordSha256 });
   const frozenParent = `${outputRoot}.frozen-${process.pid}`;
-  let frozen = null, frozenContent = null;
+  let frozen = null;
+  let frozenContent = null;
   try {
     ensureDirectoryEmpty(outputRoot);
     fs.mkdirSync(frozenParent, { recursive: true });
     frozen = createDetachedFrozenSource(repoRoot, identity.sourceCommit, identity.sourceTree, frozenParent);
-    frozenContent = { currentTrackedContentSha256: trackedWorkingTreeSha256(repoRoot), frozenTrackedContentSha256: trackedWorkingTreeSha256(frozen.frozenRoot) };
+    frozenContent = {
+      currentTrackedContentSha256: trackedWorkingTreeSha256(repoRoot),
+      frozenTrackedContentSha256: trackedWorkingTreeSha256(frozen.frozenRoot)
+    };
     assertSourceStillFrozen(repoRoot, identity, frozen.frozenRoot, frozenContent);
     const stagingRoot = path.join(outputRoot, 'staging');
     fs.mkdirSync(stagingRoot, { recursive: true });
     wp1.assertEmptyBeforeFinalBuild(stagingRoot);
     const sessionId = buildSessionId(identity, buildTimestampUtc, 'final-windows');
-    const built = buildFinalWindowsPayload({ repoRoot: frozen.frozenRoot, stagingRoot, identity, buildTimestampUtc, allowNonWindows: options.allowNonWindows === true, installProductionDependencies: options.installProductionDependencies !== false, electronDist: options.electronDist || path.join(repoRoot, 'node_modules', 'electron', 'dist'), npmExecutable: options.npmExecutable, productionNodeModulesSource: options.allowNonWindows === true ? options.productionNodeModulesSource : undefined, electronArchivePath: options.electronArchivePath, electronOfficialRecords: options.allowNonWindows === true ? options.electronOfficialRecords : undefined, archiveExecutableEntry: options.archiveExecutableEntry, targetPlatform: options.allowNonWindows === true ? (options.targetPlatform || process.platform) : 'win32', targetArch: 'x64', trustedNodeExecutable: options.trustedNodeExecutable, rceditPath: options.rceditPath, iconPath: options.iconPath, reviewFixtureBrandingCapability: options.reviewFixtureBrandingCapability, testRceditRunner: options.testRceditRunner, platformAuthConfigPath: options.platformAuthConfigPath, platformAuthHashPath: options.platformAuthHashPath, requirePlatformAuth: options.requirePlatformAuth === true, parlantRuntimeSource: options.parlantRuntimeSource });
+    const built = buildFinalWindowsPayload({
+      repoRoot: frozen.frozenRoot,
+      stagingRoot,
+      identity,
+      buildTimestampUtc,
+      allowNonWindows: options.allowNonWindows === true,
+      installProductionDependencies: options.installProductionDependencies !== false,
+      electronDist: options.electronDist || path.join(repoRoot, 'node_modules', 'electron', 'dist'),
+      npmExecutable: options.npmExecutable,
+      productionNodeModulesSource: options.allowNonWindows === true ? options.productionNodeModulesSource : undefined,
+      electronArchivePath: options.electronArchivePath,
+      electronOfficialRecords: options.allowNonWindows === true ? options.electronOfficialRecords : undefined,
+      archiveExecutableEntry: options.archiveExecutableEntry,
+      targetPlatform: options.allowNonWindows === true ? (options.targetPlatform || process.platform) : 'win32',
+      targetArch: 'x64',
+      trustedNodeExecutable: options.trustedNodeExecutable,
+      rceditPath: options.rceditPath,
+      iconPath: options.iconPath,
+      reviewFixtureBrandingCapability: options.reviewFixtureBrandingCapability,
+      testRceditRunner: options.testRceditRunner,
+      platformAuthConfigPath: options.platformAuthConfigPath,
+      platformAuthHashPath: options.platformAuthHashPath,
+      requirePlatformAuth: options.requirePlatformAuth === true,
+      parlantRuntimeSource: options.parlantRuntimeSource
+    });
     if (typeof options.afterPayloadHook === 'function') options.afterPayloadHook({ repoRoot, frozenRoot: frozen.frozenRoot, stagingRoot, identity, built });
     assertSourceStillFrozen(repoRoot, identity, frozen.frozenRoot, frozenContent);
     assertNoWp1Reuse(built.payloadRoot);
     const outputFile = path.join(outputRoot, `${built.releaseSource.installerBaseName}-${built.releaseSource.publicVersion}-x64.exe`);
-    const compiled = runNsisCompiler({ stagingRoot, outputFile, productVersion: built.releaseSource.productVersion, publicVersion: built.releaseSource.publicVersion, publicProductName: built.releaseSource.publicProductName, updateProductName: built.releaseSource.productName, compilerPath: options.compilerPath, scriptPath: path.join(frozen.frozenRoot, 'installer', 'wp7', 'YanceFinalInstaller.nsi'), allowNonWindows: options.allowNonWindowsCompiler === true });
+    const compiled = runNsisCompiler({
+      stagingRoot,
+      outputFile,
+      productVersion: built.releaseSource.productVersion,
+      publicVersion: built.releaseSource.publicVersion,
+      publicProductName: built.releaseSource.publicProductName,
+      updateProductName: built.releaseSource.productName,
+      compilerPath: options.compilerPath,
+      scriptPath: path.join(frozen.frozenRoot, 'installer', 'wp7', 'YanceFinalInstaller.nsi'),
+      allowNonWindows: options.allowNonWindowsCompiler === true
+    });
     let authenticode = Object.freeze({ status: 'NOT_REQUESTED', signatureStatus: 'Unsigned' });
     if (typeof options.signInstaller === 'function') {
-      authenticode = options.signInstaller({ filePath: outputFile, productVersion: built.releaseSource.productVersion, publicVersion: built.releaseSource.publicVersion, publicProductName: built.releaseSource.publicProductName, updateProductName: built.releaseSource.productName, sourceCommit: identity.sourceCommit, sourceTree: identity.sourceTree });
-      if (!authenticode || authenticode.status !== 'PASS' || authenticode.signatureStatus !== 'Valid') throw new Wp7Error('WP7_INSTALLER_AUTHENTICODE_SIGNATURE_INVALID', 'installer signing did not produce a valid Authenticode receipt', { authenticode: authenticode || null });
-    } else if (options.requireSignedInstaller === true) throw new Wp7Error('WP7_INSTALLER_AUTHENTICODE_SIGNATURE_REQUIRED', 'production release requires a signed installer before update metadata is emitted');
-    const updateMeta = emitUpdateMetadata({ installerPath: outputFile, outputRoot, productVersion: built.releaseSource.productVersion, publicVersion: built.releaseSource.publicVersion, publicProductName: built.releaseSource.publicProductNameEnglish || 'Yance', channel: 'latest', prerelease: false, buildTimestampUtc });
+      authenticode = options.signInstaller({
+        filePath: outputFile,
+        productVersion: built.releaseSource.productVersion,
+        publicVersion: built.releaseSource.publicVersion,
+        publicProductName: built.releaseSource.publicProductName,
+        updateProductName: built.releaseSource.productName,
+        sourceCommit: identity.sourceCommit,
+        sourceTree: identity.sourceTree
+      });
+      if (!authenticode || authenticode.status !== 'PASS' || authenticode.signatureStatus !== 'Valid') {
+        throw new Wp7Error('WP7_INSTALLER_AUTHENTICODE_SIGNATURE_INVALID', 'installer signing did not produce a valid Authenticode receipt', { authenticode: authenticode || null });
+      }
+    } else if (options.requireSignedInstaller === true) {
+      throw new Wp7Error('WP7_INSTALLER_AUTHENTICODE_SIGNATURE_REQUIRED', 'production release requires a signed installer before update metadata is emitted');
+    }
+    // Emit electron-updater metadata only AFTER optional Authenticode signing.
+    // Signing mutates the installer bytes; metadata generated before this point
+    // would contain stale SHA-512, size and blockmap values.
+    const updateMeta = emitUpdateMetadata({
+      installerPath: outputFile,
+      outputRoot,
+      productVersion: built.releaseSource.productVersion,
+      publicVersion: built.releaseSource.publicVersion,
+      publicProductName: built.releaseSource.publicProductNameEnglish || 'Yance',
+      channel: 'latest',
+      prerelease: false,
+      buildTimestampUtc: buildTimestampUtc
+    });
     if (typeof options.beforeSealHook === 'function') options.beforeSealHook({ repoRoot, frozenRoot: frozen.frozenRoot, stagingRoot, outputFile, identity, built });
     assertSourceStillFrozen(repoRoot, identity, frozen.frozenRoot, frozenContent);
     const installerSha256 = sha256File(outputFile);
     const projectSourceSha256 = completeProjectSourceTreeSha256(repoRoot, identity.sourceCommit);
     const evidence = {
-      schemaVersion: 3, documentType: 'WP7_FINAL_RELEASE_EVIDENCE', stage: '6.4.5.9', phase: 'core-runtime-p1', workPackage: 'WP7', evidenceKind: 'FINAL_RELEASE', evidenceClass: FINAL_ARTIFACT_CLASS, status: 'PASS', generatedAtUtc: buildTimestampUtc,
-      frozenSourceCommit: identity.sourceCommit, frozenSourceTree: identity.sourceTree, buildSessionId: sessionId, buildId: built.buildId, productVersion: built.releaseSource.productVersion, publicVersion: built.releaseSource.publicVersion, publicProductName: built.releaseSource.publicProductName, publicProductNameEnglish: built.releaseSource.publicProductNameEnglish, brandingEpoch: built.releaseSource.brandingEpoch, stageVersion: built.releaseSource.stageVersion, distributionMode: built.releaseSource.distributionMode,
-      apiContractVersion: built.releaseSource.apiContractVersion, credentialProtocolVersion: built.releaseSource.credentialProtocolVersion, runtimeLockProtocolVersion: built.releaseSource.runtimeLockProtocolVersion, databaseSchemaVersion: built.schemaAuthority.databaseSchemaVersion,
-      releaseManifestSha256: built.releaseManifestSha256, applicationPayloadSha256: built.manifest.applicationPayloadSha256, payloadFilesSha256: built.payloadFilesSha256, productionDependencyBindingSha256: built.manifest.productionDependencyBindingSha256, productionDependencyPackageGraphSha256: built.manifest.productionDependencyPackageGraphSha256, productionDependencyFileTreeSha256: built.manifest.productionDependencyFileTreeSha256, productionDependencyModeTreeSha256: built.manifest.productionDependencyModeTreeSha256, productionDependencyDirectoryModeTreeSha256: built.manifest.productionDependencyDirectoryModeTreeSha256,
-      productionDependencyFileModePolicy: built.manifest.productionDependencyFileModePolicy, productionDependencyDirectoryModePolicy: built.manifest.productionDependencyDirectoryModePolicy, productionDependencyPackageCount: built.manifest.productionDependencyPackageCount, productionDependencyFileCount: built.manifest.productionDependencyFileCount, productionDependencyModeRecordCount: built.manifest.productionDependencyModeRecordCount, productionDependencyDirectoryCount: built.manifest.productionDependencyDirectoryCount, productionDependencyDirectoryModeRecordCount: built.manifest.productionDependencyDirectoryModeRecordCount,
-      applicationPayloadFilesystemIdentitySha256: built.manifest.applicationPayloadFilesystemIdentitySha256, gitPayloadModeTreeSha256: built.manifest.gitPayloadModeTreeSha256, gitPayloadModeRecordCount: built.manifest.gitPayloadModeRecordCount, electronDistributionTreeSha256: built.manifest.electronDistributionTreeSha256, electronDistributionFileCount: built.manifest.electronDistributionFileCount, electronDistributionModeBoundFileCount: built.manifest.electronDistributionModeBoundFileCount,
-      nodeRuntimeVersion: built.manifest.nodeRuntimeVersion, nodeRuntimeExecutablePath: built.manifest.nodeRuntimeExecutablePath, nodeRuntimeExecutableSha256: built.manifest.nodeRuntimeExecutableSha256, nodeRuntimeTreeSha256: built.manifest.nodeRuntimeTreeSha256, nodeRuntimeFileCount: built.manifest.nodeRuntimeFileCount, nodeRuntimeModeBoundFileCount: built.manifest.nodeRuntimeModeBoundFileCount,
-      nativeBinaryScanSha256: built.manifest.nativeBinaryScanSha256, nativeBinaryFileCount: built.manifest.nativeBinaryFileCount, nativeBinaryFailureCount: built.manifest.nativeBinaryFailureCount, nativeBinaryTargetPlatform: built.manifest.nativeBinaryTargetPlatform, nativeBinaryTargetArch: built.manifest.nativeBinaryTargetArch,
-      installerFileName: path.basename(outputFile), installerSizeBytes: fs.statSync(outputFile).size, installerSha256, authenticodeStatus: authenticode.signatureStatus, authenticodeSignerSubject: authenticode.signerSubject || null, authenticodeSignerThumbprint: authenticode.signerThumbprint || null, authenticodeTimestampSubject: authenticode.timestampSubject || null,
-      latestYmlPath: updateMeta.latestYmlPath, latestYmlSha256: updateMeta.latestYmlSha256, blockmapPath: updateMeta.blockmapPath, blockmapSha256: updateMeta.blockmapSha256, upstreamBindings: JSON.parse(JSON.stringify(UPSTREAM_ACCEPTED_BINDINGS)), inheritedRiskAcceptances: RISK_IDS.map((id) => ({ id, scopeExpansionAllowed: false })), assertions: ['sealedInstaller', 'cleanStaging', 'singleManifestIdentity', 'detachedFrozenSource', 'exactPreacceptedImplementationIdentity', 'nsisSourcesExist'], reasonCodes: [], finalInstallationMode: 'CLEAN_INSTALL', legacyTestDataMigrationRequired: false, legacyTestVersionRollbackRequired: false, completeProjectSourceTreeSha256: projectSourceSha256,
-      preacceptanceBinding: { decision: preacceptance.decision, implementationCommit: preacceptance.implementationCommit, implementationSourceTree: preacceptance.implementationSourceTree, recordSha256: preacceptance.recordSha256 }
+      schemaVersion: 3,
+      documentType: 'WP7_FINAL_RELEASE_EVIDENCE',
+      stage: '6.4.5.9',
+      phase: 'core-runtime-p1',
+      workPackage: 'WP7',
+      evidenceKind: 'FINAL_RELEASE',
+      evidenceClass: FINAL_ARTIFACT_CLASS,
+      status: 'PASS',
+      generatedAtUtc: buildTimestampUtc,
+      frozenSourceCommit: identity.sourceCommit,
+      frozenSourceTree: identity.sourceTree,
+      buildSessionId: sessionId,
+      buildId: built.buildId,
+      productVersion: built.releaseSource.productVersion,
+      publicVersion: built.releaseSource.publicVersion,
+      publicProductName: built.releaseSource.publicProductName,
+      publicProductNameEnglish: built.releaseSource.publicProductNameEnglish,
+      brandingEpoch: built.releaseSource.brandingEpoch,
+      stageVersion: built.releaseSource.stageVersion,
+      distributionMode: built.releaseSource.distributionMode,
+      apiContractVersion: built.releaseSource.apiContractVersion,
+      credentialProtocolVersion: built.releaseSource.credentialProtocolVersion,
+      runtimeLockProtocolVersion: built.releaseSource.runtimeLockProtocolVersion,
+      databaseSchemaVersion: built.schemaAuthority.databaseSchemaVersion,
+      releaseManifestSha256: built.releaseManifestSha256,
+      applicationPayloadSha256: built.manifest.applicationPayloadSha256,
+      payloadFilesSha256: built.payloadFilesSha256,
+      productionDependencyBindingSha256: built.manifest.productionDependencyBindingSha256,
+      productionDependencyPackageGraphSha256: built.manifest.productionDependencyPackageGraphSha256,
+      productionDependencyFileTreeSha256: built.manifest.productionDependencyFileTreeSha256,
+      productionDependencyModeTreeSha256: built.manifest.productionDependencyModeTreeSha256,
+      productionDependencyDirectoryModeTreeSha256: built.manifest.productionDependencyDirectoryModeTreeSha256,
+      productionDependencyFileModePolicy: built.manifest.productionDependencyFileModePolicy,
+      productionDependencyDirectoryModePolicy: built.manifest.productionDependencyDirectoryModePolicy,
+      productionDependencyPackageCount: built.manifest.productionDependencyPackageCount,
+      productionDependencyFileCount: built.manifest.productionDependencyFileCount,
+      productionDependencyModeRecordCount: built.manifest.productionDependencyModeRecordCount,
+      productionDependencyDirectoryCount: built.manifest.productionDependencyDirectoryCount,
+      productionDependencyDirectoryModeRecordCount: built.manifest.productionDependencyDirectoryModeRecordCount,
+      applicationPayloadFilesystemIdentitySha256: built.manifest.applicationPayloadFilesystemIdentitySha256,
+      gitPayloadModeTreeSha256: built.manifest.gitPayloadModeTreeSha256,
+      gitPayloadModeRecordCount: built.manifest.gitPayloadModeRecordCount,
+      electronDistributionTreeSha256: built.manifest.electronDistributionTreeSha256,
+      electronDistributionFileCount: built.manifest.electronDistributionFileCount,
+      electronDistributionModeBoundFileCount: built.manifest.electronDistributionModeBoundFileCount,
+      nodeRuntimeVersion: built.manifest.nodeRuntimeVersion,
+      nodeRuntimeExecutablePath: built.manifest.nodeRuntimeExecutablePath,
+      nodeRuntimeExecutableSha256: built.manifest.nodeRuntimeExecutableSha256,
+      nodeRuntimeTreeSha256: built.manifest.nodeRuntimeTreeSha256,
+      nodeRuntimeFileCount: built.manifest.nodeRuntimeFileCount,
+      nodeRuntimeModeBoundFileCount: built.manifest.nodeRuntimeModeBoundFileCount,
+      nativeBinaryScanSha256: built.manifest.nativeBinaryScanSha256,
+      nativeBinaryFileCount: built.manifest.nativeBinaryFileCount,
+      nativeBinaryFailureCount: built.manifest.nativeBinaryFailureCount,
+      nativeBinaryTargetPlatform: built.manifest.nativeBinaryTargetPlatform,
+      nativeBinaryTargetArch: built.manifest.nativeBinaryTargetArch,
+      installerFileName: path.basename(outputFile),
+      installerSizeBytes: fs.statSync(outputFile).size,
+      installerSha256,
+      authenticodeStatus: authenticode.signatureStatus,
+      authenticodeSignerSubject: authenticode.signerSubject || null,
+      authenticodeSignerThumbprint: authenticode.signerThumbprint || null,
+      authenticodeTimestampSubject: authenticode.timestampSubject || null,
+      latestYmlPath: updateMeta.latestYmlPath,
+      latestYmlSha256: updateMeta.latestYmlSha256,
+      blockmapPath: updateMeta.blockmapPath,
+      blockmapSha256: updateMeta.blockmapSha256,
+      upstreamBindings: JSON.parse(JSON.stringify(UPSTREAM_ACCEPTED_BINDINGS)),
+      inheritedRiskAcceptances: RISK_IDS.map((id) => ({ id, scopeExpansionAllowed: false })),
+      assertions: ['sealedInstaller', 'cleanStaging', 'singleManifestIdentity', 'detachedFrozenSource', 'exactPreacceptedImplementationIdentity', 'nsisSourcesExist'],
+      reasonCodes: [],
+      finalInstallationMode: 'CLEAN_INSTALL',
+      legacyTestDataMigrationRequired: false,
+      legacyTestVersionRollbackRequired: false,
+      completeProjectSourceTreeSha256: projectSourceSha256,
+      preacceptanceBinding: {
+        decision: preacceptance.decision,
+        implementationCommit: preacceptance.implementationCommit,
+        implementationSourceTree: preacceptance.implementationSourceTree,
+        recordSha256: preacceptance.recordSha256
+      }
     };
     validateEvidenceCommon(evidence, { final: true });
     const evidencePath = path.join(outputRoot, 'release-evidence.json');
     writeCanonicalJson(evidencePath, evidence);
-    const seal = { schemaVersion: 1, documentType: 'WP7_FINAL_BUILD_SESSION_SEAL', status: 'SEALED_FINAL_INSTALLER', buildSessionId: sessionId, sourceCommit: identity.sourceCommit, sourceTree: identity.sourceTree, buildId: built.buildId, productVersion: built.releaseSource.productVersion, publicVersion: built.releaseSource.publicVersion, publicProductName: built.releaseSource.publicProductName, installerSha256, authenticodeStatus: authenticode.signatureStatus, authenticodeSignerThumbprint: authenticode.signerThumbprint || null, releaseManifestSha256: built.releaseManifestSha256, productionDependencyBindingSha256: built.manifest.productionDependencyBindingSha256, productionDependencyPackageGraphSha256: built.manifest.productionDependencyPackageGraphSha256, productionDependencyFileTreeSha256: built.manifest.productionDependencyFileTreeSha256, productionDependencyModeTreeSha256: built.manifest.productionDependencyModeTreeSha256, productionDependencyDirectoryModeTreeSha256: built.manifest.productionDependencyDirectoryModeTreeSha256, productionDependencyFileModePolicy: built.manifest.productionDependencyFileModePolicy, productionDependencyDirectoryModePolicy: built.manifest.productionDependencyDirectoryModePolicy, productionDependencyModeRecordCount: built.manifest.productionDependencyModeRecordCount, productionDependencyDirectoryCount: built.manifest.productionDependencyDirectoryCount, productionDependencyDirectoryModeRecordCount: built.manifest.productionDependencyDirectoryModeRecordCount, applicationPayloadFilesystemIdentitySha256: built.manifest.applicationPayloadFilesystemIdentitySha256, gitPayloadModeTreeSha256: built.manifest.gitPayloadModeTreeSha256, electronDistributionTreeSha256: built.manifest.electronDistributionTreeSha256, nativeBinaryScanSha256: built.manifest.nativeBinaryScanSha256, nativeBinaryFileCount: built.manifest.nativeBinaryFileCount, nativeBinaryFailureCount: built.manifest.nativeBinaryFailureCount, nativeBinaryTargetPlatform: built.manifest.nativeBinaryTargetPlatform, nativeBinaryTargetArch: built.manifest.nativeBinaryTargetArch, completeProjectSourceTreeSha256: projectSourceSha256, preacceptanceRecordSha256: preacceptance.recordSha256, nsisSourceValidation: compiled.sourceValidation, generatedAtUtc: buildTimestampUtc };
+    const seal = {
+      schemaVersion: 1,
+      documentType: 'WP7_FINAL_BUILD_SESSION_SEAL',
+      status: 'SEALED_FINAL_INSTALLER',
+      buildSessionId: sessionId,
+      sourceCommit: identity.sourceCommit,
+      sourceTree: identity.sourceTree,
+      buildId: built.buildId,
+      productVersion: built.releaseSource.productVersion,
+      publicVersion: built.releaseSource.publicVersion,
+      publicProductName: built.releaseSource.publicProductName,
+      installerSha256,
+      authenticodeStatus: authenticode.signatureStatus,
+      authenticodeSignerThumbprint: authenticode.signerThumbprint || null,
+      releaseManifestSha256: built.releaseManifestSha256,
+      productionDependencyBindingSha256: built.manifest.productionDependencyBindingSha256,
+      productionDependencyPackageGraphSha256: built.manifest.productionDependencyPackageGraphSha256,
+      productionDependencyFileTreeSha256: built.manifest.productionDependencyFileTreeSha256,
+      productionDependencyModeTreeSha256: built.manifest.productionDependencyModeTreeSha256,
+      productionDependencyDirectoryModeTreeSha256: built.manifest.productionDependencyDirectoryModeTreeSha256,
+      productionDependencyFileModePolicy: built.manifest.productionDependencyFileModePolicy,
+      productionDependencyDirectoryModePolicy: built.manifest.productionDependencyDirectoryModePolicy,
+      productionDependencyModeRecordCount: built.manifest.productionDependencyModeRecordCount,
+      productionDependencyDirectoryCount: built.manifest.productionDependencyDirectoryCount,
+      productionDependencyDirectoryModeRecordCount: built.manifest.productionDependencyDirectoryModeRecordCount,
+      applicationPayloadFilesystemIdentitySha256: built.manifest.applicationPayloadFilesystemIdentitySha256,
+      gitPayloadModeTreeSha256: built.manifest.gitPayloadModeTreeSha256,
+      electronDistributionTreeSha256: built.manifest.electronDistributionTreeSha256,
+      nativeBinaryScanSha256: built.manifest.nativeBinaryScanSha256,
+      nativeBinaryFileCount: built.manifest.nativeBinaryFileCount,
+      nativeBinaryFailureCount: built.manifest.nativeBinaryFailureCount,
+      nativeBinaryTargetPlatform: built.manifest.nativeBinaryTargetPlatform,
+      nativeBinaryTargetArch: built.manifest.nativeBinaryTargetArch,
+      completeProjectSourceTreeSha256: projectSourceSha256,
+      preacceptanceRecordSha256: preacceptance.recordSha256,
+      nsisSourceValidation: compiled.sourceValidation,
+      generatedAtUtc: buildTimestampUtc
+    };
     writeCanonicalJson(path.join(outputRoot, 'build-session-seal.json'), seal);
     assertSourceStillFrozen(repoRoot, identity, frozen.frozenRoot, frozenContent);
     return { status: 'PASS', outputRoot, stagingRoot, outputFile, evidencePath, installerSha256, latestYmlPath: updateMeta.latestYmlPath, blockmapPath: updateMeta.blockmapPath, latestYmlSha256: updateMeta.latestYmlSha256, blockmapSha256: updateMeta.blockmapSha256, authenticode, identity, preacceptance, sessionId, completeProjectSourceTreeSha256: projectSourceSha256, ...built };
