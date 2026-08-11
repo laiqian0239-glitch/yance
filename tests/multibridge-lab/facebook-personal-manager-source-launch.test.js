@@ -21,12 +21,13 @@ test('Facebook Personal operator launcher uses exact upstream manager source ins
   const readme = fs.readFileSync(README, 'utf8');
   const workflow = fs.readFileSync(WORKFLOW, 'utf8');
 
-  assert.match(launcher, new RegExp(MANAGER_COMMIT));
+  assert.match(launcher, new RegExp(`set "MANAGER_COMMIT=${MANAGER_COMMIT}"`));
   assert.match(launcher, /https:\/\/github\.com\/mautrix\/manager\.git/);
   assert.match(launcher, /git\s+clone\s+--no-checkout/i);
-  assert.match(launcher, /git\s+-C\s+"%MANAGER_DIR%"\s+fetch[\s\S]*d2c08e60c7a877602bc6da2961daf2daffcff79b/i);
-  assert.match(launcher, /git\s+-C\s+"%MANAGER_DIR%"\s+checkout\s+--detach/i);
+  assert.match(launcher, /git\s+-C\s+"%MANAGER_DIR%"\s+fetch[^\r\n]*%MANAGER_COMMIT%/i);
+  assert.match(launcher, /git\s+-C\s+"%MANAGER_DIR%"\s+checkout\s+--detach\s+%MANAGER_COMMIT%/i);
   assert.match(launcher, /git\s+-C\s+"%MANAGER_DIR%"\s+rev-parse\s+HEAD/i);
+  assert.match(launcher, /if\s+\/I\s+not\s+"%ACTUAL_HEAD%"=="%MANAGER_COMMIT%"/i);
   assert.match(launcher, /UPSTREAM_MANAGER_SOURCE_GREEN/);
 
   assert.match(launcher, /node\s+--version/i);
