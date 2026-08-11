@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 18:25 +07:00
+Last updated: 2026-08-11 18:28 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -28,57 +28,58 @@ All five: `restarting|11|243`, Docker log read exit `0`.
 
 ### Causal database group
 
-Instagram DM / Google Messages / Signal: fatal `database.uri not configured`. Exact frozen bridgev2 validators tie this to untouched placeholder `postgres://user:password@host/database?sslmode=disable`. Historical R12 wiring omits DB type/URI. Upstream supports `sqlite3-fk-wal` with `file:<path>?_txlock=immediate`; established persistent bridge data plane is `/data`.
-
-### Facebook / LINE
-
-Observed null fields are nonfatal upgrader warnings. True fatal validators remain uncaptured.
+Instagram DM / Google Messages / Signal: fatal `database.uri not configured`. Historical R12 wiring omits DB type/URI; persistent bridge data plane is `/data`.
 
 ## Fatal-context collector/package — SEALED GREEN
 
 Final authority run `31485153849`, job `93758725677`, exact `4bd07b41451d2c27b7a2945bb08d76570d2ed543`: 15/15 GREEN plus staging/uploads and independent artifact verification GREEN. Do not ask the user to rerun yet.
 
-## R12 generator historical fixture
+## R12 database wiring — WINDOWS GREEN
 
-Commit `65a41976fdcb8d321fab92ac03c65cd647e822ab` preserves only the exact previously verified historical yq mutation expression as a non-executable fixture. It proves historical R12 wiring omitted `.database.type` and `.database.uri`; no full-script reconstruction or guessed env wiring was introduced.
+Historical exact wiring expression fixture: `65a41976fdcb8d321fab92ac03c65cd647e822ab`.
+Failure-first database contract: `645eb7a2429cb34f179e58fbab579ed3aaa994af` → run `31485657849`, job `93760328914`, 16 GREEN / 2 targeted RED.
+Implementation: `63c008a31b8e36b093a7fc9f39d918f0960dc159` adds only thin `Get-LabR12DatabaseWiring` for `instagram-dm`, `google-messages`, `signal`.
+Windows implementation run `31485835966`, job `93760893132`: 18/18 GREEN; all unrelated frozen gates remain GREEN.
 
-## Database wiring TDD — WINDOWS GREEN
+## Exact upstream database validator source authority — FROZEN
 
-Failure-first:
+Live GitHub was read at each exact dependency commit; no latest-version substitution was used.
 
-- test-only `645eb7a2429cb34f179e58fbab579ed3aaa994af`;
-- Windows run `31485657849`, job `93760328914`: 16 GREEN / 2 targeted RED only because implementation/function were absent.
+### Instagram DM / Meta bridgev2 dependency
 
-Implementation:
+- mautrix/go commit: `56938b8a508d37c2501629d9b35538e849f4a63b`.
+- validator source: `bridgev2/matrix/mxmain/main.go`, exact blob `667d48e5e4647d58802ec87b67f7b294e00cd5a8`.
+- exact predicate: if `br.Config.Database.URI == "postgres://user:password@host/database?sslmode=disable"`, return `database.uri not configured`.
+- same source rejects legacy DB type `sqlite3` at init and instructs `sqlite3-fk-wal` instead.
+- exact example config: `bridgev2/matrix/mxmain/example-config.yaml`, blob `60efdc4938344b31a96d8859b06f3d0f636247f9`.
+- example contract explicitly states supported DB types are `sqlite3-fk-wal` and `postgres`; SQLite raw path is supported and `file:<path>?_txlock=immediate` is recommended.
 
-- commit `63c008a31b8e36b093a7fc9f39d918f0960dc159` adds only `tools/multibridge-lab/r12-database-wiring.ps1`;
-- one thin `Get-LabR12DatabaseWiring` function;
-- exactly three targets: `instagram-dm`, `google-messages`, `signal`;
-- all non-target services return `$null`;
-- exact type `sqlite3-fk-wal`;
-- exact per-service URI `file:/data/<service>.db?_txlock=immediate`;
-- exact yq fragment `.database.type=strenv(YANCE_DATABASE_TYPE)|.database.uri=strenv(YANCE_DATABASE_URI)`;
-- no DB daemon/framework/migration/connection-pool/Docker/network behavior.
+### Google Messages bridgev2 dependency
 
-Windows implementation run `31485835966`, job `93760893132`, exact checkout `63c008a31b8e36b093a7fc9f39d918f0960dc159` is fully GREEN:
+- mautrix/go commit: `5743d9b6f27e2de4966f50e13a658308cdcdbbcb`.
+- validator source exact blob: `f83032370ba81302451157dd96f7c8f2cdd2f15c`.
+- exact `database.uri not configured` predicate is identical to the Meta dependency.
+- exact example config blob: `1740634c0df8710e7d54dd5ef04c728f39ac004e`.
+- exact supported/recommended SQLite contract is identical: `sqlite3-fk-wal`, `file:<path>?_txlock=immediate`.
 
-- 18 tests / 18 pass / 0 fail / 0 skipped;
-- historical fixture proof GREEN;
-- static thin-wiring contract GREEN;
-- dynamic exact three-target/non-target contract GREEN;
-- all prior collector/fatal-context/native-process/wrapper/source-identity tests remain GREEN;
-- unrelated frozen collector package staging and both artifact uploads also remain GREEN.
+### Signal bridgev2 dependency
 
-This proves the recovered R12 DB mapping behaves as frozen on Windows. It is **not yet called upstream binary/image validation**.
+- mautrix/go commit: `f7cfa8766d2bcf45f944fc76ea856bcc36317ad9`.
+- validator source exact blob: `e1321e6421b387b2b8651861f51559d10eca2f1b`.
+- exact `database.uri not configured` predicate is identical.
+- exact example config blob: `1740634c0df8710e7d54dd5ef04c728f39ac004e`.
+- exact supported/recommended SQLite contract is identical.
+
+Therefore the source-semantic authority is not inferred: at all three frozen dependency versions, the R12 repair type/URI are within the exact upstream documented config contract and no generated URI equals the fatal placeholder.
 
 ## Unique next action
 
 No user action now.
 
-1. Freeze exact source-semantic validator authorities for the three dependency commits and add a verification gate that compares generated R12 values to the exact upstream `database.uri not configured` predicate.
-2. Prove generated values do not equal the upstream placeholder and are accepted by the upstream-supported SQLite type/URI contract at all three exact dependency versions.
-3. After source-semantic GREEN, build/run or otherwise exercise the exact pinned bridge binaries/images against generated repaired configs before any existing runtime container is restarted.
-4. Keep Facebook/LINE collector sealed until database validation reaches its binary/image boundary.
+1. Commit an immutable verification fixture containing these exact dependency commits/blob authorities and their exact DB predicate/contract.
+2. Add a verification-only test that evaluates the already-GREEN `Get-LabR12DatabaseWiring` results against all three frozen authorities; no production code change and no artificial RED is required for this verification-only layer.
+3. Run full Windows suite and record source-semantic GREEN.
+4. Then proceed to exact pinned binary/image validation without restarting the user's existing runtime.
 
 ## Replacement readiness
 
@@ -88,10 +89,9 @@ Config validation GREEN → sustained five-process runtime → stable RestartCou
 
 - [x] Three-bridge DB fatal defect proven.
 - [x] Fatal-context collector/package sealed GREEN.
-- [x] Historical R12 wiring expression preserved.
-- [x] DB-generator causal RED proven.
-- [x] Minimal R12 DB wiring implementation Windows 18/18 GREEN (`31485835966`).
-- [ ] Validate generated DB values against exact upstream source-semantic authority.
+- [x] DB-generator causal RED → implementation → Windows 18/18 GREEN.
+- [x] Exact upstream source-semantic DB validator authorities frozen.
+- [ ] Commit/run source-semantic verification gate.
 - [ ] Validate repaired configs with exact pinned binaries/images.
 - [ ] Capture/repair true Facebook/LINE fatal validators.
 - [ ] Validate all five runtimes and sustained readiness.
