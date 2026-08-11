@@ -26,7 +26,7 @@ What it proves
 8. At least one child room exposes m.room.message events through the Matrix Client-Server API, proving initial history is visible from the Matrix side without printing any message body.
 9. The temporary Matrix access token is logged out.
 
-The package never sends messages, creates rooms, modifies bridge/Synapse configuration, triggers Facebook login, reads Facebook cookies, or performs 2FA/device authorization. Its only persistent action is accepting existing Matrix invitations that are already owned by the validated Facebook Personal provisioning space.
+The package does not send messages, create rooms, modify bridge/Synapse configuration, trigger Facebook login, read Facebook cookies, or perform 2FA/device authorization. Its only persistent action is accepting existing Matrix invitations that are already owned by the validated Facebook Personal provisioning space.
 
 Expected success markers
 ------------------------
