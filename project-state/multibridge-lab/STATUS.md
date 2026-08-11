@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 17:48 +07:00
+Last updated: 2026-08-11 17:52 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -19,48 +19,100 @@ Authoritative Lab execution ledger. Update after every real state transition. Do
 
 Five bridges restart-loop exit 11 while Synapse stays healthy; DNS failure is downstream. Upstream bridgev2 exit 11 is configuration validation failure. No bridge config changes before exact sanitized validator evidence.
 
-## Runtime/package source state — GREEN
+## Collector/package failure-first closure
 
-- Native-process/collector root repairs are Windows GREEN.
-- Exact R12 Compose service keys verified: `facebook-personal`, `instagram-dm`, `google-messages`, `signal`, `line`.
-- Package behavior/security GREEN.
-- Permanent byte-identity regression established RED on the old CRLF wrapper source and GREEN after canonical LF repair.
-- Fresh source-identity run `31482228118` / job `93749578770` at exact `0385a383b3bc638f18d395c40638a5a2103ce366`: tests=13/pass=13/fail=0.
+All Lab-owned wrapper/collector/native-process defects found during recovery were converted into causal tests before root repair:
 
-Canonical runtime blobs:
+- native stderr semantics RED → ProcessStartInfo root repair;
+- collector Docker native-nonzero RED → shared sanitized Docker-read classifier;
+- missing wrapper package RED → minimal one-wrapper implementation;
+- wrapper CRLF repository/worktree byte mismatch RED → permanent byte-identity gate + canonical LF source.
+
+Exact R12 Compose service keys are verified as `facebook-personal`, `instagram-dm`, `google-messages`, `signal`, `line`.
+
+## Final artifact-producing Windows GREEN — VERIFIED
+
+Canonical artifact workflow pin commit:
+
+`5b8f77aa10e7bab2538d1c4f0ce3a643045536fa`
+
+Actions run `31482336770`, job `93749917415`, exact checkout `5b8f77aa10e7bab2538d1c4f0ce3a643045536fa`:
+
+- tests=13
+- pass=13
+- fail=0
+- skipped=0
+- byte-identity gate GREEN for all three runtime files;
+- `PACKAGE_FILE_SET=GREEN`;
+- runtime artifact upload success, exactly 3 files;
+- verification artifact upload success, exactly 2 files.
+
+Canonical runtime Git blobs:
 
 - wrapper `c9afd263cc5b89486ff937a195e9313bdce9c32a`
 - collector `38eee8ecfe5411a89273027404a320b94b623dba`
 - helper `47d56b8e6561676eec75b814c1ed1ebaa8ba30d5`
 
-The same `0385a383...` run then stopped only because the artifact workflow still had the stale pre-normalization wrapper pin. That stale boundary is now repaired.
+Runtime file SHA-256:
 
-## Canonical artifact pin boundary
+- `RUN_EXIT11_EVIDENCE.cmd` → `9f549eaf02fc641f2d070779376e5ba7f748327da5cce4acd0b3bbe43c5af65c`
+- `collect-exit11-evidence.ps1` → `75fccc095aba5199e263b6c328ac0c78b8d969899f78f897f4bdb193ed7b0200`
+- `native-process.ps1` → `fd715e68aae8a6efdd93ea64272208c38134d2cd67b9ac01275eda02c354599d`
 
-Commit `5b8f77aa10e7bab2538d1c4f0ce3a643045536fa` changes only `.github/workflows/multibridge-lab-native-process.yml`:
+GitHub artifacts:
 
-- expected wrapper blob updated from stale `7787475b...` to canonical `c9afd263cc5b89486ff937a195e9313bdce9c32a`;
-- verification `SOURCE.txt` wrapper blob updated to the same canonical value;
-- collector/helper pins, runtime source, tests, staging rules, and upload actions are unchanged.
+- runtime artifact ID `9097730797`, ZIP digest `sha256:59e780e5e6f0df3bab7f30402c56ab15eb385ca8a495abdb3842caba3d472383`;
+- verification artifact ID `9097731102`, ZIP digest `sha256:427776162f74c0374a31b1e2cbadfdf87c4f17f5f694454c84b722d312aebc24`.
 
-## Current unique next action
+## Independent post-download verification — GREEN
 
-**Do not ask the user to run anything yet.**
+The downloaded artifacts were independently inspected outside the workflow:
 
-1. Collect the exact Windows workflow result for Head `5b8f77aa10e7bab2538d1c4f0ce3a643045536fa`.
-2. Require tests=13/pass=13/fail=0.
-3. Require staging log `PACKAGE_FILE_SET=GREEN` and exact SHA-256 manifest generation.
-4. Require both `actions/upload-artifact@v4` steps success.
-5. Fetch both artifacts and independently verify runtime package exact three-file set, manifest SHA-256, SOURCE commit/blob identities, and absence of forbidden files/data.
-6. Apply verification-before-completion review before user handoff.
+1. Both downloaded ZIP SHA-256 values exactly match GitHub artifact digests above.
+2. Runtime ZIP contains exactly and only:
+   - `RUN_EXIT11_EVIDENCE.cmd`
+   - `collect-exit11-evidence.ps1`
+   - `native-process.ps1`
+3. No config/registration/password/account/credential/token/cookie/message/WhatsApp/Telegram filename is present.
+4. All three extracted runtime SHA-256 values exactly match the workflow manifest.
+5. Recomputed Git blob identities from the extracted bytes exactly match the canonical blobs above.
+6. Verification ZIP contains exactly `SHA256SUMS.txt` and `SOURCE.txt`.
+7. `SOURCE.txt` records tested commit `5b8f77aa10e7bab2538d1c4f0ce3a643045536fa` and all three canonical Git blobs correctly.
+8. Independent package content scan confirms:
+   - wrapper uses `powershell.exe -NoExit`;
+   - wrapper prints `FINAL_STATE=REAL_RED` and `OUTPUT_PATH=`;
+   - wrapper does not call Docker/Compose directly;
+   - collector targets exactly the five R12 services;
+   - collector uses bounded logs (`--tail 80`, max 12 matched validation lines);
+   - collector has no Docker lifecycle/network mutation path;
+   - helper uses `System.Diagnostics.ProcessStartInfo` with independently redirected stdout/stderr.
 
-## User involvement gate
+## User involvement gate — NOW OPEN FOR ONE READ-ONLY EVIDENCE COLLECTION
 
-No user testing until artifact build/hash verification and final review are GREEN. User is not a script-debugging environment.
+This is the first point in the recovery where user Windows execution is authorized again.
+
+The user may perform exactly one action sequence:
+
+1. Download and extract the verified runtime ZIP.
+2. Double-click `RUN_EXIT11_EVIDENCE.cmd` once.
+3. Allow it to finish; the PowerShell window remains open by design.
+4. Upload exactly the generated `exit11-evidence.txt` file back to ChatGPT.
+
+Do not upload any config, registration, password, account, token, cookie, Matrix credential, message content, or other runtime files.
+
+The package is read-only. It does not build, restart, stop, reconfigure, connect networks, exec into containers, restage Synapse, or touch WhatsApp/Telegram.
+
+## Unique next action after evidence returns
+
+1. Read the five sanitized service sections from `exit11-evidence.txt`.
+2. Identify the exact configuration-validation line(s) for each bridge independently.
+3. Map every failing field to its exact pinned upstream schema/example/validator source.
+4. Only then write failure-first tests for the real R12 generated invalid fields and repair the existing R12 config generator at source.
+5. No compatibility shims or networking workaround are authorized.
 
 ## Runtime-ready after config repair
 
-Config validation GREEN → sustained five bridges → stable RestartCount → Compose endpoint/alias → Synapse↔bridge DNS/TCP GREEN → provisioning/login GREEN → LAB_RUNTIME_READY → human auth.
+Upstream config validation GREEN → five bridge processes sustained running → RestartCount stable → intended Compose endpoint/alias present → Synapse→bridge DNS/TCP GREEN → bridge→Synapse GREEN → upstream provisioning/login GREEN → `LAB_RUNTIME_READY` → only then human login/2FA/device confirmation.
 
 ## Real-account order
 
@@ -68,11 +120,13 @@ Facebook Personal → Instagram DM → Google Messages → Signal → LINE → F
 
 ## Progress
 
-- [x] Collector/native root repairs + Windows GREEN.
+- [x] Collector/native-process root fixes failure-first.
 - [x] Exact R12 service keys verified.
-- [x] Package failure-first RED → wrapper implementation → behavior/security GREEN.
-- [x] Byte-identity RED → canonical LF source → 13/13 Windows GREEN.
-- [x] Refresh artifact workflow to canonical wrapper blob pin (`5b8f77aa10e7bab2538d1c4f0ce3a643045536fa`).
-- [ ] Prove artifact-producing Windows GREEN and independently verify both artifacts.
-- [ ] Hand off one runtime ZIP and capture exact validator evidence.
-- [ ] Repair R12 generator at source, validate five runtimes, then reach human-auth boundary.
+- [x] Package failure-first and byte-identity hardening.
+- [x] Final Windows 13/13 GREEN and artifact uploads GREEN.
+- [x] Independent artifact digest/file-set/SHA/Git-blob/content verification GREEN.
+- [x] Authorize one read-only Windows exit-11 evidence collection.
+- [ ] Receive `exit11-evidence.txt` and identify exact five upstream validator failures.
+- [ ] Repair R12 config generator at source using upstream authorities.
+- [ ] Validate five runtimes and sustained readiness.
+- [ ] Reach human-auth boundary in frozen order.
