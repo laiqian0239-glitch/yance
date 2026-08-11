@@ -109,6 +109,47 @@ test('the official module owns Yance UI while the minimal patch only adds the mi
   assert.match(apiReportPatch, /^\+export type CustomGlobalRightPanelRenderFunction = \(\) => JSX\.Element;$/mu);
 });
 
+test('pinned Element declares its own pnpm authority before nested postinstall commands execute', () => {
+  const authorityPatch = readText('upstream-patches/element-web/0002-yance-package-manager-authority.patch');
+  assert.deepEqual(patchedPaths(authorityPatch), ['package.json']);
+  assert.match(
+    authorityPatch,
+    /^index 1458c14e3e59f6fa7c948b5ffb7de4404c1cb5f5\.\.[a-f0-9]{40} 100644$/mu,
+    'package-manager authority patch must remain bound to the exact pinned Element package.json old blob'
+  );
+  assert.match(authorityPatch, /^--- a\/package\.json$/mu);
+  assert.match(authorityPatch, /^\+\+\+ b\/package\.json$/mu);
+  assert.match(authorityPatch, /^@@ /mu, 'package-manager authority patch must be an ordinary textual hunk');
+
+  const addedLines = authorityPatch.split(/\r?\n/u).filter(line => line.startsWith('+') && !line.startsWith('+++'));
+  const deletedLines = authorityPatch.split(/\r?\n/u).filter(line => line.startsWith('-') && !line.startsWith('---'));
+  assert.deepEqual(addedLines, ['+    "packageManager": "pnpm@11.5.2",']);
+  assert.deepEqual(deletedLines, [], 'Element package-manager authority repair must not rewrite pinned manifest content');
+  assert.equal(
+    authorityPatch.match(/pnpm@11\.5\.2/gu)?.length ?? 0,
+    1,
+    'package-manager authority patch must introduce exactly one pnpm@11.5.2 authority mutation'
+  );
+  assert.doesNotMatch(authorityPatch, /^\+.*"(?:dependencies|devDependencies|engines|devEngines)"/mu);
+  assert.doesNotMatch(authorityPatch, /COREPACK_ENABLE_STRICT|COREPACK_ENABLE_PROJECT_SPEC|COREPACK_HOME|PATH=/u);
+
+  const bootstrap = readText('tools/matrix/bootstrap.js');
+  const workspaceApply = "applyPatch(element, ELEMENT_WORKSPACE_PATCH, 'Element workspace patch');";
+  const authorityApply = "applyPatch(element, ELEMENT_PACKAGE_MANAGER_AUTHORITY_PATCH, 'Element package-manager authority patch');";
+  const moduleCopy = "fs.cpSync(path.join(ROOT, 'integration/element-module'), moduleTarget, { recursive: true });";
+  assert.match(
+    bootstrap,
+    /const ELEMENT_PACKAGE_MANAGER_AUTHORITY_PATCH = path\.join\(ROOT, 'upstream-patches\/element-web\/0002-yance-package-manager-authority\.patch'\);/u
+  );
+  const workspaceApplyIndex = bootstrap.indexOf(workspaceApply);
+  const authorityApplyIndex = bootstrap.indexOf(authorityApply);
+  const moduleCopyIndex = bootstrap.indexOf(moduleCopy);
+  assert.ok(workspaceApplyIndex >= 0, 'bootstrap must keep the global-right-workspace patch');
+  assert.ok(authorityApplyIndex > workspaceApplyIndex, 'package-manager authority patch must replay after 0001');
+  assert.ok(moduleCopyIndex > authorityApplyIndex, 'package-manager authority must be established before Product module copy and frozen install overlays');
+  assert.doesNotMatch(bootstrap, /COREPACK_ENABLE_STRICT|COREPACK_ENABLE_PROJECT_SPEC|--no-frozen-lockfile|--lockfile-only/u);
+});
+
 test('the right workspace remains inside the unified Element shell and is restoreable after hiding', () => {
   const entry = readText('integration/element-module/src/index.tsx');
   const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
