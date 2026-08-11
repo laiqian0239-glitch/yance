@@ -3,7 +3,7 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "requestedByUserAt": "2026-08-11T08:48:00+07:00",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-PRODUCT-EXPERIENCE-P0-ELEMENT-NX-23.1.1-CRLF",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-P0-ELEMENT-NX-2311-CRLF",
   "proposalRevision": 1,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Real Product Experience Task 9 Windows run 31454992682 / job 93666828025 at exact Product Head 249b803257441a553627b8ff5a0913529eba4f67 proved the Element 0001 textual repair, Element-local pnpm authority, exact frozen install and postinstall chain, then entered Nx build and failed because Nx 23.1.0 could not parse the pinned Element pnpm 11 multi-document lockfile after Windows CRLF materialization. Pinned Element a2a996ae50d802878bf48e4bbf3730004bdcc55c intentionally carries a multi-document pnpm-lock.yaml: pnpm 11.5.2 accepts it, but Nx 23.1.0 extractMainLockfileDocument hard-codes LF-only document separators. Nx upstream fixed the exact Windows CRLF defect in commit b8dca5e4f9315b989d0c2f7a336868ecd91a36fa / PR #36419 and released the fix in stable Nx 23.1.1 on 2026-07-30. Element upstream independently adopted Nx 23.1.1 in commit 27f0347668494711ae25466b3d81434a65011df6 / PR #34530. The root repair therefore backports the official stable Nx 23.1.1 dependency and its minimal Nx-only lock closure onto the frozen Element source through one dedicated ordinary textual upstream patch. The Element lock structure, document markers, line-ending behavior, Element pin, pnpm 11.5.2, Product dependency overlay 0011, Yance runtime and final-validation workflow remain unchanged.",
