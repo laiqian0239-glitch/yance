@@ -22,6 +22,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - service: facebook-personal
+            repository: mautrix/meta
+            commit: a0db68a56bb5715d67faa331f647e771d62b05a2
+            dockerfile: Dockerfile
+            binary: /usr/bin/mautrix-meta
+            submodule_path: ""
+            submodule_commit: ""
           - service: instagram-dm
             repository: mautrix/meta
             commit: a0db68a56bb5715d67faa331f647e771d62b05a2
@@ -43,6 +50,13 @@ jobs:
             binary: /usr/bin/mautrix-signal
             submodule_path: pkg/libsignalgo/libsignal
             submodule_commit: 857c4dca03537dc5e395a5e1eda6bf18f59c3601
+          - service: line
+            repository: beeper/line
+            commit: 0fc10ea165b54db6ffd7c085d42cc42b0ce46414
+            dockerfile: Dockerfile
+            binary: /usr/bin/matrix-line
+            submodule_path: ""
+            submodule_commit: ""
     steps:
       - uses: actions/checkout@v4
 
@@ -227,12 +241,12 @@ jobs:
             write_report DATABASE_FILE_NOT_CREATED "$state" "$exit_code" false
             exit 34
           fi
-
-          if [ "$state" = running ]; then
-            write_report PINNED_IMAGE_DB_STARTUP_GREEN "$state" "$exit_code" true
-          else
-            write_report DB_VALIDATION_GREEN_LATER_NONCONFIG_EXIT "$state" "$exit_code" true
+          if [ "$state" != running ] || [ "$exit_code" != 0 ]; then
+            write_report PROCESS_NOT_RUNNING "$state" "$exit_code" true
+            exit 35
           fi
+
+          write_report PINNED_IMAGE_DB_STARTUP_GREEN "$state" "$exit_code" true
           cat "$report"
 
       - name: Upload non-secret pinned image validation report
