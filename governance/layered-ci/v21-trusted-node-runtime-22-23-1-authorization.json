@@ -4,7 +4,7 @@
   "requestedByUserAt": "2026-08-12T05:20:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-TRUSTED-NODE-RUNTIME-22-23-1",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Fresh OSS-first prerequisite for Product Experience PR #229 and future packaged Windows runtimes. Current trusted packaged-product authority still defaults to Node 22.16.0 while the repository root requires Node >=22.19.0 and packaged Electron passes the bundled trusted Node directly to Letta Code. Product Final Validation already uses pinned Node 22.23.1. This work package upgrades the existing shared WP7 trusted Node runtime authority in place to official Node 22.23.1, updates the active Final Builder consumer and shared WP7 fixture, and adds a focused failure-first contract. It must not create a Product-specific Node runtime, downloader, package manager, runtime manager, second node-runtime identity implementation, dependency change, lockfile change, or user-machine build prerequisite.",
   "base": {
@@ -75,7 +75,42 @@
     "repositoryPackageManagerAuthorityRemains": "npm@10.9.2"
   },
   "ossFit": {
-    "matureOssDefault": true,
+    "decision": "ADOPT_MATURE_OSS_AND_REUSE_EXISTING_REPOSITORY_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "reviewedCandidates": [
+      {
+        "name": "Official Node.js 22.23.1 Jod LTS Windows x64 distribution",
+        "source": "nodejs.org official v22.23.1 release distribution and signed SHASUMS; nodejs/node release authority",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Provides the exact mature Windows x64 Node runtime already used by Product Final Validation, satisfies the repository Node >=22.19.0 floor, and requires no Yance runtime implementation."
+      },
+      {
+        "name": "Existing WP7 trusted Node runtime identity and packaged-product seam",
+        "source": "tools/wp7/node-runtime-identity.js plus tools/wp7/lib.js packaged resources/runtime/node22 integration",
+        "license": "repository-internal existing implementation; no new external license delta",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already verifies executable version/hash/tree identity and is the single packaged runtime path resolved by Electron; it should be upgraded in place rather than duplicated."
+      },
+      {
+        "name": "Product-specific Node runtime or Yance downloader/runtime manager",
+        "source": "hypothetical new Yance infrastructure",
+        "license": "not applicable because adoption is rejected",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "Creates duplicate runtime authority and infrastructure despite complete coverage by official Node distribution plus the existing WP7 seam, so it is explicitly rejected."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire Node 22.16.0 as the active trusted packaged-runtime authority while preserving historical evidence.",
+      "Avoid any Product-specific Node runtime/version override path around tools/wp7/node-runtime-identity.js.",
+      "Avoid any Yance Node downloader, runtime manager, package manager, or second node-runtime identity implementation.",
+      "Avoid user-machine Node/npm/node-gyp/Visual Studio/Windows SDK/Spectre build prerequisites."
+    ],
     "officialNodeDistributionIsRuntimeAuthority": true,
     "existingWp7NodeRuntimeIdentityRemainsSoleYanceRuntimeIdentityAuthority": true,
     "existingWp7PackagedProductSeamReused": true,
