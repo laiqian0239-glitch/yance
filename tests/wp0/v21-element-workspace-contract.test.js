@@ -125,8 +125,12 @@ test('pinned Element declares its own pnpm authority before nested postinstall c
   const deletedLines = authorityPatch.split(/\r?\n/u).filter(line => line.startsWith('-') && !line.startsWith('---'));
   assert.deepEqual(addedLines, ['+    "packageManager": "pnpm@11.5.2",']);
   assert.deepEqual(deletedLines, [], 'Element package-manager authority repair must not rewrite pinned manifest content');
-  assert.match(authorityPatch, /^\s+"name": "pnpm",$/mu);
-  assert.match(authorityPatch, /^\s+"version": "11\.5\.2",$/mu);
+  assert.equal(
+    authorityPatch.match(/pnpm@11\.5\.2/gu)?.length ?? 0,
+    1,
+    'package-manager authority patch must introduce exactly one pnpm@11.5.2 authority mutation'
+  );
+  assert.doesNotMatch(authorityPatch, /^\+.*"(?:dependencies|devDependencies|engines|devEngines)"/mu);
   assert.doesNotMatch(authorityPatch, /COREPACK_ENABLE_STRICT|COREPACK_ENABLE_PROJECT_SPEC|COREPACK_HOME|PATH=/u);
 
   const bootstrap = readText('tools/matrix/bootstrap.js');
