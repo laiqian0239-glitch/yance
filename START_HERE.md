@@ -6,6 +6,8 @@
 
 首先读取 [`YANCE_IMPLEMENTATION_MASTER_PLAN.md`](./YANCE_IMPLEMENTATION_MASTER_PLAN.md)。
 
+随后必须读取 [`YANCE_OSS_FIRST_DEVELOPMENT_HIGHEST_DIRECTIVE.md`](./YANCE_OSS_FIRST_DEVELOPMENT_HIGHEST_DIRECTIVE.md)。该文件把 V2.1 的 **Mature OSS Mandatory Adoption** 前移为所有未来开发和修复的第一准入步骤：**任何 work package、功能、RED、UAT、runtime、packaging、tooling、governance 设计，在写 Yance 实现之前必须先证明成熟 OSS / 上游源码模块 / 官方 SDK / native prebuild / 现有 repository seam 是否已经可以拥有该能力。存在可用成熟实现时，优先整块采用/移植并退休同类 Yance 自研，不得先自研后补做 OSS 调研。**
+
 随后必须读取 [`YANCE_EXECUTION_ACCELERATION_HIGHEST_DIRECTIVE.md`](./YANCE_EXECUTION_ACCELERATION_HIGHEST_DIRECTIVE.md)。该文件是 V2.1 的**永久强制执行语义补充**：保持所有最终门禁强度不变，通过验证分层、外部 OSS exact-SHA shallow materialization、不可变缓存复用、CI 等待并行化和减少本机人工往返来加速项目落地。任何新聊天不得忽略、弱化或重新讨论这套默认执行模式。
 
 该文件自 V2.1 起是 **Yance 唯一稳定架构与实施指令**。当前 V2.1 已吸收 `Relationship Intelligence Enhancement`，它是 V2.1 的严格超集增强，不是 V2.2，也不允许推倒已完成或已授权工作包重来。
@@ -14,12 +16,27 @@
 
 1. 当前远端 refs、正式治理凭据、exact Head、workflow、review、receipt；
 2. `YANCE_IMPLEMENTATION_MASTER_PLAN.md` V2.1；
-3. `YANCE_EXECUTION_ACCELERATION_HIGHEST_DIRECTIVE.md`（仅约束执行/验证/下载/materialization/caching/本机协作语义，不扩大架构或授权 scope）；
-4. `PROJECT_CONTINUATION.md` 动态接续；
-5. 明确声明只补充 V2.1 的专项合同；
-6. Git 历史只用于审计，不作为当前执行指令。
+3. `YANCE_OSS_FIRST_DEVELOPMENT_HIGHEST_DIRECTIVE.md`（强制所有未来开发/修复先完成 OSS-fit；不扩大既有 scope）；
+4. `YANCE_EXECUTION_ACCELERATION_HIGHEST_DIRECTIVE.md`（仅约束执行/验证/下载/materialization/caching/本机协作语义，不扩大架构或授权 scope）；
+5. `PROJECT_CONTINUATION.md` 动态接续；
+6. 明确声明只补充 V2.1 的专项合同；
+7. Git 历史只用于审计，不作为当前执行指令。
 
-### 0.1 永久执行加速硬规则
+### 0.1 永久 OSS-first 开发准入硬规则
+
+后续所有开发线、修复线、UAT/runtime/tooling 问题在 implementation 前必须完成：
+
+- 先问“成熟 OSS 谁已经把这个能力做成熟了，我们能否完整采用/移植？”；
+- 按完整产品 → Sidecar/service → 源码模块 → 官方 SDK/CLI/native prebuild/runtime → 已有 repository seam → 极薄 Yance adapter → 最小真实 gap 的顺序评估；
+- 新 authorization 必须记录可审计 `ossFit` 证据；没有 OSS-fit 不进入 failure-first implementation；
+- 若成熟 OSS 能接管现有 Yance 自研能力，默认优先退休/删除同类自研，而不是继续补丁叠加；
+- 任何 RED 修复前都重新做一次 OSS-fit，特别是连续 environment/tooling RED；
+- UAT 默认验证 CI 已构建的真实产品候选；除非 OSS-fit 证明不可行，不得要求用户机器现场 `npm ci`、`node-gyp rebuild`、安装 VS/Spectre 或编译 native addon；
+- 禁止“参考上游后 Yance 重写一遍”冒充 OSS 移植。
+
+完整定义以 `YANCE_OSS_FIRST_DEVELOPMENT_HIGHEST_DIRECTIVE.md` 为准。
+
+### 0.2 永久执行加速硬规则
 
 后续所有工作线默认遵守以下硬规则，完整定义以 `YANCE_EXECUTION_ACCELERATION_HIGHEST_DIRECTIVE.md` 为准：
 
