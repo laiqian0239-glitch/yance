@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const test = require('node:test');
@@ -50,7 +51,8 @@ test('collector targets only the five recovery bridge services and emits one bou
   for (const service of ['facebook-personal', 'instagram-dm', 'google-messages', 'signal', 'line']) {
     assert.match(script, new RegExp(service.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
-  assert.match(script, /--tail\s+80/);
+  assert.match(script, /['"]--tail['"]\s*,\s*['"]80['"]/);
+  assert.match(script, /Select-Object\s+-Last\s+12/);
   assert.match(script, /exit11-evidence\.txt/);
   assert.match(script, /FINAL STATUS:\s*REAL_RED/);
 });
@@ -78,4 +80,42 @@ test('sanitizer redacts bridge secrets, authorization data, cookies, email/phone
     assert.doesNotMatch(combined, new RegExp(secret.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
   assert.match(combined, /\[REDACTED\]/);
+});
+
+test('collector evidence boundary turns native logs stderr plus nonzero into sanitized controlled RED', { skip: process.platform !== 'win32' }, () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-multibridge-collector-red-'));
+  const fakeDocker = path.join(dir, 'docker.cmd');
+  fs.writeFileSync(fakeDocker, [
+    '@echo off',
+    'if "%1"=="ps" (echo fake-container-id& exit /b 0)',
+    'if "%1"=="inspect" (echo restarting^|11^|3& exit /b 0)',
+    'if "%1"=="logs" (echo Configuration error: token=SECRET_NATIVE_TOKEN LAB_CONTROLLED_NATIVE_FAILURE 1>&2& exit /b 9)',
+    'echo unexpected fake docker arguments 1>&2',
+    'exit /b 19',
+    ''
+  ].join('\r\n'), 'utf8');
+
+  try {
+    const command = [
+      `. ${psQuote(COLLECTOR)}`,
+      'try {',
+      `  $null = Get-LabExit11ServiceEvidence -DockerPath ${psQuote(fakeDocker)} -Service 'signal'`,
+      "  Write-Output 'UNEXPECTED_COLLECTOR_SUCCESS'",
+      '  exit 17',
+      '} catch {',
+      '  $safe = Protect-LabEvidenceLine $_.Exception.Message',
+      '  Write-Output ("CONTROLLED_REAL_RED=" + $safe)',
+      '}'
+    ].join('; ');
+    const run = runPowerShell(command);
+    const combined = `${run.stdout || ''}\n${run.stderr || ''}`;
+    assert.equal(run.status, 0, `collector did not produce controlled RED:\n${combined}`);
+    assert.match(combined, /CONTROLLED_REAL_RED=/);
+    assert.match(combined, /exit code 9/i);
+    assert.match(combined, /LAB_CONTROLLED_NATIVE_FAILURE/);
+    assert.doesNotMatch(combined, /SECRET_NATIVE_TOKEN/);
+    assert.doesNotMatch(combined, /UNEXPECTED_COLLECTOR_SUCCESS/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
