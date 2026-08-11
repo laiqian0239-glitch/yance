@@ -85,3 +85,17 @@ test('remaining Nx runtime replay tail uses exact-source canonical unified=3 hun
     'standard Git unified=3 context must describe every remaining Nx runtime tail mutation against pinned Element a2a996ae source'
   );
 });
+
+test('pinned Element Nx replay header names the exact patched repository result blob', () => {
+  const section = lockSection(readPatch());
+  assert.match(
+    section,
+    /^index 7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc\.\.f13b569df10a63311d7bba874c452b568617e5d0 100644$/mu,
+    '0003 result identity must equal the exact blob staged after ordinary replay from pinned Element a2a996ae, not a develop-branch adoption result'
+  );
+  assert.doesNotMatch(
+    section,
+    /^index 7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc\.\.9ea9eb20bd2bb2d8af0f811ecf0798262924b8df 100644$/mu,
+    'historical Element develop result identity is not valid authority for pinned-release-only replay'
+  );
+});
