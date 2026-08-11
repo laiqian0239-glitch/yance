@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-11T08:48:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-P0-ELEMENT-NX-2311-CRLF",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Real Product Experience Task 9 Windows run 31454992682 / job 93666828025 at exact Product Head 249b803257441a553627b8ff5a0913529eba4f67 proved the Element 0001 textual repair, Element-local pnpm authority, exact frozen install and postinstall chain, then entered Nx build and failed because Nx 23.1.0 could not parse the pinned Element pnpm 11 multi-document lockfile after Windows CRLF materialization. Pinned Element a2a996ae50d802878bf48e4bbf3730004bdcc55c intentionally carries a multi-document pnpm-lock.yaml: pnpm 11.5.2 accepts it, but Nx 23.1.0 extractMainLockfileDocument hard-codes LF-only document separators. Nx upstream fixed the exact Windows CRLF defect in commit b8dca5e4f9315b989d0c2f7a336868ecd91a36fa / PR #36419 and released the fix in stable Nx 23.1.1 on 2026-07-30. Element upstream independently adopted Nx 23.1.1 in commit 27f0347668494711ae25466b3d81434a65011df6 / PR #34530. The root repair therefore backports the official stable Nx 23.1.1 dependency and its minimal Nx-only lock closure onto the frozen Element source through one dedicated ordinary textual upstream patch. The Element lock structure, document markers, line-ending behavior, Element pin, pnpm 11.5.2, Product dependency overlay 0011, Yance runtime and final-validation workflow remain unchanged.",
+  "base": {
+    "branch": "main",
+    "commit": "a16c07233652285f59192eb84097bb41ddbd8d36"
+  },
+  "evidence": {
+    "productPullRequest": 229,
+    "productExactHead": "249b803257441a553627b8ff5a0913529eba4f67",
+    "finalValidationRun": 31454992682,
+    "finalValidationJob": 93666828025,
+    "elementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "elementPackageJsonBlob": "1458c14e3e59f6fa7c948b5ffb7de4404c1cb5f5",
+    "elementPnpmLockBlob": "7e1974c8c927b6e1f1672051833890932264ef33",
+    "currentNxVersion": "23.1.0",
+    "targetNxVersion": "23.1.1",
+    "nxUpstreamFixCommit": "b8dca5e4f9315b989d0c2f7a336868ecd91a36fa",
+    "nxUpstreamPullRequest": 36419,
+    "elementUpstreamAdoptionCommit": "27f0347668494711ae25466b3d81434a65011df6",
+    "elementUpstreamAdoptionPullRequest": 34530,
+    "failureBoundary": "pnpm install --frozen-lockfile and Element postinstall completed successfully; pnpm exec nx build yance-element-module then failed in Nx pnpm-normalizer with expected a single document in the stream, but found more; lint:types was not entered"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-p0-element-nx-crlf-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-p0-element-nx-crlf-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "5a4af6b4c477d98ddb608a83fd7e103d9910c4dffa2284e19e98534005bc1464",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-p0-element-nx-crlf",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "7671565555eb7533bb38e05539bc5b8511e25fde9dee0310d6cc45d94537cb48",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-element-workspace-contract.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "e263649043e2a16c14cd790c10125a5e2cec4aaf727a3d64e68fea92481159dd",
+      "productionCodeChanged": false
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "bootstrapModificationAllowed": true,
+    "elementPinModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "yanceLockModificationAllowed": false,
+    "elementLockRegenerationAllowed": false,
+    "officialElementLockBackportAllowed": true,
+    "pnpmVersionChangeAllowed": false,
+    "finalValidationWorkflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "A dedicated upstream patch must update pinned Element from exact Nx 23.1.0 to stable Nx 23.1.1 and must bind its package.json hunk to old blob 1458c14e3e59f6fa7c948b5ffb7de4404c1cb5f5 and its pnpm-lock.yaml hunk to old blob 7e1974c8c927b6e1f1672051833890932264ef33.",
+    "The patch must preserve the existing two-document pnpm lock structure and must not delete or rewrite YAML document markers to avoid the Nx defect.",
+    "The pnpm-lock.yaml portion must be limited to the Nx 23.1.0 to 23.1.1 dependency closure and exact related native Nx package records; unrelated matrix-js-sdk, React, axios, brace-expansion or other dependency drift from newer Element branches is forbidden.",
+    "tools/matrix/bootstrap.js must replay the dedicated Nx patch through the existing fail-closed applyPatch mechanism after the package-manager authority patch and before Product module copy; Product 0011 remains a separate later overlay and must not be folded into this work package.",
+    "No Corepack strict disable, git autocrlf manipulation, line-ending rewrite, Nx plugin disable, lockfile parser bypass, Yance lock regeneration, Element pin change, pnpm version change or final-validation workflow change is permitted.",
+    "A subsequent real Windows Task 9 must prove frozen install and postinstall remain GREEN, then prove Nx build crosses the prior CRLF multi-document parser failure before any conclusion is drawn about lint:types."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "lineEndingRewrite": true,
+    "gitAutocrlfManipulation": true,
+    "lockDocumentMarkerRemoval": true,
+    "nxPluginDisable": true,
+    "customYamlParser": true,
+    "corepackStrictDisable": true,
+    "elementPinChange": true,
+    "pnpmVersionDrift": true,
+    "yanceLockRegeneration": true,
+    "elementLockRegeneration": true,
+    "unrelatedElementDependencyDrift": true,
+    "productSourceModification": true,
+    "productRuntimeModification": true,
+    "finalValidationWorkflowChange": true,
+    "gitApplyThreeWay": true,
+    "gitApplyReject": true,
+    "fuzzyPatch": true,
+    "bootstrapSkipPatch": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

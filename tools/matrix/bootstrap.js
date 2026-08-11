@@ -8,6 +8,7 @@ const ROOT = path.resolve(__dirname, '../..');
 const LOCK = require(path.join(ROOT, 'config/upstreams/v21-comms-p0.json'));
 const ELEMENT_WORKSPACE_PATCH = path.join(ROOT, 'upstream-patches/element-web/0001-yance-global-right-workspace.patch');
 const ELEMENT_PACKAGE_MANAGER_AUTHORITY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0002-yance-package-manager-authority.patch');
+const ELEMENT_NX_CRLF_LOCKFILE_PATCH = path.join(ROOT, 'upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch');
 const PRODUCT_DEPENDENCY_LOCK_PATCH = path.join(ROOT, 'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
 const MODULE_DELIVERY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0012-yance-element-module-runtime.patch');
 const RUNTIME = path.join(ROOT, 'services/matrix/.runtime');
@@ -53,6 +54,7 @@ function main() {
 
   applyPatch(element, ELEMENT_WORKSPACE_PATCH, 'Element workspace patch');
   applyPatch(element, ELEMENT_PACKAGE_MANAGER_AUTHORITY_PATCH, 'Element package-manager authority patch');
+  applyPatch(element, ELEMENT_NX_CRLF_LOCKFILE_PATCH, 'Element Nx CRLF lockfile patch');
 
   const moduleTarget = path.join(element, 'modules', 'yance');
   fs.cpSync(path.join(ROOT, 'integration/element-module'), moduleTarget, { recursive: true });
