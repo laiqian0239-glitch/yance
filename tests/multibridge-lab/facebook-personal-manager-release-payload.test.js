@@ -16,28 +16,41 @@ const LINUX_RELEASE_ZIP = 'mautrix-manager-linux-x64-0.2.1.zip';
 const LINUX_RELEASE_ASSET_ID = '495350343';
 const LINUX_RELEASE_SHA256 = '8a55dc5022c5d52d13c58e05c72ad2d0bfff3fa9dac19d96e5eb84608f282479';
 
-test('Facebook Personal manager path validates the exact official release payload on real Windows before delivery', () => {
+function between(source, start, end) {
+  const startIndex = source.indexOf(start);
+  assert.notEqual(startIndex, -1, `missing section start: ${start}`);
+  const endIndex = source.indexOf(end, startIndex + start.length);
+  assert.notEqual(endIndex, -1, `missing section end: ${end}`);
+  return source.slice(startIndex, endIndex);
+}
+
+test('Facebook Personal Windows manager release path stays frozen as the exact upstream unsigned RED', () => {
   const workflow = fs.readFileSync(WORKFLOW, 'utf8');
+  const windowsGate = between(
+    workflow,
+    '- name: Guard retired unsigned mautrix-manager Windows release payload',
+    '- name: Stage exact GREEN exit11 evidence package'
+  );
 
-  assert.match(workflow, /Validate official mautrix-manager release payload for Facebook Personal/);
-  assert.match(workflow, new RegExp(RELEASE_NUPKG.replaceAll('.', '\\.')));
-  assert.match(workflow, new RegExp(RELEASE_ASSET_ID));
-  assert.match(workflow, new RegExp(RELEASE_SHA256));
-  assert.match(workflow, new RegExp(RELEASE_COMMIT));
-  assert.match(workflow, /\$assetId\s*=\s*'495351157'/);
-  assert.match(workflow, /releases\/assets\/\$assetId/);
-  assert.match(workflow, /application\/octet-stream/);
-  assert.match(workflow, /Get-FileHash[\s\S]*SHA256/);
-  assert.match(workflow, /Expand-Archive/);
-  assert.match(workflow, /lib[\\/]net45[\\/]mautrix-manager\.exe/);
-  assert.match(workflow, /Get-AuthenticodeSignature/);
-  assert.match(workflow, /Status[\s\S]*Valid/);
-  assert.match(workflow, /MAUTRIX_MANAGER_INTERNAL_AUTHENTICODE_GREEN/);
-  assert.match(workflow, /Start-Process/);
-  assert.match(workflow, /MAUTRIX_MANAGER_RELEASE_PAYLOAD_SMOKE_GREEN/);
+  assert.match(windowsGate, new RegExp(RELEASE_NUPKG.replaceAll('.', '\\.')));
+  assert.match(windowsGate, new RegExp(RELEASE_ASSET_ID));
+  assert.match(windowsGate, new RegExp(RELEASE_SHA256));
+  assert.match(windowsGate, new RegExp(RELEASE_COMMIT));
+  assert.match(windowsGate, /releases\/assets\/\$assetId/);
+  assert.match(windowsGate, /application\/octet-stream/);
+  assert.match(windowsGate, /Get-FileHash[\s\S]*SHA256/);
+  assert.match(windowsGate, /Expand-Archive/);
+  assert.match(windowsGate, /lib[\\/]net45[\\/]mautrix-manager\.exe/);
+  assert.match(windowsGate, /Get-AuthenticodeSignature/);
+  assert.match(windowsGate, /NotSigned/);
+  assert.match(windowsGate, /MAUTRIX_MANAGER_WINDOWS_RELEASE_RETIRED_UNSIGNED_RED/);
 
-  // A validated payload path must not hand the unsigned Squirrel installer or
-  // the vulnerable Forge/npm source-launch chain to the user.
+  // This is a frozen evidence guard only: never launch the known-unsigned EXE.
+  assert.doesNotMatch(windowsGate, /Start-Process/);
+  assert.doesNotMatch(windowsGate, /MAUTRIX_MANAGER_INTERNAL_AUTHENTICODE_GREEN/);
+  assert.doesNotMatch(windowsGate, /MAUTRIX_MANAGER_RELEASE_PAYLOAD_SMOKE_GREEN/);
+
+  // The vulnerable Forge/npm source-launch chain remains retired.
   assert.doesNotMatch(workflow, /Upload Facebook Personal manager source launcher/);
   assert.doesNotMatch(workflow, /yance-facebook-personal-manager-source-launch/);
   assert.match(workflow, /MAUTRIX_MANAGER_SOURCE_LAUNCH_RETIRED_SECURITY_RED/);
@@ -65,9 +78,7 @@ test('Facebook Personal manager has an exact official Linux x64 release gate for
 
   // The WSL candidate must be a prebuilt upstream release payload. It must not
   // rebuild the app or execute the retired vulnerable Forge/npm source chain.
-  const linuxJobStart = workflow.indexOf('manager-linux-release:');
-  assert.notEqual(linuxJobStart, -1);
-  const linuxJob = workflow.slice(linuxJobStart);
+  const linuxJob = workflow.slice(workflow.indexOf('manager-linux-release:'));
   assert.doesNotMatch(linuxJob, /npm\s+(?:ci|install|start)/);
   assert.doesNotMatch(linuxJob, /electron-forge/);
 });
