@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-12T03:43:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-FIRST-DEVELOPMENT-POLICY-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "The owner requires every future Yance development work package to begin with an explicit mature-OSS adoption decision before implementation. Existing V2.1 architecture already says mature OSS is mandatory when it can own an equivalent core capability, but that rule is not yet mechanically enforced for future delegated authorization proposals. This work package adds a repository policy SSOT plus a WP0 regression gate that inspects newly added or modified delegated authorization JSON files and fails closed unless they contain auditable OSS-fit evidence. The implementation reuses the existing WP0/Layered CI test runner and Git diff authority; it does not add a new governance framework or service.",
+  "base": {
+    "branch": "main",
+    "commit": "53c2f8489c2604c676965c284df89339fd44632e"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_GOVERNANCE_SEAM",
+    "matureOssAvailable": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance existing WP0 / Layered CI governance runner",
+        "source": "repository-native existing governance seam",
+        "license": "same-repository",
+        "adoptionMode": "existing-test-runner-extension",
+        "fit": "FIT",
+        "reason": "The requested capability is repository-specific authorization policy enforcement. Existing WP0 already executes policy tests on authorization PRs, so a small regression test is the narrowest solution and no external policy engine is needed."
+      }
+    ],
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "selfBuiltEquivalentFrameworkAllowed": false,
+    "retireOrAvoid": [
+      "No second policy engine",
+      "No new authorization service",
+      "No custom CI orchestration framework"
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/oss-first-development-policy-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/oss-first-development-policy-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "c9756fe3750f7474deae62e1630e65bbb41c780361a74ba0f344ed2bd1b75c6e",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/oss-first-development-policy-p0",
+    "allowedChangedPaths": [
+      "governance/layered-ci/oss-first-development-policy.json",
+      "tests/wp0/oss-first-development-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "dbb01f48d75fe1e1d1d30d73d56b901eb8263e38b5363c2b5d2ce6eadfa23737",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/oss-first-development-policy.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "60be76905c16adebbbffe47fac253f2b4f322b514ab0533fc34438a8dff28d6c",
+      "productionCodeChanged": false
+    },
+    "newDependencyAllowed": false,
+    "newWorkflowAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "A future newly added or modified governance/layered-ci/*-authorization.json proposal must fail WP0 unless it records explicit ossFit evidence.",
+    "ossFit must name reviewed mature OSS or existing repository-native seams, the selected adoption mode, whether mature OSS exists, and whether new general-purpose infrastructure is being introduced.",
+    "If an equivalent mature OSS product, sidecar, source module, official SDK, native prebuild, packaging/runtime tool, or existing repository seam can own the capability, authorization must prefer adoption/porting and prohibit rebuilding an equivalent Yance subsystem.",
+    "Minimal Yance-owned implementation is allowed only after the authorization records the specific uncovered gap and why product/sidecar/source-module/SDK/thin-adapter adoption cannot satisfy it.",
+    "The policy must grandfather already-merged historical authorizations and enforce only authorization files added or modified by future changes."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "testWeakening": true,
+    "newPolicyService": true,
+    "newCiFramework": true,
+    "retroactivelyInvalidatingHistoricalAuthorizations": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
