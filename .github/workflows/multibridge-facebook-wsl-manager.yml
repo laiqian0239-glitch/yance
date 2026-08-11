@@ -113,7 +113,7 @@ jobs:
       - name: Validate installer syntax
         shell: bash
         run: bash -n tools/multibridge-lab/facebook-personal-manager-install.sh
-      - name: Validate exact official deb install and GUI smoke
+      - name: Validate exact official deb install, GUI smoke, and root rejection
         shell: bash
         run: |
           set -euo pipefail
@@ -125,6 +125,25 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb
           bash tools/multibridge-lab/facebook-personal-manager-install.sh --install-and-smoke "$deb"
+
+          root_stdout="$RUNNER_TEMP/manager-root-launch.stdout"
+          root_stderr="$RUNNER_TEMP/manager-root-launch.stderr"
+          set +e
+          sudo bash tools/multibridge-lab/facebook-personal-manager-install.sh \
+            --install-and-launch "$deb" http://127.0.0.1:29319 http://127.0.0.1:8008 \
+            >"$root_stdout" 2>"$root_stderr"
+          root_rc=$?
+          set -e
+          cat "$root_stdout"
+          cat "$root_stderr" >&2
+          test "$root_rc" -eq 1
+          grep -Fq 'REAL_RED: mautrix-manager GUI launch requires a non-root WSL user' "$root_stderr"
+          grep -Fq 'FINAL STATUS: REAL_RED' "$root_stderr"
+          if grep -Eqi -- '--no-sandbox|--disable-setuid-sandbox' "$root_stdout" "$root_stderr"; then
+            echo 'Root launch attempted to weaken the Chromium sandbox.' >&2
+            exit 1
+          fi
+          echo 'MANAGER_ROOT_GUI_REJECTION_GREEN'
 
   package-windows:
     needs:
