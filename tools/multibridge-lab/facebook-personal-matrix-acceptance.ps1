@@ -47,7 +47,7 @@ function Get-YanceRoomState {
   )
   $room = [Uri]::EscapeDataString($RoomId)
   $uri = $HomeserverUrl.TrimEnd('/') + '/_matrix/client/v3/rooms/' + $room + '/state'
-  return ,@(Invoke-YanceJsonRequest -Method GET -Uri $uri -AccessToken $AccessToken)
+  return @(Invoke-YanceJsonRequest -Method GET -Uri $uri -AccessToken $AccessToken)
 }
 
 function Get-YanceRoomMessages {
