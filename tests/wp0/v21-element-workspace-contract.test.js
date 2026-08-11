@@ -87,11 +87,26 @@ test('the official module owns Yance UI while the minimal patch only adds the mi
   assert.match(patchText, /registerGlobalRightPanel/u);
   assert.match(patchText, /globalRightPanelRenderer/u);
   assert.doesNotMatch(patchText, /matrix-js-sdk\/src\/sync|stopClient|logout\(/u);
+
+  const apiReportMarker = 'diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md';
+  const apiReportStart = patchText.indexOf(apiReportMarker);
+  assert.ok(apiReportStart >= 0, '0001 must patch the generated Element API report');
+  const nextPatchStart = patchText.indexOf('\ndiff --git ', apiReportStart + apiReportMarker.length);
+  const apiReportPatch = patchText.slice(apiReportStart, nextPatchStart === -1 ? patchText.length : nextPatchStart);
+
   assert.match(
-    patchText,
-    /diff --git a\/packages\/module-api\/element-web-module-api\.api\.md b\/packages\/module-api\/element-web-module-api\.api\.md\nindex 6557e89ac2949b6d6b46f991ebb4d64085f74d35\.\.bc4d73cc52e516be949a6a756d9e7227055c9ad4 100644\nGIT binary patch/u,
-    'generated Element API report must replay the exact frozen CRLF blob with a Git binary patch'
+    apiReportPatch,
+    /^index 6557e89ac2949b6d6b46f991ebb4d64085f74d35\.\.[a-f0-9]{40} 100644$/mu,
+    'generated API report textual diff must remain bound to the exact pinned Element old blob'
   );
+  assert.match(apiReportPatch, /^--- a\/packages\/module-api\/element-web-module-api\.api\.md$/mu);
+  assert.match(apiReportPatch, /^\+\+\+ b\/packages\/module-api\/element-web-module-api\.api\.md$/mu);
+  assert.match(apiReportPatch, /^@@ /mu, 'generated API report must use an ordinary textual hunk');
+  assert.doesNotMatch(apiReportPatch, /^GIT binary patch$/mu, 'generated text API report must never use a Git binary patch');
+  assert.doesNotMatch(apiReportPatch, /^(?:literal|delta) \d+$/mu, 'generated text API report must not carry binary payload records');
+  assert.match(apiReportPatch, /^\+    openGlobalRightPanel\(\): void;$/mu);
+  assert.match(apiReportPatch, /^\+    registerGlobalRightPanel\(renderer: CustomGlobalRightPanelRenderFunction\): void;$/mu);
+  assert.match(apiReportPatch, /^\+export type CustomGlobalRightPanelRenderFunction = \(\) => JSX\.Element;$/mu);
 });
 
 test('the right workspace remains inside the unified Element shell and is restoreable after hiding', () => {

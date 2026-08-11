@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-11T07:33:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-P0-ELEMENT-0001-API-REPORT",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Real Product Experience Task 9 Windows run 31447908711 crossed the prior neutral-CWD pnpm and PowerShell parser repairs, then failed during iteration-1 Element materialization before any pnpm frozen install. The exact pinned Element commit remained a2a996ae50d802878bf48e4bbf3730004bdcc55c. Upstream tree evidence proves packages/module-api/element-web-module-api.api.md at that commit is repository blob 6557e89ac2949b6d6b46f991ebb4d64085f74d35, matching the old index preimage encoded by 0001. However Windows git apply reported the current worktree bytes as f35692a30aa25b17302ef862a929e9dd0bcd97e2 and rejected the GIT binary patch. The other three source preimages remain exact at the pinned upstream. The root repair therefore migrates the obsolete WP0 contract and replaces only the generated API-report binary delta with an ordinary textual diff that expresses the same API report additions. Bootstrap fail-closed behavior, exact Element pin, the other three 0001 source hunks, Product source/runtime, pnpm, locks and UAT authority remain frozen.",
+  "base": {
+    "branch": "main",
+    "commit": "fdf78d1e1978df135ddc095ef349cb66d7bf4376"
+  },
+  "evidence": {
+    "productPullRequest": 229,
+    "productExactHead": "1f2492b62afb040c93f7fb7a9c7309834af2f806",
+    "finalValidationRun": 31447908711,
+    "finalValidationJob": 93645980057,
+    "elementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "generatedReportRepositoryBlob": "6557e89ac2949b6d6b46f991ebb4d64085f74d35",
+    "generatedReportWindowsWorktreeHashReportedByGitApply": "f35692a30aa25b17302ef862a929e9dd0bcd97e2",
+    "binaryPatchPostimageBlob": "bc4d73cc52e516be949a6a756d9e7227055c9ad4",
+    "sourcePreimages": {
+      "apps/web/src/components/structures/RightPanel.tsx": "24c1655455422f0b4ec67b6b452bf48583e844ca",
+      "apps/web/src/modules/customComponentApi.ts": "a6ead66cb55040cde3e8357802c08efed4214d84",
+      "packages/module-api/src/api/custom-components.ts": "5ca2be000faf24a5625a17586e6201ee2de78ba1"
+    },
+    "failureBoundary": "git apply --check upstream-patches/element-web/0001-yance-global-right-workspace.patch failed on the generated API-report binary hunk before module copy, 0011, 0012, frozen install, Nx build or lint:types"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-p0-element-0001-api-report-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-p0-element-0001-api-report-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "a887c7ab9d9c02faff5b68cefbcd1894d3131baff6a58b857a2eeab3043436cb",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-p0-element-0001-api-report",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "upstream-patches/element-web/0001-yance-global-right-workspace.patch"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "33b99aad6e5daf4408b581ce5398eecbb1f8897b157a317f7e06654d1c016155",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-element-workspace-contract.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "e263649043e2a16c14cd790c10125a5e2cec4aaf727a3d64e68fea92481159dd",
+      "productionCodeChanged": false
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "bootstrapModificationAllowed": false,
+    "elementPinModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "productLockRegenerationAllowed": false,
+    "pnpmVersionChangeAllowed": false,
+    "finalValidationWorkflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "The existing WP0 Element workspace contract is migrated before patch implementation so the generated packages/module-api/element-web-module-api.api.md section must be a normal textual diff and must not contain GIT binary patch, literal or delta binary payloads.",
+    "The textual generated-report hunk must preserve the pinned old blob identity 6557e89ac2949b6d6b46f991ebb4d64085f74d35 in its index line and express the same API additions required by the source contract: openGlobalRightPanel(), registerGlobalRightPanel(renderer: CustomGlobalRightPanelRenderFunction), and CustomGlobalRightPanelRenderFunction = () => JSX.Element.",
+    "The existing source hunks for RightPanel.tsx, customComponentApi.ts and packages/module-api/src/api/custom-components.ts remain present and their exact pinned preimage identities remain unchanged.",
+    "The contract continues to forbid three-way, fuzzy, reject, vendor-copy or patch-skip fallbacks and keeps bootstrap ordering 0001 -> official module copy -> 0011 -> 0012.",
+    "Real Task 9 Windows validation must subsequently prove git apply --check and git apply on the exact pinned Element checkout before any conclusion is drawn about frozen install, Nx build or lint:types."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "gitApplyThreeWay": true,
+    "gitApplyReject": true,
+    "fuzzyPatch": true,
+    "bootstrapSkipPatch": true,
+    "elementPinChange": true,
+    "productSourceModification": true,
+    "productRuntimeModification": true,
+    "rootPackageManagerChange": true,
+    "pnpmVersionDrift": true,
+    "lockRegeneration": true,
+    "finalValidationWorkflowChange": true,
+    "releasePublishing": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

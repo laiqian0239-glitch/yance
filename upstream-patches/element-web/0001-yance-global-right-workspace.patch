@@ -68,14 +68,33 @@ index a6ead66..7e8d52d 100644
          eventTypeOrFilter: EventTypeOrFilter,
 diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md
 index 6557e89ac2949b6d6b46f991ebb4d64085f74d35..bc4d73cc52e516be949a6a756d9e7227055c9ad4 100644
-GIT binary patch
-delta 136
-zcmew`g>la`#tl=2Me_?%^W1atlM-`+GSf3k0uu95b2KK$i-=90D?GsvL#8M-FD11o
-ywa7}rxwN<>KNnrW<UkRX&AKA{m?kgaXPcZL%_@MQ;-i-H<O33Hn}3Uy8Uq083Nx7i
-
-delta 27
-lcmV+$0ObF?mI3gT0kD-5leiO@v!xWi0+VnP5VOY@bu+Lp3$g$J
-
+--- a/packages/module-api/element-web-module-api.api.md
++++ b/packages/module-api/element-web-module-api.api.md
+@@ -150,10 +150,12 @@ export type Container = "top" | "right" | "center";
+ 
+ // @alpha
+ export interface CustomComponentsApi {
++    openGlobalRightPanel(): void;
+     registerComposerPreview(filterFn: (composerText: string, roomId: string) => boolean, renderer: CustomComposerPreviewRenderFunction): void;
++    registerGlobalRightPanel(renderer: CustomGlobalRightPanelRenderFunction): void;
+     registerLoginComponent(renderer: CustomLoginRenderFunction): void;
+     registerMessageRenderer(eventTypeOrFilter: string | ((mxEvent: MatrixEvent) => boolean), renderer: CustomMessageRenderFunction, hints?: CustomMessageRenderHints): void;
+     registerRoomPreviewBar(renderer: CustomRoomPreviewBarRenderFunction): void;
+ }
+ 
+ // @alpha
+@@ -169,8 +171,11 @@ export type CustomComposerPreviewComponentProps = {
+ 
+ // @alpha
+ export type CustomComposerPreviewRenderFunction = ExtendablePropsRenderFunction<CustomComposerPreviewComponentProps>;
+ 
+ // @alpha
++export type CustomGlobalRightPanelRenderFunction = () => JSX.Element;
++
++// @alpha
+ export interface CustomisationsApi {
+     registerShouldShowComponent(fn: (this: void, component: UIComponent) => boolean | void): void;
+ }
 diff --git a/packages/module-api/src/api/custom-components.ts b/packages/module-api/src/api/custom-components.ts
 index 5ca2be0..6b2c96f 100644
 --- a/packages/module-api/src/api/custom-components.ts
