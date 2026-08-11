@@ -1,0 +1,111 @@
+name: Multibridge Facebook WSL Readiness
+
+on:
+  push:
+    branches:
+      - lab/multibridge-recovery-plan-20260811
+    paths:
+      - tools/multibridge-lab/facebook-personal-wsl-readiness.ps1
+      - tools/multibridge-lab/RUN_FACEBOOK_PERSONAL_WSL_READINESS.cmd
+      - tools/multibridge-lab/FACEBOOK_PERSONAL_WSL_READINESS_README.txt
+      - tools/multibridge-lab/native-process.ps1
+      - tests/multibridge-lab/facebook-personal-wsl-readiness.test.js
+      - .github/workflows/multibridge-facebook-wsl-readiness.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+      - name: Run WSL readiness contracts
+        shell: pwsh
+        run: node --test tests/multibridge-lab/facebook-personal-wsl-readiness.test.js
+      - name: Parse WSL checker with Windows PowerShell 5.1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $target = (Resolve-Path 'tools/multibridge-lab/facebook-personal-wsl-readiness.ps1').Path
+          $gate = Join-Path $env:RUNNER_TEMP 'parse-facebook-wsl-readiness-ps51.ps1'
+          $body = @'
+          param([Parameter(Mandatory = $true)][string]$Target)
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($Target, [ref]$tokens, [ref]$errors)
+          if (@($errors).Count -ne 0) {
+            Write-Error ("Windows PowerShell 5.1 parse RED: " + $errors[0].Message)
+            exit 1
+          }
+          Write-Output 'WINDOWS_POWERSHELL_5_1_WSL_CHECKER_PARSE_GREEN'
+          '@
+          [IO.File]::WriteAllText($gate, $body, [Text.Encoding]::ASCII)
+          & powershell.exe -NoLogo -NoProfile -NonInteractive -File $gate -Target $target
+          if ($LASTEXITCODE -ne 0) { throw 'Windows PowerShell 5.1 WSL checker parse gate failed.' }
+      - name: Stage sealed WSL readiness package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $packageRoot = 'dist/facebook-personal-wsl-readiness'
+          Remove-Item $packageRoot -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
+
+          $files = [ordered]@{
+            'tools/multibridge-lab/RUN_FACEBOOK_PERSONAL_WSL_READINESS.cmd' = 'RUN_FACEBOOK_PERSONAL_WSL_READINESS.cmd'
+            'tools/multibridge-lab/facebook-personal-wsl-readiness.ps1' = 'facebook-personal-wsl-readiness.ps1'
+            'tools/multibridge-lab/FACEBOOK_PERSONAL_WSL_READINESS_README.txt' = 'FACEBOOK_PERSONAL_WSL_READINESS_README.txt'
+            'tools/multibridge-lab/native-process.ps1' = 'native-process.ps1'
+          }
+          foreach ($entry in $files.GetEnumerator()) {
+            if (-not (Test-Path -LiteralPath $entry.Key -PathType Leaf)) { throw "Missing WSL readiness package source: $($entry.Key)" }
+            Copy-Item -LiteralPath $entry.Key -Destination (Join-Path $packageRoot $entry.Value)
+          }
+
+          $manifestNames = @(
+            'FACEBOOK_PERSONAL_WSL_READINESS_README.txt',
+            'facebook-personal-wsl-readiness.ps1',
+            'native-process.ps1'
+          ) | Sort-Object
+          $manifestLines = foreach ($name in $manifestNames) {
+            $hash = (Get-FileHash -LiteralPath (Join-Path $packageRoot $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $name"
+          }
+          [IO.File]::WriteAllLines((Join-Path $packageRoot 'SHA256SUMS.txt'), $manifestLines, [Text.UTF8Encoding]::new($false))
+
+          foreach ($name in @('facebook-personal-wsl-readiness.ps1', 'native-process.ps1')) {
+            $path = (Resolve-Path (Join-Path $packageRoot $name)).Path
+            [IO.File]::WriteAllText($path + ':Zone.Identifier', "[ZoneTransfer]`r`nZoneId=3`r`n", [Text.Encoding]::ASCII)
+          }
+
+          $wrapper = (Resolve-Path (Join-Path $packageRoot 'RUN_FACEBOOK_PERSONAL_WSL_READINESS.cmd')).Path
+          $previousPolicy = $env:PSExecutionPolicyPreference
+          try {
+            $env:PSExecutionPolicyPreference = 'RemoteSigned'
+            $cmdLine = '(echo.)|call "' + $wrapper + '"'
+            $output = (& cmd.exe /d /s /c $cmdLine 2>&1 | Out-String)
+            $exitCode = $LASTEXITCODE
+          }
+          finally {
+            if ($null -eq $previousPolicy) { Remove-Item Env:PSExecutionPolicyPreference -ErrorAction SilentlyContinue }
+            else { $env:PSExecutionPolicyPreference = $previousPolicy }
+          }
+          $output | Write-Host
+          if ($output -notmatch 'PACKAGE_INTEGRITY_GREEN') { throw 'WSL readiness wrapper integrity bootstrap did not run.' }
+          if ($output -notmatch 'PACKAGE_MOTW_RELEASE_GREEN') { throw 'WSL readiness wrapper MotW release did not run.' }
+          if ($output -match 'PSSecurityException|UnauthorizedAccess|digitally signed') { throw 'WSL readiness wrapper remained blocked by execution policy.' }
+          if ($exitCode -notin @(0,2,3)) { throw "Unexpected read-only WSL checker exit on hosted Windows: $exitCode" }
+          $global:LASTEXITCODE = 0
+
+          Write-Host 'WSL_READINESS_PACKAGE_GREEN'
+          Get-Content -LiteralPath (Join-Path $packageRoot 'SHA256SUMS.txt')
+      - name: Upload WSL readiness package
+        uses: actions/upload-artifact@v4
+        with:
+          name: yance-facebook-personal-wsl-readiness
+          path: dist/facebook-personal-wsl-readiness
+          if-no-files-found: error
