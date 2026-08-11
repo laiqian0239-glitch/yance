@@ -7,9 +7,11 @@ function Get-LabR12DatabaseWiring {
   )
 
   switch -Exact ($Service) {
+    'facebook-personal' { $databaseName = 'facebook-personal.db' }
     'instagram-dm' { $databaseName = 'instagram-dm.db' }
     'google-messages' { $databaseName = 'google-messages.db' }
     'signal' { $databaseName = 'signal.db' }
+    'line' { $databaseName = 'line.db' }
     default { return $null }
   }
 
