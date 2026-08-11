@@ -57,5 +57,15 @@ test('Facebook Personal operator launcher uses exact upstream manager source ins
   assert.match(workflow, /npm ci --include=dev/);
   assert.match(workflow, /npm run lint/);
   assert.match(workflow, /MAUTRIX_MANAGER_SOURCE_CHAIN_GREEN/);
+
+  // Credential-bearing operator software must not be handed to the user merely
+  // because install/lint pass. Classify current npm advisories first.
+  assert.match(workflow, /Classify exact upstream mautrix-manager dependency audit/);
+  assert.match(workflow, /npm audit --omit=dev --json/);
+  assert.match(workflow, /MAUTRIX_MANAGER_PRODUCTION_AUDIT_GREEN/);
+  assert.match(workflow, /MAUTRIX_MANAGER_FULL_AUDIT_CLASSIFIED/);
+  assert.match(workflow, /critical/);
+  assert.match(workflow, /high/);
+
   assert.match(workflow, /yance-facebook-personal-manager-source-launch/);
 });
