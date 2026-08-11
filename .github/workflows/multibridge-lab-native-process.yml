@@ -59,6 +59,83 @@ jobs:
             Pop-Location
           }
           Write-Host 'MAUTRIX_MANAGER_SOURCE_CHAIN_GREEN'
+      - name: Classify exact upstream mautrix-manager dependency audit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = Join-Path $env:RUNNER_TEMP 'mautrix-manager-v0.2.1-source'
+          if (-not (Test-Path -LiteralPath (Join-Path $source 'package-lock.json') -PathType Leaf)) {
+            throw 'mautrix-manager exact source checkout is missing before dependency audit'
+          }
+
+          function Read-AuditResult {
+            param(
+              [Parameter(Mandatory = $true)][string[]]$Arguments,
+              [Parameter(Mandatory = $true)][string]$Label
+            )
+            Push-Location $source
+            try {
+              $raw = (& npm.cmd @Arguments 2>$null | Out-String)
+              $auditExit = $LASTEXITCODE
+            }
+            finally {
+              Pop-Location
+            }
+            if (-not $raw.Trim()) { throw "$Label npm audit produced no JSON" }
+            try { $document = $raw | ConvertFrom-Json } catch { throw "$Label npm audit JSON parse failed" }
+            if ($null -eq $document.metadata -or $null -eq $document.metadata.vulnerabilities) {
+              throw "$Label npm audit metadata is missing"
+            }
+            $counts = $document.metadata.vulnerabilities
+            $high = [int]$counts.high
+            $critical = [int]$counts.critical
+            $total = [int]$counts.total
+            Write-Host "$Label audit: total=$total high=$high critical=$critical exit=$auditExit"
+            $severe = @()
+            if ($document.vulnerabilities) {
+              $severe = @($document.vulnerabilities.PSObject.Properties | ForEach-Object {
+                $item = $_.Value
+                if ([string]$item.severity -in @('high', 'critical')) {
+                  $via = @($item.via | ForEach-Object {
+                    if ($_ -is [string]) { $_ }
+                    elseif ($null -ne $_.source) { "GHSA/source=$($_.source):$($_.title)" }
+                    elseif ($null -ne $_.title) { [string]$_.title }
+                  }) -join '; '
+                  [pscustomobject]@{
+                    Name = $_.Name
+                    Severity = [string]$item.severity
+                    Direct = [bool]$item.isDirect
+                    Range = [string]$item.range
+                    Via = $via
+                  }
+                }
+              })
+            }
+            foreach ($item in ($severe | Sort-Object Severity, Name)) {
+              Write-Host "$Label severe package=$($item.Name) severity=$($item.Severity) direct=$($item.Direct) range=$($item.Range) via=$($item.Via)"
+            }
+            return [pscustomobject]@{
+              Label = $Label
+              High = $high
+              Critical = $critical
+              Total = $total
+              ExitCode = $auditExit
+              Severe = $severe
+            }
+          }
+
+          $production = Read-AuditResult -Arguments @('audit', '--omit=dev', '--json') -Label 'production'
+          $full = Read-AuditResult -Arguments @('audit', '--json') -Label 'full'
+          Write-Host 'MAUTRIX_MANAGER_FULL_AUDIT_CLASSIFIED'
+
+          if ($production.High -gt 0 -or $production.Critical -gt 0) {
+            throw "mautrix-manager production dependency audit RED: high=$($production.High) critical=$($production.Critical)"
+          }
+          Write-Host 'MAUTRIX_MANAGER_PRODUCTION_AUDIT_GREEN'
+
+          if ($full.Critical -gt 0) {
+            throw "mautrix-manager full dependency critical audit RED: critical=$($full.Critical)"
+          }
       - name: Stage Facebook Personal manager source launcher
         shell: pwsh
         run: |
