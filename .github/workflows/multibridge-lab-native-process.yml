@@ -181,6 +181,7 @@ jobs:
           if ($motwOutput -notmatch 'FINAL STATUS: REAL_RED') { throw 'MotW wrapper did not reach the real runtime script boundary.' }
           if ($motwOutput -match 'PSSecurityException|UnauthorizedAccess|digitally signed') { throw 'MotW wrapper remained blocked by PowerShell execution policy.' }
           Write-Host 'MOTW_BOOTSTRAP_GREEN'
+          $global:LASTEXITCODE = 0
 
           $manifest = foreach ($name in @($files.Values | Sort-Object)) {
             $hash = (Get-FileHash -LiteralPath (Join-Path $packageRoot $name) -Algorithm SHA256).Hash.ToLowerInvariant()
