@@ -1412,10 +1412,14 @@ test('generic delegated authority exposes its canonical implementation base to d
 test('Stage GOVERNANCE_WP0 executes the repository OSS-first authorization gate', () => {
   const workflowPath = path.join(REPO_ROOT, '.github', 'workflows', 'stage-6459-wp0-gates.yml');
   const workflow = fs.readFileSync(workflowPath, 'utf8');
-  const governanceIndex = workflow.indexOf('  wp0-governance:');
-  const nextJobIndex = workflow.indexOf('\n  wp0-product-documentation:', governanceIndex);
+  const governanceHeader = '  wp0-governance:';
+  const governanceIndex = workflow.indexOf(governanceHeader);
   assert.ok(governanceIndex >= 0, 'Stage workflow must define wp0-governance');
-  assert.ok(nextJobIndex > governanceIndex, 'Stage workflow must delimit wp0-governance before wp0-product-documentation');
+  const afterHeader = workflow.slice(governanceIndex + governanceHeader.length);
+  const nextJobMatch = afterHeader.match(/\n  [a-z0-9][a-z0-9-]*:\n/u);
+  const nextJobIndex = nextJobMatch
+    ? governanceIndex + governanceHeader.length + nextJobMatch.index
+    : workflow.length;
   const governanceJob = workflow.slice(governanceIndex, nextJobIndex);
   assert.match(
     governanceJob,
