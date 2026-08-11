@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "authorities": [
+    {
+      "service": "facebook-personal",
+      "repository": "mautrix/meta",
+      "commit": "a0db68a56bb5715d67faa331f647e771d62b05a2",
+      "path": "pkg/connector/login.go",
+      "blob": "1ddef424aefef63affed39509886d81ec47ea4d5",
+      "flowEvidence": "GetLoginFlows"
+    },
+    {
+      "service": "instagram-dm",
+      "repository": "mautrix/meta",
+      "commit": "a0db68a56bb5715d67faa331f647e771d62b05a2",
+      "path": "pkg/igconnector/login.go",
+      "blob": "be0e8bd071fdcf3a1345f8067bea7302bbe25ef7",
+      "flowEvidence": "GetLoginFlows"
+    },
+    {
+      "service": "google-messages",
+      "repository": "mautrix/gmessages",
+      "commit": "2f2a1efa59a1bfbfb0ab1570b0532a93baeeea96",
+      "path": "pkg/connector/login.go",
+      "blob": "1c2c2ad8582f75ac017fc9bcfbfe77c131505199",
+      "flowEvidence": "GetLoginFlows"
+    },
+    {
+      "service": "signal",
+      "repository": "mautrix/signal",
+      "commit": "8c7333a033cc8dbaf6676b1f9211d2906154277b",
+      "path": "pkg/connector/login.go",
+      "blob": "0446d23eb96cfb00056c070de60e216e3af25bdb",
+      "flowEvidence": "GetLoginFlows"
+    },
+    {
+      "service": "line",
+      "repository": "beeper/line",
+      "commit": "0fc10ea165b54db6ffd7c085d42cc42b0ce46414",
+      "path": "pkg/connector/connector.go",
+      "blob": "cae3a391ad546be2a7ebce0ac146da0a5bcaecbc",
+      "flowEvidence": "GetLoginFlows"
+    }
+  ]
+}
