@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-12T03:43:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-FIRST-DEVELOPMENT-ROUTE-CLOSURE-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Owner requires OSS-first to be a mechanically enforced repository rule for all future development. Prior implementation PR #282 proved the policy/test logic but final route-coverage verification found that Stage's existing GOVERNANCE_WP0 job does not execute the new OSS-first WP0 test. #282 was therefore closed unmerged. This successor closes that exact coverage gap by reusing the existing Stage governance job and its already-executed implementation-branch-policy regression seam: failure-first requires the governance workflow to invoke the OSS-first test, then the existing workflow gets one explicit test invocation while the policy SSOT and OSS-first validator are added. No new workflow, policy engine, service, dependency, or CI framework is introduced.",
+  "base": {
+    "branch": "main",
+    "commit": "eb38b4d556c0e453337179efbb05ca0282001a41"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_GOVERNANCE_ROUTE",
+    "matureOssAvailable": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Stage 6.4.5.9 GOVERNANCE_WP0 route",
+        "source": ".github/workflows/stage-6459-wp0-gates.yml",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already has the exact fail-closed governance execution route. The missing capability is only one test invocation, so extending the existing job is strictly smaller than adopting or building another policy/CI system."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test via existing pinned Node toolchain",
+        "license": "MIT-compatible Node.js project licensing",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "All existing governance contracts already use node --test; no test framework or policy engine dependency is required."
+      }
+    ],
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "selfBuiltEquivalentFrameworkAllowed": false,
+    "retireOrAvoid": [
+      "No second governance route",
+      "No new policy engine",
+      "No new CI workflow framework",
+      "Do not merge the closed #282 half-wired implementation"
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/oss-first-development-policy-route-closure-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/oss-first-development-policy-route-closure-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "4ff0e908e27afc9c721fcc7d6090cc9d67f5bc39c8a8d7eed6bde4f54cd41104",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/oss-first-development-policy-route-closure-p0",
+    "allowedChangedPaths": [
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      "governance/layered-ci/oss-first-development-policy.json",
+      "tests/wp0/implementation-branch-policy.test.js",
+      "tests/wp0/oss-first-development-policy.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "d73665b048fbb188104f76d611a2b896689b72ae50acad759f8f345bd0d759ce",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/implementation-branch-policy.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "7913275d3348e4c902aab19807e71fe0a02943be068cba5ef7f948eb9be7a7de",
+      "productionCodeChanged": false
+    },
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/stage-6459-wp0-gates.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "0b4f62bf34c62789474d394400d03e65bde1638fdff568d1cfd09b5a551fc815"
+    },
+    "newDependencyAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "The existing implementation-branch-policy regression suite must prove that GOVERNANCE_WP0 explicitly invokes tests/wp0/oss-first-development-policy.test.js; the current trusted-main workflow must be RED against that requirement.",
+    "The repair must add exactly one OSS-first test invocation to the existing wp0-governance job and must not create another workflow, route, policy engine, service, or dependency.",
+    "The OSS-first validator must inspect authorization JSON files added or modified relative to trusted main and require auditable ossFit evidence before implementation.",
+    "Historical already-merged authorization documents are grandfathered and must not be retroactively invalidated.",
+    "Future authorization proposals missing required ossFit evidence must make the existing Stage GOVERNANCE_WP0 route fail closed.",
+    "RED repair itself must require OSS-fit re-evaluation; when mature OSS can replace equivalent Yance self-built infrastructure, the authorization must prefer adoption/porting and state retirement/avoidance."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "testWeakening": true,
+    "newPolicyEngine": true,
+    "newGovernanceWorkflow": true,
+    "newCiFramework": true,
+    "retroactivelyInvalidatingHistoricalAuthorizations": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
