@@ -46,7 +46,7 @@ function writeJson(res, status, payload) {
   res.end(body);
 }
 
-test('Facebook Personal acceptance probe is read-only except ephemeral Matrix login/logout and proves connected space plus history', () => {
+test('Facebook Personal acceptance probe only accepts bridge-owned Matrix invites and never sends chat content', () => {
   const script = text(SCRIPT);
   const wrapper = text(CMD);
   const readme = text(README);
@@ -61,6 +61,10 @@ test('Facebook Personal acceptance probe is read-only except ephemeral Matrix lo
   assert.match(script, /\/_matrix\/provision\/v3\/whoami/);
   assert.match(script, /CONNECTED/);
   assert.match(script, /space_room/);
+  assert.match(script, /\/_matrix\/client\/v3\/joined_rooms/);
+  assert.match(script, /\/_matrix\/client\/v3\/join\//);
+  assert.match(script, /MATRIX_SPACE_INVITE_ACCEPTED_GREEN/);
+  assert.match(script, /MATRIX_CHILD_INVITES_ACCEPTED_GREEN/);
   assert.match(script, /m\.room\.create/);
   assert.match(script, /m\.space/);
   assert.match(script, /m\.space\.child/);
@@ -72,7 +76,7 @@ test('Facebook Personal acceptance probe is read-only except ephemeral Matrix lo
   assert.match(script, /FACEBOOK_PERSONAL_MATRIX_ACCEPTANCE_GREEN/);
   assert.match(script, /\/_matrix\/client\/v3\/logout/);
 
-  assert.doesNotMatch(script, /send\/m\.room\.message|createRoom|\/createRoom|\/join\//i);
+  assert.doesNotMatch(script, /send\/m\.room\.message|createRoom|\/createRoom/i);
   assert.doesNotMatch(script, /docker\s+(?:compose|run|exec)|wsl(?:\.exe)?|netsh|Set-NetFirewall|portproxy/i);
   assert.doesNotMatch(script, /Write-(?:Host|Output)[^\r\n]*(?:password|access[_ -]?token)/i);
   assert.doesNotMatch(script, /facebook\.com|cookie|2fa|verification code/i);
@@ -84,7 +88,6 @@ test('Facebook Personal acceptance probe is read-only except ephemeral Matrix lo
   assert.match(wrapper, /pause/i);
   assert.doesNotMatch(wrapper, /ExecutionPolicy\s+(?:Bypass|Unrestricted)|Set-ExecutionPolicy/i);
 
-  assert.match(readme, /read-only/i);
   assert.match(readme, /does not send/i);
   assert.match(readme, /CONNECTED/);
   assert.match(readme, /initial history/i);
@@ -98,7 +101,7 @@ test('Facebook Personal acceptance probe is read-only except ephemeral Matrix lo
   assert.match(workflow, /MATRIX_ACCEPTANCE_PACKAGE_GREEN/);
 });
 
-test('Windows acceptance probe proves connected Facebook provisioning identity, Matrix space membership, and redacted initial history', { skip: process.platform !== 'win32' }, async () => {
+test('Windows acceptance probe accepts exact upstream space and child invites before proving redacted history', { skip: process.platform !== 'win32' }, async () => {
   text(SCRIPT);
   const expectedUser = '@lab:yance-lab.local';
   const password = 'unit-test-password-not-for-output';
@@ -110,6 +113,8 @@ test('Windows acceptance probe proves connected Facebook provisioning identity, 
 
   let loginBody = null;
   let logoutSeen = false;
+  let spaceJoined = false;
+  let childJoined = false;
   const requests = [];
   const server = http.createServer(async (req, res) => {
     try {
@@ -136,7 +141,22 @@ test('Windows acceptance probe proves connected Facebook provisioning identity, 
           logins: [{ state: { state_event: 'CONNECTED', timestamp: 1 }, id: 'remote-redacted', name: 'Remote Redacted', profile: { name: 'Remote Redacted' }, space_room: '!fbspace:test' }],
         });
       }
+      if (req.method === 'GET' && decodedPath === '/_matrix/client/v3/joined_rooms') {
+        const joined = [];
+        if (spaceJoined) joined.push('!fbspace:test');
+        if (childJoined) joined.push('!room1:test');
+        return writeJson(res, 200, { joined_rooms: joined });
+      }
+      if (req.method === 'POST' && decodedPath === '/_matrix/client/v3/join/!fbspace:test') {
+        spaceJoined = true;
+        return writeJson(res, 200, { room_id: '!fbspace:test' });
+      }
+      if (req.method === 'POST' && decodedPath === '/_matrix/client/v3/join/!room1:test') {
+        childJoined = true;
+        return writeJson(res, 200, { room_id: '!room1:test' });
+      }
       if (req.method === 'GET' && decodedPath === '/_matrix/client/v3/rooms/!fbspace:test/state') {
+        if (!spaceJoined) return writeJson(res, 403, { errcode: 'M_FORBIDDEN', error: 'invited but not joined' });
         return writeJson(res, 200, [
           { type: 'm.room.create', state_key: '', content: { type: 'm.space' } },
           { type: 'm.room.name', state_key: '', content: { name: 'Facebook Messenger' } },
@@ -145,6 +165,7 @@ test('Windows acceptance probe proves connected Facebook provisioning identity, 
       }
       if (req.method === 'GET' && decodedPath === '/_matrix/client/v3/rooms/!room1:test/messages') {
         assert.equal(url.searchParams.get('dir'), 'b');
+        if (!childJoined) return writeJson(res, 403, { errcode: 'M_FORBIDDEN', error: 'invited but not joined' });
         return writeJson(res, 200, {
           start: 's', end: 'e',
           chunk: [
@@ -177,9 +198,13 @@ test('Windows acceptance probe proves connected Facebook provisioning identity, 
     assert.equal(run.code, 0, `acceptance probe failed:\n${run.stdout}\n${run.stderr}\nrequests=${JSON.stringify(requests)}`);
     assert.match(run.stdout, /MATRIX_LOCAL_LOGIN_GREEN/);
     assert.match(run.stdout, /FACEBOOK_PROVISIONING_CONNECTED_GREEN login_count=1/);
+    assert.match(run.stdout, /MATRIX_SPACE_INVITE_ACCEPTED_GREEN/);
     assert.match(run.stdout, /FACEBOOK_MATRIX_SPACE_GREEN child_rooms=1/);
+    assert.match(run.stdout, /MATRIX_CHILD_INVITES_ACCEPTED_GREEN count=1/);
     assert.match(run.stdout, /FACEBOOK_MATRIX_HISTORY_GREEN rooms_with_messages=1 message_events=1/);
     assert.match(run.stdout, /FINAL STATUS: FACEBOOK_PERSONAL_MATRIX_ACCEPTANCE_GREEN/);
+    assert.ok(spaceJoined, 'Facebook Personal space invite was not accepted');
+    assert.ok(childJoined, 'Facebook Personal child room invite was not accepted');
     assert.ok(logoutSeen, 'ephemeral Matrix token was not logged out');
     assert.equal(loginBody?.type, 'm.login.password');
     assert.equal(loginBody?.identifier?.type, 'm.id.user');
