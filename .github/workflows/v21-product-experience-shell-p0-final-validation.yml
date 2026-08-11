@@ -122,6 +122,41 @@ jobs:
             runs = $results
           } | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $evidenceRoot 'task9-evidence.json') -Encoding utf8
 
+      - name: Materialize and verify trusted Windows Electron LFS object
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $trustPath = 'release/electron-distribution-trust.json'
+          $trust = Get-Content -LiteralPath $trustPath -Raw | ConvertFrom-Json
+          $archive = $trust.archives.'win32-x64'
+          if (-not $archive -or -not $archive.fileName -or -not $archive.sha256) { throw "missing win32-x64 Electron trust record: $trustPath" }
+          if ([System.IO.Path]::GetFileName([string]$archive.fileName) -ne [string]$archive.fileName) { throw 'Electron trust fileName must be a basename' }
+          $relativePath = "vendor/electron/$($archive.fileName)"
+          $expectedSha256 = ([string]$archive.sha256).ToLowerInvariant()
+          if ($expectedSha256 -notmatch '^[0-9a-f]{64}$') { throw 'Electron trust SHA-256 is malformed' }
+
+          $pointerLines = git show "HEAD:$relativePath"
+          if ($LASTEXITCODE -ne 0) { throw "failed to read tracked Electron Git LFS pointer: $relativePath" }
+          $pointer = ($pointerLines -join "`n")
+          if ($pointer -notmatch '(?m)^version https://git-lfs.github.com/spec/v1$') { throw "tracked Electron archive is not a Git LFS pointer: $relativePath" }
+          $oidMatch = [regex]::Match($pointer, '(?m)^oid sha256:([0-9a-f]{64})$')
+          $sizeMatch = [regex]::Match($pointer, '(?m)^size ([0-9]+)$')
+          if (-not $oidMatch.Success -or -not $sizeMatch.Success) { throw "malformed Git LFS pointer: $relativePath" }
+          $pointerSha256 = $oidMatch.Groups[1].Value.ToLowerInvariant()
+          $expectedSize = [int64]::Parse($sizeMatch.Groups[1].Value, [System.Globalization.CultureInfo]::InvariantCulture)
+          if ($pointerSha256 -ne $expectedSha256) { throw "Electron trust/LFS oid mismatch: expected=$expectedSha256 pointer=$pointerSha256" }
+
+          git lfs install --local
+          if ($LASTEXITCODE -ne 0) { throw 'git lfs install --local failed' }
+          git lfs pull origin --include="$relativePath" --exclude=""
+          if ($LASTEXITCODE -ne 0) { throw "git lfs pull failed for trusted Electron archive: $relativePath" }
+
+          $actualSize = (Get-Item -LiteralPath $relativePath).Length
+          if ($actualSize -ne $expectedSize) { throw "Electron LFS size mismatch: expected=$expectedSize actual=$actualSize" }
+          $actualSha256 = (Get-FileHash -LiteralPath $relativePath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualSha256 -ne $expectedSha256) { throw "Electron LFS SHA-256 mismatch: expected=$expectedSha256 actual=$actualSha256" }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'Electron LFS materialization must leave the candidate working tree clean' }
+
       - name: Package exact-head candidate for later real Windows Electron UAT
         shell: pwsh
         run: |

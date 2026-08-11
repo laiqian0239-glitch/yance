@@ -1,13 +1,18 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const os = require('node:os');
 const { execFileSync } = require('node:child_process');
 
-const { createIdentityBoundArchive, listZipEntryNames } = require('../../tools/runtime-delivery/create-round12-13-windows-uat-package');
+const {
+  createIdentityBoundArchive,
+  listZipEntryNames,
+  resolveTrackedPayloadData,
+} = require('../../tools/runtime-delivery/create-round12-13-windows-uat-package');
 
 const root = path.join(__dirname, '..', '..');
 const templateRoot = path.join(root, 'tools', 'runtime-delivery', 'templates');
@@ -75,6 +80,40 @@ test('round12/13 package generator enforces a clean identity-bound immutable pay
     /evidenceEntry:\s*'COLLECT_YANCE_ROUND12_13_EVIDENCE\.cmd'/u,
     /unresolved placeholder/u
   ]) assert.match(generator, pattern);
+});
+
+test('tracked Git LFS blobs require verified materialized worktree bytes before UAT archiving', () => {
+  assert.equal(typeof resolveTrackedPayloadData, 'function');
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-r12-13-lfs-'));
+  const repo = path.join(tempRoot, 'repo');
+  const relativePath = 'vendor/electron/electron-fixture.zip';
+  const worktreePath = path.join(repo, ...relativePath.split('/'));
+  fs.mkdirSync(path.dirname(worktreePath), { recursive: true });
+
+  const materialized = Buffer.from('verified-materialized-lfs-object\n', 'utf8');
+  const oid = crypto.createHash('sha256').update(materialized).digest('hex');
+  const pointer = Buffer.from(`version https://git-lfs.github.com/spec/v1\noid sha256:${oid}\nsize ${materialized.length}\n`, 'utf8');
+  const entry = { file: relativePath, mode: '100644', object: 'fixture-object' };
+
+  fs.writeFileSync(worktreePath, materialized);
+  assert.deepEqual(resolveTrackedPayloadData(repo, entry, pointer), materialized);
+
+  fs.writeFileSync(worktreePath, pointer);
+  assert.throws(
+    () => resolveTrackedPayloadData(repo, entry, pointer),
+    /Git LFS.*materialized|materialized.*Git LFS/iu,
+  );
+
+  fs.writeFileSync(worktreePath, Buffer.from('tampered-lfs-object\n', 'utf8'));
+  assert.throws(
+    () => resolveTrackedPayloadData(repo, entry, pointer),
+    /Git LFS.*(SHA-256|size)|(?:SHA-256|size).*Git LFS/iu,
+  );
+
+  const ordinaryBlob = Buffer.from('ordinary-git-blob\n', 'utf8');
+  fs.writeFileSync(worktreePath, Buffer.from('worktree-does-not-authorize-ordinary-blob\n', 'utf8'));
+  assert.deepEqual(resolveTrackedPayloadData(repo, entry, ordinaryBlob), ordinaryBlob);
+  fs.rmSync(tempRoot, { recursive: true, force: true });
 });
 
 test('round12/13 generated command and PowerShell files are ASCII CRLF', () => {
