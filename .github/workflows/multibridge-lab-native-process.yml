@@ -113,16 +113,33 @@ jobs:
             Copy-Item -LiteralPath $entry.Key -Destination (Join-Path $packageRoot $entry.Value)
           }
 
+          $targetScript = (Resolve-Path 'tools/multibridge-lab/r12-runtime-repair-readiness.ps1').Path
           $tokens = $null
           $parseErrors = $null
           [void][Management.Automation.Language.Parser]::ParseFile(
-            (Resolve-Path 'tools/multibridge-lab/r12-runtime-repair-readiness.ps1').Path,
+            $targetScript,
             [ref]$tokens,
             [ref]$parseErrors
           )
           if (@($parseErrors).Count -ne 0) {
-            throw "Runtime readiness PowerShell parse RED: $($parseErrors[0].Message)"
+            throw "Runtime readiness PowerShell 7 parse RED: $($parseErrors[0].Message)"
           }
+
+          $ps51ParseGate = Join-Path $env:RUNNER_TEMP 'parse-r12-runtime-readiness-ps51.ps1'
+          $ps51ParseGateBody = @'
+          param([Parameter(Mandatory = $true)][string]$Target)
+          $tokens = $null
+          $parseErrors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($Target, [ref]$tokens, [ref]$parseErrors)
+          if (@($parseErrors).Count -ne 0) {
+            Write-Error ("Windows PowerShell 5.1 parse RED: " + $parseErrors[0].Message)
+            exit 1
+          }
+          Write-Output 'WINDOWS_POWERSHELL_5_1_PARSE_GREEN'
+          '@
+          [IO.File]::WriteAllText($ps51ParseGate, $ps51ParseGateBody, [Text.Encoding]::ASCII)
+          & powershell.exe -NoLogo -NoProfile -NonInteractive -File $ps51ParseGate -Target $targetScript
+          if ($LASTEXITCODE -ne 0) { throw 'Windows PowerShell 5.1 parse gate failed.' }
 
           $manifest = foreach ($name in @($files.Values | Sort-Object)) {
             $hash = (Get-FileHash -LiteralPath (Join-Path $packageRoot $name) -Algorithm SHA256).Hash.ToLowerInvariant()
