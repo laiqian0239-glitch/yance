@@ -151,8 +151,8 @@ jobs:
           git lfs pull origin --include="$relativePath" --exclude=""
           if ($LASTEXITCODE -ne 0) { throw "git lfs pull failed for trusted Electron archive: $relativePath" }
 
-          $actualFile = Get-Item -LiteralPath $relativePath
-          if ($actualFile.Length -ne $expectedSize) { throw "Electron LFS size mismatch: expected=$expectedSize actual=$($actualFile.Length)" }
+          $actualSize = (Get-Item -LiteralPath $relativePath).Length
+          if ($actualSize -ne $expectedSize) { throw "Electron LFS size mismatch: expected=$expectedSize actual=$actualSize" }
           $actualSha256 = (Get-FileHash -LiteralPath $relativePath -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($actualSha256 -ne $expectedSha256) { throw "Electron LFS SHA-256 mismatch: expected=$expectedSha256 actual=$actualSha256" }
           if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'Electron LFS materialization must leave the candidate working tree clean' }
