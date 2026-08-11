@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 15:30 +07:00
+Last updated: 2026-08-11 15:31 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -47,6 +47,7 @@ These operator/network-discovery iterations are not to be patched further. They 
 11. The current execution container has Node `v22.16.0` but no `powershell`/`pwsh`; therefore Windows-only dynamic stderr subtests are not claimed GREEN here and remain mandatory before user handoff.
 12. Minimal implementation commit `fe9a8be63943970bffd18a449799ebc6892210f6` adds only `tools/multibridge-lab/native-process.ps1`. It uses `System.Diagnostics.ProcessStartInfo`, redirects stdout/stderr independently, captures `Process.ExitCode`, and returns a structured result even for non-zero exit so the collector can classify `REAL_RED` without PowerShell stream semantics. It does not modify Docker, bridge config, network state, login flows, or R12/R13 runtime artifacts.
 13. Focused static contract is GREEN against the helper: TAP `pass 1 / fail 0`, process exit `0`. This proves the helper contains the required isolated-process primitives and no `2>&1`/direct `& $FilePath` path. It is not a substitute for Windows dynamic proof.
+14. CI-only commit `2ab4be1606a6bcc6945d541cf697361b0e50d48d` adds `.github/workflows/multibridge-lab-native-process.yml`. It uses the repository's existing GitHub Actions + `windows-latest` conventions and runs only the Multibridge native-process contract; it does not run or mutate Docker/bridges. Windows result is pending and must be recorded before collector construction.
 
 ## Current root-cause hypothesis
 
@@ -65,10 +66,8 @@ These operator/network-discovery iterations are not to be patched further. They 
 
 **Do not ask the user to run another package yet.**
 
-Static GREEN is frozen. Next:
-
-1. Reuse repository GitHub Actions/Windows runner conventions to execute `tests/multibridge-lab/native-process-semantics.test.js` on Windows, including stderr+exit0 and stderr+nonzero dynamic cases. Do not use the user's machine for this gate.
-2. Record the Windows result here before building the collector.
+1. Collect the exact GitHub Actions result for commit `2ab4be1606a6bcc6945d541cf697361b0e50d48d` and verify the Windows stderr+exit0 / stderr+nonzero subtests.
+2. Record that result here before building the collector.
 3. Build the read-only, sanitized exit-11 collector on top of the proven boundary.
 4. Re-run the full Lab-owned collector test set.
 5. Only then provide one sanitized evidence package whose sole purpose is to capture the exact configuration-validation line for each of the five bridge containers.
@@ -148,7 +147,7 @@ The replacement for R12 readiness must require, in order:
 - [x] Add test-only native-process semantic contract (`3980bf0936132489dac72533f079cb595dcd2747`).
 - [x] Establish causal RED from the test-only state.
 - [x] Implement minimal native-process helper and prove static GREEN.
-- [ ] Prove Windows dynamic native stderr semantics.
+- [ ] Prove Windows dynamic native stderr semantics (CI commit `2ab4be1606a6bcc6945d541cf697361b0e50d48d`).
 - [ ] Fix collector native stderr semantics end-to-end.
 - [ ] Capture exact sanitized exit-11 validator errors.
 - [ ] Map each error to exact upstream schema/source authority.
