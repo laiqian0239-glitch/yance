@@ -1,0 +1,138 @@
+name: V21 Product Experience Shell P0 Final Validation
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  frozen-element-reproducibility:
+    if: github.event.pull_request.head.ref == 'product/v21-product-experience-shell-p0'
+    runs-on: windows-latest
+    env:
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+      CANDIDATE_BRANCH: ${{ github.event.pull_request.head.ref }}
+      ELEMENT_COMMIT: a2a996ae50d802878bf48e4bbf3730004bdcc55c
+      PNPM_VERSION: 11.5.2
+    steps:
+      - name: Checkout exact reviewed Product candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22.23.1'
+          package-manager-cache: false
+
+      - name: Verify exact candidate identity and local branch binding
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne $env:CANDIDATE_SHA) { throw "candidate SHA mismatch: expected=$env:CANDIDATE_SHA actual=$actual" }
+          if ($env:CANDIDATE_BRANCH -ne 'product/v21-product-experience-shell-p0') { throw "unexpected candidate branch: $env:CANDIDATE_BRANCH" }
+          git switch --force-create $env:CANDIDATE_BRANCH $env:CANDIDATE_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'failed to bind exact candidate to local Product branch' }
+          if ((git rev-parse HEAD).Trim() -ne $env:CANDIDATE_SHA) { throw 'local Product branch does not point at exact candidate SHA' }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'candidate working tree must be clean before validation' }
+
+      - name: Activate exact pnpm toolchain
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          corepack enable
+          if ($LASTEXITCODE -ne 0) { throw 'corepack enable failed' }
+          corepack prepare pnpm@11.5.2 --activate
+          if ($LASTEXITCODE -ne 0) { throw 'failed to activate pnpm 11.5.2' }
+          $actualPnpm = (pnpm --version).Trim()
+          if ($actualPnpm -ne $env:PNPM_VERSION) { throw "pnpm version mismatch: expected=$env:PNPM_VERSION actual=$actualPnpm" }
+
+      - name: Run two clean frozen Element materializations and builds
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $results = @()
+          foreach ($iteration in 1..2) {
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue services/matrix/.runtime
+            node tools/matrix/bootstrap.js
+            if ($LASTEXITCODE -ne 0) { throw "Element materialization failed on iteration $iteration" }
+
+            $element = (Resolve-Path services/matrix/.runtime/element-web).Path
+            $actualElementCommit = (git -C $element rev-parse HEAD).Trim()
+            if ($actualElementCommit -ne $env:ELEMENT_COMMIT) { throw "Element pin mismatch on iteration $iteration: expected=$env:ELEMENT_COMMIT actual=$actualElementCommit" }
+            if (-not (Select-String -Path "$element\pnpm-lock.yaml" -Pattern 'modules/yance' -Quiet)) { throw "0011 Product dependency lock importer missing on iteration $iteration" }
+            if (-not (Select-String -Path "$element\apps\web\Dockerfile" -Pattern 'nx build yance-element-module' -Quiet)) { throw "0012 module delivery Docker build seam missing on iteration $iteration" }
+            if (-not (Select-String -Path "$element\apps\web\Dockerfile" -Pattern '/modules/yance/package.json' -Quiet)) { throw "0012 module manifest delivery seam missing on iteration $iteration" }
+
+            pnpm --dir $element install --frozen-lockfile
+            if ($LASTEXITCODE -ne 0) { throw "frozen pnpm install failed on iteration $iteration" }
+            pnpm --dir $element exec nx build yance-element-module
+            if ($LASTEXITCODE -ne 0) { throw "Yance Element module build failed on iteration $iteration" }
+            pnpm --dir $element exec nx run yance-element-module:lint:types
+            if ($LASTEXITCODE -ne 0) { throw "Yance Element module typecheck failed on iteration $iteration" }
+            if (-not (Test-Path "$element\modules\yance\lib\index.js")) { throw "Yance Element module output missing on iteration $iteration" }
+
+            $lockSha256 = (Get-FileHash "$element\pnpm-lock.yaml" -Algorithm SHA256).Hash.ToLowerInvariant()
+            $packageSha256 = (Get-FileHash "$element\modules\yance\package.json" -Algorithm SHA256).Hash.ToLowerInvariant()
+            $results += [pscustomobject]@{
+              iteration = $iteration
+              elementCommit = $actualElementCommit
+              pnpmVersion = $env:PNPM_VERSION
+              lockSha256 = $lockSha256
+              packageSha256 = $packageSha256
+            }
+          }
+
+          if ($results.Count -ne 2) { throw 'expected exactly two frozen materialization results' }
+          if ($results[0].lockSha256 -ne $results[1].lockSha256 -or $results[0].packageSha256 -ne $results[1].packageSha256) {
+            throw "reproducibility mismatch: first=$($results[0] | ConvertTo-Json -Compress) second=$($results[1] | ConvertTo-Json -Compress)"
+          }
+
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue services/matrix/.runtime
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'Task 9 validation must leave the candidate working tree clean' }
+
+          $evidenceRoot = Join-Path $env:RUNNER_TEMP 'product-experience-final-validation'
+          New-Item -ItemType Directory -Force $evidenceRoot | Out-Null
+          $candidateTree = (git rev-parse 'HEAD^{tree}').Trim()
+          [pscustomobject]@{
+            schemaVersion = 1
+            documentType = 'V21_PRODUCT_EXPERIENCE_SHELL_P0_TASK9_REPRODUCIBILITY_EVIDENCE'
+            candidateBranch = $env:CANDIDATE_BRANCH
+            candidateCommit = $env:CANDIDATE_SHA
+            candidateTree = $candidateTree
+            formalRelease = $false
+            realWindowsUatRequired = $true
+            runs = $results
+          } | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $evidenceRoot 'task9-evidence.json') -Encoding utf8
+
+      - name: Package exact-head candidate for later real Windows Electron UAT
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'working tree must be clean before UAT packaging' }
+          $uatOutput = Join-Path $env:RUNNER_TEMP 'product-experience-uat'
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $uatOutput
+          node tools/runtime-delivery/create-round12-13-windows-uat-package.js . $uatOutput
+          if ($LASTEXITCODE -ne 0) { throw 'existing Round12/13 Windows UAT packager failed' }
+          $manifestPath = Get-ChildItem -Path $uatOutput -Filter ROUND12_13_UAT_MANIFEST.json -Recurse | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $manifestPath) { throw 'ROUND12_13_UAT_MANIFEST.json missing from UAT package' }
+          $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+          if ($manifest.formalRelease -ne $false) { throw 'UAT package must remain non-release: formalRelease must be false' }
+          if ($manifest.realWindowsUatRequired -ne $true) { throw 'UAT package must require real Windows UAT: realWindowsUatRequired must be true' }
+          if ($manifest.commit -ne $env:CANDIDATE_SHA) { throw "UAT package commit mismatch: expected=$env:CANDIDATE_SHA actual=$($manifest.commit)" }
+          if ($manifest.branch -ne $env:CANDIDATE_BRANCH) { throw "UAT package branch mismatch: expected=$env:CANDIDATE_BRANCH actual=$($manifest.branch)" }
+
+      - name: Upload Task 9 evidence and NOT_REAL_ELECTRON_UAT candidate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Product-Experience-NOT_REAL_ELECTRON_UAT-${{ github.event.pull_request.head.sha }}
+          path: |
+            ${{ runner.temp }}\product-experience-final-validation\task9-evidence.json
+            ${{ runner.temp }}\product-experience-uat\**
+          if-no-files-found: error
+          retention-days: 7
