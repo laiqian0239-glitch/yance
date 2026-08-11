@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 18:57 +07:00
+Last updated: 2026-08-11 18:59 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -55,47 +55,50 @@ Repaired matrix run `31487411606`, exact head `8aaceef6b22d410c0f975c18ba46a0a9c
 - artifact `9099710796`, digest `sha256:b85260a3b9750822f8837f010d48476ad3c6c24854993b8ae6f04bcaddd374e1`, independently reverified.
 
 ### Signal — PENDING
-Both original and repaired jobs remain inside exact upstream Docker build; exact Rust libsignal build is intentionally not replaced by a prebuilt approximation.
+Original job `93764904631` and repaired job `93765873128` have both verified exact source/submodule and remain in exact upstream Docker build. The long Rust libsignal build is intentionally not replaced by a prebuilt approximation.
 
-## Facebook/LINE exact source facts — NEW READ-ONLY AUTHORITY
+## Facebook/LINE exact source facts
 
 ### Facebook Personal
 - exact Meta commit `a0db68a56bb5715d67faa331f647e771d62b05a2`;
-- exact default `Dockerfile` blob `44df33201e9fcc3becc198efa96052ec71e54bbe` runs exact `build-fb.sh` and packages `/usr/bin/mautrix-meta`; `VOLUME /data`;
+- exact default Dockerfile blob `44df33201e9fcc3becc198efa96052ec71e54bbe`, binary `/usr/bin/mautrix-meta`, `/data` volume authority;
 - exact connector validation allows empty/unset mode, so prior `network.mode` warning remains nonfatal;
-- the exact shared bridgev2 dependency has the same base database placeholder fatal predicate already frozen for Instagram.
+- exact shared bridgev2 dependency contains the same base database-placeholder fatal predicate as Instagram.
 
 ### LINE
 - exact commit `0fc10ea165b54db6ffd7c085d42cc42b0ce46414`;
-- exact `Dockerfile` blob `6be7573a8a50f95a3429b9c7e631c9a8f59b166a`, packages `/usr/bin/matrix-line`, uses exact `docker-run.sh` blob `8d05e0493139a2617c03acf52f21edf021f16504`, workdir/data authority `/data`;
-- exact LINE connector does not implement a private config validator; config fatal authority therefore comes from shared bridgev2 base validation;
+- exact Dockerfile blob `6be7573a8a50f95a3429b9c7e631c9a8f59b166a`, binary `/usr/bin/matrix-line`, exact docker-run blob `8d05e0493139a2617c03acf52f21edf021f16504`, `/data` authority;
+- exact LINE connector has no private config validator; config fatal authority is shared bridgev2 base validation;
 - exact mautrix/go v0.28.0 base validator contains the same placeholder URI → `database.uri not configured` predicate.
 
-These source facts make a shared DB omission plausible for Facebook/LINE but **do not yet authorize expanding the DB repair scope**. Exact pinned binaries must reproduce the fatal first.
+These facts make shared DB omission plausible but do **not** authorize widening repair scope before pinned-binary reproduction.
 
-## Parallel isolated Facebook/LINE fatal diagnostic — FROZEN BEFORE WORKFLOW
+## Parallel isolated Facebook/LINE fatal diagnostic — WORKFLOW COMMITTED, RESULT PENDING
 
-To avoid another user Windows run while Signal builds, a verification-only Linux matrix may run in parallel:
+Verification-only commit `2991d16333ff274a141549ab4de2d4434f9cec10` adds only `.github/workflows/multibridge-lab-fb-line-fatal-diagnostic.yml`.
 
-1. exact services only: `facebook-personal`, `line`;
-2. fetch exact frozen source commit and build exact upstream Dockerfile;
-3. use the exact pinned binary to generate example config + ephemeral registration;
-4. replay exactly the historical R12 non-DB wiring with safe dummy values, **without adding recovered database wiring**;
-5. run exact binary under `--network none` and isolated temporary `/data`;
-6. classify only enumerated upstream base fatal categories (`database.uri not configured`, permissions, homeserver, appservice token, username template) or `OTHER_CONFIGURATION_ERROR`; do not upload raw logs/config/registration/DB/tokens;
-7. output one non-secret report with service/source/image/state/exit/classification only;
-8. if both exact binaries reproduce `database.uri not configured`, then and only then add failure-first tests to expand R12 DB repair to those services.
+The workflow freezes the previously authorized diagnostic design:
+- exact matrix only `facebook-personal` and `line`;
+- verifies historical R12 fixture still omits DB wiring;
+- fetches and verifies each exact upstream source commit;
+- builds exact upstream Dockerfile (`mautrix/meta` default Dockerfile for FB, `beeper/line` Dockerfile for LINE);
+- uses exact pinned binary to generate example config and ephemeral registration;
+- replays frozen historical R12 non-DB wiring with safe dummy values and intentionally does **not** apply recovered DB wiring;
+- runs exact binary with `--network none` and isolated temporary `/data`;
+- classifies only enumerated non-secret fatal categories: `DATABASE_URI_NOT_CONFIGURED`, `BRIDGE_PERMISSIONS_NOT_CONFIGURED`, homeserver/appservice-token/username-template categories, `OTHER_CONFIGURATION_ERROR`, or `NO_ENUMERATED_CONFIGURATION_FATAL`;
+- uploads only six non-secret fields: service/source/image/state/exit/classification; no raw logs/config/registration/DB/token artifact;
+- does not modify `r12-database-wiring.ps1`, user runtime, collector, Compose, or product code.
 
-This diagnostic is evidence collection only; it does not mutate `r12-database-wiring.ps1` or user runtime.
+Result is not yet inspected. Per SSOT discipline, this workflow boundary is recorded before reading its Actions run.
 
 ## Unique next actions
 
 No user action now.
 
-1. Continue waiting for exact Signal build/results without weakening authority.
-2. In parallel run the frozen Facebook/LINE isolated fatal diagnostic above.
-3. Update SSOT separately for every completed Signal/FB/LINE result before any implementation scope change.
-4. If FB/LINE prove DB fatal, failure-first expand DB wiring; otherwise repair each exact fatal independently.
+1. Collect exact Actions results for diagnostic commit `2991d16333ff274a141549ab4de2d4434f9cec10`; record each FB/LINE result separately before any repair-scope change.
+2. Continue waiting for exact Signal image builds/results without weakening authority.
+3. If FB/LINE exact binaries reproduce `database.uri not configured`, add failure-first tests before expanding R12 DB wiring to those services; otherwise split repairs by actual fatal.
+4. Only after all config defects are proven and repaired should a final user-runtime repair/readiness package be built.
 
 ## Replacement readiness
 
@@ -107,6 +110,6 @@ Config validation GREEN → sustained five-process runtime → stable RestartCou
 - [x] Instagram pinned-image DB startup GREEN.
 - [x] Google Messages pinned-image DB startup GREEN.
 - [ ] Seal Signal pinned-image DB startup gate.
-- [ ] Run isolated Facebook/LINE true-fatal diagnostic.
-- [ ] Expand or split config repair failure-first from exact diagnostic evidence.
+- [x] Commit isolated Facebook/LINE true-fatal diagnostic (`2991d163...`).
+- [ ] Classify Facebook/LINE diagnostic results and failure-first expand/split repair.
 - [ ] Build final user-runtime repair + sustained readiness gates.
