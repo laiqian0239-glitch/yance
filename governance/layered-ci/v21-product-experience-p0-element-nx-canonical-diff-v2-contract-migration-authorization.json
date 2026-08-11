@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-11T16:57:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-P0-ELEMENT-NX-CANONICAL-DIFF-V2-CONTRACT-MIGRATION",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor scope amendment after the V2 canonical production repair proved its new contract but exposed one stale pre-existing workspace contract. On implementation PR #263 exact Head da15ef14ccd6844a1fdaf15fa23592f70523a727, Stage run 31480756447 / job 93745028942 executes 295 tests with 294 PASS / 1 FAIL. The new failure-first canonical-diff contract v21-element-nx-patch-canonical-diff.test.js is GREEN. The sole RED is subtest 'Nx CRLF backport carries exact-source unified-diff replay coordinates' in tests/wp0/v21-element-workspace-contract.test.js, whose expected coordinate list still hard-codes the superseded six micro-hunks [16378,16398], [16381,16401], [16388,16408], [16392,16412], [16401,16421], [16411,16431]. Actual coordinates correctly contain the newly authorized single canonical unified=3 hunk [16375,16395]. Reverting production patch structure to satisfy that stale assertion would violate the predecessor authorization and repeat the falsified design. This amendment authorizes only migration of that legacy coordinate contract to the canonical single-hunk truth after this authorization is ordinary merged and fresh main is forward-merged into the existing implementation branch. The Element pin, bootstrap, workflow, lock generation, Nx mutation set, production patch contents and all unrelated contracts remain frozen.",
+  "base": {
+    "branch": "main",
+    "commit": "bfbbe9d242d5c1e0e39feee1a94f00d224d1fa10"
+  },
+  "evidence": {
+    "predecessorAuthorizationPullRequest": 262,
+    "predecessorAuthorizationMerge": "bfbbe9d242d5c1e0e39feee1a94f00d224d1fa10",
+    "implementationPullRequest": 263,
+    "implementationExactHead": "da15ef14ccd6844a1fdaf15fa23592f70523a727",
+    "stageRun": 31480756447,
+    "stageJob": 93745028942,
+    "stageTestCount": 295,
+    "stagePassCount": 294,
+    "stageFailCount": 1,
+    "newCanonicalDiffContract": "GREEN",
+    "soleFailingContractPath": "tests/wp0/v21-element-workspace-contract.test.js",
+    "soleFailingSubtest": "Nx CRLF backport carries exact-source unified-diff replay coordinates",
+    "staleExpectedDenseCoordinates": [[16378,16398],[16381,16401],[16388,16408],[16392,16412],[16401,16421],[16411,16431]],
+    "authorizedCanonicalDenseCoordinate": [16375,16395],
+    "authorizedCanonicalDenseHeader": "@@ -16375,49 +16395,49 @@",
+    "elementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "elementPnpmLockBlob": "7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc",
+    "targetNxVersion": "23.1.1"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayContinueOnlyAfterAuthorizationMainMergeIsForwardMerged": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-p0-element-nx-canonical-diff-v2-contract-migration-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-p0-element-nx-canonical-diff-v2-contract-migration-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "62714e9e14a2759d1981ea4659dc5ff8ee99ec43552d4d7b55230e12b36bcbe0",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-p0-element-nx-canonical-diff-v2",
+    "pullRequest": 263,
+    "preAmendmentHead": "da15ef14ccd6844a1fdaf15fa23592f70523a727",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-nx-patch-canonical-diff.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "bf7aba11c55b8bdf91cb53e967bc9c020083eb85480d2b526515d67c5e7e6f3c",
+    "nextImplementationCommit": {
+      "mustFollowFreshMainForwardMerge": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-element-workspace-contract.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "e263649043e2a16c14cd790c10125a5e2cec4aaf727a3d64e68fea92481159dd",
+      "productionCodeChanged": false
+    },
+    "legacyCoordinateContractMigrationAllowed": true,
+    "productionPatchModificationAllowed": false,
+    "bootstrapModificationAllowed": false,
+    "elementPinModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "elementLockRegenerationAllowed": false,
+    "patchMutationSetModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "mandatoryContracts": [
+    "The existing remote RED at Stage run 31480756447 / job 93745028942 is the causal failure-first evidence for this amendment; no synthetic replacement RED is required.",
+    "The new canonical-diff test must remain GREEN and the production patch must remain byte-identical to pre-amendment Head da15ef14ccd6844a1fdaf15fa23592f70523a727 while the stale workspace coordinate expectation is migrated.",
+    "Only the six superseded dense micro-hunk coordinate entries in the legacy full-coordinate expectation may be replaced by the single authorized canonical coordinate [16375,16395]; all other expected hunk coordinates and every other workspace contract assertion remain unchanged.",
+    "No production patch change may be used to satisfy the stale test. The canonical dense header remains @@ -16375,49 +16395,49 @@ and ordinary git apply semantics remain mandatory.",
+    "After the contract migration is GREEN, PR #263 may proceed through its existing ordinary merge and fresh-main Product replay sequence. Real Windows Product Task 9 remains the final replay authority."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "productionPatchModification": true,
+    "gitApplyThreeWay": true,
+    "gitApplyReject": true,
+    "gitApplyRecount": true,
+    "gitApplyUnidiffZero": true,
+    "gitApplyIgnoreWhitespace": true,
+    "fuzzyPatch": true,
+    "lineEndingRewrite": true,
+    "gitAutocrlfManipulation": true,
+    "elementPinChange": true,
+    "pnpmVersionDrift": true,
+    "elementLockRegeneration": true,
+    "unrelatedElementDependencyDrift": true,
+    "bootstrapModification": true,
+    "productSourceModification": true,
+    "workflowModification": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesNewlyAuthorizedImplementationChange": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalProductPullRequestMergeRequiresOwnerApproval": true
+  }
+}
