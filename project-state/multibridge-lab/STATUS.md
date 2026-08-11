@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 15:00 +07:00
+Last updated: 2026-08-11 15:26 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -41,10 +41,14 @@ These operator/network-discovery iterations are not to be patched further. They 
 5. Therefore Synapse DNS failure to `facebook-personal` is downstream of bridge process failure, not sufficient evidence of a Compose network-definition defect.
 6. Upstream mautrix bridgev2 framework maps exit code `11` to configuration validation failure.
 7. The latest diagnostic collector itself failed because native Docker stderr was promoted to a terminating PowerShell error under `$ErrorActionPreference = 'Stop'`. That collector failure is a Lab tooling defect and must not be confused with a new upstream bridge failure.
+8. Repository inspection found an existing accepted Yance Windows native-process pattern in `tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1`: `System.Diagnostics.ProcessStartInfo`, separate stdout/stderr redirection, and explicit process exit-code inspection. The recovery collector will reuse that pattern rather than create a second execution framework.
+9. Test-only commit `3980bf0936132489dac72533f079cb595dcd2747` adds `tests/multibridge-lab/native-process-semantics.test.js` and no production/helper implementation. It locks the required stderr+exit0 and stderr+nonzero semantics plus a Windows legacy direct-native reproducer.
 
 ## Current root-cause hypothesis
 
 **Primary hypothesis:** one or more R12-generated bridge config fields fail the exact upstream validators at runtime. A common generator defect may affect several bridges, but this must be proven from each bridge's exact startup validation error before changing config generation.
+
+**Collector sub-hypothesis:** the failed diagnostic package used PowerShell native-command stream semantics as the error boundary. A thin `ProcessStartInfo` boundary that captures stdout/stderr independently and returns the native exit code will remove that wrapper defect without changing bridge/runtime behavior.
 
 **Explicitly rejected hypotheses until new evidence appears:**
 
@@ -57,13 +61,14 @@ These operator/network-discovery iterations are not to be patched further. They 
 
 **Do not ask the user to run another package yet.**
 
-Before any further user action:
+The causal test-only boundary is now committed. Next, and before any implementation:
 
-1. Repair the exit-11 evidence collector semantics locally/test-first so native stderr+exit0 does not abort PowerShell.
-2. Prove RED against the old collector behavior.
-3. Prove GREEN against representative native commands for both stderr+0 and stderr+nonzero cases.
-4. Re-run the full Lab-owned collector test set.
-5. Only then provide one sanitized evidence package whose sole purpose is to capture the exact configuration-validation line for each of the five bridge containers.
+1. Execute `tests/multibridge-lab/native-process-semantics.test.js` against the test-only state to establish the intended RED.
+2. Record that RED here before adding the helper/collector fix.
+3. Implement the minimal Lab recovery native-process boundary by reusing the existing repository `ProcessStartInfo` pattern.
+4. Prove GREEN against representative native commands for both stderr+0 and stderr+nonzero cases.
+5. Re-run the full Lab-owned collector test set.
+6. Only then provide one sanitized evidence package whose sole purpose is to capture the exact configuration-validation line for each of the five bridge containers.
 
 ## Gate to move from diagnosis to implementation
 
@@ -137,7 +142,9 @@ The replacement for R12 readiness must require, in order:
 - [x] Reclassify later DNS failures as downstream symptoms.
 - [x] Retire R13–R13.3 network/operator patch line.
 - [x] Record recovery execution plan in repository.
-- [ ] Fix collector native stderr semantics with failure-first tests.
+- [x] Add test-only native-process semantic contract (`3980bf0936132489dac72533f079cb595dcd2747`).
+- [ ] Establish causal RED from the test-only state.
+- [ ] Fix collector native stderr semantics.
 - [ ] Capture exact sanitized exit-11 validator errors.
 - [ ] Map each error to exact upstream schema/source authority.
 - [ ] Repair config generation at source.
