@@ -91,3 +91,49 @@ jobs:
           name: yance-multibridge-exit11-evidence-verification
           path: dist/multibridge-exit11-verification
           if-no-files-found: error
+      - name: Stage final R12 runtime repair readiness package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $packageRoot = 'dist/multibridge-r12-runtime-repair-readiness'
+          Remove-Item $packageRoot -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
+
+          $files = [ordered]@{
+            'tools/multibridge-lab/RUN_R12_RUNTIME_REPAIR_READINESS.cmd' = 'RUN_R12_RUNTIME_REPAIR_READINESS.cmd'
+            'tools/multibridge-lab/r12-runtime-repair-readiness.ps1' = 'r12-runtime-repair-readiness.ps1'
+            'tools/multibridge-lab/R12_RUNTIME_REPAIR_READINESS_README.txt' = 'R12_RUNTIME_REPAIR_READINESS_README.txt'
+            'tools/multibridge-lab/r12-database-wiring.ps1' = 'r12-database-wiring.ps1'
+            'tools/multibridge-lab/native-process.ps1' = 'native-process.ps1'
+            'tests/multibridge-lab/fixtures/runtime-login-flow-authorities.json' = 'runtime-login-flow-authorities.json'
+          }
+
+          foreach ($entry in $files.GetEnumerator()) {
+            if (-not (Test-Path -LiteralPath $entry.Key -PathType Leaf)) { throw "Missing runtime readiness package source: $($entry.Key)" }
+            Copy-Item -LiteralPath $entry.Key -Destination (Join-Path $packageRoot $entry.Value)
+          }
+
+          $tokens = $null
+          $parseErrors = $null
+          [void][Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'tools/multibridge-lab/r12-runtime-repair-readiness.ps1').Path,
+            [ref]$tokens,
+            [ref]$parseErrors
+          )
+          if (@($parseErrors).Count -ne 0) {
+            throw "Runtime readiness PowerShell parse RED: $($parseErrors[0].Message)"
+          }
+
+          $manifest = foreach ($name in @($files.Values | Sort-Object)) {
+            $hash = (Get-FileHash -LiteralPath (Join-Path $packageRoot $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $name"
+          }
+          [IO.File]::WriteAllLines((Join-Path $packageRoot 'SHA256SUMS.txt'), $manifest, [Text.UTF8Encoding]::new($false))
+          Write-Host 'R12_RUNTIME_REPAIR_READINESS_PACKAGE_GREEN'
+          $manifest
+      - name: Upload final R12 runtime repair readiness package
+        uses: actions/upload-artifact@v4
+        with:
+          name: yance-multibridge-r12-runtime-repair-readiness
+          path: dist/multibridge-r12-runtime-repair-readiness
+          if-no-files-found: error
