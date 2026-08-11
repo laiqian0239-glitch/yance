@@ -6,15 +6,31 @@
 
 首先读取 [`YANCE_IMPLEMENTATION_MASTER_PLAN.md`](./YANCE_IMPLEMENTATION_MASTER_PLAN.md)。
 
+随后必须读取 [`YANCE_EXECUTION_ACCELERATION_HIGHEST_DIRECTIVE.md`](./YANCE_EXECUTION_ACCELERATION_HIGHEST_DIRECTIVE.md)。该文件是 V2.1 的**永久强制执行语义补充**：保持所有最终门禁强度不变，通过验证分层、外部 OSS exact-SHA shallow materialization、不可变缓存复用、CI 等待并行化和减少本机人工往返来加速项目落地。任何新聊天不得忽略、弱化或重新讨论这套默认执行模式。
+
 该文件自 V2.1 起是 **Yance 唯一稳定架构与实施指令**。当前 V2.1 已吸收 `Relationship Intelligence Enhancement`，它是 V2.1 的严格超集增强，不是 V2.2，也不允许推倒已完成或已授权工作包重来。
 
 冲突优先级固定为：
 
 1. 当前远端 refs、正式治理凭据、exact Head、workflow、review、receipt；
 2. `YANCE_IMPLEMENTATION_MASTER_PLAN.md` V2.1；
-3. `PROJECT_CONTINUATION.md` 动态接续；
-4. 明确声明只补充 V2.1 的专项合同；
-5. Git 历史只用于审计，不作为当前执行指令。
+3. `YANCE_EXECUTION_ACCELERATION_HIGHEST_DIRECTIVE.md`（仅约束执行/验证/下载/materialization/caching/本机协作语义，不扩大架构或授权 scope）；
+4. `PROJECT_CONTINUATION.md` 动态接续；
+5. 明确声明只补充 V2.1 的专项合同；
+6. Git 历史只用于审计，不作为当前执行指令。
+
+### 0.1 永久执行加速硬规则
+
+后续所有工作线默认遵守以下硬规则，完整定义以 `YANCE_EXECUTION_ACCELERATION_HIGHEST_DIRECTIVE.md` 为准：
+
+- **加速来自删除重复成本，不来自减少验证。** 禁止以速度为理由跳过 failure-first、WP0、Layered、ACV2、exact-Head、独立 review、final validation 或 reproducibility。
+- 开发迭代优先跑 causal RED/受影响 contract/build；工作包 closure 跑完整相关 gates；最终 merge 边界仍跑 fresh-main + exact-source + 正式要求的两轮 clean reproducibility + final exact-head validation。
+- 对仅需外部 OSS 精确 40 位 commit 的 materialization，默认使用 `git init → remote add → fetch <exact SHA> --depth=1 → checkout --detach FETCH_HEAD → verify HEAD`；无真实历史依赖时禁止先 full clone 大仓库再 shallow fetch。
+- 两轮 clean reproducibility 可以复用**不可变、内容寻址、重新 hash 验证**的 Git objects、pnpm store、Node/pnpm/Electron/browser/model/archive 等下载缓存，但两轮必须使用独立 fresh workdirs，不得复用 mutable workspace/build output 冒充 clean。
+- CI 等待期间并行推进可独立的只读核验、review、OSS-fit、license/provenance、下一步 test design；不得等待时空转，也不得在真实 RED 出现前猜测性改 production。
+- 需要用户 Windows/GPU/本机网络协作时，默认给**一段可直接复制粘贴、带明确 GREEN/RED 和 evidence 输出的命令**；能由 ChatGPT/GitHub 完成的工作不得转嫁给用户。一次性任务不再为了“一键化”优先制造复杂脚本包装层。
+- environment/tooling RED 必须与 product/contract RED 分离；脚手架失败不得冒充产品 RED，更不得因此修改产品代码。
+- 若全局 materializer/cache/test-routing 优化超出当前 work package scope，必须走独立正式授权，不得偷改当前 scope。
 
 ## 1. 当前最高产品定位
 
