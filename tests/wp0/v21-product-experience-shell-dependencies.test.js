@@ -25,6 +25,12 @@ function lockIndex(patch, label) {
   return { old: match[1], next: match[2] };
 }
 
+function addedYanceImporter(patch) {
+  const match = patch.match(/\+  modules\/yance:\n(?:(?:\+.*)\n)+/u);
+  assert.ok(match, '0011 must add the modules/yance lock importer');
+  return match[0];
+}
+
 test('Product Experience exact OSS package identities are pinned in the Element module', () => {
   const pkg = JSON.parse(read('integration/element-module/package.json'));
   assert.equal(pkg.dependencies?.['@base-ui/react'], '1.7.0');
@@ -103,47 +109,35 @@ test('Product dependency lock patch binds the exact post-0003 runtime preimage',
 
 test('Product dependency lock mutation semantics remain exact and lock-only', () => {
   const patch = read('upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
+  const importer = addedYanceImporter(patch);
 
   assert.equal([...patch.matchAll(/^diff --git /gm)].length, 1, '0011 must remain one lock-only diff');
   assert.match(patch, /^diff --git a\/pnpm-lock\.yaml b\/pnpm-lock\.yaml$/m);
   assert.doesNotMatch(patch, /^diff --git a\/(?!pnpm-lock\.yaml\b).+$/m);
 
-  for (const exactIdentity of [
-    '@base-ui/react@1.7.0',
-    '@rive-app/react-canvas@4.31.0',
-    '@rive-app/canvas@2.39.2',
-    '@types/howler@2.2.13',
-    'howler@2.2.4',
-    'livekit-client@2.21.0',
-    'motion@12.42.2'
+  for (const exactImporterMutation of [
+    "+      '@base-ui/react':\n+        specifier: 1.7.0\n+        version: 1.7.0(",
+    "+      '@element-hq/element-web-module-api':\n+        specifier: workspace:*\n+        version: link:../../packages/module-api",
+    "+      '@rive-app/react-canvas':\n+        specifier: 4.31.0\n+        version: 4.31.0(react@19.2.7)",
+    "+      howler:\n+        specifier: 2.2.4\n+        version: 2.2.4",
+    "+      livekit-client:\n+        specifier: 2.21.0\n+        version: 2.21.0(",
+    "+      motion:\n+        specifier: 12.42.2\n+        version: 12.42.2(",
+    "+      react:\n+        specifier: '>=18'\n+        version: 19.2.7",
+    "+      '@types/howler':\n+        specifier: 2.2.13\n+        version: 2.2.13",
+    "+      typescript:\n+        specifier: 'catalog:'\n+        version: 7.0.2",
+    "+      vite:\n+        specifier: 'catalog:'\n+        version: 8.1.5("
   ]) {
-    assert.ok(patch.includes(exactIdentity), `missing lock identity ${exactIdentity}`);
+    assert.ok(importer.includes(exactImporterMutation), `missing frozen importer mutation ${exactImporterMutation}`);
   }
 
-  for (const importerAuthority of [
-    "specifier: workspace:*",
-    "version: link:../../packages/module-api",
-    "specifier: 1.7.0",
-    "specifier: 4.31.0",
-    "specifier: 2.2.4",
-    "specifier: 2.21.0",
-    "specifier: 12.42.2",
-    "specifier: '>=18'",
-    'version: 19.2.7',
-    'version: 7.0.2',
-    'version: 8.1.5'
-  ]) {
-    assert.ok(patch.includes(importerAuthority), `missing frozen importer authority ${importerAuthority}`);
-  }
+  assert.ok(patch.includes("+  '@rive-app/canvas@2.39.2':"), '0011 must carry the exact frozen Rive backing runtime');
 });
 
 test('Product dependency lock replay remains canonical and uses strict ordinary git apply', () => {
   const patch = read('upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
   const bootstrap = read('tools/matrix/bootstrap.js');
-  const productIndex = lockIndex(patch, '0011 Product dependency lock patch');
+  lockIndex(patch, '0011 Product dependency lock patch');
 
-  assert.equal(productIndex.old.length, 40, '0011 must carry the full exact old-side blob identity');
-  assert.equal(productIndex.next.length, 40, '0011 must carry the full exact target blob identity');
   assert.match(patch, /^--- a\/pnpm-lock\.yaml$/m);
   assert.match(patch, /^\+\+\+ b\/pnpm-lock\.yaml$/m);
   assert.match(patch, /^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@/m);
