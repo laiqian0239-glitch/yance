@@ -51,7 +51,7 @@ test('collector targets only the five recovery bridge services and emits one bou
     assert.match(script, new RegExp(service.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
   assert.match(script, /['"]--tail['"]\s*,\s*['"]80['"]/);
-  assert.match(script, /Select-Object\s+-Last\s+12/);
+  assert.match(script, /Select-LabExit11FatalContext\s+-Lines\s+\$combined\s+-MaxLines\s+12/);
   assert.match(script, /exit11-evidence\.txt/);
   assert.match(script, /FINAL STATUS:\s*REAL_RED/);
 });
