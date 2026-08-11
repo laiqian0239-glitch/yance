@@ -48,7 +48,7 @@ function Get-Sha256Text {
 
 function Get-SingleLineArray {
   param([AllowEmptyString()][string]$Text)
-  return @($Text -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_.Length -gt 0 })
+  return ,@($Text -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_.Length -gt 0 })
 }
 
 $resolvedLabRoot = $null
@@ -185,7 +185,7 @@ function Repair-ServiceDatabaseConfig {
     $actualType = Get-YqScalar -Service $Service -FileName $candidateName -Expression '.database.type'
     $actualUri = Get-YqScalar -Service $Service -FileName $candidateName -Expression '.database.uri'
     if ($actualType -ne [string]$wiring.Type -or $actualUri -ne [string]$wiring.Uri) {
-      throw "REAL_RED: database repair validation failed for $Service."
+      throw "REAL_RED database repair validation failed for $Service."
     }
 
     [IO.File]::Replace($candidatePath, $configPath, $backupPath, $true)
@@ -222,8 +222,8 @@ function Get-ComposeContainerId {
 }
 
 function Get-BridgeRuntimeSample {
-  param([Parameter(Mandatory = $true)][string]$Service)
-  $containerId = Get-ComposeContainerId -Service $Service
+  param([Parameter(Mandatory = $true)][string]$service)
+  $containerId = Get-ComposeContainerId -Service $service
   $stdout = Invoke-DockerChecked -Arguments @('inspect', '--format', '{{.State.Running}}|{{.State.ExitCode}}|{{.RestartCount}}|{{.Image}}', $containerId) -FailureMessage "could not inspect runtime state for $Service."
   $parts = $stdout.Trim().Split('|')
   if ($parts.Count -ne 4) { throw "REAL_RED: runtime state shape is invalid for $Service." }
@@ -239,7 +239,7 @@ function Assert-SynapseHealthy {
   [void](Invoke-ComposeChecked -Arguments @('up', '-d', 'synapse') -FailureMessage 'could not ensure existing Synapse runtime is started.')
   $containerId = Get-ComposeContainerId -Service 'synapse'
   for ($attempt = 1; $attempt -le 30; $attempt++) {
-    $stdout = Invoke-DockerChecked -Arguments @('inspect', '--format', '{{.State.Running}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}', $containerId) -FailureMessage 'could not inspect Synapse health.'
+    $stdout = Invoke-DockerChecked -Arguments @('inspect', '--format', '{{.State.Running}}|{{if .State.Health}}{{.State.Health.Status}}}{else}none{{end}}', $containerId) -FailureMessage 'could not inspect Synapse health.'
     $parts = $stdout.Trim().Split('|')
     if ($parts.Count -eq 2 -and $parts[0] -eq 'true' -and $parts[1] -eq 'healthy') {
       Write-Host 'SYNAPSE_HEALTH_GREEN'
@@ -279,7 +279,7 @@ function Assert-SustainedBridgeRuntime {
     if ($sample.Running -ne 'true' -or $sample.ExitCode -ne 0) {
       throw "REAL_RED: bridge runtime did not remain running for $service."
     }
-    if ($sample.RestartCount -ne [int]$RestartBaseline[$service]) {
+    if ($sample.RestartCount -ne [int]$RestartBaseline[$service) {
       throw "REAL_RED: RestartCount changed during readiness window for $service."
     }
     if ($sample.ImageId -ne [string]$runtimeAuthority[$service].ImageId) {
@@ -290,7 +290,7 @@ function Assert-SustainedBridgeRuntime {
 }
 
 function Get-AppserviceEndpoint {
-  param([Parameter(Mandatory = $true)][string]$Service)
+  param([Parameter(Mandatory = $true)][string]$service)
   $address = Get-YqScalar -Service $Service -FileName 'config.yaml' -Expression '.appservice.address'
   try { $uri = [Uri]$address } catch { throw "REAL_RED: appservice endpoint is invalid for $Service." }
   if (-not $uri.IsAbsoluteUri -or $uri.Host -ne $Service -or $uri.Port -le 0) {
@@ -345,7 +345,7 @@ function Assert-LoginFlowAuthority {
       throw 'REAL_RED: login-flow source identity is invalid.'
     }
   }
-  Write-Host 'LOGIN_FLOW_AUTHORITY_GREEN'
+  Write-Host 'hLOGIN_FLOW_AUTHORITY_GREEN'
 }
 
 try {
@@ -394,28 +394,4 @@ try {
   }
   Write-Host 'EXACT_STAGE_AUTHORITY_GREEN'
 
-  [void](Invoke-ComposeChecked -Arguments (@('stop') + $targets) -FailureMessage 'could not stop the exact five bridge services before DB repair.')
-  foreach ($service in $targets) { Repair-ServiceDatabaseConfig -Service $service }
-  Write-Host 'R12_DATABASE_REPAIR_GREEN'
-
-  Assert-SynapseHealthy
-  [void](Invoke-ComposeChecked -Arguments (@('up', '-d', '--force-recreate') + $targets) -FailureMessage 'could not start the exact five repaired bridge services.')
-
-  $restartBaseline = Assert-InitialBridgeRuntime
-  Assert-SustainedBridgeRuntime -RestartBaseline $restartBaseline
-  Assert-SynapseToBridgesConnectivity
-  Assert-BridgesToSynapseConnectivity
-  Assert-LoginFlowAuthority
-
-  Write-Host 'LAB_RUNTIME_READY'
-  Write-Host 'All non-human runtime gates are GREEN. Real account cookies, QR scans, phone pairing, credentials, 2FA and device linking are intentionally not started by this package.'
-  Write-TerminalStatus -Status 'HUMAN_AUTH_REQUIRED'
-  exit 0
-}
-catch {
-  $message = [string]$_.Exception.Message
-  if (-not $message.StartsWith('REAL_RED:')) { $message = 'REAL_RED: runtime readiness gate failed.' }
-  Write-Host $message
-  Write-TerminalStatus -Status 'REAL_RED'
-  exit 1
-}
+  [void](Invoke-ComposeChecked -Arguments (@('stop') + $targets) -FailureMessage 'could not stop the exact five bridge services before DB&W—"âr¢f÷&V6‚‚G6W'f–6R–âGF&vWG2’²&W—"Õ6W'f–6TFF&6T6öæf–rÕ6W'f–6RG6W'f–6RĞ¢w&—FRÔ†÷7Bu#%ôDD$4Uõ$U•%ôu$TTâp ¢76W'BÕ7–æ6T†VÇF‡¢·fö–EÒ„–çfö¶RÔ6ö×÷6T6†V6¶VBÔ&wVÖVçG2„‚wWrÂrÖBrÂrÒÖf÷&6R×&V7&VFRr’²GF&vWG2’Ôf–ÇW&TÖW76vRv6÷VÆBæ÷B7F'BF†RW†7Bf—fR&W—&VB'&–FvR6W'f–6W2âr ¢G&W7F'D&6VÆ–æRÒ76W'BÔ–æ—F–Ä'&–FvU'VçF–ÖP¢76W'BÕ7W7F–æVD'&–FvU'VçF–ÖRÕ&W7F'D&6VÆ–æRG&W7F'D&6VÆ–æP¢76W'BÕ7–æ6UFô'&–FvW46öææV7F—f—G¢76W'BÔ'&–FvW5Fõ7–æ6T6öææV7F—f—G¢76W'BÔÆöv–äfÆ÷tWF†÷&—G ¢w&—FRÔ†÷7BtÄ%õ%TåD”ÔUõ$TE’p¢w&—FRÔ†÷7BtÆÂæöâÖ‡VÖâ'VçF–ÖRvFW2&Ru$TTââ&VÂ66÷VçB6öö¶–W2Â"66ç2Â†öæR—&–ærÂ7&VFVçF–Ç2Â$dæBFWf–6RÆ–æ¶–ær&R–çFVçF–öæÆÇ’æ÷B7F'FVB'’F†—26¶vRâp¢w&—FRÕFW&Ö–æÅ7FGW2Õ7FGW2t…TÔåôUD…õ$UT•$TBp¢W†—B §Ğ¦6F6‚°¢FÖW76vRÒ·7G&–æuÒEòäW†6WF–öâäÖW76vP¢–b‚Öæ÷BFÖW76vRå7F'G5v—F‚‚u$TÅõ$TC¢r’’²FÖW76vRÒu$TÅõ$TC¢'VçF–ÖR&VF–æW72vFRf–ÆVBârĞ¢w&—FRÔ†÷7BFÖW76vP¢w&—FRÕFW&Ö–æÅ7FGW2Õ7FGW2u$TÅõ$TBp¢W†—B§Ğ 
