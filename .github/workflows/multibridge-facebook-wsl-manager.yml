@@ -1,0 +1,134 @@
+name: Multibridge Facebook WSL Manager
+
+on:
+  push:
+    branches:
+      - lab/multibridge-recovery-plan-20260811
+    paths:
+      - tools/multibridge-lab/facebook-personal-manager-wsl.ps1
+      - tools/multibridge-lab/facebook-personal-manager-install.sh
+      - tools/multibridge-lab/RUN_FACEBOOK_PERSONAL_MANAGER_WSL.cmd
+      - tools/multibridge-lab/FACEBOOK_PERSONAL_MANAGER_WSL_README.txt
+      - tools/multibridge-lab/facebook-personal-wsl-readiness.ps1
+      - tools/multibridge-lab/native-process.ps1
+      - tests/multibridge-lab/facebook-personal-wsl-manager.test.js
+      - .github/workflows/multibridge-facebook-wsl-manager.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+      - name: Run Facebook Personal WSL manager contracts
+        shell: pwsh
+        run: node --test tests/multibridge-lab/facebook-personal-wsl-manager.test.js
+      - name: Parse manager launcher with Windows PowerShell 5.1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $targets = @(
+            (Resolve-Path 'tools/multibridge-lab/facebook-personal-manager-wsl.ps1').Path,
+            (Resolve-Path 'tools/multibridge-lab/facebook-personal-wsl-readiness.ps1').Path
+          )
+          $gate = Join-Path $env:RUNNER_TEMP 'parse-facebook-manager-wsl-ps51.ps1'
+          $body = @'
+          param([Parameter(Mandatory = $true)][string[]]$Target)
+          foreach ($item in $Target) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($item, [ref]$tokens, [ref]$errors)
+            if (@($errors).Count -ne 0) {
+              Write-Error ("Windows PowerShell 5.1 parse RED: " + $errors[0].Message)
+              exit 1
+            }
+          }
+          Write-Output 'WINDOWS_POWERSHELL_5_1_MANAGER_PARSE_GREEN'
+          '@
+          [IO.File]::WriteAllText($gate, $body, [Text.Encoding]::ASCII)
+          & powershell.exe -NoLogo -NoProfile -NonInteractive -File $gate -Target $targets
+          if ($LASTEXITCODE -ne 0) { throw 'Windows PowerShell 5.1 manager parse gate failed.' }
+      - name: Stage sealed Facebook Personal WSL manager package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $packageRoot = 'dist/facebook-personal-wsl-manager'
+          Remove-Item $packageRoot -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
+          $files = [ordered]@{
+            'tools/multibridge-lab/RUN_FACEBOOK_PERSONAL_MANAGER_WSL.cmd' = 'RUN_FACEBOOK_PERSONAL_MANAGER_WSL.cmd'
+            'tools/multibridge-lab/facebook-personal-manager-wsl.ps1' = 'facebook-personal-manager-wsl.ps1'
+            'tools/multibridge-lab/facebook-personal-manager-install.sh' = 'facebook-personal-manager-install.sh'
+            'tools/multibridge-lab/FACEBOOK_PERSONAL_MANAGER_WSL_README.txt' = 'FACEBOOK_PERSONAL_MANAGER_WSL_README.txt'
+            'tools/multibridge-lab/facebook-personal-wsl-readiness.ps1' = 'facebook-personal-wsl-readiness.ps1'
+            'tools/multibridge-lab/native-process.ps1' = 'native-process.ps1'
+          }
+          foreach ($entry in $files.GetEnumerator()) {
+            if (-not (Test-Path -LiteralPath $entry.Key -PathType Leaf)) { throw "Missing package source: $($entry.Key)" }
+            Copy-Item -LiteralPath $entry.Key -Destination (Join-Path $packageRoot $entry.Value)
+          }
+
+          $manifest = foreach ($name in @($files.Values | Sort-Object)) {
+            $hash = (Get-FileHash -LiteralPath (Join-Path $packageRoot $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $name"
+          }
+          [IO.File]::WriteAllLines((Join-Path $packageRoot 'SHA256SUMS.txt'), $manifest, [Text.UTF8Encoding]::new($false))
+          Write-Host '=== PACKAGE SHA256 ==='
+          $manifest | Write-Host
+
+          foreach ($name in @('facebook-personal-manager-wsl.ps1', 'facebook-personal-wsl-readiness.ps1', 'native-process.ps1')) {
+            $path = (Resolve-Path (Join-Path $packageRoot $name)).Path
+            [IO.File]::WriteAllText($path + ':Zone.Identifier', "[ZoneTransfer]`r`nZoneId=3`r`n", [Text.Encoding]::ASCII)
+          }
+
+          $wrapper = (Resolve-Path (Join-Path $packageRoot 'RUN_FACEBOOK_PERSONAL_MANAGER_WSL.cmd')).Path
+          $previousPolicy = $env:PSExecutionPolicyPreference
+          try {
+            $env:PSExecutionPolicyPreference = 'RemoteSigned'
+            $cmdLine = '(echo.)|call "' + $wrapper + '"'
+            $output = (& cmd.exe /d /s /c $cmdLine 2>&1 | Out-String)
+            $exitCode = $LASTEXITCODE
+          }
+          finally {
+            if ($null -eq $previousPolicy) { Remove-Item Env:PSExecutionPolicyPreference -ErrorAction SilentlyContinue }
+            else { $env:PSExecutionPolicyPreference = $previousPolicy }
+          }
+          $output | Write-Host
+          if ($output -notmatch 'PACKAGE_INTEGRITY_GREEN') { throw 'Manager wrapper integrity bootstrap did not pass.' }
+          if ($output -notmatch 'PACKAGE_MOTW_RELEASE_GREEN') { throw 'Manager wrapper MotW release did not pass.' }
+          if ($output -match 'PSSecurityException|UnauthorizedAccess|digitally signed') { throw 'Manager wrapper remained blocked by execution policy.' }
+          if ($exitCode -notin @(0,2,3)) { throw "Unexpected hosted-Windows manager package exit: $exitCode" }
+          $global:LASTEXITCODE = 0
+          Write-Host 'MANAGER_WSL_PACKAGE_GREEN'
+      - name: Upload Facebook Personal WSL manager package
+        uses: actions/upload-artifact@v4
+        with:
+          name: yance-facebook-personal-wsl-manager
+          path: dist/facebook-personal-wsl-manager
+          if-no-files-found: error
+
+  linux-installer-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate installer syntax
+        shell: bash
+        run: bash -n tools/multibridge-lab/facebook-personal-manager-install.sh
+      - name: Validate exact official deb install and GUI smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          deb="$RUNNER_TEMP/mautrix-manager_0.2.1_amd64.deb"
+          curl --fail --silent --show-error --location \
+            --output "$deb" \
+            https://github.com/mautrix/manager/releases/download/v0.2.1/mautrix-manager_0.2.1_amd64.deb
+          echo '94cca9ffe2087521a042f8afc656c1403dcc79af980acd229420829b367ea1fd'"  $deb" | sha256sum --check --strict
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          bash tools/multibridge-lab/facebook-personal-manager-install.sh --install-and-smoke "$deb"
