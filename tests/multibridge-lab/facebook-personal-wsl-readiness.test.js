@@ -10,7 +10,7 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const SCRIPT = path.join(ROOT, 'tools', 'multibridge-lab', 'facebook-personal-wsl-readiness.ps1');
 const WRAPPER = path.join(ROOT, 'tools', 'multibridge-lab', 'RUN_FACEBOOK_PERSONAL_WSL_READINESS.cmd');
 const README = path.join(ROOT, 'tools', 'multibridge-lab', 'FACEBOOK_PERSONAL_WSL_READINESS_README.txt');
-const WORKFLOW = path.join(ROOT, '.github', 'workflows', 'multibridge-lab-native-process.yml');
+const PACKAGE_WORKFLOW = path.join(ROOT, '.github', 'workflows', 'multibridge-facebook-wsl-readiness.yml');
 
 function psQuote(value) {
   return `'${String(value).replaceAll("'", "''")}'`;
@@ -107,8 +107,11 @@ test('WSL verbose parser preserves distro names and WSL2 identity across English
   }
 });
 
-test('native Windows CI publishes the bounded WSL readiness package only after contracts pass', () => {
-  const workflow = fs.readFileSync(WORKFLOW, 'utf8');
+test('dedicated Windows CI publishes the bounded WSL readiness package only after contracts pass', () => {
+  assert.ok(fs.existsSync(PACKAGE_WORKFLOW), `missing WSL packaging workflow: ${PACKAGE_WORKFLOW}`);
+  const workflow = fs.readFileSync(PACKAGE_WORKFLOW, 'utf8');
+  assert.match(workflow, /runs-on:\s*windows-latest/);
+  assert.match(workflow, /node --test tests\/multibridge-lab\/facebook-personal-wsl-readiness\.test\.js/);
   assert.match(workflow, /yance-facebook-personal-wsl-readiness/);
   assert.match(workflow, /facebook-personal-wsl-readiness\.ps1/);
   assert.match(workflow, /RUN_FACEBOOK_PERSONAL_WSL_READINESS\.cmd/);
