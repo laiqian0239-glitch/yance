@@ -21,7 +21,8 @@ test('Facebook Personal manager path validates the exact official release payloa
   assert.match(workflow, new RegExp(RELEASE_ASSET_ID));
   assert.match(workflow, new RegExp(RELEASE_SHA256));
   assert.match(workflow, new RegExp(RELEASE_COMMIT));
-  assert.match(workflow, /releases\/assets\/495351157/);
+  assert.match(workflow, /\$assetId\s*=\s*'495351157'/);
+  assert.match(workflow, /releases\/assets\/\$assetId/);
   assert.match(workflow, /application\/octet-stream/);
   assert.match(workflow, /Get-FileHash[\s\S]*SHA256/);
   assert.match(workflow, /Expand-Archive/);
