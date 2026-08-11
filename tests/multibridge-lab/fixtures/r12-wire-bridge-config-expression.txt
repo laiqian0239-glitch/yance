@@ -1,0 +1,24 @@
+YANCE-MULTIBRIDGE-LAB R12 HISTORICAL WIRING EXPRESSION FIXTURE
+
+Source authority:
+- historical file: prepare-lab-runtime-r12-2026-08-11.ps1
+- historical function: Wire-BridgeConfig
+- recovery role: non-executable immutable fixture for failure-first tests
+- this is the exact previously verified yq mutation expression relevant to R12 bridge config wiring; it is intentionally not a reconstructed full script.
+
+EXACT_YQ_EXPRESSION_BEGIN
+.homeserver.address=strenv(YANCE_HOMESERVER_ADDRESS)|
+.homeserver.domain=strenv(YANCE_HOMESERVER_DOMAIN)|
+.homeserver.software=strenv(YANCE_HOMESERVER_SOFTWARE)|
+.appservice.address=strenv(YANCE_APPSERVICE_ADDRESS)|
+.appservice.hostname=strenv(YANCE_APPSERVICE_HOSTNAME)|
+.appservice.port=env(YANCE_APPSERVICE_PORT)|
+.matrix.federate_rooms=env(YANCE_FEDERATE_ROOMS)|
+.bridge.permissions[strenv(YANCE_DOMAIN_PERMISSION_KEY)]=strenv(YANCE_USER_PERMISSION)|
+.bridge.permissions[strenv(YANCE_ADMIN_PERMISSION_KEY)]=strenv(YANCE_ADMIN_PERMISSION)
+EXACT_YQ_EXPRESSION_END
+
+Historical causal observation:
+- no .database.type mutation exists in this expression
+- no .database.uri mutation exists in this expression
+- therefore upstream example database values pass through unchanged
