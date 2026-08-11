@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 22:45 +07:00
+Last updated: 2026-08-11 23:09 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -179,18 +179,45 @@ Independent downloaded-ZIP verification is GREEN:
 - login authority JSON remains `29e1b882feadb8abe87ca89906a898601ee4e1c369532b0faf9f20999d238c6f`;
 - runtime script contains the required `return ,@(` collection preservation and no execution-policy bypass.
 
-## Unique next action — USER-MACHINE RUNTIME GATE, SCALARIZATION-FIXED PACKAGE ONLY
+## USER-MACHINE RUNTIME READINESS — GREEN / HUMAN AUTH BOUNDARY REACHED
 
-Artifacts `9103590098` and `9105922425`, and all folders extracted from them, are superseded and must not be reused.
+Real Windows execution of scalarization-fixed artifact `9107922278` at 2026-08-11 23:09 +07:00 reached the intended terminal boundary with exit code `0`.
 
-Use only artifact `9107922278`, extract it into a fresh local directory, then double-click `RUN_R12_RUNTIME_REPAIR_READINESS.cmd`. Do not manually unblock files, do not edit package files and do not change PowerShell execution policy.
+Observed bounded console evidence, in order:
 
-The next valid state is exactly one of:
+- `PACKAGE_INTEGRITY_GREEN`;
+- `PACKAGE_MOTW_RELEASE_GREEN`;
+- `COMPOSE_AUTHORITY_GREEN`;
+- `EXACT_STAGE_AUTHORITY_GREEN`;
+- `NON_DATABASE_CONFIG_HASH_GREEN` for exactly `facebook-personal`, `instagram-dm`, `google-messages`, `signal`, and `line`;
+- `R12_DATABASE_REPAIR_GREEN`;
+- `SYNAPSE_HEALTH_GREEN`;
+- `UPSTREAM_CONFIG_VALIDATION_GREEN`;
+- `SUSTAINED_RUNTIME_GREEN`;
+- `SYNAPSE_TO_BRIDGES_GREEN`;
+- `BRIDGES_TO_SYNAPSE_GREEN`;
+- `LOGIN_FLOW_AUTHORITY_GREEN`;
+- `LAB_RUNTIME_READY`;
+- explicit statement that cookies, QR scans, phone pairing, credentials, 2FA and device linking were intentionally not started;
+- `FINAL STATUS: HUMAN_AUTH_REQUIRED`;
+- `YANCE-MULTIBRIDGE-LAB finished with exit code 0.`
 
-- integrity/MotW/Compose/exact-stage/DB/runtime/connectivity gates GREEN → `LAB_RUNTIME_READY` → `FINAL STATUS: HUMAN_AUTH_REQUIRED`; or
-- a new bounded `FINAL STATUS: REAL_RED`, which becomes the next causal runtime boundary to repair.
+This closes the non-human Task E runtime gate. There is no remaining runtime/config/network/Compose repair action justified by current evidence. The next boundary is exactly the plan's Task 4 real-account operator layer, using mature upstream login/provisioning flows one platform at a time.
 
-Do not upload `.runtime`, configs, registrations, DBs, logs, cookies, tokens or account/device material. A screenshot of the bounded console status is sufficient.
+## Unique next action — TASK 4 HUMAN AUTHORIZATION, FACEBOOK PERSONAL FIRST
+
+Do not rerun the runtime repair/readiness package unless a later real-account flow causes a genuinely new runtime-readiness regression.
+
+The approved recovery plan now advances in this order:
+
+1. Facebook Personal — use the pinned Meta bridge's upstream login modes and mautrix-manager/bridgev2 provisioning flow where applicable; no hand-built cookie extraction and no Matrix-room command fallback.
+2. Instagram DM — pinned upstream Meta/Instagram login flow; if browser cookie capture is required by the exact pin, use the mature upstream manager/webview flow.
+3. Google Messages — upstream QR/device-linking flow.
+4. Signal — upstream device-linking flow and stable reconnect proof.
+5. LINE — upstream login/device-confirmation flow.
+6. Facebook Page stays last on its previously frozen native-session/manual acceptance path.
+
+Stop only when the upstream flow itself requires a real human login, verification code, 2FA, checkpoint, QR scan, phone/device confirmation, or when a new upstream `REAL_RED` is proven. Never upload passwords, cookies, tokens, QR/device-linking secrets, 2FA codes, `.runtime`, configs, registrations or databases.
 
 ## Progress
 
@@ -202,5 +229,12 @@ Do not upload `.runtime`, configs, registrations, DBs, logs, cookies, tokens or 
 - [x] Real user-machine Compose authority reached.
 - [x] PowerShell single-element output scalarization reproduced failure-first and repaired at collection semantics.
 - [x] Scalarization-fixed package: 25/25 Windows contracts, MotW bootstrap GREEN, independent ZIP/manifest verification GREEN.
-- [ ] User-machine `LAB_RUNTIME_READY` or a new genuine runtime `REAL_RED` using artifact `9107922278`.
-- [ ] Human authorization only after runtime readiness.
+- [x] User-machine `LAB_RUNTIME_READY` reached with all non-human gates GREEN and exit code `0`.
+- [x] Hard human authorization boundary reached exactly as designed: `FINAL STATUS: HUMAN_AUTH_REQUIRED`.
+- [ ] Task 4 Facebook Personal upstream real-account authorization/acceptance.
+- [ ] Task 4 Instagram DM upstream real-account authorization/acceptance.
+- [ ] Task 4 Google Messages upstream device-linking/acceptance.
+- [ ] Task 4 Signal upstream device-linking/acceptance.
+- [ ] Task 4 LINE upstream login/device-confirmation acceptance.
+- [ ] Facebook Page native-session/manual acceptance last.
+- [ ] Final Lab closure and separate product-integration merge boundary.
