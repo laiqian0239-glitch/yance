@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 15:44 +07:00
+Last updated: 2026-08-11 15:46 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -52,12 +52,13 @@ These operator/network-discovery iterations are not to be patched further. They 
 16. Implementation commit `8bb26b0be6695d4c88f9d37ee4ab5add57c7b49c` then adds only `tools/multibridge-lab/collect-exit11-evidence.ps1`. It is a thin read-only collector over `Invoke-LabNativeProcess`, targets exactly `facebook-personal`, `instagram-dm`, `google-messages`, `signal`, and `line`, permits only Docker `ps`/`inspect`/`logs`, bounds logs to 80 lines and matched validation evidence to 12 lines, and redacts bridge secrets/account identifiers/message-like content before artifact writing. No bridge config, Docker network, runtime lifecycle, login flow, WhatsApp, Telegram, or Synapse setup is modified.
 17. Implementation Windows run `31473923511`, job `93723164381`, exact Head `8bb26b0be6695d4c88f9d37ee4ab5add57c7b49c` is a real RED: 7 tests passed and 1 failed. Native-process tests, helper wiring, read-only enforcement, and sanitizer are GREEN. The single failure is a static test representation defect: the test searches source text for `/--tail\s+80/`, while the PowerShell implementation correctly expresses the same Docker argv as `@('logs', '--tail', '80', $containerId)`.
 18. Independent collector audit found a separate real behavior gap that must not be hidden by merely fixing the static test: `Get-LabExit11ServiceEvidence` records `DockerLogsExitCode`, but a non-zero `docker logs` result does not currently mark the service as collector evidence failure; `Invoke-LabExit11Collector` can therefore return collector-level `0` even though the evidence read failed. This violates the frozen rule that native stderr + non-zero must be recorded as controlled failure.
+19. Test-only commit `d794f484269afbb65f526bd7e9607cc2da8f6e51` updates only `tests/multibridge-lab/exit11-collector.test.js`. It fixes the bounded-tail assertion to validate the semantic argv pair `'--tail','80'` plus `Select-Object -Last 12`, and adds a Windows fake-Docker regression where `logs` emits a secret-bearing stderr line and exits `9`. The required behavior is controlled `REAL_RED`, explicit native exit code `9`, preserved non-secret diagnostic marker, and redaction of the secret token. Collector implementation is unchanged at this boundary.
 
 ## Current root-cause hypothesis
 
 **Primary hypothesis:** one or more R12-generated bridge config fields fail the exact upstream validators at runtime. A common generator defect may affect several bridges, but this must be proven from each bridge's exact startup validation error before changing config generation.
 
-**Collector sub-hypothesis:** confirmed at the native-process boundary. The wrapper defect is eliminated without changing bridge/runtime behavior. The collector implementation is not yet user-ready because collector-level handling of a non-zero Docker evidence read still needs a failure-first regression and root fix.
+**Collector sub-hypothesis:** confirmed at the native-process boundary. The wrapper defect is eliminated without changing bridge/runtime behavior. The collector implementation is not yet user-ready because collector-level handling of a non-zero Docker evidence read still needs causal RED proof and root repair.
 
 **Explicitly rejected hypotheses until new evidence appears:**
 
@@ -70,9 +71,9 @@ These operator/network-discovery iterations are not to be patched further. They 
 
 **Do not ask the user to run another package yet.**
 
-1. Extend `tests/multibridge-lab/exit11-collector.test.js` before implementation changes so the bounded-tail assertion validates semantic argv tokens rather than one source-text formatting style.
-2. In the same test-only change, add a Windows collector-level regression that supplies a fake Docker executable whose `logs` command emits stderr and exits non-zero; require controlled `REAL_RED` classification and sanitized recording of the native exit/stderr, not PowerShell termination and not collector-level success.
-3. Run that test-only Head on Windows and require the new non-zero collector case to RED before implementation repair.
+1. Collect the exact Windows Actions result for test-only Head `d794f484269afbb65f526bd7e9607cc2da8f6e51` or its STATUS-only descendant.
+2. Require the new fake-Docker native-nonzero collector regression to RED while the bounded-tail assertion and all previously GREEN tests remain GREEN.
+3. Record that causal RED here before implementation repair.
 4. Repair the collector at the evidence boundary so any non-zero Docker read becomes controlled, sanitized collector evidence failure while stderr+exit0 remains accepted.
 5. Re-run the complete `tests/multibridge-lab/*.test.js` set on Windows and inspect the exact job log.
 6. Only after the complete Lab-owned set is GREEN may one new sanitized Windows evidence package be constructed and supplied to the user.
@@ -156,7 +157,8 @@ The replacement for R12 readiness must require, in order:
 - [x] Establish collector causal RED (run `31473833265`).
 - [x] Add minimal read-only collector implementation (`8bb26b0be6695d4c88f9d37ee4ab5add57c7b49c`).
 - [x] Classify first implementation Windows RED (run `31473923511`: 7 pass / 1 static assertion fail).
-- [ ] Add collector native-nonzero failure-first regression and establish RED.
+- [x] Add collector native-nonzero failure-first regression (`d794f484269afbb65f526bd7e9607cc2da8f6e51`).
+- [ ] Establish collector native-nonzero causal RED on Windows.
 - [ ] Repair collector native-nonzero classification and prove complete Windows GREEN.
 - [ ] Capture exact sanitized exit-11 validator errors.
 - [ ] Map each error to exact upstream schema/source authority.
