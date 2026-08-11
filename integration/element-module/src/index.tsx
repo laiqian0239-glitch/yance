@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 import React from "react";
 import type { Api, Module, ModuleFactory } from "@element-hq/element-web-module-api";
 import { YanceWorkspace } from "./YanceWorkspace";
