@@ -99,7 +99,7 @@ jobs:
           echo "IMAGE_ID=$image_id" >> "$GITHUB_ENV"
           echo "IMAGE_ID=$image_id"
 
-      - name: Exercise exact pinned binary with repaired DB config
+      - name: Exercise exact pinned binary with repaired R12 config
         shell: bash
         env:
           SERVICE: ${{ matrix.service }}
@@ -107,12 +107,24 @@ jobs:
           BINARY: ${{ matrix.binary }}
           DB_TYPE: ${{ steps.wiring.outputs.db_type }}
           DB_URI: ${{ steps.wiring.outputs.db_uri }}
+          YANCE_HOMESERVER_ADDRESS: http://127.0.0.1:9
+          YANCE_HOMESERVER_DOMAIN: yance-lab.local
+          YANCE_HOMESERVER_SOFTWARE: standard
+          YANCE_APPSERVICE_ADDRESS: http://127.0.0.1:29320
+          YANCE_APPSERVICE_HOSTNAME: 127.0.0.1
+          YANCE_APPSERVICE_PORT: "29320"
+          YANCE_FEDERATE_ROOMS: "false"
+          YANCE_DOMAIN_PERMISSION_KEY: yance-lab.local
+          YANCE_ADMIN_PERMISSION_KEY: "@lab:yance-lab.local"
+          YANCE_USER_PERMISSION: user
+          YANCE_ADMIN_PERMISSION: admin
         run: |
           set -euo pipefail
           data="$RUNNER_TEMP/yance-dbcheck-$SERVICE"
-          report="$RUNNER_TEMP/pinned-db-image-$SERVICE.txt"
+          report="$GITHUB_WORKSPACE/pinned-db-image-$SERVICE.txt"
           log="$RUNNER_TEMP/pinned-db-image-$SERVICE.log"
           rm -rf "$data"
+          rm -f "$report"
           mkdir -p "$data"
           cid=""
           cleanup() {
@@ -147,11 +159,28 @@ jobs:
             --volume "$data:/data" \
             --env DB_TYPE="$DB_TYPE" \
             --env DB_URI="$DB_URI" \
+            --env YANCE_HOMESERVER_ADDRESS \
+            --env YANCE_HOMESERVER_DOMAIN \
+            --env YANCE_HOMESERVER_SOFTWARE \
+            --env YANCE_APPSERVICE_ADDRESS \
+            --env YANCE_APPSERVICE_HOSTNAME \
+            --env YANCE_APPSERVICE_PORT \
+            --env YANCE_FEDERATE_ROOMS \
+            --env YANCE_DOMAIN_PERMISSION_KEY \
+            --env YANCE_ADMIN_PERMISSION_KEY \
+            --env YANCE_USER_PERMISSION \
+            --env YANCE_ADMIN_PERMISSION \
             "$IMAGE" -ceu '
               yq -I4 e -i '\''
-                .homeserver.address = "http://127.0.0.1:9" |
-                .homeserver.domain = "yance-lab.local" |
-                .homeserver.software = "standard" |
+                .homeserver.address = strenv(YANCE_HOMESERVER_ADDRESS) |
+                .homeserver.domain = strenv(YANCE_HOMESERVER_DOMAIN) |
+                .homeserver.software = strenv(YANCE_HOMESERVER_SOFTWARE) |
+                .appservice.address = strenv(YANCE_APPSERVICE_ADDRESS) |
+                .appservice.hostname = strenv(YANCE_APPSERVICE_HOSTNAME) |
+                .appservice.port = env(YANCE_APPSERVICE_PORT) |
+                .matrix.federate_rooms = env(YANCE_FEDERATE_ROOMS) |
+                .bridge.permissions[strenv(YANCE_DOMAIN_PERMISSION_KEY)] = strenv(YANCE_USER_PERMISSION) |
+                .bridge.permissions[strenv(YANCE_ADMIN_PERMISSION_KEY)] = strenv(YANCE_ADMIN_PERMISSION) |
                 .database.type = strenv(DB_TYPE) |
                 .database.uri = strenv(DB_URI)
               '\'' /data/config.yaml
@@ -205,7 +234,6 @@ jobs:
             write_report DB_VALIDATION_GREEN_LATER_NONCONFIG_EXIT "$state" "$exit_code" true
           fi
           cat "$report"
-          cp "$report" "$GITHUB_WORKSPACE/pinned-db-image-$SERVICE.txt"
 
       - name: Upload non-secret pinned image validation report
         if: always()
