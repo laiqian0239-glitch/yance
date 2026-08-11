@@ -8,7 +8,7 @@ index 1458c14e3e59f6fa7c948b5ffb7de4404c1cb5f5..594ea1d1cbd9f6a8b500ba70f1872a17
 +        "nx": "23.1.1",
          "oxfmt": "0.59.0",
 diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
-index 7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc..9ea9eb20bd2bb2d8af0f811ecf0798262924b8df 100644
+index 7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc..f13b569df10a63311d7bba874c452b568617e5d0 100644
 --- a/pnpm-lock.yaml
 +++ b/pnpm-lock.yaml
 @@ -323,4 +323,4 @@
@@ -290,7 +290,7 @@ index 7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc..9ea9eb20bd2bb2d8af0f811ecf079826
 +    dependencies:
 +      is-inside-container: 1.0.0
 +
-   is-wsl@3.1.1:
+   is-wsl@3.1.1: {}
 @@ -23846,3 +23877,3 @@
 -  nx@23.1.0:
 +  nx@23.1.1:
