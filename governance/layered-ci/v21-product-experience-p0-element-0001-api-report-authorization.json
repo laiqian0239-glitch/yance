@@ -39,7 +39,7 @@
       "governance/layered-ci/v21-product-experience-p0-element-0001-api-report-authorization.json"
     ],
     "approvedChangedFileCount": 1,
-    "approvedChangedFileSetSha256": "8821850bef12c186a6e44727a677f6dacaa852bcb95d344169280805d761b1dc",
+    "approvedChangedFileSetSha256": "a887c7ab9d9c02faff5b68cefbcd1894d3131baff6a58b857a2eeab3043436cb",
     "mustRemainSingleFile": true
   },
   "implementation": {
@@ -49,14 +49,14 @@
       "upstream-patches/element-web/0001-yance-global-right-workspace.patch"
     ],
     "approvedChangedFileCount": 2,
-    "approvedChangedFileSetSha256": "1ce1cb69b964d8409ac38d05a1a95b45f08175ba4319075400de84a045ea84af",
+    "approvedChangedFileSetSha256": "33b99aad6e5daf4408b581ce5398eecbb1f8897b157a317f7e06654d1c016155",
     "failureFirstCommit": {
       "mustBeFirstImplementationCommit": true,
       "allowedChangedPaths": [
         "tests/wp0/v21-element-workspace-contract.test.js"
       ],
       "approvedChangedFileCount": 1,
-      "approvedChangedFileSetSha256": "9e225f5d05e5b9aa045983d0784aa12f50f34da176ea8f8da24b55df1fad48b1",
+      "approvedChangedFileSetSha256": "e263649043e2a16c14cd790c10125a5e2cec4aaf727a3d64e68fea92481159dd",
       "productionCodeChanged": false
     },
     "newDependencyAllowed": false,
