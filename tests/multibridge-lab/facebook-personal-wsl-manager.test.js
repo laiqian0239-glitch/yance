@@ -68,6 +68,32 @@ test('Linux installer uses only the exact official deb and package-manager sandb
   assert.doesNotMatch(script, /facebook\.com|cookie|password|2fa|access[_ -]?token/i);
 });
 
+test('Windows operator resolves a non-root WSLg user and pins GUI launch to that user', { skip: process.platform !== 'win32' }, () => {
+  const script = text(PS);
+  const installer = text(SH);
+  assert.match(script, /function\s+Resolve-FacebookPersonalWslGuiUser/);
+  assert.match(script, /WSL_GUI_USER_GREEN/);
+  assert.match(script, /'--distribution',\s*\$DistroName,\s*'--user',\s*\$guiUser\.Name,\s*'--exec',\s*'bash'/);
+  assert.match(installer, /MAUTRIX_MANAGER_GUI_USER_GREEN/);
+  assert.match(installer, /id\s+-u/);
+  assert.doesNotMatch(script, /--no-sandbox|--disable-setuid-sandbox/i);
+  assert.doesNotMatch(installer, /--no-sandbox|--disable-setuid-sandbox/i);
+
+  const command = [
+    `. ${psQuote(PS)} -LibraryOnly`,
+    'function Invoke-LabNativeProcess { param([string]$FilePath,[string[]]$Arguments,[string]$WorkingDirectory = ""); $joined = ($Arguments -join "|"); if ($joined -match "--exec\\|bash\\|-lc" -and $joined -notmatch "--user") { return [pscustomobject]@{ ExitCode = 0; StdOut = "UID=0`nUSER=root`n"; StdErr = "" } }; if ($joined -match "--exec\\|getent\\|passwd") { return [pscustomobject]@{ ExitCode = 0; StdOut = "root:x:0:0:root:/root:/bin/bash`nalice:x:1000:1000:Alice:/home/alice:/bin/bash`n"; StdErr = "" } }; if ($joined -match "--user\\|alice\\|--exec\\|bash\\|-lc") { return [pscustomobject]@{ ExitCode = 0; StdOut = "UID=1000`nUSER=alice`nHOME=/home/alice`nWSLG=1`nDISPLAY_OK=1`n"; StdErr = "" } }; return [pscustomobject]@{ ExitCode = 9; StdOut = ""; StdErr = $joined } }',
+    `$r = Resolve-FacebookPersonalWslGuiUser -WslExe 'C:\\Windows\\System32\\wsl.exe' -DistroName 'Ubuntu-24.04'`,
+    'Write-Output ("USER=" + $r.Name + " UID=" + $r.Uid)'
+  ].join('; ');
+  const run = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', command], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    windowsHide: true
+  });
+  assert.equal(run.status, 0, `PowerShell WSL GUI user resolver test failed:\n${run.stdout}\n${run.stderr}`);
+  assert.match(run.stdout, /USER=alice UID=1000/);
+});
+
 test('interactive native launcher classifies stderr by exit code and does not hide sudo prompts', { skip: process.platform !== 'win32' }, () => {
   text(PS);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wsl-manager-test-'));
