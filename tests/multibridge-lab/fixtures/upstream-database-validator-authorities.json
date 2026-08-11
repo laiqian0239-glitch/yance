@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "placeholderUri": "postgres://user:password@host/database?sslmode=disable",
+  "fatalError": "database.uri not configured",
+  "supportedSqliteType": "sqlite3-fk-wal",
+  "recommendedSqliteUriPattern": "file:<path>?_txlock=immediate",
+  "authorities": [
+    {
+      "service": "instagram-dm",
+      "bridgev2Commit": "56938b8a508d37c2501629d9b35538e849f4a63b",
+      "validatorPath": "bridgev2/matrix/mxmain/main.go",
+      "validatorBlob": "667d48e5e4647d58802ec87b67f7b294e00cd5a8",
+      "exampleConfigPath": "bridgev2/matrix/mxmain/example-config.yaml",
+      "exampleConfigBlob": "60efdc4938344b31a96d8859b06f3d0f636247f9"
+    },
+    {
+      "service": "google-messages",
+      "bridgev2Commit": "5743d9b6f27e2de4966f50e13a658308cdcdbbcb",
+      "validatorPath": "bridgev2/matrix/mxmain/main.go",
+      "validatorBlob": "f83032370ba81302451157dd96f7c8f2cdd2f15c",
+      "exampleConfigPath": "bridgev2/matrix/mxmain/example-config.yaml",
+      "exampleConfigBlob": "1740634c0df8710e7d54dd5ef04c728f39ac004e"
+    },
+    {
+      "service": "signal",
+      "bridgev2Commit": "f7cfa8766d2bcf45f944fc76ea856bcc36317ad9",
+      "validatorPath": "bridgev2/matrix/mxmain/main.go",
+      "validatorBlob": "e1321e6421b387b2b8651861f51559d10eca2f1b",
+      "exampleConfigPath": "bridgev2/matrix/mxmain/example-config.yaml",
+      "exampleConfigBlob": "1740634c0df8710e7d54dd5ef04c728f39ac004e"
+    }
+  ]
+}
