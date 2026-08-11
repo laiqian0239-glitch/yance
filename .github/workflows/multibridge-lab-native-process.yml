@@ -35,43 +35,59 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $source = Join-Path $env:GITHUB_WORKSPACE 'artifacts/multibridge-lab/exit11-user-package'
-          if (-not (Test-Path -LiteralPath $source -PathType Container)) { throw "Missing sealed package source: $source" }
-          $stage = Join-Path $env:RUNNER_TEMP 'exit11-user-package'
-          if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
-          New-Item -ItemType Directory -Path $stage -Force | Out-Null
-          Copy-Item -LiteralPath (Join-Path $source 'collect-exit11-evidence.ps1') -Destination (Join-Path $stage 'collect-exit11-evidence.ps1')
-          Copy-Item -LiteralPath (Join-Path $source 'README.txt') -Destination (Join-Path $stage 'README.txt')
-          Copy-Item -LiteralPath (Join-Path $source 'SHA256SUMS.txt') -Destination (Join-Path $stage 'SHA256SUMS.txt')
-          $zip = Join-Path $env:RUNNER_TEMP 'yance-multibridge-exit11-evidence.zip'
-          if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
-          Compress-Archive -LiteralPath (Join-Path $stage '*') -DestinationPath $zip -CompressionLevel Optimal
-          $zipHash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
-          "ZIP_PATH=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "ZIP_SHA256=$zipHash" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "ZIP_SHA256=$zipHash"
+          $sourceRoot = 'tools/multibridge-lab'
+          $packageRoot = 'dist/multibridge-exit11-evidence'
+          $verificationRoot = 'dist/multibridge-exit11-verification'
+          $expected = [ordered]@{
+            'RUN_EXIT11_EVIDENCE.cmd' = 'c9afd263cc5b89486ff937a195e9313bdce9c32a'
+            'collect-exit11-evidence.ps1' = '886b3a792c6753b022cc716b07ff44be4b2389a3'
+            'native-process.ps1' = '47d56b8e6561676eec75b814c1ed1ebaa8ba30d5'
+          }
+
+          Remove-Item $packageRoot -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item $verificationRoot -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $packageRoot, $verificationRoot | Out-Null
+
+          foreach ($entry in $expected.GetEnumerator()) {
+            $source = Join-Path $sourceRoot $entry.Key
+            if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing exact runtime source: $source" }
+            $blob = (git hash-object -- $source).Trim()
+            if ($LASTEXITCODE -ne 0 -or $blob -ne $entry.Value) {
+              throw "Runtime Git blob mismatch for $($entry.Key): expected $($entry.Value), got $blob"
+            }
+            Copy-Item -LiteralPath $source -Destination (Join-Path $packageRoot $entry.Key)
+          }
+
+          $actualNames = @(Get-ChildItem -LiteralPath $packageRoot -File | Sort-Object Name | ForEach-Object Name)
+          $expectedNames = @($expected.Keys | Sort-Object)
+          if (($actualNames -join "`n") -ne ($expectedNames -join "`n")) {
+            throw "Package staging file-set mismatch. actual=$($actualNames -join ',')"
+          }
+
+          $manifestPath = Join-Path $verificationRoot 'SHA256SUMS.txt'
+          $manifestLines = foreach ($name in $expectedNames) {
+            $hash = (Get-FileHash -LiteralPath (Join-Path $packageRoot $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $name"
+          }
+          [IO.File]::WriteAllLines($manifestPath, $manifestLines, [Text.UTF8Encoding]::new($false))
+          [IO.File]::WriteAllLines((Join-Path $verificationRoot 'SOURCE.txt'), @(
+            "tested_commit=$env:GITHUB_SHA",
+            'wrapper_blob=c9afd263cc5b89486ff937a195e9313bdce9c32a',
+            'collector_blob=886b3a792c6753b022cc716b07ff44be4b2389a3',
+            'helper_blob=47d56b8e6561676eec75b814c1ed1ebaa8ba30d5'
+          ), [Text.UTF8Encoding]::new($false))
+
+          Write-Host 'PACKAGE_FILE_SET=GREEN'
+          Get-Content -LiteralPath $manifestPath
       - name: Upload exact exit11 evidence package
         uses: actions/upload-artifact@v4
         with:
-          name: yance-multibridge-exit11-evidence
-          path: ${{ env.ZIP_PATH }}
+          name: yance-multibridge-exit11-evidence-package
+          path: dist/multibridge-exit11-evidence
           if-no-files-found: error
       - name: Upload exit11 evidence verification record
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $record = Join-Path $env:RUNNER_TEMP 'exit11-evidence-verification.txt'
-          @(
-            "commit=$env:GITHUB_SHA"
-            "zip_sha256=$env:ZIP_SHA256"
-            "collector_blob=7809628d25c95207fbe9167f7fa54b8ae9b67ac0"
-            "helper_blob=7b36cbfc9c5050355272a65390290506d8624f15"
-            "fatal_context_blob=8b7141b948c4786c910ba1ad65d7c4dc71049d2"
-            "package_test_blob=0b6707de9c7ec558c79e2f51a5503ebb0631bc02"
-          ) | Set-Content -LiteralPath $record -Encoding utf8
-          "VERIFICATION_PATH=$record" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-      - uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: yance-multibridge-exit11-evidence-verification
-          path: ${{ env.VERIFICATION_PATH }}
+          path: dist/multibridge-exit11-verification
           if-no-files-found: error
