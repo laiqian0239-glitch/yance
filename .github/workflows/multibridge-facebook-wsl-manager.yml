@@ -39,21 +39,21 @@ jobs:
           )
           $gate = Join-Path $env:RUNNER_TEMP 'parse-facebook-manager-wsl-ps51.ps1'
           $body = @'
-          param([Parameter(Mandatory = $true)][string[]]$Target)
-          foreach ($item in $Target) {
-            $tokens = $null
-            $errors = $null
-            [void][System.Management.Automation.Language.Parser]::ParseFile($item, [ref]$tokens, [ref]$errors)
-            if (@($errors).Count -ne 0) {
-              Write-Error ("Windows PowerShell 5.1 parse RED: " + $errors[0].Message)
-              exit 1
-            }
+          param([Parameter(Mandatory = $true)][string]$Target)
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($Target, [ref]$tokens, [ref]$errors)
+          if (@($errors).Count -ne 0) {
+            Write-Error ("Windows PowerShell 5.1 parse RED: " + $errors[0].Message)
+            exit 1
           }
           Write-Output 'WINDOWS_POWERSHELL_5_1_MANAGER_PARSE_GREEN'
           '@
           [IO.File]::WriteAllText($gate, $body, [Text.Encoding]::ASCII)
-          & powershell.exe -NoLogo -NoProfile -NonInteractive -File $gate -Target $targets
-          if ($LASTEXITCODE -ne 0) { throw 'Windows PowerShell 5.1 manager parse gate failed.' }
+          foreach ($target in $targets) {
+            & powershell.exe -NoLogo -NoProfile -NonInteractive -File $gate -Target $target
+            if ($LASTEXITCODE -ne 0) { throw "Windows PowerShell 5.1 manager parse gate failed for $target" }
+          }
       - name: Stage sealed Facebook Personal WSL manager package
         shell: pwsh
         run: |
