@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 18:44 +07:00
+Last updated: 2026-08-11 18:47 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -34,39 +34,55 @@ Fatal-context package final authority run `31485153849`, job `93758725677`, exac
 
 ## Exact pinned binary/image authority
 
-- Instagram exact Meta commit `a0db68a56bb5715d67faa331f647e771d62b05a2`, exact `Dockerfile.ig` blob `0c15042cd20ab1dc215020e0f4dc5ff089a16543`, exact binary path `/usr/bin/mautrix-instagram`.
+- Instagram exact Meta commit `a0db68a56bb5715d67faa331f647e771d62b05a2`, exact `Dockerfile.ig` blob `0c15042cd20ab1dc215020e0f4dc5ff089a16543`, binary `/usr/bin/mautrix-instagram`.
 - Google Messages exact commit `2f2a1efa59a1bfbfb0ab1570b0532a93baeeea96`, exact `Dockerfile` blob `f9f151f709672d6115e81d81dab657bc5a21fb81`, binary `/usr/bin/mautrix-gmessages`.
 - Signal exact commit `8c7333a033cc8dbaf6676b1f9211d2906154277b`, exact libsignal submodule `857c4dca03537dc5e395a5e1eda6bf18f59c3601`, exact `Dockerfile` blob `ba0a602c88719fbef67b4bec5d710fa698bd5631`, binary `/usr/bin/mautrix-signal`.
 
-All validation uses exact upstream Docker build authority and invokes the actual binary directly inside the resulting image so config load/upgrade/validate/initDB are executed by the pinned bridge itself. Existing user containers are untouched.
+## Isolated pinned-image workflow — FIRST REAL RESULT
 
-## Isolated pinned-image workflow — COMMITTED, RESULT PENDING
+Verification-only workflow commit `2a1743a1856132c8552639928578e54a656cf74a`; run `31487107541`, three independent matrix jobs.
 
-Verification-only commit `2a1743a1856132c8552639928578e54a656cf74a` adds only `.github/workflows/multibridge-lab-pinned-db-image-validation.yml`.
+### Google Messages result — HARNESS FIDELITY RED, DB REPAIR PASSED ORIGINAL FATAL
 
-The workflow:
+Job `93764904649`:
 
-- runs on isolated GitHub `ubuntu-latest` runners with three independent matrix jobs and `fail-fast: false`;
-- resolves the actual recovery DB values from `Get-LabR12DatabaseWiring` instead of duplicating them as a second config authority;
-- initializes each upstream repo and fetches exactly the frozen commit; Signal verifies the exact frozen libsignal submodule SHA;
-- builds only the exact upstream Dockerfile authority (`Dockerfile.ig` for Instagram);
-- uses the built binary itself to emit its example config and ephemeral registration;
-- patches only dummy local homeserver values plus the already-GREEN DB type/URI;
-- executes the pinned binary with `--network none` and isolated runner `/data`;
-- fails specifically on original `database.uri not configured`, DB init failure, any later `Configuration error`, or missing expected SQLite DB file;
-- distinguishes a still-running process from a later non-config exit after DB creation;
-- uploads only a seven-field non-secret report; config, registration, tokens, logs and DB bytes are not artifacts.
+- recovered R12 DB wiring resolution GREEN;
+- exact upstream source fetch verified commit `2f2a1efa59a1bfbfb0ab1570b0532a93baeeea96`;
+- exact upstream Dockerfile build GREEN;
+- built image ID `sha256:b8cb1df08dc2a53f464f1c1b293e3d92d1c05e4ea6baa4d34f5d9af8d2371cbb`;
+- built binary generated its own example config GREEN;
+- built binary generated ephemeral registration GREEN;
+- original fatal `database.uri not configured` did **not** recur;
+- next fatal was `Configuration error: bridge.permissions not configured`.
 
-No runtime/product source was changed. This verification harness may be repaired if CI/tooling RED appears, but binary/image authority may not be weakened.
+Classification: this is not a DB implementation RED. The verification harness only replayed dummy homeserver + recovered DB fields, but exact historical R12 `Wire-BridgeConfig` also writes bridge permissions (plus appservice/matrix fields). The harness therefore diverged from the actual R12 config shape before reaching a fair pinned-binary startup test. The DB repair has already passed the original fatal predicate inside the exact GMessages binary.
+
+The same failed exercise also exposed a harness observability defect: `write_report` wrote to `$RUNNER_TEMP`, while the `always()` artifact step reads the workspace path; failure branches therefore produced no uploaded report. Do not treat the missing artifact as bridge evidence.
+
+## Required harness repair — frozen before change
+
+No runtime/product source change is authorized.
+
+The workflow must be repaired only to reproduce the already-frozen historical R12 config mutations with safe non-secret values before adding the DB repair:
+
+- homeserver address/domain/software;
+- appservice address/hostname/port;
+- matrix federate_rooms;
+- bridge domain/user and explicit admin permission entries;
+- recovered DB type/URI for the three target services.
+
+This is not new config behavior; it restores validation fidelity to the exact historical R12 wiring fixture. The failure report must also be written directly to `$GITHUB_WORKSPACE/pinned-db-image-<service>.txt` so `always()` upload works on RED as well as GREEN.
+
+The exact upstream build and direct-binary authority, `--network none`, no-secret artifact policy, and DB implementation remain unchanged.
 
 ## Unique next action
 
 No user action now.
 
-1. Collect the three matrix job results for exact workflow commit `2a1743a1856132c8552639928578e54a656cf74a`.
-2. Classify build/harness RED separately from real pinned-binary config RED.
-3. Require all three services to prove DB startup beyond the original fatal validator before preparing any user-runtime repair.
-4. Keep Facebook/LINE collector sealed until this gate stabilizes.
+1. Repair only `.github/workflows/multibridge-lab-pinned-db-image-validation.yml` to replay the frozen R12 non-DB fields and make failure report upload reliable.
+2. Do not wait for or use user hardware; current Instagram/Signal first-run jobs may finish independently and will be recorded before/alongside rerun classification.
+3. Re-run all three exact pinned-image jobs and classify independently.
+4. Keep DB implementation `63c008a...` unchanged.
 
 ## Replacement readiness
 
@@ -74,10 +90,10 @@ Config validation GREEN → sustained five-process runtime → stable RestartCou
 
 ## Progress
 
-- [x] DB causal RED → thin R12 repair → Windows GREEN.
-- [x] Exact source-semantic validator GREEN (20/20).
-- [x] Exact pinned image build/runtime authorities frozen.
-- [x] Isolated pinned-image workflow committed (`2a1743a...`).
-- [ ] Classify IG/GMessages/Signal pinned-image jobs.
+- [x] DB causal RED → thin R12 repair → Windows/source-semantic GREEN.
+- [x] Exact pinned image authority frozen.
+- [x] GMessages exact image build GREEN and original DB fatal cleared.
+- [x] First harness fidelity/observability RED classified.
+- [ ] Repair isolated validation harness only and rerun three pinned images.
 - [ ] Capture/repair true Facebook/LINE fatal validators.
 - [ ] Validate all five user runtimes and sustained readiness.
