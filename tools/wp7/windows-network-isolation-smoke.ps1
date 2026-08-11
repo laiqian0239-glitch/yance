@@ -85,7 +85,7 @@ if (-not (Test-Path -LiteralPath $node -PathType Leaf)) { throw "Node executable
 $nodeIdentity = & $node -e "process.stdout.write(JSON.stringify({version:process.version,platform:process.platform,arch:process.arch,execPath:process.execPath}))"
 if ($LASTEXITCODE -ne 0) { throw 'Unable to read Node runtime identity.' }
 $nodeDocument = $nodeIdentity | ConvertFrom-Json
-if ($nodeDocument.version -ne 'v22.16.0' -or $nodeDocument.platform -ne 'win32' -or $nodeDocument.arch -ne 'x64') {
+if ($nodeDocument.version -ne 'v22.23.1' -or $nodeDocument.platform -ne 'win32' -or $nodeDocument.arch -ne 'x64') {
     throw "Trusted runtime mismatch: $nodeIdentity"
 }
 
