@@ -8,7 +8,7 @@ $ErrorActionPreference = 'Stop'
 function Normalize-WslOutput {
   param([AllowEmptyString()][string]$Text)
   if ($null -eq $Text) { return '' }
-  return ([string]$Text).Replace([char]0, '')
+  return ([string]$Text) -replace "`0", ''
 }
 
 function ConvertFrom-WslVerboseOutput {
