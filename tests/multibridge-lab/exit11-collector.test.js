@@ -84,11 +84,18 @@ test('sanitizer redacts bridge secrets, authorization data, cookies, email/phone
 test('collector evidence boundary turns logs stderr plus nonzero into sanitized controlled RED', { skip: process.platform !== 'win32' }, () => {
   const command = [
     `. ${psQuote(COLLECTOR)}`,
-    "function Get-LabBridgeContainerId { param([string]$DockerPath, [string]$Service) return 'fake-container-id' }",
+    'function Get-LabBridgeContainerId {',
+    '  param([string]$DockerPath, [string]$Service)',
+    "  return 'fake-container-id'",
+    '}',
     'function Invoke-LabDockerReadOnly {',
     '  param([string]$DockerPath, [string[]]$Arguments)',
-    "  if ($Arguments[0] -eq 'inspect') { return [pscustomobject]@{ ExitCode = 0; StdOut = 'restarting|11|3'; StdErr = '' } }",
-    "  if ($Arguments[0] -eq 'logs') { return [pscustomobject]@{ ExitCode = 9; StdOut = ''; StdErr = 'Configuration error: token=SECRET_NATIVE_TOKEN LAB_CONTROLLED_NATIVE_FAILURE' } }",
+    "  if ($Arguments[0] -eq 'inspect') {",
+    "    return [pscustomobject]@{ ExitCode = 0; StdOut = 'restarting|11|3'; StdErr = '' }",
+    '  }',
+    "  if ($Arguments[0] -eq 'logs') {",
+    "    return [pscustomobject]@{ ExitCode = 9; StdOut = ''; StdErr = 'Configuration error: token=SECRET_NATIVE_TOKEN LAB_CONTROLLED_NATIVE_FAILURE' }",
+    '  }',
     "  throw ('Unexpected injected Docker read: ' + ($Arguments -join ' '))",
     '}',
     'try {',
@@ -97,9 +104,9 @@ test('collector evidence boundary turns logs stderr plus nonzero into sanitized 
     '  exit 17',
     '} catch {',
     '  $safe = Protect-LabEvidenceLine $_.Exception.Message',
-    '  Write-Output ("CONTROLLED_REAL_RED=" + $safe)',
+    "  Write-Output ('CONTROLLED_REAL_RED=' + $safe)",
     '}'
-  ].join('; ');
+  ].join('\r\n');
   const run = runPowerShell(command);
   const combined = `${run.stdout || ''}\n${run.stderr || ''}`;
   assert.equal(run.status, 0, `collector did not produce controlled RED:\n${combined}`);
