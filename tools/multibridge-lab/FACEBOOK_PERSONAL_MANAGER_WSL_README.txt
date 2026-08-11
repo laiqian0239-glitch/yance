@@ -32,13 +32,23 @@ SHA256: 94cca9ffe2087521a042f8afc656c1403dcc79af980acd229420829b367ea1fd
 
 Installation and launch remain separate authority phases. The installer refuses a different already-installed mautrix-manager version, verifies package/version/architecture, verifies the installed Chromium chrome-sandbox remains root-owned with mode 4755, verifies shared-library dependencies, and explicitly rejects a root GUI launch before Electron is started. It never runs npm or Electron Forge, never disables Chromium sandboxing, and never manually changes sandbox ownership or mode.
 
-Human authorization boundary
-----------------------------
-After installation the package launches the upstream mautrix-manager GUI through WSLg and stops at:
+Upstream GUI lifecycle authority
+--------------------------------
+The GUI process is not daemonized or detached from the operator. The launcher starts the exact installed mautrix-manager executable, captures that exact top-level PID, and keeps the WSL invocation attached to it. It does not use nohup or broad pgrep matching, so Chromium GPU/network/zygote child processes cannot be mistaken for a healthy mautrix-manager main process.
 
+Before declaring a human-authorization boundary, the exact manager PID must remain alive continuously for 15 seconds. Only after that sustained-session proof does the operator emit:
+
+MAUTRIX_MANAGER_GUI_SESSION_GREEN pid=<exact-manager-pid> stable_seconds=15
+MAUTRIX_MANAGER_GUI_LAUNCHED
 FINAL STATUS: HUMAN_AUTH_REQUIRED
 
-The GUI will show/use these non-secret local endpoints:
+The operator then continues waiting on that exact upstream manager PID while the GUI is open. A normal user close that returns exit 0 ends the attached session cleanly. If the upstream main process exits before the 15-second gate, or later exits nonzero, the package prints a bounded excerpt from mautrix-manager.log and returns REAL_RED with the exact process exit status instead of reporting a false HUMAN_AUTH_REQUIRED state.
+
+Chromium/Electron child-process messages such as GPU-process, network-service, or zygote failures are diagnostic evidence only. They do not become a Yance-managed compatibility switch. This package does not add --no-sandbox, --disable-gpu, --disable-gpu-sandbox, software-rendering overrides, XDG_RUNTIME_DIR permission changes, WSL configuration changes, or graphics-driver mutations.
+
+Human authorization boundary
+----------------------------
+After the exact-PID sustained-session gate succeeds, the upstream mautrix-manager GUI is the authority for the remaining interaction. The GUI will show/use these non-secret local endpoints:
 - Matrix homeserver: http://127.0.0.1:8008
 - Facebook Personal Bridge URL: printed by the launcher as http://127.0.0.1:<published-port>
 
@@ -46,6 +56,7 @@ Use the existing local Matrix Lab account in the upstream GUI, then add the disp
 
 Expected terminal states
 ------------------------
-- HUMAN_AUTH_REQUIRED: official manager is installed and running as an unprivileged WSLg user; the next action is human authorization in the upstream GUI.
+- HUMAN_AUTH_REQUIRED: the exact official manager main PID survived the sustained WSLg session gate and remains attached; the next action is human authorization in the upstream GUI.
+- MAUTRIX_MANAGER_GUI_SESSION_ENDED exit=0: the upstream GUI was later closed normally after the human-authorization boundary was reached.
 - WSL_SETUP_REQUIRED / WSL_LAB_NETWORK_REQUIRED: the prerequisite checker stopped before package installation.
-- REAL_RED: a runtime/package/provisioning/user-authority check failed; do not bypass it.
+- REAL_RED: a runtime/package/provisioning/user-authority or exact-manager-process lifecycle check failed; do not bypass it.
