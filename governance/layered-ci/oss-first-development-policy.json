@@ -41,6 +41,7 @@
       "PARTIAL_FIT",
       "GAP"
     ],
+    "minimalGapRejectedAdoptionModesMinimum": 5,
     "minimalGapAdditionalEvidence": [
       "uncoveredGap.capability",
       "uncoveredGap.reason",
