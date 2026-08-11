@@ -1,0 +1,263 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-12T05:20:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-MATERIALIZED-UAT",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh OSS-first successor for Product Experience PR #229 after the shared packaged Node runtime was ordinary-merged as 943d9339ff80ceb34903cb861c225625b50769ec. The existing Product Final Validation still hands the user a Round12/13 source-UAT package whose Windows runner installs dependencies on the user machine, and the Matrix compose authority still uses local Docker build contexts. A real Windows UAT already demonstrated why that architecture is unstable: node-pty may fall back to node-gyp/native compilation and inherit ambient toolchain state. This package retires that Product-specific delivery route without rewriting the generic legacy source-UAT framework. Trusted CI must materialize two sealed artifacts bound to the same Product commit/tree: a Windows desktop bundle assembled through the existing WP7 trusted-product/Node/Parlant/Electron seams, and a Linux Matrix image bundle built from the already-pinned Synapse/Element/mautrix sources with the existing Element official runtime-module patch. The user machine may only verify hashes/identity, docker load the sealed images, docker compose up with --no-build, extract the already-built desktop payload, clone existing Yance data into an isolated UAT data root if requested, launch Yance.exe, and collect UAT evidence. User-machine npm, pnpm, node-gyp, Docker build, Visual Studio, Windows SDK, Spectre libraries, source compilation, and dependency resolution are forbidden.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-experience-shell-p0-uat-hermetic-node-npm-authorization.json",
+    "implementationBranch": "fix/v21-product-experience-shell-p0-uat-hermetic-node-npm",
+    "reason": "The superseded architecture still performs npm ci on the UAT machine. The new OSS-first policy requires retiring that user-machine build path instead of trying to hermetically prolong it."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "943d9339ff80ceb34903cb861c225625b50769ec"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "requiredFirstParent": "943d9339ff80ceb34903cb861c225625b50769ec",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-materialized-uat-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-materialized-uat-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing. The exact path arrays remain the admission authority even when this authorization omits a redundant precomputed digest."
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-materialized-uat",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/product-experience/RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1",
+      "tools/product-experience/create-materialized-uat-candidate.js",
+      "tools/product-experience/materialized-matrix-compose.yml"
+    ],
+    "approvedChangedFileCount": 6,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1
+    },
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "genericRuntimeDeliveryModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-experience-materialized-uat.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "productionCodeChanged": false,
+      "remoteCausalRedAuthority": "Stage 6.4.5.9 WP0 Architecture Gates -> npm run test:wp0"
+    }
+  },
+  "ossFit": {
+    "decision": "ADOPT_MATURE_OSS_AND_REUSE_EXISTING_REPOSITORY_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP7 pre-review trusted-product builder and packaged-runtime closure",
+        "source": "tools/wp7/create-pre-review-trusted-product.js, tools/wp7/lib.js, tools/wp7/node-runtime-identity.js",
+        "license": "repository-existing seam over reviewed upstream Electron/Node/runtime inputs",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already materializes a Windows application payload from reviewed production node_modules, official Electron distribution, trusted Node 22.23.1 and presealed Parlant runtime while verifying source/dependency/native-binary closure. Product UAT must reuse it instead of building another desktop packager."
+      },
+      {
+        "name": "Docker Engine image build/save/load and Docker Compose image-only startup",
+        "source": "Docker Engine and Compose CLI; existing services/matrix runtime topology",
+        "license": "Apache-2.0 for Docker Engine / mature upstream distribution",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Trusted CI can build exact pinned Matrix images once and export them with docker save; the UAT machine only docker loads and starts those images with compose --no-build, eliminating local source builds without a Yance image format or loader."
+      },
+      {
+        "name": "Existing pinned Matrix/Element/mautrix materialization plus Element official runtime module delivery",
+        "source": "tools/matrix/bootstrap.js, pinned Element Web v1.12.25, Synapse and mautrix-whatsapp upstream identities, upstream patch 0012",
+        "license": "existing reviewed upstream license closure",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Element ModuleLoader, nginx /modules, Docker image packaging and current Matrix service boundaries already own the frontend/runtime topology. The Product candidate only materializes and seals them; it must not introduce a Yance web/module/container runtime."
+      },
+      {
+        "name": "Existing actions/upload-artifact exact pinned Action",
+        "source": "repository third_party GitHub Actions lock and current Product Final Validation workflow",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Two independently sealed same-identity artifacts avoid introducing actions/download-artifact or expanding the GitHub Action supply-chain registry."
+      },
+      {
+        "name": "New Yance package manager, Docker image format, container loader, source builder or generalized UAT materializer",
+        "source": "hypothetical new Yance infrastructure",
+        "license": "not applicable because adoption is rejected",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "Mature OSS and existing repository seams already cover dependency materialization, desktop packaging, OCI image build/export/import and Matrix startup. A new general framework would duplicate authority and is forbidden."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire create-round12-13-windows-uat-package.js and its source-UAT installer as the Product Experience Final Validation handoff path; do not delete or modify the generic legacy framework in this work package.",
+      "Retire user-machine npm ci, pnpm install, node-gyp, Docker build and source checkout/materialization from Product Experience UAT.",
+      "Avoid a second desktop packager; reuse WP7 pre-review trusted product.",
+      "Avoid a second Matrix/module runtime; reuse pinned Matrix bootstrap, Element ModuleLoader and Docker images.",
+      "Avoid actions/download-artifact by keeping desktop and Matrix bundles separately sealed and bound to the same commit/tree, then joining them only on the UAT machine through the thin runner.",
+      "Avoid modifying Product runtime/UI code in this package; it is a delivery root migration only."
+    ],
+    "existingWp7TrustedProductIsDesktopAuthority": true,
+    "existingTrustedNode2231IsPackagedNodeAuthority": true,
+    "existingParlantSealIsPythonRuntimeAuthority": true,
+    "elementModuleLoaderRemainsSoleModuleAuthority": true,
+    "dockerEngineRemainsImageFormatAndLoadAuthority": true,
+    "dockerComposeRemainsMatrixStartupAuthority": true,
+    "genericSourceUatFrameworkModificationForbidden": true,
+    "userMachineDependencyInstallForbidden": true,
+    "userMachineNativeBuildForbidden": true,
+    "userMachineDockerBuildForbidden": true,
+    "newYancePackageManagerForbidden": true,
+    "newYanceContainerRuntimeForbidden": true,
+    "newYanceImageFormatForbidden": true,
+    "newGeneralPurposeMaterializerForbidden": true,
+    "thinYanceAdapterOnly": true
+  },
+  "artifactContract": {
+    "desktopBundleClass": "PRODUCT_EXPERIENCE_MATERIALIZED_DESKTOP_UAT_ONLY",
+    "matrixBundleClass": "PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY",
+    "sameIdentityRequired": true,
+    "identityFields": [
+      "candidateBranch",
+      "candidateCommit",
+      "candidateTree"
+    ],
+    "desktopAuthority": [
+      "WP7_PRE_REVIEW_ONLY trusted application payload archive",
+      "WP7 trusted product build identity JSON",
+      "Product materialized-UAT manifest",
+      "Product materialized-UAT PowerShell runner"
+    ],
+    "matrixAuthority": [
+      "docker save archive containing exact candidate-tagged Synapse, Element and mautrix-whatsapp images",
+      "image-only Product UAT compose file with no build keys",
+      "copied existing Matrix configuration files required by compose",
+      "Product materialized-UAT manifest"
+    ],
+    "formalRelease": false,
+    "publish": false
+  },
+  "trustedCiBuildContract": {
+    "windowsDesktop": [
+      "Use pinned actions/setup-node Node 22.23.1 and verify the runtime against the shared trusted Node authority.",
+      "Materialize the already-trusted Electron Windows x64 LFS archive and verify its existing release trust record.",
+      "Create a clean Windows production-only node_modules tree with repository npm@10.9.2 semantics and the existing WP7 production dependency closure; no end-user install is deferred.",
+      "Build the existing presealed Parlant Windows runtime in trusted CI.",
+      "Reuse the existing reviewed rcedit/branding input and WP7 create-pre-review-trusted-product.js; no unbranded bypass is authorized.",
+      "Seal the desktop bundle with the thin Product candidate manifest tool and upload it with the existing pinned upload-artifact Action."
+    ],
+    "linuxMatrix": [
+      "Run tools/matrix/bootstrap.js at the exact Product candidate to materialize pinned Synapse, Element and mautrix-whatsapp source identities and apply the existing replayable Element patches including 0012.",
+      "Build candidate-tagged images with Docker Engine in trusted CI and verify Element's /modules/yance runtime delivery exists in the built source contract.",
+      "Export the exact candidate-tagged images with docker save into one sealed archive.",
+      "Stage the image-only compose file and existing Matrix configs, seal the Matrix bundle with the same Product commit/tree manifest tool, and upload it with the existing pinned upload-artifact Action."
+    ]
+  },
+  "userMachineContract": {
+    "allowed": [
+      "PowerShell 5.1 or newer",
+      "Docker Engine/Desktop with docker compose",
+      "tar extraction supplied by supported Windows tooling",
+      "hash and size verification",
+      "docker load",
+      "docker compose up --no-build",
+      "optional stopped-process copy of existing Yance data into an isolated UAT data root",
+      "launch of already-built Yance.exe",
+      "UAT evidence collection"
+    ],
+    "forbidden": [
+      "npm",
+      "npm ci",
+      "pnpm",
+      "node-gyp",
+      "docker build",
+      "source checkout",
+      "git clone for product execution",
+      "Visual Studio build tools",
+      "Windows SDK build prerequisite",
+      "Spectre-mitigated C++ libraries",
+      "native addon compilation",
+      "dependency resolution or package download"
+    ]
+  },
+  "mandatoryFailureFirstContracts": [
+    "On the exact authorization-merge baseline, tests/wp0/v21-product-experience-materialized-uat.test.js must be the only implementation change and Stage npm run test:wp0 must fail causally because Product Final Validation still invokes create-round12-13-windows-uat-package.js and the materialized Product candidate/runner/image-only compose files do not exist.",
+    "The repaired Product Final Validation must not invoke create-round12-13-windows-uat-package.js, start-source-uat.js, npm ci on the UAT machine, or any Product user-machine dependency preparation path.",
+    "The candidate creator must seal every staged regular file by normalized relative path, byte size and SHA-256, reject symlinks/path escape/duplicate identities, and bind branch/commit/tree plus bundle class; it must not become a generic build/download/package manager.",
+    "The Product runner must verify both bundle manifests and all file records before execution, require exact matching branch/commit/tree, reject extra or modified payload files, invoke docker load and docker compose up --no-build only, and never invoke npm, pnpm, node-gyp or docker build.",
+    "The Product image-only compose file must contain image references for Synapse, Element and mautrix-whatsapp and must contain zero build keys.",
+    "The Windows desktop CI path must produce a WP7 PRE_REVIEW_ONLY already-built application payload using Node 22.23.1, reviewed production dependencies, official Electron and presealed Parlant before artifact upload.",
+    "The Linux Matrix CI path must build pinned candidate-tagged images from tools/matrix/bootstrap.js materialization and export them with docker save before artifact upload.",
+    "No Product runtime/UI, generic source-UAT framework, root dependency manifest, root lockfile, Matrix bootstrap implementation, Element patch, WP7 implementation or third-party Action registry change is authorized."
+  ],
+  "handoffBackToProduct": {
+    "productPullRequest": 229,
+    "productWorkPackage": "V21-PRODUCT-EXPERIENCE-SHELL-P0",
+    "productBranch": "product/v21-product-experience-shell-p0",
+    "productHeadAtAuthorization": "374164f002e723299e0c4123aacea309e32f5ceb",
+    "rule": "After this root-migration implementation ordinary-merges to main, ordinary-forward merge fresh main into the Product branch without rebase or history rewrite. The six materialized-UAT paths become base-owned. Product Final Validation must then generate both sealed same-identity artifacts on the fresh Product Head, followed by real Windows UAT. Only after UAT and all fresh Product gates are GREEN may PR #229 reach its final integration merge boundary."
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "rootDependencyChange": true,
+    "rootLockRegeneration": true,
+    "productRuntimeModification": true,
+    "genericSourceUatModification": true,
+    "newYanceDownloader": true,
+    "newYancePackageManager": true,
+    "newYanceContainerRuntime": true,
+    "newYanceImageFormat": true,
+    "releasePublishing": true,
+    "formalRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
