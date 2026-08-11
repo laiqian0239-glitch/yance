@@ -60,6 +60,7 @@
       "productionCodeChanged": false
     },
     "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
     "bootstrapModificationAllowed": false,
     "elementPinModificationAllowed": false,
     "productRuntimeModificationAllowed": false,
