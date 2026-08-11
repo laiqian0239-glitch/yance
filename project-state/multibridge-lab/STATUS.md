@@ -1,6 +1,6 @@
 # YANCE-MULTIBRIDGE-LAB — Single Source of Truth
 
-Last updated: 2026-08-11 17:52 +07:00
+Last updated: 2026-08-11 17:35 +07:00
 Branch: `lab/multibridge-recovery-plan-20260811`
 Plan: `docs/superpowers/plans/2026-08-11-yance-multibridge-lab-recovery.md`
 
@@ -15,9 +15,14 @@ Authoritative Lab execution ledger. Update after every real state transition. Do
 - Synapse exact pin/image/account frozen; credentials local only.
 - R12 readiness revoked for five bridges; R13–R13.3 retired.
 
-## Frozen root-cause entrance
+## Frozen runtime/source authorities
 
-Five bridges restart-loop exit 11 while Synapse stays healthy; DNS failure is downstream. Upstream bridgev2 exit 11 is configuration validation failure. No bridge config changes before exact sanitized validator evidence.
+- Facebook Personal: `https://github.com/mautrix/meta.git` @ `a0db68a56bb5715d67faa331f647e771d62b05a2`, source tree `66087fe9c0e1308e8125ebac462b08778a649c34`, staged image `yance-lab/mautrix-meta:a0db68a56bb5`.
+- Instagram DM: same exact mautrix/meta source pin `a0db68a56bb5715d67faa331f647e771d62b05a2`; upstream published-image packaging authority is the exact IG image lineage already frozen by R7.
+- Google Messages: `https://github.com/mautrix/gmessages.git` @ `2f2a1efa59a1bfbfb0ab1570b0532a93baeeea96`, source tree `c547cebc7329068a0f569cd19d8bb9943d0e0bec`, staged image `yance-lab/mautrix-gmessages:2f2a1efa59a1`.
+- Signal: `https://github.com/mautrix/signal.git` @ `8c7333a033cc8dbaf6676b1f9211d2906154277b`, source tree `0b90155a8d718177b884471a2e05b06f495e7e58`; exact libsignal submodule `857c4dca03537dc5e395a5e1eda6bf18f59c3601`; staged image `yance-lab/mautrix-signal:8c7333a033cc`.
+- LINE: `https://github.com/beeper/line.git` @ `0fc10ea165b54db6ffd7c085d42cc42b0ce46414`, source tree `3964d77b52030906d82a86352684900d7ccd2fde`, staged image `yance-lab/matrix-line:0fc10ea165b5`.
+- Exact R12 Compose service keys remain verified as `facebook-personal`, `instagram-dm`, `google-messages`, `signal`, `line`.
 
 ## Collector/package failure-first closure
 
@@ -28,87 +33,82 @@ All Lab-owned wrapper/collector/native-process defects found during recovery wer
 - missing wrapper package RED → minimal one-wrapper implementation;
 - wrapper CRLF repository/worktree byte mismatch RED → permanent byte-identity gate + canonical LF source.
 
-Exact R12 Compose service keys are verified as `facebook-personal`, `instagram-dm`, `google-messages`, `signal`, `line`.
+Final artifact-producing Windows authority remains run `31482336770`, job `93749917415`, exact checkout `5b8f77aa10e7bab2538d1c4f0ce3a643045536fa`: 13/13 tests GREEN, exact 3-file runtime artifact and 2-file verification artifact independently reverified.
 
-## Final artifact-producing Windows GREEN — VERIFIED
+## Returned real-machine exit-11 evidence — RECEIVED
 
-Canonical artifact workflow pin commit:
+The user ran the verified read-only package once on Windows. The package completed normally and returned `FINAL_STATE=REAL_RED`. The uploaded `exit11-evidence.txt` is sanitized, bounded, and contains exactly the five frozen services. No config/registration/credential/token/cookie/message file was uploaded.
 
-`5b8f77aa10e7bab2538d1c4f0ce3a643045536fa`
+All five services report:
 
-Actions run `31482336770`, job `93749917415`, exact checkout `5b8f77aa10e7bab2538d1c4f0ce3a643045536fa`:
+- state `restarting|11|243`;
+- Docker logs read exit code `0`;
+- therefore restart-loop exit `11` is confirmed independently of collector execution.
 
-- tests=13
-- pass=13
-- fail=0
-- skipped=0
-- byte-identity gate GREEN for all three runtime files;
-- `PACKAGE_FILE_SET=GREEN`;
-- runtime artifact upload success, exactly 3 files;
-- verification artifact upload success, exactly 2 files.
+Exact validator evidence by bridge:
 
-Canonical runtime Git blobs:
+### Facebook Personal
 
-- wrapper `c9afd263cc5b89486ff937a195e9313bdce9c32a`
-- collector `38eee8ecfe5411a89273027404a320b94b623dba`
-- helper `47d56b8e6561676eec75b814c1ed1ebaa8ba30d5`
+Repeated upstream config warning:
 
-Runtime file SHA-256:
+`Ignoring incorrect config field type !!null at network->mode`
 
-- `RUN_EXIT11_EVIDENCE.cmd` → `9f549eaf02fc641f2d070779376e5ba7f748327da5cce4acd0b3bbe43c5af65c`
-- `collect-exit11-evidence.ps1` → `75fccc095aba5199e263b6c328ac0c78b8d969899f78f897f4bdb193ed7b0200`
-- `native-process.ps1` → `fd715e68aae8a6efdd93ea64272208c38134d2cd67b9ac01275eda02c354599d`
+Classification: Meta-specific schema/type defect. Do not infer the repair until the exact pinned mautrix/meta example config + config upgrader/schema/validator source is inspected.
 
-GitHub artifacts:
+### Instagram DM
 
-- runtime artifact ID `9097730797`, ZIP digest `sha256:59e780e5e6f0df3bab7f30402c56ab15eb385ca8a495abdb3842caba3d472383`;
-- verification artifact ID `9097731102`, ZIP digest `sha256:427776162f74c0374a31b1e2cbadfdf87c4f17f5f694454c84b722d312aebc24`.
+Repeated fatal upstream error:
 
-## Independent post-download verification — GREEN
+`Configuration error: database.uri not configured`
 
-The downloaded artifacts were independently inspected outside the workflow:
+Classification: exact missing required `database.uri` at runtime.
 
-1. Both downloaded ZIP SHA-256 values exactly match GitHub artifact digests above.
-2. Runtime ZIP contains exactly and only:
-   - `RUN_EXIT11_EVIDENCE.cmd`
-   - `collect-exit11-evidence.ps1`
-   - `native-process.ps1`
-3. No config/registration/password/account/credential/token/cookie/message/WhatsApp/Telegram filename is present.
-4. All three extracted runtime SHA-256 values exactly match the workflow manifest.
-5. Recomputed Git blob identities from the extracted bytes exactly match the canonical blobs above.
-6. Verification ZIP contains exactly `SHA256SUMS.txt` and `SOURCE.txt`.
-7. `SOURCE.txt` records tested commit `5b8f77aa10e7bab2538d1c4f0ce3a643045536fa` and all three canonical Git blobs correctly.
-8. Independent package content scan confirms:
-   - wrapper uses `powershell.exe -NoExit`;
-   - wrapper prints `FINAL_STATE=REAL_RED` and `OUTPUT_PATH=`;
-   - wrapper does not call Docker/Compose directly;
-   - collector targets exactly the five R12 services;
-   - collector uses bounded logs (`--tail 80`, max 12 matched validation lines);
-   - collector has no Docker lifecycle/network mutation path;
-   - helper uses `System.Diagnostics.ProcessStartInfo` with independently redirected stdout/stderr.
+### Google Messages
 
-## User involvement gate — NOW OPEN FOR ONE READ-ONLY EVIDENCE COLLECTION
+Repeated fatal upstream error:
 
-This is the first point in the recovery where user Windows execution is authorized again.
+`Configuration error: database.uri not configured`
 
-The user may perform exactly one action sequence:
+Classification: exact missing required `database.uri` at runtime.
 
-1. Download and extract the verified runtime ZIP.
-2. Double-click `RUN_EXIT11_EVIDENCE.cmd` once.
-3. Allow it to finish; the PowerShell window remains open by design.
-4. Upload exactly the generated `exit11-evidence.txt` file back to ChatGPT.
+### Signal
 
-Do not upload any config, registration, password, account, token, cookie, Matrix credential, message content, or other runtime files.
+Repeated fatal upstream error:
 
-The package is read-only. It does not build, restart, stop, reconfigure, connect networks, exec into containers, restage Synapse, or touch WhatsApp/Telegram.
+`Configuration error: database.uri not configured`
 
-## Unique next action after evidence returns
+Classification: exact missing required `database.uri` at runtime.
 
-1. Read the five sanitized service sections from `exit11-evidence.txt`.
-2. Identify the exact configuration-validation line(s) for each bridge independently.
-3. Map every failing field to its exact pinned upstream schema/example/validator source.
-4. Only then write failure-first tests for the real R12 generated invalid fields and repair the existing R12 config generator at source.
-5. No compatibility shims or networking workaround are authorized.
+### LINE
+
+Repeated upstream config warning:
+
+`Ignoring incorrect config field type !!null at appservice->bot->avatar`
+
+Classification: LINE-specific schema/type defect. Do not infer the repair until the exact pinned beeper/line example config + config upgrader/schema/validator source is inspected.
+
+## Root-cause grouping now frozen
+
+The evidence proves at least three distinct validator defects; one blanket compatibility fix is forbidden:
+
+1. Shared missing database authority: Instagram DM + Google Messages + Signal → `database.uri not configured`.
+2. Facebook Personal only → `network.mode` has YAML null where the pinned Meta config contract expects another type/value.
+3. LINE only → `appservice.bot.avatar` has YAML null where the pinned LINE config contract expects another type/value.
+
+The current R12 `Wire-BridgeConfig` only mutates homeserver/appservice/matrix/permission fields and does not set `database.uri`; it also inherits untouched upstream-template values for fields such as `network.mode` and `appservice.bot.avatar`. Therefore R12 config wiring is now the causal implementation target, not Docker DNS/network management.
+
+## Unique next action
+
+**No further user action is authorized now.**
+
+1. Inspect exact pinned upstream source for each of the three defect groups and freeze exact example-config/schema/upgrader/validator paths and expected values.
+2. Before modifying R12 wiring, add failure-first tests that reproduce:
+   - missing `database.uri` for Instagram DM / Google Messages / Signal;
+   - Meta `network.mode: null` type defect;
+   - LINE `appservice.bot.avatar: null` type defect.
+3. Require causal RED on those tests before implementation.
+4. Repair the existing R12 config generator at source using upstream-native fields/defaults only; no compatibility shim, network workaround, or second config framework.
+5. Verify generated configs using the exact pinned upstream binaries/images before any new Windows runtime package is issued.
 
 ## Runtime-ready after config repair
 
@@ -125,8 +125,10 @@ Facebook Personal → Instagram DM → Google Messages → Signal → LINE → F
 - [x] Package failure-first and byte-identity hardening.
 - [x] Final Windows 13/13 GREEN and artifact uploads GREEN.
 - [x] Independent artifact digest/file-set/SHA/Git-blob/content verification GREEN.
-- [x] Authorize one read-only Windows exit-11 evidence collection.
-- [ ] Receive `exit11-evidence.txt` and identify exact five upstream validator failures.
+- [x] One authorized read-only Windows exit-11 evidence collection completed.
+- [x] Exact validator evidence received and classified into three distinct defect groups.
+- [ ] Freeze exact upstream schema/example/validator authorities for all three defect groups.
+- [ ] Add failure-first R12 config-generator tests and establish causal RED.
 - [ ] Repair R12 config generator at source using upstream authorities.
 - [ ] Validate five runtimes and sustained readiness.
 - [ ] Reach human-auth boundary in frozen order.
