@@ -125,4 +125,15 @@ test('final Windows runtime repair/readiness package is thin, exact-five, Compos
   assert.match(workflow, /MOTW_BOOTSTRAP_GREEN/);
   assert.match(workflow, /FINAL STATUS: REAL_RED/);
   assert.match(workflow, /PSSecurityException/);
+
+  // The MotW harness intentionally drives the real wrapper to a missing-Lab
+  // exit=1. CI may normalize only that already-asserted child exit after every
+  // bootstrap/status assertion has passed, so the step itself can continue to
+  // manifest/upload. It must not erase a genuine unexpected child status.
+  assert.match(workflow, /if \(\$motwExitCode -ne 1\)/);
+  const childExitAssertIndex = workflow.indexOf('if ($motwExitCode -ne 1)');
+  const bootstrapGreenIndex = workflow.indexOf("Write-Host 'MOTW_BOOTSTRAP_GREEN'");
+  const normalizeIndex = workflow.indexOf('$global:LASTEXITCODE = 0');
+  assert.ok(childExitAssertIndex >= 0 && bootstrapGreenIndex > childExitAssertIndex && normalizeIndex > bootstrapGreenIndex,
+    'expected child RED may be normalized only after all MotW assertions and MOTW_BOOTSTRAP_GREEN');
 });
