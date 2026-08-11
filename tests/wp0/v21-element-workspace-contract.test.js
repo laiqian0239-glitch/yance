@@ -322,3 +322,40 @@ test('Nx CRLF backport carries exact-source unified-diff replay coordinates', ()
     'pnpm-lock.yaml hunks must bind exact pinned old lines and exact post-backport target lines without reordering mutation blocks'
   );
 });
+
+test('Nx CRLF backport keeps ordinary git-apply edge context on every mutation hunk', () => {
+  const nxPatch = readText('upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch');
+  const hunks = [];
+  let current = null;
+
+  for (const line of nxPatch.split(/\r?\n/u)) {
+    if (line.startsWith('@@ ')) {
+      current = { header: line, body: [] };
+      hunks.push(current);
+      continue;
+    }
+    if (line.startsWith('diff --git ')) {
+      current = null;
+      continue;
+    }
+    if (current) current.body.push(line);
+  }
+
+  const replayUnsafe = hunks
+    .filter(hunk => hunk.body.some(line =>
+      (line.startsWith('+') && !line.startsWith('+++'))
+        || (line.startsWith('-') && !line.startsWith('---'))
+    ))
+    .filter(hunk => {
+      const first = hunk.body[0] ?? '';
+      const last = hunk.body.at(-1) ?? '';
+      return !first.startsWith(' ') && !last.startsWith(' ');
+    })
+    .map(hunk => hunk.header);
+
+  assert.deepEqual(
+    replayUnsafe,
+    [],
+    'ordinary git apply requires unchanged edge context or structural coalescing; reduced-context mutation hunks are forbidden'
+  );
+});
