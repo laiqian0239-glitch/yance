@@ -1,0 +1,25 @@
+name: Multibridge Facebook Public OSS Fit
+
+on:
+  push:
+    branches:
+      - lab/multibridge-recovery-plan-20260811
+    paths:
+      - 'services/facebook-worker/**'
+      - '.github/workflows/multibridge-facebook-public-oss-fit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  facebook-public-upstream-semantics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.19.0'
+      - name: Run Facebook Public worker tests
+        run: npm --prefix services/facebook-worker test
