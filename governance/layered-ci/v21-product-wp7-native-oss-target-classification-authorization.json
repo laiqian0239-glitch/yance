@@ -5,7 +5,7 @@
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-WP7-NATIVE-OSS-TARGET-CLASSIFICATION",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Fresh Product Experience Final Validation on Product PR #229 exact head b7b5dbbe427ceae5502d61c7d603521791488cc3 isolated a real Desktop-only native scanner RED after Element and Matrix materialization passed. The trusted desktop builder completed production dependency closure, packaged Node 22.23.1 verification, Parlant runtime sealing and rcedit custody, then tools/wp7/verify-native-binaries.js rejected six mature-OSS foreign-target PE resources because their upstream target semantics are not yet recognized. This authorization permits a narrow failure-first repair in the existing WP7 scanner seam: recognize the exact Microsoft node-pty ConPTY architecture directory contract and PyPA distlib launcher filename contract, while retaining fail-closed PE machine enforcement for Windows x64 and forbidding broad ignores, hashes, pruning, workflow changes or Product runtime changes.",
+  "reason": "Fresh Product Experience Final Validation on PR #229 exact head b7b5dbbe427ceae5502d61c7d603521791488cc3 isolated a Desktop-only native-scanner REAL RED after Element and Matrix materialization passed. Six mature-OSS foreign-target PE resources from locked node-pty ConPTY and PyPA distlib remain unqualified. Authorize a narrow failure-first extension of the existing WP7 target-inference seam using exact upstream architecture contracts while retaining fail-closed Windows x64 PE-machine enforcement.",
   "base": {
     "branch": "main",
     "commit": "f9df8a214e2dcb181bc023f35fd69691e31e4cc7"
@@ -14,10 +14,7 @@
     "effectiveBeforeMerge": false,
     "requiresOrdinaryTwoParentMainMerge": true,
     "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
-    "authorizationProposalTransportIsNotImplementationAuthority": true,
-    "requiredFirstParent": "f9df8a214e2dcb181bc023f35fd69691e31e4cc7",
-    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
-    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+    "authorizationProposalTransportIsNotImplementationAuthority": true
   },
   "authorizationBranch": {
     "name": "governance/v21-product-wp7-native-oss-target-classification",
@@ -26,41 +23,30 @@
     ],
     "approvedChangedFileCount": 1,
     "approvedChangedFileSetSha256": "525a3323893dd3ca8795997e4dbb6354732ca9c8ab88fb76ad537b3edcbbe8e3",
-    "mustRemainSingleFile": true,
-    "mustRemainCleanFromTrustedMain": true
-  },
-  "digestCanonicalization": {
-    "algorithm": "SHA-256",
-    "encoding": "UTF-8",
-    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
-    "separator": "LF (\\n)",
-    "trailingNewline": true
+    "mustRemainSingleFile": true
   },
   "failureEvidence": {
     "productPullRequest": 229,
-    "productBranch": "product/v21-product-experience-shell-p0",
     "productHead": "b7b5dbbe427ceae5502d61c7d603521791488cc3",
     "productFinalValidationRun": 31607342752,
     "desktopJob": 94149584918,
     "elementDisposition": "GREEN",
     "matrixDisposition": "GREEN",
     "desktopDisposition": "REAL_RED",
-    "scanner": {
-      "fileCount": 145,
-      "targetLoadableFileCount": 129,
-      "inertForeignVariantCount": 16,
-      "failureCount": 6,
-      "reasonCode": "WP7_NATIVE_MACHINE_NOT_X64",
-      "targetPlatform": "win32",
-      "targetArch": "x64"
-    },
+    "targetPlatform": "win32",
+    "targetArch": "x64",
+    "scannerFileCount": 145,
+    "scannerTargetLoadableFileCount": 129,
+    "scannerInertForeignVariantCount": 16,
+    "scannerFailureCount": 6,
+    "reasonCode": "WP7_NATIVE_MACHINE_NOT_X64",
     "causalFailures": [
-      "resources/app/node_modules/node-pty/third_party/conpty/1.23.251008001/win10-arm64/OpenConsole.exe -> PE arm64, currently UNQUALIFIED_TARGET_LOAD_PATH",
-      "resources/app/node_modules/node-pty/third_party/conpty/1.23.251008001/win10-arm64/conpty.dll -> PE arm64, currently UNQUALIFIED_TARGET_LOAD_PATH",
-      "resources/parlant-runtime/python/Lib/site-packages/pip/_vendor/distlib/t32.exe -> PE x86, currently UNQUALIFIED_TARGET_LOAD_PATH",
-      "resources/parlant-runtime/python/Lib/site-packages/pip/_vendor/distlib/t64-arm.exe -> PE arm64, currently UNQUALIFIED_TARGET_LOAD_PATH",
-      "resources/parlant-runtime/python/Lib/site-packages/pip/_vendor/distlib/w32.exe -> PE x86, currently UNQUALIFIED_TARGET_LOAD_PATH",
-      "resources/parlant-runtime/python/Lib/site-packages/pip/_vendor/distlib/w64-arm.exe -> PE arm64, currently UNQUALIFIED_TARGET_LOAD_PATH"
+      "resources/app/node_modules/node-pty/third_party/conpty/1.23.251008001/win10-arm64/OpenConsole.exe -> PE arm64 / UNQUALIFIED_TARGET_LOAD_PATH",
+      "resources/app/node_modules/node-pty/third_party/conpty/1.23.251008001/win10-arm64/conpty.dll -> PE arm64 / UNQUALIFIED_TARGET_LOAD_PATH",
+      "resources/parlant-runtime/python/Lib/site-packages/pip/_vendor/distlib/t32.exe -> PE x86 / UNQUALIFIED_TARGET_LOAD_PATH",
+      "resources/parlant-runtime/python/Lib/site-packages/pip/_vendor/distlib/t64-arm.exe -> PE arm64 / UNQUALIFIED_TARGET_LOAD_PATH",
+      "resources/parlant-runtime/python/Lib/site-packages/pip/_vendor/distlib/w32.exe -> PE x86 / UNQUALIFIED_TARGET_LOAD_PATH",
+      "resources/parlant-runtime/python/Lib/site-packages/pip/_vendor/distlib/w64-arm.exe -> PE arm64 / UNQUALIFIED_TARGET_LOAD_PATH"
     ]
   },
   "upstreamAuthority": {
@@ -70,12 +56,14 @@
       "officialTag": "v1.1.0",
       "officialCommit": "1def5774632305246fe21f0f69e23a664d6c5910",
       "officialTree": "0364c94453c0ceb1c7313d01c84e3cb31af9e8c3",
-      "contract": "The exact official v1.1.0 tree contains third_party/conpty/1.23.251008001/win10-arm64/{OpenConsole.exe,conpty.dll} and third_party/conpty/1.23.251008001/win10-x64/{OpenConsole.exe,conpty.dll}. The win10-arm64 and win10-x64 directory components are upstream architecture-qualified variants and must be interpreted as such only inside the exact node-pty ConPTY structure."
+      "license": "MIT",
+      "contract": "Exact official v1.1.0 contains third_party/conpty/1.23.251008001/win10-arm64/{OpenConsole.exe,conpty.dll} and win10-x64/{OpenConsole.exe,conpty.dll}; the win10-* directory is the upstream architecture qualifier."
     },
     "distlib": {
       "officialRepository": "pypa/distlib",
       "reviewedOfficialCommit": "454a87c64f0b545138dc4798aa833a4ff8ac2377",
-      "contract": "Official distlib scripts.py _get_launcher() selects bits as 32 or 64 from Python pointer size, appends -arm only when get_platform() is win-arm64, and forms launcher resource names as <t|w><32|64>[-arm].exe. Therefore t32.exe and w32.exe are Windows 32-bit variants, t64-arm.exe and w64-arm.exe are Windows ARM64 variants, while t64.exe and w64.exe are Windows x64 variants when scanning for the win32/x64 target. Recognition is restricted to distlib launcher resources under the pip/_vendor/distlib package structure."
+      "license": "Python Software Foundation License family as recorded by official LICENSE.txt",
+      "contract": "Official scripts.py _get_launcher() chooses 32 or 64 from Python pointer size, appends -arm only for win-arm64, and names resources <t|w><32|64>[-arm].exe. Thus t32/w32 are x86, t64-arm/w64-arm are arm64, and t64/w64 are x64 target launchers."
     }
   },
   "implementation": {
@@ -88,21 +76,14 @@
     "approvedChangedFileSetSha256": "89d37a89cc38e7ccad46ad6a7ec22b9bfdb96afd42dd8feefc066dbb1c333fbd",
     "newDependencyAllowed": false,
     "workflowModificationAllowed": false,
-    "packageManifestModificationAllowed": false,
-    "lockfileModificationAllowed": false,
-    "productRuntimeModificationAllowed": false,
-    "releasePayloadModificationAllowed": false,
-    "newGeneralPurposeYanceInfrastructureAllowed": false,
-    "existingScannerSeamOnly": true,
     "failureFirstCommit": {
       "mustBeFirstImplementationCommit": true,
       "allowedChangedPaths": [
         "tests/wp7/native-binary-scan.test.js"
       ],
-      "approvedChangedFileCount": 1,
       "productionCodeChanged": false,
-      "requiredCausalRed": "The new exact upstream-contract fixtures must fail against the authorization-merge baseline because node-pty win10-arm64 and distlib foreign launcher resources remain UNQUALIFIED_TARGET_LOAD_PATH and trigger WP7_NATIVE_MACHINE_NOT_X64 for a win32/x64 target.",
-      "targetedTestAuthority": "node --test tests/wp7/native-binary-scan.test.js"
+      "targetedTestAuthority": "node --test tests/wp7/native-binary-scan.test.js",
+      "requiredCausalRed": "Exact node-pty win10-arm64 and distlib foreign-launcher fixtures must fail against the authorization-merge baseline because existing inference leaves them target-loadable and WP7_NATIVE_MACHINE_NOT_X64 rejects their PE machines."
     }
   },
   "ossFit": {
@@ -113,70 +94,51 @@
     "reviewedCandidates": [
       {
         "name": "Existing WP7 native target inference and PE machine gate",
-        "source": "tools/wp7/verify-native-binaries.js",
+        "source": "tools/wp7/verify-native-binaries.js at trusted main f9df8a214e2dcb181bc023f35fd69691e31e4cc7",
+        "license": "Existing Yance in-repository code; no new third-party license introduced",
         "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
-        "reason": "The scanner already distinguishes foreign prebuild variants from target-qualified variants and keeps target PE machine verification fail-closed. Extending its provenance-aware inference is smaller and safer than adding another scanner."
+        "reason": "Already distinguishes foreign prebuild variants from target-qualified variants and keeps target PE-machine verification fail closed; extending this provenance-aware seam avoids duplicate scanner infrastructure."
       },
       {
         "name": "Microsoft node-pty v1.1.0 ConPTY target directories",
-        "source": "microsoft/node-pty v1.1.0 / 1def5774632305246fe21f0f69e23a664d6c5910",
+        "source": "microsoft/node-pty v1.1.0 commit 1def5774632305246fe21f0f69e23a664d6c5910",
+        "license": "MIT",
         "adoptionMode": "upstream-target-contract",
         "fit": "FIT",
-        "reason": "The exact locked upstream tree owns win10-arm64 and win10-x64 architecture directories for the bundled ConPTY binaries; scanner classification should consume that mature OSS contract rather than infer from hashes or remove upstream resources."
+        "reason": "The exact locked upstream tree owns parallel win10-arm64 and win10-x64 ConPTY directories; consume that mature architecture contract instead of hashes, pruning or a Yance taxonomy."
       },
       {
         "name": "PyPA distlib launcher selector",
-        "source": "pypa/distlib scripts.py _get_launcher()",
+        "source": "pypa/distlib scripts.py _get_launcher() at commit 454a87c64f0b545138dc4798aa833a4ff8ac2377",
+        "license": "Python Software Foundation License family as recorded by official LICENSE.txt",
         "adoptionMode": "upstream-target-contract",
         "fit": "FIT",
-        "reason": "distlib itself defines the 32/64 and -arm launcher naming semantics. Exact resource-name recognition preserves the upstream distribution and avoids a Yance launcher taxonomy."
+        "reason": "distlib itself defines the 32/64 and -arm launcher naming semantics, so exact resource-name classification preserves the mature OSS distribution."
       },
       {
-        "name": "Broad third_party, pip, distlib or non-x64 exclusion; hash whitelist; resource pruning; second Yance scanner framework",
-        "source": "hypothetical bypass or duplicated infrastructure",
-        "adoptionMode": "rejected",
+        "name": "Broad directory exclusion, executable hash whitelist, payload pruning, or second Yance scanner",
+        "source": "Rejected design alternatives evaluated for this work package",
+        "license": "N/A - rejected design alternatives; no third-party software adopted",
+        "adoptionMode": "minimal-proven-gap",
         "fit": "GAP",
-        "reason": "These approaches would hide unrecognized executable surfaces, couple safety to volatile file hashes, mutate mature OSS payloads merely to satisfy a gate, or duplicate an existing scanner seam. They are forbidden."
+        "reason": "Would hide unrecognized executable surfaces, couple safety to volatile hashes, mutate mature OSS only to satisfy a gate, or duplicate an existing scanner seam."
       }
     ],
     "retireOrAvoid": [
       "Do not exclude third_party, pip, distlib or architecture directories broadly.",
-      "Do not whitelist executable hashes or exact released file hashes as a substitute for target semantics.",
-      "Do not delete foreign mature-OSS resources from the trusted payload merely to make the scanner pass.",
-      "Do not weaken or bypass WP7_NATIVE_MACHINE_NOT_X64 for target-loadable files.",
-      "Do not create a second native scanner, executable inventory framework or generalized Yance architecture registry."
+      "Do not whitelist executable hashes or delete mature-OSS foreign resources to satisfy the gate.",
+      "Do not weaken WP7_NATIVE_MACHINE_NOT_X64 for target-loadable files.",
+      "Do not create a second native scanner or generalized Yance architecture registry."
     ]
   },
   "mandatoryFailureFirstContracts": [
-    "On the exact authorization-merge baseline, an arm64 PE at resources/app/node_modules/node-pty/third_party/conpty/<version>/win10-arm64/OpenConsole.exe must causally RED because the existing scanner lacks this upstream target inference.",
-    "On the exact authorization-merge baseline, an arm64 PE at the same node-pty ConPTY structure ending in conpty.dll must causally RED for the same reason.",
-    "After repair, node-pty win10-arm64 OpenConsole.exe and conpty.dll must be INERT_FOREIGN_TARGET_VARIANT for a win32/x64 target, while win10-x64 variants remain target-qualified and PE-machine checked.",
-    "A non-x64 PE placed under the exact node-pty win10-x64 target directory must still fail with WP7_NATIVE_MACHINE_NOT_X64.",
-    "After repair, exact pip/_vendor/distlib t32.exe and w32.exe x86 resources and t64-arm.exe and w64-arm.exe arm64 resources must be INERT_FOREIGN_TARGET_VARIANT for a win32/x64 target.",
-    "Exact pip/_vendor/distlib t64.exe and w64.exe must remain Windows x64 target variants and remain PE-machine checked; a non-x64 PE under either target filename must fail with WP7_NATIVE_MACHINE_NOT_X64.",
-    "A deceptive near-match outside the exact node-pty ConPTY structure, or an unrecognized executable filename under distlib, must remain unqualified and fail closed when its PE machine is not x64.",
-    "Existing prebuilds-directory foreign/target tests must remain GREEN without weakening their semantics.",
-    "The reason code WP7_NATIVE_MACHINE_NOT_X64 and the underlying target-loadable PE machine gate must not be removed, downgraded or converted to warning-only behavior."
+    "Baseline: exact node-pty win10-arm64 OpenConsole.exe and conpty.dll fixtures causally RED for win32/x64.",
+    "GREEN: exact node-pty win10-arm64 resources are INERT_FOREIGN_TARGET_VARIANT; win10-x64 remains target-qualified and PE-machine checked.",
+    "GREEN: exact distlib t32.exe/w32.exe and t64-arm.exe/w64-arm.exe are foreign variants; t64.exe/w64.exe remain x64 target variants and PE-machine checked.",
+    "Near-matches outside exact node-pty ConPTY structure and unrecognized distlib executable names remain unqualified and fail closed when non-x64.",
+    "Existing prebuilds foreign/target tests remain GREEN and WP7_NATIVE_MACHINE_NOT_X64 is not downgraded or removed."
   ],
-  "requiredSequence": [
-    "Authorization branch remains single-file and is reviewed and gated from exact trusted main.",
-    "Authorization ordinary-merges to main as a two-parent merge; no implementation begins from the proposal transport branch.",
-    "Implementation branch starts from the exact authorization merge commit.",
-    "First implementation commit changes only tests/wp7/native-binary-scan.test.js and produces the required causal RED.",
-    "Only after the RED is observed may tools/wp7/verify-native-binaries.js be minimally extended to consume the two exact upstream target contracts.",
-    "Run targeted native scanner tests and applicable repository/Stage gates; then run the trusted Product Final materialization path that exposed the RED.",
-    "Implementation ordinary-merges to main only after changed-file authorization, CI and review gates pass.",
-    "Ordinary-forward fresh main into product/v21-product-experience-shell-p0 without rebase or history rewrite, then run fresh Product Final Validation on the resulting Product Head.",
-    "Final PR #229 integration merge remains the explicit owner boundary."
-  ],
-  "handoffBackToProduct": {
-    "productPullRequest": 229,
-    "productWorkPackage": "V21-PRODUCT-EXPERIENCE-SHELL-P0",
-    "productBranch": "product/v21-product-experience-shell-p0",
-    "productHeadAtAuthorization": "b7b5dbbe427ceae5502d61c7d603521791488cc3",
-    "rule": "After this implementation ordinary-merges to main, ordinary-forward fresh main into the Product branch without rebase or history rewrite. Fresh Product Final Validation must prove Desktop, Matrix and Element materialization on the resulting Product Head. Final PR #229 integration merge remains an explicit owner boundary."
-  },
   "prohibitions": {
     "temporaryBypass": true,
     "continueOnError": true,
@@ -208,7 +170,6 @@
     "readyForPromotionAuthorized": false,
     "automaticNextWorkPackageAuthorizationAuthorized": false,
     "delegatedExecutionAuthorized": true,
-    "formalRelease": false,
     "finalProductIntegrationMergeRequiresOwnerApproval": true
   }
 }
