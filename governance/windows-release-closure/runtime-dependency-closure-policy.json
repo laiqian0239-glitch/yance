@@ -9,6 +9,7 @@
     "electron",
     "diagnostics",
     "release",
+    "vendor/sillytavern/1.18.0",
     "installer/installedIdentityReceipt.js"
   ],
   "forbiddenRuntimeDependencyRoots": [
@@ -31,6 +32,7 @@
   "closureRequirements": [
     "Production runtime files may not import or require excluded source roots",
     "Every static relative production runtime dependency must resolve to a packaged source path",
+    "Separately authorized vendored runtime roots must remain path-exact and payload-backed",
     "The packaged update manager must load with resources/app/tools absent",
     "WP7 build and packaged-payload validation must both enforce the dependency closure",
     "Build tooling and the installed updater must share the production-safe PE identity reader"

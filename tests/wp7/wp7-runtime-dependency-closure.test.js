@@ -42,6 +42,28 @@ test('wp7-runtime-dependency-closure.test', async t => {
       specifier: '../shared/windows/pe-resource-identity',
       targetPath: 'shared/windows/pe-resource-identity.js'
     });
+
+    const expectedSillyTavernDependencies = [
+      {
+        sourcePath: 'backend/personaBrain/sillyTavernAdapter.js',
+        targetPath: 'vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs'
+      },
+      {
+        sourcePath: 'backend/routes/personaBrain.js',
+        targetPath: 'vendor/sillytavern/1.18.0/src/character-card-parser.cjs'
+      },
+      {
+        sourcePath: 'backend/routes/personaBrain.js',
+        targetPath: 'vendor/sillytavern/1.18.0/src/validator/TavernCardValidator.cjs'
+      },
+      {
+        sourcePath: 'vendor/sillytavern/1.18.0/src/character-card-parser.cjs',
+        targetPath: 'vendor/sillytavern/1.18.0/src/png/encode.cjs'
+      }
+    ];
+    for (const expected of expectedSillyTavernDependencies) {
+      assert.ok(result.records.some(row => row.sourcePath === expected.sourcePath && row.targetPath === expected.targetPath), `${expected.sourcePath} -> ${expected.targetPath}`);
+    }
   });
 
   await t.test('production runtime no longer imports build tooling', () => {
