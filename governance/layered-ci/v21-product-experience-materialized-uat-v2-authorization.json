@@ -85,10 +85,66 @@
     "matureOssAvailable": true,
     "newGeneralPurposeInfrastructure": false,
     "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP7 pre-review trusted-product builder and packaged-runtime closure",
+        "source": "tools/wp7/create-pre-review-trusted-product.js, tools/wp7/lib.js, tools/wp7/node-runtime-identity.js",
+        "license": "repository-existing seam over reviewed upstream Electron, Node and runtime inputs",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already materializes a Windows application payload from reviewed production node_modules, official Electron distribution, trusted Node 22.23.1 and presealed Parlant runtime while verifying source, dependency and native-binary closure. Product UAT must reuse it instead of building another desktop packager."
+      },
+      {
+        "name": "Docker Engine image build, save and load plus Docker Compose image-only startup",
+        "source": "Docker Engine and Compose CLI; existing services/matrix runtime topology",
+        "license": "Apache-2.0 for Docker Engine and mature upstream distribution",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Trusted CI can build exact pinned Matrix images once and export them with docker save; the UAT machine only docker loads and starts those images with compose --no-build, eliminating local source builds without a Yance image format or loader."
+      },
+      {
+        "name": "Existing pinned Matrix, Element and mautrix materialization plus Element official runtime module delivery",
+        "source": "tools/matrix/bootstrap.js, pinned Element Web v1.12.25, Synapse and mautrix-whatsapp upstream identities, upstream patch 0012",
+        "license": "existing reviewed upstream license closure",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Element ModuleLoader, nginx /modules, Docker image packaging and current Matrix service boundaries already own the frontend and runtime topology. The Product candidate only materializes and seals them; it must not introduce a Yance web, module or container runtime."
+      },
+      {
+        "name": "Existing actions/upload-artifact exact pinned Action",
+        "source": "repository third_party GitHub Actions lock and current Product Final Validation workflow",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Two independently sealed same-identity artifacts reuse the existing exact upload authority and avoid introducing actions/download-artifact or expanding the GitHub Action supply-chain registry."
+      },
+      {
+        "name": "New Yance package manager, Docker image format, container loader, source builder or generalized UAT materializer",
+        "source": "hypothetical new Yance infrastructure",
+        "license": "not applicable because adoption is rejected",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "Mature OSS and existing repository seams already cover dependency materialization, desktop packaging, OCI image build, export and import, and Matrix startup. A new general framework would duplicate authority and is forbidden."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire create-round12-13-windows-uat-package.js and its source-UAT installer as the Product Experience Final Validation handoff path; do not delete or modify the generic legacy framework in this work package.",
+      "Retire user-machine npm ci, pnpm install, node-gyp, Docker build and source checkout or materialization from Product Experience UAT.",
+      "Avoid a second desktop packager; reuse WP7 pre-review trusted product.",
+      "Avoid a second Matrix or module runtime; reuse pinned Matrix bootstrap, Element ModuleLoader and Docker images.",
+      "Avoid actions/download-artifact by keeping desktop and Matrix bundles separately sealed and bound to the same commit and tree, then joining them only on the UAT machine through the thin runner.",
+      "Avoid modifying Product runtime or UI code in this package; it is a delivery-root migration only."
+    ],
     "desktopAuthority": "Existing WP7 pre-review trusted-product builder plus official Electron, trusted Node 22.23.1, presealed Parlant and reviewed production dependencies",
     "matrixAuthority": "Docker Engine build/save/load plus Docker Compose image-only startup over existing pinned Synapse, Element and mautrix materialization",
     "elementModuleAuthority": "Existing Element ModuleLoader and replayable 0012 patch",
     "artifactUploadAuthority": "Existing pinned actions/upload-artifact",
+    "existingWp7TrustedProductIsDesktopAuthority": true,
+    "existingTrustedNode2231IsPackagedNodeAuthority": true,
+    "existingParlantSealIsPythonRuntimeAuthority": true,
+    "elementModuleLoaderRemainsSoleModuleAuthority": true,
+    "dockerEngineRemainsImageFormatAndLoadAuthority": true,
+    "dockerComposeRemainsMatrixStartupAuthority": true,
     "genericSourceUatFrameworkModificationForbidden": true,
     "userMachineDependencyInstallForbidden": true,
     "userMachineNativeBuildForbidden": true,
