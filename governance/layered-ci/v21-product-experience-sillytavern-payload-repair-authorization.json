@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-12T14:01:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-SILLYTAVERN-PAYLOAD-REPAIR",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Repair the first remaining Product Experience materialized-desktop UAT packaging defect after the materialization-layer repair ordinary-merged to main. Product Head b6b6a68bee73fd73d37c63651ae9ab938cc9d3cf / Product Final Validation run 31572735729 / desktop job 94038025743 proves trusted Electron LFS, exact repository npm@10.9.2 production dependency materialization, packaged Node 22.23.1, sealed Parlant and exact rcedit all GREEN before existing WP7 fails closed with WP7_PRODUCTION_RUNTIME_DEPENDENCY_CLOSURE_INVALID. The three exact violations are existing backend runtime requires into vendor/sillytavern/1.18.0/src: prompt/prompt-composition-core.cjs, character-card-parser.cjs, and validator/TavernCardValidator.cjs. Persona/Character authorization already adopted SillyTavern 1.18.0 commit 51ad27fb86d39a3daca3adaa970375c9670c12df and the repository vendor slice contains only four reviewed runtime source files plus LICENSE and UPSTREAM provenance. The repair must therefore align the existing WP1 payload assembly and WP7 executable dependency-closure policy with that already-reviewed vendored OSS slice at its original repository path. No Product UI/runtime edit, no vendor source edit, no new dependency, no WP7 bypass, no shadow source tree, and no user-machine package resolution is authorized.",
+  "repairEvidence": {
+    "productPullRequest": 229,
+    "productHead": "b6b6a68bee73fd73d37c63651ae9ab938cc9d3cf",
+    "productFinalValidationRun": 31572735729,
+    "desktopJob": 94038025743,
+    "firstRemainingReasonCode": "WP7_PRODUCTION_RUNTIME_DEPENDENCY_CLOSURE_INVALID",
+    "firstRemainingViolations": [
+      {
+        "sourcePath": "backend/personaBrain/sillyTavernAdapter.js",
+        "targetPath": "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs"
+      },
+      {
+        "sourcePath": "backend/routes/personaBrain.js",
+        "targetPath": "vendor/sillytavern/1.18.0/src/character-card-parser.cjs"
+      },
+      {
+        "sourcePath": "backend/routes/personaBrain.js",
+        "targetPath": "vendor/sillytavern/1.18.0/src/validator/TavernCardValidator.cjs"
+      }
+    ],
+    "previousRepairProven": [
+      "trusted Electron LFS materialization GREEN",
+      "exact repository npm@10.9.2 production dependency closure materialization GREEN",
+      "packaged trusted Node 22.23.1 GREEN",
+      "presealed Parlant Windows runtime GREEN",
+      "exact rcedit custody input GREEN"
+    ]
+  },
+  "existingOssAuthority": {
+    "authorizationPath": "governance/layered-ci/v21-persona-character-p0-v1-authorization.json",
+    "repositoryPath": "vendor/sillytavern/1.18.0",
+    "upstreamRepository": "SillyTavern/SillyTavern",
+    "release": "1.18.0",
+    "commit": "51ad27fb86d39a3daca3adaa970375c9670c12df",
+    "license": "AGPL-3.0",
+    "runtimeSourcePaths": [
+      "vendor/sillytavern/1.18.0/src/character-card-parser.cjs",
+      "vendor/sillytavern/1.18.0/src/png/encode.cjs",
+      "vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs",
+      "vendor/sillytavern/1.18.0/src/validator/TavernCardValidator.cjs"
+    ],
+    "provenancePaths": [
+      "vendor/sillytavern/1.18.0/LICENSE",
+      "vendor/sillytavern/1.18.0/UPSTREAM.json"
+    ]
+  },
+  "base": {
+    "branch": "main",
+    "commit": "463738f6d6af16e24e42ff3672edc2d62122edc1"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "requiredFirstParent": "463738f6d6af16e24e42ff3672edc2d62122edc1",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-sillytavern-payload-repair-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-sillytavern-payload-repair-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "6b688de6705f1bb40eca3eb2c2fb18d2c8a398e33bc8f95b50549316dd6d0a05",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-sillytavern-payload-repair",
+    "allowedChangedPaths": [
+      "governance/windows-release-closure/runtime-dependency-closure-policy.json",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tests/wp1/payload-scope-inclusion-exclusion.test.js",
+      "tests/wp7/wp7-runtime-dependency-closure.test.js",
+      "tools/wp1/lib.js",
+      "tools/wp7/runtime-source-dependency-closure.js"
+    ],
+    "approvedChangedFileCount": 6,
+    "approvedChangedFileSetSha256": "0d55140ae035a0cc9caa9c7a3b50ff18e6b7a73a16b2dda7800f28b6b440a99d",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "vendorSourceModificationAllowed": false,
+    "wp1PayloadAssemblyModificationAllowed": true,
+    "wp7DependencyClosureModificationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-experience-materialized-uat.test.js",
+        "tests/wp1/payload-scope-inclusion-exclusion.test.js",
+        "tests/wp7/wp7-runtime-dependency-closure.test.js"
+      ],
+      "approvedChangedFileCount": 3,
+      "approvedChangedFileSetSha256": "d07f263b3d8b82379bed4ab66aa1b7bf3195e57be9a2e80ccc213e954bf08d03",
+      "productionCodeChanged": false,
+      "remoteCausalRedAuthority": "Stage 6.4.5.9 WP0 Architecture Gates -> npm run test:wp0"
+    }
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PINNED_SILLYTAVERN_VENDOR_SLICE",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing pinned SillyTavern 1.18.0 vendored source slice",
+        "source": "vendor/sillytavern/1.18.0 from Persona/Character P0 authority",
+        "license": "AGPL-3.0",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Backend runtime already directly requires this reviewed source slice. Keeping its original vendor/sillytavern/1.18.0 path preserves the real require graph, source provenance, and existing exact dependency versions."
+      },
+      {
+        "name": "WP1 runtime payload allowlist plus WP7 executable runtime dependency closure",
+        "source": "tools/wp1/lib.js and tools/wp7/runtime-source-dependency-closure.js",
+        "license": "repository-existing policy code",
+        "adoptionMode": "owner-layer-repair",
+        "fit": "FIT",
+        "reason": "These are the two existing owner layers that currently disagree with the real backend runtime graph. Updating both avoids Product-specific staging copies or a WP7 bypass."
+      },
+      {
+        "name": "Copy only three immediately failing files, alter backend require paths, or bypass WP7 closure",
+        "source": "hypothetical workaround",
+        "license": "not applicable because rejected",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "A hand-picked three-file copy would omit character-card-parser.cjs's reviewed relative png/encode.cjs dependency and legal/provenance context; changing imports or bypassing the gate would hide the packaging authority defect."
+      }
+    ],
+    "retireOrAvoid": [
+      "Avoid Product-workflow or WP7-builder special-case copies.",
+      "Avoid changing backend Persona require paths.",
+      "Avoid modifying the vendored SillyTavern source, upstream commit, package.json or package-lock.json.",
+      "Avoid introducing a second Persona runtime or a new Yance vendor loader.",
+      "Avoid weakening WP7 dependency closure; it must recognize exactly the payload authority that WP1 actually packages."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "On the exact authorization-merge baseline, the first implementation commit is tests-only and Stage must RED causally because the real application payload omits vendor/sillytavern/1.18.0 while existing backend runtime requires it.",
+    "The permanent WP1 test must prove the payload contains the complete already-reviewed vendor/sillytavern/1.18.0 slice at its original repository-relative paths, including all four runtime source files and the existing LICENSE/UPSTREAM provenance files.",
+    "The permanent WP7 test must prove backend/personaBrain/sillyTavernAdapter.js and backend/routes/personaBrain.js resolve their existing static relative SillyTavern dependencies inside the packaged-runtime authority, including character-card-parser.cjs's relative png/encode.cjs dependency.",
+    "The implementation must modify the WP1/WP7 owner-layer payload policy, not Product UI/runtime, backend require paths, vendor source, package manifests, lockfiles, workflow commands, or user-machine build behavior.",
+    "No test weakening, dependency-gate bypass, shadow source tree, copied three-file exception, or new general-purpose Yance infrastructure is authorized."
+  ],
+  "handoffBackToProduct": {
+    "productPullRequest": 229,
+    "productBranch": "product/v21-product-experience-shell-p0",
+    "productHeadAtAuthorization": "b6b6a68bee73fd73d37c63651ae9ab938cc9d3cf",
+    "rule": "After this repair ordinary-merges to main, ordinary-forward fresh main into Product without rebase, cherry-pick, force push, squash, or history rewrite. Fresh Product Final Validation must preserve prior npm, Node, Parlant, rcedit, Matrix and frozen-Element GREEN results and carry WP7 through sealed desktop artifact upload. Final PR #229 integration merge remains explicit owner boundary."
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "rootDependencyChange": true,
+    "rootLockRegeneration": true,
+    "productRuntimeModification": true,
+    "backendPersonaRuntimeModification": true,
+    "vendorSourceModification": true,
+    "workflowModification": true,
+    "userMachineBuild": true,
+    "newYanceGeneralPurposeInfrastructure": true,
+    "releasePublishing": true,
+    "formalRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalProductPullRequestMergeRequiresOwnerApproval": true
+  }
+}
