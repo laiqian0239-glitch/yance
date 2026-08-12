@@ -401,3 +401,36 @@ test('Product Final materializes trusted rcedit from identity-bound Git LFS cust
   assert.match(rceditStep, /RCEDIT_SHA256/u);
   assert.match(rceditStep, /Get-FileHash[^\n]*SHA256/u);
 });
+
+test('WP7 archive ownership retires manual USTAR format code for exact locked node-tar PAX tooling', () => {
+  const archiveSource = read('tools/wp7/deterministic-tar-gzip.js');
+  const builderSource = read('tools/wp7/create-pre-review-trusted-product.js');
+  const workflow = read(WORKFLOW);
+  const previewRunner = read('tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1');
+
+  assert.doesNotMatch(
+    archiveSource,
+    /\b(?:splitUstarPath|tarHeader|writeOctal)\b/u,
+    'causal RED: the active WP7 archive owner still contains Yance-authored USTAR format implementation'
+  );
+  assert.doesNotMatch(builderSource, /NODE_USTAR_STREAM_GZIP_V2/u);
+  assert.match(builderSource, /NODE_TAR_PAX_GZIP_V1/u);
+  assert.match(builderSource, /archive-tool-node-modules/u);
+
+  const archiveManifest = JSON.parse(read('tools/wp7/archive-oss/package.json'));
+  const archiveLock = JSON.parse(read('tools/wp7/archive-oss/package-lock.json'));
+  assert.equal(archiveManifest.private, true);
+  assert.equal(archiveManifest.dependencies?.tar, '7.5.22');
+  assert.equal(archiveLock.packages?.['node_modules/tar']?.version, '7.5.22');
+  assert.match(String(archiveLock.packages?.['node_modules/tar']?.integrity || ''), /^sha512-/u);
+
+  assert.match(workflow, /tools[\\/]wp7[\\/]archive-oss[\\/]package-lock\.json/u);
+  assert.match(workflow, /npm(?:\.cmd)?\s+exec\s+--yes\s+--package=npm@10\.9\.2\s+--\s+npm\s+ci[^\n]*--omit=dev[^\n]*--ignore-scripts/u);
+  assert.match(workflow, /--archive-tool-node-modules/u);
+  assert.match(previewRunner, /tools[\\/]wp7[\\/]archive-oss[\\/]package-lock\.json/u);
+  assert.match(previewRunner, /--archive-tool-node-modules/u);
+
+  const rootPackage = JSON.parse(read('package.json'));
+  assert.equal(rootPackage.dependencies?.tar, undefined);
+  assert.equal(rootPackage.devDependencies?.tar, undefined);
+});
