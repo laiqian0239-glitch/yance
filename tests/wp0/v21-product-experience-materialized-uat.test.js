@@ -296,7 +296,7 @@ test('WP0 failure-first covers WP1 nested backend tests while preserving real ru
 
     writeFixture('backend/runtime-hardcoded.js', "const buildId = 'YANCE-29.2.5-S6.4.5.9-P1-cccccccccccc-20260703T000000Z';\nmodule.exports = buildId;\n");
     gitFixture(['add', 'backend/runtime-hardcoded.js']);
-    const withRuntimeViolation = scanSingleHumanMaintainedReleaseSource(root, releaseSource);
+    const withRuntimeViolation = scanSingleHumanMaintainedReleaseSourceDependencies ? scanSingleHumanMaintainedReleaseSourceDependencies(root, releaseSource) : scanSingleHumanMaintainedReleaseSource(root, releaseSource);
     assert.equal(withRuntimeViolation.status, 'FAIL');
     assert.ok(withRuntimeViolation.violations.some(item => item.path === 'backend/runtime-hardcoded.js' && item.reasonCode === 'WP1_RUNTIME_HARDCODED_BUILD_ID'));
     assert.equal(withRuntimeViolation.violations.some(item => item.path.startsWith('backend/tests/')), false);
@@ -377,4 +377,23 @@ test('real Git fixture proves Matrix EOL semantics belong only to strict git app
     assert.deepEqual(fs.readFileSync(shellPath), shellBefore, 'unrelated executable checkout bytes must stay byte-identical');
     assert.equal(fs.readFileSync(shellPath).includes(0x0d), false, 'unrelated shell script must remain LF-native');
   });
+});
+
+test('Product Final materializes trusted rcedit from identity-bound Git LFS custody without a live release download', () => {
+  const source = read(WORKFLOW);
+  const attributes = read('.gitattributes');
+
+  assert.doesNotMatch(
+    source,
+    /Invoke-WebRequest[^\n]*electron\/rcedit\/releases\/download/iu,
+    'causal RED: Product Final still owns rcedit through a live GitHub release-asset download'
+  );
+  assert.doesNotMatch(source, /(?:curl|wget)[^\n]*rcedit/iu);
+  assert.match(attributes, /vendor\/rcedit\/\*\.exe\s+filter=lfs\s+diff=lfs\s+merge=lfs\s+-text/u);
+  assert.match(source, /vendor\/rcedit\/rcedit-v2\.0\.0-x64\.exe/u);
+  assert.match(source, /git\s+lfs\s+pull\s+origin\s+--include=/u);
+  assert.match(source, /oid\s+sha256:/u);
+  assert.match(source, /1360384/u);
+  assert.match(source, /RCEDIT_SHA256/u);
+  assert.match(source, /Get-FileHash[^\n]*SHA256/u);
 });
