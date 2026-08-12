@@ -292,3 +292,30 @@ test('WP0 failure-first covers WP1 nested backend tests while preserving real ru
     assert.equal(withRuntimeViolation.violations.some(item => item.path.startsWith('backend/tests/')), false);
   });
 });
+
+test('WP0 failure-first proves the existing SillyTavern vendor slice is packaged runtime authority', () => {
+  const { createApplicationPayload, generatePayloadRecords } = require('../../tools/wp1/lib');
+  const { validateProductionRuntimeSourceDependencies } = require('../../tools/wp7/runtime-source-dependency-closure');
+  const expectedVendorPaths = [
+    'vendor/sillytavern/1.18.0/LICENSE',
+    'vendor/sillytavern/1.18.0/UPSTREAM.json',
+    'vendor/sillytavern/1.18.0/src/character-card-parser.cjs',
+    'vendor/sillytavern/1.18.0/src/png/encode.cjs',
+    'vendor/sillytavern/1.18.0/src/prompt/prompt-composition-core.cjs',
+    'vendor/sillytavern/1.18.0/src/validator/TavernCardValidator.cjs'
+  ];
+
+  withTemporaryDirectory(payloadRoot => {
+    createApplicationPayload(ROOT, payloadRoot);
+    const payloadPaths = new Set(generatePayloadRecords(payloadRoot).map(row => row.path));
+    for (const relativePath of expectedVendorPaths) {
+      assert.equal(payloadPaths.has(relativePath), true, `runtime payload must include reviewed SillyTavern authority: ${relativePath}`);
+    }
+  });
+
+  const closure = validateProductionRuntimeSourceDependencies({ repoRoot: ROOT });
+  assert.equal(closure.status, 'PASS');
+  for (const targetPath of expectedVendorPaths.filter(relativePath => relativePath.endsWith('.cjs'))) {
+    assert.ok(closure.records.some(row => row.targetPath === targetPath), `WP7 closure must recognize packaged SillyTavern source: ${targetPath}`);
+  }
+});
