@@ -92,3 +92,16 @@ test('nested-backend-tests-are-not-runtime-release-identity-sources.test', () =>
   assert.equal(withRuntimeViolation.status, 'FAIL');
   assert.ok(withRuntimeViolation.violations.some(item => item.path === 'backend/runtime-hardcoded.js' && item.reasonCode === 'WP1_RUNTIME_HARDCODED_BUILD_ID'));
 });
+
+test('nested-backend-build-remains-runtime-release-identity-source.test', () => {
+  const root = fixture();
+  write(root, 'backend/plugins/build/release-identity.js', "const buildId = 'YANCE-29.2.5-S6.4.5.9-P1-dddddddddddd-20260703T000000Z';\nmodule.exports = buildId;\n");
+  git(root, ['add', 'backend/plugins/build/release-identity.js']);
+
+  const result = scan(root);
+  assert.equal(result.status, 'FAIL', JSON.stringify(result.violations));
+  assert.ok(result.violations.some(item =>
+    item.path === 'backend/plugins/build/release-identity.js' &&
+    item.reasonCode === 'WP1_RUNTIME_HARDCODED_BUILD_ID'
+  ));
+});
