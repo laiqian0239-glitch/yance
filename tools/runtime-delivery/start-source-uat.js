@@ -17,7 +17,7 @@ const {
   resolveDataRoot,
   verifyDependencyIntegrity
 } = require('./source-uat-delivery');
-const { startDetachedElectron, waitForRuntimeReady } = require('./source-uat-runtime-supervisor');
+const { ensureMatrixElementRuntime, startDetachedElectron, waitForRuntimeReady } = require('./source-uat-runtime-supervisor');
 
 function parseArgs(argv) {
   const options = { install: false, prepareOnly: false, useExistingData: false, useLargestExistingData: false, allowNonWindows: false, allowDirty: false };
@@ -116,6 +116,25 @@ async function main() {
   if (!(await portAvailable(port))) {
     throw Object.assign(new Error(`端口 ${port} 已被占用。请完全退出已安装的言策或使用 --port=其他端口。`), { reasonCode: 'SOURCE_UAT_PORT_IN_USE', details: { port } });
   }
+
+  const configuredElementUrl = String(process.env.YANCE_ELEMENT_URL || '').replace(/\/+$/u, '');
+  const matrixRuntime = await ensureMatrixElementRuntime({
+    repoRoot,
+    timeoutMs: Number(process.env.YANCE_MATRIX_RUNTIME_READY_TIMEOUT_MS || 120000),
+    synapseHealthUrl: process.env.YANCE_SYNAPSE_HEALTH_URL || undefined,
+    elementHealthUrl: process.env.YANCE_ELEMENT_HEALTH_URL || (configuredElementUrl ? `${configuredElementUrl}/config.json` : undefined)
+  });
+  launchBase.matrixRuntime = {
+    authority: 'services/matrix/docker-compose.yml',
+    ready: matrixRuntime.ready,
+    reusedExisting: matrixRuntime.reusedExisting,
+    startedServices: matrixRuntime.startedServices,
+    synapseReady: matrixRuntime.observation.synapseReady,
+    elementReady: matrixRuntime.observation.elementReady,
+    synapseHealthUrl: matrixRuntime.observation.synapseHealthUrl,
+    elementHealthUrl: matrixRuntime.observation.elementHealthUrl
+  };
+
   const electron = electronExecutable(repoRoot);
   const env = {
     ...process.env,
@@ -141,6 +160,7 @@ async function main() {
   process.stdout.write(`- Port: ${port}\n`);
   process.stdout.write(`- Mode: ${launchBase.dataMode}\n`);
   process.stdout.write(`- Dependencies: ${dependencyIntegrity.installedCount}/${dependencyIntegrity.directDependencyCount} verified\n`);
+  process.stdout.write(`- Matrix: Synapse/Element ready via ${launchBase.matrixRuntime.authority}; started=${launchBase.matrixRuntime.startedServices.join(',') || 'none'}\n`);
   if (launchBase.dataRootWarning) process.stdout.write(`[数据目录提醒] ${launchBase.dataRootWarning}\n`);
   const runtimeLogRoot = path.join(prepared.outputRoot, 'runtime-logs');
   const launched = startDetachedElectron({ electron, repoRoot, env, logRoot: runtimeLogRoot });
