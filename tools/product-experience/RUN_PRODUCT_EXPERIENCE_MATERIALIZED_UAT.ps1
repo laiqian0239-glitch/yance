@@ -151,10 +151,13 @@ if ([string]::IsNullOrWhiteSpace($UatDataRoot)) { $UatDataRoot = Join-Path $Evid
 if (-not [string]::IsNullOrWhiteSpace($ExistingDataRoot)) {
   if (Get-Process -Name 'Yance' -ErrorAction SilentlyContinue) { throw 'Yance must be stopped before copying existing data into the isolated UAT data root' }
   $sourceData = Resolve-RealDirectory $ExistingDataRoot 'existing Yance data root'
+  $sourceEntries = @(Get-ChildItem -LiteralPath $sourceData -Force -Recurse)
+  foreach ($sourceEntry in $sourceEntries) {
+    if (($sourceEntry.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw "existing data contains forbidden symlink/reparse point: $($sourceEntry.FullName)" }
+  }
   Remove-Item -LiteralPath $UatDataRoot -Recurse -Force -ErrorAction SilentlyContinue
   New-Item -ItemType Directory -Force -Path $UatDataRoot | Out-Null
   foreach ($entry in Get-ChildItem -LiteralPath $sourceData -Force) {
-    if (($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw "existing data contains forbidden symlink/reparse point: $($entry.FullName)" }
     Copy-Item -LiteralPath $entry.FullName -Destination $UatDataRoot -Recurse -Force -ErrorAction Stop
   }
 } else {
