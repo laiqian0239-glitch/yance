@@ -323,6 +323,43 @@ jobs:
           if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'rcedit LFS materialization must leave Product source clean' }
           "path=$path" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
+      - name: Materialize exact isolated WP7 archive OSS toolchain
+        id: archive_oss
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:RUNNER_TEMP 'product-uat-archive-oss'
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $root
+          New-Item -ItemType Directory -Path $root | Out-Null
+          Copy-Item -LiteralPath 'tools/wp7/archive-oss/package.json' -Destination $root
+          Copy-Item -LiteralPath 'tools/wp7/archive-oss/package-lock.json' -Destination $root
+
+          Push-Location $root
+          try {
+            npm.cmd exec --yes --package=npm@10.9.2 -- npm ci --omit=dev --ignore-scripts --no-audit --no-fund --no-bin-links
+            if ($LASTEXITCODE -ne 0) { throw "trusted-CI exact npm@10.9.2 archive OSS ci failed: $LASTEXITCODE" }
+          } finally { Pop-Location }
+
+          $nodeModules = Join-Path $root 'node_modules'
+          $tarPackagePath = Join-Path $nodeModules 'tar\package.json'
+          if (-not (Test-Path -LiteralPath $tarPackagePath -PathType Leaf)) { throw 'isolated tar package metadata is missing' }
+          $tarPackage = Get-Content -LiteralPath $tarPackagePath -Raw | ConvertFrom-Json
+          if ([string]$tarPackage.name -ne 'tar' -or [string]$tarPackage.version -ne '7.5.22') {
+            throw "isolated archive OSS identity mismatch: $($tarPackage.name)@$($tarPackage.version)"
+          }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'archive OSS materialization must leave Product source clean' }
+          "node_modules=$((Resolve-Path $nodeModules).Path)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Run real WP7 node-tar PAX long-path and determinism contract
+        shell: pwsh
+        env:
+          WP7_ARCHIVE_TOOL_NODE_MODULES: ${{ steps.archive_oss.outputs.node_modules }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          node --test --test-concurrency=1 tests/wp7/deterministic-tar-gzip.test.js
+          if ($LASTEXITCODE -ne 0) { throw "WP7 real node-tar PAX archive contract failed: $LASTEXITCODE" }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'WP7 archive contract must leave Product source clean' }
+
       - name: Build existing WP7 PRE_REVIEW_ONLY trusted desktop and seal Product bundle
         shell: pwsh
         run: |
@@ -342,6 +379,7 @@ jobs:
             --trusted-node-executable '${{ steps.packaged_node.outputs.node_exe }}' `
             --parlant-runtime '${{ steps.parlant.outputs.root }}' `
             --rcedit-path '${{ steps.rcedit.outputs.path }}' `
+            --archive-tool-node-modules '${{ steps.archive_oss.outputs.node_modules }}' `
             --output-dir $wp7 `
             --build-timestamp-utc $commitTime `
             --build-session-id $session `

@@ -1,0 +1,9 @@
+{
+  "name": "@yance/wp7-archive-oss",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated mature OSS archive build-tool closure for WP7 trusted-product packaging.",
+  "dependencies": {
+    "tar": "7.5.22"
+  }
+}
