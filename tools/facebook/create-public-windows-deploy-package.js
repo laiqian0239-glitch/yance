@@ -22,12 +22,17 @@ function trackedFiles(repoRoot, prefix) {
   return output.toString('utf8').split('\0').filter(Boolean).sort();
 }
 
+function isDevVarsFile(relative) {
+  const basename = path.posix.basename(relative.replace(/\\/gu, '/'));
+  return basename === '.dev.vars' || basename.startsWith('.dev.vars.');
+}
+
 function copyTrackedFile(repoRoot, packageRoot, relative) {
   const normalized = relative.replace(/\\/gu, '/');
   if (!normalized || normalized.startsWith('/') || normalized.split('/').some(part => part === '..' || part === '.')) {
     throw new Error(`unsafe tracked path: ${relative}`);
   }
-  if (normalized.endsWith('/.dev.vars') || normalized.includes('/.dev.vars.')) {
+  if (isDevVarsFile(normalized)) {
     throw new Error(`secret-bearing file must not be packaged: ${normalized}`);
   }
   const source = path.join(repoRoot, ...normalized.split('/'));
@@ -163,7 +168,10 @@ function createPackage(repoRoot, outputRoot) {
   const workerFiles = trackedFiles(root, 'services/facebook-worker');
   if (!workerFiles.includes('services/facebook-worker/wrangler.jsonc')) throw new Error('canonical Wrangler config is not tracked');
   if (workerFiles.some(file => file.endsWith('wrangler.deploy.local.jsonc'))) throw new Error('legacy divergent Wrangler config is still tracked');
-  for (const file of workerFiles) copyTrackedFile(root, packageRoot, file);
+  for (const file of workerFiles) {
+    if (isDevVarsFile(file)) continue;
+    copyTrackedFile(root, packageRoot, file);
+  }
   for (const file of ['tools/facebook/prepare-production-config.js', 'tools/facebook/verify-formal-worker.js']) {
     copyTrackedFile(root, packageRoot, file);
   }
