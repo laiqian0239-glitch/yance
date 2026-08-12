@@ -9,12 +9,15 @@ const test = require('node:test');
 const repoRoot = path.resolve(__dirname, '..', '..');
 const supervisorPath = path.join(repoRoot, 'tools', 'runtime-delivery', 'source-uat-runtime-supervisor.js');
 const launcherPath = path.join(repoRoot, 'tools', 'runtime-delivery', 'start-source-uat.js');
+const composePath = path.join(repoRoot, 'services', 'matrix', 'docker-compose.yml');
 const supervisor = require(supervisorPath);
 
-function tempMatrixRoot() {
+function tempMatrixRoot(options = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-source-uat-matrix-'));
   fs.mkdirSync(path.join(root, 'services', 'matrix', '.runtime', 'synapse'), { recursive: true });
-  fs.mkdirSync(path.join(root, 'services', 'matrix', '.runtime', 'element-web'), { recursive: true });
+  if (options.elementSource !== false) {
+    fs.mkdirSync(path.join(root, 'services', 'matrix', '.runtime', 'element-web'), { recursive: true });
+  }
   fs.writeFileSync(path.join(root, 'services', 'matrix', 'docker-compose.yml'), 'services: {}\n', 'utf8');
   return root;
 }
@@ -59,6 +62,13 @@ test('source UAT owns the existing Docker Compose Matrix dependency before Elect
   assert.doesNotMatch(launcher, /tools[\\/]matrix[\\/]bootstrap\.js|mautrix-whatsapp/u, 'source-UAT launch must not redownload or restart frozen bridge authorities');
 });
 
+test('canonical Matrix Compose uses exact upstream-native Dockerfile entrypoints instead of invented root Dockerfiles', () => {
+  const compose = fs.readFileSync(composePath, 'utf8');
+  assert.match(compose, /synapse:[\s\S]*?build:[\s\S]*?context:\s*\.\/\.runtime\/synapse[\s\S]*?dockerfile:\s*docker\/Dockerfile/u);
+  assert.match(compose, /element:[\s\S]*?build:[\s\S]*?context:\s*\.\/\.runtime\/element-web[\s\S]*?dockerfile:\s*apps\/web\/Dockerfile/u);
+  assert.doesNotMatch(compose, /mautrix-whatsapp:[\s\S]*?dockerfile:\s*(?:docker\/Dockerfile|apps\/web\/Dockerfile)/u);
+});
+
 test('when Synapse is already healthy, source UAT starts only Element with no dependency recreation', async () => {
   assert.equal(typeof supervisor.ensureMatrixElementRuntime, 'function');
   const root = tempMatrixRoot();
@@ -76,7 +86,7 @@ test('when Synapse is already healthy, source UAT starts only Element with no de
     spawnSyncImpl(command, args) {
       commands.push({ command, args: [...args] });
       elementReady = true;
-      return { status: 0, signal: null, error: null };
+      return { status: 0, signal: null, error: null, stdout: '', stderr: '' };
     }
   });
 
@@ -86,6 +96,42 @@ test('when Synapse is already healthy, source UAT starts only Element with no de
   assert.equal(commands[0].command, 'docker');
   assert.deepEqual(commands[0].args.slice(-4), ['up', '-d', '--no-deps', 'element']);
   assert.equal(commands[0].args.includes('synapse'), false, 'healthy external Synapse must not be recreated');
+});
+
+test('when Element source is absent but its canonical Compose container already exists, source UAT reuses that container before demanding source materialization', async () => {
+  assert.equal(typeof supervisor.ensureMatrixElementRuntime, 'function');
+  const root = tempMatrixRoot({ elementSource: false });
+  const commands = [];
+  let elementReady = false;
+  const result = await supervisor.ensureMatrixElementRuntime({
+    repoRoot: root,
+    timeoutMs: 100,
+    pollIntervalMs: 1,
+    requestJson: async url => {
+      if (url === 'http://127.0.0.1:8008/_matrix/client/versions') return synapseVersions();
+      if (url === 'http://127.0.0.1:8080/config.json') return elementReady ? yanceElementConfig() : unavailable();
+      throw new Error(`unexpected URL: ${url}`);
+    },
+    spawnSyncImpl(command, args) {
+      commands.push({ command, args: [...args] });
+      if (args.includes('ps')) {
+        return { status: 0, signal: null, error: null, stdout: 'canonical-element-container\n', stderr: '' };
+      }
+      if (args.includes('start')) {
+        elementReady = true;
+        return { status: 0, signal: null, error: null, stdout: '', stderr: '' };
+      }
+      throw new Error(`unexpected Docker command: ${args.join(' ')}`);
+    }
+  });
+
+  assert.equal(result.ready, true);
+  assert.deepEqual(result.startedServices, ['element']);
+  assert.equal(result.reusedExistingContainer, true);
+  assert.equal(commands.length, 2);
+  assert.deepEqual(commands[0].args.slice(-4), ['ps', '-a', '-q', 'element']);
+  assert.deepEqual(commands[1].args.slice(-2), ['start', 'element']);
+  assert.equal(commands.some(entry => entry.args.includes('up')), false, 'existing canonical container reuse must not rebuild Element');
 });
 
 test('when both Matrix endpoints are absent, source UAT starts only canonical Synapse and Element services', async () => {
@@ -106,7 +152,7 @@ test('when both Matrix endpoints are absent, source UAT starts only canonical Sy
     spawnSyncImpl(command, args) {
       commands.push({ command, args: [...args] });
       started = true;
-      return { status: 0, signal: null, error: null };
+      return { status: 0, signal: null, error: null, stdout: '', stderr: '' };
     }
   });
 
@@ -117,12 +163,12 @@ test('when both Matrix endpoints are absent, source UAT starts only canonical Sy
   assert.equal(commands[0].args.includes('mautrix-whatsapp'), false);
 });
 
-test('missing exact-source Matrix materialization fails closed without invoking bootstrap or Docker', async () => {
+test('missing exact-source Matrix materialization fails closed after a non-mutating canonical-container lookup and never invokes bootstrap or build/up', async () => {
   assert.equal(typeof supervisor.ensureMatrixElementRuntime, 'function');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-source-uat-matrix-missing-'));
   fs.mkdirSync(path.join(root, 'services', 'matrix'), { recursive: true });
   fs.writeFileSync(path.join(root, 'services', 'matrix', 'docker-compose.yml'), 'services: {}\n', 'utf8');
-  let dockerCalls = 0;
+  const commands = [];
 
   await assert.rejects(
     supervisor.ensureMatrixElementRuntime({
@@ -130,9 +176,10 @@ test('missing exact-source Matrix materialization fails closed without invoking 
       timeoutMs: 20,
       pollIntervalMs: 1,
       requestJson: async () => unavailable(),
-      spawnSyncImpl() {
-        dockerCalls += 1;
-        return { status: 0, signal: null, error: null };
+      spawnSyncImpl(command, args) {
+        commands.push({ command, args: [...args] });
+        if (args.includes('ps')) return { status: 0, signal: null, error: null, stdout: '', stderr: '' };
+        throw new Error(`mutating Docker command must not run: ${args.join(' ')}`);
       }
     }),
     error => {
@@ -141,5 +188,7 @@ test('missing exact-source Matrix materialization fails closed without invoking 
       return true;
     }
   );
-  assert.equal(dockerCalls, 0);
+  assert.ok(commands.length >= 1, 'missing source may inspect canonical Compose containers');
+  assert.equal(commands.every(entry => entry.args.includes('ps')), true);
+  assert.equal(commands.some(entry => entry.args.includes('up') || entry.args.includes('start')), false);
 });
