@@ -4,7 +4,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const { validateBindingDocument } = require('../../tools/wp7/production-dependency-binding');
 
 const ROOT = path.resolve(__dirname, '../..');
@@ -21,6 +23,41 @@ function sha256File(relativePath) {
   return crypto.createHash('sha256')
     .update(fs.readFileSync(path.join(ROOT, ...relativePath.split('/'))))
     .digest('hex');
+}
+
+function generateBindingInIsolatedRepo() {
+  const sandboxRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp7-binding-regeneration-'));
+  try {
+    fs.copyFileSync(path.join(ROOT, 'package.json'), path.join(sandboxRoot, 'package.json'));
+    fs.copyFileSync(path.join(ROOT, 'package-lock.json'), path.join(sandboxRoot, 'package-lock.json'));
+    fs.mkdirSync(path.join(sandboxRoot, 'tools'), { recursive: true });
+    fs.cpSync(path.join(ROOT, 'tools', 'wp7'), path.join(sandboxRoot, 'tools', 'wp7'), { recursive: true });
+    fs.mkdirSync(path.join(sandboxRoot, 'release'), { recursive: true });
+
+    const generatorPath = path.join(sandboxRoot, 'tools', 'wp7', 'generate-production-dependency-binding.js');
+    const result = spawnSync(process.execPath, [generatorPath], {
+      cwd: sandboxRoot,
+      env: process.env,
+      encoding: 'utf8',
+      maxBuffer: 128 * 1024 * 1024,
+      timeout: 540000,
+      windowsHide: true
+    });
+
+    assert.equal(
+      result.status,
+      0,
+      `isolated WP7 dependency binding generation failed\n${[
+        result.error?.stack || result.error?.message || '',
+        result.stdout || '',
+        result.stderr || ''
+      ].filter(Boolean).join('\n')}`
+    );
+
+    return JSON.parse(fs.readFileSync(path.join(sandboxRoot, 'release', 'production-dependency-binding.json'), 'utf8'));
+  } finally {
+    fs.rmSync(sandboxRoot, { recursive: true, force: true });
+  }
 }
 
 test('WP7 reviewed production dependency binding follows the current root package authority', () => {
@@ -56,4 +93,17 @@ test('WP7 reviewed production dependency binding follows the current root packag
   assert.match(generator, /runNpmCommand/u, 'existing generator must materialize the reviewed npm production closure');
   assert.doesNotMatch(generator, /packageJsonSha256\s*[:=]\s*['"][0-9a-f]{64}/u, 'generator must never hard-code reviewed package hashes');
   assert.doesNotMatch(generator, /packageLockSha256\s*[:=]\s*['"][0-9a-f]{64}/u, 'generator must never hard-code reviewed lock hashes');
+});
+
+test('WP7 reviewed production dependency binding exactly matches isolated generator output', {
+  skip: process.platform === 'linux' ? false : 'full cross-platform binding regeneration requires Linux POSIX file-mode authority'
+}, () => {
+  const binding = readJson('release/production-dependency-binding.json');
+  const regenerated = generateBindingInIsolatedRepo();
+
+  assert.deepEqual(
+    regenerated,
+    binding,
+    'reviewed binding must equal a complete fresh isolated output from the existing WP7 generator; manual hash-only or stale platform edits are forbidden'
+  );
 });
