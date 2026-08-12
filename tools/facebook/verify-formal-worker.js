@@ -7,7 +7,15 @@ const EXPECTED_GRAPH_VERSION = 'v25.0';
 const EXPECTED_CALLBACK_URL = `${WORKER_BASE_URL}/oauth/facebook/callback`;
 const EXPECTED_OAUTH_CONTRACT_VERSION = 6;
 const EXPECTED_D1_SCHEMA_VERSION = 6;
-const EXPECTED_SUBSCRIBED_FIELDS = Object.freeze(['messages', 'message_echoes', 'message_reactions']);
+const EXPECTED_SUBSCRIBED_FIELDS = Object.freeze([
+  'messages',
+  'message_echoes',
+  'message_reactions',
+  'messaging_postbacks',
+  'messaging_referrals',
+  'message_deliveries',
+  'message_reads'
+]);
 
 async function verify(fetchImpl = fetch) {
   const controller = new AbortController();
@@ -20,16 +28,18 @@ async function verify(fetchImpl = fetch) {
     });
     const data = await response.json().catch(() => ({}));
     const contract = data && typeof data.oauthContract === 'object' ? data.oauthContract : {};
-    const webhookContract = data && typeof data.webhookContract === 'object' ? data.webhookContract : {};
+    const pageMessengerContract = data && typeof data.pageMessengerContract === 'object' ? data.pageMessengerContract : {};
     const d1Schema = data && typeof data.d1Schema === 'object' ? data.d1Schema : {};
     const required = Array.isArray(contract.requiredPermissions) ? contract.requiredPermissions : [];
-    const subscribedFields = Array.isArray(webhookContract.subscribedFields) ? webhookContract.subscribedFields : [];
+    const subscribedFields = Array.isArray(pageMessengerContract.subscribedFields) ? pageMessengerContract.subscribedFields : [];
     const pageDiscovery = contract.pageDiscovery && typeof contract.pageDiscovery === 'object' ? contract.pageDiscovery : {};
     const optional = Array.isArray(contract.optionalPermissions) ? contract.optionalPermissions : [];
+    const exactSubscribedFields = subscribedFields.length === EXPECTED_SUBSCRIBED_FIELDS.length
+      && EXPECTED_SUBSCRIBED_FIELDS.every((field, index) => subscribedFields[index] === field);
     const validContract = Number(contract.version || 0) >= EXPECTED_OAUTH_CONTRACT_VERSION
       && d1Schema.ready === true
       && Number(d1Schema.version || 0) >= EXPECTED_D1_SCHEMA_VERSION
-      && EXPECTED_SUBSCRIBED_FIELDS.every(field => subscribedFields.includes(field))
+      && exactSubscribedFields
       && contract.authorizationMode === 'business-login-configuration'
       && contract.legacyScopeParameter === false
       && contract.callbackUrl === EXPECTED_CALLBACK_URL
