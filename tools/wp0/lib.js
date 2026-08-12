@@ -31,6 +31,7 @@ const APPROVED_REFERENCE_ONLY_AUTHORITIES = new Map([
 ]);
 const APPROVED_SUPPLY_CHAIN_EVIDENCE_PATHS = new Set([
   'THIRD_PARTY_NOTICES.md',
+  'release/production-dependency-binding.json',
   'third_party/github-actions-lock.json',
   'third_party/licenses/actions-checkout-MIT.txt',
   'third_party/licenses/actions-setup-node-MIT.txt',
