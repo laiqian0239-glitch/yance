@@ -249,3 +249,11 @@ test('trusted Linux Matrix bootstrap uses process-scoped Git CRLF semantics with
   assert.doesNotMatch(source, /upstream-patches\/element-web\/[0-9]{4}[^\n]*(?:checkout|sed|perl|python|dos2unix|unix2dos)/u);
   assert.doesNotMatch(source, /git\s+apply[^\n]*(?:--ignore-whitespace|--ignore-space-change|--reject|--3way|--recount|--unidiff-zero)/u);
 });
+
+test('trusted Matrix image materialization uses exact upstream Dockerfile entrypoints with repository-root contexts', () => {
+  const source = read(WORKFLOW);
+  assert.match(source, /docker\s+build\s+--file\s+services\/matrix\/\.runtime\/synapse\/docker\/Dockerfile[^\n]*--tag[^\n]*services\/matrix\/\.runtime\/synapse\s*$/mu);
+  assert.match(source, /docker\s+build\s+--file\s+services\/matrix\/\.runtime\/element-web\/apps\/web\/Dockerfile[^\n]*--tag[^\n]*services\/matrix\/\.runtime\/element-web\s*$/mu);
+  assert.match(source, /docker\s+build\s+--tag\s+"yance-product-uat-mautrix-whatsapp:\$\{CANDIDATE_SHA\}"\s+services\/matrix\/\.runtime\/mautrix-whatsapp\s*$/mu);
+  assert.doesNotMatch(source, /docker\s+build\s+--tag\s+"yance-product-uat-(?:synapse|element):[^\n]+"\s+services\/matrix\/\.runtime\/(?:synapse|element-web)\s*$/mu);
+});
