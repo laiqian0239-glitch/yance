@@ -9,13 +9,18 @@
     "lint:types": "nx lint:types"
   },
   "dependencies": {
+    "@base-ui/react": "1.7.0",
     "@element-hq/element-web-module-api": "workspace:*",
-    "livekit-client": "2.21.0"
+    "@rive-app/react-canvas": "4.31.0",
+    "howler": "2.2.4",
+    "livekit-client": "2.21.0",
+    "motion": "12.42.2"
   },
   "peerDependencies": {
     "react": ">=18"
   },
   "devDependencies": {
+    "@types/howler": "2.2.13",
     "@types/react": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "typescript": "catalog:",

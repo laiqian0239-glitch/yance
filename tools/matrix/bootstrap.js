@@ -9,6 +9,7 @@ const LOCK = require(path.join(ROOT, 'config/upstreams/v21-comms-p0.json'));
 const ELEMENT_WORKSPACE_PATCH = path.join(ROOT, 'upstream-patches/element-web/0001-yance-global-right-workspace.patch');
 const ELEMENT_PACKAGE_MANAGER_AUTHORITY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0002-yance-package-manager-authority.patch');
 const ELEMENT_NX_CRLF_LOCKFILE_PATCH = path.join(ROOT, 'upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch');
+const PRODUCT_DEPENDENCY_LOCK_PATCH = path.join(ROOT, 'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
 const MODULE_DELIVERY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0012-yance-element-module-runtime.patch');
 const RUNTIME = path.join(ROOT, 'services/matrix/.runtime');
 
@@ -68,6 +69,11 @@ function main() {
 
   const moduleTarget = path.join(element, 'modules', 'yance');
   fs.cpSync(path.join(ROOT, 'integration/element-module'), moduleTarget, { recursive: true });
+
+  // Product dependencies live in the copied workspace module. Apply the lock-only
+  // replay patch only after the overlay exists so the frozen Element lock describes
+  // the exact modules/yance importer that pnpm will install with --frozen-lockfile.
+  applyPatch(element, PRODUCT_DEPENDENCY_LOCK_PATCH, 'Product Experience dependency lock patch');
 
   if (!fs.existsSync(MODULE_DELIVERY_PATCH)) throw new Error('Element module delivery patch missing');
   run(element, 'git', ['apply', '--check', MODULE_DELIVERY_PATCH]);
