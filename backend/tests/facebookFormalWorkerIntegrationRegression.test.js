@@ -13,6 +13,15 @@ const { getSecurityGuard } = require('../core/securityGuardSingleton');
 const formalWorkerProbe = require('../../tools/facebook/verify-formal-worker');
 
 const FORMAL_WORKER = 'https://yance-facebook-gateway.wangyi198675.workers.dev';
+const PAGE_MESSENGER_SUBSCRIBED_FIELDS = [
+  'messages',
+  'message_echoes',
+  'message_reactions',
+  'messaging_postbacks',
+  'messaging_referrals',
+  'message_deliveries',
+  'message_reads'
+];
 const securityGuard = getSecurityGuard();
 
 function patch(t, object, key, value) {
@@ -23,6 +32,35 @@ function patch(t, object, key, value) {
 
 function response(status, data) {
   return { ok: status >= 200 && status < 300, status, async json() { return data; } };
+}
+
+function formalWorkerHealth(overrides = {}) {
+  return {
+    ok: true,
+    service: 'yance-facebook-gateway',
+    graphVersion: 'v25.0',
+    d1Schema: { ready: true, version: 6 },
+    pageMessengerContract: { subscribedFields: PAGE_MESSENGER_SUBSCRIBED_FIELDS },
+    oauthContract: {
+      version: 6,
+      authorizationMode: 'business-login-configuration',
+      legacyScopeParameter: false,
+      callbackUrl: `${FORMAL_WORKER}/oauth/facebook/callback`,
+      requiredPermissions: ['pages_show_list','pages_messaging','pages_manage_metadata'],
+      optionalPermissions: ['pages_read_engagement'],
+      pageDiscovery: {
+        primary: '/me/accounts',
+        tokenRecovery: ['/{debug_token.user_id}/accounts', '/{granular_target_id}?fields=access_token'],
+        selectionEvidence: 'debug_token.granular_scopes.target_ids',
+        directPageProfileProbe: true,
+        directPageTokenRecovery: true,
+        directPageTokenFields: ['id,access_token', 'access_token'],
+        profileHydration: 'page-access-token',
+        diagnosticsPersistedWithoutTokens: true
+      }
+    },
+    ...overrides
+  };
 }
 
 async function installOAuthHarness(t) {
@@ -40,21 +78,7 @@ async function installOAuthHarness(t) {
   patch(t, securityGuard, 'persistCredential', async (_ref, value) => { vault = value; return true; });
   patch(t, global, 'fetch', async url => {
     assert.equal(String(url), `${FORMAL_WORKER}/healthz`);
-    return response(200, {
-      ok: true, service: 'yance-facebook-gateway', graphVersion: 'v25.0',
-      oauthContract: {
-        version: 5, authorizationMode: 'business-login-configuration', legacyScopeParameter: false,
-        callbackUrl: `${FORMAL_WORKER}/oauth/facebook/callback`,
-        requiredPermissions: ['pages_show_list','pages_messaging','pages_manage_metadata'],
-        optionalPermissions: ['pages_read_engagement'],
-        pageDiscovery: {
-          primary: '/me/accounts', tokenRecovery: ['/{debug_token.user_id}/accounts', '/{granular_target_id}?fields=access_token'],
-          selectionEvidence: 'debug_token.granular_scopes.target_ids', directPageProfileProbe: true,
-          directPageTokenRecovery: true, directPageTokenFields: ['id,access_token', 'access_token'],
-          profileHydration: 'page-access-token', diagnosticsPersistedWithoutTokens: true
-        }
-      }
-    });
+    return response(200, formalWorkerHealth());
   });
   t.after(() => facebookOAuthService._flows.clear());
   const started = await facebookOAuthService.begin(account.id);
@@ -78,23 +102,10 @@ test('private platform release seal binds the exact production Worker and Telegr
 test('formal Worker health probe accepts only the expected service identity', async () => {
   const accepted = await formalWorkerProbe.verify(async url => {
     assert.equal(url, `${FORMAL_WORKER}/healthz`);
-    return response(200, {
-      ok: true, service: 'yance-facebook-gateway', graphVersion: 'v25.0', time: '2026-07-18T10:00:00.000Z',
-      oauthContract: {
-        version: 5, authorizationMode: 'business-login-configuration', legacyScopeParameter: false,
-        callbackUrl: `${FORMAL_WORKER}/oauth/facebook/callback`,
-        requiredPermissions: ['pages_show_list','pages_messaging','pages_manage_metadata'],
-        optionalPermissions: ['pages_read_engagement'],
-        pageDiscovery: {
-          primary: '/me/accounts', tokenRecovery: ['/{debug_token.user_id}/accounts', '/{granular_target_id}?fields=access_token'],
-          selectionEvidence: 'debug_token.granular_scopes.target_ids', directPageProfileProbe: true,
-          directPageTokenRecovery: true, directPageTokenFields: ['id,access_token', 'access_token'],
-          profileHydration: 'page-access-token', diagnosticsPersistedWithoutTokens: true
-        }
-      }
-    });
+    return response(200, formalWorkerHealth({ time: '2026-07-18T10:00:00.000Z' }));
   });
   assert.equal(accepted.status, 'PASS');
+  assert.deepEqual(accepted.subscribedFields, PAGE_MESSENGER_SUBSCRIBED_FIELDS);
   await assert.rejects(
     formalWorkerProbe.verify(async () => response(200, { ok: true, service: 'another-service' })),
     error => error.code === 'FACEBOOK_FORMAL_WORKER_HEALTH_FAILED'
