@@ -130,7 +130,10 @@ test('trusted Linux CI scopes Git CRLF semantics to strict Matrix bootstrap, the
   assert.match(source, /services\/matrix\/\.runtime\/mautrix-whatsapp/u);
   assert.match(source, /nx build yance-element-module/u);
   assert.match(source, /\/modules\/yance\/package\.json/u);
-  assert.equal((source.match(/docker build --tag/gu) || []).length, 3);
+  assert.match(source, /docker build --file services\/matrix\/\.runtime\/synapse\/docker\/Dockerfile --tag "yance-product-uat-synapse:\$\{CANDIDATE_SHA\}" services\/matrix\/\.runtime\/synapse/u);
+  assert.match(source, /docker build --file services\/matrix\/\.runtime\/element-web\/apps\/web\/Dockerfile --tag "yance-product-uat-element:\$\{CANDIDATE_SHA\}" services\/matrix\/\.runtime\/element-web/u);
+  assert.match(source, /docker build --tag "yance-product-uat-mautrix-whatsapp:\$\{CANDIDATE_SHA\}" services\/matrix\/\.runtime\/mautrix-whatsapp/u);
+  assert.equal((source.match(/docker build(?: --file \S+)? --tag/gu) || []).length, 3);
   assert.match(source, /docker save --output/u);
   assert.match(source, /materialized-matrix-compose\.yml/u);
   assert.match(source, /PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY/u);
