@@ -199,6 +199,14 @@
     "directProduct229IntegrationMerge": true
   },
   "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
     "delegatedExecutionAuthorized": true,
     "formalRelease": false,
     "finalProductIntegrationMergeRequiresOwnerApproval": true
