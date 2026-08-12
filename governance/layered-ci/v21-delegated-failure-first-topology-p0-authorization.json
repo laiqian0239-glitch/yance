@@ -65,6 +65,7 @@
       "base": "effective ordinary authorization merge commit",
       "history": "Git first-parent history from the effective authorization merge to evaluated implementation Head",
       "mustExist": true,
+      "parentCountMustEqual": 1,
       "soleParentMustEqualAuthorizationMerge": true,
       "changedPathsMustExactlyEqualFailureFirstAllowedChangedPaths": true,
       "changedPathCountMustEqualDeclaredCount": true,
@@ -125,6 +126,8 @@
     "causalRedMustCover": [
       "a failureFirstCommit authorization whose first descendant changes production code is currently accepted by the generic evaluator",
       "a failureFirstCommit authorization whose first descendant omits or adds declared test paths is currently accepted by the generic evaluator",
+      "a failureFirstCommit authorization whose first descendant has zero, multiple, or wrong parents instead of exactly one authorization-merge parent is currently accepted by the generic evaluator",
+      "a failureFirstCommit authorization whose first-descendant changed-path digest does not match the declared SHA-256 is currently accepted by the generic evaluator",
       "a later implementation commit without exact RED-head/run/conclusion evidence is currently accepted by the generic evaluator",
       "existing authorizations without implementation.failureFirstCommit preserve current behavior"
     ],
@@ -134,7 +137,7 @@
     "The repair extends the existing trusted-main delegated governance evaluator and existing Git plumbing only; no second policy engine is introduced.",
     "The first implementation commit is exactly tests/wp0/implementation-branch-policy.test.js and must produce a fresh causal RED before policy code changes.",
     "When implementation.failureFirstCommit is absent, existing delegated authorization behavior is unchanged.",
-    "When it is present, malformed declaration, missing first descendant, wrong parent, wrong tests-only path set/count/digest, or production code in the first descendant fails closed.",
+    "When it is present, malformed declaration, missing first descendant, wrong parent count or identity, wrong tests-only path set/count/digest, or production code in the first descendant fails closed.",
     "Any later first-parent implementation commit must record the exact first RED Head, a positive GitHub Actions run id, and conclusion=failure; malformed/mismatched evidence fails closed.",
     "The evaluator never treats the evidence trailer as proof that the remote run was causal; independent exact-head review must cross-check the referenced run before final merge.",
     "Final exact implementation scope remains enforced by delegated Product L2 full_work_package; this work package must not duplicate or weaken that verifier.",
