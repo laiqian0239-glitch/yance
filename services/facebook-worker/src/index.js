@@ -1,4 +1,4 @@
-import { OAUTH_AUTHORIZATION_MODE, OAUTH_CONTRACT_VERSION, OPTIONAL_PERMISSIONS, REQUIRED_PERMISSIONS, workerConfig } from './config.js';
+import { OAUTH_AUTHORIZATION_MODE, OAUTH_CONTRACT_VERSION, OPTIONAL_PERMISSIONS, REQUIRED_PERMISSIONS, SUBSCRIBED_FIELDS, workerConfig } from './config.js';
 import { cleanup } from './cleanup.js';
 import { errorResponse, html, json, text, withSecurityHeaders } from './response.js';
 import { GatewayError } from './errors.js';
@@ -142,6 +142,9 @@ async function route(request, env, ctx, dependencies = {}) {
     time: new Date().toISOString(),
     graphVersion: config.graphVersion,
     d1Schema: await d1SchemaStatus(env),
+    pageMessengerContract: {
+      subscribedFields: SUBSCRIBED_FIELDS
+    },
     avatarProxyContract: {
       version: 11,
       authentication: 'desktop-device-signature',
