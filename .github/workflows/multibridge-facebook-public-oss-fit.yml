@@ -53,6 +53,7 @@ jobs:
           name: YANCE_FACEBOOK_PUBLIC_WINDOWS_DEPLOY_${{ github.sha }}
           path: artifacts/facebook-public-windows-deploy/YANCE_FACEBOOK_PUBLIC_WINDOWS_DEPLOY_*
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 7
       - name: Probe sealed Facebook Public Cloudflare runtime
         run: npm run verify:facebook-formal-worker
