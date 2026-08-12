@@ -32,5 +32,27 @@ jobs:
         run: npm run test:facebook-contracts
       - name: Validate canonical Cloudflare Worker bundle with pinned Wrangler
         run: npx --yes wrangler@4.121.0 deploy --dry-run --config services/facebook-worker/wrangler.jsonc --outdir artifacts/facebook-public-wrangler-dry-run
+      - name: Build sealed Windows production deploy package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          node tools/facebook/create-public-windows-deploy-package.js artifacts/facebook-public-windows-deploy > artifacts/facebook-public-windows-deploy.json
+          PACKAGE_ROOT="$(node -e "const p=require('./artifacts/facebook-public-windows-deploy.json'); process.stdout.write(p.packageRoot)")"
+          test -d "$PACKAGE_ROOT"
+          test ! -d "$PACKAGE_ROOT/services/facebook-worker/tests"
+          echo "PACKAGE_ROOT=$PACKAGE_ROOT" >> "$GITHUB_ENV"
+      - name: Validate sealed package Worker bundle with pinned Wrangler
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.121.0 deploy --dry-run --config "$PACKAGE_ROOT/services/facebook-worker/wrangler.jsonc" --outdir artifacts/facebook-public-sealed-wrangler-dry-run
+      - name: Upload verified Windows production deploy package
+        uses: actions/upload-artifact@v4
+        with:
+          name: YANCE_FACEBOOK_PUBLIC_WINDOWS_DEPLOY_${{ github.sha }}
+          path: artifacts/facebook-public-windows-deploy/YANCE_FACEBOOK_PUBLIC_WINDOWS_DEPLOY_*
+          if-no-files-found: error
+          retention-days: 7
       - name: Probe sealed Facebook Public Cloudflare runtime
         run: npm run verify:facebook-formal-worker
