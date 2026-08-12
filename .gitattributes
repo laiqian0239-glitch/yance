@@ -45,3 +45,4 @@ tools/runtime-delivery/templates/INSTALL_TEST_AND_START_YANCE_UAT.ps1.template -
 /RUNTIME_HOTFIX_*.json export-ignore
 /YANCE_FIX*_ZH.md export-ignore
 vendor/electron/*.zip filter=lfs diff=lfs merge=lfs -text
+vendor/rcedit/*.exe filter=lfs diff=lfs merge=lfs -text
