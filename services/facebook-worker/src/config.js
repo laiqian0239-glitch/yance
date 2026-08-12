@@ -5,7 +5,7 @@ export const OAUTH_CONTRACT_VERSION = 6;
 export const OAUTH_AUTHORIZATION_MODE = 'business-login-configuration';
 export const REQUIRED_PERMISSIONS = Object.freeze(['pages_show_list', 'pages_messaging', 'pages_manage_metadata']);
 export const OPTIONAL_PERMISSIONS = Object.freeze(['pages_read_engagement']);
-export const SUBSCRIBED_FIELDS = Object.freeze(['messages', 'message_echoes', 'messaging_postbacks', 'messaging_referrals', 'message_deliveries', 'message_reads']);
+export const SUBSCRIBED_FIELDS = Object.freeze(['messages', 'message_echoes', 'message_reactions', 'messaging_postbacks', 'messaging_referrals', 'message_deliveries', 'message_reads']);
 
 function secret(env, name, minimum = 16) {
   const value = clean(env[name]);
