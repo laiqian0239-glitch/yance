@@ -20,6 +20,10 @@ function fail(code, message, details = {}) {
   throw error;
 }
 
+function ordinalCompare(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 function assertIdentity({ candidateBranch, candidateCommit, candidateTree }) {
   if (typeof candidateBranch !== 'string' || candidateBranch.trim() !== candidateBranch || candidateBranch.length === 0) {
     fail('MATERIALIZED_UAT_BRANCH_INVALID', 'candidateBranch must be a non-empty canonical branch name');
@@ -65,7 +69,7 @@ function enumerateRegularFiles(root) {
   const records = [];
   const seen = new Set();
   function walk(directory) {
-    const entries = fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    const entries = fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => ordinalCompare(a.name, b.name));
     for (const entry of entries) {
       const absolute = path.join(directory, entry.name);
       const stat = fs.lstatSync(absolute);
@@ -88,7 +92,7 @@ function enumerateRegularFiles(root) {
     }
   }
   walk(root);
-  records.sort((a, b) => a.path.localeCompare(b.path));
+  records.sort((a, b) => ordinalCompare(a.path, b.path));
   return records;
 }
 
@@ -110,7 +114,7 @@ function validateManifestShape(manifest) {
       fail('MATERIALIZED_UAT_PATH_ESCAPE', 'manifest file path escapes or collides with the manifest', { path: row.path });
     }
     if (seen.has(row.path)) fail('MATERIALIZED_UAT_DUPLICATE_IDENTITY', 'manifest contains duplicate file identity', { path: row.path });
-    if (previous !== null && previous.localeCompare(row.path) >= 0) fail('MATERIALIZED_UAT_MANIFEST_INVALID', 'manifest file records must be strictly sorted by path');
+    if (previous !== null && ordinalCompare(previous, row.path) >= 0) fail('MATERIALIZED_UAT_MANIFEST_INVALID', 'manifest file records must be strictly sorted by path');
     if (!Number.isSafeInteger(row.sizeBytes) || row.sizeBytes < 0 || !/^[0-9a-f]{64}$/.test(String(row.sha256 || ''))) {
       fail('MATERIALIZED_UAT_MANIFEST_INVALID', 'manifest file size or SHA-256 is invalid', { row });
     }
