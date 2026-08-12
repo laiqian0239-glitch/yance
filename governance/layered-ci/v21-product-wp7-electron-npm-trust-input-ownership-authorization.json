@@ -80,11 +80,25 @@
   },
   "ossFit": {
     "decision": "ADOPT_MATURE_OSS",
-    "selected": "npm CLI v10 package-artifact materialization via npm pack for the exact locked Electron package",
-    "why": "npm pack natively fetches an installable package artifact to npm cache and writes its tarball without requiring the application dependency tree to be installed. This directly supplies the existing Electron npm package metadata/checksums trust source while preserving the production-only closure boundary.",
-    "newYanceInfrastructureApproved": false,
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "npm CLI v10.9.2 npm pack",
+        "source": "npm/cli v10.9.2 and the npm CLI v10 npm-pack command contract",
+        "license": "Artistic-2.0",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The already-pinned npm CLI can materialize the exact Electron npm package artifact in isolated RUNNER_TEMP without installing Electron into the repository or production dependency closure; the existing WP7 verifier can continue consuming Electron package.json and checksums.json from that isolated package root."
+      }
+    ],
+    "retireOrAvoid": [
+      "Forbid repository-root full npm ci, repository-root Electron dev installation, copied Electron metadata, and any parallel Yance downloader/cache/materializer or metadata authority for this trust input."
+    ],
     "upstreamReferences": [
       "https://docs.npmjs.com/cli/v10/commands/npm-pack/",
+      "https://github.com/npm/cli/tree/v10.9.2",
       "https://www.electronjs.org/docs/latest/tutorial/installation"
     ]
   },
