@@ -353,8 +353,8 @@ jobs:
           test -d services/matrix/.runtime/mautrix-whatsapp
           grep -q 'nx build yance-element-module' services/matrix/.runtime/element-web/apps/web/Dockerfile
           grep -q '/modules/yance/package.json' services/matrix/.runtime/element-web/apps/web/Dockerfile
-          docker build --tag "yance-product-uat-synapse:${CANDIDATE_SHA}" services/matrix/.runtime/synapse
-          docker build --tag "yance-product-uat-element:${CANDIDATE_SHA}" services/matrix/.runtime/element-web
+          docker build --file services/matrix/.runtime/synapse/docker/Dockerfile --tag "yance-product-uat-synapse:${CANDIDATE_SHA}" services/matrix/.runtime/synapse
+          docker build --file services/matrix/.runtime/element-web/apps/web/Dockerfile --tag "yance-product-uat-element:${CANDIDATE_SHA}" services/matrix/.runtime/element-web
           docker build --tag "yance-product-uat-mautrix-whatsapp:${CANDIDATE_SHA}" services/matrix/.runtime/mautrix-whatsapp
           docker image inspect "yance-product-uat-element:${CANDIDATE_SHA}" >/dev/null
           echo 'GREEN: Element image built from the existing /modules/yance runtime delivery seam'
