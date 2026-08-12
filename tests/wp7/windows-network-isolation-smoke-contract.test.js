@@ -15,8 +15,9 @@ test('Windows isolation smoke requires admin VM checkpoint and explicit destruct
   assert.match(source, /Virtual Machine/);
 });
 
-test('Windows isolation smoke uses trusted Node 22.16.0 and first-party hash-bound CLI', () => {
-  assert.match(source, /v22\.16\.0/);
+test('Windows isolation smoke uses trusted Node 22.23.1 and first-party hash-bound CLI', () => {
+  assert.match(source, /v22\.23\.1/);
+  assert.doesNotMatch(source, /v22\.16\.0/);
   assert.match(source, /windows-network-isolation-control-cli\.js/);
   assert.match(source, /--session-sha256/);
   assert.match(source, /--attestation-sha256/);

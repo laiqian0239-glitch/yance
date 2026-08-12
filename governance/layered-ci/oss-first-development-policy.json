@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OSS_FIRST_DEVELOPMENT_POLICY",
+  "status": "ENFORCED",
+  "effectiveFor": "future-added-or-modified-delegated-authorizations",
+  "purpose": "Make mature OSS adoption analysis a mandatory pre-implementation and pre-RED-repair step. Yance must adopt or port mature upstream products, sidecars, source modules, official SDKs, native prebuilds, packaging/runtime tools, or existing mature repository seams before authorizing equivalent self-built infrastructure.",
+  "adoptionOrder": [
+    "full-product",
+    "sidecar-service",
+    "source-module",
+    "official-sdk-cli-native-prebuild-runtime",
+    "existing-repository-seam",
+    "thin-yance-adapter",
+    "minimal-proven-gap"
+  ],
+  "authorizationEvidenceRequired": true,
+  "redRepairReevaluationRequired": true,
+  "retireEquivalentYanceImplementationWhenOssFits": true,
+  "newGeneralPurposeInfrastructureRequiresProvenGap": true,
+  "userMachineBuildEnvironmentForbiddenByDefault": true,
+  "grandfatherHistoricalMergedAuthorizations": true,
+  "requiredOssFitEvidence": {
+    "fields": [
+      "decision",
+      "matureOssAvailable",
+      "reviewedCandidates",
+      "selectedAdoptionMode",
+      "newGeneralPurposeInfrastructure",
+      "retireOrAvoid"
+    ],
+    "candidateFields": [
+      "name",
+      "source",
+      "license",
+      "adoptionMode",
+      "fit",
+      "reason"
+    ],
+    "candidateFitValues": [
+      "FIT",
+      "PARTIAL_FIT",
+      "GAP"
+    ],
+    "minimalGapRejectedAdoptionModesMinimum": 5,
+    "minimalGapAdditionalEvidence": [
+      "uncoveredGap.capability",
+      "uncoveredGap.reason",
+      "uncoveredGap.rejectedAdoptionModes"
+    ]
+  },
+  "decisionRules": [
+    "Before any new work package or implementation, identify who already owns the capability in mature OSS or in an already-adopted repository seam.",
+    "Before fixing any causal RED, repeat OSS-fit for the failing layer instead of assuming the existing Yance wrapper should be repaired.",
+    "If a mature OSS full product can own the capability, prefer adopting it over rebuilding an equivalent Yance subsystem.",
+    "If a full product is not appropriate, evaluate mature sidecar/service, upstream source-module port, official SDK/CLI/native-prebuild/runtime, and existing repository seam in that order before Yance implementation.",
+    "When mature OSS can replace an existing equivalent Yance self-built path, authorization must identify the path to retire or explicitly prohibit parallel duplicate authority.",
+    "Reading or copying upstream design and then rewriting an equivalent Yance engine is not OSS adoption.",
+    "A minimal Yance gap is admissible only after the authorization records the uncovered capability and why the preceding adoption modes cannot satisfy it.",
+    "CI, UAT, runtime, packaging, downloader, cache, materializer, installer, package-manager, and native-build fixes are subject to the same OSS-first rule as product features."
+  ],
+  "uatDefaultProhibitions": [
+    "npm-ci-on-user-machine",
+    "node-gyp-on-user-machine",
+    "visual-studio-build-prerequisite",
+    "spectre-sdk-prerequisite",
+    "native-addon-compilation-on-user-machine",
+    "runtime-download-fallback-on-user-machine",
+    "second-source-runtime-environment-for-uat"
+  ],
+  "uatDefaultModel": {
+    "buildLocation": "trusted-ci-or-authorized-builder",
+    "candidateShape": "fully-materialized-runnable-product-candidate",
+    "userMachineResponsibilities": [
+      "verify-candidate-identity",
+      "launch-product",
+      "perform-real-uat",
+      "collect-evidence"
+    ],
+    "preferredMatureSeams": [
+      "official-portable-runtime",
+      "upstream-native-prebuild",
+      "official-packaging-runtime",
+      "existing-sealed-runtime-authority"
+    ]
+  },
+  "allowedYanceOwnershipByDefault": [
+    "branding-and-product-composition",
+    "settings-permissions-and-final-user-decision",
+    "thin-adapters-and-projections",
+    "exact-pin-configuration-and-materialization",
+    "compatibility-security-and-identity-tests",
+    "required-upstream-patches",
+    "minimal-gap-proven-by-oss-fit"
+  ],
+  "forbiddenEquivalentSelfBuiltInfrastructureByDefault": [
+    "second-policy-engine",
+    "second-communications-transport",
+    "second-memory-or-relationship-graph",
+    "second-agent-runtime-or-chat-streaming-framework",
+    "second-model-gateway-or-router",
+    "second-learning-training-eval-observability-framework",
+    "second-stt-tts-image-photo-webrtc-avatar-engine",
+    "second-workflow-engine",
+    "second-installer-or-package-manager-framework",
+    "second-downloader-cache-materializer-framework",
+    "second-runtime-state-machine",
+    "oss-equivalent-packaging-prebuild-runtime-delivery-engine"
+  ],
+  "enforcement": {
+    "runner": "existing-WP0-Layered-CI",
+    "test": "tests/wp0/oss-first-development-policy.test.js",
+    "authorizationPathPattern": "governance/layered-ci/*-authorization.json",
+    "changedFilesOnly": true,
+    "failClosed": true,
+    "newWorkflow": false,
+    "newDependency": false,
+    "newPolicyService": false
+  }
+}

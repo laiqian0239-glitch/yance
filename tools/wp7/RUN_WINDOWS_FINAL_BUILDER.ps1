@@ -16,6 +16,7 @@ param(
   [Parameter(Mandatory = $true)][string]$ExpectedBranch,
   [Parameter(Mandatory = $true)][string]$ExpectedBundleSha256,
   [Parameter(Mandatory = $true)][string]$NodeRoot,
+  [Parameter(Mandatory = $true)][string]$TrustedNodeExecutable,
   [Parameter(Mandatory = $true)][string]$BuildTimestampUtc,
   [string]$PlatformAuthConfig,
   [string]$PlatformAuthSha256,
@@ -31,6 +32,7 @@ Set-StrictMode -Version Latest
 
 $NodeExe = Join-Path $NodeRoot 'node.exe'
 $NpmCli = Join-Path $NodeRoot 'node_modules\npm\bin\npm-cli.js'
+$TrustedNodeExecutable = [IO.Path]::GetFullPath($TrustedNodeExecutable)
 $OriginalPath = $env:PATH
 $OriginalNpmCache = $env:NPM_CONFIG_CACHE
 $OriginalElectronSkipBinaryDownload = $env:ELECTRON_SKIP_BINARY_DOWNLOAD
@@ -142,14 +144,16 @@ try {
   if (-not (Test-Path -LiteralPath $WindowsRound2Result -PathType Leaf)) { throw "Round 2 result missing: $WindowsRound2Result" }
   if (-not (Test-Path -LiteralPath $NodeExe -PathType Leaf)) { throw "reviewed node.exe missing: $NodeExe" }
   if (-not (Test-Path -LiteralPath $NpmCli -PathType Leaf)) { throw "reviewed npm CLI missing: $NpmCli" }
+  if (-not (Test-Path -LiteralPath $TrustedNodeExecutable -PathType Leaf)) { throw "trusted packaged Node runtime missing: $TrustedNodeExecutable" }
   if ((Get-FileHash -LiteralPath $SourceBundle -Algorithm SHA256).Hash.ToLowerInvariant() -ne $ExpectedBundleSha256.ToLowerInvariant()) { throw 'source bundle SHA256 mismatch' }
   if ((Get-FileHash -LiteralPath $WindowsRound1Result -Algorithm SHA256).Hash.ToLowerInvariant() -ne $WindowsRound1Sha256.ToLowerInvariant()) { throw 'Round 1 result SHA256 mismatch' }
   if ((Get-FileHash -LiteralPath $WindowsRound2Result -Algorithm SHA256).Hash.ToLowerInvariant() -ne $WindowsRound2Sha256.ToLowerInvariant()) { throw 'Round 2 result SHA256 mismatch' }
   $round1Record = Get-Content -LiteralPath $WindowsRound1Result -Raw | ConvertFrom-Json
   $round2Record = Get-Content -LiteralPath $WindowsRound2Result -Raw | ConvertFrom-Json
   if ($round1Record.bundleSha256 -ne $ExpectedBundleSha256.ToLowerInvariant() -or $round2Record.bundleSha256 -ne $ExpectedBundleSha256.ToLowerInvariant()) { throw 'Windows round result bundle binding does not match SourceBundle' }
-  if ((& $NodeExe --version).Trim() -ne 'v22.16.0') { throw 'reviewed Node version mismatch' }
+  if ((& $NodeExe --version).Trim() -ne 'v22.16.0') { throw 'reviewed Builder host Node version mismatch' }
   if ((& $NodeExe $NpmCli --version).Trim() -ne '10.9.2') { throw 'reviewed npm version mismatch' }
+  if ((& $TrustedNodeExecutable --version).Trim() -ne 'v22.23.1') { throw 'trusted packaged Node runtime version mismatch' }
   if (-not (Test-Path -LiteralPath $ElectronArchive -PathType Leaf)) { throw "Electron archive missing: $ElectronArchive" }
   if (-not (Test-Path -LiteralPath $MakensisPath -PathType Leaf)) { throw "makensis.exe missing: $MakensisPath" }
   if ([IO.Path]::GetExtension($MakensisPath).ToLowerInvariant() -ne '.exe') { throw 'MakensisPath must point to a native .exe' }
@@ -226,6 +230,7 @@ try {
       '--electron-dist', $electronDist,
       '--electron-archive', $ElectronArchive,
       '--compiler-path', $MakensisPath,
+      '--trusted-node-executable', $TrustedNodeExecutable,
       '--expected-branch', $ExpectedBranch,
       '--expected-commit', $ExpectedCommit,
       '--expected-tree', $ExpectedTree,
