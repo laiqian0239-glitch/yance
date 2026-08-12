@@ -35,6 +35,9 @@ test('WP7 reviewed production dependency binding follows the current root packag
   assert.equal(binding.packageManager, pkg.packageManager, 'reviewed binding must use the current exact package-manager authority');
   assert.deepEqual([...binding.platformKeys].sort(), ['linux-x64', 'win32-x64']);
   assert.deepEqual(Object.keys(binding.platforms).sort(), ['linux-x64', 'win32-x64']);
+  for (const key of ['linux-x64', 'win32-x64']) {
+    assert.equal(binding.platforms[key].npmVersion, '10.9.2', `${key} binding must record exact npm@10.9.2 generation authority`);
+  }
   assert.doesNotThrow(() => validateBindingDocument(binding), 'reviewed binding must remain structurally and cryptographically self-consistent');
 
   assert.equal(
