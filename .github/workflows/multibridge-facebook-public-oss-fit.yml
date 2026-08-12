@@ -10,6 +10,10 @@ on:
       - 'backend/tests/facebook*.test.js'
       - 'backend/tests/platformAuth*.test.js'
       - 'release/facebook-production-resources/**'
+      - 'tools/runtime-delivery/start-source-uat.js'
+      - 'tools/runtime-delivery/source-uat-runtime-supervisor.js'
+      - 'tests/runtime-delivery/source-uat-matrix-runtime.test.js'
+      - 'services/matrix/docker-compose.yml'
       - 'package.json'
       - '.github/workflows/multibridge-facebook-public-oss-fit.yml'
   workflow_dispatch:
@@ -30,6 +34,8 @@ jobs:
         run: npm run test:facebook-worker
       - name: Run Facebook Public integration contracts
         run: npm run test:facebook-contracts
+      - name: Run Facebook Public source UAT Matrix runtime contract
+        run: node --test --test-concurrency=1 tests/runtime-delivery/source-uat-matrix-runtime.test.js
       - name: Validate canonical Cloudflare Worker bundle with pinned Wrangler
         run: npx --yes wrangler@4.121.0 deploy --dry-run --config services/facebook-worker/wrangler.jsonc --outdir artifacts/facebook-public-wrangler-dry-run
       - name: Build sealed Windows production deploy package
