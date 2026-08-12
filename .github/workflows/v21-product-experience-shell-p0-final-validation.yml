@@ -342,10 +342,7 @@ jobs:
           set -euo pipefail
           rm -rf services/matrix/.runtime
           ambient_core_autocrlf_before="$(git config --show-origin --get-all core.autocrlf || true)"
-          GIT_CONFIG_COUNT=1 \
-          GIT_CONFIG_KEY_0=core.autocrlf \
-          GIT_CONFIG_VALUE_0=true \
-            node tools/matrix/bootstrap.js
+          node tools/matrix/bootstrap.js
           ambient_core_autocrlf_after="$(git config --show-origin --get-all core.autocrlf || true)"
           test "$ambient_core_autocrlf_after" = "$ambient_core_autocrlf_before"
           test -d services/matrix/.runtime/synapse

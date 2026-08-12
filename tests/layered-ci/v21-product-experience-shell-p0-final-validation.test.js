@@ -99,12 +99,9 @@ test('trusted Windows CI keeps Builder-host npm separate and uses exact npm@10.9
   assert.match(source, /PRODUCT_EXPERIENCE_MATERIALIZED_DESKTOP_UAT_ONLY/u);
 });
 
-test('trusted Linux CI scopes Git CRLF semantics to strict Matrix bootstrap, then builds, docker-saves and seals image-only UAT', () => {
+test('trusted Linux CI delegates CRLF apply semantics to Matrix bootstrap, then builds, docker-saves and seals image-only UAT', () => {
   const source = readWorkflow();
   const beforeIndex = source.indexOf('ambient_core_autocrlf_before=');
-  const countIndex = source.indexOf('GIT_CONFIG_COUNT=1');
-  const keyIndex = source.indexOf('GIT_CONFIG_KEY_0=core.autocrlf');
-  const valueIndex = source.indexOf('GIT_CONFIG_VALUE_0=true');
   const bootstrapIndex = source.lastIndexOf('node tools/matrix/bootstrap.js');
   const afterIndex = source.indexOf('ambient_core_autocrlf_after=', bootstrapIndex);
   const compareIndex = source.indexOf('test "$ambient_core_autocrlf_after" = "$ambient_core_autocrlf_before"', afterIndex);
@@ -113,14 +110,13 @@ test('trusted Linux CI scopes Git CRLF semantics to strict Matrix bootstrap, the
   const uploadIndex = source.indexOf('Product-Experience-Materialized-Matrix-UAT-');
   const cleanIndex = source.indexOf('git status --porcelain=v1 --untracked-files=all', afterIndex);
 
-  assert.ok(beforeIndex >= 0 && beforeIndex < countIndex);
-  assert.ok(countIndex < keyIndex && keyIndex < valueIndex && valueIndex < bootstrapIndex);
+  assert.ok(beforeIndex >= 0 && beforeIndex < bootstrapIndex);
   assert.ok(afterIndex > bootstrapIndex && compareIndex > afterIndex);
   assert.ok(firstBuildIndex > compareIndex && saveIndex > firstBuildIndex && cleanIndex > compareIndex && uploadIndex > saveIndex);
   assert.match(source, /ambient_core_autocrlf_before="\$\(git config --show-origin --get-all core\.autocrlf \|\| true\)"/u);
-  assert.match(source, /GIT_CONFIG_COUNT=1\s*\\\s*\n\s*GIT_CONFIG_KEY_0=core\.autocrlf\s*\\\s*\n\s*GIT_CONFIG_VALUE_0=true\s*\\\s*\n\s*node tools\/matrix\/bootstrap\.js/u);
   assert.match(source, /ambient_core_autocrlf_after="\$\(git config --show-origin --get-all core\.autocrlf \|\| true\)"/u);
   assert.match(source, /test "\$ambient_core_autocrlf_after" = "\$ambient_core_autocrlf_before"/u);
+  assert.doesNotMatch(source, /GIT_CONFIG_COUNT=1|GIT_CONFIG_KEY_0=core\.autocrlf|GIT_CONFIG_VALUE_0=true/u);
   assert.doesNotMatch(source, /git\s+config\s+(?:--global|--local)[^\n]*core\.autocrlf/u);
   assert.doesNotMatch(source, /git\s+-c\s+core\.autocrlf=true\s+checkout/u);
   assert.doesNotMatch(source, /upstream-patches\/element-web\/[0-9]{4}[^\n]*(?:checkout|sed|perl|python|dos2unix|unix2dos)/u);

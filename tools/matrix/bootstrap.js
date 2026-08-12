@@ -13,7 +13,18 @@ const MODULE_DELIVERY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0012
 const RUNTIME = path.join(ROOT, 'services/matrix/.runtime');
 
 function run(cwd, command, args) {
-  const result = spawnSync(command, args, { cwd, stdio: 'inherit', shell: false });
+  const isStrictGitApply = command === 'git' && args[0] === 'apply';
+  const options = isStrictGitApply
+    ? {
+        env: {
+          ...process.env,
+          GIT_CONFIG_COUNT: '1',
+          GIT_CONFIG_KEY_0: 'core.autocrlf',
+          GIT_CONFIG_VALUE_0: 'true'
+        }
+      }
+    : {};
+  const result = spawnSync(command, args, { cwd, stdio: 'inherit', shell: false, ...options });
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} failed with ${result.status}`);
 }
 
@@ -68,4 +79,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { assertExactCommit, main };
+module.exports = { applyPatch, assertExactCommit, main };
