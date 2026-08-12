@@ -105,6 +105,24 @@ function loadArchiveTool(nodeModulesPath) {
   return Object.freeze({ tar, nodeModules, packageRoot, version: packageJson.version });
 }
 
+function normalizedAbsolute(filePath) {
+  return path.resolve(filePath).replace(/\\/g, '/');
+}
+
+function deterministicStatCache(entries, targetPlatform) {
+  const cache = new Map();
+  for (const entry of entries) {
+    const stat = Object.assign(Object.create(Object.getPrototypeOf(entry.stat)), entry.stat);
+    stat.mode = (stat.mode & ~0o7777) | archiveMode(entry.stat, entry.relativePath, targetPlatform);
+    // The previous archive writer always emitted regular file bytes rather than
+    // translating repeated inodes into TAR hardlinks. Keep that semantic while
+    // delegating only TAR/PAX encoding to node-tar.
+    stat.nlink = 1;
+    cache.set(normalizedAbsolute(entry.fullPath), stat);
+  }
+  return cache;
+}
+
 async function gzipFileDeterministically(inputPath, outputPath) {
   await pipeline(
     fs.createReadStream(inputPath),
@@ -132,6 +150,7 @@ function createDeterministicTarGzip(options = {}) {
   const walked = walkEntries(sourceRoot, entryRoot);
   const entries = walked.entries;
   const entryByPath = new Map(entries.map(entry => [entry.relativePath, entry]));
+  const statCache = deterministicStatCache(entries, targetPlatform);
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   const temporaryTar = path.join(path.dirname(outputPath), `.${path.basename(outputPath)}.${process.pid}.${crypto.randomBytes(8).toString('hex')}.tar.tmp`);
 
@@ -145,14 +164,12 @@ function createDeterministicTarGzip(options = {}) {
         portable: true,
         noDirRecurse: true,
         mtime: timestamp,
+        statCache,
         onWriteEntry(entry) {
           const relativePath = canonicalTarPath(String(entry.path || '').replace(/\/+$/, ''));
-          const expected = entryByPath.get(relativePath);
-          if (!expected || !entry.stat) {
+          if (!entryByPath.has(relativePath)) {
             fail('WP7_PRE_REVIEW_TRUSTED_PRODUCT_ARCHIVE_FAILED', 'node-tar attempted to encode an entry outside the reviewed deterministic file set', { path: entry.path });
           }
-          const mode = archiveMode(expected.stat, expected.relativePath, targetPlatform);
-          entry.stat.mode = (entry.stat.mode & ~0o7777) | mode;
         }
       }, entries.map(entry => entry.relativePath));
     } catch (error) {
