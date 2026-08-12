@@ -241,11 +241,14 @@ test('trusted Linux Matrix bootstrap keeps checkout native and scopes Git CRLF s
   assert.match(source, /ambient_core_autocrlf_after="\$\(git config --show-origin --get-all core\.autocrlf \|\| true\)"/u);
   assert.match(source, /test "\$ambient_core_autocrlf_after" = "\$ambient_core_autocrlf_before"/u);
   assert.doesNotMatch(source, /GIT_CONFIG_COUNT=1|GIT_CONFIG_KEY_0=core\.autocrlf|GIT_CONFIG_VALUE_0=true/u);
+  assert.match(bootstrap, /const isStrictGitApply = command === 'git' && args\[0\] === 'apply'/u);
   assert.match(bootstrap, /GIT_CONFIG_COUNT:\s*'1'/u);
   assert.match(bootstrap, /GIT_CONFIG_KEY_0:\s*'core\.autocrlf'/u);
   assert.match(bootstrap, /GIT_CONFIG_VALUE_0:\s*'true'/u);
-  assert.match(bootstrap, /run\(repoDir, 'git', \['apply', '--check', patchPath\], \{ env \}\)/u);
-  assert.match(bootstrap, /run\(repoDir, 'git', \['apply', patchPath\], \{ env \}\)/u);
+  assert.match(bootstrap, /run\(repoDir, 'git', \['apply', '--check', patchPath\]\);/u);
+  assert.match(bootstrap, /run\(repoDir, 'git', \['apply', patchPath\]\);/u);
+  assert.match(bootstrap, /run\(element, 'git', \['apply', '--check', MODULE_DELIVERY_PATCH\]\);/u);
+  assert.match(bootstrap, /run\(element, 'git', \['apply', MODULE_DELIVERY_PATCH\]\);/u);
   assert.match(bootstrap, /run\(RUNTIME, 'git', \['clone', '--no-checkout', upstream\.repository, name\]\)/u);
   assert.match(bootstrap, /run\(dir, 'git', \['fetch', 'origin', upstream\.commit, '--depth=1'\]\)/u);
   assert.match(bootstrap, /run\(dir, 'git', \['checkout', '--detach', upstream\.commit\]\)/u);
