@@ -141,7 +141,8 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           if ((node --version).Trim() -ne 'v22.23.1') { throw "unexpected Builder-host Node: $(node --version)" }
-          if ((npm --version).Trim() -ne '10.9.2') { throw "unexpected Builder-host npm: $(npm --version)" }
+          $builderHostNpm = (npm --version).Trim()
+          Write-Host "Builder-host npm $builderHostNpm is bootstrap-only; repository dependency authority is npm@10.9.2"
           $actual = (git rev-parse HEAD).Trim()
           if ($actual -ne $env:CANDIDATE_SHA) { throw "candidate SHA mismatch: $actual" }
           git switch --force-create $env:CANDIDATE_BRANCH $env:CANDIDATE_SHA
@@ -203,8 +204,8 @@ jobs:
           Copy-Item package.json, package-lock.json -Destination $root
           Push-Location $root
           try {
-            npm.cmd ci --omit=dev --ignore-scripts --no-audit --no-fund --no-bin-links --os=win32 --cpu=x64
-            if ($LASTEXITCODE -ne 0) { throw "trusted-CI production npm ci failed: $LASTEXITCODE" }
+            npm.cmd exec --yes --package=npm@10.9.2 -- npm ci --omit=dev --ignore-scripts --no-audit --no-fund --no-bin-links --os=win32 --cpu=x64
+            if ($LASTEXITCODE -ne 0) { throw "trusted-CI exact npm@10.9.2 production ci failed: $LASTEXITCODE" }
           } finally { Pop-Location }
           Remove-Item -LiteralPath (Join-Path $root 'node_modules\.package-lock.json') -Force -ErrorAction SilentlyContinue
           if (Test-Path -LiteralPath (Join-Path $root 'node_modules\electron')) { throw 'production-only dependency closure unexpectedly contains Electron' }
@@ -340,7 +341,13 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf services/matrix/.runtime
-          node tools/matrix/bootstrap.js
+          ambient_core_autocrlf_before="$(git config --show-origin --get-all core.autocrlf || true)"
+          GIT_CONFIG_COUNT=1 \
+          GIT_CONFIG_KEY_0=core.autocrlf \
+          GIT_CONFIG_VALUE_0=true \
+            node tools/matrix/bootstrap.js
+          ambient_core_autocrlf_after="$(git config --show-origin --get-all core.autocrlf || true)"
+          test "$ambient_core_autocrlf_after" = "$ambient_core_autocrlf_before"
           test -d services/matrix/.runtime/synapse
           test -d services/matrix/.runtime/element-web
           test -d services/matrix/.runtime/mautrix-whatsapp
