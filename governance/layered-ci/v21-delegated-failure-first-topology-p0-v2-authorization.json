@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-FAILURE-FIRST-TOPOLOGY-P0-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main successor to the unimplemented V1 failure-first topology authority. Preserve the existing implementationBranchPolicy as the single delegated Git-policy authority, but isolate the new failure-first contract in a dedicated WP0 test file instead of expanding the large legacy implementation-branch-policy test. This keeps TDD causal evidence single-purpose, preserves all legacy tests byte-for-byte, and avoids introducing a second policy engine or any package-specific bypass.",
+  "base": {
+    "branch": "main",
+    "commit": "55c246296e00b1e0a4e0b0b1722d9f07906fc6ac"
+  },
+  "supersession": {
+    "historicalAuthorizationPullRequest": 325,
+    "historicalAuthorizationMerge": "55c246296e00b1e0a4e0b0b1722d9f07906fc6ac",
+    "historicalImplementationBranch": "governance/v21-delegated-failure-first-topology-p0",
+    "historicalImplementationBranchHeadObserved": "55c246296e00b1e0a4e0b0b1722d9f07906fc6ac",
+    "historicalImplementationCommitCount": 0,
+    "historicalImplementationNeverStarted": true,
+    "preserveHistoricalAuthority": true,
+    "doNotRewriteHistoricalBranch": true,
+    "successorReason": "Use a dedicated small contract test for the new topology semantics while leaving the existing broad implementationBranchPolicy regression suite untouched. V1 produced no implementation commit and therefore contains no RED/GREEN implementation evidence to preserve beyond its merged authorization history."
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "55c246296e00b1e0a4e0b0b1722d9f07906fc6ac",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-failure-first-topology-p0-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-failure-first-topology-p0-v2-authorization.json"
+    ],
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "governance/v21-delegated-failure-first-topology-p0-v2",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/delegated-failure-first-topology.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "cd3f8e13df581725135bc2a6672d27588b9ab50b90348eb6837a9b1182b08af2",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/delegated-failure-first-topology.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "beee7149fdb76092baa842e800ce64e5c3035d5034bfad7bfd308b83cf6b81c8",
+      "productionCodeChanged": false,
+      "freshCausalRedRequired": true
+    },
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "testIsolation": {
+    "dedicatedTestPath": "tests/wp0/delegated-failure-first-topology.test.js",
+    "legacyPolicyTestPath": "tests/wp0/implementation-branch-policy.test.js",
+    "legacyPolicyTestMustRemainUnchanged": true,
+    "preAuthorizationLocalFixtureBlob": "7e5282ec395953efdf81dcae179564dc24efcaa1",
+    "preAuthorizationLocalFixtureBytes": 8336,
+    "preAuthorizationCausalRed": {
+      "tests": 6,
+      "pass": 2,
+      "fail": 4,
+      "environmentalFailure": false,
+      "expectedFailures": [
+        "failure-first declaration with a mismatched tests-only digest is currently accepted",
+        "a first implementation descendant containing production policy code is currently accepted",
+        "a first implementation descendant with wrong or multiple parent topology is currently accepted",
+        "a later implementation commit without exact RED-head/run/conclusion evidence is currently accepted"
+      ],
+      "expectedPasses": [
+        "an exact tests-only first descendant remains eligible to produce remote RED evidence",
+        "authorizations without implementation.failureFirstCommit preserve existing semantics"
+      ],
+      "authority": "This local pre-authorization run is design evidence only. The first committed implementation Head must independently produce a fresh remote causal RED before production policy changes."
+    }
+  },
+  "policyContract": {
+    "existingAuthority": "shared/release/implementationBranchPolicy.js::evaluateTrustedDelegatedGovernanceBranch",
+    "activation": "Only authorizations that opt in with implementation.failureFirstCommit are subject to the new topology/evidence contract; authorizations without the field preserve current semantics.",
+    "trustedInputsOnly": true,
+    "declaration": {
+      "mustBePlainObject": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPathsMustBeNonEmptyExactNormalizedSubsetOfImplementationScope": true,
+      "approvedChangedFileCountMustMatch": true,
+      "approvedChangedFileSetSha256MustMatchCanonicalDigest": true,
+      "productionCodeChangedMustBeFalse": true,
+      "freshCausalRedRequiredMustBeTrue": true
+    },
+    "firstDescendant": {
+      "base": "effective ordinary authorization merge commit",
+      "history": "trusted Git first-parent history from the effective authorization merge to evaluated implementation Head",
+      "mustExist": true,
+      "parentCountMustEqual": 1,
+      "soleParentMustEqualAuthorizationMerge": true,
+      "changedPathsMustExactlyEqualFailureFirstAllowedChangedPaths": true,
+      "changedPathCountMustEqualDeclaredCount": true,
+      "changedPathDigestMustEqualDeclaredSha256": true,
+      "productionPathChangeForbidden": true
+    },
+    "redEvidence": {
+      "requiredOnlyWhenALaterFirstParentImplementationCommitExists": true,
+      "recordLocation": "first post-RED first-parent implementation commit message",
+      "requiredTrailers": [
+        "Yance-Failure-First-Red-Head: <40 lowercase hex SHA equal to the first tests-only descendant>",
+        "Yance-Failure-First-Red-Run: <positive decimal GitHub Actions run id>",
+        "Yance-Failure-First-Red-Conclusion: failure"
+      ],
+      "duplicateOrMalformedTrailersFailClosed": true,
+      "mechanicalVerification": "The trusted offline evaluator validates trailer syntax and exact RED-head binding. Independent exact-head review validates that the referenced GitHub Actions run belongs to that RED Head and that its failure is causal rather than infrastructure/governance noise."
+    },
+    "failureCodes": [
+      "WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_INVALID",
+      "WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_EVIDENCE_INVALID"
+    ],
+    "finalScopeAuthority": "tools/layered-ci/verify-delegated-product-l2.js remains the sole final L2 exact path/count/digest seal for full_work_package candidates; this repair must not duplicate that verifier."
+  },
+  "ossFit": {
+    "decision": "EXTEND_EXISTING_TRUSTED_GIT_POLICY_SEAM_USING_MATURE_GIT_PLUMBING_AND_DEDICATED_TEST_ISOLATION",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Git first-parent/rev-list/show/diff plumbing",
+        "source": "git/git through the repository's existing trustedGit execution seam",
+        "license": "GPL-2.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing trusted policy already derives commit topology and repository blobs from Git. First-parent descendants, parent identity, per-commit changed paths and commit-message trailers are native Git data and require no new runtime, service or policy engine."
+      },
+      {
+        "name": "Yance implementationBranchPolicy trusted-main evaluator",
+        "source": "shared/release/implementationBranchPolicy.js@55c246296e00b1e0a4e0b0b1722d9f07906fc6ac",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It remains the single delegated authorization/topology authority; extending its opt-in contract is preferable to adding a package-specific validator or second governance engine."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test in the repository's existing Node test stack",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "A dedicated WP0 contract test uses the mature built-in test runner already executed by Stage, with no new dependency or custom test framework."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a Voice-only or package-only second governance policy engine.",
+      "Do not duplicate the final exact path/count/digest seal already owned by delegated Product L2.",
+      "Do not modify or weaken the existing large implementation-branch-policy regression suite merely to host the new focused contract.",
+      "Do not add OPA, a database, a network service, workflow-owned trust state, candidate-owned self-attestation, new npm dependency or mutable GitHub query to the trusted offline evaluator."
+    ]
+  },
+  "failureFirst": {
+    "firstImplementationCommitTestsOnly": true,
+    "testPaths": [
+      "tests/wp0/delegated-failure-first-topology.test.js"
+    ],
+    "freshRemoteCausalRedRequired": true,
+    "requiredCausalRedCases": [
+      "mismatched declared failure-first digest fails closed",
+      "production path in first descendant fails closed",
+      "wrong or multiple first-descendant parents fail closed",
+      "later implementation without exact RED evidence fails closed",
+      "exact tests-only RED Head remains permitted before evidence exists",
+      "authorization without failureFirstCommit retains existing behavior"
+    ],
+    "testWeakeningForbidden": true
+  },
+  "mandatoryContracts": [
+    "V1 implementation branch remains frozen at 55c246296e00b1e0a4e0b0b1722d9f07906fc6ac with zero implementation commits; no rebase, amend, force update or retroactive RED is permitted.",
+    "V2 extends the existing trusted-main delegated governance evaluator and trusted Git plumbing only; no second policy engine is introduced.",
+    "The first V2 implementation commit changes exactly tests/wp0/delegated-failure-first-topology.test.js and no production code, then must produce a fresh remote causal RED.",
+    "The legacy tests/wp0/implementation-branch-policy.test.js is outside V2 scope and must remain unchanged.",
+    "When implementation.failureFirstCommit is absent, existing delegated authorization behavior is unchanged.",
+    "When present, malformed declaration, missing first descendant, wrong parent count or identity, wrong tests-only path set/count/digest, or production code in the first descendant fails closed.",
+    "Any later first-parent implementation commit must record the exact first RED Head, a positive GitHub Actions run id and conclusion=failure; malformed, duplicate or mismatched evidence fails closed.",
+    "The offline evaluator does not claim remote-run causality; independent exact-head review must cross-check the referenced run before final merge.",
+    "Final exact implementation scope remains enforced by delegated Product L2 full_work_package.",
+    "No workflow, dependency, package manifest, lockfile, Product path, Voice path, release, promotion or runtime behavior is modified by this prerequisite."
+  ],
+  "requiredSequence": [
+    "one-file V2 successor authorization from exact fresh main -> governance gates -> exact-head independent review",
+    "ordinary two-parent V2 authorization merge",
+    "create governance/v21-delegated-failure-first-topology-p0-v2 from exact V2 authorization merge",
+    "first implementation commit adds only tests/wp0/delegated-failure-first-topology.test.js and produces fresh remote causal RED",
+    "record exact RED Head/run/conclusion as evidence for the first later policy implementation commit",
+    "minimally extend implementationBranchPolicy with opt-in declaration/topology/evidence enforcement",
+    "run targeted RED->GREEN tests plus fresh Stage, Layered governance, applicable ACV2 and exact-head independent review P0=0/P1=0",
+    "ordinary merge the prerequisite only at the final implementation merge boundary and require post-merge GREEN",
+    "supersede stale Voice V2 authorization #324 and create a fresh-main Voice successor whose first test-only commit is mechanically enforced by this policy"
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
