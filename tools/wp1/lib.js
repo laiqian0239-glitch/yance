@@ -184,7 +184,7 @@ function isReleaseIdentityScanCandidate(relativePath) {
   if (normalized === 'package.json') return true;
   if (normalized === 'release/release-source.json') return false;
   if (RELEASE_IDENTITY_SCAN_EXCLUDED_PREFIXES.some(prefix => normalized.startsWith(prefix))) return false;
-  if (FORBIDDEN_RUNTIME_SEGMENTS.some(segment => normalized.toLowerCase().includes(`/${segment}`))) return false;
+  if (/(^|\/)tests(\/|$)/i.test(normalized)) return false;
   const isRootSource = !normalized.includes('/');
   if (!isRootSource && !RELEASE_IDENTITY_SCAN_ROOTS.some(prefix => normalized.startsWith(prefix))) return false;
   return RELEASE_IDENTITY_SCAN_EXTENSIONS.has(path.extname(normalized).toLowerCase());
