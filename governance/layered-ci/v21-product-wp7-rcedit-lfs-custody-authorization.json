@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-13T00:02:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-WP7-RCEDIT-LFS-CUSTODY",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh Product Final Validation at Product Head b12c95354d0defb291bccec141ff871d75f6d9b5 proves the Electron npm trust-input ownership repair is effective through isolated Electron npm package materialization, production-only dependency closure, packaged Node 22.23.1 and Parlant. Desktop job 94202376568 then failed before WP7 assembly because the existing rcedit v2.0.0 x64 custody step performs a live GitHub release-asset Invoke-WebRequest and received HTTP 503 Service Unavailable. The existing rcedit version and SHA-256 authority were not challenged and the hash check did not execute. This work package removes the live release-asset availability dependency by reusing the repository's already-governed mature Git LFS custody pattern: store the exact official rcedit v2.0.0 x64 binary as an LFS object, bind the LFS pointer oid to the existing pinned SHA-256 and official release size, materialize only that path in Product Final, verify pointer oid/size plus materialized byte size/SHA-256, and pass the verified file to the unchanged WP7 builder. No rcedit version change, rebuild, alternate binary, retry/fallback downloader, new cache, new package manager, new metadata authority or new Yance infrastructure is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "c43d70b31b93538068f197e952ff1c7297550c9b"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "requiredFirstParent": "c43d70b31b93538068f197e952ff1c7297550c9b",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "repairEvidence": {
+    "productPullRequest": 229,
+    "productHead": "b12c95354d0defb291bccec141ff871d75f6d9b5",
+    "productFinalValidationRun": 31623040658,
+    "desktopJob": 94202376568,
+    "electronNpmTrustMetadataStep": "GREEN",
+    "productionDependencyClosureStep": "GREEN",
+    "packagedNodeStep": "GREEN",
+    "parlantRuntimeStep": "GREEN",
+    "rceditStep": "RED",
+    "rceditFailure": "Invoke-WebRequest returned HTTP 503 Service Unavailable before SHA-256 verification",
+    "existingRceditVersion": "2.0.0",
+    "existingRceditSha256": "3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a",
+    "officialAssetName": "rcedit-x64.exe",
+    "officialAssetSizeBytes": 1360384,
+    "officialRelease": "electron/rcedit v2.0.0",
+    "officialReleaseAssetId": 135772040,
+    "officialReleaseEvidence": "GitHub release API for electron/rcedit v2.0.0 lists rcedit-x64.exe as an uploaded application/octet-stream asset of 1360384 bytes; upstream README defines GitHub Releases as the prebuilt executable distribution channel."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-wp7-rcedit-lfs-custody-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-wp7-rcedit-lfs-custody-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "bcbb87d57e119086376de98d0ab9cca9e1c6df6e3f74e6bba8994e2a0e8a2b7c",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-wp7-rcedit-lfs-custody",
+    "allowedChangedPaths": [
+      ".gitattributes",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "vendor/rcedit/rcedit-v2.0.0-x64.exe"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "669730a1c8b75d7f16907f8643c36d6341ccfcab35450dab4aba601cac00cd27",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "wp7ImplementationModificationAllowed": false,
+    "rceditVersionModificationAllowed": false,
+    "rceditExpectedHashModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-experience-materialized-uat.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "productionCodeChanged": false,
+      "remoteCausalRedAuthority": "Stage 6.4.5.9 WP0 Architecture Gates -> npm run test:wp0"
+    }
+  },
+  "ossFit": {
+    "decision": "ADOPT_MATURE_OSS_AND_REUSE_EXISTING_REPOSITORY_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Git LFS existing repository binary-custody pattern",
+        "source": "git-lfs/git-lfs plus existing Yance vendor/electron Git LFS materialization and pointer verification",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already uses Git LFS for trusted binary release assets and has a governance-approved pattern that validates pointer oid/size, targeted git lfs pull, materialized size/SHA-256 and clean source. Reusing it removes live release-asset availability from Product Final without adding a downloader, cache or metadata authority."
+      },
+      {
+        "name": "electron/rcedit v2.0.0 official prebuilt x64 release asset",
+        "source": "electron/rcedit release v2.0.0 asset rcedit-x64.exe",
+        "license": "MIT",
+        "adoptionMode": "upstream-native",
+        "fit": "FIT",
+        "reason": "This is the exact already-reviewed upstream binary/version currently used by Product Final. The work package changes custody only, not tool authority, version or bytes."
+      },
+      {
+        "name": "Live HTTP retry/fallback downloader, alternate mirror, source rebuild or new Yance binary cache",
+        "source": "hypothetical workaround/new infrastructure",
+        "license": "not applicable because rejected",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "Retries preserve the non-hermetic external availability dependency, mirrors add authority, rebuilding changes binary provenance, and a Yance cache/downloader duplicates mature Git LFS custody."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire Product Final's live Invoke-WebRequest dependency on the rcedit GitHub release asset.",
+      "Avoid retry loops, alternate mirrors, source rebuilds, release-version changes, checksum changes or Windows-side recovery downloads.",
+      "Avoid new Yance downloader/cache/materializer infrastructure; use the existing Git LFS seam.",
+      "Keep the existing WP7 rcedit/branding implementation unchanged."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "On the authorization-merge baseline, the first implementation commit changes only tests/wp0/v21-product-experience-materialized-uat.test.js and Stage must fail causally because Product Final still obtains rcedit through a live Invoke-WebRequest release-asset call instead of an identity-bound Git LFS object.",
+    "The permanent workflow contract must reject any Product Final rcedit step that uses Invoke-WebRequest, curl, wget, alternate mirror or retry/fallback download semantics.",
+    "vendor/rcedit/rcedit-v2.0.0-x64.exe must be Git LFS tracked; its pointer oid sha256 must equal the existing RCEDIT_SHA256 3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a and pointer size must equal 1360384.",
+    "Product Final must targeted-materialize only the pinned rcedit LFS path, require the tracked Git blob to be a valid LFS pointer, require pointer oid to equal the existing pinned SHA-256, require pointer size to equal the materialized file length, independently SHA-256 the materialized file, and leave the Product source clean.",
+    "The unchanged tools/wp7/create-pre-review-trusted-product.js rcedit input and WP7 branding implementation remain the consumer; no WP7 implementation change is authorized."
+  ],
+  "handoffBackToProduct": {
+    "productPullRequest": 229,
+    "productBranch": "product/v21-product-experience-shell-p0",
+    "productHeadAtAuthorization": "b12c95354d0defb291bccec141ff871d75f6d9b5",
+    "rule": "After the repair ordinary-merges to main, ordinary-forward fresh main into Product without rebase, cherry-pick, force push, squash or history rewrite. Fresh Product Final must preserve the already-proven Electron npm metadata, production dependency, Node and Parlant GREEN steps, materialize rcedit from the exact LFS custody object, then continue into the existing WP7 builder. Final PR #229 integration merge remains explicit owner boundary."
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "liveRceditDownloadRetry": true,
+    "alternateRceditMirror": true,
+    "rceditVersionChange": true,
+    "rceditExpectedHashRewrite": true,
+    "rceditSourceRebuild": true,
+    "newYanceDownloader": true,
+    "newYanceCache": true,
+    "newDependency": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "productRuntimeModification": true,
+    "wp7ImplementationModification": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "delegatedExecutionAuthorized": true,
+    "finalProductPullRequestMergeRequiresOwnerApproval": true
+  }
+}
