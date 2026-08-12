@@ -23,3 +23,31 @@ jobs:
           node-version: '22.19.0'
       - name: Run Facebook Public worker tests
         run: npm --prefix services/facebook-worker test
+      - name: Probe sealed Facebook Public Cloudflare runtime
+        env:
+          FACEBOOK_PUBLIC_WORKER_URL: https://yance-facebook-gateway.wangyi198675.workers.dev
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 2 --max-time 20 "$FACEBOOK_PUBLIC_WORKER_URL/healthz" -o facebook-public-health.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const health = JSON.parse(fs.readFileSync('facebook-public-health.json', 'utf8'));
+          const required = ['pages_show_list', 'pages_messaging', 'pages_manage_metadata'];
+          if (health.ok !== true) throw new Error('Facebook Public runtime health did not report ok=true');
+          if (health.service !== 'yance-facebook-gateway') throw new Error(`Unexpected Facebook Public service: ${health.service}`);
+          if (health.graphVersion !== 'v25.0') throw new Error(`Unexpected Graph version: ${health.graphVersion}`);
+          if (health.d1Schema?.ready !== true) throw new Error(`Facebook Public D1 schema is not ready: ${JSON.stringify(health.d1Schema)}`);
+          if (health.oauthContract?.authorizationMode !== 'business-login-configuration') throw new Error('Facebook Public runtime is not using Business Login configuration authority');
+          if (health.oauthContract?.legacyScopeParameter !== false) throw new Error('Facebook Public runtime still exposes a legacy scope parameter');
+          const actual = [...(health.oauthContract?.requiredPermissions || [])].sort();
+          if (JSON.stringify(actual) !== JSON.stringify([...required].sort())) throw new Error(`Unexpected required Page permissions: ${JSON.stringify(actual)}`);
+          console.log(JSON.stringify({
+            ok: health.ok,
+            service: health.service,
+            graphVersion: health.graphVersion,
+            d1SchemaVersion: health.d1Schema.version,
+            oauthContractVersion: health.oauthContract.version,
+            authorizationMode: health.oauthContract.authorizationMode,
+            requiredPermissions: actual
+          }));
+          NODE
