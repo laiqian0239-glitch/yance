@@ -4,7 +4,7 @@
   "requestedByUserAt": "2026-08-13T02:47:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-WP7-DETERMINISTIC-LONG-PATH-ARCHIVE-OSS-CUTOVER",
-  "proposalRevision": 3,
+  "proposalRevision": 4,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Fresh Product Final Validation at Product Head f7d585bcb3867d3d5a58eb5fb064eee202a4fb25 proved the completed rcedit Git LFS custody repair through its exact Product Final step, then the existing WP7 trusted-product builder failed with WP7_PRE_REVIEW_TRUSTED_PRODUCT_ARCHIVE_FAILED because tools/wp7/deterministic-tar-gzip.js is a Yance-authored manual USTAR writer whose splitUstarPath() cannot represent a legitimate @mistralai/mistralai production declaration path. This work package retires that self-authored TAR-format implementation in favor of mature node-tar 7.5.22 PAX creation while preserving Yance-owned canonical path policy, symlink/non-file rejection, deterministic traversal/mode/timestamp policy, existing deterministic Node zlib gzip semantics, archive SHA/evidence, and fail-closed behavior. It must not delete, rename, shorten, omit or rewrite legitimate production payload paths.",
   "base": {
@@ -123,7 +123,7 @@
     "decision": "ADOPT_MATURE_OSS_AND_RETIRE_YANCE_FORMAT_IMPLEMENTATION",
     "matureOssAvailable": true,
     "newGeneralPurposeInfrastructure": false,
-    "selectedAdoptionMode": "isolated-locked-build-tool",
+    "selectedAdoptionMode": "source-module",
     "reviewedCandidates": [
       {
         "name": "tar 7.5.22 (node-tar)",
