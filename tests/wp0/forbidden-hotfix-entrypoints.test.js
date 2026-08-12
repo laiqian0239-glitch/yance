@@ -28,6 +28,9 @@ const APPROVED_SUPPLY_CHAIN_EVIDENCE_PATHS = Object.freeze([
   'third_party/sbom.cdx.json'
 ]);
 const REVIEWED_PROVENANCE_TOKEN = 'existing-yance-postinstall-patch';
+const REVIEWED_BINDING_PATH = 'release/production-dependency-binding.json';
+const REVIEWED_BINDING_POSTINSTALL_PATH = 'node_modules/@letta-ai/letta-code/scripts/postinstall-patches.js';
+const REVIEWED_BINDING_LEGACY_TOKEN = 'postinstall-patch';
 
 function evaluatedRepositoryEnv(repo) {
   return {
@@ -72,6 +75,15 @@ function makeReleaseSurfaceFixture(relativePath, content) {
   fs.mkdirSync(path.dirname(full), { recursive: true });
   fs.writeFileSync(full, content, 'utf8');
   return root;
+}
+
+function reviewedBindingLegacyTokenFixture() {
+  const content = JSON.stringify({
+    files: [{ path: REVIEWED_BINDING_POSTINSTALL_PATH }]
+  });
+  assert.equal(REVIEWED_BINDING_POSTINSTALL_PATH.includes(REVIEWED_BINDING_LEGACY_TOKEN), true);
+  assert.equal(content.includes(REVIEWED_BINDING_LEGACY_TOKEN), true);
+  return content;
 }
 
 test('forbidden-hotfix-entrypoints.test', () => {
@@ -168,6 +180,54 @@ test('the reviewed provenance token remains forbidden under an active tools path
   const relativePath = 'tools/release/future-plan.json';
   const root = makeReleaseSurfaceFixture(relativePath, JSON.stringify({ action: REVIEWED_PROVENANCE_TOKEN }));
   try {
+    const scan = scanRepositoryReleaseSurfaces(root);
+    assert.equal(scan.violationCount, 1, JSON.stringify(scan));
+    assert.equal(scan.violations[0]?.reasonCode, 'WP0_FORBIDDEN_LEGACY_RELEASE_MECHANISM');
+    assert.equal(scan.violations[0]?.file, relativePath);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('the reviewed WP7 production dependency binding uses an exact non-active classification', () => {
+  assert.equal(
+    classifyScanPath(REVIEWED_BINDING_PATH),
+    'SUPPLY_CHAIN_EVIDENCE',
+    `${REVIEWED_BINDING_PATH} must be classified only by the exact reviewed binding authority`
+  );
+});
+
+test('reviewed WP7 binding inventory does not interpret the Letta postinstall patch filename as an executable legacy release mechanism', () => {
+  const root = makeReleaseSurfaceFixture(REVIEWED_BINDING_PATH, reviewedBindingLegacyTokenFixture());
+  try {
+    const scan = scanRepositoryReleaseSurfaces(root);
+    const binding = scan.scannedFiles.find((item) => item.path === REVIEWED_BINDING_PATH);
+    assert.equal(binding?.classification, 'SUPPLY_CHAIN_EVIDENCE');
+    assert.equal(scan.violationCount, 0, JSON.stringify(scan.violations));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('an unknown future release binding remains active and fails closed on the exact Letta postinstall patch token', () => {
+  const relativePath = 'release/future-production-dependency-binding.json';
+  const root = makeReleaseSurfaceFixture(relativePath, reviewedBindingLegacyTokenFixture());
+  try {
+    assert.equal(classifyScanPath(relativePath), 'ACTIVE_SOURCE_OR_AUTOMATION');
+    const scan = scanRepositoryReleaseSurfaces(root);
+    assert.equal(scan.violationCount, 1, JSON.stringify(scan));
+    assert.equal(scan.violations[0]?.reasonCode, 'WP0_FORBIDDEN_LEGACY_RELEASE_MECHANISM');
+    assert.equal(scan.violations[0]?.file, relativePath);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('the exact Letta postinstall patch token remains forbidden under an active tools path', () => {
+  const relativePath = 'tools/release/future-production-dependency-binding.json';
+  const root = makeReleaseSurfaceFixture(relativePath, reviewedBindingLegacyTokenFixture());
+  try {
+    assert.equal(classifyScanPath(relativePath), 'ACTIVE_SOURCE_OR_AUTOMATION');
     const scan = scanRepositoryReleaseSurfaces(root);
     assert.equal(scan.violationCount, 1, JSON.stringify(scan));
     assert.equal(scan.violations[0]?.reasonCode, 'WP0_FORBIDDEN_LEGACY_RELEASE_MECHANISM');
