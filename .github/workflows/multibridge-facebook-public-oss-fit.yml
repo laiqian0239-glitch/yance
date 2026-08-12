@@ -30,5 +30,7 @@ jobs:
         run: npm run test:facebook-worker
       - name: Run Facebook Public integration contracts
         run: npm run test:facebook-contracts
+      - name: Validate canonical Cloudflare Worker bundle with pinned Wrangler
+        run: npx --yes wrangler@4.121.0 deploy --dry-run --config services/facebook-worker/wrangler.jsonc --outdir artifacts/facebook-public-wrangler-dry-run
       - name: Probe sealed Facebook Public Cloudflare runtime
         run: npm run verify:facebook-formal-worker
