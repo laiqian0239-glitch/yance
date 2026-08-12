@@ -24,7 +24,8 @@ const RUNTIME_PAYLOAD_ALLOWLIST = Object.freeze([
   { source: 'frontend', destination: 'frontend', excludedPrefixes: [] },
   { source: 'shared', destination: 'shared', excludedPrefixes: [] },
   { source: 'electron', destination: 'electron_runtime', excludedPrefixes: [] },
-  { source: 'diagnostics', destination: 'diagnostics', excludedPrefixes: [] }
+  { source: 'diagnostics', destination: 'diagnostics', excludedPrefixes: [] },
+  { source: 'vendor/sillytavern/1.18.0', destination: 'vendor/sillytavern/1.18.0', excludedPrefixes: [] }
 ]);
 const FORBIDDEN_RUNTIME_SEGMENTS = Object.freeze([
   'tests/', 'evidence/', 'verification/', 'tools/', 'installer/', 'installers/',
