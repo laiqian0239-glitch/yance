@@ -28,6 +28,8 @@ test('Facebook Public Windows production package is commit-bound and uses only c
     assert.match(run, /wrangler@4\.121\.0/u);
     assert.match(run, /\bwhoami\b/u);
     assert.match(run, /\blogin\b/u);
+    assert.match(run, /secret list --config services\/facebook-worker\/wrangler\.jsonc/u);
+    assert.match(run, /required-secrets\.json/u);
     assert.match(run, /deploy --dry-run --config services\/facebook-worker\/wrangler\.jsonc/u);
     assert.match(run, /deploy --config services\/facebook-worker\/wrangler\.jsonc/u);
     assert.match(run, /verify-formal-worker\.js/u);
@@ -35,11 +37,14 @@ test('Facebook Public Windows production package is commit-bound and uses only c
     assert.doesNotMatch(run, /deploy-(?:avatar|page).*hotfix/iu);
     assert.equal(fs.existsSync(path.join(packageRoot, 'services', 'facebook-worker', 'wrangler.deploy.local.jsonc')), false);
     assert.equal(fs.existsSync(path.join(packageRoot, 'services', 'facebook-worker', '.dev.vars')), false);
+    assert.equal(fs.existsSync(path.join(packageRoot, 'services', 'facebook-worker', '.dev.vars.example')), true);
     assert.equal(fs.existsSync(path.join(packageRoot, 'services', 'facebook-worker', 'wrangler.jsonc')), true);
+    assert.equal(fs.existsSync(path.join(packageRoot, 'services', 'facebook-worker', 'required-secrets.json')), true);
     assert.equal(fs.existsSync(path.join(packageRoot, 'tools', 'facebook', 'prepare-production-config.js')), true);
     assert.equal(fs.existsSync(path.join(packageRoot, 'tools', 'facebook', 'verify-formal-worker.js')), true);
     assert.match(manifest, /RUN\.ps1/u);
     assert.match(manifest, /services\/facebook-worker\/wrangler\.jsonc/u);
+    assert.match(manifest, /services\/facebook-worker\/required-secrets\.json/u);
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
