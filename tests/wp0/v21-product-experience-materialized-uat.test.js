@@ -378,3 +378,26 @@ test('real Git fixture proves Matrix EOL semantics belong only to strict git app
     assert.equal(fs.readFileSync(shellPath).includes(0x0d), false, 'unrelated shell script must remain LF-native');
   });
 });
+
+test('Product Final materializes trusted rcedit from identity-bound Git LFS custody without a live release download', () => {
+  const source = read(WORKFLOW);
+  const attributes = read('.gitattributes');
+  const marker = '      - name: Materialize exact trusted rcedit custody input';
+  const rceditStart = source.indexOf(marker);
+  assert.notEqual(rceditStart, -1, 'rcedit custody step is missing');
+  const rceditEnd = source.indexOf('\n      - name:', rceditStart + marker.length);
+  const rceditStep = source.slice(rceditStart, rceditEnd === -1 ? undefined : rceditEnd);
+
+  assert.doesNotMatch(
+    rceditStep,
+    /\b(?:Invoke-WebRequest|curl(?:\.exe)?|wget(?:\.exe)?)\b/iu,
+    'rcedit custody step must not perform a live network download'
+  );
+  assert.match(attributes, /vendor\/rcedit\/\*\.exe\s+filter=lfs\s+diff=lfs\s+merge=lfs\s+-text/u);
+  assert.match(rceditStep, /vendor\/rcedit\/rcedit-v2\.0\.0-x64\.exe/u);
+  assert.match(rceditStep, /git\s+lfs\s+pull\s+origin\s+--include=/u);
+  assert.match(rceditStep, /oid\s+sha256:/u);
+  assert.match(rceditStep, /1360384/u);
+  assert.match(rceditStep, /RCEDIT_SHA256/u);
+  assert.match(rceditStep, /Get-FileHash[^\n]*SHA256/u);
+});
