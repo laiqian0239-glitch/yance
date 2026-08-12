@@ -10,6 +10,7 @@ const { spawnSync } = require('node:child_process');
 const { validateBindingDocument } = require('../../tools/wp7/production-dependency-binding');
 
 const ROOT = path.resolve(__dirname, '../..');
+const EXACT_NPM_VERSION = '10.9.2';
 
 function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(ROOT, ...relativePath.split('/')), 'utf8'));
@@ -25,6 +26,33 @@ function sha256File(relativePath) {
     .digest('hex');
 }
 
+function npmCommand() {
+  return process.platform === 'win32' ? 'npm.cmd' : 'npm';
+}
+
+function spawnExactNpm(args, options = {}) {
+  return spawnSync(
+    npmCommand(),
+    ['exec', '--yes', `--package=npm@${EXACT_NPM_VERSION}`, '--', ...args],
+    {
+      cwd: options.cwd,
+      env: options.env || process.env,
+      encoding: 'utf8',
+      maxBuffer: options.maxBuffer || 128 * 1024 * 1024,
+      timeout: options.timeout || 540000,
+      windowsHide: true
+    }
+  );
+}
+
+function commandFailure(result) {
+  return [
+    result.error?.stack || result.error?.message || '',
+    result.stdout || '',
+    result.stderr || ''
+  ].filter(Boolean).join('\n');
+}
+
 function generateBindingInIsolatedRepo() {
   const sandboxRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp7-binding-regeneration-'));
   try {
@@ -34,24 +62,25 @@ function generateBindingInIsolatedRepo() {
     fs.cpSync(path.join(ROOT, 'tools', 'wp7'), path.join(sandboxRoot, 'tools', 'wp7'), { recursive: true });
     fs.mkdirSync(path.join(sandboxRoot, 'release'), { recursive: true });
 
+    const versionResult = spawnExactNpm(['npm', '--version'], { cwd: sandboxRoot });
+    assert.equal(versionResult.status, 0, `exact npm@${EXACT_NPM_VERSION} bootstrap failed\n${commandFailure(versionResult)}`);
+    assert.equal(
+      versionResult.stdout.trim(),
+      EXACT_NPM_VERSION,
+      `isolated regeneration must use exact npm@${EXACT_NPM_VERSION}, not ambient npm`
+    );
+
     const generatorPath = path.join(sandboxRoot, 'tools', 'wp7', 'generate-production-dependency-binding.js');
-    const result = spawnSync(process.execPath, [generatorPath], {
+    const result = spawnExactNpm([process.execPath, generatorPath], {
       cwd: sandboxRoot,
-      env: process.env,
-      encoding: 'utf8',
-      maxBuffer: 128 * 1024 * 1024,
       timeout: 540000,
-      windowsHide: true
+      maxBuffer: 128 * 1024 * 1024
     });
 
     assert.equal(
       result.status,
       0,
-      `isolated WP7 dependency binding generation failed\n${[
-        result.error?.stack || result.error?.message || '',
-        result.stdout || '',
-        result.stderr || ''
-      ].filter(Boolean).join('\n')}`
+      `isolated WP7 dependency binding generation failed under exact npm@${EXACT_NPM_VERSION}\n${commandFailure(result)}`
     );
 
     return JSON.parse(fs.readFileSync(path.join(sandboxRoot, 'release', 'production-dependency-binding.json'), 'utf8'));
@@ -104,6 +133,6 @@ test('WP7 reviewed production dependency binding exactly matches isolated genera
   assert.deepEqual(
     regenerated,
     binding,
-    'reviewed binding must equal a complete fresh isolated output from the existing WP7 generator; manual hash-only or stale platform edits are forbidden'
+    'reviewed binding must equal a complete fresh isolated output from the existing WP7 generator under exact npm@10.9.2; manual hash-only or stale platform edits are forbidden'
   );
 });
