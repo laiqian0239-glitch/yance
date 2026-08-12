@@ -213,3 +213,39 @@ test('Windows UAT runner is verify-only and starts an image-only Matrix compose 
   assert.doesNotMatch(compose, /^\s+context:\s*/gmu);
   assert.match(compose, /YANCE_UAT_CANDIDATE_SHA/u);
 });
+
+test('trusted desktop materialization keeps Builder-host npm separate from repository npm@10.9.2 authority', () => {
+  const source = read(WORKFLOW);
+
+  assert.match(source, /node-version:\s*['"]22\.23\.1['"]/u);
+  assert.doesNotMatch(source, /unexpected Builder-host npm/u);
+  assert.doesNotMatch(source, /\(npm --version\)\.Trim\(\) -ne '10\.9\.2'/u);
+  assert.match(source, /npm(?:\.cmd)?\s+exec\s+--yes\s+--package=npm@10\.9\.2\s+--\s+npm\s+ci[^\n]*--omit=dev[^\n]*--ignore-scripts[^\n]*--no-bin-links[^\n]*--os=win32[^\n]*--cpu=x64/u);
+  assert.doesNotMatch(source, /^\s*npm(?:\.cmd)?\s+ci\s+/mu);
+});
+
+test('trusted Linux Matrix bootstrap uses process-scoped Git CRLF semantics without patch rewrite or persistent config mutation', () => {
+  const source = read(WORKFLOW);
+
+  const beforeIndex = source.indexOf('ambient_core_autocrlf_before=');
+  const countIndex = source.indexOf('GIT_CONFIG_COUNT=1');
+  const keyIndex = source.indexOf('GIT_CONFIG_KEY_0=core.autocrlf');
+  const valueIndex = source.indexOf('GIT_CONFIG_VALUE_0=true');
+  const bootstrapIndex = source.lastIndexOf('node tools/matrix/bootstrap.js');
+  const afterIndex = source.indexOf('ambient_core_autocrlf_after=', bootstrapIndex);
+  const compareIndex = source.indexOf('ambient_core_autocrlf_after" = "$ambient_core_autocrlf_before', afterIndex);
+  const cleanIndex = source.indexOf('git status --porcelain=v1 --untracked-files=all', bootstrapIndex);
+
+  assert.ok(beforeIndex >= 0 && beforeIndex < countIndex, 'ambient Git core.autocrlf state must be captured before the scoped bootstrap');
+  assert.ok(countIndex < keyIndex && keyIndex < valueIndex && valueIndex < bootstrapIndex, 'exact process-scoped Git runtime config must apply only to the Matrix bootstrap command');
+  assert.ok(afterIndex > bootstrapIndex && compareIndex > afterIndex, 'ambient Git core.autocrlf state must be captured and compared after bootstrap outside the scoped environment');
+  assert.ok(cleanIndex > compareIndex, 'root git-clean proof must follow the ambient config restoration proof');
+  assert.match(source, /ambient_core_autocrlf_before="\$\(git config --show-origin --get-all core\.autocrlf \|\| true\)"/u);
+  assert.match(source, /GIT_CONFIG_COUNT=1\s*\\\s*\n\s*GIT_CONFIG_KEY_0=core\.autocrlf\s*\\\s*\n\s*GIT_CONFIG_VALUE_0=true\s*\\\s*\n\s*node tools\/matrix\/bootstrap\.js/u);
+  assert.match(source, /ambient_core_autocrlf_after="\$\(git config --show-origin --get-all core\.autocrlf \|\| true\)"/u);
+  assert.match(source, /test "\$ambient_core_autocrlf_after" = "\$ambient_core_autocrlf_before"/u);
+  assert.doesNotMatch(source, /git\s+config\s+(?:--global|--local)[^\n]*core\.autocrlf/u);
+  assert.doesNotMatch(source, /git\s+-c\s+core\.autocrlf=true\s+checkout/u);
+  assert.doesNotMatch(source, /upstream-patches\/element-web\/[0-9]{4}[^\n]*(?:checkout|sed|perl|python|dos2unix|unix2dos)/u);
+  assert.doesNotMatch(source, /git\s+apply[^\n]*(?:--ignore-whitespace|--ignore-space-change|--reject|--3way|--recount|--unidiff-zero)/u);
+});

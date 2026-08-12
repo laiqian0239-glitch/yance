@@ -72,18 +72,23 @@ test('Task 9 gives each frozen Element install a clean iteration-scoped RUNNER_T
   assert.doesNotMatch(source, /verifyStoreIntegrity\s*=\s*false|verify-store-integrity(?:=|\s+)false/u);
 });
 
-test('trusted Windows CI materializes official Electron, reviewed production dependencies, packaged Node, Parlant and rcedit before invoking WP7', () => {
+test('trusted Windows CI keeps Builder-host npm separate and uses exact npm@10.9.2 for reviewed production dependency materialization before WP7', () => {
   const source = readWorkflow();
   const lfsPullIndex = source.indexOf('git lfs pull');
+  const exactNpmIndex = source.indexOf('npm.cmd exec --yes --package=npm@10.9.2 -- npm ci');
   const builderIndex = source.indexOf('tools/wp7/create-pre-review-trusted-product.js');
   const uploadIndex = source.indexOf('Product-Experience-Materialized-Desktop-UAT-');
-  assert.ok(lfsPullIndex >= 0 && builderIndex > lfsPullIndex && uploadIndex > builderIndex);
+  assert.ok(lfsPullIndex >= 0 && exactNpmIndex > lfsPullIndex && builderIndex > exactNpmIndex && uploadIndex > builderIndex);
   assert.match(source, /release[\\/]electron-distribution-trust\.json/u);
   assert.match(source, /git lfs install --local/u);
   assert.match(source, /git lfs pull origin --include=/u);
   assert.match(source, /git show "HEAD:\$relativePath"/u);
   assert.match(source, /oid sha256:/u);
-  assert.match(source, /npm\.cmd ci --omit=dev --ignore-scripts[^\n]*--no-bin-links --os=win32 --cpu=x64/u);
+  assert.match(source, /node-version:\s*['"]22\.23\.1['"]/u);
+  assert.doesNotMatch(source, /unexpected Builder-host npm/u);
+  assert.doesNotMatch(source, /\(npm --version\)\.Trim\(\) -ne '10\.9\.2'/u);
+  assert.match(source, /npm\.cmd exec --yes --package=npm@10\.9\.2 -- npm ci --omit=dev --ignore-scripts[^\n]*--no-bin-links --os=win32 --cpu=x64/u);
+  assert.doesNotMatch(source, /^\s*npm(?:\.cmd)?\s+ci\s+/mu);
   assert.match(source, /node-v22\.23\.1-win-x64\.zip/u);
   assert.match(source, /7df0bc9375723f4a86b3aa1b7cc73342423d9677a8df4538aca31a049e309c29/u);
   assert.match(source, /f8d162c0641dcee512132f3bcf8a68169c7ecb852efd8e1a46c9fec5a0f469ed/u);
@@ -94,13 +99,32 @@ test('trusted Windows CI materializes official Electron, reviewed production dep
   assert.match(source, /PRODUCT_EXPERIENCE_MATERIALIZED_DESKTOP_UAT_ONLY/u);
 });
 
-test('trusted Linux CI builds pinned Matrix images, verifies the existing Element module delivery seam, docker-saves and seals image-only UAT', () => {
+test('trusted Linux CI scopes Git CRLF semantics to strict Matrix bootstrap, then builds, docker-saves and seals image-only UAT', () => {
   const source = readWorkflow();
+  const beforeIndex = source.indexOf('ambient_core_autocrlf_before=');
+  const countIndex = source.indexOf('GIT_CONFIG_COUNT=1');
+  const keyIndex = source.indexOf('GIT_CONFIG_KEY_0=core.autocrlf');
+  const valueIndex = source.indexOf('GIT_CONFIG_VALUE_0=true');
   const bootstrapIndex = source.lastIndexOf('node tools/matrix/bootstrap.js');
-  const firstBuildIndex = source.indexOf('docker build');
+  const afterIndex = source.indexOf('ambient_core_autocrlf_after=', bootstrapIndex);
+  const compareIndex = source.indexOf('test "$ambient_core_autocrlf_after" = "$ambient_core_autocrlf_before"', afterIndex);
+  const firstBuildIndex = source.indexOf('docker build', bootstrapIndex);
   const saveIndex = source.indexOf('docker save');
   const uploadIndex = source.indexOf('Product-Experience-Materialized-Matrix-UAT-');
-  assert.ok(bootstrapIndex >= 0 && firstBuildIndex > bootstrapIndex && saveIndex > firstBuildIndex && uploadIndex > saveIndex);
+  const cleanIndex = source.indexOf('git status --porcelain=v1 --untracked-files=all', afterIndex);
+
+  assert.ok(beforeIndex >= 0 && beforeIndex < countIndex);
+  assert.ok(countIndex < keyIndex && keyIndex < valueIndex && valueIndex < bootstrapIndex);
+  assert.ok(afterIndex > bootstrapIndex && compareIndex > afterIndex);
+  assert.ok(firstBuildIndex > compareIndex && saveIndex > firstBuildIndex && cleanIndex > compareIndex && uploadIndex > saveIndex);
+  assert.match(source, /ambient_core_autocrlf_before="\$\(git config --show-origin --get-all core\.autocrlf \|\| true\)"/u);
+  assert.match(source, /GIT_CONFIG_COUNT=1\s*\\\s*\n\s*GIT_CONFIG_KEY_0=core\.autocrlf\s*\\\s*\n\s*GIT_CONFIG_VALUE_0=true\s*\\\s*\n\s*node tools\/matrix\/bootstrap\.js/u);
+  assert.match(source, /ambient_core_autocrlf_after="\$\(git config --show-origin --get-all core\.autocrlf \|\| true\)"/u);
+  assert.match(source, /test "\$ambient_core_autocrlf_after" = "\$ambient_core_autocrlf_before"/u);
+  assert.doesNotMatch(source, /git\s+config\s+(?:--global|--local)[^\n]*core\.autocrlf/u);
+  assert.doesNotMatch(source, /git\s+-c\s+core\.autocrlf=true\s+checkout/u);
+  assert.doesNotMatch(source, /upstream-patches\/element-web\/[0-9]{4}[^\n]*(?:checkout|sed|perl|python|dos2unix|unix2dos)/u);
+  assert.doesNotMatch(source, /git\s+apply[^\n]*(?:--ignore-whitespace|--ignore-space-change|--reject|--3way|--recount|--unidiff-zero)/u);
   assert.match(source, /services\/matrix\/\.runtime\/synapse/u);
   assert.match(source, /services\/matrix\/\.runtime\/element-web/u);
   assert.match(source, /services\/matrix\/\.runtime\/mautrix-whatsapp/u);
