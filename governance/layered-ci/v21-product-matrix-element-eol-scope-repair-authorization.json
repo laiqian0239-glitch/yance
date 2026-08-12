@@ -64,6 +64,32 @@
     "matureOssAvailable": true,
     "newGeneralPurposeInfrastructure": false,
     "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Git process-scoped configuration for strict apply subprocesses",
+        "source": "Git GIT_CONFIG_COUNT/GIT_CONFIG_KEY_0/GIT_CONFIG_VALUE_0 runtime configuration attached only to git apply --check and git apply child processes spawned by tools/matrix/bootstrap.js",
+        "license": "GPL-2.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Existing V2 evidence already proves Git-native core.autocrlf=true semantics make the unchanged strict CRLF-target/LF-patch replay succeed. Moving the same mature Git mechanism from the whole bootstrap process tree to only the apply children preserves upstream-native checkout bytes and keeps the environment ephemeral with no persistent Git configuration."
+      },
+      {
+        "name": "Existing strict Matrix bootstrap and reviewed Element patches",
+        "source": "tools/matrix/bootstrap.js plus the already-reviewed upstream-patches/element-web patch sequence at exact Element a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+        "license": "existing reviewed repository/upstream closure",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already owns the correct strict apply seam and exact upstream pins. Reusing it avoids a new EOL framework, keeps git apply --check followed by git apply as the replay authority, and changes only the environment of those exact child commands."
+      },
+      {
+        "name": "Generic EOL rewrite or normalization layer",
+        "source": "hypothetical dos2unix/sed/patch rewrite/target rewrite/new Yance normalizer",
+        "license": "not applicable because adoption is rejected",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "These alternatives mutate reviewed source bytes or duplicate mature Git behavior, violate exact upstream materialization, or weaken strict replay semantics. They are explicitly rejected."
+      }
+    ],
     "thinYanceAdapterOnly": true,
     "retireOrAvoid": [
       "Retire broad core.autocrlf=true around the entire node tools/matrix/bootstrap.js process tree.",
