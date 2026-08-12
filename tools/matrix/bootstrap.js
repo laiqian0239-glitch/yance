@@ -12,8 +12,8 @@ const ELEMENT_NX_CRLF_LOCKFILE_PATCH = path.join(ROOT, 'upstream-patches/element
 const MODULE_DELIVERY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0012-yance-element-module-runtime.patch');
 const RUNTIME = path.join(ROOT, 'services/matrix/.runtime');
 
-function run(cwd, command, args) {
-  const result = spawnSync(command, args, { cwd, stdio: 'inherit', shell: false });
+function run(cwd, command, args, options = {}) {
+  const result = spawnSync(command, args, { cwd, stdio: 'inherit', shell: false, ...options });
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} failed with ${result.status}`);
 }
 
@@ -30,8 +30,14 @@ function assertExactCommit(repoDir, expected) {
 
 function applyPatch(repoDir, patchPath, label) {
   if (!fs.existsSync(patchPath)) throw new Error(`${label} missing: ${path.relative(ROOT, patchPath)}`);
-  run(repoDir, 'git', ['apply', '--check', patchPath]);
-  run(repoDir, 'git', ['apply', patchPath]);
+  const env = {
+    ...process.env,
+    GIT_CONFIG_COUNT: '1',
+    GIT_CONFIG_KEY_0: 'core.autocrlf',
+    GIT_CONFIG_VALUE_0: 'true'
+  };
+  run(repoDir, 'git', ['apply', '--check', patchPath], { env });
+  run(repoDir, 'git', ['apply', patchPath], { env });
 }
 
 function materialize(name, upstream) {
@@ -58,9 +64,7 @@ function main() {
   const moduleTarget = path.join(element, 'modules', 'yance');
   fs.cpSync(path.join(ROOT, 'integration/element-module'), moduleTarget, { recursive: true });
 
-  if (!fs.existsSync(MODULE_DELIVERY_PATCH)) throw new Error('Element module delivery patch missing');
-  run(element, 'git', ['apply', '--check', MODULE_DELIVERY_PATCH]);
-  run(element, 'git', ['apply', MODULE_DELIVERY_PATCH]);
+  applyPatch(element, MODULE_DELIVERY_PATCH, 'Element module delivery patch');
 
   assertExactCommit(synapse, LOCK.upstreams.synapse.commit);
   assertExactCommit(mautrix, LOCK.upstreams.mautrixWhatsapp.commit);
@@ -68,4 +72,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { assertExactCommit, main };
+module.exports = { applyPatch, assertExactCommit, main };
