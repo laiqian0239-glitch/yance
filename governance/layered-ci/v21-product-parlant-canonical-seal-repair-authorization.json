@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-12T15:32:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-PARLANT-CANONICAL-SEAL-REPAIR",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh Product Final Validation run 31576339681 at exact Product Head 58b0ff3d8ebb0d8d3a6cbc717950aa72085277fd proves trusted Windows Parlant runtime materialization itself completes and seals 21193 files, but the existing WP7 trusted-product consumer rejects that unchanged runtime with WP7_PARLANT_RUNTIME_TREE_MISMATCH: expectedFileCount and actualFileCount are both 21193 while producer treeSha256 373c2185b3cc70e675a9f19db09fc448950d31e44cd9112b444babd93d461b55 differs from consumer treeSha256 696ef0fdf0e79307daacecd63322296847319cc87f215bc5ff8a25fac5fbbe49. Read-only source audit locks the root cause to ordering semantics: tools/parlant/build-windows-runtime.ps1 uses PowerShell Sort-Object path while tools/wp7/lib.js recursively and finally sorts with localeCompare(..., 'en'). The repository already owns canonical path ordering in tools/wp1/lib.js through exported canonicalizePayloadRecords(), which canonicalizes path identity and orders records by UTF-8 bytes. This repair reuses that existing repository authority for both producer and consumer rather than adding a third Yance sorter or weakening the seal.",
+  "evidence": {
+    "productPullRequest": 229,
+    "productHead": "58b0ff3d8ebb0d8d3a6cbc717950aa72085277fd",
+    "productFinalValidationRun": 31576339681,
+    "desktopJob": 94049207090,
+    "producerMaterializationSucceeded": true,
+    "producerFileCount": 21193,
+    "consumerFileCount": 21193,
+    "producerTreeSha256": "373c2185b3cc70e675a9f19db09fc448950d31e44cd9112b444babd93d461b55",
+    "consumerTreeSha256": "696ef0fdf0e79307daacecd63322296847319cc87f215bc5ff8a25fac5fbbe49",
+    "reasonCode": "WP7_PARLANT_RUNTIME_TREE_MISMATCH",
+    "producerOrdering": "PowerShell Sort-Object path",
+    "consumerOrdering": "JavaScript localeCompare(path, 'en')",
+    "canonicalRepositoryAuthority": "tools/wp1/lib.js -> canonicalizePayloadRecords() -> UTF8_BYTE_ASCENDING"
+  },
+  "base": { "branch": "main", "commit": "66a83e30580201b34a026fe8ca6af3d6a17d6d01" },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-parlant-canonical-seal-repair-authorization",
+    "allowedChangedPaths": ["governance/layered-ci/v21-product-parlant-canonical-seal-repair-authorization.json"],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "2284bae76c876695165d2a2a65b4aec4f82153e3bd67147876b1a382f43f0a84",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-parlant-canonical-seal-repair",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-parlant-portable-runtime.test.js",
+      "tools/parlant/build-windows-runtime.ps1",
+      "tools/wp7/lib.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "c3f0f262555327f72631e9c3d903f89cc53e06c3ca17ac01278415a43ad4dacd",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": ["tests/wp0/v21-parlant-portable-runtime.test.js"],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "faad8abb2cb90431b7f379ee5a08eda6a0cc8cdd64fae625b1608f35492982e4",
+      "productionCodeChanged": false,
+      "remoteCausalRedAuthority": "Stage 6.4.5.9 WP0 Architecture Gates -> npm run test:wp0"
+    }
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP1_UTF8_BYTE_CANONICALIZATION",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP1 canonicalizePayloadRecords repository authority",
+        "source": "tools/wp1/lib.js exported canonicalizePayloadRecords(); canonical path identity uses UTF-8 byte ascending ordering through the repository's compareUtf8 semantic",
+        "license": "existing Yance repository code built on Node.js Buffer semantics",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "WP7 already imports tools/wp1/lib.js as wp1, so the consumer can directly reuse canonicalizePayloadRecords without a new helper. The Windows producer already runs in a Node-capable trusted build environment and can use a thin process adapter to the same exported function, making one existing repository semantic authoritative on both sides."
+      },
+      {
+        "name": "Node.js Buffer byte comparison semantics",
+        "source": "Node.js core Buffer.compare / UTF-8 encoding as already used by tools/wp1/lib.js",
+        "license": "MIT",
+        "adoptionMode": "mature-oss-through-existing-repository-seam",
+        "fit": "FIT",
+        "reason": "This is the mature runtime primitive behind the existing canonical repository authority; no new package or custom collation framework is needed."
+      },
+      {
+        "name": "PowerShell Sort-Object path and JavaScript localeCompare('en')",
+        "source": "current producer/consumer locale-sensitive sort implementations",
+        "license": "platform/runtime built-ins",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "They are individually valid sorting facilities but are not one shared byte-canonical contract. Their mismatch already produced equal file counts with different tree hashes in real Product Final Validation. Retaining either as seal authority would preserve cross-runtime ambiguity."
+      },
+      {
+        "name": "New Yance canonical sort helper or third-party collation dependency",
+        "source": "hypothetical new infrastructure",
+        "license": "not applicable because adoption is rejected",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "A new abstraction would duplicate an existing repository canonicalization authority and violate OSS/reuse-first policy."
+      }
+    ],
+    "thinYanceAdapterOnly": true,
+    "retireOrAvoid": [
+      "Retire PowerShell Sort-Object path as Parlant seal ordering authority.",
+      "Retire localeCompare('en') as WP7 Parlant runtime seal ordering authority.",
+      "Do not add a new Yance comparator, sorting service, canonicalization library or dependency.",
+      "Do not weaken fileCount/treeSha256 validation or ignore runtime-seal mismatch.",
+      "Do not rewrite sealed runtime files to make hashes coincide."
+    ]
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit changes only tests/wp0/v21-parlant-portable-runtime.test.js and must RED because producer and consumer still use distinct Sort-Object/localeCompare ordering instead of the existing WP1 canonicalizePayloadRecords authority.",
+    "The permanent test must demonstrate with a nontrivial path-order fixture that locale-aware ordering is not the repository UTF8_BYTE_ASCENDING canonical authority and must bind both Parlant producer and WP7 consumer source to the existing WP1 canonicalization seam.",
+    "The producer may use only a thin adapter to the exported tools/wp1/lib.js canonicalizePayloadRecords function; no new canonicalization module or dependency is allowed.",
+    "The consumer must reuse wp1.canonicalizePayloadRecords on the exact records used to build the Parlant runtime tree hash and must remove localeCompare ordering from that seal path.",
+    "The runtime seal schema, fileCount semantics, path|size|sha256 canonical line format, LF separator, SHA-256 algorithm and exclusion of runtime-seal.json remain unchanged.",
+    "Fresh Windows Parlant runtime validation must seal and verify the runtime, and fresh Product Final Validation after ordinary forward must consume the same presealed runtime without WP7_PARLANT_RUNTIME_TREE_MISMATCH."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "sealValidationWeakening": true,
+    "runtimeFileRewriteForHashCompatibility": true,
+    "newYanceCanonicalizationInfrastructure": true,
+    "newDependency": true,
+    "upstreamLockModification": true,
+    "packageManifestModification": true,
+    "lockfileModification": true,
+    "productionRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalProductPullRequestMergeRequiresOwnerApproval": true
+  }
+}
