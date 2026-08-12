@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "mode": "facebook-public-page-messenger",
+  "decision": "controlled-upstream-adoption",
+  "protocolAuthority": {
+    "repository": "fbsamples/messenger-platform-samples",
+    "commit": "cc87d98775965f21e10ad42a619c057501774af9",
+    "role": "official Meta Messenger Platform protocol and webhook security semantics",
+    "licenseFile": "LICENSE"
+  },
+  "behaviorAuthority": {
+    "repository": "chatwoot/chatwoot",
+    "commit": "3f4d28f77bc8352bafcaf4fce94ba939f4527064",
+    "role": "mature Facebook Page channel behavior, event parsing, subscription and conversation ownership reference",
+    "paths": [
+      "app/models/channel/facebook_page.rb",
+      "app/jobs/webhooks/facebook_events_job.rb",
+      "lib/integrations/facebook/message_parser.rb"
+    ],
+    "license": "MIT outside enterprise/"
+  },
+  "businessAssetReference": {
+    "repository": "fbsamples/business-messaging-sample-tech-provider-app",
+    "commit": "39a8dad3bb36af451227a45f0022c2ea1854a1e9",
+    "role": "Meta business asset, OAuth, token and webhook operational reference",
+    "license": "MIT",
+    "runtimeLimitation": "not a Facebook Page Messenger runtime; current messaging implementation is WhatsApp-focused"
+  },
+  "yanceBoundary": {
+    "canonicalBusinessAuthority": "Yance Core canonical identity, conversation, message, ledger and outbox",
+    "workerRole": "bounded secret, webhook, media and delivery edge only; not protocol or business-state authority",
+    "forbidden": [
+      "browser DOM automation",
+      "mautrix/meta as Facebook Public runtime",
+      "a second canonical business database",
+      "new Yance-owned Messenger protocol semantics without a new OSS-fit review"
+    ]
+  },
+  "modeSeparation": {
+    "facebookPersonal": "frozen separate mautrix/meta authority; not reused by Facebook Public",
+    "instagramProfessional": "separate permission and webhook contract even when infrastructure is shared"
+  }
+}
