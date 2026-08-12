@@ -111,11 +111,10 @@
     "failureFirstCommit": {
       "mustBeFirstImplementationCommit": true,
       "allowedChangedPaths": [
-        "tests/wp0/v21-product-experience-materialized-uat.test.js",
-        "tests/wp1/single-release-source-scan-negative.test.js"
+        "tests/wp0/v21-product-experience-materialized-uat.test.js"
       ],
-      "approvedChangedFileCount": 2,
-      "approvedChangedFileSetSha256": "808fe2314f3fcc2f71a4a9170931578323f88f0adf5ef9bf86ce69504f2396a6",
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "e4b2fb37cb3192d81204f4bc7eeaf1150d165d3afa1c36aaa21b38943d39a530",
       "productionCodeChanged": false,
       "remoteCausalRedAuthority": "Stage 6.4.5.9 WP0 Architecture Gates -> npm run test:wp0"
     }
@@ -179,7 +178,7 @@
     "thinYanceAdapterOnly": true
   },
   "mandatoryFailureFirstContracts": [
-    "On the exact authorization-merge baseline, the first implementation commit changes only tests/wp0/v21-product-experience-materialized-uat.test.js and tests/wp1/single-release-source-scan-negative.test.js and Stage must RED causally because the Product workflow still invokes default root Dockerfiles for Synapse and Element and WP1 still treats nested backend/tests files as release-identity candidates.",
+    "On the exact authorization-merge baseline, the first implementation commit changes only tests/wp0/v21-product-experience-materialized-uat.test.js and Stage must RED causally because that WP0 contract locks both remaining defects: the Product workflow still invokes default root Dockerfiles for Synapse and Element, and WP1 still treats nested backend/tests files as release-identity candidates.",
     "The WP1 permanent test must use real temporary Git repositories to prove nested backend/tests fixture files containing fake buildId/productVersion identity are ignored by the release-identity source scan while an equivalent hardcoded identity in a genuine backend runtime file still fails with the existing WP1 reason code.",
     "The WP1 implementation must repair the owner-layer candidate-path classifier, not add Product, WP7, file-name, content-value, or work-package-specific exceptions.",
     "Product Final Validation must build Synapse exact source using docker build --file docker/Dockerfile with repository-root context, Element exact source using docker build --file apps/web/Dockerfile with repository-root context, and mautrix-whatsapp exact source using its existing root Dockerfile with repository-root context.",
