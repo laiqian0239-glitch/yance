@@ -5,15 +5,6 @@
   "compatibility_date": "2026-07-01",
   "workers_dev": true,
   "observability": { "enabled": true, "head_sampling_rate": 0.1 },
-  "secrets": {
-    "required": [
-      "META_APP_ID",
-      "META_APP_SECRET",
-      "META_VERIFY_TOKEN",
-      "TOKEN_ENCRYPTION_KEY",
-      "DESKTOP_AUTH_MASTER_KEY"
-    ]
-  },
   "vars": {
     "FACEBOOK_GRAPH_VERSION": "v25.0",
     "META_BUSINESS_LOGIN_CONFIG_ID": "4234889550142986",
