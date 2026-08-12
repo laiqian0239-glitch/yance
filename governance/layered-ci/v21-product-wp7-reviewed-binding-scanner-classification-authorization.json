@@ -1,24 +1,11 @@
 {
   "schemaVersion": 1,
-  "documentType": "YANCE_V21_PRODUCT_WP7_REVIEWED_BINDING_SCANNER_CLASSIFICATION_AUTHORIZATION",
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "requestedByUserAt": "2026-08-12T18:35:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-WP7-REVIEWED-BINDING-SCANNER-CLASSIFICATION",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Fresh Stage 6.4.5.9 verification for PR #307 exact Head 2191fa3a0700ad23177a6a348b9945eec7ad42f7 proves the WP7 production dependency binding lifecycle repair itself is GREEN while permanent WP0 still fails because the legacy release-surface scanner classifies the exact reviewed supply-chain binding release/production-dependency-binding.json as ACTIVE_SOURCE_OR_AUTOMATION and emits the sole scan violation WP0_FORBIDDEN_LEGACY_RELEASE_MECHANISM. The command-policy gate and repository-scope gate remain GREEN. The repository already contains the mature exact-path non-active classification architecture used for reviewed supply-chain evidence such as third_party/provenance.json. This authorization reuses that architecture for exactly release/production-dependency-binding.json; it does not broad-exclude release/, change the binding or generator, weaken legacy-token detection, or authorize unknown future release files.",
-  "base": {
-    "branch": "main",
-    "commit": "d3034b358e87c617da9cb1de187b8e1580378f90"
-  },
-  "effectiveness": {
-    "effectiveBeforeMerge": false,
-    "requiresExactHeadGreen": true,
-    "requiresIndependentAllowMerge": true,
-    "requiresOrdinaryMainMerge": true,
-    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
-    "authorizationProposalTransportIsNotImplementationAuthority": true,
-    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
-  },
   "evidence": {
     "sourcePullRequest": 307,
     "sourceExactHead": "2191fa3a0700ad23177a6a348b9945eec7ad42f7",
@@ -49,6 +36,17 @@
       "unknownFuturePathFailsClosed": true
     }
   },
+  "base": {
+    "branch": "main",
+    "commit": "d3034b358e87c617da9cb1de187b8e1580378f90"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
   "authorizationBranch": {
     "name": "governance/v21-product-wp7-reviewed-binding-scanner-classification",
     "allowedChangedPaths": [
@@ -78,6 +76,45 @@
     "releaseSurfaceScannerMayOnlyNarrowForExactReviewedBinding": true,
     "releasePrefixExclusionAllowed": false,
     "requiredClassification": "SUPPLY_CHAIN_EVIDENCE"
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP0_EXACT_PATH_SUPPLY_CHAIN_EVIDENCE_CLASSIFICATION",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP0 exact-path supply-chain evidence classification",
+        "source": "tools/wp0/lib.js APPROVED_SUPPLY_CHAIN_EVIDENCE_PATHS + classifyScanPath",
+        "license": "existing Yance repository code using Node.js core primitives",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already implements the required fail-closed architecture: only exact reviewed paths are classified as SUPPLY_CHAIN_EVIDENCE before the active-source fallback, while unknown paths remain scanned."
+      },
+      {
+        "name": "OSS-A reviewed supply-chain evidence classification precedent",
+        "source": "governance/layered-ci/oss-a-wp0-supply-chain-evidence-classification-authorization.json",
+        "license": "existing Yance governance and test architecture",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The precedent already solved the same scanner-classification class for third_party/provenance.json through an exact path rather than a directory exclusion, so the WP7 binding repair can reuse the same model without new infrastructure."
+      },
+      {
+        "name": "Broad release-directory exclusion or new scanner framework",
+        "source": "hypothetical replacement classification infrastructure",
+        "license": "not applicable because adoption is rejected",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "A broad exclusion would weaken fail-closed scanning and a new scanner framework would duplicate mature repository authority; neither is needed for the exact reviewed binding path."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a release/ prefix exclusion.",
+      "Do not weaken or replace the legacy release-token detector regexes.",
+      "Do not add a second Yance scanner or classification framework.",
+      "Do not classify unknown future release files as evidence.",
+      "Do not modify the WP7 binding, generator, package manifests, lockfiles or workflows in this repair."
+    ]
   },
   "mandatoryFailureFirstContracts": [
     "Before implementation classifyScanPath(release/production-dependency-binding.json) returns ACTIVE_SOURCE_OR_AUTOMATION rather than SUPPLY_CHAIN_EVIDENCE",
@@ -128,7 +165,12 @@
     "authorizationPredatesImplementation": true,
     "exactPathScopeOnly": true,
     "independentBranchAndPullRequestRequired": true,
-    "pr307MustRemainUnmerged": true,
-    "readyForPromotion": false
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalProductPullRequestMergeRequiresOwnerApproval": true,
+    "pr307MustRemainUnmerged": true
   }
 }
