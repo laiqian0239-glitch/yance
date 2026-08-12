@@ -199,8 +199,8 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $trust = Get-Content -LiteralPath 'release/electron-distribution-trust.json' -Raw | ConvertFrom-Json
-          $lock = Get-Content -LiteralPath 'package-lock.json' -Raw | ConvertFrom-Json
-          $locked = $lock.packages.'node_modules/electron'
+          $lock = Get-Content -LiteralPath 'package-lock.json' -Raw | ConvertFrom-Json -AsHashTable
+          $locked = $lock['packages']['node_modules/electron']
           if (-not $locked -or -not $locked.version -or -not $locked.integrity) { throw 'package-lock Electron record is missing version/integrity' }
           $version = [string]$locked.version
           $expectedIntegrity = [string]$locked.integrity
