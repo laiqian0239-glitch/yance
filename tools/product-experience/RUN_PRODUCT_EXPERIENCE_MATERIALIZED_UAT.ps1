@@ -153,7 +153,10 @@ if (-not [string]::IsNullOrWhiteSpace($ExistingDataRoot)) {
   $sourceData = Resolve-RealDirectory $ExistingDataRoot 'existing Yance data root'
   Remove-Item -LiteralPath $UatDataRoot -Recurse -Force -ErrorAction SilentlyContinue
   New-Item -ItemType Directory -Force -Path $UatDataRoot | Out-Null
-  Copy-Item -LiteralPath (Join-Path $sourceData '*') -Destination $UatDataRoot -Recurse -Force -ErrorAction Stop
+  foreach ($entry in Get-ChildItem -LiteralPath $sourceData -Force) {
+    if (($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw "existing data contains forbidden symlink/reparse point: $($entry.FullName)" }
+    Copy-Item -LiteralPath $entry.FullName -Destination $UatDataRoot -Recurse -Force -ErrorAction Stop
+  }
 } else {
   New-Item -ItemType Directory -Force -Path $UatDataRoot | Out-Null
 }
