@@ -224,26 +224,33 @@ test('trusted desktop materialization keeps Builder-host npm separate from repos
   assert.doesNotMatch(source, /^\s*npm(?:\.cmd)?\s+ci\s+/mu);
 });
 
-test('trusted Linux Matrix bootstrap uses process-scoped Git CRLF semantics without patch rewrite or persistent config mutation', () => {
+test('trusted Linux Matrix bootstrap keeps checkout native and scopes Git CRLF semantics to strict apply children', () => {
   const source = read(WORKFLOW);
+  const bootstrap = read('tools/matrix/bootstrap.js');
 
   const beforeIndex = source.indexOf('ambient_core_autocrlf_before=');
-  const countIndex = source.indexOf('GIT_CONFIG_COUNT=1');
-  const keyIndex = source.indexOf('GIT_CONFIG_KEY_0=core.autocrlf');
-  const valueIndex = source.indexOf('GIT_CONFIG_VALUE_0=true');
   const bootstrapIndex = source.lastIndexOf('node tools/matrix/bootstrap.js');
   const afterIndex = source.indexOf('ambient_core_autocrlf_after=', bootstrapIndex);
   const compareIndex = source.indexOf('ambient_core_autocrlf_after" = "$ambient_core_autocrlf_before', afterIndex);
   const cleanIndex = source.indexOf('git status --porcelain=v1 --untracked-files=all', bootstrapIndex);
 
-  assert.ok(beforeIndex >= 0 && beforeIndex < countIndex, 'ambient Git core.autocrlf state must be captured before the scoped bootstrap');
-  assert.ok(countIndex < keyIndex && keyIndex < valueIndex && valueIndex < bootstrapIndex, 'exact process-scoped Git runtime config must apply only to the Matrix bootstrap command');
-  assert.ok(afterIndex > bootstrapIndex && compareIndex > afterIndex, 'ambient Git core.autocrlf state must be captured and compared after bootstrap outside the scoped environment');
+  assert.ok(beforeIndex >= 0 && beforeIndex < bootstrapIndex, 'ambient Git core.autocrlf state must be captured before Matrix bootstrap');
+  assert.ok(afterIndex > bootstrapIndex && compareIndex > afterIndex, 'ambient Git core.autocrlf state must be captured and compared after bootstrap');
   assert.ok(cleanIndex > compareIndex, 'root git-clean proof must follow the ambient config restoration proof');
   assert.match(source, /ambient_core_autocrlf_before="\$\(git config --show-origin --get-all core\.autocrlf \|\| true\)"/u);
-  assert.match(source, /GIT_CONFIG_COUNT=1\s*\\\s*\n\s*GIT_CONFIG_KEY_0=core\.autocrlf\s*\\\s*\n\s*GIT_CONFIG_VALUE_0=true\s*\\\s*\n\s*node tools\/matrix\/bootstrap\.js/u);
   assert.match(source, /ambient_core_autocrlf_after="\$\(git config --show-origin --get-all core\.autocrlf \|\| true\)"/u);
   assert.match(source, /test "\$ambient_core_autocrlf_after" = "\$ambient_core_autocrlf_before"/u);
+  assert.doesNotMatch(source, /GIT_CONFIG_COUNT=1|GIT_CONFIG_KEY_0=core\.autocrlf|GIT_CONFIG_VALUE_0=true/u);
+  assert.match(bootstrap, /GIT_CONFIG_COUNT:\s*'1'/u);
+  assert.match(bootstrap, /GIT_CONFIG_KEY_0:\s*'core\.autocrlf'/u);
+  assert.match(bootstrap, /GIT_CONFIG_VALUE_0:\s*'true'/u);
+  assert.match(bootstrap, /run\(repoDir, 'git', \['apply', '--check', patchPath\], \{ env \}\)/u);
+  assert.match(bootstrap, /run\(repoDir, 'git', \['apply', patchPath\], \{ env \}\)/u);
+  assert.match(bootstrap, /run\(RUNTIME, 'git', \['clone', '--no-checkout', upstream\.repository, name\]\)/u);
+  assert.match(bootstrap, /run\(dir, 'git', \['fetch', 'origin', upstream\.commit, '--depth=1'\]\)/u);
+  assert.match(bootstrap, /run\(dir, 'git', \['checkout', '--detach', upstream\.commit\]\)/u);
+  assert.doesNotMatch(bootstrap, /git\s+config\s+(?:--global|--local)[^\n]*core\.autocrlf/u);
+  assert.doesNotMatch(bootstrap, /--ignore-whitespace|--ignore-space-change|--reject|--3way|--recount|--unidiff-zero/u);
   assert.doesNotMatch(source, /git\s+config\s+(?:--global|--local)[^\n]*core\.autocrlf/u);
   assert.doesNotMatch(source, /git\s+-c\s+core\.autocrlf=true\s+checkout/u);
   assert.doesNotMatch(source, /upstream-patches\/element-web\/[0-9]{4}[^\n]*(?:checkout|sed|perl|python|dos2unix|unix2dos)/u);
@@ -320,7 +327,7 @@ test('WP0 failure-first proves the existing SillyTavern vendor slice is packaged
   }
 });
 
-test('failure-first proves Matrix EOL semantics belong only to strict git apply children', () => {
+test('real Git fixture proves Matrix EOL semantics belong only to strict git apply children', () => {
   const { execFileSync } = require('node:child_process');
   const workflow = read(WORKFLOW);
   const bootstrapPath = absolute('tools/matrix/bootstrap.js');
