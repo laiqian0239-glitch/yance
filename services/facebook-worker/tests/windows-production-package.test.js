@@ -20,6 +20,7 @@ test('Facebook Public Windows production package is commit-bound and uses only c
     const result = packageCreator.createPackage(repoRoot, tempRoot);
     const packageRoot = result.packageRoot;
     const run = read(packageRoot, 'RUN.ps1');
+    const readme = read(packageRoot, 'README.txt');
     const provenance = JSON.parse(read(packageRoot, 'PROVENANCE.json'));
     const manifest = read(packageRoot, 'SHA256SUMS.txt');
 
@@ -35,6 +36,9 @@ test('Facebook Public Windows production package is commit-bound and uses only c
     assert.match(run, /verify-formal-worker\.js/u);
     assert.doesNotMatch(run, /wrangler\.deploy\.local/u);
     assert.doesNotMatch(run, /deploy-(?:avatar|page).*hotfix/iu);
+    assert.doesNotMatch(run, /npm(?:\.cmd)?\s+--prefix\s+services\/facebook-worker\s+test/iu, 'sealed deploy package must not rerun repository-scoped tests');
+    assert.doesNotMatch(readme, /runs Facebook Public tests/iu, 'README must describe sealed deploy behavior, not unavailable repository tests');
+    assert.equal(fs.existsSync(path.join(packageRoot, 'services', 'facebook-worker', 'tests')), false, 'production package must not contain repository-only tests');
     assert.equal(fs.existsSync(path.join(packageRoot, 'services', 'facebook-worker', 'wrangler.deploy.local.jsonc')), false);
     assert.equal(fs.existsSync(path.join(packageRoot, 'services', 'facebook-worker', '.dev.vars')), false);
     assert.equal(fs.existsSync(path.join(packageRoot, 'services', 'facebook-worker', '.dev.vars.example')), true);
@@ -45,6 +49,7 @@ test('Facebook Public Windows production package is commit-bound and uses only c
     assert.match(manifest, /RUN\.ps1/u);
     assert.match(manifest, /services\/facebook-worker\/wrangler\.jsonc/u);
     assert.match(manifest, /services\/facebook-worker\/required-secrets\.json/u);
+    assert.doesNotMatch(manifest, /services\/facebook-worker\/tests\//u);
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
