@@ -302,26 +302,25 @@ try {
       throw 'production-only依赖树必须独立于完整Electron依赖树。'
     }
 
-    Write-Host '鐗╁寲闅旂 WP7 archive OSS toolchain...'
+    Write-Host 'Materialize isolated WP7 archive OSS toolchain...'
     $archiveOssRoot = Join-Path $EvidenceRoot 'wp7-archive-oss-toolchain'
-    if (Test-Path -LiteralPath $archiveOssRoot) { throw "archive OSS toolchain鐩綍蹇呴』涓哄叏鏂扮洰褰? $archiveOssRoot" }
+    if (Test-Path -LiteralPath $archiveOssRoot) { throw "archive OSS toolchain directory must be new: $archiveOssRoot" }
     New-Item -ItemType Directory -Path $archiveOssRoot -Force | Out-Null
     $archiveManifestPath = Join-Path $WorkRoot 'tools\wp7\archive-oss\package.json'
     $archiveLockPath = Join-Path $WorkRoot 'tools\wp7\archive-oss\package-lock.json'
     if (-not (Test-Path -LiteralPath $archiveManifestPath -PathType Leaf) -or -not (Test-Path -LiteralPath $archiveLockPath -PathType Leaf)) {
-      throw 'tracked WP7 archive OSS manifest/lock涓嶅瓨鍦ㄣ€?
+      throw 'tracked WP7 archive OSS manifest/lock is missing.'
     }
     Copy-Item -LiteralPath $archiveManifestPath -Destination $archiveOssRoot
     Copy-Item -LiteralPath $archiveLockPath -Destination $archiveOssRoot
     Invoke-NativeTextCommand -Stage 'npm-ci-wp7-archive-oss' -FilePath $npm -Arguments @('ci','--omit=dev','--ignore-scripts','--no-audit','--no-fund','--no-bin-links') -WorkingDirectory $archiveOssRoot -EchoOutput | Out-Null
     $archiveToolNodeModules = Join-Path $archiveOssRoot 'node_modules'
     $archiveTarPackagePath = Join-Path $archiveToolNodeModules 'tar\package.json'
-    if (-not (Test-Path -LiteralPath $archiveTarPackagePath -PathType Leaf)) { throw 'isolated tar package metadata涓嶅瓨鍦ㄣ€? }
+    if (-not (Test-Path -LiteralPath $archiveTarPackagePath -PathType Leaf)) { throw 'isolated tar package metadata is missing.' }
     $archiveTarPackage = Get-Content -LiteralPath $archiveTarPackagePath -Raw | ConvertFrom-Json
     if ([string]$archiveTarPackage.name -ne 'tar' -or [string]$archiveTarPackage.version -ne '7.5.22') {
-      throw "archive OSS韬唤涓嶅尮閰? $($archiveTarPackage.name)@$($archiveTarPackage.version)"
+      throw "archive OSS identity mismatch: $($archiveTarPackage.name)@$($archiveTarPackage.version)"
     }
-
     if (-not $ElectronArchive) {
       $deps = Join-Path $EvidenceRoot 'trusted-inputs'
       New-Item -ItemType Directory -Path $deps -Force | Out-Null
