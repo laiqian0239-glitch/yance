@@ -9,9 +9,9 @@ Deploy-source tree: `987d714941fc49773170478413609d70799d668d`
 
 This handoff supersedes older sequencing text in `STATUS.md` / the 2026-08-11 recovery plan that treats Facebook Personal as the current task or Facebook Page as a later task.
 
-Current priority is **Facebook Public / Facebook Page**. Facebook Personal is frozen and MUST NOT be re-debugged while this Public deploy boundary is unresolved.
+Current priority is **Facebook Public / Facebook Page**. Facebook Personal is frozen and MUST NOT be re-debugged in this stream.
 
-## OSS-fit authority
+## OSS-fit authority — FROZEN
 
 Facebook Public protocol / behavior authority remains pinned in `services/facebook-worker/upstream-authority.json`:
 
@@ -20,7 +20,7 @@ Facebook Public protocol / behavior authority remains pinned in `services/facebo
 - Mature Page behavior reference: `chatwoot/chatwoot@3f4d28f77bc8352bafcaf4fce94ba939f4527064`
 - `mautrix/meta` remains prohibited as Facebook Public runtime; it is Personal puppeting authority only.
 
-No new Yance Facebook protocol stack was introduced.
+No new Yance Facebook bridge, connector, protocol stack or acceptance infrastructure is permitted unless a future V2.1 OSS-fit explicitly authorizes it.
 
 ## Architecture authority
 
@@ -30,67 +30,84 @@ Production Facebook Public remains:
 
 The Worker owns Meta App Secret / Page Access Token / Graph / Webhook / media. Windows/Electron remains fail-closed against direct Graph and MUST NOT store a Page Token.
 
-## Completed in this work package
+## Source / package closure — GREEN
 
-- Page webhook subscription now includes both `message_echoes` and `message_reactions`, matching already-supported desktop ingestion semantics.
-- `/healthz` publishes the exact non-secret Page Messenger subscription contract for runtime attestation.
-- Formal runtime verifier requires OAuth contract v6 plus the exact subscription contract.
-- Canonical `services/facebook-worker/wrangler.jsonc` is deployable and bound to production D1 `9394aab2-8a7d-40fa-88b5-90455a7a0bbd`; the divergent legacy `wrangler.deploy.local.jsonc` was retired.
-- Required Worker secret NAMES are declared separately in `services/facebook-worker/required-secrets.json`; no non-schema `secrets.required` field is used in Wrangler config.
-- Windows production package verifies remote required secret names using official pinned `wrangler secret list`; secret values are never read or packaged.
-- The Windows package is deploy-only and self-contained: repository-scoped tests are not copied or rerun inside the sealed package.
-- GitHub Actions now validates both the repository Worker bundle and the sealed package Worker bundle with pinned `wrangler@4.121.0` dry-run before uploading the package.
-- `actions/upload-artifact@v4` is configured with `include-hidden-files: true`, so `.gitignore` and safe `.dev.vars.example` survive the actual downloadable artifact and its SHA256 manifest remains valid.
-
-## Fresh verification evidence
-
-GitHub Actions run `31550855154` at source commit `deccb7f157112cd866a1c9362f3197b53c4583d3`:
+GitHub Actions run `31550855154` at source commit `deccb7f157112cd866a1c9362f3197b53c4583d3` established:
 
 - Facebook Worker tests: **71/71 GREEN**
 - Facebook integration contracts: **73/73 GREEN**
-- Canonical `wrangler@4.121.0 deploy --dry-run`: **GREEN**
-- Sealed Windows package build: **GREEN**
+- canonical `wrangler@4.121.0 deploy --dry-run`: **GREEN**
+- sealed Windows package build: **GREEN**
 - Wrangler dry-run from the sealed package directory: **GREEN**
-- Artifact upload: **GREEN**, 40 files
-- Live production runtime probe: **RED only**
+- package upload: **GREEN**, 40 files
 
-Current live RED is exactly:
+The Page webhook subscription contract is exact:
 
-`FACEBOOK_FORMAL_WORKER_RUNTIME_CONTRACT_STALE`
+- `messages`
+- `message_echoes`
+- `message_reactions`
+- `messaging_postbacks`
+- `messaging_referrals`
+- `message_deliveries`
+- `message_reads`
 
-The production Worker responds HTTP 200 but is older than the current OAuth/subscription runtime contract. Do not report production runtime GREEN until the canonical source is actually deployed and the strict live verifier passes.
+Canonical `services/facebook-worker/wrangler.jsonc` is bound to production D1 `9394aab2-8a7d-40fa-88b5-90455a7a0bbd`. Required Worker secret **names** remain separately declared in `services/facebook-worker/required-secrets.json`; secret values are never read by the package or stored in the repository.
 
-## Verified Windows artifact
+## User-machine canonical deploy — COMPLETED
 
-Valid artifact:
+The verified Windows deploy package was run on the real Windows machine. It proved remote required-secret name inventory GREEN and completed canonical `wrangler@4.121.0 deploy` to:
 
-- GitHub artifact ID: `9124192551`
-- artifact name: `YANCE_FACEBOOK_PUBLIC_WINDOWS_DEPLOY_deccb7f157112cd866a1c9362f3197b53c4583d3`
-- artifact ZIP SHA-256: `2b854a04ef961d7a5976061ef1c964bdb679203071afe601733b11b90bfbc81c`
-- retention expiry: `2026-08-19T00:38:13Z`
+`https://yance-facebook-gateway.wangyi198675.workers.dev`
 
-The exact downloaded ZIP was independently unpacked after Actions upload. `SHA256SUMS.txt` verified every packaged file; `.gitignore` and `.dev.vars.example` were present; no repository test directory, real `.dev.vars*`, legacy deploy config, Page Token, Meta secret, Cloudflare token, or hotfix deploy script was present.
+Wrangler reported deployed Worker version ID:
 
-DO NOT use older artifact `9124163245`; its GitHub upload omitted hidden files and therefore could not satisfy its own manifest after download.
+`5fb99e4e-730f-4c42-a47c-fe72e14f523b`
 
-## Hard authorization boundary / next action
+The package's immediate post-deploy verifier observed `FACEBOOK_FORMAL_WORKER_RUNTIME_CONTRACT_STALE` with HTTP 200. No hotfix or alternate deploy path was introduced. Because the canonical deploy itself had succeeded, the exact same canonical GitHub Actions job was rerun after the runtime had time to converge.
 
-The only remaining blocker in this work package is a real Cloudflare account authorization + production deploy. Run the verified Windows package `RUN.ps1` from its extracted root.
+## Formal production runtime — GREEN
 
-`RUN.ps1` performs, in order:
+Rerun job `94003930971` under run `31550855154` completed **SUCCESS** without source changes. The final strict live runtime probe passed at server time `2026-08-12T03:50:11.173Z` and attested:
 
-1. package SHA-256 verification;
-2. Node >=22.19 check;
-3. public production config preflight;
-4. pinned Wrangler dry-run;
-5. `wrangler whoami`, then official `wrangler login` only if authorization is absent;
-6. remote required-secret NAME inventory and fail-closed comparison;
-7. canonical production `wrangler deploy`;
-8. strict live formal Worker verification;
-9. writes `artifacts/facebook-public-deploy-evidence.json` only after GREEN.
+- service: `yance-facebook-gateway`
+- Graph version: `v25.0`
+- OAuth contract version: `6`
+- D1 schema version: `6`
+- exact seven Page Messenger subscribed fields listed above
+- callback: `https://yance-facebook-gateway.wangyi198675.workers.dev/oauth/facebook/callback`
 
-This is a genuine human authorization boundary. Do not create a bypass, alternate deploy config, manual hotfix, or second deployment script.
+Therefore the Facebook Public production Worker deployment boundary is **CLOSED GREEN**. The earlier immediate RED is superseded by the later strict live PASS; there is no evidence requiring a source-level Worker repair.
 
-## Resume after authorization
+## Deployment artifact authority
 
-After the deploy package returns GREEN, continue directly with Facebook Page operator authorization / Page selection / real send+receive runtime acceptance. Do not return to Facebook Personal debugging.
+The real deployment used verified artifact ID `9124192551`:
+
+- name: `YANCE_FACEBOOK_PUBLIC_WINDOWS_DEPLOY_deccb7f157112cd866a1c9362f3197b53c4583d3`
+- ZIP SHA-256: `2b854a04ef961d7a5976061ef1c964bdb679203071afe601733b11b90bfbc81c`
+
+Do not use superseded artifact `9124163245`.
+
+The CI rerun emitted another artifact instance only because the workflow reran; it is not required for the completed production deployment.
+
+## Next hard human authorization boundary
+
+Continue directly with the repository's existing formal Windows source-UAT flow. Do **not** create a new UAT harness.
+
+Existing authority:
+
+- `docs/FACEBOOK_FORMAL_WORKER_WINDOWS_INTEGRATION_ZH.md`
+- `tools/runtime-delivery/start-source-uat.js`
+- package script `start:source-uat`
+
+Required real acceptance sequence:
+
+1. launch the real Windows Electron source UAT with the sealed production platform-auth resources;
+2. Account Center -> Facebook -> official browser Business Login;
+3. complete Meta operator authorization;
+4. return to Yance and select the intended public Page;
+5. prove device registration and Page webhook subscription;
+6. send a real message to the Page from an external Facebook identity and prove Worker -> D1 -> signed desktop polling -> `FacebookAdapter` -> local SQLite -> ACK;
+7. send a real reply from Yance and prove delivery through the Worker-owned Page Token path;
+8. collect non-secret runtime evidence only.
+
+Meta login, Page selection and the external real-account message are genuine human authorization/external-runtime boundaries. No Page Token, Meta App Secret or Cloudflare token should be copied into chat or Windows configuration.
