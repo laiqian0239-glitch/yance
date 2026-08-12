@@ -84,7 +84,7 @@ test('when Synapse is already healthy, source UAT starts only Element with no de
   assert.deepEqual(result.startedServices, ['element']);
   assert.equal(commands.length, 1);
   assert.equal(commands[0].command, 'docker');
-  assert.deepEqual(commands[0].args.slice(-5), ['up', '-d', '--no-deps', 'element']);
+  assert.deepEqual(commands[0].args.slice(-4), ['up', '-d', '--no-deps', 'element']);
   assert.equal(commands[0].args.includes('synapse'), false, 'healthy external Synapse must not be recreated');
 });
 
