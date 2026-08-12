@@ -8,6 +8,13 @@
     "role": "official Meta Messenger Platform protocol and webhook security semantics",
     "licenseFile": "LICENSE"
   },
+  "graphSchemaAuthority": {
+    "repository": "facebook/facebook-nodejs-business-sdk",
+    "commit": "ebd272a36a1a54a10e846cc4c42200be54871f5a",
+    "role": "official Meta generated Graph Page schema authority for supported subscribed_fields including message_echoes and message_reactions",
+    "path": "src/objects/page.js",
+    "licenseFile": "LICENSE"
+  },
   "behaviorAuthority": {
     "repository": "chatwoot/chatwoot",
     "commit": "3f4d28f77bc8352bafcaf4fce94ba939f4527064",
