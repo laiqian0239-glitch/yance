@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-12T17:14:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-WP7-PRODUCTION-DEPENDENCY-BINDING-LIFECYCLE-REPAIR",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh Product Final Validation run 31587112830 at exact Product Head 9695cdb022c5a736a62861c0b65dba09647ebd26 proves Element frozen reproducibility and Matrix materialized UAT are GREEN and the Desktop path passes exact npm@10.9.2 production dependency materialization, packaged Node 22.23.1, Parlant 21193-file runtime materialization and rcedit custody before WP7 PRE_REVIEW_ONLY fails with WP7_PRODUCTION_DEPENDENCY_GRAPH_MISMATCH. The packaged root package metadata hashes are current while release/production-dependency-binding.json still carries obsolete reviewed hashes. The Product PR does not modify root package.json or package-lock.json, so this is a trusted-main WP7 reviewed-binding lifecycle defect rather than Product feature dependency drift. Git history shows release/production-dependency-binding.json has not been updated since the imported baseline commit 570823e722f6db475066d6ef80ba900ac5c6cb39. The repository already owns the correct generation seam tools/wp7/generate-production-dependency-binding.js and package script generate:wp7:dependency-binding. This work package adds a permanent synchronization contract and regenerates the existing reviewed artifact through that seam under exact npm@10.9.2; it does not introduce a second dependency graph, manually patch hashes, weaken WP7 verification, or modify package manifests/lockfiles.",
+  "evidence": {
+    "productPullRequest": 229,
+    "productHead": "9695cdb022c5a736a62861c0b65dba09647ebd26",
+    "productBase": "4ad4f31f5b4573fc1fd21cd656d6fbc1dc0cb764",
+    "productFinalValidationRun": 31587112830,
+    "desktopJob": 94083382117,
+    "elementJobConclusion": "SUCCESS",
+    "matrixJobConclusion": "SUCCESS",
+    "desktopReasonCode": "WP7_PRODUCTION_DEPENDENCY_GRAPH_MISMATCH",
+    "actualPackageLockSha256": "34d0214cb5603958cc4562c1503c160362f5790dc831ec7e1059d31bc6b61b6b",
+    "reviewedPackageLockSha256": "0ba49346927d7642395dd6dd77e91f233131b193a4411d490df24869e5d237fa",
+    "actualPackageJsonSha256": "26e965f6d598065e8303661a42a02ef2b12830c081cd3520ebcfa34b50ed8c04",
+    "reviewedPackageJsonSha256": "6578e6de84cd5582ee59cce8abfe80656a08218c29e9bd0fc5b83346433bd459",
+    "productChangesRootPackageMetadata": false,
+    "bindingLastPathCommit": "570823e722f6db475066d6ef80ba900ac5c6cb39",
+    "existingGenerator": "tools/wp7/generate-production-dependency-binding.js",
+    "existingPackageScript": "generate:wp7:dependency-binding",
+    "packageManagerAuthority": "npm@10.9.2"
+  },
+  "base": {
+    "branch": "main",
+    "commit": "4ad4f31f5b4573fc1fd21cd656d6fbc1dc0cb764"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-wp7-production-dependency-binding-refresh-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-wp7-production-dependency-binding-refresh-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "72d9245c866a608b56a9a4639eb6ed8ee914c63aa88d32140c98b51dfbab9bfd",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-wp7-production-dependency-binding-refresh",
+    "allowedChangedPaths": [
+      "release/production-dependency-binding.json",
+      "tests/wp0/v21-production-dependency-binding-lifecycle.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "4c45355f3c1803f09f5a180b1cb06f3cc8d16aefb47f327751b2c5e3d1f9580f",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "generatorModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-production-dependency-binding-lifecycle.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "716b4a104d1341eabf2a2989fa33a0278f27c0fd28b5ffd7dbdf963493d0f293",
+      "productionCodeChanged": false,
+      "remoteCausalRedAuthority": "Stage 6.4.5.9 WP0 Architecture Gates -> npm run test:wp0"
+    }
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP7_REVIEWED_BINDING_GENERATOR",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP7 reviewed dependency binding generator",
+        "source": "tools/wp7/generate-production-dependency-binding.js + tools/wp7/production-dependency-binding.js + npm script generate:wp7:dependency-binding",
+        "license": "existing Yance repository code using npm and Node.js core primitives",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It is already the declared generatedBy authority of release/production-dependency-binding.json and already binds package metadata, npm lock graph, SRI-backed installed package records, file content, file modes and directory modes for linux-x64 and win32-x64. Reusing it avoids a second dependency graph or artifact format."
+      },
+      {
+        "name": "npm 10.9.2 exact production materialization",
+        "source": "packageManager npm@10.9.2 and the existing trusted Product dependency materialization path",
+        "license": "Artistic-2.0",
+        "adoptionMode": "mature-oss-through-existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The reviewed artifact must be regenerated with the same exact package-manager authority used by the Product Final Validation production closure, rather than an ambient npm version."
+      },
+      {
+        "name": "Manual replacement of packageJsonSha256/packageLockSha256 only",
+        "source": "hypothetical direct JSON edit",
+        "license": "not applicable",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "The binding also contains platform package graph, file hashes, file modes and directory modes. Updating only two hashes would create a false reviewed authority and is explicitly prohibited."
+      },
+      {
+        "name": "New Yance dependency binding generator or second lock verifier",
+        "source": "hypothetical new infrastructure",
+        "license": "not applicable because adoption is rejected",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "The repository already has a mature purpose-built generator and verifier. A new framework would duplicate trusted authority and violate OSS/reuse-first policy."
+      }
+    ],
+    "thinYanceAdapterOnly": false,
+    "retireOrAvoid": [
+      "Do not manually update only expected package hashes.",
+      "Do not weaken WP7_PRODUCTION_DEPENDENCY_GRAPH_MISMATCH or reviewed-Git-blob equality checks.",
+      "Do not add another dependency graph, lock verifier, generator, cache authority or package manager.",
+      "Do not modify package.json or package-lock.json in this repair.",
+      "Do not add a workflow merely to generate the binding."
+    ]
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit changes only tests/wp0/v21-production-dependency-binding-lifecycle.test.js and must RED because the checked-in reviewed binding does not bind the current root package.json and package-lock.json bytes.",
+    "The permanent contract must calculate SHA-256 from the current root package.json and package-lock.json and compare them against release/production-dependency-binding.json; it must not hard-code the new expected hashes as its source of truth.",
+    "The permanent contract must bind generatedBy to tools/wp7/generate-production-dependency-binding.js, packageManager to npm@10.9.2, and require both linux-x64 and win32-x64 platform bindings to remain present.",
+    "GREEN may modify only release/production-dependency-binding.json and must be produced by the existing generator under exact npm@10.9.2 from the unchanged package.json/package-lock.json pair.",
+    "A regenerated artifact must pass validateBindingDocument and fresh WP7 verification; a hash-only edit, missing platform, weakened file/mode graph, or ambient-npm generation is not acceptable.",
+    "After ordinary merge to main and ordinary forward into Product PR #229, fresh Product Final Validation must pass the WP7 PRE_REVIEW_ONLY dependency binding check using the same exact npm@10.9.2 production closure."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "manualHashOnlyBindingPatch": true,
+    "bindingValidationWeakening": true,
+    "newYanceDependencyBindingInfrastructure": true,
+    "newDependency": true,
+    "workflowModification": true,
+    "generatorModification": true,
+    "packageManifestModification": true,
+    "lockfileModification": true,
+    "productionRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalProductPullRequestMergeRequiresOwnerApproval": true
+  }
+}
