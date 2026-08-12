@@ -22,9 +22,10 @@ function trackedFiles(repoRoot, prefix) {
   return output.toString('utf8').split('\0').filter(Boolean).sort();
 }
 
-function isDevVarsFile(relative) {
+function isSecretDevVarsFile(relative) {
   const basename = path.posix.basename(relative.replace(/\\/gu, '/'));
-  return basename === '.dev.vars' || basename.startsWith('.dev.vars.');
+  if (basename === '.dev.vars') return true;
+  return basename.startsWith('.dev.vars.') && basename !== '.dev.vars.example';
 }
 
 function copyTrackedFile(repoRoot, packageRoot, relative) {
@@ -32,9 +33,7 @@ function copyTrackedFile(repoRoot, packageRoot, relative) {
   if (!normalized || normalized.startsWith('/') || normalized.split('/').some(part => part === '..' || part === '.')) {
     throw new Error(`unsafe tracked path: ${relative}`);
   }
-  if (isDevVarsFile(normalized)) {
-    throw new Error(`secret-bearing file must not be packaged: ${normalized}`);
-  }
+  if (isSecretDevVarsFile(normalized)) throw new Error(`secret-bearing file must not be packaged: ${normalized}`);
   const source = path.join(repoRoot, ...normalized.split('/'));
   const destination = path.join(packageRoot, ...normalized.split('/'));
   if (!fs.existsSync(source) || !fs.statSync(source).isFile()) throw new Error(`tracked package source missing: ${normalized}`);
@@ -93,6 +92,15 @@ function renderRunPs1(sourceCommit) {
 `  Assert-LastExit 'Cloudflare Wrangler identity verification'\r\n` +
 `}\r\n` +
 `\r\n` +
+`$RequiredSecrets = @((Get-Content 'services/facebook-worker/required-secrets.json' -Raw | ConvertFrom-Json).required)\r\n` +
+`$SecretListOutput = @(& npx.cmd --yes wrangler@${WRANGLER_VERSION} secret list --config services/facebook-worker/wrangler.jsonc)\r\n` +
+`Assert-LastExit 'Cloudflare Worker secret inventory'\r\n` +
+`$RemoteSecrets = (($SecretListOutput -join "\`n") | ConvertFrom-Json)\r\n` +
+`$RemoteSecretNames = @($RemoteSecrets | ForEach-Object { $_.name })\r\n` +
+`$MissingSecrets = @($RequiredSecrets | Where-Object { $RemoteSecretNames -notcontains $_ })\r\n` +
+`if ($MissingSecrets.Count -gt 0) { throw "Required Cloudflare Worker secrets are missing: $($MissingSecrets -join ', ')" }\r\n` +
+`Write-Host 'GREEN: all required Worker secret names exist remotely; secret values were not read.'\r\n` +
+`\r\n` +
 `& npx.cmd --yes wrangler@${WRANGLER_VERSION} deploy --config services/facebook-worker/wrangler.jsonc\r\n` +
 `Assert-LastExit 'Facebook Public canonical production deploy'\r\n` +
 `\r\n` +
@@ -104,6 +112,7 @@ function renderRunPs1(sourceCommit) {
 `  sourceCommit = $ExpectedSourceCommit\r\n` +
 `  wranglerVersion = '${WRANGLER_VERSION}'\r\n` +
 `  workerUrl = '${WORKER_URL}'\r\n` +
+`  requiredSecretNamesVerified = $RequiredSecrets\r\n` +
 `  completedAtUtc = [DateTime]::UtcNow.ToString('o')\r\n` +
 `}\r\n` +
 `$Evidence | ConvertTo-Json -Depth 5 | Set-Content -Encoding UTF8 (Join-Path $ArtifactDir 'facebook-public-deploy-evidence.json')\r\n` +
@@ -124,11 +133,11 @@ function renderReadme(sourceCommit) {
     '',
     'The script verifies package hashes, runs Facebook Public tests and production preflight,',
     'performs a pinned Wrangler dry-run, checks Cloudflare identity, opens official Wrangler',
-    'browser login only when needed, deploys the single canonical wrangler.jsonc, then runs',
-    'the strict formal Worker verifier.',
+    'browser login only when needed, checks required secret names with official `wrangler secret list`,',
+    'deploys the single canonical wrangler.jsonc, then runs the strict formal Worker verifier.',
     '',
-    'No Meta App secret, Page token, Cloudflare API token, .dev.vars file, hotfix deploy script,',
-    'or legacy wrangler.deploy.local.jsonc is included in this package.',
+    'The secret inventory check reads secret NAMES only. No Meta App secret, Page token, Cloudflare API token,',
+    'real .dev.vars file, hotfix deploy script, or legacy wrangler.deploy.local.jsonc is included.',
     ''
   ].join('\r\n');
 }
@@ -167,14 +176,13 @@ function createPackage(repoRoot, outputRoot) {
 
   const workerFiles = trackedFiles(root, 'services/facebook-worker');
   if (!workerFiles.includes('services/facebook-worker/wrangler.jsonc')) throw new Error('canonical Wrangler config is not tracked');
+  if (!workerFiles.includes('services/facebook-worker/required-secrets.json')) throw new Error('required secret-name manifest is not tracked');
   if (workerFiles.some(file => file.endsWith('wrangler.deploy.local.jsonc'))) throw new Error('legacy divergent Wrangler config is still tracked');
   for (const file of workerFiles) {
-    if (isDevVarsFile(file)) continue;
+    if (isSecretDevVarsFile(file)) continue;
     copyTrackedFile(root, packageRoot, file);
   }
-  for (const file of ['tools/facebook/prepare-production-config.js', 'tools/facebook/verify-formal-worker.js']) {
-    copyTrackedFile(root, packageRoot, file);
-  }
+  for (const file of ['tools/facebook/prepare-production-config.js', 'tools/facebook/verify-formal-worker.js']) copyTrackedFile(root, packageRoot, file);
 
   fs.writeFileSync(path.join(packageRoot, 'RUN.ps1'), renderRunPs1(sourceCommit), 'utf8');
   fs.writeFileSync(path.join(packageRoot, 'README.txt'), renderReadme(sourceCommit), 'utf8');
@@ -188,6 +196,8 @@ function createPackage(repoRoot, outputRoot) {
     wranglerUpstreamCommit: WRANGLER_UPSTREAM_COMMIT,
     workerUrl: WORKER_URL,
     deployAuthority: 'services/facebook-worker/wrangler.jsonc',
+    requiredSecretNamesAuthority: 'services/facebook-worker/required-secrets.json',
+    remoteSecretCheckAuthority: `wrangler@${WRANGLER_VERSION} secret list`,
     excludedAuthorities: ['services/facebook-worker/wrangler.deploy.local.jsonc', 'tools/facebook/deploy-avatar-proxy-routes.js', 'tools/facebook/deploy-page-discovery-hotfix.js'],
     secretsIncluded: false
   }, null, 2)}\n`, 'utf8');
