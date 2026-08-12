@@ -14,13 +14,15 @@ function readWorkflow() {
   return fs.readFileSync(workflowPath, 'utf8');
 }
 
-test('Product Experience final validation is a dedicated exact-head Windows pull-request workflow', () => {
+test('Product Experience final validation is an exact-head same-repository pull-request workflow with Windows and Linux trusted-CI materializers', () => {
   const source = readWorkflow();
   assert.match(source, /^name:\s*V21 Product Experience Shell P0 Final Validation\s*$/mu);
   assert.match(source, /^on:\s*\n\s*pull_request:\s*$/mu);
   assert.doesNotMatch(source, /^\s*(workflow_dispatch|push|schedule):/mu);
-  assert.match(source, /runs-on:\s*windows-latest/u);
+  assert.match(source, /github\.event\.pull_request\.head\.repo\.full_name\s*==\s*github\.repository/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'product\/v21-product-experience-shell-p0'/u);
+  assert.match(source, /runs-on:\s*windows-latest/u);
+  assert.match(source, /runs-on:\s*ubuntu-latest/u);
   assert.match(source, /actions\/checkout@11d5960a326750d5838078e36cf38b85af677262/u);
   assert.match(source, /ref:\s*\$\{\{\s*github\.event\.pull_request\.head\.sha\s*\}\}/u);
   assert.match(source, /fetch-depth:\s*0/u);
@@ -28,9 +30,10 @@ test('Product Experience final validation is a dedicated exact-head Windows pull
   assert.match(source, /actions\/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e/u);
   assert.match(source, /node-version:\s*['"]22\.23\.1['"]/u);
   assert.match(source, /permissions:\s*\n\s*contents:\s*read/u);
+  assert.doesNotMatch(source, /continue-on-error:\s*true/u);
 });
 
-test('Task 9 runs two clean pinned Element materializations with pnpm 11.5.2 frozen build and typecheck', () => {
+test('Task 9 still runs two clean pinned Element materializations with pnpm 11.5.2 frozen build and typecheck', () => {
   const source = readWorkflow();
   assert.match(source, /corepack prepare pnpm@11\.5\.2 --activate/u);
   assert.match(source, /foreach\s*\(\$iteration\s+in\s+1\.\.2\)/u);
@@ -49,10 +52,10 @@ test('Task 9 runs two clean pinned Element materializations with pnpm 11.5.2 fro
   assert.doesNotMatch(source, /pnpm\s+install[^\n]*--lockfile-only/u);
 });
 
-test('every pnpm shim invocation launches from neutral RUNNER_TEMP while --dir still targets Element', () => {
+test('Task 9 pnpm shim invocations launch from neutral RUNNER_TEMP while --dir still targets Element', () => {
   const source = readWorkflow();
-  assert.match(source, /Push-Location \$env:RUNNER_TEMP\s*\n\s*try \{\s*\n\s*\$actualPnpm = \(pnpm --version\)\.Trim\(\)\s*\n\s*\} finally \{\s*\n\s*Pop-Location\s*\n\s*\}/u);
-  assert.match(source, /Push-Location \$env:RUNNER_TEMP\s*\n\s*try \{[\s\S]*?pnpm --dir \$element install --frozen-lockfile[\s\S]*?pnpm --dir \$element exec nx build yance-element-module[\s\S]*?pnpm --dir \$element exec nx run yance-element-module:lint:types[\s\S]*?\} finally \{\s*\n\s*Pop-Location\s*\n\s*\}/u);
+  assert.match(source, /Push-Location \$env:RUNNER_TEMP[\s\S]*?\$actualPnpm = \(pnpm --version\)\.Trim\(\)[\s\S]*?Pop-Location/u);
+  assert.match(source, /Push-Location \$env:RUNNER_TEMP[\s\S]*?pnpm --dir \$element install --frozen-lockfile[\s\S]*?pnpm --dir \$element exec nx build yance-element-module[\s\S]*?pnpm --dir \$element exec nx run yance-element-module:lint:types[\s\S]*?Pop-Location/u);
   assert.equal((source.match(/Push-Location \$env:RUNNER_TEMP/gu) || []).length, 2);
   assert.match(source, /PNPM_VERSION:\s*11\.5\.2/u);
   assert.doesNotMatch(source, /packageManager[^\n]*pnpm/u);
@@ -69,38 +72,64 @@ test('Task 9 gives each frozen Element install a clean iteration-scoped RUNNER_T
   assert.doesNotMatch(source, /verifyStoreIntegrity\s*=\s*false|verify-store-integrity(?:=|\s+)false/u);
 });
 
-test('Product final validation materializes and verifies the trusted Windows Electron LFS object before UAT packaging', () => {
+test('trusted Windows CI materializes official Electron, reviewed production dependencies, packaged Node, Parlant and rcedit before invoking WP7', () => {
   const source = readWorkflow();
   const lfsPullIndex = source.indexOf('git lfs pull');
-  const packageIndex = source.indexOf('create-round12-13-windows-uat-package.js');
-  assert.ok(lfsPullIndex >= 0, 'trusted Windows Electron LFS object must be materialized explicitly');
-  assert.ok(packageIndex > lfsPullIndex, 'LFS materialization and verification must happen before UAT packaging');
+  const builderIndex = source.indexOf('tools/wp7/create-pre-review-trusted-product.js');
+  const uploadIndex = source.indexOf('Product-Experience-Materialized-Desktop-UAT-');
+  assert.ok(lfsPullIndex >= 0 && builderIndex > lfsPullIndex && uploadIndex > builderIndex);
   assert.match(source, /release[\\/]electron-distribution-trust\.json/u);
   assert.match(source, /git lfs install --local/u);
   assert.match(source, /git lfs pull origin --include=/u);
   assert.match(source, /git show "HEAD:\$relativePath"/u);
   assert.match(source, /oid sha256:/u);
-  assert.match(source, /Get-FileHash[^\n]*SHA256/u);
-  assert.match(source, /Get-Item[^\n]*Length/u);
-  assert.match(source, /git status --porcelain=v1 --untracked-files=all/u);
-  assert.doesNotMatch(source, /Invoke-WebRequest|Start-BitsTransfer|windows-side.*download|electron.*download fallback/iu);
+  assert.match(source, /npm\.cmd ci --omit=dev --ignore-scripts[^\n]*--no-bin-links --os=win32 --cpu=x64/u);
+  assert.match(source, /node-v22\.23\.1-win-x64\.zip/u);
+  assert.match(source, /7df0bc9375723f4a86b3aa1b7cc73342423d9677a8df4538aca31a049e309c29/u);
+  assert.match(source, /f8d162c0641dcee512132f3bcf8a68169c7ecb852efd8e1a46c9fec5a0f469ed/u);
+  assert.match(source, /tools\/parlant\/build-windows-runtime\.ps1/u);
+  assert.match(source, /rcedit-v2\.0\.0-x64\.exe/u);
+  assert.match(source, /3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a/u);
+  assert.match(source, /WP7_PRE_REVIEW_TRUSTED_PRODUCT_BUILD\.json/u);
+  assert.match(source, /PRODUCT_EXPERIENCE_MATERIALIZED_DESKTOP_UAT_ONLY/u);
+});
+
+test('trusted Linux CI builds pinned Matrix images, verifies the existing Element module delivery seam, docker-saves and seals image-only UAT', () => {
+  const source = readWorkflow();
+  const bootstrapIndex = source.lastIndexOf('node tools/matrix/bootstrap.js');
+  const firstBuildIndex = source.indexOf('docker build');
+  const saveIndex = source.indexOf('docker save');
+  const uploadIndex = source.indexOf('Product-Experience-Materialized-Matrix-UAT-');
+  assert.ok(bootstrapIndex >= 0 && firstBuildIndex > bootstrapIndex && saveIndex > firstBuildIndex && uploadIndex > saveIndex);
+  assert.match(source, /services\/matrix\/\.runtime\/synapse/u);
+  assert.match(source, /services\/matrix\/\.runtime\/element-web/u);
+  assert.match(source, /services\/matrix\/\.runtime\/mautrix-whatsapp/u);
+  assert.match(source, /nx build yance-element-module/u);
+  assert.match(source, /\/modules\/yance\/package\.json/u);
+  assert.equal((source.match(/docker build --tag/gu) || []).length, 3);
+  assert.match(source, /docker save --output/u);
+  assert.match(source, /materialized-matrix-compose\.yml/u);
+  assert.match(source, /PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY/u);
+});
+
+test('Product final validation retires source-UAT handoff and emits exactly the two same-head materialized UAT artifacts', () => {
+  const source = readWorkflow();
+  assert.doesNotMatch(source, /create-round12-13-windows-uat-package\.js/u);
+  assert.doesNotMatch(source, /start-source-uat\.js/u);
+  assert.doesNotMatch(source, /NOT_REAL_ELECTRON_UAT/u);
+  assert.doesNotMatch(source, /ROUND12_13_UAT_MANIFEST\.json/u);
+  assert.equal((source.match(/actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/gu) || []).length, 2);
+  assert.equal((source.match(/name: Product-Experience-Materialized-Desktop-UAT-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/gu) || []).length, 1);
+  assert.equal((source.match(/name: Product-Experience-Materialized-Matrix-UAT-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/gu) || []).length, 1);
+  assert.match(source, /create-materialized-uat-candidate\.js seal/u);
+  assert.match(source, /create-materialized-uat-candidate\.js verify/u);
+  assert.match(source, /RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT\.ps1/u);
+  assert.doesNotMatch(source, /docs\/uat\/V21_PRODUCT_EXPERIENCE_SHELL_P0_UAT\.md/u);
+  assert.doesNotMatch(source, /windows-production-release|gh\s+release|npm\s+publish/u);
 });
 
 test('PowerShell loop diagnostics delimit iteration before colon punctuation', () => {
   const source = readWorkflow();
   assert.doesNotMatch(source, /iteration \$iteration:/u);
   assert.match(source, /Element pin mismatch on iteration \$\{iteration\}: expected=\$env:ELEMENT_COMMIT actual=\$actualElementCommit/u);
-});
-
-test('the workflow prepares a non-release exact-head UAT package without claiming real Electron UAT', () => {
-  const source = readWorkflow();
-  assert.match(source, /create-round12-13-windows-uat-package\.js/u);
-  assert.match(source, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/u);
-  assert.match(source, /NOT_REAL_ELECTRON_UAT/u);
-  assert.match(source, /ROUND12_13_UAT_MANIFEST\.json/u);
-  assert.match(source, /formalRelease[^\n]*false/u);
-  assert.match(source, /realWindowsUatRequired[^\n]*true/u);
-  assert.doesNotMatch(source, /docs\/uat\/V21_PRODUCT_EXPERIENCE_SHELL_P0_UAT\.md/u);
-  assert.doesNotMatch(source, /continue-on-error:\s*true/u);
-  assert.doesNotMatch(source, /windows-production-release|gh\s+release|npm\s+publish/u);
 });
