@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_V21_PRODUCT_WP7_REVIEWED_BINDING_SCANNER_CLASSIFICATION_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-12T18:35:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-WP7-REVIEWED-BINDING-SCANNER-CLASSIFICATION",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh Stage 6.4.5.9 verification for PR #307 exact Head 2191fa3a0700ad23177a6a348b9945eec7ad42f7 proves the WP7 production dependency binding lifecycle repair itself is GREEN while permanent WP0 still fails because the legacy release-surface scanner classifies the exact reviewed supply-chain binding release/production-dependency-binding.json as ACTIVE_SOURCE_OR_AUTOMATION and emits the sole scan violation WP0_FORBIDDEN_LEGACY_RELEASE_MECHANISM. The command-policy gate and repository-scope gate remain GREEN. The repository already contains the mature exact-path non-active classification architecture used for reviewed supply-chain evidence such as third_party/provenance.json. This authorization reuses that architecture for exactly release/production-dependency-binding.json; it does not broad-exclude release/, change the binding or generator, weaken legacy-token detection, or authorize unknown future release files.",
+  "base": {
+    "branch": "main",
+    "commit": "d3034b358e87c617da9cb1de187b8e1580378f90"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresExactHeadGreen": true,
+    "requiresIndependentAllowMerge": true,
+    "requiresOrdinaryMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "evidence": {
+    "sourcePullRequest": 307,
+    "sourceExactHead": "2191fa3a0700ad23177a6a348b9945eec7ad42f7",
+    "sourceBranch": "fix/v21-product-wp7-production-dependency-binding-refresh",
+    "stageWp0Run": 31591327897,
+    "stageWp0ProductJob": 94096813027,
+    "freshWp0Tests": 317,
+    "freshWp0Pass": 314,
+    "freshWp0Fail": 3,
+    "failedStep": "Run WP0 required tests",
+    "failedContracts": [
+      "evidence-source-binding.test",
+      "forbidden-hotfix-entrypoints.test"
+    ],
+    "scannerResult": {
+      "violationCount": 1,
+      "path": "release/production-dependency-binding.json",
+      "currentClassification": "ACTIVE_SOURCE_OR_AUTOMATION",
+      "incorrectDetector": "WP0_FORBIDDEN_LEGACY_RELEASE_MECHANISM",
+      "detail": "Tracked active source or automation contains a legacy Hotfix, Revision, Complete Installer, or runtime patch mechanism.",
+      "commandGatePass": true,
+      "repositoryScopePass": true
+    },
+    "maturePrecedent": {
+      "authorization": "governance/layered-ci/oss-a-wp0-supply-chain-evidence-classification-authorization.json",
+      "classification": "SUPPLY_CHAIN_EVIDENCE",
+      "classificationMechanism": "exact reviewed path set before ACTIVE_SOURCE_OR_AUTOMATION fallback",
+      "unknownFuturePathFailsClosed": true
+    }
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-wp7-reviewed-binding-scanner-classification",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-wp7-reviewed-binding-scanner-classification-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "360db83e9bb7a69fd876bc54e7622ea1755e17b8a5eefc7358776cb1475f16d5",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-wp7-reviewed-binding-scanner-classification",
+    "requiredBase": "the exact ordinary main merge commit containing this authorization",
+    "allowedChangedPaths": [
+      "tests/wp0/forbidden-hotfix-entrypoints.test.js",
+      "tools/wp0/lib.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "585b5a8de644fa85165291e8cb54fe9b59e46b4c9a8c31f6a0500f18674b46bd",
+    "runtimeProductBehaviorChanged": false,
+    "newDependencyAllowed": false,
+    "bindingModificationAllowed": false,
+    "generatorModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseSurfaceScannerMayOnlyNarrowForExactReviewedBinding": true,
+    "releasePrefixExclusionAllowed": false,
+    "requiredClassification": "SUPPLY_CHAIN_EVIDENCE"
+  },
+  "mandatoryFailureFirstContracts": [
+    "Before implementation classifyScanPath(release/production-dependency-binding.json) returns ACTIVE_SOURCE_OR_AUTOMATION rather than SUPPLY_CHAIN_EVIDENCE",
+    "A fixture using the exact reviewed production dependency binding content or a minimal causal legacy-token specimen at release/production-dependency-binding.json is rejected before implementation with WP0_FORBIDDEN_LEGACY_RELEASE_MECHANISM",
+    "The failure-first test records the exact legacy-token match that causes the reviewed binding false positive before tools/wp0/lib.js is modified",
+    "After implementation release/production-dependency-binding.json classifies as SUPPLY_CHAIN_EVIDENCE",
+    "An unapproved future path such as release/future-production-dependency-binding.json remains ACTIVE_SOURCE_OR_AUTOMATION",
+    "The same forbidden legacy token under an active tools path continues to fail closed",
+    "No release/ prefix, filename family, documentType family, or generatedBy family is excluded from scanning",
+    "Repository scan enumeration, legacy release-pattern detection, reference-only policy and protected-command requirements remain unchanged",
+    "PR #307 evidence-source-binding and forbidden-hotfix-entrypoints contracts pass after normal main integration without modifying PR #307 binding or lifecycle test"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes all applicable governance gates",
+    "Independent review returns ALLOW_MERGE with zero P0 and P1 findings",
+    "Authorization PR merges to main by ordinary merge without history rewrite",
+    "Implementation branch is created from that exact authorization merge commit",
+    "A test-only commit records causal RED for exact reviewed binding classification, exact legacy-token match, future-path fail-closed behavior and active-path fail-closed behavior",
+    "Only the exact reviewed binding path is added to the mature non-active SUPPLY_CHAIN_EVIDENCE classification path set in tools/wp0/lib.js",
+    "The causal test turns GREEN without changing detector regexes or scan enumeration",
+    "Full permanent WP0, Stage 6.4.5.9, ACV2 and independent review pass on the implementation exact Head",
+    "Implementation PR merges to main by ordinary merge",
+    "The resulting main is merged normally into PR #307 without amend, rebase, squash or history rewrite",
+    "PR #307 is reverified at a fresh exact Head; merge remains prohibited until all required gates are GREEN"
+  ],
+  "prohibitions": {
+    "booleanSemantics": "TRUE_MEANS_FORBIDDEN",
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "excludeEntireReleasePrefixFromScanning": true,
+    "classifyUnknownFutureReleaseFilesAsEvidence": true,
+    "legacyDetectorRegexWeakening": true,
+    "bindingModification": true,
+    "generatorModification": true,
+    "packageOrLockModification": true,
+    "forcePush": true,
+    "rebase": true,
+    "amend": true,
+    "squash": true,
+    "historyRewrite": true,
+    "directMergeOfPr307BeforeFreshGreen": true,
+    "automaticNextWorkPackageAuthorization": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "pr307MustRemainUnmerged": true,
+    "readyForPromotion": false
+  }
+}
