@@ -129,6 +129,7 @@ async function ensureMatrixElementRuntime(options = {}) {
       ready: true,
       startedServices: [],
       reusedExisting: true,
+      reusedExistingContainer: false,
       observation: initial,
       composePath
     });
@@ -141,26 +142,99 @@ async function ensureMatrixElementRuntime(options = {}) {
   if (startedServices.includes('synapse')) requiredPaths.push(synapseSourceRoot);
   if (startedServices.includes('element')) requiredPaths.push(elementSourceRoot);
   const missingPaths = requiredPaths.filter(candidate => !existsSync(candidate));
+  const dockerCommand = String(options.dockerCommand || 'docker');
+  const composeBaseArgs = ['compose', '--project-directory', matrixRoot, '-f', composePath];
+
   if (missingPaths.length) {
+    const sourceRootByService = new Map([
+      ['synapse', synapseSourceRoot],
+      ['element', elementSourceRoot]
+    ]);
+    const missingSourceServices = startedServices.filter(service => {
+      const sourceRoot = sourceRootByService.get(service);
+      return sourceRoot && missingPaths.includes(sourceRoot);
+    });
+    const containerProbes = [];
+    const reusableServices = [];
+
+    if (!missingPaths.includes(composePath) && missingSourceServices.length === startedServices.length) {
+      for (const service of missingSourceServices) {
+        const probeArgs = [...composeBaseArgs, 'ps', '-a', '-q', service];
+        const probeResult = spawnSyncImpl(dockerCommand, probeArgs, {
+          cwd: repoRoot,
+          encoding: 'utf8',
+          shell: false,
+          windowsHide: true,
+          env: { ...process.env, ...(options.env || {}) }
+        });
+        const containerId = probeResult?.status === 0 && !probeResult?.error
+          ? String(probeResult?.stdout || '').trim()
+          : '';
+        containerProbes.push({
+          service,
+          status: probeResult?.status ?? null,
+          errorCode: probeResult?.error?.code || '',
+          message: probeResult?.error?.message || '',
+          containerPresent: Boolean(containerId)
+        });
+        if (containerId) reusableServices.push(service);
+      }
+
+      if (reusableServices.length === missingSourceServices.length && reusableServices.length > 0) {
+        const startArgs = [...composeBaseArgs, 'start', ...reusableServices];
+        const startResult = spawnSyncImpl(dockerCommand, startArgs, {
+          cwd: repoRoot,
+          encoding: 'utf8',
+          shell: false,
+          windowsHide: true,
+          env: { ...process.env, ...(options.env || {}) }
+        });
+        if (startResult?.error || startResult?.status !== 0) {
+          throw runtimeError('SOURCE_UAT_MATRIX_EXISTING_CONTAINER_START_FAILED', 'canonical Docker Compose 已有容器存在，但无法重新启动所需 Synapse/Element runtime', {
+            command: dockerCommand,
+            args: startArgs,
+            status: startResult?.status ?? null,
+            signal: startResult?.signal || null,
+            errorCode: startResult?.error?.code || '',
+            message: startResult?.error?.message || '',
+            stdoutPreview: String(startResult?.stdout || '').slice(-4000),
+            stderrPreview: String(startResult?.stderr || '').slice(-4000),
+            startedServices,
+            reusedServices: reusableServices
+          });
+        }
+        const observation = await waitForMatrixElementRuntime(options);
+        return Object.freeze({
+          ready: true,
+          startedServices: Object.freeze([...startedServices]),
+          reusedExisting: false,
+          reusedExistingContainer: true,
+          reusedServices: Object.freeze([...reusableServices]),
+          observation,
+          composePath
+        });
+      }
+    }
+
     throw runtimeError(
       'SOURCE_UAT_MATRIX_RUNTIME_MATERIALIZATION_MISSING',
-      'canonical Matrix/Element exact-source materialized runtime 缺失，拒绝下载、替换或启动非审计来源',
+      'canonical Matrix/Element exact-source materialized runtime 缺失，且没有可复用的 canonical Compose 容器；拒绝下载、替换或启动非审计来源',
       {
         matrixRoot,
         composePath,
         startedServices,
         missingPaths,
+        containerProbes,
         bootstrapAutomaticallyInvoked: false
       }
     );
   }
 
-  const args = ['compose', '--project-directory', matrixRoot, '-f', composePath, 'up', '-d'];
+  const args = [...composeBaseArgs, 'up', '-d'];
   if (initial.synapseReady && !initial.elementReady) args.push('--no-deps', 'element');
   else if (!initial.synapseReady && initial.elementReady) args.push('synapse');
   else args.push('synapse', 'element');
 
-  const dockerCommand = String(options.dockerCommand || 'docker');
   const result = spawnSyncImpl(dockerCommand, args, {
     cwd: repoRoot,
     encoding: 'utf8',
@@ -187,6 +261,7 @@ async function ensureMatrixElementRuntime(options = {}) {
     ready: true,
     startedServices: Object.freeze([...startedServices]),
     reusedExisting: false,
+    reusedExistingContainer: false,
     observation,
     composePath
   });
