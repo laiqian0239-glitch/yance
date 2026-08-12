@@ -296,7 +296,7 @@ test('WP0 failure-first covers WP1 nested backend tests while preserving real ru
 
     writeFixture('backend/runtime-hardcoded.js', "const buildId = 'YANCE-29.2.5-S6.4.5.9-P1-cccccccccccc-20260703T000000Z';\nmodule.exports = buildId;\n");
     gitFixture(['add', 'backend/runtime-hardcoded.js']);
-    const withRuntimeViolation = scanSingleHumanMaintainedReleaseSourceDependencies ? scanSingleHumanMaintainedReleaseSourceDependencies(root, releaseSource) : scanSingleHumanMaintainedReleaseSource(root, releaseSource);
+    const withRuntimeViolation = scanSingleHumanMaintainedReleaseSource(root, releaseSource);
     assert.equal(withRuntimeViolation.status, 'FAIL');
     assert.ok(withRuntimeViolation.violations.some(item => item.path === 'backend/runtime-hardcoded.js' && item.reasonCode === 'WP1_RUNTIME_HARDCODED_BUILD_ID'));
     assert.equal(withRuntimeViolation.violations.some(item => item.path.startsWith('backend/tests/')), false);
