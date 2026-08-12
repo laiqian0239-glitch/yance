@@ -86,6 +86,7 @@ function resolveBuildInputs(options = {}) {
   const targetPlatform = argumentValue('--target-platform', { ...options, fallback: 'win32' });
   const targetArch = argumentValue('--target-arch', { ...options, fallback: 'x64' });
   const allowNonWindowsReviewFixture = booleanArgument('--allow-non-windows-review-fixture', { ...options, envName: 'WP7_ALLOW_NON_WINDOWS_REVIEW_FIXTURE' });
+  const electronNpmPackageRootValue = argumentValue('--electron-npm-package-root', options);
   if (targetPlatform !== 'win32' || targetArch !== 'x64') {
     fail('WP7_WINDOWS_FINAL_BUILD_REQUIRED', 'pre-review trusted product builder is bound to the Windows x64 release target', { targetPlatform, targetArch });
   }
@@ -98,7 +99,7 @@ function resolveBuildInputs(options = {}) {
     outputRoot,
     electronArchivePath: assertRegular(argumentValue('--electron-archive', options), 'WP7_OFFICIAL_ELECTRON_ARCHIVE_REQUIRED', 'official Electron archive'),
     electronDist: assertDirectory(argumentValue('--electron-dist', options), 'WP7_OFFICIAL_ELECTRON_DISTRIBUTION_REQUIRED', 'official Electron extracted distribution'),
-    electronNpmPackageRoot: assertDirectory(argumentValue('--electron-npm-package-root', options), 'WP7_PACKAGED_ELECTRON_TRUST_INPUT_MISSING', 'isolated Electron npm package root'),
+    electronNpmPackageRoot: electronNpmPackageRootValue ? assertDirectory(electronNpmPackageRootValue, 'WP7_PACKAGED_ELECTRON_TRUST_INPUT_MISSING', 'isolated Electron npm package root') : null,
     productionNodeModulesSource: assertDirectory(argumentValue('--production-node-modules', options), 'WP7_PRODUCTION_DEPENDENCY_DIRECTORY_TREE_MISMATCH', 'reviewed production node_modules'),
     trustedNodeExecutable: assertRegular(argumentValue('--trusted-node-executable', options), 'WP7_NODE_RUNTIME_EXECUTABLE_MISSING', 'trusted Node executable'),
     parlantRuntimeSource: assertDirectory(argumentValue('--parlant-runtime', options), 'WP7_PARLANT_RUNTIME_REQUIRED', 'presealed Parlant runtime'),
