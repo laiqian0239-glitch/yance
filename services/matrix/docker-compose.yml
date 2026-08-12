@@ -2,6 +2,7 @@ services:
   synapse:
     build:
       context: ./.runtime/synapse
+      dockerfile: docker/Dockerfile
     command: ["run"]
     volumes:
       - ../../config/matrix/synapse/homeserver.yaml:/data/homeserver.yaml:ro
@@ -12,6 +13,7 @@ services:
   element:
     build:
       context: ./.runtime/element-web
+      dockerfile: apps/web/Dockerfile
     volumes:
       - ../../config/matrix/element-config.json:/app/config.json:ro
     ports:
