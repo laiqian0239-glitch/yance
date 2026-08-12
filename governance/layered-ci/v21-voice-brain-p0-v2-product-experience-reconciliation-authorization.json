@@ -45,6 +45,11 @@
     "addedFreshMainCompositionPaths": [
       "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx"
     ],
+    "retainedHistoricalPathCount": 28,
+    "retainedHistoricalExactV1BlobPathCount": 27,
+    "retainedHistoricalSuccessorSemanticDeltaPaths": [
+      "tests/wp0/v21-voice-brain-ui.test.js"
+    ],
     "unchangedHistoricalVoicePathsMustMechanicallyInheritExactV1Blobs": true,
     "yanceWorkspaceMustRemainFreshMainBlob": true,
     "productExperienceShellMustRemainTopLevelWorkspaceAuthority": true
@@ -112,6 +117,34 @@
     "secondVoiceOverlayOrSecondProductShellForbidden": true
   },
   "ossFit": {
+    "decision": "ADOPT_MATURE_VOICE_OSS_AND_EXISTING_REPOSITORY_SEAMS_WITHOUT_NEW_GENERAL_PURPOSE_INFRASTRUCTURE",
+    "matureOssAvailable": true,
+    "reviewedCandidates": [
+      {
+        "name": "CosyVoice",
+        "source": "QwenAudio/CosyVoice@074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc",
+        "license": "Apache-2.0",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "Exact pinned upstream source and model materialization already own TTS, zero-shot voice cloning, and cross-lingual speech; Yance only supplies a thin product/process adapter and must not reimplement CosyVoice or Matcha-TTS algorithms."
+      },
+      {
+        "name": "SenseVoice",
+        "source": "QwenAudio/SenseVoice@73ccdd3577db37e92dbf22a4a9fc323b038cf13b release runtime-llamacpp-v0.1.9",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Exact pinned upstream Windows x64 AVX2 runtime and sealed model already own local ASR and language detection; legacy Yance Whisper ASR routing and installation authority must stay retired."
+      }
+    ],
+    "selectedAdoptionMode": "source-module",
+    "newGeneralPurposeInfrastructure": false,
+    "retireOrAvoid": [
+      "Retire legacy Yance Whisper ASR, model discovery, CLI, installer, and fallback authority; CosyVoice's upstream Whisper dependency is permitted only for prompt-audio mel extraction.",
+      "Avoid any second Yance STT, TTS, voice-cloning engine, generic speech runtime framework, database, HTTP/WebSocket service, runtime state machine, downloader, cache, materializer, installer, or package-manager framework.",
+      "Reuse the existing send-media-stream and channel send authority; forbid a Voice-specific send queue, outbox, or final-send framework.",
+      "Reuse the existing sealed Python/uv build-time runtime authority and exact pre-acquired supplies; forbid runtime network materialization and user-machine native/dependency builds."
+    ],
     "matureOssMandatory": true,
     "senseVoiceOwnsAsrAndLanguageDetection": true,
     "cosyVoiceOwnsTtsAndVoiceCloning": true,
