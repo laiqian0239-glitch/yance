@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-13T02:47:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-WP7-DETERMINISTIC-LONG-PATH-ARCHIVE-OSS-CUTOVER",
+  "proposalRevision": 4,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh Product Final Validation at Product Head f7d585bcb3867d3d5a58eb5fb064eee202a4fb25 proved the completed rcedit Git LFS custody repair through its exact Product Final step, then the existing WP7 trusted-product builder failed with WP7_PRE_REVIEW_TRUSTED_PRODUCT_ARCHIVE_FAILED because tools/wp7/deterministic-tar-gzip.js is a Yance-authored manual USTAR writer whose splitUstarPath() cannot represent a legitimate @mistralai/mistralai production declaration path. This work package retires that self-authored TAR-format implementation in favor of mature node-tar 7.5.22 PAX creation while preserving Yance-owned canonical path policy, symlink/non-file rejection, deterministic traversal/mode/timestamp policy, existing deterministic Node zlib gzip semantics, archive SHA/evidence, and fail-closed behavior. It must not delete, rename, shorten, omit or rewrite legitimate production payload paths.",
+  "base": {
+    "branch": "main",
+    "commit": "240548c1e50c57b54f077c8b11f74bfd00540869"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "requiredFirstParent": "240548c1e50c57b54f077c8b11f74bfd00540869",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "repairEvidence": {
+    "productPullRequest": 229,
+    "productHead": "f7d585bcb3867d3d5a58eb5fb064eee202a4fb25",
+    "productFinalValidationRun": 31635646407,
+    "desktopJob": 94245150798,
+    "electronArchiveStep": "GREEN",
+    "electronNpmTrustMetadataStep": "GREEN",
+    "productionDependencyClosureStep": "GREEN",
+    "packagedNodeStep": "GREEN",
+    "parlantRuntimeStep": "GREEN",
+    "rceditLfsCustodyStep": "GREEN",
+    "wp7BuilderStep": "RED",
+    "reasonCode": "WP7_PRE_REVIEW_TRUSTED_PRODUCT_ARCHIVE_FAILED",
+    "failureMessage": "archive entry path exceeds USTAR limits",
+    "failingPath": "application-payload/resources/app/node_modules/@mistralai/mistralai/esm/models/operations/getchatcompletionfieldoptionscountsv1observabilitychatcompletionfieldsfieldnameoptionscountspost.d.ts",
+    "ownerSeam": "tools/wp7/deterministic-tar-gzip.js::splitUstarPath/tarHeader",
+    "currentImplementation": "NODE_USTAR_STREAM_GZIP_V2"
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-wp7-deterministic-long-path-archive-oss-cutover-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-wp7-deterministic-long-path-archive-oss-cutover-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "7fe9bd2734c79976df1b91294e08b4c1b097b0f242507b390c1c636b7c675937",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-wp7-deterministic-long-path-archive-oss-cutover",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tests/wp7/deterministic-tar-gzip.test.js",
+      "tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1",
+      "tools/wp7/archive-oss/package-lock.json",
+      "tools/wp7/archive-oss/package.json",
+      "tools/wp7/create-pre-review-trusted-product.js",
+      "tools/wp7/deterministic-tar-gzip.js"
+    ],
+    "approvedChangedFileCount": 8,
+    "approvedChangedFileSetSha256": "52fd177ec492d0d5a313bdac084056bc1adf289884951006514725e4aca204ba",
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "tools/wp7/archive-oss/package-lock.json",
+        "tools/wp7/archive-oss/package.json"
+      ],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "02be7b83f96fa123da44d20d73eab996ec852308a1a3aa8d37dcdb300df89ffb"
+    },
+    "newDependencyPolicy": {
+      "scope": "build-tool-only isolated closure",
+      "package": "tar",
+      "exactVersion": "7.5.22",
+      "upstreamRepository": "isaacs/node-tar",
+      "upstreamTag": "v7.5.22",
+      "upstreamCommit": "2a22bfc5d3a432a606d9da0e2d87ba634aa3b1cb",
+      "license": "BlueOak-1.0.0",
+      "rootPackageJsonModificationAllowed": false,
+      "rootPackageLockModificationAllowed": false,
+      "productRuntimeDependencyAllowed": false,
+      "isolatedManifest": "tools/wp7/archive-oss/package.json",
+      "isolatedLock": "tools/wp7/archive-oss/package-lock.json",
+      "installSemantics": "exact npm@10.9.2 npm ci --omit=dev --ignore-scripts into isolated location",
+      "liveUnpinnedNpmExecAllowed": false,
+      "bundledNpmTarAllowed": false
+    },
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "packageManifestModificationAllowed": true,
+    "lockfileModificationAllowed": true,
+    "productRuntimeModificationAllowed": false,
+    "wp7ImplementationModificationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-experience-materialized-uat.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "productionCodeChanged": false,
+      "remoteCausalRedAuthority": "Stage 6.4.5.9 WP0 Architecture Gates -> npm run test:wp0",
+      "causalContract": "The source-contract must fail on the authorization-merge baseline because the active archive owner still contains the manual USTAR split/header implementation and NODE_USTAR_STREAM_GZIP_V2 identity."
+    }
+  },
+  "ossFit": {
+    "decision": "ADOPT_MATURE_OSS_AND_RETIRE_YANCE_FORMAT_IMPLEMENTATION",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "source-module",
+    "reviewedCandidates": [
+      {
+        "name": "tar 7.5.22 (node-tar)",
+        "source": "isaacs/node-tar tag v7.5.22 commit 2a22bfc5d3a432a606d9da0e2d87ba634aa3b1cb",
+        "license": "BlueOak-1.0.0",
+        "adoptionMode": "isolated-locked-build-tool",
+        "fit": "FIT",
+        "reason": "Mature active tar implementation with native PAX long-path support, strict mode, portable metadata normalization and fixed mtime creation options. Published security advisories reviewed at authorization time affect versions through 7.5.20 at latest; 7.5.22 is beyond the published patched thresholds. It replaces the self-authored binary TAR header implementation rather than extending it."
+      },
+      {
+        "name": "tar-stream 3.2.0",
+        "source": "mafintosh/tar-stream tag v3.2.0 commit 5e4ddbeb30b9f8e137cfbf9b970c1a6a7c7ea07b",
+        "license": "MIT",
+        "adoptionMode": "stream-generator",
+        "fit": "GAP",
+        "reason": "Supports USTAR plus PAX but intentionally provides only a streaming tar parser/generator and requires the caller to keep more filesystem traversal, header orchestration and gzip plumbing. It is mature but a lower whole-component fit than node-tar for this work package."
+      },
+      {
+        "name": "Extend the existing Yance USTAR writer with custom PAX/GNU long-path headers",
+        "source": "tools/wp7/deterministic-tar-gzip.js",
+        "license": "repository code",
+        "adoptionMode": "new-custom-infrastructure",
+        "fit": "GAP",
+        "reason": "Would deepen the exact self-authored archive-format infrastructure that caused the RED and violates OSS-first admission."
+      },
+      {
+        "name": "Ambient runner tar.exe/bsdtar",
+        "source": "GitHub hosted-runner image",
+        "license": "varies with runner image",
+        "adoptionMode": "ambient-system-tool",
+        "fit": "GAP",
+        "reason": "Mature implementation but runner version is not repository-pinned and would make archive bytes/tool behavior drift with hosted image updates."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire splitUstarPath(), tarHeader(), manual USTAR field encoding, padding and trailer ownership from tools/wp7/deterministic-tar-gzip.js.",
+      "Do not retain the manual USTAR writer as a fallback path.",
+      "Do not delete, shorten, rename, omit or special-case legitimate production dependency paths to remain under USTAR limits.",
+      "Do not use npm's bundled tar implementation or ambient tar.exe as authority.",
+      "Do not add tar to root package.json/package-lock or packaged product runtime.",
+      "Do not use unpinned npm exec/npx as the archive implementation delivery path."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit changes only tests/wp0/v21-product-experience-materialized-uat.test.js and Stage must fail causally because the active archive owner remains NODE_USTAR_STREAM_GZIP_V2 with manual splitUstarPath/tarHeader USTAR-format implementation.",
+    "The permanent WP0 source contract must require retirement of manual USTAR header/path-splitting implementation, exact isolated tar@7.5.22 toolchain authority, explicit archive-tool input wiring, and no root package/lock dependency.",
+    "tools/wp7/archive-oss/package.json and package-lock.json must contain only the isolated build-tool closure rooted at exact tar 7.5.22; the lock must bind registry integrity for tar and its runtime transitive closure, and npm scripts must be disabled during materialization.",
+    "Product Final must copy the isolated manifest/lock outside the repository, materialize it with exact npm@10.9.2 npm ci --omit=dev --ignore-scripts, validate exact tar package version, leave Product source clean, and pass the isolated node_modules path explicitly to the WP7 builder.",
+    "WINDOWS_PREVIEW_UAT_RUNNER.template.ps1 must materialize the same isolated toolchain from the same tracked manifest/lock and pass the same explicit archive-tool input; no active builder caller may silently rely on an ambient/root tar installation.",
+    "tools/wp7/deterministic-tar-gzip.js must retain canonical relative-path checks, fail-closed symlink/non-file rejection, deterministic byte-order entry enumeration, existing archive mode policy, fixed timestamp semantics, deterministic Node zlib gzip semantics and archive SHA/evidence while delegating TAR/PAX encoding to tar@7.5.22.",
+    "tests/wp7/deterministic-tar-gzip.test.js must run against the real isolated tar@7.5.22 materialization and prove a path beyond USTAR limits is archived losslessly, two equivalent trees with differing source mtimes produce byte-identical .tar.gz output under the same fixed timestamp, unsafe paths/symlinks remain rejected, and expected entry ordering/mode semantics are preserved.",
+    "The Product Final real archive test must run after isolated archive-tool materialization and before the WP7 trusted-product builder.",
+    "The trust/evidence archive implementation identity must change from NODE_USTAR_STREAM_GZIP_V2 to a new node-tar/PAX identity; evidence may not continue claiming the retired implementation."
+  ],
+  "handoffBackToProduct": {
+    "productPullRequest": 229,
+    "productBranch": "product/v21-product-experience-shell-p0",
+    "productHeadAtAuthorization": "f7d585bcb3867d3d5a58eb5fb064eee202a4fb25",
+    "rule": "After ordinary merge to main, ordinary-forward fresh main into Product. Fresh Product Final must preserve all already-proven Electron, production dependency, Node, Parlant and rcedit GREEN steps, materialize exact isolated tar@7.5.22 build-tool closure, pass the real long-path/determinism archive test, then complete the existing WP7 trusted-product builder and desktop upload. Final PR #229 integration merge remains explicit owner boundary."
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "payloadPathDeletion": true,
+    "payloadPathShortening": true,
+    "payloadPathRenaming": true,
+    "payloadEntryOmission": true,
+    "manualPaxImplementation": true,
+    "manualGnuLongPathImplementation": true,
+    "retainManualUstarFallback": true,
+    "ambientSystemTarAuthority": true,
+    "bundledNpmTarAuthority": true,
+    "unpinnedNpmExecTar": true,
+    "rootPackageManifestChange": true,
+    "rootLockfileChange": true,
+    "productRuntimeTarDependency": true,
+    "newGeneralPurposeYanceInfrastructure": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "delegatedExecutionAuthorized": true,
+    "finalProductPullRequestMergeRequiresOwnerApproval": true
+  }
+}
