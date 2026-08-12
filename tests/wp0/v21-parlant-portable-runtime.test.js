@@ -127,3 +127,40 @@ test('real WP7 application payload must carry the sealed Parlant runtime as an e
   assert.match(trust,/resources\/parlant-runtime/u, 'Electron distribution trust must explicitly authorize and hash the Parlant runtime addition');
   assert.match(preReview,/parlant-runtime/u, 'pre-review trusted product must require an explicit sealed Parlant runtime input');
 });
+
+test('Parlant producer and WP7 consumer reuse WP1 UTF-8 byte canonical seal ordering', () => {
+  const { canonicalizePayloadRecords } = require('../../tools/wp1/lib');
+  const sha = 'a'.repeat(64);
+  const fixture = [
+    { path: 'ä.txt', sizeBytes: 4, sha256: sha },
+    { path: 'a.txt', sizeBytes: 3, sha256: sha },
+    { path: '_x.txt', sizeBytes: 2, sha256: sha },
+    { path: 'Z.txt', sizeBytes: 1, sha256: sha }
+  ];
+  const canonicalPaths = canonicalizePayloadRecords(fixture).map(row => row.path);
+  const localePaths = [...fixture].sort((a, b) => a.path.localeCompare(b.path, 'en')).map(row => row.path);
+  assert.notDeepEqual(localePaths, canonicalPaths, 'locale-aware ordering must not masquerade as repository UTF8_BYTE_ASCENDING authority');
+  assert.deepEqual(canonicalPaths, ['Z.txt', '_x.txt', 'a.txt', 'ä.txt']);
+
+
+  const producer = readText('tools/parlant/build-windows-runtime.ps1');
+  assert.match(producer, /tools[\\/]wp1[\\/]lib\.js/u, 'producer must call the existing WP1 canonicalization authority');
+  assert.match(producer, /canonicalizePayloadRecords/u, 'producer must reuse canonicalizePayloadRecords');
+  assert.doesNotMatch(producer, /\$records\s*=\s*@\(\$records\s*\|\s*Sort-Object\s+path\)/u, 'PowerShell path collation must not remain seal authority');
+
+
+assert.doesNotMatch(
+  producer,
+  /ConvertFrom-Json/u,
+  'Windows PowerShell 5.1 must not collapse WP1 canonical record arrays to one record'
+);
+
+const consumer = readText('tools/wp7/lib.js');
+
+  const start = consumer.indexOf('function presealedParlantRuntimeRecords');
+  const end = consumer.indexOf('function validatePresealedParlantRuntime', start);
+  assert.ok(start >= 0 && end > start, 'WP7 Parlant seal consumer seam must remain explicit');
+  const sealConsumer = consumer.slice(start, end);
+  assert.match(sealConsumer, /wp1\.canonicalizePayloadRecords\(records\)/u, 'WP7 consumer must reuse the existing WP1 canonicalization authority');
+  assert.doesNotMatch(sealConsumer, /localeCompare/u, 'locale-aware ordering must not remain in the Parlant seal consumer path');
+});
