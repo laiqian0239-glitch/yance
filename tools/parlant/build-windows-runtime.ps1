@@ -152,13 +152,26 @@ Remove-Item -LiteralPath (Join-Path $OutputRoot 'generate_runtime_sbom.py') -For
 Get-ChildItem -LiteralPath $OutputRoot -Directory -Recurse -Force | Where-Object { $_.Name -in @('__pycache__', '.pytest_cache', '.mypy_cache', '.ruff_cache') } | Sort-Object FullName -Descending | Remove-Item -Recurse -Force
 
 $SealInput = Join-Path $WorkRoot 'runtime-tree.sha256-input.txt'
+$CanonicalRecordsInput = Join-Path $WorkRoot 'runtime-tree.records.json'
+$CanonicalRecordsOutput = Join-Path $WorkRoot 'runtime-tree.canonical-records.json'
+$Wp1Lib = Join-Path $SourceRoot 'tools\wp1\lib.js'
+if (-not (Test-Path -LiteralPath $Wp1Lib -PathType Leaf)) { throw "WP1 canonicalization authority missing: $Wp1Lib" }
+$NodeExe = (Get-Command 'node.exe' -ErrorAction Stop).Source
 $records = @()
 Get-ChildItem -LiteralPath $OutputRoot -File -Recurse -Force | Where-Object { $_.Name -ne 'runtime-seal.json' } | ForEach-Object {
   $rel = Relative-Path $OutputRoot $_.FullName
   $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
   $records += [ordered]@{ path = $rel; sizeBytes = [int64]$_.Length; sha256 = $hash }
 }
-$records = @($records | Sort-Object path)
+[IO.File]::WriteAllText($CanonicalRecordsInput, (($records | ConvertTo-Json -Depth 4 -Compress) + "`n"), (New-Object Text.UTF8Encoding($false)))
+$CanonicalizeScript = @'
+const fs = require('node:fs');
+const { canonicalizePayloadRecords } = require(process.argv[1]);
+const records = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+fs.writeFileSync(process.argv[3], `${JSON.stringify(canonicalizePayloadRecords(records))}\n`, 'utf8');
+'@
+Invoke-Checked $NodeExe @('-e', $CanonicalizeScript, $Wp1Lib, $CanonicalRecordsInput, $CanonicalRecordsOutput) 'canonicalize Parlant runtime records through WP1 authority'
+$records = @(Get-Content -LiteralPath $CanonicalRecordsOutput -Raw | ConvertFrom-Json)
 $canonicalLines = @($records | ForEach-Object { '{0}|{1}|{2}' -f $_.path, $_.sizeBytes, $_.sha256 })
 [IO.File]::WriteAllText($SealInput, (($canonicalLines -join "`n") + "`n"), (New-Object Text.UTF8Encoding($false)))
 $TreeSha = (Get-FileHash -LiteralPath $SealInput -Algorithm SHA256).Hash.ToLowerInvariant()
