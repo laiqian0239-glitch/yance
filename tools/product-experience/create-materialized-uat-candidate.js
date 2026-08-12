@@ -55,7 +55,7 @@ function normalizeRelative(root, absolutePath) {
   const parts = relative.split(path.sep);
   if (parts.some(part => !part || part === '.' || part === '..')) fail('MATERIALIZED_UAT_PATH_ESCAPE', 'candidate file identity escapes the bundle root', { relative });
   const normalized = parts.join('/');
-  if (normalized.includes('\\') || normalized.startsWith('/') || normalized === MANIFEST_FILE_NAME) {
+  if (normalized.includes('\\') || normalized.startsWith('/')) {
     fail('MATERIALIZED_UAT_PATH_INVALID', 'candidate file identity is not canonical', { normalized });
   }
   return normalized;
