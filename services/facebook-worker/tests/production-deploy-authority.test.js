@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const workerDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const canonicalConfigPath = path.join(workerDir, 'wrangler.jsonc');
+const requiredSecretsPath = path.join(workerDir, 'required-secrets.json');
 const legacyDeployConfigPath = path.join(workerDir, 'wrangler.deploy.local.jsonc');
 const EXPECTED_PRODUCTION_D1_ID = '9394aab2-8a7d-40fa-88b5-90455a7a0bbd';
 const EXPECTED_REQUIRED_SECRETS = Object.freeze([
@@ -29,11 +30,10 @@ test('Facebook Public has one canonical deployable Wrangler authority with the s
   assert.equal(fs.existsSync(legacyDeployConfigPath), false, 'legacy divergent wrangler.deploy.local.jsonc must be retired');
 });
 
-test('canonical Wrangler deployment fails closed unless every Worker-owned Facebook secret is configured', () => {
+test('canonical production deployment has a non-secret required-secret manifest without inventing Wrangler config fields', () => {
   const config = readCanonicalConfig();
-  assert.deepEqual(
-    config.secrets?.required,
-    EXPECTED_REQUIRED_SECRETS,
-    'Wrangler secrets.required must be the canonical non-secret declaration of required Worker secret names'
-  );
+  assert.equal(config.secrets, undefined, 'required secret policy must stay outside the official Wrangler configuration schema');
+  assert.equal(fs.existsSync(requiredSecretsPath), true, 'required-secrets.json must declare Worker-owned secret names');
+  const manifest = JSON.parse(fs.readFileSync(requiredSecretsPath, 'utf8'));
+  assert.deepEqual(manifest.required, EXPECTED_REQUIRED_SECRETS);
 });
