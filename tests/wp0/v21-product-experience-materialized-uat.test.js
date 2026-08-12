@@ -257,3 +257,38 @@ test('trusted Matrix image materialization uses exact upstream Dockerfile entryp
   assert.match(source, /docker\s+build\s+--tag\s+"yance-product-uat-mautrix-whatsapp:\$\{CANDIDATE_SHA\}"\s+services\/matrix\/\.runtime\/mautrix-whatsapp\s*$/mu);
   assert.doesNotMatch(source, /docker\s+build\s+--tag\s+"yance-product-uat-(?:synapse|element):[^\n]+"\s+services\/matrix\/\.runtime\/(?:synapse|element-web)\s*$/mu);
 });
+
+test('WP0 failure-first covers WP1 nested backend tests while preserving real runtime hardcoded identity rejection', () => {
+  const { execFileSync } = require('node:child_process');
+  const { scanSingleHumanMaintainedReleaseSource } = require('../../tools/wp1/lib');
+  const releaseSource = Object.freeze({ productVersion: '29.2.5', stageVersion: '6.4.5.9' });
+
+  withTemporaryDirectory(root => {
+    const writeFixture = (relative, value) => {
+      const target = path.join(root, relative);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, value, 'utf8');
+    };
+    const gitFixture = args => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+
+    writeFixture('package.json', `${JSON.stringify({ name: 'fixture', version: '0.0.0-development', private: true, description: 'fixture repository' }, null, 2)}\n`);
+    writeFixture('release/release-source.json', `${JSON.stringify(releaseSource, null, 2)}\n`);
+    writeFixture('backend/index.js', "module.exports = 'backend';\n");
+    writeFixture('backend/tests/release-identity.fixture.test.js', "const productVersion = '29.2.5';\nconst buildId = 'YANCE-29.2.5-S6.4.5.9-P1-bbbbbbbbbbbb-20260703T000000Z';\nmodule.exports = { productVersion, buildId };\n");
+    gitFixture(['init', '-q']);
+    gitFixture(['config', 'user.name', 'fixture']);
+    gitFixture(['config', 'user.email', 'fixture@local.invalid']);
+    gitFixture(['add', '.']);
+
+    const fixtureOnly = scanSingleHumanMaintainedReleaseSource(root, releaseSource);
+    assert.equal(fixtureOnly.status, 'PASS', JSON.stringify(fixtureOnly.violations));
+    assert.equal(fixtureOnly.violations.some(item => item.path.startsWith('backend/tests/')), false);
+
+    writeFixture('backend/runtime-hardcoded.js', "const buildId = 'YANCE-29.2.5-S6.4.5.9-P1-cccccccccccc-20260703T000000Z';\nmodule.exports = buildId;\n");
+    gitFixture(['add', 'backend/runtime-hardcoded.js']);
+    const withRuntimeViolation = scanSingleHumanMaintainedReleaseSource(root, releaseSource);
+    assert.equal(withRuntimeViolation.status, 'FAIL');
+    assert.ok(withRuntimeViolation.violations.some(item => item.path === 'backend/runtime-hardcoded.js' && item.reasonCode === 'WP1_RUNTIME_HARDCODED_BUILD_ID'));
+    assert.equal(withRuntimeViolation.violations.some(item => item.path.startsWith('backend/tests/')), false);
+  });
+});
