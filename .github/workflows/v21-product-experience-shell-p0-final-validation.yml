@@ -193,6 +193,54 @@ jobs:
           "archive=$((Resolve-Path $relativePath).Path)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "dist=$dist" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
+      - name: Materialize exact isolated Electron npm trust metadata
+        id: electron_npm
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $trust = Get-Content -LiteralPath 'release/electron-distribution-trust.json' -Raw | ConvertFrom-Json
+          $lock = Get-Content -LiteralPath 'package-lock.json' -Raw | ConvertFrom-Json
+          $locked = $lock.packages.'node_modules/electron'
+          if (-not $locked -or -not $locked.version -or -not $locked.integrity) { throw 'package-lock Electron record is missing version/integrity' }
+          $version = [string]$locked.version
+          $expectedIntegrity = [string]$locked.integrity
+          if ($version -ne [string]$trust.electronVersion) { throw "Electron lock/trust version mismatch: lock=$version trust=$($trust.electronVersion)" }
+          if ($expectedIntegrity -ne [string]$trust.npmPackageIntegrity) { throw 'Electron lock/trust npm integrity mismatch' }
+          if ($expectedIntegrity -notmatch '^sha512-[A-Za-z0-9+/]+={0,2}$') { throw 'Electron npm package integrity must be canonical sha512 SRI' }
+          if (Test-Path -LiteralPath 'node_modules\electron') { throw 'repository-root Electron installation is forbidden for Product Final' }
+
+          $packRoot = Join-Path $env:RUNNER_TEMP 'product-uat-electron-npm-pack'
+          $extractRoot = Join-Path $env:RUNNER_TEMP 'product-uat-electron-npm-package'
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $packRoot, $extractRoot
+          New-Item -ItemType Directory -Path $packRoot, $extractRoot | Out-Null
+
+          Push-Location $packRoot
+          try {
+            npm.cmd exec --yes --package=npm@10.9.2 -- npm pack "electron@$version" --ignore-scripts --json --pack-destination $packRoot | Out-Host
+            if ($LASTEXITCODE -ne 0) { throw "trusted-CI exact npm@10.9.2 Electron npm pack failed: $LASTEXITCODE" }
+          } finally { Pop-Location }
+
+          $tarballs = @(Get-ChildItem -LiteralPath $packRoot -Filter '*.tgz' -File)
+          if ($tarballs.Count -ne 1) { throw "expected exactly one Electron npm tarball, found $($tarballs.Count)" }
+          $tarball = $tarballs[0].FullName
+          $sha512 = [System.Security.Cryptography.SHA512]::Create()
+          $stream = [System.IO.File]::OpenRead($tarball)
+          try { $hashBytes = $sha512.ComputeHash($stream) } finally { $stream.Dispose(); $sha512.Dispose() }
+          $actualIntegrity = 'sha512-' + [Convert]::ToBase64String($hashBytes)
+          if ($actualIntegrity -ne $expectedIntegrity) { throw "Electron npm tarball integrity mismatch: expected=$expectedIntegrity actual=$actualIntegrity" }
+
+          tar.exe -xzf $tarball -C $extractRoot
+          if ($LASTEXITCODE -ne 0) { throw "Electron npm tarball extraction failed: $LASTEXITCODE" }
+          $packageRoot = Join-Path $extractRoot 'package'
+          $packageJsonPath = Join-Path $packageRoot 'package.json'
+          $checksumsPath = Join-Path $packageRoot 'checksums.json'
+          if (-not (Test-Path -LiteralPath $packageJsonPath -PathType Leaf)) { throw 'isolated Electron npm package.json is missing' }
+          if (-not (Test-Path -LiteralPath $checksumsPath -PathType Leaf)) { throw 'isolated Electron npm checksums.json is missing' }
+          $packageJson = Get-Content -LiteralPath $packageJsonPath -Raw | ConvertFrom-Json
+          if ([string]$packageJson.name -ne 'electron' -or [string]$packageJson.version -ne $version) { throw "isolated Electron npm package identity mismatch: $($packageJson.name)@$($packageJson.version)" }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'isolated Electron npm metadata materialization must leave Product source clean' }
+          "root=$((Resolve-Path $packageRoot).Path)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
       - name: Materialize reviewed Windows production dependency closure
         id: production_deps
         shell: pwsh
@@ -265,6 +313,7 @@ jobs:
             --repo-root (Resolve-Path '.').Path `
             --electron-archive '${{ steps.electron.outputs.archive }}' `
             --electron-dist '${{ steps.electron.outputs.dist }}' `
+            --electron-npm-package-root '${{ steps.electron_npm.outputs.root }}' `
             --production-node-modules '${{ steps.production_deps.outputs.node_modules }}' `
             --trusted-node-executable '${{ steps.packaged_node.outputs.node_exe }}' `
             --parlant-runtime '${{ steps.parlant.outputs.root }}' `

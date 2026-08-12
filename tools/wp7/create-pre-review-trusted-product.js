@@ -20,6 +20,7 @@ const ENV_BY_ARGUMENT = Object.freeze({
   '--repo-root': 'WP7_REPO_ROOT',
   '--electron-archive': 'WP7_ELECTRON_RELEASE_ARCHIVE',
   '--electron-dist': 'WP7_ELECTRON_DISTRIBUTION_ROOT',
+  '--electron-npm-package-root': 'WP7_ELECTRON_NPM_PACKAGE_ROOT',
   '--production-node-modules': 'WP7_PRODUCTION_NODE_MODULES',
   '--trusted-node-executable': 'WP7_TRUSTED_NODE_EXECUTABLE',
   '--parlant-runtime': 'WP7_PARLANT_RUNTIME_ROOT',
@@ -85,6 +86,7 @@ function resolveBuildInputs(options = {}) {
   const targetPlatform = argumentValue('--target-platform', { ...options, fallback: 'win32' });
   const targetArch = argumentValue('--target-arch', { ...options, fallback: 'x64' });
   const allowNonWindowsReviewFixture = booleanArgument('--allow-non-windows-review-fixture', { ...options, envName: 'WP7_ALLOW_NON_WINDOWS_REVIEW_FIXTURE' });
+  const electronNpmPackageRootValue = argumentValue('--electron-npm-package-root', options);
   if (targetPlatform !== 'win32' || targetArch !== 'x64') {
     fail('WP7_WINDOWS_FINAL_BUILD_REQUIRED', 'pre-review trusted product builder is bound to the Windows x64 release target', { targetPlatform, targetArch });
   }
@@ -97,6 +99,7 @@ function resolveBuildInputs(options = {}) {
     outputRoot,
     electronArchivePath: assertRegular(argumentValue('--electron-archive', options), 'WP7_OFFICIAL_ELECTRON_ARCHIVE_REQUIRED', 'official Electron archive'),
     electronDist: assertDirectory(argumentValue('--electron-dist', options), 'WP7_OFFICIAL_ELECTRON_DISTRIBUTION_REQUIRED', 'official Electron extracted distribution'),
+    electronNpmPackageRoot: electronNpmPackageRootValue ? assertDirectory(electronNpmPackageRootValue, 'WP7_PACKAGED_ELECTRON_TRUST_INPUT_MISSING', 'isolated Electron npm package root') : null,
     productionNodeModulesSource: assertDirectory(argumentValue('--production-node-modules', options), 'WP7_PRODUCTION_DEPENDENCY_DIRECTORY_TREE_MISMATCH', 'reviewed production node_modules'),
     trustedNodeExecutable: assertRegular(argumentValue('--trusted-node-executable', options), 'WP7_NODE_RUNTIME_EXECUTABLE_MISSING', 'trusted Node executable'),
     parlantRuntimeSource: assertDirectory(argumentValue('--parlant-runtime', options), 'WP7_PARLANT_RUNTIME_REQUIRED', 'presealed Parlant runtime'),
@@ -117,7 +120,7 @@ function archiveProduct(stagingRoot, archivePath, timestamp, targetPlatform) {
 function run(options = {}) {
   const inputs = resolveBuildInputs(options);
   const {
-    repoRoot, outputRoot, electronArchivePath, electronDist, productionNodeModulesSource,
+    repoRoot, outputRoot, electronArchivePath, electronDist, electronNpmPackageRoot, productionNodeModulesSource,
     trustedNodeExecutable, parlantRuntimeSource, rceditPath, platformAuthConfigPath, platformAuthHashPath, requirePlatformAuth,
     buildTimestampUtc, buildSessionId, targetPlatform, targetArch, allowNonWindowsReviewFixture
   } = inputs;
@@ -150,7 +153,7 @@ function run(options = {}) {
   });
   const closure = validateApplicationPayloadClosure(built.payloadRoot, built.resourcesRoot, { repoRoot, platform: targetPlatform, arch: targetArch });
   const productExecutable = path.join(built.payloadRoot, targetPlatform === 'win32' ? RELEASE_SOURCE.executableName : path.parse(RELEASE_SOURCE.executableName).name);
-  const trust = verifyTrustedProductExecutable({ repoRoot, electronArchivePath, electronDist, productExecutablePath: productExecutable, payloadRoot: built.payloadRoot, platform: targetPlatform, arch: targetArch });
+  const trust = verifyTrustedProductExecutable({ repoRoot, electronArchivePath, electronDist, electronNpmPackageRoot, productExecutablePath: productExecutable, payloadRoot: built.payloadRoot, platform: targetPlatform, arch: targetArch });
   if (built.manifest.artifactClass !== PRE_REVIEW_ARTIFACT_CLASS || built.manifest.finalReleaseEvidence !== false || closure.identity.artifactClass !== PRE_REVIEW_ARTIFACT_CLASS || closure.identity.finalReleaseEvidence !== false) {
     fail('WP7_PRE_REVIEW_ARTIFACT_CLASSIFICATION_INVALID', 'trusted product was not assembled as PRE_REVIEW_ONLY');
   }

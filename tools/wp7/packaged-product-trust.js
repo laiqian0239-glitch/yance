@@ -44,12 +44,15 @@ function platformKey(platform = process.platform, arch = process.arch) {
   return `${platform}-${arch}`;
 }
 
-function loadTrust(repoRoot = REPO_ROOT, platform = process.platform, arch = process.arch) {
+function loadTrust(repoRoot = REPO_ROOT, platform = process.platform, arch = process.arch, electronNpmPackageRoot = null) {
   const root = path.resolve(repoRoot);
   const trustPath = path.join(root, 'release', 'electron-distribution-trust.json');
   const lockPath = path.join(root, 'package-lock.json');
-  const electronPackagePath = path.join(root, 'node_modules', 'electron', 'package.json');
-  const checksumsPath = path.join(root, 'node_modules', 'electron', 'checksums.json');
+  const electronPackageRoot = electronNpmPackageRoot
+    ? path.resolve(electronNpmPackageRoot)
+    : path.join(root, 'node_modules', 'electron');
+  const electronPackagePath = path.join(electronPackageRoot, 'package.json');
+  const checksumsPath = path.join(electronPackageRoot, 'checksums.json');
   for (const [filePath, label] of [[trustPath, 'tracked trust document'], [lockPath, 'package lock'], [electronPackagePath, 'Electron npm package metadata'], [checksumsPath, 'Electron npm checksums']]) {
     if (!fs.existsSync(filePath)) fail('WP7_PACKAGED_ELECTRON_TRUST_INPUT_MISSING', `${label} is missing`, { filePath });
   }
@@ -176,7 +179,6 @@ function electronDistributionRecords(zipPath) {
   }).sort((a, b) => Buffer.from(a.path).compare(Buffer.from(b.path)));
 }
 
-
 function normalizedElectronPayloadMode(statMode, platform = process.platform) {
   const rawMode = Number(statMode) & 0o777;
   if (platform === 'win32') {
@@ -300,7 +302,7 @@ function verifyTrustedProductExecutable(options = {}) {
   const repoRoot = path.resolve(options.repoRoot || REPO_ROOT);
   const platform = options.platform || process.platform;
   const arch = options.arch || process.arch;
-  const trust = loadTrust(repoRoot, platform, arch);
+  const trust = loadTrust(repoRoot, platform, arch, options.electronNpmPackageRoot);
   const archivePath = assertRegularFile(options.electronArchivePath, 'WP7_PACKAGED_ELECTRON_ARCHIVE_REQUIRED', 'official Electron release archive');
   if (path.basename(archivePath) !== trust.archive.fileName) {
     fail('WP7_PACKAGED_ELECTRON_EXECUTABLE_TRUST_NOT_ENFORCED', 'Electron archive filename does not match the pinned release input', { expected: trust.archive.fileName, actual: path.basename(archivePath) });
