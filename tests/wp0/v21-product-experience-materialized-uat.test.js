@@ -213,3 +213,34 @@ test('Windows UAT runner is verify-only and starts an image-only Matrix compose 
   assert.doesNotMatch(compose, /^\s+context:\s*/gmu);
   assert.match(compose, /YANCE_UAT_CANDIDATE_SHA/u);
 });
+
+test('trusted desktop materialization keeps Builder-host npm separate from repository npm@10.9.2 authority', () => {
+  const source = read(WORKFLOW);
+
+  assert.match(source, /node-version:\s*['"]22\.23\.1['"]/u);
+  assert.doesNotMatch(source, /unexpected Builder-host npm/u);
+  assert.doesNotMatch(source, /\(npm --version\)\.Trim\(\) -ne '10\.9\.2'/u);
+  assert.match(source, /npm(?:\.cmd)?\s+exec\s+--yes\s+--package=npm@10\.9\.2\s+--\s+npm\s+ci[^\n]*--omit=dev[^\n]*--ignore-scripts[^\n]*--no-bin-links[^\n]*--os=win32[^\n]*--cpu=x64/u);
+  assert.doesNotMatch(source, /^\s*npm(?:\.cmd)?\s+ci\s+/mu);
+});
+
+test('trusted Linux Matrix materialization uses Git EOL working-tree semantics without weakening strict bootstrap patch checks', () => {
+  const source = read(WORKFLOW);
+  const patchPaths = [
+    'upstream-patches/element-web/0001-yance-global-right-workspace.patch',
+    'upstream-patches/element-web/0002-yance-package-manager-authority.patch',
+    'upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch',
+    'upstream-patches/element-web/0010-yance-presence-livekit-client.patch',
+    'upstream-patches/element-web/0012-yance-element-module-runtime.patch'
+  ];
+
+  for (const patchPath of patchPaths) assert.match(source, new RegExp(patchPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'));
+  const eolIndex = source.indexOf('git -c core.autocrlf=true checkout --');
+  const bootstrapIndex = source.lastIndexOf('node tools/matrix/bootstrap.js');
+  const restoreIndex = source.indexOf('git checkout --', bootstrapIndex);
+  const cleanIndex = source.indexOf('git status --porcelain=v1 --untracked-files=all', restoreIndex);
+  assert.ok(eolIndex >= 0 && eolIndex < bootstrapIndex, 'Git must materialize CRLF patch working-tree bytes before strict Matrix bootstrap');
+  assert.ok(restoreIndex > bootstrapIndex, 'normal Git checkout must restore exact patch paths after strict Matrix bootstrap');
+  assert.ok(cleanIndex > restoreIndex, 'final git-clean proof must run after patch working-tree restoration');
+  assert.doesNotMatch(source, /git\s+apply[^\n]*(?:--ignore-whitespace|--ignore-space-change|--reject)/u);
+});
