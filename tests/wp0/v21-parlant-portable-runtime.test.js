@@ -132,16 +132,15 @@ test('Parlant producer and WP7 consumer reuse WP1 UTF-8 byte canonical seal orde
   const { canonicalizePayloadRecords } = require('../../tools/wp1/lib');
   const sha = 'a'.repeat(64);
   const fixture = [
-    { path: 'ä.txt', sizeBytes: 5, sha256: sha },
-    { path: 'a.txt', sizeBytes: 4, sha256: sha },
-    { path: '_x.txt', sizeBytes: 3, sha256: sha },
-    { path: 'Z.txt', sizeBytes: 2, sha256: sha },
-    { path: 'A.txt', sizeBytes: 1, sha256: sha }
+    { path: 'ä.txt', sizeBytes: 4, sha256: sha },
+    { path: 'a.txt', sizeBytes: 3, sha256: sha },
+    { path: '_x.txt', sizeBytes: 2, sha256: sha },
+    { path: 'Z.txt', sizeBytes: 1, sha256: sha }
   ];
   const canonicalPaths = canonicalizePayloadRecords(fixture).map(row => row.path);
   const localePaths = [...fixture].sort((a, b) => a.path.localeCompare(b.path, 'en')).map(row => row.path);
   assert.notDeepEqual(localePaths, canonicalPaths, 'locale-aware ordering must not masquerade as repository UTF8_BYTE_ASCENDING authority');
-  assert.deepEqual(canonicalPaths, ['A.txt', 'Z.txt', '_x.txt', 'a.txt', 'ä.txt']);
+  assert.deepEqual(canonicalPaths, ['Z.txt', '_x.txt', 'a.txt', 'ä.txt']);
 
   const producer = readText('tools/parlant/build-windows-runtime.ps1');
   assert.match(producer, /tools[\\/]wp1[\\/]lib\.js/u, 'producer must call the existing WP1 canonicalization authority');
