@@ -28,6 +28,10 @@ function isSecretDevVarsFile(relative) {
   return basename.startsWith('.dev.vars.') && basename !== '.dev.vars.example';
 }
 
+function isRepositoryOnlyWorkerTest(relative) {
+  return relative.replace(/\\/gu, '/').startsWith('services/facebook-worker/tests/');
+}
+
 function copyTrackedFile(repoRoot, packageRoot, relative) {
   const normalized = relative.replace(/\\/gu, '/');
   if (!normalized || normalized.startsWith('/') || normalized.split('/').some(part => part === '..' || part === '.')) {
@@ -73,9 +77,6 @@ function renderRunPs1(sourceCommit) {
 `Assert-LastExit 'Node version check'\r\n` +
 `$NodeParts = $NodeVersion.Split('.')\r\n` +
 `if ([int]$NodeParts[0] -lt 22 -or ([int]$NodeParts[0] -eq 22 -and [int]$NodeParts[1] -lt 19)) { throw "Node >=22.19.0 required; found $NodeVersion" }\r\n` +
-`\r\n` +
-`& npm.cmd --prefix services/facebook-worker test\r\n` +
-`Assert-LastExit 'Facebook Public worker tests'\r\n` +
 `\r\n` +
 `& node tools/facebook/prepare-production-config.js --config services/facebook-worker/wrangler.jsonc --output-dir artifacts/facebook-production-preflight\r\n` +
 `Assert-LastExit 'Production public preflight'\r\n` +
@@ -131,13 +132,14 @@ function renderReadme(sourceCommit) {
     '  Set-ExecutionPolicy -Scope Process Bypass',
     '  .\\RUN.ps1',
     '',
-    'The script verifies package hashes, runs Facebook Public tests and production preflight,',
-    'performs a pinned Wrangler dry-run, checks Cloudflare identity, opens official Wrangler',
+    'Repository-level Facebook Public tests are completed by the source CI before this sealed package is produced.',
+    'The sealed deploy script verifies package hashes and public production configuration, performs a pinned',
+    'Wrangler dry-run from the packaged Worker source, checks Cloudflare identity, opens official Wrangler',
     'browser login only when needed, checks required secret names with official `wrangler secret list`,',
     'deploys the single canonical wrangler.jsonc, then runs the strict formal Worker verifier.',
     '',
     'The secret inventory check reads secret NAMES only. No Meta App secret, Page token, Cloudflare API token,',
-    'real .dev.vars file, hotfix deploy script, or legacy wrangler.deploy.local.jsonc is included.',
+    'real .dev.vars file, repository-only test suite, hotfix deploy script, or legacy wrangler.deploy.local.jsonc is included.',
     ''
   ].join('\r\n');
 }
@@ -179,7 +181,7 @@ function createPackage(repoRoot, outputRoot) {
   if (!workerFiles.includes('services/facebook-worker/required-secrets.json')) throw new Error('required secret-name manifest is not tracked');
   if (workerFiles.some(file => file.endsWith('wrangler.deploy.local.jsonc'))) throw new Error('legacy divergent Wrangler config is still tracked');
   for (const file of workerFiles) {
-    if (isSecretDevVarsFile(file)) continue;
+    if (isSecretDevVarsFile(file) || isRepositoryOnlyWorkerTest(file)) continue;
     copyTrackedFile(root, packageRoot, file);
   }
   for (const file of ['tools/facebook/prepare-production-config.js', 'tools/facebook/verify-formal-worker.js']) copyTrackedFile(root, packageRoot, file);
@@ -198,6 +200,9 @@ function createPackage(repoRoot, outputRoot) {
     deployAuthority: 'services/facebook-worker/wrangler.jsonc',
     requiredSecretNamesAuthority: 'services/facebook-worker/required-secrets.json',
     remoteSecretCheckAuthority: `wrangler@${WRANGLER_VERSION} secret list`,
+    repositoryTestsIncluded: false,
+    repositoryTestsAuthority: 'source CI before package creation',
+    sealedValidation: ['sha256', 'production-public-preflight', `wrangler@${WRANGLER_VERSION} deploy --dry-run`, 'wrangler secret list', 'formal-worker-runtime-verifier'],
     excludedAuthorities: ['services/facebook-worker/wrangler.deploy.local.jsonc', 'tools/facebook/deploy-avatar-proxy-routes.js', 'tools/facebook/deploy-page-discovery-hotfix.js'],
     secretsIncluded: false
   }, null, 2)}\n`, 'utf8');
