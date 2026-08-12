@@ -153,7 +153,7 @@ Get-ChildItem -LiteralPath $OutputRoot -Directory -Recurse -Force | Where-Object
 
 $SealInput = Join-Path $WorkRoot 'runtime-tree.sha256-input.txt'
 $CanonicalRecordsInput = Join-Path $WorkRoot 'runtime-tree.records.json'
-$CanonicalRecordsOutput = Join-Path $WorkRoot 'runtime-tree.canonical-records.json'
+$CanonicalRecordCountOutput = Join-Path $WorkRoot 'runtime-tree.record-count.txt'
 $Wp1Lib = Join-Path $SourceRoot 'tools\wp1\lib.js'
 if (-not (Test-Path -LiteralPath $Wp1Lib -PathType Leaf)) { throw "WP1 canonicalization authority missing: $Wp1Lib" }
 $NodeExe = (Get-Command 'node.exe' -ErrorAction Stop).Source
@@ -163,17 +163,22 @@ Get-ChildItem -LiteralPath $OutputRoot -File -Recurse -Force | Where-Object { $_
   $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
   $records += [ordered]@{ path = $rel; sizeBytes = [int64]$_.Length; sha256 = $hash }
 }
-[IO.File]::WriteAllText($CanonicalRecordsInput, (($records | ConvertTo-Json -Depth 4 -Compress) + "`n"), (New-Object Text.UTF8Encoding($false)))
+$recordsJson = ConvertTo-Json -InputObject @($records) -Depth 4 -Compress
+[IO.File]::WriteAllText($CanonicalRecordsInput, ($recordsJson + "`n"), (New-Object Text.UTF8Encoding($false)))
 $CanonicalizeScript = @'
 const fs = require('node:fs');
 const { canonicalizePayloadRecords } = require(process.argv[1]);
 const records = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
-fs.writeFileSync(process.argv[3], `${JSON.stringify(canonicalizePayloadRecords(records))}\n`, 'utf8');
+const canonical = canonicalizePayloadRecords(records);
+const lines = canonical.map((row) => `${row.path}|${row.sizeBytes}|${row.sha256}`);
+fs.writeFileSync(process.argv[3], `${lines.join('\n')}\n`, 'utf8');
+fs.writeFileSync(process.argv[4], `${canonical.length}\n`, 'utf8');
 '@
-Invoke-Checked $NodeExe @('-e', $CanonicalizeScript, $Wp1Lib, $CanonicalRecordsInput, $CanonicalRecordsOutput) 'canonicalize Parlant runtime records through WP1 authority'
-$records = @(Get-Content -LiteralPath $CanonicalRecordsOutput -Raw | ConvertFrom-Json)
-$canonicalLines = @($records | ForEach-Object { '{0}|{1}|{2}' -f $_.path, $_.sizeBytes, $_.sha256 })
-[IO.File]::WriteAllText($SealInput, (($canonicalLines -join "`n") + "`n"), (New-Object Text.UTF8Encoding($false)))
+Invoke-Checked $NodeExe @('-e', $CanonicalizeScript, $Wp1Lib, $CanonicalRecordsInput, $SealInput, $CanonicalRecordCountOutput) 'canonicalize Parlant runtime records through WP1 authority'
+[int]$CanonicalRecordCount = (Get-Content -LiteralPath $CanonicalRecordCountOutput -Raw).Trim()
+if ($CanonicalRecordCount -ne $records.Count) {
+  throw "WP1 canonicalization record count mismatch: input=$($records.Count) canonical=$CanonicalRecordCount"
+}
 $TreeSha = (Get-FileHash -LiteralPath $SealInput -Algorithm SHA256).Hash.ToLowerInvariant()
 $SbomSha = (Get-FileHash -LiteralPath (Join-Path $OutputRoot 'runtime-sbom.cdx.json') -Algorithm SHA256).Hash.ToLowerInvariant()
 $seal = [ordered]@{
@@ -183,7 +188,7 @@ $seal = [ordered]@{
   uvBuildTool = [ordered]@{ version = $UvVersion; commit = $UvCommit; asset = $UvAsset; assetSha256 = $UvAssetSha256 }
   pythonBuildStandalone = [ordered]@{ release = $PythonBuildStandaloneRelease; commit = $PythonBuildStandaloneCommit; asset = $PythonAsset; assetSha256 = $PythonAssetSha256; cpythonVersion = $CpythonVersion }
   tiktoken = [ordered]@{ version = $TiktokenVersion; commit = $TiktokenCommit; encoding = $TiktokenEncodingName; encodingUrl = $TiktokenEncodingUrl; encodingSha256 = $TiktokenEncodingSha256; cacheKeySha1 = $TiktokenCacheKey; cacheProtocol = 'TIKTOKEN_CACHE_DIR' }
-  runtime = [ordered]@{ fileCount = $records.Count; treeSha256 = $TreeSha; sbomSha256 = $SbomSha; dependencyResolution = 'build-time-only'; networkResolutionAtRuntime = $false }
+  runtime = [ordered]@{ fileCount = $CanonicalRecordCount; treeSha256 = $TreeSha; sbomSha256 = $SbomSha; dependencyResolution = 'build-time-only'; networkResolutionAtRuntime = $false }
 }
 [IO.File]::WriteAllText((Join-Path $OutputRoot 'runtime-seal.json'), (($seal | ConvertTo-Json -Depth 8) + "`n"), (New-Object Text.UTF8Encoding($false)))
 
@@ -192,4 +197,4 @@ Remove-Item -LiteralPath $ToolRoot -Recurse -Force
 Remove-Item -LiteralPath $ParlantRepo -Recurse -Force
 Remove-Item -LiteralPath $DownloadRoot -Recurse -Force
 
-Write-Host ("PARLANT_RUNTIME_SEALED root={0} files={1} treeSha256={2}" -f $OutputRoot, $records.Count, $TreeSha)
+Write-Host ("PARLANT_RUNTIME_SEALED root={0} files={1} treeSha256={2}" -f $OutputRoot, $CanonicalRecordCount, $TreeSha)

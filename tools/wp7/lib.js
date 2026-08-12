@@ -360,7 +360,7 @@ function presealedParlantRuntimeRecords(runtimeRoot) {
   if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) throw new Wp7Error('WP7_PARLANT_RUNTIME_INVALID', 'presealed Parlant runtime must be a real non-symlink directory', { runtimeRoot: root });
   const records = [];
   function visit(directory) {
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name, 'en'))) {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
       const absolute = path.join(directory, entry.name);
       if (entry.isSymbolicLink()) throw new Wp7Error('WP7_PARLANT_RUNTIME_SYMLINK_REJECTED', 'symlinks are forbidden in the presealed Parlant runtime', { path: absolute });
       if (entry.isDirectory()) visit(absolute);
@@ -373,8 +373,7 @@ function presealedParlantRuntimeRecords(runtimeRoot) {
     }
   }
   visit(root);
-  records.sort((a, b) => a.path.localeCompare(b.path, 'en'));
-  return Object.freeze(records);
+  return Object.freeze(wp1.canonicalizePayloadRecords(records));
 }
 function validatePresealedParlantRuntime(runtimeRoot) {
   const root = path.resolve(runtimeRoot);

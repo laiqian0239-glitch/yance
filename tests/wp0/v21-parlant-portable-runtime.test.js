@@ -142,12 +142,21 @@ test('Parlant producer and WP7 consumer reuse WP1 UTF-8 byte canonical seal orde
   assert.notDeepEqual(localePaths, canonicalPaths, 'locale-aware ordering must not masquerade as repository UTF8_BYTE_ASCENDING authority');
   assert.deepEqual(canonicalPaths, ['Z.txt', '_x.txt', 'a.txt', 'ä.txt']);
 
+
   const producer = readText('tools/parlant/build-windows-runtime.ps1');
   assert.match(producer, /tools[\\/]wp1[\\/]lib\.js/u, 'producer must call the existing WP1 canonicalization authority');
   assert.match(producer, /canonicalizePayloadRecords/u, 'producer must reuse canonicalizePayloadRecords');
   assert.doesNotMatch(producer, /\$records\s*=\s*@\(\$records\s*\|\s*Sort-Object\s+path\)/u, 'PowerShell path collation must not remain seal authority');
 
-  const consumer = readText('tools/wp7/lib.js');
+
+assert.doesNotMatch(
+  producer,
+  /ConvertFrom-Json/u,
+  'Windows PowerShell 5.1 must not collapse WP1 canonical record arrays to one record'
+);
+
+const consumer = readText('tools/wp7/lib.js');
+
   const start = consumer.indexOf('function presealedParlantRuntimeRecords');
   const end = consumer.indexOf('function validatePresealedParlantRuntime', start);
   assert.ok(start >= 0 && end > start, 'WP7 Parlant seal consumer seam must remain explicit');
