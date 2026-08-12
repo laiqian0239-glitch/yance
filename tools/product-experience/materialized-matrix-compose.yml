@@ -1,0 +1,30 @@
+services:
+  synapse:
+    image: yance-product-uat-synapse:${YANCE_UAT_CANDIDATE_SHA}
+    command: ["run"]
+    volumes:
+      - ./matrix-config/synapse/homeserver.yaml:/data/homeserver.yaml:ro
+      - synapse-data:/data
+    ports:
+      - "127.0.0.1:8008:8008"
+
+  element:
+    image: yance-product-uat-element:${YANCE_UAT_CANDIDATE_SHA}
+    volumes:
+      - ./matrix-config/element-config.json:/app/config.json:ro
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      - synapse
+
+  mautrix-whatsapp:
+    image: yance-product-uat-mautrix-whatsapp:${YANCE_UAT_CANDIDATE_SHA}
+    volumes:
+      - ./matrix-config/mautrix-whatsapp/config.yaml:/data/config.yaml:ro
+      - mautrix-whatsapp-data:/data
+    depends_on:
+      - synapse
+
+volumes:
+  synapse-data:
+  mautrix-whatsapp-data:
