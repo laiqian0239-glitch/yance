@@ -3,10 +3,18 @@ import assert from 'node:assert/strict';
 import { SUBSCRIBED_FIELDS } from '../src/config.js';
 
 const CHATWOOT_FACEBOOK_PAGE_PIN = '3f4d28f77bc8352bafcaf4fce94ba939f4527064';
+const META_MESSENGER_SAMPLE_PIN = 'cc87d98775965f21e10ad42a619c057501774af9';
 
 test('Facebook Public subscribes the message_echoes field required by its supported echo ingestion contract', () => {
   assert.ok(
     SUBSCRIBED_FIELDS.includes('message_echoes'),
     `Facebook Public handles message.is_echo and pinned Chatwoot ${CHATWOOT_FACEBOOK_PAGE_PIN} subscribes message_echoes, so the Meta Page subscription must include message_echoes`
+  );
+});
+
+test('Facebook Public subscribes the message_reactions field required by its supported reaction ingestion contract', () => {
+  assert.ok(
+    SUBSCRIBED_FIELDS.includes('message_reactions'),
+    `Facebook Public classifies and persists Messenger reactions under pinned Meta protocol authority ${META_MESSENGER_SAMPLE_PIN}, so the Page subscription must include message_reactions`
   );
 });
