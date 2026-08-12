@@ -319,3 +319,52 @@ test('WP0 failure-first proves the existing SillyTavern vendor slice is packaged
     assert.ok(closure.records.some(row => row.targetPath === targetPath), `WP7 closure must recognize packaged SillyTavern source: ${targetPath}`);
   }
 });
+
+test('failure-first proves Matrix EOL semantics belong only to strict git apply children', () => {
+  const { execFileSync } = require('node:child_process');
+  const workflow = read(WORKFLOW);
+  const bootstrapPath = absolute('tools/matrix/bootstrap.js');
+  const bootstrapSource = fs.readFileSync(bootstrapPath, 'utf8');
+
+  assert.doesNotMatch(
+    workflow,
+    /GIT_CONFIG_COUNT=1\s*\\\s*\n\s*GIT_CONFIG_KEY_0=core\.autocrlf\s*\\\s*\n\s*GIT_CONFIG_VALUE_0=true\s*\\\s*\n\s*node tools\/matrix\/bootstrap\.js/u,
+    'Matrix bootstrap must not inherit CRLF conversion across clone/fetch/checkout and Docker materialization'
+  );
+  assert.match(bootstrapSource, /GIT_CONFIG_COUNT/u, 'bootstrap owner layer must scope Git runtime config itself');
+  assert.match(bootstrapSource, /core\.autocrlf/u, 'bootstrap owner layer must opt only strict apply children into Git-native CRLF semantics');
+  assert.doesNotMatch(bootstrapSource, /git\s+config\s+(?:--global|--local)[^\n]*core\.autocrlf/u);
+  assert.doesNotMatch(bootstrapSource, /--ignore-whitespace|--ignore-space-change|--reject|--3way|--recount|--unidiff-zero/u);
+
+  delete require.cache[require.resolve(bootstrapPath)];
+  const matrixBootstrap = require(bootstrapPath);
+  assert.equal(typeof matrixBootstrap.applyPatch, 'function', 'real fixture requires the production strict-apply seam');
+
+  withTemporaryDirectory(root => {
+    const targetPath = path.join(root, 'target.txt');
+    const shellPath = path.join(root, 'keep-native.sh');
+    const patchPath = path.join(root, 'change.patch');
+    const gitFixture = args => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+
+    gitFixture(['init', '-q']);
+    gitFixture(['config', 'user.name', 'fixture']);
+    gitFixture(['config', 'user.email', 'fixture@local.invalid']);
+    gitFixture(['config', 'core.autocrlf', 'false']);
+    fs.writeFileSync(targetPath, Buffer.from('alpha\r\nbeta\r\n', 'utf8'));
+    fs.writeFileSync(shellPath, Buffer.from('#!/usr/bin/env bash\necho keep-native\n', 'utf8'));
+    if (process.platform !== 'win32') fs.chmodSync(shellPath, 0o755);
+    gitFixture(['add', 'target.txt', 'keep-native.sh']);
+    gitFixture(['commit', '-q', '-m', 'fixture baseline']);
+    fs.writeFileSync(
+      patchPath,
+      'diff --git a/target.txt b/target.txt\n--- a/target.txt\n+++ b/target.txt\n@@ -1,2 +1,2 @@\n alpha\n-beta\n+gamma\n',
+      'utf8'
+    );
+
+    const shellBefore = fs.readFileSync(shellPath);
+    matrixBootstrap.applyPatch(root, patchPath, 'fixture CRLF target');
+    assert.deepEqual(fs.readFileSync(targetPath), Buffer.from('alpha\r\ngamma\r\n', 'utf8'));
+    assert.deepEqual(fs.readFileSync(shellPath), shellBefore, 'unrelated executable checkout bytes must stay byte-identical');
+    assert.equal(fs.readFileSync(shellPath).includes(0x0d), false, 'unrelated shell script must remain LF-native');
+  });
+});
