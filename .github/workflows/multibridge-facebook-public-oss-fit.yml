@@ -6,7 +6,9 @@ on:
       - lab/multibridge-recovery-plan-20260811
     paths:
       - 'services/facebook-worker/**'
-      - 'tools/facebook/verify-formal-worker.js'
+      - 'tools/facebook/**'
+      - 'backend/tests/facebook*.test.js'
+      - 'backend/tests/platformAuth*.test.js'
       - 'release/facebook-production-resources/**'
       - 'package.json'
       - '.github/workflows/multibridge-facebook-public-oss-fit.yml'
@@ -25,6 +27,8 @@ jobs:
         with:
           node-version: '22.19.0'
       - name: Run Facebook Public worker tests
-        run: npm --prefix services/facebook-worker test
+        run: npm run test:facebook-worker
+      - name: Run Facebook Public integration contracts
+        run: npm run test:facebook-contracts
       - name: Probe sealed Facebook Public Cloudflare runtime
         run: npm run verify:facebook-formal-worker
