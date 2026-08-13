@@ -82,8 +82,7 @@ function withRuntime(callback) {
       events: new DomainEventLogService({ repository }),
       sendPolicy: new SendPolicyAuthority({ repository, accountStateProvider }),
       director: new AIDirectorStrategyAuthority({ repository }),
-      identity: new IdentityLinkAuthority({ repository }),
-      learning: new LearningPreferenceAuthority({ repository })
+      identity: new IdentityLinkAuthority({ repository })
     });
   } finally {
     try { store.close(); } catch (_) {}
@@ -105,8 +104,7 @@ async function withRuntimeAsync(callback) {
       events: new DomainEventLogService({ repository }),
       sendPolicy: new SendPolicyAuthority({ repository, accountStateProvider: () => accountState.accounts }),
       director: new AIDirectorStrategyAuthority({ repository }),
-      identity: new IdentityLinkAuthority({ repository }),
-      learning: new LearningPreferenceAuthority({ repository })
+      identity: new IdentityLinkAuthority({ repository })
     });
   } finally {
     try { store.close(); } catch (_) {}

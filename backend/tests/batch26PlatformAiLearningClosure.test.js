@@ -337,6 +337,13 @@ test('Batch26 Telegram history failure does not advance the durable cursor', asy
 });
 
 
+test('Batch26 reply generation does not wait on a learned-profile barrier', async () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const source = fs.readFileSync(path.join(__dirname, '../services/contextAwareReplyBrain.js'), 'utf8');
+  assert.doesNotMatch(source, /waitForLearningIdle|replyLearningScopeAuthority/u);
+});
+
 test('Batch26 feedback evidence is transaction-bound and projection jobs are retired', () => { const service=require('../services/replyFeedbackLearningService');assert.equal(service.status().customProjectionScheduler,false);assert.equal(service.status().automaticProfileMutation,false); });
 
 
