@@ -37,7 +37,54 @@ function createLangfuseLearningEvidenceAdapter(options = {}) {
     throw evidenceError('LANGFUSE_CLIENT_CONTRACT_UNAVAILABLE', 'Injected Langfuse client does not expose a supported public evidence API.');
   }
 
-  return Object.freeze({ snapshot, recordExecution });
+  async function bindTrainingEvidence(input = {}) {
+    if (!enabled) throw evidenceError('LANGFUSE_TRAINING_EVIDENCE_DISABLED', 'Langfuse must be explicitly enabled for training evidence binding.');
+    if (!client) throw evidenceError('LANGFUSE_CLIENT_REQUIRED', 'Langfuse Dataset/Score binding requires an injected client.');
+    if (!client.dataset || typeof client.dataset.create !== 'function' || typeof client.dataset.createItem !== 'function') {
+      throw evidenceError('LANGFUSE_DATASET_API_REQUIRED', 'Official Langfuse Dataset create/createItem APIs are required.');
+    }
+    if (!client.score || typeof client.score.create !== 'function') {
+      throw evidenceError('LANGFUSE_SCORE_API_REQUIRED', 'Official Langfuse Score create API is required.');
+    }
+
+    const datasetName = String(input.datasetName || '').trim();
+    const record = input.record || {};
+    const signalId = String(record.signalId || '').trim();
+    const score = record.score || {};
+    if (!datasetName || !signalId) {
+      throw evidenceError('LANGFUSE_TRAINING_RECORD_REQUIRED', 'Dataset name and canonical signal id are required.');
+    }
+    if (score.authority !== 'Langfuse' || score.approvedByLearning !== true || !String(score.scoreId || '').trim()) {
+      throw evidenceError('LANGFUSE_LEARNING_APPROVED_SCORE_REQUIRED', 'Only a Learning-approved Langfuse Score may bind training evidence.');
+    }
+
+    const dataset = await client.dataset.create({ name: datasetName });
+    const item = await client.dataset.createItem({
+      id: signalId,
+      datasetName,
+      input: record.content,
+      expectedOutput: record.outcome,
+      metadata: { signalId, scoreId: score.scoreId, approvedByLearning: true }
+    });
+    const remoteScore = await client.score.create({
+      id: score.scoreId,
+      name: score.name,
+      value: score.value,
+      metadata: { signalId, datasetName, approvedByLearning: true }
+    });
+
+    return Object.freeze({
+      bound: true,
+      authority: 'Langfuse Dataset + Score',
+      datasetName,
+      datasetId: dataset?.id || null,
+      datasetItemId: item?.id || signalId,
+      scoreId: score.scoreId,
+      remoteScoreId: remoteScore?.id || null
+    });
+  }
+
+  return Object.freeze({ snapshot, recordExecution, bindTrainingEvidence });
 }
 
 module.exports = { createLangfuseLearningEvidenceAdapter };
