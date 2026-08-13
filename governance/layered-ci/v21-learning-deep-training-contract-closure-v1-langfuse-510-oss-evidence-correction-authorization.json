@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-LEARNING-DEEP-TRAINING-CONTRACT-CLOSURE-V1-LANGFUSE-510-OSS-EVIDENCE-CORRECTION",
+  "workPackage": "V21-DEEP-TRAINING-LANGFUSE-510-EVIDENCE-CORRECTION",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Independent review of implementation PR #354 proved that merged authorization PR #353 correctly pinned @langfuse/client 5.10.0 but recorded two inaccurate official API evidence strings. The first #355 proposal attempt used an unrecognized custom erratum document type and produced a real fail-closed Stage governance RED. This successor reuses the repository's existing delegated-governance protocol and authorizes exactly one governance evidence correction: update only #353's existing ossFit.officialApiEvidence to the verified pinned Langfuse 5.10 API surface. It does not supersede or expand #353's product implementation authority.",
   "base": {
