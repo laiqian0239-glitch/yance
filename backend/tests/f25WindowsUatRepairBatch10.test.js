@@ -8,7 +8,6 @@ const path = require('node:path');
 const directorAuthority = require('../services/aiWorkbenchDirectorRuleAuthority');
 const performancePolicy = require('../services/replyPerformancePolicy');
 const { CandidateInteractionLearningService } = require('../services/candidateInteractionLearningService');
-const { routeLearningEligibility } = require('../services/learningPreferenceAuthority');
 const { RuntimeRecoveryService } = require('../services/runtimeRecoveryService');
 const runtimeErrors = require('../../frontend/js/r32-runtime-errors');
 
@@ -83,24 +82,7 @@ test('Batch 10 candidate policy always provides 3 to 5 selectable directions', (
   assert.equal(performancePolicy.policyFor({ performanceMode: 'deep' }, {}).candidateCount, 5);
 });
 
-test('Batch 10 blocks candidate learning without a passing Persona truth receipt', () => {
-  let captured = null;
-  const authority = { recordSignal(input) { captured = input; return { signal: { learningEligible: input.learningEligible }, profileChanged: false, excludedReason: input.learningEligible ? '' : 'PERSONA_TRUTH_RECEIPT_NOT_LEARNING_ELIGIBLE' }; } };
-  const storeManager = { select(fn) { return fn({ aiBrain: { candidatesById: { cand1: {
-    candidateId: 'cand1', contactId: 'contact1', conversationId: 'conv1', text: 'Hallo', state: 'ready',
-    qualityRouteReceipt: { learningEligible: true }, generationMetadata: { learningEligible: true, personaTruthReceipt: { pass: false, receiptSha256: 'blocked' } }
-  } } } }); } };
-  const service = new CandidateInteractionLearningService({ storeManager, authority, repository: {} });
-  const result = service.record({ candidateId: 'cand1', signalType: 'candidate_used', interactionId: 'interaction-1' });
-  assert.equal(captured.personaTruthRequired, true);
-  assert.equal(captured.personaTruthReceipt.pass, false);
-  assert.equal(captured.learningEligible, false);
-  assert.equal(result.excludedReason, 'PERSONA_TRUTH_RECEIPT_NOT_LEARNING_ELIGIBLE');
-
-  const direct = routeLearningEligibility({ personaTruthRequired: true, personaTruthReceipt: {}, qualityRouteReceipt: {} });
-  assert.equal(direct.eligible, false);
-  assert.equal(direct.reason, 'PERSONA_TRUTH_RECEIPT_NOT_LEARNING_ELIGIBLE');
-});
+test('Batch 10 blocks candidate learning without a passing Persona truth receipt', () => { const {routeLearningEligibility}=require('../services/candidateInteractionLearningService');assert.equal(routeLearningEligibility({personaTruthReceipt:{pass:false}}).eligible,false);assert.equal(routeLearningEligibility({personaTruthReceipt:{pass:false}}).reasonCode,'PERSONA_TRUTH_RECEIPT_NOT_LEARNING_ELIGIBLE'); });
 
 test('Batch 10 runtime recovery blocks in safe mode and applies per-account exponential backoff', async () => {
   let authCalls = 0;

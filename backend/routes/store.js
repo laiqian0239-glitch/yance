@@ -5,7 +5,6 @@ const aiGateway = require('../services/aiGateway');
 const eventBus = require('../services/eventBus');
 const productionDiagnostics = require('../services/productionDiagnosticsService');
 const { getStoreManager } = require('../store/storeManagerSingleton');
-const { ReplyFeedbackRepository } = require('../repositories/replyFeedbackRepository');
 const { getStore } = require('../repositories/storeProvider');
 const workspaceRepository = require('../repositories/workspaceRepository');
 const { selectCustomerSocialContext } = require('../store/selectors/customerSocialSelectors');
@@ -15,18 +14,15 @@ const { ensureCustomerContext } = require('../services/storeManagerService');
 const bilingualUnderstandingService = require('../services/bilingualUnderstandingService');
 const messageTranslationService = require('../services/messageTranslationService');
 const contactLanguageAuthority = require('../services/contactLanguageAuthority');
-const replyLearningScopeAuthority = require('../services/replyLearningScopeAuthority');
-const replyLearningGovernanceService = require('../services/replyLearningGovernanceService');
 const socialChineseUnderstandingService = require('../services/socialChineseUnderstandingService');
 const candidateInteractionLearningService = require('../services/candidateInteractionLearningService').singleton;
-const learningPreferenceAuthority = require('../services/learningPreferenceAuthority').singleton;
-const learningSynthesisScheduler = require('../services/learningSynthesisScheduler').singleton;
 const identityGovernanceService = require('../services/identityGovernanceService').singleton;
 const domainEventProjectionAuthority = require('../services/domainEventProjectionAuthority').singleton;
 const { singleton: platformCoreRepository } = require('../repositories/platformCoreRepository');
 const personContextAuthority = require('../services/personContextAuthority').singleton;
-const { personScopeForContact, selectPersonFeedbackVersion, restorePersonFeedbackScope } = require('../services/personFeedbackMutationAuthority');
+const { personScopeForContact } = require('../services/personFeedbackMutationAuthority');
 const { createHttpAbortScope } = require('../lib/httpAbortScope');
+const replyFeedbackLearningService = require('../services/replyFeedbackLearningService');
 
 const router = express.Router();
 
@@ -501,162 +497,63 @@ router.post('/outbox/:outboxId/send', asyncRoute(async (req, res) => {
   res.status(202).json({ ok: true, ...result.result, state: 'send_confirmed' });
 }));
 
-router.get('/customers/:contactId/reply-feedback', asyncRoute(async (req, res) => {
-  const storeManager = getStoreManager();
-  const contactId = canonicalContactId(req.params.contactId);
-  const repository = new ReplyFeedbackRepository();
-  const customer = storeManager.select(state => state.customers.byId[contactId] || null);
-  const person = personContextAuthority.snapshot({ contactId });
-  const contactIds = person.found ? person.contactIds : [contactId];
-  const perContactFeedback = storeManager.select(state => contactIds.map(id => ({
-    contactId: id,
-    feedbackLearning: state.memories.byContactId[id]?.feedbackLearning || {}
-  })));
-  const currentFeedback = perContactFeedback.find(row => row.contactId === contactId)?.feedbackLearning || {};
-  const feedbackLearning = {
-    ...currentFeedback,
-    authority: person.found ? 'PersonContextAuthority' : clean(currentFeedback.authority),
-    personId: person.personId || '',
-    contactIds,
-    perContact: perContactFeedback,
-    personFeedbackProfiles: person.learning?.feedbackProfiles || [],
-    personFeedbackEvents: person.learning?.feedbackEvents || [],
-    personLearningSignals: person.learning?.learningSignals || [],
-    effectivePersonL2Profiles: person.learning?.effectiveL2 || [],
-    personaL3Profile: person.learning?.l3 || null
-  };
-  const limit = Math.max(1, Math.min(1000, Number(req.query?.limit || 100)));
-  const versionLimit = Math.max(1, Math.min(200, Number(req.query?.versionLimit || 30)));
-  const events = contactIds.flatMap(id => repository.listEvents({ contactId: id, limit })).sort((a,b)=>clean(b.createdAt||b.created_at).localeCompare(clean(a.createdAt||a.created_at))).slice(0,limit);
-  const lifecycleEvents = contactIds.flatMap(id => repository.listLifecycleEvents({ contactId: id, limit })).sort((a,b)=>clean(b.createdAt||b.created_at).localeCompare(clean(a.createdAt||a.created_at))).slice(0,limit);
-  const versions = contactIds.flatMap(id => repository.listVersions('contact', id, { limit: versionLimit }).map(row=>({ ...row, contactId:id }))).sort((a,b)=>Number(b.version||0)-Number(a.version||0)).slice(0,versionLimit);
-  res.json({
-    ok: true,
-    contactId,
-    personId: person.personId || '',
-    contactIds,
-    feedbackLearning,
-    layeredLearning: replyLearningScopeAuthority.layered({
-      contactId,
-      platform: customer?.platform,
-      sourceAccountId: customer?.accountId,
-      contactProfile: feedbackLearning
-    }),
-    relationshipLearning: person.learning?.l2 || [],
-    events,
-    lifecycleEvents,
-    versions
+function legacyLearningMutationRetired(res, operation) {
+  return res.status(409).json({
+    ok: false,
+    reasonCode: 'LEGACY_LEARNING_PROFILE_MUTATION_RETIRED',
+    operation,
+    authority: 'Learning V4 evidence/proposal/evaluation/promotion',
+    automaticProfileMutation: false,
+    automaticPromotion: false,
+    reviewRequired: true
   });
-}));
+}
 
-router.post('/customers/:contactId/reply-feedback/restore', asyncRoute(async (req, res) => {
-  const storeManager = getStoreManager();
-  const scope = personScopeForContact(req.params.contactId);
-  const sourceVersion = Number(req.body?.version);
-  const repository = new ReplyFeedbackRepository();
-  const selected = selectPersonFeedbackVersion(scope, sourceVersion, req.body?.sourceContactId, repository);
-  const restoredBy = clean(req.body?.restoredBy) || 'user';
-  const results = await restorePersonFeedbackScope(scope, selected, restoredBy, storeManager);
+router.get('/customers/:contactId/reply-feedback', asyncRoute(async (req, res) => {
+  const contactId = canonicalContactId(req.params.contactId);
+  const scope = personScopeForContact(contactId);
+  const person = personContextAuthority.snapshot({ contactId: scope.contactId });
+  const signals = Array.isArray(person.learning?.learningSignals) ? person.learning.learningSignals : [];
+  const events = Array.isArray(person.learning?.feedbackEvents) ? person.learning.feedbackEvents : [];
   res.json({
     ok: true,
     contactId: scope.contactId,
     personId: scope.personId,
     contactIds: scope.contactIds,
-    sourceContactId: selected.contactId,
-    sourceVersion: selected.version.version,
-    results
+    authority: 'Learning V4 immutable evidence',
+    signals,
+    historicalFeedbackEvents: events,
+    automaticProfileMutation: false,
+    rawPrivateChatTraining: false,
+    status: replyFeedbackLearningService.status()
   });
 }));
 
-router.delete('/customers/:contactId/reply-feedback', asyncRoute(async (req, res) => {
-  const storeManager = getStoreManager();
-  const scope = personScopeForContact(req.params.contactId);
-  const resetBy = clean(req.body?.resetBy) || 'user';
-  const results = [];
-  for (const contactId of scope.contactIds) {
-    const dispatched = await storeManager.dispatch({
-      type: 'AI_REPLY_FEEDBACK_RESET',
-      source: 'person-feedback-reset-api',
-      payload: { contactId, resetBy }
-    });
-    results.push({ contactId, result: dispatched.result });
-  }
-  res.json({ ok: true, contactId: scope.contactId, personId: scope.personId, contactIds: scope.contactIds, results });
-}));
-
+router.post('/customers/:contactId/reply-feedback/restore', asyncRoute(async (_req, res) => legacyLearningMutationRetired(res, 'restore-profile')));
+router.delete('/customers/:contactId/reply-feedback', asyncRoute(async (_req, res) => legacyLearningMutationRetired(res, 'reset-profile')));
 
 router.get('/customers/:contactId/learning-governance', asyncRoute(async (req, res) => {
   const contactId = canonicalContactId(req.params.contactId);
-  const storeManager = getStoreManager();
-  const person = personContextAuthority.snapshot({ contactId });
-  const contactIds = person.found ? person.contactIds : [contactId];
-  const identityGovernance = contactIds.map(id => ({
-    contactId: id,
-    governance: replyLearningGovernanceService.getGovernance(id, {
-      storeManager,
-      eventLimit: req.query?.eventLimit,
-      versionLimit: req.query?.versionLimit
-    })
-  }));
-  const governance = identityGovernance.find(row => row.contactId === contactId)?.governance || identityGovernance[0]?.governance || {};
-  res.json({ ok: true, governance: {
-    ...governance,
-    personId: person.personId || '',
-    contactIds,
-    identityGovernance,
-    relationshipL2: person.learning?.l2 || [],
-    effectiveRelationshipL2: person.learning?.effectiveL2 || [],
-    factConflicts: person.profile?.conflicts || []
-  } });
+  const scope = personScopeForContact(contactId);
+  const person = personContextAuthority.snapshot({ contactId: scope.contactId });
+  res.json({
+    ok: true,
+    contactId: scope.contactId,
+    personId: scope.personId,
+    contactIds: scope.contactIds,
+    governance: {
+      authority: 'Learning V4 evidence/proposal/evaluation/promotion',
+      signals: person.learning?.learningSignals || [],
+      automaticProfileMutation: false,
+      automaticPromotion: false,
+      reviewRequired: true,
+      privacy: { rawPrivateChatTraining: false, doNotLearnSupported: true }
+    }
+  });
 }));
-
-router.patch('/customers/:contactId/learning-governance/:scopeType/preferences/:key', asyncRoute(async (req, res) => {
-  const storeManager = getStoreManager();
-  const scope = personScopeForContact(req.params.contactId);
-  const scopeType = clean(req.params.scopeType).toLowerCase();
-  const common = { scopeType, key: req.params.key, action: req.body?.action, actor: clean(req.body?.actor) || 'user' };
-  const results = [];
-  if (scopeType === 'contact') {
-    for (const contactId of scope.contactIds) results.push(await replyLearningGovernanceService.mutatePreference({ ...common, contactId }, { storeManager }));
-  } else {
-    results.push(await replyLearningGovernanceService.mutatePreference({ ...common, contactId: scope.contactId }, { storeManager }));
-  }
-  const governance = replyLearningGovernanceService.getGovernance(scope.contactId, { storeManager, eventLimit: req.body?.eventLimit, versionLimit: req.body?.versionLimit });
-  res.json({ ok: true, result: results[0], results, personId: scope.personId, contactIds: scope.contactIds, governance });
-}));
-
-router.post('/customers/:contactId/learning-governance/:scopeType/restore', asyncRoute(async (req, res) => {
-  const storeManager = getStoreManager();
-  const scope = personScopeForContact(req.params.contactId);
-  const scopeType = clean(req.params.scopeType).toLowerCase();
-  const actor = clean(req.body?.actor) || 'user';
-  let results;
-  if (scopeType === 'contact') {
-    const repository = new ReplyFeedbackRepository();
-    const selected = selectPersonFeedbackVersion(scope, Number(req.body?.version), req.body?.sourceContactId, repository);
-    results = await restorePersonFeedbackScope(scope, selected, actor, storeManager);
-  } else {
-    results = [await replyLearningGovernanceService.restore({ contactId: scope.contactId, scopeType, version: req.body?.version, actor }, { storeManager })];
-  }
-  const governance = replyLearningGovernanceService.getGovernance(scope.contactId, { storeManager, eventLimit: req.body?.eventLimit, versionLimit: req.body?.versionLimit });
-  res.json({ ok: true, result: results[0], results, personId: scope.personId, contactIds: scope.contactIds, governance });
-}));
-
-router.delete('/customers/:contactId/learning-governance/forget', asyncRoute(async (req, res) => {
-  const storeManager = getStoreManager();
-  const scope = personScopeForContact(req.params.contactId);
-  const results = [];
-  for (const contactId of scope.contactIds) {
-    results.push(await replyLearningGovernanceService.forget({
-      contactId,
-      confirmForget: req.body?.confirmForget === true,
-      actor: clean(req.body?.actor) || 'user'
-    }, { storeManager }));
-  }
-  const governance = replyLearningGovernanceService.getGovernance(scope.contactId, { storeManager, eventLimit: req.body?.eventLimit, versionLimit: req.body?.versionLimit });
-  res.json({ ok: true, result: results[0], results, personId: scope.personId, contactIds: scope.contactIds, governance });
-}));
-
+router.patch('/customers/:contactId/learning-governance/:scopeType/preferences/:key', asyncRoute(async (_req, res) => legacyLearningMutationRetired(res, 'mutate-profile-preference')));
+router.post('/customers/:contactId/learning-governance/:scopeType/restore', asyncRoute(async (_req, res) => legacyLearningMutationRetired(res, 'restore-profile')));
+router.delete('/customers/:contactId/learning-governance/forget', asyncRoute(async (_req, res) => legacyLearningMutationRetired(res, 'forget-profile')));
 
 router.get('/identity-governance', asyncRoute(async (req, res) => {
   const governance = identityGovernanceService.overview({
@@ -731,69 +628,33 @@ router.post('/event-projection/repair-blocking', asyncRoute(async (req, res) => 
 }));
 
 router.get('/learning-governance/automatic-synthesis/status', asyncRoute(async (_req, res) => {
-  res.json({ ok: true, status: learningSynthesisScheduler.snapshot() });
+  res.json({ ok: true, status: {
+    authority: 'Learning V4 evidence/proposal/evaluation/promotion',
+    automaticSynthesis: false,
+    customScheduler: false,
+    automaticProfileMutation: false,
+    automaticPromotion: false,
+    reviewRequired: true
+  } });
 }));
 
-router.post('/learning-governance/automatic-synthesis/run', asyncRoute(async (req, res) => {
-  const report = await learningSynthesisScheduler.run({ reason: clean(req.body?.reason) || 'manual-api' });
-  res.status(report.ok === false ? 207 : 200).json({ ok: report.ok !== false, report });
-}));
+router.post('/learning-governance/automatic-synthesis/run', asyncRoute(async (_req, res) => legacyLearningMutationRetired(res, 'automatic-synthesis')));
 
 router.get('/learning-governance/automatic-synthesis/overview', asyncRoute(async (req, res) => {
-  const status = learningSynthesisScheduler.snapshot();
-  const proposals = platformCoreRepository.listLearningPromotionAudits({
-    decision: clean(req.query?.decision) || 'pending-human-approval', toLevel: 'L3', limit: req.query?.limit || 100, offset: req.query?.offset || 0
-  });
-  const profiles = proposals.map(row => ({
-    promotion: row,
-    profile: platformCoreRepository.getLearningProfile({
-      scopeType: row.target_scope_type, scopeId: row.target_scope_id, learningLevel: 'L3',
-      version: Number(row.source_versions?.targetProfileVersion || 0)
-    })
-  }));
-  const activeProfiles = platformCoreRepository.listLearningProfilesFiltered({
-    state: 'active', limit: req.query?.profileLimit || 200, offset: req.query?.profileOffset || 0
-  }).map(profile => ({
-    profile,
-    versions: platformCoreRepository.listLearningProfiles({
-      scopeType: profile.scope_type, scopeId: profile.scope_id, learningLevel: profile.learning_level
-    }).map(row => ({ version: Number(row.version || 0), state: row.state, confidence: Number(row.confidence || 0), createdAt: row.created_at, activatedAt: row.activated_at }))
-  }));
   const recentAudits = platformCoreRepository.listLearningPromotionAudits({ limit: req.query?.auditLimit || 100, offset: req.query?.auditOffset || 0 });
-  res.json({ ok: true, status, proposals: profiles, activeProfiles, recentAudits, pagination: { proposalOffset: Number(req.query?.offset || 0), proposalLimit: Number(req.query?.limit || 100), proposalHasMore: proposals.length === Number(req.query?.limit || 100), profileOffset: Number(req.query?.profileOffset || 0), profileLimit: Number(req.query?.profileLimit || 200), profileHasMore: activeProfiles.length === Number(req.query?.profileLimit || 200), auditOffset: Number(req.query?.auditOffset || 0), auditLimit: Number(req.query?.auditLimit || 100), auditHasMore: recentAudits.length === Number(req.query?.auditLimit || 100) } });
+  res.json({
+    ok: true,
+    status: { authority: 'Learning V4', automaticSynthesis: false, customScheduler: false, reviewRequired: true },
+    recentAudits,
+    automaticProfileMutation: false,
+    activeProfilesAreHistoricalOnly: true
+  });
 }));
 
-router.post('/learning-governance/l3-proposals/:promotionId/approve', asyncRoute(async (req, res) => {
-  const result = learningPreferenceAuthority.approveL3Proposal({
-    promotionId: clean(req.params.promotionId),
-    actor: clean(req.body?.actor),
-    reason: clean(req.body?.reason)
-  });
-  res.json({ ok: true, result });
-}));
-
-router.post('/learning-governance/l3-proposals/:promotionId/reject', asyncRoute(async (req, res) => {
-  const result = learningPreferenceAuthority.rejectL3Proposal({
-    promotionId: clean(req.params.promotionId), actor: clean(req.body?.actor), reason: clean(req.body?.reason)
-  });
-  res.json({ ok: true, result });
-}));
-
-router.post('/learning-governance/profiles/rollback', asyncRoute(async (req, res) => {
-  const result = learningPreferenceAuthority.rollbackProfile({
-    scopeType: clean(req.body?.scopeType), scopeId: clean(req.body?.scopeId), learningLevel: clean(req.body?.learningLevel),
-    targetVersion: req.body?.targetVersion, actor: clean(req.body?.actor), reason: clean(req.body?.reason)
-  });
-  res.json({ ok: true, result });
-}));
-
-router.post('/learning-governance/profiles/forget', asyncRoute(async (req, res) => {
-  const result = learningPreferenceAuthority.forgetProfile({
-    scopeType: clean(req.body?.scopeType), scopeId: clean(req.body?.scopeId), learningLevel: clean(req.body?.learningLevel),
-    actor: clean(req.body?.actor), reason: clean(req.body?.reason)
-  });
-  res.json({ ok: true, result });
-}));
+router.post('/learning-governance/l3-proposals/:promotionId/approve', asyncRoute(async (_req, res) => legacyLearningMutationRetired(res, 'legacy-l3-approve')));
+router.post('/learning-governance/l3-proposals/:promotionId/reject', asyncRoute(async (_req, res) => legacyLearningMutationRetired(res, 'legacy-l3-reject')));
+router.post('/learning-governance/profiles/rollback', asyncRoute(async (_req, res) => legacyLearningMutationRetired(res, 'legacy-profile-rollback')));
+router.post('/learning-governance/profiles/forget', asyncRoute(async (_req, res) => legacyLearningMutationRetired(res, 'legacy-profile-forget')));
 
 router.post('/translations/structured', asyncRoute(async (req, res) => {
   const result = await socialChineseUnderstandingService.translateBundle({

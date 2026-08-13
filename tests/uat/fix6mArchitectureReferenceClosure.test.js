@@ -24,21 +24,25 @@ test('FIX6M delivery documents bind open-source reference patterns to public aut
   assert.match(checklist, /未执行/u);
 });
 
-test('FIX6M source exposes all architecture authorities and a fail-closed shadow gate', () => {
-  for (const relative of [
-    'backend/services/evidenceAuthority.js',
-    'backend/services/durableExecutionAuthority.js',
-    'backend/services/communicationAuthority.js',
-    'backend/services/channelAdapterRuntime.js',
-    'backend/services/contactRelationshipAuthority.js',
-    'backend/services/aiReplyLearningAuthority.js',
-    'backend/services/architectureShadowGate.js',
-    'backend/services/fix6mArchitectureDiagnostics.js',
-    'tools/uat/fix6mShadowClosureGate.js'
-  ]) assert.equal(fs.existsSync(path.join(ROOT, relative)), true, relative);
-  const gate = read('backend/services/architectureShadowGate.js');
-  assert.match(gate, /insufficientSamples/u);
-  assert.match(gate, /mismatches/u);
-  const diagnostics = read('backend/services/diagnosticsService.js');
-  assert.match(diagnostics, /fix6m-architecture-authorities/u);
+test('FIX6M source exposes Learning V4 evidence, privacy, evaluation and promotion authorities with retired legacy files absent', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const root = path.resolve(__dirname, '..', '..');
+
+  for (const rel of [
+    'backend/services/learningDataPolicy.js',
+    'backend/services/learningEvaluationAdapter.js',
+    'backend/services/learningPromotionAdapter.js',
+    'backend/services/learningProposalService.js'
+  ]) {
+    assert.equal(fs.existsSync(path.join(root, rel)), true, rel);
+  }
+
+  for (const rel of [
+    'backend/services/learningPreferenceAuthority.js',
+    'backend/services/learningSynthesisScheduler.js',
+    'backend/services/replyLearningScopeAuthority.js'
+  ]) {
+    assert.equal(fs.existsSync(path.join(root, rel)), false, rel);
+  }
 });

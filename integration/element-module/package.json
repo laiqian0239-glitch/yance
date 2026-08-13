@@ -14,7 +14,10 @@
     "@rive-app/react-canvas": "4.31.0",
     "howler": "2.2.4",
     "livekit-client": "2.21.0",
-    "motion": "12.42.2"
+    "motion": "12.42.2",
+    "@assistant-ui/react": "0.15.1",
+    "lucide-react": "0.563.0",
+    "zod": "4.4.3"
   },
   "peerDependencies": {
     "react": ">=18"

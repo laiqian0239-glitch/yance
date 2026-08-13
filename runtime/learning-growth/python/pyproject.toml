@@ -1,0 +1,17 @@
+[project]
+name = "yance-learning-growth-runtime"
+version = "0.0.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "apscheduler==3.11.3",
+  "dspy==3.3.0",
+  "gepa==0.1.1",
+  "opentelemetry-api==1.44.0",
+  "opentelemetry-sdk==1.44.0",
+  "opentelemetry-exporter-otlp-proto-http==1.44.0",
+  "presidio-analyzer==2.2.364",
+  "presidio-anonymizer==2.2.364"
+]
+
+[tool.uv]
+package = false

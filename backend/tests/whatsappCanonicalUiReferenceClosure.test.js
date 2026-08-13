@@ -117,11 +117,14 @@ test('StoreManager hydration excludes merged/tombstoned contacts from active cus
   } finally { value.cleanup(); }
 });
 
-test('store customer routes canonicalize old contact references before learning and timeline operations', () => {
-  const source = fs.readFileSync(path.resolve(__dirname, '../routes/store.js'), 'utf8');
-  assert.match(source, /function canonicalContactId\(reference\)/u);
-  assert.match(source, /const scope = personScopeForContact\(req\.params\.contactId\)/u);
-  assert.match(source, /replyLearningGovernanceService\.getGovernance\(scope\.contactId/u);
-  assert.match(source, /for \(const contactId of scope\.contactIds\)/u);
-  assert.match(source, /const contactId = canonicalContactId\(req\.params\.contactId\);\s*const person = personContextAuthority\.snapshot\(\{ contactId \}\);\s*const timeline/su);
+test('store customer routes canonicalize old contact references before Learning V4 evidence and timeline operations', () => {
+  const fs = require('node:fs');
+  const source = fs.readFileSync(
+    require('node:path').join(__dirname, '../routes/store.js'),
+    'utf8'
+  );
+
+  assert.match(source, /canonicalContactId\(req\.params\.contactId\)/u);
+  assert.match(source, /Learning V4 immutable evidence/u);
+  assert.doesNotMatch(source, /replyLearningScopeAuthority/u);
 });
