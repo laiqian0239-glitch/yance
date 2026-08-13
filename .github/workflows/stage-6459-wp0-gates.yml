@@ -232,6 +232,8 @@ jobs:
         run: node --test --test-concurrency=1 tests/wp0/open-source-work-package-authorization.test.js
       - name: Run implementation branch policy contract
         run: node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js
+      - name: Run base-owned evaluated repository root contract
+        run: node --test --test-concurrency=1 tests/wp0/base-owned-evaluated-repository-root.test.js
       - name: Enforce OSS-first development admission
         run: node --test --test-concurrency=1 tests/wp0/oss-first-development-policy.test.js
       - name: Run independent review contract

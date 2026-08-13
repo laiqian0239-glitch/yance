@@ -114,7 +114,7 @@ test('pure Superpowers product plan/spec Markdown selects non-executable PRODUCT
     const result = classifyWp0Route(policy, [file]);
     assert.equal(result.pass, true, JSON.stringify(result));
     assert.equal(result.route, ROUTES.PRODUCT_DOCUMENTATION, file);
-    assert.equal(result.productDocumentationChangesPresent, true, file);
+    assert.equal(result.productDocumentationChangesPresent, true);
     assert.equal(result.productChangesPresent, false);
     assert.equal(result.governanceChangesPresent, false);
     assert.equal(result.executionAuthorized, false);
