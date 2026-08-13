@@ -1,0 +1,23 @@
+{
+  "repository": "assistant-ui/tool-ui",
+  "commit": "ee6389647e997f8637c21187f3e49c2db6cde3a5",
+  "license": "MIT",
+  "vendoredAt": "vendor/assistant-ui-tool-ui/v2026.2.13",
+  "sourceRoots": [
+    "components/tool-ui/approval-card",
+    "components/tool-ui/question-flow",
+    "components/tool-ui/progress-tracker",
+    "components/tool-ui/shared"
+  ],
+  "components": [
+    "ApprovalCard",
+    "QuestionFlow",
+    "ProgressTracker"
+  ],
+  "policy": {
+    "coreFilesByteIdenticalToUpstream": true,
+    "adapterFilesArePortabilitySeams": true,
+    "adapterAuthority": "React host primitives only; no Yance UI framework",
+    "upstreamRuntimeAuthorityPreserved": true
+  }
+}

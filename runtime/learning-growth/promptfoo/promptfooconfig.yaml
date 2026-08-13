@@ -1,0 +1,12 @@
+description: Yance Learning Growth Brain precomputed regression
+providers:
+  - id: file://precomputed-provider.cjs
+prompts:
+  - "{{prompt}}"
+tests:
+  - vars:
+      prompt: "Learning regression case"
+      modelBrainOutput: "{{modelBrainOutput}}"
+    assert:
+      - type: javascript
+        value: "output => typeof output === 'string' && output.length > 0"

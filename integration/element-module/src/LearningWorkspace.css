@@ -1,0 +1,19 @@
+.yance-learning-workspace { display: grid; gap: 12px; min-width: 0; }
+.yance-learning-workspace > header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.yance-learning-workspace > header > div { display: grid; gap: 3px; }
+.yance-learning-workspace > header span, .learning-status { opacity: .72; font-size: 12px; }
+.yance-learning-workspace > nav { display: flex; flex-wrap: wrap; gap: 6px; }
+.yance-learning-workspace button, .yance-learning-workspace input, .yance-learning-workspace textarea { font: inherit; }
+.yance-learning-workspace > nav button[aria-pressed="true"] { font-weight: 700; }
+.yance-learning-workspace > section { display: grid; gap: 12px; }
+.learning-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 0; }
+.learning-grid > div { border: 1px solid currentColor; border-radius: 8px; padding: 8px; opacity: .9; }
+.learning-grid dt { font-size: 12px; opacity: .7; }
+.learning-grid dd { margin: 4px 0 0; }
+.learning-coach { display: grid; gap: 10px; }
+.learning-coach label { display: grid; gap: 5px; }
+.learning-coach input, .learning-coach textarea { width: 100%; box-sizing: border-box; }
+.learning-toggle { display: flex; gap: 8px; align-items: flex-start; }
+.yance-learning-workspace [data-slot="approval-card"],
+.yance-learning-workspace [data-slot="question-flow"],
+.yance-learning-workspace [data-slot="progress-tracker"] { max-width: 100%; min-width: 0; }

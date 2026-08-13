@@ -1,8 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
-const path = require('node:path');
-const { NamedRuntimeMutex, RuntimeMutexSet, runtimeMutexName, legacyRuntimeMutexName } = require('./NamedRuntimeMutex');
+const { NamedRuntimeMutex } = require('./NamedRuntimeMutex');
 const { RuntimeStateStore } = require('./RuntimeStateStore');
 const { normalizeRuntimeError } = require('./errors');
 const { canonicalizeRuntimePaths } = require('./RuntimePathIdentity');
@@ -78,32 +77,10 @@ class RuntimeOwnership {
     this.leaseName = options.leaseName || 'app-runtime';
     this.leaseDurationMs = Math.max(3000, Number(options.leaseDurationMs || 15000));
     this.heartbeatIntervalMs = Math.max(500, Math.min(this.leaseDurationMs / 3, Number(options.heartbeatIntervalMs || 4000)));
-    if (options.mutex) {
-      this.mutex = options.mutex;
-    } else {
-      const primaryMutexName = options.mutexName || runtimeMutexName(runtimePaths.mutexIdentity);
-      const compatibilityMutexNames = [legacyRuntimeMutexName(runtimePaths.mutexIdentity)];
-      const legacyDataRoot = String(options.legacyDataRoot || process.env.YANCE_LEGACY_DATA_DIR || '').trim();
-      if (legacyDataRoot) {
-        try {
-          const legacyPaths = canonicalizeRuntimePaths({
-            dataRoot: legacyDataRoot,
-            dbPath: path.join(legacyDataRoot, 'store', 'yance-r32.db'),
-            platform: options.platform
-          });
-          compatibilityMutexNames.push(legacyRuntimeMutexName(legacyPaths.mutexIdentity));
-        } catch (_) {
-          // The legacy root is migration-only. If it no longer exists or cannot
-          // be identified, the same-path legacy mutex still protects explicit
-          // data-root launches without blocking the new runtime.
-        }
-      }
-      this.mutex = new RuntimeMutexSet({
-        names: [primaryMutexName, ...compatibilityMutexNames],
-        platform: options.platform,
-        acquireTimeoutMs: options.acquireTimeoutMs
-      });
-    }
+    this.mutex = options.mutex || new NamedRuntimeMutex({
+      lockTarget: runtimePaths.dbPath,
+      acquireTimeoutMs: options.acquireTimeoutMs
+    });
     this._ownedSqliteBroker = null;
     this._ownedAuthorityWriteHost = null;
     this.authorityWriteHostFactory = options.authorityWriteHostFactory || acquireAuthorityWriteHost;
@@ -282,7 +259,7 @@ class RuntimeOwnership {
       if (!this._acquired) return;
       // Best-effort synchronous cleanup so a crash cannot strand the next boot:
       //  - releaseLease is a synchronous SQLite write that clears the lease row
-      //  - mutex.release() tears down the portable loopback socket / Windows named-mutex helper
+      //  - proper-lockfile owns process exclusion and performs its own process-exit cleanup
       try { this.store?.releaseLease(this.guard()); } catch (_) {}
       try { this.mutex?.release?.(); } catch (_) {}
       this._acquired = false;
@@ -343,6 +320,7 @@ class RuntimeOwnership {
       dbPathIdentity: this.runtimePaths.dbPathIdentity,
       mutexIdentityKind: this.runtimePaths.mutexIdentityKind,
       mutexIdentity: this.runtimePaths.mutexIdentity,
+      mutexProvider: this.mutex.provider,
       mutex: this.mutex.snapshot(),
       heartbeatAtUtc: this.lease?.heartbeatAtUtc || '',
       leaseExpiresAtUtc: this.lease?.leaseExpiresAtUtc || ''
