@@ -115,7 +115,8 @@
     "decision": "EXTEND_EXISTING_MATURE_OSS_SEAMS_WITH_THIN_YANCE_PROJECTION_ONLY",
     "matureOssAvailable": true,
     "matureOssMandatory": true,
-    "selectedAdoptionMode": "existing-repository-seams",
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
     "reviewedCandidates": [
       {
         "name": "Langfuse @langfuse/client 5.10.0 + @langfuse/tracing 5.10.0 + @langfuse/otel 5.10.0",
