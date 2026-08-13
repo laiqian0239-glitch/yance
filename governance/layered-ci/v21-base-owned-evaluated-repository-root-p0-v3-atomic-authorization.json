@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-13T12:53:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-BASE-OWNED-WP0-SPLIT-ROOT-ATOMIC-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main classification repair #341 has now placed tests/wp0/base-owned-evaluated-repository-root.test.js under trusted GOVERNANCE_WP0 routing without executing it. This removes the self-bootstrap cycle proven by #335 and #339. The remaining bottom-level repair must now be atomic: the candidate adds the dedicated split-root caller regression and a structural exact-workflow coverage contract as failure-first evidence, then the immediate post-RED commit simultaneously installs the already reviewed tools/wp0/lib.js candidate-identity binding and exactly one fail-fast invocation of the dedicated regression in the existing wp0-governance job. Base-owned routing remains trusted-main authority; candidate verify-gate.js never becomes self-authority.",
+  "base": {
+    "branch": "main",
+    "commit": "5ea0a38c502dfd13c78a8004c56bbcb4933f3fa1"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_TRUSTED_GOVERNANCE_ROUTE_AND_SPLIT_ROOT_SEAMS",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "selfBuiltEquivalentFrameworkAllowed": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Stage 6.4.5.9 GOVERNANCE_WP0 route",
+        "source": ".github/workflows/stage-6459-wp0-gates.yml",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The mature repository route already owns governance execution. PR #86 established exact single-contract, fail-fast execution as the accepted pattern; no new route or workflow is needed."
+      },
+      {
+        "name": "Existing split-root WP0 caller and delegated policy API",
+        "source": "tools/wp0/lib.js + shared/release/implementationBranchPolicy.js",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The delegated policy already exposes evaluatedHead/evaluatedRepositoryRoot inputs. The repair only binds candidate identity at the existing base-owned caller seam while preserving explicit overrides."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test via existing pinned Node toolchain",
+        "license": "MIT-compatible Node.js project licensing",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The existing governance job already uses exact node --test commands; no additional test framework or dependency is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a new workflow or WP0 route.",
+      "Do not broaden governance/product prefixes or use tests/wp0/*.test.js.",
+      "Do not execute candidate-owned tools/wp0/verify-gate.js as trusted authority.",
+      "Do not use stage/rebuild branch aliases as an authority bypass.",
+      "Do not weaken mixedChangesEscalateToProduct, unknownPathFailsClosed, failure-first evidence, or explicit-override semantics."
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-base-owned-evaluated-repository-root-p0-v3-atomic-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-base-owned-evaluated-repository-root-p0-v3-atomic-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "ab21aa4de9fa84bbad86b189b46ff8a95d3e0c6fd54305b64e84e11a0ace2efc",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-base-owned-evaluated-repository-root-p0-v3-atomic",
+    "allowedChangedPaths": [
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      "tests/layered-ci/wp0-routing.test.js",
+      "tests/wp0/base-owned-evaluated-repository-root.test.js",
+      "tools/wp0/lib.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "a32b7993fba723216b0c160e6828cebf15dfc898a198d2651433acd4211f4d10",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/wp0-routing.test.js",
+        "tests/wp0/base-owned-evaluated-repository-root.test.js"
+      ],
+      "approvedChangedFileCount": 2,
+      "approvedChangedFileSetSha256": "4f75f1c4f8c48c3836c937b6bf7cb9af0d202b23f8a437076ca1f8fd35c244fb",
+      "productionCodeChanged": false,
+      "freshCausalRedRequired": true
+    },
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/stage-6459-wp0-gates.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "0b4f62bf34c62789474d394400d03e65bde1638fdff568d1cfd09b5a551fc815"
+    },
+    "newDependencyAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "atomicRepairContract": {
+    "trustedRoutingPrerequisiteMerge": "5ea0a38c502dfd13c78a8004c56bbcb4933f3fa1",
+    "dedicatedTestPath": "tests/wp0/base-owned-evaluated-repository-root.test.js",
+    "baseOwnedCallerPath": "tools/wp0/lib.js",
+    "workflowPath": ".github/workflows/stage-6459-wp0-gates.yml",
+    "workflowJob": "wp0-governance",
+    "workflowStructuralTestPath": "tests/layered-ci/wp0-routing.test.js",
+    "exactCommand": "node --test --test-concurrency=1 tests/wp0/base-owned-evaluated-repository-root.test.js",
+    "exactInvocationCount": 1,
+    "candidateIdentityMustBindEvaluatedRepositoryRoot": true,
+    "candidateIdentityMustBindEvaluatedHead": true,
+    "explicitCallerOverridesMustWin": true,
+    "genericDelegatedNestedOptionsMustReceiveCandidateIdentity": true,
+    "trustedPolicyRootRemainsAuthority": true,
+    "candidateVerifyGateAuthorityForbidden": true,
+    "broadWp0WildcardForbidden": true,
+    "continueOnErrorForbidden": true,
+    "shellSuppressionForbidden": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit changes only tests/layered-ci/wp0-routing.test.js and tests/wp0/base-owned-evaluated-repository-root.test.js.",
+    "The dedicated split-root test proves the base-owned WP0 caller must bind candidate evaluatedRepositoryRoot and evaluatedHead through the existing implementationBranchOptions/delegatedGovernance.generic API while preserving explicit caller overrides.",
+    "The workflow structural test proves wp0-governance does not yet execute the dedicated split-root contract exactly once and fail fast.",
+    "The first post-RED commit is the immediate child of the RED Head, carries exact Yance-Failure-First-Red-Head/Run/Conclusion trailers, and atomically modifies only tools/wp0/lib.js plus .github/workflows/stage-6459-wp0-gates.yml.",
+    "The GREEN workflow executes exactly once: node --test --test-concurrency=1 tests/wp0/base-owned-evaluated-repository-root.test.js inside the existing wp0-governance job.",
+    "No routing policy change is permitted in this atomic work package; trusted main classification from #341 is the routing authority.",
+    "Existing implementation-branch policy, OSS-first, security, protocol, mixed-change and unknown-path fail-closed semantics remain unchanged."
+  ],
+  "verification": {
+    "mandatory": [
+      "fresh two-test causal RED on exact implementation Head",
+      "fresh Stage GOVERNANCE_WP0 exact GREEN Head",
+      "dedicated split-root contract executes exactly once and passes",
+      "full implementation branch policy contract GREEN",
+      "OSS-first, independent review, security scanner and protocol descriptor GREEN",
+      "Layered CI and ACV2 exact implementation Head without failure",
+      "ordinary two-parent implementation merge and post-merge GREEN"
+    ],
+    "ordinaryTwoParentImplementationMergeRequired": true,
+    "postMergeGreenRequired": true
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "candidateSelfAuthorization": true,
+    "newWp0Route": true,
+    "newWorkflow": true,
+    "routingPolicyModification": true,
+    "broadGovernancePrefix": true,
+    "wildcardAuthorization": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebaseOrAmendPublishedHistory": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}

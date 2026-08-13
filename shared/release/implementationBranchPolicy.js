@@ -716,12 +716,20 @@ function resolveDelegatedRouteBootstrapDeclaration(authorization) {
     {
       paths: 'futureProductBootstrapPaths',
       count: 'futureProductBootstrapPathCount',
-      digest: 'futureProductBootstrapPathSetSha256'
+      digest: 'futureProductBootstrapPathSetSha256',
+      destination: 'productExactPaths'
     },
     {
       paths: 'bootstrapPaths',
       count: 'bootstrapPathCount',
-      digest: 'bootstrapPathSetSha256'
+      digest: 'bootstrapPathSetSha256',
+      destination: 'productExactPaths'
+    },
+    {
+      paths: 'governanceBootstrapPaths',
+      count: 'governanceBootstrapPathCount',
+      digest: 'governanceBootstrapPathSetSha256',
+      destination: 'governanceExactPaths'
     }
   ];
   const present = schemas.filter(schema => Object.prototype.hasOwnProperty.call(authorization, schema.paths));
@@ -738,7 +746,8 @@ function resolveDelegatedRouteBootstrapDeclaration(authorization) {
     paths: Object.freeze(normalized),
     pathField: schema.paths,
     countField: schema.count,
-    digestField: schema.digest
+    digestField: schema.digest,
+    destinationPolicyField: schema.destination
   });
 }
 
@@ -758,17 +767,20 @@ function validateDelegatedRoutePolicyMutation(options = {}) {
   }
   const declaration = resolveDelegatedRouteBootstrapDeclaration(authorization);
   if (!declaration) return denied();
-  if (!Array.isArray(basePolicy.productExactPaths) || !Array.isArray(candidatePolicy.productExactPaths)) {
+  const destinationPolicyField = declaration.destinationPolicyField;
+  if (!['productExactPaths', 'governanceExactPaths'].includes(destinationPolicyField)
+    || !Array.isArray(basePolicy[destinationPolicyField])
+    || !Array.isArray(candidatePolicy[destinationPolicyField])) {
     return denied();
   }
-  if (basePolicy.productExactPaths.some(repositoryPath => !isExactAdditionalPath(repositoryPath))
-    || candidatePolicy.productExactPaths.some(repositoryPath => !isExactAdditionalPath(repositoryPath))) {
+  if (basePolicy[destinationPolicyField].some(repositoryPath => !isExactAdditionalPath(repositoryPath))
+    || candidatePolicy[destinationPolicyField].some(repositoryPath => !isExactAdditionalPath(repositoryPath))) {
     return denied();
   }
-  const baseExact = normalizeChangedFiles(basePolicy.productExactPaths);
-  const candidateExact = normalizeChangedFiles(candidatePolicy.productExactPaths);
-  if (baseExact.length !== basePolicy.productExactPaths.length
-    || candidateExact.length !== candidatePolicy.productExactPaths.length) return denied();
+  const baseExact = normalizeChangedFiles(basePolicy[destinationPolicyField]);
+  const candidateExact = normalizeChangedFiles(candidatePolicy[destinationPolicyField]);
+  if (baseExact.length !== basePolicy[destinationPolicyField].length
+    || candidateExact.length !== candidatePolicy[destinationPolicyField].length) return denied();
 
   const expectedExact = normalizeChangedFiles([...baseExact, ...declaration.paths]);
   if (!sameJson(candidateExact, expectedExact)) {
@@ -777,8 +789,8 @@ function validateDelegatedRoutePolicyMutation(options = {}) {
 
   const baseRest = { ...basePolicy };
   const candidateRest = { ...candidatePolicy };
-  delete baseRest.productExactPaths;
-  delete candidateRest.productExactPaths;
+  delete baseRest[destinationPolicyField];
+  delete candidateRest[destinationPolicyField];
   if (!sameJson(baseRest, candidateRest)) {
     return denied({ declaredPaths: declaration.paths });
   }
@@ -787,7 +799,8 @@ function validateDelegatedRoutePolicyMutation(options = {}) {
     pass: true,
     reasonCode: null,
     declaredPaths: declaration.paths,
-    declarationPathField: declaration.pathField
+    declarationPathField: declaration.pathField,
+    destinationPolicyField
   });
 }
 

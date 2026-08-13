@@ -1427,3 +1427,103 @@ test('Stage GOVERNANCE_WP0 executes the repository OSS-first authorization gate'
     'wp0-governance must execute the repository OSS-first authorization gate'
   );
 });
+
+test('generic delegated route guard accepts frozen governance exact bootstrap additions', () => {
+  const policy = require('../../shared/release/implementationBranchPolicy');
+  const validate = policy.validateDelegatedRoutePolicyMutation;
+  assert.equal(typeof validate, 'function');
+
+  const basePolicy = readRepositoryJson('governance/layered-ci/wp0-routing-policy.json');
+  const bootstrapPath = 'tests/wp0/base-owned-evaluated-repository-root.test.js';
+  const authorization = {
+    governanceBootstrapPaths: [bootstrapPath],
+    governanceBootstrapPathCount: 1,
+    governanceBootstrapPathSetSha256: workPackageChangedFilesSha256([bootstrapPath])
+  };
+
+  const candidatePolicy = clone(basePolicy);
+  candidatePolicy.governanceExactPaths = [
+    ...new Set([...(candidatePolicy.governanceExactPaths || []), bootstrapPath])
+  ].sort();
+
+  const result = validate({ authorization, basePolicy, candidatePolicy });
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.reasonCode, null, JSON.stringify(result));
+});
+
+test('generic delegated route guard rejects governance bootstrap ambiguity and semantic drift', () => {
+  const policy = require('../../shared/release/implementationBranchPolicy');
+  const validate = policy.validateDelegatedRoutePolicyMutation;
+  const basePolicy = readRepositoryJson('governance/layered-ci/wp0-routing-policy.json');
+  const bootstrapPath = 'tests/wp0/base-owned-evaluated-repository-root.test.js';
+  const digest = workPackageChangedFilesSha256([bootstrapPath]);
+  const baseAuthorization = {
+    governanceBootstrapPaths: [bootstrapPath],
+    governanceBootstrapPathCount: 1,
+    governanceBootstrapPathSetSha256: digest
+  };
+  const exactCandidate = () => {
+    const candidate = clone(basePolicy);
+    candidate.governanceExactPaths = [
+      ...new Set([...(candidate.governanceExactPaths || []), bootstrapPath])
+    ].sort();
+    return candidate;
+  };
+  const denied = (authorization, candidatePolicy) => {
+    const result = validate({ authorization, basePolicy, candidatePolicy });
+    assert.equal(result.pass, false, JSON.stringify(result));
+    assert.equal(result.reasonCode, 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED', JSON.stringify(result));
+  };
+
+  const simultaneous = clone(baseAuthorization);
+  simultaneous.bootstrapPaths = ['runtime/forbidden-bootstrap.json'];
+  simultaneous.bootstrapPathCount = 1;
+  simultaneous.bootstrapPathSetSha256 = workPackageChangedFilesSha256(simultaneous.bootstrapPaths);
+  denied(simultaneous, exactCandidate());
+
+  const wrongCount = clone(baseAuthorization);
+  wrongCount.governanceBootstrapPathCount = 2;
+  denied(wrongCount, exactCandidate());
+
+  const wrongDigest = clone(baseAuthorization);
+  wrongDigest.governanceBootstrapPathSetSha256 = '0'.repeat(64);
+  denied(wrongDigest, exactCandidate());
+
+  const nonExact = {
+    governanceBootstrapPaths: ['tests/wp0/*'],
+    governanceBootstrapPathCount: 1,
+    governanceBootstrapPathSetSha256: workPackageChangedFilesSha256(['tests/wp0/*'])
+  };
+  const nonExactCandidate = clone(basePolicy);
+  nonExactCandidate.governanceExactPaths = [...basePolicy.governanceExactPaths, 'tests/wp0/*'].sort();
+  denied(nonExact, nonExactCandidate);
+
+  const unrelatedExact = exactCandidate();
+  unrelatedExact.governanceExactPaths.push('tests/wp0/unapproved-governance-contract.test.js');
+  unrelatedExact.governanceExactPaths.sort();
+  denied(baseAuthorization, unrelatedExact);
+
+  const removedExisting = exactCandidate();
+  removedExisting.governanceExactPaths = removedExisting.governanceExactPaths
+    .filter(repositoryPath => repositoryPath !== basePolicy.governanceExactPaths[0]);
+  denied(baseAuthorization, removedExisting);
+
+  const productDrift = exactCandidate();
+  productDrift.productExactPaths = [...productDrift.productExactPaths, 'runtime/unapproved-product.json'].sort();
+  denied(baseAuthorization, productDrift);
+
+  const prefixDrift = exactCandidate();
+  prefixDrift.governancePrefixes = [...prefixDrift.governancePrefixes, 'runtime/'];
+  denied(baseAuthorization, prefixDrift);
+
+  const documentationDrift = exactCandidate();
+  documentationDrift.productDocumentationExtensions = [
+    ...documentationDrift.productDocumentationExtensions,
+    '.txt'
+  ];
+  denied(baseAuthorization, documentationDrift);
+
+  const failClosedWeakening = exactCandidate();
+  failClosedWeakening.unknownPathFailsClosed = false;
+  denied(baseAuthorization, failClosedWeakening);
+});

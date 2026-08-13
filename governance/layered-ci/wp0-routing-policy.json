@@ -21,6 +21,7 @@
     "shared/release/implementationBranchPolicy.js",
     "shared/release/openSourceWorkPackagePolicy.js",
     "tests/wp0/acv2-work-package-scope-wiring.test.js",
+    "tests/wp0/base-owned-evaluated-repository-root.test.js",
     "tests/wp0/evidence-source-binding.test.js",
     "tests/wp0/forbidden-hotfix-entrypoints.test.js",
     "tests/wp0/freeze-rejected-baseline.test.js",
