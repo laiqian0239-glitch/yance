@@ -4,7 +4,7 @@
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-BASE-OWNED-EVALUATED-REPOSITORY-ROOT-P0",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Repair the base-owned WP0 delegated-governance evaluator so candidate Git identity is resolved from YANCE_EVALUATED_REPOSITORY_ROOT while trusted policy and trusted-main authority remain rooted in the base-owned policy worktree. PR #331 proved the current split-root executable gate resolves evaluatedHead from the trusted policy worktree, collapsing a valid Voice failure-first lineage into WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_INVALID / WP0_REJECTED_STAGE_TARGET_DENIED.",
+  "reason": "Repair the base-owned WP0 split-root caller so candidate Git identity is explicitly bound from YANCE_EVALUATED_REPOSITORY_ROOT into the existing delegated-governance evaluatedHead API while trusted policy and trusted-main authority remain rooted in the base-owned policy worktree. PR #331 proved the current caller omits that binding, so the shared policy's same-root default resolves the trusted policy HEAD, collapses a valid Voice failure-first lineage to zero first-parent descendants, and yields WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_INVALID / WP0_REJECTED_STAGE_TARGET_DENIED.",
   "base": {
     "branch": "main",
     "commit": "dbc375dc975a4419ab7f27206694ccd28931d284"
@@ -30,11 +30,11 @@
   "implementation": {
     "branch": "fix/v21-base-owned-evaluated-repository-root-p0",
     "allowedChangedPaths": [
-      "shared/release/implementationBranchPolicy.js",
-      "tests/wp0/base-owned-evaluated-repository-root.test.js"
+      "tests/wp0/base-owned-evaluated-repository-root.test.js",
+      "tools/wp0/lib.js"
     ],
     "approvedChangedFileCount": 2,
-    "approvedChangedFileSetSha256": "2d9853184508459c852fd9381e3aa6744c2064a1ac92d5503c28b4f13818a744",
+    "approvedChangedFileSetSha256": "63f8cbbe5fb555ce774f03f1c812447b666db4ae1d697a0a730685d9bc94ca60",
     "newDependencyAllowed": false,
     "workflowModificationAllowed": false,
     "failureFirstCommit": {
@@ -52,16 +52,41 @@
   "rootCauseContract": {
     "trustedPolicyRootOwnsExecutableAndTrustedMainAuthority": true,
     "evaluatedRepositoryRootOwnsCandidateHeadIdentity": true,
-    "candidateHeadMustNotDefaultToTrustedPolicyWorktreeHeadWhenRootsDiffer": true,
+    "splitRootCallerMustBindCandidateHeadExplicitly": true,
     "failureFirstTopologyMustEvaluateTheCandidateFirstParentLineage": true,
-    "environmentOverrideMustRemainFailClosedAndGitEnvironmentSanitized": true
+    "explicitCallerOverridesMustRemainAuthoritative": true,
+    "missingOrInvalidCandidateGitIdentityMustFailClosed": true
   },
   "ossFit": {
-    "decision": "EXISTING_POLICY_CORRECTION_NO_NEW_INFRASTRUCTURE",
+    "decision": "ADOPT_EXISTING_REPOSITORY_SPLIT_ROOT_AND_EXPLICIT_EVALUATED_HEAD_SEAMS",
     "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
     "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance existing explicit evaluatedHead delegated-policy seam",
+        "source": "shared/release/implementationBranchPolicy.js",
+        "license": "repository-owned project code",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The delegated policy already accepts an explicit evaluatedHead; the failing base-owned gate must bind the candidate checkout identity into that existing seam instead of creating a second policy engine or changing same-root defaults."
+      },
+      {
+        "name": "Yance existing YANCE_EVALUATED_REPOSITORY_ROOT candidate seam",
+        "source": "tools/wp0/lib.js",
+        "license": "repository-owned project code",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "WP0 already resolves REPO_ROOT and currentCommit from YANCE_EVALUATED_REPOSITORY_ROOT; the missing piece is to pass that existing candidate identity into implementationBranchOptions."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second delegated-governance policy engine.",
+      "Do not weaken failure-first topology or route the Voice branch around the base-owned executable gate.",
+      "Do not make the evaluated candidate root authoritative for trusted-main policy or authorization documents."
+    ],
     "newThirdPartyDependencyRequired": false,
-    "basis": "This is a two-root ownership defect in the existing repository policy evaluator. The repair uses existing Node.js child_process/path primitives and the repository's established trusted/evaluated root split; adopting a third-party framework would add infrastructure rather than fix the defect."
+    "basis": "This is an integration binding defect between two existing repository seams. Mature external OSS cannot own repository-specific trusted/candidate Git identity semantics without introducing new infrastructure; the existing seams are the exact fit."
   },
   "verification": {
     "mandatory": [
