@@ -1,17 +1,18 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const eventBus = require('./eventBus');
 const { getStoreManager } = require('../store/storeManagerSingleton');
-const { LearningPreferenceAuthority } = require('./learningPreferenceAuthority');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
 const { getStore } = require('../repositories/storeProvider');
 
-const AUTHORITY = 'CandidateInteractionLearningService';
+const AUTHORITY = 'CandidateInteractionLearningSignalSource';
 const SIGNAL_TYPES = new Set(['candidate_used', 'candidate_appended', 'candidate_revised', 'candidate_micro_adjusted']);
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function error(code, message, status = 400, details = {}) { return Object.assign(new Error(message), { code, status, ...details }); }
 function unique(values = []) { return [...new Set(values.map(clean).filter(Boolean))]; }
+function signalId(idempotencyKey) { return 'learning-signal-' + crypto.createHash('sha256').update(idempotencyKey).digest('hex').slice(0, 24); }
 
 function normalizeAdjustments(values = []) {
   const source = unique(Array.isArray(values) ? values : [values]);
@@ -32,11 +33,23 @@ function normalizeAdjustments(values = []) {
   return [...output];
 }
 
+function routeLearningEligibility(candidate = {}) {
+  const metadata = candidate.generationMetadata || {};
+  const route = candidate.qualityRouteReceipt || metadata.qualityRouteReceipt || {};
+  const receipt = candidate.personaTruthReceipt || metadata.personaTruthReceipt || {};
+  const emergencyMode = candidate.emergencyMode === true || metadata.emergencyMode === true || route.emergencyMode === true;
+  if (emergencyMode) return Object.freeze({ eligible: false, emergencyMode: true, reasonCode: 'EMERGENCY_MODE_EXCLUDED' });
+  if (receipt.pass !== true) return Object.freeze({ eligible: false, emergencyMode: false, reasonCode: 'PERSONA_TRUTH_RECEIPT_NOT_LEARNING_ELIGIBLE' });
+  if (candidate.learningEligible === false || metadata.learningEligible === false || route.learningEligible === false) {
+    return Object.freeze({ eligible: false, emergencyMode: false, reasonCode: 'CANDIDATE_NOT_LEARNING_ELIGIBLE' });
+  }
+  return Object.freeze({ eligible: true, emergencyMode: false, reasonCode: 'PENDING_SUCCESSFUL_SEND' });
+}
+
 class CandidateInteractionLearningService {
   constructor(options = {}) {
     this.storeManager = options.storeManager || null;
-    const repository = options.repository || createPlatformCoreRepository({ storeProvider: () => options.store || getStore() });
-    this.authority = options.authority || new LearningPreferenceAuthority({ repository });
+    this.repository = options.repository || createPlatformCoreRepository({ storeProvider: () => options.store || getStore() });
   }
 
   record(input = {}) {
@@ -50,50 +63,49 @@ class CandidateInteractionLearningService {
     const storeManager = this.storeManager || getStoreManager();
     const candidate = storeManager.select(state => state.aiBrain?.candidatesById?.[candidateId] || null);
     if (!candidate) throw error('AI_REPLY_CANDIDATE_NOT_FOUND', 'AI 回复候选不存在。', 404, { candidateId });
-    if (candidate.state === 'reverify_required') throw error('AI_REPLY_CANDIDATE_REVERIFY_REQUIRED', '候选上下文已经失效，不能写入正向学习。', 409, { candidateId });
+    if (candidate.state === 'reverify_required') throw error('AI_REPLY_CANDIDATE_REVERIFY_REQUIRED', '候选上下文已经失效，不能写入学习证据。', 409, { candidateId });
 
     const metadata = candidate.generationMetadata || {};
-    const route = candidate.qualityRouteReceipt || metadata.qualityRouteReceipt || {};
     const branch = candidate.candidateStrategyBranch || metadata.candidateStrategyBranch || {};
-    const personaTruthReceipt = candidate.personaTruthReceipt || metadata.personaTruthReceipt || {};
-    const emergencyMode = candidate.emergencyMode === true || metadata.emergencyMode === true || route.emergencyMode === true;
-    const truthEligible = personaTruthReceipt && typeof personaTruthReceipt === 'object' && personaTruthReceipt.pass === true;
-    const learningEligible = candidate.learningEligible !== false && metadata.learningEligible !== false && route.learningEligible !== false && !emergencyMode && truthEligible;
+    const receipt = candidate.personaTruthReceipt || metadata.personaTruthReceipt || {};
+    const eligibility = routeLearningEligibility(candidate);
     const observedAt = clean(input.observedAt) || new Date().toISOString();
-    const result = this.authority.recordSignal({
-      signalType,
+    const idempotencyKey = 'candidate-interaction:' + candidateId + ':' + interactionId;
+    const signal = this.repository.insertLearningSignal({
+      signalId: signalId(idempotencyKey),
+      idempotencyKey,
+      learningLevel: 'L1',
       scopeType: 'conversation',
       scopeId: clean(candidate.conversationId),
       contactId: clean(candidate.contactId),
       conversationId: clean(candidate.conversationId),
       candidateId,
-      originalText: clean(candidate.originalText || candidate.text),
-      finalText: clean(input.finalText || candidate.text),
-      adjustments: normalizeAdjustments(input.adjustments),
-      strategyBranch: clean(metadata.candidateStrategyBranchId || branch.strategy || candidate.director?.candidateStrategyBranch),
-      qualityRouteReceipt: route,
-      personaTruthReceipt,
-      personaTruthRequired: true,
-      qualityTier: clean(candidate.qualityTier || metadata.qualityTier || route.qualityTier),
-      emergencyMode,
-      learningEligible,
-      provisional: true,
-      idempotencyKey: `candidate-interaction:${candidateId}:${interactionId}`,
-      observedAt,
-      source: clean(input.source) || 'conversation-ui',
-      metadata: {
+      signalType,
+      signal: {
+        schemaVersion: 1,
         authority: AUTHORITY,
-        interactionId,
         provisional: true,
         activationRequiresSuccessfulSend: true,
-        interactionMode: clean(input.interactionMode),
-        directorStrategyId: clean(candidate.directorStrategy?.strategyId || metadata.directorStrategy?.strategyId),
-        candidatePlanId: clean(candidate.candidatePlan?.planId || metadata.candidatePlan?.planId),
-        candidateAxisId: clean(metadata.candidateAxisId || branch.axisId),
-        highCapabilityPath: candidate.highCapabilityPath === true || metadata.highCapabilityPath === true || route.highCapabilityPath === true,
-        personaTruthReceiptPass: truthEligible,
-        personaTruthReceiptSha256: clean(personaTruthReceipt.receiptSha256)
-      }
+        exclusionReason: eligibility.reasonCode,
+        eligibleAfterSuccessfulSend: eligibility.eligible,
+        adjustments: normalizeAdjustments(input.adjustments),
+        strategyBranch: clean(metadata.candidateStrategyBranchId || branch.strategy),
+        metadata: {
+          interactionId,
+          interactionMode: clean(input.interactionMode),
+          source: clean(input.source) || 'conversation-ui',
+          directorStrategyId: clean(candidate.directorStrategy?.strategyId || metadata.directorStrategy?.strategyId),
+          candidatePlanId: clean(candidate.candidatePlan?.planId || metadata.candidatePlan?.planId),
+          candidateAxisId: clean(metadata.candidateAxisId || branch.axisId),
+          personaTruthReceiptPass: receipt.pass === true,
+          personaTruthReceiptSha256: clean(receipt.receiptSha256),
+          rawPrivateChatPersisted: false
+        }
+      },
+      qualityTier: clean(candidate.qualityTier || metadata.qualityTier),
+      emergencyMode: eligibility.emergencyMode,
+      learningEligible: false,
+      createdAt: observedAt
     });
     eventBus.publish('ai:candidate-learning-signal', {
       candidateId,
@@ -101,13 +113,13 @@ class CandidateInteractionLearningService {
       conversationId: candidate.conversationId,
       signalType,
       interactionId,
-      learningEligible: result.signal?.learningEligible === true,
-      profileChanged: result.profileChanged === true,
-      excludedReason: result.excludedReason || ''
+      learningEligible: false,
+      profileChanged: false,
+      excludedReason: eligibility.reasonCode
     });
-    return { authority: AUTHORITY, candidateId, signalType, interactionId, ...result };
+    return { authority: AUTHORITY, candidateId, signalType, interactionId, signal, profileChanged: false, learningEligible: false, excludedReason: eligibility.reasonCode };
   }
 }
 
 const singleton = new CandidateInteractionLearningService();
-module.exports = { AUTHORITY, SIGNAL_TYPES, CandidateInteractionLearningService, singleton, normalizeAdjustments };
+module.exports = { AUTHORITY, SIGNAL_TYPES, CandidateInteractionLearningService, singleton, normalizeAdjustments, routeLearningEligibility };

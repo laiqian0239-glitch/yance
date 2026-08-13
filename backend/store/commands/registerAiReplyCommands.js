@@ -1,7 +1,7 @@
 'use strict';
 
-const { inferFeedbackSignals, applySignals, ENGINE_VERSION } = require('../social/replyFeedbackLearningEngine');
 const replyLanguageAuthority = require('../../services/replyLanguageAuthority');
+const replyFeedbackLearningService = require('../../services/replyFeedbackLearningService');
 
 function clean(value) {
   return String(value == null ? '' : value).trim();
@@ -549,6 +549,26 @@ function registerAiReplyCommands(storeManager, options = {}) {
       persist: transaction => {
         transaction?.upsertAiReplyCandidate?.(candidate);
         if (task) transaction?.upsertAiReplyTask?.(task);
+        replyFeedbackLearningService.persistImmutableLearningSignal(transaction, {
+          eventType: 'rejected',
+          evidenceId: candidateId,
+          candidateId,
+          contactId: candidate.contactId,
+          conversationId: candidate.conversationId,
+          hasExplicitRejectionReason: Boolean(clean(candidate.rejectionReason)),
+          source: candidate.source,
+          qualityTier: candidate.qualityTier,
+          emergencyMode: candidate.emergencyMode,
+          learningEligible: candidate.learningEligible,
+          personaTruthReceipt: candidate.personaTruthReceipt,
+          generationMetadata: candidate.generationMetadata,
+          candidateStrategyBranch: candidate.candidateStrategyBranch,
+          styleVariant: candidate.generationMetadata?.styleVariant,
+          replyTask: candidate.replyTask,
+          targetLanguage: candidate.targetLanguageCode || candidate.targetLanguage,
+          modelId: candidate.modelId,
+          model: candidate.model
+        });
       }
     };
   });
@@ -792,334 +812,6 @@ function registerAiReplyCommands(storeManager, options = {}) {
     };
   });
 
-  storeManager.registerCommand('AI_REPLY_FEEDBACK_RECORDED', ({ command, state, cloneState, now, fail }) => {
-    const contactId = clean(command.payload.contactId);
-    if (!state.customers.byId[contactId]) fail('CUSTOMER_NOT_FOUND', 'Cannot learn reply feedback for an unknown customer', { contactId });
-    const evidenceId = clean(command.payload.evidenceId);
-    if (!evidenceId) fail('REPLY_FEEDBACK_EVIDENCE_ID_REQUIRED', 'Reply feedback evidence id is required');
-    const currentMemory = state.memories.byContactId[contactId] || { version: 0, preferences: {} };
-    const existingEvidence = Array.isArray(currentMemory.feedbackLearning?.evidence)
-      ? currentMemory.feedbackLearning.evidence
-      : [];
-    if (existingEvidence.some(row => clean(row.id) === evidenceId)) {
-      return { noop: true, result: { evidenceId, contactId, duplicate: true } };
-    }
-
-    const observedAt = clean(command.payload.observedAt) || now();
-    const eventType = clean(command.payload.eventType) || 'sent';
-    const signals = inferFeedbackSignals({
-      eventType,
-      originalText: command.payload.originalText,
-      finalText: command.payload.finalText,
-      rejectionReason: command.payload.rejectionReason,
-      replyStrategy: command.payload.replyStrategy || {}
-    });
-    const evidence = {
-      id: evidenceId,
-      eventType,
-      candidateId: clean(command.payload.candidateId),
-      outboxId: clean(command.payload.outboxId),
-      contactId,
-      conversationId: clean(command.payload.conversationId),
-      source: normalizeReplySource(command.payload.source),
-      finalText: eventType === 'sent' ? clean(command.payload.finalText) : '',
-      contextRevision: Number(command.payload.contextRevision || 0),
-      contextMessageIds: Array.isArray(command.payload.contextMessageIds)
-        ? command.payload.contextMessageIds.map(clean).filter(Boolean)
-        : [],
-      performanceMode: clean(command.payload.performanceMode),
-      platform: clean(command.payload.platform),
-      sourceAccountId: clean(command.payload.sourceAccountId),
-      platformContactIdentity: clean(command.payload.platformContactIdentity),
-      canonicalContactId: clean(command.payload.canonicalContactId || contactId),
-      learningMode: clean(command.payload.learningMode),
-      targetLanguage: clean(command.payload.targetLanguage),
-      translatedZh: clean(command.payload.translatedZh),
-      translationModel: clean(command.payload.translationModel),
-      modelId: clean(command.payload.modelId),
-      model: clean(command.payload.model),
-      replyTask: clean(command.payload.replyTask),
-      styleVariant: clean(command.payload.styleVariant),
-      generationMetadata: { ...(command.payload.generationMetadata || {}) }
-    };
-    const contactApplied = applySignals(currentMemory.feedbackLearning || {}, signals, evidence, { now: observedAt });
-    if (!contactApplied.changed) {
-      return { noop: true, result: { evidenceId, contactId, learned: false, signals: [] } };
-    }
-    const personaProfileId = clean(command.payload.personaProfileId) || 'owner';
-
-    const nextState = cloneState();
-    const memory = nextState.memories.byContactId[contactId] || { version: 0, preferences: {} };
-    memory.feedbackLearning = contactApplied.profile;
-    memory.version = Number(memory.version || 0) + 1;
-    memory.updatedAt = observedAt;
-    nextState.memories.byContactId[contactId] = memory;
-
-    const eventRow = {
-      id: evidenceId,
-      eventType,
-      candidateId: clean(command.payload.candidateId),
-      outboxId: clean(command.payload.outboxId),
-      contactId,
-      conversationId: clean(command.payload.conversationId),
-      personaProfileId,
-      originalText: clean(command.payload.originalText),
-      finalText: clean(command.payload.finalText),
-      rejectionReason: clean(command.payload.rejectionReason),
-      source: normalizeReplySource(command.payload.source),
-      contextRevision: Number(command.payload.contextRevision || 0),
-      contextMessageIds: Array.isArray(command.payload.contextMessageIds)
-        ? command.payload.contextMessageIds.map(clean).filter(Boolean)
-        : [],
-      performanceMode: clean(command.payload.performanceMode),
-      platform: clean(command.payload.platform),
-      sourceAccountId: clean(command.payload.sourceAccountId),
-      platformContactIdentity: clean(command.payload.platformContactIdentity),
-      canonicalContactId: clean(command.payload.canonicalContactId || contactId),
-      learningMode: clean(command.payload.learningMode),
-      targetLanguage: clean(command.payload.targetLanguage),
-      translatedZh: clean(command.payload.translatedZh),
-      translationModel: clean(command.payload.translationModel),
-      modelId: clean(command.payload.modelId),
-      model: clean(command.payload.model),
-      replyTask: clean(command.payload.replyTask),
-      styleVariant: clean(command.payload.styleVariant),
-      generationMetadata: { ...(command.payload.generationMetadata || {}) },
-      signals,
-      createdAt: observedAt
-    };
-    return {
-      nextState,
-      changedDomains: ['memories'],
-      result: {
-        evidenceId,
-        contactId,
-        learned: true,
-        signals,
-        contactProfile: contactApplied.profile,
-        contactNewlyEffective: contactApplied.newlyEffective,
-        personaProfile: {},
-        personaNewlyEffective: {},
-        personaProfileId,
-        personaSyncSkipped: 'identity-scoped-feedback-learning-authority'
-      },
-      events: {
-        type: 'ai.replyFeedback.learned',
-        domain: 'memories',
-        entityId: contactId,
-        changedPaths: [`memories.byContactId.${contactId}.feedbackLearning`],
-        payload: {
-          evidenceId,
-          contactId,
-          personaProfileId,
-          eventType,
-          effectiveKeys: Object.keys(contactApplied.newlyEffective)
-        }
-      },
-      persist: transaction => {
-        transaction?.insertReplyFeedbackEvent?.(eventRow);
-        transaction?.insertReplyLearningProjectionJob?.({
-          evidenceId,
-          contactId,
-          conversationId: clean(command.payload.conversationId),
-          payload: { ...command.payload, evidenceId, eventType, signals, observedAt },
-          createdAt: observedAt
-        });
-        transaction?.upsertReplyFeedbackProfile?.({
-          scopeType: 'contact',
-          scopeId: contactId,
-          profile: contactApplied.profile,
-          version: contactApplied.profile.version,
-          updatedAt: observedAt
-        });
-      }
-    };
-  });
-
-  storeManager.registerCommand('AI_REPLY_FEEDBACK_PREFERENCE_UPDATED', ({ command, state, cloneState, now, fail }) => {
-    const contactId = clean(command.payload.contactId);
-    const key = clean(command.payload.key);
-    const action = clean(command.payload.action).toLowerCase();
-    if (!state.customers.byId[contactId]) fail('CUSTOMER_NOT_FOUND', 'Cannot update reply learning for an unknown customer', { contactId });
-    if (!key) fail('REPLY_FEEDBACK_KEY_REQUIRED', 'Reply learning preference key is required');
-    if (!['enable', 'disable', 'delete'].includes(action)) fail('REPLY_FEEDBACK_ACTION_INVALID', 'Unsupported reply learning preference action', { action });
-    const nextState = cloneState();
-    const memory = nextState.memories.byContactId[contactId] || { version: 0, preferences: {} };
-    const current = memory.feedbackLearning && typeof memory.feedbackLearning === 'object' ? memory.feedbackLearning : {};
-    const timestamp = now();
-    const feedbackLearning = {
-      ...current,
-      version: Number(current.version || 0) + 1,
-      counts: { ...(current.counts || {}) },
-      effective: { ...(current.effective || {}) },
-      evidence: Array.isArray(current.evidence) ? current.evidence.map(row => ({ ...row, signals: Array.isArray(row?.signals) ? row.signals.map(signal => ({ ...signal })) : [] })) : [],
-      recentExamples: Array.isArray(current.recentExamples) ? current.recentExamples.slice(-12) : [],
-      updatedAt: timestamp,
-      engineVersion: clean(current.engineVersion) || ENGINE_VERSION
-    };
-    const existing = feedbackLearning.effective[key] && typeof feedbackLearning.effective[key] === 'object'
-      ? { ...feedbackLearning.effective[key] }
-      : null;
-    if (action !== 'delete' && (!existing || !clean(existing.value))) {
-      fail('REPLY_FEEDBACK_PREFERENCE_NOT_FOUND', 'Reply learning preference does not exist', { contactId, key });
-    }
-    if (action === 'delete') {
-      delete feedbackLearning.effective[key];
-      delete feedbackLearning.counts[key];
-      feedbackLearning.evidence = feedbackLearning.evidence.map(row => ({
-        ...row,
-        signals: (row.signals || []).filter(signal => clean(signal?.key) !== key)
-      })).filter(row => row.signals.length || clean(row.eventType) === 'sent');
-    } else {
-      feedbackLearning.effective[key] = {
-        ...existing,
-        disabled: action === 'disable',
-        disabledAt: action === 'disable' ? timestamp : '',
-        disabledBy: action === 'disable' ? clean(command.payload.actor) || 'user' : ''
-      };
-    }
-    memory.feedbackLearning = feedbackLearning;
-    memory.version = Number(memory.version || 0) + 1;
-    memory.updatedAt = timestamp;
-    nextState.memories.byContactId[contactId] = memory;
-    return {
-      nextState,
-      changedDomains: ['memories'],
-      result: { contactId, key, action, feedbackLearning },
-      events: {
-        type: 'ai.replyFeedback.preferenceUpdated',
-        domain: 'memories',
-        entityId: contactId,
-        changedPaths: [`memories.byContactId.${contactId}.feedbackLearning.effective.${key}`],
-        payload: { contactId, key, action, actor: clean(command.payload.actor) || 'user' }
-      },
-      persist: transaction => transaction?.upsertReplyFeedbackProfile?.({
-        scopeType: 'contact',
-        scopeId: contactId,
-        profile: feedbackLearning,
-        version: feedbackLearning.version,
-        updatedAt: timestamp,
-        reason: `preference:${action}:${key}:${clean(command.payload.actor) || 'user'}`
-      })
-    };
-  });
-
-  storeManager.registerCommand('AI_REPLY_FEEDBACK_RESET', ({ command, state, cloneState, now, fail }) => {
-    const contactId = clean(command.payload.contactId);
-    if (!state.customers.byId[contactId]) fail('CUSTOMER_NOT_FOUND', 'Cannot reset reply feedback for an unknown customer', { contactId });
-    const nextState = cloneState();
-    const memory = nextState.memories.byContactId[contactId] || { version: 0, preferences: {} };
-    const timestamp = now();
-    const feedbackLearning = {
-      version: Number(memory.feedbackLearning?.version || 0) + 1,
-      evidence: [],
-      counts: {},
-      effective: {},
-      recentExamples: [],
-      updatedAt: timestamp,
-      engineVersion: ENGINE_VERSION
-    };
-    memory.feedbackLearning = feedbackLearning;
-    memory.version = Number(memory.version || 0) + 1;
-    memory.updatedAt = timestamp;
-    nextState.memories.byContactId[contactId] = memory;
-    const resetBy = clean(command.payload.resetBy) || 'user';
-    return {
-      nextState,
-      changedDomains: ['memories'],
-      result: { contactId, reset: true, feedbackVersion: feedbackLearning.version },
-      events: {
-        type: 'ai.replyFeedback.reset',
-        domain: 'memories',
-        entityId: contactId,
-        changedPaths: [`memories.byContactId.${contactId}.feedbackLearning`],
-        payload: { contactId, resetBy, feedbackVersion: feedbackLearning.version }
-      },
-      persist: transaction => transaction?.upsertReplyFeedbackProfile?.({
-        scopeType: 'contact',
-        scopeId: contactId,
-        profile: feedbackLearning,
-        version: feedbackLearning.version,
-        updatedAt: timestamp,
-        reason: `reset:${resetBy}`
-      })
-    };
-  });
-
-  storeManager.registerCommand('AI_REPLY_FEEDBACK_FORGOTTEN', ({ command, state, cloneState, now, fail }) => {
-    const contactId = clean(command.payload.contactId);
-    if (!state.customers.byId[contactId]) fail('CUSTOMER_NOT_FOUND', 'Cannot forget reply feedback for an unknown customer', { contactId });
-    if (command.payload.confirmForget !== true) {
-      fail('REPLY_FEEDBACK_FORGET_CONFIRMATION_REQUIRED', '永久忘记回复学习需要明确确认', { contactId });
-    }
-    const nextState = cloneState();
-    const memory = nextState.memories.byContactId[contactId] || { version: 0, preferences: {} };
-    delete memory.feedbackLearning;
-    memory.version = Number(memory.version || 0) + 1;
-    memory.updatedAt = now();
-    nextState.memories.byContactId[contactId] = memory;
-    const forgottenBy = clean(command.payload.forgottenBy) || 'user';
-    return {
-      nextState,
-      changedDomains: ['memories'],
-      result: { contactId, forgotten: true, permanent: true },
-      events: {
-        type: 'ai.replyFeedback.forgotten',
-        domain: 'memories',
-        entityId: contactId,
-        changedPaths: [`memories.byContactId.${contactId}.feedbackLearning`],
-        payload: { contactId, forgottenBy, permanent: true }
-      },
-      persist: transaction => transaction?.forgetReplyFeedbackContact?.({ contactId })
-    };
-  });
-
-  storeManager.registerCommand('AI_REPLY_FEEDBACK_RESTORED', ({ command, state, cloneState, now, fail }) => {
-    const contactId = clean(command.payload.contactId);
-    if (!state.customers.byId[contactId]) fail('CUSTOMER_NOT_FOUND', 'Cannot restore reply feedback for an unknown customer', { contactId });
-    const sourceProfile = command.payload.profile && typeof command.payload.profile === 'object' ? command.payload.profile : null;
-    if (!sourceProfile) fail('REPLY_FEEDBACK_VERSION_REQUIRED', 'A stored reply feedback version is required');
-    const nextState = cloneState();
-    const memory = nextState.memories.byContactId[contactId] || { version: 0, preferences: {} };
-    const timestamp = now();
-    const restored = {
-      ...sourceProfile,
-      version: Number(memory.feedbackLearning?.version || 0) + 1,
-      evidence: Array.isArray(sourceProfile.evidence) ? sourceProfile.evidence.slice(-200) : [],
-      counts: sourceProfile.counts && typeof sourceProfile.counts === 'object' ? sourceProfile.counts : {},
-      effective: sourceProfile.effective && typeof sourceProfile.effective === 'object' ? sourceProfile.effective : {},
-      recentExamples: Array.isArray(sourceProfile.recentExamples) ? sourceProfile.recentExamples.slice(-12) : [],
-      updatedAt: timestamp,
-      engineVersion: clean(sourceProfile.engineVersion) || ENGINE_VERSION
-    };
-    memory.feedbackLearning = restored;
-    memory.version = Number(memory.version || 0) + 1;
-    memory.updatedAt = timestamp;
-    nextState.memories.byContactId[contactId] = memory;
-    const sourceVersion = Number(command.payload.sourceVersion || 0);
-    const restoredBy = clean(command.payload.restoredBy) || 'user';
-    return {
-      nextState,
-      changedDomains: ['memories'],
-      result: { contactId, restored: true, sourceVersion, feedbackVersion: restored.version, feedbackLearning: restored },
-      events: {
-        type: 'ai.replyFeedback.restored',
-        domain: 'memories',
-        entityId: contactId,
-        changedPaths: [`memories.byContactId.${contactId}.feedbackLearning`],
-        payload: { contactId, sourceVersion, feedbackVersion: restored.version, restoredBy }
-      },
-      persist: transaction => transaction?.upsertReplyFeedbackProfile?.({
-        scopeType: 'contact',
-        scopeId: contactId,
-        profile: restored,
-        version: restored.version,
-        updatedAt: timestamp,
-        reason: `restore:${sourceVersion}:${restoredBy}`
-      })
-    };
-  });
-
   storeManager.registerCommand('OUTBOX_SEND_RESULT', ({ command, state, cloneState, now, fail }) => {
     const outboxId = clean(command.payload.outboxId);
     if (!state.outbox.byId[outboxId]) fail('OUTBOX_ITEM_NOT_FOUND', 'Outbox item does not exist', { outboxId });
@@ -1168,6 +860,29 @@ function registerAiReplyCommands(storeManager, options = {}) {
         transaction?.upsertOutboxItem?.(outbox);
         if (task) transaction?.upsertAiReplyTask?.(task);
         if (candidate) transaction?.upsertAiReplyCandidate?.(candidate);
+        if (command.payload.success === true) {
+          replyFeedbackLearningService.persistImmutableLearningSignal(transaction, {
+            eventType: 'sent',
+            evidenceId: outboxId,
+            outboxId,
+            candidateId: outbox.candidateId,
+            contactId: outbox.contactId,
+            conversationId: outbox.conversationId,
+            learningMode: outbox.metadata?.learningMode,
+            source: outbox.metadata?.replySource || candidate?.source,
+            qualityTier: outbox.qualityTier || outbox.metadata?.qualityTier,
+            emergencyMode: outbox.emergencyMode === true || outbox.metadata?.emergencyMode === true,
+            learningEligible: outbox.learningEligible !== false && outbox.metadata?.learningEligible !== false,
+            personaTruthReceipt: outbox.personaTruthReceipt || outbox.metadata?.personaTruthReceipt,
+            generationMetadata: outbox.metadata?.generationMetadata || candidate?.generationMetadata,
+            candidateStrategyBranch: outbox.metadata?.candidateStrategyBranch || candidate?.candidateStrategyBranch,
+            styleVariant: outbox.metadata?.styleVariant,
+            replyTask: outbox.metadata?.replyTask,
+            targetLanguage: outbox.metadata?.targetLanguageCode || outbox.metadata?.targetLanguage,
+            modelId: outbox.metadata?.modelId,
+            model: outbox.metadata?.model
+          });
+        }
       }
     };
   });

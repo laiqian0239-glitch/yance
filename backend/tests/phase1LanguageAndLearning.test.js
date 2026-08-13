@@ -3,7 +3,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { inferTargetLanguage } = require('../services/contextAwareReplyBrain');
-const { applySignals, inferFeedbackSignals } = require('../store/social/replyFeedbackLearningEngine');
 const { chineseFirst } = require('../services/localizedContentAuthority');
 
 test('contact language authority overrides Chinese UI/persona preference for customer replies', () => {
@@ -32,38 +31,7 @@ test('relationship trajectory reads the Chinese understanding overlay without lo
   assert.equal(localized.evidence[0].translatedZh, '好的，下周吧。');
 });
 
-test('reply learning retains customer language, Chinese understanding and generation provenance', () => {
-  const signals = inferFeedbackSignals({
-    eventType: 'sent',
-    originalText: 'Ich freue mich auf dich.',
-    finalText: 'Ich freue mich sehr darauf, dich zu sehen.',
-    replyStrategy: { recommendedLength: 'short' }
-  });
-  const result = applySignals({}, signals, {
-    id: 'sent:o1',
-    eventType: 'sent',
-    contactId: 'c1',
-    conversationId: 'conv1',
-    finalText: 'Ich freue mich sehr darauf, dich zu sehen.',
-    platform: 'whatsapp',
-    targetLanguage: 'German',
-    translatedZh: '我非常期待见到你。',
-    translationModel: 'translategemma:4b',
-    modelId: 'qwen3.5:4b',
-    model: 'qwen3.5:4b',
-    replyTask: 'quick_reply',
-    styleVariant: '更温柔',
-    generationMetadata: { routeTask: 'quick_reply', targetLanguage: 'German' },
-    source: 'local_model'
-  }, { now: '2026-07-20T00:00:00.000Z' });
-  assert.equal(result.changed, true);
-  const example = result.profile.recentExamples.at(-1);
-  assert.equal(example.platform, 'whatsapp');
-  assert.equal(example.targetLanguage, 'German');
-  assert.equal(example.translatedZh, '我非常期待见到你。');
-  assert.equal(example.styleVariant, '更温柔');
-  assert.equal(example.generationMetadata.routeTask, 'quick_reply');
-});
+test('reply learning retains bounded language and generation provenance without private reply text', () => { const service=require('../services/replyFeedbackLearningService');const row=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'o',contactId:'p',conversationId:'c',targetLanguage:'de',modelId:'m1',personaTruthReceipt:{pass:true},generationMetadata:{targetLanguageCode:'de',modelId:'m1'}});assert.equal(row.signal.metadata.targetLanguage,'de');assert.equal(row.signal.metadata.modelId,'m1');assert.equal(row.signal.metadata.rawPrivateChatPersisted,false); });
 
 test('conversation runtime exposes bilingual display, translation retry and explicit contact-language controls', () => {
   const fs = require('node:fs');

@@ -116,12 +116,3 @@ test('StoreManager hydration excludes merged/tombstoned contacts from active cus
     assert.deepEqual(snapshot.conversations.byContactId[ids.canonicalId], [`${ids.accountId}:${ids.jid}`]);
   } finally { value.cleanup(); }
 });
-
-test('store customer routes canonicalize old contact references before learning and timeline operations', () => {
-  const source = fs.readFileSync(path.resolve(__dirname, '../routes/store.js'), 'utf8');
-  assert.match(source, /function canonicalContactId\(reference\)/u);
-  assert.match(source, /const scope = personScopeForContact\(req\.params\.contactId\)/u);
-  assert.match(source, /replyLearningGovernanceService\.getGovernance\(scope\.contactId/u);
-  assert.match(source, /for \(const contactId of scope\.contactIds\)/u);
-  assert.match(source, /const contactId = canonicalContactId\(req\.params\.contactId\);\s*const person = personContextAuthority\.snapshot\(\{ contactId \}\);\s*const timeline/su);
-});

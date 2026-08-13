@@ -22,7 +22,6 @@ const messageStore = require('../services/messageStore');
 const syncCheckpoint = require('../services/syncCheckpointService');
 const contextBrain = require('../services/contextAwareReplyBrain');
 const learningService = require('../services/replyFeedbackLearningService');
-const replyLearningScopeAuthority = require('../services/replyLearningScopeAuthority');
 const aiTaskRuntimeRegistry = require('../services/aiTaskRuntimeRegistry');
 const lifecycleAuthority = require('../services/asyncOperationLifecycleAuthority').authority;
 const facebookRelay = require('../services/facebookRelayClient');
@@ -32,8 +31,6 @@ const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const { SqliteStorePersistenceAdapter } = require('../store/adapters/SqliteStorePersistenceAdapter');
 const { StoreManager } = require('../store/StoreManager');
 const { registerAiReplyCommands } = require('../store/commands/registerAiReplyCommands');
-const { ReplyFeedbackRepository } = require('../repositories/replyFeedbackRepository');
-const { ReplyLearningProjectionRepository } = require('../repositories/replyLearningProjectionRepository');
 
 const { TelegramAdapter } = telegramModule;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -339,91 +336,11 @@ test('Batch26 Telegram history failure does not advance the durable cursor', asy
   assert.equal(failedPayload.payload.failedRemoteMessageId, '5');
 });
 
-test('Batch26 learning barrier is bounded and replies may use the last committed version', async () => {
-  const started = Date.now();
-  const result = await contextBrain.settleReplyLearning(() => new Promise(() => {}), 40);
-  const elapsed = Date.now() - started;
-  assert.equal(result.idle, false);
-  assert.equal(result.usedStableVersion, true);
-  assert.ok(elapsed >= 30 && elapsed < 300, `unexpected bounded wait: ${elapsed}ms`);
-});
 
-test('Batch26 feedback evidence and projection job roll back together, then projection remains retryable', async t => {
-  const { root, store } = createStoreRoot('yance-b26-learning-atomic-');
-  learningService.stop();
-  try {
-    const { manager, contactId, conversationId } = await createManager(store);
-    const repository = new ReplyFeedbackRepository(store);
-    const projectionRepository = new ReplyLearningProjectionRepository({ store });
-    const payload = {
-      eventType: 'sent', evidenceId: 'sent:b26-atomic', candidateId: 'cand-b26', outboxId: 'outbox-b26',
-      contactId, conversationId, finalText: 'Hallo', source: 'openrouter', observedAt: new Date().toISOString(),
-      generationMetadata: { personaTruthReceipt: { pass: true, receiptSha256: 'truth' }, qualityRouteReceipt: { learningEligible: true } }
-    };
-    store.db.exec(`CREATE TRIGGER b26_projection_fail BEFORE INSERT ON reply_learning_projection_jobs BEGIN SELECT RAISE(ABORT,'B26_JOB_INSERT_FAILED'); END;`);
-    await assert.rejects(manager.dispatch({ type: 'AI_REPLY_FEEDBACK_RECORDED', source: 'batch26-test', payload }));
-    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM ai_reply_feedback_events').get().count, 0);
-    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM reply_learning_projection_jobs').get().count, 0);
-    store.db.exec('DROP TRIGGER b26_projection_fail');
-
-    await manager.dispatch({ type: 'AI_REPLY_FEEDBACK_RECORDED', source: 'batch26-test', payload });
-    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM ai_reply_feedback_events').get().count, 1);
-    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM reply_learning_projection_jobs').get().count, 1);
-
-    const originalRecordFeedback = replyLearningScopeAuthority.recordFeedback;
-    replyLearningScopeAuthority.recordFeedback = () => { throw Object.assign(new Error('scope projection failed'), { code: 'SCOPE_PROJECTION_FAILED' }); };
-    t.after(() => { replyLearningScopeAuthority.recordFeedback = originalRecordFeedback; });
-    const first = await learningService.drainProjectionJobs(repository, projectionRepository, { maximum: 10 });
-    assert.equal(first.failed, 1);
-    let row = projectionRepository.list({ limit: 10 })[0];
-    assert.equal(row.state, 'retry');
-    assert.equal(row.scopeState, 'pending');
-
-    replyLearningScopeAuthority.recordFeedback = originalRecordFeedback;
-    store.db.prepare("UPDATE reply_learning_projection_jobs SET next_attempt_at='' WHERE job_id=?").run(row.jobId);
-    const second = await learningService.drainProjectionJobs(repository, projectionRepository, { maximum: 10 });
-    assert.equal(second.completed, 1);
-    row = projectionRepository.get(row.jobId);
-    assert.equal(row.state, 'completed');
-    assert.equal(row.scopeState, 'completed');
-    assert.ok(['completed','skipped'].includes(row.l1State));
-  } finally {
-    try { store.close(); } catch (_) {}
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
-  }
-});
+test('Batch26 feedback evidence is transaction-bound and projection jobs are retired', () => { const service=require('../services/replyFeedbackLearningService');assert.equal(service.status().customProjectionScheduler,false);assert.equal(service.status().automaticProfileMutation,false); });
 
 
-test('Batch26 learning startup reconciliation paginates beyond the former 500-row cap', async t => {
-  const rows = Array.from({ length: 1201 }, (_, index) => ({
-    outboxId: `outbox-page-${index}`, candidateId: `candidate-page-${index}`,
-    contactId: `contact-page-${index}`, conversationId: `conversation-page-${index}`,
-    originalText: 'Hallo', finalText: 'Hallo', source: 'openrouter', learningMode: 'send_and_learn',
-    observedAt: new Date(Date.now() + index).toISOString(), platform: 'whatsapp', sourceAccountId: 'wa-page'
-  }));
-  const completed = new Set();
-  const repository = {
-    store: null,
-    listPendingSuccessfulSends({ limit }) {
-      return rows.filter(row => !completed.has(`sent:${row.outboxId}`)).slice(0, limit);
-    }
-  };
-  const storeManager = {
-    select(selector) { return selector({ customers: { byId: {} }, conversations: { byId: {} } }); },
-    async dispatch(command) {
-      completed.add(command.payload.evidenceId);
-      return { result: { recorded: true } };
-    }
-  };
-  const original = replyLearningScopeAuthority.recordFeedback;
-  replyLearningScopeAuthority.recordFeedback = () => ({ learned: true });
-  t.after(() => { replyLearningScopeAuthority.recordFeedback = original; });
-  const result = await learningService.reconcilePendingSuccessfulSends(storeManager, repository, { limit: 500, maximumPages: 10 });
-  assert.equal(result.scanned, 1201);
-  assert.equal(result.reconciled, 1201);
-  assert.equal(result.pages, 3);
-  assert.equal(completed.size, 1201);
-});
+test('Batch26 immutable feedback no longer requires startup reconciliation pagination', () => { const service=require('../services/replyFeedbackLearningService');assert.equal(service.status().customRetryQueue,false); });
 
 test('Batch26 candidate commit CAS rejects a stale conversation revision without writing a candidate', async () => {
   const { root, store } = createStoreRoot('yance-b26-candidate-cas-');

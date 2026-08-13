@@ -40,7 +40,6 @@ const { RuntimeArtifactBootstrapService } = require('../services/runtimeArtifact
 const domainOperationalEventBridge = require('../services/domainOperationalEventBridge').singleton;
 const domainEventProjectionAuthority = require('../services/domainEventProjectionAuthority').singleton;
 const accountLifecycleSaga = require('../services/accountLifecycleSagaService').singleton;
-const learningSynthesisScheduler = require('../services/learningSynthesisScheduler').singleton;
 const { getRuntimeSafetySupervisor } = require('../services/runtimeSafetySupervisor');
 const { getScopedSafetyAuthority } = require('../services/scopedSafetyAuthority');
 const { AuthorityTransactionCoordinator } = require('../services/authorityTransactionCoordinator');
@@ -404,7 +403,6 @@ function createAppRuntimeComposition(runtime) {
       { name: 'runtime-safety-supervisor', service: runtimeSafetySupervisor, critical: false },
       { name: 'domain-operational-event-bridge', service: domainOperationalEventBridge, critical: false },
       { name: 'domain-event-projection-authority', service: domainEventProjectionAuthority, critical: false },
-      { name: 'learning-synthesis-scheduler', service: learningSynthesisScheduler, critical: false },
       { name: 'store-projection-coordinator', service: storeProjectionCoordinator, critical: true },
       { name: 'update-manager', service: updateManager, critical: false }
     ]),
