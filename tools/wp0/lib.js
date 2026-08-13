@@ -319,7 +319,7 @@ function verifyRejectedBaselineAnchor(options = {}) {
   }
 
   try { anchorBlob = git(['rev-parse', `${expectedAnchorCommit}:${expectedAnchorPath}`]); }
-  catch { errors.push(`canonical archive anchor path is missing: ${expectedAnchorPath}`); }
+  catch { errors.push(`missing canonical archive anchor path is missing: ${expectedAnchorPath}`); }
   if (anchorBlob && anchorBlob !== expectedAnchorBlob) errors.push(`canonical archive anchor blob mismatch: expected ${expectedAnchorBlob}, got ${anchorBlob}`);
 
   try { archivedRejected = JSON.parse(git(['show', `${expectedAnchorCommit}:${expectedAnchorPath}`])); }
@@ -390,7 +390,28 @@ function checkRuntimeTargetGate(options = {}) {
   if (targetStage === REJECTED_STAGE) errors.push('target stage 6.4.5.8 is permanently rejected for runtime, build, package, and release changes');
   if (targetStage !== CURRENT_STAGE) errors.push(`target stage must be ${CURRENT_STAGE}`);
 
-  const implementationBranchOptions = options.implementationBranchOptions || {};
+  const requestedImplementationBranchOptions = options.implementationBranchOptions || {};
+  const evaluatedHead = Object.prototype.hasOwnProperty.call(requestedImplementationBranchOptions, 'evaluatedHead')
+    ? requestedImplementationBranchOptions.evaluatedHead
+    : currentCommit();
+  const evaluatedRepositoryRoot = Object.prototype.hasOwnProperty.call(requestedImplementationBranchOptions, 'evaluatedRepositoryRoot')
+    ? requestedImplementationBranchOptions.evaluatedRepositoryRoot
+    : REPO_ROOT;
+  const delegatedGovernanceOptions = requestedImplementationBranchOptions.delegatedGovernance || {};
+  const genericDelegatedGovernanceOptions = delegatedGovernanceOptions.generic || {};
+  const implementationBranchOptions = {
+    evaluatedHead,
+    evaluatedRepositoryRoot,
+    ...requestedImplementationBranchOptions,
+    delegatedGovernance: {
+      ...delegatedGovernanceOptions,
+      generic: {
+        evaluatedHead,
+        evaluatedRepositoryRoot,
+        ...genericDelegatedGovernanceOptions
+      }
+    }
+  };
   const implementationAuthorized = isAuthorizedImplementationBranch(
     branch,
     CURRENT_STAGE,
