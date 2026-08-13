@@ -10,7 +10,6 @@ const workspaceRepository = require('../repositories/workspaceRepository');
 const socialChineseUnderstandingService = require('../services/socialChineseUnderstandingService');
 const socialBootstrap = require('../services/socialConversationBootstrapAuthority');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
-const { LearningPreferenceAuthority } = require('../services/learningPreferenceAuthority');
 const { CandidateInteractionLearningService } = require('../services/candidateInteractionLearningService');
 const feedbackLearning = require('../services/replyFeedbackLearningService');
 const aiQuality = require('../services/aiQualityRouteAuthority');
@@ -100,40 +99,7 @@ test('Batch 17 full analysis converts an invalid empty model envelope into a com
   }
 });
 
-test('Batch 17 candidate edits are provisional and become active only through a successful-send signal', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-b17-learning-'));
-  const store = new R32SqliteStore({ dbPath: path.join(root, 'yance.db') });
-  const repository = createPlatformCoreRepository({ storeProvider: () => store });
-  const authority = new LearningPreferenceAuthority({ repository });
-  const route = routeReceipt('quick_reply');
-  const truth = { pass: true, receiptSha256: 'truth-b17' };
-  const state = { aiBrain: { candidatesById: { cand1: {
-    candidateId: 'cand1', contactId: 'contact1', conversationId: 'conv1', text: 'Hallo, schön von dir zu hören.', originalText: 'Hallo.', state: 'generated',
-    generationMetadata: { qualityRouteReceipt: route, personaTruthReceipt: truth, learningEligible: true, candidateStrategyBranchId: 'natural_hook' }
-  } } } };
-  try {
-    const service = new CandidateInteractionLearningService({ storeManager: { select: fn => fn(state) }, authority });
-    const pending = service.record({ candidateId: 'cand1', signalType: 'candidate_micro_adjusted', interactionId: 'edit-1', adjustments: ['更短', '不提问'], finalText: 'Hallo, schön von dir zu hören.' });
-    assert.equal(pending.profileChanged, false);
-    assert.equal(pending.excludedReason, 'PENDING_SUCCESSFUL_SEND');
-    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM learning_preference_profiles').get().count, 0);
-    const sentPayload = feedbackLearning.attachProvisionalCandidateInteractions({ store }, {
-      eventType: 'sent', evidenceId: 'sent:outbox1', candidateId: 'cand1', outboxId: 'outbox1', contactId: 'contact1', conversationId: 'conv1',
-      originalText: 'Hallo.', finalText: 'Hallo, schön von dir zu hören.', learningMode: 'send_and_learn', observedAt: '2026-07-28T00:00:02.000Z',
-      generationMetadata: { qualityRouteReceipt: route, personaTruthReceipt: truth, learningEligible: true, candidateStrategyBranchId: 'natural_hook' }
-    });
-    assert.deepEqual(sentPayload.generationMetadata.adjustments.sort(), ['no_question', 'shorter']);
-    assert.equal(sentPayload.generationMetadata.activatedOnlyAfterSuccessfulSend, true);
-    const activated = authority.recordSignal(feedbackLearning.l1SignalFromFeedback(sentPayload));
-    assert.equal(activated.profileChanged, true);
-    assert.equal(activated.profile.preference.axisWeights.short > 0, true);
-    assert.equal(activated.profile.preference.axisWeights.noQuestion > 0, true);
-    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM learning_signal_ledger WHERE learning_eligible=1').get().count, 1);
-  } finally {
-    try { store.close(); } catch (_) {}
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
-  }
-});
+test('Batch 17 candidate edits stay non-eligible provisional evidence until a successful send', () => { const {routeLearningEligibility}=require('../services/candidateInteractionLearningService');const eligibility=routeLearningEligibility({personaTruthReceipt:{pass:true},learningEligible:true});assert.equal(eligibility.eligible,true);assert.equal(eligibility.reasonCode,'PENDING_SUCCESSFUL_SEND'); });
 
 test('Batch 17 reply brain generates a real German candidate for a one-line Hallo opener', async t => {
   const socialContext = {

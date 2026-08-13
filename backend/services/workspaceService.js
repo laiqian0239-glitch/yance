@@ -12,8 +12,18 @@ const aiWorkbenchDirectorRuleAuthority = require('./aiWorkbenchDirectorRuleAutho
 const workspaceData = require('./workspaceDataService');
 const { mergeLocalized, chineseFirst } = require('./localizedContentAuthority');
 const { buildSocialAnalysisPresentation } = require('./socialAnalysisPresentationService');
-const { summarizeWorkspaceLearning } = require('./replyLearningSummaryService');
 
+function summarizeWorkspaceLearningEvidence(contacts = []) {
+  return {
+    authority: 'Learning V4 evidence/proposal/evaluation',
+    mode: 'immutable-signal-ledger',
+    contactCount: Array.isArray(contacts) ? contacts.length : 0,
+    automaticProfileMutation: false,
+    automaticPromotion: false,
+    reviewRequired: true,
+    rawPrivateChatTraining: false
+  };
+}
 function nowIso() { return new Date().toISOString(); }
 function clean(value, fallback = '') { return value == null ? fallback : String(value).trim(); }
 function parseJson(value, fallback = null) { try { return value ? JSON.parse(value) : fallback; } catch (_) { return fallback; } }
@@ -419,7 +429,7 @@ function bootstrap({ conversationLimit = 250, conversationOffset = 0, messageLim
       ...aiWorkbenchDirectorRuleAuthority.ensureDefaults().state,
       templateCatalog: getTemplateCatalog(),
       templateCatalogVersion: TEMPLATE_CATALOG_VERSION,
-      learningGovernance: summarizeWorkspaceLearning(contacts)
+      learningGovernance: summarizeWorkspaceLearningEvidence(contacts)
     },
     analyses: Object.fromEntries(contacts.map(contact => { const context = workspaceData.getContextByConversation(contact.id); return [contact.id, context.analysis || null]; }).filter(([, value]) => value)),
     models: modelStatus.read(),

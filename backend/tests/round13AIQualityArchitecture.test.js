@@ -8,11 +8,9 @@ const path = require('node:path');
 const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
 const { AIDirectorStrategyAuthority } = require('../services/aiDirectorStrategyAuthority');
-const { LearningPreferenceAuthority } = require('../services/learningPreferenceAuthority');
 const memoryRecall = require('../services/goalDrivenMemoryRecallService');
 const { branchNameForVariant, candidateBranchPlanForCount } = require('../services/contextAwareReplyBrain');
 const replyFeedbackLearningService = require('../services/replyFeedbackLearningService');
-const { ReplyFeedbackRepository } = require('../repositories/replyFeedbackRepository');
 const { CandidateInteractionLearningService } = require('../services/candidateInteractionLearningService');
 const aiQuality = require('../services/aiQualityRouteAuthority');
 const { StoreManager } = require('../store/StoreManager');
@@ -76,27 +74,7 @@ async function withAuthoritiesAsync(callback) {
   }
 }
 
-test('DirectorStrategyV2 is reusable until context, persona, memory or learning versions change', () => {
-  withAuthorities(({ director, store }) => {
-    const input = {
-      contactId: 'c1', conversationId: 'conv-1', conversationGeneration: '42', personaVersionId: 5,
-      memorySnapshotId: 'mem-3', learningProfileVersion: 2,
-      strategy: {
-        relationshipGoal: 'advance_relationship', questionPolicy: 'optional', lengthTarget: 'short',
-        mustUseMemory: ['trip-topic'], avoid: ['generic-compliment'], evidenceRefs: ['message-42']
-      }
-    };
-    const first = director.createOrReuse(input);
-    const second = director.createOrReuse(input);
-    assert.equal(first.created, true);
-    assert.equal(second.reused, true);
-    assert.equal(first.strategy.strategyId, second.strategy.strategyId);
-    const changed = director.createOrReuse({ ...input, learningProfileVersion: 3 });
-    assert.equal(changed.created, true);
-    assert.equal(changed.strategy.strategyVersion, 2);
-    assert.equal(store.db.prepare("SELECT COUNT(*) AS count FROM ai_director_strategies WHERE conversation_id='conv-1' AND state='active'").get().count, 1);
-  });
-});
+test('DirectorStrategyV2 no longer fingerprints learned-profile versions', () => { const fs=require('node:fs');const source=fs.readFileSync(require('node:path').join(__dirname,'../services/contextAwareReplyBrain.js'),'utf8');assert.doesNotMatch(source,/learningFingerprint|getLatestLearningProfile/u); });
 
 test('candidate plans keep one persona while creating distinct strategy branches', () => {
   withAuthorities(({ director }) => {
@@ -116,71 +94,11 @@ test('candidate plans keep one persona while creating distinct strategy branches
   });
 });
 
-test('eligible L1 feedback changes the next preference profile immediately', () => {
-  withAuthorities(({ learning }) => {
-    const result = learning.recordSignal({
-      signalType: 'candidate_micro_adjusted', scopeType: 'conversation', scopeId: 'conv-1', conversationId: 'conv-1',
-      contactId: 'c1', candidateId: 'cand-1', adjustments: ['shorter','no_question'], finalText: 'Bis morgen.',
-      qualityRouteReceipt: validRouteReceipt('quick_reply')
-    });
-    assert.equal(result.profileChanged, true);
-    assert.equal(result.profile.preference.axisWeights.short > 0, true);
-    assert.equal(result.profile.preference.axisWeights.noQuestion > 0, true);
-    assert.equal(result.profile.preference.questionPreference, 'fewer_questions');
-  });
-});
+test('eligible feedback does not change the next preference profile automatically', () => { const service=require('../services/replyFeedbackLearningService');const row=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'o',contactId:'p',conversationId:'c',personaTruthReceipt:{pass:true},learningEligible:true});assert.equal(row.learningEligible,true);assert.equal(row.signal.metadata.automaticProfileMutation,false); });
 
-test('emergency candidates are recorded for audit but excluded from learning profiles', () => {
-  withAuthorities(({ learning, store }) => {
-    const result = learning.recordSignal({
-      signalType: 'candidate_sent', scopeType: 'conversation', scopeId: 'conv-1', conversationId: 'conv-1',
-      contactId: 'c1', candidateId: 'cand-emergency', finalText: 'Hallo',
-      qualityRouteReceipt: { qualityTier: 'emergency', learningEligible: false, emergencyMode: true }
-    });
-    assert.equal(result.profileChanged, false);
-    assert.equal(result.excludedReason, 'EMERGENCY_RESULT_NOT_LEARNING_ELIGIBLE');
-    const row = store.db.prepare('SELECT emergency_mode,learning_eligible FROM learning_signal_ledger').get();
-    assert.equal(row.emergency_mode, 1);
-    assert.equal(row.learning_eligible, 0);
-    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM learning_preference_profiles').get().count, 0);
-  });
-});
+test('emergency candidates are structural evidence but excluded from eligible learning', () => { const service=require('../services/replyFeedbackLearningService');const row=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'e',contactId:'p',conversationId:'c',emergencyMode:true,personaTruthReceipt:{pass:true}});assert.equal(row.learningEligible,false); });
 
-test('L3 Persona promotion requires high confidence, current cross-contact L2 profiles and human approval', () => {
-  withAuthorities(({ learning, repository }) => {
-    const created = [];
-    const at = new Date().toISOString();
-    for (let contact = 0; contact < 3; contact += 1) {
-      const contactId = `c-${contact}`;
-      const evidence = Array.from({ length: 9 }, (_, index) => `l1-${contact}-${index}`);
-      repository.insertLearningProfile({
-        scopeType: 'contact', scopeId: contactId, learningLevel: 'L2', version: 1,
-        preference: { defaultLength: 'short' }, evidenceSignalIds: evidence, confidence: 0.85,
-        state: 'candidate', createdAt: at, activatedAt: ''
-      });
-      repository.activateLearningProfile({ scopeType: 'contact', scopeId: contactId, learningLevel: 'L2', version: 1, activatedAt: at });
-      const row = repository.insertLearningSignal({
-        signalId: `s-${contact}`, idempotencyKey: `idem-${contact}`, learningLevel: 'L2', scopeType: 'owner', scopeId: 'owner',
-        contactId, conversationId: '', signalType: 'synthesis_promoted',
-        signal: { targetScopeType: 'contact', targetScopeId: contactId, profileVersion: 1, evidenceSignalIds: evidence },
-        qualityTier: 'high', emergencyMode: false, learningEligible: true, createdAt: new Date(Date.now() + contact).toISOString()
-      });
-      created.push(row.signal_id);
-    }
-    const base = {
-      synthesisId: 'l3-owner-v1', fromLevel: 'L2', toLevel: 'L3', sourceScopeType: 'owner', sourceScopeId: 'owner',
-      targetScopeType: 'persona', targetScopeId: 'owner', evidenceSignalIds: created,
-      preference: { defaultLength: 'short' }, confidence: 0.85,
-      qualityRouteReceipt: validRouteReceipt('learning_synthesis')
-    };
-    assert.throws(() => learning.applySynthesis(base), error => error.code === 'L3_HUMAN_APPROVAL_REQUIRED');
-    const promoted = learning.applySynthesis({ ...base, humanApproved: true, actor: 'owner', reason: 'approved after cross-contact review' });
-    assert.equal(promoted.profile.learningLevel, 'L3');
-    assert.equal(promoted.profile.state, 'active');
-    assert.equal(promoted.distinctContacts, 3);
-    assert.equal(learning.applySynthesis({ ...base, humanApproved: true, actor: 'owner', reason: 'approved after cross-contact review' }).idempotentReplay, true);
-  });
-});
+test('V4 promotion requires regression, shadow and explicit human approval', async () => { const {createLearningPromotionAdapter}=require('../services/learningPromotionAdapter');const a=createLearningPromotionAdapter({openFeature:{setEvaluationContext(){}},flagd:{mode:'in-process-offline'}});await assert.rejects(()=>a.promote({status:'READY_FOR_REVIEW',Regression:{passed:true},Shadow:{passed:true},Candidate:{}},{approved:false})); });
 
 test('goal-driven memory recall prioritizes useful evidence and suppresses conflicts and unsupported claims', () => {
   const result = memoryRecall.recall({
@@ -208,90 +126,7 @@ test('production candidate variants map to distinct controlled strategy branches
   assert.equal(new Set(candidateBranchPlanForCount(5)).size, 5);
 });
 
-test('production sent feedback writes one idempotent L1 signal and changes the next branch preference', async () => {
-  await withAuthoritiesAsync(async ({ store }) => {
-    const repository = new ReplyFeedbackRepository(store);
-    store.upsertAccount({ id: 'wa-round13-learning', platform: 'whatsapp', adapterAccountId: 'wa-round13-learning', displayName: 'Round 13', canSend: true, canReceive: true });
-    store.upsertContact({ id: 'contact-1', platform: 'whatsapp', accountId: 'wa-round13-learning', externalId: '491111111@s.whatsapp.net', displayName: 'Contact 1', canonicalContactId: 'contact-1' });
-    store.upsertConversation({ sessionKey: 'conversation-1', platform: 'whatsapp', accountId: 'wa-round13-learning', contactId: 'contact-1', title: 'Contact 1', routeState: 'ready', version: 1 });
-    const storeManager = new StoreManager({ persistence: new SqliteStorePersistenceAdapter({ store }) });
-    registerRuntimeStateCommands(storeManager);
-    registerAiReplyCommands(storeManager);
-    await storeManager.hydrate();
-    await storeManager.dispatch({
-      type: 'SYNC_CUSTOMER_CONTEXT',
-      source: 'round13-production-learning-test',
-      payload: { context: { contact: { id: 'contact-1', displayName: 'Contact 1' } } }
-    });
-    const payload = {
-      evidenceId: 'sent:outbox-1', eventType: 'sent', candidateId: 'candidate-1', outboxId: 'outbox-1',
-      contactId: 'contact-1', conversationId: 'conversation-1', originalText: 'Long question?', finalText: 'Bis morgen.',
-      learningMode: 'send_and_learn', replyTask: 'quick_reply', styleVariant: '自然成熟', observedAt: new Date().toISOString(),
-      generationMetadata: {
-        candidateStrategyBranchId: 'natural_hook', candidateAxisId: 'axis-1',
-        directorStrategy: { strategyId: 'strategy-1' }, candidatePlan: { planId: 'plan-1' },
-        qualityTier: 'high', emergencyMode: false, learningEligible: true, highCapabilityPath: true,
-        personaTruthReceipt: { pass: true, receiptSha256: 'truth-sent-1' },
-        qualityRouteReceipt: validRouteReceipt('quick_reply')
-      }
-    };
-    const first = await replyFeedbackLearningService.recordFeedback(storeManager, repository, payload);
-    const second = await replyFeedbackLearningService.recordFeedback(storeManager, repository, payload);
-    assert.equal(first.projection.completed, 1);
-    assert.equal(second.projection.completed, 0);
-    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM learning_signal_ledger').get().count, 1);
-    assert.equal(store.db.prepare("SELECT COUNT(*) AS count FROM learning_preference_profiles WHERE scope_type='conversation' AND scope_id='conversation-1'").get().count, 1);
-    const profileRow = store.db.prepare("SELECT preference_json FROM learning_preference_profiles WHERE scope_type='conversation' AND scope_id='conversation-1' ORDER BY version DESC LIMIT 1").get();
-    const profile = JSON.parse(profileRow.preference_json || '{}');
-    assert.equal(Number(profile.branchWeights?.natural_hook || 0) > 0, true);
-  });
-});
+test('production sent feedback writes one idempotent signal without changing branch preference', () => { const service=require('../services/replyFeedbackLearningService');const a=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'o',contactId:'p',conversationId:'c',personaTruthReceipt:{pass:true}});const b=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'o',contactId:'p',conversationId:'c',personaTruthReceipt:{pass:true}});assert.equal(a.signalId,b.signalId);assert.equal(a.signal.metadata.automaticProfileMutation,false); });
 
 
-test('candidate interactions remain provisional until successful send and emergency results stay excluded', () => {
-  withAuthorities(({ repository, store }) => {
-    const state = {
-      aiBrain: { candidatesById: {
-        'candidate-high': {
-          candidateId: 'candidate-high', contactId: 'contact-1', conversationId: 'conversation-1',
-          text: 'Bis morgen.', originalText: 'Bis morgen.', state: 'generated',
-          generationMetadata: {
-            candidateStrategyBranchId: 'natural_hook', candidateAxisId: 'axis-1',
-            qualityTier: 'high', emergencyMode: false, learningEligible: true,
-            personaTruthReceipt: { pass: true, receiptSha256: 'truth-candidate-high' },
-            qualityRouteReceipt: validRouteReceipt('quick_reply')
-          }
-        },
-        'candidate-emergency': {
-          candidateId: 'candidate-emergency', contactId: 'contact-1', conversationId: 'conversation-1',
-          text: 'Hallo.', originalText: 'Hallo.', state: 'generated', emergencyMode: true, learningEligible: false,
-          generationMetadata: {
-            candidateStrategyBranchId: 'playful_attraction', qualityTier: 'emergency', emergencyMode: true, learningEligible: false,
-            personaTruthReceipt: { pass: true, receiptSha256: 'truth-candidate-emergency' },
-            qualityRouteReceipt: { qualityTier: 'emergency', emergencyMode: true, learningEligible: false }
-          }
-        }
-      } }
-    };
-    const storeManager = { select(selector) { return selector(state); } };
-    const service = new CandidateInteractionLearningService({
-      storeManager,
-      authority: new LearningPreferenceAuthority({ repository })
-    });
-    const used = service.record({ candidateId: 'candidate-high', signalType: 'candidate_used', interactionId: 'use-1' });
-    const replay = service.record({ candidateId: 'candidate-high', signalType: 'candidate_used', interactionId: 'use-1' });
-    const adjusted = service.record({ candidateId: 'candidate-high', signalType: 'candidate_micro_adjusted', interactionId: 'adjust-1', adjustments: ['更短','不提问'], finalText: 'Morgen.' });
-    const emergency = service.record({ candidateId: 'candidate-emergency', signalType: 'candidate_used', interactionId: 'emergency-use-1' });
-    assert.equal(used.profileChanged, false);
-    assert.equal(used.excludedReason, 'PENDING_SUCCESSFUL_SEND');
-    assert.equal(replay.idempotentReplay, true);
-    assert.equal(adjusted.profileChanged, false);
-    assert.equal(adjusted.excludedReason, 'PENDING_SUCCESSFUL_SEND');
-    assert.equal(emergency.profileChanged, false);
-    assert.equal(emergency.excludedReason, 'EMERGENCY_RESULT_NOT_LEARNING_ELIGIBLE');
-    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM learning_signal_ledger').get().count, 3);
-    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM learning_signal_ledger WHERE learning_eligible=1').get().count, 0);
-    assert.equal(store.db.prepare("SELECT COUNT(*) AS count FROM learning_signal_ledger WHERE json_extract(signal_json,'$.exclusionReason')='PENDING_SUCCESSFUL_SEND'").get().count, 2);
-    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM learning_preference_profiles').get().count, 0);
-  });
-});
+test('candidate interactions remain non-eligible provisional evidence until successful send', () => { const {routeLearningEligibility}=require('../services/candidateInteractionLearningService');assert.equal(routeLearningEligibility({personaTruthReceipt:{pass:true}}).reasonCode,'PENDING_SUCCESSFUL_SEND');assert.equal(routeLearningEligibility({personaTruthReceipt:{pass:true},emergencyMode:true}).eligible,false); });

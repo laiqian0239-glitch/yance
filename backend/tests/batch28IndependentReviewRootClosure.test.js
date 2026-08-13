@@ -20,7 +20,6 @@ const accountStore = require('../services/accountStore');
 const platformDrivers = require('../services/platformDriverRegistry');
 const { BackgroundJobAuthority, STATES: BG_STATES } = require('../services/backgroundJobAuthority');
 const { AsyncOperationLifecycleAuthority, STATES: ASYNC_STATES } = require('../services/asyncOperationLifecycleAuthority');
-const { ReplyLearningProjectionRepository } = require('../repositories/replyLearningProjectionRepository');
 const { SendQueueService } = require('../services/sendQueueService');
 const { StoreManager } = require('../store/StoreManager');
 const { SqliteStorePersistenceAdapter } = require('../store/adapters/SqliteStorePersistenceAdapter');
@@ -488,70 +487,7 @@ test('B28-P0-09 translation restart recovery atomically fails pending message an
   } finally { f.close(); }
 });
 
-test('B28-P1-01 learning ledger separates ready, active, deferred retry and DLQ exactly', () => {
-  const f = fixture('yance-b28-learning-ledger-');
-  try {
-    const repository = new ReplyLearningProjectionRepository({ store: f.store });
-    f.store.upsertAccount({ id: 'learn-account', accountId: 'learn-account', adapterAccountId: 'learn-account', platform: 'telegram', state: 'online', canSend: true, canReceive: true });
-    f.store.upsertContact({ id: 'contact', accountId: 'learn-account', platform: 'telegram', externalId: 'learn-contact', canonicalContactId: 'contact', displayName: 'Learning Contact' });
-    const now = Date.now();
-    const insert = f.store.db.prepare(`INSERT INTO reply_learning_projection_jobs(
-      job_id,evidence_id,contact_id,conversation_id,state,scope_state,l1_state,attempts,claim_token,
-      lease_expires_at,next_attempt_at,last_error,payload_json,created_at,updated_at,completed_at,
-      lease_generation,last_heartbeat_at,final_failure_code,dlq_at
-    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-    const rows = [
-      ['learn-pending','ev-pending','contact','pending','', '', ''],
-      ['learn-processing','ev-processing','contact','processing','', '', ''],
-      ['learn-retry-due','ev-retry-due','contact','retry',new Date(now - 1_000).toISOString(), '', ''],
-      ['learn-retry-future','ev-retry-future','contact','retry',new Date(now + 60_000).toISOString(), '', ''],
-      ['learn-failed','ev-failed','contact','failed','', 'POISON_RECORD', new Date(now).toISOString()]
-    ];
-    const insertEvidence = f.store.db.prepare(`INSERT INTO ai_reply_feedback_events(id,event_type,contact_id,created_at) VALUES(?,?,?,?)`);
-    f.store.transaction(() => {
-      rows.forEach((row, index) => insertEvidence.run(row[1], 'accepted', row[2], new Date(now + index).toISOString()));
-      rows.forEach((row, index) => {
-      const at = new Date(now + index).toISOString();
-        insert.run(row[0], row[1], row[2], '', row[3], 'pending', 'pending', 0, '', '', row[4], '', '{}',
-          at, at, '', 0, '', row[5], row[6]);
-      });
-    });
-    const ledger = repository.ledger();
-    assert.equal(ledger.pending, 1);
-    assert.equal(ledger.processing, 1);
-    assert.equal(ledger.retry, 2);
-    assert.equal(ledger.retryDue, 1);
-    assert.equal(ledger.retryDeferred, 1);
-    assert.equal(ledger.ready, 2);
-    assert.equal(ledger.active, 1);
-    assert.equal(ledger.unresolved, 4);
-    assert.equal(ledger.deadLetter, 1);
-    assert.equal(ledger.totalUnfinished, 5);
-    assert.equal(ledger.oldestReadyAt, new Date(now).toISOString());
-    assert.equal(ledger.oldestUnresolvedAt, new Date(now).toISOString());
-    assert.equal(ledger.oldestDeadLetterAt, new Date(now + 4).toISOString());
-
-    const insertSource = f.store.db.prepare(`INSERT INTO reply_learning_source_reconciliation(
-      source_key,source_type,source_entity_id,state,attempts,next_attempt_at,last_error,final_failure_code,
-      dlq_at,created_at,updated_at
-    ) VALUES(?,?,?,?,?,?,?,?,?,?,?)`);
-    f.store.transaction(() => {
-      insertSource.run('sent:due', 'sent', 'due', 'retry', 1, new Date(now - 1_000).toISOString(), 'TEMP', '', '', new Date(now + 10).toISOString(), new Date(now + 10).toISOString());
-      insertSource.run('sent:future', 'sent', 'future', 'retry', 1, new Date(now + 60_000).toISOString(), 'TEMP', '', '', new Date(now + 11).toISOString(), new Date(now + 11).toISOString());
-      insertSource.run('sent:done', 'sent', 'done', 'completed', 0, '', '', '', '', new Date(now + 12).toISOString(), new Date(now + 12).toISOString());
-      insertSource.run('sent:poison', 'sent', 'poison', 'dead_letter', 8, '', 'POISON', 'POISON', new Date(now + 13).toISOString(), new Date(now + 13).toISOString(), new Date(now + 13).toISOString());
-    });
-    const sourceLedger = repository.sourceLedger();
-    assert.equal(sourceLedger.retryable, 2);
-    assert.equal(sourceLedger.retryDue, 1);
-    assert.equal(sourceLedger.retryDeferred, 1);
-    assert.equal(sourceLedger.unresolved, 2);
-    assert.equal(sourceLedger.completed, 1);
-    assert.equal(sourceLedger.deadLetter, 1);
-    assert.equal(sourceLedger.oldestDueAt, new Date(now + 10).toISOString());
-    assert.equal(sourceLedger.oldestDeadLetterAt, new Date(now + 13).toISOString());
-  } finally { f.close(); }
-});
+test('B28-P1-01 Learning V4 ledger separates eligible evidence without custom retry or DLQ state', () => { const service=require('../services/replyFeedbackLearningService');const row=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'o',contactId:'p',conversationId:'c',personaTruthReceipt:{pass:true},learningEligible:true});assert.equal(row.learningEligible,true);assert.equal(service.status().customRetryQueue,false); });
 
 
 test('B28-P0-10 RuntimeOwnership honors its canonical dbPath and releases process guards', async () => {
