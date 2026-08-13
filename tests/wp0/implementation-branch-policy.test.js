@@ -1427,3 +1427,26 @@ test('Stage GOVERNANCE_WP0 executes the repository OSS-first authorization gate'
     'wp0-governance must execute the repository OSS-first authorization gate'
   );
 });
+
+test('generic delegated route guard accepts frozen governance exact bootstrap additions', () => {
+  const policy = require('../../shared/release/implementationBranchPolicy');
+  const validate = policy.validateDelegatedRoutePolicyMutation;
+  assert.equal(typeof validate, 'function');
+
+  const basePolicy = readRepositoryJson('governance/layered-ci/wp0-routing-policy.json');
+  const bootstrapPath = 'tests/wp0/base-owned-evaluated-repository-root.test.js';
+  const authorization = {
+    governanceBootstrapPaths: [bootstrapPath],
+    governanceBootstrapPathCount: 1,
+    governanceBootstrapPathSetSha256: workPackageChangedFilesSha256([bootstrapPath])
+  };
+
+  const candidatePolicy = clone(basePolicy);
+  candidatePolicy.governanceExactPaths = [
+    ...new Set([...(candidatePolicy.governanceExactPaths || []), bootstrapPath])
+  ].sort();
+
+  const result = validate({ authorization, basePolicy, candidatePolicy });
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.reasonCode, null, JSON.stringify(result));
+});
