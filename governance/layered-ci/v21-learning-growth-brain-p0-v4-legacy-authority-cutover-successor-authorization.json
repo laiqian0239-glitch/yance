@@ -302,17 +302,64 @@
   "ossFit": {
     "decision": "REUSE_MATURE_LEARNING_OSS_AND_EXISTING_REPOSITORY_SEAMS_WITHOUT_NEW_GENERAL_PURPOSE_INFRASTRUCTURE",
     "matureOssAvailable": true,
-    "selectedAdoptionMode": "existing-repository-seam",
-    "inheritedReviewedCandidatesFrom": "governance/layered-ci/v21-learning-growth-brain-p0-v4-product-experience-reconciliation-authorization.json",
-    "selectedMatureOss": [
-      "Langfuse + OpenTelemetry",
-      "DSPy + GEPA",
-      "Promptfoo",
-      "OpenFeature + flagd",
-      "Letta + assistant-ui/tool-ui",
-      "Presidio + APScheduler + proper-lockfile"
+    "reviewedCandidates": [
+      {
+        "name": "Langfuse + OpenTelemetry",
+        "source": "langfuse/langfuse@328bb23d8ed71c5879d036704a7077c10516d462; langfuse/langfuse-js@ab2bf242e5fae64116c5354c92e5eac3e70490c8; open-telemetry/opentelemetry-js@76fa6b509e2b48d9cbee31cb37a2efc61dc4d384; open-telemetry/opentelemetry-python@53a5a40c9604583c501bcf13970a635f00e62df4",
+        "license": "MIT + Apache-2.0",
+        "adoptionMode": "official SDKs plus user-managed self-hostable service",
+        "fit": "FIT",
+        "reason": "Existing reviewed evidence, traces, scores, datasets and experiments authority."
+      },
+      {
+        "name": "DSPy + GEPA",
+        "source": "stanfordnlp/dspy@e4e97aae29b8ad8aa2fb7e99ffae6fd52970fad8; gepa-ai/gepa@b4dbb55b7601dac448cdb836d5a401ca7d9eb920",
+        "license": "MIT",
+        "adoptionMode": "source libraries",
+        "fit": "FIT",
+        "reason": "Existing reviewed optimization authority; no Yance optimizer replacement."
+      },
+      {
+        "name": "Promptfoo",
+        "source": "promptfoo/promptfoo@7b898cbdb16205cb7f0e2994baa807d131eb2326",
+        "license": "MIT",
+        "adoptionMode": "sealed precomputed-provider runtime",
+        "fit": "FIT",
+        "reason": "Existing precomputed regression/evaluation authority; never direct provider execution."
+      },
+      {
+        "name": "OpenFeature + flagd",
+        "source": "@openfeature/server-sdk@1.23.0/ba1bfd0627ef63ffe9c26c600899f7aedd6f0087; @openfeature/flagd-provider@0.16.0/c18b1de5f9ce8325acf118ad98e49e57ebdc0e28; @openfeature/flagd-core@4.0.0/c0defa4d2e1f97104eb740934ad1a75e69bcfe94",
+        "license": "Apache-2.0",
+        "adoptionMode": "official SDK and in-process offline provider",
+        "fit": "FIT",
+        "reason": "Existing staged/offline rollout authority."
+      },
+      {
+        "name": "Letta + assistant-ui/tool-ui",
+        "source": "letta-ai/letta-agent-sdk@c48df1693731443682fe8c7f356ef9b8a33df6c0; letta-ai/letta-code@3e5ead65dcf3b7fdf1e2da595660eb85063a9722; @assistant-ui/react@0.15.1/6306c74b479020a0be96438eebd9be8dc32b82da; assistant-ui/tool-ui@ee6389647e997f8637c21187f3e49c2db6cde3a5",
+        "license": "Apache-2.0 + MIT",
+        "adoptionMode": "existing runtime plus source-module UI",
+        "fit": "FIT",
+        "reason": "Existing Learning Coach state loop and review UI authority."
+      },
+      {
+        "name": "Presidio + APScheduler + proper-lockfile",
+        "source": "microsoft/presidio@779dbd286d5ef4d1fbe2514275fb1bce358f2417; agronholm/apscheduler@4308ec95b94069f5dbdddb6c60fb792dfc8c40a4; npm:proper-lockfile@4.1.2",
+        "license": "MIT",
+        "adoptionMode": "libraries through thin existing repository adapters",
+        "fit": "FIT",
+        "reason": "Existing privacy, scheduling and process-ownership authorities."
+      }
     ],
+    "selectedAdoptionMode": "existing-repository-seam",
     "newGeneralPurposeInfrastructure": false,
+    "retireOrAvoid": [
+      "Retire backend/store/social/replyFeedbackLearningEngine.js as a Learning policy/optimization authority; feedback may remain only through approved signal-ingestion seams.",
+      "Retire replyLearningScopeAuthority, learningPreferenceAuthority, learningSynthesisScheduler, replyLearningGovernanceService, aiReplyLearningAuthority, replyLearningProjectionRepository, replyLearningQualityService, replyFeedbackRepository and replyLearningSummaryService rather than shimming or renaming them.",
+      "Avoid a second Learning framework, optimizer, dataset store, experiment system, scheduler, rollout engine, process-lock framework, model gateway/router, or provider credential authority.",
+      "Reuse the V4 Langfuse/OpenTelemetry evidence, DSPy/GEPA optimization, Promptfoo evaluation, OpenFeature/flagd rollout, Letta/assistant-ui review, Presidio privacy and proper-lockfile ownership seams."
+    ],
     "matureOssMandatory": true
   },
   "verification": {
