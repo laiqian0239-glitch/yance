@@ -336,6 +336,25 @@ function defaultChangedFilesBetween(base, head, options = {}) {
   }
 }
 
+function defaultFirstParentCommitsBetween(base, head, options = {}) {
+  try {
+    const output = trustedGit(['rev-list', '--first-parent', '--reverse', `${base}..${head}`], options);
+    if (!output) return [];
+    const commits = output.split(/\r?\n/u).filter(Boolean);
+    return commits.every(SHA40.test.bind(SHA40)) ? commits : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function defaultCommitMessage(commit, options = {}) {
+  try {
+    return trustedGit(['show', '-s', '--format=%B', commit], options);
+  } catch (_) {
+    return null;
+  }
+}
+
 function defaultMergeBases(left, right, options = {}) {
   try {
     const output = trustedGit(['merge-base', '--all', left, right], options);
@@ -479,6 +498,62 @@ function resolveDependencyIdentityPolicy(implementation, implementationPaths) {
   return Object.freeze({ entries: Object.freeze(normalizedEntries) });
 }
 
+function resolveFailureFirstCommitProtocol(implementation, implementationPaths) {
+  const declaration = implementation?.failureFirstCommit;
+  if (!isPlainJsonObject(declaration)
+    || !Object.prototype.hasOwnProperty.call(declaration, 'freshCausalRedRequired')) return null;
+  if (declaration.freshCausalRedRequired !== true
+    || declaration.mustBeFirstImplementationCommit !== true
+    || declaration.productionCodeChanged !== false
+    || !Array.isArray(declaration.allowedChangedPaths)
+    || declaration.allowedChangedPaths.length === 0) return false;
+
+  const allowedChangedPaths = normalizeChangedFiles(declaration.allowedChangedPaths);
+  const implementationPathSet = new Set(implementationPaths || []);
+  if (allowedChangedPaths.length !== declaration.allowedChangedPaths.length
+    || !sameJson(allowedChangedPaths, declaration.allowedChangedPaths)
+    || !allowedChangedPaths.every(isExactAdditionalPath)
+    || !allowedChangedPaths.every(repositoryPath => implementationPathSet.has(repositoryPath))
+    || declaration.approvedChangedFileCount !== allowedChangedPaths.length
+    || declaration.approvedChangedFileSetSha256 !== workPackageChangedFilesSha256(allowedChangedPaths)) return false;
+
+  return Object.freeze({
+    allowedChangedPaths: Object.freeze([...allowedChangedPaths]),
+    approvedChangedFileCount: declaration.approvedChangedFileCount,
+    approvedChangedFileSetSha256: declaration.approvedChangedFileSetSha256
+  });
+}
+
+function hasExactFailureFirstEvidence(commitMessage, redHead) {
+  if (typeof commitMessage !== 'string' || !SHA40.test(String(redHead || ''))) return false;
+  const specs = Object.freeze([
+    Object.freeze({
+      key: 'Yance-Failure-First-Red-Head',
+      value: redHead,
+      valuePattern: SHA40
+    }),
+    Object.freeze({
+      key: 'Yance-Failure-First-Red-Run',
+      value: null,
+      valuePattern: /^[1-9]\d*$/u
+    }),
+    Object.freeze({
+      key: 'Yance-Failure-First-Red-Conclusion',
+      value: 'failure',
+      valuePattern: /^failure$/u
+    })
+  ]);
+  const lines = commitMessage.split(/\r?\n/u);
+  for (const spec of specs) {
+    const normalizedKey = spec.key.toLowerCase();
+    const candidates = lines.filter(line => line.trimStart().slice(0, spec.key.length).toLowerCase() === normalizedKey);
+    if (candidates.length !== 1) return false;
+    const match = candidates[0].match(new RegExp(`^${spec.key}: (.+)$`, 'u'));
+    if (!match || !spec.valuePattern.test(match[1]) || (spec.value !== null && match[1] !== spec.value)) return false;
+  }
+  return true;
+}
+
 function isValidGenericDelegatedGovernanceAuthorization(document, authorizationPath) {
   if (!isGenericDelegatedGovernanceAuthorizationPath(authorizationPath)
     || !document
@@ -528,6 +603,9 @@ function isValidGenericDelegatedGovernanceAuthorization(document, authorizationP
     || implementationPaths.length !== document.implementation.allowedChangedPaths.length
     || !sameJson(implementationPaths, document.implementation.allowedChangedPaths)
     || !implementationPaths.every(isExactAdditionalPath)) return false;
+
+  const failureFirstProtocol = resolveFailureFirstCommitProtocol(document.implementation, implementationPaths);
+  if (failureFirstProtocol === false) return false;
 
   const dependencyPaths = implementationPaths.filter(isDependencyControlPath);
   if (document.implementation.newDependencyAllowed === false) {
@@ -1247,6 +1325,57 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
       reviewedAuthorizationHead: match.reviewedHead,
       unauthorizedPaths: Object.freeze([...unauthorizedPaths])
     });
+  }
+
+  const failureFirstProtocol = resolveFailureFirstCommitProtocol(
+    match.authorization.implementation,
+    match.authorization.implementation.allowedChangedPaths
+  );
+  if (failureFirstProtocol) {
+    const denyFailureFirst = reasonCode => Object.freeze({
+      pass: false,
+      reasonCode,
+      authorityMode: null,
+      authorizationPath: match.authorizationPath,
+      authorizationMergeCommit: match.mergeCommit,
+      reviewedAuthorizationHead: match.reviewedHead,
+      unauthorizedPaths: Object.freeze([])
+    });
+    const resolveFirstParentCommits = options.resolveFirstParentCommitsBetween
+      || ((base, head) => defaultFirstParentCommitsBetween(base, head, options));
+    const firstParentCommits = resolveFirstParentCommits(match.mergeCommit, evaluatedHead);
+    if (!Array.isArray(firstParentCommits)
+      || firstParentCommits.length === 0
+      || firstParentCommits.some(commit => !SHA40.test(String(commit || '')))
+      || new Set(firstParentCommits).size !== firstParentCommits.length
+      || firstParentCommits[firstParentCommits.length - 1] !== evaluatedHead) {
+      return denyFailureFirst('WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_INVALID');
+    }
+
+    const redHead = firstParentCommits[0];
+    const redParents = resolveParents(redHead);
+    const redChangedFiles = resolveChangedFiles(match.mergeCommit, redHead);
+    const redNormalized = normalizeChangedFiles(redChangedFiles);
+    if (!Array.isArray(redParents)
+      || redParents.length !== 1
+      || redParents[0] !== match.mergeCommit
+      || !Array.isArray(redChangedFiles)
+      || redNormalized.length !== redChangedFiles.length
+      || !sameJson(redNormalized, redChangedFiles)
+      || redNormalized.length !== failureFirstProtocol.approvedChangedFileCount
+      || !sameJson(redNormalized, failureFirstProtocol.allowedChangedPaths)
+      || workPackageChangedFilesSha256(redNormalized) !== failureFirstProtocol.approvedChangedFileSetSha256) {
+      return denyFailureFirst('WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_INVALID');
+    }
+
+    if (firstParentCommits.length > 1) {
+      const firstPostRedCommit = firstParentCommits[1];
+      const resolveCommitMessage = options.resolveCommitMessage
+        || (commit => defaultCommitMessage(commit, options));
+      if (!hasExactFailureFirstEvidence(resolveCommitMessage(firstPostRedCommit), redHead)) {
+        return denyFailureFirst('WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_EVIDENCE_INVALID');
+      }
+    }
   }
 
   if (match.authorization.implementation.genericRouteMutationGuardRequired === true
