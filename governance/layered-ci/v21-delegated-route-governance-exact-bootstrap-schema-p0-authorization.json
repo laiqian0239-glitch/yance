@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-13T11:20:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-ROUTE-GOVERNANCE-EXACT-BOOTSTRAP-SCHEMA-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #335 proves a base-owned WP0 split-root implementation can pass all 354 candidate-head WP0 tests yet still be rejected by the old base-owned executable because its gate implementation and its dedicated regression are routed as a mixed PRODUCT_WP0 change: tools/wp0/lib.js is already governanceExactPaths, while tests/wp0/base-owned-evaluated-repository-root.test.js is not. The existing delegated route guard supports only frozen productExactPaths additions and deliberately rejects governance-route drift. This prerequisite extends that existing guard with an equally fail-closed governanceBootstrapPaths schema so a later route-bootstrap can add an exact governance contract path without broad prefixes, workflow bypass, candidate self-authorization, or a second route/policy engine.",
+  "base": {
+    "branch": "main",
+    "commit": "18d11377034a3ffc551026d32548f7a4ab164473"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "ossFit": {
+    "decision": "EXTEND_EXISTING_DELEGATED_ROUTE_MUTATION_GUARD",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "selfBuiltEquivalentFrameworkAllowed": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance existing validateDelegatedRoutePolicyMutation semantic guard",
+        "source": "shared/release/implementationBranchPolicy.js",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The trusted guard already implements exact-add-only route bootstrap semantics with normalized path, count and SHA-256 closure; extending the destination from productExactPaths to governanceExactPaths is smaller and safer than creating another route or policy engine."
+      },
+      {
+        "name": "Yance existing GOVERNANCE_WP0 route",
+        "source": ".github/workflows/stage-6459-wp0-gates.yml",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The later route repair can reuse the existing governance route; no new workflow, CI framework, service or dependency is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not use a canonical stage/rebuild branch to bypass delegated authority.",
+      "Do not execute the candidate WP0 gate as its own trust authority.",
+      "Do not add a new WP0 route or second route-policy engine.",
+      "Do not weaken existing product route-bootstrap validation."
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-route-governance-exact-bootstrap-schema-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-route-governance-exact-bootstrap-schema-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "9819fbb253526257ebfeadd2b34404487731ec05a3527baa7012483b15cf3c37",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-delegated-route-governance-exact-bootstrap-schema-p0",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "c9ebb6397f260acd3447fa7691a53ec9c6478d1c375250dc3a07b61498cc03f2",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/implementation-branch-policy.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "7913275d3348e4c902aab19807e71fe0a02943be068cba5ef7f948eb9be7a7de",
+      "productionCodeChanged": false,
+      "freshCausalRedRequired": true
+    },
+    "workflowModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "guardExtensionContract": {
+    "existingProductSchemasRemainAcceptedUnchanged": true,
+    "newSchemaPathField": "governanceBootstrapPaths",
+    "newSchemaCountField": "governanceBootstrapPathCount",
+    "newSchemaDigestField": "governanceBootstrapPathSetSha256",
+    "destinationPolicyField": "governanceExactPaths",
+    "exactNormalizedPathsOnly": true,
+    "matchingCountAndCanonicalSha256Required": true,
+    "exactAddOnly": true,
+    "allNonDestinationPolicyFieldsMustRemainByteSemanticEquivalent": true,
+    "simultaneousProductAndGovernanceBootstrapDeclarationsForbidden": true,
+    "broadPrefixMutationForbidden": true,
+    "unknownPathFailsClosedWeakeningForbidden": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit changes only tests/wp0/implementation-branch-policy.test.js and proves the current trusted guard rejects a governanceBootstrapPaths exact-add declaration.",
+    "Existing futureProductBootstrapPaths and bootstrapPaths exact-add cases remain GREEN without semantic changes.",
+    "After the repair, a governanceBootstrapPaths declaration with exact normalized paths, matching count and canonical SHA-256 accepts only the corresponding additions to governanceExactPaths.",
+    "Any simultaneous product and governance declaration fails closed.",
+    "Wrong count, wrong digest, wildcard/non-exact path, unrelated governanceExactPaths addition, removal of an existing route, productExactPaths drift, prefix drift, documentation drift, or unknownPathFailsClosed weakening fails with WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED.",
+    "The implementation does not modify routing policy, workflow, product code, dependencies, or PR #335."
+  ],
+  "verification": {
+    "mandatory": [
+      "fresh implementation-branch-policy causal RED then GREEN",
+      "existing delegated route-bootstrap policy contracts remain GREEN",
+      "Stage GOVERNANCE_WP0 exact implementation Head",
+      "Layered CI and ACV2 exact implementation Head",
+      "independent review with zero unresolved P0/P1 findings"
+    ],
+    "ordinaryTwoParentImplementationMergeRequired": true,
+    "postMergeGreenRequired": true
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "candidateSelfAuthorization": true,
+    "newWp0Route": true,
+    "newWorkflow": true,
+    "newPolicyEngine": true,
+    "testWeakening": true,
+    "productRouteBootstrapWeakening": true,
+    "wildcardAuthorization": true,
+    "forcePush": true,
+    "rebaseOrAmendPublishedHistory": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
