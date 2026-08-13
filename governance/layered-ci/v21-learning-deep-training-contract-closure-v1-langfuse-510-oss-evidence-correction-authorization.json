@@ -108,13 +108,13 @@
     "matureOssAvailable": true,
     "matureOssMandatory": true,
     "newGeneralPurposeInfrastructure": false,
-    "selectedAdoptionMode": "existing exact dependency and official generated API client",
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
     "reviewedCandidates": [
       {
         "name": "@langfuse/client 5.10.0",
         "license": "MIT",
         "fit": "FIT",
-        "adoptionMode": "existing exact root dependency",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
         "reason": "Correct evidence to the pinned official DatasetManager and generated synchronous Dataset/Score API clients; no Yance dataset, score, reward, or experiment authority.",
         "source": "langfuse/langfuse-js@ab2bf242e5fae64116c5354c92e5eac3e70490c8"
       }
