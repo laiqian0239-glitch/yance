@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_TRUSTED_MAIN_GOVERNANCE_EVIDENCE_ERRATUM",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LEARNING-DEEP-TRAINING-CONTRACT-CLOSURE-V1-LANGFUSE-510-OSS-EVIDENCE-ERRATUM",
+  "status": "EVIDENCE_CORRECTION_ONLY_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Independent review of implementation PR #354 proved that merged authorization PR #353 recorded two inaccurate @langfuse/client 5.10.0 API names. The pinned upstream source identity itself is correct. The implementation was corrected to the actual pinned OSS API surface before merge. This erratum corrects only trusted governance evidence, preserves the original five-path implementation authority and failure-first lineage, and grants no new implementation, dependency, workflow, runtime, release, publish, promotion, or Agent Lightning authority.",
+  "base": {
+    "branch": "main",
+    "commit": "11c47aef77ec1a2cd524b60d6589ae535625071d"
+  },
+  "erratumBranch": {
+    "name": "governance/v21-learning-deep-training-contract-closure-v1-langfuse-510-oss-evidence-erratum",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-learning-deep-training-contract-closure-v1-langfuse-510-oss-evidence-erratum.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "9e2772f75a62723e6cbba3fb18ce2eb035f206503e40730a0dad4a3db0b1df5b",
+    "mustRemainSingleFile": true,
+    "runtimeBehaviorChanged": false
+  },
+  "correctionTarget": {
+    "authorizationPullRequest": 353,
+    "authorizationMergeCommit": "11c47aef77ec1a2cd524b60d6589ae535625071d",
+    "authorizationPath": "governance/layered-ci/v21-learning-deep-training-contract-closure-v1-authorization.json",
+    "authorizationJsonPointer": "/ossFit/officialApiEvidence",
+    "implementationPullRequest": 354,
+    "implementationBranch": "product/v21-learning-deep-training-contract-closure-v1",
+    "reviewedImplementationHead": "f35506b2ca82bbc496272415b0f763b6ffd2a493",
+    "reviewedImplementationPathCount": 5,
+    "reviewedImplementationPathSetSha256": "76ee3a23ea4cc62d71a17e9683dc420e81f631bdee42f2e60244a1a553441cd0"
+  },
+  "defectEvidence": {
+    "lockedClientPackage": "@langfuse/client@5.10.0",
+    "pinnedUpstreamSource": "langfuse/langfuse-js@ab2bf242e5fae64116c5354c92e5eac3e70490c8",
+    "pinnedUpstreamPackageBlob": "eab32fac968dac3216435cfcbd2c41a0d95f33e9",
+    "pinnedDatasetManagerBlob": "2474b76ddefed1f1430b9c42642072e2d11736f3",
+    "pinnedScoreManagerBlob": "9cbe359c504b32bcb0449f7885d63211b893eb62",
+    "pinnedGeneratedDatasetsClientBlob": "923ad0e0097ab18500f9af715d6d4f08627bc6b1",
+    "pinnedGeneratedScoresClientBlob": "da79626be2cc7e365878cec109a9e04b960a1ac6",
+    "incorrectMergedEvidence": {
+      "datasetApi": "@langfuse/client dataset.create/createItem/get",
+      "scoreApi": "@langfuse/client score.create"
+    },
+    "verifiedPinnedApiFacts": [
+      "packages/client/package.json at the pinned source declares @langfuse/client version 5.10.0.",
+      "LangfuseClient.dataset is DatasetManager; DatasetManager exposes get and createItem, not create.",
+      "Dataset creation is exposed by LangfuseClient.api.datasets.create and returns an awaited HttpResponsePromise.",
+      "LangfuseClient.score.create delegates to ScoreManager.create, which returns void and queues score ingestion.",
+      "Fail-closed synchronous score creation is exposed by LangfuseClient.api.scores.create and returns an awaited CreateScoreResponse."
+    ],
+    "independentReviewDisposition": "REAL_GOVERNANCE_EVIDENCE_DEFECT_FIXED_BEFORE_IMPLEMENTATION_MERGE"
+  },
+  "correctedOfficialApiEvidence": {
+    "langfuseClientVersion": "5.10.0",
+    "source": "langfuse/langfuse-js@ab2bf242e5fae64116c5354c92e5eac3e70490c8",
+    "datasetReadApi": "client.dataset.get(name)",
+    "datasetCreationApi": "client.api.datasets.create({ name })",
+    "datasetItemUpsertApi": "client.dataset.createItem({ id, datasetName, input, expectedOutput, metadata })",
+    "failClosedScoreCreateApi": "client.api.scores.create({ id, traceId|sessionId|datasetRunId, observationId?, name, value, metadata })",
+    "queuedScoreApi": "client.score.create(...)",
+    "queuedScoreApiSufficientForFailClosedBinding": false,
+    "purpose": "Langfuse remains the sole Dataset and Score authority. Yance supplies only Learning-approved, privacy-minimized canonical semantics and waits for the official synchronous HTTP API before claiming evidence binding success."
+  },
+  "implementationEvidenceBeforeErratum": {
+    "head": "f35506b2ca82bbc496272415b0f763b6ffd2a493",
+    "stageWp0Run": 31747060258,
+    "acv2Run": 31747060298,
+    "wpAPostMergeValidationRun": 31747060390,
+    "modelBrainWindowsRun": 31747060249,
+    "allApplicableRunsGreen": true,
+    "productExperienceShellRun": 31747060457,
+    "productExperienceShellConclusion": "skipped_by_path_routing"
+  },
+  "implementationCompatibility": {
+    "implementationScopeChanged": false,
+    "implementationBranchChanged": false,
+    "failureFirstHistoryChanged": false,
+    "productionImplementationRewriteRequired": false,
+    "rebaseRequired": false,
+    "forcePushRequired": false,
+    "amendRequired": false,
+    "erratumPathMayEnterImplementationDiff": false,
+    "originalFailureFirstHead": "2e91f4d71ede15f63bf03d97782fa7fc439caf1a",
+    "originalFailureFirstRun": 31744502593,
+    "firstProductionCommit": "3b6a1c254deadff01b6c2998ee2dca117293050f",
+    "reviewCorrectionCommit": "f35506b2ca82bbc496272415b0f763b6ffd2a493",
+    "requiredAfterErratumMerge": "Re-evaluate PR #354 against the new trusted main merge base and require fresh exact-head CI and independent review before its ordinary two-parent final merge."
+  },
+  "supersededEvidenceOnly": {
+    "authorizationPath": "governance/layered-ci/v21-learning-deep-training-contract-closure-v1-authorization.json",
+    "jsonPointer": "/ossFit/officialApiEvidence",
+    "retiredValues": [
+      "@langfuse/client dataset.create/createItem/get",
+      "@langfuse/client score.create"
+    ],
+    "allOtherAuthorizationSemanticsRemainAuthoritative": true
+  },
+  "ossFit": {
+    "decision": "CORRECT_PINNED_LANGFUSE_510_API_EVIDENCE_WITHOUT_NEW_INFRASTRUCTURE",
+    "matureOssAvailable": true,
+    "matureOssMandatory": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing exact root dependency and official SDK/API seam",
+    "reviewedCandidates": [
+      {
+        "name": "@langfuse/client 5.10.0",
+        "license": "MIT",
+        "fit": "FIT",
+        "adoptionMode": "existing exact root dependency",
+        "reason": "Use the pinned official DatasetManager plus generated synchronous datasets/scores API clients; do not create a Yance DatasetStore, score engine, or experiment framework.",
+        "source": "langfuse/langfuse-js@ab2bf242e5fae64116c5354c92e5eac3e70490c8"
+      }
+    ],
+    "retireOrAvoid": [
+      "the inaccurate dataset.create API evidence string from #353",
+      "using queued client.score.create as proof of remote score persistence",
+      "custom Yance DatasetStore",
+      "custom Yance score/reward engine",
+      "custom Yance experiment/evaluator authority"
+    ]
+  },
+  "verificationBoundary": {
+    "effectiveBeforeMerge": false,
+    "ordinaryTwoParentMainMergeRequired": true,
+    "invalidIfTrustedMainMovesBeforeErratumMerge": true,
+    "implementationPRMustBeRecheckedAfterErratumMerge": true,
+    "independentReviewRequired": true
+  },
+  "governance": {
+    "runtimeBehaviorChanged": false,
+    "implementationAuthorityExpanded": false,
+    "dependencyModificationAuthorized": false,
+    "workflowModificationAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "agentLightningImplementationAuthorized": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true
+  }
+}
