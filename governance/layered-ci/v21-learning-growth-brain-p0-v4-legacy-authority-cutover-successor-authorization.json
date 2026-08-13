@@ -2,9 +2,14 @@
   "schemaVersion": 1,
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-LEARNING-GROWTH-BRAIN-P0-V4-LEGACY-AUTHORITY-CUTOVER-SUCCESSOR",
+  "workPackage": "V21-LEARNING-GROWTH-BRAIN-P0-V4-CUTOVER-SUCCESSOR",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Successor authorization after PR #346 fresh-main reconciliation exposed two latent V3 Learning cutover REDs: production reply composition still injects legacy Learning authority and ten retired Yance Learning authorities remain in the production tree. Preserve the already-validated V4 Product Experience, runtime, OSS and canonical Element 0011 work while completing the previously-authorized-but-unimplemented V3 legacy-authority cutover through existing mature OSS and repository seams. No new general-purpose Yance infrastructure.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-learning-growth-brain-p0-v4-product-experience-reconciliation-authorization.json",
+    "implementationBranch": "product/v21-learning-growth-brain-p0-v4-product-experience-reconciliation",
+    "reason": "PR #346 established valid fresh-main failure-first evidence and a 65-path Product/OSS reconciliation candidate, but targeted closure exposed two additional causal REDs whose required production cutover paths are outside the 65-path authority."
+  },
   "base": {
     "branch": "main",
     "commit": "0c8543374b8ea4be391812e0bfaa31898baba8b6"
@@ -34,13 +39,6 @@
     "separator": "LF (\\n)",
     "trailingNewline": true
   },
-  "supersedes": {
-    "authorizationPath": "governance/layered-ci/v21-learning-growth-brain-p0-v4-product-experience-reconciliation-authorization.json",
-    "implementationPullRequest": 346,
-    "implementationBranch": "product/v21-learning-growth-brain-p0-v4-product-experience-reconciliation",
-    "failureFirstHead": "c59b194c96324acad0eea672858a66a8dc575acb",
-    "reason": "PR #346 established valid fresh-main failure-first evidence and a 65-path Product/OSS reconciliation candidate, but targeted closure exposed two additional causal REDs whose required production cutover paths are outside the 65-path authority."
-  },
   "scopeDerivation": {
     "priorV4AuthorizedPathCount": 65,
     "priorV4AuthorizedPathSetSha256": "37e99aedff1ecf6db7a89ab7ce6d1969b40b331b9e74dc537c45b01aef51c430",
@@ -51,11 +49,9 @@
     "latentV3OmissionPathCount": 42,
     "latentV3OmissionPathSetSha256": "71f388f5636ddb9123ba39cade810f2fd256dda1d867d9ffdacd85909035a059",
     "stageVisibleCutoverGatePath": "tests/wp0/v21-learning-legacy-authority-cutover.test.js",
-    "stageVisibleCutoverGatePathCount": 1,
     "finalAuthorizedPathCount": 108,
     "finalAuthorizedPathSetSha256": "b49136f0eb04dd7574e234aeb0e3d4c04ba5ef12cdc00c4391a9d626676cd789",
     "allLatentOmissionPathsWereAlreadyAuthorizedByV3": true,
-    "referenceSearchDoesNotDefineAuthority": true,
     "historicalEvidenceAndInventoryReferencesMustNotBeRewrittenMerelyToMakeGrepEmpty": true
   },
   "latentLegacyAuthorityCutover": {
@@ -122,31 +118,7 @@
       "No renamed clone of a retired Yance Learning authority.",
       "No new Yance learning framework, optimizer, dataset store, scheduler, experiment engine, rollout engine, model router or process-lock infrastructure.",
       "No workflow weakening, ignore lists, scanner exclusions, test skips or path-only gate bypass."
-    ],
-    "historicalReferenceOnlyPolicy": {
-      "migrationReceiptsRemainImmutable": true,
-      "auditInventoriesRemainHistorical": true,
-      "uatEvidenceReceiptsMayRetainHistoricalNamesWhenNotRuntimeAuthorities": true
-    }
-  },
-  "reconciliation": {
-    "historicalImplementationPullRequest": 223,
-    "historicalImplementationBranch": "product/v21-learning-growth-brain-p0-v3",
-    "historicalImplementationHead": "0b48b4dbd04693d21ef3f6545cbd330c6b519289",
-    "mergeBaseWithFreshMain": "0164d22982dbdbc471135e43948c9890bb71b0e8",
-    "historicalContextAwareReplyBrainBlob": "1784fc98af843131b6cdb98afff7c4cb86a12293",
-    "freshMainContextAwareReplyBrainBlob": "1784fc98af843131b6cdb98afff7c4cb86a12293",
-    "latentCutoverWasPresentInHistoricalV3": true,
-    "removedHistoricalAuthorityPaths": [
-      "integration/element-module/src/YanceWorkspace.tsx",
-      "upstream-patches/element-web/0002-yance-learning-assistant-ui-deps.patch"
-    ],
-    "productExperienceShellMustRemainTopLevelWorkspaceAuthority": true,
-    "retiredLearningPatch0002MustNotReturn": true,
-    "canonicalElementPatch0011MustRemainSingleLockOnlyDiff": true,
-    "canonicalElementPatch0011MustBindFullPost0003BlobIdentity": true,
-    "historicalLearningRuntimeAndOssCompositionMustBePreserved": true,
-    "freshSemanticReconciliationRequiredForCurrentProductionConsumers": true
+    ]
   },
   "implementation": {
     "branch": "product/v21-learning-growth-brain-p0-v4-legacy-authority-cutover-successor",
@@ -332,21 +304,26 @@
     "matureOssAvailable": true,
     "selectedAdoptionMode": "existing-repository-seam",
     "inheritedReviewedCandidatesFrom": "governance/layered-ci/v21-learning-growth-brain-p0-v4-product-experience-reconciliation-authorization.json",
-    "selectedMatureOss": ["Langfuse + OpenTelemetry", "DSPy + GEPA", "Promptfoo", "OpenFeature + flagd", "Letta + assistant-ui/tool-ui", "Presidio + APScheduler + proper-lockfile"],
+    "selectedMatureOss": [
+      "Langfuse + OpenTelemetry",
+      "DSPy + GEPA",
+      "Promptfoo",
+      "OpenFeature + flagd",
+      "Letta + assistant-ui/tool-ui",
+      "Presidio + APScheduler + proper-lockfile"
+    ],
     "newGeneralPurposeInfrastructure": false,
     "matureOssMandatory": true
   },
-  "parallelOverlap": {
-    "productExperiencePullRequest": 229,
-    "voicePullRequest": 331,
-    "supersededLearningPullRequest": 346,
-    "currentLearningExecutableOverlapWithProductPaths": ["integration/element-module/src/YanceWorkspace.tsx"],
-    "currentLearningExecutableOverlapWithVoicePaths": [],
-    "freshMainRecheckRequiredBeforeAuthorizationMerge": true,
-    "freshMainRecheckRequiredBeforeImplementationMerge": true
-  },
   "verification": {
-    "mandatory": ["Stage", "Layered", "ACV2", "Learning Windows", "applicable Product gates", "legacy Learning cutover targeted suite"],
+    "mandatory": [
+      "Stage",
+      "Layered",
+      "ACV2",
+      "Learning Windows",
+      "applicable Product gates",
+      "legacy Learning cutover targeted suite"
+    ],
     "stageMustExecuteLegacyCutoverGate": true,
     "independentExactHeadReviewRequired": true,
     "zeroUnresolvedP0P1Required": true,
