@@ -2,6 +2,7 @@ import React from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { MediaWorkspace } from "../MediaWorkspace";
 import { PresenceWorkspace } from "../PresenceWorkspace";
+import { VoiceWorkspace } from "../VoiceWorkspace";
 import { closeRelationshipOverlay, useExperienceSession } from "./experienceSession";
 
 function overlayTitle(kind: string | null): string {
@@ -40,12 +41,7 @@ export function RelationshipOverlayHost(): React.JSX.Element {
             <div className="yance-overlay-body">
               {overlay === "photo" || overlay === "attachment" ? <MediaWorkspace /> : null}
               {overlay === "live" ? <PresenceWorkspace /> : null}
-              {overlay === "voice" ? (
-                <section className="yance-voice-entry" role="status" aria-live="polite">
-                  <strong>Voice stays with the Voice Brain authority</strong>
-                  <p>The Product shell opens the relationship entry point without creating another recording, speech or voice runtime.</p>
-                </section>
-              ) : null}
+              {overlay === "voice" ? <VoiceWorkspace /> : null}
             </div>
           </Dialog.Popup>
         </Dialog.Viewport>
