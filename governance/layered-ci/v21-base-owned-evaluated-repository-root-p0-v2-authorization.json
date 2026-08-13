@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-BASE-OWNED-EVALUATED-REPOSITORY-ROOT-P0-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh implementation successor for the proven base-owned WP0 split-root candidate identity repair. PR #333 proved the code repair direction but its immutable first post-RED commit omitted the mandatory exact failure-first evidence trailer, so no descendant of that implementation branch can satisfy the existing failure-first topology policy without rewriting history. V2 preserves that RED as evidence, keeps the same two-path repair scope, and restarts from a new ordinary-merged authorization so the first post-RED GREEN commit can carry the required exact evidence while retaining the bottom-level split-root fix.",
+  "base": {
+    "branch": "main",
+    "commit": "0c1e4e7bf8bc39b2bda9f225fa081a2815f84a4e"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "0c1e4e7bf8bc39b2bda9f225fa081a2815f84a4e",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-base-owned-evaluated-repository-root-p0-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-base-owned-evaluated-repository-root-p0-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "ae32c3d91f301b7ec3a03c6c66b555dd7caab86a18f3d57227275ff4e8341ce2",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-base-owned-evaluated-repository-root-p0-v2",
+    "allowedChangedPaths": [
+      "tests/wp0/base-owned-evaluated-repository-root.test.js",
+      "tools/wp0/lib.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "63f8cbbe5fb555ce774f03f1c812447b666db4ae1d697a0a730685d9bc94ca60",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/base-owned-evaluated-repository-root.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "8cc961e6cc1bce434a2e91706625ba36052370913945558b2aa3519fea439189",
+      "productionCodeChanged": false,
+      "freshCausalRedRequired": true
+    },
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "rootCauseContract": {
+    "trustedPolicyRootOwnsExecutableAndTrustedMainAuthority": true,
+    "evaluatedRepositoryRootOwnsCandidateHeadIdentity": true,
+    "splitRootCallerMustBindCandidateHeadExplicitly": true,
+    "failureFirstTopologyMustEvaluateTheCandidateFirstParentLineage": true,
+    "firstPostRedCommitMustCarryExactEvidence": true,
+    "explicitCallerOverridesMustRemainAuthoritative": true,
+    "missingOrInvalidCandidateGitIdentityMustFailClosed": true
+  },
+  "priorAttemptEvidence": {
+    "pullRequest": 333,
+    "failureFirstHead": "b3cd73ab81a80150e0520043bc8e630d29e288ce",
+    "failureFirstRun": 31664508147,
+    "failureFirstJob": 94336118519,
+    "causalRed": "base-owned-evaluated-repository-root.test actual evaluatedHead was undefined while candidate Git HEAD was required",
+    "firstGreenCommit": "110725c7260223e258b242e214537c1f1411d8c3",
+    "rejectedGreenHead": "345a8dfb3ef6020571f7095461985b892fb010b3",
+    "rejectedGreenRun": 31665074850,
+    "rejectedGreenJob": 94337835184,
+    "rejection": "implementation-branch-policy.test rejected the branch because the immutable first post-RED commit lacked the exact Yance-Failure-First-Red-* evidence trailer",
+    "historyRewriteForbidden": true
+  },
+  "ossFit": {
+    "decision": "ADOPT_EXISTING_REPOSITORY_SPLIT_ROOT_AND_EXPLICIT_EVALUATED_HEAD_SEAMS",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance existing explicit evaluatedHead delegated-policy seam",
+        "source": "shared/release/implementationBranchPolicy.js",
+        "license": "repository-owned project code",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The delegated policy already accepts explicit candidate identity and exact failure-first evidence; V2 must use those existing seams instead of changing policy semantics or creating a second policy engine."
+      },
+      {
+        "name": "Yance existing YANCE_EVALUATED_REPOSITORY_ROOT candidate seam",
+        "source": "tools/wp0/lib.js",
+        "license": "repository-owned project code",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "WP0 already resolves the candidate checkout root and current commit; the repair only binds that identity into the existing delegated policy options."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not rewrite PR #333 history to retrofit failure-first evidence.",
+      "Do not add a second delegated-governance policy engine.",
+      "Do not weaken failure-first topology or route the Voice branch around the base-owned executable gate.",
+      "Do not make the evaluated candidate root authoritative for trusted-main policy or authorization documents."
+    ],
+    "newThirdPartyDependencyRequired": false,
+    "basis": "This remains a repository-specific integration binding defect between existing seams; no external OSS can replace those semantics without adding unnecessary infrastructure."
+  },
+  "verification": {
+    "mandatory": [
+      "fresh V2 direct base-owned evaluated-repository-root regression RED then GREEN",
+      "first post-RED GREEN commit carries exact Yance-Failure-First-Red-* evidence",
+      "Stage WP0 gate on exact V2 implementation Head",
+      "existing delegated failure-first topology tests",
+      "PR #331 base-owned executable WP0 gate after V2 prerequisite ordinary merge"
+    ],
+    "ordinaryTwoParentImplementationMergeRequired": true,
+    "postMergeGreenRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
