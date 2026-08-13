@@ -319,7 +319,7 @@ function verifyRejectedBaselineAnchor(options = {}) {
   }
 
   try { anchorBlob = git(['rev-parse', `${expectedAnchorCommit}:${expectedAnchorPath}`]); }
-  catch { errors.push(`missing canonical archive anchor path is missing: ${expectedAnchorPath}`); }
+  catch { errors.push(`canonical archive anchor path is missing: ${expectedAnchorPath}`); }
   if (anchorBlob && anchorBlob !== expectedAnchorBlob) errors.push(`canonical archive anchor blob mismatch: expected ${expectedAnchorBlob}, got ${anchorBlob}`);
 
   try { archivedRejected = JSON.parse(git(['show', `${expectedAnchorCommit}:${expectedAnchorPath}`])); }
