@@ -114,7 +114,7 @@ test('pure Superpowers product plan/spec Markdown selects non-executable PRODUCT
     const result = classifyWp0Route(policy, [file]);
     assert.equal(result.pass, true, JSON.stringify(result));
     assert.equal(result.route, ROUTES.PRODUCT_DOCUMENTATION, file);
-    assert.equal(result.productDocumentationChangesPresent, true);
+    assert.equal(result.productDocumentationChangesPresent, true, file);
     assert.equal(result.productChangesPresent, false);
     assert.equal(result.governanceChangesPresent, false);
     assert.equal(result.executionAuthorized, false);
@@ -249,4 +249,23 @@ test('base-owned evaluated repository root repair scope selects GOVERNANCE_WP0',
   assert.equal(result.route, ROUTES.GOVERNANCE, JSON.stringify(result));
   assert.equal(result.governanceChangesPresent, true, JSON.stringify(result));
   assert.equal(result.productChangesPresent, false, JSON.stringify(result));
+});
+
+test('GOVERNANCE_WP0 executes the base-owned evaluated repository root contract exactly once and fail fast', () => {
+  const text = fs.readFileSync(path.join(ROOT, '.github/workflows/stage-6459-wp0-gates.yml'), 'utf8');
+  const lines = text.split('\n');
+  const start = lines.findIndex(line => line === '  wp0-governance:');
+  assert.notEqual(start, -1, 'wp0-governance job must exist');
+  const nextJobOffset = lines.slice(start + 1).findIndex(line => /^  [a-z0-9][a-z0-9_-]*:$/u.test(line));
+  assert.notEqual(nextJobOffset, -1, 'wp0-governance job must have a following top-level job boundary');
+  const job = lines.slice(start, start + 1 + nextJobOffset).join('\n');
+  const command = 'node --test --test-concurrency=1 tests/wp0/base-owned-evaluated-repository-root.test.js';
+  assert.equal(job.split(command).length - 1, 1, 'split-root contract must run exactly once');
+  assert.match(
+    job,
+    /- name: Run base-owned evaluated repository root contract\n\s+run: node --test --test-concurrency=1 tests\/wp0\/base-owned-evaluated-repository-root\.test\.js/u
+  );
+  assert.doesNotMatch(job, /tests\/wp0\/\*\.test\.js/u);
+  assert.doesNotMatch(job, /continue-on-error:\s*true/u);
+  assert.doesNotMatch(job, /base-owned-evaluated-repository-root\.test\.js\s*(?:\|\||;).*true/u);
 });
