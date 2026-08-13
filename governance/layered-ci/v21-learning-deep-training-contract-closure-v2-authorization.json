@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LEARNING-DEEP-TRAINING-CONTRACT-CLOSURE-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Forward-only successor after trusted-main governance evidence corrections #355/#356 changed the original V1 authorization blob after its introduction merge, causing current base-owned policy to correctly reject PR #354 with WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID. V2 does not widen product scope or add infrastructure: it preserves the exact five-path Learning→Deep Training contract closure, restarts execution from fresh trusted main with a new two-test causal RED, carries forward the pinned Langfuse 5.10 official API evidence, and incorporates only still-valid review findings. No rerun-only bypass, history rewrite, workflow weakening, Agent Lightning runtime, release, publish or promotion is authorized.",
+  "historicalDisposition": {
+    "authorizationPath": "governance/layered-ci/v21-learning-deep-training-contract-closure-v1-authorization.json",
+    "implementationBranch": "product/v21-learning-deep-training-contract-closure-v1",
+    "implementationPullRequest": 354,
+    "formalSupersedesDeclarationUsed": false,
+    "reason": "The V1 trusted-main authorization blob no longer equals its introduction-merge blob after legitimate evidence corrections #355/#356, so the generic policy has no effective V1 record to supersede. V1 remains immutable historical RED/implementation/review evidence only and must not be repaired in place."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "2583dcaeb6846298124c77c3378d62671e1c4d7e"
+  },
+  "prerequisiteEvidence": {
+    "learningV4MergeCommit": "34a8931596307eb6100a96b337f6abab2bef6b9c",
+    "v1AuthorizationPullRequest": 353,
+    "v1ImplementationPullRequest": 354,
+    "v1FreshMainHead": "bcbf9f2830a0d041ea4b568295173ed25e5acb82",
+    "v1AuthorityInvalidStageRun": 31751458683,
+    "v1AuthorityInvalidStageJob": 94617958623,
+    "v1Wp0PassCount": 382,
+    "v1Wp0FailCount": 1,
+    "langfuseEvidenceErratumPullRequest": 355,
+    "langfuseEvidenceCorrectionPullRequest": 356,
+    "trustedMainAfterCorrection": "2583dcaeb6846298124c77c3378d62671e1c4d7e"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-learning-deep-training-contract-closure-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-learning-deep-training-contract-closure-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d4707c07eac56f842b0092c42a059073cbda28c132ae01f0ebfeda18f50c047d",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-learning-deep-training-contract-closure-v2",
+    "allowedChangedPaths": [
+      "backend/services/langfuseLearningEvidenceAdapter.js",
+      "backend/services/learningDeepTrainingContract.js",
+      "backend/services/learningPromotionAdapter.js",
+      "backend/tests/learningDeepTrainingContract.test.js",
+      "tests/wp0/v21-learning-deep-training-contract-closure.test.js"
+    ],
+    "approvedChangedFileCount": 5,
+    "approvedChangedFileSetSha256": "76ee3a23ea4cc62d71a17e9683dc420e81f631bdee42f2e60244a1a553441cd0",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "backend/tests/learningDeepTrainingContract.test.js",
+        "tests/wp0/v21-learning-deep-training-contract-closure.test.js"
+      ],
+      "approvedChangedFileCount": 2,
+      "approvedChangedFileSetSha256": "71437309cd2a3bf1a3b394df27978ddbb7069827caafc56560b9e5470dae0c7b",
+      "productionCodeChanged": false
+    }
+  },
+  "contractRules": {
+    "readOnlyProjection": true,
+    "canonicalSignalIdsMustBePreserved": true,
+    "trajectoryMayInferMissingSteps": false,
+    "trajectoryMayReorderSteps": false,
+    "sendEventImpliesSuccess": false,
+    "explicitRejectionIsNegativeEvidence": true,
+    "deepTrainingMayComputeReward": false,
+    "deepTrainingMayNormalizeOrShapeReward": false,
+    "scoreMustBeLearningApproved": true,
+    "langfuseDatasetIsExperimentDatasetAuthority": true,
+    "newYanceDatasetStoreForbidden": true,
+    "newYanceTrajectoryStoreForbidden": true,
+    "newYanceRewardEngineForbidden": true,
+    "newYanceEvaluatorForbidden": true,
+    "piiMinimizationBeforeProjection": true,
+    "doNotLearnFailClosed": true,
+    "mixedRelationshipBatchForbidden": true,
+    "globalAggregationDefault": "DENY_UNLESS_EXPLICIT_CANONICAL_GLOBAL_ELIGIBILITY",
+    "rollbackRequiresLearningRolloutIdentity": true,
+    "rollbackRequiresCandidateIdentity": true,
+    "agentLightningRuntimeImplementationAuthorized": false,
+    "deepTrainingOutputPromotionAuthorized": false
+  },
+  "reviewDisposition": {
+    "sourcePullRequest": 354,
+    "validFindingsCarriedForward": [
+      "Reject rollback unless rollout.kind is LEARNING_ROLLOUT and rollout.candidate is present before persisting rollback evidence.",
+      "Pin the exact five implementation paths in the closure test instead of relying only on a digest read from the same authorization file.",
+      "Scope the test factory require catch so export-shape assertion failures are not mislabeled as missing-module failures."
+    ],
+    "rejectedFinding": {
+      "finding": "Replace client.api.scores.create with queued client.score.create and flush.",
+      "reason": "Conflicts with independently verified pinned @langfuse/client 5.10.0 source recorded by merged #356: client.api.scores.create is the synchronous fail-closed Score creation API, while client.score.create is queued and explicitly insufficient for claiming fail-closed evidence binding success."
+    }
+  },
+  "ossFit": {
+    "decision": "EXTEND_EXISTING_MATURE_OSS_SEAMS_WITH_THIN_YANCE_PROJECTION_ONLY",
+    "matureOssAvailable": true,
+    "matureOssMandatory": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Langfuse @langfuse/client 5.10.0 + @langfuse/tracing 5.10.0 + @langfuse/otel 5.10.0",
+        "license": "MIT",
+        "fit": "FIT",
+        "adoptionMode": "existing exact root dependencies",
+        "reason": "Official Dataset and synchronous Score APIs remain external evidence authority; no Yance dataset or score engine.",
+        "source": "langfuse/langfuse@328bb23d8ed71c5879d036704a7077c10516d462; langfuse/langfuse-js@ab2bf242e5fae64116c5354c92e5eac3e70490c8"
+      },
+      {
+        "name": "OpenTelemetry",
+        "license": "Apache-2.0",
+        "fit": "FIT",
+        "adoptionMode": "existing tracing/evidence seam",
+        "reason": "Preserve trace/span provenance linkage without a Yance tracing framework.",
+        "source": "open-telemetry/opentelemetry-js@76fa6b509e2b48d9cbee31cb37a2efc61dc4d384; open-telemetry/opentelemetry-python@53a5a40c9604583c501bcf13970a635f00e62df4"
+      },
+      {
+        "name": "Promptfoo 0.122.0",
+        "license": "MIT",
+        "fit": "FIT",
+        "adoptionMode": "existing sealed precomputed regression evaluator",
+        "reason": "Retain regression authority; no Yance evaluator.",
+        "source": "promptfoo/promptfoo@7b898cbdb16205cb7f0e2994baa807d131eb2326"
+      },
+      {
+        "name": "OpenFeature + flagd",
+        "license": "Apache-2.0",
+        "fit": "FIT",
+        "adoptionMode": "existing staged rollout authority",
+        "reason": "Rollback remains within the existing Learning rollout seam; no Yance rollout engine.",
+        "source": "@openfeature/server-sdk@1.23.0#ba1bfd0627ef63ffe9c26c600899f7aedd6f0087; @openfeature/flagd-provider@0.16.0#c18b1de5f9ce8325acf118ad98e49e57ebdc0e28; @openfeature/flagd-core@4.0.0#c0defa4d2e1f97104eb740934ad1a75e69bcfe94"
+      },
+      {
+        "name": "Presidio 2.2.364",
+        "license": "MIT",
+        "fit": "FIT",
+        "adoptionMode": "existing source-side PII minimization authority",
+        "reason": "All projected training content remains fail-closed behind existing minimization.",
+        "source": "microsoft/presidio@779dbd286d5ef4d1fbe2514275fb1bce358f2417"
+      }
+    ],
+    "retireOrAvoid": [
+      "Agent Lightning-side guessed Learning adapter before this contract lands",
+      "custom Yance DatasetStore",
+      "custom Yance trajectory database/schema authority",
+      "custom reward/scoring engine or weighting",
+      "custom evaluator/regression engine",
+      "custom rollout/promotion/rollback engine",
+      "revival of retired replyLearningScopeAuthority or replyLearningProjectionRepository"
+    ],
+    "officialApiEvidence": {
+      "langfuseClientVersion": "5.10.0",
+      "source": "langfuse/langfuse-js@ab2bf242e5fae64116c5354c92e5eac3e70490c8",
+      "datasetReadApi": "client.dataset.get(name)",
+      "datasetCreationApi": "client.api.datasets.create({ name })",
+      "datasetItemUpsertApi": "client.dataset.createItem({ id, datasetName, input, expectedOutput, metadata })",
+      "failClosedScoreCreateApi": "client.api.scores.create({ id, traceId|sessionId|datasetRunId, observationId?, name, value, metadata })",
+      "queuedScoreApi": "client.score.create(...)",
+      "queuedScoreApiSufficientForFailClosedBinding": false,
+      "purpose": "Langfuse remains sole Dataset and Score authority; Yance waits for synchronous official API success before claiming evidence binding."
+    }
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "agentLightningImplementationAuthorized": false,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true,
+    "gateWeakeningForbidden": true
+  }
+}
