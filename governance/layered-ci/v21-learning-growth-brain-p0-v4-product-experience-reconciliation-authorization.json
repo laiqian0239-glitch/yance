@@ -1,0 +1,283 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LEARNING-GROWTH-BRAIN-P0-V4",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main successor reconciliation of Learning Growth Brain P0 V3 after Product Experience Shell P0 and Voice Brain P0 V2 ordinary-merged. Preserve ProductExperienceShell as the sole YanceWorkspace authority, retain the proven Learning runtime/OSS composition, retire the stale top-level capability dashboard, and migrate Learning Element dependencies from retired patch 0002 into current canonical Product dependency-lock patch 0011.",
+  "base": {
+    "branch": "main",
+    "commit": "bb72b5d4587f2221cba03a4215be9ee44a7e82a9"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "bb72b5d4587f2221cba03a4215be9ee44a7e82a9",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-learning-growth-brain-p0-v4-product-experience-reconciliation-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-learning-growth-brain-p0-v4-product-experience-reconciliation-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "a424c834717d16c53cdbde9df09b25dbd9fe3184762edcb337b9598daaf4614b",
+    "mustRemainSingleFile": true
+  },
+  "reconciliation": {
+    "historicalImplementationPullRequest": 223,
+    "historicalImplementationBranch": "product/v21-learning-growth-brain-p0-v3",
+    "historicalImplementationHead": "0b48b4dbd04693d21ef3f6545cbd330c6b519289",
+    "mergeBaseWithFreshMain": "0164d22982dbdbc471135e43948c9890bb71b0e8",
+    "freshMainAheadFromMergeBase": 380,
+    "historicalLearningAheadFromMergeBase": 9,
+    "historicalExecutableChangedPathCount": 63,
+    "removedHistoricalAuthorityPaths": [
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "upstream-patches/element-web/0002-yance-learning-assistant-ui-deps.patch"
+    ],
+    "addedFreshMainReconciliationPaths": [
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/package.json",
+      "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch"
+    ],
+    "finalAuthorizedPathCount": 65,
+    "yanceWorkspaceMustRemainFreshMainBlob": true,
+    "productExperienceShellMustRemainTopLevelWorkspaceAuthority": true,
+    "retiredLearningPatch0002MustNotReturn": true,
+    "canonicalElementPatch0011MustRemainSingleLockOnlyDiff": true,
+    "historicalLearningRuntimeAndOssCompositionMustBePreserved": true,
+    "freshSemanticReconciliationRequiredForPathsChangedOnMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-learning-growth-brain-p0-v4-product-experience-reconciliation",
+    "allowedChangedPaths": [
+      "backend/desktopHostedEntry.js",
+      "backend/runtime/NamedRuntimeMutex.js",
+      "backend/runtime/RuntimeOwnership.js",
+      "backend/services/langfuseLearningEvidenceAdapter.js",
+      "backend/services/learningDataPolicy.js",
+      "backend/services/learningEvaluationAdapter.js",
+      "backend/services/learningEvidenceBridge.js",
+      "backend/services/learningPromotionAdapter.js",
+      "backend/services/learningProposalService.js",
+      "backend/tests/architectureClosureV2/wpA/windowsRuntimeMutexPowerShell.test.js",
+      "backend/tests/learningEvidencePipeline.test.js",
+      "backend/tests/learningGrowthBrainP0.test.js",
+      "backend/tests/learningLegacyAuthorityCutover.test.js",
+      "backend/tests/learningPrivacyBoundary.test.js",
+      "backend/tests/learningProposalLifecycle.test.js",
+      "config/upstreams/v21-learning-growth-brain-p0.json",
+      "electron/learningCoachTools.js",
+      "integration/element-module/package.json",
+      "integration/element-module/src/LearningToolUiAdapter.tsx",
+      "integration/element-module/src/LearningWorkspace.css",
+      "integration/element-module/src/LearningWorkspace.tsx",
+      "integration/element-module/src/learningAssistantRuntime.ts",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "package-lock.json",
+      "package.json",
+      "runtime/learning-growth/promptfoo/generate_runtime_sbom.js",
+      "runtime/learning-growth/promptfoo/package-lock.json",
+      "runtime/learning-growth/promptfoo/package.json",
+      "runtime/learning-growth/promptfoo/precomputed-provider.cjs",
+      "runtime/learning-growth/promptfoo/promptfooconfig.yaml",
+      "runtime/learning-growth/python/generate_runtime_sbom.py",
+      "runtime/learning-growth/python/learning_entrypoint.py",
+      "runtime/learning-growth/python/pyproject.toml",
+      "runtime/learning-growth/python/uv.lock",
+      "tests/wp0/v21-learning-coach-contract.test.js",
+      "tests/wp0/v21-learning-growth-brain-p0.test.js",
+      "tests/wp0/v21-learning-growth-brain-ui.test.js",
+      "tests/wp0/v21-learning-growth-brain-windows-runtime.test.js",
+      "tests/wp3/portable-runtime-mutex-endpoint.test.js",
+      "tests/wp3/runtime-path-canonicalization.test.js",
+      "tests/wp3/second-backend-ownership-denied.test.js",
+      "tests/wp3/windows-named-mutex-real.test.js",
+      "tests/wp4/backend-launch-environment-and-phase-diagnostics.test.js",
+      "tools/learning-growth/build-windows-runtime.ps1",
+      "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/LICENSE.md",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/UPSTREAM.json",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/approval-card/_adapter.tsx",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/approval-card/approval-card.tsx",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/approval-card/index.tsx",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/approval-card/schema.ts",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/progress-tracker/_adapter.tsx",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/progress-tracker/index.tsx",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/progress-tracker/progress-tracker.tsx",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/progress-tracker/schema.ts",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/question-flow/_adapter.tsx",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/question-flow/index.tsx",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/question-flow/question-flow.tsx",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/question-flow/schema.ts",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/shared/_adapter.tsx",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/shared/action-buttons.tsx",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/shared/contract.ts",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/shared/parse.ts",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/shared/schema.ts",
+      "vendor/assistant-ui-tool-ui/v2026.2.13/shared/use-action-buttons.tsx"
+    ],
+    "approvedChangedFileCount": 65,
+    "approvedChangedFileSetSha256": "37e99aedff1ecf6db7a89ab7ce6d1969b40b331b9e74dc537c45b01aef51c430",
+    "newDependencyAllowed": true,
+    "packageManifestModificationAllowed": true,
+    "workflowModificationAllowed": false,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "integration/element-module/package.json",
+        "package-lock.json",
+        "package.json",
+        "runtime/learning-growth/promptfoo/package-lock.json",
+        "runtime/learning-growth/promptfoo/package.json"
+      ],
+      "approvedDependencyPathCount": 5,
+      "approvedDependencyPathSetSha256": "66f590bae5c01ce779c8d19fd472964bdb57a17308381cf7435871b3ab09fafb"
+    },
+    "dependencyIdentityPolicy": {
+      "entries": [
+        {"path": "integration/element-module/package.json", "section": "dependencies", "name": "@assistant-ui/react", "version": "0.15.1"},
+        {"path": "integration/element-module/package.json", "section": "dependencies", "name": "lucide-react", "version": "0.563.0"},
+        {"path": "integration/element-module/package.json", "section": "dependencies", "name": "zod", "version": "4.4.3"},
+        {"path": "package.json", "section": "dependencies", "name": "@langfuse/client", "version": "5.10.0"},
+        {"path": "package.json", "section": "dependencies", "name": "@langfuse/otel", "version": "5.10.0"},
+        {"path": "package.json", "section": "dependencies", "name": "@langfuse/tracing", "version": "5.10.0"},
+        {"path": "package.json", "section": "dependencies", "name": "@openfeature/flagd-core", "version": "4.0.0"},
+        {"path": "package.json", "section": "dependencies", "name": "@openfeature/flagd-provider", "version": "0.16.0"},
+        {"path": "package.json", "section": "dependencies", "name": "@openfeature/server-sdk", "version": "1.23.0"},
+        {"path": "package.json", "section": "dependencies", "name": "proper-lockfile", "version": "4.1.2"},
+        {"path": "runtime/learning-growth/promptfoo/package.json", "section": "dependencies", "name": "promptfoo", "version": "0.122.0"}
+      ]
+    },
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "backend/tests/architectureClosureV2/wpA/windowsRuntimeMutexPowerShell.test.js",
+        "backend/tests/learningEvidencePipeline.test.js",
+        "backend/tests/learningGrowthBrainP0.test.js",
+        "backend/tests/learningLegacyAuthorityCutover.test.js",
+        "backend/tests/learningPrivacyBoundary.test.js",
+        "backend/tests/learningProposalLifecycle.test.js",
+        "tests/wp0/v21-learning-coach-contract.test.js",
+        "tests/wp0/v21-learning-growth-brain-p0.test.js",
+        "tests/wp0/v21-learning-growth-brain-ui.test.js",
+        "tests/wp0/v21-learning-growth-brain-windows-runtime.test.js",
+        "tests/wp3/portable-runtime-mutex-endpoint.test.js",
+        "tests/wp3/runtime-path-canonicalization.test.js",
+        "tests/wp3/second-backend-ownership-denied.test.js",
+        "tests/wp3/windows-named-mutex-real.test.js",
+        "tests/wp4/backend-launch-environment-and-phase-diagnostics.test.js"
+      ],
+      "approvedChangedFileCount": 15,
+      "approvedChangedFileSetSha256": "b71e1f3c8a9dbe36d3f41f94fd410a2cb66ccffab11ba44d05f6854efb9f0840",
+      "productionCodeChanged": false,
+      "freshCausalRedRequired": true
+    },
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "composition": {
+    "topLevelAuthority": "integration/element-module/src/YanceWorkspace.tsx -> ProductExperienceShell",
+    "learningSeam": "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+    "requiredFlow": "YanceWorkspace -> ProductExperienceShell -> LearningWorkspace",
+    "legacyLearningCapabilityDashboardRestorationForbidden": true,
+    "learningWorkspaceMustRemainModular": true,
+    "secondProductShellForbidden": true
+  },
+  "ossFit": {
+    "decision": "REUSE_MATURE_LEARNING_OSS_AND_EXISTING_REPOSITORY_SEAMS_WITHOUT_NEW_GENERAL_PURPOSE_INFRASTRUCTURE",
+    "matureOssAvailable": true,
+    "reviewedCandidates": [
+      {
+        "name": "Langfuse + OpenTelemetry",
+        "source": "langfuse/langfuse@328bb23d8ed71c5879d036704a7077c10516d462; langfuse/langfuse-js@ab2bf242e5fae64116c5354c92e5eac3e70490c8; open-telemetry/opentelemetry-js@76fa6b509e2b48d9cbee31cb37a2efc61dc4d384; open-telemetry/opentelemetry-python@53a5a40c9604583c501bcf13970a635f00e62df4",
+        "license": "MIT + Apache-2.0",
+        "adoptionMode": "official SDKs plus user-managed self-hostable service",
+        "fit": "FIT",
+        "reason": "Existing reviewed evidence, traces, scores, datasets and experiments authority."
+      },
+      {
+        "name": "DSPy + GEPA",
+        "source": "stanfordnlp/dspy@e4e97aae29b8ad8aa2fb7e99ffae6fd52970fad8; gepa-ai/gepa@b4dbb55b7601dac448cdb836d5a401ca7d9eb920",
+        "license": "MIT",
+        "adoptionMode": "source libraries",
+        "fit": "FIT",
+        "reason": "Existing reviewed optimization authority; no Yance optimizer replacement."
+      },
+      {
+        "name": "Promptfoo",
+        "source": "promptfoo/promptfoo@7b898cbdb16205cb7f0e2994baa807d131eb2326",
+        "license": "MIT",
+        "adoptionMode": "sealed precomputed-provider runtime",
+        "fit": "FIT",
+        "reason": "Existing precomputed regression/evaluation authority; never direct provider execution."
+      },
+      {
+        "name": "OpenFeature + flagd",
+        "source": "@openfeature/server-sdk@1.23.0/ba1bfd0627ef63ffe9c26c600899f7aedd6f0087; @openfeature/flagd-provider@0.16.0/c18b1de5f9ce8325acf118ad98e49e57ebdc0e28; @openfeature/flagd-core@4.0.0/c0defa4d2e1f97104eb740934ad1a75e69bcfe94",
+        "license": "Apache-2.0",
+        "adoptionMode": "official SDK and in-process offline provider",
+        "fit": "FIT",
+        "reason": "Existing staged/offline rollout authority."
+      },
+      {
+        "name": "Letta + assistant-ui/tool-ui",
+        "source": "letta-ai/letta-agent-sdk@c48df1693731443682fe8c7f356ef9b8a33df6c0; letta-ai/letta-code@3e5ead65dcf3b7fdf1e2da595660eb85063a9722; @assistant-ui/react@0.15.1/6306c74b479020a0be96438eebd9be8dc32b82da; assistant-ui/tool-ui@ee6389647e997f8637c21187f3e49c2db6cde3a5",
+        "license": "Apache-2.0 + MIT",
+        "adoptionMode": "existing runtime plus source-module UI",
+        "fit": "FIT",
+        "reason": "Existing Learning Coach state loop and review UI authority."
+      },
+      {
+        "name": "Presidio + APScheduler + proper-lockfile",
+        "source": "microsoft/presidio@779dbd286d5ef4d1fbe2514275fb1bce358f2417; agronholm/apscheduler@4308ec95b94069f5dbdddb6c60fb792dfc8c40a4; npm:proper-lockfile@4.1.2",
+        "license": "MIT",
+        "adoptionMode": "libraries through thin existing repository adapters",
+        "fit": "FIT",
+        "reason": "Existing privacy, scheduling and process-ownership authorities."
+      }
+    ],
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "retireOrAvoid": [
+      "Retire the stale YanceWorkspace Learning capability dashboard and any restoration of the pre-Product monolithic workspace.",
+      "Retire upstream-patches/element-web/0002-yance-learning-assistant-ui-deps.patch; Learning dependencies must join current canonical 0011 lock-only patch.",
+      "Avoid a second Learning framework, optimizer, dataset store, experiment system, scheduler, learning-agent server, chat streaming framework, approval framework, rollout engine, process-lock framework, model gateway/router, or provider credential authority.",
+      "Reuse ProductExperienceShell and existing Model Brain, Graphiti, Parlant, Persona and Letta authorities."
+    ],
+    "matureOssMandatory": true
+  },
+  "parallelOverlap": {
+    "productExperiencePullRequest": 229,
+    "voicePullRequest": 331,
+    "currentLearningExecutableOverlapWithProductPaths": ["integration/element-module/src/YanceWorkspace.tsx"],
+    "currentLearningExecutableOverlapWithVoicePaths": [],
+    "learningMustReconcileAfterVoiceOrdinaryMerge": true,
+    "freshMainRecheckRequiredBeforeAuthorizationMerge": true,
+    "freshMainRecheckRequiredBeforeImplementationMerge": true
+  },
+  "verification": {
+    "mandatory": ["Stage", "Layered", "ACV2", "Learning Windows", "applicable Product gates"],
+    "independentExactHeadReviewRequired": true,
+    "zeroUnresolvedP0P1Required": true,
+    "ordinaryTwoParentImplementationMergeRequired": true,
+    "postMergeGreenRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
