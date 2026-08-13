@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-BASE-OWNED-EVALUATED-REPOSITORY-ROOT-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Repair the base-owned WP0 split-root caller so candidate Git identity is explicitly bound from YANCE_EVALUATED_REPOSITORY_ROOT into the existing delegated-governance evaluatedHead API while trusted policy and trusted-main authority remain rooted in the base-owned policy worktree. PR #331 proved the current caller omits that binding, so the shared policy's same-root default resolves the trusted policy HEAD, collapses a valid Voice failure-first lineage to zero first-parent descendants, and yields WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_INVALID / WP0_REJECTED_STAGE_TARGET_DENIED.",
+  "base": {
+    "branch": "main",
+    "commit": "dbc375dc975a4419ab7f27206694ccd28931d284"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "dbc375dc975a4419ab7f27206694ccd28931d284",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-base-owned-evaluated-repository-root-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-base-owned-evaluated-repository-root-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d215618624fe07083aabc83dc23fe4b629ba108f7b7ea008a4f209e0a7bbf20e",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-base-owned-evaluated-repository-root-p0",
+    "allowedChangedPaths": [
+      "tests/wp0/base-owned-evaluated-repository-root.test.js",
+      "tools/wp0/lib.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "63f8cbbe5fb555ce774f03f1c812447b666db4ae1d697a0a730685d9bc94ca60",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/base-owned-evaluated-repository-root.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "8cc961e6cc1bce434a2e91706625ba36052370913945558b2aa3519fea439189",
+      "productionCodeChanged": false,
+      "freshCausalRedRequired": true
+    },
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "rootCauseContract": {
+    "trustedPolicyRootOwnsExecutableAndTrustedMainAuthority": true,
+    "evaluatedRepositoryRootOwnsCandidateHeadIdentity": true,
+    "splitRootCallerMustBindCandidateHeadExplicitly": true,
+    "failureFirstTopologyMustEvaluateTheCandidateFirstParentLineage": true,
+    "explicitCallerOverridesMustRemainAuthoritative": true,
+    "missingOrInvalidCandidateGitIdentityMustFailClosed": true
+  },
+  "ossFit": {
+    "decision": "ADOPT_EXISTING_REPOSITORY_SPLIT_ROOT_AND_EXPLICIT_EVALUATED_HEAD_SEAMS",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance existing explicit evaluatedHead delegated-policy seam",
+        "source": "shared/release/implementationBranchPolicy.js",
+        "license": "repository-owned project code",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The delegated policy already accepts an explicit evaluatedHead; the failing base-owned gate must bind the candidate checkout identity into that existing seam instead of creating a second policy engine or changing same-root defaults."
+      },
+      {
+        "name": "Yance existing YANCE_EVALUATED_REPOSITORY_ROOT candidate seam",
+        "source": "tools/wp0/lib.js",
+        "license": "repository-owned project code",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "WP0 already resolves REPO_ROOT and currentCommit from YANCE_EVALUATED_REPOSITORY_ROOT; the missing piece is to pass that existing candidate identity into implementationBranchOptions."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second delegated-governance policy engine.",
+      "Do not weaken failure-first topology or route the Voice branch around the base-owned executable gate.",
+      "Do not make the evaluated candidate root authoritative for trusted-main policy or authorization documents."
+    ],
+    "newThirdPartyDependencyRequired": false,
+    "basis": "This is an integration binding defect between two existing repository seams. Mature external OSS cannot own repository-specific trusted/candidate Git identity semantics without introducing new infrastructure; the existing seams are the exact fit."
+  },
+  "verification": {
+    "mandatory": [
+      "direct base-owned evaluated-repository-root regression RED then GREEN",
+      "Stage WP0 gate on exact implementation Head",
+      "existing delegated failure-first topology tests",
+      "PR #331 base-owned executable WP0 gate after prerequisite ordinary merge"
+    ],
+    "ordinaryTwoParentImplementationMergeRequired": true,
+    "postMergeGreenRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
