@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { LearningWorkspace } from "../LearningWorkspace";
 import { AnimatePresence, motion } from "motion/react";
 import { PeopleSurface } from "./PeopleSurface";
 import { RelationshipAssistant } from "./RelationshipAssistant";
@@ -139,6 +140,8 @@ export function ProductExperienceShell(): React.JSX.Element {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <LearningWorkspace />
 
       <details className="yance-experience-settings">
         <summary>Experience</summary>

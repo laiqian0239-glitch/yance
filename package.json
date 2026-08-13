@@ -16,7 +16,14 @@
     "png-chunks-extract": "1.0.0",
     "qrcode": "^1.5.4",
     "telegram": "^2.26.22",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "@langfuse/client": "5.10.0",
+    "@langfuse/otel": "5.10.0",
+    "@langfuse/tracing": "5.10.0",
+    "@openfeature/flagd-core": "4.0.0",
+    "@openfeature/flagd-provider": "0.16.0",
+    "@openfeature/server-sdk": "1.23.0",
+    "proper-lockfile": "4.1.2"
   },
   "engines": {
     "node": ">=22.19.0",
