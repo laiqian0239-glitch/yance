@@ -205,29 +205,55 @@ test('account state events force dynamic capability refresh for the active conve
   }
 });
 
-test('remaining contact read APIs aggregate through Person authority and evidence pagination cannot claim truncated data is complete', () => {
+test('remaining contact read APIs aggregate through Person authority and Learning V4 evidence stays non-authoritative', () => {
   const routes = fs.readFileSync(path.join(__dirname, '../routes/store.js'), 'utf8');
   const exporter = fs.readFileSync(path.join(__dirname, '../../tools/uat/exportPlatformProductionEvidence.js'), 'utf8');
-  for (const route of ['/customers/:contactId/timeline','/customers/:contactId/reply-feedback','/customers/:contactId/learning-governance']) {
+
+  for (const route of [
+    '/customers/:contactId/timeline',
+    '/customers/:contactId/reply-feedback',
+    '/customers/:contactId/learning-governance'
+  ]) {
     const index = routes.indexOf(route);
     assert.notEqual(index, -1, route);
     assert.match(routes.slice(index, index + 4500), /personContextAuthority\.snapshot/u);
   }
+
   const feedbackIndex = routes.indexOf('/customers/:contactId/reply-feedback');
-  assert.match(routes.slice(feedbackIndex, feedbackIndex + 5000), /perContactFeedback/u);
-  assert.match(routes.slice(feedbackIndex, feedbackIndex + 5000), /personFeedbackProfiles/u);
+  const feedbackBlock = routes.slice(feedbackIndex, feedbackIndex + 5000);
+  assert.match(feedbackBlock, /Learning V4 immutable evidence/u);
+  assert.match(feedbackBlock, /historicalFeedbackEvents/u);
+  assert.match(feedbackBlock, /automaticProfileMutation:\s*false/u);
+
   const governanceIndex = routes.indexOf('/customers/:contactId/learning-governance');
-  assert.match(routes.slice(governanceIndex, governanceIndex + 4200), /identityGovernance/u);
-  assert.match(routes.slice(governanceIndex, governanceIndex + 4200), /effectiveRelationshipL2/u);
+  const governanceBlock = routes.slice(governanceIndex, governanceIndex + 5000);
+  assert.match(governanceBlock, /Learning V4 evidence\/proposal\/evaluation\/promotion/u);
+  assert.match(governanceBlock, /automaticPromotion:\s*false/u);
+  assert.match(governanceBlock, /reviewRequired:\s*true/u);
+
+  assert.match(routes, /legacyLearningMutationRetired/u);
+  assert.doesNotMatch(
+    routes,
+    /perContactFeedback|personFeedbackProfiles|replyLearningGovernanceService|replyLearningScopeAuthority|replyLearningSummaryService/u
+  );
+
   assert.doesNotMatch(exporter, /allPagesExported:\s*true/u);
   assert.match(exporter, /evidencePromotionAllowed/u);
   assert.match(exporter, /runtimeEvidenceRaw\.pagination\?\.allPagesExported/u);
   assert.match(exporter, /architectureReleaseBlocked:[^\n]+!governanceEvidenceComplete/u);
-  const brain = fs.readFileSync(path.join(__dirname, '../services/contextAwareReplyBrain.js'), 'utf8');
-  assert.match(brain, /relationshipLearning:\s*context\.relationshipLearning/u);
-  assert.match(brain, /relationshipL2:\s*relationshipLearning\.effective/u);
-  assert.match(brain, /relationshipProfileVersion:\s*relationshipLearning\.version/u);
-  assert.match(brain, /learningProfileVersion:\s*Math\.max/u);
+
+  const brain = fs.readFileSync(
+    path.join(__dirname, '../services/contextAwareReplyBrain.js'),
+    'utf8'
+  );
+
+  assert.equal((brain.match(/learningProfileVersion\s*:/gu) || []).length, 1);
+  assert.match(brain, /learningProfileVersion:\s*0/u);
+
+  assert.doesNotMatch(
+    brain,
+    /relationshipLearning|relationshipL2|relationshipProfileVersion|getLatestLearningProfile|replyLearningScopeAuthority|replyLearningSummaryService/u
+  );
 });
 
 test('workspace contact, profile, relationship projection and conversation reads resolve through Person authority', () => {
@@ -285,6 +311,17 @@ test('relationship insight trajectory aggregates every conversation bound to the
 
 
 test('Person feedback profile restore is retired rather than choosing an ambiguous hidden authority', () => { const fs=require('node:fs');const source=fs.readFileSync(require('node:path').join(__dirname,'../routes/store.js'),'utf8');assert.match(source,/LEGACY_LEARNING_PROFILE_MUTATION_RETIRED/u); });
+
+test('legacy learning governance mutation fails closed instead of falling back to another scope', () => {
+  const fs = require('node:fs');
+  const source = fs.readFileSync(
+    require('node:path').join(__dirname, '../routes/store.js'),
+    'utf8'
+  );
+
+  assert.match(source, /legacyLearningMutationRetired/u);
+  assert.doesNotMatch(source, /replyLearningGovernanceService/u);
+});
 
 test('Person profile and relationship writes converge on one profile contact while legacy non-anchor rows remain readable', () => {
   withRepository(({ store, repository }) => {

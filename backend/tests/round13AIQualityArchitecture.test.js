@@ -48,8 +48,7 @@ function withAuthorities(callback) {
     return callback({
       store,
       repository,
-      director: new AIDirectorStrategyAuthority({ repository }),
-      learning: new LearningPreferenceAuthority({ repository })
+      director: new AIDirectorStrategyAuthority({ repository })
     });
   } finally {
     try { store.close(); } catch (_) {}
@@ -65,8 +64,7 @@ async function withAuthoritiesAsync(callback) {
     return await callback({
       store,
       repository,
-      director: new AIDirectorStrategyAuthority({ repository }),
-      learning: new LearningPreferenceAuthority({ repository })
+      director: new AIDirectorStrategyAuthority({ repository })
     });
   } finally {
     try { store.close(); } catch (_) {}
