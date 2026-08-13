@@ -31,19 +31,19 @@
     "branch": "fix/v21-base-owned-evaluated-repository-root-p0",
     "allowedChangedPaths": [
       "shared/release/implementationBranchPolicy.js",
-      "tests/wp0/implementation-branch-policy.test.js"
+      "tests/wp0/base-owned-evaluated-repository-root.test.js"
     ],
     "approvedChangedFileCount": 2,
-    "approvedChangedFileSetSha256": "c9ebb6397f260acd3447fa7691a53ec9c6478d1c375250dc3a07b61498cc03f2",
+    "approvedChangedFileSetSha256": "2d9853184508459c852fd9381e3aa6744c2064a1ac92d5503c28b4f13818a744",
     "newDependencyAllowed": false,
     "workflowModificationAllowed": false,
     "failureFirstCommit": {
       "mustBeFirstImplementationCommit": true,
       "allowedChangedPaths": [
-        "tests/wp0/implementation-branch-policy.test.js"
+        "tests/wp0/base-owned-evaluated-repository-root.test.js"
       ],
       "approvedChangedFileCount": 1,
-      "approvedChangedFileSetSha256": "7913275d3348e4c902aab19807e71fe0a02943be068cba5ef7f948eb9be7a7de",
+      "approvedChangedFileSetSha256": "8cc961e6cc1bce434a2e91706625ba36052370913945558b2aa3519fea439189",
       "productionCodeChanged": false,
       "freshCausalRedRequired": true
     },
@@ -65,7 +65,7 @@
   },
   "verification": {
     "mandatory": [
-      "direct implementation-branch-policy regression RED then GREEN",
+      "direct base-owned evaluated-repository-root regression RED then GREEN",
       "Stage WP0 gate on exact implementation Head",
       "existing delegated failure-first topology tests",
       "PR #331 base-owned executable WP0 gate after prerequisite ordinary merge"
