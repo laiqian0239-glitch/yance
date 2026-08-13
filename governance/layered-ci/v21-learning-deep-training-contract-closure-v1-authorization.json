@@ -170,9 +170,14 @@
     ],
     "officialApiEvidence": {
       "langfuseClientVersion": "5.10.0",
-      "datasetApi": "@langfuse/client dataset.create/createItem/get",
-      "scoreApi": "@langfuse/client score.create",
-      "purpose": "Use official dataset and score data objects as evidence/experiment seams; Yance supplies only already-approved semantics."
+      "source": "langfuse/langfuse-js@ab2bf242e5fae64116c5354c92e5eac3e70490c8",
+      "datasetReadApi": "client.dataset.get(name)",
+      "datasetCreationApi": "client.api.datasets.create({ name })",
+      "datasetItemUpsertApi": "client.dataset.createItem({ id, datasetName, input, expectedOutput, metadata })",
+      "failClosedScoreCreateApi": "client.api.scores.create({ id, traceId|sessionId|datasetRunId, observationId?, name, value, metadata })",
+      "queuedScoreApi": "client.score.create(...)",
+      "queuedScoreApiSufficientForFailClosedBinding": false,
+      "purpose": "Langfuse remains the sole Dataset and Score authority. Yance supplies only Learning-approved, privacy-minimized canonical semantics and waits for the official synchronous HTTP API before claiming evidence binding success."
     }
   },
   "parallelOverlapSnapshot": {
