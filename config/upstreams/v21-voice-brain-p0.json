@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "workPackage": "V21-VOICE-BRAIN-P0-V1",
+  "runtimePolicy": "offline-sealed-runtime-only",
+  "authorities": {
+    "asr": "SenseVoice",
+    "tts": "CosyVoice"
+  },
+  "senseVoice": {
+    "repository": "QwenAudio/SenseVoice",
+    "release": "runtime-llamacpp-v0.1.9",
+    "sourceCommit": "73ccdd3577db37e92dbf22a4a9fc323b038cf13b",
+    "license": "MIT",
+    "windowsX64Avx2": {
+      "asset": "funasr-llamacpp-windows-x64-avx2.zip",
+      "size": 4917274,
+      "sha256": "f2a1389658e6fb5f5f93c7bad98b5ce100eb4811e0e3c39603e39466773b1b4c"
+    },
+    "model": {
+      "repository": "FunAudioLLM/SenseVoiceSmall-GGUF",
+      "revision": "90c1c61912018b70ada0fcc024ea24aca62f2e63",
+      "asset": "sense-voice-small-q8_0.gguf",
+      "size": 254208320,
+      "sha256": "4ae45c94422de949b387e2e0fb10d7e14e4c42c69db30c3444ecc7d4b844b7c5"
+    }
+  },
+  "cosyVoice": {
+    "repository": "QwenAudio/CosyVoice",
+    "sourceCommit": "074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc",
+    "license": "Apache-2.0",
+    "model": {
+      "repository": "FunAudioLLM/Fun-CosyVoice3-0.5B-2512",
+      "revision": "29e01c4e8d000f4bcd70751be16fa94bf3d85a18",
+      "license": "Apache-2.0"
+    },
+    "python": "3.10.20",
+    "openAiWhisperMelDependency": {
+      "version": "20231117",
+      "permittedUse": "prompt-audio mel feature extraction only",
+      "asrAuthority": false
+    }
+  },
+  "buildTools": {
+    "uv": {
+      "version": "0.12.3",
+      "commit": "507230998c9541d67814b57463ac00e454ff6991",
+      "windowsX64Asset": "uv-x86_64-pc-windows-msvc.zip",
+      "sha256": "b23350c79e8ad0192b8124af13a0f17e8d4e4549524785e1aef389ae5a06990e"
+    },
+    "pythonBuildStandalone": {
+      "release": "20260807",
+      "commit": "00c8a06113f11220667c3bcf5fab1672ff9e78ef",
+      "asset": "cpython-3.10.20+20260807-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+      "sha256": "53391d9e6401c8f91b97aab6daf49200bce0b6eb41dcc1615031e65e9db8bd63"
+    }
+  }
+}
