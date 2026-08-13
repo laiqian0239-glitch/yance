@@ -11,6 +11,11 @@ function createLearningDeepTrainingContract(options = {}) {
   const dataPolicy = options.dataPolicy || null;
   const evidenceAdapter = options.evidenceAdapter || null;
   const promotionAdapter = options.promotionAdapter || null;
+  const issuedProjections = new WeakSet();
+
+  function clean(value) {
+    return String(value == null ? '' : value).trim();
+  }
 
   function requireProjectionDependencies() {
     if (!repository || typeof repository.listLearningSignals !== 'function') {
@@ -33,20 +38,42 @@ function createLearningDeepTrainingContract(options = {}) {
     return signal.signal?.metadata?.rawPrivateChatPersisted === true;
   }
 
+  function hasValidScoreSubject(score = {}) {
+    const traceId = clean(score.traceId);
+    const sessionId = clean(score.sessionId);
+    const datasetRunId = clean(score.datasetRunId);
+    const observationId = clean(score.observationId);
+    const subjectCount = [traceId, sessionId, datasetRunId].filter(Boolean).length;
+    return subjectCount === 1 && (!observationId || Boolean(traceId));
+  }
+
+  function hasValidScoreValue(score = {}) {
+    if (score.value == null) return false;
+    return typeof score.value !== 'string' || score.value.trim().length > 0;
+  }
+
   function approvedScoreFor(signalId, approvedScoresBySignalId = {}) {
     const score = approvedScoresBySignalId?.[signalId];
-    if (!score || score.authority !== 'Langfuse' || score.approvedByLearning !== true || !String(score.scoreId || '').trim()) {
+    if (
+      !score ||
+      score.authority !== 'Langfuse' ||
+      score.approvedByLearning !== true ||
+      !clean(score.scoreId) ||
+      !clean(score.name) ||
+      !hasValidScoreValue(score) ||
+      !hasValidScoreSubject(score)
+    ) {
       throw contractError(
         'LEARNING_DEEP_TRAINING_APPROVED_SCORE_REQUIRED',
-        `Learning-approved Langfuse Score evidence is required for signal ${signalId}.`
+        `Learning-approved Langfuse Score evidence with one canonical Langfuse subject is required for signal ${signalId}.`
       );
     }
     return Object.freeze({ ...score });
   }
 
   function projectOutcome(signal = {}) {
-    const signalType = String(signal.signal_type || '').trim();
-    const eventType = String(signal.signal?.eventType || '').trim();
+    const signalType = clean(signal.signal_type);
+    const eventType = clean(signal.signal?.eventType);
     if (signalType === 'candidate_rejected' || eventType === 'rejected') {
       return Object.freeze({ status: 'rejected', success: false, negativeEvidence: true });
     }
@@ -60,31 +87,35 @@ function createLearningDeepTrainingContract(options = {}) {
     });
   }
 
-  function assertRelationshipIsolation(signals, scopeType, scopeId) {
+  function assertCanonicalScope(signals, scopeType, scopeId, reasonCode) {
     const mixed = signals.some(signal => signal.scope_type !== scopeType || signal.scope_id !== scopeId);
     if (mixed) {
-      throw contractError(
-        'LEARNING_DEEP_TRAINING_MIXED_RELATIONSHIP_BATCH',
-        'Learning→Deep Training projection may contain exactly one canonical relationship scope.'
-      );
+      throw contractError(reasonCode, 'Learning→Deep Training projection may contain exactly one requested canonical scope.');
     }
   }
 
   async function project(scope = {}, optionsForProjection = {}) {
     requireProjectionDependencies();
-    const scopeType = String(scope.scopeType || '').trim();
-    const scopeId = String(scope.scopeId || '').trim();
+    const scopeType = clean(scope.scopeType);
+    const scopeId = clean(scope.scopeId);
     const query = { scopeType, scopeId, learningLevel: 'L1', learningEligible: true };
     const listed = await repository.listLearningSignals(query);
     const signals = Array.isArray(listed) ? listed : [];
 
-    if (!optionsForProjection.globalAggregation) assertRelationshipIsolation(signals, scopeType, scopeId);
+    assertCanonicalScope(
+      signals,
+      scopeType,
+      scopeId,
+      optionsForProjection.globalAggregation
+        ? 'LEARNING_DEEP_TRAINING_GLOBAL_SCOPE_MISMATCH'
+        : 'LEARNING_DEEP_TRAINING_MIXED_RELATIONSHIP_BATCH'
+    );
 
     const trajectory = [];
     for (const signal of signals) {
       if (!isLearningEligible(signal) || isDoNotLearn(signal) || hasRawPrivatePersistence(signal)) continue;
 
-      const signalId = String(signal.signal_id || '').trim();
+      const signalId = clean(signal.signal_id);
       if (!signalId) continue;
       const rawContent = scope.contentBySignalId?.[signalId] ?? '';
       const minimized = await dataPolicy.minimize({
@@ -126,16 +157,24 @@ function createLearningDeepTrainingContract(options = {}) {
       projection.globalAggregation = true;
       projection.globalEligibilityEvidenceId = optionsForProjection.globalEligibilityEvidenceId;
     }
-    return Object.freeze(projection);
+    const frozenProjection = Object.freeze(projection);
+    issuedProjections.add(frozenProjection);
+    return frozenProjection;
   }
 
   async function projectRelationship(input = {}) {
+    if (clean(input.scopeType) === 'global') {
+      throw contractError(
+        'LEARNING_DEEP_TRAINING_GLOBAL_ELIGIBILITY_REQUIRED',
+        'Global Learning signals may only cross the Deep Training boundary through projectGlobal with canonical eligibility.'
+      );
+    }
     return project(input, { globalAggregation: false });
   }
 
   async function projectGlobal(input = {}) {
-    const scopeType = String(input.scopeType || '').trim();
-    const scopeId = String(input.scopeId || '').trim();
+    const scopeType = clean(input.scopeType);
+    const scopeId = clean(input.scopeId);
     const eligibility = input.canonicalGlobalEligibility || {};
     if (
       eligibility.authority !== 'Learning' ||
@@ -143,7 +182,7 @@ function createLearningDeepTrainingContract(options = {}) {
       eligibility.scopeType !== 'global' ||
       eligibility.scopeId !== scopeId ||
       scopeType !== 'global' ||
-      !String(eligibility.evidenceId || '').trim()
+      !clean(eligibility.evidenceId)
     ) {
       throw contractError(
         'LEARNING_DEEP_TRAINING_GLOBAL_ELIGIBILITY_REQUIRED',
@@ -152,7 +191,7 @@ function createLearningDeepTrainingContract(options = {}) {
     }
     return project(input, {
       globalAggregation: true,
-      globalEligibilityEvidenceId: String(eligibility.evidenceId).trim()
+      globalEligibilityEvidenceId: clean(eligibility.evidenceId)
     });
   }
 
@@ -160,9 +199,15 @@ function createLearningDeepTrainingContract(options = {}) {
     if (!evidenceAdapter || typeof evidenceAdapter.bindTrainingEvidence !== 'function') {
       throw contractError('LEARNING_DEEP_TRAINING_LANGFUSE_EVIDENCE_REQUIRED', 'Langfuse Dataset/Score evidence adapter is required.');
     }
-    const signalId = String(input.signalId || '').trim();
-    const datasetName = String(input.datasetName || '').trim();
-    const trajectory = input.projection?.trajectory;
+    if (!input.projection || typeof input.projection !== 'object' || !issuedProjections.has(input.projection)) {
+      throw contractError(
+        'LEARNING_DEEP_TRAINING_PROJECTION_PROVENANCE_REQUIRED',
+        'Experiment evidence must come from a projection issued by this Learning contract instance.'
+      );
+    }
+    const signalId = clean(input.signalId);
+    const datasetName = clean(input.datasetName);
+    const trajectory = input.projection.trajectory;
     const record = Array.isArray(trajectory) ? trajectory.find(step => step.signalId === signalId) : null;
     if (!record || !datasetName) {
       throw contractError('LEARNING_DEEP_TRAINING_EXPERIMENT_RECORD_REQUIRED', 'A projected canonical signal and dataset name are required.');
@@ -174,7 +219,7 @@ function createLearningDeepTrainingContract(options = {}) {
     if (input.approved !== true) {
       throw contractError('LEARNING_DEEP_TRAINING_ROLLBACK_APPROVAL_REQUIRED', 'Explicit Learning approval is required for rollback.');
     }
-    if (!String(input.evidence?.id || '').trim()) {
+    if (!clean(input.evidence?.id)) {
       throw contractError('LEARNING_DEEP_TRAINING_ROLLBACK_EVIDENCE_REQUIRED', 'Rollback evidence is required.');
     }
     if (!promotionAdapter || typeof promotionAdapter.rollback !== 'function') {

@@ -48,6 +48,7 @@ function approvedScore(overrides = {}) {
     approvedByLearning: true,
     name: 'learning-quality',
     value: 0.91,
+    traceId: 'langfuse-trace-1',
     ...overrides
   };
 }
@@ -226,7 +227,40 @@ test('denies global aggregation by default and accepts only explicit canonical L
   assert.equal(projection.globalEligibilityEvidenceId, 'learning-global-eligibility-1');
 });
 
-test('requires a Learning-approved Langfuse score and never computes or normalizes reward', async () => {
+test('relationship projection cannot bypass the canonical global eligibility gate', async () => {
+  const globalSignal = learningSignal({
+    signal_id: 'learning-signal-global',
+    scope_type: 'global',
+    scope_id: 'global-learning-v1',
+    conversation_id: ''
+  });
+  const { contract } = createSubject({ signals: [globalSignal] });
+  await assert.rejects(
+    contract.projectRelationship({
+      scopeType: 'global',
+      scopeId: 'global-learning-v1',
+      approvedScoresBySignalId: { 'learning-signal-global': approvedScore({ scoreId: 'score-global' }) }
+    }),
+    assertReasonCode('LEARNING_DEEP_TRAINING_GLOBAL_ELIGIBILITY_REQUIRED')
+  );
+});
+
+test('global projection rejects repository leakage outside the explicitly eligible global scope', async () => {
+  const { contract } = createSubject({ signals: [learningSignal()] });
+  await assert.rejects(
+    contract.projectGlobal({
+      scopeType: 'global',
+      scopeId: 'global-learning-v1',
+      canonicalGlobalEligibility: {
+        authority: 'Learning', eligible: true, scopeType: 'global', scopeId: 'global-learning-v1', evidenceId: 'global-e-1'
+      },
+      approvedScoresBySignalId: { 'learning-signal-001': approvedScore() }
+    }),
+    assertReasonCode('LEARNING_DEEP_TRAINING_GLOBAL_SCOPE_MISMATCH')
+  );
+});
+
+test('requires a complete Learning-approved Langfuse score with exactly one real Langfuse subject and never computes reward', async () => {
   const { contract } = createSubject();
   await assert.rejects(
     contract.projectRelationship({ scopeType: 'conversation', scopeId: 'conversation-1' }),
@@ -239,6 +273,20 @@ test('requires a Learning-approved Langfuse score and never computes or normaliz
       approvedScoresBySignalId: {
         'learning-signal-001': approvedScore({ authority: 'Yance', approvedByLearning: true })
       }
+    }),
+    assertReasonCode('LEARNING_DEEP_TRAINING_APPROVED_SCORE_REQUIRED')
+  );
+  await assert.rejects(
+    contract.projectRelationship({
+      scopeType: 'conversation', scopeId: 'conversation-1',
+      approvedScoresBySignalId: { 'learning-signal-001': approvedScore({ traceId: '' }) }
+    }),
+    assertReasonCode('LEARNING_DEEP_TRAINING_APPROVED_SCORE_REQUIRED')
+  );
+  await assert.rejects(
+    contract.projectRelationship({
+      scopeType: 'conversation', scopeId: 'conversation-1',
+      approvedScoresBySignalId: { 'learning-signal-001': approvedScore({ sessionId: 'session-1' }) }
     }),
     assertReasonCode('LEARNING_DEEP_TRAINING_APPROVED_SCORE_REQUIRED')
   );
@@ -261,6 +309,23 @@ test('binds experiment evidence only through the existing Langfuse Dataset/Score
   assert.equal(evidenceCalls[0].record.signalId, 'learning-signal-001');
 });
 
+test('experiment evidence binding rejects forged projections that never passed Learning minimization', async () => {
+  const { contract, evidenceCalls } = createSubject();
+  await assert.rejects(
+    contract.bindExperimentEvidence({
+      projection: {
+        authority: 'Learning',
+        readOnly: true,
+        trajectory: [{ signalId: 'learning-signal-001', content: 'raw-private-secret', score: approvedScore() }]
+      },
+      signalId: 'learning-signal-001',
+      datasetName: 'learning-deep-training-v1'
+    }),
+    assertReasonCode('LEARNING_DEEP_TRAINING_PROJECTION_PROVENANCE_REQUIRED')
+  );
+  assert.equal(evidenceCalls.length, 0);
+});
+
 test('rollback stays Learning-owned and requires explicit approval plus evidence', async () => {
   const { contract, rollbackCalls } = createSubject();
   const rollout = { kind: 'LEARNING_ROLLOUT', candidate: { id: 'candidate-1' } };
@@ -277,15 +342,19 @@ test('rollback stays Learning-owned and requires explicit approval plus evidence
   assert.equal(rollbackCalls.length, 1);
 });
 
-test('Langfuse adapter uses official Dataset and Score APIs for approved training evidence', async () => {
+test('Langfuse adapter uses exact 5.10 Dataset and synchronous Score APIs for approved training evidence', async () => {
   const calls = [];
   const client = {
-    dataset: {
-      async create(input) { calls.push(['dataset.create', input]); return { id: 'dataset-1', name: input.name }; },
-      async createItem(input) { calls.push(['dataset.createItem', input]); return { id: input.id }; }
+    api: {
+      datasets: {
+        async create(input) { calls.push(['api.datasets.create', input]); return { id: 'dataset-1', name: input.name }; }
+      },
+      scores: {
+        async create(input) { calls.push(['api.scores.create', input]); return { id: input.id }; }
+      }
     },
-    score: {
-      async create(input) { calls.push(['score.create', input]); return { id: 'score-remote-1' }; }
+    dataset: {
+      async createItem(input) { calls.push(['dataset.createItem', input]); return { id: input.id }; }
     }
   };
   const adapter = createLangfuseLearningEvidenceAdapter({ client, enabled: true });
@@ -300,7 +369,35 @@ test('Langfuse adapter uses official Dataset and Score APIs for approved trainin
     }
   });
   assert.equal(receipt.authority, 'Langfuse Dataset + Score');
-  assert.deepEqual(calls.map(([name]) => name), ['dataset.create', 'dataset.createItem', 'score.create']);
+  assert.equal(receipt.canonicalSignalId, 'learning-signal-001');
+  assert.equal(receipt.remoteScoreId, 'langfuse-score-1');
+  assert.notEqual(receipt.datasetItemId, 'learning-signal-001');
+  assert.deepEqual(calls.map(([name]) => name), ['api.datasets.create', 'dataset.createItem', 'api.scores.create']);
+  assert.equal(calls[2][1].traceId, 'langfuse-trace-1');
+});
+
+test('Langfuse DatasetItem ids are stable within one dataset and isolated across datasets', async () => {
+  const itemIds = [];
+  const client = {
+    api: {
+      datasets: { async create(input) { return { id: input.name }; } },
+      scores: { async create(input) { return { id: input.id }; } }
+    },
+    dataset: {
+      async createItem(input) { itemIds.push([input.datasetName, input.id, input.metadata.canonicalSignalId]); return { id: input.id }; }
+    }
+  };
+  const adapter = createLangfuseLearningEvidenceAdapter({ client, enabled: true });
+  const record = {
+    signalId: 'learning-signal-001', content: '<EMAIL_ADDRESS>',
+    outcome: { status: 'sent', success: null, negativeEvidence: false }, score: approvedScore()
+  };
+  await adapter.bindTrainingEvidence({ datasetName: 'dataset-a', record });
+  await adapter.bindTrainingEvidence({ datasetName: 'dataset-a', record });
+  await adapter.bindTrainingEvidence({ datasetName: 'dataset-b', record });
+  assert.equal(itemIds[0][1], itemIds[1][1]);
+  assert.notEqual(itemIds[0][1], itemIds[2][1]);
+  assert.equal(itemIds[0][2], 'learning-signal-001');
 });
 
 test('Learning promotion adapter exposes symmetric rollback guarded by approval and evidence', async () => {

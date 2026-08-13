@@ -32,14 +32,18 @@ test('stable Learning→Deep Training contract exists only as a thin read-only p
   const source = fs.readFileSync(contractPath, 'utf8');
   assert.doesNotMatch(source, /insertLearningSignal|updateLearningProfile|deleteLearning|DatasetStore|trajectoryStore|rewardEngine|AgentLightning|agent-lightning/u);
   assert.doesNotMatch(source, /require\(['"]@/u, 'the thin contract must not introduce a new package authority');
+  assert.match(source, /issuedProjections\s*=\s*new WeakSet/u, 'only projections issued by the minimized Learning contract may bind experiment evidence');
+  assert.match(source, /LEARNING_DEEP_TRAINING_PROJECTION_PROVENANCE_REQUIRED/u);
+  assert.match(source, /LEARNING_DEEP_TRAINING_GLOBAL_ELIGIBILITY_REQUIRED/u);
 });
 
-test('Langfuse and promotion adapters expose the approved OSS seams without a Yance replacement authority', () => {
+test('Langfuse adapter uses the exact pinned 5.10 Dataset and synchronous Score API seams', () => {
   const langfuse = fs.readFileSync(langfusePath, 'utf8');
   const promotion = fs.readFileSync(promotionPath, 'utf8');
-  assert.match(langfuse, /dataset\.create/u);
+  assert.match(langfuse, /api\.datasets\.create/u);
   assert.match(langfuse, /dataset\.createItem/u);
-  assert.match(langfuse, /score\.create/u);
+  assert.match(langfuse, /api\.scores\.create/u);
+  assert.doesNotMatch(langfuse, /await\s+client\.score\.create/u, 'queued score helper cannot prove remote score persistence');
   assert.match(promotion, /async function rollback/u);
   assert.match(promotion, /LEARNING_ROLLBACK/u);
   assert.doesNotMatch(`${langfuse}\n${promotion}`, /custom DatasetStore|reward engine|trajectory store|custom evaluator/u);
