@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-FAILURE-FIRST-TOPOLOGY-P0-V3",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main compatibility successor after V2 remote causal RED exposed the intended enforcement gap and a subsequent live-main inventory exposed a separate backward-compatibility requirement: historical authorizations already use failureFirstCommit metadata without the new freshCausalRedRequired field. V3 preserves those legacy declarations exactly and makes freshCausalRedRequired an explicit protocol opt-in marker, while still extending the existing implementationBranchPolicy trusted-Git seam rather than creating any second policy engine.",
+  "base": {
+    "branch": "main",
+    "commit": "64e1a3054d066300c1446100709ae43f4c4f9ba4"
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-delegated-failure-first-topology-p0-v2-authorization.json",
+    "implementationBranch": "governance/v21-delegated-failure-first-topology-p0-v2",
+    "reason": "V2 correctly proved the missing enforcement with a fresh remote RED but its activation wording collided with pre-existing legacy failureFirstCommit metadata. V3 explicitly versions the new protocol with the freshCausalRedRequired marker and preserves V2 as historical RED evidence."
+  },
+  "historicalEvidence": {
+    "v2AuthorizationPullRequest": 326,
+    "v2AuthorizationMerge": "64e1a3054d066300c1446100709ae43f4c4f9ba4",
+    "v2ImplementationPullRequest": 327,
+    "v2RedHead": "6bbaacd885dd09f916979d12d05818b8ff7d7cad",
+    "v2RedRun": 31653091296,
+    "v2RedConclusion": "failure",
+    "v2RedTestFile": "tests/wp0/delegated-failure-first-topology.test.js",
+    "v2RedResult": {
+      "tests": 6,
+      "pass": 2,
+      "fail": 4,
+      "otherWp0FilesGreen": 53,
+      "environmentalFailure": false
+    },
+    "v2ProductionCommitCount": 0,
+    "preserveV2RedHistory": true,
+    "doNotRewriteV2Branch": true
+  },
+  "compatibilityEvidence": {
+    "liveMainInventory": "A repository-wide exact-main search found many historical governance authorizations containing implementation.failureFirstCommit while freshCausalRedRequired exists only in the newly introduced V1/V2 topology protocol authorizations.",
+    "legacyExample": "governance/layered-ci/v21-product-experience-shell-p0-authorization.json",
+    "legacyExampleHasFailureFirstCommit": true,
+    "legacyExampleHasFreshCausalRedRequired": false,
+    "requiredConclusion": "Field presence alone cannot activate V3 enforcement without retroactively invalidating historical authorities. The own-property freshCausalRedRequired marker versions the new protocol."
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "64e1a3054d066300c1446100709ae43f4c4f9ba4",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-failure-first-topology-p0-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-failure-first-topology-p0-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "governance/v21-delegated-failure-first-topology-p0-v3",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/delegated-failure-first-topology.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "cd3f8e13df581725135bc2a6672d27588b9ab50b90348eb6837a9b1182b08af2",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/delegated-failure-first-topology.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "beee7149fdb76092baa842e800ce64e5c3035d5034bfad7bfd308b83cf6b81c8",
+      "productionCodeChanged": false,
+      "freshCausalRedRequired": true
+    },
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "protocolVersioning": {
+    "activationMarkerPath": "implementation.failureFirstCommit.freshCausalRedRequired",
+    "activationRule": "If failureFirstCommit has no own freshCausalRedRequired property, treat it as legacy metadata and preserve existing behavior. If the property is present, its value must be exactly true and the full V3 declaration/topology/evidence contract applies; explicit false or malformed values fail closed.",
+    "legacyDeclarationSemanticsPreserved": true,
+    "retroactiveReinterpretationForbidden": true,
+    "newProtocolOptInMustBeExplicit": true
+  },
+  "policyContract": {
+    "existingAuthority": "shared/release/implementationBranchPolicy.js::evaluateTrustedDelegatedGovernanceBranch",
+    "trustedInputsOnly": true,
+    "declaration": {
+      "activationRequiresOwnFreshCausalRedRequiredProperty": true,
+      "freshCausalRedRequiredMustEqualTrueWhenPresent": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPathsMustBeNonEmptyExactNormalizedSubsetOfImplementationScope": true,
+      "approvedChangedFileCountMustMatch": true,
+      "approvedChangedFileSetSha256MustMatchCanonicalDigest": true,
+      "productionCodeChangedMustBeFalse": true
+    },
+    "firstDescendant": {
+      "base": "effective ordinary authorization merge commit",
+      "history": "trusted Git first-parent history from the effective authorization merge to evaluated implementation Head",
+      "mustExist": true,
+      "parentCountMustEqual": 1,
+      "soleParentMustEqualAuthorizationMerge": true,
+      "changedPathsMustExactlyEqualFailureFirstAllowedChangedPaths": true,
+      "changedPathCountMustEqualDeclaredCount": true,
+      "changedPathDigestMustEqualDeclaredSha256": true,
+      "productionPathChangeForbidden": true
+    },
+    "redEvidence": {
+      "requiredOnlyWhenALaterFirstParentImplementationCommitExists": true,
+      "recordLocation": "first post-RED first-parent implementation commit message",
+      "requiredTrailers": [
+        "Yance-Failure-First-Red-Head: <40 lowercase hex SHA equal to the first tests-only descendant>",
+        "Yance-Failure-First-Red-Run: <positive decimal GitHub Actions run id>",
+        "Yance-Failure-First-Red-Conclusion: failure"
+      ],
+      "duplicateOrMalformedTrailersFailClosed": true,
+      "offlineEvaluatorDoesNotClaimRemoteCausality": true,
+      "independentExactHeadReviewMustVerifyRemoteRunCausality": true
+    },
+    "failureCodes": [
+      "WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_INVALID",
+      "WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_EVIDENCE_INVALID"
+    ],
+    "finalScopeAuthority": "tools/layered-ci/verify-delegated-product-l2.js remains the sole final L2 exact path/count/digest seal for full_work_package candidates."
+  },
+  "failureFirst": {
+    "firstImplementationCommitTestsOnly": true,
+    "testPaths": [
+      "tests/wp0/delegated-failure-first-topology.test.js"
+    ],
+    "preAuthorizationFixtureBlob": "f1450e33e339e00204f097b22d69988941af8692",
+    "preAuthorizationFixtureBytes": 9175,
+    "preAuthorizationLocalResult": {
+      "tests": 8,
+      "pass": 3,
+      "fail": 5,
+      "environmentalFailure": false
+    },
+    "freshRemoteCausalRedRequired": true,
+    "requiredCausalRedCases": [
+      "explicit freshCausalRedRequired=false is rejected as malformed V3 opt-in",
+      "mismatched declared tests-only digest fails closed",
+      "production path in first descendant fails closed",
+      "wrong or multiple first-descendant parents fail closed",
+      "later implementation without exact RED evidence fails closed",
+      "exact tests-only RED Head remains permitted before evidence exists",
+      "legacy failureFirstCommit without the V3 marker preserves existing semantics",
+      "authorization without failureFirstCommit preserves existing semantics"
+    ],
+    "testWeakeningForbidden": true
+  },
+  "ossFit": {
+    "decision": "EXTEND_EXISTING_TRUSTED_GIT_POLICY_WITH_EXPLICIT_BACKWARD_COMPATIBLE_PROTOCOL_MARKER",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Git first-parent/rev-list/show/diff plumbing",
+        "source": "git/git through the repository existing trustedGit seam",
+        "license": "GPL-2.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Commit topology, changed paths and commit-message evidence are native Git data already consumed by the single trusted policy evaluator."
+      },
+      {
+        "name": "Yance implementationBranchPolicy trusted-main evaluator",
+        "source": "shared/release/implementationBranchPolicy.js@64e1a3054d066300c1446100709ae43f4c4f9ba4",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It remains the one delegated governance authority; extending it with a backward-compatible opt-in protocol avoids a package-specific validator or second framework."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test in the existing WP0 test stack",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The dedicated contract test is automatically enumerated by the existing WP0 runner and needs no dependency."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not retroactively reinterpret legacy failureFirstCommit metadata as V3 protocol opt-in.",
+      "Do not create a Voice-only or package-only second governance policy engine.",
+      "Do not duplicate delegated Product L2 final scope sealing.",
+      "Do not add OPA, database, network service, workflow-owned trust state, mutable GitHub query, dependency or custom test framework."
+    ]
+  },
+  "mandatoryContracts": [
+    "V2 PR #327 remains historical exact RED evidence only and receives no production commit.",
+    "V3 supersedes the V2 implementation branch through the existing generic supersession graph; V2 commits are not rewritten.",
+    "Legacy failureFirstCommit declarations without an own freshCausalRedRequired field retain their pre-V3 behavior.",
+    "An own freshCausalRedRequired property explicitly opts into V3 and must equal true; false or malformed values fail closed.",
+    "The first V3 implementation commit changes exactly tests/wp0/delegated-failure-first-topology.test.js, then must produce a fresh remote causal RED before policy code changes.",
+    "The legacy tests/wp0/implementation-branch-policy.test.js remains outside scope and unchanged.",
+    "Opted-in V3 declarations mechanically enforce declaration digest, exact first descendant, single authorization-merge parent, and RED evidence trailers before later implementation commits.",
+    "Remote run identity and causality remain an independent exact-head review obligation, not mutable network state inside the offline policy evaluator.",
+    "No workflow, dependency, package/lock, Product, Voice, runtime, release or promotion path is modified."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
