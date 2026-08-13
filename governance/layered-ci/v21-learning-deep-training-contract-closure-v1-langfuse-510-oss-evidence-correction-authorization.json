@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LEARNING-DEEP-TRAINING-CONTRACT-CLOSURE-V1-LANGFUSE-510-OSS-EVIDENCE-CORRECTION",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Independent review of implementation PR #354 proved that merged authorization PR #353 correctly pinned @langfuse/client 5.10.0 but recorded two inaccurate official API evidence strings. The first #355 proposal attempt used an unrecognized custom erratum document type and produced a real fail-closed Stage governance RED. This successor reuses the repository's existing delegated-governance protocol and authorizes exactly one governance evidence correction: update only #353's existing ossFit.officialApiEvidence to the verified pinned Langfuse 5.10 API surface. It does not supersede or expand #353's product implementation authority.",
+  "base": {
+    "branch": "main",
+    "commit": "11c47aef77ec1a2cd524b60d6589ae535625071d"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-learning-deep-training-contract-closure-v1-langfuse-510-oss-evidence-erratum",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-learning-deep-training-contract-closure-v1-langfuse-510-oss-evidence-correction-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "97f064098fdb55e55edcc7b7b83f1f4108319dd63a608d444ede86b1cb6b15ac",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "governance/v21-learning-deep-training-contract-closure-v1-langfuse-510-oss-evidence-correction",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-learning-deep-training-contract-closure-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "bad5354badced0ec8402e3d91a02ad3829224d689fcf178326fc864aa3eaa4b2",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "causalGovernanceRed": {
+    "head": "726bf7078be86e10ddf5e776d64ff42f85705c2c",
+    "stageRun": 31748007672,
+    "stageJob": 94607189370,
+    "route": "GOVERNANCE_WP0",
+    "layeredGovernanceContractsPassed": true,
+    "genericOpenSourceAuthorizationContractsPassed": true,
+    "failedContract": "tests/wp0/implementation-branch-policy.test.js",
+    "failedSubtest": "current repository branch uses local authority only when locally provable and arbitrary branches fail",
+    "reasonCode": "WP0_AUTHORIZATION_PROPOSAL_TRANSPORT_INVALID",
+    "rootCause": "The initial custom YANCE_TRUSTED_MAIN_GOVERNANCE_EVIDENCE_ERRATUM document/path was not part of the base-owned delegated authorization proposal transport protocol, so the governance branch correctly failed closed.",
+    "temporaryBypassUsed": false
+  },
+  "correctionTarget": {
+    "authorizationPullRequest": 353,
+    "authorizationMergeCommit": "11c47aef77ec1a2cd524b60d6589ae535625071d",
+    "authorizationPath": "governance/layered-ci/v21-learning-deep-training-contract-closure-v1-authorization.json",
+    "jsonPointer": "/ossFit/officialApiEvidence",
+    "implementationPullRequest": 354,
+    "implementationBranch": "product/v21-learning-deep-training-contract-closure-v1",
+    "reviewedImplementationHead": "f35506b2ca82bbc496272415b0f763b6ffd2a493",
+    "reviewedImplementationPathCount": 5,
+    "reviewedImplementationPathSetSha256": "76ee3a23ea4cc62d71a17e9683dc420e81f631bdee42f2e60244a1a553441cd0"
+  },
+  "exactEvidenceMutation": {
+    "onlyJsonPointerMayChange": "/ossFit/officialApiEvidence",
+    "allOtherTargetAuthorizationSemanticsMustRemainByteEquivalentAfterJsonProjection": true,
+    "incorrectValues": {
+      "datasetApi": "@langfuse/client dataset.create/createItem/get",
+      "scoreApi": "@langfuse/client score.create"
+    },
+    "replacement": {
+      "langfuseClientVersion": "5.10.0",
+      "source": "langfuse/langfuse-js@ab2bf242e5fae64116c5354c92e5eac3e70490c8",
+      "datasetReadApi": "client.dataset.get(name)",
+      "datasetCreationApi": "client.api.datasets.create({ name })",
+      "datasetItemUpsertApi": "client.dataset.createItem({ id, datasetName, input, expectedOutput, metadata })",
+      "failClosedScoreCreateApi": "client.api.scores.create({ id, traceId|sessionId|datasetRunId, observationId?, name, value, metadata })",
+      "queuedScoreApi": "client.score.create(...)",
+      "queuedScoreApiSufficientForFailClosedBinding": false,
+      "purpose": "Langfuse remains the sole Dataset and Score authority. Yance supplies only Learning-approved, privacy-minimized canonical semantics and waits for the official synchronous HTTP API before claiming evidence binding success."
+    }
+  },
+  "pinnedUpstreamEvidence": {
+    "clientPackage": "@langfuse/client@5.10.0",
+    "source": "langfuse/langfuse-js@ab2bf242e5fae64116c5354c92e5eac3e70490c8",
+    "packageBlob": "eab32fac968dac3216435cfcbd2c41a0d95f33e9",
+    "datasetManagerBlob": "2474b76ddefed1f1430b9c42642072e2d11736f3",
+    "scoreManagerBlob": "9cbe359c504b32bcb0449f7885d63211b893eb62",
+    "generatedDatasetsClientBlob": "923ad0e0097ab18500f9af715d6d4f08627bc6b1",
+    "generatedScoresClientBlob": "da79626be2cc7e365878cec109a9e04b960a1ac6",
+    "facts": [
+      "DatasetManager exposes get and createItem, not create.",
+      "Dataset creation is client.api.datasets.create and is synchronously awaitable.",
+      "client.score.create returns void and queues ingestion.",
+      "Fail-closed synchronous Score creation is client.api.scores.create and returns CreateScoreResponse."
+    ]
+  },
+  "preservedAuthority": {
+    "originalProductAuthorizationRemainsEffective": true,
+    "originalProductImplementationBranch": "product/v21-learning-deep-training-contract-closure-v1",
+    "originalProductImplementationPathCount": 5,
+    "originalProductImplementationPathSetSha256": "76ee3a23ea4cc62d71a17e9683dc420e81f631bdee42f2e60244a1a553441cd0",
+    "failureFirstHistoryChanged": false,
+    "dependencyAuthorityChanged": false,
+    "workflowAuthorityChanged": false,
+    "runtimeAuthorityChanged": false,
+    "agentLightningAuthorityChanged": false
+  },
+  "ossFit": {
+    "decision": "REUSE_PINNED_LANGFUSE_510_OFFICIAL_API_SEAM_FOR_EVIDENCE_CORRECTION",
+    "matureOssAvailable": true,
+    "matureOssMandatory": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing exact dependency and official generated API client",
+    "reviewedCandidates": [
+      {
+        "name": "@langfuse/client 5.10.0",
+        "license": "MIT",
+        "fit": "FIT",
+        "adoptionMode": "existing exact root dependency",
+        "reason": "Correct evidence to the pinned official DatasetManager and generated synchronous Dataset/Score API clients; no Yance dataset, score, reward, or experiment authority.",
+        "source": "langfuse/langfuse-js@ab2bf242e5fae64116c5354c92e5eac3e70490c8"
+      }
+    ],
+    "retireOrAvoid": [
+      "the inaccurate dataset.create evidence string",
+      "treating queued client.score.create as remote persistence proof",
+      "custom Yance DatasetStore",
+      "custom Yance score or reward engine",
+      "custom Yance experiment or evaluator framework"
+    ]
+  },
+  "requiredSequence": [
+    "This exact single-file authorization proposal passes Stage, Layered, ACV2 and independent review.",
+    "Authorization merges to trusted main by ordinary two-parent merge.",
+    "Create governance/v21-learning-deep-training-contract-closure-v1-langfuse-510-oss-evidence-correction from that exact authorization merge.",
+    "Modify only governance/layered-ci/v21-learning-deep-training-contract-closure-v1-authorization.json and only /ossFit/officialApiEvidence.",
+    "Verify the corrected authorization preserves all five-path product authority and failure-first semantics.",
+    "Evidence-correction implementation passes applicable governance gates and independent review.",
+    "Evidence-correction implementation merges to main by ordinary two-parent merge.",
+    "Normally reconcile fresh main into PR #354 and rerun exact-head product CI/review before its final merge boundary."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true
+  }
+}
