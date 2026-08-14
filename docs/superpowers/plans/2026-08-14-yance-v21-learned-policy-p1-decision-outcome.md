@@ -2,55 +2,59 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a real, privacy-governed Decision → Outcome → Policy loop in which Yance improves one existing structured reply-strategy action while OpenAI/Anthropic remain the final language generators through existing Model Brain/LiteLLM authority.
+**Goal:** Land a real, privacy-governed Decision → Outcome → Policy mechanism in which Yance learns one existing structured reply-strategy action while OpenAI/Anthropic remain the final language generators through existing Model Brain/LiteLLM authority.
 
-**Architecture:** Reuse `contextAwareReplyBrain → StoreManager AI task/candidate → Outbox → learning_signal_ledger → Learning evaluation/promotion`. Add only thin contracts/adapters: `DecisionRecordV1`, `OutcomeVectorV1`, a read-only Learning projection, and Vowpal Wabbit 9.11.2 inside the existing sealed Learning Python runtime. The first learned action is the existing `candidateStrategyBranch`; production policy selection happens before the final `aiGateway.execute(...)`. Identity, privacy, reward, provider execution, promotion, rollback, and final send remain with their existing authorities.
+**Architecture:** Reuse the existing `contextAwareReplyBrain → StoreManager AI task/candidate → Outbox → immutable learning_signal_ledger → Learning evaluation/promotion` chain. Add only thin causal contracts/adapters: `DecisionRecordV1`, `OutcomeVectorV1`, a read-only `projectPolicy` projection, and Vowpal Wabbit 9.11.2 inside the existing sealed Learning Python runtime. The first action is existing `candidateStrategyBranch`. The behavior decision is recorded before final `aiGateway.execute(...)`; the successful eligible `candidate_sent` signal becomes the immutable trainable source anchor; raw human outcomes remain permanently non-trainable evidence rows and are joined by `decisionId`; Learning-approved Langfuse Score remains separate reward authority.
 
-**Tech Stack:** Node.js/CommonJS; existing StoreManager/SQLite; `PersonContextAuthority`; Langfuse + OpenTelemetry; existing Learning proposal/evaluation/promotion; existing Model Brain/LiteLLM; sealed CPython 3.12 Learning runtime; Vowpal Wabbit `9.11.2` (`VowpalWabbit/vowpal_wabbit@122bae254a5b8bc2b774d13b33d53e6dbc2cfba7`, BSD-3-Clause); `uv`; Node test runner.
+**Tech Stack:** Node.js/CommonJS; existing StoreManager/SQLite and `learning_signal_ledger`; `PersonContextAuthority`; current Persona/relationship projections; Langfuse + OpenTelemetry; existing Learning proposal/evaluation/promotion; existing Model Brain/LiteLLM; sealed CPython 3.12 Learning runtime; Vowpal Wabbit `9.11.2` at `VowpalWabbit/vowpal_wabbit@122bae254a5b8bc2b774d13b33d53e6dbc2cfba7`, BSD-3-Clause; `uv`; Node test runner.
 
 ## Global constraints
 
 - Work package: `V21-LEARNING-POLICY-P1-DECISION-OUTCOME-CLOSED-LOOP-V1`.
 - Final reply text remains frontier-generated through Model Brain/LiteLLM.
-- No Qwen/local LLM production reply-generator path is introduced.
-- Agent Lightning P1 is unchanged and dormant for this work package.
-- No second model gateway, memory store, relationship graph, dataset/experiment platform, reward framework, policy framework, evaluator, scheduler, feature store, RL engine, or credential authority.
-- `DecisionRecordV1` and `OutcomeVectorV1` are thin immutable contracts carried by existing persistence/evidence seams.
-- Raw human behavior is evidence, not reward. Only Learning-approved Langfuse Score/evaluation evidence enters policy training.
-- Missing/late evidence is `pending` or `unavailable`, not `false`/negative.
-- P1 learns only `candidateStrategyBranch`, from the existing bounded action set.
-- No live randomized exploration in P1. Deterministic behavior-policy propensity is recorded as `1.0` with `exploration=false`; this does not claim counterfactual support for unchosen actions.
-- Vowpal Wabbit is the mature OSS learner; no Yance contextual-bandit implementation.
-- Existing Learning runtime stays Python `>=3.12,<3.13`; `uv.lock` is package-manager generated only.
-- Existing Regression → Shadow → explicit Promotion/Rollback stays authoritative.
-- Existing user approval/final-send authority stays unchanged.
-- Invalid identity/scope/private content blocks the affected Learned Policy evidence path. Missing learning evidence does not block an otherwise privacy-safe reply. Broken active policy artifact falls back to last-known-good or baseline with degradation evidence.
-- Fresh-main authorization and test-only causal RED are mandatory before product code.
-- No force push, rebase, amend published history, squash merge, bypass, fake success, or gate weakening.
+- No Qwen/local LLM production reply-generator path.
+- Agent Lightning P1 remains unchanged and dormant.
+- No second model gateway, memory system, identity store, relationship graph, Persona/Journey engine, dataset/experiment platform, reward framework, policy framework, evaluator, scheduler, feature store, RL engine, or credential authority.
+- First learned action is only `candidateStrategyBranch` using the existing bounded branch set.
+- P1 has no live randomized exploration. Deterministic behavior records `actionProbability=1.0`, `exploration=false`.
+- Raw human behavior is evidence, not reward.
+- Raw `policy_outcome_observed` records are permanently `learningEligible=false` and are never mutated later.
+- P1 trainable source anchor is an existing immutable **eligible `candidate_sent` signal** carrying exact DecisionRecord provenance.
+- Learning-approved Score is keyed to the eligible source signal and binds exact `decisionId + outcomeIds + outcomeEvidenceSetRef + rewardPolicyVersion`.
+- `projectPolicy` starts from eligible source signals and joins immutable raw outcomes; it never promotes/mutates raw outcome eligibility.
+- Historical learner input uses a stored bounded `featureBundle`; it never recomputes yesterday's features from today's relationship state.
+- `featureBundle` is fixed-schema and contains no free-form chat text, raw memory text, message bodies, arbitrary extension objects, or credentials.
+- Existing Regression → Shadow → explicit Promotion/Rollback remains authoritative.
+- Existing user final-send approval remains authoritative.
+- Broken active policy artifact falls to verified last-known-good or baseline with degradation evidence; identity/privacy violations block the affected policy evidence instead of being silently repaired.
+- Fresh-main route authorization and product authorization are mandatory before implementation.
+- First product implementation commit is test-only causal RED.
+- No rebase, amend published history, force push, squash merge, bypass, warning-only closure, or fake success.
 
 ## Reuse / Retire / New
 
 | Capability | Disposition |
 |---|---|
-| Frontier generation / credentials | REUSE Model Brain/LiteLLM |
+| Frontier generation / provider credentials | REUSE Model Brain/LiteLLM |
 | Canonical Person/Contact binding | REUSE PersonContextAuthority/current identity authorities |
-| Memory/relationship facts | REUSE Letta/Graphiti/current projections |
-| Journey/Persona | REUSE Parlant/Persona |
+| Memory/relationship projections | REUSE Letta/Graphiti/current authorities |
+| Persona/Journey | REUSE Persona/Parlant |
 | Trace/score/dataset/experiment | REUSE Langfuse/OTel |
-| Prompt optimization | REUSE DSPy/GEPA |
+| Prompt/program optimization | REUSE DSPy/GEPA |
 | Regression/Shadow | REUSE Promptfoo/Learning evaluation |
 | Promotion/Rollback | REUSE Learning/OpenFeature/flagd |
+| Immutable Learning ledger | REUSE existing `learning_signal_ledger` |
 | Agent Lightning P1 | REUSE dormant, no mutation |
 | Local/VERL reply-model goal | RETIRE/SUPERSEDED |
 | DecisionRecordV1 | NEW thin contract |
 | OutcomeVectorV1 | NEW thin contract |
-| Decision↔Outcome attribution | NEW thin adapter over existing signals/events |
+| Decision↔Outcome attribution | NEW thin adapter over existing events/signals |
 | Strategy policy learner | ADOPT Vowpal Wabbit 9.11.2 |
 | Policy runtime consumption | NEW thin adapter on existing Brain seam |
 
 ## Candidate product scope
 
-Fresh-main authorization must freeze this exact **22-path** candidate set unless inspection proves a path can be removed. Any addition requires a recomputed scope/digest and fresh authorization.
+Fresh-main authorization must freeze this exact **22-path** candidate set unless inspection proves a path can be removed. Any addition requires recomputing the complete authorization scope and digest.
 
 ```text
 THIRD_PARTY_NOTICES.md
@@ -77,17 +81,19 @@ third_party/licenses/vowpal-wabbit-BSD-3-Clause.txt
 tools/uat/v21LearningPolicyClosedLoopEvidence.js
 ```
 
-`backend/services/personContextAuthority.js` is read-only reused authority and is not modified. Current expected route gap is only:
+`backend/services/personContextAuthority.js` is read-only reused authority and is not modified.
+
+Expected fresh-main route gap:
 
 ```text
 third_party/licenses/vowpal-wabbit-BSD-3-Clause.txt
 ```
 
-No broad `third_party/` or `third_party/licenses/` product prefix is allowed.
+No `third_party/` or `third_party/licenses/` broad product prefix is allowed.
 
 ---
 
-### Task 1: Finish and merge the docs-only successor
+### Task 1: Close and ordinary-merge the docs-only successor
 
 **Files:**
 - `docs/superpowers/specs/2026-08-14-yance-v21-learned-policy-architecture-design.md`
@@ -95,20 +101,20 @@ No broad `third_party/` or `third_party/licenses/` product prefix is allowed.
 
 - [ ] **Step 1: Verify net scope**
 
-Fresh compare must contain exactly these two docs files, zero runtime/product/governance paths.
+Fresh compare from current `main` must show exactly these two documentation paths and zero product/runtime/governance changes.
 
-- [ ] **Step 2: Verify OSS-fit source facts**
+- [ ] **Step 2: Verify primary OSS identity**
 
 Freeze:
 
 ```text
-VowpalWabbit/vowpal_wabbit
-release 9.11.2
-commit 122bae254a5b8bc2b774d13b33d53e6dbc2cfba7
-BSD-3-Clause
-python_requires >=3.10
-selected mode contextual-bandit ADF
-P1 live exploration disabled
+repository = VowpalWabbit/vowpal_wabbit
+release = 9.11.2
+commit = 122bae254a5b8bc2b774d13b33d53e6dbc2cfba7
+license = BSD-3-Clause
+python_requires = >=3.10
+selected mode = contextual-bandit ADF
+P1 live exploration = disabled
 ```
 
 Disposition:
@@ -120,26 +126,38 @@ RouteLLM = reuse for later logical routing, not first strategy head
 DSPy/GEPA = reuse for prompt/program optimization
 ```
 
-- [ ] **Step 3: Resolve all review findings**
+- [ ] **Step 3: Independent exact-head documentation audit**
 
-Require no unresolved P0/P1/major causal-contract finding on the exact docs head.
+Require:
 
-- [ ] **Step 4: Exact-head CI then ordinary merge**
+```text
+P0 = 0
+P1 = 0
+no unresolved identity/privacy/reward/immutability/propensity finding
+22-path scope count matches the printed list
+no TODO/TBD/placeholder digest
+raw Outcome is never described as mutable eligibility
+featureBundle is stored and bounded, not hash-only
+```
 
-Read exact PR head into `reviewedHeadSha`; require applicable Stage/ACV2 checks GREEN; merge with `merge_method=merge` and `expected_head_sha=reviewedHeadSha`.
+CodeRabbit exact-head review may supplement this audit but an external review-service rate limit is not a product RED.
+
+- [ ] **Step 4: Exact-head CI and ordinary merge**
+
+Require applicable Stage/ACV2 checks GREEN. Read exact reviewed PR head into `reviewedHeadSha`, fresh-read main, then merge using `merge_method=merge` and `expected_head_sha=reviewedHeadSha`. No squash/rebase.
 
 ---
 
-### Task 2: Route-bootstrap exactly the new VW license path
+### Task 2: Route-bootstrap exactly one VW license path
 
 **Files:**
 - Create authorization: `governance/layered-ci/v21-learning-policy-p1-route-bootstrap-v1-authorization.json`
-- After authorization merge: modify `governance/layered-ci/wp0-routing-policy.json`
-- After authorization merge: create `tests/layered-ci/v21-learning-policy-p1-routing.test.js`
+- After authorization ordinary merge: modify `governance/layered-ci/wp0-routing-policy.json`
+- After authorization ordinary merge: create `tests/layered-ci/v21-learning-policy-p1-routing.test.js`
 
-- [ ] **Step 1: Prove route gap**
+- [ ] **Step 1: Prove exact route gap on fresh main**
 
-On fresh main verify:
+Require exactly:
 
 ```js
 const bootstrapPaths = Object.freeze([
@@ -147,60 +165,56 @@ const bootstrapPaths = Object.freeze([
 ]);
 ```
 
-is not already product-routed.
+and prove it is not currently product-routed.
 
-- [ ] **Step 2: Create route authorization following existing exact schema**
+- [ ] **Step 2: Create fresh route authorization using existing repository schema**
 
-It must contain fresh-main SHA, exact path/digests, overlap inventory, ordinary-merge requirement, failure-first requirement and auditable OSS-fit:
+Authorization records fresh main, path/digests, overlap inventory, ordinary-merge requirement, failure-first requirement, and OSS-fit including:
 
 ```json
 {
   "reviewedCandidates": [
-    "Vowpal Wabbit 9.11.2",
+    "existing trusted delegated route guard",
+    "Vowpal Wabbit 9.11.2 future product dependency",
     "existing DSPy/GEPA",
     "existing RouteLLM",
     "existing Agent Lightning P1"
   ],
-  "selected": "Vowpal Wabbit 9.11.2 for bounded candidateStrategyBranch contextual-bandit policy",
+  "selected": "existing trusted route guard; exact VW license literal only",
   "retireOrAvoid": [
+    "broad third_party product prefix",
+    "second Yance route engine",
     "local Qwen reply-generator P2",
-    "Yance-built contextual-bandit engine",
-    "second policy framework"
+    "Yance-built contextual-bandit engine"
   ]
 }
 ```
 
-- [ ] **Step 3: Stop at owner authorization boundary**
+- [ ] **Step 3: Stop at new authorization owner boundary**
 
-Do not merge this new authorization or create route implementation before explicit owner approval.
+Do not merge this authorization and do not create route implementation until explicit owner approval.
 
 - [ ] **Step 4: After authorization merge, create test-only route RED**
 
-`tests/layered-ci/v21-learning-policy-p1-routing.test.js` asserts exact license path routes as product and broad third-party prefixes remain forbidden.
+Test requires the exact license path to route as product and broad third-party prefixes to remain forbidden.
 
 ```bash
 node --test tests/layered-ci/v21-learning-policy-p1-routing.test.js
 ```
 
-Expected RED: license path currently unknown/non-product.
+Expected causal RED: exact license path remains unknown/non-product.
 
-- [ ] **Step 5: GREEN with one exact literal**
+- [ ] **Step 5: GREEN with one literal**
 
-Add only:
-
-```json
-"third_party/licenses/vowpal-wabbit-BSD-3-Clause.txt"
-```
-
-to `productExactPaths`. Run targeted routing + applicable Layered gate.
+Add only the exact VW license path to `productExactPaths`, run targeted route test and applicable Layered route gate.
 
 - [ ] **Step 6: Exact-head review and ordinary merge**
 
-No scope expansion, broad prefix, or history rewrite.
+No path expansion or history rewrite.
 
 ---
 
-### Task 3: Fresh product authorization and causal RED
+### Task 3: Fresh product authorization and six-test causal RED
 
 **Files:**
 - Create authorization: `governance/layered-ci/v21-learning-policy-p1-decision-outcome-v1-authorization.json`
@@ -214,15 +228,15 @@ No scope expansion, broad prefix, or history rewrite.
 
 - [ ] **Step 1: Fresh overlap inventory**
 
-Inspect active PRs touching any of the 22 candidate paths, especially `THIRD_PARTY_NOTICES.md`, reply Brain, StoreManager, Learning contract, Learning runtime/config.
+Inspect active PRs touching any candidate path, especially `THIRD_PARTY_NOTICES.md`, reply Brain, StoreManager, immutable feedback service, Learning contract, runtime/config.
 
-- [ ] **Step 2: Freeze exact product/first-test digests mechanically**
+- [ ] **Step 2: Freeze exact path digests mechanically**
 
-Sort paths bytewise, join with `\n`, append final `\n`, SHA-256 exact bytes. Store real digests; no manually typed substitute.
+For product and first-test sets: sort bytewise, join with newline, append final newline, SHA-256 exact bytes. Store real digests in authorization; no manually typed substitute.
 
-- [ ] **Step 3: RED DecisionRecord tests**
+- [ ] **Step 3: RED DecisionRecord contract**
 
-Minimum assertions:
+Require:
 
 ```js
 assert.equal(record.schemaVersion, 1);
@@ -232,6 +246,8 @@ assert.equal(record.scopeId, record.conversationId);
 assert.ok(record.contactId);
 assert.ok(record.personId);
 assert.ok(record.personaProfileId);
+assert.equal(typeof record.featureBundle, 'object');
+assert.equal(hasFreeText(record.featureBundle), false);
 assert.match(record.stateSnapshotRef, /^[a-f0-9]{64}$/u);
 assert.match(record.featureSchemaRef, /^[a-f0-9]{64}$/u);
 assert.match(record.contextCandidateSetRef, /^[a-f0-9]{64}$/u);
@@ -243,49 +259,57 @@ assert.ok(record.actionProbability > 0 && record.actionProbability <= 1);
 assert.equal(record.rawPrivateChatPersisted, false);
 ```
 
-Include two-person/two-profile collision fixtures where same-looking conversation IDs must be rejected when Person binding differs.
+Include two-person/two-profile collision cases.
 
-- [ ] **Step 4: RED OutcomeVector tests**
+- [ ] **Step 4: RED immutable-ledger topology**
+
+Require one eligible `candidate_sent` source signal carrying exact decision provenance, one raw `policy_outcome_observed` signal with `learningEligible=false`, and no code path that updates the raw row to true.
+
+- [ ] **Step 5: RED OutcomeVector contract**
+
+Require `outcomeId`, `decisionId`, `sourceSignalId`, canonical identity, observation window, per-signal provenance/missingness, and:
 
 ```js
-assert.equal(outcome.schemaVersion, 1);
-assert.equal(outcome.authority, 'LearningOutcomeAttribution');
-assert.ok(outcome.outcomeId);
-assert.equal(outcome.decisionId, decision.decisionId);
-assert.equal(outcome.personId, decision.personId);
-assert.equal(outcome.scopeId, decision.scopeId);
 assert.equal(outcome.signals.replyLatencyMs.status, 'observed');
 assert.equal(outcome.signals.nextDayReinitiation.status, 'pending');
 assert.equal(outcome.approvedReward, undefined);
-assert.equal(outcome.missingMeansNegative, false);
+assert.equal(outcome.learningEligible, false);
 ```
 
-Each signal fixture must include `observedAt/windowStart/windowEnd/sourceType/sourceId/provenanceRef` as applicable.
+- [ ] **Step 6: RED score/projection contract**
 
-- [ ] **Step 5: RED propensity/projection tests**
+`projectPolicy` must reject a Score unless it is keyed to the eligible source signal and binds exactly:
 
-Rows missing `actionId`, `actionSetRef`, `actionEncodingVersion`, `behaviorPolicyVersion`, or original propensity are ineligible for VW training/OPE. No later reconstruction is allowed.
+```text
+sourceSignalId
+decisionId
+outcomeIds
+outcomeEvidenceSetRef
+rewardPolicyVersion
+```
 
-- [ ] **Step 6: RED privacy/provider test**
+Rows missing original action/action-set/behavior propensity are ineligible for VW training/OPE.
 
-At actual provider-message construction seam, an ineligible private memory must be absent/rejected while an independently eligible bounded feature remains present.
+- [ ] **Step 7: RED provider-bound privacy**
 
-- [ ] **Step 7: Push exact six-test head and capture causal RED**
+At the actual final provider-message seam, prove an ineligible private memory is absent/rejected while an independently eligible bounded field remains available.
 
-Only missing product contracts count as intended RED; route/environment/tooling failures must be repaired at source first.
+- [ ] **Step 8: Push exact test-only Head and capture causal RED**
+
+Only missing Learned Policy contracts count as intended RED; environment/routing/tooling failures must be fixed at source first.
 
 ---
 
-### Task 4: Implement replayable `DecisionRecordV1`
+### Task 4: Implement canonical `DecisionRecordV1`
 
 **Files:**
 - Create `backend/services/learningPolicyDecisionContract.js`
 - Modify `backend/services/contextAwareReplyBrain.js`
 - Modify `backend/store/commands/registerAiReplyCommands.js`
 
-- [ ] **Step 1: Resolve canonical identity with existing authority**
+- [ ] **Step 1: Resolve canonical Person/Contact/Conversation**
 
-Before creating a decision:
+Before persistence:
 
 ```js
 const person = personContextAuthority.resolve({ contactId, conversationId });
@@ -297,39 +321,35 @@ if (!person.contactIds.includes(contactId) || !person.conversationIds.includes(c
 }
 ```
 
-`personaProfileId` comes from the exact Persona context used for generation. No cross-profile repair.
+`personaProfileId` must be the exact profile used by current Persona compilation.
 
-- [ ] **Step 2: Create content-addressed immutable bundle refs**
+- [ ] **Step 2: Freeze P1 feature schema from existing state authorities**
 
-Use canonical deterministic JSON bytes for bounded projections and SHA-256:
-
-```js
-const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
-const stateSnapshotRef = sha256(stableJson(decisionStateProjection));
-const featureSchemaRef = sha256(stableJson(featureSchema));
-const contextCandidateSetRef = sha256(stableJson(contextCandidateRefs));
-const actionSetRef = sha256(stableJson(encodedAllowedActions));
-```
-
-Do not hash mutable object serialization with unstable key order; use existing stable/canonical JSON helper if available, otherwise a tiny local canonicalization inside the thin contract after OSS-fit confirms no existing seam.
-
-- [ ] **Step 3: Record all contributing policy versions**
-
-Required explicit values:
+The product authorization/test contract must enumerate exact allowed feature keys. Rules:
 
 ```text
-relationshipPolicyVersion
-memoryPolicyVersion
-strategyPolicyVersion
-candidateRankerVersion
-routingPolicyVersion
-promptProgramVersion
-behaviorPolicyVersion
+bounded enum/numeric/boolean only
+no message body
+no memory text
+no contact name
+no arbitrary string extension
+no provider credential
+no field that fails existing Learning privacy/minimization
 ```
 
-Baseline head values are explicit version strings such as `baseline-rules-v1`, never blank-as-baseline.
+Do not invent a generic feature framework.
 
-- [ ] **Step 4: Record behavior action exactly at choice time**
+- [ ] **Step 3: Persist exact `featureBundle` and content identities**
+
+Use an existing trusted canonical-serialization seam. If fresh-main inspection proves none exists, stop at OSS-fit/authorization boundary rather than silently self-building one.
+
+Compute SHA-256 for canonical feature bytes, context-candidate ID set, and encoded action set.
+
+- [ ] **Step 4: Record all contributing policy versions**
+
+Explicitly record relationship, memory, strategy, candidate-ranker, routing, prompt-program, and behavior-policy versions. Baseline versions are explicit stable strings.
+
+- [ ] **Step 5: Record behavior action at decision time**
 
 ```js
 {
@@ -344,15 +364,15 @@ Baseline head values are explicit version strings such as `baseline-rules-v1`, n
 }
 ```
 
-- [ ] **Step 5: Persist inside existing task/candidate payloads**
+- [ ] **Step 6: Apply action before frontier generation**
 
-Add bounded `learningPolicyDecision`; no new table.
+Choose/apply existing branch after candidate-plan/context preparation and before first final `aiGateway.execute(...)`. Reuse current `applyCandidateBranch(...)` logic.
 
-- [ ] **Step 6: Apply policy before final generation**
+- [ ] **Step 7: Carry DecisionRecord through existing task/candidate persistence**
 
-Selection happens after existing candidate-plan/memory preparation and before the first final reply `aiGateway.execute(...)`. Reuse existing `applyCandidateBranch(...)`; do not duplicate strategy logic.
+No new table.
 
-- [ ] **Step 7: Verify**
+- [ ] **Step 8: Verify**
 
 ```bash
 node --test tests/wp0/v21-learning-policy-p1-decision-record.test.js tests/wp0/v21-learning-policy-p1-production-consumption.test.js
@@ -360,63 +380,58 @@ node --test tests/wp0/v21-learning-policy-p1-decision-record.test.js tests/wp0/v
 
 ---
 
-### Task 5: Decision-bound candidate/send evidence + `OutcomeVectorV1`
+### Task 5: Bind successful eligible send and immutable raw outcomes
 
 **Files:**
-- Create `backend/services/learningOutcomeAttributionService.js`
 - Modify `backend/services/candidateInteractionLearningService.js`
 - Modify `backend/services/replyFeedbackLearningService.js`
+- Create `backend/services/learningOutcomeAttributionService.js`
 - Modify `backend/services/storeManagerService.js`
 
-- [ ] **Step 1: Add bounded decision provenance to existing signals**
+- [ ] **Step 1: Make eligible `candidate_sent` the P1 source anchor**
 
-Persist IDs/versions/action/probability only; no raw state/chat copy:
+The existing immutable sent signal carries the bounded DecisionRecord needed for replay/training. It keeps existing truth/emergency/DoNotLearn eligibility rules.
+
+If the sent source signal is not learning-eligible, P1 does **not** create downstream policy-learning Outcome evidence for that decision.
+
+- [ ] **Step 2: Never mutate source or raw outcome eligibility**
+
+No `UPDATE learning_signal_ledger SET learning_eligible=...` is introduced. Existing immutable insert semantics remain intact.
+
+- [ ] **Step 3: Reuse existing `message:inserted` event**
+
+No second inbound pipeline. Bind an inbound human message to exactly one latest eligible successful sent decision satisfying same canonical `conversationId`, `contactId`, `personId`, and strict sent-before-inbound ordering. Ambiguity rejects attribution.
+
+- [ ] **Step 4: Create immutable `OutcomeVectorV1`**
+
+Conceptual immediate observation:
 
 ```js
 {
-  decisionId,
-  decisionSchemaVersion,
-  personId,
-  personaProfileId,
-  behaviorPolicyVersion,
-  actionId,
-  actionValue,
-  actionSetRef,
-  actionProbability
-}
-```
-
-- [ ] **Step 2: Reuse existing `message:inserted` event**
-
-No second inbound pipeline. Bind inbound human message to exactly one latest eligible successful sent decision satisfying canonical `conversationId`, `contactId`, `personId`, and monotonic sent-before-inbound order. Ambiguity rejects attribution.
-
-- [ ] **Step 3: Construct immutable outcome envelope**
-
-```js
-const outcome = Object.freeze({
   schemaVersion: 1,
   authority: 'LearningOutcomeAttribution',
   outcomeId,
   decisionId,
+  sourceSignalId,
   scopeType: 'conversation',
   scopeId: conversationId,
   contactId,
   personId,
   conversationId,
   observedAt: inboundTimestamp,
-  observationWindow: Object.freeze({ start: sentTimestamp, end: inboundTimestamp }),
-  signals: Object.freeze({
-    replyLatencyMs: Object.freeze({
+  observationWindow: { start: sentTimestamp, end: inboundTimestamp },
+  signals: {
+    replyLatencyMs: {
       value: latencyMs,
       status: 'observed',
       observedAt: inboundTimestamp,
       windowStart: sentTimestamp,
       windowEnd: inboundTimestamp,
       sourceType: 'message-pair',
-      sourceId: `${outboundMessageId}:${inboundMessageId}`,
+      sourceId: messagePairId,
       provenanceRef: messagePairDigest
-    }),
-    conversationContinued: Object.freeze({
+    },
+    conversationContinued: {
       value: true,
       status: 'observed',
       observedAt: inboundTimestamp,
@@ -425,8 +440,8 @@ const outcome = Object.freeze({
       sourceType: 'inbound-message',
       sourceId: inboundMessageId,
       provenanceRef: inboundEvidenceDigest
-    }),
-    nextDayReinitiation: Object.freeze({
+    },
+    nextDayReinitiation: {
       value: null,
       status: 'pending',
       observedAt: '',
@@ -435,92 +450,98 @@ const outcome = Object.freeze({
       sourceType: 'conversation-window',
       sourceId: conversationId,
       provenanceRef: ''
-    })
-  }),
-  approvedReward: undefined,
-  missingMeansNegative: false,
+    }
+  },
+  learningEligible: false,
   rawPrivateChatPersisted: false
-});
+}
 ```
 
-Do not store inbound raw text in the outcome signal.
+No inbound raw text is stored in the outcome signal.
 
-- [ ] **Step 4: Keep windows immutable**
+- [ ] **Step 5: Persist idempotently**
 
-When a later window closes, append a new idempotent outcome observation/version; do not mutate the earlier vector to pretend later evidence existed earlier.
+Use existing Learning signal repository with deterministic idempotency from decision + source observation ID. Raw outcome remains permanently false for learning eligibility.
 
-- [ ] **Step 5: Persist via existing Learning signal repository**
+- [ ] **Step 6: Late windows append, never rewrite**
 
-Raw outcome signal remains non-trainable until approved score exists:
+A closed later window creates a new immutable outcome observation/version tied to the same decision/source signal.
 
-```text
-signalType = policy_outcome_observed
-idempotencyKey = policy-outcome:<decisionId>:<sourceObservationId>
-learningEligible = false
-```
+- [ ] **Step 7: Lifecycle-manage subscriber**
 
-- [ ] **Step 6: Lifecycle-manage subscriber**
+Start after StoreManager hydration; stop cleanly; duplicate event/restart is idempotent.
 
-Start after StoreManager hydration and stop cleanly; duplicate events/restarts are idempotent.
-
-- [ ] **Step 7: Verify**
+- [ ] **Step 8: Verify**
 
 ```bash
 node --test tests/wp0/v21-learning-policy-p1-outcome-binding.test.js
 ```
 
-Cover duplicate event, wrong contact/person, two-profile collision, ambiguous ordering, pending delayed signal, unavailable evidence, and silence-not-negative.
+Cover duplicate, wrong contact/person, two-profile collision, ambiguity, pending delayed metric, unavailable evidence, and silence-not-negative.
 
 ---
 
-### Task 6: Extend canonical Learning projection and privacy boundary
+### Task 6: Implement immutable `projectPolicy` on existing Learning contract
 
 **Files:**
 - Modify `backend/services/learningDeepTrainingContract.js`
 - Test `tests/wp0/v21-learning-policy-p1-projection.test.js`
 - Test `tests/wp0/v21-learning-policy-p1-production-consumption.test.js`
 
-- [ ] **Step 1: Add `projectPolicy` to existing Learning contract**
+- [ ] **Step 1: Start projection from eligible source signals**
 
-Projection row:
+Use existing repository query with `learningEligible=true` and P1 source type `candidate_sent`. Do not start from raw outcome rows.
+
+- [ ] **Step 2: Validate stored DecisionRecord**
+
+Require canonical identity, fixed safe feature schema, content-addressed refs, exact action/action-set encoding, explicit policy versions, and original finite propensity.
+
+- [ ] **Step 3: Join raw outcomes by exact decision/source identity**
+
+Query same scope including `learningEligible=false`, select only `policy_outcome_observed` rows where `decisionId`, `sourceSignalId`, `personId`, and conversation identity match the source DecisionRecord.
+
+- [ ] **Step 4: Require Learning-approved Score for source signal**
+
+Reuse existing `approvedScoresBySignalId[sourceSignalId]` authority and additionally require exact evidence binding:
+
+```text
+score.decisionId == decisionId
+score.sourceSignalId == sourceSignalId
+score.outcomeIds == joined immutable outcome IDs
+score.outcomeEvidenceSetRef == digest of canonical joined evidence IDs/provenance refs
+score.rewardPolicyVersion is explicit
+```
+
+No mutation of raw outcomes occurs.
+
+- [ ] **Step 5: Emit read-only learner row**
 
 ```js
 {
-  decision: replayableDecisionProjection,
+  sourceSignalId,
+  decision: storedDecisionRecord,
   outcomes: immutableOutcomeObservations,
-  approvedScore: approvedLangfuseScore,
+  approvedScore,
   minimizedContent
 }
 ```
 
-- [ ] **Step 2: Enforce identity and replayability**
+Historical features come from stored `featureBundle`, never current state.
 
-Reject mismatched `scope/contact/person/conversation/personaProfile`, missing/invalid content-addressed refs, or a decision trace that does not resolve to the same bundle.
+- [ ] **Step 6: Preserve privacy/reward authority**
 
-- [ ] **Step 3: Enforce CB training eligibility**
+DoNotLearn, raw-private persistence, minimization denial, identity mismatch, missing score binding, or invalid propensity excludes/rejects the row. No reward normalization/clipping/weighting or missing-signal conversion.
 
-Exclude rows without exact `actionId`, `actionEncodingVersion`, `actionSetRef`, `behaviorPolicyVersion`, original finite propensity `(0,1]`, or chosen action inside allowed set.
+- [ ] **Step 7: Provider-bound privacy acceptance**
 
-- [ ] **Step 4: Preserve existing privacy/minimization**
-
-DoNotLearn, raw-private persistence, or minimization denial excludes affected content. No private field may leak through a learned feature into the provider request.
-
-- [ ] **Step 5: Provider-boundary acceptance**
-
-Build one actual frontier request fixture where:
+At actual final provider request construction prove:
 
 ```text
-private memory = ineligible → absent/rejected
-bounded relationship feature = eligible → still present
+ineligible private memory → absent/rejected
+independently eligible bounded relationship feature → remains present
 ```
 
-The test targets the existing `buildModelMessages`/equivalent final provider-bound request seam, not merely source text.
-
-- [ ] **Step 6: Preserve reward unchanged**
-
-No normalization, clipping, weighting, inferred reward, cross-decision aggregation, or missing-signal conversion.
-
-- [ ] **Step 7: Verify**
+- [ ] **Step 8: Verify**
 
 ```bash
 node --test tests/wp0/v21-learning-policy-p1-projection.test.js tests/wp0/v21-learning-policy-p1-production-consumption.test.js
@@ -540,22 +561,22 @@ node --test tests/wp0/v21-learning-policy-p1-projection.test.js tests/wp0/v21-le
 - Test `tests/wp0/v21-learning-policy-p1-vw-runtime.test.js`
 - Test `tests/wp0/v21-learning-policy-p1-supply-chain.test.js`
 
-- [ ] **Step 1: Add exact package**
+- [ ] **Step 1: Add exact dependency**
 
 ```toml
 "vowpalwabbit==9.11.2"
 ```
 
-- [ ] **Step 2: Regenerate real lock**
+- [ ] **Step 2: Generate real lock with `uv`**
 
 ```bash
 cd runtime/learning-growth/python
 uv lock
 ```
 
-If current execution environment cannot access PyPI, use the user's local machine to generate the exact `uv.lock`, upload it, then verify bytes/blob before commit. Never synthesize lock hashes.
+If current environment cannot reach PyPI, user generates this exact file locally and uploads it. Verify bytes/blob before commit. Never synthesize lock hashes.
 
-- [ ] **Step 3: Add exact upstream receipt/license/notice**
+- [ ] **Step 3: Add source receipt/license/notices**
 
 ```json
 "vowpalWabbit": {
@@ -567,9 +588,9 @@ If current execution environment cannot access PyPI, use the user's local machin
 }
 ```
 
-Copy exact upstream LICENSE bytes from the frozen commit.
+Copy exact upstream LICENSE bytes from frozen commit.
 
-- [ ] **Step 4: Add runtime operations**
+- [ ] **Step 4: Add sealed runtime operations**
 
 ```text
 policy_runtime_contract
@@ -577,80 +598,64 @@ policy_train
 policy_predict
 ```
 
-The training adapter may convert an already-approved scalar reward to VW cost only by:
+Training accepts only `projectPolicy` rows. It consumes the stored `featureBundle`, exact action encoding, chosen action, original propensity, and finite Learning-approved score.
+
+- [ ] **Step 5: Mechanical reward-to-cost conversion only**
 
 ```python
 cost = -float(approved_score)
 ```
 
-No other reward shaping.
-
-- [ ] **Step 5: Encode ADF record from original behavior log**
-
-Use the exact logged action set/action ID/original propensity. Never reconstruct propensity at training time.
+No other shaping.
 
 - [ ] **Step 6: Seal artifact identity**
 
-```python
-policy_artifact_version = hashlib.sha256(artifact_bytes).hexdigest()
-```
+SHA-256 artifact bytes and return the 64-hex digest as `policyArtifactVersion`.
 
 - [ ] **Step 7: Deterministic P1 prediction**
 
-Return chosen allowed action, exact artifact version, `probability=1.0`, `exploration=false`. Reject unknown actions, hash mismatch, corrupt artifact, nonfinite score, or provider-execution request.
+Return an action inside supplied exact action set, artifact identity, `probability=1.0`, `exploration=false`. Reject corrupt/mismatched artifact, unknown action, nonfinite score, invalid logged propensity, or provider-execution request.
 
-- [ ] **Step 8: Verify runtime/supply chain**
+- [ ] **Step 8: Verify runtime and supply chain**
 
 ```bash
 node --test tests/wp0/v21-learning-policy-p1-vw-runtime.test.js tests/wp0/v21-learning-policy-p1-supply-chain.test.js
 ```
 
-Also verify CPython 3.12 runtime, reproducible `uv`, SBOM contains VW 9.11.2, no provider credentials, no runtime package download.
+Also verify CPython 3.12, reproducible `uv`, SBOM includes VW 9.11.2, no provider credentials, no runtime package download.
 
 ---
 
-### Task 8: Thin production policy adapter with availability-safe failure semantics
+### Task 8: Thin production policy adapter with availability-safe fallback
 
 **Files:**
 - Create `backend/services/learningPolicyRuntimeAdapter.js`
 - Modify `backend/services/contextAwareReplyBrain.js`
 - Test `tests/wp0/v21-learning-policy-p1-production-consumption.test.js`
 
-- [ ] **Step 1: No promoted policy → explicit baseline**
+- [ ] **Step 1: No promoted artifact → explicit baseline**
 
-```js
-return Object.freeze({
-  source: 'baseline-rules',
-  action: baselineAction,
-  probability: 1,
-  exploration: false,
-  policyArtifactVersion: 'baseline-rules-v1'
-});
-```
+Return existing baseline action with probability 1, exploration false, and explicit baseline policy version.
 
-- [ ] **Step 2: Resolve only Learning-promoted artifact metadata**
+- [ ] **Step 2: Resolve only existing Learning-promoted artifact metadata**
 
-Do not accept arbitrary request-supplied model/artifact paths. Candidate identity/path/hash comes from existing Learning rollout/OpenFeature/flagd projection.
+Do not accept arbitrary request-supplied policy paths/hashes.
 
-- [ ] **Step 3: Active artifact valid → predict**
+- [ ] **Step 3: Valid active artifact → sealed runtime prediction**
 
-Call sealed runtime with bounded state/action set and verify returned artifact hash/action.
+Provide the same fixed-schema bounded features and exact allowed action set; validate returned artifact identity/action before applying the branch.
 
-- [ ] **Step 4: Active artifact corrupt → last-known-good/base**
+- [ ] **Step 4: Broken active artifact → last-known-good or baseline**
 
-Do not turn a strategy-learning artifact failure into a reply outage. Use previously verified last-known-good promoted artifact when existing rollout history provides it; otherwise explicit baseline. Emit degradation evidence and record which policy actually executed.
+If existing rollout history provides a previously verified promoted artifact, use it; otherwise explicit baseline. Emit degradation evidence and record which policy actually executed. Do not turn advisory strategy-policy failure into reply outage.
 
-- [ ] **Step 5: Identity/privacy mismatch is not a generic fallback**
+- [ ] **Step 5: Identity/privacy mismatch is not generic fallback**
 
-A mismatched DecisionRecord or ineligible private feature is discarded/blocked. Re-resolve canonical privacy-safe context and create a new valid baseline decision if reply generation can safely continue; never reuse the invalid evidence.
+Discard invalid evidence. Re-resolve canonical privacy-safe context and create a new valid baseline decision if reply generation can safely continue; never reuse invalid DecisionRecord/private features.
 
-- [ ] **Step 6: Prove generator authority**
+- [ ] **Step 6: Prove frontier authority and rollback**
 
-Policy selection must occur before final `aiGateway.execute(...)`; reply text still comes from existing Model Brain execution evidence.
-
-- [ ] **Step 7: Prove rollback**
-
-Existing Learning rollback restores previous/baseline policy; historical decisions retain original versions.
+Policy selection occurs before final `aiGateway.execute(...)`; text comes from Model Brain. Existing Learning rollback restores previous/baseline policy without rewriting historical evidence.
 
 ---
 
@@ -663,40 +668,35 @@ Existing Learning rollback restores previous/baseline policy; historical decisio
 
 ```text
 canonical contact/person/conversation/persona
-→ DecisionRecordV1
-→ AI candidate
+→ bounded featureBundle + DecisionRecordV1
+→ frontier-generated AI candidate
 → user-approved Outbox
-→ successful send
-→ sent learning signal
+→ successful eligible candidate_sent source signal
 → inbound human message
-→ OutcomeVectorV1
+→ immutable raw OutcomeVectorV1 learningEligible=false
 ```
 
-Use existing test/precomputed Model Brain seam; do not create another provider adapter.
+Use existing Model Brain test/precomputed execution seam; no second provider adapter.
 
-- [ ] **Step 2: Bind Learning-approved score**
+- [ ] **Step 2: Bind a Learning-approved Score**
 
-Use existing Langfuse/Learning evidence seam. Raw latency/continuation is not reward.
+Through existing Langfuse/Learning evidence seam, create one finite score keyed to `sourceSignalId` and bound to exact decision/outcome evidence set + reward policy version.
 
-- [ ] **Step 3: Project + train VW candidate**
+- [ ] **Step 3: `projectPolicy` then train VW candidate**
 
-```text
-projectPolicy
-→ policy_train
-→ artifact SHA-256
-```
+Prove projection starts from eligible source signal, joins raw false-eligible outcome, preserves stored historical featureBundle, and produces a sealed VW candidate.
 
 - [ ] **Step 4: Existing evaluation/promotion**
 
 Candidate reaches production only after existing Regression + Shadow + explicit Learning approval.
 
-- [ ] **Step 5: Later decision consumes promoted policy before frontier call**
+- [ ] **Step 5: Later turn consumes promoted policy before frontier call**
 
-Require later decision ID differs, policy artifact SHA matches promoted candidate, chosen action is within exact allowed action set, and final reply execution evidence is Model Brain.
+Later decision ID differs; artifact SHA matches promoted candidate; action is in exact set; Model Brain generates final text.
 
-- [ ] **Step 6: Artifact failure and rollback evidence**
+- [ ] **Step 6: Fallback and rollback**
 
-Prove corrupt active artifact uses last-known-good/base with degradation receipt, then explicit rollback restores prior/baseline without rewriting history.
+Corrupt active artifact proves last-known-good/baseline availability path with degradation evidence. Explicit rollback restores prior/baseline without rewriting history.
 
 - [ ] **Step 7: Emit closure receipt**
 
@@ -704,9 +704,12 @@ Prove corrupt active artifact uses last-known-good/base with degradation receipt
 {
   "workPackage": "V21-LEARNING-POLICY-P1-DECISION-OUTCOME-CLOSED-LOOP-V1",
   "canonicalIdentityBound": true,
-  "decisionReplayable": true,
+  "storedHistoricalFeatureBundle": true,
   "behaviorPropensityLoggedAtDecision": true,
+  "eligibleSourceSignalAnchored": true,
+  "rawOutcomeEligibilityImmutableFalse": true,
   "outcomeWindowsAndMissingnessExplicit": true,
+  "scoreEvidenceBindingVerified": true,
   "decisionOutcomeBound": true,
   "rawOutcomeIsNotReward": true,
   "providerPrivacyBoundaryProved": true,
@@ -738,7 +741,7 @@ node --test \
 
 - [ ] **Step 2: Run no-regression authorities**
 
-At minimum existing Learning Growth WP0, Learning Deep Training contract tests, Agent Lightning P1 tests, Model Brain routing tests, Stage 6.4.5.9 WP0, ACV2 WP-A, and correctly routed Layered product verification.
+At minimum run existing Learning Growth WP0, Learning Deep Training contract tests, Agent Lightning P1 tests, Model Brain routing tests, Stage 6.4.5.9 WP0, ACV2 WP-A, and correctly routed Layered product verification.
 
 - [ ] **Step 3: Run UAT**
 
@@ -746,33 +749,50 @@ At minimum existing Learning Growth WP0, Learning Deep Training contract tests, 
 node tools/uat/v21LearningPolicyClosedLoopEvidence.js
 ```
 
-Require exit 0 and full receipt from Task 9.
+Require exit 0 and full Task 9 receipt.
 
 - [ ] **Step 4: Independent exact-head review**
 
-Require P0=0/P1=0 and no unresolved causal/privacy/data-integrity finding. Explicitly review identity collision, immutable state refs, original propensity, outcome windows/missingness, provider privacy, artifact availability fallback, frontier generator authority, VW supply-chain closure, and Agent Lightning non-regression.
+Require P0=0/P1=0 with explicit review of:
+
+```text
+canonical identity collision
+stored immutable featureBundle and schema
+original behavior propensity/action-set identity
+immutable eligible source-signal anchor
+raw outcome permanently learningEligible=false
+score binding to exact source/decision/outcome set
+outcome windows/missingness
+provider-bound privacy
+artifact availability fallback
+frontier generator authority
+VW source/license/lock/SBOM
+Agent Lightning P1 non-regression
+no duplicate infrastructure
+```
 
 - [ ] **Step 5: Fresh merge check**
 
-Re-read main, implementation head, authorization path digest, active overlaps, CI/review. If main moved, ordinary-history reconciliation only.
+Re-read main, exact implementation Head, authorization path digest, active overlaps, CI, and review. If main moved, use ordinary-history reconciliation only.
 
 - [ ] **Step 6: Ordinary merge**
 
-Read exact reviewed implementation head into `reviewedHeadSha`; call merge with `merge_method=merge` and `expected_head_sha=reviewedHeadSha`.
+Read exact reviewed implementation Head into `reviewedHeadSha`; merge with `merge_method=merge` and `expected_head_sha=reviewedHeadSha`.
 
 - [ ] **Step 7: Post-merge claim discipline**
 
-Only after post-merge validation may Yance claim a real governed mechanism:
+Only after post-merge validation may Yance claim the governed mechanism:
 
 ```text
-canonical immutable decision
+canonical production decision + stored bounded features
 → frontier Model Brain generation
-→ causally bound real human outcomes with explicit windows/missingness
-→ Learning-approved reward evidence
+→ eligible immutable source signal
+→ immutable raw human outcomes with explicit windows/missingness
+→ Learning-approved bound Score
 → OSS-trained bounded policy candidate
 → Regression/Shadow/explicit promotion
-→ later decision consumes promoted policy
-→ rollback/fallback remains available
+→ later production decision consumes promoted policy
+→ fallback/rollback preserves availability and history
 ```
 
-Do not claim personalization quality is already optimal; the landed mechanism is what enables longitudinal improvement.
+Do not claim personalization quality is already optimal. The landed mechanism is what enables longitudinal improvement.
