@@ -22,6 +22,8 @@ const aiDirectorStrategyAuthority = require('./aiDirectorStrategyAuthority').sin
 const aiWorkbenchDirectorRuleAuthority = require('./aiWorkbenchDirectorRuleAuthority');
 const goalDrivenMemoryRecall = require('./goalDrivenMemoryRecallService');
 const { singleton: platformCoreRepository } = require('../repositories/platformCoreRepository');
+const { createLearningPolicyRuntimeAdapter } = require('./learningPolicyRuntimeAdapter');
+const { createLearningPolicyDecisionContract } = require('./learningPolicyDecisionContract');
 
 function clean(value) {
   return String(value == null ? '' : value).trim();
@@ -98,12 +100,26 @@ function memoryCandidatesForRecall(packet = {}) {
 
 function branchNameForVariant(value = '') {
   const variant = clean(value).toLowerCase();
+  const exactAction = ['natural_hook', 'playful_attraction', 'direct_advance', 'screen_and_advance', 'leave_aftertaste']
+    .find(action => action === variant);
+  if (exactAction) return exactAction;
   if (/情趣|暧昧|俏皮|妩媚|女人味|feminine|flirt/u.test(variant)) return 'playful_attraction';
   if (/边界|筛选|screen/u.test(variant)) return 'screen_and_advance';
   if (/直接|强势|direct/u.test(variant)) return 'direct_advance';
   if (/不提问|余味|aftertaste/u.test(variant)) return 'leave_aftertaste';
   if (/温暖|温柔|gentle|natural|自然/u.test(variant)) return 'natural_hook';
   return 'natural_hook';
+}
+
+function learnedPolicyInteractionBand(context = {}) {
+  const interaction = context.interaction && typeof context.interaction === 'object' ? context.interaction : {};
+  const explicit = clean(interaction.engagementBand || interaction.responseBand || interaction.band).toLowerCase();
+  if (['low', 'balanced', 'high'].includes(explicit)) return explicit;
+  const score = Number(interaction.engagementScore ?? interaction.responseRate ?? interaction.reciprocity);
+  if (!Number.isFinite(score)) return 'balanced';
+  if (score < 0.35) return 'low';
+  if (score > 0.7) return 'high';
+  return 'balanced';
 }
 
 function candidateBranchPlanForCount(value = 3) {
@@ -674,10 +690,19 @@ async function contextStillCurrent(previous, current) {
   return clean(previous.contactId) === clean(current.contactId);
 }
 
-function createContextAwareReplyBrain({ storeManager, aiGateway, personaBrain, resolveContactId }) {
+function createContextAwareReplyBrain({
+  storeManager,
+  aiGateway,
+  personaBrain,
+  resolveContactId,
+  learningPolicyRuntimeAdapter,
+  learningPolicyDecisionContract
+}) {
   if (!storeManager?.select || !storeManager?.dispatch) throw new TypeError('storeManager is required');
   if (!aiGateway?.execute) throw new TypeError('aiGateway is required');
   const persona = personaBrain || personaBrainModule.createPersonaBrain();
+  const learnedPolicyRuntime = learningPolicyRuntimeAdapter || createLearningPolicyRuntimeAdapter();
+  const learnedPolicyDecisions = learningPolicyDecisionContract || createLearningPolicyDecisionContract();
 
   function currentConversationRevision(conversationId) {
     const selected = storeManager.select(state => Number(state.conversations?.byId?.[conversationId]?.version || 0));
@@ -1081,7 +1106,75 @@ function createContextAwareReplyBrain({ storeManager, aiGateway, personaBrain, r
         targetLanguage: languageAuthority.code,
         learningWeights: {},
       });
-      const branchApplication = applyCandidateBranch(effectiveDirector, candidatePlan.plan, variant);
+      const policyFeatureBundle = Object.freeze({
+        interactionBand: learnedPolicyInteractionBand(socialContext),
+        performanceMode,
+        questionPolicy: Number(automaticDirectorPlan.maxQuestions) === 0 ? 'none' : 'optional',
+        relationshipStage: clean(socialContext.relationshipPotential?.relationshipStage || 'unknown') || 'unknown',
+        targetLanguage: clean(languageAuthority.code || 'unknown') || 'unknown'
+      });
+      const allowedPolicyActions = (candidatePlan.plan.branches || [])
+        .map(row => clean(row.strategy))
+        .filter(Boolean);
+      const requestedBaselineAction = branchNameForVariant(variant);
+      const baselinePolicyAction = allowedPolicyActions.includes(requestedBaselineAction)
+        ? requestedBaselineAction
+        : allowedPolicyActions[0];
+      const learnedPolicySelection = await learnedPolicyRuntime.selectLearnedPolicyAction({
+        featureBundle: policyFeatureBundle,
+        allowedActions: allowedPolicyActions,
+        baselineAction: baselinePolicyAction
+      });
+      const branchApplication = applyCandidateBranch(
+        effectiveDirector,
+        candidatePlan.plan,
+        learnedPolicySelection.candidateStrategyBranch
+      );
+      let decisionRecord = null;
+      let learningPolicyEvidenceEligible = true;
+      let learningPolicyDegradation = learnedPolicySelection.degradation || null;
+      try {
+        decisionRecord = learnedPolicyDecisions.createDecisionRecord({
+          contactId,
+          conversationId,
+          personaProfileId: personaCtx.profileId || 'owner',
+          featureBundle: policyFeatureBundle,
+          allowedActionSet: allowedPolicyActions,
+          candidateStrategyBranch: learnedPolicySelection.candidateStrategyBranch,
+          policyVersion: learnedPolicySelection.policyVersion,
+          behaviorPolicyVersion: learnedPolicySelection.policyVersion,
+          policyArtifactId: learnedPolicySelection.policyArtifactId,
+          generation: {
+            candidatePlanId: candidatePlan.plan.planId,
+            directorStrategyId: directorStrategy.strategy.strategyId,
+            contextVersion: socialContext.contextVersion,
+            conversationRevision
+          },
+          contributingPolicyVersions: {
+            relationship: `relationship-v${Number(socialContext.entityVersions?.relationship || 0)}`,
+            memory: `memory-v${Number(socialContext.entityVersions?.memory || 0)}`,
+            strategy: `director-strategy-v${Number(directorStrategy.strategy.strategyVersion || 1)}`,
+            candidateRanker: 'candidate-strategy-branch-v1',
+            routing: 'model-brain-routing-current-v1',
+            promptProgram: 'context-aware-reply-current-v1'
+          }
+        });
+      } catch (error) {
+        learningPolicyEvidenceEligible = false;
+        learningPolicyDegradation = Object.freeze({
+          reasonCode: clean(error.reasonCode || error.code) || 'LEARNING_POLICY_DECISION_EVIDENCE_BLOCKED'
+        });
+      }
+      const learningPolicyReceipt = Object.freeze({
+        authority: 'LearningPolicyRuntimeAdapter',
+        policyVersion: clean(learnedPolicySelection.policyVersion),
+        policyArtifactId: clean(learnedPolicySelection.policyArtifactId),
+        candidateStrategyBranch: clean(learnedPolicySelection.candidateStrategyBranch),
+        actionProbability: 1,
+        exploration: false,
+        evidenceEligible: learningPolicyEvidenceEligible,
+        degradation: learningPolicyDegradation
+      });
       effectiveDirector = {
         ...branchApplication.director,
         strategyId: directorStrategy.strategy.strategyId,
@@ -1265,6 +1358,8 @@ function createContextAwareReplyBrain({ storeManager, aiGateway, personaBrain, r
         emergencyMode,
         learningEligible,
         highCapabilityPath,
+        decisionRecord,
+        learningPolicy: learningPolicyReceipt,
         directorRuleStackReceipt: directorRuleStack.receipt,
         director: {
           plan: automaticDirectorPlan,

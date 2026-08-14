@@ -27,7 +27,7 @@ function createLearningDeepTrainingContract(options = {}) {
   }
 
   function isLearningEligible(signal = {}) {
-    return signal.learning_eligible === true || signal.learning_eligible === 1;
+    return signal.learning_eligible === true || signal.learning_eligible === 1 || signal.learningEligible === true;
   }
 
   function isDoNotLearn(signal = {}) {
@@ -35,7 +35,7 @@ function createLearningDeepTrainingContract(options = {}) {
   }
 
   function hasRawPrivatePersistence(signal = {}) {
-    return signal.signal?.metadata?.rawPrivateChatPersisted === true;
+    return signal.signal?.metadata?.rawPrivateChatPersisted === true || signal.signal?.rawPrivateChatPersisted === true;
   }
 
   function hasValidScoreSubject(score = {}) {
@@ -195,6 +195,110 @@ function createLearningDeepTrainingContract(options = {}) {
     });
   }
 
+  function exactOutcomeIds(rows = []) {
+    return [...new Set(rows.flatMap(row => Array.isArray(row.signal?.outcomes) ? row.signal.outcomes : [])
+      .map(outcome => clean(outcome?.outcomeId)).filter(Boolean))].sort();
+  }
+
+  function hasReplayableDecision(decision = {}) {
+    const probability = Number(decision.actionProbability);
+    return Boolean(
+      clean(decision.decisionId) && clean(decision.candidateStrategyBranch) &&
+      decision.featureBundle && typeof decision.featureBundle === 'object' && !Array.isArray(decision.featureBundle) &&
+      clean(decision.actionId) && clean(decision.actionSetRef) && clean(decision.actionEncodingVersion) &&
+      clean(decision.behaviorPolicyVersion || decision.policyVersion) &&
+      Number.isFinite(probability) && probability > 0 && probability <= 1 && decision.exploration !== true
+    );
+  }
+
+  async function listPolicyOutcomes(decisionIds, scopeType, scopeId) {
+    if (typeof repository.listPolicyOutcomeSignals === 'function') {
+      const listed = await repository.listPolicyOutcomeSignals({ decisionIds });
+      return Array.isArray(listed) ? listed : [];
+    }
+    const listed = await repository.listLearningSignals({ scopeType, scopeId, learningLevel: 'L1', learningEligible: false });
+    return (Array.isArray(listed) ? listed : []).filter(row =>
+      clean(row.signal_type || row.signalType) === 'policy_outcome_observed' && decisionIds.includes(clean(row.signal?.decisionId))
+    );
+  }
+
+  async function projectPolicy(input = {}) {
+    requireProjectionDependencies();
+    const scopeType = clean(input.scopeType);
+    const scopeId = clean(input.scopeId);
+    const listed = await repository.listLearningSignals({ scopeType, scopeId, learningLevel: 'L1', learningEligible: true });
+    const sources = (Array.isArray(listed) ? listed : []).filter(signal =>
+      isLearningEligible(signal) && !isDoNotLearn(signal) && !hasRawPrivatePersistence(signal)
+      && clean(signal.signal_type || signal.signalType) === 'candidate_sent'
+      && clean(signal.signal?.decisionRecord?.decisionId)
+    );
+    assertCanonicalScope(sources, scopeType, scopeId, 'LEARNING_POLICY_SOURCE_SCOPE_MISMATCH');
+    const decisionIds = sources.map(row => clean(row.signal.decisionRecord.decisionId));
+    const rawOutcomes = await listPolicyOutcomes(decisionIds, scopeType, scopeId);
+    const trajectory = [];
+
+    for (const source of sources) {
+      const sourceSignalId = clean(source.signal_id || source.signalId);
+      const decision = source.signal.decisionRecord;
+      const decisionId = clean(decision.decisionId);
+      const joined = rawOutcomes.filter(row => {
+        const raw = row.signal || {};
+        const rawFalseEligible = row.learning_eligible === false || row.learning_eligible === 0 || row.learningEligible === false;
+        if (!rawFalseEligible || clean(row.signal_type || row.signalType) !== 'policy_outcome_observed') return false;
+        if (clean(raw.decisionId) !== decisionId) return false;
+        if (clean(raw.sourceSignalId) && clean(raw.sourceSignalId) !== sourceSignalId) return false;
+        if (clean(raw.personId) && clean(decision.personId) && clean(raw.personId) !== clean(decision.personId)) return false;
+        if (clean(raw.conversationId) && clean(decision.conversationId) && clean(raw.conversationId) !== clean(decision.conversationId)) return false;
+        return true;
+      });
+      const outcomes = Object.freeze(joined.flatMap(row => Array.isArray(row.signal?.outcomes) ? row.signal.outcomes.map(value => Object.freeze({ ...value })) : []));
+      const outcomeIds = exactOutcomeIds(joined);
+      const score = approvedScoreFor(sourceSignalId, input.approvedScoresBySignalId);
+      const scoreSourceId = clean(score.sourceSignalId || score.eligibleSourceSignalId);
+      const scoreOutcomeIds = [...new Set((Array.isArray(score.outcomeIds) ? score.outcomeIds : []).map(clean).filter(Boolean))].sort();
+      const exactOutcomeSet = outcomeIds.length === scoreOutcomeIds.length && outcomeIds.every((id, index) => id === scoreOutcomeIds[index]);
+      if (
+        scoreSourceId !== sourceSignalId || clean(score.decisionId) !== decisionId || !exactOutcomeSet ||
+        !clean(score.outcomeEvidenceSetRef) || !clean(score.rewardPolicyVersion)
+      ) {
+        throw contractError('LEARNING_POLICY_SCORE_EVIDENCE_BINDING_REQUIRED', `Score for ${sourceSignalId} must bind exact source/decision/outcome evidence.`);
+      }
+      const minimized = await dataPolicy.minimize({
+        text: clean(input.contentBySignalId?.[sourceSignalId]),
+        signalId: sourceSignalId,
+        scopeType,
+        scopeId,
+        learningEligible: true,
+        featureBundle: decision.featureBundle
+      });
+      if (!minimized || minimized.allowed !== true) continue;
+      trajectory.push(Object.freeze({
+        sourceSignalId,
+        signalId: sourceSignalId,
+        decisionId,
+        decision: Object.freeze({ ...decision }),
+        featureBundle: Object.freeze({ ...(decision.featureBundle || {}) }),
+        outcomes,
+        approvedScore: score,
+        score,
+        minimizedContent: String(minimized.text ?? minimized.minimizedText ?? ''),
+        vwTrainingEligible: hasReplayableDecision(decision)
+      }));
+    }
+
+    const projection = Object.freeze({
+      authority: 'Learning',
+      readOnly: true,
+      scopeType,
+      scopeId,
+      learningLevel: 'L1',
+      policyProjection: true,
+      trajectory: Object.freeze(trajectory)
+    });
+    issuedProjections.add(projection);
+    return projection;
+  }
+
   async function bindExperimentEvidence(input = {}) {
     if (!evidenceAdapter || typeof evidenceAdapter.bindTrainingEvidence !== 'function') {
       throw contractError('LEARNING_DEEP_TRAINING_LANGFUSE_EVIDENCE_REQUIRED', 'Langfuse Dataset/Score evidence adapter is required.');
@@ -231,6 +335,7 @@ function createLearningDeepTrainingContract(options = {}) {
   return Object.freeze({
     projectRelationship,
     projectGlobal,
+    projectPolicy,
     bindExperimentEvidence,
     rollbackPromotion,
     authority: 'Learning read-only Deep Training projection'

@@ -8,6 +8,7 @@
     "opentelemetryPython": { "repository": "open-telemetry/opentelemetry-python", "version": "1.44.0", "commit": "53a5a40c9604583c501bcf13970a635f00e62df4", "license": "Apache-2.0" },
     "dspy": { "repository": "stanfordnlp/dspy", "version": "3.3.0", "commit": "e4e97aae29b8ad8aa2fb7e99ffae6fd52970fad8", "license": "MIT" },
     "gepa": { "repository": "gepa-ai/gepa", "version": "0.1.1", "commit": "b4dbb55b7601dac448cdb836d5a401ca7d9eb920", "license": "MIT" },
+    "vowpalWabbit": { "repository": "VowpalWabbit/vowpal_wabbit", "version": "9.11.2", "commit": "122bae254a5b8bc2b774d13b33d53e6dbc2cfba7", "license": "BSD-3-Clause", "mode": "contextual-bandit-adf-offline-candidate-policy" },
     "promptfoo": { "repository": "promptfoo/promptfoo", "version": "0.122.0", "commit": "7b898cbdb16205cb7f0e2994baa807d131eb2326", "license": "MIT", "mode": "precomputed-provider-only" },
     "apscheduler": { "repository": "agronholm/apscheduler", "version": "3.11.3", "commit": "4308ec95b94069f5dbdddb6c60fb792dfc8c40a4", "license": "MIT" },
     "presidio": { "repository": "microsoft/presidio", "version": "2.2.364", "commit": "779dbd286d5ef4d1fbe2514275fb1bce358f2417", "license": "MIT", "p0Nlp": "NoOpNlpEngine" },

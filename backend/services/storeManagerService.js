@@ -11,6 +11,7 @@ const { registerRuntimeStateCommands } = require('../store/commands/registerRunt
 const { StoreIntegrityMonitor } = require('../store/StoreIntegrityMonitor');
 const typingStateService = require('./typingStateService');
 const replyFeedbackLearningService = require('./replyFeedbackLearningService');
+const learningOutcomeAttributionService = require('./learningOutcomeAttributionService').singleton;
 const conversationTurnCoordinator = require('./conversationTurnCoordinator');
 const aiTaskRuntimeRegistry = require('./aiTaskRuntimeRegistry');
 const personaBrainModule = require('../personaBrain');
@@ -101,6 +102,10 @@ async function initialize(options = {}) {
     });
     conversationTurnCoordinator.start();
     replyFeedbackLearningService.start({ storeManager, personaBrain });
+    // Outcome attribution deliberately starts only after authoritative StoreManager
+    // hydration. It reuses the existing message:inserted event and immutable
+    // learning_signal_ledger; it owns no second inbound pipeline or scheduler.
+    learningOutcomeAttributionService.start();
     integrityMonitor = new StoreIntegrityMonitor({
       storeManager,
       logger,
@@ -135,6 +140,7 @@ function status() {
 }
 
 function stop() {
+  learningOutcomeAttributionService.stop();
   replyFeedbackLearningService.stop();
   conversationTurnCoordinator.stop();
   typingStateService.stop();
