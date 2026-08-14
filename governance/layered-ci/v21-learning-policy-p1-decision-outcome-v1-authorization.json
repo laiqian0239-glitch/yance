@@ -170,12 +170,21 @@
     "activePolicyFailureBehavior": "verified last-known-good or baseline plus explicit degradation evidence; identity/privacy failures block evidence rather than silently repair"
   },
   "authorizationBranch": {
-    "branch": "governance/v21-learning-policy-p1-decision-outcome-v1-authorization",
+    "name": "governance/v21-learning-policy-p1-decision-outcome-v1-authorization",
     "allowedChangedPaths": [
       "governance/layered-ci/v21-learning-policy-p1-decision-outcome-v1-authorization.json"
     ],
-    "allowedChangedPathCount": 1,
-    "allowedChangedPathSetSha256": "cc8aa9357a4c154360f4512776d697de01c5a6a9b2aca14270e602c166199139"
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "cc8aa9357a4c154360f4512776d697de01c5a6a9b2aca14270e602c166199139",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
   },
   "implementation": {
     "branch": "product/v21-learning-policy-p1-decision-outcome-closed-loop-v1",
@@ -204,8 +213,30 @@
       "third_party/licenses/vowpal-wabbit-BSD-3-Clause.txt",
       "tools/uat/v21LearningPolicyClosedLoopEvidence.js"
     ],
-    "allowedChangedPathCount": 22,
-    "allowedChangedPathSetSha256": "930bf654a0088c6729ca265443a30e77e895ea0f7a69517df51ac4f207008ff6",
+    "approvedChangedFileCount": 22,
+    "approvedChangedFileSetSha256": "930bf654a0088c6729ca265443a30e77e895ea0f7a69517df51ac4f207008ff6",
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-learning-policy-p1-decision-record.test.js",
+        "tests/wp0/v21-learning-policy-p1-outcome-binding.test.js",
+        "tests/wp0/v21-learning-policy-p1-production-consumption.test.js",
+        "tests/wp0/v21-learning-policy-p1-projection.test.js",
+        "tests/wp0/v21-learning-policy-p1-supply-chain.test.js",
+        "tests/wp0/v21-learning-policy-p1-vw-runtime.test.js"
+      ],
+      "approvedChangedFileCount": 6,
+      "approvedChangedFileSetSha256": "9aff346a55b16f1ae54a743daf15bb18cffc4c1471581556be1eea22acab3142",
+      "productionCodeChanged": false,
+      "expectedMissingCapabilities": [
+        "canonical DecisionRecord with identity/persona/policy/action provenance",
+        "immutable raw OutcomeVector binding and eligible source-signal join",
+        "bounded policy projection over immutable evidence",
+        "sealed Vowpal Wabbit 9.11.2 runtime/dependency/license supply-chain closure",
+        "production consumption that changes only candidateStrategyBranch before existing frontier generation"
+      ]
+    },
     "workflowModificationAllowed": false,
     "rootNpmManifestModificationAllowed": false,
     "rootNpmLockfileModificationAllowed": false,
@@ -217,28 +248,9 @@
     ],
     "dependencyControlPathCount": 2,
     "dependencyControlPathSetSha256": "6a33c99858dfc7d51af9a75dc4834907224196522b2b72991a1f58e606fa43c8",
-    "exactNewPythonDependency": "vowpalwabbit==9.11.2"
-  },
-  "failureFirstCommit": {
-    "freshCausalRedRequired": true,
-    "productCodeChanged": false,
-    "allowedChangedPaths": [
-      "tests/wp0/v21-learning-policy-p1-decision-record.test.js",
-      "tests/wp0/v21-learning-policy-p1-outcome-binding.test.js",
-      "tests/wp0/v21-learning-policy-p1-production-consumption.test.js",
-      "tests/wp0/v21-learning-policy-p1-projection.test.js",
-      "tests/wp0/v21-learning-policy-p1-supply-chain.test.js",
-      "tests/wp0/v21-learning-policy-p1-vw-runtime.test.js"
-    ],
-    "allowedChangedPathCount": 6,
-    "allowedChangedPathSetSha256": "9aff346a55b16f1ae54a743daf15bb18cffc4c1471581556be1eea22acab3142",
-    "expectedMissingCapabilities": [
-      "canonical DecisionRecord with identity/persona/policy/action provenance",
-      "immutable raw OutcomeVector binding and eligible source-signal join",
-      "bounded policy projection over immutable evidence",
-      "sealed Vowpal Wabbit 9.11.2 runtime/dependency/license supply-chain closure",
-      "production consumption that changes only candidateStrategyBranch before existing frontier generation"
-    ]
+    "exactNewPythonDependency": "vowpalwabbit==9.11.2",
+    "productImplementationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
   },
   "parallelWork": {
     "freshInventoryAtBase": "8dbb495aac3e11194e551e1f21b9c5c91c4f2325",
@@ -309,7 +321,26 @@
     "Existing Regression→Shadow→explicit Promotion/Rollback remains final policy activation authority.",
     "No temporary bypass, warning-only closure, gate weakening, workflow change, root npm dependency change or automatic scope expansion is permitted."
   ],
+  "requiredSequence": [
+    "Authorization exact Head must pass applicable Stage, Layered, ACV2 and any triggered architecture gates plus independent exact-Head review with P0=0/P1=0.",
+    "Stop at the authorization ordinary-merge boundary.",
+    "At authorization merge time re-read live main; first parent must still equal 8dbb495aac3e11194e551e1f21b9c5c91c4f2325 or close this proposal unmerged and rebuild from fresh main.",
+    "After owner ordinary-merges the authorization, create product/v21-learning-policy-p1-decision-outcome-closed-loop-v1 from that exact two-parent authorization merge.",
+    "Create the mandatory six-test-only causal RED first commit and record exact failing workflow evidence before product implementation.",
+    "Implement only the authorized 22 exact paths using Vowpal Wabbit 9.11.2 and existing Learning/Person/Persona/Model Brain authorities.",
+    "If any frozen authority or overlapping contract changes on live main before final implementation merge, stop and revalidate rather than silently adapting.",
+    "Pass exact-head Stage, Layered, ACV2, applicable sealed runtime/supply-chain gates and independent review.",
+    "Stop at the final implementation ordinary-merge boundary."
+  ],
   "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
     "authorizationMergeRequiresExplicitOwnerApproval": true,
     "implementationMergeRequiresExplicitOwnerApproval": true,
     "ordinaryMergeOnly": true,
@@ -319,11 +350,6 @@
     "squashMergeAllowed": false,
     "cherryPickAsAuthorityAllowed": false,
     "temporaryBypassAllowed": false,
-    "warningOnlyClosureAllowed": false,
-    "automaticNextWorkPackageAuthorization": false,
-    "productionUseAuthorizedByThisAuthorization": false,
-    "releaseAuthorized": false,
-    "publishAuthorized": false,
-    "readyForPromotion": false
+    "warningOnlyClosureAllowed": false
   }
 }
