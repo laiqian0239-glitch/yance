@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-14T23:05:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-NPM-WINDOWS-EXEC-POLICY",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "A real Windows-only base-owned WP0 defect was reproduced on the exact trusted main authorization base while completing Learned Policy PR #379. shared/release/implementationBranchPolicy.js selects npm.cmd on win32 and passes it directly to child_process.execFileSync. On the user's Windows Node runtime that invocation fails before npm starts with EINVAL (-4071), causing the delegated npm-lock topology validator to reject three positive fixtures. The same three positive fixtures fail unchanged on trusted main c5b7d23dcd6a7aafef6f1b8749369ab008606c8b, proving this is not introduced by Learned Policy. The repair must fix the existing generic trusted npm invocation seam at source; no product exception, test weakening, shell bypass, dependency addition or #379 scope expansion is permitted.",
+  "base": {
+    "branch": "main",
+    "commit": "c5b7d23dcd6a7aafef6f1b8749369ab008606c8b"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-npm-windows-exec-policy-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-npm-windows-exec-policy-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d40b81e51d519159fd263256f29da015f0d4f224952009876174ea894fb1a74c",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Repository normalizeChangedFiles contract: normalized repository-relative paths, unique, JavaScript default sort.",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_TRUSTED_PROCESS_INVOCATION_SEAM",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Node.js child_process",
+        "source": "nodejs/node built-in runtime already required by Yance",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The repository already uses child_process as the trusted process boundary; the defect is platform-correct invocation of a Windows .cmd shim, not a missing process framework."
+      },
+      {
+        "name": "Existing implementationBranchPolicy trusted process seam",
+        "source": "shared/release/implementationBranchPolicy.js",
+        "license": "repository-native existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The npm topology check and trusted environment already live here. Root repair should centralize the platform-specific npm launch in this seam instead of adding a second runner or package-manager abstraction."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire the direct win32 execFileSync('npm.cmd', args) invocation path that fails with EINVAL before npm starts.",
+      "Avoid any second Yance process runner, package manager wrapper, dependency, workflow or Learned Policy-specific exception."
+    ]
+  },
+  "implementation": {
+    "branch": "fix/v21-delegated-npm-windows-exec-policy",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/v21-delegated-dependency-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "da9c824293effd3aa16d3837ba461b488ef62f20e806e18e5115ae42573e268b",
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-delegated-dependency-policy.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "f0bd84f25ba0b97479477fc6d88d483833e66af32f720fe8aa1df948201ff1e2",
+      "productionCodeChanged": false,
+      "expectedMissingCapabilities": [
+        "Windows can execute the repository-trusted npm lock topology check without direct execFile of the npm.cmd shim",
+        "positive npm-lock closure fixtures pass on Windows while malformed, missing-required, ghost-artifact and descriptor-drift fixtures remain fail-closed"
+      ]
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "rootCause": {
+    "policyPath": "shared/release/implementationBranchPolicy.js",
+    "function": "resolveNpmLockTreePackagePaths",
+    "currentWin32Executable": "npm.cmd",
+    "currentInvocation": "child_process.execFileSync",
+    "observedWindowsErrorCode": "EINVAL",
+    "observedWindowsErrno": -4071,
+    "observedProbeExit": 42,
+    "trustedBaseReproductionCommit": "c5b7d23dcd6a7aafef6f1b8749369ab008606c8b",
+    "trustedBasePositiveFixturePass": 0,
+    "trustedBasePositiveFixtureFail": 3,
+    "learnedPolicyIntroduced": false,
+    "requiredRepair": "Refactor the existing trusted npm process invocation so Windows uses a platform-correct execution path for the npm command shim while preserving the same static npm arguments, trusted environment, offline=true, timeouts, stdout/status handling and fail-closed topology validation. Unix direct executable invocation remains direct. No untrusted command interpolation is permitted.",
+    "testWeakeningForbidden": true,
+    "productSpecificExceptionForbidden": true,
+    "networkFallbackForbidden": true
+  },
+  "requiredSequence": [
+    "ordinary two-parent authorization merge from exact trusted main",
+    "create fix/v21-delegated-npm-windows-exec-policy from the exact authorization merge",
+    "first implementation commit changes only tests/wp0/v21-delegated-dependency-policy.test.js and records fresh causal Windows RED",
+    "root-refactor the trusted npm invocation in shared/release/implementationBranchPolicy.js",
+    "verify all delegated dependency-policy tests on Windows and Linux-compatible CI semantics",
+    "verify complete WP0 and independent exact-head review",
+    "ordinary-merge the generic repair",
+    "refresh Learned Policy #379 from the repaired trusted main through ordinary history and rerun exact-head gates"
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "learnedPolicyScopeExpansion": true,
+    "newProcessRunnerFramework": true,
+    "newPackageManagerFramework": true,
+    "newDependency": true,
+    "workflowModification": true,
+    "networkFallback": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true,
+    "rebaseMerge": true,
+    "productionRelease": true,
+    "publish": true,
+    "promotion": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
