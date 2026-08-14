@@ -676,3 +676,38 @@ test('trusted delegated evaluator rejects non-regular candidate npm manifest and
     assert.equal(result.reasonCode, DENIED, repositoryPath);
   }
 });
+
+test('trusted npm invocation routes Windows npm.cmd through COMSPEC without altering static npm arguments', () => {
+  const { resolveTrustedNpmInvocation } = require('../../shared/release/implementationBranchPolicy');
+  assert.equal(typeof resolveTrustedNpmInvocation, 'function');
+  const args = [
+    'ls',
+    '--package-lock-only',
+    '--json',
+    '--all',
+    '--long',
+    '--include=dev',
+    '--include=optional',
+    '--include=peer'
+  ];
+  assert.deepEqual(resolveTrustedNpmInvocation(args, {
+    platform: 'win32',
+    environment: { COMSPEC: 'C:\\Windows\\System32\\cmd.exe' }
+  }), {
+    executable: 'C:\\Windows\\System32\\cmd.exe',
+    args: ['/d', '/c', 'npm.cmd', ...args]
+  });
+});
+
+test('trusted npm invocation keeps Unix npm as a direct executable', () => {
+  const { resolveTrustedNpmInvocation } = require('../../shared/release/implementationBranchPolicy');
+  assert.equal(typeof resolveTrustedNpmInvocation, 'function');
+  const args = ['ls', '--package-lock-only', '--json'];
+  assert.deepEqual(resolveTrustedNpmInvocation(args, {
+    platform: 'linux',
+    environment: {}
+  }), {
+    executable: 'npm',
+    args
+  });
+});
