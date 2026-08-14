@@ -83,7 +83,7 @@ test.after(() => {
 test('current schema preserves Batch27 structured unknown, learning ledger, AI physical state and recovery metrics', () => {
   const f = fixture('yance-b27-current-schema-');
   try {
-    assert.equal(SCHEMA_VERSION, 22);
+    assert.equal(SCHEMA_VERSION, 23);
     assert.equal(Number(f.store.getMeta('schema_version')), SCHEMA_VERSION);
     const tables = new Set(f.store.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(row => row.name));
     for (const name of ['learning_signal_ledger','ai_provider_physical_execution_state','durable_recovery_metrics']) assert.equal(tables.has(name), true, name);
