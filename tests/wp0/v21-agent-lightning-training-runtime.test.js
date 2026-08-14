@@ -29,3 +29,17 @@ test('runtime SBOM generator is deterministic/offline-oriented and startup code 
   assert.match(sbom, /1\.7/u);
   assert.doesNotMatch(sbom, /requests\.|urllib\.request|subprocess.*(?:pip|uv)/u);
 });
+
+test('Linux CI materializes the exact upstream source-module and executes real APO through the Yance authority seams', () => {
+  const workflow = readText('.github/workflows/v21-agent-lightning-p1-linux.yml');
+  assert.match(workflow, /repository:\s*microsoft\/agent-lightning/u);
+  assert.match(workflow, /ref:\s*3b5d733861cf313fc09821a23240bbdf3cb2ee5b/u);
+  assert.match(workflow, /astral-sh\/setup-uv@v7/u);
+  assert.match(workflow, /version:\s*['"]?0\.12\.3/u);
+  assert.match(workflow, /uv sync [^\n]*--frozen --no-default-groups --extra apo --group core-stable/u);
+  assert.match(workflow, /cmp -s [^\n]*uv\.lock [^\n]*uv\.lock/u);
+  assert.match(workflow, /createAgentLightningTrainingAdapter/u);
+  assert.match(workflow, /AGENT_LIGHTNING_PYTHON/u);
+  assert.match(workflow, /modelBrainCompletionCount/u);
+  assert.match(workflow, /CANDIDATE_ONLY/u);
+});

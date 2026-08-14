@@ -18,13 +18,24 @@ jobs:
   sealed-agent-lightning-p1:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout reviewed Yance head
+        uses: actions/checkout@v4
+      - name: Checkout pinned Agent Lightning source
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/agent-lightning
+          ref: 3b5d733861cf313fc09821a23240bbdf3cb2ee5b
+          path: .ci/agent-lightning-v0.3.0
       - uses: actions/setup-node@v4
         with:
           node-version: '22.19.0'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: '0.12.3'
+          enable-cache: false
       - name: Validate Agent Lightning P1 contracts
         run: node --test tests/wp0/v21-agent-lightning-*.test.js
       - name: Validate sealed Python sources and exact upstream lock
@@ -36,3 +47,79 @@ jobs:
           python -c "import json; d=json.load(open('/tmp/v21-agent-lightning-p1-sbom.json', encoding='utf-8')); assert d['bomFormat']=='CycloneDX' and d['specVersion']=='1.7'"
           test "$(git hash-object runtime/deep-training/agent-lightning/uv.lock)" = "5a98a2ac121b050b0a82f6ac8dc207577ce3af4e"
           test "$(wc -c < runtime/deep-training/agent-lightning/uv.lock)" -eq 12891147
+          test "$(git -C .ci/agent-lightning-v0.3.0 rev-parse HEAD)" = "3b5d733861cf313fc09821a23240bbdf3cb2ee5b"
+          cmp -s runtime/deep-training/agent-lightning/uv.lock .ci/agent-lightning-v0.3.0/uv.lock
+      - name: Materialize pinned upstream APO environment from frozen lock
+        working-directory: .ci/agent-lightning-v0.3.0
+        run: uv sync --python "$(command -v python)" --frozen --no-default-groups --extra apo --group core-stable
+      - name: Execute real APO through Learning and Model Brain authority seams
+        env:
+          AGENT_LIGHTNING_PYTHON: ${{ github.workspace }}/.ci/agent-lightning-v0.3.0/.venv/bin/python
+        run: |
+          node <<'NODE'
+          'use strict';
+          const assert = require('node:assert/strict');
+          const { createAgentLightningTrainingAdapter } = require('./backend/services/agentLightningTrainingAdapter.js');
+
+          (async () => {
+            const projection = Object.freeze({
+              authority: 'Learning',
+              readOnly: true,
+              scopeType: 'relationship',
+              scopeId: 'ci-relationship-1',
+              learningLevel: 'L1',
+              trajectory: Object.freeze([
+                Object.freeze({
+                  signalId: 'ci-signal-1',
+                  scopeType: 'relationship',
+                  scopeId: 'ci-relationship-1',
+                  content: 'Reply with a concise greeting.',
+                  score: Object.freeze({
+                    authority: 'Langfuse',
+                    approvedByLearning: true,
+                    scoreId: 'ci-score-1',
+                    name: 'quality',
+                    traceId: 'ci-trace-1',
+                    value: 1
+                  })
+                })
+              ])
+            });
+
+            let modelBrainCalls = 0;
+            const adapter = createAgentLightningTrainingAdapter({
+              learningContract: {
+                async projectRelationship() { return projection; },
+                async bindExperimentEvidence() { return Object.freeze({ bound: true }); }
+              },
+              modelExecutor: {
+                async executeModel(_model, _messages, options = {}) {
+                  modelBrainCalls += 1;
+                  if (options.agentLightningPurpose === 'rollout') return { text: 'Hello.' };
+                  return { text: 'Answer the Learning-projected item precisely.\nTraining item:\n{content}' };
+                }
+              },
+              runtime: {
+                runtimePython: process.env.AGENT_LIGHTNING_PYTHON,
+                timeoutMs: 180000
+              }
+            });
+
+            const result = await adapter.trainRelationship({
+              learningInput: { scopeType: 'relationship', scopeId: 'ci-relationship-1' },
+              model: { id: 'ci-model-brain' },
+              datasetName: 'agent-lightning-p1-ci',
+              signalId: 'ci-signal-1'
+            });
+
+            assert.equal(result.status, 'CANDIDATE_ONLY');
+            assert.equal(result.evidence.agentLightning.upstreamCommit, '3b5d733861cf313fc09821a23240bbdf3cb2ee5b');
+            assert.equal(result.evidence.agentLightning.modelBrainCompletionCount, modelBrainCalls);
+            assert.ok(modelBrainCalls >= 3, `expected real APO to request multiple Model Brain completions, got ${modelBrainCalls}`);
+            assert.match(result.candidate.prompt, /\{content\}/u);
+            console.log(JSON.stringify({ status: result.status, modelBrainCalls, artifactId: result.candidate.artifactId }));
+          })().catch(error => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          NODE
