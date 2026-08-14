@@ -17,10 +17,12 @@ Learning-approved relationship/global evidence
   -> isolated local candidate model + vLLM/VERL execution
   -> bounded model checkpoint evidence
   -> CANDIDATE_ONLY
-  -> existing Learning proposal/evaluation/review/promotion authorities
+  -> Learning remains the only future evaluation/review/promotion authority
 ```
 
 P2 must prove that Yance can train a real candidate model locally without turning Deep Training into a second production model gateway, a second Learning brain, a Yance-built trainer, or an automatic production-promotion path.
+
+P2 does **not** claim that the currently landed Promptfoo/shadow adapters can execute a model-checkpoint candidate. That capability must be proven by a separate landed evaluator contract before any checkpoint can advance beyond candidate evidence.
 
 ## Fresh OSS-fit decision
 
@@ -130,7 +132,7 @@ The local VERL/vLLM candidate model:
 - is never registered into the Model Brain production route table by P2;
 - cannot service normal Yance inference requests;
 - is reachable only inside the bounded training execution context;
-- is destroyed/stopped with the training run;
+- its serving/training processes are destroyed/stopped with the training run;
 - produces candidate checkpoint artifacts only.
 
 No P2 code may create a generic second model gateway or generic training RPC infrastructure.
@@ -235,22 +237,20 @@ The result must not:
 
 Actual model checkpoints remain outside Git in a run-scoped sealed artifact root. Their existence does not imply promotion or production readiness.
 
-## Evaluation and promotion
+## Evaluation and promotion boundary
 
-P2 reuses the landed Learning proposal/evaluation pipeline. No second candidate database or promotion engine is introduced.
+P2 reuses the landed Learning authority only for evidence binding and for the rule that later evaluation/review/promotion remain Learning-owned. It does **not** assume that the currently landed regression or shadow implementations can execute a model checkpoint.
 
-The intended successor flow is:
+The current `learningProposalService` / `learningEvaluationAdapter` APIs are structurally generic over a Candidate object, but no fresh-main evidence found in this design review proves a checkpoint-specific evaluator or a safe temporary route that can load the P2 checkpoint for regression/shadow execution. Therefore P2 stops at a bound `CANDIDATE_ONLY` checkpoint manifest plus Learning experiment evidence.
 
-```text
-VERL checkpoint candidate
-  -> Learning proposal
-  -> existing regression evaluator / Promptfoo evidence
-  -> shadow evaluation
-  -> READY_FOR_REVIEW only if existing Learning rules permit
-  -> separate explicit review/promotion authority
-```
+A checkpoint may advance to regression/shadow only after a separate successor proves and authorizes a mature evaluator/runtime seam that:
 
-P2 itself has no production activation, formal release, publish or automatic promotion authority.
+- can execute the checkpoint without registering it as a production Model Brain route;
+- preserves the same Learning evidence/privacy boundary;
+- has an exact source/dependency/model identity;
+- cannot promote or activate the checkpoint by itself.
+
+Until that successor lands, P2 checkpoints are not eligible to claim `READY_FOR_REVIEW`, `READY_FOR_PROMOTION` or production readiness.
 
 ## Security and privacy
 
@@ -339,7 +339,8 @@ The failure-first suite must at minimum prove that trusted main currently lacks:
 7. bounded `CANDIDATE_ONLY` checkpoint manifest behavior;
 8. no provider-credential inheritance/direct provider fallback;
 9. no runtime model/dependency download;
-10. P1 APO non-regression under the shared runtime.
+10. P1 APO non-regression under the shared runtime;
+11. no false claim that a checkpoint is regression/shadow-ready before a checkpoint evaluator exists.
 
 Tests that require a physical GPU must not be used as the only causal RED. Contract RED must be deterministic on ordinary CI. Real GPU/WSL2 execution is a later environment/UAT gate when the required hardware is available.
 
@@ -363,7 +364,7 @@ Final exact-head verification must include:
 - independent exact-head review with P0=0/P1=0;
 - unresolved review threads = 0 before ordinary merge.
 
-No skipped or unavailable GPU environment may be represented as a successful real-training UAT.
+No skipped or unavailable GPU environment may be represented as a successful real-training UAT. If project acceptance requires real GPU training and no authorized compatible GPU environment is available, that is a real environment boundary and the product work package must stop rather than substitute a toy or CPU-only success claim.
 
 ## Rollback
 
@@ -380,6 +381,7 @@ The following remain unauthorized in P2:
 - Azure/OpenAI hosted fine-tuning;
 - Agent Lightning Mongo store as canonical Yance Learning storage;
 - Agent Lightning LLMProxy/server as production Model Brain gateway;
+- checkpoint regression/shadow execution unless a separate checkpoint-evaluator successor is already merged before final P2 authorization and is explicitly reused without widening P2 scope;
 - production model activation or route mutation;
 - automatic promotion;
 - model publication/upload/release;
@@ -404,4 +406,4 @@ The following remain unauthorized in P2:
 10. Pass exact-head CI, security/privacy/license/source checks, P1 regressions, applicable real training UAT and independent review.
 11. Stop at the final ordinary-merge boundary unless standing owner authorization and project governance both permit the routine merge at that exact head.
 
-No step grants automatic authority to a later SFT/P3/promotion/release work package.
+No step grants automatic authority to a later SFT/P3/checkpoint-evaluator/promotion/release work package.
