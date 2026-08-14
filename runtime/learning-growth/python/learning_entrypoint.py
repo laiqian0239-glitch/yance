@@ -4,14 +4,13 @@
 DSPy + GEPA own optimization, APScheduler owns scheduling, Presidio owns
 source-side PII minimization, Vowpal Wabbit owns the bounded learned-policy
 action head, and all live model execution remains delegated to Yance Model
-Brain V4. This process never owns model provider credentials or final replies.
+Brain V4. This process never owns model provider credentials or reply text.
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import math
-import os
 import sys
 from dataclasses import dataclass
 from importlib.metadata import version as package_version
@@ -20,10 +19,6 @@ from typing import Any, Mapping, Sequence
 
 LEARNED_POLICY_ACTION_ENCODING = "candidate-strategy-branch-v1"
 LEARNED_POLICY_FEATURES = ("interactionBand", "relationshipStage", "targetLanguage")
-LEARNED_POLICY_FORBIDDEN_REQUEST_KEYS = {
-    "apiKey", "api_key", "providerCredential", "providerCredentials",
-    "messages", "prompt", "finalReply", "final_reply", "modelId", "model_id",
-}
 
 
 @dataclass(frozen=True)
@@ -71,10 +66,12 @@ def optimizer_contract() -> dict[str, str]:
     }
 
 
-def _reject_provider_authority(payload: Mapping[str, Any]) -> None:
-    forbidden = sorted(key for key in LEARNED_POLICY_FORBIDDEN_REQUEST_KEYS if key in payload)
-    if forbidden:
-        raise ValueError("LEARNED_POLICY_PROVIDER_AUTHORITY_FORBIDDEN:" + ",".join(forbidden))
+def _assert_allowed_request_fields(payload: Mapping[str, Any], allowed: set[str]) -> None:
+    unexpected = set(payload.keys()) - allowed
+    if unexpected:
+        # Never echo unknown request keys: the sealed action head accepts only
+        # its exact bounded schema and does not inspect arbitrary extensions.
+        raise ValueError(f"LEARNED_POLICY_REQUEST_SCHEMA_MISMATCH:{len(unexpected)}")
 
 
 def _safe_token(value: Any) -> str:
@@ -171,14 +168,13 @@ def policy_runtime_contract() -> dict[str, Any]:
         "actionEncodingVersion": LEARNED_POLICY_ACTION_ENCODING,
         "operations": ["policy_runtime_contract", "policy_train", "policy_predict"],
         "exploration": False,
-        "providerCredentials": False,
-        "finalReplyGeneration": False,
+        "textGeneration": False,
         "workspace": getattr(vowpalwabbit, "Workspace").__name__,
     }
 
 
 def policy_train(payload: Mapping[str, Any]) -> dict[str, Any]:
-    _reject_provider_authority(payload)
+    _assert_allowed_request_fields(payload, {"operation", "rows", "artifactPath"})
     from vowpalwabbit import Workspace
 
     artifact_path = Path(str(payload.get("artifactPath") or "").strip())
@@ -240,7 +236,10 @@ def _prediction_action_index(prediction: Any, action_count: int) -> int:
 
 
 def policy_predict(payload: Mapping[str, Any]) -> dict[str, Any]:
-    _reject_provider_authority(payload)
+    _assert_allowed_request_fields(payload, {
+        "operation", "featureBundle", "allowedActions", "artifactPath",
+        "policyArtifactId", "policyArtifactVersion", "policyVersion"
+    })
     from vowpalwabbit import Workspace
 
     artifact_path = Path(str(payload.get("artifactPath") or "").strip())
@@ -269,8 +268,7 @@ def policy_predict(payload: Mapping[str, Any]) -> dict[str, Any]:
         "policyVersion": str(payload.get("policyVersion") or "vw-p1-v1"),
         "probability": 1.0,
         "exploration": False,
-        "providerRouting": False,
-        "finalReplyGeneration": False,
+        "textGeneration": False,
     }
 
 
@@ -285,6 +283,7 @@ def main() -> int:
             json.dump(evaluate_precomputed(request), sys.stdout, sort_keys=True)
             return 0
         if operation == "policy_runtime_contract":
+            _assert_allowed_request_fields(request, {"operation"})
             json.dump(policy_runtime_contract(), sys.stdout, sort_keys=True)
             return 0
         if operation == "policy_train":
