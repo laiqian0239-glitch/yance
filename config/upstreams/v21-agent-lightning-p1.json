@@ -17,9 +17,12 @@
     "APO",
     "Trainer",
     "TraceToMessages",
+    "PromptTemplate",
     "prompt_rollout",
     "emit_reward",
-    "find_final_reward"
+    "find_final_reward",
+    "get_active_tracer",
+    "OtelTracer"
   ],
   "runtimeStore": "run-scoped in-memory only",
   "modelExecution": "existing Yance Model Brain only",
