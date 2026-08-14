@@ -44,7 +44,7 @@ test('dedicated Agent Lightning workflow executes on exact Linux PR head, drops 
   assert.match(workflow, /EXPECTED_HEAD:\s*\$\{\{\s*github\.event\.pull_request\.head\.sha\s*\|\|\s*github\.sha\s*\}\}/u);
   assert.match(workflow, /git rev-parse HEAD/u);
 
-  const checkoutCount = [...workflow.matchAll(/uses:\s*actions\/checkout@v4/gu)].length;
+  const checkoutCount = [...workflow.matchAll(/uses:\s*actions\/checkout@[0-9a-f]{40}\s+#\s+v4/gu)].length;
   const noCredentialCount = [...workflow.matchAll(/persist-credentials:\s*false/gu)].length;
   assert.equal(checkoutCount, 2);
   assert.equal(noCredentialCount, checkoutCount);
