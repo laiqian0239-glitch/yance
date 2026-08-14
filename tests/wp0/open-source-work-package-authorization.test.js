@@ -392,6 +392,10 @@ test('permanent WP0 routes and executes product authority from exact base-owned 
   assert.ok(workflow.includes('git worktree add --detach --no-checkout "${TRUSTED_POLICY_ROOT}" "${TRUSTED_POLICY_SHA}"'));
   assert.ok(workflow.includes('git -C "${TRUSTED_POLICY_ROOT}" sparse-checkout init --cone'));
   assert.ok(workflow.includes('git -C "${TRUSTED_POLICY_ROOT}" sparse-checkout set tools/wp0 shared/release governance'));
+  assert.ok(workflow.includes('git -C "${TRUSTED_POLICY_ROOT}" reset --hard "${TRUSTED_POLICY_SHA}"'));
+  assert.ok(workflow.includes('test -f "${TRUSTED_POLICY_ROOT}/tools/wp0/verify-gate.js"'));
+  assert.ok(workflow.includes('test -f "${TRUSTED_POLICY_ROOT}/shared/release/implementationBranchPolicy.js"'));
+  assert.ok(workflow.includes('test ! -e "${TRUSTED_POLICY_ROOT}/vendor/electron/electron-v39.8.5-win32-x64.zip"'));
   assert.ok(!workflow.includes('git worktree add --detach "${TRUSTED_POLICY_ROOT}" "${TRUSTED_POLICY_SHA}"'));
   assert.match(workflow, /node "\$\{TRUSTED_POLICY_ROOT\}\/tools\/wp0\/verify-gate\.js"/u);
   assert.match(workflow, /--branch "\$\{IMPLEMENTATION_BRANCH\}"/u);

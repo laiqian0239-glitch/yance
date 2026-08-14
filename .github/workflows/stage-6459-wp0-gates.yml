@@ -150,7 +150,12 @@ jobs:
           git worktree add --detach --no-checkout "${TRUSTED_POLICY_ROOT}" "${TRUSTED_POLICY_SHA}"
           git -C "${TRUSTED_POLICY_ROOT}" sparse-checkout init --cone
           git -C "${TRUSTED_POLICY_ROOT}" sparse-checkout set tools/wp0 shared/release governance
+          git -C "${TRUSTED_POLICY_ROOT}" reset --hard "${TRUSTED_POLICY_SHA}"
           test "$(git -C "${TRUSTED_POLICY_ROOT}" rev-parse HEAD)" = "${TRUSTED_POLICY_SHA}"
+          test -f "${TRUSTED_POLICY_ROOT}/tools/wp0/verify-gate.js"
+          test -f "${TRUSTED_POLICY_ROOT}/shared/release/implementationBranchPolicy.js"
+          test -d "${TRUSTED_POLICY_ROOT}/governance"
+          test ! -e "${TRUSTED_POLICY_ROOT}/vendor/electron/electron-v39.8.5-win32-x64.zip"
           printf 'TRUSTED_POLICY_ROOT=%s\n' "${TRUSTED_POLICY_ROOT}" >> "${GITHUB_ENV}"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - name: Set up Node.js

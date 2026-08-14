@@ -225,6 +225,10 @@ test('Stage WP0 workflow has base-owned routing and separate routes behind one a
   assert.match(productJob, /git worktree add --detach --no-checkout "\$\{TRUSTED_POLICY_ROOT\}" "\$\{TRUSTED_POLICY_SHA\}"/u);
   assert.match(productJob, /sparse-checkout init --cone/u);
   assert.match(productJob, /sparse-checkout set tools\/wp0 shared\/release governance/u);
+  assert.ok(productJob.includes('git -C "${TRUSTED_POLICY_ROOT}" reset --hard "${TRUSTED_POLICY_SHA}"'));
+  assert.ok(productJob.includes('test -f "${TRUSTED_POLICY_ROOT}/tools/wp0/verify-gate.js"'));
+  assert.ok(productJob.includes('test -f "${TRUSTED_POLICY_ROOT}/shared/release/implementationBranchPolicy.js"'));
+  assert.ok(productJob.includes('test ! -e "${TRUSTED_POLICY_ROOT}/vendor/electron/electron-v39.8.5-win32-x64.zip"'));
   assert.doesNotMatch(productJob, /git worktree add --detach "\$\{TRUSTED_POLICY_ROOT\}" "\$\{TRUSTED_POLICY_SHA\}"/u);
 
   assert.doesNotMatch(text, /uses:\s*\.\/\.github\/actions\/resolve-diff-range/u);
