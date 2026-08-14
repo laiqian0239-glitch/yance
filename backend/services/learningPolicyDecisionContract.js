@@ -14,6 +14,8 @@ const ALLOWED_ACTIONS = Object.freeze([
 ]);
 const FEATURE_SCHEMA = Object.freeze([
   'interactionBand',
+  'performanceMode',
+  'questionPolicy',
   'relationshipStage',
   'targetLanguage'
 ]);
