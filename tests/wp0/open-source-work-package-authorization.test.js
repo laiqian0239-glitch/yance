@@ -389,7 +389,10 @@ test('permanent WP0 routes and executes product authority from exact base-owned 
   assert.match(workflow, /YANCE_EVALUATED_REPOSITORY_ROOT:\s*\$\{\{ github\.workspace \}\}/u);
   assert.match(workflow, /persist-credentials:\s*false/u);
   assert.match(workflow, /git cat-file -e "\$\{TRUSTED_POLICY_SHA\}\^\{commit\}"/u);
-  assert.match(workflow, /git worktree add --detach "\$\{TRUSTED_POLICY_ROOT\}" "\$\{TRUSTED_POLICY_SHA\}"/u);
+  assert.ok(workflow.includes('git worktree add --detach --no-checkout "${TRUSTED_POLICY_ROOT}" "${TRUSTED_POLICY_SHA}"'));
+  assert.ok(workflow.includes('git -C "${TRUSTED_POLICY_ROOT}" sparse-checkout init --cone'));
+  assert.ok(workflow.includes('git -C "${TRUSTED_POLICY_ROOT}" sparse-checkout set tools/wp0 shared/release governance'));
+  assert.ok(!workflow.includes('git worktree add --detach "${TRUSTED_POLICY_ROOT}" "${TRUSTED_POLICY_SHA}"'));
   assert.match(workflow, /node "\$\{TRUSTED_POLICY_ROOT\}\/tools\/wp0\/verify-gate\.js"/u);
   assert.match(workflow, /--branch "\$\{IMPLEMENTATION_BRANCH\}"/u);
   assert.doesNotMatch(workflow, /npm run verify:wp0:gate -- --branch/u);

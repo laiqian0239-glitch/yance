@@ -72,7 +72,8 @@ test('portable governance suite never invokes branch-bound WP0 contracts', () =>
 test('credentials are absent or removed before repository-controlled tests execute', () => {
   const a6 = workflow('reviewed-candidate-a6.yml');
   assert.match(a6, /Checkout governance verifier[\s\S]*persist-credentials:\s*false/u);
-  assert.match(a6, /Fetch trusted Electron LFS object and remove credentials[\s\S]*unset-all http\.https:\/\/github\.com\/\.extraheader[\s\S]*Install locked dependencies/u);
+  assert.match(a6, /Snapshot current Electron Release trust authority[\s\S]*Checkout exact reviewed WP0 head[\s\S]*Materialize official Electron Release asset and remove credentials[\s\S]*curl --fail --location --proto '=https' --tlsv1\.2[\s\S]*unset-all http\.https:\/\/github\.com\/\.extraheader[\s\S]*Install locked dependencies/u);
+  assert.doesNotMatch(a6, /Fetch trusted Electron LFS object|git lfs pull[^\n]*vendor\/electron/u);
 
   const sqlite = workflow('reviewed-candidate-a6-sqlite.yml');
   assert.match(sqlite, /Checkout governance verifier[\s\S]*persist-credentials:\s*false/u);

@@ -24,9 +24,6 @@ env:
   BASELINE_ANCHOR_COMMIT: 570823e722f6db475066d6ef80ba900ac5c6cb39
   BASELINE_ANCHOR_PATH: governance/rejected-baselines/stage-6.4.5.8.json
   BASELINE_ANCHOR_BLOB: 6a5ffc68e76baf6a477668c6c2faf61934e94720
-  ELECTRON_LFS_PATH: vendor/electron/electron-v39.8.5-win32-x64.zip
-  ELECTRON_LFS_OID: d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34
-  ELECTRON_LFS_SIZE: '136644393'
 
 jobs:
   a6-reviewed-candidate-identity:
@@ -151,6 +148,11 @@ jobs:
           git fetch --no-tags --force origin "${REVIEWED_HEAD_SHA}"
           git fetch --no-tags --force origin "${BRANCH_TIP_SHA}"
           node tools/layered-ci/verify-reviewed-candidate.js "${CANDIDATE_MANIFEST}"
+      - name: Snapshot current Electron Release trust authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp release/electron-distribution-trust.json "${RUNNER_TEMP}/electron-distribution-trust.json"
       - name: Checkout exact reviewed WP0 head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -178,14 +180,36 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
-      - name: Fetch trusted Electron LFS object and remove credentials
+      - name: Materialize official Electron Release asset and remove credentials
         shell: bash
+        env:
+          ELECTRON_TRUST_PATH: ${{ runner.temp }}/electron-distribution-trust.json
         run: |
           set -euo pipefail
-          git lfs install --local
-          git lfs pull origin --include="${ELECTRON_LFS_PATH}" --exclude=""
-          echo "${ELECTRON_LFS_OID}  ${ELECTRON_LFS_PATH}" | sha256sum --check --strict
-          test "$(stat --format='%s' "${ELECTRON_LFS_PATH}")" = "${ELECTRON_LFS_SIZE}"
+          mapfile -t electron_trust < <(node - <<'NODE'
+          const fs = require('node:fs');
+          const trust = JSON.parse(fs.readFileSync(process.env.ELECTRON_TRUST_PATH, 'utf8'));
+          const archive = trust.archives?.['win32-x64'];
+          const expectedUrl = 'https://github.com/electron/electron/releases/download/v39.8.5/electron-v39.8.5-win32-x64.zip';
+          if (trust.electronVersion !== '39.8.5'
+            || archive?.fileName !== 'electron-v39.8.5-win32-x64.zip'
+            || archive?.sha256 !== 'd75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34'
+            || archive?.sizeBytes !== 136644393
+            || archive?.sourceRepository !== 'electron/electron'
+            || archive?.releaseTag !== 'v39.8.5'
+            || archive?.assetId !== 382512506
+            || archive?.downloadUrl !== expectedUrl) {
+            throw new Error('Electron official Release trust authority mismatch');
+          }
+          process.stdout.write([archive.downloadUrl, archive.sha256, String(archive.sizeBytes), archive.fileName].join('\n') + '\n');
+          NODE
+          )
+          test "${#electron_trust[@]}" -eq 4
+          electron_archive="${RUNNER_TEMP}/${electron_trust[3]}"
+          rm -f "${electron_archive}"
+          curl --fail --location --proto '=https' --tlsv1.2 --output "${electron_archive}" "${electron_trust[0]}"
+          echo "${electron_trust[1]}  ${electron_archive}" | sha256sum --check --strict
+          test "$(stat --format='%s' "${electron_archive}")" = "${electron_trust[2]}"
           git config --local --unset-all http.https://github.com/.extraheader || true
           git config --local --unset-all credential.helper || true
           test -z "$(git status --porcelain=v1 --untracked-files=all)"

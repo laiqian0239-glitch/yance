@@ -86,7 +86,7 @@ test('tracked Git LFS blobs require verified materialized worktree bytes before 
   assert.equal(typeof resolveTrackedPayloadData, 'function');
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-r12-13-lfs-'));
   const repo = path.join(tempRoot, 'repo');
-  const relativePath = 'vendor/electron/electron-fixture.zip';
+  const relativePath = 'vendor/rcedit/rcedit-fixture.exe';
   const worktreePath = path.join(repo, ...relativePath.split('/'));
   fs.mkdirSync(path.dirname(worktreePath), { recursive: true });
 
