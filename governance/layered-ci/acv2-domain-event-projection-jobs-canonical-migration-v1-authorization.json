@@ -140,12 +140,13 @@
     "decision": "REUSE_MATURE_SQLITE_AND_EXISTING_REPOSITORY_MIGRATION_SEAMS",
     "matureOssAvailable": true,
     "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
     "reviewedCandidates": [
       {
         "name": "SQLite transactional table rebuild",
         "source": "SQLite through Node.js built-in node:sqlite",
         "license": "public-domain SQLite / Node.js existing runtime",
-        "adoptionMode": "existing-runtime-seam",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
         "fit": "FIT",
         "reason": "SQLite's native transaction, foreign-key and table-rebuild semantics are sufficient for the canonical FK migration; no Yance migration framework is needed."
       },
