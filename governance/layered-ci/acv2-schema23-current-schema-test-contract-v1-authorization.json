@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-14T21:07:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "ACV2-SCHEMA23-CURRENT-SCHEMA-TEST-CONTRACT-CLOSURE-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Close the base-owned stale current-schema assertions exposed by ACV2 Schema 23 projection-job canonical migration CI. The historical Schema 22 migration contract remains frozen at 22; only tests that incorrectly equate the repository's current total R32 schema with historical ACV2 Schema 22 may advance to 23. This closure does not alter production code or migration semantics.",
+  "base": {
+    "branch": "main",
+    "commit": "6db3e1d03b95ba270929b83d730b2291e9a90642",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "causalEvidence": {
+    "blockedPullRequest": 374,
+    "blockedHead": "ca72110604296a1a9ca3952757fc2ff24b779616",
+    "workflowRun": 31807945736,
+    "job": 94791301640,
+    "step": "Run AuthorityWriteHost unit and migration contract",
+    "failure": "Two base-owned assertions expected current R32 schema 22 but Schema 23 is now the authorized current schema; observed 23 !== 22.",
+    "productionMigrationFailure": false,
+    "sourceClosureFailure": false
+  },
+  "historicalBoundary": {
+    "architectureClosureV2WpAIntegrityTargetSchemaVersion": 22,
+    "historicalSchema22TestsRemain22": true,
+    "schema22PostMergeIntegrityMigrationTestModificationAllowed": false,
+    "migrationModificationAllowed": false,
+    "productionCodeModificationAllowed": false
+  },
+  "authorizationBranch": {
+    "name": "governance/acv2-schema23-current-schema-test-contract-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/acv2-schema23-current-schema-test-contract-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "a071f1c6909a974372cdc6490a96f66080713a4fd49fcdc20d57ba74dfa4bd39"
+  },
+  "implementation": {
+    "branch": "test/acv2-schema23-current-schema-test-contract-v1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js",
+      "backend/tests/batch27DeveloperHandoffV2Closure.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "81f8f9e419a10de9969ca6f36b419131b15c07c87f23ec6d4d84a6dd698c5967",
+    "productionCodeChanged": false,
+    "testOnly": true,
+    "expectedChanges": [
+      "Current R32 SCHEMA_VERSION assertions advance from 22 to 23.",
+      "Fresh-store current schema metadata assertions advance from 22 to 23.",
+      "Schema 22 migration receipt assertions remain exactly 22.",
+      "AuthorityWriteHost ownership/fencing behavior assertions remain unchanged.",
+      "Batch27 capability/object assertions remain unchanged."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_NODE_TEST_AND_ACV2_MIGRATION_CONTRACTS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test",
+        "license": "Node.js existing runtime",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Existing base-owned tests already use node:test; only stale expected values require correction."
+      },
+      {
+        "name": "Existing ACV2 Schema 22 migration contracts",
+        "source": "backend/migrations/architectureClosureV2WpAIntegrity.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Historical Schema 22 authority remains frozen and is explicitly preserved rather than rewritten."
+      },
+      {
+        "name": "Existing R32 current-schema governance",
+        "source": "backend/lib/r32SqliteStore.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "SCHEMA_VERSION already owns the current repository schema identity and legitimately advances to 23."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not lower SCHEMA_VERSION back to 22 to satisfy stale tests.",
+      "Do not modify Schema 21, 22, or 23 migrations in this test-only closure.",
+      "Do not change schema22PostMergeIntegrityMigration.test.js; it validates historical Schema 22 semantics.",
+      "Do not weaken AuthorityWriteHost ownership, fencing, checksum, or downgrade assertions.",
+      "Do not add a compatibility shim or second schema-version authority."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "mandatoryContracts": [
+    "Authorization must ordinary-merge while trusted main remains exactly 6db3e1d03b95ba270929b83d730b2291e9a90642.",
+    "Implementation is exactly two test files and zero production code.",
+    "Historical Schema 22 migration target and receipt assertions remain 22.",
+    "Current total R32 schema assertions become 23 and must agree with persisted fresh-store schema metadata.",
+    "After this closure ordinary-merges, PR #374 must be revalidated against fresh main before any ordinary merge."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "testWeakening": true,
+    "productionCodeChange": true,
+    "migrationChange": true,
+    "historicalSchemaRewrite": true,
+    "workflowChange": true,
+    "dependencyChange": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "rebase": true,
+    "forcePush": true,
+    "squashMerge": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "baseOwnedClosureRequiredBeforeBlockedMigrationMerge": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false
+  }
+}
