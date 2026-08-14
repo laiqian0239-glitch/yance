@@ -2,24 +2,22 @@
 
 Status: **approved successor design — review-hardened**
 
-This design supersedes the product meaning of `V21-DEEP-TRAINING-P2-AGENT-LIGHTNING-VERL-CANDIDATE-V1` and closed PR #367. It does not rewrite or invalidate the already-landed Agent Lightning P1 infrastructure. It changes what Yance is trying to learn.
+This design supersedes the product meaning of `V21-DEEP-TRAINING-P2-AGENT-LIGHTNING-VERL-CANDIDATE-V1` and closed PR #367. It does not rewrite or invalidate landed Agent Lightning P1. It changes the product learning target.
 
-## 1. Product invariant
+## 1. Permanent product invariant
 
 Yance must not spend its primary learning budget training a small local language model to compete with current frontier ChatGPT/Claude as the final reply generator.
 
-The permanent product invariant is:
-
 > **Frontier models provide general intelligence and final language generation. Yance learns the person, the relationship, the relevant context, the communication strategy, the candidate preference, and the logical model/reasoning choice from real Decision → Outcome evidence.**
 
-The normal production path is therefore:
+Normal production path:
 
 ```text
 Conversation / relationship evidence
         ↓
-Yance state + learned policy
+Yance canonical state + learned policy
         ↓
-context / memory / strategy / candidate / logical model choice
+context / memory / strategy / candidate / logical-model choice
         ↓
 existing Model Brain / LiteLLM
         ↓
@@ -34,72 +32,69 @@ Learning / Langfuse evidence
 new governed Yance policy candidate
 ```
 
-A local model may later be authorized for a bounded classifier/ranker/state task, a pipeline fixture, or a future domain distillation challenger. It is not the default Yance reply brain.
+A local model may later be separately authorized for a bounded classifier/ranker/state task, a training-pipeline fixture, or a future domain distillation challenger. It is not the default Yance reply brain.
 
 ## 2. Non-goals
 
 This architecture does **not** authorize:
 
 - a Yance-built LLM training framework;
-- a second model/provider gateway;
-- a second memory or relationship database;
-- a second experiment/dataset platform;
-- a second telemetry/score framework;
+- a second model/provider gateway or credential authority;
+- a second memory, Person, relationship, Persona, or Journey store;
+- a second trace/dataset/experiment/evaluation/reward platform;
 - a Yance-built contextual-bandit/RL engine;
 - automatic production policy promotion;
 - autonomous final sending;
-- raw private chat persistence in training records;
-- reward derived directly from reply latency, reply length, or another single behavioral proxy;
-- local Qwen reply generation as a production fallback introduced by this workline;
-- live randomized exploration in the first policy work package.
+- raw private chat persistence for policy training;
+- reward derived directly from latency, reply length, or a single behavioral proxy;
+- a local Qwen reply generator as a production path;
+- live randomized exploration in the first Learned Policy work package.
 
-## 3. Existing authorities that remain unchanged
+## 3. Existing authorities remain authoritative
 
 ### 3.1 Model Brain
 
-Model Brain / LiteLLM remains the unique production model execution/provider credential authority. Learned Policy may choose only a bounded logical route or strategy input that Model Brain accepts; it may not call OpenAI, Anthropic, Gemini, OpenRouter, Ollama, or another provider directly.
+Model Brain / LiteLLM remains the unique production model-execution and provider-credential authority. Learned Policy may choose only a bounded structured strategy or an already-authorized logical route. It may not call providers directly.
 
 ### 3.2 Learning
 
 Learning remains canonical for:
 
-- learning eligibility;
-- DoNotLearn/privacy policy;
-- minimization;
+- learning eligibility and DoNotLearn;
+- privacy/minimization;
 - experiment evidence;
-- approved Langfuse Score evidence;
-- candidate evaluation;
-- Regression;
-- Shadow;
+- approved Langfuse Scores;
+- Regression and Shadow;
+- proposal/review status;
 - explicit Promotion;
 - Rollback.
 
 A raw human outcome is evidence, not reward authority.
 
-### 3.3 Relationship and memory authorities
+### 3.3 Identity, relationship, memory, Persona, and Journey
 
-Letta, Graphiti, Person/Contact authority, Persona, Parlant, and existing relationship projections remain authoritative for their current domains. Learned Policy consumes bounded immutable projections; it does not become a new source-of-truth database.
+Existing Person/Contact authorities, Letta, Graphiti, Persona, Parlant, and current relationship projections remain authoritative. Learned Policy consumes bounded projections; it does not become a new source-of-truth database.
 
-### 3.4 Existing optimization/evaluation OSS
+### 3.4 Existing OSS composition
 
 - Langfuse + OpenTelemetry: trace/score/dataset/experiment evidence.
 - DSPy + GEPA: prompt/program optimization.
 - Promptfoo + existing Learning evaluation: regression/evaluation.
 - OpenFeature + flagd: staged Learning rollout state.
 - RouteLLM + LiteLLM: logical model routing where already authorized.
-- Agent Lightning P1: dormant reusable bounded training execution infrastructure; no product reply-model objective.
+- Agent Lightning P1: dormant reusable bounded training execution infrastructure; not the product reply-model objective.
 
 ## 4. Learned Policy heads
 
-Yance may evolve several policy heads, each independently versioned and authorized:
+Future independently authorized heads may include:
 
-1. **Relationship State projection** — bounded relationship/interaction state useful to decisions.
-2. **Context/Memory Selector** — which already-authorized memory/evidence references should enter this reply.
-3. **Structured Strategy Policy** — initiative, warmth, brevity, directness, question policy, and existing candidate strategy branch.
-4. **Candidate Ranker** — rank frontier-generated reply candidates for this user/relationship.
-5. **Logical Model/Reasoning Router** — select an allowed Model Brain logical route/tier.
+1. Relationship-state projection.
+2. Context/memory selection.
+3. Structured communication strategy.
+4. Candidate ranking.
+5. Logical Model Brain/reasoning routing.
 
-The first implementation work package deliberately learns only one existing structured action dimension:
+The first implementation work package learns only the existing structured action:
 
 ```text
 candidateStrategyBranch
@@ -113,43 +108,96 @@ It does not attempt to learn all heads at once.
 |---|---|
 | Frontier reply generation | REUSE Model Brain/LiteLLM |
 | Provider credentials | REUSE Model Brain only |
-| Memory/relationship facts | REUSE Letta/Graphiti/Person authorities |
+| Person/contact binding | REUSE PersonContextAuthority/current identity authorities |
+| Memory/relationship facts | REUSE Letta/Graphiti/current projections |
 | Persona/Journey | REUSE Persona/Parlant |
-| Trace/score/dataset | REUSE Langfuse/OTel |
+| Trace/score/dataset/experiment | REUSE Langfuse/OTel |
 | Prompt/program optimization | REUSE DSPy/GEPA |
 | Regression/Shadow | REUSE Promptfoo/Learning evaluation |
 | Promotion/Rollback | REUSE Learning/OpenFeature/flagd |
 | Agent Lightning P1 | REUSE dormant, only for later bounded need |
 | Local reply-model P2 | RETIRE as product goal |
-| DecisionRecord | NEW thin causal contract |
-| OutcomeVector | NEW thin causal contract |
-| Decision↔Outcome binding | NEW thin adapter over existing events/signals |
-| First bounded policy learner | ADOPT mature OSS after OSS-fit |
+| DecisionRecordV1 | NEW thin causal contract |
+| OutcomeVectorV1 | NEW thin causal contract |
+| Decision↔Outcome attribution | NEW thin adapter over existing events/signals |
+| First bounded policy learner | ADOPT Vowpal Wabbit after exact OSS-fit/source closure |
 | Policy consumption | NEW thin adapter at existing reply Brain seam |
 
-No new Yance infrastructure may enter an authorization unless V2.1 OSS-fit proves there is a real gap.
+No new Yance infrastructure may enter authorization unless V2.1 OSS-fit proves a real gap.
 
-## 6. Canonical `DecisionRecordV1`
+## 6. Canonical causal event topology
 
-Every production decision that may later be learned from must be recorded at the moment the action is chosen, before final frontier generation.
+The first Learned Policy loop deliberately reuses the existing immutable Learning ledger instead of inventing a mutable approval store.
 
-### 6.1 Identity namespace and valid scope
+```text
+production decision
+      ↓
+existing eligible decision-bearing source signal
+(candidate_sent / other explicitly authorized eligible source)
+      │
+      ├──────────────┐
+      ↓              ↓
+DecisionRecordV1   raw OutcomeVectorV1 observations
+(inside source       (`policy_outcome_observed`, permanently
+ signal evidence)     learningEligible=false)
+      │              │
+      └──────┬───────┘
+             ↓
+Learning attribution / Langfuse Score
+             ↓
+approved score keyed to eligible sourceSignalId
+and bound to exact decisionId + outcomeIds
+             ↓
+`projectPolicy` starts from eligible source signal,
+joins immutable raw outcomes by decisionId,
+then emits a read-only training row
+```
 
-The first work package supports only conversation-scoped reply decisions:
+### 6.1 Immutable-ledger rule
+
+A raw `policy_outcome_observed` ledger row is **never mutated from `learningEligible=false` to true**. Its non-trainable status is permanent evidence semantics.
+
+The trainable anchor is an existing immutable source signal that was eligible at production time and carries the exact DecisionRecord provenance. A Learning-approved Score is keyed to that eligible `sourceSignalId` under the existing score-subject rules and additionally binds to:
+
+```text
+decisionId
+outcomeIds[]
+outcomeEvidenceSetRef
+rewardPolicyVersion
+```
+
+`projectPolicy` must not pretend the raw outcome row itself became eligible. It must:
+
+1. query eligible decision-bearing source signals;
+2. validate their DecisionRecord;
+3. find immutable raw OutcomeVector observations for the same canonical decision/person/conversation;
+4. require the Learning-approved Score for the eligible source signal;
+5. verify that the Score's `decisionId/outcomeIds/outcomeEvidenceSetRef` identify exactly the joined evidence set;
+6. emit the read-only learner row.
+
+This keeps the existing immutable ledger semantics intact and avoids a second approval-state machine.
+
+## 7. Canonical `DecisionRecordV1`
+
+Every production decision that may later be learned from is recorded when the action is chosen, before final frontier generation.
+
+### 7.1 Identity namespace and valid scope
+
+P1 supports only conversation-scoped reply decisions:
 
 ```text
 scopeType = "conversation"
 scopeId   = conversationId
 ```
 
-Every persisted decision must also bind to:
+Every decision also requires:
 
-- `conversationId` — required and exactly equal to `scopeId`;
-- `contactId` — required canonical Contact participating in that conversation;
-- `personId` — required canonical Person resolved by existing `PersonContextAuthority` for that `contactId`/`conversationId` pair;
-- `personaProfileId` — required user Persona profile whose style/identity was used for the decision.
+- `conversationId` equal to `scopeId`;
+- canonical `contactId` participating in that conversation;
+- canonical `personId` resolved by existing `PersonContextAuthority` for the contact/conversation pair;
+- `personaProfileId` from the exact Persona context used for generation.
 
-Before persistence, context compilation, or Learning projection, existing identity authorities must prove all of the following:
+Before persistence, context compilation, or Learning projection, existing authorities must prove:
 
 ```text
 PersonContextAuthority.resolve({contactId, conversationId}).found == true
@@ -163,23 +211,43 @@ personaProfileId matches the Persona context used for generation
 
 Any mismatch is a hard contract rejection. No best-effort cross-profile or cross-contact repair is permitted inside Learned Policy.
 
-This prevents two contacts/profiles with colliding conversation-looking identifiers from sharing learning evidence.
+### 7.2 Replayable bounded feature bundle
 
-### 6.2 Replayable immutable state bundle
+A hash alone is not enough. The learner must have the exact safe features that the behavior policy saw in production without recomputing them from later mutable relationship state.
 
-A production decision must be replayable against the exact bounded state that produced it. Mutable state row IDs alone are insufficient.
+`DecisionRecordV1` therefore carries an immutable `featureBundle` under a fixed `featureSchemaVersion`.
 
-`DecisionRecordV1` therefore requires:
+P1 `featureBundle` rules:
 
-- `stateSnapshotRef` — SHA-256/content-addressed reference to the bounded decision-state projection bytes;
-- `stateSnapshotSchemaVersion` — schema version for those bytes;
-- `featureSchemaRef` — content-addressed or exact immutable feature schema identity;
-- `contextCandidateSetRef` — immutable digest/reference for the available bounded context/memory candidate IDs;
-- `actionSetRef` — immutable digest/reference for the available actions and their encoding/order;
-- `decisionTraceId` — trace identity that resolves to the same immutable bundle;
-- existing `stateVersion`, `strategyVersion`, and `promptProgramVersion`.
+- fixed allowlist of bounded categorical/numeric/boolean fields only;
+- no free-form chat text;
+- no raw memory text;
+- no message bodies;
+- no provider credentials;
+- no arbitrary extension object;
+- values must already satisfy existing privacy/minimization policy for Learning;
+- every field has a deterministic encoding defined by `featureSchemaRef`.
 
-The decision also records explicit version references for every policy head that materially produced the chosen action, even when that head is still baseline/rule-based:
+The exact P1 field allowlist is frozen in the product authorization/test contract after fresh-main inspection of existing state authorities. It may include only fields already present in authorized relationship/interaction/persona projections and required for the first `candidateStrategyBranch` policy.
+
+The DecisionRecord requires:
+
+- `featureBundle` — immutable safe bytes/object persisted with the decision-bearing eligible source signal;
+- `featureSchemaVersion`;
+- `featureSchemaRef` — exact immutable schema identity;
+- `stateSnapshotRef` — SHA-256 of canonical serialized `featureBundle` bytes;
+- `contextCandidateSetRef` — digest/reference for the bounded context/memory candidate IDs available at decision time;
+- `actionSetRef` — digest/reference for available actions and their encoding/order;
+- `decisionTraceId` — trace identity bound to the same bundle;
+- `stateVersion`, `strategyVersion`, `promptProgramVersion`.
+
+Training and replay consume the stored `featureBundle`; they never regenerate historical features from current state.
+
+No new generic serialization framework is authorized. Product implementation must first reuse an existing trusted canonical-serialization seam. If fresh-main inspection proves none exists, that is an OSS-fit/authorization boundary, not permission to silently build one.
+
+### 7.3 Explicit contributing policy versions
+
+Every policy head that materially produced the action has an explicit version, including baseline/rule-based heads:
 
 ```text
 relationshipPolicyVersion
@@ -187,45 +255,47 @@ memoryPolicyVersion
 strategyPolicyVersion
 candidateRankerVersion
 routingPolicyVersion
+promptProgramVersion
 ```
 
-A baseline component uses an explicit stable identifier such as `baseline-rules-v1`; absence is not interpreted as baseline.
+A baseline component uses an explicit stable identity such as `baseline-rules-v1`; absence is never interpreted as baseline.
 
-### 6.3 Contextual-bandit action logging contract
+### 7.4 Contextual-bandit behavior logging
 
-For any DecisionRecord eligible for Vowpal Wabbit contextual-bandit training or off-policy evaluation, the following are mandatory at decision time:
+For any DecisionRecord eligible for Vowpal Wabbit training or off-policy evaluation, record at decision time:
 
-- `actionId` — stable identifier of the chosen action;
-- `actionEncodingVersion` — schema/version defining how action IDs map to the ADF action rows;
-- `allowedActionSet` — exact bounded set seen by the behavior policy;
-- `actionSetRef` — immutable digest/reference for the encoded action set;
-- `chosenAction` — structured action `{kind, value}`;
-- `behaviorPolicyVersion` — the exact policy that made the production choice;
-- `actionProbability` — the behavior-policy propensity for that exact chosen action, recorded at decision time.
+- `actionId` — stable chosen-action ID;
+- `actionEncodingVersion` — ADF action-row encoding version;
+- `allowedActionSet` — exact bounded action set seen by the behavior policy;
+- `actionSetRef` — immutable identity of that encoded set;
+- `chosenAction` — structured `{kind, value}`;
+- `behaviorPolicyVersion` — exact policy that chose it;
+- `actionProbability` — original behavior-policy propensity for the chosen action;
+- `exploration` — whether stochastic exploration was active.
 
-The propensity must never be reconstructed later from a newer model or normalized retrospectively.
+Propensity is never reconstructed later from a newer policy.
 
-A row missing any of these fields, containing an out-of-set action, or containing nonfinite/out-of-range propensity is **ineligible for contextual-bandit training and off-policy evaluation**.
+Missing/out-of-range propensity, missing action identity/encoding, or out-of-set action makes the row ineligible for contextual-bandit training and OPE.
 
-P1 production is deterministic and does not introduce live random exploration, so deterministic baseline/production actions use `actionProbability = 1.0` and explicitly record `exploration = false`. This is valid provenance for the behavior actually executed; it does not imply broad counterfactual support.
+P1 uses no live randomized exploration. Deterministic baseline/production decisions record `actionProbability=1.0` and `exploration=false`. This truthfully records the executed behavior and does not claim counterfactual support for unchosen actions.
 
-### 6.4 Required DecisionRecord envelope
-
-Conceptual v1 shape:
+### 7.5 Required DecisionRecord envelope
 
 ```text
 schemaVersion
 authority
 decisionId
+sourceSignalId (when immutable eligible source signal exists)
 scopeType
 scopeId
 contactId
 personId
 conversationId
 personaProfileId
-stateSnapshotRef
-stateSnapshotSchemaVersion
+featureBundle
+featureSchemaVersion
 featureSchemaRef
+stateSnapshotRef
 contextCandidateSetRef
 actionSetRef
 decisionTraceId
@@ -248,21 +318,18 @@ createdAt
 rawPrivateChatPersisted = false
 ```
 
-The record contains hashes/references and bounded structural features. It does not persist raw private chat text merely to support learning.
+## 8. Canonical `OutcomeVectorV1`
 
-## 7. Canonical `OutcomeVectorV1`
+A downstream human event is a causally bound observation envelope, not a loose bag of booleans.
 
-A downstream human event must never be stored as a loose bag of booleans. Each OutcomeVector is a causally bindable observation envelope.
-
-### 7.1 Required outcome envelope
-
-Every outcome record requires:
+### 8.1 Required envelope
 
 ```text
 schemaVersion
 authority
 outcomeId
 decisionId
+sourceSignalId
 scopeType
 scopeId
 contactId
@@ -271,16 +338,17 @@ conversationId
 observedAt
 observationWindow
 signals
+learningEligible = false
 rawPrivateChatPersisted = false
 ```
 
-The identity tuple must resolve to the same canonical Person/Contact/Conversation binding as the DecisionRecord. A mismatch is rejected before persistence or Learning projection.
+The identity tuple must resolve to the same canonical Person/Contact/Conversation binding as the DecisionRecord and source signal. A mismatch is rejected before persistence or Learning projection.
 
-`outcomeId` is immutable/idempotent for the source observation. `decisionId` is mandatory; outcomes without an unambiguous decision binding do not become policy-learning rows.
+`outcomeId` is immutable/idempotent for the source observation. Outcomes without an unambiguous decision binding never become policy-learning evidence.
 
-### 7.2 Per-signal provenance, window, and missingness
+### 8.2 Per-signal provenance, window, and missingness
 
-Each signal is represented as a structured observation:
+Each signal is represented as:
 
 ```text
 value
@@ -293,68 +361,63 @@ sourceId
 provenanceRef
 ```
 
-`value=false`, `value=0`, `status=pending`, and `status=unavailable` are distinct states.
+`false`, `0`, `pending`, and `unavailable` are distinct.
 
 Examples:
 
-- `replyLatencyMs` can be observed once a reply arrives and is tied to the sent message and inbound message IDs.
-- `conversationContinued` may be observed in the immediate reply window.
-- `nextDayReinitiation` cannot be evaluated at the same timestamp; before its defined window closes it is `pending`, not `false`.
-- If platform history is unavailable or privacy policy excludes the evidence, status is `unavailable`, not negative.
+- reply latency is observed when a bound inbound reply arrives;
+- conversation continuation may be observed in that immediate window;
+- next-day reinitiation remains `pending` until its own defined window closes;
+- privacy exclusion or unavailable platform history becomes `unavailable`, not negative.
 
-P1 may emit a partial OutcomeVector immediately when an inbound reply arrives and later append a new immutable outcome observation/version for a different closed window. It must not mutate earlier evidence to pretend the later signal existed at the earlier timestamp.
+A later window creates a new immutable outcome observation/version. Earlier evidence is not mutated to pretend later information existed earlier.
 
-### 7.3 Initial outcome signals
+### 8.3 Initial allowed outcome families
 
-The architecture allows, when evidence exists:
+When evidence exists, future observations may represent:
 
 - reply latency;
 - reply length / length delta;
-- conversation continued;
-- new topic initiated;
+- conversation continuation;
+- new topic initiation;
 - returned question;
 - later reinitiation;
-- user accepted candidate;
-- user edited candidate;
-- user rejected candidate;
+- user accepted/edited/rejected candidate;
 - relationship-state delta;
 - explicit user feedback.
 
-No single signal is intrinsically the reward.
+No single signal is intrinsically reward.
 
-## 8. Reward/evaluation remains a separate versioned artifact
-
-Outcome observation and reward attribution are separate contracts.
+## 9. Reward/evaluation is a separate versioned artifact
 
 ```text
-DecisionRecordV1
-     +
-OutcomeVectorV1 observation(s)
-     ↓
+eligible source signal + DecisionRecordV1
+                 +
+immutable OutcomeVectorV1 observation(s)
+                 ↓
 Learning evaluation/attribution
-     ↓
+                 ↓
 Learning-approved Langfuse Score
-     ↓
-policy training projection
+                 ↓
+projectPolicy training row
 ```
 
-The approved score record must preserve its existing canonical subject/provenance rules and additionally identify the decision/outcome evidence set it evaluates.
+The approved score preserves existing canonical subject/provenance rules and binds to the exact decision/outcome evidence set with `rewardPolicyVersion`.
 
 Learned Policy must not:
 
 - treat reply arrival as automatic positive reward;
 - map silence to negative reward;
 - invent missing signals;
-- aggregate multiple relationships into one reward unless separately authorized by canonical global Learning eligibility;
-- clip/normalize/weight a Learning-approved scalar inside a policy adapter without a separately versioned Learning rule.
+- mutate raw outcome eligibility;
+- aggregate multiple relationships absent separately authorized canonical global eligibility;
+- clip/normalize/weight a Learning-approved scalar inside the policy adapter without a separately versioned Learning rule.
 
-For a learner such as VW that minimizes cost, an authorized adapter may mechanically represent a finite approved scalar reward as `cost = -reward`; that sign conversion does not grant authority to reshape the reward.
+For a learner that minimizes cost, a finite already-approved scalar reward may be represented mechanically as `cost=-reward`; the sign conversion grants no reward-shaping authority.
 
-## 9. First OSS learner: Vowpal Wabbit candidate
+## 10. First OSS learner: Vowpal Wabbit
 
-The first bounded strategy-policy learner is selected through V2.1 OSS-fit as Vowpal Wabbit rather than a Yance-built contextual-bandit engine.
-
-Frozen source candidate:
+Selected P1 candidate under V2.1 OSS-fit:
 
 ```text
 repository: VowpalWabbit/vowpal_wabbit
@@ -364,30 +427,32 @@ license: BSD-3-Clause
 mode: contextual-bandit ADF
 ```
 
-The implementation must place VW inside the existing sealed Learning Python runtime. It does not create a new daemon, dataset service, model gateway, credential store, or scheduler.
+VW must run inside the existing sealed Learning Python runtime. It does not create another daemon, dataset service, provider gateway, credential store, scheduler, or policy store.
 
-P1 does not enable live random exploration. It first proves:
+P1 proves:
 
 ```text
-historical canonical decision/outcome/approved-score rows
+eligible source signal + stored DecisionRecord
++ joined immutable raw outcomes
++ Learning-approved score
 → bounded VW policy candidate
 → existing Regression/Shadow
 → explicit Learning promotion
 → later production decision consumes promoted bounded action
 → Model Brain still writes final reply
-→ rollback restores prior/baseline policy
+→ rollback/fallback preserves availability
 ```
 
-## 10. Production consumption boundary
+## 11. Production consumption boundary
 
-The learned policy must be consumed before final frontier reply generation.
-
-Existing high-level sequence becomes:
+Learned policy is consumed before final frontier reply generation:
 
 ```text
-existing relationship/persona/memory context
+existing canonical relationship/persona/memory context
         ↓
 existing candidate plan / allowed branch set
+        ↓
+build bounded privacy-safe featureBundle
         ↓
 resolve active Learning-promoted policy artifact
         ↓
@@ -404,71 +469,52 @@ frontier-generated reply candidate
 
 The policy adapter may not generate reply text.
 
-If no promoted policy exists, the existing baseline rules remain active and the DecisionRecord explicitly records the baseline policy version.
+If no promoted policy exists, existing baseline rules remain active and all baseline policy versions are explicit in the DecisionRecord.
 
-## 11. Failure semantics
+## 12. Failure semantics
 
-Failure behavior is intentionally different for safety violations, active-artifact corruption, and missing learning evidence.
+### 12.1 No promoted policy
 
-### 11.1 No promoted learned artifact
+Use existing baseline policy, record explicit baseline versions, continue frontier generation.
 
-Normal condition, not an error:
+### 12.2 Active artifact corrupt/hash-invalid/unreadable/out-of-set
 
-```text
-use existing baseline policy
-record explicit baseline policy versions
-continue frontier reply generation
-```
+Do not use it. Fall to a previously verified last-known-good promoted policy when existing rollout history provides one; otherwise use explicit baseline. Emit degradation evidence and record the policy that actually executed. The broken artifact may not masquerade as successful learned execution.
 
-### 11.2 Active learned artifact is corrupt, hash-invalid, unreadable, or returns an out-of-set action
+### 12.3 Identity/scope mismatch
 
-The active learned artifact must not be used. The policy layer fails closed to a **previous explicitly recorded last-known-good promoted policy** when one exists; otherwise it uses the explicit baseline policy. The event is surfaced as policy-runtime degradation evidence.
+Hard block the affected DecisionRecord persistence, Learning projection, and learned-policy context compilation. Do not reinterpret identifiers or cross-bind profiles. Reply may continue only after fresh canonical context resolution and creation of a new valid baseline decision.
 
-It may not silently claim the broken artifact was executed.
+### 12.4 Ineligible private content or minimization denial
 
-This preserves reply availability because the learning-policy artifact is advisory to reply strategy, not provider/safety authority.
+Hard block that content from Learning projection and any learned feature/provider-bound context derived from it. Broader reply generation may continue only with independently authorized privacy-safe context.
 
-### 11.3 Decision identity/scope mismatch
+### 12.5 Missing/late outcome evidence
 
-Hard block the affected DecisionRecord persistence, Learning projection, and learned-policy context compilation. Do not reinterpret the identifiers or bind across profiles.
+Preserve reply availability. Mark signals `pending` or `unavailable`; exclude rows from training/evaluation that require missing observations. Never convert absence to negative reward.
 
-If this mismatch is detected before the reply policy choice, the learned-policy path is unavailable for that turn. The existing safe baseline reply path may continue only with freshly resolved canonical context and a new valid DecisionRecord; it may not reuse the invalid record.
+### 12.6 Learning runtime unavailable
 
-### 11.4 Ineligible private content or minimization denial
+No automatic promotion. Production strategy uses last-known-good/baseline with degradation evidence. Provider generation remains with Model Brain.
 
-Hard block that content from Learning projection and from any learned-policy feature/provider-bound context derived from it. Privacy denial cannot be converted into a missing/default feature that leaks the original value.
-
-The broader reply may continue only with the already-authorized privacy-safe context that independently passes existing provider-boundary rules.
-
-### 11.5 Missing/late outcome evidence
-
-Preserve reply availability. Mark the relevant signal `pending` or `unavailable`; exclude the row from any training/evaluation that requires the missing observation. Never convert absence to negative reward.
-
-### 11.6 Learning runtime unavailable
-
-No automatic promotion occurs. For production reply policy consumption, use last-known-good/baseline strategy according to 11.2 and record degradation. Provider generation remains with Model Brain.
-
-## 12. Privacy boundary
-
-The canonical learning data should prefer identifiers, hashes, versions, bounded features, and minimized content references.
+## 13. Privacy boundary
 
 Mandatory properties:
 
 - raw private chat is not persisted merely for policy training;
-- DoNotLearn is enforced before Learning persistence/projection;
-- decision/outcome references cannot escape canonical person/contact/conversation scope;
-- ineligible private memories never enter provider-bound requests through Learned Policy;
-- an eligible bounded field may survive while an adjacent ineligible private field is omitted;
-- policy learner/provider credentials are prohibited from Learning runtime;
-- no policy model artifact may contain a hidden copy of unminimized raw data by design.
+- DoNotLearn is enforced before eligible source-signal persistence/projection;
+- Decision/Outcome references cannot escape canonical Person/Contact/Conversation scope;
+- `featureBundle` is allowlisted and contains no raw/private free text;
+- ineligible memories never enter provider-bound requests through Learned Policy;
+- an independently eligible bounded field may survive while an adjacent ineligible private field is omitted;
+- no provider credential enters Learning/VW runtime;
+- no policy artifact is designed to contain unminimized raw data.
 
-Provider-bound privacy is tested at the actual message/request construction seam, not only by source scanning.
+Provider-bound privacy is tested at the actual final request construction seam, not only by source scanning.
 
-## 13. Promotion and rollback
+## 14. Promotion and rollback
 
-Training output is always a candidate artifact.
-
-Required chain:
+Training output is always a candidate artifact:
 
 ```text
 canonical Learning projection
@@ -478,80 +524,72 @@ canonical Learning projection
 → Shadow
 → READY_FOR_REVIEW
 → explicit Learning approval
-→ OpenFeature/flagd rollout metadata
+→ existing rollout/OpenFeature/flagd metadata
 → production policy adapter
 ```
 
 No candidate trains itself into production.
 
-Rollback uses the existing Learning rollback authority and preserves historical Decision/Outcome evidence. A rollback changes the active policy version; it does not rewrite the historical policy version recorded on old decisions.
+Rollback changes the active policy version and preserves historical Decision/Outcome/source-signal evidence.
 
-## 14. First implementation work package
-
-The first executable successor is:
+## 15. First implementation work package
 
 `V21-LEARNING-POLICY-P1-DECISION-OUTCOME-CLOSED-LOOP-V1`
 
-It is intentionally bounded to:
+Bounded scope:
 
-1. DecisionRecordV1 identity/replayability/behavior-policy logging;
-2. OutcomeVectorV1 causal envelope and observation semantics;
-3. canonical Learning projection with existing approved score authority;
-4. one VW-backed `candidateStrategyBranch` policy head;
-5. consumption before frontier generation;
-6. existing Regression/Shadow/Promotion/Rollback;
-7. one real closed-loop UAT.
+1. canonical identity-bound DecisionRecordV1;
+2. stored safe replayable featureBundle + exact action/propensity log;
+3. immutable raw OutcomeVectorV1 observations;
+4. existing eligible source signal as the trainable anchor;
+5. Learning-approved score bound to sourceSignalId + decisionId + outcomeIds;
+6. `projectPolicy` joins these without mutating the ledger;
+7. one VW-backed `candidateStrategyBranch` policy head;
+8. consumption before frontier generation;
+9. existing Regression/Shadow/Promotion/Rollback;
+10. one real closed-loop UAT.
 
 It does not add context ranker, candidate ranker, full router learning, or RL in the same authorization.
 
-## 15. Acceptance criteria
+## 16. Acceptance criteria
 
-The work package is not complete unless all of the following are proven executable:
+The work package is not complete unless executable tests prove all of the following:
 
-1. Final reply text still comes from existing Model Brain/LiteLLM frontier execution.
-2. A production turn creates `DecisionRecordV1` before final reply generation.
-3. `scopeType/scopeId/contactId/personId/conversationId/personaProfileId` are validated as one canonical identity bundle before persistence.
-4. A two-profile/two-person collision test proves the same-looking conversation/contact references cannot cross-bind Learning evidence.
-5. Decision state and feature schema are immutable/content-addressed; historical decision replay cannot resolve to a newer mutable state.
-6. Every policy head that influenced the action has an explicit version, including baseline heads.
-7. VW-eligible records contain stable action ID, immutable action-set encoding/ref, original behavior-policy version, and original propensity.
-8. Missing/invalid propensity makes a row ineligible for CB training/OPE rather than guessed later.
-9. A real successful send is bound to the originating decision.
-10. A later inbound human response creates an `OutcomeVectorV1` with `outcomeId`, `decisionId`, canonical identity, observation window, and per-signal provenance/missingness.
-11. A next-day or delayed metric is `pending` until its own window closes and is never silently `false` early.
-12. Silence/no evidence is not negative reward.
-13. Raw OutcomeVector does not contain `approvedReward` authority.
-14. Learning-approved Langfuse Score remains a separate versioned attribution artifact.
-15. Ineligible private memory is absent/rejected at the actual provider-bound request while an eligible bounded field remains usable.
-16. DoNotLearn/minimization failures exclude learning content without blocking unrelated privacy-safe reply generation.
-17. VW source/version/license/lock/SBOM are exact and reproducible.
-18. No provider credential exists in Learning/VW runtime.
-19. A trained policy is only a candidate until existing Regression + Shadow + explicit Promotion succeed.
-20. A later production turn consumes the promoted bounded action before Model Brain generation.
-21. Corrupt active artifact fails to last-known-good/baseline and produces degradation evidence; it cannot masquerade as successful learned execution.
-22. Rollback restores previous/baseline policy without rewriting historical evidence.
-23. Agent Lightning P1 remains unchanged.
-24. No local reply-model production path is introduced.
-25. No second Yance learning/database/router/eval/reward/provider framework is introduced.
+1. Final reply text comes from existing Model Brain/LiteLLM frontier execution.
+2. A production turn chooses policy and creates DecisionRecordV1 before final generation.
+3. Person/contact/conversation/persona identity is canonically bound; a two-person/two-profile collision cannot cross-bind evidence.
+4. `featureBundle` is fixed-schema, stored, privacy-safe, free of raw chat/memory text, and content-addressed.
+5. Historical training/replay uses the stored featureBundle, not current relationship state.
+6. Every contributing policy head has an explicit version.
+7. VW-eligible decisions contain stable action ID, exact action-set encoding/ref, original behavior-policy version, and original propensity.
+8. Missing/invalid propensity makes a row ineligible rather than guessed later.
+9. The decision-bearing eligible source signal is immutable and includes exact DecisionRecord provenance.
+10. Raw `policy_outcome_observed` remains permanently `learningEligible=false`.
+11. A real successful send is bound to the originating decision/source signal.
+12. A later human response produces an OutcomeVectorV1 with immutable ID, canonical identity, window, provenance, and missingness.
+13. A delayed metric is `pending` until its window closes; silence/no evidence is not negative reward.
+14. Learning-approved Score is separate and binds to exact `sourceSignalId + decisionId + outcomeIds + outcomeEvidenceSetRef + rewardPolicyVersion`.
+15. `projectPolicy` starts from eligible source signals, joins immutable raw outcomes, verifies the Score binding, and never mutates ledger eligibility.
+16. Ineligible private memory is absent/rejected at the actual provider-bound request while an eligible bounded field remains usable.
+17. DoNotLearn/minimization failures exclude learning content without blocking unrelated privacy-safe reply generation.
+18. VW source/version/license/lock/SBOM are exact and reproducible.
+19. No provider credential exists in Learning/VW runtime.
+20. A trained policy is candidate-only until existing Regression + Shadow + explicit Promotion succeed.
+21. A later production turn consumes the promoted bounded action before Model Brain generation.
+22. Corrupt active artifact falls to last-known-good/baseline and emits degradation evidence.
+23. Rollback restores previous/baseline policy without rewriting history.
+24. Agent Lightning P1 remains unchanged.
+25. No local reply-model production path is introduced.
+26. No second Yance learning/database/router/eval/reward/provider framework is introduced.
 
-## 16. Future successor worklines
+## 17. Future successor worklines
 
-Only after the canonical Decision→Outcome seam proves real may later work packages independently OSS-fit and authorize:
+Only after this canonical loop proves real may later work packages independently OSS-fit and authorize richer context selection, candidate ranking, learned logical routing, relationship-state estimators, explicit exploration/OPE, Agent Lightning RL for a bounded head, or later frontier-to-local domain distillation.
 
-- richer context/memory selection;
-- candidate ranking/preference models;
-- learned logical Model Brain routing;
-- relationship-state estimators;
-- explicit exploration/counterfactual evaluation policy;
-- Agent Lightning RL for a bounded policy head where it outperforms simpler OSS;
-- later frontier-to-local domain distillation after enough high-quality Yance-specific data exists.
+Every successor must reuse the same canonical Decision/source-signal/Outcome/Score topology instead of inventing another learning loop.
 
-Each successor must reuse the same canonical decision/outcome/evaluation authority instead of inventing another learning loop.
-
-## 17. Permanent product truth
-
-The target product statement is:
+## 18. Permanent product truth
 
 > **ChatGPT/Claude remain the general intelligence and final-language engines. Yance becomes increasingly useful because it learns, under privacy and evaluation controls, which relationship context, strategy, candidate, and logical model choice works for this person and this relationship.**
 
-The moat is the governed longitudinal Decision → Outcome evidence and policy improvement, not a low-end clone of a frontier model.
+The durable moat is governed longitudinal Decision → Outcome evidence and policy improvement, not a low-end clone of a frontier model.
