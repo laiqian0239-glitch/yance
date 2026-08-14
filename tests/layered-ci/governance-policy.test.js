@@ -116,6 +116,19 @@ test('runtime, SQLite, workflows, WP0 and package changes escalate to L2', () =>
   }
 });
 
+test('Electron custody and source-control authority paths escalate to L2', () => {
+  for (const file of [
+    '.gitattributes',
+    '.gitignore',
+    'release/electron-distribution-trust.json',
+    'vendor/electron/electron-v39.8.5-win32-x64.zip'
+  ]) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, true, file);
+    assert.equal(result.requiredLevel, 'L2', file);
+  }
+});
+
 test('nested dependency manifests always escalate to L2', () => {
   for (const file of [
     'packages/desktop/package.json',

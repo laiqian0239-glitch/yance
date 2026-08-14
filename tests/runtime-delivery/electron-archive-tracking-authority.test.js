@@ -2,12 +2,16 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { execFileSync, spawnSync } = require('node:child_process');
+const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const ELECTRON_ARCHIVE = 'vendor/electron/electron-v39.8.5-win32-x64.zip';
+const RCEDIT_ARCHIVE = 'vendor/rcedit/rcedit-v2.0.0-x64.exe';
+const EXPECTED_ELECTRON_SHA256 = 'd75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34';
+const EXPECTED_ELECTRON_SIZE = 136644393;
+const EXPECTED_RELEASE_URL = 'https://github.com/electron/electron/releases/download/v39.8.5/electron-v39.8.5-win32-x64.zip';
 
 function lines(fileName) {
   return fs.readFileSync(path.join(REPO_ROOT, fileName), 'utf8')
@@ -16,32 +20,58 @@ function lines(fileName) {
     .filter(Boolean);
 }
 
-test('Electron archives are normally discoverable while unrelated ZIP files remain ignored', () => {
+test('Electron archive source custody is retired while unrelated ZIP files remain ignored', () => {
   const ignoreLines = lines('.gitignore');
   const broadZipRule = ignoreLines.indexOf('*.zip');
-  const electronException = ignoreLines.indexOf('!vendor/electron/*.zip');
   assert.notEqual(broadZipRule, -1, 'global ZIP ignore rule must remain present');
-  assert.ok(electronException > broadZipRule, 'Electron exception must follow the global ZIP ignore rule');
+  assert.equal(ignoreLines.includes('!vendor/electron/*.zip'), false, 'Electron ZIPs must no longer be source-unignored');
   assert.equal(ignoreLines.includes('!*.zip'), false, 'broad ZIP unignore is forbidden');
 
   const electronCheck = spawnSync('git', ['check-ignore', '--no-index', '--quiet', ELECTRON_ARCHIVE], { cwd: REPO_ROOT });
-  assert.equal(electronCheck.status, 1, 'trusted Electron archive must not be ignored');
+  assert.equal(electronCheck.status, 0, 'retired Electron archive path must follow the normal ZIP ignore policy');
   const unrelatedCheck = spawnSync('git', ['check-ignore', '--no-index', '--quiet', 'untrusted-release.zip'], { cwd: REPO_ROOT });
   assert.equal(unrelatedCheck.status, 0, 'unrelated ZIP files must remain ignored');
 });
 
-test('Electron archives are bound to the Git LFS filter contract', () => {
+test('Electron is no longer Git LFS custody while rcedit retains its existing LFS authority', () => {
   const attributeLines = lines('.gitattributes');
-  assert.ok(
+  assert.equal(
     attributeLines.includes('vendor/electron/*.zip filter=lfs diff=lfs merge=lfs -text'),
-    'Electron archive LFS rule is missing'
+    false,
+    'Electron archive LFS rule must be retired'
   );
-  const attributes = execFileSync('git', ['check-attr', 'filter', 'diff', 'merge', 'text', '--', ELECTRON_ARCHIVE], {
+  assert.equal(
+    attributeLines.includes('vendor/rcedit/*.exe filter=lfs diff=lfs merge=lfs -text'),
+    true,
+    'rcedit LFS custody is outside this successor and must remain unchanged'
+  );
+
+  const electronTracked = spawnSync('git', ['ls-files', '--error-unmatch', '--', ELECTRON_ARCHIVE], {
     cwd: REPO_ROOT,
     encoding: 'utf8'
   });
-  assert.match(attributes, /filter: lfs/u);
-  assert.match(attributes, /diff: lfs/u);
-  assert.match(attributes, /merge: lfs/u);
-  assert.match(attributes, /text: unset/u);
+  assert.notEqual(electronTracked.status, 0, 'Electron release archive must be removed from Git tracking');
+
+  const rceditAttributes = spawnSync('git', ['check-attr', 'filter', 'diff', 'merge', 'text', '--', RCEDIT_ARCHIVE], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8'
+  });
+  assert.equal(rceditAttributes.status, 0);
+  assert.match(rceditAttributes.stdout, /filter: lfs/u);
+  assert.match(rceditAttributes.stdout, /diff: lfs/u);
+  assert.match(rceditAttributes.stdout, /merge: lfs/u);
+  assert.match(rceditAttributes.stdout, /text: unset/u);
+});
+
+test('Electron trust authority binds the exact official v39.8.5 GitHub Release asset identity', () => {
+  const trust = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'release/electron-distribution-trust.json'), 'utf8'));
+  const archive = trust.archives?.['win32-x64'];
+  assert.ok(archive);
+  assert.equal(archive.fileName, 'electron-v39.8.5-win32-x64.zip');
+  assert.equal(archive.sha256, EXPECTED_ELECTRON_SHA256);
+  assert.equal(archive.sizeBytes, EXPECTED_ELECTRON_SIZE);
+  assert.equal(archive.sourceRepository, 'electron/electron');
+  assert.equal(archive.releaseTag, 'v39.8.5');
+  assert.equal(archive.assetId, 382512506);
+  assert.equal(archive.downloadUrl, EXPECTED_RELEASE_URL);
 });

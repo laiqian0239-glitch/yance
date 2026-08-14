@@ -74,16 +74,23 @@ test('Task 9 gives each frozen Element install a clean iteration-scoped RUNNER_T
 
 test('trusted Windows CI keeps Builder-host npm separate and uses exact npm@10.9.2 for reviewed production dependency materialization before WP7', () => {
   const source = readWorkflow();
-  const lfsPullIndex = source.indexOf('git lfs pull');
+  const electronStepStart = source.indexOf('- name: Materialize and verify official Windows Electron Release asset');
+  const electronStepEnd = source.indexOf('\n      - name:', electronStepStart + 1);
   const exactNpmIndex = source.indexOf('npm.cmd exec --yes --package=npm@10.9.2 -- npm ci');
   const builderIndex = source.indexOf('tools/wp7/create-pre-review-trusted-product.js');
   const uploadIndex = source.indexOf('Product-Experience-Materialized-Desktop-UAT-');
-  assert.ok(lfsPullIndex >= 0 && exactNpmIndex > lfsPullIndex && builderIndex > exactNpmIndex && uploadIndex > builderIndex);
+  assert.ok(electronStepStart >= 0 && electronStepEnd > electronStepStart, 'official Electron Release step must exist');
+  assert.ok(exactNpmIndex > electronStepEnd && builderIndex > exactNpmIndex && uploadIndex > builderIndex);
+  const electronStep = source.slice(electronStepStart, electronStepEnd);
   assert.match(source, /release[\\/]electron-distribution-trust\.json/u);
-  assert.match(source, /git lfs install --local/u);
-  assert.match(source, /git lfs pull origin --include=/u);
-  assert.match(source, /git show "HEAD:\$relativePath"/u);
-  assert.match(source, /oid sha256:/u);
+  assert.match(electronStep, /\$archive\.sourceRepository/u);
+  assert.match(electronStep, /\$archive\.releaseTag/u);
+  assert.match(electronStep, /\$archive\.assetId/u);
+  assert.match(electronStep, /\$archive\.downloadUrl/u);
+  assert.match(electronStep, /\$archive\.sizeBytes/u);
+  assert.match(electronStep, /curl\.exe --fail --location/u);
+  assert.match(electronStep, /Get-FileHash[^\n]*SHA256/u);
+  assert.doesNotMatch(electronStep, /git lfs|git show "HEAD:\$relativePath"|git-lfs\.github\.com|oid sha256:/u);
   assert.match(source, /node-version:\s*['"]22\.23\.1['"]/u);
   assert.doesNotMatch(source, /unexpected Builder-host npm/u);
   assert.doesNotMatch(source, /\(npm --version\)\.Trim\(\) -ne '10\.9\.2'/u);

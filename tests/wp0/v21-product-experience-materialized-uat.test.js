@@ -62,7 +62,14 @@ test('trusted Windows CI fully materializes the desktop UAT before upload', () =
   assert.match(source, /7df0bc9375723f4a86b3aa1b7cc73342423d9677a8df4538aca31a049e309c29/u);
   assert.match(source, /f8d162c0641dcee512132f3bcf8a68169c7ecb852efd8e1a46c9fec5a0f469ed/u);
   assert.match(source, /release[\\/]electron-distribution-trust\.json/u);
-  assert.match(source, /git lfs pull origin --include=/u);
+  const electronStepStart = source.indexOf('- name: Materialize and verify official Windows Electron Release asset');
+  const electronStepEnd = source.indexOf('\n      - name:', electronStepStart + 1);
+  assert.ok(electronStepStart >= 0 && electronStepEnd > electronStepStart, 'official Electron Release materialization step must exist');
+  const electronStep = source.slice(electronStepStart, electronStepEnd);
+  assert.match(electronStep, /curl\.exe --fail --location/u);
+  assert.match(electronStep, /\$archive\.sizeBytes/u);
+  assert.match(electronStep, /Get-FileHash[^\n]*SHA256/u);
+  assert.doesNotMatch(electronStep, /git lfs|git-lfs\.github\.com|HEAD:\$relativePath/u);
   assert.match(source, /npm(?:\.cmd)?\s+ci[^\n]*(?:--omit=dev|--production)/u);
   assert.match(source, /tools[\\/]parlant[\\/]build-windows-runtime\.ps1/u);
   assert.match(source, /tools\/wp7\/create-pre-review-trusted-product\.js/u);

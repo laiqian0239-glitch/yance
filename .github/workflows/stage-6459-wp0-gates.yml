@@ -16,9 +16,6 @@ env:
   BASELINE_ANCHOR_COMMIT: 570823e722f6db475066d6ef80ba900ac5c6cb39
   BASELINE_ANCHOR_PATH: governance/rejected-baselines/stage-6.4.5.8.json
   BASELINE_ANCHOR_BLOB: 6a5ffc68e76baf6a477668c6c2faf61934e94720
-  ELECTRON_LFS_PATH: vendor/electron/electron-v39.8.5-win32-x64.zip
-  ELECTRON_LFS_OID: d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34
-  ELECTRON_LFS_SIZE: '136644393'
 
 jobs:
   wp0-route:
@@ -78,9 +75,26 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf "${TRUSTED_ROUTE_POLICY_ROOT}"
-          git worktree prune
-          git worktree add --detach "${TRUSTED_ROUTE_POLICY_ROOT}" "${BASE_SHA}"
-          test "$(git -C "${TRUSTED_ROUTE_POLICY_ROOT}" rev-parse HEAD)" = "${BASE_SHA}"
+          mkdir -p "${TRUSTED_ROUTE_POLICY_ROOT}"
+          git archive --format=tar "${BASE_SHA}" -- \
+            tools/layered-ci/select-wp0-route.js \
+            tools/layered-ci/wp0-routing.js \
+            tools/layered-ci/cli-support.js \
+            governance/layered-ci/wp0-routing-policy.json \
+            | tar -xf - -C "${TRUSTED_ROUTE_POLICY_ROOT}"
+          for repo_path in \
+            tools/layered-ci/select-wp0-route.js \
+            tools/layered-ci/wp0-routing.js \
+            tools/layered-ci/cli-support.js \
+            governance/layered-ci/wp0-routing-policy.json
+          do
+            expected_blob="$(git rev-parse "${BASE_SHA}:${repo_path}")"
+            actual_blob="$(git hash-object "${TRUSTED_ROUTE_POLICY_ROOT}/${repo_path}")"
+            test "${actual_blob}" = "${expected_blob}"
+          done
+          git_dir="$(git rev-parse --absolute-git-dir)"
+          printf 'gitdir: %s\n' "${git_dir}" > "${TRUSTED_ROUTE_POLICY_ROOT}/.git"
+          git -C "${TRUSTED_ROUTE_POLICY_ROOT}" cat-file -e "${BASE_SHA}^{commit}"
           printf 'TRUSTED_ROUTE_POLICY_ROOT=%s\n' "${TRUSTED_ROUTE_POLICY_ROOT}" >> "${GITHUB_ENV}"
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
@@ -133,8 +147,15 @@ jobs:
           test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})"
           rm -rf "${TRUSTED_POLICY_ROOT}"
           git worktree prune
-          git worktree add --detach "${TRUSTED_POLICY_ROOT}" "${TRUSTED_POLICY_SHA}"
+          git worktree add --detach --no-checkout "${TRUSTED_POLICY_ROOT}" "${TRUSTED_POLICY_SHA}"
+          git -C "${TRUSTED_POLICY_ROOT}" sparse-checkout init --cone
+          git -C "${TRUSTED_POLICY_ROOT}" sparse-checkout set tools/wp0 shared/release governance
+          git -C "${TRUSTED_POLICY_ROOT}" reset --hard "${TRUSTED_POLICY_SHA}"
           test "$(git -C "${TRUSTED_POLICY_ROOT}" rev-parse HEAD)" = "${TRUSTED_POLICY_SHA}"
+          test -f "${TRUSTED_POLICY_ROOT}/tools/wp0/verify-gate.js"
+          test -f "${TRUSTED_POLICY_ROOT}/shared/release/implementationBranchPolicy.js"
+          test -d "${TRUSTED_POLICY_ROOT}/governance"
+          test ! -e "${TRUSTED_POLICY_ROOT}/vendor/electron/electron-v39.8.5-win32-x64.zip"
           printf 'TRUSTED_POLICY_ROOT=%s\n' "${TRUSTED_POLICY_ROOT}" >> "${GITHUB_ENV}"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - name: Set up Node.js
@@ -142,14 +163,36 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
-      - name: Fetch and verify trusted Electron LFS object
+      - name: Materialize and verify official Electron Release asset
         shell: bash
+        env:
+          ELECTRON_TRUST_PATH: release/electron-distribution-trust.json
         run: |
           set -euo pipefail
-          git lfs install --local
-          git lfs pull origin --include="${ELECTRON_LFS_PATH}" --exclude=""
-          echo "${ELECTRON_LFS_OID}  ${ELECTRON_LFS_PATH}" | sha256sum --check --strict
-          test "$(stat --format='%s' "${ELECTRON_LFS_PATH}")" = "${ELECTRON_LFS_SIZE}"
+          mapfile -t electron_trust < <(node - <<'NODE'
+          const fs = require('node:fs');
+          const trust = JSON.parse(fs.readFileSync(process.env.ELECTRON_TRUST_PATH, 'utf8'));
+          const archive = trust.archives?.['win32-x64'];
+          const expectedUrl = 'https://github.com/electron/electron/releases/download/v39.8.5/electron-v39.8.5-win32-x64.zip';
+          if (trust.electronVersion !== '39.8.5'
+            || archive?.fileName !== 'electron-v39.8.5-win32-x64.zip'
+            || archive?.sha256 !== 'd75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34'
+            || archive?.sizeBytes !== 136644393
+            || archive?.sourceRepository !== 'electron/electron'
+            || archive?.releaseTag !== 'v39.8.5'
+            || archive?.assetId !== 382512506
+            || archive?.downloadUrl !== expectedUrl) {
+            throw new Error('Electron official Release trust authority mismatch');
+          }
+          process.stdout.write([archive.downloadUrl, archive.sha256, String(archive.sizeBytes), archive.fileName].join('\n') + '\n');
+          NODE
+          )
+          test "${#electron_trust[@]}" -eq 4
+          electron_archive="${RUNNER_TEMP}/${electron_trust[3]}"
+          rm -f "${electron_archive}"
+          curl --fail --location --proto '=https' --tlsv1.2 --output "${electron_archive}" "${electron_trust[0]}"
+          echo "${electron_trust[1]}  ${electron_archive}" | sha256sum --check --strict
+          test "$(stat --format='%s' "${electron_archive}")" = "${electron_trust[2]}"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
