@@ -13,16 +13,18 @@ function readText(relativePath) {
   return fs.readFileSync(file, 'utf8');
 }
 
-test('Windows preflight authorizes WSL2 only and has no native-Windows, Docker, or cloud trainer fallback', () => {
+test('Windows preflight authorizes WSL2 only and has no native-Windows, Docker, cloud, install, or PowerShell stderr-merge fallback', () => {
   const source = readText('tools/deep-training/agent-lightning-preflight.ps1');
   assert.match(source, /wsl(?:\.exe)?/iu);
   assert.match(source, /WSL2/iu);
   assert.doesNotMatch(source, /docker\s+(?:run|compose)|docker\.exe/iu);
   assert.doesNotMatch(source, /native[- ]windows.*fallback|cloud.*fallback/iu);
   assert.doesNotMatch(source, /pip\s+install|uv\s+sync|git\s+clone/iu);
+  assert.doesNotMatch(source, /2>&1/u);
+  assert.match(source, /2>\$null/u);
 });
 
-test('dedicated Agent Lightning workflow executes on exact Linux PR head and validates the sealed P1 runtime', () => {
+test('dedicated Agent Lightning workflow executes on exact Linux PR head, drops checkout credentials, and validates the sealed P1 runtime', () => {
   const workflow = readText('.github/workflows/v21-agent-lightning-p1-linux.yml');
   assert.match(workflow, /runs-on:\s*ubuntu-latest/u);
   assert.match(workflow, /agent_lightning_entrypoint\.py/u);
@@ -32,6 +34,11 @@ test('dedicated Agent Lightning workflow executes on exact Linux PR head and val
   assert.match(workflow, /ref:\s*\$\{\{\s*github\.event\.pull_request\.head\.sha\s*\|\|\s*github\.sha\s*\}\}/u);
   assert.match(workflow, /EXPECTED_HEAD:\s*\$\{\{\s*github\.event\.pull_request\.head\.sha\s*\|\|\s*github\.sha\s*\}\}/u);
   assert.match(workflow, /git rev-parse HEAD/u);
+
+  const checkoutCount = [...workflow.matchAll(/uses:\s*actions\/checkout@v4/gu)].length;
+  const noCredentialCount = [...workflow.matchAll(/persist-credentials:\s*false/gu)].length;
+  assert.equal(checkoutCount, 2);
+  assert.equal(noCredentialCount, checkoutCount);
 
   const syncLines = workflow
     .split(/\r?\n/u)
