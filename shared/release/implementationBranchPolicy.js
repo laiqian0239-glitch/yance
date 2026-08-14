@@ -911,6 +911,27 @@ function collectNpmLockTreePackagePaths(node, temporaryRoot, packagePaths = new 
   return packagePaths;
 }
 
+function resolveTrustedNpmInvocation(args, options = {}) {
+  if (!Array.isArray(args) || args.some(value => typeof value !== 'string')) return null;
+  const platform = typeof options.platform === 'string' ? options.platform : process.platform;
+  const environment = options.environment && typeof options.environment === 'object'
+    ? options.environment
+    : process.env;
+  if (platform === 'win32') {
+    const commandInterpreter = typeof environment.COMSPEC === 'string' && environment.COMSPEC.length > 0
+      ? environment.COMSPEC
+      : 'cmd.exe';
+    return Object.freeze({
+      executable: commandInterpreter,
+      args: Object.freeze(['/d', '/c', 'npm.cmd', ...args])
+    });
+  }
+  return Object.freeze({
+    executable: 'npm',
+    args: Object.freeze([...args])
+  });
+}
+
 function resolveNpmLockTreePackagePaths(
   candidateManifest,
   candidateLockfile,
@@ -939,7 +960,6 @@ function resolveNpmLockTreePackagePaths(
       npm_config_update_notifier: 'false',
       npm_config_offline: 'true'
     };
-    const npmExecutable = process.platform === 'win32' ? 'npm.cmd' : 'npm';
     const args = [
       'ls',
       '--package-lock-only',
@@ -950,9 +970,11 @@ function resolveNpmLockTreePackagePaths(
       '--include=optional',
       '--include=peer'
     ];
+    const invocation = resolveTrustedNpmInvocation(args, { environment });
+    if (!invocation) return null;
     let output;
     try {
-      output = execFileSync(npmExecutable, args, {
+      output = execFileSync(invocation.executable, invocation.args, {
         cwd: temporaryRoot,
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -1976,6 +1998,7 @@ module.exports = {
   evaluateDelegatedGovernanceAuthorizationProposal,
   validateDelegatedRoutePolicyMutation,
   validateDelegatedDependencyIdentityMutation,
+  resolveTrustedNpmInvocation,
   evaluateTrustedDelegatedGovernanceBranch,
   isAuthorizedDelegatedGovernanceBranch,
   isAuthorizedImplementationBranch,
