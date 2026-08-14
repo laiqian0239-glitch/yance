@@ -12,6 +12,13 @@
     "commit": "6db3e1d03b95ba270929b83d730b2291e9a90642",
     "requiredFreshAtAuthorizationMerge": true
   },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
   "causalEvidence": {
     "blockedPullRequest": 374,
     "blockedHead": "ca72110604296a1a9ca3952757fc2ff24b779616",
@@ -35,7 +42,9 @@
       "governance/layered-ci/acv2-schema23-current-schema-test-contract-v1-authorization.json"
     ],
     "approvedChangedFileCount": 1,
-    "approvedChangedFileSetSha256": "a071f1c6909a974372cdc6490a96f66080713a4fd49fcdc20d57ba74dfa4bd39"
+    "approvedChangedFileSetSha256": "a071f1c6909a974372cdc6490a96f66080713a4fd49fcdc20d57ba74dfa4bd39",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
   },
   "implementation": {
     "branch": "test/acv2-schema23-current-schema-test-contract-v1",
@@ -48,6 +57,12 @@
     "approvedChangedFileSetSha256": "81f8f9e419a10de9969ca6f36b419131b15c07c87f23ec6d4d84a6dd698c5967",
     "productionCodeChanged": false,
     "testOnly": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
     "expectedChanges": [
       "Current R32 SCHEMA_VERSION assertions advance from 22 to 23.",
       "Fresh-store current schema metadata assertions advance from 22 to 23.",
@@ -126,6 +141,8 @@
     "baseOwnedClosureRequiredBeforeBlockedMigrationMerge": true,
     "productionUseAuthorized": false,
     "formalReleaseAuthorized": false,
-    "publishAuthorized": false
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
   }
 }
