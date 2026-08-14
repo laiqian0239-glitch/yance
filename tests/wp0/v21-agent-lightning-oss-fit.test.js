@@ -37,6 +37,17 @@ test('Agent Lightning v0.3.0 is adopted as the sealed source-module rather than 
   assert.equal(upstream.adoptionMode, 'source-module');
   assert.equal(upstream.initialAlgorithm, 'APO');
   assert.equal(upstream.candidateStatus, 'CANDIDATE_ONLY');
+  assert.deepEqual(upstream.selectedApiSurface, [
+    'APO',
+    'Trainer',
+    'TraceToMessages',
+    'PromptTemplate',
+    'prompt_rollout',
+    'emit_reward',
+    'find_final_reward',
+    'get_active_tracer',
+    'OtelTracer'
+  ]);
 });
 
 test('Python dependency controls pin the exact Agent Lightning APO declaration, upstream lock bytes, and license evidence', () => {
