@@ -46,6 +46,11 @@ jobs:
           enable-cache: false
       - name: Validate Agent Lightning P1 contracts
         run: node --test tests/wp0/v21-agent-lightning-*.test.js
+      - name: Run landed Learning Deep Training regression and authority suites
+        run: >-
+          node --test --test-concurrency=1
+          backend/tests/learningDeepTrainingContract.test.js
+          tests/wp0/v21-learning-deep-training-contract-closure.test.js
       - name: Validate sealed Python sources and exact upstream lock
         run: |
           python -m py_compile runtime/deep-training/agent-lightning/agent_lightning_entrypoint.py
