@@ -279,11 +279,13 @@
     "rootNpmLockfileModificationAllowed": false,
     "pythonDependencyMaterializationAllowed": true,
     "workflowModificationAllowed": true,
-    "workflowPaths": [
-      ".github/workflows/v21-agent-lightning-p1-linux.yml"
-    ],
-    "workflowPathCount": 1,
-    "workflowPathSetSha256": "33684c8c04b664020e8198f1808e5ed62d7556b4bdc0ed05f57794e33739d095",
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-agent-lightning-p1-linux.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "33684c8c04b664020e8198f1808e5ed62d7556b4bdc0ed05f57794e33739d095"
+    },
     "productImplementationAllowed": true,
     "newGeneralPurposeYanceInfrastructureAllowed": false,
     "historicalDocsMayBeModified": false,
