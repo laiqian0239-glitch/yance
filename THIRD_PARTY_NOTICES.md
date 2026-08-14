@@ -283,3 +283,15 @@ Exact Presence / Avatar pins and authority boundaries are recorded in `config/up
 - Voice Python dependency closure is defined only by `runtime/voice-brain/cosyvoice/pyproject.toml` plus its exact `uv.lock`, then materialized at build time using the already-noticed `uv` and `python-build-standalone` supply chain with `--frozen --offline` semantics.
 
 Exact Voice Brain source, model and build-tool pins are recorded in `config/upstreams/v21-voice-brain-p0.json`. Voice profiles and prompt samples remain local/private; final Voice sending delegates to the existing Yance `send-media-stream` authority rather than creating a second send queue or outbox.
+
+## Agent Lightning
+
+- Project: Microsoft Agent Lightning
+- Upstream: `https://github.com/microsoft/agent-lightning.git`
+- Version: `v0.3.0`
+- Exact commit: `3b5d733861cf313fc09821a23240bbdf3cb2ee5b`
+- Package: `agentlightning[apo]==0.3.0`
+- License: `MIT`
+- License copy: `third_party/licenses/agent-lightning-MIT.txt`
+- Upstream dependency lock: exact `uv.lock` Git blob `5a98a2ac121b050b0a82f6ac8dc207577ce3af4e`
+- Yance integration: source-module CORE + APO only, downstream of Learning and Model Brain authority, returning `CANDIDATE_ONLY`.

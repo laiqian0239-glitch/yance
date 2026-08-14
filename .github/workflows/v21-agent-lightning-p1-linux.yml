@@ -1,0 +1,38 @@
+name: V21 Agent Lightning P1 Linux
+
+on:
+  pull_request:
+    paths:
+      - 'backend/services/agentLightningTrainingAdapter.js'
+      - 'config/upstreams/v21-agent-lightning-p1.json'
+      - 'runtime/deep-training/agent-lightning/**'
+      - 'tools/deep-training/agent-lightning-preflight.ps1'
+      - 'tests/wp0/v21-agent-lightning-*.test.js'
+      - '.github/workflows/v21-agent-lightning-p1-linux.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sealed-agent-lightning-p1:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.19.0'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate Agent Lightning P1 contracts
+        run: node --test tests/wp0/v21-agent-lightning-*.test.js
+      - name: Validate sealed Python sources and exact upstream lock
+        run: |
+          python -m py_compile runtime/deep-training/agent-lightning/agent_lightning_entrypoint.py
+          python -m py_compile runtime/deep-training/agent-lightning/generate_runtime_sbom.py
+          python runtime/deep-training/agent-lightning/agent_lightning_entrypoint.py --self-check
+          python runtime/deep-training/agent-lightning/generate_runtime_sbom.py --output /tmp/v21-agent-lightning-p1-sbom.json
+          python -c "import json; d=json.load(open('/tmp/v21-agent-lightning-p1-sbom.json', encoding='utf-8')); assert d['bomFormat']=='CycloneDX' and d['specVersion']=='1.7'"
+          test "$(git hash-object runtime/deep-training/agent-lightning/uv.lock)" = "5a98a2ac121b050b0a82f6ac8dc207577ce3af4e"
+          test "$(wc -c < runtime/deep-training/agent-lightning/uv.lock)" -eq 12891147

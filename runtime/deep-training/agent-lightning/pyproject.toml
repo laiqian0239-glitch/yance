@@ -1,0 +1,20 @@
+# Dependency-control receipt for the sealed Microsoft Agent Lightning v0.3.0 source-module.
+# runtime/deep-training/agent-lightning/uv.lock is the exact upstream lock from commit
+# 3b5d733861cf313fc09821a23240bbdf3cb2ee5b (Git blob 5a98a2ac121b050b0a82f6ac8dc207577ce3af4e).
+# Runtime startup never resolves this manifest; the sealed Linux environment must already contain this version.
+[project]
+name = "yance-agent-lightning-p1-runtime-receipt"
+version = "0.0.0"
+requires-python = ">=3.10"
+dependencies = [
+  "agentlightning[apo]==0.3.0",
+]
+
+[tool.yance.agent-lightning]
+repository = "microsoft/agent-lightning"
+release = "v0.3.0"
+commit = "3b5d733861cf313fc09821a23240bbdf3cb2ee5b"
+upstream-pyproject-blob = "c24704c9e37de800831e9bb6858de2c3623d3da8"
+upstream-uv-lock-blob = "5a98a2ac121b050b0a82f6ac8dc207577ce3af4e"
+materialization = "sealed-build-only"
+startup-resolution = false

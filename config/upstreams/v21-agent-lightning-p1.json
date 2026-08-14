@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "repository": "microsoft/agent-lightning",
+  "release": "v0.3.0",
+  "commit": "3b5d733861cf313fc09821a23240bbdf3cb2ee5b",
+  "license": "MIT",
+  "python": ">=3.10",
+  "adoptionMode": "source-module",
+  "initialAlgorithm": "APO",
+  "candidateStatus": "CANDIDATE_ONLY",
+  "executionAuthority": "Linux",
+  "windowsBoundary": "WSL2-only",
+  "upstreamPyprojectGitBlob": "c24704c9e37de800831e9bb6858de2c3623d3da8",
+  "upstreamUvLockGitBlob": "5a98a2ac121b050b0a82f6ac8dc207577ce3af4e",
+  "upstreamUvLockSha256": "27119d66f130dc2d1e9890531925bac44ee80eed49c203d6e9b594783d248bc5",
+  "selectedApiSurface": [
+    "APO",
+    "Trainer",
+    "TraceToMessages",
+    "prompt_rollout",
+    "emit_reward",
+    "find_final_reward"
+  ],
+  "runtimeStore": "run-scoped in-memory only",
+  "modelExecution": "existing Yance Model Brain only",
+  "startupDependencyResolution": false,
+  "forbiddenInitialAuthorities": [
+    "SFT",
+    "VERL/RL",
+    "Agent Lightning provider-routing authority",
+    "Agent Lightning server as Yance provider gateway",
+    "LightningStore as canonical Yance learning truth"
+  ]
+}
