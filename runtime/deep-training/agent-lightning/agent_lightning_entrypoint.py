@@ -216,7 +216,7 @@ def run_training(envelope: dict[str, Any], bridge: ModelBrainBridge) -> dict[str
         initial_resources={"prompt_template": PromptTemplate(template=SEED_TEMPLATE, engine="f-string")},
         adapter=TraceToMessages(),
         tracer=OtelTracer(),
-        strategy="shm",
+        strategy={"type": "shm", "main_thread": "algorithm"},
     )
 
     with contextlib.redirect_stdout(sys.stderr):
