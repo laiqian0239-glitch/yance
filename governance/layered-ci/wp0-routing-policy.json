@@ -193,7 +193,13 @@
     "third_party/licenses/rive-wasm-MIT.txt",
     "third_party/licenses/types-howler-MIT.txt",
     "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
-    "upstream-patches/element-web/0012-yance-element-module-runtime.patch"
+    "upstream-patches/element-web/0012-yance-element-module-runtime.patch",
+    "config/upstreams/v21-agent-lightning-p1.json",
+    "runtime/deep-training/agent-lightning/agent_lightning_entrypoint.py",
+    "runtime/deep-training/agent-lightning/generate_runtime_sbom.py",
+    "runtime/deep-training/agent-lightning/pyproject.toml",
+    "runtime/deep-training/agent-lightning/uv.lock",
+    "third_party/licenses/agent-lightning-MIT.txt"
   ],
   "productPrefixes": [
     ".github/",
