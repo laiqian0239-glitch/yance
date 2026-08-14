@@ -116,8 +116,13 @@ function createLearningPolicyDecisionContract(options = {}) {
 
     const featureBundle = normalizeFeatureBundle(input.featureBundle || {});
     const candidateStrategyBranch = clean(input.candidateStrategyBranch);
-    if (!ALLOWED_ACTIONS.includes(candidateStrategyBranch)) {
-      throw policyError('LEARNING_POLICY_ACTION_NOT_ALLOWED', 'candidateStrategyBranch is outside the exact P1 action set.', { candidateStrategyBranch });
+    const allowedActionSet = unique(input.allowedActionSet?.length ? input.allowedActionSet : ALLOWED_ACTIONS);
+    if (
+      !allowedActionSet.length ||
+      allowedActionSet.some(action => !ALLOWED_ACTIONS.includes(action)) ||
+      !allowedActionSet.includes(candidateStrategyBranch)
+    ) {
+      throw policyError('LEARNING_POLICY_ACTION_NOT_ALLOWED', 'candidateStrategyBranch/action-set is outside the exact P1 action authority.', { candidateStrategyBranch, allowedActionSet });
     }
     const behaviorPolicyVersion = clean(input.behaviorPolicyVersion || input.policyVersion) || 'vw-p1-baseline-v1';
     const policyVersion = clean(input.policyVersion) || behaviorPolicyVersion;
@@ -140,9 +145,9 @@ function createLearningPolicyDecisionContract(options = {}) {
     const contextCandidateSetRef = canonicalHash({
       candidatePlanId: generation.candidatePlanId || '',
       directorStrategyId: generation.directorStrategyId || '',
-      actions: ALLOWED_ACTIONS
+      actions: allowedActionSet
     });
-    const actionSetRef = canonicalHash({ encoding: ACTION_ENCODING_VERSION, actions: ALLOWED_ACTIONS });
+    const actionSetRef = canonicalHash({ encoding: ACTION_ENCODING_VERSION, actions: allowedActionSet });
     const actionId = `candidateStrategyBranch:${candidateStrategyBranch}`;
     const recordCore = {
       schemaVersion: 1,
@@ -161,7 +166,7 @@ function createLearningPolicyDecisionContract(options = {}) {
       contextCandidateSetRef,
       actionId,
       actionEncodingVersion: ACTION_ENCODING_VERSION,
-      allowedActionSet: ALLOWED_ACTIONS,
+      allowedActionSet: deepFreeze([...allowedActionSet]),
       actionSetRef,
       chosenAction: { kind: 'candidateStrategyBranch', value: candidateStrategyBranch },
       candidateStrategyBranch,
