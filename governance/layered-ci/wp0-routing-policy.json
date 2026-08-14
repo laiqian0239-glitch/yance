@@ -199,7 +199,8 @@
     "runtime/deep-training/agent-lightning/generate_runtime_sbom.py",
     "runtime/deep-training/agent-lightning/pyproject.toml",
     "runtime/deep-training/agent-lightning/uv.lock",
-    "third_party/licenses/agent-lightning-MIT.txt"
+    "third_party/licenses/agent-lightning-MIT.txt",
+    "third_party/licenses/vowpal-wabbit-BSD-3-Clause.txt"
   ],
   "productPrefixes": [
     ".github/",
