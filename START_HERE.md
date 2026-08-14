@@ -6,6 +6,8 @@
 
 首先读取 [`YANCE_IMPLEMENTATION_MASTER_PLAN.md`](./YANCE_IMPLEMENTATION_MASTER_PLAN.md)。
 
+随后必须读取 [`YANCE_LEARNED_POLICY_HIGHEST_DIRECTIVE.md`](./YANCE_LEARNED_POLICY_HIGHEST_DIRECTIVE.md)。该文件冻结 Learning / Deep Training 的长期产品方向：**OpenAI / Anthropic frontier model 继续负责主力最终语言生成，Yance 学习的是 relationship state、context/memory selection、structured strategy、candidate preference/ranking、model/reasoning routing 与真实 Decision → Outcome policy。旧 Qwen 本地 reply-generator / Agent Lightning VERL P2 产品语义已 superseded，不得在新聊天恢复。**
+
 随后必须读取 [`YANCE_OSS_FIRST_DEVELOPMENT_HIGHEST_DIRECTIVE.md`](./YANCE_OSS_FIRST_DEVELOPMENT_HIGHEST_DIRECTIVE.md)。该文件把 V2.1 的 **Mature OSS Mandatory Adoption** 前移为所有未来开发和修复的第一准入步骤：**任何 work package、功能、RED、UAT、runtime、packaging、tooling、governance 设计，在写 Yance 实现之前必须先证明成熟 OSS / 上游源码模块 / 官方 SDK / native prebuild / 现有 repository seam 是否已经可以拥有该能力。存在可用成熟实现时，优先整块采用/移植并退休同类 Yance 自研，不得先自研后补做 OSS 调研。**
 
 随后必须读取 [`YANCE_EXECUTION_ACCELERATION_HIGHEST_DIRECTIVE.md`](./YANCE_EXECUTION_ACCELERATION_HIGHEST_DIRECTIVE.md)。该文件是 V2.1 的**永久强制执行语义补充**：保持所有最终门禁强度不变，通过验证分层、外部 OSS exact-SHA shallow materialization、不可变缓存复用、CI 等待并行化和减少本机人工往返来加速项目落地。任何新聊天不得忽略、弱化或重新讨论这套默认执行模式。
@@ -16,11 +18,12 @@
 
 1. 当前远端 refs、正式治理凭据、exact Head、workflow、review、receipt；
 2. `YANCE_IMPLEMENTATION_MASTER_PLAN.md` V2.1；
-3. `YANCE_OSS_FIRST_DEVELOPMENT_HIGHEST_DIRECTIVE.md`（强制所有未来开发/修复先完成 OSS-fit；不扩大既有 scope）；
-4. `YANCE_EXECUTION_ACCELERATION_HIGHEST_DIRECTIVE.md`（仅约束执行/验证/下载/materialization/caching/本机协作语义，不扩大架构或授权 scope）；
-5. `PROJECT_CONTINUATION.md` 动态接续；
-6. 明确声明只补充 V2.1 的专项合同；
-7. Git 历史只用于审计，不作为当前执行指令。
+3. `YANCE_LEARNED_POLICY_HIGHEST_DIRECTIVE.md`（约束 Learning / Deep Training / personalization 产品语义；不扩大既有 scope）；
+4. `YANCE_OSS_FIRST_DEVELOPMENT_HIGHEST_DIRECTIVE.md`（强制所有未来开发/修复先完成 OSS-fit；不扩大既有 scope）；
+5. `YANCE_EXECUTION_ACCELERATION_HIGHEST_DIRECTIVE.md`（仅约束执行/验证/下载/materialization/caching/本机协作语义，不扩大架构或授权 scope）；
+6. `PROJECT_CONTINUATION.md` 动态接续；
+7. 明确声明只补充 V2.1 的专项合同；
+8. Git 历史只用于审计，不作为当前执行指令。
 
 ### 0.1 永久 OSS-first 开发准入硬规则
 
