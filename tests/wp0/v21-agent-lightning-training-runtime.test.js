@@ -53,7 +53,7 @@ test('Linux CI materializes exact upstream APO, runs landed Learning suites, and
 
 test('Linux CI pins every external GitHub Action to an immutable commit SHA', () => {
   const workflow = readText('.github/workflows/v21-agent-lightning-p1-linux.yml');
-  const actionUses = [...workflow.matchAll(/^\s*uses:\s*([^\s#]+)(?:\s+#\s*(v\d+))?\s*$/gmu)]
+  const actionUses = [...workflow.matchAll(/^\s*-?\s*uses:\s*([^\s#]+)(?:\s+#\s*(v\d+))?\s*$/gmu)]
     .map(match => ({ ref: match[1], versionComment: match[2] || null }));
 
   assert.equal(actionUses.length, 5, 'expected the five reviewed external action uses');
