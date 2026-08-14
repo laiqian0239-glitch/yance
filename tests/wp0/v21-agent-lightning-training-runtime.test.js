@@ -40,7 +40,6 @@ test('Linux CI materializes exact upstream APO, runs landed Learning suites, and
   const workflow = readText('.github/workflows/v21-agent-lightning-p1-linux.yml');
   assert.match(workflow, /repository:\s*microsoft\/agent-lightning/u);
   assert.match(workflow, /ref:\s*3b5d733861cf313fc09821a23240bbdf3cb2ee5b/u);
-  assert.match(workflow, /astral-sh\/setup-uv@v7/u);
   assert.match(workflow, /version:\s*['"]?0\.12\.3/u);
   assert.match(workflow, /uv sync [^\n]*--frozen --no-default-groups --extra apo --group core-stable/u);
   assert.match(workflow, /cmp -s [^\n]*uv\.lock [^\n]*uv\.lock/u);
@@ -50,4 +49,16 @@ test('Linux CI materializes exact upstream APO, runs landed Learning suites, and
   assert.match(workflow, /AGENT_LIGHTNING_PYTHON/u);
   assert.match(workflow, /modelBrainCompletionCount/u);
   assert.match(workflow, /CANDIDATE_ONLY/u);
+});
+
+test('Linux CI pins every external GitHub Action to an immutable commit SHA', () => {
+  const workflow = readText('.github/workflows/v21-agent-lightning-p1-linux.yml');
+  const actionUses = [...workflow.matchAll(/^\s*uses:\s*([^\s#]+)(?:\s+#\s*(v\d+))?\s*$/gmu)]
+    .map(match => ({ ref: match[1], versionComment: match[2] || null }));
+
+  assert.equal(actionUses.length, 5, 'expected the five reviewed external action uses');
+  for (const actionUse of actionUses) {
+    assert.match(actionUse.ref, /^[^@\s]+@[0-9a-f]{40}$/u, `mutable GitHub Action reference: ${actionUse.ref}`);
+    assert.match(actionUse.versionComment || '', /^v\d+$/u, `missing adjacent release-version comment: ${actionUse.ref}`);
+  }
 });
