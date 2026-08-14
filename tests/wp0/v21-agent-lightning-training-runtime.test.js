@@ -23,6 +23,12 @@ test('sealed Python entrypoint uses upstream APO/Trainer/TraceToMessages/prompt_
   assert.doesNotMatch(source, /pip\s+install|uv\s+sync|git\s+clone/u);
 });
 
+test('shared-memory runtime keeps the algorithm on the main thread so upstream completion stops the runner fleet', () => {
+  const source = readText('runtime/deep-training/agent-lightning/agent_lightning_entrypoint.py');
+  assert.match(source, /strategy=\{\s*"type":\s*"shm",\s*"main_thread":\s*"algorithm"\s*\}/u);
+  assert.doesNotMatch(source, /strategy=["']shm["']/u);
+});
+
 test('runtime SBOM generator is deterministic/offline-oriented and startup code does not install dependencies', () => {
   const sbom = readText('runtime/deep-training/agent-lightning/generate_runtime_sbom.py');
   assert.match(sbom, /CycloneDX|cyclonedx|bomFormat/u);
