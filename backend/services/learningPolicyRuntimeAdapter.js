@@ -50,11 +50,10 @@ function createLearningPolicyRuntimeAdapter(options = {}) {
     let activePolicy = input.activePolicy && typeof input.activePolicy === 'object' ? input.activePolicy : null;
     if (!activePolicy && resolveActivePolicy) activePolicy = await resolveActivePolicy({ featureBundle, allowedActions });
 
-    // An injected sealed VW operation is authoritative for an explicitly supplied
-    // active policy and is also the unit/UAT seam. Without a promoted policy,
-    // production remains on the explicit deterministic baseline.
-    const shouldInvoke = Boolean(invokeVowpalWabbit && (activePolicy || options.invokeWithoutActivePolicy === true || input.invokeWithoutActivePolicy === true));
-    if (!shouldInvoke && !activePolicy) return baseline({ ...input, allowedActions }, 'NO_PROMOTED_POLICY');
+    // Production constructs this adapter without an arbitrary request-supplied
+    // runtime. Tests/UAT may inject the already-sealed VW operation directly.
+    // No runtime injection means an explicit deterministic baseline.
+    if (!invokeVowpalWabbit && !activePolicy) return baseline({ ...input, allowedActions }, 'NO_PROMOTED_POLICY');
     if (!invokeVowpalWabbit) {
       onDegradation?.({ reasonCode: 'SEALED_VW_RUNTIME_UNAVAILABLE', policyArtifactId: clean(activePolicy?.policyArtifactId) });
       return baseline({ ...input, allowedActions }, 'SEALED_VW_RUNTIME_UNAVAILABLE');
