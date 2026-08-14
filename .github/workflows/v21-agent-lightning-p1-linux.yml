@@ -20,6 +20,12 @@ jobs:
     steps:
       - name: Checkout reviewed Yance head
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact reviewed Yance head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
       - name: Checkout pinned Agent Lightning source
         uses: actions/checkout@v4
         with:
