@@ -295,3 +295,12 @@ Exact Voice Brain source, model and build-tool pins are recorded in `config/upst
 - License copy: `third_party/licenses/agent-lightning-MIT.txt`
 - Upstream dependency lock: exact `uv.lock` Git blob `5a98a2ac121b050b0a82f6ac8dc207577ce3af4e`
 - Yance integration: source-module CORE + APO only, downstream of Learning and Model Brain authority, returning `CANDIDATE_ONLY`.
+## Vowpal Wabbit
+
+- Project: Vowpal Wabbit
+- Upstream: `VowpalWabbit/vowpal_wabbit`
+- Version: `9.11.2`
+- Frozen commit: `122bae254a5b8bc2b774d13b33d53e6dbc2cfba7`
+- License: `BSD-3-Clause`
+- License copy: `third_party/licenses/vowpal-wabbit-BSD-3-Clause.txt`
+- Yance integration: sealed Learning runtime contextual-bandit ADF policy head only. P1 is deterministic (`actionProbability=1.0`, `exploration=false`); Model Brain/LiteLLM remains the final reply-generation authority.

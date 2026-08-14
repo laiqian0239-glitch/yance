@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 LEARNED_POLICY_ACTION_ENCODING = "candidate-strategy-branch-v1"
-LEARNED_POLICY_FEATURES = ("interactionBand", "relationshipStage", "targetLanguage")
+LEARNED_POLICY_FEATURES = ("interactionBand", "performanceMode", "questionPolicy", "relationshipStage", "targetLanguage")
 
 
 @dataclass(frozen=True)
