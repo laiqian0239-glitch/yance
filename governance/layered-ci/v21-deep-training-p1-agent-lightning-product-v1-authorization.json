@@ -4,7 +4,7 @@
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-DEEP-TRAINING-P1-AGENT-LIGHTNING-PRODUCT-V1",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Fresh executable successor after the Agent Lightning P1 exact-route prerequisite ordinary-merged as trusted main add83ce2fd0621dd6bc9acf992113f5810545296. Historical PRs #215/#216 remain design/pre-contract evidence only and are not executable parents. Landed Learning→Deep-Training contracts now expose read-only eligible projections, Learning-approved Langfuse score evidence, canonical relationship/global isolation, experiment evidence binding, regression/shadow review, and Learning-owned rollback. The selected mature OSS remains Microsoft Agent Lightning v0.3.0. This authorization permits only a thin Learning→Agent Lightning→Learning candidate-training composition using upstream APO/Trainer APIs and the existing Model Brain execution authority; it does not authorize a Yance trainer, reward engine, canonical dataset, second model gateway, direct provider credentials, SFT, VERL/RL, production activation, promotion, release, or publish.",
+  "reason": "Fresh executable successor after the Agent Lightning P1 exact-route prerequisite ordinary-merged as trusted main add83ce2fd0621dd6bc9acf992113f5810545296. Historical PRs #215/#216 remain design/pre-contract evidence only. Landed Learning to Deep-Training contracts now provide read-only eligible projections, Learning-approved Langfuse score evidence, canonical scope isolation, experiment evidence binding, regression/shadow review and Learning-owned rollback. This authorization adopts Microsoft Agent Lightning v0.3.0 core plus APO behind existing Learning and Model Brain authority seams. It does not authorize a Yance trainer, reward engine, canonical dataset, second model gateway, direct provider credentials, SFT, VERL/RL, production activation, promotion, release or publish.",
   "base": {
     "branch": "main",
     "commit": "add83ce2fd0621dd6bc9acf992113f5810545296"
@@ -24,8 +24,7 @@
     "historicalBranchesMayBeRebasedAmendedOrRevived": false,
     "oldNineteenPathSealMayBeReusedWithoutRevalidation": false,
     "oldSevenTestSealMayBeReusedWithoutRevalidation": false,
-    "freshSuccessorDocsRequired": true,
-    "reason": "Both historical lines predate the landed Learning→Deep-Training interfaces and the route-bootstrap predecessor; they remain immutable evidence only."
+    "freshSuccessorDocsRequired": true
   },
   "prerequisites": {
     "routeBootstrapAuthorizationPullRequest": 359,
@@ -71,9 +70,9 @@
       "authority": "Promptfoo + Langfuse evidence; Model Brain execution only"
     },
     "canonicalAuthorityRules": [
-      "Learning owns eligibility, data minimization, privacy and relationship/global isolation.",
+      "Learning owns eligibility, minimization, privacy and relationship/global isolation.",
       "Learning owns canonical trajectory/outcome semantics and approved Langfuse Score evidence.",
-      "Deep Training may consume only projections issued by the landed Learning contract; no mock, fixture or guessed production fallback.",
+      "Deep Training consumes only projections issued by the landed Learning contract; production mock, fixture or guessed fallback is forbidden.",
       "Learning retains regression, shadow, review, promotion and rollback authority after Deep Training returns a candidate."
     ]
   },
@@ -84,7 +83,7 @@
     "requiredScoreAuthority": "Langfuse",
     "requiredApprovedByLearning": true,
     "acceptedScoreType": "finite-number",
-    "mechanicalProjection": "emit the Learning-approved numeric score unchanged through upstream Agent Lightning emit_reward",
+    "mechanicalProjection": "emit the Learning-approved numeric score unchanged through upstream Agent Lightning reward APIs",
     "stringOrCategoricalScoreDisposition": "FAIL_CLOSED",
     "forbidden": [
       "Yance reward normalization",
@@ -92,8 +91,7 @@
       "Yance reward shaping",
       "Agent Lightning recomputation of success/failure semantics",
       "cross-signal reward aggregation invented by Deep Training"
-    ],
-    "reason": "The landed Learning contract permits a non-empty string score, while Agent Lightning APO consumes a final numeric reward. Only already-numeric Learning-approved score values are compatible without creating a second reward authority."
+    ]
   },
   "modelBrainBoundary": {
     "executor": {
@@ -108,11 +106,11 @@
       "modificationAuthorized": false
     },
     "rules": [
-      "Model Brain remains the sole provider-credential and physical/logical model-routing authority.",
-      "Agent Lightning Python receives no provider API key, endpoint credential, credentialRef secret, or direct-provider fallback.",
-      "The thin Node adapter may translate bounded Agent Lightning OpenAI-compatible completion requests into existing Model Brain executeModel calls and return only bounded completion/evidence results.",
-      "The private Node↔Python request bridge is work-package-local mechanical IPC, not a reusable gateway, router, proxy service, or new Yance infrastructure.",
-      "Agent Lightning LLMProxy/server APIs may exist in the adopted upstream package but must not be activated as a production provider/routing authority."
+      "Model Brain remains the sole provider-credential and model-routing/execution authority.",
+      "Agent Lightning Python receives no provider API key, endpoint credential, credentialRef secret or direct-provider fallback.",
+      "The thin Node adapter may translate bounded Agent Lightning OpenAI-compatible completion requests into existing Model Brain executeModel calls and return bounded completion/evidence results.",
+      "The Node to Python bridge is work-package-local mechanical IPC, not a reusable gateway, router, proxy service or new general-purpose Yance infrastructure.",
+      "Agent Lightning LLMProxy/server APIs may remain present in upstream code but must not be activated as Yance provider/routing authority."
     ]
   },
   "upstream": {
@@ -183,23 +181,23 @@
         "license": "MIT",
         "adoptionMode": "upstream-core-plus-APO",
         "fit": "FIT",
-        "reason": "Provides the mature training orchestration, prompt rollout, trace adapters, APO and run-scoped store abstractions needed for this slice."
+        "reason": "Provides mature training orchestration, prompt rollout, trace adapters and APO needed for this slice."
       },
       {
         "name": "Existing Yance Learning/Growth Brain",
-        "source": "landed Learning→Deep-Training contract and Learning proposal/evaluation adapters",
+        "source": "landed Learning to Deep-Training contract and proposal/evaluation adapters",
         "license": "existing-repository-seam",
         "adoptionMode": "reuse-existing-authority",
         "fit": "FIT",
-        "reason": "Already owns canonical eligibility, score/evidence, privacy/isolation, regression/shadow, promotion and rollback; Deep Training must not rebuild them."
+        "reason": "Already owns eligibility, score/evidence, privacy/isolation, regression/shadow, promotion and rollback."
       },
       {
         "name": "Existing Yance Model Brain/LiteLLM",
-        "source": "backend/services/modelExecutor.js + modelBrainRuntime.js",
+        "source": "backend/services/modelExecutor.js + backend/services/modelBrainRuntime.js",
         "license": "existing-repository-seam",
         "adoptionMode": "reuse-existing-authority",
         "fit": "FIT",
-        "reason": "Already owns provider credentials and model routing/execution; Agent Lightning must consume it through a thin bounded adapter."
+        "reason": "Already owns provider credentials and model routing/execution."
       }
     ],
     "selectedAdoptionMode": "upstream-core-plus-APO-with-existing-Yance-authority-seams",
@@ -254,32 +252,40 @@
     ],
     "approvedChangedFileCount": 19,
     "approvedChangedFileSetSha256": "ed46e6ba1b2b4bb6dec311bb29b2bedb1427650e993475561a3c825f8d19d437",
-    "newDependencyAllowed": true,
-    "workflowModificationAllowed": true,
-    "productImplementationAllowed": true,
-    "firstCommitMustBeTestOnly": true,
-    "firstCommitAllowedChangedPaths": [
-      "tests/wp0/v21-agent-lightning-authority-boundary.test.js",
-      "tests/wp0/v21-agent-lightning-contract-adapter.test.js",
-      "tests/wp0/v21-agent-lightning-evaluation-gate.test.js",
-      "tests/wp0/v21-agent-lightning-oss-fit.test.js",
-      "tests/wp0/v21-agent-lightning-privacy-isolation.test.js",
-      "tests/wp0/v21-agent-lightning-training-runtime.test.js",
-      "tests/wp0/v21-agent-lightning-wsl-runtime.test.js"
-    ],
-    "firstCommitChangedFileCount": 7,
-    "firstCommitChangedFileSetSha256": "8db739b4d5597929551d49a1df558349af8bb58921942d0de4a96a548835c61b",
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-agent-lightning-authority-boundary.test.js",
+        "tests/wp0/v21-agent-lightning-contract-adapter.test.js",
+        "tests/wp0/v21-agent-lightning-evaluation-gate.test.js",
+        "tests/wp0/v21-agent-lightning-oss-fit.test.js",
+        "tests/wp0/v21-agent-lightning-privacy-isolation.test.js",
+        "tests/wp0/v21-agent-lightning-training-runtime.test.js",
+        "tests/wp0/v21-agent-lightning-wsl-runtime.test.js"
+      ],
+      "approvedChangedFileCount": 7,
+      "approvedChangedFileSetSha256": "8db739b4d5597929551d49a1df558349af8bb58921942d0de4a96a548835c61b",
+      "productionCodeChanged": false
+    },
     "dependencyControlPaths": [
       "runtime/deep-training/agent-lightning/pyproject.toml",
       "runtime/deep-training/agent-lightning/uv.lock"
     ],
     "dependencyControlPathCount": 2,
     "dependencyControlPathSetSha256": "80c66a839a5979f445de27a69d356427176dc2baeccc1c2905b185d0facae9f1",
+    "newDependencyAllowed": false,
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "pythonDependencyMaterializationAllowed": true,
+    "workflowModificationAllowed": true,
     "workflowPaths": [
       ".github/workflows/v21-agent-lightning-p1-linux.yml"
     ],
     "workflowPathCount": 1,
     "workflowPathSetSha256": "33684c8c04b664020e8198f1808e5ed62d7556b4bdc0ed05f57794e33739d095",
+    "productImplementationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
     "historicalDocsMayBeModified": false,
     "successorDocs": [
       "docs/superpowers/plans/2026-08-14-yance-v21-agent-lightning-p1.md",
@@ -363,55 +369,31 @@
         "disposition": "STALE_DRAFT_SHARED_NOTICE_REVALIDATION_REQUIRED_IF_IT_LANDS_FIRST"
       }
     ],
-    "zeroExactImplementationPathOverlap": [
-      {
-        "pullRequest": 223,
-        "head": "0b48b4dbd04693d21ef3f6545cbd330c6b519289"
-      },
-      {
-        "pullRequest": 215,
-        "head": "e92413b654c277eb7f60c29ce9eb73acda6b0fbd"
-      },
-      {
-        "pullRequest": 216,
-        "head": "9b6a66d3fc7659b49f98c58ffd5c62f784973baa"
-      },
-      {
-        "pullRequest": 158,
-        "head": "7f852691ca89d3089ad1b10837e97cc55a226361"
-      },
-      {
-        "pullRequest": 289,
-        "head": "a5d91f22f46fc702ae72937b2a4b3fdd421bfa3c"
-      },
-      {
-        "pullRequest": 17,
-        "head": "708ce1290f3bfcaec3a3a8c6589248fde5961c47"
-      }
-    ],
     "reuseOnlySemanticDependencyOverlap": [
       {
         "pullRequest": 223,
+        "head": "0b48b4dbd04693d21ef3f6545cbd330c6b519289",
         "paths": [
           "backend/services/learningEvaluationAdapter.js",
           "backend/services/learningProposalService.js"
         ],
-        "disposition": "DO_NOT_ABSORB; IF_LANDED_BEFORE_FINAL_AGENT_LIGHTNING_MERGE, REVALIDATE_THE_FROZEN_LEARNING_CONTRACT"
+        "disposition": "DO_NOT_ABSORB; IF_LANDED_FIRST_REVALIDATE_FROZEN_LEARNING_CONTRACT"
       },
       {
         "pullRequest": 158,
+        "head": "7f852691ca89d3089ad1b10837e97cc55a226361",
         "paths": [
           "backend/services/modelBrainRuntime.js",
           "backend/services/modelExecutor.js"
         ],
-        "disposition": "DO_NOT_ABSORB; IF_LANDED_BEFORE_FINAL_AGENT_LIGHTNING_MERGE, REVALIDATE_THE_FROZEN_MODEL_BRAIN_BOUNDARY"
+        "disposition": "DO_NOT_ABSORB; IF_LANDED_FIRST_REVALIDATE_FROZEN_MODEL_BRAIN_BOUNDARY"
       }
     ],
-    "sharedNoticeRule": "Before any edit or final merge involving THIRD_PARTY_NOTICES.md, freshly re-read main and all active overlapping PR Heads. Use ordinary descendant reconciliation only; never rebase, amend, force-push, squash or cherry-pick another workline as authority."
+    "sharedNoticeRule": "Before any edit or final merge involving THIRD_PARTY_NOTICES.md, freshly re-read main and all active overlapping PR Heads. Reconcile only by ordinary descendant history; never rebase, amend, force-push, squash or cherry-pick another workline as authority."
   },
   "mandatoryFailureFirstContracts": [
-    "The first implementation commit changes exactly the seven successor-frozen tests and zero product/runtime/config/workflow/dependency/documentation code.",
-    "Before implementation, the thin Learning→Agent Lightning adapter, sealed Agent Lightning runtime, Linux workflow and WSL2 preflight are absent and the new contracts are causally RED for those missing capabilities, not for routing.",
+    "The first implementation commit changes exactly the seven frozen tests and zero product/runtime/config/workflow/dependency/documentation code.",
+    "Before implementation, the thin Learning to Agent Lightning adapter, sealed Agent Lightning runtime, Linux workflow and WSL2 preflight are absent and the new tests are causally RED for those missing capabilities, not routing.",
     "The adapter consumes only a projection issued by the landed Learning contract and rejects mock/fallback/guessed Learning interfaces.",
     "Only a finite numeric Learning-approved Langfuse Score may cross as Agent Lightning reward; string/categorical scores fail closed and no reward mapping/shaping is introduced.",
     "Upstream Agent Lightning v0.3.0 APO/Trainer/TraceToMessages/prompt_rollout/reward APIs are used rather than a Yance trainer or optimizer.",
@@ -426,9 +408,9 @@
     "Stop at the authorization ordinary-merge boundary.",
     "At authorization merge time re-read live main; first parent must still equal add83ce2fd0621dd6bc9acf992113f5810545296 or close this proposal unmerged and rebuild from fresh main.",
     "After owner ordinary-merges the authorization, create product/v21-deep-training-p1-agent-lightning from that exact two-parent authorization merge.",
-    "Create the mandatory seven-test-only causal RED first commit; record exact failing workflow evidence before product implementation.",
+    "Create the mandatory seven-test-only causal RED first commit and record exact failing workflow evidence before product implementation.",
     "Implement only the authorized 19 paths using mature OSS Agent Lightning v0.3.0 and existing Learning/Model Brain authorities.",
-    "If any reuse-only frozen Learning/Model Brain contract changes on live main before final implementation merge, stop and revalidate under fresh authority rather than silently adapting.",
+    "If any frozen reuse-only Learning/Model Brain contract changes on live main before final implementation merge, stop and revalidate rather than silently adapting.",
     "Pass exact-head Stage, Layered, ACV2, Linux Agent Lightning runtime verification, WSL2 preflight, landed Learning regression/authority suites and independent review.",
     "Stop at the final implementation ordinary-merge boundary."
   ],
