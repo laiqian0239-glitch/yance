@@ -64,6 +64,45 @@
     "platform": "Linux; Windows development/operation only through the explicitly validated WSL2 boundary",
     "pinRevalidatedAfterDeepTrainingV3Merge": true
   },
+  "ossFit": {
+    "decision": "ADOPT_EXISTING_TRUSTED_ROUTE_GUARD",
+    "matureOssAvailable": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance delegated route mutation guard",
+        "source": "shared/release/implementationBranchPolicy.js#validateDelegatedRoutePolicyMutation + bootstrapPaths contract",
+        "license": "Yance repository existing trusted seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already enforces exact bootstrap path count/digest and rejects broad-prefix and unrelated route mutation; no new policy engine is needed."
+      },
+      {
+        "name": "Open Policy Agent",
+        "source": "open-policy-agent/opa",
+        "license": "Apache-2.0",
+        "adoptionMode": "sidecar-service",
+        "fit": "PARTIAL_FIT",
+        "reason": "Mature general-purpose policy engine, but adopting it for six repository-internal route literals would introduce a second policy-engine authority instead of reusing the already-trusted exact route seam."
+      },
+      {
+        "name": "Microsoft Agent Lightning",
+        "source": "microsoft/agent-lightning@v0.3.0 (3b5d733861cf313fc09821a23240bbdf3cb2ee5b)",
+        "license": "MIT",
+        "adoptionMode": "full-product",
+        "fit": "PARTIAL_FIT",
+        "reason": "Correct future training-execution OSS, but it does not own Yance WP0 route classification; this authorization is only the exact routing prerequisite."
+      }
+    ],
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "retireOrAvoid": [
+      "Do not introduce a second Yance route or policy engine.",
+      "Do not add broad config/, runtime/, third_party/ product prefixes.",
+      "Do not create an OPA, Cedar, or Casbin sidecar for this exact repository-routing prerequisite.",
+      "Do not duplicate validateDelegatedRoutePolicyMutation; reuse the trusted bootstrapPaths guard unchanged.",
+      "Do not authorize Agent Lightning runtime, trainer, reward, dataset, evaluator, promotion, or model-routing implementation in this route-bootstrap work package."
+    ]
+  },
   "authorizationBranch": {
     "name": "governance/v21-deep-training-p1-agent-lightning-route-bootstrap-v1-authorization",
     "allowedChangedPaths": [
