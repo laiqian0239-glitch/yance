@@ -1,7 +1,9 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const { EventEmitter } = require('node:events');
 const path = require('node:path');
+const { PassThrough } = require('node:stream');
 const test = require('node:test');
 
 const ROOT = path.resolve(__dirname, '../..');
@@ -89,4 +91,60 @@ test('thin adapter obtains Learning projection, delegates completion to Model Br
   assert.ok(calls.some(([name]) => name === 'projectRelationship'));
   assert.ok(calls.some(([name]) => name === 'executeModel'));
   assert.ok(calls.some(([name]) => name === 'bindExperimentEvidence'));
+});
+
+test('sealed runtime waits for stdio close so a result delivered after process exit is not misclassified as failure', async () => {
+  const { createSealedAgentLightningRuntimeInvoker } = loadAdapter();
+
+  const spawnProcess = () => {
+    const child = new EventEmitter();
+    child.stdin = new PassThrough();
+    child.stdout = new PassThrough();
+    child.stderr = new PassThrough();
+    child.killed = false;
+    child.kill = () => {
+      child.killed = true;
+      return true;
+    };
+
+    process.nextTick(() => {
+      child.emit('exit', 0, null);
+      setImmediate(() => {
+        child.stdout.write(`${JSON.stringify({
+          type: 'result',
+          result: {
+            status: 'CANDIDATE_ONLY',
+            candidate: { prompt: 'late-but-valid', artifactId: 'artifact-late' },
+            evidence: { runId: 'late-result' }
+          }
+        })}\n`);
+        child.stdout.end();
+        child.stderr.end();
+        setImmediate(() => child.emit('close', 0, null));
+      });
+    });
+
+    return child;
+  };
+
+  const invoke = createSealedAgentLightningRuntimeInvoker({
+    repositoryRoot: ROOT,
+    spawnProcess,
+    timeoutMs: 1_000
+  });
+
+  const result = await invoke({
+    schemaVersion: 1,
+    workPackage: 'V21-DEEP-TRAINING-P1-AGENT-LIGHTNING-PRODUCT-V1',
+    algorithm: 'APO',
+    statusBoundary: 'CANDIDATE_ONLY',
+    projection: {},
+    rewards: [],
+    tasks: [],
+    complete: async () => ({ text: 'unused' })
+  });
+
+  assert.equal(result.status, 'CANDIDATE_ONLY');
+  assert.equal(result.candidate.prompt, 'late-but-valid');
+  assert.equal(result.evidence.modelBrainCompletionCount, 0);
 });
