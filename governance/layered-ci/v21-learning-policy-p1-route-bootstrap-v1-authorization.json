@@ -75,7 +75,7 @@
         "source": "open-policy-agent/opa",
         "license": "Apache-2.0",
         "adoptionMode": "sidecar-service",
-        "fit": "PARTIAL_FIT_REJECT_FOR_THIS_SCOPE",
+        "fit": "PARTIAL_FIT",
         "reason": "Mature policy engine, but adding a second policy authority to insert one repository route literal would duplicate the existing trusted route guard and increase infrastructure."
       },
       {
@@ -83,7 +83,7 @@
         "source": "VowpalWabbit/vowpal_wabbit@122bae254a5b8bc2b774d13b33d53e6dbc2cfba7",
         "license": "BSD-3-Clause",
         "adoptionMode": "future-existing-learning-runtime-dependency",
-        "fit": "PARTIAL_FIT_ROUTE_ONLY",
+        "fit": "PARTIAL_FIT",
         "reason": "Selected future bounded strategy-policy learner, but it does not own Yance WP0 route classification; this authorization only prepares its exact license evidence route."
       }
     ],
