@@ -1,7 +1,12 @@
 {
   "schemaVersion": 1,
   "documentType": "YANCE_LAYERED_CI_RISK_POLICY",
-  "levels": ["L0", "L1", "L2", "L3"],
+  "levels": [
+    "L0",
+    "L1",
+    "L2",
+    "L3"
+  ],
   "defaultCodeLevel": "L1",
   "documentationExactPaths": [
     "README.md"
@@ -20,9 +25,13 @@
     "tools/"
   ],
   "l2ExactPaths": [
+    ".gitattributes",
+    ".gitignore",
     "THIRD_PARTY_NOTICES.md",
+    "package-lock.json",
     "package.json",
-    "package-lock.json"
+    "release/electron-distribution-trust.json",
+    "vendor/electron/electron-v39.8.5-win32-x64.zip"
   ],
   "l2Prefixes": [
     ".github/",

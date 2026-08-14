@@ -10,7 +10,7 @@ const { REPO_ROOT } = require('../../tools/wp0/lib');
 
 const FIXED_TIME = '2026-07-03T00:00:00Z';
 const FIXTURE_BRANCH = 'rebuild/windows-release-closure-20260806-wp0-fixture';
-const ELECTRON_LFS_PATH = 'vendor/electron/electron-v39.8.5-win32-x64.zip';
+const RCEDIT_LFS_PATH = 'vendor/rcedit/rcedit-v2.0.0-x64.exe';
 const POST_MERGE_DEFECT_PATH = path.join(
   REPO_ROOT,
   'governance',
@@ -31,10 +31,10 @@ function git(cwd, args) {
 }
 
 function assertPointerPreserved(repo) {
-  const pointer = fs.readFileSync(path.join(repo, ELECTRON_LFS_PATH), 'utf8');
+  const pointer = fs.readFileSync(path.join(repo, RCEDIT_LFS_PATH), 'utf8');
   assert.match(pointer, /^version https:\/\/git-lfs\.github\.com\/spec\/v1\r?\n/u);
-  assert.match(pointer, /^oid sha256:d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34$/mu);
-  assert.match(pointer, /^size 136644393$/mu);
+  assert.match(pointer, /^oid sha256:3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a$/mu);
+  assert.match(pointer, /^size 1360384$/mu);
 }
 
 function makeCleanClone() {
@@ -149,7 +149,9 @@ test('historical detached evidence succeeds only at the sealed post-merge defect
     encoding: 'utf8',
     env: LFS_POINTER_ENV
   });
-  assertPointerPreserved(worktree);
+  // The sealed historical review head predates rcedit custody. The current-head
+  // fixture above already proves generic rcedit LFS pointer preservation; this
+  // historical contract remains focused on detached evidence identity.
   const out = path.join(root, 'historical-evidence');
   const result = runGenerator(worktree, ['--source-commit', historical, '--generated-at-utc', FIXED_TIME, '--output-dir', out]);
   assert.equal(result.status, 0, result.stdout + result.stderr);

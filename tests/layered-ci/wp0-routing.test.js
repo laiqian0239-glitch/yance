@@ -200,11 +200,37 @@ test('unknown or invalid paths fail closed rather than selecting a cheaper route
 
 test('Stage WP0 workflow has base-owned routing and separate routes behind one aggregate gate', () => {
   const text = fs.readFileSync(path.join(ROOT, '.github/workflows/stage-6459-wp0-gates.yml'), 'utf8');
-  assert.match(text, /wp0-route:/u);
-  assert.match(text, /Resolve exact event diff range/u);
-  assert.match(text, /TRUSTED_ROUTE_POLICY_ROOT:\s*\$\{\{ runner\.temp \}\}\/yance-wp0-trusted-route/u);
-  assert.match(text, /git worktree add --detach "\$\{TRUSTED_ROUTE_POLICY_ROOT\}" "\$\{BASE_SHA\}"/u);
-  assert.match(text, /node "\$\{TRUSTED_ROUTE_POLICY_ROOT\}\/tools\/layered-ci\/select-wp0-route\.js"/u);
+  const lines = text.split('\n');
+  const routeStart = lines.findIndex(line => line === '  wp0-route:');
+  const productStart = lines.findIndex(line => line === '  wp0-product:');
+  const documentationStart = lines.findIndex(line => line === '  wp0-product-documentation:');
+  assert.ok(routeStart >= 0 && productStart > routeStart && documentationStart > productStart);
+  const routeJob = lines.slice(routeStart, productStart).join('\n');
+  const productJob = lines.slice(productStart, documentationStart).join('\n');
+
+  assert.match(routeJob, /Resolve exact event diff range/u);
+  assert.match(routeJob, /TRUSTED_ROUTE_POLICY_ROOT:\s*\$\{\{ runner\.temp \}\}\/yance-wp0-trusted-route/u);
+  assert.match(routeJob, /git archive --format=tar "\$\{BASE_SHA\}" --/u);
+  for (const exactBasePath of [
+    'tools/layered-ci/select-wp0-route.js',
+    'tools/layered-ci/wp0-routing.js',
+    'tools/layered-ci/cli-support.js',
+    'governance/layered-ci/wp0-routing-policy.json'
+  ]) assert.match(routeJob, new RegExp(exactBasePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'));
+  assert.match(routeJob, /gitdir: %s\\n/u);
+  assert.match(routeJob, /git hash-object "\$\{TRUSTED_ROUTE_POLICY_ROOT\}\/\$\{repo_path\}"/u);
+  assert.doesNotMatch(routeJob, /git worktree add|GIT_LFS_SKIP_SMUDGE|git lfs/u);
+  assert.match(routeJob, /node "\$\{TRUSTED_ROUTE_POLICY_ROOT\}\/tools\/layered-ci\/select-wp0-route\.js"/u);
+
+  assert.match(productJob, /git worktree add --detach --no-checkout "\$\{TRUSTED_POLICY_ROOT\}" "\$\{TRUSTED_POLICY_SHA\}"/u);
+  assert.match(productJob, /sparse-checkout init --cone/u);
+  assert.match(productJob, /sparse-checkout set tools\/wp0 shared\/release governance/u);
+  assert.ok(productJob.includes('git -C "${TRUSTED_POLICY_ROOT}" reset --hard "${TRUSTED_POLICY_SHA}"'));
+  assert.ok(productJob.includes('test -f "${TRUSTED_POLICY_ROOT}/tools/wp0/verify-gate.js"'));
+  assert.ok(productJob.includes('test -f "${TRUSTED_POLICY_ROOT}/shared/release/implementationBranchPolicy.js"'));
+  assert.ok(productJob.includes('test ! -e "${TRUSTED_POLICY_ROOT}/vendor/electron/electron-v39.8.5-win32-x64.zip"'));
+  assert.doesNotMatch(productJob, /git worktree add --detach "\$\{TRUSTED_POLICY_ROOT\}" "\$\{TRUSTED_POLICY_SHA\}"/u);
+
   assert.doesNotMatch(text, /uses:\s*\.\/\.github\/actions\/resolve-diff-range/u);
   assert.match(text, /TRUSTED_POLICY_SHA:\s*\$\{\{ needs\.wp0-route\.outputs\.base \}\}/u);
   assert.match(text, /node "\$\{TRUSTED_POLICY_ROOT\}\/tools\/wp0\/verify-gate\.js"/u);
