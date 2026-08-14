@@ -22,13 +22,16 @@ test('Windows preflight authorizes WSL2 only and has no native-Windows, Docker, 
   assert.doesNotMatch(source, /pip\s+install|uv\s+sync|git\s+clone/iu);
 });
 
-test('dedicated Agent Lightning workflow executes on Linux and validates the sealed P1 runtime', () => {
+test('dedicated Agent Lightning workflow executes on exact Linux PR head and validates the sealed P1 runtime', () => {
   const workflow = readText('.github/workflows/v21-agent-lightning-p1-linux.yml');
   assert.match(workflow, /runs-on:\s*ubuntu-latest/u);
   assert.match(workflow, /agent_lightning_entrypoint\.py/u);
   assert.match(workflow, /v21-agent-lightning/u);
   assert.doesNotMatch(workflow, /runs-on:\s*windows-latest/u);
   assert.doesNotMatch(workflow, /pip\s+install/u);
+  assert.match(workflow, /ref:\s*\$\{\{\s*github\.event\.pull_request\.head\.sha\s*\|\|\s*github\.sha\s*\}\}/u);
+  assert.match(workflow, /EXPECTED_HEAD:\s*\$\{\{\s*github\.event\.pull_request\.head\.sha\s*\|\|\s*github\.sha\s*\}\}/u);
+  assert.match(workflow, /git rev-parse HEAD/u);
 
   const syncLines = workflow
     .split(/\r?\n/u)
