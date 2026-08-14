@@ -1,20 +1,30 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 
 const ROOT = path.resolve(__dirname, '../..');
 
+function resolvePath(relativePath) {
+  return path.join(ROOT, ...relativePath.split('/'));
+}
+
 function readText(relativePath) {
-  const file = path.join(ROOT, ...relativePath.split('/'));
+  const file = resolvePath(relativePath);
   assert.equal(fs.existsSync(file), true, `missing ${relativePath}`);
   return fs.readFileSync(file, 'utf8');
 }
 
 function readJson(relativePath) {
   return JSON.parse(readText(relativePath));
+}
+
+function gitBlobSha1(bytes) {
+  const header = Buffer.from(`blob ${bytes.length}\0`, 'utf8');
+  return crypto.createHash('sha1').update(header).update(bytes).digest('hex');
 }
 
 test('Agent Lightning v0.3.0 is adopted as the sealed source-module rather than reimplemented by Yance', () => {
@@ -29,15 +39,16 @@ test('Agent Lightning v0.3.0 is adopted as the sealed source-module rather than 
   assert.equal(upstream.candidateStatus, 'CANDIDATE_ONLY');
 });
 
-test('Python dependency controls pin Agent Lightning APO and license/notice evidence is present', () => {
+test('Python dependency controls pin the exact Agent Lightning APO declaration, upstream lock bytes, and license evidence', () => {
   const pyproject = readText('runtime/deep-training/agent-lightning/pyproject.toml');
-  const lock = readText('runtime/deep-training/agent-lightning/uv.lock');
+  const lockPath = resolvePath('runtime/deep-training/agent-lightning/uv.lock');
+  const lockBytes = fs.readFileSync(lockPath);
   const license = readText('third_party/licenses/agent-lightning-MIT.txt');
   const notices = readText('THIRD_PARTY_NOTICES.md');
-  assert.match(pyproject, /agentlightning/u);
-  assert.match(pyproject, /0\.3\.0/u);
-  assert.match(lock, /agentlightning/u);
-  assert.match(lock, /0\.3\.0/u);
+
+  assert.match(pyproject, /"agentlightning\[apo\]==0\.3\.0"/u);
+  assert.equal(lockBytes.length, 12_891_147);
+  assert.equal(gitBlobSha1(lockBytes), '5a98a2ac121b050b0a82f6ac8dc207577ce3af4e');
   assert.match(license, /MIT License/u);
   assert.match(notices, /Agent Lightning|agent-lightning/u);
 });
