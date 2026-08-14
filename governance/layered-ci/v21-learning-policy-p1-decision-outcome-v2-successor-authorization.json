@@ -1,0 +1,389 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-14T21:07:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LEARNING-POLICY-P1-DECISION-OUTCOME-CLOSED-LOOP-V2-SUCCESSOR",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main successor for Learned Policy P1 after the independently authorized and ordinary-merged ACV2 Schema 23 domain_event_projection_jobs canonical migration closure. Historical PR #372 remains immutable causal RED evidence only. No rebase, cherry-pick-as-authority or history rewrite is used. The original 22-path Learned Policy implementation seal remains byte-for-byte applicable because trusted main drift since the original #371 implementation parent has zero overlap with all 22 paths, and Vowpal Wabbit 9.11.2 remains the latest stable upstream release.",
+  "base": {
+    "branch": "main",
+    "commit": "4e74d4b2937b7e260c8b833e2758e1f9fabb9c42",
+    "requiredFreshAtAuthorizationMerge": true,
+    "postMergeValidationRun": 31810324832,
+    "postMergeValidationConclusion": "success"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "supersession": {
+    "historicalAuthorizationPullRequest": 371,
+    "historicalAuthorizationMerge": "915c487784d991e5c683daa6e167950f310b9a47",
+    "historicalImplementationPullRequest": 372,
+    "historicalFrozenTestOnlyHead": "fb1beeb0e39ad4d6263f71b4c995eb5ec663e6e2",
+    "historicalCausalRedRun": 31796413179,
+    "historicalCausalRedJob": 94754440534,
+    "historicalImplementationMustRemainUnmodified": true,
+    "historicalImplementationMayMerge": false,
+    "rebaseHistoricalImplementation": false,
+    "cherryPickHistoricalImplementationAsAuthority": false,
+    "freshSuccessorRequired": true
+  },
+  "freshMainReconciliation": {
+    "originalImplementationParent": "915c487784d991e5c683daa6e167950f310b9a47",
+    "currentTrustedMain": "4e74d4b2937b7e260c8b833e2758e1f9fabb9c42",
+    "aheadCommits": 11,
+    "behindCommits": 0,
+    "changedMainPathsSinceOriginalParent": [
+      "backend/lib/r32SqliteStore.js",
+      "backend/migrations/architectureClosureV2DomainEventProjectionJobsCanonical.js",
+      "backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js",
+      "backend/tests/architectureClosureV2/wpA/domainEventProjectionJobsCanonicalMigration.test.js",
+      "backend/tests/batch27DeveloperHandoffV2Closure.test.js",
+      "governance/layered-ci/acv2-domain-event-projection-jobs-canonical-migration-v1-authorization.json",
+      "governance/layered-ci/acv2-schema23-canonical-migration-combined-v2-authorization.json",
+      "governance/layered-ci/acv2-schema23-current-schema-test-contract-v1-authorization.json"
+    ],
+    "implementationPathOverlapCount": 0,
+    "implementationPathOverlap": [],
+    "acv2Schema23ClosureMerge": "4e74d4b2937b7e260c8b833e2758e1f9fabb9c42",
+    "acv2Schema23PostMergeRun": 31810324832,
+    "acv2Schema23PostMergeGreen": true,
+    "originalImplementationSealReusable": true
+  },
+  "prerequisites": {
+    "architectureAndPlanMergeCommit": "bb476eed266b4b99febd436ee05a9083cb3de4f9",
+    "vowpalWabbitLicenseRouteImplementationMerge": "8dbb495aac3e11194e551e1f21b9c5c91c4f2325",
+    "acv2Schema23CanonicalMigrationMerge": "4e74d4b2937b7e260c8b833e2758e1f9fabb9c42",
+    "freshMainRevalidated": true,
+    "wp0UnknownRoutePathCount": 0,
+    "exactVowpalWabbitLicenseRoute": "third_party/licenses/vowpal-wabbit-BSD-3-Clause.txt"
+  },
+  "upstream": {
+    "name": "Vowpal Wabbit",
+    "repository": "VowpalWabbit/vowpal_wabbit",
+    "release": "9.11.2",
+    "exactCommit": "122bae254a5b8bc2b774d13b33d53e6dbc2cfba7",
+    "license": "BSD-3-Clause",
+    "latestStableReleaseRevalidatedAt": "2026-08-14",
+    "latestStableReleaseRevalidated": true,
+    "selectedCapability": "contextual-bandit ADF",
+    "liveExplorationAllowed": false
+  },
+  "ossFit": {
+    "decision": "ADOPT_MATURE_OSS_AND_EXISTING_REPOSITORY_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "source-module",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Vowpal Wabbit 9.11.2",
+        "source": "VowpalWabbit/vowpal_wabbit@122bae254a5b8bc2b774d13b33d53e6dbc2cfba7",
+        "license": "BSD-3-Clause",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "Owns the bounded contextual-bandit action head; a Yance-built bandit or online policy engine remains forbidden."
+      },
+      {
+        "name": "Existing Yance Learning/Growth Brain",
+        "source": "trusted main existing Learning seams",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Retains privacy/minimization, immutable eligible signal, reward/evaluation, projection, promotion and rollback authority."
+      },
+      {
+        "name": "Existing Model Brain/LiteLLM",
+        "source": "trusted main Model Brain seam",
+        "license": "repository-existing/MIT upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Retains provider credentials, physical routing and final frontier text generation. Learned Policy may select only a bounded logical action."
+      },
+      {
+        "name": "Existing DSPy + GEPA",
+        "source": "trusted main Learning runtime",
+        "license": "existing pinned OSS",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "PARTIAL_FIT",
+        "reason": "Useful for prompt/program optimization but not the bounded per-decision contextual-bandit action head."
+      },
+      {
+        "name": "Existing Agent Lightning P1",
+        "source": "trusted main dormant Deep Training runtime",
+        "license": "MIT upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "PARTIAL_FIT",
+        "reason": "Training execution is not required for this first online Decision→Outcome→Policy product loop and remains dormant."
+      }
+    ],
+    "retireOrAvoid": [
+      "Yance-built contextual-bandit or policy-learning engine",
+      "second reward framework or reward shaper",
+      "second feature store, dataset store, experiment framework or evaluator",
+      "second model gateway/router or provider credential authority",
+      "local Qwen/VERL or other learned-policy reply generator",
+      "second identity, memory, relationship, Persona or Journey authority",
+      "randomized live exploration in P1",
+      "rebase or cherry-pick of historical PR #372 as executable authority"
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "authorityBoundaries": {
+    "personIdentity": {
+      "authority": "PersonContextAuthority",
+      "path": "backend/services/personContextAuthority.js",
+      "mode": "READ_ONLY_REUSE",
+      "modificationAuthorized": false
+    },
+    "persona": {
+      "authority": "existing Persona/profile authority used by current reply compilation",
+      "mode": "READ_ONLY_REUSE",
+      "modificationAuthorized": false
+    },
+    "canonicalSerialization": {
+      "path": "backend/services/canonicalSerialization.js",
+      "mode": "READ_ONLY_REUSE",
+      "customSerializerAuthorized": false
+    },
+    "immutableLearningSignalLedger": {
+      "path": "backend/services/replyFeedbackLearningService.js",
+      "eligibleTrainableAnchor": "immutable learning-eligible candidate_sent signal with exact DecisionRecord provenance",
+      "rawOutcomeSignalType": "policy_outcome_observed",
+      "rawOutcomeLearningEligible": false,
+      "rawOutcomeEligibilityMayBeMutatedLater": false
+    },
+    "deepTrainingProjection": {
+      "path": "backend/services/learningDeepTrainingContract.js",
+      "mode": "EXTEND_EXISTING_LEARNING_OWNED_READ_ONLY_PROJECTION"
+    },
+    "modelBrain": {
+      "authority": "existing Model Brain/LiteLLM",
+      "productionProviderRoutingAuthorityUnchanged": true,
+      "learnedPolicyMaySelectOnlyLogicalAction": true,
+      "finalReplyMustRemainFrontierGenerated": true,
+      "directProviderCredentialsInVwRuntimeAllowed": false
+    }
+  },
+  "decisionOutcomePolicyContract": {
+    "firstActionField": "candidateStrategyBranch",
+    "allowedActionValues": [
+      "natural_hook",
+      "playful_attraction",
+      "direct_advance",
+      "screen_and_advance",
+      "leave_aftertaste"
+    ],
+    "p1ActionProbability": 1.0,
+    "exploration": false,
+    "rawHumanBehaviorIsReward": false,
+    "approvedRewardAuthority": "Learning-approved Langfuse Score",
+    "scoreMustBind": [
+      "eligibleSourceSignalId",
+      "decisionId",
+      "outcomeIds",
+      "outcomeEvidenceSetRef",
+      "rewardPolicyVersion"
+    ],
+    "featureBundleStoredAtDecisionTime": true,
+    "historicalRecomputationFromFutureRelationshipStateAllowed": false,
+    "freeformChatOrMemoryBodiesAllowed": false,
+    "credentialsAllowed": false,
+    "promotionAuthority": "existing Regression→Shadow→explicit Promotion/Rollback",
+    "activePolicyFailureBehavior": "verified last-known-good or baseline plus explicit degradation evidence; identity/privacy failures block evidence rather than silently repair"
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-learning-policy-p1-decision-outcome-v2-successor-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-learning-policy-p1-decision-outcome-v2-successor-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "69b2fd9cf098e65eef20741d875936c5354507d57238ebc3fc0142e9af067015",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "implementation": {
+    "branch": "product/v21-learning-policy-p1-decision-outcome-closed-loop-v2-successor",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "backend/services/candidateInteractionLearningService.js",
+      "backend/services/contextAwareReplyBrain.js",
+      "backend/services/learningDeepTrainingContract.js",
+      "backend/services/learningOutcomeAttributionService.js",
+      "backend/services/learningPolicyDecisionContract.js",
+      "backend/services/learningPolicyRuntimeAdapter.js",
+      "backend/services/replyFeedbackLearningService.js",
+      "backend/services/storeManagerService.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "config/upstreams/v21-learning-growth-brain-p0.json",
+      "runtime/learning-growth/python/learning_entrypoint.py",
+      "runtime/learning-growth/python/pyproject.toml",
+      "runtime/learning-growth/python/uv.lock",
+      "tests/wp0/v21-learning-policy-p1-decision-record.test.js",
+      "tests/wp0/v21-learning-policy-p1-outcome-binding.test.js",
+      "tests/wp0/v21-learning-policy-p1-production-consumption.test.js",
+      "tests/wp0/v21-learning-policy-p1-projection.test.js",
+      "tests/wp0/v21-learning-policy-p1-supply-chain.test.js",
+      "tests/wp0/v21-learning-policy-p1-vw-runtime.test.js",
+      "third_party/licenses/vowpal-wabbit-BSD-3-Clause.txt",
+      "tools/uat/v21LearningPolicyClosedLoopEvidence.js"
+    ],
+    "approvedChangedFileCount": 22,
+    "approvedChangedFileSetSha256": "930bf654a0088c6729ca265443a30e77e895ea0f7a69517df51ac4f207008ff6",
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-learning-policy-p1-decision-record.test.js",
+        "tests/wp0/v21-learning-policy-p1-outcome-binding.test.js",
+        "tests/wp0/v21-learning-policy-p1-production-consumption.test.js",
+        "tests/wp0/v21-learning-policy-p1-projection.test.js",
+        "tests/wp0/v21-learning-policy-p1-supply-chain.test.js",
+        "tests/wp0/v21-learning-policy-p1-vw-runtime.test.js"
+      ],
+      "approvedChangedFileCount": 6,
+      "approvedChangedFileSetSha256": "9aff346a55b16f1ae54a743daf15bb18cffc4c1471581556be1eea22acab3142",
+      "productionCodeChanged": false,
+      "historicalBlobReuseAllowedOnlyAsFreshTreeMaterialization": true,
+      "historicalCommitCherryPickAllowed": false,
+      "expectedMissingCapabilities": [
+        "canonical DecisionRecord with identity/persona/policy/action provenance",
+        "immutable raw OutcomeVector binding and eligible source-signal join",
+        "bounded policy projection over immutable evidence",
+        "sealed Vowpal Wabbit 9.11.2 runtime/dependency/license supply-chain closure",
+        "production consumption that changes only candidateStrategyBranch before existing frontier generation"
+      ]
+    },
+    "workflowModificationAllowed": false,
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "pythonDependencyMaterializationAllowed": true,
+    "dependencyControlPaths": [
+      "runtime/learning-growth/python/pyproject.toml",
+      "runtime/learning-growth/python/uv.lock"
+    ],
+    "dependencyControlPathCount": 2,
+    "dependencyControlPathSetSha256": "6a33c99858dfc7d51af9a75dc4834907224196522b2b72991a1f58e606fa43c8",
+    "exactNewPythonDependency": "vowpalwabbit==9.11.2",
+    "productImplementationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "parallelWork": {
+    "freshInventoryAtBase": "4e74d4b2937b7e260c8b833e2758e1f9fabb9c42",
+    "overlaps": [
+      {
+        "pullRequest": 223,
+        "head": "0b48b4dbd04693d21ef3f6545cbd330c6b519289",
+        "state": "OPEN_DRAFT",
+        "exactOverlap": [
+          "config/upstreams/v21-learning-growth-brain-p0.json",
+          "runtime/learning-growth/python/learning_entrypoint.py",
+          "runtime/learning-growth/python/pyproject.toml",
+          "runtime/learning-growth/python/uv.lock"
+        ],
+        "disposition": "DO_NOT_ABSORB; IF_LANDED_FIRST_REBUILD_AUTHORIZATION_FROM_FRESH_MAIN"
+      },
+      {
+        "pullRequest": 139,
+        "head": "eee7da1cb541b32a1f6af365ed8210ce23636563",
+        "state": "OPEN_DRAFT",
+        "exactOverlap": [
+          "THIRD_PARTY_NOTICES.md",
+          "backend/services/contextAwareReplyBrain.js"
+        ],
+        "disposition": "DO_NOT_ABSORB; IF_LANDED_FIRST_REVALIDATE_PERSONA_AND_REPLY_BOUNDARIES"
+      },
+      {
+        "pullRequest": 211,
+        "head": "0ef46efd62f195049640a96ba6e5fe2a1f6a6e6e",
+        "state": "OPEN_DRAFT",
+        "exactOverlap": [
+          "THIRD_PARTY_NOTICES.md"
+        ],
+        "disposition": "SHARED_NOTICE_ONLY; ORDINARY_HISTORY_RECONCILIATION"
+      },
+      {
+        "pullRequest": 67,
+        "head": "0381a41fcd0ede44764bf538f59c0e096655a837",
+        "state": "OPEN_DRAFT",
+        "exactOverlap": [
+          "THIRD_PARTY_NOTICES.md"
+        ],
+        "disposition": "SHARED_NOTICE_ONLY; ORDINARY_HISTORY_RECONCILIATION"
+      },
+      {
+        "pullRequest": 20,
+        "head": "3b03df415cdb75770d4942648deca8bed202f1ef",
+        "state": "OPEN_DRAFT",
+        "exactOverlap": [
+          "THIRD_PARTY_NOTICES.md"
+        ],
+        "disposition": "SHARED_NOTICE_ONLY; ORDINARY_HISTORY_RECONCILIATION"
+      },
+      {
+        "pullRequest": 158,
+        "head": "7f852691ca89d3089ad1b10837e97cc55a226361",
+        "state": "OPEN_DRAFT",
+        "exactOverlap": [],
+        "disposition": "NO_22_PATH_OVERLAP; MODEL_BRAIN_AUTHORITY_SEAM_MUST_BE_REVALIDATED_IF_LANDED_FIRST"
+      }
+    ]
+  },
+  "mandatoryContracts": [
+    "Authorization ordinary-merges from exact trusted main 4e74d4b2937b7e260c8b833e2758e1f9fabb9c42 before successor implementation starts.",
+    "Historical PR #372 and Head fb1beeb0e39ad4d6263f71b4c995eb5ec663e6e2 remain immutable audit evidence and must not merge.",
+    "The first successor implementation commit changes exactly six frozen test paths, has zero product code, and must produce a fresh causal RED from the new authorization merge parent.",
+    "Only after that fresh RED may product implementation land within the exact 22-path seal.",
+    "Current total R32 Schema 23 and canonical domain_event_projection_jobs authority must remain GREEN throughout Learned Policy implementation.",
+    "Final text generation remains existing frontier generation through Model Brain/LiteLLM; Learned Policy changes only candidateStrategyBranch in P1.",
+    "No live randomized exploration, local learned-policy reply generator, second reward framework, second model gateway, second feature/dataset/experiment platform or new general-purpose Yance infrastructure."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "warningOnlyClosure": true,
+    "testWeakening": true,
+    "historyRewrite": true,
+    "cherryPickAsAuthority": true,
+    "rebase": true,
+    "forcePush": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "workflowChange": true,
+    "rootNpmManifestChange": true,
+    "rootNpmLockfileChange": true,
+    "secondBanditEngine": true,
+    "secondRewardFramework": true,
+    "secondModelGateway": true,
+    "localReplyGenerator": true,
+    "liveRandomizedExploration": true,
+    "formalRelease": true,
+    "publish": true,
+    "automaticPromotion": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "freshSuccessorRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
