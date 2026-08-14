@@ -1,0 +1,275 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DEEP-TRAINING-P1-AGENT-LIGHTNING-ROUTE-BOOTSTRAP-V1",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main route-bootstrap prerequisite for the deferred Agent Lightning P1 workline after Learning→Deep-Training V3 ordinary-merged as trusted main 805b6960b794ee399de35b75b2fb4f08186517db. Historical pre-contract PRs #215/#216 correctly required a fresh successor after final Learning contracts landed; PR #188 itself closed unmerged, while its semantic dependency was subsequently satisfied by the Learning V4 successor and the explicit Learning→Deep-Training V3 contract. The six frozen Agent Lightning runtime/config/license paths still fail closed under the current WP0 routing policy because config/, runtime/ and third_party/ are not broad product prefixes and the six paths are absent from productExactPaths. This authorization permits only the minimal exact-route prerequisite, not Agent Lightning runtime/training/product implementation.",
+  "base": {
+    "branch": "main",
+    "commit": "805b6960b794ee399de35b75b2fb4f08186517db"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "historicalDisposition": {
+    "learningV2PullRequest": 188,
+    "learningV2State": "CLOSED_UNMERGED_HISTORICAL",
+    "agentLightningDesignPullRequest": 215,
+    "agentLightningPreContractPullRequest": 216,
+    "agentLightningDesignHead": "e92413b654c277eb7f60c29ce9eb73acda6b0fbd",
+    "agentLightningPreContractHead": "9b6a66d3fc7659b49f98c58ffd5c62f784973baa",
+    "oldProposalRebaseOrAmendForbidden": true,
+    "formalSupersedesDeclarationUsed": false,
+    "semanticLearningDependencySatisfiedBySuccessorChain": true,
+    "learningV4ProductMergeCommit": "34a8931596307eb6100a96b337f6abab2bef6b9c",
+    "deepTrainingV3AuthorizationPullRequest": 357,
+    "deepTrainingV3AuthorizationMergeCommit": "9f85f9a0aea7c30ea8c6efca92c42e6fd22c1b00",
+    "deepTrainingV3ImplementationPullRequest": 358,
+    "deepTrainingV3ImplementationHead": "66a1c640e61288404e6e7201d5f0aa63d1c19a1d",
+    "deepTrainingV3MergeCommit": "805b6960b794ee399de35b75b2fb4f08186517db",
+    "reason": "The historical #215/#216 pre-contract line is evidence only. #188 did not merge and must not be revived. Later ordinary successor work landed the required Learning eligibility, canonical trajectory/outcome, approved-score, privacy/isolation, regression/shadow and promotion/rollback boundaries on trusted main."
+  },
+  "evidence": {
+    "trustedRoutingPolicyPath": "governance/layered-ci/wp0-routing-policy.json",
+    "trustedRoutingPolicyBlob": "3de595530bb4ed36e641609ad82a03019451f83b",
+    "trustedDelegatedBranchPolicyPath": "shared/release/implementationBranchPolicy.js",
+    "trustedDelegatedBranchPolicyBlob": "1799fdd3a807e95f6023590c1fb5560e54e2f430",
+    "unknownPathFailsClosed": true,
+    "genericRouteMutationGuardAlreadyTrusted": true,
+    "genericRouteDeclarationField": "bootstrapPaths",
+    "bootstrapPathsAbsentFromProductExactPaths": true,
+    "broadProductPrefixesExclude": [
+      "config/",
+      "runtime/",
+      "third_party/"
+    ],
+    "expectedPreBootstrapReasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "learningDeepTrainingContractPath": "backend/services/learningDeepTrainingContract.js",
+    "learningProposalServicePath": "backend/services/learningProposalService.js",
+    "learningEvaluationAdapterPath": "backend/services/learningEvaluationAdapter.js",
+    "freshRouteFactsRevalidatedOnBase": true
+  },
+  "upstream": {
+    "repository": "microsoft/agent-lightning",
+    "release": "v0.3.0",
+    "annotatedTagObject": "bf09fc9c72e345d3b75ae6b65af90a456881cdc1",
+    "commit": "3b5d733861cf313fc09821a23240bbdf3cb2ee5b",
+    "license": "MIT",
+    "python": ">=3.10",
+    "platform": "Linux; Windows development/operation only through the explicitly validated WSL2 boundary",
+    "pinRevalidatedAfterDeepTrainingV3Merge": true
+  },
+  "ossFit": {
+    "decision": "ADOPT_EXISTING_TRUSTED_ROUTE_GUARD",
+    "matureOssAvailable": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance delegated route mutation guard",
+        "source": "shared/release/implementationBranchPolicy.js#validateDelegatedRoutePolicyMutation + bootstrapPaths contract",
+        "license": "Yance repository existing trusted seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already enforces exact bootstrap path count/digest and rejects broad-prefix and unrelated route mutation; no new policy engine is needed."
+      },
+      {
+        "name": "Open Policy Agent",
+        "source": "open-policy-agent/opa",
+        "license": "Apache-2.0",
+        "adoptionMode": "sidecar-service",
+        "fit": "PARTIAL_FIT",
+        "reason": "Mature general-purpose policy engine, but adopting it for six repository-internal route literals would introduce a second policy-engine authority instead of reusing the already-trusted exact route seam."
+      },
+      {
+        "name": "Microsoft Agent Lightning",
+        "source": "microsoft/agent-lightning@v0.3.0 (3b5d733861cf313fc09821a23240bbdf3cb2ee5b)",
+        "license": "MIT",
+        "adoptionMode": "full-product",
+        "fit": "PARTIAL_FIT",
+        "reason": "Correct future training-execution OSS, but it does not own Yance WP0 route classification; this authorization is only the exact routing prerequisite."
+      }
+    ],
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "retireOrAvoid": [
+      "Do not introduce a second Yance route or policy engine.",
+      "Do not add broad config/, runtime/, third_party/ product prefixes.",
+      "Do not create an OPA, Cedar, or Casbin sidecar for this exact repository-routing prerequisite.",
+      "Do not duplicate validateDelegatedRoutePolicyMutation; reuse the trusted bootstrapPaths guard unchanged.",
+      "Do not authorize Agent Lightning runtime, trainer, reward, dataset, evaluator, promotion, or model-routing implementation in this route-bootstrap work package."
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-deep-training-p1-agent-lightning-route-bootstrap-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-deep-training-p1-agent-lightning-route-bootstrap-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "6c185532fdda861ce6d754d15dde36e35e041d30b21be181465106959d88047a",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "implementation": {
+    "branch": "fix/v21-deep-training-p1-agent-lightning-route-bootstrap-v1",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-agent-lightning-p1-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "4936d3eab7cef64b8505329e92c1e97f71b19749a58a3f041a530b38ff51831c",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "productImplementationAllowed": false,
+    "agentLightningRuntimeImplementationAllowed": false,
+    "firstCommitMustBeTestOnly": true,
+    "firstCommitAllowedChangedPaths": [
+      "tests/layered-ci/v21-agent-lightning-p1-routing.test.js"
+    ],
+    "firstCommitChangedFileSetSha256": "a2e612794f2e7345fcdbf14384c26b9e99252dad03f4feca164a593f448b980c",
+    "genericRouteMutationGuardRequired": true
+  },
+  "bootstrapPaths": [
+    "config/upstreams/v21-agent-lightning-p1.json",
+    "runtime/deep-training/agent-lightning/agent_lightning_entrypoint.py",
+    "runtime/deep-training/agent-lightning/generate_runtime_sbom.py",
+    "runtime/deep-training/agent-lightning/pyproject.toml",
+    "runtime/deep-training/agent-lightning/uv.lock",
+    "third_party/licenses/agent-lightning-MIT.txt"
+  ],
+  "bootstrapPathCount": 6,
+  "bootstrapPathSetSha256": "b560e29a0410b9b86b83d65e955219459a344edf97ba04cf3d6bcde51fd1e5ca",
+  "routeGuardContract": {
+    "guardAlreadyTrusted": true,
+    "guardMustNotBeReimplementedByDeepTraining": true,
+    "supportedDeclarationField": "bootstrapPaths",
+    "matchingCountAndCanonicalSha256Required": true,
+    "candidateRoutingPolicyMayOnlyAddDeclaredPathsToProductExactPaths": true,
+    "productPrefixMutationForbidden": true,
+    "unrelatedProductExactPathMutationForbidden": true,
+    "routeRemovalForbidden": true,
+    "unknownPathFailsClosedWeakeningForbidden": true,
+    "governanceOrDocumentationRouteDriftForbidden": true
+  },
+  "parallelOverlap": {
+    "implementationPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-agent-lightning-p1-routing.test.js"
+    ],
+    "openPullRequest20": {
+      "head": "3b03df415cdb75770d4942648deca8bed202f1ef",
+      "exactOverlap": [
+        "governance/layered-ci/wp0-routing-policy.json"
+      ],
+      "disposition": "STALE_DRAFT_MUST_FRESH_RECONCILE_BEFORE_ANY_FUTURE_INTEGRATION"
+    },
+    "openPullRequest54": {
+      "head": "94e612d31d0fb56b9dc26ad291994d7772558722",
+      "exactOverlap": [
+        "governance/layered-ci/wp0-routing-policy.json"
+      ],
+      "disposition": "STALE_DRAFT_MUST_FRESH_RECONCILE_BEFORE_ANY_FUTURE_INTEGRATION"
+    },
+    "openPullRequest67": {
+      "head": "0381a41fcd0ede44764bf538f59c0e096655a837",
+      "exactOverlap": [
+        "governance/layered-ci/wp0-routing-policy.json"
+      ],
+      "disposition": "STALE_DRAFT_MUST_FRESH_RECONCILE_BEFORE_ANY_FUTURE_INTEGRATION"
+    },
+    "preContractPullRequests215And216AreImplementationOverlap": false,
+    "futureAgentLightningProductAuthorizationMustRecheckAllActivePullRequests": true
+  },
+  "matureOssBoundary": {
+    "newGeneralPurposeYanceInfrastructure": false,
+    "agentLightningCoreFutureCandidate": "ADOPT_UPSTREAM",
+    "initialFutureTrainingMode": "CORE_PLUS_APO_CANDIDATE_ONLY",
+    "sftAuthorizedByThisRouteBootstrap": false,
+    "verlRlAuthorizedByThisRouteBootstrap": false,
+    "futureVerlRlRequiresSeparateRewardCompatibilityAuthorization": true,
+    "learningOwnsCanonicalDatasetAndApprovedScoreAuthority": true,
+    "learningOwnsRegressionShadowPromotionRollback": true,
+    "modelBrainOwnsProductionProviderCredentialsAndRouting": true,
+    "agentLightningMayComputeOrShapeYanceReward": false,
+    "agentLightningMayBecomeCanonicalDatasetAuthority": false,
+    "customYanceTrainerForbidden": true,
+    "customYanceRewardTrajectoryDatasetEvaluatorForbidden": true,
+    "forkToBypassRewardBoundaryForbidden": true
+  },
+  "productScopeReconstruction": {
+    "status": "REQUIRED_AFTER_ROUTE_BOOTSTRAP_MERGE_NOT_PRODUCT_AUTHORITY",
+    "oldNineteenPathCandidateMayBeReusedWithoutRevalidation": false,
+    "oldSevenTestCandidateMayBeReusedWithoutRevalidation": false,
+    "mustUseLandedLearningDeepTrainingInterfaces": true,
+    "mustPinExactSelectedReleaseAgentLightningApis": true,
+    "mustFullyEnumerateAndResealFromThenFreshMain": true,
+    "mustRecomputeParallelWorklineOverlap": true,
+    "initialModeMustRemainCandidateOnly": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first route-bootstrap implementation commit changes only tests/layered-ci/v21-agent-lightning-p1-routing.test.js and changes zero routing-policy or Agent Lightning product/runtime code.",
+    "Before the routing-policy implementation all six frozen Agent Lightning bootstrap paths fail closed as WP0_ROUTE_UNKNOWN_PATH.",
+    "Existing trusted productExactPaths, governance precedence, product-documentation precedence and unknown-path fail-closed behavior remain unchanged.",
+    "The trusted generic delegated route-policy guard accepts only the exact six bootstrapPaths declared here and rejects every semantic mutation beyond adding those six literals to productExactPaths.",
+    "After implementation each of the six exact bootstrap paths selects PRODUCT_WP0.",
+    "The route repair adds no config/, runtime/, third_party/ or other broad product prefix.",
+    "Adjacent unregistered Agent Lightning runtime/config/license paths continue to fail closed.",
+    "No Agent Lightning runtime, training adapter, workflow, dependency, model routing, Learning evaluator, reward, dataset, promotion or rollback implementation is authorized by this route bootstrap."
+  ],
+  "requiredSequence": [
+    "Authorization exact Head must pass applicable Stage, Layered/route-governance and ACV2 gates plus independent review with no unresolved P0/P1 finding.",
+    "Stop at the authorization ordinary-merge boundary if owner merge action is required.",
+    "At merge time re-read live main; first parent must still equal 805b6960b794ee399de35b75b2fb4f08186517db, otherwise close the proposal unmerged and create a new fresh authorization rather than rebasing/amending/forcing it.",
+    "Create fix/v21-deep-training-p1-agent-lightning-route-bootstrap-v1 from the exact effective authorization merge commit.",
+    "Create the mandatory test-only causal RED commit on tests/layered-ci/v21-agent-lightning-p1-routing.test.js.",
+    "Add only the six frozen Agent Lightning bootstrap literals to productExactPaths; do not modify the existing generic route guard implementation.",
+    "Pass exact-Head Stage and all applicable architecture gates plus independent review.",
+    "Stop at the route-bootstrap implementation ordinary-merge boundary.",
+    "Only after the route-bootstrap merge may a separate fresh Agent Lightning product authorization reconstruct and reseal the executable scope from then-current main."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalMergeRequiresOwnerBoundary": true,
+    "ordinaryTwoParentMergeRequired": true,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true,
+    "gateWeakeningForbidden": true
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansion": true,
+    "directCandidateSelfAuthorization": true,
+    "agentLightningProductImplementation": true,
+    "agentLightningRuntimeImplementation": true,
+    "workflowModification": true,
+    "dependencyManifestModification": true,
+    "duplicateGenericRouteGuard": true,
+    "customRewardShaping": true,
+    "customTrainingFramework": true,
+    "forcePush": true,
+    "rebaseOrAmendPublishedHistory": true
+  }
+}
