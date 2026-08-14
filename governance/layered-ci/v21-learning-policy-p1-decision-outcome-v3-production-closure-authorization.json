@@ -48,6 +48,10 @@
     "historicalCommitReuseAsAuthorityAllowed": false
   },
   "ossFit": {
+    "decision": "Adopt mature OSS and already-sealed repository seams end-to-end: Vowpal Wabbit owns the bounded policy head, OpenFeature/flagd owns offline rollout evaluation, Learning Promotion owns explicit promotion/rollback, and the existing WP7 presealed-runtime trust path owns packaged runtime delivery. Yance changes are limited to thin composition, exact-pin materialization and product-specific evidence; no equivalent general-purpose infrastructure is authorized.",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
     "matureOssDefault": true,
     "reviewedCandidates": [
       {
