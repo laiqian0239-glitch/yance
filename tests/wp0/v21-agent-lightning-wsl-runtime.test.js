@@ -24,6 +24,15 @@ test('Windows preflight authorizes WSL2 only and has no native-Windows, Docker, 
   assert.match(source, /2>\$null/u);
 });
 
+test('Windows PowerShell 5.1 WSL2 kernel probe uses direct argv and never passes a shell command string', () => {
+  const source = readText('tools/deep-training/agent-lightning-preflight.ps1');
+  assert.match(source, /--exec\s+uname\s+-r/iu);
+  assert.match(source, /\$kernelText\s*=\s*\$kernel\.Trim\(\)/u);
+  assert.match(source, /\$kernelText\s+-notmatch\s+['"]\(\?:WSL2\|microsoft-standard-WSL2\)['"]/u);
+  assert.doesNotMatch(source, /--exec\s+sh\s+-lc/iu);
+  assert.doesNotMatch(source, /case\s+.*\$\(uname\s+-r\)/iu);
+});
+
 test('dedicated Agent Lightning workflow executes on exact Linux PR head, drops checkout credentials, and validates the sealed P1 runtime', () => {
   const workflow = readText('.github/workflows/v21-agent-lightning-p1-linux.yml');
   assert.match(workflow, /runs-on:\s*ubuntu-latest/u);

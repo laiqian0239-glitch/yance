@@ -32,8 +32,12 @@ if ($LASTEXITCODE -ne 0) {
     throw 'TRAINING_RUNTIME_UNAVAILABLE: WSL status could not be verified.'
 }
 
-$null = & $wsl.Source --exec sh -lc 'case "$(uname -r)" in *WSL2*|*microsoft-standard-WSL2*) exit 0;; *) exit 1;; esac' 2>$null | Out-String
+$kernel = & $wsl.Source --exec uname -r 2>$null | Out-String
 if ($LASTEXITCODE -ne 0) {
+    throw 'TRAINING_RUNTIME_UNAVAILABLE: WSL2 execution kernel could not be verified.'
+}
+$kernelText = $kernel.Trim()
+if ($kernelText -notmatch '(?:WSL2|microsoft-standard-WSL2)') {
     throw 'TRAINING_RUNTIME_UNAVAILABLE: WSL2 execution kernel is required; WSL1 and host execution are forbidden.'
 }
 
