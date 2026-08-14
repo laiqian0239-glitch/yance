@@ -184,7 +184,7 @@ function createSealedAgentLightningRuntimeInvoker(options = {}) {
         finish(adapterError('AGENT_LIGHTNING_PROTOCOL_INVALID', 'Agent Lightning runtime emitted an unsupported protocol message.'));
       });
 
-      child.once('exit', (code, signal) => {
+      child.once('close', (code, signal) => {
         if (settled) return;
         Promise.allSettled([...pendingWrites]).finally(() => {
           if (!settled && !sawResult) {
