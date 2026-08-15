@@ -3,12 +3,18 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
+const crypto = require('node:crypto');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
-const { createLearningPolicyRuntimeAdapter } = require('../../backend/services/learningPolicyRuntimeAdapter');
+const {
+  ACTIVE_FLAG_KEY,
+  createLearningPolicyRuntimeAdapter,
+  resolveProductionActivePolicy
+} = require('../../backend/services/learningPolicyRuntimeAdapter');
 
 test('Learning runtime adapter delegates the action head to sealed Vowpal Wabbit and keeps P1 deterministic', async () => {
   const calls = [];
@@ -29,6 +35,67 @@ test('Learning runtime adapter delegates the action head to sealed Vowpal Wabbit
   assert.equal(decision.exploration, false);
   assert.equal(decision.providerRoutingAuthority, undefined);
   assert.equal(decision.finalReply, undefined);
+});
+
+test('production Learning runtime falls back to verified canonical history and preserves active-artifact degradation', async () => {
+  const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-learning-policy-lkg-'));
+  const learnedRoot = path.join(dataRoot, 'learning', 'learned-policy');
+  const flagRoot = path.join(learnedRoot, 'flagd');
+  const artifactRoot = path.join(learnedRoot, 'artifacts');
+  fs.mkdirSync(flagRoot, { recursive: true });
+  fs.mkdirSync(artifactRoot, { recursive: true });
+
+  const goodBytes = Buffer.from('verified-learning-policy-lkg\n', 'utf8');
+  const goodVersion = crypto.createHash('sha256').update(goodBytes).digest('hex');
+  const brokenVersion = 'f'.repeat(64);
+  fs.writeFileSync(path.join(artifactRoot, `${goodVersion}.vw`), goodBytes);
+  fs.writeFileSync(path.join(flagRoot, 'flags.json'), `${JSON.stringify({
+    flags: {
+      [ACTIVE_FLAG_KEY]: {
+        state: 'ENABLED',
+        variants: {
+          active: {
+            kind: 'LEARNING_ROLLOUT',
+            candidate: { id: `policy:${brokenVersion}`, version: brokenVersion, policyVersion: 'vw-p1-v1' },
+            history: [{ id: `policy:${goodVersion}`, version: goodVersion, policyVersion: 'vw-p1-v1' }]
+          }
+        },
+        defaultVariant: 'active'
+      }
+    }
+  }, null, 2)}\n`, 'utf8');
+
+  const previousDataRoot = process.env.YANCE_DATA_DIR;
+  process.env.YANCE_DATA_DIR = dataRoot;
+  const degradations = [];
+  try {
+    const adapter = createLearningPolicyRuntimeAdapter({
+      resolveActivePolicy: resolveProductionActivePolicy,
+      invokeVowpalWabbit: async input => ({
+        action: 'natural_hook',
+        policyVersion: input.policyVersion,
+        policyArtifactId: input.policyArtifactId,
+        probability: 1,
+        exploration: false
+      }),
+      onDegradation: evidence => degradations.push(evidence)
+    });
+    const decision = await adapter.selectLearnedPolicyAction({
+      featureBundle: { relationshipStage: 'warming', interactionBand: 'balanced' },
+      allowedActions: ['natural_hook', 'playful_attraction']
+    });
+
+    assert.equal(decision.executedPolicy, 'vowpalwabbit');
+    assert.equal(decision.policyArtifactId, goodVersion);
+    assert.equal(decision.degradation?.reasonCode, 'LEARNING_POLICY_ARTIFACT_MISSING');
+    assert.equal(degradations.some(row => row.reasonCode === 'LEARNING_POLICY_ARTIFACT_MISSING'), true);
+  } finally {
+    const { OpenFeature, NOOP_PROVIDER } = require('@openfeature/server-sdk');
+    await OpenFeature.setProviderAndWait('yance-learning-policy', NOOP_PROVIDER);
+    if (previousDataRoot === undefined) delete process.env.YANCE_DATA_DIR;
+    else process.env.YANCE_DATA_DIR = previousDataRoot;
+    fs.rmSync(dataRoot, { recursive: true, force: true });
+  }
 });
 
 test('sealed Learning Python entrypoint exposes the VW policy action mode without provider credentials or local text generation', () => {
