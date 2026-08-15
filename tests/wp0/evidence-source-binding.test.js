@@ -34,18 +34,22 @@ function git(cwd, args) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', env: LFS_POINTER_ENV }).trim();
 }
 
-function assertRceditCustody(repo) {
-  const exactAttributes = git(repo, ['check-attr', 'filter', 'diff', 'merge', 'text', '--', RCEDIT_NATIVE_PATH]);
-  assert.match(exactAttributes, new RegExp(`^${RCEDIT_NATIVE_PATH}: filter: unset$`, 'mu));
-  assert.match(exactAttributes, new RegExp(`^${RCEDIT_NATIVE_PATH}: diff: unset$`, 'mu));
-  assert.match(exactAttributes, new RegExp(`^${RCEDIT_NATIVE_PATH}: merge: unset$`, 'mu));
-  assert.match(exactAttributes, new RegExp(`^${RCEDIT_NATIVE_PATH}: text: unset$`, 'mu));
+function attributeLines(repo, targetPath) {
+  return new Set(git(repo, ['check-attr', 'filter', 'diff', 'merge', 'text', '--', targetPath]).split(/\r?\n/u));
+}
 
-  const futureAttributes = git(repo, ['check-attr', 'filter', 'diff', 'merge', 'text', '--', FUTURE_RCEDIT_LFS_PATH]);
-  assert.match(futureAttributes, new RegExp(`^${FUTURE_RCEDIT_LFS_PATH}: filter: lfs$`, 'mu));
-  assert.match(futureAttributes, new RegExp(`^${FUTURE_RCEDIT_LFS_PATH}: diff: lfs$`, 'mu));
-  assert.match(futureAttributes, new RegExp(`^${FUTURE_RCEDIT_LFS_PATH}: merge: lfs$`, 'mu));
-  assert.match(futureAttributes, new RegExp(`^${FUTURE_RCEDIT_LFS_PATH}: text: unset$`, 'mu));
+function assertRceditCustody(repo) {
+  const exactAttributes = attributeLines(repo, RCEDIT_NATIVE_PATH);
+  assert.ok(exactAttributes.has(`${RCEDIT_NATIVE_PATH}: filter: unset`));
+  assert.ok(exactAttributes.has(`${RCEDIT_NATIVE_PATH}: diff: unset`));
+  assert.ok(exactAttributes.has(`${RCEDIT_NATIVE_PATH}: merge: unset`));
+  assert.ok(exactAttributes.has(`${RCEDIT_NATIVE_PATH}: text: unset`));
+
+  const futureAttributes = attributeLines(repo, FUTURE_RCEDIT_LFS_PATH);
+  assert.ok(futureAttributes.has(`${FUTURE_RCEDIT_LFS_PATH}: filter: lfs`));
+  assert.ok(futureAttributes.has(`${FUTURE_RCEDIT_LFS_PATH}: diff: lfs`));
+  assert.ok(futureAttributes.has(`${FUTURE_RCEDIT_LFS_PATH}: merge: lfs`));
+  assert.ok(futureAttributes.has(`${FUTURE_RCEDIT_LFS_PATH}: text: unset`));
 
   const executablePath = path.join(repo, RCEDIT_NATIVE_PATH);
   const bytes = fs.readFileSync(executablePath);
