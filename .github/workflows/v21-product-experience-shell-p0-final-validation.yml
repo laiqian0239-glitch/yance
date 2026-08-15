@@ -294,6 +294,19 @@ jobs:
           if (-not (Test-Path -LiteralPath (Join-Path $output 'runtime-seal.json') -PathType Leaf)) { throw 'Parlant runtime seal missing' }
           "root=$output" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
+      - name: Materialize presealed Learning Windows runtime in trusted CI
+        id: learning
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $output = Join-Path $env:RUNNER_TEMP 'product-uat-learning-runtime'
+          $work = Join-Path $env:RUNNER_TEMP 'product-uat-learning-work'
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $output, $work
+          & tools/learning-growth/build-windows-runtime.ps1 -OutputRoot $output -SourceRoot (Resolve-Path '.').Path -WorkRoot $work
+          if ($LASTEXITCODE -ne 0) { throw "Learning runtime materialization failed: $LASTEXITCODE" }
+          if (-not (Test-Path -LiteralPath (Join-Path $output 'runtime-seal.json') -PathType Leaf)) { throw 'Learning runtime seal missing' }
+          "root=$output" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
       - name: Materialize exact trusted rcedit custody input
         id: rcedit
         shell: pwsh
@@ -373,6 +386,7 @@ jobs:
             --production-node-modules '${{ steps.production_deps.outputs.node_modules }}' `
             --trusted-node-executable '${{ steps.packaged_node.outputs.node_exe }}' `
             --parlant-runtime '${{ steps.parlant.outputs.root }}' `
+            --learning-runtime '${{ steps.learning.outputs.root }}' `
             --rcedit-path '${{ steps.rcedit.outputs.path }}' `
             --archive-tool-node-modules '${{ steps.archive_oss.outputs.node_modules }}' `
             --output-dir $wp7 `
