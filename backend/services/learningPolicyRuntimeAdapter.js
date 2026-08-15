@@ -133,7 +133,7 @@ function invokeProductionVowpalWabbit(input = {}) {
     policyArtifactId: input.policyArtifactId,
     policyVersion: input.policyVersion || POLICY_VERSION
   };
-  const result = spawnSync(runtime.python, ['-I', runtime.entrypoint], {
+  const result = spawnSync(runtime.python, ['-B', '-I', runtime.entrypoint], {
     input: JSON.stringify(request),
     encoding: 'utf8',
     windowsHide: true,

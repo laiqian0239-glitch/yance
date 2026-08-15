@@ -110,7 +110,7 @@ jobs:
           try {
             $utf8NoBom = New-Object Text.UTF8Encoding($false)
             [IO.File]::WriteAllText($requestPath, ($request + "`n"), $utf8NoBom)
-            $argumentList = @('-I', ('"' + $entrypoint + '"'))
+            $argumentList = @('-B', '-I', ('"' + $entrypoint + '"'))
             $process = Start-Process -FilePath $python -ArgumentList $argumentList -RedirectStandardInput $requestPath -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -NoNewWindow -Wait -PassThru
             $output = [IO.File]::ReadAllText($stdoutPath)
             $stderr = [IO.File]::ReadAllText($stderrPath)
