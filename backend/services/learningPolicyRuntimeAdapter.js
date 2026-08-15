@@ -176,7 +176,12 @@ function createLearningPolicyRuntimeAdapter(options = {}) {
   const hasInjectedRuntime = typeof options.invokeVowpalWabbit === 'function';
   const hasInjectedResolver = typeof options.resolveActivePolicy === 'function';
   const invokeVowpalWabbit = hasInjectedRuntime ? options.invokeVowpalWabbit : invokeProductionVowpalWabbit;
-  const resolveActivePolicy = hasInjectedResolver ? options.resolveActivePolicy : resolveProductionActivePolicy;
+  // An injected sealed runtime is an explicit test/UAT seam. Unless that seam
+  // also supplies its own resolver, it must not pierce into production flagd
+  // state or create production-lifecycle file watchers.
+  const resolveActivePolicy = hasInjectedResolver
+    ? options.resolveActivePolicy
+    : (hasInjectedRuntime ? async () => null : resolveProductionActivePolicy);
   const onDegradation = typeof options.onDegradation === 'function' ? options.onDegradation : null;
 
   function baseline(input, reasonCode = 'NO_PROMOTED_POLICY') {
