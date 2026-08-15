@@ -119,7 +119,7 @@ try {
 
 $VenvPython = Join-Path $VenvRoot 'Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $VenvPython -PathType Leaf)) { throw "materialized venv python missing: $VenvPython" }
-$InstalledVwVersion = (& $VenvPython -I -c 'import importlib.metadata; print(importlib.metadata.version("vowpalwabbit"))').Trim()
+$InstalledVwVersion = (& $VenvPython -I -c 'import importlib.metadata, sys; print(importlib.metadata.version(sys.argv[1]))' 'vowpalwabbit').Trim()
 if ($InstalledVwVersion -ne $VowpalWabbitVersion) { throw "installed Vowpal Wabbit version mismatch: expected=$VowpalWabbitVersion actual=$InstalledVwVersion" }
 $Entrypoint = Join-Path $OutputRoot 'learning_entrypoint.py'
 Copy-Item -LiteralPath (Join-Path $ProjectRoot 'learning_entrypoint.py') -Destination $Entrypoint
