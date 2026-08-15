@@ -1,5 +1,5 @@
 diff --git a/package.json b/package.json
-index 5c39e98..30f49fb 100644
+index 5c39e9896b15a604a2203c1b506568f018f2c981..30f49fb0767d05587ee1f95b9cca90602627dfbe 100644
 --- a/package.json
 +++ b/package.json
 @@ -44,12 +44,14 @@
@@ -18,7 +18,7 @@ index 5c39e98..30f49fb 100644
          "vitepress": "^1.6.4",
          "vitepress-plugin-mermaid": "^2.0.17",
 diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
-index f13b569..3e350e2 100644
+index f13b569df10a63311d7bba874c452b568617e5d0..3e350e21b3ed88cd1933d2d26e95dd5a1ea49f0e 100644
 --- a/pnpm-lock.yaml
 +++ b/pnpm-lock.yaml
 @@ -356,6 +356,9 @@ importers:
