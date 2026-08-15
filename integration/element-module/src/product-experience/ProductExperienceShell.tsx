@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { LearningWorkspace } from "../LearningWorkspace";
 import { AnimatePresence, motion } from "motion/react";
+import { BilingualSearchPanel } from "./BilingualSearchPanel";
 import { PeopleSurface } from "./PeopleSurface";
 import { RelationshipAssistant } from "./RelationshipAssistant";
 import { RelationshipOverlayHost } from "./RelationshipOverlayHost";
@@ -21,7 +22,11 @@ import type {
 } from "./experienceTypes";
 import "./ProductExperienceShell.css";
 
-export function ProductExperienceShell(): React.JSX.Element {
+type ProductExperienceShellProps = {
+  navigateSearchResult?: (relationship: RelationshipProjection) => Promise<boolean>;
+};
+
+export function ProductExperienceShell({ navigateSearchResult }: ProductExperienceShellProps): React.JSX.Element {
   const [relationships, setRelationships] = useState<readonly RelationshipProjection[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("Loading relationships");
@@ -82,6 +87,13 @@ export function ProductExperienceShell(): React.JSX.Element {
       aria-label="Yance Living Relationship OS"
     >
       <div className="yance-shell-status yance-sr-only" role="status" aria-live="polite">{status}</div>
+
+      <BilingualSearchPanel
+        relationships={relationships}
+        reducedMotion={preferences.reducedMotion}
+        onSelectRelationship={chooseRelationship}
+        onNavigateRelationship={navigateSearchResult}
+      />
 
       <AnimatePresence mode="wait" initial={false}>
         {!selectedRelationship ? (
