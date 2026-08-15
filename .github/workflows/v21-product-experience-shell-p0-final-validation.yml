@@ -302,30 +302,20 @@ jobs:
           $relativePath = 'vendor/rcedit/rcedit-v2.0.0-x64.exe'
           $expectedSha256 = $env:RCEDIT_SHA256.ToLowerInvariant()
           if ($expectedSha256 -notmatch '^[0-9a-f]{64}$') { throw 'rcedit expected SHA-256 is malformed' }
+          $expectedSize = [int64]1360384
 
-          $pointerLines = git show "HEAD:$relativePath"
-          if ($LASTEXITCODE -ne 0) { throw "failed to read tracked rcedit Git LFS pointer: $relativePath" }
-          $pointer = ($pointerLines -join "`n")
-          if ($pointer -notmatch '(?m)^version https://git-lfs.github.com/spec/v1$') { throw "tracked rcedit binary is not a Git LFS pointer: $relativePath" }
-          $oidMatch = [regex]::Match($pointer, '(?m)^oid sha256:([0-9a-f]{64})$')
-          $sizeMatch = [regex]::Match($pointer, '(?m)^size ([0-9]+)$')
-          if (-not $oidMatch.Success -or -not $sizeMatch.Success) { throw "malformed Git LFS pointer: $relativePath" }
-          $pointerSha256 = $oidMatch.Groups[1].Value.ToLowerInvariant()
-          $expectedSize = [int64]::Parse($sizeMatch.Groups[1].Value, [System.Globalization.CultureInfo]::InvariantCulture)
-          if ($pointerSha256 -ne $expectedSha256) { throw "rcedit trust/LFS oid mismatch: expected=$expectedSha256 pointer=$pointerSha256" }
-          if ($expectedSize -ne 1360384) { throw "rcedit LFS pointer size mismatch: expected=1360384 pointer=$expectedSize" }
-
-          git lfs install --local
-          if ($LASTEXITCODE -ne 0) { throw 'git lfs install --local failed' }
-          git lfs pull origin --include="$relativePath" --exclude=""
-          if ($LASTEXITCODE -ne 0) { throw "git lfs pull failed for trusted rcedit binary: $relativePath" }
+          $trackedBlob = (git rev-parse "HEAD:$relativePath").Trim()
+          if ($LASTEXITCODE -ne 0 -or $trackedBlob -notmatch '^[0-9a-f]{40}$') { throw "failed to resolve tracked native Git rcedit blob: $relativePath" }
+          $worktreeBlob = (git hash-object --no-filters -- $relativePath).Trim()
+          if ($LASTEXITCODE -ne 0 -or $worktreeBlob -notmatch '^[0-9a-f]{40}$') { throw "failed to hash worktree rcedit bytes: $relativePath" }
+          if ($worktreeBlob -ne $trackedBlob) { throw "rcedit tracked/worktree blob mismatch: tracked=$trackedBlob worktree=$worktreeBlob" }
 
           $path = (Resolve-Path $relativePath).Path
           $actualSize = (Get-Item -LiteralPath $path).Length
-          if ($actualSize -ne $expectedSize) { throw "rcedit LFS size mismatch: expected=$expectedSize actual=$actualSize" }
+          if ($actualSize -ne $expectedSize) { throw "rcedit native Git size mismatch: expected=$expectedSize actual=$actualSize" }
           $actualSha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($actualSha256 -ne $expectedSha256) { throw "rcedit v2.0.0 x64 SHA-256 mismatch: expected=$expectedSha256 actual=$actualSha256" }
-          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'rcedit LFS materialization must leave Product source clean' }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'rcedit native Git verification must leave Product source clean' }
           "path=$path" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Materialize exact isolated WP7 archive OSS toolchain
