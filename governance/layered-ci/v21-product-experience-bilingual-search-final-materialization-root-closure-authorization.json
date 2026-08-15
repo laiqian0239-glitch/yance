@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-PRODUCT-EXPERIENCE-BILINGUAL-SEARCH-FINAL-MATERIALIZATION-ROOT-CLOSURE",
-  "proposalRevision": 1,
+  "workPackage": "V21-PRODUCT-EXPERIENCE-FINAL-MATERIALIZATION-ROOT-CLOSURE",
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "PR #387 exact fresh-main candidate aea4b5f2d462f887c5b6886ca8daa3d7308d00b0 exposed two independent fail-closed Product Final materialization blockers outside the #386 Product implementation authority. Product Final Validation run 31866143443 proves both Windows frozen Element reproducibility job 94967429606 and Linux materialized Matrix job 94967429641 fail while building @yance/element-module because integration/element-module/src/LearningToolUiAdapter.tsx imports the already-governed assistant-ui/tool-ui vendor tree through ../../../vendor, but tools/matrix/bootstrap.js overlays only integration/element-module into the pinned Element workspace and therefore does not materialize the repository-level vendor tree at the relative Element workspace path those unchanged imports resolve to. The existing Element runtime-module contract intentionally delivers only the built modules/yance/package.json and modules/yance/lib into the final image, so copying raw vendor sources into the runtime image or widening the ModuleLoader contract is forbidden. The same Product Final run proves Windows materialized desktop job 94967429688 passes exact candidate identity, official Electron Release custody, isolated Electron npm metadata, production dependency closure, packaged Node and Parlant, then fails only when targeted git lfs pull of vendor/rcedit/rcedit-v2.0.0-x64.exe returns the repository LFS-budget-exceeded error. Historical Product Final evidence already proved live rcedit GitHub Release download can fail with HTTP 503, so neither live release retrieval nor Git LFS budget is a sufficient final-UAT runtime custody authority. This authorization permits only two permanent root repairs using mature existing seams: materialize the already-reviewed exact assistant-ui/tool-ui vendor tree into the pinned Element build workspace before the unchanged module build, while preserving package.json+lib-only runtime delivery; and move the exact official 1,360,384-byte rcedit v2.0.0 x64 binary with existing SHA-256 3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a from Git LFS filtering to a single-path native Git blob custody exception, then require Product Final to verify tracked-blob identity, byte length and SHA-256 without any live download or LFS materialization. No Product feature/runtime change, dependency, new module loader, new downloader/cache, mirror, retry loop, alternate binary, checksum/version rewrite, validation weakening or new Yance general-purpose infrastructure is authorized.",
   "base": {
@@ -114,6 +114,13 @@
     "elementRuntimePatchModificationAllowed": false,
     "wp7ImplementationModificationAllowed": false,
     "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
     "gitattributesModificationAllowed": true,
     "binaryCustodyModificationAllowed": true,
     "newGeneralPurposeYanceInfrastructureAllowed": false
