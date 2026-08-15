@@ -140,3 +140,34 @@ test('native binary gate does not classify deceptive node-pty or distlib near-ma
   assert.equal(result.inertForeignVariantCount, 0);
   assert.match(JSON.stringify(result), /WP7_NATIVE_MACHINE_NOT_X64/);
 });
+
+test('native binary gate classifies exact Setuptools launcher architectures under the sealed Learning runtime', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-native-scan-'));
+  const directory = path.join(root, 'resources', 'learning-runtime', 'venv', 'Lib', 'site-packages', 'setuptools');
+  fs.mkdirSync(directory, { recursive: true });
+  const writePe = (name, machine) => {
+    const pe = Buffer.alloc(128); pe[0] = 0x4d; pe[1] = 0x5a; pe.writeUInt32LE(0x40, 0x3c); pe.write('PE\0\0', 0x40, 'ascii'); pe.writeUInt16LE(machine, 0x44);
+    fs.writeFileSync(path.join(directory, name), pe);
+  };
+  writePe('cli.exe', 0x14c);
+  writePe('cli-32.exe', 0x14c);
+  writePe('cli-64.exe', 0x8664);
+  writePe('cli-arm64.exe', 0xaa64);
+  writePe('gui.exe', 0x14c);
+  writePe('gui-32.exe', 0x14c);
+  writePe('gui-64.exe', 0x8664);
+  writePe('gui-arm64.exe', 0xaa64);
+
+  const result = verifyNativeBinaries({ payloadRoot: root, evidenceFile: path.join(root, 'native-evidence.json'), targetPlatform: 'win32', targetArch: 'x64' });
+  assert.equal(result.status, 'PASS');
+  assert.equal(result.inertForeignVariantCount, 6);
+  assert.equal(result.targetLoadableFileCount, 2);
+  assert.deepEqual(
+    result.records.filter((row) => /(?:cli-64|gui-64)\.exe$/u.test(row.relativePath)).map((row) => [row.loadDisposition, row.peMachine]),
+    [['TARGET_QUALIFIED_VARIANT', 'x64'], ['TARGET_QUALIFIED_VARIANT', 'x64']]
+  );
+  assert.deepEqual(
+    result.records.filter((row) => !/(?:cli-64|gui-64)\.exe$/u.test(row.relativePath)).map((row) => row.loadDisposition),
+    Array(6).fill('INERT_FOREIGN_TARGET_VARIANT')
+  );
+});
