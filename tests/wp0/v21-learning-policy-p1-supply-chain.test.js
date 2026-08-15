@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -22,4 +23,21 @@ test('Vowpal Wabbit supply chain is pinned to 9.11.2 with exact upstream provena
   assert.match(notices, /Vowpal Wabbit/i);
   assert.match(notices, /BSD-3-Clause/i);
   assert.match(license, /Redistribution and use in source and binary forms/i);
+});
+
+test('Learning runtime inventory excludes only the root runtime-seal.json', () => {
+  const { presealedLearningRuntimeRecords } = require('../../tools/wp7/lib');
+  const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-learning-runtime-inventory-'));
+  try {
+    fs.writeFileSync(path.join(runtimeRoot, 'runtime-seal.json'), 'root seal', 'utf8');
+    fs.mkdirSync(path.join(runtimeRoot, 'nested'), { recursive: true });
+    fs.writeFileSync(path.join(runtimeRoot, 'nested', 'runtime-seal.json'), 'nested seal', 'utf8');
+    fs.writeFileSync(path.join(runtimeRoot, 'payload.txt'), 'payload', 'utf8');
+
+    const paths = presealedLearningRuntimeRecords(runtimeRoot).map(record => record.path);
+    assert.equal(paths.includes('runtime-seal.json'), false);
+    assert.equal(paths.includes('nested/runtime-seal.json'), true);
+  } finally {
+    fs.rmSync(runtimeRoot, { recursive: true, force: true });
+  }
 });
