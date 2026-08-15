@@ -3,6 +3,11 @@
 const CHANNELS = Object.freeze({
   snapshot: 'store:get-snapshot',
   socialContext: 'store:get-social-context',
+  searchWorkspace: 'store:search-workspace',
+  createTranslationJob: 'store:create-translation-job',
+  getTranslationJob: 'store:get-translation-job',
+  cancelTranslationJob: 'store:cancel-translation-job',
+  retryTranslationJob: 'store:retry-translation-job',
   generateReply: 'store:generate-reply',
   cancelRequest: 'store:cancel-request',
   approveReply: 'store:approve-reply',
@@ -24,6 +29,15 @@ function clean(value) {
 
 function jsonBody(value) {
   return JSON.stringify(value || {});
+}
+
+function requiredIdentifier(value, name) {
+  const id = clean(value);
+  if (id) return id;
+  const error = new Error(`${name} is required`);
+  error.code = `${String(name || 'identifier').replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase()}_REQUIRED`;
+  error.reasonCode = error.code;
+  throw error;
 }
 
 function serializeBridgeError(error) {
@@ -67,6 +81,37 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
         recentMessageLimit: String(input.recentMessageLimit || 36)
       });
       return apiRequest(`/api/r32/store/customers/${encodeURIComponent(contactId)}/social-context?${query}`);
+    },
+    [CHANNELS.searchWorkspace]: (_event, input = {}) => {
+      const queryText = clean(input.query);
+      const limit = Math.max(1, Math.min(200, Number(input.limit || 80)));
+      const query = new URLSearchParams({ q: queryText, limit: String(limit) });
+      return apiRequest(`/api/r32/store/search?${query}`);
+    },
+    [CHANNELS.createTranslationJob]: (_event, input = {}) => {
+      const messageId = requiredIdentifier(input.messageId, 'messageId');
+      return apiRequest(`/api/r32/store/translations/messages/${encodeURIComponent(messageId)}/jobs`, {
+        method: 'POST',
+        body: jsonBody({
+          force: input.force === true,
+          forceNew: input.forceNew === true,
+          timeoutMs: input.timeoutMs
+        })
+      });
+    },
+    [CHANNELS.getTranslationJob]: (_event, input = {}) => {
+      const jobId = requiredIdentifier(input.jobId, 'jobId');
+      return apiRequest(`/api/r32/store/translations/jobs/${encodeURIComponent(jobId)}`);
+    },
+    [CHANNELS.cancelTranslationJob]: (_event, input = {}) => {
+      const jobId = requiredIdentifier(input.jobId, 'jobId');
+      return apiRequest(`/api/r32/store/translations/jobs/${encodeURIComponent(jobId)}`, { method: 'DELETE' });
+    },
+    [CHANNELS.retryTranslationJob]: (_event, input = {}) => {
+      const jobId = requiredIdentifier(input.jobId, 'jobId');
+      return apiRequest(`/api/r32/store/translations/jobs/${encodeURIComponent(jobId)}/retry`, {
+        method: 'POST', body: jsonBody({ timeoutMs: input.timeoutMs })
+      });
     },
     [CHANNELS.generateReply]: async (event, input = {}) => {
       const requestId = clean(input.__yanceBridgeRequestId);
