@@ -51,7 +51,7 @@ function Invoke-JsonEntrypoint([string]$PythonExe, [string]$Entrypoint, [hashtab
   $stdoutLines = @($requestJson | & $PythonExe -I $Entrypoint)
   $exitCode = $LASTEXITCODE
   $stdout = $stdoutLines -join "`n"
-  if ($exitCode -ne 0) { throw "$Label failed with exit $exitCode: $stdout" }
+  if ($exitCode -ne 0) { throw "$Label failed with exit $($exitCode): $stdout" }
   try { return ($stdout | ConvertFrom-Json) }
   catch { throw "$Label returned invalid JSON: $stdout" }
 }
