@@ -129,3 +129,18 @@ test('bilingual search panel renders evidence and truthful bounded translation l
   assert.match(css, /prefers-reduced-motion/u);
   assert.doesNotMatch(css, /--(?:bilingual|search|translation)-/u, 'new Product UX must reuse the existing --yance-* token namespace');
 });
+
+test('newer translation requests cannot be overwritten by slower older create-job responses', () => {
+  const panel = readOrEmpty(PANEL_PATH);
+  assert.match(panel, /const\s+translationSequence\s*=\s*useRef\(0\)/u);
+  assert.match(panel, /const\s+sequence\s*=\s*\+\+translationSequence\.current/u);
+  assert.match(panel, /if\s*\(sequence\s*!==\s*translationSequence\.current\)\s*return/u);
+});
+
+test('translation completion refreshes the latest query instead of an effect-captured stale query', () => {
+  const panel = readOrEmpty(PANEL_PATH);
+  assert.match(panel, /const\s+latestQuery\s*=\s*useRef\(""\)/u);
+  assert.match(panel, /latestQuery\.current\s*=\s*query/u);
+  assert.match(panel, /runSearch\(latestQuery\.current\)/u);
+  assert.doesNotMatch(panel, /nextStatus\s*===\s*"success"\s*&&\s*query\.trim\(\)[\s\S]{0,160}runSearch\(query\)/u);
+});
