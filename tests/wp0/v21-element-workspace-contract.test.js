@@ -432,3 +432,47 @@ test('Product dependency replay gives the Element root host exact lucide-react o
   assert.match(rootImporterPatch, /^\+\s+lucide-react:\n\+\s+specifier: 0\.563\.0\n\+\s+version: 0\.563\.0\(react@19\.2\.7\)$/mu);
   assert.doesNotMatch(patchText, /shamefully-hoist|public-hoist-pattern|NODE_PATH|strict-peer-dependencies\s*=\s*false|--no-frozen-lockfile|--lockfile-only/iu);
 });
+test('governed tool-ui receives React JSX runtime ownership from the physical Element root package boundary', () => {
+  const patchText = readText('upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
+  assert.deepEqual(patchedPaths(patchText), ['package.json', 'pnpm-lock.yaml']);
+
+  const packageMarker = 'diff --git a/package.json b/package.json';
+  const lockMarker = 'diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml';
+  const packageStart = patchText.indexOf(packageMarker);
+  const lockStart = patchText.indexOf(lockMarker);
+  assert.ok(packageStart >= 0 && lockStart > packageStart);
+
+  const packagePatch = patchText.slice(packageStart, lockStart);
+  assert.match(packagePatch, /^\+[ \t]+"lucide-react": "0\.563\.0",$/mu);
+  assert.match(packagePatch, /^\+[ \t]+"react": "catalog:",$/mu);
+  assert.equal(
+    (packagePatch.match(/^\+[ \t]+"react": "catalog:",$/gmu) ?? []).length,
+    1,
+    'Element root host must gain exactly one React catalog ownership mutation'
+  );
+
+  const lockPatch = patchText.slice(lockStart);
+  const moduleImporterIndex = lockPatch.indexOf('+  modules/yance:');
+  assert.ok(moduleImporterIndex >= 0, '0011 must preserve modules/yance');
+
+  const rootImporterPatch = lockPatch.slice(0, moduleImporterIndex);
+  assert.match(
+    rootImporterPatch,
+    /^\+[ \t]+react:\n\+[ \t]+specifier: 'catalog:'\n\+[ \t]+version: 19\.2\.7$/mu
+  );
+
+  const moduleImporterPatch = lockPatch.slice(moduleImporterIndex);
+  assert.match(
+    moduleImporterPatch,
+    /^\+[ \t]+react:\n\+[ \t]+specifier: '>=18'\n\+[ \t]+version: 19\.2\.7$/mu
+  );
+  assert.match(
+    moduleImporterPatch,
+    /^\+[ \t]+lucide-react:\n\+[ \t]+specifier: 0\.563\.0\n\+[ \t]+version: 0\.563\.0\(react@19\.2\.7\)$/mu
+  );
+
+  assert.doesNotMatch(
+    patchText,
+    /shamefully-hoist|public-hoist-pattern|NODE_PATH|strict-peer-dependencies\s*=\s*false|--no-frozen-lockfile|--lockfile-only/iu
+  );
+});
