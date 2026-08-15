@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-15T20:10:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-MATERIALIZATION-LAYERED-CI-RISK-ROUTE-REPAIR",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #416 exact implementation head 54e4da36bdd6b38d8d5b14383594951c7ac203e4 exposed a base-owned Layered CI classification gap outside the V9 five-file implementation scope: upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch is an already authorized Product dependency patch but governance/layered-ci/risk-policy.json does not classify that exact repository path. Layered CI Fast Feedback run 31886469861, job 95016382228, fails closed in Select required CI level with CI_UNKNOWN_PATH before L2 verification. This authorization permits only a permanent exact-path L2 risk classification repair plus its existing classifier regression test. Broad upstream-patches prefixes, gate weakening, workflow changes, Product changes, dependency changes, and temporary bypasses remain forbidden.",
+  "base": {
+    "branch": "main",
+    "commit": "0cd604e1b0f4b006833778f316c3428047083a82"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "0cd604e1b0f4b006833778f316c3428047083a82",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "causalRedEvidence": {
+    "implementationPullRequest": 416,
+    "implementationExactHead": "54e4da36bdd6b38d8d5b14383594951c7ac203e4",
+    "workflow": "Layered CI Fast Feedback",
+    "runId": 31886469861,
+    "jobId": 95016382228,
+    "failedStep": "Select required CI level",
+    "reasonCode": "CI_UNKNOWN_PATH",
+    "unknownPaths": [
+      "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch"
+    ],
+    "policyJobPassed": true,
+    "failureOccurredBeforeL2Verification": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-materialization-layered-ci-risk-route-repair-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-materialization-layered-ci-risk-route-repair-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "646eaf6f34ab3ab27c8da425bcd6d925cb5a530cfd210bb2b7be29fea9758470",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "riskPolicyExactL2Paths": [
+    "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch"
+  ],
+  "riskPolicyExactL2PathCount": 1,
+  "riskPolicyExactL2PathSetSha256": "512b03b76316ca7c4604ecbfac58e46c0aee6498773552e656b64da7ad70e4f5",
+  "implementation": {
+    "branch": "fix/v21-product-final-materialization-layered-ci-risk-route-repair",
+    "allowedChangedPaths": [
+      "governance/layered-ci/risk-policy.json",
+      "tests/layered-ci/governance-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "dda3b27532f387c8ea4e78c3b63b62fc9b822d1efdf31ea6051fe6ea91f22633",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/governance-policy.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "96590e18dd790ed9f84431e411beab59fb97e12dba1a186466800351673256f5",
+      "productionCodeChanged": false,
+      "expectedFailure": "The exact 0011 Product dependency patch path remains CI_UNKNOWN_PATH until risk-policy.json is permanently repaired."
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "riskPolicyMigration": {
+    "path": "governance/layered-ci/risk-policy.json",
+    "requiredChange": "Add exactly upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch to l2ExactPaths using canonical sorted exact-path classification.",
+    "requiredLevel": "L2",
+    "unknownPathFailsClosedMustRemain": true,
+    "l3AutomaticMustRemain": false,
+    "broadPrefixModificationAllowed": false,
+    "existingPrefixModificationAllowed": false,
+    "existingClassificationRemovalAllowed": false
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_LAYERED_CI_CLASSIFIER_EXACT_PATH_SEAM",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Layered CI risk classifier",
+        "source": "governance/layered-ci/risk-policy.json + tools/layered-ci/governance-policy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The fail-closed classifier is correct; one exact already-authorized Product dependency patch path is missing from L2 classification."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add upstream-patches/ or upstream-patches/element-web/ as an L2 prefix.",
+      "Do not set unknownPathFailsClosed=false.",
+      "Do not set l3Automatic=true.",
+      "Do not modify workflows, Product source, dependency bytes, package manifests, lockfiles, or V9 implementation history.",
+      "Do not add a PR-specific selector bypass, skip flag, or alternate CI router."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "verification": {
+    "mandatory": [
+      "fresh authorization-branch Stage 6.4.5.9 WP0 Architecture Gates GREEN before authorization merge",
+      "fresh authorization-branch ACV2 GREEN before authorization merge",
+      "fresh authorization-branch Layered CI GREEN before authorization merge",
+      "exact failure-first classifier regression commit from the authorization merge",
+      "fresh causal RED proving the exact 0011 path remains CI_UNKNOWN_PATH",
+      "post-RED exact-path risk-policy implementation",
+      "fresh exact-head Stage GREEN",
+      "fresh exact-head ACV2 GREEN",
+      "fresh exact-head Layered CI GREEN",
+      "fresh exact-head independent review with zero P0/P1 findings"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "exact path rather than broad prefix",
+      "unknown-path fail-closed preservation",
+      "L3 automatic promotion preservation",
+      "no V9 implementation or product change",
+      "classifier regression coverage for the exact 0011 path"
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

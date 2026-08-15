@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-15T18:21:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-MATERIALIZATION-ROOT-CLOSURE-V7",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh exact-head Product Final validation of Product PR #387 proves two remaining base-owned integration defects after the in-scope bilingual-search freshness defects are GREEN: the trusted desktop bundle does not materialize/pass the already-required sealed Learning runtime into WP7, and the governed assistant-ui/tool-ui source is overlaid at the pinned Element root vendor path while its already-approved lucide-react dependency is owned only by the sibling modules/yance importer, so strict pnpm/Vite resolution cannot close the vendored source dependency. V7 authorizes only the two-test failure-first contract and the two minimal root repairs needed to make the existing mature OSS composition materially buildable; no #387 product behavior, Learning business logic, WP7 implementation, bootstrap mechanism, new dependency, new runtime, or new Yance infrastructure is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "8da830863e493930f23cc32c1286d2cc9d625271"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "8da830863e493930f23cc32c1286d2cc9d625271",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "predecessorEvidence": {
+    "productPullRequest": 387,
+    "productExactHead": "faaef39f1aeaf770d9aefbb77dd7bf80805edda6",
+    "productBase": "8da830863e493930f23cc32c1286d2cc9d625271",
+    "stageExactHeadRun": 31881935465,
+    "stageResult": "GREEN after the in-scope translation request ownership and latest-query freshness root repair",
+    "productFinalExactHeadRun": 31881935464,
+    "desktopTrustedBundleJob": 95005644359,
+    "desktopTrustedBundleFailure": "WP7_LEARNING_RUNTIME_REQUIRED",
+    "frozenElementReproducibilityJob": 95005644379,
+    "frozenElementReproducibilityFailure": "Rolldown cannot resolve lucide-react from vendor/assistant-ui-tool-ui/v2026.2.13/progress-tracker/progress-tracker.tsx",
+    "v6AuthorizationPath": "governance/layered-ci/v21-product-final-materialization-root-closure-v6-authorization.json",
+    "v6ImplementationMerge": "6976c1e2c8d55ba43672c7b5ac750affd2c75a0a",
+    "v6Limitation": "V6 correctly materialized the governed tool-ui tree at the Element root vendor path and intentionally kept manifests/locks unchanged; the fresh #387 final build proves that assumption is insufficient under strict pnpm package-boundary resolution."
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-materialization-root-closure-v7-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-materialization-root-closure-v7-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "efc7b4741193d784c16ab53f56ba91a0d6f9ac145f345f451832eb8cfcf0c2f4",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-materialization-root-closure-v7",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "c3607e183cf8311cebdfb23a0ae48d6f3da9201827db8d7e685b8cdf0fb25925",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "tests/wp0/v21-element-workspace-contract.test.js"
+      ],
+      "approvedChangedFileCount": 2,
+      "approvedChangedFileSetSha256": "1cbd9e07d6b535ab574c970c0c5c3264c763c0474ca54cb5e3ff4bce23b32df7",
+      "productionCodeChanged": false,
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure"
+      ],
+      "expectedFailures": [
+        "Product Final still lacks sealed Learning runtime materialization and does not pass --learning-runtime to the existing WP7 trusted-product builder.",
+        "Element Product dependency patch remains lock-only for modules/yance and therefore does not establish lucide-react ownership at the Element root package boundary that physically hosts the governed tool-ui source."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "learningAdapterModificationAllowed": false,
+    "wp7ImplementationModificationAllowed": false,
+    "matrixBootstrapModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "elementDependencyPatchModificationAllowed": true,
+    "elementDependencyOwnershipPolicy": {
+      "patchPath": "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
+      "existingDependencyName": "lucide-react",
+      "existingDependencyVersion": "0.563.0",
+      "newPackageIdentityAllowed": false,
+      "requiredBehavior": [
+        "Preserve the existing modules/yance lucide-react 0.563.0 dependency identity.",
+        "Extend the canonical Product dependency replay so the pinned Element root build-host package boundary that physically contains vendor/assistant-ui-tool-ui/v2026.2.13 also owns the same exact lucide-react 0.563.0 dependency during frozen installation.",
+        "Keep the assistant-ui/tool-ui core vendored bytes unchanged and keep LearningToolUiAdapter unchanged.",
+        "Keep tools/matrix/bootstrap.js unchanged; V6's exact governed overlay remains the materialization seam.",
+        "No Vite alias, externalization, NODE_PATH, hoist override, symlink workaround, unfrozen install, live install, or dependency-version drift is allowed."
+      ]
+    },
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "learningRuntimeClosure": {
+    "existingMaterializer": "tools/learning-policy/entrypoint.py materialize-runtime",
+    "existingConsumer": "tools/wp7/create-pre-review-trusted-product.js",
+    "requiredBehavior": [
+      "Reuse the established sealed Learning runtime materialization flow already exercised by v21-learning-policy-p1-windows.yml; do not invent a second Learning runtime builder.",
+      "Materialize and validate the Learning runtime before the Product Final desktop trusted-product build.",
+      "Pass the exact materialized root through the existing --learning-runtime / WP7_LEARNING_RUNTIME_ROOT contract together with the existing Parlant runtime root.",
+      "Do not make WP7 Learning runtime optional and do not weaken WP7_LEARNING_RUNTIME_REQUIRED."
+    ],
+    "forbiddenBehavior": [
+      "No skip flag, optional fallback, fake runtime root, empty seal, live downloader, retry mirror, alternate runtime, or validation weakening."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_MATURE_OSS_AND_REPOSITORY_SEAMS_WITHOUT_NEW_INFRASTRUCTURE",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Learning sealed-runtime materializer",
+        "source": "tools/learning-policy/entrypoint.py plus the already governed Learning OSS runtime",
+        "license": "same-repository composition of previously reviewed OSS",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already authoritative and used by the Learning Windows workflow; Product Final only lacks orchestration/pass-through."
+      },
+      {
+        "name": "assistant-ui/tool-ui v2026.2.13",
+        "source": "assistant-ui/tool-ui@ee6389647e997f8637c21187f3e49c2db6cde3a5",
+        "license": "MIT",
+        "adoptionMode": "existing governed vendored OSS source",
+        "fit": "FIT",
+        "reason": "Already selected, byte-sealed and materialized by V6; the defect is only host dependency ownership."
+      },
+      {
+        "name": "lucide-react 0.563.0",
+        "source": "lucide-icons/lucide package identity already present in integration/element-module/package.json and the canonical Element Product lock replay",
+        "license": "ISC/MIT",
+        "adoptionMode": "reuse exact existing dependency identity",
+        "fit": "FIT",
+        "reason": "No new package or version is introduced; strict resolution only needs the physical host boundary to own the dependency it already consumes."
+      },
+      {
+        "name": "pnpm strict package-boundary resolution",
+        "source": "existing pinned Element pnpm 11.5.2 workspace authority",
+        "license": "existing toolchain",
+        "adoptionMode": "preserve existing package-manager semantics",
+        "fit": "FIT",
+        "reason": "Fix ownership to fit strict resolution rather than bypassing it with hoisting or aliases."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not modify #387 product behavior or broaden its frozen scope.",
+      "Do not weaken Product Final, WP7 Learning runtime requirements, frozen pnpm installation, or reproducibility checks.",
+      "Do not use Vite alias/externalization, NODE_PATH, shamefully-hoist, public-hoist-pattern, symlink injection, live dependency install, cache/mirror/retry, or another temporary dependency-resolution bypass.",
+      "Do not introduce a new Yance runtime materializer, dependency broker, package proxy, or general-purpose infrastructure."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "the two-test first commit produces fresh causal RED on trusted main before production implementation",
+      "the first post-RED implementation commit carries exactly one required Head/Run/Conclusion trailer set",
+      "Product Final reuses the existing Learning sealed-runtime materializer and WP7 required-input contract without weakening either",
+      "assistant-ui/tool-ui remains exact governed OSS source while strict pnpm dependency ownership is corrected at the physical Element host boundary",
+      "no new package identity, bootstrap mechanism, Learning adapter change, product behavior change, hoisting/alias bypass, validation weakening, or new Yance infrastructure"
+    ]
+  },
+  "verification": {
+    "mandatory": [
+      "fresh authorization-branch Stage 6.4.5.9 GREEN before authorization merge",
+      "fresh authorization-branch ACV2 GREEN before authorization merge",
+      "fresh authorization-branch Layered CI GREEN before authorization merge",
+      "after ordinary authorization merge, exact two-test failure-first commit on the unique V7 implementation branch",
+      "fresh causal Stage RED with implementation-branch-policy itself GREEN",
+      "first post-RED implementation commit with exact required failure-first evidence trailers",
+      "fresh exact-head Stage GREEN",
+      "fresh exact-head Product Experience Final Validation GREEN including desktop trusted bundle and frozen Element reproducibility",
+      "fresh exact-head independent review with zero P0/P1 findings"
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

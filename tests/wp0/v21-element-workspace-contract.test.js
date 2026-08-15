@@ -413,3 +413,22 @@ test('pinned Element build workspace overlays only the governed assistant-ui/too
   assert.ok(deliveryCheckIndex > vendorCopyIndex, 'runtime delivery replay must run only after build-time vendor materialization is complete');
   assert.doesNotMatch(bootstrap, /fs\.cpSync\(path\.join\(ROOT, 'vendor'\)/u, 'bootstrap must not copy the repository-wide vendor tree into Element');
 });
+
+test('Product dependency replay gives the Element root host exact lucide-react ownership for governed tool-ui', () => {
+  const patchText = readText('upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
+  assert.deepEqual(patchedPaths(patchText), ['package.json', 'pnpm-lock.yaml']);
+  const packageMarker = 'diff --git a/package.json b/package.json';
+  const lockMarker = 'diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml';
+  const packageStart = patchText.indexOf(packageMarker);
+  const lockStart = patchText.indexOf(lockMarker);
+  assert.ok(packageStart >= 0 && lockStart > packageStart, '0011 must bind Element root package ownership before lock replay');
+  const packagePatch = patchText.slice(packageStart, lockStart);
+  assert.match(packagePatch, /^\+\s+"lucide-react": "0\.563\.0",$/mu);
+  assert.equal((packagePatch.match(/lucide-react/gu) || []).length, 1, 'Element root host must declare exactly one lucide-react ownership mutation');
+  const lockPatch = patchText.slice(lockStart);
+  const moduleImporterIndex = lockPatch.indexOf('+  modules/yance:');
+  assert.ok(moduleImporterIndex >= 0, '0011 must preserve the existing modules/yance importer');
+  const rootImporterPatch = lockPatch.slice(0, moduleImporterIndex);
+  assert.match(rootImporterPatch, /^\+\s+lucide-react:\n\+\s+specifier: 0\.563\.0\n\+\s+version: 0\.563\.0\(react@19\.2\.7\)$/mu);
+  assert.doesNotMatch(patchText, /shamefully-hoist|public-hoist-pattern|NODE_PATH|strict-peer-dependencies\s*=\s*false|--no-frozen-lockfile|--lockfile-only/iu);
+});

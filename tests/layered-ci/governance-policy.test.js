@@ -190,3 +190,11 @@ test('bilingual Product integration paths are classified at exact L2 risk', () =
     assert.equal(result.reasons[0].type, 'EXACT', file);
   }
 });
+
+test('Product final Element dependency patch is classified at exact L2 risk', () => {
+  const file = 'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch';
+  const result = classifyChangedFiles(risk, [file]);
+  assert.equal(result.pass, true, file);
+  assert.equal(result.requiredLevel, 'L2', file);
+  assert.equal(result.reasons[0].type, 'EXACT', file);
+});
