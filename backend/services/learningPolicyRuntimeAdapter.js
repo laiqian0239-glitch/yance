@@ -232,9 +232,12 @@ function createLearningPolicyRuntimeAdapter(options = {}) {
       if (input.failClosed === true) throw error;
       return baseline({ ...input, allowedActions }, reasonCode);
     }
-    // Test/UAT may inject the sealed operation directly; production never accepts
-    // request-supplied active policy, artifact path, hash, or executable authority.
-    if (!activePolicy && !hasInjectedRuntime) return baseline({ ...input, allowedActions }, 'NO_PROMOTED_POLICY');
+    // Test/UAT may inject the sealed operation directly without a resolver; an
+    // explicitly injected resolver remains authoritative when it reports that
+    // no promoted policy is active.
+    if (!activePolicy && (!hasInjectedRuntime || hasInjectedResolver)) {
+      return baseline({ ...input, allowedActions }, 'NO_PROMOTED_POLICY');
+    }
 
     const resolutionDegradation = activePolicy?.degradation || null;
     if (resolutionDegradation) {
