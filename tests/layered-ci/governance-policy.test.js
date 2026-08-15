@@ -173,3 +173,20 @@ test('checked-in supply-chain inventories always escalate to L2', () => {
     assert.equal(result.requiredLevel, 'L2', file);
   }
 });
+
+test('bilingual Product integration paths are classified at exact L2 risk', () => {
+  for (const file of [
+    'integration/element-module/src/YanceWorkspace.tsx',
+    'integration/element-module/src/index.tsx',
+    'integration/element-module/src/product-experience/BilingualSearchPanel.tsx',
+    'integration/element-module/src/product-experience/ProductExperienceShell.css',
+    'integration/element-module/src/product-experience/ProductExperienceShell.tsx',
+    'integration/element-module/src/product-experience/experienceProjection.ts',
+    'integration/element-module/src/product-experience/experienceTypes.ts'
+  ]) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, true, file);
+    assert.equal(result.requiredLevel, 'L2', file);
+    assert.equal(result.reasons[0].type, 'EXACT', file);
+  }
+});

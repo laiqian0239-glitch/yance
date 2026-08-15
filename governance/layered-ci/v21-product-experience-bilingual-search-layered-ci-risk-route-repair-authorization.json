@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-BILINGUAL-SEARCH-LAYERED-CI-ROUTE-REPAIR",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #387 exact implementation head 423a0be2f1c069d4312f9de745caabfa635a7183 exposed a base-owned Layered CI routing gap outside the original #386 implementation scope: the WP0 Product router correctly recognizes the new component after its exact route bootstrap, but governance/layered-ci/risk-policy.json still fails closed on seven existing/authorized integration/element-module Product paths. Layered CI Fast Feedback run 31863016396, job 94959496217, fails in Select required CI level with CI_UNKNOWN_PATH before product verification. This authorization permits only a permanent exact-path Layered risk classification repair plus its existing classifier regression test; broad integration prefixes, implementation code changes, gate weakening, and temporary bypasses remain forbidden.",
+  "base": {
+    "branch": "main",
+    "commit": "f43c55ca0173be4845043d05a845008759604590"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "f43c55ca0173be4845043d05a845008759604590",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "causalRedEvidence": {
+    "implementationPullRequest": 387,
+    "implementationExactHead": "423a0be2f1c069d4312f9de745caabfa635a7183",
+    "workflow": "Layered CI Fast Feedback",
+    "runId": 31863016396,
+    "jobId": 94959496217,
+    "failedStep": "Select required CI level",
+    "reasonCode": "CI_UNKNOWN_PATH",
+    "unknownPaths": [
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/BilingualSearchPanel.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts"
+    ],
+    "failureOccurredBeforeProductVerification": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-bilingual-search-layered-ci-risk-route-repair-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-bilingual-search-layered-ci-risk-route-repair-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8f254a9ad2c401dfac73c46cf0b467e9c2b825f5c29c3ae34d659443f01deb7a",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "riskPolicyExactL2Paths": [
+    "integration/element-module/src/YanceWorkspace.tsx",
+    "integration/element-module/src/index.tsx",
+    "integration/element-module/src/product-experience/BilingualSearchPanel.tsx",
+    "integration/element-module/src/product-experience/ProductExperienceShell.css",
+    "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+    "integration/element-module/src/product-experience/experienceProjection.ts",
+    "integration/element-module/src/product-experience/experienceTypes.ts"
+  ],
+  "riskPolicyExactL2PathCount": 7,
+  "riskPolicyExactL2PathSetSha256": "40550137b5c9ae3225c6f148b99e829b39812d022989c91dbfaa5cad2028ac69",
+  "implementation": {
+    "branch": "fix/v21-product-experience-bilingual-search-layered-ci-risk-route-repair",
+    "allowedChangedPaths": [
+      "governance/layered-ci/risk-policy.json",
+      "tests/layered-ci/governance-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "dda3b27532f387c8ea4e78c3b63b62fc9b822d1efdf31ea6051fe6ea91f22633",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/governance-policy.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "96590e18dd790ed9f84431e411beab59fb97e12dba1a186466800351673256f5",
+      "productionCodeChanged": false,
+      "expectedFailure": "The seven exact Product integration paths remain CI_UNKNOWN_PATH until risk-policy.json is permanently repaired."
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "riskPolicyMigration": {
+    "path": "governance/layered-ci/risk-policy.json",
+    "requiredChange": "Add exactly the seven riskPolicyExactL2Paths entries to l2ExactPaths using canonical sorted exact-path classification.",
+    "requiredLevel": "L2",
+    "unknownPathFailsClosedMustRemain": true,
+    "l3AutomaticMustRemain": false,
+    "broadPrefixModificationAllowed": false,
+    "existingPrefixModificationAllowed": false,
+    "existingClassificationRemovalAllowed": false
+  },
+  "ossFit": {
+    "decision": "Reuse the existing fail-closed Layered CI classifier and add only exact L2 path identities. No new routing engine, matcher, workflow, or Product infrastructure is needed.",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Layered CI risk classifier",
+        "source": "governance/layered-ci/risk-policy.json + tools/layered-ci/governance-policy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing classifier already fails closed correctly; only seven exact authorized Product paths are missing from L2 classification."
+      },
+      {
+        "name": "Existing WP0 Product exact router",
+        "source": "governance/layered-ci/wp0-routing-policy.json + tools/layered-ci/wp0-routing.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "PR #387 already proved this router recognizes the Product workline; it is not the failing Layered classifier and must not be modified by this repair."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add integration/ or integration/element-module/ as an L2 prefix.",
+      "Do not set unknownPathFailsClosed=false.",
+      "Do not set l3Automatic=true.",
+      "Do not modify workflows, Product source, Electron source, dependencies, or package manifests.",
+      "Do not add a second CI selector or temporary special-case bypass for PR #387."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "broad risk classification",
+      "gate weakening",
+      "unrelated path additions",
+      "unknown-path fail-closed preservation",
+      "L3 automatic promotion preservation",
+      "test coverage of all seven exact paths"
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
