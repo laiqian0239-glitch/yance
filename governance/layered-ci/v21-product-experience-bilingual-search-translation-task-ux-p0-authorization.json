@@ -29,6 +29,16 @@
     "authorizationProposalTransportIsNotImplementationAuthority": true,
     "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
   },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
   "authorizationBranch": {
     "name": "governance/v21-product-experience-bilingual-search-translation-task-ux-p0-authorization",
     "allowedChangedPaths": [
