@@ -104,8 +104,20 @@ jobs:
             }
           )
           $request = @{ operation = 'policy_train'; rows = $rows; artifactPath = $artifact } | ConvertTo-Json -Depth 12 -Compress
-          $output = $request | & $python -I $entrypoint
-          if ($LASTEXITCODE -ne 0) { throw "sealed VW training failed: $output" }
+          $requestPath = [IO.Path]::GetTempFileName()
+          $stdoutPath = [IO.Path]::GetTempFileName()
+          $stderrPath = [IO.Path]::GetTempFileName()
+          try {
+            $utf8NoBom = New-Object Text.UTF8Encoding($false)
+            [IO.File]::WriteAllText($requestPath, ($request + "`n"), $utf8NoBom)
+            $argumentList = @('-I', ('"' + $entrypoint + '"'))
+            $process = Start-Process -FilePath $python -ArgumentList $argumentList -RedirectStandardInput $requestPath -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -NoNewWindow -Wait -PassThru
+            $output = [IO.File]::ReadAllText($stdoutPath)
+            $stderr = [IO.File]::ReadAllText($stderrPath)
+            if ($process.ExitCode -ne 0) { throw "sealed VW training failed with exit $($process.ExitCode): $stderr $output" }
+          } finally {
+            Remove-Item -LiteralPath $requestPath, $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
+          }
           $result = $output | ConvertFrom-Json
           if ($result.status -ne 'READY' -or $result.probability -ne 1 -or $result.exploration -ne $false) { throw "sealed VW training contract mismatch: $output" }
           $digest = (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
