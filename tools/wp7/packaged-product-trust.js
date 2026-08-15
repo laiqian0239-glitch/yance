@@ -244,7 +244,7 @@ function compareElectronDistributionTree(options = {}) {
     'resources/platform-auth.sha256',
     'resources/evidence/native-binary-scan.json'
   ]);
-  const allowedAddition = (relative) => relative.startsWith('resources/app/') || relative.startsWith('resources/runtime/node22/') || relative.startsWith('resources/parlant-runtime/') || metadata.has(relative);
+  const allowedAddition = (relative) => relative.startsWith('resources/app/') || relative.startsWith('resources/runtime/node22/') || relative.startsWith('resources/parlant-runtime/') || relative.startsWith('resources/learning-runtime/') || metadata.has(relative);
   const missing = official.filter((row) => !actual.has(row.payloadPath)).map((row) => row.payloadPath);
   const mismatched = official.filter((row) => {
     if (!actual.has(row.payloadPath)) return false;
@@ -275,7 +275,7 @@ function compareElectronDistributionTree(options = {}) {
   if (missing.length || mismatched.length || modeMismatched.length || extra.length) fail('WP7_ELECTRON_DISTRIBUTION_TREE_TRUST_NOT_ENFORCED', 'packaged Electron runtime tree content and unixMode are not an exact projection of the trusted release archive plus explicit product additions', { missing, mismatched, modeMismatched, extra });
   const distributionTreeSha256 = sha256Buffer(Buffer.from(official.map((row) => `${row.payloadPath}\0${row.sizeBytes}\0${row.sha256}\0${Number(row.unixMode || 0).toString(8).padStart(6, '0')}\n`).join(''), 'utf8'));
   if (options.expectedDistributionTreeSha256 && options.expectedDistributionTreeSha256 !== distributionTreeSha256) fail('WP7_ELECTRON_DISTRIBUTION_TREE_IDENTITY_MISMATCH', 'Electron distribution tree hash including unixMode differs from the bound release identity', { expected: options.expectedDistributionTreeSha256, actual: distributionTreeSha256 });
-  return Object.freeze({ archiveFileCount: official.length, modeBoundFileCount: official.filter((row) => Number(row.unixMode || 0) !== 0).length, distributionTreeSha256, records: official.map(({ payloadPath, ...row }) => ({ ...row, payloadPath })), allowedProductAdditions: ['resources/app/**', 'resources/runtime/node22/**', 'resources/parlant-runtime/**', ...metadata] });
+  return Object.freeze({ archiveFileCount: official.length, modeBoundFileCount: official.filter((row) => Number(row.unixMode || 0) !== 0).length, distributionTreeSha256, records: official.map(({ payloadPath, ...row }) => ({ ...row, payloadPath })), allowedProductAdditions: ['resources/app/**', 'resources/runtime/node22/**', 'resources/parlant-runtime/**', 'resources/learning-runtime/**', ...metadata] });
 }
 
 function verifyElectronDistributionTree(options = {}) {
