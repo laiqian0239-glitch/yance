@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -10,7 +11,10 @@ const { REPO_ROOT } = require('../../tools/wp0/lib');
 
 const FIXED_TIME = '2026-07-03T00:00:00Z';
 const FIXTURE_BRANCH = 'rebuild/windows-release-closure-20260806-wp0-fixture';
-const RCEDIT_LFS_PATH = 'vendor/rcedit/rcedit-v2.0.0-x64.exe';
+const RCEDIT_NATIVE_PATH = 'vendor/rcedit/rcedit-v2.0.0-x64.exe';
+const FUTURE_RCEDIT_LFS_PATH = 'vendor/rcedit/rcedit-future-unreviewed.exe';
+const RCEDIT_EXPECTED_SIZE = 1360384;
+const RCEDIT_EXPECTED_SHA256 = '3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a';
 const POST_MERGE_DEFECT_PATH = path.join(
   REPO_ROOT,
   'governance',
@@ -30,11 +34,32 @@ function git(cwd, args) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', env: LFS_POINTER_ENV }).trim();
 }
 
-function assertPointerPreserved(repo) {
-  const pointer = fs.readFileSync(path.join(repo, RCEDIT_LFS_PATH), 'utf8');
-  assert.match(pointer, /^version https:\/\/git-lfs\.github\.com\/spec\/v1\r?\n/u);
-  assert.match(pointer, /^oid sha256:3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a$/mu);
-  assert.match(pointer, /^size 1360384$/mu);
+function assertRceditCustody(repo) {
+  const exactAttributes = git(repo, ['check-attr', 'filter', 'diff', 'merge', 'text', '--', RCEDIT_NATIVE_PATH]);
+  assert.match(exactAttributes, new RegExp(`^${RCEDIT_NATIVE_PATH}: filter: unset$`, 'mu));
+  assert.match(exactAttributes, new RegExp(`^${RCEDIT_NATIVE_PATH}: diff: unset$`, 'mu));
+  assert.match(exactAttributes, new RegExp(`^${RCEDIT_NATIVE_PATH}: merge: unset$`, 'mu));
+  assert.match(exactAttributes, new RegExp(`^${RCEDIT_NATIVE_PATH}: text: unset$`, 'mu));
+
+  const futureAttributes = git(repo, ['check-attr', 'filter', 'diff', 'merge', 'text', '--', FUTURE_RCEDIT_LFS_PATH]);
+  assert.match(futureAttributes, new RegExp(`^${FUTURE_RCEDIT_LFS_PATH}: filter: lfs$`, 'mu));
+  assert.match(futureAttributes, new RegExp(`^${FUTURE_RCEDIT_LFS_PATH}: diff: lfs$`, 'mu));
+  assert.match(futureAttributes, new RegExp(`^${FUTURE_RCEDIT_LFS_PATH}: merge: lfs$`, 'mu));
+  assert.match(futureAttributes, new RegExp(`^${FUTURE_RCEDIT_LFS_PATH}: text: unset$`, 'mu));
+
+  const executablePath = path.join(repo, RCEDIT_NATIVE_PATH);
+  const bytes = fs.readFileSync(executablePath);
+  assert.equal(bytes.length, RCEDIT_EXPECTED_SIZE, 'reviewed rcedit must keep its exact native byte size');
+  assert.equal(
+    crypto.createHash('sha256').update(bytes).digest('hex'),
+    RCEDIT_EXPECTED_SHA256,
+    'reviewed rcedit must keep its exact upstream SHA-256'
+  );
+  assert.equal(
+    git(repo, ['hash-object', '--no-filters', '--', RCEDIT_NATIVE_PATH]),
+    git(repo, ['rev-parse', `HEAD:${RCEDIT_NATIVE_PATH}`]),
+    'reviewed rcedit worktree bytes must equal the tracked native Git blob'
+  );
 }
 
 function makeCleanClone() {
@@ -60,7 +85,7 @@ function makeCleanClone() {
   });
   assert.equal(git(repo, ['rev-parse', 'HEAD']), sourceCommit, 'WP0 evidence fixture must use the tested HEAD');
   assert.equal(git(repo, ['branch', '--show-current']), FIXTURE_BRANCH);
-  assertPointerPreserved(repo);
+  assertRceditCustody(repo);
   return { root, repo, sourceBranch: FIXTURE_BRANCH, sourceCommit };
 }
 
@@ -149,9 +174,9 @@ test('historical detached evidence succeeds only at the sealed post-merge defect
     encoding: 'utf8',
     env: LFS_POINTER_ENV
   });
-  // The sealed historical review head predates rcedit custody. The current-head
-  // fixture above already proves generic rcedit LFS pointer preservation; this
-  // historical contract remains focused on detached evidence identity.
+  // The sealed historical review head predates rcedit custody. Current-head
+  // fixtures prove exact native rcedit custody and broad future LFS semantics;
+  // this historical contract remains focused on detached evidence identity.
   const out = path.join(root, 'historical-evidence');
   const result = runGenerator(worktree, ['--source-commit', historical, '--generated-at-utc', FIXED_TIME, '--output-dir', out]);
   assert.equal(result.status, 0, result.stdout + result.stderr);
