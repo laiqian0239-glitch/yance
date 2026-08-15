@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-BILINGUAL-SEARCH-FINAL-VALIDATION-BRANCH-ROUTE-REPAIR",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #387 exact reconciled implementation head def0b6c682b138cb8a088b51562a73420de6f6ae exposed a second base-owned CI routing gap outside the original #386 Product implementation scope: V21 Product Experience Shell P0 Final Validation run 31864805563 is selected by the pull_request event but all three validation jobs are skipped because .github/workflows/v21-product-experience-shell-p0-final-validation.yml hard-binds the original Product shell branch product/v21-product-experience-shell-p0. The #386 implementation plan explicitly requires exact-head Product Experience Final Validation before UAT receipt/status closure, while #386 explicitly forbids workflow modification. This authorization permits only a permanent exact-branch route repair in the existing mature Product Final Validation workflow plus its existing static contract test. No wildcard Product prefix, runtime change, dependency, new UAT framework, gate weakening, manual-dispatch bypass, or fabricated UAT evidence is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "031797f8d5dc3dd3fccad39e9ca45889ecb96aff"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "031797f8d5dc3dd3fccad39e9ca45889ecb96aff",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "causalRedEvidence": {
+    "implementationPullRequest": 387,
+    "implementationExactHead": "def0b6c682b138cb8a088b51562a73420de6f6ae",
+    "workflow": "V21 Product Experience Shell P0 Final Validation",
+    "workflowPath": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+    "runId": 31864805563,
+    "runConclusion": "skipped",
+    "skippedJobs": [
+      {
+        "name": "frozen-element-reproducibility",
+        "jobId": 94964046263
+      },
+      {
+        "name": "materialized-matrix-uat",
+        "jobId": 94964058142
+      },
+      {
+        "name": "materialized-desktop-uat",
+        "jobId": 94964062810
+      }
+    ],
+    "rootCause": "All Product Final Validation jobs require github.event.pull_request.head.ref == 'product/v21-product-experience-shell-p0', while PR #387 is the separately authorized exact branch 'product/v21-product-experience-bilingual-search-translation-task-ux-p0'.",
+    "failureOccurredBeforeProductFinalValidation": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-bilingual-search-final-validation-branch-route-repair-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-bilingual-search-final-validation-branch-route-repair-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "3c8a09140f28c9e1b565a97a8988ddcb24d4bf38c71d16880fcf4705accd15b7",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "exactAuthorizedProductBranches": [
+    "product/v21-product-experience-bilingual-search-translation-task-ux-p0",
+    "product/v21-product-experience-shell-p0"
+  ],
+  "exactAuthorizedProductBranchCount": 2,
+  "implementation": {
+    "branch": "fix/v21-product-experience-bilingual-search-final-validation-branch-route-repair",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "0fe120e1cd4c2692f06a11c3becc1d5db4324efcbaf59f2cc62154b008fd9d6e",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "1248eca9fee4a07fc2a0c5dd816c01de973d57ef003a3996926ca22ee3fb8d44",
+      "productionCodeChanged": false,
+      "expectedFailure": "The existing Product Final Validation workflow does not contain the exact bilingual Product branch literal and therefore cannot satisfy a contract requiring both exact authorized Product branches."
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "workflowMigration": {
+    "path": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+    "requiredChange": "Preserve same-repository pull-request and exact-head binding, but allow the existing validation jobs for exactly the original Product shell branch and the separately authorized bilingual Product branch. Candidate local branch binding must continue to use the exact pull-request head ref and SHA.",
+    "manualDispatchAllowed": false,
+    "pushTriggerAllowed": false,
+    "scheduleTriggerAllowed": false,
+    "wildcardBranchMatchAllowed": false,
+    "prefixBranchMatchAllowed": false,
+    "sameRepositoryRequirementMustRemain": true,
+    "exactHeadCheckoutMustRemain": true,
+    "existingValidationStepsMayBeRemoved": false,
+    "existingValidationAssertionsMayBeWeakened": false,
+    "existingArtifactSemanticsMayBeWeakened": false
+  },
+  "ossFit": {
+    "decision": "Reuse the already-adopted GitHub Actions Product Final Validation workflow, hosted Windows/Linux runners, pinned Element materialization path, existing materialized desktop/matrix UAT builders, and existing static workflow contract. Only the exact authorized branch allowlist/binding is missing; no new CI or UAT infrastructure is needed.",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Product Final Validation GitHub Actions workflow",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        "license": "repository-existing/GitHub Actions hosted CI",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already owns exact-head Windows Element reproducibility and materialized desktop/matrix UAT evidence; only its original single-branch selector prevents the authorized successor Product workline from running."
+      },
+      {
+        "name": "Existing Product Final Validation static contract",
+        "source": "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already protects pull-request-only execution, same-repository identity, pinned tools, frozen materialization, exact-head checkout, artifact semantics, and anti-bypass constraints; extend it only to require the second exact branch literal."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second Product Final Validation workflow.",
+      "Do not create a temporary alias PR on the old Product branch.",
+      "Do not add workflow_dispatch, push, schedule, wildcard branch matching, startsWith/contains branch matching, or broad product/ prefixes.",
+      "Do not weaken exact-head checkout, same-repository checks, frozen Element materialization, Windows/Linux materialized UAT, artifact sealing, or clean-tree assertions.",
+      "Do not modify Product runtime, Electron runtime, dependencies, package manifests, lockfiles, routing policy, or UAT evidence/status files in this prerequisite repair.",
+      "Do not claim Product UAT from a skipped job or fabricate physical Windows interaction evidence."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "branch allowlist remains exact",
+      "same-repository pull-request requirement preserved",
+      "exact-head checkout and local branch binding preserved",
+      "no workflow trigger expansion",
+      "no validation or artifact weakening",
+      "no Product runtime or dependency changes",
+      "static contract covers both exact branches"
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
