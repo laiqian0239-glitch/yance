@@ -1,0 +1,271 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-BILINGUAL-SEARCH-FINAL-MATERIALIZATION-ROOT-CLOSURE",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #387 exact fresh-main candidate aea4b5f2d462f887c5b6886ca8daa3d7308d00b0 exposed two independent fail-closed Product Final materialization blockers outside the #386 Product implementation authority. Product Final Validation run 31866143443 proves both Windows frozen Element reproducibility job 94967429606 and Linux materialized Matrix job 94967429641 fail while building @yance/element-module because integration/element-module/src/LearningToolUiAdapter.tsx imports the already-governed assistant-ui/tool-ui vendor tree through ../../../vendor, but tools/matrix/bootstrap.js overlays only integration/element-module into the pinned Element workspace and therefore does not materialize the repository-level vendor tree at the relative Element workspace path those unchanged imports resolve to. The existing Element runtime-module contract intentionally delivers only the built modules/yance/package.json and modules/yance/lib into the final image, so copying raw vendor sources into the runtime image or widening the ModuleLoader contract is forbidden. The same Product Final run proves Windows materialized desktop job 94967429688 passes exact candidate identity, official Electron Release custody, isolated Electron npm metadata, production dependency closure, packaged Node and Parlant, then fails only when targeted git lfs pull of vendor/rcedit/rcedit-v2.0.0-x64.exe returns the repository LFS-budget-exceeded error. Historical Product Final evidence already proved live rcedit GitHub Release download can fail with HTTP 503, so neither live release retrieval nor Git LFS budget is a sufficient final-UAT runtime custody authority. This authorization permits only two permanent root repairs using mature existing seams: materialize the already-reviewed exact assistant-ui/tool-ui vendor tree into the pinned Element build workspace before the unchanged module build, while preserving package.json+lib-only runtime delivery; and move the exact official 1,360,384-byte rcedit v2.0.0 x64 binary with existing SHA-256 3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a from Git LFS filtering to a single-path native Git blob custody exception, then require Product Final to verify tracked-blob identity, byte length and SHA-256 without any live download or LFS materialization. No Product feature/runtime change, dependency, new module loader, new downloader/cache, mirror, retry loop, alternate binary, checksum/version rewrite, validation weakening or new Yance general-purpose infrastructure is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "9aecf248d7b5462aecaa852bbc3fe881446eda86"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "9aecf248d7b5462aecaa852bbc3fe881446eda86",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "delegatedExecutionAuthorizedAfterMerge": true
+  },
+  "causalRedEvidence": {
+    "productPullRequest": 387,
+    "productExactHead": "aea4b5f2d462f887c5b6886ca8daa3d7308d00b0",
+    "productExactTree": "0e3fa2f6d368aa29c847b83b2b6512c677a8bb19",
+    "productFinalValidationRun": 31866143443,
+    "elementBuildContext": {
+      "windowsFrozenElementJob": 94967429606,
+      "linuxMaterializedMatrixJob": 94967429641,
+      "failedBuild": "pnpm exec nx build yance-element-module",
+      "unresolvedImports": [
+        "../../../vendor/assistant-ui-tool-ui/v2026.2.13/approval-card/index",
+        "../../../vendor/assistant-ui-tool-ui/v2026.2.13/question-flow/index",
+        "../../../vendor/assistant-ui-tool-ui/v2026.2.13/progress-tracker/index"
+      ],
+      "importSource": "integration/element-module/src/LearningToolUiAdapter.tsx",
+      "rootCause": "The repository-local LearningToolUiAdapter imports are valid in the Yance repository, but after integration/element-module is copied to pinned Element modules/yance the same ../../../vendor references resolve to the pinned Element workspace root. tools/matrix/bootstrap.js does not currently overlay the already-governed assistant-ui/tool-ui vendor tree there, so both direct Element build and Element Docker build fail before a materialized UAT artifact can exist.",
+      "runtimeBoundaryMustRemain": "The final Element image continues to receive only /modules/yance/package.json and /modules/yance/lib through the already-authorized 0012 patch and Element official ModuleLoader path."
+    },
+    "rceditCustody": {
+      "windowsMaterializedDesktopJob": 94967429688,
+      "failedStep": "Materialize exact trusted rcedit custody input",
+      "failure": "git lfs pull returned the repository LFS budget exceeded error before WP7 assembly",
+      "existingRceditVersion": "2.0.0",
+      "officialAsset": "electron/rcedit v2.0.0 rcedit-x64.exe",
+      "officialAssetId": 135772040,
+      "expectedSizeBytes": 1360384,
+      "expectedSha256": "3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a",
+      "historicalLiveReleaseFailure": "Product Final previously failed closed because direct official rcedit Release retrieval returned HTTP 503 before hash verification; the subsequent LFS custody repair removed that live-release dependency but now fails on repository LFS quota.",
+      "rootCause": "The fixed trusted binary remains correct, but Product Final custody still depends on an external object-materialization service whose quota is outside candidate control."
+    }
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-bilingual-search-final-materialization-root-closure-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-bilingual-search-final-materialization-root-closure-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "2c1ff5e3d043f0a4132b9d2290a8990a0bbd548a8efdce7cdde711a2cfb3e598",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-bilingual-search-final-materialization-root-closure",
+    "allowedChangedPaths": [
+      ".gitattributes",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/matrix/bootstrap.js",
+      "vendor/rcedit/rcedit-v2.0.0-x64.exe"
+    ],
+    "approvedChangedFileCount": 6,
+    "approvedChangedFileSetSha256": "4d992807421a33b406085bbb216635b19676bfb4842b23de278af903c3ba8bd2",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-element-workspace-contract.test.js",
+        "tests/wp0/v21-product-experience-materialized-uat.test.js"
+      ],
+      "approvedChangedFileCount": 2,
+      "approvedChangedFileSetSha256": "b9a1039dd81be3c13aae079d214ebfd630e2e370c27e77a4f86bccc0ac431d56",
+      "productionCodeChanged": false,
+      "expectedFailures": [
+        "Pinned Element build materialization does not yet overlay the exact governed assistant-ui/tool-ui v2026.2.13 source tree into the Element workspace root required by the unchanged LearningToolUiAdapter relative imports.",
+        "rcedit is still LFS-filtered and Product Final still calls git lfs pull instead of requiring native Git tracked bytes with exact SHA-256 and size."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "learningAdapterModificationAllowed": false,
+    "elementRuntimePatchModificationAllowed": false,
+    "wp7ImplementationModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "gitattributesModificationAllowed": true,
+    "binaryCustodyModificationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "elementBuildOverlay": {
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tools/matrix/bootstrap.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "8d8a75b92f724dbbc6ca22d8f5a2c0a3ce304db9358016fa5987b82b688eac54",
+    "sourceRoot": "vendor/assistant-ui-tool-ui/v2026.2.13",
+    "upstreamRepository": "assistant-ui/tool-ui",
+    "upstreamCommit": "ee6389647e997f8637c21187f3e49c2db6cde3a5",
+    "license": "MIT",
+    "targetRootWithinPinnedElementWorkspace": "vendor/assistant-ui-tool-ui/v2026.2.13",
+    "requiredBehavior": [
+      "Reuse the existing tools/matrix/bootstrap.js overlay mechanism; after pinned Element materialization, copy only the exact already-governed vendor/assistant-ui-tool-ui/v2026.2.13 tree from Yance into the identical repository-relative vendor path at the pinned Element workspace root.",
+      "Keep integration/element-module/src/LearningToolUiAdapter.tsx unchanged so the same reviewed ../../../vendor imports resolve in both the Yance repository and the pinned Element workspace.",
+      "Keep integration/element-module/package.json, lockfiles, vite.config.ts, tsconfig.json, project.json and all upstream patches unchanged.",
+      "Bundle the vendored source through the existing yance-element-module Vite/Nx build; do not ship the raw vendor tree separately at runtime.",
+      "Keep upstream-patches/element-web/0012-yance-element-module-runtime.patch unchanged so the final Element image still receives only /modules/yance/package.json and /modules/yance/lib."
+    ],
+    "forbiddenBehavior": [
+      "Do not copy repository-wide vendor/ or unrelated vendor trees into Element.",
+      "Do not modify LearningToolUiAdapter imports merely to bypass materialization.",
+      "Do not add a package dependency or duplicate assistant-ui/tool-ui source inside integration/element-module.",
+      "Do not modify Element ModuleLoader, SdkConfig modules, nginx /modules serving, apps/web source, or the 0012 runtime delivery patch.",
+      "Do not create a Yance-owned module loader, resolver, downloader or code-generation step."
+    ]
+  },
+  "rceditNativeGitCustody": {
+    "allowedChangedPaths": [
+      ".gitattributes",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "vendor/rcedit/rcedit-v2.0.0-x64.exe"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "669730a1c8b75d7f16907f8643c36d6341ccfcab35450dab4aba601cac00cd27",
+    "path": "vendor/rcedit/rcedit-v2.0.0-x64.exe",
+    "upstreamRepository": "electron/rcedit",
+    "upstreamRelease": "v2.0.0",
+    "officialAssetName": "rcedit-x64.exe",
+    "officialAssetId": 135772040,
+    "license": "MIT",
+    "expectedSizeBytes": 1360384,
+    "expectedSha256": "3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a",
+    "requiredBehavior": [
+      "Preserve the existing broad vendor/rcedit/*.exe LFS rule for any future/unreviewed rcedit binaries, but add a later exact-path .gitattributes exception that disables the LFS filter only for vendor/rcedit/rcedit-v2.0.0-x64.exe and keeps it binary/non-text.",
+      "Commit the exact already-reviewed official rcedit v2.0.0 x64 bytes as the ordinary Git blob for that exact path; no version, size or SHA-256 change is authorized.",
+      "Product Final must not call git lfs, Invoke-WebRequest, curl, wget, retry logic, mirror logic or any package manager to obtain rcedit.",
+      "Product Final must prove the checked-out worktree bytes are the tracked HEAD blob, require byte length 1360384, require SHA-256 3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a, require a clean candidate tree, and pass that verified file to the unchanged WP7 builder.",
+      "The existing RCEDIT_SHA256 authority remains unchanged."
+    ],
+    "forbiddenBehavior": [
+      "Do not retain Git LFS materialization for the exact reviewed rcedit path.",
+      "Do not restore live GitHub Release download as a runtime fallback or primary path.",
+      "Do not add alternate mirrors, retry loops, cache services, new metadata authorities or Yance download infrastructure.",
+      "Do not rebuild rcedit from source, change rcedit version, change expected size/SHA-256, or modify WP7 branding logic."
+    ]
+  },
+  "ossFit": {
+    "decision": "ADOPT_MATURE_EXISTING_SEAMS_AND_REMOVE_EXTERNAL_MATERIALIZATION_SINGLE_POINTS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing vendored assistant-ui/tool-ui v2026.2.13 source tree",
+        "source": "vendor/assistant-ui-tool-ui/v2026.2.13 / assistant-ui/tool-ui@ee6389647e997f8637c21187f3e49c2db6cde3a5",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The exact upstream components are already governed and used by LearningToolUiAdapter. The missing capability is only build-workspace materialization; the existing Matrix bootstrap overlay and Element module build can consume them without a second framework or runtime loader."
+      },
+      {
+        "name": "Existing Element official runtime module delivery seam",
+        "source": "tools/matrix/bootstrap.js + upstream-patches/element-web/0012-yance-element-module-runtime.patch + Element ModuleLoader",
+        "license": "repository-existing / Element upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The mature runtime boundary is already correct. Only the build workspace lacks source that the existing module graph imports; build-time overlay preserves package.json+lib-only delivery."
+      },
+      {
+        "name": "Git native content-addressed blob custody for the single reviewed rcedit binary",
+        "source": "Git tracked object for vendor/rcedit/rcedit-v2.0.0-x64.exe",
+        "license": "Git infrastructure / rcedit MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "A 1,360,384-byte immutable reviewed tool can be held directly by the repository's mature content-addressed VCS. This removes both live-release and LFS-quota runtime dependencies while retaining exact tracked-byte, size and SHA-256 verification."
+      },
+      {
+        "name": "Git LFS custody for the exact rcedit path",
+        "source": "git-lfs/git-lfs",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "PARTIAL_FIT",
+        "reason": "It preserves pointer identity but the exact Product Final run is now blocked by repository LFS quota before materialized bytes exist, so it no longer satisfies hermetic Final UAT availability for this fixed small binary."
+      },
+      {
+        "name": "Live rcedit GitHub Release retrieval",
+        "source": "electron/rcedit v2.0.0 GitHub Release asset",
+        "license": "MIT",
+        "adoptionMode": "upstream-native",
+        "fit": "PARTIAL_FIT",
+        "reason": "The asset is the correct provenance authority, but historical Product Final evidence already failed on HTTP 503 before verification; it remains provenance evidence, not a required runtime materialization dependency."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire LFS materialization only for the exact reviewed rcedit v2.0.0 x64 path; do not broadly disable repository LFS policy.",
+      "Do not reintroduce live rcedit download, retry/fallback/mirror logic, a Yance binary cache, source rebuild or alternate binary.",
+      "Do not add another UI toolkit, copy assistant-ui/tool-ui into Product source, or change its governed upstream identity.",
+      "Do not widen Element runtime delivery beyond package.json+lib or create a second module loader.",
+      "Do not change Product feature/runtime behavior, dependencies, manifests, lockfiles, Product UAT receipt/status, or unrelated workflows in this prerequisite."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "failure-first implementation starts only after authorization merge and changes only the two authorized tests",
+      "assistant-ui/tool-ui build overlay is exact to v2026.2.13 and does not widen Element runtime delivery",
+      "LearningToolUiAdapter, module package/dependencies/lockfiles and 0012 runtime patch remain unchanged",
+      "rcedit exact path is ordinary Git custody while broad future vendor/rcedit LFS policy remains",
+      "rcedit tracked HEAD blob identity, exact size and SHA-256 are verified without live network or LFS",
+      "no retry, mirror, downloader, cache, source rebuild, alternate binary or checksum/version rewrite",
+      "no Product feature/runtime, UAT evidence/status or unrelated workflow changes"
+    ]
+  },
+  "handoffBackToProduct": {
+    "productPullRequest": 387,
+    "productBranch": "product/v21-product-experience-bilingual-search-translation-task-ux-p0",
+    "productHeadAtAuthorization": "aea4b5f2d462f887c5b6886ca8daa3d7308d00b0",
+    "rule": "After this root-closure implementation ordinary-merges to main, ordinary-forward fresh main into #387 without rebase, cherry-pick, force push, squash or history rewrite. Re-run exact-head Stage, routed Layered evidence, ACV2/Windows common gates and Product Final. Only after Product Final materializers are GREEN may the bilingual Product UAT receipt and Phase-1 status be written."
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  }
+}
