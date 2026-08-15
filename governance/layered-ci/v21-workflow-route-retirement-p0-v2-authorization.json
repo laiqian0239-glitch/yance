@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-15T17:46:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WORKFLOW-ROUTE-RETIREMENT-P0-V2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Workflow Authority Closure P0 V1 ordinary-merged and removed three historical workflow YAML authorities, but trusted main still lists those now-absent workflow paths in governance/layered-ci/wp0-routing-policy.json governanceExactPaths. The existing generic delegated route semantic guard was built for exact additions and mechanically rejects removals. This successor authorizes a failure-first bottom-layer refactor that generalizes the existing guard to exact add/remove mutations while preserving fail-closed semantics, then removes only the three already-retired workflow route literals. It does not modify any workflow YAML, product runtime, dependency, release/publish authority, or introduce a new CI framework.",
+  "base": {
+    "branch": "main",
+    "commit": "1b3bd0a9e53ab32744e8f49b07a09c3c2c66a3aa"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "1b3bd0a9e53ab32744e8f49b07a09c3c2c66a3aa",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-workflow-route-retirement-p0-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-workflow-route-retirement-p0-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "a3e065983b4a65db6b4517c0a91e8d279ba34652a4fc0a2fa0f11660c296147e",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-workflow-route-retirement-p0-v2",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "shared/release/implementationBranchPolicy.js",
+      "tests/layered-ci/workflow-contract.test.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "c5b2f7fe0b59b0152d2e1edd641b001f39dc20cfaf98c47ec2044d126ef20b8d",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/workflow-contract.test.js",
+        "tests/wp0/implementation-branch-policy.test.js"
+      ],
+      "approvedChangedFileCount": 2,
+      "approvedChangedFileSetSha256": "a1974ac37f260b4248bf2439712fa4368842c4c05ae17c32a3d88d0416ce7fda",
+      "productionCodeChanged": false,
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure"
+      ],
+      "expectedFailures": [
+        "Trusted main routing policy still lists the three workflow paths already retired by ordinary merge #410, so the current-authority truth contract must fail until those exact governanceExactPaths literals are absent.",
+        "The current generic delegated route semantic guard supports frozen exact additions only and rejects exact route retirement, so new exact add/remove mutation contracts must fail before the bottom-layer guard refactor."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "releaseWorkflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "genericRouteMutationGuardRequired": true
+  },
+  "routeMutation": {
+    "schemaVersion": 1,
+    "operation": "EXACT_ROUTE_SET_MUTATION",
+    "destinationPolicyField": "governanceExactPaths",
+    "addPaths": [],
+    "addPathCount": 0,
+    "addPathSetSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "removePaths": [
+      ".github/workflows/reviewed-candidate-a6-sqlite.yml",
+      ".github/workflows/reviewed-candidate-a6.yml",
+      ".github/workflows/wp-a-promotion-authorization.yml"
+    ],
+    "removePathCount": 3,
+    "removePathSetSha256": "d1735bf67eee143faf0f15ec2386a1fca2496b6c42df2fac8f9d8f85029ccf35",
+    "allOtherRoutingPolicyFieldsMustRemainByteSemanticEquivalent": true,
+    "unknownPathFailsClosedMustRemain": true
+  },
+  "retirementEvidence": {
+    "workflowAuthorityClosureAuthorizationPr": 409,
+    "workflowAuthorityClosureImplementationPr": 410,
+    "workflowAuthorityClosureMergeCommit": "1b3bd0a9e53ab32744e8f49b07a09c3c2c66a3aa",
+    "retiredWorkflowPaths": [
+      ".github/workflows/reviewed-candidate-a6-sqlite.yml",
+      ".github/workflows/reviewed-candidate-a6.yml",
+      ".github/workflows/wp-a-promotion-authorization.yml"
+    ],
+    "retiredWorkflowPathCount": 3,
+    "retiredWorkflowPathSetSha256": "d1735bf67eee143faf0f15ec2386a1fca2496b6c42df2fac8f9d8f85029ccf35",
+    "currentMainWorkflowCountAfterRetirement": 16,
+    "rule": "Only routing literals for workflow files already absent from current main may be removed in this package. Historical commits, workflow runs, governance documents, verifier source and other routing literals remain untouched."
+  },
+  "ossFit": {
+    "decision": "REFACTOR_EXISTING_GENERIC_ROUTE_SEMANTIC_GUARD_AND_REUSE_CURRENT_ROUTING_POLICY",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing generic delegated route semantic guard",
+        "source": "shared/release/implementationBranchPolicy.js",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "PARTIAL_FIT",
+        "reason": "Already provides fail-closed semantic comparison for exact route additions, but lacks the symmetric exact-retirement operation required to remove stale authority literals safely."
+      },
+      {
+        "name": "Existing WP0 routing policy",
+        "source": "governance/layered-ci/wp0-routing-policy.json",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Remains the single base-owned routing SSOT; only three proven-stale governanceExactPaths literals need retirement."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second routing policy, workflow registry, CI orchestration framework, or Yance-specific generic mutation engine.",
+      "Do not bypass the existing generic delegated route semantic guard or edit routing policy without a mechanically verified exact mutation declaration.",
+      "Do not remove layered-ci-promotion.yml or wp3-windows-named-mutex.yml in this package; both remain AUDIT_HOLD pending unique-capability proof.",
+      "Do not delete historical workflow runs, commits, governance evidence or verifier source."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "new exact route-mutation semantics remain fail-closed and backward-compatible with existing exact-addition authorizations",
+      "candidate may remove only the three authorization-declared stale governanceExactPaths and may not add, remove or modify any other route",
+      "unknownPathFailsClosed and all non-target routing policy fields remain unchanged",
+      "no workflow YAML, product runtime, dependency, release/publish authority or new CI framework is changed",
+      "historical workflow evidence remains preserved"
+    ]
+  },
+  "verification": {
+    "mandatory": [
+      "fresh causal Stage RED from the two-test-only first implementation commit",
+      "implementation-branch-policy GREEN on the RED head",
+      "post-RED first production/governance commit carries exact Head/Run/Conclusion trailers",
+      "Stage 6.4.5.9 exact-head GREEN",
+      "Layered CI exact-head GREEN where routed",
+      "ACV2 WP-A exact-head GREEN where routed",
+      "all other triggered exact-head workflows complete without blocking failure",
+      "independent exact-head review P0=0/P1=0",
+      "fresh diff remains exactly four authorized implementation paths"
+    ]
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "testWeakening": true,
+    "continueOnError": true,
+    "newDependency": true,
+    "workflowYamlModification": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "productRuntimeModification": true,
+    "newWorkflowFramework": true,
+    "secondRoutingPolicy": true,
+    "deleteHistoricalRunsOrEvidence": true,
+    "releaseAuthorityExpansion": true,
+    "publish": true,
+    "formalRelease": true,
+    "rebase": true,
+    "forcePush": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "ordinaryTwoParentMergeRequired": true
+  }
+}
