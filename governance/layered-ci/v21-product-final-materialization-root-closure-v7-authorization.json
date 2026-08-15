@@ -4,7 +4,7 @@
   "requestedByUserAt": "2026-08-15T18:21:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-FINAL-MATERIALIZATION-ROOT-CLOSURE-V7",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Fresh exact-head Product Final validation of Product PR #387 proves two remaining base-owned integration defects after the in-scope bilingual-search freshness defects are GREEN: the trusted desktop bundle does not materialize/pass the already-required sealed Learning runtime into WP7, and the governed assistant-ui/tool-ui source is overlaid at the pinned Element root vendor path while its already-approved lucide-react dependency is owned only by the sibling modules/yance importer, so strict pnpm/Vite resolution cannot close the vendored source dependency. V7 authorizes only the two-test failure-first contract and the two minimal root repairs needed to make the existing mature OSS composition materially buildable; no #387 product behavior, Learning business logic, WP7 implementation, bootstrap mechanism, new dependency, new runtime, or new Yance infrastructure is authorized.",
   "base": {
@@ -200,5 +200,15 @@
       "fresh exact-head Product Experience Final Validation GREEN including desktop trusted bundle and frozen Element reproducibility",
       "fresh exact-head independent review with zero P0/P1 findings"
     ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
   }
 }
