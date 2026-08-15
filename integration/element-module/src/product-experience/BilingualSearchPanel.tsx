@@ -15,6 +15,8 @@ import type {
 
 const SEARCH_DEBOUNCE_MS = 260;
 const JOB_POLL_MS = 700;
+const MAX_POLL_FAILURES = 5;
+const MAX_POLL_BACKOFF_MS = 10_000;
 const ACTIVE_JOB_STATES = new Set(["queued", "running"]);
 const RETRYABLE_JOB_STATES = new Set(["failed", "cancelled"]);
 
@@ -153,12 +155,14 @@ export function BilingualSearchPanel({
     if (!activeJob || !ACTIVE_JOB_STATES.has(activeJobStatus)) return undefined;
 
     let disposed = false;
+    let failures = 0;
     const jobId = activeJob.id;
-    const schedulePoll = (): void => {
+    const schedulePoll = (delay = JOB_POLL_MS): void => {
       pollTimer.current = setTimeout(async () => {
         try {
           const next = await readTranslationJob(jobId);
           if (disposed) return;
+          failures = 0;
           setActiveJob(next);
           setJobTransportError("");
           const nextStatus = normalizedStatus(next);
@@ -170,10 +174,15 @@ export function BilingualSearchPanel({
           }
         } catch (error) {
           if (disposed) return;
+          failures += 1;
           setJobTransportError(errorText(error, "Translation status is temporarily unavailable."));
-          schedulePoll();
+          if (failures >= MAX_POLL_FAILURES) {
+            setStatus("Translation status polling paused after repeated connection failures.");
+            return;
+          }
+          schedulePoll(Math.min(JOB_POLL_MS * (2 ** failures), MAX_POLL_BACKOFF_MS));
         }
-      }, JOB_POLL_MS);
+      }, delay);
     };
 
     schedulePoll();
@@ -189,6 +198,7 @@ export function BilingualSearchPanel({
   const startTranslation = async (messageId: string): Promise<void> => {
     const sequence = ++translationSequence.current;
     setActiveMessageId(messageId);
+    setActiveJob(null);
     setJobTransportError("");
     setStatus("Creating translation task…");
     try {
@@ -198,6 +208,7 @@ export function BilingualSearchPanel({
       setStatus(`Translation ${normalizedStatus(job) || "queued"}: ${Math.round(job.progress)}%.`);
     } catch (error) {
       if (sequence !== translationSequence.current) return;
+      setActiveJob(null);
       setJobTransportError(errorText(error, "Unable to create translation task."));
       setStatus(errorText(error, "Unable to create translation task."));
     }
@@ -238,6 +249,7 @@ export function BilingualSearchPanel({
     const exactNavigationAvailable = Boolean(
       relationship.matrixPermalink?.trim() || relationship.matrixRoomId?.trim(),
     );
+    let navigationError = "";
     if (exactNavigationAvailable && onNavigateRelationship) {
       try {
         const navigated = await onNavigateRelationship(relationship);
@@ -246,12 +258,14 @@ export function BilingualSearchPanel({
           return;
         }
       } catch (error) {
-        setStatus(errorText(error, "Element navigation is unavailable."));
+        navigationError = errorText(error, "Element navigation is unavailable.");
       }
     }
 
     onSelectRelationship(relationship.id);
-    setStatus("Opened relationship context. Exact Element message navigation is unavailable for this result.");
+    setStatus(navigationError
+      ? `Opened relationship context. Element navigation failed: ${navigationError}`
+      : "Opened relationship context. Exact Element message navigation is unavailable for this result.");
   };
 
   const clearSearch = (): void => {

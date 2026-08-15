@@ -84,7 +84,8 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
     },
     [CHANNELS.searchWorkspace]: (_event, input = {}) => {
       const queryText = clean(input.query);
-      const limit = Math.max(1, Math.min(200, Number(input.limit || 80)));
+      const numericLimit = input.limit == null ? 80 : Number(input.limit);
+      const limit = Math.max(1, Math.min(200, Number.isFinite(numericLimit) ? numericLimit : 80));
       const query = new URLSearchParams({ q: queryText, limit: String(limit) });
       return apiRequest(`/api/r32/store/search?${query}`);
     },

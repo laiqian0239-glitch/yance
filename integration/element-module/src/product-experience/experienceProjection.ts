@@ -215,9 +215,11 @@ export async function searchWorkspace(query: string, limit = 80): Promise<Worksp
   if (!api || typeof api.storeSearchWorkspace !== "function") throw bridgeUnavailable("search-workspace");
   const normalizedQuery = query.trim();
   if (!normalizedQuery) return { query: "", contacts: [], messages: [] };
+  const numericLimit = limit == null ? 80 : Number(limit);
+  const boundedLimit = Math.max(1, Math.min(200, Number.isFinite(numericLimit) ? numericLimit : 80));
   const payload = objectRecord(await api.storeSearchWorkspace({
     query: normalizedQuery,
-    limit: Math.max(1, Math.min(200, Number(limit || 80))),
+    limit: boundedLimit,
   }));
   return {
     query: text(payload.query || normalizedQuery),

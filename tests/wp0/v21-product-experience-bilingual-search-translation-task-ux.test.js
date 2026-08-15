@@ -49,7 +49,7 @@ test('new bilingual Product component has one exact PRODUCT_WP0 route', () => {
   assert.equal(policy.productPrefixes.includes('integration/element-module/src/product-experience/'), false, 'broad Product Experience routing must remain forbidden');
 });
 
-test('desktop bridge exposes only exact workspace-search and translation-job operations', () => {
+test('desktop bridge exposes only exact workspace-search and translation-job operations', async () => {
   const bridge = require(path.join(ROOT, 'electron/r32StoreBridge.js'));
   const preload = read('electron/preload.js');
 
@@ -74,8 +74,48 @@ test('desktop bridge exposes only exact workspace-search and translation-job ope
     'storeRetryTranslationJob'
   ]) assert.match(preload, new RegExp(`\\b${method}\\b`, 'u'), `${method} must be exposed through contextBridge`);
 
-  assert.doesNotMatch(preload, /exposeInMainWorld\([^)]*ipcRenderer/u);
-  assert.doesNotMatch(bridgeSource, /arbitraryUrl|genericUrl|rawUrl/u);
+  const exposure = preload.match(
+    /contextBridge\.exposeInMainWorld\('yanceDesktop',\s*Object\.freeze\(\{([\s\S]*?)\}\)\);/u
+  )?.[1];
+  assert.ok(exposure, 'yanceDesktop must be exposed as a frozen capability object');
+  assert.equal(
+    [...exposure.matchAll(/\bipcRenderer\b(?!\s*\.)/gu)].length,
+    0,
+    'the yanceDesktop capability object must never expose the raw ipcRenderer'
+  );
+
+  const handlers = new Map();
+  const requests = [];
+  const ipcMain = {
+    handle(channel, handler) { handlers.set(channel, handler); },
+    on() {},
+    removeHandler(channel) { handlers.delete(channel); },
+    removeListener() {}
+  };
+  const dispose = bridge.installR32StoreBridge({
+    ipcMain,
+    apiRequest: async (url, options) => {
+      requests.push({ url, options });
+      return {};
+    }
+  });
+  try {
+    const searchHandler = handlers.get(bridge.CHANNELS.searchWorkspace);
+    assert.equal(typeof searchHandler, 'function');
+
+    await searchHandler({}, { query: 'needle', limit: 'not-a-number', url: 'https://example.invalid/' });
+    assert.match(requests.at(-1).url, /^\/api\/r32\/store\/search\?/u);
+    assert.match(requests.at(-1).url, /(?:^|[?&])limit=80(?:&|$)/u);
+    assert.doesNotMatch(requests.at(-1).url, /example\.invalid/u);
+
+    await searchHandler({}, { query: 'zero', limit: 0 });
+    assert.match(requests.at(-1).url, /(?:^|[?&])limit=1(?:&|$)/u);
+
+    await searchHandler({}, { query: 'high', limit: 999 });
+    assert.match(requests.at(-1).url, /(?:^|[?&])limit=200(?:&|$)/u);
+  } finally {
+    dispose();
+  }
 });
 
 test('Product projection composes the desktop authority and Element public navigation only', () => {
@@ -92,6 +132,9 @@ test('Product projection composes the desktop authority and Element public navig
     'retryTranslationJob'
   ]) assert.match(projection, new RegExp(`export\\s+async\\s+function\\s+${fn}\\b`, 'u'), `${fn} must be a typed Product projection wrapper`);
 
+  assert.match(projection, /const\s+numericLimit\s*=\s*limit\s*==\s*null\s*\?\s*80\s*:\s*Number\(limit\)/u);
+  assert.match(projection, /Number\.isFinite\(numericLimit\)/u);
+  assert.doesNotMatch(projection, /Number\(limit\s*\|\|\s*80\)/u);
   assert.match(index, /api\.navigation\.(?:openRoom|toMatrixToLink)/u);
   assert.match(workspace, /ProductExperienceShell/u);
   assert.match(workspace, /navigate/u);
@@ -121,10 +164,19 @@ test('bilingual search panel renders evidence and truthful bounded translation l
   assert.match(panel, /failed/u);
   assert.match(panel, /cancelled/u);
   assert.match(panel, /exactNavigationAvailable/u);
+  assert.match(panel, /MAX_POLL_FAILURES\s*=\s*5/u);
+  assert.match(panel, /MAX_POLL_BACKOFF_MS\s*=\s*10_000/u);
+  assert.match(panel, /failures\s*\+=\s*1/u);
+  assert.match(panel, /failures\s*>=\s*MAX_POLL_FAILURES/u);
+  assert.match(panel, /2\s*\*\*\s*failures/u);
+  assert.match(panel, /setActiveMessageId\(messageId\)[\s\S]{0,140}setActiveJob\(null\)/u);
+  assert.match(panel, /let\s+navigationError\s*=\s*""/u);
+  assert.match(panel, /navigationError\s*=\s*errorText/u);
   assert.doesNotMatch(panel, /AbortController\([^)]*\).*cancelTranslationJob/su, 'unmounting Product UI must not implicitly cancel the authoritative backend job');
 
   assert.match(css, /\.yance-product-shell\s+\.yance-bilingual-search/u);
   assert.match(css, /\.yance-product-shell\s+\.yance-bilingual-search[^{}]*\{[^}]*var\(--yance-/su);
+  assert.match(css, /yance-bilingual-search__field input[\s\S]{0,320}background:\s*var\(--yance-surface\)/u);
   assert.match(css, /yance-bilingual[^{}]*:focus-visible/u);
   assert.match(css, /prefers-reduced-motion/u);
   assert.doesNotMatch(css, /--(?:bilingual|search|translation)-/u, 'new Product UX must reuse the existing --yance-* token namespace');

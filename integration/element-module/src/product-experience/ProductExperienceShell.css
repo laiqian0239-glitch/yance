@@ -607,7 +607,7 @@
   border: 1px solid var(--yance-border);
   border-radius: var(--yance-radius-sm);
   color: inherit;
-  background: Canvas;
+  background: var(--yance-surface);
   font: inherit;
 }
 
