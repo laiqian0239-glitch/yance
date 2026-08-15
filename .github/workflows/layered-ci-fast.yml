@@ -13,8 +13,6 @@ on:
       - 'tests/layered-ci/**'
       - '.github/actions/resolve-diff-range/**'
       - '.github/workflows/layered-ci-*.yml'
-      - '.github/workflows/reviewed-candidate-a6.yml'
-      - '.github/workflows/reviewed-candidate-a6-sqlite.yml'
       - '.github/workflows/stage-6459-wp0-gates.yml'
 
 permissions:

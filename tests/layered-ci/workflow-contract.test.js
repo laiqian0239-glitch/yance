@@ -6,11 +6,21 @@ const path = require('node:path');
 const test = require('node:test');
 
 const ROOT = path.resolve(__dirname, '..', '..');
+const RETIRED_WORKFLOWS = Object.freeze([
+  'reviewed-candidate-a6.yml',
+  'reviewed-candidate-a6-sqlite.yml',
+  'wp-a-promotion-authorization.yml'
+]);
+
 function workflow(name) {
   return fs.readFileSync(path.join(ROOT, '.github', 'workflows', name), 'utf8');
 }
 
-test('fast workflow exposes policy, risk and risk-selected portable L2 checks', () => {
+function workflowExists(name) {
+  return fs.existsSync(path.join(ROOT, '.github', 'workflows', name));
+}
+
+test('fast workflow exposes policy, risk and risk-selected portable L2 checks without historical A6 triggers', () => {
   const text = workflow('layered-ci-fast.yml');
   assert.match(text, /layered-ci-policy/u);
   assert.match(text, /layered-ci-risk/u);
@@ -19,30 +29,32 @@ test('fast workflow exposes policy, risk and risk-selected portable L2 checks', 
   assert.match(text, /layered-ci-l2-governance/u);
   assert.match(text, /needs\.layered-ci-risk\.outputs\.requires_l2 == 'true'/u);
   assert.match(text, /suite:\s*layered_governance/u);
-  assert.match(text, /reviewed-candidate-a6-sqlite\.yml/u);
+  assert.doesNotMatch(text, /reviewed-candidate-a6(?:-sqlite)?\.yml/u);
   assert.match(text, /stage-6459-wp0-gates\.yml/u);
 });
 
-test('A6 workflow validates frozen candidate before running exact reviewed head', () => {
-  const text = workflow('reviewed-candidate-a6.yml');
-  assert.match(text, /3684dbd840faec8d6e732b0b68eae25f1ad9b2b3/u);
-  assert.match(text, /e877aec9e16663296e632c224a1da3b7892f1f2b/u);
-  assert.match(text, /verify-reviewed-candidate\.js/u);
-  assert.match(text, /git switch --force-create/u);
-  assert.match(text, /npm run verify:wp0:gate/u);
-  assert.match(text, /Install locked dependencies[\s\S]*Run WP0 required tests/u);
-  assert.doesNotMatch(text, /verify:acv2:source-closure/u);
-  assert.doesNotMatch(text, /verify:wp0:gate[^\n]*--branch/u);
-});
+test('current ACV2 and Layered owners replace the frozen A6 workflow authorities', () => {
+  for (const name of RETIRED_WORKFLOWS) {
+    assert.equal(workflowExists(name), false, `${name} must be retired from the current Actions surface`);
+  }
 
-test('A6 SQLite legacy workflow runs ownership tests without identity name filtering', () => {
-  const text = workflow('reviewed-candidate-a6-sqlite.yml');
-  assert.match(text, /a6-reviewed-sqlite-legacy/u);
-  assert.match(text, /3684dbd840faec8d6e732b0b68eae25f1ad9b2b3/u);
-  assert.match(text, /tests\/wp5\/m5-sqlite-ownership\.test\.js/u);
-  assert.match(text, /tests\/wp4\/application-matrix-temp-path\.test\.js/u);
-  assert.match(text, /tests\/wp3\/stale-fencing-token-outbox-denied\.test\.js/u);
-  assert.doesNotMatch(text, /--test-name-pattern/u);
+  const acv2 = workflow('acv2-wp-a.yml');
+  assert.match(acv2, /REVIEWED_HEAD_SHA:\s*\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/u);
+  assert.match(acv2, /ubuntu-latest/u);
+  assert.match(acv2, /windows-latest/u);
+  assert.match(acv2, /runtimeComposition\.test\.js/u);
+  assert.match(acv2, /runtimeGatewaySurface\.test\.js/u);
+  assert.match(acv2, /runtimeStateStoreBinding\.test\.js/u);
+  assert.match(acv2, /runtimeProcessSingleton\.test\.js/u);
+  assert.match(acv2, /startupOrdering\.test\.js/u);
+  assert.match(acv2, /tests\/wp5\/m5-sqlite-ownership\.test\.js/u);
+  assert.match(acv2, /tests\/wp4\/application-matrix-temp-path\.test\.js/u);
+  assert.match(acv2, /tests\/wp3\/stale-fencing-token-outbox-denied\.test\.js/u);
+
+  const task = workflow('layered-ci-task.yml');
+  assert.match(task, /acv2_wp_a_a6/u);
+  assert.match(task, /runtimeComposition\.test\.js/u);
+  assert.match(task, /windows-latest/u);
 });
 
 test('task workflow separates portable suites from branch-bound WP0 suites', () => {
@@ -70,14 +82,11 @@ test('portable governance suite never invokes branch-bound WP0 contracts', () =>
 });
 
 test('credentials are absent or removed before repository-controlled tests execute', () => {
-  const a6 = workflow('reviewed-candidate-a6.yml');
-  assert.match(a6, /Checkout governance verifier[\s\S]*persist-credentials:\s*false/u);
-  assert.match(a6, /Snapshot current Electron Release trust authority[\s\S]*Checkout exact reviewed WP0 head[\s\S]*Materialize official Electron Release asset and remove credentials[\s\S]*curl --fail --location --proto '=https' --tlsv1\.2[\s\S]*unset-all http\.https:\/\/github\.com\/\.extraheader[\s\S]*Install locked dependencies/u);
-  assert.doesNotMatch(a6, /Fetch trusted Electron LFS object|git lfs pull[^\n]*vendor\/electron/u);
+  const acv2 = workflow('acv2-wp-a.yml');
+  assert.match(acv2, /Checkout reviewed WP-A head[\s\S]*persist-credentials:\s*false/u);
 
-  const sqlite = workflow('reviewed-candidate-a6-sqlite.yml');
-  assert.match(sqlite, /Checkout governance verifier[\s\S]*persist-credentials:\s*false/u);
-  assert.match(sqlite, /Checkout exact reviewed A6 head[\s\S]*persist-credentials:\s*false/u);
+  const postMerge = workflow('wp-a-post-merge-validation.yml');
+  assert.match(postMerge, /Checkout exact validation commit[\s\S]*persist-credentials:\s*false/u);
 
   const task = workflow('layered-ci-task.yml');
   assert.match(task, /Establish authorized local branch and remove credentials[\s\S]*unset-all http\.https:\/\/github\.com\/\.extraheader[\s\S]*Set up Node\.js/u);
@@ -85,17 +94,29 @@ test('credentials are absent or removed before repository-controlled tests execu
 
 test('privileged workflow setup disables package-manager caching', () => {
   for (const name of [
+    'acv2-wp-a.yml',
     'layered-ci-fast.yml',
     'layered-ci-task.yml',
     'layered-ci-promotion.yml',
-    'reviewed-candidate-a6.yml',
-    'reviewed-candidate-a6-sqlite.yml',
-    'stage-6459-wp0-gates.yml'
+    'stage-6459-wp0-gates.yml',
+    'wp-a-post-merge-validation.yml'
   ]) {
     const text = workflow(name);
     assert.match(text, /actions\/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e/u, name);
     assert.match(text, /package-manager-cache:\s*false/u, name);
   }
+});
+
+test('current WP-A post-merge validation owns integration readiness without release or publish authority', () => {
+  const text = workflow('wp-a-post-merge-validation.yml');
+  assert.match(text, /Verify exact integration identity and governance/u);
+  assert.match(text, /source-closure-scan\.js --wp A/u);
+  assert.match(text, /ubuntu-latest/u);
+  assert.match(text, /windows-latest/u);
+  assert.match(text, /readyForPromotion=true/u);
+  assert.match(text, /formalRelease=false/u);
+  assert.match(text, /publish=false/u);
+  assert.match(text, /wpBAuthorized=false/u);
 });
 
 test('promotion workflow verifies exact identity and cannot publish', () => {
