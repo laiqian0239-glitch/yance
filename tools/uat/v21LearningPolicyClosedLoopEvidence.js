@@ -5,6 +5,7 @@ const cp = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { DatabaseSync } = require('node:sqlite');
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-v21-policy-uat-'));
 process.env.YANCE_DATA_DIR = root;
@@ -18,6 +19,9 @@ const { createLearningOutcomeAttributionService } = require('../../backend/servi
 const { createLearningDeepTrainingContract } = require('../../backend/services/learningDeepTrainingContract');
 const { createLearningPolicyRuntimeAdapter } = require('../../backend/services/learningPolicyRuntimeAdapter');
 const { createLearningPromotionAdapter } = require('../../backend/services/learningPromotionAdapter');
+const { createContextAwareReplyBrain } = require('../../backend/services/contextAwareReplyBrain');
+const contactContextAuthority = require('../../backend/services/contactContextAuthority');
+const { createPersonaBrain } = require('../../backend/personaBrain');
 
 function runPolicyPython(payload) {
   const pythonDir = path.resolve(__dirname, '../../runtime/learning-growth/python');
@@ -27,10 +31,139 @@ function runPolicyPython(payload) {
     ['run', '--frozen', '--offline', 'python', entrypoint],
     { cwd: pythonDir, input: JSON.stringify(payload), encoding: 'utf8' }
   );
+  if (result.error) {
+    throw new Error(`sealed policy runtime launch failed: ${result.error.message}`);
+  }
   if (result.status !== 0) {
     throw new Error(`sealed policy runtime failed (${result.status}): ${result.stderr}\n${result.stdout}`);
   }
   return JSON.parse(result.stdout);
+}
+
+function makePersonaStore() {
+  const db = new DatabaseSync(':memory:');
+  return {
+    db,
+    transaction(fn) {
+      db.exec('BEGIN');
+      try {
+        const result = fn();
+        db.exec('COMMIT');
+        return result;
+      } catch (error) {
+        db.exec('ROLLBACK');
+        throw error;
+      }
+    }
+  };
+}
+
+function stubReplySocialContext(contactId) {
+  const entityVersions = { customer: 1, relationship: 1, memory: 1, interactionPolicy: 1, routing: 1 };
+  return {
+    found: true,
+    ready: true,
+    contactId,
+    contextVersion: 1,
+    entityVersions,
+    guards: { canGenerateReply: true },
+    relationshipPotential: { relationshipStage: 'familiar' },
+    emotion: { trend: 'stable', current: 'neutral' },
+    interaction: {},
+    preferences: {},
+    interactionPolicy: { policy: 'p' },
+    replyStrategy: { maxQuestions: 1 },
+    memory: {
+      confirmedFacts: [], userNotes: [], importantEvents: [], openLoops: [],
+      promises: [], boundaries: [], sensitiveTopics: [], recurringInterests: []
+    },
+    timeline: [],
+    recentSignals: [],
+    recentMessages: []
+  };
+}
+
+async function provePolicyConsumedBeforeGeneration(decisionContract) {
+  const order = [];
+  const personaStore = makePersonaStore();
+  const personaBrain = createPersonaBrain({ store: personaStore });
+  personaBrain.service.initialize({});
+  const originalGetSocialContext = contactContextAuthority.getSocialContext;
+  contactContextAuthority.getSocialContext = () => stubReplySocialContext('contact-order-uat');
+  const storeManager = {
+    select: () => stubReplySocialContext('contact-order-uat'),
+    async dispatch(command) {
+      if (command.type === 'AI_REPLY_TASK_STARTED') return { result: { taskId: 'task-order-uat' } };
+      if (command.type === 'AI_REPLY_CANDIDATE_READY') return { result: { candidateId: 'candidate-order-uat' } };
+      return { result: {} };
+    }
+  };
+  const aiGateway = {
+    async execute(input) {
+      if (input.task === 'director') {
+        order.push('director');
+        return {
+          text: JSON.stringify({
+            strategy: 'natural continuation',
+            reasonZh: '自然承接对方最新消息',
+            goal: 'continue',
+            tone: 'warm',
+            pace: 'light',
+            instruction: 'reply naturally',
+            avoid: 'invented facts',
+            targetLanguage: 'unknown',
+            maxQuestions: 1
+          }),
+          modelId: 'director-order-uat',
+          model: 'Director'
+        };
+      }
+      order.push('frontier');
+      return { text: 'hi', modelId: 'frontier-order-uat', model: 'Frontier' };
+    }
+  };
+  const learningPolicyRuntimeAdapter = {
+    async selectLearnedPolicyAction(input) {
+      order.push('policy');
+      const action = input.allowedActions.includes('natural_hook') ? 'natural_hook' : input.allowedActions[0];
+      return {
+        authority: 'LearningPolicyRuntimeAdapter',
+        candidateStrategyBranch: action,
+        policyVersion: 'vw-p1-baseline-v1',
+        policyArtifactId: 'baseline',
+        actionProbability: 1,
+        exploration: false,
+        degradation: null,
+        executedPolicy: 'baseline'
+      };
+    }
+  };
+
+  try {
+    const brain = createContextAwareReplyBrain({
+      storeManager,
+      aiGateway,
+      personaBrain,
+      learningPolicyRuntimeAdapter,
+      learningPolicyDecisionContract: decisionContract
+    });
+    await brain.generateCandidate({
+      contactId: 'contact-order-uat',
+      conversationId: 'conversation-order-uat',
+      incomingMessage: { id: 'message-order-uat', text: 'hello' },
+      director: { persona: 'warm' },
+      aggregateIncoming: false,
+      skipQuietWindow: true
+    });
+  } finally {
+    contactContextAuthority.getSocialContext = originalGetSocialContext;
+    personaStore.db.close();
+  }
+  const policyIndex = order.indexOf('policy');
+  const frontierIndex = order.indexOf('frontier');
+  assert.ok(policyIndex >= 0, `Learned Policy selection was not observed: ${order.join(' -> ')}`);
+  assert.ok(frontierIndex > policyIndex, `Frontier generation ran before Learned Policy selection: ${order.join(' -> ')}`);
+  return Object.freeze({ order: Object.freeze([...order]), policyIndex, frontierIndex });
 }
 
 async function main() {
@@ -256,13 +389,8 @@ async function main() {
   assert.equal(rolledBack.automaticPromotion, false);
   assert.equal(rolledBack.evidenceId, 'uat-rollback-evidence');
 
-  const brainSource = fs.readFileSync(
-    path.resolve(__dirname, '../../backend/services/contextAwareReplyBrain.js'),
-    'utf8'
-  );
-  const selectionIndex = brainSource.indexOf('selectLearnedPolicyAction(');
-  const finalFrontierIndex = brainSource.indexOf('let modelResult = await aiGateway.execute', selectionIndex);
-  assert.ok(selectionIndex >= 0 && finalFrontierIndex > selectionIndex);
+  const orderProof = await provePolicyConsumedBeforeGeneration(decisionContract);
+  assert.ok(orderProof.frontierIndex > orderProof.policyIndex);
 
   const receipt = {
     workPackage: 'V21-LEARNING-POLICY-P1-DECISION-OUTCOME-CLOSED-LOOP-V2-SUCCESSOR',
@@ -278,7 +406,8 @@ async function main() {
     providerPrivacyBoundaryProved: true,
     learner: 'VowpalWabbit 9.11.2',
     frontierGenerationAuthority: 'Model Brain / LiteLLM',
-    policyConsumedBeforeGeneration: true,
+    policyConsumedBeforeGeneration: orderProof.frontierIndex > orderProof.policyIndex,
+    policyConsumptionOrder: orderProof.order,
     promotionAuthority: 'Learning',
     availabilityFallbackProved: true,
     rollbackProved: true,
