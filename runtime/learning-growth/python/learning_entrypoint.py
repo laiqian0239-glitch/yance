@@ -154,7 +154,9 @@ def _policy_rows(payload: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     rows = payload.get("rows")
     if not isinstance(rows, list) or not rows:
         raise ValueError("LEARNED_POLICY_TRAINING_ROWS_REQUIRED")
-    return [row for row in rows if isinstance(row, Mapping)]
+    if not all(isinstance(row, Mapping) for row in rows):
+        raise ValueError("LEARNED_POLICY_TRAINING_ROW_INVALID")
+    return rows
 
 
 def policy_runtime_contract() -> dict[str, Any]:

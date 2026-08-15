@@ -3,7 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { spawnSync } = require('node:child_process');
+const { spawn } = require('node:child_process');
 const { ALLOWED_ACTIONS, normalizeFeatureBundle } = require('./learningPolicyDecisionContract');
 
 const AUTHORITY = 'LearningPolicyRuntimeAdapter';
@@ -98,17 +98,10 @@ async function resolveProductionActivePolicy() {
   const client = await flagdClientFor(roots.flagFile);
   const rollout = await client.getObjectValue(ACTIVE_FLAG_KEY, null);
   if (!rollout || rollout.kind !== 'LEARNING_ROLLOUT') return null;
-  const candidates = [rollout.candidate, ...(Array.isArray(rollout.history) ? rollout.history : [])];
-  let firstError = null;
-  for (const candidate of candidates) {
-    try {
-      return validatePolicyCandidate(candidate, roots);
-    } catch (error) {
-      firstError ||= error;
-    }
-  }
-  if (firstError) throw firstError;
-  return null;
+  // Runtime consumption is fail-safe against the active rollout only. History
+  // is rollback evidence/authority and must never silently substitute a broken
+  // active artifact without an explicit rollback receipt.
+  return validatePolicyCandidate(rollout.candidate, roots);
 }
 
 function sealedLearningRuntimePaths() {
@@ -133,20 +126,50 @@ function invokeProductionVowpalWabbit(input = {}) {
     policyArtifactId: input.policyArtifactId,
     policyVersion: input.policyVersion || POLICY_VERSION
   };
-  const result = spawnSync(runtime.python, ['-B', '-I', runtime.entrypoint], {
-    input: JSON.stringify(request),
-    encoding: 'utf8',
-    windowsHide: true,
-    timeout: 15000,
-    env: { ...process.env, HTTP_PROXY: 'http://127.0.0.1:9', HTTPS_PROXY: 'http://127.0.0.1:9', ALL_PROXY: 'http://127.0.0.1:9', NO_PROXY: '127.0.0.1,localhost' }
+  return new Promise((resolve, reject) => {
+    let child;
+    try {
+      child = spawn(runtime.python, ['-B', '-I', runtime.entrypoint], {
+        windowsHide: true,
+        timeout: 15000,
+        env: { ...process.env, HTTP_PROXY: 'http://127.0.0.1:9', HTTPS_PROXY: 'http://127.0.0.1:9', ALL_PROXY: 'http://127.0.0.1:9', NO_PROXY: '127.0.0.1,localhost' },
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+    } catch (error) {
+      reject(runtimeError('SEALED_VW_POLICY_PREDICTION_FAILED', clean(error?.message) || 'Failed to start sealed VW runtime.'));
+      return;
+    }
+    let stdout = '';
+    let stderr = '';
+    let stdinError = null;
+    let settled = false;
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', chunk => { stdout += chunk; });
+    child.stderr.on('data', chunk => { stderr += chunk; });
+    child.stdin.on('error', error => { stdinError = error; });
+    child.once('error', error => {
+      if (settled) return;
+      settled = true;
+      reject(runtimeError('SEALED_VW_POLICY_PREDICTION_FAILED', clean(error?.message) || 'Failed to start sealed VW runtime.'));
+    });
+    child.once('close', (status, signal) => {
+      if (settled) return;
+      let parsed = null;
+      try { parsed = JSON.parse(clean(stdout) || '{}'); } catch (_) {}
+      if (status !== 0 || parsed?.status === 'ERROR' || stdinError) {
+        settled = true;
+        reject(runtimeError(
+          'SEALED_VW_POLICY_PREDICTION_FAILED',
+          clean(parsed?.error || stderr || stdinError?.message || `sealed VW runtime exit ${status}${signal ? ` signal ${signal}` : ''}`)
+        ));
+        return;
+      }
+      settled = true;
+      resolve(parsed);
+    });
+    child.stdin.end(JSON.stringify(request));
   });
-  if (result.error) throw result.error;
-  let parsed = null;
-  try { parsed = JSON.parse(clean(result.stdout) || '{}'); } catch (_) {}
-  if (result.status !== 0 || parsed?.status === 'ERROR') {
-    throw runtimeError('SEALED_VW_POLICY_PREDICTION_FAILED', clean(parsed?.error || result.stderr || `sealed VW runtime exit ${result.status}`));
-  }
-  return parsed;
 }
 
 function createLearningPolicyRuntimeAdapter(options = {}) {

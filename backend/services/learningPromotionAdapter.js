@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const lockfile = require('proper-lockfile');
 
 const ACTIVE_FLAG_KEY = 'yance-learning-policy-active';
 const SHA256_RE = /^[0-9a-f]{64}$/u;
@@ -53,8 +54,41 @@ function nativeFlagDocument(rollout) {
 }
 function readNativeRollout(flagFile) {
   if (!fs.existsSync(flagFile)) return null;
-  const doc = JSON.parse(fs.readFileSync(flagFile, 'utf8'));
+  let doc;
+  try {
+    doc = JSON.parse(fs.readFileSync(flagFile, 'utf8'));
+  } catch (error) {
+    throw promotionError('LEARNING_PROMOTION_NATIVE_FLAG_DOCUMENT_INVALID', 'Native Learning flag document is not valid JSON.', { message: clean(error?.message) });
+  }
   return doc?.flags?.[ACTIVE_FLAG_KEY]?.variants?.active || null;
+}
+async function withNativeRolloutLock(roots, operation) {
+  fs.mkdirSync(roots.flagRoot, { recursive: true });
+  let release;
+  try {
+    release = await lockfile.lock(roots.flagRoot, {
+      realpath: true,
+      retries: { retries: 20, factor: 1.2, minTimeout: 25, maxTimeout: 100 }
+    });
+  } catch (error) {
+    throw promotionError('LEARNING_PROMOTION_LOCK_UNAVAILABLE', 'Native Learning rollout lock could not be acquired.', { causeCode: clean(error?.code) });
+  }
+  let value;
+  let operationError = null;
+  try {
+    value = await operation();
+  } catch (error) {
+    operationError = error;
+  }
+  try {
+    await release();
+  } catch (error) {
+    if (!operationError) {
+      throw promotionError('LEARNING_PROMOTION_LOCK_RELEASE_FAILED', 'Native Learning rollout lock could not be released.', { causeCode: clean(error?.code) });
+    }
+  }
+  if (operationError) throw operationError;
+  return value;
 }
 function materializeCandidate(roots, candidate) {
   fs.mkdirSync(roots.artifactRoot, { recursive: true });
@@ -84,18 +118,22 @@ function materializeCandidate(roots, candidate) {
   return destination;
 }
 async function verifyNativeFlagd(flagFile, expectedVersion) {
-  const { OpenFeature } = require('@openfeature/server-sdk');
+  const { OpenFeature, NOOP_PROVIDER } = require('@openfeature/server-sdk');
   const { FlagdProvider } = require('@openfeature/flagd-provider');
   const domain = 'yance-learning-policy-promotion';
-  await OpenFeature.setProviderAndWait(domain, new FlagdProvider({
-    resolverType: 'in-process',
-    offlineFlagSourcePath: flagFile
-  }));
-  const evaluated = await OpenFeature.getClient(domain).getObjectValue(ACTIVE_FLAG_KEY, null);
-  if (!evaluated || clean(evaluated?.candidate?.version) !== expectedVersion) {
-    throw promotionError('LEARNING_PROMOTION_FLAGD_VERIFICATION_FAILED', 'Native flagd activation did not resolve the promoted candidate.');
+  const provider = new FlagdProvider({ resolverType: 'in-process', offlineFlagSourcePath: flagFile });
+  await OpenFeature.setProviderAndWait(domain, provider);
+  try {
+    const evaluated = await OpenFeature.getClient(domain).getObjectValue(ACTIVE_FLAG_KEY, null);
+    if (!evaluated || clean(evaluated?.candidate?.version) !== expectedVersion) {
+      throw promotionError('LEARNING_PROMOTION_FLAGD_VERIFICATION_FAILED', 'Native flagd activation did not resolve the promoted candidate.');
+    }
+    return evaluated;
+  } finally {
+    // Replace only this verification domain. The SDK lifecycle closes the
+    // FlagdProvider watcher without shutting down unrelated OpenFeature domains.
+    await OpenFeature.setProviderAndWait(domain, NOOP_PROVIDER);
   }
-  return evaluated;
 }
 
 function createLearningPromotionAdapter(options = {}) {
@@ -134,24 +172,27 @@ function createLearningPromotionAdapter(options = {}) {
     }
 
     const roots = canonicalRoots();
-    materializeCandidate(roots, candidate);
-    const previous = readNativeRollout(roots.flagFile);
-    const previousCandidates = [previous?.candidate, ...(Array.isArray(previous?.history) ? previous.history : [])]
-      .filter(row => row && clean(row.version) && clean(row.version) !== candidate.version)
-      .slice(0, 8)
-      .map(row => ({ id: clean(row.id), version: clean(row.version), policyVersion: clean(row.policyVersion) || 'vw-p1-v1' }));
-    const rollout = Object.freeze({
-      kind: 'LEARNING_ROLLOUT',
-      candidate,
-      history: Object.freeze(previousCandidates),
-      evidenceId,
-      approvedAt: new Date().toISOString(),
-      OpenFeature: true,
-      flagd: 'in-process-offline',
-      automaticPromotion: false
+    const rollout = await withNativeRolloutLock(roots, async () => {
+      materializeCandidate(roots, candidate);
+      const previous = readNativeRollout(roots.flagFile);
+      const previousCandidates = [previous?.candidate, ...(Array.isArray(previous?.history) ? previous.history : [])]
+        .filter(row => row && clean(row.version) && clean(row.version) !== candidate.version)
+        .slice(0, 8)
+        .map(row => ({ id: clean(row.id), version: clean(row.version), policyVersion: clean(row.policyVersion) || 'vw-p1-v1' }));
+      const next = Object.freeze({
+        kind: 'LEARNING_ROLLOUT',
+        candidate,
+        history: Object.freeze(previousCandidates),
+        evidenceId,
+        approvedAt: new Date().toISOString(),
+        OpenFeature: true,
+        flagd: 'in-process-offline',
+        automaticPromotion: false
+      });
+      atomicWriteJson(roots.flagFile, nativeFlagDocument(next));
+      await verifyNativeFlagd(roots.flagFile, candidate.version);
+      return next;
     });
-    atomicWriteJson(roots.flagFile, nativeFlagDocument(rollout));
-    await verifyNativeFlagd(roots.flagFile, candidate.version);
     await langfuse?.recordPromotion?.({ proposal, rollout });
     return rollout;
   }
@@ -175,26 +216,34 @@ function createLearningPromotionAdapter(options = {}) {
       return receipt;
     }
 
+    const requestedCandidate = candidateIdentity(rollout.candidate || {});
     const roots = canonicalRoots();
-    const canonical = readNativeRollout(roots.flagFile);
-    const history = Array.isArray(canonical?.history) ? canonical.history : [];
-    const previous = history[0] ? candidateIdentity(history[0]) : null;
-    if (previous) {
-      const previousPath = path.join(roots.artifactRoot, `${previous.version}.vw`);
-      if (!fs.existsSync(previousPath) || sha256File(previousPath) !== previous.version) {
-        throw promotionError('LEARNING_ROLLBACK_LAST_KNOWN_GOOD_INVALID', 'Rollback target is not a verified content-addressed promoted artifact.');
+    const restoredCandidate = await withNativeRolloutLock(roots, async () => {
+      const canonical = readNativeRollout(roots.flagFile);
+      const activeVersion = clean(canonical?.candidate?.version);
+      if (!activeVersion || activeVersion !== requestedCandidate.version) {
+        throw promotionError('LEARNING_ROLLBACK_STALE_ROLLOUT', 'Rollback receipt does not identify the currently active Learning rollout.', { requestedVersion: requestedCandidate.version, activeVersion });
       }
-      const next = Object.freeze({
-        kind: 'LEARNING_ROLLOUT', candidate: previous, history: Object.freeze(history.slice(1)),
-        evidenceId, approvedAt: new Date().toISOString(), OpenFeature: true, flagd: 'in-process-offline', automaticPromotion: false
-      });
-      atomicWriteJson(roots.flagFile, nativeFlagDocument(next));
-      await verifyNativeFlagd(roots.flagFile, previous.version);
-    } else {
-      atomicWriteJson(roots.flagFile, { flags: {} });
-    }
+      const history = Array.isArray(canonical?.history) ? canonical.history : [];
+      const previous = history[0] ? candidateIdentity(history[0]) : null;
+      if (previous) {
+        const previousPath = path.join(roots.artifactRoot, `${previous.version}.vw`);
+        if (!fs.existsSync(previousPath) || sha256File(previousPath) !== previous.version) {
+          throw promotionError('LEARNING_ROLLBACK_LAST_KNOWN_GOOD_INVALID', 'Rollback target is not a verified content-addressed promoted artifact.');
+        }
+        const next = Object.freeze({
+          kind: 'LEARNING_ROLLOUT', candidate: previous, history: Object.freeze(history.slice(1)),
+          evidenceId, approvedAt: new Date().toISOString(), OpenFeature: true, flagd: 'in-process-offline', automaticPromotion: false
+        });
+        atomicWriteJson(roots.flagFile, nativeFlagDocument(next));
+        await verifyNativeFlagd(roots.flagFile, previous.version);
+      } else {
+        atomicWriteJson(roots.flagFile, { flags: {} });
+      }
+      return previous;
+    });
     const receipt = Object.freeze({
-      kind: 'LEARNING_ROLLBACK', rollout, candidate: rollout.candidate, restoredCandidate: previous,
+      kind: 'LEARNING_ROLLBACK', rollout, candidate: rollout.candidate, restoredCandidate,
       evidenceId, rolledBackAt: new Date().toISOString(), OpenFeature: true, flagd: 'in-process-offline', automaticPromotion: false
     });
     await langfuse?.recordRollback?.({ rollout, evidence: input.evidence, receipt });

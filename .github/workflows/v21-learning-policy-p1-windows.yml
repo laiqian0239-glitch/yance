@@ -144,61 +144,66 @@ jobs:
           const fs = require('node:fs');
           const path = require('node:path');
           const assert = require('node:assert/strict');
+          const { OpenFeature } = require('@openfeature/server-sdk');
           process.env.YANCE_PROCESS_ROLE = 'desktop-host';
           const { copyPresealedLearningRuntime, validatePresealedLearningRuntime } = require('./tools/wp7/lib');
           const { createLearningPromotionAdapter } = require('./backend/services/learningPromotionAdapter');
           const { createLearningPolicyRuntimeAdapter } = require('./backend/services/learningPolicyRuntimeAdapter');
 
           (async () => {
-            const sourceRuntime = path.join(process.env.RUNNER_TEMP, 'learning-runtime');
-            const resourcesRoot = path.join(process.env.RUNNER_TEMP, 'learned-policy-product-resources');
-            const digest = process.env.LEARNED_POLICY_DIGEST;
-            const actions = ['natural_hook','playful_attraction','direct_advance','screen_and_advance','leave_aftertaste'];
-            const sealed = validatePresealedLearningRuntime(sourceRuntime);
-            assert.equal(sealed.seal.learningPolicy.learner, 'Vowpal Wabbit');
-            assert.equal(sealed.seal.learningPolicy.version, '9.11.2');
-            const copied = copyPresealedLearningRuntime(sourceRuntime, resourcesRoot);
-            assert.equal(copied.relativeRoot, 'resources/learning-runtime');
-            assert.equal(copied.treeSha256, sealed.treeSha256);
-            Object.defineProperty(process, 'resourcesPath', { value: resourcesRoot, configurable: true });
+            try {
+              const sourceRuntime = path.join(process.env.RUNNER_TEMP, 'learning-runtime');
+              const resourcesRoot = path.join(process.env.RUNNER_TEMP, 'learned-policy-product-resources');
+              const digest = process.env.LEARNED_POLICY_DIGEST;
+              const actions = ['natural_hook','playful_attraction','direct_advance','screen_and_advance','leave_aftertaste'];
+              const sealed = validatePresealedLearningRuntime(sourceRuntime);
+              assert.equal(sealed.seal.learningPolicy.learner, 'Vowpal Wabbit');
+              assert.equal(sealed.seal.learningPolicy.version, '9.11.2');
+              const copied = copyPresealedLearningRuntime(sourceRuntime, resourcesRoot);
+              assert.equal(copied.relativeRoot, 'resources/learning-runtime');
+              assert.equal(copied.treeSha256, sealed.treeSha256);
+              Object.defineProperty(process, 'resourcesPath', { value: resourcesRoot, configurable: true });
 
-            const proposal = {
-              status: 'READY_FOR_REVIEW',
-              Regression: { passed: true },
-              Shadow: { passed: true },
-              Candidate: { id: `policy:${digest}`, version: digest, policyVersion: 'vw-p1-v1' }
-            };
-            const promotion = createLearningPromotionAdapter();
-            const rollout = await promotion.promote(proposal, { approved: true, evidence: { id: 'windows-production-closure' } });
-            assert.equal(rollout.kind, 'LEARNING_ROLLOUT');
-            assert.equal(rollout.candidate.version, digest);
-            assert.equal(rollout.OpenFeature, true);
-            assert.equal(rollout.flagd, 'in-process-offline');
+              const proposal = {
+                status: 'READY_FOR_REVIEW',
+                Regression: { passed: true },
+                Shadow: { passed: true },
+                Candidate: { id: `policy:${digest}`, version: digest, policyVersion: 'vw-p1-v1' }
+              };
+              const promotion = createLearningPromotionAdapter();
+              const rollout = await promotion.promote(proposal, { approved: true, evidence: { id: 'windows-production-closure' } });
+              assert.equal(rollout.kind, 'LEARNING_ROLLOUT');
+              assert.equal(rollout.candidate.version, digest);
+              assert.equal(rollout.OpenFeature, true);
+              assert.equal(rollout.flagd, 'in-process-offline');
 
-            const runtime = createLearningPolicyRuntimeAdapter();
-            const featureBundle = {
-              interactionBand: 'warm',
-              performanceMode: 'balanced',
-              questionPolicy: 'light',
-              relationshipStage: 'early',
-              targetLanguage: 'en'
-            };
-            const selected = await runtime.selectLearnedPolicyAction({ featureBundle, allowedActions: actions, baselineAction: 'natural_hook' });
-            assert.equal(selected.executedPolicy, 'vowpalwabbit');
-            assert.equal(selected.policyArtifactId, digest);
-            assert.equal(selected.actionProbability, 1);
-            assert.equal(selected.exploration, false);
-            assert.ok(actions.includes(selected.candidateStrategyBranch));
+              const runtime = createLearningPolicyRuntimeAdapter();
+              const featureBundle = {
+                interactionBand: 'warm',
+                performanceMode: 'balanced',
+                questionPolicy: 'light',
+                relationshipStage: 'early',
+                targetLanguage: 'en'
+              };
+              const selected = await runtime.selectLearnedPolicyAction({ featureBundle, allowedActions: actions, baselineAction: 'natural_hook' });
+              assert.equal(selected.executedPolicy, 'vowpalwabbit');
+              assert.equal(selected.policyArtifactId, digest);
+              assert.equal(selected.actionProbability, 1);
+              assert.equal(selected.exploration, false);
+              assert.ok(actions.includes(selected.candidateStrategyBranch));
 
-            const promotedArtifact = path.join(process.env.YANCE_DATA_DIR, 'learning', 'learned-policy', 'artifacts', `${digest}.vw`);
-            fs.appendFileSync(promotedArtifact, Buffer.from('\ncorrupt-for-fail-safe-proof\n', 'utf8'));
-            const degraded = await runtime.selectLearnedPolicyAction({ featureBundle, allowedActions: actions, baselineAction: 'natural_hook' });
-            assert.equal(degraded.executedPolicy, 'baseline');
-            assert.equal(degraded.actionProbability, 1);
-            assert.equal(degraded.exploration, false);
-            assert.ok(degraded.degradation && degraded.degradation.reasonCode === 'LEARNING_POLICY_ARTIFACT_IDENTITY_MISMATCH');
+              const promotedArtifact = path.join(process.env.YANCE_DATA_DIR, 'learning', 'learned-policy', 'artifacts', `${digest}.vw`);
+              fs.appendFileSync(promotedArtifact, Buffer.from('\ncorrupt-for-fail-safe-proof\n', 'utf8'));
+              const degraded = await runtime.selectLearnedPolicyAction({ featureBundle, allowedActions: actions, baselineAction: 'natural_hook' });
+              assert.equal(degraded.executedPolicy, 'baseline');
+              assert.equal(degraded.actionProbability, 1);
+              assert.equal(degraded.exploration, false);
+              assert.ok(degraded.degradation && degraded.degradation.reasonCode === 'LEARNING_POLICY_ARTIFACT_IDENTITY_MISMATCH');
 
-            process.stdout.write(JSON.stringify({ status: 'PASS', digest, selected, degraded, sealedTreeSha256: sealed.treeSha256 }) + '\n');
+              process.stdout.write(JSON.stringify({ status: 'PASS', digest, selected, degraded, sealedTreeSha256: sealed.treeSha256 }) + '\n');
+            } finally {
+              await OpenFeature.close();
+            }
           })().catch((error) => {
             console.error(error && error.stack || error);
             process.exit(1);
