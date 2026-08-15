@@ -37,6 +37,27 @@ test('Learning runtime adapter delegates the action head to sealed Vowpal Wabbit
   assert.equal(decision.finalReply, undefined);
 });
 
+test('explicit active-policy resolver absence wins over injected runtime seam and returns baseline', async () => {
+  let invoked = false;
+  const adapter = createLearningPolicyRuntimeAdapter({
+    resolveActivePolicy: async () => null,
+    invokeVowpalWabbit: async () => {
+      invoked = true;
+      return { action: 'natural_hook', probability: 1, exploration: false };
+    }
+  });
+  const decision = await adapter.selectLearnedPolicyAction({
+    featureBundle: { relationshipStage: 'warming', interactionBand: 'balanced' },
+    allowedActions: ['natural_hook', 'playful_attraction'],
+    baselineAction: 'natural_hook'
+  });
+
+  assert.equal(invoked, false);
+  assert.equal(decision.executedPolicy, 'baseline');
+  assert.equal(decision.policyArtifactId, 'baseline');
+  assert.equal(decision.degradation, null);
+});
+
 test('production Learning runtime falls back to verified canonical history and preserves active-artifact degradation', async () => {
   const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-learning-policy-lkg-'));
   const learnedRoot = path.join(dataRoot, 'learning', 'learned-policy');
