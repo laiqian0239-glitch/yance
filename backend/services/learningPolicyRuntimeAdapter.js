@@ -98,10 +98,30 @@ async function resolveProductionActivePolicy() {
   const client = await flagdClientFor(roots.flagFile);
   const rollout = await client.getObjectValue(ACTIVE_FLAG_KEY, null);
   if (!rollout || rollout.kind !== 'LEARNING_ROLLOUT') return null;
-  // Runtime consumption is fail-safe against the active rollout only. History
-  // is rollback evidence/authority and must never silently substitute a broken
-  // active artifact without an explicit rollback receipt.
-  return validatePolicyCandidate(rollout.candidate, roots);
+
+  const candidates = [
+    rollout.candidate,
+    ...(Array.isArray(rollout.history) ? rollout.history : [])
+  ].filter(Boolean);
+  let activeError = null;
+  for (let index = 0; index < candidates.length; index += 1) {
+    try {
+      const resolved = validatePolicyCandidate(candidates[index], roots);
+      if (index === 0 || !activeError) return resolved;
+      return deepFreeze({
+        ...resolved,
+        degradation: {
+          reasonCode: clean(activeError.reasonCode || activeError.code) || 'LEARNING_POLICY_ACTIVE_VERIFICATION_FAILED',
+          activeCandidateRejected: true,
+          fallbackSource: 'canonical-rollout-history'
+        }
+      });
+    } catch (error) {
+      if (index === 0) activeError = error;
+    }
+  }
+  if (activeError) throw activeError;
+  return null;
 }
 
 function sealedLearningRuntimePaths() {
@@ -216,6 +236,14 @@ function createLearningPolicyRuntimeAdapter(options = {}) {
     // request-supplied active policy, artifact path, hash, or executable authority.
     if (!activePolicy && !hasInjectedRuntime) return baseline({ ...input, allowedActions }, 'NO_PROMOTED_POLICY');
 
+    const resolutionDegradation = activePolicy?.degradation || null;
+    if (resolutionDegradation) {
+      onDegradation?.({
+        ...resolutionDegradation,
+        policyArtifactId: clean(activePolicy?.policyArtifactId)
+      });
+    }
+
     try {
       const result = await invokeVowpalWabbit({
         operation: 'policy_predict',
@@ -240,7 +268,7 @@ function createLearningPolicyRuntimeAdapter(options = {}) {
         policyArtifactId: clean(result?.policyArtifactId || result?.policyArtifactVersion || activePolicy?.policyArtifactId) || 'baseline',
         actionProbability: 1,
         exploration: false,
-        degradation: null,
+        degradation: resolutionDegradation,
         executedPolicy: 'vowpalwabbit'
       });
     } catch (error) {
