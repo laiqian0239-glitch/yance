@@ -69,6 +69,9 @@ function main() {
 
   const moduleTarget = path.join(element, 'modules', 'yance');
   fs.cpSync(path.join(ROOT, 'integration/element-module'), moduleTarget, { recursive: true });
+  const assistantUiToolUiSource = path.join(ROOT, 'vendor/assistant-ui-tool-ui/v2026.2.13');
+  const assistantUiToolUiTarget = path.join(element, 'vendor/assistant-ui-tool-ui/v2026.2.13');
+  fs.cpSync(assistantUiToolUiSource, assistantUiToolUiTarget, { recursive: true });
 
   // Product dependencies live in the copied workspace module. Apply the lock-only
   // replay patch only after the overlay exists so the frozen Element lock describes
