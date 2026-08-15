@@ -57,6 +57,11 @@
     "trailingNewline": true,
     "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
   },
+  "futureProductBootstrapPaths": [
+    "integration/element-module/src/product-experience/BilingualSearchPanel.tsx"
+  ],
+  "futureProductBootstrapPathCount": 1,
+  "futureProductBootstrapPathSetSha256": "7d91c576be6f3f48bb401a88aa52fa328c01f576b6759c182c154a790a10fc6a",
   "implementation": {
     "branch": "product/v21-product-experience-bilingual-search-translation-task-ux-p0",
     "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
@@ -64,6 +69,7 @@
       "docs/uat/V21_PRODUCT_EXPERIENCE_BILINGUAL_SEARCH_TRANSLATION_TASK_UX_P0_UAT.md",
       "electron/preload.js",
       "electron/r32StoreBridge.js",
+      "governance/layered-ci/wp0-routing-policy.json",
       "implementation/product-experience-phase1-status.json",
       "integration/element-module/src/YanceWorkspace.tsx",
       "integration/element-module/src/index.tsx",
@@ -74,8 +80,8 @@
       "integration/element-module/src/product-experience/experienceTypes.ts",
       "tests/wp0/v21-product-experience-bilingual-search-translation-task-ux.test.js"
     ],
-    "approvedChangedFileCount": 12,
-    "approvedChangedFileSetSha256": "dd868bade00ff4e5fa22e5a918388af4aa267f0dde891d8997007950f9d0cb63",
+    "approvedChangedFileCount": 13,
+    "approvedChangedFileSetSha256": "44a5abd95604e9b8a9017e2fecd2df792960e86b01896b4fd037ad4590cb7eae",
     "failureFirstCommit": {
       "freshCausalRedRequired": true,
       "mustBeFirstImplementationCommit": true,
@@ -86,6 +92,7 @@
       "approvedChangedFileSetSha256": "33264769a780b00416f2f31665c0578cd885d7d2921ea5bc7bd969c19eba6234",
       "productionCodeChanged": false,
       "expectedMissingCapabilities": [
+        "exact PRODUCT_WP0 route for integration/element-module/src/product-experience/BilingualSearchPanel.tsx",
         "Product Shell desktop bridge projection for existing workspace search",
         "Product Shell desktop bridge projection for existing durable translation jobs",
         "bilingual search result surface with original and persisted Chinese evidence",
@@ -104,7 +111,7 @@
     "newGeneralPurposeYanceInfrastructureAllowed": false
   },
   "ossFit": {
-    "decision": "Use already-adopted mature OSS and repository seams end-to-end. Element Web public Module Navigation API owns room/permalink navigation; existing R32 Store search owns message lookup; existing MessageTranslationService + AsyncOperationLifecycleAuthority owns translation job lifecycle; existing R32 Store Electron bridge/preload owns privileged desktop transport; existing Base UI/Motion/Product Shell tokens own accessible interaction and motion. Yance adds only thin Product composition and exact adapters.",
+    "decision": "Use already-adopted mature OSS and repository seams end-to-end. Element Web public Module Navigation API owns room/permalink navigation; existing R32 Store search owns message lookup; existing MessageTranslationService + AsyncOperationLifecycleAuthority owns translation job lifecycle; existing R32 Store Electron bridge/preload owns privileged desktop transport; existing Base UI/Motion/Product Shell tokens own accessible interaction and motion. Yance adds only thin Product composition, exact adapters, and one exact PRODUCT_WP0 route for the new Product component.",
     "matureOssAvailable": true,
     "selectedAdoptionMode": "existing-repository-seam",
     "newGeneralPurposeInfrastructure": false,
@@ -166,6 +173,7 @@
       "renderer-direct privileged local API client inside Element Product Experience",
       "private Element timeline/composer DOM selectors or private application-store imports",
       "fabricated Matrix room/event IDs derived from provider chat/session identifiers",
+      "broad integration/ or product-experience/ routing prefixes instead of one exact Product path",
       "second Matrix timeline/composer/navigation router",
       "new Product design system, token runtime, modal framework or animation engine",
       "new translation model/provider or automatic bulk-translation engine",
