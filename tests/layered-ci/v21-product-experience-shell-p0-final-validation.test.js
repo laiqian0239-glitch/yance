@@ -21,6 +21,8 @@ test('Product Experience final validation is an exact-head same-repository pull-
   assert.doesNotMatch(source, /^\s*(workflow_dispatch|push|schedule):/mu);
   assert.match(source, /github\.event\.pull_request\.head\.repo\.full_name\s*==\s*github\.repository/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'product\/v21-product-experience-shell-p0'/u);
+  assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'product\/v21-product-experience-bilingual-search-translation-task-ux-p0'/u);
+  assert.doesNotMatch(source, /github\.event\.pull_request\.head\.ref[\s\S]{0,80}(?:startsWith|contains|matches)/u);
   assert.match(source, /runs-on:\s*windows-latest/u);
   assert.match(source, /runs-on:\s*ubuntu-latest/u);
   assert.match(source, /actions\/checkout@11d5960a326750d5838078e36cf38b85af677262/u);

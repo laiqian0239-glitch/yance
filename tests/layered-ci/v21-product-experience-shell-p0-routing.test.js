@@ -11,6 +11,7 @@ const policy = JSON.parse(fs.readFileSync(path.join(ROOT, 'governance/layered-ci
 
 const V21_PRODUCT_EXPERIENCE_SHELL_P0_BOOTSTRAP_PATHS = Object.freeze([
   'config/upstreams/v21-product-experience-shell-p0.json',
+  'integration/element-module/src/product-experience/BilingualSearchPanel.tsx',
   'integration/element-module/src/product-experience/PeopleSurface.tsx',
   'integration/element-module/src/product-experience/ProductComposerAccessory.tsx',
   'integration/element-module/src/product-experience/ProductExperienceShell.css',
@@ -35,7 +36,7 @@ const V21_PRODUCT_EXPERIENCE_SHELL_P0_BOOTSTRAP_PATHS = Object.freeze([
 ]);
 
 test('V2.1 Product Experience Shell P0 bootstrap paths are exact PRODUCT_WP0 routes', () => {
-  assert.equal(new Set(V21_PRODUCT_EXPERIENCE_SHELL_P0_BOOTSTRAP_PATHS).size, 22);
+  assert.equal(new Set(V21_PRODUCT_EXPERIENCE_SHELL_P0_BOOTSTRAP_PATHS).size, 23);
   for (const file of V21_PRODUCT_EXPERIENCE_SHELL_P0_BOOTSTRAP_PATHS) {
     const result = classifyWp0Route(policy, [file]);
     assert.equal(result.pass, true, `${file}: ${JSON.stringify(result)}`);
