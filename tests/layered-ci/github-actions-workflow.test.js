@@ -9,8 +9,14 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const TOOL_PATH = path.join(ROOT, 'tools', 'layered-ci', 'github-actions-workflow.js');
 const CHECKOUT_REF = 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262';
 const WORKFLOW_PATHS = Object.freeze([
+  '.github/workflows/acv2-wp-a.yml',
   '.github/workflows/layered-ci-task.yml',
-  '.github/workflows/reviewed-candidate-a6.yml'
+  '.github/workflows/wp-a-post-merge-validation.yml'
+]);
+const RETIRED_WORKFLOW_PATHS = Object.freeze([
+  '.github/workflows/reviewed-candidate-a6.yml',
+  '.github/workflows/reviewed-candidate-a6-sqlite.yml',
+  '.github/workflows/wp-a-promotion-authorization.yml'
 ]);
 
 function indentation(line) {
@@ -53,7 +59,17 @@ function inspectBaselineCheckoutCredentials(text, workflowPath) {
   return findings;
 }
 
-test('authorized baseline has no checkout step retaining repository credentials', () => {
+test('retired historical workflow authorities are absent from the current repository surface', () => {
+  for (const workflowPath of RETIRED_WORKFLOW_PATHS) {
+    assert.equal(
+      fs.existsSync(path.join(ROOT, ...workflowPath.split('/'))),
+      false,
+      `${workflowPath} is historical evidence and must not remain a current Actions authority`
+    );
+  }
+});
+
+test('authorized current baseline has no checkout step retaining repository credentials', () => {
   const findings = WORKFLOW_PATHS.flatMap(workflowPath => inspectBaselineCheckoutCredentials(
     fs.readFileSync(path.join(ROOT, ...workflowPath.split('/')), 'utf8'),
     workflowPath
