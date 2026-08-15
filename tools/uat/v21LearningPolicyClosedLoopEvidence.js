@@ -17,11 +17,16 @@ const feedback = require('../../backend/services/replyFeedbackLearningService');
 const { createLearningPolicyDecisionContract } = require('../../backend/services/learningPolicyDecisionContract');
 const { createLearningOutcomeAttributionService } = require('../../backend/services/learningOutcomeAttributionService');
 const { createLearningDeepTrainingContract } = require('../../backend/services/learningDeepTrainingContract');
-const { createLearningPolicyRuntimeAdapter } = require('../../backend/services/learningPolicyRuntimeAdapter');
+const {
+  createLearningPolicyRuntimeAdapter,
+  resolveProductionActivePolicy
+} = require('../../backend/services/learningPolicyRuntimeAdapter');
 const { createLearningPromotionAdapter } = require('../../backend/services/learningPromotionAdapter');
 const { createContextAwareReplyBrain } = require('../../backend/services/contextAwareReplyBrain');
 const contactContextAuthority = require('../../backend/services/contactContextAuthority');
 const { createPersonaBrain } = require('../../backend/personaBrain');
+
+let store = null;
 
 function runPolicyPython(payload) {
   const pythonDir = path.resolve(__dirname, '../../runtime/learning-growth/python');
@@ -167,7 +172,7 @@ async function provePolicyConsumedBeforeGeneration(decisionContract) {
 }
 
 async function main() {
-  const store = new R32SqliteStore({ dbPath: path.join(root, 'policy-uat.db') });
+  store = new R32SqliteStore({ dbPath: path.join(root, 'policy-uat.db') });
   const repository = createPlatformCoreRepository({ storeProvider: () => store });
   const identityAuthority = {
     resolve({ contactId, conversationId }) {
@@ -319,24 +324,6 @@ async function main() {
   assert.equal(predicted.probability, 1);
   assert.equal(predicted.exploration, false);
 
-  const runtimeAdapter = createLearningPolicyRuntimeAdapter({
-    async invokeVowpalWabbit(input) {
-      return runPolicyPython({
-        ...input,
-        artifactPath,
-        policyArtifactId: trained.policyArtifactVersion
-      });
-    }
-  });
-  const consumed = await runtimeAdapter.selectLearnedPolicyAction({
-    featureBundle: decision.featureBundle,
-    allowedActions: decision.allowedActionSet,
-    baselineAction: 'natural_hook'
-  });
-  assert.ok(decision.allowedActionSet.includes(consumed.candidateStrategyBranch));
-  assert.equal(consumed.actionProbability, 1);
-  assert.equal(consumed.exploration, false);
-
   const degraded = await createLearningPolicyRuntimeAdapter({
     async invokeVowpalWabbit() {
       const error = new Error('corrupt artifact');
@@ -351,20 +338,18 @@ async function main() {
   assert.equal(degraded.executedPolicy, 'baseline');
   assert.equal(degraded.degradation.reasonCode, 'LEARNING_POLICY_ARTIFACT_IDENTITY_MISMATCH');
 
-  const promotion = createLearningPromotionAdapter({
-    openFeature: {
-      setEvaluationContext() {}
-    },
-    flagd: {
-      mode: 'in-process-offline'
-    }
-  });
+  const candidateRoot = path.join(root, 'learning', 'learned-policy', 'candidates');
+  fs.mkdirSync(candidateRoot, { recursive: true });
+  const canonicalCandidatePath = path.join(candidateRoot, `${trained.policyArtifactVersion}.vw`);
+  fs.copyFileSync(artifactPath, canonicalCandidatePath);
 
+  const promotion = createLearningPromotionAdapter();
   const proposal = {
     status: 'READY_FOR_REVIEW',
     Candidate: {
       id: `policy:${trained.policyArtifactVersion}`,
       version: trained.policyArtifactVersion,
+      policyVersion: 'vw-p1-uat-v1',
       exposure: 0
     },
     Regression: { passed: true },
@@ -375,19 +360,42 @@ async function main() {
     approved: true,
     evidence: { id: 'uat-promotion-evidence' }
   });
-
   assert.equal(active.kind, 'LEARNING_ROLLOUT');
   assert.equal(active.automaticPromotion, false);
   assert.equal(active.flagd, 'in-process-offline');
+
+  const runtimeAdapter = createLearningPolicyRuntimeAdapter({
+    resolveActivePolicy: resolveProductionActivePolicy,
+    async invokeVowpalWabbit(input) {
+      return runPolicyPython(input);
+    }
+  });
+  const consumed = await runtimeAdapter.selectLearnedPolicyAction({
+    featureBundle: decision.featureBundle,
+    allowedActions: decision.allowedActionSet,
+    baselineAction: 'natural_hook'
+  });
+  assert.ok(decision.allowedActionSet.includes(consumed.candidateStrategyBranch));
+  assert.equal(consumed.actionProbability, 1);
+  assert.equal(consumed.exploration, false);
+  assert.equal(consumed.executedPolicy, 'vowpalwabbit');
+  assert.equal(consumed.policyArtifactId, trained.policyArtifactVersion);
 
   const rolledBack = await promotion.rollback(active, {
     approved: true,
     evidence: { id: 'uat-rollback-evidence' }
   });
-
   assert.equal(rolledBack.kind, 'LEARNING_ROLLBACK');
   assert.equal(rolledBack.automaticPromotion, false);
   assert.equal(rolledBack.evidenceId, 'uat-rollback-evidence');
+
+  const afterRollback = await runtimeAdapter.selectLearnedPolicyAction({
+    featureBundle: decision.featureBundle,
+    allowedActions: decision.allowedActionSet,
+    baselineAction: 'natural_hook'
+  });
+  assert.equal(afterRollback.executedPolicy, 'baseline');
+  assert.equal(afterRollback.policyArtifactId, 'baseline');
 
   const orderProof = await provePolicyConsumedBeforeGeneration(decisionContract);
   assert.ok(orderProof.frontierIndex > orderProof.policyIndex);
@@ -409,17 +417,26 @@ async function main() {
     policyConsumedBeforeGeneration: orderProof.frontierIndex > orderProof.policyIndex,
     policyConsumptionOrder: orderProof.order,
     promotionAuthority: 'Learning',
+    productionNativePromotionConsumed: consumed.policyArtifactId === trained.policyArtifactVersion,
     availabilityFallbackProved: true,
-    rollbackProved: true,
+    rollbackProved: afterRollback.executedPolicy === 'baseline',
     localReplyModelUsed: false,
     policyArtifactVersion: trained.policyArtifactVersion,
     selectedAction: consumed.candidateStrategyBranch
   };
   process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
-  store.close?.();
 }
 
-main().catch(error => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+  .catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    try {
+      const { OpenFeature, NOOP_PROVIDER } = require('@openfeature/server-sdk');
+      await OpenFeature.setProviderAndWait('yance-learning-policy', NOOP_PROVIDER);
+    } catch {}
+    try { store?.close?.(); } catch {}
+    fs.rmSync(root, { recursive: true, force: true });
+  });
