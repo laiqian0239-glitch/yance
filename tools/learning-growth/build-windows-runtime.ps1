@@ -47,23 +47,11 @@ function Relative-Path([string]$Root, [string]$Path) {
   return [Uri]::UnescapeDataString($rootUri.MakeRelativeUri($pathUri).ToString()).Replace('\', '/')
 }
 function Invoke-JsonEntrypoint([string]$PythonExe, [string]$Entrypoint, [hashtable]$Request, [string]$Label) {
-  $psi = New-Object System.Diagnostics.ProcessStartInfo
-  $psi.FileName = $PythonExe
-  $psi.Arguments = '-I "' + $Entrypoint + '"'
-  $psi.UseShellExecute = $false
-  $psi.RedirectStandardInput = $true
-  $psi.RedirectStandardOutput = $true
-  $psi.RedirectStandardError = $true
-  $psi.CreateNoWindow = $true
-  $process = New-Object System.Diagnostics.Process
-  $process.StartInfo = $psi
-  if (-not $process.Start()) { throw "$Label failed to start" }
-  $process.StandardInput.Write(($Request | ConvertTo-Json -Depth 20 -Compress))
-  $process.StandardInput.Close()
-  $stdout = $process.StandardOutput.ReadToEnd()
-  $stderr = $process.StandardError.ReadToEnd()
-  $process.WaitForExit()
-  if ($process.ExitCode -ne 0) { throw "$Label failed with exit $($process.ExitCode): $stderr $stdout" }
+  $requestJson = $Request | ConvertTo-Json -Depth 20 -Compress
+  $stdoutLines = @($requestJson | & $PythonExe -I $Entrypoint)
+  $exitCode = $LASTEXITCODE
+  $stdout = $stdoutLines -join "`n"
+  if ($exitCode -ne 0) { throw "$Label failed with exit $exitCode: $stdout" }
   try { return ($stdout | ConvertFrom-Json) }
   catch { throw "$Label returned invalid JSON: $stdout" }
 }
