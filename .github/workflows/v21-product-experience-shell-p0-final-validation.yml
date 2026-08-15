@@ -7,13 +7,16 @@ permissions:
   contents: read
 
 env:
-  PRODUCT_BRANCH: product/v21-product-experience-shell-p0
+  PRODUCT_BRANCH: ${{ github.event.pull_request.head.ref }}
 
 jobs:
   frozen-element-reproducibility:
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'product/v21-product-experience-shell-p0'
+      (
+        github.event.pull_request.head.ref == 'product/v21-product-experience-shell-p0' ||
+        github.event.pull_request.head.ref == 'product/v21-product-experience-bilingual-search-translation-task-ux-p0'
+      )
     runs-on: windows-latest
     env:
       CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
@@ -110,7 +113,10 @@ jobs:
   materialized-desktop-uat:
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'product/v21-product-experience-shell-p0'
+      (
+        github.event.pull_request.head.ref == 'product/v21-product-experience-shell-p0' ||
+        github.event.pull_request.head.ref == 'product/v21-product-experience-bilingual-search-translation-task-ux-p0'
+      )
     runs-on: windows-latest
     timeout-minutes: 120
     env:
@@ -415,7 +421,10 @@ jobs:
   materialized-matrix-uat:
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'product/v21-product-experience-shell-p0'
+      (
+        github.event.pull_request.head.ref == 'product/v21-product-experience-shell-p0' ||
+        github.event.pull_request.head.ref == 'product/v21-product-experience-bilingual-search-translation-task-ux-p0'
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
