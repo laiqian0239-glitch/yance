@@ -170,3 +170,41 @@ test('Product dependency lock replay remains canonical and uses strict ordinary 
     'runtime replay must not weaken patch application semantics'
   );
 });
+test('Product dependency replay binds governed tool-ui React to the Element root without changing existing identities', () => {
+  const patch = read('upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
+  const importer = addedYanceImporter(patch);
+
+  const packageMarker = 'diff --git a/package.json b/package.json';
+  const lockMarker = 'diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml';
+  const packageStart = patch.indexOf(packageMarker);
+  const lockStart = patch.indexOf(lockMarker);
+  assert.ok(packageStart >= 0 && lockStart > packageStart);
+
+  const packagePatch = patch.slice(packageStart, lockStart);
+  assert.match(packagePatch, /^\+[ \t]+"lucide-react": "0\.563\.0",$/mu);
+  assert.match(packagePatch, /^\+[ \t]+"react": "catalog:",$/mu);
+
+  const lockPatch = patch.slice(lockStart);
+  const moduleImporterIndex = lockPatch.indexOf('+  modules/yance:');
+  assert.ok(moduleImporterIndex >= 0);
+
+  const rootImporterPatch = lockPatch.slice(0, moduleImporterIndex);
+  assert.match(
+    rootImporterPatch,
+    /^\+[ \t]+react:\n\+[ \t]+specifier: 'catalog:'\n\+[ \t]+version: 19\.2\.7$/mu
+  );
+
+  assert.ok(
+    importer.includes("+      react:\n+        specifier: '>=18'\n+        version: 19.2.7"),
+    'modules/yance React identity must remain unchanged'
+  );
+  assert.ok(
+    importer.includes("+      lucide-react:\n+        specifier: 0.563.0\n+        version: 0.563.0(react@19.2.7)"),
+    'modules/yance lucide-react identity must remain unchanged'
+  );
+
+  assert.doesNotMatch(
+    patch,
+    /external(?:ize|ization)|shamefully-hoist|public-hoist-pattern|NODE_PATH|--no-frozen-lockfile|--lockfile-only/iu
+  );
+});
