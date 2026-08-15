@@ -144,6 +144,7 @@ jobs:
           const fs = require('node:fs');
           const path = require('node:path');
           const assert = require('node:assert/strict');
+          process.env.YANCE_PROCESS_ROLE = 'desktop-host';
           const { copyPresealedLearningRuntime, validatePresealedLearningRuntime } = require('./tools/wp7/lib');
           const { createLearningPromotionAdapter } = require('./backend/services/learningPromotionAdapter');
           const { createLearningPolicyRuntimeAdapter } = require('./backend/services/learningPolicyRuntimeAdapter');
