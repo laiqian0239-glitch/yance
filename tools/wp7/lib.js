@@ -433,8 +433,8 @@ function presealedLearningRuntimeRecords(runtimeRoot) {
       if (entry.isSymbolicLink()) throw new Wp7Error('WP7_LEARNING_RUNTIME_SYMLINK_REJECTED', 'symlinks are forbidden in the presealed Learning runtime', { path: absolute });
       if (entry.isDirectory()) visit(absolute);
       else if (entry.isFile()) {
-        if (entry.name === 'runtime-seal.json') continue;
         const relative = path.relative(root, absolute).split(path.sep).join('/');
+        if (relative === 'runtime-seal.json') continue;
         const stat = fs.statSync(absolute);
         records.push(Object.freeze({ path: relative, sizeBytes: stat.size, sha256: sha256File(absolute) }));
       } else throw new Wp7Error('WP7_LEARNING_RUNTIME_INVALID', 'unsupported file type in presealed Learning runtime', { path: absolute });
@@ -563,8 +563,7 @@ function installReleasePlatformAuth(resourcesRoot, options = {}) {
   if (path.resolve(configInput) !== path.resolve(configPath)) fs.writeFileSync(configPath, bytes, { mode: 0o600 });
   else fs.chmodSync(configPath, 0o600);
   const digest = sha256Buffer(bytes);
-  fs.writeFileSync(hashPath, `${digest}  ${releasePlatformAuth.CONFIG_FILE}
-`, { mode: 0o600 });
+  fs.writeFileSync(hashPath, `${digest}  ${releasePlatformAuth.CONFIG_FILE}\n`, { mode: 0o600 });
   return Object.freeze({
     configured: true,
     sealed: loaded.sealed === true,
@@ -895,9 +894,6 @@ function buildPreReviewFixture(options = {}) {
     };
     const provenancePath = path.join(outputRoot, 'build-provenance.json');
     writeCanonicalJson(provenancePath, provenance);
-    // The two resources documents above are freshly generated WP7 pre-review metadata.
-    // Scan only the application payload for inherited WP1 artifacts so the generic
-    // WP1 scanner does not misclassify WP7's own finalReleaseEvidence=false marker.
     assertNoWp1Reuse(built.payloadRoot);
     const seal = {
       schemaVersion: 1, documentType: 'WP7_PRE_REVIEW_BUILD_SESSION_SEAL', status: 'SEALED_PIPELINE_TEST_ONLY', artifactClass: PIPELINE_TEST_ARTIFACT_CLASS,
@@ -1024,7 +1020,7 @@ function validateCleanInstallEvidence(doc) {
   if (missing.length) throw new Wp7Error('WP7_CLEAN_INSTALL_EVIDENCE_INCOMPLETE', 'clean-install evidence incomplete', { missing });
   if (doc.finalInstallationMode !== 'CLEAN_INSTALL' || doc.legacyTestDataMigrationAttempted !== false || doc.legacyTestVersionRollbackAttempted !== false) throw new Wp7Error('WP7_LEGACY_TEST_DATA_MIGRATION_FORBIDDEN', 'clean-install policy mismatch');
   if (doc.remainingResidueCount !== 0) throw new Wp7Error('WP7_LEGACY_TEST_DATA_RESIDUE', 'legacy residue remains', { remainingResidueCount: doc.remainingResidueCount });
-  if (doc.installerSha256VerifiedImmediatelyBeforeInstall !== true) throw new Wp7Error('WP7_PREINSTALL_INSTALLER_SHA256_MISMATCH', 'installer SHA256 was not verified immediately before install');
+  if (doc.installerSha256VerifiedImmediatelyBeforeInstall !== true) throw new Wp7Error('WP7_PREINSTALL_INSTALLER_SHA256_MISMATCH', 'installer SHA256 mismatch', { expected, actual });
   if (doc.firstStartFreshInitialization !== true) throw new Wp7Error('WP7_FIRST_START_NOT_CLEAN', 'first start did not initialize fresh state');
   return { status: 'PASS' };
 }
@@ -1237,11 +1233,6 @@ function runNsisCompiler(options = {}) {
   return { status: 'PASS', outputFile: options.outputFile, sha256: sha256File(options.outputFile), stdout: result.stdout, sourceValidation, estimatedSizeBytes, estimatedSizeKb };
 }
 
-// Emit electron-updater update metadata (latest.yml + <setup>.blockmap) from the
-// GENUINE installer binary produced by the same build. This is exactly the
-// derivation electron-builder performs: path/size/sha512 of the real file and a
-// blockmap of full-file chunks. These artifacts are written only once the real
-// installer exists, so they always match the shipped binary (no pre-faked data).
 function emitUpdateMetadata(options = {}) {
   const installerPath = path.resolve(options.installerPath);
   if (!fs.existsSync(installerPath)) throw new Wp7Error('WP7_UPDATE_METADATA_INSTALLER_MISSING', 'cannot emit update metadata before a real installer exists');
@@ -1267,15 +1258,7 @@ function emitUpdateMetadata(options = {}) {
     `prerelease: ${prerelease}\n`;
   const latestYmlPath = path.join(options.outputRoot, 'latest.yml');
   fs.writeFileSync(latestYmlPath, latestYml, 'utf8');
-  // Real electron-updater blockmap. electron-updater's BlockMap schema (builder-util-runtime)
-  // is:
-  //   { version: "1", files: [ { name, offset, checksums: string[], sizes: number[] } ] }
-  // Each entry in `checksums`/`sizes` describes one fixed-size chunk of the installer
-  // binary (sha512 per chunk). `offset` is the byte offset of the file within the
-  // package (0 for a standalone installer). The DifferentialDownloader parses this
-  // format natively for partial/differential downloads. We do NOT fabricate a single
-  // block or use a custom `blocks[]` shape.
-  const BLOCK_SIZE = 1024 * 1024; // 1 MiB chunks
+  const BLOCK_SIZE = 1024 * 1024;
   const checksums = [];
   const sizes = [];
   for (let pos = 0; pos < buf.length; pos += BLOCK_SIZE) {
@@ -1390,9 +1373,6 @@ function buildAuthorizedFinalWindowsInstaller(options = {}) {
     } else if (options.requireSignedInstaller === true) {
       throw new Wp7Error('WP7_INSTALLER_AUTHENTICODE_SIGNATURE_REQUIRED', 'production release requires a signed installer before update metadata is emitted');
     }
-    // Emit electron-updater metadata only AFTER optional Authenticode signing.
-    // Signing mutates the installer bytes; metadata generated before this point
-    // would contain stale SHA-512, size and blockmap values.
     const updateMeta = emitUpdateMetadata({
       installerPath: outputFile,
       outputRoot,
