@@ -84,7 +84,7 @@
         "Yance-Failure-First-Red-Conclusion: failure"
       ],
       "expectedFailures": [
-        "The canonical 0011 replay does not yet give the physical Element root direct @types/react ^19.2.10 -> 19.2.17 and zod 4.4.3 ownership required by governed vendor/assistant-ui-tool-ui lint:types.",
+        "The canonical 0011 replay does not yet give the physical Element root direct @types/react ^19.2.10 -> 19.2.17 and zod 4.4.3 ownership required by governed vendor/assistant-ui/tool-ui lint:types.",
         "The WP7 native scanner does not yet classify the exact official Setuptools cli/gui foreign-architecture launcher variants under the sealed Learning runtime as upstream inert foreign variants while preserving x64 target-loadable fail-closed validation."
       ]
     },
@@ -179,7 +179,7 @@
   "ossFit": {
     "decision": "REUSE_EXISTING_ELEMENT_FROZEN_IDENTITIES_AND_EXISTING_WP7_MATURE_OSS_TARGET_CLASSIFIER",
     "matureOssAvailable": true,
-    "selectedAdoptionMode": "existing-repository-seams",
+    "selectedAdoptionMode": "existing-repository-seam",
     "newGeneralPurposeInfrastructure": false,
     "matureOssDefault": true,
     "reviewedCandidates": [
