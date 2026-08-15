@@ -72,6 +72,12 @@ function inferNativeTargetFromPath(relativePath) {
     const architecture = launcher.endsWith('32') ? 'x86' : launcher.endsWith('-arm') ? 'arm64' : 'x64';
     return { platform: 'win32', platformVariant: 'win32', architectures: [architecture], source: 'distlib-launcher-resource' };
   }
+  const setuptoolsLauncher = normalized.match(/^resources\/learning-runtime\/venv\/lib\/site-packages\/setuptools\/(cli|gui)(?:-(32|64|arm64))?\.exe$/);
+  if (setuptoolsLauncher) {
+    const variant = setuptoolsLauncher[2] || '32';
+    const architecture = variant === '64' ? 'x64' : variant === 'arm64' ? 'arm64' : 'x86';
+    return { platform: 'win32', platformVariant: 'win32', architectures: [architecture], source: 'setuptools-launcher-resource' };
+  }
   return null;
 }
 function detectedFormat(buffer) {

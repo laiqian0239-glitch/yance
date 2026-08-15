@@ -208,3 +208,32 @@ test('Product dependency replay binds governed tool-ui React to the Element root
     /external(?:ize|ization)|shamefully-hoist|public-hoist-pattern|NODE_PATH|--no-frozen-lockfile|--lockfile-only/iu
   );
 });
+
+test('Product dependency replay gives governed tool-ui direct Element-root type and schema ownership', () => {
+  const patch = read('upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
+  const importer = addedYanceImporter(patch);
+  const packageMarker = 'diff --git a/package.json b/package.json';
+  const lockMarker = 'diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml';
+  const packageStart = patch.indexOf(packageMarker);
+  const lockStart = patch.indexOf(lockMarker);
+  assert.ok(packageStart >= 0 && lockStart > packageStart);
+
+  const packagePatch = patch.slice(packageStart, lockStart);
+  assert.match(packagePatch, /^\+[ \t]+"@types\/react": "\^19\.2\.10",$/mu);
+  assert.match(packagePatch, /^\+[ \t]+"zod": "4\.4\.3",$/mu);
+
+  const lockPatch = patch.slice(lockStart);
+  const moduleImporterIndex = lockPatch.indexOf('+  modules/yance:');
+  assert.ok(moduleImporterIndex >= 0);
+  const rootImporterPatch = lockPatch.slice(0, moduleImporterIndex);
+  assert.match(
+    rootImporterPatch,
+    /^\+[ \t]+'@types\/react':\n\+[ \t]+specifier: \^19\.2\.10\n\+[ \t]+version: 19\.2\.17$/mu
+  );
+  assert.match(
+    rootImporterPatch,
+    /^\+[ \t]+zod:\n\+[ \t]+specifier: 4\.4\.3\n\+[ \t]+version: 4\.4\.3$/mu
+  );
+  assert.ok(importer.includes("+      '@types/react':\n+        specifier: ^19.2.10\n+        version: 19.2.17"));
+  assert.ok(importer.includes("+      zod:\n+        specifier: 4.4.3\n+        version: 4.4.3"));
+});
