@@ -386,7 +386,7 @@ test('real Git fixture proves Matrix EOL semantics belong only to strict git app
   });
 });
 
-test('Product Final materializes trusted rcedit from identity-bound Git LFS custody without a live release download', () => {
+test('Product Final verifies trusted rcedit from the exact native Git blob without LFS or live materialization', () => {
   const source = read(WORKFLOW);
   const attributes = read('.gitattributes');
   const marker = '      - name: Materialize exact trusted rcedit custody input';
@@ -395,18 +395,18 @@ test('Product Final materializes trusted rcedit from identity-bound Git LFS cust
   const rceditEnd = source.indexOf('\n      - name:', rceditStart + marker.length);
   const rceditStep = source.slice(rceditStart, rceditEnd === -1 ? undefined : rceditEnd);
 
-  assert.doesNotMatch(
-    rceditStep,
-    /\b(?:Invoke-WebRequest|curl(?:\.exe)?|wget(?:\.exe)?)\b/iu,
-    'rcedit custody step must not perform a live network download'
-  );
-  assert.match(attributes, /vendor\/rcedit\/\*\.exe\s+filter=lfs\s+diff=lfs\s+merge=lfs\s+-text/u);
+  assert.match(attributes, /vendor\/rcedit\/\*\.exe\s+filter=lfs\s+diff=lfs\s+merge=lfs\s+-text/u, 'future or unreviewed rcedit binaries must remain LFS-governed');
+  assert.match(attributes, /^vendor\/rcedit\/rcedit-v2\.0\.0-x64\.exe\s+-filter\s+-diff\s+-merge\s+-text$/mu, 'only the exact reviewed rcedit binary may bypass LFS filtering');
   assert.match(rceditStep, /vendor\/rcedit\/rcedit-v2\.0\.0-x64\.exe/u);
-  assert.match(rceditStep, /git\s+lfs\s+pull\s+origin\s+--include=/u);
-  assert.match(rceditStep, /oid\s+sha256:/u);
+  assert.doesNotMatch(rceditStep, /\bgit\s+lfs\b|git-lfs\.github\.com/iu, 'exact reviewed rcedit custody must not depend on Git LFS materialization');
+  assert.doesNotMatch(rceditStep, /\b(?:Invoke-WebRequest|Start-BitsTransfer|curl(?:\.exe)?|wget(?:\.exe)?)\b/iu, 'rcedit custody step must not perform a live network download');
+  assert.doesNotMatch(rceditStep, /\b(?:npm|pnpm|yarn)\b/iu, 'rcedit custody must not use a package manager as a binary authority');
+  assert.match(rceditStep, /git\s+rev-parse\s+"HEAD:\$relativePath"/u, 'rcedit custody must resolve the tracked HEAD blob identity');
+  assert.match(rceditStep, /git\s+hash-object\s+--no-filters\s+--\s+\$relativePath/u, 'rcedit custody must prove worktree bytes equal the tracked native Git blob');
   assert.match(rceditStep, /1360384/u);
   assert.match(rceditStep, /RCEDIT_SHA256/u);
   assert.match(rceditStep, /Get-FileHash[^\n]*SHA256/u);
+  assert.match(rceditStep, /git\s+status\s+--porcelain=v1\s+--untracked-files=all/u, 'rcedit verification must preserve a clean Product candidate tree');
 });
 
 test('WP7 archive ownership retires manual USTAR format code for exact locked node-tar PAX tooling', () => {
