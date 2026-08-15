@@ -1,0 +1,268 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-MATERIALIZATION-ROOT-CLOSURE-V3",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #395 proved that the V2 implementation authority merged by #394 is not executable under the current trusted delegated-branch policy: its published supersedes object contains keys outside the exact three-key schema authorizationPath/implementationBranch/reason. Stage 6.4.5.9 failure-first run 31868224615 at 6436816615527ed211d581e58c3e8749caf57d2e therefore failed implementation-branch-policy in addition to the two intended Product materialization REDs. Published history may not be amended or force-pushed, and a successor must not supersede the graph-invalid V2 record because invalid-target propagation would poison the new authority. This V3 authorization starts a new exact implementation branch from its own ordinary main merge, retains the identical seven-path implementation scope and OSS-first decisions, and requires a fresh tests-only RED followed by the repository's exact Yance-Failure-First-Red evidence trailers.",
+  "base": {
+    "branch": "main",
+    "commit": "c431b1586955aa0c13c73f737f011f50748c2a58"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "c431b1586955aa0c13c73f737f011f50748c2a58",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "delegatedExecutionAuthorizedAfterMerge": true
+  },
+  "predecessorEvidence": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-materialization-root-closure-v2-authorization.json",
+    "authorizationMerge": "c431b1586955aa0c13c73f737f011f50748c2a58",
+    "implementationPullRequest": 395,
+    "implementationBranch": "fix/v21-product-final-materialization-root-closure-v2",
+    "failureFirstHead": "6436816615527ed211d581e58c3e8749caf57d2e",
+    "failureFirstStageRun": 31868224615,
+    "failureFirstProductJob": 94972551119,
+    "failureFirstObservedResult": "415 pass / 3 fail",
+    "invalidAuthorityCause": {
+      "trustedPolicyContract": "supersedes must contain exactly authorizationPath, implementationBranch, reason",
+      "publishedV2Violation": "supersedes contains additional authorizationMerge, implementationPullRequest, and latestImplementationHead keys",
+      "publishedHistoryMutationForbidden": true,
+      "formalSupersessionOfInvalidV2DeliberatelyOmitted": true
+    },
+    "partialImplementationHead": "6ac20c343f97a7f5d45f044f19f95ecb8defe271",
+    "partialImplementationStageRun": 31868462132,
+    "partialImplementationProductJob": 94973120037,
+    "partialImplementationObservedResult": "417 pass / 1 fail; implementation-branch-policy remains blocked by invalid V2 authority",
+    "legacyFailureEvidencePreserved": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-materialization-root-closure-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-materialization-root-closure-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "e6fa2cf68f29d7804e3d62156a3a2e3b49f6d6dc7fa185eab28af5d06d8858fe",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-materialization-root-closure-v3",
+    "allowedChangedPaths": [
+      ".gitattributes",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/runtime-delivery/electron-archive-tracking-authority.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/matrix/bootstrap.js",
+      "vendor/rcedit/rcedit-v2.0.0-x64.exe"
+    ],
+    "approvedChangedFileCount": 7,
+    "approvedChangedFileSetSha256": "2ba1af2978c144e4ae3ca520bc0515799feffb34c5bed36f86e502b88387750a",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/runtime-delivery/electron-archive-tracking-authority.test.js",
+        "tests/wp0/v21-element-workspace-contract.test.js",
+        "tests/wp0/v21-product-experience-materialized-uat.test.js"
+      ],
+      "approvedChangedFileCount": 3,
+      "approvedChangedFileSetSha256": "10f0c8237d870f0fabed03e0dc339ff9196bb95bb63620ae5bdcb7a4ae361149",
+      "productionCodeChanged": false,
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure"
+      ],
+      "expectedFailures": [
+        "Element build workspace lacks the exact governed assistant-ui/tool-ui v2026.2.13 overlay.",
+        "Product Final still uses Git LFS materialization for the exact reviewed rcedit path."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "learningAdapterModificationAllowed": false,
+    "elementRuntimePatchModificationAllowed": false,
+    "wp7ImplementationModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "gitattributesModificationAllowed": true,
+    "binaryCustodyModificationAllowed": true,
+    "legacyRegressionContractMigrationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "elementBuildOverlay": {
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tools/matrix/bootstrap.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "8d8a75b92f724dbbc6ca22d8f5a2c0a3ce304db9358016fa5987b82b688eac54",
+    "sourceRoot": "vendor/assistant-ui-tool-ui/v2026.2.13",
+    "upstreamRepository": "assistant-ui/tool-ui",
+    "upstreamCommit": "ee6389647e997f8637c21187f3e49c2db6cde3a5",
+    "license": "MIT",
+    "requiredBehavior": [
+      "Use the existing Matrix bootstrap overlay to copy only the governed assistant-ui/tool-ui v2026.2.13 tree into the identical pinned Element build-workspace vendor path.",
+      "Keep LearningToolUiAdapter, module manifests/locks/Vite/tsconfig/project, Element ModuleLoader and 0012 runtime delivery unchanged.",
+      "Keep final Element runtime delivery package.json+lib only."
+    ]
+  },
+  "rceditNativeGitCustody": {
+    "allowedChangedPaths": [
+      ".gitattributes",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/runtime-delivery/electron-archive-tracking-authority.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "vendor/rcedit/rcedit-v2.0.0-x64.exe"
+    ],
+    "approvedChangedFileCount": 5,
+    "approvedChangedFileSetSha256": "7908bdc5bcc04aeddc6e7c642ea0966f65f3f21272df86e49a11be591ed0b721",
+    "path": "vendor/rcedit/rcedit-v2.0.0-x64.exe",
+    "upstreamRepository": "electron/rcedit",
+    "upstreamRelease": "v2.0.0",
+    "officialAssetName": "rcedit-x64.exe",
+    "officialAssetId": 135772040,
+    "license": "MIT",
+    "expectedSizeBytes": 1360384,
+    "expectedSha256": "3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a",
+    "userProvidedArchiveEvidence": {
+      "archiveSizeBytes": 428516,
+      "archiveSha256": "778cc94fe890614ac196a9d5b700b2f6be24f2c9bda7cfd03bfc733de1e70f7a",
+      "declaredContent": "rcedit-x64.exe v2.0.0 official original",
+      "declaredInnerSha256": "3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a",
+      "evidenceClass": "USER_PROVIDED_ARCHIVE_IDENTITY_ONLY_UNTIL_BYTES_ARE_TOOL_READABLE"
+    },
+    "requiredBehavior": [
+      "Preserve vendor/rcedit/*.exe filter=lfs diff=lfs merge=lfs -text for future/unreviewed binaries.",
+      "Add a later exact-path exception disabling filter/diff/merge/text only for vendor/rcedit/rcedit-v2.0.0-x64.exe.",
+      "Commit the exact reviewed official bytes as the ordinary Git blob with unchanged size and SHA-256.",
+      "Product Final verifies tracked HEAD blob equals git hash-object --no-filters of worktree bytes, exact size/hash, and clean candidate tree.",
+      "Migrate the legacy tracking regression to assert both broad future LFS and the one exact native-Git exception."
+    ],
+    "forbiddenBehavior": [
+      "No exact-path LFS materialization, live download, retry, mirror, cache, package-manager acquisition, source rebuild or alternate binary.",
+      "No local info/attributes override, skip-smudge trick, dual-mode attribute workaround, broad LFS disablement, checksum/version rewrite or validation weakening."
+    ]
+  },
+  "ossFit": {
+    "decision": "ADOPT_MATURE_EXISTING_SEAMS_AND_REMOVE_EXTERNAL_MATERIALIZATION_SINGLE_POINTS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing vendored assistant-ui/tool-ui v2026.2.13",
+        "source": "assistant-ui/tool-ui@ee6389647e997f8637c21187f3e49c2db6cde3a5",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already governed; only build-workspace materialization is missing."
+      },
+      {
+        "name": "Existing Element ModuleLoader/runtime delivery seam",
+        "source": "tools/matrix/bootstrap.js + 0012 runtime patch + Element ModuleLoader",
+        "license": "repository-existing / Element upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Existing package.json+lib runtime boundary is correct."
+      },
+      {
+        "name": "Git native content-addressed blob custody",
+        "source": "Git tracked object for the single reviewed rcedit binary",
+        "license": "Git infrastructure / rcedit MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Mature repository-native custody removes external materialization single points for one fixed 1.36MB reviewed tool."
+      },
+      {
+        "name": "Git LFS for the exact reviewed rcedit path",
+        "source": "git-lfs/git-lfs",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "PARTIAL_FIT",
+        "reason": "Broad LFS remains useful, but repository quota already blocked Product Final materialization for this exact fixed asset."
+      },
+      {
+        "name": "Live rcedit Release retrieval",
+        "source": "electron/rcedit v2.0.0 GitHub Release",
+        "license": "MIT",
+        "adoptionMode": "upstream-native",
+        "fit": "PARTIAL_FIT",
+        "reason": "Correct provenance source but historical Product Final evidence already failed closed on live retrieval."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire LFS materialization only for the exact reviewed rcedit path; retain broad future rcedit LFS.",
+      "Do not reintroduce live download/fallback/mirror, a Yance binary cache, source rebuild or alternate binary.",
+      "Do not add another UI framework or widen Element runtime delivery.",
+      "Do not weaken/delete the stale regression; migrate it narrowly to the reviewed custody truth."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "V3 authority omits formal supersedes of graph-invalid V2 and uses a unique new implementation branch",
+      "first implementation commit changes exactly the three tests and the first post-RED commit carries exact Yance-Failure-First-Red trailers",
+      "assistant-ui overlay remains exact build-time only with package.json+lib runtime",
+      "rcedit exact native blob retains 1,360,384-byte and SHA-256 authority while broad future LFS remains",
+      "no live/LFS materialization, retry, mirror, cache, rebuild, alternate binary, local attribute override or validation weakening"
+    ]
+  },
+  "handoffBackToProduct": {
+    "productPullRequest": 387,
+    "productBranch": "product/v21-product-experience-bilingual-search-translation-task-ux-p0",
+    "rule": "After V3 implementation ordinary-merges to main, ordinary-forward fresh main into #387 without rebase/cherry-pick/force/squash; rerun exact-head Stage, routed Layered evidence, common gates and Product Final before UAT receipt/status."
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  }
+}
