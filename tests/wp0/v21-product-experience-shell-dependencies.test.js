@@ -107,13 +107,23 @@ test('Product dependency lock patch binds the exact post-0003 runtime preimage',
   assert.notEqual(productIndex.old, RAW_PINNED_ELEMENT_LOCK_BLOB);
 });
 
-test('Product dependency lock mutation semantics remain exact and lock-only', () => {
+test('Product dependency replay mutation semantics remain exact across root manifest and lock', () => {
   const patch = read('upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
   const importer = addedYanceImporter(patch);
+  const patched = [...patch.matchAll(/^diff --git a\/(.+?) b\/(.+)$/gmu)].map((match) => {
+    assert.equal(match[1], match[2], '0011 may not rename Element files');
+    return match[1];
+  }).sort();
 
-  assert.equal([...patch.matchAll(/^diff --git /gm)].length, 1, '0011 must remain one lock-only diff');
-  assert.match(patch, /^diff --git a\/pnpm-lock\.yaml b\/pnpm-lock\.yaml$/m);
-  assert.doesNotMatch(patch, /^diff --git a\/(?!pnpm-lock\.yaml\b).+$/m);
+  assert.deepEqual(patched, ['package.json', 'pnpm-lock.yaml'], '0011 must atomically bind Element root manifest ownership to its frozen lock replay');
+  const packageMarker = 'diff --git a/package.json b/package.json';
+  const lockMarker = 'diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml';
+  const packageStart = patch.indexOf(packageMarker);
+  const lockStart = patch.indexOf(lockMarker);
+  assert.ok(packageStart >= 0 && lockStart > packageStart, '0011 must patch root package.json before pnpm-lock.yaml');
+  const packagePatch = patch.slice(packageStart, lockStart);
+  assert.match(packagePatch, /^\+\s+"lucide-react": "0\.563\.0",$/mu);
+  assert.equal((packagePatch.match(/lucide-react/gu) || []).length, 1, 'root host must gain exactly one lucide-react manifest ownership mutation');
 
   for (const exactImporterMutation of [
     "+      '@base-ui/react':\n+        specifier: 1.7.0\n+        version: 1.7.0(",

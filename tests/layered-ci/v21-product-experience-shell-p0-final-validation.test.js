@@ -165,3 +165,20 @@ test('PowerShell loop diagnostics delimit iteration before colon punctuation', (
   assert.doesNotMatch(source, /iteration \$iteration:/u);
   assert.match(source, /Element pin mismatch on iteration \$\{iteration\}: expected=\$env:ELEMENT_COMMIT actual=\$actualElementCommit/u);
 });
+
+test('trusted Windows Product Final materializes sealed Learning runtime before WP7 and passes its exact root', () => {
+  const source = readWorkflow();
+  const learningIndex = source.indexOf('- name: Materialize presealed Learning Windows runtime in trusted CI');
+  const builderIndex = source.indexOf('- name: Build existing WP7 PRE_REVIEW_ONLY trusted desktop and seal Product bundle');
+  assert.ok(learningIndex >= 0, 'Product Final must materialize the existing sealed Learning Windows runtime');
+  assert.ok(builderIndex > learningIndex, 'Learning runtime must be materialized before the existing WP7 trusted-product builder');
+  const learningEnd = source.indexOf('\n      - name:', learningIndex + 1);
+  const learningStep = source.slice(learningIndex, learningEnd === -1 ? source.length : learningEnd);
+  assert.match(learningStep, /tools[\\/]learning-growth[\\/]build-windows-runtime\.ps1/u);
+  assert.match(learningStep, /runtime-seal\.json/u);
+  assert.match(learningStep, /"root=\$output"\s*\|\s*Out-File -FilePath \$env:GITHUB_OUTPUT -Append/u);
+  const builderEnd = source.indexOf('\n      - name:', builderIndex + 1);
+  const builderStep = source.slice(builderIndex, builderEnd === -1 ? source.length : builderEnd);
+  assert.match(builderStep, /--learning-runtime '\$\{\{ steps\.learning\.outputs\.root \}\}'/u);
+  assert.doesNotMatch(builderStep, /learning-runtime[^\n]*(?:optional|fallback|skip)/iu);
+});
