@@ -47,13 +47,22 @@ function Relative-Path([string]$Root, [string]$Path) {
   return [Uri]::UnescapeDataString($rootUri.MakeRelativeUri($pathUri).ToString()).Replace('\', '/')
 }
 function Invoke-JsonEntrypoint([string]$PythonExe, [string]$Entrypoint, [hashtable]$Request, [string]$Label) {
-  $requestJson = $Request | ConvertTo-Json -Depth 20 -Compress
-  $stdoutLines = @($requestJson | & $PythonExe -I $Entrypoint)
-  $exitCode = $LASTEXITCODE
-  $stdout = $stdoutLines -join "`n"
-  if ($exitCode -ne 0) { throw "$Label failed with exit $($exitCode): $stdout" }
-  try { return ($stdout | ConvertFrom-Json) }
-  catch { throw "$Label returned invalid JSON: $stdout" }
+  $requestPath = [IO.Path]::GetTempFileName()
+  $stdoutPath = [IO.Path]::GetTempFileName()
+  $stderrPath = [IO.Path]::GetTempFileName()
+  try {
+    $requestJson = $Request | ConvertTo-Json -Depth 20 -Compress
+    [IO.File]::WriteAllText($requestPath, ($requestJson + "`n"), $Utf8NoBom)
+    $argumentList = @('-I', ('"' + $Entrypoint + '"'))
+    $process = Start-Process -FilePath $PythonExe -ArgumentList $argumentList -RedirectStandardInput $requestPath -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -NoNewWindow -Wait -PassThru
+    $stdout = [IO.File]::ReadAllText($stdoutPath)
+    $stderr = [IO.File]::ReadAllText($stderrPath)
+    if ($process.ExitCode -ne 0) { throw "$Label failed with exit $($process.ExitCode): $stderr $stdout" }
+    try { return ($stdout | ConvertFrom-Json) }
+    catch { throw "$Label returned invalid JSON: $stdout" }
+  } finally {
+    Remove-Item -LiteralPath $requestPath, $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
+  }
 }
 
 $OutputRoot = [IO.Path]::GetFullPath($OutputRoot)
