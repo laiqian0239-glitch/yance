@@ -37,6 +37,10 @@ function buildImmutableFeedbackSignal(input = {}) {
   const evidenceKey = clean(input.evidenceId) || (eventType === 'sent' ? outboxId : candidateId);
   const idempotencyKey = 'reply-feedback:' + eventType + ':' + evidenceKey;
   const branch = input.candidateStrategyBranch || metadata.candidateStrategyBranch || {};
+  const decisionRecord = input.decisionRecord || metadata.decisionRecord || null;
+  const immutableDecisionRecord = decisionRecord && typeof decisionRecord === 'object' && !Array.isArray(decisionRecord)
+    ? Object.freeze({ ...decisionRecord })
+    : null;
   return Object.freeze({
     skipped: false,
     signalId: signalId(idempotencyKey),
@@ -61,6 +65,7 @@ function buildImmutableFeedbackSignal(input = {}) {
       hasExplicitRejectionReason: input.hasExplicitRejectionReason === true,
       adjustments: normalizeAdjustments(metadata, input.styleVariant),
       strategyBranch: clean(metadata.candidateStrategyBranchId || branch.strategy),
+      ...(immutableDecisionRecord ? { decisionRecord: immutableDecisionRecord } : {}),
       metadata: Object.freeze({
         source: clean(input.source) || 'reply-outcome-transaction',
         replyTask: clean(input.replyTask || metadata.replyTask),

@@ -1461,6 +1461,19 @@ wheels = [
 ]
 
 [[package]]
+name = "vowpalwabbit"
+version = "9.11.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4d/ff/bd0ffb16f5792a00151136741cfad876777777db7d14aae9a9b126d03c6f/vowpalwabbit-9.11.2.tar.gz", hash = "sha256:c0ecf8d773c0174a9ab7b0f9207a2608c894bc2fbec50380ca276e89553fd379", size = 35442893, upload-time = "2026-03-07T16:25:32.093Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/33/5b/f88c516cd411adb4636c9fa8df828c2e5338de3dc36accc68ea0143d4469/vowpalwabbit-9.11.2-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:6ee450a5dd40a60a9a12abfe16972410e8e5d06a7ee92d8c6ec15be4a7ec0ecb", size = 2283281, upload-time = "2026-03-07T16:25:07.933Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/a1/c8d4ab89a2a3346645683ccc1b4e3c1fbbf68dc70d9901f896cfa03ac3f8/vowpalwabbit-9.11.2-cp312-cp312-macosx_11_0_x86_64.whl", hash = "sha256:fb962bce215757e4cd49d8d90341617416d5b360abdf476daa109b3eb4312825", size = 2479835, upload-time = "2026-03-07T16:25:09.984Z" },
+    { url = "https://files.pythonhosted.org/packages/ec/2b/bbc242bdd69d65daf130b65ae08046fa5ddac4effe85deb8dcd7de3cad7c/vowpalwabbit-9.11.2-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:690353cc881bbd26ac81e758ed4b7fe0fecae7edb534a1a86c26246e38c5aecd", size = 3010926, upload-time = "2026-03-07T16:25:11.727Z" },
+    { url = "https://files.pythonhosted.org/packages/8e/cf/62ae2a81385ca007a2b1db52a9a1d9a2a27afd2c183b14a8e522661295ed/vowpalwabbit-9.11.2-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:62d117df1f5d2994130ee5b9f145d710c8198d065b061f0480ba0cab78aa3141", size = 3478813, upload-time = "2026-03-07T16:25:13.461Z" },
+    { url = "https://files.pythonhosted.org/packages/06/3f/9231a026e3344118605a752933df5e935602efaa0281e50fe3d60361f3f3/vowpalwabbit-9.11.2-cp312-cp312-win_amd64.whl", hash = "sha256:bdf3267faec119ce69dd147b11da234507cc1acd38a6ad61521188918e06d382", size = 1961008, upload-time = "2026-03-07T16:25:14.747Z" },
+]
+
+[[package]]
 name = "wasabi"
 version = "1.1.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1525,6 +1538,7 @@ dependencies = [
     { name = "opentelemetry-sdk" },
     { name = "presidio-analyzer" },
     { name = "presidio-anonymizer" },
+    { name = "vowpalwabbit" },
 ]
 
 [package.metadata]
@@ -1537,6 +1551,7 @@ requires-dist = [
     { name = "opentelemetry-sdk", specifier = "==1.44.0" },
     { name = "presidio-analyzer", specifier = "==2.2.364" },
     { name = "presidio-anonymizer", specifier = "==2.2.364" },
+    { name = "vowpalwabbit", specifier = "==9.11.2" },
 ]
 
 [[package]]
