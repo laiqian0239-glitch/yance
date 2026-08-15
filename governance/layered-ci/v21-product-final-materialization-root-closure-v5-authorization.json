@@ -1,0 +1,285 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-15T14:06:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-MATERIALIZATION-ROOT-CLOSURE-V5",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "V4 authority is graph-valid, but implementation PR #399 became immutably non-executable after its first tests-only commit contained a syntax defect and the ordinary tests-only descendant correcting that defect occupied the policy-defined first post-RED commit position without the required Yance-Failure-First-Red evidence trailers. Trusted policy always binds the first commit after the authorization merge as redHead and, if a second commit exists, requires that second commit to carry exact failure-first evidence. V5 keeps the identical eight-path implementation authority, introduces no new implementation scope, and restarts on a unique branch with the already-corrected four-test contract as the single first commit so the causal RED and first post-RED evidence topology can be valid without amend or force-push.",
+  "base": {
+    "branch": "main",
+    "commit": "05a6d48efae8b99c8172c22f1abdaddf1ad46a6a"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "05a6d48efae8b99c8172c22f1abdaddf1ad46a6a",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-materialization-root-closure-v4-authorization.json",
+    "implementationBranch": "fix/v21-product-final-materialization-root-closure-v4",
+    "reason": "V4 implementation ancestry is immutable but its second tests-only commit lacks the failure-first evidence trailers that trusted policy requires on the first post-red commit."
+  },
+  "predecessorEvidence": {
+    "v4AuthorizationPullRequest": 398,
+    "v4AuthorizationMerge": "05a6d48efae8b99c8172c22f1abdaddf1ad46a6a",
+    "v4ImplementationPullRequest": 399,
+    "v4FirstTestsOnlyHead": "9ca5c98a36089a5461d68dd2fae889c0eda30e3a",
+    "v4InitialStageRun": 31871945999,
+    "v4InitialTestDefect": "tests/wp0/evidence-source-binding.test.js contained a JavaScript syntax defect, so that run was not accepted as causal behavior RED evidence",
+    "v4CorrectedTestsOnlyHead": "c52e4e6f2277210fa935e9c4930d1abb23455323",
+    "v4CorrectedStageRun": 31872102954,
+    "v4CorrectedProductJob": 94982275680,
+    "v4CorrectedBehavior": "The corrected evidence-source test executes and all five clean-clone subtests fail on the intended exact-rcedit filter-unset assertion; Element overlay and Product native-rcedit contracts also fail as intended.",
+    "v4TopologyBlock": "implementation-branch-policy rejects the immutable second commit because trusted policy treats it as the first post-red commit and requires exact Yance-Failure-First-Red trailers.",
+    "v4TopologyReasonCode": "WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_EVIDENCE_INVALID",
+    "policyRootCause": "A later third commit cannot repair this topology because trusted policy always inspects firstParentCommits[1] as firstPostRedCommit; amend/force-push are prohibited."
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-materialization-root-closure-v5-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-materialization-root-closure-v5-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "508073cef04ecab4a6f5e4f80295886a8469a1a6179eb79e1a3effcd5d80aa27",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-materialization-root-closure-v5",
+    "allowedChangedPaths": [
+      ".gitattributes",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/runtime-delivery/electron-archive-tracking-authority.test.js",
+      "tests/wp0/evidence-source-binding.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/matrix/bootstrap.js",
+      "vendor/rcedit/rcedit-v2.0.0-x64.exe"
+    ],
+    "approvedChangedFileCount": 8,
+    "approvedChangedFileSetSha256": "0d14c053df77f4cd6263ed0b7fc1985203475fffc41c8eed71e535f48cdec63d",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/runtime-delivery/electron-archive-tracking-authority.test.js",
+        "tests/wp0/evidence-source-binding.test.js",
+        "tests/wp0/v21-element-workspace-contract.test.js",
+        "tests/wp0/v21-product-experience-materialized-uat.test.js"
+      ],
+      "approvedChangedFileCount": 4,
+      "approvedChangedFileSetSha256": "fe7e6f2e413052a95243cfe5b5e08fae6be39cb913ab7272407342f1be517829",
+      "productionCodeChanged": false,
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure"
+      ],
+      "expectedFailures": [
+        "The corrected evidence-source clean-clone fixture executes and fails because trusted main still applies LFS attributes to the exact reviewed rcedit path.",
+        "The pinned Element build workspace lacks the exact governed assistant-ui/tool-ui v2026.2.13 overlay.",
+        "Product Final lacks the exact native-Git rcedit exception and verification closure."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "learningAdapterModificationAllowed": false,
+    "elementRuntimePatchModificationAllowed": false,
+    "wp7ImplementationModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "gitattributesModificationAllowed": true,
+    "binaryCustodyModificationAllowed": true,
+    "legacyRegressionContractMigrationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "elementBuildOverlay": {
+    "sourceRoot": "vendor/assistant-ui-tool-ui/v2026.2.13",
+    "upstreamRepository": "assistant-ui/tool-ui",
+    "upstreamCommit": "ee6389647e997f8637c21187f3e49c2db6cde3a5",
+    "license": "MIT",
+    "requiredBehavior": [
+      "Copy only the governed assistant-ui/tool-ui v2026.2.13 tree into the identical pinned Element build-workspace vendor path before runtime-delivery replay.",
+      "Keep LearningToolUiAdapter, Element runtime patches, manifests, locks, Vite, tsconfig and project configuration unchanged.",
+      "Keep final Element runtime delivery package.json+lib only."
+    ]
+  },
+  "rceditNativeGitCustody": {
+    "path": "vendor/rcedit/rcedit-v2.0.0-x64.exe",
+    "upstreamRepository": "electron/rcedit",
+    "upstreamRelease": "v2.0.0",
+    "officialAssetName": "rcedit-x64.exe",
+    "officialAssetId": 135772040,
+    "license": "MIT",
+    "expectedSizeBytes": 1360384,
+    "expectedSha256": "3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a",
+    "rawGitBlobSha": "0d817e909fa54ff95db4b7e3566eef4ddbd98719",
+    "userProvidedArchiveEvidence": {
+      "archiveSizeBytes": 428516,
+      "archiveSha256": "778cc94fe890614ac196a9d5b700b2f6be24f2c9bda7cfd03bfc733de1e70f7a",
+      "verifiedInnerSizeBytes": 1360384,
+      "verifiedInnerSha256": "3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a",
+      "verifiedByOwnerLocalPrePushGate": true
+    },
+    "requiredBehavior": [
+      "Preserve vendor/rcedit/*.exe filter=lfs diff=lfs merge=lfs -text for future or unreviewed binaries.",
+      "Disable filter/diff/merge/text only for vendor/rcedit/rcedit-v2.0.0-x64.exe.",
+      "Commit the exact reviewed official bytes as an ordinary Git blob with unchanged size and SHA-256.",
+      "Product Final verifies tracked HEAD blob equals git hash-object --no-filters of worktree bytes, exact size/hash, and clean candidate tree."
+    ],
+    "forbiddenBehavior": [
+      "No exact-path LFS materialization, live download, retry, mirror, cache, package-manager acquisition, source rebuild or alternate binary.",
+      "No local info/attributes override, skip-smudge trick, dual-mode workaround, broad LFS disablement, checksum/version rewrite or validation weakening."
+    ]
+  },
+  "evidenceSourceBindingMigration": {
+    "path": "tests/wp0/evidence-source-binding.test.js",
+    "correctedFailureFirstBlobSha": "e9f0049182ed1e65f24c2e41da39b643443bd18c",
+    "requiredBehavior": [
+      "Retire the stale assertPointerPreserved assumption only for the exact reviewed rcedit path.",
+      "In each current-head clean clone, prove the exact rcedit file is native Git by checking filter/diff/merge/text are unset, the worktree file size is exactly 1360384 bytes, SHA-256 equals 3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a, and git hash-object --no-filters equals HEAD:path blob identity.",
+      "Keep GIT_LFS_SKIP_SMUDGE fixture behavior for unrelated LFS assets and prove a future unreviewed vendor/rcedit/*.exe path remains filter/diff/merge=lfs with text unset.",
+      "Keep all source-commit mismatch, nonexistent commit, dirty-worktree, deterministic evidence and historical detached-evidence semantics unchanged.",
+      "Historical detached evidence remains focused on its sealed historical commit and must not require current rcedit custody to exist at that historical head."
+    ],
+    "testWeakeningAllowed": false
+  },
+  "ossFit": {
+    "decision": "ADOPT_MATURE_EXISTING_SEAMS_AND_RESTART_IMMUTABLE_FAILURE_FIRST_TOPOLOGY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing vendored assistant-ui/tool-ui v2026.2.13",
+        "source": "assistant-ui/tool-ui@ee6389647e997f8637c21187f3e49c2db6cde3a5",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already governed; only pinned Element build-workspace materialization is missing."
+      },
+      {
+        "name": "Git native content-addressed blob custody",
+        "source": "Git tracked object for the single reviewed rcedit binary",
+        "license": "Git infrastructure / rcedit MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Repository-native custody removes the external materialization single point for one fixed reviewed tool."
+      },
+      {
+        "name": "Existing WP0 evidence-source-binding clean-clone fixture",
+        "source": "tests/wp0/evidence-source-binding.test.js",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The fixture remains correct for source binding; only its exact-rcedit LFS assumption changes to native Git identity."
+      },
+      {
+        "name": "Git LFS for future or unreviewed rcedit executables",
+        "source": "git-lfs/git-lfs",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Broad future binary custody remains LFS-governed; only the exact reviewed fixed asset is exempted."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not amend or force-push the poisoned V4 implementation ancestry.",
+      "Do not introduce a Yance binary cache, downloader, retry, mirror, source rebuild or alternate binary.",
+      "Do not widen Element runtime delivery or copy the repository-wide vendor tree.",
+      "Do not weaken the evidence generator, failure-first topology policy or source identity gates."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "V5 supersedes graph-valid V4 using exactly authorizationPath, implementationBranch and reason",
+      "V5 implementation scope and digests are identical to V4; only the implementation branch changes",
+      "the corrected four-test contract is the single first implementation commit",
+      "fresh behavior RED has implementation-branch-policy GREEN before the first post-red implementation commit",
+      "the first post-red commit carries exact Yance-Failure-First-Red trailers",
+      "rcedit remains exact 1,360,384-byte native Git custody while future/unreviewed rcedit remains LFS-governed",
+      "no live download, retry, mirror, cache, rebuild, alternate binary, local attributes override, validation weakening or new Yance infrastructure"
+    ]
+  },
+  "verification": {
+    "mandatory": [
+      "fresh V5 corrected tests-only causal RED with implementation-branch-policy GREEN",
+      "Stage 6.4.5.9 exact implementation Head GREEN",
+      "ACV2 exact implementation Head GREEN",
+      "V21 Model Brain P0 Windows exact implementation Head GREEN",
+      "routed Layered CI evidence where required by trusted policy",
+      "independent exact-head review with zero unresolved P0/P1 findings"
+    ],
+    "ordinaryTwoParentImplementationMergeRequired": true,
+    "postMergeGreenRequired": true
+  },
+  "handoffBackToProduct": {
+    "productPullRequest": 387,
+    "productBranch": "product/v21-product-experience-bilingual-search-translation-task-ux-p0",
+    "rule": "After V5 implementation ordinary-merges to main, ordinary-forward fresh main into #387 without rebase/cherry-pick/force/squash; rerun exact-head Stage, routed Layered evidence, common gates and Product Final before UAT receipt/status."
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "forcePushAllowed": false,
+    "amendPublishedHistoryAllowed": false,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "delegatedExecutionAuthorizedAfterMerge": true,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "candidateSelfAuthorization": true,
+    "newWorkflow": true,
+    "newPolicyEngine": true,
+    "testWeakening": true,
+    "wildcardAuthorization": true,
+    "forcePush": true,
+    "rebaseOrAmendPublishedHistory": true,
+    "squashMerge": true
+  }
+}

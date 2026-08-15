@@ -9,6 +9,7 @@ const assert = require('node:assert/strict');
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const ELECTRON_ARCHIVE = 'vendor/electron/electron-v39.8.5-win32-x64.zip';
 const RCEDIT_ARCHIVE = 'vendor/rcedit/rcedit-v2.0.0-x64.exe';
+const FUTURE_RCEDIT_ARCHIVE = 'vendor/rcedit/future-unreviewed.exe';
 const EXPECTED_ELECTRON_SHA256 = 'd75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34';
 const EXPECTED_ELECTRON_SIZE = 136644393;
 const EXPECTED_RELEASE_URL = 'https://github.com/electron/electron/releases/download/v39.8.5/electron-v39.8.5-win32-x64.zip';
@@ -33,7 +34,7 @@ test('Electron archive source custody is retired while unrelated ZIP files remai
   assert.equal(unrelatedCheck.status, 0, 'unrelated ZIP files must remain ignored');
 });
 
-test('Electron is no longer Git LFS custody while rcedit retains its existing LFS authority', () => {
+test('Electron is no longer Git LFS custody while broad future rcedit remains LFS and the exact reviewed binary is native Git', () => {
   const attributeLines = lines('.gitattributes');
   assert.equal(
     attributeLines.includes('vendor/electron/*.zip filter=lfs diff=lfs merge=lfs -text'),
@@ -43,7 +44,12 @@ test('Electron is no longer Git LFS custody while rcedit retains its existing LF
   assert.equal(
     attributeLines.includes('vendor/rcedit/*.exe filter=lfs diff=lfs merge=lfs -text'),
     true,
-    'rcedit LFS custody is outside this successor and must remain unchanged'
+    'future or unreviewed rcedit binaries must remain under broad LFS custody'
+  );
+  assert.equal(
+    attributeLines.includes('vendor/rcedit/rcedit-v2.0.0-x64.exe -filter -diff -merge -text'),
+    true,
+    'only the exact reviewed rcedit v2.0.0 x64 binary may bypass LFS filtering'
   );
 
   const electronTracked = spawnSync('git', ['ls-files', '--error-unmatch', '--', ELECTRON_ARCHIVE], {
@@ -52,14 +58,24 @@ test('Electron is no longer Git LFS custody while rcedit retains its existing LF
   });
   assert.notEqual(electronTracked.status, 0, 'Electron release archive must be removed from Git tracking');
 
+  const futureRceditAttributes = spawnSync('git', ['check-attr', 'filter', 'diff', 'merge', 'text', '--', FUTURE_RCEDIT_ARCHIVE], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8'
+  });
+  assert.equal(futureRceditAttributes.status, 0);
+  assert.match(futureRceditAttributes.stdout, /filter: lfs/u);
+  assert.match(futureRceditAttributes.stdout, /diff: lfs/u);
+  assert.match(futureRceditAttributes.stdout, /merge: lfs/u);
+  assert.match(futureRceditAttributes.stdout, /text: unset/u);
+
   const rceditAttributes = spawnSync('git', ['check-attr', 'filter', 'diff', 'merge', 'text', '--', RCEDIT_ARCHIVE], {
     cwd: REPO_ROOT,
     encoding: 'utf8'
   });
   assert.equal(rceditAttributes.status, 0);
-  assert.match(rceditAttributes.stdout, /filter: lfs/u);
-  assert.match(rceditAttributes.stdout, /diff: lfs/u);
-  assert.match(rceditAttributes.stdout, /merge: lfs/u);
+  assert.match(rceditAttributes.stdout, /filter: unset/u);
+  assert.match(rceditAttributes.stdout, /diff: unset/u);
+  assert.match(rceditAttributes.stdout, /merge: unset/u);
   assert.match(rceditAttributes.stdout, /text: unset/u);
 });
 
