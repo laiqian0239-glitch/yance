@@ -391,3 +391,25 @@ test('Nx CRLF backport presents canonical per-file unified-diff hunk order', () 
     'canonical unified diff requires strictly increasing old-file hunk coordinates within each file section'
   );
 });
+
+test('pinned Element build workspace overlays only the governed assistant-ui/tool-ui slice before runtime delivery replay', () => {
+  const bootstrap = readText('tools/matrix/bootstrap.js');
+  const moduleCopy = "fs.cpSync(path.join(ROOT, 'integration/element-module'), moduleTarget, { recursive: true });";
+  const vendorSource = "const assistantUiToolUiSource = path.join(ROOT, 'vendor/assistant-ui-tool-ui/v2026.2.13');";
+  const vendorTarget = "const assistantUiToolUiTarget = path.join(element, 'vendor/assistant-ui-tool-ui/v2026.2.13');";
+  const vendorCopy = 'fs.cpSync(assistantUiToolUiSource, assistantUiToolUiTarget, { recursive: true });';
+  const deliveryCheck = "run(element, 'git', ['apply', '--check', MODULE_DELIVERY_PATCH]);";
+
+  const moduleCopyIndex = bootstrap.indexOf(moduleCopy);
+  const vendorSourceIndex = bootstrap.indexOf(vendorSource);
+  const vendorTargetIndex = bootstrap.indexOf(vendorTarget);
+  const vendorCopyIndex = bootstrap.indexOf(vendorCopy);
+  const deliveryCheckIndex = bootstrap.indexOf(deliveryCheck);
+
+  assert.ok(moduleCopyIndex >= 0, 'bootstrap must preserve the existing exact Yance module overlay');
+  assert.ok(vendorSourceIndex > moduleCopyIndex, 'governed assistant-ui/tool-ui source must be selected only after the module overlay exists');
+  assert.ok(vendorTargetIndex > vendorSourceIndex, 'assistant-ui/tool-ui target must be the exact pinned Element workspace vendor path');
+  assert.ok(vendorCopyIndex > vendorTargetIndex, 'the exact governed vendor slice must be copied into the pinned Element workspace');
+  assert.ok(deliveryCheckIndex > vendorCopyIndex, 'runtime delivery replay must run only after build-time vendor materialization is complete');
+  assert.doesNotMatch(bootstrap, /fs\.cpSync\(path\.join\(ROOT, 'vendor'\)/u, 'bootstrap must not copy the repository-wide vendor tree into Element');
+});
