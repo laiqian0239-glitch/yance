@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-15T16:43:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WORKFLOW-AUTHORITY-CLOSURE-P0-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Current GitHub Actions exposes historical workflow authorities that are no longer the current execution model. The first bounded closure retires the two frozen A6 reviewed-candidate workflows and the historical WP-A promotion workflow bound to PR #5, while preserving their immutable commits/runs as evidence. Current ACV2 executes current-head A2-A8 authority/runtime/source-closure and legacy SQLite fencing regressions on Ubuntu and Windows; layered-ci-task retains the portable A6 suite; wp-a-post-merge-validation validates current integration identity/source closure and reports readiness without granting release/publish authority. The implementation changes only the historical workflow surfaces, the Layered trigger that still names them, and three contracts that currently require those stale workflows. No product runtime, dependency, release, publish, historical evidence deletion, or new CI infrastructure is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "6976c1e2c8d55ba43672c7b5ac750affd2c75a0a"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "6976c1e2c8d55ba43672c7b5ac750affd2c75a0a",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-workflow-authority-closure-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-workflow-authority-closure-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "b018d047b04fd19a3a4ea601821d9824fb84c549d2dbe0c09645b0bc49447b95",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-workflow-authority-closure-p0-v1",
+    "allowedChangedPaths": [
+      ".github/workflows/layered-ci-fast.yml",
+      ".github/workflows/reviewed-candidate-a6-sqlite.yml",
+      ".github/workflows/reviewed-candidate-a6.yml",
+      ".github/workflows/wp-a-promotion-authorization.yml",
+      "tests/layered-ci/github-actions-workflow.test.js",
+      "tests/layered-ci/workflow-contract.test.js",
+      "tests/wp0/wp-a-promotion-authorization.test.js"
+    ],
+    "approvedChangedFileCount": 7,
+    "approvedChangedFileSetSha256": "1c5c162e1b44e4d0bbd1515409eb0f297944d209397c7738501ab938a5ce4598",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/github-actions-workflow.test.js",
+        "tests/layered-ci/workflow-contract.test.js",
+        "tests/wp0/wp-a-promotion-authorization.test.js"
+      ],
+      "approvedChangedFileCount": 3,
+      "approvedChangedFileSetSha256": "a770ff0ef37fc18feb1077e29e0b2e6d36a66df91469ab5db8a90f255561f623",
+      "productionCodeChanged": false,
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure"
+      ],
+      "expectedFailures": [
+        "Current main still contains reviewed-candidate-a6.yml and reviewed-candidate-a6-sqlite.yml, so the retirement contract must fail until both historical frozen-candidate Actions surfaces are absent.",
+        "Current layered-ci-fast.yml still names the two A6 workflow paths as active triggers and current workflow contracts still treat them as privileged current workflows.",
+        "Current main still contains wp-a-promotion-authorization.yml bound to historical PR #5, so the retirement contract must fail until current readiness responsibility is proven on wp-a-post-merge-validation.yml and the stale workflow surface is removed."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/layered-ci-fast.yml",
+        ".github/workflows/reviewed-candidate-a6-sqlite.yml",
+        ".github/workflows/reviewed-candidate-a6.yml",
+        ".github/workflows/wp-a-promotion-authorization.yml"
+      ],
+      "approvedWorkflowPathCount": 4,
+      "approvedWorkflowPathSetSha256": "2d53922a39876bed687e23c68b1d9051976ef0a4eb7e5746d941bbf5136ea77a"
+    },
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "releaseWorkflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "replacementAuthority": {
+    "a6": {
+      "currentOwners": [
+        ".github/workflows/acv2-wp-a.yml",
+        ".github/workflows/layered-ci-task.yml"
+      ],
+      "requiredCoverage": [
+        "current exact candidate rather than fixed historical A6 head",
+        "Ubuntu and Windows AuthorityWriteHost/ownership contracts",
+        "A2-A8 source/runtime/identity contracts",
+        "legacy SQLite ownership, application temp-path, and stale fencing-token regressions",
+        "exact pinned checkout/setup-node and persist-credentials=false"
+      ]
+    },
+    "wpAPromotion": {
+      "currentOwner": ".github/workflows/wp-a-post-merge-validation.yml",
+      "requiredCoverage": [
+        "current exact integration identity",
+        "zero-violation WP-A source closure",
+        "portable governance/security contracts",
+        "Ubuntu and Windows complete WP-A contract matrix",
+        "readyForPromotion=true only after successful aggregate validation",
+        "formalRelease=false and publish=false remain unchanged"
+      ]
+    }
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_CURRENT_GITHUB_ACTIONS_AUTHORITIES_AND_RETIRE_DUPLICATE_HISTORICAL_SURFACES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Current ACV2 WP-A Architecture Gates",
+        "source": ".github/workflows/acv2-wp-a.yml",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already runs current-head cross-platform A2-A8, ownership, source closure and legacy fencing regressions; no second A6 workflow framework is needed."
+      },
+      {
+        "name": "Current Layered CI reusable task workflow",
+        "source": ".github/workflows/layered-ci-task.yml",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already provides the reusable acv2_wp_a_a6 portable suite and exact-candidate validation."
+      },
+      {
+        "name": "Current WP-A post-merge validation",
+        "source": ".github/workflows/wp-a-post-merge-validation.yml",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already validates current integration identity/source closure and complete cross-platform WP-A contracts without historical PR #5 coupling."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a replacement A6 workflow; consolidate on current ACV2/Layered workflows.",
+      "Do not preserve historical PR #5 candidate/run IDs as active Actions authority.",
+      "Do not delete historical workflow runs, commits, authorization JSON or verifier source in this first package.",
+      "Do not introduce a new CI orchestration framework."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "replacement coverage is equivalent or stronger before each historical workflow is removed",
+      "current workflows use exact candidate/main identity instead of fixed historical A6/PR #5 identity",
+      "no Ubuntu/Windows, credential isolation, source closure or SQLite fencing coverage is lost",
+      "deleted workflow paths cannot silently reappear without the permanent retirement contracts failing",
+      "no release/publish authority or product runtime behavior is introduced"
+    ]
+  },
+  "verification": {
+    "mandatory": [
+      "fresh causal Stage RED from the three-test-only first implementation commit",
+      "implementation-branch-policy GREEN on the RED head",
+      "post-RED first production/workflow commit carries exact Head/Run/Conclusion trailers",
+      "Stage 6.4.5.9 exact-head GREEN",
+      "ACV2 WP-A exact-head GREEN",
+      "Layered CI exact-head GREEN where routed",
+      "WP-A post-merge validation exact-head GREEN where routed",
+      "independent exact-head review P0=0/P1=0",
+      "fresh diff remains exactly seven authorized paths"
+    ]
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "testWeakening": true,
+    "continueOnError": true,
+    "newDependency": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "productRuntimeModification": true,
+    "newWorkflowFramework": true,
+    "deleteHistoricalRunsOrEvidence": true,
+    "releaseAuthorityExpansion": true,
+    "publish": true,
+    "formalRelease": true,
+    "rebase": true,
+    "forcePush": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
