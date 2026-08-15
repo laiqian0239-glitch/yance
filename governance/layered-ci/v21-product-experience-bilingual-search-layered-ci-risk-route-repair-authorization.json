@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-PRODUCT-EXPERIENCE-BILINGUAL-SEARCH-LAYERED-CI-RISK-ROUTE-REPAIR",
+  "workPackage": "V21-PRODUCT-BILINGUAL-SEARCH-LAYERED-CI-ROUTE-REPAIR",
   "proposalRevision": 1,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "PR #387 exact implementation head 423a0be2f1c069d4312f9de745caabfa635a7183 exposed a base-owned Layered CI routing gap outside the original #386 implementation scope: the WP0 Product router correctly recognizes the new component after its exact route bootstrap, but governance/layered-ci/risk-policy.json still fails closed on seven existing/authorized integration/element-module Product paths. Layered CI Fast Feedback run 31863016396, job 94959496217, fails in Select required CI level with CI_UNKNOWN_PATH before product verification. This authorization permits only a permanent exact-path Layered risk classification repair plus its existing classifier regression test; broad integration prefixes, implementation code changes, gate weakening, and temporary bypasses remain forbidden.",
