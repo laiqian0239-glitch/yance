@@ -81,7 +81,13 @@ export function BilingualSearchPanel({
   const [activeJob, setActiveJob] = useState<TranslationJobProjection | null>(null);
   const [jobTransportError, setJobTransportError] = useState("");
   const searchSequence = useRef(0);
+  const translationSequence = useRef(0);
+  const latestQuery = useRef("");
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    latestQuery.current = query;
+  }, [query]);
 
   const activeJobStatus = normalizedStatus(activeJob);
   const exactNavigationAvailableByMessage = useMemo(() => {
@@ -159,8 +165,8 @@ export function BilingualSearchPanel({
           setStatus(`Translation ${nextStatus || "updated"}: ${Math.round(next.progress)}%.`);
           if (ACTIVE_JOB_STATES.has(nextStatus)) {
             schedulePoll();
-          } else if (nextStatus === "success" && query.trim()) {
-            await runSearch(query);
+          } else if (nextStatus === "success" && latestQuery.current.trim()) {
+            await runSearch(latestQuery.current);
           }
         } catch (error) {
           if (disposed) return;
@@ -181,14 +187,17 @@ export function BilingualSearchPanel({
   }, [activeJob?.id, activeJobStatus]);
 
   const startTranslation = async (messageId: string): Promise<void> => {
+    const sequence = ++translationSequence.current;
     setActiveMessageId(messageId);
     setJobTransportError("");
     setStatus("Creating translation task…");
     try {
       const job = await createTranslationJob(messageId);
+      if (sequence !== translationSequence.current) return;
       setActiveJob(job);
       setStatus(`Translation ${normalizedStatus(job) || "queued"}: ${Math.round(job.progress)}%.`);
     } catch (error) {
+      if (sequence !== translationSequence.current) return;
       setJobTransportError(errorText(error, "Unable to create translation task."));
       setStatus(errorText(error, "Unable to create translation task."));
     }
