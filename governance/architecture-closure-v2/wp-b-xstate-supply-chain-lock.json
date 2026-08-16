@@ -88,14 +88,14 @@
     "packageManifestPath": "package.json",
     "packageManifestBlobSha": "f4a1c15316cc451a2979acf5e9a6c7f9eb5f12bc",
     "packageLockPath": "package-lock.json",
-    "packageLockBlobSha": "ccdab1bd849589a49f3dd2ce096c2579724bc291",
-    "packageLockSha256": "c85637bf92a6886acbc43eb9a540b04d937d5b9f4cebe4a77e4fedb81a5a81b7",
-    "expectedPackageLockBlobSha": "ccdab1bd849589a49f3dd2ce096c2579724bc291",
-    "expectedPackageLockSha256": "c85637bf92a6886acbc43eb9a540b04d937d5b9f4cebe4a77e4fedb81a5a81b7",
-    "repairedAtHead": "84fbbfdea6524dfa4a74dd0a9b40b9ae9ca0805d",
+    "packageLockBlobSha": "17bb77258837647d1df32ac442fc73dc3e0c09f6",
+    "packageLockSha256": "f1e9dfbdf44dcb4bdfd433a58cef44fef7031e09b3df300d2a7253bc336fdfe3",
+    "expectedPackageLockBlobSha": "17bb77258837647d1df32ac442fc73dc3e0c09f6",
+    "expectedPackageLockSha256": "f1e9dfbdf44dcb4bdfd433a58cef44fef7031e09b3df300d2a7253bc336fdfe3",
+    "repairedAtHead": "a92d078e97114aa457308206329d1ce27f070e90",
     "rejectedPackageLockBlobSha": "467c23fa24b94a256f733c02315d4b6e79258dbe",
     "rejectedPackageLockSha256": "ce962941efa555d782e17909efad33db2f04e02c2aded0a585ae199698978dc5",
-    "differencePolicy": "ONLY_XSTATE_INTEGRITY_FIELD_CHANGED_DURING_REPAIR"
+    "differencePolicy": "FRESH_MAIN_LOCKFILE_REBIND_PRESERVED_XSTATE_5_32_5_ARTIFACT"
   },
   "supersededObservation": {
     "reason": "RECORDED_FACTS_DID_NOT_MATCH_THE_PHYSICAL_ARTIFACT_FETCHED_IDENTICALLY_ON_UBUNTU_AND_WINDOWS",
