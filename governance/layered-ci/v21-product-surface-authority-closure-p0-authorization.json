@@ -32,7 +32,7 @@
     "algorithm": "SHA-256",
     "encoding": "UTF-8",
     "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
-    "separator": "LF (\n)",
+    "separator": "LF (\\n)",
     "trailingNewline": true,
     "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
   },
