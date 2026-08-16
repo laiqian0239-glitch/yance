@@ -88,6 +88,33 @@
         "tests/wp0/open-source-work-package-authorization.test.js",
         "tests/wp0/v21-voice-brain-authority-cutover.test.js"
       ]
+    },
+    {
+      "amendmentId": "WP-B-M3-SCOPE-003",
+      "authorizedAt": "2026-08-17T01:44:00+07:00",
+      "approvedBy": "PROJECT_OWNER",
+      "approvalSource": "Project owner explicit WP-B-M3-SCOPE-003 authorization in the 独立软件工程审计 conversation",
+      "reasonCode": "WP_B_M3_LEGACY_FACADE_AND_OSS_POLICY_SOURCE_CLOSURE",
+      "causalRedEvidence": {
+        "head": "99019a999ef591049fcf45d2b108df6b0e5e676c",
+        "stageRunId": 31965010070,
+        "wpBValidationRunId": 31965010021,
+        "wpBM2ContractsRunId": 31965010115,
+        "unknownBlockers": 0
+      },
+      "addedPaths": [
+        "shared/release/implementationBranchPolicy.js",
+        "shared/release/implementationBranchPolicyLegacy.js",
+        "backend/services/accountLifecycleSagaService.js",
+        "backend/services/aiTaskRuntimeRegistry.js",
+        "backend/services/messageTranslationService.js",
+        "backend/services/platformAuthWorkflowAuthority.js",
+        "backend/services/systemCenterService.js",
+        "backend/repositories/messageRepository.js",
+        "backend/services/aiBrainOrchestrator.js",
+        "backend/services/avatarService.js",
+        "backend/services/runtimeSafetySupervisor.js"
+      ]
     }
   ],
   "allowedPaths": [
@@ -95,8 +122,17 @@
     ".github/workflows/wp-b-post-merge-validation.yml",
     ".github/workflows/wp-b-validation.yml",
     "THIRD_PARTY_NOTICES_WP_B.md",
+    "backend/repositories/messageRepository.js",
+    "backend/services/accountLifecycleSagaService.js",
+    "backend/services/aiBrainOrchestrator.js",
+    "backend/services/aiTaskRuntimeRegistry.js",
+    "backend/services/avatarService.js",
     "backend/services/durableInternalOperationAuthority.js",
     "backend/services/facebookChatwootMatrixBridge.js",
+    "backend/services/messageTranslationService.js",
+    "backend/services/platformAuthWorkflowAuthority.js",
+    "backend/services/runtimeSafetySupervisor.js",
+    "backend/services/systemCenterService.js",
     "backend/tests/architectureClosureV2/wpA/sourceClosureFinal.test.js",
     "backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js",
     "backend/tests/architectureClosureV2/wpB/finalClosureIntegrity.test.js",
@@ -124,6 +160,8 @@
     "release/architecture-closure-v2/wp-b-governance-package.json",
     "release/production-dependency-binding.json",
     "shared/release/acv2ActiveWorkPackageAuthority.js",
+    "shared/release/implementationBranchPolicy.js",
+    "shared/release/implementationBranchPolicyLegacy.js",
     "tests/wp0/acv2-work-package-scope-wiring.test.js",
     "tests/wp0/implementation-branch-policy.test.js",
     "tests/wp0/open-source-work-package-authorization.test.js",
