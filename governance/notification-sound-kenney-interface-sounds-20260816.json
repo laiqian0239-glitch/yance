@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_NOTIFICATION_SOUND_SOURCE_TRANSPLANT",
+  "productPack": "Yance Classic",
+  "productDirection": "YANCE_CLASSIC_LIVELY",
+  "source": {
+    "repository": "Calinou/kenney-interface-sounds",
+    "upstreamName": "Kenney Interface Sounds",
+    "upstreamVersion": "1.0",
+    "commit": "4596a49eaf5a533948d49a47467f606bcdea70ff",
+    "license": "CC0 1.0",
+    "licensePath": "addons/kenney_interface_sounds/LICENSE.txt",
+    "licenseBlobSha1": "1fc5acf8243a8ac899403e7297f8c5efdc4258f2"
+  },
+  "selectionPolicy": "Seven distinct short UI sounds are transplanted byte-for-byte from the pinned upstream commit. Selection favors expressive glass/select/pluck/confirmation/error families for a lively classic Product character while avoiding legacy branded notification bytes.",
+  "assets": [
+    {
+      "slot": "message-in",
+      "sourcePath": "addons/kenney_interface_sounds/glass_002.wav",
+      "sourceBlobSha1": "e0509e02585f8b44cd2cdb032df7173e0364c9ed",
+      "sourceSizeBytes": 11470,
+      "destinationPath": "electron/assets/sounds/yance-classic-message-in.wav"
+    },
+    {
+      "slot": "message-sent",
+      "sourcePath": "addons/kenney_interface_sounds/select_007.wav",
+      "sourceBlobSha1": "312b8d742a92c81b74bfa2557151298d0fd8edfd",
+      "sourceSizeBytes": 5326,
+      "destinationPath": "electron/assets/sounds/yance-classic-message-sent.wav"
+    },
+    {
+      "slot": "send-failed",
+      "sourcePath": "addons/kenney_interface_sounds/error_004.wav",
+      "sourceBlobSha1": "02d8549d049407c9dd8f3d2e034d68fde4881bb7",
+      "sourceSizeBytes": 18510,
+      "destinationPath": "electron/assets/sounds/yance-classic-send-failed.wav"
+    },
+    {
+      "slot": "contact-online",
+      "sourcePath": "addons/kenney_interface_sounds/pluck_001.wav",
+      "sourceBlobSha1": "45a517f9d968137d1ae50a6eb50b7258a2ceb64b",
+      "sourceSizeBytes": 19790,
+      "destinationPath": "electron/assets/sounds/yance-classic-contact-online.wav"
+    },
+    {
+      "slot": "contact-offline",
+      "sourcePath": "addons/kenney_interface_sounds/pluck_002.wav",
+      "sourceBlobSha1": "88d319300afa92441bb161c6c5e9a435504401c6",
+      "sourceSizeBytes": 32078,
+      "destinationPath": "electron/assets/sounds/yance-classic-contact-offline.wav"
+    },
+    {
+      "slot": "task-complete",
+      "sourcePath": "addons/kenney_interface_sounds/confirmation_001.wav",
+      "sourceBlobSha1": "57b0731148815280947db27a3015c483c3fa24e7",
+      "sourceSizeBytes": 26062,
+      "destinationPath": "electron/assets/sounds/yance-classic-task-complete.wav"
+    },
+    {
+      "slot": "warning-low",
+      "sourcePath": "addons/kenney_interface_sounds/error_008.wav",
+      "sourceBlobSha1": "d8b6354f86484ff904a9184acdc35aa074c07409",
+      "sourceSizeBytes": 12366,
+      "destinationPath": "electron/assets/sounds/yance-classic-warning-low.wav"
+    }
+  ],
+  "legacyOfficialDistribution": {
+    "retired": true,
+    "reason": "Legacy QQ/WeChat/Samsung-labelled imported rows do not have established redistribution provenance in current Yance governance evidence.",
+    "customUserSoundsUnaffected": true
+  }
+}
