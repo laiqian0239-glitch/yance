@@ -20,16 +20,16 @@ function evidenceSourceLabel(event: RelationshipIntelligenceEvent): string {
   if (event.source === "graphiti") {
     return event.kind === "fact" && /用户确认/u.test(event.sourceLabel)
       ? "Graphiti · 用户确认"
-      : "Graphiti · AI inference";
+      : "Graphiti · AI 推断";
   }
-  if (event.source === "user_annotation") return "用户标注 · User annotation";
-  return event.sourceLabel || "Relationship evidence";
+  if (event.source === "user_annotation") return "用户标注";
+  return event.sourceLabel || "关系证据";
 }
 
 function timelineAuthorityLabel(value: string): string {
-  if (value === "graphiti_temporal_inference") return "Graphiti temporal inference";
-  if (value === "user_annotation") return "User annotation";
-  return "No relationship evidence";
+  if (value === "graphiti_temporal_inference") return "Graphiti · AI 推断";
+  if (value === "user_annotation") return "用户标注";
+  return "暂无关系证据";
 }
 
 export function RelationshipWorld({
@@ -47,7 +47,7 @@ export function RelationshipWorld({
   return (
     <section className="yance-relationship-world" aria-labelledby="yance-relationship-title">
       <header className="yance-world-header">
-        <button type="button" className="yance-back" onClick={onBack} aria-label="Back to People">←</button>
+        <button type="button" className="yance-back" onClick={onBack} aria-label="返回我的关系">←</button>
         <motion.div
           layoutId={reducedMotion ? undefined : `relationship-avatar-${relationship.id}`}
           className="yance-world-avatar"
@@ -58,7 +58,7 @@ export function RelationshipWorld({
             : relationship.name.trim().slice(0, 2).toUpperCase()}
         </motion.div>
         <div className="yance-world-identity">
-          <span className="yance-eyebrow">Relationship World</span>
+          <span className="yance-eyebrow">关系世界</span>
           <h2 id="yance-relationship-title">{relationship.name}</h2>
           <p>{relationship.subtitle}</p>
         </div>
@@ -66,47 +66,48 @@ export function RelationshipWorld({
           type="button"
           className="yance-ai-toggle"
           aria-pressed={assistantVisible}
-          aria-label={assistantVisible ? "Hide relationship AI" : "Show relationship AI"}
+          aria-label={assistantVisible ? "收起私人任务" : "打开私人任务"}
           onClick={onToggleAssistant}
         >
-          AI
+          私人任务
         </button>
       </header>
 
       <div className="yance-world-presence">
         <RiveRelationshipCompanion state={aiState} reducedMotion={reducedMotion} />
         <div className="yance-world-copy">
-          <strong>Conversation stays in Element</strong>
-          <span>Yance keeps context, moments and tools around the relationship without replacing the Matrix timeline.</span>
+          <strong>对话仍在 Element</strong>
+          <span>Yance 在关系周围组织上下文、重要时刻和工具，但不会替代 Matrix 对话时间线。</span>
         </div>
       </div>
 
       <section
         className="yance-relationship-intelligence"
         data-state={intelligence?.state || "unavailable"}
-        aria-label="Relationship intelligence"
+        data-authority="RelationshipProjectionAuthority"
+        aria-label="关系智能"
       >
         <header className="yance-relationship-intelligence__header">
           <div>
-            <span className="yance-eyebrow">Relationship intelligence</span>
-            <strong>{intelligence?.analysisStatusLabel || "No confirmed relationship intelligence"}</strong>
+            <span className="yance-eyebrow">关系智能</span>
+            <strong>{intelligence?.analysisStatusLabel || "暂无已确认的关系智能"}</strong>
           </div>
-          <span className="yance-relationship-intelligence__authority">RelationshipProjectionAuthority</span>
+          <span className="yance-relationship-intelligence__authority">可信关系投影</span>
         </header>
 
         {intelligence ? (
           <>
             <div className="yance-relationship-intelligence__provenance">
               <div>
-                <span>AI analysis</span>
+                <span>AI 分析</span>
                 <strong>
                   {hasAiAnalysis
-                    ? intelligence.state === "stale" ? "Last AI analysis · update pending" : "AI analysis ready"
-                    : "AI analysis pending"}
+                    ? intelligence.state === "stale" ? "上次 AI 分析 · 正在等待更新" : "AI 分析已就绪"
+                    : "AI 分析待执行"}
                 </strong>
               </div>
               <div>
-                <span>Evidence authority</span>
+                <span>证据来源</span>
                 <strong>{timelineAuthorityLabel(intelligence.timelineAuthority)}</strong>
               </div>
             </div>
@@ -115,31 +116,31 @@ export function RelationshipWorld({
               <dl className="yance-relationship-intelligence__analysis">
                 {intelligence.stage ? (
                   <div>
-                    <dt>Stage</dt>
+                    <dt>阶段</dt>
                     <dd>{intelligence.stage}</dd>
                   </div>
                 ) : null}
                 {intelligence.summary ? (
                   <div>
-                    <dt>Summary</dt>
+                    <dt>关系摘要</dt>
                     <dd>{intelligence.summary}</dd>
                   </div>
                 ) : null}
                 {intelligence.next ? (
                   <div>
-                    <dt>Next action</dt>
+                    <dt>下一步</dt>
                     <dd>{intelligence.next}</dd>
                   </div>
                 ) : null}
               </dl>
             ) : (
               <p className="yance-relationship-intelligence__pending">
-                Relationship intelligence pending; no stage, summary or next action is asserted without AI analysis.
+                关系智能仍在等待可信 AI 分析；在分析完成前，不会断言阶段、摘要或下一步。
               </p>
             )}
 
             {events.length ? (
-              <ol className="yance-relationship-intelligence__events" aria-label="Relationship evidence timeline">
+              <ol className="yance-relationship-intelligence__events" aria-label="关系证据时间线">
                 {events.map((event, index) => (
                   <li key={`${event.at}-${event.title}-${index}`}>
                     <div className="yance-relationship-intelligence__event-head">
@@ -154,19 +155,19 @@ export function RelationshipWorld({
                 ))}
               </ol>
             ) : (
-              <p className="yance-relationship-intelligence__pending">No Graphiti or user annotation evidence is available yet.</p>
+              <p className="yance-relationship-intelligence__pending">尚无 Graphiti 或用户标注的真实关系证据。</p>
             )}
           </>
         ) : (
           <p className="yance-relationship-intelligence__pending">
-            No confirmed relationship intelligence. Existing conversation data remains available without inferred relationship claims.
+            暂无已确认的关系智能。现有会话数据仍然可用，但不会因此生成未经确认的关系判断。
           </p>
         )}
       </section>
 
-      <div className="yance-world-meta" aria-label="Relationship context">
-        <span>{relationship.platform || "Connected"}</span>
-        {relationship.updatedAt ? <span>Updated {new Date(relationship.updatedAt).toLocaleDateString()}</span> : null}
+      <div className="yance-world-meta" aria-label="关系上下文">
+        <span>{relationship.platform || "已连接"}</span>
+        {relationship.updatedAt ? <span>更新于 {new Date(relationship.updatedAt).toLocaleDateString()}</span> : null}
       </div>
     </section>
   );

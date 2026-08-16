@@ -17,6 +17,16 @@ const RELATIONSHIP_STATES: readonly RelationshipAiState[] = [
   "error",
 ];
 
+const RELATIONSHIP_STATE_LABELS: Readonly<Record<RelationshipAiState, string>> = Object.freeze({
+  idle: "静默",
+  wake: "唤醒",
+  listening: "倾听",
+  thinking: "思考",
+  ready: "就绪",
+  speaking: "表达",
+  error: "异常",
+});
+
 const STATE_INDEX: Readonly<Record<RelationshipAiState, number>> = Object.freeze(
   Object.fromEntries(RELATIONSHIP_STATES.map((value, index) => [value, index])) as Record<RelationshipAiState, number>,
 );
@@ -25,6 +35,7 @@ const STATE_MACHINE = "Relationship";
 
 export function RiveRelationshipCompanion({ state, reducedMotion }: RiveRelationshipCompanionProps): React.JSX.Element {
   const [failed, setFailed] = useState(false);
+  const visibleState = RELATIONSHIP_STATE_LABELS[state];
   const src = useMemo(() => new URL("./assets/yance-relationship-orb.riv", import.meta.url).href, []);
   const { rive, RiveComponent } = useRive({
     src,
@@ -60,14 +71,14 @@ export function RiveRelationshipCompanion({ state, reducedMotion }: RiveRelation
       data-ai-state={state}
       role="status"
       aria-live="polite"
-      aria-label={`Relationship AI ${state}`}
+      aria-label={`关系 AI · ${visibleState}`}
     >
       {reducedMotion ? (
-        <span className="yance-rive-static-state" aria-hidden="true">{state}</span>
+        <span className="yance-rive-static-state" aria-hidden="true">{RELATIONSHIP_STATE_LABELS[state]}</span>
       ) : null}
       {!reducedMotion && !failed ? <RiveComponent aria-hidden="true" /> : null}
       {!reducedMotion && failed ? <span className="yance-rive-fallback" aria-hidden="true">●</span> : null}
-      <span className="yance-sr-only">AI state: {state}</span>
+      <span className="yance-sr-only">AI 状态：{RELATIONSHIP_STATE_LABELS[state]}</span>
     </div>
   );
 }

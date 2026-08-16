@@ -6,10 +6,10 @@ import { VoiceWorkspace } from "../VoiceWorkspace";
 import { closeRelationshipOverlay, useExperienceSession } from "./experienceSession";
 
 function overlayTitle(kind: string | null): string {
-  if (kind === "live") return "Live together";
-  if (kind === "voice") return "Voice";
-  if (kind === "attachment") return "Attachment";
-  return "Photo";
+  if (kind === "live") return "实时陪伴";
+  if (kind === "voice") return "语音";
+  if (kind === "attachment") return "附件";
+  return "照片";
 }
 
 export function RelationshipOverlayHost(): React.JSX.Element {
@@ -26,16 +26,16 @@ export function RelationshipOverlayHost(): React.JSX.Element {
       <Dialog.Portal>
         <Dialog.Backdrop className="yance-overlay-backdrop" />
         <Dialog.Viewport className="yance-overlay-viewport">
-          <Dialog.Popup className="yance-overlay" aria-label={`${overlayTitle(overlay)} tools`}>
+          <Dialog.Popup className="yance-overlay" aria-label={`${overlayTitle(overlay)}工具`}>
             <header className="yance-overlay-header">
               <div>
-                <span className="yance-eyebrow">Relationship tool</span>
+                <span className="yance-eyebrow">关系工具</span>
                 <Dialog.Title>{overlayTitle(overlay)}</Dialog.Title>
                 <Dialog.Description>
-                  {activeMatrixRoomId ? `Current Matrix room · ${activeMatrixRoomId}` : "Current relationship"}
+                  {activeMatrixRoomId ? "当前关系会话" : "当前关系"}
                 </Dialog.Description>
               </div>
-              <Dialog.Close className="yance-overlay-close" aria-label="Close relationship tools">×</Dialog.Close>
+              <Dialog.Close className="yance-overlay-close" aria-label="关闭关系工具">×</Dialog.Close>
             </header>
 
             <div className="yance-overlay-body">

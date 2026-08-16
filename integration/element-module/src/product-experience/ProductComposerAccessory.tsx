@@ -14,10 +14,10 @@ type ProductComposerAccessoryProps = {
 };
 
 const ACTIONS: readonly Readonly<{ label: string; kind: RelationshipOverlayKind; hint: string }>[] = [
-  { label: "Photo", kind: "photo", hint: "Immich library and ComfyUI" },
-  { label: "Voice", kind: "voice", hint: "Voice Brain" },
-  { label: "Live", kind: "live", hint: "LiveKit and CyberVerse" },
-  { label: "Attachment", kind: "attachment", hint: "Existing media authority" },
+  { label: "照片", kind: "photo", hint: "照片库与智能编辑" },
+  { label: "语音", kind: "voice", hint: "语音能力" },
+  { label: "实时陪伴", kind: "live", hint: "实时空间" },
+  { label: "附件", kind: "attachment", hint: "媒体与文件" },
 ];
 
 export function ProductComposerAccessory({ roomId }: ProductComposerAccessoryProps): React.JSX.Element {
@@ -35,15 +35,15 @@ export function ProductComposerAccessory({ roomId }: ProductComposerAccessoryPro
   };
 
   return (
-    <div className="yance-action-dock" aria-label="Relationship actions" data-room-id={roomId}>
+    <div className="yance-action-dock" aria-label="关系操作" data-room-id={roomId}>
       <Popover.Root>
-        <Popover.Trigger className="yance-action-trigger" aria-label="Open Photo Voice Live and Attachment actions">
+        <Popover.Trigger className="yance-action-trigger" aria-label="打开照片、语音、实时陪伴和附件工具">
           <span aria-hidden="true">＋</span>
-          <span>Relationship tools</span>
+          <span>关系工具</span>
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Positioner sideOffset={8} className="yance-action-positioner">
-            <Popover.Popup className="yance-action-popover" aria-label="Relationship action dock">
+            <Popover.Popup className="yance-action-popover" aria-label="关系工具面板">
               <div className="yance-action-grid">
                 {ACTIONS.map((action) => (
                   <Popover.Close
