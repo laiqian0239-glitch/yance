@@ -166,7 +166,7 @@
   "ossFit": {
     "decision": "NO_NEW_OSS_OR_INFRASTRUCTURE_CANONICAL_GOVERNANCE_SCHEMA_REUSE",
     "matureOssAvailable": true,
-    "selectedAdoptionMode": "existing-repository-governance-seam",
+    "selectedAdoptionMode": "existing-repository-seam",
     "newGeneralPurposeInfrastructure": false,
     "reviewedCandidates": [
       {
