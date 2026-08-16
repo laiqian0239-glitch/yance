@@ -1,0 +1,298 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-16T15:41:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-AI-COMPANION-PRIVATE-QUEST-P0-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh Product P0 successor rooted directly at the ordinary #444 design/plan merge. The Living Relationship OS SSOT requires People-first, AI-invisible current-person composition, while trusted main still permanently mounts the Learning administrative workspace inside ProductExperienceShell and RelationshipAssistant exposes implementation-oriented Letta/agent/runtime telemetry. Fresh causal preflight also proves tests/wp0/v21-learning-growth-brain-ui.test.js still enforces the stale ProductExperienceShell -> LearningWorkspace consumer contract. This package cuts over only that Product composition boundary while preserving the Learning runtime/admin capability and reusing existing Parlant goal/progress plus #443 RelationshipProjectionAuthority insight/next.",
+  "base": {
+    "branch": "main",
+    "commit": "933505f6d0bdf525e26dbaac6702b99f68c0054a"
+  },
+  "architecture": {
+    "designPullRequest": 444,
+    "designMerge": "933505f6d0bdf525e26dbaac6702b99f68c0054a",
+    "productExperienceSsot": "Living Relationship OS",
+    "normalProductComposition": "People -> Relationship World -> contextual Private Quest",
+    "conversationAuthority": "Element / Matrix",
+    "goalJourneyAuthority": "Parlant",
+    "relationshipInferenceAuthority": "Graphiti / Neo4j",
+    "relationshipProjectionAuthority": "RelationshipProjectionAuthority",
+    "agentMemoryRuntimeAuthority": "Letta",
+    "learningRuntimeAuthority": "existing Learning modular/admin runtime",
+    "existingRelationshipProjectionSeam": "RelationshipProjection.relationshipIntelligence from #443",
+    "existingAssistantProjectionSeam": "loadRelationshipAssistant / RelationshipAssistantProjection.goal",
+    "newIpcChannelRequired": false,
+    "newBackendRouteRequired": false,
+    "newDatabaseRequired": false,
+    "newDependencyRequired": false
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "933505f6d0bdf525e26dbaac6702b99f68c0054a",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": false
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-ai-companion-private-quest-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-ai-companion-private-quest-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "e0887284db36eccafec3df8442d352f8f08e6f3f2411055defae5576ad96dde2",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-ai-companion-private-quest-p0-v1",
+    "allowedChangedPaths": [
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/RelationshipAssistant.tsx",
+      "tests/wp0/v21-learning-growth-brain-ui.test.js",
+      "tests/wp0/v21-product-ai-companion-private-quest-p0.test.js"
+    ],
+    "approvedChangedFileCount": 5,
+    "approvedChangedFileSetSha256": "84489daed793f2ab84ccd28b2d8ec2f4ddb9fd56efe99e50ae7ee874427bdbc9",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-learning-growth-brain-ui.test.js",
+        "tests/wp0/v21-product-ai-companion-private-quest-p0.test.js"
+      ],
+      "approvedChangedFileCount": 2,
+      "approvedChangedFileSetSha256": "ecdd583219063de15a6bd3d966ba338cebdac033ddf7c00d64b6f38e10f8e52b",
+      "productionCodeChanged": false,
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "ProductExperienceShell still directly imports/mounts LearningWorkspace on the normal people-first Product path.",
+        "The existing Learning UI executable contract still requires ProductExperienceShell -> LearningWorkspace instead of preserving Learning as a modular/admin capability outside the normal Product scene.",
+        "RelationshipAssistant still receives only relationshipId and exposes Letta / Agents / Recent context runtime telemetry rather than a relationship-native Private Quest hierarchy.",
+        "The selected RelationshipProjection is not yet supplied to RelationshipAssistant for trusted RelationshipProjectionAuthority summary/status/next presentation."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "databaseMigrationAllowed": false,
+    "graphitiRuntimeModificationAllowed": false,
+    "neo4jRuntimeModificationAllowed": false,
+    "lettaRuntimeModificationAllowed": false,
+    "parlantRuntimeModificationAllowed": false,
+    "learningRuntimeModificationAllowed": false,
+    "productRendererModificationAllowed": true
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "mustRunBeforeFirstTestsOnlyDiagnosticCommit": true,
+    "requiredProofs": [
+      "Trusted main is freshly read and the effective authorization merge is an ordinary two-parent merge whose first parent equals this document base.commit and whose second parent equals the independently reviewed authorization exact head.",
+      "The implementation branch starts exactly from the effective authorization merge commit and contains no pre-authorization implementation commit.",
+      "The trusted implementationBranchPolicy parser recognizes this exact authorization and implementation branch without wildcard, alias, local-only or candidate-owned authority.",
+      "The implementation five-path set and failure-first two-path set, counts and SHA-256 digests exactly match this document.",
+      "Every implementation path is already a valid PRODUCT_WP0 route on trusted main; no route-bootstrap mutation is required.",
+      "No active open PR changes any of the five authorized implementation paths.",
+      "The unchanged experienceProjection.ts still binds relationship intelligence through relationshipConversationIdsByContactId -> conversationId -> relationshipIntelligence[conversationId].",
+      "No dependency, workflow, preload, IPC manifest, new IPC channel, backend route, database or new Yance infrastructure path has entered scope."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "requiredBoundaries": [
+      "ProductExperienceShell normal-path LearningWorkspace mount",
+      "stale executable Learning UI Product-consumer composition contract",
+      "RelationshipAssistant technical/runtime presentation",
+      "Parlant goal write and progress authority",
+      "RelationshipProjectionAuthority summary/next/evidence authority",
+      "#443 conversation-scoped relationship evidence join",
+      "Learning runtime/admin workspace capability",
+      "Letta runtime ownership and internal readiness signal",
+      "Element timeline/composer/navigation authority",
+      "negative proof that agent counts, Letta conversation counts, message counts, Learning evidence or legacy social heuristics cannot substitute for relationship insight/progress/next",
+      "negative proof that no new AI/memory/journey/reply/relationship engine is introduced",
+      "negative proof that no new IPC/backend/database/workflow/dependency or general-purpose Yance infrastructure is introduced"
+    ]
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "The normal Product scene is People/Relationship-first and must not permanently import or mount LearningWorkspace.",
+      "LearningWorkspace and its Learning admin/tool-ui/privacy/consent capability remain present and independently testable; this package changes only its stale Product-consumer mount contract.",
+      "RelationshipAssistant remains hidden by default and is opened only from the selected Relationship World.",
+      "ProductExperienceShell passes the already-selected RelationshipProjection directly to RelationshipAssistant without introducing a second selected-person state.",
+      "Current intention and progress come only from existing Parlant goal projection/mutations.",
+      "Relationship insight and next step come only from the selected RelationshipProjection.relationshipIntelligence already backed by #443 RelationshipProjectionAuthority.",
+      "Relationship intelligence pending/empty states remain truthful; missing trusted summary/next must produce explicit no-confirmed-insight/no-trusted-next wording.",
+      "Letta readiness may remain an internal interaction signal but Letta name, agent count and recent conversation count are not normal relationship UX.",
+      "Existing Element timeline/composer/navigation state and #443 conversation-scoped evidence identity remain unchanged."
+    ],
+    "forbiddenBehavior": [
+      "Do not delete, rewrite or weaken the Learning runtime/admin workspace, privacy/consent controls or Learning OSS authority.",
+      "Do not expose Letta, agent count, recent Letta conversation count, model/provider identity or raw runtime inventory as Private Quest relationship facts.",
+      "Do not use relationshipPotential, customer_social_state, social_rule_projection, message_baseline, message counts, Learning evidence or runtime counts as relationship inference/progress/next sources.",
+      "Do not fabricate memory hints, suggested replies, relationship insight, progress or next action.",
+      "Do not create a new IPC channel, preload API, backend route, service, cache, sidecar, database, AI/memory/journey/reply/relationship engine, workflow or dependency.",
+      "Do not modify RelationshipWorld, experienceProjection or experienceTypes in this P0 without a fresh causal RED and merged same-work-package scope amendment."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PARLANT_GRAPHITI_LETTA_ELEMENT_LEARNING_AND_PRODUCT_PRIMITIVES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Parlant",
+        "source": "emcie-co/parlant",
+        "upstreamVersion": "v3.3.2",
+        "license": "Apache-2.0",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns relationship Goal/Journey behavior and exposes the exact goal/progress mutations this Product package needs."
+      },
+      {
+        "name": "Graphiti + Neo4j",
+        "source": "getzep/graphiti + Neo4j Community Edition",
+        "upstreamVersion": "Graphiti v0.29.3 / Neo4j 2026.07.1",
+        "license": "Apache-2.0 / GPL-3.0",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns temporal relationship inference and graph storage; #443 projects trusted summary/next into Product."
+      },
+      {
+        "name": "Letta + existing Learning OSS stack",
+        "source": "existing repository-pinned Letta/Learning runtimes",
+        "upstreamVersion": "existing repository pins",
+        "license": "repository-pinned",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Agent/memory and Learning admin capabilities remain existing authorities; this package only changes their Product presentation/mount boundary."
+      },
+      {
+        "name": "Element / Matrix + Base UI / Motion / Rive",
+        "source": "existing repository-pinned Product runtime/primitives",
+        "upstreamVersion": "existing repository pins",
+        "license": "repository-pinned",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Conversation authority and Product interaction primitives are already present; no second framework or runtime is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire only the stale ProductExperienceShell -> LearningWorkspace normal-path composition requirement; do not retire Learning capability.",
+      "Do not create a second goal/journey, relationship inference, memory, conversation, learning, animation or UI framework authority.",
+      "Do not add a new IPC/backend/data path when the selected RelationshipProjection and existing assistant projection already contain the required trusted data.",
+      "Do not use implementation/runtime telemetry as a shortcut for relationship-native Product facts."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-product-ai-companion-private-quest-p0.test.js",
+      "node --test tests/wp0/v21-learning-growth-brain-ui.test.js",
+      "node --test tests/wp0/v21-product-experience-shell-p0.test.js",
+      "node --test tests/wp0/v21-product-experience-shell-accessibility.test.js",
+      "node --test tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "node --test tests/wp0/v21-parlant-workspace-contract.test.js",
+      "node --test tests/wp0/v21-product-relationship-intelligence-surface.test.js",
+      "node --test tests/wp0/v21-element-workspace-contract.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "ACV2",
+      "Layered/WP-A validation when triggered",
+      "Product Experience Final Validation when triggered",
+      "Graphiti validation when triggered",
+      "Model validation when triggered"
+    ],
+    "negativeProofs": [
+      "Normal Product no longer mounts LearningWorkspace, while LearningWorkspace capability itself remains present and tested.",
+      "Private Quest uses existing Parlant goal/progress and selected RelationshipProjection.relationshipIntelligence only.",
+      "#443 relationship intelligence remains conversation-scoped and is not re-keyed to contact.",
+      "No user-facing Letta/Agents/Recent context runtime dashboard remains in RelationshipAssistant.",
+      "No new IPC, backend route, database, dependency, workflow or runtime authority is introduced."
+    ]
+  },
+  "parallelWork": {
+    "freshOpenPullRequests": [17, 67],
+    "exactImplementationPathOverlapCount": 0,
+    "openPullRequestsAreHistoricalDrafts": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "p0MustEqual": 0,
+    "p1MustEqual": 0,
+    "unresolvedReviewThreadsMustEqual": 0,
+    "codeRabbitQuotaOrAvailabilityIsNotSoleBlockingAuthority": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
