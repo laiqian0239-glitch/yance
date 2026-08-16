@@ -69,7 +69,7 @@ export function PeopleSurface({
   const latestEvidence = focusedIntelligence && focusedIntelligence.events.length
     ? focusedIntelligence.events[focusedIntelligence.events.length - 1]
     : null;
-  const denseUniverse = relationships.length > 8;
+  const denseUniverse = relationships.length >= 8;
   const universeRelationships = relationships.slice(0, 36);
 
   return (
