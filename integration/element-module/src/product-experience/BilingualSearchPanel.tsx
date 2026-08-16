@@ -43,6 +43,15 @@ function normalizedStatus(job: TranslationJobProjection | null): string {
   return String(job?.status || "").trim().toLowerCase();
 }
 
+function translationStatusLabel(status: string): string {
+  if (status === "queued") return "排队中";
+  if (status === "running") return "进行中";
+  if (status === "success") return "已完成";
+  if (status === "failed") return "失败";
+  if (status === "cancelled") return "已取消";
+  return status || "已更新";
+}
+
 function formatTime(value: string): string {
   const parsed = Date.parse(value);
   if (!Number.isFinite(parsed)) return "";
@@ -78,7 +87,7 @@ export function BilingualSearchPanel({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<WorkspaceSearchProjection>({ query: "", contacts: [], messages: [] });
   const [searchState, setSearchState] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [status, setStatus] = useState("Search messages in original text or Chinese translation.");
+  const [status, setStatus] = useState("搜索原文、姓名或中文翻译。");
   const [activeMessageId, setActiveMessageId] = useState("");
   const [activeJob, setActiveJob] = useState<TranslationJobProjection | null>(null);
   const [jobTransportError, setJobTransportError] = useState("");
@@ -110,23 +119,23 @@ export function BilingualSearchPanel({
     if (!trimmed) {
       setSearchState("idle");
       setResults({ query: "", contacts: [], messages: [] });
-      setStatus("Search messages in original text or Chinese translation.");
+      setStatus("搜索原文、姓名或中文翻译。");
       return;
     }
 
     setSearchState("loading");
-    setStatus(`Searching for “${trimmed}”…`);
+    setStatus(`正在搜索“${trimmed}”…`);
     try {
       const next = await searchWorkspace(trimmed);
       if (sequence !== searchSequence.current) return;
       setResults(next);
       setSearchState("ready");
       const count = next.messages.length + next.contacts.length;
-      setStatus(count ? `${count} search results ready.` : `No results for “${trimmed}”.`);
+      setStatus(count ? `找到 ${count} 条结果。` : `没有找到“${trimmed}”的结果。`);
     } catch (error) {
       if (sequence !== searchSequence.current) return;
       setSearchState("error");
-      setStatus(errorText(error, "Search is temporarily unavailable."));
+      setStatus(errorText(error, "搜索暂不可用。"));
     }
   };
 
@@ -137,7 +146,7 @@ export function BilingualSearchPanel({
       searchSequence.current += 1;
       setSearchState("idle");
       setResults({ query: "", contacts: [], messages: [] });
-      setStatus("Search messages in original text or Chinese translation.");
+      setStatus("搜索原文、姓名或中文翻译。");
       return undefined;
     }
 
@@ -166,7 +175,7 @@ export function BilingualSearchPanel({
           setActiveJob(next);
           setJobTransportError("");
           const nextStatus = normalizedStatus(next);
-          setStatus(`Translation ${nextStatus || "updated"}: ${Math.round(next.progress)}%.`);
+          setStatus(`翻译${translationStatusLabel(nextStatus)}：${Math.round(next.progress)}%。`);
           if (ACTIVE_JOB_STATES.has(nextStatus)) {
             schedulePoll();
           } else if (nextStatus === "success" && latestQuery.current.trim()) {
@@ -175,9 +184,9 @@ export function BilingualSearchPanel({
         } catch (error) {
           if (disposed) return;
           failures += 1;
-          setJobTransportError(errorText(error, "Translation status is temporarily unavailable."));
+          setJobTransportError(errorText(error, "翻译状态暂不可用。"));
           if (failures >= MAX_POLL_FAILURES) {
-            setStatus("Translation status polling paused after repeated connection failures.");
+            setStatus("连续连接失败，已暂停轮询翻译状态。你可以稍后重试。 ");
             return;
           }
           schedulePoll(Math.min(JOB_POLL_MS * (2 ** failures), MAX_POLL_BACKOFF_MS));
@@ -200,17 +209,17 @@ export function BilingualSearchPanel({
     setActiveMessageId(messageId);
     setActiveJob(null);
     setJobTransportError("");
-    setStatus("Creating translation task…");
+    setStatus("正在创建翻译任务…");
     try {
       const job = await createTranslationJob(messageId);
       if (sequence !== translationSequence.current) return;
       setActiveJob(job);
-      setStatus(`Translation ${normalizedStatus(job) || "queued"}: ${Math.round(job.progress)}%.`);
+      setStatus(`翻译${translationStatusLabel(normalizedStatus(job) || "queued")}：${Math.round(job.progress)}%。`);
     } catch (error) {
       if (sequence !== translationSequence.current) return;
       setActiveJob(null);
-      setJobTransportError(errorText(error, "Unable to create translation task."));
-      setStatus(errorText(error, "Unable to create translation task."));
+      setJobTransportError(errorText(error, "无法创建翻译任务。"));
+      setStatus(errorText(error, "无法创建翻译任务。"));
     }
   };
 
@@ -220,9 +229,9 @@ export function BilingualSearchPanel({
       const job = await cancelTranslationJob(activeJob.id);
       setActiveJob(job);
       setJobTransportError("");
-      setStatus("Translation cancelled.");
+      setStatus("翻译已取消。");
     } catch (error) {
-      setJobTransportError(errorText(error, "Unable to cancel translation task."));
+      setJobTransportError(errorText(error, "无法取消翻译任务。"));
     }
   };
 
@@ -233,16 +242,16 @@ export function BilingualSearchPanel({
       setActiveJob(job);
       setActiveMessageId(job.messageId || activeMessageId);
       setJobTransportError("");
-      setStatus(`Translation ${normalizedStatus(job) || "queued"}: ${Math.round(job.progress)}%.`);
+      setStatus(`翻译${translationStatusLabel(normalizedStatus(job) || "queued")}：${Math.round(job.progress)}%。`);
     } catch (error) {
-      setJobTransportError(errorText(error, "Unable to retry translation task."));
+      setJobTransportError(errorText(error, "无法重试翻译任务。"));
     }
   };
 
   const navigateResult = async (result: BilingualSearchResult): Promise<void> => {
     const relationship = relationshipForResult(result, relationships);
     if (!relationship) {
-      setStatus("This result has no available relationship context yet.");
+      setStatus("这条结果暂时没有可用的关系上下文。");
       return;
     }
 
@@ -254,18 +263,18 @@ export function BilingualSearchPanel({
       try {
         const navigated = await onNavigateRelationship(relationship);
         if (navigated) {
-          setStatus("Opened the authoritative Element conversation.");
+          setStatus("已打开可信的 Element 会话。");
           return;
         }
       } catch (error) {
-        navigationError = errorText(error, "Element navigation is unavailable.");
+        navigationError = errorText(error, "Element 导航暂不可用。");
       }
     }
 
     onSelectRelationship(relationship.id);
     setStatus(navigationError
-      ? `Opened relationship context. Element navigation failed: ${navigationError}`
-      : "Opened relationship context. Exact Element message navigation is unavailable for this result.");
+      ? `已打开关系上下文。Element 导航失败：${navigationError}`
+      : "已打开关系上下文；这条结果暂时无法精确跳转到 Element 消息。 ");
   };
 
   const clearSearch = (): void => {
@@ -273,7 +282,7 @@ export function BilingualSearchPanel({
     setQuery("");
     setResults({ query: "", contacts: [], messages: [] });
     setSearchState("idle");
-    setStatus("Search cleared.");
+    setStatus("搜索已清除。");
   };
 
   return (
@@ -281,7 +290,7 @@ export function BilingualSearchPanel({
       className="yance-bilingual-search"
       data-expanded={expanded || undefined}
       data-reduced-motion={reducedMotion || undefined}
-      aria-label="Bilingual message search"
+      aria-label="双语消息搜索"
     >
       <div className="yance-bilingual-search__topline">
         <button
@@ -292,22 +301,22 @@ export function BilingualSearchPanel({
           onClick={() => setExpanded((value) => !value)}
         >
           <span aria-hidden="true">⌕</span>
-          <span>Search / 搜索</span>
+          <span>搜索</span>
         </button>
         {expanded && query ? (
-          <button type="button" className="yance-bilingual-search__quiet-action" onClick={clearSearch}>Clear</button>
+          <button type="button" className="yance-bilingual-search__quiet-action" onClick={clearSearch}>清除</button>
         ) : null}
       </div>
 
       {expanded ? (
         <div id="yance-bilingual-search-panel" className="yance-bilingual-search__panel">
           <label className="yance-bilingual-search__field">
-            <span className="yance-bilingual-search__label">Messages, names, or Chinese translation</span>
+            <span className="yance-bilingual-search__label">消息、姓名或中文翻译</span>
             <input
               type="search"
               value={query}
               autoComplete="off"
-              placeholder="Search original text or 中文翻译"
+              placeholder="搜索原文或中文翻译"
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
@@ -323,12 +332,12 @@ export function BilingualSearchPanel({
 
           <div className="yance-bilingual-search__status" aria-live="polite" aria-atomic="true">
             <span>{status}</span>
-            {searchState === "loading" ? <span className="yance-bilingual-search__loading">Searching…</span> : null}
+            {searchState === "loading" ? <span className="yance-bilingual-search__loading">正在搜索…</span> : null}
           </div>
 
           {jobTransportError ? (
             <div className="yance-bilingual-search__notice" role="alert">
-              <strong>Translation status unavailable</strong>
+              <strong>翻译状态暂不可用</strong>
               <span>{jobTransportError}</span>
             </div>
           ) : null}
@@ -336,10 +345,10 @@ export function BilingualSearchPanel({
           {activeJob ? (
             <div className="yance-bilingual-search__job" data-state={activeJobStatus}>
               <div className="yance-bilingual-search__job-heading">
-                <span>Translation task</span>
-                <strong>{activeJobStatus || activeJob.durableState || "unknown"}</strong>
+                <span>翻译任务</span>
+                <strong>{translationStatusLabel(activeJobStatus || activeJob.durableState || "")}</strong>
               </div>
-              <progress max={100} value={activeJob.progress} aria-label="Translation progress">
+              <progress max={100} value={activeJob.progress} aria-label="翻译进度">
                 {activeJob.progress}%
               </progress>
               <div className="yance-bilingual-search__job-meta">
@@ -350,18 +359,18 @@ export function BilingualSearchPanel({
               {activeJob.error ? <p className="yance-bilingual-search__job-error">{activeJob.error}</p> : null}
               <div className="yance-bilingual-search__job-actions">
                 {activeJob.cancellable ? (
-                  <button type="button" onClick={() => void cancelActiveJob()}>Cancel</button>
+                  <button type="button" onClick={() => void cancelActiveJob()}>取消</button>
                 ) : null}
                 {RETRYABLE_JOB_STATES.has(activeJobStatus) ? (
-                  <button type="button" onClick={() => void retryActiveJob()}>Retry</button>
+                  <button type="button" onClick={() => void retryActiveJob()}>重试</button>
                 ) : null}
               </div>
             </div>
           ) : null}
 
           {searchState === "ready" && results.contacts.length ? (
-            <div className="yance-bilingual-search__contacts" aria-label="Matching people">
-              <h3>People</h3>
+            <div className="yance-bilingual-search__contacts" aria-label="匹配联系人">
+              <h3>联系人</h3>
               <div className="yance-bilingual-search__contact-list">
                 {results.contacts.map((contact) => {
                   const relationship = relationships.find((row) => row.id === contact.contactId);
@@ -383,7 +392,7 @@ export function BilingualSearchPanel({
           ) : null}
 
           {searchState === "ready" && results.messages.length ? (
-            <ol className="yance-bilingual-search__results" aria-label="Matching messages">
+            <ol className="yance-bilingual-search__results" aria-label="匹配消息">
               {results.messages.map((result) => {
                 const exactNavigationAvailable = exactNavigationAvailableByMessage.get(result.messageId) === true;
                 const selectedJob = activeMessageId === result.messageId ? activeJob : null;
@@ -392,21 +401,21 @@ export function BilingualSearchPanel({
                   <li key={result.messageId} className="yance-bilingual-search__result">
                     <div className="yance-bilingual-search__result-head">
                       <div>
-                        <strong>{result.contactName || result.contactId || "Conversation"}</strong>
+                        <strong>{result.contactName || result.contactId || "会话"}</strong>
                         <span>{[result.platform, formatTime(result.sentAt)].filter(Boolean).join(" · ")}</span>
                       </div>
                       <span className="yance-bilingual-search__nav-state">
-                        {exactNavigationAvailable ? "Element link" : "Relationship context"}
+                        {exactNavigationAvailable ? "Element 可定位" : "关系上下文"}
                       </span>
                     </div>
                     <button
                       type="button"
                       className="yance-bilingual-search__message"
                       onClick={() => void navigateResult(result)}
-                      aria-label={`Open message from ${result.contactName || "conversation"}`}
+                      aria-label={`打开来自 ${result.contactName || "会话"} 的消息`}
                     >
-                      <span className="yance-bilingual-search__original-label">Original</span>
-                      <span className="yance-bilingual-search__original">{result.text || "No text content"}</span>
+                      <span className="yance-bilingual-search__original-label">原文</span>
+                      <span className="yance-bilingual-search__original">{result.text || "暂无文本内容"}</span>
                       {hasTranslation ? (
                         <span className="yance-bilingual-search__translation">
                           <span>中文</span>
@@ -416,9 +425,9 @@ export function BilingualSearchPanel({
                     </button>
                     <div className="yance-bilingual-search__result-actions">
                       {!hasTranslation && !selectedJob ? (
-                        <button type="button" onClick={() => void startTranslation(result.messageId)}>Translate to 中文</button>
+                        <button type="button" onClick={() => void startTranslation(result.messageId)}>翻译成中文</button>
                       ) : null}
-                      {!exactNavigationAvailable ? <span>Exact message jump unavailable</span> : null}
+                      {!exactNavigationAvailable ? <span>暂无法精确跳转到消息</span> : null}
                     </div>
                   </li>
                 );
@@ -428,15 +437,15 @@ export function BilingualSearchPanel({
 
           {searchState === "ready" && !results.contacts.length && !results.messages.length ? (
             <div className="yance-bilingual-search__empty">
-              <strong>No matching messages</strong>
-              <span>Try a name, original phrase, or Chinese translation.</span>
+              <strong>没有匹配消息</strong>
+              <span>可以尝试联系人姓名、原文片段或中文翻译。</span>
             </div>
           ) : null}
 
           {searchState === "error" ? (
             <div className="yance-bilingual-search__empty">
-              <strong>Search unavailable</strong>
-              <span>Your query is preserved. Edit it or press Enter to retry.</span>
+              <strong>搜索暂不可用</strong>
+              <span>查询内容已保留；可以修改后重试，或按 Enter 再次搜索。</span>
             </div>
           ) : null}
         </div>

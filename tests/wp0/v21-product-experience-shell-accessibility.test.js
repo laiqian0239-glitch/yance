@@ -33,14 +33,18 @@ test('Base UI is the focus dismissal and popup primitive authority', () => {
   assert.doesNotMatch(product, /addEventListener\s*\(\s*["']keydown["'][^)]*Escape/iu);
 });
 
-test('Reduced motion is explicit and keeps controls usable', () => {
+test('Reduced motion is explicit and keeps controls usable with Chinese visible Rive state labels', () => {
   const product = source();
   const css = readOrEmpty('integration/element-module/src/product-experience/ProductExperienceShell.css');
   const rive = readOrEmpty('integration/element-module/src/product-experience/RiveRelationshipCompanion.tsx');
   assert.match(product, /useReducedMotion|prefers-reduced-motion/u);
   assert.match(`${product}\n${css}`, /reduced[- ]motion|prefers-reduced-motion/iu);
   assert.doesNotMatch(product, /setInterval\s*\(/u);
-  assert.match(rive, /reducedMotion\s*\?\s*\(\s*<span\s+className="yance-rive-static-state"[^>]*>\{state\}<\/span>/su);
+  assert.match(rive, /RELATIONSHIP_STATE_LABELS/u);
+  for (const label of ['静默', '唤醒', '倾听', '思考', '就绪', '表达', '异常']) {
+    assert.match(rive, new RegExp(label, 'u'));
+  }
+  assert.match(rive, /RELATIONSHIP_STATE_LABELS\[state\]/u);
   assert.match(rive, /!reducedMotion\s*&&\s*!failed\s*\?\s*<RiveComponent/u);
 });
 
@@ -50,6 +54,16 @@ test('Keyboard focus and screen-reader state feedback are visible', () => {
   assert.match(css, /:focus-visible/u);
   assert.match(product, /aria-live/u);
   assert.match(product, /aria-label|aria-labelledby/u);
+});
+
+test('relationship universe keeps semantic buttons, explicit selected focus state and reduced-motion support', () => {
+  const people = readOrEmpty('integration/element-module/src/product-experience/PeopleSurface.tsx');
+  assert.match(people, /viewMode/u);
+  assert.match(people, /onViewModeChange/u);
+  assert.match(people, /focusedRelationshipId/u);
+  assert.match(people, /<button|<motion\.button/u);
+  assert.match(people, /aria-pressed/u);
+  assert.match(people, /reducedMotion/u);
 });
 
 test('Product experience contains no relationship gamification vocabulary or color-only authority', () => {

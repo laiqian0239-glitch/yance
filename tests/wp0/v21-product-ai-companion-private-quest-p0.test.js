@@ -16,7 +16,7 @@ test('normal Product scene keeps Learning admin reachable only through explicit 
   const source = shell();
   assert.match(source, /import\s+\{\s*LearningWorkspace\s*\}\s+from\s+["']\.\.\/LearningWorkspace["']/u);
   assert.match(source, /\[learningAdminVisible,\s*setLearningAdminVisible\]\s*=\s*useState\(false\)/u);
-  assert.match(source, /Learning controls/u);
+  assert.match(source, /学习控制/u);
   assert.match(source, /setLearningAdminVisible\(true\)/u);
   assert.match(source, /learningAdminVisible\s*\?\s*<LearningWorkspace\s*\/>\s*:\s*null/u);
   assert.match(source, /onToggle=\{[\s\S]*currentTarget\.open[\s\S]*setLearningAdminVisible\(false\)/u);
@@ -27,11 +27,9 @@ test('selected relationship is passed into a relationship-native Private Quest',
   assert.match(shell(), /<RelationshipAssistant[\s\S]*relationship=\{selectedRelationship\}/u);
   const source = assistant();
   assert.match(source, /RelationshipProjection/u);
-  assert.match(source, /Private Quest/u);
-  assert.match(source, /Current intention/u);
-  assert.match(source, /Progress/u);
-  assert.match(source, /Relationship insight/u);
-  assert.match(source, /Next step/u);
+  for (const label of ['关系私密任务', '当前意图', '进展', '关系洞察', '下一步']) {
+    assert.match(source, new RegExp(label, 'u'));
+  }
   assert.doesNotMatch(source, /<dt>Letta<\/dt>|<dt>Agents<\/dt>|Recent context/u);
 });
 
