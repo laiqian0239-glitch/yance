@@ -8,10 +8,15 @@
   "status": "ACTIVE_SOURCE_CLOSURE",
   "baseInventoryPath": "governance/architecture-closure-v2/wp-b-operation-inventory.json",
   "authorizationAmendmentId": "WP-B-M3-SCOPE-001",
+  "authorizationAmendmentIds": [
+    "WP-B-M3-SCOPE-001",
+    "WP-B-M3-SCOPE-002"
+  ],
   "entries": [
     {
       "id": "WPB-DURABLE-INTERNAL-OPERATION-AUTHORITY",
       "path": "backend/services/durableInternalOperationAuthority.js",
+      "authorizationAmendmentId": "WP-B-M3-SCOPE-001",
       "classification": "RUNTIME_COMPOSITION",
       "operationKinds": [
         "AI_PROVIDER_EXECUTION",
@@ -29,6 +34,27 @@
       "targetAuthority": "DurableExecutionAuthorityV2",
       "closureState": "OPEN",
       "removalCondition": "All legacy async/background lifecycle consumers delegate to this single Schema 23 authority; legacy tables and callable writer facades are absent."
+    },
+    {
+      "id": "WPB-FACEBOOK-CHATWOOT-MATRIX-BRIDGE",
+      "path": "backend/services/facebookChatwootMatrixBridge.js",
+      "authorizationAmendmentId": "WP-B-M3-SCOPE-002",
+      "classification": "PHYSICAL_IO_ADAPTER",
+      "operationKinds": [
+        "OUTBOUND_MESSAGE_SEND",
+        "MEDIA_TRANSFER",
+        "HISTORY_SYNCHRONIZATION",
+        "SESSION_RESTORE"
+      ],
+      "currentResponsibilities": [
+        "CHATWOOT_NETWORK_CALL",
+        "MATRIX_NETWORK_CALL",
+        "REMOTE_MEDIA_TRANSFER",
+        "SESSION_AND_SYNC_PHYSICAL_IO"
+      ],
+      "targetAuthority": "CHANNEL_OPERATION_ADAPTER",
+      "closureState": "OPEN",
+      "removalCondition": "All Chatwoot and Matrix physical calls consume persisted WP-B attempt identity through the registered channel Adapter; signed webhook ingress remains ingress-only and owns no durable retry or recovery authority."
     }
   ],
   "governance": {

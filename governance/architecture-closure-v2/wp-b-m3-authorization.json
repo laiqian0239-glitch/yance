@@ -66,6 +66,28 @@
         "backend/services/durableInternalOperationAuthority.js",
         "governance/architecture-closure-v2/wp-b-operation-inventory-m3-extension.json"
       ]
+    },
+    {
+      "amendmentId": "WP-B-M3-SCOPE-002",
+      "authorizedAt": "2026-08-17T00:14:00+07:00",
+      "approvedBy": "PROJECT_OWNER",
+      "approvalSource": "Project owner explicit WP-B-M3-SCOPE-002 authorization in the 独立软件工程审计 conversation",
+      "reasonCode": "WP_B_M3_FRESH_MAIN_OPERATION_AND_BINDING_CLOSURE",
+      "trustedMainHead": "7ab4b85f6bdbce34ea96b608a807ca120618bb87",
+      "causalRedEvidence": {
+        "head": "8c9edef0c2e19f56081f769d3d509d76cb797a84",
+        "stageRunId": 31960025396,
+        "wpBValidationRunId": 31960025418,
+        "wpBM2ContractsRunId": 31960025398,
+        "unknownBlockers": 0
+      },
+      "addedPaths": [
+        "backend/services/facebookChatwootMatrixBridge.js",
+        "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+        "release/production-dependency-binding.json",
+        "tests/wp0/open-source-work-package-authorization.test.js",
+        "tests/wp0/v21-voice-brain-authority-cutover.test.js"
+      ]
     }
   ],
   "allowedPaths": [
@@ -74,6 +96,7 @@
     ".github/workflows/wp-b-validation.yml",
     "THIRD_PARTY_NOTICES_WP_B.md",
     "backend/services/durableInternalOperationAuthority.js",
+    "backend/services/facebookChatwootMatrixBridge.js",
     "backend/tests/architectureClosureV2/wpA/sourceClosureFinal.test.js",
     "backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js",
     "backend/tests/architectureClosureV2/wpB/finalClosureIntegrity.test.js",
@@ -96,11 +119,15 @@
     "governance/architecture-closure-v2/wp-b-provenance.json",
     "governance/architecture-closure-v2/wp-b-sbom.spdx.json",
     "governance/architecture-closure-v2/wp-b-source-closure-baseline.json",
+    "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
     "package.json",
     "release/architecture-closure-v2/wp-b-governance-package.json",
+    "release/production-dependency-binding.json",
     "shared/release/acv2ActiveWorkPackageAuthority.js",
     "tests/wp0/acv2-work-package-scope-wiring.test.js",
     "tests/wp0/implementation-branch-policy.test.js",
+    "tests/wp0/open-source-work-package-authorization.test.js",
+    "tests/wp0/v21-voice-brain-authority-cutover.test.js",
     "tools/architecture-closure-v2/generate-wp-b-sbom.js",
     "tools/architecture-closure-v2/run-wp-b-contracts.js",
     "tools/architecture-closure-v2/run-wp-b-isolated-regressions.js",
