@@ -550,3 +550,8 @@ test('M1-M10 Windows release closure independently verifies outer candidate ZIP 
     (error) => error?.reasonCode === 'WP7_CANDIDATE_OUTER_ZIP_INVALID'
   );
 });
+
+test('M7 reviewed Product roots exclude the retired legacy frontend and include canonical supporting assets', () => {
+  assert.equal(PROJECT_ROOTS.includes('frontend'), false);
+  assert.equal(PROJECT_ROOTS.includes('assets'), true);
+});

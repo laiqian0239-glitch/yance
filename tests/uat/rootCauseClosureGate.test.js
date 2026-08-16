@@ -2,7 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 const { runGate, REQUIRED_DOMAINS, REQUIRED_LEVELS, REQUIRED_PROJECTIONS } = require('../../tools/uat/rootCauseClosureGate');
 
 test('root cause closure design baseline is machine-checkable and evidence exporter P0 is closed at unit level', () => {
@@ -30,4 +31,17 @@ test('root cause closure requires all authority, acceptance and idempotency doma
     'FORMAL_RELEASE_PASS'
   ]);
   assert.equal(REQUIRED_PROJECTIONS.length, 7);
+});
+
+test('root cause closure executable Product proof no longer reads the retired legacy frontend', () => {
+  const repoRoot = path.resolve(__dirname, '..', '..');
+  const source = fs.readFileSync(path.join(repoRoot, 'tools', 'uat', 'rootCauseClosureGate.js'), 'utf8');
+  for (const legacyCurrentProof of [
+    "path.join(repoRoot, 'frontend', 'r32-component-readability.css')",
+    "path.join(repoRoot, 'frontend', 'index.html')",
+    "path.join(repoRoot, 'frontend', 'js', 'r32-ui-runtime.js')",
+    "path.join(repoRoot, 'frontend', 'js', 'r32-ai-workbench-runtime.js')"
+  ]) {
+    assert.equal(source.includes(legacyCurrentProof), false, legacyCurrentProof);
+  }
 });
