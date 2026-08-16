@@ -13,6 +13,32 @@ const people = () => read('integration/element-module/src/product-experience/Peo
 const css = () => read('integration/element-module/src/product-experience/ProductExperienceShell.css');
 const packageJson = () => JSON.parse(read('integration/element-module/package.json'));
 
+function loadUniversePosition(source) {
+  const start = source.indexOf('function universePosition');
+  const end = source.indexOf('\n\nexport function PeopleSurface', start);
+  assert.notEqual(start, -1, 'PeopleSurface must define universePosition');
+  assert.notEqual(end, -1, 'universePosition must remain isolated from the component body');
+  const executable = source
+    .slice(start, end)
+    .replace(
+      'function universePosition(index: number, count: number): UniversePosition',
+      'function universePosition(index, count)',
+    );
+  return Function(`"use strict"; ${executable}; return universePosition;`)();
+}
+
+function minimumDistance(points) {
+  let minimum = Number.POSITIVE_INFINITY;
+  for (let left = 0; left < points.length; left += 1) {
+    for (let right = left + 1; right < points.length; right += 1) {
+      const dx = points[left].x - points[right].x;
+      const dy = points[left].y - points[right].y;
+      minimum = Math.min(minimum, Math.hypot(dx, dy));
+    }
+  }
+  return minimum;
+}
+
 test('People Home defaults to list and exposes an explicit relationship universe peer view', () => {
   const shellSource = shell();
   const peopleSource = people();
@@ -37,6 +63,21 @@ test('relationship universe is user-centered and does not invent contact-to-cont
   assert.doesNotMatch(source, /sourceId|targetId|personToPerson|contactEdges|socialGraph/iu);
 });
 
+test('relationship universe keeps dense 21 and 33 relationship constellations spatially distinct', () => {
+  const positionFor = loadUniversePosition(people());
+  for (const count of [21, 33]) {
+    const positions = Array.from({ length: count }, (_, index) => positionFor(index, count));
+    assert.ok(
+      minimumDistance(positions) >= 8,
+      `${count} relationship nodes must keep at least 8 normalized stage units between centers`,
+    );
+    for (const position of positions) {
+      assert.ok(position.x >= 5 && position.x <= 95, `${count} relationship node x must remain bounded`);
+      assert.ok(position.y >= 5 && position.y <= 95, `${count} relationship node y must remain bounded`);
+    }
+  }
+});
+
 test('universe focus is separate from relationship selection and survives Relationship World round trips', () => {
   const source = shell();
   assert.match(source, /focusedRelationshipId/u);
@@ -52,7 +93,13 @@ test('normal Product relationship chrome is Chinese and graph dependencies are n
   assert.match(source, /我的关系/u);
   assert.match(source, /体验设置/u);
   assert.match(source, /正在加载关系|关系数据暂不可用/u);
-  const dependencies = packageJson().dependencies || {};
+  const manifest = packageJson();
+  const dependencies = {
+    ...(manifest.dependencies || {}),
+    ...(manifest.devDependencies || {}),
+    ...(manifest.optionalDependencies || {}),
+    ...(manifest.peerDependencies || {}),
+  };
   for (const dependency of ['sigma', 'graphology', 'cytoscape', '@xyflow/react', 'd3-force']) {
     assert.equal(Object.hasOwn(dependencies, dependency), false, `${dependency} must not be added for this P0`);
   }
