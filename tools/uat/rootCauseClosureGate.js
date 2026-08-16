@@ -216,18 +216,36 @@ function runGate(repoRoot = path.resolve(__dirname, '..', '..')) {
     && relationshipStateClosure.windowsRenderStatus === 'PENDING'
     && /const STATES = Object\.freeze/u.test(relationshipAuthoritySource)
     && /function projectFromStore/u.test(relationshipAuthoritySource)
-    && /social_rule_projection/u.test(relationshipAuthoritySource)
     && /relationshipProjectionAuthority\.projectFromStore/u.test(workspaceRepositorySource)
     && /authorityTrajectory/u.test(workspaceServiceSource)
     && /loadRelationshipProjections/u.test(productExperienceProjectionSource)
     && /storeSnapshot\(\{ domains: \["customers"\] \}\)/u.test(productExperienceProjectionSource)
     && /export function RelationshipWorld/u.test(relationshipWorldSource)
   );
+  const relationshipStateGraphitiOnlyReady = Boolean(
+    relationshipStateAuthorityReady
+    && /graphiti_temporal_inference/u.test(relationshipAuthoritySource)
+    && /user_annotation/u.test(relationshipAuthoritySource)
+    && /source = 'ai_analysis'/u.test(relationshipAuthoritySource)
+    && /source = 'empty'/u.test(relationshipAuthoritySource)
+    && !/function ruleProjection/u.test(relationshipAuthoritySource)
+    && !/legacy_projection/u.test(relationshipAuthoritySource)
+    && !/social_rule_projection/u.test(relationshipAuthoritySource)
+    && !/message_baseline/u.test(relationshipAuthoritySource)
+  );
   if (!relationshipStateAuthorityReady) openBlockers.push({ id: 'P1_RELATIONSHIP_STATE_AUTHORITY_INCOMPLETE', file: 'governance/root-cause-closure/relationship-state-authority-closure.json' });
+  if (!relationshipStateGraphitiOnlyReady) openBlockers.push({ id: 'P1_RELATIONSHIP_STATE_GRAPHITI_AUTHORITY_INCOMPLETE', file: 'backend/services/relationshipProjectionAuthority.js' });
   add('known-root-cause:relationship-state-authority-ready', relationshipStateAuthorityReady, {
     status: relationshipStateClosure.status,
     windowsRenderStatus: relationshipStateClosure.windowsRenderStatus,
     defectIds: relationshipStateClosure.defectIds
+  });
+  add('known-root-cause:relationship-state-graphiti-only-ready', relationshipStateGraphitiOnlyReady, {
+    inferenceAuthority: 'Graphiti/Neo4j',
+    timelineAuthority: 'graphiti_temporal_inference',
+    explicitUserAnnotationsPreserved: true,
+    aiAnalysisRemainsDistinct: true,
+    localFallbackAuthorityRetired: relationshipStateGraphitiOnlyReady
   });
 
   const modelRuntimeAuthorityPath = path.join(repoRoot, 'backend', 'services', 'modelRuntimeAuthority.js');
