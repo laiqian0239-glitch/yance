@@ -9,6 +9,7 @@ const { deepFreeze } = require('../../../lib/deepFreeze');
 const { OPERATION_KINDS } = require('../../../services/durableOperationRegistry');
 const { CommunicationAuthority } = require('../../../services/communicationAuthority');
 const channelRuntimeModule = require('../../../services/channelAdapterRuntime');
+const { PlatformAdapterFacade } = require('../../../services/platformAdapterPorts');
 
 const { ChannelAdapterRuntime } = channelRuntimeModule;
 const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
@@ -213,4 +214,68 @@ test('M2-OUT-004 communication authority no longer writes a second delivery atte
   assert.match(source, /createIntent/u);
   assert.doesNotMatch(source, /INSERT\s+INTO\s+communication_delivery_attempts/iu);
   assert.doesNotMatch(source, /INSERT\s+INTO\s+communication_delivery_receipts/iu);
+});
+
+test('M2-OUT-005 real platform facade preserves fenced persisted-attempt context separately from canonical OutboxCommand', async () => {
+  const observed = [];
+  const facade = new PlatformAdapterFacade('telegram', {
+    egressAuthorizer: async command => Object.freeze({
+      authorized: true,
+      queueId: command.commandId,
+      commandSha256: command.commandSha256 || HASH
+    }),
+    egressHandler: async (command, physicalContext) => {
+      observed.push({ command, physicalContext });
+      return Object.freeze({
+        success: true,
+        platformMessageId: 'telegram-message-fenced-1',
+        providerRequestId: 'telegram-request-fenced-1'
+      });
+    },
+    deliveryAuthority: Object.freeze({
+      recordSuccess() { return Object.freeze({ observationId: 'delivery-observation-1', capabilityId: 'delivery-capability-1' }); },
+      recordFailure() { throw new Error('failure evidence is not expected'); }
+    })
+  });
+  const client = channelRuntimeModule.createChannelPhysicalClient({ platform: 'telegram', facade });
+  const command = deepFreeze({
+    schemaVersion: 1,
+    commandType: 'OutboxCommand',
+    platform: 'telegram',
+    accountId: 'account-ref-fenced-1',
+    commandId: 'command-ref-fenced-1',
+    operation: 'text',
+    idempotencyKey: 'outbound-idempotency-fenced-1',
+    contentFrozen: true,
+    finalText: 'hello'
+  });
+  await client.perform(deepFreeze({
+    executionId: 'execution-outbound-fenced-1',
+    intentId: 'intent-outbound-fenced-1',
+    attemptId: 'attempt-outbound-fenced-1',
+    claimId: 'claim-outbound-fenced-1',
+    ownerId: 'owner-outbound-fenced-1',
+    generation: 3,
+    hostGeneration: 7,
+    fencingToken: 11,
+    idempotencyKey: command.idempotencyKey,
+    requestContentSha256: HASH,
+    platform: 'telegram',
+    accountReference: command.accountId,
+    command,
+    credential: Object.freeze({ credentialReference: 'credential-ref-fenced-1' })
+  }));
+
+  assert.equal(observed.length, 1);
+  assert.equal(observed[0].command, command, 'canonical OutboxCommand identity must remain unchanged');
+  assert.equal(Object.hasOwn(observed[0].command, 'attemptId'), false, 'attempt identity must not pollute OutboxCommand bytes');
+  assert.equal(Object.hasOwn(observed[0].command, 'fencingToken'), false, 'fencing identity must not pollute OutboxCommand bytes');
+  assert.equal(Object.isFrozen(observed[0].physicalContext), true, 'physical context must remain immutable');
+  assert.equal(observed[0].physicalContext.executionId, 'execution-outbound-fenced-1');
+  assert.equal(observed[0].physicalContext.intentId, 'intent-outbound-fenced-1');
+  assert.equal(observed[0].physicalContext.attemptId, 'attempt-outbound-fenced-1');
+  assert.equal(observed[0].physicalContext.claimId, 'claim-outbound-fenced-1');
+  assert.equal(observed[0].physicalContext.generation, 3);
+  assert.equal(observed[0].physicalContext.hostGeneration, 7);
+  assert.equal(observed[0].physicalContext.fencingToken, 11);
 });
