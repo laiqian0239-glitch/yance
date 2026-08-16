@@ -7,7 +7,6 @@ const { resolveModelExecutionSpec } = require('./modelExecutionSpecResolver');
 const systemPolicy = require('./systemPolicy');
 const { createSystemPolicySnapshot } = require('./systemPolicySnapshotAuthority');
 const { createModelExecutionEnvelope, verifyModelExecutionEnvelope } = require('./modelExecutionEnvelopeAuthority');
-const aiQualityRouteAuthority = require('./aiQualityRouteAuthority');
 const aiRoleQualificationReceiptAuthority = require('./aiRoleQualificationReceiptAuthority');
 const { ExternalActionDispatcher } = require('./externalActionDispatcher');
 const {
@@ -317,6 +316,21 @@ function startDurableModelExecution(input = {}) {
   });
 }
 
+function externalModelSelectionBinding({ task, model, suppliedReceipt } = {}) {
+  if (suppliedReceipt && typeof suppliedReceipt === 'object' && !Array.isArray(suppliedReceipt)) {
+    return Object.freeze({ ...suppliedReceipt });
+  }
+  return Object.freeze({
+    schemaVersion: 1,
+    authority: 'MODEL_BRAIN_EXTERNAL_SELECTION_BINDING',
+    routingAuthority: 'LiteLLM Model Brain',
+    task: clean(task),
+    selectedModelId: clean(model?.id),
+    routingDecisionOwnedExternally: true,
+    hostRoutingPerformed: false
+  });
+}
+
 function startModelExecution({
   persistedAttempt: persistedAttemptInput,
   executionId: requestedExecutionId = '',
@@ -356,9 +370,10 @@ function startModelExecution({
   if (onToken) workerOptions.streamTokens = true;
   const specResolver = typeof resolveExecutionSpec === 'function' ? resolveExecutionSpec : resolveModelExecutionSpec;
   const executionSpec = specResolver(model);
-  const routeReceipt = options.routeReceipt || options.qualityRouteReceipt || aiQualityRouteAuthority.routeReceipt({
+  const routeReceipt = externalModelSelectionBinding({
     task,
-    selectedModel: model
+    model,
+    suppliedReceipt: options.routeReceipt || options.qualityRouteReceipt
   });
   const qualificationReceipt = aiRoleQualificationReceiptAuthority.receiptFor(model, task) || {
     schemaVersion: aiRoleQualificationReceiptAuthority.SCHEMA_VERSION,

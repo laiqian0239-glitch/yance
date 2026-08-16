@@ -386,6 +386,42 @@ function createAccountManagerReconcileHandler(managerProvider = defaultAccountMa
   };
 }
 
+function validatePersistedEgressContext(value, command, platform) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !Object.isFrozen(value)) {
+    throw error('EGRESS_PERSISTED_ATTEMPT_REQUIRED', 'Physical Egress requires one frozen persisted WP-B attempt context before any platform call.', 409);
+  }
+  assertDomainDto(value, 'PersistedEgressAttemptContext');
+  const requiredStrings = [
+    'executionId', 'intentId', 'attemptId', 'claimId', 'ownerId',
+    'idempotencyKey', 'requestContentSha256'
+  ];
+  for (const field of requiredStrings) {
+    if (!clean(value[field])) {
+      throw error('EGRESS_PERSISTED_ATTEMPT_REQUIRED', 'Persisted Egress attempt field is required.', 409, { field });
+    }
+  }
+  if (!/^[a-f0-9]{64}$/u.test(clean(value.requestContentSha256))) {
+    throw error('EGRESS_PERSISTED_ATTEMPT_REQUIRED', 'Persisted Egress requestContentSha256 is invalid.', 409, { field: 'requestContentSha256' });
+  }
+  for (const field of ['generation', 'hostGeneration', 'fencingToken']) {
+    const number = Number(value[field]);
+    if (!Number.isSafeInteger(number) || number < 1) {
+      throw error('EGRESS_PERSISTED_ATTEMPT_REQUIRED', 'Persisted Egress attempt integer field is invalid.', 409, { field });
+    }
+  }
+  const normalizedPlatform = clean(platform).toLowerCase();
+  if (clean(value.platform) && clean(value.platform).toLowerCase() !== normalizedPlatform) {
+    throw error('EGRESS_PERSISTED_ATTEMPT_SCOPE_MISMATCH', 'Persisted Egress platform scope mismatch.', 409);
+  }
+  if (clean(value.accountReference) && clean(value.accountReference) !== clean(command.accountId)) {
+    throw error('EGRESS_PERSISTED_ATTEMPT_SCOPE_MISMATCH', 'Persisted Egress account scope mismatch.', 409);
+  }
+  if (clean(value.idempotencyKey) !== clean(command.idempotencyKey)) {
+    throw error('EGRESS_PERSISTED_ATTEMPT_SCOPE_MISMATCH', 'Persisted Egress idempotency scope mismatch.', 409);
+  }
+  return value;
+}
+
 class PlatformAdapterFacade {
   constructor(platform, options = {}) {
     this.platform = requirePlatform(platform);
@@ -408,7 +444,7 @@ class PlatformAdapterFacade {
       normalize: input => this.normalizeIngress(input),
       ingest: input => this.ingest(input)
     });
-    this.egress = Object.freeze({ execute: command => this.executeEgress(command) });
+    this.egress = Object.freeze({ execute: (command, persistedContext) => this.executeEgress(command, persistedContext) });
     this.reconcile = Object.freeze({ execute: request => this.executeReconcile(request) });
   }
 
@@ -494,17 +530,26 @@ class PlatformAdapterFacade {
     return this.eventLog.append(normalized);
   }
 
-  async executeEgress(command = {}) {
+  async executeEgress(command = {}, persistedContext = null) {
     assertDomainDto(command, 'OutboxCommand');
     if (clean(command.platform).toLowerCase() !== this.platform) throw error('EGRESS_PLATFORM_MISMATCH', 'OutboxCommand 与平台适配器不一致。', 409);
     if (clean(command.commandType) !== 'OutboxCommand') throw error('EGRESS_OUTBOX_COMMAND_REQUIRED', 'Egress 只能消费已持久化的 OutboxCommand。', 409);
     if (!clean(command.idempotencyKey) || command.contentFrozen !== true) throw error('EGRESS_OUTBOX_COMMAND_UNFROZEN', 'Egress 拒绝未冻结或缺少幂等键的命令。', 409);
+    const durableAttempt = validatePersistedEgressContext(persistedContext, command, this.platform);
     const persistenceReceipt = await this.egressAuthorizer(command);
     if (!persistenceReceipt || persistenceReceipt.authorized !== true) throw error('EGRESS_PERSISTED_OUTBOX_REQUIRED', 'Egress 未获得持久化 Outbox 授权。', 409);
     let result;
     if (this.egressHandler) {
       try {
-        result = await executeEgressWithDeadline(({ signal, generation }) => this.egressHandler(command, { ...persistenceReceipt, signal, executionGeneration: generation }), command);
+        result = await executeEgressWithDeadline(({ signal, generation }) => this.egressHandler(
+          command,
+          Object.freeze({
+            ...persistenceReceipt,
+            ...durableAttempt,
+            signal,
+            executionGeneration: generation
+          })
+        ), command);
         let normalized;
         try { normalized = normalizeSendResult(this.platform, command, result); }
         catch (cause) {
@@ -677,6 +722,7 @@ class PlatformAdapterFacade {
       boundaries: {
         ingressProducesDomainEventsOnly: true,
         egressConsumesOutboxOnly: true,
+        egressRequiresPersistedAttempt: true,
         reconcileDoesNotBlockRealtime: true,
         uiObjectsForbidden: true,
         expressObjectsForbidden: true,
@@ -705,7 +751,7 @@ class PlatformAdapterRegistryV2 {
   }
   contracts() { return Object.fromEntries([...this.adapters].map(([id, adapter]) => [id, adapter.contract()])); }
   executeAuth(input) { return this.get(input?.platform).auth.execute(input); }
-  executeEgress(command) { return this.get(command?.platform).egress.execute(command); }
+  executeEgress(command, persistedContext) { return this.get(command?.platform).egress.execute(command, persistedContext); }
   ingest(input) { return this.get(input?.platform).ingress.ingest(input); }
   reconcile(input) { return this.get(input?.platform).reconcile.execute(input); }
 }
