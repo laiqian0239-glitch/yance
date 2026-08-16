@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LearningWorkspace } from "../LearningWorkspace";
 import { AnimatePresence, motion } from "motion/react";
 import { BilingualSearchPanel } from "./BilingualSearchPanel";
@@ -34,22 +34,32 @@ export function ProductExperienceShell({ navigateSearchResult }: ProductExperien
   const [aiState, setAiState] = useState<RelationshipAiState>("idle");
   const session = useExperienceSession();
   const preferences = useExperiencePreferences();
+  const selectedRelationshipIdRef = useRef(session.selectedRelationshipId);
+  const refreshGenerationRef = useRef(0);
+
+  useEffect(() => {
+    selectedRelationshipIdRef.current = session.selectedRelationshipId;
+  }, [session.selectedRelationshipId]);
 
   const refreshRelationships = useCallback(async (): Promise<void> => {
+    const generation = ++refreshGenerationRef.current;
     try {
       const next = await loadRelationshipProjections();
+      if (generation !== refreshGenerationRef.current) return;
       setRelationships(next);
       setLoading(false);
       setStatus(next.length ? `${next.length} relationships ready` : "No relationships available yet");
-      if (session.selectedRelationshipId && !next.some((row) => row.id === session.selectedRelationshipId)) {
+      const selectedRelationshipId = selectedRelationshipIdRef.current;
+      if (selectedRelationshipId && !next.some((row) => row.id === selectedRelationshipId)) {
         clearSelectedRelationship();
       }
     } catch {
+      if (generation !== refreshGenerationRef.current) return;
       setRelationships([]);
       setLoading(false);
       setStatus("Relationship data unavailable");
     }
-  }, [session.selectedRelationshipId]);
+  }, []);
 
   useEffect(() => {
     void refreshRelationships();

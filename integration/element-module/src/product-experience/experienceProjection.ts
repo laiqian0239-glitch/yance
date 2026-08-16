@@ -128,10 +128,15 @@ function relationshipIntelligenceState(value: unknown): RelationshipIntelligence
     : null;
 }
 
+function relationshipIntelligenceSource(value: unknown): RelationshipIntelligenceProjection["source"] | null {
+  const source = text(value);
+  return source === "ai_analysis" || source === "empty" ? source : null;
+}
+
 function normalizeRelationshipEvent(value: unknown): RelationshipIntelligenceEvent | null {
-  if (!Array.isArray(value)) return null;
+  if (!Array.isArray(value) || value.length !== 5 || !value.every((item) => typeof item === "string")) return null;
   const sourceLabel = text(value[4]);
-  const source = /Graphiti/u.test(sourceLabel)
+  const source = /graphiti/iu.test(sourceLabel)
     ? "graphiti"
     : /用户标注|User annotation/iu.test(sourceLabel) ? "user_annotation" : "unknown";
   const title = text(value[1]);
@@ -152,8 +157,12 @@ function normalizeRelationshipIntelligence(value: unknown): RelationshipIntellig
   if (text(row.authorityId) !== "RelationshipProjectionAuthority") return undefined;
   const trajectory = objectRecord(row.trajectory);
   if (text(trajectory.authorityId) !== "RelationshipProjectionAuthority") return undefined;
-  const state = relationshipIntelligenceState(row.state || trajectory.projectionState);
+  const state = relationshipIntelligenceState(row.state)
+    || relationshipIntelligenceState(trajectory.projectionState);
   if (!state) return undefined;
+  const source = relationshipIntelligenceSource(row.source)
+    || relationshipIntelligenceSource(trajectory.projectionSource);
+  if (!source) return undefined;
   const events = (Array.isArray(trajectory.events) ? trajectory.events : [])
     .map(normalizeRelationshipEvent)
     .filter((event): event is RelationshipIntelligenceEvent => Boolean(event));
@@ -161,7 +170,7 @@ function normalizeRelationshipIntelligence(value: unknown): RelationshipIntellig
     authorityId: "RelationshipProjectionAuthority",
     projectionVersion: text(row.projectionVersion || trajectory.projectionVersion),
     state,
-    source: text(row.source || trajectory.projectionSource),
+    source,
     analysisAvailable: row.analysisAvailable === true,
     analysisCurrent: row.analysisCurrent === true,
     analysisCommitted: row.analysisCommitted === true,
@@ -286,7 +295,11 @@ export async function loadRelationshipProjections(): Promise<readonly Relationsh
   const relationshipIntelligence = objectRecord(root.relationshipIntelligence);
 
   return Object.entries(byId)
-    .map(([key, value]) => relationshipFromEntry(key, value, relationshipIntelligence[key]))
+    .map(([key, value]) => {
+      const row = objectRecord(value);
+      const stableContactId = text(row.contactId || row.id || key);
+      return relationshipFromEntry(key, value, relationshipIntelligence[stableContactId]);
+    })
     .filter((relationship): relationship is RelationshipProjection => Boolean(relationship))
     .sort((a, b) => {
       const aTime = a.updatedAt ? Date.parse(a.updatedAt) : 0;

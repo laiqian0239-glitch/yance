@@ -147,7 +147,9 @@ export function RelationshipWorld({
                       <span data-source={event.source}>{evidenceSourceLabel(event)}</span>
                     </div>
                     {event.detail && event.detail !== event.title ? <p>{event.detail}</p> : null}
-                    {event.at ? <time dateTime={event.at}>{new Date(event.at).toLocaleDateString()}</time> : null}
+                    {event.at && Number.isFinite(Date.parse(event.at))
+                      ? <time dateTime={event.at}>{new Date(event.at).toLocaleDateString()}</time>
+                      : null}
                   </li>
                 ))}
               </ol>

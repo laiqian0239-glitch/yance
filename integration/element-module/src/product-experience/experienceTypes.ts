@@ -19,7 +19,7 @@ export type RelationshipIntelligenceProjection = {
   authorityId: "RelationshipProjectionAuthority";
   projectionVersion: string;
   state: RelationshipIntelligenceState;
-  source: string;
+  source: "ai_analysis" | "empty";
   analysisAvailable: boolean;
   analysisCurrent: boolean;
   analysisCommitted: boolean;

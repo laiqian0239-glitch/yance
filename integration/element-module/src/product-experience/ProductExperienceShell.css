@@ -170,9 +170,9 @@
   font-size: 0.78rem;
 }
 
-.yance-person-intelligence-status {
-  color: var(--yance-accent) !important;
-  font-size: 0.7rem !important;
+.yance-person-copy .yance-person-intelligence-status {
+  color: var(--yance-accent);
+  font-size: 0.7rem;
 }
 
 .yance-empty {

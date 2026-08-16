@@ -46,7 +46,7 @@ export function PeopleSurface({
                 data-selected={selected || undefined}
                 data-intelligence-state={relationship.relationshipIntelligence?.state || "unavailable"}
                 aria-pressed={selected}
-                aria-label={`Open relationship with ${relationship.name}`}
+                aria-label={`Open relationship with ${relationship.name}. ${analysisStatusLabel}`}
                 onClick={() => onSelect(relationship.id)}
                 whileTap={reducedMotion ? undefined : { scale: 0.985 }}
                 transition={{ type: "spring", stiffness: 480, damping: 36 }}

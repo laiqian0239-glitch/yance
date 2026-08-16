@@ -42,9 +42,12 @@ function trustedRelationshipIntelligence(value) {
   const stableContactIdByTrajectoryId = new Map();
   for (const rawContact of contacts) {
     const contact = objectRecord(rawContact);
-    const trajectoryId = clean(contact.id || contact.sessionKey || contact.conversationId);
     const stableContactId = clean(contact.contactId);
-    if (trajectoryId && stableContactId) stableContactIdByTrajectoryId.set(trajectoryId, stableContactId);
+    if (!stableContactId) continue;
+    for (const rawTrajectoryId of [contact.id, contact.sessionKey, contact.conversationId]) {
+      const trajectoryId = clean(rawTrajectoryId);
+      if (trajectoryId) stableContactIdByTrajectoryId.set(trajectoryId, stableContactId);
+    }
   }
 
   const projections = {};
@@ -100,9 +103,12 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
   const handlers = {
     [CHANNELS.snapshot]: async (_event, input = {}) => {
       const domains = Array.isArray(input.domains) ? input.domains.map(clean).filter(Boolean).join(',') : '';
-      const snapshot = await apiRequest(`/api/r32/store/snapshot${domains ? `?domains=${encodeURIComponent(domains)}` : ''}`);
-      if (input.includeRelationshipIntelligence !== true) return snapshot;
-      const bootstrap = await apiRequest('/api/workspace/bootstrap');
+      const snapshotPath = `/api/r32/store/snapshot${domains ? `?domains=${encodeURIComponent(domains)}` : ''}`;
+      if (input.includeRelationshipIntelligence !== true) return apiRequest(snapshotPath);
+      const [snapshot, bootstrap] = await Promise.all([
+        apiRequest(snapshotPath),
+        apiRequest('/api/workspace/bootstrap').catch(() => null)
+      ]);
       return {
         ...objectRecord(snapshot),
         relationshipIntelligence: trustedRelationshipIntelligence(bootstrap)
