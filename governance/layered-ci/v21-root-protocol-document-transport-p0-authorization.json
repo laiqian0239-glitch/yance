@@ -96,7 +96,7 @@
   "ossFit": {
     "decision": "REUSE_EXISTING_TRUSTED_IMPLEMENTATION_BRANCH_POLICY",
     "matureOssAvailable": false,
-    "selectedAdoptionMode": "existing-repository-policy-extension",
+    "selectedAdoptionMode": "existing-repository-seam",
     "newGeneralPurposeInfrastructure": false,
     "reviewedCandidates": [
       {
@@ -112,7 +112,7 @@
         "source": "evaluateDelegatedGovernanceAuthorizationProposal",
         "license": "repository-existing",
         "adoptionMode": "preserve-separate-semantics",
-        "fit": "PARTIAL",
+        "fit": "PARTIAL_FIT",
         "reason": "It proves the non-authoritative transport pattern but is intentionally limited to one authorization JSON path and must not be widened to AGENTS.md."
       }
     ],
