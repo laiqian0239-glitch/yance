@@ -170,6 +170,11 @@
   font-size: 0.78rem;
 }
 
+.yance-person-intelligence-status {
+  color: var(--yance-accent) !important;
+  font-size: 0.7rem !important;
+}
+
 .yance-empty {
   display: grid;
   gap: var(--yance-space-1);
@@ -262,6 +267,97 @@
 .yance-world-copy {
   display: grid;
   gap: var(--yance-space-1);
+}
+
+.yance-relationship-intelligence {
+  display: grid;
+  gap: var(--yance-space-3);
+  margin-top: var(--yance-space-4);
+  padding: var(--yance-space-4);
+  border: 1px solid var(--yance-border);
+  border-radius: var(--yance-radius-lg);
+  background: var(--yance-surface);
+}
+
+.yance-relationship-intelligence__header,
+.yance-relationship-intelligence__event-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--yance-space-3);
+}
+
+.yance-relationship-intelligence__header > div,
+.yance-relationship-intelligence__provenance > div {
+  display: grid;
+  gap: var(--yance-space-1);
+}
+
+.yance-relationship-intelligence__authority,
+.yance-relationship-intelligence__provenance span,
+.yance-relationship-intelligence__event-head span,
+.yance-relationship-intelligence__events time,
+.yance-relationship-intelligence__pending {
+  color: var(--yance-muted);
+  font-size: 0.72rem;
+}
+
+.yance-relationship-intelligence__authority {
+  padding: 4px 7px;
+  border-radius: var(--yance-radius-pill);
+  background: color-mix(in srgb, var(--yance-accent) 8%, transparent);
+}
+
+.yance-relationship-intelligence__provenance {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--yance-space-2);
+}
+
+.yance-relationship-intelligence__provenance > div,
+.yance-relationship-intelligence__analysis > div,
+.yance-relationship-intelligence__events li {
+  padding: var(--yance-space-2);
+  border-radius: var(--yance-radius-sm);
+  background: color-mix(in srgb, CanvasText 4%, transparent);
+}
+
+.yance-relationship-intelligence__analysis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--yance-space-2);
+  margin: 0;
+}
+
+.yance-relationship-intelligence__analysis dt {
+  color: var(--yance-muted);
+  font-size: 0.68rem;
+}
+
+.yance-relationship-intelligence__analysis dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.yance-relationship-intelligence__events {
+  display: grid;
+  gap: var(--yance-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.yance-relationship-intelligence__events li {
+  display: grid;
+  gap: var(--yance-space-1);
+}
+
+.yance-relationship-intelligence__events p,
+.yance-relationship-intelligence__pending {
+  margin: 0;
+  line-height: 1.45;
 }
 
 .yance-world-meta {
@@ -783,8 +879,16 @@
     height: 64px;
   }
 
-  .yance-assistant-facts {
+  .yance-assistant-facts,
+  .yance-relationship-intelligence__analysis,
+  .yance-relationship-intelligence__provenance {
     grid-template-columns: 1fr;
+  }
+
+  .yance-relationship-intelligence__header,
+  .yance-relationship-intelligence__event-head {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .yance-overlay-viewport {

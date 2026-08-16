@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { LearningWorkspace } from "../LearningWorkspace";
 import { AnimatePresence, motion } from "motion/react";
 import { BilingualSearchPanel } from "./BilingualSearchPanel";
@@ -6,7 +6,7 @@ import { PeopleSurface } from "./PeopleSurface";
 import { RelationshipAssistant } from "./RelationshipAssistant";
 import { RelationshipOverlayHost } from "./RelationshipOverlayHost";
 import { RelationshipWorld } from "./RelationshipWorld";
-import { loadRelationshipProjections } from "./experienceProjection";
+import { loadRelationshipProjections, subscribeRelationshipEvents } from "./experienceProjection";
 import { useExperiencePreferences } from "./experiencePreferences";
 import {
   clearSelectedRelationship,
@@ -35,25 +35,31 @@ export function ProductExperienceShell({ navigateSearchResult }: ProductExperien
   const session = useExperienceSession();
   const preferences = useExperiencePreferences();
 
-  useEffect(() => {
-    let cancelled = false;
-    loadRelationshipProjections().then((next) => {
-      if (cancelled) return;
+  const refreshRelationships = useCallback(async (): Promise<void> => {
+    try {
+      const next = await loadRelationshipProjections();
       setRelationships(next);
       setLoading(false);
       setStatus(next.length ? `${next.length} relationships ready` : "No relationships available yet");
       if (session.selectedRelationshipId && !next.some((row) => row.id === session.selectedRelationshipId)) {
         clearSelectedRelationship();
       }
-    }).catch(() => {
-      if (!cancelled) {
-        setRelationships([]);
-        setLoading(false);
-        setStatus("Relationship data unavailable");
-      }
+    } catch {
+      setRelationships([]);
+      setLoading(false);
+      setStatus("Relationship data unavailable");
+    }
+  }, [session.selectedRelationshipId]);
+
+  useEffect(() => {
+    void refreshRelationships();
+  }, [refreshRelationships]);
+
+  useEffect(() => {
+    return subscribeRelationshipEvents(() => {
+      void refreshRelationships();
     });
-    return () => { cancelled = true; };
-  }, []);
+  }, [refreshRelationships]);
 
   useEffect(() => {
     setAssistantVisible(false);

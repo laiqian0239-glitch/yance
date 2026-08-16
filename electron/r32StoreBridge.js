@@ -31,6 +31,24 @@ function jsonBody(value) {
   return JSON.stringify(value || {});
 }
 
+function objectRecord(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function trustedRelationshipIntelligence(value) {
+  const bootstrap = objectRecord(value);
+  const trajectoryState = objectRecord(bootstrap.trajectoryState);
+  const projections = {};
+  for (const [contactId, rawTrajectory] of Object.entries(trajectoryState)) {
+    const trajectory = objectRecord(rawTrajectory);
+    const projection = objectRecord(trajectory.relationshipProjection);
+    if (projection.authorityId === 'RelationshipProjectionAuthority') {
+      projections[contactId] = projection;
+    }
+  }
+  return projections;
+}
+
 function requiredIdentifier(value, name) {
   const id = clean(value);
   if (id) return id;
@@ -69,9 +87,15 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
   if (!ipcMain?.handle || typeof apiRequest !== 'function') throw new TypeError('ipcMain and apiRequest are required');
   const activeRequests = new Map();
   const handlers = {
-    [CHANNELS.snapshot]: (_event, input = {}) => {
+    [CHANNELS.snapshot]: async (_event, input = {}) => {
       const domains = Array.isArray(input.domains) ? input.domains.map(clean).filter(Boolean).join(',') : '';
-      return apiRequest(`/api/r32/store/snapshot${domains ? `?domains=${encodeURIComponent(domains)}` : ''}`);
+      const snapshot = await apiRequest(`/api/r32/store/snapshot${domains ? `?domains=${encodeURIComponent(domains)}` : ''}`);
+      if (input.includeRelationshipIntelligence !== true) return snapshot;
+      const bootstrap = await apiRequest('/api/workspace/bootstrap');
+      return {
+        ...objectRecord(snapshot),
+        relationshipIntelligence: trustedRelationshipIntelligence(bootstrap)
+      };
     },
     [CHANNELS.socialContext]: (_event, input = {}) => {
       const contactId = clean(input.contactId);
