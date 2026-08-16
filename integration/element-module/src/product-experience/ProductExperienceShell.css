@@ -933,3 +933,51 @@
   animation-duration: 0.001ms !important;
   animation-iteration-count: 1 !important;
 }
+
+.yance-private-quest-section {
+  display: grid;
+  gap: var(--yance-space-2);
+  padding-top: var(--yance-space-2);
+  border-top: 1px solid color-mix(in srgb, var(--yance-border) 72%, transparent);
+}
+
+.yance-private-quest-section h3,
+.yance-private-quest-section p {
+  margin: 0;
+}
+
+.yance-private-quest-section h3 {
+  font-size: 0.8rem;
+}
+
+.yance-private-quest-section p,
+.yance-private-quest-progress,
+.yance-private-quest-empty {
+  color: var(--yance-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.yance-private-quest-progress {
+  display: grid;
+  gap: var(--yance-space-1);
+  margin: 0;
+  padding-inline-start: var(--yance-space-5);
+}
+
+.yance-learning-settings-actions {
+  display: flex;
+  margin-top: var(--yance-space-3);
+}
+
+.yance-learning-settings-actions button {
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--yance-border);
+  border-radius: var(--yance-radius-pill);
+  color: inherit;
+  background: var(--yance-surface-raised);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
