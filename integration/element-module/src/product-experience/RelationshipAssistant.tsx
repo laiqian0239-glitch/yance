@@ -6,10 +6,14 @@ import {
   subscribeRelationshipEvents,
   updateRelationshipGoal,
 } from "./experienceProjection";
-import type { RelationshipAiState, RelationshipAssistantProjection } from "./experienceTypes";
+import type {
+  RelationshipAiState,
+  RelationshipAssistantProjection,
+  RelationshipProjection,
+} from "./experienceTypes";
 
 type RelationshipAssistantProps = {
-  relationshipId: string;
+  relationship: RelationshipProjection;
   onStateChange?: (state: RelationshipAiState) => void;
 };
 
@@ -19,10 +23,11 @@ function statusText(projection: RelationshipAssistantProjection | null): string 
   if (!projection) return "Loading relationship intelligence";
   if (!projection.agentReady) return projection.agentStatus || "AI unavailable";
   if (projection.goal.exists === true) return projection.goal.paused ? "Goal paused" : "Goal active";
-  return "AI ready · no conversation objective";
+  return "AI ready · no private intention yet";
 }
 
-export function RelationshipAssistant({ relationshipId, onStateChange }: RelationshipAssistantProps): React.JSX.Element {
+export function RelationshipAssistant({ relationship, onStateChange }: RelationshipAssistantProps): React.JSX.Element {
+  const relationshipId = relationship.id;
   const [projection, setProjection] = useState<RelationshipAssistantProjection | null>(null);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -44,7 +49,7 @@ export function RelationshipAssistant({ relationshipId, onStateChange }: Relatio
       applyProjection(next, syncDraft);
     } catch {
       setProjection(null);
-      setStatus("Relationship intelligence unavailable");
+      setStatus("Private intention unavailable");
       onStateChange?.("error");
     }
   };
@@ -63,7 +68,7 @@ export function RelationshipAssistant({ relationshipId, onStateChange }: Relatio
       } catch {
         if (!cancelled) {
           setProjection(null);
-          setStatus("Relationship intelligence unavailable");
+          setStatus("Private intention unavailable");
           onStateChange?.("error");
         }
       }
@@ -104,7 +109,7 @@ export function RelationshipAssistant({ relationshipId, onStateChange }: Relatio
       setStatus(next.goal.paused ? "Goal paused" : "Goal active");
       onStateChange?.("ready");
     } catch {
-      setStatus("Could not update the conversation objective");
+      setStatus("Could not update the private intention");
       onStateChange?.("error");
     } finally {
       setBusy(false);
@@ -120,7 +125,7 @@ export function RelationshipAssistant({ relationshipId, onStateChange }: Relatio
       setStatus(next.goal.paused ? "Goal paused" : "Goal active");
       onStateChange?.("ready");
     } catch {
-      setStatus("Could not change the conversation objective");
+      setStatus("Could not change the private intention");
       onStateChange?.("error");
     } finally {
       setBusy(false);
@@ -135,57 +140,81 @@ export function RelationshipAssistant({ relationshipId, onStateChange }: Relatio
       dirtyDraftRef.current = false;
       setDraft("");
       await refresh(true);
-      setStatus("Conversation objective removed");
+      setStatus("Private intention removed");
     } catch {
-      setStatus("Could not remove the conversation objective");
+      setStatus("Could not remove the private intention");
       onStateChange?.("error");
     } finally {
       setBusy(false);
     }
   };
 
+  const intelligence = relationship.relationshipIntelligence;
+  const relationshipInsight = intelligence?.summary
+    || intelligence?.analysisStatusLabel
+    || "No confirmed relationship insight yet.";
+  const nextStep = intelligence?.next || "No trusted next step is available yet.";
+  const progressPath = projection?.goal.exists === true ? projection.goal.progress.path : [];
+
   return (
-    <aside className="yance-assistant" aria-label="Relationship AI">
+    <aside className="yance-assistant" aria-label="Private Quest">
       <header>
         <div>
-          <span className="yance-eyebrow">Private AI layer</span>
-          <strong>Guide this relationship</strong>
+          <span className="yance-eyebrow">Private Quest</span>
+          <strong>Stay close to what matters with {relationship.name}</strong>
         </div>
         <span className="yance-agent-dot" data-ready={projection?.agentReady || undefined} aria-hidden="true" />
       </header>
 
       <p className="yance-assistant-status" role="status" aria-live="polite">{status}</p>
 
-      <label className="yance-goal-field">
-        <span>Conversation objective</span>
-        <textarea
-          rows={4}
-          maxLength={4000}
-          value={draft}
-          disabled={busy}
-          onFocus={() => onStateChange?.("listening")}
-          onBlur={() => onStateChange?.(projection?.agentReady ? "ready" : "idle")}
-          onChange={(event) => {
-            dirtyDraftRef.current = true;
-            setDraft(event.target.value);
-          }}
-          placeholder="Naturally guide the conversation toward what matters today."
-        />
-      </label>
+      <section className="yance-private-quest-section" aria-labelledby="yance-private-quest-intention">
+        <h3 id="yance-private-quest-intention">Current intention</h3>
+        <label className="yance-goal-field">
+          <span className="yance-sr-only">Private intention</span>
+          <textarea
+            rows={4}
+            maxLength={4000}
+            value={draft}
+            disabled={busy}
+            onFocus={() => onStateChange?.("listening")}
+            onBlur={() => onStateChange?.(projection?.agentReady ? "ready" : "idle")}
+            onChange={(event) => {
+              dirtyDraftRef.current = true;
+              setDraft(event.target.value);
+            }}
+            placeholder="What matters in this relationship right now?"
+          />
+        </label>
+        <div className="yance-assistant-actions">
+          <button type="button" onClick={() => void save()} disabled={busy || !draft.trim()}>Save intention</button>
+          <button type="button" onClick={() => void togglePaused()} disabled={busy || projection?.goal.exists !== true}>
+            {projection?.goal.paused ? "Resume" : "Pause"}
+          </button>
+          <button type="button" onClick={() => void remove()} disabled={busy || projection?.goal.exists !== true}>Remove</button>
+        </div>
+      </section>
 
-      <div className="yance-assistant-actions">
-        <button type="button" onClick={() => void save()} disabled={busy || !draft.trim()}>Save objective</button>
-        <button type="button" onClick={() => void togglePaused()} disabled={busy || projection?.goal.exists !== true}>
-          {projection?.goal.paused ? "Resume" : "Pause"}
-        </button>
-        <button type="button" onClick={() => void remove()} disabled={busy || projection?.goal.exists !== true}>Remove</button>
-      </div>
+      <section className="yance-private-quest-section" aria-labelledby="yance-private-quest-progress">
+        <h3 id="yance-private-quest-progress">Progress</h3>
+        {progressPath.length ? (
+          <ol className="yance-private-quest-progress">
+            {progressPath.map((step, index) => <li key={`${index}-${step}`}>{step}</li>)}
+          </ol>
+        ) : (
+          <p className="yance-private-quest-empty">Progress is not available yet.</p>
+        )}
+      </section>
 
-      <dl className="yance-assistant-facts">
-        <div><dt>Letta</dt><dd>{projection?.agentStatus || "Unavailable"}</dd></div>
-        <div><dt>Agents</dt><dd>{projection?.agentCount ?? 0}</dd></div>
-        <div><dt>Recent context</dt><dd>{projection?.recentConversationCount ?? 0}</dd></div>
-      </dl>
+      <section className="yance-private-quest-section" aria-labelledby="yance-private-quest-insight">
+        <h3 id="yance-private-quest-insight">Relationship insight</h3>
+        <p>{relationshipInsight}</p>
+      </section>
+
+      <section className="yance-private-quest-section" aria-labelledby="yance-private-quest-next">
+        <h3 id="yance-private-quest-next">Next step</h3>
+        <p>{nextStep}</p>
+      </section>
     </aside>
   );
 }

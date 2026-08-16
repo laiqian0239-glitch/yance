@@ -77,16 +77,16 @@ test('application runtime authority never aliases the Letta PID into backendPid'
   assert.match(section, /backendPid:\s*Number\(backend\.backendPid\s*\|\|\s*0\)/u, 'backendPid must remain bound only to the Yance backend child');
 });
 
-test('the existing Element Yance Workspace is the only Letta product surface', () => {
+test('the existing Element Yance Workspace keeps Letta behind the Product projection boundary', () => {
   if (hasProductExperienceLayout()) {
     const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
     const assistant = readText('integration/element-module/src/product-experience/RelationshipAssistant.tsx');
     const projection = readText('integration/element-module/src/product-experience/experienceProjection.ts');
     assert.match(workspace, /ProductExperienceShell/u);
-    assert.match(assistant, /Letta/u);
     assert.match(projection, /getLettaState/u);
     assert.match(projection, /listLettaAgents/u);
     assert.match(projection, /listLettaConversations/u);
+    assert.doesNotMatch(assistant, /Letta|Agents|Recent context|agentCount|recentConversationCount/u, 'normal Product assistant must not expose raw Letta runtime inventory');
     const productAuthority = workspace + assistant + projection;
     assert.doesNotMatch(productAuthority, /from\s+['"](?:node:|@letta-ai)/u);
     assert.doesNotMatch(productAuthority, /\bspawn\b|child_process|LETTA_LOCAL_BACKEND_DIR/u);
@@ -106,7 +106,7 @@ test('the existing Element Yance Workspace is the only Letta product surface', (
   }
 });
 
-test('Letta Workspace refreshes readonly projections after runtime state changes and labels bounded counts honestly', () => {
+test('Letta readonly projections stay bounded while normal Product UX hides raw runtime inventory', () => {
   if (hasProductExperienceLayout()) {
     const assistant = readText('integration/element-module/src/product-experience/RelationshipAssistant.tsx');
     const projection = readText('integration/element-module/src/product-experience/experienceProjection.ts');
@@ -119,7 +119,7 @@ test('Letta Workspace refreshes readonly projections after runtime state changes
     assert.match(projection, /let recentConversationCount = 0/u);
     assert.match(projection, /const firstId = text\(normalized\[0\]\?\.id\)/u, 'bounded conversation count must remain first-agent scoped');
     assert.match(projection, /listLettaConversations\(\{ agentId: firstId, limit: 20 \}\)/u, 'bounded conversation projection must preserve the 20-item cap');
-    assert.match(assistant, /Recent context/u, 'bounded recent-conversation projection must stay visible');
+    assert.doesNotMatch(assistant, /Letta|Agents|Recent context|agentCount|recentConversationCount/u, 'bounded Letta inventory must remain internal rather than becoming normal Product telemetry');
   } else {
     const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
     assert.match(workspace, /setInterval\(/u, 'Workspace must refresh Letta state after mount so post-ready exits are observable');
