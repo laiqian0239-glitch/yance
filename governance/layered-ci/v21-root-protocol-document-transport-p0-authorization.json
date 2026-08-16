@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-16T10:34:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ROOT-PROTOCOL-DOCUMENT-TRANSPORT-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Closure V2 protocol candidate PR #436 proves that exact AGENTS.md routing is now correctly GOVERNANCE_WP0 and all layered governance contracts are GREEN, but the base-owned trusted implementation branch policy still rejects an exact AGENTS-only non-executable protocol-document branch as WP0_REJECTED_STAGE_TARGET_DENIED. This work package adds one strict root-protocol document transport to the existing trusted parser so an exact AGENTS.md-only candidate can be validated without gaining implementation authority. It does not authorize arbitrary documentation branches, product code, workflow changes, dependencies, or a second parser.",
+  "base": {
+    "branch": "main",
+    "commit": "7f637f05846da0e4918a6418f99e87726cc8d0a7"
+  },
+  "causalRed": {
+    "pullRequest": 436,
+    "head": "6fb21053528922a7985ddc23e760e803f5e5e6a0",
+    "stageRun": 31924843337,
+    "governanceJob": 95110687729,
+    "reasonCode": "WP0_REJECTED_STAGE_TARGET_DENIED",
+    "routeAlreadyGreen": true,
+    "layeredGovernancePassed": "201/201",
+    "genericOssAuthorizationPassed": "8/8"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-root-protocol-document-transport-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-root-protocol-document-transport-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "2689dd71fda62dc2e1e408d5786ad6830cc71efaae7a33fe039bb25c10acb0f3",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-root-protocol-document-transport-p0",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "c9ebb6397f260acd3447fa7691a53ec9c6478d1c375250dc3a07b61498cc03f2",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/implementation-branch-policy.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "7913275d3348e4c902aab19807e71fe0a02943be068cba5ef7f948eb9be7a7de",
+      "productionCodeChanged": false,
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ]
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "rootProtocolTransport": {
+    "targetPath": "AGENTS.md",
+    "requiredSemantics": [
+      "An exact candidate whose trusted-main diff is exactly AGENTS.md may be admitted only as non-executable root protocol document transport.",
+      "Transport must grant implementationAuthorityGranted=false and must never make the branch an implementation authority.",
+      "AGENTS.md must be a regular non-executable blob at mode 100644 and must be present at the evaluated head.",
+      "The trusted-main diff must contain exactly one path, AGENTS.md, with no rename ambiguity or adjacent file.",
+      "Existing arbitrary branch denial, generic delegated governance authorization transport, failure-first topology, and sealed OSS semantics remain unchanged."
+    ],
+    "forbiddenSemantics": [
+      "No docs/ prefix or wildcard branch authorization.",
+      "No broad Markdown/documentation transport.",
+      "No product, runtime, workflow, dependency, release, test, or governance JSON path may enter this transport.",
+      "No implementation authority may be inferred from protocol-document transport.",
+      "No warning-only fallback or Stage-only exception."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_TRUSTED_IMPLEMENTATION_BRANCH_POLICY",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing implementationBranchPolicy trusted parser",
+        "source": "shared/release/implementationBranchPolicy.js",
+        "license": "repository-existing",
+        "adoptionMode": "extend-existing-seam",
+        "fit": "FIT",
+        "reason": "It already owns branch admission, exact changed-file resolution, trusted Git topology, proposal transport and implementation-authority decisions; extending this same parser avoids a parallel policy engine."
+      },
+      {
+        "name": "Existing generic delegated authorization proposal transport",
+        "source": "evaluateDelegatedGovernanceAuthorizationProposal",
+        "license": "repository-existing",
+        "adoptionMode": "preserve-separate-semantics",
+        "fit": "PARTIAL_FIT",
+        "reason": "It proves the non-authoritative transport pattern but is intentionally limited to one authorization JSON path and must not be widened to AGENTS.md."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second parser, workflow, script, branch registry or documentation authority service.",
+      "Do not widen authorization-proposal transport to arbitrary Markdown.",
+      "Do not add a docs branch regex as an authority substitute for exact content/topology validation."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "requiredBoundaries": [
+      "root AGENTS exact route classification",
+      "root protocol transport branch admission",
+      "implementationAuthorityGranted remains false",
+      "regular blob/path exactness",
+      "arbitrary branch negative proof",
+      "generic authorization proposal transport preservation",
+      "legacy and Fast Closure V2 failure-first preservation"
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js",
+      "node --test --test-concurrency=1 tests/layered-ci/fast-closure-v2-policy.test.js",
+      "node --test --test-concurrency=1 tests/layered-ci/wp0-routing.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "ACV2",
+      "Layered when triggered",
+      "Model when triggered"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "transport is exact AGENTS.md only",
+      "transport never grants implementation authority",
+      "no broad docs branch/path authority",
+      "generic delegated proposal and arbitrary branch denial remain fail closed",
+      "no new parser/workflow/infrastructure"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
