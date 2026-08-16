@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-AI-COMPANION-PRIVATE-QUEST-P0-V1",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Closure V2 post-production Stage RED 31938766531 proved one same-root executable Product-consumer contract outside the original five-path scope: tests/wp0/v21-letta-workspace-contract.test.js still requires RelationshipAssistant to expose the implementation labels Letta and Recent context even though the current Living Relationship OS Product SSOT and the effective V1 authorization require raw Letta runtime inventory to leave normal relationship UX. The same RED also exposed a Parlant source-shape assertion that can be satisfied without test migration by keeping a stable local relationshipId inside the already-authorized RelationshipAssistant.tsx. This amendment therefore adds exactly the one proven stale Letta contract path, leaves production scope unchanged, preserves all Letta runtime/IPC/bounded-projection authority, and forbids reintroducing telemetry merely to satisfy the old UI assertion.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-ai-companion-private-quest-p0-v1-authorization.json",
+    "implementationBranch": "product/v21-product-ai-companion-private-quest-p0-v1",
+    "reason": "Fresh post-production causal RED proved one additional stale consumer-test boundary. The original branch and commits remain immutable evidence but must not receive further implementation authority after this amendment becomes effective."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "b93a6717f6950a7c9721cd79acf2f97056a89de0"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "b93a6717f6950a7c9721cd79acf2f97056a89de0",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-ai-companion-private-quest-p0-v1-scope-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-ai-companion-private-quest-p0-v1-scope-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "e25c7dfcfd3f0280962a7a5218991fff308f3766dca56378a4bf40137d79e0d8",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-ai-companion-private-quest-p0-v1-amendment-1",
+    "allowedChangedPaths": [
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/RelationshipAssistant.tsx",
+      "tests/wp0/v21-learning-growth-brain-ui.test.js",
+      "tests/wp0/v21-letta-workspace-contract.test.js",
+      "tests/wp0/v21-product-ai-companion-private-quest-p0.test.js"
+    ],
+    "approvedChangedFileCount": 6,
+    "approvedChangedFileSetSha256": "9496a7336bac58905b0ab58ff3b5208ec3ee8efff2b71f1cb2c0f42444df0200",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "databaseMigrationAllowed": false,
+    "graphitiRuntimeModificationAllowed": false,
+    "neo4jRuntimeModificationAllowed": false,
+    "lettaRuntimeModificationAllowed": false,
+    "parlantRuntimeModificationAllowed": false,
+    "learningRuntimeModificationAllowed": false,
+    "productRendererModificationAllowed": true
+  },
+  "postRedContinuation": {
+    "fastClosureV2": true,
+    "originalEffectiveAuthorizationMerge": "b93a6717f6950a7c9721cd79acf2f97056a89de0",
+    "originalImplementationBranch": "product/v21-product-ai-companion-private-quest-p0-v1",
+    "originalFailureFirstHead": "ce6ed4381870f584bd61aeb86c2eb9ccc74da9e2",
+    "originalFailureFirstStageRun": 31938372344,
+    "originalFailureFirstConclusion": "failure",
+    "firstProductionHead": "0f7c051030b2b4c2d8b5bd57f4701a26998c8e5a",
+    "firstProductionCommitCarriesExactRedTrailers": true,
+    "closureMatrixUnknownBlockersAtFirstProduction": 0,
+    "postProductionCausalRedHead": "0f7c051030b2b4c2d8b5bd57f4701a26998c8e5a",
+    "postProductionCausalStageRun": 31938766531,
+    "postProductionCausalStageConclusion": "failure",
+    "postProductionStagePassCount": 445,
+    "postProductionStageFailCount": 3,
+    "provenNewScopePath": "tests/wp0/v21-letta-workspace-contract.test.js",
+    "parlantFailureRequiresScopeExpansion": false,
+    "parlantFailureRepairPath": "integration/element-module/src/product-experience/RelationshipAssistant.tsx",
+    "requiredContinuationTopology": {
+      "newImplementationBranchMustStartFromEffectiveAmendmentMerge": true,
+      "firstContinuationCommitMustBeTwoParentMerge": true,
+      "firstContinuationCommitFirstParent": "EFFECTIVE_AMENDMENT_MERGE",
+      "firstContinuationCommitSecondParent": "0f7c051030b2b4c2d8b5bd57f4701a26998c8e5a",
+      "historyRewriteForbidden": true,
+      "oldImplementationBranchMustNotReceiveFurtherCommits": true
+    }
+  },
+  "causalRedClassification": {
+    "rootImplementationAlreadyGreen": [
+      "tests/wp0/v21-product-ai-companion-private-quest-p0.test.js",
+      "tests/wp0/v21-learning-growth-brain-ui.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "tests/wp0/v21-product-experience-shell-accessibility.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-relationship-intelligence-surface.test.js",
+      "tests/wp0/v21-graphiti-relationship-authority.test.js"
+    ],
+    "staleLettaConsumerAssertions": [
+      "RelationshipAssistant source must contain the implementation label Letta.",
+      "RelationshipAssistant must keep Recent context visible."
+    ],
+    "preservedLettaContracts": [
+      "Electron main owns Letta lifecycle.",
+      "Renderer Letta reads remain on guarded readonly IPC.",
+      "getLettaState/listLettaAgents/listLettaConversations projection calls remain present.",
+      "agentCount and recentConversationCount remain bounded internal projection values.",
+      "conversation list remains first-agent scoped with limit 20.",
+      "RelationshipAssistant cancellable refresh and dirty-draft preservation remain intact."
+    ],
+    "parlantRoot": "RelationshipAssistant moved from relationshipId prop to RelationshipProjection prop; event filtering behavior remains current-relationship-only and should bind relationship.id once to a local relationshipId for stable behavioral/source identity.",
+    "unknownBlockers": 0
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "Private Quest remains relationship-native and hidden by default.",
+      "Letta runtime readiness may remain internal but raw Letta/agent/recent-conversation inventory must not be presented as normal relationship facts.",
+      "Parlant current intention and progress remain on existing Goal authority.",
+      "Relationship insight and next step remain on #443 RelationshipProjectionAuthority output only.",
+      "Learning admin remains explicitly user-reachable through secondary Experience settings without permanent normal-scene mounting.",
+      "Background relationship events refresh only the currently open relationship assistant and never overwrite an unsaved Goal draft."
+    ],
+    "forbiddenBehavior": [
+      "Do not reintroduce Letta, Agents, Recent context, provider/model names or runtime counts into normal Product UX merely to satisfy a superseded test assertion.",
+      "Do not weaken or delete Letta runtime, IPC, lifecycle, bounded-projection, process-ownership or source-traceability contracts.",
+      "Do not change Parlant Goal authority or event behavior to satisfy a source regex.",
+      "Do not add dependencies, workflows, IPC channels, backend routes, databases, services, caches, sidecars or new AI/memory/journey/reply/relationship engines."
+    ]
+  },
+  "ossFit": {
+    "decision": "NO_NEW_OSS_OR_INFRASTRUCTURE_SCOPE_REUSE_EXISTING_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Letta",
+        "source": "existing repository-pinned Letta runtimes",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "The RED is a stale Product presentation contract; Letta runtime/IPC/projection authority is already correct and remains unchanged."
+      },
+      {
+        "name": "Parlant",
+        "source": "existing repository-pinned Parlant runtime",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "The Parlant RED is only a local identifier source-shape mismatch; Goal and event semantics remain correct."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire only the stale Letta Product-consumer visibility assertions.",
+      "Do not retire or duplicate Letta or Parlant authority.",
+      "Do not add a compatibility UI label or hidden telemetry element as a test workaround."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-letta-workspace-contract.test.js",
+      "node --test tests/wp0/v21-parlant-workspace-contract.test.js",
+      "node --test tests/wp0/v21-product-ai-companion-private-quest-p0.test.js",
+      "node --test tests/wp0/v21-learning-growth-brain-ui.test.js",
+      "node --test tests/wp0/v21-product-experience-shell-p0.test.js",
+      "node --test tests/wp0/v21-product-experience-shell-accessibility.test.js",
+      "node --test tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "node --test tests/wp0/v21-product-relationship-intelligence-surface.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "ACV2",
+      "WP-A validation when triggered",
+      "Product Experience Final Validation when triggered",
+      "Model validation when triggered"
+    ],
+    "negativeProofs": [
+      "No normal Product Letta/Agents/Recent context runtime dashboard is restored.",
+      "Letta readonly IPC/lifecycle/bounded projection contracts remain intact.",
+      "Parlant relationship event filtering remains current-relationship-only and dirty drafts remain protected.",
+      "No new infrastructure or runtime authority is introduced."
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "p0MustEqual": 0,
+    "p1MustEqual": 0,
+    "unresolvedReviewThreadsMustEqual": 0,
+    "codeRabbitQuotaOrAvailabilityIsNotSoleBlockingAuthority": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
