@@ -39,6 +39,18 @@ function minimumDistance(points) {
   return minimum;
 }
 
+function minimumPixelDistance(points, width, height) {
+  let minimum = Number.POSITIVE_INFINITY;
+  for (let left = 0; left < points.length; left += 1) {
+    for (let right = left + 1; right < points.length; right += 1) {
+      const dx = ((points[left].x - points[right].x) / 100) * width;
+      const dy = ((points[left].y - points[right].y) / 100) * height;
+      minimum = Math.min(minimum, Math.hypot(dx, dy));
+    }
+  }
+  return minimum;
+}
+
 test('People Home defaults to list and exposes an explicit relationship universe peer view', () => {
   const shellSource = shell();
   const peopleSource = people();
@@ -63,19 +75,29 @@ test('relationship universe is user-centered and does not invent contact-to-cont
   assert.doesNotMatch(source, /sourceId|targetId|personToPerson|contactEdges|socialGraph/iu);
 });
 
-test('relationship universe keeps dense 21 and 33 relationship constellations spatially distinct', () => {
-  const positionFor = loadUniversePosition(people());
+test('relationship universe keeps dense 21 and 33 relationship controls collision-free on a narrow stage', () => {
+  const peopleSource = people();
+  const stylesheet = css();
+  const positionFor = loadUniversePosition(peopleSource);
   for (const count of [21, 33]) {
     const positions = Array.from({ length: count }, (_, index) => positionFor(index, count));
     assert.ok(
       minimumDistance(positions) >= 8,
       `${count} relationship nodes must keep at least 8 normalized stage units between centers`,
     );
+    assert.ok(
+      minimumPixelDistance(positions, 320, 430) >= 42,
+      `${count} relationship controls must keep at least 42px between centers on a conservative 320x430 stage`,
+    );
     for (const position of positions) {
       assert.ok(position.x >= 5 && position.x <= 95, `${count} relationship node x must remain bounded`);
       assert.ok(position.y >= 5 && position.y <= 95, `${count} relationship node y must remain bounded`);
     }
   }
+  assert.match(peopleSource, /denseUniverse\s*=\s*relationships\.length\s*>\s*8/u);
+  assert.match(peopleSource, /data-dense=\{denseUniverse\s*\|\|\s*undefined\}/u);
+  assert.match(stylesheet, /\.yance-relationship-universe__stage\[data-dense\][\s\S]{0,180}\.yance-relationship-universe__node\s*\{[\s\S]{0,180}width:\s*40px/u);
+  assert.match(stylesheet, /@media\s*\(max-width:\s*620px\)[\s\S]{0,900}\.yance-relationship-universe__node\s*\{[\s\S]{0,220}width:\s*40px/u);
 });
 
 test('universe focus is separate from relationship selection and survives Relationship World round trips', () => {
