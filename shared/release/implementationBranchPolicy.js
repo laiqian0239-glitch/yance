@@ -27,6 +27,8 @@ const GENERIC_DELEGATED_GOVERNANCE_DOCUMENT_TYPE = 'YANCE_DELEGATED_GOVERNANCE_B
 const GENERIC_DELEGATED_GOVERNANCE_STATUS = 'AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE';
 const GENERIC_DELEGATED_GOVERNANCE_PATH = /^governance\/layered-ci\/[a-z0-9][a-z0-9-]*-authorization\.json$/u;
 const AUTHORIZATION_PROPOSAL_TRANSPORT_MODE = 'AUTHORIZATION_PROPOSAL_TRANSPORT';
+const ROOT_PROTOCOL_DOCUMENT_TRANSPORT_MODE = 'ROOT_PROTOCOL_DOCUMENT_TRANSPORT';
+const ROOT_PROTOCOL_DOCUMENT_PATH = 'AGENTS.md';
 const TRUSTED_MAIN_DELEGATED_GOVERNANCE_MODE = 'TRUSTED_MAIN_DELEGATED_GOVERNANCE';
 const DELEGATED_ROUTE_POLICY_PATH = 'governance/layered-ci/wp0-routing-policy.json';
 const DELEGATED_ROUTE_POLICY_MUTATION_DENIED = 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED';
@@ -679,6 +681,48 @@ function evaluateDelegatedGovernanceAuthorizationProposal(options = {}) {
   const evaluatedHead = Object.prototype.hasOwnProperty.call(options, 'evaluatedHead')
     ? options.evaluatedHead
     : defaultTrustedHead(options);
+  const suppliedChangedFiles = Object.prototype.hasOwnProperty.call(options, 'changedFiles')
+    ? options.changedFiles
+    : null;
+  const suppliedRootProtocolCandidate = !Array.isArray(suppliedChangedFiles)
+    || (suppliedChangedFiles.length === 1
+      && suppliedChangedFiles[0] === ROOT_PROTOCOL_DOCUMENT_PATH);
+  if (suppliedRootProtocolCandidate
+    && isExactBranch(branch)
+    && SHA40.test(String(trustedMainHead || ''))
+    && SHA40.test(String(evaluatedHead || ''))) {
+    const resolveChangedFiles = options.resolveChangedFilesBetween
+      || ((base, head) => defaultChangedFilesBetween(base, head, options));
+    const ancestor = options.isTrustedAncestor
+      || ((base, head) => defaultTrustedAncestor(base, head, options));
+    const resolveBlob = options.resolveCommitBlobSha
+      || ((commit, repositoryPath) => defaultCommitBlobSha(commit, repositoryPath, options));
+    const resolvePathMode = options.resolveCommitPathMode
+      || ((commit, repositoryPath) => defaultCommitPathMode(commit, repositoryPath, options));
+    const actualChangedFiles = resolveChangedFiles(trustedMainHead, evaluatedHead);
+    const normalizedActualChangedFiles = Array.isArray(actualChangedFiles)
+      ? normalizeChangedFiles(actualChangedFiles)
+      : [];
+    const rootProtocolPass = Array.isArray(actualChangedFiles)
+      && actualChangedFiles.length === 1
+      && normalizedActualChangedFiles.length === 1
+      && actualChangedFiles[0] === ROOT_PROTOCOL_DOCUMENT_PATH
+      && normalizedActualChangedFiles[0] === ROOT_PROTOCOL_DOCUMENT_PATH
+      && ancestor(trustedMainHead, evaluatedHead) === true
+      && resolvePathMode(evaluatedHead, ROOT_PROTOCOL_DOCUMENT_PATH) === '100644'
+      && SHA40.test(String(resolveBlob(evaluatedHead, ROOT_PROTOCOL_DOCUMENT_PATH) || ''));
+    if (rootProtocolPass) {
+      return Object.freeze({
+        pass: true,
+        reasonCode: null,
+        mode: ROOT_PROTOCOL_DOCUMENT_TRANSPORT_MODE,
+        implementationAuthorityGranted: false,
+        authorizationPath: null,
+        protocolPath: ROOT_PROTOCOL_DOCUMENT_PATH,
+        trustedMainHead
+      });
+    }
+  }
   let changedFiles = Object.prototype.hasOwnProperty.call(options, 'changedFiles')
     ? options.changedFiles
     : null;
