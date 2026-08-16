@@ -178,7 +178,7 @@
   "ossFit": {
     "decision": "ADOPT_PINNED_KENNEY_INTERFACE_SOUNDS_CC0_FOR_OFFICIAL_BUILT_IN_SOUND_BYTES_AND_REUSE_EXISTING_YANCE_AUTHORITIES",
     "matureOssAvailable": true,
-    "selectedAdoptionMode": "pinned-source-asset-transplant",
+    "selectedAdoptionMode": "source-module",
     "newGeneralPurposeInfrastructure": false,
     "matureOssDefault": true,
     "reviewedCandidates": [
@@ -213,7 +213,7 @@
         "source": "shared/notificationSoundLibrary.json and frontend/assets/sounds",
         "license": "redistribution provenance not established in current governance evidence",
         "adoptionMode": "do-not-distribute-as-official-built-in",
-        "fit": "REJECTED",
+        "fit": "GAP",
         "reason": "Existing import evidence proves decode/dedupe/safety properties but does not establish redistribution authorization."
       }
     ],
