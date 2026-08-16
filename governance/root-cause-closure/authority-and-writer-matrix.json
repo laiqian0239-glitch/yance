@@ -134,22 +134,35 @@
     },
     {
       "id": "learningLifecycle",
-      "authority": "LearningLifecycleAuthority",
-      "currentImplementation": "backend/services/replyLearningScopeAuthority.js",
-      "singleWriter": "reply learning event and scope transaction",
-      "storage": "ai_reply_learning_scopes + versions + evidence",
+      "authority": "LearningV4ImmutableSignalLedger",
+      "currentImplementation": "backend/services/replyFeedbackLearningService.js + backend/services/learningOutcomeAttributionService.js + backend/services/learningDataPolicy.js + backend/services/learningEvidenceBridge.js + backend/repositories/platformCoreRepository.js",
+      "singleWriter": "Learning V4 uses one immutable learning_signal_ledger authority: replyFeedbackLearningService appends transaction-bound candidate feedback signals, learningOutcomeAttributionService appends permanently false-eligible raw outcome observations, and Learning-approved Langfuse evidence governs later trainable use.",
+      "storage": "learning_signal_ledger + Learning-approved Langfuse evidence; no mutable reply-learning scope authority",
       "readers": [
-        "backend/services/replyFeedbackLearningService.js",
-        "backend/services/contextAwareReplyBrain.js"
+        "backend/services/contextAwareReplyBrain.js",
+        "backend/services/learningOutcomeAttributionService.js",
+        "backend/services/learningEvidenceBridge.js"
       ],
-      "requiredStates": ["generated", "accepted", "edited", "rejected", "sent", "send_failed", "learned", "rolled_back", "forgotten"],
+      "requiredStates": [
+        "candidate_sent",
+        "candidate_rejected",
+        "policy_outcome_observed",
+        "scored",
+        "shadowed",
+        "promoted",
+        "rolled_back"
+      ],
       "rootCauseRisks": [
-        "候选操作缺失导致生命周期无法人工确认",
-        "生成事件被误当学习成功"
+        "????????????????????????",
+        "?? outcome ?????? learningEligible",
+        "?? reply-learning scope authority ??????????"
       ],
       "sourceReferences": [
-        "backend/services/replyLearningScopeAuthority.js",
         "backend/services/replyFeedbackLearningService.js",
+        "backend/services/learningOutcomeAttributionService.js",
+        "backend/services/learningDataPolicy.js",
+        "backend/services/learningEvidenceBridge.js",
+        "backend/repositories/platformCoreRepository.js",
         "backend/services/contextAwareReplyBrain.js"
       ]
     },

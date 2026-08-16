@@ -11,7 +11,6 @@ const BASE_SOUND_OPTIONS = Object.freeze([
   Object.freeze({ id: 'warning-low', fileName: 'yance-classic-warning-low.wav', label: 'Classic Warning', description: '低级警告与需要注意的异常提示。', group: YANCE_CLASSIC, family: YANCE_CLASSIC, pack: YANCE_CLASSIC, role: 'system', recommendedEvents: ['failure'] })
 ]);
 
-const IMPORTED_SOUND_OPTIONS = Object.freeze([]);
 const SOUND_OPTIONS = BASE_SOUND_OPTIONS;
 const SOUND_PATTERNS = Object.freeze(SOUND_OPTIONS.map(row => row.id));
 const SOUND_PATTERN_SET = new Set(SOUND_PATTERNS);
@@ -121,7 +120,6 @@ function soundCatalog(customPatterns = []) {
 
 module.exports = {
   BASE_SOUND_OPTIONS,
-  IMPORTED_SOUND_OPTIONS,
   SOUND_OPTIONS,
   SOUND_PATTERNS,
   EVENT_SOUND_OPTIONS,
