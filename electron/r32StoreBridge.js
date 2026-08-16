@@ -38,12 +38,23 @@ function objectRecord(value) {
 function trustedRelationshipIntelligence(value) {
   const bootstrap = objectRecord(value);
   const trajectoryState = objectRecord(bootstrap.trajectoryState);
+  const contacts = Array.isArray(bootstrap.contacts) ? bootstrap.contacts : [];
+  const stableContactIdByTrajectoryId = new Map();
+  for (const rawContact of contacts) {
+    const contact = objectRecord(rawContact);
+    const trajectoryId = clean(contact.id || contact.sessionKey || contact.conversationId);
+    const stableContactId = clean(contact.contactId);
+    if (trajectoryId && stableContactId) stableContactIdByTrajectoryId.set(trajectoryId, stableContactId);
+  }
+
   const projections = {};
-  for (const [contactId, rawTrajectory] of Object.entries(trajectoryState)) {
+  for (const [trajectoryId, rawTrajectory] of Object.entries(trajectoryState)) {
+    const stableContactId = stableContactIdByTrajectoryId.get(trajectoryId);
+    if (!stableContactId || projections[stableContactId]) continue;
     const trajectory = objectRecord(rawTrajectory);
     const projection = objectRecord(trajectory.relationshipProjection);
     if (projection.authorityId === 'RelationshipProjectionAuthority') {
-      projections[contactId] = projection;
+      projections[stableContactId] = projection;
     }
   }
   return projections;

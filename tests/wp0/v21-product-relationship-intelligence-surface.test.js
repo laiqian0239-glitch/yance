@@ -15,7 +15,7 @@ function productSource(...rels) {
   return rels.map(read).join('\n');
 }
 
-test('storeSnapshot can opt into the existing workspace relationship authority without changing the default snapshot contract', async () => {
+test('storeSnapshot binds workspace trajectory session keys to stable customer ids without changing the default snapshot contract', async () => {
   const { installR32StoreBridge, CHANNELS } = require('../../electron/r32StoreBridge');
   const handlers = new Map();
   const ipcMain = {
@@ -41,6 +41,11 @@ test('storeSnapshot can opt into the existing workspace relationship authority w
     source: 'empty',
     analysisRequired: true,
     analysisStatusLabel: 'AI 分析待执行',
+    sourceScope: {
+      sourceAccountId: 'wa-account-1',
+      conversationId: 'conv-1',
+      canonicalContactId: 'canonical-1'
+    },
     trajectory: {
       authorityId: 'RelationshipProjectionAuthority',
       projectionState: 'pending_analysis',
@@ -63,9 +68,13 @@ test('storeSnapshot can opt into the existing workspace relationship authority w
     requests.push(requestPath);
     if (requestPath === '/api/workspace/bootstrap') {
       return {
+        contacts: [
+          { id: 'conv-1', sessionKey: 'conv-1', contactId: 'c1', canonicalContactId: 'canonical-1' },
+          { id: 'conv-legacy', sessionKey: 'conv-legacy', contactId: 'c2', canonicalContactId: 'canonical-2' }
+        ],
         trajectoryState: {
-          c1: { relationshipProjection: trustedProjection },
-          c2: {
+          'conv-1': { relationshipProjection: trustedProjection },
+          'conv-legacy': {
             relationshipPotential: 99,
             relationshipProjection: { authorityId: 'LegacyRelationshipHeuristic', trajectory: { stage: 'VIP' } }
           }
@@ -91,6 +100,7 @@ test('storeSnapshot can opt into the existing workspace relationship authority w
   ]);
   assert.deepEqual(enriched.snapshot, snapshot.snapshot);
   assert.deepEqual(enriched.relationshipIntelligence, { c1: trustedProjection });
+  assert.equal(Object.hasOwn(enriched.relationshipIntelligence, 'conv-1'), false);
   assert.equal(JSON.stringify(enriched).includes('relationshipPotential'), false);
   assert.equal(JSON.stringify(enriched).includes('LegacyRelationshipHeuristic'), false);
 });
@@ -169,6 +179,7 @@ test('relationship intelligence surface adds no new IPC, backend route, database
   );
 
   assert.match(bridge, /snapshot:\s*'store:get-snapshot'/u);
+  assert.match(bridge, /contact\.contactId/u);
   assert.doesNotMatch(bridge, /relationship-intelligence|relationship:.*intelligence/u);
   assert.doesNotMatch(product, /new\s+(?:Relationship|Graph|Neo4j)|\/api\/relationship|ipcRenderer|contextBridge/u);
 });
