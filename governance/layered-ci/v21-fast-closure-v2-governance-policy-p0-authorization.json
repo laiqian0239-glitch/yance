@@ -4,9 +4,9 @@
   "requestedByUserAt": "2026-08-16T09:15:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-FAST-CLOSURE-V2-GOVERNANCE-POLICY-P0",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Fresh audit after #432 authorization merge and #433 Stage RED proves two governance defects block Fast Closure V2 from being real rather than procedural convention: trusted WP0 routing fails closed on root AGENTS.md as WP0_ROUTE_UNKNOWN_PATH, while shared/release/implementationBranchPolicy.js binds failure-first evidence to the fixed second first-parent commit instead of the first production commit. That fixed-ordinal rule would let an additional tests-only diagnostic commit consume the old evidence slot and leave the eventual production commit unenforced. This work package reuses the existing base-owned WP0 routing policy, existing governanceBootstrapPaths exact-add semantic guard and existing delegated implementation policy; it adds no second policy engine, workflow, dependency or infrastructure. The repair must route AGENTS.md as an exact governance path and extend the existing failure-first parser with an opt-in Fast Closure V2 diagnostic-window contract that permits consecutive tests-only causal RED commits and binds exact RED evidence plus unknownBlockers=0 to the first production commit using the latest diagnostic RED head.",
+  "reason": "Fresh audit after #432 authorization merge and #433 Stage RED proves two governance defects block Fast Closure V2 from being real rather than procedural convention: trusted WP0 routing fails closed on root AGENTS.md as WP0_ROUTE_UNKNOWN_PATH, while shared/release/implementationBranchPolicy.js binds failure-first evidence to the fixed second first-parent commit instead of the first production commit. That fixed-ordinal rule would let an additional tests-only diagnostic commit consume the old evidence slot and leave the eventual production commit unenforced. This work package reuses the existing base-owned WP0 routing policy, existing governanceBootstrapPaths exact-add semantic guard and existing delegated implementation policy; it adds no second policy engine, workflow, dependency or infrastructure. The repair must route AGENTS.md as an exact governance path and extend the existing failure-first parser with an opt-in Fast Closure V2 diagnostic-window contract that permits consecutive tests-only causal RED commits and binds exact RED evidence plus unknownBlockers=0 to the first production commit using the latest diagnostic RED head. Revision 2 narrows the implementation to the two production policy roots plus one dedicated layered-CI regression; existing WP0 policy suites remain mandatory unchanged regressions rather than becoming implementation diff paths.",
   "base": {
     "branch": "main",
     "commit": "19b7326c4283f5be34fc5a01d58fa543bf476966"
@@ -41,22 +41,18 @@
     "allowedChangedPaths": [
       "governance/layered-ci/wp0-routing-policy.json",
       "shared/release/implementationBranchPolicy.js",
-      "tests/layered-ci/wp0-routing.test.js",
-      "tests/wp0/delegated-failure-first-topology.test.js",
-      "tests/wp0/implementation-branch-policy.test.js"
+      "tests/layered-ci/fast-closure-v2-policy.test.js"
     ],
-    "approvedChangedFileCount": 5,
-    "approvedChangedFileSetSha256": "6f734a75bd2fe809273fb96fee89163b93e7e6295dd169ef2088a5825e5d8839",
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "519fd7bf008bf8903716f0ca119c8f560ef72cdafde4e3537554ae35d70f3a77",
     "failureFirstCommit": {
       "mustBeFirstImplementationCommit": true,
       "freshCausalRedRequired": true,
       "allowedChangedPaths": [
-        "tests/layered-ci/wp0-routing.test.js",
-        "tests/wp0/delegated-failure-first-topology.test.js",
-        "tests/wp0/implementation-branch-policy.test.js"
+        "tests/layered-ci/fast-closure-v2-policy.test.js"
       ],
-      "approvedChangedFileCount": 3,
-      "approvedChangedFileSetSha256": "7eda81d27980d701462aa992fe6c5e9c54375034eff49c8f3b64f9b8bab2d71e",
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "aa556083d60665a066f0b0f822c5c98f2c2ef73a8aaefb4b4464a1355804f82a",
       "productionCodeChanged": false,
       "requiredPostRedEvidenceTrailers": [
         "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
@@ -91,15 +87,15 @@
     "diagnosticHeadWithoutSubsequentCommitMayExistBeforeRemoteRedEvidence": true
   },
   "mandatoryFailureFirstContracts": [
-    "The first implementation commit changes exactly the three authorized test paths and no production/policy file.",
+    "The first implementation commit creates only tests/layered-ci/fast-closure-v2-policy.test.js and contains no production/policy change.",
     "Fresh RED proves AGENTS.md is currently WP0_ROUTE_UNKNOWN_PATH under the base-owned classifier.",
     "Fresh RED proves the current failure-first parser accepts only a fixed second-commit evidence slot and cannot correctly bind evidence to a later first production commit after multiple diagnostics.",
-    "Fresh RED proves the existing delegated route mutation guard must authorize exactly AGENTS.md as a governanceBootstrapPaths addition and reject unrelated route-policy drift.",
+    "The dedicated regression proves the existing delegated route mutation guard authorizes exactly AGENTS.md as a governanceBootstrapPaths addition and rejects unrelated route-policy drift without changing the existing implementation-branch-policy test suite.",
     "After implementation AGENTS.md is added only to governanceExactPaths; no governance/product prefix is widened and unknownPathFailsClosed remains true.",
     "After implementation a Fast Closure V2 opted-in authorization may have RED1 tests-only, RED2 tests-only carrying RED1 evidence, then a first production commit carrying RED2 evidence plus Yance-Closure-Matrix-Unknown-Blockers: 0.",
     "A Fast Closure V2 diagnostic commit that changes a production path, omits prior RED evidence, references the wrong RED head, or uses a non-failure conclusion is rejected.",
     "A first production commit that lacks the latest RED evidence or unknownBlockers=0 trailer is rejected.",
-    "Legacy failureFirstCommit authorizations without Fast Closure V2 opt-in keep their current semantics and remain GREEN.",
+    "Legacy failureFirstCommit authorizations without Fast Closure V2 opt-in keep their current semantics; tests/wp0/delegated-failure-first-topology.test.js and tests/wp0/implementation-branch-policy.test.js remain unchanged mandatory regressions.",
     "No workflow, dependency, product renderer, Graphiti runtime, database, sidecar or second policy engine is introduced."
   ],
   "ossFit": {
@@ -135,6 +131,7 @@
   },
   "requiredValidation": {
     "focused": [
+      "node --test tests/layered-ci/fast-closure-v2-policy.test.js",
       "node --test tests/layered-ci/wp0-routing.test.js",
       "node --test tests/wp0/delegated-failure-first-topology.test.js",
       "node --test tests/wp0/implementation-branch-policy.test.js"
@@ -149,7 +146,7 @@
       "AGENTS.md is the only new governance route literal.",
       "Unknown/unrelated root files continue to fail closed.",
       "Fast Closure V2 first production evidence is bound to the latest diagnostic RED, not a fixed commit ordinal.",
-      "Legacy failure-first authorizations preserve existing semantics."
+      "Legacy failure-first authorizations preserve existing semantics and unchanged regression suites remain GREEN."
     ]
   },
   "independentReview": {
