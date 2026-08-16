@@ -107,3 +107,11 @@ test('thin Chatwoot Matrix bridge verifies exact upstream HMAC freshness and kee
   assert.doesNotMatch(source, /graph\.facebook\.com|graph\.facebook|fb\.me\//iu);
   assert.doesNotMatch(source, /sqlite|better-sqlite|new\s+Map\s*\(\)[\s\S]*(?:retry|queue)/iu);
 });
+
+test('legacy Facebook OAuth regression migrates Page assertions to Chatwoot ownership while retaining Personal Identity Worker coverage', () => {
+  const source = readText('backend/tests/facebookOAuthLifecycleRegression.test.js');
+  assert.doesNotMatch(source, /test\('Facebook OAuth starts only against sealed Worker URL and registers a public device identity'/u);
+  assert.doesNotMatch(source, /test\('Facebook OAuth polling ignores any injected Page Token and exposes only safe Page metadata'/u);
+  assert.doesNotMatch(source, /test\('Facebook Page selection (?:completes credential replacement|persists cloud account)/u);
+  assert.match(source, /test\('official Facebook personal identity login completes without Page selection and never grants Messenger capability'/u);
+});
