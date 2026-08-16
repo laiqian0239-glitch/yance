@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-16T08:25:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-GRAPHITI-RELATIONSHIP-INFERENCE-AUTHORITY-CUTOVER-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh successor audit after Product surface authority closure #428 proves the pinned Graphiti/Neo4j runtime, Graphiti episode/search seam, provenance-bound relationship fact projection and idempotent storage already exist, but backend/services/relationshipProjectionAuthority.js still falls back to legacy_projection and locally synthesizes relationship stage, momentum, risk, opportunity and next-action claims through ruleProjection(), exposing social_rule_projection/message_baseline as Product relationship inference. Executable root-cause governance also still requires social_rule_projection as readiness evidence. This work package retires that second inference authority at the consumer projection boundary, preserves explicit user annotations, preserves Graphiti epistemic semantics as AI inference rather than confirmed fact, and remains truthful/pending when Graphiti inference is absent. No new inference engine, graph store, database, sidecar, dependency, workflow, renderer or general-purpose Yance infrastructure is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "b8d2c018723ad4c393128ffd739d95bcfec9e58d"
+  },
+  "architectureIssues": {
+    "implementationIssue": 431,
+    "predecessorImplementationPullRequest": 428,
+    "relationshipInferenceAuthority": "Graphiti/Neo4j",
+    "projectionAuthority": "RelationshipProjectionAuthority"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "b8d2c018723ad4c393128ffd739d95bcfec9e58d",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-graphiti-relationship-inference-authority-cutover-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-graphiti-relationship-inference-authority-cutover-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "3d7ae5b2a5bef3f17531633868098564d8809259517d7e20c75fb6e1a4838aaa",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-graphiti-relationship-inference-authority-cutover-p0",
+    "allowedChangedPaths": [
+      "backend/services/relationshipProjectionAuthority.js",
+      "governance/root-cause-closure/authority-and-writer-matrix.json",
+      "tests/uat/relationshipProjectionAuthority.test.js",
+      "tests/uat/rootCauseClosureGate.test.js",
+      "tests/wp0/v21-graphiti-relationship-authority.test.js",
+      "tools/uat/rootCauseClosureGate.js"
+    ],
+    "approvedChangedFileCount": 6,
+    "approvedChangedFileSetSha256": "887e366e63415d110022293d55ceea3b49fe9cfdfcffc30a8b4c638030414e66",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/uat/relationshipProjectionAuthority.test.js",
+        "tests/uat/rootCauseClosureGate.test.js",
+        "tests/wp0/v21-graphiti-relationship-authority.test.js"
+      ],
+      "approvedChangedFileCount": 3,
+      "approvedChangedFileSetSha256": "c79f3a9138ebb512c8988bcf50bf4d6a05d0982a7b93a69cc5a7cdf534d76238",
+      "productionCodeChanged": false,
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure"
+      ],
+      "expectedFailures": [
+        "relationshipProjectionAuthority still contains ruleProjection and exposes legacy_projection/social_rule_projection/message_baseline fallback authority.",
+        "social-state rows and relationship_state_signals can still synthesize Product relationship stage, risk, opportunity and next-action without Graphiti inference.",
+        "executable root-cause governance still requires social_rule_projection instead of proving Graphiti-only inference with truthful pending behavior."
+      ]
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "databaseMigrationAllowed": false,
+    "graphitiRuntimeModificationAllowed": false,
+    "neo4jRuntimeModificationAllowed": false,
+    "productRendererModificationAllowed": false
+  },
+  "authorityCutover": {
+    "requiredBehavior": [
+      "Remove legacy_projection as a relationship timeline inference authority.",
+      "Remove local ruleProjection and the social_rule_projection/message_baseline Product inference sources from RelationshipProjectionAuthority.",
+      "Graphiti graphiti_inference rows remain AI inference and must not become confirmed fact or acquire fabricated confidence.",
+      "Explicit user-marked relationship timeline annotations remain visible and retain user ownership even when Graphiti refreshes.",
+      "When Graphiti inference is absent, relationship projection must expose a truthful pending/empty state rather than synthesize stage, risk, opportunity, temperature or next-action from local social metrics, signals or message counts.",
+      "Existing authoritative AI analysis may remain distinguishable as ai_analysis; this cutover must not relabel non-Graphiti local rule output as AI analysis.",
+      "Source account, conversation and canonical contact isolation semantics must remain unchanged."
+    ],
+    "forbiddenBehavior": [
+      "Do not add a compatibility alias that maps legacy_projection/social_rule_projection/message_baseline to Graphiti authority.",
+      "Do not keep ruleProjection under a new function or source name.",
+      "Do not treat relationship_state_signals or customer_social_state as an alternate inference engine when Graphiti is unavailable.",
+      "Do not fabricate Graphiti rows, confidence, episodes, facts or successful runtime state.",
+      "Do not weaken existing Graphiti provenance, idempotency, user-annotation or epistemic tests."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_PINNED_GRAPHITI_NEO4J_AND_EXISTING_RELATIONSHIP_PROJECTION_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Graphiti",
+        "source": "getzep/graphiti",
+        "upstreamVersion": "v0.29.3",
+        "upstreamCommit": "021d3a57d511f21b10adaf7fa923bd5c1fce5e9d",
+        "license": "Apache-2.0",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already pinned, packaged and integrated as the temporal relationship inference runtime with episode provenance and search/fact projection."
+      },
+      {
+        "name": "Neo4j",
+        "source": "Neo4j Community Edition",
+        "upstreamVersion": "2026.07.1",
+        "license": "GPL-3.0",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already packaged as Graphiti's authenticated loopback graph store; no graph-store change is required for this consumer authority cutover."
+      },
+      {
+        "name": "Existing RelationshipKeyNodeService/Repository projection seam",
+        "source": "backend/services/relationshipKeyNodeService.js + backend/store/relationshipKeyNodeRepository.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already projects Graphiti facts with episode provenance and idempotent Graphiti edge identity while preserving explicit user annotation metadata."
+      },
+      {
+        "name": "Local relationship ruleProjection fallback",
+        "source": "backend/services/relationshipProjectionAuthority.js",
+        "license": "repository-existing",
+        "adoptionMode": "retire",
+        "fit": "GAP",
+        "reason": "Creates a second relationship inference authority from social metrics/signals/messages whenever Graphiti inference is absent."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second graph database, inference service, sidecar, cache, model router or relationship state machine.",
+      "Do not replace ruleProjection with renamed local heuristics.",
+      "Do not modify pinned Graphiti/Neo4j runtime bytes or dependencies for a consumer projection defect.",
+      "Do not use UI-only suppression to hide locally synthesized inference while keeping it authoritative in backend data."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/uat/relationshipProjectionAuthority.test.js",
+      "node --test tests/wp0/v21-graphiti-relationship-authority.test.js",
+      "node --test tests/uat/rootCauseClosureGate.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "ACV2",
+      "Layered/WP-A validation when triggered",
+      "Graphiti P0 validation when triggered",
+      "Model validation when triggered"
+    ],
+    "negativeProofs": [
+      "No legacy_projection, social_rule_projection, message_baseline or ruleProjection remains in relationshipProjectionAuthority.",
+      "Social signals without Graphiti inference cannot generate relationship stage/risk/opportunity/next-action claims.",
+      "Graphiti inference still remains epistemically marked as AI inference and user annotations remain preserved."
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "fresh RED proves the local rule/legacy projection authority exists before implementation",
+      "Graphiti/Neo4j existing mature runtime is reused without parallel inference infrastructure",
+      "absence of Graphiti evidence yields truthful pending rather than inferred Product claims",
+      "manual user annotations and Graphiti epistemic metadata remain intact",
+      "no renamed local heuristic fallback or test weakening is introduced"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
