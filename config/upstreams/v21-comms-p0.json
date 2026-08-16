@@ -19,5 +19,15 @@
       "commit": "a86f5eb9bf7d5a4a6cc7a1c4e42d322bdcb03aa2",
       "license": "AGPL-3.0-or-later WITH upstream-exceptions"
     }
+  },
+  "externalRuntimes": {
+    "chatwootFacebookPage": {
+      "repository": "https://github.com/chatwoot/chatwoot.git",
+      "version": "v4.16.2",
+      "commit": "70e284a044f00326725f65f703162745371075ec",
+      "license": "MIT",
+      "adoptionMode": "sidecar-service",
+      "protocolAuthority": "facebook-page-official"
+    }
   }
 }

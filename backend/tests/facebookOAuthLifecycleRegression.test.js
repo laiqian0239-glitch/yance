@@ -29,44 +29,6 @@ function fakeAccount() {
   };
 }
 
-async function installBeginHarness(t) {
-  const account = fakeAccount();
-  let vault = {};
-  patch(t, accountStore, 'get', () => account);
-  patch(t, platformAuthConfig, 'facebook', () => ({
-    configured: true,
-    workerBaseUrl: 'https://yance-facebook.example.workers.dev',
-    graphVersion: 'v25.0'
-  }));
-  patch(t, platformAuthConfig, 'randomSecret', bytes => `secret-${bytes}-${'x'.repeat(bytes)}`);
-  patch(t, platformAuthConfig, 'sha256Base64Url', () => 'p'.repeat(43));
-  patch(t, relayClient, 'generateDeviceIdentity', () => ({
-    deviceId: 'fbdev-test',
-    publicKeySpki: 'public-key-spki',
-    privateKeyPkcs8: 'private-key-pkcs8'
-  }));
-  patch(t, securityGuard, 'readCredential', () => vault);
-  patch(t, securityGuard, 'persistCredential', async (_ref, value) => { vault = value; return true; });
-  patch(t, global, 'fetch', async url => response(200, {
-    ok: true, service: 'yance-facebook-gateway', graphVersion: 'v25.0',
-    oauthContract: {
-      version: 5, authorizationMode: 'business-login-configuration', legacyScopeParameter: false,
-      callbackUrl: 'https://yance-facebook.example.workers.dev/oauth/facebook/callback',
-      requiredPermissions: ['pages_show_list','pages_messaging','pages_manage_metadata'],
-      optionalPermissions: ['pages_read_engagement'],
-        pageDiscovery: {
-          primary: '/me/accounts', tokenRecovery: ['/{debug_token.user_id}/accounts', '/{granular_target_id}?fields=access_token'],
-          selectionEvidence: 'debug_token.granular_scopes.target_ids', directPageProfileProbe: true,
-          directPageTokenRecovery: true, directPageTokenFields: ['id,access_token', 'access_token'],
-          profileHydration: 'page-access-token', diagnosticsPersistedWithoutTokens: true
-        }
-    }
-  }));
-  t.after(() => facebookOAuthService._flows.clear());
-  const started = await facebookOAuthService.begin(account.id);
-  return { account, started, flow: facebookOAuthService._flows.get(started.flowId), credential: () => vault };
-}
-
 function response(status, data) {
   return {
     ok: status >= 200 && status < 300,
@@ -75,158 +37,82 @@ function response(status, data) {
   };
 }
 
-test('Facebook OAuth starts only against sealed Worker URL and registers a public device identity', async t => {
-  const { started, flow } = await installBeginHarness(t);
-  const url = new URL(started.authorizationUrl);
-  assert.equal(url.origin, 'https://yance-facebook.example.workers.dev');
-  assert.equal(url.pathname, '/oauth/facebook/start');
-  assert.equal(url.searchParams.get('flow_id'), started.flowId);
-  assert.equal(url.searchParams.get('device_id'), 'fbdev-test');
-  assert.equal(url.searchParams.get('public_key'), 'public-key-spki');
-  assert.equal(url.searchParams.has('app_id'), false);
-  assert.equal(flow.identity.privateKeyPkcs8, 'private-key-pkcs8');
-});
-
-test('Facebook OAuth refuses to open a stale Worker that does not publish the no-legacy-scope contract', async t => {
+test('Facebook Page OAuth begin fails closed to Chatwoot before any Worker or device authority is touched', async t => {
   const account = fakeAccount();
+  let configCalls = 0;
+  let deviceCalls = 0;
+  let fetchCalls = 0;
+
   patch(t, accountStore, 'get', () => account);
-  patch(t, platformAuthConfig, 'facebook', () => ({ configured: true, workerBaseUrl: 'https://yance-facebook.example.workers.dev', graphVersion: 'v25.0' }));
-  patch(t, global, 'fetch', async () => response(200, { ok: true, service: 'yance-facebook-gateway' }));
+  patch(t, platformAuthConfig, 'facebook', () => {
+    configCalls += 1;
+    return {
+      configured: true,
+      workerBaseUrl: 'https://yance-facebook.example.workers.dev',
+      graphVersion: 'v25.0'
+    };
+  });
+  patch(t, relayClient, 'generateDeviceIdentity', () => {
+    deviceCalls += 1;
+    return {
+      deviceId: 'must-not-be-created',
+      publicKeySpki: 'must-not-be-created',
+      privateKeyPkcs8: 'must-not-be-created'
+    };
+  });
+  patch(t, global, 'fetch', async () => {
+    fetchCalls += 1;
+    throw new Error('Page OAuth must not call the legacy Worker');
+  });
+
   await assert.rejects(
     facebookOAuthService.begin(account.id),
-    error => error.code === 'FACEBOOK_WORKER_OAUTH_CONTRACT_STALE'
+    error => error.code === 'FACEBOOK_PAGE_OAUTH_OWNED_BY_CHATWOOT' && error.status === 409
+  );
+
+  assert.equal(configCalls, 0, 'Page cutover must happen before legacy Worker configuration is read');
+  assert.equal(deviceCalls, 0, 'Page cutover must not generate a Worker device identity');
+  assert.equal(fetchCalls, 0, 'Page cutover must not call the legacy Worker');
+  assert.equal(facebookOAuthService._flows.size, 0, 'Page cutover must not create a legacy Worker flow');
+});
+
+test('Facebook Page polling cannot resume a legacy Worker flow after Chatwoot becomes authority', async t => {
+  const account = fakeAccount();
+  const flowId = 'legacy-page-flow';
+  let fetchCalls = 0;
+
+  patch(t, accountStore, 'get', () => account);
+  patch(t, global, 'fetch', async () => {
+    fetchCalls += 1;
+    throw new Error('Legacy Page polling must remain unreachable');
+  });
+  facebookOAuthService._flows.set(flowId, {
+    flowId,
+    accountId: account.id,
+    clientSecret: 'legacy-secret',
+    createdAt: new Date().toISOString(),
+    createdMs: Date.now(),
+    status: 'pending',
+    mode: 'page',
+    pages: [],
+    workerBaseUrl: 'https://yance-facebook.example.workers.dev',
+    graphVersion: 'v25.0'
+  });
+  t.after(() => facebookOAuthService._flows.delete(flowId));
+
+  await assert.rejects(
+    facebookOAuthService.poll(account.id, flowId),
+    error => error.code === 'FACEBOOK_PAGE_OAUTH_OWNED_BY_CHATWOOT' && error.status === 409
+  );
+  assert.equal(fetchCalls, 0, 'legacy Page polling must fail before any Worker request');
+});
+
+test('Facebook Page selection is retired and cannot persist legacy Worker Page authority', async () => {
+  await assert.rejects(
+    facebookOAuthService.selectPage('facebook-oauth-account', 'legacy-page-flow', 'page-1'),
+    error => error.code === 'FACEBOOK_PAGE_OAUTH_OWNED_BY_CHATWOOT' && error.status === 409
   );
 });
-
-test('Facebook OAuth polling ignores any injected Page Token and exposes only safe Page metadata', async t => {
-  const { account, started } = await installBeginHarness(t);
-  patch(t, global, 'fetch', async () => response(200, {
-    ok: true,
-    status: 'authorized',
-    pages: [{
-      id: 'page-1',
-      name: '广告客户收件箱',
-      accessToken: 'must-never-reach-desktop',
-      permissions: ['pages_show_list', 'pages_messaging', 'pages_manage_metadata', 'pages_read_engagement'],
-      tokenStatus: 'active',
-      webhookStatus: 'subscribed'
-    }]
-  }));
-
-  const result = await facebookOAuthService.poll('facebook-oauth-account', started.flowId);
-  assert.equal(result.status, 'authorized');
-  assert.equal(result.pages[0].id, 'page-1');
-  assert.equal(Object.hasOwn(result.pages[0], 'accessToken'), false);
-  assert.equal(JSON.stringify(result).includes('must-never-reach-desktop'), false);
-});
-
-test('Facebook OAuth polling recovers an authorized flow after the in-memory service state is lost', async t => {
-  const { account, started, credential } = await installBeginHarness(t);
-  assert.equal(credential().pendingFacebookOAuth.flowId, started.flowId);
-  facebookOAuthService._flows.clear();
-  patch(t, global, 'fetch', async () => response(200, {
-    ok: true,
-    status: 'authorized',
-    pages: [{ id: 'page-recovered', name: 'Recovered Page', permissions: ['pages_show_list','pages_messaging','pages_manage_metadata'] }]
-  }));
-  const recovered = await facebookOAuthService.poll(account.id, started.flowId);
-  assert.equal(recovered.status, 'authorized');
-  assert.equal(recovered.pages[0].id, 'page-recovered');
-  assert.equal(credential().pendingFacebookOAuth.status, 'authorized');
-});
-
-test('Facebook Page selection completes credential replacement when history permission is absent', async t => {
-  const { account, started } = await installBeginHarness(t);
-  let selectCalls = 0;
-  patch(t, global, 'fetch', async (_url, options = {}) => {
-    if ((options.method || 'GET') === 'POST') {
-      selectCalls += 1;
-      return response(200, { ok: true, cloudAccountId: 'fbacct-limited', workerBaseUrl: 'https://yance-facebook.example.workers.dev', graphVersion: 'v25.0', page: { id: 'page-no-history', name: 'Limited Page', permissions: ['pages_show_list','pages_messaging','pages_manage_metadata'], missingOptionalPermissions: ['pages_read_engagement'], historySyncAvailable: false, historySyncReason: 'pages_read_engagement missing', tokenStatus: 'active', webhookStatus: 'subscribed' } });
-    }
-    return response(200, {
-      ok: true,
-      status: 'authorized',
-      pages: [{
-        id: 'page-no-history',
-        name: '缺少历史权限的主页',
-        permissions: ['pages_show_list', 'pages_messaging', 'pages_manage_metadata'],
-        tokenStatus: 'active',
-        webhookStatus: 'subscribed'
-      }]
-    });
-  });
-
-  const authorized = await facebookOAuthService.poll(account.id, started.flowId);
-  assert.equal(authorized.status, 'authorized');
-  assert.equal(authorized.pages[0].historySyncAvailable, false);
-  assert.deepEqual(authorized.pages[0].missingOptionalPermissions, ['pages_read_engagement']);
-  patch(t, accountStore, 'update', async (_id, value) => value);
-  const selected = await facebookOAuthService.selectPage(account.id, started.flowId, 'page-no-history');
-  assert.equal(selected.page.historySyncAvailable, false);
-  assert.equal(selectCalls, 1, 'limited history permission must not prevent Page/token/device replacement');
-});
-
-
-test('Facebook Page selection persists cloud account and device identity without Page Token', async t => {
-  const { account, started, flow, credential } = await installBeginHarness(t);
-  const calls = [];
-  patch(t, global, 'fetch', async (url, options = {}) => {
-    calls.push({ url: String(url), method: options.method || 'GET', authorization: options.headers?.authorization || '', body: options.body || '' });
-    if ((options.method || 'GET') === 'POST') return response(200, {
-      ok: true,
-      cloudAccountId: 'fbacct-cloud-1',
-      workerBaseUrl: 'https://yance-facebook.example.workers.dev',
-      graphVersion: 'v25.0',
-      page: {
-        id: 'page-1',
-        name: '广告客户收件箱',
-        username: 'ad-inbox',
-        permissions: ['pages_show_list', 'pages_messaging', 'pages_manage_metadata', 'pages_read_engagement'],
-        tokenStatus: 'active',
-        webhookStatus: 'subscribed'
-      }
-    });
-    return response(200, {
-      ok: true,
-      status: 'authorized',
-      pages: [{
-        id: 'page-1',
-        name: '广告客户收件箱',
-        permissions: ['pages_show_list', 'pages_messaging', 'pages_manage_metadata', 'pages_read_engagement']
-      }]
-    });
-  });
-  let persisted = null;
-  let currentCredential = credential();
-  patch(t, securityGuard, 'readCredential', () => currentCredential);
-  patch(t, securityGuard, 'persistCredential', async (ref, value) => { currentCredential = value; persisted = { ref, value }; return true; });
-  let updated = null;
-  patch(t, accountStore, 'update', async (_id, value) => { updated = value; return { ...account, ...value }; });
-  patch(t, accountStore, 'get', () => ({ ...account, ...(updated || {}) }));
-
-  const authorized = await facebookOAuthService.poll(account.id, started.flowId);
-  assert.equal(authorized.status, 'authorized');
-  const selected = await facebookOAuthService.selectPage(account.id, started.flowId, 'page-1');
-
-  assert.equal(persisted.ref, account.credentialRef);
-  assert.equal(persisted.value.authorizationMode, 'cloudflare-worker');
-  assert.equal(persisted.value.cloudAccountId, 'fbacct-cloud-1');
-  assert.equal(persisted.value.pageId, 'page-1');
-  assert.equal(persisted.value.workerBaseUrl, 'https://yance-facebook.example.workers.dev');
-  assert.equal(persisted.value.deviceId, 'fbdev-test');
-  assert.equal(persisted.value.devicePrivateKeyPkcs8, 'private-key-pkcs8');
-  assert.equal(Object.hasOwn(persisted.value, 'pageAccessToken'), false);
-  assert.equal(JSON.stringify(persisted.value).includes('access_token'), false);
-  assert.equal(selected.page.permissionReady, true);
-  assert.equal(flow.status, 'completed');
-  assert.deepEqual(flow.pages, []);
-  const selectCall = calls.find(call => call.method === 'POST');
-  assert.ok(selectCall);
-  assert.match(selectCall.url, new RegExp(`/oauth/facebook/result/${started.flowId}/select$`));
-  assert.equal(selectCall.authorization, `Bearer ${flow.clientSecret}`);
-  assert.deepEqual(JSON.parse(selectCall.body), { pageId: 'page-1' });
-});
-
 
 test('Facebook OAuth UI stops cancelled flows and reports Page discovery evidence without blaming App Domains', () => {
   const source = fs.readFileSync(path.resolve(__dirname, '../../frontend/r32-account-center.js'), 'utf8');
@@ -248,38 +134,74 @@ test('official Facebook personal identity login completes without Page selection
     credentialRef: 'facebook-personal-identity-credential',
     metadata: { accountKind: 'personal-identity', driverId: 'facebook-personal-identity-official', authorizationPending: true }
   };
-  let vault = { pageId: 'old-page', cloudAccountId: 'old-cloud', workerBaseUrl: 'https://old-worker.example', devicePrivateKeyPkcs8: 'old-private', authorizationMode: 'cloudflare-worker' };
+  let vault = {
+    pageId: 'old-page',
+    cloudAccountId: 'old-cloud',
+    workerBaseUrl: 'https://old-worker.example',
+    devicePrivateKeyPkcs8: 'old-private',
+    authorizationMode: 'cloudflare-worker'
+  };
   let updated = null;
   patch(t, accountStore, 'get', () => ({ ...account, ...(updated || {}) }));
-  patch(t, accountStore, 'update', async (_id, value) => { updated = value; return { ...account, ...value }; });
-  patch(t, platformAuthConfig, 'facebook', () => ({ configured: true, workerBaseUrl: 'https://yance-facebook.example.workers.dev', graphVersion: 'v25.0' }));
+  patch(t, accountStore, 'update', async (_id, value) => {
+    updated = value;
+    return { ...account, ...value };
+  });
+  patch(t, platformAuthConfig, 'facebook', () => ({
+    configured: true,
+    workerBaseUrl: 'https://yance-facebook.example.workers.dev',
+    graphVersion: 'v25.0'
+  }));
   patch(t, platformAuthConfig, 'randomSecret', bytes => `secret-${bytes}-${'x'.repeat(bytes)}`);
   patch(t, platformAuthConfig, 'sha256Base64Url', () => 'p'.repeat(43));
-  patch(t, relayClient, 'generateDeviceIdentity', () => ({ deviceId: 'fbdev-identity', publicKeySpki: 'identity-public-key', privateKeyPkcs8: 'identity-private-key' }));
+  patch(t, relayClient, 'generateDeviceIdentity', () => ({
+    deviceId: 'fbdev-identity',
+    publicKeySpki: 'identity-public-key',
+    privateKeyPkcs8: 'identity-private-key'
+  }));
   patch(t, securityGuard, 'readCredential', () => vault);
-  patch(t, securityGuard, 'persistCredential', async (_ref, value) => { vault = value; return true; });
+  patch(t, securityGuard, 'persistCredential', async (_ref, value) => {
+    vault = value;
+    return true;
+  });
   patch(t, global, 'fetch', async url => {
     const target = String(url);
     if (target.endsWith('/healthz')) return response(200, {
-      ok: true, service: 'yance-facebook-gateway', graphVersion: 'v25.0',
+      ok: true,
+      service: 'yance-facebook-gateway',
+      graphVersion: 'v25.0',
       oauthContract: {
-        version: 6, supportedModes: ['page','identity'],
+        version: 6,
+        supportedModes: ['page', 'identity'],
         personalIdentity: { messagingSupported: false, tokenReturnedToDesktop: false },
-        authorizationMode: 'business-login-configuration', legacyScopeParameter: false,
+        authorizationMode: 'business-login-configuration',
+        legacyScopeParameter: false,
         callbackUrl: 'https://yance-facebook.example.workers.dev/oauth/facebook/callback',
-        requiredPermissions: ['pages_show_list','pages_messaging','pages_manage_metadata'],
+        requiredPermissions: ['pages_show_list', 'pages_messaging', 'pages_manage_metadata'],
         optionalPermissions: ['pages_read_engagement'],
         pageDiscovery: {
-          primary: '/me/accounts', tokenRecovery: ['/{debug_token.user_id}/accounts','/{granular_target_id}?fields=access_token'],
-          selectionEvidence: 'debug_token.granular_scopes.target_ids', directPageProfileProbe: true,
-          directPageTokenRecovery: true, directPageTokenFields: ['id,access_token','access_token'],
-          profileHydration: 'page-access-token', diagnosticsPersistedWithoutTokens: true
+          primary: '/me/accounts',
+          tokenRecovery: ['/{debug_token.user_id}/accounts', '/{granular_target_id}?fields=access_token'],
+          selectionEvidence: 'debug_token.granular_scopes.target_ids',
+          directPageProfileProbe: true,
+          directPageTokenRecovery: true,
+          directPageTokenFields: ['id,access_token', 'access_token'],
+          profileHydration: 'page-access-token',
+          diagnosticsPersistedWithoutTokens: true
         }
       }
     });
     return response(200, {
-      ok: true, mode: 'identity', status: 'authorized', pages: [],
-      identity: { userId: 'user-identity-1', displayName: 'Identity User', avatarUrl: 'https://example.test/identity.png', messagingSupported: false }
+      ok: true,
+      mode: 'identity',
+      status: 'authorized',
+      pages: [],
+      identity: {
+        userId: 'user-identity-1',
+        displayName: 'Identity User',
+        avatarUrl: 'https://example.test/identity.png',
+        messagingSupported: false
+      }
     });
   });
   t.after(() => facebookOAuthService._flows.clear());
@@ -295,7 +217,9 @@ test('official Facebook personal identity login completes without Page selection
   assert.match(vault.identityReceipt, /^[a-f0-9]{64}$/u);
   assert.equal(vault.messagingSupported, false);
   assert.equal(Object.hasOwn(vault, 'accessToken'), false);
-  for (const forbidden of ['pageId','cloudAccountId','workerBaseUrl','devicePrivateKeyPkcs8']) assert.equal(Object.hasOwn(vault, forbidden), false, forbidden);
+  for (const forbidden of ['pageId', 'cloudAccountId', 'workerBaseUrl', 'devicePrivateKeyPkcs8']) {
+    assert.equal(Object.hasOwn(vault, forbidden), false, forbidden);
+  }
   assert.equal(updated.metadata.accountKind, 'personal-identity');
   assert.equal(updated.metadata.driverId, 'facebook-personal-identity-official');
   assert.equal(updated.metadata.messagingSupported, false);
