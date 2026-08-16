@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-16T09:15:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FAST-CLOSURE-V2-GOVERNANCE-POLICY-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh audit after #432 authorization merge and #433 Stage RED proves two governance defects block Fast Closure V2 from being real rather than procedural convention: trusted WP0 routing fails closed on root AGENTS.md as WP0_ROUTE_UNKNOWN_PATH, while shared/release/implementationBranchPolicy.js binds failure-first evidence to the fixed second first-parent commit instead of the first production commit. That fixed-ordinal rule would let an additional tests-only diagnostic commit consume the old evidence slot and leave the eventual production commit unenforced. This work package reuses the existing base-owned WP0 routing policy, existing governanceBootstrapPaths exact-add semantic guard and existing delegated implementation policy; it adds no second policy engine, workflow, dependency or infrastructure. The repair must route AGENTS.md as an exact governance path and extend the existing failure-first parser with an opt-in Fast Closure V2 diagnostic-window contract that permits consecutive tests-only causal RED commits and binds exact RED evidence plus unknownBlockers=0 to the first production commit using the latest diagnostic RED head.",
+  "base": {
+    "branch": "main",
+    "commit": "19b7326c4283f5be34fc5a01d58fa543bf476966"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-fast-closure-v2-governance-policy-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-fast-closure-v2-governance-policy-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "ad919c2ee2e1a3578feb7ef0e08123e753688988350472e78944aa9744e05154",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-fast-closure-v2-governance-policy-p0",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "shared/release/implementationBranchPolicy.js",
+      "tests/layered-ci/wp0-routing.test.js",
+      "tests/wp0/delegated-failure-first-topology.test.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 5,
+    "approvedChangedFileSetSha256": "6f734a75bd2fe809273fb96fee89163b93e7e6295dd169ef2088a5825e5d8839",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/wp0-routing.test.js",
+        "tests/wp0/delegated-failure-first-topology.test.js",
+        "tests/wp0/implementation-branch-policy.test.js"
+      ],
+      "approvedChangedFileCount": 3,
+      "approvedChangedFileSetSha256": "7eda81d27980d701462aa992fe6c5e9c54375034eff49c8f3b64f9b8bab2d71e",
+      "productionCodeChanged": false,
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure"
+      ]
+    },
+    "genericRouteMutationGuardRequired": true,
+    "workflowModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "governanceBootstrapPaths": [
+    "AGENTS.md"
+  ],
+  "governanceBootstrapPathCount": 1,
+  "governanceBootstrapPathSetSha256": "954ec5dad7eaf581ad4bfa090369b244ac0120b43722ef2efff5ba89fc52046f",
+  "fastClosureV2PolicyContract": {
+    "authorizationOptInRequired": true,
+    "legacyFailureFirstSemanticsPreservedWithoutOptIn": true,
+    "firstImplementationCommitRemainsTestsOnly": true,
+    "multipleTestsOnlyDiagnosticCommitsAllowedBeforeProduction": true,
+    "diagnosticCommitPathSetMustBeSubsetOfAuthorizedDiagnosticPaths": true,
+    "eachAdditionalDiagnosticCommitMustCarryExactPriorRedEvidence": true,
+    "latestDiagnosticHeadBecomesRequiredRedHeadForFirstProductionCommit": true,
+    "firstProductionCommitDetectedByFirstCommitChangingAnyNonDiagnosticAuthorizedPath": true,
+    "firstProductionCommitRequiresExactRedEvidence": true,
+    "firstProductionCommitRequiresClosureMatrixUnknownBlockersZero": true,
+    "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0",
+    "productionBeforeClosureForbidden": true,
+    "fixedCommitOrdinalEvidenceBindingForbidden": true,
+    "diagnosticHeadWithoutSubsequentCommitMayExistBeforeRemoteRedEvidence": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit changes exactly the three authorized test paths and no production/policy file.",
+    "Fresh RED proves AGENTS.md is currently WP0_ROUTE_UNKNOWN_PATH under the base-owned classifier.",
+    "Fresh RED proves the current failure-first parser accepts only a fixed second-commit evidence slot and cannot correctly bind evidence to a later first production commit after multiple diagnostics.",
+    "Fresh RED proves the existing delegated route mutation guard must authorize exactly AGENTS.md as a governanceBootstrapPaths addition and reject unrelated route-policy drift.",
+    "After implementation AGENTS.md is added only to governanceExactPaths; no governance/product prefix is widened and unknownPathFailsClosed remains true.",
+    "After implementation a Fast Closure V2 opted-in authorization may have RED1 tests-only, RED2 tests-only carrying RED1 evidence, then a first production commit carrying RED2 evidence plus Yance-Closure-Matrix-Unknown-Blockers: 0.",
+    "A Fast Closure V2 diagnostic commit that changes a production path, omits prior RED evidence, references the wrong RED head, or uses a non-failure conclusion is rejected.",
+    "A first production commit that lacks the latest RED evidence or unknownBlockers=0 trailer is rejected.",
+    "Legacy failureFirstCommit authorizations without Fast Closure V2 opt-in keep their current semantics and remain GREEN.",
+    "No workflow, dependency, product renderer, Graphiti runtime, database, sidecar or second policy engine is introduced."
+  ],
+  "ossFit": {
+    "decision": "EXTEND_EXISTING_TRUSTED_ROUTING_AND_IMPLEMENTATION_POLICY",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing validateDelegatedRoutePolicyMutation governanceBootstrapPaths support",
+        "source": "shared/release/implementationBranchPolicy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already supports exact normalized governanceExactPaths additions with count and canonical SHA-256 validation; AGENTS.md needs one exact literal only."
+      },
+      {
+        "name": "Existing delegated failure-first topology parser",
+        "source": "shared/release/implementationBranchPolicy.js",
+        "license": "repository-existing",
+        "adoptionMode": "extend",
+        "fit": "FIT",
+        "reason": "The same trusted parser already owns authorization topology and RED trailer validation. Extending it with opt-in diagnostic-window semantics is safer than adding a parallel preflight/policy engine."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second governance parser, preflight script, workflow or route engine.",
+      "Do not broaden governancePrefixes, productPrefixes or documentation prefixes to make AGENTS.md pass.",
+      "Do not encode Fast Closure V2 only in prose or agent memory while the trusted parser retains fixed-ordinal semantics."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/layered-ci/wp0-routing.test.js",
+      "node --test tests/wp0/delegated-failure-first-topology.test.js",
+      "node --test tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "ACV2",
+      "Layered/WP-A validation when triggered",
+      "Model validation when triggered"
+    ],
+    "negativeProofs": [
+      "AGENTS.md is the only new governance route literal.",
+      "Unknown/unrelated root files continue to fail closed.",
+      "Fast Closure V2 first production evidence is bound to the latest diagnostic RED, not a fixed commit ordinal.",
+      "Legacy failure-first authorizations preserve existing semantics."
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
