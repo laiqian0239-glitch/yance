@@ -133,7 +133,7 @@
   "ossFit": {
     "decision": "ADOPT_CHATWOOT_WHOLE_RUNTIME_REUSE_MATRIX_THIN_ADAPTER_ONLY",
     "matureOssAvailable": true,
-    "selectedAdoptionMode": "whole-runtime-sidecar-plus-thin-existing-runtime-adapter",
+    "selectedAdoptionMode": "sidecar-service",
     "newGeneralPurposeInfrastructure": false,
     "matureOssDefault": true,
     "reviewedCandidates": [
@@ -161,7 +161,7 @@
         "upstreamVersion": "independent Lab pin",
         "license": "AGPL-3.0",
         "adoptionMode": "retain-for-facebook-personal-only",
-        "fit": "GAP_FOR_PAGE",
+        "fit": "GAP",
         "reason": "Retained for Facebook Personal evaluation; it is not promoted to the official Page/OAuth commercial account authority."
       }
     ],
