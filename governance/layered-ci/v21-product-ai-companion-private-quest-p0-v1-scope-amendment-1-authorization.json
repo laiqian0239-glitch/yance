@@ -143,6 +143,7 @@
       {
         "name": "Letta",
         "source": "existing repository-pinned Letta runtimes",
+        "license": "Apache-2.0",
         "adoptionMode": "preserve-existing-authority",
         "fit": "FIT",
         "reason": "The RED is a stale Product presentation contract; Letta runtime/IPC/projection authority is already correct and remains unchanged."
@@ -150,6 +151,7 @@
       {
         "name": "Parlant",
         "source": "existing repository-pinned Parlant runtime",
+        "license": "Apache-2.0",
         "adoptionMode": "preserve-existing-authority",
         "fit": "FIT",
         "reason": "The Parlant RED is only a local identifier source-shape mismatch; Goal and event semantics remain correct."
