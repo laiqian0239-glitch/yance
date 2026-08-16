@@ -44,12 +44,13 @@ function normalizedStatus(job: TranslationJobProjection | null): string {
 }
 
 function translationStatusLabel(status: string): string {
+  if (!status) return "已更新";
   if (status === "queued") return "排队中";
   if (status === "running") return "进行中";
   if (status === "success") return "已完成";
   if (status === "failed") return "失败";
   if (status === "cancelled") return "已取消";
-  return status || "已更新";
+  return "状态未知";
 }
 
 function formatTime(value: string): string {
@@ -353,7 +354,7 @@ export function BilingualSearchPanel({
               </progress>
               <div className="yance-bilingual-search__job-meta">
                 <span>{Math.round(activeJob.progress)}%</span>
-                {activeJob.durableState ? <span>{activeJob.durableState}</span> : null}
+                {activeJob.durableState ? <span>{translationStatusLabel(activeJob.durableState)}</span> : null}
                 {activeJob.errorCode ? <span>{activeJob.errorCode}</span> : null}
               </div>
               {activeJob.error ? <p className="yance-bilingual-search__job-error">{activeJob.error}</p> : null}
