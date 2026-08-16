@@ -155,3 +155,12 @@ test('Graphiti re-projection preserves manual key-node annotation metadata', () 
   assert.equal(row.status, 'confirmed', 'Graphiti refresh must not overwrite explicit user confirmation');
   assert.equal(JSON.parse(row.after_json).invalidAt, '2026-08-08T11:55:00Z');
 });
+
+test('RelationshipProjectionAuthority contains no local fallback inference engine or legacy source authority', () => {
+  const source = readText('backend/services/relationshipProjectionAuthority.js');
+  assert.doesNotMatch(source, /function ruleProjection/u);
+  assert.doesNotMatch(source, /legacy_projection/u);
+  assert.doesNotMatch(source, /social_rule_projection/u);
+  assert.doesNotMatch(source, /message_baseline/u);
+  assert.match(source, /graphiti_temporal_inference/u);
+});

@@ -45,3 +45,11 @@ test('root cause closure executable Product proof no longer reads the retired le
     assert.equal(source.includes(legacyCurrentProof), false, legacyCurrentProof);
   }
 });
+
+test('root cause closure requires Graphiti-only relationship inference authority readiness', () => {
+  const repoRoot = path.resolve(__dirname, '..', '..');
+  const report = runGate(repoRoot);
+  const check = report.checks.find(row => row.id === 'known-root-cause:relationship-state-graphiti-only-ready');
+  assert.ok(check, 'missing Graphiti-only relationship authority readiness check');
+  assert.equal(check.pass, true, JSON.stringify(check.evidence, null, 2));
+});
