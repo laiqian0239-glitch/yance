@@ -32,7 +32,7 @@
       "governance/layered-ci/v21-fast-closure-v2-governance-policy-p0-authorization.json"
     ],
     "approvedChangedFileCount": 1,
-    "approvedChangedFileSetSha256": "ad919c2ee2e1a3578feb7ef0e08123e753688988350472e78944aa9744e05154",
+    "approvedChangedFileSetSha256": "b3142be0a02f3ff26eabcf918b7a7e24c2afba065f675b96da1b81ea0a26ad1e",
     "mustRemainSingleFile": true,
     "mustRemainCleanFromTrustedMain": true
   },
