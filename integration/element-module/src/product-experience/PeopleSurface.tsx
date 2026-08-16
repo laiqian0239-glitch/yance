@@ -34,6 +34,8 @@ export function PeopleSurface({
         <div className="yance-people-list" role="list" aria-label="Relationship list">
           {relationships.map((relationship) => {
             const selected = relationship.id === selectedRelationshipId;
+            const analysisStatusLabel = relationship.relationshipIntelligence?.analysisStatusLabel
+              || "No confirmed relationship intelligence";
             return (
               <motion.button
                 layout={!reducedMotion}
@@ -42,8 +44,9 @@ export function PeopleSurface({
                 role="listitem"
                 className="yance-person-card"
                 data-selected={selected || undefined}
+                data-intelligence-state={relationship.relationshipIntelligence?.state || "unavailable"}
                 aria-pressed={selected}
-                aria-label={`Open relationship with ${relationship.name}`}
+                aria-label={`Open relationship with ${relationship.name}. ${analysisStatusLabel}`}
                 onClick={() => onSelect(relationship.id)}
                 whileTap={reducedMotion ? undefined : { scale: 0.985 }}
                 transition={{ type: "spring", stiffness: 480, damping: 36 }}
@@ -54,6 +57,7 @@ export function PeopleSurface({
                 <span className="yance-person-copy">
                   <strong>{relationship.name}</strong>
                   <span>{relationship.subtitle}</span>
+                  <span className="yance-person-intelligence-status">{analysisStatusLabel}</span>
                 </span>
                 <span className="yance-person-open" aria-hidden="true">›</span>
               </motion.button>

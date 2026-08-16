@@ -2,6 +2,8 @@ import type {
   BilingualSearchResult,
   RelationshipAssistantProjection,
   RelationshipGoalProjection,
+  RelationshipIntelligenceEvent,
+  RelationshipIntelligenceProjection,
   RelationshipProjection,
   TranslationJobProjection,
   WorkspaceContactSearchResult,
@@ -34,7 +36,7 @@ type DesktopEvent = {
 };
 
 type ProductDesktopApi = {
-  storeSnapshot: (input: { domains: string[] }) => Promise<Record<string, unknown>>;
+  storeSnapshot: (input: { domains: string[]; includeRelationshipIntelligence?: boolean }) => Promise<Record<string, unknown>>;
   storeSearchWorkspace: (input: { query: string; limit?: number }) => Promise<Record<string, unknown>>;
   storeCreateTranslationJob: (input: { messageId: string; force?: boolean; forceNew?: boolean; timeoutMs?: number }) => Promise<Record<string, unknown>>;
   storeGetTranslationJob: (input: { jobId: string }) => Promise<Record<string, unknown>>;
@@ -50,12 +52,32 @@ type ProductDesktopApi = {
   onDesktopEvent?: (callback: (event: DesktopEvent) => void) => (() => void);
 };
 
+const RELATIONSHIP_INTELLIGENCE_STATES = new Set([
+  "empty",
+  "pending_translation",
+  "pending_analysis",
+  "ready",
+  "stale",
+  "rebuild_required",
+]);
+
 function desktopApi(): Partial<ProductDesktopApi> | null {
   return (window as unknown as { yanceDesktop?: Partial<ProductDesktopApi> }).yanceDesktop || null;
 }
 
+function relationshipIntelligenceSnapshotApi(
+  storeSnapshot: ProductDesktopApi["storeSnapshot"],
+): Pick<ProductDesktopApi, "storeSnapshot"> {
+  return {
+    storeSnapshot: (input) => storeSnapshot({
+      ...input,
+      includeRelationshipIntelligence: true,
+    }),
+  };
+}
+
 function objectRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" ? value as Record<string, unknown> : {};
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
 function objectArray(value: unknown): Record<string, unknown>[] {
@@ -99,7 +121,76 @@ function emptyGoal(reasonCode = ""): RelationshipGoalProjection {
   };
 }
 
-function relationshipFromEntry(key: string, value: unknown): RelationshipProjection | null {
+function relationshipIntelligenceState(value: unknown): RelationshipIntelligenceProjection["state"] | null {
+  const state = text(value);
+  return RELATIONSHIP_INTELLIGENCE_STATES.has(state)
+    ? state as RelationshipIntelligenceProjection["state"]
+    : null;
+}
+
+function relationshipIntelligenceSource(value: unknown): RelationshipIntelligenceProjection["source"] | null {
+  const source = text(value);
+  return source === "ai_analysis" || source === "empty" ? source : null;
+}
+
+function normalizeRelationshipEvent(value: unknown): RelationshipIntelligenceEvent | null {
+  if (!Array.isArray(value) || value.length !== 5 || !value.every((item) => typeof item === "string")) return null;
+  const sourceLabel = text(value[4]);
+  const source = /graphiti/iu.test(sourceLabel)
+    ? "graphiti"
+    : /用户标注|User annotation/iu.test(sourceLabel) ? "user_annotation" : "unknown";
+  const title = text(value[1]);
+  const detail = text(value[2] || value[1]);
+  if (!title && !detail) return null;
+  return {
+    at: text(value[0]),
+    title: title || detail,
+    detail: detail || title,
+    kind: text(value[3]),
+    sourceLabel,
+    source,
+  };
+}
+
+function normalizeRelationshipIntelligence(value: unknown): RelationshipIntelligenceProjection | undefined {
+  const row = objectRecord(value);
+  if (text(row.authorityId) !== "RelationshipProjectionAuthority") return undefined;
+  const trajectory = objectRecord(row.trajectory);
+  if (text(trajectory.authorityId) !== "RelationshipProjectionAuthority") return undefined;
+  const state = relationshipIntelligenceState(row.state)
+    || relationshipIntelligenceState(trajectory.projectionState);
+  if (!state) return undefined;
+  const source = relationshipIntelligenceSource(row.source)
+    || relationshipIntelligenceSource(trajectory.projectionSource);
+  if (!source) return undefined;
+  const events = (Array.isArray(trajectory.events) ? trajectory.events : [])
+    .map(normalizeRelationshipEvent)
+    .filter((event): event is RelationshipIntelligenceEvent => Boolean(event));
+  return {
+    authorityId: "RelationshipProjectionAuthority",
+    projectionVersion: text(row.projectionVersion || trajectory.projectionVersion),
+    state,
+    source,
+    analysisAvailable: row.analysisAvailable === true,
+    analysisCurrent: row.analysisCurrent === true,
+    analysisCommitted: row.analysisCommitted === true,
+    analysisRunId: text(row.analysisRunId || trajectory.analysisRunId),
+    analysisRequired: row.analysisRequired === true || trajectory.analysisRequired === true,
+    analysisStatusLabel: text(row.analysisStatusLabel || trajectory.analysisStatusLabel),
+    stage: text(trajectory.stage),
+    summary: text(trajectory.summary),
+    next: text(trajectory.next),
+    momentum: text(trajectory.momentum),
+    timelineAuthority: text(trajectory.timelineAuthority),
+    events,
+  };
+}
+
+function relationshipFromEntry(
+  key: string,
+  value: unknown,
+  relationshipIntelligenceValue?: unknown,
+): RelationshipProjection | null {
   const row = objectRecord(value);
   const id = text(row.id || row.contactId || key);
   if (!id) return null;
@@ -108,6 +199,7 @@ function relationshipFromEntry(key: string, value: unknown): RelationshipProject
   const platform = optionalText(row.platform || row.channel || row.source);
   const accountId = optionalText(row.accountId || row.account);
   const subtitleParts = [platform, accountId].filter(Boolean);
+  const relationshipIntelligence = normalizeRelationshipIntelligence(relationshipIntelligenceValue);
 
   return {
     id,
@@ -121,6 +213,7 @@ function relationshipFromEntry(key: string, value: unknown): RelationshipProject
     matrixRoomId: optionalText(row.matrixRoomId),
     matrixPermalink: optionalText(row.matrixPermalink),
     updatedAt: asTimestamp(row.updatedAt || row.lastInteractionAt || row.lastMessageAt || row.modifiedAt),
+    relationshipIntelligence,
   };
 }
 
@@ -193,14 +286,26 @@ export async function loadRelationshipProjections(): Promise<readonly Relationsh
   const api = desktopApi();
   if (!api || typeof api.storeSnapshot !== "function") return [];
 
-  const payload = await api.storeSnapshot({ domains: ["customers"] });
+  const relationshipApi = relationshipIntelligenceSnapshotApi(api.storeSnapshot);
+  const payload = await relationshipApi.storeSnapshot({ domains: ["customers"] });
   const root = objectRecord(payload);
   const snapshot = objectRecord(root.snapshot || root);
   const customers = objectRecord(snapshot.customers);
   const byId = objectRecord(customers.byId);
+  const conversationIdsByContactId = objectRecord(root.relationshipConversationIdsByContactId);
+  const relationshipIntelligence = objectRecord(root.relationshipIntelligence);
 
   return Object.entries(byId)
-    .map(([key, value]) => relationshipFromEntry(key, value))
+    .map(([key, value]) => {
+      const row = objectRecord(value);
+      const stableContactId = text(row.contactId || row.id || key);
+      const conversationId = stringArray(conversationIdsByContactId[stableContactId])[0] || "";
+      return relationshipFromEntry(
+        key,
+        value,
+        conversationId ? relationshipIntelligence[conversationId] : undefined,
+      );
+    })
     .filter((relationship): relationship is RelationshipProjection => Boolean(relationship))
     .sort((a, b) => {
       const aTime = a.updatedAt ? Date.parse(a.updatedAt) : 0;

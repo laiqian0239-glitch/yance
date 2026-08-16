@@ -1,3 +1,39 @@
+export type RelationshipIntelligenceState =
+  | "empty"
+  | "pending_translation"
+  | "pending_analysis"
+  | "ready"
+  | "stale"
+  | "rebuild_required";
+
+export type RelationshipIntelligenceEvent = {
+  at: string;
+  title: string;
+  detail: string;
+  kind: string;
+  sourceLabel: string;
+  source: "graphiti" | "user_annotation" | "unknown";
+};
+
+export type RelationshipIntelligenceProjection = {
+  authorityId: "RelationshipProjectionAuthority";
+  projectionVersion: string;
+  state: RelationshipIntelligenceState;
+  source: "ai_analysis" | "empty";
+  analysisAvailable: boolean;
+  analysisCurrent: boolean;
+  analysisCommitted: boolean;
+  analysisRunId: string;
+  analysisRequired: boolean;
+  analysisStatusLabel: string;
+  stage: string;
+  summary: string;
+  next: string;
+  momentum: string;
+  timelineAuthority: string;
+  events: readonly RelationshipIntelligenceEvent[];
+};
+
 export type RelationshipProjection = {
   id: string;
   name: string;
@@ -10,6 +46,7 @@ export type RelationshipProjection = {
   matrixRoomId?: string;
   matrixPermalink?: string;
   updatedAt?: string;
+  relationshipIntelligence?: RelationshipIntelligenceProjection;
 };
 
 export type WorkspaceContactSearchResult = {
