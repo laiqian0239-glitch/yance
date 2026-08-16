@@ -85,8 +85,8 @@ test('relationship universe keeps dense 21 and 33 relationship controls collisio
       `${count} relationship nodes must keep at least 8 normalized stage units between centers`,
     );
     assert.ok(
-      minimumPixelDistance(positions, 320, 430) >= 42,
-      `${count} relationship controls must keep at least 42px between centers on a conservative 320x430 stage`,
+      minimumPixelDistance(positions, 320, 430) >= 44,
+      `${count} relationship controls must keep at least 44px between centers on a conservative 320x430 stage`,
     );
     for (const position of positions) {
       assert.ok(position.x >= 5 && position.x <= 95, `${count} relationship node x must remain bounded`);
@@ -95,7 +95,7 @@ test('relationship universe keeps dense 21 and 33 relationship controls collisio
   }
   assert.match(peopleSource, /denseUniverse\s*=\s*relationships\.length\s*>\s*8/u);
   assert.match(peopleSource, /data-dense=\{denseUniverse\s*\|\|\s*undefined\}/u);
-  assert.match(peopleSource, /denseUniverse\s*\?\s*\{[\s\S]{0,220}width:\s*"40px"[\s\S]{0,220}height:\s*"40px"/u);
+  assert.match(peopleSource, /denseUniverse\s*\?\s*\{[\s\S]{0,260}width:\s*"44px"[\s\S]{0,180}height:\s*"44px"[\s\S]{0,240}boxSizing:\s*"border-box"/u);
   assert.match(peopleSource, /denseUniverse\s*\?\s*null\s*:\s*\(/u);
 });
 
