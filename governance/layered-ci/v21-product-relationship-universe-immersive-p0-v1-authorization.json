@@ -1,0 +1,352 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-16T18:57:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-RELATIONSHIP-UNIVERSE-IMMERSIVE-P0-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh Product successor rooted directly at the ordinary #453 design/plan merge. Trusted main already has People-first Product composition, conversation-scoped RelationshipProjectionAuthority intelligence, Parlant goal/progress, Element conversation/navigation authority, and mature Base UI/Motion/Rive Product primitives. The remaining product gap is a Chinese real UI plus a truthful immersive People Home relationship constellation. This authorization keeps list as the default entry, adds an explicit user-centered universe presentation inside the existing exact-routed PeopleSurface, preserves all runtime authorities, and introduces no graph model, person-to-person edge authority, backend/IPC/data path, dependency, workflow, route bootstrap, or general-purpose Yance infrastructure.",
+  "base": {
+    "branch": "main",
+    "commit": "3cd74b4ba78517046c690c57ad8e2af85d664c9b"
+  },
+  "architecture": {
+    "designPullRequest": 453,
+    "designMerge": "3cd74b4ba78517046c690c57ad8e2af85d664c9b",
+    "designSpec": "docs/superpowers/specs/2026-08-16-yance-v21-product-relationship-universe-immersive-p0-v1-design.md",
+    "implementationPlan": "docs/superpowers/plans/2026-08-16-yance-v21-product-relationship-universe-immersive-p0-v1.md",
+    "productExperienceSsot": "Living Relationship OS",
+    "normalProductComposition": "Product Search -> People Home (list default / explicit relationship universe) -> Relationship World -> contextual Private Quest",
+    "defaultPeopleHomeView": "list",
+    "relationshipUniverseOwner": "existing PeopleSurface exact Product route",
+    "relationshipUniverseTopology": "center user -> one spoke per existing RelationshipProjection; no contact-to-contact edges",
+    "relationshipUniverseSemantics": "presentation-only deterministic layout; geometry and motion are non-authoritative and may not encode relationship strength, affection, priority, compatibility, importance or influence",
+    "conversationAuthority": "Element / Matrix",
+    "goalJourneyAuthority": "Parlant",
+    "relationshipInferenceAuthority": "Graphiti / Neo4j",
+    "relationshipProjectionAuthority": "RelationshipProjectionAuthority",
+    "agentMemoryRuntimeAuthority": "Letta",
+    "searchTranslationAuthority": "existing R32 store search + durable translation job lifecycle",
+    "interactionPrimitiveAuthority": "existing Base UI / Motion / Rive / Howler Product primitives",
+    "childWorkspaceAuthorities": "existing Media / Presence / Voice / Learning workspaces",
+    "existingRelationshipProjectionSeam": "RelationshipProjection.relationshipIntelligence",
+    "newProductSourcePathRequired": false,
+    "newIpcChannelRequired": false,
+    "newBackendRouteRequired": false,
+    "newDatabaseRequired": false,
+    "newDependencyRequired": false,
+    "routeBootstrapRequired": false
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "3cd74b4ba78517046c690c57ad8e2af85d664c9b",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": false
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-relationship-universe-immersive-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-relationship-universe-immersive-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "2b7c769de6aa71fc3d9f6b31b80cafd42602b23dfe067b1f6d689c967f0fef94",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-relationship-universe-immersive-p0-v1",
+    "allowedChangedPaths": [
+      "integration/element-module/src/product-experience/BilingualSearchPanel.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/RelationshipAssistant.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/RiveRelationshipCompanion.tsx",
+      "tests/wp0/v21-product-ai-companion-private-quest-p0.test.js",
+      "tests/wp0/v21-product-experience-bilingual-search-translation-task-ux.test.js",
+      "tests/wp0/v21-product-experience-shell-accessibility.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-relationship-intelligence-surface.test.js",
+      "tests/wp0/v21-product-relationship-universe-immersive-p0.test.js"
+    ],
+    "approvedChangedFileCount": 15,
+    "approvedChangedFileSetSha256": "eeec2eb0ebd3210f5bc4d83128324a1f2e9b7490e626a22cc58f4cfbed4f4f88",
+    "productionAllowedChangedPaths": [
+      "integration/element-module/src/product-experience/BilingualSearchPanel.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/RelationshipAssistant.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/RiveRelationshipCompanion.tsx"
+    ],
+    "productionChangedFileCount": 9,
+    "productionChangedFileSetSha256": "a542f650304b9c0fc8f0ba21555fcfe5659c5fd6ebc6d1bfa909390cf721e54b",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-ai-companion-private-quest-p0.test.js",
+        "tests/wp0/v21-product-experience-bilingual-search-translation-task-ux.test.js",
+        "tests/wp0/v21-product-experience-shell-accessibility.test.js",
+        "tests/wp0/v21-product-experience-shell-interaction.test.js",
+        "tests/wp0/v21-product-relationship-intelligence-surface.test.js",
+        "tests/wp0/v21-product-relationship-universe-immersive-p0.test.js"
+      ],
+      "approvedChangedFileCount": 6,
+      "approvedChangedFileSetSha256": "7208e33efc9e5c470f5ad90ce61a12977044b2f0c88cc35092f62349dfd4cc94",
+      "productionCodeChanged": false,
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "People Home is list-only and has no explicit list / relationship-universe peer view with list as the default.",
+        "PeopleSurface has no deterministic user-centered relationship constellation, focus-only trusted insight rail, or enter-relationship-world CTA.",
+        "ProductExperienceShell does not own People Home view and focus state for Relationship World round-trip continuity.",
+        "Normal Product relationship chrome is still mixed English instead of the frozen Chinese real-UI contract.",
+        "Existing executable Product tests still assert superseded English visible labels and aria copy.",
+        "Rive reduced-motion visible state still exposes raw English internal state keys instead of the Chinese visible-state mapping."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "databaseMigrationAllowed": false,
+    "graphitiRuntimeModificationAllowed": false,
+    "neo4jRuntimeModificationAllowed": false,
+    "lettaRuntimeModificationAllowed": false,
+    "parlantRuntimeModificationAllowed": false,
+    "learningRuntimeModificationAllowed": false,
+    "elementConversationAuthorityModificationAllowed": false,
+    "searchTranslationRuntimeModificationAllowed": false,
+    "productRendererModificationAllowed": true
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "mustRunBeforeFirstTestsOnlyDiagnosticCommit": true,
+    "requiredProofs": [
+      "Trusted main is freshly read and the effective authorization merge is an ordinary two-parent merge whose first parent equals this document base.commit and whose second parent equals the independently reviewed authorization exact head.",
+      "The implementation branch starts exactly from the effective authorization merge commit and contains no pre-authorization implementation commit.",
+      "The trusted implementationBranchPolicy parser recognizes this exact authorization and implementation branch without wildcard, alias, local-only or candidate-owned authority.",
+      "The implementation fifteen-path set, nine-path production set and six-path failure-first set, counts and SHA-256 digests exactly match this document.",
+      "Every production implementation path already exists and is a valid PRODUCT_WP0 exact route on trusted main; no route-bootstrap mutation is required.",
+      "No active open PR changes any of the fifteen authorized implementation paths.",
+      "Fresh source read confirms RelationshipProjection contains no authorized contact-to-contact edge model and Product relationship intelligence remains conversation-scoped through relationshipConversationIdsByContactId -> conversationId -> relationshipIntelligence[conversationId].",
+      "Fresh package read confirms Base UI, Motion and Rive are already present and no graph-specific dependency is required for this Product presentation.",
+      "No dependency, workflow, routing-policy, preload, IPC manifest, new IPC channel, backend route, database, service, cache, sidecar or new Yance infrastructure path has entered scope."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "requiredBoundaries": [
+      "PeopleSurface list-only home -> list/universe People Home",
+      "deterministic user-centered constellation presentation",
+      "focus-only trusted insight rail and explicit enter Relationship World action",
+      "ProductExperienceShell list-default/view/focus continuity across Relationship World",
+      "Chinese normal Product relationship chrome",
+      "Chinese visible Rive state mapping while internal state keys remain unchanged",
+      "successor executable visible-copy/accessibility contracts",
+      "RelationshipProjection identity and schema",
+      "conversation-scoped RelationshipProjectionAuthority join",
+      "Graphiti / Neo4j inference authority",
+      "Parlant goal write and progress authority",
+      "Letta runtime ownership and internal readiness",
+      "Element timeline/composer/room/navigation authority",
+      "durable search/translation job lifecycle",
+      "Media / Presence / Voice / Learning child-workspace authority",
+      "Base UI / Motion / Rive / Howler primitive ownership",
+      "negative proof that no contact-to-contact edges, social graph, relationship score, strength, affection, priority, compatibility, importance or influence are introduced",
+      "negative proof that local social heuristics, message counts, agent counts, Learning evidence or runtime telemetry cannot substitute for relationship meaning",
+      "negative proof that no graph engine, force simulation, graph cache, new dependency, IPC/backend/database/workflow/service/sidecar or general-purpose Yance infrastructure is introduced"
+    ]
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "People Home defaults to the existing list view and exposes relationship universe only through an explicit user action.",
+      "List and universe are peer presentations of the same RelationshipProjection array and switching views never selects or opens a person automatically.",
+      "The universe renders center 我 plus one outer relationship node and one uniform user-to-relationship spoke per existing RelationshipProjection; it never renders contact-to-contact edges.",
+      "Universe geometry is deterministic presentation only and is not derived from relationship intelligence, timestamps, message counts, scores or local heuristics.",
+      "Focusing a universe node updates only ephemeral focus and shows trusted relationship state/summary/next/evidence already present on that RelationshipProjection.",
+      "Entering Relationship World uses the existing selected-relationship path and returning restores the same People Home mode and last still-valid focus while the Product shell remains mounted.",
+      "Refresh clears stale focus without resetting the valid People Home mode; existing selected-relationship invalidation behavior remains intact.",
+      "Normal Product relationship chrome is Chinese according to the merged design spec while internal enum/runtime/authority identifiers remain stable.",
+      "Reduced-motion users receive static deterministic positions and Chinese visible AI state labels with all controls still usable.",
+      "Existing search/translation, Relationship World, Private Quest, relationship tools, overlays and settings keep their runtime behavior while their normal Product chrome is Chinese.",
+      "Relationship intelligence pending/empty/stale/unavailable states remain explicit and truthful; no missing trusted fact is fabricated."
+    ],
+    "forbiddenBehavior": [
+      "Do not add a new RelationshipUniverse source path or route bootstrap in this P0.",
+      "Do not create or infer person-to-person relationship edges, a social graph, affection/closeness/importance/priority/compatibility/influence score, relationship level, XP, streak or leaderboard.",
+      "Do not use position, ring, distance, node size, line width, color or motion as an implicit relationship-strength authority.",
+      "Do not add Sigma.js, Cytoscape.js, React Flow, Graphology, D3-force or another graph/layout dependency in this P0.",
+      "Do not create a force simulation, timer-driven topology, graph cache, graph service or general-purpose Yance layout/graph engine.",
+      "Do not modify RelationshipProjection schema, experienceProjection relationship join, Graphiti, Neo4j, Parlant, Letta, Learning, Element conversation authority or search/translation runtime.",
+      "Do not expose raw Matrix room id or implementation-oriented runtime inventory as normal Product relationship facts.",
+      "Do not use relationshipPotential, customer_social_state, social_rule_projection, message_baseline, message counts, agent counts, Learning evidence or other legacy/runtime telemetry as relationship meaning.",
+      "Do not create a new IPC channel, preload API, backend route, service, cache, sidecar, database, workflow, routing-policy mutation, dependency or general-purpose Yance infrastructure.",
+      "Do not weaken existing authority/accessibility/translation lifecycle tests merely to migrate visible copy."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_PRIMITIVES_AND_RELATIONSHIP_AUTHORITIES;_REJECT_NEW_GRAPH_INFRA_FOR_THIS_P0",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Element / Matrix + Base UI / Motion / Rive",
+        "source": "existing repository-pinned Product runtime/primitives",
+        "upstreamVersion": "existing repository pins",
+        "license": "repository-pinned",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns conversation integration, accessible interaction boundaries, bounded motion and living-state presentation; sufficient to implement the universe without a second UI/graph framework."
+      },
+      {
+        "name": "Graphiti + Neo4j + RelationshipProjectionAuthority",
+        "source": "existing repository-pinned relationship intelligence stack",
+        "upstreamVersion": "existing repository pins",
+        "license": "repository-pinned",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Already owns temporal relationship inference/projection. Product must consume its trusted per-relationship projection instead of inventing graph meaning."
+      },
+      {
+        "name": "Parlant + Letta",
+        "source": "existing repository-pinned relationship journey and agent/memory runtimes",
+        "upstreamVersion": "existing repository pins",
+        "license": "repository-pinned",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Existing Goal/Journey and Agent/memory authorities remain sufficient; this package changes presentation only."
+      },
+      {
+        "name": "Sigma.js / Cytoscape.js / React Flow class of graph visualization frameworks",
+        "source": "mature external graph/diagram OSS reviewed against the Product data shape",
+        "upstreamVersion": "not adopted",
+        "license": "upstream-specific",
+        "adoptionMode": "do-not-adopt-for-this-p0",
+        "fit": "NO_FIT",
+        "reason": "Trusted Product data has no authorized contact-to-contact edge graph. Adding a graph framework would expand dependency/model surface without adding truthful Product capability; the required hub-and-spoke constellation is bounded presentation over existing relationships."
+      }
+    ],
+    "retireOrAvoid": [
+      "Avoid a new Product graph model, graph dependency, force simulation, route bootstrap or reusable Yance relationship-layout framework.",
+      "Avoid treating the universe as an inference authority; it is a presentation of existing RelationshipProjection records only.",
+      "Avoid a second selected-person state or detail route; reuse ProductExperienceShell selected relationship and existing RelationshipWorld.",
+      "Avoid technical runtime/provider/room identifiers as primary Product copy."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-product-relationship-universe-immersive-p0.test.js",
+      "node --test tests/wp0/v21-product-relationship-intelligence-surface.test.js",
+      "node --test tests/wp0/v21-product-ai-companion-private-quest-p0.test.js",
+      "node --test tests/wp0/v21-product-experience-bilingual-search-translation-task-ux.test.js",
+      "node --test tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "node --test tests/wp0/v21-product-experience-shell-accessibility.test.js",
+      "node --test tests/wp0/v21-product-experience-shell-p0.test.js",
+      "node --test tests/wp0/v21-parlant-workspace-contract.test.js",
+      "node --test tests/wp0/v21-graphiti-relationship-authority.test.js",
+      "node --test tests/uat/relationshipProjectionAuthority.test.js"
+    ],
+    "routed": [
+      "Stage 6.4.5.9 WP0 Architecture Gates",
+      "Layered CI when selected by trusted routing",
+      "ACV2 WP-A Architecture Gates when triggered",
+      "WP-A Main Post-Merge Validation when triggered",
+      "Product/Model gates when triggered"
+    ],
+    "typescriptBuildRequired": true,
+    "noLockfileOrDependencyChangeExpected": true
+  },
+  "parallelWork": {
+    "freshOpenPullRequests": [
+      17,
+      67
+    ],
+    "exactImplementationPathOverlapCount": 0,
+    "openPullRequestsAreHistoricalDrafts": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "p0MustEqual": 0,
+    "p1MustEqual": 0,
+    "unresolvedReviewThreadsMustEqual": 0,
+    "codeRabbitQuotaOrAvailabilityIsNotSoleBlockingAuthority": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
