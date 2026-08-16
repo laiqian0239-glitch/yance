@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FACEBOOK-PAGE-CHATWOOT-MATRIX-P0-V1",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Closure V2 post-production diagnostic Stage RED 31943472884 proved exactly one stale executable backend contract outside the original seven-path implementation scope: backend/tests/facebookOAuthLifecycleRegression.test.js still treats the retired Yance Worker Page OAuth, Page token discovery and Page selection path as the Facebook Page production authority. The same exact-head run passed 454 of 455 tests; all other WP0 contracts, route selection, Electron materialization, locked install and both sealed-export jobs were green. The Product/runtime cutover itself was already green at production head 49820b8190c0084a196b29a33c9edc8412bf3e6a in Stage 31943318770. This amendment therefore adds exactly that one stale backend test path for contract migration, preserves Personal Identity Worker OAuth coverage, leaves all six production/config paths unchanged, and forbids restoring the retired Page Worker path merely to satisfy legacy assertions.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-facebook-page-chatwoot-matrix-integration-p0-v1-authorization.json",
+    "implementationBranch": "product/v21-facebook-page-chatwoot-matrix-integration-p0-v1",
+    "reason": "Fresh post-production causal RED proved one additional stale test boundary. The original implementation branch remains immutable evidence at diagnostic head 40b93c6e9251438d323dc5902a937857c19f24a9 and must receive no further commits after this amendment becomes effective."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "4d53016806267072bc51a79f05ede7d5b38f9014"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "4d53016806267072bc51a79f05ede7d5b38f9014",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-facebook-page-chatwoot-matrix-integration-p0-v1-scope-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-facebook-page-chatwoot-matrix-integration-p0-v1-scope-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "3fcb4320cd599ae13ca2f6e5823c055866f8d46467d45ea1d82011e3ffb283b1",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-facebook-page-chatwoot-matrix-integration-p0-v1-amendment-1",
+    "allowedChangedPaths": [
+      "backend/routes/accounts.js",
+      "backend/services/facebookChatwootMatrixBridge.js",
+      "backend/services/facebookOAuthService.js",
+      "backend/services/platformDriverRegistry.js",
+      "backend/tests/facebookOAuthLifecycleRegression.test.js",
+      "config/upstreams/v21-comms-p0.json",
+      "services/matrix/chatwoot-facebook-page/contract.json",
+      "tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js"
+    ],
+    "approvedChangedFileCount": 8,
+    "approvedChangedFileSetSha256": "c8ffe9a008bf42ab6740f94e7a4a5fb7f02ce72f2b2bec281d2247b443176850",
+    "newlyAuthorizedPath": "backend/tests/facebookOAuthLifecycleRegression.test.js",
+    "productionPathScopeUnchanged": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "databaseMigrationAllowed": false,
+    "productRendererModificationAllowed": false
+  },
+  "postRedContinuation": {
+    "fastClosureV2": true,
+    "originalEffectiveAuthorizationMerge": "4d53016806267072bc51a79f05ede7d5b38f9014",
+    "originalImplementationBranch": "product/v21-facebook-page-chatwoot-matrix-integration-p0-v1",
+    "originalFailureFirstHead": "c3bc01310c0f8616ccc74b84bebaa78bc4f7b23d",
+    "originalFailureFirstStageRun": 31942664150,
+    "originalFailureFirstConclusion": "failure",
+    "originalFailureFirstStagePassCount": 448,
+    "originalFailureFirstStageFailCount": 6,
+    "closureMatrixUnknownBlockersAtFirstProduction": 0,
+    "firstProductionHead": "49820b8190c0084a196b29a33c9edc8412bf3e6a",
+    "firstProductionStageRun": 31943318770,
+    "firstProductionStageConclusion": "success",
+    "postProductionDiagnosticHead": "40b93c6e9251438d323dc5902a937857c19f24a9",
+    "postProductionCausalStageRun": 31943472884,
+    "postProductionCausalStageConclusion": "failure",
+    "postProductionStagePassCount": 454,
+    "postProductionStageFailCount": 1,
+    "provenNewScopePath": "backend/tests/facebookOAuthLifecycleRegression.test.js",
+    "unknownBlockers": 0,
+    "requiredContinuationTopology": {
+      "newImplementationBranchMustStartFromEffectiveAmendmentMerge": true,
+      "firstContinuationCommitMustBeTwoParentMerge": true,
+      "firstContinuationCommitFirstParent": "EFFECTIVE_AMENDMENT_MERGE",
+      "firstContinuationCommitSecondParent": "40b93c6e9251438d323dc5902a937857c19f24a9",
+      "historyRewriteForbidden": true,
+      "oldImplementationBranchMustNotReceiveFurtherCommits": true
+    }
+  },
+  "causalRedClassification": {
+    "rootImplementationAlreadyGreen": [
+      "config/upstreams/v21-comms-p0.json Chatwoot exact external runtime pin",
+      "services/matrix/chatwoot-facebook-page/contract.json authority/evidence contract",
+      "platformDriverRegistry Facebook Page and generic Facebook egress cutover",
+      "facebookOAuthService Page fail-closed before Worker call while Personal Identity remains reachable",
+      "accounts Facebook webhook signed Chatwoot raw-body boundary",
+      "facebookChatwootMatrixBridge signed webhook, Matrix room-state binding and Chatwoot REST egress"
+    ],
+    "staleBackendAssertions": [
+      "Default Facebook Page account begin() is expected to open the Yance Worker OAuth flow.",
+      "Page polling is expected to discover Page metadata/tokens through the Yance Worker.",
+      "Page selection is expected to persist cloudAccountId/workerBaseUrl/device identity as Page credential authority."
+    ],
+    "preservedPersonalIdentityContracts": [
+      "Personal Identity accountKind still enters mode identity.",
+      "Personal Identity Worker contract verification remains required.",
+      "Personal Identity completion remains Page-selection-free and messagingSupported=false.",
+      "Personal Identity completion does not persist Page access tokens or grant Messenger capability."
+    ],
+    "unknownBlockers": 0
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "Chatwoot CE v4.16.2 remains the sole Facebook Page OAuth, Page discovery, credential, webhook and Meta Messenger transport authority.",
+      "Matrix/Element remains the sole unified conversation-state seam for Page conversations.",
+      "Default Page begin() and selectPage() on the legacy Yance Worker OAuth service fail closed with FACEBOOK_PAGE_OAUTH_OWNED_BY_CHATWOOT before any Worker Page call.",
+      "Facebook Personal Identity Worker OAuth remains supported and retains its no-Messenger-capability contract.",
+      "The migrated backend regression executes these current ownership boundaries instead of asserting retired Page Worker behavior."
+    ],
+    "forbiddenBehavior": [
+      "Do not restore Worker Page OAuth, Page token discovery, Page selection or cloudAccountId persistence to make legacy tests pass.",
+      "Do not weaken Personal Identity Worker OAuth or its identity-only/no-Messenger contract.",
+      "Do not change the six already-green production/config paths unless a new fresh causal RED proves a defect.",
+      "Do not add dependencies, workflows, databases, retry queues, connector frameworks or direct Meta Graph clients.",
+      "Do not represent the skipped Real P0 manual account matrix as completed or promote real-account capability flags without evidence."
+    ]
+  },
+  "validationAcceleration": {
+    "realAccountP0ManualMatrixRequiredBeforeSourceMerge": false,
+    "realAccountEvidencePresent": false,
+    "sourcePackageIntegrationEligibleFlag": false,
+    "falseCapabilityClaimForbidden": true,
+    "githubGovernanceGatesStillRequired": true
+  },
+  "ossFit": {
+    "decision": "PRESERVE_CHATWOOT_SIDECAR_AND_MATRIX_SEAM_MIGRATE_STALE_TEST_ONLY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "sidecar-service",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Chatwoot CE",
+        "source": "chatwoot/chatwoot v4.16.2 @ 70e284a044f00326725f65f703162745371075ec",
+        "license": "MIT",
+        "adoptionMode": "sidecar-service",
+        "fit": "FIT",
+        "reason": "The runtime cutover is already green; the fresh RED is only a stale backend test that still assigns Page OAuth/transport authority to the retired Yance Worker path."
+      },
+      {
+        "name": "Element / Matrix / Synapse",
+        "source": "existing repository-pinned V21 Communications P0 authorities",
+        "license": "AGPL-3.0 family",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Existing Matrix room/event state remains the canonical conversation seam and needs no runtime or persistence change for this amendment."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire only stale backend assertions that assign Facebook Page OAuth/token/Page-selection authority to the Yance Worker.",
+      "Do not retire or duplicate Chatwoot, Matrix or Facebook Personal Identity authority.",
+      "Do not add compatibility Worker Page behavior or hidden Page token persistence as a test workaround."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test backend/tests/facebookOAuthLifecycleRegression.test.js",
+      "node --test backend/tests/fix6oScopedSafetyAndFacebookDrivers.test.js",
+      "node --test tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js",
+      "node --test tests/wp0/v21-comms-p0.test.js",
+      "node --test tests/wp0/v21-element-workspace-contract.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "ACV2",
+      "Layered/WP-A validation when triggered",
+      "Product Experience Final Validation when triggered",
+      "Model validation when triggered"
+    ],
+    "manualRealAccountMatrix": "NOT_REQUIRED_BEFORE_SOURCE_MERGE_BY_OWNER_ACCELERATION_DIRECTIVE"
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "p0MustEqual": 0,
+    "p1MustEqual": 0,
+    "unresolvedReviewThreadsMustEqual": 0,
+    "codeRabbitQuotaOrAvailabilityIsNotSoleBlockingAuthority": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesAmendedImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
