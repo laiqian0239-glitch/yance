@@ -14,7 +14,7 @@ function read(repositoryPath) {
   return fs.readFileSync(path.join(ROOT, repositoryPath), 'utf8');
 }
 
-test('Presence is a visible Yance workspace backed by real desktop session and LiveKit actions', () => {
+test('Presence stays reachable through Product relationship tools backed by real desktop session and LiveKit actions', () => {
   assert.equal(fs.existsSync(workspacePath), true, 'PresenceWorkspace.tsx must exist');
   const yance = read('integration/element-module/src/YanceWorkspace.tsx');
   const workspace = fs.readFileSync(workspacePath, 'utf8');
@@ -23,8 +23,9 @@ test('Presence is a visible Yance workspace backed by real desktop session and L
     const composer = read('integration/element-module/src/product-experience/ProductComposerAccessory.tsx');
     const overlay = read('integration/element-module/src/product-experience/RelationshipOverlayHost.tsx');
     assert.match(yance, /ProductExperienceShell/u, 'YanceWorkspace must remain the thin Product composition root');
-    assert.match(composer, /label: "Live"/u);
-    assert.match(composer, /LiveKit and CyberVerse/u, 'Live action must expose the existing Presence/Avatar authority');
+    assert.match(composer, /label: "实时陪伴"/u);
+    assert.match(composer, /实时空间/u, 'Live action must expose the existing Presence/Avatar authority through Product language');
+    assert.doesNotMatch(composer, /LiveKit|CyberVerse/u, 'normal Product chrome must not expose Presence provider inventory');
     assert.match(overlay, /import \{ PresenceWorkspace \} from "\.\.\/PresenceWorkspace"/u);
     assert.match(overlay, /overlay === "live"/u, 'Product relationship Live action must route to PresenceWorkspace');
   } else {

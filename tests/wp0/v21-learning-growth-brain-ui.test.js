@@ -20,8 +20,8 @@ test('Learning remains user-reachable through Product secondary settings without
   const shell = fs.readFileSync(shellPath, 'utf8');
   assert.match(shell, /import\s+\{\s*LearningWorkspace\s*\}\s+from\s+["']\.\.\/LearningWorkspace["']/u);
   assert.match(shell, /\[learningAdminVisible,\s*setLearningAdminVisible\]\s*=\s*useState\(false\)/u);
-  assert.match(shell, /<summary>Experience<\/summary>/u);
-  assert.match(shell, /Learning controls/u);
+  assert.match(shell, /<summary>体验设置<\/summary>/u);
+  assert.match(shell, />学习控制<\/button>/u);
   assert.match(shell, /setLearningAdminVisible\(true\)/u);
   assert.match(shell, /learningAdminVisible\s*\?\s*<LearningWorkspace\s*\/>\s*:\s*null/u);
   assert.match(shell, /onToggle=\{[\s\S]*currentTarget\.open[\s\S]*setLearningAdminVisible\(false\)/u);
