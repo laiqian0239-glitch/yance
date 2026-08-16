@@ -6,7 +6,7 @@ const crypto = require('node:crypto');
 const { execFileSync, spawnSync } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const PRODUCTION_ROOTS = ['backend','electron','frontend','shared'];
+const PRODUCTION_ROOTS = ['backend','electron','shared','assets'];
 function rel(file) { return path.relative(ROOT, file).split(path.sep).join('/'); }
 function walk(root, options = {}) {
   const files = [];
