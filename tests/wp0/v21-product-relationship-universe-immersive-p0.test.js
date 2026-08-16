@@ -77,7 +77,6 @@ test('relationship universe is user-centered and does not invent contact-to-cont
 
 test('relationship universe keeps dense 21 and 33 relationship controls collision-free on a narrow stage', () => {
   const peopleSource = people();
-  const stylesheet = css();
   const positionFor = loadUniversePosition(peopleSource);
   for (const count of [21, 33]) {
     const positions = Array.from({ length: count }, (_, index) => positionFor(index, count));
@@ -96,8 +95,8 @@ test('relationship universe keeps dense 21 and 33 relationship controls collisio
   }
   assert.match(peopleSource, /denseUniverse\s*=\s*relationships\.length\s*>\s*8/u);
   assert.match(peopleSource, /data-dense=\{denseUniverse\s*\|\|\s*undefined\}/u);
-  assert.match(stylesheet, /\.yance-relationship-universe__stage\[data-dense\][\s\S]{0,180}\.yance-relationship-universe__node\s*\{[\s\S]{0,180}width:\s*40px/u);
-  assert.match(stylesheet, /@media\s*\(max-width:\s*620px\)[\s\S]{0,900}\.yance-relationship-universe__node\s*\{[\s\S]{0,220}width:\s*40px/u);
+  assert.match(peopleSource, /denseUniverse\s*\?\s*\{[\s\S]{0,220}width:\s*"40px"[\s\S]{0,220}height:\s*"40px"/u);
+  assert.match(peopleSource, /denseUniverse\s*\?\s*null\s*:\s*\(/u);
 });
 
 test('universe focus is separate from relationship selection and survives Relationship World round trips', () => {
