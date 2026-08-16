@@ -65,6 +65,17 @@ function desktopApi(): Partial<ProductDesktopApi> | null {
   return (window as unknown as { yanceDesktop?: Partial<ProductDesktopApi> }).yanceDesktop || null;
 }
 
+function relationshipIntelligenceSnapshotApi(
+  storeSnapshot: ProductDesktopApi["storeSnapshot"],
+): Pick<ProductDesktopApi, "storeSnapshot"> {
+  return {
+    storeSnapshot: (input) => storeSnapshot({
+      ...input,
+      includeRelationshipIntelligence: true,
+    }),
+  };
+}
+
 function objectRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
@@ -266,10 +277,8 @@ export async function loadRelationshipProjections(): Promise<readonly Relationsh
   const api = desktopApi();
   if (!api || typeof api.storeSnapshot !== "function") return [];
 
-  const payload = await api.storeSnapshot({
-    domains: ["customers"],
-    includeRelationshipIntelligence: true,
-  });
+  const relationshipApi = relationshipIntelligenceSnapshotApi(api.storeSnapshot);
+  const payload = await relationshipApi.storeSnapshot({ domains: ["customers"] });
   const root = objectRecord(payload);
   const snapshot = objectRecord(root.snapshot || root);
   const customers = objectRecord(snapshot.customers);
