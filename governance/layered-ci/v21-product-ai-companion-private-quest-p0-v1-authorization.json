@@ -4,9 +4,9 @@
   "requestedByUserAt": "2026-08-16T15:41:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-AI-COMPANION-PRIVATE-QUEST-P0-V1",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Fresh Product P0 successor rooted directly at the ordinary #444 design/plan merge. The Living Relationship OS SSOT requires People-first, AI-invisible current-person composition, while trusted main still permanently mounts the Learning administrative workspace inside ProductExperienceShell and RelationshipAssistant exposes implementation-oriented Letta/agent/runtime telemetry. Fresh causal preflight also proves tests/wp0/v21-learning-growth-brain-ui.test.js still enforces the stale ProductExperienceShell -> LearningWorkspace consumer contract. This package cuts over only that Product composition boundary while preserving the Learning runtime/admin capability and reusing existing Parlant goal/progress plus #443 RelationshipProjectionAuthority insight/next.",
+  "reason": "Fresh Product P0 successor rooted directly at the ordinary #444 design/plan merge. The Living Relationship OS SSOT requires People-first, AI-invisible current-person composition, while trusted main permanently renders the Learning administrative workspace inside the normal Product scene and RelationshipAssistant exposes implementation-oriented Letta/agent/runtime telemetry. Exact-head capability review found that LearningWorkspace has no second user-facing mount, so deleting its Product mount outright would create a capability-loss regression. This revision therefore converts the permanent Learning mount into an explicit secondary Experience/System-settings boundary with lazy conditional reachability, preserving the Learning admin/runtime capability while keeping the normal People/Relationship scene clean. It also reuses existing Parlant goal/progress plus #443 RelationshipProjectionAuthority insight/next and introduces no new runtime authority.",
   "base": {
     "branch": "main",
     "commit": "933505f6d0bdf525e26dbaac6702b99f68c0054a"
@@ -16,12 +16,14 @@
     "designMerge": "933505f6d0bdf525e26dbaac6702b99f68c0054a",
     "productExperienceSsot": "Living Relationship OS",
     "normalProductComposition": "People -> Relationship World -> contextual Private Quest",
+    "secondaryAdminComposition": "existing Experience/System settings -> explicit Learning controls -> conditional LearningWorkspace mount",
     "conversationAuthority": "Element / Matrix",
     "goalJourneyAuthority": "Parlant",
     "relationshipInferenceAuthority": "Graphiti / Neo4j",
     "relationshipProjectionAuthority": "RelationshipProjectionAuthority",
     "agentMemoryRuntimeAuthority": "Letta",
     "learningRuntimeAuthority": "existing Learning modular/admin runtime",
+    "learningAdminReachability": "preserved through explicit secondary settings action; not permanently rendered in the normal Product scene",
     "existingRelationshipProjectionSeam": "RelationshipProjection.relationshipIntelligence from #443",
     "existingAssistantProjectionSeam": "loadRelationshipAssistant / RelationshipAssistantProjection.goal",
     "newIpcChannelRequired": false,
@@ -90,8 +92,8 @@
         "Yance-Closure-Matrix-Unknown-Blockers: 0"
       ],
       "expectedFailures": [
-        "ProductExperienceShell still directly imports/mounts LearningWorkspace on the normal people-first Product path.",
-        "The existing Learning UI executable contract still requires ProductExperienceShell -> LearningWorkspace instead of preserving Learning as a modular/admin capability outside the normal Product scene.",
+        "ProductExperienceShell currently renders LearningWorkspace permanently in the normal Product scene instead of only after an explicit secondary settings action.",
+        "The existing Learning UI executable contract still requires direct normal-path ProductExperienceShell -> LearningWorkspace composition instead of explicit gated reachability that preserves Learning capability.",
         "RelationshipAssistant still receives only relationshipId and exposes Letta / Agents / Recent context runtime telemetry rather than a relationship-native Private Quest hierarchy.",
         "The selected RelationshipProjection is not yet supplied to RelationshipAssistant for trusted RelationshipProjectionAuthority summary/status/next presentation."
       ]
@@ -134,6 +136,7 @@
       "The implementation five-path set and failure-first two-path set, counts and SHA-256 digests exactly match this document.",
       "Every implementation path is already a valid PRODUCT_WP0 route on trusted main; no route-bootstrap mutation is required.",
       "No active open PR changes any of the five authorized implementation paths.",
+      "Fresh source search confirms ProductExperienceShell is the only current user-facing LearningWorkspace mount, so the root implementation must preserve explicit secondary Learning admin reachability rather than delete it.",
       "The unchanged experienceProjection.ts still binds relationship intelligence through relationshipConversationIdsByContactId -> conversationId -> relationshipIntelligence[conversationId].",
       "No dependency, workflow, preload, IPC manifest, new IPC channel, backend route, database or new Yance infrastructure path has entered scope."
     ],
@@ -149,9 +152,10 @@
       "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
     ],
     "requiredBoundaries": [
-      "ProductExperienceShell normal-path LearningWorkspace mount",
+      "ProductExperienceShell permanent normal-scene LearningWorkspace render -> explicit secondary settings-gated conditional mount",
       "stale executable Learning UI Product-consumer composition contract",
       "RelationshipAssistant technical/runtime presentation",
+      "Learning admin user reachability after normal-scene cutover",
       "Parlant goal write and progress authority",
       "RelationshipProjectionAuthority summary/next/evidence authority",
       "#443 conversation-scoped relationship evidence join",
@@ -165,8 +169,9 @@
   },
   "productContract": {
     "requiredBehavior": [
-      "The normal Product scene is People/Relationship-first and must not permanently import or mount LearningWorkspace.",
-      "LearningWorkspace and its Learning admin/tool-ui/privacy/consent capability remain present and independently testable; this package changes only its stale Product-consumer mount contract.",
+      "The normal Product scene is People/Relationship-first and must not permanently render LearningWorkspace alongside People or Relationship World.",
+      "LearningWorkspace and its Learning admin/tool-ui/privacy/consent capability remain user-reachable through the existing secondary Experience/System settings boundary.",
+      "LearningWorkspace is conditionally mounted only after an explicit user action; its visibility state defaults false and closing the parent settings boundary clears that state so Learning admin is not left mounted invisibly.",
       "RelationshipAssistant remains hidden by default and is opened only from the selected Relationship World.",
       "ProductExperienceShell passes the already-selected RelationshipProjection directly to RelationshipAssistant without introducing a second selected-person state.",
       "Current intention and progress come only from existing Parlant goal projection/mutations.",
@@ -176,6 +181,8 @@
       "Existing Element timeline/composer/navigation state and #443 conversation-scoped evidence identity remain unchanged."
     ],
     "forbiddenBehavior": [
+      "Do not make Learning admin capability unreachable merely to satisfy the People-first Product scene.",
+      "Do not permanently mount LearningWorkspace in the normal People/Relationship scene or keep it invisibly mounted after the secondary settings surface closes.",
       "Do not delete, rewrite or weaken the Learning runtime/admin workspace, privacy/consent controls or Learning OSS authority.",
       "Do not expose Letta, agent count, recent Letta conversation count, model/provider identity or raw runtime inventory as Private Quest relationship facts.",
       "Do not use relationshipPotential, customer_social_state, social_rule_projection, message_baseline, message counts, Learning evidence or runtime counts as relationship inference/progress/next sources.",
@@ -216,7 +223,7 @@
         "license": "repository-pinned",
         "adoptionMode": "preserve-existing-authority",
         "fit": "FIT",
-        "reason": "Agent/memory and Learning admin capabilities remain existing authorities; this package only changes their Product presentation/mount boundary."
+        "reason": "Agent/memory and Learning admin capabilities remain existing authorities; this package changes only Product presentation and makes Learning admin secondary/on-demand rather than permanently mounted."
       },
       {
         "name": "Element / Matrix + Base UI / Motion / Rive",
@@ -225,11 +232,11 @@
         "license": "repository-pinned",
         "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
-        "reason": "Conversation authority and Product interaction primitives are already present; no second framework or runtime is required."
+        "reason": "Conversation authority and Product interaction primitives are already present; the existing settings surface is sufficient for a secondary Learning admin boundary without a new framework."
       }
     ],
     "retireOrAvoid": [
-      "Retire only the stale ProductExperienceShell -> LearningWorkspace normal-path composition requirement; do not retire Learning capability.",
+      "Retire only the permanent normal-scene ProductExperienceShell -> LearningWorkspace composition; preserve explicit secondary Learning admin reachability.",
       "Do not create a second goal/journey, relationship inference, memory, conversation, learning, animation or UI framework authority.",
       "Do not add a new IPC/backend/data path when the selected RelationshipProjection and existing assistant projection already contain the required trusted data.",
       "Do not use implementation/runtime telemetry as a shortcut for relationship-native Product facts."
@@ -256,7 +263,7 @@
       "Model validation when triggered"
     ],
     "negativeProofs": [
-      "Normal Product no longer mounts LearningWorkspace, while LearningWorkspace capability itself remains present and tested.",
+      "Normal People/Relationship Product no longer permanently renders LearningWorkspace, while Learning admin remains explicitly reachable through secondary settings and unmounts when that settings boundary closes.",
       "Private Quest uses existing Parlant goal/progress and selected RelationshipProjection.relationshipIntelligence only.",
       "#443 relationship intelligence remains conversation-scoped and is not re-keyed to contact.",
       "No user-facing Letta/Agents/Recent context runtime dashboard remains in RelationshipAssistant.",
