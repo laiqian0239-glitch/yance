@@ -2,6 +2,7 @@
 
 const express = require('express');
 const { getAppRuntime } = require('../runtime/runtimeSingleton');
+const facebookChatwootMatrixBridge = require('../services/facebookChatwootMatrixBridge');
 
 const router = express.Router();
 const runtime = () => getAppRuntime();
@@ -80,22 +81,22 @@ router.get('/:id/facebook/avatar-import/session', async (req, res, next) => { tr
 router.post('/:id/facebook/avatar-import/session', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.avatarImport.start', { id: req.params.id })) }); } catch (error) { next(error); } });
 router.post('/:id/facebook/avatar-import/session/stop', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.avatarImport.stop', { id: req.params.id })) }); } catch (error) { next(error); } });
 
-function localFacebookWebhookEnabled() {
-  return process.env.NODE_ENV === 'test' && process.env.YANCE_FACEBOOK_LOCAL_WEBHOOK_TEST === '1';
-}
-
-router.get('/facebook/webhook', async (req, res, next) => {
-  if (!localFacebookWebhookEnabled()) return res.status(410).json({ ok: false, error: 'FACEBOOK_WEBHOOK_MOVED_TO_CLOUDFLARE', message: 'Facebook Webhook 已迁移到 Cloudflare Worker' });
-  try {
-    const result = await execute(req, 'account.facebook.webhook.verify', { mode: req.query['hub.mode'], token: req.query['hub.verify_token'], challenge: req.query['hub.challenge'] });
-    if (!result.valid) return res.sendStatus(403);
-    res.status(200).send(result.challenge);
-  } catch (error) { next(error); }
+router.get('/facebook/webhook', (_req, res) => {
+  res.status(405).json({
+    ok: false,
+    error: 'FACEBOOK_PAGE_WEBHOOK_OWNED_BY_CHATWOOT',
+    message: 'Facebook Page webhook is delivered by Chatwoot as a signed account webhook.'
+  });
 });
 router.post('/facebook/webhook', async (req, res, next) => {
-  if (!localFacebookWebhookEnabled()) return res.status(410).json({ ok: false, error: 'FACEBOOK_WEBHOOK_MOVED_TO_CLOUDFLARE', message: 'Facebook Webhook 已迁移到 Cloudflare Worker' });
-  try { res.json({ ok: true, ...(await execute(req, 'account.facebook.webhook.handle', { rawBody: req.rawBody, signature: req.get('x-hub-signature-256'), body: req.body || {} })) }); }
-  catch (error) { next(error); }
+  try {
+    const result = await facebookChatwootMatrixBridge.handleSignedWebhook({
+      rawBody: req.rawBody,
+      signature: req.get('x-chatwoot-signature'),
+      timestamp: req.get('x-chatwoot-timestamp')
+    });
+    res.json({ ok: true, ...result });
+  } catch (error) { next(error); }
 });
 
 router.post('/:id/send-text', async (req, res, next) => {
