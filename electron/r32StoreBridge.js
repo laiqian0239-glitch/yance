@@ -51,6 +51,22 @@ function trustedRelationshipIntelligence(value) {
   return projections;
 }
 
+function relationshipConversationIdsByContactId(value) {
+  const payload = objectRecord(value);
+  const snapshot = objectRecord(payload.snapshot || payload);
+  const conversations = objectRecord(snapshot.conversations);
+  const byContactId = objectRecord(conversations.byContactId);
+  const projection = {};
+  for (const [rawContactId, rawConversationIds] of Object.entries(byContactId)) {
+    const contactId = clean(rawContactId);
+    const conversationIds = Array.isArray(rawConversationIds)
+      ? rawConversationIds.map(clean).filter(Boolean)
+      : [];
+    if (contactId && conversationIds.length) projection[contactId] = conversationIds;
+  }
+  return projection;
+}
+
 function requiredIdentifier(value, name) {
   const id = clean(value);
   if (id) return id;
@@ -93,12 +109,14 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       const domains = Array.isArray(input.domains) ? input.domains.map(clean).filter(Boolean).join(',') : '';
       const snapshotPath = `/api/r32/store/snapshot${domains ? `?domains=${encodeURIComponent(domains)}` : ''}`;
       if (input.includeRelationshipIntelligence !== true) return apiRequest(snapshotPath);
-      const [snapshot, bootstrap] = await Promise.all([
+      const [snapshot, conversationSnapshot, bootstrap] = await Promise.all([
         apiRequest(snapshotPath),
+        apiRequest('/api/r32/store/snapshot?domains=conversations').catch(() => null),
         apiRequest('/api/workspace/bootstrap?conversationLimit=2000&messageLimit=1').catch(() => null)
       ]);
       return {
         ...objectRecord(snapshot),
+        relationshipConversationIdsByContactId: relationshipConversationIdsByContactId(conversationSnapshot),
         relationshipIntelligence: trustedRelationshipIntelligence(bootstrap)
       };
     },

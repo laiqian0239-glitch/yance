@@ -57,17 +57,21 @@ function fakeIpcMain(handlers) {
   };
 }
 
-test('storeSnapshot preserves the default contract and keeps trusted relationship intelligence keyed by the authority conversation scope', async () => {
+test('storeSnapshot preserves the customers caller contract while keeping relationship authority conversation-scoped', async () => {
   const { installR32StoreBridge, CHANNELS } = require('../../electron/r32StoreBridge');
   const handlers = new Map();
   const requests = [];
-  const snapshot = {
+  const customerSnapshot = {
     snapshot: {
       customers: {
         byId: {
           c1: { id: 'c1', contactId: 'c1', displayName: 'Ada' }
         }
-      },
+      }
+    }
+  };
+  const conversationSnapshot = {
+    snapshot: {
       conversations: {
         byId: {
           'conv-2': { id: 'conv-2', contactId: 'c1' },
@@ -81,6 +85,8 @@ test('storeSnapshot preserves the default contract and keeps trusted relationshi
   const latest = trustedProjection('conv-2');
   const apiRequest = async (requestPath) => {
     requests.push(requestPath);
+    if (requestPath === '/api/r32/store/snapshot?domains=customers') return customerSnapshot;
+    if (requestPath === '/api/r32/store/snapshot?domains=conversations') return conversationSnapshot;
     if (requestPath === '/api/workspace/bootstrap?conversationLimit=2000&messageLimit=1') {
       return {
         trajectoryState: {
@@ -93,7 +99,7 @@ test('storeSnapshot preserves the default contract and keeps trusted relationshi
         }
       };
     }
-    return snapshot;
+    throw new Error(`Unexpected request ${requestPath}`);
   };
 
   installR32StoreBridge({ ipcMain: fakeIpcMain(handlers), apiRequest });
@@ -101,16 +107,18 @@ test('storeSnapshot preserves the default contract and keeps trusted relationshi
   assert.equal(typeof handler, 'function');
 
   const defaultResult = await handler({}, { domains: ['customers'] });
-  assert.deepEqual(defaultResult, snapshot, 'existing storeSnapshot consumers must keep the current response contract');
+  assert.deepEqual(defaultResult, customerSnapshot, 'existing storeSnapshot consumers must keep the current response contract');
   assert.deepEqual(requests, ['/api/r32/store/snapshot?domains=customers']);
 
   requests.length = 0;
-  const enriched = await handler({}, { domains: ['customers', 'conversations'], includeRelationshipIntelligence: true });
+  const enriched = await handler({}, { domains: ['customers'], includeRelationshipIntelligence: true });
   assert.deepEqual([...requests].sort(), [
-    '/api/r32/store/snapshot?domains=customers%2Cconversations',
+    '/api/r32/store/snapshot?domains=customers',
+    '/api/r32/store/snapshot?domains=conversations',
     '/api/workspace/bootstrap?conversationLimit=2000&messageLimit=1'
   ].sort());
-  assert.deepEqual(enriched.snapshot, snapshot.snapshot);
+  assert.deepEqual(enriched.snapshot, customerSnapshot.snapshot, 'opt-in enrichment must not widen the Product caller snapshot domains');
+  assert.deepEqual(enriched.relationshipConversationIdsByContactId, { c1: ['conv-2', 'conv-1'] });
   assert.deepEqual(enriched.relationshipIntelligence, {
     'conv-2': latest,
     'conv-1': first
@@ -120,18 +128,21 @@ test('storeSnapshot preserves the default contract and keeps trusted relationshi
   assert.equal(JSON.stringify(enriched).includes('LegacyRelationshipHeuristic'), false);
 });
 
-test('storeSnapshot starts optional relationship enrichment concurrently and degrades to the primary snapshot when bootstrap fails', async () => {
+test('storeSnapshot starts optional relationship enrichment concurrently and degrades to the primary snapshot when enrichment sources fail', async () => {
   const { installR32StoreBridge, CHANNELS } = require('../../electron/r32StoreBridge');
   const handlers = new Map();
   const snapshot = { snapshot: { customers: { byId: { c1: { id: 'c1', contactId: 'c1' } } } } };
   const requests = [];
   let resolveSnapshot;
   let rejectBootstrap;
+  let rejectConversations;
   const snapshotPromise = new Promise((resolve) => { resolveSnapshot = resolve; });
   const bootstrapPromise = new Promise((_resolve, reject) => { rejectBootstrap = reject; });
+  const conversationPromise = new Promise((_resolve, reject) => { rejectConversations = reject; });
   const apiRequest = (requestPath) => {
     requests.push(requestPath);
     if (requestPath === '/api/workspace/bootstrap?conversationLimit=2000&messageLimit=1') return bootstrapPromise;
+    if (requestPath === '/api/r32/store/snapshot?domains=conversations') return conversationPromise;
     if (requestPath === '/api/r32/store/snapshot?domains=customers') return snapshotPromise;
     throw new Error(`Unexpected request ${requestPath}`);
   };
@@ -141,25 +152,30 @@ test('storeSnapshot starts optional relationship enrichment concurrently and deg
   const pending = handler({}, { domains: ['customers'], includeRelationshipIntelligence: true });
   await Promise.resolve();
   const bootstrapStartedBeforeSnapshotResolved = requests.includes('/api/workspace/bootstrap?conversationLimit=2000&messageLimit=1');
+  const conversationsStartedBeforeSnapshotResolved = requests.includes('/api/r32/store/snapshot?domains=conversations');
   resolveSnapshot(snapshot);
   await Promise.resolve();
   rejectBootstrap(new Error('workspace bootstrap unavailable'));
+  rejectConversations(new Error('conversation projection unavailable'));
   const result = await pending;
 
-  assert.equal(bootstrapStartedBeforeSnapshotResolved, true, 'snapshot and optional enrichment should start together');
+  assert.equal(bootstrapStartedBeforeSnapshotResolved, true, 'bootstrap enrichment should start with the primary snapshot');
+  assert.equal(conversationsStartedBeforeSnapshotResolved, true, 'conversation relation enrichment should start with the primary snapshot');
   assert.deepEqual(result.snapshot, snapshot.snapshot);
+  assert.deepEqual(result.relationshipConversationIdsByContactId, {});
   assert.deepEqual(result.relationshipIntelligence, {});
   assert.equal(result.__yanceBridgeError, undefined);
 });
 
-test('Product joins relationship intelligence through the existing customer-to-conversation snapshot relation without local evidence re-keying', () => {
+test('Product joins relationship intelligence through the bridge-projected existing customer-to-conversation relation without local evidence re-keying', () => {
   const bridge = read('electron/r32StoreBridge.js');
   const projection = read('integration/element-module/src/product-experience/experienceProjection.ts');
 
-  assert.match(projection, /domains:\s*\["customers",\s*"conversations"\]/u);
-  assert.match(projection, /conversations/u);
-  assert.match(projection, /byContactId/u);
+  assert.match(projection, /storeSnapshot\(\{ domains: \["customers"\] \}\)/u);
+  assert.match(projection, /relationshipConversationIdsByContactId/u);
   assert.match(projection, /relationshipIntelligence\[conversationId\]/u);
+  assert.match(bridge, /domains=conversations/u);
+  assert.match(bridge, /relationshipConversationIdsByContactId/u);
   assert.doesNotMatch(bridge, /stableContactIdByTrajectoryId|projections\[stableContactId\]/u);
   assert.match(bridge, /projections\[trajectoryId\]\s*=\s*projection/u);
   assert.match(bridge, /conversationLimit=2000&messageLimit=1/u);

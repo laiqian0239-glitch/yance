@@ -287,13 +287,12 @@ export async function loadRelationshipProjections(): Promise<readonly Relationsh
   if (!api || typeof api.storeSnapshot !== "function") return [];
 
   const relationshipApi = relationshipIntelligenceSnapshotApi(api.storeSnapshot);
-  const payload = await relationshipApi.storeSnapshot({ domains: ["customers", "conversations"] });
+  const payload = await relationshipApi.storeSnapshot({ domains: ["customers"] });
   const root = objectRecord(payload);
   const snapshot = objectRecord(root.snapshot || root);
   const customers = objectRecord(snapshot.customers);
   const byId = objectRecord(customers.byId);
-  const conversations = objectRecord(snapshot.conversations);
-  const conversationIdsByContactId = objectRecord(conversations.byContactId);
+  const conversationIdsByContactId = objectRecord(root.relationshipConversationIdsByContactId);
   const relationshipIntelligence = objectRecord(root.relationshipIntelligence);
 
   return Object.entries(byId)
