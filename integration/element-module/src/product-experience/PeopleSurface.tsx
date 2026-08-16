@@ -38,8 +38,8 @@ function universePosition(index: number, count: number): UniversePosition {
     };
   }
 
-  const capacities = [8, 12, 16] as const;
-  const radii = [18, 31, 44] as const;
+  const capacities = [8, 12, 16];
+  const radii = [18, 31, 44];
   const ring = index < capacities[0] ? 0 : index < capacities[0] + capacities[1] ? 1 : 2;
   const ringStart = ring === 0 ? 0 : ring === 1 ? capacities[0] : capacities[0] + capacities[1];
   const ringCount = Math.min(capacities[ring], Math.max(1, boundedCount - ringStart));
