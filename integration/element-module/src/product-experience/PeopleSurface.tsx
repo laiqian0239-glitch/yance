@@ -27,19 +27,25 @@ function initials(name: string): string {
 }
 
 function universePosition(index: number, count: number): UniversePosition {
-  const firstRingCapacity = 8;
-  const ring = index < firstRingCapacity ? 0 : 1 + Math.floor((index - firstRingCapacity) / 12);
-  const ringStart = ring === 0 ? 0 : firstRingCapacity + (ring - 1) * 12;
-  const ringCount = ring === 0
-    ? Math.min(count, firstRingCapacity)
-    : Math.min(12, Math.max(1, count - ringStart));
-  const slot = ring === 0 ? index : index - ringStart;
-  const angle = ((slot / Math.max(1, ringCount)) * Math.PI * 2) - (Math.PI / 2);
-  const radius = Math.min(43, 30 + ring * 12);
+  const boundedCount = Math.max(1, count);
+  if (boundedCount <= 8) {
+    const angle = ((index / boundedCount) * Math.PI * 2) - (Math.PI / 2);
+    const radius = 30;
+    return {
+      x: 50 + Math.cos(angle) * radius,
+      y: 50 + Math.sin(angle) * radius,
+      ring: 0,
+    };
+  }
+
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  const normalizedRadius = Math.sqrt((index + 0.5) / boundedCount);
+  const radius = 18 + normalizedRadius * 26;
+  const angle = index * goldenAngle - (Math.PI / 2);
   return {
     x: 50 + Math.cos(angle) * radius,
     y: 50 + Math.sin(angle) * radius,
-    ring,
+    ring: Math.min(2, Math.floor(normalizedRadius * 3)),
   };
 }
 
