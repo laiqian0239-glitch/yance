@@ -38,14 +38,19 @@ function universePosition(index: number, count: number): UniversePosition {
     };
   }
 
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-  const normalizedRadius = Math.sqrt((index + 0.5) / boundedCount);
-  const radius = 18 + normalizedRadius * 26;
-  const angle = index * goldenAngle - (Math.PI / 2);
+  const capacities = [8, 12, 16] as const;
+  const radii = [18, 31, 44] as const;
+  const ring = index < capacities[0] ? 0 : index < capacities[0] + capacities[1] ? 1 : 2;
+  const ringStart = ring === 0 ? 0 : ring === 1 ? capacities[0] : capacities[0] + capacities[1];
+  const ringCount = Math.min(capacities[ring], Math.max(1, boundedCount - ringStart));
+  const slot = Math.min(index - ringStart, ringCount - 1);
+  const phase = -(Math.PI / 2) + (ring % 2 === 1 ? Math.PI / ringCount : 0);
+  const angle = phase + ((slot / ringCount) * Math.PI * 2);
+  const radius = radii[ring];
   return {
     x: 50 + Math.cos(angle) * radius,
     y: 50 + Math.sin(angle) * radius,
-    ring: Math.min(2, Math.floor(normalizedRadius * 3)),
+    ring,
   };
 }
 
@@ -64,6 +69,8 @@ export function PeopleSurface({
   const latestEvidence = focusedIntelligence && focusedIntelligence.events.length
     ? focusedIntelligence.events[focusedIntelligence.events.length - 1]
     : null;
+  const denseUniverse = relationships.length > 8;
+  const universeRelationships = relationships.slice(0, 36);
 
   return (
     <section className="yance-people" aria-label="我的关系">
@@ -142,15 +149,19 @@ export function PeopleSurface({
               <p>从你出发，看见每段关系正在发生什么</p>
             </header>
 
-            <div className="yance-relationship-universe__stage" aria-label="关系宇宙">
+            <div
+              className="yance-relationship-universe__stage"
+              data-dense={denseUniverse || undefined}
+              aria-label="关系宇宙"
+            >
               <svg
                 className="yance-relationship-universe__spokes"
                 viewBox="0 0 100 100"
                 preserveAspectRatio="none"
                 aria-hidden="true"
               >
-                {relationships.map((relationship, index) => {
-                  const position = universePosition(index, relationships.length);
+                {universeRelationships.map((relationship, index) => {
+                  const position = universePosition(index, universeRelationships.length);
                   return (
                     <line
                       key={`spoke-${relationship.id}`}
@@ -168,8 +179,8 @@ export function PeopleSurface({
                 <span>我</span>
               </div>
 
-              {relationships.map((relationship, index) => {
-                const position = universePosition(index, relationships.length);
+              {universeRelationships.map((relationship, index) => {
+                const position = universePosition(index, universeRelationships.length);
                 const focused = relationship.id === focusedRelationshipId;
                 const selected = relationship.id === selectedRelationshipId;
                 const analysisStatusLabel = relationship.relationshipIntelligence?.analysisStatusLabel
@@ -201,6 +212,11 @@ export function PeopleSurface({
                 );
               })}
             </div>
+            {relationships.length > universeRelationships.length ? (
+              <p className="yance-relationship-universe__overflow-note" role="status">
+                关系宇宙一次显示 36 段关系；切换“列表”可查看全部 {relationships.length} 段。
+              </p>
+            ) : null}
           </div>
 
           <aside className="yance-relationship-universe__insight" aria-label="可信关系洞察">
