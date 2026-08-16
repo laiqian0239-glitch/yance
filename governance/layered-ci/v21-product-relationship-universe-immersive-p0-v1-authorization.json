@@ -279,7 +279,7 @@
         "upstreamVersion": "not adopted",
         "license": "upstream-specific",
         "adoptionMode": "do-not-adopt-for-this-p0",
-        "fit": "NO_FIT",
+        "fit": "GAP",
         "reason": "Trusted Product data has no authorized contact-to-contact edge graph. Adding a graph framework would expand dependency/model surface without adding truthful Product capability; the required hub-and-spoke constellation is bounded presentation over existing relationships."
       }
     ],
