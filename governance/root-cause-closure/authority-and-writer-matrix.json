@@ -108,10 +108,10 @@
     },
     {
       "id": "relationshipProjection",
-      "authority": "RelationshipProjectionAuthority",
-      "currentImplementation": "backend/services/relationshipProjectionAuthority.js + backend/repositories/workspaceRepository.js",
-      "singleWriter": "RelationshipProjectionAuthority owns the current relationship projection contract; source transactions write insights, social state, signals and timeline events. The remaining local ruleProjection fallback is a separately tracked successor gap and is not presented as Product UI authority.",
-      "storage": "relationship_insights + customer_social_state + relationship_state_signals + relationship_timeline_events; Element receives one derived Product projection",
+      "authority": "RelationshipProjectionAuthority (Graphiti/Neo4j inference authority)",
+      "currentImplementation": "backend/services/relationshipProjectionAuthority.js + backend/services/relationshipKeyNodeService.js + backend/store/relationshipKeyNodeRepository.js + backend/repositories/workspaceRepository.js",
+      "singleWriter": "Graphiti/Neo4j relationship facts enter through RelationshipKeyNodeService/Repository as the sole relationship inference writer with episode provenance and idempotent edge identity; explicit user annotations retain user ownership; relationship_insights remains a distinct ai_analysis source; RelationshipProjectionAuthority only projects those authorities or truthful pending/empty state and never infers from customer_social_state, relationship_state_signals or message counts.",
+      "storage": "relationship_timeline_events stores Graphiti inference plus explicit user annotations; relationship_insights stores distinct ai_analysis; customer_social_state and relationship_state_signals remain non-authoritative observability data and cannot synthesize Product relationship inference",
       "readers": [
         "backend/services/workspaceService.js",
         "backend/routes/workspace.js",
@@ -120,12 +120,15 @@
       ],
       "requiredStates": ["empty", "pending_translation", "pending_analysis", "ready", "stale", "rebuild_required"],
       "rootCauseRisks": [
-        "同一消息重复生成关系事件",
-        "有效节点存在但摘要长期待分析",
-        "多个正式渲染器自行覆盖关系结论"
+        "Graphiti 缺席时不得由本地 social/signals/messages 合成关系阶段、风险、机会或下一步建议",
+        "Graphiti 刷新不得覆盖显式 user annotation 的所有权和确认语义",
+        "ai_analysis 必须与 Graphiti AI inference 保持 epistemic distinction，且不得吸收本地规则输出",
+        "账号、会话与 canonical contact scope 不得串写或串读关系投影"
       ],
       "sourceReferences": [
         "backend/services/relationshipProjectionAuthority.js",
+        "backend/services/relationshipKeyNodeService.js",
+        "backend/store/relationshipKeyNodeRepository.js",
         "backend/repositories/workspaceRepository.js",
         "backend/services/workspaceService.js",
         "integration/element-module/src/product-experience/experienceProjection.ts",

@@ -98,7 +98,7 @@ function seedSocialProjection(store, identity, messageId, options = {}) {
     .run(now, `event-${identity.accountId}-1`);
 }
 
-test('valid social nodes produce a deterministic Chinese rule projection instead of an empty waiting state', () => {
+test('social state and messages without Graphiti inference stay truthful pending and preserve only explicit user annotation', () => {
   const { root, store } = createStore();
   try {
     const identity = seedIdentity(store);
@@ -111,20 +111,24 @@ test('valid social nodes produce a deterministic Chinese rule projection instead
 
     assert.equal(projection.authorityId, 'RelationshipProjectionAuthority');
     assert.equal(projection.state, 'pending_analysis');
-    assert.equal(projection.source, 'social_rule_projection');
+    assert.equal(projection.source, 'empty');
     assert.equal(projection.socialNodeCount, 2);
     assert.equal(projection.signalCount, 2);
     assert.equal(projection.keyNodeCount, 1);
-    assert.equal(trajectory.stage, '关系升温');
-    assert.match(trajectory.summary, /2 条真实关系信号/);
-    assert.doesNotMatch(trajectory.summary, /暂无可确认内容|等待真实分析/);
-    assert.doesNotMatch(trajectory.next, /等待真实分析/);
+    assert.equal(trajectory.stage, '待建立');
+    assert.equal(trajectory.summary, '');
+    assert.equal(trajectory.next, '');
+    assert.equal(trajectory.temperature, 0);
+    assert.equal(trajectory.initiative, 0);
+    assert.equal(trajectory.depth, 0);
+    assert.equal(trajectory.opportunity, 0);
+    assert.equal(trajectory.risk, 0);
     assert.equal(trajectory.analysisRequired, true);
-    assert.equal(trajectory.analysisStatusLabel, 'AI 分析待执行，已显示规则投影');
-    assert.equal(trajectory.bilingualPresentation.summary.displayText, trajectory.summary);
-    assert.equal(trajectory.bilingualPresentation.stage.displayText, '关系升温');
-    assert.equal(trajectory.bilingualPresentation.truthRules.ruleProjectionIsNotAiAnalysis, true);
-    assert.equal(trajectory.events.length, 2);
+    assert.equal(trajectory.analysisStatusLabel, 'AI 分析待执行');
+    assert.equal(trajectory.timelineAuthority, 'user_annotation');
+    assert.equal(trajectory.events.length, 1);
+    assert.equal(trajectory.events[0][1], '对方回应温暖度提升，关系氛围正在改善。');
+    assert.equal(Object.hasOwn(trajectory, 'bilingualPresentation'), false);
   } finally {
     store.close();
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
