@@ -75,10 +75,10 @@ test('relationship universe is user-centered and does not invent contact-to-cont
   assert.doesNotMatch(source, /sourceId|targetId|personToPerson|contactEdges|socialGraph/iu);
 });
 
-test('relationship universe keeps dense 21 and 33 relationship controls collision-free on a narrow stage', () => {
+test('relationship universe keeps dense 8, 21 and 33 relationship controls collision-free on a narrow stage', () => {
   const peopleSource = people();
   const positionFor = loadUniversePosition(peopleSource);
-  for (const count of [21, 33]) {
+  for (const count of [8, 21, 33]) {
     const positions = Array.from({ length: count }, (_, index) => positionFor(index, count));
     assert.ok(
       minimumDistance(positions) >= 8,
@@ -93,7 +93,7 @@ test('relationship universe keeps dense 21 and 33 relationship controls collisio
       assert.ok(position.y >= 5 && position.y <= 95, `${count} relationship node y must remain bounded`);
     }
   }
-  assert.match(peopleSource, /denseUniverse\s*=\s*relationships\.length\s*>\s*8/u);
+  assert.match(peopleSource, /denseUniverse\s*=\s*relationships\.length\s*>=\s*8/u);
   assert.match(peopleSource, /data-dense=\{denseUniverse\s*\|\|\s*undefined\}/u);
   assert.match(peopleSource, /denseUniverse\s*\?\s*\{[\s\S]{0,260}width:\s*"44px"[\s\S]{0,180}height:\s*"44px"[\s\S]{0,240}boxSizing:\s*"border-box"/u);
   assert.match(peopleSource, /denseUniverse\s*\?\s*null\s*:\s*\(/u);
