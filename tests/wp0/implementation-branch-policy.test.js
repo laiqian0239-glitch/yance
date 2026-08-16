@@ -1098,6 +1098,7 @@ test('root AGENTS protocol document transport is exact, regular and never grants
     git('add', 'AGENTS.md');
     git('update-index', '--chmod=+x', 'AGENTS.md');
     git('commit', '-m', 'add executable root protocol');
+    git('reset', '--hard', 'HEAD');
     const executableHead = git('rev-parse', 'HEAD');
     const executable = evaluate(executableBranch, base, executableHead);
     assert.equal(executable.pass, false, 'AGENTS transport must require mode 100644');
