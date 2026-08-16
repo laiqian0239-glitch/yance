@@ -13,7 +13,7 @@ function read(file) {
   return fs.readFileSync(path.join(ROOT, file), 'utf8');
 }
 
-test('Media is a visible top-level Yance capability with real runtime-backed actions', () => {
+test('Media stays reachable through Product relationship tools with real runtime-backed actions', () => {
   assert.equal(fs.existsSync(workspacePath), true, 'MediaWorkspace.tsx must exist');
   const yance = read('integration/element-module/src/YanceWorkspace.tsx');
   const workspace = fs.readFileSync(workspacePath, 'utf8');
@@ -22,10 +22,11 @@ test('Media is a visible top-level Yance capability with real runtime-backed act
     const composer = read('integration/element-module/src/product-experience/ProductComposerAccessory.tsx');
     const overlay = read('integration/element-module/src/product-experience/RelationshipOverlayHost.tsx');
     assert.match(yance, /ProductExperienceShell/u, 'YanceWorkspace must remain the thin Product composition root');
-    assert.match(composer, /label: "Photo"/u);
-    assert.match(composer, /label: "Attachment"/u);
-    assert.match(composer, /Immich library and ComfyUI/u, 'Photo action must expose the existing Media Brain authority');
-    assert.match(composer, /Existing media authority/u, 'Attachment action must reuse the existing Media authority');
+    assert.match(composer, /label: "照片"/u);
+    assert.match(composer, /label: "附件"/u);
+    assert.match(composer, /照片库与智能编辑/u, 'Photo action must expose the existing Media Brain authority through Product language');
+    assert.match(composer, /媒体与文件/u, 'Attachment action must reuse the existing Media authority through Product language');
+    assert.doesNotMatch(composer, /Immich|ComfyUI/u, 'normal Product chrome must not expose Media provider inventory');
     assert.match(overlay, /import \{ MediaWorkspace \} from "\.\.\/MediaWorkspace"/u);
     assert.match(overlay, /overlay === "photo" \|\| overlay === "attachment"/u, 'Product relationship overlays must route media actions to MediaWorkspace');
   } else {

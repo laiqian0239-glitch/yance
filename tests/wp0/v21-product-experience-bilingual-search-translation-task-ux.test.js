@@ -156,8 +156,10 @@ test('bilingual search panel renders evidence and truthful bounded translation l
   assert.match(panel, /aria-live=["']polite["']/u);
   assert.match(panel, /<progress\b/u);
   assert.match(panel, /cancellable/u);
-  assert.match(panel, />\s*Cancel\s*</u);
-  assert.match(panel, />\s*Retry\s*</u);
+  assert.match(panel, />\s*取消\s*</u);
+  assert.match(panel, />\s*重试\s*</u);
+  assert.match(panel, /翻译任务/u);
+  assert.match(panel, /消息、姓名或中文翻译/u);
   assert.match(panel, /setTimeout\s*\(/u);
   assert.match(panel, /clearTimeout\s*\(/u);
   assert.match(panel, /queued|running/u);
@@ -195,4 +197,15 @@ test('translation completion refreshes the latest query instead of an effect-cap
   assert.match(panel, /latestQuery\.current\s*=\s*query/u);
   assert.match(panel, /runSearch\(latestQuery\.current\)/u);
   assert.doesNotMatch(panel, /nextStatus\s*===\s*"success"\s*&&\s*query\.trim\(\)[\s\S]{0,160}runSearch\(query\)/u);
+});
+
+test('translation status chrome localizes unknown runtime states instead of exposing provider strings', () => {
+  const panel = readOrEmpty(PANEL_PATH);
+  assert.match(panel, /if\s*\(!status\)\s*return\s*["']已更新["']/u);
+  assert.match(panel, /return\s*["']状态未知["']/u);
+  assert.doesNotMatch(panel, /return\s+status\s*\|\|\s*["']已更新["']/u);
+  assert.match(
+    panel,
+    /activeJob\.durableState\s*\?\s*<span>\{translationStatusLabel\(activeJob\.durableState\)\}<\/span>\s*:\s*null/u,
+  );
 });

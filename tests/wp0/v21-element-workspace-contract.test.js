@@ -60,7 +60,7 @@ test('the official module owns Yance UI while the minimal patch only adds the mi
     const shell = readText(PRODUCT_SENTINEL);
     assert.match(workspace, /ProductExperienceShell/u, 'YanceWorkspace must stay a thin Product Experience composition root');
     assert.match(shell, /data-yance-workspace/u, 'ProductExperienceShell must own the Yance workspace identity');
-    assert.match(shell, /aria-label=["']Yance Living Relationship OS["']/u, 'ProductExperienceShell must expose an accessible Yance label');
+    assert.match(shell, /aria-label=["']Yance 关系智能操作系统["']/u, 'ProductExperienceShell must expose the current accessible Yance relationship intelligence label');
     for (const authority of ['PeopleSurface', 'RelationshipAssistant', 'RelationshipOverlayHost']) {
       assert.match(shell, new RegExp(authority, 'u'), `ProductExperienceShell must compose ${authority}`);
     }
@@ -160,7 +160,7 @@ test('the right workspace remains inside the unified Element shell and is restor
     const shell = readText(PRODUCT_SENTINEL);
     const preferences = readText('integration/element-module/src/product-experience/experiencePreferences.ts');
     assert.match(workspace, /ProductExperienceShell/u);
-    assert.match(shell, /aria-label=["']Yance Living Relationship OS["']/u);
+    assert.match(shell, /aria-label=["']Yance 关系智能操作系统["']/u);
     assert.match(shell, /data-yance-workspace/u);
     assert.match(preferences, /localStorage\.getItem/u);
     assert.match(preferences, /localStorage\.setItem/u);

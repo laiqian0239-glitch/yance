@@ -24,10 +24,19 @@ function allProductSource() {
   return out.join('\n');
 }
 
-test('Action Dock exposes Photo Voice Live and Attachment in one composer interaction layer', () => {
+test('Action Dock exposes Chinese relationship tools while preserving exact action kinds', () => {
   const accessory = readOrEmpty('integration/element-module/src/product-experience/ProductComposerAccessory.tsx');
-  for (const label of ['Photo', 'Voice', 'Live', 'Attachment']) {
-    assert.match(accessory, new RegExp(`\\b${label}\\b`, 'u'));
+  for (const [label, kind] of [
+    ['照片', 'photo'],
+    ['语音', 'voice'],
+    ['实时陪伴', 'live'],
+    ['附件', 'attachment'],
+  ]) {
+    assert.match(
+      accessory,
+      new RegExp(`label:\\s*["']${label}["'],\\s*kind:\\s*["']${kind}["']`, 'u'),
+      `${label} must remain paired with ${kind}`,
+    );
   }
   assert.match(accessory, /Popover/u);
   assert.match(accessory, /roomId/u);
