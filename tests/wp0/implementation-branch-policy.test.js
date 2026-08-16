@@ -1018,6 +1018,113 @@ test('authorization proposal transport rejects a rename disguised as a single de
   }
 });
 
+test('root AGENTS protocol document transport is exact, regular and never grants implementation authority', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-root-protocol-transport-'));
+  const git = (...args) => execFileSync('git', args, {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: isolatedGitEnvironment(root)
+  }).trim();
+  const write = (repositoryPath, content) => {
+    const filePath = path.join(root, ...repositoryPath.split('/'));
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, content);
+  };
+  const evaluate = (branch, trustedMainHead, evaluatedHead) => evaluateDelegatedGovernanceAuthorizationProposal({
+    branch,
+    trustedPolicyRoot: root,
+    trustedMainHead,
+    evaluatedHead
+  });
+
+  try {
+    git('init', '-b', 'main');
+    git('config', 'user.name', 'Yance Test');
+    git('config', 'user.email', 'yance-test@example.invalid');
+    write('.base', 'base\n');
+    write('legacy-protocol.md', '# Fast Closure protocol\n');
+    git('add', '.base', 'legacy-protocol.md');
+    git('commit', '-m', 'base');
+    const base = git('rev-parse', 'HEAD');
+
+    const branch = 'docs/root-protocol-transport';
+    git('switch', '-c', branch);
+    write('AGENTS.md', '# Yance Agent Execution Protocol\n');
+    git('add', 'AGENTS.md');
+    git('commit', '-m', 'add root protocol');
+    const evaluatedHead = git('rev-parse', 'HEAD');
+
+    const accepted = evaluate(branch, base, evaluatedHead);
+    assert.equal(accepted.pass, true, JSON.stringify(accepted));
+    assert.equal(accepted.mode, 'ROOT_PROTOCOL_DOCUMENT_TRANSPORT');
+    assert.equal(accepted.implementationAuthorityGranted, false);
+
+    const gate = checkRuntimeTargetGate({
+      branch,
+      changedFiles: ['AGENTS.md'],
+      implementationBranchOptions: {
+        evaluatedHead,
+        evaluatedRepositoryRoot: root,
+        delegatedGovernance: {
+          generic: {
+            trustedPolicyRoot: root,
+            trustedMainHead: base,
+            listAuthorizationPaths: () => []
+          }
+        }
+      },
+      authorizationProposal: {
+        trustedPolicyRoot: root,
+        trustedMainHead: base,
+        evaluatedHead
+      }
+    });
+    assert.equal(gate.pass, true, JSON.stringify(gate));
+    assert.equal(gate.authorityMode, 'ROOT_PROTOCOL_DOCUMENT_TRANSPORT');
+    assert.equal(gate.implementationAuthorityGranted, false);
+
+    write('README.md', 'adjacent path\n');
+    git('add', 'README.md');
+    git('commit', '-m', 'add adjacent path');
+    const extraPathHead = git('rev-parse', 'HEAD');
+    const extraPath = evaluate(branch, base, extraPathHead);
+    assert.equal(extraPath.pass, false, 'AGENTS transport must reject any adjacent changed path');
+
+    git('switch', 'main');
+    const executableBranch = 'docs/root-protocol-executable';
+    git('switch', '-c', executableBranch);
+    write('AGENTS.md', '# executable protocol\n');
+    git('add', 'AGENTS.md');
+    git('update-index', '--chmod=+x', 'AGENTS.md');
+    git('commit', '-m', 'add executable root protocol');
+    const executableHead = git('rev-parse', 'HEAD');
+    const executable = evaluate(executableBranch, base, executableHead);
+    assert.equal(executable.pass, false, 'AGENTS transport must require mode 100644');
+
+    git('switch', 'main');
+    const renameBranch = 'docs/root-protocol-rename';
+    git('switch', '-c', renameBranch);
+    git('mv', 'legacy-protocol.md', 'AGENTS.md');
+    git('commit', '-m', 'rename legacy protocol into root descriptor');
+    const renameHead = git('rev-parse', 'HEAD');
+    const renamed = evaluate(renameBranch, base, renameHead);
+    assert.equal(renamed.pass, false, 'AGENTS transport must reject rename ambiguity');
+
+    git('switch', 'main');
+    const unrelatedBranch = 'feature/unreviewed-release';
+    git('switch', '-c', unrelatedBranch);
+    write('README.md', 'unrelated\n');
+    git('add', 'README.md');
+    git('commit', '-m', 'unrelated documentation');
+    const unrelatedHead = git('rev-parse', 'HEAD');
+    const unrelated = evaluate(unrelatedBranch, base, unrelatedHead);
+    assert.equal(unrelated.pass, false, 'root protocol transport must not widen arbitrary branch admission');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('malformed, impossible-date and arbitrary branches remain denied', () => {
   for (const branch of [
     'rebuild/windows-release-closure-latest',
